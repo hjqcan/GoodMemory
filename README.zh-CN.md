@@ -18,6 +18,18 @@ GoodMemory 不是 LLM、agent framework、向量数据库，也不是通用 RAG 
 - Local-first 存储：Bun 默认使用本地 SQLite；需要时可以接 Postgres、注入 adapter、启用 embedding provider。
 - 面向发布的验证路径：确定性测试、live eval、provider-backed eval、package smoke、quality gate。
 
+## 从这里开始：Codex 或 Claude Code
+
+```bash
+npm install -g goodmemory@0.5.1
+goodmemory setup
+```
+
+无需注册账号或依赖托管服务。GoodMemory 默认把记忆保存在本地 SQLite 中，接入生命周期
+hooks 和只读 MCP 检查能力，并让持久写回保持可选。运行 `goodmemory status` 即可核验安装。
+
+使用其他 MCP client，或要接入自己的应用？请[选择对应的接入路径](#选择你的接入路径)。
+
 ## 基准结果（Benchmark Results）
 
 GoodMemory 把「当前生产声明」「带版本的历史证据」和「内部研究」分开呈现。一个数字只有在

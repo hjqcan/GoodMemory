@@ -30,6 +30,21 @@ and the model runtime.
 - Evaluation and release evidence paths for deterministic tests, live evals,
   provider-backed evals, package smoke tests, and quality gates.
 
+## Start Here: Codex Or Claude Code
+
+```bash
+npm install -g goodmemory@0.5.1
+goodmemory setup
+```
+
+No account or hosted service is required. GoodMemory stores memory locally in
+SQLite by default, wires lifecycle hooks plus read-only MCP inspection, and
+keeps durable writeback opt-in. Verify the installation with
+`goodmemory status`.
+
+Using another MCP client or integrating an application? [Choose an integration
+path](#choose-your-integration-path).
+
 ## Benchmark Results
 
 GoodMemory separates current-production claims, versioned historical evidence,
