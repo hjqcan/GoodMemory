@@ -155,6 +155,7 @@ function resolveAISDKRetryDelayMs(
     message.includes("connection reset") ||
     message.includes("econnreset") ||
     message.includes("certificate verification") ||
+    message.includes("err_tls_cert_altname_invalid") ||
     message.includes("socket connection was closed unexpectedly") ||
     message.includes("socket hang up") ||
     message.includes("model_cooldown") ||

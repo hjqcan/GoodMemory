@@ -677,6 +677,33 @@ describe("model adapters", () => {
     expect(delays).toEqual([2_000, 5_000]);
   });
 
+  it("retries transient TLS certificate hostname mismatches", async () => {
+    let attempts = 0;
+    const delays: number[] = [];
+
+    const result = await withAISDKRetries(
+      async () => {
+        attempts += 1;
+        if (attempts < 3) {
+          throw new Error(
+            "Hostname/IP does not match certificate's altnames: Host: openrouter.ai. is not in the cert's altnames (code: ERR_TLS_CERT_ALTNAME_INVALID)",
+          );
+        }
+
+        return "recovered";
+      },
+      {
+        sleep: async (ms) => {
+          delays.push(ms);
+        },
+      },
+    );
+
+    expect(result).toBe("recovered");
+    expect(attempts).toBe(3);
+    expect(delays).toEqual([2_000, 5_000]);
+  });
+
   it("retries transient provider model cooldown errors", async () => {
     let attempts = 0;
     const delays: number[] = [];
