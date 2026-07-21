@@ -261,6 +261,7 @@
     "eval:phase-72-memgym": "bun run scripts/run-phase-72-memgym.ts",
     "eval:phase-72-minteval-smoke": "bun run scripts/run-phase-72-minteval-smoke.ts",
     "eval:phase-74-generalization": "bun run scripts/run-phase-74-generalization.ts",
+    "eval:phase-74-protection-evidence": "bun run scripts/build-phase-74-protection-evidence.ts",
     "aggregate:phase-74-generalization": "bun run scripts/aggregate-phase-74-generalization.ts",
     "prepare:phase-74-datasets": "bun run scripts/prepare-phase-74-datasets.ts",
     "gate:phase-74-storage-scale": "bun run scripts/run-phase-74-storage-scale-gate.ts",

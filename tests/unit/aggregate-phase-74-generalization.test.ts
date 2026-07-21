@@ -33,6 +33,10 @@ import {
   buildPhase74ModelUsageEvidence,
   validatePhase74ModelUsageLedger,
 } from "../../src/eval/modelUsage";
+import {
+  buildPhase74FrozenProtectionEvidence,
+  hashPhase74ProtectionCaseIds,
+} from "../../src/eval/phase74ProtectionEvidence";
 import { buildPhase74ProtocolScoringIdentity } from "../../src/eval/phase74ProtocolScoring";
 import { buildPhase74ReplicateComparison } from "../../src/eval/phase74Replicates";
 import {
@@ -644,34 +648,72 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
 
 async function writeProtectionArtifact(root: string): Promise<string> {
   const path = join(root, "frozen-protection.json");
-  const formatDeltas = Object.fromEntries(FORMATS.map((format) => [
-    format,
-    [
-      { delta: format === "json_locale_note" ? -0.02 : -0.005, name: "beam" },
-      { delta: 0, name: "memory-agent-bench" },
-    ],
-  ]));
-  await writeJson(path, {
-    artifactKind: "phase74-frozen-protection-evidence",
-    e4: { formatDeltas },
-    promotion: {
-      protections: [
-        { delta: -0.005, name: "beam" },
-        { delta: 0, name: "memory-agent-bench" },
-      ],
-      safety: {
-        abstentionAccuracyDelta: 0,
-        hallucinationRateDelta: 0,
-        privacyPassRateDelta: 0,
-        updateCorrectnessDelta: 0,
+  const caseIds = ["protection-a", "protection-b"];
+  const identity = {
+    dataset: { id: "protection-suite", sha256: "1".repeat(64) },
+    judge: { id: "judge", sha256: "2".repeat(64) },
+    model: { id: "model", sha256: "3".repeat(64) },
+    pipeline: { id: "pipeline", sha256: "4".repeat(64) },
+    population: {
+      caseCount: caseIds.length,
+      caseIdsSha256: hashPhase74ProtectionCaseIds(caseIds),
+      id: "protection-population",
+    },
+    prompt: { id: "prompt", sha256: "5".repeat(64) },
+    source: { id: "source", sha256: "6".repeat(64) },
+  };
+  const runArtifactPaths: string[] = [];
+  for (const replicate of [1, 2, 3] as const) {
+    const rawArtifactPath = join(root, `protection-raw-${replicate}.jsonl`);
+    const raw = `protection raw ${replicate}\n`;
+    await writeFile(rawArtifactPath, raw, "utf8");
+    const runArtifactPath = join(root, `protection-run-${replicate}.json`);
+    await writeJson(runArtifactPath, {
+      artifactKind: "phase74-frozen-protection-run",
+      executionFailures: 0,
+      identity,
+      rawArtifact: {
+        path: rawArtifactPath,
+        sha256: sha256(raw),
       },
-    },
-    schemaVersion: 1,
-    source: {
-      identityHashes: ["b".repeat(64)],
-      runIds: ["protection-run-1"],
-    },
-  });
+      replicate,
+      rows: caseIds.map((caseId) => ({
+        baseline: {
+          e4: Object.fromEntries(FORMATS.map((format) => [format, {
+            beam: 0.8,
+            "memory-agent-bench": 0.8,
+          }])),
+          protections: { beam: 0.8, "memory-agent-bench": 0.8 },
+          safety: {
+            abstentionAccuracy: 0.9,
+            hallucinationRate: 0.1,
+            privacyPassRate: 1,
+            updateCorrectness: 0.9,
+          },
+        },
+        candidate: {
+          e4: Object.fromEntries(FORMATS.map((format) => [format, {
+            beam: format === "json_locale_note" ? 0.78 : 0.795,
+            "memory-agent-bench": 0.8,
+          }])),
+          protections: { beam: 0.795, "memory-agent-bench": 0.8 },
+          safety: {
+            abstentionAccuracy: 0.9,
+            hallucinationRate: 0.1,
+            privacyPassRate: 1,
+            updateCorrectness: 0.9,
+          },
+        },
+        caseId,
+      })),
+      runId: `protection-run-${replicate}`,
+      schemaVersion: 1,
+    });
+    runArtifactPaths.push(runArtifactPath);
+  }
+  await writeJson(path, await buildPhase74FrozenProtectionEvidence({
+    runArtifactPaths,
+  }));
   return path;
 }
 
@@ -1392,7 +1434,25 @@ describe("Phase 74 frozen artifact aggregation", () => {
       promotionStage: "E3",
       protectionArtifactPath,
       runDirectories: fixture.runDirectories,
-    })).rejects.toThrow("protection artifact");
+    })).rejects.toThrow("protection promotion");
+  });
+
+  it("rejects legacy hand-authored protection evidence", async () => {
+    const fixture = await createArtifactFixture();
+    const protectionArtifactPath = join(fixture.root, "legacy-protection.json");
+    await writeJson(protectionArtifactPath, {
+      artifactKind: "phase74-frozen-protection-evidence",
+      e4: { formatDeltas: {} },
+      promotion: { protections: [], safety: {} },
+      schemaVersion: 1,
+      source: { identityHashes: ["a".repeat(64)], runIds: ["run-1"] },
+    });
+
+    await expect(aggregatePhase74GeneralizationArtifacts({
+      promotionStage: "E3",
+      protectionArtifactPath,
+      runDirectories: fixture.runDirectories,
+    })).rejects.toThrow("schemaVersion 2");
   });
 
   it("rejects cross-stage, E4, and model-usage population drift", async () => {

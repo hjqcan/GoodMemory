@@ -24,6 +24,7 @@ import type {
 import type { Phase74BenchmarkFamily } from "../src/eval/phase74Datasets";
 import { PHASE74_EXPERIMENT_ARMS } from "../src/eval/phase74ExperimentDesign";
 import { assertPhase74ExperimentIdentityContract } from "../src/eval/phase74ExperimentIdentity";
+import { loadPhase74FrozenProtectionEvidence } from "../src/eval/phase74ProtectionEvidence";
 import {
   buildPhase74IngestionUsageAllocation,
   buildPhase74IngestionUsagePaths,
@@ -191,10 +192,6 @@ interface ProtectionArtifact {
     safety: Phase74PromotionGateInput["safety"];
   };
   sha256: string;
-  source: {
-    identityHashes: string[];
-    runIds: string[];
-  };
 }
 
 export interface Phase74AggregationCliOptions {
@@ -2166,140 +2163,13 @@ function buildStageAggregation(input: {
   };
 }
 
-function parseProtectionEvidence(
-  value: unknown,
-  label: string,
-): Phase74ProtectionEvidence[] {
-  if (!Array.isArray(value) || value.length === 0) {
-    throw new Error(`Phase 74 ${label} must be a non-empty array.`);
-  }
-  const evidence = value.map((item, index) => {
-    const record = recordValue(item, `${label}[${index}]`);
-    assertExactKeys(record, ["delta", "name"], `${label}[${index}]`);
-    return {
-      delta: finiteValue(record.delta, `${label}[${index}].delta`),
-      name: stringValue(record.name, `${label}[${index}].name`),
-    };
-  });
-  if (new Set(evidence.map(({ name }) => name)).size !== evidence.length) {
-    throw new Error(`Phase 74 ${label} contains duplicate protection names.`);
-  }
-  return evidence;
-}
-
 async function loadProtectionArtifact(path: string): Promise<ProtectionArtifact> {
-  const raw = await readFile(path, "utf8");
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw) as unknown;
-  } catch (error) {
-    throw new Error(`Phase 74 protection artifact at ${path} is not valid JSON.`, {
-      cause: error,
-    });
-  }
-  const artifact = recordValue(parsed, "protection artifact");
-  assertExactKeys(artifact, [
-    "artifactKind",
-    "e4",
-    "promotion",
-    "schemaVersion",
-    "source",
-  ], "protection artifact");
-  if (
-    artifact.artifactKind !== "phase74-frozen-protection-evidence" ||
-    artifact.schemaVersion !== 1
-  ) {
-    throw new Error("Phase 74 protection artifact kind or schemaVersion is invalid.");
-  }
-  const source = recordValue(artifact.source, "protection artifact source");
-  assertExactKeys(source, ["identityHashes", "runIds"], "protection artifact source");
-  if (!Array.isArray(source.identityHashes) || !Array.isArray(source.runIds)) {
-    throw new Error("Phase 74 protection artifact source lists are required.");
-  }
-  const identityHashes = source.identityHashes.map((value) =>
-    sha256Value(value, "protection source identityHash")
-  );
-  const runIds = source.runIds.map((value) =>
-    stringValue(value, "protection source runId")
-  );
-  if (
-    identityHashes.length === 0 ||
-    identityHashes.length !== runIds.length ||
-    new Set(identityHashes).size !== identityHashes.length ||
-    new Set(runIds).size !== runIds.length
-  ) {
-    throw new Error("Phase 74 protection artifact source identities are invalid.");
-  }
-  const e4 = recordValue(artifact.e4, "protection artifact E4");
-  assertExactKeys(e4, ["formatDeltas"], "protection artifact E4");
-  const formatDeltas = recordValue(e4.formatDeltas, "protection E4 formatDeltas");
-  assertExactKeys(
-    formatDeltas,
-    EVIDENCE_LEDGER_FORMATS,
-    "protection E4 formatDeltas",
-  );
-  const parsedFormatDeltas = Object.fromEntries(
-    EVIDENCE_LEDGER_FORMATS.map((format) => [
-      format,
-      parseProtectionEvidence(
-        formatDeltas[format],
-        `protection E4 ${format}`,
-      ),
-    ]),
-  ) as Record<EvidenceLedgerFormat, Phase74ProtectionEvidence[]>;
-  const expectedNames = parsedFormatDeltas.prose.map(({ name }) => name).sort();
-  for (const format of EVIDENCE_LEDGER_FORMATS) {
-    if (
-      parsedFormatDeltas[format].map(({ name }) => name).sort().join("\0") !==
-      expectedNames.join("\0")
-    ) {
-      throw new Error("Phase 74 E4 protection populations drift across formats.");
-    }
-  }
-  const promotion = recordValue(
-    artifact.promotion,
-    "protection artifact promotion",
-  );
-  assertExactKeys(
-    promotion,
-    ["protections", "safety"],
-    "protection artifact promotion",
-  );
-  const safety = recordValue(promotion.safety, "protection safety");
-  assertExactKeys(safety, [
-    "abstentionAccuracyDelta",
-    "hallucinationRateDelta",
-    "privacyPassRateDelta",
-    "updateCorrectnessDelta",
-  ], "protection safety");
+  const { evidence, sha256: artifactSha256 } =
+    await loadPhase74FrozenProtectionEvidence(path);
   return {
-    e4: parsedFormatDeltas,
-    promotion: {
-      protections: parseProtectionEvidence(
-        promotion.protections,
-        "promotion protections",
-      ),
-      safety: {
-        abstentionAccuracyDelta: finiteValue(
-          safety.abstentionAccuracyDelta,
-          "safety abstentionAccuracyDelta",
-        ),
-        hallucinationRateDelta: finiteValue(
-          safety.hallucinationRateDelta,
-          "safety hallucinationRateDelta",
-        ),
-        privacyPassRateDelta: finiteValue(
-          safety.privacyPassRateDelta,
-          "safety privacyPassRateDelta",
-        ),
-        updateCorrectnessDelta: finiteValue(
-          safety.updateCorrectnessDelta,
-          "safety updateCorrectnessDelta",
-        ),
-      },
-    },
-    sha256: sha256(raw),
-    source: { identityHashes, runIds },
+    e4: evidence.e4.formatDeltas,
+    promotion: evidence.promotion,
+    sha256: artifactSha256,
   };
 }
 
