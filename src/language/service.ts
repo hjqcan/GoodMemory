@@ -511,6 +511,23 @@ export function createLanguageService(
           intersection += 1;
         }
       }
+      if (options?.excludeStopwords && pack.id === "en") {
+        const leftRaw = new Set(pack.tokenizeForScoring(left, "overlap"));
+        const rightRaw = new Set(pack.tokenizeForScoring(right, "overlap"));
+        const leftAnchors = pack.tokenizeForScoring(left, "bm25", options);
+        const rightAnchors = new Set(
+          pack.tokenizeForScoring(right, "bm25", options),
+        );
+        if (
+          leftRaw.has("before") &&
+          rightRaw.has("before") &&
+          leftAnchors.some((token) => rightAnchors.has(token))
+        ) {
+          leftTokens.add("before");
+          rightTokens.add("before");
+          intersection += 1;
+        }
+      }
       return intersection / Math.max(leftTokens.size, rightTokens.size);
     },
     localesCompatible(left, right) {

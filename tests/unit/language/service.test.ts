@@ -206,6 +206,20 @@ describe("language service", () => {
         options,
       ),
     ).toBe(0);
+    expect(
+      service.buildSearchTerms(
+        "What happened the day before the appointment?",
+        resolved,
+      ),
+    ).toContain("before");
+    expect(
+      service.tokenOverlap(
+        "What happened before I went to bed?",
+        "The night before bed was restless.",
+        resolved,
+        options,
+      ),
+    ).toBeGreaterThan(0);
     expect(service.buildSearchTerms("Never use npm.", resolved)).toContain("npm");
     expect(service.buildSearchTerms("Never use bun.", resolved)).toContain("bun");
   });
@@ -280,7 +294,7 @@ describe("language service", () => {
       "zh-Hant",
     ]);
     expect(manifest.packs.find(({ id }) => id === "en")).toMatchObject({
-      analyzerVersion: "6",
+      analyzerVersion: "7",
       apiVersion: 1,
       compatibilityGroup: "en",
       defaultLocale: "en-US",

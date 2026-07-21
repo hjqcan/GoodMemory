@@ -1577,7 +1577,7 @@ function maybeExtractCrossClauseCandidatesFromMessage(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "6",
+    analyzerVersion: "7",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",
@@ -1613,7 +1613,10 @@ export function createEnglishLanguagePack(): LanguagePack {
     },
     buildSearchTerms(text: string): string[] {
       return tokenizeUnicodeText(text, "en-US")
-        .filter((token) => token.length >= 2 && !TOKEN_STOPWORDS.has(token));
+        .filter((token) =>
+          token.length >= 2 &&
+          (!TOKEN_STOPWORDS.has(token) || token === "before")
+        );
     },
     decomposeQuery: decomposeEnglishQuery,
     analyzeQuery: analyzeEnglishQuery,
