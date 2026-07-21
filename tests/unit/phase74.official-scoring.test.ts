@@ -136,6 +136,7 @@ describe("Phase 74 protocol-compatible scoring", () => {
     expect(JSON.parse(requestBody)).toMatchObject({
       max_tokens: 10,
       model: "gpt-5.5",
+      reasoning_effort: "medium",
       temperature: 0,
     });
     expect(usageOrder).toEqual(["intent", "provider", "terminal"]);

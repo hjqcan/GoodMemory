@@ -162,9 +162,15 @@ describe("Phase 74 live provider boundary", () => {
     );
 
     expect(identity).toEqual({
+      adapterVersion: "openai-compatible-embedding-v1",
+      batchMaxConcurrency: 8,
+      batchMaxInputs: 256,
+      batchMaxUtf8Bytes: 200_000,
       gateway: "https://openrouter.ai/api/v1",
       model: "text-embedding-3-small",
       provider: "openai",
+      requestTimeoutMs: 45_000,
+      retryLimit: 4,
     });
     expect(JSON.stringify(identity)).not.toContain("embedding-key");
     expect(buildPhase74EmbeddingIdentity(
@@ -211,6 +217,7 @@ describe("Phase 74 live provider boundary", () => {
     expect(body).toMatchObject({
       max_tokens: 512,
       model: "gpt-5.6-terra",
+      reasoning_effort: "medium",
       temperature: 0,
     });
     expect(requestBody).not.toContain("questionType");
@@ -278,19 +285,23 @@ describe("Phase 74 live provider boundary", () => {
   it("attributes correctness judging only to the independent judge branch", async () => {
     const events: AttributedModelUsageAttempt[] = [];
     const intents: AttributedModelUsageIntent[] = [];
+    let requestBody = "";
     const judge = createPhase74LiveJudge({
       events,
-      fetch: async () => new Response(JSON.stringify({
-        choices: [{
-          finish_reason: "stop",
-          index: 0,
-          message: {
-            content: JSON.stringify({ correct: true, reasoning: "Equivalent." }),
-            role: "assistant",
-          },
-        }],
-        usage: { completion_tokens: 3, prompt_tokens: 15 },
-      }), { headers: { "content-type": "application/json" } }),
+      fetch: async (_url, init) => {
+        requestBody = String(init?.body);
+        return new Response(JSON.stringify({
+          choices: [{
+            finish_reason: "stop",
+            index: 0,
+            message: {
+              content: JSON.stringify({ correct: true, reasoning: "Equivalent." }),
+              role: "assistant",
+            },
+          }],
+          usage: { completion_tokens: 3, prompt_tokens: 15 },
+        }), { headers: { "content-type": "application/json" } });
+      },
       intents,
       model: resolvePhase74LiveModels(env).judge,
     });
@@ -302,6 +313,11 @@ describe("Phase 74 live provider boundary", () => {
       purpose: "e4:prose",
       question: "Which database is current?",
     })).toEqual({ correct: true });
+    expect(JSON.parse(requestBody)).toMatchObject({
+      max_tokens: 512,
+      reasoning_effort: "medium",
+      temperature: 0,
+    });
     expect(events).toEqual([
       expect.objectContaining({
         branch: "judge",

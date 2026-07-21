@@ -130,6 +130,7 @@ describe("provider layer contract", () => {
         model: "gpt-5",
       },
       requestTimeoutMs: 1234,
+      retryLimit: 4,
       reasoningEffort: "low",
       temperature: 0,
       createMemoryExtractor: (input) => {
@@ -157,7 +158,10 @@ describe("provider layer contract", () => {
       provider: "openai",
       model: "gpt-5",
     });
-    expect(extractorCalls[0]?.dependencies).toEqual({ requestTimeoutMs: 1234 });
+    expect(extractorCalls[0]?.dependencies).toEqual({
+      requestTimeoutMs: 1234,
+      retryOptions: { retryLimit: 4 },
+    });
     expect(extractorCalls[0]?.maxOutputTokens).toBe(4_096);
     expect(extractorCalls[0]?.reasoningEffort).toBe("low");
     expect(extractorCalls[0]?.temperature).toBe(0);
@@ -167,11 +171,15 @@ describe("provider layer contract", () => {
     const embeddingCalls: Array<Record<string, unknown>> = [];
 
     const adapter = createProviderEmbeddingAdapter({
+      batchMaxConcurrency: 2,
+      batchMaxInputs: 64,
+      batchMaxUtf8Bytes: 12_345,
       model: {
         provider: "openai",
         model: "text-embedding-3-small",
       },
       requestTimeoutMs: 1234,
+      retryLimit: 4,
       createEmbeddingAdapter: (input) => {
         embeddingCalls.push(input as unknown as Record<string, unknown>);
         const embeddingAdapter: EmbeddingAdapter = {
@@ -191,7 +199,15 @@ describe("provider layer contract", () => {
       provider: "openai",
       model: "text-embedding-3-small",
     });
-    expect(embeddingCalls[0]?.dependencies).toEqual({ requestTimeoutMs: 1234 });
+    expect(embeddingCalls[0]).toMatchObject({
+      batchMaxConcurrency: 2,
+      batchMaxInputs: 64,
+      batchMaxUtf8Bytes: 12_345,
+      dependencies: {
+        requestTimeoutMs: 1234,
+        retryOptions: { retryLimit: 4 },
+      },
+    });
   });
 
   it("routes provider-backed recall router creation through the same provider layer", async () => {

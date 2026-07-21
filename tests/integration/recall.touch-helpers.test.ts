@@ -11,6 +11,73 @@ import {
 } from "../../src/storage/memory";
 
 describe("recall touch helpers", () => {
+  it("serializes fact touch writes that share one projection manifest", async () => {
+    const baseDocumentStore = createInMemoryDocumentStore();
+    const sessionStore = createInMemorySessionStore();
+    let activeFactWrites = 0;
+    let maxConcurrentFactWrites = 0;
+    const documentStore: DocumentStore = {
+      async set(collection, id, document) {
+        if (collection === "facts" && id.startsWith("fact-")) {
+          activeFactWrites += 1;
+          maxConcurrentFactWrites = Math.max(
+            maxConcurrentFactWrites,
+            activeFactWrites,
+          );
+          await new Promise((resolve) => setTimeout(resolve, 5));
+          activeFactWrites -= 1;
+        }
+        return baseDocumentStore.set(collection, id, document);
+      },
+      get: baseDocumentStore.get.bind(baseDocumentStore),
+      update: baseDocumentStore.update.bind(baseDocumentStore),
+      query: baseDocumentStore.query.bind(baseDocumentStore),
+      writeBatchIfUnchanged: baseDocumentStore.writeBatchIfUnchanged!.bind(
+        baseDocumentStore,
+      ),
+      delete: baseDocumentStore.delete.bind(baseDocumentStore),
+    };
+    const now = new Date("2026-01-10T00:00:00.000Z");
+    const memory = createGoodMemory({
+      adapters: { documentStore, sessionStore },
+      storage: { provider: "memory" },
+      testing: { now: () => now },
+    });
+
+    for (let index = 1; index <= 3; index += 1) {
+      await baseDocumentStore.set(
+        "facts",
+        `fact-${index}`,
+        createFactMemory({
+          category: "project",
+          content: `The shared rollout blocker is dependency ${index}.`,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          id: `fact-${index}`,
+          source: {
+            extractedAt: "2026-01-01T00:00:00.000Z",
+            method: "explicit",
+          },
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          userId: "u-1",
+          workspaceId: "workspace-a",
+        }),
+      );
+    }
+
+    const result = await memory.recall({
+      query: "What are the shared rollout blockers?",
+      retrievalProfile: "coding_agent",
+      scope: { userId: "u-1", workspaceId: "workspace-a" },
+    });
+
+    expect(result.facts.map(({ id }) => id).sort()).toEqual([
+      "fact-1",
+      "fact-2",
+      "fact-3",
+    ]);
+    expect(maxConcurrentFactWrites).toBe(1);
+  });
+
   it("starts bounded feedback reinforcement writes concurrently on the recall hot path", async () => {
     const baseDocumentStore = createInMemoryDocumentStore();
     const sessionStore = createInMemorySessionStore();

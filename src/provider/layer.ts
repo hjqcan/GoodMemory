@@ -9,6 +9,7 @@ import type {
 import type { EmbeddingAdapter } from "../embedding/contracts";
 import type {
   AISDKModelConfig,
+  AISDKRetryOptions,
   OpenAICompatibleReasoningEffort,
 } from "./ai-sdk-runtime";
 import { createAISDKEmbeddingAdapter } from "./ai-sdk-runtime";
@@ -52,6 +53,9 @@ interface ProviderMemoryExtractorFactory {
 
 interface ProviderEmbeddingAdapterFactory {
   (input: {
+    batchMaxConcurrency?: number;
+    batchMaxInputs?: number;
+    batchMaxUtf8Bytes?: number;
     dependencies?: ProviderRequestDependencies;
     model: AISDKModelConfig;
   }): EmbeddingAdapter;
@@ -103,6 +107,7 @@ const DEFAULT_PROVIDER_RECALL_PLAN_RETRY_LIMIT = 3;
 export interface ProviderRequestDependencies {
   modelUsageSink?: ModelUsageSink;
   requestTimeoutMs?: number;
+  retryOptions?: AISDKRetryOptions;
 }
 
 export interface ModelProviderDescriptorInput {
@@ -172,12 +177,15 @@ export function createProviderMemoryExtractor(input: {
   modelUsageSink?: ModelUsageSink;
   reasoningEffort?: OpenAICompatibleReasoningEffort;
   requestTimeoutMs?: number;
+  retryLimit?: number;
   temperature?: number;
 }): MemoryExtractor {
+  assertProviderRetryLimit(input.retryLimit, "memory extractor");
   return (input.createMemoryExtractor ?? createLLMMemoryExtractor)({
     dependencies: buildProviderRequestDependencies(
       input.requestTimeoutMs,
       input.modelUsageSink,
+      input.retryLimit,
     ),
     maxOutputTokens: input.maxOutputTokens,
     model: input.model,
@@ -205,6 +213,7 @@ export function createProviderConversationalMemoryExtractor(input: {
   modelUsageSink?: ModelUsageSink;
   reasoningEffort?: OpenAICompatibleReasoningEffort;
   requestTimeoutMs?: number;
+  retryLimit?: number;
   temperature?: number;
 }): MemoryExtractor {
   return createProviderMemoryExtractor({
@@ -220,20 +229,30 @@ export function createProviderConversationalMemoryExtractor(input: {
     modelUsageSink: input.modelUsageSink,
     reasoningEffort: input.reasoningEffort,
     requestTimeoutMs: input.requestTimeoutMs,
+    retryLimit: input.retryLimit,
     temperature: input.temperature,
   });
 }
 
 export function createProviderEmbeddingAdapter(input: {
+  batchMaxConcurrency?: number;
+  batchMaxInputs?: number;
+  batchMaxUtf8Bytes?: number;
   model: AISDKModelConfig;
   createEmbeddingAdapter?: ProviderEmbeddingAdapterFactory;
   modelUsageSink?: ModelUsageSink;
   requestTimeoutMs?: number;
+  retryLimit?: number;
 }): EmbeddingAdapter {
+  assertProviderRetryLimit(input.retryLimit, "embedding adapter");
   return (input.createEmbeddingAdapter ?? createAISDKEmbeddingAdapter)({
+    batchMaxConcurrency: input.batchMaxConcurrency,
+    batchMaxInputs: input.batchMaxInputs,
+    batchMaxUtf8Bytes: input.batchMaxUtf8Bytes,
     dependencies: buildProviderRequestDependencies(
       input.requestTimeoutMs,
       input.modelUsageSink,
+      input.retryLimit,
     ),
     model: input.model,
   });
@@ -392,12 +411,30 @@ export function createProviderListwiseReranker(input: {
 export function buildProviderRequestDependencies(
   requestTimeoutMs: number | undefined,
   modelUsageSink?: ModelUsageSink,
+  retryLimit?: number,
 ): ProviderRequestDependencies | undefined {
-  if (requestTimeoutMs === undefined && modelUsageSink === undefined) {
+  if (
+    requestTimeoutMs === undefined &&
+    modelUsageSink === undefined &&
+    retryLimit === undefined
+  ) {
     return undefined;
   }
   return {
     ...(modelUsageSink === undefined ? {} : { modelUsageSink }),
     ...(requestTimeoutMs === undefined ? {} : { requestTimeoutMs }),
+    ...(retryLimit === undefined ? {} : { retryOptions: { retryLimit } }),
   };
+}
+
+function assertProviderRetryLimit(
+  retryLimit: number | undefined,
+  adapter: string,
+): void {
+  if (
+    retryLimit !== undefined &&
+    (!Number.isSafeInteger(retryLimit) || retryLimit <= 0)
+  ) {
+    throw new Error(`Provider ${adapter} retryLimit must be a positive integer.`);
+  }
 }

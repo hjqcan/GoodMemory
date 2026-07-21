@@ -35,14 +35,16 @@ import type {
   OracleMatrixJudge,
   OracleMatrixReader,
 } from "./oracleMatrix";
+import {
+  PHASE74_EMBEDDING_CALL_CONFIGURATION,
+  PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
+} from "./phase74ProviderConfiguration";
 
 export const PHASE74_LANGUAGE_MODEL = "gpt-5.6-terra";
 export const PHASE74_JUDGE_MODEL = "gpt-5.5";
 export const PHASE74_GATEWAY = "https://ai.gurkiai.com/v1";
 export const PHASE74_EMBEDDING_GATEWAY = "https://openrouter.ai/api/v1";
 export const PHASE74_EMBEDDING_MODEL = "text-embedding-3-small";
-export const PHASE74_READER_MAX_OUTPUT_TOKENS = 512;
-export const PHASE74_READER_TEMPERATURE = 0;
 
 export const PHASE74_GENERIC_READER_SYSTEM_PROMPT = [
   "Answer the user's question using only the supplied memory evidence.",
@@ -113,10 +115,16 @@ export interface Phase74LiveModels {
 }
 
 export interface Phase74EmbeddingIdentity {
-  readonly [key: string]: string;
+  readonly [key: string]: number | string;
+  adapterVersion: "openai-compatible-embedding-v1";
+  batchMaxConcurrency: number;
+  batchMaxInputs: number;
+  batchMaxUtf8Bytes: number;
   gateway: string;
   model: string;
   provider: string;
+  requestTimeoutMs: number;
+  retryLimit: number;
 }
 
 export function buildPhase74EmbeddingIdentity(
@@ -126,6 +134,8 @@ export function buildPhase74EmbeddingIdentity(
     throw new Error("Phase 74 embedding identity requires a base URL.");
   }
   return {
+    adapterVersion: "openai-compatible-embedding-v1",
+    ...PHASE74_EMBEDDING_CALL_CONFIGURATION,
     gateway: model.baseURL,
     model: model.model,
     provider: model.provider,
@@ -315,6 +325,7 @@ export function createPhase74LiveReader(input: {
   onUsageEvent?: (event: AttributedModelUsageAttempt) => void;
   onUsageIntent?: (intent: AttributedModelUsageIntent) => void;
 }): OracleMatrixReader {
+  const configuration = PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.reader;
   return async (payload) => {
     const caseId = payload.caseId ?? "unattributed";
     const sink = createAttributedModelUsageSink({
@@ -337,11 +348,13 @@ export function createPhase74LiveReader(input: {
         run: async (report) => {
           const result = await requestOpenAICompatibleTextResult({
             fetch: input.fetch,
-            maxOutputTokens: PHASE74_READER_MAX_OUTPUT_TOKENS,
+            maxOutputTokens: configuration.maxOutputTokens,
             model: input.model,
             prompt: `Question:\n${payload.question}\n\nMemory evidence:\n${payload.context}`,
+            reasoningEffort: configuration.reasoningEffort,
             system: PHASE74_GENERIC_READER_SYSTEM_PROMPT,
-            temperature: PHASE74_READER_TEMPERATURE,
+            temperature: configuration.temperature,
+            timeoutMs: configuration.requestTimeoutMs,
           });
           report(result.usage ?? normalizeAISDKLanguageModelUsage(undefined));
           const answer = stripThinkingBlocks(result.text);
@@ -351,7 +364,7 @@ export function createPhase74LiveReader(input: {
           return answer;
         },
       });
-    }, { retryLimit: 3 });
+    }, { retryLimit: configuration.retryLimit });
   };
 }
 
@@ -368,6 +381,8 @@ export function createPhase74LiveJudge(input: {
   onUsageEvent?: (event: AttributedModelUsageAttempt) => void;
   onUsageIntent?: (intent: AttributedModelUsageIntent) => void;
 }): OracleMatrixJudge {
+  const configuration =
+    PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.judge.oracle;
   return async (payload) => {
     const sink = createAttributedModelUsageSink({
       branch: "judge",
@@ -389,7 +404,7 @@ export function createPhase74LiveJudge(input: {
         run: async (report) => {
           const result = await requestOpenAICompatibleObjectResult({
             fetch: input.fetch,
-            maxOutputTokens: PHASE74_READER_MAX_OUTPUT_TOKENS,
+            maxOutputTokens: configuration.maxOutputTokens,
             model: input.model,
             prompt: [
               `Question: ${payload.question}`,
@@ -397,13 +412,15 @@ export function createPhase74LiveJudge(input: {
               `Candidate answer: ${payload.answer}`,
             ].join("\n"),
             schema: correctnessSchema,
+            reasoningEffort: configuration.reasoningEffort,
             system: PHASE74_CORRECTNESS_JUDGE_SYSTEM_PROMPT,
-            temperature: 0,
+            temperature: configuration.temperature,
+            timeoutMs: configuration.requestTimeoutMs,
           });
           report(result.usage ?? normalizeAISDKLanguageModelUsage(undefined));
           return { correct: result.object.correct };
         },
       });
-    }, { retryLimit: 3 });
+    }, { retryLimit: configuration.retryLimit });
   };
 }

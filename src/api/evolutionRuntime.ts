@@ -190,12 +190,17 @@ async function applyRecallTouchHelpers(
     nextFeedback.map((feedback) => [feedback.id, feedback] as const),
   );
 
-  await Promise.all([
-    ...[...new Map(
-      [...pressureFacts, ...touchedFacts.values()].map((fact) => [fact.id, fact] as const),
-    ).values()].map((fact) => repositories.facts.add(fact)),
-    ...nextFeedback.map((feedback) => repositories.feedback.upsert(feedback)),
-  ]);
+  const factsToPersist = new Map(
+    [...pressureFacts, ...touchedFacts.values()].map((fact) =>
+      [fact.id, fact] as const
+    ),
+  );
+  for (const fact of factsToPersist.values()) {
+    await repositories.facts.add(fact);
+  }
+  await Promise.all(
+    nextFeedback.map((feedback) => repositories.feedback.upsert(feedback)),
+  );
 
   if (touchedFacts.size > 0) {
     result.facts = result.facts.map((fact) => touchedFacts.get(fact.id) ?? fact);

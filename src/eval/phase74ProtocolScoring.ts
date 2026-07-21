@@ -36,6 +36,9 @@ import type {
   Phase74AnswerAssessment,
   Phase74GeneralizationCase,
 } from "./phase74Generalization";
+import {
+  PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
+} from "./phase74ProviderConfiguration";
 import type {
   EvalRunJsonObject,
   EvalRunModelIdentity,
@@ -123,6 +126,9 @@ export function createPhase74ProtocolCompatibleAnswerAssessor(input: {
     };
   }
 
+  const configuration =
+    PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.judge.protocol;
+
   return async ({ answer, testCase }) => {
     const sink = createAttributedModelUsageSink({
       branch: "judge",
@@ -151,10 +157,12 @@ export function createPhase74ProtocolCompatibleAnswerAssessor(input: {
         run: async (report) => {
           const result = await requestOpenAICompatibleTextResult({
             fetch: input.fetch,
-            maxOutputTokens: 10,
+            maxOutputTokens: configuration.maxOutputTokens,
             model: input.model,
             prompt,
-            temperature: 0,
+            reasoningEffort: configuration.reasoningEffort,
+            temperature: configuration.temperature,
+            timeoutMs: configuration.requestTimeoutMs,
           });
           report(result.usage ?? normalizeAISDKLanguageModelUsage(undefined));
           const verdict = stripThinkingBlocks(result.text);
@@ -166,7 +174,7 @@ export function createPhase74ProtocolCompatibleAnswerAssessor(input: {
           return parseLongMemEvalOfficialJudgeVerdict(verdict);
         },
       });
-    }, { retryLimit: 3 });
+    }, { retryLimit: configuration.retryLimit });
     return { correct, score: Number(correct) };
   };
 }

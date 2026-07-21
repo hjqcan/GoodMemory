@@ -346,7 +346,7 @@ describe("Phase 74 full ingestion identity", () => {
     try {
       await writeFile(manifestPath, JSON.stringify({
         key,
-        schemaVersion: 6,
+        schemaVersion: 7,
         usage: buildPhase74IngestionUsageFingerprint(ledger),
       }));
       await expect(verifyPhase74IngestionUsageManifest({
@@ -357,7 +357,7 @@ describe("Phase 74 full ingestion identity", () => {
 
       await writeFile(manifestPath, JSON.stringify({
         key,
-        schemaVersion: 6,
+        schemaVersion: 7,
         usage: {
           ...buildPhase74IngestionUsageFingerprint(ledger),
           eventCount: 0,

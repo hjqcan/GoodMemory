@@ -52,7 +52,15 @@ import type {
   Phase74RetrievalSnapshot,
 } from "./phase74Generalization";
 import type { Phase74LiveModels } from "./phase74Live";
+import {
+  PHASE74_EMBEDDING_CALL_CONFIGURATION,
+  PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
+} from "./phase74ProviderConfiguration";
 import type { EvalRunJsonObject } from "./runIdentity";
+
+export {
+  PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
+} from "./phase74ProviderConfiguration";
 
 const CONTEXT_TOKEN_BUDGET = 6_000;
 const EVIDENCE_LEDGER_FORMATS = [
@@ -61,26 +69,6 @@ const EVIDENCE_LEDGER_FORMATS = [
   "compact_json",
   "json_locale_note",
 ] as const satisfies readonly EvidenceLedgerFormat[];
-
-export const PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION = {
-  assistedExtraction: {
-    maxOutputTokens: 4_096,
-    reasoningEffort: "low",
-    temperature: 0,
-  },
-  assistedRecallPlan: {
-    maxOutputTokens: 1_024,
-    temperature: 0,
-  },
-  listwiseReranker: {
-    maxConcurrency: 1,
-    maxOutputTokens: 2_048,
-    reasoningEffort: "medium",
-    requestTimeoutMs: 60_000,
-    retryLimit: 4,
-    temperature: 0,
-  },
-} as const;
 
 const RAW_EVIDENCE_EXTRACTOR: MemoryExtractor = {
   async extract({ messages }) {
@@ -214,7 +202,7 @@ export async function verifyPhase74IngestionUsageManifest(input: {
   };
   if (
     manifest.key !== input.ingestionKey ||
-    manifest.schemaVersion !== 6 ||
+    manifest.schemaVersion !== 7 ||
     canonicalJson(manifest.usage) !== canonicalJson(
       buildPhase74IngestionUsageFingerprint(input.ledger),
     )
@@ -430,6 +418,7 @@ function createMemory(input: {
     adapters: {
       ...(assistedExtractor === undefined ? {} : { assistedExtractor }),
       embeddingAdapter: createProviderEmbeddingAdapter({
+        ...PHASE74_EMBEDDING_CALL_CONFIGURATION,
         model: input.models.embedding,
         modelUsageSink: input.usageSink,
       }),

@@ -44,7 +44,7 @@ export const DEFAULT_AISDK_EMBEDDING_BATCH_MAX_CONCURRENCY = 8;
 export const DEFAULT_AISDK_EMBEDDING_BATCH_MAX_INPUTS = 256;
 const DEFAULT_OPENAI_COMPATIBLE_REQUEST_TIMEOUT_MS =
   DEFAULT_AISDK_REQUEST_TIMEOUT_MS;
-const DEFAULT_AISDK_RETRY_LIMIT = 4;
+export const DEFAULT_AISDK_RETRY_LIMIT = 4;
 const FAST_AISDK_RETRY_DELAYS_MS = [250, 500, 1_000] as const;
 const SLOW_AISDK_RETRY_DELAYS_MS = [2_000, 5_000, 10_000] as const;
 
@@ -876,9 +876,27 @@ export function resolveAISDKEmbeddingModel(
 }
 
 export function createAISDKEmbeddingAdapter(input: {
+  batchMaxConcurrency?: number;
+  batchMaxInputs?: number;
+  batchMaxUtf8Bytes?: number;
   model: AISDKModelConfig;
   dependencies?: EmbeddingAdapterDependencies;
 }): EmbeddingAdapter {
+  const batchMaxConcurrency =
+    input.batchMaxConcurrency ?? DEFAULT_AISDK_EMBEDDING_BATCH_MAX_CONCURRENCY;
+  const batchMaxInputs =
+    input.batchMaxInputs ?? DEFAULT_AISDK_EMBEDDING_BATCH_MAX_INPUTS;
+  const batchMaxUtf8Bytes =
+    input.batchMaxUtf8Bytes ?? DEFAULT_AISDK_EMBEDDING_BATCH_MAX_UTF8_BYTES;
+  for (const [name, value] of [
+    ["batchMaxConcurrency", batchMaxConcurrency],
+    ["batchMaxInputs", batchMaxInputs],
+    ["batchMaxUtf8Bytes", batchMaxUtf8Bytes],
+  ] as const) {
+    if (!Number.isSafeInteger(value) || value <= 0) {
+      throw new Error(`AI SDK embedding ${name} must be a positive integer.`);
+    }
+  }
   return {
     async embed(texts: string[]): Promise<number[][]> {
       if (texts.length === 0) {
@@ -886,7 +904,7 @@ export function createAISDKEmbeddingAdapter(input: {
       }
 
       const batchEmbeddings = await mapEmbeddingBatches(
-        batchEmbeddingTexts(texts),
+        batchEmbeddingTexts(texts, batchMaxInputs, batchMaxUtf8Bytes),
         async (values) => {
           let attempt = 0;
           const embeddings = await withAISDKRetries(async () => {
@@ -930,6 +948,7 @@ export function createAISDKEmbeddingAdapter(input: {
           }
           return embeddings;
         },
+        batchMaxConcurrency,
       );
       const embeddings = batchEmbeddings.flat();
 
@@ -942,7 +961,11 @@ export function createAISDKEmbeddingAdapter(input: {
   };
 }
 
-function batchEmbeddingTexts(texts: readonly string[]): string[][] {
+function batchEmbeddingTexts(
+  texts: readonly string[],
+  maxInputs: number,
+  maxUtf8Bytes: number,
+): string[][] {
   const batches: string[][] = [];
   let batch: string[] = [];
   let batchBytes = 0;
@@ -951,9 +974,7 @@ function batchEmbeddingTexts(texts: readonly string[]): string[][] {
     const textBytes = Buffer.byteLength(text, "utf8");
     if (
       batch.length > 0 &&
-      (batch.length >= DEFAULT_AISDK_EMBEDDING_BATCH_MAX_INPUTS ||
-        batchBytes + textBytes >
-          DEFAULT_AISDK_EMBEDDING_BATCH_MAX_UTF8_BYTES)
+      (batch.length >= maxInputs || batchBytes + textBytes > maxUtf8Bytes)
     ) {
       batches.push(batch);
       batch = [];
@@ -972,6 +993,7 @@ function batchEmbeddingTexts(texts: readonly string[]): string[][] {
 async function mapEmbeddingBatches(
   batches: readonly string[][],
   worker: (values: string[]) => Promise<number[][]>,
+  maxConcurrency: number,
 ): Promise<number[][][]> {
   const results: number[][][] = new Array(batches.length);
   let cursor = 0;
@@ -989,7 +1011,7 @@ async function mapEmbeddingBatches(
     Array.from(
       {
         length: Math.min(
-          DEFAULT_AISDK_EMBEDDING_BATCH_MAX_CONCURRENCY,
+          maxConcurrency,
           batches.length,
         ),
       },

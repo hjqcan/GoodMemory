@@ -967,6 +967,39 @@ describe("model adapters", () => {
     ]);
   });
 
+  it("honors explicit embedding batch limits", async () => {
+    const calls: string[][] = [];
+    let activeCalls = 0;
+    let peakActiveCalls = 0;
+    const adapter = createAISDKEmbeddingAdapter({
+      batchMaxConcurrency: 1,
+      batchMaxInputs: 2,
+      batchMaxUtf8Bytes: 6,
+      model: {
+        provider: "openai",
+        model: "text-embedding-3-small",
+      },
+      dependencies: {
+        resolveEmbeddingModel: () => ({}) as never,
+        embedMany: async ({ values }) => {
+          activeCalls += 1;
+          peakActiveCalls = Math.max(peakActiveCalls, activeCalls);
+          calls.push([...values]);
+          await Bun.sleep(1);
+          activeCalls -= 1;
+          return {
+            embeddings: values.map((value) => [value.length]),
+          } as never;
+        },
+      },
+    });
+
+    await adapter.embed(["aa", "bb", "cccc", "d"]);
+
+    expect(calls).toEqual([["aa", "bb"], ["cccc", "d"]]);
+    expect(peakActiveCalls).toBe(1);
+  });
+
   it("budgets embedding batches by UTF-8 bytes", async () => {
     const calls: string[][] = [];
     const adapter = createAISDKEmbeddingAdapter({

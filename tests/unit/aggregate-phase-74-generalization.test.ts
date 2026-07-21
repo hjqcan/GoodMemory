@@ -629,7 +629,7 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
                 join(runDirectory, "ingestion", key, "manifest.json"),
                 {
                   key,
-                  schemaVersion: 6,
+                  schemaVersion: 7,
                   usage: buildPhase74IngestionUsageFingerprint(ledger),
                 },
               )),
