@@ -190,6 +190,72 @@ describe("language service", () => {
     ]);
   });
 
+  it("keeps generic precondition words out of English overlap while retaining technical search terms", () => {
+    const service = createLanguageService();
+    const resolved = service.resolveFromText({
+      locale: "en-US",
+      text: "Before publishing docs, run smoke verification.",
+    });
+    const options = { excludeStopwords: true };
+
+    expect(
+      service.tokenOverlap(
+        "Before publishing docs, run smoke verification.",
+        "deploy production Before deleting the old release",
+        resolved,
+        options,
+      ),
+    ).toBe(0);
+    expect(service.buildSearchTerms("Never use npm.", resolved)).toContain("npm");
+    expect(service.buildSearchTerms("Never use bun.", resolved)).toContain("bun");
+  });
+
+  it("extracts concise explicit English procedural directives", () => {
+    const service = createLanguageService();
+    const directives = [
+      { content: "Never use npm.", feedbackKind: "dont" },
+      { content: "Do not use npm.", feedbackKind: "dont" },
+      { content: "Please use bun.", feedbackKind: "do" },
+      {
+        content: "Remember to run smoke verification.",
+        feedbackKind: "do",
+      },
+    ] as const;
+
+    for (const directive of directives) {
+      const resolved = service.resolveFromText({ text: directive.content });
+      let candidateCounter = 0;
+      const candidates = service.extractCandidates(
+        {
+          locale: resolved.locale,
+          messages: [{ content: directive.content, role: "user" }],
+          nextId: () => `concise-directive-${++candidateCounter}`,
+        },
+        resolved,
+      );
+
+      expect(candidates).toEqual([
+        expect.objectContaining({
+          content: directive.content,
+          kindHint: "feedback",
+          metadata: expect.objectContaining({
+            feedbackKind: directive.feedbackKind,
+          }),
+        }),
+      ]);
+    }
+
+    const neverMind = service.resolveFromText({ text: "Never mind." });
+    expect(service.extractCandidates(
+      {
+        locale: neverMind.locale,
+        messages: [{ content: "Never mind.", role: "user" }],
+        nextId: () => "never-mind",
+      },
+      neverMind,
+    )).toEqual([]);
+  });
+
   it("exposes a stable, sorted analyzer manifest for persistent projections", () => {
     const service = createLanguageService({
       defaultLocale: "zh-TW",
@@ -214,7 +280,7 @@ describe("language service", () => {
       "zh-Hant",
     ]);
     expect(manifest.packs.find(({ id }) => id === "en")).toMatchObject({
-      analyzerVersion: "4",
+      analyzerVersion: "6",
       apiVersion: 1,
       compatibilityGroup: "en",
       defaultLocale: "en-US",

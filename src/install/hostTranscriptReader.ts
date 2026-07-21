@@ -38,6 +38,7 @@ export interface HostTranscriptReadResult {
 export interface ReadTranscriptDeltaInput {
   fromOffset?: number;
   maxBytes?: number;
+  maxContentChars?: number;
   maxMessages?: number;
   transcriptPath: string;
 }
@@ -135,6 +136,9 @@ async function readTranscriptDeltaWithParser(
   }
 
   const messages: HostTranscriptMessage[] = [];
+  const maxContentChars = input.maxContentChars ?? Number.POSITIVE_INFINITY;
+  const maxMessages = input.maxMessages ?? DEFAULT_MAX_MESSAGES;
+  let contentChars = 0;
   let consumedEnd = start + position;
   while (position < buffer.length) {
     const lineStart = start + position;
@@ -163,13 +167,23 @@ async function readTranscriptDeltaWithParser(
       };
     }
     if (message) {
+      if (
+        messages.length > 0 &&
+        contentChars + message.content.length > maxContentChars
+      ) {
+        consumedEnd = lineStart;
+        break;
+      }
       messages.push(message);
+      contentChars += message.content.length;
+      if (messages.length >= maxMessages) {
+        break;
+      }
     }
   }
 
-  const maxMessages = input.maxMessages ?? DEFAULT_MAX_MESSAGES;
   return {
-    messages: messages.length > maxMessages ? messages.slice(-maxMessages) : messages,
+    messages,
     nextOffset: consumedEnd,
     status: "ok",
     truncatedHead,

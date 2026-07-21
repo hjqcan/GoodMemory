@@ -129,7 +129,8 @@ const CORRECTED_REFERENCE_PATTERN =
 const CORRECTIVE_FEEDBACK_PATTERN =
   /\b(?:correction|wrong|not right|instead|next time|from now on|that approach was wrong)\b/i;
 const PROCEDURAL_FEEDBACK_PATTERN =
-  /^(?:always|never|don't|do not|prefer)\b|^please\s+(?:keep|make|give|use|avoid|prioritize|format|structure|focus|be|continue|answer|reply)\b/i;
+  /^(?:always|never|don't|do not|prefer|remember to)\b|^please\s+(?:keep|make|give|use|avoid|prioritize|format|structure|focus|be|continue|answer|reply)\b/i;
+const NEVER_MIND_PATTERN = /^never mind\b/i;
 const ONE_OFF_POLITE_REQUEST_PATTERN =
   /^(?:could|can|would)\s+you\s+please\b/i;
 const ROLEPLAY_RESPONSE_REQUEST_PATTERN =
@@ -218,6 +219,7 @@ const TOKEN_STOPWORDS = new Set([
   "as",
   "at",
   "be",
+  "before",
   "but",
   "by",
   "did",
@@ -297,17 +299,8 @@ function deriveFactCategory(
 }
 
 function deriveFeedbackKind(content: string): "do" | "dont" | "prefer" {
-  const normalized = content.toLowerCase();
-
-  if (normalized.includes("don't") || normalized.includes("do not")) {
-    return "dont";
-  }
-
-  if (normalized.includes("prefer")) {
-    return "prefer";
-  }
-
-  return "do";
+  const kind = analyzeEnglishContent(content).feedbackKind;
+  return kind === "validated_pattern" ? "do" : kind;
 }
 
 function extractStableSubject(value: string | undefined): string | undefined {
@@ -647,8 +640,8 @@ function shouldSkipExplicitFactForProfileLikeClause(
 
 function looksLikeProceduralFeedback(content: string): boolean {
   return (
-    content.length >= 20 &&
     PROCEDURAL_FEEDBACK_PATTERN.test(content) &&
+    !NEVER_MIND_PATTERN.test(content) &&
     !ONE_OFF_POLITE_REQUEST_PATTERN.test(content) &&
     !ROLEPLAY_RESPONSE_REQUEST_PATTERN.test(content)
   );
@@ -1584,7 +1577,7 @@ function maybeExtractCrossClauseCandidatesFromMessage(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "4",
+    analyzerVersion: "6",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",

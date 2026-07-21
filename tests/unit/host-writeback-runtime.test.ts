@@ -6,6 +6,12 @@ import type {
   GoodMemory,
   GoodMemoryConfig,
 } from "../../src/api/contracts";
+import { attachGoodMemoryIntegrationSupport } from "../../src/api/integrationSupport";
+import type { LanguagePack } from "../../src/language";
+import {
+  createEnglishLanguagePack,
+  createLanguageService,
+} from "../../src/language";
 import {
   createNoopGoodMemoryJobsFacade,
   createNoopGoodMemoryRuntimeFacade,
@@ -131,6 +137,78 @@ function createRememberingMemory(input: {
 }
 
 describe("installed host writeback runtime", () => {
+  it("uses the language service attached to the created memory for candidate admission", async () => {
+    const homeRoot = await createWorkspace("goodmemory-writeback-custom-language-home-");
+    const workspaceRoot = await createWorkspace(
+      "goodmemory-writeback-custom-language-workspace-",
+    );
+    const rememberCalls: Array<Parameters<GoodMemory["remember"]>[0]> = [];
+    const english = createEnglishLanguagePack();
+    const pack: LanguagePack = {
+      ...english,
+      analyzerVersion: "1",
+      compatibilityGroup: "xx-test",
+      defaultLocale: "xx-Test",
+      detect({ texts }) {
+        return texts.some((text) => text.includes("zorbled"))
+          ? "distinctive"
+          : "none";
+      },
+      id: "xx-test",
+      locales: ["xx-Test"],
+      analyzeContent(text) {
+        return {
+          ...english.analyzeContent(text),
+          durableCue: text.includes("zorbled"),
+        };
+      },
+    };
+    const language = createLanguageService({
+      defaultLocale: "xx-Test",
+      packs: [pack],
+    });
+    const createMemory = createRememberingMemory({ rememberCalls });
+
+    try {
+      await writeHostConfig({ homeRoot, mode: "selective" });
+
+      const result = await executeInstalledHostWriteback(
+        {
+          command: "session-end",
+          homeRoot,
+          host: "codex",
+          payload: {
+            cwd: workspaceRoot,
+            messages: [{ content: "zorbled", role: "user" }],
+            session_id: "custom-language-session",
+          },
+        },
+        {
+          createMemory(config) {
+            return attachGoodMemoryIntegrationSupport(createMemory(config), {
+              language,
+              async ingestAgentInputEvent() {
+                return { recorded: false, skippedReason: "unsupported_memory" };
+              },
+              async ingestHostAgentEvent() {
+                return { recorded: false, skippedReason: "unsupported_memory" };
+              },
+              async recordHostActionAssessment() {
+                return { recorded: false, skippedReason: "unsupported_memory" };
+              },
+            });
+          },
+        },
+      );
+
+      expect(result).toMatchObject({ reason: "written", wrote: true });
+      expect(rememberCalls[0]?.messages[0]?.content).toBe("zorbled");
+    } finally {
+      await rm(homeRoot, { force: true, recursive: true });
+      await rm(workspaceRoot, { force: true, recursive: true });
+    }
+  });
+
   it("uses built-in language packs for providerless Traditional Chinese and Japanese writeback", async () => {
     const homeRoot = await createWorkspace("goodmemory-writeback-cjk-home-");
     const workspaceRoot = await createWorkspace("goodmemory-writeback-cjk-workspace-");
@@ -537,6 +615,50 @@ describe("installed host writeback runtime", () => {
           source: "user",
         },
       ]);
+    } finally {
+      await rm(homeRoot, { force: true, recursive: true });
+      await rm(workspaceRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("preserves concise explicit English directives as durable candidates", async () => {
+    const homeRoot = await createWorkspace(
+      "goodmemory-writeback-concise-english-home-",
+    );
+    const workspaceRoot = await createWorkspace(
+      "goodmemory-writeback-concise-english-workspace-",
+    );
+
+    try {
+      await writeHostConfig({ homeRoot, mode: "observe" });
+      const messages = [
+        "Never use npm.",
+        "Do not use npm.",
+        "Please use bun.",
+        "Remember to run smoke verification.",
+      ];
+      const result = await executeInstalledHostWriteback({
+        command: "turn-end",
+        homeRoot,
+        host: "codex",
+        payload: {
+          cwd: workspaceRoot,
+          messages: messages.map((content) => ({ content, role: "user" })),
+          session_id: "concise-english-directives",
+        },
+      });
+
+      expect(result.reason).toBe("observed");
+      expect(result.candidates).toEqual(
+        messages.map((content) => ({
+          confidence: 0.88,
+          content,
+          durable: true,
+          kind: "preference",
+          reason: "explicit_preference",
+          source: "user",
+        })),
+      );
     } finally {
       await rm(homeRoot, { force: true, recursive: true });
       await rm(workspaceRoot, { force: true, recursive: true });
@@ -2782,6 +2904,113 @@ describe("installed host writeback transcript hydration", () => {
           role: "user",
         },
       ]);
+    } finally {
+      await rm(homeRoot, { force: true, recursive: true });
+      await rm(workspaceRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("filters acknowledgement-only tails before bounding hydrated writeback messages", async () => {
+    const homeRoot = await createWorkspace("goodmemory-hydration-ack-tail-home-");
+    const workspaceRoot = await createWorkspace(
+      "goodmemory-hydration-ack-tail-workspace-",
+    );
+    const rememberCalls: Array<Parameters<GoodMemory["remember"]>[0]> = [];
+
+    try {
+      await writeClaudeHostConfig({ homeRoot, mode: "selective" });
+      const transcriptPath = join(homeRoot, "session.jsonl");
+      await writeFile(
+        transcriptPath,
+        [
+          transcriptUserLine("Next step is to preserve the durable migration plan."),
+          ...Array.from({ length: 12 }, () => transcriptUserLine("ok")),
+        ].join("\n") + "\n",
+        "utf8",
+      );
+
+      const result = await executeInstalledHostWriteback(
+        {
+          command: "turn-end",
+          homeRoot,
+          host: "claude",
+          payload: {
+            cwd: workspaceRoot,
+            session_id: "hydration-ack-tail-session",
+            transcript_path: transcriptPath,
+          },
+        },
+        { createMemory: createHydrationMemory({ rememberCalls }) },
+      );
+
+      expect(result).toMatchObject({ reason: "written", wrote: true });
+      expect(result.trace).toMatchObject({
+        transcriptCursorAdvanced: true,
+        transcriptDeltaMessageCount: 12,
+      });
+      expect(rememberCalls.map((call) => call.messages[0]?.content)).toEqual([
+        "Next step is to preserve the durable migration plan.",
+      ]);
+    } finally {
+      await rm(homeRoot, { force: true, recursive: true });
+      await rm(workspaceRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("advances the hydration cursor only through the oldest bounded message chunk", async () => {
+    const homeRoot = await createWorkspace("goodmemory-hydration-chunk-home-");
+    const workspaceRoot = await createWorkspace(
+      "goodmemory-hydration-chunk-workspace-",
+    );
+    const rememberCalls: Array<Parameters<GoodMemory["remember"]>[0]> = [];
+
+    try {
+      await writeClaudeHostConfig({ homeRoot, mode: "selective" });
+      const transcriptPath = join(homeRoot, "session.jsonl");
+      await writeFile(
+        transcriptPath,
+        [
+          transcriptUserLine("Next step is to retain the durable head instruction."),
+          ...Array.from({ length: 12 }, () => transcriptUserLine("sounds good")),
+        ].join("\n") + "\n",
+        "utf8",
+      );
+      const input = {
+        command: "turn-end" as const,
+        homeRoot,
+        host: "claude" as const,
+        payload: {
+          cwd: workspaceRoot,
+          prompt: "sounds good",
+          session_id: "hydration-bounded-chunk-session",
+          summary: "sounds good",
+          transcript_path: transcriptPath,
+        },
+      };
+      const dependencies = {
+        createMemory: createHydrationMemory({ rememberCalls }),
+      };
+
+      const first = await executeInstalledHostWriteback(input, dependencies);
+      expect(first).toMatchObject({ reason: "written", wrote: true });
+      expect(first.trace).toMatchObject({
+        transcriptCursorAdvanced: true,
+        transcriptDeltaMessageCount: 12,
+      });
+      expect(rememberCalls.map((call) => call.messages[0]?.content)).toEqual([
+        "Next step is to retain the durable head instruction.",
+      ]);
+
+      const remaining = await executeInstalledHostWriteback(input, dependencies);
+      expect(remaining).toMatchObject({ reason: "no_candidates", wrote: false });
+      expect(remaining.trace).toMatchObject({
+        transcriptCursorAdvanced: true,
+        transcriptDeltaMessageCount: 1,
+      });
+
+      const consumed = await executeInstalledHostWriteback(input, dependencies);
+      expect(consumed).toMatchObject({ reason: "empty_transcript", wrote: false });
+      expect(consumed.trace).toMatchObject({ transcriptDeltaMessageCount: 0 });
     } finally {
       await rm(homeRoot, { force: true, recursive: true });
       await rm(workspaceRoot, { force: true, recursive: true });

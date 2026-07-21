@@ -62,6 +62,53 @@ function createExportResult(
   };
 }
 
+async function assessCommandAgainstRule(rule: string, command: string) {
+  const source = createMemorySource({
+    extractedAt: "2026-04-22T00:00:00.000Z",
+    locale: "en-US",
+    localeSource: "explicit",
+    method: "explicit",
+    sessionId: "s-1",
+  });
+  const adapter = createHostAdapter({
+    hostKind: "codex",
+    id: "codex-command-rule",
+    memory: {
+      async exportMemory() {
+        return createExportResult({
+          feedback: [
+            createFeedbackMemory({
+              appliesTo: "coding_agent",
+              id: "feedback-command-rule",
+              kind: "validated_pattern",
+              rule,
+              sessionId: "s-1",
+              source,
+              userId: "u-1",
+              workspaceId: "ws-1",
+            }),
+          ],
+        });
+      },
+    },
+  });
+
+  return adapter.assessAction({
+    action: { command, kind: "command" },
+    actionId: "action-command-rule",
+    hostKind: "codex",
+    occurredAt: "2026-04-22T00:00:00.000Z",
+    runId: "run-1",
+    scope: {
+      sessionId: "s-1",
+      userId: "u-1",
+      workspaceId: "ws-1",
+    },
+    sequence: 0,
+    turnId: "turn-1",
+  });
+}
+
 describe("host pre-action policy", () => {
   it("validates host action intents with structured tool payloads", () => {
     const intent = validateHostActionIntent({
@@ -323,6 +370,138 @@ describe("host pre-action policy", () => {
     expect(result.decision).toBe("allow");
     expect(result.matchedMemoryIds).toEqual([]);
     expect(result.requiredPreconditions).toEqual([]);
+  });
+
+  it("does not match an unrelated English policy when only before overlaps", async () => {
+    const source = createMemorySource({
+      extractedAt: "2026-04-22T00:00:00.000Z",
+      locale: "en-US",
+      localeSource: "explicit",
+      method: "explicit",
+      sessionId: "s-1",
+    });
+    const adapter = createHostAdapter({
+      id: "codex-unrelated-english-before",
+      hostKind: "codex",
+      memory: {
+        async exportMemory() {
+          return createExportResult({
+            feedback: [
+              createFeedbackMemory({
+                appliesTo: "coding_agent",
+                id: "feedback-unrelated-english-before",
+                kind: "validated_pattern",
+                rule: "Before publishing docs, run smoke verification.",
+                sessionId: "s-1",
+                source,
+                userId: "u-1",
+                workspaceId: "ws-1",
+              }),
+            ],
+          });
+        },
+      },
+    });
+
+    const result = await adapter.assessAction({
+      action: {
+        command: "deploy production",
+        kind: "command",
+        summary: "Before deleting the old release, prepare the deployment.",
+      },
+      actionId: "action-unrelated-english-before",
+      hostKind: "codex",
+      occurredAt: "2026-04-22T00:00:00.000Z",
+      runId: "run-1",
+      scope: {
+        sessionId: "s-1",
+        userId: "u-1",
+        workspaceId: "ws-1",
+      },
+      sequence: 0,
+      turnId: "turn-1",
+    });
+
+    expect(result.decision).toBe("allow");
+    expect(result.matchedMemoryIds).toEqual([]);
+    expect(result.requiredPreconditions).toEqual([]);
+  });
+
+  it.each([
+    { command: "npm publish", tool: "npm" },
+    { command: "bun run release", tool: "bun" },
+  ])("keeps the three-character $tool token in English policy matching", async ({
+    command,
+    tool,
+  }) => {
+    const source = createMemorySource({
+      extractedAt: "2026-04-22T00:00:00.000Z",
+      locale: "en-US",
+      localeSource: "explicit",
+      method: "explicit",
+      sessionId: "s-1",
+    });
+    const memoryId = `feedback-never-use-${tool}`;
+    const adapter = createHostAdapter({
+      id: `codex-never-use-${tool}`,
+      hostKind: "codex",
+      memory: {
+        async exportMemory() {
+          return createExportResult({
+            feedback: [
+              createFeedbackMemory({
+                appliesTo: "coding_agent",
+                id: memoryId,
+                kind: "validated_pattern",
+                rule: `Never use ${tool}.`,
+                sessionId: "s-1",
+                source,
+                userId: "u-1",
+                workspaceId: "ws-1",
+              }),
+            ],
+          });
+        },
+      },
+    });
+
+    const result = await adapter.assessAction({
+      action: { command, kind: "command" },
+      actionId: `action-never-use-${tool}`,
+      hostKind: "codex",
+      occurredAt: "2026-04-22T00:00:00.000Z",
+      runId: "run-1",
+      scope: {
+        sessionId: "s-1",
+        userId: "u-1",
+        workspaceId: "ws-1",
+      },
+      sequence: 0,
+      turnId: "turn-1",
+    });
+
+    expect(result.decision).toBe("review_required");
+    expect(result.matchedMemoryIds).toEqual([memoryId]);
+  });
+
+  it("does not apply a negative executable clause to the allowed replacement", async () => {
+    const result = await assessCommandAgainstRule(
+      "Never use npm; use bun instead.",
+      "bun run release",
+    );
+
+    expect(result.decision).toBe("allow");
+    expect(result.matchedMemoryIds).toEqual([]);
+  });
+
+  it("finds the executable after environment assignments and wrappers", async () => {
+    const result = await assessCommandAgainstRule(
+      "Never use npm.",
+      "env NODE_ENV=production npm publish",
+    );
+
+    expect(result.decision).toBe("review_required");
+    expect(result.matchedMemoryIds).toEqual(["feedback-command-rule"]);
   });
 
   it("reuses the custom language service owned by the GoodMemory instance", async () => {

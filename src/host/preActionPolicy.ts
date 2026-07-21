@@ -77,6 +77,12 @@ interface LanguageBoundText {
   text: string;
 }
 
+type RuleClauseMatch = "allowed_replacement" | "matched" | "none";
+
+const SHELL_COMMAND_SEPARATORS = new Set(["&&", ";", "|", "||"]);
+const SHELL_COMMAND_WRAPPERS = new Set(["command", "env", "exec", "nohup"]);
+const SHELL_VARIABLE_ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/u;
+
 function uniqueStrings(values: Iterable<string | undefined>): string[] {
   const seen = new Set<string>();
   const deduped: string[] = [];
@@ -195,6 +201,83 @@ function patternEvidenceIds(exported: ExportMemoryResult, memoryId: string): str
   return uniqueStrings(pattern?.evidence ?? []);
 }
 
+function splitRuleClauses(
+  rule: string,
+  language: LanguageService,
+  languageContext: ResolvedLanguageContext,
+): string[] {
+  return rule
+    .split(/[;,，；\n]+|\bbut\b/iu)
+    .flatMap((part) => language.splitSentences(part, languageContext))
+    .map((clause) => clause.trim())
+    .filter((clause) => clause.length > 0);
+}
+
+function matchActionRuleClauses(input: {
+  action: HostPlannedAction;
+  actionText: string;
+  language: LanguageService;
+  languageContext: ResolvedLanguageContext;
+  rule: string;
+}): RuleClauseMatch {
+  const executableNames = extractExecutableTokens(input.action).map((token) =>
+    input.language.normalizeForEquality(
+      token.split(/[\\/]/u).at(-1) ?? token,
+      input.languageContext,
+    )
+  );
+  let hasNegativeClause = false;
+  let matchedNegativeClause = false;
+  let matchedOtherClause = false;
+
+  for (const clause of splitRuleClauses(
+    input.rule,
+    input.language,
+    input.languageContext,
+  )) {
+    const negative = hasNegativeSignal(
+      {
+        languageContext: input.languageContext,
+        text: clause,
+      },
+      input.language,
+    );
+    hasNegativeClause ||= negative;
+    const searchTerms = input.language.buildSearchTerms(
+      clause,
+      input.languageContext,
+    );
+    const executableMatch = executableNames.some((name) =>
+      searchTerms.includes(name)
+    );
+    const clauseMatch =
+      executableMatch ||
+      countTokenOverlap(
+        input.language,
+        input.languageContext,
+        clause,
+        input.actionText,
+      ) > 0;
+    if (!clauseMatch) {
+      continue;
+    }
+
+    if (negative) {
+      matchedNegativeClause = true;
+    } else {
+      matchedOtherClause = true;
+    }
+  }
+
+  if (matchedNegativeClause) {
+    return "matched";
+  }
+  if (hasNegativeClause && matchedOtherClause) {
+    return "allowed_replacement";
+  }
+  return matchedOtherClause ? "matched" : "none";
+}
+
 function matchPatterns(
   exported: ExportMemoryResult,
   intent: HostActionIntent,
@@ -228,9 +311,19 @@ function matchPatterns(
         actionText,
         languageContext,
       );
-      const directMarkerMatch = overlap > 0
+      const clauseMatch = matchActionRuleClauses({
+        action: intent.action,
+        actionText,
+        language,
+        languageContext,
+        rule: searchableRule,
+      });
+      const directMarkerMatch = clauseMatch !== "allowed_replacement" && (
+        clauseMatch === "matched"
+        || overlap > 0
         || normalizedRule.includes(actionSummary)
-        || normalizedRule.includes(normalizedActionText);
+        || normalizedRule.includes(normalizedActionText)
+      );
 
       if (!directMarkerMatch) {
         return null;
@@ -355,7 +448,42 @@ function extractPreconditions(
   return uniqueStrings(preconditions);
 }
 
-function extractExecutableToken(action: HostPlannedAction): string | undefined {
+function parseShellCommandTokens(value: string): string[] {
+  return [...value.matchAll(/'([^']*)'|"([^"]*)"|(&&|\|\||[;|])|([^\s;&|]+)/gu)]
+    .map((match) => match[1] ?? match[2] ?? match[3] ?? match[4] ?? "")
+    .filter((token) => token.length > 0);
+}
+
+function resolveSegmentExecutable(tokens: readonly string[]): string | undefined {
+  let index = 0;
+  while (SHELL_VARIABLE_ASSIGNMENT.test(tokens[index] ?? "")) {
+    index += 1;
+  }
+
+  while (index < tokens.length) {
+    const token = tokens[index]!;
+    const name = normalizeForMatch(token.split(/[\\/]/u).at(-1));
+    if (!SHELL_COMMAND_WRAPPERS.has(name)) {
+      return token;
+    }
+
+    index += 1;
+    while ((tokens[index] ?? "").startsWith("-")) {
+      index += 1;
+    }
+    while (SHELL_VARIABLE_ASSIGNMENT.test(tokens[index] ?? "")) {
+      index += 1;
+    }
+
+    if (index >= tokens.length) {
+      return token;
+    }
+  }
+
+  return undefined;
+}
+
+function extractExecutableTokens(action: HostPlannedAction): string[] {
   const rawCommand = action.kind === "command"
     ? action.command
     : action.kind === "tool_call"
@@ -364,11 +492,32 @@ function extractExecutableToken(action: HostPlannedAction): string | undefined {
   const trimmed = rawCommand?.trim();
 
   if (!trimmed) {
-    return undefined;
+    return [];
   }
 
-  const [firstToken] = trimmed.split(/\s+/u);
-  return firstToken?.trim() || undefined;
+  const executables: string[] = [];
+  let segment: string[] = [];
+  for (const token of parseShellCommandTokens(trimmed)) {
+    if (SHELL_COMMAND_SEPARATORS.has(token)) {
+      const executable = resolveSegmentExecutable(segment);
+      if (executable) {
+        executables.push(executable);
+      }
+      segment = [];
+      continue;
+    }
+    segment.push(token);
+  }
+
+  const executable = resolveSegmentExecutable(segment);
+  if (executable) {
+    executables.push(executable);
+  }
+  return uniqueStrings(executables);
+}
+
+function extractExecutableToken(action: HostPlannedAction): string | undefined {
+  return extractExecutableTokens(action)[0];
 }
 
 function resolveSiblingExecutablePath(

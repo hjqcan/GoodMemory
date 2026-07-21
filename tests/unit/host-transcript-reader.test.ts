@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -174,6 +174,32 @@ describe("readClaudeTranscriptDelta", () => {
     expect(delta.nextOffset).toBeGreaterThan(first.nextOffset);
   });
 
+  it("leaves an unterminated final line unread until the host completes it", async () => {
+    const path = await createTranscript([userLine("Complete line before the append.")]);
+    const completedOffset = (await stat(path)).size;
+    await writeFile(
+      path,
+      JSON.stringify(userLine("Line that is still being written.")),
+      { flag: "a" },
+    );
+
+    const partial = await readClaudeTranscriptDelta({ transcriptPath: path });
+    expect(partial.messages).toEqual([
+      { content: "Complete line before the append.", role: "user" },
+    ]);
+    expect(partial.nextOffset).toBe(completedOffset);
+
+    await writeFile(path, "\n", { flag: "a" });
+    const completed = await readClaudeTranscriptDelta({
+      fromOffset: partial.nextOffset,
+      transcriptPath: path,
+    });
+    expect(completed.messages).toEqual([
+      { content: "Line that is still being written.", role: "user" },
+    ]);
+    expect(completed.nextOffset).toBe((await stat(path)).size);
+  });
+
   it("resets to the tail window when the cursor is beyond the file size", async () => {
     const path = await createTranscript([userLine("Rewritten session content stands alone.")]);
 
@@ -220,7 +246,7 @@ describe("readClaudeTranscriptDelta", () => {
     });
   });
 
-  it("caps the number of returned messages keeping the most recent", async () => {
+  it("caps the number of returned messages keeping the oldest unread chunk", async () => {
     const lines: unknown[] = [];
     for (let index = 0; index < 60; index += 1) {
       lines.push(userLine(`Numbered statement ${index} about the project.`));
@@ -233,8 +259,63 @@ describe("readClaudeTranscriptDelta", () => {
     });
 
     expect(result.messages).toHaveLength(5);
-    expect(result.messages.at(-1)?.content).toBe("Numbered statement 59 about the project.");
-    expect(result.messages[0]?.content).toBe("Numbered statement 55 about the project.");
+    expect(result.messages.at(-1)?.content).toBe("Numbered statement 4 about the project.");
+    expect(result.messages[0]?.content).toBe("Numbered statement 0 about the project.");
+  });
+
+  it("returns bounded messages oldest-first and leaves the unread suffix for the next cursor", async () => {
+    const path = await createTranscript([
+      userLine("Next step is the durable instruction at the head."),
+      ...Array.from({ length: 12 }, () => userLine("sounds good")),
+    ]);
+
+    const first = await readClaudeTranscriptDelta({
+      maxMessages: 12,
+      transcriptPath: path,
+    });
+
+    expect(first.messages).toHaveLength(12);
+    expect(first.messages[0]?.content).toBe(
+      "Next step is the durable instruction at the head.",
+    );
+    expect(first.nextOffset).toBeLessThan((await stat(path)).size);
+
+    const remaining = await readClaudeTranscriptDelta({
+      fromOffset: first.nextOffset,
+      maxMessages: 12,
+      transcriptPath: path,
+    });
+    expect(remaining.messages).toEqual([{ content: "sounds good", role: "user" }]);
+    expect(remaining.nextOffset).toBe((await stat(path)).size);
+  });
+
+  it("leaves messages beyond the oldest bounded content budget for the next cursor", async () => {
+    const path = await createTranscript([
+      userLine("Durable head instruction."),
+      userLine("This later message would exceed the bounded content budget."),
+    ]);
+
+    const first = await readClaudeTranscriptDelta({
+      maxContentChars: 30,
+      transcriptPath: path,
+    });
+    expect(first.messages).toEqual([
+      { content: "Durable head instruction.", role: "user" },
+    ]);
+    expect(first.nextOffset).toBeLessThan((await stat(path)).size);
+
+    const second = await readClaudeTranscriptDelta({
+      fromOffset: first.nextOffset,
+      maxContentChars: 30,
+      transcriptPath: path,
+    });
+    expect(second.messages).toEqual([
+      {
+        content: "This later message would exceed the bounded content budget.",
+        role: "user",
+      },
+    ]);
+    expect(second.nextOffset).toBe((await stat(path)).size);
   });
 });
 // Codex rollout files (~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl) carry

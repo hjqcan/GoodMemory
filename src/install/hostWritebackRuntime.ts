@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { stat } from "node:fs/promises";
 import type { GoodMemory } from "../api/contracts";
+import { readGoodMemoryIntegrationSupport } from "../api/integrationSupport";
 import type { MemoryScope } from "../domain/scope";
 import { createLanguageService } from "../language";
 import type { LanguageService } from "../language";
@@ -198,6 +199,8 @@ export async function executeInstalledHostWriteback(
   const hydration = await hydrateTranscriptPayload({
     homeRoot: input.homeRoot,
     host: input.host,
+    maxChars: config.maxChars,
+    maxMessages: config.maxMessages,
     payload: input.payload,
   });
   if (hydration.attempted && hydration.readStatus !== "ok") {
@@ -234,7 +237,11 @@ async function executeResolvedWriteback(args: {
   resolved: { context: InstalledHostResolvedContext };
 }): Promise<InstalledHostWritebackResult> {
   const { config, dependencies, hydratedPayload, input, resolved } = args;
-  const messages = normalizeWritebackMessages(hydratedPayload, config);
+  const durableScope = toDurableWritebackScope(resolved.context.scope);
+  const memory = createInstalledHostMemory(resolved.context, dependencies);
+  const language = readGoodMemoryIntegrationSupport(memory)?.language ??
+    createLanguageService(resolved.context.language);
+  const messages = normalizeWritebackMessages(hydratedPayload, config, language);
   if (messages.length === 0) {
     return {
       applied: false,
@@ -249,8 +256,6 @@ async function executeResolvedWriteback(args: {
     };
   }
 
-  const durableScope = toDurableWritebackScope(resolved.context.scope);
-  const language = createLanguageService(resolved.context.language);
   // Batch LLM pre-extraction over the whole window (when configured); the
   // language-pack rules stay the floor and the union is deduped by candidate key.
   const batch = await runBatchWritebackExtraction({
@@ -375,7 +380,6 @@ async function executeResolvedWriteback(args: {
   }
 
   try {
-    const memory = createInstalledHostMemory(resolved.context, dependencies);
     // When the batch stage already ran the LLM over the window, the inner
     // per-candidate remember stays rules-only: the remember-always annotation
     // force-adds the extracted content verbatim, so a second LLM pass would
@@ -557,6 +561,8 @@ async function buildTranscriptIdentity(transcriptPath: string): Promise<string> 
 async function hydrateTranscriptPayload(input: {
   homeRoot?: string;
   host: InstalledHostKind;
+  maxChars: number;
+  maxMessages: number;
   payload: Record<string, unknown>;
 }): Promise<TranscriptHydration> {
   const skipped: TranscriptHydration = {
@@ -597,8 +603,16 @@ async function hydrateTranscriptPayload(input: {
     input.host === "codex" ? readCodexRolloutDelta : readClaudeTranscriptDelta;
   const delta = await readDelta({
     ...(fromOffset !== undefined ? { fromOffset } : {}),
+    maxContentChars: input.maxChars,
+    maxMessages: input.maxMessages,
     transcriptPath,
   });
+  const hydratedPayload: Record<string, unknown> = {
+    ...input.payload,
+    messages: delta.messages,
+  };
+  delete hydratedPayload.prompt;
+  delete hydratedPayload.summary;
 
   return {
     attempted: true,
@@ -606,7 +620,7 @@ async function hydrateTranscriptPayload(input: {
     deltaMessageCount: delta.messages.length,
     ...(delta.formatDrift ? { formatDrift: delta.formatDrift } : {}),
     nextOffset: delta.nextOffset,
-    payload: { ...input.payload, messages: delta.messages },
+    payload: hydratedPayload,
     readStatus: delta.status,
     sessionDigest,
     transcriptIdentity,
@@ -666,6 +680,7 @@ async function applyTranscriptHydrationOutcome(args: {
 function normalizeWritebackMessages(
   payload: Record<string, unknown>,
   config: InstalledHostWritebackConfig,
+  language: LanguageService,
 ): NormalizedWritebackMessage[] {
   const annotations = readPayloadAnnotations(payload.annotations);
   const rawMessages = Array.isArray(payload.messages)
@@ -704,7 +719,9 @@ function normalizeWritebackMessages(
 
   let remainingChars = config.maxChars;
   const bounded: NormalizedWritebackMessage[] = [];
-  const selectedMessages = withSignals.slice(-config.maxMessages);
+  const selectedMessages = withSignals
+    .filter((message) => !isAcknowledgementOnlyMessage(message, language))
+    .slice(-config.maxMessages);
   for (let index = selectedMessages.length - 1; index >= 0; index -= 1) {
     const message = selectedMessages[index];
     if (remainingChars <= 0) {
@@ -723,6 +740,17 @@ function normalizeWritebackMessages(
   }
 
   return bounded;
+}
+
+function isAcknowledgementOnlyMessage(
+  message: NormalizedWritebackMessage,
+  language: LanguageService,
+): boolean {
+  if (message.annotation?.remember === "always") {
+    return false;
+  }
+  const resolved = language.resolveFromText({ text: message.content });
+  return language.isAssistantAcknowledgement(message.content, resolved);
 }
 
 function readPayloadAnnotations(value: unknown): Map<number, HostPayloadAnnotation> {
