@@ -147,9 +147,7 @@ const memoryCandidateSchema = z.object({
           z.union([z.string(), z.number(), z.boolean(), z.null()]),
         )
         .optional(),
-      category: z
-        .enum(["project", "technical", "personal", "relationship", "event"])
-        .optional(),
+      category: z.string().optional(),
       claim: z
         .object({
           confidence: z.number().min(0).max(1).optional(),
