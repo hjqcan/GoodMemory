@@ -170,7 +170,7 @@ describe("Phase 74 live provider boundary", () => {
       model: "text-embedding-3-small",
       provider: "openai",
       requestTimeoutMs: 45_000,
-      retryLimit: 4,
+      retryLimit: 8,
     });
     expect(JSON.stringify(identity)).not.toContain("embedding-key");
     expect(buildPhase74EmbeddingIdentity(
