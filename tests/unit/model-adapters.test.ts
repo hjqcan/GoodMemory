@@ -1656,6 +1656,43 @@ describe("model adapters", () => {
     });
   });
 
+  it("accepts domain-defined memory categories from provider extraction", async () => {
+    const extractor = createAISDKMemoryExtractor({
+      model: {
+        provider: "openai",
+        model: "gpt-5.4",
+        apiKey: "gateway-key",
+        baseURL: "https://gateway.example/v1",
+      },
+      dependencies: {
+        fetch: async () =>
+          new Response(
+            [
+              "data: {\"choices\":[{\"delta\":{\"content\":\"{\\\"candidates\\\":[{\\\"id\\\":\\\"llm-1\\\",\\\"kindHint\\\":\\\"fact\\\",\\\"explicitness\\\":\\\"explicit\\\",\\\"content\\\":\\\"The user rides a mountain bike.\\\",\\\"sourceMessageIndex\\\":0,\\\"sourceRole\\\":\\\"user\\\",\\\"metadata\\\":{\\\"category\\\":\\\"cycling\\\",\\\"subject\\\":\\\"the user\\\"}}],\\\"ignoredMessageCount\\\":0}\"},\"index\":0}]}",
+              "data: [DONE]",
+              "",
+            ].join("\n\n"),
+            {
+              status: 200,
+              headers: {
+                "content-type": "text/event-stream",
+              },
+            },
+          ),
+      },
+    });
+
+    const result = await extractor.extract({
+      scope: { userId: "u-1" },
+      messages: [{ role: "user", content: "I ride a mountain bike." }],
+    });
+
+    expect(result.candidates[0]?.metadata).toEqual({
+      category: "cycling",
+      subject: "the user",
+    });
+  });
+
   it("retries invalid structured memory extraction payloads for openai-compatible base URLs", async () => {
     let attempts = 0;
     const extractor = createAISDKMemoryExtractor({
