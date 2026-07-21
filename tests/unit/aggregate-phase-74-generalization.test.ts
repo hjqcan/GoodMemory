@@ -250,6 +250,7 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
           : { providerObjectCalls: PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION }),
         modelUsageAccounting: "phase74-model-usage-v2",
         preRankLimit: 32,
+        caseScheduling: "interleaved-memory-groups-v1",
         reader: "generic-label-free-v1",
         replicate,
         reranker: {

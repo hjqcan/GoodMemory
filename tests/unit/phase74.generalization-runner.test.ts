@@ -157,6 +157,185 @@ describe("Phase 74 generalization runner", () => {
     ]);
   });
 
+  it("round-robins memory groups when serialization is disabled while preserving output order", async () => {
+    const concurrentCases: Phase74GeneralizationCase[] = [
+      {
+        ...cases[0]!,
+        caseId: "group-a-question-1",
+        memoryGroupId: "group-a",
+        question: "Question A1?",
+      },
+      {
+        ...cases[0]!,
+        caseId: "group-a-question-2",
+        memoryGroupId: "group-a",
+        question: "Question A2?",
+      },
+      {
+        ...cases[0]!,
+        caseId: "group-b-question-1",
+        memoryGroupId: "group-b",
+        question: "Question B1?",
+      },
+    ];
+    const activeByGroup = new Map<string, number>();
+    const startOrder: string[] = [];
+    let active = 0;
+    let maxActive = 0;
+    let releaseFirstA!: () => void;
+    const firstAReleased = new Promise<void>((resolve) => {
+      releaseFirstA = resolve;
+    });
+    let sameGroupOverlap = false;
+
+    const report = await runPhase74Generalization({
+      caseConcurrency: 2,
+      cases: concurrentCases,
+      countRenderedTokens: (content) => content.length,
+      executeRetrieval: async ({ arm, stage, testCase }) => {
+        const group = testCase.question.includes("A") ? "group-a" : "group-b";
+        const groupActive = (activeByGroup.get(group) ?? 0) + 1;
+        activeByGroup.set(group, groupActive);
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        sameGroupOverlap ||= groupActive > 1;
+        if (arm === "claim-temporal-off") {
+          startOrder.push(testCase.question);
+        }
+        if (
+          arm === "claim-temporal-off" &&
+          testCase.question === "Question A1?"
+        ) {
+          await firstAReleased;
+        }
+        if (
+          arm === "claim-temporal-off" &&
+          testCase.question === "Question A2?"
+        ) {
+          releaseFirstA();
+        }
+        active -= 1;
+        activeByGroup.set(group, groupActive - 1);
+        return {
+          retrievedMemories: [],
+          snapshotId: `${testCase.caseId}:${stage}:${arm}`,
+          storedMemories: [],
+        };
+      },
+      genericReader: async () => "Postgres",
+      identity: identity(),
+      includeOracle: false,
+      judge: async () => ({ correct: true }),
+      persistIdentity: async () => undefined,
+      protocolReader: async () => "Postgres",
+      renderEvidenceLedger: async () => "Postgres",
+      serializeMemoryGroups: false,
+      stages: ["E2"],
+    });
+
+    expect(startOrder).toEqual([
+      "Question A1?",
+      "Question B1?",
+      "Question A2?",
+    ]);
+    expect(maxActive).toBe(2);
+    expect(sameGroupOverlap).toBe(true);
+    expect(report.executions.map(({ caseId }) => caseId)).toEqual([
+      "group-a-question-1",
+      "group-a-question-1",
+      "group-a-question-2",
+      "group-a-question-2",
+      "group-b-question-1",
+      "group-b-question-1",
+    ]);
+  });
+
+  it("honors case concurrency for E4 and oracle work while preserving case order", async () => {
+    const concurrentCases: Phase74GeneralizationCase[] = [
+      {
+        ...cases[0]!,
+        caseId: "case-a",
+        memoryGroupId: "group-a",
+        question: "Question A?",
+      },
+      {
+        ...cases[0]!,
+        caseId: "case-b",
+        memoryGroupId: "group-b",
+        question: "Question B?",
+      },
+    ];
+    const active = { e4: 0, oracle: 0 };
+    const maximum = { e4: 0, oracle: 0 };
+    const started = { e4: new Set<string>(), oracle: new Set<string>() };
+    let releaseE4!: () => void;
+    let releaseOracle!: () => void;
+    const gates = {
+      e4: new Promise<void>((resolve) => {
+        releaseE4 = resolve;
+      }),
+      oracle: new Promise<void>((resolve) => {
+        releaseOracle = resolve;
+      }),
+    };
+    const trackReader = async (input: {
+      purpose?: string;
+      question: string;
+    }) => {
+      const phase = input.purpose?.startsWith("e4:") === true
+        ? "e4"
+        : input.purpose?.startsWith("oracle:") === true
+        ? "oracle"
+        : null;
+      if (phase === null) {
+        return input.question;
+      }
+      active[phase] += 1;
+      maximum[phase] = Math.max(maximum[phase], active[phase]);
+      started[phase].add(input.question);
+      if (started[phase].size === 2) {
+        phase === "e4" ? releaseE4() : releaseOracle();
+      }
+      await gates[phase];
+      active[phase] -= 1;
+      return input.question;
+    };
+
+    const report = await runPhase74Generalization({
+      caseConcurrency: 2,
+      cases: concurrentCases,
+      countRenderedTokens: (content) => content.length,
+      e4ProtectionDeltas: {
+        prose: 0,
+        chronology: 0,
+        compact_json: 0,
+        json_locale_note: 0,
+      },
+      executeRetrieval: async ({ arm, stage, testCase }) => ({
+        retrievedMemories: [],
+        snapshotId: `${testCase.caseId}:${stage}:${arm}`,
+        storedMemories: [],
+      }),
+      genericReader: trackReader,
+      identity: identity(),
+      judge: async () => ({ correct: true }),
+      persistIdentity: async () => undefined,
+      protocolReader: trackReader,
+      renderEvidenceLedger: async () => "Postgres",
+      stages: ["E3", "E4"],
+    });
+
+    expect(maximum).toEqual({ e4: 2, oracle: 2 });
+    expect(report.e4.cases.map(({ caseId }) => caseId)).toEqual([
+      ...Array(4).fill("case-a"),
+      ...Array(4).fill("case-b"),
+    ]);
+    expect(report.oracle.map(({ answer }) => answer)).toEqual([
+      ...Array(6).fill("Question A?"),
+      ...Array(6).fill("Question B?"),
+    ]);
+  });
+
   it("hides LoCoMo source names without flattening session topology", () => {
     const boundary = buildPhase74LabelFreeCaseBoundary({
       caseId: "locomo/conversation-1/q1",

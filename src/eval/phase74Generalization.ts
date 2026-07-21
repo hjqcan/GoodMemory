@@ -239,6 +239,7 @@ export interface RunPhase74GeneralizationInput {
     locale?: string;
     snapshot: Phase74RetrievalSnapshot;
   }): Promise<string>;
+  serializeMemoryGroups?: boolean;
   scoreAnswer?(input: {
     answer: string;
     correct: boolean;
@@ -503,6 +504,64 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
+interface IndexedPhase74Case {
+  index: number;
+  testCase: Phase74GeneralizationCase;
+}
+
+function scheduleCaseGroups(
+  cases: readonly Phase74GeneralizationCase[],
+  serializeMemoryGroups: boolean,
+): IndexedPhase74Case[][] {
+  const groupedCases = new Map<string, IndexedPhase74Case[]>();
+  for (const [index, testCase] of cases.entries()) {
+    const groupId = testCase.memoryGroupId ?? testCase.caseId;
+    const group = groupedCases.get(groupId);
+    if (group === undefined) {
+      groupedCases.set(groupId, [{ index, testCase }]);
+    } else {
+      group.push({ index, testCase });
+    }
+  }
+  const groups = [...groupedCases.values()];
+  if (serializeMemoryGroups) {
+    return groups;
+  }
+  const scheduled: IndexedPhase74Case[][] = [];
+  const maximumGroupSize = Math.max(0, ...groups.map((group) => group.length));
+  for (let groupIndex = 0; groupIndex < maximumGroupSize; groupIndex += 1) {
+    for (const group of groups) {
+      const scheduledCase = group[groupIndex];
+      if (scheduledCase !== undefined) {
+        scheduled.push([scheduledCase]);
+      }
+    }
+  }
+  return scheduled;
+}
+
+async function mapScheduledCases<R>(
+  groups: readonly (readonly IndexedPhase74Case[])[],
+  concurrency: number,
+  map: (testCase: Phase74GeneralizationCase) => Promise<R>,
+): Promise<R[]> {
+  const groupedResults = await mapWithConcurrency(
+    groups,
+    concurrency,
+    async (group) => {
+      const results: Array<{ index: number; result: R }> = [];
+      for (const { index, testCase } of group) {
+        results.push({ index, result: await map(testCase) });
+      }
+      return results;
+    },
+  );
+  return groupedResults
+    .flat()
+    .sort((left, right) => left.index - right.index)
+    .map(({ result }) => result);
+}
+
 async function assessAnswer(input: {
   answer: string;
   purpose: string;
@@ -557,21 +616,12 @@ export async function runPhase74Generalization(
   if (!Number.isSafeInteger(caseConcurrency) || caseConcurrency <= 0) {
     throw new Error("Phase 74 caseConcurrency must be a positive integer.");
   }
-  const groupedCases = new Map<
-    string,
-    Array<{ index: number; testCase: Phase74GeneralizationCase }>
-  >();
-  for (const [index, testCase] of input.cases.entries()) {
-    const groupId = testCase.memoryGroupId ?? testCase.caseId;
-    const group = groupedCases.get(groupId);
-    if (group === undefined) {
-      groupedCases.set(groupId, [{ index, testCase }]);
-    } else {
-      group.push({ index, testCase });
-    }
-  }
+  const scheduledCaseGroups = scheduleCaseGroups(
+    input.cases,
+    input.serializeMemoryGroups ?? true,
+  );
   const groupedResults = await mapWithConcurrency(
-    [...groupedCases.values()],
+    scheduledCaseGroups,
     caseConcurrency,
     async (group) => {
       const results: Array<{
@@ -801,103 +851,110 @@ export async function runPhase74Generalization(
 
   const e4Cases: Phase74E4CaseResult[] = [];
   if (stages.has("E4")) {
-    for (const testCase of input.cases) {
-      const labelFreeBoundary = buildPhase74LabelFreeCaseBoundary(testCase);
-      if (!deterministicSnapshots.has(testCase.caseId) && input.checkpoint) {
-        const key = checkpointKey(
-          identityHash,
-          "retrieval",
-          testCase.caseId,
-          "E3",
-          "recall-plan-deterministic",
-        );
-        const snapshot = await input.checkpoint.loadRetrieval(key);
-        if (snapshot !== null) {
-          deterministicSnapshots.set(testCase.caseId, snapshot);
-          input.onRetrievalSnapshot?.(snapshot);
+    const results = await mapScheduledCases(
+      scheduledCaseGroups,
+      caseConcurrency,
+      async (testCase) => {
+        const caseResults: Phase74E4CaseResult[] = [];
+        const labelFreeBoundary = buildPhase74LabelFreeCaseBoundary(testCase);
+        if (!deterministicSnapshots.has(testCase.caseId) && input.checkpoint) {
+          const key = checkpointKey(
+            identityHash,
+            "retrieval",
+            testCase.caseId,
+            "E3",
+            "recall-plan-deterministic",
+          );
+          const snapshot = await input.checkpoint.loadRetrieval(key);
+          if (snapshot !== null) {
+            deterministicSnapshots.set(testCase.caseId, snapshot);
+            input.onRetrievalSnapshot?.(snapshot);
+          }
         }
-      }
-      const snapshot = deterministicSnapshots.get(testCase.caseId);
-      if (!snapshot) {
-        throw new Error(
-          `Phase 74 E4 requires a committed deterministic E3 snapshot for ${testCase.caseId}.`,
-        );
-      }
-      for (const format of PHASE74_EXPERIMENT_ARMS.E4) {
-        const key = checkpointKey(
-          identityHash,
-          "e4",
-          testCase.caseId,
-          snapshot.snapshotId,
-          format,
-        );
-        const cached = await input.checkpoint?.loadE4(key) ?? null;
-        if (cached !== null) {
-          e4Cases.push(cached);
-          continue;
+        const snapshot = deterministicSnapshots.get(testCase.caseId);
+        if (!snapshot) {
+          throw new Error(
+            `Phase 74 E4 requires a committed deterministic E3 snapshot for ${testCase.caseId}.`,
+          );
         }
-        let context = "";
-        let contextTokensBeforeTruncation = 0;
-        let contextTruncated = false;
-        try {
-          const renderedContext = await input.renderEvidenceLedger({
+        for (const format of PHASE74_EXPERIMENT_ARMS.E4) {
+          const key = checkpointKey(
+            identityHash,
+            "e4",
+            testCase.caseId,
+            snapshot.snapshotId,
             format,
-            locale: testCase.locale,
-            snapshot,
-          });
-          const budgetedContext = truncateRenderedContext({
-            content: renderedContext,
-            contextTokenBudget:
-              input.contextTokenBudget ?? PHASE74_CONTEXT_TOKEN_BUDGET,
-            countRenderedTokens: input.countRenderedTokens,
-          });
-          context = budgetedContext.content;
-          contextTokensBeforeTruncation =
-            budgetedContext.renderedContextTokensBeforeTruncation;
-          contextTruncated = budgetedContext.contextTruncated;
-          const answer = await input.genericReader({
-            caseId: labelFreeBoundary.caseKey,
-            context,
-            purpose: `e4:${format}`,
-            question: testCase.question,
-          });
-          const assessment = await assessAnswer({
-            answer,
-            purpose: `e4:${format}`,
-            run: input,
-            testCase,
-          });
-          const result: Phase74E4CaseResult = {
-            answer,
-            caseId: testCase.caseId,
-            clusterId: testCase.memoryGroupId ?? testCase.caseId,
-            contextTokens: input.countRenderedTokens(context),
-            contextTokensBeforeTruncation,
-            contextTruncated,
-            correct: assessment.correct,
-            format,
-            score: assessment.score,
-            snapshotId: snapshot.snapshotId,
-          };
-          e4Cases.push(result);
-          await input.checkpoint?.saveE4(key, result);
-        } catch (error) {
-          e4Cases.push({
-            answer: null,
-            caseId: testCase.caseId,
-            clusterId: testCase.memoryGroupId ?? testCase.caseId,
-            contextTokens: input.countRenderedTokens(context),
-            contextTokensBeforeTruncation,
-            contextTruncated,
-            correct: false,
-            executionError: errorMessage(error),
-            format,
-            score: 0,
-            snapshotId: snapshot.snapshotId,
-          });
+          );
+          const cached = await input.checkpoint?.loadE4(key) ?? null;
+          if (cached !== null) {
+            caseResults.push(cached);
+            continue;
+          }
+          let context = "";
+          let contextTokensBeforeTruncation = 0;
+          let contextTruncated = false;
+          try {
+            const renderedContext = await input.renderEvidenceLedger({
+              format,
+              locale: testCase.locale,
+              snapshot,
+            });
+            const budgetedContext = truncateRenderedContext({
+              content: renderedContext,
+              contextTokenBudget:
+                input.contextTokenBudget ?? PHASE74_CONTEXT_TOKEN_BUDGET,
+              countRenderedTokens: input.countRenderedTokens,
+            });
+            context = budgetedContext.content;
+            contextTokensBeforeTruncation =
+              budgetedContext.renderedContextTokensBeforeTruncation;
+            contextTruncated = budgetedContext.contextTruncated;
+            const answer = await input.genericReader({
+              caseId: labelFreeBoundary.caseKey,
+              context,
+              purpose: `e4:${format}`,
+              question: testCase.question,
+            });
+            const assessment = await assessAnswer({
+              answer,
+              purpose: `e4:${format}`,
+              run: input,
+              testCase,
+            });
+            const result: Phase74E4CaseResult = {
+              answer,
+              caseId: testCase.caseId,
+              clusterId: testCase.memoryGroupId ?? testCase.caseId,
+              contextTokens: input.countRenderedTokens(context),
+              contextTokensBeforeTruncation,
+              contextTruncated,
+              correct: assessment.correct,
+              format,
+              score: assessment.score,
+              snapshotId: snapshot.snapshotId,
+            };
+            caseResults.push(result);
+            await input.checkpoint?.saveE4(key, result);
+          } catch (error) {
+            caseResults.push({
+              answer: null,
+              caseId: testCase.caseId,
+              clusterId: testCase.memoryGroupId ?? testCase.caseId,
+              contextTokens: input.countRenderedTokens(context),
+              contextTokensBeforeTruncation,
+              contextTruncated,
+              correct: false,
+              executionError: errorMessage(error),
+              format,
+              score: 0,
+              snapshotId: snapshot.snapshotId,
+            });
+          }
         }
-      }
-    }
+        return caseResults;
+      },
+    );
+    e4Cases.push(...results.flat());
   }
 
   const formatResults: Phase74E4FormatResult[] =
@@ -937,37 +994,45 @@ export async function runPhase74Generalization(
 
   const oracle: OracleMatrixCaseResult[] = [];
   if (input.includeOracle !== false) {
-    for (const testCase of input.cases) {
-      const labelFreeBoundary = buildPhase74LabelFreeCaseBoundary(testCase);
-      const snapshot = deterministicSnapshots.get(testCase.caseId);
-      if (!snapshot) {
-        continue;
-      }
-      const key = checkpointKey(
-        identityHash,
-        "oracle",
-        testCase.caseId,
-        snapshot.snapshotId,
-      );
-      const cached = await input.checkpoint?.loadOracle(key) ?? null;
-      if (cached !== null) {
-        oracle.push(...cached);
-        continue;
-      }
-      const results = await runOracleMatrixCase({
-        contextTokenBudget:
-          input.contextTokenBudget ?? PHASE74_CONTEXT_TOKEN_BUDGET,
-        countRenderedTokens: input.countRenderedTokens,
-        genericReader: input.genericReader,
-        judge: input.judge,
-        protocolReader: input.protocolReader,
-        testCase: oracleCase(testCase, snapshot, labelFreeBoundary),
-      });
-      oracle.push(...results);
-      if (results.every(({ executionError }) => executionError === undefined)) {
-        await input.checkpoint?.saveOracle(key, results);
-      }
-    }
+    const results = await mapScheduledCases(
+      scheduledCaseGroups,
+      caseConcurrency,
+      async (testCase) => {
+        const labelFreeBoundary = buildPhase74LabelFreeCaseBoundary(testCase);
+        const snapshot = deterministicSnapshots.get(testCase.caseId);
+        if (!snapshot) {
+          return [];
+        }
+        const key = checkpointKey(
+          identityHash,
+          "oracle",
+          testCase.caseId,
+          snapshot.snapshotId,
+        );
+        const cached = await input.checkpoint?.loadOracle(key) ?? null;
+        if (cached !== null) {
+          return [...cached];
+        }
+        const caseResults = await runOracleMatrixCase({
+          contextTokenBudget:
+            input.contextTokenBudget ?? PHASE74_CONTEXT_TOKEN_BUDGET,
+          countRenderedTokens: input.countRenderedTokens,
+          genericReader: input.genericReader,
+          judge: input.judge,
+          protocolReader: input.protocolReader,
+          testCase: oracleCase(testCase, snapshot, labelFreeBoundary),
+        });
+        if (
+          caseResults.every(({ executionError }) =>
+            executionError === undefined
+          )
+        ) {
+          await input.checkpoint?.saveOracle(key, caseResults);
+        }
+        return caseResults;
+      },
+    );
+    oracle.push(...results.flat());
   }
 
   const renderedContextMaxTokens = Math.max(

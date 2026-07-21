@@ -16,6 +16,7 @@ const PHASE74_FULL_RUN_FIXED_CONFIGURATION = {
     reasoningEffort: "medium",
     temperature: 0,
   },
+  caseScheduling: "interleaved-memory-groups-v1",
   context: {
     maxTokens: PHASE74_CONTEXT_TOKEN_BUDGET,
     tokenizer: "utf8-byte-upper-bound-v1",
@@ -52,6 +53,7 @@ export function buildPhase74FullRunIdentityConfiguration(input: {
     answer: PHASE74_FULL_RUN_FIXED_CONFIGURATION.answer,
     callBudget: input.callBudget,
     caseConcurrency,
+    caseScheduling: PHASE74_FULL_RUN_FIXED_CONFIGURATION.caseScheduling,
     context: PHASE74_FULL_RUN_FIXED_CONFIGURATION.context,
     costBoundary: PHASE74_FULL_RUN_FIXED_CONFIGURATION.costBoundary,
     dataset: input.dataset,

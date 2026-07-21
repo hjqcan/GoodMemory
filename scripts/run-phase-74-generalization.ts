@@ -1183,6 +1183,7 @@ export async function runPhase74GeneralizationFull(
       }),
       protocolReader,
       renderEvidenceLedger: retrieval.render,
+      serializeMemoryGroups: false,
       stages: [options.stage],
     });
   } finally {

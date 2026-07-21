@@ -184,6 +184,7 @@ describe("phase 74 generalization smoke runner", () => {
       selectedCaseIdsSha256: "case-ids-sha",
     });
     expect(configuration).toMatchObject({
+      caseScheduling: "interleaved-memory-groups-v1",
       caseConcurrency: 1,
       callBudget: {
         embeddingSpendLimitUsd: 0.1,
