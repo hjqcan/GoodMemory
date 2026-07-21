@@ -141,14 +141,13 @@ if (POSTGRES_URL) {
               EXPLAIN
               SELECT document
               FROM ${quoteIdentifier(schema)}.gm_documents
-              WHERE collection = $1
-                AND to_tsvector(
+              WHERE to_tsvector(
                   'simple',
                   COALESCE(document ->> 'searchText', '')
-                ) @@ to_tsquery('simple', $2)
+                ) @@ to_tsquery('simple', $1)
               LIMIT 1
             `,
-            ["recall_documents_v2", "atlas"],
+            ["atlas"],
           );
         });
         expect(JSON.stringify(plan)).toContain(

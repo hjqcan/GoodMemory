@@ -81,6 +81,7 @@ export interface PostgresDocumentIndexState {
 }
 
 export interface PostgresStorageMigrationPort {
+  runExclusive<T>(operation: () => Promise<T>): Promise<T>;
   createDocumentIndex(statement: string): Promise<void>;
   ensureDocumentStore(): Promise<void>;
   ensureVersionStore(): Promise<void>;
@@ -1125,6 +1126,30 @@ function createPostgresStorageMigrationPort(
   const versionTable = qualifyTable(runtime.schema, STORAGE_SCHEMA_TABLE_NAME);
 
   return {
+    async runExclusive(operation) {
+      const connection = await runtime.sql.reserve();
+      const lockKey = [
+        "goodmemory",
+        runtime.schema,
+        DOCUMENT_INDEX_MIGRATION_COMPONENT,
+      ].join(":");
+      try {
+        await connection.unsafe(
+          "SELECT pg_advisory_lock(hashtextextended($1, 0))",
+          [lockKey],
+        );
+        return await operation();
+      } finally {
+        try {
+          await connection.unsafe(
+            "SELECT pg_advisory_unlock(hashtextextended($1, 0))",
+            [lockKey],
+          );
+        } finally {
+          connection.release();
+        }
+      }
+    },
     async createDocumentIndex(statement) {
       await runtime.sql.unsafe(statement);
     },
@@ -1194,11 +1219,15 @@ function createPostgresStorageMigrationPort(
     async setVersion(version) {
       await runtime.sql.unsafe(
         `
-          INSERT INTO ${versionTable} (component, version, updated_at)
+          INSERT INTO ${versionTable} AS storage_schema (
+            component,
+            version,
+            updated_at
+          )
           VALUES ($1, $2, NOW())
           ON CONFLICT (component)
           DO UPDATE SET
-            version = EXCLUDED.version,
+            version = GREATEST(storage_schema.version, EXCLUDED.version),
             updated_at = EXCLUDED.updated_at
         `,
         [DOCUMENT_INDEX_MIGRATION_COMPONENT, version],
@@ -1215,11 +1244,40 @@ function normalizeIndexMethodAndKey(definition: string): string {
   if (methodStart < 0) {
     return "";
   }
-  return definition
-    .slice(methodStart)
-    .toLocaleLowerCase("en-US")
-    .replace(/::(?:regconfig|text)\b/g, "")
-    .replace(/["\s]/g, "");
+
+  const methodAndKey = definition.slice(methodStart);
+  let inStringLiteral = false;
+  let result = "";
+  for (let index = 0; index < methodAndKey.length; index += 1) {
+    const character = methodAndKey[index]!;
+    if (character === "'") {
+      result += character;
+      if (inStringLiteral && methodAndKey[index + 1] === "'") {
+        result += "'";
+        index += 1;
+      } else {
+        inStringLiteral = !inStringLiteral;
+      }
+      continue;
+    }
+    if (inStringLiteral) {
+      result += character;
+      continue;
+    }
+    const remaining = methodAndKey.slice(index).toLocaleLowerCase("en-US");
+    const cast = ["::regconfig", "::text"].find((candidate) =>
+      remaining.startsWith(candidate)
+    );
+    if (cast) {
+      index += cast.length - 1;
+      continue;
+    }
+    if (character === '"' || /\s/.test(character)) {
+      continue;
+    }
+    result += character.toLocaleLowerCase("en-US");
+  }
+  return result;
 }
 
 function assertCurrentDocumentIndex(
@@ -1263,51 +1321,53 @@ export async function migratePostgresStorageBackend(
     createPostgresStorageMigrationPort(createRuntime(config));
   const log = options?.log ?? defaultPostgresStorageMigrationLog;
 
-  await port.ensureDocumentStore();
-  await port.ensureVersionStore();
-  const version = await port.getVersion();
-  if (version !== null && version > DOCUMENT_INDEX_SCHEMA_VERSION) {
-    throw new Error(
-      `Postgres document index schema ${schema} has unsupported version ${version}.`,
-    );
-  }
+  await port.runExclusive(async () => {
+    await port.ensureDocumentStore();
+    await port.ensureVersionStore();
+    const version = await port.getVersion();
+    if (version !== null && version > DOCUMENT_INDEX_SCHEMA_VERSION) {
+      throw new Error(
+        `Postgres document index schema ${schema} has unsupported version ${version}.`,
+      );
+    }
 
-  for (const index of DOCUMENT_INDEX_DEFINITIONS) {
-    const existing = await port.getDocumentIndex(index.name);
-    if (existing) {
-      assertCurrentDocumentIndex(schema, index, existing);
+    for (const index of DOCUMENT_INDEX_DEFINITIONS) {
+      const existing = await port.getDocumentIndex(index.name);
+      if (existing) {
+        assertCurrentDocumentIndex(schema, index, existing);
+        log({
+          elapsedMs: 0,
+          index: index.name,
+          schema,
+          status: "current",
+        });
+        continue;
+      }
+
+      const startedAt = Date.now();
       log({
         elapsedMs: 0,
         index: index.name,
         schema,
-        status: "current",
+        status: "creating",
       });
-      continue;
+      await port.createDocumentIndex(
+        `CREATE INDEX CONCURRENTLY IF NOT EXISTS ${quoteIdentifier(index.name)} ON ${qualifyTable(schema, DOCUMENT_TABLE_NAME)} ${index.methodAndKey}`,
+      );
+      const created = await port.getDocumentIndex(index.name);
+      assertCurrentDocumentIndex(schema, index, created);
+      log({
+        elapsedMs: Date.now() - startedAt,
+        index: index.name,
+        schema,
+        status: "created",
+      });
     }
 
-    const startedAt = Date.now();
-    log({
-      elapsedMs: 0,
-      index: index.name,
-      schema,
-      status: "creating",
-    });
-    await port.createDocumentIndex(
-      `CREATE INDEX CONCURRENTLY IF NOT EXISTS ${quoteIdentifier(index.name)} ON ${qualifyTable(schema, DOCUMENT_TABLE_NAME)} ${index.methodAndKey}`,
-    );
-    const created = await port.getDocumentIndex(index.name);
-    assertCurrentDocumentIndex(schema, index, created);
-    log({
-      elapsedMs: Date.now() - startedAt,
-      index: index.name,
-      schema,
-      status: "created",
-    });
-  }
-
-  if (version !== DOCUMENT_INDEX_SCHEMA_VERSION) {
-    await port.setVersion(DOCUMENT_INDEX_SCHEMA_VERSION);
-  }
+    if (version !== DOCUMENT_INDEX_SCHEMA_VERSION) {
+      await port.setVersion(DOCUMENT_INDEX_SCHEMA_VERSION);
+    }
+  });
 }
 
 export async function ensurePostgresStorageBackend(

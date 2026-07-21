@@ -114,6 +114,7 @@ import {
   probeReadOnlyPostgresStorageBackend,
   type ReadOnlyPostgresStorageProbeResult,
 } from "./storage/postgres";
+import { migratePostgresStorageBackend } from "./storage/postgresPublic";
 import {
   createSQLiteDocumentStore,
   createSQLiteSessionStore,
@@ -153,6 +154,7 @@ export interface CLIInstallPrompt {
 export interface CLIRunDependencies {
   interactive?: boolean;
   prompt?: CLIInstallPrompt;
+  migratePostgresStorageBackend?: typeof migratePostgresStorageBackend;
   // Injected for `goodmemory adopt` so environment auto-detection stays
   // deterministic in tests; defaults to the real `which`-backed probe.
   commandAvailable?: (command: string) => Promise<boolean>;
@@ -282,6 +284,7 @@ const ROOT_HELP_TEXT = [
   "  disable         Disable repo-local GoodMemory host opt-in for Codex or Claude Code",
   "  repair          Repair missing managed installed-host wiring",
   "  mcp             Run the installed GoodMemory MCP server",
+  "  storage         Run explicit storage maintenance commands",
   "  runtime         Run optional local runtime tools such as worker inspection",
   "  inspector       Run the local GoodMemory Inspector admin surface",
   "  codex           Codex bootstrap and installed hook commands",
@@ -299,6 +302,7 @@ const ROOT_HELP_TEXT = [
   "  goodmemory enable --help",
   "  goodmemory repair --help",
   "  goodmemory mcp --help",
+  "  goodmemory storage --help",
   "  goodmemory runtime --help",
   "  goodmemory inspector --help",
   "  goodmemory codex --help",
@@ -643,6 +647,35 @@ const MCP_HELP_TEXT = [
   "Help",
   "  goodmemory mcp --help",
   "  goodmemory mcp serve --help",
+].join("\n");
+const STORAGE_HELP_TEXT = [
+  "GoodMemory Storage CLI",
+  "",
+  "Usage",
+  "  goodmemory storage <command> [options]",
+  "",
+  "Commands",
+  "  migrate       Build Postgres document indexes at deployment time",
+  "",
+  "Help",
+  "  goodmemory storage --help",
+  "  goodmemory storage migrate --help",
+].join("\n");
+const STORAGE_MIGRATE_HELP_TEXT = [
+  "GoodMemory Postgres Document Index Migration",
+  "",
+  "Usage",
+  "  goodmemory storage migrate --storage-provider postgres --storage-url <url> [options]",
+  "",
+  "Required",
+  "  --storage-provider postgres",
+  "  --storage-url <url>",
+  "",
+  "Options",
+  "  --storage-schema <schema>  Defaults to public",
+  "  --json",
+  "",
+  "This builds document indexes outside request startup; it does not migrate session or vector storage.",
 ].join("\n");
 const MCP_SERVE_HELP_TEXT = [
   "GoodMemory MCP Serve",
@@ -5943,6 +5976,52 @@ function hostWritebackExitCode(
     : 0;
 }
 
+async function handleStorageMigration(
+  flags: ParsedFlags,
+  dependencies: CLIRunDependencies,
+): Promise<CLICommandOutput> {
+  const provider = normalizeOptionalFlag(flags["storage-provider"]);
+  if (!provider) {
+    throw new Error(
+      "Storage migration requires explicit --storage-provider postgres.",
+    );
+  }
+  if (provider !== "postgres") {
+    throw new Error(
+      "Storage migration only supports --storage-provider postgres.",
+    );
+  }
+
+  const url = normalizeOptionalFlag(flags["storage-url"]);
+  if (!url || url === "true") {
+    throw new Error("Postgres storage migration requires --storage-url <url>.");
+  }
+  const schema = normalizeOptionalFlag(flags["storage-schema"]);
+  const effectiveSchema = schema ?? "public";
+  const migrate = dependencies.migratePostgresStorageBackend ??
+    migratePostgresStorageBackend;
+
+  try {
+    await migrate({
+      ...(schema ? { schema } : {}),
+      url,
+    });
+  } catch {
+    throw new Error("Postgres document-index migration failed.");
+  }
+
+  const payload = {
+    provider: "postgres",
+    schema: effectiveSchema,
+    component: "document_indexes",
+    status: "migrated",
+  } as const;
+  return {
+    json: payload,
+    text: `Postgres document-index migration completed for schema ${effectiveSchema}.\n`,
+  };
+}
+
 async function handleMcpServe(flags: ParsedFlags): Promise<void> {
   const options = resolveMcpServeOptions({
     env: process.env,
@@ -6145,6 +6224,19 @@ export async function runCLI(
           `Unknown MCP command: ${secondary}. Run 'goodmemory mcp --help'.`,
         );
       }
+      if (primary === "storage") {
+        const secondary = commands[1];
+        if (!secondary) {
+          return helpResult(STORAGE_HELP_TEXT);
+        }
+        if (secondary === "migrate") {
+          return helpResult(STORAGE_MIGRATE_HELP_TEXT);
+        }
+
+        return errorResult(
+          `Unknown storage command: ${secondary}. Run 'goodmemory storage --help'.`,
+        );
+      }
       if (primary === "runtime") {
         const secondary = commands[1];
         if (!secondary) {
@@ -6305,6 +6397,22 @@ export async function runCLI(
       }
 
       throw new Error(`Unknown MCP command: ${secondary}. Run 'goodmemory mcp --help'.`);
+    }
+    if (primary === "storage") {
+      const secondary = commands[1];
+      if (!secondary) {
+        return helpResult(STORAGE_HELP_TEXT);
+      }
+      if (secondary === "migrate") {
+        return renderOutput(
+          await handleStorageMigration(flags, dependencies),
+          flags,
+        );
+      }
+
+      throw new Error(
+        `Unknown storage command: ${secondary}. Run 'goodmemory storage --help'.`,
+      );
     }
     if (primary === "runtime") {
       const secondary = commands[1];

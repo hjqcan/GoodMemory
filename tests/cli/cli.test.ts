@@ -904,13 +904,184 @@ describe("goodmemory cli help and routing", () => {
       expect(result.stdout).toContain(
         "inspector       Run the local GoodMemory Inspector admin surface",
       );
+      expect(result.stdout).toContain(
+        "storage         Run explicit storage maintenance commands",
+      );
       expect(result.stdout).toContain("codex           Codex bootstrap and installed hook commands");
       expect(result.stdout).toContain("claude          Claude Code bootstrap and installed hook commands");
       expect(result.stdout).toContain("goodmemory eval --help");
       expect(result.stdout).toContain("goodmemory install --help");
       expect(result.stdout).toContain("goodmemory mcp --help");
+      expect(result.stdout).toContain("goodmemory storage --help");
       expect(result.stdout).toContain("goodmemory inspector --help");
       expect(result.stderr).toBe("");
+    }
+  });
+
+  it("returns storage migration help without validating connection flags", async () => {
+    const bareStorage = await runCLI(["storage"]);
+    const storageHelp = await runCLI(["storage", "--help"]);
+    const migrationHelp = await runCLI(["storage", "migrate", "--help"]);
+
+    for (const result of [bareStorage, storageHelp]) {
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain("GoodMemory Storage CLI");
+      expect(result.stdout).toContain("migrate");
+      expect(result.stderr).toBe("");
+    }
+    expect(migrationHelp.exitCode).toBe(0);
+    expect(migrationHelp.stdout).toContain(
+      "GoodMemory Postgres Document Index Migration",
+    );
+    expect(migrationHelp.stdout).toContain("--storage-provider postgres");
+    expect(migrationHelp.stdout).toContain("--storage-url <url>");
+    expect(migrationHelp.stdout).toContain("--storage-schema <schema>");
+    expect(migrationHelp.stderr).toBe("");
+  });
+
+  it("runs an explicit Postgres storage migration with secret-free text and JSON output", async () => {
+    const storageUrl = "postgres://migration-user:migration-secret@db.example/goodmemory";
+    const calls: Array<{ schema?: string; url: string }> = [];
+    const dependencies = {
+      async migratePostgresStorageBackend(config: { schema?: string; url: string }) {
+        calls.push(config);
+      },
+    };
+
+    const textResult = await runCLI([
+      "storage",
+      "migrate",
+      "--storage-provider",
+      "postgres",
+      "--storage-url",
+      storageUrl,
+      "--storage-schema",
+      "tenant_memory",
+    ], dependencies);
+    const jsonResult = await runCLI([
+      "storage",
+      "migrate",
+      "--storage-provider",
+      "postgres",
+      "--storage-url",
+      storageUrl,
+      "--json",
+    ], dependencies);
+
+    expect(calls).toEqual([
+      { schema: "tenant_memory", url: storageUrl },
+      { url: storageUrl },
+    ]);
+    expect(textResult).toEqual({
+      exitCode: 0,
+      stderr: "",
+      stdout: "Postgres document-index migration completed for schema tenant_memory.\n",
+    });
+    expect(JSON.parse(jsonResult.stdout)).toEqual({
+      component: "document_indexes",
+      provider: "postgres",
+      schema: "public",
+      status: "migrated",
+    });
+    for (const output of [
+      textResult.stdout,
+      textResult.stderr,
+      jsonResult.stdout,
+      jsonResult.stderr,
+    ]) {
+      expect(output).not.toContain(storageUrl);
+      expect(output).not.toContain("migration-user");
+      expect(output).not.toContain("migration-secret");
+    }
+  });
+
+  it("requires explicit Postgres storage migration flags without invoking the backend", async () => {
+    let calls = 0;
+    const dependencies = {
+      async migratePostgresStorageBackend() {
+        calls += 1;
+      },
+    };
+
+    const missingProvider = await runCLI([
+      "storage",
+      "migrate",
+      "--storage-url",
+      "postgres://localhost/goodmemory",
+    ], dependencies);
+    const missingUrl = await runCLI([
+      "storage",
+      "migrate",
+      "--storage-provider",
+      "postgres",
+    ], dependencies);
+    const sqlite = await runCLI([
+      "storage",
+      "migrate",
+      "--storage-provider",
+      "sqlite",
+      "--storage-url",
+      "/tmp/goodmemory.sqlite",
+    ], dependencies);
+
+    expect(missingProvider.exitCode).toBe(1);
+    expect(missingProvider.stderr).toContain(
+      "Storage migration requires explicit --storage-provider postgres.",
+    );
+    expect(missingUrl.exitCode).toBe(1);
+    expect(missingUrl.stderr).toContain(
+      "Postgres storage migration requires --storage-url <url>.",
+    );
+    expect(sqlite.exitCode).toBe(1);
+    expect(sqlite.stderr).toContain(
+      "Storage migration only supports --storage-provider postgres.",
+    );
+    expect(calls).toBe(0);
+  });
+
+  it("redacts every failing Postgres document-index migration input", async () => {
+    const storageUrl = "postgres://migration-user:migration-secret@db.example/goodmemory";
+    const dependency = {
+      async migratePostgresStorageBackend() {
+        throw new Error(`connection refused for ${storageUrl}`);
+      },
+    };
+    const result = await runCLI([
+      "storage",
+      "migrate",
+      "--storage-provider",
+      "postgres",
+      "--storage-url",
+      storageUrl,
+      "--storage-schema",
+      "tenant_memory",
+    ], dependency);
+    const maliciousSchema = "postgres://schema-user:schema-secret@db.example/goodmemory";
+    const maliciousResult = await runCLI([
+      "storage",
+      "migrate",
+      "--storage-provider",
+      "postgres",
+      "--storage-url",
+      storageUrl,
+      "--storage-schema",
+      maliciousSchema,
+    ], dependency);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toBe("Postgres document-index migration failed.");
+    expect(maliciousResult.exitCode).toBe(1);
+    expect(maliciousResult.stdout).toBe("");
+    expect(maliciousResult.stderr).toBe(
+      "Postgres document-index migration failed.",
+    );
+    for (const output of [result.stderr, maliciousResult.stderr]) {
+      expect(output).not.toContain(storageUrl);
+      expect(output).not.toContain("migration-user");
+      expect(output).not.toContain("migration-secret");
+      expect(output).not.toContain("schema-user");
+      expect(output).not.toContain("schema-secret");
     }
   });
 

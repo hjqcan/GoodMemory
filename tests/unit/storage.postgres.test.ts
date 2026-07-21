@@ -67,6 +67,14 @@ function createMigrationPort(input?: {
     Object.entries(input?.indexes ?? {}),
   );
   const port: PostgresStorageMigrationPort = {
+    async runExclusive(operation) {
+      calls.push("lock");
+      try {
+        return await operation();
+      } finally {
+        calls.push("unlock");
+      }
+    },
     async createDocumentIndex(statement) {
       calls.push("create-index");
       statements.push(statement);
@@ -124,7 +132,9 @@ describe("postgres storage adapter", () => {
       statement.includes("CREATE INDEX CONCURRENTLY IF NOT EXISTS")
     )).toBe(true);
     expect(harness.versions).toEqual([1]);
-    expect(harness.calls.at(-1)).toBe("set-version:1");
+    expect(harness.calls[0]).toBe("lock");
+    expect(harness.calls.at(-2)).toBe("set-version:1");
+    expect(harness.calls.at(-1)).toBe("unlock");
     expect(JSON.stringify(events)).not.toContain("secret");
     expect(events.every((event) =>
       typeof event.schema === "string" &&
@@ -173,6 +183,27 @@ describe("postgres storage adapter", () => {
       ),
     ).rejects.toThrow("gm_documents_collection_idx");
     expect(harness.statements).toEqual([]);
+    expect(harness.versions).toEqual([]);
+  });
+
+  it("keeps JSON field names case-sensitive when validating expression indexes", async () => {
+    const current = currentIndex("gm_documents_search_text_search_idx");
+    const harness = createMigrationPort({
+      indexes: {
+        gm_documents_search_text_search_idx: {
+          ...current,
+          definition: current.definition.replace("'searchText'", "'searchtext'"),
+        },
+      },
+    });
+
+    await expect(
+      migratePostgresStorageBackend(
+        { url: "postgres://localhost:5432/goodmemory" },
+        { log: () => {} },
+        { port: harness.port },
+      ),
+    ).rejects.toThrow("gm_documents_search_text_search_idx");
     expect(harness.versions).toEqual([]);
   });
 
