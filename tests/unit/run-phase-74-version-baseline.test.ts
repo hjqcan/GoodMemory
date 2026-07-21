@@ -10,6 +10,7 @@ import {
   buildPhase74VersionRunIdentity,
   createPhase74FreshVersionRunDirectory,
   parsePhase74VersionBaselineCliOptions,
+  parsePhase74VersionCandidateOutcomes,
   preparePhase74VersionDataset,
 } from "../../scripts/run-phase-74-version-baseline";
 import type { Phase74DatasetBundle } from "../../src/eval/phase74Datasets";
@@ -18,6 +19,7 @@ import {
   buildPhase74FullRunIdentityConfiguration,
 } from "../../src/eval/phase74ExperimentIdentity";
 import { buildPhase74ProtocolScoringIdentity } from "../../src/eval/phase74ProtocolScoring";
+import { parsePhase74VersionCandidateReranker } from "../../src/eval/phase74VersionBaseline";
 
 const JUDGE_MODEL = {
   gateway: "https://judge.example/v1",
@@ -152,6 +154,57 @@ describe("Phase 74 release baseline runner", () => {
       },
       runId: "release-vs-candidate-r1",
     });
+  });
+
+  it("binds the version identity contract and output to the candidate provider reranker", () => {
+    const reranker = parsePhase74VersionCandidateReranker({
+      gateway: "https://ai.gurkiai.com/v1",
+      implementation: "provider-listwise-v1",
+      mode: "provider",
+      model: "gpt-5.6-terra",
+      provider: "openai",
+    });
+    const { configuration: deterministicConfiguration, scoring } =
+      fullRunConfiguration();
+    const configuration = {
+      ...deterministicConfiguration,
+      reranker,
+    };
+
+    expect(() => assertPhase74ExperimentIdentityContract({
+      benchmark: "longmemeval",
+      configuration,
+      dataset: { datasetSha256: "dataset-sha" },
+      expectedReranker: reranker,
+      judgeModel: JUDGE_MODEL,
+    })).not.toThrow();
+    expect(buildPhase74VersionRunIdentity({
+      embeddingSpendLimitUsd: 0.1,
+      identity: {
+        benchmark: "longmemeval",
+        reranker,
+        runId: "release-vs-candidate-r1",
+        scoring,
+      },
+      maxLanguageCalls: 80,
+    }).reranker).toEqual(reranker);
+  });
+
+  it("refuses candidate progress containing a provider fallback execution", () => {
+    expect(() => parsePhase74VersionCandidateOutcomes({
+      arm: "recall-plan-deterministic",
+      cases: [{ caseId: "case-1" }],
+      progress: [{
+        answer: "Pepper",
+        arm: "recall-plan-deterministic",
+        caseId: "case-1",
+        correct: true,
+        executionError: "Phase 74 provider reranker fell back (provider_error).",
+        score: 1,
+        stage: "E3",
+      }],
+      stage: "E3",
+    })).toThrow("candidate outcome missing");
   });
 
   it("refuses to reuse a partial version-comparison run directory", async () => {

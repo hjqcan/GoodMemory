@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 
+import type { EvalRunJsonObject } from "./runIdentity";
+
 export const PHASE74_RELEASE_REF = "v0.6.0";
 export const PHASE74_RELEASE_COMMIT =
   "6fdd63ecc316da725d2a1e19cb61f4eb3a9ee235";
@@ -13,6 +15,18 @@ export const PHASE74_ALPHA_COMMIT =
   "5d7639a8fa164d86e0aa1ed10a8ea398b7912464";
 export const PHASE74_ALPHA_TREE =
   "90b4313b20065a708e94ff7d9635924d56b26bfc";
+
+const PHASE74_VERSION_DETERMINISTIC_RERANKER = {
+  implementation: "lexical-coverage-v1",
+  mode: "deterministic",
+} as const satisfies EvalRunJsonObject;
+const PHASE74_VERSION_PROVIDER_RERANKER = {
+  gateway: "https://ai.gurkiai.com/v1",
+  implementation: "provider-listwise-v1",
+  mode: "provider",
+  model: "gpt-5.6-terra",
+  provider: "openai",
+} as const satisfies EvalRunJsonObject;
 
 export type Phase74VersionArm = "release" | "alpha" | "candidate";
 
@@ -135,6 +149,21 @@ export function parsePhase74VersionCandidateSource(value: unknown): {
     commit: exactHex(value.commit, 40, "Phase 74 candidate commit"),
     sha256: exactHex(value.sha256, 64, "Phase 74 candidate source SHA-256"),
   };
+}
+
+export function parsePhase74VersionCandidateReranker(
+  value: unknown,
+): EvalRunJsonObject {
+  const identity = canonicalJson(value);
+  if (identity === canonicalJson(PHASE74_VERSION_DETERMINISTIC_RERANKER)) {
+    return PHASE74_VERSION_DETERMINISTIC_RERANKER;
+  }
+  if (identity === canonicalJson(PHASE74_VERSION_PROVIDER_RERANKER)) {
+    return PHASE74_VERSION_PROVIDER_RERANKER;
+  }
+  throw new Error(
+    "Phase 74 candidate reranker must equal the frozen deterministic or Gurki listwise identity.",
+  );
 }
 
 export function createPhase74VersionSourceIdentity(

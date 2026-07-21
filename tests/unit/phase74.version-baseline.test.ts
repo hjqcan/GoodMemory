@@ -12,6 +12,7 @@ import {
   assertPhase74VersionPair,
   buildPhase74VersionIngestionKey,
   createPhase74VersionSourceIdentity,
+  parsePhase74VersionCandidateReranker,
   parsePhase74VersionCandidateSource,
   parsePhase74VersionWorkerInput,
 } from "../../src/eval/phase74VersionBaseline";
@@ -158,6 +159,37 @@ describe("Phase 74 version baseline source identity", () => {
       sha256: SHA_A,
       expectedAnswer: "forbidden",
     })).toThrow("unknown field expectedAnswer");
+  });
+
+  it("accepts only the frozen deterministic or Gurki listwise candidate reranker", () => {
+    const deterministic = {
+      implementation: "lexical-coverage-v1",
+      mode: "deterministic",
+    };
+    const provider = {
+      gateway: "https://ai.gurkiai.com/v1",
+      implementation: "provider-listwise-v1",
+      mode: "provider",
+      model: "gpt-5.6-terra",
+      provider: "openai",
+    };
+
+    expect(parsePhase74VersionCandidateReranker(deterministic)).toEqual(
+      deterministic,
+    );
+    expect(parsePhase74VersionCandidateReranker(provider)).toEqual(provider);
+    expect(() => parsePhase74VersionCandidateReranker({
+      ...provider,
+      implementation: "provider-pointwise-v1",
+    })).toThrow("reranker");
+    expect(() => parsePhase74VersionCandidateReranker({
+      ...provider,
+      gateway: "https://openrouter.ai/api/v1",
+    })).toThrow("reranker");
+    expect(() => parsePhase74VersionCandidateReranker({
+      ...provider,
+      fallback: "deterministic",
+    })).toThrow("reranker");
   });
 });
 

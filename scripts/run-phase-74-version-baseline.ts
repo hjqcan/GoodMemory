@@ -38,6 +38,7 @@ import {
   PHASE74_RELEASE_TREE,
   assertPhase74VersionModelCallAllowance,
   createPhase74VersionSourceIdentity,
+  parsePhase74VersionCandidateReranker,
   parsePhase74VersionCandidateSource,
   parsePhase74VersionWorkerInput,
 } from "../src/eval/phase74VersionBaseline";
@@ -297,7 +298,7 @@ function assertEqualIdentity(actual: unknown, expected: unknown, label: string):
   }
 }
 
-function candidateOutcomes(input: {
+export function parsePhase74VersionCandidateOutcomes(input: {
   arm: string;
   cases: readonly { caseId: string }[];
   progress: readonly unknown[];
@@ -366,6 +367,9 @@ export async function runPhase74VersionBaseline(
   );
   const candidateIdentity = jsonObject(JSON.parse(candidateIdentityRaw));
   const configuration = jsonObject(candidateIdentity.configuration);
+  const candidateReranker = parsePhase74VersionCandidateReranker(
+    configuration.reranker,
+  );
   assertEqualIdentity(candidateIdentity.benchmark, `${options.benchmark}-full`, "benchmark");
   assertEqualIdentity(candidateIdentity.datasetSha256, dataset.manifest.datasetSha256, "dataset SHA-256");
   assertEqualIdentity(configuration.selection, selection.identity, "selection identity");
@@ -377,10 +381,7 @@ export async function runPhase74VersionBaseline(
     configuration: configuration as EvalRunJsonObject,
     dataset: dataset.manifest,
     expectedEmbedding: buildPhase74EmbeddingIdentity(models.embedding),
-    expectedReranker: {
-      implementation: "lexical-coverage-v1",
-      mode: "deterministic",
-    },
+    expectedReranker: candidateReranker,
     judgeModel: publicModelIdentity(models.judge),
   });
   const candidateSource = parsePhase74VersionCandidateSource(
@@ -388,7 +389,7 @@ export async function runPhase74VersionBaseline(
   );
 
   const prefix = options.candidateStage.toLowerCase();
-  const candidate = candidateOutcomes({
+  const candidate = parsePhase74VersionCandidateOutcomes({
     arm: options.candidateArm,
     cases: selection.cases,
     progress: readJsonLines(await readFile(
@@ -426,7 +427,7 @@ export async function runPhase74VersionBaseline(
       judgeModel: publicModelIdentity(models.judge),
       promptSha256s: phase74LivePromptSha256s(),
       releaseSource: { ...releaseSource },
-      reranker: { implementation: "lexical-coverage-v1", mode: "deterministic" },
+      reranker: candidateReranker,
       runId: options.runId,
       scoring,
       selection: selection.identity,
