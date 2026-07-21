@@ -127,6 +127,7 @@
     "example:reference-product": "bun run examples/reference-chat-product/backend.ts smoke",
     "eval:smoke": "bun run scripts/run-eval.ts --mode=smoke",
     "eval:fallback": "bun run scripts/run-eval.ts --mode=fallback",
+    "eval:storage:cleanup": "bun run scripts/cleanup-eval-postgres.ts",
     "eval:official-rescore": "bun run scripts/rescore-official-protocols.ts",
     "audit:phase-61-implicitmembench-rescore-readiness": "bun run scripts/audit-phase-61-implicitmembench-rescore-readiness.ts",
     "rescore:phase-61-implicitmembench": "bun run scripts/rescore-phase-61-implicitmembench-stored-answers.ts",

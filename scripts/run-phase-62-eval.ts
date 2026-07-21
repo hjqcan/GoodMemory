@@ -1,15 +1,19 @@
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 
 import {
   createLongMemEvalGoodMemoryContextBuilder,
+  normalizeLongMemEvalProfileList,
   runLongMemEvalSuite,
-  type LongMemEvalAnswerJudge,
-  type LongMemEvalAnswerJudgeInput,
-  type LongMemEvalAnswerGenerator,
-  type LongMemEvalRecallRunConfiguration,
-  type LongMemEvalReport,
-  type LongMemEvalSupplementalEvidenceAugmenter,
-  type RunLongMemEvalOptions,
+} from "../src/eval/longmemeval";
+import type {
+  LongMemEvalAnswerGenerator,
+  LongMemEvalAnswerJudge,
+  LongMemEvalAnswerJudgeInput,
+  LongMemEvalRecallRunConfiguration,
+  LongMemEvalReport,
+  LongMemEvalSupplementalEvidenceAugmenter,
+  RunLongMemEvalOptions,
 } from "../src/eval/longmemeval";
 import {
   createGoodMemory,
@@ -17,6 +21,11 @@ import {
 } from "../src/api/createGoodMemory";
 import type { GoodMemory, GoodMemoryConfig } from "../src/api/contracts";
 import type { PersonaSpec, ScenarioFixture } from "../src/eval/dataset";
+import {
+  beginEvalPostgresRun,
+  withEvalPostgresRunRetention,
+} from "../src/eval/postgresRetention";
+import type { EvalPostgresRunLease } from "../src/eval/postgresRetention";
 import {
   createProviderEmbeddingAdapter,
   createProviderMemoryExtractor,
@@ -30,6 +39,11 @@ import {
   withAISDKRetries,
 } from "../src/provider/ai-sdk-runtime";
 import {
+  createPostgresDocumentStore,
+  createPostgresSessionStore,
+  createPostgresVectorStore,
+} from "../src/storage/postgres";
+import {
   resolveLiveModelConfig,
   resolveProviderBackedModelConfig,
 } from "./run-eval";
@@ -41,8 +55,8 @@ import {
   resolvePhase62BenchmarkRoot,
   resolvePhase62OutputDir,
   resolvePhase62RepoRoot,
-  type Phase62CliOptions,
 } from "./run-phase-62-shared";
+import type { Phase62CliOptions } from "./run-phase-62-shared";
 import { generateObject } from "ai";
 import { z } from "zod";
 
@@ -55,10 +69,16 @@ export const PHASE62_STAGE_TIMEOUT_ENV =
 const GENERATED_BY = "scripts/run-phase-62-eval.ts";
 
 export interface Phase62EvalDependencies {
+  beginPostgresRun?: (input: {
+    benchmark: string;
+    runId: string;
+    url: string;
+  }) => Promise<EvalPostgresRunLease>;
   createMemory?: typeof createGoodMemory;
   runConfiguration?: LongMemEvalRecallRunConfiguration;
   runSuite?: typeof runLongMemEvalSuite;
   supplementalEvidenceAugmenter?: LongMemEvalSupplementalEvidenceAugmenter;
+  verifyReport?: (report: LongMemEvalReport) => Promise<void>;
 }
 
 const LONGMEMEVAL_PERSONA: PersonaSpec = {
@@ -129,6 +149,18 @@ const LONGMEMEVAL_REMEMBER_CONFIG = {
     },
   ],
 } satisfies GoodMemoryConfig["remember"];
+
+async function verifyLongMemEvalReportArtifact(
+  report: LongMemEvalReport,
+): Promise<void> {
+  const raw = await readFile(`${report.runDirectory}/report.json`, "utf8");
+  const expected = `${JSON.stringify(report, null, 2)}\n`;
+  if (raw !== expected) {
+    throw new Error(
+      `LongMemEval report artifact does not match the completed run: ${report.runId}`,
+    );
+  }
+}
 
 export function createHermeticLongMemEvalMemory(
   config: GoodMemoryConfig,
@@ -307,6 +339,7 @@ export function createLongMemEvalMemoryFactory(
     // Generalized-fusion dynamic-budget floor for fusion-capable profiles;
     // undefined keeps the preset default (no trimming).
     fusionMinRelativeStrength?: number;
+    postgresSchema?: string;
     requestTimeoutMs?: number;
     runNamespace?: string;
   } = {},
@@ -383,6 +416,24 @@ export function createLongMemEvalMemoryFactory(
       "GOODMEMORY_ASSISTED_EXTRACTOR",
     );
 
+    const postgresUrl = process.env.GOODMEMORY_TEST_POSTGRES_URL;
+    const postgresStorage = options.postgresSchema
+      ? {
+          documentStore: createPostgresDocumentStore({
+            schema: options.postgresSchema,
+            url: postgresUrl,
+          }),
+          sessionStore: createPostgresSessionStore({
+            schema: options.postgresSchema,
+            url: postgresUrl,
+          }),
+          vectorStore: createPostgresVectorStore({
+            schema: options.postgresSchema,
+            url: postgresUrl,
+          }),
+        }
+      : {};
+
     return createMemory({
       adapters: {
         assistedExtractor: createProviderMemoryExtractor({
@@ -393,11 +444,12 @@ export function createLongMemEvalMemoryFactory(
           model: embeddingModel,
           requestTimeoutMs: options.requestTimeoutMs,
         }),
+        ...postgresStorage,
       },
       remember: LONGMEMEVAL_REMEMBER_CONFIG,
       storage: {
         provider: "postgres",
-        url: process.env.GOODMEMORY_TEST_POSTGRES_URL,
+        url: postgresUrl,
       },
       testing,
     });
@@ -440,10 +492,16 @@ export async function runPhase62LongMemEval(
   const configuredRunOptions = dependencies.runConfiguration
     ? { ...runOptions, runConfiguration: dependencies.runConfiguration }
     : runOptions;
+  let liveExecution:
+    | { requestTimeoutMs: number; stageTimeoutMs: number }
+    | undefined;
 
   if (configuredRunOptions.mode === "full" && !dependencies.runSuite) {
     const requestTimeoutMs = resolvePhase62LiveRequestTimeoutMs();
-    const stageTimeoutMs = resolvePhase62StageTimeoutMs(requestTimeoutMs);
+    liveExecution = {
+      requestTimeoutMs,
+      stageTimeoutMs: resolvePhase62StageTimeoutMs(requestTimeoutMs),
+    };
     assertPhase62Readiness(
       checkPhase62Readiness({
         benchmarkRoot: configuredRunOptions.benchmarkRoot,
@@ -452,13 +510,30 @@ export async function runPhase62LongMemEval(
       }),
     );
 
-    return runSuite({ ...configuredRunOptions, stageTimeoutMs }, {
-      answerGenerator: createLongMemEvalAnswerGenerator(requestTimeoutMs),
-      answerJudge: createLongMemEvalAnswerJudge(requestTimeoutMs),
+  }
+
+  const execute = (postgresSchema?: string): Promise<LongMemEvalReport> => {
+    if (configuredRunOptions.mode !== "full" || dependencies.runSuite) {
+      return runSuite(configuredRunOptions);
+    }
+    return runSuite({
+      ...configuredRunOptions,
+      stageTimeoutMs: liveExecution!.stageTimeoutMs,
+    }, {
+      answerGenerator: createLongMemEvalAnswerGenerator(
+        liveExecution!.requestTimeoutMs,
+      ),
+      answerJudge: createLongMemEvalAnswerJudge(
+        liveExecution!.requestTimeoutMs,
+      ),
       memoryContextBuilder: createLongMemEvalGoodMemoryContextBuilder({
         createMemory: createLongMemEvalMemoryFactory(
           dependencies.createMemory ?? createHermeticLongMemEvalMemory,
-          { requestTimeoutMs, runNamespace: configuredRunOptions.runId },
+          {
+            postgresSchema,
+            requestTimeoutMs: liveExecution!.requestTimeoutMs,
+            runNamespace: configuredRunOptions.runId,
+          },
         ),
         extractionStrategy:
           configuredRunOptions.runConfiguration?.extractionStrategy,
@@ -473,9 +548,36 @@ export async function runPhase62LongMemEval(
             ?.supplementalEvidencePerSessionLimit,
       }),
     });
+  };
+
+  const usesProviderPostgres =
+    configuredRunOptions.mode === "full" &&
+    normalizeLongMemEvalProfileList(configuredRunOptions.profiles).includes(
+      "goodmemory-hybrid",
+    );
+  if (!usesProviderPostgres) {
+    return execute();
   }
 
-  return runSuite(configuredRunOptions);
+  const postgresUrl = process.env.GOODMEMORY_TEST_POSTGRES_URL?.trim();
+  if (!postgresUrl) {
+    throw new Error(
+      "LongMemEval provider-backed retention requires GOODMEMORY_TEST_POSTGRES_URL",
+    );
+  }
+  const lease = await (
+    dependencies.beginPostgresRun ?? beginEvalPostgresRun
+  )({
+    benchmark: "longmemeval",
+    runId: configuredRunOptions.runId ?? PHASE62_CANONICAL_RUN_ID,
+    url: postgresUrl,
+  });
+  return withEvalPostgresRunRetention({
+    lease,
+    retain: process.env.GOODMEMORY_EVAL_RETAIN_POSTGRES === "1",
+    run: () => execute(lease.schema),
+    verify: dependencies.verifyReport ?? verifyLongMemEvalReportArtifact,
+  });
 }
 
 if (import.meta.main) {

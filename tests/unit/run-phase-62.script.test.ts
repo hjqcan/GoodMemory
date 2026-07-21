@@ -8,6 +8,7 @@ import type {
   LongMemEvalRecallDiagnosticReport,
   LongMemEvalReport,
 } from "../../src/eval/longmemeval";
+import type { EvalPostgresRunLease } from "../../src/eval/postgresRetention";
 import {
   buildLongMemEvalPrompt,
   createHermeticLongMemEvalMemory,
@@ -917,6 +918,160 @@ describe("run-phase-62 LongMemEval script", () => {
     expect([first.now!(), first.now!()]).toEqual([
       second.now!(),
       second.now!(),
+    ]);
+  });
+
+  it("routes provider-backed LongMemEval storage into the leased eval schema", () => {
+    const envNames = [
+      "GOODMEMORY_ASSISTED_EXTRACTOR_API_KEY",
+      "GOODMEMORY_ASSISTED_EXTRACTOR_MODEL",
+      "GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER",
+      "GOODMEMORY_EMBEDDING_API_KEY",
+      "GOODMEMORY_EMBEDDING_MODEL",
+      "GOODMEMORY_EMBEDDING_PROVIDER",
+      "GOODMEMORY_TEST_POSTGRES_URL",
+    ] as const;
+    const snapshot = Object.fromEntries(
+      envNames.map((name) => [name, process.env[name]]),
+    );
+    process.env.GOODMEMORY_ASSISTED_EXTRACTOR_API_KEY = "extract-key";
+    process.env.GOODMEMORY_ASSISTED_EXTRACTOR_MODEL = "extract-model";
+    process.env.GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER = "openai";
+    process.env.GOODMEMORY_EMBEDDING_API_KEY = "embed-key";
+    process.env.GOODMEMORY_EMBEDDING_MODEL = "embed-model";
+    process.env.GOODMEMORY_EMBEDDING_PROVIDER = "openai";
+    process.env.GOODMEMORY_TEST_POSTGRES_URL = "postgres://unused/eval";
+    let receivedConfig: GoodMemoryConfig | undefined;
+
+    try {
+      createLongMemEvalMemoryFactory((config) => {
+        receivedConfig = config;
+        return {} as GoodMemory;
+      }, {
+        postgresSchema: "gm_eval_longmemeval_deadbeef",
+        runNamespace: "schema-run",
+      })("goodmemory-hybrid");
+
+      expect(receivedConfig?.storage).toEqual({
+        provider: "postgres",
+        url: "postgres://unused/eval",
+      });
+      expect(receivedConfig?.adapters?.documentStore).toBeDefined();
+      expect(receivedConfig?.adapters?.sessionStore).toBeDefined();
+      expect(receivedConfig?.adapters?.vectorStore).toBeDefined();
+    } finally {
+      for (const name of envNames) {
+        const value = snapshot[name];
+        if (value === undefined) {
+          delete process.env[name];
+        } else {
+          process.env[name] = value;
+        }
+      }
+    }
+  });
+
+  it("drops leased Postgres storage after a successful hybrid run", async () => {
+    const events: string[] = [];
+    const lease: EvalPostgresRunLease = {
+      schema: "gm_eval_longmemeval_deadbeef",
+      async drop() {
+        events.push("drop");
+      },
+      async retain(status) {
+        events.push(`retain:${status}`);
+      },
+    };
+    const originalUrl = process.env.GOODMEMORY_TEST_POSTGRES_URL;
+    process.env.GOODMEMORY_TEST_POSTGRES_URL = "postgres://unused/eval";
+
+    try {
+      await runPhase62LongMemEval(
+        {
+          benchmarkRoot: "/tmp/longmemeval",
+          mode: "full",
+          outputDir: "/tmp/out",
+          profiles: ["goodmemory-hybrid"],
+          runId: "managed-run",
+        },
+        {
+          beginPostgresRun: async (input) => {
+            events.push(`begin:${input.runId}`);
+            return lease;
+          },
+          runSuite: async (input) => {
+            events.push(`run:${input.runId}`);
+            return buildReport(input);
+          },
+          verifyReport: async (report) => {
+            events.push(`verify:${report.runId}`);
+          },
+        },
+      );
+    } finally {
+      if (originalUrl === undefined) {
+        delete process.env.GOODMEMORY_TEST_POSTGRES_URL;
+      } else {
+        process.env.GOODMEMORY_TEST_POSTGRES_URL = originalUrl;
+      }
+    }
+
+    expect(events).toEqual([
+      "begin:managed-run",
+      "run:managed-run",
+      "verify:managed-run",
+      "drop",
+    ]);
+  });
+
+  it("applies the same leased storage lifecycle to hybrid recall diagnostics", async () => {
+    const events: string[] = [];
+    const lease: EvalPostgresRunLease = {
+      schema: "gm_eval_longmemeval_recall",
+      async drop() {
+        events.push("drop");
+      },
+      async retain(status) {
+        events.push(`retain:${status}`);
+      },
+    };
+    const originalUrl = process.env.GOODMEMORY_TEST_POSTGRES_URL;
+    process.env.GOODMEMORY_TEST_POSTGRES_URL = "postgres://unused/eval";
+
+    try {
+      await runPhase62LongMemEvalRecallDiagnostic(
+        {
+          mode: "full",
+          profiles: ["goodmemory-hybrid"],
+          runId: "managed-recall",
+        },
+        {
+          beginPostgresRun: async (input) => {
+            events.push(`begin:${input.runId}`);
+            return lease;
+          },
+          runDiagnostic: async (input) => {
+            events.push(`run:${input.runId}`);
+            return buildRecallDiagnosticReport(input);
+          },
+          verifyReport: async (report) => {
+            events.push(`verify:${report.runId}`);
+          },
+        },
+      );
+    } finally {
+      if (originalUrl === undefined) {
+        delete process.env.GOODMEMORY_TEST_POSTGRES_URL;
+      } else {
+        process.env.GOODMEMORY_TEST_POSTGRES_URL = originalUrl;
+      }
+    }
+
+    expect(events).toEqual([
+      "begin:managed-recall",
+      "run:managed-recall",
+      "verify:managed-recall",
+      "drop",
     ]);
   });
 

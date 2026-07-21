@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import type {
   LongMemEvalRecallDiagnosticProfile,
   LongMemEvalRecallDiagnosticReport,
@@ -10,6 +11,11 @@ import {
   LONGMEMEVAL_DEFAULT_CONTEXT_MAX_TOKENS,
   runLongMemEvalRecallDiagnostic,
 } from "../src/eval/longmemeval";
+import {
+  beginEvalPostgresRun,
+  withEvalPostgresRunRetention,
+} from "../src/eval/postgresRetention";
+import type { EvalPostgresRunLease } from "../src/eval/postgresRetention";
 import { createGoodMemory } from "../src/api/createGoodMemory";
 import type { GoodMemory } from "../src/api/contracts";
 import {
@@ -60,9 +66,30 @@ export const PHASE62_TYPE_BALANCED_CASE_IDS = [
 const GENERATED_BY = "scripts/run-phase-62-recall-diagnostic.ts";
 
 export interface Phase62RecallDiagnosticDependencies {
+  beginPostgresRun?: (input: {
+    benchmark: string;
+    runId: string;
+    url: string;
+  }) => Promise<EvalPostgresRunLease>;
   createMemory?: typeof createGoodMemory;
   fileExists?: (path: string) => boolean;
   runDiagnostic?: typeof runLongMemEvalRecallDiagnostic;
+  verifyReport?: (report: LongMemEvalRecallDiagnosticReport) => Promise<void>;
+}
+
+async function verifyRecallDiagnosticReportArtifact(
+  report: LongMemEvalRecallDiagnosticReport,
+): Promise<void> {
+  const raw = await readFile(
+    `${report.runDirectory}/recall-diagnostic.json`,
+    "utf8",
+  );
+  const expected = `${JSON.stringify(report, null, 2)}\n`;
+  if (raw !== expected) {
+    throw new Error(
+      `LongMemEval recall report artifact does not match the completed run: ${report.runId}`,
+    );
+  }
 }
 
 function listMissingEnv(required: readonly string[]): string[] {
@@ -220,6 +247,7 @@ export async function runPhase62LongMemEvalRecallDiagnostic(
     mode: "smoke",
     ...options,
   });
+  const runId = runOptions.runId ?? PHASE62_RECALL_DIAGNOSTIC_RUN_ID;
 
   if (!dependencies.runDiagnostic) {
     assertRecallDiagnosticReadiness({
@@ -229,6 +257,12 @@ export async function runPhase62LongMemEvalRecallDiagnostic(
       profile: runOptions.profile,
     });
 
+  }
+
+  const execute = (postgresSchema?: string) => {
+    if (dependencies.runDiagnostic) {
+      return runDiagnostic(runOptions);
+    }
     const createMemory =
       dependencies.createMemory ?? createHermeticLongMemEvalMemory;
     const wiredFusionFloor =
@@ -239,6 +273,7 @@ export async function runPhase62LongMemEvalRecallDiagnostic(
         ...(wiredFusionFloor !== undefined
           ? { fusionMinRelativeStrength: wiredFusionFloor }
           : {}),
+        postgresSchema,
         runNamespace: runOptions.runId,
       },
     ) as (profile: LongMemEvalRecallDiagnosticProfile) => GoodMemory;
@@ -250,9 +285,32 @@ export async function runPhase62LongMemEvalRecallDiagnostic(
         runId: runOptions.runId,
       }),
     });
+  };
+
+  if (runOptions.profile !== "goodmemory-hybrid") {
+    return execute();
   }
 
-  return runDiagnostic(runOptions);
+  const postgresUrl = process.env.GOODMEMORY_TEST_POSTGRES_URL?.trim();
+  if (!postgresUrl) {
+    throw new Error(
+      "LongMemEval recall retention requires GOODMEMORY_TEST_POSTGRES_URL",
+    );
+  }
+  const lease = await (
+    dependencies.beginPostgresRun ?? beginEvalPostgresRun
+  )({
+    benchmark: "longmemeval-recall",
+    runId,
+    url: postgresUrl,
+  });
+  return withEvalPostgresRunRetention({
+    lease,
+    retain: process.env.GOODMEMORY_EVAL_RETAIN_POSTGRES === "1",
+    run: () => execute(lease.schema),
+    verify:
+      dependencies.verifyReport ?? verifyRecallDiagnosticReportArtifact,
+  });
 }
 
 if (import.meta.main) {

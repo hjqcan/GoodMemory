@@ -13,6 +13,8 @@ bulk-load. Start here, then open only the file that matches the question.
 - `GoodMemory-Recall-Selection-Architecture.md` - recall selection
   orchestration, selector module boundaries, and regression guardrails.
 - `GoodMemory-TDD-and-Evaluation-Strategy.md` - test and eval strategy.
+- `GoodMemory-Eval-Storage-Retention.md` - ephemeral eval Postgres isolation,
+  successful-run cleanup, failed-run retention, and operator commands.
 
 ## Architecture And Release Baselines
 
