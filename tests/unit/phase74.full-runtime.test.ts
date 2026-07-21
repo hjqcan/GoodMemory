@@ -42,6 +42,7 @@ const base = {
     promptSha256:
       "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
     provider: "openai",
+    reasoningEffort: "low",
     temperature: 0,
   },
   memoryGroupId: "conversation-1",
@@ -148,6 +149,13 @@ describe("Phase 74 full ingestion identity", () => {
     const first = buildPhase74IngestionKey(base);
     const second = buildPhase74IngestionKey({ ...base });
     expect(second).toBe(first);
+  });
+
+  it("changes the ingestion identity when extraction reasoning effort changes", () => {
+    expect(buildPhase74IngestionKey({
+      ...base,
+      extraction: { ...base.extraction, reasoningEffort: "medium" },
+    })).not.toBe(buildPhase74IngestionKey(base));
   });
 
   it("allocates unique ingestion keys as baseline-exclusive, candidate-exclusive, or shared", () => {

@@ -24,8 +24,8 @@ import type { MemoryExtractor } from "../remember/candidates";
 import {
   createProviderConversationalMemoryExtractor,
   createProviderEmbeddingAdapter,
+  createProviderListwiseReranker,
   createProviderMemoryExtractor,
-  createProviderPointwiseReranker,
   createProviderRecallPlanAssistant,
 } from "../provider/layer";
 import type { ModelUsageSink } from "../provider/model-usage";
@@ -65,14 +65,19 @@ const EVIDENCE_LEDGER_FORMATS = [
 export const PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION = {
   assistedExtraction: {
     maxOutputTokens: 4_096,
+    reasoningEffort: "low",
     temperature: 0,
   },
   assistedRecallPlan: {
     maxOutputTokens: 1_024,
     temperature: 0,
   },
-  pointwiseReranker: {
-    maxOutputTokens: 256,
+  listwiseReranker: {
+    maxConcurrency: 1,
+    maxOutputTokens: 2_048,
+    reasoningEffort: "medium",
+    requestTimeoutMs: 60_000,
+    retryLimit: 4,
     temperature: 0,
   },
 } as const;
@@ -111,6 +116,7 @@ export interface Phase74IngestionKeyInput {
     extractorVersion: string;
     maxOutputTokens: number;
     promptSha256: string;
+    reasoningEffort: "low" | "medium" | "high";
     temperature: number;
   };
   memoryGroupId: string;
@@ -159,7 +165,7 @@ export function buildPhase74IngestionKey(
 ): string {
   return sha256(canonicalJson({
     ...input,
-    schemaVersion: 6,
+    schemaVersion: 7,
   }));
 }
 
@@ -429,8 +435,8 @@ function createMemory(input: {
       }),
       reranker: input.rerankerMode === "deterministic"
         ? createLexicalCoverageReranker()
-        : createProviderPointwiseReranker({
-            ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.pointwiseReranker,
+        : createProviderListwiseReranker({
+            ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.listwiseReranker,
             model: input.models.reranker,
             modelUsageSink: input.usageSink,
           }),
@@ -601,6 +607,9 @@ export function createPhase74FullRetrievalRuntime(input: {
             ? "conversationalExtraction"
             : "assistedExtraction"
         ] ?? "",
+        reasoningEffort:
+          PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
+            .reasoningEffort,
         temperature:
           PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
             .temperature,
@@ -685,7 +694,7 @@ export function createPhase74FullRetrievalRuntime(input: {
         key,
         memoryGroupId,
         representation,
-        schemaVersion: 6,
+        schemaVersion: 7,
         sourceMessageCount: testCase.rawEvidence.length,
         usage: buildPhase74IngestionUsageFingerprint(completedLedger),
       }, null, 2)}\n`, { encoding: "utf8", flag: "wx" });

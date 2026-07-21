@@ -196,9 +196,20 @@ describe("phase 74 generalization smoke runner", () => {
         provider: "openai",
       },
       providerObjectCalls: {
-        assistedExtraction: { maxOutputTokens: 4_096, temperature: 0 },
+        assistedExtraction: {
+          maxOutputTokens: 4_096,
+          reasoningEffort: "low",
+          temperature: 0,
+        },
         assistedRecallPlan: { maxOutputTokens: 1_024, temperature: 0 },
-        pointwiseReranker: { maxOutputTokens: 256, temperature: 0 },
+        listwiseReranker: {
+          maxConcurrency: 1,
+          maxOutputTokens: 2_048,
+          reasoningEffort: "medium",
+          requestTimeoutMs: 60_000,
+          retryLimit: 4,
+          temperature: 0,
+        },
       },
       reranker: {
         implementation: "lexical-coverage-v1",

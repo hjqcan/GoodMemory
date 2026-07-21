@@ -13,6 +13,7 @@ import type {
   AISDKModelConfig,
   AISDKRetryOptions,
   FetchLike,
+  OpenAICompatibleReasoningEffort,
 } from "./ai-sdk-runtime";
 import {
   normalizeAISDKLanguageModelUsage,
@@ -282,8 +283,11 @@ export function createLLMPointwiseReranker(input: {
 
 export function createLLMListwiseReranker(input: {
   dependencies?: ListwiseRerankerDependencies;
+  maxOutputTokens?: number;
   model: AISDKModelConfig;
+  reasoningEffort?: OpenAICompatibleReasoningEffort;
   system?: string;
+  temperature?: number;
 }): Reranker {
   const runWithConcurrency = createConcurrencyGate(
     Math.max(
@@ -316,21 +320,27 @@ export function createLLMListwiseReranker(input: {
                 object = input.dependencies?.modelUsageSink
                   ? (await requestOpenAICompatibleObjectResult({
                       fetch: input.dependencies?.fetch,
+                      maxOutputTokens: input.maxOutputTokens,
                       model: input.model,
                       onUsage: (usage) => report(
                         usage ?? normalizeAISDKLanguageModelUsage(undefined),
                       ),
                       prompt,
+                      reasoningEffort: input.reasoningEffort,
                       schema: listwiseRerankerOrderSchema,
                       system,
+                      temperature: input.temperature,
                       timeoutMs: input.dependencies?.requestTimeoutMs,
                     })).object
                   : await requestOpenAICompatibleObject({
                       fetch: input.dependencies?.fetch,
+                      maxOutputTokens: input.maxOutputTokens,
                       model: input.model,
                       prompt,
+                      reasoningEffort: input.reasoningEffort,
                       schema: listwiseRerankerOrderSchema,
                       system,
+                      temperature: input.temperature,
                       timeoutMs: input.dependencies?.requestTimeoutMs,
                     });
               } else {
@@ -338,12 +348,18 @@ export function createLLMListwiseReranker(input: {
                   input.dependencies?.generateObject ?? generateObject
                 )({
                   maxRetries: 0,
+                  ...(input.maxOutputTokens === undefined
+                    ? {}
+                    : { maxOutputTokens: input.maxOutputTokens }),
                   model: (
                     input.dependencies?.resolveModel ?? resolveAISDKModel
                   )(input.model),
                   prompt,
                   schema: listwiseRerankerOrderSchema,
                   system,
+                  ...(input.temperature === undefined
+                    ? {}
+                    : { temperature: input.temperature }),
                   timeout:
                     input.dependencies?.requestTimeoutMs ??
                     DEFAULT_AISDK_REQUEST_TIMEOUT_MS,

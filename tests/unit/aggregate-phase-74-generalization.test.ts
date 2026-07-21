@@ -254,7 +254,7 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
         replicate,
         reranker: {
           gateway: "https://ai.gurkiai.com/v1",
-          implementation: "provider-pointwise-v1",
+          implementation: "provider-listwise-v1",
           mode: "provider",
           model: "gpt-5.6-terra",
           provider: "openai",

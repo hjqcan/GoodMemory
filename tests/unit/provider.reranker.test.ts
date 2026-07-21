@@ -119,16 +119,60 @@ describe("provider listwise reranker", () => {
 
   it("uses the same bounded provider timeout and retry policy", () => {
     let dependencies: Record<string, unknown> | undefined;
+    let generation: Record<string, unknown> | undefined;
     createProviderListwiseReranker({
       createReranker(input) {
         dependencies = input.dependencies as Record<string, unknown>;
+        generation = input as unknown as Record<string, unknown>;
         return { async rerank() { return []; } };
       },
+      maxOutputTokens: 2_048,
       model: { provider: "openai", model: "gpt-5.6-terra" },
+      reasoningEffort: "medium",
+      retryLimit: 4,
+      temperature: 0,
     });
 
     expect(dependencies?.requestTimeoutMs).toBe(60_000);
-    expect(dependencies?.retryOptions).toEqual({ retryLimit: 3 });
+    expect(dependencies?.retryOptions).toEqual({ retryLimit: 4 });
+    expect(generation?.maxOutputTokens).toBe(2_048);
+    expect(generation?.reasoningEffort).toBe("medium");
+    expect(generation?.temperature).toBe(0);
+  });
+
+  it("forwards frozen listwise generation settings to the gateway", async () => {
+    let requestBody = "";
+    const reranker = createLLMListwiseReranker({
+      dependencies: {
+        fetch: async (_url, init) => {
+          requestBody = String(init?.body);
+          return new Response(
+            'data: {"choices":[{"delta":{"content":"{\\"orderedCandidateIds\\":[\\"a\\"]}"},"index":0}]}\n\ndata: [DONE]\n\n',
+            { headers: { "content-type": "text/event-stream" }, status: 200 },
+          );
+        },
+        retryOptions: { retryLimit: 1 },
+      },
+      maxOutputTokens: 2_048,
+      model: {
+        apiKey: "test-key",
+        baseURL: "https://ai.gurkiai.com/v1",
+        model: "gpt-5.6-terra",
+        provider: "openai",
+      },
+      reasoningEffort: "medium",
+      temperature: 0,
+    });
+
+    await reranker.rerank({
+      documents: [{ id: "a", text: "alpha" }],
+      query: "alpha",
+    });
+    expect(JSON.parse(requestBody)).toMatchObject({
+      max_tokens: 2_048,
+      reasoning_effort: "medium",
+      temperature: 0,
+    });
   });
 
   it("bounds overlapping listwise calls across one shared adapter", async () => {

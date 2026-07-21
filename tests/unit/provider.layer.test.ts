@@ -130,6 +130,7 @@ describe("provider layer contract", () => {
         model: "gpt-5",
       },
       requestTimeoutMs: 1234,
+      reasoningEffort: "low",
       temperature: 0,
       createMemoryExtractor: (input) => {
         extractorCalls.push(input as unknown as Record<string, unknown>);
@@ -158,6 +159,7 @@ describe("provider layer contract", () => {
     });
     expect(extractorCalls[0]?.dependencies).toEqual({ requestTimeoutMs: 1234 });
     expect(extractorCalls[0]?.maxOutputTokens).toBe(4_096);
+    expect(extractorCalls[0]?.reasoningEffort).toBe("low");
     expect(extractorCalls[0]?.temperature).toBe(0);
   });
 

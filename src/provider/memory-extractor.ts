@@ -12,6 +12,7 @@ import type {
   AISDKModelConfig,
   AISDKRetryOptions,
   FetchLike,
+  OpenAICompatibleReasoningEffort,
 } from "./ai-sdk-runtime";
 import {
   normalizeAISDKLanguageModelUsage,
@@ -397,6 +398,7 @@ export function createLLMMemoryExtractor(input: {
     input: MemoryExtractionInput,
     context?: MemoryExtractionContext,
   ) => string;
+  reasoningEffort?: OpenAICompatibleReasoningEffort;
   system?: string;
   temperature?: number;
 }): MemoryExtractor {
@@ -427,6 +429,7 @@ export function createLLMMemoryExtractor(input: {
                     system,
                     temperature: input.temperature,
                     prompt,
+                    reasoningEffort: input.reasoningEffort,
                     fetch: input.dependencies?.fetch,
                     timeoutMs: input.dependencies?.requestTimeoutMs,
                     normalizePayload: normalizeMemoryExtractionPayload,
@@ -441,6 +444,7 @@ export function createLLMMemoryExtractor(input: {
                     system,
                     temperature: input.temperature,
                     prompt,
+                    reasoningEffort: input.reasoningEffort,
                     fetch: input.dependencies?.fetch,
                     timeoutMs: input.dependencies?.requestTimeoutMs,
                     normalizePayload: normalizeMemoryExtractionPayload,

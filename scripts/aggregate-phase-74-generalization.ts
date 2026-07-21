@@ -491,7 +491,7 @@ function assertAggregationAdmission(input: {
 
   const providerReranker = {
     ...input.identity.answerModel,
-    implementation: "provider-pointwise-v1",
+    implementation: "provider-listwise-v1",
     mode: "provider",
   };
   const deterministicReranker = {

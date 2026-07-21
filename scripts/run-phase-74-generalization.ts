@@ -1067,7 +1067,7 @@ export async function runPhase74GeneralizationFull(
           }
         : {
             ...publicModelIdentity(models.reranker),
-            implementation: "provider-pointwise-v1",
+            implementation: "provider-listwise-v1",
             mode: "provider",
           },
       scoring: buildPhase74ProtocolScoringIdentity(

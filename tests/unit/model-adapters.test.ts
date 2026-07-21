@@ -55,12 +55,14 @@ describe("model adapters", () => {
         provider: "openai",
       },
       prompt: "return stable output",
+      reasoningEffort: "low",
       temperature: 0,
     });
 
     expect(result).toBe("stable");
     expect(JSON.parse(requestBody)).toMatchObject({
       model: "gpt-5.6-terra",
+      reasoning_effort: "low",
       temperature: 0,
     });
     expect(JSON.parse(requestBody).stream_options).toBeUndefined();

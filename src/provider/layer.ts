@@ -7,7 +7,10 @@ import type {
   MemoryExtractor,
 } from "../remember/candidates";
 import type { EmbeddingAdapter } from "../embedding/contracts";
-import type { AISDKModelConfig } from "./ai-sdk-runtime";
+import type {
+  AISDKModelConfig,
+  OpenAICompatibleReasoningEffort,
+} from "./ai-sdk-runtime";
 import { createAISDKEmbeddingAdapter } from "./ai-sdk-runtime";
 import {
   buildConversationalMemoryExtractionPrompt,
@@ -41,6 +44,7 @@ interface ProviderMemoryExtractorFactory {
       input: MemoryExtractionInput,
       context?: MemoryExtractionContext,
     ) => string;
+    reasoningEffort?: OpenAICompatibleReasoningEffort;
     system?: string;
     temperature?: number;
   }): MemoryExtractor;
@@ -84,7 +88,10 @@ interface ProviderRerankerFactory {
 interface ProviderListwiseRerankerFactory {
   (input: {
     dependencies?: ListwiseRerankerDependencies;
+    maxOutputTokens?: number;
     model: AISDKModelConfig;
+    reasoningEffort?: OpenAICompatibleReasoningEffort;
+    temperature?: number;
   }): Reranker;
 }
 
@@ -163,6 +170,7 @@ export function createProviderMemoryExtractor(input: {
   system?: string;
   createMemoryExtractor?: ProviderMemoryExtractorFactory;
   modelUsageSink?: ModelUsageSink;
+  reasoningEffort?: OpenAICompatibleReasoningEffort;
   requestTimeoutMs?: number;
   temperature?: number;
 }): MemoryExtractor {
@@ -174,6 +182,7 @@ export function createProviderMemoryExtractor(input: {
     maxOutputTokens: input.maxOutputTokens,
     model: input.model,
     promptBuilder: input.promptBuilder,
+    reasoningEffort: input.reasoningEffort,
     system: input.system,
     temperature: input.temperature,
   });
@@ -194,6 +203,7 @@ export function createProviderConversationalMemoryExtractor(input: {
   createMemoryExtractor?: ProviderMemoryExtractorFactory;
   maxOutputTokens?: number;
   modelUsageSink?: ModelUsageSink;
+  reasoningEffort?: OpenAICompatibleReasoningEffort;
   requestTimeoutMs?: number;
   temperature?: number;
 }): MemoryExtractor {
@@ -208,6 +218,7 @@ export function createProviderConversationalMemoryExtractor(input: {
     system: CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
     createMemoryExtractor: input.createMemoryExtractor,
     modelUsageSink: input.modelUsageSink,
+    reasoningEffort: input.reasoningEffort,
     requestTimeoutMs: input.requestTimeoutMs,
     temperature: input.temperature,
   });
@@ -334,10 +345,13 @@ export function createProviderPointwiseReranker(input: {
 export function createProviderListwiseReranker(input: {
   createReranker?: ProviderListwiseRerankerFactory;
   maxConcurrency?: number;
+  maxOutputTokens?: number;
   model: AISDKModelConfig;
   modelUsageSink?: ModelUsageSink;
+  reasoningEffort?: OpenAICompatibleReasoningEffort;
   requestTimeoutMs?: number;
   retryLimit?: number;
+  temperature?: number;
 }): Reranker {
   const requestTimeoutMs =
     input.requestTimeoutMs ??
@@ -368,7 +382,10 @@ export function createProviderListwiseReranker(input: {
       requestTimeoutMs,
       retryOptions: { retryLimit: input.retryLimit ?? 3 },
     },
+    maxOutputTokens: input.maxOutputTokens,
     model: input.model,
+    reasoningEffort: input.reasoningEffort,
+    temperature: input.temperature,
   });
 }
 

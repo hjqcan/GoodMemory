@@ -25,6 +25,8 @@ export interface AISDKModelConfig {
   baseURL?: string;
 }
 
+export type OpenAICompatibleReasoningEffort = "low" | "medium" | "high";
+
 interface EmbeddingAdapterDependencies {
   embedMany?: typeof embedMany;
   modelUsageSink?: ModelUsageSink;
@@ -462,6 +464,7 @@ export interface OpenAICompatibleTextResult {
 interface OpenAICompatibleTextInput {
   maxOutputTokens?: number;
   model: AISDKModelConfig;
+  reasoningEffort?: OpenAICompatibleReasoningEffort;
   system?: string;
   prompt: string;
   temperature?: number;
@@ -546,7 +549,7 @@ async function requestOpenAICompatibleTextInternal(
                 },
               ].filter(Boolean),
               stream: true,
-              reasoning_effort: "medium",
+              reasoning_effort: input.reasoningEffort ?? "medium",
               ...(input.maxOutputTokens === undefined
                 ? {}
                 : { max_tokens: input.maxOutputTokens }),
@@ -718,6 +721,7 @@ export async function requestOpenAICompatibleObject<T>(input: {
   schema: z.ZodType<T>;
   system?: string;
   prompt: string;
+  reasoningEffort?: OpenAICompatibleReasoningEffort;
   temperature?: number;
   fetch?: FetchLike;
   signal?: AbortSignal;
@@ -730,6 +734,7 @@ export async function requestOpenAICompatibleObject<T>(input: {
       maxOutputTokens: input.maxOutputTokens,
       system: input.system,
       prompt: input.prompt,
+      reasoningEffort: input.reasoningEffort,
       temperature: input.temperature,
       fetch: input.fetch,
       signal: input.signal,
@@ -747,6 +752,7 @@ export async function requestOpenAICompatibleObjectResult<T>(input: {
   normalizePayload?: (payload: unknown) => unknown;
   onUsage?: (usage: ModelTokenUsage | null) => void;
   prompt: string;
+  reasoningEffort?: OpenAICompatibleReasoningEffort;
   schema: z.ZodType<T>;
   signal?: AbortSignal;
   system?: string;
@@ -758,6 +764,7 @@ export async function requestOpenAICompatibleObjectResult<T>(input: {
     maxOutputTokens: input.maxOutputTokens,
     model: input.model,
     prompt: input.prompt,
+    reasoningEffort: input.reasoningEffort,
     signal: input.signal,
     system: input.system,
     temperature: input.temperature,

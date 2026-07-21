@@ -59,24 +59,34 @@ describe("Phase 74 full retrieval runtime", () => {
           usage: { prompt_tokens: values.length, total_tokens: values.length },
         }), { headers: { "content-type": "application/json" } });
       }
+      const body = JSON.parse(String(init?.body)) as {
+        messages?: Array<{ content?: string }>;
+      };
+      const system = body.messages?.[0]?.content ?? "";
+      const prompt = body.messages?.[1]?.content ?? "";
+      const content = system.includes("rank a bounded set")
+        ? JSON.stringify({
+            orderedCandidateIds: [...prompt.matchAll(/"id":"([^"]+)"/gu)]
+              .map((match) => match[1]),
+          })
+        : JSON.stringify({
+            candidates: [{
+              content: "Caroline adopted a dog named Pepper.",
+              explicitness: "explicit",
+              id: "fact-1",
+              kindHint: "fact",
+              metadata: { category: "personal" },
+              sourceMessageIndex: 0,
+              sourceRole: "assistant",
+            }],
+            ignoredMessageCount: 0,
+          });
       return new Response(JSON.stringify({
         choices: [{
           finish_reason: "stop",
           index: 0,
           message: {
-            content: JSON.stringify({
-              candidates: [{
-                content: "Caroline adopted a dog named Pepper.",
-                explicitness: "explicit",
-                id: "fact-1",
-                kindHint: "fact",
-                metadata: { category: "personal" },
-                sourceMessageIndex: 0,
-                sourceRole: "assistant",
-              }],
-              ignoredMessageCount: 0,
-              score: 0.9,
-            }),
+            content,
             role: "assistant",
           },
         }],
