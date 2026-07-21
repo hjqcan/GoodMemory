@@ -12,6 +12,7 @@ import {
   buildPhase74IngestionUsagePaths,
   buildPhase74IngestionUsageFingerprint,
   buildPhase74LabelFreeScope,
+  createPhase74FullRetrievalRuntime,
   phase74ExecutionBranch,
   verifyPhase74IngestionUsageManifest,
 } from "../../src/eval/phase74FullRuntime";
@@ -182,6 +183,126 @@ describe("Phase 74 full ingestion identity", () => {
       eventsPath: `/run/ingestion-usage/${sharedKey}/events.jsonl`,
       intentsPath: `/run/ingestion-usage/${sharedKey}/intents.jsonl`,
     });
+  });
+
+  it("records ingestion use before a later query-path failure", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async (request, init) => {
+      const url = typeof request === "string"
+        ? request
+        : request instanceof URL
+          ? request.toString()
+          : request.url;
+      if (url.endsWith("/embeddings")) {
+        const body = JSON.parse(String(init?.body)) as { input: string[] | string };
+        const values = Array.isArray(body.input) ? body.input : [body.input];
+        return new Response(JSON.stringify({
+          data: values.map((_, index) => ({ embedding: [1, 0, 0], index })),
+          model: "embedding-test",
+          object: "list",
+          usage: { prompt_tokens: values.length, total_tokens: values.length },
+        }), { headers: { "content-type": "application/json" } });
+      }
+      return new Response(JSON.stringify({
+        choices: [{
+          finish_reason: "stop",
+          index: 0,
+          message: {
+            content: JSON.stringify({
+              candidates: [{
+                content: "Caroline adopted a dog named Pepper.",
+                explicitness: "explicit",
+                id: "fact-1",
+                kindHint: "fact",
+                metadata: { category: "personal" },
+                sourceMessageIndex: 0,
+                sourceRole: "user",
+              }],
+              ignoredMessageCount: 0,
+              score: 0.9,
+            }),
+            role: "assistant",
+          },
+        }],
+        model: "gpt-5.6-terra",
+        object: "chat.completion",
+        usage: { completion_tokens: 2, prompt_tokens: 10 },
+      }), { headers: { "content-type": "application/json" } });
+    }) as typeof fetch;
+    const root = await mkdtemp(join(tmpdir(), "phase74-ingestion-use-"));
+    const uses: Array<{
+      comparisonBranch: "baseline" | "candidate" | "shadow";
+      ingestionKey: string;
+      representation: string;
+    }> = [];
+    const languageModel = {
+      apiKey: "test-key",
+      baseURL: "https://provider.test/v1",
+      model: "gpt-5.6-terra",
+      provider: "openai" as const,
+    };
+    try {
+      const runtime = createPhase74FullRetrievalRuntime({
+        datasetSha256: "dataset-sha",
+        evaluatorSourceSha256:
+          "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        events: [],
+        intents: [],
+        models: {
+          answer: languageModel,
+          assistedExtraction: languageModel,
+          embedding: { ...languageModel, model: "embedding-test" },
+          judge: { ...languageModel, model: "gpt-5.5" },
+          planner: languageModel,
+          reranker: languageModel,
+        },
+        onIngestionUse(use) {
+          uses.push(use);
+          throw new Error("query path unavailable");
+        },
+        promptSha256s: {
+          assistedExtraction:
+            "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+          conversationalExtraction:
+            "123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0",
+        },
+        rerankerMode: "deterministic",
+        runDirectory: root,
+      });
+
+      await expect(runtime.execute({
+        arm: "recall-plan-off",
+        configuration: {
+          planner: { mode: "off" },
+          representation: "atomic-contextual-raw-pointer",
+          retrieval: { recallPlanExecution: false },
+        },
+        stage: "E3",
+        testCase: {
+          caseId: "case-1",
+          memoryGroupId: "conversation-1",
+          question: "What is Caroline's dog's name?",
+          rawEvidence: [{
+            content: "Caroline adopted a dog named Pepper.",
+            id: "message-1",
+            observedAt: "2023-05-08T00:00:00.000Z",
+            role: "user",
+            sourceIds: ["D1:1"],
+          }],
+          referenceTime: "2024-01-01T00:00:00.000Z",
+        },
+      })).rejects.toThrow("query path unavailable");
+      expect(uses).toHaveLength(1);
+      const allocation = buildPhase74IngestionUsageAllocation(
+        uses.map((costTrace) => ({ costTrace })),
+      );
+      expect(allocation.baselineExclusive).toHaveLength(1);
+      expect(allocation.candidateExclusive).toEqual([]);
+      expect(allocation.shared).toEqual([]);
+    } finally {
+      globalThis.fetch = originalFetch;
+      await rm(root, { force: true, recursive: true });
+    }
   });
 
   it("revalidates the committed ingestion manifest against its physical WAL", async () => {

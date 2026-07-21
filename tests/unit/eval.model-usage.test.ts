@@ -9,6 +9,7 @@ import {
   buildPhase74ModelUsageEvidence,
   createAttributedModelUsageSink,
   loadPhase74ModelUsageLedger,
+  reconcilePhase74PendingModelUsageSync,
   validatePhase74ModelUsageLedger,
   type AttributedModelUsageAttempt,
   type AttributedModelUsageIntent,
@@ -59,9 +60,9 @@ describe("Phase 74 eval model usage", () => {
       fsync(fd) {
         calls.push(`fsync:${fd}`);
       },
-      open(path) {
-        calls.push(`open:${path}`);
-        return 74;
+      open(path, flags) {
+        calls.push(`open:${path}:${flags}`);
+        return flags === "r" ? 75 : 74;
       },
       write(fd, value) {
         calls.push(`write:${fd}:${value.endsWith("\n")}`);
@@ -69,10 +70,13 @@ describe("Phase 74 eval model usage", () => {
     });
 
     expect(calls).toEqual([
-      "open:usage-intents.jsonl",
+      "open:usage-intents.jsonl:a",
       "write:74:true",
       "fsync:74",
       "close:74",
+      "open:.:r",
+      "fsync:75",
+      "close:75",
     ]);
   });
 
@@ -161,6 +165,57 @@ describe("Phase 74 eval model usage", () => {
       })}\n`, "utf8");
       await expect(loadPhase74ModelUsageLedger({ eventsPath, intentsPath }))
         .rejects.toThrow("terminal without intent request-orphan");
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("closes interrupted intents durably and idempotently before retry", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-phase74-usage-recovery-"));
+    const intentsPath = join(root, "intents.jsonl");
+    const eventsPath = join(root, "events.jsonl");
+    const intent = {
+      attempt: 2,
+      branch: "candidate",
+      caseId: "case-1",
+      modelId: "model-v1",
+      operation: "answer_generation",
+      providerId: "openai",
+      requestId: "request-interrupted",
+      schemaVersion: 1,
+    } as const;
+    try {
+      await writeFile(intentsPath, `${JSON.stringify(intent)}\n`, "utf8");
+      const pending = await loadPhase74ModelUsageLedger({
+        eventsPath,
+        intentsPath,
+      });
+
+      const recovered = reconcilePhase74PendingModelUsageSync({
+        eventsPath,
+        ledger: pending,
+      });
+      expect(recovered.pendingIntents).toEqual([]);
+      expect(recovered.events).toEqual([{
+        ...intent,
+        completeness: "missing",
+        outcome: "failed",
+        recovery: "interrupted_before_terminal",
+        usage: {
+          cacheCreationInputTokens: null,
+          cacheReadInputTokens: null,
+          inputTokens: null,
+          outputTokens: null,
+          uncachedInputTokens: null,
+        },
+      }]);
+
+      const second = reconcilePhase74PendingModelUsageSync({
+        eventsPath,
+        ledger: await loadPhase74ModelUsageLedger({ eventsPath, intentsPath }),
+      });
+      expect(second.events).toHaveLength(1);
+      expect(second.pendingIntents).toEqual([]);
     } finally {
       await rm(root, { force: true, recursive: true });
     }
@@ -359,9 +414,9 @@ describe("Phase 74 eval model usage", () => {
       fsync(fd) {
         calls.push(`fsync:${fd}`);
       },
-      open(path) {
-        calls.push(`open:${path}`);
-        return 74;
+      open(path, flags) {
+        calls.push(`open:${path}:${flags}`);
+        return flags === "r" ? 75 : 74;
       },
       write(fd, value) {
         calls.push(`write:${fd}:${value.endsWith("\n")}`);
@@ -369,10 +424,13 @@ describe("Phase 74 eval model usage", () => {
     });
 
     expect(calls).toEqual([
-      "open:usage.jsonl",
+      "open:usage.jsonl:a",
       "write:74:true",
       "fsync:74",
       "close:74",
+      "open:.:r",
+      "fsync:75",
+      "close:75",
     ]);
   });
 

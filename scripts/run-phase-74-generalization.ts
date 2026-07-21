@@ -1,5 +1,14 @@
 import { createHash, randomUUID } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  fsyncSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import {
   mkdir,
   readFile,
@@ -7,7 +16,7 @@ import {
   rm,
   writeFile,
 } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
 import {
@@ -84,6 +93,7 @@ import {
   appendPhase74ModelUsageIntentSync,
   buildPhase74ModelUsageEvidence,
   loadPhase74ModelUsageLedger,
+  reconcilePhase74PendingModelUsageSync,
 } from "../src/eval/modelUsage";
 import type {
   AttributedModelUsageAttempt,
@@ -200,6 +210,52 @@ interface Phase74CallBudgetState {
   schemaVersion: 1;
 }
 
+interface Phase74DurableFileOperations {
+  close(fd: number): void;
+  fsync(fd: number): void;
+  open(path: string, flags: "r" | "wx"): number;
+  randomId(): string;
+  remove(path: string): void;
+  rename(source: string, destination: string): void;
+  write(fd: number, value: string): void;
+}
+
+const DEFAULT_DURABLE_FILE_OPERATIONS: Phase74DurableFileOperations = {
+  close: closeSync,
+  fsync: fsyncSync,
+  open: openSync,
+  randomId: randomUUID,
+  remove: (path) => rmSync(path, { force: true }),
+  rename: renameSync,
+  write: (fd, value) => writeFileSync(fd, value, "utf8"),
+};
+
+function writePhase74DurableFileSync(input: {
+  fileOperations: Phase74DurableFileOperations;
+  path: string;
+  value: string;
+}): void {
+  const temporaryPath = `${input.path}.${input.fileOperations.randomId()}.tmp`;
+  try {
+    const file = input.fileOperations.open(temporaryPath, "wx");
+    try {
+      input.fileOperations.write(file, input.value);
+      input.fileOperations.fsync(file);
+    } finally {
+      input.fileOperations.close(file);
+    }
+    input.fileOperations.rename(temporaryPath, input.path);
+    const directory = input.fileOperations.open(dirname(input.path), "r");
+    try {
+      input.fileOperations.fsync(directory);
+    } finally {
+      input.fileOperations.close(directory);
+    }
+  } finally {
+    input.fileOperations.remove(temporaryPath);
+  }
+}
+
 interface RuntimeSnapshot extends Phase74RetrievalSnapshot {
 }
 
@@ -288,6 +344,7 @@ function parsePhase74CallBudgetState(
 export function createPhase74DurableCallBudget(input: {
   embeddingSpendLimitUsd: number;
   fetch: typeof globalThis.fetch;
+  fileOperations?: Phase74DurableFileOperations;
   maxLanguageCalls: number;
   path: string;
 }): {
@@ -307,8 +364,13 @@ export function createPhase74DurableCallBudget(input: {
         languageCalls: 0,
         schemaVersion: 1 as const,
       };
+  const fileOperations = input.fileOperations ?? DEFAULT_DURABLE_FILE_OPERATIONS;
   const persist = () => {
-    writeFileSync(input.path, `${JSON.stringify(state, null, 2)}\n`, "utf8");
+    writePhase74DurableFileSync({
+      fileOperations,
+      path: input.path,
+      value: `${JSON.stringify(state, null, 2)}\n`,
+    });
   };
   if (!existsSync(input.path)) {
     persist();
@@ -1035,12 +1097,18 @@ export async function runPhase74GeneralizationFull(
     runDirectory,
     `${prefix}-model-usage-intents.jsonl`,
   );
-  const directUsage = await loadPhase74ModelUsageLedger({
+  const directUsage = reconcilePhase74PendingModelUsageSync({
     eventsPath: usagePath,
-    intentsPath: usageIntentsPath,
+    ledger: await loadPhase74ModelUsageLedger({
+      eventsPath: usagePath,
+      intentsPath: usageIntentsPath,
+    }),
   });
   const events = directUsage.events;
   const intents = directUsage.intents;
+  const ingestionUses: Array<{
+    costTrace: NonNullable<Phase74RetrievalSnapshot["costTrace"]>;
+  }> = [];
   const onUsageEvent = (event: AttributedModelUsageAttempt) => {
     appendPhase74ModelUsageEventSync(usagePath, event);
   };
@@ -1053,6 +1121,7 @@ export async function runPhase74GeneralizationFull(
     events,
     intents,
     models,
+    onIngestionUse: (costTrace) => ingestionUses.push({ costTrace }),
     runDirectory,
     onUsageEvent,
     onUsageIntent,
@@ -1122,7 +1191,7 @@ export async function runPhase74GeneralizationFull(
   const experimentIdentityHash = hashEvalExperimentIdentity(report.identity);
   const ingestionAllocation = options.stage === "E4"
     ? null
-    : buildPhase74IngestionUsageAllocation(snapshots);
+    : buildPhase74IngestionUsageAllocation([...snapshots, ...ingestionUses]);
   const modelUsage = options.stage === "E4"
     ? null
     : buildPhase74ModelUsageEvidence({

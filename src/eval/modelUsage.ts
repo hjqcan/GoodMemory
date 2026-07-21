@@ -6,14 +6,17 @@ import {
   writeFileSync,
 } from "node:fs";
 import { readFile } from "node:fs/promises";
+import { dirname } from "node:path";
 
 import {
   modelUsageCompleteness,
   modelTokenTotal,
-  type ModelUsageAttempt,
-  type ModelUsageIntent,
-  type ModelUsageOperation,
-  type ModelUsageSink,
+} from "../provider/model-usage";
+import type {
+  ModelUsageAttempt,
+  ModelUsageIntent,
+  ModelUsageOperation,
+  ModelUsageSink,
 } from "../provider/model-usage";
 import {
   PHASE74_MODEL_USAGE_ALLOCATION_POLICY,
@@ -34,6 +37,7 @@ export type Phase74ModelUsageBranch =
 export interface AttributedModelUsageAttempt extends ModelUsageAttempt {
   branch: Phase74ModelUsageBranch;
   caseId: string;
+  recovery?: "interrupted_before_terminal";
   requestId: string;
 }
 
@@ -94,6 +98,8 @@ function isAttributedModelUsageAttempt(
     typeof event.operation === "string" &&
     PHASE74_USAGE_OPERATIONS.has(event.operation as ModelUsageOperation) &&
     (event.outcome === "failed" || event.outcome === "succeeded") &&
+    (event.recovery === undefined ||
+      event.recovery === "interrupted_before_terminal") &&
     typeof event.providerId === "string" && event.providerId.length > 0 &&
     event.schemaVersion === 1 && usage !== null && typeof usage === "object" &&
     !Array.isArray(usage) && [
@@ -244,16 +250,37 @@ export async function loadPhase74ModelUsageLedger(input: {
 interface Phase74ModelUsageAppendDependencies {
   close(fd: number): void;
   fsync(fd: number): void;
-  open(path: string): number;
+  open(path: string, flags: "a" | "r"): number;
   write(fd: number, value: string): void;
 }
 
 const DEFAULT_APPEND_DEPENDENCIES: Phase74ModelUsageAppendDependencies = {
   close: closeSync,
   fsync: fsyncSync,
-  open: (path) => openSync(path, "a"),
+  open: (path, flags) => openSync(path, flags),
   write: (fd, value) => writeFileSync(fd, value, "utf8"),
 };
+
+function appendPhase74ModelUsageLineSync(
+  path: string,
+  value: string,
+  dependencies: Phase74ModelUsageAppendDependencies,
+): void {
+  const fd = dependencies.open(path, "a");
+  try {
+    dependencies.write(fd, `${value}\n`);
+    dependencies.fsync(fd);
+  } finally {
+    dependencies.close(fd);
+  }
+
+  const directory = dependencies.open(dirname(path), "r");
+  try {
+    dependencies.fsync(directory);
+  } finally {
+    dependencies.close(directory);
+  }
+}
 
 export function appendPhase74ModelUsageEventSync(
   path: string,
@@ -261,13 +288,7 @@ export function appendPhase74ModelUsageEventSync(
   dependencies: Phase74ModelUsageAppendDependencies =
     DEFAULT_APPEND_DEPENDENCIES,
 ): void {
-  const fd = dependencies.open(path);
-  try {
-    dependencies.write(fd, `${JSON.stringify(event)}\n`);
-    dependencies.fsync(fd);
-  } finally {
-    dependencies.close(fd);
-  }
+  appendPhase74ModelUsageLineSync(path, JSON.stringify(event), dependencies);
 }
 
 export function appendPhase74ModelUsageIntentSync(
@@ -276,13 +297,38 @@ export function appendPhase74ModelUsageIntentSync(
   dependencies: Phase74ModelUsageAppendDependencies =
     DEFAULT_APPEND_DEPENDENCIES,
 ): void {
-  const fd = dependencies.open(path);
-  try {
-    dependencies.write(fd, `${JSON.stringify(intent)}\n`);
-    dependencies.fsync(fd);
-  } finally {
-    dependencies.close(fd);
+  appendPhase74ModelUsageLineSync(path, JSON.stringify(intent), dependencies);
+}
+
+export function reconcilePhase74PendingModelUsageSync(input: {
+  eventsPath: string;
+  ledger: Phase74ModelUsageLedger;
+}): Phase74ModelUsageLedger {
+  if (input.ledger.pendingIntents.length === 0) {
+    return validatePhase74ModelUsageLedger(input.ledger);
   }
+  const events = [...input.ledger.events];
+  for (const intent of input.ledger.pendingIntents) {
+    const event: AttributedModelUsageAttempt = {
+      ...intent,
+      completeness: "missing",
+      outcome: "failed",
+      recovery: "interrupted_before_terminal",
+      usage: {
+        cacheCreationInputTokens: null,
+        cacheReadInputTokens: null,
+        inputTokens: null,
+        outputTokens: null,
+        uncachedInputTokens: null,
+      },
+    };
+    appendPhase74ModelUsageEventSync(input.eventsPath, event);
+    events.push(event);
+  }
+  return validatePhase74ModelUsageLedger({
+    events,
+    intents: input.ledger.intents,
+  });
 }
 
 export function createAttributedModelUsageSink(input: {

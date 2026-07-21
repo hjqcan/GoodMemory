@@ -37,9 +37,12 @@ import {
   appendPhase74ModelUsageIntentSync,
   createAttributedModelUsageSink,
   loadPhase74ModelUsageLedger,
-  type AttributedModelUsageAttempt,
-  type AttributedModelUsageIntent,
-  type Phase74ModelUsageLedger,
+  reconcilePhase74PendingModelUsageSync,
+} from "./modelUsage";
+import type {
+  AttributedModelUsageAttempt,
+  AttributedModelUsageIntent,
+  Phase74ModelUsageLedger,
 } from "./modelUsage";
 import { phase74ComparisonBranch } from "./phase74Generalization";
 import type {
@@ -215,7 +218,7 @@ export async function verifyPhase74IngestionUsageManifest(input: {
 }
 
 export function buildPhase74IngestionUsageAllocation(
-  snapshots: readonly Phase74RetrievalSnapshot[],
+  snapshots: readonly Pick<Phase74RetrievalSnapshot, "costTrace">[],
 ): {
   baselineExclusive: string[];
   candidateExclusive: string[];
@@ -545,6 +548,9 @@ export function createPhase74FullRetrievalRuntime(input: {
   events: AttributedModelUsageAttempt[];
   intents: AttributedModelUsageIntent[];
   models: Phase74LiveModels;
+  onIngestionUse?: (
+    trace: NonNullable<Phase74RetrievalSnapshot["costTrace"]>,
+  ) => void;
   onUsageEvent?: (event: AttributedModelUsageAttempt) => void;
   onUsageIntent?: (intent: AttributedModelUsageIntent) => void;
   promptSha256s: Readonly<Record<string, string>>;
@@ -614,7 +620,7 @@ export function createPhase74FullRetrievalRuntime(input: {
       const manifestPath = join(directory, "manifest.json");
       const paths = buildPhase74IngestionUsagePaths(input.runDirectory, key);
       const usageDirectory = join(input.runDirectory, "ingestion-usage", key);
-      const ledger = await loadPhase74ModelUsageLedger({
+      let ledger = await loadPhase74ModelUsageLedger({
         eventsPath: paths.eventsPath,
         intentsPath: paths.intentsPath,
       });
@@ -638,7 +644,10 @@ export function createPhase74FullRetrievalRuntime(input: {
       await mkdir(directory, { recursive: true });
       await mkdir(usageDirectory, { recursive: true });
       if (ledger.pendingIntents.length > 0) {
-        throw new Error(`Phase 74 ingestion usage has pending requests for ${key}.`);
+        ledger = reconcilePhase74PendingModelUsageSync({
+          eventsPath: paths.eventsPath,
+          ledger,
+        });
       }
       const sink = createAttributedModelUsageSink({
         branch: "shadow",
@@ -689,6 +698,12 @@ export function createPhase74FullRetrievalRuntime(input: {
   return {
     async execute({ arm, configuration, stage, testCase }) {
       const ingested = await ensureIngested(testCase, configuration);
+      const costTrace = {
+        comparisonBranch: phase74ExecutionBranch(stage, arm),
+        ingestionKey: ingested.ingestionKey,
+        representation: ingested.representation,
+      } as const;
+      input.onIngestionUse?.(costTrace);
       const queryPathStartedAt = performance.now();
       const queryRoot = join(input.runDirectory, "query-work");
       await mkdir(queryRoot, { recursive: true });
@@ -769,22 +784,14 @@ export function createPhase74FullRetrievalRuntime(input: {
             : undefined;
         const snapshotId = buildPhase74RetrievalSnapshotId({
           arm,
-          costTrace: {
-            comparisonBranch: phase74ExecutionBranch(stage, arm),
-            ingestionKey: ingested.ingestionKey,
-            representation: ingested.representation,
-          },
+          costTrace,
           evidenceLedgers,
           retrievedMemories,
           stage,
           storedMemories,
         });
         return {
-          costTrace: {
-            comparisonBranch: phase74ExecutionBranch(stage, arm),
-            ingestionKey: ingested.ingestionKey,
-            representation: ingested.representation,
-          },
+          costTrace,
           ...(evidenceLedgers === undefined ? {} : { evidenceLedgers }),
           recallMetadata: {
             candidateTraces: recall.metadata.candidateTraces,

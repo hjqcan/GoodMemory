@@ -92,6 +92,64 @@ describe("phase 74 generalization smoke runner", () => {
     }
   });
 
+  it("atomically syncs each budget reservation before the provider request", async () => {
+    const root = await mkdtemp(join(tmpdir(), "phase74-call-budget-order-"));
+    const path = join(root, "budget.json");
+    const calls: string[] = [];
+    try {
+      const budget = createPhase74DurableCallBudget({
+        embeddingSpendLimitUsd: 1,
+        fetch: (async (_request) => {
+          calls.push("provider");
+          return new Response("{}", { status: 200 });
+        }) as typeof globalThis.fetch,
+        fileOperations: {
+          close(fd) {
+            calls.push(`close:${fd}`);
+          },
+          fsync(fd) {
+            calls.push(`fsync:${fd}`);
+          },
+          open(target, flags) {
+            const directory = target === root;
+            calls.push(`open:${directory ? "directory" : "temp"}:${flags}`);
+            return directory ? 2 : 1;
+          },
+          randomId: () => "temporary",
+          remove(target) {
+            calls.push(`remove:${target.endsWith(".tmp")}`);
+          },
+          rename(source, destination) {
+            calls.push(`rename:${source.endsWith(".tmp")}:${destination === path}`);
+          },
+          write(fd, value) {
+            calls.push(`write:${fd}:${value.endsWith("\n")}`);
+          },
+        },
+        maxLanguageCalls: 2,
+        path,
+      });
+      calls.length = 0;
+
+      await budget.fetch("https://provider.test/v1/chat/completions");
+
+      expect(calls).toEqual([
+        "open:temp:wx",
+        "write:1:true",
+        "fsync:1",
+        "close:1",
+        "rename:true:true",
+        "open:directory:r",
+        "fsync:2",
+        "close:2",
+        "remove:true",
+        "provider",
+      ]);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("records every frozen provider object-call setting in full run identity", () => {
     const configuration = buildPhase74FullRunIdentityConfiguration({
       callBudget: {

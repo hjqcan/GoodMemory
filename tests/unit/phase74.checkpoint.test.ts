@@ -71,4 +71,121 @@ describe("Phase 74 file checkpoint", () => {
       await rm(root, { force: true, recursive: true });
     }
   });
+
+  it("syncs a complete temporary file before create-only publication", async () => {
+    const root = await mkdtemp(join(tmpdir(), "phase74-checkpoint-order-"));
+    const calls: string[] = [];
+    try {
+      const checkpoint = createPhase74FileCheckpoint(root, {
+        async link(source, destination) {
+          calls.push(`link:${source.endsWith(".tmp")}:${destination.endsWith(".json")}`);
+        },
+        async open(path, flags) {
+          const target = path === root
+            ? "root"
+            : path === join(root, "retrieval")
+              ? "directory"
+              : "temp";
+          calls.push(`open:${target}:${flags}`);
+          return {
+            async close() {
+              calls.push("close");
+            },
+            async sync() {
+              calls.push("sync");
+            },
+            async writeFile() {
+              calls.push("write");
+            },
+          };
+        },
+        randomId: () => "temporary",
+        async unlink(path) {
+          calls.push(`unlink:${path.endsWith(".tmp")}`);
+        },
+      });
+
+      await checkpoint.saveRetrieval("retrieval-key", {
+        retrievedMemories: [],
+        snapshotId: "snapshot-1",
+        storedMemories: [],
+      });
+
+      expect(calls).toEqual([
+        "open:root:r",
+        "sync",
+        "close",
+        "open:temp:wx",
+        "write",
+        "sync",
+        "close",
+        "link:true:true",
+        "open:directory:r",
+        "sync",
+        "close",
+        "unlink:true",
+        "open:directory:r",
+        "sync",
+        "close",
+      ]);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("removes and syncs a partial temporary checkpoint after a write failure", async () => {
+    const root = await mkdtemp(join(tmpdir(), "phase74-checkpoint-cleanup-"));
+    const calls: string[] = [];
+    try {
+      const checkpoint = createPhase74FileCheckpoint(root, {
+        async link() {
+          calls.push("link");
+        },
+        async open(path, flags) {
+          const target = path === root
+            ? "root"
+            : path === join(root, "retrieval")
+              ? "directory"
+              : "temp";
+          calls.push(`open:${target}:${flags}`);
+          return {
+            async close() {
+              calls.push("close");
+            },
+            async sync() {
+              calls.push("sync");
+            },
+            async writeFile() {
+              calls.push("write");
+              throw new Error("injected checkpoint write failure");
+            },
+          };
+        },
+        randomId: () => "partial",
+        async unlink() {
+          calls.push("unlink");
+        },
+      });
+
+      await expect(checkpoint.saveRetrieval("retrieval-key", {
+        retrievedMemories: [],
+        snapshotId: "snapshot-1",
+        storedMemories: [],
+      })).rejects.toThrow("injected checkpoint write failure");
+      expect(calls).toEqual([
+        "open:root:r",
+        "sync",
+        "close",
+        "open:temp:wx",
+        "write",
+        "close",
+        "unlink",
+        "open:directory:r",
+        "sync",
+        "close",
+      ]);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
 });
