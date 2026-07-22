@@ -10,6 +10,16 @@ const BLOCKING_SUPPRESSION_REASONS = new Set([
   "locale mismatch",
 ]);
 
+export function isGeneralizedCandidateTraceEligible(
+  trace: RecallCandidateTrace | undefined,
+): trace is RecallCandidateTrace {
+  return Boolean(
+    trace &&
+      (!trace.whySuppressed ||
+        !BLOCKING_SUPPRESSION_REASONS.has(trace.whySuppressed)),
+  );
+}
+
 export function admitGeneralizedRecords<T>(input: {
   candidates: readonly GeneralizedFusionCandidate[];
   collection: GeneralizedFusionSourceCollection;
@@ -37,11 +47,7 @@ export function admitGeneralizedRecords<T>(input: {
     const trace = input.traces.find(
       ({ memoryId }) => memoryId === candidate.sourceMemoryId,
     );
-    if (
-      !record ||
-      !trace ||
-      (trace.whySuppressed && BLOCKING_SUPPRESSION_REASONS.has(trace.whySuppressed))
-    ) {
+    if (!record || !isGeneralizedCandidateTraceEligible(trace)) {
       continue;
     }
 

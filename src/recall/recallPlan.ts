@@ -36,6 +36,7 @@ export interface RecallPlan {
   planes: MemoryPlane[];
   maxHops: number;
   preRankLimit: number;
+  // Final global durable-evidence limit across all selected content lanes.
   selectedLimit: number;
   maxRenderedTokens: number;
   uncertainty: RecallPlanUncertainty;

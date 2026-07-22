@@ -59,6 +59,7 @@ export interface RecallRerankerScoreTrace {
   rankAfter: number;
   rankBefore: number;
   score: number;
+  sourceCollection?: RecallRetrievalSourceCollection;
 }
 
 export interface RecallRerankerTrace {

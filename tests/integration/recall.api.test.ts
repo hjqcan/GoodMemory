@@ -394,11 +394,11 @@ describe("public recall API", () => {
           },
           async rerank() {
             return {
-              orderedCandidateIds: ["ref-1", "fact-1"],
+              orderedCandidateIds: ["references:ref-1", "facts:fact-1"],
               rationale: "runbook should lead before blocker detail",
               decisions: [
                 {
-                  candidateId: " ref-1 ",
+                  candidateId: " references:ref-1 ",
                   decision: "promote",
                   reason: "source_of_truth",
                 },
@@ -426,8 +426,8 @@ describe("public recall API", () => {
     expect(result.metadata.assistantInfluence?.rerankApplied).toBe(true);
     expect(result.metadata.assistantInfluence?.routerInfluenceStatus).toBe("applied");
     expect(result.metadata.assistantInfluence?.rerankedCandidateIds).toEqual([
-      "ref-1",
-      "fact-1",
+      "references:ref-1",
+      "facts:fact-1",
     ]);
     const markdown = renderMemoryPacket(result.packet, "markdown");
     expect(markdown.content.indexOf("Migration runbook")).toBeLessThan(
@@ -763,11 +763,11 @@ describe("public recall API", () => {
           },
           async rerank() {
             return {
-              orderedCandidateIds: ["fact-1"],
+              orderedCandidateIds: ["facts:fact-1"],
               rationale: "keep blocker detail",
               decisions: [
                 {
-                  candidateId: "fact-1",
+                  candidateId: "facts:fact-1",
                   decision: "suppress",
                   reason: "query_alignment",
                 },
@@ -792,7 +792,7 @@ describe("public recall API", () => {
     expect(result.facts[0]?.id).toBe("fact-1");
     expect(result.metadata.assistantInfluence?.rerankApplied).toBe(true);
     expect(result.metadata.assistantInfluence?.rerankedCandidateIds).toEqual([
-      "fact-1",
+      "facts:fact-1",
     ]);
     expect(result.metadata.assistantInfluence?.suppressedCandidateIds).toEqual([]);
     expect(result.metadata.assistantInfluence?.decisions).toEqual([]);
@@ -864,8 +864,8 @@ describe("public recall API", () => {
             return {
               orderedCandidateIds,
               rationale: "remove stale optional detail",
-              suppressCandidateIds: orderedCandidateIds.includes("fact-suppress")
-                ? ["fact-suppress"]
+              suppressCandidateIds: orderedCandidateIds.includes("facts:fact-suppress")
+                ? ["facts:fact-suppress"]
                 : [],
             };
           },

@@ -89,7 +89,10 @@ import {
   claimProjectionGroupKey,
   fuseGeneralizedRecallCandidates,
 } from "./generalizedFusion";
-import { admitGeneralizedRecords } from "./generalizedAdmissions";
+import {
+  admitGeneralizedRecords,
+  isGeneralizedCandidateTraceEligible,
+} from "./generalizedAdmissions";
 import type {
   GeneralizedFusionCandidate,
   GeneralizedFusionChannel,
@@ -97,6 +100,15 @@ import type {
   GeneralizedFusionResult,
 } from "./generalizedFusion";
 import type { GeneralizedFusionSelectionInput } from "./factSelection/generalizedFusionUnion";
+import {
+  findAmbiguousRecallRerankMemoryIds,
+  matchesRecallRerankCandidateId,
+  normalizeRecallRerankText,
+  recallRerankCandidateKey,
+  setRecallRerankPool,
+  type RecallRerankCandidate,
+  type RecallRerankCollection,
+} from "./rerankPool";
 import {
   selectGeneralizedFactsForInternalUse,
 } from "./generalizedSelection";
@@ -405,6 +417,208 @@ function buildFusionRunTrace(input: {
   };
 }
 
+interface DurableRecallSelection {
+  archives: SessionArchive[];
+  episodes: EpisodeMemory[];
+  facts: FactMemory[];
+  references: ReferenceMemory[];
+}
+
+function durableSelectionKeys(
+  selection: DurableRecallSelection,
+): Set<string> {
+  return new Set([
+    ...selection.facts.map(({ id }) => recallRerankCandidateKey("facts", id)),
+    ...selection.references.map(({ id }) =>
+      recallRerankCandidateKey("references", id)
+    ),
+    ...selection.episodes.map(({ id }) =>
+      recallRerankCandidateKey("episodes", id)
+    ),
+    ...selection.archives.map(({ id }) =>
+      recallRerankCandidateKey("session_archives", id)
+    ),
+  ]);
+}
+
+function reconcileFusionTraceSelection(
+  retrievalTrace: RecallRetrievalTrace | undefined,
+  selection: DurableRecallSelection,
+  additional: {
+    feedback: FeedbackMemory[];
+    preferences: PreferenceMemory[];
+    profile: UserProfile | null;
+  },
+): RecallRetrievalTrace | undefined {
+  if (!retrievalTrace?.fusionRuns) {
+    return retrievalTrace;
+  }
+  const selectedKeys = durableSelectionKeys(selection);
+  for (const preference of additional.preferences) {
+    selectedKeys.add(`preferences:${preference.id}`);
+  }
+  for (const feedback of additional.feedback) {
+    selectedKeys.add(`feedback:${feedback.id}`);
+  }
+  if (additional.profile) {
+    selectedKeys.add(`profiles:${additional.profile.userId}`);
+  }
+  return {
+    ...retrievalTrace,
+    fusionRuns: retrievalTrace.fusionRuns.map((run) => ({
+      ...run,
+      candidates: run.candidates.map((candidate) => {
+        const selected = selectedKeys.has(
+          recallRerankCandidateKey(
+            candidate.sourceCollection as RecallRerankCollection,
+            candidate.sourceMemoryId,
+          ),
+        );
+        const { eliminationReason: _eliminationReason, ...base } = candidate;
+        return selected
+          ? { ...base, selected: true }
+          : {
+              ...base,
+              eliminationReason: "not_selected" as const,
+              selected: false,
+            };
+      }),
+    })),
+  };
+}
+
+function collectUnseenFusionRecords<T extends { id: string }>(input: {
+  candidates: readonly GeneralizedFusionCandidate[];
+  collection: RecallRerankCollection;
+  evaluatedIds: ReadonlySet<string>;
+  records: readonly T[];
+  suppressedIds: ReadonlySet<string>;
+  traces: readonly RecallCandidateTrace[];
+}): T[] {
+  const recordsById = new Map(input.records.map((record) => [record.id, record]));
+  const tracesById = new Map(input.traces.map((trace) => [trace.memoryId, trace]));
+  return input.candidates.flatMap((candidate) => {
+    if (
+      candidate.sourceCollection !== input.collection ||
+      input.evaluatedIds.has(candidate.sourceMemoryId) ||
+      input.suppressedIds.has(recallRerankCandidateKey(
+        input.collection,
+        candidate.sourceMemoryId,
+      ))
+    ) {
+      return [];
+    }
+    const record = recordsById.get(candidate.sourceMemoryId);
+    return record &&
+        isGeneralizedCandidateTraceEligible(
+          tracesById.get(candidate.sourceMemoryId),
+        )
+      ? [record]
+      : [];
+  });
+}
+
+function buildRecallRerankCandidates(input: {
+  candidates: readonly GeneralizedFusionCandidate[];
+  claims: readonly ClaimProjection[];
+  documents: readonly RecallIndexDocument[];
+  pool: DurableRecallSelection;
+  selected: DurableRecallSelection;
+}): RecallRerankCandidate[] {
+  const recordsByCollection: Record<
+    RecallRerankCollection,
+    Map<string, RecallRerankCandidate["record"]>
+  > = {
+    facts: new Map(input.pool.facts.map((record) => [record.id, record])),
+    references: new Map(
+      input.pool.references.map((record) => [record.id, record]),
+    ),
+    episodes: new Map(input.pool.episodes.map((record) => [record.id, record])),
+    session_archives: new Map(
+      input.pool.archives.map((record) => [record.id, record]),
+    ),
+  };
+  const retrievalTextByKey = new Map<string, string>();
+  const addRetrievalText = (key: string, values: readonly (string | undefined)[]) => {
+    const text = normalizeRecallRerankText([
+      retrievalTextByKey.get(key),
+      ...values,
+    ]);
+    if (text) {
+      retrievalTextByKey.set(key, text);
+    }
+  };
+  for (const document of input.documents) {
+    if (!(document.sourceCollection in recordsByCollection)) {
+      continue;
+    }
+    addRetrievalText(
+      recallRerankCandidateKey(
+        document.sourceCollection as RecallRerankCollection,
+        document.sourceMemoryId,
+      ),
+      [document.text],
+    );
+  }
+  for (const claim of input.claims) {
+    addRetrievalText(
+      recallRerankCandidateKey("facts", claim.sourceMemoryId),
+      [
+        claim.contextualDescriptor,
+        claim.predicateKey,
+        claim.objectText,
+        claim.validFrom,
+        claim.validUntil,
+      ],
+    );
+  }
+  const selectedKeys = durableSelectionKeys(input.selected);
+  const result: RecallRerankCandidate[] = [];
+  const added = new Set<string>();
+  for (const candidate of input.candidates) {
+    if (!(candidate.sourceCollection in recordsByCollection)) {
+      continue;
+    }
+    const collection = candidate.sourceCollection as RecallRerankCollection;
+    const record = recordsByCollection[collection].get(candidate.sourceMemoryId);
+    const key = recallRerankCandidateKey(collection, candidate.sourceMemoryId);
+    if (!record || added.has(key)) {
+      continue;
+    }
+    result.push({
+      collection,
+      firstStageScore: candidate.score,
+      firstStageSelected: selectedKeys.has(key),
+      key,
+      record,
+      retrievalText: retrievalTextByKey.get(key),
+    });
+    added.add(key);
+  }
+  for (const [collection, records] of [
+    ["facts", input.selected.facts],
+    ["references", input.selected.references],
+    ["episodes", input.selected.episodes],
+    ["session_archives", input.selected.archives],
+  ] as const) {
+    for (const record of records) {
+      const key = recallRerankCandidateKey(collection, record.id);
+      if (added.has(key)) {
+        continue;
+      }
+      result.push({
+        collection,
+        firstStageSelected: true,
+        key,
+        record,
+        retrievalText: retrievalTextByKey.get(key),
+      });
+      added.add(key);
+    }
+  }
+  return result;
+}
+
 function buildEvidenceCountByMemoryId(
   evidence: EvidenceRecord[],
 ): Map<string, number> {
@@ -537,12 +751,16 @@ function appendAssistantTraceDetails(
     return traces;
   }
 
-  const decisionsByCandidateId = new Map(
-    influence.decisions.map((decision) => [decision.candidateId, decision]),
-  );
+  const decisions = influence.decisions;
 
   return traces.map((trace) => {
-    const decision = decisionsByCandidateId.get(trace.memoryId);
+    const collection = trace.memoryType === "archive" ? "session_archives" :
+      trace.memoryType === "episode" ? "episodes" :
+      trace.memoryType === "reference" ? "references" :
+      "facts";
+    const decision = decisions.find(({ candidateId }) =>
+      matchesRecallRerankCandidateId(candidateId, collection, trace.memoryId)
+    );
     if (!decision) {
       return trace;
     }
@@ -579,7 +797,13 @@ function collectAssistantProtectedCandidateIds(
   for (const traces of traceGroups) {
     for (const trace of traces) {
       if (trace.returned && trace.slot !== "generic") {
-        protectedCandidateIds.add(trace.memoryId);
+        protectedCandidateIds.add(recallRerankCandidateKey(
+          trace.memoryType === "archive" ? "session_archives" :
+            trace.memoryType === "episode" ? "episodes" :
+            trace.memoryType === "reference" ? "references" :
+            "facts",
+          trace.memoryId,
+        ));
       }
     }
   }
@@ -592,10 +816,15 @@ function createAssistantSuppressionTraceReason(
 ): (trace: RecallCandidateTrace) => string {
   const suppressedIds = new Set(suppressedCandidateIds);
 
-  return (trace) =>
-    suppressedIds.has(trace.memoryId)
+  return (trace) => {
+    const collection = trace.memoryType === "archive" ? "session_archives" :
+      trace.memoryType === "episode" ? "episodes" :
+      trace.memoryType === "reference" ? "references" :
+      "facts";
+    return suppressedIds.has(recallRerankCandidateKey(collection, trace.memoryId))
       ? "llm-assisted suppress"
       : "policy filtered";
+  };
 }
 
 function shouldSuppressGuidanceLanesForFactQuery(input: {
@@ -1218,6 +1447,8 @@ export function createRecallEngine(config: RecallEngineConfig) {
 
       let generalizedFusion: GeneralizedFusionSelectionInput | undefined;
       let generalizedFusionCandidates: GeneralizedFusionCandidate[] = [];
+      let rerankProjectionClaims: ClaimProjection[] = [];
+      let rerankProjectionDocuments: RecallIndexDocument[] = [];
       let selectedClaimSourceFacts: FactMemory[] = [];
       let claimReplacementSourceIds = new Set<string>();
       let retrievalTrace: RecallRetrievalTrace | undefined;
@@ -1300,6 +1531,8 @@ export function createRecallEngine(config: RecallEngineConfig) {
                 resolvedLanguage.locale,
               ),
             ]);
+            rerankProjectionClaims = claims;
+            rerankProjectionDocuments = documents;
             const contentDocuments = documents.filter(
               (document) =>
                 document.sourceCollection === "facts" ||
@@ -1750,6 +1983,102 @@ export function createRecallEngine(config: RecallEngineConfig) {
           }
         }
       }
+      const suppressedCandidateIds = new Set(
+        assistantInfluence?.suppressedCandidateIds ?? [],
+      );
+      const policyContext = {
+        scope: input.scope,
+        query: input.query,
+        retrievalProfile,
+        locale: resolvedLanguage.locale,
+        localeSource: resolvedLanguage.localeSource,
+        policy: config.policy,
+        policyApplied,
+      };
+      const poolFacts = [
+        ...facts,
+        ...await applyRecallPolicyToRecords(
+          collectUnseenFusionRecords({
+            candidates: generalizedFusionCandidates,
+            collection: "facts",
+            evaluatedIds: new Set(selectedFacts.facts.map(({ id }) => id)),
+            records: factSelectionPool,
+            suppressedIds: suppressedCandidateIds,
+            traces: selectedFacts.traces,
+          }),
+          "fact",
+          policyContext,
+        ),
+      ];
+      const poolReferences = [
+        ...references,
+        ...await applyRecallPolicyToRecords(
+          collectUnseenFusionRecords({
+            candidates: generalizedFusionCandidates,
+            collection: "references",
+            evaluatedIds: new Set(generalizedReferences.map(({ id }) => id)),
+            records: referencesRaw,
+            suppressedIds: suppressedCandidateIds,
+            traces: selectedReferences.traces,
+          }),
+          "reference",
+          policyContext,
+        ),
+      ];
+      const poolEpisodes = [
+        ...episodes,
+        ...await applyRecallPolicyToRecords(
+          collectUnseenFusionRecords({
+            candidates: generalizedFusionCandidates,
+            collection: "episodes",
+            evaluatedIds: new Set(generalizedEpisodes.map(({ id }) => id)),
+            records: episodesRaw,
+            suppressedIds: suppressedCandidateIds,
+            traces: selectedEpisodes.traces,
+          }),
+          "episode",
+          policyContext,
+        ),
+      ];
+      const poolArchives = [
+        ...archives,
+        ...await applyRecallPolicyToRecords(
+          collectUnseenFusionRecords({
+            candidates: generalizedFusionCandidates,
+            collection: "session_archives",
+            evaluatedIds: new Set(generalizedArchives.map(({ id }) => id)),
+            records: archivesRaw,
+            suppressedIds: suppressedCandidateIds,
+            traces: selectedArchives.traces,
+          }),
+          "archive",
+          policyContext,
+        ),
+      ];
+      const rerankPoolSelection = {
+        facts: [...new Map(poolFacts.map((record) => [record.id, record])).values()],
+        references: [...new Map(
+          poolReferences.map((record) => [record.id, record]),
+        ).values()],
+        episodes: [...new Map(
+          poolEpisodes.map((record) => [record.id, record]),
+        ).values()],
+        archives: [...new Map(
+          poolArchives.map((record) => [record.id, record]),
+        ).values()],
+      };
+      const rerankCandidates = buildRecallRerankCandidates({
+        candidates: generalizedFusionCandidates,
+        claims: rerankProjectionClaims,
+        documents: rerankProjectionDocuments,
+        pool: rerankPoolSelection,
+        selected: { facts, references, episodes, archives },
+      });
+      retrievalTrace = reconcileFusionTraceSelection(
+      retrievalTrace,
+      { facts, references, episodes, archives },
+      { feedback, preferences, profile: filteredProfile },
+    );
       const factTraceIds = collectTraceMemoryIds(selectedFacts.traces);
       const referenceTraceIds = collectTraceMemoryIds(selectedReferences.traces);
       const archiveTraceIds = collectTraceMemoryIds(selectedArchives.traces);
@@ -1793,9 +2122,44 @@ export function createRecallEngine(config: RecallEngineConfig) {
             ]),
           ).values()]
         : [];
+      const rerankPoolFactSourceIds = rerankPoolSelection.facts.map(
+        canonicalFactMemoryId,
+      );
+      const rerankPoolMemoryIds = [
+        ...rerankPoolFactSourceIds,
+        ...rerankPoolSelection.references.map(({ id }) => id),
+        ...feedback.map(({ id }) => id),
+        ...rerankPoolSelection.episodes.map(({ id }) => id),
+        ...rerankPoolSelection.archives.map(({ id }) => id),
+      ];
+      const rerankPoolLinkedEvidence = filterLinkedEvidence(
+        visibleEvidencePool,
+        new Set([
+          ...rerankPoolFactSourceIds,
+          ...rerankPoolSelection.references.map(({ id }) => id),
+          ...feedback.map(({ id }) => id),
+          ...rerankPoolSelection.episodes.map(({ id }) => id),
+        ]),
+        new Set(rerankPoolSelection.archives.map(({ id }) => id)),
+        feedbackEvidenceIds,
+      );
+      const rerankPoolEvidence = routingDecision.sourcePriorities.includes("evidence")
+        ? [...new Map(
+            [...rerankPoolLinkedEvidence, ...sessionScopedEvidence].map((record) => [
+              record.id,
+              record,
+            ]),
+          ).values()]
+        : [];
       const contextEvidence = selectEvidence(completeEvidence);
       const evidence = input.includeEvidence ? completeEvidence : contextEvidence;
-      const evidenceIndex = buildEvidenceLinkIndex(explainabilityLinkedEvidence);
+      const ambiguousSourceMemoryIds = findAmbiguousRecallRerankMemoryIds(
+        rerankCandidates,
+      );
+      const evidenceIndex = buildEvidenceLinkIndex(
+        explainabilityLinkedEvidence,
+        ambiguousSourceMemoryIds,
+      );
       const assistantSuppressionTraceReason = createAssistantSuppressionTraceReason(
         assistantInfluence?.suppressedCandidateIds ?? [],
       );
@@ -1840,13 +2204,13 @@ export function createRecallEngine(config: RecallEngineConfig) {
       let ledgerClaims: ClaimProjection[] = [];
       if (
         input.includeEvidence &&
-        evidence.length > 0 &&
+        rerankPoolEvidence.length > 0 &&
         config.projectionIndex
       ) {
         try {
           ledgerClaims = await config.projectionIndex.queryClaimsForSourceMemoryGroups(
             input.scope,
-            selectedMemoryIds,
+            rerankPoolMemoryIds,
           );
         } catch (error) {
           console.error(
@@ -1858,6 +2222,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
       const evidenceLedger = input.includeEvidence
         ? buildEvidenceLedger({
             aggregation: recallPlan.aggregation,
+            ambiguousSourceMemoryIds: [...ambiguousSourceMemoryIds],
             claims: ledgerClaims,
             evidence,
             referenceTime: currentReferenceTime,
@@ -1885,7 +2250,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
         routingDecision,
       });
 
-      return {
+      const result: RecallResult = {
         profile: filteredProfile,
         preferences,
         references,
@@ -1983,6 +2348,27 @@ export function createRecallEngine(config: RecallEngineConfig) {
           }),
         },
       };
+      return setRecallRerankPool(result, {
+        aggregation: recallPlan.aggregation,
+        candidates: rerankCandidates,
+        claims: ledgerClaims,
+        evidence: rerankPoolEvidence,
+        explicitEvidenceIds: [...new Set([
+          ...feedbackEvidenceIds,
+          ...sessionScopedEvidence.map(({ id }) => id),
+        ])],
+        includeEvidence: input.includeEvidence === true,
+        laneCaps: {
+          facts: recallPlan.selectedLimit,
+          references:
+            generalizedFusionConfig?.contentLaneRecords?.references ?? 1,
+          episodes:
+            generalizedFusionConfig?.contentLaneRecords?.episodes ?? 2,
+          session_archives:
+            generalizedFusionConfig?.contentLaneRecords?.sessionArchives ?? 1,
+        },
+        referenceTime: currentReferenceTime,
+      });
     },
   };
 }

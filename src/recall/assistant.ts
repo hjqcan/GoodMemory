@@ -9,6 +9,10 @@ import type {
   RecallSlot,
   RoutingDecision,
 } from "./router";
+import {
+  recallRerankCandidateKey,
+  type RecallRerankCollection,
+} from "./rerankPool";
 
 export type RecallAssistantFallbackReason =
   | "empty_rerank"
@@ -321,52 +325,58 @@ function isProtectedCandidate(input: {
   );
 }
 
+function assistantCollection(
+  type: RecallAssistantCandidate["type"],
+): RecallRerankCollection {
+  return type === "archive" ? "session_archives" :
+    type === "episode" ? "episodes" :
+    type === "reference" ? "references" :
+    "facts";
+}
+
+function assistantCandidateId(input: {
+  memoryId: string;
+  type: RecallAssistantCandidate["type"];
+}): string {
+  return recallRerankCandidateKey(
+    assistantCollection(input.type),
+    input.memoryId,
+  );
+}
+
 export function buildRecallAssistantCandidates(
   selection: RecallAssistantDurableSelection,
   options?: RecallAssistantCandidateBuildOptions,
 ): RecallAssistantCandidate[] {
-  return [
-    ...selection.facts.map((fact) => ({
-      id: fact.id,
-      protected: isProtectedCandidate({
-        id: fact.id,
-        options,
-        semanticProtected: isProtectedFactCandidate(fact),
-      }),
-      summary: candidateSummary({ type: "fact", value: fact }),
-      type: "fact" as const,
-    })),
-    ...selection.references.map((reference) => ({
-      id: reference.id,
-      protected: isProtectedCandidate({
-        id: reference.id,
-        options,
-        semanticProtected: isProtectedReferenceCandidate(reference),
-      }),
-      summary: candidateSummary({ type: "reference", value: reference }),
+  const records = [
+    ...selection.facts.map((value) => ({ type: "fact" as const, value })),
+    ...selection.references.map((value) => ({
       type: "reference" as const,
+      value,
     })),
-    ...selection.archives.map((archive) => ({
-      id: archive.id,
-      protected: isProtectedCandidate({
-        id: archive.id,
-        options,
-        semanticProtected: isProtectedArchiveCandidate(archive),
-      }),
-      summary: candidateSummary({ type: "archive", value: archive }),
-      type: "archive" as const,
-    })),
-    ...selection.episodes.map((episode) => ({
-      id: episode.id,
-      protected: isProtectedCandidate({
-        id: episode.id,
-        options,
-        semanticProtected: isProtectedEpisodeCandidate(episode),
-      }),
-      summary: candidateSummary({ type: "episode", value: episode }),
-      type: "episode" as const,
-    })),
+    ...selection.archives.map((value) => ({ type: "archive" as const, value })),
+    ...selection.episodes.map((value) => ({ type: "episode" as const, value })),
   ];
+  return records.map(({ type, value }) => {
+    const id = recallRerankCandidateKey(assistantCollection(type), value.id);
+    const semanticProtected = type === "fact"
+      ? isProtectedFactCandidate(value as FactMemory)
+      : type === "reference"
+        ? isProtectedReferenceCandidate(value as ReferenceMemory)
+        : type === "archive"
+          ? isProtectedArchiveCandidate(value as SessionArchive)
+          : isProtectedEpisodeCandidate(value as EpisodeMemory);
+    return {
+      id,
+      protected: isProtectedCandidate({
+        id,
+        options,
+        semanticProtected,
+      }),
+      summary: candidateSummary({ type, value }),
+      type,
+    };
+  });
 }
 
 function validateOrderedIds(
@@ -527,12 +537,26 @@ export function applyRecallAssistantRerank(input: {
   });
 
   const order = new Map(retainedIds.map((candidateId, index) => [candidateId, index]));
-  const reorderByIds = <TRecord extends { id: string }>(records: TRecord[]) =>
+  const reorderByIds = <TRecord extends { id: string }>(
+    type: RecallAssistantCandidate["type"],
+    records: TRecord[],
+  ) =>
     records
-      .filter((record) => !suppressCandidateIds.includes(record.id))
+      .filter((record) =>
+        !suppressCandidateIds.includes(assistantCandidateId({
+          memoryId: record.id,
+          type,
+        }))
+      )
       .sort((left, right) => {
-        const leftRank = order.get(left.id) ?? Number.MAX_SAFE_INTEGER;
-        const rightRank = order.get(right.id) ?? Number.MAX_SAFE_INTEGER;
+        const leftRank = order.get(assistantCandidateId({
+          memoryId: left.id,
+          type,
+        })) ?? Number.MAX_SAFE_INTEGER;
+        const rightRank = order.get(assistantCandidateId({
+          memoryId: right.id,
+          type,
+        })) ?? Number.MAX_SAFE_INTEGER;
         if (leftRank !== rightRank) {
           return leftRank - rightRank;
         }
@@ -542,10 +566,10 @@ export function applyRecallAssistantRerank(input: {
 
   return {
     selection: {
-      facts: reorderByIds(input.selection.facts),
-      references: reorderByIds(input.selection.references),
-      archives: reorderByIds(input.selection.archives),
-      episodes: reorderByIds(input.selection.episodes),
+      facts: reorderByIds("fact", input.selection.facts),
+      references: reorderByIds("reference", input.selection.references),
+      archives: reorderByIds("archive", input.selection.archives),
+      episodes: reorderByIds("episode", input.selection.episodes),
     },
     influence: withInfluenceStatus({
       ...input.influence,

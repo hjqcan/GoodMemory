@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 
-import { applyFactRerankingToResult } from "../src/api/recallReranking";
+import { applyDurableRerankingToResult } from "../src/api/recallReranking";
 import type { RecallResult } from "../src/api/contracts";
 import { createLanguageService } from "../src/language";
 import {
@@ -83,7 +83,7 @@ export async function buildPhase70FallbackProof(): Promise<Phase70FallbackProof>
     scope,
     strategy: "rules-only",
   });
-  const fallback = await applyFactRerankingToResult({
+  const fallback = await applyDurableRerankingToResult({
     language: createLanguageService(),
     query: "What does each migration need?",
     reranker: {

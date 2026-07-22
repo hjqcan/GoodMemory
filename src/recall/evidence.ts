@@ -143,15 +143,26 @@ function addEvidenceLinks(
   }
 }
 
-export function buildEvidenceLinkIndex(evidence: EvidenceRecord[]): EvidenceLinkIndex {
+export function buildEvidenceLinkIndex(
+  evidence: EvidenceRecord[],
+  ambiguousSourceMemoryIds: ReadonlySet<string> = new Set(),
+): EvidenceLinkIndex {
   const index: EvidenceLinkIndex = {
     byArchiveId: {},
     byMemoryId: {},
   };
 
   for (const record of evidence) {
-    addEvidenceLinks(index.byMemoryId, record.linkedMemoryIds, record.id);
-    addEvidenceLinks(index.byArchiveId, record.linkedArchiveIds, record.id);
+    addEvidenceLinks(
+      index.byMemoryId,
+      record.linkedMemoryIds.filter((id) => !ambiguousSourceMemoryIds.has(id)),
+      record.id,
+    );
+    addEvidenceLinks(
+      index.byArchiveId,
+      record.linkedArchiveIds.filter((id) => !ambiguousSourceMemoryIds.has(id)),
+      record.id,
+    );
   }
 
   return index;

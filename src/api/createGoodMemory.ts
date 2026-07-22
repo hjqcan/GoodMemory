@@ -58,6 +58,10 @@ import {
   type RecallPlan,
 } from "../recall/recallPlan";
 import type { Reranker } from "../recall/reranker";
+import {
+  copyRecallRerankPool,
+  mergeRecallRerankPools,
+} from "../recall/rerankPool";
 import type {
   RecallExecutionStopReason,
   RecallQueryExecutionTrace,
@@ -123,8 +127,9 @@ import {
 import { recordHostActionAssessment } from "./hostActionAssessmentOps";
 import { createGoodMemoryJobsFacade } from "./jobs";
 import {
-  applyFactRerankingToResult,
+  applyDurableRerankingToResult,
   buildSkippedRerankerTrace,
+  getDurableRerankerCandidateCount,
   sanitizeRerankerGateway,
   type RerankerExecutionTarget,
   withRerankerTrace,
@@ -349,7 +354,7 @@ function annotateRecallPass(
   if (!retrievalTrace?.fusionRuns) {
     return result;
   }
-  return {
+  const annotated: RecallResult = {
     ...result,
     metadata: {
       ...result.metadata,
@@ -373,6 +378,7 @@ function annotateRecallPass(
       },
     },
   };
+  return copyRecallRerankPool(result, annotated);
 }
 
 function withRecallPlanTrace(input: {
@@ -456,7 +462,7 @@ function mergeRecallResults(
     routingDecision: primary.metadata.routingDecision,
   });
   const retrievalTrace = mergeRetrievalTraces(results);
-  return {
+  const merged: RecallResult = {
     profile: primary.profile,
     preferences,
     references,
@@ -490,6 +496,12 @@ function mergeRecallResults(
       ...(retrievalTrace ? { retrievalTrace } : {}),
     },
   };
+  return mergeRecallRerankPools({
+    preRankLimit: plan.preRankLimit,
+    primaryReserveLimit: plan.selectedLimit,
+    results,
+    target: merged,
+  });
 }
 
 function buildRecallTraceLinks(result: RecallResult): GoodMemoryTraceLink[] {
@@ -1471,12 +1483,12 @@ class GoodMemoryImpl implements GoodMemory {
           ? withRerankerTrace(
               result,
               buildSkippedRerankerTrace({
-                candidateCount: result.facts.length,
+                candidateCount: getDurableRerankerCandidateCount(result),
                 reason: "disabled",
                 target: this.rerankerTarget,
               }),
             )
-          : await applyFactRerankingToResult({
+          : await applyDurableRerankingToResult({
               preRankLimit: recallPlan.preRankLimit,
               query: input.query,
               language: this.language,

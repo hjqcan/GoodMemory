@@ -172,10 +172,10 @@ describe("recall assistant helpers", () => {
     const candidates = buildRecallAssistantCandidates(selection);
 
     expect(candidates.map((candidate) => candidate.id)).toEqual([
-      "fact-1",
-      "ref-1",
-      "archive-1",
-      "episode-1",
+      "facts:fact-1",
+      "references:ref-1",
+      "session_archives:archive-1",
+      "episodes:episode-1",
     ]);
     expect(candidates.map((candidate) => candidate.protected)).toEqual([
       true,
@@ -196,17 +196,22 @@ describe("recall assistant helpers", () => {
         suppressedCandidateIds: [],
       },
       rerank: {
-        orderedCandidateIds: ["ref-1", "fact-1", "archive-1", "episode-1"],
+        orderedCandidateIds: [
+          "references:ref-1",
+          "facts:fact-1",
+          "session_archives:archive-1",
+          "episodes:episode-1",
+        ],
         rationale: "runbook should lead before blocker detail",
-        suppressCandidateIds: ["archive-1"],
+        suppressCandidateIds: ["session_archives:archive-1"],
         decisions: [
           {
-            candidateId: "ref-1",
+            candidateId: "references:ref-1",
             decision: "promote",
             reason: "source_of_truth",
           },
           {
-            candidateId: "archive-1",
+            candidateId: "session_archives:archive-1",
             decision: "suppress",
             reason: "query_alignment",
           },
@@ -220,7 +225,9 @@ describe("recall assistant helpers", () => {
     expect(reranked.selection.archives).toEqual([]);
     expect(reranked.influence.rerankApplied).toBe(true);
     expect(reranked.influence.routerInfluenceStatus).toBe("applied");
-    expect(reranked.influence.suppressedCandidateIds).toEqual(["archive-1"]);
+    expect(reranked.influence.suppressedCandidateIds).toEqual([
+      "session_archives:archive-1",
+    ]);
   });
 
   it("keeps cross-collection ID collisions distinct during assisted rerank", () => {
@@ -263,7 +270,7 @@ describe("recall assistant helpers", () => {
 
     expect(
       buildRecallAssistantCandidates(selection).map(({ id }) => id),
-    ).toEqual(["facts:shared-id", "kept-id", "references:shared-id"]);
+    ).toEqual(["facts:shared-id", "facts:kept-id", "references:shared-id"]);
 
     const reranked = applyRecallAssistantRerank({
       influence: {
@@ -277,7 +284,7 @@ describe("recall assistant helpers", () => {
       },
       rerank: {
         orderedCandidateIds: [
-          "kept-id",
+          "facts:kept-id",
           "references:shared-id",
           "facts:shared-id",
         ],
@@ -423,22 +430,26 @@ describe("recall assistant helpers", () => {
         suppressedCandidateIds: [],
       },
       rerank: {
-        orderedCandidateIds: ["ref-1", "fact-1", "archive-1"],
+        orderedCandidateIds: [
+          "references:ref-1",
+          "facts:fact-1",
+          "session_archives:archive-1",
+        ],
         rationale: "runbook should lead before blocker detail",
-        suppressCandidateIds: ["archive-1"],
+        suppressCandidateIds: ["session_archives:archive-1"],
         decisions: [
           {
-            candidateId: "ref-1",
+            candidateId: "references:ref-1",
             decision: "promote",
             reason: "source_of_truth",
           },
           {
-            candidateId: "fact-1",
+            candidateId: "facts:fact-1",
             decision: "suppress",
             reason: "query_alignment",
           },
           {
-            candidateId: "archive-1",
+            candidateId: "session_archives:archive-1",
             decision: "suppress",
             reason: "query_alignment",
           },
@@ -457,12 +468,12 @@ describe("recall assistant helpers", () => {
     expect(reranked.selection.archives).toEqual([]);
     expect(reranked.influence.decisions).toEqual([
       {
-        candidateId: "ref-1",
+        candidateId: "references:ref-1",
         decision: "promote",
         reason: "source_of_truth",
       },
       {
-        candidateId: "archive-1",
+        candidateId: "session_archives:archive-1",
         decision: "suppress",
         reason: "query_alignment",
       },
@@ -504,9 +515,9 @@ describe("recall assistant helpers", () => {
         suppressedCandidateIds: [],
       },
       rerank: {
-        orderedCandidateIds: ["ref-1", "fact-1"],
+        orderedCandidateIds: ["references:ref-1", "facts:fact-1"],
         rationale: "drop blocker detail",
-        suppressCandidateIds: ["fact-1"],
+        suppressCandidateIds: ["facts:fact-1"],
       },
       selection,
     });
@@ -542,7 +553,7 @@ describe("recall assistant helpers", () => {
         suppressedCandidateIds: [],
       },
       rerank: {
-        orderedCandidateIds: ["fact-1", "unknown-id"],
+        orderedCandidateIds: ["facts:fact-1", "unknown-id"],
         rationale: "bad candidate injection",
       },
       selection: {
@@ -578,7 +589,7 @@ describe("recall assistant helpers", () => {
         suppressedCandidateIds: [],
       },
       rerank: {
-        orderedCandidateIds: ["fact-1", "unknown-id"],
+        orderedCandidateIds: ["facts:fact-1", "unknown-id"],
         rationale: "bad candidate injection",
       },
       selection: {
@@ -650,7 +661,7 @@ describe("recall assistant helpers", () => {
         suppressedCandidateIds: [],
       },
       rerank: {
-        orderedCandidateIds: ["fact-1"],
+        orderedCandidateIds: ["facts:fact-1"],
         rationale: "bad suppress",
         suppressCandidateIds: ["missing-id"],
       },
@@ -695,9 +706,9 @@ describe("recall assistant helpers", () => {
         suppressedCandidateIds: [],
       },
       rerank: {
-        orderedCandidateIds: ["archive-1"],
+        orderedCandidateIds: ["session_archives:archive-1"],
         rationale: "suppress all",
-        suppressCandidateIds: ["archive-1"],
+        suppressCandidateIds: ["session_archives:archive-1"],
       },
       selection: {
         facts: [fact],
@@ -746,7 +757,7 @@ describe("recall assistant helpers", () => {
         suppressedCandidateIds: [],
       },
       rerank: {
-        orderedCandidateIds: ["fact-1"],
+        orderedCandidateIds: ["facts:fact-1"],
         rationale: "rank the fact but leave archives alone",
       },
       selection: {

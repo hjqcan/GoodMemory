@@ -83,10 +83,11 @@ structural cause on the write side (§2.2).
    — "last May", "two weeks before the wedding", month names, and
    question-date anchoring are all invisible.
 
-Also relevant (agent-verified): unweighted RRF across heterogeneous channels
-(`generalizedFusion.ts:834`, all channels `1/(60+rank)`); reranker touches only
-the top-20 facts and never references/episodes (`src/recall/reranker.ts:45`,
-`src/api/recallReranking.ts:222-248`); multi-hop bridges by literal
+Also relevant at the original audit baseline: unweighted RRF across heterogeneous
+channels (`generalizedFusion.ts:834`, all channels `1/(60+rank)`); the reranker
+then touched only the top-20 facts. Phase 74 replaced that path with a bounded
+32-candidate global durable pool across facts, references, episodes, and session
+archives, followed by one global 12-evidence selection. Multi-hop bridges by literal
 concatenation of capitalized tokens (`src/recall/iterativeRecall.ts:50-100,211`);
 plan budgets are forced constant (`preRankLimit 32` / `selectedLimit 12`,
 `recallPlan.ts:10-12`) even when the LLM planner runs; general fact selection
@@ -480,8 +481,9 @@ applies to any admission tweak this motivates.
 ### R10. Reranker upgrades
 
 **Why:** pointwise-LLM is the documented worst cost/quality quadrant, the
-current reranker sees only top-20 facts, and full-recall-noisy is a top-3 loss
-bucket. But note Phase 70 *did* prove the pointwise reranker lifts LoCoMo
+audit-baseline reranker saw only top-20 facts, and full-recall-noisy is a top-3
+loss bucket. Phase 74 now reranks the bounded global durable pool; the remaining
+question is measured cross-benchmark benefit. Note Phase 70 *did* prove the pointwise reranker lifts LoCoMo
 target-cohort top-6 recall 0.104→0.771 — so this is an upgrade, not a rescue.
 
 **How:** (1) ~~offer listwise rerank~~ (corrected 2026-07-20: the recommended
@@ -490,7 +492,8 @@ reranker is configured — `src/api/retrievalPreset.ts:140-142`; pointwise
 remains only on the non-preset explicit-provider path, which is what the
 README describes). Remaining work: verify the LoCoMo claim profile actually
 ran listwise, and re-run the frozen LongMemEval rerank gate under listwise;
-(2) extend rerank coverage to episode/observation candidates (post-R1c/R5);
+(2) verify the Phase 74 global fact/reference/episode/archive rerank pool on
+held-out cross-benchmark evidence;
 (3) optionally evaluate a small memory-tuned cross-encoder (MemReranker-class)
 as a local, provider-free reranker — attractive for the zero-egress story.
 

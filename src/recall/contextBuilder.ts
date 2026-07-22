@@ -435,25 +435,31 @@ function summarizeDurableMemory(input: {
     return undefined;
   }
 
-  const candidatesById = new Map<string, string>();
+  const candidatesByKey = new Map<string, string>();
+  const addCandidate = (key: string, summary: string) => {
+    candidatesByKey.set(key, summary);
+  };
   for (const fact of input.facts.filter((item) => item.lifecycle === "active")) {
-    candidatesById.set(fact.id, `${input.labels.fact_item}: ${fact.content}`);
+    addCandidate(
+      `facts:${fact.id}`,
+      `${input.labels.fact_item}: ${fact.content}`,
+    );
   }
   for (const reference of input.references) {
-    candidatesById.set(
-      reference.id,
+    addCandidate(
+      `references:${reference.id}`,
       `${input.labels.reference_item}: ${reference.title} (${reference.pointer})`,
     );
   }
   for (const archive of input.archives) {
-    candidatesById.set(
-      archive.id,
+    addCandidate(
+      `session_archives:${archive.id}`,
       `${input.labels.session_archive_item}: ${renderArchiveSummary(archive, input.labels)}`,
     );
   }
   for (const episode of input.episodes) {
-    candidatesById.set(
-      episode.id,
+    addCandidate(
+      `episodes:${episode.id}`,
       `${input.labels.episode_item}: ${episode.summary}`,
     );
   }
@@ -461,7 +467,7 @@ function summarizeDurableMemory(input: {
   const ordered: string[] = [];
   const seen = new Set<string>();
   for (const candidateId of input.candidateOrder) {
-    const candidate = candidatesById.get(candidateId);
+    const candidate = candidatesByKey.get(candidateId);
     if (!candidate || seen.has(candidateId)) {
       continue;
     }
@@ -470,8 +476,8 @@ function summarizeDurableMemory(input: {
     seen.add(candidateId);
   }
 
-  for (const [candidateId, candidate] of candidatesById) {
-    if (seen.has(candidateId)) {
+  for (const [candidateKey, candidate] of candidatesByKey) {
+    if (seen.has(candidateKey)) {
       continue;
     }
 

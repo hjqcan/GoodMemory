@@ -14,6 +14,7 @@ export interface EvidenceLedgerEntry {
 
 export interface BuildEvidenceLedgerInput {
   aggregation?: RecallAggregation;
+  ambiguousSourceMemoryIds?: readonly string[];
   claims: readonly ClaimProjection[];
   evidence: readonly EvidenceRecord[];
   referenceTime: string;
@@ -123,6 +124,7 @@ export function buildEvidenceLedger(
   input: BuildEvidenceLedgerInput,
 ): EvidenceLedgerEntry[] {
   const selected = new Set(input.selectedMemoryIds);
+  const ambiguous = new Set(input.ambiguousSourceMemoryIds ?? []);
   const selectedClaims = input.claims.filter((claim) =>
     selected.has(claim.sourceMemoryId),
   );
@@ -140,7 +142,7 @@ export function buildEvidenceLedger(
   }
 
   const entries: EvidenceLedgerEntry[] = [];
-  for (const sourceMemoryId of input.selectedMemoryIds) {
+  for (const sourceMemoryId of selected) {
     const linkedEvidence = input.evidence.filter(
       (record) =>
         record.linkedMemoryIds.includes(sourceMemoryId) ||
@@ -151,7 +153,11 @@ export function buildEvidenceLedger(
       const linkedClaims = sourceClaims.filter((claim) =>
         claim.evidenceIds.includes(evidence.id),
       );
-      const evidenceClaims = linkedClaims.length > 0 ? linkedClaims : sourceClaims;
+      const evidenceClaims = linkedClaims.length > 0
+        ? linkedClaims
+        : ambiguous.has(sourceMemoryId)
+          ? []
+          : sourceClaims;
       const actor = evidenceActor(evidence);
       if (evidenceClaims.length === 0) {
         entries.push({

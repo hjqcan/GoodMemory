@@ -180,8 +180,10 @@ export interface GoodMemoryConfig {
     assistedExtractor?: MemoryExtractor;
     documentStore?: DocumentStore;
     embeddingAdapter?: EmbeddingAdapter;
-    // Opt-in pointwise reranker. When set, recalled facts are reranked over their
-    // top-K window (and the packet re-rendered). Absent by default => no-op.
+    // Opt-in reranker over a bounded global durable-candidate window. Query and
+    // candidate text are bounded; IDs remain raw when unique and become
+    // collection-qualified on collision. The final packet contains at most the
+    // RecallPlan selectedLimit across facts, references, episodes, and archives.
     reranker?: Reranker;
     recallPlanner?: RecallPlanAssistant;
     sessionStore?: SessionStore;
