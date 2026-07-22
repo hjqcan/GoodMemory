@@ -1598,6 +1598,7 @@ describe("model adapters", () => {
     expect(JSON.parse(String(fetchCalls[0]?.init?.body))).toMatchObject({
       max_tokens: 4_096,
       reasoning_effort: "medium",
+      response_format: { type: "json_object" },
       temperature: 0,
     });
     expect(String(fetchCalls[0]?.init?.body)).toContain("\"content\":\"extract durable memory\"");
