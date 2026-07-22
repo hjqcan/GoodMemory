@@ -6,6 +6,7 @@ import { join } from "node:path";
 
 import {
   PHASE74_BEAM_FULL_100K_DATASET_ID,
+  PHASE74_BEAM_SAFETY_VERIFIER_ID,
 } from "../../src/eval/phase74BeamSafetyProtection";
 import {
   buildPhase74BeamSafetyLiveSpec,
@@ -24,9 +25,14 @@ import type {
 } from "../../src/eval/modelUsage";
 import type { Phase74LiveModels } from "../../src/eval/phase74Live";
 import {
+  buildPhase74IngestionUsageFingerprint,
+} from "../../src/eval/phase74FullRuntime";
+import {
   parsePhase74ProtectionEvidenceCliOptions,
 } from "../../scripts/build-phase-74-protection-evidence";
 import {
+  assertPhase74BeamSafetyLiveRunClosure,
+  loadPhase74BeamModelUsage,
   parsePhase74BeamSafetyProtectionCliOptions,
   runPhase74BeamSafetyProtectionCli,
   verifyPhase74BeamSafetyLiveRun,
@@ -143,6 +149,76 @@ function jsonResponse(content: unknown): Response {
     headers: { "content-type": "application/json" },
     status: 200,
   });
+}
+
+function liveRunClosure() {
+  const callBudget = {
+    embeddingCalls: 1,
+    embeddingInputByteUpperBound: 200,
+    embeddingSpendLimitUsd: 1,
+    languageCalls: 4,
+    maxLanguageCalls: 10,
+    schemaVersion: 1,
+  };
+  const rawArtifact = {
+    path: "/tmp/run/raw.json",
+    sha256: "a".repeat(64),
+  };
+  return {
+    callBudget,
+    callBudgetSha256: "b".repeat(64),
+    identity: {
+      callBudget: {
+        embeddingSpendLimitUsd: 1,
+        maxLanguageCalls: 10,
+      },
+      caseConcurrency: 16,
+      replicate: 1,
+      runId: "beam-r1",
+    },
+    protectionArtifact: {
+      artifactKind: "phase74-frozen-protection-suite-run",
+      executionFailures: 0,
+      rawArtifact: { ...rawArtifact },
+      replicate: 1,
+      runId: "beam-r1",
+      schemaVersion: 1,
+    },
+    summary: {
+      artifactKind: "phase74-beam-safety-live-run-summary",
+      callBudget,
+      callBudgetArtifact: {
+        path: "/tmp/run/call-budget.json",
+        sha256: "b".repeat(64),
+      },
+      caseConcurrency: 16,
+      executionFailures: 0,
+      modelUsage: {
+        completeRequestCount: 4,
+        embeddingIntentCount: 1,
+        eventCount: 5,
+        missingRequestCount: 0,
+        partialRequestCount: 1,
+        pendingRequestCount: 0,
+        intentCount: 5,
+        languageIntentCount: 4,
+      },
+      rawArtifact,
+      schemaVersion: 1,
+      verifierId: PHASE74_BEAM_SAFETY_VERIFIER_ID,
+    },
+    usage: {
+      completeRequestCount: 4,
+      embeddingIntentCount: 1,
+      eventCount: 5,
+      intentCount: 5,
+      languageIntentCount: 4,
+      missingRequestCount: 0,
+      partialRequestCount: 1,
+      pendingRequestCount: 0,
+    },
+    verifiedRawArtifact: { ...rawArtifact },
+  };
 }
 
 describe("Phase 74 BEAM safety live wiring", () => {
@@ -360,10 +436,20 @@ describe("Phase 74 BEAM safety live wiring", () => {
       "--verify-only",
       "--run-directory",
       join(root, "run"),
+      "--manifest",
+      join(root, "manifest.json"),
     ])).toEqual({
+      manifestPath: join(root, "manifest.json"),
       mode: "verify",
       runDirectory: join(root, "run"),
     });
+    expect(() => parsePhase74BeamSafetyProtectionCliOptions([
+      "bun",
+      "script",
+      "--verify-only",
+      "--run-directory",
+      join(root, "run"),
+    ])).toThrow("--manifest");
     expect(() => parsePhase74BeamSafetyProtectionCliOptions([
       "bun",
       "script",
@@ -425,6 +511,101 @@ describe("Phase 74 BEAM safety live wiring", () => {
       models: models(),
       source: { id: `git:${"b".repeat(40)}`, sha256: "c".repeat(64) },
     })).toThrow("official deterministic export SHA-256");
+  });
+
+  it("closes run, replicate, concurrency, budget, usage, and raw-artifact identity", () => {
+    const valid = liveRunClosure();
+    expect(() => assertPhase74BeamSafetyLiveRunClosure(valid)).not.toThrow();
+
+    const mutations: Array<[string, (value: ReturnType<typeof liveRunClosure>) => void]> = [
+      ["runId", (value) => {
+        value.protectionArtifact.runId = "other-run";
+      }],
+      ["replicate", (value) => {
+        value.protectionArtifact.replicate = 2;
+      }],
+      ["caseConcurrency", (value) => {
+        value.summary.caseConcurrency = 8;
+      }],
+      ["call budget", (value) => {
+        value.summary.callBudget.maxLanguageCalls = 11;
+      }],
+      ["call budget", (value) => {
+        value.callBudget.languageCalls = 11;
+        value.summary.callBudget.languageCalls = 11;
+      }],
+      ["call budget usage", (value) => {
+        value.callBudget.languageCalls = 3;
+        value.summary.callBudget.languageCalls = 3;
+      }],
+      ["call budget usage", (value) => {
+        value.callBudget.embeddingCalls = 0;
+        value.summary.callBudget.embeddingCalls = 0;
+      }],
+      ["call budget", (value) => {
+        value.summary.callBudgetArtifact.sha256 = "c".repeat(64);
+      }],
+      ["summary identity", (value) => {
+        value.summary.artifactKind = "wrong-summary-kind";
+      }],
+      ["executionFailures", (value) => {
+        value.summary.executionFailures = 1;
+      }],
+      ["model usage", (value) => {
+        value.summary.modelUsage.eventCount = 6;
+      }],
+      ["raw artifact", (value) => {
+        value.summary.rawArtifact.path = "/tmp/run/other-raw.json";
+      }],
+    ];
+    for (const [message, mutate] of mutations) {
+      const value = structuredClone(valid);
+      mutate(value);
+      expect(() => assertPhase74BeamSafetyLiveRunClosure(value)).toThrow(message);
+    }
+  });
+
+  it("replays every ingestion usage key and rejects a missing usage directory", async () => {
+    const root = await createRoot();
+    const key = "d".repeat(64);
+    const eventsPath = join(root, "model-usage.jsonl");
+    const intentsPath = join(root, "model-usage-intents.jsonl");
+    const ingestionDirectory = join(root, "ingestion", key);
+    const usageDirectory = join(root, "ingestion-usage", key);
+    await Promise.all([
+      mkdir(ingestionDirectory, { recursive: true }),
+      mkdir(usageDirectory, { recursive: true }),
+      writeFile(eventsPath, ""),
+      writeFile(intentsPath, ""),
+    ]);
+    await Promise.all([
+      writeFile(join(usageDirectory, "events.jsonl"), ""),
+      writeFile(join(usageDirectory, "intents.jsonl"), ""),
+      writeFile(join(ingestionDirectory, "manifest.json"), `${JSON.stringify({
+        key,
+        schemaVersion: 8,
+        usage: buildPhase74IngestionUsageFingerprint({
+          events: [],
+          intents: [],
+          pendingIntents: [],
+        }),
+      })}\n`),
+    ]);
+
+    await expect(loadPhase74BeamModelUsage({
+      eventsPath,
+      intentsPath,
+      runDirectory: root,
+    })).resolves.toMatchObject({
+      ingestionKeyCount: 1,
+      pendingIntents: [],
+    });
+    await rm(usageDirectory, { force: true, recursive: true });
+    await expect(loadPhase74BeamModelUsage({
+      eventsPath,
+      intentsPath,
+      runDirectory: root,
+    })).rejects.toThrow("ingestion/ingestion-usage key sets drifted");
   });
 
   it("rejects a shape-correct synthetic preflight before models, fetch, or providers", async () => {
@@ -514,6 +695,7 @@ describe("Phase 74 BEAM safety live wiring", () => {
     const calls = { capture: 0, fetch: 0, providers: 0, resolveModels: 0 };
 
     await expect(runPhase74BeamSafetyProtectionCli({
+      manifestPath: join(root, "manifest.json"),
       mode: "verify",
       runDirectory,
     }, {
@@ -540,8 +722,9 @@ describe("Phase 74 BEAM safety live wiring", () => {
       providers: 0,
       resolveModels: 0,
     });
-    await expect(verifyPhase74BeamSafetyLiveRun(runDirectory)).rejects.toThrow(
-      "official deterministic export SHA-256",
-    );
+    await expect(verifyPhase74BeamSafetyLiveRun({
+      manifestPath: join(root, "manifest.json"),
+      runDirectory,
+    })).rejects.toThrow("official deterministic export SHA-256");
   });
 });

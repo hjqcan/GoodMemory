@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import type { Dirent } from "node:fs";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 import {
@@ -41,12 +42,17 @@ import type {
   AttributedModelUsageAttempt,
   AttributedModelUsageIntent,
 } from "../src/eval/modelUsage";
+import {
+  buildPhase74IngestionUsagePaths,
+  verifyPhase74IngestionUsageManifest,
+} from "../src/eval/phase74FullRuntime";
 import type {
   Phase74ProtectionReplicate,
 } from "../src/eval/phase74ProtectionContracts";
 import type {
   Phase74ProtectionSuiteRunResult,
 } from "../src/eval/phase74ProtectionRun";
+import { hashPhase74ProtectionValue } from "../src/eval/phase74ProtectionRun";
 import {
   hashPhase74ProtectionSuiteIdentity,
   loadPhase74ProtectionSuiteManifest,
@@ -64,6 +70,7 @@ import { resolveRepoRootFromScriptUrl } from "./script-paths";
 
 const GENERATED_BY = "scripts/run-phase-74-beam-safety-protection.ts";
 const DEFAULT_CASE_CONCURRENCY = 16;
+const EMBEDDING_USD_PER_MILLION_INPUT_TOKENS = 0.02;
 
 interface Phase74BeamSafetyProtectionLiveCliOptions {
   caseConcurrency: number;
@@ -85,6 +92,7 @@ interface Phase74BeamSafetyProtectionPreflightCliOptions {
 }
 
 interface Phase74BeamSafetyProtectionVerifyCliOptions {
+  manifestPath: string;
   mode: "verify";
   runDirectory: string;
 }
@@ -181,7 +189,7 @@ export function parsePhase74BeamSafetyProtectionCliOptions(
     throw new Error("--preflight-only cannot be combined with --verify-only.");
   }
   const allowed = new Set(verifyOnly
-    ? ["--run-directory", "--verify-only"]
+    ? ["--manifest", "--run-directory", "--verify-only"]
     : preflightOnly
       ? ["--dataset-path", "--output-dir", "--preflight-only", "--run-id"]
       : [
@@ -201,6 +209,7 @@ export function parsePhase74BeamSafetyProtectionCliOptions(
   }
   if (verifyOnly) {
     return {
+      manifestPath: resolve(requiredFlag(argv, "--manifest")),
       mode: "verify",
       runDirectory: resolve(requiredFlag(argv, "--run-directory")),
     };
@@ -313,6 +322,239 @@ function officialDatasetIdentity(datasetPath: string) {
   };
 }
 
+async function canonicalIngestionKeys(
+  path: string,
+  label: string,
+): Promise<string[]> {
+  let entries: Dirent[] = [];
+  try {
+    entries = await readdir(path, { withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+  }
+  const directories = entries.filter((entry) => entry.isDirectory());
+  if (directories.some(({ name }) => !/^[a-f0-9]{64}$/u.test(name))) {
+    throw new Error(`Phase 74 BEAM ${label} contains a non-canonical directory.`);
+  }
+  return directories.map(({ name }) => name).sort();
+}
+
+export async function loadPhase74BeamModelUsage(input: {
+  eventsPath: string;
+  intentsPath: string;
+  runDirectory: string;
+}) {
+  const direct = await loadPhase74ModelUsageLedger({
+    eventsPath: input.eventsPath,
+    intentsPath: input.intentsPath,
+  });
+  const [directEventBytes, directIntentBytes] = await Promise.all([
+    readFile(input.eventsPath),
+    readFile(input.intentsPath),
+  ]);
+  const [ingestionKeys, usageKeys] = await Promise.all([
+    canonicalIngestionKeys(
+      join(input.runDirectory, "ingestion"),
+      "ingestion",
+    ),
+    canonicalIngestionKeys(
+      join(input.runDirectory, "ingestion-usage"),
+      "ingestion-usage",
+    ),
+  ]);
+  if (canonicalJson(ingestionKeys) !== canonicalJson(usageKeys)) {
+    throw new Error(
+      "Phase 74 BEAM ingestion/ingestion-usage key sets drifted.",
+    );
+  }
+  const ingestion = await Promise.all(usageKeys.map(async (key) => {
+    const paths = buildPhase74IngestionUsagePaths(input.runDirectory, key);
+    const ledger = await loadPhase74ModelUsageLedger(paths);
+    if (ledger.pendingIntents.length > 0) {
+      throw new Error(
+        `Phase 74 BEAM ingestion ${key} has pending model requests.`,
+      );
+    }
+    await verifyPhase74IngestionUsageManifest({
+      ingestionKey: key,
+      ledger,
+      runDirectory: input.runDirectory,
+    });
+    const [eventBytes, intentBytes] = await Promise.all([
+      readFile(paths.eventsPath),
+      readFile(paths.intentsPath),
+    ]);
+    return {
+      events: ledger.events,
+      eventsSha256: sha256(eventBytes),
+      intents: ledger.intents,
+      intentsSha256: sha256(intentBytes),
+      key,
+    };
+  }));
+  const events = [
+    ...direct.events,
+    ...ingestion.flatMap(({ events: values }) => values),
+  ];
+  const intents = [
+    ...direct.intents,
+    ...ingestion.flatMap(({ intents: values }) => values),
+  ];
+  return {
+    events,
+    eventsSha256: hashPhase74ProtectionValue([
+      { key: "direct", sha256: sha256(directEventBytes) },
+      ...ingestion.map(({ eventsSha256, key }) => ({
+        key,
+        sha256: eventsSha256,
+      })),
+    ]),
+    ingestionKeyCount: ingestion.length,
+    intents,
+    intentsSha256: hashPhase74ProtectionValue([
+      { key: "direct", sha256: sha256(directIntentBytes) },
+      ...ingestion.map(({ intentsSha256, key }) => ({
+        key,
+        sha256: intentsSha256,
+      })),
+    ]),
+    pendingIntents: direct.pendingIntents,
+  };
+}
+
+function nonNegativeInteger(value: unknown): value is number {
+  return Number.isSafeInteger(value) && Number(value) >= 0;
+}
+
+export function assertPhase74BeamSafetyLiveRunClosure(input: {
+  callBudget: unknown;
+  callBudgetSha256: string;
+  identity: unknown;
+  protectionArtifact: unknown;
+  summary: unknown;
+  usage: {
+    completeRequestCount: number;
+    embeddingIntentCount: number;
+    eventCount: number;
+    intentCount: number;
+    languageIntentCount: number;
+    missingRequestCount: number;
+    partialRequestCount: number;
+    pendingRequestCount: number;
+  };
+  verifiedRawArtifact: {
+    path: string;
+    sha256: string;
+  };
+}): void {
+  if (
+    !isRecord(input.identity) ||
+    !isRecord(input.identity.callBudget) ||
+    !isRecord(input.protectionArtifact) ||
+    !isRecord(input.protectionArtifact.rawArtifact) ||
+    !isRecord(input.summary) ||
+    !isRecord(input.summary.callBudget) ||
+    !isRecord(input.summary.callBudgetArtifact) ||
+    !isRecord(input.summary.modelUsage) ||
+    !isRecord(input.summary.rawArtifact)
+  ) {
+    throw new Error("Phase 74 BEAM live run closure is invalid.");
+  }
+  if (
+    input.summary.artifactKind !==
+      "phase74-beam-safety-live-run-summary" ||
+    input.summary.schemaVersion !== 1 ||
+    input.summary.verifierId !== PHASE74_BEAM_SAFETY_VERIFIER_ID
+  ) {
+    throw new Error("Phase 74 BEAM live summary identity drifted.");
+  }
+  if (
+    input.protectionArtifact.artifactKind !==
+      "phase74-frozen-protection-suite-run" ||
+    input.protectionArtifact.schemaVersion !== 1
+  ) {
+    throw new Error("Phase 74 BEAM live protection artifact identity drifted.");
+  }
+  if (input.protectionArtifact.runId !== input.identity.runId) {
+    throw new Error("Phase 74 BEAM live runId drifted.");
+  }
+  if (input.protectionArtifact.replicate !== input.identity.replicate) {
+    throw new Error("Phase 74 BEAM live replicate drifted.");
+  }
+  if (
+    !Number.isSafeInteger(input.identity.caseConcurrency) ||
+    Number(input.identity.caseConcurrency) <= 0 ||
+    input.summary.caseConcurrency !== input.identity.caseConcurrency
+  ) {
+    throw new Error("Phase 74 BEAM live caseConcurrency drifted.");
+  }
+  if (
+    !isRecord(input.callBudget) ||
+    input.callBudget.schemaVersion !== 1 ||
+    !nonNegativeInteger(input.callBudget.embeddingCalls) ||
+    !nonNegativeInteger(input.callBudget.embeddingInputByteUpperBound) ||
+    !nonNegativeInteger(input.callBudget.languageCalls) ||
+    typeof input.callBudget.embeddingSpendLimitUsd !== "number" ||
+    input.callBudget.embeddingSpendLimitUsd <= 0 ||
+    !Number.isSafeInteger(input.callBudget.maxLanguageCalls) ||
+    Number(input.callBudget.maxLanguageCalls) <= 0 ||
+    Number(input.callBudget.languageCalls) >
+      Number(input.callBudget.maxLanguageCalls) ||
+    Number(input.callBudget.embeddingInputByteUpperBound) *
+      EMBEDDING_USD_PER_MILLION_INPUT_TOKENS / 1_000_000 >
+      input.callBudget.embeddingSpendLimitUsd ||
+    canonicalJson(input.summary.callBudget) !== canonicalJson(input.callBudget) ||
+    input.identity.callBudget.embeddingSpendLimitUsd !==
+      input.callBudget.embeddingSpendLimitUsd ||
+    input.identity.callBudget.maxLanguageCalls !==
+      input.callBudget.maxLanguageCalls ||
+    input.summary.callBudgetArtifact.sha256 !== input.callBudgetSha256
+  ) {
+    throw new Error("Phase 74 BEAM live call budget drifted.");
+  }
+  if (
+    input.callBudget.languageCalls !== input.usage.languageIntentCount ||
+    input.callBudget.embeddingCalls !== input.usage.embeddingIntentCount ||
+    input.usage.languageIntentCount + input.usage.embeddingIntentCount !==
+      input.usage.intentCount
+  ) {
+    throw new Error("Phase 74 BEAM live call budget usage drifted.");
+  }
+  if (
+    !nonNegativeInteger(input.protectionArtifact.executionFailures) ||
+    input.summary.executionFailures !==
+      input.protectionArtifact.executionFailures
+  ) {
+    throw new Error("Phase 74 BEAM live executionFailures drifted.");
+  }
+  if (
+    canonicalJson(input.summary.rawArtifact) !==
+      canonicalJson(input.verifiedRawArtifact)
+  ) {
+    throw new Error("Phase 74 BEAM live raw artifact drifted.");
+  }
+  if (
+    input.usage.pendingRequestCount !== 0 ||
+    input.summary.modelUsage.completeRequestCount !==
+      input.usage.completeRequestCount ||
+    input.summary.modelUsage.embeddingIntentCount !==
+      input.usage.embeddingIntentCount ||
+    input.summary.modelUsage.eventCount !== input.usage.eventCount ||
+    input.summary.modelUsage.intentCount !== input.usage.intentCount ||
+    input.summary.modelUsage.languageIntentCount !==
+      input.usage.languageIntentCount ||
+    input.summary.modelUsage.missingRequestCount !==
+      input.usage.missingRequestCount ||
+    input.summary.modelUsage.partialRequestCount !==
+      input.usage.partialRequestCount ||
+    input.summary.modelUsage.pendingRequestCount !== 0
+  ) {
+    throw new Error("Phase 74 BEAM live model usage drifted.");
+  }
+}
+
 async function runPhase74BeamSafetyPreflight(input: {
   dependencies: Pick<
     Phase74BeamSafetyProtectionCliDependencies,
@@ -362,7 +604,10 @@ async function runPhase74BeamSafetyPreflight(input: {
 }
 
 export async function verifyPhase74BeamSafetyLiveRun(
-  runDirectory: string,
+  input: {
+    manifestPath: string;
+    runDirectory: string;
+  },
   dependencies: Pick<
     Phase74BeamSafetyProtectionCliDependencies,
     "readDataset" | "verifyProtection"
@@ -371,7 +616,7 @@ export async function verifyPhase74BeamSafetyLiveRun(
   Phase74BeamSafetyProtectionCliResult,
   { status: "verified" }
 >> {
-  const directory = resolve(runDirectory);
+  const directory = resolve(input.runDirectory);
   const identityPath = join(directory, "run-identity.json");
   const identityBytes = await readFile(identityPath);
   const identity = JSON.parse(identityBytes.toString("utf8")) as unknown;
@@ -425,9 +670,10 @@ export async function verifyPhase74BeamSafetyLiveRun(
   if (!isRecord(identity.manifest)) {
     throw new Error("Phase 74 BEAM live manifest identity is invalid.");
   }
-  const manifestPath = identity.manifest.path;
+  const manifestPath = resolve(input.manifestPath);
   if (
-    typeof manifestPath !== "string" ||
+    typeof identity.manifest.path !== "string" ||
+    resolve(identity.manifest.path) !== manifestPath ||
     typeof identity.manifest.sha256 !== "string"
   ) {
     throw new Error("Phase 74 BEAM live manifest identity is invalid.");
@@ -459,30 +705,93 @@ export async function verifyPhase74BeamSafetyLiveRun(
   }
   const artifactPath = summary.protectionRun.path;
   const rawArtifactPath = summary.rawArtifact.path;
+  const callBudgetPath = join(directory, "call-budget.json");
+  const usagePath = join(directory, "model-usage.jsonl");
+  const usageIntentsPath = join(directory, "model-usage-intents.jsonl");
   if (
     typeof artifactPath !== "string" ||
     typeof rawArtifactPath !== "string" ||
+    summary.contract.path !== contractPath ||
+    summary.runIdentity.path !== identityPath ||
+    artifactPath !== join(directory, "protection-run.json") ||
+    rawArtifactPath !== join(directory, "raw.json") ||
     summary.protectionRun.sha256 !== await fileSha256(artifactPath) ||
     summary.rawArtifact.sha256 !== await fileSha256(rawArtifactPath)
   ) {
     throw new Error("Phase 74 BEAM live protection artifact drifted.");
   }
-  const usagePath = join(directory, "model-usage.jsonl");
-  const usageIntentsPath = join(directory, "model-usage-intents.jsonl");
-  const usage = await loadPhase74ModelUsageLedger({
+  if (
+    !isRecord(summary.callBudgetArtifact) ||
+    summary.callBudgetArtifact.path !== callBudgetPath ||
+    summary.callBudgetArtifact.sha256 !== await fileSha256(callBudgetPath)
+  ) {
+    throw new Error("Phase 74 BEAM live call budget artifact drifted.");
+  }
+  const [callBudgetBytes, protectionArtifactBytes] = await Promise.all([
+    readFile(callBudgetPath),
+    readFile(artifactPath),
+  ]);
+  const callBudget = JSON.parse(callBudgetBytes.toString("utf8")) as unknown;
+  const protectionArtifact = JSON.parse(
+    protectionArtifactBytes.toString("utf8"),
+  ) as unknown;
+  const usage = await loadPhase74BeamModelUsage({
     eventsPath: usagePath,
     intentsPath: usageIntentsPath,
+    runDirectory: directory,
   });
   if (
     usage.pendingIntents.length > 0 ||
-    summary.modelUsage.eventsSha256 !== await fileSha256(usagePath) ||
-    summary.modelUsage.intentsSha256 !== await fileSha256(usageIntentsPath)
+    summary.modelUsage.eventsSha256 !== usage.eventsSha256 ||
+    summary.modelUsage.ingestionKeyCount !== usage.ingestionKeyCount ||
+    summary.modelUsage.intentsSha256 !== usage.intentsSha256
   ) {
     throw new Error("Phase 74 BEAM live usage ledger drifted.");
   }
-  await (
+  const verified = await (
     dependencies.verifyProtection ?? verifyPhase74BeamSafetyProtectionArtifact
   )({ artifactPath, contract, datasetBytes });
+  if (
+    verified.artifactPath !== artifactPath ||
+    verified.artifactSha256 !== summary.protectionRun.sha256 ||
+    verified.rawArtifactPath !== rawArtifactPath ||
+    verified.rawArtifactSha256 !== summary.rawArtifact.sha256 ||
+    verified.runId !== identity.runId ||
+    verified.replicate !== identity.replicate
+  ) {
+    throw new Error("Phase 74 BEAM live verified artifact identity drifted.");
+  }
+  assertPhase74BeamSafetyLiveRunClosure({
+    callBudget,
+    callBudgetSha256: sha256(callBudgetBytes),
+    identity,
+    protectionArtifact,
+    summary,
+    usage: {
+      completeRequestCount: usage.events.filter(
+        ({ completeness }) => completeness === "complete",
+      ).length,
+      embeddingIntentCount: usage.intents.filter(
+        ({ operation }) => operation === "embedding",
+      ).length,
+      eventCount: usage.events.length,
+      intentCount: usage.intents.length,
+      languageIntentCount: usage.intents.filter(
+        ({ operation }) => operation !== "embedding",
+      ).length,
+      missingRequestCount: usage.events.filter(
+        ({ completeness }) => completeness === "missing",
+      ).length,
+      partialRequestCount: usage.events.filter(
+        ({ completeness }) => completeness === "partial",
+      ).length,
+      pendingRequestCount: usage.pendingIntents.length,
+    },
+    verifiedRawArtifact: {
+      path: verified.rawArtifactPath,
+      sha256: verified.rawArtifactSha256,
+    },
+  });
   return { runDirectory: directory, status: "verified", summaryPath };
 }
 
@@ -492,7 +801,7 @@ export async function runPhase74BeamSafetyProtectionCli(
   env: Record<string, string | undefined> = process.env,
 ): Promise<Phase74BeamSafetyProtectionCliResult> {
   if (options.mode === "verify") {
-    return verifyPhase74BeamSafetyLiveRun(options.runDirectory, dependencies);
+    return verifyPhase74BeamSafetyLiveRun(options, dependencies);
   }
   if (options.mode === "preflight") {
     return runPhase74BeamSafetyPreflight({ dependencies, options });
@@ -578,11 +887,12 @@ export async function runPhase74BeamSafetyProtectionCli(
       writeFile(usageIntentsPath, "", { encoding: "utf8", flag: "wx" }),
     ]);
 
+    const callBudgetPath = join(runDirectory, "call-budget.json");
     const callBudget = createPhase74DurableCallBudget({
       embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
       fetch: dependencies.fetch ?? globalThis.fetch,
       maxLanguageCalls: options.maxLanguageCalls,
-      path: join(runDirectory, "call-budget.json"),
+      path: callBudgetPath,
     });
     const events: AttributedModelUsageAttempt[] = [];
     const intents: AttributedModelUsageIntent[] = [];
@@ -629,9 +939,10 @@ export async function runPhase74BeamSafetyProtectionCli(
       contract: spec.contract,
       datasetBytes,
     });
-    const usage = await loadPhase74ModelUsageLedger({
+    const usage = await loadPhase74BeamModelUsage({
       eventsPath: usagePath,
       intentsPath: usageIntentsPath,
+      runDirectory,
     });
     if (usage.pendingIntents.length > 0) {
       throw new Error("Phase 74 BEAM safety live usage has pending requests.");
@@ -640,6 +951,10 @@ export async function runPhase74BeamSafetyProtectionCli(
     await writeFile(summaryPath, `${JSON.stringify({
       artifactKind: "phase74-beam-safety-live-run-summary",
       callBudget: callBudget.snapshot(),
+      callBudgetArtifact: {
+        path: callBudgetPath,
+        sha256: await fileSha256(callBudgetPath),
+      },
       caseConcurrency: options.caseConcurrency,
       contract: { path: contractPath, sha256: await fileSha256(contractPath) },
       executionFailures: result.artifact.executionFailures,
@@ -647,10 +962,17 @@ export async function runPhase74BeamSafetyProtectionCli(
         completeRequestCount: usage.events.filter(
           ({ completeness }) => completeness === "complete",
         ).length,
+        embeddingIntentCount: usage.intents.filter(
+          ({ operation }) => operation === "embedding",
+        ).length,
         eventCount: usage.events.length,
-        eventsSha256: await fileSha256(usagePath),
+        eventsSha256: usage.eventsSha256,
+        ingestionKeyCount: usage.ingestionKeyCount,
         intentCount: usage.intents.length,
-        intentsSha256: await fileSha256(usageIntentsPath),
+        intentsSha256: usage.intentsSha256,
+        languageIntentCount: usage.intents.filter(
+          ({ operation }) => operation !== "embedding",
+        ).length,
         missingRequestCount: usage.events.filter(
           ({ completeness }) => completeness === "missing",
         ).length,
