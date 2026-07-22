@@ -997,22 +997,13 @@ export function buildPhase74HaluMemUpdatePipelineMaterial(
   };
 }
 
-function buildPhase74HaluMemSafetyPipelineMaterial(
-  branch: "baseline" | "candidate",
-  models: Phase74LiveModels,
-) {
-  return {
-    privacy: buildPhase74HaluMemPrivacyPipelineMaterial(branch, models),
-    update: buildPhase74HaluMemUpdatePipelineMaterial(branch, models),
-  };
-}
-
 export function buildPhase74HaluMemLiveConfigurations(
   models: Phase74LiveModels,
   baseConfiguration: EvalRunJsonObject = {},
 ): {
   e4: Phase74HaluMemProtectionConfiguration;
-  safety: Phase74HaluMemProtectionConfiguration;
+  privacy: Phase74HaluMemProtectionConfiguration;
+  update: Phase74HaluMemProtectionConfiguration;
 } {
   const e3 = buildPhase74StageConfigurations(baseConfiguration, "E3");
   const publicModel = (model: Phase74LiveModels["answer"]) => ({
@@ -1020,16 +1011,28 @@ export function buildPhase74HaluMemLiveConfigurations(
     model: model.model,
     provider: model.provider,
   });
-  const baselinePipeline = {
-    id: "halumem-live-safety-baseline-v2",
+  const privacyBaselinePipeline = {
+    id: "halumem-live-privacy-baseline-v1",
     sha256: hashPhase74ProtectionValue(
-      buildPhase74HaluMemSafetyPipelineMaterial("baseline", models),
+      buildPhase74HaluMemPrivacyPipelineMaterial("baseline", models),
     ),
   };
-  const candidatePipeline = {
-    id: "halumem-live-safety-candidate-v2",
+  const privacyCandidatePipeline = {
+    id: "halumem-live-privacy-candidate-v1",
     sha256: hashPhase74ProtectionValue(
-      buildPhase74HaluMemSafetyPipelineMaterial("candidate", models),
+      buildPhase74HaluMemPrivacyPipelineMaterial("candidate", models),
+    ),
+  };
+  const updateBaselinePipeline = {
+    id: "halumem-live-update-baseline-v1",
+    sha256: hashPhase74ProtectionValue(
+      buildPhase74HaluMemUpdatePipelineMaterial("baseline", models),
+    ),
+  };
+  const updateCandidatePipeline = {
+    id: "halumem-live-update-candidate-v1",
+    sha256: hashPhase74ProtectionValue(
+      buildPhase74HaluMemUpdatePipelineMaterial("candidate", models),
     ),
   };
   const e4Pipeline = {
@@ -1066,10 +1069,15 @@ export function buildPhase74HaluMemLiveConfigurations(
       baselinePipeline: e4Pipeline,
       candidatePipeline: e4Pipeline,
     },
-    safety: {
+    privacy: {
       ...common,
-      baselinePipeline,
-      candidatePipeline,
+      baselinePipeline: privacyBaselinePipeline,
+      candidatePipeline: privacyCandidatePipeline,
+    },
+    update: {
+      ...common,
+      baselinePipeline: updateBaselinePipeline,
+      candidatePipeline: updateCandidatePipeline,
       updateEvaluator: PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE,
     },
   };

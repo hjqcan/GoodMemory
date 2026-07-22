@@ -725,10 +725,13 @@ describe("Phase 74 HaluMem protection adapters", () => {
       datasetPath: join(root, "HaluMem-Medium.jsonl"),
       e4Configuration: configuration(),
       outputDir: root,
+      privacyConfiguration: configuration({
+        candidatePipeline: descriptor("halumem-privacy-candidate", "4"),
+      }),
       replicate: 1,
       runId: "halumem-cli-r1",
-      safetyConfiguration: configuration({
-        candidatePipeline: descriptor("halumem-phase74-candidate", "4"),
+      updateConfiguration: configuration({
+        candidatePipeline: descriptor("halumem-update-candidate", "5"),
       }),
       userUuids: ["user-a", "user-b"],
     };

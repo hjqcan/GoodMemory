@@ -238,7 +238,7 @@ async function frozenResult(
   const privacy = await runPhase74HaluMemPrivacyProtection({
     ...common,
     artifactPath: join(runDirectory, "privacy/protection-run.json"),
-    configuration: options.safetyConfiguration,
+    configuration: options.privacyConfiguration,
     rawArtifactPath: join(runDirectory, "privacy/raw.json"),
     runId: `${options.runId}-privacy`,
   }, {
@@ -251,7 +251,7 @@ async function frozenResult(
   const update = await runPhase74HaluMemUpdateProtection({
     ...common,
     artifactPath: join(runDirectory, "update/protection-run.json"),
-    configuration: options.safetyConfiguration,
+    configuration: options.updateConfiguration,
     rawArtifactPath: join(runDirectory, "update/raw.json"),
     runId: `${options.runId}-update`,
   }, {
@@ -594,12 +594,12 @@ describe("Phase 74 HaluMem live runner", () => {
     );
   });
 
-  it("verify-only pins the upstream update evaluator in the safety pipeline", async () => {
+  it("verify-only pins the upstream update evaluator in the update pipeline", async () => {
     const live = await frozenLiveRun();
     const identityPath = join(live.runDirectory, "run-identity.json");
     const completionPath = join(live.runDirectory, "run-completion.json");
     const identity = JSON.parse(await readFile(identityPath, "utf8"));
-    identity.configuration.pipelines.safety.updateEvaluator.sha256 =
+    identity.configuration.pipelines.update.updateEvaluator.sha256 =
       "0".repeat(64);
     const identityText = `${JSON.stringify(identity, null, 2)}\n`;
     await writeFile(identityPath, identityText, "utf8");
@@ -610,6 +610,28 @@ describe("Phase 74 HaluMem live runner", () => {
 
     await expect(verifyPhase74HaluMemLiveRun(live.runDirectory)).rejects.toThrow(
       "update evaluator identity",
+    );
+  });
+
+  it("verify-only rejects the legacy combined safety pipeline identity", async () => {
+    const live = await frozenLiveRun();
+    const identityPath = join(live.runDirectory, "run-identity.json");
+    const completionPath = join(live.runDirectory, "run-completion.json");
+    const identity = JSON.parse(await readFile(identityPath, "utf8"));
+    const { e4, privacy, update } = identity.configuration.pipelines;
+    identity.configuration.pipelines = {
+      e4,
+      safety: { privacy, update },
+    };
+    const identityText = `${JSON.stringify(identity, null, 2)}\n`;
+    await writeFile(identityPath, identityText, "utf8");
+    const completion = JSON.parse(await readFile(completionPath, "utf8"));
+    completion.identitySha256 = sha256(identityText);
+    completion.artifacts["run-identity.json"] = sha256(identityText);
+    await writeFile(completionPath, `${JSON.stringify(completion, null, 2)}\n`, "utf8");
+
+    await expect(verifyPhase74HaluMemLiveRun(live.runDirectory)).rejects.toThrow(
+      "pipeline identity is not split by suite",
     );
   });
 

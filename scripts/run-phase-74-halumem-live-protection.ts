@@ -437,6 +437,7 @@ function haluMemPromptSha256s(): Record<string, string> {
 
 function buildRunIdentity(input: {
   caseConcurrency: number;
+  configurations: ReturnType<typeof buildPhase74HaluMemLiveConfigurations>;
   datasetSha256: string;
   evaluatorSource: Phase74EvaluatorSource;
   generatedAt: string;
@@ -444,7 +445,6 @@ function buildRunIdentity(input: {
   options: Phase74HaluMemExecutionOptions;
   selection: Phase74HaluMemSelectionManifest;
 }) {
-  const configurations = buildPhase74HaluMemLiveConfigurations(input.models);
   return buildEvalRunIdentity({
     answerModel: publicModel(input.models.answer),
     benchmark: "halumem-protection",
@@ -478,7 +478,7 @@ function buildRunIdentity(input: {
           ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.listwiseReranker,
         },
       },
-      pipelines: configurations,
+      pipelines: input.configurations,
       replicate: input.options.replicate,
       selection: input.selection,
       selectionSha256: hashPhase74ProtectionValue(input.selection),
@@ -748,17 +748,31 @@ export async function verifyPhase74HaluMemLiveRun(
     throw new Error("Phase 74 HaluMem live pipeline identity is missing.");
   }
   const pipelineConfigurations = pipelines as Record<string, unknown>;
+  if (
+    hashPhase74ProtectionValue(Object.keys(pipelineConfigurations).sort()) !==
+      hashPhase74ProtectionValue(["e4", "privacy", "update"])
+  ) {
+    throw new Error("Phase 74 HaluMem live pipeline identity is not split by suite.");
+  }
   const e4Configuration = pipelineConfigurations.e4 as
     | Phase74HaluMemProtectionConfiguration
     | undefined;
-  const safetyConfiguration = pipelineConfigurations.safety as
+  const privacyConfiguration = pipelineConfigurations.privacy as
     | Phase74HaluMemProtectionConfiguration
     | undefined;
-  if (!e4Configuration || !safetyConfiguration) {
+  const updateConfiguration = pipelineConfigurations.update as
+    | Phase74HaluMemProtectionConfiguration
+    | undefined;
+  if (!e4Configuration || !privacyConfiguration || !updateConfiguration) {
     throw new Error("Phase 74 HaluMem live pipeline identity is incomplete.");
   }
+  if (privacyConfiguration.updateEvaluator !== undefined) {
+    throw new Error(
+      "Phase 74 HaluMem privacy pipeline identity carries an update evaluator.",
+    );
+  }
   if (
-    hashPhase74ProtectionValue(safetyConfiguration.updateEvaluator) !==
+    hashPhase74ProtectionValue(updateConfiguration.updateEvaluator) !==
       hashPhase74ProtectionValue(PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE)
   ) {
     throw new Error("Phase 74 HaluMem update evaluator identity drifted.");
@@ -816,14 +830,14 @@ export async function verifyPhase74HaluMemLiveRun(
   });
   await verifyPhase74HaluMemPrivacyProtectionArtifact({
     artifactPath: privacyArtifactPath,
-    configuration: safetyConfiguration,
+    configuration: privacyConfiguration,
     dataset,
     source,
     users: selectedUsers,
   });
   await verifyPhase74HaluMemUpdateProtectionArtifact({
     artifactPath: updateArtifactPath,
-    configuration: safetyConfiguration,
+    configuration: updateConfiguration,
     dataset,
     source,
     users: selectedUsers,
@@ -1035,8 +1049,10 @@ export async function runPhase74HaluMemLiveProtection(
   const evaluatorSource = await dependencies.captureEvaluatorSource({
     repoRoot: resolveRepoRootFromScriptUrl(import.meta.url),
   });
+  const configurations = buildPhase74HaluMemLiveConfigurations(models);
   const identity = buildRunIdentity({
     caseConcurrency,
+    configurations,
     datasetSha256,
     evaluatorSource,
     generatedAt: options.generatedAt ?? new Date().toISOString(),
@@ -1106,12 +1122,12 @@ export async function runPhase74HaluMemLiveProtection(
       caseConcurrency,
       datasetId: options.datasetId,
       datasetPath: options.datasetPath,
-      e4Configuration: buildPhase74HaluMemLiveConfigurations(models).e4,
+      e4Configuration: configurations.e4,
       outputDir: options.outputDir,
+      privacyConfiguration: configurations.privacy,
       replicate: options.replicate,
       runId: options.runId,
-      safetyConfiguration:
-        buildPhase74HaluMemLiveConfigurations(models).safety,
+      updateConfiguration: configurations.update,
       userUuids: selection.manifest.selectedUserUuids,
     }, {
       captureEvaluatorSource: async () => evaluatorSource,

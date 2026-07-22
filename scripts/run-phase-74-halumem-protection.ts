@@ -50,9 +50,10 @@ export interface Phase74HaluMemProtectionCliOptions {
   datasetPath: string;
   e4Configuration: Phase74HaluMemProtectionConfiguration;
   outputDir: string;
+  privacyConfiguration: Phase74HaluMemProtectionConfiguration;
   replicate: Phase74ProtectionReplicate;
   runId: string;
-  safetyConfiguration: Phase74HaluMemProtectionConfiguration;
+  updateConfiguration: Phase74HaluMemProtectionConfiguration;
   userUuids: string[];
 }
 
@@ -157,11 +158,15 @@ export function parsePhase74HaluMemProtectionCliOptions(
       "E4 configuration",
     ),
     outputDir: resolve(requiredFlag(args, "--output-dir")),
+    privacyConfiguration: parseConfiguration(
+      requiredFlag(args, "--privacy-configuration-json"),
+      "privacy configuration",
+    ),
     replicate: parseReplicate(requiredFlag(args, "--replicate")),
     runId,
-    safetyConfiguration: parseConfiguration(
-      requiredFlag(args, "--safety-configuration-json"),
-      "safety configuration",
+    updateConfiguration: parseConfiguration(
+      requiredFlag(args, "--update-configuration-json"),
+      "update configuration",
     ),
     userUuids,
   };
@@ -175,6 +180,11 @@ export async function runPhase74HaluMemProtectionCli(
   options: Phase74HaluMemProtectionCliOptions,
   dependencies: Phase74HaluMemProtectionCliDependencies,
 ): Promise<Phase74HaluMemProtectionCliResult> {
+  if (options.privacyConfiguration.updateEvaluator !== undefined) {
+    throw new Error(
+      "Phase 74 HaluMem privacy configuration cannot carry an update evaluator.",
+    );
+  }
   const datasetBytes = await (dependencies.readDataset ?? readFile)(
     options.datasetPath,
   );
@@ -217,7 +227,7 @@ export async function runPhase74HaluMemProtectionCli(
   const privacy = await runPhase74HaluMemPrivacyProtection({
     artifactPath: join(runDirectory, "privacy", "protection-run.json"),
     caseConcurrency: options.caseConcurrency,
-    configuration: options.safetyConfiguration,
+    configuration: options.privacyConfiguration,
     dataset,
     rawArtifactPath: join(runDirectory, "privacy", "raw.json"),
     replicate: options.replicate,
@@ -229,14 +239,14 @@ export async function runPhase74HaluMemProtectionCli(
     dependencies.verifyPrivacy ?? verifyPhase74HaluMemPrivacyProtectionArtifact
   )({
     artifactPath: privacy.artifactPath,
-    configuration: options.safetyConfiguration,
+    configuration: options.privacyConfiguration,
     dataset,
     source,
     users,
   });
 
   if (
-    options.safetyConfiguration.updateEvaluator === undefined ||
+    options.updateConfiguration.updateEvaluator === undefined ||
     dependencies.update?.evaluateUpdate === undefined
   ) {
     return {
@@ -252,7 +262,7 @@ export async function runPhase74HaluMemProtectionCli(
   const update = await runPhase74HaluMemUpdateProtection({
     artifactPath: join(runDirectory, "update", "protection-run.json"),
     caseConcurrency: options.caseConcurrency,
-    configuration: options.safetyConfiguration,
+    configuration: options.updateConfiguration,
     dataset,
     rawArtifactPath: join(runDirectory, "update", "raw.json"),
     replicate: options.replicate,
@@ -264,7 +274,7 @@ export async function runPhase74HaluMemProtectionCli(
     dependencies.verifyUpdate ?? verifyPhase74HaluMemUpdateProtectionArtifact
   )({
     artifactPath: update.artifactPath,
-    configuration: options.safetyConfiguration,
+    configuration: options.updateConfiguration,
     dataset,
     source,
     users,

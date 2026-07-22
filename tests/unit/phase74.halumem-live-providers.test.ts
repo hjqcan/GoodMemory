@@ -176,37 +176,61 @@ describe("Phase 74 HaluMem live provider wiring", () => {
     });
   });
 
-  it("binds safety descriptors to the exact raw extractor, channels, plan, and store topology", () => {
+  it("binds independent privacy and update descriptors without cross-contamination", () => {
     const input = liveInput();
     const configuration = buildPhase74HaluMemLiveConfigurations(input.models);
-
-    expect(configuration.safety.baselinePipeline.sha256).toBe(
-      hashPhase74ProtectionValue(
-        {
-          privacy: buildPhase74HaluMemPrivacyPipelineMaterial(
-            "baseline",
-            input.models,
-          ),
-          update: buildPhase74HaluMemUpdatePipelineMaterial(
-            "baseline",
-            input.models,
-          ),
-        },
-      ),
+    const baselinePrivacy = buildPhase74HaluMemPrivacyPipelineMaterial(
+      "baseline",
+      input.models,
     );
-    expect(configuration.safety.candidatePipeline.sha256).toBe(
-      hashPhase74ProtectionValue(
-        {
-          privacy: buildPhase74HaluMemPrivacyPipelineMaterial(
-            "candidate",
-            input.models,
-          ),
-          update: buildPhase74HaluMemUpdatePipelineMaterial(
-            "candidate",
-            input.models,
-          ),
-        },
-      ),
+    const candidatePrivacy = buildPhase74HaluMemPrivacyPipelineMaterial(
+      "candidate",
+      input.models,
+    );
+    const baselineUpdate = buildPhase74HaluMemUpdatePipelineMaterial(
+      "baseline",
+      input.models,
+    );
+    const candidateUpdate = buildPhase74HaluMemUpdatePipelineMaterial(
+      "candidate",
+      input.models,
+    );
+
+    expect(configuration.privacy.baselinePipeline).toEqual({
+      id: "halumem-live-privacy-baseline-v1",
+      sha256: hashPhase74ProtectionValue(baselinePrivacy),
+    });
+    expect(configuration.privacy.candidatePipeline).toEqual({
+      id: "halumem-live-privacy-candidate-v1",
+      sha256: hashPhase74ProtectionValue(candidatePrivacy),
+    });
+    expect(configuration.update.baselinePipeline).toEqual({
+      id: "halumem-live-update-baseline-v1",
+      sha256: hashPhase74ProtectionValue(baselineUpdate),
+    });
+    expect(configuration.update.candidatePipeline).toEqual({
+      id: "halumem-live-update-candidate-v1",
+      sha256: hashPhase74ProtectionValue(candidateUpdate),
+    });
+    expect(configuration.privacy).not.toHaveProperty("updateEvaluator");
+    expect(configuration.update.updateEvaluator).toMatchObject({
+      id: expect.stringContaining("eval/eval_tools.py"),
+      sha256: "0c08e5ecb8c93945bafc4bd0336bd6c9756b40d175f442ce44aca4a43169ee3b",
+    });
+
+    expect(hashPhase74ProtectionValue({
+      ...baselinePrivacy,
+      scopeTopology: "privacy-test-variant",
+    })).not.toBe(configuration.privacy.baselinePipeline.sha256);
+    expect(configuration.update.baselinePipeline.sha256).toBe(
+      hashPhase74ProtectionValue(baselineUpdate),
+    );
+    expect(hashPhase74ProtectionValue({
+      ...baselineUpdate,
+      ingestionClock: "update-test-variant",
+    })).not.toBe(configuration.update.baselinePipeline.sha256);
+    expect(configuration.privacy.baselinePipeline.sha256).toBe(
+      hashPhase74ProtectionValue(baselinePrivacy),
     );
     expect(buildPhase74HaluMemPrivacyPipelineMaterial(
       "baseline",
@@ -244,10 +268,6 @@ describe("Phase 74 HaluMem live provider wiring", () => {
       gateway: "https://ai.gurkiai.com/v1",
       model: "gpt-5.6-terra",
       provider: "openai",
-    });
-    expect(configuration.safety.updateEvaluator).toMatchObject({
-      id: expect.stringContaining("eval/eval_tools.py"),
-      sha256: "0c08e5ecb8c93945bafc4bd0336bd6c9756b40d175f442ce44aca4a43169ee3b",
     });
   });
 
@@ -381,7 +401,7 @@ describe("Phase 74 HaluMem live provider wiring", () => {
     const memoryPoint = selected.sessions[1]!.memory_points[0]!;
     const decision = await dependencies.update.evaluateUpdate!({
       branch: "candidate",
-      evaluator: buildPhase74HaluMemLiveConfigurations(input.models).safety
+      evaluator: buildPhase74HaluMemLiveConfigurations(input.models).update
         .updateEvaluator!,
       expectedUpdate: memoryPoint.memory_content,
       memoryPoint,
