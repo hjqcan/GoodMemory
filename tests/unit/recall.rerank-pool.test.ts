@@ -6,6 +6,7 @@ import {
 } from "../../src/domain/records";
 import {
   getRecallRerankPool,
+  matchesRecallRerankCandidateId,
   mergeRecallRerankPools,
   recallRerankCandidateKey,
   setRecallRerankPool,
@@ -51,6 +52,20 @@ function pool(candidates: RecallRerankCandidate[]): RecallRerankPool {
 }
 
 describe("recall rerank pool", () => {
+  it("matches only exact collection-qualified candidate IDs", () => {
+    expect(matchesRecallRerankCandidateId("facts:shared", "facts", "shared"))
+      .toBe(true);
+    expect(matchesRecallRerankCandidateId("shared", "facts", "shared"))
+      .toBe(false);
+    expect(
+      matchesRecallRerankCandidateId(
+        "references:shared",
+        "facts",
+        "references:shared",
+      ),
+    ).toBe(false);
+  });
+
   it("reserves the selected head of every durable collection across repeated facets", () => {
     const primaryCandidates = Array.from(
       { length: 12 },

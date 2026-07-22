@@ -296,6 +296,97 @@ describe("recall assistant helpers", () => {
     ]);
   });
 
+  it("uses a single qualified namespace even when raw IDs resemble candidate keys", () => {
+    const selection = {
+      facts: [createFactMemory({
+        id: "references:x",
+        userId: "u-1",
+        content: "Alpha status is stale.",
+        category: "project",
+        source: {
+          method: "explicit",
+          extractedAt: "2026-01-01T00:00:00.000Z",
+        },
+      })],
+      references: [createReferenceMemory({
+        id: "x",
+        userId: "u-1",
+        title: "Alpha guide",
+        pointer: "docs/alpha.md",
+        source: {
+          method: "explicit",
+          extractedAt: "2026-01-01T00:00:00.000Z",
+        },
+      })],
+      archives: [],
+      episodes: [],
+    };
+
+    expect(
+      buildRecallAssistantCandidates(selection).map(({ id }) => id),
+    ).toEqual(["facts:references:x", "references:x"]);
+
+    const reranked = applyRecallAssistantRerank({
+      influence: {
+        addedRequestedSlots: [],
+        addedSupportSlots: [],
+        decisions: [],
+        planApplied: true,
+        rerankApplied: false,
+        rerankedCandidateIds: [],
+        suppressedCandidateIds: [],
+      },
+      rerank: {
+        orderedCandidateIds: ["references:x", "facts:references:x"],
+        rationale: "Keep the guide and suppress only the stale fact.",
+        suppressCandidateIds: ["facts:references:x"],
+      },
+      selection,
+    });
+
+    expect(reranked.selection.facts).toEqual([]);
+    expect(reranked.selection.references.map(({ id }) => id)).toEqual(["x"]);
+    expect(reranked.influence.suppressedCandidateIds).toEqual([
+      "facts:references:x",
+    ]);
+  });
+
+  it("does not treat raw protected IDs as aliases for qualified candidates", () => {
+    const selection = {
+      facts: [createFactMemory({
+        id: "shared-id",
+        userId: "u-1",
+        content: "Alpha status is current.",
+        category: "project",
+        source: {
+          method: "explicit",
+          extractedAt: "2026-01-01T00:00:00.000Z",
+        },
+      })],
+      references: [createReferenceMemory({
+        id: "shared-id",
+        userId: "u-1",
+        title: "Alpha guide",
+        pointer: "docs/alpha.md",
+        source: {
+          method: "explicit",
+          extractedAt: "2026-01-01T00:00:00.000Z",
+        },
+      })],
+      archives: [],
+      episodes: [],
+    };
+
+    expect(
+      buildRecallAssistantCandidates(selection, {
+        protectedCandidateIds: new Set(["shared-id"]),
+      }).map(({ id, protected: isProtected }) => ({ id, isProtected })),
+    ).toEqual([
+      { id: "facts:shared-id", isProtected: false },
+      { id: "references:shared-id", isProtected: false },
+    ]);
+  });
+
   it("drops explainability decisions that do not match the executed rerank outcome", () => {
     const fact = createFactMemory({
       id: "fact-1",
