@@ -68,6 +68,18 @@ describe("conversational atomic-fact extraction prompt", () => {
     expect(productMemory).not.toContain("atomic claim");
   });
 
+  it("classifies shared-state recommendations as claims instead of reference pointers", () => {
+    const compact = buildCompactConversationalMemoryExtractionPrompt(CONVERSATION);
+    const canonical = buildConversationalMemoryExtractionPrompt(CONVERSATION);
+
+    for (const prompt of [compact, canonical]) {
+      expect(prompt).toContain("Recommendations, decisions, and commitments are facts");
+      expect(prompt).toContain("reference");
+      expect(prompt).toContain("external pointer");
+      expect(prompt).toContain("URL, file path, or document identifier");
+    }
+  });
+
   it("uses canonical profile identity as data for cross-session coreference", () => {
     const prompt = buildCompactConversationalMemoryExtractionPrompt(
       CONVERSATION,
