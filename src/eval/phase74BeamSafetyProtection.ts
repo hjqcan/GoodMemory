@@ -13,6 +13,7 @@ import type {
 import type {
   Phase74ProtectionIdentityDescriptor,
   Phase74ProtectionReplicate,
+  Phase74ProtectionRunIdentity,
 } from "./phase74ProtectionContracts";
 import {
   hashPhase74ProtectionCaseIds,
@@ -82,6 +83,7 @@ export interface Phase74BeamSourceMessage {
 export interface Phase74BeamPipelineRequest {
   answerModel: Phase74ProtectionIdentityDescriptor;
   answerPrompt: Phase74ProtectionIdentityDescriptor;
+  attributionKey: string;
   pipeline: Phase74ProtectionIdentityDescriptor;
   query: string;
   reader: Phase74ProtectionIdentityDescriptor;
@@ -95,6 +97,8 @@ export interface Phase74BeamPipelineOutput {
 }
 
 export interface Phase74BeamGroundednessJudgeRequest {
+  attributionKey: string;
+  branch: Phase74ProtectionBranch;
   groundednessJudgeModel: Phase74ProtectionIdentityDescriptor;
   groundednessPrompt: Phase74ProtectionIdentityDescriptor;
   query: string;
@@ -190,6 +194,66 @@ function validateContract(contract: Phase74BeamSafetyContract): void {
       "Phase 74 BEAM safety baseline and candidate pipeline identities must differ.",
     );
   }
+}
+
+function parseDescriptor(
+  value: unknown,
+  label: string,
+): Phase74ProtectionIdentityDescriptor {
+  if (!isRecord(value)) {
+    throw new Error(`Phase 74 BEAM ${label} must be an object.`);
+  }
+  assertExactKeys(value, ["id", "sha256"], label);
+  const descriptor = {
+    id: value.id,
+    sha256: value.sha256,
+  } as Phase74ProtectionIdentityDescriptor;
+  validateDescriptor(descriptor, label);
+  return descriptor;
+}
+
+export function parsePhase74BeamSafetyContract(
+  value: unknown,
+): Phase74BeamSafetyContract {
+  if (!isRecord(value)) {
+    throw new Error("Phase 74 BEAM trusted contract must be an object.");
+  }
+  assertExactKeys(value, [
+    "answerModel",
+    "answerPrompt",
+    "baselinePipeline",
+    "candidatePipeline",
+    "dataset",
+    "groundednessJudgeModel",
+    "groundednessPrompt",
+    "reader",
+    "source",
+  ], "trusted contract");
+  const contract = {
+    answerModel: parseDescriptor(value.answerModel, "answerModel"),
+    answerPrompt: parseDescriptor(value.answerPrompt, "answerPrompt"),
+    baselinePipeline: parseDescriptor(
+      value.baselinePipeline,
+      "baselinePipeline",
+    ),
+    candidatePipeline: parseDescriptor(
+      value.candidatePipeline,
+      "candidatePipeline",
+    ),
+    dataset: parseDescriptor(value.dataset, "dataset"),
+    groundednessJudgeModel: parseDescriptor(
+      value.groundednessJudgeModel,
+      "groundednessJudgeModel",
+    ),
+    groundednessPrompt: parseDescriptor(
+      value.groundednessPrompt,
+      "groundednessPrompt",
+    ),
+    reader: parseDescriptor(value.reader, "reader"),
+    source: parseDescriptor(value.source, "source"),
+  };
+  validateContract(contract);
+  return contract;
 }
 
 function toSourceMessages(chat: readonly BeamChatTurn[][]): Phase74BeamSourceMessage[] {
@@ -391,7 +455,10 @@ function buildScores(input: {
   };
 }
 
-function expectedIdentity(contract: Phase74BeamSafetyContract) {
+export function buildPhase74BeamSafetyProtectionIdentity(
+  contract: Phase74BeamSafetyContract,
+) {
+  validateContract(contract);
   return {
     dataset: contract.dataset,
     judge: descriptor("beam-independent-groundedness-judge-v1", {
@@ -421,6 +488,29 @@ function expectedIdentity(contract: Phase74BeamSafetyContract) {
   };
 }
 
+export function buildPhase74BeamSafetyProtectionRunIdentity(input: {
+  contract: Phase74BeamSafetyContract;
+  datasetBytes: Uint8Array;
+}): Phase74ProtectionRunIdentity {
+  const rows = parseFull100kRows(input);
+  const population = buildPopulation(rows);
+  const identity = buildPhase74BeamSafetyProtectionIdentity(input.contract);
+  const caseIds = population.cases.map(({ caseId }) => caseId);
+  return {
+    dataset: identity.dataset,
+    judge: identity.judge,
+    model: identity.model,
+    pipeline: identity.pipeline,
+    population: {
+      caseCount: caseIds.length,
+      caseIdsSha256: hashPhase74ProtectionCaseIds(caseIds),
+      id: identity.populationId,
+    },
+    prompt: identity.prompt,
+    source: identity.source,
+  };
+}
+
 function freshMessages(
   sourceMessages: readonly Phase74BeamSourceMessage[],
 ): Phase74BeamSourceMessage[] {
@@ -429,6 +519,7 @@ function freshMessages(
 
 export async function runPhase74BeamSafetyProtection(input: {
   artifactPath: string;
+  caseConcurrency?: number;
   contract: Phase74BeamSafetyContract;
   datasetBytes: Uint8Array;
   rawArtifactPath: string;
@@ -451,6 +542,7 @@ export async function runPhase74BeamSafetyProtection(input: {
 
   return runPhase74ProtectionSuiteCases<BeamSafetyCaseInput>({
     artifactPath: input.artifactPath,
+    caseConcurrency: input.caseConcurrency,
     cases: population.cases,
     evaluate: async ({ branch, input: caseInput }) => {
       const selected = population.selected.get(caseInput.questionId);
@@ -465,6 +557,10 @@ export async function runPhase74BeamSafetyProtection(input: {
       const pipelineOutput = parsePipelineOutput(await pipelines[branch].run({
         answerModel: input.contract.answerModel,
         answerPrompt: input.contract.answerPrompt,
+        attributionKey: hashPhase74ProtectionValue({
+          query: selected.testCase.question,
+          sourceMessages: selected.sourceMessages,
+        }),
         pipeline: branch === "baseline"
           ? input.contract.baselinePipeline
           : input.contract.candidatePipeline,
@@ -480,6 +576,11 @@ export async function runPhase74BeamSafetyProtection(input: {
       );
       const judgment = parseGroundednessJudgment(
         await dependencies.judgeGroundedness({
+          attributionKey: hashPhase74ProtectionValue({
+            query: selected.testCase.question,
+            sourceMessages: selected.sourceMessages,
+          }),
+          branch,
           groundednessJudgeModel: input.contract.groundednessJudgeModel,
           groundednessPrompt: input.contract.groundednessPrompt,
           query: selected.testCase.question,
@@ -501,7 +602,7 @@ export async function runPhase74BeamSafetyProtection(input: {
         }),
       };
     },
-    identity: expectedIdentity(input.contract),
+    identity: buildPhase74BeamSafetyProtectionIdentity(input.contract),
     rawArtifactPath: input.rawArtifactPath,
     replicate: input.replicate,
     runId: input.runId,
@@ -554,7 +655,7 @@ export async function verifyPhase74BeamSafetyProtectionArtifact(input: {
   if (!sameValue(loaded.suite, PHASE74_BEAM_SAFETY_SUITE)) {
     throw new Error("Phase 74 BEAM safety suite identity drifted.");
   }
-  const identity = expectedIdentity(input.contract);
+  const identity = buildPhase74BeamSafetyProtectionIdentity(input.contract);
   if (!sameValue(loaded.identity.dataset, identity.dataset)) {
     throw new Error("Phase 74 BEAM safety dataset identity drifted.");
   }

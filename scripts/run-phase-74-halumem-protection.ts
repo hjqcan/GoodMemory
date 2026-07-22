@@ -45,6 +45,7 @@ export const PHASE74_HALUMEM_UPDATE_NOT_EVALUABLE_REASON =
   "Pinned upstream HaluMem per-item update decisions are unavailable.";
 
 export interface Phase74HaluMemProtectionCliOptions {
+  caseConcurrency?: number;
   datasetId: string;
   datasetPath: string;
   e4Configuration: Phase74HaluMemProtectionConfiguration;
@@ -138,6 +139,17 @@ export function parsePhase74HaluMemProtectionCliOptions(
     throw new Error("--user-uuids must contain at least two unique UUIDs.");
   }
   return {
+    ...(resolveCliFlagValueStrict(args, "--case-concurrency") === undefined
+      ? {}
+      : {
+          caseConcurrency: (() => {
+            const value = Number(requiredFlag(args, "--case-concurrency"));
+            if (!Number.isSafeInteger(value) || value <= 0) {
+              throw new Error("--case-concurrency must be a positive integer.");
+            }
+            return value;
+          })(),
+        }),
     datasetId: requiredFlag(args, "--dataset-id"),
     datasetPath: resolve(requiredFlag(args, "--dataset-path")),
     e4Configuration: parseConfiguration(
@@ -185,6 +197,7 @@ export async function runPhase74HaluMemProtectionCli(
   const runDirectory = join(options.outputDir, options.runId);
   const e4 = await runPhase74HaluMemE4Protection({
     artifactPath: join(runDirectory, "e4", "protection-run.json"),
+    caseConcurrency: options.caseConcurrency,
     configuration: options.e4Configuration,
     dataset,
     rawArtifactPath: join(runDirectory, "e4", "raw.json"),
@@ -203,6 +216,7 @@ export async function runPhase74HaluMemProtectionCli(
 
   const privacy = await runPhase74HaluMemPrivacyProtection({
     artifactPath: join(runDirectory, "privacy", "protection-run.json"),
+    caseConcurrency: options.caseConcurrency,
     configuration: options.safetyConfiguration,
     dataset,
     rawArtifactPath: join(runDirectory, "privacy", "raw.json"),
@@ -237,6 +251,7 @@ export async function runPhase74HaluMemProtectionCli(
 
   const update = await runPhase74HaluMemUpdateProtection({
     artifactPath: join(runDirectory, "update", "protection-run.json"),
+    caseConcurrency: options.caseConcurrency,
     configuration: options.safetyConfiguration,
     dataset,
     rawArtifactPath: join(runDirectory, "update", "raw.json"),

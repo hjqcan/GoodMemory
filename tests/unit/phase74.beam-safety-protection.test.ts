@@ -271,6 +271,42 @@ describe("Phase 74 BEAM full-100K safety protection adapter", () => {
     );
   });
 
+  it("passes bounded case concurrency through to the shared protection runner", async () => {
+    const root = await createRoot();
+    const datasetBytes = createFull100kDataset();
+    const contract = createContract(datasetBytes);
+    let active = 0;
+    let maxActive = 0;
+
+    await runPhase74BeamSafetyProtection({
+      artifactPath: join(root, "concurrent-run.json"),
+      caseConcurrency: 4,
+      contract,
+      datasetBytes,
+      rawArtifactPath: join(root, "concurrent-raw.json"),
+      replicate: 1,
+      runId: "beam-safety-concurrent-r1",
+    }, {
+      createPipeline: () => ({
+        run: async () => {
+          active += 1;
+          maxActive = Math.max(maxActive, active);
+          await new Promise((resolve) => setTimeout(resolve, 1));
+          active -= 1;
+          return { rawAnswer: "No answer.", retrievedEvidenceIds: [] };
+        },
+      }),
+      judgeGroundedness: async () => ({
+        rationale: "The answer abstains.",
+        schemaVersion: 1,
+        verdict: "grounded",
+      }),
+    });
+
+    expect(maxActive).toBeGreaterThan(1);
+    expect(maxActive).toBeLessThanOrEqual(4);
+  });
+
   it("rejects smoke, synthetic, and incomplete populations before providers run", async () => {
     const root = await createRoot();
     const fullBytes = createFull100kDataset();

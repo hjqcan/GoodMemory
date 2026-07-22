@@ -43,7 +43,7 @@ const env = {
 
 describe("Phase 74 live provider boundary", () => {
   it("binds post-run aggregation and the real storage gate into evaluator source identity", () => {
-    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.version).toBe(3);
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.version).toBe(5);
     expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
       "scripts/aggregate-phase-74-generalization.ts",
     );
@@ -58,6 +58,21 @@ describe("Phase 74 live provider boundary", () => {
     );
     expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
       "scripts/run-phase-64-memory-agent-bench-smoke.ts",
+    );
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
+      "scripts/run-phase-74-beam-safety-protection.ts",
+    );
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
+      "scripts/phase-74-halumem-protection.ts",
+    );
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
+      "scripts/phase-74-halumem-live-providers.ts",
+    );
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
+      "scripts/run-phase-74-halumem-protection.ts",
+    );
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
+      "scripts/run-phase-74-halumem-live-protection.ts",
     );
   });
 

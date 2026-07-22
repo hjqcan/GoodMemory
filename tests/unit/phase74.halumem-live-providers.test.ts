@@ -4,8 +4,10 @@ import { describe, expect, it } from "bun:test";
 
 import {
   buildPhase74HaluMemCausalRecallCase,
+  buildPhase74HaluMemLiveConfigurations,
+  buildPhase74HaluMemPrivacyPipelineMaterial,
+  createPhase74HaluMemScopedPrivacyRuntime,
   createPhase74HaluMemLiveDependencies,
-  runPhase74HaluMemScopedPrivacyRecall,
 } from "../../scripts/phase-74-halumem-live-providers";
 import type {
   Phase74HaluMemScopedMemory,
@@ -17,6 +19,7 @@ import type {
   AttributedModelUsageAttempt,
   AttributedModelUsageIntent,
 } from "../../src/eval/modelUsage";
+import { hashPhase74ProtectionValue } from "../../src/eval/phase74ProtectionRun";
 
 function user(uuid: string): Phase74HaluMemUser {
   return {
@@ -158,6 +161,40 @@ describe("Phase 74 HaluMem live provider wiring", () => {
     });
   });
 
+  it("binds safety descriptors to the exact raw extractor, channels, plan, and store topology", () => {
+    const input = liveInput();
+    const configuration = buildPhase74HaluMemLiveConfigurations(input.models);
+
+    expect(configuration.safety.baselinePipeline.sha256).toBe(
+      hashPhase74ProtectionValue(
+        buildPhase74HaluMemPrivacyPipelineMaterial("baseline", input.models),
+      ),
+    );
+    expect(configuration.safety.candidatePipeline.sha256).toBe(
+      hashPhase74ProtectionValue(
+        buildPhase74HaluMemPrivacyPipelineMaterial("candidate", input.models),
+      ),
+    );
+    expect(buildPhase74HaluMemPrivacyPipelineMaterial(
+      "baseline",
+      input.models,
+    ).retrieval.generalizedFusionChannels).toEqual([
+      "lexical",
+      "dense",
+      "entity",
+    ]);
+    expect(buildPhase74HaluMemPrivacyPipelineMaterial(
+      "candidate",
+      input.models,
+    ).retrieval.generalizedFusionChannels).toEqual([
+      "lexical",
+      "dense",
+      "entity",
+      "temporal",
+      "relation",
+    ]);
+  });
+
   it("calls Terra reader and independent gpt-5.5 judge with strict raw JSON and usage", async () => {
     const requests: Array<Record<string, unknown>> = [];
     const fetch = async (_request: RequestInfo | URL, init?: RequestInit) => {
@@ -189,6 +226,7 @@ describe("Phase 74 HaluMem live provider wiring", () => {
       format: "legacy",
       prompt: "reader prompt bound by the HaluMem verifier",
       question: "Which project?",
+      questionCaseId: "user-a:session:0:question:0",
       system: "reader system bound by the HaluMem verifier",
     });
     const decision = await dependencies.e4.judgeQa({
@@ -198,6 +236,7 @@ describe("Phase 74 HaluMem live provider wiring", () => {
       format: "legacy",
       prompt: "judge prompt bound by the HaluMem verifier",
       question: "Which project?",
+      questionCaseId: "user-a:session:0:question:0",
       system: "judge system bound by the HaluMem verifier",
     });
 
@@ -226,10 +265,12 @@ describe("Phase 74 HaluMem live provider wiring", () => {
   it("seeds owner and foreign users into one memory instance and proves both scopes", async () => {
     const remembered = new Map<string, string[]>();
     const recallScopes: Array<{ userId: string; workspaceId?: string }> = [];
+    const recallReferenceTimes: string[] = [];
     let factoryCalls = 0;
     const memory: Phase74HaluMemScopedMemory = {
-      async recall({ scope }) {
+      async recall({ referenceTime, scope }) {
         recallScopes.push(scope);
+        recallReferenceTimes.push(referenceTime);
         return {
           evidence: (remembered.get(scope.userId) ?? []).map((sourceMessageId) => ({
             sourceMessageIds: [sourceMessageId],
@@ -243,33 +284,88 @@ describe("Phase 74 HaluMem live provider wiring", () => {
         ]);
       },
     };
-    const owner = user("user-a");
-    const foreign = user("user-b");
-
-    const result = await runPhase74HaluMemScopedPrivacyRecall({
+    const runtime = createPhase74HaluMemScopedPrivacyRuntime({
       branch: "candidate",
       createMemory() {
         factoryCalls += 1;
         return memory;
       },
-      owner,
+      users: [user("user-a"), user("user-b")],
+    });
+    const result = await runtime.recall({
+      ownerUserUuid: "user-a",
       privacyCaseId: "user-a:session:0:question:0:foreign-scope:user-b",
       question: "Which project does user-a work on?",
       sessionIndex: 0,
-      target: foreign,
+      targetUserUuid: "user-b",
     });
 
     expect(factoryCalls).toBe(1);
     expect(recallScopes).toHaveLength(2);
     expect(recallScopes[0]!.userId).not.toBe(recallScopes[1]!.userId);
     expect(recallScopes[0]!.workspaceId).toBe(recallScopes[1]!.workspaceId);
-    expect(result.ownerScopeSourceMessageIds).toHaveLength(1);
-    expect(result.foreignScopeSourceMessageIds).toHaveLength(1);
+    expect(recallReferenceTimes).toEqual([
+      "2026-01-01T00:00:00.000Z",
+      "2026-01-01T00:00:00.000Z",
+    ]);
+    expect(result.ownerScopeSourceMessageIds.length).toBeGreaterThan(0);
+    expect(result.foreignScopeSourceMessageIds.length).toBeGreaterThan(0);
     expect(result.ownerScopeSourceMessageIds).not.toEqual(
       result.foreignScopeSourceMessageIds,
     );
     expect(result.snapshotId).toMatch(/^[a-f0-9]{64}$/u);
     expect(createHash("sha256").update(result.snapshotId).digest("hex"))
       .toHaveLength(64);
+  });
+
+  it("reuses one branch store and one ingestion across multiple privacy questions", async () => {
+    const remembered = new Map<string, string[]>();
+    let factoryCalls = 0;
+    let rememberCalls = 0;
+    const runtime = createPhase74HaluMemScopedPrivacyRuntime({
+      branch: "candidate",
+      createMemory() {
+        factoryCalls += 1;
+        return {
+          async recall({ scope }) {
+            return {
+              evidence: (remembered.get(scope.userId) ?? []).map(
+                (sourceMessageId) => ({ sourceMessageIds: [sourceMessageId] }),
+              ),
+            };
+          },
+          async remember({ messages, scope }) {
+            rememberCalls += 1;
+            remembered.set(scope.userId, [
+              ...(remembered.get(scope.userId) ?? []),
+              ...messages.map(({ id }) => id),
+            ]);
+          },
+        };
+      },
+      users: [user("user-a"), user("user-b")],
+    });
+
+    await runtime.recall({
+      ownerUserUuid: "user-a",
+      privacyCaseId: "user-a:session:0:question:0:foreign-scope:user-b",
+      question: "Which project?",
+      sessionIndex: 0,
+      targetUserUuid: "user-b",
+    });
+    const callsAfterFirstQuestion = { factoryCalls, rememberCalls };
+    await runtime.recall({
+      ownerUserUuid: "user-a",
+      privacyCaseId: "user-a:session:0:question:1:foreign-scope:user-b",
+      question: "Which project now?",
+      sessionIndex: 0,
+      targetUserUuid: "user-b",
+    });
+
+    expect(callsAfterFirstQuestion).toEqual({
+      factoryCalls: 1,
+      rememberCalls: 4,
+    });
+    expect({ factoryCalls, rememberCalls }).toEqual(callsAfterFirstQuestion);
   });
 });

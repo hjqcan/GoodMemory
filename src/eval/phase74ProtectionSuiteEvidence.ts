@@ -137,13 +137,14 @@ export interface LoadedPhase74FrozenProtectionSuiteEvidence {
   sha256: string;
 }
 
-interface LoadedManifest {
+export interface LoadedPhase74ProtectionSuiteManifest {
   manifest: Phase74ProtectionSuiteManifest;
   path: string;
   sha256: string;
 }
 
 export interface Phase74ProtectionSuiteEvidenceDependencies {
+  additionalVerifiers?: readonly Phase74ProtectionSuiteVerifier[];
   verifiers?: readonly Phase74ProtectionSuiteVerifier[];
 }
 
@@ -353,7 +354,9 @@ function parseManifest(value: unknown): Phase74ProtectionSuiteManifest {
   };
 }
 
-async function loadManifest(path: string): Promise<LoadedManifest> {
+export async function loadPhase74ProtectionSuiteManifest(
+  path: string,
+): Promise<LoadedPhase74ProtectionSuiteManifest> {
   const manifestPath = resolve(path);
   const bytes = await readFile(manifestPath);
   let parsed: unknown;
@@ -374,7 +377,7 @@ async function loadManifest(path: string): Promise<LoadedManifest> {
 export async function loadPhase74ProtectionBlueprintDescriptor(
   path: string,
 ): Promise<{ id: typeof PHASE74_PROTECTION_BLUEPRINT_ID; sha256: string }> {
-  const loaded = await loadManifest(path);
+  const loaded = await loadPhase74ProtectionSuiteManifest(path);
   return {
     id: PHASE74_PROTECTION_BLUEPRINT_ID,
     sha256: loaded.sha256,
@@ -548,8 +551,13 @@ export async function buildPhase74FrozenProtectionSuiteEvidence(input: {
   if (new Set(paths).size !== paths.length) {
     throw new Error("Phase 74 protection suite evidence has a duplicate run artifact path.");
   }
-  const loadedManifest = await loadManifest(input.manifestPath);
-  const verifiers = dependencies.verifiers ?? DEFAULT_VERIFIERS;
+  const loadedManifest = await loadPhase74ProtectionSuiteManifest(
+    input.manifestPath,
+  );
+  const verifiers = dependencies.verifiers ?? [
+    ...DEFAULT_VERIFIERS,
+    ...(dependencies.additionalVerifiers ?? []),
+  ];
   const loadedRuns = await Promise.all(
     paths.map(loadPhase74FrozenProtectionSuiteRunArtifact),
   );

@@ -1,5 +1,6 @@
 import {
   mkdir,
+  readFile,
   writeFile,
 } from "node:fs/promises";
 import {
@@ -15,8 +16,13 @@ import type {
   Phase74FrozenProtectionSuiteEvidence,
   Phase74ProtectionSuiteEvidenceDependencies,
 } from "../src/eval/phase74ProtectionSuiteEvidence";
+import {
+  createPhase74BeamSafetyProtectionVerifier,
+  parsePhase74BeamSafetyContract,
+} from "../src/eval/phase74BeamSafetyProtection";
 
 export interface Phase74ProtectionEvidenceCliOptions {
+  beamContractPath?: string;
   manifestPath: string;
   outputPath: string;
   runArtifactPaths: string[];
@@ -45,6 +51,7 @@ export function parsePhase74ProtectionEvidenceCliOptions(
   const runArtifactPaths: string[] = [];
   let manifestPath: string | undefined;
   let outputPath: string | undefined;
+  let beamContractPath: string | undefined;
   let sawOption = false;
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index]!;
@@ -60,7 +67,8 @@ export function parsePhase74ProtectionEvidenceCliOptions(
     if (
       flag !== "--manifest" &&
       flag !== "--output" &&
-      flag !== "--run-artifact"
+      flag !== "--run-artifact" &&
+      flag !== "--beam-contract"
     ) {
       throw new Error(
         `Phase 74 protection evidence received unknown option ${flag}.`,
@@ -70,6 +78,11 @@ export function parsePhase74ProtectionEvidenceCliOptions(
     index += 1;
     if (flag === "--run-artifact") {
       runArtifactPaths.push(value);
+    } else if (flag === "--beam-contract") {
+      if (beamContractPath !== undefined) {
+        throw new Error("--beam-contract cannot be specified more than once.");
+      }
+      beamContractPath = value;
     } else if (flag === "--manifest") {
       if (manifestPath !== undefined) {
         throw new Error("--manifest cannot be specified more than once.");
@@ -103,7 +116,11 @@ export function parsePhase74ProtectionEvidenceCliOptions(
   if (runArtifactPaths.includes(outputPath)) {
     throw new Error("--output must not overwrite a frozen run artifact.");
   }
+  if (beamContractPath === outputPath) {
+    throw new Error("--output must not overwrite the trusted BEAM contract.");
+  }
   return {
+    ...(beamContractPath === undefined ? {} : { beamContractPath }),
     manifestPath,
     outputPath,
     runArtifactPaths,
@@ -125,10 +142,31 @@ export async function runPhase74ProtectionEvidenceGeneration(
   if (runArtifactPaths.includes(outputPath)) {
     throw new Error("--output must not overwrite a frozen run artifact.");
   }
+  if (
+    options.beamContractPath !== undefined &&
+    resolve(options.beamContractPath) === outputPath
+  ) {
+    throw new Error("--output must not overwrite the trusted BEAM contract.");
+  }
+  const beamVerifier = options.beamContractPath === undefined
+    ? []
+    : [createPhase74BeamSafetyProtectionVerifier(
+        parsePhase74BeamSafetyContract(JSON.parse(
+          await readFile(resolve(options.beamContractPath), "utf8"),
+        )),
+      )];
+  const verifierDependencies = dependencies.verifiers === undefined
+    ? {
+        additionalVerifiers: [
+          ...(dependencies.additionalVerifiers ?? []),
+          ...beamVerifier,
+        ],
+      }
+    : { verifiers: [...dependencies.verifiers, ...beamVerifier] };
   const evidence = await buildPhase74FrozenProtectionSuiteEvidence({
     manifestPath,
     runArtifactPaths,
-  }, { verifiers: dependencies.verifiers });
+  }, verifierDependencies);
   const sourceFiles = evidence.source.suites.flatMap(({ files }) => files);
   if (sourceFiles.some(({ rawArtifactPath }) => rawArtifactPath === outputPath)) {
     throw new Error("--output must not overwrite a frozen raw artifact.");
@@ -144,7 +182,7 @@ export async function runPhase74ProtectionEvidenceGeneration(
   );
   return (await (
     dependencies.loadEvidence ?? loadPhase74FrozenProtectionSuiteEvidence
-  )(outputPath, { verifiers: dependencies.verifiers })).evidence;
+  )(outputPath, verifierDependencies)).evidence;
 }
 
 if (import.meta.main) {

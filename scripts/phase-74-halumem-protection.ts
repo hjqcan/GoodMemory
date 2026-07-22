@@ -87,6 +87,7 @@ export interface Phase74HaluMemE4Dependencies {
     format: EvidenceLedgerFormat | "legacy";
     prompt: string;
     question: string;
+    questionCaseId: string;
     system: string;
   }): Promise<string>;
   judgeQa(input: {
@@ -96,6 +97,7 @@ export interface Phase74HaluMemE4Dependencies {
     format: EvidenceLedgerFormat | "legacy";
     prompt: string;
     question: string;
+    questionCaseId: string;
     system: string;
   }): Promise<string>;
   retrieveEvidence(input: {
@@ -210,6 +212,7 @@ async function answerAndJudge(input: {
   dependencies: Phase74HaluMemE4Dependencies;
   format: EvidenceLedgerFormat | "legacy";
   question: Phase74HaluMemQuestion;
+  questionCaseId: string;
 }): Promise<{ answer: string; judgeDecision: string; score: number }> {
   const answer = await input.dependencies.answer({
     branch: input.branch,
@@ -220,6 +223,7 @@ async function answerAndJudge(input: {
       question: input.question.question,
     }),
     question: input.question.question,
+    questionCaseId: input.questionCaseId,
     system: PHASE74_HALUMEM_READER_SYSTEM_PROMPT,
   });
   if (answer.trim() === "") {
@@ -236,6 +240,7 @@ async function answerAndJudge(input: {
       question: input.question.question,
     }),
     question: input.question.question,
+    questionCaseId: input.questionCaseId,
     system: PHASE74_HALUMEM_QA_JUDGE_SYSTEM_PROMPT,
   });
   return {
@@ -289,6 +294,7 @@ export async function runPhase74HaluMemE4Protection(
           dependencies,
           format: "legacy",
           question: item.question,
+          questionCaseId: item.questionCaseId,
         });
         return {
           rawOutput: {
@@ -313,6 +319,7 @@ export async function runPhase74HaluMemE4Protection(
             dependencies,
             format,
             question: item.question,
+            questionCaseId: item.questionCaseId,
           });
           return [format, {
             answer: result.answer,
