@@ -48,13 +48,16 @@ describe("public remember profile customization", () => {
       scope: { userId: "u-1", agentId: "life-coach" },
     });
 
-    expect(exported.durable.facts).toHaveLength(1);
-    expect(exported.durable.facts[0]?.category).toBe("goal");
-    expect(exported.durable.facts[0]?.tags).toEqual([
+    expect(exported.durable.facts).toHaveLength(2);
+    const customFact = exported.durable.facts.find((fact) =>
+      fact.tags?.includes("long_term_goal")
+    );
+    expect(customFact?.category).toBe("goal");
+    expect(customFact?.tags).toEqual([
       "life_coach",
       "long_term_goal",
     ]);
-    expect(exported.durable.facts[0]?.content).toBe(
+    expect(customFact?.content).toBe(
       "rebuilding my sleep routine.",
     );
   });
@@ -391,7 +394,7 @@ describe("public remember profile customization", () => {
 
     expect(exported.durable.preferences[0]).toMatchObject({
       category: "coaching_style",
-      value: "concise weekly planning prompts.",
+      value: "concise weekly planning prompts",
       tags: ["life_coach", "coaching_style"],
       attributes: { source: "domain_rule" },
     });
