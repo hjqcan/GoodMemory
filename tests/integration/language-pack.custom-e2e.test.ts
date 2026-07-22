@@ -47,7 +47,8 @@ describe("custom LanguagePack horizontal extension", () => {
           projectState: text.includes("zor"),
         };
       },
-      buildSearchTerms: (text) => text.includes("zor") ? ["xx-atlas"] : [],
+      buildSearchTerms: (text) =>
+        text.toLowerCase().includes("zor") ? ["xx-atlas"] : [],
       extractCandidates({ messages, nextId }) {
         return messages.flatMap((message, index) =>
           message.role === "user" && message.content.includes("zor")
@@ -88,7 +89,8 @@ describe("custom LanguagePack horizontal extension", () => {
         }
         return neutral.render(input);
       },
-      tokenizeForScoring: (text) => text.includes("zor") ? ["xx-atlas"] : [],
+      tokenizeForScoring: (text) =>
+        text.toLowerCase().includes("zor") ? ["xx-atlas"] : [],
     };
     const documentStore = createInMemoryDocumentStore();
     const memory = createGoodMemory({
