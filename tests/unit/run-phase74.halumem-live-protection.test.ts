@@ -11,6 +11,9 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
 
 import {
+  buildPhase74HaluMemCausalRecallCase,
+} from "../../scripts/phase-74-halumem-live-providers";
+import {
   runPhase74HaluMemE4Protection,
   runPhase74HaluMemPrivacyProtection,
   runPhase74HaluMemUpdateProtection,
@@ -35,7 +38,12 @@ import {
   buildPhase74HaluMemUpdateSnapshotId,
   buildPhase74HaluMemUpdateSourceRecord,
 } from "../../src/eval/phase74HaluMemProtectionVerifier";
-import { buildPhase74IngestionUsageFingerprint } from "../../src/eval/phase74FullRuntime";
+import {
+  buildPhase74IngestionDescriptor,
+  buildPhase74IngestionUsageFingerprint,
+} from "../../src/eval/phase74FullRuntime";
+import { buildPhase74StageConfigurations } from "../../src/eval/phase74Generalization";
+import { phase74LivePromptSha256s } from "../../src/eval/phase74Live";
 import type {
   AttributedModelUsageAttempt,
   AttributedModelUsageIntent,
@@ -222,8 +230,23 @@ async function frozenResult(
     uncachedInputTokens: 10,
   };
   for (const selectedUser of selectedUsers) {
-    const memoryGroupId = `halumem:${selectedUser.uuid}:through-session:0`;
-    const ingestionKey = sha256(`ingestion:${memoryGroupId}`);
+    const testCase = buildPhase74HaluMemCausalRecallCase({
+      question: selectedUser.sessions[0]!.questions![0]!,
+      questionCaseId: `${selectedUser.uuid}:session:0:question:0`,
+      sessionIndex: 0,
+      user: selectedUser,
+    });
+    const ingestion = buildPhase74IngestionDescriptor({
+      configuration: buildPhase74StageConfigurations(
+        {},
+        "E3",
+      )["recall-plan-deterministic"]!,
+      datasetSha256: sha256(await readFile(options.datasetPath)),
+      evaluatorSourceSha256: "e".repeat(64),
+      models,
+      promptSha256s: phase74LivePromptSha256s(),
+      testCase,
+    });
     const intents = ([
       {
         modelId: "gpt-5.6-terra",
@@ -239,7 +262,7 @@ async function frozenResult(
       ...request,
       attempt: 1,
       branch: "shadow" as const,
-      caseId: memoryGroupId,
+      caseId: ingestion.memoryGroupId,
       requestId: `ingestion-${selectedUser.uuid}-${index}`,
       schemaVersion: 1 as const,
     }));
@@ -250,21 +273,21 @@ async function frozenResult(
       usage: completeUsage,
     }));
     await Bun.write(
-      join(runDirectory, "ingestion-usage", ingestionKey, "events.jsonl"),
+      join(runDirectory, "ingestion-usage", ingestion.key, "events.jsonl"),
       `${events.map((event) => JSON.stringify(event)).join("\n")}\n`,
     );
     await Bun.write(
-      join(runDirectory, "ingestion-usage", ingestionKey, "intents.jsonl"),
+      join(runDirectory, "ingestion-usage", ingestion.key, "intents.jsonl"),
       `${intents.map((intent) => JSON.stringify(intent)).join("\n")}\n`,
     );
     await Bun.write(
-      join(runDirectory, "ingestion", ingestionKey, "manifest.json"),
+      join(runDirectory, "ingestion", ingestion.key, "manifest.json"),
       `${JSON.stringify({
-        key: ingestionKey,
-        memoryGroupId,
-        representation: "atomic",
+        key: ingestion.key,
+        memoryGroupId: ingestion.memoryGroupId,
+        representation: ingestion.representation,
         schemaVersion: 8,
-        sourceMessageCount: 1,
+        sourceMessageCount: testCase.rawEvidence.length,
         usage: buildPhase74IngestionUsageFingerprint({
           events,
           intents,
@@ -792,11 +815,13 @@ describe("Phase 74 HaluMem live runner", () => {
     const identity = JSON.parse(identityRaw);
     expect(identity.configuration.caseConcurrency).toBe(16);
     expect(identity.configuration.update).toEqual({
+      evidenceBoundary: "internal-causal-source-replay-v2",
       evaluatorSource: {
         id: expect.stringContaining("eval/eval_tools.py"),
         sha256: "0c08e5ecb8c93945bafc4bd0336bd6c9756b40d175f442ce44aca4a43169ee3b",
       },
       promotionRole: "gold-aware-safety-protection-only",
+      promotionEligible: false,
       sessionPolicy: "causal-session-write-then-update-retrieval-v1",
       status: "enabled",
       topK: 10,
