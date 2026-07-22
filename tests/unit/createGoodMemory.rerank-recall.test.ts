@@ -407,6 +407,18 @@ describe("GoodMemory.recall reranker adapter", () => {
         ({ evidenceId }) => evidenceId === "shared-evidence",
       ),
     ).toHaveLength(1);
+    expect(
+      result.metadata.hits
+        .filter(({ id, type }) =>
+          id === "shared-id" && (type === "fact" || type === "reference")
+        )
+        .map(({ evidenceIds }) => evidenceIds),
+    ).toEqual([undefined, undefined]);
+    expect(
+      result.metadata.candidateTraces
+        .filter(({ memoryId }) => memoryId === "shared-id")
+        .map(({ evidenceIds }) => evidenceIds),
+    ).toEqual([undefined, undefined]);
     expect(result.metadata.retrievalTrace?.reranker?.scores).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
