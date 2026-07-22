@@ -1515,6 +1515,55 @@ describe("recall projection runtime", () => {
     ).toBeNull();
   });
 
+  it("removes a historical fallback once a same-version structured claim is selected", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const fact = buildFact({ id: "fact-dirty-fallback" });
+    await rawStore.set("facts", fact.id, fact);
+    const bootstrap = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      now: () => NOW,
+    });
+    await bootstrap.ensureScopeIndexed(scope);
+    const [fallback] = await bootstrap.queryClaims(scope);
+    await bootstrap.appendClaim({
+      ...scope,
+      sourceMemoryId: fact.id,
+      subject: "Atlas migration",
+      claim: {
+        predicateKey: "project.status",
+        objectText: "active",
+        polarity: "positive",
+        modality: "asserted",
+      },
+      observedAt: fact.updatedAt,
+      ingestedAt: fact.updatedAt,
+      evidenceIds: [],
+      sourceMessageIds: [],
+      extractorVersion: "structured-v1",
+    });
+    const [structured] = await bootstrap.queryClaims(scope);
+    await rawStore.set(
+      CLAIM_PROJECTIONS_COLLECTION,
+      fallback!.id,
+      fallback!,
+    );
+    const runtime = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      now: () => NOW,
+      persistentScopeProof: { buildId: "projection-build-b" },
+    });
+
+    const result = await runtime.ensureScopeIndexed(scope);
+
+    expect(result).toMatchObject({ complete: true, skipped: false });
+    expect(
+      await rawStore.get(CLAIM_PROJECTIONS_COLLECTION, fallback!.id),
+    ).toBeNull();
+    expect((await runtime.queryClaimHistory(scope)).map(({ id }) => id)).toEqual([
+      structured!.id,
+    ]);
+  });
+
   it("rebuilds a missing selected claim before sealing persistent scope proof", async () => {
     const rawStore = createInMemoryDocumentStore();
     const fact = buildFact({ id: "fact-dangling-selected-claim" });

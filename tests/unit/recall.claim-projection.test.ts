@@ -96,6 +96,55 @@ function createOneShotClaimFailureStore(inner: DocumentStore): DocumentStore {
   };
 }
 
+function createConcurrentFallbackPromotionStore(
+  inner: DocumentStore,
+  fallbackId: string,
+): {
+  promotionAttempts: () => number;
+  store: DocumentStore;
+} {
+  let changedFallback = false;
+  let promotionAttempts = 0;
+
+  return {
+    promotionAttempts: () => promotionAttempts,
+    store: {
+      projectionBatchSemantics: inner.projectionBatchSemantics,
+      set: (collection, id, document) => inner.set(collection, id, document),
+      get: (collection, id) => inner.get(collection, id),
+      update: (collection, id, patch) => inner.update(collection, id, patch),
+      query: (collection, filter) => inner.query(collection, filter),
+      delete: (collection, id) => inner.delete(collection, id),
+      queryPage: inner.queryPage
+        ? (collection, input) => inner.queryPage!(collection, input)
+        : undefined,
+      async writeBatchIfUnchanged(input) {
+        if (
+          input.delete?.some(({ collection, id }) =>
+            collection === CLAIM_PROJECTIONS_COLLECTION && id === fallbackId
+          )
+        ) {
+          promotionAttempts += 1;
+          if (!changedFallback) {
+            changedFallback = true;
+            const fallback = await inner.get<ClaimProjection>(
+              CLAIM_PROJECTIONS_COLLECTION,
+              fallbackId,
+            );
+            if (fallback) {
+              await inner.set(CLAIM_PROJECTIONS_COLLECTION, fallbackId, {
+                ...fallback,
+                evidenceIds: [...fallback.evidenceIds, "evidence-concurrent"],
+              });
+            }
+          }
+        }
+        return inner.writeBatchIfUnchanged!(input);
+      },
+    },
+  };
+}
+
 function createBlockedRepairStore(inner: DocumentStore): {
   releaseRepair: () => void;
   repairStarted: Promise<void>;
@@ -755,6 +804,30 @@ describe("claim projection runtime", () => {
     )).toBeNull();
   });
 
+  it("retries same-version fallback promotion when the deleted claim changes", async () => {
+    const store = createInMemoryDocumentStore();
+    const fact = buildFact();
+    await store.set("facts", fact.id, fact);
+    const bootstrap = createRecallProjectionRuntime({ documentStore: store });
+    await bootstrap.ensureScopeIndexed(scope);
+    const [fallback] = await bootstrap.queryClaims(scope);
+    const concurrent = createConcurrentFallbackPromotionStore(
+      store,
+      fallback!.id,
+    );
+    const runtime = createRecallProjectionRuntime({
+      documentStore: concurrent.store,
+    });
+
+    await runtime.appendClaim(claimInput("active", fact.updatedAt));
+
+    expect(concurrent.promotionAttempts()).toBe(2);
+    expect(
+      await store.get(CLAIM_PROJECTIONS_COLLECTION, fallback!.id),
+    ).toBeNull();
+    expect(await runtime.queryClaimHistory(scope)).toHaveLength(1);
+  });
+
   it("closes the selected claim when its canonical fact is superseded and erases it on privacy deletion", async () => {
     const store = createInMemoryDocumentStore();
     const runtime = createRecallProjectionRuntime({ documentStore: store, now: () => NOW });
@@ -1021,6 +1094,32 @@ describe("claim projection runtime", () => {
       expect.objectContaining({ predicateKey: "project.status", objectText: "active" }),
     ]);
     expect(await rawStore.query(PROJECTION_REPAIRS_COLLECTION, {})).toEqual([]);
+  });
+
+  it("removes the fallback when a same-version structured promotion repairs", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const fact = buildFact();
+    await rawStore.set("facts", fact.id, fact);
+    const bootstrap = createRecallProjectionRuntime({ documentStore: rawStore });
+    await bootstrap.ensureScopeIndexed(scope);
+    const [fallback] = await bootstrap.queryClaims(scope);
+    const runtime = createRecallProjectionRuntime({
+      documentStore: createOneShotClaimFailureStore(rawStore),
+      now: () => NOW,
+    });
+
+    await runtime.appendClaim(claimInput("active", fact.updatedAt));
+    expect(await runtime.repairPending(scope)).toBe(1);
+
+    expect(
+      await rawStore.get(CLAIM_PROJECTIONS_COLLECTION, fallback!.id),
+    ).toBeNull();
+    expect(await runtime.queryClaimHistory(scope)).toEqual([
+      expect.objectContaining({
+        objectText: "active",
+        predicateKey: "project.status",
+      }),
+    ]);
   });
 
   it("resolves an obsolete failed claim before consuming its repair", async () => {

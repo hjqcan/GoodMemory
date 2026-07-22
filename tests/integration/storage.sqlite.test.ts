@@ -889,6 +889,78 @@ describe("sqlite projection text index", () => {
       await rm(path, { force: true });
     }
   });
+
+  it("removes a stale fallback before it can occupy claim FTS top one", async () => {
+    const path = join(
+      tmpdir(),
+      `goodmemory-sqlite-stale-claim-${Date.now()}-${Math.random()}.db`,
+    );
+    try {
+      const store = createSQLiteDocumentStore(path);
+      const scope = { userId: "fts-user", workspaceId: "fts-workspace" };
+      const fact = createFactMemory({
+        ...scope,
+        id: "fact-atlas-stale",
+        category: "project",
+        content: "Atlas rollout is active.",
+        subject: "Atlas",
+        source: {
+          method: "explicit",
+          extractedAt: "2026-07-18T09:00:00.000Z",
+        },
+        createdAt: "2026-07-18T09:00:00.000Z",
+        updatedAt: "2026-07-18T09:00:00.000Z",
+      });
+      await store.set("facts", fact.id, fact);
+      const bootstrap = createRecallProjectionRuntime({ documentStore: store });
+      await bootstrap.ensureScopeIndexed(scope);
+      const [fallback] = await bootstrap.queryClaims(scope);
+      await bootstrap.appendClaim({
+        ...scope,
+        sourceMemoryId: fact.id,
+        subject: "Atlas",
+        claim: {
+          predicateKey: "project.status",
+          objectText: "completed",
+          polarity: "positive",
+          modality: "completed",
+        },
+        observedAt: fact.updatedAt,
+        ingestedAt: fact.updatedAt,
+        evidenceIds: [],
+        sourceMessageIds: [],
+        extractorVersion: "sqlite-fts-test-v1",
+      });
+      await store.set(CLAIM_PROJECTIONS_COLLECTION, fallback!.id, fallback!);
+      expect(await store.searchText?.(CLAIM_PROJECTIONS_COLLECTION, {
+        field: "searchText",
+        filter: scope,
+        limit: 1,
+        query: "Atlas rollout active",
+      })).toEqual([
+        expect.objectContaining({ id: fallback!.id }),
+      ]);
+      const runtime = createRecallProjectionRuntime({
+        documentStore: store,
+        persistentScopeProof: { buildId: "sqlite-cleanup-v2" },
+      });
+
+      await runtime.ensureScopeIndexed(scope);
+
+      expect(await runtime.searchClaims(
+        scope,
+        "Atlas rollout active",
+        1,
+      )).toEqual([
+        expect.objectContaining({ objectText: "completed" }),
+      ]);
+      expect(
+        await store.get(CLAIM_PROJECTIONS_COLLECTION, fallback!.id),
+      ).toBeNull();
+    } finally {
+      await rm(path, { force: true });
+    }
+  });
 });
 
 describe("sqlite session store read-only mode", () => {
