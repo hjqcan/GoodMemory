@@ -14,25 +14,49 @@ import { readFileSync } from "node:fs";
 
 const PACKAGE_JSON_URL = new URL("../../package.json", import.meta.url);
 
-let packageVersionCache: string | undefined;
+export interface GoodMemoryPackageReleaseMetadata {
+  readonly installCommandsApplyAfterPublish: boolean;
+  readonly npmLatest: string;
+  readonly status: "release-candidate" | "stable";
+}
 
-function readPackageVersion(): string {
-  if (packageVersionCache) {
-    return packageVersionCache;
+export interface GoodMemoryCapabilityPackageMetadata {
+  readonly goodmemoryRelease: GoodMemoryPackageReleaseMetadata;
+  readonly version: string;
+}
+
+let packageMetadataCache: GoodMemoryCapabilityPackageMetadata | undefined;
+
+function readPackageMetadata(): GoodMemoryCapabilityPackageMetadata {
+  if (packageMetadataCache) {
+    return packageMetadataCache;
   }
 
   const packageJson = JSON.parse(readFileSync(PACKAGE_JSON_URL, "utf8")) as {
+    goodmemoryRelease?: Partial<GoodMemoryPackageReleaseMetadata>;
     version?: unknown;
   };
+  const release = packageJson.goodmemoryRelease;
   if (
     typeof packageJson.version !== "string" ||
-    packageJson.version.length === 0
+    packageJson.version.length === 0 ||
+    typeof release?.installCommandsApplyAfterPublish !== "boolean" ||
+    typeof release.npmLatest !== "string" ||
+    release.npmLatest.length === 0 ||
+    (release.status !== "release-candidate" && release.status !== "stable")
   ) {
-    throw new Error("Unable to read GoodMemory package version.");
+    throw new Error("Unable to read GoodMemory package release metadata.");
   }
 
-  packageVersionCache = packageJson.version;
-  return packageVersionCache;
+  packageMetadataCache = {
+    goodmemoryRelease: {
+      installCommandsApplyAfterPublish: release.installCommandsApplyAfterPublish,
+      npmLatest: release.npmLatest,
+      status: release.status,
+    },
+    version: packageJson.version,
+  };
+  return packageMetadataCache;
 }
 
 export interface GoodMemoryCapabilityOnboardingPath {
@@ -87,7 +111,7 @@ export interface GoodMemoryCapabilityDescriptor {
   readonly releaseStatus: {
     readonly installCommandsApplyAfterPublish: boolean;
     readonly npmLatest: string;
-    readonly status: "release-candidate";
+    readonly status: "release-candidate" | "stable";
     readonly tarball: string;
   };
   readonly memoryApi: readonly string[];
@@ -143,9 +167,13 @@ const HOSTED = "https://goodmemory.vibenest.net";
  * package.json lookup so tests stay deterministic without filesystem access.
  */
 export function buildGoodMemoryCapabilityDescriptor(
-  options: { version?: string } = {},
+  options: {
+    packageMetadata?: GoodMemoryCapabilityPackageMetadata;
+    version?: string;
+  } = {},
 ): GoodMemoryCapabilityDescriptor {
-  const version = options.version ?? readPackageVersion();
+  const packageMetadata = options.packageMetadata ?? readPackageMetadata();
+  const version = options.version ?? packageMetadata.version;
 
   return {
     schemaVersion: "goodmemory.capability/v2",
@@ -172,9 +200,7 @@ export function buildGoodMemoryCapabilityDescriptor(
       bun: `bun add goodmemory@${version}`,
     },
     releaseStatus: {
-      installCommandsApplyAfterPublish: true,
-      npmLatest: "0.6.0",
-      status: "release-candidate",
+      ...packageMetadata.goodmemoryRelease,
       tarball: `goodmemory-${version}.tgz`,
     },
     memoryApi: [

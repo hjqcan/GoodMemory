@@ -48,6 +48,26 @@ describe("GoodMemory capability descriptor", () => {
     );
   });
 
+  it("derives stable runtime metadata from the staged package manifest", () => {
+    const descriptor = buildGoodMemoryCapabilityDescriptor({
+      packageMetadata: {
+        goodmemoryRelease: {
+          installCommandsApplyAfterPublish: false,
+          npmLatest: "0.7.0",
+          status: "stable",
+        },
+        version: "0.7.0",
+      },
+    });
+
+    expect(descriptor.releaseStatus).toEqual({
+      installCommandsApplyAfterPublish: false,
+      npmLatest: "0.7.0",
+      status: "stable",
+      tarball: "goodmemory-0.7.0.tgz",
+    });
+  });
+
   it("advertises the MCP command that the package bin actually exposes", () => {
     const { bin } = readPackageJson();
     const descriptor = buildGoodMemoryCapabilityDescriptor();

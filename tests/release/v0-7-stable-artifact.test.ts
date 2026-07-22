@@ -65,6 +65,11 @@ describe("v0.7 stable release artifact", () => {
             "README.zh-CN.md",
             "llms.txt",
           ],
+          goodmemoryRelease: {
+            installCommandsApplyAfterPublish: true,
+            npmLatest: "0.6.0",
+            status: "release-candidate",
+          },
           name: "goodmemory",
           version: "0.7.0",
         }, null, 2)}\n`,
@@ -90,7 +95,11 @@ describe("v0.7 stable release artifact", () => {
         ["README.md", "README.zh-CN.md", "llms.txt", ".well-known/goodmemory.json"]
           .map((path) => readFile(join(root, path), "utf8")),
       );
-      const artifact = await prepareV07StableArtifact({ outputDir, repoRoot: root });
+      const artifact = await prepareV07StableArtifact({
+        outputDir,
+        repoRoot: root,
+        verifyRuntimeDescriptor: false,
+      });
       const extracted = join(root, "extracted");
       await extractTarball(artifact.artifactPath, extracted);
       const packageRoot = join(extracted, "package");
@@ -101,6 +110,9 @@ describe("v0.7 stable release artifact", () => {
       const descriptor = JSON.parse(
         await readFile(join(packageRoot, ".well-known/goodmemory.json"), "utf8"),
       ) as { releaseStatus?: Record<string, unknown> };
+      const packageJson = JSON.parse(
+        await readFile(join(packageRoot, "package.json"), "utf8"),
+      ) as { goodmemoryRelease?: Record<string, unknown> };
 
       expect(readme).toContain("`0.7.0` is the current stable release");
       expect(readme).toContain("npm `latest` points to `0.7.0`");
@@ -117,6 +129,11 @@ describe("v0.7 stable release artifact", () => {
         npmLatest: "0.7.0",
         status: "stable",
         tarball: "goodmemory-0.7.0.tgz",
+      });
+      expect(packageJson.goodmemoryRelease).toEqual({
+        installCommandsApplyAfterPublish: false,
+        npmLatest: "0.7.0",
+        status: "stable",
       });
       expect(artifact.artifactName).toBe("goodmemory-0.7.0.tgz");
       expect(artifact.integrity).toBe(

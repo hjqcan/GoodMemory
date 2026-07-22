@@ -3798,6 +3798,8 @@ describe("release metadata and docs", () => {
     expect(workflow).toContain("[[ \"$VERSION\" == *-* ]]");
     expect(workflow).toContain("[[ \"$TAG_VERSION\" != \"$VERSION\" ]]");
     expect(workflow).toContain("bun pm pack");
+    expect(workflow).toContain("scripts/prepare-v0-7-stable-artifact.ts");
+    expect(workflow).toContain('if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]');
     expect(workflow).toContain("actions/upload-artifact@v4");
     expect(workflow).toContain("actions/setup-node@v4");
     expect(workflow).toContain("node-version: 20");
@@ -3822,7 +3824,16 @@ describe("release metadata and docs", () => {
     expect(workflow).toContain("already exists on npm; verifying registry state.");
     expect(workflow).toContain("npm publish --access public");
     expect(workflow).toContain('npm view "goodmemory@${VERSION}" version');
+    expect(workflow).toContain(
+      'npm view "goodmemory@${VERSION}" dist.integrity',
+    );
     expect(workflow).toContain("npm view goodmemory@latest version");
+    expect(workflow).toContain(
+      '[ "$PUBLISHED_INTEGRITY" = "$ARTIFACT_INTEGRITY" ]',
+    );
+    expect(workflow).toContain(
+      "npm artifact identity verification failed",
+    );
     expect(workflow).toContain("Waiting for npm registry visibility");
     expect(workflow).toContain("npm registry verification failed");
     expect(workflow).toContain("softprops/action-gh-release@v2");
@@ -5241,5 +5252,39 @@ describe("release metadata and docs", () => {
     expect(bunfig).toContain('root = "tests"');
     expect(allBunfig).toContain('[test]');
     expect(allBunfig).toContain('root = "."');
+  });
+
+  it("keeps expensive Phase 73 evidence replay out of the canonical red-green loop", async () => {
+    const [bunfig, gateBunfig, packageBytes] = await Promise.all([
+      readFile(join(import.meta.dir, "../../bunfig.toml"), "utf8"),
+      readFile(
+        join(import.meta.dir, "../../bunfig.phase-73-gates.toml"),
+        "utf8",
+      ),
+      readFile(join(import.meta.dir, "../../package.json"), "utf8"),
+    ]);
+    const packageJson = JSON.parse(packageBytes) as {
+      scripts: Record<string, string>;
+    };
+    const oldPath = join(
+      import.meta.dir,
+      "../unit/codex-coding-effect.c5-evidence.test.ts",
+    );
+    const gatePath = join(
+      import.meta.dir,
+      "../quality-gates/phase-73/codex-coding-effect.c5-evidence.test.ts",
+    );
+
+    expect(bunfig).toContain(
+      'pathIgnorePatterns = ["tests/quality-gates/**"]',
+    );
+    expect(gateBunfig).toContain(
+      'root = "tests/quality-gates/phase-73"',
+    );
+    expect(packageJson.scripts["test:phase-73-gates"]).toBe(
+      "bun --config=bunfig.phase-73-gates.toml test",
+    );
+    expect(await Bun.file(oldPath).exists()).toBe(false);
+    expect(await Bun.file(gatePath).exists()).toBe(true);
   });
 });

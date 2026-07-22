@@ -16,27 +16,27 @@ import {
   runC5EvidenceGate,
   serializeC5EvidenceVerification,
   verifyC5EvidenceProjection,
-} from "../../scripts/codex-coding-effect/c5-evidence";
+} from "../../../scripts/codex-coding-effect/c5-evidence";
 import type {
   C5EvidenceProjectionManifest,
-} from "../../scripts/codex-coding-effect/c5-evidence";
+} from "../../../scripts/codex-coding-effect/c5-evidence";
 import type {
   C5LongitudinalPairResult,
   C5RecordedStageExecution,
-} from "../../scripts/codex-coding-effect/c5-longitudinal";
+} from "../../../scripts/codex-coding-effect/c5-longitudinal";
 import {
   serializeC5PilotPlan,
-} from "../../scripts/codex-coding-effect/c5-pilot-plan";
+} from "../../../scripts/codex-coding-effect/c5-pilot-plan";
 import type {
   C5PilotArm,
   C5PilotEpisodeArmRun,
   C5PilotPlan,
   C5PilotStageRun,
-} from "../../scripts/codex-coding-effect/c5-pilot-plan";
+} from "../../../scripts/codex-coding-effect/c5-pilot-plan";
 import {
   buildC5PilotReport,
   serializeC5PilotReport,
-} from "../../scripts/codex-coding-effect/c5-reporting";
+} from "../../../scripts/codex-coding-effect/c5-reporting";
 import {
   buildC5IndependentReviewDispatch,
   buildC5IndependentReviewProvenance,
@@ -44,30 +44,30 @@ import {
   buildC5ReviewInputBundle,
   buildC5ReviewRequest,
   serializeC5ReviewArtifact,
-} from "../../scripts/codex-coding-effect/c5-review-artifacts";
+} from "../../../scripts/codex-coding-effect/c5-review-artifacts";
 import {
   c4RepositoryIdForUrl,
   materializeC4SourceRepository,
-} from "../../scripts/codex-coding-effect/c4-controlled-dataset";
-import { buildC4BaselinePrompt } from "../../scripts/codex-coding-effect/c4-baseline-ceiling";
-import { buildC3HostConfigurationEvidence } from "../../scripts/codex-coding-effect/c3-host-configuration";
+} from "../../../scripts/codex-coding-effect/c4-controlled-dataset";
+import { buildC4BaselinePrompt } from "../../../scripts/codex-coding-effect/c4-baseline-ceiling";
+import { buildC3HostConfigurationEvidence } from "../../../scripts/codex-coding-effect/c3-host-configuration";
 import type {
   C4HiddenArtifact,
   C4LeakageSurface,
-} from "../../scripts/codex-coding-effect/c4-leakage";
-import { buildC5StageLeakageInput } from "../../scripts/codex-coding-effect/c5-leakage-input";
+} from "../../../scripts/codex-coding-effect/c4-leakage";
+import { buildC5StageLeakageInput } from "../../../scripts/codex-coding-effect/c5-leakage-input";
 import {
   hashC5ComparableHostEnvironment,
   parseC5HostEnvironment,
-} from "../../scripts/codex-coding-effect/c5-host-environment";
+} from "../../../scripts/codex-coding-effect/c5-host-environment";
 import {
   auditC5LiveLeakageSurfaces,
-} from "../../scripts/codex-coding-effect/c5-live-leakage";
-import { loadCodexCodingEffectDataset } from "../../scripts/codex-coding-effect/dataset";
-import { loadC5PilotReadiness } from "../../scripts/codex-coding-effect/c5-readiness";
+} from "../../../scripts/codex-coding-effect/c5-live-leakage";
+import { loadCodexCodingEffectDataset } from "../../../scripts/codex-coding-effect/dataset";
+import { loadC5PilotReadiness } from "../../../scripts/codex-coding-effect/c5-readiness";
 import {
   withAcceptedC4ReadinessFixture,
-} from "../support/codex-coding-effect-c4-readiness-fixture";
+} from "../../support/codex-coding-effect-c4-readiness-fixture";
 
 const SHA = "a".repeat(64);
 const GIT_OBJECT = "b".repeat(40);

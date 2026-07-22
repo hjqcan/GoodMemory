@@ -1,0 +1,3 @@
+[test]
+root = "tests/quality-gates/phase-73"
+preload = ["./tests/support/test-env.ts"]

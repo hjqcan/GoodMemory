@@ -1,3 +1,4 @@
 [test]
 root = "tests"
 preload = ["./tests/support/test-env.ts"]
+pathIgnorePatterns = ["tests/quality-gates/**"]

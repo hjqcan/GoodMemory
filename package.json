@@ -1,6 +1,11 @@
 {
   "name": "goodmemory",
   "version": "0.7.0",
+  "goodmemoryRelease": {
+    "installCommandsApplyAfterPublish": true,
+    "npmLatest": "0.6.0",
+    "status": "release-candidate"
+  },
   "mcpName": "io.github.hjqcan/goodmemory",
   "description": "Memory layer for chat, copilot, and agent applications.",
   "license": "MIT",
@@ -103,6 +108,7 @@
     "test": "bun test",
     "test:legacy-fitted": "bun --config=bunfig.legacy-fitted.toml test",
     "test:all": "bun --config=bunfig.all.toml test tests third-party",
+    "test:phase-73-gates": "bun --config=bunfig.phase-73-gates.toml test",
     "test:unit": "bun test tests/unit",
     "test:integration": "bun test tests/integration",
     "test:scenarios": "bun test tests/scenarios",
