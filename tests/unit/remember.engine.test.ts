@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import { createMemoryRepositories } from "../../src/storage/repositories";
 import {
   createInMemoryDocumentStore,
@@ -787,6 +787,7 @@ describe("remember engine", () => {
   });
 
   it("falls back to rules-only extraction when llm-assisted extraction fails", async () => {
+    const consoleError = spyOn(console, "error").mockImplementation(() => {});
     const scope = { userId: "u-fallback", sessionId: "s-1", workspaceId: "workspace-a" };
     const { engine, repositories } = createEngine({
       extractor: {
@@ -818,29 +819,41 @@ describe("remember engine", () => {
       },
     });
 
-    const result = await engine.remember({
-      scope,
-      extractionStrategy: "llm-assisted",
-      messages: [
+    try {
+      const result = await engine.remember({
+        scope,
+        extractionStrategy: "llm-assisted",
+        messages: [
+          {
+            role: "user",
+            content: "Remember that runtime launch is blocked on legal review.",
+          },
+        ],
+      });
+
+      const facts = await repositories.facts.listByScope(scope);
+
+      expect(result.accepted).toBe(1);
+      expect(result.metadata?.requestedExtractionStrategy).toBe("llm-assisted");
+      expect(result.metadata?.resolvedExtractionStrategy).toBe("rules-only");
+      expect(result.events[0]?.extractionSources).toEqual(["rules-only"]);
+      expect(facts).toHaveLength(1);
+      expect(facts[0]?.subject).toBe("runtime launch");
+      expect(result.outcome).toBe("failed");
+      expect(result.warnings ?? []).toContain("assisted_extraction_failed");
+      expect(consoleError).toHaveBeenCalledWith(
+        "[goodmemory:remember] assisted extraction failed; preserving rules-only extraction",
         {
-          role: "user",
-          content: "Remember that runtime launch is blocked on legal review.",
+          error: "OpenAI-compatible gateway timeout after 45000ms.",
+          requestedExtractionStrategy: "llm-assisted",
         },
-      ],
-    });
-
-    const facts = await repositories.facts.listByScope(scope);
-
-    expect(result.accepted).toBe(1);
-    expect(result.metadata?.requestedExtractionStrategy).toBe("llm-assisted");
-    expect(result.metadata?.resolvedExtractionStrategy).toBe("rules-only");
-    expect(result.events[0]?.extractionSources).toEqual(["rules-only"]);
-    expect(facts).toHaveLength(1);
-    expect(facts[0]?.subject).toBe("runtime launch");
-    expect(result.outcome).toBe("failed");
-    // The assisted extractor threw and was silently swallowed to rules-only;
-    // surface it so the caller is not left thinking assisted extraction ran.
-    expect(result.warnings ?? []).toContain("assisted_extraction_failed");
+      );
+      expect(JSON.stringify(consoleError.mock.calls)).not.toContain(
+        "Remember that runtime launch",
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it("warns no_durable_facts_extracted when a batch produces zero durable memories", async () => {

@@ -668,7 +668,14 @@ export function createRememberEngine(config: RememberEngineConfig) {
         ),
         "llm-assisted",
       );
-    } catch {
+    } catch (error) {
+      console.error(
+        "[goodmemory:remember] assisted extraction failed; preserving rules-only extraction",
+        {
+          error: error instanceof Error ? error.message : String(error),
+          requestedExtractionStrategy,
+        },
+      );
       return {
         extraction: baselineExtraction,
         extractionWarning: "assisted_extraction_failed" as const,

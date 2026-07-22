@@ -1656,6 +1656,68 @@ describe("model adapters", () => {
     });
   });
 
+  it("preserves durable extraction candidates when optional taxonomy labels are unknown", async () => {
+    const payload = JSON.stringify({
+      candidates: [{
+        content: "Tim values the friends he made through fantasy conventions.",
+        explicitness: "explicit",
+        id: "llm-1",
+        kindHint: "relationship_memory",
+        metadata: {
+          claim: {
+            modality: "currently_true",
+            objectText: "the friends he made through fantasy conventions",
+            polarity: "positive",
+            predicateKey: "relationships.values",
+          },
+          subject: "Tim",
+        },
+        sourceMessageIndex: 0,
+        sourceRole: "user",
+      }],
+      ignoredMessageCount: 0,
+    });
+    const extractor = createAISDKMemoryExtractor({
+      model: {
+        apiKey: "gateway-key",
+        baseURL: "https://gateway.example/v1",
+        model: "gpt-5.4",
+        provider: "openai",
+      },
+      dependencies: {
+        fetch: async () => new Response(
+          `data: ${JSON.stringify({
+            choices: [{ delta: { content: payload }, index: 0 }],
+          })}\n\ndata: [DONE]\n\n`,
+          {
+            headers: { "content-type": "text/event-stream" },
+            status: 200,
+          },
+        ),
+      },
+    });
+
+    const result = await extractor.extract({
+      messages: [{
+        content: "The friends I made through fantasy conventions mean a lot to me.",
+        role: "user",
+      }],
+      scope: { userId: "u-1" },
+    });
+
+    expect(result.candidates[0]).toMatchObject({
+      kindHint: "fact",
+      metadata: {
+        claim: {
+          modality: "unknown",
+          objectText: "the friends he made through fantasy conventions",
+          polarity: "positive",
+          predicateKey: "relationships.values",
+        },
+      },
+    });
+  });
+
   it("accepts domain-defined memory categories from provider extraction", async () => {
     const extractor = createAISDKMemoryExtractor({
       model: {

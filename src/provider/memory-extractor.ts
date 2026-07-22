@@ -80,6 +80,13 @@ const MEMORY_CLAIM_MODALITY_VALUES = [
   "unknown",
 ] as const satisfies [MemoryClaimModality, ...MemoryClaimModality[]];
 
+const MEMORY_CANDIDATE_KIND_HINT_SET = new Set<string>(
+  MEMORY_CANDIDATE_KIND_HINT_VALUES,
+);
+const MEMORY_CLAIM_MODALITY_SET = new Set<string>(
+  MEMORY_CLAIM_MODALITY_VALUES,
+);
+
 export const MEMORY_EXTRACTION_SYSTEM_PROMPT = [
   "You extract durable memory candidates from a conversation.",
   "Prefer profile updates, preferences, references, durable facts, and reusable feedback.",
@@ -223,6 +230,40 @@ function coerceNonNegativeInteger(value: unknown): number | unknown {
   return value;
 }
 
+function normalizeCandidateKindHint(value: unknown): unknown {
+  const normalized = normalizeAliasedEnumValue(
+    value,
+    MEMORY_CANDIDATE_KIND_HINT_ALIASES,
+  );
+  return typeof normalized === "string" &&
+    !MEMORY_CANDIDATE_KIND_HINT_SET.has(normalized)
+    ? "fact"
+    : normalized;
+}
+
+function normalizeCandidateMetadata(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+  const metadata = value as Record<string, unknown>;
+  const claim = metadata.claim;
+  if (!claim || typeof claim !== "object" || Array.isArray(claim)) {
+    return metadata;
+  }
+  const claimRecord = claim as Record<string, unknown>;
+  const modality = claimRecord.modality;
+  return {
+    ...metadata,
+    claim: {
+      ...claimRecord,
+      ...(typeof modality === "string" &&
+        !MEMORY_CLAIM_MODALITY_SET.has(modality)
+        ? { modality: "unknown" }
+        : {}),
+    },
+  };
+}
+
 function finalizeMemoryExtractionResult(
   result: MemoryExtractionResult,
 ): MemoryExtractionResult {
@@ -263,14 +304,18 @@ export function normalizeMemoryExtractionPayload(payload: unknown): unknown {
                 : typeof id === "number"
                   ? String(id)
                   : `llm-${index + 1}`,
-            kindHint: normalizeAliasedEnumValue(
-              normalizedCandidate.kindHint,
-              MEMORY_CANDIDATE_KIND_HINT_ALIASES,
-            ),
+            kindHint: normalizeCandidateKindHint(normalizedCandidate.kindHint),
             explicitness: normalizeAliasedEnumValue(
               normalizedCandidate.explicitness,
               MEMORY_CANDIDATE_EXPLICITNESS_ALIASES,
             ),
+            ...(normalizedCandidate.metadata === undefined
+              ? {}
+              : {
+                  metadata: normalizeCandidateMetadata(
+                    normalizedCandidate.metadata,
+                  ),
+                }),
             sourceMessageIndex: coerceNonNegativeInteger(
               normalizedCandidate.sourceMessageIndex,
             ),
