@@ -194,4 +194,44 @@ describe("evidence ledger", () => {
       }),
     ]);
   });
+
+  it("does not attach a claim through an ambiguous cross-collection raw ID", () => {
+    const factClaim = claim({
+      id: "claim-shared",
+      sourceMemoryId: "shared-id",
+      predicateKey: "project.status",
+      objectText: "approved",
+      observedAt: "2026-07-01T00:00:00.000Z",
+    });
+    factClaim.evidenceIds = ["fact-only-evidence"];
+    const referenceEvidence = createEvidenceRecord({
+      id: "reference-only-evidence",
+      ...scope,
+      kind: "conversation_excerpt",
+      excerpt: "The reference is stored in docs/approval.md.",
+      source: createMemorySource({
+        method: "explicit",
+        extractedAt: referenceTime,
+      }),
+      linkedMemoryIds: ["shared-id"],
+    });
+
+    const entries = buildEvidenceLedger({
+      ambiguousSourceMemoryIds: ["shared-id"],
+      claims: [factClaim],
+      evidence: [referenceEvidence],
+      referenceTime,
+      selectedMemoryIds: ["shared-id", "shared-id"],
+    });
+
+    expect(entries).toEqual([
+      expect.objectContaining({
+        evidenceId: "reference-only-evidence",
+        relation: "context",
+        sourceMemoryId: "shared-id",
+        temporalStatus: "uncertain",
+      }),
+    ]);
+    expect(entries[0]).not.toHaveProperty("claim");
+  });
 });

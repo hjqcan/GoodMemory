@@ -14,13 +14,12 @@ import {
 import { createEvidenceRecord } from "../../src/evidence/contracts";
 import { estimateTextTokens } from "../../src/tokenEstimator";
 import {
-  mergeDurableCandidateOrder,
   resolveRerankerTopK,
   sanitizeRerankerGateway,
 } from "../../src/api/recallReranking";
 
-// The reranker adapter is opt-in: configure one and recalled facts are reranked
-// over their top-K window (packet re-rendered); omit it and recall is unchanged.
+// The reranker adapter is opt-in: configure one and the bounded global durable
+// pool is reranked (packet re-rendered); omit it and recall is unchanged.
 describe("GoodMemory.recall reranker adapter", () => {
   const scope = { userId: "u-1", workspaceId: "workspace-a" };
   const query = "alpha topic";
@@ -31,16 +30,6 @@ describe("GoodMemory.recall reranker adapter", () => {
         "https://user:password@ai.gurkiai.com/v1/?token=secret#fragment",
       ),
     ).toBe("https://ai.gurkiai.com/v1");
-  });
-
-  it("preserves non-fact durable slots while applying the new fact order", () => {
-    expect(
-      mergeDurableCandidateOrder({
-        factIdsAfter: ["fact-b", "fact-a"],
-        factIdsBefore: ["fact-a", "fact-b"],
-        originalOrder: ["reference-1", "fact-a", "archive-1", "fact-b"],
-      }),
-    ).toEqual(["reference-1", "fact-b", "archive-1", "fact-a"]);
   });
 
   it("caps the first-party listwise window while preserving pointwise defaults", () => {
@@ -467,6 +456,46 @@ describe("GoodMemory.recall reranker adapter", () => {
 
     expect(rerankerTexts).toHaveLength(2);
     expect(rerankerTexts.map(estimateTextTokens)).toEqual([256, 256]);
+  });
+
+  it("bounds the query sent to an injected reranker", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    let rerankerQuery = "";
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+        reranker: {
+          async rerank({ documents, query }) {
+            rerankerQuery = query;
+            return documents.map(({ id }) => ({ id, score: 1 }));
+          },
+        },
+      },
+      testing: { now: () => new Date("2026-01-03T00:00:00.000Z") },
+    });
+    for (const id of ["query-a", "query-b"]) {
+      await documentStore.set("facts", id, createFactMemory({
+        id,
+        ...scope,
+        category: "project",
+        content: `alpha ${id}`,
+        source: {
+          method: "explicit",
+          extractedAt: "2026-01-02T00:00:00.000Z",
+        },
+        createdAt: "2026-01-02T00:00:00.000Z",
+        updatedAt: "2026-01-02T00:00:00.000Z",
+      }));
+    }
+
+    await memory.recall({
+      scope,
+      query: `alpha ${"irrelevant query padding ".repeat(2_000)}`,
+      strategy: "rules-only",
+    });
+
+    expect(estimateTextTokens(rerankerQuery)).toBe(512);
   });
 
   it("includes supplementary RecallPlan candidates in the global reranker pool", async () => {
