@@ -1,0 +1,125 @@
+{
+  "acceptance": {
+    "everyAttemptAccountedFor": true,
+    "failureTaxonomyProduced": true,
+    "noSilentFallback": true,
+    "powerAnalysisProduced": true,
+    "status": "accepted"
+  },
+  "attempts": {
+    "accountedCount": 72,
+    "codexCompletedCount": 72,
+    "infrastructureFailureCount": 6,
+    "memoryChannelFailureCount": 6,
+    "scheduledCount": 72
+  },
+  "claimBoundary": "internal-native-longitudinal-pilot-only",
+  "effect": {
+    "comparablePairs": 30,
+    "goodMemoryResolveRate": 0.9333333333333333,
+    "netRescueRate": 0.5333333333333333,
+    "netRescueRateInterval95": {
+      "bootstrapSamples": 10000,
+      "confidenceLevel": 0.95,
+      "lower": 0.26666666666666666,
+      "method": "paired-episode-cluster-percentile-bootstrap",
+      "resamplingUnit": "episode",
+      "upper": 0.6666666666666666
+    },
+    "noMemoryResolveRate": 0.4,
+    "observedDiscordanceRate": 0.5333333333333333,
+    "regressions": 0,
+    "rescues": 16
+  },
+  "evidenceClass": "native-longitudinal-pilot",
+  "failureTaxonomy": [
+    {
+      "count": 6,
+      "reason": "goodmemory-installed-infrastructure-host-canary"
+    },
+    {
+      "count": 6,
+      "reason": "goodmemory-memory-channel-failed"
+    },
+    {
+      "count": 4,
+      "reason": "goodmemory-required-memory-channel-failed"
+    },
+    {
+      "count": 6,
+      "reason": "infrastructure:host-canary"
+    },
+    {
+      "count": 6,
+      "reason": "task:goodmemory-installed:hidden-fail-to-pass-failed"
+    },
+    {
+      "count": 22,
+      "reason": "task:no-memory:hidden-fail-to-pass-failed"
+    },
+    {
+      "count": 2,
+      "reason": "task:no-memory:pass-to-pass-regression"
+    }
+  ],
+  "fullSetBudget": {
+    "arms": 2,
+    "codexCalls": 2034,
+    "episodes": 113,
+    "repositories": 6,
+    "scoredStages": 339,
+    "seeds": 3
+  },
+  "generatedAt": "2026-07-21T15:01:24.421Z",
+  "memoryBehavior": {
+    "injectionObservedCount": 16,
+    "installedAttemptCount": 36,
+    "irrelevantInjectionCount": 0,
+    "missingObservationCount": 0,
+    "observedAttemptCount": 36,
+    "requiredRecallObservedCount": 16,
+    "writebackCommittedCount": 8
+  },
+  "pairs": {
+    "comparableCount": 30,
+    "incomparableCount": 6,
+    "outcomes": {
+      "incomparable": 6,
+      "regression": 0,
+      "rescue": 16,
+      "shared-fail": 2,
+      "shared-pass": 12
+    },
+    "scheduledCount": 36
+  },
+  "phase": "C5",
+  "planSha256": "ef7668a289d1eadbc63f020d5dcd2d1973f39722399d8349a4fd3437fbe2e72b",
+  "powerAnalysis": {
+    "alpha": 0.05,
+    "designEffect": 2.5999999999999996,
+    "materialEffectRate": 0.1,
+    "method": "paired-proportion-normal-approximation-with-episode-design-effect",
+    "observedWithinEpisodeCorrelation": 0.19999999999999996,
+    "pairedObservationsBeforeClustering": 391,
+    "planningDiscordanceRate": 0.5,
+    "power": 0.8,
+    "requiredEpisodes": 113,
+    "seeds": 3,
+    "stagesPerEpisode": 3
+  },
+  "publicClaimEligible": false,
+  "publicCodingEffectProof": false,
+  "readmeRowAllowed": false,
+  "resourceUsage": {
+    "attemptsWithUsage": 72,
+    "cachedInputTokens": 5888256,
+    "estimatedCostUsd": null,
+    "inputTokens": 7250913,
+    "missingUsageCount": 0,
+    "outputTokens": 177275,
+    "pricingBoundary": "token-usage-only-model-price-not-frozen",
+    "totalCodexDurationMs": 6792629.481706998
+  },
+  "runId": "run-c5-pilot-v16-20260721T150112Z",
+  "schemaVersion": 1
+}

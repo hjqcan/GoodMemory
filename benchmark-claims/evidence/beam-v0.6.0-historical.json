@@ -1,0 +1,34 @@
+{
+  "artifactKind": "tracked-historical-evidence-projection",
+  "benchmark": "BEAM",
+  "generatedBy": "scripts/project-historical-evidence.ts",
+  "claim": {
+    "adjacentEvidenceOrderInversions": 8,
+    "casesWithNonChronologicalEvidenceOrder": 7,
+    "casesWithRequestedRubricCountMismatch": 1,
+    "executionFailures": 0,
+    "officialJudgeFailures": 0,
+    "officialUnifiedScore": 0.7650987103174604,
+    "packageVersion": "0.6.0",
+    "strictBinaryGateEligible": false,
+    "strictBinaryScore": 0.62,
+    "totalEventOrderingCases": 40
+  },
+  "runIdentity": {
+    "commit": "d639fbd1996d61136e89137d378e4948c10b326f",
+    "runId": "run-20260716-final"
+  },
+  "schemaVersion": 1,
+  "sourceArtifacts": [
+    {
+      "bytes": 11423,
+      "path": "reports/quality-gates/phase-72/run-20260716-final/phase-72-release-gate.json",
+      "sha256": "2773421619867e6659fc12df62be980e7c2c74bf19299e17158a9a94dc240ea6"
+    },
+    {
+      "bytes": 27502,
+      "path": "reports/quality-gates/phase-72/run-20260716-final/beam-event-ordering-integrity-audit.json",
+      "sha256": "ca0b8bae78f9158abf154b55081cb67423842f21e54ce28417120a68c3073d01"
+    }
+  ]
+}

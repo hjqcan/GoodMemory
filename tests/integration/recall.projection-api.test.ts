@@ -338,7 +338,7 @@ describe("recall projections through the public API", () => {
         documentStore,
         sessionStore: createInMemorySessionStore(),
       },
-      retrieval: { preset: "recommended", recallPlanExecution: true },
+      retrieval: { preset: "recommended" },
       testing: {
         extractor: {
           async extract() {

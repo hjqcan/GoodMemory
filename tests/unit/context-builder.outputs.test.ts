@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { attachBehavioralPolicyAttributes } from "../../src/evolution/behavioralPolicy";
+import { createLanguageService } from "../../src/language";
 import {
   buildMemoryPacket,
   rebuildMemoryPacket,
@@ -102,6 +103,7 @@ describe("context builder output modes", () => {
       episodes: [],
       workingMemory: null,
       journal: null,
+      language: createLanguageService(),
     });
 
     expect(rebuilt.renderBudget).toEqual({ maxTokens: 6_000 });

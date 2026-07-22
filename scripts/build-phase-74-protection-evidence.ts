@@ -8,15 +8,18 @@ import {
 } from "node:path";
 
 import {
-  buildPhase74FrozenProtectionEvidence,
-} from "../src/eval/phase74ProtectionEvidence";
+  buildPhase74FrozenProtectionSuiteEvidence,
+  loadPhase74FrozenProtectionSuiteEvidence,
+} from "../src/eval/phase74ProtectionSuiteEvidence";
 import type {
-  Phase74FrozenProtectionEvidence,
-} from "../src/eval/phase74ProtectionEvidence";
+  Phase74FrozenProtectionSuiteEvidence,
+  Phase74ProtectionSuiteEvidenceDependencies,
+} from "../src/eval/phase74ProtectionSuiteEvidence";
 
 export interface Phase74ProtectionEvidenceCliOptions {
+  manifestPath: string;
   outputPath: string;
-  runArtifactPaths: [string, string, string];
+  runArtifactPaths: string[];
 }
 
 function optionValue(
@@ -40,6 +43,7 @@ export function parsePhase74ProtectionEvidenceCliOptions(
   argv: readonly string[],
 ): Phase74ProtectionEvidenceCliOptions {
   const runArtifactPaths: string[] = [];
+  let manifestPath: string | undefined;
   let outputPath: string | undefined;
   let sawOption = false;
   for (let index = 0; index < argv.length; index += 1) {
@@ -53,7 +57,11 @@ export function parsePhase74ProtectionEvidenceCliOptions(
       continue;
     }
     sawOption = true;
-    if (flag !== "--output" && flag !== "--run-artifact") {
+    if (
+      flag !== "--manifest" &&
+      flag !== "--output" &&
+      flag !== "--run-artifact"
+    ) {
       throw new Error(
         `Phase 74 protection evidence received unknown option ${flag}.`,
       );
@@ -62,15 +70,25 @@ export function parsePhase74ProtectionEvidenceCliOptions(
     index += 1;
     if (flag === "--run-artifact") {
       runArtifactPaths.push(value);
+    } else if (flag === "--manifest") {
+      if (manifestPath !== undefined) {
+        throw new Error("--manifest cannot be specified more than once.");
+      }
+      manifestPath = value;
     } else if (outputPath !== undefined) {
       throw new Error("--output cannot be specified more than once.");
     } else {
       outputPath = value;
     }
   }
-  if (runArtifactPaths.length !== 3) {
+  if (manifestPath === undefined) {
     throw new Error(
-      "Phase 74 protection evidence requires exactly three --run-artifact paths.",
+      "Phase 74 protection evidence requires exactly one --manifest path.",
+    );
+  }
+  if (runArtifactPaths.length === 0) {
+    throw new Error(
+      "Phase 74 protection evidence requires at least one --run-artifact path.",
     );
   }
   if (new Set(runArtifactPaths).size !== runArtifactPaths.length) {
@@ -79,39 +97,54 @@ export function parsePhase74ProtectionEvidenceCliOptions(
   if (outputPath === undefined) {
     throw new Error("Phase 74 protection evidence requires --output.");
   }
+  if (outputPath === manifestPath) {
+    throw new Error("--output must not overwrite the suite manifest.");
+  }
   if (runArtifactPaths.includes(outputPath)) {
     throw new Error("--output must not overwrite a frozen run artifact.");
   }
   return {
+    manifestPath,
     outputPath,
-    runArtifactPaths: runArtifactPaths as [string, string, string],
+    runArtifactPaths,
   };
 }
 
 export async function runPhase74ProtectionEvidenceGeneration(
   options: Phase74ProtectionEvidenceCliOptions,
-): Promise<Phase74FrozenProtectionEvidence> {
+  dependencies: {
+    loadEvidence?: typeof loadPhase74FrozenProtectionSuiteEvidence;
+  } & Phase74ProtectionSuiteEvidenceDependencies = {},
+): Promise<Phase74FrozenProtectionSuiteEvidence> {
+  const manifestPath = resolve(options.manifestPath);
   const outputPath = resolve(options.outputPath);
-  const evidence = await buildPhase74FrozenProtectionEvidence({
-    runArtifactPaths: options.runArtifactPaths,
-  });
-  if (evidence.source.files.some(({ rawArtifactPath }) =>
-    rawArtifactPath === outputPath
-  )) {
+  const runArtifactPaths = options.runArtifactPaths.map((path) => resolve(path));
+  if (outputPath === manifestPath) {
+    throw new Error("--output must not overwrite the suite manifest.");
+  }
+  if (runArtifactPaths.includes(outputPath)) {
+    throw new Error("--output must not overwrite a frozen run artifact.");
+  }
+  const evidence = await buildPhase74FrozenProtectionSuiteEvidence({
+    manifestPath,
+    runArtifactPaths,
+  }, { verifiers: dependencies.verifiers });
+  const sourceFiles = evidence.source.suites.flatMap(({ files }) => files);
+  if (sourceFiles.some(({ rawArtifactPath }) => rawArtifactPath === outputPath)) {
     throw new Error("--output must not overwrite a frozen raw artifact.");
   }
-  if (evidence.source.files.some(({ artifactPath }) =>
-    artifactPath === outputPath
-  )) {
+  if (sourceFiles.some(({ artifactPath }) => artifactPath === outputPath)) {
     throw new Error("--output must not overwrite a frozen run artifact.");
   }
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(
     outputPath,
     `${JSON.stringify(evidence, null, 2)}\n`,
-    "utf8",
+    { encoding: "utf8", flag: "wx" },
   );
-  return evidence;
+  return (await (
+    dependencies.loadEvidence ?? loadPhase74FrozenProtectionSuiteEvidence
+  )(outputPath, { verifiers: dependencies.verifiers })).evidence;
 }
 
 if (import.meta.main) {
@@ -121,6 +154,8 @@ if (import.meta.main) {
     outputPath: options.outputPath,
     pairedRowCount: evidence.derivation.pairedRowCount,
     protectionMetricCount: evidence.promotion.protections.length,
-    runIds: evidence.source.runIds,
+    replicateCountPerSuite: evidence.derivation.replicateCountPerSuite,
+    suiteCount: evidence.derivation.suiteCount,
+    suiteIds: evidence.source.suites.map(({ id }) => id),
   }, null, 2));
 }

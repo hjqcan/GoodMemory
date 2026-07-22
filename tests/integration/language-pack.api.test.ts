@@ -121,7 +121,7 @@ describe("LanguagePack public API integration", () => {
 
     expect(remembered.metadata).toMatchObject({
       languagePackId: "zh-Hant",
-      languagePackVersion: "6-opencc-t2cn-1.4.1",
+      languagePackVersion: "7-opencc-t2cn-1.4.1",
       locale: "zh-TW",
     });
     expect(recalled.facts.some((fact) => fact.content.includes("供應商審批"))).toBe(
@@ -129,7 +129,7 @@ describe("LanguagePack public API integration", () => {
     );
     expect(recalled.metadata).toMatchObject({
       languagePackId: "zh-Hans",
-      languagePackVersion: "6-opencc-t2cn-1.4.1",
+      languagePackVersion: "7-opencc-t2cn-1.4.1",
       locale: "zh-CN",
     });
   });

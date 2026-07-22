@@ -7,7 +7,6 @@ import { z } from "zod";
 
 import type { C3BaseHealthEvidence } from "./c3-base-health";
 import type { C3HostConfigurationEvidence } from "./c3-host-configuration";
-import { runBoundaryProcess } from "./process";
 import type {
   BoundaryProcessRequest,
   BoundaryProcessResult,
@@ -123,6 +122,105 @@ export type C3HostPreflightEvidence = z.infer<
   typeof hostPreflightEvidenceSchema
 >;
 
+interface C3HostVersionRuntime {
+  env: Record<string, string | undefined>;
+  plan: { paths: { workspace: string } };
+}
+
+interface C3HostVersionProbe {
+  args: readonly string[];
+  executable: string;
+  expectedPrefix?: string;
+  runtime: C3HostVersionRuntime;
+}
+
+interface C3HostVersionSyncResult {
+  exitCode: number | null;
+  exitedDueToTimeout?: boolean;
+  stderr: Uint8Array;
+  stdout: Uint8Array;
+}
+
+export async function runC3HostVersionProcess(
+  request: BoundaryProcessRequest,
+  spawn: (
+    request: BoundaryProcessRequest,
+  ) => C3HostVersionSyncResult = spawnC3HostVersionProcess,
+): Promise<BoundaryProcessResult> {
+  const startedAt = performance.now();
+  try {
+    const result = spawn(request);
+    const decoder = new TextDecoder();
+    return {
+      durationMs: performance.now() - startedAt,
+      exitCode: result.exitCode,
+      stderr: decoder.decode(result.stderr),
+      stdout: decoder.decode(result.stdout),
+      timedOut: result.exitedDueToTimeout === true,
+    };
+  } catch (error) {
+    return {
+      durationMs: performance.now() - startedAt,
+      exitCode: null,
+      spawnError: error instanceof Error ? error.message : String(error),
+      stderr: "",
+      stdout: "",
+      timedOut: false,
+    };
+  }
+}
+
+function spawnC3HostVersionProcess(
+  request: BoundaryProcessRequest,
+): C3HostVersionSyncResult {
+  return Bun.spawnSync({
+    cmd: [request.executable, ...request.args],
+    cwd: request.cwd,
+    env: request.env,
+    stderr: "pipe",
+    stdout: "pipe",
+    timeout: request.timeoutMs,
+  });
+}
+
+export async function collectC3HostExecutablePaths(input: {
+  bunExecutable: string;
+  npmExecutable: string;
+  resolve?: (value: string, label: string) => Promise<string>;
+}): Promise<{
+  bun: string;
+  git: string;
+  node: string;
+  npm: string;
+  python: string;
+}> {
+  const resolvePath = input.resolve ?? resolveExecutable;
+  return {
+    bun: await resolvePath(input.bunExecutable, "Bun"),
+    git: await resolvePath("git", "Git"),
+    node: await resolvePath("node", "Node"),
+    npm: await resolvePath(input.npmExecutable, "npm"),
+    python: await resolvePath("python3", "Python"),
+  };
+}
+
+export async function collectC3HostVersionOutputs(input: {
+  probes: readonly C3HostVersionProbe[];
+  run: (request: BoundaryProcessRequest) => Promise<BoundaryProcessResult>;
+}): Promise<string[]> {
+  const outputs: string[] = [];
+  for (const probe of input.probes) {
+    outputs.push(await runVersion(
+      input.run,
+      probe.executable,
+      probe.args,
+      probe.runtime,
+      probe.expectedPrefix,
+    ));
+  }
+  return outputs;
+}
+
 export async function collectC3HostPreflightEvidence(input: {
   baseHealth: {
     goodmemoryInstalled: Pick<C3BaseHealthEvidence, "commit" | "passed" | "tree">;
@@ -140,46 +238,65 @@ export async function collectC3HostPreflightEvidence(input: {
     request: BoundaryProcessRequest,
   ) => Promise<BoundaryProcessResult>;
 }): Promise<C3HostPreflightEvidence> {
-  const run = input.runProcess ?? runBoundaryProcess;
-  const [bunPath, gitPath, nodePath, npmPath, pythonPath] = await Promise.all([
-    resolveExecutable(input.bunExecutable, "Bun"),
-    resolveExecutable("git", "Git"),
-    resolveExecutable("node", "Node"),
-    resolveExecutable(input.npmExecutable, "npm"),
-    resolveExecutable("python3", "Python"),
-  ]);
+  const run = input.runProcess ?? runC3HostVersionProcess;
+  const executablePaths = await collectC3HostExecutablePaths({
+    bunExecutable: input.bunExecutable,
+    npmExecutable: input.npmExecutable,
+  });
+  const {
+    bun: bunPath,
+    git: gitPath,
+    node: nodePath,
+    npm: npmPath,
+    python: pythonPath,
+  } = executablePaths;
   const mcpExecutablePath = join(
     input.installedRuntime.plan.paths.packagePrefix!,
     "bin",
     "goodmemory-mcp",
   );
-  const [
-    bunVersion,
-    gitVersion,
-    installedFeaturesRaw,
-    nodeVersion,
-    noMemoryFeaturesRaw,
-    npmVersion,
-    pythonVersion,
-  ] = await Promise.all([
-    runVersion(run, bunPath, ["--version"], input.noMemoryRuntime),
-    runVersion(run, gitPath, ["--version"], input.noMemoryRuntime),
-    runVersion(
-      run,
-      input.installedRuntime.codex.executable,
-      ["--enable", "hooks", "--disable", "memories", "features", "list"],
-      input.installedRuntime,
-    ),
-    runVersion(run, nodePath, ["--version"], input.noMemoryRuntime),
-    runVersion(
-      run,
-      input.noMemoryRuntime.codex.executable,
-      ["--disable", "hooks", "--disable", "memories", "features", "list"],
-      input.noMemoryRuntime,
-    ),
-    runVersion(run, npmPath, ["--version"], input.noMemoryRuntime),
-    runVersion(run, pythonPath, ["--version"], input.noMemoryRuntime),
-  ]);
+  const versionOutputs = await collectC3HostVersionOutputs({
+    probes: [
+      { args: ["--version"], executable: bunPath, runtime: input.noMemoryRuntime },
+      {
+        args: ["--version"],
+        executable: gitPath,
+        expectedPrefix: "git version ",
+        runtime: input.noMemoryRuntime,
+      },
+      {
+        args: ["--enable", "hooks", "--disable", "memories", "features", "list"],
+        executable: input.installedRuntime.codex.executable,
+        runtime: input.installedRuntime,
+      },
+      {
+        args: ["--version"],
+        executable: nodePath,
+        expectedPrefix: "v",
+        runtime: input.noMemoryRuntime,
+      },
+      {
+        args: ["--disable", "hooks", "--disable", "memories", "features", "list"],
+        executable: input.noMemoryRuntime.codex.executable,
+        runtime: input.noMemoryRuntime,
+      },
+      { args: ["--version"], executable: npmPath, runtime: input.noMemoryRuntime },
+      {
+        args: ["--version"],
+        executable: pythonPath,
+        expectedPrefix: "Python ",
+        runtime: input.noMemoryRuntime,
+      },
+    ],
+    run,
+  });
+  const bunVersion = versionOutputs[0]!;
+  const gitVersion = versionOutputs[1]!;
+  const installedFeaturesRaw = versionOutputs[2]!;
+  const nodeVersion = versionOutputs[3]!;
+  const noMemoryFeaturesRaw = versionOutputs[4]!;
+  const npmVersion = versionOutputs[5]!;
+  const pythonVersion = versionOutputs[6]!;
   const installedBase = input.baseHealth.goodmemoryInstalled;
   const noMemoryBase = input.baseHealth.noMemory;
   if (
@@ -341,27 +458,44 @@ async function runVersion(
   run: (request: BoundaryProcessRequest) => Promise<BoundaryProcessResult>,
   executable: string,
   args: readonly string[],
-  runtime: C3InstalledArmRuntime | C3NoMemoryArmRuntime,
+  runtime: C3HostVersionRuntime,
+  expectedPrefix?: string,
 ): Promise<string> {
-  const result = await run({
-    args,
-    cwd: runtime.plan.paths.workspace,
-    env: runtime.env,
-    executable,
-    timeoutMs: 60_000,
-  });
-  if (
-    result.spawnError !== undefined ||
-    result.timedOut ||
-    result.exitCode !== 0
-  ) {
-    throw new Error(`C3 host preflight command failed: ${basename(executable)}`);
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    const result = await run({
+      args,
+      cwd: runtime.plan.paths.workspace,
+      env: runtime.env,
+      executable,
+      timeoutMs: 60_000,
+    });
+    if (
+      result.spawnError !== undefined ||
+      result.timedOut ||
+      result.exitCode !== 0
+    ) {
+      throw new Error(`C3 host preflight command failed: ${basename(executable)}`);
+    }
+    const output = result.stdout.length > 0 ? result.stdout : result.stderr;
+    if (output.trim().length === 0) {
+      throw new Error(`C3 host preflight command returned no output: ${basename(executable)}`);
+    }
+    if (
+      expectedPrefix === undefined ||
+      output.trimStart().startsWith(expectedPrefix)
+    ) {
+      return output;
+    }
+    console.error(JSON.stringify({
+      attempt,
+      event: "c3_host_version_probe_output_retry",
+      executable: basename(executable),
+      expectedPrefix,
+    }));
   }
-  const output = result.stdout.length > 0 ? result.stdout : result.stderr;
-  if (output.trim().length === 0) {
-    throw new Error(`C3 host preflight command returned no output: ${basename(executable)}`);
-  }
-  return output;
+  throw new Error(
+    `C3 host preflight command returned mismatched output: ${basename(executable)}`,
+  );
 }
 
 async function toolEvidence(executablePath: string, rawVersion: string) {

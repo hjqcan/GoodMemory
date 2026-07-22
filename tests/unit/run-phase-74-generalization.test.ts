@@ -151,7 +151,12 @@ describe("phase 74 generalization smoke runner", () => {
   });
 
   it("records every frozen provider object-call setting in full run identity", () => {
-    const configuration = buildPhase74FullRunIdentityConfiguration({
+    const buildConfiguration = buildPhase74FullRunIdentityConfiguration as (
+      input: Parameters<typeof buildPhase74FullRunIdentityConfiguration>[0] & {
+        protectionBlueprint: { id: string; sha256: string };
+      },
+    ) => ReturnType<typeof buildPhase74FullRunIdentityConfiguration>;
+    const configuration = buildConfiguration({
       callBudget: {
         embeddingSpendLimitUsd: 0.1,
         maxLanguageCalls: 80,
@@ -163,6 +168,10 @@ describe("phase 74 generalization smoke runner", () => {
         provider: "openai",
       },
       evaluatorSource: { commit: "head", sha256: "source-sha" },
+      protectionBlueprint: {
+        id: "phase74-protection-suite-manifest-v2",
+        sha256: "a".repeat(64),
+      },
       replicate: 2,
       reranker: {
         implementation: "lexical-coverage-v1",
@@ -200,7 +209,7 @@ describe("phase 74 generalization smoke runner", () => {
         model: "text-embedding-3-small",
         provider: "openai",
         requestTimeoutMs: 45_000,
-        retryLimit: 4,
+        retryLimit: 8,
       },
       providerObjectCalls: {
         assistedExtraction: {
@@ -247,6 +256,10 @@ describe("phase 74 generalization smoke runner", () => {
           retryLimit: 3,
           temperature: 0,
         },
+      },
+      protectionBlueprint: {
+        id: "phase74-protection-suite-manifest-v2",
+        sha256: "a".repeat(64),
       },
       reranker: {
         implementation: "lexical-coverage-v1",
@@ -302,6 +315,8 @@ describe("phase 74 generalization smoke runner", () => {
       "/private/tmp/phase74/locomo",
       "--output-dir",
       "/tmp/reports",
+      "--protection-blueprint",
+      "/tmp/phase74-protection-blueprint.json",
       "--run-id",
       "locomo-r2",
       "--stage",
@@ -330,6 +345,7 @@ describe("phase 74 generalization smoke runner", () => {
       maxLanguageCalls: 80,
       mode: "full",
       outputDir: "/tmp/reports",
+      protectionBlueprintPath: "/tmp/phase74-protection-blueprint.json",
       replicate: 2,
       rerankerMode: "deterministic",
       runId: "locomo-r2",
@@ -346,6 +362,8 @@ describe("phase 74 generalization smoke runner", () => {
       "/private/tmp/phase74/longmemeval",
       "--output-dir",
       "/tmp/reports",
+      "--protection-blueprint",
+      "/tmp/phase74-protection-blueprint.json",
       "--run-id",
       "longmemeval-r1",
       "--stage",
@@ -378,6 +396,8 @@ describe("phase 74 generalization smoke runner", () => {
       "/private/tmp/phase74/longmemeval",
       "--output-dir",
       "/tmp/reports",
+      "--protection-blueprint",
+      "/tmp/phase74-protection-blueprint.json",
       "--run-id",
       "longmemeval-r1",
       "--stage",
@@ -401,6 +421,8 @@ describe("phase 74 generalization smoke runner", () => {
       "/private/tmp/phase74/longmemeval",
       "--output-dir",
       "/tmp/reports",
+      "--protection-blueprint",
+      "/tmp/phase74-protection-blueprint.json",
       "--run-id",
       "longmemeval-r1",
       "--stage",
@@ -414,6 +436,7 @@ describe("phase 74 generalization smoke runner", () => {
       maxLanguageCalls: 50_000,
       mode: "full",
       outputDir: "/tmp/reports",
+      protectionBlueprintPath: "/tmp/phase74-protection-blueprint.json",
       replicate: 1,
       runId: "longmemeval-r1",
       stage: "E1",
@@ -554,6 +577,8 @@ describe("phase 74 generalization smoke runner", () => {
       "/tmp/benchmark",
       "--output-dir",
       "/tmp/reports",
+      "--protection-blueprint",
+      "/tmp/phase74-protection-blueprint.json",
       "--run-id",
       "../outside",
       "--stage",

@@ -1,0 +1,39 @@
+{
+  "authorTaskName": "/root",
+  "dispatch": {
+    "byteLength": 1428,
+    "path": "/Users/hjqcan/.goodmemory-eval/codex-coding-effect/projected/run-c5-pilot-v16-20260721T150112Z-verified/review/dispatch.json",
+    "sha256": "69b6ba3d49b09366d1f55904c446b634e825e2aae7c75f4f47653bed4b4784ff"
+  },
+  "inputBundle": {
+    "byteLength": 1829,
+    "path": "/Users/hjqcan/.goodmemory-eval/codex-coding-effect/projected/run-c5-pilot-v16-20260721T150112Z-verified/review/input-bundle.json",
+    "sha256": "59b1c979ddd9924d40af2998a819c634a2de995c65b50cefa9a573db8d98fa55"
+  },
+  "projectionRootPath": "/Users/hjqcan/.goodmemory-eval/codex-coding-effect/projected/run-c5-pilot-v16-20260721T150112Z-verified",
+  "recordedAt": "2026-07-21T18:06:08.061Z",
+  "request": {
+    "byteLength": 4286,
+    "path": "/Users/hjqcan/.goodmemory-eval/codex-coding-effect/projected/run-c5-pilot-v16-20260721T150112Z-verified/review/request.md",
+    "sha256": "137f578e44b48ed39aae2e71fa407fff9ea6a5dc25cbee94f887e4bafe6de6b3"
+  },
+  "response": {
+    "byteLength": 2510,
+    "path": "/Users/hjqcan/.goodmemory-eval/codex-coding-effect/projected/run-c5-pilot-v16-20260721T150112Z-verified/review/independent-review.json",
+    "sha256": "bd19614ab8b8034c4cd3fe0db97073765153199a4e0511b0c01b76addef7e5d8"
+  },
+  "reviewDecision": "accepted",
+  "reviewer": {
+    "agentName": "/root/c5_final_independent_review_v1",
+    "contextPolicy": "fork-turns-none",
+    "orchestratorAttestation": {
+      "attestedByTaskName": "/root",
+      "basis": "orchestrator-observed-dispatch-no-cryptographic-receipt",
+      "cryptographicReceipt": false
+    },
+    "requestedTaskName": "c5_final_independent_review_v1",
+    "type": "independent-ai-agent"
+  },
+  "runId": "run-c5-pilot-v16-20260721T150112Z",
+  "schemaVersion": 1
+}

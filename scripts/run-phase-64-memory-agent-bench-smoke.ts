@@ -30,10 +30,17 @@ import type { EmbeddingAdapter } from "../src/embedding/contracts";
 import {
   buildMemoryAgentBenchSmokeCases,
   MEMORY_AGENT_BENCH_COMPETENCIES,
+  scoreMemoryAgentBenchRetrieval,
   scoreMemoryAgentBenchAnswer,
   type MemoryAgentBenchCase,
   type MemoryAgentBenchCompetency,
   type MemoryAgentBenchQuestion,
+  type MemoryAgentBenchQuestionRetrieval,
+} from "../src/eval/memoryAgentBench";
+
+export {
+  scoreMemoryAgentBenchRetrieval,
+  type MemoryAgentBenchQuestionRetrieval,
 } from "../src/eval/memoryAgentBench";
 import {
   hasCliFlagStrict,
@@ -115,25 +122,6 @@ export interface MemoryAgentBenchSmokeDependencies {
 
 // Per-question result. Retrieval fields are always populated; answer fields are
 // null unless a live-answer generator is supplied.
-export interface MemoryAgentBenchQuestionRetrieval {
-  // null in retrieval-only mode; true/false once an answer is generated and
-  // scored by the upstream match mode.
-  answerCorrect: boolean | null;
-  caseId: string;
-  competency: MemoryAgentBenchCompetency;
-  evidenceChunkIds: number[];
-  evidenceRecall: number;
-  generatedAnswer: string | null;
-  goldEvidenceFullyRetrieved: boolean;
-  missingEvidenceChunkIds: number[];
-  noiseChunkCount: number;
-  noiseChunkIds: number[];
-  questionId: string;
-  retrievedChunkIds: number[];
-  staleChunkIds: number[];
-  staleChunkSelected: boolean;
-}
-
 export interface MemoryAgentBenchCompetencyRetrievalSummary {
   // Non-null only for TTL: were the behaviour-policy rules surfaced for every
   // test-time-learning question (the necessary condition for action-policy
@@ -334,52 +322,6 @@ export function collectMemoryAgentBenchRetrievedChunkIds(
     }
   }
   return [...ids];
-}
-
-export function scoreMemoryAgentBenchRetrieval(input: {
-  question: MemoryAgentBenchQuestion;
-  retrievedChunkIds: number[];
-  testCase: MemoryAgentBenchCase;
-}): MemoryAgentBenchQuestionRetrieval {
-  const { question } = input;
-  const retrieved = new Set(input.retrievedChunkIds);
-  const evidenceHit = question.evidenceChunkIds.filter((id) =>
-    retrieved.has(id),
-  ).length;
-  const evidenceRecall =
-    question.evidenceChunkIds.length === 0
-      ? 1
-      : evidenceHit / question.evidenceChunkIds.length;
-  const staleSet = new Set(question.staleChunkIds);
-  const evidenceSet = new Set(question.evidenceChunkIds);
-  const missingEvidenceChunkIds = question.evidenceChunkIds.filter(
-    (id) => !retrieved.has(id),
-  );
-  // Noise is a retrieved chunk that is neither gold evidence nor a tracked
-  // stale/superseded chunk (those are reported separately).
-  const noiseChunkIds = input.retrievedChunkIds.filter(
-    (id, index, all) =>
-      !evidenceSet.has(id) &&
-      !staleSet.has(id) &&
-      all.indexOf(id) === index,
-  );
-
-  return {
-    answerCorrect: null,
-    caseId: input.testCase.caseId,
-    competency: question.competency,
-    evidenceChunkIds: question.evidenceChunkIds,
-    evidenceRecall,
-    generatedAnswer: null,
-    goldEvidenceFullyRetrieved: evidenceRecall === 1,
-    missingEvidenceChunkIds,
-    noiseChunkCount: noiseChunkIds.length,
-    noiseChunkIds,
-    questionId: question.questionId,
-    retrievedChunkIds: input.retrievedChunkIds,
-    staleChunkIds: question.staleChunkIds,
-    staleChunkSelected: question.staleChunkIds.some((id) => retrieved.has(id)),
-  };
 }
 
 // Build the answer-generation context from the chunks recall actually surfaced,

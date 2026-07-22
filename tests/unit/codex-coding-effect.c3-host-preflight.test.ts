@@ -2,7 +2,10 @@ import { describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
 
 import {
+  collectC3HostExecutablePaths,
+  collectC3HostVersionOutputs,
   parseC3HostPreflightEvidence,
+  runC3HostVersionProcess,
   serializeC3HostPreflightEvidence,
 } from "../../scripts/codex-coding-effect/c3-host-preflight";
 
@@ -11,6 +14,119 @@ const COMMIT = "b".repeat(40);
 const TREE = "c".repeat(40);
 
 describe("Codex coding-effect C3 host preflight", () => {
+  it("resolves host executables sequentially so Bun.which results cannot cross tools", async () => {
+    let active = 0;
+    let maxActive = 0;
+    const paths = await collectC3HostExecutablePaths({
+      bunExecutable: "/opt/bin/bun",
+      npmExecutable: "/opt/bin/npm",
+      resolve: async (value) => {
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        await Bun.sleep(5);
+        active -= 1;
+        return `/resolved${value}`;
+      },
+    });
+
+    expect(paths).toEqual({
+      bun: "/resolved/opt/bin/bun",
+      git: "/resolvedgit",
+      node: "/resolvednode",
+      npm: "/resolved/opt/bin/npm",
+      python: "/resolvedpython3",
+    });
+    expect(maxActive).toBe(1);
+  });
+
+  it("collects version probes sequentially so outputs cannot cross tools", async () => {
+    let active = 0;
+    let maxActive = 0;
+    const runtime = {
+      env: {},
+      plan: { paths: { workspace: "/tmp/workspace" } },
+    };
+    const outputs = await collectC3HostVersionOutputs({
+      probes: [
+        { args: ["--version"], executable: "/opt/bin/git", runtime },
+        { args: ["--version"], executable: "/opt/bin/python3", runtime },
+      ],
+      run: async (request) => {
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        await Bun.sleep(5);
+        active -= 1;
+        return {
+          durationMs: 5,
+          exitCode: 0,
+          stderr: "",
+          stdout: request.executable.endsWith("git")
+            ? "git version 2.50.1\n"
+            : "Python 3.9.6\n",
+          timedOut: false,
+        };
+      },
+    });
+
+    expect(outputs).toEqual([
+      "git version 2.50.1\n",
+      "Python 3.9.6\n",
+    ]);
+    expect(maxActive).toBe(1);
+  });
+
+  it("retries a successful probe whose output belongs to another tool", async () => {
+    let attempts = 0;
+    const runtime = {
+      env: {},
+      plan: { paths: { workspace: "/tmp/workspace" } },
+    };
+    const outputs = await collectC3HostVersionOutputs({
+      probes: [{
+        args: ["--version"],
+        executable: "/usr/bin/git",
+        expectedPrefix: "git version ",
+        runtime,
+      }],
+      run: async () => {
+        attempts += 1;
+        return {
+          durationMs: 1,
+          exitCode: 0,
+          stderr: "",
+          stdout: attempts === 1
+            ? "Python 3.9.6\n"
+            : "git version 2.50.1\n",
+          timedOut: false,
+        };
+      },
+    });
+
+    expect(attempts).toBe(2);
+    expect(outputs).toEqual(["git version 2.50.1\n"]);
+  });
+
+  it("binds host-version output through the exact synchronous executable", async () => {
+    let requestedExecutable = "";
+    const result = await runC3HostVersionProcess({
+      args: ["--version"],
+      cwd: process.cwd(),
+      executable: "/usr/bin/git",
+      timeoutMs: 60_000,
+    }, (request) => {
+      requestedExecutable = request.executable;
+      return {
+        exitCode: 0,
+        exitedDueToTimeout: false,
+        stderr: new TextEncoder().encode(""),
+        stdout: new TextEncoder().encode("git version 2.50.1\n"),
+      };
+    });
+
+    expect(requestedExecutable).toBe("/usr/bin/git");
+    expect(result.stdout).toBe("git version 2.50.1\n");
+  });
+
   it("requires the complete frozen host and toolchain identity", () => {
     const evidence = validEvidence();
     expect(parseC3HostPreflightEvidence(evidence)).toEqual(evidence);

@@ -50,11 +50,16 @@ import {
   materializeC4SourceRepository,
 } from "../../scripts/codex-coding-effect/c4-controlled-dataset";
 import { buildC4BaselinePrompt } from "../../scripts/codex-coding-effect/c4-baseline-ceiling";
+import { buildC3HostConfigurationEvidence } from "../../scripts/codex-coding-effect/c3-host-configuration";
 import type {
   C4HiddenArtifact,
   C4LeakageSurface,
 } from "../../scripts/codex-coding-effect/c4-leakage";
 import { buildC5StageLeakageInput } from "../../scripts/codex-coding-effect/c5-leakage-input";
+import {
+  hashC5ComparableHostEnvironment,
+  parseC5HostEnvironment,
+} from "../../scripts/codex-coding-effect/c5-host-environment";
 import {
   auditC5LiveLeakageSurfaces,
 } from "../../scripts/codex-coding-effect/c5-live-leakage";
@@ -119,6 +124,7 @@ describe("Codex coding-effect C5 evidence closure", () => {
         },
         counts: {
           hostPreflights: 12,
+          opaqueProcessOnlyTrajectoryOrigins: 36,
           pairs: 36,
           projectedFiles: 394,
           stageExecutions: 72,
@@ -146,6 +152,57 @@ describe("Codex coding-effect C5 evidence closure", () => {
       });
       expect(gate.independentReviewSha256).toMatch(/^[a-f0-9]{64}$/u);
       expect(gate.reviewProvenanceSha256).toMatch(/^[a-f0-9]{64}$/u);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects normalized host configuration drift across clusters after rebinding local receipts", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-host-drift-"));
+    try {
+      const fixture = await createRawFixture(root);
+      const cluster = fixture.plan.clusters[0]!;
+      const preflightPath = join(
+        fixture.raw,
+        "trajectories",
+        clusterDigest(cluster.id),
+        "host-preflight.sanitized.json",
+      );
+      const preflight = JSON.parse(await readFile(preflightPath, "utf8")) as {
+        hostEnvironment: ReturnType<typeof c5HostEnvironment>;
+        hostIdentity: Record<string, unknown> & {
+          comparableHostEnvironmentSha256: string;
+        };
+        hostIdentitySha256: string;
+      };
+      const installed =
+        preflight.hostEnvironment.configurations.arms.goodmemoryInstalled;
+      const configurations = buildC3HostConfigurationEvidence({
+        goodmemoryInstalled: {
+          ...installed,
+          goodmemoryConfig: {
+            ...installed.goodmemoryConfig!,
+            normalizedText: '{"writebackMode":"disabled"}',
+          },
+        },
+        noMemory: preflight.hostEnvironment.configurations.arms.noMemory,
+      });
+      const driftedEnvironment = parseC5HostEnvironment({
+        ...preflight.hostEnvironment,
+        configurations,
+      });
+      preflight.hostEnvironment = driftedEnvironment;
+      preflight.hostIdentity.comparableHostEnvironmentSha256 =
+        hashC5ComparableHostEnvironment(driftedEnvironment);
+      preflight.hostIdentitySha256 = sha256(
+        JSON.stringify(preflight.hostIdentity),
+      );
+      await writeJson(preflightPath, preflight);
+
+      await expect(projectC5RunEvidence({
+        outputDirectory: join(root, "projection"),
+        rawRunDirectory: fixture.raw,
+      })).rejects.toThrow("host identity drifted across the 12 cluster preflights");
     } finally {
       await rm(root, { force: true, recursive: true });
     }
@@ -218,6 +275,27 @@ describe("Codex coding-effect C5 evidence closure", () => {
       expect(manifest.files.some((file) =>
         file.path.endsWith("attempt.sanitized.json")
       )).toBe(true);
+      expect(verification.decision).toBe("accepted");
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("projects a pre-cluster interrupted attempt with no partial artifacts", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-pre-cluster-evidence-"));
+    try {
+      const fixture = await createRawFixture(root);
+      await addInterruptedAttempt(fixture, { empty: true });
+      const projection = join(root, "projection");
+      const manifest = await projectC5RunEvidence({
+        outputDirectory: projection,
+        rawRunDirectory: fixture.raw,
+      });
+      const verification = await verifyC5EvidenceProjection({
+        projectionDirectory: projection,
+      });
+
+      expect(manifest.files).toHaveLength(395);
       expect(verification.decision).toBe("accepted");
     } finally {
       await rm(root, { force: true, recursive: true });
@@ -449,6 +527,52 @@ describe("Codex coding-effect C5 evidence closure", () => {
           },
           name: "patch-hash",
           reason: /trajectory origin receipt/u,
+        },
+        {
+          mutate: (audit) => {
+            const origins = audit.trajectoryOrigins as Array<
+              Record<string, unknown>
+            >;
+            origins.find((origin) =>
+              String(origin.id).endsWith(":codex-jsonl-output")
+            )!.sha256 = "c".repeat(64);
+          },
+          name: "codex-output-hash-binding",
+          reason: /not bound/u,
+        },
+        {
+          mutate: (audit) => {
+            const origins = audit.trajectoryOrigins as Array<
+              Record<string, unknown>
+            >;
+            const index = origins.findIndex((origin) =>
+              String(origin.id).endsWith(":codex-jsonl-output")
+            );
+            origins.splice(index, 1);
+            audit.trajectoryOriginAuditSha256 = sha256(JSON.stringify(origins));
+          },
+          name: "missing-codex-output-origin",
+          reason: /receipts are incomplete/u,
+        },
+        {
+          mutate: (audit) => {
+            const origins = audit.trajectoryOrigins as Array<
+              Record<string, unknown>
+            >;
+            const origin = origins.find((candidate) =>
+              String(candidate.id).endsWith(":codex-jsonl-output")
+            )!;
+            const matrix = origin.matrixAuditReceipt as Record<string, unknown>;
+            const cell = (matrix.cells as Array<Record<string, unknown>>)
+              .find((candidate) =>
+                candidate.surfaceId === "effective-codex-input-after-seeding"
+              )!;
+            cell.candidateFragmentCount = Number(cell.candidateFragmentCount) + 1;
+            bindMatrixAuditHash(matrix);
+            audit.trajectoryOriginAuditSha256 = sha256(JSON.stringify(origins));
+          },
+          name: "codex-output-origin-matrix",
+          reason: /drifted from frozen artifacts/u,
         },
         {
           mutate: (audit) => {
@@ -949,12 +1073,17 @@ async function createRawFixture(root: string): Promise<{
     codexVersion: "codex-test",
     goodMemoryPackageSha256: SHA,
     goodMemoryPackageVersion: "0.6.0",
-    hostEnvironmentSha256: sha256(JSON.stringify(hostEnvironment)),
+    comparableHostEnvironmentSha256:
+      hashC5ComparableHostEnvironment(hostEnvironment),
     installedProfile: installedProfile(),
     model: "gpt-test",
     reasoningEffort: "high",
   };
   for (const cluster of plan.clusters) {
+    const clusterHostEnvironment = withClusterHostConfigurationReceipts(
+      hostEnvironment,
+      cluster.id,
+    );
     const trajectory = join(raw, "trajectories", clusterDigest(cluster.id));
     const runs = plan.episodeArmRuns
       .filter((run) => run.clusterId === cluster.id)
@@ -1113,12 +1242,12 @@ async function createRawFixture(root: string): Promise<{
     await writeJson(join(trajectory, "host-preflight.sanitized.json"), {
       arms: armPreflights,
       clusterId: cluster.id,
-      hostEnvironment,
+      hostEnvironment: clusterHostEnvironment,
       hostIdentity,
       hostIdentitySha256: sha256(JSON.stringify(hostIdentity)),
       networkAccess: false,
       repository: { commit: GIT_OBJECT, tree: GIT_OBJECT },
-      schemaVersion: 1,
+      schemaVersion: 2,
     });
 
     const installedRun = runs.find((run) => run.arm === "goodmemory-installed")!;
@@ -1329,7 +1458,7 @@ async function makeFirstInstalledStageFail(fixture: {
 async function addInterruptedAttempt(fixture: {
   plan: C5PilotPlan;
   raw: string;
-}): Promise<void> {
+}, options: { empty?: boolean } = {}): Promise<void> {
   const cluster = fixture.plan.clusters.at(-1)!;
   const attemptId = `${clusterDigest(cluster.id)}-attempt-1`;
   const attemptEvidencePath =
@@ -1341,11 +1470,13 @@ async function addInterruptedAttempt(fixture: {
   const stage = stages.find((row) => row.clusterId === cluster.id)!;
   const artifactBytes = '{"partial":true}\n';
   const evidence = {
-    artifacts: [{
-      bytesBase64: Buffer.from(artifactBytes).toString("base64"),
-      path: `trajectories/${clusterDigest(cluster.id)}/goodmemory-installed/stage-1/stage-execution.sanitized.json`,
-      sha256: sha256(artifactBytes),
-    }],
+    artifacts: options.empty
+      ? []
+      : [{
+          bytesBase64: Buffer.from(artifactBytes).toString("base64"),
+          path: `trajectories/${clusterDigest(cluster.id)}/goodmemory-installed/stage-1/stage-execution.sanitized.json`,
+          sha256: sha256(artifactBytes),
+        }],
     attemptId,
     clusterId: cluster.id,
     commitTornTail: null,
@@ -1353,7 +1484,7 @@ async function addInterruptedAttempt(fixture: {
     pairRows: [],
     pairTornTail: null,
     schemaVersion: 1,
-    stageRows: [stage],
+    stageRows: options.empty ? [] : [stage],
     stageTornTail: null,
   };
   await writeJson(join(fixture.raw, attemptEvidencePath), evidence);
@@ -1597,7 +1728,7 @@ function installedProfile() {
     retrievalProfile: "coding_agent",
     workspaceStatus: "ok",
     writebackMode: "selective",
-  };
+  } as const;
 }
 
 function memoryObservationFor(
@@ -1847,9 +1978,19 @@ function leakageEvidence(input: {
     }, {
       content: agentPatchForStage(priorStage),
       id: `${priorStageId}:agent-patch`,
+    }, {
+      content: codexJsonlOutputForStage(priorStage),
+      id: `${priorStageId}:codex-jsonl-output`,
     }];
     }),
   });
+}
+
+function codexJsonlOutputForStage(stage: C5PilotStageRun): string {
+  return `${JSON.stringify({
+    item: { id: stage.id, type: "agent_message" },
+    type: "item.completed",
+  })}\n`;
 }
 
 function fixtureHookContext(
@@ -1920,20 +2061,49 @@ function requiredPrompt(
 }
 
 function c5HostEnvironment() {
-  return {
+  const installedConfigSha256 = sha256("installed-codex-config");
+  const noMemoryConfigSha256 = sha256("no-memory-codex-config");
+  const goodmemoryConfigSha256 = sha256("goodmemory-config");
+  const hooksConfigSha256 = sha256("hooks-config");
+  const configurations = buildC3HostConfigurationEvidence({
+    goodmemoryInstalled: {
+      codexConfig: {
+        normalizedText: "features.hooks=true",
+        sourceSha256: installedConfigSha256,
+      },
+      environment: c5ControlledHostEnvironment(),
+      goodmemoryConfig: {
+        normalizedText: '{"writebackMode":"selective"}',
+        sourceSha256: goodmemoryConfigSha256,
+      },
+      hooksConfig: {
+        normalizedText: '{"hooks":["SessionStart","Stop"]}',
+        sourceSha256: hooksConfigSha256,
+      },
+      profile: installedProfile(),
+    },
+    noMemory: {
+      codexConfig: {
+        normalizedText: "features.hooks=false",
+        sourceSha256: noMemoryConfigSha256,
+      },
+      environment: c5ControlledHostEnvironment(),
+      goodmemoryConfig: null,
+      hooksConfig: null,
+      profile: null,
+    },
+  });
+
+  return parseC5HostEnvironment({
     codexFeatures: {
-      goodmemoryInstalled: { hooks: { enabled: true, maturity: "stable" } },
-      noMemory: { hooks: { enabled: false, maturity: "stable" } },
+      goodmemoryInstalled: c5FeatureEvidence(true),
+      noMemory: c5FeatureEvidence(false),
     },
-    configurations: {
-      arms: { goodmemoryInstalled: {}, noMemory: {} },
-      normalizedDiff: [],
-      schemaVersion: 1,
-    },
+    configurations,
     goodmemory: {
-      configSha256: SHA,
+      configSha256: goodmemoryConfigSha256,
       executableSha256: SHA,
-      hooksSha256: SHA,
+      hooksSha256: hooksConfigSha256,
       mcpExecutableSha256: SHA,
       packageSha256: SHA,
     },
@@ -1953,6 +2123,70 @@ function c5HostEnvironment() {
         { sha256: SHA, version: `${name}-test` },
       ]),
     ),
+  });
+}
+
+function withClusterHostConfigurationReceipts(
+  environment: ReturnType<typeof c5HostEnvironment>,
+  clusterId: string,
+) {
+  const installed = environment.configurations.arms.goodmemoryInstalled;
+  const noMemory = environment.configurations.arms.noMemory;
+  const goodmemoryConfigSha256 = sha256(`${clusterId}:goodmemory-config`);
+  const hooksConfigSha256 = sha256(`${clusterId}:hooks-config`);
+  const configurations = buildC3HostConfigurationEvidence({
+    goodmemoryInstalled: {
+      ...installed,
+      codexConfig: {
+        ...installed.codexConfig,
+        sourceSha256: sha256(`${clusterId}:installed-codex-config`),
+      },
+      goodmemoryConfig: {
+        ...installed.goodmemoryConfig!,
+        sourceSha256: goodmemoryConfigSha256,
+      },
+      hooksConfig: {
+        ...installed.hooksConfig!,
+        sourceSha256: hooksConfigSha256,
+      },
+    },
+    noMemory: {
+      ...noMemory,
+      codexConfig: {
+        ...noMemory.codexConfig,
+        sourceSha256: sha256(`${clusterId}:no-memory-codex-config`),
+      },
+    },
+  });
+
+  return parseC5HostEnvironment({
+    ...environment,
+    configurations,
+    goodmemory: {
+      ...environment.goodmemory,
+      configSha256: goodmemoryConfigSha256,
+      hooksSha256: hooksConfigSha256,
+    },
+  });
+}
+
+function c5ControlledHostEnvironment(): Record<string, string> {
+  return {
+    CODEX_HOME: "<codex-home>",
+    GOODMEMORY_HOME: "<home>/.goodmemory",
+    HOME: "<home>",
+    PATH: "<package-prefix>/bin:<host-path>",
+    TMPDIR: "<temp>",
+  };
+}
+
+function c5FeatureEvidence(hooksEnabled: boolean) {
+  const rawOutput = `hooks stable ${hooksEnabled}\nmemories stable false\n`;
+  return {
+    hooks: { enabled: hooksEnabled, maturity: "stable" },
+    memories: { enabled: false, maturity: "stable" },
+    outputSha256: sha256(rawOutput),
+    rawOutput,
   };
 }
 

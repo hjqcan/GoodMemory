@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test";
 
-import { normalizeMemoryCandidate } from "../../src/remember/normalization";
+import { extractReferencePointers } from "../../src/domain/referencePointer";
 import { createLanguageService } from "../../src/language";
+import { normalizeMemoryCandidate } from "../../src/remember/normalization";
 
 describe("profile candidate normalization", () => {
   it("does not turn a contextual topic into a profile name", () => {
@@ -84,5 +85,65 @@ describe("profile candidate normalization", () => {
 
       expect(normalized.content).toBe(expected);
     }
+  });
+
+  it("extracts the canonical name from a Chinese assisted sentence", () => {
+    const language = createLanguageService({ defaultLocale: "zh-CN" });
+    const source = "我的名字是张伟";
+    const resolved = language.resolveFromText({ locale: "zh-CN", text: source });
+
+    const normalized = normalizeMemoryCandidate(
+      {
+        id: "assisted-chinese-name",
+        kindHint: "profile",
+        explicitness: "explicit",
+        content: source,
+        sourceMessageIndex: 0,
+        sourceRole: "user",
+        metadata: { profileField: "name" },
+      },
+      source,
+      { language, resolved },
+    );
+
+    expect(normalized.content).toBe("张伟");
+  });
+});
+
+describe("reference candidate normalization", () => {
+  it("does not infer supersession from an unrelated second pointer", () => {
+    const language = createLanguageService();
+    const source =
+      "Use docs/current.md as the source of truth and compare notes/status.md for context.";
+    const resolved = language.resolveFromText({ locale: "en-US", text: source });
+    const normalized = normalizeMemoryCandidate(
+      {
+        id: "reference-with-context",
+        kindHint: "reference",
+        explicitness: "explicit",
+        content: "Use docs/current.md and compare notes/status.md for context.",
+        sourceMessageIndex: 0,
+        sourceRole: "user",
+        metadata: {
+          referenceKind: "source_of_truth",
+          referencePointer: "docs/current.md",
+        },
+      },
+      source,
+      { language, resolved },
+    );
+
+    expect(normalized.metadata?.referencePointer).toBe("docs/current.md");
+    expect(normalized.metadata?.supersedesPointer).toBeUndefined();
+  });
+
+  it("extracts Unicode paths without consuming adjacent language syntax", () => {
+    expect(extractReferencePointers("请查看 文档/当前运行手册.md。"))
+      .toEqual(["文档/当前运行手册.md"]);
+    expect(extractReferencePointers("参照先は 資料/現在の手順書.md。"))
+      .toEqual(["資料/現在の手順書.md"]);
+    expect(
+      extractReferencePointers("以https://example.com/docs/runbook.md为准。"),
+    ).toEqual(["https://example.com/docs/runbook.md"]);
   });
 });

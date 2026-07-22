@@ -232,6 +232,11 @@ reports/quality-gates/**
 !reports/quality-gates/phase-73/c3-controlled-20260716-cleanclone-003/stage-evidence/
 !reports/quality-gates/phase-73/c3-controlled-20260716-cleanclone-003/stage-evidence/*.json
 !reports/quality-gates/phase-73/c3-controlled-20260716-cleanclone-003/summary.json
+!reports/quality-gates/phase-73/c3-controlled-20260716-cleanclone-003-source-reproducibility/
+!reports/quality-gates/phase-73/c3-controlled-20260716-cleanclone-003-source-reproducibility/manifest.json
+!reports/quality-gates/phase-73/c3-controlled-20260716-cleanclone-003-source-reproducibility/replayed-c3-verification.json
+!reports/quality-gates/phase-73/c3-controlled-20260716-cleanclone-003-source-reproducibility/runner-source.bundle
+!reports/quality-gates/phase-73/c3-controlled-20260716-cleanclone-003-source-reproducibility/verification.json
 !reports/quality-gates/phase-73/c4-controlled-pilot-core.json
 !reports/quality-gates/phase-73/c4-baseline-ceiling-pilot/
 !reports/quality-gates/phase-73/c4-baseline-ceiling-pilot/report.json
@@ -243,6 +248,8 @@ reports/quality-gates/**
 !reports/quality-gates/phase-73/c4-baseline-ceiling-pilot/raw-stages/*/stage-evidence.json
 !reports/quality-gates/phase-73/c4-baseline-ceiling-pilot-v1.json
 !reports/quality-gates/phase-73/c4-controlled-pilot-readiness.json
+!reports/quality-gates/phase-73/c5-native-longitudinal-pilot-v16/
+!reports/quality-gates/phase-73/c5-native-longitudinal-pilot-v16/*.json
 !reports/quality-gates/phase-18/run-20260419031141/phase-18-quality-gate.json
 !reports/quality-gates/phase-19-maintenance/run-20260419101816/phase-19-maintenance-quality-gate.json
 !reports/quality-gates/phase-19-maintenance/run-20260419162236/phase-19-maintenance-quality-gate.json

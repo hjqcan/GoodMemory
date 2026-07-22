@@ -2,7 +2,7 @@
   "benchmark": "BEAM",
   "comparison": {
     "asOf": "2026-07-16",
-    "availability": "public-opt-in",
+    "availability": "historical",
     "notes": [
       "The current result disables all 148 legacy narrow gates and legacy fitted answer postprocessing.",
       "The public 0.49 reference uses the same full-400 unified-rubric protocol.",
@@ -11,7 +11,7 @@
     "runtimeProfile": "goodmemory-hybrid-generalized+evidence-pack@0.6.0",
     "source": "https://github.com/MemPalace/mempalace/issues/125"
   },
-  "status": "candidate_public_claim",
+  "status": "internal_evidence",
   "dataset": {
     "source": "https://github.com/mohammadtavakoli78/BEAM (commit 3e12035532eb85768f1a7cd779832b650c4b2ef9; 100K split, 20 conversations, 400 questions, 1051 rubric items)",
     "license": "CC BY-SA 4.0 (dataset; repository code MIT)",
@@ -51,82 +51,76 @@
       {
         "assertions": [
           {
-            "path": ["status"],
-            "equals": "passed"
+            "path": ["artifactKind"],
+            "equals": "tracked-historical-evidence-projection"
           },
           {
-            "path": ["packageVersion"],
-            "equals": "0.6.0"
+            "path": ["benchmark"],
+            "equals": "BEAM"
           },
           {
-            "path": ["benchmarkGate", "passed"],
-            "equals": true
+            "path": ["generatedBy"],
+            "equals": "scripts/project-historical-evidence.ts"
           },
           {
-            "path": ["metrics", "beam", "totalQuestions"],
-            "equals": 400
-          },
-          {
-            "path": ["metrics", "beam", "officialRubricItems"],
-            "equals": 1051
-          },
-          {
-            "path": ["metrics", "beam", "executionFailures"],
-            "equals": 0
-          },
-          {
-            "path": ["metrics", "beam", "officialJudgeFailures"],
-            "equals": 0
-          },
-          {
-            "path": ["metrics", "beam", "evidenceRecall"],
-            "equals": 0.8276290063614009
-          },
-          {
-            "path": ["metrics", "beam", "officialUnifiedScore"],
-            "equals": 0.7650987103174604
-          },
-          {
-            "path": ["metrics", "beam", "officialPaperScore"],
-            "equals": 0.7510180807799507
-          },
-          {
-            "path": ["metrics", "beam", "strictBinaryScore"],
-            "equals": 0.62
-          },
-          {
-            "path": ["metrics", "beam", "publicReferenceScore"],
-            "equals": 0.49
-          }
-        ],
-        "description": "Phase 72 generalized benchmark release gate with source-report fingerprints",
-        "path": "reports/quality-gates/phase-72/run-20260716-final/phase-72-release-gate.json"
-      },
-      {
-        "assertions": [
-          {
-            "path": ["audit", "summary", "totalEventOrderingCases"],
-            "equals": 40
-          },
-          {
-            "path": ["audit", "summary", "casesWithNonChronologicalEvidenceOrder"],
-            "equals": 7
-          },
-          {
-            "path": ["audit", "summary", "adjacentEvidenceOrderInversions"],
-            "equals": 8
-          },
-          {
-            "path": ["audit", "summary", "casesWithRequestedRubricCountMismatch"],
+            "path": ["schemaVersion"],
             "equals": 1
           },
           {
-            "path": ["audit", "summary", "strictBinaryGateEligible"],
+            "path": ["runIdentity", "commit"],
+            "equals": "d639fbd1996d61136e89137d378e4948c10b326f"
+          },
+          {
+            "path": ["runIdentity", "runId"],
+            "equals": "run-20260716-final"
+          },
+          {
+            "path": ["sourceArtifacts", 0, "path"],
+            "equals": "reports/quality-gates/phase-72/run-20260716-final/phase-72-release-gate.json"
+          },
+          {
+            "path": ["sourceArtifacts", 0, "bytes"],
+            "equals": 11423
+          },
+          {
+            "path": ["sourceArtifacts", 0, "sha256"],
+            "equals": "2773421619867e6659fc12df62be980e7c2c74bf19299e17158a9a94dc240ea6"
+          },
+          {
+            "path": ["sourceArtifacts", 1, "path"],
+            "equals": "reports/quality-gates/phase-72/run-20260716-final/beam-event-ordering-integrity-audit.json"
+          },
+          {
+            "path": ["sourceArtifacts", 1, "bytes"],
+            "equals": 27502
+          },
+          {
+            "path": ["sourceArtifacts", 1, "sha256"],
+            "equals": "ca0b8bae78f9158abf154b55081cb67423842f21e54ce28417120a68c3073d01"
+          },
+          {
+            "path": ["claim", "packageVersion"],
+            "equals": "0.6.0"
+          },
+          {
+            "path": ["claim", "officialUnifiedScore"],
+            "equals": 0.7650987103174604
+          },
+          {
+            "path": ["claim", "strictBinaryScore"],
+            "equals": 0.62
+          },
+          {
+            "path": ["claim", "casesWithNonChronologicalEvidenceOrder"],
+            "equals": 7
+          },
+          {
+            "path": ["claim", "strictBinaryGateEligible"],
             "equals": false
           }
         ],
-        "description": "Frozen BEAM event-ordering integrity audit",
-        "path": "reports/quality-gates/phase-72/run-20260716-final/beam-event-ordering-integrity-audit.json"
+        "description": "Tracked compact projection of the historical v0.6.0 BEAM release evidence",
+        "path": "benchmark-claims/evidence/beam-v0.6.0-historical.json"
       }
     ]
   },
@@ -141,7 +135,7 @@
     "note": "All 400 questions and 1051 rubric items, executionFailures 0, judgeFailures 0. Generalized evidence recall is 0.8276290064 with all 148 narrow gates disabled. The independent gpt-5.5 unified-rubric score is 0.7650987103 versus the only public full-400 same-protocol reference 0.49. The upstream paper-protocol score is 0.7510180808. Strict binary is 248/400 = 0.620 and remains disclosed rather than hidden. The frozen event-ordering audit found 7/40 cases with 8 adjacent chronology reversals and one five-item question whose rubric has six items, so strict 0.72 is diagnostic for this dataset snapshot; it becomes a hard gate again if the audit becomes eligible."
   },
   "claimBoundary": {
-    "publicClaimAllowed": true,
-    "reason": "Current v0.6.0 public-opt-in generalized evidence: complete coverage, zero execution/judge failures, independent judge, verified non-vendored dataset/license, reproducible command and source commit, 0.8276 recall, and 0.7651 unified score versus the public same-protocol 0.49 reference. The declaration explicitly discloses the 0.620 strict score, 0.7510 paper score, and event-ordering integrity limitation."
+    "publicClaimAllowed": false,
+    "reason": "Versioned v0.6.0 evidence is retained unchanged, but it is not a current v0.7.0 claim until the benchmark is rerun against the new package and LanguagePack semantics."
   }
 }

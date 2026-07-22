@@ -77,6 +77,48 @@ export function scopeDeletionLockIdsForDocument(
 
 export interface ScopeDeletionCoordinator {
   runExclusive<T>(scope: MemoryScope, operation: () => Promise<T>): Promise<T>;
+  runMutation<T>(scope: MemoryScope, operation: () => Promise<T>): Promise<T>;
+}
+
+interface ActiveScopeMutation {
+  completion: Promise<void>;
+  scope: MemoryScope;
+}
+
+interface ScopeMutationGate {
+  deletions: Set<MemoryScope>;
+  mutations: Set<ActiveScopeMutation>;
+}
+
+const SHARED_SCOPE_MUTATION_GATES = new WeakMap<
+  ProjectionCapableDocumentStore,
+  ScopeMutationGate
+>();
+
+function scopesOverlap(left: MemoryScope, right: MemoryScope): boolean {
+  if (left.userId !== right.userId) {
+    return false;
+  }
+  return OPTIONAL_SCOPE_KEYS.every((key) =>
+    left[key] === undefined ||
+    right[key] === undefined ||
+    left[key] === right[key]
+  );
+}
+
+function sharedScopeMutationGate(
+  documentStore: ProjectionCapableDocumentStore,
+): ScopeMutationGate {
+  const existing = SHARED_SCOPE_MUTATION_GATES.get(documentStore);
+  if (existing) {
+    return existing;
+  }
+  const created: ScopeMutationGate = {
+    deletions: new Set(),
+    mutations: new Set(),
+  };
+  SHARED_SCOPE_MUTATION_GATES.set(documentStore, created);
+  return created;
 }
 
 export function createScopeDeletionAwareDocumentStore(
@@ -276,71 +318,125 @@ export function createScopeDeletionAwareDocumentStore(
 export function createScopeDeletionCoordinator(
   documentStore: ProjectionCapableDocumentStore,
 ): ScopeDeletionCoordinator {
+  const gate = sharedScopeMutationGate(documentStore);
+
+  async function runWithPersistentLock<T>(
+    scope: MemoryScope,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    const id = scopeDeletionLockId(scope);
+    const lock: ScopeDeletionLock = {
+      generation: crypto.randomUUID(),
+      id,
+      operationId: crypto.randomUUID(),
+      state: "deleting",
+    };
+    let acquired = false;
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const existing = await documentStore.get<ScopeDeletionLock>(
+        SCOPE_DELETION_LOCKS_COLLECTION,
+        id,
+      );
+      if (existing && existing.state !== "open") {
+        throw new Error(
+          `Memory deletion is already in progress for scope ${id}`,
+        );
+      }
+      acquired = await documentStore.writeBatchIfUnchanged({
+        expected: {
+          collection: SCOPE_DELETION_LOCKS_COLLECTION,
+          document: existing,
+          id,
+        },
+        set: [{
+          collection: SCOPE_DELETION_LOCKS_COLLECTION,
+          document: lock,
+          id,
+        }],
+      });
+      if (acquired) {
+        break;
+      }
+    }
+    if (!acquired) {
+      throw new Error(`Memory deletion lock changed repeatedly for scope ${id}`);
+    }
+
+    try {
+      return await operation();
+    } finally {
+      const released = await documentStore.writeBatchIfUnchanged({
+        expected: {
+          collection: SCOPE_DELETION_LOCKS_COLLECTION,
+          document: lock,
+          id,
+        },
+        set: [{
+          collection: SCOPE_DELETION_LOCKS_COLLECTION,
+          document: {
+            generation: crypto.randomUUID(),
+            id,
+            state: "open",
+          } satisfies ScopeDeletionLock,
+          id,
+        }],
+      });
+      if (!released) {
+        throw new Error(`Memory deletion lock changed before release for ${id}`);
+      }
+    }
+  }
+
   return {
+    async runMutation<T>(
+      scope: MemoryScope,
+      operation: () => Promise<T>,
+    ): Promise<T> {
+      const normalized = normalizeScope(scope);
+      if ([...gate.deletions].some((deletionScope) =>
+        scopesOverlap(deletionScope, normalized)
+      )) {
+        throw new Error(
+          `Memory deletion is in progress for scope ${scopeDeletionLockId(normalized)}`,
+        );
+      }
+      let finish = () => {};
+      const mutation: ActiveScopeMutation = {
+        completion: new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+        scope: normalized,
+      };
+      gate.mutations.add(mutation);
+      try {
+        return await operation();
+      } finally {
+        gate.mutations.delete(mutation);
+        finish();
+      }
+    },
     async runExclusive<T>(
       scope: MemoryScope,
       operation: () => Promise<T>,
     ): Promise<T> {
-      const id = scopeDeletionLockId(scope);
-      const lock: ScopeDeletionLock = {
-        generation: crypto.randomUUID(),
-        id,
-        operationId: crypto.randomUUID(),
-        state: "deleting",
-      };
-      let acquired = false;
-      for (let attempt = 0; attempt < 8; attempt += 1) {
-        const existing = await documentStore.get<ScopeDeletionLock>(
-          SCOPE_DELETION_LOCKS_COLLECTION,
-          id,
+      const normalized = normalizeScope(scope);
+      if ([...gate.deletions].some((deletionScope) =>
+        scopesOverlap(deletionScope, normalized)
+      )) {
+        throw new Error(
+          `Memory deletion is already in progress for scope ${scopeDeletionLockId(normalized)}`,
         );
-        if (existing && existing.state !== "open") {
-          throw new Error(
-            `Memory deletion is already in progress for scope ${id}`,
-          );
-        }
-        acquired = await documentStore.writeBatchIfUnchanged({
-          expected: {
-            collection: SCOPE_DELETION_LOCKS_COLLECTION,
-            document: null,
-            id,
-          },
-          set: [{
-            collection: SCOPE_DELETION_LOCKS_COLLECTION,
-            document: lock,
-            id,
-          }],
-        });
-        if (acquired) {
-          break;
-        }
       }
-      if (!acquired) {
-        throw new Error(`Memory deletion lock changed repeatedly for scope ${id}`);
-      }
-
+      gate.deletions.add(normalized);
       try {
-        return await operation();
+        await Promise.all([...gate.mutations]
+          .filter(({ scope: mutationScope }) =>
+            scopesOverlap(normalized, mutationScope)
+          )
+          .map(({ completion }) => completion));
+        return await runWithPersistentLock(normalized, operation);
       } finally {
-        const released = await documentStore.writeBatchIfUnchanged({
-          expected: {
-            collection: SCOPE_DELETION_LOCKS_COLLECTION,
-            document: lock,
-            id,
-          },
-          set: [{
-            collection: SCOPE_DELETION_LOCKS_COLLECTION,
-            document: {
-              generation: crypto.randomUUID(),
-              id,
-              state: "open",
-            } satisfies ScopeDeletionLock,
-            id,
-          }],
-        });
-        if (!released) {
-          throw new Error(`Memory deletion lock changed before release for ${id}`);
-        }
+        gate.deletions.delete(normalized);
       }
     },
   };

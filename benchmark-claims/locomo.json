@@ -2,7 +2,7 @@
   "benchmark": "LoCoMo",
   "comparison": {
     "asOf": "2026-07-16",
-    "availability": "public-opt-in",
+    "availability": "historical",
     "notes": [
       "The strict token-F1 and independent official judge-protocol numbers are reported separately.",
       "The result uses the recommended provider-backed retrieval and first-party reranking path.",
@@ -11,7 +11,7 @@
     "runtimeProfile": "recommended+provider-embedding+provider-reranking@0.6.0",
     "source": "https://github.com/mem0ai/memory-benchmarks"
   },
-  "status": "candidate_public_claim",
+  "status": "internal_evidence",
   "dataset": {
     "source": "https://github.com/snap-research/locomo",
     "license": "CC BY-NC 4.0",
@@ -48,36 +48,56 @@
       {
         "assertions": [
           {
-            "path": ["status"],
-            "equals": "passed"
+            "path": ["artifactKind"],
+            "equals": "tracked-historical-evidence-projection"
           },
           {
-            "path": ["packageVersion"],
+            "path": ["benchmark"],
+            "equals": "LoCoMo"
+          },
+          {
+            "path": ["generatedBy"],
+            "equals": "scripts/project-historical-evidence.ts"
+          },
+          {
+            "path": ["schemaVersion"],
+            "equals": 1
+          },
+          {
+            "path": ["runIdentity", "commit"],
+            "equals": "d639fbd1996d61136e89137d378e4948c10b326f"
+          },
+          {
+            "path": ["runIdentity", "runId"],
+            "equals": "run-20260716-final"
+          },
+          {
+            "path": ["sourceArtifacts", 0, "path"],
+            "equals": "reports/quality-gates/phase-72/run-20260716-final/phase-72-release-gate.json"
+          },
+          {
+            "path": ["sourceArtifacts", 0, "bytes"],
+            "equals": 11423
+          },
+          {
+            "path": ["sourceArtifacts", 0, "sha256"],
+            "equals": "2773421619867e6659fc12df62be980e7c2c74bf19299e17158a9a94dc240ea6"
+          },
+          {
+            "path": ["claim", "packageVersion"],
             "equals": "0.6.0"
           },
           {
-            "path": ["metrics", "locomo", "executionFailures"],
-            "equals": 0
-          },
-          {
-            "path": ["metrics", "locomo", "officialJudgeFailures"],
-            "equals": 0
-          },
-          {
-            "path": ["metrics", "locomo", "strictScore"],
-            "equals": 0.6298701298701299
-          },
-          {
-            "path": ["metrics", "locomo", "officialScore"],
+            "path": ["claim", "officialScore"],
             "equals": 0.8707792207792208
           },
           {
-            "path": ["metrics", "locomo", "openDomainScore"],
-            "equals": 0.6145833333333334
+            "path": ["claim", "strictScore"],
+            "equals": 0.6298701298701299
           }
         ],
-        "description": "Phase 72 generalized benchmark release gate with source-report fingerprints",
-        "path": "reports/quality-gates/phase-72/run-20260716-final/phase-72-release-gate.json"
+        "description": "Tracked compact projection of the historical v0.6.0 LoCoMo release evidence",
+        "path": "benchmark-claims/evidence/locomo-v0.6.0-historical.json"
       }
     ]
   },
@@ -92,7 +112,7 @@
     "note": "Full 10 conversations and 1540 non-adversarial questions, executionFailures 0 and judgeFailures 0. Independent gpt-5.5 official-protocol score is 0.8707792208; strict deterministic token-F1 is 0.6298701299. Open-domain is 59/96 = 0.6145833333. The same scorer's historical no-memory non-adversarial baseline is 0.0045. The dataset is CC BY-NC 4.0, so the non-commercial scope is mandatory disclosure."
   },
   "claimBoundary": {
-    "publicClaimAllowed": true,
-    "reason": "Current v0.6.0 public-opt-in recommended path with complete coverage, zero execution/judge failures, independent judge, verified non-vendored dataset/license, reproducible command/source commit, and separate strict and comparable tracks. The non-commercial dataset license and provider-backed profile are explicitly disclosed."
+    "publicClaimAllowed": false,
+    "reason": "Versioned v0.6.0 evidence is retained unchanged, but it is not a current v0.7.0 claim until the benchmark is rerun against the new package and LanguagePack semantics."
   }
 }

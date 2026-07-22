@@ -53,32 +53,18 @@ describe("GoodMemory capability descriptor", () => {
     ]);
   });
 
-  it("presents only the current v0.6 benchmark claims", () => {
-    const { version } = readPackageJson();
+  it("does not promote v0.6 benchmark evidence as a current v0.7 claim", () => {
     const descriptor = buildGoodMemoryCapabilityDescriptor();
-    expect(descriptor.benchmarks.currentClaims.map((claim) => claim.name)).toEqual([
-      "LoCoMo",
-      "BEAM",
-      "MemoryAgentBench",
-    ]);
-    expect(
-      descriptor.benchmarks.currentClaims.every(
-        (claim) => claim.measuredPackageVersion === version,
-      ),
-    ).toBe(true);
-    expect(descriptor.benchmarks.currentClaims[0]?.result).toContain("0.8708");
-    expect(descriptor.benchmarks.currentClaims[1]?.result).toContain("0.7651");
-    expect(descriptor.benchmarks.currentClaims[2]?.result).toContain("TTL 0.933");
+    expect(descriptor.benchmarks.currentClaims).toEqual([]);
     expect(descriptor.benchmarks.historicalEvidence.url).toBe(
       "https://github.com/hjqcan/GoodMemory/tree/main/benchmark-claims",
     );
     expect(descriptor.benchmarks.historicalEvidence.note).toContain(
-      "LongMemEval and ImplicitMemBench",
+      "v0.6.0",
     );
-    const surfaced = JSON.stringify(descriptor.benchmarks);
-    for (const staleHeadline of ["0.837", "0.802", "TTL 0.767"]) {
-      expect(surfaced).not.toContain(staleHeadline);
-    }
+    expect(descriptor.benchmarks.historicalEvidence.note).toContain(
+      "LoCoMo, BEAM, and MemoryAgentBench",
+    );
   });
 
   it("names three onboarding paths with distinct delivery methods", () => {

@@ -139,6 +139,41 @@ describe("language service", () => {
     expect(resolved.languagePackId).toBe("ja");
   });
 
+  it("keeps Japanese as the default for ambiguous shared Han vocabulary", () => {
+    const service = createLanguageService({ defaultLocale: "ja-JP" });
+
+    for (const text of ["現在", "項目"]) {
+      expect(service.resolveFromText({ text })).toMatchObject({
+        languagePackId: "ja",
+        locale: "ja-JP",
+        localeSource: "default",
+      });
+    }
+  });
+
+  it("does not split sentences or query facets inside paths and decimals", () => {
+    const service = createLanguageService();
+    const sentence = "Use docs/runbook.md for release 1.2. Then verify.";
+    const resolved = service.resolveFromText({
+      locale: "en-US",
+      text: sentence,
+    });
+
+    expect(service.splitSentences(sentence, resolved)).toEqual([
+      "Use docs/runbook.md for release 1.2.",
+      "Then verify.",
+    ]);
+    expect(
+      service.decomposeQuery(
+        "What is in docs/runbook.md? What changed in release 1.2?",
+        resolved,
+      ),
+    ).toEqual([
+      "What is in docs/runbook.md",
+      "What changed in release 1.2",
+    ]);
+  });
+
   it("maps explicit Chinese region locales to the correct script pack", () => {
     const service = createLanguageService();
 
@@ -302,7 +337,7 @@ describe("language service", () => {
     expect(
       manifest.packs.find(({ id }) => id === "zh-Hant"),
     ).toMatchObject({
-      analyzerVersion: "6-opencc-t2cn-1.4.1",
+      analyzerVersion: "7-opencc-t2cn-1.4.1",
       apiVersion: 1,
       compatibilityGroup: "zh",
       defaultLocale: "zh-Hant",

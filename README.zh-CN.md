@@ -21,7 +21,7 @@ GoodMemory 不是 LLM、agent framework、向量数据库，也不是通用 RAG 
 ## 从这里开始：Codex 或 Claude Code
 
 ```bash
-npm install -g goodmemory@0.6.0
+npm install -g goodmemory@0.7.0
 goodmemory setup
 ```
 
@@ -38,8 +38,9 @@ GoodMemory 把「当前生产声明」「带版本的历史证据」和「内部
 投影断言与 README 一致性；它不是对上游 license 或被忽略原始报告的独立复现。历史行使用
 独立 marker 和源文件指纹，复现仍需要取得对应原始 artifact，且不能满足当前版本 gate。
 
-Phase 72 的 benchmark gate 和带版本 release gate 已为 `v0.6.0` 收口。下面三行是
-明确披露 profile 的 public-opt-in 当前结果，不代表零 provider 默认路径。
+Phase 72 的 benchmark gate 和带版本 release gate 仍是 `v0.6.0` 的有效历史证据。
+`v0.7.0` 改变了 LanguagePack 与召回语义；在新版本完成同等 fresh run 之前，当前声明表
+保持为空。
 LongMemEval 的新 verifier 结果与 ImplicitMemBench 的 retry-merged 结果仍属于内部
 证据，因为前者是 eval-only 路径，后者不能替代一次全新的单体 Full-300 运行。
 HaluMem、MemGym 与 MINTEval 继续作为 release evidence，不进入公开 benchmark 声明。
@@ -47,9 +48,6 @@ HaluMem、MemGym 与 MINTEval 继续作为 release evidence，不进入公开 be
 <!-- current-claims-table:start -->
 | 基准 | 主指标 | GoodMemory 结果 | 基线 / 参照 | Claim declaration |
 |---|---|---:|---:|---|
-| LoCoMo（完整 10 会话） | 独立官方判官协议；strict 确定性 token-F1 | official **0.8708** · strict **0.6299** · open-domain **0.6146**（59/96） | 历史无记忆 0.0045 | [locomo.json](./benchmark-claims/locomo.json) |
-| BEAM 100K（400 题、1051 条 rubric） | 独立官方 unified rubric；另行披露 strict binary | unified **0.7651** · strict **0.620**（248/400）· 泛化 recall **0.8276** | 公开 full-400 同协议参照 0.49 | [beam.json](./benchmark-claims/beam.json) |
-| MemoryAgentBench (CR, TTL) | 上游确定性 match-mode，judge-free | **CR 0.959, TTL 0.933** | 两项无记忆均为 0.000 | [memoryagentbench.json](./benchmark-claims/memoryagentbench.json) |
 <!-- current-claims-table:end -->
 
 ### 带版本的内部证据
@@ -57,6 +55,9 @@ HaluMem、MemGym 与 MINTEval 继续作为 release evidence，不进入公开 be
 <!-- historical-evidence-table:start -->
 | 基准 | 主指标 | GoodMemory 结果 | 基线 / 参照 | Claim declaration |
 |---|---|---:|---:|---|
+| LoCoMo v0.6.0（完整 10 会话） | 独立官方判官协议；strict 确定性 token-F1 | official **0.8708** · strict **0.6299** · open-domain **0.6146**（59/96） | 历史无记忆 0.0045 | [locomo.json](./benchmark-claims/locomo.json) |
+| BEAM 100K v0.6.0（400 题、1051 条 rubric） | 独立官方 unified rubric；另行披露 strict binary | unified **0.7651** · strict **0.620**（248/400）· 泛化 recall **0.8276** | 公开 full-400 同协议参照 0.49 | [beam.json](./benchmark-claims/beam.json) |
+| MemoryAgentBench v0.6.0 (CR, TTL) | 上游确定性 match-mode，judge-free | **CR 0.959, TTL 0.933** | 两项无记忆均为 0.000 | [memoryagentbench.json](./benchmark-claims/memoryagentbench.json) |
 | LongMemEval full 500 | 严格轨：judge-free 确定性子集 · 诊断轨：LongMemEval 官方 prompt 兼容判官 | 严格 **0.720**（360/500）· prompt-compatible **0.888**（444/500），`goodmemory-rules-only` | 无记忆 0.068；当前 Mem0 harness：94.4 Top200 / 94.8 Top50（模型栈与预算不同） | [longmemeval.json](./benchmark-claims/longmemeval.json) |
 | ImplicitMemBench Full-300 | stored-answer cross-version judge rescore | **0.691**（207.35/300），gpt-5.4 judge over gpt-5.5 answers，sourceAnswersUnchanged | upstream-chat 基线 **0.400**（120/300）；reference line 0.66 | [implicitmembench.json](./benchmark-claims/implicitmembench.json) |
 <!-- historical-evidence-table:end -->
@@ -77,20 +78,20 @@ numeric_count）判对才计入；eval 流水线里的同模型 semantic judge�
 绝大多数是纯弃答（34 个对里占 30 个），所以 +65.2 个百分点的提升来自记忆系统本身。
 judge-free 指的是评分方式——答案仍由 gpt-5.5 生成。完整溯源见
 [claim declaration](./benchmark-claims/longmemeval.json)。
-当前 MemoryAgentBench 声明刻意限定范围。答案由 `gpt-5.6-terra` 生成，评分采用
+历史 v0.6.0 MemoryAgentBench 证据刻意限定范围。答案由 `gpt-5.6-terra` 生成，评分采用
 上游确定性 match-mode，属于 judge-free。Conflict Resolution 得 CR 0.959
 （70/73），Test-Time Learning 得 TTL 0.933（28/30），无记忆 arm 在两项上均为
 `0.000`。Accurate Retrieval（AR）与 Long-Range Understanding（LRU）被排除，
 因为既有对照没有证明 memory lift；不会把可脱离记忆作答的选择题收益混入平均数。
 
-当前 LoCoMo 声明覆盖全部 1540 道非对抗题，`executionFailures: 0`。答案、对话式
+历史 v0.6.0 LoCoMo 证据覆盖全部 1540 道非对抗题，`executionFailures: 0`。答案、对话式
 萃取与 provider reranking 使用 `gpt-5.6-terra`，官方协议轨由独立
 `gpt-5.5` 判官评分。official 为 0.8708，strict 确定性 token-F1 为 0.6299，
 open-domain 为 59/96 = 0.6146，对照历史无记忆 0.0045。这是 public-opt-in 的
 recommended provider-embedding profile，不是无 embedding 默认配置。LoCoMo
 数据集为 CC BY-NC 4.0（非商用范围），eval 时拉取、从不 vendor 进仓库。
 
-当前 BEAM 声明使用 `gpt-5.6-terra` 回答和独立 `gpt-5.5` 判官。泛化路径关闭
+历史 v0.6.0 BEAM 证据使用 `gpt-5.6-terra` 回答和独立 `gpt-5.5` 判官。泛化路径关闭
 全部 148 个 legacy narrow gate 与 fitted answer 后处理，evidence recall 为
 0.8276；全部 400 题、1051 条 official rubric 的 unified 得分为 0.7651，对照
 公开同协议 0.49，执行与判官失败均为零。strict binary 仍如实披露为 0.620
@@ -139,7 +140,7 @@ GoodMemory 有三类主要产品入口。它不是只有这些 API：`goodmemory
 也会在 `/.well-known/goodmemory.json` 提供该 descriptor）。
 
 - **你是、或运行在 Claude Code / Codex 里** →
-  `npm install -g goodmemory@0.6.0 && goodmemory setup`。不确定环境里已经装了
+  `npm install -g goodmemory@0.7.0 && goodmemory setup`。不确定环境里已经装了
   什么？运行 `goodmemory adopt`（加 `--json` 得到机器可读方案）：它会检测
   `.claude/`、`.codex/` 和已有的 MCP 配置，并打印出针对你环境的确切下一条命令。
 - **你支持 MCP**（Cursor、Windsurf、Cline、Claude Desktop、Gemini CLI、
@@ -234,12 +235,12 @@ GoodMemory 负责 memory loop 和存储边界。
 
 ## 安装
 
-GoodMemory `0.6.0` 有两条常用安装路径。
+GoodMemory `0.7.0` 有两条常用安装路径。
 
 如果你想给已安装的 coding agent 增加记忆能力，使用全局 CLI：
 
 ```bash
-npm install -g goodmemory@0.6.0
+npm install -g goodmemory@0.7.0
 goodmemory setup
 goodmemory status
 ```
@@ -247,11 +248,11 @@ goodmemory status
 如果你是在应用里集成 GoodMemory，作为项目依赖安装：
 
 ```bash
-npm install goodmemory@0.6.0
+npm install goodmemory@0.7.0
 ```
 
 如果你想直接输入 `goodmemory`，必须安装全局 CLI。
-项目内 `npm install goodmemory@0.6.0` 不会把 `goodmemory` 放进 shell 的 `PATH`。
+项目内 `npm install goodmemory@0.7.0` 不会把 `goodmemory` 放进 shell 的 `PATH`。
 这种本地依赖安装只能从该项目里用 `npx goodmemory`、
 `npm exec -- goodmemory` 或 `./node_modules/.bin/goodmemory` 调用。
 
@@ -262,13 +263,13 @@ npx goodmemory -V
 Bun 项目可以直接安装：
 
 ```bash
-bun add goodmemory@0.6.0
+bun add goodmemory@0.7.0
 ```
 
 发布前 tarball 验证：
 
 ```bash
-npm install ./goodmemory-0.6.0.tgz
+npm install ./goodmemory-0.7.0.tgz
 ```
 
 已安装 CLI 的非版本命令由 Bun 支撑。package bin 对 `goodmemory -V` 和 `goodmemory --version` 是 Node-safe 的；其他命令会委托给 Bun。
@@ -278,7 +279,7 @@ npm install ./goodmemory-0.6.0.tgz
 大多数用户最先需要的是 installed-host memory。
 
 ```bash
-npm install -g goodmemory@0.6.0
+npm install -g goodmemory@0.7.0
 goodmemory setup
 goodmemory status
 ```
@@ -961,7 +962,7 @@ const result = await adapter.readArtifacts({
 ## CLI Reference
 
 shell `PATH` 上的裸 `goodmemory` 命令来自
-`npm install -g goodmemory@0.6.0` 安装的全局 CLI。本地 dependency install
+`npm install -g goodmemory@0.7.0` 安装的全局 CLI。本地 dependency install
 里，用 `npx goodmemory`、`npm exec -- goodmemory` 或
 `./node_modules/.bin/goodmemory` 调用 package bin。repo-local
 `bun run goodmemory` 只用于开发。

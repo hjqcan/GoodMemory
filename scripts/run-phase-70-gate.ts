@@ -4,6 +4,7 @@ import { dirname, join, relative, resolve } from "node:path";
 
 import { applyFactRerankingToResult } from "../src/api/recallReranking";
 import type { RecallResult } from "../src/api/contracts";
+import { createLanguageService } from "../src/language";
 import {
   PHASE70_RERANKER_GATEWAY,
   PHASE70_RERANKER_MODEL,
@@ -83,6 +84,7 @@ export async function buildPhase70FallbackProof(): Promise<Phase70FallbackProof>
     strategy: "rules-only",
   });
   const fallback = await applyFactRerankingToResult({
+    language: createLanguageService(),
     query: "What does each migration need?",
     reranker: {
       async rerank() {

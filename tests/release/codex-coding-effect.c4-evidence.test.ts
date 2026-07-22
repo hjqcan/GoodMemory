@@ -247,12 +247,12 @@ describe("Codex coding-effect C4 tracked evidence", () => {
     }
 
     expect(taskBoard).toContain("[DONE] Canonical C4 v9 is accepted.");
-    expect(taskBoard).toContain("[OPEN] C5 broader live pilot is unblocked");
+    expect(taskBoard).toContain("[DONE] C5 internal run");
     expect(plan).toContain("**V8 SUPERSEDED; V9 ACCEPTED; C5");
     expect(currentStatus).toContain(
       "the canonical v9",
     );
-    expect(currentStatus).toContain("C5 is unblocked for internal execution");
+    expect(currentStatus).toContain("C5 internal run");
   }, 180_000);
 });
 

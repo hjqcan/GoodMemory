@@ -2,7 +2,7 @@
   "benchmark": "MemoryAgentBench",
   "comparison": {
     "asOf": "2026-07-16",
-    "availability": "public-opt-in",
+    "availability": "historical",
     "notes": [
       "The claim remains scoped to Conflict Resolution and Test-Time Learning.",
       "Both metrics use deterministic upstream match-mode scoring with no LLM judge.",
@@ -11,7 +11,7 @@
     "runtimeProfile": "recommended-evidence-pack-cr-ttl@0.6.0",
     "source": "https://github.com/HUST-AI-HYZ/MemoryAgentBench"
   },
-  "status": "candidate_public_claim",
+  "status": "internal_evidence",
   "dataset": {
     "source": "https://github.com/HUST-AI-HYZ/MemoryAgentBench",
     "license": "MIT",
@@ -46,32 +46,56 @@
       {
         "assertions": [
           {
-            "path": ["status"],
-            "equals": "passed"
+            "path": ["artifactKind"],
+            "equals": "tracked-historical-evidence-projection"
           },
           {
-            "path": ["packageVersion"],
+            "path": ["benchmark"],
+            "equals": "MemoryAgentBench"
+          },
+          {
+            "path": ["generatedBy"],
+            "equals": "scripts/project-historical-evidence.ts"
+          },
+          {
+            "path": ["schemaVersion"],
+            "equals": 1
+          },
+          {
+            "path": ["runIdentity", "commit"],
+            "equals": "d639fbd1996d61136e89137d378e4948c10b326f"
+          },
+          {
+            "path": ["runIdentity", "runId"],
+            "equals": "run-20260716-final"
+          },
+          {
+            "path": ["sourceArtifacts", 0, "path"],
+            "equals": "reports/quality-gates/phase-72/run-20260716-final/phase-72-release-gate.json"
+          },
+          {
+            "path": ["sourceArtifacts", 0, "bytes"],
+            "equals": 11423
+          },
+          {
+            "path": ["sourceArtifacts", 0, "sha256"],
+            "equals": "2773421619867e6659fc12df62be980e7c2c74bf19299e17158a9a94dc240ea6"
+          },
+          {
+            "path": ["claim", "packageVersion"],
             "equals": "0.6.0"
           },
           {
-            "path": ["metrics", "memoryAgentBench", "conflictResolutionExecutionFailures"],
-            "equals": 0
-          },
-          {
-            "path": ["metrics", "memoryAgentBench", "testTimeLearningExecutionFailures"],
-            "equals": 0
-          },
-          {
-            "path": ["metrics", "memoryAgentBench", "conflictResolutionScore"],
+            "path": ["claim", "conflictResolutionScore"],
             "equals": 0.958904109589041
           },
           {
-            "path": ["metrics", "memoryAgentBench", "testTimeLearningScore"],
+            "path": ["claim", "testTimeLearningScore"],
             "equals": 0.9333333333333333
           }
         ],
-        "description": "Phase 72 generalized benchmark release gate with source-report fingerprints",
-        "path": "reports/quality-gates/phase-72/run-20260716-final/phase-72-release-gate.json"
+        "description": "Tracked compact projection of the historical v0.6.0 MemoryAgentBench release evidence",
+        "path": "benchmark-claims/evidence/memoryagentbench-v0.6.0-historical.json"
       }
     ]
   },
@@ -86,7 +110,7 @@
     "note": "CR covers all 73 questions and scores 70/73 = 0.9589041096. TTL covers all 30 questions and scores 28/30 = 0.9333333333. Both runs have executionFailures 0 and use deterministic upstream match-mode scoring. The established no-memory baseline is 0.000 for both. AR and LRU remain excluded from this claim because prior controls did not establish a memory lift."
   },
   "claimBoundary": {
-    "publicClaimAllowed": true,
-    "reason": "Current v0.6.0 public-opt-in evidence with complete CR/TTL coverage, zero execution failures, deterministic judge-free scoring, verified non-vendored MIT dataset, reproducible commands and source commit, and a 0.000 no-memory baseline. The claim excludes AR/LRU rather than averaging in non-memory wins."
+    "publicClaimAllowed": false,
+    "reason": "Versioned v0.6.0 evidence is retained unchanged, but it is not a current v0.7.0 claim until the benchmark is rerun against the new package and LanguagePack semantics."
   }
 }

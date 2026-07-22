@@ -39,6 +39,7 @@ import {
   type EntityAdjacencyProjection,
   type RecallIndexDocument,
 } from "../../src/recall/projections/contracts";
+import { SCOPE_DELETION_LOCKS_COLLECTION } from "../../src/storage/scopeDeletion";
 
 describe("public governance API", () => {
   it("exports scoped durable memory and optional runtime memory", async () => {
@@ -802,6 +803,128 @@ describe("public governance API", () => {
       messages: [{ role: "user", content: "Remember that a new rollout starts now." }],
     });
     expect(postDeleteWrite.accepted).toBeGreaterThan(0);
+  });
+
+  it("waits for an active remember vector commit before terminal scoped deletion", async () => {
+    const inner = createInMemoryDocumentStore();
+    let deletionLockRead = false;
+    const documentStore: ProjectionCapableDocumentStore = {
+      ...inner,
+      async get<TDocument extends StorageDocument>(
+        collection: string,
+        id: string,
+      ) {
+        if (collection === SCOPE_DELETION_LOCKS_COLLECTION) {
+          deletionLockRead = true;
+        }
+        return inner.get<TDocument>(collection, id);
+      },
+    };
+    const sessionStore = createInMemorySessionStore();
+    const vectorStore = createInMemoryVectorStore();
+    let releaseEmbedding = () => {};
+    let signalEmbedding = () => {};
+    const embeddingStarted = new Promise<void>((resolve) => {
+      signalEmbedding = resolve;
+    });
+    const embeddingRelease = new Promise<void>((resolve) => {
+      releaseEmbedding = resolve;
+    });
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore,
+        vectorStore,
+        embeddingAdapter: {
+          async embed(texts) {
+            signalEmbedding();
+            await embeddingRelease;
+            return texts.map(() => [1, 1, 1]);
+          },
+        },
+      },
+    });
+    const scope = {
+      userId: "u-delete-active-vector-write",
+      workspaceId: "workspace-a",
+      sessionId: "session-a",
+    };
+
+    const remember = memory.remember({
+      scope,
+      messages: [{
+        role: "user",
+        content: "Remember that the private rollout token is active.",
+      }],
+    });
+    await embeddingStarted;
+    deletionLockRead = false;
+    const deletion = memory.deleteAllMemory({ scope });
+    await Promise.resolve();
+
+    expect(deletionLockRead).toBe(false);
+
+    releaseEmbedding();
+    await remember;
+    await deletion;
+
+    expect(await inner.query("facts", scope)).toEqual([]);
+    expect(
+      await vectorStore.search("facts", [1, 1, 1], {
+        filter: scope,
+        topK: 10,
+      }),
+    ).toEqual([]);
+  });
+
+  it("rejects a runtime write that starts during terminal scoped deletion", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const innerSessionStore = createInMemorySessionStore();
+    let releaseRuntimeDelete = () => {};
+    let signalRuntimeDelete = () => {};
+    const runtimeDeleteStarted = new Promise<void>((resolve) => {
+      signalRuntimeDelete = resolve;
+    });
+    const runtimeDeleteRelease = new Promise<void>((resolve) => {
+      releaseRuntimeDelete = resolve;
+    });
+    const sessionStore = {
+      ...innerSessionStore,
+      async deleteWorkingMemoryByScope(scope: Parameters<
+        typeof innerSessionStore.deleteWorkingMemoryByScope
+      >[0]) {
+        const deleted = await innerSessionStore.deleteWorkingMemoryByScope(scope);
+        signalRuntimeDelete();
+        await runtimeDeleteRelease;
+        return deleted;
+      },
+    };
+    const memory = createGoodMemory({
+      adapters: { documentStore, sessionStore },
+    });
+    const scope = {
+      userId: "u-delete-runtime-write",
+      workspaceId: "workspace-a",
+      sessionId: "session-a",
+    };
+    await memory.runtime.startSession({ scope });
+    await memory.runtime.updateWorkingMemory({
+      scope,
+      patch: { currentGoal: "private goal before deletion" },
+    });
+
+    const deletion = memory.deleteAllMemory({ scope });
+    await runtimeDeleteStarted;
+    const lateWrite = memory.runtime.updateWorkingMemory({
+      scope,
+      patch: { currentGoal: "private goal after deletion started" },
+    });
+
+    await expect(lateWrite).rejects.toThrow("Memory deletion is in progress");
+    releaseRuntimeDelete();
+    await deletion;
+
+    expect(await innerSessionStore.getWorkingMemory(scope)).toBeNull();
   });
 
   it("fails closed when an adapter cannot provide terminal delete semantics", async () => {

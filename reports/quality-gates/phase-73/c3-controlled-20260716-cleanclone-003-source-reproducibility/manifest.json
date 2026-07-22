@@ -1,0 +1,17 @@
+{
+  "bundle": {
+    "bytes": 4891617,
+    "path": "runner-source.bundle",
+    "ref": "refs/heads/c3-snapshot-003",
+    "sha256": "86aa767660b30fc9b6930c166c86cd9415d2e0083919e629abbdd9ef1d613ecb"
+  },
+  "evidenceClass": "frozen-prehistory-pilot",
+  "projectionDirectory": "c3-controlled-20260716-cleanclone-003",
+  "projectionManifestSha256": "1210f9908154af56b68c22f5235eff1a19824d009c2cd06a5ec9932b869f5008",
+  "runId": "c3-controlled-20260716-cleanclone-003",
+  "runnerSource": {
+    "commit": "fc31f4f96f3975daea361805da3fc4fc942c5aa4",
+    "tree": "996b1c24bfb53a9d9c62eb109997576df7b512af"
+  },
+  "schemaVersion": 1
+}

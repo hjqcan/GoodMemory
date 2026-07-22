@@ -4,8 +4,11 @@ import { resolve } from "node:path";
 
 const GENERATED_BY = "scripts/project-historical-evidence.ts";
 const PROJECTION_PATHS = [
+  "benchmark-claims/evidence/beam-v0.6.0-historical.json",
   "benchmark-claims/evidence/implicitmembench-historical.json",
+  "benchmark-claims/evidence/locomo-v0.6.0-historical.json",
   "benchmark-claims/evidence/longmemeval-historical.json",
+  "benchmark-claims/evidence/memoryagentbench-v0.6.0-historical.json",
 ] as const;
 
 interface HistoricalEvidenceProjection {

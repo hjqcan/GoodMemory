@@ -57,6 +57,10 @@ import {
 import type {
   C5InstalledHostCanaryResult,
 } from "./c5-host-canary";
+import {
+  hashC5ComparableHostEnvironment,
+  parseC5HostEnvironment,
+} from "./c5-host-environment";
 import { buildC5StageLeakageInput } from "./c5-leakage-input";
 import type {
   C5LivePilotAdapter,
@@ -112,6 +116,7 @@ import { runBoundaryProcess } from "./process";
 type C5Runtime = C3InstalledArmRuntime | C3NoMemoryArmRuntime;
 type C5Episode = CodexCodingEffectDatasetV2["episodes"][number];
 type C5DatasetStage = C5Episode["stages"][number];
+
 const RUNNER_SOURCE_FILE = fileURLToPath(import.meta.url);
 const RUNNER_SOURCE_ROOT = resolve(dirname(RUNNER_SOURCE_FILE), "../..");
 
@@ -1077,7 +1082,7 @@ async function auditClusterWhenReady(input: {
     npmExecutable: input.input.npmExecutable,
     reasoningEffort: input.input.reasoningEffort,
   });
-  const hostEnvironment = {
+  const hostEnvironment = parseC5HostEnvironment({
     codexFeatures: hostPreflight.codex.features,
     configurations: hostConfigurations,
     goodmemory: {
@@ -1095,14 +1100,15 @@ async function auditClusterWhenReady(input: {
     toolchain: Object.fromEntries(Object.entries(hostPreflight.toolchain).map(
       ([name, tool]) => [name, { sha256: tool.sha256, version: tool.version }],
     )),
-  };
-  const hostEnvironmentSha256 = sha256(JSON.stringify(hostEnvironment));
+  });
+  const comparableHostEnvironmentSha256 =
+    hashC5ComparableHostEnvironment(hostEnvironment);
   const hostIdentity = {
     codexExecutableSha256: installed.runtime.codex.executableSha256,
     codexVersion: installed.runtime.codex.version,
     goodMemoryPackageSha256: installed.runtime.package.sha256,
     goodMemoryPackageVersion: installed.runtime.package.version,
-    hostEnvironmentSha256,
+    comparableHostEnvironmentSha256,
     installedProfile: installed.runtime.profile,
     model: input.input.model,
     reasoningEffort: input.input.reasoningEffort,
@@ -1136,7 +1142,7 @@ async function auditClusterWhenReady(input: {
       commit: installed.repository.commit,
       tree: installed.repository.tree,
     },
-    schemaVersion: 1,
+    schemaVersion: 2,
   }, null, 2)}\n`;
   await writeFile(
     join(

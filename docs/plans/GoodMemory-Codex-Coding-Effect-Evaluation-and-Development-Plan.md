@@ -1687,8 +1687,8 @@ both arms directly probe current and other-arm copied auth, configs, source,
 evaluator, output, package, runner, workspace, and network boundaries
 immediately before model launch.
 
-C3 final result (2026-07-16): **internally accepted; source reproducibility
-reopened**. Run
+C3 final result (2026-07-21): **internally accepted; source reproducibility
+closed**. Run
 `c3-controlled-20260716-cleanclone-003` used a clean mechanical runner snapshot
 at commit `fc31f4f96f3975daea361805da3fc4fc942c5aa4` / tree
 `996b1c24bfb53a9d9c62eb109997576df7b512af`, clean GoodMemory source
@@ -1706,12 +1706,21 @@ contains 17 bound files. An independent verifier accepted internal consistency
 and two clean-clone patch replays with no reasons. It records
 `externalAuthenticityVerified: false`, so it does not authenticate the package,
 raw run, or canary without an external CI artifact, signature, or transparency
-root. The recorded GoodMemory commit/tree remain reachable, but runner commit
-`fc31f4f96f3975daea361805da3fc4fc942c5aa4` and tree
-`996b1c24bfb53a9d9c62eb109997576df7b512af` are not present in the current Git
-object database. C3 therefore remains internal protocol/host evidence but is
-not currently source-reproducible; it proves no coding uplift. Phase 73 remains
-active with C4-C7 open.
+root. The supplemental tracked source-reproducibility evidence under
+`reports/quality-gates/phase-73/c3-controlled-20260716-cleanclone-003-source-reproducibility/`
+contains a complete 4,891,617-byte Git bundle for runner commit
+`fc31f4f96f3975daea361805da3fc4fc942c5aa4` / tree
+`996b1c24bfb53a9d9c62eb109997576df7b512af`. Bundle SHA-256
+`86aa767660b30fc9b6930c166c86cd9415d2e0083919e629abbdd9ef1d613ecb`
+is bound to the original projection-manifest SHA-256
+`1210f9908154af56b68c22f5235eff1a19824d009c2cd06a5ec9932b869f5008`.
+The source verifier cloned only that bundle, checked the exact commit/tree and
+clean status, then executed the bundled historical verifier; it again accepted
+all 17 projected files and both clean-clone patch replays. This closes C3 source
+reproducibility without treating the author-recovered bundle as an external
+signature: `externalAuthenticityVerified` remains false. C3 proves protocol and
+installed-host execution, not coding uplift. Phase 73 remains active with C6-C7
+open.
 
 ### Phase C4: controlled pilot dataset
 
@@ -1881,9 +1890,9 @@ C5 acceptance:
 - failure taxonomy reviewed;
 - power analysis and full-set budget produced.
 
-C5 implementation status (2026-07-16): **CORE AND REAL LAUNCH HARNESS
-IMPLEMENTED; READY FOR ZERO-WRITE PREFLIGHT**. No C5 live pilot has run. The zero-write readiness
-command is:
+C5 implementation status (2026-07-21): **INTERNAL PILOT ACCEPTED; PUBLIC
+CODING-EFFECT CLAIM STILL INELIGIBLE**. The accepted v16 run used the following
+zero-write readiness entrypoint before any live stage:
 
 ~~~bash
 bun run prepare:codex-coding-effect:c5-pilot \
@@ -1891,7 +1900,7 @@ bun run prepare:codex-coding-effect:c5-pilot \
   --order-seed=<positive-integer>
 ~~~
 
-After readiness succeeds, the real internal-only entrypoint is:
+The internal-only live entrypoint was:
 
 ~~~bash
 bun run eval:codex-coding-effect:c5-pilot -- \
@@ -1957,14 +1966,33 @@ snapshot is frozen. The resulting C6 budget cannot
 fall below 30 episodes, 90 distinct scored stages, 6 repositories, 3 order
 seeds, or 540 Codex calls.
 
-A six-process C5 lifecycle diagnostic canary made live model calls, but it was
-rejected before the broader pilot after live evidence disproved an exact-equality
-prior-memory rule. Its source identity was later invalidated, so it is diagnostic
-evidence only. No accepted C5 canary, broader pilot, or paired coding result
-exists. The readiness command now replays the accepted canonical C4 v9 bundle
-and produces the frozen 72-process plan without relying on gitignored local
-evidence. C5 is unblocked for internal execution, not accepted, and no
-coding-uplift statement is eligible.
+The earlier six-process lifecycle diagnostic canary remains rejected because
+live evidence disproved its exact-equality prior-memory rule and its source
+identity was later invalidated. It was not reused. Accepted run
+`run-c5-pilot-v16-20260721T150112Z` instead completed 72/72 scheduled Codex
+stages, 36/36 pairs, and 12/12 cluster commits. Thirty pairs were comparable:
+GoodMemory resolved 28/30 versus 12/30 for no-memory, with 16 rescues, zero
+regressions, and a 0.2667-0.6667 paired episode-cluster bootstrap interval for
+the 0.5333 net-rescue rate. Six host-canary infrastructure failures and six
+memory-channel failures are retained in the failure taxonomy, and the affected
+pairs remain incomparable.
+
+The independent verifier accepted 395 sanitized files and disclosed 36
+process-only Codex JSONL trajectory-origin receipts. It independently
+recomputed prompt and patch origins, validated the opaque receipts' canonical
+IDs, digests, matrix integrity, frozen-artifact invariants, candidate claims,
+and surface bindings, but did not claim access to their redacted content
+preimages. Therefore `externalAuthenticityVerified` remains false. A fresh
+`fork-turns-none` reviewer accepted the five C5 assertions with this
+authenticity boundary as an advisory; reviewer/author provenance and the final
+accepted gate are tracked under
+`reports/quality-gates/phase-73/c5-native-longitudinal-pilot-v16/`.
+
+The pilot is a positive internal controlled signal and produces a C6 minimum
+budget of 113 episodes, 339 scored stages, 6 repositories, 3 seeds, and 2034
+Codex calls. It does not close C6/C7 and cannot create a README benchmark row:
+`publicClaimEligible`, `publicCodingEffectProof`, and `readmeRowAllowed` remain
+false.
 
 ### Phase C6: expanded dataset and full run
 

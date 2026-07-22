@@ -58,6 +58,66 @@ export interface MemoryAgentBenchCase {
   sourceDataset: string;
 }
 
+export interface MemoryAgentBenchQuestionRetrieval {
+  answerCorrect: boolean | null;
+  caseId: string;
+  competency: MemoryAgentBenchCompetency;
+  evidenceChunkIds: number[];
+  evidenceRecall: number;
+  generatedAnswer: string | null;
+  goldEvidenceFullyRetrieved: boolean;
+  missingEvidenceChunkIds: number[];
+  noiseChunkCount: number;
+  noiseChunkIds: number[];
+  questionId: string;
+  retrievedChunkIds: number[];
+  staleChunkIds: number[];
+  staleChunkSelected: boolean;
+}
+
+export function scoreMemoryAgentBenchRetrieval(input: {
+  question: MemoryAgentBenchQuestion;
+  retrievedChunkIds: number[];
+  testCase: MemoryAgentBenchCase;
+}): MemoryAgentBenchQuestionRetrieval {
+  const retrieved = new Set(input.retrievedChunkIds);
+  const evidenceSet = new Set(input.question.evidenceChunkIds);
+  const staleSet = new Set(input.question.staleChunkIds);
+  const evidenceHit = input.question.evidenceChunkIds.filter((id) =>
+    retrieved.has(id)
+  ).length;
+  const evidenceRecall = input.question.evidenceChunkIds.length === 0
+    ? 1
+    : evidenceHit / input.question.evidenceChunkIds.length;
+  const noiseChunkIds = input.retrievedChunkIds.filter(
+    (id, index, all) =>
+      !evidenceSet.has(id) &&
+      !staleSet.has(id) &&
+      all.indexOf(id) === index,
+  );
+
+  return {
+    answerCorrect: null,
+    caseId: input.testCase.caseId,
+    competency: input.question.competency,
+    evidenceChunkIds: input.question.evidenceChunkIds,
+    evidenceRecall,
+    generatedAnswer: null,
+    goldEvidenceFullyRetrieved: evidenceRecall === 1,
+    missingEvidenceChunkIds: input.question.evidenceChunkIds.filter(
+      (id) => !retrieved.has(id),
+    ),
+    noiseChunkCount: noiseChunkIds.length,
+    noiseChunkIds,
+    questionId: input.question.questionId,
+    retrievedChunkIds: input.retrievedChunkIds,
+    staleChunkIds: input.question.staleChunkIds,
+    staleChunkSelected: input.question.staleChunkIds.some((id) =>
+      retrieved.has(id)
+    ),
+  };
+}
+
 export function normalizeMemoryAgentBenchAnswer(value: string): string {
   return value.normalize("NFKC").replace(/\s+/gu, " ").trim().toLowerCase();
 }

@@ -110,6 +110,9 @@ import {
   hashEvalExperimentIdentity,
 } from "../src/eval/runIdentity";
 import type { EvalRunJsonObject } from "../src/eval/runIdentity";
+import {
+  loadPhase74ProtectionBlueprintDescriptor,
+} from "../src/eval/phase74ProtectionSuiteEvidence";
 
 const DEFAULT_DATASET_PATH =
   "fixtures/external-benchmarks/longmemeval/longmemeval_s_smoke.json";
@@ -281,6 +284,7 @@ export interface Phase74GeneralizationFullOptions {
   generatedAt?: string;
   maxLanguageCalls: number;
   outputDir: string;
+  protectionBlueprintPath: string;
   replicate: 1 | 2 | 3;
   rerankerMode?: "deterministic" | "provider";
   runId: string;
@@ -1039,6 +1043,10 @@ export async function runPhase74GeneralizationFull(
     repoRoot: process.cwd(),
   });
   const promptSha256s = phase74LivePromptSha256s();
+  const protectionBlueprint =
+    await loadPhase74ProtectionBlueprintDescriptor(
+      options.protectionBlueprintPath,
+    );
   const generatedAt = options.generatedAt ?? new Date().toISOString();
   const runDirectory = join(resolve(options.outputDir), options.runId);
   await mkdir(runDirectory, { recursive: true });
@@ -1059,6 +1067,7 @@ export async function runPhase74GeneralizationFull(
       dataset: dataset.manifest as unknown as EvalRunJsonObject,
       embedding: buildPhase74EmbeddingIdentity(models.embedding),
       evaluatorSource,
+      protectionBlueprint,
       replicate: options.replicate,
       reranker: rerankerMode === "deterministic"
         ? {
@@ -1495,6 +1504,7 @@ export type Phase74GeneralizationCliOptions =
       maxLanguageCalls: number;
       mode: "full";
       outputDir: string;
+      protectionBlueprintPath: string;
       replicate: 1 | 2 | 3;
       rerankerMode?: "deterministic" | "provider";
       runId: string;
@@ -1533,6 +1543,7 @@ export function parsePhase74GeneralizationCliOptions(
   }
   const benchmarkRoot = readFlag("--benchmark-root");
   const outputDir = readFlag("--output-dir");
+  const protectionBlueprintPath = readFlag("--protection-blueprint");
   const runId = readFlag("--run-id");
   const rawCaseSelectionSeed = readFlag("--case-selection-seed");
   const rawCaseSelectionSize = readFlag("--case-selection-size");
@@ -1599,9 +1610,9 @@ export function parsePhase74GeneralizationCliOptions(
   ) {
     throw new Error("--reranker-mode must be deterministic or provider.");
   }
-  if (!benchmarkRoot || !outputDir || !runId) {
+  if (!benchmarkRoot || !outputDir || !protectionBlueprintPath || !runId) {
     throw new Error(
-      "Phase 74 full mode requires --benchmark-root, --output-dir, and --run-id.",
+      "Phase 74 full mode requires --benchmark-root, --output-dir, --protection-blueprint, and --run-id.",
     );
   }
   assertCliPathSegmentValue({ flag: "--run-id", value: runId });
@@ -1621,6 +1632,7 @@ export function parsePhase74GeneralizationCliOptions(
     maxLanguageCalls: Number(rawMaxLanguageCalls),
     mode,
     outputDir,
+    protectionBlueprintPath: resolve(protectionBlueprintPath),
     replicate: Number(rawReplicate) as 1 | 2 | 3,
     ...(rerankerMode === undefined ? {} : { rerankerMode }),
     runId,

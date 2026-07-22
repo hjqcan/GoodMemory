@@ -11,10 +11,6 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
 
 import {
-  parsePhase74ProtectionEvidenceCliOptions,
-  runPhase74ProtectionEvidenceGeneration,
-} from "../../scripts/build-phase-74-protection-evidence";
-import {
   buildPhase74FrozenProtectionEvidence,
   hashPhase74ProtectionCaseIds,
   loadPhase74FrozenProtectionEvidence,
@@ -58,6 +54,36 @@ async function writeJson(path: string, value: unknown): Promise<void> {
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
+function structuredRaw(input: {
+  caseIdsSha256: string;
+  replicate: 1 | 2 | 3;
+  rows: readonly {
+    baseline: Phase74ProtectionBranchScores;
+    candidate: Phase74ProtectionBranchScores;
+    caseId: string;
+  }[];
+  runId: string;
+}): string {
+  return `${JSON.stringify({
+    artifactKind: "phase74-frozen-protection-raw",
+    executionFailures: 0,
+    failures: [],
+    population: {
+      caseCount: input.rows.length,
+      caseIdsSha256: input.caseIdsSha256,
+    },
+    replicate: input.replicate,
+    rows: input.rows.map((row) => ({
+      baseline: { rawOutput: { fixture: true }, scores: row.baseline },
+      candidate: { rawOutput: { fixture: true }, scores: row.candidate },
+      caseId: row.caseId,
+      inputSha256: sha256(JSON.stringify({ caseId: row.caseId })),
+    })),
+    runId: input.runId,
+    schemaVersion: 1,
+  }, null, 2)}\n`;
+}
+
 interface Fixture {
   artifactPaths: [string, string, string];
   outputPath: string;
@@ -83,9 +109,6 @@ async function createFixture(): Promise<Fixture> {
   };
   const artifactPaths = [] as string[];
   for (const replicate of [1, 2, 3] as const) {
-    const rawArtifactPath = join(root, `raw-${replicate}.jsonl`);
-    const raw = `raw protection evidence ${replicate}\n`;
-    await writeFile(rawArtifactPath, raw, "utf8");
     const rows = caseIds.map((caseId, caseIndex) => {
       const baselineProtection = 0.4 + caseIndex * 0.1;
       const candidateProtection = baselineProtection + replicate * 0.05;
@@ -111,6 +134,15 @@ async function createFixture(): Promise<Fixture> {
         caseId,
       };
     });
+    const runId = `protection-run-${replicate}`;
+    const rawArtifactPath = join(root, `raw-${replicate}.json`);
+    const raw = structuredRaw({
+      caseIdsSha256: identity.population.caseIdsSha256,
+      replicate,
+      rows,
+      runId,
+    });
+    await writeFile(rawArtifactPath, raw, "utf8");
     const artifactPath = join(root, `replicate-${replicate}.json`);
     const artifact = {
       artifactKind: "phase74-frozen-protection-run",
@@ -122,7 +154,7 @@ async function createFixture(): Promise<Fixture> {
       },
       replicate,
       rows,
-      runId: `protection-run-${replicate}`,
+      runId,
       schemaVersion: 1,
     } satisfies Phase74FrozenProtectionRunArtifact;
     await writeJson(artifactPath, artifact);
@@ -186,10 +218,10 @@ describe("Phase 74 frozen protection evidence", () => {
 
   it("writes a v2 artifact and re-derives it while loading", async () => {
     const fixture = await createFixture();
-    const report = await runPhase74ProtectionEvidenceGeneration({
-      outputPath: fixture.outputPath,
+    const report = await buildPhase74FrozenProtectionEvidence({
       runArtifactPaths: fixture.artifactPaths,
     });
+    await writeJson(fixture.outputPath, report);
     const loaded = await loadPhase74FrozenProtectionEvidence(fixture.outputPath);
 
     expect(loaded.evidence).toEqual(report);
@@ -267,38 +299,19 @@ describe("Phase 74 frozen protection evidence", () => {
         }
       }
     }
+    const raw = structuredRaw({
+      caseIdsSha256: first.identity.population.caseIdsSha256,
+      replicate: first.replicate,
+      rows: first.rows,
+      runId: first.runId,
+    });
+    await writeFile(first.rawArtifact.path, raw, "utf8");
+    first.rawArtifact.sha256 = sha256(raw);
     await writeJson(fixture.artifactPaths[0], first);
 
     await expect(buildPhase74FrozenProtectionEvidence({
       runArtifactPaths: fixture.artifactPaths,
     })).rejects.toThrow("metric population drift across replicates");
-  });
-
-  it("exposes a paths-only CLI with no delta or safety escape hatch", async () => {
-    const fixture = await createFixture();
-    expect(parsePhase74ProtectionEvidenceCliOptions([
-      "bun",
-      "script.ts",
-      ...fixture.artifactPaths.flatMap((path) => ["--run-artifact", path]),
-      "--output",
-      fixture.outputPath,
-    ])).toEqual({
-      outputPath: fixture.outputPath,
-      runArtifactPaths: fixture.artifactPaths,
-    });
-    expect(() => parsePhase74ProtectionEvidenceCliOptions([
-      ...fixture.artifactPaths.flatMap((path) => ["--run-artifact", path]),
-      "--output",
-      fixture.outputPath,
-      "--delta",
-      "0.1",
-    ])).toThrow("unknown option --delta");
-    expect(() => parsePhase74ProtectionEvidenceCliOptions([
-      "--run-artifact",
-      fixture.artifactPaths[0],
-      "--output",
-      fixture.outputPath,
-    ])).toThrow("exactly three --run-artifact");
   });
 
   it("registers the protection evidence producer as a package script", async () => {

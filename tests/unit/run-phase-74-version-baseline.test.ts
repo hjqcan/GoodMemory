@@ -47,6 +47,10 @@ function fullRunConfiguration() {
       commit: "a".repeat(40),
       sha256: "b".repeat(64),
     },
+    protectionBlueprint: {
+      id: "phase74-protection-suite-manifest-v2",
+      sha256: "d".repeat(64),
+    },
     replicate: 1,
     reranker: {
       implementation: "lexical-coverage-v1",

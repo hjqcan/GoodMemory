@@ -1,0 +1,25 @@
+{
+  "artifactKind": "tracked-historical-evidence-projection",
+  "benchmark": "LoCoMo",
+  "generatedBy": "scripts/project-historical-evidence.ts",
+  "claim": {
+    "executionFailures": 0,
+    "officialJudgeFailures": 0,
+    "officialScore": 0.8707792207792208,
+    "openDomainScore": 0.6145833333333334,
+    "packageVersion": "0.6.0",
+    "strictScore": 0.6298701298701299
+  },
+  "runIdentity": {
+    "commit": "d639fbd1996d61136e89137d378e4948c10b326f",
+    "runId": "run-20260716-final"
+  },
+  "schemaVersion": 1,
+  "sourceArtifacts": [
+    {
+      "bytes": 11423,
+      "path": "reports/quality-gates/phase-72/run-20260716-final/phase-72-release-gate.json",
+      "sha256": "2773421619867e6659fc12df62be980e7c2c74bf19299e17158a9a94dc240ea6"
+    }
+  ]
+}

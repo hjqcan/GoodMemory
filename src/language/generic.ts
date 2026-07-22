@@ -127,7 +127,7 @@ export function splitClausesGeneric(content: string): string[] {
 
 export function createNeutralLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "2",
+    analyzerVersion: "3",
     apiVersion: 1,
     compatibilityGroup: "neutral",
     defaultLocale: "und",

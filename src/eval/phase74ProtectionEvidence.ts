@@ -68,7 +68,7 @@ export interface Phase74FrozenProtectionRunArtifact {
   schemaVersion: 1;
 }
 
-interface LoadedProtectionRunArtifact {
+export interface LoadedPhase74FrozenProtectionRunArtifact {
   artifactPath: string;
   artifactSha256: string;
   identity: Phase74ProtectionRunIdentity;
@@ -243,7 +243,7 @@ function parseDescriptor(
   };
 }
 
-function parseIdentity(
+export function parsePhase74ProtectionRunIdentity(
   value: unknown,
   label: string,
 ): Phase74ProtectionRunIdentity {
@@ -361,9 +361,113 @@ function parseRow(value: unknown, label: string): Phase74ProtectionCaseRow {
   };
 }
 
-async function loadRunArtifact(
+function validateStructuredRawArtifact(input: {
+  identity: Phase74ProtectionRunIdentity;
+  raw: unknown;
+  replicate: Phase74ProtectionReplicate;
+  rows: readonly Phase74ProtectionCaseRow[];
+  runId: string;
+}): void {
+  if (!isRecord(input.raw)) {
+    throw new Error("Phase 74 protection raw artifact must be a JSON object.");
+  }
+  if (input.raw.artifactKind !== "phase74-frozen-protection-raw") {
+    throw new Error(
+      "Phase 74 protection raw artifact artifactKind is invalid.",
+    );
+  }
+  assertExactKeys(input.raw, [
+    "artifactKind",
+    "executionFailures",
+    "failures",
+    "population",
+    "replicate",
+    "rows",
+    "runId",
+    "schemaVersion",
+  ], "protection raw artifact");
+  if (input.raw.schemaVersion !== 1) {
+    throw new Error("Phase 74 protection raw artifact schemaVersion is invalid.");
+  }
+  if (nonNegativeInteger(
+    input.raw.executionFailures,
+    "protection raw artifact executionFailures",
+  ) !== 0) {
+    throw new Error(
+      "Phase 74 protection evidence requires zero raw execution failures.",
+    );
+  }
+  if (!Array.isArray(input.raw.failures) || input.raw.failures.length !== 0) {
+    throw new Error("Phase 74 protection raw artifact contains failures.");
+  }
+  if (input.raw.replicate !== input.replicate || input.raw.runId !== input.runId) {
+    throw new Error("Phase 74 protection raw artifact run identity drifted.");
+  }
+  const population = recordValue(
+    input.raw.population,
+    "protection raw artifact population",
+  );
+  assertExactKeys(
+    population,
+    ["caseCount", "caseIdsSha256"],
+    "protection raw artifact population",
+  );
+  if (
+    population.caseCount !== input.identity.population.caseCount ||
+    population.caseIdsSha256 !== input.identity.population.caseIdsSha256
+  ) {
+    throw new Error("Phase 74 protection raw artifact population drifted.");
+  }
+  if (!Array.isArray(input.raw.rows) ||
+    input.raw.rows.length !== input.rows.length) {
+    throw new Error("Phase 74 protection raw artifact rows do not match the run.");
+  }
+  const rawRows = input.raw.rows.map((value, index) => {
+    const row = recordValue(value, `protection raw artifact rows[${index}]`);
+    assertExactKeys(row, [
+      "baseline",
+      "candidate",
+      "caseId",
+      "inputSha256",
+    ], `protection raw artifact rows[${index}]`);
+    sha256Value(
+      row.inputSha256,
+      `protection raw artifact rows[${index}].inputSha256`,
+    );
+    const branch = (name: "baseline" | "candidate") => {
+      const record = recordValue(
+        row[name],
+        `protection raw artifact rows[${index}].${name}`,
+      );
+      assertExactKeys(
+        record,
+        ["rawOutput", "scores"],
+        `protection raw artifact rows[${index}].${name}`,
+      );
+      return parseBranch(
+        record.scores,
+        `protection raw artifact rows[${index}].${name}.scores`,
+      );
+    };
+    return {
+      baseline: branch("baseline"),
+      candidate: branch("candidate"),
+      caseId: stringValue(
+        row.caseId,
+        `protection raw artifact rows[${index}].caseId`,
+      ),
+    };
+  });
+  if (canonicalJson(rawRows) !== canonicalJson(input.rows)) {
+    throw new Error(
+      "Phase 74 protection raw outcomes do not match the frozen run rows.",
+    );
+  }
+}
+
+export async function loadPhase74FrozenProtectionRunArtifact(
   path: string,
-): Promise<LoadedProtectionRunArtifact> {
+): Promise<LoadedPhase74FrozenProtectionRunArtifact> {
   const artifactPath = resolve(path);
   const bytes = await readFile(artifactPath);
   let parsed: unknown;
@@ -376,6 +480,11 @@ async function loadRunArtifact(
     );
   }
   const record = recordValue(parsed, "protection run artifact");
+  if (record.artifactKind === "phase74-frozen-protection-suite-run") {
+    throw new Error(
+      "Phase 74 protection suite runs must be composed with the other required suites before building final protection evidence.",
+    );
+  }
   assertExactKeys(record, [
     "artifactKind",
     "executionFailures",
@@ -408,7 +517,10 @@ async function loadRunArtifact(
   const rows = record.rows.map((row, index) =>
     parseRow(row, `protection run rows[${index}]`)
   );
-  const identity = parseIdentity(record.identity, "protection run identity");
+  const identity = parsePhase74ProtectionRunIdentity(
+    record.identity,
+    "protection run identity",
+  );
   const caseIds = rows.map(({ caseId }) => caseId);
   if (new Set(caseIds).size !== caseIds.length) {
     throw new Error("Phase 74 protection run contains duplicate case IDs.");
@@ -450,20 +562,33 @@ async function loadRunArtifact(
     rawArtifact.sha256,
     "protection run rawArtifact.sha256",
   );
-  if (sha256(await readFile(rawArtifactPath)) !== rawArtifactSha256) {
+  const rawBytes = await readFile(rawArtifactPath);
+  if (sha256(rawBytes) !== rawArtifactSha256) {
     throw new Error(
       `Phase 74 protection raw artifact SHA-256 mismatch at ${rawArtifactPath}.`,
     );
   }
+  const replicate = parseReplicate(record.replicate, "protection run replicate");
+  const runId = stringValue(record.runId, "protection run runId");
+  let raw: unknown;
+  try {
+    raw = JSON.parse(rawBytes.toString("utf8")) as unknown;
+  } catch (error) {
+    throw new Error(
+      "Phase 74 protection raw artifact must be valid structured JSON.",
+      { cause: error },
+    );
+  }
+  validateStructuredRawArtifact({ identity, raw, replicate, rows, runId });
   return {
     artifactPath,
     artifactSha256: sha256(bytes),
     identity,
     rawArtifactPath,
     rawArtifactSha256,
-    replicate: parseReplicate(record.replicate, "protection run replicate"),
+    replicate,
     rows,
-    runId: stringValue(record.runId, "protection run runId"),
+    runId,
   };
 }
 
@@ -474,7 +599,7 @@ function roundedMean(values: readonly number[]): number {
 }
 
 function deriveProtectionDeltas(
-  artifacts: readonly LoadedProtectionRunArtifact[],
+  artifacts: readonly LoadedPhase74FrozenProtectionRunArtifact[],
   score: (row: Phase74ProtectionCaseRow, name: string) => [number, number],
 ): Phase74ProtectionEvidence[] {
   const names = scoreNames(artifacts[0]!.rows[0]!.baseline.protections);
@@ -488,7 +613,7 @@ function deriveProtectionDeltas(
 }
 
 function deriveSafetyDelta(
-  artifacts: readonly LoadedProtectionRunArtifact[],
+  artifacts: readonly LoadedPhase74FrozenProtectionRunArtifact[],
   metric: Phase74ProtectionSafetyMetric,
 ): number {
   return roundedMean(artifacts.flatMap(({ rows }) => rows.map((row) =>
@@ -508,7 +633,9 @@ export async function buildPhase74FrozenProtectionEvidence(input: {
   if (new Set(paths).size !== paths.length) {
     throw new Error("Phase 74 protection evidence contains duplicate run artifact paths.");
   }
-  const artifacts = (await Promise.all(paths.map(loadRunArtifact))).sort(
+  const artifacts = (await Promise.all(
+    paths.map(loadPhase74FrozenProtectionRunArtifact),
+  )).sort(
     (left, right) => left.replicate - right.replicate,
   );
   if (artifacts.some(({ replicate }, index) => replicate !== index + 1)) {
@@ -518,6 +645,11 @@ export async function buildPhase74FrozenProtectionEvidence(input: {
   }
   if (new Set(artifacts.map(({ runId }) => runId)).size !== artifacts.length) {
     throw new Error("Phase 74 protection evidence contains duplicate run IDs.");
+  }
+  if (artifacts[0]!.identity.pipeline.id === "phase74-protection-dry-run-v1") {
+    throw new Error(
+      "Phase 74 dry-run protection artifacts are not promotion evidence.",
+    );
   }
   const identityJson = canonicalJson(artifacts[0]!.identity);
   if (artifacts.some(({ identity }) => canonicalJson(identity) !== identityJson)) {
@@ -783,7 +915,10 @@ function parseFrozenEvidence(value: unknown): Phase74FrozenProtectionEvidence {
     schemaVersion: 2,
     source: {
       files,
-      identity: parseIdentity(source.identity, "protection source identity"),
+      identity: parsePhase74ProtectionRunIdentity(
+        source.identity,
+        "protection source identity",
+      ),
       identityHash: sha256Value(
         source.identityHash,
         "protection source identityHash",

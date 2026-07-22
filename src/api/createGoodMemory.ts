@@ -9,6 +9,7 @@ import {
   normalizeFeedbackAppliesTo,
 } from "../domain/records";
 import { createMemorySource } from "../domain/provenance";
+import type { MemoryScope } from "../domain/scope";
 import type { EmbeddingAdapter } from "../embedding/contracts";
 import { EVIDENCE_COLLECTION } from "../evidence/contracts";
 import type { BehavioralOutcomeObservationResult } from "../evolution/behavioralTelemetry";
@@ -24,6 +25,7 @@ import {
 } from "../evolution/contracts";
 import type { RetrievalStrategyRolloutConfig } from "../governance/retrievalInternalRollout";
 import { createLanguageService } from "../language";
+import type { LanguageService } from "../language";
 import {
   createDreamMaintenanceGate,
   createDreamMaintenanceOrchestrator,
@@ -50,7 +52,6 @@ import { buildRecallProjectionBuildId } from "../recall/projections/manifest";
 import { decomposedRecall } from "../recall/queryDecomposition";
 import {
   buildDeterministicRecallPlan,
-  buildUnplannedRecallPlan,
   resolveRecallPlan,
   type RecallPlan,
 } from "../recall/recallPlan";
@@ -402,6 +403,7 @@ function mergeRecallResults(
   primary: RecallResult,
   supplementary: RecallResult[],
   plan: Pick<RecallPlan, "preRankLimit" | "selectedLimit">,
+  language: LanguageService,
   policyMarker = "decomposed_recall",
 ): RecallResult {
   if (supplementary.length === 0) {
@@ -443,6 +445,7 @@ function mergeRecallResults(
     episodes,
     workingMemory: primary.workingMemory,
     journal: primary.journal,
+    language,
     locale: primary.metadata.locale,
     routingDecision: primary.metadata.routingDecision,
   });
@@ -1089,6 +1092,7 @@ class GoodMemoryImpl implements GoodMemory {
     this.runtime = createGoodMemoryRuntimeFacade({
       documentStore,
       language,
+      scopeDeletion: this.scopeDeletion,
       sessionStore,
       now: this.now,
       ...(internal?.runtimeCompactionExtraction
@@ -1097,7 +1101,8 @@ class GoodMemoryImpl implements GoodMemory {
               extractionStrategy: assistedExtractor
                 ? "llm-assisted" as const
                 : "rules-only" as const,
-              remember: (input: RememberInput) => this.remember(input),
+              remember: (input: RememberInput) =>
+                this.rememberWithinScopeMutation(input),
             },
           }
         : {}),
@@ -1221,18 +1226,22 @@ class GoodMemoryImpl implements GoodMemory {
           Number.isFinite(Date.parse(input.referenceTime))
           ? new Date(Date.parse(input.referenceTime)).toISOString()
           : this.now().toISOString();
+      const recallPlanInput = {
+        language: this.language,
+        locale: resolvedLanguage.locale,
+        query: input.query,
+        referenceTime: recallReferenceTime,
+        scope: input.scope,
+      };
       const planResolution = recallPlanExecution
         ? await resolveRecallPlan({
             assistant: this.config.adapters?.recallPlanner,
-            input: {
-              language: this.language,
-              locale: resolvedLanguage.locale,
-              query: input.query,
-              referenceTime: recallReferenceTime,
-              scope: input.scope,
-            },
+            input: recallPlanInput,
           })
-        : { assistantApplied: false, plan: buildUnplannedRecallPlan() };
+        : {
+            assistantApplied: false,
+            plan: buildDeterministicRecallPlan(recallPlanInput),
+          };
       if (planResolution.fallbackReason) {
         console.error(
           "[goodmemory:recall-plan] assisted planning failed; using deterministic plan",
@@ -1306,6 +1315,7 @@ class GoodMemoryImpl implements GoodMemory {
                 primary,
                 supplementary,
                 queryPlan,
+                this.language,
                 "iterative_recall",
               ),
             options: {
@@ -1383,8 +1393,13 @@ class GoodMemoryImpl implements GoodMemory {
               primary,
               supplementary,
               recallPlan,
+              this.language,
               "decomposed_recall",
             ),
+          options: {
+            language: this.language,
+            locale: resolvedLanguage.locale,
+          },
         });
         result = decomposed.result;
         subQueries = decomposed.subQueries;
@@ -1409,6 +1424,7 @@ class GoodMemoryImpl implements GoodMemory {
           : await applyFactRerankingToResult({
               preRankLimit: recallPlan.preRankLimit,
               query: input.query,
+              language: this.language,
               reranker: this.reranker,
               result,
               selectedLimit: recallPlan.selectedLimit,
@@ -1535,6 +1551,14 @@ class GoodMemoryImpl implements GoodMemory {
   }
 
   async remember(input: RememberInput): Promise<RememberResult> {
+    return this.runScopeMutation(input.scope, () =>
+      this.rememberWithinScopeMutation(input)
+    );
+  }
+
+  private async rememberWithinScopeMutation(
+    input: RememberInput,
+  ): Promise<RememberResult> {
     const trace = await this.tracer.start({
       name: "memory.remember",
       scope: input.scope,
@@ -1581,6 +1605,14 @@ class GoodMemoryImpl implements GoodMemory {
   }
 
   async reviseMemory(input: ReviseMemoryInput): Promise<ReviseMemoryResult> {
+    return this.runScopeMutation(input.scope, () =>
+      this.reviseMemoryWithinScopeMutation(input)
+    );
+  }
+
+  private async reviseMemoryWithinScopeMutation(
+    input: ReviseMemoryInput,
+  ): Promise<ReviseMemoryResult> {
     const trace = await this.tracer.start({
       name: "memory.revise",
       scope: input.scope,
@@ -1632,6 +1664,14 @@ class GoodMemoryImpl implements GoodMemory {
   }
 
   async forget(input: ForgetInput): Promise<ForgetResult> {
+    return this.runScopeMutation(input.scope, () =>
+      this.forgetWithinScopeMutation(input)
+    );
+  }
+
+  private async forgetWithinScopeMutation(
+    input: ForgetInput,
+  ): Promise<ForgetResult> {
     const trace = await this.tracer.start({
       name: "memory.forget",
       scope: input.scope,
@@ -1733,6 +1773,14 @@ class GoodMemoryImpl implements GoodMemory {
   }
 
   async feedback(input: FeedbackInput): Promise<FeedbackResult> {
+    return this.runScopeMutation(input.scope, () =>
+      this.feedbackWithinScopeMutation(input)
+    );
+  }
+
+  private async feedbackWithinScopeMutation(
+    input: FeedbackInput,
+  ): Promise<FeedbackResult> {
     const trace = await this.tracer.start({
       name: "memory.feedback",
       scope: input.scope,
@@ -1770,6 +1818,14 @@ class GoodMemoryImpl implements GoodMemory {
   }
 
   async runMaintenance(input: RunMaintenanceInput): Promise<RunMaintenanceResult> {
+    return this.runScopeMutation(input.scope, () =>
+      this.runMaintenanceWithinScopeMutation(input)
+    );
+  }
+
+  private async runMaintenanceWithinScopeMutation(
+    input: RunMaintenanceInput,
+  ): Promise<RunMaintenanceResult> {
     const trace = await this.tracer.start({
       name: "maintenance.run",
       scope: input.scope,
@@ -1797,6 +1853,15 @@ class GoodMemoryImpl implements GoodMemory {
       await trace.failed({ error });
       throw error;
     }
+  }
+
+  private runScopeMutation<T>(
+    scope: MemoryScope,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    return this.scopeDeletion
+      ? this.scopeDeletion.runMutation(scope, operation)
+      : operation();
   }
 }
 

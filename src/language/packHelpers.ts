@@ -100,7 +100,7 @@ export function resolveSourceOfTruthDirective(
 
 export function splitSentencesGeneric(text: string): string[] {
   return text
-    .split(/(?<=[.!?。！？])\s*|\r?\n+/u)
+    .split(/\r?\n+|(?<=[。！？])|(?<=[.!?])(?=\s|$)/u)
     .map((sentence) => sentence.trim())
     .filter(Boolean);
 }
@@ -110,9 +110,9 @@ export function decomposeQueryByPattern(
   boundary: RegExp,
 ): string[] {
   const parts = text
-    .split(/[?.;!。？；！\n]+/u)
+    .split(/\r?\n+|[。？；！]+|(?<=[?.;!])(?=\s|$)/u)
     .flatMap((clause) => clause.split(boundary))
-    .map((part) => part.trim())
+    .map((part) => part.trim().replace(/[?.;!]+$/u, "").trim())
     .filter((part) => part.length >= 2);
   const unique = [...new Set(parts)];
   return unique.length > 1 ? unique : [];

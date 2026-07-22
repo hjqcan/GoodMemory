@@ -8,6 +8,9 @@ import type {
   EvalRunJsonObject,
   EvalRunModelIdentity,
 } from "./runIdentity";
+import {
+  PHASE74_PROTECTION_BLUEPRINT_ID,
+} from "./phase74ProtectionVerifier";
 
 export const PHASE74_CONTEXT_TOKEN_BUDGET = 6_000;
 export const PHASE74_PRE_RANK_LIMIT = 32;
@@ -41,6 +44,7 @@ export function buildPhase74FullRunIdentityConfiguration(input: {
   dataset: EvalRunJsonObject;
   embedding: EvalRunJsonObject;
   evaluatorSource: EvalRunJsonObject;
+  protectionBlueprint: EvalRunJsonObject;
   replicate: 1 | 2 | 3;
   reranker: EvalRunJsonObject;
   scoring: EvalRunJsonObject;
@@ -69,6 +73,7 @@ export function buildPhase74FullRunIdentityConfiguration(input: {
     modelUsageAccounting: PHASE74_FULL_RUN_FIXED_CONFIGURATION.modelUsageAccounting,
     preRankLimit: PHASE74_FULL_RUN_FIXED_CONFIGURATION.preRankLimit,
     providerObjectCalls: PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
+    protectionBlueprint: input.protectionBlueprint,
     reader: PHASE74_FULL_RUN_FIXED_CONFIGURATION.reader,
     replicate: input.replicate,
     reranker: input.reranker,
@@ -123,6 +128,20 @@ function assertEvaluatorSource(value: unknown): void {
   }
 }
 
+function assertProtectionBlueprint(value: unknown): void {
+  if (
+    !isRecord(value) ||
+    Object.keys(value).length !== 2 ||
+    value.id !== PHASE74_PROTECTION_BLUEPRINT_ID ||
+    typeof value.sha256 !== "string" ||
+    !/^[0-9a-f]{64}$/u.test(value.sha256)
+  ) {
+    throw new Error(
+      "Phase 74 experiment identity protectionBlueprint is missing or invalid.",
+    );
+  }
+}
+
 function assertCallBudget(value: unknown): void {
   if (
     !isRecord(value) ||
@@ -162,6 +181,7 @@ export function assertPhase74ExperimentIdentityContract(input: {
   assertEqual(input.configuration.dataset, input.dataset, "dataset manifest");
   assertModelIdentity(input.configuration.embedding, "embedding");
   assertEvaluatorSource(input.configuration.evaluatorSource);
+  assertProtectionBlueprint(input.configuration.protectionBlueprint);
   assertEqual(
     input.configuration.providerObjectCalls,
     PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,

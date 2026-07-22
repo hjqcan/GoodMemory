@@ -416,7 +416,7 @@ function renderJapanese(input: LanguageRenderInput): string {
 
 export function createJapaneseLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "3",
+    analyzerVersion: "4",
     apiVersion: 1,
     compatibilityGroup: "ja",
     defaultLocale: "ja-JP",

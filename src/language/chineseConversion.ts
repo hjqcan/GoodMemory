@@ -5,7 +5,7 @@ import {
   tokenizeUnicodeText,
 } from "./generic";
 
-export const CHINESE_ANALYZER_VERSION = "6-opencc-t2cn-1.4.1";
+export const CHINESE_ANALYZER_VERSION = "7-opencc-t2cn-1.4.1";
 
 const toSimplified = OpenCC.Converter({ from: "twp", to: "cn" });
 

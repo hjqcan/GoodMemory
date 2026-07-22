@@ -1258,6 +1258,58 @@ describe("recall projection runtime", () => {
     ).toBeNull();
   });
 
+  it("rebuilds a missing selected claim before sealing persistent scope proof", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const fact = buildFact({ id: "fact-dangling-selected-claim" });
+    const status: ClaimProjectionStatus = {
+      id: buildClaimProjectionStatusId(scope, fact.id),
+      schemaVersion: 1,
+      ...scope,
+      scopeKey: scopeToKey(scope),
+      sourceMemoryId: fact.id,
+      state: "projected",
+      claimIds: ["claim-missing"],
+      extractorVersion: "legacy-v1",
+      sourceUpdatedAt: fact.updatedAt,
+      updatedAt: fact.updatedAt,
+    };
+    await rawStore.set("facts", fact.id, fact);
+    await rawStore.set(CLAIM_PROJECTION_STATUS_COLLECTION, status.id, status);
+    const runtime = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      now: () => NOW,
+      persistentScopeProof: { buildId: "projection-build-a" },
+    });
+
+    const result = await runtime.ensureScopeIndexed(scope);
+    const rebuiltStatus = await rawStore.get<ClaimProjectionStatus>(
+      CLAIM_PROJECTION_STATUS_COLLECTION,
+      status.id,
+    );
+    const rebuiltClaims = await rawStore.query<ClaimProjection>(
+      CLAIM_PROJECTIONS_COLLECTION,
+      { sourceMemoryId: fact.id },
+    );
+    const manifest = await rawStore.get<RecallProjectionManifest>(
+      PROJECTION_MANIFESTS_COLLECTION,
+      `scope:${scopeToKey({ ...scope, sessionId: undefined })}`,
+    );
+
+    expect(result).toMatchObject({ complete: true, skipped: false });
+    expect(rebuiltStatus).toMatchObject({
+      claimIds: [expect.any(String)],
+      state: "unstructured",
+    });
+    expect(rebuiltStatus?.claimIds).not.toContain("claim-missing");
+    expect(rebuiltClaims.map(({ id }) => id)).toEqual(
+      rebuiltStatus?.claimIds ?? [],
+    );
+    expect(await runtime.queryClaims(scope)).toEqual([
+      expect.objectContaining({ sourceMemoryId: fact.id }),
+    ]);
+    expect(manifest?.validatedGeneration).toBe(manifest?.sourceGeneration);
+  });
+
   it("fails closed when structured legacy claims lack raw entity inputs", async () => {
     const variants: Array<{
       claimFields: Partial<ClaimProjection>;

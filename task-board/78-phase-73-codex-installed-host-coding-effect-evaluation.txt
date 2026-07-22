@@ -147,12 +147,16 @@ clean clones with no reasons. Its scope is
 `externalAuthenticityVerified: false`, so external package/raw-run/canary
 authenticity still needs an independent signature, CI artifact, or
 transparency root.
-[REOPENED] C3 source reproducibility is not closed. The recorded GoodMemory
-commit/tree are reachable, but runner commit
-`fc31f4f96f3975daea361805da3fc4fc942c5aa4` and tree
-`996b1c24bfb53a9d9c62eb109997576df7b512af` are absent from the current Git
-object database. The tracked projection remains internal-consistency evidence,
-not a recoverable verifier-source snapshot.
+[DONE] C3 source reproducibility is closed by the supplemental tracked bundle
+under `c3-controlled-20260716-cleanclone-003-source-reproducibility/`. Its
+4,891,617 bytes have SHA-256
+`86aa767660b30fc9b6930c166c86cd9415d2e0083919e629abbdd9ef1d613ecb`
+and reconstruct exact runner commit
+`fc31f4f96f3975daea361805da3fc4fc942c5aa4` / tree
+`996b1c24bfb53a9d9c62eb109997576df7b512af`. A clean clone from only that
+bundle ran the bundled historical verifier and again accepted all 17 projected
+files plus both patch replays. This is source-reproducibility closure, not an
+external signature; `externalAuthenticityVerified` remains false.
 [SUPERSEDED] C4 v8 controlled dataset/core was frozen at asset-lock SHA-256
 `a4db88c4dc9ebea7fc464ba104f34c3a0852e2743a798694723d9ae9614606c4`
 and core SHA-256
@@ -217,17 +221,49 @@ harness tests, not a completed C5 live run or coding-effect evidence.
 live evidence disproved an exact-equality prior-memory rule. Its source identity
 was later invalidated; it is diagnostic evidence only, not accepted canary or
 pilot evidence.
-[OPEN] C5 broader live pilot is unblocked by accepted C4 v9 but has not run.
-C4 made no paired treatment comparison and proves no coding uplift.
+[DONE] C5 internal run `run-c5-pilot-v16-20260721T150112Z` completed 72/72
+scheduled Codex stages, 36/36 pairs, and 12/12 atomic cluster commits. One
+pre-cluster package-install timeout was preserved as an append-only interrupted
+attempt and safely resumed without a model call or partial cluster evidence.
+[DONE] The report accounts for all attempts and failures with no silent
+fallback: 30 comparable and 6 incomparable pairs, 16 rescues, zero regressions,
+12 shared-pass, and 2 shared-fail. GoodMemory resolved 28/30 comparable pairs
+(0.9333) versus no-memory 12/30 (0.4); net rescue rate is 0.5333 with a
+paired episode-cluster 95% bootstrap interval of 0.2667-0.6667. Six
+host-canary infrastructure failures, six memory-channel failures, and four
+required-memory failures remain explicit evidence, not filtered survivors.
+[DONE] The 395-file sanitized projection and independent verifier are accepted.
+Prompt and patch trajectory origins are content-recomputed; 36 prior-stage
+Codex JSONL origins are process-only receipts whose IDs, digests, matrix
+integrity, frozen-artifact invariants, candidate claims, and surface binding are
+verified without claiming that redacted content preimages were independently
+observed. `externalAuthenticityVerified` remains false.
+[DONE] Fresh reviewer `/root/c5_final_independent_review_v1` ran with
+`fork-turns-none`, inspected only the four bound sanitized inputs, and accepted
+all five review assertions. Provenance SHA-256
+`0099cffd09defd0204602a4d1d96d693aa6913cbe20ae517e0aa9539d81c0d66`
+records the reviewer/author split and a non-cryptographic orchestrator
+attestation. Final gate SHA bindings are tracked under
+`reports/quality-gates/phase-73/c5-native-longitudinal-pilot-v16/`.
+[DONE] C5 produced the predeclared power analysis and a C6 minimum budget of
+113 episodes, 339 scored stages, 6 repositories, 3 seeds, and 2034 Codex calls.
+Token usage is accounted, but dollar cost remains null because no model-price
+snapshot was frozen.
+[BOUNDARY] C5 is accepted only as `internal-native-longitudinal-pilot`
+evidence. The controlled synthetic pilot, six incomparable pairs, opaque
+process-only source preimages, and absent external-authenticity proof keep
+`publicClaimEligible`, `publicCodingEffectProof`, and `readmeRowAllowed` false.
+C4 made no paired treatment comparison; C5 is a positive internal signal, not
+a public coding-uplift claim.
 [OPEN] C6-C7 expanded candidate, statistics, gate, and narrow claim decision.
 
 C3's deterministic hidden fail-to-pass and pass-to-pass tests alone decide task
 correctness. Memory, injection, transcript, and writeback diagnostics can
-explain the result but never override it. C3 is internally accepted only as
-protocol/host evidence and its source-reproducibility gate is reopened; its tie
-does not prove uplift. C4 v8 is superseded and v9 readiness is accepted. None
+explain the result but never override it. C3 is internally accepted as
+source-reproducible protocol/host evidence; its tie does not prove uplift. C4
+v8 is superseded and v9 readiness is accepted. None
 authorizes a public coding-effect claim.
-Phase 73 remains active while C5-C7 are open.
+Phase 73 remains active while C6-C7 are open.
 
 Boundary
 --------

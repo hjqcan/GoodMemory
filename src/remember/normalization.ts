@@ -103,11 +103,11 @@ function normalizeProfileCandidate(
     profileField === "name" && isStructurallyCanonicalName(candidate.content)
       ? trimWrappingPunctuation(candidate.content)
       : undefined;
-  const normalizedName = canonicalCandidateName ?? extractPackProfileName(
+  const normalizedName = extractPackProfileName(
     sourceMessageContent,
     candidate.sourceRole,
     languageContext,
-  ) ?? extractPackProfileName(
+  ) ?? canonicalCandidateName ?? extractPackProfileName(
     candidate.content,
     candidate.sourceRole,
     languageContext,
@@ -130,6 +130,10 @@ function normalizeProfileCandidate(
 function normalizeReferenceCandidate(
   candidate: MemoryCandidate,
   sourceMessageContent?: string,
+  languageContext?: {
+    language: LanguageService;
+    resolved: ResolvedLanguageContext;
+  },
 ): MemoryCandidate {
   if (candidate.kindHint !== "reference") {
     return candidate;
@@ -152,12 +156,17 @@ function normalizeReferenceCandidate(
     rawTitle.length > pointer.length + 24
       ? basename(pointer)
       : rawTitle;
-  const contentPointers = extractCanonicalReferencePointers(candidate.content);
-  const sourcePointers = extractCanonicalReferencePointers(sourceMessageContent);
+  const sourceDirective = languageContext
+    ? languageContext.language.analyzeContent(
+      sourceMessageContent ?? candidate.content,
+      languageContext.resolved,
+    ).sourceOfTruthDirective
+    : undefined;
   const supersedesPointer =
     extractCanonicalReferencePointer(candidate.metadata?.supersedesPointer) ??
-    contentPointers[1] ??
-    sourcePointers[1];
+    (sourceDirective?.currentPointer === pointer
+      ? sourceDirective.supersededPointer
+      : undefined);
 
   return {
     ...candidate,
@@ -256,5 +265,6 @@ export function normalizeMemoryCandidate(
   return normalizeReferenceCandidate(
     normalizedProfileCandidate,
     sourceMessageContent,
+    languageContext,
   );
 }

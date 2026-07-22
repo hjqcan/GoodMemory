@@ -276,9 +276,60 @@ export function createClaimProjectionIndex(
           sourceMemoryId: fact.id,
         }),
       ]);
-      const claims = queriedClaims.filter((claim) =>
-        matchesScopeFilter(claim, scope)
-      );
+      const selectedClaimSnapshots = status
+        ? await Promise.all(status.claimIds.map(async (id) => ({
+            document: await documentStore.get<ClaimProjection>(
+              CLAIM_PROJECTIONS_COLLECTION,
+              id,
+            ),
+            id,
+          })))
+        : [];
+      const claims = [...new Map([
+        ...queriedClaims,
+        ...selectedClaimSnapshots.flatMap(({ document }) =>
+          document ? [document] : []
+        ),
+      ]
+        .filter((claim) => matchesScopeFilter(claim, scope))
+        .map((claim) => [claim.id, claim])).values()];
+      const hasInvalidSelection = status && status.state !== "failed" &&
+        (status.claimIds.length === 0 || selectedClaimSnapshots.some(
+          ({ document }) =>
+            !document ||
+            document.sourceMemoryId !== fact.id ||
+            !matchesScopeFilter(document, scope),
+        ));
+      if (hasInvalidSelection) {
+        const committed = await documentStore.writeBatchIfUnchanged({
+          delete: [{
+            collection: CLAIM_PROJECTION_STATUS_COLLECTION,
+            id: status.id,
+          }],
+          expected: {
+            collection: "facts",
+            document: fact,
+            id: fact.id,
+          },
+          set: [],
+          unchanged: [
+            {
+              collection: CLAIM_PROJECTION_STATUS_COLLECTION,
+              document: status,
+              id: status.id,
+            },
+            ...selectedClaimSnapshots.map(({ document, id }) => ({
+              collection: CLAIM_PROJECTIONS_COLLECTION,
+              document,
+              id,
+            })),
+          ],
+        });
+        if (committed) {
+          return null;
+        }
+        continue;
+      }
       const fallbackSubject = fact.subject && fact.subject !== "unknown"
         ? fact.subject
         : fact.userId;

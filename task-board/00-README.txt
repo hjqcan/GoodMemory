@@ -91,15 +91,16 @@ Current Transition
   `c3-controlled-20260716-cleanclone-003`: 2/2 arms resolved, zero infrastructure
   failures, `tie-both-pass`; the independent verifier replayed both patches and
   accepted 17 projected files with `externalAuthenticityVerified: false`.
-  C3 source reproducibility is reopened because the recorded runner commit and tree are absent from the current Git object database; this is not a
-  recoverable verifier-source snapshot. C4's
+  C3 source reproducibility is closed by a tracked 4,891,617-byte Git bundle
+  that reconstructs the exact recorded runner commit/tree and replays the
+  bundled historical verifier from a clean clone. C4's
   v8 core, review, baseline, and readiness are superseded historical evidence.
   The canonical v9 core, independent review, baseline, projected stages, raw
   stage sources, and readiness are accepted and tracked as one replayable
   bundle. That artifact bundle is the C4 truth source; this router and the current-status document are projections whose bindings are enforced by the
-  C4 release test. C5 is unblocked for the internal pilot but has not run.
-  No result proves coding uplift; C5-C7 remain open. See
-  `78-phase-73-codex-installed-host-coding-effect-evaluation.txt`.
+  C4 release test. C5 internal pilot `run-c5-pilot-v16-20260721T150112Z` completed
+  72 stages/36 pairs; its sanitized projection, independent review/provenance, and internal gate are accepted under `reports/quality-gates/phase-73/c5-native-longitudinal-pilot-v16/`.
+  Six infrastructure failures remain incomparable and external authenticity unverified; no public coding-uplift claim is authorized. C6-C7 remain open; see `78-phase-73-codex-installed-host-coding-effect-evaluation.txt`.
 
 - Phase 62 LongMemEval is accepted as the first sequential external benchmark hardening slice.
 - Phase 64 / P67-C MemoryAgentBench retains historical AR/CR and four-competency evidence. The current `v0.6.0` judge-free claim is scoped to CR 0.9589041096 and TTL 0.9333333333 versus no-memory 0.000; AR/LRU remain excluded because no-memory baselines are higher or multiple-choice leakage dominates.

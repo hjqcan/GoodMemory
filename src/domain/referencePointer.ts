@@ -1,5 +1,11 @@
-const POINTER_PATTERN =
-  /https?:\/\/[^\s"'`<>]+|(?:[A-Za-z0-9._-]+\/)+[A-Za-z0-9._-]+\.[A-Za-z0-9._-]+|[A-Za-z0-9._-]+\.[A-Za-z0-9._-]+/gu;
+const POINTER_PATTERN = new RegExp(
+  [
+    String.raw`https?:\/\/[A-Za-z0-9._~:/?#\[\]@!$&()*+,;=%-]+`,
+    String.raw`(?:[\p{L}\p{N}._-]+\/)+[\p{L}\p{N}._-]+\.[A-Za-z0-9_-]+`,
+    String.raw`[\p{L}\p{N}._-]+\.[A-Za-z0-9_-]+`,
+  ].join("|"),
+  "gu",
+);
 const WRAPPING_PUNCTUATION = /^[`"'([{<\s]+|[`"')\]}>.,!?;:]+$/g;
 
 export interface ReferencePointerOccurrence {

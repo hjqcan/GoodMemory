@@ -1,0 +1,12 @@
+{
+  "decision": "accepted",
+  "evidenceClass": "frozen-prehistory-pilot",
+  "externalAuthenticityVerified": false,
+  "projectionManifestSha256": "1210f9908154af56b68c22f5235eff1a19824d009c2cd06a5ec9932b869f5008",
+  "reasons": [],
+  "replayedArmCount": 2,
+  "runId": "c3-controlled-20260716-cleanclone-003",
+  "schemaVersion": 1,
+  "verificationScope": "internal-consistency-and-clean-clone-patch-replay",
+  "verifiedFileCount": 17
+}

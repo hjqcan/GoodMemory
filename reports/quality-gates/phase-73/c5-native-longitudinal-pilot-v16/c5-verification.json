@@ -1,0 +1,31 @@
+{
+  "checks": {
+    "actualFileHashesVerified": true,
+    "exactPlanTopologyVerified": true,
+    "hostPreflightVerified": true,
+    "noInfrastructureFailure": false,
+    "noLeakageRejection": true,
+    "noMemoryChannelFailure": false,
+    "noSilentFallback": true,
+    "reportRecomputed": true
+  },
+  "claimBoundary": "internal-native-longitudinal-pilot-only",
+  "counts": {
+    "hostPreflights": 12,
+    "opaqueProcessOnlyTrajectoryOrigins": 36,
+    "pairs": 36,
+    "projectedFiles": 395,
+    "stageExecutions": 72,
+    "taskAliasAudits": 24
+  },
+  "decision": "accepted",
+  "evidenceClass": "native-longitudinal-pilot",
+  "externalAuthenticityVerified": false,
+  "planSha256": "ef7668a289d1eadbc63f020d5dcd2d1973f39722399d8349a4fd3437fbe2e72b",
+  "projectionManifestSha256": "41656ed99fbadfabe836aafc39d82b2416ecda368fd8a13830ff5197e6176323",
+  "publicClaimEligible": false,
+  "reasons": [],
+  "runId": "run-c5-pilot-v16-20260721T150112Z",
+  "schemaVersion": 1,
+  "verificationScope": "frozen-capture-claims-and-projection-internal-consistency"
+}

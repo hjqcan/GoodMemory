@@ -61,16 +61,22 @@ export const PHASE74_EVALUATOR_SOURCE_SNAPSHOT = {
   files: [
     "bun.lock",
     "package.json",
+    "scripts/build-phase-74-protection-evidence.ts",
     "scripts/cli-options.ts",
     "scripts/aggregate-phase-74-generalization.ts",
+    "scripts/phase-74-memory-agent-bench-protection.ts",
     "scripts/prepare-phase-65-locomo-data.ts",
     "scripts/prepare-phase-74-datasets.ts",
+    "scripts/run-eval.ts",
+    "scripts/run-phase-64-memory-agent-bench-smoke.ts",
     "scripts/run-phase-74-generalization.ts",
+    "scripts/run-phase-74-memory-agent-bench-protection.ts",
     "scripts/run-phase-74-storage-scale-gate.ts",
+    "scripts/script-paths.ts",
   ],
   sourceExtensions: [".cts", ".mts", ".ts"],
   sourceTrees: ["src"],
-  version: 2,
+  version: 3,
 } as const;
 
 export interface Phase74EvaluatorSource {
@@ -82,6 +88,7 @@ export interface Phase74EvaluatorSource {
 export interface Phase74EvaluatorSourceVerificationDependencies {
   hashSnapshot(repoRoot: string): Promise<string>;
   resolveGitHead(repoRoot: string): Promise<string>;
+  resolveSourceStatus(repoRoot: string): Promise<string>;
 }
 
 const execFileAsync = promisify(execFile);
@@ -207,32 +214,93 @@ async function resolvePhase74GitHead(repoRoot: string): Promise<string> {
   return stdout.trim();
 }
 
-export async function verifyPhase74EvaluatorSource(input: {
-  declared: Phase74EvaluatorSource;
+async function resolvePhase74SourceStatus(repoRoot: string): Promise<string> {
+  const [tracked, snapshot] = await Promise.all([
+    execFileAsync(
+      "git",
+      ["status", "--porcelain=v1", "--untracked-files=no"],
+      { cwd: repoRoot, encoding: "utf8" },
+    ),
+    execFileAsync(
+      "git",
+      [
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+        "--",
+        ...PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files,
+        ...PHASE74_EVALUATOR_SOURCE_SNAPSHOT.sourceTrees,
+      ],
+      { cwd: repoRoot, encoding: "utf8" },
+    ),
+  ]);
+  return `${tracked.stdout}${snapshot.stdout}`;
+}
+
+export async function capturePhase74EvaluatorSource(input: {
   dependencies?: Phase74EvaluatorSourceVerificationDependencies;
   repoRoot: string;
 }): Promise<Phase74EvaluatorSource> {
   const dependencies = input.dependencies ?? {
     hashSnapshot: hashPhase74EvaluatorSourceSnapshot,
     resolveGitHead: resolvePhase74GitHead,
+    resolveSourceStatus: resolvePhase74SourceStatus,
   };
-  const actualCommit = (await dependencies.resolveGitHead(input.repoRoot))
-    .trim()
-    .toLowerCase();
-  if (actualCommit !== input.declared.commit.toLowerCase()) {
+  const statusBefore = await dependencies.resolveSourceStatus(input.repoRoot);
+  const commitBefore = await dependencies.resolveGitHead(input.repoRoot);
+  if (statusBefore.trim() !== "") {
+    throw new Error(
+      "Phase 74 tracked tree or evaluator source snapshot is dirty.",
+    );
+  }
+  const sha256 = await dependencies.hashSnapshot(input.repoRoot);
+  const commitAfter = await dependencies.resolveGitHead(input.repoRoot);
+  const statusAfter = await dependencies.resolveSourceStatus(input.repoRoot);
+  if (statusAfter.trim() !== "") {
+    throw new Error(
+      "Phase 74 tracked tree or evaluator source snapshot is dirty after hashing.",
+    );
+  }
+  const source = {
+    commit: commitAfter.trim().toLowerCase(),
+    sha256: sha256.trim().toLowerCase(),
+  };
+  const initialCommit = commitBefore.trim().toLowerCase();
+  if (
+    !/^[0-9a-f]{40}$/u.test(initialCommit) ||
+    !/^[0-9a-f]{40}$/u.test(source.commit) ||
+    !/^[0-9a-f]{64}$/u.test(source.sha256)
+  ) {
+    throw new Error("Phase 74 checkout returned an invalid source identity.");
+  }
+  if (initialCommit !== source.commit) {
+    throw new Error(
+      "Phase 74 git HEAD changed while evaluator source was captured.",
+    );
+  }
+  return source;
+}
+
+export async function verifyPhase74EvaluatorSource(input: {
+  declared: Phase74EvaluatorSource;
+  dependencies?: Phase74EvaluatorSourceVerificationDependencies;
+  repoRoot: string;
+}): Promise<Phase74EvaluatorSource> {
+  const actual = await capturePhase74EvaluatorSource({
+    dependencies: input.dependencies,
+    repoRoot: input.repoRoot,
+  });
+  if (actual.commit !== input.declared.commit.toLowerCase()) {
     throw new Error(
       "Phase 74 evaluator source commit does not match git HEAD.",
     );
   }
-  const actualSha256 = (await dependencies.hashSnapshot(input.repoRoot))
-    .trim()
-    .toLowerCase();
-  if (actualSha256 !== input.declared.sha256.toLowerCase()) {
+  if (actual.sha256 !== input.declared.sha256.toLowerCase()) {
     throw new Error(
       "Phase 74 evaluator source snapshot SHA-256 does not match the checkout.",
     );
   }
-  return { commit: actualCommit, sha256: actualSha256 };
+  return actual;
 }
 
 function requiredEnv(

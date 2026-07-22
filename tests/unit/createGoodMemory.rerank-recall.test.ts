@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+  createEnglishLanguagePack,
   createGoodMemory,
   createInMemoryDocumentStore,
   createInMemorySessionStore,
@@ -125,6 +126,56 @@ describe("GoodMemory.recall reranker adapter", () => {
       ]),
     );
     expect(result.packet.renderBudget).toEqual({ maxTokens: 6_000 });
+  });
+
+  it("keeps the configured LanguagePack when reranking rebuilds the packet", async () => {
+    const english = createEnglishLanguagePack();
+    let packetRenderCount = 0;
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        reranker: promoteBReranker,
+        sessionStore: createInMemorySessionStore(),
+      },
+      language: {
+        packs: [{
+          ...english,
+          analyzerVersion: "custom-rerank-render-v1",
+          render(input) {
+            if (input.key === "active_context") {
+              packetRenderCount += 1;
+            }
+            return english.render(input);
+          },
+        }],
+      },
+      storage: { provider: "memory" },
+      testing: { now: () => new Date("2026-01-02T00:00:00.000Z") },
+    });
+    const makeFact = (id: string, content: string) =>
+      createFactMemory({
+        id,
+        userId: scope.userId,
+        workspaceId: scope.workspaceId,
+        category: "project",
+        content,
+        source: {
+          method: "explicit",
+          extractedAt: "2026-01-01T00:00:00.000Z",
+        },
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      });
+    await seed(documentStore, makeFact);
+
+    const result = await memory.recall({ scope, query, strategy: "rules-only" });
+
+    expect(result.metadata.policyApplied).toContain("reranked");
+    expect(result.metadata.languagePackVersion).toBe(
+      "custom-rerank-render-v1",
+    );
+    expect(packetRenderCount).toBe(2);
   });
 
   it("lets the reranker change final membership over the global pre-rank pool", async () => {

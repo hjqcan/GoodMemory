@@ -236,48 +236,11 @@ export function buildGoodMemoryCapabilityDescriptor(
       docs: `${REPO}#pythonfastapi-http-bridge`,
     },
     benchmarks: {
-      currentClaims: [
-        {
-          name: "LoCoMo",
-          config: "full 10 conversations, 1540 non-adversarial questions",
-          metric:
-            "independent official judge protocol; strict deterministic token-F1 reported separately",
-          result:
-            "official 0.8708; strict 0.6299; open-domain 0.6146 (59/96)",
-          reference: "historical no-memory 0.0045",
-          claimDeclaration: `${REPO}/blob/main/benchmark-claims/locomo.json`,
-          runtimeProfile:
-            "recommended+provider-embedding+provider-reranking@0.6.0",
-          measuredPackageVersion: "0.6.0",
-        },
-        {
-          name: "BEAM",
-          config: "100K, 400 questions, 1051 rubric items",
-          metric:
-            "independent official unified-rubric score; strict binary and paper protocol disclosed separately",
-          result:
-            "unified 0.7651; strict 0.620 (248/400); generalized recall 0.8276",
-          reference: "public full-400 same-protocol reference 0.49",
-          claimDeclaration: `${REPO}/blob/main/benchmark-claims/beam.json`,
-          runtimeProfile:
-            "goodmemory-hybrid-generalized+evidence-pack@0.6.0",
-          measuredPackageVersion: "0.6.0",
-        },
-        {
-          name: "MemoryAgentBench",
-          config: "Conflict Resolution 73 questions; Test-Time Learning 30 questions",
-          metric: "deterministic upstream match-mode scoring, judge-free",
-          result: "CR 0.959; TTL 0.933",
-          reference: "no-memory 0.000 for CR and TTL",
-          claimDeclaration: `${REPO}/blob/main/benchmark-claims/memoryagentbench.json`,
-          runtimeProfile: "recommended-evidence-pack-cr-ttl@0.6.0",
-          measuredPackageVersion: "0.6.0",
-        },
-      ],
+      currentClaims: [],
       historicalEvidence: {
         url: `${REPO}/tree/main/benchmark-claims`,
         note:
-          "LongMemEval and ImplicitMemBench remain reproducible versioned internal evidence, not current-production claims for this package version.",
+          "The v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus older LongMemEval and ImplicitMemBench runs, remain reproducible versioned evidence. None is a current v0.7.0 production claim until rerun against this package line.",
       },
     },
     capabilities: {

@@ -24,7 +24,10 @@ import type {
 import type { Phase74BenchmarkFamily } from "../src/eval/phase74Datasets";
 import { PHASE74_EXPERIMENT_ARMS } from "../src/eval/phase74ExperimentDesign";
 import { assertPhase74ExperimentIdentityContract } from "../src/eval/phase74ExperimentIdentity";
-import { loadPhase74FrozenProtectionEvidence } from "../src/eval/phase74ProtectionEvidence";
+import { loadPhase74FrozenProtectionSuiteEvidence } from "../src/eval/phase74ProtectionSuiteEvidence";
+import type {
+  Phase74ProtectionSuiteVerifier,
+} from "../src/eval/phase74ProtectionVerifier";
 import {
   buildPhase74IngestionUsageAllocation,
   buildPhase74IngestionUsagePaths,
@@ -186,7 +189,12 @@ interface StageAggregationArtifact extends Omit<
 }
 
 interface ProtectionArtifact {
+  blueprintSha256: string;
   e4: Record<EvidenceLedgerFormat, Phase74ProtectionEvidence[]>;
+  evaluatorSource: {
+    id: string;
+    sha256: string;
+  };
   promotion: {
     protections: Phase74ProtectionEvidence[];
     safety: Phase74PromotionGateInput["safety"];
@@ -209,6 +217,10 @@ export interface Phase74ArtifactAggregationInput {
   protectionArtifactPath?: string;
   runDirectories: readonly string[];
   seed?: number;
+}
+
+export interface Phase74ArtifactAggregationDependencies {
+  protectionVerifiers?: readonly Phase74ProtectionSuiteVerifier[];
 }
 
 export interface Phase74StageDiagnosticAggregationInput {
@@ -462,6 +474,7 @@ function assertAggregationAdmission(input: {
     "dataset",
     "embedding",
     "evaluatorSource",
+    "protectionBlueprint",
     "providerObjectCalls",
     "reranker",
     "scoring",
@@ -2163,14 +2176,83 @@ function buildStageAggregation(input: {
   };
 }
 
-async function loadProtectionArtifact(path: string): Promise<ProtectionArtifact> {
+async function loadProtectionArtifact(
+  path: string,
+  dependencies: Phase74ArtifactAggregationDependencies,
+): Promise<ProtectionArtifact> {
   const { evidence, sha256: artifactSha256 } =
-    await loadPhase74FrozenProtectionEvidence(path);
+    await loadPhase74FrozenProtectionSuiteEvidence(path, {
+      verifiers: dependencies.protectionVerifiers,
+    });
   return {
+    blueprintSha256: evidence.source.manifest.sha256,
     e4: evidence.e4.formatDeltas,
+    evaluatorSource: evidence.source.evaluatorSource,
     promotion: evidence.promotion,
     sha256: artifactSha256,
   };
+}
+
+function fixedCrossFamilyIdentity(identity: EvalRunIdentity): unknown {
+  const selectionPopulationFields = new Set([
+    "populationContentSha256",
+    "populationSize",
+    "selectedCaseIdsSha256",
+    "selectedCaseKeysSha256",
+    "selectedSize",
+  ]);
+  const selection = Object.fromEntries(Object.entries(recordValue(
+    identity.configuration.selection,
+    "cross-family selection identity",
+  )).filter(([field]) => !selectionPopulationFields.has(field)));
+  const familySpecificFields = new Set([
+    "dataset",
+    "replicate",
+    "scoring",
+    "selectedCaseIdsSha256",
+    "selection",
+  ]);
+  const configuration = {
+    ...Object.fromEntries(Object.entries(identity.configuration).filter(
+      ([field]) => !familySpecificFields.has(field),
+    )),
+    selection,
+  };
+  return {
+    answerModel: identity.answerModel,
+    configuration,
+    judgeModel: identity.judgeModel,
+    promptSha256s: identity.promptSha256s,
+  };
+}
+
+function assertProtectionIdentityAlignment(
+  artifacts: readonly RunArtifact[],
+  protection: ProtectionArtifact,
+): void {
+  for (const artifact of artifacts) {
+    const blueprint = recordValue(
+      artifact.identity.configuration.protectionBlueprint,
+      "protection blueprint",
+    );
+    if (blueprint.sha256 !== protection.blueprintSha256) {
+      throw new Error(
+        "Phase 74 protection blueprint does not match the pre-bound main run identity.",
+      );
+    }
+    const source = recordValue(
+      artifact.identity.configuration.evaluatorSource,
+      "evaluator source",
+    );
+    if (
+      protection.evaluatorSource.id !== `git:${String(source.commit)}` ||
+      protection.evaluatorSource.sha256 !== source.sha256
+    ) {
+      throw new Error(
+        "Phase 74 protection evaluator source does not match the main run identity.",
+      );
+    }
+  }
 }
 
 function buildE4Evaluation(
@@ -2413,6 +2495,13 @@ function orderArtifacts(artifacts: readonly RunArtifact[]): RunArtifact[] {
       throw new Error(`Phase 74 ${benchmark} dataset population drift.`);
     }
   }
+  if (
+    new Set(sorted.map(({ identity }) =>
+      stableJson(fixedCrossFamilyIdentity(identity))
+    )).size !== 1
+  ) {
+    throw new Error("Phase 74 fixed cross-family identity drift.");
+  }
   if (new Set(sorted.map(({ identityHash }) => identityHash)).size !== sorted.length) {
     throw new Error("Phase 74 run identity hashes must be globally unique.");
   }
@@ -2550,6 +2639,7 @@ export async function aggregatePhase74StageDiagnosticArtifacts(
 
 export async function aggregatePhase74GeneralizationArtifacts(
   input: Phase74ArtifactAggregationInput,
+  dependencies: Phase74ArtifactAggregationDependencies = {},
 ): Promise<Phase74ArtifactAggregationReport> {
   const runDirectories = normalizeRunDirectories(input.runDirectories);
   const artifacts = orderArtifacts(await Promise.all(
@@ -2557,7 +2647,13 @@ export async function aggregatePhase74GeneralizationArtifacts(
   ));
   const protection = input.protectionArtifactPath === undefined
     ? null
-    : await loadProtectionArtifact(resolve(input.protectionArtifactPath));
+    : await loadProtectionArtifact(
+        resolve(input.protectionArtifactPath),
+        dependencies,
+      );
+  if (protection !== null) {
+    assertProtectionIdentityAlignment(artifacts, protection);
+  }
   const stageAggregations = BENCHMARKS.flatMap((benchmark) => {
     const selected = artifacts.filter(
       (artifact) => artifact.benchmark === benchmark,
@@ -2708,13 +2804,51 @@ export function parsePhase74AggregationCliOptions(
 
 export async function runPhase74GeneralizationAggregation(
   options: Phase74AggregationCliOptions,
+  dependencies: Phase74ArtifactAggregationDependencies = {},
 ): Promise<Phase74ArtifactAggregationReport> {
-  const report = await aggregatePhase74GeneralizationArtifacts(options);
-  await mkdir(dirname(options.outputPath), { recursive: true });
+  const outputPath = resolve(options.outputPath);
+  if (options.protectionArtifactPath !== undefined) {
+    const protectionArtifactPath = resolve(options.protectionArtifactPath);
+    const { evidence } = await loadPhase74FrozenProtectionSuiteEvidence(
+      protectionArtifactPath,
+      { verifiers: dependencies.protectionVerifiers },
+    );
+    const protectedPaths = [
+      {
+        label: "the frozen protection evidence",
+        path: protectionArtifactPath,
+      },
+      {
+        label: "the protection suite manifest",
+        path: evidence.source.manifest.path,
+      },
+      ...evidence.source.suites.flatMap(({ files }) => files.flatMap((file) => [
+        {
+          label: "a frozen protection run artifact",
+          path: file.artifactPath,
+        },
+        {
+          label: "a frozen protection raw artifact",
+          path: file.rawArtifactPath,
+        },
+      ])),
+    ];
+    const conflict = protectedPaths.find(({ path }) =>
+      resolve(path) === outputPath
+    );
+    if (conflict !== undefined) {
+      throw new Error(`--output must not overwrite ${conflict.label}.`);
+    }
+  }
+  const report = await aggregatePhase74GeneralizationArtifacts(
+    options,
+    dependencies,
+  );
+  await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(
-    options.outputPath,
+    outputPath,
     `${JSON.stringify(report, null, 2)}\n`,
-    "utf8",
+    { encoding: "utf8", flag: "wx" },
   );
   return report;
 }

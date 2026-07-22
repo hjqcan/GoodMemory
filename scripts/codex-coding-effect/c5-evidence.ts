@@ -39,6 +39,10 @@ import type {
 import { loadCodexCodingEffectDataset } from "./dataset";
 import { buildC5StageLeakageInput } from "./c5-leakage-input";
 import {
+  hashC5ComparableHostEnvironment,
+  parseC5HostEnvironment,
+} from "./c5-host-environment";
+import {
   C5_PRIOR_EXPORT_LINEAGE_REASON,
   isC5StageWritebackRequired,
   resolveC5PriorMemoryLineage,
@@ -154,6 +158,7 @@ export interface C5EvidenceVerification {
   claimBoundary: typeof CLAIM_BOUNDARY;
   counts: {
     hostPreflights: number;
+    opaqueProcessOnlyTrajectoryOrigins: number;
     pairs: number;
     projectedFiles: number;
     stageExecutions: number;
@@ -194,6 +199,7 @@ interface VerifiedProjection {
   leakageRejectionCount: number;
   manifest: C5EvidenceProjectionManifest;
   manifestSha256: string;
+  opaqueProcessOnlyTrajectoryOriginCount: number;
   pairCount: number;
   planSha256: string;
   runId: string;
@@ -325,6 +331,8 @@ export async function verifyC5EvidenceProjection(input: {
       claimBoundary: CLAIM_BOUNDARY,
       counts: {
         hostPreflights: verified.hostPreflightCount,
+        opaqueProcessOnlyTrajectoryOrigins:
+          verified.opaqueProcessOnlyTrajectoryOriginCount,
         pairs: verified.pairCount,
         projectedFiles: verified.manifest.files.length,
         stageExecutions: verified.stageExecutionCount,
@@ -348,6 +356,7 @@ export async function verifyC5EvidenceProjection(input: {
       claimBoundary: CLAIM_BOUNDARY,
       counts: {
         hostPreflights: 0,
+        opaqueProcessOnlyTrajectoryOrigins: 0,
         pairs: 0,
         projectedFiles: 0,
         stageExecutions: 0,
@@ -729,6 +738,7 @@ function verifyEvidenceGraph(input: {
   const pairMap = verifyPairs(input.plan, pairs);
   const hostIdentityHashes = new Set<string>();
   let hostPreflightCount = 0;
+  let opaqueProcessOnlyTrajectoryOriginCount = 0;
   let taskAliasAuditCount = 0;
 
   for (const cluster of input.plan.clusters) {
@@ -790,7 +800,7 @@ function verifyEvidenceGraph(input: {
     for (const stage of runs[0]!.stages) {
       const pairKey = `${cluster.id}/${stage.stageId}`;
       const pair = requiredMapValue(pairMap, pairKey, "C5 pair");
-      verifyPairEvidence({
+      opaqueProcessOnlyTrajectoryOriginCount += verifyPairEvidence({
         cluster,
         frozenDataset: input.frozenDataset,
         pair,
@@ -830,6 +840,7 @@ function verifyEvidenceGraph(input: {
       stage.arm === "goodmemory-installed" &&
       stage.memoryChannelStatus === "failed"
     ).length,
+    opaqueProcessOnlyTrajectoryOriginCount,
     pairCount: pairs.length,
     runId,
     stageExecutionCount: stages.length,
@@ -1636,9 +1647,7 @@ function verifyInterruptedAttempts(input: {
     );
     if (
       stageRows.length > 6 ||
-      pairRows.length > 3 ||
-      (stageRows.length === 0 && pairRows.length === 0 &&
-        artifacts.length === 0 && !stageTail && !pairTail && !commitTail)
+      pairRows.length > 3
     ) {
       throw new Error("C5 interrupted attempt does not describe a partial cluster");
     }
@@ -1751,7 +1760,7 @@ function verifyHostPreflight(input: {
     "schemaVersion",
   ], "C5 host preflight");
   if (
-    input.preflight.schemaVersion !== 1 ||
+    input.preflight.schemaVersion !== 2 ||
     input.preflight.clusterId !== input.cluster.id ||
     input.preflight.networkAccess !== false
   ) {
@@ -1766,7 +1775,7 @@ function verifyHostPreflight(input: {
     "codexVersion",
     "goodMemoryPackageSha256",
     "goodMemoryPackageVersion",
-    "hostEnvironmentSha256",
+    "comparableHostEnvironmentSha256",
     "installedProfile",
     "model",
     "reasoningEffort",
@@ -1776,18 +1785,19 @@ function verifyHostPreflight(input: {
     "C5 Codex executable hash",
   );
   assertSha256(hostIdentity.goodMemoryPackageSha256, "C5 package hash");
-  const hostEnvironment = asRecord(
+  const hostEnvironment = parseC5HostEnvironment(
     input.preflight.hostEnvironment,
-    "C5 host environment",
   );
-  const hostEnvironmentSha256 = requiredSha256(
-    hostIdentity.hostEnvironmentSha256,
-    "C5 host environment binding",
+  const comparableHostEnvironmentSha256 = requiredSha256(
+    hostIdentity.comparableHostEnvironmentSha256,
+    "C5 comparable host environment binding",
   );
-  if (hostEnvironmentSha256 !== sha256(JSON.stringify(hostEnvironment))) {
-    throw new Error("C5 host environment hash is inconsistent");
+  if (
+    comparableHostEnvironmentSha256 !==
+      hashC5ComparableHostEnvironment(hostEnvironment)
+  ) {
+    throw new Error("C5 comparable host environment hash is inconsistent");
   }
-  verifyC5HostEnvironment(hostEnvironment);
   requiredString(hostIdentity.codexVersion, "C5 Codex version");
   requiredString(hostIdentity.goodMemoryPackageVersion, "C5 package version");
   if (
@@ -1861,72 +1871,6 @@ function verifyHostPreflight(input: {
     hostIdentitySha256,
     taskAliasAuditCount: 2,
   };
-}
-
-function verifyC5HostEnvironment(environment: Record<string, unknown>): void {
-  assertExactKeys(environment, [
-    "codexFeatures",
-    "configurations",
-    "goodmemory",
-    "platform",
-    "repositoryPolicy",
-    "toolchain",
-  ], "C5 host environment");
-  const configurations = asRecord(
-    environment.configurations,
-    "C5 host configurations",
-  );
-  if (
-    configurations.schemaVersion !== 1 ||
-    !Array.isArray(configurations.normalizedDiff) ||
-    typeof configurations.arms !== "object" ||
-    configurations.arms === null
-  ) {
-    throw new Error("C5 host configurations are incomplete");
-  }
-  const goodmemory = asRecord(environment.goodmemory, "C5 host GoodMemory");
-  assertExactKeys(goodmemory, [
-    "configSha256",
-    "executableSha256",
-    "hooksSha256",
-    "mcpExecutableSha256",
-    "packageSha256",
-  ], "C5 host GoodMemory");
-  Object.values(goodmemory).forEach((value) =>
-    assertSha256(value, "C5 host GoodMemory hash")
-  );
-  const repositoryPolicy = asRecord(
-    environment.repositoryPolicy,
-    "C5 repository policy",
-  );
-  if (
-    repositoryPolicy.dirtyStatePolicy !== "reject" ||
-    repositoryPolicy.workspaceIsolation !== "fresh-isolated-clone-per-stage"
-  ) {
-    throw new Error("C5 repository isolation policy is insufficient");
-  }
-  const toolchain = asRecord(environment.toolchain, "C5 host toolchain");
-  if (
-    Object.keys(toolchain).sort().join(",") !== "bun,git,node,npm,python"
-  ) {
-    throw new Error("C5 host toolchain is incomplete");
-  }
-  for (const value of Object.values(toolchain)) {
-    const tool = asRecord(value, "C5 host tool");
-    assertExactKeys(tool, ["sha256", "version"], "C5 host tool");
-    assertSha256(tool.sha256, "C5 host tool hash");
-    requiredString(tool.version, "C5 host tool version");
-  }
-  const platform = asRecord(environment.platform, "C5 host platform");
-  if (
-    !isPositiveInteger(platform.cpuCount) ||
-    !isPositiveInteger(platform.totalMemoryBytes)
-  ) {
-    throw new Error("C5 host platform is incomplete");
-  }
-  requiredString(platform.arch, "C5 host architecture");
-  requiredString(platform.name, "C5 host platform name");
-  asRecord(environment.codexFeatures, "C5 Codex features");
 }
 
 function verifyNoMemoryAbsence(
@@ -3081,7 +3025,7 @@ function verifyPairEvidence(input: {
   reader: ArtifactReader;
   root: string;
   stage: C5PilotStageRun;
-}): void {
+}): number {
   const pairRoot =
     `pairs/${clusterDigest(input.cluster.id)}/${input.stage.stageId}`;
   const leakagePath = `${pairRoot}/live-leakage-audit.json`;
@@ -3091,7 +3035,7 @@ function verifyPairEvidence(input: {
     `${input.cluster.episodeId}/${input.stage.stageId}`,
     "C5 frozen leakage input",
   );
-  verifyLeakageAudit({
+  const opaqueProcessOnlyTrajectoryOriginCount = verifyLeakageAudit({
     audit: leakage,
     episodeId: input.cluster.episodeId,
     expectedPromptContents: input.frozenDataset.promptContents,
@@ -3146,6 +3090,7 @@ function verifyPairEvidence(input: {
       throw new Error(`C5 evaluator failure was not accounted for: ${path}`);
     }
   }
+  return opaqueProcessOnlyTrajectoryOriginCount;
 }
 
 function verifyLeakageAudit(input: {
@@ -3160,12 +3105,12 @@ function verifyLeakageAudit(input: {
   reader: ArtifactReader;
   root: string;
   stage: C5PilotStageRun;
-}): void {
+}): number {
   if (input.audit.variant === "infrastructure-rejected") {
     verifyRejectedLeakageAudit(input.audit, input.label);
-    return;
+    return 0;
   }
-  verifyCompleteLeakageAudit(input);
+  return verifyCompleteLeakageAudit(input);
 }
 
 function verifyRejectedLeakageAudit(
@@ -3202,7 +3147,7 @@ function verifyCompleteLeakageAudit(input: {
   reader: ArtifactReader;
   root: string;
   stage: C5PilotStageRun;
-}): void {
+}): number {
   const { audit, label } = input;
   assertExactKeys(audit, [
     "auditSha256",
@@ -3420,6 +3365,7 @@ function verifyCompleteLeakageAudit(input: {
   ) {
     throw new Error(`${label} leakage result is inconsistent`);
   }
+  return trajectoryOrigins.opaqueReceiptCount;
 }
 
 function verifyLiveSurfaceReceipts(input: {
@@ -3732,12 +3678,17 @@ function verifyTrajectoryOrigins(input: {
 }): {
   auditSha256: string;
   matchesByArtifact: Map<string, Set<string>>;
+  opaqueReceiptCount: number;
   receiptCount: number;
 } {
-  const expected = new Map<string, {
-    audit: C4LeakageMatrixAudit;
-    sha256: string;
-  }>();
+  const expected = new Map<string,
+    | {
+        audit: C4LeakageMatrixAudit;
+        kind: "content-recomputed";
+        sha256: string;
+      }
+    | { kind: "process-only-codex-jsonl-output" }
+  >();
   for (const priorStageId of input.stage.priorStageIds) {
     const priorEvidence = input.reader.json(
       `${input.root}/goodmemory-installed/${priorStageId}/stage-execution.sanitized.json`,
@@ -3756,6 +3707,7 @@ function verifyTrajectoryOrigins(input: {
     }
     expected.set(`${priorStageId}:effective-prompt`, {
       audit: buildC5OriginMatrixAudit(input.leakageInput, prompt),
+      kind: "content-recomputed",
       sha256: promptSha256,
     });
     const patch = input.reader.bytes(
@@ -3764,7 +3716,17 @@ function verifyTrajectoryOrigins(input: {
     if (patch.length > 0) {
       expected.set(`${priorStageId}:agent-patch`, {
         audit: buildC5OriginMatrixAudit(input.leakageInput, patch),
+        kind: "content-recomputed",
         sha256: sha256(patch),
+      });
+    }
+    const codex = asRecord(
+      priorEvidence.codex,
+      `${input.label} prior Codex summary`,
+    );
+    if (Number(codex.eventCount) > 0) {
+      expected.set(`${priorStageId}:codex-jsonl-output`, {
+        kind: "process-only-codex-jsonl-output",
       });
     }
   }
@@ -3774,7 +3736,12 @@ function verifyTrajectoryOrigins(input: {
   );
   const origins: Array<{ id: string; matrixAuditReceipt: unknown; sha256: string }> = [];
   const matchesByArtifact = new Map<string, Set<string>>();
+  const artifacts = new Map(input.leakageInput.artifacts.map((artifact) => [
+    artifact.id,
+    artifact,
+  ]));
   const ids = new Set<string>();
+  let opaqueReceiptCount = 0;
   for (const value of values) {
     const origin = asRecord(value, `${input.label} trajectory origin`);
     assertExactKeys(
@@ -3791,7 +3758,8 @@ function verifyTrajectoryOrigins(input: {
     if (
       ids.has(id) ||
       expectedReceipt === undefined ||
-      digest !== expectedReceipt.sha256
+      (expectedReceipt.kind === "content-recomputed" &&
+        digest !== expectedReceipt.sha256)
     ) {
       throw new Error(`${input.label} has an invalid trajectory origin receipt`);
     }
@@ -3800,10 +3768,19 @@ function verifyTrajectoryOrigins(input: {
       `${input.label} trajectory origin ${id}`,
     );
     if (
+      expectedReceipt.kind === "content-recomputed" &&
       JSON.stringify(origin.matrixAuditReceipt) !==
         JSON.stringify(expectedReceipt.audit)
     ) {
       throw new Error(`${input.label} trajectory origin matrix was not recomputed`);
+    }
+    if (expectedReceipt.kind === "process-only-codex-jsonl-output") {
+      verifyOpaqueTrajectoryOriginMatrix({
+        leakageInput: input.leakageInput,
+        label: `${input.label} trajectory origin ${id}`,
+        matrix,
+      });
+      opaqueReceiptCount += 1;
     }
     for (const cell of matrix.cells.values()) {
       const expectedSurfaceSha256 =
@@ -3816,6 +3793,19 @@ function verifyTrajectoryOrigins(input: {
         );
       }
       if (cell.surfaceId !== "effective-codex-input-after-seeding") continue;
+      verifyLiveCellCandidateClaims({
+        allowedPublic: canonicalSha256Array(
+          cell.raw.allowedPublicFragmentSha256,
+          `${input.label} trajectory origin ${id} allowed public fragments`,
+        ),
+        artifact: requiredMapValue(
+          artifacts,
+          cell.artifactId as C4HiddenArtifact["id"],
+          `${input.label} trajectory origin ${id} frozen hidden artifact`,
+        ),
+        label: `${input.label} trajectory origin ${id}`,
+        matches: cell.matches,
+      });
       const matches = matchesByArtifact.get(cell.artifactId) ?? new Set<string>();
       for (const match of cell.matches) matches.add(match);
       matchesByArtifact.set(cell.artifactId, matches);
@@ -3838,8 +3828,51 @@ function verifyTrajectoryOrigins(input: {
   return {
     auditSha256: sha256(JSON.stringify(origins)),
     matchesByArtifact,
+    opaqueReceiptCount,
     receiptCount: origins.length,
   };
+}
+
+function verifyOpaqueTrajectoryOriginMatrix(input: {
+  leakageInput: {
+    artifacts: C4HiddenArtifact[];
+    staticSurfaces: C4LeakageSurface[];
+  };
+  label: string;
+  matrix: ReturnType<typeof verifyC4MatrixAuditReceipt>;
+}): void {
+  const expected = buildC5OriginMatrixAudit(input.leakageInput, "");
+  const invariantKeys = [
+    "artifactSha256",
+    "candidateFragmentCount",
+    "candidateFragmentSetSha256",
+    "hiddenValueCount",
+    "hiddenValueRelationCount",
+    "hiddenValueRelationSetSha256",
+    "hiddenValueSetSha256",
+  ] as const;
+  for (const expectedCell of expected.cells) {
+    const actual = input.matrix.cells.get(
+      `${expectedCell.surfaceId}/${expectedCell.artifactId}`,
+    );
+    if (actual === undefined) {
+      throw new Error(`${input.label} omitted a frozen artifact cell`);
+    }
+    if (expectedCell.surfaceId === "effective-codex-input-after-seeding") {
+      const driftedKey = invariantKeys.find((key) =>
+        JSON.stringify(actual.raw[key]) !== JSON.stringify(expectedCell[key])
+      );
+      if (driftedKey !== undefined) {
+        throw new Error(
+          `${input.label} drifted from frozen artifacts at ${driftedKey}`,
+        );
+      }
+      continue;
+    }
+    if (JSON.stringify(actual.raw) !== JSON.stringify(expectedCell)) {
+      throw new Error(`${input.label} non-content cells were not recomputed`);
+    }
+  }
 }
 
 function buildC5OriginMatrixAudit(

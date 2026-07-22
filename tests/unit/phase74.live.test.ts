@@ -4,6 +4,7 @@ import { describe, expect, it } from "bun:test";
 
 import {
   buildPhase74EmbeddingIdentity,
+  capturePhase74EvaluatorSource,
   createPhase74LiveJudge,
   createPhase74LiveReader,
   PHASE74_GENERIC_READER_SYSTEM_PROMPT,
@@ -42,12 +43,21 @@ const env = {
 
 describe("Phase 74 live provider boundary", () => {
   it("binds post-run aggregation and the real storage gate into evaluator source identity", () => {
-    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.version).toBe(2);
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.version).toBe(3);
     expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
       "scripts/aggregate-phase-74-generalization.ts",
     );
     expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
       "scripts/run-phase-74-storage-scale-gate.ts",
+    );
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
+      "scripts/phase-74-memory-agent-bench-protection.ts",
+    );
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
+      "scripts/run-phase-74-memory-agent-bench-protection.ts",
+    );
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
+      "scripts/run-phase-64-memory-agent-bench-smoke.ts",
     );
   });
 
@@ -96,8 +106,13 @@ describe("Phase 74 live provider boundary", () => {
     const dependencies = {
       hashSnapshot: async () => declared.sha256,
       resolveGitHead: async () => declared.commit,
+      resolveSourceStatus: async () => "",
     };
 
+    await expect(capturePhase74EvaluatorSource({
+      dependencies,
+      repoRoot: "/repo",
+    })).resolves.toEqual(declared);
     await expect(verifyPhase74EvaluatorSource({
       declared,
       dependencies,
@@ -119,6 +134,84 @@ describe("Phase 74 live provider boundary", () => {
       },
       repoRoot: "/repo",
     })).rejects.toThrow("source snapshot SHA-256 does not match");
+    await expect(verifyPhase74EvaluatorSource({
+      declared,
+      dependencies: {
+        ...dependencies,
+        resolveSourceStatus: async () => " M src/eval/phase74Live.ts\n",
+      },
+      repoRoot: "/repo",
+    })).rejects.toThrow("tracked tree or evaluator source snapshot is dirty");
+  });
+
+  it("captures evaluator source inside a sequential clean-tree bracket", async () => {
+    const calls: string[] = [];
+    let headCalls = 0;
+    let statusCalls = 0;
+    const source = {
+      commit: "5d7639a8fa164d86e0aa1ed10a8ea398b7912464",
+      sha256:
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    };
+
+    await expect(capturePhase74EvaluatorSource({
+      dependencies: {
+        hashSnapshot: async () => {
+          calls.push("hash");
+          return source.sha256;
+        },
+        resolveGitHead: async () => {
+          calls.push(headCalls === 0 ? "head-before" : "head-after");
+          headCalls += 1;
+          return source.commit;
+        },
+        resolveSourceStatus: async () => {
+          calls.push(statusCalls === 0 ? "status-before" : "status-after");
+          statusCalls += 1;
+          return "";
+        },
+      },
+      repoRoot: "/repo",
+    })).resolves.toEqual(source);
+    expect(calls).toEqual([
+      "status-before",
+      "head-before",
+      "hash",
+      "head-after",
+      "status-after",
+    ]);
+  });
+
+  it("rejects evaluator source capture when HEAD changes during hashing", async () => {
+    let headCalls = 0;
+
+    await expect(capturePhase74EvaluatorSource({
+      dependencies: {
+        hashSnapshot: async () => "0".repeat(64),
+        resolveGitHead: async () => {
+          headCalls += 1;
+          return headCalls === 1 ? "1".repeat(40) : "2".repeat(40);
+        },
+        resolveSourceStatus: async () => "",
+      },
+      repoRoot: "/repo",
+    })).rejects.toThrow("git HEAD changed while evaluator source was captured");
+  });
+
+  it("rejects evaluator source capture when the tree becomes dirty after hashing", async () => {
+    let statusCalls = 0;
+
+    await expect(capturePhase74EvaluatorSource({
+      dependencies: {
+        hashSnapshot: async () => "0".repeat(64),
+        resolveGitHead: async () => "1".repeat(40),
+        resolveSourceStatus: async () => {
+          statusCalls += 1;
+          return statusCalls === 1 ? "" : " M src/eval/phase74Live.ts\n";
+        },
+      },
+      repoRoot: "/repo",
+    })).rejects.toThrow("tracked tree or evaluator source snapshot is dirty");
   });
 
   it("pins language calls to Terra/GurkiAI, the judge independently, and embeddings to OpenRouter", () => {

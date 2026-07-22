@@ -1,3 +1,4 @@
+import type { LanguageService } from "../language";
 import { rebuildMemoryPacket } from "../recall/contextBuilder";
 import { selectEvidence } from "../recall/evidence";
 import { applyRerankingWithScores } from "../recall/reranker";
@@ -116,6 +117,7 @@ function sourceMemoryId(fact: RecallResult["facts"][number]): string {
 function rebuildRerankedResult(input: {
   durableCandidateOrder?: string[];
   facts: RecallResult["facts"];
+  language: LanguageService;
   result: RecallResult;
 }): RecallResult {
   const factIds = new Set(
@@ -149,6 +151,7 @@ function rebuildRerankedResult(input: {
     workingMemory: input.result.workingMemory,
     journal: input.result.journal,
     durableCandidateOrder: input.durableCandidateOrder,
+    language: input.language,
     locale: input.result.metadata.locale,
     routingDecision: input.result.metadata.routingDecision,
   });
@@ -211,6 +214,7 @@ function rebuildRerankedResult(input: {
 }
 
 export async function applyFactRerankingToResult(input: {
+  language: LanguageService;
   preRankLimit?: number;
   query: string;
   reranker: Reranker;
@@ -263,6 +267,7 @@ export async function applyFactRerankingToResult(input: {
     const selectedResult = rebuildRerankedResult({
       durableCandidateOrder,
       facts,
+      language: input.language,
       result,
     });
     return withRerankerTrace(
@@ -297,6 +302,7 @@ export async function applyFactRerankingToResult(input: {
     return withRerankerTrace(
       rebuildRerankedResult({
         facts: candidatePool.slice(0, selectedLimit),
+        language: input.language,
         result,
       }),
       {

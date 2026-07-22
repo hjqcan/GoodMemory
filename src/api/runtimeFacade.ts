@@ -1,4 +1,5 @@
 import type { GoodMemoryTracer } from "../observability/tracer";
+import type { MemoryScope } from "../domain/scope";
 import {
   createRuntimeContextService,
   type RuntimeExtractionHooks,
@@ -12,6 +13,7 @@ import type {
   SessionStore,
 } from "../storage/contracts";
 import { isProjectionCapableDocumentStore } from "../storage/contracts";
+import type { ScopeDeletionCoordinator } from "../storage/scopeDeletion";
 import type {
   GoodMemoryRuntimeAppendMessageInput,
   GoodMemoryRuntimeBufferResult,
@@ -33,6 +35,7 @@ import type {
 export interface GoodMemoryRuntimeFacadeConfig {
   documentStore: DocumentStore;
   language?: LanguageService;
+  scopeDeletion?: ScopeDeletionCoordinator;
   sessionStore: SessionStore;
   now: () => Date;
   runtimeCompactionExtraction?: {
@@ -97,35 +100,43 @@ export function createGoodMemoryRuntimeFacade(
     language: config.language,
     now: () => config.now().toISOString(),
   });
+  const runMutation = <T>(
+    scope: MemoryScope,
+    operation: () => Promise<T>,
+  ): Promise<T> => config.scopeDeletion
+    ? config.scopeDeletion.runMutation(scope, operation)
+    : operation();
 
   return {
     async startSession(
       input: GoodMemoryRuntimeStartSessionInput,
     ): Promise<GoodMemoryRuntimeStateResult> {
-      const trace = await config.tracer.start({
-        name: "runtime.session.start",
-        scope: input.scope,
-        attributes: {
-          hasSessionId: Boolean(input.scope.sessionId),
-        },
-      });
-
-      try {
-        const state = await runtime.startSession(input.scope);
-        await trace.succeeded({
+      return runMutation(input.scope, async () => {
+        const trace = await config.tracer.start({
+          name: "runtime.session.start",
+          scope: input.scope,
           attributes: {
-            bufferedMessageCount: state.buffer.messages.length,
+            hasSessionId: Boolean(input.scope.sessionId),
           },
         });
 
-        return {
-          state,
-          ...(trace.traceId ? { traceId: trace.traceId } : {}),
-        };
-      } catch (error) {
-        await trace.failed({ error });
-        throw error;
-      }
+        try {
+          const state = await runtime.startSession(input.scope);
+          await trace.succeeded({
+            attributes: {
+              bufferedMessageCount: state.buffer.messages.length,
+            },
+          });
+
+          return {
+            state,
+            ...(trace.traceId ? { traceId: trace.traceId } : {}),
+          };
+        } catch (error) {
+          await trace.failed({ error });
+          throw error;
+        }
+      });
     },
 
     async getState(
@@ -139,36 +150,36 @@ export function createGoodMemoryRuntimeFacade(
     async appendMessage(
       input: GoodMemoryRuntimeAppendMessageInput,
     ): Promise<GoodMemoryRuntimeBufferResult> {
-      return {
+      return runMutation(input.scope, async () => ({
         buffer: await runtime.appendToSession(input.scope, input.message),
-      };
+      }));
     },
 
     async setSessionSummary(
       input: GoodMemoryRuntimeSetSessionSummaryInput,
     ): Promise<GoodMemoryRuntimeBufferResult> {
-      return {
+      return runMutation(input.scope, async () => ({
         buffer: await runtime.setSessionSummary(input.scope, {
           summary: input.summary,
           summaryUpToIndex: input.summaryUpToIndex,
         }),
-      };
+      }));
     },
 
     async updateWorkingMemory(
       input: GoodMemoryRuntimeUpdateWorkingMemoryInput,
     ): Promise<GoodMemoryRuntimeWorkingMemoryResult> {
-      return {
+      return runMutation(input.scope, async () => ({
         workingMemory: await runtime.updateWorkingMemory(input.scope, input.patch),
-      };
+      }));
     },
 
     async updateSessionJournal(
       input: GoodMemoryRuntimeUpdateSessionJournalInput,
     ): Promise<GoodMemoryRuntimeSessionJournalResult> {
-      return {
+      return runMutation(input.scope, async () => ({
         journal: await runtime.updateSessionJournal(input.scope, input.patch),
-      };
+      }));
     },
 
     async getRecallSnapshot(
@@ -185,41 +196,43 @@ export function createGoodMemoryRuntimeFacade(
     async endSession(
       input: GoodMemoryRuntimeEndSessionInput,
     ): Promise<GoodMemoryRuntimeStateResult> {
-      const archiveOptions = resolveEndSessionArchiveOptions(input);
-      const archive = archiveOptions?.archive;
-      const archiveMode =
-        archive === "off"
-          ? "off"
-          : archive === "auto"
-            ? "auto"
-          : archive?.mode ?? "off";
-      const trace = await config.tracer.start({
-        name: "runtime.session.end",
-        scope: input.scope,
-        attributes: {
-          archiveMode,
-          includeNormalizedTranscript: false,
-        },
-      });
-
-      try {
-        const state = await runtime.endSession(input.scope, archiveOptions);
-        await trace.succeeded({
+      return runMutation(input.scope, async () => {
+        const archiveOptions = resolveEndSessionArchiveOptions(input);
+        const archive = archiveOptions?.archive;
+        const archiveMode =
+          archive === "off"
+            ? "off"
+            : archive === "auto"
+              ? "auto"
+            : archive?.mode ?? "off";
+        const trace = await config.tracer.start({
+          name: "runtime.session.end",
+          scope: input.scope,
           attributes: {
             archiveMode,
-            bufferedMessageCount: state.buffer.messages.length,
             includeNormalizedTranscript: false,
           },
         });
 
-        return {
-          state,
-          ...(trace.traceId ? { traceId: trace.traceId } : {}),
-        };
-      } catch (error) {
-        await trace.failed({ error });
-        throw error;
-      }
+        try {
+          const state = await runtime.endSession(input.scope, archiveOptions);
+          await trace.succeeded({
+            attributes: {
+              archiveMode,
+              bufferedMessageCount: state.buffer.messages.length,
+              includeNormalizedTranscript: false,
+            },
+          });
+
+          return {
+            state,
+            ...(trace.traceId ? { traceId: trace.traceId } : {}),
+          };
+        } catch (error) {
+          await trace.failed({ error });
+          throw error;
+        }
+      });
     },
   };
 }

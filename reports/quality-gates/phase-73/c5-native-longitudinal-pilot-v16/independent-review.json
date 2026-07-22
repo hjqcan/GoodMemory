@@ -1,0 +1,34 @@
+{
+  "assertions": {
+    "claimBoundary": true,
+    "everyAttemptAccounted": true,
+    "failureTaxonomyReviewed": true,
+    "noSilentFallback": true,
+    "powerAnalysis": true
+  },
+  "claimBoundary": "internal-native-longitudinal-pilot-only",
+  "decision": "accepted",
+  "failureTaxonomySha256": "50b7929fc452f0a1d42a83c1536910f4902a1d66748603a97880226b303ea692",
+  "findings": [
+    {
+      "code": "authenticity-scope-boundary",
+      "severity": "advisory",
+      "summary": "Live-surface source preimages and external authenticity were intentionally not independently observed; acceptance is limited to the sanitized projection's declared scope."
+    }
+  ],
+  "inputBundleSha256": "59b1c979ddd9924d40af2998a819c634a2de995c65b50cefa9a573db8d98fa55",
+  "phase": "C5",
+  "projectionManifestSha256": "41656ed99fbadfabe836aafc39d82b2416ecda368fd8a13830ff5197e6176323",
+  "publicClaimEligible": false,
+  "publicCodingEffectProof": false,
+  "rationale": "All four bound inputs matched their required UTF-8 byte lengths and SHA-256 values. The manifest contains 395 unique paths with no duplicates, and its 12 matching pair and trajectory identifiers each contain three stages, yielding exactly 36 stage pairs and 72 arm-stage executions; these counts agree with verification and with the report's 72 of 72 accounted attempts and 36 of 36 accounted pairs. The report and verification explicitly prevent silent fallback, while the six infrastructure failures, six memory-channel failures, four required-memory failures, six incomparable pairs, and task failures are represented by the reviewed taxonomy and kept out of ordinary comparable scoring. The report states a 0.10 planned material-effect threshold, a paired episode-cluster 95 percent bootstrap interval, and an expanded-run budget of 113 episodes and 2034 Codex calls. The claim boundary is consistently internal-native-longitudinal-pilot-only and all three public-claim flags are false. This review assesses only frozen capture claims and sanitized projection consistency, not live-source authenticity.",
+  "readmeRowAllowed": false,
+  "reportSha256": "5985be5969750286ef2d2af623741e12051d3830f96bd4b8e0907b849b1eab0b",
+  "reviewedAt": "2026-07-21T17:59:55Z",
+  "reviewer": "OpenAI Codex",
+  "reviewerTaskName": "/root/c5_final_independent_review_v1",
+  "runId": "run-c5-pilot-v16-20260721T150112Z",
+  "schemaVersion": 1,
+  "scope": "sanitized-projection-only",
+  "verificationSha256": "de8aea82bb832d406256877d902f068037c6e9fb3e1a3530ae24480744d28af8"
+}

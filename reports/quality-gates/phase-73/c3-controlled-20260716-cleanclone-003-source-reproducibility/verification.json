@@ -1,0 +1,20 @@
+{
+  "bundleBytes": 4891617,
+  "bundleRef": "refs/heads/c3-snapshot-003",
+  "decision": "accepted",
+  "evidenceClass": "frozen-prehistory-pilot",
+  "externalAuthenticityVerified": false,
+  "manifestSha256": "cbf8f3c5acd33cf48c24f20de723cb550c1a2685f20e875672874b3a520f16a4",
+  "projectionManifestSha256": "1210f9908154af56b68c22f5235eff1a19824d009c2cd06a5ec9932b869f5008",
+  "reasons": [],
+  "replayedArmCount": 2,
+  "replayedVerificationSha256": "61b9480818cd33c31bbb312b454cfc49c581b7f005c06870cc4b5f7417439803",
+  "runId": "c3-controlled-20260716-cleanclone-003",
+  "runnerBundleSha256": "86aa767660b30fc9b6930c166c86cd9415d2e0083919e629abbdd9ef1d613ecb",
+  "runnerCommit": "fc31f4f96f3975daea361805da3fc4fc942c5aa4",
+  "runnerSourceReproducible": true,
+  "runnerTree": "996b1c24bfb53a9d9c62eb109997576df7b512af",
+  "schemaVersion": 1,
+  "verificationScope": "bundled-recorded-runner-clean-clone-and-projection-replay",
+  "verifiedFileCount": 17
+}

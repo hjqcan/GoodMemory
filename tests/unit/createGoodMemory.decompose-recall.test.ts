@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+  createEnglishLanguagePack,
   createGoodMemory,
   createInMemoryDocumentStore,
   createInMemorySessionStore,
@@ -181,6 +182,108 @@ describe("GoodMemory.recall decompose option", () => {
       ],
     });
     expect(detectedTexts).toEqual([query]);
+  });
+
+  it("deduplicates assisted facets with the configured LanguagePack equality semantics", async () => {
+    const english = createEnglishLanguagePack();
+    const memory = createGoodMemory({
+      adapters: {
+        recallPlanner: {
+          async plan() {
+            return {
+              entities: ["Atlas"],
+              facets: ["Atlas colour choice", "Atlas color choice"],
+            };
+          },
+        },
+      },
+      language: {
+        packs: [{
+          ...english,
+          analyzerVersion: "custom-equality-v1",
+          normalizeForEquality(text) {
+            return english.normalizeForEquality(text).replaceAll(
+              "colour",
+              "color",
+            );
+          },
+        }],
+      },
+      retrieval: { recallPlanExecution: true },
+      storage: { provider: "memory" },
+    });
+
+    const result = await memory.recall({
+      scope,
+      query: "What changed for Atlas?",
+      strategy: "rules-only",
+    });
+
+    expect(result.metadata.retrievalTrace).toMatchObject({
+      schemaVersion: 2,
+      subQueries: ["Atlas colour choice"],
+    });
+  });
+
+  it("keeps the configured LanguagePack behavior when merged recall rebuilds the packet", async () => {
+    const english = createEnglishLanguagePack();
+    let packetRenderCount = 0;
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      language: {
+        packs: [{
+          ...english,
+          analyzerVersion: "custom-content-analysis-v1",
+          analyzeContent(text) {
+            return {
+              ...english.analyzeContent(text),
+              blockerFact: text.includes("ZETA"),
+            };
+          },
+          render(input) {
+            if (input.key === "active_context") {
+              packetRenderCount += 1;
+            }
+            return english.render(input);
+          },
+        }],
+      },
+      retrieval: { recallPlanExecution: true },
+      storage: { provider: "memory" },
+    });
+    const fact = createFactMemory({
+      id: "zeta-support",
+      userId: scope.userId,
+      workspaceId: scope.workspaceId,
+      category: "project",
+      content: "ZETA handoff signal.",
+      source: {
+        method: "explicit",
+        extractedAt: "2026-01-01T00:00:00.000Z",
+      },
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    await documentStore.set("facts", fact.id, fact);
+
+    const result = await memory.recall({
+      scope,
+      query: "What is my current role, and what should I do next for ZETA?",
+      strategy: "rules-only",
+    });
+
+    expect(result.metadata.policyApplied).toContain("decomposed_recall");
+    expect(packetRenderCount).toBe(4);
+    expect(result.packet.languagePackId).toBe("en");
+    expect(result.metadata.languagePackVersion).toBe(
+      "custom-content-analysis-v1",
+    );
+    expect(result.packet.factSummary).toContain("Immediate next-step support:");
+    expect(result.packet.factSummary).not.toContain("Additional project state:");
   });
 
   it("keeps merged evidence complete while deduping excerpts in the rebuilt packet", async () => {

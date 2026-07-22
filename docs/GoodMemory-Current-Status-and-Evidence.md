@@ -7,6 +7,9 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 - Current stable package line: 0.6.0. Tag `v0.6.0` resolves to release commit
   `6fdd63ec`; workflow run `29522907352` published the GitHub release and npm
   `latest` resolves to `goodmemory@0.6.0`.
+- The source tree now targets the breaking `0.7.0` release candidate. Publication,
+  the `v0.7.0` tag, and npm `latest` remain separate release actions and are not
+  claimed by this repository change.
 - Main has completed Phases 68 through 72 on the generalization-first line.
   The production selector graph contains only
   generalized selection primitives, and the `recommended` preset now has a
@@ -48,12 +51,12 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   `docs/GoodMemory-Inspector-and-Admin-API.md` and
   `reports/quality-gates/phase-71/run-20260711-admin-inspector/`.
 - Phase 73 remains active as a separate Codex-only product-effect lane. C0-C2
-  are closed. C3's tracked projection remains internally accepted as
-  frozen-prehistory protocol/host evidence, but its source-reproducibility gate
-  is reopened. C4's prior v8 acceptance is superseded; the canonical v9
+  are closed. C3's tracked projection is internally accepted as
+  source-reproducible frozen-prehistory protocol/host evidence. C4's prior v8
+  acceptance is superseded; the canonical v9
   corpus-wide leakage core, independent review, baseline, authenticated raw
-  and projected stage evidence, and final readiness are accepted. C5 is
-  unblocked for the internal pilot but has not run; C6-C7 remain open.
+  and projected stage evidence, and final readiness are accepted. C5 internal
+  pilot `run-c5-pilot-v16-20260721T150112Z` is accepted; C6-C7 remain open.
   Final C3 run `c3-controlled-20260716-cleanclone-003` used a clean mechanical
   runner snapshot at commit
   `fc31f4f96f3975daea361805da3fc4fc942c5aa4` / tree
@@ -83,12 +86,16 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   accepted for protocol execution and installed-host activation only; the tie
   does not prove coding uplift and does not authorize a public coding-effect
   claim.
-  C3 source-reproducibility gate is reopened: the recorded GoodMemory commit
-  and tree are reachable in the current repository, but runner commit
-  `fc31f4f96f3975daea361805da3fc4fc942c5aa4` and tree
-  `996b1c24bfb53a9d9c62eb109997576df7b512af` are not. The projection proves
-  internal consistency only; it cannot currently recover the exact verifier
-  source from repository objects.
+  C3 source-reproducibility gate is closed. The supplemental tracked directory
+  `reports/quality-gates/phase-73/c3-controlled-20260716-cleanclone-003-source-reproducibility/`
+  contains a complete 4,891,617-byte Git bundle with SHA-256
+  `86aa767660b30fc9b6930c166c86cd9415d2e0083919e629abbdd9ef1d613ecb`.
+  A clean clone from only that bundle reconstructed exact runner commit
+  `fc31f4f96f3975daea361805da3fc4fc942c5aa4` / tree
+  `996b1c24bfb53a9d9c62eb109997576df7b512af` and ran the bundled historical
+  verifier, which again accepted all 17 projected files and both patch replays.
+  This closes recoverability, not external authenticity;
+  `externalAuthenticityVerified` remains false.
   C4's previous v8 controlled dataset, baseline ceiling pilot, independent
   review, and final readiness are historical and superseded. The schema-v2
   fixture has 6
@@ -144,19 +151,28 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   artifacts, not this summary prose, are the C4 truth source; the release test
   rejects any routing/status projection that drifts from them. No C4
   version proves coding uplift or authorizes a public coding-effect claim.
-  The C5 harness implementation now retains sanitized failed-canary and
-  interrupted-resume attempts in the verifiable projection, rejects foreign
-  injected memory, authenticates its recursive runtime import closure from
-  projected source bytes, and resumes only at the uncommitted cluster boundary
-  under the exact original run identity. This is implementation/test closure
-  only. A six-process C5 diagnostic canary was rejected under a live-disproved
-  prior-memory equality rule, and its source identity was later invalidated;
-  no accepted canary or broader pilot has run.
-  C5 is unblocked for internal execution by accepted v9 C4 prerequisite evidence.
-- The Phase 72 benchmark gate and versioned release gate are closed for
-  `v0.6.0`. Current public-opt-in claims are LoCoMo, BEAM, and
-  MemoryAgentBench. The strict claim gate reports five declaration/README-
-  consistent rows: three current claims and two historical/internal rows.
+  C5 internal run `run-c5-pilot-v16-20260721T150112Z` completed all 72
+  scheduled Codex stages and all 36 pairs. Thirty pairs were comparable: the
+  GoodMemory arm resolved 28/30 versus 12/30 for no-memory, producing 16
+  rescues, zero regressions, and an episode-cluster bootstrap interval of
+  0.2667-0.6667 for the 0.5333 net-rescue rate. Six host-canary infrastructure
+  failures and six memory-channel failures remain explicitly accounted for;
+  the affected pairs are incomparable, not silently scored. The independent
+  verifier accepted the 395-file sanitized projection and disclosed 36
+  process-only Codex JSONL trajectory-origin receipts whose content preimages
+  were not independently observed. A fresh `fork-turns-none` reviewer accepted
+  every-attempt accounting, no-silent-fallback, failure taxonomy, power
+  analysis, and claim boundary, with that authenticity limitation recorded as
+  an advisory. The final C5 gate is accepted at
+  `reports/quality-gates/phase-73/c5-native-longitudinal-pilot-v16/`, but
+  `externalAuthenticityVerified`, `publicClaimEligible`,
+  `publicCodingEffectProof`, and `readmeRowAllowed` remain false. This is a
+  positive internal controlled-pilot signal, not public coding-uplift proof;
+  C6 expanded evaluation and C7 claim review remain open.
+- The Phase 72 benchmark gate and versioned release gate are closed evidence for
+  `v0.6.0`. Because `v0.7.0` changes LanguagePack and recall semantics, the
+  current-claim table is empty until fresh `v0.7.0` runs pass the strict gate.
+  The five prior declarations remain versioned historical/internal rows.
   LoCoMo covers all 1540 non-adversarial questions with zero execution/judge
   failures and scores 0.6298701299 strict, 0.8707792208 under the independent
   `gpt-5.5` official protocol, and 59/96 = 0.6145833333 on open-domain.
@@ -164,8 +180,8 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   0.9589041096 and TTL 0.9333333333 versus no-memory 0.000; AR/LRU remain
   excluded.
 
-  BEAM 100K (unified 0.7651 / strict 0.620 / recall 0.8276) is the current
-  generalized public-opt-in claim. The run disables all 148 narrow recall
+  BEAM 100K (unified 0.7651 / strict 0.620 / recall 0.8276) is retained as
+  historical `v0.6.0` generalized evidence. The run disables all 148 narrow recall
   gates and legacy fitted answer postprocessing, covers all 400 questions and
   1051 rubric items, and has zero execution/judge failures. The independent
   unified score is 0.7650987103 versus the public same-protocol 0.49 reference;
@@ -206,12 +222,11 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 - automatic adapter/event `user_correction` path is proposal-first and records selective evidence plus proposal/promotion receipts instead of writing an intermediate active feedback memory; public `feedback()` remains the explicit durable procedural feedback entrypoint.
 - Provider-backed retrieval is explicit; rules-only remains the default accepted mode, and provider failures surface as `provider_error`.
 - Dashboard, cloud sync, and team workspace remain a Phase 48 no-go decision.
-- Current public-opt-in claims are LoCoMo, BEAM, and MemoryAgentBench. BEAM
-  100K (unified 0.7651 / strict 0.620 / recall 0.8276) retains its strict,
-  paper-protocol, and event-ordering disclosures. LongMemEval and
-  ImplicitMemBench remain versioned internal evidence. The runtime capability
-  descriptor and both README current-claim tables expose only the three
-  current `v0.6.0` declarations. The strict gate enforces declaration status,
+- There are no current `v0.7.0` benchmark claims. The prior `v0.6.0` LoCoMo,
+  BEAM, and MemoryAgentBench results retain their strict, protocol, license,
+  and event-ordering disclosures as versioned historical evidence alongside
+  LongMemEval and ImplicitMemBench. The runtime capability descriptor and both
+  README current-claim tables are empty. The strict gate enforces declaration status,
   package-version equality, evidence assertions, README row provenance, and
   disclosure fragments.
 - ImplicitMemBench Full-300 rerun evidence guard note: `eval:phase-61-full300` rejects ambiguous source/output/run/budget selectors before launching live shards. The 2026-07-06 full-root run `run-phase61-full300-rerun-20260706-codex-current` completed 300 cases with zero failures and measured same-model diagnostic GoodMemory 0.7081666667 versus baseline 0.41. That number remains diagnostic; the later gpt-5.4 stored-answer rescore is versioned historical evidence, not a current-production score.
@@ -268,7 +283,7 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 - Phase 65 embedding-free comparison source/output guard note: `run-phase-65-locomo-embedding-free-comparison.ts` now rejects output directories that resolve to the benchmark root before parsing can hand off to the arm runner, and the runner repeats the same check before any arm can read the benchmark root. This is gateway-free comparison evidence integrity hardening only; it does not change LoCoMo retrieval scores, answer scores, default status, or public-claim boundaries.
 - Phase 65 measurement source-root guard note: `measure-locomo-levers.ts`, `measure-locomo-neural.ts`, `measure-locomo-union-live.ts`, and `run-phase-65-locomo-embedding-free-comparison.ts` now reject empty or whitespace-padded `GOODMEMORY_LOCOMO_ROOT` fallback values before benchmark-root resolution. This is source-root integrity hardening for LoCoMo lever, neural, union-live, and gateway-free comparison evidence only; it does not change LoCoMo retrieval scores, answer scores, default status, or public-claim boundaries.
 - Phase 66 release-readiness CLI guard note: `gate:v0-3-release-readiness` rejects duplicate `--skip-build`, `--skip-tests`, `--strict`, and `--output-dir` flags before running package/release checks. This is release-gate input hardening only; it does not change benchmark scores or public claims.
-- Public-claim gate note: `gate:public-benchmark-claim` validates declaration shape, metric direction and baseline improvement, derived answer/judge separation, full commit identity, tracked historical-projection assertions, and README row provenance/disclosures. It checks internal declaration consistency; it does not independently prove upstream licenses or reconstruct ignored raw reports. Historical source fingerprints can be checked locally with `bun run scripts/project-historical-evidence.ts`. A current claim must have `candidate_public_claim` status and a `run.packageVersion` equal to the current package version. Historical rows live under separate markers and remain consistency-checked without becoming current claims. Strict mode currently finds five declaration/README-consistent rows: LoCoMo, BEAM, and MemoryAgentBench are current `v0.6.0` public-opt-in claims, while LongMemEval and ImplicitMemBench remain historical/internal rows.
+- Public-claim gate note: `gate:public-benchmark-claim` validates declaration shape, metric direction and baseline improvement, derived answer/judge separation, full commit identity, tracked historical-projection assertions, and README row provenance/disclosures. It checks internal declaration consistency; it does not independently prove upstream licenses or reconstruct ignored raw reports. Historical source fingerprints can be checked locally with `bun run scripts/project-historical-evidence.ts`. A current claim must have `candidate_public_claim` status and a `run.packageVersion` equal to the current package version. Historical rows live under separate markers and remain consistency-checked without becoming current claims. For `v0.7.0`, strict mode should find zero current claims and five versioned historical/internal rows.
 - Phase 67 benchmark-prompt rescore evidence note: `eval:official-rescore` rejects ambiguous selectors, source/output overlap, malformed identities and progress rows, source fingerprint drift, judge-model drift, and incomplete judging. Its `rescore-summary.json` records source fingerprints, judge identity, selected/source scope, and a benchmark-and-model-aware claim boundary. LongMemEval runs with gpt-5.4 or gpt-5.5 are explicitly official-prompt-compatible but not directly comparable to published official scores because those models are outside the pinned evaluator model zoo. Stored answers remain separate from derived artifacts, and no rescore becomes a public claim without the claim gate.
 - Phase 67 official-rescore cache writer / summary validation note: `eval:official-rescore` serializes progress through the same strict shapes accepted by resume parsing and validates final summaries, scope counts, fingerprints, category aggregates, and stored-answer boundaries before write. Existing LongMemEval, LoCoMo, and BEAM artifacts were refreshed from complete cached progress with `0 to judge`, preserving their versioned historical scores while adding auditable identity and comparability metadata; this does not make them current-production claims.
 - Phase 72 LongMemEval rescore profile / timeout note: `eval:official-rescore --benchmark longmemeval` records `sourceProfile`, rejects profile drift, and bounds judge requests. The retained label-free verifier chain reaches the strict judge-free floor at 360/500 = 0.720; its independent `gpt-5.5` full-500 rescore reaches 462/500 = 0.924 with zero judge failures. The latter is official-prompt-compatible diagnostic evidence, not a published-score-comparable result, because gpt-5.5 is outside the pinned evaluator model zoo. Earlier 0.918 and 0.922 diagnostics remain variance/admission evidence. The verifier requires an explicit source report and validates resume checkpoints before reuse.
@@ -290,12 +305,12 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 - Phase 63 live-closure coverage guard note: `eval:phase-63-live-closure` now rejects live reports whose `cases.length` does not cover the expected full BEAM case count, and rejects present `selection` metadata unless it proves the report came from `caseSelection="all-cases"` with no answer-gap filters, explicit case ids, or limit. This prevents focused slices or summary-only artifacts from being wrapped as closure evidence; it does not change BEAM scores, recall, checkpoint status, or public-claim boundaries.
 - Phase 63 closure-gate summary consistency note: `gate:phase-63-beam-closure` now rejects closure reports whose `profilesCompared` does not contain exactly the closure `profile`, whose `correctCases + wrongAnswerCases` does not equal `totalCases`, or whose `answerAccuracy` does not equal `correctCases / totalCases`. This keeps hand-edited or internally inconsistent closure artifacts from passing the gate without changing BEAM scores, recall, checkpoint status, or public-claim boundaries.
 - Latest local BEAM pre-live infrastructure check: `/private/tmp/BEAM/100K.json` rebuilt from GitHub raw via `prepare:phase-63-beam` (20 rows), `eval:phase-63` and `gate:phase-63` passed with `executionFailures: 0`, and `run-phase63-beam-100k-recall-diagnostic-rules-prelive-current` compared with `run-phase63-beam-100k-recall-diagnostic-rules-postmerge-current` at `caseDeltaCount: 0` (evidence-chat recall 0.9620612564274538, missed 20/355, wrong-recall/noise 167/400, hit/missing/noise 1023/71/807). This is refreshed root/recall readiness, not answer-performance evidence.
-- MemoryAgentBench (Phase 64) is closed as the agent-memory hardening slice. The reproducible external root (`prepare:phase-64-mab`) and deterministic upstream match-mode scorer are in place; the accepted zero-failure AR/CR live closure (`run-phase64-mab-ar-cr-live-closure-rerun-current`) measured CR 0.959 and AR 0.67, while TTL/LRU exposed answer-format boundaries. CR 0.959 reproduced the prior hand-made CR A/B on the reproducible root, so the shared `src/answer/currentValueResolution.ts` current-value resolution is not BEAM-only; the AR retrieval gap also drove the general zero-retrieval lexical fallback with `caseDeltaCount 0` on the 100K rules-only recall diagnostic. P67-C later recorded historical four-competency evidence (CR 0.959, TTL 0.767, AR 0.890, LRU 0.518; `executionFailures: 0` over 259 questions). The current `v0.6.0` public-opt-in declaration retains judge-free CR 0.9589041096 and raises TTL to 0.9333333333 versus no-memory 0.000; AR/LRU remain excluded because multiple-choice leakage makes them non-diagnostic.
+- MemoryAgentBench (Phase 64) is closed as the agent-memory hardening slice. The reproducible external root (`prepare:phase-64-mab`) and deterministic upstream match-mode scorer are in place; the accepted zero-failure AR/CR live closure (`run-phase64-mab-ar-cr-live-closure-rerun-current`) measured CR 0.959 and AR 0.67, while TTL/LRU exposed answer-format boundaries. CR 0.959 reproduced the prior hand-made CR A/B on the reproducible root, so the shared `src/answer/currentValueResolution.ts` current-value resolution is not BEAM-only; the AR retrieval gap also drove the general zero-retrieval lexical fallback with `caseDeltaCount 0` on the 100K rules-only recall diagnostic. P67-C later recorded historical four-competency evidence (CR 0.959, TTL 0.767, AR 0.890, LRU 0.518; `executionFailures: 0` over 259 questions). The historical `v0.6.0` declaration retains judge-free CR 0.9589041096 and TTL 0.9333333333 versus no-memory 0.000; AR/LRU remain excluded because multiple-choice leakage makes them non-diagnostic.
 - Phase 64 external-root prep CLI guard note: `prepare:phase-64-mab` rejects duplicate `--merge` and duplicate scalar source/output/budget selectors before fetching upstream rows or writing `cases.json`, including `--competency`, `--dataset`, `--offset`, `--max-questions`, `--max-chunks`, `--max-evidence-facts`, and `--output-root`. This is fixture-prep input hardening only; it does not change accepted MemoryAgentBench closure evidence or the scoped public claim.
 - Phase 64 readiness analyzer guard note: `analyze:phase-64-readiness` rejects duplicate scalar source/output selectors (`--phase63-analysis-path`, `--output-dir`, `--output-path`, `--run-id`) before reading Phase 63 analysis or writing prep evidence, requires `--run-id` to be a single path segment before deriving the default output path, and rejects an output path that resolves to the input `--phase63-analysis-path` before reading the Phase 63 analysis file. This is prep-report input/source/output hardening only; it does not change accepted MemoryAgentBench closure evidence or the scoped public claim.
 - Phase 64 smoke/live CLI guard note: `eval:phase-64-smoke` rejects duplicate `--evidence-pack`, `--live`, `--no-memory`, and `--resume` flags plus duplicate scalar source/output selectors (`--benchmark-root`, `--limit`, `--output-dir`, `--run-id`) before report generation, requires `--run-id` to be a single path segment, and requires `--limit` to be a canonical positive integer string rather than scientific or decimal notation. This is evidence-input, evidence-directory, and budget-selector hardening only; it does not change accepted MemoryAgentBench closure evidence or the scoped public claim.
 - Phase 64 MemoryAgentBench source-root env guard note: `prepare:phase-64-mab` and `eval:phase-64-smoke` reject empty or whitespace-padded `GOODMEMORY_MAB_ROOT` fallback values before output-root or benchmark-root resolution. This is fixture-prep, retrieval, and live source-root integrity hardening only; it does not change accepted MemoryAgentBench closure evidence or the scoped public claim.
-- LoCoMo's current `v0.6.0` public-opt-in declaration covers all 1540 non-adversarial questions and reports strict token-F1 0.6298701299, independent official-protocol accuracy 0.8707792208, and open-domain 59/96 = 0.6145833333, with zero execution/judge failures and the CC BY-NC 4.0 non-commercial disclosure. Its older versioned declaration (strict 0.6117, judge-protocol 0.837) and Phase 65 P4 full-10 result (0.6198 versus no-memory 0.2276 over 1986 questions) remain historical evidence. Phase 65 case-level hardening is paused; Phase 69 owns generalized candidate admission and noise control. Earlier live answer generator + evidence-pack wiring (commit `3f9cf5e`, `--live --evidence-pack`, gpt-5.5, deterministic LoCoMo match-mode scoring, no judge) and reproducible non-vendored external-root prep (commit `ed08dd9`, `prepare:phase-65-locomo`) are on main. A representative single-conversation pressure run (`locomo-live-pack-full`, full conversation 1, 199 questions, `executionFailures: 0`) measured overall answer accuracy 0.020 (4/199), purely recall-bound. Follow-up eval-only retrieval research ruled out positional dialog windows, rules-light query expansion, and LLM turn-caption enrichment (commit `2b2ec71`), and P65-R003 later found a real neural endpoint ties BM25 exactly; the refined bottleneck is candidate-pool admission because additive semantic/BM25 scoring only re-ranks already-admitted lexical candidates.
+- LoCoMo's historical `v0.6.0` public-opt-in declaration covers all 1540 non-adversarial questions and reports strict token-F1 0.6298701299, independent official-protocol accuracy 0.8707792208, and open-domain 59/96 = 0.6145833333, with zero execution/judge failures and the CC BY-NC 4.0 non-commercial disclosure. Its older versioned declaration (strict 0.6117, judge-protocol 0.837) and Phase 65 P4 full-10 result (0.6198 versus no-memory 0.2276 over 1986 questions) remain historical evidence. Phase 65 case-level hardening is paused; Phase 69 owns generalized candidate admission and noise control. Earlier live answer generator + evidence-pack wiring (commit `3f9cf5e`, `--live --evidence-pack`, gpt-5.5, deterministic LoCoMo match-mode scoring, no judge) and reproducible non-vendored external-root prep (commit `ed08dd9`, `prepare:phase-65-locomo`) are on main. A representative single-conversation pressure run (`locomo-live-pack-full`, full conversation 1, 199 questions, `executionFailures: 0`) measured overall answer accuracy 0.020 (4/199), purely recall-bound. Follow-up eval-only retrieval research ruled out positional dialog windows, rules-light query expansion, and LLM turn-caption enrichment (commit `2b2ec71`), and P65-R003 later found a real neural endpoint ties BM25 exactly; the refined bottleneck is candidate-pool admission because additive semantic/BM25 scoring only re-ranks already-admitted lexical candidates.
   Source-execution guard note: `eval:phase-65-reanswer-report` rejects source reports with non-zero `executionFailures` before source answer-row completeness checks, so failed retrieval/live-source artifacts cannot be reused as gold-evidence-only or answer-policy replay inputs.
   Reanswer run-directory guard note: `eval:phase-65-reanswer-report` now requires output `--run-id` values to be a single path segment at CLI parse time and in the programmatic runner before source reports are read. This is reanswer evidence-directory hardening only; it does not change LoCoMo retrieval scores, answer scores, default status, or public-claim boundaries.
   Retrieval-probe CLI guard note: the eval-only dialog-window and rules-light query-expansion probes reject duplicate scalar source/run/window selectors (`--benchmark-root`, `--run-id`, `--window-radius`) before writing comparison reports, require `--run-id` to be a single path segment, require `--window-radius` to be a positive integer, and reject empty or whitespace-padded `GOODMEMORY_LOCOMO_ROOT` fallback values before benchmark-root resolution. This is evidence-input, source-root, and report-directory integrity hardening only; it does not change LoCoMo retrieval scores, answer scores, default status, or public-claim boundaries.

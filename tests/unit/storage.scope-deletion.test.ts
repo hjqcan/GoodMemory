@@ -12,6 +12,113 @@ import {
 } from "../../src/storage/scopeDeletion";
 
 describe("scope deletion coordination", () => {
+  it("shares a write gate across coordinators and drains prior overlapping writes", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const writer = createScopeDeletionCoordinator(rawStore);
+    const deleter = createScopeDeletionCoordinator(rawStore);
+    const scope = { userId: "u-shared-gate", workspaceId: "workspace-a" };
+    let releaseWrite = () => {};
+    let signalWrite = () => {};
+    const writeStarted = new Promise<void>((resolve) => {
+      signalWrite = resolve;
+    });
+    const writeRelease = new Promise<void>((resolve) => {
+      releaseWrite = resolve;
+    });
+    const events: string[] = [];
+
+    const activeWrite = writer.runMutation(
+      { ...scope, sessionId: "session-a" },
+      async () => {
+        events.push("write-started");
+        signalWrite();
+        await writeRelease;
+        events.push("write-finished");
+      },
+    );
+    await writeStarted;
+    const deletion = deleter.runExclusive(scope, async () => {
+      events.push("deletion-started");
+    });
+
+    await expect(writer.runMutation(scope, async () => {
+      events.push("late-write");
+    })).rejects.toThrow("Memory deletion is in progress");
+    expect(events).toEqual(["write-started"]);
+
+    releaseWrite();
+    await activeWrite;
+    await deletion;
+    expect(events).toEqual([
+      "write-started",
+      "write-finished",
+      "deletion-started",
+    ]);
+  });
+
+  it("allows writes whose scopes cannot overlap the active deletion", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const coordinator = createScopeDeletionCoordinator(rawStore);
+    const deletionScope = {
+      userId: "u-disjoint-gate",
+      workspaceId: "workspace-a",
+    };
+    let releaseDeletion = () => {};
+    let signalDeletion = () => {};
+    const deletionStarted = new Promise<void>((resolve) => {
+      signalDeletion = resolve;
+    });
+    const deletionRelease = new Promise<void>((resolve) => {
+      releaseDeletion = resolve;
+    });
+    const deletion = coordinator.runExclusive(deletionScope, async () => {
+      signalDeletion();
+      await deletionRelease;
+    });
+    await deletionStarted;
+
+    await expect(coordinator.runMutation({
+      userId: deletionScope.userId,
+      workspaceId: "workspace-b",
+    }, async () => "written")).resolves.toBe("written");
+    await expect(coordinator.runMutation({
+      ...deletionScope,
+      sessionId: "session-a",
+    }, async () => "blocked")).rejects.toThrow(
+      "Memory deletion is in progress",
+    );
+    await expect(coordinator.runMutation({
+      userId: deletionScope.userId,
+    }, async () => "also-blocked")).rejects.toThrow(
+      "Memory deletion is in progress",
+    );
+
+    releaseDeletion();
+    await deletion;
+  });
+
+  it("lets a later deletion replace the released open tombstone", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const coordinator = createScopeDeletionCoordinator(rawStore);
+    const scope = { userId: "u-repeat-delete", workspaceId: "workspace-a" };
+    const operations: string[] = [];
+
+    await coordinator.runExclusive(scope, async () => {
+      operations.push("first");
+    });
+    await coordinator.runExclusive(scope, async () => {
+      operations.push("second");
+    });
+
+    expect(operations).toEqual(["first", "second"]);
+    expect(
+      await rawStore.get<Record<string, unknown>>(
+        SCOPE_DELETION_LOCKS_COLLECTION,
+        scopeDeletionLockId(scope),
+      ),
+    ).toMatchObject({ state: "open", generation: expect.any(String) });
+  });
+
   it("does not let a second deletion owner replace an active scope lock", async () => {
     const rawStore = createInMemoryDocumentStore();
     const guardedStore = createScopeDeletionAwareDocumentStore(rawStore);

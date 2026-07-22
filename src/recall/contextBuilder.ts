@@ -60,7 +60,8 @@ const CONTEXT_RENDER_KEYS = [
   "working_memory",
 ] as const satisfies readonly LanguageRenderKey[];
 
-type MemoryPacketRenderLabels = Record<LanguageRenderKey, string>;
+type MemoryPacketRenderKey = (typeof CONTEXT_RENDER_KEYS)[number];
+type MemoryPacketRenderLabels = Record<MemoryPacketRenderKey, string>;
 
 function buildRenderLabels(
   language: LanguageService,
@@ -571,7 +572,9 @@ export function buildMemoryPacket(input: MemoryPacketInput): MemoryPacket {
 
 export function rebuildMemoryPacket(
   source: MemoryPacket,
-  input: Omit<MemoryPacketInput, "maxRenderedTokens">,
+  input: Omit<MemoryPacketInput, "language" | "maxRenderedTokens"> & {
+    language: LanguageService;
+  },
 ): MemoryPacket {
   return buildMemoryPacket({
     ...input,
