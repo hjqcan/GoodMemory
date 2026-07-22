@@ -732,7 +732,8 @@ describe("claim projection runtime", () => {
     const runtime = createRecallProjectionRuntime({ documentStore: store, now: () => NOW });
 
     await runtime.ensureScopeIndexed(scope);
-    expect(await runtime.queryClaims(scope)).toEqual([
+    const fallbackClaims = await runtime.queryClaims(scope);
+    expect(fallbackClaims).toEqual([
       expect.objectContaining({
         sourceMemoryId: fact.id,
         predicateKey: `fact.unstructured.${fact.id}`,
@@ -747,7 +748,11 @@ describe("claim projection runtime", () => {
     expect(await runtime.queryClaims(scope)).toEqual([
       expect.objectContaining({ predicateKey: "project.status", objectText: "active" }),
     ]);
-    expect(await runtime.queryClaimHistory(scope)).toHaveLength(2);
+    expect(await runtime.queryClaimHistory(scope)).toHaveLength(1);
+    expect(await store.get(
+      CLAIM_PROJECTIONS_COLLECTION,
+      fallbackClaims[0]!.id,
+    )).toBeNull();
   });
 
   it("closes the selected claim when its canonical fact is superseded and erases it on privacy deletion", async () => {
