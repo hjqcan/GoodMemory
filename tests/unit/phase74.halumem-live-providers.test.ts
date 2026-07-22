@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { describe, expect, it } from "bun:test";
 
+import { createInternalGoodMemory } from "../../src/api/createGoodMemory";
 import {
   buildPhase74HaluMemCausalRecallCase,
   buildPhase74HaluMemLiveConfigurations,
@@ -282,8 +283,13 @@ describe("Phase 74 HaluMem live provider wiring", () => {
             calls.push(`recall:${query}`);
             expect(topK).toBe(10);
             return {
-              evidence: [{ sourceMessageIds: ["source-session-1"] }],
-              memories: ["user-a now works on Mosaic."],
+              records: [{
+                content: "user-a now works on Mosaic.",
+                id: "fact-mosaic",
+                rank: 1,
+                sourceMessageIds: ["source-session-1"],
+                type: "fact" as const,
+              }],
             };
           },
           setReferenceTime(referenceTime: string) {
@@ -313,7 +319,13 @@ describe("Phase 74 HaluMem live provider wiring", () => {
       "remember:session-1",
       "recall:user-a now works on Mosaic.",
     ]);
-    expect(snapshot.memories).toEqual(["user-a now works on Mosaic."]);
+    expect(snapshot.records).toEqual([{
+      content: "user-a now works on Mosaic.",
+      id: "fact-mosaic",
+      rank: 1,
+      sourceMessageIds: ["source-session-1"],
+      type: "fact",
+    }]);
     expect(snapshot.sourceMessageIds).toEqual(["source-session-1"]);
   });
 
@@ -327,22 +339,31 @@ describe("Phase 74 HaluMem live provider wiring", () => {
     const recall = {
       evidence: [
         {
+          id: "evidence-preference",
           excerpt: rawEvidenceOnly,
           linkedArchiveIds: [],
           linkedMemoryIds: ["preference-target"],
+          sourceRecordIds: ["source-record-preference"],
           sourceMessageIds: ["source-preference"],
+          sourceUri: "goodmemory://source-messages/source-record-preference",
         },
         ...facts.map(({ id }) => ({
+          id: `evidence-${id}`,
           excerpt: `evidence-${id}`,
           linkedArchiveIds: [],
           linkedMemoryIds: [id],
+          sourceRecordIds: [`source-record-${id}`],
           sourceMessageIds: [`source-${id}`],
+          sourceUri: `goodmemory://source-messages/source-record-${id}`,
         })),
         {
+          id: "evidence-feedback",
           excerpt: "feedback evidence",
           linkedArchiveIds: [],
           linkedMemoryIds: ["feedback-1"],
+          sourceRecordIds: ["source-record-feedback"],
           sourceMessageIds: ["source-feedback"],
+          sourceUri: "goodmemory://source-messages/source-record-feedback",
         },
       ],
       facts,
@@ -366,6 +387,12 @@ describe("Phase 74 HaluMem live provider wiring", () => {
     expect(records.slice(0, 3)).toEqual([
       {
         content: `project: ${target}`,
+        evidenceLinks: [expect.objectContaining({
+          evidenceId: "evidence-preference",
+          linkedMemoryIds: ["preference-target"],
+          sourceMessageIds: ["source-preference"],
+          sourceRecordIds: ["source-record-preference"],
+        })],
         id: "preference-target",
         rank: 1,
         sourceMessageIds: ["source-preference"],
@@ -373,6 +400,12 @@ describe("Phase 74 HaluMem live provider wiring", () => {
       },
       {
         content: "rank-1",
+        evidenceLinks: [expect.objectContaining({
+          evidenceId: "evidence-fact-1",
+          linkedMemoryIds: ["fact-1"],
+          sourceMessageIds: ["source-fact-1"],
+          sourceRecordIds: ["source-record-fact-1"],
+        })],
         id: "fact-1",
         rank: 2,
         sourceMessageIds: ["source-fact-1"],
@@ -380,6 +413,12 @@ describe("Phase 74 HaluMem live provider wiring", () => {
       },
       {
         content: "Keep project status current.",
+        evidenceLinks: [expect.objectContaining({
+          evidenceId: "evidence-feedback",
+          linkedMemoryIds: ["feedback-1"],
+          sourceMessageIds: ["source-feedback"],
+          sourceRecordIds: ["source-record-feedback"],
+        })],
         id: "feedback-1",
         rank: 3,
         sourceMessageIds: ["source-feedback"],
@@ -408,6 +447,101 @@ describe("Phase 74 HaluMem live provider wiring", () => {
         uncachedInputTokens: 20,
       },
     }))).toBe(0);
+  });
+
+  it("excludes real durable records that have no immutable evidence linkage", async () => {
+    const memory = createInternalGoodMemory({
+      testing: {
+        extractor: {
+          async extract() {
+            return {
+              candidates: [
+                {
+                  content: "Mosaic",
+                  explicitness: "explicit" as const,
+                  id: "profile-project",
+                  kindHint: "profile" as const,
+                  metadata: { profileField: "currentProject" as const },
+                  sourceMessageIndex: 0,
+                  sourceRole: "user",
+                },
+                {
+                  content: "concise updates",
+                  explicitness: "explicit" as const,
+                  id: "preference-style",
+                  kindHint: "preference" as const,
+                  metadata: {
+                    preferenceCategory: "response_style",
+                    preferenceValue: "concise updates",
+                  },
+                  sourceMessageIndex: 1,
+                  sourceRole: "user",
+                },
+                {
+                  content: "Nadia now works on Mosaic.",
+                  explicitness: "explicit" as const,
+                  id: "fact-project",
+                  kindHint: "fact" as const,
+                  sourceMessageIndex: 2,
+                  sourceRole: "user",
+                },
+              ],
+              ignoredMessageCount: 0,
+            };
+          },
+        },
+        now: () => new Date("2026-01-01T00:00:00.000Z"),
+      },
+    }, { environment: {} });
+    const scope = {
+      sessionId: "session-0",
+      userId: "user-nadia",
+      workspaceId: "workspace-halu",
+    };
+    await memory.remember({
+      extractionStrategy: "rules-only",
+      messages: [
+        {
+          content: "My current project is Mosaic.",
+          id: "source-profile",
+          observedAt: "2026-01-01T00:00:00.000Z",
+          role: "user",
+        },
+        {
+          content: "I prefer concise updates.",
+          id: "source-preference",
+          observedAt: "2026-01-01T00:00:01.000Z",
+          role: "user",
+        },
+        {
+          content: "Nadia now works on Mosaic.",
+          id: "source-fact",
+          observedAt: "2026-01-01T00:00:02.000Z",
+          role: "user",
+        },
+      ],
+      scope,
+    });
+    const recalled = await memory.recall({
+      includeEvidence: true,
+      query: "What is Nadia's current project and preferred response style?",
+      scope: {
+        userId: scope.userId,
+        workspaceId: scope.workspaceId,
+      },
+    });
+
+    expect(recalled.profile).not.toBeNull();
+    expect(recalled.preferences).toHaveLength(1);
+    expect(recalled.facts).toHaveLength(1);
+    expect(recalled.evidence).toHaveLength(1);
+    const records = buildPhase74HaluMemUpdateRecords(recalled);
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({
+      content: "Nadia now works on Mosaic.",
+      sourceMessageIds: ["source-fact"],
+      type: "fact",
+    });
   });
 
   it("uses the pinned HaluMem update prompt and preserves raw category plus usage", async () => {

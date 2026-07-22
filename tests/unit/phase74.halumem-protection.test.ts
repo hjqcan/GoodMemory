@@ -37,6 +37,9 @@ import {
   PHASE74_HALUMEM_UPDATE_PROTECTION_VERIFIER,
   PHASE74_HALUMEM_UPDATE_SUITE,
   PHASE74_HALUMEM_UPSTREAM,
+  buildPhase74HaluMemSourceMessageId,
+  buildPhase74HaluMemUpdateJudgePrompt,
+  buildPhase74HaluMemUpdateSnapshotId,
   countPhase74HaluMemContextTokens,
   parsePhase74HaluMemJsonl,
   scorePhase74HaluMemUpdateDecision,
@@ -222,14 +225,39 @@ function updateDependencies(
         },
       });
     },
-    retrieveUpdateEvidence: async ({ branch, memoryPoint }) => {
+    retrieveUpdateEvidence: async ({
+      branch,
+      memoryPoint,
+      sessionIndex,
+      updateCaseId,
+      user,
+    }) => {
       calls.retrieve += 1;
+      const contents = branch === "candidate"
+        ? [memoryPoint.memory_content]
+        : memoryPoint.original_memories;
+      const sourceMessageIds = [buildPhase74HaluMemSourceMessageId({
+        sessionIndex,
+        turnIndex: 0,
+        userUuid: user.uuid,
+      })];
+      const records = contents.map((content, index) => ({
+        content,
+        id: `${branch}-fact-${index + 1}`,
+        rank: index + 1,
+        sourceMessageIds,
+        type: "fact" as const,
+      }));
       return {
-        memories: branch === "candidate"
-          ? [memoryPoint.memory_content]
-          : memoryPoint.original_memories,
-        snapshotId: `${branch}-${memoryPoint.memory_content}`,
-        sourceMessageIds: ["source-message-0"],
+        records,
+        snapshotId: buildPhase74HaluMemUpdateSnapshotId({
+          branch,
+          caseId: updateCaseId,
+          records,
+          sessionIndex,
+          sourceMessageIds,
+        }),
+        sourceMessageIds,
       };
     },
   };
@@ -312,6 +340,19 @@ describe("Phase 74 HaluMem protection adapters", () => {
         uncachedInputTokens: null,
       },
     }))).toThrow("usage");
+  });
+
+  it("renders the pinned upstream update prompt byte-for-byte", () => {
+    const prompt = buildPhase74HaluMemUpdateJudgePrompt({
+      expectedUpdate: "updated",
+      originalMemories: ["old"],
+      retrievedMemories: ["m1", "m2"],
+    });
+
+    expect(sha256(prompt)).toBe(
+      "09fe8f86418cf45248d1c12eb4bfe2b61e8ad0adf389fffcb4f0b4e56d014170",
+    );
+    expect(prompt.endsWith("```\n")).toBe(true);
   });
 
   it("parses the real HaluMem JSONL user contract and pins the upstream", () => {
@@ -518,7 +559,13 @@ describe("Phase 74 HaluMem protection adapters", () => {
           uncachedInputTokens: 10,
         },
       }),
-      retrieveUpdateEvidence: async ({ branch, memoryPoint }) => {
+      retrieveUpdateEvidence: async ({
+        branch,
+        memoryPoint,
+        sessionIndex,
+        updateCaseId,
+        user,
+      }) => {
         if (branch === "baseline") {
           activeCases += 1;
           maxActiveCases = Math.max(maxActiveCases, activeCases);
@@ -527,10 +574,28 @@ describe("Phase 74 HaluMem protection adapters", () => {
         if (branch === "candidate") {
           activeCases -= 1;
         }
+        const sourceMessageIds = [buildPhase74HaluMemSourceMessageId({
+          sessionIndex,
+          turnIndex: 0,
+          userUuid: user.uuid,
+        })];
+        const records = [{
+          content: memoryPoint.memory_content,
+          id: `${branch}-fact-1`,
+          rank: 1,
+          sourceMessageIds,
+          type: "fact" as const,
+        }];
         return {
-          memories: [memoryPoint.memory_content],
-          snapshotId: `${branch}-${memoryPoint.memory_content}`,
-          sourceMessageIds: ["source-message-0"],
+          records,
+          snapshotId: buildPhase74HaluMemUpdateSnapshotId({
+            branch,
+            caseId: updateCaseId,
+            records,
+            sessionIndex,
+            sourceMessageIds,
+          }),
+          sourceMessageIds,
         };
       },
     });
@@ -666,9 +731,15 @@ describe("Phase 74 HaluMem protection adapters", () => {
     const calls = { evaluate: 0, retrieve: 0 };
     const dependencies = updateDependencies(calls);
     dependencies.retrieveUpdateEvidence = async ({ branch }) => ({
-      memories: Array.from({ length: 11 }, (_, index) => `fact-${index + 1}`),
+      records: Array.from({ length: 11 }, (_, index) => ({
+        content: `fact-${index + 1}`,
+        id: `fact-${index + 1}`,
+        rank: index + 1,
+        sourceMessageIds: ["source-message-0"],
+        type: "fact" as const,
+      })),
       snapshotId: `${branch}-snapshot`,
-      sourceMessageIds: [],
+      sourceMessageIds: ["source-message-0"],
     });
     const artifactPath = join(root, "run.json");
     const rawArtifactPath = join(root, "raw.json");
@@ -733,6 +804,16 @@ describe("Phase 74 HaluMem protection adapters", () => {
     const raw = JSON.parse(await readFile(result.rawArtifactPath, "utf8"));
     const memories = Array.from({ length: 11 }, (_, index) => `fact-${index + 1}`);
     raw.rows[0].candidate.rawOutput.memories = memories;
+    raw.rows[0].candidate.rawOutput.records = memories.map(
+      (content: string, index: number) => ({
+        content,
+        id: `forged-fact-${index + 1}`,
+        rank: index + 1,
+        sourceMessageIds:
+          raw.rows[0].candidate.rawOutput.sourceMessageIds,
+        type: "fact",
+      }),
+    );
     raw.rows[0].candidate.rawOutput.context = memories.join("\n");
     raw.rows[0].candidate.rawOutput.contextTokens =
       countPhase74HaluMemContextTokens(memories.join("\n"));

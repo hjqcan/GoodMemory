@@ -29,6 +29,10 @@ import type {
 import type {
   Phase74HaluMemUser,
 } from "../../src/eval/phase74HaluMemProtectionVerifier";
+import {
+  buildPhase74HaluMemSourceMessageId,
+  buildPhase74HaluMemUpdateSnapshotId,
+} from "../../src/eval/phase74HaluMemProtectionVerifier";
 import { buildPhase74IngestionUsageFingerprint } from "../../src/eval/phase74FullRuntime";
 import { hashPhase74ProtectionValue } from "../../src/eval/phase74ProtectionRun";
 
@@ -273,14 +277,75 @@ async function frozenResult(
         },
       });
     },
-    retrieveUpdateEvidence: async ({ branch, memoryPoint }) => ({
-      memories: branch === "candidate"
+    retrieveUpdateEvidence: async ({
+      branch,
+      memoryPoint,
+      sessionIndex,
+      updateCaseId,
+      user,
+    }) => {
+      const contents = branch === "candidate"
         ? [memoryPoint.memory_content]
-        : memoryPoint.original_memories,
-      snapshotId: `${branch}-${memoryPoint.memory_content}`,
-      sourceMessageIds: ["source-message-0"],
-    }),
+        : memoryPoint.original_memories;
+      const sourceMessageIds = [buildPhase74HaluMemSourceMessageId({
+        sessionIndex,
+        turnIndex: 0,
+        userUuid: user.uuid,
+      })];
+      const records = contents.map((content, index) => ({
+        content,
+        id: `${branch}-fact-${index + 1}`,
+        rank: index + 1,
+        sourceMessageIds,
+        type: "fact" as const,
+      }));
+      return {
+        records,
+        snapshotId: buildPhase74HaluMemUpdateSnapshotId({
+          branch,
+          caseId: updateCaseId,
+          records,
+          sessionIndex,
+          sourceMessageIds,
+        }),
+        sourceMessageIds,
+      };
+    },
   });
+  const updateJudgeUsage = {
+    cacheCreationInputTokens: 0,
+    cacheReadInputTokens: 0,
+    inputTokens: 10,
+    outputTokens: 5,
+    uncachedInputTokens: 10,
+  };
+  const updateJudgeRequests = selectedUsers.flatMap((user) =>
+    (["baseline", "candidate"] as const).map((branch) => ({
+      attempt: 1,
+      branch: "judge" as const,
+      caseId: `${user.uuid}:session:0:update:0:${branch}:update`,
+      modelId: "gpt-5.5",
+      operation: "judge" as const,
+      providerId: "openai",
+      requestId: `update-judge-${user.uuid}-${branch}`,
+      schemaVersion: 1 as const,
+    }))
+  );
+  await writeFile(
+    join(runDirectory, "model-usage-intents.jsonl"),
+    `${updateJudgeRequests.map((request) => JSON.stringify(request)).join("\n")}\n`,
+    "utf8",
+  );
+  await writeFile(
+    join(runDirectory, "model-usage.jsonl"),
+    `${updateJudgeRequests.map((request) => JSON.stringify({
+      ...request,
+      completeness: "complete",
+      outcome: "succeeded",
+      usage: updateJudgeUsage,
+    })).join("\n")}\n`,
+    "utf8",
+  );
   return {
     e4,
     privacy,
@@ -414,14 +479,14 @@ describe("Phase 74 HaluMem live runner", () => {
 
     expect(identityExistedBeforeProviders).toBe(true);
     expect(result.status).toBe("completed");
-    expect(await readFile(
+    expect((await readFile(
       join(result.runDirectory, "model-usage-intents.jsonl"),
       "utf8",
-    )).toBe("");
-    expect(await readFile(
+    )).trim().split("\n")).toHaveLength(4);
+    expect((await readFile(
       join(result.runDirectory, "model-usage.jsonl"),
       "utf8",
-    )).toBe("");
+    )).trim().split("\n")).toHaveLength(4);
     const completion = await verifyPhase74HaluMemLiveRun(result.runDirectory);
     expect(completion.updateStatus).toBe("completed");
     expect(completion.usage.ingestionKeyCount).toBe(1);
@@ -609,7 +674,7 @@ describe("Phase 74 HaluMem live runner", () => {
     await writeFile(completionPath, `${JSON.stringify(completion, null, 2)}\n`, "utf8");
 
     await expect(verifyPhase74HaluMemLiveRun(live.runDirectory)).rejects.toThrow(
-      "update evaluator identity",
+      /pipeline.*trusted|update evaluator identity/iu,
     );
   });
 
@@ -762,6 +827,26 @@ describe("Phase 74 HaluMem live runner", () => {
 
     await expect(verifyPhase74HaluMemLiveRun(live.runDirectory)).rejects.toThrow(
       /judge.*usage|usage.*ledger/iu,
+    );
+  });
+
+  it("verify-only rejects partial or unknown terminal usage", async () => {
+    const live = await frozenLiveRun();
+    const eventsPath = join(live.runDirectory, "model-usage.jsonl");
+    const events = (await readFile(eventsPath, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    events[0].completeness = "partial";
+    events[0].usage.outputTokens = null;
+    await writeFile(
+      eventsPath,
+      `${events.map((event) => JSON.stringify(event)).join("\n")}\n`,
+      "utf8",
+    );
+
+    await expect(verifyPhase74HaluMemLiveRun(live.runDirectory)).rejects.toThrow(
+      /partial|unknown/iu,
     );
   });
 });
