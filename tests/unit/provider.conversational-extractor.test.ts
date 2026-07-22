@@ -220,6 +220,40 @@ describe("createProviderConversationalMemoryExtractor", () => {
     expect(events).toHaveLength(1);
   });
 
+  it("normalizes scalar compact claim objects into canonical text", async () => {
+    const extractor = createLLMMemoryExtractor({
+      model: {
+        apiKey: "gateway-key",
+        baseURL: "https://gateway.example/v1",
+        model: "gpt-5.6-terra",
+        provider: "openai",
+      },
+      outputProtocol: "compact-conversational-v1",
+      dependencies: {
+        fetch: async () => new Response(
+          [
+            'data: {"choices":[{"delta":{"content":"{\\"c\\":[{\\"c\\":\\"The integration is enabled.\\",\\"m\\":{\\"q\\":{\\"p\\":\\"integration.enabled\\",\\"o\\":true,\\"n\\":false}},\\"s\\":1},{\\"c\\":\\"The user owns four bikes.\\",\\"m\\":{\\"q\\":{\\"p\\":\\"inventory.bicycle.count\\",\\"o\\":4}},\\"s\\":3}],\\"i\\":0}"},"index":0}]}',
+            "data: [DONE]",
+            "",
+          ].join("\n\n"),
+          {
+            headers: { "content-type": "text/event-stream" },
+            status: 200,
+          },
+        ),
+      },
+    });
+
+    const result = await extractor.extract(CONVERSATION);
+
+    expect(result.candidates[0]?.metadata?.claim).toMatchObject({
+      objectText: "true",
+      polarity: "positive",
+      predicateKey: "integration.enabled",
+    });
+    expect(result.candidates[1]?.metadata?.claim?.objectText).toBe("4");
+  });
+
   it("keeps the product conversational prompt and output canonical by default", async () => {
     let prompt = "";
     let system = "";
