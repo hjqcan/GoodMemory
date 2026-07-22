@@ -2124,6 +2124,48 @@ describe("model adapters", () => {
     expect(attempts).toBe(3);
   });
 
+  it("enforces one wall-clock deadline across a streaming response", async () => {
+    const startedAt = Date.now();
+
+    await expect(requestOpenAICompatibleText({
+      fetch: async (_url, init) => new Response(
+        new ReadableStream({
+          start(controller) {
+            const interval = setInterval(() => {
+              controller.enqueue(new TextEncoder().encode(
+                'data: {"choices":[{"delta":{"role":"assistant"},"index":0}]}\n\n',
+              ));
+            }, 5);
+            const done = setTimeout(() => {
+              clearInterval(interval);
+              controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+              controller.close();
+            }, 50);
+            init?.signal?.addEventListener("abort", () => {
+              clearInterval(interval);
+              clearTimeout(done);
+              controller.error(init.signal?.reason ?? new Error("aborted"));
+            }, { once: true });
+          },
+        }),
+        {
+          headers: { "content-type": "text/event-stream" },
+          status: 200,
+        },
+      ),
+      model: {
+        apiKey: "gateway-key",
+        baseURL: "https://gateway.example/v1",
+        model: "gpt-5.6-terra",
+        provider: "openai",
+      },
+      prompt: "answer",
+      timeoutMs: 15,
+    })).rejects.toThrow("gateway timeout after 15ms");
+
+    expect(Date.now() - startedAt).toBeLessThan(45);
+  });
+
   it("retries truncated judge streams instead of returning partial json", async () => {
     let attempts = 0;
     const judge = createAISDKJudgeModel({
