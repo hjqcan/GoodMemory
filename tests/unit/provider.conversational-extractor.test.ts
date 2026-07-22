@@ -33,6 +33,14 @@ describe("conversational atomic-fact extraction prompt", () => {
     expect(prompt).toContain("self-contained");
     expect(prompt.toLowerCase()).toContain("relative dates");
     expect(prompt).toContain("every durable explicit claim");
+    expect(prompt).toContain("clause by clause");
+    expect(prompt).toContain("durable side facts");
+    expect(prompt).toContain("assistant messages");
+    expect(prompt).toContain("concrete contributions");
+    expect(prompt).toContain("ordered recommendations");
+    expect(COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT).toContain(
+      "assistant contribution",
+    );
     expect(prompt).not.toContain("coverage audit");
     expect(prompt).toContain("exactly once");
     expect(prompt).toContain("machine-style values");
