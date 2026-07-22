@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import {
+  buildCompactConversationalMemoryExtractionPrompt,
   buildConversationalMemoryExtractionPrompt,
   buildMemoryExtractionPrompt,
+  COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
   CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
   createLLMMemoryExtractor,
   memoryExtractionResultSchema,
@@ -24,7 +26,7 @@ const CONVERSATION: MemoryExtractionInput = {
 
 describe("conversational atomic-fact extraction prompt", () => {
   it("instructs atomic, coreference-resolved, self-contained, normalized claims", () => {
-    const prompt = buildConversationalMemoryExtractionPrompt(CONVERSATION);
+    const prompt = buildCompactConversationalMemoryExtractionPrompt(CONVERSATION);
 
     expect(prompt).toContain("atomic");
     expect(prompt.toLowerCase()).toContain("coreference");
@@ -49,7 +51,9 @@ describe("conversational atomic-fact extraction prompt", () => {
   });
 
   it("differs from the default product-memory prompt", () => {
-    const conversational = buildConversationalMemoryExtractionPrompt(CONVERSATION);
+    const conversational = buildCompactConversationalMemoryExtractionPrompt(
+      CONVERSATION,
+    );
     const productMemory = buildMemoryExtractionPrompt(CONVERSATION);
 
     expect(conversational).not.toBe(productMemory);
@@ -57,9 +61,10 @@ describe("conversational atomic-fact extraction prompt", () => {
   });
 
   it("uses canonical profile identity as data for cross-session coreference", () => {
-    const prompt = buildConversationalMemoryExtractionPrompt(CONVERSATION, {
-      knownUserName: "Nadia Chen",
-    });
+    const prompt = buildCompactConversationalMemoryExtractionPrompt(
+      CONVERSATION,
+      { knownUserName: "Nadia Chen" },
+    );
 
     expect(prompt).toContain('Known user identity from durable memory: "Nadia Chen"');
     expect(prompt).toContain("conversation explicitly corrects that identity");
@@ -97,6 +102,7 @@ describe("createProviderConversationalMemoryExtractor", () => {
     const seen: { system?: string; prompt?: string } = {};
     const extractor = createProviderConversationalMemoryExtractor({
       model: { provider: "openai", model: "gpt-5.5" },
+      outputProtocol: "compact-conversational-v1",
       createMemoryExtractor: (factoryInput) =>
         createLLMMemoryExtractor({
           model: factoryInput.model,
@@ -171,7 +177,97 @@ describe("createProviderConversationalMemoryExtractor", () => {
     expect(result.candidates[1]?.content).toContain("vet on Friday");
     expect(result.ignoredMessageCount).toBe(2);
     // Proves the conversational system prompt + prompt builder were actually wired.
-    expect(seen.system).toBe(CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT);
+    expect(seen.system).toBe(
+      COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
+    );
     expect(String(seen.prompt)).toContain("atomic");
+  });
+
+  it("accepts compact output through the metered openai-compatible path", async () => {
+    const events: unknown[] = [];
+    const extractor = createLLMMemoryExtractor({
+      model: {
+        apiKey: "gateway-key",
+        baseURL: "https://gateway.example/v1",
+        model: "gpt-5.6-terra",
+        provider: "openai",
+      },
+      outputProtocol: "compact-conversational-v1",
+      dependencies: {
+        fetch: async () => new Response(
+          [
+            'data: {"choices":[{"delta":{"content":"{\\"c\\":[{\\"c\\":\\"User adopted Biscuit.\\",\\"s\\":1,\\"ss\\":[3,1,3]}],\\"i\\":0}"},"index":0}]}',
+            "data: [DONE]",
+            "",
+          ].join("\n\n"),
+          {
+            headers: { "content-type": "text/event-stream" },
+            status: 200,
+          },
+        ),
+        modelUsageSink: { emit(event) { events.push(event); } },
+      },
+    });
+
+    const result = await extractor.extract(CONVERSATION);
+
+    expect(result.candidates[0]).toMatchObject({
+      content: "User adopted Biscuit.",
+      sourceMessageIndex: 1,
+      sourceMessageIndexes: [1, 3],
+      sourceRole: "user",
+    });
+    expect(events).toHaveLength(1);
+  });
+
+  it("keeps the product conversational prompt and output canonical by default", async () => {
+    let prompt = "";
+    let system = "";
+    const extractor = createProviderConversationalMemoryExtractor({
+      model: { model: "gpt-5.6-terra", provider: "openai" },
+      createMemoryExtractor: (input) => createLLMMemoryExtractor({
+        ...input,
+        dependencies: {
+          generateObject: async (callInput) => {
+            prompt = String(callInput.prompt);
+            system = String(callInput.system);
+            return {
+              object: { candidates: [], ignoredMessageCount: 0 },
+            } as never;
+          },
+          resolveModel: () => ({}) as never,
+        },
+      }),
+    });
+
+    await expect(extractor.extract(CONVERSATION)).resolves.toEqual({
+      candidates: [],
+      ignoredMessageCount: 0,
+    });
+    expect(prompt).toContain("candidates:");
+    expect(prompt).toContain("ignoredMessageCount");
+    expect(prompt).not.toContain('"c":[candidate...]');
+    expect(system).toBe(CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT);
+  });
+
+  it("rejects compact provenance indexes outside the input transcript", async () => {
+    const extractor = createLLMMemoryExtractor({
+      model: { model: "gpt-5.6-terra", provider: "openai" },
+      outputProtocol: "compact-conversational-v1",
+      dependencies: {
+        generateObject: async () => ({
+          object: {
+            c: [{ c: "User adopted Biscuit.", s: 1, ss: [4] }],
+            i: 0,
+          },
+        }) as never,
+        resolveModel: () => ({}) as never,
+        retryOptions: { retryLimit: 1 },
+      },
+    });
+
+    await expect(extractor.extract(CONVERSATION)).rejects.toThrow(
+      "source index 4 is out of range",
+    );
   });
 });

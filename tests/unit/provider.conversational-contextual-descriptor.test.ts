@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
-  buildConversationalMemoryExtractionPrompt,
+  buildCompactConversationalMemoryExtractionPrompt,
   createLLMMemoryExtractor,
 } from "../../src/provider/memory-extractor";
 import { createProviderConversationalMemoryExtractor } from "../../src/provider/layer";
@@ -16,11 +16,11 @@ const CONVERSATION: MemoryExtractionInput = {
 
 describe("conversational contextual-descriptor option", () => {
   it("adds the descriptor instruction only when enabled", () => {
-    const withDescriptor = buildConversationalMemoryExtractionPrompt(
+    const withDescriptor = buildCompactConversationalMemoryExtractionPrompt(
       CONVERSATION,
       { contextualDescriptor: true },
     );
-    const withoutDescriptor = buildConversationalMemoryExtractionPrompt(
+    const withoutDescriptor = buildCompactConversationalMemoryExtractionPrompt(
       CONVERSATION,
     );
     expect(withDescriptor.toLowerCase()).toContain("contextual descriptor");
@@ -29,7 +29,7 @@ describe("conversational contextual-descriptor option", () => {
     );
     // Default (no options) is unchanged: still the same atomic-fact prompt.
     expect(withoutDescriptor).toBe(
-      buildConversationalMemoryExtractionPrompt(CONVERSATION),
+      buildCompactConversationalMemoryExtractionPrompt(CONVERSATION),
     );
   });
 
@@ -38,6 +38,7 @@ describe("conversational contextual-descriptor option", () => {
     const extractor = createProviderConversationalMemoryExtractor({
       model: { provider: "openai", model: "gpt-5.5" },
       contextualDescriptor: true,
+      outputProtocol: "compact-conversational-v1",
       createMemoryExtractor: (factoryInput) => {
         seen.protocol = factoryInput.outputProtocol;
         return createLLMMemoryExtractor({

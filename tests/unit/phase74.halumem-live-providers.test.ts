@@ -210,7 +210,7 @@ describe("Phase 74 HaluMem live provider wiring", () => {
       sha256: hashPhase74ProtectionValue(baselineUpdate),
     });
     expect(configuration.update.candidatePipeline).toEqual({
-      id: "halumem-live-update-candidate-v1",
+      id: "halumem-live-update-candidate-v2",
       sha256: hashPhase74ProtectionValue(candidateUpdate),
     });
     expect(configuration.privacy).not.toHaveProperty("updateEvaluator");
@@ -259,6 +259,17 @@ describe("Phase 74 HaluMem live provider wiring", () => {
       "candidate",
       input.models,
     );
+    expect(updatePipeline.extraction).toMatchObject({
+      extractorVersion: "provider-conversational-memory-extractor-v2",
+      outputProtocol: "compact-conversational-v1",
+    });
+    expect(buildPhase74HaluMemUpdatePipelineMaterial(
+      "baseline",
+      input.models,
+    ).extraction).toMatchObject({
+      extractorVersion: "provider-memory-extractor-v1",
+      outputProtocol: "canonical-v1",
+    });
     expect(updatePipeline.retrieval.generatedMemoryRecords).toBe(
       "evidence-backed-retrieved-records-v2",
     );

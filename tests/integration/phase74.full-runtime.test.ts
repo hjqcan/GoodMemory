@@ -69,18 +69,27 @@ describe("Phase 74 full retrieval runtime", () => {
             orderedCandidateIds: [...prompt.matchAll(/"id":"([^"]+)"/gu)]
               .map((match) => match[1]),
           })
-        : JSON.stringify({
-            candidates: [{
-              content: "Caroline adopted a dog named Pepper.",
-              explicitness: "explicit",
-              id: "fact-1",
-              kindHint: "fact",
-              metadata: { category: "personal" },
-              sourceMessageIndex: 0,
-              sourceRole: "assistant",
-            }],
-            ignoredMessageCount: 0,
-          });
+        : system.includes("Convert substantive dialogue")
+          ? JSON.stringify({
+              c: [{
+                c: "Caroline adopted a dog named Pepper.",
+                m: { ca: "personal" },
+                s: 0,
+              }],
+              i: 0,
+            })
+          : JSON.stringify({
+              candidates: [{
+                content: "Caroline adopted a dog named Pepper.",
+                explicitness: "explicit",
+                id: "fact-1",
+                kindHint: "fact",
+                metadata: { category: "personal" },
+                sourceMessageIndex: 0,
+                sourceRole: "assistant",
+              }],
+              ignoredMessageCount: 0,
+            });
       return new Response(JSON.stringify({
         choices: [{
           finish_reason: "stop",

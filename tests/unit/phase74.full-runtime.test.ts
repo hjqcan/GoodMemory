@@ -41,6 +41,7 @@ const base = {
     gateway: "https://ai.gurkiai.com/v1",
     maxOutputTokens: 4_096,
     model: "gpt-5.6-terra",
+    outputProtocol: "compact-conversational-v1",
     promptSha256:
       "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
     provider: "openai",
@@ -256,24 +257,25 @@ describe("Phase 74 full ingestion identity", () => {
           usage: { prompt_tokens: values.length, total_tokens: values.length },
         }), { headers: { "content-type": "application/json" } });
       }
+      const body = JSON.parse(String(init?.body)) as {
+        messages?: Array<{ content?: string }>;
+      };
+      const system = body.messages?.[0]?.content ?? "";
       return new Response(JSON.stringify({
         choices: [{
           finish_reason: "stop",
           index: 0,
           message: {
-            content: JSON.stringify({
-              candidates: [{
-                content: "Caroline adopted a dog named Pepper.",
-                explicitness: "explicit",
-                id: "fact-1",
-                kindHint: "fact",
-                metadata: { category: "personal" },
-                sourceMessageIndex: 0,
-                sourceRole: "user",
-              }],
-              ignoredMessageCount: 0,
-              score: 0.9,
-            }),
+            content: system.includes("Convert substantive dialogue")
+              ? JSON.stringify({
+                  c: [{
+                    c: "Caroline adopted a dog named Pepper.",
+                    m: { ca: "personal" },
+                    s: 0,
+                  }],
+                  i: 0,
+                })
+              : JSON.stringify({ candidates: [], ignoredMessageCount: 0 }),
             role: "assistant",
           },
         }],
@@ -481,6 +483,10 @@ describe("Phase 74 full ingestion identity", () => {
     expect(buildPhase74IngestionKey({
       ...base,
       extraction: { ...base.extraction, contextualDescriptors: false },
+    })).not.toBe(key);
+    expect(buildPhase74IngestionKey({
+      ...base,
+      extraction: { ...base.extraction, outputProtocol: "canonical-v1" },
     })).not.toBe(key);
     expect(buildPhase74IngestionKey({
       ...base,

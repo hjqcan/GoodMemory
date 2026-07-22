@@ -106,6 +106,7 @@ export interface Phase74IngestionKeyInput {
     contextualDescriptors: boolean;
     extractorVersion: string;
     maxOutputTokens: number;
+    outputProtocol: "canonical-v1" | "compact-conversational-v1";
     promptSha256: string;
     reasoningEffort: "low" | "medium" | "high";
     temperature: number;
@@ -348,11 +349,14 @@ export function buildPhase74IngestionDescriptor(input: {
         ...modelIdentity(input.models.assistedExtraction),
         contextualDescriptors,
         extractorVersion: contextualDescriptors
-          ? "provider-conversational-memory-extractor-v1"
+          ? "provider-conversational-memory-extractor-v2"
           : "provider-memory-extractor-v1",
         maxOutputTokens:
           PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
             .maxOutputTokens,
+        outputProtocol: contextualDescriptors
+          ? "compact-conversational-v1"
+          : "canonical-v1",
         promptSha256: input.promptSha256s[
           contextualDescriptors
             ? "conversationalExtraction"
@@ -466,6 +470,7 @@ function createMemory(input: {
     : contextualDescriptors
       ? createProviderConversationalMemoryExtractor({
           contextualDescriptor: true,
+          outputProtocol: "compact-conversational-v1",
           ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction,
           model: input.models.assistedExtraction,
           modelUsageSink: input.usageSink,

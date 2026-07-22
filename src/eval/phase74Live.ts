@@ -15,7 +15,7 @@ import {
   type FetchLike,
 } from "../provider/ai-sdk-runtime";
 import {
-  CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
+  COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
   MEMORY_EXTRACTION_SYSTEM_PROMPT,
 } from "../provider/memory-extractor";
 import {
@@ -104,7 +104,7 @@ export function phase74LivePromptSha256s(): Record<string, string> {
   return {
     assistedExtraction: hash(MEMORY_EXTRACTION_SYSTEM_PROMPT),
     conversationalExtraction: hash(
-      CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
+      COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
     ),
     genericReader: hash(PHASE74_GENERIC_READER_SYSTEM_PROMPT),
     judge: hash(PHASE74_CORRECTNESS_JUDGE_SYSTEM_PROMPT),

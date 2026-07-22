@@ -14,10 +14,13 @@ import type {
 } from "./ai-sdk-runtime";
 import { createAISDKEmbeddingAdapter } from "./ai-sdk-runtime";
 import {
+  buildCompactConversationalMemoryExtractionPrompt,
   buildConversationalMemoryExtractionPrompt,
+  COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
   CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
   createLLMMemoryExtractor,
 } from "./memory-extractor";
+import type { MemoryExtractionOutputProtocol } from "./memory-extractor";
 import { createLLMRecallRouter } from "./recall-router";
 import { createLLMRecallPlanAssistant } from "./recall-plan-assistant";
 import type { RecallPlanAssistantDependencies } from "./recall-plan-assistant";
@@ -41,6 +44,7 @@ interface ProviderMemoryExtractorFactory {
     dependencies?: ProviderRequestDependencies;
     maxOutputTokens?: number;
     model: AISDKModelConfig;
+    outputProtocol?: MemoryExtractionOutputProtocol;
     promptBuilder?: (
       input: MemoryExtractionInput,
       context?: MemoryExtractionContext,
@@ -168,6 +172,7 @@ export function normalizeProviderRuntimeMetadata(
 export function createProviderMemoryExtractor(input: {
   maxOutputTokens?: number;
   model: AISDKModelConfig;
+  outputProtocol?: MemoryExtractionOutputProtocol;
   promptBuilder?: (
     input: MemoryExtractionInput,
     context?: MemoryExtractionContext,
@@ -189,6 +194,7 @@ export function createProviderMemoryExtractor(input: {
     ),
     maxOutputTokens: input.maxOutputTokens,
     model: input.model,
+    outputProtocol: input.outputProtocol,
     promptBuilder: input.promptBuilder,
     reasoningEffort: input.reasoningEffort,
     system: input.system,
@@ -211,6 +217,7 @@ export function createProviderConversationalMemoryExtractor(input: {
   createMemoryExtractor?: ProviderMemoryExtractorFactory;
   maxOutputTokens?: number;
   modelUsageSink?: ModelUsageSink;
+  outputProtocol?: MemoryExtractionOutputProtocol;
   reasoningEffort?: OpenAICompatibleReasoningEffort;
   requestTimeoutMs?: number;
   retryLimit?: number;
@@ -219,12 +226,17 @@ export function createProviderConversationalMemoryExtractor(input: {
   return createProviderMemoryExtractor({
     model: input.model,
     maxOutputTokens: input.maxOutputTokens,
+    outputProtocol: input.outputProtocol ?? "canonical-v1",
     promptBuilder: (payload, context) =>
-      buildConversationalMemoryExtractionPrompt(payload, {
+      (input.outputProtocol === "compact-conversational-v1"
+        ? buildCompactConversationalMemoryExtractionPrompt
+        : buildConversationalMemoryExtractionPrompt)(payload, {
         contextualDescriptor: input.contextualDescriptor,
         knownUserName: context?.knownUserName,
       }),
-    system: CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
+    system: input.outputProtocol === "compact-conversational-v1"
+      ? COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT
+      : CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
     createMemoryExtractor: input.createMemoryExtractor,
     modelUsageSink: input.modelUsageSink,
     reasoningEffort: input.reasoningEffort,

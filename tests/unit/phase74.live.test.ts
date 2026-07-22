@@ -19,6 +19,7 @@ import type {
   AttributedModelUsageIntent,
 } from "../../src/eval/modelUsage";
 import {
+  COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
   CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
   MEMORY_EXTRACTION_SYSTEM_PROMPT,
 } from "../../src/provider/memory-extractor";
@@ -85,6 +86,9 @@ describe("Phase 74 live provider boundary", () => {
       sha256(MEMORY_EXTRACTION_SYSTEM_PROMPT),
     );
     expect(hashes.conversationalExtraction).toBe(
+      sha256(COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT),
+    );
+    expect(hashes.conversationalExtraction).not.toBe(
       sha256(CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT),
     );
     expect(hashes.planner).toBe(sha256(RECALL_PLAN_ASSISTANT_SYSTEM_PROMPT));

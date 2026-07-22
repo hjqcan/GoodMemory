@@ -971,6 +971,7 @@ function createUpdateMemory(input: {
   const assistedExtractor = input.branch === "candidate"
     ? createProviderConversationalMemoryExtractor({
         contextualDescriptor: true,
+        outputProtocol: "compact-conversational-v1",
         ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction,
         model: input.live.models.assistedExtraction,
         modelUsageSink: usage.sink,
@@ -1114,7 +1115,13 @@ export function buildPhase74HaluMemUpdatePipelineMaterial(
       ...publicModel(models.assistedExtraction),
       ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction,
       contextualDescriptors: branch === "candidate",
+      extractorVersion: branch === "candidate"
+        ? "provider-conversational-memory-extractor-v2"
+        : "provider-memory-extractor-v1",
       mode: branch === "candidate" ? "conversational" : "generic",
+      outputProtocol: branch === "candidate"
+        ? "compact-conversational-v1"
+        : "canonical-v1",
     },
     ingestionClock: "latest-dialogue-time-through-session-v1" as const,
     reranker: {
@@ -1167,19 +1174,19 @@ export function buildPhase74HaluMemLiveConfigurations(
     ),
   };
   const updateCandidatePipeline = {
-    id: "halumem-live-update-candidate-v1",
+    id: "halumem-live-update-candidate-v2",
     sha256: hashPhase74ProtectionValue(
       buildPhase74HaluMemUpdatePipelineMaterial("candidate", models),
     ),
   };
   const e4Pipeline = {
-    id: "halumem-live-e3-deterministic-v1",
+    id: "halumem-live-e3-deterministic-v2",
     sha256: hashPhase74ProtectionValue({
       configuration: e3["recall-plan-deterministic"],
       embedding: publicModel(models.embedding),
       extraction: publicModel(models.assistedExtraction),
       reranker: publicModel(models.reranker),
-      runtime: "phase74-full-retrieval-runtime-v1",
+      runtime: "phase74-full-retrieval-runtime-v2",
     }),
   };
   const common = {
