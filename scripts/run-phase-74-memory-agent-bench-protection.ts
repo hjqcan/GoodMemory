@@ -19,7 +19,7 @@ import type {
 } from "../src/eval/phase74Live";
 import type {
   Phase74ProtectionReplicate,
-} from "../src/eval/phase74ProtectionEvidence";
+} from "../src/eval/phase74ProtectionContracts";
 import type {
   Phase74ProtectionSuiteRunResult,
 } from "../src/eval/phase74ProtectionRun";

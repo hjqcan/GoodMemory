@@ -1,7 +1,7 @@
 import type {
   Phase74ProtectionIdentityDescriptor,
   Phase74ProtectionReplicate,
-} from "../src/eval/phase74ProtectionEvidence";
+} from "../src/eval/phase74ProtectionContracts";
 import {
   hashPhase74ProtectionValue,
   runPhase74ProtectionSuiteCases,

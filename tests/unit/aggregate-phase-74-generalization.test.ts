@@ -1601,24 +1601,6 @@ describe("Phase 74 frozen artifact aggregation", () => {
     );
   });
 
-  it("rejects legacy hand-authored protection evidence", async () => {
-    const fixture = await createArtifactFixture();
-    const protectionArtifactPath = join(fixture.root, "legacy-protection.json");
-    await writeJson(protectionArtifactPath, {
-      artifactKind: "phase74-frozen-protection-evidence",
-      e4: { formatDeltas: {} },
-      promotion: { protections: [], safety: {} },
-      schemaVersion: 1,
-      source: { identityHashes: ["a".repeat(64)], runIds: ["run-1"] },
-    });
-
-    await expect(aggregatePhase74GeneralizationArtifacts({
-      promotionStage: "E3",
-      protectionArtifactPath,
-      runDirectories: fixture.runDirectories,
-    })).rejects.toThrow("kind or schemaVersion is invalid");
-  });
-
   it("rejects cross-stage, E4, and model-usage population drift", async () => {
     const stageFixture = await createArtifactFixture();
     const stageRun = stageFixture.runDirectories[0]!;

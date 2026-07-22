@@ -15,9 +15,6 @@ import {
   buildMemoryAgentBenchSmokeCases,
 } from "../../src/eval/memoryAgentBench";
 import {
-  buildPhase74FrozenProtectionEvidence,
-} from "../../src/eval/phase74ProtectionEvidence";
-import {
   loadPhase74FrozenProtectionSuiteRunArtifact,
   runPhase74ProtectionSuiteCases,
 } from "../../src/eval/phase74ProtectionRun";
@@ -553,28 +550,6 @@ describe("Phase 74 MemoryAgentBench protection adapter", () => {
     await expect(loadPhase74FrozenProtectionSuiteRunArtifact(
       metric.artifactPath,
     )).rejects.toThrow("branch metric population drifted");
-  });
-
-  it("keeps retrieval-only MAB artifacts out of final protection evidence", async () => {
-    const root = await createRoot();
-    const testCase = buildMemoryAgentBenchSmokeCases()[0]!;
-    const paths: string[] = [];
-    for (const replicate of [1, 2, 3] as const) {
-      const result = await runPhase74MemoryAgentBenchProtection({
-        artifactPath: join(root, `run-${replicate}.json`),
-        cases: [testCase],
-        dataset: descriptor("memoryagentbench-synthetic-ar", "1"),
-        rawArtifactPath: join(root, `raw-${replicate}.json`),
-        replicate,
-        runId: `mab-r${replicate}`,
-        source: descriptor("source-under-test", "2"),
-      });
-      paths.push(result.artifactPath);
-    }
-
-    await expect(buildPhase74FrozenProtectionEvidence({
-      runArtifactPaths: paths,
-    })).rejects.toThrow("must be composed with the other required suites");
   });
 
   it("does not inherit ambient provider fragments into the offline branches", async () => {

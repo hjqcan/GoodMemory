@@ -6,8 +6,8 @@ import type { EvidenceLedgerFormat } from "./evidenceLedgerFormats";
 import type {
   Phase74ProtectionIdentityDescriptor,
   Phase74ProtectionRunIdentity,
-} from "./phase74ProtectionEvidence";
-import { hashPhase74ProtectionCaseIds } from "./phase74ProtectionEvidence";
+} from "./phase74ProtectionContracts";
+import { hashPhase74ProtectionCaseIds } from "./phase74ProtectionContracts";
 import {
   hashPhase74ProtectionValue,
   loadPhase74FrozenProtectionSuiteRunArtifact,

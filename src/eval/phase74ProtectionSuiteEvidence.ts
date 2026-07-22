@@ -6,7 +6,7 @@ import type { EvidenceLedgerFormat } from "./evidenceLedgerFormats";
 import type {
   Phase74ProtectionRunIdentity,
   Phase74ProtectionSafetyMetric,
-} from "./phase74ProtectionEvidence";
+} from "./phase74ProtectionContracts";
 import {
   PHASE74_MEMORY_AGENT_BENCH_PROTECTION_VERIFIER,
 } from "./phase74MemoryAgentBenchProtectionVerifier";

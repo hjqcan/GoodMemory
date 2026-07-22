@@ -13,10 +13,10 @@ import type {
 import type {
   Phase74ProtectionIdentityDescriptor,
   Phase74ProtectionReplicate,
-} from "./phase74ProtectionEvidence";
+} from "./phase74ProtectionContracts";
 import {
   hashPhase74ProtectionCaseIds,
-} from "./phase74ProtectionEvidence";
+} from "./phase74ProtectionContracts";
 import {
   hashPhase74ProtectionValue,
   loadPhase74FrozenProtectionSuiteRunArtifact,

@@ -5,13 +5,13 @@ import { dirname, relative, resolve } from "node:path";
 import {
   hashPhase74ProtectionCaseIds,
   parsePhase74ProtectionRunIdentity,
-} from "./phase74ProtectionEvidence";
+} from "./phase74ProtectionContracts";
 import type {
   Phase74ProtectionIdentityDescriptor,
   Phase74ProtectionReplicate,
   Phase74ProtectionRunIdentity,
   Phase74ProtectionSafetyMetric,
-} from "./phase74ProtectionEvidence";
+} from "./phase74ProtectionContracts";
 import type { EvidenceLedgerFormat } from "./evidenceLedgerFormats";
 
 export type Phase74ProtectionBranch = "baseline" | "candidate";

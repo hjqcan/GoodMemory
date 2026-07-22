@@ -1,6 +1,6 @@
 import type {
   Phase74ProtectionIdentityDescriptor,
-} from "./phase74ProtectionEvidence";
+} from "./phase74ProtectionContracts";
 import type {
   LoadedPhase74FrozenProtectionSuiteRunArtifact,
   Phase74ProtectionSuiteKind,
