@@ -1,9 +1,11 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
 
 import { z } from "zod";
 
 import { createInternalGoodMemory } from "../src/api/createGoodMemory";
 import type { MemoryScope } from "../src/domain/scope";
+import type { SourceMessageRecord } from "../src/evidence/contracts";
 import {
   buildPhase74StageConfigurations,
 } from "../src/eval/phase74Generalization";
@@ -24,12 +26,17 @@ import {
   PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE,
   PHASE74_HALUMEM_UPDATE_JUDGE_SYSTEM_PROMPT,
   PHASE74_HALUMEM_UPDATE_TOP_K,
+  buildPhase74HaluMemUserScope,
+  buildPhase74HaluMemUpdateSnapshotId,
   buildPhase74HaluMemUpdateJudgePrompt,
   buildPhase74HaluMemSourceMessageId,
 } from "../src/eval/phase74HaluMemProtectionVerifier";
 import type {
+  Phase74HaluMemUpdateEvidenceLink,
   Phase74HaluMemProtectionConfiguration,
   Phase74HaluMemQuestion,
+  Phase74HaluMemUpdateRecord,
+  Phase74HaluMemUpdateRecordType,
   Phase74HaluMemUser,
 } from "../src/eval/phase74HaluMemProtectionVerifier";
 import type {
@@ -121,6 +128,7 @@ export interface Phase74HaluMemScopedMemory {
     referenceTime: string;
     scope: MemoryScope;
     strategy: "hybrid";
+    usageCaseId: string;
   }): Promise<{
     evidence: readonly { sourceMessageIds: readonly string[] }[];
   }>;
@@ -141,6 +149,7 @@ export interface Phase74HaluMemScopedMemory {
       role: "assistant" | "user";
     }>;
     scope: MemoryScope;
+    usageCaseId: string;
   }): Promise<unknown>;
 }
 
@@ -151,9 +160,9 @@ export interface Phase74HaluMemUpdateMemory {
     scope: MemoryScope;
     strategy: "hybrid";
     topK: number;
+    usageCaseId: string;
   }): Promise<{
-    evidence: readonly { sourceMessageIds: readonly string[] }[];
-    memories: readonly string[];
+    records: readonly Phase74HaluMemUpdateRecord[];
   }>;
   setReferenceTime(referenceTime: string): void;
   remember(input: {
@@ -171,6 +180,7 @@ export interface Phase74HaluMemUpdateMemory {
       role: "assistant" | "user";
     }>;
     scope: MemoryScope;
+    usageCaseId: string;
   }): Promise<{ warnings?: string[] }>;
 }
 
@@ -430,14 +440,8 @@ function createUpdateJudge(input: Phase74HaluMemLiveDependencyInput) {
   };
 }
 
-export function buildPhase74HaluMemUserScope(userUuid: string): MemoryScope {
-  return {
-    userId: `user-${sha256(userUuid).slice(0, 32)}`,
-    workspaceId: `workspace-${sha256("phase74-halumem-live-privacy").slice(0, 32)}`,
-  };
-}
-
 async function seedUserThroughSession(input: {
+  branch: "baseline" | "candidate";
   memory: Phase74HaluMemScopedMemory;
   sessionIndex: number;
   user: Phase74HaluMemUser;
@@ -473,6 +477,8 @@ async function seedUserThroughSession(input: {
       extractionStrategy: "rules-only",
       messages,
       scope: { ...scope, sessionId: `session-${sessionIndex}` },
+      usageCaseId:
+        `halumem-privacy:${input.user.uuid}:session:${sessionIndex}:${input.branch}:ingest`,
     });
   }
 }
@@ -537,6 +543,8 @@ export function createPhase74HaluMemScopedUpdateRuntime(input: {
           extractionStrategy: "llm-assisted",
           messages,
           scope: { ...scope, sessionId: `session-${sessionIndex}` },
+          usageCaseId:
+            `halumem-update:${user.uuid}:session:${sessionIndex}:${input.branch}:ingest`,
         });
         if (rememberResult.warnings?.includes("assisted_extraction_failed")) {
           throw new Error(
@@ -557,18 +565,20 @@ export function createPhase74HaluMemScopedUpdateRuntime(input: {
             scope,
             strategy: "hybrid",
             topK: PHASE74_HALUMEM_UPDATE_TOP_K,
+            usageCaseId: `${caseId}:${input.branch}:retrieve`,
           });
-          const memories = recall.memories.slice(0, PHASE74_HALUMEM_UPDATE_TOP_K);
-          const sourceMessageIds = recalledSourceMessageIds(recall.evidence);
+          const records = recall.records.slice(0, PHASE74_HALUMEM_UPDATE_TOP_K);
+          const sourceMessageIds = [...new Set(
+            records.flatMap((record) => record.sourceMessageIds),
+          )].sort();
           snapshots.set(caseId, {
-            memories,
-            snapshotId: hashPhase74ProtectionValue({
+            records,
+            snapshotId: buildPhase74HaluMemUpdateSnapshotId({
               branch: input.branch,
               caseId,
-              memories,
+              records,
               sessionIndex,
               sourceMessageIds,
-              topK: PHASE74_HALUMEM_UPDATE_TOP_K,
             }),
             sourceMessageIds,
           });
@@ -607,6 +617,15 @@ export function buildPhase74HaluMemUpdateRecords(
     episodes?: readonly { id: string; summary: string }[];
     facts?: readonly { content: string; id: string }[];
     feedback?: readonly { id: string; rule: string }[];
+    evidence?: readonly {
+      excerpt: string;
+      id: string;
+      linkedArchiveIds: readonly string[];
+      linkedMemoryIds: readonly string[];
+      sourceMessageIds: readonly string[];
+      sourceRecordIds?: readonly string[];
+      sourceUri?: string;
+    }[];
     metadata?: {
       hits?: readonly { id: string; type: string }[];
     };
@@ -625,57 +644,86 @@ export function buildPhase74HaluMemUpdateRecords(
     }[];
   },
   topK = PHASE74_HALUMEM_UPDATE_TOP_K,
-): string[] {
+  sourceMessages: readonly SourceMessageRecord[] = [],
+): Phase74HaluMemUpdateRecord[] {
   if (!Number.isSafeInteger(topK) || topK <= 0) {
     throw new Error("Phase 74 HaluMem update topK must be positive.");
   }
-  const candidates: Array<{ key: string; value: string }> = [];
+  const candidates: Array<{
+    content: string;
+    id: string;
+    key: string;
+    type: Phase74HaluMemUpdateRecordType;
+  }> = [];
   if (recall.profile) {
     candidates.push({
-      key: `profile:${recall.profile.userId}`,
-      value: JSON.stringify({
+      content: JSON.stringify({
         activeContext: recall.profile.activeContext,
         expertise: recall.profile.expertise,
         identity: recall.profile.identity,
       }),
+      id: recall.profile.userId,
+      key: `profile:${recall.profile.userId}`,
+      type: "profile",
     });
   }
   for (const preference of recall.preferences ?? []) {
     candidates.push({
-      key: `preference:${preference.id}`,
-      value: `${preference.category}: ${
+      content: `${preference.category}: ${
         typeof preference.value === "string"
           ? preference.value
           : JSON.stringify(preference.value)
       }`,
+      id: preference.id,
+      key: `preference:${preference.id}`,
+      type: "preference",
     });
   }
   for (const reference of recall.references ?? []) {
     candidates.push({
+      content: `${reference.title}: ${reference.description ?? reference.pointer}`,
+      id: reference.id,
       key: `reference:${reference.id}`,
-      value: `${reference.title}: ${reference.description ?? reference.pointer}`,
+      type: "reference",
     });
   }
   for (const fact of recall.facts ?? []) {
-    candidates.push({ key: `fact:${fact.id}`, value: fact.content });
+    candidates.push({
+      content: fact.content,
+      id: fact.id,
+      key: `fact:${fact.id}`,
+      type: "fact",
+    });
   }
   for (const feedback of recall.feedback ?? []) {
-    candidates.push({ key: `feedback:${feedback.id}`, value: feedback.rule });
+    candidates.push({
+      content: feedback.rule,
+      id: feedback.id,
+      key: `feedback:${feedback.id}`,
+      type: "feedback",
+    });
   }
   for (const archive of recall.archives ?? []) {
     candidates.push({
+      content: archive.summary,
+      id: archive.id,
       key: `session_archive:${archive.id}`,
-      value: archive.summary,
+      type: "session_archive",
     });
   }
   for (const episode of recall.episodes ?? []) {
-    candidates.push({ key: `episode:${episode.id}`, value: episode.summary });
+    candidates.push({
+      content: episode.summary,
+      id: episode.id,
+      key: `episode:${episode.id}`,
+      type: "episode",
+    });
   }
 
   const byKey = new Map(candidates.map((candidate) => [candidate.key, candidate]));
   const ordered = (recall.metadata?.hits ?? [])
     .map(({ id, type }) => byKey.get(`${type}:${id}`))
-    .filter((candidate): candidate is { key: string; value: string } =>
+    .filter((candidate): candidate is typeof candidates[number] =>
       candidate !== undefined
     );
   const seen = new Set(ordered.map(({ key }) => key));
@@ -685,9 +733,67 @@ export function buildPhase74HaluMemUpdateRecords(
       seen.add(candidate.key);
     }
   }
-  return ordered
+  const evidence = recall.evidence ?? [];
+  const sourceMessagesById = new Map(sourceMessages.map((source) => [
+    source.id,
+    source,
+  ]));
+  const records = ordered.flatMap((candidate) => {
+    const evidenceLinks = evidence.flatMap((record) => {
+      const linkedIds = candidate.type === "session_archive"
+        ? record.linkedArchiveIds
+        : record.linkedMemoryIds;
+      const linkedSourceRecords = (record.sourceRecordIds ?? []).map(
+        (sourceRecordId) => sourceMessagesById.get(sourceRecordId),
+      );
+      if (
+        !linkedIds.includes(candidate.id) ||
+        record.sourceMessageIds.length === 0 ||
+        (record.sourceRecordIds?.length ?? 0) !== record.sourceMessageIds.length ||
+        record.sourceUri === undefined ||
+        linkedSourceRecords.some((source) =>
+          source?.sourceMessageId === undefined ||
+          source.observedAt === undefined ||
+          (source.role !== "assistant" && source.role !== "user")
+        )
+      ) {
+        return [];
+      }
+      return [{
+        evidenceId: record.id,
+        excerpt: record.excerpt,
+        excerptSha256: sha256(record.excerpt),
+        linkedArchiveIds: [...record.linkedArchiveIds],
+        linkedMemoryIds: [...record.linkedMemoryIds],
+        sourceMessageIds: [...record.sourceMessageIds],
+        sourceRecordIds: [...record.sourceRecordIds!],
+        sourceRecords: linkedSourceRecords.map((source) => ({
+          contentSha256: source!.contentSha256,
+          id: source!.id,
+          observedAt: source!.observedAt!,
+          role: source!.role as "assistant" | "user",
+          sourceMessageId: source!.sourceMessageId!,
+        })),
+        sourceUri: record.sourceUri,
+      } satisfies Phase74HaluMemUpdateEvidenceLink];
+    }).sort((left, right) => left.evidenceId.localeCompare(right.evidenceId));
+    if (evidenceLinks.length === 0) {
+      return [];
+    }
+    return [{
+      content: candidate.content,
+      evidenceLinks,
+      id: candidate.id,
+      rank: 0,
+      sourceMessageIds: [...new Set(
+        evidenceLinks.flatMap((record) => record.sourceMessageIds),
+      )].sort(),
+      type: candidate.type,
+    }];
+  });
+  return records
     .slice(0, Math.min(topK, PHASE74_HALUMEM_UPDATE_TOP_K))
-    .map(({ value }) => value);
+    .map((record, index) => ({ ...record, rank: index + 1 }));
 }
 
 export function createPhase74HaluMemScopedPrivacyRuntime(input: {
@@ -714,6 +820,7 @@ export function createPhase74HaluMemScopedPrivacyRuntime(input: {
       const memory = input.createMemory({ referenceTime: storeReferenceTime });
       for (const user of input.users) {
         await seedUserThroughSession({
+          branch: input.branch,
           memory,
           sessionIndex: user.sessions.length - 1,
           user,
@@ -742,6 +849,7 @@ export function createPhase74HaluMemScopedPrivacyRuntime(input: {
           referenceTime,
           scope: buildPhase74HaluMemUserScope(owner.uuid),
           strategy: "hybrid",
+          usageCaseId: `${payload.privacyCaseId}:${input.branch}:owner`,
         }),
         memory.recall({
           includeEvidence: true,
@@ -749,6 +857,7 @@ export function createPhase74HaluMemScopedPrivacyRuntime(input: {
           referenceTime,
           scope: buildPhase74HaluMemUserScope(target.uuid),
           strategy: "hybrid",
+          usageCaseId: `${payload.privacyCaseId}:${input.branch}:foreign`,
         }),
       ]);
       const snapshot = {
@@ -768,6 +877,33 @@ export function createPhase74HaluMemScopedPrivacyRuntime(input: {
   };
 }
 
+function createContextualHaluMemUsage(input: {
+  branch: "baseline" | "candidate";
+  live: Phase74HaluMemLiveDependencyInput;
+}): {
+  run<T>(caseId: string, operation: () => Promise<T>): Promise<T>;
+  sink: ModelUsageSink;
+} {
+  const context = new AsyncLocalStorage<string>();
+  return {
+    run: (caseId, operation) => context.run(caseId, operation),
+    sink: createAttributedModelUsageSink({
+      branch: input.branch,
+      caseId: () => {
+        const caseId = context.getStore();
+        if (!caseId) {
+          throw new Error("Phase 74 HaluMem model usage context is missing.");
+        }
+        return caseId;
+      },
+      events: input.live.events,
+      intents: input.live.intents,
+      onEvent: input.live.onUsageEvent,
+      onIntent: input.live.onUsageIntent,
+    }),
+  };
+}
+
 function createPrivacyMemory(input: {
   branch: "baseline" | "candidate";
   caseId: string;
@@ -778,25 +914,18 @@ function createPrivacyMemory(input: {
     input.branch,
     input.live.models,
   );
-  const sink = createAttributedModelUsageSink({
-    branch: input.branch,
-    caseId: input.caseId,
-    events: input.live.events,
-    intents: input.live.intents,
-    onEvent: input.live.onUsageEvent,
-    onIntent: input.live.onUsageIntent,
-  });
-  return createInternalGoodMemory({
+  const usage = createContextualHaluMemUsage(input);
+  const memory = createInternalGoodMemory({
     adapters: {
       embeddingAdapter: createProviderEmbeddingAdapter({
         ...PHASE74_EMBEDDING_CALL_CONFIGURATION,
         model: input.live.models.embedding,
-        modelUsageSink: sink,
+        modelUsageSink: usage.sink,
       }),
       reranker: createProviderListwiseReranker({
         ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.listwiseReranker,
         model: input.live.models.reranker,
-        modelUsageSink: sink,
+        modelUsageSink: usage.sink,
       }),
     },
     remember: {
@@ -817,6 +946,14 @@ function createPrivacyMemory(input: {
       now: () => new Date(input.referenceTime),
     },
   }, { environment: {} });
+  return {
+    recall({ usageCaseId, ...payload }) {
+      return usage.run(usageCaseId, () => memory.recall(payload));
+    },
+    remember({ usageCaseId, ...payload }) {
+      return usage.run(usageCaseId, () => memory.remember(payload));
+    },
+  };
 }
 
 function createUpdateMemory(input: {
@@ -830,25 +967,18 @@ function createUpdateMemory(input: {
     input.branch,
     input.live.models,
   );
-  const sink = createAttributedModelUsageSink({
-    branch: input.branch,
-    caseId: input.caseId,
-    events: input.live.events,
-    intents: input.live.intents,
-    onEvent: input.live.onUsageEvent,
-    onIntent: input.live.onUsageIntent,
-  });
+  const usage = createContextualHaluMemUsage(input);
   const assistedExtractor = input.branch === "candidate"
     ? createProviderConversationalMemoryExtractor({
         contextualDescriptor: true,
         ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction,
         model: input.live.models.assistedExtraction,
-        modelUsageSink: sink,
+        modelUsageSink: usage.sink,
       })
     : createProviderMemoryExtractor({
         ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction,
         model: input.live.models.assistedExtraction,
-        modelUsageSink: sink,
+        modelUsageSink: usage.sink,
       });
   const memory = createInternalGoodMemory({
     adapters: {
@@ -856,12 +986,12 @@ function createUpdateMemory(input: {
       embeddingAdapter: createProviderEmbeddingAdapter({
         ...PHASE74_EMBEDDING_CALL_CONFIGURATION,
         model: input.live.models.embedding,
-        modelUsageSink: sink,
+        modelUsageSink: usage.sink,
       }),
       reranker: createProviderListwiseReranker({
         ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.listwiseReranker,
         model: input.live.models.reranker,
-        modelUsageSink: sink,
+        modelUsageSink: usage.sink,
       }),
     },
     remember: {
@@ -880,22 +1010,29 @@ function createUpdateMemory(input: {
     testing: { now: () => new Date(referenceTime) },
   }, { environment: {} });
   return {
-    async recall({ topK, ...payload }) {
-      const result = await memory.recall({
-        ...payload,
-        decompose: false,
-        includeEvidence: true,
-        multiHop: false,
+    async recall({ topK, usageCaseId, ...payload }) {
+      return usage.run(usageCaseId, async () => {
+        const result = await memory.recall({
+          ...payload,
+          decompose: false,
+          includeEvidence: true,
+          multiHop: false,
+        });
+        const exported = await memory.exportMemory({ scope: payload.scope });
+        return {
+          records: buildPhase74HaluMemUpdateRecords(
+            result,
+            topK,
+            exported.durable.sourceMessages ?? [],
+          ),
+        };
       });
-      return {
-        evidence: result.evidence,
-        memories: buildPhase74HaluMemUpdateRecords(result, topK),
-      };
     },
     setReferenceTime(value) {
       referenceTime = isoTimestamp(value, `${input.caseId} update clock`);
     },
-    remember: (payload) => memory.remember(payload),
+    remember: ({ usageCaseId, ...payload }) =>
+      usage.run(usageCaseId, () => memory.remember(payload)),
   };
 }
 
@@ -985,7 +1122,7 @@ export function buildPhase74HaluMemUpdatePipelineMaterial(
       ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.listwiseReranker,
     },
     retrieval: {
-      generatedMemoryRecords: "final-ranked-durable-records-cross-kind-v1" as const,
+      generatedMemoryRecords: "evidence-backed-retrieved-records-v2" as const,
       generalizedFusionChannels: branch === "candidate"
         ? ALL_FUSION_CHANNELS
         : BASELINE_FUSION_CHANNELS,

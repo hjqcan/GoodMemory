@@ -320,6 +320,61 @@ function isoDate(value: string | undefined): string {
   return date.toISOString();
 }
 
+export function buildPhase74IngestionDescriptor(input: {
+  configuration: EvalRunJsonObject;
+  datasetSha256: string;
+  evaluatorSourceSha256: string;
+  models: Phase74LiveModels;
+  promptSha256s: Readonly<Record<string, string>>;
+  testCase: Phase74RecallCase;
+}): {
+  key: string;
+  memoryGroupId: string;
+  representation: string;
+} {
+  const representation = readString(input.configuration.representation, "raw-only");
+  const memoryGroupId = input.testCase.memoryGroupId ?? input.testCase.caseId;
+  const contextualDescriptors =
+    representation === "atomic-contextual-raw-pointer";
+  return {
+    key: buildPhase74IngestionKey({
+      datasetSha256: input.datasetSha256,
+      embedding: {
+        ...modelIdentity(input.models.embedding),
+        adapterVersion: "openai-compatible-embedding-v1",
+      },
+      evaluatorSourceSha256: input.evaluatorSourceSha256,
+      extraction: {
+        ...modelIdentity(input.models.assistedExtraction),
+        contextualDescriptors,
+        extractorVersion: contextualDescriptors
+          ? "provider-conversational-memory-extractor-v1"
+          : "provider-memory-extractor-v1",
+        maxOutputTokens:
+          PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
+            .maxOutputTokens,
+        promptSha256: input.promptSha256s[
+          contextualDescriptors
+            ? "conversationalExtraction"
+            : "assistedExtraction"
+        ] ?? "",
+        reasoningEffort:
+          PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
+            .reasoningEffort,
+        temperature:
+          PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
+            .temperature,
+      },
+      memoryGroupId,
+      rawEvidence: input.testCase.rawEvidence,
+      referenceTime: isoDate(input.testCase.referenceTime),
+      representation,
+    }),
+    memoryGroupId,
+    representation,
+  };
+}
+
 function groupSessionId(item: Phase74RawEvidenceItem): string {
   const sourceId = item.sourceIds[0] ?? "source";
   return sourceId.match(/^([^:]+):/u)?.[1] ?? sourceId;
@@ -602,42 +657,15 @@ export function createPhase74FullRetrievalRuntime(input: {
     representation: string;
     sqlitePath: string;
   }> => {
-    const representation = readString(configuration.representation, "raw-only");
-    const memoryGroupId = testCase.memoryGroupId ?? testCase.caseId;
-    const contextualDescriptors = representation === "atomic-contextual-raw-pointer";
-    const key = buildPhase74IngestionKey({
-      datasetSha256: input.datasetSha256,
-      embedding: {
-        ...modelIdentity(input.models.embedding),
-        adapterVersion: "openai-compatible-embedding-v1",
-      },
-      evaluatorSourceSha256: input.evaluatorSourceSha256,
-      extraction: {
-        ...modelIdentity(input.models.assistedExtraction),
-        contextualDescriptors,
-        extractorVersion: contextualDescriptors
-          ? "provider-conversational-memory-extractor-v1"
-          : "provider-memory-extractor-v1",
-        maxOutputTokens:
-          PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
-            .maxOutputTokens,
-        promptSha256: input.promptSha256s[
-          contextualDescriptors
-            ? "conversationalExtraction"
-            : "assistedExtraction"
-        ] ?? "",
-        reasoningEffort:
-          PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
-            .reasoningEffort,
-        temperature:
-          PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
-            .temperature,
-      },
-      memoryGroupId,
-      rawEvidence: testCase.rawEvidence,
-      referenceTime: isoDate(testCase.referenceTime),
-      representation,
-    });
+    const { key, memoryGroupId, representation } =
+      buildPhase74IngestionDescriptor({
+        configuration,
+        datasetSha256: input.datasetSha256,
+        evaluatorSourceSha256: input.evaluatorSourceSha256,
+        models: input.models,
+        promptSha256s: input.promptSha256s,
+        testCase,
+      });
     const existing = ready.get(key);
     if (existing) {
       return existing;

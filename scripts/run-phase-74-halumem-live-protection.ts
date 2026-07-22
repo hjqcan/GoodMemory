@@ -20,6 +20,7 @@ import {
   resolveCliFlagValueStrict,
 } from "./cli-options";
 import {
+  buildPhase74HaluMemCausalRecallCase,
   buildPhase74HaluMemLiveConfigurations,
   createPhase74HaluMemLiveDependencies,
 } from "./phase-74-halumem-live-providers";
@@ -38,10 +39,12 @@ import {
 } from "./run-phase-74-generalization";
 import { resolveRepoRootFromScriptUrl } from "./script-paths";
 import {
+  buildPhase74IngestionDescriptor,
   buildPhase74IngestionUsagePaths,
   verifyPhase74IngestionUsageManifest,
 } from "../src/eval/phase74FullRuntime";
 import {
+  PHASE74_HALUMEM_EVIDENCE_LEDGER_FORMATS,
   PHASE74_HALUMEM_QA_JUDGE_SYSTEM_PROMPT,
   PHASE74_HALUMEM_READER_SYSTEM_PROMPT,
   PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE,
@@ -50,8 +53,11 @@ import {
   PHASE74_HALUMEM_UPDATE_PROMOTION_ROLE,
   PHASE74_HALUMEM_UPDATE_TOP_K,
   PHASE74_HALUMEM_UPSTREAM,
+  buildPhase74HaluMemPrivacyPopulation,
+  buildPhase74HaluMemQuestionPopulation,
   buildPhase74HaluMemQaJudgePrompt,
   buildPhase74HaluMemReaderPrompt,
+  buildPhase74HaluMemUpdatePopulation,
   parsePhase74HaluMemJsonl,
   selectPhase74HaluMemUsers,
   verifyPhase74HaluMemE4ProtectionArtifact,
@@ -70,8 +76,17 @@ import {
 import type {
   AttributedModelUsageAttempt,
   AttributedModelUsageIntent,
+  Phase74ModelUsageLedger,
 } from "../src/eval/modelUsage";
 import {
+  buildPhase74StageConfigurations,
+} from "../src/eval/phase74Generalization";
+import {
+  PHASE74_EMBEDDING_GATEWAY,
+  PHASE74_EMBEDDING_MODEL,
+  PHASE74_GATEWAY,
+  PHASE74_JUDGE_MODEL,
+  PHASE74_LANGUAGE_MODEL,
   capturePhase74EvaluatorSource,
   phase74LivePromptSha256s,
   resolvePhase74LiveModels,
@@ -414,6 +429,55 @@ function publicModel(model: Phase74LiveModels["answer"]) {
   };
 }
 
+function trustedHaluMemModels(): Phase74LiveModels {
+  const language = {
+    baseURL: PHASE74_GATEWAY,
+    model: PHASE74_LANGUAGE_MODEL,
+    provider: "openai" as const,
+  };
+  return {
+    answer: language,
+    assistedExtraction: language,
+    embedding: {
+      baseURL: PHASE74_EMBEDDING_GATEWAY,
+      model: PHASE74_EMBEDDING_MODEL,
+      provider: "openai",
+    },
+    judge: {
+      baseURL: PHASE74_GATEWAY,
+      model: PHASE74_JUDGE_MODEL,
+      provider: "openai",
+    },
+    planner: language,
+    reranker: language,
+  };
+}
+
+function trustedHaluMemModelCalls(models: Phase74LiveModels) {
+  return {
+    embedding: {
+      ...publicModel(models.embedding),
+      ...PHASE74_EMBEDDING_CALL_CONFIGURATION,
+    },
+    extraction: {
+      ...publicModel(models.assistedExtraction),
+      ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction,
+    },
+    judge: {
+      ...publicModel(models.judge),
+      ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.judge.oracle,
+    },
+    reader: {
+      ...publicModel(models.answer),
+      ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.reader,
+    },
+    reranker: {
+      ...publicModel(models.reranker),
+      ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.listwiseReranker,
+    },
+  };
+}
+
 function jsonObject(value: unknown): EvalRunJsonObject {
   return JSON.parse(JSON.stringify(value)) as EvalRunJsonObject;
 }
@@ -456,35 +520,16 @@ function buildRunIdentity(input: {
       caseConcurrency: input.caseConcurrency,
       causalPrefixPolicy: input.selection.causalPrefixPolicy,
       evaluatorSource: input.evaluatorSource,
-      modelCalls: {
-        embedding: {
-          ...publicModel(input.models.embedding),
-          ...PHASE74_EMBEDDING_CALL_CONFIGURATION,
-        },
-        extraction: {
-          ...publicModel(input.models.assistedExtraction),
-          ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction,
-        },
-        judge: {
-          ...publicModel(input.models.judge),
-          ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.judge.oracle,
-        },
-        reader: {
-          ...publicModel(input.models.answer),
-          ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.reader,
-        },
-        reranker: {
-          ...publicModel(input.models.reranker),
-          ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.listwiseReranker,
-        },
-      },
+      modelCalls: trustedHaluMemModelCalls(input.models),
       pipelines: input.configurations,
       replicate: input.options.replicate,
       selection: input.selection,
       selectionSha256: hashPhase74ProtectionValue(input.selection),
       update: {
+        evidenceBoundary: "internal-causal-source-replay-v2",
         evaluatorSource: PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE,
         promotionRole: PHASE74_HALUMEM_UPDATE_PROMOTION_ROLE,
+        promotionEligible: false,
         sessionPolicy: "causal-session-write-then-update-retrieval-v1",
         status: "enabled",
         topK: PHASE74_HALUMEM_UPDATE_TOP_K,
@@ -622,6 +667,391 @@ function parseCompletion(value: unknown): Phase74HaluMemLiveCompletion {
   return completion as Phase74HaluMemLiveCompletion;
 }
 
+async function verifyUpdateJudgeUsage(input: {
+  directory: string;
+  ledger: Phase74ModelUsageLedger;
+}): Promise<void> {
+  const raw = JSON.parse(await readFile(
+    join(input.directory, "update", "raw.json"),
+    "utf8",
+  )) as unknown;
+  if (
+    raw === null || typeof raw !== "object" || Array.isArray(raw) ||
+    !Array.isArray((raw as Record<string, unknown>).rows)
+  ) {
+    throw new Error("Phase 74 HaluMem update raw rows are invalid.");
+  }
+  const expectedCaseIds = new Set<string>();
+  for (const value of (raw as { rows: unknown[] }).rows) {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("Phase 74 HaluMem update raw row is invalid.");
+    }
+    const row = value as Record<string, unknown>;
+    if (typeof row.caseId !== "string" || row.caseId === "") {
+      throw new Error("Phase 74 HaluMem update raw case id is invalid.");
+    }
+    for (const branch of ["baseline", "candidate"] as const) {
+      const branchValue = row[branch];
+      if (
+        branchValue === null || typeof branchValue !== "object" ||
+        Array.isArray(branchValue)
+      ) {
+        throw new Error("Phase 74 HaluMem update raw branch is invalid.");
+      }
+      const rawOutput = (branchValue as Record<string, unknown>).rawOutput;
+      if (
+        rawOutput === null || typeof rawOutput !== "object" ||
+        Array.isArray(rawOutput) ||
+        typeof (rawOutput as Record<string, unknown>).decision !== "string"
+      ) {
+        throw new Error("Phase 74 HaluMem update raw decision is invalid.");
+      }
+      const decision = JSON.parse(
+        (rawOutput as Record<string, string>).decision,
+      ) as { usage?: unknown };
+      const caseId = `${row.caseId}:${branch}:update`;
+      expectedCaseIds.add(caseId);
+      const successful = input.ledger.events.filter((event) =>
+        event.branch === "judge" &&
+        event.caseId === caseId &&
+        event.operation === "judge" &&
+        event.outcome === "succeeded"
+      );
+      if (
+        successful.length !== 1 ||
+        successful[0]!.modelId !== PHASE74_JUDGE_MODEL ||
+        successful[0]!.providerId !== "openai" ||
+        hashPhase74ProtectionValue(successful[0]!.usage) !==
+          hashPhase74ProtectionValue(decision.usage)
+      ) {
+        throw new Error(
+          `Phase 74 HaluMem ${caseId} judge usage drifted from its ledger event.`,
+        );
+      }
+    }
+  }
+  const observedCaseIds = new Set(
+    input.ledger.intents
+      .filter((intent) =>
+        intent.branch === "judge" &&
+        intent.operation === "judge" &&
+        intent.caseId.endsWith(":update")
+      )
+      .map(({ caseId }) => caseId),
+  );
+  if (
+    hashPhase74ProtectionValue([...observedCaseIds].sort()) !==
+      hashPhase74ProtectionValue([...expectedCaseIds].sort())
+  ) {
+    throw new Error(
+      "Phase 74 HaluMem update judge usage ledger population drifted.",
+    );
+  }
+}
+
+type HaluMemUsageCardinality = "one" | "one-or-more" | "optional";
+
+interface HaluMemUsageRequirement {
+  branch: AttributedModelUsageIntent["branch"];
+  cardinality: HaluMemUsageCardinality;
+  caseId: string;
+  operation: AttributedModelUsageIntent["operation"];
+}
+
+function usageRequirementKey(input: Pick<
+  HaluMemUsageRequirement,
+  "branch" | "caseId" | "operation"
+>): string {
+  return `${input.branch}\0${input.caseId}\0${input.operation}`;
+}
+
+function addUsageRequirement(
+  requirements: Map<string, HaluMemUsageRequirement>,
+  requirement: HaluMemUsageRequirement,
+): void {
+  const key = usageRequirementKey(requirement);
+  const current = requirements.get(key);
+  if (current && current.cardinality !== requirement.cardinality) {
+    throw new Error("Phase 74 HaluMem expected usage plan is inconsistent.");
+  }
+  requirements.set(key, requirement);
+}
+
+function expectedDirectUsage(
+  users: readonly Phase74HaluMemUser[],
+): Map<string, HaluMemUsageRequirement> {
+  const requirements = new Map<string, HaluMemUsageRequirement>();
+  const add = (requirement: HaluMemUsageRequirement) =>
+    addUsageRequirement(requirements, requirement);
+  for (const item of buildPhase74HaluMemQuestionPopulation(users).items.values()) {
+    add({
+      branch: "candidate",
+      cardinality: "one",
+      caseId: item.questionCaseId,
+      operation: "embedding",
+    });
+    add({
+      branch: "candidate",
+      cardinality: "optional",
+      caseId: item.questionCaseId,
+      operation: "reranker_listwise",
+    });
+    for (const [branch, format] of [
+      ["baseline", "legacy"],
+      ...PHASE74_HALUMEM_EVIDENCE_LEDGER_FORMATS.map((format) =>
+        ["candidate", format] as const
+      ),
+    ] as const) {
+      const caseId = `${item.questionCaseId}:${format}`;
+      add({ branch, cardinality: "one", caseId, operation: "answer_generation" });
+      add({ branch: "judge", cardinality: "one", caseId, operation: "judge" });
+    }
+  }
+  for (const item of buildPhase74HaluMemPrivacyPopulation(users).items.values()) {
+    for (const branch of ["baseline", "candidate"] as const) {
+      for (const side of ["owner", "foreign"] as const) {
+        const caseId = `${item.privacyCaseId}:${branch}:${side}`;
+        add({ branch, cardinality: "one", caseId, operation: "embedding" });
+        add({
+          branch,
+          cardinality: "optional",
+          caseId,
+          operation: "reranker_listwise",
+        });
+      }
+    }
+  }
+  for (const user of users) {
+    for (const [sessionIndex, session] of user.sessions.entries()) {
+      if (session.dialogue.length === 0) {
+        continue;
+      }
+      for (const branch of ["baseline", "candidate"] as const) {
+        add({
+          branch,
+          cardinality: "one-or-more",
+          caseId:
+            `halumem-privacy:${user.uuid}:session:${sessionIndex}:${branch}:ingest`,
+          operation: "embedding",
+        });
+        const updateIngestionCaseId =
+          `halumem-update:${user.uuid}:session:${sessionIndex}:${branch}:ingest`;
+        add({
+          branch,
+          cardinality: "one",
+          caseId: updateIngestionCaseId,
+          operation: "assisted_extraction",
+        });
+        add({
+          branch,
+          cardinality: "optional",
+          caseId: updateIngestionCaseId,
+          operation: "embedding",
+        });
+      }
+    }
+  }
+  for (const item of buildPhase74HaluMemUpdatePopulation(users).items.values()) {
+    for (const branch of ["baseline", "candidate"] as const) {
+      const retrievalCaseId = `${item.updateCaseId}:${branch}:retrieve`;
+      add({ branch, cardinality: "one", caseId: retrievalCaseId, operation: "embedding" });
+      add({
+        branch,
+        cardinality: "optional",
+        caseId: retrievalCaseId,
+        operation: "reranker_listwise",
+      });
+      add({
+        branch: "judge",
+        cardinality: "one",
+        caseId: `${item.updateCaseId}:${branch}:update`,
+        operation: "judge",
+      });
+    }
+  }
+  return requirements;
+}
+
+function expectedUsageModel(
+  operation: AttributedModelUsageIntent["operation"],
+): string {
+  if (operation === "embedding") {
+    return PHASE74_EMBEDDING_MODEL;
+  }
+  if (operation === "judge") {
+    return PHASE74_JUDGE_MODEL;
+  }
+  return PHASE74_LANGUAGE_MODEL;
+}
+
+function verifyUsageLedgerPopulation(input: {
+  label: string;
+  ledger: Phase74ModelUsageLedger;
+  requirements: ReadonlyMap<string, HaluMemUsageRequirement>;
+}): void {
+  for (const intent of input.ledger.intents) {
+    if (
+      intent.modelId !== expectedUsageModel(intent.operation) ||
+      intent.providerId !== "openai"
+    ) {
+      throw new Error(
+        `Phase 74 HaluMem ${input.label} usage model drifted for ${intent.caseId}.`,
+      );
+    }
+    if (!input.requirements.has(usageRequirementKey(intent))) {
+      throw new Error(
+        `Phase 74 HaluMem ${input.label} usage population contains an unexpected call.`,
+      );
+    }
+  }
+  for (const [key, requirement] of input.requirements) {
+    const attempts = input.ledger.events.filter(
+      (event) => usageRequirementKey(event) === key,
+    );
+    const successes = attempts.filter(({ outcome }) => outcome === "succeeded");
+    const valid = requirement.cardinality === "one"
+      ? successes.length === 1
+      : requirement.cardinality === "one-or-more"
+      ? successes.length >= 1
+      : attempts.length === 0 || successes.length >= 1;
+    if (!valid) {
+      throw new Error(
+        `Phase 74 HaluMem ${input.label} usage population drifted at ${requirement.caseId}.`,
+      );
+    }
+  }
+}
+
+async function verifyIngestionUsagePopulation(input: {
+  datasetSha256: string;
+  evaluatorSourceSha256: string;
+  ledgers: readonly {
+    key: string;
+    ledger: Phase74ModelUsageLedger;
+  }[];
+  models: Phase74LiveModels;
+  promptSha256s: Readonly<Record<string, string>>;
+  runDirectory: string;
+  users: readonly Phase74HaluMemUser[];
+}): Promise<void> {
+  const configuration = buildPhase74StageConfigurations(
+    {},
+    "E3",
+  )["recall-plan-deterministic"]!;
+  const expected = new Map<string, {
+    memoryGroupId: string;
+    representation: string;
+    sourceMessageCount: number;
+  }>();
+  for (const item of buildPhase74HaluMemQuestionPopulation(input.users).items.values()) {
+    const testCase = buildPhase74HaluMemCausalRecallCase({
+      question: item.question,
+      questionCaseId: item.questionCaseId,
+      sessionIndex: item.input.sessionIndex,
+      user: item.user,
+    });
+    const descriptor = buildPhase74IngestionDescriptor({
+      configuration,
+      datasetSha256: input.datasetSha256,
+      evaluatorSourceSha256: input.evaluatorSourceSha256,
+      models: input.models,
+      promptSha256s: input.promptSha256s,
+      testCase,
+    });
+    expected.set(descriptor.key, {
+      memoryGroupId: descriptor.memoryGroupId,
+      representation: descriptor.representation,
+      sourceMessageCount: testCase.rawEvidence.length,
+    });
+  }
+  if (
+    hashPhase74ProtectionValue(input.ledgers.map(({ key }) => key).sort()) !==
+      hashPhase74ProtectionValue([...expected.keys()].sort())
+  ) {
+    throw new Error("Phase 74 HaluMem ingestion usage population key set drifted.");
+  }
+  for (const { key, ledger } of input.ledgers) {
+    const descriptor = expected.get(key)!;
+    const manifest = JSON.parse(await readFile(
+      join(input.runDirectory, "ingestion", key, "manifest.json"),
+      "utf8",
+    )) as Record<string, unknown>;
+    if (
+      manifest.key !== key ||
+      manifest.memoryGroupId !== descriptor.memoryGroupId ||
+      manifest.representation !== descriptor.representation ||
+      manifest.schemaVersion !== 8 ||
+      manifest.sourceMessageCount !== descriptor.sourceMessageCount
+    ) {
+      throw new Error(
+        `Phase 74 HaluMem ingestion usage population manifest drifted at ${key}.`,
+      );
+    }
+    const requirements = new Map<string, HaluMemUsageRequirement>();
+    addUsageRequirement(requirements, {
+      branch: "shadow",
+      cardinality: "one",
+      caseId: descriptor.memoryGroupId,
+      operation: "assisted_extraction",
+    });
+    addUsageRequirement(requirements, {
+      branch: "shadow",
+      cardinality: "optional",
+      caseId: descriptor.memoryGroupId,
+      operation: "embedding",
+    });
+    verifyUsageLedgerPopulation({
+      label: "ingestion",
+      ledger,
+      requirements,
+    });
+  }
+}
+
+async function verifyHaluMemCallBudget(input: {
+  configuration: EvalRunJsonObject;
+  ingestionLedgers: readonly { ledger: Phase74ModelUsageLedger }[];
+  ledger: Phase74ModelUsageLedger;
+  runDirectory: string;
+}): Promise<void> {
+  const budget = JSON.parse(await readFile(
+    join(input.runDirectory, "call-budget.json"),
+    "utf8",
+  )) as Record<string, unknown>;
+  const declared = input.configuration.callBudget as
+    | Record<string, unknown>
+    | undefined;
+  const intents = [
+    ...input.ledger.intents,
+    ...input.ingestionLedgers.flatMap(({ ledger }) => ledger.intents),
+  ];
+  const embeddingCalls = intents.filter(
+    ({ operation }) => operation === "embedding",
+  ).length;
+  const languageCalls = intents.length - embeddingCalls;
+  const embeddingBytes = budget.embeddingInputByteUpperBound;
+  const spendLimit = budget.embeddingSpendLimitUsd;
+  if (
+    budget.schemaVersion !== 1 ||
+    budget.embeddingCalls !== embeddingCalls ||
+    budget.languageCalls !== languageCalls ||
+    !declared ||
+    budget.embeddingSpendLimitUsd !== declared.embeddingSpendLimitUsd ||
+    budget.maxLanguageCalls !== declared.maxLanguageCalls ||
+    typeof embeddingBytes !== "number" ||
+    !Number.isSafeInteger(embeddingBytes) ||
+    embeddingBytes < (embeddingCalls === 0 ? 0 : 1) ||
+    typeof spendLimit !== "number" ||
+    !Number.isFinite(spendLimit) ||
+    spendLimit <= 0 ||
+    embeddingBytes * 0.02 / 1_000_000 > spendLimit ||
+    typeof budget.maxLanguageCalls !== "number" ||
+    languageCalls > budget.maxLanguageCalls
+  ) {
+    throw new Error("Phase 74 HaluMem call budget drifted from model usage.");
+  }
+}
+
 export async function verifyPhase74HaluMemLiveRun(
   runDirectory: string,
 ): Promise<Phase74HaluMemLiveCompletion> {
@@ -709,6 +1139,17 @@ export async function verifyPhase74HaluMemLiveRun(
   ) {
     throw new Error("Phase 74 HaluMem prompt identity drifted.");
   }
+  const trustedModels = trustedHaluMemModels();
+  if (
+    hashPhase74ProtectionValue(configuration.modelCalls) !==
+      hashPhase74ProtectionValue(trustedHaluMemModelCalls(trustedModels)) ||
+    hashPhase74ProtectionValue(identity.answerModel) !==
+      hashPhase74ProtectionValue(publicModel(trustedModels.answer)) ||
+    hashPhase74ProtectionValue(identity.judgeModel) !==
+      hashPhase74ProtectionValue(publicModel(trustedModels.judge))
+  ) {
+    throw new Error("Phase 74 HaluMem model-call identity drifted.");
+  }
   if (
     identity.datasetSha256 !== selection.datasetSha256 ||
     configuration.selectionSha256 !==
@@ -766,6 +1207,17 @@ export async function verifyPhase74HaluMemLiveRun(
   if (!e4Configuration || !privacyConfiguration || !updateConfiguration) {
     throw new Error("Phase 74 HaluMem live pipeline identity is incomplete.");
   }
+  const trustedConfigurations = buildPhase74HaluMemLiveConfigurations(
+    trustedModels,
+  );
+  if (
+    hashPhase74ProtectionValue(pipelineConfigurations) !==
+      hashPhase74ProtectionValue(trustedConfigurations)
+  ) {
+    throw new Error(
+      "Phase 74 HaluMem live pipelines drifted from trusted model-call identity.",
+    );
+  }
   if (privacyConfiguration.updateEvaluator !== undefined) {
     throw new Error(
       "Phase 74 HaluMem privacy pipeline identity carries an update evaluator.",
@@ -783,8 +1235,10 @@ export async function verifyPhase74HaluMemLiveRun(
     typeof updateMetadata !== "object" ||
     Array.isArray(updateMetadata) ||
     hashPhase74ProtectionValue(updateMetadata) !== hashPhase74ProtectionValue({
+      evidenceBoundary: "internal-causal-source-replay-v2",
       evaluatorSource: PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE,
       promotionRole: PHASE74_HALUMEM_UPDATE_PROMOTION_ROLE,
+      promotionEligible: false,
       sessionPolicy: "causal-session-write-then-update-retrieval-v1",
       status: "enabled",
       topK: PHASE74_HALUMEM_UPDATE_TOP_K,
@@ -842,6 +1296,30 @@ export async function verifyPhase74HaluMemLiveRun(
     source,
     users: selectedUsers,
   });
+  verifyUsageLedgerPopulation({
+    label: "direct",
+    ledger: collectedUsage.direct,
+    requirements: expectedDirectUsage(selectedUsers),
+  });
+  await verifyIngestionUsagePopulation({
+    datasetSha256: identity.datasetSha256,
+    evaluatorSourceSha256: evaluatorSource.sha256,
+    ledgers: collectedUsage.ingestionLedgers,
+    models: trustedModels,
+    promptSha256s: identity.promptSha256s,
+    runDirectory: directory,
+    users: selectedUsers,
+  });
+  await verifyHaluMemCallBudget({
+    configuration,
+    ingestionLedgers: collectedUsage.ingestionLedgers,
+    ledger: collectedUsage.direct,
+    runDirectory: directory,
+  });
+  await verifyUpdateJudgeUsage({
+    directory,
+    ledger: collectedUsage.direct,
+  });
   return completion;
 }
 
@@ -866,12 +1344,31 @@ async function canonicalIngestionKeys(
   return directories.map(({ name }) => name).sort();
 }
 
+function assertFullyObservedUsage(
+  ledger: Phase74ModelUsageLedger,
+  label: string,
+): void {
+  const incomplete = ledger.events.filter(
+    ({ completeness }) => completeness !== "complete",
+  );
+  if (incomplete.length > 0) {
+    throw new Error(
+      `Phase 74 HaluMem ${label} contains partial or unknown model usage.`,
+    );
+  }
+}
+
 async function collectUsageSummary(input: {
   eventsPath: string;
   intentsPath: string;
   runDirectory: string;
 }): Promise<{
   artifactPaths: string[];
+  direct: Phase74ModelUsageLedger;
+  ingestionLedgers: Array<{
+    key: string;
+    ledger: Phase74ModelUsageLedger;
+  }>;
   summary: Phase74HaluMemUsageSummary;
 }> {
   const direct = await loadPhase74ModelUsageLedger({
@@ -881,6 +1378,7 @@ async function collectUsageSummary(input: {
   if (direct.pendingIntents.length > 0) {
     throw new Error("Phase 74 HaluMem model usage has pending requests.");
   }
+  assertFullyObservedUsage(direct, "direct ledger");
   const [directEventBytes, directIntentBytes] = await Promise.all([
     readFile(input.eventsPath),
     readFile(input.intentsPath),
@@ -911,6 +1409,7 @@ async function collectUsageSummary(input: {
           `Phase 74 HaluMem ingestion ${key} has pending requests.`,
         );
       }
+      assertFullyObservedUsage(ledger, `ingestion ${key}`);
       if (ledger.intents.some(({ branch }) => branch !== "shadow")) {
         throw new Error(
           `Phase 74 HaluMem ingestion ${key} contains non-shadow usage.`,
@@ -938,6 +1437,7 @@ async function collectUsageSummary(input: {
         intentCount: ledger.intents.length,
         intentsSha256: sha256(intentBytes),
         key,
+        ledger,
       };
     }));
   const eventLedgers = [
@@ -982,13 +1482,17 @@ async function collectUsageSummary(input: {
           ),
       ]),
     ) as Phase74HaluMemUsageSummary["branches"],
-    ingestion: ingestion.map(({ artifactPaths: _artifactPaths, ...entry }) =>
-      entry
-    ),
+    ingestion: ingestion.map(({
+      artifactPaths: _artifactPaths,
+      ledger: _ledger,
+      ...entry
+    }) => entry),
     schemaVersion: 1,
   };
   return {
     artifactPaths: ingestion.flatMap(({ artifactPaths }) => artifactPaths),
+    direct,
+    ingestionLedgers: ingestion.map(({ key, ledger }) => ({ key, ledger })),
     summary,
   };
 }

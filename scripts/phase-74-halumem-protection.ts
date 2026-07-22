@@ -29,10 +29,10 @@ import {
   PHASE74_HALUMEM_QA_JUDGE_SYSTEM_PROMPT,
   PHASE74_HALUMEM_READER_SYSTEM_PROMPT,
   PHASE74_HALUMEM_UPDATE_SUITE,
-  PHASE74_HALUMEM_UPDATE_TOP_K,
   phase74HaluMemPrivacyPopulationId,
   phase74HaluMemQuestionPopulationId,
   phase74HaluMemUpdatePopulationId,
+  parsePhase74HaluMemUpdateSnapshot,
   renderPhase74HaluMemLegacyContext,
   scorePhase74HaluMemQaDecision,
   scorePhase74HaluMemUpdateDecision,
@@ -44,6 +44,7 @@ import type {
   Phase74HaluMemMemoryPoint,
   Phase74HaluMemProtectionConfiguration,
   Phase74HaluMemQuestion,
+  Phase74HaluMemUpdateSnapshot,
   Phase74HaluMemUser,
 } from "../src/eval/phase74HaluMemProtectionVerifier";
 import { renderEvidenceLedger } from "../src/eval/evidenceLedgerFormats";
@@ -69,11 +70,8 @@ export interface Phase74HaluMemE4EvidenceSnapshot {
   snapshotId: string;
 }
 
-export interface Phase74HaluMemUpdateEvidenceSnapshot {
-  memories: string[];
-  snapshotId: string;
-  sourceMessageIds: string[];
-}
+export type Phase74HaluMemUpdateEvidenceSnapshot =
+  Phase74HaluMemUpdateSnapshot;
 
 export interface Phase74HaluMemPrivacySnapshot {
   foreignScopeSourceMessageIds: string[];
@@ -395,22 +393,22 @@ export async function runPhase74HaluMemUpdateProtection(
         updateCaseId: item.updateCaseId,
         user: item.user,
       });
-      assertSnapshotId(snapshot.snapshotId, caseId);
-      assertStrings(snapshot.memories, `${caseId}.memories`);
-      if (snapshot.memories.length > PHASE74_HALUMEM_UPDATE_TOP_K) {
-        throw new Error(
-          `Phase 74 HaluMem ${caseId} memories exceeded the pinned top-10 limit.`,
-        );
-      }
-      assertStrings(snapshot.sourceMessageIds, `${caseId}.sourceMessageIds`);
-      const context = snapshot.memories.join("\n");
+      const parsedSnapshot = parsePhase74HaluMemUpdateSnapshot({
+        branch,
+        caseId,
+        sessionIndex: item.input.sessionIndex,
+        snapshot,
+        user: item.user,
+      });
+      const memories = parsedSnapshot.records.map(({ content }) => content);
+      const context = memories.join("\n");
       const decision = await dependencies.evaluateUpdate!({
         branch,
         evaluator: updateEvaluator,
         expectedUpdate: item.memoryPoint.memory_content,
         memoryPoint: item.memoryPoint,
         originalMemories: item.memoryPoint.original_memories,
-        retrievedMemories: snapshot.memories,
+        retrievedMemories: memories,
         updateCaseId: item.updateCaseId,
         user: item.user,
       });
@@ -421,9 +419,10 @@ export async function runPhase74HaluMemUpdateProtection(
           context,
           contextTokens: contextTokens(context, `${caseId}.${branch}`),
           decision,
-          memories: snapshot.memories,
-          snapshotId: snapshot.snapshotId,
-          sourceMessageIds: snapshot.sourceMessageIds,
+          memories,
+          records: parsedSnapshot.records,
+          snapshotId: parsedSnapshot.snapshotId,
+          sourceMessageIds: parsedSnapshot.sourceMessageIds,
         },
         scores: { safety: { updateCorrectness: score } },
       };

@@ -333,7 +333,7 @@ export function reconcilePhase74PendingModelUsageSync(input: {
 
 export function createAttributedModelUsageSink(input: {
   branch: Phase74ModelUsageBranch;
-  caseId: string;
+  caseId: string | (() => string);
   createRequestId?: () => string;
   events: AttributedModelUsageAttempt[];
   intents: AttributedModelUsageIntent[];
@@ -341,10 +341,16 @@ export function createAttributedModelUsageSink(input: {
   onIntent?: (intent: AttributedModelUsageIntent) => void;
 }): ModelUsageSink {
   const begin = (intent: ModelUsageIntent) => {
+    const caseId = typeof input.caseId === "function"
+      ? input.caseId()
+      : input.caseId;
+    if (caseId === "") {
+      throw new Error("Phase 74 model usage case id is missing.");
+    }
     const attributedIntent = {
       ...intent,
       branch: input.branch,
-      caseId: input.caseId,
+      caseId,
       requestId: input.createRequestId?.() ?? randomUUID(),
     };
     input.onIntent?.(attributedIntent);
@@ -353,7 +359,7 @@ export function createAttributedModelUsageSink(input: {
       const attributed = {
         ...event,
         branch: input.branch,
-        caseId: input.caseId,
+        caseId,
         requestId: attributedIntent.requestId,
         usage: { ...event.usage },
       };

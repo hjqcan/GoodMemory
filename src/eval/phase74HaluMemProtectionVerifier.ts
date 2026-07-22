@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
+import { scopeToKey } from "../domain/scope";
 import { renderEvidenceLedger } from "./evidenceLedgerFormats";
 import type { EvidenceLedgerFormat } from "./evidenceLedgerFormats";
 import type {
@@ -46,7 +47,7 @@ export const PHASE74_HALUMEM_UPDATE_SUITE = {
 export const PHASE74_HALUMEM_E4_PROTECTION_VERIFIER_ID =
   "halumem-e4-raw-replay-v1";
 export const PHASE74_HALUMEM_UPDATE_PROTECTION_VERIFIER_ID =
-  "halumem-update-raw-replay-v1";
+  "halumem-update-internal-causal-source-replay-v2";
 export const PHASE74_HALUMEM_PRIVACY_PROTECTION_VERIFIER_ID =
   "halumem-cross-user-privacy-replay-v1";
 export const PHASE74_HALUMEM_PRIVACY_SUITE = {
@@ -138,6 +139,50 @@ export type Phase74HaluMemUpdateCategory =
   | "Hallucination"
   | "Omission"
   | "Other";
+
+export type Phase74HaluMemUpdateRecordType =
+  | "episode"
+  | "fact"
+  | "feedback"
+  | "preference"
+  | "profile"
+  | "reference"
+  | "session_archive";
+
+export interface Phase74HaluMemUpdateEvidenceLink {
+  evidenceId: string;
+  excerpt: string;
+  excerptSha256: string;
+  linkedArchiveIds: string[];
+  linkedMemoryIds: string[];
+  sourceMessageIds: string[];
+  sourceRecordIds: string[];
+  sourceRecords: Phase74HaluMemUpdateSourceRecord[];
+  sourceUri: string;
+}
+
+export interface Phase74HaluMemUpdateSourceRecord {
+  contentSha256: string;
+  id: string;
+  observedAt: string;
+  role: "assistant" | "user";
+  sourceMessageId: string;
+}
+
+export interface Phase74HaluMemUpdateRecord {
+  content: string;
+  evidenceLinks: Phase74HaluMemUpdateEvidenceLink[];
+  id: string;
+  rank: number;
+  sourceMessageIds: string[];
+  type: Phase74HaluMemUpdateRecordType;
+}
+
+export interface Phase74HaluMemUpdateSnapshot {
+  records: Phase74HaluMemUpdateRecord[];
+  snapshotId: string;
+  sourceMessageIds: string[];
+}
 
 export interface Phase74HaluMemDialogueTurn {
   content: string;
@@ -527,7 +572,97 @@ export function buildPhase74HaluMemSourceMessageId(input: {
   return `halumem-source:${hashPhase74ProtectionValue(input)}`;
 }
 
-function sourceMessageIdsThroughSession(
+function sha256(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function normalizedTimestamp(value: string, label: string): string {
+  const timestamp = new Date(value);
+  if (Number.isNaN(timestamp.getTime())) {
+    throw new Error(`Phase 74 HaluMem ${label} is not an ISO timestamp.`);
+  }
+  return timestamp.toISOString();
+}
+
+function evidenceExcerpt(content: string): string {
+  const excerpt = content.trim();
+  return excerpt.length <= 280 ? excerpt : `${excerpt.slice(0, 277)}...`;
+}
+
+export function buildPhase74HaluMemUserScope(userUuid: string) {
+  return {
+    userId: `user-${sha256(userUuid).slice(0, 32)}`,
+    workspaceId:
+      `workspace-${sha256("phase74-halumem-live-privacy").slice(0, 32)}`,
+  };
+}
+
+export function buildPhase74HaluMemUpdateSourceRecord(input: {
+  sessionIndex: number;
+  turnIndex: number;
+  user: Phase74HaluMemUser;
+}): Phase74HaluMemUpdateSourceRecord {
+  const turn = input.user.sessions[input.sessionIndex]?.dialogue[input.turnIndex];
+  if (!turn) {
+    throw new Error("Phase 74 HaluMem source record coordinates are invalid.");
+  }
+  const sourceMessageId = buildPhase74HaluMemSourceMessageId({
+    sessionIndex: input.sessionIndex,
+    turnIndex: input.turnIndex,
+    userUuid: input.user.uuid,
+  });
+  const role = turn.role === "assistant" ? "assistant" as const : "user" as const;
+  const observedAt = normalizedTimestamp(
+    turn.timestamp,
+    `${input.user.uuid} source ${input.sessionIndex}:${input.turnIndex}`,
+  );
+  const contentSha256 = sha256(turn.content);
+  const scope = {
+    ...buildPhase74HaluMemUserScope(input.user.uuid),
+    sessionId: `session-${input.sessionIndex}`,
+  };
+  return {
+    contentSha256,
+    id: `source-message:${sha256([
+      scopeToKey(scope),
+      sourceMessageId,
+      role,
+      observedAt,
+      contentSha256,
+    ].join("\u0000"))}`,
+    observedAt,
+    role,
+    sourceMessageId,
+  };
+}
+
+function sourceRecordsThroughSession(
+  user: Phase74HaluMemUser,
+  sessionIndex: number,
+): Map<string, Phase74HaluMemUpdateSourceRecord & { content: string }> {
+  const records = new Map<
+    string,
+    Phase74HaluMemUpdateSourceRecord & { content: string }
+  >();
+  for (const [currentSessionIndex, session] of user.sessions
+    .slice(0, sessionIndex + 1)
+    .entries()) {
+    for (const [turnIndex, turn] of session.dialogue.entries()) {
+      const record = buildPhase74HaluMemUpdateSourceRecord({
+        sessionIndex: currentSessionIndex,
+        turnIndex,
+        user,
+      });
+      records.set(record.sourceMessageId, {
+        content: turn.content,
+        ...record,
+      });
+    }
+  }
+  return records;
+}
+
+export function sourceMessageIdsThroughSession(
   user: Phase74HaluMemUser,
   sessionIndex: number,
 ): string[] {
@@ -538,6 +673,320 @@ function sourceMessageIdsThroughSession(
       userUuid: user.uuid,
     }))
   );
+}
+
+export function buildPhase74HaluMemUpdateSnapshotId(input: {
+  branch: "baseline" | "candidate";
+  caseId: string;
+  records: readonly Phase74HaluMemUpdateRecord[];
+  sessionIndex: number;
+  sourceMessageIds: readonly string[];
+}): string {
+  return hashPhase74ProtectionValue({
+    branch: input.branch,
+    caseId: input.caseId,
+    records: input.records,
+    sessionIndex: input.sessionIndex,
+    sourceMessageIds: input.sourceMessageIds,
+    topK: PHASE74_HALUMEM_UPDATE_TOP_K,
+  });
+}
+
+export function parsePhase74HaluMemUpdateSnapshot(input: {
+  branch: "baseline" | "candidate";
+  caseId: string;
+  sessionIndex: number;
+  snapshot: unknown;
+  user: Phase74HaluMemUser;
+}): Phase74HaluMemUpdateSnapshot {
+  const snapshot = recordValue(input.snapshot, `${input.caseId}.snapshot`);
+  assertExactKeys(
+    snapshot,
+    ["records", "snapshotId", "sourceMessageIds"],
+    `${input.caseId}.snapshot`,
+  );
+  if (!Array.isArray(snapshot.records)) {
+    throw new Error(
+      `Phase 74 HaluMem ${input.caseId}.records must be an array.`,
+    );
+  }
+  if (snapshot.records.length > PHASE74_HALUMEM_UPDATE_TOP_K) {
+    throw new Error(
+      `Phase 74 HaluMem ${input.caseId} memories exceeded the pinned top-10 limit.`,
+    );
+  }
+  const allowedTypes = new Set<Phase74HaluMemUpdateRecordType>([
+    "episode",
+    "fact",
+    "feedback",
+    "preference",
+    "profile",
+    "reference",
+    "session_archive",
+  ]);
+  const causalSourceIds = new Set(
+    sourceMessageIdsThroughSession(input.user, input.sessionIndex),
+  );
+  const expectedSourceRecords = sourceRecordsThroughSession(
+    input.user,
+    input.sessionIndex,
+  );
+  const recordKeys = new Set<string>();
+  const records = snapshot.records.map((value, index) => {
+    const label = `${input.caseId}.records[${index}]`;
+    const record = recordValue(value, label);
+    assertExactKeys(
+      record,
+      ["content", "evidenceLinks", "id", "rank", "sourceMessageIds", "type"],
+      label,
+    );
+    const content = stringValue(record.content, `${label}.content`);
+    const id = stringValue(record.id, `${label}.id`);
+    const rank = record.rank;
+    if (rank !== index + 1) {
+      throw new Error(`Phase 74 HaluMem ${label}.rank is not contiguous.`);
+    }
+    const type = stringValue(record.type, `${label}.type`);
+    if (!allowedTypes.has(type as Phase74HaluMemUpdateRecordType)) {
+      throw new Error(`Phase 74 HaluMem ${label}.type is invalid.`);
+    }
+    if (!Array.isArray(record.evidenceLinks) || record.evidenceLinks.length === 0) {
+      throw new Error(
+        `Phase 74 HaluMem ${label} has no immutable evidence linkage.`,
+      );
+    }
+    const evidenceIds = new Set<string>();
+    const evidenceLinks = record.evidenceLinks.map((value, evidenceIndex) => {
+      const evidenceLabel = `${label}.evidenceLinks[${evidenceIndex}]`;
+      const evidence = recordValue(value, evidenceLabel);
+      assertExactKeys(
+        evidence,
+        [
+          "evidenceId",
+          "excerpt",
+          "excerptSha256",
+          "linkedArchiveIds",
+          "linkedMemoryIds",
+          "sourceMessageIds",
+          "sourceRecordIds",
+          "sourceRecords",
+          "sourceUri",
+        ],
+        evidenceLabel,
+      );
+      const evidenceId = stringValue(
+        evidence.evidenceId,
+        `${evidenceLabel}.evidenceId`,
+      );
+      if (evidenceIds.has(evidenceId)) {
+        throw new Error(`Phase 74 HaluMem ${evidenceLabel} is duplicated.`);
+      }
+      evidenceIds.add(evidenceId);
+      const excerpt = stringValue(
+        evidence.excerpt,
+        `${evidenceLabel}.excerpt`,
+      );
+      const excerptSha256 = stringValue(
+        evidence.excerptSha256,
+        `${evidenceLabel}.excerptSha256`,
+      );
+      if (
+        !/^[a-f0-9]{64}$/u.test(excerptSha256) ||
+        excerptSha256 !== sha256(excerpt)
+      ) {
+        throw new Error(
+          `Phase 74 HaluMem ${evidenceLabel}.excerptSha256 is invalid.`,
+        );
+      }
+      const linkedArchiveIds = stringArray(
+        evidence.linkedArchiveIds,
+        `${evidenceLabel}.linkedArchiveIds`,
+      );
+      const linkedMemoryIds = stringArray(
+        evidence.linkedMemoryIds,
+        `${evidenceLabel}.linkedMemoryIds`,
+      );
+      const evidenceSourceMessageIds = stringArray(
+        evidence.sourceMessageIds,
+        `${evidenceLabel}.sourceMessageIds`,
+      );
+      const sourceRecordIds = stringArray(
+        evidence.sourceRecordIds,
+        `${evidenceLabel}.sourceRecordIds`,
+      );
+      if (!Array.isArray(evidence.sourceRecords)) {
+        throw new Error(
+          `Phase 74 HaluMem ${evidenceLabel}.sourceRecords must be an array.`,
+        );
+      }
+      const sourceRecords = evidence.sourceRecords.map((value, sourceIndex) => {
+        const sourceLabel = `${evidenceLabel}.sourceRecords[${sourceIndex}]`;
+        const source = recordValue(value, sourceLabel);
+        assertExactKeys(
+          source,
+          ["contentSha256", "id", "observedAt", "role", "sourceMessageId"],
+          sourceLabel,
+        );
+        const sourceMessageId = stringValue(
+          source.sourceMessageId,
+          `${sourceLabel}.sourceMessageId`,
+        );
+        const expected = expectedSourceRecords.get(sourceMessageId);
+        if (!expected) {
+          throw new Error(
+            `Phase 74 HaluMem ${sourceLabel} is not a causal frozen source record.`,
+          );
+        }
+        const parsed = {
+          contentSha256: stringValue(
+            source.contentSha256,
+            `${sourceLabel}.contentSha256`,
+          ),
+          id: stringValue(source.id, `${sourceLabel}.id`),
+          observedAt: stringValue(
+            source.observedAt,
+            `${sourceLabel}.observedAt`,
+          ),
+          role: stringValue(source.role, `${sourceLabel}.role`),
+          sourceMessageId,
+        };
+        if (
+          (parsed.role !== "assistant" && parsed.role !== "user") ||
+          !sameValue(parsed, {
+            contentSha256: expected.contentSha256,
+            id: expected.id,
+            observedAt: expected.observedAt,
+            role: expected.role,
+            sourceMessageId: expected.sourceMessageId,
+          })
+        ) {
+          throw new Error(
+            `Phase 74 HaluMem ${sourceLabel} drifted from the frozen source message.`,
+          );
+        }
+        return {
+          ...parsed,
+          role: parsed.role as "assistant" | "user",
+        };
+      });
+      const sourceUri = stringValue(
+        evidence.sourceUri,
+        `${evidenceLabel}.sourceUri`,
+      );
+      const linkedToRecord = type === "session_archive"
+        ? linkedArchiveIds.includes(id)
+        : linkedMemoryIds.includes(id);
+      if (!linkedToRecord) {
+        throw new Error(
+          `Phase 74 HaluMem ${evidenceLabel} is not linked to its ranked record.`,
+        );
+      }
+      if (
+        evidenceSourceMessageIds.length === 0 ||
+        sourceRecordIds.length !== evidenceSourceMessageIds.length ||
+        sourceRecords.length !== evidenceSourceMessageIds.length ||
+        !sameValue(
+          evidenceSourceMessageIds,
+          sourceRecords.map(({ sourceMessageId }) => sourceMessageId),
+        ) ||
+        !sameValue(
+          sourceRecordIds,
+          sourceRecords.map(({ id }) => id),
+        ) ||
+        evidenceSourceMessageIds.some((sourceMessageId) =>
+          !causalSourceIds.has(sourceMessageId)
+        )
+      ) {
+        throw new Error(
+          `Phase 74 HaluMem ${evidenceLabel} has missing or non-causal source provenance.`,
+        );
+      }
+      const expectedSourceUri =
+        `goodmemory://source-messages/${encodeURIComponent(sourceRecordIds[0]!)}`;
+      if (sourceUri !== expectedSourceUri) {
+        throw new Error(
+          `Phase 74 HaluMem ${evidenceLabel}.sourceUri drifted from its source record.`,
+        );
+      }
+      const firstSource = expectedSourceRecords.get(evidenceSourceMessageIds[0]!);
+      if (!firstSource || excerpt !== evidenceExcerpt(firstSource.content)) {
+        throw new Error(
+          `Phase 74 HaluMem ${evidenceLabel}.excerpt drifted from its frozen source message.`,
+        );
+      }
+      return {
+        evidenceId,
+        excerpt,
+        excerptSha256,
+        linkedArchiveIds,
+        linkedMemoryIds,
+        sourceMessageIds: evidenceSourceMessageIds,
+        sourceRecordIds,
+        sourceRecords,
+        sourceUri,
+      };
+    });
+    const sourceMessageIds = stringArray(
+      record.sourceMessageIds,
+      `${label}.sourceMessageIds`,
+    );
+    const linkedSourceMessageIds = [...new Set(
+      evidenceLinks.flatMap((evidence) => evidence.sourceMessageIds),
+    )].sort();
+    if (
+      sourceMessageIds.length === 0 ||
+      !sameValue(sourceMessageIds, linkedSourceMessageIds) ||
+      sourceMessageIds.some((sourceMessageId) =>
+        !causalSourceIds.has(sourceMessageId)
+      )
+    ) {
+      throw new Error(
+        `Phase 74 HaluMem ${label} has missing or non-causal source provenance.`,
+      );
+    }
+    const key = `${type}:${id}`;
+    if (recordKeys.has(key)) {
+      throw new Error(`Phase 74 HaluMem ${label} is duplicated.`);
+    }
+    recordKeys.add(key);
+    return {
+      content,
+      evidenceLinks,
+      id,
+      rank,
+      sourceMessageIds,
+      type: type as Phase74HaluMemUpdateRecordType,
+    };
+  });
+  const sourceMessageIds = stringArray(
+    snapshot.sourceMessageIds,
+    `${input.caseId}.sourceMessageIds`,
+  );
+  const derivedSourceMessageIds = [...new Set(
+    records.flatMap((record) => record.sourceMessageIds),
+  )].sort();
+  if (!sameValue(sourceMessageIds, derivedSourceMessageIds)) {
+    throw new Error(
+      `Phase 74 HaluMem ${input.caseId} source provenance drifted from ranked records.`,
+    );
+  }
+  const snapshotId = stringValue(
+    snapshot.snapshotId,
+    `${input.caseId}.snapshotId`,
+  );
+  const expectedSnapshotId = buildPhase74HaluMemUpdateSnapshotId({
+    branch: input.branch,
+    caseId: input.caseId,
+    records,
+    sessionIndex: input.sessionIndex,
+    sourceMessageIds,
+  });
+  if (snapshotId !== expectedSnapshotId) {
+    throw new Error(
+      `Phase 74 HaluMem ${input.caseId} snapshot id drifted.`,
+    );
+  }
+  return { records, snapshotId, sourceMessageIds };
 }
 
 export function buildPhase74HaluMemPrivacyPopulation(
@@ -612,10 +1061,15 @@ export function buildPhase74HaluMemUpdateJudgePrompt(input: {
   originalMemories: readonly string[];
   retrievedMemories: readonly string[];
 }): string {
-  return PHASE74_HALUMEM_UPDATE_JUDGE_PROMPT_TEMPLATE
-    .replace("{memories}", () => input.retrievedMemories.join("\n"))
-    .replace("{updated_memory}", () => input.expectedUpdate)
-    .replace("{original_memory}", () => input.originalMemories.join("\n"));
+  const values = {
+    memories: input.retrievedMemories.join("\n"),
+    original_memory: input.originalMemories.join("\n"),
+    updated_memory: input.expectedUpdate,
+  };
+  return PHASE74_HALUMEM_UPDATE_JUDGE_PROMPT_TEMPLATE.replace(
+    /\{(memories|updated_memory|original_memory)\}/gu,
+    (_, key: keyof typeof values) => values[key],
+  );
 }
 
 function descriptor(id: string, material: unknown): Phase74ProtectionIdentityDescriptor {
@@ -1131,18 +1585,23 @@ function parseE4RawOutput(input: {
   return { baseline: baselineScores, candidate: e4Scores(candidateValues) };
 }
 
-function parseUpdateRawOutput(
-  value: unknown,
-  label: string,
-  configuration: Phase74HaluMemProtectionConfiguration,
-): Phase74ProtectionSuiteBranchScores {
-  const output = recordValue(value, `${label}.rawOutput`);
+function parseUpdateRawOutput(input: {
+  branch: "baseline" | "candidate";
+  caseId: string;
+  configuration: Phase74HaluMemProtectionConfiguration;
+  sessionIndex: number;
+  user: Phase74HaluMemUser;
+  value: unknown;
+}): Phase74ProtectionSuiteBranchScores {
+  const label = `${input.caseId}.${input.branch}`;
+  const output = recordValue(input.value, `${label}.rawOutput`);
   assertExactKeys(output, [
     "configuration",
     "context",
     "contextTokens",
     "decision",
     "memories",
+    "records",
     "snapshotId",
     "sourceMessageIds",
   ], `${label}.rawOutput`);
@@ -1150,17 +1609,26 @@ function parseUpdateRawOutput(
     output.configuration,
     `${label}.configuration`,
   );
-  if (!sameValue(rawConfiguration, configuration)) {
+  if (!sameValue(rawConfiguration, input.configuration)) {
     throw new Error(`Phase 74 HaluMem ${label} configuration drifted.`);
   }
   const memories = stringArray(output.memories, `${label}.memories`);
-  if (memories.length > PHASE74_HALUMEM_UPDATE_TOP_K) {
+  const snapshot = parsePhase74HaluMemUpdateSnapshot({
+    branch: input.branch,
+    caseId: input.caseId,
+    sessionIndex: input.sessionIndex,
+    snapshot: {
+      records: output.records,
+      snapshotId: output.snapshotId,
+      sourceMessageIds: output.sourceMessageIds,
+    },
+    user: input.user,
+  });
+  if (!sameValue(memories, snapshot.records.map(({ content }) => content))) {
     throw new Error(
-      `Phase 74 HaluMem ${label} memories exceeded the pinned top-10 limit.`,
+      `Phase 74 HaluMem ${label} memories drifted from ranked records.`,
     );
   }
-  stringArray(output.sourceMessageIds, `${label}.sourceMessageIds`);
-  stringValue(output.snapshotId, `${label}.snapshotId`);
   const context = memories.join("\n");
   if (output.context !== context) {
     throw new Error(`Phase 74 HaluMem ${label} update context drifted.`);
@@ -1354,20 +1822,27 @@ export async function verifyPhase74HaluMemUpdateProtectionArtifact(input: {
   const rawRows = await readRawRows(run);
   for (const [index, expectedCase] of population.cases.entries()) {
     const rawRow = rawRows[index]!;
+    const item = population.items.get(expectedCase.caseId)!;
     assertRawInput(rawRow, expectedCase);
     assertReplayedScores({
       caseId: expectedCase.caseId,
       expected: {
-        baseline: parseUpdateRawOutput(
-          rawRow.baseline.rawOutput,
-          `${expectedCase.caseId}.baseline`,
-          input.configuration,
-        ),
-        candidate: parseUpdateRawOutput(
-          rawRow.candidate.rawOutput,
-          `${expectedCase.caseId}.candidate`,
-          input.configuration,
-        ),
+        baseline: parseUpdateRawOutput({
+          branch: "baseline",
+          caseId: expectedCase.caseId,
+          configuration: input.configuration,
+          sessionIndex: item.input.sessionIndex,
+          user: item.user,
+          value: rawRow.baseline.rawOutput,
+        }),
+        candidate: parseUpdateRawOutput({
+          branch: "candidate",
+          caseId: expectedCase.caseId,
+          configuration: input.configuration,
+          sessionIndex: item.input.sessionIndex,
+          user: item.user,
+          value: rawRow.candidate.rawOutput,
+        }),
       },
       rawRow,
       runRow: run.rows[index]!,
