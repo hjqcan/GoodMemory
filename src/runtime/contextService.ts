@@ -194,6 +194,13 @@ function messagesForReplay(buffer: SessionBuffer): SessionMessage[] {
   ];
 }
 
+function bufferHasMessageId(buffer: SessionBuffer, messageId: string): boolean {
+  return [
+    ...(buffer.compactedMessages ?? []),
+    ...buffer.messages,
+  ].some(({ id }) => id === messageId);
+}
+
 function appendCompactedMessages(
   existing: readonly SessionMessage[],
   evicted: readonly SessionMessage[],
@@ -493,7 +500,6 @@ export function createRuntimeContextService(config: RuntimeContextServiceConfig)
       message: SessionMessage,
     ): Promise<SessionBuffer> {
       const sessionScope = requireSessionScope(scope);
-      const state = await ensureActiveState(sessionScope);
       const timestamp = now();
       const nextMessage = {
         id: message.id ?? createMessageId(),
@@ -501,72 +507,110 @@ export function createRuntimeContextService(config: RuntimeContextServiceConfig)
         content: message.content,
         ...(message.observedAt ? { observedAt: message.observedAt } : {}),
       };
-      const compactedMessages = state.buffer.compactedMessages ?? [];
-      const compactedIds = new Set(
-        compactedMessages.flatMap(({ id }) => id === undefined ? [] : [id]),
-      );
-      const liveMessages = state.buffer.messages.filter(({ id }) =>
-        id === undefined || !compactedIds.has(id)
-      );
-      const nextMessages = [
-        ...liveMessages,
-        nextMessage,
-      ];
+      let state = await ensureActiveState(sessionScope);
 
-      const pendingBuffer = createSessionBuffer({
-        ...state.buffer,
-        messages: nextMessages,
-        compactedMessages,
-        lastActiveAt: timestamp,
-      });
+      while (true) {
+        if (bufferHasMessageId(state.buffer, nextMessage.id)) {
+          return state.buffer;
+        }
 
-      if (nextMessages.length <= maxBufferedMessages) {
-        await config.sessionStore.saveBuffer(sessionScope, pendingBuffer);
-        return pendingBuffer;
-      }
-
-      const overflow = nextMessages.length - maxBufferedMessages;
-      const evictedMessages = nextMessages.slice(0, overflow);
-      const durableCompactedMessages = appendCompactedMessages(
-        compactedMessages,
-        evictedMessages,
-      );
-      const compactionSummary = state.buffer.summary ?? language.render(
-        { key: "earlier_messages_compacted" },
-        language.resolveFromMessages({ messages: nextMessages }),
-      );
-      const durablePendingBuffer = createSessionBuffer({
-        ...pendingBuffer,
-        compactedMessages: durableCompactedMessages,
-        summary: compactionSummary,
-        summaryUpToIndex: state.buffer.summaryUpToIndex + overflow,
-      });
-      await config.sessionStore.saveBuffer(sessionScope, durablePendingBuffer);
-      await extractDurableMessages(
-        sessionScope,
-        durablePendingBuffer,
-        durableCompactedMessages,
-      );
-      const onPreCompact = config.salvageHooks?.onPreCompact;
-      if (onPreCompact) {
-        await runBestEffortSalvage("pre-compact", async () => {
-          await onPreCompact({
-            evictedMessages,
-            nextMessage,
-            nextMessages,
-            scope: sessionScope,
-            overflowCount: overflow,
-            runtimeState: state,
-          });
+        const compactedMessages = state.buffer.compactedMessages ?? [];
+        const compactedIds = new Set(
+          compactedMessages.flatMap(({ id }) => id === undefined ? [] : [id]),
+        );
+        const liveMessages = state.buffer.messages.filter(({ id }) =>
+          id === undefined || !compactedIds.has(id)
+        );
+        const nextMessages = [
+          ...liveMessages,
+          nextMessage,
+        ];
+        const pendingBuffer = createSessionBuffer({
+          ...state.buffer,
+          messages: nextMessages,
+          compactedMessages,
+          lastActiveAt: timestamp,
         });
-      }
-      const buffer = createSessionBuffer({
-        ...durablePendingBuffer,
-        messages: nextMessages.slice(overflow),
-      });
 
-      await config.sessionStore.saveBuffer(sessionScope, buffer);
-      return buffer;
+        if (nextMessages.length <= maxBufferedMessages) {
+          if (await config.sessionStore.saveBufferIfUnchanged(
+            sessionScope,
+            state.buffer,
+            pendingBuffer,
+          )) {
+            return pendingBuffer;
+          }
+
+          const latestBuffer = await config.sessionStore.getBuffer(sessionScope);
+          state = latestBuffer
+            ? { ...state, buffer: latestBuffer }
+            : await ensureActiveState(sessionScope);
+          continue;
+        }
+
+        const overflow = nextMessages.length - maxBufferedMessages;
+        const evictedMessages = nextMessages.slice(0, overflow);
+        const durableCompactedMessages = appendCompactedMessages(
+          compactedMessages,
+          evictedMessages,
+        );
+        const compactionSummary = state.buffer.summary ?? language.render(
+          { key: "earlier_messages_compacted" },
+          language.resolveFromMessages({ messages: nextMessages }),
+        );
+        const durablePendingBuffer = createSessionBuffer({
+          ...pendingBuffer,
+          compactedMessages: durableCompactedMessages,
+          summary: compactionSummary,
+          summaryUpToIndex: state.buffer.summaryUpToIndex + overflow,
+        });
+        if (!(await config.sessionStore.saveBufferIfUnchanged(
+          sessionScope,
+          state.buffer,
+          durablePendingBuffer,
+        ))) {
+          const latestBuffer = await config.sessionStore.getBuffer(sessionScope);
+          state = latestBuffer
+            ? { ...state, buffer: latestBuffer }
+            : await ensureActiveState(sessionScope);
+          continue;
+        }
+
+        await extractDurableMessages(
+          sessionScope,
+          durablePendingBuffer,
+          durableCompactedMessages,
+        );
+        const onPreCompact = config.salvageHooks?.onPreCompact;
+        if (onPreCompact) {
+          await runBestEffortSalvage("pre-compact", async () => {
+            await onPreCompact({
+              evictedMessages,
+              nextMessage,
+              nextMessages,
+              scope: sessionScope,
+              overflowCount: overflow,
+              runtimeState: state,
+            });
+          });
+        }
+        const buffer = createSessionBuffer({
+          ...durablePendingBuffer,
+          messages: nextMessages.slice(overflow),
+        });
+        if (await config.sessionStore.saveBufferIfUnchanged(
+          sessionScope,
+          durablePendingBuffer,
+          buffer,
+        )) {
+          return buffer;
+        }
+
+        const latestBuffer = await config.sessionStore.getBuffer(sessionScope);
+        state = latestBuffer
+          ? { ...state, buffer: latestBuffer }
+          : await ensureActiveState(sessionScope);
+      }
     },
 
     async setSessionSummary(

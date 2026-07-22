@@ -158,6 +158,13 @@ function createTrackedSessionStore(log: string[]): SessionStore {
       log.push(`session.saveBuffer:${nextScope.sessionId}:${nextBuffer.summary}`);
     },
 
+    async saveBufferIfUnchanged(nextScope, expectedBuffer, nextBuffer) {
+      log.push(
+        `session.saveBufferIfUnchanged:${nextScope.sessionId}:${expectedBuffer?.summary ?? "null"}:${nextBuffer.summary}`,
+      );
+      return true;
+    },
+
     async getBuffer(nextScope) {
       log.push(`session.getBuffer:${nextScope.sessionId}`);
       return buffer;
@@ -329,6 +336,7 @@ describe("public storage wrappers", () => {
     await documentStore.delete("facts", "fact-1");
 
     await sessionStore.saveBuffer(scope, buffer);
+    expect(await sessionStore.saveBufferIfUnchanged(scope, buffer, buffer)).toBe(true);
     expect(await sessionStore.getBuffer(scope)).toEqual(buffer);
     expect(await sessionStore.deleteBufferIfUnchanged(scope, buffer)).toBe(true);
     expect(await sessionStore.deleteBuffersByScope(scope)).toBe(1);
@@ -359,6 +367,7 @@ describe("public storage wrappers", () => {
       "document.delete:facts:fact-1",
       "createSQLiteSessionStore:/tmp/test.sqlite:false",
       "session.saveBuffer:session-1:summary",
+      "session.saveBufferIfUnchanged:session-1:summary:summary",
       "session.getBuffer:session-1",
       "session.deleteBufferIfUnchanged:session-1:summary",
       "session.deleteBuffersByScope:session-1",
@@ -535,6 +544,7 @@ describe("public storage wrappers", () => {
     await documentStore.delete("facts", "fact-1");
 
     await sessionStore.saveBuffer(scope, buffer);
+    expect(await sessionStore.saveBufferIfUnchanged(scope, null, buffer)).toBe(true);
     expect(await sessionStore.getBuffer(scope)).toEqual(buffer);
     expect(await sessionStore.deleteBufferIfUnchanged(scope, buffer)).toBe(true);
     expect(await sessionStore.deleteBuffersByScope(scope)).toBe(1);
@@ -568,6 +578,7 @@ describe("public storage wrappers", () => {
       "document.delete:facts:fact-1",
       "createPostgresSessionStore:postgres://localhost:5432/goodmemory:false",
       "session.saveBuffer:session-1:summary",
+      "session.saveBufferIfUnchanged:session-1:null:summary",
       "session.getBuffer:session-1",
       "session.deleteBufferIfUnchanged:session-1:summary",
       "session.deleteBuffersByScope:session-1",

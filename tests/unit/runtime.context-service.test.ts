@@ -344,6 +344,7 @@ describe("runtime context service", () => {
 
     const reconstructed = createService(2, { extraction, sessionStore });
     await reconstructed.service.appendToSession(scope, {
+      id: "m4",
       role: "assistant",
       content: "m4",
     });
@@ -508,6 +509,7 @@ describe("runtime context service", () => {
     const closing = first.service.endSession(scope);
     await started;
     await second.service.appendToSession(scope, {
+      id: "cross-close-m2",
       role: "assistant",
       content: "m2",
     });
@@ -532,9 +534,9 @@ describe("runtime context service", () => {
     let shouldPauseLateTrim = true;
     const sessionStore: SessionStore = {
       ...inner,
-      async saveBuffer(scope, buffer) {
-        const liveContents = buffer.messages.map(({ content }) => content);
-        const compactedContents = (buffer.compactedMessages ?? [])
+      async saveBufferIfUnchanged(scope, expectedBuffer, nextBuffer) {
+        const liveContents = nextBuffer.messages.map(({ content }) => content);
+        const compactedContents = (nextBuffer.compactedMessages ?? [])
           .map(({ content }) => content);
         if (
           shouldPauseLateTrim &&
@@ -545,7 +547,7 @@ describe("runtime context service", () => {
           markLateTrimStarted?.();
           await lateTrimRelease;
         }
-        await inner.saveBuffer(scope, buffer);
+        return inner.saveBufferIfUnchanged(scope, expectedBuffer, nextBuffer);
       },
     };
     const first = createService(2, { sessionStore });
@@ -621,15 +623,15 @@ describe("runtime context service", () => {
     let failTrim = true;
     const sessionStore: SessionStore = {
       ...inner,
-      async saveBuffer(scope, buffer) {
+      async saveBufferIfUnchanged(scope, expectedBuffer, nextBuffer) {
         if (
           failTrim &&
-          buffer.messages.map(({ content }) => content).join(",") === "m2,m3"
+          nextBuffer.messages.map(({ content }) => content).join(",") === "m2,m3"
         ) {
           failTrim = false;
           throw new Error("trim persistence unavailable");
         }
-        await inner.saveBuffer(scope, buffer);
+        return inner.saveBufferIfUnchanged(scope, expectedBuffer, nextBuffer);
       },
     };
     const { service } = createService(2, { sessionStore });
@@ -670,11 +672,13 @@ describe("runtime context service", () => {
     const inner = createInMemorySessionStore();
     const sessionStore: SessionStore = {
       ...inner,
-      async saveBuffer(scope, buffer) {
-        if (buffer.messages.map(({ content }) => content).join(",") === "m2,m3") {
+      async saveBufferIfUnchanged(scope, expectedBuffer, nextBuffer) {
+        if (
+          nextBuffer.messages.map(({ content }) => content).join(",") === "m2,m3"
+        ) {
           throw new Error("trim persistence unavailable");
         }
-        await inner.saveBuffer(scope, buffer);
+        return inner.saveBufferIfUnchanged(scope, expectedBuffer, nextBuffer);
       },
     };
     const { repositories, service } = createService(2, { sessionStore });

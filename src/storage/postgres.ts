@@ -405,6 +405,11 @@ function createPostgresSessionStateStore<TValue>(
   options?: PostgresStoreOptions,
 ): {
   set(scope: MemoryScope, value: TValue): Promise<void>;
+  setIfUnchanged(
+    scope: MemoryScope,
+    expectedValue: TValue | null,
+    nextValue: TValue,
+  ): Promise<boolean>;
   get(scope: MemoryScope): Promise<TValue | null>;
   deleteIfUnchanged(scope: MemoryScope, expectedValue: TValue): Promise<boolean>;
   deleteByScope(scope: MemoryScope): Promise<number>;
@@ -436,6 +441,53 @@ function createPostgresSessionStateStore<TValue>(
         `,
         [scopeToKey(scope), stateKind, bindJson(value)],
       );
+    },
+
+    async setIfUnchanged(scope, expectedValue, nextValue) {
+      if (options?.readOnly) {
+        throw createReadOnlyMutationError("session");
+      }
+
+      await runtime.ensureSessionStore();
+      const key = scopeToKey(scope);
+      const rows = expectedValue === null
+        ? await runtime.sql.unsafe<Array<{ count: number }>>(
+            `
+              INSERT INTO ${runtime.sessionStateTable} (
+                scope_key,
+                state_kind,
+                payload,
+                updated_at
+              ) VALUES (
+                $1,
+                $2,
+                $3::text::jsonb,
+                NOW()
+              )
+              ON CONFLICT (scope_key, state_kind) DO NOTHING
+              RETURNING 1 AS count
+            `,
+            [key, stateKind, bindJson(nextValue)],
+          )
+        : await runtime.sql.unsafe<Array<{ count: number }>>(
+            `
+              UPDATE ${runtime.sessionStateTable}
+              SET
+                payload = $3::text::jsonb,
+                updated_at = NOW()
+              WHERE scope_key = $1
+                AND state_kind = $2
+                AND payload = $4::text::jsonb
+              RETURNING 1 AS count
+            `,
+            [
+              key,
+              stateKind,
+              bindJson(nextValue),
+              bindJson(expectedValue),
+            ],
+          );
+      return rows.length === 1;
     },
 
     async get(scope) {
@@ -896,6 +948,10 @@ export function createPostgresSessionStore(
   return {
     saveBuffer(scope, buffer) {
       return buffers.set(scope, buffer);
+    },
+
+    saveBufferIfUnchanged(scope, expectedBuffer, nextBuffer) {
+      return buffers.setIfUnchanged(scope, expectedBuffer, nextBuffer);
     },
 
     getBuffer(scope) {

@@ -139,6 +139,11 @@ function createDeferredSessionStore(
       return store.saveBuffer(scope, buffer);
     },
 
+    async saveBufferIfUnchanged(scope, expectedBuffer, nextBuffer) {
+      const store = await resolveStore();
+      return store.saveBufferIfUnchanged(scope, expectedBuffer, nextBuffer);
+    },
+
     async getBuffer(scope) {
       const store = await resolveStore();
       return store.getBuffer(scope);

@@ -266,21 +266,42 @@ export function runSessionStoreContract(
         worklog: ["session store contract"],
         updatedAt: "2026-01-01T00:00:00.000Z",
       };
+      const appendedBuffer = {
+        ...buffer,
+        messages: [
+          {
+            role: "user" as const,
+            content: "arrived while endSession was finishing",
+          },
+        ],
+        lastActiveAt: "2026-01-01T00:01:00.000Z",
+      };
 
       try {
+        expect(
+          await fixture.store.saveBufferIfUnchanged(scope, null, buffer),
+        ).toBe(true);
+        expect(
+          await fixture.store.saveBufferIfUnchanged(scope, null, appendedBuffer),
+        ).toBe(false);
+        expect(
+          await fixture.store.saveBufferIfUnchanged(
+            scope,
+            appendedBuffer,
+            buffer,
+          ),
+        ).toBe(false);
+        expect(
+          await fixture.store.saveBufferIfUnchanged(
+            scope,
+            buffer,
+            appendedBuffer,
+          ),
+        ).toBe(true);
+        expect(await fixture.store.getBuffer(scope)).toEqual(appendedBuffer);
+
         await fixture.store.saveBuffer(scope, buffer);
         expect(await fixture.store.getBuffer(scope)).toEqual(buffer);
-
-        const appendedBuffer = {
-          ...buffer,
-          messages: [
-            {
-              role: "user" as const,
-              content: "arrived while endSession was finishing",
-            },
-          ],
-          lastActiveAt: "2026-01-01T00:01:00.000Z",
-        };
         await fixture.store.saveBuffer(scope, appendedBuffer);
         expect(
           await fixture.store.deleteBufferIfUnchanged(scope, buffer),

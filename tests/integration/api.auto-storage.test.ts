@@ -184,6 +184,9 @@ describe("auto storage runtime", () => {
         documentStore,
         sessionStore: {
           async saveBuffer() {},
+          async saveBufferIfUnchanged() {
+            return false;
+          },
           async getBuffer() {
             return null;
           },

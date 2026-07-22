@@ -171,6 +171,11 @@ export function createInMemoryDocumentStore(): ProjectionCapableDocumentStore {
 
 interface SessionStateStore<TValue> {
   set(scope: MemoryScope, value: TValue): Promise<void>;
+  setIfUnchanged(
+    scope: MemoryScope,
+    expectedValue: TValue | null,
+    nextValue: TValue,
+  ): Promise<boolean>;
   get(scope: MemoryScope): Promise<TValue | null>;
   deleteIfUnchanged(scope: MemoryScope, expectedValue: TValue): Promise<boolean>;
   deleteByScope(scope: MemoryScope): Promise<number>;
@@ -182,6 +187,20 @@ function createScopedMapStore<TValue>(): SessionStateStore<TValue> {
   return {
     async set(scope, value) {
       records.set(scopeToKey(scope), clone(value));
+    },
+
+    async setIfUnchanged(scope, expectedValue, nextValue) {
+      const key = scopeToKey(scope);
+      const current = records.get(key);
+      const matches = expectedValue === null
+        ? current === undefined
+        : current !== undefined && documentsEqual(current, expectedValue);
+      if (!matches) {
+        return false;
+      }
+
+      records.set(key, clone(nextValue));
+      return true;
     },
 
     async get(scope) {
@@ -226,6 +245,10 @@ export function createInMemorySessionStore(): SessionStore {
   return {
     saveBuffer(scope, buffer) {
       return buffers.set(scope, buffer);
+    },
+
+    saveBufferIfUnchanged(scope, expectedBuffer, nextBuffer) {
+      return buffers.setIfUnchanged(scope, expectedBuffer, nextBuffer);
     },
 
     getBuffer(scope) {

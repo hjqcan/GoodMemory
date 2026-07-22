@@ -979,6 +979,11 @@ function createSQLiteScopedStore<TValue>(
   options?: SQLiteStoreOptions,
 ): {
   set(scope: MemoryScope, value: TValue): Promise<void>;
+  setIfUnchanged(
+    scope: MemoryScope,
+    expectedValue: TValue | null,
+    nextValue: TValue,
+  ): Promise<boolean>;
   get(scope: MemoryScope): Promise<TValue | null>;
   deleteIfUnchanged(scope: MemoryScope, expectedValue: TValue): Promise<boolean>;
   deleteByScope(scope: MemoryScope): Promise<number>;
@@ -991,6 +996,10 @@ function createSQLiteScopedStore<TValue>(
 
       async get() {
         return null;
+      },
+
+      async setIfUnchanged() {
+        throw createReadOnlyMutationError("session");
       },
 
       async deleteIfUnchanged() {
@@ -1011,6 +1020,16 @@ function createSQLiteScopedStore<TValue>(
   const getStatement = database.query<SessionRow, [string]>(
     `SELECT json FROM ${tableName} WHERE scope_key = ?1`,
   );
+  const insertIfMissingStatement = database.query(
+    `INSERT INTO ${tableName} (scope_key, json)
+     VALUES (?1, ?2)
+     ON CONFLICT(scope_key) DO NOTHING`,
+  );
+  const updateIfUnchangedStatement = database.query(
+    `UPDATE ${tableName}
+     SET json = ?3
+     WHERE scope_key = ?1 AND json = ?2`,
+  );
   const deleteExactStatement = database.query(
     `DELETE FROM ${tableName} WHERE scope_key = ?1`,
   );
@@ -1024,6 +1043,21 @@ function createSQLiteScopedStore<TValue>(
   return {
     async set(scope, value) {
       upsertStatement.run(scopeToKey(scope), JSON.stringify(value));
+    },
+
+    async setIfUnchanged(scope, expectedValue, nextValue) {
+      return runSQLiteImmediateTransaction(database, () => {
+        const key = scopeToKey(scope);
+        const nextJson = JSON.stringify(nextValue);
+        const result = expectedValue === null
+          ? insertIfMissingStatement.run(key, nextJson)
+          : updateIfUnchangedStatement.run(
+              key,
+              JSON.stringify(expectedValue),
+              nextJson,
+            );
+        return Number(result.changes ?? 0) === 1;
+      });
     },
 
     async get(scope) {
@@ -1081,6 +1115,10 @@ export function createSQLiteSessionStore(
   return {
     saveBuffer(scope, buffer) {
       return buffers.set(scope, buffer);
+    },
+
+    saveBufferIfUnchanged(scope, expectedBuffer, nextBuffer) {
+      return buffers.setIfUnchanged(scope, expectedBuffer, nextBuffer);
     },
 
     getBuffer(scope) {

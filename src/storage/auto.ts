@@ -132,6 +132,20 @@ function createAutoSessionStore(
       );
     },
 
+    saveBufferIfUnchanged(
+      scope: MemoryScope,
+      expectedBuffer: SessionBuffer | null,
+      nextBuffer: SessionBuffer,
+    ) {
+      return resolveBackend().then((backend) =>
+        backend.sessionStore.saveBufferIfUnchanged(
+          scope,
+          expectedBuffer,
+          nextBuffer,
+        ),
+      );
+    },
+
     getBuffer(scope: MemoryScope) {
       return resolveBackend().then((backend) => backend.sessionStore.getBuffer(scope));
     },
