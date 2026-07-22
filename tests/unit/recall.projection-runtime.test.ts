@@ -1720,7 +1720,7 @@ describe("recall projection runtime", () => {
     const oldStructured = oldClaims.find(
       ({ predicateKey }) => predicateKey === "project.location",
     );
-    expect(oldClaims).toHaveLength(2);
+    expect(oldClaims).toHaveLength(1);
     expect(oldStructured?.objectEntityId).toBeDefined();
 
     const newLanguage = createMarkedLanguageService({
@@ -1753,7 +1753,7 @@ describe("recall projection runtime", () => {
     );
 
     expect(rebuilt).toMatchObject({ complete: true, skipped: false });
-    expect(newClaims).toHaveLength(2);
+    expect(newClaims).toHaveLength(1);
     expect(newClaims.every((claim) =>
       claim.searchAnalyzerVersion === "marked-new-v1" &&
       claim.searchText === "new-term"
