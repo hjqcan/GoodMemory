@@ -91,7 +91,7 @@ function aggregateEntityAdjacencies(
         : undefined;
       return {
         id: entityId,
-        schemaVersion: 1 as const,
+        schemaVersion: 2 as const,
         ...normalizedScope,
         scopeKey: recallScopeKey(normalizedScope),
         canonicalKey: first.canonicalKey,
@@ -196,7 +196,7 @@ export function buildEntityAdjacencyProjections(input: {
       const text = buildEntityProjectionSearchText(source);
       edges.push({
         id: buildEntityAdjacencyProjectionId(entityId, memoryId),
-        schemaVersion: 1,
+        schemaVersion: 2,
         ...normalizedScope,
         ...(first.sessionId ? { sessionId: first.sessionId } : {}),
         scopeKey: recallScopeKey(normalizedScope),
@@ -258,7 +258,7 @@ export function createEntityProjectionIndex(
     const text = buildEntityProjectionSearchText(input.source);
     const edge: EntityAdjacencyProjection = {
       id: edgeId,
-      schemaVersion: 1,
+      schemaVersion: 2,
       ...normalizedScope,
       ...(input.scope.sessionId ? { sessionId: input.scope.sessionId } : {}),
       scopeKey: recallScopeKey(normalizedScope),

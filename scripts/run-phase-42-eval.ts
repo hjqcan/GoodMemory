@@ -10,6 +10,7 @@ import { createMemorySource } from "../src/domain/provenance";
 import { createFactMemory } from "../src/domain/records";
 import type { MemoryScope } from "../src/domain/scope";
 import { executeInstalledHostHook } from "../src/install/hostHookRuntime";
+import { createLanguageService } from "../src/language";
 import {
   createProgressiveRecallService,
   encodeGoodMemoryRecordRef,
@@ -101,15 +102,18 @@ export async function runPhase42FallbackEval(
   const outputDir = options.outputDir ?? resolvePhase42FallbackOutputDir(root);
   const runId = options.runId ?? buildPhase42FallbackRunId(now);
   const runDirectory = join(outputDir, runId);
+  const language = createLanguageService();
   const service = createProgressiveRecallService({
+    language,
     memory: createPhase42Memory(),
     scopeDigestSecret: "phase-42-progressive-eval-secret",
   });
+  const query = "progressive recall runbook scope budget continuity";
 
   const index = await service.searchRecallIndex({
     includeRuntime: true,
     limit: 1,
-    query: "progressive recall runbook scope budget continuity",
+    query,
     retrievalProfile: "coding_agent",
     scope: PHASE42_SCOPE,
   });
@@ -119,13 +123,14 @@ export async function runPhase42FallbackEval(
   const noRawScopeLeak =
     !JSON.stringify(index).includes(PHASE42_SCOPE.userId!) &&
     !JSON.stringify(index).includes(PHASE42_SCOPE.workspaceId!);
+  const context = language.resolveFromText({ text: query });
   const workingMemoryRequired = index.records.some(
-    (record) => record.title === "Working memory",
+    (record) => record.title === language.render({ key: "working_memory" }, context),
   );
   const rendered = service.renderProgressiveContext({
     index,
     maxTokens: 3,
-    query: "progressive recall runbook scope budget continuity",
+    query,
     retrievalProfile: "coding_agent",
   });
   const progressiveTokenBudgetPass = rendered.estimatedTokens <= 3;
@@ -157,6 +162,7 @@ export async function runPhase42FallbackEval(
   }
 
   const exportedOnlyService = createProgressiveRecallService({
+    language,
     memory: createPhase42Memory({ omitRecallFacts: true }),
     scopeDigestSecret: "phase-42-progressive-eval-secret",
   });

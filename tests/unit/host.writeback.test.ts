@@ -31,12 +31,16 @@ function slugifyRule(rule: string): string {
 }
 
 async function createWritableHarness(options: {
+  locale?: string;
   rule?: string;
   why?: string | null;
 } = {}) {
   const documentStore = createInMemoryDocumentStore();
   const sessionStore = createInMemorySessionStore();
   const memory = createGoodMemory({
+    ...(options.locale
+      ? { language: { defaultLocale: options.locale } }
+      : {}),
     storage: { provider: "memory" },
     adapters: {
       documentStore,
@@ -66,6 +70,9 @@ async function createWritableHarness(options: {
         method: "confirmed",
         extractedAt: "2026-04-20T00:00:00.000Z",
         sessionId: "s-1",
+        ...(options.locale
+          ? { locale: options.locale, localeSource: "explicit" as const }
+          : {}),
       }),
       updatedAt: "2026-04-20T00:00:00.000Z",
     }),
@@ -77,7 +84,10 @@ async function createWritableHarness(options: {
     agentId: "agent-a",
   } as const;
 
-  const exported = await memory.exportMemory({ scope });
+  const exported = await memory.exportMemory({
+    scope,
+    ...(options.locale ? { locale: options.locale } : {}),
+  });
   const playbook = exported.artifacts.files.find(
     (file) => file.relativePath === `playbooks/${slugifyRule(options.rule ?? "Use bullet points in summaries.")}.md`,
   );
@@ -96,6 +106,86 @@ async function createWritableHarness(options: {
 }
 
 describe("host adapter writeback", () => {
+  it("round-trips localized authoritative playbooks through the matching pack parser", async () => {
+    const cases = [
+      {
+        locale: "zh-Hant",
+        rule: "請在摘要中使用項目符號。",
+        why: "使用者已確認這項偏好。",
+        nextWhy: "使用者再次確認這項偏好。",
+        headings: ["# 操作手冊：", "## 規範模式", "## 指引", "## 原因"],
+      },
+      {
+        locale: "ja-JP",
+        rule: "要約では箇条書きを使ってください。",
+        why: "ユーザーがこの設定を確認しました。",
+        nextWhy: "ユーザーがこの設定を再確認しました。",
+        headings: ["# プレイブック: ", "## 正規パターン", "## ガイダンス", "## 理由"],
+      },
+      {
+        locale: "ko-KR",
+        rule: "요약에는 글머리 기호를 사용하세요.",
+        why: "사용자가 이 선호 사항을 확인했습니다.",
+        nextWhy: "사용자가 이 선호 사항을 다시 확인했습니다.",
+        headings: ["# 플레이북: ", "## 정규 패턴", "## 지침", "## 이유"],
+      },
+      {
+        locale: "fr-FR",
+        rule: "Utilisez des listes à puces dans les résumés.",
+        why: "L’utilisateur a confirmé cette préférence.",
+        nextWhy: "L’utilisateur a confirmé cette préférence à nouveau.",
+        headings: [
+          "# Guide opérationnel : ",
+          "## Modèle canonique",
+          "## Directive",
+          "## Pourquoi",
+        ],
+      },
+      {
+        locale: "es-ES",
+        rule: "Usa listas con viñetas en los resúmenes.",
+        why: "El usuario confirmó esta preferencia.",
+        nextWhy: "El usuario volvió a confirmar esta preferencia.",
+        headings: ["# Manual: ", "## Patrón canónico", "## Guía", "## Motivo"],
+      },
+    ] as const;
+
+    for (const entry of cases) {
+      const { documentStore, memory, playbook, scope } =
+        await createWritableHarness(entry);
+      for (const heading of entry.headings) {
+        expect(playbook.content).toContain(heading);
+      }
+      expect(playbook.content).toContain("canonicalMemoryId: pattern-1");
+      expect(playbook.content).toContain("appliesTo: general_response");
+
+      const adapter = createHostAdapter({
+        documentStore,
+        hostKind: "codex",
+        id: `codex-${entry.locale}-writer`,
+        memory,
+        mode: "file-authoritative",
+        now: () => "2026-04-21T00:00:00.000Z",
+        readableArtifactTypes: ["playbook"],
+        supportedReadableArtifactTypes: ["playbook"],
+        writableArtifactTypes: ["playbook"],
+      });
+      const result = await adapter.writeArtifact({
+        artifactType: "playbook",
+        content: playbook.content.replace(entry.why, entry.nextWhy),
+        relativePath: playbook.relativePath,
+        scope,
+      });
+      const updated = await documentStore.get<FeedbackMemory>(
+        "feedback",
+        "pattern-1",
+      );
+
+      expect(result.status).toBe("applied");
+      expect(updated?.why).toBe(entry.nextWhy);
+    }
+  });
+
   it("passes persisted locale provenance to writeback policy hooks", async () => {
     const { documentStore, memory, playbook, scope } = await createWritableHarness();
     const existing = await documentStore.get<FeedbackMemory>("feedback", "pattern-1");
@@ -142,6 +232,43 @@ describe("host adapter writeback", () => {
       content: changedWhy,
     });
 
+    expect(observedLocaleSource).toBe("detected");
+  });
+
+  it("resolves missing writeback locale from the existing localized rule", async () => {
+    const rule = "要点を箇条書きにしてください。";
+    const { documentStore, memory, playbook, scope } = await createWritableHarness({
+      rule,
+    });
+    let observedLocale: string | undefined;
+    let observedLocaleSource: string | undefined;
+    const adapter = createHostAdapter({
+      id: "codex-detected-language-policy",
+      hostKind: "codex",
+      mode: "file-authoritative",
+      memory,
+      documentStore,
+      readableArtifactTypes: ["playbook"],
+      supportedReadableArtifactTypes: ["playbook"],
+      writableArtifactTypes: ["playbook"],
+      policy: {
+        redact(candidate, context) {
+          observedLocale = context.locale;
+          observedLocaleSource = context.localeSource;
+          return candidate;
+        },
+      },
+      now: () => "2026-04-21T00:00:00.000Z",
+    });
+
+    await adapter.writeArtifact({
+      scope,
+      artifactType: "playbook",
+      relativePath: playbook.relativePath,
+      content: playbook.content.replace(rule, "要点を短い箇条書きにしてください。"),
+    });
+
+    expect(observedLocale).toBe("ja-JP");
     expect(observedLocaleSource).toBe("detected");
   });
 

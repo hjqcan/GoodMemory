@@ -107,6 +107,9 @@ describe("readClaudeTranscriptDelta", () => {
       userLine("ok"),
       userLine("請用繁體"),
       userLine("日本語で"),
+      userLine("한국어로"),
+      userLine("oui"),
+      userLine("sí"),
       userLine("Ship the fix tomorrow."),
     ]);
 
@@ -116,6 +119,9 @@ describe("readClaudeTranscriptDelta", () => {
       { content: "ok", role: "user" },
       { content: "請用繁體", role: "user" },
       { content: "日本語で", role: "user" },
+      { content: "한국어로", role: "user" },
+      { content: "oui", role: "user" },
+      { content: "sí", role: "user" },
       { content: "Ship the fix tomorrow.", role: "user" },
     ]);
   });
@@ -357,6 +363,9 @@ describe("readCodexRolloutDelta", () => {
       rolloutLine("user", "ok"),
       rolloutLine("user", "請用繁體"),
       rolloutLine("user", "日本語で"),
+      rolloutLine("user", "한국어로"),
+      rolloutLine("user", "oui"),
+      rolloutLine("user", "sí"),
     ]);
 
     const result = await readCodexRolloutDelta({ transcriptPath: path });
@@ -368,6 +377,9 @@ describe("readCodexRolloutDelta", () => {
       { content: "ok", role: "user" },
       { content: "請用繁體", role: "user" },
       { content: "日本語で", role: "user" },
+      { content: "한국어로", role: "user" },
+      { content: "oui", role: "user" },
+      { content: "sí", role: "user" },
     ]);
   });
 

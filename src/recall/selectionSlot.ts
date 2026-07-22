@@ -6,6 +6,7 @@ import { rankFactCandidates } from "./scoring";
 import {
   PROJECT_STATE_SUPPORT_FALLBACK_KINDS,
   PROJECT_STATE_SUPPORT_PRIMARY_KINDS,
+  diversifyRankedFactCandidatesBySession,
   hasFactSelectionSignal,
   slotMatchesFact,
 } from "./selectors/selectionContext";
@@ -80,12 +81,15 @@ export function selectSlotFacts(input: SelectSlotFactsInput): void {
   };
 
   if (input.aggregateLimit && input.aggregateLimit > 1) {
-    const aggregatePicks = rankFactCandidates(
-      resolveCandidates().filter(
-        input.aggregateSignal ?? hasFactSelectionSignal,
+    const aggregatePicks = diversifyRankedFactCandidatesBySession(
+      rankFactCandidates(
+        resolveCandidates().filter(
+          input.aggregateSignal ?? hasFactSelectionSignal,
+        ),
+        input.strategy,
       ),
-      input.strategy,
-    ).slice(0, input.aggregateLimit);
+      input.aggregateLimit,
+    );
 
     for (const candidate of aggregatePicks) {
       selectCandidate(candidate, "none");

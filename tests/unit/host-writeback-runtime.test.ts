@@ -7,7 +7,10 @@ import type {
   GoodMemoryConfig,
 } from "../../src/api/contracts";
 import { attachGoodMemoryIntegrationSupport } from "../../src/api/integrationSupport";
-import type { LanguagePack } from "../../src/language";
+import type {
+  LanguageContentAnalysis,
+  LanguagePack,
+} from "../../src/language";
 import {
   createEnglishLanguagePack,
   createLanguageService,
@@ -143,6 +146,12 @@ describe("installed host writeback runtime", () => {
       "goodmemory-writeback-custom-language-workspace-",
     );
     const rememberCalls: Array<Parameters<GoodMemory["remember"]>[0]> = [];
+    let analyzeContentCalls = 0;
+    let analyzedContent: LanguageContentAnalysis | undefined;
+    let detectCalls = 0;
+    let extractionAnalysis: LanguageContentAnalysis | undefined;
+    let extractCandidatesCalls = 0;
+    let providerCalls = 0;
     const english = createEnglishLanguagePack();
     const pack: LanguagePack = {
       ...english,
@@ -150,6 +159,7 @@ describe("installed host writeback runtime", () => {
       compatibilityGroup: "xx-test",
       defaultLocale: "xx-Test",
       detect({ texts }) {
+        detectCalls += 1;
         return texts.some((text) => text.includes("zorbled"))
           ? "distinctive"
           : "none";
@@ -157,10 +167,30 @@ describe("installed host writeback runtime", () => {
       id: "xx-test",
       locales: ["xx-Test"],
       analyzeContent(text) {
-        return {
+        analyzeContentCalls += 1;
+        analyzedContent = {
           ...english.analyzeContent(text),
           durableCue: text.includes("zorbled"),
         };
+        return analyzedContent;
+      },
+      extractCandidates(input) {
+        extractCandidatesCalls += 1;
+        const message = input.messages[0];
+        extractionAnalysis = message?.analysis;
+        if (!message || !extractionAnalysis?.durableCue) {
+          return [];
+        }
+        return [
+          {
+            content: message.content,
+            explicitness: "explicit",
+            id: input.nextId(),
+            kindHint: "fact",
+            sourceMessageIndex: message.sourceMessageIndex ?? 0,
+            sourceRole: "user",
+          },
+        ];
       },
     };
     const language = createLanguageService({
@@ -170,7 +200,11 @@ describe("installed host writeback runtime", () => {
     const createMemory = createRememberingMemory({ rememberCalls });
 
     try {
-      await writeHostConfig({ homeRoot, mode: "selective" });
+      await writeHostConfig({
+        assistedExtractor: true,
+        homeRoot,
+        mode: "selective",
+      });
 
       const result = await executeInstalledHostWriteback(
         {
@@ -198,18 +232,50 @@ describe("installed host writeback runtime", () => {
               },
             });
           },
+          createWritebackExtractor() {
+            return {
+              async extract() {
+                providerCalls += 1;
+                return {
+                  candidates: [
+                    {
+                      content: "zorbled",
+                      explicitness: "explicit",
+                      id: "provider-zorbled",
+                      kindHint: "fact",
+                      sourceMessageIndex: 0,
+                      sourceRole: "user",
+                    },
+                  ],
+                  ignoredMessageCount: 0,
+                };
+              },
+            };
+          },
         },
       );
 
       expect(result).toMatchObject({ reason: "written", wrote: true });
       expect(rememberCalls[0]?.messages[0]?.content).toBe("zorbled");
+      expect(extractionAnalysis).toBe(analyzedContent);
+      expect({
+        analyzeContentCalls,
+        detectCalls,
+        extractCandidatesCalls,
+        providerCalls,
+      }).toEqual({
+        analyzeContentCalls: 1,
+        detectCalls: 1,
+        extractCandidatesCalls: 1,
+        providerCalls: 1,
+      });
     } finally {
       await rm(homeRoot, { force: true, recursive: true });
       await rm(workspaceRoot, { force: true, recursive: true });
     }
   });
 
-  it("uses built-in language packs for providerless Traditional Chinese and Japanese writeback", async () => {
+  it("uses every non-English built-in pack for providerless writeback", async () => {
     const homeRoot = await createWorkspace("goodmemory-writeback-cjk-home-");
     const workspaceRoot = await createWorkspace("goodmemory-writeback-cjk-workspace-");
     const configs: GoodMemoryConfig[] = [];
@@ -230,8 +296,12 @@ describe("installed host writeback runtime", () => {
           payload: {
             cwd: workspaceRoot,
             messages: [
+              { content: "以后请优先使用简体中文回复。", role: "user" },
               { content: "以後請優先使用繁體中文回覆。", role: "user" },
               { content: "今後は箇条書きを優先してください。", role: "user" },
+              { content: "항상 한국어로 답변해 주세요.", role: "user" },
+              { content: "Toujours répondre en français.", role: "user" },
+              { content: "Siempre responde en español.", role: "user" },
             ],
             session_id: "cjk-session",
           },
@@ -244,6 +314,10 @@ describe("installed host writeback runtime", () => {
       expect(result).toMatchObject({ reason: "written", wrote: true });
       expect(result.candidates).toEqual([
         expect.objectContaining({
+          content: "以后请优先使用简体中文回复。",
+          durable: true,
+        }),
+        expect.objectContaining({
           content: "以後請優先使用繁體中文回覆。",
           durable: true,
         }),
@@ -251,10 +325,26 @@ describe("installed host writeback runtime", () => {
           content: "今後は箇条書きを優先してください。",
           durable: true,
         }),
+        expect.objectContaining({
+          content: "항상 한국어로 답변해 주세요.",
+          durable: true,
+        }),
+        expect.objectContaining({
+          content: "Toujours répondre en français.",
+          durable: true,
+        }),
+        expect.objectContaining({
+          content: "Siempre responde en español.",
+          durable: true,
+        }),
       ]);
       expect(rememberCalls.map((call) => call.messages[0]?.content)).toEqual([
+        "以后请优先使用简体中文回复。",
         "以後請優先使用繁體中文回覆。",
         "今後は箇条書きを優先してください。",
+        "항상 한국어로 답변해 주세요.",
+        "Toujours répondre en français.",
+        "Siempre responde en español.",
       ]);
       expect(
         rememberCalls.every((call) => call.extractionStrategy === "rules-only"),
@@ -288,6 +378,14 @@ describe("installed host writeback runtime", () => {
             messages: [
               {
                 content: "Remember api_key: sk-abcdefghijklmnopqrstuvwx for the bridge.",
+                role: "user",
+              },
+              {
+                content: "密碼：bridge-credential",
+                role: "user",
+              },
+              {
+                content: "パスワード: bridge-credential",
                 role: "user",
               },
               {
@@ -330,6 +428,9 @@ describe("installed host writeback runtime", () => {
           reason: "secret_blocked",
         }),
       );
+      expect(
+        result.candidates.filter(({ reason }) => reason === "secret_blocked"),
+      ).toHaveLength(3);
       expect(rememberCalls).toHaveLength(1);
     } finally {
       await rm(homeRoot, { force: true, recursive: true });

@@ -639,7 +639,7 @@ describe("claim projection runtime", () => {
   it("backfills indexed text onto legacy claim projections", async () => {
     const store = createInMemoryDocumentStore();
     const fact = buildFact();
-    const legacyClaim: ClaimProjection = {
+    const legacyClaim = {
       id: "legacy-claim",
       schemaVersion: 1,
       ...scope,
@@ -655,8 +655,8 @@ describe("claim projection runtime", () => {
       evidenceIds: [],
       sourceMessageIds: [],
       extractorVersion: "deterministic-fact-v1",
-    };
-    const legacyStatus: ClaimProjectionStatus = {
+    } as unknown as ClaimProjection;
+    const legacyStatus = {
       id: buildClaimProjectionStatusId(scope, fact.id),
       schemaVersion: 1,
       ...scope,
@@ -667,7 +667,7 @@ describe("claim projection runtime", () => {
       extractorVersion: legacyClaim.extractorVersion,
       sourceUpdatedAt: fact.updatedAt,
       updatedAt: fact.updatedAt,
-    };
+    } as unknown as ClaimProjectionStatus;
     await store.set("facts", fact.id, fact);
     await store.set(CLAIM_PROJECTIONS_COLLECTION, legacyClaim.id, legacyClaim);
     await store.set(

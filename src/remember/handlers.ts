@@ -37,6 +37,7 @@ import type {
   RememberWriteContext,
   RememberWriteState,
 } from "./contracts";
+import { storedTextLanguageKey } from "./languageAnalysis";
 import { extractCanonicalReferencePointer } from "./normalization";
 
 function languageMetadata(
@@ -55,10 +56,17 @@ function resolveStoredTextLanguage(
   text: string,
   source: MemorySource,
 ) {
-  return context.language.resolveFromText({
+  const key = storedTextLanguageKey(text, source.locale);
+  const cached = context.storedLanguageContexts.get(key);
+  if (cached) {
+    return cached;
+  }
+  const resolved = context.language.resolveFromText({
     locale: source.locale,
     text,
   });
+  context.storedLanguageContexts.set(key, resolved);
+  return resolved;
 }
 
 function storedSourceLanguage(

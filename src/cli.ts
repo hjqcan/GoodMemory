@@ -63,11 +63,13 @@ import {
   DEFAULT_INSTALLED_HOST_ACTIVATION_MODE,
   DEFAULT_INSTALLED_HOST_CONTEXT_MODE,
   DEFAULT_INSTALLED_HOST_WRITEBACK,
+  canonicalizeInstalledHostDefaultLocale,
   readContextMode,
   readWritebackMode,
   type InstalledHostActivationMode,
   type InstalledHostContextMode,
   type InstalledHostEmbeddingProviderConfig,
+  type InstalledHostLanguageConfig,
   type InstalledHostModelProviderConfig,
   type InstalledHostProviderConfig,
   type InstalledHostRuntimeConfig,
@@ -320,6 +322,7 @@ const SETUP_HELP_TEXT = [
   "  --user-id <id>              Optional, defaults to the current OS username",
   "  --activation-mode <global|workspace_opt_in>",
   "  --context-mode <fragment|progressive>",
+  "  --default-locale <locale>    BCP-47 locale for session-start recall",
   "  --writeback <off|observe|review|selective>",
   "  --dry-run",
   "  --interactive",
@@ -482,6 +485,7 @@ const INSTALL_HELP_TEXT = [
   "  --llm-api-key <key>",
   "  --llm-base-url <url>",
   "  --activation-mode <global|workspace_opt_in>",
+  "  --default-locale <locale>  BCP-47 locale for session-start recall",
   "  --writeback <off|observe|review|selective>",
   "  --dry-run",
   "  --interactive",
@@ -2501,6 +2505,9 @@ function renderInstallerPlanPayload(
     if (host.contextMode) {
       lines.push(`  - context: ${host.contextMode}`);
     }
+    if (host.language) {
+      lines.push(`  - language: ${host.language.defaultLocale}`);
+    }
     if (host.writeback) {
       lines.push(`  - writeback: ${host.writeback.mode}`);
     }
@@ -3904,6 +3911,7 @@ async function handleHostInstall(
         contextMode: readContextModeFlag(installFlags["context-mode"]),
         embedding: readOptionalEmbeddingProviderConfig(installFlags),
         host,
+        language: readInstallLanguageConfig(installFlags),
         memoryPath: installFlags["memory-path"],
         storageProvider: readInstallStorageProviderFlag(installFlags["storage-provider"]),
         storageUrl: installFlags["storage-url"],
@@ -3936,6 +3944,7 @@ async function handleHostInstall(
         installRoot: result.installRoot,
         ...(result.storage.provider === "sqlite" ? { memoryPath: result.memoryPath } : {}),
         providers: providerSummary,
+        ...(result.language ? { language: result.language } : {}),
         storage: result.storage,
         userId: result.userId,
         writeback: result.writeback,
@@ -4205,6 +4214,7 @@ async function handleSetup(
           contextMode: readContextModeFlag(setup.flags["context-mode"]),
           embedding: readOptionalEmbeddingProviderConfig(setup.flags),
           host,
+          language: readInstallLanguageConfig(setup.flags),
           memoryPath: setup.flags["memory-path"],
           storageProvider: readInstallStorageProviderFlag(setup.flags["storage-provider"]),
           storageUrl: setup.flags["storage-url"],
@@ -4516,6 +4526,7 @@ function buildInstalledHostPayload(
   host: InstalledHostKind;
   installRoot: string;
   instructionPath?: string;
+  language?: InstalledHostLanguageConfig;
   memoryPath?: string;
   providers: {
     assistedExtractor: InstalledProviderStatus;
@@ -4543,6 +4554,7 @@ function buildInstalledHostPayload(
     configPath: result.configPath,
     host: result.host,
     installRoot: result.installRoot,
+    ...(result.language ? { language: result.language } : {}),
     ...(result.storage.provider === "sqlite" ? { memoryPath: result.memoryPath } : {}),
     providers: summarizeInstalledProviders(result.providers),
     storage: result.storage,
@@ -4719,6 +4731,7 @@ interface InstallerHostPlan {
   contextMode: InstalledHostContextMode | null;
   hookRegistered: boolean;
   host: InstalledHostKind;
+  language?: InstalledHostLanguageConfig;
   mcpRegistered: boolean;
   nextCommands: string[];
   plannedChanges: InstallerPlannedChange[];
@@ -4743,6 +4756,7 @@ interface InstallerRequestedOptions {
   assistedExtractor?: InstalledHostModelProviderConfig;
   contextMode?: InstalledHostContextMode;
   embedding?: InstalledHostEmbeddingProviderConfig;
+  language?: InstalledHostLanguageConfig;
   memoryPath?: string;
   storageExplicit: boolean;
   storageProvider?: InstalledHostStorageProvider;
@@ -4932,6 +4946,7 @@ async function buildInstallerHostPlan(input: {
         requested: input.requested,
       })
     : undefined;
+  const language = input.requested?.language ?? existingConfig?.language;
   const providers = input.requested
     ? summarizeInstalledProviders(
         mergeInstallerPlanProviders({
@@ -5013,6 +5028,7 @@ async function buildInstallerHostPlan(input: {
     contextMode,
     hookRegistered,
     host: input.host,
+    ...(language ? { language } : {}),
     mcpRegistered,
     nextCommands,
     plannedChanges,
@@ -5117,6 +5133,7 @@ function buildInstallerRequestedOptions(input: {
     assistedExtractor: readOptionalAssistedExtractorProviderConfig(input.flags),
     contextMode: readContextModeFlag(input.flags["context-mode"]),
     embedding: readOptionalEmbeddingProviderConfig(input.flags),
+    language: readInstallLanguageConfig(input.flags),
     memoryPath,
     storageExplicit:
       memoryPath !== undefined ||
@@ -5128,6 +5145,17 @@ function buildInstallerRequestedOptions(input: {
     userIdExplicit: input.flags["user-id"] !== undefined,
     writeback: input.writeback,
   };
+}
+
+function readInstallLanguageConfig(
+  flags: ParsedFlags,
+): InstalledHostLanguageConfig | undefined {
+  const locale = flags["default-locale"];
+  return locale === undefined
+    ? undefined
+    : {
+        defaultLocale: canonicalizeInstalledHostDefaultLocale(locale),
+      };
 }
 
 function validateInstallerRequestedStorage(input: {

@@ -23,6 +23,11 @@ import {
   EXPERIENCES_COLLECTION,
 } from "../evolution/contracts";
 import { createLanguageService } from "../language";
+import type {
+  LanguageRenderKey,
+  LanguageService,
+  ResolvedLanguageContext,
+} from "../language";
 import { toPolicyMemoryRecord } from "../policy/hooks";
 import type {
   CreateHostAdapterInput,
@@ -99,16 +104,45 @@ function sanitizeMarkdownInline(value: string): string {
     .replace(/\n/g, "\\n");
 }
 
-function renderSection(title: string, lines: string[]): string {
+function renderSection(
+  title: string,
+  lines: string[],
+  emptyLabel = "none",
+): string {
   return [
     `## ${sanitizeMarkdownInline(title)}`,
-    ...(lines.length > 0 ? lines : ["- none"]),
+    ...(lines.length > 0 ? lines : [`- ${sanitizeMarkdownInline(emptyLabel)}`]),
   ].join("\n");
 }
 
 function renderDocument(title: string, sections: string[]): string {
   return [`# ${sanitizeMarkdownInline(title)}`, ...sections.flatMap((section) => ["", section])].join(
     "\n",
+  );
+}
+
+function renderHostLabel(
+  language: LanguageService,
+  languageContext: ResolvedLanguageContext,
+  key: LanguageRenderKey,
+  values?: Record<string, number | string>,
+): string {
+  return language.render(
+    { key, ...(values ? { values } : {}) },
+    languageContext,
+  );
+}
+
+function renderHostSection(
+  language: LanguageService,
+  languageContext: ResolvedLanguageContext,
+  key: LanguageRenderKey,
+  lines: string[],
+): string {
+  return renderSection(
+    renderHostLabel(language, languageContext, key),
+    lines,
+    renderHostLabel(language, languageContext, "none"),
   );
 }
 
@@ -414,6 +448,8 @@ function buildSessionArtifactRelativePath(sessionId: string): string {
 function buildSessionHandoffContent(
   exported: ExportMemoryResult,
   sessionId: string,
+  language: LanguageService,
+  languageContext: ResolvedLanguageContext,
 ): string {
   const workingMemory =
     exported.runtime?.workingMemory?.sessionId === sessionId
@@ -433,20 +469,69 @@ function buildSessionHandoffContent(
   const workingMemoryLines = renderWorkingMemoryLines(workingMemory);
   const journalLines = renderJournalStateLines(journal);
 
-  return renderDocument(`Session Handoff: ${sessionId}`, [
-    renderSection("Scope", renderSessionScopeLines(exported, sessionId)),
-    renderSection("Current Goal", workingMemoryLines.currentGoal),
-    renderSection("Open Loops", workingMemoryLines.openLoops),
-    renderSection("Recent Decisions", workingMemoryLines.recentDecisions),
-    renderSection("Constraints", workingMemoryLines.constraints),
-    renderSection("Current State", journalLines.currentState),
-    renderSection(
-      "Key Files",
+  return renderDocument(
+    renderHostLabel(language, languageContext, "session_handoff", { sessionId }),
+    [
+    renderHostSection(
+      language,
+      languageContext,
+      "scope",
+      renderSessionScopeLines(exported, sessionId),
+    ),
+    renderHostSection(
+      language,
+      languageContext,
+      "current_goal",
+      workingMemoryLines.currentGoal,
+    ),
+    renderHostSection(
+      language,
+      languageContext,
+      "open_loops",
+      workingMemoryLines.openLoops,
+    ),
+    renderHostSection(
+      language,
+      languageContext,
+      "recent_decisions",
+      workingMemoryLines.recentDecisions,
+    ),
+    renderHostSection(
+      language,
+      languageContext,
+      "constraints",
+      workingMemoryLines.constraints,
+    ),
+    renderHostSection(
+      language,
+      languageContext,
+      "current_state",
+      journalLines.currentState,
+    ),
+    renderHostSection(
+      language,
+      languageContext,
+      "key_files",
       uniqueLines([...journalLines.keyFiles, ...renderReferenceLines(references)]),
     ),
-    renderSection("Workflow", journalLines.workflow),
-    renderSection("Procedural Memory", renderFeedbackLines(feedback)),
-    renderSection("Artifact Spills", renderSpillLines(spills)),
+    renderHostSection(
+      language,
+      languageContext,
+      "workflow",
+      journalLines.workflow,
+    ),
+    renderHostSection(
+      language,
+      languageContext,
+      "procedural_memory",
+      renderFeedbackLines(feedback),
+    ),
+    renderHostSection(
+      language,
+      languageContext,
+      "artifact_spills",
+      renderSpillLines(spills),
+    ),
   ]);
 }
 
@@ -454,13 +539,20 @@ function toHostArtifact(
   exported: ExportMemoryResult,
   file: ExportMemoryResult["artifacts"]["files"][number],
   artifactType: HostArtifactType,
+  language: LanguageService,
+  languageContext: ResolvedLanguageContext,
 ): HostArtifact {
   if (artifactType === "session_memory" && file.sessionId) {
     return {
       ...file,
       artifactType,
       relativePath: buildSessionArtifactRelativePath(file.sessionId),
-      content: buildSessionHandoffContent(exported, file.sessionId),
+      content: buildSessionHandoffContent(
+        exported,
+        file.sessionId,
+        language,
+        languageContext,
+      ),
       writable: false,
     };
   }
@@ -472,12 +564,48 @@ function toHostArtifact(
   };
 }
 
+function collectExportLanguageText(exported: ExportMemoryResult): string {
+  const profile = exported.durable.profile;
+  const workingMemory = exported.runtime?.workingMemory;
+  const journal = exported.runtime?.journal;
+  return [
+    ...(exported.durable.sourceMessages ?? []).map(({ content }) => content),
+    profile?.identity.name,
+    profile?.identity.role,
+    profile?.identity.organization,
+    profile?.identity.location,
+    profile?.identity.languagePreference,
+    ...exported.durable.facts.map(({ content }) => content),
+    ...exported.durable.references.flatMap(({ pointer, title }) => [title, pointer]),
+    ...exported.durable.feedback.map(({ rule }) => rule),
+    ...exported.durable.episodes.map(({ summary }) => summary),
+    ...exported.durable.archives.map(({ summary }) => summary),
+    ...exported.durable.evidence.map(({ excerpt }) => excerpt),
+    ...exported.durable.experiences.map(({ summary }) => summary),
+    ...exported.durable.proposals.map(({ summary }) => summary),
+    ...exported.durable.promotions.map(({ summary }) => summary),
+    workingMemory?.currentGoal,
+    ...(workingMemory?.openLoops ?? []),
+    ...(workingMemory?.temporaryDecisions ?? []),
+    ...(workingMemory?.constraints ?? []),
+    journal?.currentState,
+    ...(journal?.worklog ?? []),
+    ...(journal?.filesAndFunctions ?? []),
+    ...(journal?.workflow ?? []),
+  ].filter((text): text is string => Boolean(text)).join("\n");
+}
+
 async function readArtifacts(
   memory: CreateHostAdapterInput["memory"],
   readableArtifactTypes: readonly HostArtifactType[],
   input: ExportMemoryInput,
+  language: LanguageService,
 ): Promise<HostReadArtifactsResult> {
   const exported = await memory.exportMemory(input);
+  const languageContext = language.resolveFromText({
+    ...(input.locale ? { locale: input.locale } : {}),
+    text: collectExportLanguageText(exported),
+  });
   const artifacts = exported.artifacts.files.flatMap((file): HostArtifact[] => {
     const artifactType = resolveHostArtifactType(file);
 
@@ -485,7 +613,15 @@ async function readArtifacts(
       return [];
     }
 
-    return [toHostArtifact(exported, file, artifactType)];
+    return [
+      toHostArtifact(
+        exported,
+        file,
+        artifactType,
+        language,
+        languageContext,
+      ),
+    ];
   });
 
   return {
@@ -606,16 +742,42 @@ function isLegacyEmptyWhyPlaceholder(items: string[]): boolean {
   return items.length === 1 && items[0] === "none";
 }
 
-function parsePlaybookWriteInput(input: HostWriteArtifactInput): {
+interface PlaybookSectionLabels {
+  canonicalPattern: string;
+  guidance: string;
+  why: string;
+}
+
+function resolvePlaybookSectionLabels(
+  language: LanguageService,
+  languageContext: ResolvedLanguageContext,
+): PlaybookSectionLabels {
+  return {
+    canonicalPattern: renderHostLabel(
+      language,
+      languageContext,
+      "canonical_pattern",
+    ),
+    guidance: renderHostLabel(language, languageContext, "guidance"),
+    why: renderHostLabel(language, languageContext, "why"),
+  };
+}
+
+function parsePlaybookWriteInput(
+  input: HostWriteArtifactInput,
+  labels: PlaybookSectionLabels,
+): {
   appliesTo?: string;
   canonicalMemoryId: string;
   rule: string;
   why?: string;
 } {
   const sections = parseSections(input.content);
-  const canonicalSection = parseKeyValueSection(sections.get("Canonical Pattern") ?? []);
-  const guidanceItems = parseListItems(sections.get("Guidance") ?? []);
-  const whyItems = parseListItems(sections.get("Why") ?? []);
+  const canonicalSection = parseKeyValueSection(
+    sections.get(labels.canonicalPattern) ?? [],
+  );
+  const guidanceItems = parseListItems(sections.get(labels.guidance) ?? []);
+  const whyItems = parseListItems(sections.get(labels.why) ?? []);
 
   if (!canonicalSection.canonicalMemoryId) {
     throw createWriteError(
@@ -693,9 +855,14 @@ function parsePlaybookWriteInput(input: HostWriteArtifactInput): {
   };
 }
 
-function parsePlaybookCanonicalMemoryId(content: string): string | null {
+function parsePlaybookCanonicalMemoryId(
+  content: string,
+  labels: PlaybookSectionLabels,
+): string | null {
   const sections = parseSections(content);
-  const canonicalSection = parseKeyValueSection(sections.get("Canonical Pattern") ?? []);
+  const canonicalSection = parseKeyValueSection(
+    sections.get(labels.canonicalPattern) ?? [],
+  );
   const canonicalMemoryId = canonicalSection.canonicalMemoryId?.trim();
 
   return canonicalMemoryId ? canonicalMemoryId : null;
@@ -813,11 +980,17 @@ function buildVerificationInput(input: {
 async function readArtifactMap(
   memory: CreateHostAdapterInput["memory"],
   scope: HostWriteArtifactInput["scope"],
+  language: LanguageService,
 ): Promise<Map<string, HostArtifact>> {
-  const exported = await readArtifacts(memory, DEFAULT_SUPPORTED_READABLE_ARTIFACT_TYPES, {
-    scope,
-    includeRuntime: true,
-  });
+  const exported = await readArtifacts(
+    memory,
+    DEFAULT_SUPPORTED_READABLE_ARTIFACT_TYPES,
+    {
+      scope,
+      includeRuntime: true,
+    },
+    language,
+  );
 
   return new Map(exported.artifacts.map((artifact) => [artifact.relativePath, artifact]));
 }
@@ -826,6 +999,7 @@ async function applyPlaybookWrite(input: {
   adapterId: string;
   documentStore: NonNullable<CreateHostAdapterInput["documentStore"]>;
   hostKind: HostAdapter["hostKind"];
+  language: LanguageService;
   memory: CreateHostAdapterInput["memory"];
   mode: HostAdapter["capabilities"]["mode"];
   now: () => string;
@@ -871,7 +1045,11 @@ async function applyPlaybookWrite(input: {
     );
   }
 
-  const currentArtifacts = await readArtifactMap(input.memory, input.writeInput.scope);
+  const currentArtifacts = await readArtifactMap(
+    input.memory,
+    input.writeInput.scope,
+    input.language,
+  );
   const currentArtifact = currentArtifacts.get(input.writeInput.relativePath);
 
   if (!currentArtifact) {
@@ -885,7 +1063,17 @@ async function applyPlaybookWrite(input: {
     );
   }
 
-  const boundCanonicalMemoryId = parsePlaybookCanonicalMemoryId(currentArtifact.content);
+  const currentLanguageContext = input.language.resolveFromText({
+    text: currentArtifact.content,
+  });
+  const playbookLabels = resolvePlaybookSectionLabels(
+    input.language,
+    currentLanguageContext,
+  );
+  const boundCanonicalMemoryId = parsePlaybookCanonicalMemoryId(
+    currentArtifact.content,
+    playbookLabels,
+  );
 
   if (input.writeInput.content === currentArtifact.content) {
     return {
@@ -903,7 +1091,7 @@ async function applyPlaybookWrite(input: {
   let parsed;
 
   try {
-    parsed = parsePlaybookWriteInput(input.writeInput);
+    parsed = parsePlaybookWriteInput(input.writeInput, playbookLabels);
   } catch (error) {
     if (error instanceof HostAdapterWriteError) {
       throw createWriteError(
@@ -977,9 +1165,14 @@ async function applyPlaybookWrite(input: {
     rule: parsed.rule,
   });
   const policyApplied: string[] = [];
+  const existingLanguageContext = input.language.resolveFromText({
+    ...(existing.source.locale ? { locale: existing.source.locale } : {}),
+    text: existing.rule,
+  });
   const policyContext = {
-    locale: existing.source.locale ?? "en-US",
-    localeSource: existing.source.localeSource ?? "default",
+    locale: existingLanguageContext.locale,
+    localeSource:
+      existing.source.localeSource ?? existingLanguageContext.localeSource,
     phase: "remember" as const,
     scope: input.writeInput.scope,
   };
@@ -1022,8 +1215,14 @@ async function applyPlaybookWrite(input: {
   }
 
   const risky = existing.rule !== candidate.content;
-  const currentWhyItems = parseSectionListItems(currentArtifact.content, "Why");
-  const nextWhyItems = parseSectionListItems(input.writeInput.content, "Why");
+  const currentWhyItems = parseSectionListItems(
+    currentArtifact.content,
+    playbookLabels.why,
+  );
+  const nextWhyItems = parseSectionListItems(
+    input.writeInput.content,
+    playbookLabels.why,
+  );
   const nextWhy =
     existing.why === undefined &&
     isLegacyEmptyWhyPlaceholder(nextWhyItems) &&
@@ -1154,7 +1353,11 @@ async function applyPlaybookWrite(input: {
       linkedExperienceId,
       experience,
     );
-    const nextArtifacts = await readArtifactMap(input.memory, input.writeInput.scope);
+    const nextArtifacts = await readArtifactMap(
+      input.memory,
+      input.writeInput.scope,
+      input.language,
+    );
     const updatedArtifact =
       [...nextArtifacts.values()].find(
         (artifact) =>
@@ -1295,6 +1498,7 @@ export function createHostAdapter(input: CreateHostAdapterInput): HostAdapter {
         input.memory,
         readableArtifactTypesSnapshot,
         exportInput,
+        language,
       );
 
       return {
@@ -1324,6 +1528,7 @@ export function createHostAdapter(input: CreateHostAdapterInput): HostAdapter {
           createId,
           documentStore: input.documentStore!,
           hostKind,
+          language,
           memory: input.memory,
           mode,
           now,

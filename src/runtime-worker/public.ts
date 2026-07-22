@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+import { redactSensitiveCredentialText } from "../language/sensitive";
 import { estimateTextTokens } from "../tokenEstimator";
 import type {
   CreateRuntimeWorkerJobEnvelopeInput,
@@ -39,17 +40,15 @@ function clipText(value: string, maxChars: number): string {
 
 function redactRuntimeWorkerText(value: string): string {
   return clipText(
-    value
-      .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/giu, "[redacted-email]")
-      .replace(/\bsk-[A-Za-z0-9_-]{6,}\b/gu, "[redacted-secret]")
-      .replace(
-        /\b[A-Za-z][A-Za-z0-9+.-]*:\/\/[^:\s/@]+:[^\s/@]+@/gu,
-        "[redacted-url-auth]@",
-      )
-      .replace(
-        /\b(?:api[_-]?key|password|secret|token)\s*[:=]\s*[^\s,;]+/giu,
-        "[redacted-secret]",
-      )
+    redactSensitiveCredentialText(
+      value
+        .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/giu, "[redacted-email]")
+        .replace(/\bsk-[A-Za-z0-9_-]{6,}\b/gu, "[redacted-secret]")
+        .replace(
+          /\b[A-Za-z][A-Za-z0-9+.-]*:\/\/[^:\s/@]+:[^\s/@]+@/gu,
+          "[redacted-url-auth]@",
+        ),
+    )
       .replace(/\s+/gu, " ")
       .trim(),
     MAX_PREVIEW_CHARS,

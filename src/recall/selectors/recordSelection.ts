@@ -6,7 +6,7 @@ import type {
 } from "../../domain/records";
 import { buildFeedbackIdentityKey, isActiveMemoryLifecycle } from "../../domain/records";
 import type { SessionArchive } from "../../domain/evolutionRecords";
-import type { LanguageService } from "../../language";
+import type { LanguageQueryAnalysis, LanguageService } from "../../language";
 import { FEEDBACK_RECALL_LIMIT } from "../budgets";
 import type { RecallCandidateTrace } from "../engine";
 import type { RetrievalProfile, RoutingDecision } from "../router";
@@ -77,14 +77,17 @@ export function selectFeedbackForQuery(
   language: LanguageService,
   queryLocale: string,
   retrievalProfile: RetrievalProfile,
+  providedQueryAnalysis?: LanguageQueryAnalysis,
 ): FeedbackMemory[] {
   const selected = selectFeedback(feedback, retrievalProfile);
+  const queryAnalysis = providedQueryAnalysis ??
+    language.analyzeQuery(query, queryLocale);
 
   if (
-    language.isAnswerCompositionQuery(query, queryLocale) ||
-    language.isFactConfirmationQuery(query, queryLocale) ||
-    language.isContinuationQuery(query, queryLocale) ||
-    language.isGuidanceSeekingQuery(query, queryLocale)
+    queryAnalysis.answerComposition ||
+    queryAnalysis.factConfirmation ||
+    queryAnalysis.continuation ||
+    queryAnalysis.guidanceSeeking
   ) {
     return selected;
   }
@@ -111,14 +114,17 @@ export function selectPreferencesForQuery(
   query: string,
   language: LanguageService,
   queryLocale: string,
+  providedQueryAnalysis?: LanguageQueryAnalysis,
 ): PreferenceMemory[] {
+  const queryAnalysis = providedQueryAnalysis ??
+    language.analyzeQuery(query, queryLocale);
   const active = sortPreferences(
     preferences.filter((preference) => (preference.lifecycle ?? "active") === "active"),
   );
 
   if (
-    language.isAnswerCompositionQuery(query, queryLocale) ||
-    language.isFactConfirmationQuery(query, queryLocale)
+    queryAnalysis.answerComposition ||
+    queryAnalysis.factConfirmation
   ) {
     return active.slice(0, PREFERENCE_RECALL_LIMIT);
   }
@@ -145,7 +151,10 @@ export function selectReferences(
   referenceTime: string,
   semanticScores?: Map<string, number>,
   evidenceCountsByMemoryId?: Map<string, number>,
+  providedQueryAnalysis?: LanguageQueryAnalysis,
 ): { references: ReferenceMemory[]; traces: RecallCandidateTrace[] } {
+  const queryAnalysis = providedQueryAnalysis ??
+    language.analyzeQuery(query, queryLocale);
   const ranked = rankReferenceCandidates(
     buildReferenceCandidates(
       references,
@@ -246,7 +255,7 @@ export function selectReferences(
 
   const genericSelected =
     signaled[0] ??
-    ((language.isAnswerCompositionQuery(query, queryLocale) &&
+    ((queryAnalysis.answerComposition &&
       rankReferenceCandidates(compatible, routingDecision.strategy)[0]) ||
       null);
   if (!genericSelected) {

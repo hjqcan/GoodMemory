@@ -18,8 +18,10 @@ import {
   createSessionArchive,
 } from "../../src/evolution/contracts";
 import { buildMarkdownArtifacts } from "../../src/governance/markdownArtifacts";
+import { createLanguageService } from "../../src/language";
 
 function buildProjectionInput() {
+  const language = createLanguageService();
   const source = createMemorySource({
     method: "explicit",
     extractedAt: "2026-04-02T00:00:00.000Z",
@@ -38,6 +40,11 @@ function buildProjectionInput() {
   };
 
   return {
+    language,
+    languageContext: language.resolveFromText({
+      locale: "en-US",
+      text: "Export memory artifacts.",
+    }),
     scope: { userId: "u-1", workspaceId: "workspace-a", sessionId: "s-1" } as const,
     durable: {
       profile: createUserProfile({
@@ -194,6 +201,179 @@ function buildProjectionInput() {
 }
 
 describe("markdown artifact projection", () => {
+  it("renders Traditional Chinese artifact and playbook labels while preserving machine fields", () => {
+    const language = createLanguageService({ defaultLocale: "zh-Hant" });
+    const languageContext = language.resolveFromText({
+      locale: "zh-Hant",
+      text: "請使用繁體中文匯出記憶。",
+    });
+    const input = buildProjectionInput();
+    const source = createMemorySource({
+      method: "confirmed",
+      extractedAt: "2026-04-02T00:00:00.000Z",
+      sessionId: "s-1",
+    });
+    const artifacts = buildMarkdownArtifacts({
+      ...input,
+      durable: {
+        ...input.durable,
+        feedback: [
+          ...input.durable.feedback,
+          createFeedbackMemory({
+            id: "pattern-localized-artifact",
+            userId: "u-1",
+            workspaceId: "workspace-a",
+            sessionId: "s-1",
+            rule: "Use bullet points in summaries.",
+            kind: "validated_pattern",
+            source,
+            updatedAt: "2026-04-02T00:00:00.000Z",
+          }),
+        ],
+      },
+      language,
+      languageContext,
+    });
+    const user = artifacts.files.find(({ relativePath }) => relativePath === "user.md");
+    const memory = artifacts.files.find(({ relativePath }) => relativePath === "MEMORY.md");
+    const session = artifacts.files.find(({ relativePath }) => relativePath === "session.md");
+    const archive = artifacts.files.find(({ kind }) => kind === "archive");
+    const playbook = artifacts.files.find(
+      ({ relativePath }) => relativePath === "playbooks/use-bullet-points-in-summaries.md",
+    );
+
+    expect(user?.content).toContain("# 使用者記憶");
+    expect(user?.content).toContain("## 使用者資料");
+    expect(memory?.content).toContain("# 記憶索引");
+    expect(memory?.content).toContain("## 參考資料");
+    expect(memory?.content).toContain("## 事實");
+    expect(memory?.content).toContain("## 工作記憶");
+    expect(memory?.content).toContain("## 日誌");
+    expect(session?.content).toContain("# 會話記憶：s-1");
+    expect(archive?.content).toContain("# 歸檔摘要：s-1");
+    expect(playbook?.content).toContain("# 操作手冊：Use bullet points in summaries.");
+    expect(playbook?.content).toContain("## 規範模式");
+    expect(playbook?.content).toContain("## 原因");
+    expect(playbook?.content).toContain("## 沿襲關係");
+    expect(playbook?.content).toContain("canonicalMemoryId: pattern-localized-artifact");
+  });
+
+  it("localizes playbook, prompt, and skill human-readable headings for every built-in pack", () => {
+    const cases = [
+      {
+        locale: "ja-JP",
+        rule: "要約では箇条書きを使ってください。",
+        titles: [
+          "# プレイブック: 要約では箇条書きを使ってください。",
+          "## 正規パターン",
+          "## ガイダンス",
+          "## 理由",
+          "## 系譜",
+          "# プロンプトスニペット: 要約では箇条書きを使ってください。",
+          "## 使用条件",
+          "## 指示",
+          "# スキルスニペット: 要約では箇条書きを使ってください。",
+          "## メタデータ",
+          "## 手順",
+        ],
+      },
+      {
+        locale: "ko-KR",
+        rule: "요약에는 글머리 기호를 사용하세요.",
+        titles: [
+          "# 플레이북: 요약에는 글머리 기호를 사용하세요.",
+          "## 정규 패턴",
+          "## 지침",
+          "## 이유",
+          "## 계보",
+          "# 프롬프트 스니펫: 요약에는 글머리 기호를 사용하세요.",
+          "## 사용 시점",
+          "## 명령",
+          "# 스킬 스니펫: 요약에는 글머리 기호를 사용하세요.",
+          "## 메타데이터",
+          "## 절차",
+        ],
+      },
+      {
+        locale: "fr-FR",
+        rule: "Utilisez des listes à puces dans les résumés.",
+        titles: [
+          "# Guide opérationnel : Utilisez des listes à puces dans les résumés.",
+          "## Modèle canonique",
+          "## Directive",
+          "## Pourquoi",
+          "## Lignée",
+          "# Extrait d’invite : Utilisez des listes à puces dans les résumés.",
+          "## À utiliser quand",
+          "## Instruction",
+          "# Extrait de compétence : Utilisez des listes à puces dans les résumés.",
+          "## Métadonnées",
+          "## Procédure",
+        ],
+      },
+      {
+        locale: "es-ES",
+        rule: "Usa listas con viñetas en los resúmenes.",
+        titles: [
+          "# Manual: Usa listas con viñetas en los resúmenes.",
+          "## Patrón canónico",
+          "## Guía",
+          "## Motivo",
+          "## Linaje",
+          "# Fragmento de prompt: Usa listas con viñetas en los resúmenes.",
+          "## Cuándo usarlo",
+          "## Instrucción",
+          "# Fragmento de habilidad: Usa listas con viñetas en los resúmenes.",
+          "## Metadatos",
+          "## Procedimiento",
+        ],
+      },
+    ] as const;
+
+    for (const entry of cases) {
+      const input = buildProjectionInput();
+      const language = createLanguageService({ defaultLocale: entry.locale });
+      const languageContext = language.resolveFromText({
+        locale: entry.locale,
+        text: entry.rule,
+      });
+      const artifacts = buildMarkdownArtifacts({
+        ...input,
+        durable: {
+          ...input.durable,
+          feedback: [
+            createFeedbackMemory({
+              appliesTo: "general_response",
+              id: `pattern-${entry.locale}`,
+              kind: "validated_pattern",
+              rule: entry.rule,
+              source: createMemorySource({
+                extractedAt: "2026-04-02T00:00:00.000Z",
+                method: "confirmed",
+              }),
+              updatedAt: "2026-04-02T00:00:00.000Z",
+              userId: "u-1",
+              why: entry.rule,
+              workspaceId: "workspace-a",
+            }),
+          ],
+        },
+        language,
+        languageContext,
+      });
+      const contents = artifacts.files
+        .filter(({ kind }) => kind === "playbook")
+        .map(({ content }) => content)
+        .join("\n");
+
+      for (const title of entry.titles) {
+        expect(contents).toContain(title);
+      }
+      expect(contents).toContain(`canonicalMemoryId: pattern-${entry.locale}`);
+      expect(contents).toContain("appliesTo: general_response");
+    }
+  });
+
   it("renders deterministic scope-aware markdown artifacts from canonical memory state", () => {
     const first = buildMarkdownArtifacts(buildProjectionInput());
     const second = buildMarkdownArtifacts(buildProjectionInput());

@@ -273,6 +273,12 @@ describe("node package boundary", () => {
         };
         invalidScopeError?: string;
         invalidScopeStatus: number;
+        frenchPackId: string;
+        frenchSearchTerms: string[];
+        japanesePackId: string;
+        japaneseSearchTerms: string[];
+        koreanPackId: string;
+        koreanSearchTerms: string[];
         ok: boolean;
         recallHitCount: number;
         runtimeInfo?: {
@@ -297,6 +303,10 @@ describe("node package boundary", () => {
         serverRememberSucceeded: boolean;
         serverSecondResponseText: string;
         serverSecondSystem?: string;
+        spanishPackId: string;
+        spanishSearchTerms: string[];
+        traditionalChinesePackId: string;
+        traditionalChineseSearchTerms: string[];
         validatedFileEditPath?: string;
         validatedToolPayloadShape?: string;
       }>(smoke.stdout);
@@ -308,6 +318,16 @@ describe("node package boundary", () => {
       expect(smokeJson.httpBridgeItemCount).toBeGreaterThan(0);
       expect(smokeJson.invalidScopeStatus).toBe(400);
       expect(smokeJson.invalidScopeError).toContain("scope.userId");
+      expect(smokeJson.frenchPackId).toBe("fr");
+      expect(smokeJson.frenchSearchTerms).toContain("mémoire");
+      expect(smokeJson.japanesePackId).toBe("ja");
+      expect(smokeJson.japaneseSearchTerms).toContain("日本語");
+      expect(smokeJson.koreanPackId).toBe("ko");
+      expect(smokeJson.koreanSearchTerms).toContain("한국어");
+      expect(smokeJson.spanishPackId).toBe("es");
+      expect(smokeJson.spanishSearchTerms).toContain("memoria");
+      expect(smokeJson.traditionalChinesePackId).toBe("zh-Hant");
+      expect(smokeJson.traditionalChineseSearchTerms).toContain("繁體");
       expect(smokeJson.recallHitCount).toBeGreaterThan(0);
       expect(smokeJson.serverFirstResponseText).toContain("Noted.");
       expect(smokeJson.serverRecallApplied).toBe(true);

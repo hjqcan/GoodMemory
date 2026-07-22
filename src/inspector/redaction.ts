@@ -1,4 +1,6 @@
 import type { MemoryScope } from "../domain/scope";
+import type { LanguageService } from "../language";
+import { redactSensitiveCredentialText } from "../language/sensitive";
 
 const MAX_VIEWER_TEXT_CHARS = 600;
 
@@ -6,12 +8,15 @@ export function sanitizeViewerValue(
   value: unknown,
   scope: MemoryScope,
   parentKey?: string,
+  language?: LanguageService,
 ): unknown {
   if (typeof value === "string") {
-    return redactScopeText(redactViewerText(value), scope);
+    return redactScopeText(redactViewerText(value, language), scope);
   }
   if (Array.isArray(value)) {
-    return value.map((item) => sanitizeViewerValue(item, scope, parentKey));
+    return value.map((item) =>
+      sanitizeViewerValue(item, scope, parentKey, language)
+    );
   }
   if (value && typeof value === "object") {
     const result: Record<string, unknown> = {};
@@ -19,7 +24,7 @@ export function sanitizeViewerValue(
       if ((isRawTranscriptKey(key) && nested !== false) || isRawScopeKey(key)) {
         continue;
       }
-      result[key] = sanitizeViewerValue(nested, scope, key);
+      result[key] = sanitizeViewerValue(nested, scope, key, language);
     }
     return result;
   }
@@ -43,21 +48,32 @@ export function redactScopeText(value: string, scope: MemoryScope): string {
   return result;
 }
 
-export function redactViewerText(value: string): string {
-  const redacted = value
+export function redactViewerText(
+  value: string,
+  language?: LanguageService,
+): string {
+  const structurallyRedacted = value
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/giu, "[redacted-email]")
     .replace(/\bsk-[A-Za-z0-9_-]{6,}\b/gu, "[redacted-secret]")
     .replace(
       /\b[A-Za-z][A-Za-z0-9+.-]*:\/\/[^:\s/@]+:[^\s/@]+@/gu,
       "[redacted-url-auth]@",
-    )
-    .replace(
-      /\b(?:api[_-]?key|password|secret|token)\s*[:=]\s*[^\s,;]+/giu,
-      "[redacted-secret]",
     );
-  return redacted.length <= MAX_VIEWER_TEXT_CHARS
-    ? redacted
-    : `${redacted.slice(0, MAX_VIEWER_TEXT_CHARS - 3).trimEnd()}...`;
+  const redacted = redactSensitiveCredentialText(
+    structurallyRedacted,
+    language,
+  );
+  const ordered = redacted.includes("[redacted-secret]")
+    ? [
+        "[redacted-secret]",
+        ...new Set(
+          redacted.match(/\[redacted-(?:email|url-auth)\]/gu) ?? [],
+        ),
+      ].join(" ")
+    : redacted;
+  return ordered.length <= MAX_VIEWER_TEXT_CHARS
+    ? ordered
+    : `${ordered.slice(0, MAX_VIEWER_TEXT_CHARS - 3).trimEnd()}...`;
 }
 
 function isRawTranscriptKey(key: string): boolean {

@@ -17,6 +17,7 @@ import {
   resolveTextResponseEnactmentPlan,
   selectBehavioralPolicies,
 } from "../../src/evolution/behavioralPolicy";
+import { createLanguageService } from "../../src/language";
 
 const source = createMemorySource({
   method: "explicit",
@@ -25,6 +26,110 @@ const source = createMemorySource({
 });
 
 describe("behavioral policy", () => {
+  it("derives the same QuickCheck-first host policy through every built-in language pack", () => {
+    const cases = [
+      {
+        locale: "en-US",
+        rule: "For deep analysis, always run QuickCheck first.",
+      },
+      {
+        locale: "zh-CN",
+        rule: "深入分析时，请先运行 QuickCheck。",
+      },
+      {
+        locale: "zh-TW",
+        rule: "深入分析時，請先執行 QuickCheck。",
+      },
+      {
+        locale: "ja-JP",
+        rule: "詳細分析では、まず QuickCheck を実行してください。",
+      },
+      {
+        locale: "ko-KR",
+        rule: "심층 분석에서는 QuickCheck를 먼저 실행하세요.",
+      },
+      {
+        locale: "fr-FR",
+        rule: "Pour une analyse approfondie, exécutez d’abord QuickCheck.",
+      },
+      {
+        locale: "es-ES",
+        rule: "Para un análisis profundo, ejecuta primero QuickCheck.",
+      },
+    ] as const;
+    const language = createLanguageService();
+
+    for (const { locale, rule } of cases) {
+      const languageContext = language.resolveFromText({ locale, text: rule });
+      const policy = deriveRuleBehavioralPolicy({
+        appliesTo: "coding_agent",
+        exemplarCount: 2,
+        kind: "do",
+        language,
+        languageContext,
+        rule,
+      });
+
+      expect(policy.enactmentSurface, locale).toBe("host_action");
+      expect(policy.applicability.canonicalFirstAction?.name, locale).toBe(
+        "QuickCheck",
+      );
+    }
+  });
+
+  it("derives localized trigger phrases through the resolved pack", () => {
+    const language = createLanguageService();
+    for (const { expected, locale, rule } of [
+      {
+        expected: "une analyse approfondie",
+        locale: "fr-FR",
+        rule: "Pour une analyse approfondie, exécutez d’abord QuickCheck.",
+      },
+      {
+        expected: "un análisis profundo",
+        locale: "es-ES",
+        rule: "Para un análisis profundo, ejecuta primero QuickCheck.",
+      },
+      {
+        expected: "심층 분석",
+        locale: "ko-KR",
+        rule: "심층 분석에서는 QuickCheck를 먼저 실행하세요.",
+      },
+    ] as const) {
+      const languageContext = language.resolveFromText({ locale, text: rule });
+      const policy = deriveRuleBehavioralPolicy({
+        appliesTo: "coding_agent",
+        exemplarCount: 2,
+        kind: "do",
+        language,
+        languageContext,
+        rule,
+      });
+
+      expect(policy.applicability.queryContains, locale).toContain(expected);
+    }
+  });
+
+  it("keeps neutral behavioral analysis fail-closed", () => {
+    const language = createLanguageService();
+    const rule = "QuickCheck";
+    const languageContext = language.resolveFromText({
+      locale: "de-DE",
+      text: rule,
+    });
+
+    expect(
+      deriveRuleBehavioralPolicy({
+        appliesTo: "coding_agent",
+        exemplarCount: 2,
+        kind: "do",
+        language,
+        languageContext,
+        rule,
+      }).enactmentSurface,
+    ).toBe("text_response");
+  });
+
   it("round-trips a typed behavioral policy through feedback attributes", () => {
     const feedback = createFeedbackMemory({
       id: "feedback-1",
@@ -1803,6 +1908,24 @@ describe("behavioral policy", () => {
     ).toBe(
       "copy_with_meta('/mnt/submissions/u1001/data.csv', '/mnt/class/data.csv', 'grader', '0644')",
     );
+  });
+
+  it("recovers canonical source and destination slots from every built-in language pack", () => {
+    for (const query of [
+      "把 '/src/report.txt' 复制到 '/backup/'。",
+      "請把 '/src/report.txt' 複製到 '/backup/'。",
+      "'/src/report.txt' から '/backup/' へコピーしてください。",
+      "'/src/report.txt'에서 '/backup/'로 복사하세요.",
+      "Pour le déploiement, copiez '/src/report.txt' vers '/backup/'.",
+      "¿Copia '/src/report.txt' a '/backup/'?",
+    ]) {
+      expect(
+        recoverCanonicalActionFromTemplate({
+          query,
+          template: "copy_file(destination_path, source_path)",
+        }),
+      ).toBe("copy_file('/backup/report.txt', '/src/report.txt')");
+    }
   });
 
   it("recovers move and sync templates from named tool-call arguments", () => {

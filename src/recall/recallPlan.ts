@@ -1,11 +1,13 @@
 import type { MemoryScope } from "../domain/scope";
 import type { MemoryPlane } from "../domain/taxonomy";
-import {
-  createLanguageService,
-  type LanguageQueryAnalysis,
-  type LanguageService,
+import { createLanguageService } from "../language";
+import type {
+  LanguageQueryAnalysis,
+  LanguageService,
+  ResolvedLanguageContext,
 } from "../language";
 import { splitQueryIntoSubQueries } from "./queryDecomposition";
+import { resolveTemporalReference } from "./temporalReference";
 
 export const RECALL_PLAN_PRE_RANK_LIMIT = 32;
 export const RECALL_PLAN_SELECTED_LIMIT = 12;
@@ -41,8 +43,10 @@ export interface RecallPlan {
 
 export interface BuildRecallPlanInput {
   language?: LanguageService;
+  languageContext?: ResolvedLanguageContext;
   locale?: string;
   query: string;
+  queryAnalysis?: LanguageQueryAnalysis;
   referenceTime: string;
   scope: MemoryScope;
 }
@@ -110,7 +114,7 @@ function buildTemporalConstraints(input: {
   aggregation: RecallAggregation | undefined;
   analysis: LanguageQueryAnalysis;
   language: LanguageService;
-  locale: string;
+  languageContext: ResolvedLanguageContext;
   query: string;
   referenceTime: string;
 }): TemporalConstraint[] {
@@ -127,10 +131,12 @@ function buildTemporalConstraints(input: {
   if (input.analysis.after) {
     kinds.push("after");
   }
-  const explicitReferenceTime = input.language.resolveTemporalReference(
-    input.query,
+  const explicitReferenceTime = resolveTemporalReference(
+    input.language.parseTemporalExpressions(
+      input.query,
+      input.languageContext,
+    ),
     input.referenceTime,
-    input.locale,
   );
   return unique(kinds).map((kind) => ({
     kind,
@@ -150,19 +156,20 @@ export function buildDeterministicRecallPlan(
   input: BuildRecallPlanInput,
 ): RecallPlan {
   const language = input.language ?? createLanguageService();
-  const resolvedLanguage = language.resolveFromText({
+  const resolvedLanguage = input.languageContext ?? language.resolveFromText({
     locale: input.locale,
     text: input.query,
   });
   const locale = resolvedLanguage.locale;
-  const analysis = language.analyzeQuery(input.query, resolvedLanguage);
+  const analysis = input.queryAnalysis ??
+    language.analyzeQuery(input.query, resolvedLanguage);
   const facets = splitQueryIntoSubQueries(input.query, { language, locale });
   const aggregation = resolveAggregation(analysis);
   const temporalConstraints = buildTemporalConstraints({
     aggregation,
     analysis,
     language,
-    locale,
+    languageContext: resolvedLanguage,
     query: input.query,
     referenceTime: input.referenceTime,
   });
@@ -196,7 +203,7 @@ export function buildDeterministicRecallPlan(
   ) {
     planes.push("procedural");
   }
-  if (input.scope.sessionId || language.isContinuationQuery(input.query, locale)) {
+  if (input.scope.sessionId || analysis.continuation) {
     planes.push("runtime");
   }
 
@@ -238,7 +245,20 @@ export async function resolveRecallPlan(input: {
   assistant?: RecallPlanAssistant;
   input: BuildRecallPlanInput;
 }): Promise<RecallPlanResolution> {
-  const deterministicPlan = buildDeterministicRecallPlan(input.input);
+  const language = input.input.language ?? createLanguageService();
+  const languageContext = input.input.languageContext ??
+    language.resolveFromText({
+      locale: input.input.locale,
+      text: input.input.query,
+    });
+  const queryAnalysis = input.input.queryAnalysis ??
+    language.analyzeQuery(input.input.query, languageContext);
+  const deterministicPlan = buildDeterministicRecallPlan({
+    ...input.input,
+    language,
+    languageContext,
+    queryAnalysis,
+  });
   if (!input.assistant || deterministicPlan.uncertainty === "low") {
     return { assistantApplied: false, plan: deterministicPlan };
   }
@@ -254,18 +274,13 @@ export async function resolveRecallPlan(input: {
       ...deterministicPlan.entities,
       ...(assisted.entities ?? []),
     ]);
-    const language = input.input.language ?? createLanguageService();
-    const resolvedLanguage = language.resolveFromText({
-      locale: input.input.locale,
-      text: input.input.query,
-    });
     const normalizedEntities = entities
-      .map((entity) => language.normalizeForEquality(entity, resolvedLanguage))
+      .map((entity) => language.normalizeForEquality(entity, languageContext))
       .filter((entity) => entity.length > 0);
     const assistedFacets = (assisted.facets ?? []).filter((facet) => {
       const normalizedFacet = language.normalizeForEquality(
         facet,
-        resolvedLanguage,
+        languageContext,
       );
       return normalizedEntities.some((entity) => {
         const entityIndex = normalizedFacet.indexOf(entity);

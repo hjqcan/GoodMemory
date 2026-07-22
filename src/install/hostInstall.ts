@@ -10,6 +10,8 @@ import {
   writeManagedFile,
   writeMarkerManagedFile,
 } from "../host/managedFiles";
+import type { LanguageRenderKey } from "../language";
+import { createLanguageService } from "../language";
 import {
   DEFAULT_INSTALLED_HOST_ACTIVATION_MODE,
   DEFAULT_INSTALLED_HOST_CONTEXT_MODE,
@@ -18,6 +20,7 @@ import {
   DEFAULT_INSTALLED_HOST_WRITEBACK,
   isRecord,
   normalizeInstalledHostWritebackConfig,
+  canonicalizeInstalledHostDefaultLocale,
   parseInstalledHostRuntimeConfig,
   readPositiveInteger,
   readContextMode,
@@ -25,11 +28,13 @@ import {
   type InstalledHostActivationMode,
   type InstalledHostContextMode,
   type InstalledHostEmbeddingProviderConfig,
+  type InstalledHostLanguageConfig,
   type InstalledHostModelProviderConfig,
   type InstalledHostProviderConfig,
   type InstalledHostMaintenanceConfig,
   type InstalledHostPromptInjectionMode,
   type InstalledHostRetrievalConfig,
+  type InstalledHostRuntimeConfig,
   type InstalledHostWritebackConfig,
   type InstalledHostWritebackMode,
 } from "./hostConfigValidation";
@@ -59,6 +64,7 @@ export interface InstallHostInput {
   embedding?: InstalledHostEmbeddingProviderConfig;
   homeRoot?: string;
   host: InstalledHostKind;
+  language?: InstalledHostLanguageConfig;
   memoryPath?: string;
   storageProvider?: InstalledHostStorageProvider;
   storageUrl?: string;
@@ -73,6 +79,7 @@ export interface InstallHostResult {
   configPath: string;
   host: InstalledHostKind;
   installRoot: string;
+  language?: InstalledHostLanguageConfig;
   memoryPath: string;
   providers?: InstalledHostProviderConfig;
   storage: InstalledHostStorageSummary;
@@ -142,6 +149,7 @@ interface HostInstallConfigRecord {
   contextMode: InstalledHostContextMode;
   debug: boolean;
   host: InstalledHostKind;
+  language?: InstalledHostLanguageConfig;
   maintenance?: InstalledHostMaintenanceConfig;
   maxTokens: number;
   promptInjection?: InstalledHostPromptInjectionMode;
@@ -222,6 +230,7 @@ export async function installHost(
   const installRoot = resolveInstallRoot(input.homeRoot);
   const configPath = join(installRoot, blueprint.configFileName);
   const storageUrl = normalizeInstallStorageUrl(input.storageUrl);
+  const language = normalizeInstallLanguage(input.language);
   const managedSnapshots = await readManagedInstallSnapshots({
     configPath,
     homeRoot: input.homeRoot,
@@ -244,6 +253,7 @@ export async function installHost(
     embedding: input.embedding,
     host: input.host,
     installRoot,
+    language,
     memoryPath: resolvedMemoryPath,
     preferInputMemoryPath: input.memoryPath !== undefined,
     storageProvider: input.storageProvider,
@@ -284,6 +294,7 @@ export async function installHost(
       installRoot,
       memoryPath: storageSummary.location,
       ...(nextConfig.providers ? { providers: nextConfig.providers } : {}),
+      ...(nextConfig.language ? { language: nextConfig.language } : {}),
       storage: storageSummary,
       userId: nextConfig.userId,
       writeback: nextConfig.writeback,
@@ -371,7 +382,7 @@ export async function enableHostWorkspace(
 ): Promise<EnableHostWorkspaceResult> {
   const blueprint = HOST_INSTALL_BLUEPRINTS[input.host];
   const workspaceRoot = resolve(input.workspaceRoot ?? ".");
-  await assertInstalledHostConfigExists({
+  const installedConfig = await assertInstalledHostConfigExists({
     homeRoot: input.homeRoot,
     host: input.host,
   });
@@ -415,7 +426,10 @@ export async function enableHostWorkspace(
       instructionPath,
       workspaceRoot,
       blueprint.installMarker,
-      buildInstallInstructionBlock(blueprint),
+      buildInstallInstructionBlock(
+        blueprint,
+        installedConfig.language?.defaultLocale,
+      ),
     );
     const writebackChange = input.writebackMode
       ? await updateInstalledHostWritebackMode({
@@ -561,7 +575,7 @@ function resolveUserId(
 async function assertInstalledHostConfigExists(input: {
   homeRoot?: string;
   host: InstalledHostKind;
-}): Promise<void> {
+}): Promise<InstalledHostRuntimeConfig> {
   const blueprint = HOST_INSTALL_BLUEPRINTS[input.host];
   const installRoot = resolveInstallRoot(input.homeRoot);
   const configPath = join(installRoot, blueprint.configFileName);
@@ -597,6 +611,7 @@ async function assertInstalledHostConfigExists(input: {
       validation.detail,
     );
   }
+  return validation.config;
 }
 
 async function mergeInstallConfig(input: {
@@ -607,6 +622,7 @@ async function mergeInstallConfig(input: {
   embedding?: InstalledHostEmbeddingProviderConfig;
   host: InstalledHostKind;
   installRoot: string;
+  language?: InstalledHostLanguageConfig;
   memoryPath: string;
   preferInputMemoryPath: boolean;
   preferInputUserId: boolean;
@@ -623,6 +639,7 @@ async function mergeInstallConfig(input: {
       contextMode: input.contextMode ?? DEFAULT_INSTALLED_HOST_CONTEXT_MODE,
       debug: false,
       host: input.host,
+      ...(input.language ? { language: input.language } : {}),
       maintenance: { auto: true },
       maxTokens: INSTALL_DEFAULT_MAX_TOKENS,
       promptInjection: "relevance_gated",
@@ -714,6 +731,7 @@ async function mergeInstallConfig(input: {
     contextMode: input.contextMode ?? existingContextMode,
     debug,
     host: input.host,
+    ...(input.language ? { language: input.language } : {}),
     maxTokens,
     providers,
     retrievalProfile,
@@ -732,6 +750,18 @@ async function mergeInstallConfig(input: {
     version: 1,
     writeback: input.writeback ?? existingWriteback,
   } as HostInstallConfigRecord;
+}
+
+function normalizeInstallLanguage(
+  language: InstalledHostLanguageConfig | undefined,
+): InstalledHostLanguageConfig | undefined {
+  return language
+    ? Object.freeze({
+        defaultLocale: canonicalizeInstalledHostDefaultLocale(
+          language.defaultLocale,
+        ),
+      })
+    : undefined;
 }
 
 async function updateInstalledHostWritebackMode(input: {
@@ -1156,23 +1186,33 @@ async function mergeWorkspaceConfig(input: {
 // what makes the host actually read injected context and use the MCP tools
 // instead of re-deriving project facts every session. Markers stay stable so
 // repair/enable can refresh the prose between them on existing repos.
-function buildInstallInstructionBlock(blueprint: HostInstallBlueprint): string {
+function buildInstallInstructionBlock(
+  blueprint: HostInstallBlueprint,
+  defaultLocale?: string,
+): string {
   const hostLabel = blueprint.host === "codex" ? "Codex" : "Claude Code";
+  const language = createLanguageService({
+    ...(defaultLocale ? { defaultLocale } : {}),
+    detection: "default_only",
+  });
+  const context = language.resolveFromText({ text: "" });
+  const render = (key: LanguageRenderKey): string =>
+    language.render({ key, values: { host: hostLabel } }, context);
   return [
     `## GoodMemory ${hostLabel}`,
     "",
-    `This repository uses GoodMemory (installed ${hostLabel} host path) for durable, governed memory.`,
+    render("installed_host_intro"),
     "",
-    "Memory protocol:",
-    "- Hook-injected \"Developer memory notes\" blocks are memory retrieved for the current prompt. Read them before planning and prefer them over re-deriving project facts; verify time-sensitive facts against the repo before acting on them.",
-    "- When injected context is missing or insufficient, call goodmemory_get_context with a specific question (any question, not just the current prompt).",
-    "- When you need specific records rather than a rendered summary, call goodmemory_search_index and then goodmemory_get_records. When a memory looks wrong or is unexpectedly missing, call goodmemory_trace_recall to see why it was or was not selected.",
-    "- When you learn a durable fact, decision, preference, or blocker worth keeping and the goodmemory_remember tool is available, persist it with one clear statement per call. Writes are governed and auditable; the result explains any rejection.",
-    "- Treat exported artifact files as projections, not canonical truth, and do not restate injected memory verbatim into files or commit messages.",
+    render("installed_host_protocol_heading"),
+    `- ${render("installed_host_injected_context_protocol")}`,
+    `- ${render("installed_host_context_tool_protocol")}`,
+    `- ${render("installed_host_record_tools_protocol")}`,
+    `- ${render("installed_host_remember_protocol")}`,
+    `- ${render("installed_host_projection_protocol")}`,
     ...(blueprint.host === "claude"
       ? [
           "",
-          "GoodMemory complements Claude Code auto-memory: keep your own session working notes in MEMORY.md; keep durable project facts, decisions, and preferences in GoodMemory so they surface per-prompt with provenance. Do not copy hook-injected GoodMemory content into MEMORY.md.",
+          render("installed_host_claude_memory_protocol"),
         ]
       : []),
   ].join("\n");

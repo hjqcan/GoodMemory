@@ -46,6 +46,27 @@ describe("local embedding adapter", () => {
     expect(dot(a, b)).toBeGreaterThan(dot(a, c));
   });
 
+  it("preserves Unicode words across every built-in script family", () => {
+    const samples = [
+      "品質閘門",
+      "リリース手順",
+      "출시 차단기",
+      "mémoire française",
+      "memoria española",
+    ];
+
+    for (const sample of samples) {
+      expect(l2(embedTextLocally(sample))).toBeCloseTo(1, 6);
+    }
+
+    const koreanQuery = embedTextLocally("출시 차단기는 무엇인가요");
+    const koreanRelated = embedTextLocally("출시 차단기는 검토 승인입니다");
+    const unrelated = embedTextLocally("presupuesto trimestral");
+    expect(dot(koreanQuery, koreanRelated)).toBeGreaterThan(
+      dot(koreanQuery, unrelated),
+    );
+  });
+
   it("returns a zero vector for empty/symbol-only text without throwing", () => {
     const vector = embedTextLocally("!!!  ---", 64);
     expect(vector).toHaveLength(64);

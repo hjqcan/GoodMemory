@@ -5,6 +5,8 @@ import type { MemoryScope } from "../domain/scope";
 import { normalizeScope, scopeToKey } from "../domain/scope";
 import { SESSION_ARCHIVES_COLLECTION } from "../domain/evolutionRecords";
 import {
+  PROJECTION_SEARCH_SCHEMA_VERSION,
+  RECALL_PROJECTION_PIPELINE_VERSION,
   SCOPE_CATALOG_COLLECTION,
   type ScopeCatalogProjection,
 } from "../recall/projections/contracts";
@@ -331,10 +333,13 @@ async function ensureHistoricalScopeCatalog(
     await documentStore.set<ScopeCatalogProjection>(SCOPE_CATALOG_COLLECTION, id, {
       ...summary.scope,
       coverage: "partial",
+      analyzerFingerprint: null,
       firstSeenAt: timestamp,
       id,
       lastSeenAt: timestamp,
-      schemaVersion: 1,
+      projectionVersion: RECALL_PROJECTION_PIPELINE_VERSION,
+      schemaVersion: 2,
+      searchSchemaVersion: PROJECTION_SEARCH_SCHEMA_VERSION,
       scopeKey: summary.scopeKey,
     });
   }
@@ -405,12 +410,16 @@ function isScopeCatalogProjection(
   }
   const record = value as Record<string, unknown>;
   return (
-    record.schemaVersion === 1 &&
+    record.schemaVersion === 2 &&
     typeof record.id === "string" &&
     record.id.startsWith("scope:") &&
     typeof record.scopeKey === "string" &&
     typeof record.userId === "string" &&
     (record.coverage === "partial" || record.coverage === "complete") &&
+    (record.analyzerFingerprint === null ||
+      typeof record.analyzerFingerprint === "string") &&
+    record.projectionVersion === RECALL_PROJECTION_PIPELINE_VERSION &&
+    record.searchSchemaVersion === PROJECTION_SEARCH_SCHEMA_VERSION &&
     typeof record.firstSeenAt === "string" &&
     typeof record.lastSeenAt === "string"
   );

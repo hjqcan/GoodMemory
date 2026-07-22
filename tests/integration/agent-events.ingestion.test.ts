@@ -3,6 +3,7 @@ import {
   createGoodMemory,
   createInMemoryDocumentStore,
   createInMemorySessionStore,
+  createLanguageService,
   createRuntimeArchiveStore,
   createRuntimeContextService,
 } from "../../src";
@@ -12,6 +13,16 @@ import { ingestAgentInputEvent } from "../../src/ai-sdk";
 import { EXPERIENCES_COLLECTION } from "../../src/evolution/contracts";
 import { ingestHostAgentEvent } from "../../src/host";
 import type { DocumentStore } from "../../src/storage/contracts";
+
+function builtinAnalyzerVersion(packId: string): string {
+  const pack = createLanguageService()
+    .getAnalyzerManifest()
+    .packs.find(({ id }) => id === packId);
+  if (!pack) {
+    throw new Error(`Missing built-in language pack ${packId}.`);
+  }
+  return pack.analyzerVersion;
+}
 
 function createExperienceFailingOnceDocumentStore(): DocumentStore {
   const store = createInMemoryDocumentStore();
@@ -26,6 +37,16 @@ function createExperienceFailingOnceDocumentStore(): DocumentStore {
       }
 
       await store.set(collection, id, document);
+    },
+    async writeBatchIfUnchanged(input) {
+      if (
+        !failed &&
+        input.set.some(({ collection }) => collection === EXPERIENCES_COLLECTION)
+      ) {
+        failed = true;
+        throw new Error("experience repository unavailable");
+      }
+      return store.writeBatchIfUnchanged(input);
     },
   };
 }
@@ -50,6 +71,22 @@ function createValidatedPatternCompileFailingOnceDocumentStore(): DocumentStore 
       }
 
       await store.set(collection, id, document);
+    },
+    async writeBatchIfUnchanged(input) {
+      if (
+        !failed &&
+        input.set.some(({ collection, document }) =>
+          collection === "feedback" &&
+          typeof document === "object" &&
+          document !== null &&
+          "kind" in document &&
+          document.kind === "validated_pattern"
+        )
+      ) {
+        failed = true;
+        throw new Error("validated pattern compile unavailable");
+      }
+      return store.writeBatchIfUnchanged(input);
     },
   };
 }
@@ -137,9 +174,9 @@ describe("agent event ingestion", () => {
     expect(exported.durable.evidence[0]?.excerpt).toContain("QuickCheck timed out");
     expect(exported.durable.evidence[0]?.source).toMatchObject({
       languagePackId: "en",
-      languagePackVersion: "1",
+      languagePackVersion: builtinAnalyzerVersion("en"),
       locale: "en-US",
-      localeSource: "detected",
+      localeSource: "default",
     });
     expect(exported.durable.experiences).toHaveLength(1);
     expect(exported.durable.experiences[0]?.traceId).toBe("event-1");
@@ -510,9 +547,9 @@ describe("agent event ingestion", () => {
     );
     expect(explicitFeedbackRecord?.source).toMatchObject({
       languagePackId: "en",
-      languagePackVersion: "1",
+      languagePackVersion: builtinAnalyzerVersion("en"),
       locale: "en-US",
-      localeSource: "detected",
+      localeSource: "default",
     });
     expect(
       afterExplicitFeedback.durable.feedback.some(

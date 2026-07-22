@@ -74,6 +74,56 @@ describe("runtime context service", () => {
     expect(archives[0]?.locale).toBe("ja-JP");
   });
 
+  for (const testCase of [
+    {
+      content: "請保留部署決策與待辦。",
+      currentGoal: "完成部署",
+      decision: "保留回滾方案",
+      expectedLabels: ["當前目標", "關鍵決策", "待辦"],
+      locale: "zh-Hant",
+      openLoop: "確認監控",
+    },
+    {
+      content: "デプロイの決定事項と未完了事項を保持してください。",
+      currentGoal: "デプロイを完了する",
+      decision: "ロールバック案を維持する",
+      expectedLabels: ["現在の目標", "重要な決定", "未完了事項"],
+      locale: "ja-JP",
+      openLoop: "監視を確認する",
+    },
+  ]) {
+    it(`renders ${testCase.locale} archive labels through its language pack`, async () => {
+      const { repositories, service } = createService(3, {
+        language: createLanguageService(),
+      });
+      const scope = {
+        userId: `u-${testCase.locale}`,
+        sessionId: `s-${testCase.locale}`,
+      };
+      await service.startSession(scope);
+      await service.appendToSession(scope, {
+        role: "user",
+        content: testCase.content,
+      });
+      await service.updateWorkingMemory(scope, {
+        currentGoal: testCase.currentGoal,
+        openLoops: [testCase.openLoop],
+        temporaryDecisions: [testCase.decision],
+      });
+
+      await service.endSession(scope);
+
+      const archive = (await repositories.archives.listByScope(scope))[0]!;
+      expect(archive.locale).toBe(testCase.locale);
+      for (const label of testCase.expectedLabels) {
+        expect(archive.summary).toContain(label);
+      }
+      expect(archive.summary).not.toContain("Goal:");
+      expect(archive.summary).not.toContain("Key decisions:");
+      expect(archive.summary).not.toContain("Open loops:");
+    });
+  }
+
   it("starts isolated sessions and enforces lifecycle boundaries", async () => {
     const { clock, service } = createService();
     const sessionOne = { userId: "u-1", sessionId: "s-1" };
@@ -138,6 +188,36 @@ describe("runtime context service", () => {
     expect(state.buffer.summary).toBe("User confirmed runtime architecture.");
     expect(state.buffer.summaryUpToIndex).toBe(2);
   });
+
+  for (const testCase of [
+    {
+      locale: "zh-Hant",
+      messages: ["請保留第一則訊息。", "這是第二則。", "這是第三則。"],
+      summary: "較早的訊息已壓縮。",
+    },
+    {
+      locale: "ja-JP",
+      messages: ["最初のメッセージを保持します。", "二番目です。", "三番目です。"],
+      summary: "以前のメッセージは圧縮されました。",
+    },
+  ] as const) {
+    it(`renders the ${testCase.locale} compaction placeholder through its pack`, async () => {
+      const { service } = createService(2, {
+        language: createLanguageService(),
+      });
+      const scope = {
+        userId: `u-compact-${testCase.locale}`,
+        sessionId: `s-compact-${testCase.locale}`,
+      };
+      await service.startSession(scope);
+      for (const content of testCase.messages) {
+        await service.appendToSession(scope, { role: "user", content });
+      }
+
+      const state = await service.getRuntimeState(scope);
+      expect(state.buffer.summary).toBe(testCase.summary);
+    });
+  }
 
   it("invokes pre-compact salvage hooks before trimming buffered messages", async () => {
     const preCompactCalls: Array<{

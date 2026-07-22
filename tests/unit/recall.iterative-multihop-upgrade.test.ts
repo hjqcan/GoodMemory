@@ -7,6 +7,18 @@ import {
 } from "../../src/recall/iterativeRecall";
 import { createLanguageService } from "../../src/language";
 
+const language = createLanguageService();
+
+function analyzeBridgeText(text: string) {
+  const context = language.resolveFromText({ text });
+  return {
+    entities: language.extractEntityMentions(text, context).map(
+      (mention) => mention.surface,
+    ),
+    tokens: language.tokenize(text, context, { excludeStopwords: true }),
+  };
+}
+
 function fact(id: string, content: string): FactMemory {
   return createFactMemory({
     id,
@@ -57,6 +69,7 @@ describe("iterativeRecall multi-hop upgrade", () => {
 
   it("does not turn timestamps, contractions, or a query possessive into bridges", () => {
     const bridges = extractBridgeEntities({
+      analyzeBridgeText,
       facts: [{
         content:
           "[2022-10-06T11:00:00.000Z] Joanna's book names Redemption as its central theme. I'm writing about it.",
@@ -96,7 +109,11 @@ describe("iterativeRecall multi-hop upgrade", () => {
   });
 
   it("default two passes reach the first bridge but not the second", async () => {
-    const outcome = await iterativeRecall({ query, recall: lexicalRecall(corpus) });
+    const outcome = await iterativeRecall({
+      query,
+      recall: lexicalRecall(corpus),
+      options: { analyzeBridgeText },
+    });
     expect(outcome.hops).toBe(2);
     const ids = outcome.result.facts.map((entry) => entry.id);
     expect(ids).toContain("a-start");
@@ -108,7 +125,7 @@ describe("iterativeRecall multi-hop upgrade", () => {
     const outcome = await iterativeRecall({
       query,
       recall: lexicalRecall(corpus),
-      options: { maxHops: 3 },
+      options: { analyzeBridgeText, maxHops: 3 },
     });
     expect(outcome.hops).toBe(3);
     const ids = outcome.result.facts.map((entry) => entry.id);
@@ -123,7 +140,7 @@ describe("iterativeRecall multi-hop upgrade", () => {
     const outcome = await iterativeRecall({
       query: "Who owns the release?",
       recall: lexicalRecall([a, b]),
-      options: { maxHops: 5 },
+      options: { analyzeBridgeText, maxHops: 5 },
     });
     expect(outcome.hops).toBeLessThan(5);
   });

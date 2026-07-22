@@ -42,6 +42,48 @@ import {
 import { SCOPE_DELETION_LOCKS_COLLECTION } from "../../src/storage/scopeDeletion";
 
 describe("public governance API", () => {
+  it("renders exported artifact labels with the explicitly requested locale", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+    const exported = await memory.exportMemory({
+      locale: "ja-JP",
+      scope: { userId: "u-ja-export" },
+    });
+    const user = exported.artifacts.files.find(
+      ({ relativePath }) => relativePath === "user.md",
+    );
+    const memoryIndex = exported.artifacts.files.find(
+      ({ relativePath }) => relativePath === "MEMORY.md",
+    );
+
+    expect(user?.content).toContain("# ユーザーメモリ");
+    expect(user?.content).toContain("## プロフィール");
+    expect(memoryIndex?.content).toContain("# メモリ索引");
+    expect(memoryIndex?.content).toContain("## 参照資料");
+    expect(memoryIndex?.content).toContain("## 事実");
+  });
+
+  it("resolves export language exactly once through the configured detector", async () => {
+    let detectorCalls = 0;
+    const memory = createGoodMemory({
+      language: {
+        detector() {
+          detectorCalls += 1;
+          return "zh-Hant";
+        },
+      },
+      storage: { provider: "memory" },
+    });
+    const exported = await memory.exportMemory({
+      scope: { userId: "u-detected-export" },
+    });
+    const memoryIndex = exported.artifacts.files.find(
+      ({ relativePath }) => relativePath === "MEMORY.md",
+    );
+
+    expect(detectorCalls).toBe(1);
+    expect(memoryIndex?.content).toContain("# 記憶索引");
+  });
+
   it("exports scoped durable memory and optional runtime memory", async () => {
     const documentStore = createInMemoryDocumentStore();
     const sessionStore = createInMemorySessionStore();

@@ -331,7 +331,7 @@ describe("public reviseMemory API", () => {
       languagePackId: "en",
       languagePackVersion: englishAnalyzerVersion,
       locale: "en-US",
-      localeSource: "detected",
+      localeSource: "default",
     });
     expect(evidence?.kind).toBe("correction_context");
     expect(evidence).toMatchObject({
@@ -343,7 +343,7 @@ describe("public reviseMemory API", () => {
         languagePackId: "en",
         languagePackVersion: englishAnalyzerVersion,
         locale: "en-US",
-        localeSource: "detected",
+        localeSource: "default",
       },
     });
     expect(evidence?.linkedMemoryIds).toEqual([
@@ -741,6 +741,53 @@ describe("public reviseMemory API", () => {
     expect(spansJson).not.toContain("SECRET-TRACE");
     expect(spansJson).not.toContain("SECRET-OTHER");
     expect(spans.some((span) => span.attributes?.reason === "custom")).toBe(true);
+  });
+
+  it("redacts localized credential evidence with the resolved LanguagePack", async () => {
+    const cases = [
+      { credential: "비밀번호: bridge-secret", locale: "ko-KR" },
+      { credential: "mot de passe : bridge-secret", locale: "fr-FR" },
+      { credential: "contraseña: bridge-secret", locale: "es-ES" },
+      { credential: "密码：bridge-secret", locale: "zh-CN" },
+      { credential: "密碼：bridge-secret", locale: "zh-TW" },
+      { credential: "パスワード：bridge-secret", locale: "ja-JP" },
+    ];
+
+    for (const [index, entry] of cases.entries()) {
+      const memory = createGoodMemory({ storage: { provider: "memory" } });
+      const scope = {
+        sessionId: `localized-revision-${index}`,
+        userId: `localized-revision-user-${index}`,
+      };
+      const remembered = await memory.remember({
+        annotations: [
+          { kindHint: "fact", messageIndex: 0, remember: "always" },
+        ],
+        messages: [{ content: "The incident owner is Mira.", role: "user" }],
+        scope,
+      });
+      const targetMemoryId = remembered.events.find(
+        (event) => event.memoryType === "fact",
+      )?.memoryId;
+      expect(targetMemoryId).toBeString();
+
+      const result = await memory.reviseMemory({
+        evidence: { message: entry.credential, source: "user_message" },
+        idempotencyKey: `localized-revision-${index}`,
+        locale: entry.locale,
+        reason: "user_correction",
+        revision: { content: "The incident owner is Jules." },
+        scope,
+        target: { memoryId: targetMemoryId! },
+      });
+      const exported = await memory.exportMemory({ scope });
+      const evidence = exported.durable.evidence.find(
+        (record) => record.id === result.evidenceIds?.[0],
+      );
+
+      expect(evidence?.excerpt).toBe("[redacted-secret]");
+      expect(JSON.stringify(evidence)).not.toContain("bridge-secret");
+    }
   });
 
   it("blocks targeted revisions that become empty after redaction", async () => {

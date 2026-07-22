@@ -1,0 +1,140 @@
+ADR-008: LanguagePack Horizontal Extension and Versioned Projection Migration
+=============================================================================
+
+Status
+------
+Accepted (2026-07-21)
+
+Context
+-------
+Language behavior used to be split between a partial language-adapter surface
+and locale-specific rules in remember, recall, context rendering, projection,
+and installed-host code. Adding a language therefore required edits across the
+product. The same input could be extracted with one set of rules, indexed with
+another, and queried or rendered with an English/Simplified-Chinese fallback.
+
+Language support is not a label-file concern. Detection, equality
+normalization, query/content analysis, temporal parsing, candidate extraction,
+entity identity, derived search text, and human-readable rendering must use one
+versioned semantic identity. Derived projections must also prove which
+resolver, pack analyzers, source generation, and search schema produced them.
+
+Decision
+--------
+1. GoodMemory 0.7.0 is a clean breaking replacement. `LanguagePack` is the
+   only language extension point. The former `LanguageAdapter`, language
+   `adapters` configuration, `ResolvedLanguageContext.adapter`, adapter
+   factories, deprecated aliases, and language `adapterId` metadata are
+   removed rather than shimmed. Storage/provider/host concepts that also use
+   the word "adapter" are unrelated and are not removed by this decision.
+
+2. A pack is a complete semantic unit. It owns locale detection, equality
+   normalization, tokenization, bounded search terms, clause/sentence/query
+   decomposition, structured query and content analysis, temporal expression
+   parsing, entity mention and alias behavior, candidate extraction, and
+   human-readable rendering. It does not own BM25/RRF, ranking thresholds,
+   context budgets, UTC arithmetic, visibility, lifecycle, transactions, or
+   storage implementation.
+
+3. The built-in packs are `en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `fr`, and
+   `es`. The two Chinese
+   packs share implementation primitives but have distinct compatibility
+   groups and script-local analyzer identities. GoodMemory guarantees
+   Simplified write/query recall within the Simplified pack and Traditional
+   write/query recall within the Traditional pack. It does not guarantee
+   Simplified-to-Traditional or Traditional-to-Simplified lexical recall.
+   Canonical user text is never converted. No OpenCC, third-party language
+   detector, Japanese/Korean/Romance-language NLP library, or other new runtime
+   dependency is added.
+
+4. Locale resolution is deterministic: explicit locale; `default_only`;
+   versioned custom detector; unique built-in `distinctive` result; unique
+   `compatible` result; configured default. Kana is a Japanese distinctive
+   signal. Hangul is a Korean distinctive signal. French and Spanish require
+   language-specific grammar, diacritic, or punctuation evidence before they
+   override the configured default. Explicit Hans/Hant characters may
+   distinguish a Chinese pack. Ambiguous Han-only or unmarked Latin text falls
+   back to the configured default. Unsupported
+   explicit locales use a neutral Unicode pack and do not acquire English
+   semantics. BCP-47 aliases map `zh-CN`/`zh-SG` to Hans and
+   `zh-TW`/`zh-HK`/`zh-MO` to Hant; bare `zh` prefers a configured Chinese
+   default and otherwise resolves to Hans.
+
+5. `LanguageService` registers and snapshots packs, canonicalizes locales,
+   resolves one language context per operation, delegates analysis, and emits
+   a stable analyzer manifest. A custom pack may replace a built-in only by
+   reusing its id and locale claims; competing ids may not claim the same
+   canonical locale. A custom detector used in automatic mode must declare a
+   stable version before its analyzer manifest can be persisted as projection
+   proof.
+
+6. Locale-specific lexicons, Unicode-script detection, and natural-language
+   rules live only under `src/language/**`. Business modules consume narrow,
+   language-neutral analysis ports and may not switch on concrete locale or
+   pack ids. Storage consumes precomputed `searchText` and remains unaware of
+   language semantics.
+
+7. Canonical records retain raw text. Derived document, entity, and claim
+   projections carry `searchText`, `searchLocale`, `languagePackId`,
+   `searchAnalyzerVersion`, and `searchSchemaVersion`. Writes and queries use
+   the same pack/analyzer. SQLite FTS and PostgreSQL GIN admit candidates from
+   `searchText`; application-level scoring remains the ranking authority.
+
+8. The 0.7 projection generation uses new collections: documents v3, entities
+   v2, claims/status v2, and scope catalog v2. The catalog binds projection
+   version, analyzer manifest/build identity, and canonical source-generation
+   proof. A semantic analyzer or search-schema change requires a version bump
+   and rebuild; one document's metadata is never treated as scope-wide proof.
+
+9. Migration is per scope, locked, interruptible, and repeatable. Lazy recall
+   or the `projectionMigration` maintenance job builds the new generation from
+   canonical memory, validates source/claim/status/evidence/entity coverage,
+   and atomically marks it complete. Until that proof is complete, recall must
+   not read a partial new generation and instead uses the canonical fallback.
+   After cutover it deletes the old scope projections and stale FTS rows.
+   Migration never rewrites canonical memory. Old records with no locale
+   provenance are reclassified only when Kana or an unambiguous Hans/Hant
+   signal exists; ambiguous Han-only text keeps its prior/default identity.
+
+10. New durable sources record `locale`, `localeSource`, `languagePackId`, and
+    `languagePackVersion`; these fields remain optional when reading old data.
+    JSON field names remain stable English identifiers. Human-readable
+    context, evidence, working-memory, journal, fact/reference/episode, and
+    installed-host text is rendered by the resolved pack.
+
+11. Release acceptance is behavior and evidence based: one conformance suite
+    for every built-in pack; an `xx-Test` custom pack that completes remember
+    through projection, recall, and buildContext without business-code edits;
+    in-memory/SQLite/PostgreSQL parity; migration interruption/concurrency and
+    orphan cleanup tests; multilingual scale/index proof; full tests,
+    typecheck, coverage, package/type/release tests, Node 20 and Bun consumer
+    smoke, and a packed artifact below 4 MiB. PostgreSQL support is not claimed
+    without a real `GOODMEMORY_TEST_POSTGRES_URL` run including `EXPLAIN`.
+
+12. Existing 0.6 benchmark artifacts remain immutable historical evidence.
+    They do not prove 0.7 behavior, performance, package readiness, or coding
+    uplift and must not be relabeled as a 0.7 release gate.
+
+Consequences
+------------
++ A new language can be added by implementing and registering one complete
+  pack and passing the shared conformance/integration gates; remember, recall,
+  answer, storage, and installed-host business modules do not gain a new
+  locale branch.
++ Analyzer identity and projection completeness become explicit, reproducible,
+  and fail-closed across process restarts.
++ Raw user content remains reversible and independent of analyzer changes.
+- 0.7 requires source and configuration migration; there is no adapter shim or
+  dual-write transition.
+- Cross-script Chinese lexical recall is deliberately outside this release.
+- A production rollback after completed migration requires the pre-upgrade
+  storage/configuration snapshot or a forward fix; old projection collections
+  are not retained as a compatibility runtime.
+
+Related
+-------
+- docs/GoodMemory-LanguagePack-Extension-Guide.md
+- docs/GoodMemory-0.6-to-0.7-Migration-Guide.md
+- docs/GoodMemory-First-Principles-and-Reference-Architecture.md
+- docs/GoodMemory-PRD.md
+- ADR-006 (module layering and shared contracts)

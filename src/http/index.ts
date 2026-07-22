@@ -16,7 +16,7 @@ import type {
   ReviseMemoryResult,
 } from "../api/contracts";
 import type { MemoryScope } from "../domain/scope";
-import { rememberRules, type RememberConfig } from "../remember/profiles";
+import type { RememberConfig } from "../remember/profiles";
 import { isProviderBackedRecallError } from "../recall/errors";
 import { inspectGoodMemoryRuntime } from "../api/runtimeInfo";
 import { buildGoodMemoryCapabilityDescriptor } from "../api/capabilityDescriptor";
@@ -1715,39 +1715,6 @@ export function createLifeCoachHttpRememberConfig(): RememberConfig {
         assistantOutputs: { mode: "confirmed_or_verified_only" },
         extends: "default",
         id: "life-coach",
-        rules: [
-          rememberRules.fact(/my top priority this quarter is (.+)/i, {
-            category: "goal",
-            content: ({ match }) => `Quarterly priority: ${match[1] ?? ""}`,
-            id: "life-coach-quarterly-priority",
-            tags: ["life_coach", "goal"],
-          }),
-          rememberRules.fact(/my current goal is (.+)/i, {
-            category: "goal",
-            content: ({ match }) => match[1] ?? "",
-            id: "life-coach-current-goal",
-            tags: ["life_coach", "goal"],
-          }),
-          rememberRules.fact(/my habit is (.+)/i, {
-            category: "habit",
-            content: ({ match }) => match[1] ?? "",
-            id: "life-coach-habit",
-            tags: ["life_coach", "habit"],
-          }),
-          rememberRules.preference(/please coach me with (.+)/i, {
-            category: "coaching_style",
-            id: "life-coach-coaching-style",
-            tags: ["life_coach", "coaching_style"],
-            value: ({ match }) => match[1] ?? "",
-          }),
-          rememberRules.feedback(/keep doing (.+)/i, {
-            appliesTo: "life_coach_response",
-            content: ({ match }) => match[1] ?? "",
-            feedbackKind: "do",
-            id: "life-coach-intervention-feedback",
-            tags: ["life_coach", "intervention_feedback"],
-          }),
-        ],
         when: { agentId: "life-coach" },
       },
     ],

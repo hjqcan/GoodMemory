@@ -100,6 +100,11 @@ export const GROUPS: ThresholdGroup[] = [
     matches: (path) => path.startsWith("src/install/"),
   },
   {
+    name: "src/language",
+    threshold: 85,
+    matches: (path) => path.startsWith("src/language/"),
+  },
+  {
     name: "src/cli.ts",
     threshold: 85,
     matches: (path) => path === "src/cli.ts",

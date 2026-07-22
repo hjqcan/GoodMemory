@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import { createGoodMemory } from "../../src";
 import { createInternalGoodMemory } from "../../src/api/createGoodMemory";
+import { createFactMemory } from "../../src/domain/records";
 import {
   PROJECTION_MANIFESTS_COLLECTION,
   PROJECTION_REPAIRS_COLLECTION,
@@ -73,6 +74,46 @@ function createOneShotProjectionDeleteFailureStore(
 }
 
 describe("recall projections through the public API", () => {
+  it("runs an explicit projectionMigration maintenance job from canonical memory", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      retrieval: { preset: "recommended" },
+    });
+    const scope = {
+      userId: "migration-user",
+      workspaceId: "migration-workspace",
+    };
+    const fact = createFactMemory({
+      id: "fact-maintenance-migration",
+      ...scope,
+      category: "project",
+      content: "Atlas uses PostgreSQL.",
+      source: { method: "explicit", extractedAt: "2026-07-10T00:00:00.000Z" },
+      createdAt: "2026-07-10T00:00:00.000Z",
+      updatedAt: "2026-07-10T00:00:00.000Z",
+    });
+    await documentStore.set("facts", fact.id, fact);
+
+    const report = await memory.runMaintenance({
+      scope,
+      jobs: ["projectionMigration"],
+    });
+
+    expect(report.maintenance?.jobs).toContainEqual({
+      name: "projectionMigration",
+      applied: 1,
+    });
+    expect(
+      await documentStore.query(RECALL_DOCUMENTS_COLLECTION, {
+        sourceMemoryId: fact.id,
+      }),
+    ).not.toEqual([]);
+  });
+
   it("does not persist projection trust proof for caller-owned stores", async () => {
     const documentStore = createInMemoryDocumentStore();
     const memory = createGoodMemory({

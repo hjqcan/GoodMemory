@@ -43,6 +43,7 @@ import {
 } from "../recall/contextBuilder";
 import { createRecallEngine } from "../recall/engine";
 import { selectEvidence } from "../recall/evidence";
+import type { FactSelector } from "../recall/generalizedSelection";
 import {
   iterativeRecall,
   type IterativeRecallStep,
@@ -52,6 +53,7 @@ import { buildRecallProjectionBuildId } from "../recall/projections/manifest";
 import { decomposedRecall } from "../recall/queryDecomposition";
 import {
   buildDeterministicRecallPlan,
+  buildUnplannedRecallPlan,
   resolveRecallPlan,
   type RecallPlan,
 } from "../recall/recallPlan";
@@ -61,7 +63,6 @@ import type {
   RecallQueryExecutionTrace,
   RecallRetrievalTrace,
 } from "../recall/retrievalTrace";
-import { createDeterministicMemoryExtractorWithLanguage } from "../remember/deterministicExtractor";
 import { createRememberEngine } from "../remember/engine";
 import { createInMemoryDocumentStore, createInMemorySessionStore, createInMemoryVectorStore } from "../storage/memory";
 import { createAutoStorageAdapters } from "../storage/auto";
@@ -128,7 +129,10 @@ import {
   type RerankerExecutionTarget,
   withRerankerTrace,
 } from "./recallReranking";
-import { wrapInternalRetrievalRolloutMemory } from "./internalRetrievalRollout";
+import {
+  readInternalRecallLanguageAnalysis,
+  wrapInternalRetrievalRolloutMemory,
+} from "./internalRetrievalRollout";
 import { reviseMemory as reviseMemoryThroughService } from "./revision";
 import { createGoodMemoryRuntimeFacade } from "./runtimeFacade";
 import type {
@@ -182,6 +186,8 @@ export interface InternalGoodMemoryOptions {
   assistedReviewer?: boolean;
   behavioralOutcomeRecorder?: boolean;
   environment?: Record<string, string | undefined>;
+  /** Repo-only instance selector override for historical evaluation profiles. */
+  factSelector?: FactSelector;
   projectionBulkBackfill?: boolean;
   projectionWriteThrough?: boolean;
   providerRerankingStrategy?: "listwise" | "pointwise";
@@ -1114,6 +1120,7 @@ class GoodMemoryImpl implements GoodMemory {
       runtime: sessionStore,
       vectorIndex: repositories.vectorIndex,
       embedding: embeddingAdapter,
+      factSelector: internal?.factSelector,
       autoStrategyBias: runtimeResolution.retrieval.autoStrategyBias,
       bm25Ranking: runtimeResolution.retrieval.bm25Ranking,
       generalizedFusion: runtimeResolution.retrieval.generalizedFusion,
@@ -1136,9 +1143,7 @@ class GoodMemoryImpl implements GoodMemory {
       claimProjection: projectionRuntime,
       documentStore,
       embedding: embeddingAdapter,
-      extractor:
-        config.testing?.extractor ??
-        createDeterministicMemoryExtractorWithLanguage(language),
+      extractor: config.testing?.extractor,
       language,
       remember: config.remember,
       policy: config.policy,
@@ -1181,6 +1186,7 @@ class GoodMemoryImpl implements GoodMemory {
       embedding: embeddingAdapter,
       language,
       projectionRepair: projectionRuntime,
+      projectionMigration: projectionRuntime,
       now: () => this.now().toISOString(),
     });
     const dreamMaintenanceGate = createDreamMaintenanceGate();
@@ -1193,6 +1199,7 @@ class GoodMemoryImpl implements GoodMemory {
     });
     this.evolutionRuntime = createEvolutionRuntime({
       governanceRepositories: repositories,
+      language,
       reviewer,
       proposalGate,
       compiler: proceduralPatternCompiler,
@@ -1215,10 +1222,17 @@ class GoodMemoryImpl implements GoodMemory {
     });
 
     try {
-      const resolvedLanguage = this.language.resolveFromText({
-        locale: input.locale,
-        text: input.query,
-      });
+      const internalLanguageAnalysis = readInternalRecallLanguageAnalysis(input);
+      const activeLanguageAnalysis = internalLanguageAnalysis?.query === input.query
+        ? internalLanguageAnalysis
+        : undefined;
+      const resolvedLanguage = activeLanguageAnalysis?.context ??
+        this.language.resolveFromText({
+          locale: input.locale,
+          text: input.query,
+        });
+      const queryAnalysis = activeLanguageAnalysis?.analysis ??
+        this.language.analyzeQuery(input.query, resolvedLanguage);
       const recallPlanExecution =
         this.config.retrieval?.recallPlanExecution === true;
       const recallReferenceTime =
@@ -1228,8 +1242,10 @@ class GoodMemoryImpl implements GoodMemory {
           : this.now().toISOString();
       const recallPlanInput = {
         language: this.language,
+        languageContext: resolvedLanguage,
         locale: resolvedLanguage.locale,
         query: input.query,
+        queryAnalysis,
         referenceTime: recallReferenceTime,
         scope: input.scope,
       };
@@ -1240,7 +1256,7 @@ class GoodMemoryImpl implements GoodMemory {
           })
         : {
             assistantApplied: false,
-            plan: buildDeterministicRecallPlan(recallPlanInput),
+            plan: buildUnplannedRecallPlan(),
           };
       if (planResolution.fallbackReason) {
         console.error(
@@ -1257,6 +1273,22 @@ class GoodMemoryImpl implements GoodMemory {
         : Boolean(input.multiHop);
       const decompositionEnabled = input.decompose ??
         (recallPlanExecution && recallPlan.facets.length > 0);
+      const queryLanguages = new Map([
+        [
+          input.query,
+          { analysis: queryAnalysis, context: resolvedLanguage },
+        ],
+      ]);
+      const resolveQueryLanguage = (query: string) => {
+        const cached = queryLanguages.get(query);
+        if (cached) {
+          return cached;
+        }
+        const analysis = this.language.analyzeQuery(query, resolvedLanguage);
+        const resolved = { analysis, context: resolvedLanguage };
+        queryLanguages.set(query, resolved);
+        return resolved;
+      };
       const runQuery = async (context: {
         query: string;
         role: "primary" | "subquery";
@@ -1265,13 +1297,16 @@ class GoodMemoryImpl implements GoodMemory {
         execution: RecallQueryExecutionTrace;
         result: RecallResult;
       }> => {
+        const plannedQueryLanguage = resolveQueryLanguage(context.query);
         const queryPlan = context.role === "primary" || !recallPlanExecution
           ? recallPlan
           : {
               ...buildDeterministicRecallPlan({
                 language: this.language,
-                locale: resolvedLanguage.locale,
+                languageContext: plannedQueryLanguage.context,
+                locale: plannedQueryLanguage.context.locale,
                 query: context.query,
+                queryAnalysis: plannedQueryLanguage.analysis,
                 referenceTime: recallReferenceTime,
                 scope: input.scope,
               }),
@@ -1290,10 +1325,13 @@ class GoodMemoryImpl implements GoodMemory {
         let hop = 0;
         const singlePassRecall = async (query: string) => {
           hop += 1;
+          const queryLanguage = resolveQueryLanguage(query);
           const result = await this.recallEngine.recall({
             ...input,
-            locale: resolvedLanguage.locale,
+            languageContext: queryLanguage.context,
+            locale: queryLanguage.context.locale,
             query,
+            queryAnalysis: queryLanguage.analysis,
             recallPlan: queryPlan,
           });
           return annotateRecallPass(result, {
@@ -1317,17 +1355,22 @@ class GoodMemoryImpl implements GoodMemory {
                 queryPlan,
                 this.language,
                 "iterative_recall",
-              ),
+            ),
             options: {
-              analyzeBridgeText: (text) => ({
-                entities: this.language.extractEntityMentions(
-                  text,
-                  resolvedLanguage,
-                ).map((mention) => mention.surface),
-                tokens: this.language.tokenize(text, resolvedLanguage, {
-                  excludeStopwords: true,
-                }),
-              }),
+              analyzeBridgeText: (text) => {
+                const bridgeLanguage = resolveQueryLanguage(text);
+                return {
+                  entities: this.language.extractEntityMentions(
+                    text,
+                    bridgeLanguage.context,
+                  ).map((mention) => mention.surface),
+                  tokens: this.language.tokenize(
+                    text,
+                    bridgeLanguage.context,
+                    { excludeStopwords: true },
+                  ),
+                };
+              },
               maxHops: queryMaxHops,
             },
           });
@@ -1746,6 +1789,7 @@ class GoodMemoryImpl implements GoodMemory {
         tracer: this.tracer,
         governanceRepositories: this.governanceRepositories,
         governanceVectors: this.governanceVectors,
+        language: this.language,
         sessionStore: this.sessionStore,
         documentStore: this.documentStore,
       },
@@ -1937,7 +1981,7 @@ export function createInternalGoodMemory(
     impl,
     {
       assistedRecallRouterEnabled: Boolean(internal?.assistedRecallRouter),
-      config,
+      languageService: (impl as unknown as { language: LanguageService }).language,
       now: config.testing?.now,
       rollout: internal?.retrievalStrategyRollout,
     },

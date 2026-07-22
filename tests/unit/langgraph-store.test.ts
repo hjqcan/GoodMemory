@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
+import type { LanguagePack } from "../../src";
 import {
+  createEnglishLanguagePack,
   createGoodMemory,
   createGoodMemoryLangGraphStore,
   createInMemoryDocumentStore,
@@ -98,6 +100,57 @@ describe("createGoodMemoryLangGraphStore", () => {
 
     const limited = await store.search(["memories"], { limit: 1 });
     expect(limited).toHaveLength(1);
+  });
+
+  it("uses the memory LanguagePack tokenizer for Korean namespace fallback", async () => {
+    const { memory, store } = buildStore();
+    await store.put(["memories", "ko"], "release", {
+      content: "프로젝트를 배포했습니다.",
+    });
+    const emptyRecall = await memory.recall({ query: "missing", scope });
+    memory.recall = async () => ({ ...emptyRecall, facts: [] });
+
+    const results = await store.search(["memories", "ko"], {
+      query: "프로젝트",
+    });
+
+    expect(results.map((entry) => entry.key)).toContain("release");
+  });
+
+  it("keeps namespace fallback horizontally extensible for custom tokenizers", async () => {
+    const english = createEnglishLanguagePack();
+    const customPack: LanguagePack = {
+      ...english,
+      analyzerVersion: "custom-1",
+      compatibilityGroup: "test-lexical",
+      defaultLocale: "tlh-Latn",
+      id: "test-lexical",
+      locales: ["tlh-Latn"],
+      detect({ texts }) {
+        return texts.some((text) => text.includes("¤"))
+          ? "distinctive"
+          : "none";
+      },
+      tokenizeForScoring(text) {
+        return text.includes("¤") ? ["shared-custom-term"] : [];
+      },
+    };
+    const memory = createGoodMemory({
+      language: { packs: [customPack] },
+      storage: { provider: "memory" },
+    });
+    const store = createGoodMemoryLangGraphStore({ memory, scope });
+    await store.put(["memories", "custom"], "custom", {
+      content: "¤archive",
+    });
+    const emptyRecall = await memory.recall({ query: "missing", scope });
+    memory.recall = async () => ({ ...emptyRecall, facts: [] });
+
+    const results = await store.search(["memories", "custom"], {
+      query: "¤lookup",
+    });
+
+    expect(results.map((entry) => entry.key)).toEqual(["custom"]);
   });
 
   it("keeps index:false items gettable but out of query search and fact content", async () => {

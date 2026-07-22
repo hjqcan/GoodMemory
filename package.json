@@ -41,6 +41,7 @@
     "dist",
     "docs/README.md",
     "docs/GoodMemory-15-Minute-App-Integration.md",
+    "docs/GoodMemory-0.6-to-0.7-Migration-Guide.md",
     "docs/GoodMemory-Claude-Code-Setup-Guide.md",
     "docs/GoodMemory-Codex-Handoff-Setup-Guide.md",
     "docs/GoodMemory-Cursor-Setup-Guide.md",
@@ -321,6 +322,7 @@
     "gate:phase-63": "bun run scripts/run-phase-63-gate.ts",
     "gate:phase-63-beam-closure": "bun run scripts/run-phase-63-beam-closure-gate.ts",
     "gate:v0-3-release-readiness": "bun run scripts/run-v0-3-release-readiness.ts",
+    "gate:v0.7": "bun run scripts/run-v0-7-release-readiness.ts",
     "gate:public-benchmark-claim": "bun run scripts/run-public-benchmark-claim-gate.ts",
     "gate:phase-68": "bun run scripts/run-phase-68-generalization-gate.ts",
     "gate:phase-69": "bun run scripts/run-phase-69-gate.ts",
@@ -347,7 +349,6 @@
     "@ai-sdk/provider-utils": "^4.0.21",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "ai": "^6.0.143",
-    "opencc-js": "1.4.1",
     "sqlite-vss": "0.1.2",
     "zod": "^4.3.6"
   }

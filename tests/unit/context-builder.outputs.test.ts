@@ -185,6 +185,42 @@ describe("context builder output modes", () => {
     expect(developerPrompt.content).toContain("Developer memory notes");
   });
 
+  it("renders prompt wrappers and omission labels through the active pack", () => {
+    const base = {
+      profile: {
+        userId: "u-localized",
+        identity: { name: "林", role: "工程師" },
+        expertise: { primarySkills: [], domains: [] },
+        activeContext: { goals: [], currentProjects: ["移行"] },
+        version: 1,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+      preferences: [],
+      references: [],
+      facts: [],
+      feedback: [],
+      archives: [],
+      evidence: [],
+      episodes: [],
+      workingMemory: null,
+      journal: null,
+    };
+    const traditional = renderMemoryPacket(
+      buildMemoryPacket({ ...base, locale: "zh-TW" }),
+      "developer_prompt_fragment",
+    );
+    const japanese = renderMemoryPacket(
+      buildMemoryPacket({ ...base, locale: "ja-JP" }),
+      "system_prompt_fragment",
+    );
+
+    expect(traditional.content).toStartWith("開發者記憶備註：");
+    expect(traditional.content).not.toContain("Developer memory notes");
+    expect(japanese.content).toStartWith("ユーザーメモリコンテキスト:");
+    expect(japanese.content).not.toContain("User memory context");
+  });
+
   it("respects token budgeting for json output by omitting low-priority sections", () => {
     const packet = buildMemoryPacket({
       profile: {

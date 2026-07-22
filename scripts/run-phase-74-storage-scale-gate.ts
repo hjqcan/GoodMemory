@@ -37,6 +37,52 @@ const SCOPE = {
 };
 const SCOPE_KEY = recallScopeKey(SCOPE);
 const TIMESTAMP = "2026-07-18T00:00:00.000Z";
+const SCALE_LANGUAGES = [
+  {
+    claimText: "Durable claim",
+    entityText: "Durable entity projection",
+    id: "en",
+    locale: "en-US",
+  },
+  {
+    claimText: "持久声明",
+    entityText: "持久实体投影",
+    id: "zh-Hans",
+    locale: "zh-CN",
+  },
+  {
+    claimText: "持久聲明",
+    entityText: "持久實體投影",
+    id: "zh-Hant",
+    locale: "zh-TW",
+  },
+  {
+    claimText: "永続クレーム",
+    entityText: "永続エンティティ投影",
+    id: "ja",
+    locale: "ja-JP",
+  },
+  {
+    claimText: "영구 주장",
+    entityText: "영구 엔터티 투영",
+    id: "ko",
+    locale: "ko-KR",
+  },
+  {
+    claimText: "Assertion durable",
+    entityText: "Projection d'entité durable",
+    id: "fr",
+    locale: "fr-FR",
+  },
+  {
+    claimText: "Afirmación duradera",
+    entityText: "Proyección de entidad duradera",
+    id: "es",
+    locale: "es-ES",
+  },
+] as const;
+
+type ScaleLanguagePackId = (typeof SCALE_LANGUAGES)[number]["id"];
 
 interface QueryPlanRow {
   detail: string;
@@ -44,6 +90,11 @@ interface QueryPlanRow {
 
 interface JsonValidityRow {
   valid: number;
+}
+
+interface LanguagePackCountRow {
+  count: number;
+  languagePackId: ScaleLanguagePackId;
 }
 
 interface StoreMethodCalls {
@@ -71,6 +122,7 @@ export interface Phase74StorageScaleGateReport {
   audit: {
     ftsIndexedDocumentCount: number;
     ftsKeyCount: number;
+    languagePackCounts: Record<ScaleLanguagePackId, number>;
     maxMaterializedDocumentsPerQuery: number;
     methodCalls: StoreMethodCalls;
     nonMatchingSentinelDidNotBreakSearch: boolean;
@@ -168,7 +220,8 @@ function createClaim(index: number): ClaimProjection {
   const suffix = index.toString().padStart(6, "0");
   const sourceMemoryId = `memory-${suffix}`;
   const predicateKey = "project.status";
-  const objectText = `Durable claim shard${index % QUERY_SHARD_COUNT} sequence${index}`;
+  const language = SCALE_LANGUAGES[index % SCALE_LANGUAGES.length]!;
+  const objectText = `${language.claimText} shard${index % QUERY_SHARD_COUNT} sequence${index}`;
   const text = buildClaimProjectionSearchText({
     subject: "Phase 74 scale project",
     predicateKey,
@@ -178,7 +231,7 @@ function createClaim(index: number): ClaimProjection {
   });
   return {
     id: `claim-${suffix}`,
-    schemaVersion: 1,
+    schemaVersion: 2,
     ...SCOPE,
     scopeKey: SCOPE_KEY,
     sourceMemoryId,
@@ -187,6 +240,10 @@ function createClaim(index: number): ClaimProjection {
     objectText,
     text,
     searchText: text,
+    searchLocale: language.locale,
+    languagePackId: language.id,
+    searchAnalyzerVersion: "scale-v1",
+    searchSchemaVersion: "gm-search-v2",
     polarity: "positive",
     modality: "asserted",
     observedAt: TIMESTAMP,
@@ -200,7 +257,7 @@ function createClaim(index: number): ClaimProjection {
 function createClaimStatus(claim: ClaimProjection): ClaimProjectionStatus {
   return {
     id: buildClaimProjectionStatusId(SCOPE, claim.sourceMemoryId),
-    schemaVersion: 1,
+    schemaVersion: 2,
     ...SCOPE,
     scopeKey: SCOPE_KEY,
     sourceMemoryId: claim.sourceMemoryId,
@@ -216,7 +273,8 @@ function createEntity(index: number): EntityAdjacencyProjection {
   const suffix = index.toString().padStart(6, "0");
   const canonicalKey = `entity shard${index % QUERY_SHARD_COUNT}`;
   const aliases = [`Entity ${index}`];
-  const description = `Durable entity projection sequence${index}`;
+  const language = SCALE_LANGUAGES[index % SCALE_LANGUAGES.length]!;
+  const description = `${language.entityText} sequence${index}`;
   const text = buildEntityProjectionSearchText({
     aliases,
     canonicalKey,
@@ -224,7 +282,7 @@ function createEntity(index: number): EntityAdjacencyProjection {
   });
   return {
     id: `entity-edge-${suffix}`,
-    schemaVersion: 1,
+    schemaVersion: 2,
     ...SCOPE,
     scopeKey: SCOPE_KEY,
     entityId: `entity-${suffix}`,
@@ -234,6 +292,10 @@ function createEntity(index: number): EntityAdjacencyProjection {
     description,
     text,
     searchText: text,
+    searchLocale: language.locale,
+    languagePackId: language.id,
+    searchAnalyzerVersion: "scale-v1",
+    searchSchemaVersion: "gm-search-v2",
     updatedAt: TIMESTAMP,
   };
 }
@@ -245,6 +307,7 @@ function seedProjectionDocuments(input: {
 }): {
   ftsIndexedDocumentCount: number;
   ftsKeyCount: number;
+  languagePackCounts: Record<ScaleLanguagePackId, number>;
   projectionCounts: ProjectionCounts;
   sentinelJsonValid: boolean;
   storedRowCount: number;
@@ -286,7 +349,11 @@ function seedProjectionDocuments(input: {
         claim.id,
         JSON.stringify(claim),
       );
-      insertSearchDocument(CLAIM_PROJECTIONS_COLLECTION, claim.id, claim.text!);
+      insertSearchDocument(
+        CLAIM_PROJECTIONS_COLLECTION,
+        claim.id,
+        claim.searchText,
+      );
       insertDocument.run(
         CLAIM_PROJECTION_STATUS_COLLECTION,
         status.id,
@@ -299,7 +366,7 @@ function seedProjectionDocuments(input: {
     for (let index = 0; index < entities; index += 1) {
       const entity = createEntity(index);
       insertDocument.run(ENTITIES_COLLECTION, entity.id, JSON.stringify(entity));
-      insertSearchDocument(ENTITIES_COLLECTION, entity.id, entity.text!);
+      insertSearchDocument(ENTITIES_COLLECTION, entity.id, entity.searchText);
       if ((index + 1) % 25_000 === 0) {
         input.onProgress?.(`seeded ${index + 1} entity projections`);
       }
@@ -336,6 +403,19 @@ function seedProjectionDocuments(input: {
        WHERE collection IN (?1, ?2)`,
     )
     .get(CLAIM_PROJECTIONS_COLLECTION, ENTITIES_COLLECTION)!.count;
+  const languagePackCounts = Object.fromEntries(
+    database
+      .query<LanguagePackCountRow, [string, string]>(
+        `SELECT
+           json_extract(json, '$.languagePackId') AS languagePackId,
+           count(*) AS count
+         FROM documents
+         WHERE collection IN (?1, ?2) AND json_valid(json)
+         GROUP BY json_extract(json, '$.languagePackId')`,
+      )
+      .all(CLAIM_PROJECTIONS_COLLECTION, ENTITIES_COLLECTION)
+      .map(({ count, languagePackId }) => [languagePackId, count]),
+  ) as Record<ScaleLanguagePackId, number>;
   const sentinelJsonValid = database
     .query<JsonValidityRow, [string, string]>(
       `SELECT json_valid(json) AS valid FROM documents
@@ -346,6 +426,7 @@ function seedProjectionDocuments(input: {
   return {
     ftsIndexedDocumentCount,
     ftsKeyCount,
+    languagePackCounts,
     projectionCounts,
     sentinelJsonValid,
     storedRowCount,
@@ -483,6 +564,7 @@ export async function runPhase74StorageScaleGate(
       nonMatchingSentinelDidNotBreakSearch &&
       seedAudit.ftsIndexedDocumentCount === syntheticDocumentCount &&
       seedAudit.ftsKeyCount === seedAudit.ftsIndexedDocumentCount &&
+      Object.values(seedAudit.languagePackCounts).every((count) => count > 0) &&
       maxMaterializedDocumentsPerQuery <= SELECTED_LIMIT;
 
     return {

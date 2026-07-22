@@ -291,6 +291,7 @@ export type {
   LanguageCandidateExtractionInput,
   LanguageAnalyzerManifest,
   LanguageAnalyzerManifestPack,
+  LanguageBehavioralRuleAnalysis,
   LanguageConfig,
   LanguageContentAnalysis,
   LanguageDetectionInput,
@@ -313,9 +314,12 @@ export type {
 export {
   createChineseLanguagePack,
   createEnglishLanguagePack,
+  createFrenchLanguagePack,
   createJapaneseLanguagePack,
+  createKoreanLanguagePack,
   createLanguageService,
   createNeutralLanguagePack,
+  createSpanishLanguagePack,
 } from "./language";
 export type {
   ClassifiedCandidate,

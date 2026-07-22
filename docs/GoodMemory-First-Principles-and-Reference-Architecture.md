@@ -673,9 +673,20 @@ extraction and matching, candidate extraction, and rendering.
 The composition root resolves one pack for each operation and passes that
 identity through remember, recall, projections, storage search, provenance, and
 context construction. Core modules must not add parallel locale switches or
-import concrete packs directly. Built-in packs may share explicit
-compatibility groups, such as Simplified and Traditional Chinese, without
-rewriting canonical source text.
+import concrete packs directly. Locale-specific lexicons, Unicode-script
+checks, and natural-language rules belong under `src/language/**`; storage
+receives derived search fields and does not interpret locale.
+
+The first-class built-ins are English, Simplified Chinese, Traditional Chinese,
+Japanese, Korean, French, and Spanish. Simplified and Traditional Chinese share implementation
+primitives but deliberately use distinct compatibility groups and script-local
+search analyzers. The 0.7 contract guarantees same-script recall, not
+Simplified/Traditional cross-script lexical equivalence. Canonical source text
+is never converted, and this boundary does not introduce OpenCC, a third-party
+language detector, or a Japanese/Korean/Romance-language NLP runtime. Ambiguous
+Han-only or unmarked Latin text resolves through the configured default;
+unsupported explicit locales use neutral Unicode behavior rather than English
+semantics.
 
 `analyzerVersion` is a migration identity, not display metadata. Derived recall
 documents record pack, analyzer, locale, and search-schema identity; any
@@ -686,6 +697,15 @@ application-level scoring remains the cross-backend ranking authority.
 The stable `LanguageService` analyzer manifest covers resolver configuration,
 all active packs, and custom-detector identity. An unversioned custom detector
 cannot participate in a persistent completeness proof.
+
+The 0.7 projection generation is versioned independently of canonical memory:
+documents v3, entities v2, claims/status v2, and scope catalog v2. A per-scope
+migration rebuilds from canonical sources, validates source and derived-record
+coverage, then atomically publishes a complete catalog proof. Recall must not
+consume a partial new generation; it uses the canonical fallback until cutover.
+Migration is repeatable and does not rewrite canonical memory. This is a clean
+breaking replacement of the former language adapter, with no compatibility
+shim or dual-write period; see ADR-008 and the 0.6-to-0.7 migration guide.
 
 ### 6.4 Default vs optional capabilities
 

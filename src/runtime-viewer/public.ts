@@ -8,6 +8,8 @@ import {
   resolveInstalledHostContext,
 } from "../install/hostExecutionContext";
 import {
+  PROJECTION_SEARCH_SCHEMA_VERSION,
+  RECALL_PROJECTION_PIPELINE_VERSION,
   SCOPE_CATALOG_COLLECTION,
   type ScopeCatalogProjection,
 } from "../recall/projections/contracts";
@@ -129,11 +131,14 @@ async function createSnapshotInspector(
     `scope:${scopeKey}`,
     {
       ...input.scope,
+      analyzerFingerprint: null,
       coverage: "complete",
       firstSeenAt: timestamp,
       id: `scope:${scopeKey}`,
       lastSeenAt: timestamp,
-      schemaVersion: 1,
+      projectionVersion: RECALL_PROJECTION_PIPELINE_VERSION,
+      schemaVersion: 2,
+      searchSchemaVersion: PROJECTION_SEARCH_SCHEMA_VERSION,
       scopeKey,
     },
   );

@@ -4,6 +4,7 @@ import {
   deriveRetrievalHealthFields,
   parseArgs,
 } from "../../scripts/goodmemory-http-bridge";
+import { createLifeCoachHttpRememberConfig } from "../../src/http";
 
 const EMPTY_ENV = {} as NodeJS.ProcessEnv;
 
@@ -100,5 +101,12 @@ describe("http bridge retrieval preset wiring", () => {
     });
     expect(config.retrieval).toEqual({ preset: "recommended" });
     expect(config.remember).toBeDefined();
+  });
+
+  it("keeps the life-coach profile free of locale-specific raw rules", () => {
+    const profile = createLifeCoachHttpRememberConfig().profiles?.[0];
+
+    expect(profile?.id).toBe("life-coach");
+    expect(profile?.rules).toBeUndefined();
   });
 });

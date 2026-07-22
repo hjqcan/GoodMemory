@@ -648,6 +648,30 @@ describe("runtime-kit", () => {
     expect(JSON.stringify(observe)).not.toContain(scope.sessionId);
   });
 
+  it("redacts localized credential assignments from bounded previews", async () => {
+    const runtimeKit = createGoodMemoryRuntimeKit({
+      memory: createMemoryStub(),
+    });
+
+    for (const content of [
+      "密碼：bridge-credential",
+      "パスワード: bridge-credential",
+      "비밀번호: bridge-credential",
+      "mot de passe : bridge-credential",
+      "contraseña: bridge-credential",
+    ]) {
+      const result = await runtimeKit.afterModelCall({
+        scope,
+        messages: [{ role: "user", content }],
+        assistantText: "Acknowledged.",
+        writeback: { mode: "observe" },
+      });
+
+      expect(JSON.stringify(result)).not.toContain("bridge-credential");
+      expect(result.candidates[0]?.preview).toContain("[redacted-secret]");
+    }
+  });
+
   it("uses stable content digests for bounded afterModelCall job ids", async () => {
     const runtimeKit = createGoodMemoryRuntimeKit({
       memory: createMemoryStub(),

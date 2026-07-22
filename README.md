@@ -4,6 +4,11 @@ Language: English | [简体中文](./README.zh-CN.md)
 
 GoodMemory is a memory layer for AI products and coding agents.
 
+> **Release status:** this branch is the `0.7.0` release candidate. npm
+> `latest` remains `0.6.0` until the tagged stable workflow publishes 0.7.0.
+> The version-pinned registry commands below are the post-publish contract; use
+> the locally packed `goodmemory-0.7.0.tgz` for pre-publish verification.
+
 It gives chat apps, copilots, and agent hosts a durable user/project memory loop:
 write selected facts, retrieve the right context, inject it into the next turn,
 audit what happened, and delete it when it is wrong.
@@ -57,7 +62,7 @@ independent from the answer model.
 surface:
 
 ```bash
-npm install -g goodmemory@0.6.0
+npm install -g goodmemory@0.7.0
 goodmemory setup --host codex
 goodmemory status codex --workspace-root .
 goodmemory inspector serve
@@ -101,9 +106,11 @@ version). Historical rows remain under separate markers and cannot satisfy the
 current-version gate.
 
 The Phase 72 benchmark and versioned release gates remain closed evidence for
-`v0.6.0`. The `v0.7.0` line changes LanguagePack and recall semantics, so no
-benchmark row is promoted as a current `v0.7.0` claim until a fresh run passes
-the same gate.
+`v0.6.0`. The rows below preserve those version-pinned public-opt-in results for
+the disclosed provider-backed or evidence-pack profiles. Because `v0.7.0`
+changes LanguagePack and recall semantics, they remain historical 0.6 evidence,
+not 0.7 performance claims or claims about the zero-provider default; no row is
+promoted as a current `v0.7.0` claim until a fresh run passes the same gate.
 LongMemEval's newer label-free verifier result and ImplicitMemBench's retry-merged
 result remain internal evidence because their current paths are eval-only or do
 not replace a monolithic fresh run. HaluMem, MemGym, and MINTEval remain release
@@ -339,7 +346,8 @@ policy. GoodMemory owns the memory loop and storage boundary.
 
 ## Install
 
-GoodMemory `0.7.0` has two normal install paths.
+After GoodMemory `0.7.0` is published, it has two normal registry install paths.
+Before publication, use the tarball verification path below.
 
 Use the global CLI when you want memory enhancement inside installed coding
 agents:
@@ -666,9 +674,9 @@ The core memory loop is intentionally small:
 ### Locale and LanguagePack
 
 Built-in packs cover English, Simplified Chinese, Traditional Chinese
-(`zh-TW`/`zh-HK`/`zh-MO`), and Japanese. Set a host-known locale explicitly;
-otherwise auto-detection falls back to `defaultLocale` for ambiguous Han-only
-text.
+(`zh-TW`/`zh-HK`/`zh-MO`), Japanese, Korean, French, and Spanish. Set a
+host-known locale explicitly; otherwise auto-detection falls back to
+`defaultLocale` for inherently ambiguous Han-only or unmarked Latin text.
 
 ```ts
 const multilingualMemory = createGoodMemory({
@@ -679,9 +687,9 @@ const multilingualMemory = createGoodMemory({
 });
 
 await multilingualMemory.remember({
-  locale: "ja-JP",
+  locale: "ko-KR",
   scope,
-  messages: [{ role: "user", content: "現在の役割はリリース責任者です。" }],
+  messages: [{ role: "user", content: "현재 역할은 릴리스 책임자입니다." }],
 });
 ```
 
@@ -690,6 +698,10 @@ module-local regex branches. See the
 [LanguagePack extension guide](./docs/GoodMemory-LanguagePack-Extension-Guide.md)
 for the contract, custom registration, analyzer versioning, and projection
 migration rules.
+
+Upgrading from the previous adapter/projection contract is intentionally
+breaking; follow the
+[0.6 to 0.7 migration guide](./docs/GoodMemory-0.6-to-0.7-Migration-Guide.md).
 
 For production app integrations, the recommended turn loop adds the governed
 runtime layer around that core:
@@ -1360,6 +1372,9 @@ bun test
 bun run typecheck
 bun run test:coverage
 ```
+
+For the complete 0.7 package, coverage, runtime-consumer, size, and provenance
+gate, run `bun run gate:v0.7 --strict`.
 
 Use `bun run test:all` only when you intentionally want the broader sweep
 through vendored or third-party test trees.

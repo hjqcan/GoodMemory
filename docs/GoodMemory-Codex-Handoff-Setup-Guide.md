@@ -28,9 +28,13 @@ goodmemory -V
 Run setup from the workspace that should expose GoodMemory to Codex:
 
 ```bash
-goodmemory setup --host codex
+goodmemory setup --host codex --default-locale en-US
 goodmemory status codex --workspace-root .
 ```
+
+Set `--default-locale` to the BCP-47 locale that Codex should use when a prompt
+does not contain a distinctive language signal, for example `ko-KR`, `fr-FR`,
+or `es-ES`.
 
 This installs managed host wiring, enables workspace-scoped recall injection,
 and keeps writeback opt-in. Use `observe` before durable `selective` writes:
@@ -39,6 +43,10 @@ and keeps writeback opt-in. Use `observe` before durable `selective` writes:
 goodmemory enable codex --workspace-root . --writeback observe
 goodmemory codex writeback inspect --json
 ```
+
+`enable` reuses the global default locale selected by `setup`; it does not
+override language configuration. Rerun setup with `--default-locale <locale>`
+when that default must change.
 
 ## Package-Local Bootstrap
 

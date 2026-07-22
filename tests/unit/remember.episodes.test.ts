@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { createLanguageService } from "../../src/language";
 import { maybeBuildEpisode } from "../../src/remember/episodes";
+import { analyzeRememberSourceMessages } from "../../src/remember/languageAnalysis";
 
 const TIMESTAMP = "2026-01-10T00:00:00.000Z";
 
@@ -146,7 +147,9 @@ describe("remember episodes", () => {
     );
 
     expect(episode?.topics.join("\n")).not.toContain("prod verification");
-    expect(episode?.topics).toContain("the rollout is");
+    expect(episode?.topics).toContain(
+      "the rollout is blocked on [REDACTED].",
+    );
   });
 
   it("does not invent assistant follow-through when the assistant message is unrelated", () => {
@@ -278,5 +281,141 @@ describe("remember episodes", () => {
 
     expect(episode?.summary).toContain("Assistant substantive continuity captured.");
     expect(episode?.keyDecisions).toHaveLength(0);
+  });
+
+  it("renders Traditional Chinese episode labels and topics through the resolved pack", () => {
+    const language = createLanguageService();
+    const input = {
+      locale: "zh-TW",
+      scope: { userId: "user-hant", sessionId: "session-hant" },
+      messages: [
+        { role: "user", content: "請記住目前專案阻塞是供應商審批。" },
+        {
+          role: "assistant",
+          content: "我會繼續跟進目前專案阻塞和供應商審批。",
+        },
+      ],
+    };
+    const sourceAnalyses = analyzeRememberSourceMessages(input, language);
+
+    const episode = maybeBuildEpisode(
+      input,
+      [
+        {
+          id: "candidate-hant",
+          kindHint: "fact",
+          explicitness: "explicit",
+          content: "目前專案阻塞是供應商審批。",
+          sourceMessageIndex: 0,
+          sourceRole: "user",
+          metadata: { category: "project", factKind: "blocker" },
+        },
+      ],
+      "episode-hant",
+      TIMESTAMP,
+      language,
+      "zh-TW",
+      sourceAnalyses,
+    );
+
+    expect(episode?.summary).toBe(
+      "本次會話涵蓋：目前專案阻塞是供應商審批。 / 已記錄助手的後續跟進。",
+    );
+    expect(episode?.keyDecisions).toEqual([
+      "助手已跟進：目前專案阻塞是供應商審批。",
+    ]);
+    expect(episode?.topics).toEqual(["目前專案阻塞是供應商審批。"]);
+  });
+
+  it("renders Japanese episode labels and topics through the resolved pack", () => {
+    const language = createLanguageService();
+    const input = {
+      locale: "ja-JP",
+      scope: { userId: "user-ja", sessionId: "session-ja" },
+      messages: [
+        { role: "user", content: "現在のプロジェクトは承認待ちです。" },
+        {
+          role: "assistant",
+          content: "今後も現在のプロジェクトの承認待ちを確認して対応します。",
+        },
+      ],
+    };
+    const sourceAnalyses = analyzeRememberSourceMessages(input, language);
+
+    const episode = maybeBuildEpisode(
+      input,
+      [
+        {
+          id: "candidate-ja",
+          kindHint: "fact",
+          explicitness: "explicit",
+          content: "現在のプロジェクトは承認待ちです。",
+          sourceMessageIndex: 0,
+          sourceRole: "user",
+          metadata: { category: "project", factKind: "blocker" },
+        },
+      ],
+      "episode-ja",
+      TIMESTAMP,
+      language,
+      "ja-JP",
+      sourceAnalyses,
+    );
+
+    expect(episode?.summary).toBe(
+      "会話で扱った内容: 現在のプロジェクトは承認待ちです。 / アシスタントのフォローアップを記録しました。",
+    );
+    expect(episode?.keyDecisions).toEqual([
+      "アシスタントのフォローアップ: 現在のプロジェクトは承認待ちです。",
+    ]);
+    expect(episode?.topics).toEqual(["現在のプロジェクトは承認待ちです。"]);
+  });
+
+  it("localizes substantive continuity when no unique follow-through target exists", () => {
+    const language = createLanguageService();
+    const input = {
+      locale: "zh-TW",
+      scope: { userId: "user-hant", sessionId: "session-hant" },
+      messages: [
+        { role: "user", content: "請使用 docs/runbook-a.md。" },
+        { role: "user", content: "也請使用 docs/runbook-b.md。" },
+        { role: "assistant", content: "我會繼續使用這份 runbook。" },
+      ],
+    };
+    const sourceAnalyses = analyzeRememberSourceMessages(input, language);
+
+    const episode = maybeBuildEpisode(
+      input,
+      [
+        {
+          id: "candidate-a",
+          kindHint: "reference",
+          explicitness: "explicit",
+          content: "docs/runbook-a.md",
+          sourceMessageIndex: 0,
+          sourceRole: "user",
+          metadata: { referenceKind: "runbook" },
+        },
+        {
+          id: "candidate-b",
+          kindHint: "reference",
+          explicitness: "explicit",
+          content: "docs/runbook-b.md",
+          sourceMessageIndex: 1,
+          sourceRole: "user",
+          metadata: { referenceKind: "runbook" },
+        },
+      ],
+      "episode-hant-continuity",
+      TIMESTAMP,
+      language,
+      "zh-TW",
+      sourceAnalyses,
+    );
+
+    expect(episode?.summary).toBe(
+      "本次會話涵蓋：docs/runbook-a.md / docs/runbook-b.md / 已記錄助手提供的實質性延續。",
+    );
+    expect(episode?.keyDecisions).toEqual([]);
   });
 });

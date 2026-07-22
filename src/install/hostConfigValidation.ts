@@ -46,6 +46,18 @@ export interface InstalledHostLanguageConfig {
   readonly defaultLocale: string;
 }
 
+export function canonicalizeInstalledHostDefaultLocale(locale: string): string {
+  const trimmed = locale.trim();
+  if (!trimmed) {
+    throw new Error("Installed host default locale must be a non-empty locale.");
+  }
+  try {
+    return new Intl.Locale(trimmed).toString();
+  } catch {
+    throw new Error("Installed host default locale must be a valid locale.");
+  }
+}
+
 export interface InstalledHostMaintenanceConfig {
   auto?: boolean;
   minHoursBetweenRuns?: number;
@@ -394,10 +406,7 @@ function readInstalledHostLanguageConfig(
   if (Object.keys(value).some((key) => key !== "defaultLocale")) {
     return { detail: "language supports only defaultLocale", status: "invalid" };
   }
-  const rawLocale = normalizeText(
-    typeof value.defaultLocale === "string" ? value.defaultLocale : undefined,
-  );
-  if (!rawLocale) {
+  if (typeof value.defaultLocale !== "string") {
     return {
       detail: "language.defaultLocale must be a valid non-empty locale",
       status: "invalid",
@@ -405,7 +414,9 @@ function readInstalledHostLanguageConfig(
   }
   try {
     return {
-      config: Object.freeze({ defaultLocale: new Intl.Locale(rawLocale).toString() }),
+      config: Object.freeze({
+        defaultLocale: canonicalizeInstalledHostDefaultLocale(value.defaultLocale),
+      }),
       status: "ok",
     };
   } catch {

@@ -21,9 +21,10 @@ import type {
 } from "../domain/records";
 import type { MemoryScope } from "../domain/scope";
 import type { SessionArchive } from "../evolution/contracts";
-import {
-  createLanguageService,
-  type LanguageService,
+import { createLanguageService } from "../language";
+import type {
+  LanguageContentAnalysis,
+  LanguageService,
 } from "../language";
 import {
   readMemoryQualityRepairSignal,
@@ -39,6 +40,7 @@ import type {
 } from "../storage/ports";
 
 export type MaintenanceJobName =
+  | "projectionMigration"
   | "projectionRepair"
   | "dedupe"
   | "contradiction"
@@ -52,6 +54,12 @@ export interface MaintenanceRunnerConfig {
   language?: LanguageService;
   projectionRepair?: {
     repairPending(scope: MemoryScope): Promise<number>;
+  };
+  projectionMigration?: {
+    ensureScopeIndexed(scope: MemoryScope): Promise<{
+      complete: boolean;
+      indexedSources: number;
+    }>;
   };
   repositories: MaintenanceRepositoryPort & { vectorIndex?: MaintenanceVectorPort | null };
   vectorIndex?: MaintenanceVectorPort | null;
@@ -169,9 +177,31 @@ function daysBefore(referenceTime: string, timestamp: string): number {
   return Math.max(0, delta) / (1000 * 60 * 60 * 24);
 }
 
+type FactContentAnalyzer = (fact: FactMemory) => LanguageContentAnalysis;
+
+function createFactContentAnalyzer(
+  language: LanguageService,
+): FactContentAnalyzer {
+  const analyses = new Map<string, LanguageContentAnalysis>();
+
+  return (fact) => {
+    const existing = analyses.get(fact.id);
+    if (existing) {
+      return existing;
+    }
+    const context = language.resolveFromText({
+      locale: fact.source.locale,
+      text: fact.content,
+    });
+    const analysis = language.analyzeContent(fact.content, context);
+    analyses.set(fact.id, analysis);
+    return analysis;
+  };
+}
+
 function isActionDrivingFact(
   fact: FactMemory,
-  language: LanguageService,
+  analyzeContent: FactContentAnalyzer,
 ): boolean {
   if (
     fact.factKind === "blocker" ||
@@ -185,22 +215,19 @@ function isActionDrivingFact(
     return false;
   }
 
-  const locale = language.resolveFromText({
-    locale: fact.source.locale,
-    text: fact.content,
-  }).locale;
+  const analysis = analyzeContent(fact);
   return (
-    language.isBlockerFact(fact.content, locale) ||
-    language.isOpenLoopFact(fact.content, locale) ||
-    language.isProjectStateFact(fact.content, locale) ||
-    language.isFocusFact(fact.content, locale)
+    analysis.blockerFact ||
+    analysis.openLoopFact ||
+    analysis.projectStateFact ||
+    analysis.focusFact
   );
 }
 
 function shouldDemoteStaleActionFact(input: {
   activeFacts: FactMemory[];
+  analyzeContent: FactContentAnalyzer;
   fact: FactMemory;
-  language: LanguageService;
   timestamp: string;
 }): boolean {
   const verificationPressure = input.fact.verificationPressureCount ?? 0;
@@ -217,15 +244,15 @@ function shouldDemoteStaleActionFact(input: {
     verificationPressure >= STALE_ACTION_REPAIR_MIN_VERIFICATION_PRESSURE &&
     daysBefore(input.timestamp, input.fact.updatedAt) >=
       STALE_ACTION_REPAIR_MIN_AGE_DAYS &&
-    isActionDrivingFact(input.fact, input.language) &&
+    isActionDrivingFact(input.fact, input.analyzeContent) &&
     hasActiveQualityReplacementFact(input)
   );
 }
 
 function resolveQualityRepairDemotionReason(input: {
   activeFacts: FactMemory[];
+  analyzeContent: FactContentAnalyzer;
   fact: FactMemory;
-  language: LanguageService;
   timestamp: string;
 }): string | null {
   const qualitySignal = readMemoryQualityRepairSignal(input.fact);
@@ -242,8 +269,8 @@ function resolveQualityRepairDemotionReason(input: {
 
 function hasActiveQualityReplacementFact(input: {
   activeFacts: FactMemory[];
+  analyzeContent: FactContentAnalyzer;
   fact: FactMemory;
-  language: LanguageService;
 }): boolean {
   const replacementId = readMemoryQualityReplacementMemoryId(input.fact);
   if (!replacementId) {
@@ -257,7 +284,7 @@ function hasActiveQualityReplacementFact(input: {
       replacement.lifecycle === "active" &&
       replacement.updatedAt.localeCompare(input.fact.updatedAt) > 0 &&
       replacement.confidence > input.fact.confidence &&
-      isActionDrivingFact(replacement, input.language),
+      isActionDrivingFact(replacement, input.analyzeContent),
   );
 }
 
@@ -398,6 +425,7 @@ async function runContradictionRepair(
   repositories: MaintenanceRepositoryPort,
   vectorIndex: MaintenanceVectorPort | null,
   language: LanguageService,
+  analyzeContent: FactContentAnalyzer,
   scope: MemoryScope,
   timestamp: string,
 ): Promise<MaintenanceJobReport> {
@@ -437,8 +465,8 @@ async function runContradictionRepair(
         continue;
       }
 
-      const leftPolarity = language.detectFactPolarity(left.content, leftLocale);
-      const rightPolarity = language.detectFactPolarity(right.content, rightLocale);
+      const leftPolarity = analyzeContent(left).factPolarity;
+      const rightPolarity = analyzeContent(right).factPolarity;
 
       if (
         leftPolarity === "unknown" ||
@@ -490,7 +518,7 @@ async function runContradictionRepair(
 async function runQualityRepair(
   repositories: MaintenanceRepositoryPort,
   vectorIndex: MaintenanceVectorPort | null,
-  language: LanguageService,
+  analyzeContent: FactContentAnalyzer,
   scope: MemoryScope,
   timestamp: string,
 ): Promise<MaintenanceJobReport> {
@@ -506,8 +534,8 @@ async function runQualityRepair(
     }
     const demotionReason = resolveQualityRepairDemotionReason({
       activeFacts: [...activeFactsById.values()],
+      analyzeContent,
       fact,
-      language,
       timestamp,
     });
     if (!demotionReason) {
@@ -772,8 +800,20 @@ export function createMaintenanceRunner(config: MaintenanceRunnerConfig) {
     ): Promise<MaintenanceRunReport> {
       const timestamp = now();
       const reports: MaintenanceJobReport[] = [];
+      const analyzeContent = createFactContentAnalyzer(language);
 
       for (const job of jobs) {
+        if (job === "projectionMigration") {
+          const migration = config.projectionMigration
+            ? await config.projectionMigration.ensureScopeIndexed(scope)
+            : { complete: false, indexedSources: 0 };
+          reports.push({
+            name: job,
+            applied: migration.complete ? migration.indexedSources : 0,
+          });
+          continue;
+        }
+
         if (job === "projectionRepair") {
           reports.push({
             name: job,
@@ -828,7 +868,7 @@ export function createMaintenanceRunner(config: MaintenanceRunnerConfig) {
             await runQualityRepair(
               config.repositories,
               vectorIndex,
-              language,
+              analyzeContent,
               scope,
               timestamp,
             ),
@@ -853,6 +893,7 @@ export function createMaintenanceRunner(config: MaintenanceRunnerConfig) {
             config.repositories,
             vectorIndex,
             language,
+            analyzeContent,
             scope,
             timestamp,
           ),

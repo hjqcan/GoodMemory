@@ -13,9 +13,11 @@ import type { MemorySourceMethod } from "../domain/provenance";
 import type { EmbeddingAdapter } from "../embedding/contracts";
 import type { EvidenceRecord } from "../evidence/contracts";
 import type { SessionArchive } from "../domain/evolutionRecords";
-import {
-  createLanguageService,
-  type LanguageService,
+import { createLanguageService } from "../language";
+import type {
+  LanguageQueryAnalysis,
+  LanguageService,
+  ResolvedLanguageContext,
 } from "../language";
 import type { GoodMemoryPolicyHooks } from "../policy/hooks";
 import type {
@@ -95,6 +97,10 @@ import type {
   GeneralizedFusionResult,
 } from "./generalizedFusion";
 import type { GeneralizedFusionSelectionInput } from "./factSelection/generalizedFusionUnion";
+import {
+  selectGeneralizedFactsForInternalUse,
+} from "./generalizedSelection";
+import type { FactSelector } from "./generalizedSelection";
 import type {
   ClaimProjection,
   RecallIndexDocument,
@@ -107,7 +113,6 @@ import {
 import {
   selectArchives,
   selectEpisodes,
-  selectFacts,
   selectFeedbackForQuery,
   selectPreferencesForQuery,
   selectReferences,
@@ -124,6 +129,10 @@ export interface RecallInput {
   rerank?: boolean;
   /** Request-local plan shared by API orchestration and each retrieval hop. */
   recallPlan?: RecallPlan;
+  /** Internal request-local language context; public callers should omit it. */
+  languageContext?: ResolvedLanguageContext;
+  /** Internal request-local query analysis; public callers should omit it. */
+  queryAnalysis?: LanguageQueryAnalysis;
   /**
    * Optional per-call temporal anchor (ISO-8601). When set to a parseable
    * timestamp it replaces the config clock for this recall: plan resolution,
@@ -176,6 +185,7 @@ export interface RecallCandidateTrace {
     | "none"
     | "same_slot_unique_candidate"
     | "zero_retrieval_lexical"
+    | "cross_session_lexical_bridge"
     | "semantic_union"
     | "generalized_fusion";
   evidenceIds?: string[];
@@ -297,6 +307,8 @@ export function resolveGeneralizedFusionBudget(input: {
 export interface RecallEngineConfig {
   assistedRouter?: RecallRouterAssistant;
   embedding?: EmbeddingAdapter;
+  /** Instance-scoped internal override used only by repo-local historical evals. */
+  factSelector?: FactSelector;
   // Opt-in: when set (and no neural semantic search runs), populate the additive
   // ranking slot with Okapi BM25 over the in-memory candidate pool for
   // non-rules-only strategies. Off by default, so rules-only/hybrid ranking is
@@ -587,9 +599,7 @@ function createAssistantSuppressionTraceReason(
 }
 
 function shouldSuppressGuidanceLanesForFactQuery(input: {
-  language: LanguageService;
-  locale: string;
-  query: string;
+  queryAnalysis: LanguageQueryAnalysis;
   routingDecision: RoutingDecision;
 }): boolean {
   if (
@@ -597,13 +607,13 @@ function shouldSuppressGuidanceLanesForFactQuery(input: {
     input.routingDecision.continuation ||
     input.routingDecision.actionDriving ||
     input.routingDecision.referenceSeeking ||
-    input.language.isAnswerCompositionQuery(input.query, input.locale) ||
-    input.language.isGuidanceSeekingQuery(input.query, input.locale)
+    input.queryAnalysis.answerComposition ||
+    input.queryAnalysis.guidanceSeeking
   ) {
     return false;
   }
 
-  return input.language.isDirectFactualLookupQuery(input.query, input.locale);
+  return input.queryAnalysis.directFactualLookup;
 }
 
 function withRoutingWarning(
@@ -648,6 +658,8 @@ function shouldWarnSemanticUnionInactive(input: {
 
 export function createRecallEngine(config: RecallEngineConfig) {
   const language = config.language ?? createLanguageService();
+  const factSelector =
+    config.factSelector ?? selectGeneralizedFactsForInternalUse;
   const now = config.now ?? Date.now;
   const referenceTime = config.referenceTime ?? (() => new Date(now()).toISOString());
   const vectorIndex =
@@ -658,10 +670,12 @@ export function createRecallEngine(config: RecallEngineConfig) {
   return {
     async recall(input: RecallInput): Promise<RecallResult> {
       const startedAt = now();
-      const resolvedLanguage = language.resolveFromText({
+      const resolvedLanguage = input.languageContext ?? language.resolveFromText({
         locale: input.locale,
         text: input.query,
       });
+      const queryAnalysis = input.queryAnalysis ??
+        language.analyzeQuery(input.query, resolvedLanguage);
       const currentReferenceTime =
         input.referenceTime !== undefined &&
           Number.isFinite(Date.parse(input.referenceTime))
@@ -673,8 +687,10 @@ export function createRecallEngine(config: RecallEngineConfig) {
             assistant: config.recallPlanner,
             input: {
               language,
+              languageContext: resolvedLanguage,
               locale: resolvedLanguage.locale,
               query: input.query,
+              queryAnalysis,
               referenceTime: currentReferenceTime,
               scope: input.scope,
             },
@@ -755,6 +771,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
           autoStrategyBias: config.autoStrategyBias,
           availability: routerAvailability,
           query: input.query,
+          queryAnalysis,
           locale: resolvedLanguage.locale,
           language,
           runtime: {
@@ -775,6 +792,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
           journal: null,
           maxRenderedTokens: recallPlan.maxRenderedTokens,
           language,
+          languageContext: resolvedLanguage,
           locale: resolvedLanguage.locale,
           routingDecision,
         });
@@ -1016,6 +1034,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
         autoStrategyBias: config.autoStrategyBias,
         availability: routerAvailability,
         query: input.query,
+        queryAnalysis,
         locale: resolvedLanguage.locale,
         language,
         runtime: {
@@ -1225,6 +1244,25 @@ export function createRecallEngine(config: RecallEngineConfig) {
             const coverage = await config.projectionIndex.ensureScopeIndexed(
               input.scope,
             );
+            if (!coverage.complete) {
+              policyApplied.add("generalized_fusion_partial_projection");
+              if (useProjectedContentLoading) {
+                await loadFullContent();
+              }
+              retrievalTrace = {
+                fusionRuns: [
+                  {
+                    budget: 0,
+                    candidateCount: 0,
+                    candidates: [],
+                    fallbackReason: "projection_incomplete",
+                    projectionCoverage: "partial",
+                    status: "fallback",
+                  },
+                ],
+                schemaVersion: 1,
+              };
+            } else {
             const needsClaimHistory =
               recallPlan.aggregation === "change" ||
               recallPlan.aggregation === "history" ||
@@ -1411,8 +1449,6 @@ export function createRecallEngine(config: RecallEngineConfig) {
             if (generalizedFusionBudget?.expanded) {
               policyApplied.add("generalized_fusion_complex_query_budget");
             }
-            if (!coverage.complete) {
-              policyApplied.add("generalized_fusion_partial_projection");
             }
           } catch (error) {
             console.error(
@@ -1449,9 +1485,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
         policyApplied,
       });
       const suppressGuidanceLanes = shouldSuppressGuidanceLanesForFactQuery({
-        language,
-        locale: resolvedLanguage.locale,
-        query: input.query,
+        queryAnalysis,
         routingDecision,
       });
       const includeGuidanceLanes = !suppressGuidanceLanes;
@@ -1462,6 +1496,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
               input.query,
               language,
               resolvedLanguage.locale,
+              queryAnalysis,
             ),
             "preference",
             {
@@ -1515,7 +1550,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
             ...selectedClaimSourceFacts,
           ]
         : factsRaw;
-      const selectedFacts = selectFacts(
+      const selectedFacts = factSelector(
         factSelectionPool,
         input.query,
         language,
@@ -1528,6 +1563,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
         evidenceCountsByMemoryId,
         semanticUnion,
         generalizedFusion,
+        queryAnalysis,
       );
       let facts = await applyRecallPolicyToRecords(
         selectedFacts.facts,
@@ -1563,6 +1599,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
         language,
         resolvedLanguage.locale,
         retrievalProfile,
+        queryAnalysis,
       );
       const selectedArchives = selectArchives(
         archivesRaw,
@@ -1635,6 +1672,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
         currentReferenceTime,
         semanticScores?.references,
         evidenceCountsByMemoryId,
+        queryAnalysis,
       );
       const generalizedReferences = admitGeneralizedRecords({
         candidates: generalizedFusionCandidates,
@@ -1839,6 +1877,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
         journal,
         maxRenderedTokens: recallPlan.maxRenderedTokens,
         language,
+        languageContext: resolvedLanguage,
         durableCandidateOrder: assistantInfluence?.rerankApplied
           ? assistantInfluence.rerankedCandidateIds
           : undefined,
@@ -1875,6 +1914,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
             episodes,
             locale: resolvedLanguage.locale,
             language,
+            queryAnalysis,
           }),
           candidateTraces,
           policyApplied: [...policyApplied],

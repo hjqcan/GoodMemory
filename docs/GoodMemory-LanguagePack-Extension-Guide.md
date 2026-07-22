@@ -12,15 +12,22 @@ The root package includes:
 | Pack id | Locale claims | Compatibility group |
 |---|---|---|
 | `en` | `en` | `en` |
-| `zh-Hans` | `zh-Hans`, `zh-CN`, `zh-SG` | `zh` |
-| `zh-Hant` | `zh-Hant`, `zh-TW`, `zh-HK`, `zh-MO` | `zh` |
+| `zh-Hans` | `zh-Hans`, `zh-CN`, `zh-SG` | `zh-Hans` |
+| `zh-Hant` | `zh-Hant`, `zh-TW`, `zh-HK`, `zh-MO` | `zh-Hant` |
 | `ja` | `ja` | `ja` |
+| `ko` | `ko` | `ko` |
+| `fr` | `fr` | `fr` |
+| `es` | `es` | `es` |
 
 Explicit per-call locale wins over detection. With `detection: "auto"`, kana
 selects Japanese and script-specific Chinese characters select the matching
-Chinese pack. Text containing only Han characters is inherently ambiguous, so
-GoodMemory resolves it with `defaultLocale` instead of guessing between
-Simplified Chinese, Traditional Chinese, and Japanese.
+Chinese pack. Hangul selects Korean; distinctive French and Spanish grammar,
+diacritics, or punctuation select their pack. Text containing only Han
+characters, or Latin text without a language-specific signal, remains
+ambiguous and resolves with `defaultLocale` instead of guessing.
+Bare `zh` uses a configured Chinese default when present and otherwise resolves
+to `zh-Hans`. Unsupported explicit locales resolve to the neutral Unicode pack;
+they do not inherit English query or content semantics.
 
 ```ts
 import { createGoodMemory } from "goodmemory";
@@ -125,16 +132,21 @@ If `language.detector` is configured in `auto` mode, also provide a stable
 and a persistent projection proof must fail closed. A detector is ignored in
 `default_only` mode, so it does not affect that mode's manifest eligibility.
 
-## Chinese script interoperability
+## Chinese script-local contract
 
-The two Chinese packs share compatibility group `zh`. They canonicalize text
-with the pinned `opencc-js` analyzer and index the original terms plus one
-canonical Simplified form. This bounded bridge lets a Traditional query
-retrieve a Simplified source (and the reverse) while keeping the exact
-user-authored text as canonical memory and display content.
+The two Chinese packs share implementation primitives but have distinct
+compatibility groups and analyzer identities. Each pack normalizes and indexes
+its own script. GoodMemory 0.7 guarantees Simplified query-to-Simplified source
+and Traditional query-to-Traditional source behavior; it does not guarantee
+Simplified-to-Traditional or Traditional-to-Simplified lexical recall.
 
-Do not persist converted text over the source record. Conversion belongs only
-to equality keys and derived `searchText`.
+There is no OpenCC dependency, generated conversion variant, or handwritten
+partial conversion table. The exact user-authored text remains canonical and
+displayable. If a later release adds cross-script expansion, it must do so as a
+bounded `buildSearchTerms` change, bump the analyzer version, and rebuild
+derived projections. An embedding channel can provide independent semantic
+candidate generation, but it does not change the script-local lexical
+contract.
 
 ## Projection and storage rules
 
@@ -158,6 +170,15 @@ Existing derived projections must then be rebuilt; canonical memory records and
 their raw text remain unchanged. Treat missing or mismatched projection proof
 as stale and rebuild fail-closed.
 
+The 0.7 generation uses recall documents v3, entities/adjacency v2,
+claims/status v2, and scope catalog v2. Migration is per scope and may run on
+first recall or through the `projectionMigration` maintenance job. Until a new
+catalog carries complete, version-matching analyzer/build/source-generation
+proof, recall must not use a partial new generation and instead uses the
+canonical repository fallback.
+Interrupted migration is repeatable; successful cutover removes the old
+scope's derived rows and stale FTS entries without changing canonical memory.
+
 `LanguageService.getAnalyzerManifest()` returns a stable, sorted manifest of
 the resolver configuration and every active pack, including the neutral
 fallback. Its `resolutionOrder` separately preserves the effective pack lookup
@@ -179,11 +200,17 @@ There is no compatibility adapter or per-module language switch. Migrate by:
 5. versioning any custom locale detector used by auto-detection;
 6. rebuilding derived recall projections after analyzer or search-schema
    changes; and
-7. verifying provenance, cross-script retrieval, temporal planning, entity
-   matching, and localized context output.
+7. verifying provenance, same-script retrieval, explicit cross-script negative
+   cases, temporal planning, entity matching, and localized context output.
 
 The optional `language.detector` remains a routing override only. It returns a
 locale; it does not replace the pack's semantic responsibilities.
+
+GoodMemory 0.7 does not run alongside a writable 0.6 process. Back up canonical
+storage and managed host configuration before cutover; after a completed
+migration, a downgrade requires that snapshot rather than a compatibility
+adapter. Follow the [0.6 to 0.7 migration guide](./GoodMemory-0.6-to-0.7-Migration-Guide.md)
+for the full cutover and rollback procedure.
 
 ## Acceptance checklist
 
@@ -198,5 +225,16 @@ A new pack is ready only when tests cover:
   the same selection and remember paths without business-module changes;
 - document, entity, and claim retrieval channels;
 - SQLite and PostgreSQL `searchText` behavior where applicable;
+- Simplified and Traditional same-script positive cases plus explicit
+  cross-script negative cases;
+- interrupted, repeated, and concurrent projection migration with no orphaned
+  new-generation rows;
 - context/evidence rendering and CJK token budgeting where applicable; and
 - a real `remember -> recall -> buildContext` integration path.
+
+A built-in or custom pack is not release-ready until the shared conformance
+suite proves deterministic output, stable ordering, bounded search terms,
+complete render keys, and a non-empty analyzer version. PostgreSQL support for
+any non-English built-in pack additionally requires a real
+`GOODMEMORY_TEST_POSTGRES_URL` functional, migration, scale, and `EXPLAIN`
+index run; a skipped suite is not evidence.

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { containsSensitiveCredential } from "../language/sensitive";
 import { mkdir, open, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { MemoryScope } from "../domain/scope";
@@ -70,8 +71,6 @@ const MAX_REVIEW_CONTENT_CHARS = 1_500;
 const MAX_LOCK_ATTEMPTS = 40;
 const LOCK_DELAY_MS = 25;
 const APPROVAL_LEASE_MS = 10 * 60 * 1000;
-const SECRET_PATTERN =
-  /\b(api[_-]?key|secret|token|password)\b\s*[:=]|sk-[A-Za-z0-9_-]{16,}|ghp_[A-Za-z0-9_]{16,}/iu;
 
 export function reviewQueuePath(homeRoot: string | undefined): string {
   return join(resolveInstallRoot(homeRoot), "inspector-review-candidates.json");
@@ -351,7 +350,7 @@ export function isReviewCandidateApprovalStale(
 }
 
 function boundedContent(text: string): string {
-  if (SECRET_PATTERN.test(text)) {
+  if (containsSensitiveCredential(text)) {
     return "[redacted secret-like content]";
   }
   const normalized = text.replace(/\s+/gu, " ").trim();

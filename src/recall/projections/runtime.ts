@@ -23,7 +23,10 @@ import {
   isRecallProjectionSourceCollection,
   PROJECTION_MANIFESTS_COLLECTION,
 } from "./contracts";
-import { createProjectionManifestTracker } from "./manifest";
+import {
+  buildRecallProjectionBuildId,
+  createProjectionManifestTracker,
+} from "./manifest";
 import { createKeyedMutationLock } from "./mutationLock";
 import { createRecallProjectionOperations } from "./operations";
 import { createRecallProjectionRepairs } from "./repairs";
@@ -72,6 +75,10 @@ export function createRecallProjectionRuntime(
   );
   const now = config.now ?? (() => new Date().toISOString());
   const language = config.language ?? createLanguageService();
+  const analyzerFingerprint =
+    config.persistentScopeProof?.buildId ??
+    buildRecallProjectionBuildId(language) ??
+    null;
   const mutationLock = createKeyedMutationLock();
   const manifests = createProjectionManifestTracker({
     buildId: config.persistentScopeProof?.buildId,
@@ -83,6 +90,7 @@ export function createRecallProjectionRuntime(
   );
   const documentStore = validationFence.documentStore;
   const operations = createRecallProjectionOperations({
+    analyzerFingerprint,
     documentStore,
     language,
     now,
@@ -94,6 +102,7 @@ export function createRecallProjectionRuntime(
     operations,
   });
   const ensureScopeIndexed = createEnsureScopeIndexed({
+    analyzerFingerprint,
     bulkBackfill: config.bulkBackfill,
     documentStore,
     mutationLock,
@@ -171,14 +180,14 @@ export function createRecallProjectionRuntime(
     queryDocuments(scope) {
       return operations.queryDocuments(scope);
     },
-    searchDocuments(scope, query, limit) {
-      return operations.searchDocuments(scope, query, limit);
+    searchDocuments(scope, query, limit, locale) {
+      return operations.searchDocuments(scope, query, limit, locale);
     },
-    searchEntities(scope, query, limit) {
-      return operations.searchEntities(scope, query, limit);
+    searchEntities(scope, query, limit, locale) {
+      return operations.searchEntities(scope, query, limit, locale);
     },
-    searchClaims(scope, query, limit, history) {
-      return operations.searchClaims(scope, query, limit, history);
+    searchClaims(scope, query, limit, history, locale) {
+      return operations.searchClaims(scope, query, limit, history, locale);
     },
     queryEntities(scope) {
       return operations.queryEntities(scope);

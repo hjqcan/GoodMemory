@@ -6,7 +6,7 @@ Purpose
 
 This folder is the executable development plan. This file is a compact router, not a history dump.
 
-Source documents: `docs/README.md`, `docs/GoodMemory-PRD.md`, `docs/GoodMemory-TDD-and-Evaluation-Strategy.md`, `docs/GoodMemory-OSS-Architecture-v1.md`, `docs/GoodMemory-First-Principles-and-Reference-Architecture.md`, and `docs/GoodMemory-Current-Status-and-Evidence.md`.
+Source documents: `docs/README.md`, `docs/GoodMemory-PRD.md`, `docs/GoodMemory-TDD-and-Evaluation-Strategy.md`, `docs/GoodMemory-OSS-Architecture-v1.md`, `docs/GoodMemory-First-Principles-and-Reference-Architecture.md`, `docs/GoodMemory-Current-Status-and-Evidence.md`, and `adr/ADR-008-language-pack-horizontal-extension.txt`.
 Do not bulk-read all phase files. Open the named phase only.
 
 Working Rules
@@ -38,7 +38,7 @@ Current Execution Order
 5. 77-phase-72-agentic-eval-and-v0-6-release.txt
 6. 78-phase-73-codex-installed-host-coding-effect-evaluation.txt
 Open older phase files only when a task names them.
-
+0.7 LanguagePack release lane: follow `adr/ADR-008-language-pack-horizontal-extension.txt`, `docs/GoodMemory-LanguagePack-Extension-Guide.md`, and `docs/GoodMemory-0.6-to-0.7-Migration-Guide.md`; close only with the clean breaking boundary, `xx-Test`, same-script built-in/host coverage, projection migration/storage/scale/index evidence, full tests/typecheck/coverage, Node 20 + Bun packed consumers, tarball <4 MiB, and a non-skipped real-Postgres functional/migration/scale/`EXPLAIN` run.
 Phase 63 BEAM answer-rule tuning and Phase 65 LoCoMo case-level repair are
 paused. Their accepted artifacts remain evidence, but new work must enter the
 generalization-first phases above and may not add benchmark-literal selectors.

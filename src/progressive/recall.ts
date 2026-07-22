@@ -4,8 +4,10 @@ import type {
   RecallInput,
   RecallResult,
 } from "../api/contracts";
+import { readGoodMemoryIntegrationSupport } from "../api/integrationSupport";
 import type { MemoryScope } from "../domain/scope";
 import { scopeToKey } from "../domain/scope";
+import type { LanguageRenderKey, LanguageService } from "../language";
 import {
   estimateTextTokens,
   truncateTextToEstimatedTokens,
@@ -50,7 +52,13 @@ export interface ProgressiveRecallMemory {
   recall(input: RecallInput): Promise<RecallResult>;
 }
 
+type ProgressiveLanguagePort = Pick<
+  LanguageService,
+  "render" | "resolveFromText" | "tokenize"
+>;
+
 export interface CreateProgressiveRecallServiceInput {
+  language?: ProgressiveLanguagePort;
   memory: Pick<GoodMemory, "recall"> | ProgressiveRecallMemory;
   scopeDigestSecret: string;
   maxDetailPreviewChars?: number;
@@ -60,6 +68,7 @@ export interface CreateProgressiveRecallServiceInput {
 export interface SearchRecallIndexInput {
   scope: MemoryScope;
   query?: string;
+  locale?: RecallInput["locale"];
   includeRuntime?: boolean;
   limit?: number;
   retrievalProfile?: RecallInput["retrievalProfile"];
@@ -79,6 +88,7 @@ export interface ProgressiveRecallIndexRecord {
 
 export interface ProgressiveRecallIndex {
   generatedAt: string;
+  locale?: string;
   query?: string;
   records: ProgressiveRecallIndexRecord[];
   scopeDigest: string;
@@ -96,6 +106,7 @@ export interface ProgressiveRecallTimelineBucket {
 
 export interface ProgressiveRecallTimeline {
   buckets: ProgressiveRecallTimelineBucket[];
+  locale?: string;
   scopeDigest: string;
   totalRecordCount: number;
 }
@@ -242,6 +253,16 @@ export function createProgressiveRecallService(
   const maxDetailPreviewChars =
     input.maxDetailPreviewChars ?? DEFAULT_DETAIL_PREVIEW_CHARS;
   const now = input.now ?? (() => new Date());
+  const language = input.language ?? readGoodMemoryIntegrationSupport(
+    input.memory as GoodMemory,
+  )?.language;
+  if (!language) {
+    throw new Error(
+      "ProgressiveRecallService requires the memory LanguageService.",
+    );
+  }
+  const activeLanguage: ProgressiveLanguagePort = language;
+  const defaultLanguage = activeLanguage.resolveFromText({ text: "" });
   const visibleCandidatesByScopeDigest = new Map<
     string,
     Map<string, VisibleCandidateEntry>
@@ -249,12 +270,14 @@ export function createProgressiveRecallService(
 
   async function loadCandidates(options: {
     includeRuntime?: boolean;
+    locale?: RecallInput["locale"];
     query?: string;
     retrievalProfile?: RecallInput["retrievalProfile"];
     scope: MemoryScope;
   }): Promise<{
     candidates: CandidateRecord[];
     generatedAt: string;
+    locale: string;
     scopeDigest: string;
   }> {
     const retrievalProfile =
@@ -262,6 +285,7 @@ export function createProgressiveRecallService(
       (options.includeRuntime === true ? "coding_agent" : undefined);
     const recall = await input.memory.recall({
       retrievalProfile,
+      locale: options.locale,
       query: options.query ?? "",
       scope: options.scope,
     });
@@ -269,15 +293,19 @@ export function createProgressiveRecallService(
       scope: options.scope,
       secret: input.scopeDigestSecret,
     });
+    const locale = recall.metadata.locale ?? options.locale ?? defaultLanguage.locale;
 
     return {
       candidates: collectCandidates({
         includeRuntime: options.includeRuntime,
+        language: activeLanguage,
+        locale,
         maxDetailPreviewChars,
         recall,
         scope: options.scope,
       }),
       generatedAt: now().toISOString(),
+      locale,
       scopeDigest,
     };
   }
@@ -314,8 +342,9 @@ export function createProgressiveRecallService(
   async function searchRecallIndex(
     options: SearchRecallIndexInput,
   ): Promise<ProgressiveRecallIndex> {
-    const { candidates, generatedAt, scopeDigest } = await loadCandidates({
+    const { candidates, generatedAt, locale, scopeDigest } = await loadCandidates({
       includeRuntime: options.includeRuntime,
+      locale: options.locale,
       query: options.query,
       retrievalProfile: options.retrievalProfile,
       scope: options.scope,
@@ -325,6 +354,8 @@ export function createProgressiveRecallService(
         candidate,
         record: toIndexRecord({
           candidate,
+          language: activeLanguage,
+          locale,
           query: options.query,
           scopeDigest,
         }),
@@ -342,6 +373,7 @@ export function createProgressiveRecallService(
 
     return {
       generatedAt,
+      locale,
       query: options.query,
       records: selected.map((item) => item.record),
       scopeDigest,
@@ -357,7 +389,11 @@ export function createProgressiveRecallService(
     const groups = new Map<string, ProgressiveRecallIndexRecord[]>();
 
     for (const record of index.records) {
-      const label = buildTimelineLabel(record.occurredAt);
+      const label = buildTimelineLabel(
+        record.occurredAt,
+        activeLanguage,
+        index.locale ?? defaultLanguage.locale,
+      );
       const bucket = groups.get(label) ?? [];
       if (bucket.length < recordsPerBucket) {
         bucket.push(record);
@@ -367,6 +403,7 @@ export function createProgressiveRecallService(
 
     return {
       buckets: Array.from(groups, ([label, records]) => ({ label, records })),
+      locale: index.locale,
       scopeDigest: index.scopeDigest,
       totalRecordCount: index.totalRecordCount,
     };
@@ -433,7 +470,13 @@ export function createProgressiveRecallService(
         ? Math.max(1, Math.floor(options.maxTokens))
         : undefined;
       const candidateRecords = options.index.records.slice(0, maxRecords);
-      const header = buildProgressiveContextHeader(options, Boolean(maxTokens));
+      const locale = options.index.locale ?? defaultLanguage.locale;
+      const header = buildProgressiveContextHeader(
+        options,
+        Boolean(maxTokens),
+        activeLanguage,
+        locale,
+      );
       const lines: string[] = [];
 
       for (const record of candidateRecords) {
@@ -443,6 +486,8 @@ export function createProgressiveRecallService(
           maxTokens,
           record,
           recordIndex: lines.length,
+          language: activeLanguage,
+          locale,
         });
         if (!line) {
           break;
@@ -456,9 +501,15 @@ export function createProgressiveRecallService(
           header,
           lines,
           maxTokens,
-          footer: [`omitted records: ${omittedRecordCount}`],
+          footer: [activeLanguage.render({
+            key: "omitted_records",
+            values: { count: omittedRecordCount },
+          }, locale)],
         })
-          ? [`omitted records: ${omittedRecordCount}`]
+          ? [activeLanguage.render({
+            key: "omitted_records",
+            values: { count: omittedRecordCount },
+          }, locale)]
           : [];
       const content = [...header, ...lines, ...footer].join("\n");
       const budgetedContent = enforceTokenBudget(content, maxTokens);
@@ -474,11 +525,20 @@ export function createProgressiveRecallService(
 
 function collectCandidates(input: {
   includeRuntime?: boolean;
+  language: ProgressiveLanguagePort;
+  locale: string;
   maxDetailPreviewChars: number;
   recall: RecallResult;
   scope: MemoryScope;
 }): CandidateRecord[] {
   const records: CandidateRecord[] = [];
+  const render = (
+    key: LanguageRenderKey,
+    values?: Record<string, number | string>,
+  ): string => input.language.render(
+    values ? { key, values } : { key },
+    input.locale,
+  );
   const add = (candidate: CandidateRecord): void => {
     records.push(redactCandidate(candidate, input.scope, input.maxDetailPreviewChars));
   };
@@ -500,7 +560,7 @@ function collectCandidates(input: {
         ...profile.activeContext.goals,
         ...profile.activeContext.currentProjects,
       ].join("; "),
-      title: "User profile",
+      title: render("profile"),
     });
   }
 
@@ -518,7 +578,7 @@ function collectCandidates(input: {
       recordKind: "preference",
       source: "durable",
       summary: stringifyValue(preference.value),
-      title: `Preference: ${preference.category}`,
+      title: `${render("preference")}: ${preference.category}`,
     });
   }
 
@@ -539,7 +599,7 @@ function collectCandidates(input: {
       recordKind: "fact",
       source: "durable",
       summary: fact.content,
-      title: buildTitle("Fact", fact.subject ?? fact.category),
+      title: buildTitle(render("fact_item"), fact.subject ?? fact.category),
     });
   }
 
@@ -559,7 +619,7 @@ function collectCandidates(input: {
       recordKind: "feedback",
       source: "durable",
       summary: feedback.rule,
-      title: `Feedback: ${feedback.kind}`,
+      title: `${render("feedback")}: ${feedback.kind}`,
     });
   }
 
@@ -597,7 +657,7 @@ function collectCandidates(input: {
       recordKind: "episode",
       source: "durable",
       summary: episode.summary,
-      title: "Episode memory",
+      title: render("episode_item"),
     });
   }
 
@@ -633,7 +693,7 @@ function collectCandidates(input: {
       recordKind: "evidence",
       source: "durable",
       summary: evidence.excerpt,
-      title: `Evidence: ${evidence.kind}`,
+      title: `${render("evidence")}: ${evidence.kind}`,
     });
   }
 
@@ -655,8 +715,8 @@ function collectCandidates(input: {
       occurredAt: journal.updatedAt,
       recordKind: "runtime-journal",
       source: "runtime",
-      summary: journal.currentState ?? journal.title ?? journal.worklog[0] ?? "Runtime journal",
-      title: journal.title ?? "Runtime journal",
+      summary: journal.currentState ?? journal.title ?? journal.worklog[0] ?? render("journal"),
+      title: journal.title ?? render("journal"),
     });
   }
 
@@ -678,13 +738,13 @@ function collectCandidates(input: {
       source: "runtime",
       summary: [
         workingMemory.currentGoal
-          ? `Goal: ${workingMemory.currentGoal}`
+          ? `${render("current_goal")}: ${workingMemory.currentGoal}`
           : undefined,
         workingMemory.openLoops.length > 0
-          ? `Open loops: ${workingMemory.openLoops.join(", ")}`
+          ? `${render("open_loops")}: ${workingMemory.openLoops.join(", ")}`
           : undefined,
-      ].filter(isPresent).join("; ") || "Working memory",
-      title: "Working memory",
+      ].filter(isPresent).join("; ") || render("working_memory"),
+      title: render("working_memory"),
     });
   }
 
@@ -694,21 +754,23 @@ function collectCandidates(input: {
 function buildProgressiveContextHeader(
   options: RenderProgressiveContextInput,
   compact: boolean,
+  language: ProgressiveLanguagePort,
+  locale: string,
 ): string[] {
   if (compact) {
     return [
-      "Progressive GoodMemory Recall",
+      language.render({ key: "progressive_recall" }, locale),
       `scopeDigest: ${options.index.scopeDigest}`,
-      "Use recordRefs with the detail tool when needed.",
+      language.render({ key: "progressive_detail_instruction_compact" }, locale),
     ];
   }
 
   return [
-    "Progressive GoodMemory Recall",
-    `query: ${options.query ?? options.index.query ?? "(none)"}`,
+    language.render({ key: "progressive_recall" }, locale),
+    `query: ${options.query ?? options.index.query ?? language.render({ key: "none" }, locale)}`,
     `scopeDigest: ${options.index.scopeDigest}`,
-    `retrievalProfile: ${options.retrievalProfile ?? "default"}`,
-    "Use recordRef values with the detail tool only when more context is needed.",
+    `retrievalProfile: ${options.retrievalProfile ?? language.render({ key: "default_label" }, locale)}`,
+    language.render({ key: "progressive_detail_instruction" }, locale),
   ];
 }
 
@@ -746,7 +808,9 @@ function selectIndexRecords(input: {
 
 function findBudgetedRecordLine(input: {
   header: string[];
+  language: ProgressiveLanguagePort;
   lines: string[];
+  locale: string;
   maxTokens?: number;
   record: ProgressiveRecallIndexRecord;
   recordIndex: number;
@@ -759,6 +823,8 @@ function findBudgetedRecordLine(input: {
       record: input.record,
       recordIndex: input.recordIndex,
       summaryMaxChars,
+      language: input.language,
+      locale: input.locale,
     });
     if (
       !wouldExceedTokenBudget({
@@ -775,19 +841,25 @@ function findBudgetedRecordLine(input: {
 }
 
 function renderProgressiveRecordLine(input: {
+  language: ProgressiveLanguagePort;
+  locale: string;
   record: ProgressiveRecallIndexRecord;
   recordIndex: number;
   summaryMaxChars: number;
 }): string {
   const parts = [
     `${input.recordIndex + 1}. ${input.record.title}`,
-    `kind: ${input.record.recordKind}`,
-    `ref: ${input.record.recordRef}`,
+    `${input.language.render({ key: "record_kind" }, input.locale)}: ${input.record.recordKind}`,
+    `${input.language.render({ key: "record_ref" }, input.locale)}: ${input.record.recordRef}`,
   ];
   if (input.summaryMaxChars > 0) {
-    parts.push(`summary: ${clipText(input.record.summary, input.summaryMaxChars)}`);
+    parts.push(
+      `${input.language.render({ key: "summary" }, input.locale)}: ${clipText(input.record.summary, input.summaryMaxChars)}`,
+    );
   }
-  parts.push(`detail tokens: ${input.record.estimatedDetailTokens}`);
+  parts.push(
+    `${input.language.render({ key: "detail_tokens" }, input.locale)}: ${input.record.estimatedDetailTokens}`,
+  );
   return parts.join(" | ");
 }
 
@@ -827,6 +899,8 @@ function enforceTokenBudget(content: string, maxTokens: number | undefined): str
 
 function toIndexRecord(input: {
   candidate: CandidateRecord;
+  language: ProgressiveLanguagePort;
+  locale: string;
   query?: string;
   scopeDigest: string;
 }): ProgressiveRecallIndexRecord {
@@ -847,7 +921,7 @@ function toIndexRecord(input: {
     occurredAt: input.candidate.occurredAt,
     recordKind: input.candidate.recordKind,
     recordRef,
-    score: scoreText(indexText, input.query),
+    score: scoreText(indexText, input.query, input.language, input.locale),
     source: input.candidate.source,
     summary,
     title,
@@ -994,21 +1068,26 @@ function clipText(value: string, maxLength: number): string {
   return `${trimmed.slice(0, maxLength - 3).trimEnd()}...`;
 }
 
-function scoreText(text: string, query: string | undefined): number {
-  const queryTokens = tokenize(query ?? "");
+function scoreText(
+  text: string,
+  query: string | undefined,
+  language: ProgressiveLanguagePort,
+  locale: string,
+): number {
+  const queryTokens = language.tokenize(query ?? "", locale, {
+    excludeStopwords: true,
+  });
   if (queryTokens.length === 0) {
     return 0;
   }
 
-  const textTokens = new Set(tokenize(text));
+  const textTokens = new Set(language.tokenize(text, locale, {
+    excludeStopwords: true,
+  }));
   return queryTokens.reduce(
     (score, token) => score + (textTokens.has(token) ? 1 : 0),
     0,
   );
-}
-
-function tokenize(value: string): string[] {
-  return Array.from(new Set(value.toLowerCase().match(/[a-z0-9_\-]+/gu) ?? []));
 }
 
 function dateValue(value: string | undefined): number {
@@ -1024,14 +1103,18 @@ function isPresent<T>(value: T | undefined): value is T {
   return value !== undefined;
 }
 
-function buildTimelineLabel(value: string | undefined): string {
+function buildTimelineLabel(
+  value: string | undefined,
+  language: ProgressiveLanguagePort,
+  locale: string,
+): string {
   if (!value) {
-    return "undated";
+    return language.render({ key: "undated" }, locale);
   }
 
   const timestamp = Date.parse(value);
   if (Number.isNaN(timestamp)) {
-    return "undated";
+    return language.render({ key: "undated" }, locale);
   }
 
   return new Date(timestamp).toISOString().slice(0, 10);

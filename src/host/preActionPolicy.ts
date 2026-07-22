@@ -68,6 +68,7 @@ interface MatchedEvidence {
 
 interface MatchedTypedBehavioralPolicy {
   feedback: FeedbackMemory;
+  languageContext: ResolvedLanguageContext;
   policy: NonNullable<ReturnType<typeof readBehavioralPolicyFromFeedbackMemory>>;
   score: number;
 }
@@ -134,6 +135,16 @@ function resolveRecordLanguage(
   });
 }
 
+function renderPolicyMessage(
+  language: LanguageService,
+  languageContext: ResolvedLanguageContext,
+  key: "guidance" | "instruction" | "none" | "verification",
+  detail?: string,
+): string {
+  const label = language.render({ key }, languageContext);
+  return detail ? `${label}: ${detail}` : label;
+}
+
 function describeAction(action: HostPlannedAction): string {
   switch (action.kind) {
     case "command":
@@ -151,14 +162,7 @@ function describeAction(action: HostPlannedAction): string {
 }
 
 export function buildHostPlannedActionSummary(action: HostPlannedAction): string {
-  switch (action.kind) {
-    case "command":
-      return `command ${action.command}`;
-    case "tool_call":
-      return `tool ${action.toolName}`;
-    case "file_edit":
-      return `${action.operation} ${action.relativePath}`;
-  }
+  return describeAction(action);
 }
 
 function isActiveValidatedPattern(pattern: FeedbackMemory): boolean {
@@ -397,28 +401,22 @@ function hasNegativeSignal(
   return analysis.feedbackKind === "dont" || analysis.factPolarity === "negative";
 }
 
-function normalizeProtocolPrecondition(sentence: string): string {
-  const normalized = normalizeForMatch(sentence);
-  if (normalized.includes("smoke")) {
-    return "run smoke verification";
-  }
-  if (normalized.includes("quickcheck")) {
-    return "run QuickCheck first";
-  }
-  return sentence;
-}
-
-function deriveStructuredQuickCheckPrecondition(value: string): string | undefined {
+function deriveStructuredQuickCheckPrecondition(
+  value: LanguageBoundText,
+  language: LanguageService,
+): string | undefined {
   const policy = deriveRuleBehavioralPolicy({
     appliesTo: "coding_agent",
     kind: "do",
-    rule: value,
+    language,
+    languageContext: value.languageContext,
+    rule: value.text,
   });
   const canonicalFirstAction = policy.enactmentSurface === "host_action"
     ? policy.applicability.canonicalFirstAction
     : undefined;
   return normalizeForMatch(canonicalFirstAction?.name) === "quickcheck"
-    ? "run QuickCheck first"
+    ? value.text
     : undefined;
 }
 
@@ -435,11 +433,14 @@ function extractPreconditions(
         language.analyzeQuery(segment, value.languageContext).before
       );
     if (sentence) {
-      preconditions.push(normalizeProtocolPrecondition(sentence));
+      preconditions.push(sentence);
       continue;
     }
 
-    const structuredQuickCheck = deriveStructuredQuickCheckPrecondition(value.text);
+    const structuredQuickCheck = deriveStructuredQuickCheckPrecondition(
+      value,
+      language,
+    );
     if (structuredQuickCheck) {
       preconditions.push(structuredQuickCheck);
     }
@@ -540,6 +541,8 @@ function resolveSiblingExecutablePath(
 function buildRecommendedFirstStep(
   preconditions: readonly string[],
   action: HostPlannedAction,
+  language: LanguageService,
+  languageContext: ResolvedLanguageContext,
 ): HostRecommendedFirstStep | undefined {
   const first = preconditions[0];
   if (!first) {
@@ -557,7 +560,12 @@ function buildRecommendedFirstStep(
         kind: "tool_call",
         toolName: "QuickCheck",
         raw: quickCheckPath,
-        summary: "Run QuickCheck before the original action.",
+        summary: renderPolicyMessage(
+          language,
+          languageContext,
+          "instruction",
+          first,
+        ),
       };
     }
 
@@ -611,6 +619,9 @@ function toBehavioralPolicyAction(
 
 function behavioralPolicyActionToRecommendedStep(
   action: BehavioralPolicyAction,
+  detail: string,
+  language: LanguageService,
+  languageContext: ResolvedLanguageContext,
 ): HostRecommendedFirstStep {
   if (action.kind === "warning") {
     return {
@@ -624,7 +635,12 @@ function behavioralPolicyActionToRecommendedStep(
       kind: "tool_call",
       toolName: action.name,
       ...(action.raw ? { raw: action.raw } : {}),
-      summary: "Use the canonical first action from validated behavioral policy.",
+      summary: renderPolicyMessage(
+        language,
+        languageContext,
+        "instruction",
+        detail,
+      ),
     };
   }
 
@@ -633,7 +649,12 @@ function behavioralPolicyActionToRecommendedStep(
       action.raw ??
       [action.name, ...(action.args ?? [])].filter(Boolean).join(" "),
     kind: "command",
-    summary: "Use the canonical first action from validated behavioral policy.",
+    summary: renderPolicyMessage(
+      language,
+      languageContext,
+      "instruction",
+      detail,
+    ),
   };
 }
 
@@ -680,6 +701,7 @@ function matchTypedBehavioralPolicies(
       }
       return {
         feedback: selection.feedback,
+        languageContext,
         policy: selection.policy,
         score: selection.score + overlap,
       } satisfies MatchedTypedBehavioralPolicy;
@@ -691,6 +713,7 @@ function matchTypedBehavioralPolicies(
 function resolveRuntimeGuidance(input: {
   action: HostPlannedAction;
   journal: SessionJournal | null | undefined;
+  language: LanguageService;
   workingMemory: WorkingMemorySnapshot | null | undefined;
 }): string[] {
   const guidance: string[] = [];
@@ -701,11 +724,24 @@ function resolveRuntimeGuidance(input: {
   }
 
   if (highRisk && input.workingMemory?.openLoops?.length) {
-    guidance.push(`Open loop before proceeding: ${input.workingMemory.openLoops[0]}`);
+    const openLoop = input.workingMemory.openLoops[0]!;
+    const languageContext = resolveRecordLanguage(input.language, openLoop);
+    guidance.push(
+      renderPolicyMessage(
+        input.language,
+        languageContext,
+        "guidance",
+        openLoop,
+      ),
+    );
   }
 
   if (highRisk && input.journal?.workflow?.length) {
-    guidance.push(`Session workflow says to start with: ${input.journal.workflow[0]}`);
+    const workflow = input.journal.workflow[0]!;
+    const languageContext = resolveRecordLanguage(input.language, workflow);
+    guidance.push(
+      `${input.language.render({ key: "workflow" }, languageContext)}: ${workflow}`,
+    );
   }
 
   if (input.journal?.errorsAndCorrections?.length) {
@@ -801,6 +837,7 @@ export function assessHostAction(input: {
   const runtimeGuidance = resolveRuntimeGuidance({
     action: input.intent.action,
     journal: input.exported.runtime?.journal,
+    language: input.language,
     workingMemory: input.exported.runtime?.workingMemory,
   });
   const guidance = uniqueStrings([
@@ -812,26 +849,52 @@ export function assessHostAction(input: {
   const negativeSignal = policyTexts.some((text) =>
     hasNegativeSignal(text, input.language)
   );
+  const firstTypedPolicy = typedPolicies[0];
+  const primaryPolicyText: LanguageBoundText | undefined = firstTypedPolicy
+    ? {
+        languageContext: firstTypedPolicy.languageContext,
+        text: firstTypedPolicy.feedback.rule,
+      }
+    : policyTexts[0];
+  const actionLanguageContext = resolveRecordLanguage(input.language, actionText);
+  const outputLanguageContext = primaryPolicyText?.languageContext ??
+    actionLanguageContext;
 
   let decision: HostActionAssessmentResult["decision"] = "allow";
-  let reason = "No matched memory-backed pre-action policy applied to this action.";
+  let reason = renderPolicyMessage(
+    input.language,
+    actionLanguageContext,
+    "guidance",
+    renderPolicyMessage(input.language, actionLanguageContext, "none"),
+  );
   let recommendedFirstStep: HostRecommendedFirstStep | undefined;
   const currentAction = toBehavioralPolicyAction(input.intent.action);
 
-  const firstTypedPolicy = typedPolicies[0];
   const canonicalFirstAction = firstTypedPolicy?.policy.applicability.canonicalFirstAction;
   if (firstTypedPolicy && canonicalFirstAction) {
     guidance.unshift(firstTypedPolicy.feedback.rule);
     if (!behavioralPolicyActionSatisfiesCanonical(currentAction, canonicalFirstAction)) {
       decision = "review_required";
-      reason =
-        "Matched typed behavioral policy requires a canonical first action before the proposed host action.";
+      reason = renderPolicyMessage(
+        input.language,
+        firstTypedPolicy.languageContext,
+        "instruction",
+        firstTypedPolicy.feedback.rule,
+      );
       recommendedFirstStep = behavioralPolicyActionToRecommendedStep(
         canonicalFirstAction,
+        firstTypedPolicy.feedback.rule,
+        input.language,
+        firstTypedPolicy.languageContext,
       );
     } else if (guidance.length > 0) {
       decision = "allow_with_guidance";
-      reason = "Matched typed behavioral policy confirms the canonical first action.";
+      reason = renderPolicyMessage(
+        input.language,
+        firstTypedPolicy.languageContext,
+        "verification",
+        firstTypedPolicy.feedback.rule,
+      );
     }
   }
 
@@ -844,23 +907,42 @@ export function assessHostAction(input: {
     recommendedFirstStep = buildRecommendedFirstStep(
       requiredPreconditions,
       input.intent.action,
+      input.language,
+      outputLanguageContext,
     );
     if (shouldBlockIrrecoverably(input.intent.action) && !recommendedFirstStep) {
       decision = "blocked";
-      reason = "Matched memory-backed veto blocks this destructive action before execution.";
+      reason = renderPolicyMessage(
+        input.language,
+        outputLanguageContext,
+        "instruction",
+        primaryPolicyText?.text,
+      );
     } else {
       decision = "review_required";
-      reason = requiredPreconditions.length > 0
-        ? `Matched memory-backed policy requires preconditions before ${buildHostPlannedActionSummary(input.intent.action)}.`
-        : `Matched memory-backed policy requires rewriting the first step before ${buildHostPlannedActionSummary(input.intent.action)}.`;
+      reason = renderPolicyMessage(
+        input.language,
+        outputLanguageContext,
+        "instruction",
+        primaryPolicyText?.text,
+      );
       recommendedFirstStep ??= {
         kind: "warning",
-        message: "Review matched memory guidance before continuing.",
+        message: primaryPolicyText?.text ?? reason,
       };
     }
   } else if (decision === "allow" && guidance.length > 0) {
     decision = "allow_with_guidance";
-    reason = "Matched memory or runtime continuity guidance is available for this action.";
+    const guidanceLanguageContext = resolveRecordLanguage(
+      input.language,
+      guidance[0]!,
+    );
+    reason = renderPolicyMessage(
+      input.language,
+      guidanceLanguageContext,
+      "guidance",
+      guidance[0],
+    );
   }
 
   const policyApplied = buildPolicyApplied({

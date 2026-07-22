@@ -20,6 +20,7 @@ import {
   SESSION_ARCHIVES_COLLECTION,
 } from "../evolution/contracts";
 import { buildMarkdownArtifacts } from "../governance/markdownArtifacts";
+import type { LanguageService } from "../language";
 import type { GoodMemoryTracer } from "../observability/tracer";
 import {
   CLAIM_PROJECTIONS_COLLECTION,
@@ -73,6 +74,10 @@ export interface MemoryAdminDeps {
   sessionStore: SessionStore;
   documentStore: DocumentStore;
 }
+
+type ExportMemoryDeps = MemoryAdminDeps & {
+  language: LanguageService;
+};
 
 export function recordMatchesScope(
   record: ScopeBoundRecord,
@@ -209,7 +214,7 @@ export async function deleteMemorySupportingState(
 }
 
 export async function exportMemoryOperation(
-  deps: MemoryAdminDeps,
+  deps: ExportMemoryDeps,
   input: ExportMemoryInput,
 ): Promise<ExportMemoryResult> {
   const trace = await deps.tracer.start({
@@ -291,6 +296,38 @@ export async function exportMemoryOperation(
           spills,
         }
       : undefined;
+    const languageMessages = durable.sourceMessages.length > 0
+      ? durable.sourceMessages.map(({ content, role }) => ({ content, role }))
+      : [
+          ...durable.facts.map(({ content }) => ({ content, role: "user" })),
+          ...durable.references.map(({ pointer, title }) => ({
+            content: `${title} ${pointer}`,
+            role: "user",
+          })),
+          ...durable.feedback.map(({ rule }) => ({ content: rule, role: "user" })),
+          ...durable.episodes.map(({ summary }) => ({ content: summary, role: "user" })),
+          ...durable.archives.map(({ summary }) => ({ content: summary, role: "user" })),
+          ...durable.evidence.map(({ excerpt }) => ({ content: excerpt, role: "user" })),
+          ...(runtime?.workingMemory
+            ? [
+                runtime.workingMemory.currentGoal,
+                ...runtime.workingMemory.openLoops,
+                ...(runtime.workingMemory.temporaryDecisions ?? []),
+              ].filter((content): content is string => Boolean(content)).map((content) => ({
+                content,
+                role: "user",
+              }))
+            : []),
+          ...(runtime?.journal
+            ? [runtime.journal.currentState, ...runtime.journal.worklog]
+                .filter((content): content is string => Boolean(content))
+                .map((content) => ({ content, role: "user" }))
+            : []),
+        ];
+    const languageContext = deps.language.resolveFromMessages({
+      ...(input.locale ? { locale: input.locale } : {}),
+      messages: languageMessages,
+    });
 
     await trace.succeeded({
       attributes: {
@@ -303,6 +340,8 @@ export async function exportMemoryOperation(
 
     return {
       artifacts: buildMarkdownArtifacts({
+        language: deps.language,
+        languageContext,
         scope: input.scope,
         durable,
         runtime,

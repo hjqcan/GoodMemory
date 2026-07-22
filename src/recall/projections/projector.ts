@@ -274,6 +274,25 @@ function resolveProvenance(record: Record<string, unknown>): RecallIndexDocument
   };
 }
 
+export function resolveProjectionLanguageContext(
+  language: LanguageService,
+  text: string,
+  source?: Partial<MemorySource>,
+): ResolvedLanguageContext {
+  if (!source?.locale) {
+    return language.resolveFromText({ text });
+  }
+  if (source.localeSource) {
+    return language.resolveFromText({ locale: source.locale, text });
+  }
+  const recorded = language.resolveFromText({ locale: source.locale, text });
+  const detected = language.resolveFromText({ text });
+  return detected.localeSource === "detected" &&
+      detected.languagePackId !== recorded.languagePackId
+    ? detected
+    : recorded;
+}
+
 function buildIndexDocument(input: {
   collection: RecallProjectionSourceCollection;
   field?: string;
@@ -291,11 +310,11 @@ function buildIndexDocument(input: {
   const source = isRecord(input.record.source)
     ? input.record.source
     : undefined;
-  const sourceLocale = source ? optionalString(source, "locale") : undefined;
-  const languageContext = input.language.resolveFromText({
-    ...(sourceLocale ? { locale: sourceLocale } : {}),
+  const languageContext = resolveProjectionLanguageContext(
+    input.language,
     text,
-  });
+    source as Partial<MemorySource> | undefined,
+  );
   const entityMentions = buildEntityMentions({
     context: languageContext,
     field: input.field,
@@ -320,7 +339,7 @@ function buildIndexDocument(input: {
   ].join("\u0000");
   return {
     id: stableId("recall", identity),
-    schemaVersion: 2,
+    schemaVersion: 3,
     ...input.scope,
     scopeKey,
     sourceCollection: input.collection,

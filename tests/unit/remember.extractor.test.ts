@@ -164,6 +164,136 @@ describe("deterministic memory extractor", () => {
     expect(result.candidates).toHaveLength(0);
   });
 
+  it("extracts typed English facts from domain-neutral first-person grammar", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    const result = await extractor.extract({
+      scope: { userId: "u-generic-en", sessionId: "s-generic-en" },
+      messages: [
+        {
+          role: "user",
+          content: "I've been using a cobalt torque wrench from Northwind Depot.",
+        },
+        {
+          role: "user",
+          content: "I still need to calibrate the spectrometer before Thursday.",
+        },
+        {
+          role: "user",
+          content: "I recently catalogued the river-sediment samples.",
+        },
+        {
+          role: "user",
+          content: "I'm working on the orchard irrigation rollout.",
+        },
+        {
+          role: "user",
+          content: "I recently presented the irrigation rollout to the review board.",
+        },
+      ],
+    });
+
+    expect(
+      result.candidates
+        .filter(({ kindHint }) => kindHint === "fact")
+        .map(({ content, explicitness, metadata }) => ({
+          category: metadata?.category,
+          content,
+          explicitness,
+          factKind: metadata?.factKind,
+        })),
+    ).toEqual([
+      {
+        category: "personal",
+        content: "I use a cobalt torque wrench from Northwind Depot.",
+        explicitness: "explicit",
+        factKind: undefined,
+      },
+      {
+        category: "personal",
+        content: "I still need to calibrate the spectrometer before Thursday.",
+        explicitness: "explicit",
+        factKind: "open_loop",
+      },
+      {
+        category: "event",
+        content: "I catalogued the river-sediment samples.",
+        explicitness: "explicit",
+        factKind: undefined,
+      },
+      {
+        category: "project",
+        content: "I am working on the orchard irrigation rollout.",
+        explicitness: "explicit",
+        factKind: "generic_project",
+      },
+      {
+        category: "project",
+        content: "I presented the irrigation rollout to the review board.",
+        explicitness: "explicit",
+        factKind: "generic_project",
+      },
+    ]);
+  });
+
+  it("extracts typed Chinese facts from domain-neutral first-person grammar", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    const result = await extractor.extract({
+      locale: "zh-CN",
+      scope: { userId: "u-generic-zh", sessionId: "s-generic-zh" },
+      messages: [
+        { role: "user", content: "我一直使用北风仓库的钴蓝扭矩扳手。" },
+        { role: "user", content: "我还需要校准光谱仪。" },
+        { role: "user", content: "我最近整理了河流沉积物样本。" },
+        { role: "user", content: "我正在推进果园灌溉上线。" },
+        { role: "user", content: "我刚汇报了灌溉上线方案。" },
+      ],
+    });
+
+    expect(
+      result.candidates
+        .filter(({ kindHint }) => kindHint === "fact")
+        .map(({ content, explicitness, metadata }) => ({
+          category: metadata?.category,
+          content,
+          explicitness,
+          factKind: metadata?.factKind,
+        })),
+    ).toEqual([
+      {
+        category: "personal",
+        content: "我使用北风仓库的钴蓝扭矩扳手。",
+        explicitness: "explicit",
+        factKind: undefined,
+      },
+      {
+        category: "personal",
+        content: "我仍需校准光谱仪。",
+        explicitness: "explicit",
+        factKind: "open_loop",
+      },
+      {
+        category: "event",
+        content: "我整理了河流沉积物样本。",
+        explicitness: "explicit",
+        factKind: undefined,
+      },
+      {
+        category: "project",
+        content: "我正在做果园灌溉上线。",
+        explicitness: "explicit",
+        factKind: "generic_project",
+      },
+      {
+        category: "project",
+        content: "我汇报了灌溉上线方案。",
+        explicitness: "explicit",
+        factKind: "generic_project",
+      },
+    ]);
+  });
+
   it("does not treat one-off polite requests as durable procedural feedback", async () => {
     const extractor = createDeterministicMemoryExtractor();
 
@@ -243,11 +373,6 @@ describe("deterministic memory extractor", () => {
           content:
             "I completed my undergrad in CS from UCLA, which has a great reputation in the industry.",
         },
-        {
-          role: "user",
-          content:
-            "I've been using a lavender scented shampoo that I picked up on a whim at Trader Joe's.",
-        },
       ],
     });
 
@@ -256,7 +381,6 @@ describe("deterministic memory extractor", () => {
         "My cat's name is Luna.",
         "My dog Max is a Golden Retriever.",
         "I completed my undergraduate Computer Science degree at UCLA.",
-        "I use Trader Joe's lavender scented shampoo.",
       ]),
     );
     expect(
@@ -266,7 +390,6 @@ describe("deterministic memory extractor", () => {
             "My cat's name is Luna.",
             "My dog Max is a Golden Retriever.",
             "I completed my undergraduate Computer Science degree at UCLA.",
-            "I use Trader Joe's lavender scented shampoo.",
           ].includes(candidate.content),
         )
         .every((candidate) => candidate.metadata?.category === "personal"),
@@ -553,7 +676,7 @@ describe("deterministic memory extractor", () => {
     ]);
   });
 
-  it("extracts personal activity and countable experience facts", async () => {
+  it("uses generic recent-event and active-work grammar without domain normalization", async () => {
     const extractor = createDeterministicMemoryExtractor();
 
     const result = await extractor.extract({
@@ -562,27 +685,27 @@ describe("deterministic memory extractor", () => {
         {
           role: "user",
           content:
-            "I recently finished a simple Revell F-15 Eagle kit that I picked up on a whim.",
+            "I recently finished a ceramic glaze sample that still needs firing.",
         },
         {
           role: "user",
           content:
-            "I recently finished a Tamiya 1/48 scale Spitfire Mk.V and had to learn some new techniques.",
+            "I recently catalogued a river sediment core for the archive.",
         },
         {
           role: "user",
           content:
-            "I'm looking for tips on my new 1/72 scale B-29 bomber model kit. By the way, I just got this kit and a 1/24 scale '69 Camaro at a model show last weekend.",
+            "By the way, I just acquired a kiln controller at the reuse center.",
         },
         {
           role: "user",
           content:
-            "I also started working on a diorama featuring a 1/16 scale German Tiger I tank.",
+            "I also started working on the orchard irrigation dashboard.",
         },
         {
           role: "user",
           content:
-            "Have you tried any good Korean restaurants in your city lately? I've tried four different ones so far.",
+            "Have you tried any of the samples? I've tried four different ones so far.",
         },
       ],
     });
@@ -595,43 +718,29 @@ describe("deterministic memory extractor", () => {
       })),
     ).toEqual([
       {
-        category: "personal",
-        content: "I worked on or got the model kit: simple Revell F-15 Eagle kit.",
+        category: "event",
+        content: "I finished a ceramic glaze sample that still needs firing.",
         kindHint: "fact",
       },
       {
-        category: "personal",
-        content:
-          "I worked on or got the model kit: Tamiya 1/48 scale Spitfire Mk.V.",
+        category: "event",
+        content: "I catalogued a river sediment core for the archive.",
         kindHint: "fact",
       },
       {
-        category: "personal",
-        content:
-          "I worked on or got the model kit: 1/72 scale B-29 bomber model kit.",
+        category: "event",
+        content: "I acquired a kiln controller at the reuse center.",
         kindHint: "fact",
       },
       {
-        category: "personal",
-        content:
-          "I worked on or got the model kit: 1/24 scale '69 Camaro.",
-        kindHint: "fact",
-      },
-      {
-        category: "personal",
-        content:
-          "I worked on or got the model kit: 1/16 scale German Tiger I tank.",
-        kindHint: "fact",
-      },
-      {
-        category: "personal",
-        content: "I have tried four Korean restaurants in my city.",
+        category: "project",
+        content: "I am working on the orchard irrigation dashboard.",
         kindHint: "fact",
       },
     ]);
   });
 
-  it("extracts direct pickup tasks and contextual personal best updates", async () => {
+  it("keeps future tasks and direct personal-best claims domain-neutral", async () => {
     const extractor = createDeterministicMemoryExtractor();
 
     const result = await extractor.extract({
@@ -640,34 +749,36 @@ describe("deterministic memory extractor", () => {
         {
           role: "user",
           content:
-            "I think I'll take a break and pick up my dry cleaning for the navy blue blazer I wore to a meeting a few weeks ago.",
+            "I think I'll take a break and calibrate the pressure gauge before Thursday.",
         },
         {
           role: "user",
           content:
-            "I'm training for another charity 5K run coming up and I'm hoping to beat my personal best time of 25:50 this time around.",
+            "I'm hoping to beat my personal best time of 25:50 this time around.",
         },
       ],
     });
 
     expect(
-      result.candidates.map((candidate) => ({
-        category: candidate.metadata?.category,
-        content: candidate.content,
-        factKind: candidate.metadata?.factKind,
-        kindHint: candidate.kindHint,
-      })),
+      result.candidates
+        .filter((candidate) => candidate.kindHint === "fact")
+        .map((candidate) => ({
+          category: candidate.metadata?.category,
+          content: candidate.content,
+          factKind: candidate.metadata?.factKind,
+          kindHint: candidate.kindHint,
+        })),
     ).toEqual([
       {
         category: "personal",
         content:
-          "I still need to pick up my dry cleaning for the navy blue blazer I wore to a meeting a few weeks ago.",
+          "I still need to take a break and calibrate the pressure gauge before Thursday.",
         factKind: "open_loop",
         kindHint: "fact",
       },
       {
         category: "personal",
-        content: "My personal best time in a charity 5K run is 25:50.",
+        content: "My personal best time is 25:50.",
         factKind: undefined,
         kindHint: "fact",
       },
@@ -693,17 +804,17 @@ describe("deterministic memory extractor", () => {
         {
           role: "user",
           content:
-            "I recently participated in a case competition hosted by a consulting firm.",
+            "I recently participated in an accessibility review workshop.",
         },
         {
           role: "user",
           content:
-            "I recently presented a poster on my research on the effects of social media influencers on consumer purchasing decisions.",
+            "I recently presented the indexing migration proposal to the architecture council.",
         },
         {
           role: "user",
           content:
-            "I've been working on a solo project for my Data Mining class.",
+            "I've been working on the archive digitization rollout.",
         },
       ],
     });
@@ -734,28 +845,20 @@ describe("deterministic memory extractor", () => {
       },
       {
         category: "project",
-        content:
-          "I participated in a project activity: a case competition hosted by a consulting firm.",
+        content: "I participated in an accessibility review workshop.",
         factKind: "generic_project",
         kindHint: "fact",
       },
       {
         category: "project",
         content:
-          "I worked on a research project on the effects of social media influencers on consumer purchasing decisions.",
+          "I presented the indexing migration proposal to the architecture council.",
         factKind: "generic_project",
         kindHint: "fact",
       },
       {
         category: "project",
-        content: "I am working on a solo project for my Data Mining class.",
-        factKind: "generic_project",
-        kindHint: "fact",
-      },
-      {
-        category: "project",
-        content:
-          "I am currently leading a solo project for my Data Mining class.",
+        content: "I am working on the archive digitization rollout.",
         factKind: "generic_project",
         kindHint: "fact",
       },
@@ -804,7 +907,7 @@ describe("deterministic memory extractor", () => {
     ]);
   });
 
-  it("extracts personal equipment setup and professional topic interests", async () => {
+  it("does not infer identity from domain questions and keeps explicit user identity", async () => {
     const extractor = createDeterministicMemoryExtractor();
 
     const result = await extractor.extract({
@@ -813,17 +916,17 @@ describe("deterministic memory extractor", () => {
         {
           role: "user",
           content:
-            "Can you recommend some good options that are compatible with my Sony A7R IV?",
+            "Can you recommend some options compatible with my KX-4 controller?",
         },
         {
           role: "user",
           content:
-            "What's the best way to clean my Sony 24-70mm f/2.8 lens?",
+            "What's the best way to clean a tungsten nozzle?",
         },
         {
           role: "user",
           content:
-            "As a Sony camera user, I've been thinking about upgrading my camera bag.",
+            "As a ceramic kiln user, I've been thinking about upgrading the vent.",
         },
         {
           role: "user",
@@ -847,28 +950,7 @@ describe("deterministic memory extractor", () => {
     ).toEqual([
       {
         category: "personal",
-        content: "My current photography setup includes Sony A7R IV.",
-        kindHint: "fact",
-      },
-      {
-        category: "personal",
-        content: "My current photography setup includes Sony 24-70mm f/2.8 lens.",
-        kindHint: "fact",
-      },
-      {
-        category: "personal",
-        content: "I use Sony cameras.",
-        kindHint: "fact",
-      },
-      {
-        category: "technical",
-        content: "I work in deep learning for medical image analysis.",
-        kindHint: "fact",
-      },
-      {
-        category: "technical",
-        content:
-          "I am interested in explainable AI in medical image analysis research papers and articles.",
+        content: "I am a ceramic kiln user.",
         kindHint: "fact",
       },
     ]);
@@ -946,6 +1028,7 @@ describe("deterministic memory extractor", () => {
     const extractor = createDeterministicMemoryExtractor();
 
     const result = await extractor.extract({
+      locale: "zh-CN",
       scope: { userId: "u-1", sessionId: "s-zh" },
       messages: [
         {
@@ -1049,10 +1132,11 @@ describe("deterministic memory extractor", () => {
     );
   });
 
-  it("extracts Chinese Phase 62 personal experience facts", async () => {
+  it("uses generic Chinese personal, open-loop, event, and learning grammar", async () => {
     const extractor = createDeterministicMemoryExtractor();
 
     const result = await extractor.extract({
+      locale: "zh-CN",
       scope: { userId: "u-1", sessionId: "s-zh-phase62-personal" },
       messages: [
         {
@@ -1065,23 +1149,23 @@ describe("deterministic memory extractor", () => {
         },
         {
           role: "user",
-          content: "我还需要取干洗的蓝色西装外套。",
+          content: "我还需要校准压力计。",
         },
         {
           role: "user",
-          content: "我需要退回Zara的靴子。",
+          content: "我需要归档观测记录。",
         },
         {
           role: "user",
-          content: "我刚帮表妹挑了婴儿派对用品。",
+          content: "我刚整理了河流沉积物样本。",
         },
         {
           role: "user",
-          content: "我这次5K跑的个人最好成绩是25:50。",
+          content: "我这次陶艺评比的个人最佳成绩是95分。",
         },
         {
           role: "user",
-          content: "我正在学习视频剪辑的高级设置，使用Adobe Premiere Pro。",
+          content: "我正在学习光谱分析，使用开源工具箱。",
         },
       ],
     });
@@ -1108,31 +1192,31 @@ describe("deterministic memory extractor", () => {
       },
       {
         category: "personal",
-        content: "我仍需取干洗的蓝色西装外套。",
+        content: "我仍需校准压力计。",
         factKind: "open_loop",
         kindHint: "fact",
       },
       {
         category: "personal",
-        content: "我需要退回Zara的靴子。",
+        content: "我仍需归档观测记录。",
         factKind: "open_loop",
         kindHint: "fact",
       },
       {
         category: "event",
-        content: "我帮表妹挑了婴儿派对用品。",
+        content: "我整理了河流沉积物样本。",
         factKind: undefined,
         kindHint: "fact",
       },
       {
         category: "personal",
-        content: "我在5K跑的个人最好成绩是25:50。",
+        content: "我在陶艺评比的个人最好成绩是95分。",
         factKind: undefined,
         kindHint: "fact",
       },
       {
         category: "personal",
-        content: "我用Adobe Premiere Pro学习视频剪辑的高级设置。",
+        content: "我用开源工具箱学习光谱分析。",
         factKind: undefined,
         kindHint: "fact",
       },
@@ -1143,6 +1227,7 @@ describe("deterministic memory extractor", () => {
     const extractor = createDeterministicMemoryExtractor();
 
     const result = await extractor.extract({
+      locale: "zh-CN",
       scope: { userId: "u-1", sessionId: "s-zh-attributes" },
       messages: [
         {
@@ -1157,10 +1242,6 @@ describe("deterministic memory extractor", () => {
           role: "user",
           content: "我本科在UCLA读计算机，之后一直在科技行业工作。",
         },
-        {
-          role: "user",
-          content: "我一直用Trader Joe's的薰衣草洗发水。",
-        },
       ],
     });
 
@@ -1169,36 +1250,28 @@ describe("deterministic memory extractor", () => {
         "我的猫叫露娜。",
         "我的狗Max是金毛。",
         "我的计算机本科学校是UCLA。",
-        "我使用Trader Joe's的薰衣草洗发水。",
       ]),
     );
   });
 
-  it("extracts Chinese Phase 62 hobby, project, and relationship facts", async () => {
+  it("uses generic Chinese event, project, and relationship grammar", async () => {
     const extractor = createDeterministicMemoryExtractor();
 
     const result = await extractor.extract({
+      locale: "zh-CN",
       scope: { userId: "u-1", sessionId: "s-zh-phase62-hobby" },
       messages: [
         {
           role: "user",
-          content: "我最近完成了Revell F-15 Eagle模型。",
+          content: "我最近完成了陶瓷釉料样本。",
         },
         {
           role: "user",
-          content: "我刚入手了1/72比例B-29轰炸机模型。",
+          content: "我刚入手了便携式湿度传感器。",
         },
         {
           role: "user",
-          content: "我在本地试过四家韩餐。",
-        },
-        {
-          role: "user",
-          content: "我的当前摄影配置包括Sony A7R IV和24-70mm f/2.8镜头。",
-        },
-        {
-          role: "user",
-          content: "我正在做一个solo project，内容是社区花园应用。",
+          content: "我正在推进社区花园灌溉上线。",
         },
         {
           role: "user",
@@ -1212,40 +1285,30 @@ describe("deterministic memory extractor", () => {
     });
 
     expect(
-      result.candidates.map((candidate) => ({
-        category: candidate.metadata?.category,
-        content: candidate.content,
-        factKind: candidate.metadata?.factKind,
-        kindHint: candidate.kindHint,
-      })),
+      result.candidates
+        .filter((candidate) => candidate.kindHint === "fact")
+        .map((candidate) => ({
+          category: candidate.metadata?.category,
+          content: candidate.content,
+          factKind: candidate.metadata?.factKind,
+          kindHint: candidate.kindHint,
+        })),
     ).toEqual([
       {
-        category: "personal",
-        content: "我做过或买过模型套件：Revell F-15 Eagle模型。",
+        category: "event",
+        content: "我完成了陶瓷釉料样本。",
         factKind: undefined,
         kindHint: "fact",
       },
       {
-        category: "personal",
-        content: "我做过或买过模型套件：1/72比例B-29轰炸机模型。",
-        factKind: undefined,
-        kindHint: "fact",
-      },
-      {
-        category: "personal",
-        content: "我在本地试过四家韩餐。",
-        factKind: undefined,
-        kindHint: "fact",
-      },
-      {
-        category: "personal",
-        content: "我的当前摄影配置包括Sony A7R IV和24-70mm f/2.8镜头。",
+        category: "event",
+        content: "我入手了便携式湿度传感器。",
         factKind: undefined,
         kindHint: "fact",
       },
       {
         category: "project",
-        content: "我正在做solo project，内容是社区花园应用。",
+        content: "我正在做社区花园灌溉上线。",
         factKind: "generic_project",
         kindHint: "fact",
       },
@@ -1264,39 +1327,36 @@ describe("deterministic memory extractor", () => {
     ]);
   });
 
-  it("extracts Chinese Phase 62 retail, research, and equipment facts", async () => {
+  it("uses generic Chinese use, event, open-loop, identity, and project grammar", async () => {
     const extractor = createDeterministicMemoryExtractor();
 
     const result = await extractor.extract({
+      locale: "zh-CN",
       scope: { userId: "u-1", sessionId: "s-zh-phase62-retail" },
       messages: [
         {
           role: "user",
-          content: "我一直用Target的Cartwheel app。",
+          content: "我一直用北风仓库的库存应用。",
         },
         {
           role: "user",
-          content: "我上周兑换了5元咖啡奶精优惠券。",
+          content: "我上周登记了5份土壤样本。",
         },
         {
           role: "user",
-          content: "我会休息一下再取包裹。",
+          content: "我会休息一下再校准光谱仪。",
         },
         {
           role: "user",
-          content: "作为索尼相机用户，我想找配件。",
+          content: "作为陶瓷窑用户，我想升级排气口。",
         },
         {
           role: "user",
-          content: "我最近参加了一个案例竞赛活动。",
+          content: "我最近参加了可访问性评审。",
         },
         {
           role: "user",
-          content: "我展示了关于用户体验的研究海报。",
-        },
-        {
-          role: "user",
-          content: "我想继续阅读关于人机交互的研究论文。",
+          content: "我展示了灌溉上线方案。",
         },
       ],
     });
@@ -1311,44 +1371,38 @@ describe("deterministic memory extractor", () => {
     ).toEqual([
       {
         category: "personal",
-        content: "我使用Target的Cartwheel应用。",
+        content: "我使用北风仓库的库存应用。",
         factKind: undefined,
         kindHint: "fact",
       },
       {
         category: "event",
-        content: "我兑换了5元咖啡奶精优惠券。",
+        content: "我登记了5份土壤样本。",
         factKind: undefined,
         kindHint: "fact",
       },
       {
         category: "personal",
-        content: "我仍需取包裹。",
+        content: "我仍需休息一下再校准光谱仪。",
         factKind: "open_loop",
         kindHint: "fact",
       },
       {
         category: "personal",
-        content: "我使用索尼相机。",
+        content: "我是陶瓷窑用户。",
         factKind: undefined,
         kindHint: "fact",
       },
       {
         category: "project",
-        content: "我参加了案例竞赛活动。",
+        content: "我参加了可访问性评审。",
         factKind: "generic_project",
         kindHint: "fact",
       },
       {
         category: "project",
-        content: "我做过关于用户体验的研究项目。",
+        content: "我展示了灌溉上线方案。",
         factKind: "generic_project",
-        kindHint: "fact",
-      },
-      {
-        category: "technical",
-        content: "我对人机交互研究论文和文章感兴趣。",
-        factKind: undefined,
         kindHint: "fact",
       },
     ]);
@@ -1358,6 +1412,7 @@ describe("deterministic memory extractor", () => {
     const extractor = createDeterministicMemoryExtractor();
 
     const result = await extractor.extract({
+      locale: "zh-CN",
       scope: { userId: "u-1", sessionId: "s-zh-location" },
       messages: [
         {

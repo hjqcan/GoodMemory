@@ -1,14 +1,14 @@
 import type {
   GoodMemory,
-  GoodMemoryConfig,
   RecallInput,
   RecallResult,
 } from "./contracts";
-import { createLanguageService } from "../language";
 import type {
-  RecallRouterStrategy,
-  RetrievalProfile,
-} from "../recall/router";
+  LanguageQueryAnalysis,
+  LanguageService,
+  ResolvedLanguageContext,
+} from "../language";
+import type { RecallRouterStrategy } from "../recall/router";
 import {
   assertRetrievalPromotionAuthorizationAllowsDefaultRollout,
   type RetrievalStrategyRolloutConfig,
@@ -16,9 +16,29 @@ import {
 
 interface InternalRetrievalRolloutState {
   assistedRecallRouterEnabled: boolean;
-  config: GoodMemoryConfig;
+  languageService: LanguageService;
   now?: () => Date;
   rollout?: RetrievalStrategyRolloutConfig;
+}
+
+const INTERNAL_RECALL_LANGUAGE_ANALYSIS = Symbol(
+  "goodmemory.internalRecallLanguageAnalysis",
+);
+
+interface InternalRecallLanguageAnalysis {
+  analysis: LanguageQueryAnalysis;
+  context: ResolvedLanguageContext;
+  query: string;
+}
+
+type AnalyzedRecallInput = RecallInput & {
+  [INTERNAL_RECALL_LANGUAGE_ANALYSIS]?: InternalRecallLanguageAnalysis;
+};
+
+export function readInternalRecallLanguageAnalysis(
+  input: RecallInput,
+): InternalRecallLanguageAnalysis | undefined {
+  return (input as AnalyzedRecallInput)[INTERNAL_RECALL_LANGUAGE_ANALYSIS];
 }
 
 function resolveRequestedStrategy(
@@ -34,67 +54,61 @@ function buildPromotedSummary(input: {
   return `internal promote rollout elevated ${requestedLabel} recall to llm-assisted for an authorized high-value query while preserving the rules-first floor.`;
 }
 
-function isHighValueRecallQuery(input: {
-  languageService: ReturnType<typeof createLanguageService>;
+function analyzeHighValueRecallQuery(input: {
+  languageService: LanguageService;
   locale?: string;
   query: string;
-  retrievalProfile?: RetrievalProfile;
-}): boolean {
-  const locale =
-    input.locale ??
-    input.languageService.resolveFromText({
-      text: input.query,
-    }).locale;
-
-  const retrievalProfile = input.retrievalProfile ?? "general_chat";
-  if (retrievalProfile === "coding_agent") {
-    return true;
-  }
-
-  const continuation = input.languageService.isContinuationQuery(
-    input.query,
-    locale,
-  );
-  const blocker = input.languageService.isBlockerQuery(input.query, locale);
-  const openLoop = input.languageService.isOpenLoopQuery(input.query, locale);
-  const referenceSeeking = input.languageService.isReferenceSeekingQuery(
-    input.query,
-    locale,
-  );
-  const actionDriving = input.languageService.isActionDrivingQuery(
-    input.query,
-    locale,
-  );
-
-  return continuation || blocker || openLoop || referenceSeeking || actionDriving;
+}): InternalRecallLanguageAnalysis & { highValue: boolean } {
+  const context = input.languageService.resolveFromText({
+    locale: input.locale,
+    text: input.query,
+  });
+  const analysis = input.languageService.analyzeQuery(input.query, context);
+  return {
+    analysis,
+    context,
+    highValue: analysis.continuation || analysis.blocker ||
+      analysis.openLoop || analysis.referenceSeeking || analysis.actionDriving,
+    query: input.query,
+  };
 }
 
 function shouldApplyInternalRetrievalPromotion(input: {
-  languageService: ReturnType<typeof createLanguageService>;
+  languageService: LanguageService;
   recallInput: RecallInput;
   rollout?: RetrievalStrategyRolloutConfig;
-}): boolean {
+}): {
+  analysis?: InternalRecallLanguageAnalysis;
+  promotionApplied: boolean;
+} {
   const rollout = input.rollout;
   if (!rollout) {
-    return false;
+    return { promotionApplied: false };
   }
 
   const mode = rollout.mode ?? "promote";
   const promotedStrategy = rollout.promotedStrategy ?? "rules-only";
   if (mode !== "promote" || promotedStrategy !== "llm-assisted") {
-    return false;
+    return { promotionApplied: false };
   }
 
   if (input.recallInput.strategy && input.recallInput.strategy !== "auto") {
-    return false;
+    return { promotionApplied: false };
   }
 
-  return isHighValueRecallQuery({
+  if ((input.recallInput.retrievalProfile ?? "general_chat") === "coding_agent") {
+    return { promotionApplied: true };
+  }
+
+  const analysis = analyzeHighValueRecallQuery({
     languageService: input.languageService,
     locale: input.recallInput.locale,
     query: input.recallInput.query,
-    retrievalProfile: input.recallInput.retrievalProfile,
   });
+  return {
+    analysis,
+    promotionApplied: analysis.highValue,
+  };
 }
 
 function patchPromotedRecallResult(input: {
@@ -137,7 +151,7 @@ export function wrapInternalRetrievalRolloutMemory(
     });
   }
 
-  const languageService = createLanguageService(state.config.language);
+  const languageService = state.languageService;
 
   return {
     jobs: memory.jobs,
@@ -158,28 +172,34 @@ export function wrapInternalRetrievalRolloutMemory(
       return memory.forget(input);
     },
     async recall(input) {
-      const promotionApplied = shouldApplyInternalRetrievalPromotion({
+      const promotion = shouldApplyInternalRetrievalPromotion({
         languageService,
         recallInput: input,
         rollout: state.rollout,
       });
 
-      if (promotionApplied) {
+      if (promotion.promotionApplied) {
         assertRetrievalPromotionAuthorizationAllowsDefaultRollout({
           now: state.now?.().toISOString(),
           rollout: state.rollout,
         });
       }
 
-      const effectiveInput = promotionApplied
+      const effectiveInput = promotion.promotionApplied
         ? {
             ...input,
             strategy: "llm-assisted" as const,
           }
         : input;
-      const result = await memory.recall(effectiveInput);
+      const analyzedInput: AnalyzedRecallInput = promotion.analysis
+        ? {
+            ...effectiveInput,
+            [INTERNAL_RECALL_LANGUAGE_ANALYSIS]: promotion.analysis,
+          }
+        : effectiveInput;
+      const result = await memory.recall(analyzedInput);
 
-      if (!promotionApplied) {
+      if (!promotion.promotionApplied) {
         return result;
       }
 

@@ -369,6 +369,7 @@ export interface ForgetResult {
 export interface ExportMemoryInput {
   scope: MemoryScope;
   includeRuntime?: boolean;
+  locale?: string;
 }
 
 export interface ExportMemoryResult {

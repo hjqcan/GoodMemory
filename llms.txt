@@ -10,6 +10,11 @@ database, or a generic RAG system. Local-first: Bun gets durable SQLite by
 default and recall runs embedding-free out of the box; embedding providers,
 Postgres, and LLM extraction are opt-in.
 
+Release status: this source tree targets the 0.7.0 release candidate. npm
+latest remains 0.6.0 until the tagged stable workflow publishes 0.7.0. The
+version-pinned registry commands below apply after publication; pre-publish
+verification uses goodmemory-0.7.0.tgz.
+
 If you are an autonomous agent reading this to decide whether to give *yourself*
 memory: yes, that is a supported first-class path. Start with the decision tree
 below. If you are here to *contribute to* GoodMemory instead, read AGENTS.md.

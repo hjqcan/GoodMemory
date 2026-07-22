@@ -1,8 +1,11 @@
 import {
   createChineseLanguagePack,
+  createFrenchLanguagePack,
   createGoodMemory,
   createJapaneseLanguagePack,
+  createKoreanLanguagePack,
   createLanguageService,
+  createSpanishLanguagePack,
   inspectGoodMemoryRuntime,
 } from "goodmemory";
 import {
@@ -183,6 +186,9 @@ const language = createLanguageService({
   packs: [
     createChineseLanguagePack("Hant"),
     createJapaneseLanguagePack(),
+    createKoreanLanguagePack(),
+    createFrenchLanguagePack(),
+    createSpanishLanguagePack(),
   ],
 });
 const traditionalChineseContext = language.resolveFromText({
@@ -192,6 +198,38 @@ const traditionalChineseContext = language.resolveFromText({
 const traditionalChineseSearchTerms = language.buildSearchTerms(
   "繁體中文",
   traditionalChineseContext,
+);
+const japaneseContext = language.resolveFromText({
+  locale: "ja-JP",
+  text: "日本語の記憶",
+});
+const japaneseSearchTerms = language.buildSearchTerms(
+  "日本語の記憶",
+  japaneseContext,
+);
+const koreanContext = language.resolveFromText({
+  locale: "ko-KR",
+  text: "한국어 기억",
+});
+const koreanSearchTerms = language.buildSearchTerms(
+  "한국어 기억",
+  koreanContext,
+);
+const frenchContext = language.resolveFromText({
+  locale: "fr-FR",
+  text: "mémoire française",
+});
+const frenchSearchTerms = language.buildSearchTerms(
+  "mémoire française",
+  frenchContext,
+);
+const spanishContext = language.resolveFromText({
+  locale: "es-ES",
+  text: "memoria española",
+});
+const spanishSearchTerms = language.buildSearchTerms(
+  "memoria española",
+  spanishContext,
 );
 const serverEvents = [];
 const serverSeenSystems = [];
@@ -527,6 +565,14 @@ console.log(
     httpBridgeItemCount: httpRecallPayload.itemCount,
     httpBridgeRememberOk: httpRememberPayload.ok,
     runtimeInfo,
+    frenchPackId: frenchContext.languagePackId,
+    frenchSearchTerms,
+    japanesePackId: japaneseContext.languagePackId,
+    japaneseSearchTerms,
+    koreanPackId: koreanContext.languagePackId,
+    koreanSearchTerms,
+    spanishPackId: spanishContext.languagePackId,
+    spanishSearchTerms,
     traditionalChinesePackId: traditionalChineseContext.languagePackId,
     traditionalChineseSearchTerms,
     serverFirstResponseText,

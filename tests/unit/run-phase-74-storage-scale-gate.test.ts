@@ -18,6 +18,18 @@ describe("phase 74 storage scale gate", () => {
       entities: 500,
       statuses: 500,
     });
+    expect(report.audit.languagePackCounts.en).toBeGreaterThan(0);
+    expect(report.audit.languagePackCounts["zh-Hant"]).toBeGreaterThan(0);
+    expect(report.audit.languagePackCounts.ja).toBeGreaterThan(0);
+    expect(report.audit.languagePackCounts.ko).toBeGreaterThan(0);
+    expect(report.audit.languagePackCounts.fr).toBeGreaterThan(0);
+    expect(report.audit.languagePackCounts.es).toBeGreaterThan(0);
+    expect(
+      Object.values(report.audit.languagePackCounts).reduce(
+        (total, count) => total + count,
+        0,
+      ),
+    ).toBe(report.syntheticDocumentCount);
     expect(report.latencyMs.p95).toBeLessThanOrEqual(500);
     expect(report.audit.methodCalls.query).toBe(0);
     expect(report.audit.methodCalls.queryPage).toBe(0);

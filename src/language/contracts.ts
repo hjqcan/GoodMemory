@@ -15,7 +15,12 @@ export interface LanguageDetectionInput {
 }
 
 export interface LanguageCandidateExtractionInput {
-  messages: Array<{ role: string; content: string; sourceMessageIndex?: number }>;
+  messages: Array<{
+    analysis?: LanguageContentAnalysis;
+    role: string;
+    content: string;
+    sourceMessageIndex?: number;
+  }>;
   locale: string;
   nextId: () => string;
 }
@@ -66,16 +71,140 @@ export interface LanguageContentAnalysis {
   preferenceEvidence: boolean;
   projectStateFact: boolean;
   roleFact: boolean;
+  sensitiveCredential: boolean;
   sourceOfTruthDirective?: LanguageSourceOfTruthDirective;
   unresolved: boolean;
 }
 
-export interface LanguageTemporalExpression {
-  kind: "absolute" | "relative" | "range";
-  raw: string;
-  unit?: "day" | "week" | "month" | "quarter" | "season" | "year";
-  value?: number | string;
+export interface LanguageBehavioralRuleAnalysis {
+  analogyText?: string;
+  argumentOrder?: string[];
+  backupRequested?: boolean;
+  commandName?: string;
+  conciseComputation?:
+    | { base: number; kind: "percentage"; percentage: number }
+    | { kind: "circle_circumference"; radius: number }
+    | { kind: "iso_datetime_command" };
+  comparison?: {
+    field?: string;
+    operator?: "<" | "<=" | "=" | ">" | ">=";
+    value?: string;
+  };
+  directoryRestriction?: {
+    forbiddenRoot?: string;
+    safeTemplate?: string;
+    userHomeRequired?: boolean;
+  };
+  distrustRouting?: {
+    preferredAlternative?: string;
+    target: string;
+  };
+  exactAction?: string;
+  filetypeReplacement?: {
+    forbidden: string;
+    preferred: string;
+  };
+  firstActionName?: string;
+  forbiddenFragments?: string[];
+  formatRule: boolean;
+  formatPrefix?: string;
+  formatSurface?: {
+    prefixes: string[];
+    suffixes: string[];
+  };
+  formatSuffix?: string;
+  generalRule: boolean;
+  guard?: {
+    allowedStates: string[];
+    check: string;
+    subject?: string;
+  };
+  hostAction?: {
+    compression?: string;
+    destination?: string;
+    flags?: string[];
+    mode?: string;
+    owner?: string;
+    permissions?: string;
+    sources?: string[];
+    tag?: string;
+    verb?: string;
+  };
+  negativeRule: boolean;
+  namedTarget?: string;
+  pathBase?: string;
+  preferredAlternatives?: string[];
+  preferredFragments?: string[];
+  protocolReplacement?: {
+    forbiddenUrl: string;
+    preferredUrl: string;
+  };
+  protocolRewrite?: {
+    template?: string;
+  };
+  requiredFragments?: string[];
+  responseStyle?: "brief" | "bullets";
+  semanticCues?: Array<
+    | "analogy"
+    | "api"
+    | "argument_order"
+    | "brevity"
+    | "command"
+    | "failure"
+    | "filetype"
+    | "format"
+    | "inhibition_replacement"
+    | "operation"
+    | "path"
+    | "permission_failure"
+    | "precondition"
+    | "safe_fallback"
+    | "style"
+    | "symbolic"
+    | "timeout"
+    | "unsafe"
+    | "url"
+    | "voice"
+  >;
+  structuredTerms?: string[];
+  triggerPhrases?: string[];
+  warningSignal?: boolean;
 }
+
+export type LanguageTemporalExpression =
+  | {
+      kind: "absolute";
+      raw: string;
+      calendar: {
+        day?: number;
+        month?: number;
+        year: number;
+      };
+    }
+  | {
+      kind: "absolute";
+      raw: string;
+      iso: string;
+    }
+  | {
+      kind: "relative";
+      raw: string;
+      offset: number;
+      unit: "day" | "week" | "month" | "quarter" | "year";
+    }
+  | {
+      kind: "relative";
+      raw: string;
+      month: number;
+      occurrence: "latest" | "strictly_before";
+      unit: "month";
+    }
+  | {
+      kind: "range";
+      raw: string;
+      end?: string;
+      start?: string;
+    };
 
 export interface LanguageEntityMention {
   kind?: "identifier" | "location" | "organization" | "person" | "term";
@@ -93,41 +222,115 @@ export type LanguageRenderKey =
   | "active_context"
   | "additional_project_state"
   | "archive"
+  | "archive_recap"
+  | "artifact_spills"
+  | "behavioral_controls_available"
+  | "behavioral_exact_surface"
+  | "behavioral_example"
+  | "behavioral_observed_outcome"
+  | "behavioral_raw_response_control"
+  | "behavioral_relevant_prior_examples"
+  | "behavioral_safe_corrected_move"
+  | "behavioral_situation"
+  | "behavioral_successful_move"
+  | "canonical_pattern"
   | "correction"
   | "current_goal"
   | "current_projects"
   | "current_state"
+  | "constraints"
   | "deferred_follow_up"
+  | "developer_memory_notes"
   | "durable_memory"
+  | "earlier_messages_compacted"
   | "episode"
+  | "episode_assistant_follow_through_captured"
+  | "episode_assistant_follow_through_on"
+  | "episode_assistant_substantive_continuity_captured"
+  | "episode_conversation_covered"
   | "episode_item"
   | "evidence"
   | "evidence_entry"
   | "evidence_note"
+  | "experiences"
   | "excerpt"
   | "fact"
   | "fact_item"
   | "feedback"
   | "file_evidence"
+  | "file_or_function"
   | "goals"
+  | "guidance"
   | "immediate_next_steps"
+  | "installed_host_claude_memory_protocol"
+  | "installed_host_context_tool_protocol"
+  | "installed_host_injected_context_protocol"
+  | "installed_host_intro"
+  | "installed_host_projection_protocol"
+  | "installed_host_protocol_heading"
+  | "installed_host_record_tools_protocol"
+  | "installed_host_remember_protocol"
+  | "instruction"
   | "journal"
   | "key_decisions"
+  | "key_files"
+  | "language_label"
+  | "learning_proposals"
+  | "lineage"
+  | "location"
+  | "memory_index"
+  | "metadata"
+  | "name"
+  | "none"
+  | "organization"
   | "claim"
   | "actor"
   | "open_loops"
+  | "omitted_sections"
   | "preference"
+  | "playbook_title"
   | "procedural_memory"
   | "profile"
+  | "progressive_detail_instruction"
+  | "progressive_detail_instruction_compact"
+  | "progressive_recall"
+  | "prompt_snippet_title"
+  | "promotions"
+  | "procedure"
+  | "recent_decisions"
   | "recent_worklog"
   | "reference"
   | "reference_item"
+  | "referenced_artifacts"
   | "relation_label"
+  | "role_label"
+  | "scope"
   | "session_archive_item"
+  | "session_ended_without_summary"
+  | "session_handoff"
+  | "session_memory"
+  | "session_resume_query"
+  | "session_start_query"
+  | "skill_snippet_title"
   | "tool_result"
   | "temporal_status"
+  | "summary"
+  | "detail_tokens"
+  | "omitted_records"
+  | "record_kind"
+  | "record_ref"
+  | "temporary_decision"
+  | "timezone"
   | "verification"
-  | "working_memory";
+  | "user_memory_context"
+  | "user_memory"
+  | "undated"
+  | "use_when"
+  | "default_label"
+  | "workflow"
+  | "working_memory"
+  | "why"
+  | "workspace_query_anchor";
 
 export interface LanguageRenderInput {
   key: LanguageRenderKey;
@@ -152,13 +355,10 @@ export interface LanguagePack {
   splitClauses(text: string): string[];
   splitSentences(text: string): string[];
   decomposeQuery(text: string): string[];
+  analyzeBehavioralRule(text: string): LanguageBehavioralRuleAnalysis;
   analyzeQuery(text: string): LanguageQueryAnalysis;
   analyzeContent(text: string): LanguageContentAnalysis;
   parseTemporalExpressions(text: string): LanguageTemporalExpression[];
-  resolveTemporalReference(
-    text: string,
-    referenceTime: string,
-  ): string | undefined;
   extractEntityMentions(text: string): LanguageEntityMention[];
   matchesEntityAlias(query: string, alias: string): boolean;
   acceptsEntityCandidate(input: LanguageEntityCandidateInput): boolean;
@@ -251,6 +451,10 @@ export interface LanguageService {
     text: string,
     context: ResolvedLanguageContext | string,
   ): string[];
+  analyzeBehavioralRule(
+    text: string,
+    context: ResolvedLanguageContext | string,
+  ): LanguageBehavioralRuleAnalysis;
   analyzeQuery(
     text: string,
     context: ResolvedLanguageContext | string,
@@ -263,11 +467,6 @@ export interface LanguageService {
     text: string,
     context: ResolvedLanguageContext | string,
   ): LanguageTemporalExpression[];
-  resolveTemporalReference(
-    text: string,
-    referenceTime: string,
-    context: ResolvedLanguageContext | string,
-  ): string | undefined;
   extractEntityMentions(
     text: string,
     context: ResolvedLanguageContext | string,

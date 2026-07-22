@@ -45,6 +45,36 @@ export function runDocumentStoreContract(
           }),
         ).toHaveLength(1);
 
+        expect(fixture.store.searchText).toBeFunction();
+        await fixture.store.set("recall_documents_v3", "hant-1", {
+          id: "hant-1",
+          languagePackId: "zh-Hant",
+          scopeKey: "u-1::workspace-1",
+          searchText: "專案 遷移 狀態",
+        });
+        await fixture.store.set("recall_documents_v3", "ja-1", {
+          id: "ja-1",
+          languagePackId: "ja",
+          scopeKey: "u-1::workspace-1",
+          searchText: "東京 移行 状態",
+        });
+        await expect(fixture.store.searchText!("recall_documents_v3", {
+          field: "searchText",
+          filter: { languagePackId: "zh-Hant" },
+          limit: 4,
+          query: "遷移",
+        })).resolves.toEqual([
+          expect.objectContaining({ id: "hant-1" }),
+        ]);
+        await fixture.store.update("recall_documents_v3", "ja-1", {
+          searchText: "東京 配備 完了",
+        });
+        await expect(fixture.store.searchText!("recall_documents_v3", {
+          field: "searchText",
+          limit: 4,
+          query: "移行",
+        })).resolves.toEqual([]);
+
         await fixture.store.set("facts", "f-2", {
           id: "f-2",
           userId: "u-2",
@@ -130,6 +160,43 @@ export function runDocumentStoreContract(
           userId: "u-1",
           excerpt: "batch audit",
         });
+        expect(
+          await fixture.store.writeBatchIfUnchanged!({
+            expected: {
+              collection: "recall_documents_v3",
+              id: "hant-1",
+              document: {
+                id: "hant-1",
+                languagePackId: "zh-Hant",
+                scopeKey: "u-1::workspace-1",
+                searchText: "專案 遷移 狀態",
+              },
+            },
+            set: [{
+              collection: "recall_documents_v3",
+              id: "hant-1",
+              document: {
+                id: "hant-1",
+                languagePackId: "zh-Hant",
+                scopeKey: "u-1::workspace-1",
+                searchText: "專案 遷移 完成",
+              },
+            }],
+          }),
+        ).toBe(true);
+        await expect(fixture.store.searchText!("recall_documents_v3", {
+          field: "searchText",
+          limit: 4,
+          query: "完成",
+        })).resolves.toEqual([
+          expect.objectContaining({ id: "hant-1" }),
+        ]);
+        await fixture.store.delete("recall_documents_v3", "hant-1");
+        await expect(fixture.store.searchText!("recall_documents_v3", {
+          field: "searchText",
+          limit: 4,
+          query: "完成",
+        })).resolves.toEqual([]);
         expect(
           await fixture.store.writeBatchIfUnchanged!({
             expected: {

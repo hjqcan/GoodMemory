@@ -1,9 +1,10 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { createGoodMemory } from "../src/api/createGoodMemory";
+import { createInternalGoodMemory } from "../src/api/createGoodMemory";
 import type { GoodMemory } from "../src/api/contracts";
 import type { RecallResult } from "../src/api/contracts";
 import type { EmbeddingAdapter } from "../src/embedding/contracts";
+import type { FactSelector } from "../src/recall/generalizedSelection";
 import {
   BEAM_FULL_DATA_FILES,
   normalizeBeamProfileList,
@@ -36,7 +37,9 @@ import {
   resolvePhase63OutputDir,
   resolvePhase63RepoRoot,
 } from "./run-phase-63-shared";
-import { activateLegacyFittedEvalProfile } from "./eval-profiles/legacy-fitted/activate";
+import {
+  createLegacyFittedEvalFactSelector,
+} from "./eval-profiles/legacy-fitted/activate";
 
 export const PHASE63_RECALL_DIAGNOSTIC_RUN_ID =
   "run-phase63-beam-100k-recall-diagnostic-current";
@@ -55,6 +58,7 @@ export interface Phase63BeamRecallDiagnosticCliOptions {
 
 export interface Phase63BeamRecallDiagnosticDependencies {
   createMemory?: () => GoodMemory;
+  factSelector?: FactSelector;
   mkdir?: typeof mkdir;
   now?: () => Date;
   readFile?: (path: string) => Promise<string>;
@@ -381,7 +385,9 @@ function createDiagnosticEmbeddingAdapter(): EmbeddingAdapter {
   };
 }
 
-export function createPhase63BeamDiagnosticMemory(): GoodMemory {
+export function createPhase63BeamDiagnosticMemory(
+  factSelector?: FactSelector,
+): GoodMemory {
   // Deterministic id and clock seams: ranking tie-breaks fall back to
   // fact-id and timestamp comparisons, so random UUIDs and wall-clock
   // timestamps made repeated diagnostic runs diverge on equal-scored
@@ -389,7 +395,7 @@ export function createPhase63BeamDiagnosticMemory(): GoodMemory {
   // so the counters reset per conversation and runs are reproducible.
   let idCounter = 0;
   let clockTick = 0;
-  return createGoodMemory({
+  return createInternalGoodMemory({
     adapters: {
       assistedExtractor: createDeterministicMemoryExtractor(),
       embeddingAdapter: createDiagnosticEmbeddingAdapter(),
@@ -407,7 +413,7 @@ export function createPhase63BeamDiagnosticMemory(): GoodMemory {
         return new Date(Date.UTC(2026, 0, 1, 0, 0, 0, clockTick));
       },
     },
-  });
+  }, factSelector ? { factSelector } : undefined);
 }
 
 export async function runPhase63BeamRecallDiagnostic(
@@ -479,7 +485,8 @@ export async function runPhase63BeamRecallDiagnostic(
         if (!row) {
           continue;
         }
-        const memory = (dependencies.createMemory ?? createPhase63BeamDiagnosticMemory)();
+        const memory = dependencies.createMemory?.() ??
+          createPhase63BeamDiagnosticMemory(dependencies.factSelector);
         await seedPhase63BeamConversation({
           memory,
           row,
@@ -612,11 +619,12 @@ if (import.meta.main) {
       "--collect-narrow-gate-hits requires --legacy-fitted-profile",
     );
   }
-  if (legacyFittedProfileCount === 1) {
-    activateLegacyFittedEvalProfile();
-  }
+  const factSelector = legacyFittedProfileCount === 1
+    ? createLegacyFittedEvalFactSelector()
+    : undefined;
   const report = await runPhase63BeamRecallDiagnostic(
     parsePhase63BeamRecallDiagnosticCliOptions(Bun.argv),
+    factSelector ? { factSelector } : {},
   );
   console.log(JSON.stringify(buildCliSummary(report), null, 2));
 }

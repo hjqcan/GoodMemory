@@ -39,6 +39,7 @@ export type FactSelector = (
   evidenceCountsByMemoryId?: Map<string, number>,
   semanticUnion?: SemanticUnionSelectionInput,
   generalizedFusion?: GeneralizedFusionSelectionInput,
+  queryAnalysis?: LanguageQueryAnalysis,
 ) => { facts: FactMemory[]; traces: RecallCandidateTrace[] };
 
 export function selectGeneralizedFactsForInternalUse(
@@ -54,8 +55,10 @@ export function selectGeneralizedFactsForInternalUse(
   evidenceCountsByMemoryId?: Map<string, number>,
   semanticUnion?: SemanticUnionSelectionInput,
   generalizedFusion?: GeneralizedFusionSelectionInput,
+  providedQueryAnalysis?: LanguageQueryAnalysis,
 ): { facts: FactMemory[]; traces: RecallCandidateTrace[] } {
-  const queryAnalysis = language.analyzeQuery(query, queryLocale);
+  const queryAnalysis = providedQueryAnalysis ??
+    language.analyzeQuery(query, queryLocale);
   const ranked = rankFactCandidates(
     buildFactCandidates(
       facts,
@@ -65,6 +68,7 @@ export function selectGeneralizedFactsForInternalUse(
       referenceTime,
       semanticScores,
       evidenceCountsByMemoryId,
+      queryAnalysis,
     ),
     routingDecision.strategy,
   );
@@ -249,7 +253,17 @@ export function selectGeneralizedFactsForInternalUse(
     const candidates = diversifyRankedFactCandidatesBySession(
       selectionPool.filter(
         aggregateCountQuery
-          ? hasFactSelectionSignal
+          ? (entry) =>
+              hasFactSelectionSignal(entry) ||
+              (
+                queryAnalysis.projectState &&
+                (
+                  entry.categoryBoost > 0 ||
+                  entry.scopeKind === "project" ||
+                  entry.factKind === "generic_project" ||
+                  entry.factKind === "project_state"
+                )
+              )
           : hasGenericFactSelectionSignal,
       ),
       GENERAL_FACT_RECALL_LIMIT,
@@ -260,6 +274,17 @@ export function selectGeneralizedFactsForInternalUse(
   }
 
   selectZeroRetrievalLexicalFallback({ compatible: selectionPool, draft });
+  selectTemporalCrossSessionCompanion({
+    candidates: selectionPool,
+    draft,
+    enabled:
+      queryAnalysis.directFactualLookup &&
+      (queryAnalysis.before || queryAnalysis.after) &&
+      language.parseTemporalExpressions(query, queryLocale).length === 0,
+    language,
+    query,
+    queryLocale,
+  });
   selectDirectFactualSessionCompanion({
     candidates: selectionPool,
     draft,
@@ -411,5 +436,59 @@ function selectDirectFactualSessionCompanion(input: {
   );
   if (companion) {
     input.draft.select(companion);
+  }
+}
+
+function selectTemporalCrossSessionCompanion(input: {
+  candidates: ReturnType<typeof buildFactCandidates>;
+  draft: ReturnType<typeof createSelectionDraft>;
+  enabled: boolean;
+  language: LanguageService;
+  query: string;
+  queryLocale: string;
+}): void {
+  if (!input.enabled || input.draft.selected.length === 0) {
+    return;
+  }
+  const selectedSessions = new Set(
+    input.draft.selected
+      .map(({ fact }) => fact.sessionId)
+      .filter((sessionId): sessionId is string => Boolean(sessionId)),
+  );
+  const queryTerms = new Set(
+    input.language.buildSearchTerms(input.query, input.queryLocale),
+  );
+  if (selectedSessions.size === 0 || queryTerms.size === 0) {
+    return;
+  }
+  const coveredQueryTerms = new Set(
+    input.draft.selected.flatMap((candidate) =>
+      input.language
+        .buildSearchTerms(candidate.fact.content, candidate.locale)
+        .filter((term) => queryTerms.has(term))
+    ),
+  );
+  const uncoveredQueryTerms = new Set(
+    [...queryTerms].filter((term) => !coveredQueryTerms.has(term)),
+  );
+  const companion = input.candidates.find((candidate) => {
+    if (
+      input.draft.selectedIds.has(candidate.fact.id) ||
+      candidate.fact.source.method === "inferred" ||
+      candidate.fact.sessionId === undefined ||
+      selectedSessions.has(candidate.fact.sessionId)
+    ) {
+      return false;
+    }
+    return input.language
+      .buildSearchTerms(candidate.fact.content, candidate.locale)
+      .some((term) => uncoveredQueryTerms.has(term));
+  });
+  if (companion) {
+    input.draft.select(
+      companion,
+      "generic",
+      "cross_session_lexical_bridge",
+    );
   }
 }

@@ -1,10 +1,12 @@
 import { afterEach } from "bun:test";
 
-import { activateLegacyFittedEvalProfile } from "../../scripts/eval-profiles/legacy-fitted/activate";
+import {
+  enableLegacyFittedNarrowGatesForInternalEval,
+} from "../../scripts/eval-profiles/legacy-fitted/recall/narrowGates";
 import "./test-env";
 
-activateLegacyFittedEvalProfile();
+enableLegacyFittedNarrowGatesForInternalEval();
 
 afterEach(() => {
-  activateLegacyFittedEvalProfile();
+  enableLegacyFittedNarrowGatesForInternalEval();
 });

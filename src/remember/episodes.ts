@@ -1,12 +1,26 @@
 import { createEpisodeMemory } from "../domain/records";
 import type { EpisodeMemory } from "../domain/records";
-import type { LanguageService } from "../language";
+import type {
+  LanguageContentAnalysis,
+  LanguageService,
+  ResolvedLanguageContext,
+} from "../language";
 import type {
   MemoryCandidate,
   MemoryExtractionInput,
 } from "./candidates";
+import type { RememberSourceLanguageAnalyses } from "./languageAnalysis";
 
 const ASSISTANT_FOLLOW_THROUGH_OVERLAP_THRESHOLD = 0.14;
+
+interface IndexedEpisodeMessage {
+  content: string;
+  sourceMessageIndex: number;
+}
+
+type ResolveMessageAnalysis = (
+  messageIndex: number,
+) => LanguageContentAnalysis | undefined;
 
 function dedupeNonEmpty(values: string[]): string[] {
   const seen = new Set<string>();
@@ -35,39 +49,33 @@ function describeEpisodeCandidate(candidate: MemoryCandidate): string {
 
 function selectSubstantiveAssistantMessages(
   messages: MemoryExtractionInput["messages"],
-  language: LanguageService,
-  locale?: string,
-): string[] {
+  analyzeMessage: ResolveMessageAnalysis,
+): IndexedEpisodeMessage[] {
   return messages
+    .map((message, sourceMessageIndex) => ({
+      content: message.content.trim(),
+      role: message.role,
+      sourceMessageIndex,
+    }))
     .filter((message) => message.role === "assistant")
-    .map((message) => message.content.trim())
-    .filter((content) => content.length > 0)
-    .filter((content) => {
-      const resolved = language.resolveFromText({
-        locale,
-        text: content,
-      });
+    .filter(({ content }) => content.length > 0)
+    .filter(({ content, sourceMessageIndex }) => {
+      const analysis = analyzeMessage(sourceMessageIndex);
       return (
-        !language.isAssistantAcknowledgement(content, resolved) ||
-        language.isAssistantContinuitySignal(content, resolved) ||
+        !analysis?.assistantAcknowledgement ||
+        analysis.assistantContinuity ||
         content.length >= 24
       );
-    });
+    })
+    .map(({ content, sourceMessageIndex }) => ({ content, sourceMessageIndex }));
 }
 
 function selectAssistantContinuityMessages(
-  messages: string[],
-  language: LanguageService,
-  locale: string,
-): string[] {
-  return messages.filter((message) =>
-    language.isAssistantContinuitySignal(
-      message,
-      language.resolveFromText({
-        locale,
-        text: message,
-      }),
-    ),
+  messages: IndexedEpisodeMessage[],
+  analyzeMessage: ResolveMessageAnalysis,
+): IndexedEpisodeMessage[] {
+  return messages.filter(({ sourceMessageIndex }) =>
+    analyzeMessage(sourceMessageIndex)?.assistantContinuity === true
   );
 }
 
@@ -96,20 +104,20 @@ function buildCandidateGroundingText(candidate: MemoryCandidate): string {
 }
 
 function selectFollowThroughHighlights(
-  assistantMessages: string[],
+  assistantMessages: IndexedEpisodeMessage[],
   candidates: MemoryCandidate[],
   language: LanguageService,
-  locale: string,
+  context: ResolvedLanguageContext | string,
 ): string[] {
   const candidateDetails = candidates.map((candidate) => ({
     grounding: buildCandidateGroundingText(candidate),
     highlight: describeEpisodeCandidate(candidate),
   }));
 
-  const matchedHighlights = assistantMessages.flatMap((message) => {
+  const matchedHighlights = assistantMessages.flatMap(({ content }) => {
     const matchingCandidates = candidateDetails.filter(
       (candidate) =>
-        language.tokenOverlap(message, candidate.grounding, locale, {
+        language.tokenOverlap(content, candidate.grounding, context, {
           excludeStopwords: true,
         }) >= ASSISTANT_FOLLOW_THROUGH_OVERLAP_THRESHOLD,
     );
@@ -124,16 +132,24 @@ function selectFollowThroughHighlights(
   return dedupeNonEmpty(matchedHighlights).slice(0, 2);
 }
 
-function buildEpisodeKeyDecisions(candidateHighlights: string[]): string[] {
+function buildEpisodeKeyDecisions(
+  candidateHighlights: string[],
+  language: LanguageService,
+  context: ResolvedLanguageContext | string,
+): string[] {
   return candidateHighlights
-    .map((highlight) => `Assistant follow-through on: ${highlight}`)
+    .map((highlight) =>
+      language.render({
+        key: "episode_assistant_follow_through_on",
+        values: { highlight },
+      }, context)
+    )
     .slice(0, 2);
 }
 
 function extractEpisodeUnresolvedItems(
   candidates: MemoryCandidate[],
-  language: LanguageService,
-  locale?: string,
+  analyzeMessage: ResolveMessageAnalysis,
 ): string[] {
   const unresolvedCandidates = candidates
     .filter((candidate) => {
@@ -150,25 +166,22 @@ function extractEpisodeUnresolvedItems(
     .map((candidate) => candidate.content.trim());
 
   const languageDetected = candidates
-    .map((candidate) => candidate.content.trim())
-    .filter((message) =>
-      language.isUnresolvedSignal(
-        message,
-        language.resolveFromText({
-          locale,
-          text: message,
-        }),
-      ),
-    );
+    .filter((candidate) =>
+      analyzeMessage(candidate.sourceMessageIndex)?.unresolved === true
+    )
+    .map((candidate) => candidate.content.trim());
 
   return dedupeNonEmpty([...unresolvedCandidates, ...languageDetected])
     .slice(0, 2);
 }
 
-function buildEpisodeTopics(candidates: MemoryCandidate[]): string[] {
+function buildEpisodeTopics(
+  candidates: MemoryCandidate[],
+  language: LanguageService,
+  context: ResolvedLanguageContext | string,
+): string[] {
   return dedupeNonEmpty(candidates.map((candidate) => describeEpisodeCandidate(candidate)))
-    .map((topic) => topic.split(" ").slice(0, 3).join(" "))
-    .filter((topic) => topic.length > 0)
+    .filter((topic) => language.tokenize(topic, context).length > 0)
     .slice(0, 2);
 }
 
@@ -179,16 +192,39 @@ export function maybeBuildEpisode(
   timestamp: string,
   language: LanguageService,
   locale: string,
+  sourceAnalyses?: RememberSourceLanguageAnalyses,
 ): EpisodeMemory | null {
+  const analyses = new Map(sourceAnalyses ?? []);
+  const primaryMessageIndex = input.messages.findIndex(
+    ({ role }) => role === "user",
+  );
+  const context = analyses.get(
+    primaryMessageIndex >= 0 ? primaryMessageIndex : 0,
+  )?.context ?? locale;
+  const analyzeMessage: ResolveMessageAnalysis = (messageIndex) => {
+    const cached = analyses.get(messageIndex);
+    if (cached) {
+      return cached.analysis;
+    }
+    const message = input.messages[messageIndex];
+    if (!message) {
+      return undefined;
+    }
+    const context = language.resolveFromText({
+      locale: input.locale,
+      text: message.content,
+    });
+    const analysis = language.analyzeContent(message.content, context);
+    analyses.set(messageIndex, { analysis, context });
+    return analysis;
+  };
   const assistantMessages = selectSubstantiveAssistantMessages(
     input.messages,
-    language,
-    input.locale,
+    analyzeMessage,
   );
   const assistantContinuityMessages = selectAssistantContinuityMessages(
     assistantMessages,
-    language,
-    locale,
+    analyzeMessage,
   );
   const candidateHighlights = dedupeNonEmpty(
     candidates.map((candidate) => describeEpisodeCandidate(candidate)),
@@ -197,7 +233,7 @@ export function maybeBuildEpisode(
     assistantContinuityMessages,
     candidates,
     language,
-    locale,
+    context,
   );
   const hasAssistantContribution =
     assistantContinuityMessages.length > 0 || followThroughHighlights.length > 0;
@@ -209,8 +245,14 @@ export function maybeBuildEpisode(
   const summarySegments = [...candidateHighlights];
   summarySegments.push(
     followThroughHighlights.length > 0
-      ? "Assistant follow-through captured."
-      : "Assistant substantive continuity captured.",
+      ? language.render(
+        { key: "episode_assistant_follow_through_captured" },
+        context,
+      )
+      : language.render(
+        { key: "episode_assistant_substantive_continuity_captured" },
+        context,
+      ),
   );
 
   return createEpisodeMemory({
@@ -220,14 +262,20 @@ export function maybeBuildEpisode(
     workspaceId: input.scope.workspaceId,
     agentId: input.scope.agentId,
     sessionId: input.scope.sessionId,
-    summary: `Conversation covered: ${summarySegments.join(" / ")}`,
-    keyDecisions: buildEpisodeKeyDecisions(followThroughHighlights),
+    summary: language.render({
+      key: "episode_conversation_covered",
+      values: { segments: summarySegments.join(" / ") },
+    }, context),
+    keyDecisions: buildEpisodeKeyDecisions(
+      followThroughHighlights,
+      language,
+      context,
+    ),
     unresolvedItems: extractEpisodeUnresolvedItems(
       candidates,
-      language,
-      input.locale,
+      analyzeMessage,
     ),
-    topics: buildEpisodeTopics(candidates),
+    topics: buildEpisodeTopics(candidates, language, context),
     importance: 0.7,
     confidence: 0.8,
     locale,

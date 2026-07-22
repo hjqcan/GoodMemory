@@ -752,6 +752,71 @@ describe("maintenance runner", () => {
     });
   });
 
+  it("analyzes each fact once while evaluating stale action replacements", async () => {
+    const baseLanguage = createLanguageService();
+    const analysisCalls = new Map<string, number>();
+    const language: LanguageService = {
+      ...baseLanguage,
+      analyzeContent(content, context) {
+        analysisCalls.set(content, (analysisCalls.get(content) ?? 0) + 1);
+        return {
+          ...baseLanguage.analyzeContent(content, context),
+          blockerFact: false,
+          focusFact: false,
+          openLoopFact: false,
+          projectStateFact: true,
+        };
+      },
+    };
+    const { repositories, runner } = createFixture({ language });
+    const scope = {
+      userId: "u-quality-analysis",
+      workspaceId: "workspace-a",
+    };
+    const replacement = createFactMemory({
+      id: "fact-current-state",
+      userId: scope.userId,
+      workspaceId: scope.workspaceId,
+      category: "project",
+      content: "Atlas rollout is in its current state.",
+      confidence: 0.9,
+      importance: 0.8,
+      source: { method: "explicit", extractedAt: "2026-03-25T00:00:00.000Z" },
+      createdAt: "2026-03-25T00:00:00.000Z",
+      updatedAt: "2026-03-25T00:00:00.000Z",
+    });
+    const stale = createFactMemory({
+      id: "fact-stale-state",
+      userId: scope.userId,
+      workspaceId: scope.workspaceId,
+      category: "project",
+      content: "Atlas rollout was in its old state.",
+      attributes: buildMemoryQualityRepairAttributes({
+        failureLabel: "stale_recall",
+        replacementMemoryId: replacement.id,
+        sampleId: "quality-analysis-once",
+        source: "quality_repair_guardrail",
+        sourceScenario: "maintenance-analysis-cache",
+      }),
+      confidence: 0.5,
+      importance: 0.3,
+      verificationPressureCount: 3,
+      source: { method: "inferred", extractedAt: "2025-12-01T00:00:00.000Z" },
+      createdAt: "2025-12-01T00:00:00.000Z",
+      updatedAt: "2025-12-01T00:00:00.000Z",
+    });
+    await repositories.facts.add(replacement);
+    await repositories.facts.add(stale);
+
+    const report = await runner.run(scope, ["qualityRepair"]);
+
+    expect(report.jobs).toEqual([{ name: "qualityRepair", applied: 1 }]);
+    expect(analysisCalls).toEqual(new Map([
+      [stale.content, 1],
+      [replacement.content, 1],
+    ]));
+  });
+
   it("re-checks stale repair replacements after same-run quality demotions", async () => {
     const { repositories, runner } = createFixture();
     const scope = {

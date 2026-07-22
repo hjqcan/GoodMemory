@@ -11,6 +11,43 @@ const scope = { userId: "user-1", workspaceId: "workspace-1" };
 const now = new Date("2026-07-18T12:00:00.000Z");
 
 describe("GoodMemory.recall query-only planner adapter", () => {
+  it("keeps RecallPlan and claim-channel execution off for a bare config", async () => {
+    let plannerCalls = 0;
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore: createInMemoryDocumentStore(),
+        sessionStore: createInMemorySessionStore(),
+        recallPlanner: {
+          async plan() {
+            plannerCalls += 1;
+            return { entities: ["atlas"], maxHops: 3 };
+          },
+        },
+      },
+      storage: { provider: "memory" },
+      testing: { now: () => now },
+    });
+
+    const result = await memory.recall({
+      query: "What changed about Atlas over time?",
+      scope,
+      strategy: "rules-only",
+    });
+
+    expect(plannerCalls).toBe(0);
+    expect(result.metadata.retrievalTrace).toMatchObject({
+      plan: {
+        entities: [],
+        evidenceNeeds: ["direct"],
+        facets: [],
+        maxHops: 1,
+        planes: ["semantic"],
+      },
+      stopReason: "single_pass_complete",
+      subQueries: [],
+    });
+  });
+
   it("does not resolve or apply a query plan when execution is disabled", async () => {
     let plannerCalls = 0;
     const memory = createGoodMemory({

@@ -1,8 +1,5 @@
-const CONSERVATIVE_SCRIPT_CHARACTER =
-  /[\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}\p{Script_Extensions=Hangul}]/u;
-
-function isConservativeScriptCharacter(character: string): boolean {
-  return CONSERVATIVE_SCRIPT_CHARACTER.test(character);
+function isConservativeUnicodeCharacter(character: string): boolean {
+  return (character.codePointAt(0) ?? 0) > 0x7f;
 }
 
 export function estimateTextTokens(value: string): number {
@@ -10,7 +7,7 @@ export function estimateTextTokens(value: string): number {
   let otherCodeUnits = 0;
 
   for (const character of value) {
-    if (isConservativeScriptCharacter(character)) {
+    if (isConservativeUnicodeCharacter(character)) {
       conservativeScriptCharacters += 1;
     } else {
       otherCodeUnits += character.length;
@@ -33,7 +30,7 @@ export function truncateTextToEstimatedTokens(
   let otherCodeUnits = 0;
 
   for (const character of value) {
-    const isConservative = isConservativeScriptCharacter(character);
+    const isConservative = isConservativeUnicodeCharacter(character);
     const nextConservativeScriptCharacters =
       conservativeScriptCharacters +
       (isConservative ? 1 : 0);

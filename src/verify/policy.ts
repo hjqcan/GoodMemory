@@ -3,10 +3,8 @@ import type {
   FactMemory,
   ReferenceMemory,
 } from "../domain/records";
-import {
-  createLanguageService,
-  type LanguageService,
-} from "../language";
+import { createLanguageService } from "../language";
+import type { LanguageQueryAnalysis, LanguageService } from "../language";
 
 export interface VerificationHint {
   memoryId: string;
@@ -24,6 +22,7 @@ export interface VerificationPolicyInput {
   episodes?: EpisodeMemory[];
   locale?: string;
   language?: LanguageService;
+  queryAnalysis?: LanguageQueryAnalysis;
 }
 
 const DEFAULT_LANGUAGE = createLanguageService();
@@ -45,6 +44,7 @@ function resolveVerificationContext(input: {
   query: string;
   locale?: string;
   language?: LanguageService;
+  queryAnalysis?: LanguageQueryAnalysis;
 }): {
   actionDriving: boolean;
   language: LanguageService;
@@ -58,7 +58,9 @@ function resolveVerificationContext(input: {
     }).locale;
 
   return {
-    actionDriving: language.isActionDrivingQuery(input.query, locale),
+    actionDriving:
+      input.queryAnalysis?.actionDriving ??
+      language.analyzeQuery(input.query, locale).actionDriving,
     language,
     locale,
   };
@@ -70,17 +72,20 @@ function assessFactVerificationNeed(input: {
   referenceTime: string;
   locale?: string;
   language?: LanguageService;
+  actionDriving?: boolean;
+  queryAnalysis?: LanguageQueryAnalysis;
 }): FactVerificationAssessment {
-  const context = resolveVerificationContext(input);
+  const actionDriving = input.actionDriving ??
+    resolveVerificationContext(input).actionDriving;
   const factAgeDays = daysBetween(input.referenceTime, input.fact.updatedAt);
   const stale = factAgeDays >= 30;
   const inferred = input.fact.source.method === "inferred";
 
   return {
-    actionDriving: context.actionDriving,
+    actionDriving,
     factAgeDays,
     inferred,
-    shouldHint: stale || (context.actionDriving && inferred),
+    shouldHint: stale || (actionDriving && inferred),
     stale,
   };
 }
@@ -91,6 +96,7 @@ export function factVerificationAdvisoryPenalty(input: {
   referenceTime: string;
   locale?: string;
   language?: LanguageService;
+  queryAnalysis?: LanguageQueryAnalysis;
 }): number {
   const assessment = assessFactVerificationNeed(input);
   if (!assessment.shouldHint) {
@@ -127,6 +133,7 @@ export function evaluateVerificationHints(
       referenceTime: input.referenceTime,
       locale: context.locale,
       language: context.language,
+      actionDriving: context.actionDriving,
     });
     if (!assessment.shouldHint) {
       continue;

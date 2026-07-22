@@ -6,6 +6,19 @@ import {
   extractBridgeEntities,
   iterativeRecall,
 } from "../../src/recall/iterativeRecall";
+import { createLanguageService } from "../../src/language";
+
+const language = createLanguageService();
+
+function analyzeBridgeText(text: string) {
+  const context = language.resolveFromText({ text });
+  return {
+    entities: language.extractEntityMentions(text, context).map(
+      (mention) => mention.surface,
+    ),
+    tokens: language.tokenize(text, context, { excludeStopwords: true }),
+  };
+}
 
 function fact(id: string, content: string): FactMemory {
   return createFactMemory({
@@ -64,9 +77,8 @@ describe("iterative (two-pass) recall", () => {
   });
 
   it("extracts proper-noun bridge entities the query did not contain", () => {
-    const bridges = extractBridgeEntities({ facts: [goaltender], query });
-    expect(bridges).toContain("Mika");
-    expect(bridges).toContain("Linna");
+    const bridges = extractBridgeEntities({ analyzeBridgeText, facts: [goaltender], query });
+    expect(bridges).toContain("Mika Linna");
     // The query's own words and stopwords are never bridges.
     expect(bridges).not.toContain("goaltender");
     expect(bridges).not.toContain("The");
@@ -76,6 +88,7 @@ describe("iterative (two-pass) recall", () => {
     const outcome = await iterativeRecall({
       query,
       recall: lexicalRecall(corpus),
+      options: { analyzeBridgeText },
     });
     expect(outcome.hops).toBe(2);
     expect(outcome.steps.map(({ hop, query: stepQuery }) => ({ hop, query: stepQuery })))
@@ -84,7 +97,7 @@ describe("iterative (two-pass) recall", () => {
         { hop: 2, query: outcome.expandedQuery },
       ]);
     expect(outcome.stopReason).toBe("max_hops_reached");
-    expect(outcome.bridgeEntities).toContain("Mika");
+    expect(outcome.bridgeEntities).toContain("Mika Linna");
     const ids = outcome.result.facts.map((entry) => entry.id);
     expect(ids).toContain("a-goaltender");
     expect(ids).toContain("b-sport"); // the chained answer single-pass missed
@@ -111,6 +124,7 @@ describe("iterative (two-pass) recall", () => {
           ...supplementary.flatMap((result) => result.facts),
         ],
       }),
+      options: { analyzeBridgeText },
     });
 
     expect(outcome.hops).toBe(2);
@@ -125,6 +139,7 @@ describe("iterative (two-pass) recall", () => {
     const outcome = await iterativeRecall({
       query: "what is it",
       recall: lexicalRecall([onlyStopwords]),
+      options: { analyzeBridgeText },
     });
     expect(outcome.hops).toBe(1);
     expect(outcome.bridgeEntities).toEqual([]);

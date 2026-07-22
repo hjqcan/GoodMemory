@@ -1,7 +1,7 @@
 import { buildEpisodeEmbeddingWrite } from "../embedding/vectorWrites";
 import { createLanguageService } from "../language";
 import type { PolicyContext } from "../policy/hooks";
-import { createDeterministicMemoryExtractorWithLanguage } from "./deterministicExtractor";
+import { extractDeterministicMemoryWithLanguage } from "./deterministicExtractor";
 import { maybeBuildEpisode } from "./episodes";
 import {
   annotateExtractionResult,
@@ -10,8 +10,18 @@ import {
 } from "./extraction";
 import { writeRememberCandidate } from "./handlers";
 import {
-  classifyCandidate,
+  analyzeRememberSourceMessages,
+  candidateSourceLanguageAnalysis,
+  primarySourceLanguageAnalysis,
+  storedTextLanguageKey,
+} from "./languageAnalysis";
+import type {
+  RememberSourceLanguageAnalyses,
+  RememberSourceLanguageAnalysis,
+} from "./languageAnalysis";
+import {
   buildRememberEventTrace,
+  classifyCandidate,
   toRememberEventMemoryType,
 } from "./classification";
 import type {
@@ -31,8 +41,8 @@ import type {
 import {
   createRuleMemoryExtractor,
   resolveRememberProfile,
-  type ResolvedRememberProfile,
 } from "./profiles";
+import type { ResolvedRememberProfile } from "./profiles";
 import {
   extractCanonicalReferencePointer,
   normalizeMemoryCandidate,
@@ -58,9 +68,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
   const AUTO_EXTRACTION_COMPLEXITY_CHAR_THRESHOLD = 220;
   const AUTO_EXTRACTION_COMPLEX_BATCH_THRESHOLD = 4;
   const language = config.language ?? createLanguageService();
-  const extractor =
-    config.extractor ??
-    createDeterministicMemoryExtractorWithLanguage(language);
+  const extractor = config.extractor;
   const assistedExtractor = config.assistedExtractor;
   const now = config.now ?? (() => new Date().toISOString());
   const createId = config.createId ?? (() => crypto.randomUUID());
@@ -76,26 +84,30 @@ export function createRememberEngine(config: RememberEngineConfig) {
     input.annotations?.find((annotation) => annotation.messageIndex === messageIndex);
 
   const resolveCandidateLanguage = (
-    input: MemoryExtractionInput,
     candidate: MemoryCandidate,
+    sourceAnalyses: RememberSourceLanguageAnalyses,
+    requestLanguage: RememberSourceLanguageAnalysis,
   ) => {
-    const sourceIndexes = [
-      ...new Set([
-        candidate.sourceMessageIndex,
-        ...(candidate.sourceMessageIndexes ?? []),
-      ]),
-    ];
-    const messages = sourceIndexes.flatMap((index) => {
-      const message = input.messages[index];
-      return message ? [message] : [];
-    });
+    return candidateSourceLanguageAnalysis(candidate, sourceAnalyses)?.context ??
+      requestLanguage.context;
+  };
 
-    return language.resolveFromMessages({
+  const resolveRequestLanguage = (
+    input: MemoryExtractionInput,
+    sourceAnalyses: RememberSourceLanguageAnalyses,
+  ): RememberSourceLanguageAnalysis => {
+    const primary = primarySourceLanguageAnalysis(input, sourceAnalyses);
+    if (primary) {
+      return primary;
+    }
+    const context = language.resolveFromText({
       locale: input.locale,
-      messages: messages.length > 0
-        ? messages
-        : [{ role: candidate.sourceRole, content: candidate.content }],
+      text: "",
     });
+    return {
+      analysis: language.analyzeContent("", context),
+      context,
+    };
   };
 
   const appendTag = (tags: string[], tag: string): void => {
@@ -143,7 +155,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
   const buildPreservedSourceMetadata = (
     annotation: MessageAnnotation,
     message: { content: string; role: string },
-    locale?: string,
+    sourceLanguage: RememberSourceLanguageAnalysis,
   ): MemoryCandidateMetadata => {
     const metadataPatch = annotation.metadataPatch ?? {};
     const tags = [...(metadataPatch.tags ?? [])];
@@ -167,12 +179,11 @@ export function createRememberEngine(config: RememberEngineConfig) {
     } else if (originalRole === "assistant") {
       appendTag(tags, ASSISTANT_ANSWER_TAG);
     }
-    const languageContext = language.resolveFromText({
-      ...(locale ? { locale } : {}),
-      text: message.content,
-    });
     if (
-      language.parseTemporalExpressions(message.content, languageContext).length > 0
+      language.parseTemporalExpressions(
+        message.content,
+        sourceLanguage.context,
+      ).length > 0
     ) {
       appendTag(tags, DATED_EVENT_TAG);
     }
@@ -300,6 +311,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
     input: MemoryExtractionInput,
     profile: ResolvedRememberProfile,
     extraction: MemoryExtractionResult,
+    sourceAnalyses: RememberSourceLanguageAnalyses,
+    requestLanguage: RememberSourceLanguageAnalysis,
   ): MemoryExtractionResult => {
     const blockedIndexes = getNeverAnnotatedMessageIndexes(input);
     const candidates = extraction.candidates
@@ -332,7 +345,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
                 content: candidate.content,
                 role: candidate.sourceRole,
               },
-              input.locale,
+              candidateSourceLanguageAnalysis(candidate, sourceAnalyses) ??
+                requestLanguage,
             )
           : annotation.metadataPatch;
 
@@ -393,7 +407,11 @@ export function createRememberEngine(config: RememberEngineConfig) {
         sourceMessageIndex: annotation.messageIndex,
         sourceRole: message.role,
         metadata: preserveSource
-          ? buildPreservedSourceMetadata(annotation, message, input.locale)
+          ? buildPreservedSourceMetadata(
+              annotation,
+              message,
+              sourceAnalyses.get(annotation.messageIndex) ?? requestLanguage,
+            )
           : annotation.metadataPatch,
       });
     }
@@ -407,24 +425,22 @@ export function createRememberEngine(config: RememberEngineConfig) {
   const shouldAutoUseAssistedExtraction = (input: {
     request: MemoryExtractionInput;
     baselineExtraction: MemoryExtractionResult;
+    sourceAnalyses: RememberSourceLanguageAnalyses;
   }): boolean => {
     if (!assistedExtractor) {
       return false;
     }
 
-    const userMessages = input.request.messages.filter(
-      (message) => message.role === "user",
-    );
+    const userMessages = input.request.messages
+      .map((message, messageIndex) => ({ message, messageIndex }))
+      .filter(({ message }) => message.role === "user");
     const combinedUserContent = userMessages
-      .map((message) => message.content.trim())
+      .map(({ message }) => message.content.trim())
       .filter((content) => content.length > 0)
       .join("\n");
-    const contentAnalyses = userMessages.map((message) => {
-      const context = language.resolveFromText({
-        locale: input.request.locale,
-        text: message.content,
-      });
-      return language.analyzeContent(message.content, context);
+    const contentAnalyses = userMessages.flatMap(({ messageIndex }) => {
+      const analysis = input.sourceAnalyses.get(messageIndex)?.analysis;
+      return analysis ? [analysis] : [];
     });
     const durableCandidateKinds = new Set(
       input.baselineExtraction.candidates
@@ -476,15 +492,24 @@ export function createRememberEngine(config: RememberEngineConfig) {
   const normalizeExtractionResult = (
     request: MemoryExtractionInput,
     result: MemoryExtractionResult,
+    sourceAnalyses: RememberSourceLanguageAnalyses,
+    requestLanguage: RememberSourceLanguageAnalysis,
   ): MemoryExtractionResult => {
     return {
       ...result,
       candidates: result.candidates.map((candidate) => {
-        const resolved = resolveCandidateLanguage(request, candidate);
+        const sourceLanguage = candidateSourceLanguageAnalysis(
+          candidate,
+          sourceAnalyses,
+        ) ?? requestLanguage;
         return normalizeMemoryCandidate(
           candidate,
           request.messages[candidate.sourceMessageIndex]?.content,
-          { language, resolved },
+          {
+            analysis: sourceLanguage.analysis,
+            language,
+            resolved: sourceLanguage.context,
+          },
         );
       }),
     };
@@ -506,7 +531,11 @@ export function createRememberEngine(config: RememberEngineConfig) {
     strategy: MemoryExtractionStrategy | undefined,
   ): MemoryExtractionStrategy => strategy ?? "auto";
 
-  const resolveExtraction = async (input: MemoryExtractionInput) => {
+  const resolveExtraction = async (
+    input: MemoryExtractionInput,
+    sourceAnalyses: RememberSourceLanguageAnalyses,
+    requestLanguage: RememberSourceLanguageAnalysis,
+  ) => {
     const profile = resolveRememberProfile({
       config: config.remember,
       scope: input.scope,
@@ -515,9 +544,21 @@ export function createRememberEngine(config: RememberEngineConfig) {
     const requestedExtractionStrategy = resolveRequestedExtractionStrategy(
       input.extractionStrategy,
     );
+    const baselineResult = extractor
+      ? await extractor.extract(extractorInput)
+      : extractDeterministicMemoryWithLanguage(
+          extractorInput,
+          language,
+          sourceAnalyses,
+        );
     let baselineExtraction = annotateExtractionResult(
       applyProfileTrace(
-        normalizeExtractionResult(input, await extractor.extract(extractorInput)),
+        normalizeExtractionResult(
+          input,
+          baselineResult,
+          sourceAnalyses,
+          requestLanguage,
+        ),
         profile,
       ),
       "rules-only",
@@ -535,6 +576,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
           normalizeExtractionResult(
             input,
             await profileRuleExtractor.extract(extractorInput),
+            sourceAnalyses,
+            requestLanguage,
           ),
           profile,
         ),
@@ -548,6 +591,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
           normalizeExtractionResult(
             input,
             await profileExtractor.extractor.extract(extractorInput),
+            sourceAnalyses,
+            requestLanguage,
           ),
           profile,
         ),
@@ -574,7 +619,13 @@ export function createRememberEngine(config: RememberEngineConfig) {
     }
 
     baselineExtraction = dedupeExtractionResult(
-      applyAnnotations(input, profile, baselineExtraction),
+      applyAnnotations(
+        input,
+        profile,
+        baselineExtraction,
+        sourceAnalyses,
+        requestLanguage,
+      ),
     );
 
     const shouldRunAssistedExtraction =
@@ -583,6 +634,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
         shouldAutoUseAssistedExtraction({
           request: extractorInput,
           baselineExtraction,
+          sourceAnalyses,
         }));
 
     if (!shouldRunAssistedExtraction || !assistedExtractor) {
@@ -609,6 +661,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
               ...extractorInput,
               extractionStrategy: "llm-assisted",
             }, knownUserName ? { knownUserName } : undefined),
+            sourceAnalyses,
+            requestLanguage,
           ),
           profile,
         ),
@@ -630,6 +684,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
           input,
           profile,
           mergeExtractionResults(baselineExtraction, assistedExtraction),
+          sourceAnalyses,
+          requestLanguage,
         ),
       ),
       profile,
@@ -642,22 +698,27 @@ export function createRememberEngine(config: RememberEngineConfig) {
     classifyCandidate,
 
     async extract(input: MemoryExtractionInput) {
-      const { extraction } = await resolveExtraction(input);
+      const sourceAnalyses = analyzeRememberSourceMessages(input, language);
+      const requestLanguage = resolveRequestLanguage(input, sourceAnalyses);
+      const { extraction } = await resolveExtraction(
+        input,
+        sourceAnalyses,
+        requestLanguage,
+      );
       return extraction;
     },
 
     async remember(input: MemoryExtractionInput): Promise<EngineRememberResult> {
-      const resolvedLanguage = language.resolveFromMessages({
-        locale: input.locale,
-        messages: input.messages,
-      });
+      const sourceAnalyses = analyzeRememberSourceMessages(input, language);
+      const requestLanguage = resolveRequestLanguage(input, sourceAnalyses);
+      const resolvedLanguage = requestLanguage.context;
       const {
         extraction,
         extractionWarning,
         profile,
         requestedExtractionStrategy,
         resolvedExtractionStrategy,
-      } = await resolveExtraction(input);
+      } = await resolveExtraction(input, sourceAnalyses, requestLanguage);
       const writeCoordinator = createRememberWriteCoordinator(config.documentStore);
       const { rollbackActions } = writeCoordinator;
       const state: RememberWriteState = {
@@ -669,6 +730,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
         pendingVectorDeletes: [],
       };
       const episodeCandidates: MemoryCandidate[] = [];
+      const storedLanguageContexts = new Map<string, typeof resolvedLanguage>();
       const setDocumentWithRollback = writeCoordinator.setDocument;
       const deleteDocumentWithRollback = writeCoordinator.deleteDocument;
 
@@ -704,7 +766,11 @@ export function createRememberEngine(config: RememberEngineConfig) {
           }
 
           let effectiveCandidate = classified;
-          const candidateLanguage = resolveCandidateLanguage(input, classified);
+          const candidateLanguage = resolveCandidateLanguage(
+            classified,
+            sourceAnalyses,
+            requestLanguage,
+          );
           const policyContext: PolicyContext = {
             scope: input.scope,
             phase: "remember",
@@ -755,6 +821,13 @@ export function createRememberEngine(config: RememberEngineConfig) {
             continue;
           }
 
+          storedLanguageContexts.set(
+            storedTextLanguageKey(
+              effectiveCandidate.content,
+              candidateLanguage.locale,
+            ),
+            candidateLanguage,
+          );
           const acceptedBeforeWrite = state.accepted;
           await writeRememberCandidate({
             candidateId: candidate.id,
@@ -763,6 +836,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
               input,
               candidateLanguage,
               language,
+              storedLanguageContexts,
               policyContext,
               repositories: config.repositories,
               vectorIndex,
@@ -787,6 +861,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
           now(),
           language,
           resolvedLanguage.locale,
+          sourceAnalyses,
         );
         if (episode) {
           await setDocumentWithRollback("episodes", episode.id, episode);

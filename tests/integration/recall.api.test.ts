@@ -28,6 +28,7 @@ import {
   createFakeEmbeddingAdapter,
   createFakeRecallRouter,
 } from "../../src/testing/fakes";
+import { createEnglishLanguagePack } from "../../src/language";
 
 function seedMemory() {
   const documentStore = createInMemoryDocumentStore();
@@ -540,6 +541,44 @@ describe("public recall API", () => {
       "internal promote rollout elevated auto recall to llm-assisted",
     );
     expect(result.metadata.assistantInfluence?.planApplied).toBe(true);
+  });
+
+  it("reuses one typed query analysis across internal rollout and recall", async () => {
+    const english = createEnglishLanguagePack();
+    let analysisCalls = 0;
+    const memory = createInternalGoodMemory(
+      {
+        language: {
+          packs: [{
+            ...english,
+            analyzeQuery(query) {
+              analysisCalls += 1;
+              return english.analyzeQuery(query);
+            },
+          }],
+        },
+        storage: { provider: "memory" },
+        testing: {
+          now: () => new Date("2026-01-01T00:00:00.000Z"),
+        },
+      },
+      {
+        assistedRecallRouter: createFakeRecallRouter(),
+        retrievalStrategyRollout: {
+          family: "retrieval",
+          mode: "promote",
+          promotedStrategy: "llm-assisted",
+          promotionAuthorization: buildInternalRetrievalPromotionAuthorization(),
+        },
+      },
+    );
+
+    await memory.recall({
+      scope: { userId: "u-analysis", workspaceId: "workspace-a" },
+      query: "Which runbook is the source of truth?",
+    });
+
+    expect(analysisCalls).toBe(1);
   });
 
   it("rechecks internal retrieval promotion authorization expiry when recall applies promotion", async () => {

@@ -4,7 +4,10 @@ import type { FactMemory } from "../../src/domain/records";
 import { createLanguageService } from "../../src/language";
 import type { RoutingDecision } from "../../src/recall/router";
 import { buildFactCandidates, rankFactCandidates } from "../../src/recall/scoring";
-import { selectFacts } from "../../src/recall/selection";
+import {
+  selectFacts,
+  selectGeneralizedFactsForInternalUse,
+} from "../../src/recall/selection";
 
 const TIMESTAMP = "2026-01-10T00:00:00.000Z";
 const SOURCE = {
@@ -151,6 +154,10 @@ function generatePool(seed: number): GeneratedPool {
 const SEED_COUNT = 120;
 
 describe("recall selection invariants", () => {
+  it("exports selectFacts as the immutable generalized selector", () => {
+    expect(selectFacts).toBe(selectGeneralizedFactsForInternalUse);
+  });
+
   const language = createLanguageService();
 
   it("returns only active, locale-compatible, unique facts with bijective traces", () => {

@@ -1225,6 +1225,7 @@ describe("installed host hook runtime", () => {
   it("uses a continuity query for session start", async () => {
     const homeRoot = await createWorkspace("goodmemory-hook-session-home-");
     const workspaceRoot = await createWorkspace("goodmemory-hook-session-workspace-");
+    let capturedLocale: string | undefined;
     let capturedQuery: string | undefined;
 
     try {
@@ -1236,6 +1237,7 @@ describe("installed host hook runtime", () => {
           {
             debug: false,
             host: "claude",
+            language: { defaultLocale: "ja-JP" },
             maxTokens: 128,
             retrievalProfile: "coding_agent",
             storage: {
@@ -1290,6 +1292,7 @@ describe("installed host hook runtime", () => {
                 };
               },
               async recall(input) {
+                capturedLocale = input.locale;
                 capturedQuery = input.query;
                 return createRecallResult();
               },
@@ -1326,7 +1329,9 @@ describe("installed host hook runtime", () => {
           hookEventName: "SessionStart",
         },
       });
-      expect(capturedQuery).toContain("resume");
+      expect(capturedLocale).toBe("ja-JP");
+      expect(capturedQuery).toContain("再開");
+      expect(capturedQuery).not.toContain("resume");
     } finally {
       await rm(homeRoot, { force: true, recursive: true });
       await rm(workspaceRoot, { force: true, recursive: true });

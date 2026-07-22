@@ -32,8 +32,9 @@ function fnv1a(text: string): number {
 
 function tokenize(text: string): string[] {
   return text
+    .normalize("NFKC")
     .toLowerCase()
-    .split(/[^a-z0-9]+/u)
+    .split(/[^\p{L}\p{N}]+/u)
     .filter((token) => token.length > 0);
 }
 

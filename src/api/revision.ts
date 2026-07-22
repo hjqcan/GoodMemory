@@ -212,11 +212,18 @@ async function findTarget(
   return null;
 }
 
-function redactedBoundedExcerpt(value: string): string {
-  const redacted = value
+function redactedBoundedExcerpt(
+  value: string,
+  language: LanguageService,
+  context: ResolvedLanguageContext,
+): string {
+  const structurallyRedacted = value
     .replace(/\bsk-[A-Za-z0-9_-]{6,}\b/g, "[redacted secret-like content]")
     .replace(/\b[A-Za-z0-9_-]{32,}\b/g, "[redacted token-like content]")
     .trim();
+  const redacted = language.analyzeContent(value, context).sensitiveCredential
+    ? "[redacted-secret]"
+    : structurallyRedacted;
   if (redacted.length <= REVISION_EVIDENCE_EXCERPT_LIMIT) {
     return redacted;
   }
@@ -420,6 +427,7 @@ function buildEvidence(input: {
   requestDigest: string;
   timestamp: string;
   language: ResolvedLanguageContext;
+  languageService: LanguageService;
 }): EvidenceRecord {
   return createEvidenceRecord({
     id: input.evidenceId,
@@ -447,7 +455,11 @@ function buildEvidence(input: {
         ? { revisionEvidenceSource: input.input.evidence.source }
         : {}),
     },
-    excerpt: redactedBoundedExcerpt(input.excerpt),
+    excerpt: redactedBoundedExcerpt(
+      input.excerpt,
+      input.languageService,
+      input.language,
+    ),
     linkedMemoryIds: [input.previousMemoryId, input.newMemoryId],
     createdAt: input.timestamp,
   });
@@ -707,7 +719,11 @@ export async function reviseMemory(input: {
     revisionInput: input.input,
   });
   const requestDigest = encodeRevisionRequestDigest({
-    evidenceExcerpt: redactedBoundedExcerpt(evidenceExcerpt),
+    evidenceExcerpt: redactedBoundedExcerpt(
+      evidenceExcerpt,
+      input.config.language,
+      resolvedLanguage,
+    ),
     evidenceSource: input.input.evidence?.source,
     idempotencyKey: input.input.idempotencyKey,
     locale: resolvedLanguage.locale,
@@ -764,6 +780,7 @@ export async function reviseMemory(input: {
     requestDigest,
     timestamp,
     language: resolvedLanguage,
+    languageService: input.config.language,
   });
   const committed = await writeBatchIfUnchanged({
     expected: {

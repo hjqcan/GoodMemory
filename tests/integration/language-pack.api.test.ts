@@ -95,7 +95,7 @@ describe("LanguagePack public API integration", () => {
     ).toMatchObject({ locale: "zh-CN" });
   });
 
-  it("remembers Traditional Chinese and recalls it from a Simplified Chinese query", async () => {
+  it("remembers and recalls Traditional Chinese within the same script", async () => {
     const memory = createGoodMemory({
       language: { defaultLocale: "zh-TW" },
       retrieval: { preset: "recommended", recallPlanExecution: true },
@@ -114,24 +114,51 @@ describe("LanguagePack public API integration", () => {
       ],
     });
     const recalled = await memory.recall({
-      locale: "zh-CN",
-      query: "目前项目的阻塞是什么？",
+      locale: "zh-TW",
+      query: "目前專案的阻塞是什麼？",
       scope,
     });
 
     expect(remembered.metadata).toMatchObject({
       languagePackId: "zh-Hant",
-      languagePackVersion: "7-opencc-t2cn-1.4.1",
+      languagePackVersion: "10-behavioral-actions",
       locale: "zh-TW",
     });
     expect(recalled.facts.some((fact) => fact.content.includes("供應商審批"))).toBe(
       true,
     );
     expect(recalled.metadata).toMatchObject({
+      languagePackId: "zh-Hant",
+      languagePackVersion: "10-behavioral-actions",
+      locale: "zh-TW",
+    });
+  });
+
+  it("does not create a false cross-script match through locale fallback", async () => {
+    const memory = createGoodMemory({
+      language: { defaultLocale: "zh-TW" },
+      retrieval: { preset: "recommended", recallPlanExecution: true },
+      storage: { provider: "memory" },
+    });
+    const scope = { userId: "u-script-local", sessionId: "s-script-local" };
+
+    await memory.remember({
+      annotations: [{ messageIndex: 0, remember: "always", kindHint: "fact" }],
+      locale: "zh-TW",
+      messages: [{ role: "user", content: "資料庫遷移採用藍綠策略。" }],
+      scope,
+    });
+    const recalled = await memory.recall({
+      locale: "zh-CN",
+      query: "数据库迁移",
+      scope,
+    });
+
+    expect(recalled.metadata).toMatchObject({
       languagePackId: "zh-Hans",
-      languagePackVersion: "7-opencc-t2cn-1.4.1",
       locale: "zh-CN",
     });
+    expect(recalled.facts).toHaveLength(0);
   });
 
   it("uses Japanese analysis, projection search, and context rendering end to end", async () => {
@@ -168,4 +195,69 @@ describe("LanguagePack public API integration", () => {
     expect(context.content).toContain("## 事実");
     expect(context.content).toContain("法務承認");
   });
+
+  for (const testCase of [
+    {
+      change: "後來改成哪個方案？",
+      count: "總共有幾項待辦？",
+      currentBlocker: "目前專案的阻礙是什麼？",
+      history: "過去的專案狀態是什麼？",
+      locale: "zh-TW",
+      continuation: "繼續上次的工作。",
+      reference: "應該參考哪份文件？",
+    },
+    {
+      change: "その後、何に変更しましたか？",
+      count: "未完了事項は何件ありますか？",
+      currentBlocker: "現在のブロッカーは何ですか？",
+      history: "過去のプロジェクト状態は何ですか？",
+      locale: "ja-JP",
+      continuation: "前回の続きから再開してください。",
+      reference: "どの文書を参照すべきですか？",
+    },
+  ] as const) {
+    it(`executes the complete ${testCase.locale} recall intent matrix`, async () => {
+      const memory = createGoodMemory({
+        retrieval: { recallPlanExecution: true },
+        storage: { provider: "memory" },
+        testing: {
+          now: () => new Date("2026-07-16T00:00:00.000Z"),
+        },
+      });
+      const scope = {
+        userId: `u-matrix-${testCase.locale}`,
+        sessionId: `s-matrix-${testCase.locale}`,
+      };
+      const recall = async (query: string) => {
+        const result = await memory.recall({
+          locale: testCase.locale,
+          query,
+          scope,
+        });
+        const trace = result.metadata.retrievalTrace;
+        if (!trace || trace.schemaVersion !== 2) {
+          throw new Error("Expected recall plan execution trace.");
+        }
+        return { result, plan: trace.plan };
+      };
+
+      expect((await recall(testCase.currentBlocker)).plan).toMatchObject({
+        aggregation: "current",
+        temporalConstraints: [{
+          kind: "current",
+          referenceTime: "2026-07-16T00:00:00.000Z",
+        }],
+      });
+      expect((await recall(testCase.history)).plan.aggregation).toBe("history");
+      expect((await recall(testCase.change)).plan.aggregation).toBe("change");
+      expect((await recall(testCase.count)).plan.aggregation).toBe("count");
+
+      const continuation = await recall(testCase.continuation);
+      expect(continuation.result.metadata.routingDecision.continuation).toBe(true);
+      expect(continuation.plan.planes).toContain("runtime");
+
+      const reference = await recall(testCase.reference);
+      expect(reference.result.metadata.routingDecision.referenceSeeking).toBe(true);
+    });
+  }
 });

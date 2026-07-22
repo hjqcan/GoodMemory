@@ -9,11 +9,11 @@ import type {
 import {
   decomposeQueryByPattern,
   extractPatternMentions,
-  parsePatternTemporalExpressions,
   parseTechnicalTemporalExpressions,
   renderFromCatalog,
   resolveSourceOfTruthDirective,
 } from "./packHelpers";
+import { parseEnglishTemporalReference } from "./englishTemporal";
 
 const QUERY = {
   after: /\b(?:after|since)\b/i,
@@ -44,7 +44,7 @@ const QUERY = {
   openLoop:
     /\b(open loop|handoff|signoff|verification|todo|to-do|need to|have to|pick up)\b|\bhow many\b.*\breturn\b/i,
   projectState:
-    /\b(project|workflow|migration|rollout|approval|blocker|blocked|open loop|handoff|signoff|verification|prod|production)\b/i,
+    /\b(projects?|workflows?|migrations?|rollouts?|approvals?|blockers?|blocked|open loops?|handoffs?|signoffs?|verifications?|prod|production)\b/i,
   recommendationStyle:
     /\b(?:recommend|suggest(?:ions?)?|advice|ideas?|tips?|what should|what can i|where should)\b/i,
   reference: /\b(runbook|guide|doc|docs|reference|source of truth)\b/i,
@@ -63,17 +63,19 @@ const CONTENT = {
     /\b(will|going forward|use|continue|updated|confirm|propos|next step|resolved|pending|blocked|follow up|keep)\b/i,
   blockerFact: /\bblocker\b|\bblocked\b|\bblocking\b|\bapproval\b/i,
   correctionCue:
-    /\b(?:correction|replace|replaced|supersede|superseded|instead of|use .+ as the source of truth|not .+ source of truth)\b/i,
+    /\b(?:correction|expected behavior|user feedback|replace|replaced|supersede|superseded|instead of|use .+ as the source of truth|not .+ source of truth)\b/i,
   dont: /\b(avoid|don't|do not|must not|never)\b/i,
   durableCue:
     /\b(?:remember that|source of truth|runbook|current blocker|blocked|blocking|prefer|please keep|my current role|my role|my timezone|preferred language|current focus|current project|use .+ instead of|instead of)\b/i,
   focusFact:
     /\bmy current focus is\b|\bi(?:'m| am)\s+(?:leading|working on|focused on|owning)\b/i,
-  negative: /\b(blocked|failing|open|unstable)\b/i,
+  negative:
+    /\b(?:blocked|confused|confusing|denied|deprecated|did not understand|didn't understand|do not understand|don't understand|error|failed|failing|failure|forbidden|impatience|impatient|not understood|open|overloaded|permission denied|queue full|timed out|timeout|unsupported|unstable)\b/i,
   openLoopFact:
     /\bopen loop\b|\bi\s+(?:(?:still|also|just)\s+)?(?:need|have)\s+to\b|\bi(?:'ve| have)\s+been\s+meaning\s+to\b/i,
   personalEvidence: /\b(?:i|my|me|mine|i'm|i've|i'd)\b/i,
-  positive: /\b(stable|resolved|closed|fixed|completed)\b/i,
+  positive:
+    /\b(?:clear|completed|created|freed|generated|makes sense|operational|preserved|resolved|stable|succeeded|success|successful|understandable|understood|closed|fixed)\b/i,
   preferenceEvidence:
     /\b(?:prefer|like|love|enjoy|want|looking for|interested in|miss|struggling|trying to|issue|issues|problem|problems|leak|leaking|scratch|scratches|clutter|clutter-free)\b/i,
   prefer: /\bprefer\b/i,
@@ -81,6 +83,8 @@ const CONTENT = {
     /\b(next milestone|next step|next action|upcoming milestone|pending|waiting|remaining|still needs?|needs? review|needs? confirmation|needs? follow(?:-| )?up)\b/i,
   roleFact:
     /\bmy current role is\b|\bi(?:'m| am)\s+(?:an?|the)\s+.+\b(?:at|leading|working on|focused on|owning)\b/i,
+  sensitiveCredential:
+    /\b(?:api[_-]?key|password|secret|token)\b\s*[:=：]\s*\S+/iu,
   unresolved:
     /\b(open loop|blocked|pending|remaining|follow up|follow-up|todo|next step)\b/i,
   validated: /\b(worked well|keep using|effective|successful)\b/i,
@@ -215,6 +219,7 @@ export function analyzeEnglishContent(content: string): LanguageContentAnalysis 
     preferenceEvidence: CONTENT.preferenceEvidence.test(content),
     projectStateFact: CONTENT.projectStateFact.test(content),
     roleFact: CONTENT.roleFact.test(content),
+    sensitiveCredential: CONTENT.sensitiveCredential.test(content),
     sourceOfTruthDirective: analyzeEnglishSourceOfTruthDirective(content),
     unresolved: CONTENT.unresolved.test(content),
   };
@@ -235,25 +240,11 @@ export function decomposeEnglishQuery(query: string): string[] {
 export function parseEnglishTemporalExpressions(
   text: string,
 ): LanguageTemporalExpression[] {
-  return [
-    ...parseTechnicalTemporalExpressions(text),
-    ...parsePatternTemporalExpressions(text, [
-      {
-        kind: "absolute",
-        pattern: /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)[-/ ]\d{1,2}[-/ ]\d{2,4}\b/giu,
-        unit: "day",
-      },
-      {
-        kind: "relative",
-        pattern: /\b(?:today|yesterday|tomorrow)\b/giu,
-        unit: "day",
-      },
-      {
-        kind: "relative",
-        pattern: /\b(?:last|next|this)\s+(?:week|month|quarter|year)\b/giu,
-      },
-    ]),
-  ];
+  const primary = parseEnglishTemporalReference(text);
+  const technical = parseTechnicalTemporalExpressions(text);
+  return primary
+    ? [primary, ...technical.filter(({ raw }) => raw !== primary.raw)]
+    : technical;
 }
 
 export function extractEnglishEntityMentions(
@@ -264,6 +255,7 @@ export function extractEnglishEntityMentions(
     "an",
     "how",
     "i",
+    "i'm",
     "the",
     "what",
     "when",
@@ -320,43 +312,133 @@ export function acceptsEnglishEntityCandidate(
 
 const ENGLISH_RENDER_CATALOG = {
   active_context: "Active Context",
+  canonical_pattern: "Canonical Pattern",
+  guidance: "Guidance",
+  instruction: "Instruction",
+  metadata: "Metadata",
+  playbook_title: "Playbook: {rule}",
+  procedure: "Procedure",
+  prompt_snippet_title: "Prompt Snippet: {rule}",
+  skill_snippet_title: "Skill Snippet: {rule}",
+  use_when: "Use When",
+  why: "Why",
   actor: "Actor",
   additional_project_state: "Additional project-state context",
   archive: "Session Archive",
+  archive_recap: "Archive Recap: {sessionId}",
+  artifact_spills: "Artifact Spills",
+  behavioral_controls_available:
+    "Relevant raw experience controls are available for deterministic final-answer repair.",
+  behavioral_exact_surface: "Exact surface:",
+  behavioral_example: "Example {index}:",
+  behavioral_observed_outcome: "Observed outcome:",
+  behavioral_raw_response_control: "Raw response control:",
+  behavioral_relevant_prior_examples: "Relevant prior examples:",
+  behavioral_safe_corrected_move: "Safe corrected move:",
+  behavioral_situation: "Situation:",
+  behavioral_successful_move: "Successful move:",
   correction: "Correction",
   claim: "Claim",
   current_goal: "Current goal",
   current_projects: "Current projects",
   current_state: "Current state",
+  constraints: "Constraints",
   deferred_follow_up: "Deferred follow-up context",
+  developer_memory_notes: "Developer memory notes:",
   durable_memory: "Durable Memory",
+  earlier_messages_compacted: "Earlier messages compacted.",
   episode: "Relevant Episodes",
+  episode_assistant_follow_through_captured:
+    "Assistant follow-through captured.",
+  episode_assistant_follow_through_on:
+    "Assistant follow-through on: {highlight}",
+  episode_assistant_substantive_continuity_captured:
+    "Assistant substantive continuity captured.",
+  episode_conversation_covered: "Conversation covered: {segments}",
   episode_item: "Episode",
   evidence: "Evidence",
   evidence_entry: "Evidence {evidenceId} from memory {memoryId}.",
   evidence_note: "Read entries using their temporal status and evidence relation.",
+  experiences: "Experiences",
   excerpt: "Excerpt",
   fact: "Facts",
   fact_item: "Fact",
   feedback: "Feedback",
   file_evidence: "File evidence",
+  file_or_function: "File/Function",
   goals: "Goals",
   immediate_next_steps: "Immediate next-step support",
+  installed_host_claude_memory_protocol:
+    "GoodMemory complements Claude Code auto-memory: keep your own session working notes in MEMORY.md; keep durable project facts, decisions, and preferences in GoodMemory so they surface per-prompt with provenance. Do not copy hook-injected GoodMemory content into MEMORY.md.",
+  installed_host_context_tool_protocol:
+    "When injected context is missing or insufficient, call goodmemory_get_context with a specific question (any question, not just the current prompt).",
+  installed_host_injected_context_protocol:
+    "Hook-injected \"Developer memory notes\" blocks are memory retrieved for the current prompt. Read them before planning and prefer them over re-deriving project facts; verify time-sensitive facts against the repo before acting on them.",
+  installed_host_intro:
+    "This repository uses GoodMemory (installed {host} host path) for durable, governed memory.",
+  installed_host_projection_protocol:
+    "Treat exported artifact files as projections, not canonical truth, and do not restate injected memory verbatim into files or commit messages.",
+  installed_host_protocol_heading: "Memory protocol:",
+  installed_host_record_tools_protocol:
+    "When you need specific records rather than a rendered summary, call goodmemory_search_index and then goodmemory_get_records. When a memory looks wrong or is unexpectedly missing, call goodmemory_trace_recall to see why it was or was not selected.",
+  installed_host_remember_protocol:
+    "When you learn a durable fact, decision, preference, or blocker worth keeping and the goodmemory_remember tool is available, persist it with one clear statement per call. Writes are governed and auditable; the result explains any rejection.",
   journal: "Session Journal",
   key_decisions: "Key decisions",
+  key_files: "Key Files",
+  language_label: "Language",
+  learning_proposals: "Learning Proposals",
+  lineage: "Lineage",
+  location: "Location",
+  memory_index: "MEMORY",
+  name: "Name",
+  none: "none",
+  organization: "Organization",
   open_loops: "Open loops",
+  omitted_sections: "Omitted sections: {sections}",
   preference: "Preferences",
   procedural_memory: "Procedural Memory",
   profile: "Profile",
+  progressive_detail_instruction:
+    "Use recordRef values with the detail tool only when more context is needed.",
+  progressive_detail_instruction_compact:
+    "Use recordRefs with the detail tool when needed.",
+  progressive_recall: "Progressive GoodMemory Recall",
+  promotions: "Promotions",
+  recent_decisions: "Recent Decisions",
   recent_worklog: "Recent worklog",
   reference: "References",
   reference_item: "Reference",
+  referenced_artifacts: "Referenced Artifacts",
   relation_label: "Relation",
+  role_label: "Role",
+  scope: "Scope",
   session_archive_item: "Session archive",
+  session_ended_without_summary:
+    "Session ended without a synthesized summary.",
+  session_handoff: "Session Handoff: {sessionId}",
+  session_memory: "Session Memory: {sessionId}",
+  session_resume_query:
+    "What continuity, active context, and open loops should I resume for this coding session?",
+  session_start_query:
+    "What active context, continuity, and open loops should I know at the start of this coding session?",
   tool_result: "Tool result",
   temporal_status: "Temporal status",
+  summary: "Summary",
+  detail_tokens: "detail tokens",
+  omitted_records: "omitted records: {count}",
+  record_kind: "kind",
+  record_ref: "ref",
+  temporary_decision: "Temporary decision",
+  timezone: "Timezone",
   verification: "Verification",
+  user_memory_context: "User memory context:",
+  user_memory: "User Memory",
+  undated: "undated",
+  default_label: "default",
+  workflow: "Workflow",
   working_memory: "Working Memory",
+  workspace_query_anchor: "Workspace: {workspace}.",
 } as const;
 
 export function renderEnglish(input: LanguageRenderInput): string {

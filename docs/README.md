@@ -18,6 +18,9 @@ bulk-load. Start here, then open only the file that matches the question.
 
 ## Architecture And Release Baselines
 
+- `../adr/ADR-008-language-pack-horizontal-extension.txt` - accepted 0.7
+  LanguagePack boundary, breaking-replacement decision, script-local Chinese
+  guarantee, and versioned projection migration contract.
 - `GoodMemory-OSS-Architecture-v1.md` - historical v1 package/module map; use
   `GoodMemory-Current-Status-and-Evidence.md` for the current shipped surface.
 - `GoodMemory-v1-Release-Checklist.md` - historical v0.2->v1 release baseline;
@@ -29,6 +32,8 @@ bulk-load. Start here, then open only the file that matches the question.
 - `GoodMemory-15-Minute-App-Integration.md` - shortest app integration path.
 - `GoodMemory-LanguagePack-Extension-Guide.md` - built-in locale behavior,
   custom language-pack contract, analyzer versioning, and projection migration.
+- `GoodMemory-0.6-to-0.7-Migration-Guide.md` - breaking API/configuration,
+  projection cutover, validation, and rollback procedure for the 0.7 upgrade.
 - `GoodMemory-Reference-Integration-Guide.md` - reference consumer pattern.
 - `GoodMemory-Inspector-and-Admin-API.md` - local React Inspector, `/admin/v1`
   contract, security boundary, and operator workflows.

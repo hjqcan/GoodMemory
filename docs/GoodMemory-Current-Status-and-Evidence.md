@@ -27,6 +27,39 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 - The official CLI uses the package bin. The global CLI invocation path is `goodmemory ...` after `npm install -g goodmemory`; project-local installs use `npx goodmemory`, `npm exec -- goodmemory`, or `./node_modules/.bin/goodmemory ...`. Non-version command execution remains Bun-backed today.
 - Generic live-memory eval semantics are auto-storage aligned: `eval:live-memory`, `eval:live-auto-memory`, `runLiveMemoryEval()`, `eval:live-provider-memory`, and historical `reports/eval/live-memory/phase-*` paths keep their existing meanings.
 
+## Unreleased 0.7 LanguagePack Candidate
+
+- 0.7 is defined as a clean breaking replacement of the former partial
+  language adapter. The target public language surface is one complete
+  `LanguagePack` contract with first-class `en`, `zh-Hans`, `zh-Hant`, `ja`,
+  `ko`, `fr`, and `es`; there is no adapter compatibility layer or
+  half-migrated release mode.
+- The Chinese guarantee is script-local. Simplified and Traditional packs keep
+  distinct compatibility/analyzer identities; raw user text is not converted,
+  OpenCC is not a runtime dependency, and cross-script Chinese lexical recall
+  is not a 0.7 acceptance condition. Ambiguous Han-only text uses the
+  configured default, while unsupported explicit locales use neutral Unicode
+  behavior instead of English semantics.
+- Derived search is versioned separately from canonical memory. The 0.7 target
+  generation is documents v3, entities v2, claims/status v2, and scope catalog
+  v2, with a persistent analyzer/build/source-generation proof. A scope must
+  not read a partial new generation; it uses canonical fallback until an
+  interruptible, repeatable migration validates and atomically publishes
+  complete proof.
+- This section records the accepted architecture and release boundary, not a
+  shipped artifact. 0.7 is not stable or publishable until its fresh full
+  suite, typecheck, coverage, storage/migration/scale gates, real PostgreSQL
+  `EXPLAIN` run, Node 20 and Bun packed-consumer smokes, type/release tests, and
+  sub-4-MiB package evidence are recorded for one exact source identity. A
+  skipped environment-gated PostgreSQL run is not a pass.
+- All benchmark scores and package checksums elsewhere in this document remain
+  bound to their stated 0.6 or historical source identities. They may not be
+  relabeled as 0.7 evidence without a new protocol-bound run.
+
+See ADR-008, `docs/GoodMemory-LanguagePack-Extension-Guide.md`, and
+`docs/GoodMemory-0.6-to-0.7-Migration-Guide.md` for the decision, extension,
+cutover, and rollback contracts.
+
 ## Installed Host And Runtime Surface
 
 - Phase 35 installed host-memory middleware is now part of the accepted stable host surface. Phase 35 is now closed as the installed host-memory middleware and hooks slice. Accepted commands and hooks include `goodmemory setup`, `goodmemory status`, `SessionStart` / `UserPromptSubmit` hooks, and managed Codex/Claude install/enable/disable flows.

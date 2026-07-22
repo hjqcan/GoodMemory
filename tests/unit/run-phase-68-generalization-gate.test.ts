@@ -65,8 +65,6 @@ function passingInput(): Parameters<typeof evaluatePhase68GeneralizationGate>[0]
       "selection.ts",
       "selectors/recordSelection.ts",
       "selectors/selectionContext.ts",
-      "selectors/temporal.ts",
-      "selectors/topic.ts",
     ],
     productionRecallSources: Object.fromEntries(
       [
@@ -78,8 +76,6 @@ function passingInput(): Parameters<typeof evaluatePhase68GeneralizationGate>[0]
         "selection.ts",
         "selectors/recordSelection.ts",
         "selectors/selectionContext.ts",
-        "selectors/temporal.ts",
-        "selectors/topic.ts",
       ].map((path) => [path, "export {};"] as const),
     ),
     productionSelectionSource: "export const selectFacts = generalized;",
@@ -175,7 +171,7 @@ describe("phase-68 generalization gate", () => {
       "MemoryAgentBench",
     ]) {
       const value = passingInput();
-      value.productionRecallSources["selectors/temporal.ts"] =
+      value.productionRecallSources["selectors/selectionContext.ts"] =
         `const benchmark = ${JSON.stringify(identity)};`;
 
       expect(evaluatePhase68GeneralizationGate(value).passed).toBe(false);

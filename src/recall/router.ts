@@ -1,7 +1,5 @@
-import {
-  createLanguageService,
-  type LanguageService,
-} from "../language";
+import { createLanguageService } from "../language";
+import type { LanguageQueryAnalysis, LanguageService } from "../language";
 
 export type RetrievalProfile = "general_chat" | "coding_agent";
 export type RecallRouterStrategy =
@@ -87,6 +85,7 @@ export interface RecallRoutingInput {
   runtime: RecallRuntimeAvailability;
   locale?: string;
   language?: LanguageService;
+  queryAnalysis?: LanguageQueryAnalysis;
 }
 
 interface AutoRouterSignals {
@@ -275,15 +274,17 @@ export function planRecall(input: RecallRoutingInput): RoutingDecision {
     language.resolveFromText({
       text: input.query,
     }).locale;
+  const queryAnalysis = input.queryAnalysis ??
+    language.analyzeQuery(input.query, locale);
   const continuationIntent =
     retrievalProfile === "coding_agent" ||
-    language.isContinuationQuery(input.query, locale);
-  const roleQuery = language.isRoleQuery(input.query, locale);
-  const focusQuery = language.isFocusQuery(input.query, locale);
-  const blockerQuery = language.isBlockerQuery(input.query, locale);
-  const openLoopQuery = language.isOpenLoopQuery(input.query, locale);
-  const referenceSeeking = language.isReferenceSeekingQuery(input.query, locale);
-  const actionDriving = language.isActionDrivingQuery(input.query, locale);
+    queryAnalysis.continuation;
+  const roleQuery = queryAnalysis.role;
+  const focusQuery = queryAnalysis.focus;
+  const blockerQuery = queryAnalysis.blocker;
+  const openLoopQuery = queryAnalysis.openLoop;
+  const referenceSeeking = queryAnalysis.referenceSeeking;
+  const actionDriving = queryAnalysis.actionDriving;
   const requestedSlots: RecallSlot[] = [];
 
   if (roleQuery) {

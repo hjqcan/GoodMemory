@@ -5,6 +5,7 @@ import type {
   RecallResult,
   RememberInput,
 } from "../api/contracts";
+import { readGoodMemoryIntegrationSupport } from "../api/integrationSupport";
 import type { HostKind } from "../host/contracts";
 import type {
   CreateGoodMemoryRuntimeKitInput,
@@ -48,6 +49,8 @@ import { resolveHostActionExecutionPlan } from "../host/actionExecution";
 import { createGoodMemoryTracer } from "../observability/tracer";
 import { createProgressiveRecallService } from "../progressive/recall";
 import { estimateTextTokens } from "../tokenEstimator";
+import type { LanguageService } from "../language";
+import { redactSensitiveCredentialText } from "../language/sensitive";
 
 const DEFAULT_MAX_MEMORY_TOKENS = 160;
 const DEFAULT_PROGRESSIVE_RECORD_LIMIT = 10;
@@ -82,15 +85,17 @@ function clipText(value: string, maxChars: number): string {
   return `${value.slice(0, Math.max(0, maxChars - 3)).trimEnd()}...`;
 }
 
-function redactRuntimeKitText(value: string): string {
+function redactRuntimeKitText(
+  value: string,
+  language?: LanguageService,
+): string {
   return clipText(
-    value
-      .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/giu, "[redacted-email]")
-      .replace(/\bsk-[A-Za-z0-9_-]{6,}\b/gu, "[redacted-secret]")
-      .replace(
-        /\b(?:api[_-]?key|password|secret|token)\s*[:=]\s*[^\s,;]+/giu,
-        "[redacted-secret]",
-      )
+    redactSensitiveCredentialText(
+      value
+        .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/giu, "[redacted-email]")
+        .replace(/\bsk-[A-Za-z0-9_-]{6,}\b/gu, "[redacted-secret]"),
+      language,
+    )
       .replace(/\s+/gu, " ")
       .trim(),
     MAX_PREVIEW_CHARS,
@@ -99,6 +104,7 @@ function redactRuntimeKitText(value: string): string {
 
 function buildCandidatePreview(input: {
   assistantText: string | null;
+  language?: LanguageService;
   userText: string | null;
 }): string | null {
   const segments = [
@@ -110,7 +116,7 @@ function buildCandidatePreview(input: {
     return null;
   }
 
-  return redactRuntimeKitText(segments.join(" | "));
+  return redactRuntimeKitText(segments.join(" | "), input.language);
 }
 
 function createCandidate(input: {
@@ -332,6 +338,7 @@ function createDefaultHostAdapter(input: {
 export function createGoodMemoryRuntimeKit(
   input: CreateGoodMemoryRuntimeKitInput,
 ): GoodMemoryRuntimeKit {
+  const language = readGoodMemoryIntegrationSupport(input.memory)?.language;
   const progressiveRecall = resolveProgressiveRecallService(input);
   const defaultContextMode = input.defaultContextMode ?? "fragment";
   const defaultMaxMemoryTokens =
@@ -560,7 +567,7 @@ export function createGoodMemoryRuntimeKit(
       const mode = writeback.mode ?? "observe";
       const assistantText = normalizeText(callInput.assistantText);
       const userText = extractTextFromMessages(callInput.messages);
-      const preview = buildCandidatePreview({ assistantText, userText });
+      const preview = buildCandidatePreview({ assistantText, language, userText });
       const candidates: RuntimeKitWritebackCandidate[] = [];
       const boundedJobs: RuntimeKitBoundedJob[] = [];
       let rememberResult: RuntimeKitAfterModelCallResult["rememberResult"];
@@ -662,6 +669,7 @@ export function createGoodMemoryRuntimeKit(
     ): Promise<RuntimeKitObserveToolResultResult> {
       const summary = redactRuntimeKitText(
         `${callInput.toolName}: ${callInput.summary}`,
+        language,
       );
       const updated = await input.memory.runtime.updateSessionJournal({
         scope: callInput.scope,

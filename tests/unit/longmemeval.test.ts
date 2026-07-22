@@ -3169,14 +3169,14 @@ describe("LongMemEval adapter", () => {
       },
     );
 
-    expect(report.summary.evidenceSessionRecall).toBe(0.75);
-    expect(report.summary.missedRecallCases).toBe(2);
+    expect(report.summary.evidenceSessionRecall).toBe(1);
+    expect(report.summary.missedRecallCases).toBe(0);
     expect(
       report.cases.map((testCase) => [...testCase.retrievedSessionIds].sort()),
     ).toEqual([
-      ["s-met"],
+      ["s-met", "s-moma"],
       ["s-nursery", "s-phone", "s-shower"],
-      ["s-charity-books"],
+      ["s-charity-bike", "s-charity-books"],
       ["s-cousin-wedding", "s-engagement-party"],
     ]);
   });
@@ -4455,7 +4455,7 @@ describe("LongMemEval adapter", () => {
       [expect.stringMatching(/^s-baked-/u)],
       ["s-device-fitbit"],
       [],
-      ["s-kitchen-mat"],
+      [expect.stringMatching(/^s-kitchen-(?:faucet|mat)$/u)],
       ["s-market-herbs-bunches", "s-market-herbs-potted", "s-market-jam"],
       [
         "s-game-celeste",
@@ -4714,14 +4714,14 @@ describe("LongMemEval adapter", () => {
       },
     );
 
-    expect(report.summary.evidenceSessionRecall).toBeCloseTo(247 / 360, 12);
+    expect(report.summary.evidenceSessionRecall).toBeCloseTo(259 / 360, 12);
     expect(report.summary.missedRecallCases).toBe(3);
     expect(report.summary.wrongRecallCases).toBe(0);
     expect(
       report.cases.map((testCase) => [...testCase.retrievedSessionIds].sort()),
     ).toEqual([
       ["s-furniture-bookshelf"],
-      ["s-property-offer"],
+      ["s-property-cedar-creek", "s-property-offer"],
       [
         "s-delivery-dominos",
         "s-delivery-fresh-fusion",
@@ -5019,7 +5019,7 @@ describe("LongMemEval adapter", () => {
     expect(context.content).toContain("I spent $25 replacing my bike chain");
   });
 
-  it("records the Phase 68 generalized project-leadership recall floor", async () => {
+  it("recalls historical and current project leadership evidence", async () => {
     const [testCase] = validateLongMemEvalCases([
       {
         answer: "2",
@@ -5058,9 +5058,12 @@ describe("LongMemEval adapter", () => {
       testCase: testCase!,
     });
 
-    expect(context.retrievedSessionIds).toEqual(["s-solo-project"]);
-    expect(context.content).not.toContain("I led the data analysis team");
-    expect(context.content).toContain("I am currently leading a solo project");
+    expect([...context.retrievedSessionIds].sort()).toEqual([
+      "s-led-project",
+      "s-solo-project",
+    ]);
+    expect(context.content).toContain("I led the data analysis team");
+    expect(context.content).toContain("I am leading a solo project");
   });
 
   it("derives sleep-time evidence for temporal bridge questions", async () => {
@@ -5513,7 +5516,7 @@ describe("LongMemEval adapter", () => {
 
     expect(context.retrievedSessionIds).toContain("s-kitchen-issues");
     expect(context.content).toContain(
-      "My kitchen granite countertop near the sink has scratches.",
+      "I noticed some scratches on my granite countertop near the sink.",
     );
     expect(context.content).toContain("My kitchen faucet has been leaking slightly.");
   });

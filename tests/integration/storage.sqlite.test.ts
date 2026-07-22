@@ -129,7 +129,7 @@ describe("sqlite document conditional batches", () => {
       const [sealed] = await inspectionStore.query<RecallProjectionManifest>(
         PROJECTION_MANIFESTS_COLLECTION,
       );
-      expect(sealed?.projectionBuildId).toStartWith("gm-projection-v2:");
+      expect(sealed?.projectionBuildId).toStartWith("gm-projection-v3:");
       expect(sealed?.validatedGeneration).toBe(sealed?.sourceGeneration);
 
       const reopened = createGoodMemory({
@@ -808,7 +808,7 @@ describe("sqlite projection text index", () => {
         .query<{ collection: string }, []>(
           `SELECT DISTINCT collection
            FROM document_text_fts
-           WHERE collection IN ('claim_projections_v1', 'entities_v1')
+           WHERE collection IN ('claim_projections_v2', 'entities_v2')
            ORDER BY collection`,
         )
         .all()

@@ -18,6 +18,11 @@ import type {
   PromotionRecord,
   SessionArchive,
 } from "../evolution/contracts";
+import type {
+  LanguageRenderKey,
+  LanguageService,
+  ResolvedLanguageContext,
+} from "../language";
 
 export interface MarkdownArtifactFile {
   content: string;
@@ -32,6 +37,8 @@ export interface MarkdownArtifactBundle {
 }
 
 interface MarkdownArtifactInput {
+  language: LanguageService;
+  languageContext: ResolvedLanguageContext;
   scope: MemoryScope;
   durable: {
     profile: UserProfile | null;
@@ -86,16 +93,47 @@ function buildRootPath(scope: MemoryScope): string {
   return segments.join("/");
 }
 
-function renderSection(title: string, lines: string[]): string {
+function renderSection(
+  title: string,
+  lines: string[],
+  emptyLabel = "none",
+): string {
   return [
     `## ${sanitizeMarkdownInline(title)}`,
-    ...(lines.length > 0 ? lines : ["- none"]),
+    ...(lines.length > 0 ? lines : [`- ${sanitizeMarkdownInline(emptyLabel)}`]),
   ].join("\n");
 }
 
-function renderOptionalPlaybookSection(title: string, lines: string[]): string {
+function renderLabel(
+  input: MarkdownArtifactInput,
+  key: LanguageRenderKey,
+  values?: Record<string, number | string>,
+): string {
+  return input.language.render(
+    { key, ...(values ? { values } : {}) },
+    input.languageContext,
+  );
+}
+
+function renderLocalizedSection(
+  input: MarkdownArtifactInput,
+  key: LanguageRenderKey,
+  lines: string[],
+): string {
+  return renderSection(
+    renderLabel(input, key),
+    lines,
+    renderLabel(input, "none"),
+  );
+}
+
+function renderOptionalPlaybookSection(
+  input: MarkdownArtifactInput,
+  key: LanguageRenderKey,
+  lines: string[],
+): string {
   return [
-    `## ${sanitizeMarkdownInline(title)}`,
+    `## ${sanitizeMarkdownInline(renderLabel(input, key))}`,
     ...(lines.length > 0 ? lines : ["<!-- intentionally empty -->"]),
   ].join("\n");
 }
@@ -106,39 +144,52 @@ function renderDocument(title: string, sections: string[]): string {
   return [`# ${sanitizeMarkdownInline(title)}`, ...kept.flatMap((section) => ["", section])].join("\n");
 }
 
-function renderProfileLines(profile: UserProfile | null): string[] {
+function renderProfileLines(
+  input: MarkdownArtifactInput,
+  profile: UserProfile | null,
+): string[] {
   if (!profile) {
     return [];
   }
 
   return [
-    profile.identity.name ? `- Name: ${sanitizeMarkdownInline(profile.identity.name)}` : undefined,
-    profile.identity.role ? `- Role: ${sanitizeMarkdownInline(profile.identity.role)}` : undefined,
+    profile.identity.name
+      ? `- ${renderLabel(input, "name")}: ${sanitizeMarkdownInline(profile.identity.name)}`
+      : undefined,
+    profile.identity.role
+      ? `- ${renderLabel(input, "role_label")}: ${sanitizeMarkdownInline(profile.identity.role)}`
+      : undefined,
     profile.identity.organization
-      ? `- Organization: ${sanitizeMarkdownInline(profile.identity.organization)}`
+      ? `- ${renderLabel(input, "organization")}: ${sanitizeMarkdownInline(profile.identity.organization)}`
       : undefined,
     profile.identity.location
-      ? `- Location: ${sanitizeMarkdownInline(profile.identity.location)}`
+      ? `- ${renderLabel(input, "location")}: ${sanitizeMarkdownInline(profile.identity.location)}`
       : undefined,
     profile.identity.timezone
-      ? `- Timezone: ${sanitizeMarkdownInline(profile.identity.timezone)}`
+      ? `- ${renderLabel(input, "timezone")}: ${sanitizeMarkdownInline(profile.identity.timezone)}`
       : undefined,
     profile.identity.languagePreference
-      ? `- Language: ${sanitizeMarkdownInline(profile.identity.languagePreference)}`
+      ? `- ${renderLabel(input, "language_label")}: ${sanitizeMarkdownInline(profile.identity.languagePreference)}`
       : undefined,
   ].filter((line): line is string => Boolean(line));
 }
 
-function renderActiveContextLines(profile: UserProfile | null): string[] {
+function renderActiveContextLines(
+  input: MarkdownArtifactInput,
+  profile: UserProfile | null,
+): string[] {
   if (!profile) {
     return [];
   }
 
   return [
     ...profile.activeContext.currentProjects.map(
-      (project) => `- Current project: ${sanitizeMarkdownInline(project)}`,
+      (project) =>
+        `- ${renderLabel(input, "current_projects")}: ${sanitizeMarkdownInline(project)}`,
     ),
-    ...profile.activeContext.goals.map((goal) => `- Goal: ${sanitizeMarkdownInline(goal)}`),
+    ...profile.activeContext.goals.map(
+      (goal) => `- ${renderLabel(input, "goals")}: ${sanitizeMarkdownInline(goal)}`,
+    ),
   ];
 }
 
@@ -348,11 +399,14 @@ function renderEpisodeLines(episodes: EpisodeMemory[]): string[] {
   );
 }
 
-function renderArchiveLines(archives: SessionArchive[]): string[] {
+function renderArchiveLines(
+  input: MarkdownArtifactInput,
+  archives: SessionArchive[],
+): string[] {
   return sortArchives(archives).map((archive) => {
     const suffix =
       archive.unresolvedItems.length > 0
-        ? ` Open loops: ${sanitizeMarkdownInline(archive.unresolvedItems.join(", "))}`
+        ? ` ${renderLabel(input, "open_loops")}: ${sanitizeMarkdownInline(archive.unresolvedItems.join(", "))}`
         : "";
 
     return `- ${sanitizeMarkdownInline(archive.summary)}${suffix}`;
@@ -396,6 +450,7 @@ function slugifySegment(value: string): string {
 }
 
 function renderWorkingMemoryLines(
+  input: MarkdownArtifactInput,
   workingMemory: WorkingMemorySnapshot | null,
 ): string[] {
   if (!workingMemory) {
@@ -404,29 +459,37 @@ function renderWorkingMemoryLines(
 
   return [
     workingMemory.currentGoal
-      ? `- Current goal: ${sanitizeMarkdownInline(workingMemory.currentGoal)}`
+      ? `- ${renderLabel(input, "current_goal")}: ${sanitizeMarkdownInline(workingMemory.currentGoal)}`
       : undefined,
     ...workingMemory.openLoops.map(
-      (loop) => `- Open loop: ${sanitizeMarkdownInline(loop)}`,
+      (loop) => `- ${renderLabel(input, "open_loops")}: ${sanitizeMarkdownInline(loop)}`,
     ),
     ...(workingMemory.temporaryDecisions ?? []).map(
-      (decision) => `- Temporary decision: ${sanitizeMarkdownInline(decision)}`,
+      (decision) =>
+        `- ${renderLabel(input, "temporary_decision")}: ${sanitizeMarkdownInline(decision)}`,
     ),
   ].filter((line): line is string => Boolean(line));
 }
 
-function renderJournalLines(journal: SessionJournal | null): string[] {
+function renderJournalLines(
+  input: MarkdownArtifactInput,
+  journal: SessionJournal | null,
+): string[] {
   if (!journal) {
     return [];
   }
 
   return [
     journal.currentState
-      ? `- Current state: ${sanitizeMarkdownInline(journal.currentState)}`
+      ? `- ${renderLabel(input, "current_state")}: ${sanitizeMarkdownInline(journal.currentState)}`
       : undefined,
-    ...journal.worklog.map((entry) => `- Worklog: ${sanitizeMarkdownInline(entry)}`),
+    ...journal.worklog.map(
+      (entry) =>
+        `- ${renderLabel(input, "recent_worklog")}: ${sanitizeMarkdownInline(entry)}`,
+    ),
     ...(journal.filesAndFunctions ?? []).map(
-      (entry) => `- File/Function: ${sanitizeMarkdownInline(entry)}`,
+      (entry) =>
+        `- ${renderLabel(input, "file_or_function")}: ${sanitizeMarkdownInline(entry)}`,
     ),
   ].filter((line): line is string => Boolean(line));
 }
@@ -492,11 +555,27 @@ function buildUserArtifact(input: MarkdownArtifactInput): MarkdownArtifactFile {
   return {
     kind: "user",
     relativePath: "user.md",
-    content: renderDocument("User Memory", [
-      renderSection("Profile", renderProfileLines(input.durable.profile)),
-      renderSection("Active Context", renderActiveContextLines(input.durable.profile)),
-      renderSection("Preferences", renderPreferenceLines(input.durable.preferences)),
-      renderSection("Feedback", renderFeedbackLines(input.durable.feedback)),
+    content: renderDocument(renderLabel(input, "user_memory"), [
+      renderLocalizedSection(
+        input,
+        "profile",
+        renderProfileLines(input, input.durable.profile),
+      ),
+      renderLocalizedSection(
+        input,
+        "active_context",
+        renderActiveContextLines(input, input.durable.profile),
+      ),
+      renderLocalizedSection(
+        input,
+        "preference",
+        renderPreferenceLines(input.durable.preferences),
+      ),
+      renderLocalizedSection(
+        input,
+        "feedback",
+        renderFeedbackLines(input.durable.feedback),
+      ),
     ]),
   };
 }
@@ -505,32 +584,72 @@ function buildMemoryArtifact(input: MarkdownArtifactInput): MarkdownArtifactFile
   return {
     kind: "memory",
     relativePath: "MEMORY.md",
-    content: renderDocument("MEMORY", [
-      renderSection("Scope", renderScopeLines(input.scope)),
-      renderSection("Profile", renderProfileLines(input.durable.profile)),
-      renderSection("Preferences", renderPreferenceLines(input.durable.preferences)),
-      renderSection("Feedback", renderFeedbackLines(input.durable.feedback)),
-      renderSection("References", renderReferenceLines(input.durable.references)),
-      renderSection("Facts", renderFactLines(input.durable.facts)),
-      renderSection("Episodes", renderEpisodeLines(input.durable.episodes)),
-      renderSection("Session Archives", renderArchiveLines(input.durable.archives)),
-      renderSection("Evidence", renderEvidenceLines(input.durable.evidence)),
-      renderSection("Experiences", renderExperienceLines(input.durable.experiences)),
-      renderSection(
-        "Learning Proposals",
+    content: renderDocument(renderLabel(input, "memory_index"), [
+      renderLocalizedSection(input, "scope", renderScopeLines(input.scope)),
+      renderLocalizedSection(
+        input,
+        "profile",
+        renderProfileLines(input, input.durable.profile),
+      ),
+      renderLocalizedSection(
+        input,
+        "preference",
+        renderPreferenceLines(input.durable.preferences),
+      ),
+      renderLocalizedSection(
+        input,
+        "feedback",
+        renderFeedbackLines(input.durable.feedback),
+      ),
+      renderLocalizedSection(
+        input,
+        "reference",
+        renderReferenceLines(input.durable.references),
+      ),
+      renderLocalizedSection(input, "fact", renderFactLines(input.durable.facts)),
+      renderLocalizedSection(
+        input,
+        "episode",
+        renderEpisodeLines(input.durable.episodes),
+      ),
+      renderLocalizedSection(
+        input,
+        "archive",
+        renderArchiveLines(input, input.durable.archives),
+      ),
+      renderLocalizedSection(
+        input,
+        "evidence",
+        renderEvidenceLines(input.durable.evidence),
+      ),
+      renderLocalizedSection(
+        input,
+        "experiences",
+        renderExperienceLines(input.durable.experiences),
+      ),
+      renderLocalizedSection(
+        input,
+        "learning_proposals",
         renderProposalLines(input.durable.proposals),
       ),
-      renderSection("Promotions", renderPromotionLines(input.durable.promotions)),
-      renderSection(
-        "Working Memory",
-        renderWorkingMemoryLines(input.runtime?.workingMemory ?? null),
+      renderLocalizedSection(
+        input,
+        "promotions",
+        renderPromotionLines(input.durable.promotions),
       ),
-      renderSection(
-        "Session Journal",
-        renderJournalLines(input.runtime?.journal ?? null),
+      renderLocalizedSection(
+        input,
+        "working_memory",
+        renderWorkingMemoryLines(input, input.runtime?.workingMemory ?? null),
       ),
-      renderSection(
-        "Artifact Spills",
+      renderLocalizedSection(
+        input,
+        "journal",
+        renderJournalLines(input, input.runtime?.journal ?? null),
+      ),
+      renderLocalizedSection(
+        input,
+        "artifact_spills",
         renderSpillLines(input.runtime?.spills ?? []),
       ),
     ]),
@@ -555,74 +674,91 @@ function buildSessionArtifact(
     kind: "session",
     relativePath: buildSessionArtifactRelativePath(input.scope, sessionId),
     sessionId,
-    content: renderDocument(`Session Memory: ${sessionId}`, [
-      renderSection("Scope", [
+    content: renderDocument(
+      renderLabel(input, "session_memory", { sessionId }),
+      [
+      renderLocalizedSection(input, "scope", [
         ...renderScopeLines(input.scope),
         `- sessionId: ${sanitizeMarkdownInline(sessionId)}`,
       ]),
-      renderSection(
-        "Preferences",
+      renderLocalizedSection(
+        input,
+        "preference",
         renderPreferenceLines(
           input.durable.preferences.filter((record) => record.sessionId === sessionId),
         ),
       ),
-      renderSection(
-        "References",
+      renderLocalizedSection(
+        input,
+        "reference",
         renderReferenceLines(
           input.durable.references.filter((record) => record.sessionId === sessionId),
         ),
       ),
-      renderSection(
-        "Facts",
+      renderLocalizedSection(
+        input,
+        "fact",
         renderFactLines(
           input.durable.facts.filter((record) => record.sessionId === sessionId),
         ),
       ),
-      renderSection(
-        "Feedback",
+      renderLocalizedSection(
+        input,
+        "feedback",
         renderFeedbackLines(
           input.durable.feedback.filter((record) => record.sessionId === sessionId),
         ),
       ),
-      renderSection(
-        "Episodes",
+      renderLocalizedSection(
+        input,
+        "episode",
         renderEpisodeLines(
           input.durable.episodes.filter((record) => record.sessionId === sessionId),
         ),
       ),
-      renderSection(
-        "Session Archives",
+      renderLocalizedSection(
+        input,
+        "archive",
         renderArchiveLines(
+          input,
           input.durable.archives.filter((record) => record.sessionId === sessionId),
         ),
       ),
-      renderSection(
-        "Evidence",
+      renderLocalizedSection(
+        input,
+        "evidence",
         renderEvidenceLines(
           input.durable.evidence.filter((record) => record.sessionId === sessionId),
         ),
       ),
-      renderSection(
-        "Experiences",
+      renderLocalizedSection(
+        input,
+        "experiences",
         renderExperienceLines(
           input.durable.experiences.filter((record) => record.sessionId === sessionId),
         ),
       ),
-      renderSection(
-        "Learning Proposals",
+      renderLocalizedSection(
+        input,
+        "learning_proposals",
         renderProposalLines(
           input.durable.proposals.filter((record) => record.sessionId === sessionId),
         ),
       ),
-      renderSection(
-        "Promotions",
+      renderLocalizedSection(
+        input,
+        "promotions",
         renderPromotionLines(
           input.durable.promotions.filter((record) => record.sessionId === sessionId),
         ),
       ),
-      renderSection("Working Memory", renderWorkingMemoryLines(workingMemory)),
-      renderSection("Session Journal", renderJournalLines(journal)),
-      renderSection("Artifact Spills", renderSpillLines(spills)),
+      renderLocalizedSection(
+        input,
+        "working_memory",
+        renderWorkingMemoryLines(input, workingMemory),
+      ),
+      renderLocalizedSection(input, "journal", renderJournalLines(input, journal)),
+      renderLocalizedSection(input, "artifact_spills", renderSpillLines(spills)),
     ]),
   };
 }
@@ -671,42 +807,63 @@ function buildPlaybookArtifacts(input: MarkdownArtifactInput): MarkdownArtifactF
       {
         kind: "playbook" as const,
         relativePath,
-        content: renderDocument(`Playbook: ${pattern.rule}`, [
-          renderSection("Canonical Pattern", canonicalPatternLines),
-          renderSection("Guidance", [`- ${sanitizeMarkdownInline(pattern.rule)}`]),
-          renderOptionalPlaybookSection(
-            "Why",
-            pattern.why ? [`- ${sanitizeMarkdownInline(pattern.why)}`] : [],
-          ),
-          renderSection("Lineage", lineageLines),
-        ]),
+        content: renderDocument(
+          renderLabel(input, "playbook_title", { rule: pattern.rule }),
+          [
+            renderLocalizedSection(
+              input,
+              "canonical_pattern",
+              canonicalPatternLines,
+            ),
+            renderLocalizedSection(input, "guidance", [
+              `- ${sanitizeMarkdownInline(pattern.rule)}`,
+            ]),
+            renderOptionalPlaybookSection(
+              input,
+              "why",
+              pattern.why ? [`- ${sanitizeMarkdownInline(pattern.why)}`] : [],
+            ),
+            renderLocalizedSection(input, "lineage", lineageLines),
+          ],
+        ),
       },
       {
         kind: "playbook" as const,
         relativePath: `${derivedBasePath}.prompt.md`,
-        content: renderDocument(`Prompt Snippet: ${pattern.rule}`, [
-          renderSection("Use When", [
-            pattern.appliesTo
-              ? `- appliesTo: ${sanitizeMarkdownInline(pattern.appliesTo)}`
-              : "- appliesTo: general",
-          ]),
-          renderSection("Instruction", [`- ${sanitizeMarkdownInline(pattern.rule)}`]),
-          renderSection("Lineage", lineageLines),
-        ]),
+        content: renderDocument(
+          renderLabel(input, "prompt_snippet_title", { rule: pattern.rule }),
+          [
+            renderLocalizedSection(input, "use_when", [
+              pattern.appliesTo
+                ? `- appliesTo: ${sanitizeMarkdownInline(pattern.appliesTo)}`
+                : "- appliesTo: general",
+            ]),
+            renderLocalizedSection(input, "instruction", [
+              `- ${sanitizeMarkdownInline(pattern.rule)}`,
+            ]),
+            renderLocalizedSection(input, "lineage", lineageLines),
+          ],
+        ),
       },
       {
         kind: "playbook" as const,
-          relativePath: `${derivedBasePath}.skill.md`,
-          content: renderDocument(`Skill Snippet: ${pattern.rule}`, [
-            renderSection("Metadata", canonicalPatternLines),
-            renderSection("Procedure", [`- ${sanitizeMarkdownInline(pattern.rule)}`]),
+        relativePath: `${derivedBasePath}.skill.md`,
+        content: renderDocument(
+          renderLabel(input, "skill_snippet_title", { rule: pattern.rule }),
+          [
+            renderLocalizedSection(input, "metadata", canonicalPatternLines),
+            renderLocalizedSection(input, "procedure", [
+              `- ${sanitizeMarkdownInline(pattern.rule)}`,
+            ]),
             renderOptionalPlaybookSection(
-              "Why",
+              input,
+              "why",
               pattern.why ? [`- ${sanitizeMarkdownInline(pattern.why)}`] : [],
             ),
-          ]),
-        },
-      ];
+          ],
+        ),
+      },
+    ];
   }).flat();
 }
 
@@ -715,24 +872,34 @@ function buildArchiveArtifacts(input: MarkdownArtifactInput): MarkdownArtifactFi
     kind: "archive",
     relativePath: buildArchiveArtifactRelativePath(archive),
     sessionId: archive.sessionId,
-    content: renderDocument(`Archive Recap: ${archive.sessionId}`, [
-      renderSection("Summary", [`- ${sanitizeMarkdownInline(archive.summary)}`]),
-      renderSection(
-        "Key Decisions",
+    content: renderDocument(
+      renderLabel(input, "archive_recap", { sessionId: archive.sessionId }),
+      [
+      renderLocalizedSection(
+        input,
+        "summary",
+        [`- ${sanitizeMarkdownInline(archive.summary)}`],
+      ),
+      renderLocalizedSection(
+        input,
+        "key_decisions",
         archive.keyDecisions.map((decision) => `- ${sanitizeMarkdownInline(decision)}`),
       ),
-      renderSection(
-        "Unresolved Loops",
+      renderLocalizedSection(
+        input,
+        "open_loops",
         archive.unresolvedItems.map((item) => `- ${sanitizeMarkdownInline(item)}`),
       ),
-      renderSection(
-        "Referenced Artifacts",
+      renderLocalizedSection(
+        input,
+        "referenced_artifacts",
         archive.referencedArtifacts.map(
           (artifact) => `- ${sanitizeMarkdownInline(artifact)}`,
         ),
       ),
-      renderSection(
-        "Lineage",
+      renderLocalizedSection(
+        input,
+        "lineage",
         [
           `- archiveId: ${sanitizeMarkdownInline(archive.id)}`,
           `- sourceSessionIds: ${sanitizeMarkdownInline(archive.sourceSessionIds.join(", "))}`,

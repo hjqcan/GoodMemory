@@ -1,5 +1,6 @@
 import type { LanguagePack } from "./contracts";
 import {
+  emptyBehavioralRuleAnalysis,
   emptyContentAnalysis,
   emptyQueryAnalysis,
   matchesNormalizedEntityAlias,
@@ -154,6 +155,9 @@ export function createNeutralLanguagePack(): LanguagePack {
     decomposeQuery() {
       return [];
     },
+    analyzeBehavioralRule() {
+      return emptyBehavioralRuleAnalysis();
+    },
     analyzeQuery() {
       return emptyQueryAnalysis();
     },
@@ -162,9 +166,6 @@ export function createNeutralLanguagePack(): LanguagePack {
     },
     parseTemporalExpressions(text) {
       return parseTechnicalTemporalExpressions(text);
-    },
-    resolveTemporalReference() {
-      return undefined;
     },
     extractEntityMentions() {
       return [];

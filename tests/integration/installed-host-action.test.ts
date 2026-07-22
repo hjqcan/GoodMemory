@@ -355,4 +355,81 @@ describe("installed host action integration", () => {
       await workspace.cleanup();
     }
   });
+
+  it("applies Korean, French, and Spanish policies through the installed action bridge", async () => {
+    const cases = [
+      {
+        locale: "ko-KR",
+        rule: "검증 전에 git push를 실행하지 마세요.",
+        suffix: "ko",
+      },
+      {
+        locale: "fr-FR",
+        rule: "Avant la validation, n’exécutez pas git push.",
+        suffix: "fr",
+      },
+      {
+        locale: "es-ES",
+        rule: "Antes de la validación, no ejecutes git push.",
+        suffix: "es",
+      },
+    ] as const;
+
+    for (const entry of cases) {
+      const home = await createTempWorkspace(
+        `goodmemory-installed-${entry.suffix}-action-home`,
+      );
+      const workspace = await createTempWorkspace(
+        `goodmemory-installed-${entry.suffix}-action-workspace`,
+      );
+      const sqlitePath = join(home.root, ".goodmemory/memory.sqlite");
+      try {
+        await writeInstalledCodexConfig({
+          homeRoot: home.root,
+          sqlitePath,
+          workspaceId: "workspace-a",
+          workspaceRoot: workspace.root,
+        });
+        const { documentStore } = await createSqliteMemory(sqlitePath);
+        const sessionId = `action-session-${entry.suffix}`;
+        await seedPolicy({
+          documentStore,
+          evidenceExcerpt: entry.rule,
+          locale: entry.locale,
+          rule: entry.rule,
+          sessionId,
+        });
+
+        let invoked = false;
+        const result = await executeInstalledHostAction(
+          {
+            command: "git push origin main",
+            cwd: workspace.root,
+            homeRoot: home.root,
+            host: "codex",
+            sessionId,
+            turnId: `turn-${entry.suffix}`,
+          },
+          {
+            runCommand: async () => {
+              invoked = true;
+              return { exitCode: 0, stderr: "", stdout: "" };
+            },
+          },
+        );
+
+        expect(invoked).toBe(false);
+        expect(result.exitCode).toBe(2);
+        expect(result.payload).toMatchObject({
+          decision: "review_required",
+          executed: false,
+          guidance: [entry.rule],
+          recommendedFirstStep: entry.rule,
+        });
+      } finally {
+        await home.cleanup();
+        await workspace.cleanup();
+      }
+    }
+  });
 });

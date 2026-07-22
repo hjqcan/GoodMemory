@@ -10,10 +10,11 @@ import type {
   WorkingMemorySnapshot,
 } from "../domain/records";
 import type { EvidenceRecord } from "../evidence/contracts";
-import {
-  createLanguageService,
-  type LanguageRenderKey,
-  type LanguageService,
+import { createLanguageService } from "../language";
+import type {
+  LanguageRenderKey,
+  LanguageService,
+  ResolvedLanguageContext,
 } from "../language";
 import { isSteeringOnlyBehavioralPolicy } from "../evolution/behavioralPolicy";
 import type { SessionArchive } from "../domain/evolutionRecords";
@@ -35,6 +36,7 @@ const CONTEXT_RENDER_KEYS = [
   "current_projects",
   "current_state",
   "deferred_follow_up",
+  "developer_memory_notes",
   "durable_memory",
   "episode",
   "episode_item",
@@ -48,6 +50,7 @@ const CONTEXT_RENDER_KEYS = [
   "journal",
   "key_decisions",
   "open_loops",
+  "omitted_sections",
   "preference",
   "procedural_memory",
   "profile",
@@ -57,6 +60,7 @@ const CONTEXT_RENDER_KEYS = [
   "session_archive_item",
   "tool_result",
   "verification",
+  "user_memory_context",
   "working_memory",
 ] as const satisfies readonly LanguageRenderKey[];
 
@@ -66,8 +70,9 @@ type MemoryPacketRenderLabels = Record<MemoryPacketRenderKey, string>;
 function buildRenderLabels(
   language: LanguageService,
   locale?: string,
+  languageContext?: ResolvedLanguageContext,
 ): { labels: MemoryPacketRenderLabels; languagePackId: string; locale: string } {
-  const context = language.resolveFromText({
+  const context = languageContext ?? language.resolveFromText({
     ...(locale ? { locale } : {}),
     text: "",
   });
@@ -121,6 +126,7 @@ export interface MemoryPacketInput {
   maxRenderedTokens?: number;
   locale?: string;
   language?: LanguageService;
+  languageContext?: ResolvedLanguageContext;
   languagePackId?: string;
   renderLabels?: MemoryPacketRenderLabels;
   routingDecision?: RoutingDecision;
@@ -133,7 +139,11 @@ function resolvePacketLanguage(input: MemoryPacketInput): {
   locale: string;
 } {
   const language = input.language ?? createLanguageService();
-  const rendered = buildRenderLabels(language, input.locale);
+  const rendered = buildRenderLabels(
+    language,
+    input.locale,
+    input.languageContext,
+  );
   return {
     labels: input.renderLabels ?? rendered.labels,
     language,
@@ -836,6 +846,10 @@ export function renderMemoryPacket(
   renderingProfileOverride?: RetrievalProfile,
   options?: { suppressDuplicateEvidence?: boolean },
 ): { content: string; estimatedTokens: number; omittedSections: string[] } {
+  const labels = packet.renderLabels ?? buildRenderLabels(
+    createLanguageService(),
+    packet.locale,
+  ).labels;
   const packetMaxTokens = packet.renderBudget?.maxTokens;
   const effectiveMaxTokens = packetMaxTokens && maxTokens
     ? Math.min(packetMaxTokens, maxTokens)
@@ -971,7 +985,7 @@ export function renderMemoryPacket(
 
   if (output === "system_prompt_fragment") {
     const content = enforceTextBudget([
-      "User memory context:",
+      labels.user_memory_context,
       ...kept.map((section) => `${section.title}: ${section.body.replace(/\n/g, " ")}`),
     ].join("\n"));
 
@@ -983,10 +997,10 @@ export function renderMemoryPacket(
   }
 
   const content = enforceTextBudget([
-    "Developer memory notes:",
+    labels.developer_memory_notes,
     ...kept.map((section) => `${section.title}: ${section.body.replace(/\n/g, " ")}`),
     omittedSections.length > 0
-      ? `Omitted sections: ${omittedSections.join(", ")}`
+      ? labels.omitted_sections.replace("{sections}", omittedSections.join(", "))
       : undefined,
   ]
     .filter(Boolean)

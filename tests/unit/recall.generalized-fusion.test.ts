@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { createLanguageService } from "../../src/language";
 
 import {
-  fuseGeneralizedRecallCandidates,
+  fuseGeneralizedRecallCandidates as fuseGeneralizedRecallCandidatesWithLanguage,
   selectDynamicFusionBudget,
   type GeneralizedFusionCandidate,
   type GeneralizedFusionInput,
@@ -17,6 +17,30 @@ import type { RecallPlan } from "../../src/recall/recallPlan";
 
 const scope = { userId: "user-1", workspaceId: "workspace-1" };
 const scopeKey = "user-1::::workspace-1::::";
+const language = createLanguageService();
+
+type TestGeneralizedFusionInput = Omit<
+  GeneralizedFusionInput,
+  "acceptsEntityCandidate" | "matchesEntityAlias" | "tokenize"
+> & Partial<Pick<
+  GeneralizedFusionInput,
+  "acceptsEntityCandidate" | "matchesEntityAlias" | "tokenize"
+>>;
+
+function fuseGeneralizedRecallCandidates(
+  input: TestGeneralizedFusionInput,
+) {
+  const context = language.resolveFromText({ text: input.query });
+  return fuseGeneralizedRecallCandidatesWithLanguage({
+    ...input,
+    acceptsEntityCandidate: input.acceptsEntityCandidate ?? ((candidate) =>
+      language.acceptsEntityCandidate(candidate, context)),
+    matchesEntityAlias: input.matchesEntityAlias ?? ((query, alias) =>
+      language.matchesEntityAlias(query, alias, context)),
+    tokenize: input.tokenize ?? ((text) =>
+      language.tokenize(text, context, { excludeStopwords: true })),
+  });
+}
 
 function document(input: {
   id: string;
@@ -28,7 +52,7 @@ function document(input: {
   const entityKeys = input.entityKeys ?? [];
   return {
     id: input.id,
-    schemaVersion: 2,
+    schemaVersion: 3,
     ...scope,
     scopeKey,
     sourceCollection: input.sourceCollection ?? "facts",
@@ -40,7 +64,7 @@ function document(input: {
     searchLocale: "en-US",
     languagePackId: "en",
     searchAnalyzerVersion: "test-analyzer-v1",
-    searchSchemaVersion: "gm-search-v1",
+    searchSchemaVersion: "gm-search-v2",
     entityIds: entityKeys.map((key) => `entity-${key}`),
     entityMentions: entityKeys.map((key) => ({
       canonicalKey: key,
@@ -60,7 +84,7 @@ function entity(input: {
 }): EntityProjection {
   return {
     id: `entity-${input.key}`,
-    schemaVersion: 1,
+    schemaVersion: 2,
     ...scope,
     scopeKey,
     canonicalKey: input.key,
@@ -84,7 +108,7 @@ function claim(input: {
 }): ClaimProjection {
   return {
     id: input.id,
-    schemaVersion: 1,
+    schemaVersion: 2,
     ...scope,
     scopeKey,
     sourceMemoryId: input.sourceMemoryId,
@@ -96,7 +120,7 @@ function claim(input: {
     searchLocale: "en-US",
     languagePackId: "en",
     searchAnalyzerVersion: "test-analyzer-v1",
-    searchSchemaVersion: "gm-search-v1",
+    searchSchemaVersion: "gm-search-v2",
     objectEntityId: input.objectEntityId,
     polarity: "positive",
     modality: "asserted",
@@ -163,7 +187,6 @@ describe("generalized recall fusion", () => {
   });
 
   it("drops an entity alias that the scope corpus also uses as a common word", () => {
-    const language = createLanguageService();
     const result = fuseGeneralizedRecallCandidates({
       query: "What helps you relax in the evenings?",
       documents: [
@@ -304,7 +327,7 @@ describe("generalized recall fusion", () => {
   });
 
   it("fuses lexical, dense, entity, temporal, and relation candidates globally", () => {
-    const input: GeneralizedFusionInput = {
+    const input: TestGeneralizedFusionInput = {
       query: "What is Atlas's current relation to Lisbon?",
       documents: [
         document({
@@ -600,7 +623,7 @@ describe("generalized recall fusion", () => {
   });
 
   it("does not let a false count plan promote deterministic singleton claims", () => {
-    const input: GeneralizedFusionInput = {
+    const input: TestGeneralizedFusionInput = {
       query: "How many project hours were spent?",
       documents: [
         document({

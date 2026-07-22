@@ -44,6 +44,7 @@ import type {
   AgentEventProposalReceipt,
 } from "./integrationSupport";
 import type { ProposalGateDecision } from "../evolution/gates";
+import type { LanguageService } from "../language";
 
 interface RecallTouchSummary {
   reinforcedFeedbackCount: number;
@@ -83,6 +84,7 @@ export interface EvolutionRuntimeConfig {
   compiler: ProceduralCompilerRuntime;
   dreamMaintenance: DreamMaintenanceRuntime;
   governanceRepositories: GovernanceRepositoryPort;
+  language: LanguageService;
   now?: () => string;
   proposalGate: ProposalGateRuntime;
   reviewer: ReviewerRuntime;
@@ -514,6 +516,9 @@ export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
 
       if (input.result.evidenceExcerpt) {
         const evidenceId = crypto.randomUUID();
+        const languageContext = config.language.resolveFromText({
+          text: input.result.evidenceExcerpt,
+        });
         try {
           await config.governanceRepositories.evidence.add(
             createEvidenceRecord({
@@ -529,6 +534,10 @@ export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
                 method: "confirmed",
                 extractedAt: timestamp,
                 sessionId: input.scope.sessionId,
+                locale: languageContext.locale,
+                localeSource: languageContext.localeSource,
+                languagePackId: languageContext.languagePackId,
+                languagePackVersion: languageContext.languagePackVersion,
               }),
             }),
           );

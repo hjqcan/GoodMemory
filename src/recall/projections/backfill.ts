@@ -10,8 +10,10 @@ import {
   RECALL_DOCUMENTS_COLLECTION,
   RECALL_PROJECTION_SOURCE_COLLECTIONS,
   CLAIM_PROJECTION_STATUS_COLLECTION,
+  LEGACY_RECALL_PROJECTION_COLLECTIONS,
   PROJECTION_REPAIRS_COLLECTION,
   PROJECTION_SEARCH_SCHEMA_VERSION,
+  RECALL_PROJECTION_PIPELINE_VERSION,
   SCOPE_CATALOG_COLLECTION,
 } from "./contracts";
 import type {
@@ -45,6 +47,7 @@ import {
 export type EnsureScopeIndexed = RecallProjectionSearchPort["ensureScopeIndexed"];
 
 export function createEnsureScopeIndexed(input: {
+  analyzerFingerprint: string | null;
   bulkBackfill?: boolean;
   documentStore: ProjectionCapableDocumentStore;
   mutationLock: KeyedMutationLock;
@@ -64,6 +67,21 @@ export function createEnsureScopeIndexed(input: {
     validationFence,
   } = input;
   const verifiedScopeKeys = new Set<string>();
+
+  async function cleanupLegacyProjectionRows(scope: MemoryScope): Promise<void> {
+    const recallScope = normalizeRecallScope(scope);
+    for (const collection of LEGACY_RECALL_PROJECTION_COLLECTIONS) {
+      const rows = await documentStore.query<StorageDocument & MemoryScope & { id: string }>(
+        collection,
+        scopeFilter(recallScope),
+      );
+      for (const row of rows.filter((candidate) =>
+        matchesScopeFilter(candidate as MemoryScope, recallScope)
+      )) {
+        await documentStore.delete(collection, row.id);
+      }
+    }
+  }
 
   async function hasPendingProjectionWork(scope: MemoryScope): Promise<boolean> {
     const [queriedRepairs, queriedStatuses] = await Promise.all([
@@ -93,7 +111,7 @@ export function createEnsureScopeIndexed(input: {
     return sealed;
   }
 
-  return async function ensureScopeIndexed(scope: MemoryScope) {
+  async function ensureScopeIndexedLocked(scope: MemoryScope) {
     const normalized = normalizeScope(scope);
     const recallScope = normalizeRecallScope(normalized);
     const requestedScopeKey = recallScopeKey(normalized);
@@ -107,7 +125,10 @@ export function createEnsureScopeIndexed(input: {
         `scope:${requestedScopeKey}`,
       );
       if (
+        requestedCatalog?.schemaVersion === 2 &&
         requestedCatalog?.coverage === "complete" &&
+        requestedCatalog.analyzerFingerprint === input.analyzerFingerprint &&
+        requestedCatalog.projectionVersion === RECALL_PROJECTION_PIPELINE_VERSION &&
         requestedCatalog.searchSchemaVersion === PROJECTION_SEARCH_SCHEMA_VERSION &&
         verifiedScopeKeys.has(requestedScopeKey)
       ) {
@@ -122,6 +143,7 @@ export function createEnsureScopeIndexed(input: {
       scopeFilter(normalized),
     );
     const evidenceByMemoryId = new Map<string, EvidenceRecord[]>();
+    const evidenceIds = new Set(queriedEvidence.map(({ id }) => id));
     for (const evidence of queriedEvidence.filter((record) =>
       matchesScopeFilter(record, normalized),
     )) {
@@ -180,6 +202,20 @@ export function createEnsureScopeIndexed(input: {
           normalized,
           canonicalSources,
         );
+        const integrity = await operations.validateScopeUnsafe(
+          normalized,
+          canonicalSources,
+          evidenceIds,
+        );
+        if (!integrity.complete) {
+          console.error(
+            "[goodmemory:recall-projection] bulk scope validation failed",
+            { issues: integrity.issues, scopeKey: requestedScopeKey },
+          );
+          await operations.registerScope(normalized, now(), "partial");
+          verifiedScopeKeys.delete(requestedScopeKey);
+          return { complete: false, indexedSources, skipped: false };
+        }
         if (
           validationManifest &&
           await hasPendingProjectionWork(normalized)
@@ -188,6 +224,8 @@ export function createEnsureScopeIndexed(input: {
           verifiedScopeKeys.delete(requestedScopeKey);
           return { complete: false, indexedSources, skipped: false };
         }
+        await cleanupLegacyProjectionRows(normalized);
+        await operations.registerScope(normalized, now(), "complete");
         if (!await sealValidation(normalized, validationManifest)) {
           verifiedScopeKeys.delete(requestedScopeKey);
           return { complete: false, indexedSources, skipped: false };
@@ -325,6 +363,22 @@ export function createEnsureScopeIndexed(input: {
     }
 
     if (complete) {
+      const integrity = await operations.validateScopeUnsafe(
+        normalized,
+        canonicalSources,
+        evidenceIds,
+      );
+      if (!integrity.complete) {
+        complete = false;
+        console.error(
+          "[goodmemory:recall-projection] scope validation failed",
+          { issues: integrity.issues, scopeKey: requestedScopeKey },
+        );
+        await operations.registerScope(normalized, now(), "partial");
+      }
+    }
+
+    if (complete) {
       const timestamp = now();
       if (
         validationManifest &&
@@ -333,6 +387,7 @@ export function createEnsureScopeIndexed(input: {
         complete = false;
         await operations.registerScope(normalized, timestamp, "partial");
       } else {
+        await cleanupLegacyProjectionRows(normalized);
         await operations.registerScope(normalized, timestamp, "complete");
         complete = await sealValidation(normalized, validationManifest);
       }
@@ -358,5 +413,13 @@ export function createEnsureScopeIndexed(input: {
       verifiedScopeKeys.delete(requestedScopeKey);
       return { complete: false, indexedSources: 0, skipped: false };
     }
+  }
+
+  return async function ensureScopeIndexed(scope: MemoryScope) {
+    const scopeKey = recallScopeKey(normalizeScope(scope));
+    return mutationLock.runExclusive(
+      [`scope-migration:${scopeKey}`],
+      () => ensureScopeIndexedLocked(scope),
+    );
   };
 }

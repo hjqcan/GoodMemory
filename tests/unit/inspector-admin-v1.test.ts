@@ -14,6 +14,8 @@ import {
 } from "../../src/install/hostReviewQueue";
 import { createInMemoryDocumentStore } from "../../src/storage/memory";
 import {
+  PROJECTION_SEARCH_SCHEMA_VERSION,
+  RECALL_PROJECTION_PIPELINE_VERSION,
   SCOPE_CATALOG_COLLECTION,
   type ScopeCatalogProjection,
 } from "../../src/recall/projections/contracts";
@@ -321,11 +323,14 @@ describe("Inspector Admin API v1", () => {
       `scope:${catalogOnlyKey}`,
       {
         ...catalogOnlyScope,
+        analyzerFingerprint: null,
         coverage: "complete",
         firstSeenAt: "2026-07-03T00:00:00.000Z",
         id: `scope:${catalogOnlyKey}`,
         lastSeenAt: "2026-07-03T00:00:00.000Z",
-        schemaVersion: 1,
+        projectionVersion: RECALL_PROJECTION_PIPELINE_VERSION,
+        schemaVersion: 2,
+        searchSchemaVersion: PROJECTION_SEARCH_SCHEMA_VERSION,
         scopeKey: catalogOnlyKey,
       },
     );

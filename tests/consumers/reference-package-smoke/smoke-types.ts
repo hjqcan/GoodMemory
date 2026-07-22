@@ -5,7 +5,11 @@ import type {
   LanguageSourceOfTruthDirective,
 } from "goodmemory";
 import {
+  createChineseLanguagePack,
+  createFrenchLanguagePack,
   createJapaneseLanguagePack,
+  createKoreanLanguagePack,
+  createSpanishLanguagePack,
   inspectGoodMemoryRuntime,
 } from "goodmemory";
 import type {
@@ -45,6 +49,10 @@ const toolPayload: AgentEventStructuredValue = {
 declare const memory: GoodMemory;
 
 const japaneseBase = createJapaneseLanguagePack();
+const traditionalChinese = createChineseLanguagePack("Hant") satisfies LanguagePack;
+const korean = createKoreanLanguagePack() satisfies LanguagePack;
+const french = createFrenchLanguagePack() satisfies LanguagePack;
+const spanish = createSpanishLanguagePack() satisfies LanguagePack;
 const customJapanese = {
   ...japaneseBase,
   analyzerVersion: "consumer-ja-v1",
@@ -197,5 +205,9 @@ void httpBridgeCaller;
 void httpBridgeOperation;
 void lifeCoachScope;
 void runtimeInfo;
+void traditionalChinese;
+void korean;
+void french;
+void spanish;
 void customJapanese;
 void sourceOfTruthDirective;

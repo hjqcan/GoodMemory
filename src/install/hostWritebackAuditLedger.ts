@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { containsSensitiveCredential } from "../language/sensitive";
 import { mkdir, open, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { MemoryScope } from "../domain/scope";
@@ -101,8 +102,6 @@ const MAX_WRITEBACK_LOCK_ATTEMPTS = 40;
 const MAX_WRITEBACK_LOCK_DELAY_MS = 25;
 const MAX_AUDIT_PREVIEW_CHARS = 160;
 const WRITEBACK_LEDGER_VERSION = 4;
-const SECRET_PATTERN =
-  /\b(api[_-]?key|secret|token|password)\b\s*[:=]|sk-[A-Za-z0-9_-]{16,}|ghp_[A-Za-z0-9_]{16,}/iu;
 
 export function buildWritebackAuditEventId(input: {
   candidateKey: string;
@@ -724,7 +723,7 @@ function createAuditPreview(
   if (source === "assistant") {
     return "[redacted assistant-originated candidate]";
   }
-  if (SECRET_PATTERN.test(content)) {
+  if (containsSensitiveCredential(content)) {
     return "[redacted secret-like content]";
   }
   if (/"?(messages|transcript|rawTranscript|rawContent)"?\s*:/iu.test(content)) {

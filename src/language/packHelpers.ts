@@ -1,4 +1,5 @@
 import type {
+  LanguageBehavioralRuleAnalysis,
   LanguageContentAnalysis,
   LanguageEntityMention,
   LanguageQueryAnalysis,
@@ -7,6 +8,153 @@ import type {
   LanguageSourceOfTruthDirective,
   LanguageTemporalExpression,
 } from "./contracts";
+
+export interface BehavioralRulePatterns {
+  firstAction: readonly RegExp[];
+  format: RegExp;
+  general: RegExp;
+  hostAction?: BehavioralHostActionPatterns;
+  negative: RegExp;
+  trigger?: readonly RegExp[];
+}
+
+export interface BehavioralHostActionPatterns {
+  destination: readonly RegExp[];
+  flags?: readonly RegExp[];
+  mode?: readonly RegExp[];
+  owner?: readonly RegExp[];
+  permissions?: readonly RegExp[];
+  sources?: readonly RegExp[];
+  tag?: readonly RegExp[];
+  verbs?: ReadonlyArray<{ pattern: RegExp; value: string }>;
+}
+
+function firstCapturedValue(
+  text: string,
+  patterns: readonly RegExp[] | undefined,
+): string | undefined {
+  if (!patterns) {
+    return undefined;
+  }
+  for (const pattern of patterns) {
+    const value = text.match(pattern)?.slice(1)
+      .find((entry) => entry?.trim())
+      ?.trim()
+      .replace(/[.,;:!?。！？；，]+$/u, "");
+    if (value) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function analyzeHostActionWithPatterns(
+  text: string,
+  patterns: BehavioralHostActionPatterns | undefined,
+): LanguageBehavioralRuleAnalysis["hostAction"] {
+  if (!patterns) {
+    return undefined;
+  }
+  const destination = firstCapturedValue(text, patterns.destination);
+  const owner = firstCapturedValue(text, patterns.owner);
+  const permissions = firstCapturedValue(text, patterns.permissions);
+  const mode = firstCapturedValue(text, patterns.mode);
+  const tag = firstCapturedValue(text, patterns.tag);
+  const flags = uniqueCapturedValues(text, patterns.flags ?? []);
+  const explicitSources = uniqueCapturedValues(text, patterns.sources ?? []);
+  const verb = patterns.verbs?.find(({ pattern }) => pattern.test(text))?.value;
+  const compression = ["bzip2", "gzip", "xz"].find((value) =>
+    text.toLowerCase().includes(value)
+  );
+  const hasSignal = destination || explicitSources.length > 0 || owner ||
+    permissions || mode || tag || flags.length > 0 || verb;
+  if (!hasSignal) {
+    return undefined;
+  }
+  const excluded = new Set(
+    [destination, owner, permissions, mode, tag, ...flags].filter(
+      (value): value is string => Boolean(value),
+    ),
+  );
+  const quoted = [...text.matchAll(
+    /(['"`])([^'"`]+)\1/gu,
+  )]
+    .map((match) => match[2]?.trim())
+    .filter((value): value is string => Boolean(value));
+  const sources = [...new Set([
+    ...explicitSources,
+    ...quoted.filter((value) => !excluded.has(value)),
+  ])];
+  return {
+    ...(compression ? { compression } : {}),
+    ...(destination ? { destination } : {}),
+    ...(flags.length > 0 ? { flags } : {}),
+    ...(mode ? { mode } : {}),
+    ...(owner ? { owner } : {}),
+    ...(permissions ? { permissions } : {}),
+    ...(sources.length > 0 ? { sources } : {}),
+    ...(tag ? { tag } : {}),
+    ...(verb ? { verb } : {}),
+  };
+}
+
+export function analyzeBehavioralRuleWithPatterns(
+  text: string,
+  patterns: BehavioralRulePatterns,
+): LanguageBehavioralRuleAnalysis {
+  let firstActionName: string | undefined;
+  for (const pattern of patterns.firstAction) {
+    const match = text.match(pattern);
+    firstActionName = match?.slice(1)
+      .find((value) => value?.trim())
+      ?.trim()
+      .replace(/[.,;:!?。！？；，]+$/u, "");
+    if (firstActionName) {
+      break;
+    }
+  }
+
+  const triggerPhrases = patterns.trigger
+    ? uniqueCapturedValues(text, patterns.trigger)
+    : [];
+  const hostAction = analyzeHostActionWithPatterns(text, patterns.hostAction);
+
+  return {
+    firstActionName,
+    formatRule: patterns.format.test(text),
+    generalRule: patterns.general.test(text),
+    ...(hostAction ? { hostAction } : {}),
+    negativeRule: patterns.negative.test(text),
+    ...(triggerPhrases.length > 0 ? { triggerPhrases } : {}),
+  };
+}
+
+export function uniqueCapturedValues(
+  text: string,
+  patterns: readonly RegExp[],
+): string[] {
+  const values: string[] = [];
+  const seen = new Set<string>();
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    const value = match?.slice(1).find((entry) => entry?.trim())?.trim();
+    if (!value || seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    values.push(value);
+  }
+  return values;
+}
+
+export function emptyBehavioralRuleAnalysis(): LanguageBehavioralRuleAnalysis {
+  return {
+    firstActionName: undefined,
+    formatRule: false,
+    generalRule: false,
+    negativeRule: false,
+  };
+}
 import { extractReferencePointerOccurrences } from "../domain/referencePointer";
 
 export function emptyQueryAnalysis(): LanguageQueryAnalysis {
@@ -53,6 +201,7 @@ export function emptyContentAnalysis(): LanguageContentAnalysis {
     preferenceEvidence: false,
     projectStateFact: false,
     roleFact: false,
+    sensitiveCredential: false,
     unresolved: false,
   };
 }
@@ -164,41 +313,29 @@ export function matchesNormalizedEntityAlias(
   ).test(normalizedQuery);
 }
 
-export function parsePatternTemporalExpressions(
-  text: string,
-  patterns: ReadonlyArray<{
-    kind: LanguageTemporalExpression["kind"];
-    pattern: RegExp;
-    unit?: LanguageTemporalExpression["unit"];
-  }>,
-): LanguageTemporalExpression[] {
-  const expressions: LanguageTemporalExpression[] = [];
-  for (const { kind, pattern, unit } of patterns) {
-    for (const match of text.matchAll(pattern)) {
-      expressions.push({
-        kind,
-        raw: match[0],
-        ...(unit ? { unit } : {}),
-      });
-    }
-  }
-  return expressions;
-}
-
 export function parseTechnicalTemporalExpressions(
   text: string,
 ): LanguageTemporalExpression[] {
-  return parsePatternTemporalExpressions(text, [
-    {
+  const expressions: LanguageTemporalExpression[] = [];
+  for (const match of text.matchAll(
+    /\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b/gu,
+  )) {
+    expressions.push({
       kind: "absolute",
-      pattern: /\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b/gu,
-      unit: "day",
-    },
-    {
-      kind: "absolute",
-      pattern: /\btime\s*=\s*(?!unknown\b)[^\]\s]+/giu,
-    },
-  ]);
+      raw: match[0],
+      calendar: {
+        day: Number(match[3]),
+        month: Number(match[2]),
+        year: Number(match[1]),
+      },
+    });
+  }
+  for (const match of text.matchAll(
+    /\btime\s*=\s*((?!unknown\b)[^\]\s]+)/giu,
+  )) {
+    expressions.push({ kind: "absolute", raw: match[0], iso: match[1]! });
+  }
+  return expressions;
 }
 
 export function renderFromCatalog(

@@ -33,6 +33,12 @@ describe("GoodMemory capability descriptor", () => {
     const { version } = readPackageJson();
     const descriptor = buildGoodMemoryCapabilityDescriptor();
     expect(descriptor.version).toBe(version);
+    expect(descriptor.releaseStatus).toEqual({
+      installCommandsApplyAfterPublish: true,
+      npmLatest: "0.6.0",
+      status: "release-candidate",
+      tarball: `goodmemory-${version}.tgz`,
+    });
     expect(descriptor.install.npmGlobal).toBe(
       `npm install -g goodmemory@${version}`,
     );
@@ -65,6 +71,12 @@ describe("GoodMemory capability descriptor", () => {
     expect(descriptor.benchmarks.historicalEvidence.note).toContain(
       "LoCoMo, BEAM, and MemoryAgentBench",
     );
+    expect(descriptor.benchmarks.historicalEvidence.note).toContain(
+      "None is a current 0.7.0 production claim",
+    );
+    expect(descriptor.canonicalSources.note).toContain(
+      "never relabels historical results",
+    );
   });
 
   it("names three onboarding paths with distinct delivery methods", () => {
@@ -76,6 +88,20 @@ describe("GoodMemory capability descriptor", () => {
     ]);
     expect(descriptor.kind).toBe("memory-layer");
     expect(descriptor.notA).toContain("agent-framework");
+  });
+
+  it("publishes the complete first-class LanguagePack set", () => {
+    const descriptor = buildGoodMemoryCapabilityDescriptor();
+
+    expect(descriptor.capabilities.builtInLanguagePacks).toEqual([
+      "en",
+      "zh-Hans",
+      "zh-Hant",
+      "ja",
+      "ko",
+      "fr",
+      "es",
+    ]);
   });
 
   it("honors an injected version without touching the filesystem", () => {

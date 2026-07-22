@@ -4,8 +4,21 @@ import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import {
   parsePhase63BeamRecallDiagnosticCliOptions,
-  runPhase63BeamRecallDiagnostic,
+  runPhase63BeamRecallDiagnostic as runPhase63BeamRecallDiagnosticBase,
 } from "../../../run-phase-63-beam-recall-diagnostic";
+import { createLegacyFittedEvalFactSelector } from "../activate";
+
+const legacyFactSelector = createLegacyFittedEvalFactSelector();
+
+function runPhase63BeamRecallDiagnostic(
+  options: Parameters<typeof runPhase63BeamRecallDiagnosticBase>[0] = {},
+  dependencies: Parameters<typeof runPhase63BeamRecallDiagnosticBase>[1] = {},
+) {
+  return runPhase63BeamRecallDiagnosticBase(options, {
+    factSelector: legacyFactSelector,
+    ...dependencies,
+  });
+}
 
 function buildBeamRows(): unknown[] {
   return [

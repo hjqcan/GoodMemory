@@ -1,10 +1,8 @@
-import type { FactSelector } from "./generalizedSelection";
-import { selectGeneralizedFactsForInternalUse } from "./generalizedSelection";
-
 export {
+  selectGeneralizedFactsForInternalUse as selectFacts,
   selectGeneralizedFactsForInternalUse,
-};
-export type { FactSelector };
+} from "./generalizedSelection";
+export type { FactSelector } from "./generalizedSelection";
 export {
   selectArchives,
   selectEpisodes,
@@ -14,19 +12,3 @@ export {
   selectPreferencesForQuery,
   selectReferences,
 } from "./selectors/recordSelection";
-
-let internalFactSelector: FactSelector | undefined;
-
-export const selectFacts: FactSelector = (...args) =>
-  (internalFactSelector ?? selectGeneralizedFactsForInternalUse)(...args);
-
-/** Repo-only compatibility seam for historical evals and focused legacy tests. */
-export function setFactSelectorForInternalEval(
-  selector: FactSelector | undefined,
-): void {
-  internalFactSelector = selector;
-}
-
-export function __resetFactSelectorForTest(): void {
-  internalFactSelector = undefined;
-}

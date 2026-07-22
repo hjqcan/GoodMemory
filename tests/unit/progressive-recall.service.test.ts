@@ -10,6 +10,7 @@ import {
   encodeGoodMemoryRecordRef,
   parseGoodMemoryRecordRef,
 } from "../../src/progressive/recall";
+import { createLanguageService } from "../../src/language";
 
 const scope: MemoryScope = {
   agentId: "codex",
@@ -18,6 +19,7 @@ const scope: MemoryScope = {
   userId: "user-secret",
   workspaceId: "workspace-secret",
 };
+const language = createLanguageService();
 
 function createExportedMemory(): ExportMemoryResult {
   return {
@@ -190,6 +192,72 @@ function createMemory(
 }
 
 describe("ProgressiveRecallService", () => {
+  it("ranks Traditional Chinese and Japanese records with pack tokenization", async () => {
+    const exported = createExportedMemory();
+    exported.durable.facts = [
+      {
+        ...exported.durable.facts[0]!,
+        content: "部署品質閘門仍在等待套件證據。",
+        id: "fact-hant",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+      {
+        ...exported.durable.facts[0]!,
+        content: "リリース品質ゲートはパッケージ証拠を待っています。",
+        id: "fact-ja",
+        updatedAt: "2026-01-02T00:00:00.000Z",
+      },
+    ];
+    const service = createProgressiveRecallService({
+      language,
+      memory: createMemory(exported),
+      scopeDigestSecret: "progressive-test-secret",
+    });
+
+    const hant = await service.searchRecallIndex({
+      locale: "zh-TW",
+      query: "品質閘門",
+      scope,
+    });
+    const japanese = await service.searchRecallIndex({
+      locale: "ja-JP",
+      query: "品質ゲート",
+      scope,
+    });
+
+    expect(hant.records[0]?.summary).toContain("品質閘門");
+    expect(hant.records[0]?.score).toBeGreaterThan(0);
+    expect(hant.records[0]?.title).toStartWith("事實:");
+    expect(japanese.records[0]?.summary).toContain("品質ゲート");
+    expect(japanese.records[0]?.score).toBeGreaterThan(0);
+    expect(japanese.records[0]?.title).toStartWith("事実:");
+    expect(service.renderProgressiveContext({ index: japanese }).content)
+      .toContain("段階的 GoodMemory リコール");
+  });
+
+  it("passes an explicit locale through progressive recall", async () => {
+    let capturedLocale: string | undefined;
+    const base = createMemory(createExportedMemory());
+    const memory = {
+      async recall(input: RecallInput) {
+        capturedLocale = input.locale;
+        return base.recall(input);
+      },
+    };
+    const service = createProgressiveRecallService({
+      language,
+      memory,
+      scopeDigestSecret: "progressive-test-secret",
+    });
+
+    await service.searchRecallIndex({
+      locale: "ja-JP",
+      query: "再開する作業コンテキスト",
+      scope,
+    });
+
+    expect(capturedLocale).toBe("ja-JP");
+  });
   it("encodes parseable record refs and rejects malformed bare ids", () => {
     const recordRef = encodeGoodMemoryRecordRef({
       id: "fact:with-colon",
@@ -208,6 +276,7 @@ describe("ProgressiveRecallService", () => {
 
   it("builds a compact index without leaking raw scope fields", async () => {
     const service = createProgressiveRecallService({
+      language,
       memory: createMemory(createExportedMemory()),
       scopeDigestSecret: "progressive-test-secret",
     });
@@ -231,6 +300,7 @@ describe("ProgressiveRecallService", () => {
   it("uses recall-visible records instead of export-only records", async () => {
     const exported = createExportedMemory();
     const service = createProgressiveRecallService({
+      language,
       memory: createMemory(exported, {
         recall: {
           facts: [],
@@ -260,6 +330,7 @@ describe("ProgressiveRecallService", () => {
 
   it("does not let constructed refs bypass runtime visibility", async () => {
     const service = createProgressiveRecallService({
+      language,
       memory: createMemory(createExportedMemory()),
       scopeDigestSecret: "progressive-test-secret",
     });
@@ -318,6 +389,7 @@ describe("ProgressiveRecallService", () => {
 
   it("keeps earlier durable refs available across later progressive index calls", async () => {
     const service = createProgressiveRecallService({
+      language,
       memory: createMemory(createExportedMemory()),
       scopeDigestSecret: "progressive-test-secret",
     });
@@ -351,6 +423,7 @@ describe("ProgressiveRecallService", () => {
 
   it("supports detached timeline method calls", async () => {
     const service = createProgressiveRecallService({
+      language,
       memory: createMemory(createExportedMemory()),
       scopeDigestSecret: "progressive-test-secret",
     });
@@ -368,6 +441,7 @@ describe("ProgressiveRecallService", () => {
 
   it("fetches detail by recordRef, denies cross-scope refs, and strips raw transcripts", async () => {
     const service = createProgressiveRecallService({
+      language,
       memory: createMemory(createExportedMemory()),
       scopeDigestSecret: "progressive-test-secret",
     });
@@ -411,6 +485,7 @@ describe("ProgressiveRecallService", () => {
 
   it("renders progressive context with refs and token costs", async () => {
     const service = createProgressiveRecallService({
+      language,
       memory: createMemory(createExportedMemory()),
       scopeDigestSecret: "progressive-test-secret",
     });
@@ -473,6 +548,7 @@ describe("ProgressiveRecallService", () => {
       },
     };
     const service = createProgressiveRecallService({
+      language,
       memory: createMemory(exported),
       scopeDigestSecret: "progressive-test-secret",
     });
@@ -482,8 +558,12 @@ describe("ProgressiveRecallService", () => {
       query: "installed host continuity",
       scope,
     });
+    const workingMemoryTitle = language.render(
+      { key: "working_memory" },
+      index.locale ?? "en-US",
+    );
     const workingMemoryRef = index.records.find(
-      (record) => record.title === "Working memory",
+      (record) => record.title === workingMemoryTitle,
     )?.recordRef;
 
     if (!workingMemoryRef) {
@@ -496,7 +576,7 @@ describe("ProgressiveRecallService", () => {
     });
     expect(detail.records[0]).toMatchObject({
       recordKind: "runtime-journal",
-      title: "Working memory",
+      title: workingMemoryTitle,
     });
     expect(JSON.stringify(detail)).toContain("Run typecheck");
     expect(JSON.stringify(detail)).not.toContain(scope.userId);

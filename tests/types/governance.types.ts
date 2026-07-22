@@ -8,6 +8,7 @@ import type {
 declare const memory: GoodMemory;
 
 const exportInput: ExportMemoryInput = {
+  locale: "ja-JP",
   scope: { userId: "user-1" },
 };
 

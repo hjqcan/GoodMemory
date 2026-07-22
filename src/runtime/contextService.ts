@@ -14,6 +14,7 @@ import { scopeToKey } from "../domain/scope";
 import {
   createLanguageService,
   type LanguageService,
+  type ResolvedLanguageContext,
 } from "../language";
 import type { ExtractionOutcome } from "../remember/contracts";
 import type { ExtractionCursorStore } from "../remember/extractionCursor";
@@ -225,7 +226,11 @@ function renderArchiveListSegment(
   return `${label}: ${values.join("; ")}`;
 }
 
-function buildArchiveSummary(state: RuntimeContextState): string {
+function buildArchiveSummary(
+  state: RuntimeContextState,
+  language: LanguageService,
+  languageContext: ResolvedLanguageContext,
+): string {
   const keyDecisions = mergeUnique(
     state.workingMemory.temporaryDecisions ?? [],
     state.journal.keyResults ?? [],
@@ -234,14 +239,23 @@ function buildArchiveSummary(state: RuntimeContextState): string {
     state.buffer.summary ?? undefined,
     state.journal.currentState ?? undefined,
     state.workingMemory.currentGoal
-      ? `Goal: ${state.workingMemory.currentGoal}.`
+      ? `${language.render({ key: "current_goal" }, languageContext)}: ${state.workingMemory.currentGoal}.`
       : undefined,
-    renderArchiveListSegment("Key decisions", keyDecisions),
-    renderArchiveListSegment("Open loops", state.workingMemory.openLoops),
+    renderArchiveListSegment(
+      language.render({ key: "key_decisions" }, languageContext),
+      keyDecisions,
+    ),
+    renderArchiveListSegment(
+      language.render({ key: "open_loops" }, languageContext),
+      state.workingMemory.openLoops,
+    ),
     state.journal.worklog.at(-1),
   ].filter((segment): segment is string => Boolean(segment));
 
-  return summarySegments.join(" ").trim() || "Session ended without a synthesized summary.";
+  return summarySegments.join(" ").trim() || language.render(
+    { key: "session_ended_without_summary" },
+    languageContext,
+  );
 }
 
 function shouldArchiveSession(
@@ -517,10 +531,14 @@ export function createRuntimeContextService(config: RuntimeContextServiceConfig)
         compactedMessages,
         evictedMessages,
       );
+      const compactionSummary = state.buffer.summary ?? language.render(
+        { key: "earlier_messages_compacted" },
+        language.resolveFromMessages({ messages: nextMessages }),
+      );
       const durablePendingBuffer = createSessionBuffer({
         ...pendingBuffer,
         compactedMessages: durableCompactedMessages,
-        summary: state.buffer.summary ?? "Earlier messages compacted.",
+        summary: compactionSummary,
         summaryUpToIndex: state.buffer.summaryUpToIndex + overflow,
       });
       await config.sessionStore.saveBuffer(sessionScope, durablePendingBuffer);
@@ -687,7 +705,7 @@ export function createRuntimeContextService(config: RuntimeContextServiceConfig)
           agentId: sessionScope.agentId,
           sessionId: sessionScope.sessionId,
           sourceSessionIds: [sessionScope.sessionId],
-          summary: buildArchiveSummary(state),
+          summary: buildArchiveSummary(state, language, archiveLanguage),
           normalizedTranscript: shouldIncludeNormalizedTranscript(options)
             ? renderNormalizedTranscript(replayMessages)
             : undefined,

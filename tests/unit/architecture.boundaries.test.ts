@@ -60,6 +60,43 @@ const internalImportEdgesCache = new Map<string, Promise<string[]>>();
 const sourceCache = new Map<string, Promise<string>>();
 const typeScriptFilesCache = new Map<string, Promise<string[]>>();
 
+const NATURAL_LANGUAGE_RULE_TERMS = new Set([
+  "always",
+  "avoid",
+  "before",
+  "begin",
+  "called",
+  "choose",
+  "close",
+  "command",
+  "correction",
+  "dear",
+  "directory",
+  "failure",
+  "first",
+  "folder",
+  "greet",
+  "instead",
+  "name",
+  "never",
+  "only",
+  "open",
+  "prefer",
+  "proceed",
+  "requests",
+  "return",
+  "safe",
+  "sign",
+  "start",
+  "subject",
+  "success",
+  "term",
+  "using",
+  "warn",
+  "when",
+  "with",
+]);
+
 async function collectTypeScriptFiles(directory: string): Promise<string[]> {
   const cached = typeScriptFilesCache.get(directory);
   if (cached) {
@@ -117,6 +154,69 @@ async function fileExists(path: string): Promise<boolean> {
 
 function normalizeInternalPath(path: string): string {
   return path.replaceAll("\\", "/");
+}
+
+function collectNaturalLanguageRuleLiterals(input: {
+  file: string;
+  source: string;
+}): string[] {
+  const sourceFile = ts.createSourceFile(
+    input.file,
+    input.source,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const offenders: string[] = [];
+
+  const visit = (node: ts.Node): void => {
+    if (ts.isRegularExpressionLiteral(node)) {
+      const testCall = ts.isPropertyAccessExpression(node.parent) &&
+          node.parent.name.text === "test" &&
+          ts.isCallExpression(node.parent.parent)
+        ? node.parent.parent
+        : undefined;
+      const testedIdentifier = testCall?.arguments[0];
+      const isTechnicalLabelGrammar = Boolean(
+        testedIdentifier &&
+          ts.isIdentifier(testedIdentifier) &&
+          /label$/iu.test(testedIdentifier.text),
+      );
+      const words = node.getText(sourceFile)
+        .match(/[A-Za-z][A-Za-z'’-]*/gu)
+        ?.map((word) => word.toLowerCase()) ?? [];
+      if (
+        !isTechnicalLabelGrammar &&
+        new Set(words.filter((word) => NATURAL_LANGUAGE_RULE_TERMS.has(word))).size >= 2
+      ) {
+        offenders.push(`${input.file}:${sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1}`);
+      }
+    }
+
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      ["endsWith", "includes", "startsWith"].includes(node.expression.name.text)
+    ) {
+      const value = node.arguments[0];
+      if (value && (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value))) {
+        const isProtocolIdentifier = /^[A-Za-z0-9]+(?:_[A-Za-z0-9]+)+$/u.test(
+          value.text,
+        );
+        const words = value.text.match(/[A-Za-z][A-Za-z'’-]*/gu)
+          ?.map((word) => word.toLowerCase()) ?? [];
+        if (
+          !isProtocolIdentifier &&
+          new Set(words.filter((word) => NATURAL_LANGUAGE_RULE_TERMS.has(word))).size >= 2
+        ) {
+          offenders.push(`${input.file}:${sourceFile.getLineAndCharacterOfPosition(value.getStart()).line + 1}`);
+        }
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return offenders;
 }
 
 function toSourceRelativePath(path: string): string {
@@ -283,6 +383,28 @@ function allowedStoragePortBindings(relativePath: string): Set<string> {
 }
 
 describe("architecture boundaries", () => {
+  it("detects ASCII natural-language admission regexes outside language packs", () => {
+    expect(collectNaturalLanguageRuleLiterals({
+      file: "sample.ts",
+      source:
+        "export const matches = (text: string) => /only proceed when ready/.test(text);",
+    })).toEqual(["sample.ts:1"]);
+  });
+
+  it("keeps built-in language analyzers free of runtime NLP dependencies", async () => {
+    const packageJson = JSON.parse(
+      await readFile(join(import.meta.dir, "../../package.json"), "utf8"),
+    ) as { dependencies?: Record<string, string> };
+    const languageFiles = await collectTypeScriptFiles(join(SRC_ROOT, "language"));
+    const languageSources = await Promise.all(
+      languageFiles.map((file) => readFile(file, "utf8")),
+    );
+
+    expect(packageJson.dependencies?.["opencc-js"]).toBeUndefined();
+    expect(languageSources.some((source) => /from ["']opencc-js/u.test(source))).toBe(
+      false,
+    );
+  });
   it("treats re-exports as internal dependency edges", async () => {
     expect(
       await collectInternalImportEdges(join(SRC_ROOT, "language", "index.ts")),
@@ -290,15 +412,18 @@ describe("architecture boundaries", () => {
       "language/contracts.ts",
       "language/chinese.ts",
       "language/english.ts",
+      "language/french.ts",
       "language/generic.ts",
       "language/japanese.ts",
+      "language/korean.ts",
       "language/service.ts",
+      "language/spanish.ts",
     ]);
   });
 
   it("keeps concrete language packs behind the language module boundary", async () => {
     const files = await collectTypeScriptFiles(SRC_ROOT);
-    const concretePackImport = /language\/(?:chinese|english|generic|japanese)(?:Semantics|Temporal)?["']/u;
+    const concretePackImport = /language\/(?:chinese|english|french|generic|japanese|korean|spanish)(?:Semantics|Temporal)?["']/u;
     const offenders: string[] = [];
     const legacyAdapters: string[] = [];
 
@@ -315,6 +440,77 @@ describe("architecture boundaries", () => {
 
     expect(offenders).toEqual([]);
     expect(legacyAdapters).toEqual([]);
+  });
+
+  it("keeps locale and script heuristics inside the language boundary", async () => {
+    const scriptOffenders: string[] = [];
+    const localeFallbackOffenders: string[] = [];
+    const storageLanguageImports: string[] = [];
+
+    const files = await collectTypeScriptFiles(SRC_ROOT);
+    for (const file of files) {
+      const relativePath = toSourceRelativePath(file);
+      if (relativePath.startsWith("language/")) {
+        continue;
+      }
+      const source = await readSource(file);
+      if (/\\p\{Script(?:_Extensions)?=/u.test(source)) {
+        scriptOffenders.push(relativePath);
+      }
+      if (
+        /\b(?:defaultLocale|locale)\b[^\n]*(?:\?\?|\|\|)\s*["'](?:en|zh|ja|ko|fr|es)(?:-[^"']+)?["']/u.test(
+          source,
+        )
+      ) {
+        localeFallbackOffenders.push(relativePath);
+      }
+      if (
+        relativePath.startsWith("storage/") &&
+        (await collectInternalImportEdges(file)).some((target) =>
+          target.startsWith("language/"),
+        )
+      ) {
+        storageLanguageImports.push(relativePath);
+      }
+    }
+
+    expect(scriptOffenders).toEqual([]);
+    expect(localeFallbackOffenders).toEqual([]);
+    expect(storageLanguageImports).toEqual([]);
+  });
+
+  it("keeps ASCII natural-language rule matching inside the language boundary", async () => {
+    const offenders: string[] = [];
+    for (const relativePath of [
+      "evolution/behavioralPolicy.ts",
+      "evolution/rawBehavioralExemplars.ts",
+      "http/index.ts",
+    ]) {
+      const source = await readSource(join(SRC_ROOT, relativePath));
+      offenders.push(...collectNaturalLanguageRuleLiterals({
+        file: relativePath,
+        source,
+      }));
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps recall bridge and progressive scoring language-pack driven", async () => {
+    const iterativeRecall = await readSource(
+      join(SRC_ROOT, "recall", "iterativeRecall.ts"),
+    );
+    const generalizedFusion = await readSource(
+      join(SRC_ROOT, "recall", "generalizedFusion.ts"),
+    );
+    const progressiveRecall = await readSource(
+      join(SRC_ROOT, "progressive", "recall.ts"),
+    );
+
+    expect(iterativeRecall).not.toContain("BRIDGE_STOPWORDS");
+    expect(iterativeRecall).not.toContain("[A-Za-z0-9][A-Za-z0-9'-]");
+    expect(generalizedFusion).not.toContain('toLocaleLowerCase("en-US")');
+    expect(progressiveRecall).not.toContain("match(/[a-z0-9_\\-]+/gu)");
   });
 
   it("normalizes internal paths before boundary checks", () => {
@@ -622,6 +818,54 @@ describe("architecture boundaries", () => {
     );
     expect(answerSource).not.toContain("../eval/");
     expect(evalSource).toContain("../answer/evidenceLedgerContext");
+  });
+
+  it("keeps legacy-fitted temporal and topic selectors out of production recall", async () => {
+    const productionSelectorDirectory = join(SRC_ROOT, "recall", "selectors");
+    const legacySelectorDirectory = join(
+      import.meta.dir,
+      "../..",
+      "scripts/eval-profiles/legacy-fitted/recall/selectors",
+    );
+
+    expect(await fileExists(join(productionSelectorDirectory, "temporal.ts"))).toBe(false);
+    expect(await fileExists(join(productionSelectorDirectory, "topic.ts"))).toBe(false);
+
+    for (const fileName of ["temporal.ts", "topic.ts"]) {
+      const source = await readFile(join(legacySelectorDirectory, fileName), "utf8");
+      expect(source).not.toContain("src/recall/selectors");
+    }
+
+    const activeContext = await readFile(
+      join(productionSelectorDirectory, "selectionContext.ts"),
+      "utf8",
+    );
+    expect(activeContext).not.toMatch(
+      /(?:isTemporalEventOrderQuery|isInstrumentPracticeTimeQuery|PERSONAL_ELECTRONICS_FACT_PATTERN|QUANTIFIED_FACT_PATTERN)/u,
+    );
+  });
+
+  it("keeps legacy fact selection instance-scoped and out of production state", async () => {
+    const selectionSource = await readSource(
+      join(SRC_ROOT, "recall", "selection.ts"),
+    );
+    const engineSource = await readSource(join(SRC_ROOT, "recall", "engine.ts"));
+    const apiSource = await readSource(join(SRC_ROOT, "api", "createGoodMemory.ts"));
+    const legacyActivationSource = await readFile(
+      join(
+        import.meta.dir,
+        "../../scripts/eval-profiles/legacy-fitted/activate.ts",
+      ),
+      "utf8",
+    );
+
+    expect(selectionSource).not.toContain("internalFactSelector");
+    expect(selectionSource).not.toContain("setFactSelectorForInternalEval");
+    expect(engineSource).toContain(
+      "config.factSelector ?? selectGeneralizedFactsForInternalUse",
+    );
+    expect(apiSource).toContain("factSelector: internal?.factSelector");
+    expect(legacyActivationSource).not.toContain("src/recall/selection");
   });
 
   it("keeps recall selection split into orchestration plus bounded selector modules", async () => {

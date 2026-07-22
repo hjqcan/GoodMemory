@@ -41,7 +41,10 @@ export interface RecallFusionRunTrace {
   budget: number;
   candidateCount: number;
   candidates: RecallFusionCandidateTrace[];
-  fallbackReason?: "projection_error" | "projection_unavailable";
+  fallbackReason?:
+    | "projection_error"
+    | "projection_incomplete"
+    | "projection_unavailable";
   projectionCoverage?: "complete" | "partial";
   hop?: number;
   query?: string;

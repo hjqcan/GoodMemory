@@ -193,6 +193,68 @@ describe("generalized fusion through the recall engine", () => {
     expect(canonicalFullScans).toBe(0);
   });
 
+  it("falls back to canonical recall without reading an incomplete projection", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const runtime = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      now: () => "2026-07-10T00:00:00.000Z",
+    });
+    const sessionStore = createInMemorySessionStore();
+    const repositories = createMemoryRepositories({
+      documentStore: runtime.documentStore,
+      sessionStore,
+    });
+    await repositories.facts.add(createFactMemory({
+      id: "fact-canonical-only",
+      ...scope,
+      category: "project",
+      content: "Atlas deployment uses PostgreSQL.",
+      source: { method: "explicit", extractedAt: "2026-07-09T00:00:00.000Z" },
+      createdAt: "2026-07-09T00:00:00.000Z",
+      updatedAt: "2026-07-09T00:00:00.000Z",
+    }));
+    let projectionSearches = 0;
+    const projectionIndex = {
+      ...runtime,
+      async ensureScopeIndexed() {
+        return { complete: false, indexedSources: 0, skipped: false };
+      },
+      async searchDocuments() {
+        projectionSearches += 1;
+        return [];
+      },
+      async searchEntities() {
+        projectionSearches += 1;
+        return [];
+      },
+      async searchClaims() {
+        projectionSearches += 1;
+        return [];
+      },
+    };
+    const engine = createRecallEngine({
+      repositories,
+      runtime: sessionStore,
+      autoStrategyBias: "hybrid",
+      generalizedFusion: { maxCandidates: 8 },
+      projectionIndex,
+    });
+
+    const result = await engine.recall({
+      scope,
+      query: "Which database does Atlas deployment use?",
+      retrievalProfile: "general_chat",
+    });
+
+    expect(projectionSearches).toBe(0);
+    expect(result.facts.map(({ id }) => id)).toContain("fact-canonical-only");
+    expect(result.metadata.retrievalTrace?.fusionRuns?.[0]).toMatchObject({
+      fallbackReason: "projection_incomplete",
+      projectionCoverage: "partial",
+      status: "fallback",
+    });
+  });
+
   it("admits a fused dense candidate with generalized attribution and no parallel semantic bypass", async () => {
     const rawStore = createInMemoryDocumentStore();
     const projectionIndex = createRecallProjectionRuntime({

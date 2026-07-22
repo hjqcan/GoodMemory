@@ -88,8 +88,6 @@ export function evaluatePhase68GeneralizationGate(input: {
   const allowedSelectorFiles = new Set([
     "selectors/recordSelection.ts",
     "selectors/selectionContext.ts",
-    "selectors/temporal.ts",
-    "selectors/topic.ts",
   ]);
   const fittedSourceIsolated = input.productionRecallFiles.every((path) => {
     const normalized = path.replaceAll("\\", "/");

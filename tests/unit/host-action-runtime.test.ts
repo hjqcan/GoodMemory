@@ -383,12 +383,12 @@ describe("installed host action runtime", () => {
         executedStep: "deploy preview",
         guidance: [
           "Use the current runbook before deploy.",
-          "Session workflow says to start with: Review the exported session handoff",
+          "Workflow: Review the exported session handoff",
         ],
         originalAction: "deploy preview",
       });
       expect((result.payload as { reason?: string }).reason).toContain(
-        "Matched memory or runtime continuity guidance is available for this action.",
+        "Guidance: Use the current runbook before deploy.",
       );
     } finally {
       await rm(homeRoot, { force: true, recursive: true });

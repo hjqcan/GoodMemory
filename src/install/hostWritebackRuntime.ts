@@ -3,8 +3,12 @@ import { stat } from "node:fs/promises";
 import type { GoodMemory } from "../api/contracts";
 import { readGoodMemoryIntegrationSupport } from "../api/integrationSupport";
 import type { MemoryScope } from "../domain/scope";
+import type {
+  LanguageContentAnalysis,
+  LanguageService,
+} from "../language";
 import { createLanguageService } from "../language";
-import type { LanguageService } from "../language";
+import { containsSensitiveCredentialFromAnalysis } from "../language/sensitive";
 import type {
   ExtractionOutcome,
   RememberEvent,
@@ -112,13 +116,21 @@ export interface InstalledHostWritebackResult {
   wrote: boolean;
 }
 
-interface NormalizedWritebackMessage {
+interface RawWritebackMessage {
   annotation?: HostPayloadAnnotation;
   content: string;
   role: "assistant" | "host_event" | "user";
 }
 
-type NormalizedWritebackRole = NormalizedWritebackMessage["role"];
+interface NormalizedWritebackMessage extends RawWritebackMessage {
+  languageAnalysis: {
+    content: LanguageContentAnalysis;
+    extracted: MemoryCandidate[];
+    sensitiveCredential: boolean;
+  };
+}
+
+type NormalizedWritebackRole = RawWritebackMessage["role"];
 
 interface HostPayloadAnnotation {
   confirmed?: boolean;
@@ -142,9 +154,6 @@ export interface CandidateWithKey extends InstalledHostWritebackCandidate {
 }
 
 export const MAX_WRITEBACK_MESSAGE_CHARS = 1_500;
-export const SECRET_PATTERN =
-  /\b(api[_-]?key|secret|token|password)\b\s*[:=]|sk-[A-Za-z0-9_-]{16,}|ghp_[A-Za-z0-9_]{16,}/iu;
-
 export async function executeInstalledHostWriteback(
   input: InstalledHostWritebackInput,
   dependencies: InstalledHostWritebackDependencies = {},
@@ -264,6 +273,7 @@ async function executeResolvedWriteback(args: {
     context: resolved.context,
     dependencies,
     host: input.host,
+    language,
     messages,
     scope: durableScope,
   });
@@ -272,7 +282,6 @@ async function executeResolvedWriteback(args: {
       command: input.command,
       config,
       host: input.host,
-      language,
       scope: durableScope,
       messages,
     }),
@@ -719,23 +728,31 @@ function normalizeWritebackMessages(
 
   let remainingChars = config.maxChars;
   const bounded: NormalizedWritebackMessage[] = [];
-  const selectedMessages = withSignals
-    .filter((message) => !isAcknowledgementOnlyMessage(message, language))
-    .slice(-config.maxMessages);
-  for (let index = selectedMessages.length - 1; index >= 0; index -= 1) {
-    const message = selectedMessages[index];
-    if (remainingChars <= 0) {
-      break;
-    }
-    const content = clampText(message.content, Math.min(remainingChars, MAX_WRITEBACK_MESSAGE_CHARS));
+  for (
+    let index = withSignals.length - 1;
+    index >= 0 && bounded.length < config.maxMessages && remainingChars > 0;
+    index -= 1
+  ) {
+    const message = withSignals[index];
+    const content = clampText(
+      message.content,
+      Math.min(remainingChars, MAX_WRITEBACK_MESSAGE_CHARS),
+    );
     const normalized = normalizeText(content);
     if (!normalized) {
       continue;
     }
-    bounded.unshift({
-      ...message,
-      content: normalized,
-    });
+    const analyzed = analyzeWritebackMessage(
+      {
+        ...message,
+        content: normalized,
+      },
+      language,
+    );
+    if (isAcknowledgementOnlyMessage(analyzed)) {
+      continue;
+    }
+    bounded.unshift(analyzed);
     remainingChars -= normalized.length;
   }
 
@@ -744,13 +761,46 @@ function normalizeWritebackMessages(
 
 function isAcknowledgementOnlyMessage(
   message: NormalizedWritebackMessage,
-  language: LanguageService,
 ): boolean {
   if (message.annotation?.remember === "always") {
     return false;
   }
-  const resolved = language.resolveFromText({ text: message.content });
-  return language.isAssistantAcknowledgement(message.content, resolved);
+  return message.languageAnalysis.content.assistantAcknowledgement;
+}
+
+function analyzeWritebackMessage(
+  message: RawWritebackMessage,
+  language: LanguageService,
+): NormalizedWritebackMessage {
+  const context = language.resolveFromText({ text: message.content });
+  const content = language.analyzeContent(message.content, context);
+  let candidateCounter = 0;
+  const extracted = language.extractCandidates(
+    {
+      locale: context.locale,
+      messages: [
+        {
+          analysis: content,
+          content: message.content,
+          role: "user",
+          sourceMessageIndex: 0,
+        },
+      ],
+      nextId: () => `host-writeback-${++candidateCounter}`,
+    },
+    context,
+  );
+  return {
+    ...message,
+    languageAnalysis: {
+      content,
+      extracted,
+      sensitiveCredential: containsSensitiveCredentialFromAnalysis(
+        message.content,
+        content,
+      ),
+    },
+  };
 }
 
 function readPayloadAnnotations(value: unknown): Map<number, HostPayloadAnnotation> {
@@ -832,7 +882,7 @@ function readSummaryAnnotation(
 function normalizePayloadMessage(
   value: unknown,
   annotation: HostPayloadAnnotation | undefined,
-): NormalizedWritebackMessage[] {
+): RawWritebackMessage[] {
   if (typeof value === "string") {
     const annotations = new Map<number, HostPayloadAnnotation>();
     if (annotation) {
@@ -871,7 +921,7 @@ function normalizePayloadMessage(
 function normalizeTranscriptText(
   payload: Record<string, unknown>,
   annotations: Map<number, HostPayloadAnnotation>,
-): NormalizedWritebackMessage[] {
+): RawWritebackMessage[] {
   const transcript = normalizeText(readOptionalText(payload, "transcript"));
   if (!transcript) {
     return [];
@@ -879,17 +929,17 @@ function normalizeTranscriptText(
 
   return transcript
     .split(/\r?\n/u)
-    .map((line, index): NormalizedWritebackMessage | null => {
+    .map((line, index): RawWritebackMessage | null => {
       return normalizeTranscriptLine(line, index, annotations)[0] ?? null;
     })
-    .filter((message): message is NormalizedWritebackMessage => message !== null);
+    .filter((message): message is RawWritebackMessage => message !== null);
 }
 
 function normalizeTranscriptLine(
   line: string,
   index: number,
   annotations: Map<number, HostPayloadAnnotation>,
-): NormalizedWritebackMessage[] {
+): RawWritebackMessage[] {
   const match = line.match(
     /^\s*(user|assistant|host|host_event|system|tool)\s*:\s*(.+)$/iu,
   );
@@ -944,7 +994,6 @@ function buildWritebackCandidates(input: {
   command: InstalledHostWritebackCommand;
   config: InstalledHostWritebackConfig;
   host: InstalledHostKind;
-  language: LanguageService;
   scope: MemoryScope;
   messages: NormalizedWritebackMessage[];
 }): CandidateWithKey[] {
@@ -953,7 +1002,6 @@ function buildWritebackCandidates(input: {
       command: input.command,
       config: input.config,
       host: input.host,
-      language: input.language,
       scope: input.scope,
     }),
   );
@@ -979,6 +1027,7 @@ async function runBatchWritebackExtraction(input: {
   context: InstalledHostResolvedContext;
   dependencies: InstalledHostWritebackDependencies;
   host: InstalledHostKind;
+  language: LanguageService;
   messages: NormalizedWritebackMessage[];
   scope: MemoryScope;
 }): Promise<{
@@ -991,7 +1040,7 @@ async function runBatchWritebackExtraction(input: {
   const safeMessages = input.messages.filter(
     (message) =>
       message.annotation?.remember !== "never" &&
-      !SECRET_PATTERN.test(message.content),
+      !message.languageAnalysis.sensitiveCredential,
   );
   if (strategy === "rules-only" || !provider || safeMessages.length === 0) {
     return { attempted: false, candidates: [], status: "skipped" };
@@ -1007,9 +1056,11 @@ async function runBatchWritebackExtraction(input: {
     config: input.config,
     extractor,
     host: input.host,
+    language: input.language,
     messages: safeMessages.map((message) => ({
       content: message.content,
       role: message.role,
+      sensitiveCredential: message.languageAnalysis.sensitiveCredential,
     })),
     scope: input.scope,
   });
@@ -1043,7 +1094,6 @@ function buildMessageCandidate(
     command: InstalledHostWritebackCommand;
     config: InstalledHostWritebackConfig;
     host: InstalledHostKind;
-    language: LanguageService;
     scope: MemoryScope;
   },
 ): CandidateWithKey[] {
@@ -1052,10 +1102,10 @@ function buildMessageCandidate(
   }
 
   const source = message.role === "host_event" ? "host_event" : message.role;
-  const secretLike = SECRET_PATTERN.test(message.content);
+  const secretLike = message.languageAnalysis.sensitiveCredential;
   const base = secretLike
     ? null
-    : classifyDurableSignal(message, runtime.language);
+    : classifyDurableSignal(message);
   if (!base && !secretLike) {
     return [];
   }
@@ -1135,7 +1185,6 @@ function buildMessageCandidate(
 
 function classifyDurableSignal(
   message: NormalizedWritebackMessage,
-  language: LanguageService,
 ): { confidence: number; kind: InstalledHostWritebackCandidate["kind"]; reason: string } | null {
   if (message.annotation?.remember === "always") {
     return {
@@ -1145,17 +1194,8 @@ function classifyDurableSignal(
     };
   }
 
-  const resolved = language.resolveFromText({ text: message.content });
-  const analysis = language.analyzeContent(message.content, resolved);
-  let candidateCounter = 0;
-  const extracted = language.extractCandidates(
-    {
-      locale: resolved.locale,
-      messages: [{ content: message.content, role: "user", sourceMessageIndex: 0 }],
-      nextId: () => `host-writeback-${++candidateCounter}`,
-    },
-    resolved,
-  );
+  const analysis = message.languageAnalysis.content;
+  const extracted = message.languageAnalysis.extracted;
 
   if (
     extracted.some((candidate) =>

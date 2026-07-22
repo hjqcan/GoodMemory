@@ -14,29 +14,10 @@
 // bound to scope/strategy), so this never changes default single-pass behavior
 // and adds no dependency on the recall engine internals.
 
-const BRIDGE_STOPWORDS = new Set([
-  "the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "and",
-  "or", "but", "of", "to", "in", "on", "at", "for", "with", "by", "from", "as",
-  "that", "this", "these", "those", "it", "its", "they", "them", "their", "i",
-  "my", "me", "we", "our", "you", "your", "he", "she", "his", "her", "do",
-  "does", "did", "has", "have", "had", "will", "would", "can", "could", "what",
-  "when", "where", "which", "who", "why", "how", "not", "no", "yes",
-]);
-
-const MIN_BRIDGE_TOKEN_LENGTH = 2;
 const DEFAULT_BRIDGE_ENTITY_LIMIT = 4;
 const DEFAULT_BRIDGE_FACT_LIMIT = 6;
 const ISO_TIMESTAMP_PATTERN =
   /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z?\b/giu;
-const APOSTROPHE_SUFFIXES = new Set([
-  "d",
-  "ll",
-  "m",
-  "re",
-  "s",
-  "t",
-  "ve",
-]);
 
 interface BridgeCandidate {
   count: number;
@@ -50,25 +31,9 @@ export interface BridgeTextAnalysis {
   tokens: readonly string[];
 }
 
-function queryTokenSet(query: string): Set<string> {
-  return new Set(
-    query
-      .toLowerCase()
-      .split(/[^a-z0-9]+/u)
-      .filter((token) => token.length > 0),
-  );
-}
-
 function normalizeBridgeToken(raw: string): { key: string; token: string } {
-  const apostropheIndex = raw.lastIndexOf("'");
-  if (apostropheIndex > 0) {
-    const suffix = raw.slice(apostropheIndex + 1).toLowerCase();
-    if (APOSTROPHE_SUFFIXES.has(suffix)) {
-      const token = raw.slice(0, apostropheIndex);
-      return { key: token.toLowerCase(), token };
-    }
-  }
-  return { key: raw.toLowerCase(), token: raw };
+  const token = raw.normalize("NFKC").trim();
+  return { key: token.toLocaleLowerCase(), token };
 }
 
 // Salient terms in the retrieved facts that the query did NOT already contain:
@@ -76,62 +41,45 @@ function normalizeBridgeToken(raw: string): { key: string; token: string } {
 // numeric values rank first, then novel content words by frequency, with original
 // reading order as the deterministic tie-breaker.
 export function extractBridgeEntities(input: {
-  analyzeBridgeText?: (text: string) => BridgeTextAnalysis;
+  analyzeBridgeText: (text: string) => BridgeTextAnalysis;
   facts: readonly { content: string }[];
   query: string;
   limit?: number;
 }): string[] {
   const limit = input.limit ?? DEFAULT_BRIDGE_ENTITY_LIMIT;
-  const queryAnalysis = input.analyzeBridgeText?.(input.query);
-  const querySet = queryAnalysis
-    ? new Set(
-        [...queryAnalysis.entities, ...queryAnalysis.tokens]
-          .map((term) => normalizeBridgeToken(term.normalize("NFKC")).key)
-          .filter(Boolean),
-      )
-    : queryTokenSet(input.query);
+  const queryAnalysis = input.analyzeBridgeText(input.query);
+  const querySet = new Set(
+    [...queryAnalysis.entities, ...queryAnalysis.tokens]
+      .map((term) => normalizeBridgeToken(term).key)
+      .filter(Boolean),
+  );
   const candidates = new Map<string, BridgeCandidate>();
   let position = 0;
 
   for (const fact of input.facts.slice(0, DEFAULT_BRIDGE_FACT_LIMIT)) {
-    const analyzed = input.analyzeBridgeText?.(
+    const analyzed = input.analyzeBridgeText(
       fact.content.replace(ISO_TIMESTAMP_PATTERN, " "),
     );
-    const terms = analyzed
-      ? [
-          ...analyzed.entities.map((raw) => ({ proper: true, raw })),
-          ...analyzed.tokens.map((raw) => ({ proper: false, raw })),
-        ]
-      : (fact.content
-          .replace(ISO_TIMESTAMP_PATTERN, " ")
-          .match(/[A-Za-z0-9][A-Za-z0-9'-]*/gu) ?? [])
-          .map((raw) => ({
-            proper: /^[A-Z]/u.test(raw) || /\d/u.test(raw),
-            raw,
-          }));
+    const terms = [
+      ...analyzed.entities.map((raw) => ({ proper: true, raw })),
+      ...analyzed.tokens.map((raw) => ({ proper: false, raw })),
+    ];
     for (const term of terms) {
-      const raw = term.raw.normalize("NFKC");
-      const normalized = normalizeBridgeToken(raw);
+      const normalized = normalizeBridgeToken(term.raw);
       const lower = normalized.key;
       position += 1;
-      if (
-        lower.length < MIN_BRIDGE_TOKEN_LENGTH ||
-        querySet.has(lower) ||
-        BRIDGE_STOPWORDS.has(lower)
-      ) {
+      if (!lower || querySet.has(lower)) {
         continue;
       }
-      const proper = term.proper ||
-        /^[A-Z]/u.test(normalized.token) || /\d/u.test(normalized.token);
       const existing = candidates.get(lower);
       if (existing) {
         existing.count += 1;
-        existing.proper = existing.proper || proper;
+        existing.proper = existing.proper || term.proper;
       } else {
         candidates.set(lower, {
           count: 1,
           firstIndex: position,
-          proper,
+          proper: term.proper,
           token: normalized.token,
         });
       }
@@ -158,6 +106,8 @@ const MAX_HOPS_CEILING = 6;
 const DEFAULT_MAX_HOPS = 2;
 
 export interface IterativeRecallOptions {
+  // Required for the built-in bridge strategy. The caller must use the same
+  // LanguageService as the surrounding recall request.
   analyzeBridgeText?: (text: string) => BridgeTextAnalysis;
   bridgeEntityLimit?: number;
   // Maximum total recall passes (>= 1). Default 2 (one bridge expansion), the
@@ -212,6 +162,11 @@ export async function iterativeRecall<
     Math.max(1, input.options?.maxHops ?? DEFAULT_MAX_HOPS),
   );
   const expandQuery = input.options?.expandQuery;
+  if (maxHops > 1 && !expandQuery && !input.options?.analyzeBridgeText) {
+    throw new Error(
+      "iterativeRecall requires analyzeBridgeText when no expandQuery is provided",
+    );
+  }
 
   let result = await input.recall(input.query);
   const primaryResult = result;
@@ -246,13 +201,13 @@ export async function iterativeRecall<
       }
     } else {
       const hopBridges = extractBridgeEntities({
-        analyzeBridgeText: input.options?.analyzeBridgeText,
+        analyzeBridgeText: input.options!.analyzeBridgeText!,
         facts: result.facts,
         limit: input.options?.bridgeEntityLimit,
         query: activeQuery,
       });
       const freshBridges = hopBridges.filter(
-        (bridge) => !seenBridge.has(bridge.toLowerCase()),
+        (bridge) => !seenBridge.has(normalizeBridgeToken(bridge).key),
       );
       if (freshBridges.length === 0) {
         stopReason = "no_bridge_entities";
@@ -260,7 +215,7 @@ export async function iterativeRecall<
       }
       steps[steps.length - 1]!.bridgeEntities = [...freshBridges];
       for (const bridge of freshBridges) {
-        seenBridge.add(bridge.toLowerCase());
+        seenBridge.add(normalizeBridgeToken(bridge).key);
         bridgeEntities.push(bridge);
       }
       nextQuery = `${input.query} ${bridgeEntities.join(" ")}`;

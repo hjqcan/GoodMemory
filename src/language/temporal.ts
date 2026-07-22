@@ -1,52 +1,33 @@
-function utcInstant(year: number, month: number, day = 1): string | undefined {
-  const date = new Date(Date.UTC(year, month, day));
-  if (
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() !== month ||
-    date.getUTCDate() !== day
-  ) {
-    return undefined;
-  }
-  return date.toISOString();
+import type { LanguageTemporalExpression } from "./contracts";
+
+function absolute(
+  raw: string,
+  year: number,
+  month?: number,
+  day?: number,
+): LanguageTemporalExpression {
+  return {
+    kind: "absolute",
+    raw,
+    calendar: {
+      ...(day === undefined ? {} : { day }),
+      ...(month === undefined ? {} : { month }),
+      year,
+    },
+  };
 }
 
-function utcDayStart(instantMs: number): string {
-  const date = new Date(instantMs);
-  return new Date(Date.UTC(
-    date.getUTCFullYear(),
-    date.getUTCMonth(),
-    date.getUTCDate(),
-  )).toISOString();
-}
-
-function shiftedMonthStart(reference: Date, offset: number): string {
-  return new Date(Date.UTC(
-    reference.getUTCFullYear(),
-    reference.getUTCMonth() + offset,
-    1,
-  )).toISOString();
-}
-
-function shiftedQuarterStart(reference: Date, offset: number): string {
-  const quarterMonth = Math.floor(reference.getUTCMonth() / 3) * 3;
-  return new Date(Date.UTC(
-    reference.getUTCFullYear(),
-    quarterMonth + offset * 3,
-    1,
-  )).toISOString();
-}
-
-export function resolveCjkTemporalReference(
+export function parseCjkTemporalReference(
   text: string,
-  referenceTime: string,
-): string | undefined {
+): LanguageTemporalExpression | undefined {
   const isoDate = text.match(
     /(?:^|[^\d])(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:$|[^\d])/u,
   );
   if (isoDate) {
-    return utcInstant(
+    return absolute(
+      isoDate[0].trim(),
       Number(isoDate[1]),
-      Number(isoDate[2]) - 1,
+      Number(isoDate[2]),
       Number(isoDate[3]),
     );
   }
@@ -55,30 +36,29 @@ export function resolveCjkTemporalReference(
     /(\d{4})\s*年\s*(\d{1,2})\s*月(?:\s*(\d{1,2})\s*[日号號])?/u,
   );
   if (cjkDate) {
-    const instant = utcInstant(
+    return absolute(
+      cjkDate[0],
       Number(cjkDate[1]),
-      Number(cjkDate[2]) - 1,
-      cjkDate[3] ? Number(cjkDate[3]) : 1,
+      Number(cjkDate[2]),
+      cjkDate[3] ? Number(cjkDate[3]) : undefined,
     );
-    if (instant) {
-      return instant;
-    }
   }
 
   const year = text.match(/(?:^|[^\d])(\d{4})(?:\s*年)(?:$|[^\d])/u);
   if (year) {
-    return utcInstant(Number(year[1]), 0);
+    return absolute(year[0].trim(), Number(year[1]));
   }
 
-  const referenceMs = Date.parse(referenceTime);
-  if (!Number.isFinite(referenceMs)) {
-    return undefined;
-  }
-  const reference = new Date(referenceMs);
   const daysAgo = text.match(/(\d{1,3})\s*日前/u);
   if (daysAgo) {
-    return utcDayStart(referenceMs - Number(daysAgo[1]) * 86_400_000);
+    return {
+      kind: "relative",
+      raw: daysAgo[0],
+      offset: -Number(daysAgo[1]),
+      unit: "day",
+    };
   }
+
   const relativeDays = [
     [/(?:前天|一昨日)/u, -2],
     [/(?:昨天|昨日)/u, -1],
@@ -87,8 +67,9 @@ export function resolveCjkTemporalReference(
     [/(?:明天|明日)/u, 1],
   ] as const;
   for (const [pattern, offset] of relativeDays) {
-    if (pattern.test(text)) {
-      return utcDayStart(referenceMs + offset * 86_400_000);
+    const match = text.match(pattern);
+    if (match) {
+      return { kind: "relative", raw: match[0], offset, unit: "day" };
     }
   }
 
@@ -107,19 +88,10 @@ export function resolveCjkTemporalReference(
     [/(?:明年|来年|下年)/u, "year", 1],
   ] as const;
   for (const [pattern, unit, offset] of relativePeriods) {
-    if (!pattern.test(text)) {
-      continue;
+    const match = text.match(pattern);
+    if (match) {
+      return { kind: "relative", raw: match[0], offset, unit };
     }
-    if (unit === "week") {
-      return utcDayStart(referenceMs + offset * 7 * 86_400_000);
-    }
-    if (unit === "month") {
-      return shiftedMonthStart(reference, offset);
-    }
-    if (unit === "quarter") {
-      return shiftedQuarterStart(reference, offset);
-    }
-    return utcInstant(reference.getUTCFullYear() + offset, 0);
   }
   return undefined;
 }

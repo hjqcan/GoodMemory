@@ -537,7 +537,7 @@ describe("remember engine", () => {
         locales: ["xx"],
         parseTemporalExpressions: (text) =>
           text.includes("zor")
-            ? [{ kind: "absolute", raw: "zor" }]
+            ? [{ kind: "absolute", raw: "zor", iso: "2026-01-02T00:00:00.000Z" }]
             : [],
       }],
     });
@@ -2299,7 +2299,7 @@ describe("remember engine", () => {
       locale: "ja-JP",
       localeSource: "explicit",
       languagePackId: "ja",
-      languagePackVersion: "4",
+      languagePackVersion: "5",
     };
     expect(facts[0]?.source).toMatchObject(expectedLanguage);
     expect(evidence[0]?.source).toMatchObject(expectedLanguage);

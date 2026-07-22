@@ -25,6 +25,12 @@
     "npmPackage": "npm install goodmemory@0.7.0",
     "bun": "bun add goodmemory@0.7.0"
   },
+  "releaseStatus": {
+    "installCommandsApplyAfterPublish": true,
+    "npmLatest": "0.6.0",
+    "status": "release-candidate",
+    "tarball": "goodmemory-0.7.0.tgz"
+  },
   "memoryApi": [
     "remember",
     "recall",
@@ -109,12 +115,21 @@
     "currentClaims": [],
     "historicalEvidence": {
       "url": "https://github.com/hjqcan/GoodMemory/tree/main/benchmark-claims",
-      "note": "The v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus older LongMemEval and ImplicitMemBench runs, remain reproducible versioned evidence. None is a current v0.7.0 production claim until rerun against this package line."
+      "note": "The v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus older LongMemEval and ImplicitMemBench runs, remain reproducible versioned evidence. None is a current 0.7.0 production claim until rerun against this package line. LongMemEval and ImplicitMemBench remain internal evidence."
     }
   },
   "capabilities": {
     "localFirst": true,
     "embeddingFreeDefault": true,
+    "builtInLanguagePacks": [
+      "en",
+      "zh-Hans",
+      "zh-Hant",
+      "ja",
+      "ko",
+      "fr",
+      "es"
+    ],
     "durableStore": "sqlite (default), postgres (opt-in)",
     "audit": true,
     "deletion": true,
@@ -124,6 +139,6 @@
   "canonicalSources": {
     "prose": "https://github.com/hjqcan/GoodMemory#readme",
     "benchmarks": "https://github.com/hjqcan/GoodMemory/tree/main/benchmark-claims",
-    "note": "This runtime descriptor exposes only claims accepted for the installed package version. Versioned historical results remain in benchmark-claims/*.json."
+    "note": "Benchmark entries keep explicit measuredPackageVersion provenance; a package version bump never relabels historical results. Source declarations remain in benchmark-claims/*.json."
   }
 }

@@ -6,7 +6,13 @@ import type {
   RememberInput,
   RememberProfile,
 } from "../../src";
-import { createJapaneseLanguagePack, rememberRules } from "../../src";
+import {
+  createFrenchLanguagePack,
+  createJapaneseLanguagePack,
+  createKoreanLanguagePack,
+  createSpanishLanguagePack,
+  rememberRules,
+} from "../../src";
 
 const defaultConfig: GoodMemoryConfig = {};
 
@@ -45,7 +51,12 @@ const languageConfig: GoodMemoryConfig = {
 const languagePackConfig: GoodMemoryConfig = {
   language: {
     defaultLocale: "ja-JP",
-    packs: [createJapaneseLanguagePack()],
+    packs: [
+      createJapaneseLanguagePack(),
+      createKoreanLanguagePack(),
+      createFrenchLanguagePack(),
+      createSpanishLanguagePack(),
+    ],
   },
   storage: { provider: "memory" },
 };

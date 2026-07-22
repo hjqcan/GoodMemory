@@ -60,6 +60,22 @@ describe("runtime worker", () => {
     expect(serialized).not.toContain("runtime-worker-user");
   });
 
+  it("redacts localized credential assignments before queue persistence", () => {
+    for (const payloadPreview of [
+      "user: 密碼：worker-credential",
+      "user: パスワード: worker-credential",
+      "user: 비밀번호: worker-credential",
+      "user: mot de passe : worker-credential",
+      "user: contraseña: worker-credential",
+    ]) {
+      const envelope = createEnvelope({ payloadPreview });
+      const serialized = JSON.stringify(envelope);
+
+      expect(envelope.payload.redactedPreview).toContain("[redacted-secret]");
+      expect(serialized).not.toContain("worker-credential");
+    }
+  });
+
   it("coalesces equivalent jobs and drains queued work once", async () => {
     await withTempQueue(async (queueFile) => {
       const queue = createRuntimeWorkerQueue({

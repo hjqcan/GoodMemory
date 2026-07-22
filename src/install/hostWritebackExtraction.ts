@@ -2,12 +2,13 @@ import type { MemoryScope } from "../domain/scope";
 import type { MemoryCandidate, MemoryExtractor } from "../remember/candidates";
 import type { InstalledHostWritebackConfig } from "./hostConfigValidation";
 import type { InstalledHostKind } from "./hostInstall";
+import type { LanguageService } from "../language";
+import { containsSensitiveCredential } from "../language/sensitive";
 import {
   buildCandidateKey,
   clampText,
   isAssistantOutputAllowed,
   MAX_WRITEBACK_MESSAGE_CHARS,
-  SECRET_PATTERN,
   toMessageAnnotationKind,
   type CandidateWithKey,
   type InstalledHostWritebackCommand,
@@ -15,11 +16,11 @@ import {
 
 // Batch LLM pre-extraction over the whole bounded writeback window. The
 // per-candidate llm-assisted strategy inside memory.remember() only ever
-// re-extracts single messages the regex floor already selected, so it can
-// never recover signals the regex missed — this stage can. It runs at most
-// once per writeback invocation, bounded by a timeout so a slow provider
-// can never stall the host's Stop hook; on any failure the caller falls
-// back to the rules candidates alone.
+// re-extracts single messages the LanguagePack rules floor already selected,
+// so it can never recover signals those rules missed — this stage can. It runs
+// at most once per writeback invocation, bounded by a timeout so a slow
+// provider can never stall the host's Stop hook; on any failure the caller
+// falls back to the rules candidates alone.
 
 const DEFAULT_EXTRACTOR_TIMEOUT_MS = 15_000;
 
@@ -28,7 +29,12 @@ export interface AssistedWritebackExtractionInput {
   config: InstalledHostWritebackConfig;
   extractor: MemoryExtractor;
   host: InstalledHostKind;
-  messages: Array<{ content: string; role: "assistant" | "host_event" | "user" }>;
+  language?: LanguageService;
+  messages: Array<{
+    content: string;
+    role: "assistant" | "host_event" | "user";
+    sensitiveCredential?: boolean;
+  }>;
   scope: MemoryScope;
   timeoutMs?: number;
 }
@@ -79,7 +85,11 @@ function mapExtractorCandidate(
   }
 
   const source = candidate.sourceRole === "assistant" ? "assistant" : "user";
-  const secretLike = SECRET_PATTERN.test(trimmed);
+  const analyzedSource = input.messages.find(
+    (message) => message.content.trim() === trimmed,
+  );
+  const secretLike = analyzedSource?.sensitiveCredential ??
+    containsSensitiveCredential(trimmed, input.language);
   const content = secretLike
     ? "[redacted secret-like content]"
     : clampText(trimmed, MAX_WRITEBACK_MESSAGE_CHARS);

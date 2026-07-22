@@ -38,7 +38,12 @@ function claim(input: {
 }): ClaimProjection {
   return {
     id: input.id,
-    schemaVersion: 1,
+    schemaVersion: 2,
+    searchText: `${input.predicateKey} ${input.objectText}`.toLowerCase(),
+    searchLocale: "en-US",
+    languagePackId: "en",
+    searchAnalyzerVersion: "test-v1",
+    searchSchemaVersion: "gm-search-v2",
     ...scope,
     scopeKey,
     sourceMemoryId: input.sourceMemoryId,

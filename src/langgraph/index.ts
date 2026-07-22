@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import type { GoodMemory } from "../api/contracts";
+import { readGoodMemoryIntegrationSupport } from "../api/integrationSupport";
 import type { MemoryScope } from "../domain/scope";
+import { createLanguageService } from "../language";
 import { computeBm25Scores } from "../recall/bm25";
 
 // Structural mirror of LangGraph JS BaseStore (@langchain/langgraph-checkpoint
@@ -117,6 +119,8 @@ export function createGoodMemoryLangGraphStore(input: {
   scope: MemoryScope;
 }): GoodMemoryLangGraphStore {
   const { memory, scope } = input;
+  const language = readGoodMemoryIntegrationSupport(memory)?.language ??
+    createLanguageService();
 
   function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -375,12 +379,16 @@ export function createGoodMemoryLangGraphStore(input: {
         .map((fact) => byId.get(fact.id))
         .filter((entry): entry is StoredLangGraphFact => entry !== undefined);
       const recalledIds = new Set(recalled.map((entry) => entry.id));
+      const queryLanguage = language.resolveFromText({ text: options.query });
       const fallbackScores = computeBm25Scores(
         options.query,
         [...byId.values()].map((entry) => ({
           id: entry.id,
           text: entry.content,
         })),
+        {
+          tokenize: (text) => language.tokenize(text, queryLanguage),
+        },
       );
       const fallback = [...byId.values()]
         .filter(

@@ -3,6 +3,7 @@ import {
   extractReferencePointers,
 } from "../domain/referencePointer";
 import type {
+  LanguageContentAnalysis,
   LanguageService,
   ResolvedLanguageContext,
 } from "../language/contracts";
@@ -184,6 +185,7 @@ function normalizeSourceOfTruthDirectiveCandidate(
   candidate: MemoryCandidate,
   sourceMessageContent?: string,
   languageContext?: {
+    analysis?: LanguageContentAnalysis;
     language: LanguageService;
     resolved: ResolvedLanguageContext;
   },
@@ -204,10 +206,12 @@ function normalizeSourceOfTruthDirectiveCandidate(
     return candidate;
   }
 
-  const directive = languageContext.language.analyzeContent(
-    sourceText,
-    languageContext.resolved,
-  ).sourceOfTruthDirective;
+  const directive = languageContext.analysis
+    ? languageContext.analysis.sourceOfTruthDirective
+    : languageContext.language.analyzeContent(
+        sourceText,
+        languageContext.resolved,
+      ).sourceOfTruthDirective;
   if (!directive) {
     return candidate;
   }
@@ -247,6 +251,7 @@ export function normalizeMemoryCandidate(
   candidate: MemoryCandidate,
   sourceMessageContent?: string,
   languageContext?: {
+    analysis?: LanguageContentAnalysis;
     language: LanguageService;
     resolved: ResolvedLanguageContext;
   },

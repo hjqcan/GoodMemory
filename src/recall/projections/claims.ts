@@ -22,7 +22,11 @@ import type {
   ClaimProjectionState,
   ClaimProjectionStatus,
 } from "./contracts";
-import { buildEntityProjectionId, resolveProjectionScope } from "./projector";
+import {
+  buildEntityProjectionId,
+  resolveProjectionLanguageContext,
+  resolveProjectionScope,
+} from "./projector";
 import {
   matchesScopeFilter,
   recallScopeKey,
@@ -459,8 +463,12 @@ export function createClaimProjectionIndex(
     );
   }
 
-  function normalizeClaimObjectText(value: string): string {
-    return value.normalize("NFKC").trim().toLocaleLowerCase("en-US");
+  function normalizeClaimObjectText(claim: ClaimProjection): string {
+    const context = language.resolveFromText({
+      locale: claim.searchLocale,
+      text: claim.objectText,
+    });
+    return language.normalizeForEquality(claim.objectText, context);
   }
 
   async function reconcileStructuredSupersession(
@@ -487,12 +495,12 @@ export function createClaimProjectionIndex(
         const slot = `${claim.subjectEntityId}\u0000${claim.predicateKey}`;
         const open = openBySlot.get(slot) ?? [];
         const nextOpen: ClaimProjection[] = [];
-        const value = normalizeClaimObjectText(claim.objectText);
+        const value = normalizeClaimObjectText(claim);
         for (const older of open) {
           if (
             older.sourceMemoryId !== claim.sourceMemoryId &&
             older.observedAt.localeCompare(claim.observedAt) < 0 &&
-            normalizeClaimObjectText(older.objectText) !== value
+            normalizeClaimObjectText(older) !== value
           ) {
             const { id: _id, ...projectionWithoutId } = older;
             const closedWithoutId: Omit<ClaimProjection, "id"> = {
@@ -616,7 +624,7 @@ export function createClaimProjectionIndex(
         subjectEntityId: claim.subjectEntityId,
       },
     );
-    const newValue = normalizeClaimObjectText(claim.objectText);
+    const newValue = normalizeClaimObjectText(claim);
     const set: Array<{
       collection: string;
       document: StorageDocument;
@@ -636,7 +644,7 @@ export function createClaimProjectionIndex(
         older.validUntil !== undefined ||
         older.polarity !== "positive" ||
         older.observedAt.localeCompare(claim.observedAt) >= 0 ||
-        normalizeClaimObjectText(older.objectText) === newValue
+        normalizeClaimObjectText(older) === newValue
       ) {
         continue;
       }
@@ -742,7 +750,6 @@ export function createClaimProjectionIndex(
         }
       }
       const scopeKey = recallScopeKey(normalized);
-      const sourceLocale = sourceFact.source.locale;
       const claimText = buildClaimProjectionSearchText({
         subject: input.subject,
         predicateKey: input.claim.predicateKey,
@@ -752,10 +759,11 @@ export function createClaimProjectionIndex(
         modality: input.claim.modality ?? "asserted",
         contextualDescriptor: input.contextualDescriptor,
       });
-      const languageContext = language.resolveFromText({
-        ...(sourceLocale ? { locale: sourceLocale } : {}),
-        text: claimText,
-      });
+      const languageContext = resolveProjectionLanguageContext(
+        language,
+        claimText,
+        sourceFact.source,
+      );
       const subjectKey = language.normalizeForEquality(
         input.subject,
         languageContext,
@@ -767,7 +775,7 @@ export function createClaimProjectionIndex(
         )
         : undefined;
       const projectionWithoutId: Omit<ClaimProjection, "id"> = {
-        schemaVersion: 1,
+        schemaVersion: 2,
         ...normalized,
         scopeKey,
         sourceMemoryId: input.sourceMemoryId,
@@ -811,7 +819,7 @@ export function createClaimProjectionIndex(
       };
       const status: ClaimProjectionStatus = {
         id,
-        schemaVersion: 1,
+        schemaVersion: 2,
         ...normalized,
         scopeKey,
         sourceMemoryId: input.sourceMemoryId,
@@ -1150,7 +1158,7 @@ export function createClaimProjectionIndex(
       }
       const status: ClaimProjectionStatus = {
         id,
-        schemaVersion: 1,
+        schemaVersion: 2,
         ...normalized,
         scopeKey: recallScopeKey(normalized),
         sourceMemoryId: input.sourceMemoryId,

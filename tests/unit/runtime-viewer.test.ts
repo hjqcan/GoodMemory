@@ -173,4 +173,21 @@ describe("runtime viewer deprecation adapter", () => {
       "[redacted-secret] [redacted-email]",
     );
   });
+
+  it("redacts built-in language credential labels through LanguagePack analysis", () => {
+    const credentials = [
+      "비밀번호: bridge-secret",
+      "mot de passe : bridge-secret",
+      "contraseña: bridge-secret",
+      "密码：bridge-secret",
+      "密碼：bridge-secret",
+      "パスワード：bridge-secret",
+    ];
+
+    for (const credential of credentials) {
+      expect(redactViewerText(`${credential} owner@example.com`)).toBe(
+        "[redacted-secret] [redacted-email]",
+      );
+    }
+  });
 });

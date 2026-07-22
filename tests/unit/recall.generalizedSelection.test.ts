@@ -188,6 +188,59 @@ describe("generalized production selection", () => {
     expect(result.facts.map(({ id }) => id).sort()).toEqual(["alpha", "beta"]);
   });
 
+  it("diversifies aggregate slot results across source sessions before filling the limit", () => {
+    const facts = [
+      ...Array.from({ length: 6 }, (_, index) =>
+        createFactMemory({
+          category: "project",
+          content: `zor repeated ${index}`,
+          factKind: "open_loop",
+          id: `repeated-${index}`,
+          sessionId: "session-repeated",
+          source: {
+            extractedAt: TIMESTAMP,
+            languagePackId: "xx-sentinel",
+            languagePackVersion: "sentinel-v1",
+            locale: "xx",
+            method: "explicit",
+          },
+          updatedAt: TIMESTAMP,
+          userId: "user-1",
+        })
+      ),
+      createFactMemory({
+        category: "project",
+        content: "zor distinct",
+        factKind: "open_loop",
+        id: "distinct-session",
+        sessionId: "session-distinct",
+        source: {
+          extractedAt: TIMESTAMP,
+          languagePackId: "xx-sentinel",
+          languagePackVersion: "sentinel-v1",
+          locale: "xx",
+          method: "explicit",
+        },
+        updatedAt: TIMESTAMP,
+        userId: "user-1",
+      }),
+    ];
+
+    const result = selectGeneralizedFactsForInternalUse(
+      facts,
+      "zor repeated",
+      createSentinelLanguage({ aggregateCount: true, openLoop: true }),
+      "xx",
+      "general_chat",
+      routingDecision({ requestedSlots: ["open_loop"] }),
+      null,
+      TIMESTAMP,
+    );
+
+    expect(result.facts).toHaveLength(6);
+    expect(result.facts.map(({ id }) => id)).toContain("distinct-session");
+  });
+
   it("uses LanguagePack semantics for reference pre-action selection", () => {
     const fact = createFactMemory({
       category: "project",
@@ -220,6 +273,135 @@ describe("generalized production selection", () => {
     );
 
     expect(result.facts.map(({ id }) => id)).toEqual(["sentinel-guard"]);
+  });
+
+  it("bridges temporal comparisons through short LanguagePack search terms", () => {
+    const facts = [
+      createFactMemory({
+        category: "event",
+        content: "The audit review happened at 10 AM on Thursday.",
+        id: "audit-anchor",
+        sessionId: "session-audit",
+        source: { extractedAt: TIMESTAMP, method: "explicit" },
+        updatedAt: TIMESTAMP,
+        userId: "user-1",
+      }),
+      createFactMemory({
+        category: "event",
+        content: "My ETA was 7 AM on Wednesday.",
+        id: "eta-before-audit",
+        sessionId: "session-eta",
+        source: { extractedAt: TIMESTAMP, method: "explicit" },
+        updatedAt: TIMESTAMP,
+        userId: "user-1",
+      }),
+    ];
+
+    const result = selectGeneralizedFactsForInternalUse(
+      facts,
+      "What was my ETA before the audit review?",
+      createLanguageService(),
+      "en-US",
+      "general_chat",
+      routingDecision(),
+      null,
+      TIMESTAMP,
+    );
+
+    expect(result.facts.map(({ id }) => id)).toEqual([
+      "audit-anchor",
+      "eta-before-audit",
+    ]);
+    expect(
+      result.traces.find(({ memoryId }) => memoryId === "eta-before-audit")
+        ?.fallback,
+    ).toBe("cross_session_lexical_bridge");
+  });
+
+  it("uses structured project intent to admit project facts for aggregate queries", () => {
+    const facts = [
+      createFactMemory({
+        category: "project",
+        content: "Morgan directed the Orion initiative.",
+        factKind: "generic_project",
+        id: "orion-leadership",
+        sessionId: "session-orion",
+        source: { extractedAt: TIMESTAMP, method: "explicit" },
+        updatedAt: TIMESTAMP,
+        userId: "user-1",
+      }),
+      createFactMemory({
+        category: "technical",
+        content: "Taylor directed the Vega initiative.",
+        factKind: "generic_project",
+        id: "vega-leadership",
+        sessionId: "session-vega",
+        source: { extractedAt: TIMESTAMP, method: "explicit" },
+        updatedAt: TIMESTAMP,
+        userId: "user-1",
+      }),
+      createFactMemory({
+        category: "personal",
+        content: "Avery enjoys landscape photography.",
+        id: "personal-noise",
+        sessionId: "session-personal",
+        source: { extractedAt: TIMESTAMP, method: "explicit" },
+        updatedAt: TIMESTAMP,
+        userId: "user-1",
+      }),
+    ];
+
+    const result = selectGeneralizedFactsForInternalUse(
+      facts,
+      "How many projects did I lead?",
+      createLanguageService(),
+      "en-US",
+      "general_chat",
+      routingDecision(),
+      null,
+      TIMESTAMP,
+    );
+
+    expect(result.facts.map(({ id }) => id).sort()).toEqual([
+      "orion-leadership",
+      "vega-leadership",
+    ]);
+  });
+
+  it("does not expand temporal coverage when the query has an explicit date", () => {
+    const facts = [
+      createFactMemory({
+        category: "event",
+        content: "The audit review happened after the release passed.",
+        id: "dated-audit-anchor",
+        sessionId: "session-dated-audit",
+        source: { extractedAt: TIMESTAMP, method: "explicit" },
+        updatedAt: TIMESTAMP,
+        userId: "user-1",
+      }),
+      createFactMemory({
+        category: "event",
+        content: "My ETA was 7 AM.",
+        id: "dated-eta-candidate",
+        sessionId: "session-dated-eta",
+        source: { extractedAt: TIMESTAMP, method: "explicit" },
+        updatedAt: TIMESTAMP,
+        userId: "user-1",
+      }),
+    ];
+
+    const result = selectGeneralizedFactsForInternalUse(
+      facts,
+      "What was my ETA after the 2026-01-01 audit review?",
+      createLanguageService(),
+      "en-US",
+      "general_chat",
+      routingDecision(),
+      null,
+      TIMESTAMP,
+    );
+
+    expect(result.facts.map(({ id }) => id)).toEqual(["dated-audit-anchor"]);
   });
 
   it("uses LanguagePack semantics for user-grounded event ordering", () => {
@@ -399,7 +581,7 @@ describe("generalized production selection", () => {
     expect(result.facts.map(({ id }) => id)).not.toContain("old-role");
   });
 
-  it("uses LanguagePack equality when collapsing cross-script mutable subjects", () => {
+  it("does not select a mutable subject from an incompatible Chinese script", () => {
     const facts = [
       createFactMemory({
         category: "project",
@@ -409,7 +591,7 @@ describe("generalized production selection", () => {
         source: {
           extractedAt: "2026-01-01T00:00:00.000Z",
           languagePackId: "zh-Hant",
-          languagePackVersion: "6-opencc-t2cn-1.4.1",
+          languagePackVersion: "7-script-local",
           locale: "zh-TW",
           method: "explicit",
         },
@@ -425,7 +607,7 @@ describe("generalized production selection", () => {
         source: {
           extractedAt: TIMESTAMP,
           languagePackId: "zh-Hans",
-          languagePackVersion: "6-opencc-t2cn-1.4.1",
+          languagePackVersion: "7-script-local",
           locale: "zh-CN",
           method: "explicit",
         },

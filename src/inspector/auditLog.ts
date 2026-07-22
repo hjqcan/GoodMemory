@@ -2,6 +2,7 @@ import { chmod, mkdir, open, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { isRecord } from "../install/hostConfigValidation";
 import { resolveInstallRoot } from "../install/hostRuntimeConfig";
+import { containsSensitiveCredential } from "../language/sensitive";
 import { redactViewerText } from "./redaction";
 
 // Every mutating Inspector action is appended here before the HTTP response is
@@ -44,11 +45,6 @@ const MAX_INSPECTOR_PREVIEW_CHARS = 160;
 const INSPECTOR_AUDIT_VERSION = 1;
 const MAX_LOCK_ATTEMPTS = 40;
 const LOCK_DELAY_MS = 25;
-// Backstop only — callers redact at the route boundary. Mirrors the writeback
-// secret pattern so an accidental leak here is caught the same way.
-const SECRET_PATTERN =
-  /\b(api[_-]?key|secret|token|password)\b\s*[:=]|sk-[A-Za-z0-9_-]{16,}|ghp_[A-Za-z0-9_]{16,}/iu;
-
 export function inspectorAuditLedgerPath(homeRoot: string | undefined): string {
   return join(resolveInstallRoot(homeRoot), "inspector-audit.json");
 }
@@ -158,7 +154,7 @@ function sanitizeAuditEvent(event: InspectorAuditEvent): InspectorAuditEvent {
 }
 
 function boundedPreview(text: string): string {
-  if (SECRET_PATTERN.test(text)) {
+  if (containsSensitiveCredential(text)) {
     return "[redacted secret-like content]";
   }
   const normalized = redactViewerText(text).replace(/\s+/gu, " ").trim();

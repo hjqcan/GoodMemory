@@ -4,7 +4,8 @@
 > so its gate/eval sections point at the accepted **Phase 40** release-candidate
 > gate. The current release-candidate line is **0.7.0**; the published stable
 > line remains 0.6.0 until the accepted commit is tagged and the stable release
-> workflow publishes it. Current releases follow the documented version-bump recipe plus
+> workflow publishes it. Current releases follow the documented 0.7.x
+> version-bump recipe plus
 > `gate:public-benchmark-claim` and the
 > release-readiness gate rather than the Phase 40 gate. Treat the Phase 40
 > references below as the historical release baseline, and note that later

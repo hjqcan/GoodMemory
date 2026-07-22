@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   createChineseLanguagePack,
+  createEnglishLanguagePack,
   createJapaneseLanguagePack,
   createLanguageService,
   createNeutralLanguagePack,
@@ -107,6 +108,26 @@ describe("language service", () => {
     });
   });
 
+  it("uses Chinese grammar to resolve common-script Han text", () => {
+    expect(createLanguageService().resolveFromText({
+      text: "我在北京工作。我是工程主管。",
+    })).toMatchObject({
+      languagePackId: "zh-Hans",
+      locale: "zh-CN",
+      localeSource: "detected",
+    });
+
+    expect(createLanguageService({
+      defaultLocale: "zh-TW",
+    }).resolveFromText({
+      text: "我在北京工作。我是工程主管。",
+    })).toMatchObject({
+      languagePackId: "zh-Hant",
+      locale: "zh-Hant",
+      localeSource: "detected",
+    });
+  });
+
   it("resolves Traditional Chinese and Japanese without central heuristics", () => {
     const service = createLanguageService();
 
@@ -123,6 +144,58 @@ describe("language service", () => {
     expect(japanese.locale).toBe("ja-JP");
     expect(japanese.languagePackId).toBe("ja");
     expect(japanese.localeSource).toBe("detected");
+  });
+
+  it("resolves Korean, French, and Spanish through their built-in packs", () => {
+    const service = createLanguageService();
+
+    expect(service.resolveFromText({ text: "현재 장애 요인은 무엇인가요?" }))
+      .toMatchObject({
+        languagePackId: "ko",
+        locale: "ko-KR",
+        localeSource: "detected",
+      });
+    expect(service.resolveFromText({ text: "Quel est le blocage actuel ?" }))
+      .toMatchObject({
+        languagePackId: "fr",
+        locale: "fr-FR",
+        localeSource: "detected",
+      });
+    expect(service.resolveFromText({ text: "¿Cuál es el bloqueo actual?" }))
+      .toMatchObject({
+        languagePackId: "es",
+        locale: "es-ES",
+        localeSource: "detected",
+      });
+    expect(service.resolveFromText({ locale: "fr-CA", text: "Atlas" }))
+      .toMatchObject({ languagePackId: "fr", locale: "fr-CA" });
+  });
+
+  it("uses the configured default for unmarked Latin ambiguity", () => {
+    expect(
+      createLanguageService({ defaultLocale: "es-ES" }).resolveFromText({
+        text: "Atlas 42",
+      }),
+    ).toMatchObject({
+      languagePackId: "es",
+      locale: "es-ES",
+      localeSource: "default",
+    });
+  });
+
+  it("recognizes plural English project-state questions", () => {
+    const service = createLanguageService();
+    const context = service.resolveFromText({
+      locale: "en-US",
+      text: "How many projects is Morgan currently leading?",
+    });
+
+    expect(
+      service.analyzeQuery(
+        "How many projects is Morgan currently leading?",
+        context,
+      ).projectState,
+    ).toBe(true);
   });
 
   it("uses the configured default for Han-only ambiguous text", () => {
@@ -192,7 +265,7 @@ describe("language service", () => {
   it("uses neutral semantics for unsupported locales instead of English", () => {
     const service = createLanguageService();
     const resolved = service.resolveFromText({
-      locale: "fr-FR",
+      locale: "de-DE",
       text: "What is the current blocker?",
     });
 
@@ -209,7 +282,7 @@ describe("language service", () => {
     };
     const service = createLanguageService({ packs: [neutral] });
     const resolved = service.resolveFromText({
-      locale: "fr-FR",
+      locale: "de-DE",
       text: "mémoire durable",
     });
 
@@ -305,6 +378,31 @@ describe("language service", () => {
     )).toEqual([]);
   });
 
+  it("maps Japanese project signals to language-independent fact kinds", () => {
+    const service = createLanguageService();
+    const context = service.resolveFromText({ locale: "ja-JP", text: "現在" });
+    let id = 0;
+    const candidates = service.extractCandidates(
+      {
+        locale: context.locale,
+        messages: [
+          { role: "user", content: "覚えておいて、現在のブロッカーは承認待ちです。" },
+          { role: "user", content: "覚えておいて、未完了の対応は監査ログです。" },
+          { role: "user", content: "覚えておいて、現在は移行作業に集中しています。" },
+          { role: "user", content: "覚えておいて、プロジェクトは検証段階です。" },
+        ],
+        nextId: () => `ja-fact-${++id}`,
+      },
+      context,
+    );
+
+    expect(
+      candidates
+        .filter(({ kindHint }) => kindHint === "fact")
+        .map(({ metadata }) => metadata?.factKind),
+    ).toEqual(["blocker", "open_loop", "focus_update", "project_state"]);
+  });
+
   it("exposes a stable, sorted analyzer manifest for persistent projections", () => {
     const service = createLanguageService({
       defaultLocale: "zh-TW",
@@ -317,19 +415,31 @@ describe("language service", () => {
       defaultLocale: "zh-TW",
       detection: "default_only",
       persistable: true,
-      resolutionOrder: ["en", "zh-Hans", "zh-Hant", "ja", "neutral"],
-      resolverVersion: "1",
+      resolutionOrder: [
+        "en",
+        "zh-Hans",
+        "zh-Hant",
+        "ja",
+        "ko",
+        "fr",
+        "es",
+        "neutral",
+      ],
+      resolverVersion: "3",
       schemaVersion: 1,
     });
     expect(manifest.packs.map(({ id }) => id)).toEqual([
       "en",
+      "es",
+      "fr",
       "ja",
+      "ko",
       "neutral",
       "zh-Hans",
       "zh-Hant",
     ]);
     expect(manifest.packs.find(({ id }) => id === "en")).toMatchObject({
-      analyzerVersion: "7",
+      analyzerVersion: "9",
       apiVersion: 1,
       compatibilityGroup: "en",
       defaultLocale: "en-US",
@@ -337,9 +447,9 @@ describe("language service", () => {
     expect(
       manifest.packs.find(({ id }) => id === "zh-Hant"),
     ).toMatchObject({
-      analyzerVersion: "7-opencc-t2cn-1.4.1",
+      analyzerVersion: "10-behavioral-actions",
       apiVersion: 1,
-      compatibilityGroup: "zh",
+      compatibilityGroup: "zh-Hant",
       defaultLocale: "zh-Hant",
       locales: ["zh-Hant", "zh-HK", "zh-MO", "zh-TW"],
     });
@@ -441,6 +551,54 @@ describe("language service", () => {
     ).toThrow("ja-region");
   });
 
+  it("falls back to the configured default when multiple packs detect the same text", () => {
+    const english = createEnglishLanguagePack();
+    const service = createLanguageService({
+      packs: [
+        {
+          ...english,
+          id: "test-it",
+          locales: ["it-IT"],
+          defaultLocale: "it-IT",
+          compatibilityGroup: "test-romance",
+          detect: () => "distinctive",
+        },
+        {
+          ...english,
+          id: "test-de",
+          locales: ["de-DE"],
+          defaultLocale: "de-DE",
+          compatibilityGroup: "test-romance",
+          detect: () => "distinctive",
+        },
+      ],
+    });
+
+    expect(service.resolveFromText({ text: "ambiguous" })).toMatchObject({
+      languagePackId: "en",
+      locale: "en-US",
+      localeSource: "default",
+    });
+  });
+
+  it("deduplicates and caps search terms at the service boundary", () => {
+    const english = createEnglishLanguagePack();
+    const service = createLanguageService({
+      packs: [{
+        ...english,
+        buildSearchTerms: () => Array.from(
+          { length: 300 },
+          (_, index) => `term-${index % 200}`,
+        ),
+      }],
+    });
+    const context = service.resolveFromText({ locale: "en-US", text: "query" });
+
+    expect(service.buildSearchTerms("query", context)).toEqual(
+      Array.from({ length: 128 }, (_, index) => `term-${index}`),
+    );
+  });
+
   it("rejects a pack default locale that does not route back to that pack", () => {
     expect(() =>
       createLanguageService({
@@ -498,6 +656,14 @@ describe("language service", () => {
       },
       id: "xx-test",
       locales: ["xx-Test"],
+      analyzeBehavioralRule() {
+        return {
+          firstActionName: undefined,
+          formatRule: false,
+          generalRule: false,
+          negativeRule: false,
+        };
+      },
       analyzeContent() {
         return {
           assistantAcknowledgement: false,
@@ -513,6 +679,7 @@ describe("language service", () => {
           preferenceEvidence: false,
           projectStateFact: false,
           roleFact: false,
+          sensitiveCredential: false,
           unresolved: false,
         };
       },
@@ -546,9 +713,6 @@ describe("language service", () => {
       parseTemporalExpressions() {
         return [];
       },
-      resolveTemporalReference() {
-        return undefined;
-      },
       render({ key }) {
         return key;
       },
@@ -572,6 +736,9 @@ describe("language service", () => {
       "zh-Hans",
       "zh-Hant",
       "ja",
+      "ko",
+      "fr",
+      "es",
       "neutral",
       "xx-test",
     ]);
@@ -664,44 +831,6 @@ describe("language service", () => {
     expect(service.tokenize("请记住我喜欢中文回复。", resolved)).not.toHaveLength(0);
   });
 
-  it("resolves the day-relative markers advertised by each built-in pack", () => {
-    const service = createLanguageService();
-    const reference = "2026-07-16T15:30:00.000Z";
-    const cases = [
-      ["today", "en", "2026-07-16T00:00:00.000Z"],
-      ["yesterday", "en", "2026-07-15T00:00:00.000Z"],
-      ["tomorrow", "en", "2026-07-17T00:00:00.000Z"],
-      ["前天", "zh-CN", "2026-07-14T00:00:00.000Z"],
-      ["后天", "zh-CN", "2026-07-18T00:00:00.000Z"],
-      ["一昨日", "ja-JP", "2026-07-14T00:00:00.000Z"],
-      ["明後日", "ja-JP", "2026-07-18T00:00:00.000Z"],
-    ] as const;
-
-    for (const [text, locale, expected] of cases) {
-      expect(service.resolveTemporalReference(text, reference, locale)).toBe(
-        expected,
-      );
-    }
-  });
-
-  it("resolves the period-relative markers advertised by each built-in pack", () => {
-    const service = createLanguageService();
-    const reference = "2026-07-16T15:30:00.000Z";
-    const cases = [
-      ["next week", "en", "2026-07-23T00:00:00.000Z"],
-      ["this quarter", "en", "2026-07-01T00:00:00.000Z"],
-      ["下季度", "zh-CN", "2026-10-01T00:00:00.000Z"],
-      ["来月", "ja-JP", "2026-08-01T00:00:00.000Z"],
-      ["来年", "ja-JP", "2027-01-01T00:00:00.000Z"],
-    ] as const;
-
-    for (const [text, locale, expected] of cases) {
-      expect(service.resolveTemporalReference(text, reference, locale)).toBe(
-        expected,
-      );
-    }
-  });
-
   it("delegates entity alias matching to the active language pack", () => {
     const service = createLanguageService();
 
@@ -763,19 +892,41 @@ describe("language service", () => {
     ).toEqual({ currentPointer: "docs/current.md" });
   });
 
-  it("uses one canonical identity and symmetric search terms across Chinese scripts", () => {
+  it("keeps localized credential labels inside content analysis", () => {
+    const service = createLanguageService();
+
+    expect(service.analyzeContent("password: ordinary-value", "en-US").sensitiveCredential)
+      .toBe(true);
+    expect(service.analyzeContent("密碼：ordinary-value", "zh-TW").sensitiveCredential)
+      .toBe(true);
+    expect(service.analyzeContent("密码：ordinary-value", "zh-CN").sensitiveCredential)
+      .toBe(true);
+    expect(service.analyzeContent("パスワード: ordinary-value", "ja-JP").sensitiveCredential)
+      .toBe(true);
+    expect(service.analyzeContent("비밀번호: ordinary-value", "ko-KR").sensitiveCredential)
+      .toBe(true);
+    expect(service.analyzeContent("mot de passe : ordinary-value", "fr-FR").sensitiveCredential)
+      .toBe(true);
+    expect(service.analyzeContent("contraseña: ordinary-value", "es-ES").sensitiveCredential)
+      .toBe(true);
+    expect(service.analyzeContent("token budgeting is useful", "en-US").sensitiveCredential)
+      .toBe(false);
+  });
+
+  it("keeps Chinese equality and search terms local to each script", () => {
     const service = createLanguageService();
     const simplified = "数据库迁移";
     const traditional = "資料庫遷移";
 
-    expect(service.normalizeForEquality(simplified, "zh-CN")).toBe(
+    expect(service.normalizeForEquality(simplified, "zh-CN")).not.toBe(
       service.normalizeForEquality(traditional, "zh-TW"),
     );
     expect(
       service.buildSearchTerms(simplified, "zh-CN").some((term) =>
         service.buildSearchTerms(traditional, "zh-TW").includes(term)
       ),
-    ).toBe(true);
+    ).toBe(false);
+    expect(service.localesCompatible("zh-CN", "zh-TW")).toBe(false);
   });
 
   it("keeps short English content tokens such as acronyms and codes", () => {
@@ -796,6 +947,20 @@ describe("language service", () => {
     const rawTokens = service.tokenize("RL and AI work in SF.", resolved);
     expect(rawTokens).toContain("and");
     expect(rawTokens).toContain("in");
+  });
+
+  it("filters English contraction function words from content tokens", () => {
+    const service = createLanguageService();
+    const resolved = service.resolveFromText({
+      locale: "en-US",
+      text: "I'm writing about it.",
+    });
+
+    expect(
+      service.tokenize("I'm writing about it.", resolved, {
+        excludeStopwords: true,
+      }),
+    ).toEqual(["writing"]);
   });
 
   it("keeps the naive overlap signal on its calibrated length floor", () => {

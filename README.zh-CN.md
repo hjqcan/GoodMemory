@@ -4,6 +4,11 @@
 
 GoodMemory 是面向 AI 产品和 coding agent 的记忆层。
 
+> **发布状态：**当前分支是 `0.7.0` release candidate；在带 tag 的稳定发布
+> workflow 真正发布 0.7.0 之前，npm `latest` 仍是 `0.6.0`。下文锁定
+> 0.7.0 的 registry 命令是发布后的契约；发布前请使用本地打包的
+> `goodmemory-0.7.0.tgz` 验证。
+
 它为 chat app、copilot 和 agent host 提供一条可审计的用户/项目记忆闭环：
 选择性写入事实，检索正确上下文，注入下一轮对话，记录发生过什么，并在记忆错误时删除。
 
@@ -39,8 +44,9 @@ GoodMemory 把「当前生产声明」「带版本的历史证据」和「内部
 独立 marker 和源文件指纹，复现仍需要取得对应原始 artifact，且不能满足当前版本 gate。
 
 Phase 72 的 benchmark gate 和带版本 release gate 仍是 `v0.6.0` 的有效历史证据。
-`v0.7.0` 改变了 LanguagePack 与召回语义；在新版本完成同等 fresh run 之前，当前声明表
-保持为空。
+下面三行保留明确披露 profile 的 0.6 public-opt-in 结果。由于 `v0.7.0` 改变了
+LanguagePack 与召回语义，它们对 0.7 包而言只是历史证据，不是 0.7 性能声明，也不代表
+零 provider 默认路径；在新版本完成同等 fresh run 之前，当前声明表保持为空。
 LongMemEval 的新 verifier 结果与 ImplicitMemBench 的 retry-merged 结果仍属于内部
 证据，因为前者是 eval-only 路径，后者不能替代一次全新的单体 Full-300 运行。
 HaluMem、MemGym 与 MINTEval 继续作为 release evidence，不进入公开 benchmark 声明。
@@ -521,9 +527,9 @@ async function callYourModel(input: {
 
 ### Locale 与 LanguagePack
 
-内置语言包覆盖英文、简体中文、繁体中文（`zh-TW`/`zh-HK`/`zh-MO`）和日文。
-host 已知 locale 时应显式传入；未传入时会自动检测，而纯汉字等歧义文本会回退到
-`defaultLocale`，不会猜测脚本。
+内置语言包覆盖英文、简体中文、繁体中文（`zh-TW`/`zh-HK`/`zh-MO`）、日文、
+韩文、法文和西班牙文。host 已知 locale 时应显式传入；未传入时会自动检测，而
+纯汉字或没有语言标记的拉丁字母文本会回退到 `defaultLocale`，不会强行猜测。
 
 ```ts
 const multilingualMemory = createGoodMemory({
@@ -534,15 +540,18 @@ const multilingualMemory = createGoodMemory({
 });
 
 await multilingualMemory.remember({
-  locale: "ja-JP",
+  locale: "ko-KR",
   scope,
-  messages: [{ role: "user", content: "現在の役割はリリース責任者です。" }],
+  messages: [{ role: "user", content: "현재 역할은 릴리스 책임자입니다." }],
 });
 ```
 
 新增语言需要实现一个完整的 `LanguagePack`，不能在各模块继续添加 locale 分支。
 完整契约、自定义注册、analyzer 版本与 projection 迁移规则见
 [LanguagePack 扩展指南](./docs/GoodMemory-LanguagePack-Extension-Guide.md)。
+
+从旧 adapter/projection 契约升级是有意的 breaking change，请按
+[0.6 到 0.7 迁移指南](./docs/GoodMemory-0.6-to-0.7-Migration-Guide.md)执行。
 
 生产应用接入时，推荐的 turn loop 会在这个核心闭环外增加受治理的
 runtime 层：
@@ -1094,6 +1103,9 @@ bun test
 bun run typecheck
 bun run test:coverage
 ```
+
+0.7 发布前用 `bun run gate:v0.7 --strict` 统一验证 package、coverage、
+runtime consumer、体积与 benchmark 版本溯源。
 
 只有当你明确需要覆盖 vendored 或 third-party test trees 时，才使用 `bun run test:all`。
 

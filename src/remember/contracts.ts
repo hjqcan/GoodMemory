@@ -129,6 +129,7 @@ export interface RememberWriteContext {
   input: MemoryExtractionInput;
   candidateLanguage: ResolvedLanguageContext;
   language: LanguageService;
+  storedLanguageContexts: Map<string, ResolvedLanguageContext>;
   policyContext: PolicyContext;
   repositories: RememberRepositoryPort;
   vectorIndex: RememberVectorPort | null;

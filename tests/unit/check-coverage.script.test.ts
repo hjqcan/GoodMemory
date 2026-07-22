@@ -25,6 +25,7 @@ function buildCoverageRecords(
     "src/ai-sdk/example.ts": { found: 10, covered: 10 },
     "src/host/example.ts": { found: 10, covered: 10 },
     "src/install/example.ts": { found: 10, covered: 10 },
+    "src/language/example.ts": { found: 10, covered: 10 },
     "src/cli.ts": { found: 10, covered: 10 },
     "scripts/run-eval.ts": { found: 20, covered: 19 },
     "scripts/summarize-eval.ts": { found: 31, covered: 25 },
@@ -76,10 +77,21 @@ describe("check-coverage script", () => {
       "src/install/hostMcpServer.ts",
     );
     expect(evaluateCoverage(records).failures).toEqual([
-      "overall deterministic line coverage 7.98% < 90.00%",
+      "overall deterministic line coverage 8.40% < 90.00%",
       "src/install line coverage 0.99% < 80.00%",
       "src/cli.ts line coverage 0.00% < 85.00%",
     ]);
+  });
+
+  it("fails independently when the language package coverage drops below its threshold", () => {
+    const records = buildCoverageRecords({
+      "src/language/example.ts": { found: 100, covered: 84 },
+    });
+
+    expect(GROUPS.find((group) => group.name === "src/language")?.threshold).toBe(85);
+    expect(evaluateCoverage(records).failures).toContain(
+      "src/language line coverage 84.00% < 85.00%",
+    );
   });
 
   it("merges repeated lcov records using line-level coverage union", () => {
@@ -128,7 +140,7 @@ describe("check-coverage script", () => {
 
     const result = evaluateCoverage(records);
     expect(result.failures).toContain(
-      "overall deterministic line coverage 80.41% < 90.00%",
+      "overall deterministic line coverage 81.06% < 90.00%",
     );
   });
 });

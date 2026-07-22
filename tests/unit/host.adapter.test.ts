@@ -418,9 +418,9 @@ describe("host adapter contract", () => {
     expect(first.artifacts).toHaveLength(1);
     expect(first.artifacts[0]?.relativePath).toBe("session-memory/s-1.md");
     expect(first.artifacts[0]?.content).toContain("# Session Handoff: s-1");
-    expect(first.artifacts[0]?.content).toContain("## Current Goal");
+    expect(first.artifacts[0]?.content).toContain("## Current goal");
     expect(first.artifacts[0]?.content).toContain("Finish recall engine");
-    expect(first.artifacts[0]?.content).toContain("## Open Loops");
+    expect(first.artifacts[0]?.content).toContain("## Open loops");
     expect(first.artifacts[0]?.content).toContain("wire buildContext output");
     expect(first.artifacts[0]?.content).toContain("## Recent Decisions");
     expect(first.artifacts[0]?.content).toContain("Use the rollback checklist before deploy.");
@@ -447,6 +447,37 @@ describe("host adapter contract", () => {
 
     expect(second.artifacts[0]?.content).toContain("Ship host adapter");
     expect(second.artifacts[0]?.content).not.toContain("Finish recall engine");
+  });
+
+  it("renders Japanese session handoff labels through the configured language pack", async () => {
+    const adapter = createHostAdapter({
+      id: "codex-japanese-session-handoff",
+      hostKind: "codex",
+      readableArtifactTypes: ["session_memory"],
+      memory: {
+        async exportMemory() {
+          return createCodingAgentExportResult("リコールエンジンを完成する");
+        },
+      },
+    });
+
+    const result = await adapter.readArtifacts({
+      scope: {
+        userId: "u-1",
+        workspaceId: "ws-1",
+        sessionId: "s-1",
+      },
+      includeRuntime: true,
+      locale: "ja-JP",
+    });
+    const content = result.artifacts[0]?.content;
+
+    expect(content).toContain("# セッション引き継ぎ: s-1");
+    expect(content).toContain("## 現在の目標");
+    expect(content).toContain("## 未完了事項");
+    expect(content).toContain("## 最近の決定");
+    expect(content).toContain("## 主要ファイル");
+    expect(content).toContain("## 手順メモリ");
   });
 
   it("keeps session handoff projections limited to active references and procedural memory", async () => {

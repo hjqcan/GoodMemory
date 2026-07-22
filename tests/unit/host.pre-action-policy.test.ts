@@ -239,16 +239,19 @@ describe("host pre-action policy", () => {
     expect(result.auditRecorded).toBe(false);
     expect(result.matchedMemoryIds).toEqual(["feedback-1"]);
     expect(result.matchedEvidenceIds).toContain("evidence-1");
-    expect(result.requiredPreconditions).toEqual(["run smoke verification"]);
+    expect(result.requiredPreconditions).toEqual([
+      "Before deploy, run smoke verification.",
+    ]);
     expect(result.recommendedFirstStep).toEqual({
       kind: "warning",
-      message: "run smoke verification",
+      message: "Before deploy, run smoke verification.",
     });
   });
 
   it.each([
     {
       expectedPrecondition: "執行 git push 前不要略過驗證。",
+      expectedReason: "指令: 執行 git push 前不要略過驗證。",
       id: "traditional-chinese",
       locale: "zh-TW",
       rule: "執行 git push 前不要略過驗證。",
@@ -256,12 +259,15 @@ describe("host pre-action policy", () => {
     {
       expectedPrecondition:
         "git push を実行する前に、検証せず実行しないでください。",
+      expectedReason:
+        "指示: git push を実行する前に、検証せず実行しないでください。",
       id: "japanese",
       locale: "ja-JP",
       rule: "git push を実行する前に、検証せず実行しないでください。",
     },
   ])("applies $id negative pre-action policies with localized preconditions", async ({
     expectedPrecondition,
+    expectedReason,
     locale,
     rule,
   }) => {
@@ -316,6 +322,11 @@ describe("host pre-action policy", () => {
     expect(result.decision).toBe("review_required");
     expect(result.matchedMemoryIds).toEqual([`feedback-${locale}`]);
     expect(result.requiredPreconditions).toEqual([expectedPrecondition]);
+    expect(result.reason).toBe(expectedReason);
+    expect(result.recommendedFirstStep).toEqual({
+      kind: "warning",
+      message: expectedPrecondition,
+    });
   });
 
   it("does not match an unrelated localized policy to a high-risk command", async () => {
@@ -516,6 +527,11 @@ describe("host pre-action policy", () => {
           feedbackKind: text.includes("sentinel-policy") ? "dont" : "do",
         };
       },
+      render(input) {
+        return input.key === "instruction"
+          ? "sentinel-instruction"
+          : english.render(input);
+      },
       tokenizeForScoring(text, mode, options) {
         if (/sentinel-policy|opaque-action/u.test(text)) {
           return ["custom-shared-token"];
@@ -575,6 +591,11 @@ describe("host pre-action policy", () => {
 
     expect(result.decision).toBe("review_required");
     expect(result.matchedMemoryIds).toEqual(["feedback-custom-language"]);
+    expect(result.reason).toBe("sentinel-instruction: sentinel-policy");
+    expect(result.recommendedFirstStep).toEqual({
+      kind: "warning",
+      message: "sentinel-policy",
+    });
   });
 
   it("rewrites to an executable QuickCheck path when the original command resolves a sibling executable", async () => {
@@ -638,12 +659,15 @@ describe("host pre-action policy", () => {
     });
 
     expect(result.decision).toBe("review_required");
-    expect(result.requiredPreconditions).toEqual(["run QuickCheck first"]);
+    expect(result.requiredPreconditions).toEqual([
+      "Rather than DeepAnalyzer, use QuickCheck first.",
+    ]);
     expect(result.recommendedFirstStep).toEqual({
       kind: "tool_call",
       toolName: "QuickCheck",
       raw: "./tools/QuickCheck",
-      summary: "Run QuickCheck before the original action.",
+      summary:
+        "Instruction: Rather than DeepAnalyzer, use QuickCheck first.",
     });
   });
 
@@ -708,11 +732,113 @@ describe("host pre-action policy", () => {
     });
 
     expect(result.decision).toBe("review_required");
-    expect(result.requiredPreconditions).toEqual(["run QuickCheck first"]);
+    expect(result.requiredPreconditions).toEqual([
+      "Rather than DeepAnalyzer, use QuickCheck first.",
+    ]);
     expect(result.recommendedFirstStep).toEqual({
       kind: "warning",
-      message: "run QuickCheck first",
+      message: "Rather than DeepAnalyzer, use QuickCheck first.",
     });
+  });
+
+  it("enforces QuickCheck-first policies through every built-in language", async () => {
+    const cases = [
+      {
+        instruction: "Instruction",
+        locale: "en-US",
+        rule: "For DeepAnalyzer, run QuickCheck first.",
+      },
+      {
+        instruction: "指令",
+        locale: "zh-CN",
+        rule: "使用 DeepAnalyzer 深入分析时，请先运行 QuickCheck。",
+      },
+      {
+        instruction: "指令",
+        locale: "zh-TW",
+        rule: "使用 DeepAnalyzer 深入分析時，請先執行 QuickCheck。",
+      },
+      {
+        instruction: "指示",
+        locale: "ja-JP",
+        rule: "DeepAnalyzer の詳細分析では、まず QuickCheck を実行してください。",
+      },
+      {
+        instruction: "명령",
+        locale: "ko-KR",
+        rule: "DeepAnalyzer 심층 분석에서는 QuickCheck를 먼저 실행하세요.",
+      },
+      {
+        instruction: "Instruction",
+        locale: "fr-FR",
+        rule: "Pour DeepAnalyzer, exécutez d’abord QuickCheck.",
+      },
+      {
+        instruction: "Instrucción",
+        locale: "es-ES",
+        rule: "Para DeepAnalyzer, ejecuta primero QuickCheck.",
+      },
+    ] as const;
+
+    for (const { instruction, locale, rule } of cases) {
+      const source = createMemorySource({
+        extractedAt: "2026-04-22T00:00:00.000Z",
+        locale,
+        localeSource: "explicit",
+        method: "explicit",
+        sessionId: "s-1",
+      });
+      const adapter = createHostAdapter({
+        hostKind: "codex",
+        id: `codex-${locale}`,
+        memory: {
+          async exportMemory() {
+            return createExportResult({
+              feedback: [
+                createFeedbackMemory({
+                  appliesTo: "coding_agent",
+                  id: `feedback-${locale}`,
+                  kind: "validated_pattern",
+                  rule,
+                  sessionId: "s-1",
+                  source,
+                  userId: "u-1",
+                  workspaceId: "ws-1",
+                }),
+              ],
+            });
+          },
+        },
+      });
+
+      const result = await adapter.assessAction({
+        action: {
+          command: "./tools/DeepAnalyzer --detailed",
+          kind: "command",
+        },
+        actionId: `action-${locale}`,
+        hostKind: "codex",
+        occurredAt: "2026-04-22T00:00:00.000Z",
+        runId: "run-1",
+        scope: {
+          sessionId: "s-1",
+          userId: "u-1",
+          workspaceId: "ws-1",
+        },
+        sequence: 0,
+        turnId: "turn-1",
+      });
+
+      expect(result.decision, locale).toBe("review_required");
+      expect(result.requiredPreconditions, locale).toEqual([rule]);
+      expect(result.reason, locale).toBe(`${instruction}: ${rule}`);
+      expect(result.recommendedFirstStep, locale).toEqual({
+        kind: "tool_call",
+        raw: "./tools/QuickCheck",
+        summary: `${instruction}: ${rule}`,
+        toolName: "QuickCheck",
+      });
+    }
   });
 
   it("prioritizes typed first-action policy over generic host guidance and preserves exact first action", async () => {
@@ -799,7 +925,8 @@ describe("host pre-action policy", () => {
     expect(result.recommendedFirstStep).toEqual({
       kind: "tool_call",
       raw: "QuickCheck --network",
-      summary: "Use the canonical first action from validated behavioral policy.",
+      summary:
+        "Instruction: If the prompt mentions detailed analysis, use QuickCheck --network before DeepAnalyzer.",
       toolName: "QuickCheck",
     });
   });

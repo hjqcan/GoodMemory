@@ -22,6 +22,44 @@ async function createWorkspace(prefix: string): Promise<string> {
 }
 
 describe("host install", () => {
+  it("persists and canonicalizes the installed host default locale", async () => {
+    const homeRoot = await createWorkspace("goodmemory-host-install-locale-");
+
+    try {
+      const installed = await installHost({
+        homeRoot,
+        host: "codex",
+        language: { defaultLocale: "zh-tw" },
+      });
+      const config = JSON.parse(
+        await readFile(join(homeRoot, ".goodmemory/codex.json"), "utf8"),
+      ) as { language?: { defaultLocale?: string } };
+
+      expect(installed.language).toEqual({ defaultLocale: "zh-TW" });
+      expect(config.language).toEqual({ defaultLocale: "zh-TW" });
+    } finally {
+      await rm(homeRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects an invalid installed host default locale before writing config", async () => {
+    const homeRoot = await createWorkspace("goodmemory-host-install-invalid-locale-");
+
+    try {
+      await expect(
+        installHost({
+          homeRoot,
+          host: "codex",
+          language: { defaultLocale: "not_a_locale" },
+        }),
+      ).rejects.toThrow("default locale");
+      await expect(
+        readFile(join(homeRoot, ".goodmemory/codex.json"), "utf8"),
+      ).rejects.toThrow();
+    } finally {
+      await rm(homeRoot, { force: true, recursive: true });
+    }
+  });
   it("fails closed when the existing global managed config is not valid JSON", async () => {
     const homeRoot = await createWorkspace("goodmemory-host-install-invalid-");
 
@@ -1771,6 +1809,131 @@ describe("host install", () => {
       await rm(homeRoot, { force: true, recursive: true });
       await rm(claudeWorkspace, { force: true, recursive: true });
       await rm(codexWorkspace, { force: true, recursive: true });
+    }
+  });
+
+  it("renders managed Codex instructions with the installed Traditional Chinese pack", async () => {
+    const homeRoot = await createWorkspace("goodmemory-host-install-hant-");
+    const workspaceRoot = await createWorkspace("goodmemory-host-install-hant-ws-");
+
+    try {
+      await installHost({
+        homeRoot,
+        host: "codex",
+        language: { defaultLocale: "zh-TW" },
+        userId: "hant-user",
+      });
+      await enableHostWorkspace({
+        homeRoot,
+        host: "codex",
+        workspaceRoot,
+      });
+
+      const instructions = await readFile(join(workspaceRoot, "AGENTS.md"), "utf8");
+      expect(instructions).toContain("<!-- GOODMEMORY-INSTALL:CODEX START -->");
+      expect(instructions).toContain("此儲存庫使用 GoodMemory");
+      expect(instructions).toContain("記憶協定：");
+      expect(instructions).toContain("goodmemory_get_context");
+      expect(instructions).toContain("goodmemory_search_index");
+      expect(instructions).toContain("goodmemory_get_records");
+      expect(instructions).toContain("goodmemory_trace_recall");
+      expect(instructions).toContain("goodmemory_remember");
+      expect(instructions).not.toContain("Memory protocol:");
+      expect(instructions).toContain("<!-- GOODMEMORY-INSTALL:CODEX END -->");
+    } finally {
+      await rm(homeRoot, { force: true, recursive: true });
+      await rm(workspaceRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("refreshes managed Claude instructions with the effective installed Japanese pack", async () => {
+    const homeRoot = await createWorkspace("goodmemory-host-install-ja-");
+    const workspaceRoot = await createWorkspace("goodmemory-host-install-ja-ws-");
+
+    try {
+      await installHost({
+        homeRoot,
+        host: "claude",
+        userId: "ja-user",
+      });
+      await enableHostWorkspace({
+        homeRoot,
+        host: "claude",
+        workspaceRoot,
+      });
+      await installHost({
+        homeRoot,
+        host: "claude",
+        language: { defaultLocale: "ja-JP" },
+        userId: "ja-user",
+      });
+      const refreshed = await enableHostWorkspace({
+        homeRoot,
+        host: "claude",
+        workspaceRoot,
+      });
+
+      const instructions = await readFile(join(workspaceRoot, "CLAUDE.md"), "utf8");
+      expect(refreshed.changes[1]?.action).toBe("updated");
+      expect(instructions).toContain("<!-- GOODMEMORY-INSTALL:CLAUDE START -->");
+      expect(instructions).toContain("このリポジトリは");
+      expect(instructions).toContain("メモリプロトコル:");
+      expect(instructions).toContain("goodmemory_get_context");
+      expect(instructions).toContain("goodmemory_trace_recall");
+      expect(instructions).toContain("goodmemory_remember");
+      expect(instructions).toContain("MEMORY.md");
+      expect(instructions).not.toContain("Memory protocol:");
+      expect(instructions).toContain("<!-- GOODMEMORY-INSTALL:CLAUDE END -->");
+    } finally {
+      await rm(homeRoot, { force: true, recursive: true });
+      await rm(workspaceRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("renders managed instructions through the Korean, French, and Spanish packs", async () => {
+    const cases = [
+      {
+        intro: "이 저장소는",
+        locale: "ko-KR",
+        protocol: "메모리 프로토콜:",
+      },
+      {
+        intro: "Ce dépôt utilise",
+        locale: "fr-FR",
+        protocol: "Protocole de mémoire :",
+      },
+      {
+        intro: "Este repositorio usa",
+        locale: "es-ES",
+        protocol: "Protocolo de memoria:",
+      },
+    ] as const;
+
+    for (const entry of cases) {
+      const homeRoot = await createWorkspace("goodmemory-host-install-language-");
+      const workspaceRoot = await createWorkspace(
+        "goodmemory-host-install-language-ws-",
+      );
+      try {
+        await installHost({
+          homeRoot,
+          host: "codex",
+          language: { defaultLocale: entry.locale },
+          userId: `user-${entry.locale}`,
+        });
+        await enableHostWorkspace({ homeRoot, host: "codex", workspaceRoot });
+
+        const instructions = await readFile(
+          join(workspaceRoot, "AGENTS.md"),
+          "utf8",
+        );
+        expect(instructions).toContain(entry.intro);
+        expect(instructions).toContain(entry.protocol);
+        expect(instructions).not.toContain("Memory protocol:");
+      } finally {
+        await rm(homeRoot, { force: true, recursive: true });
+        await rm(workspaceRoot, { force: true, recursive: true });
+      }
     }
   });
 });

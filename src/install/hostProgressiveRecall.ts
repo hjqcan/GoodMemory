@@ -3,6 +3,11 @@ import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { HostKind } from "../domain/hostTypes";
 import type {
+  GoodMemory,
+} from "../api/contracts";
+import { readGoodMemoryIntegrationSupport } from "../api/integrationSupport";
+import { createLanguageService } from "../language";
+import type {
   HostMemoryRuntimeContext,
   InstalledHostContextDependencies,
 } from "./hostExecutionContext";
@@ -38,9 +43,16 @@ export async function createInstalledHostProgressiveRecallService(input: {
   context: HostMemoryRuntimeContext;
   dependencies?: InstalledHostContextDependencies;
   homeRoot?: string;
+  memory?: GoodMemory;
 }): Promise<ProgressiveRecallService> {
+  const memory = input.memory ?? createInstalledHostMemory(
+    input.context,
+    input.dependencies,
+  );
   return createProgressiveRecallService({
-    memory: createInstalledHostMemory(input.context, input.dependencies),
+    language: readGoodMemoryIntegrationSupport(memory)?.language ??
+      createLanguageService(input.context.language),
+    memory,
     scopeDigestSecret: await resolveInstalledHostProgressiveScopeDigestSecret({
       context: input.context,
       homeRoot: input.homeRoot,

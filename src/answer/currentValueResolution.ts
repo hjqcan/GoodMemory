@@ -20,13 +20,6 @@
 // `resolveCurrentValue` resolves the current value deterministically over a set
 // of already-grouped candidate entries about one fact, with no model in the loop.
 
-// A denial / negation signal, mirrored from the contradiction patterns in
-// the eval protocol reader so the two paths classify negations consistently. Kept local
-// (rather than imported) to keep this primitive dependency-free and leave the
-// accepted answer pipeline untouched.
-const DENIAL_PATTERN =
-  /\b(?:deny|denied|denies|never|no\b|not\s+yet|not\s+actually|isn't|aren't|wasn't|weren't|doesn't|don't|didn't|haven't|have\s+not|hasn't|has\s+not|hadn't|won't|cancel(?:l?ed|s)?|stopped|no\s+longer|without)\b/iu;
-
 /**
  * A single candidate entry about ONE fact/attribute, as retrieved. Group your
  * candidates by subject/attribute before calling {@link resolveCurrentValue}
@@ -37,6 +30,8 @@ const DENIAL_PATTERN =
  */
 export interface CurrentValueEntry {
   content: string;
+  /** LanguagePack-derived polarity. The answer domain never parses language. */
+  polarity: "negative" | "positive" | "unknown";
   /** Source order. Higher = later. May be a chat index, chunk ordinal, or write sequence. */
   orderKey: number;
   /** Optional ISO timestamp (or any parseable/comparable string) used only to break `orderKey` ties. */
@@ -63,10 +58,6 @@ export interface CurrentValueResolution {
    */
   contradiction: boolean;
   reason: CurrentValueReason;
-}
-
-function isDenial(content: string): boolean {
-  return DENIAL_PATTERN.test(content);
 }
 
 function compareTimeAnchors(left?: string, right?: string): number {
@@ -127,8 +118,11 @@ export function resolveCurrentValue(
   }
 
   const contradiction =
-    isDenial(current.content) &&
-    history.some((entry) => !isDenial(entry.content) && entry.content.trim().length > 0);
+    current.polarity === "negative" &&
+    history.some(
+      (entry) =>
+        entry.polarity === "positive" && entry.content.trim().length > 0,
+    );
 
   return {
     current,

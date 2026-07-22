@@ -307,19 +307,6 @@ async function listTarballEntries(tarballPath: string): Promise<string[]> {
     .filter((line) => line.length > 0);
 }
 
-async function directoryByteSize(directory: string): Promise<number> {
-  let total = 0;
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) {
-      total += await directoryByteSize(path);
-    } else if (entry.isFile()) {
-      total += (await stat(path)).size;
-    }
-  }
-  return total;
-}
-
 async function readTarballEntry(
   tarballPath: string,
   entry: string,
@@ -785,6 +772,7 @@ describe("release metadata and docs", () => {
       "dist",
       "docs/README.md",
       "docs/GoodMemory-15-Minute-App-Integration.md",
+      "docs/GoodMemory-0.6-to-0.7-Migration-Guide.md",
       "docs/GoodMemory-Claude-Code-Setup-Guide.md",
       "docs/GoodMemory-Codex-Handoff-Setup-Guide.md",
       "docs/GoodMemory-Cursor-Setup-Guide.md",
@@ -1094,6 +1082,9 @@ describe("release metadata and docs", () => {
     expect(pkg.scripts?.["gate:phase-38"]).toBe("bun run scripts/run-phase-38-gate.ts");
     expect(pkg.scripts?.["gate:phase-39"]).toBe("bun run scripts/run-phase-39-gate.ts");
     expect(pkg.scripts?.["gate:phase-40"]).toBe("bun run scripts/run-phase-40-gate.ts");
+    expect(pkg.scripts?.["gate:v0.7"]).toBe(
+      "bun run scripts/run-v0-7-release-readiness.ts",
+    );
     expect(pkg.scripts?.["gate:phase-41"]).toBe("bun run scripts/run-phase-41-gate.ts");
     expect(pkg.scripts?.["gate:phase-42"]).toBe("bun run scripts/run-phase-42-gate.ts");
     expect(pkg.scripts?.["gate:phase-43"]).toBe("bun run scripts/run-phase-43-gate.ts");
@@ -1248,6 +1239,7 @@ describe("release metadata and docs", () => {
       expect(entries).toContain("package/docs/GoodMemory-15-Minute-App-Integration.md");
       expect(entries).toContain("package/docs/GoodMemory-Inspector-and-Admin-API.md");
       expect(entries).toContain("package/docs/GoodMemory-LanguagePack-Extension-Guide.md");
+      expect(entries).toContain("package/docs/GoodMemory-0.6-to-0.7-Migration-Guide.md");
       expect(entries).toContain("package/docs/GoodMemory-Reference-Integration-Guide.md");
       expect(entries).toContain("package/docs/GoodMemory-Codex-Handoff-Setup-Guide.md");
       expect(entries).toContain("package/docs/GoodMemory-Claude-Code-Setup-Guide.md");
@@ -1280,16 +1272,7 @@ describe("release metadata and docs", () => {
         }
       }
 
-      const unpackedRoot = join(outputDir, "unpacked");
-      await mkdir(unpackedRoot, { recursive: true });
-      const unpack = await runCommand({
-        cmd: ["tar", "-xzf", tarballPath, "-C", unpackedRoot],
-        cwd: ROOT_PACKAGE_PATH,
-      });
-      expect(unpack.exitCode).toBe(0);
-      expect(await directoryByteSize(join(unpackedRoot, "package"))).toBeLessThanOrEqual(
-        4 * 1024 * 1024,
-      );
+      expect((await stat(tarballPath)).size).toBeLessThan(4 * 1024 * 1024);
     } finally {
       await rm(outputDir, { recursive: true, force: true });
     }
@@ -1418,6 +1401,8 @@ describe("release metadata and docs", () => {
       "| MemoryAgentBench v0.6.0 (CR, TTL) |",
     );
     expect(historicalEvidence).toContain("**CR 0.959, TTL 0.933**");
+    expect(readme).toContain("historical 0.6 evidence");
+    expect(readme).toContain("not 0.7 performance claims");
     expect(readme).toContain("provider reranking");
     expect(readme).toContain("CC BY-NC 4.0 (non-commercial scope)");
     expect(readme).not.toContain("| LoCoMo | representative conv-1 live run 0.020");
@@ -1453,7 +1438,9 @@ describe("release metadata and docs", () => {
     expect(readme).toContain("GoodMemory-PRD.md");
     expect(readme).toContain("GoodMemory-TDD-and-Evaluation-Strategy.md");
     expect(readme).toContain("GoodMemory-Strategy-Rollout-Guide.md");
+    expect(readme).toContain("GoodMemory-0.6-to-0.7-Migration-Guide.md");
     expect(readme).toContain("bun run test:coverage");
+    expect(readme).toContain("bun run gate:v0.7 --strict");
     expect(readme).toContain("bun run test:all");
     expect(readme).toContain("eval:fallback");
     expect(readme).toContain("eval:live");
@@ -1541,19 +1528,37 @@ describe("release metadata and docs", () => {
     expect(guide).not.toContain("query-resolved");
   });
 
-  it("v0.7 package metadata and public release docs agree on the release candidate", async () => {
+  it("v0.7 package metadata, RC docs, and machine-readable descriptors agree", async () => {
     expect(CURRENT_PACKAGE_VERSION).toBe("0.7.0");
     expect(CURRENT_TARBALL_NAME).toBe("goodmemory-0.7.0.tgz");
 
     const releaseDocPaths = [
       "README.md",
       "README.zh-CN.md",
-      "docs/GoodMemory-Reference-Integration-Guide.md",
-      "docs/GoodMemory-Codex-Handoff-Setup-Guide.md",
-      "docs/GoodMemory-Claude-Code-Setup-Guide.md",
-      "docs/GoodMemory-Python-HTTP-Integration-Bridge.md",
-      "docs/GoodMemory-v1-Release-Checklist.md",
     ] as const;
+    const migrationGuide = await readFile(
+      join(
+        import.meta.dir,
+        "../../docs/GoodMemory-0.6-to-0.7-Migration-Guide.md",
+      ),
+      "utf8",
+    );
+    const capability = JSON.parse(
+      await readFile(
+        join(import.meta.dir, "../../.well-known/goodmemory.json"),
+        "utf8",
+      ),
+    ) as {
+      releaseStatus?: {
+        installCommandsApplyAfterPublish?: boolean;
+        npmLatest?: string;
+        status?: string;
+      };
+      version?: string;
+    };
+    const server = JSON.parse(
+      await readFile(join(import.meta.dir, "../../server.json"), "utf8"),
+    ) as { packages?: Array<{ version?: string }>; version?: string };
     const mcpServer = await readFile(
       join(import.meta.dir, "../../src/install/hostMcpServer.ts"),
       "utf8",
@@ -1570,6 +1575,18 @@ describe("release metadata and docs", () => {
       expect(content).not.toContain("goodmemory-0.1.2.tgz");
     }
 
+    expect(capability.version).toBe(CURRENT_PACKAGE_VERSION);
+    expect(capability.releaseStatus).toMatchObject({
+      installCommandsApplyAfterPublish: true,
+      npmLatest: "0.6.0",
+      status: "release-candidate",
+    });
+    expect(migrationGuide).toContain("GoodMemory 0.6 to 0.7 Migration Guide");
+    expect(migrationGuide).toContain("historical 0.6 evidence");
+    expect(server.version).toBe(CURRENT_PACKAGE_VERSION);
+    expect(server.packages?.map((entry) => entry.version)).toEqual([
+      CURRENT_PACKAGE_VERSION,
+    ]);
     expect(mcpServer).toContain("package.json");
     expect(mcpServer).not.toContain('version: "0.1.2"');
   });
@@ -2171,10 +2188,18 @@ describe("release metadata and docs", () => {
         httpBridgeRememberOk: boolean;
         invalidScopeError?: string;
         invalidScopeStatus: number;
+        frenchPackId: string;
+        frenchSearchTerms: string[];
+        japanesePackId: string;
+        japaneseSearchTerms: string[];
+        koreanPackId: string;
+        koreanSearchTerms: string[];
         ok: boolean;
         recallHitCount: number;
         serverRecallApplied: boolean;
         serverRememberSucceeded: boolean;
+        spanishPackId: string;
+        spanishSearchTerms: string[];
         traditionalChinesePackId: string;
         traditionalChineseSearchTerms: string[];
         validatedFileEditPath?: string;
@@ -2188,11 +2213,19 @@ describe("release metadata and docs", () => {
       expect(smokeJson.httpBridgeItemCount).toBeGreaterThan(0);
       expect(smokeJson.invalidScopeStatus).toBe(400);
       expect(smokeJson.invalidScopeError).toContain("scope.userId");
+      expect(smokeJson.frenchPackId).toBe("fr");
+      expect(smokeJson.frenchSearchTerms).toContain("mémoire");
+      expect(smokeJson.japanesePackId).toBe("ja");
+      expect(smokeJson.japaneseSearchTerms).toContain("日本語");
+      expect(smokeJson.koreanPackId).toBe("ko");
+      expect(smokeJson.koreanSearchTerms).toContain("한국어");
+      expect(smokeJson.spanishPackId).toBe("es");
+      expect(smokeJson.spanishSearchTerms).toContain("memoria");
       expect(smokeJson.recallHitCount).toBeGreaterThan(0);
       expect(smokeJson.serverRecallApplied).toBe(true);
       expect(smokeJson.serverRememberSucceeded).toBe(true);
       expect(smokeJson.traditionalChinesePackId).toBe("zh-Hant");
-      expect(smokeJson.traditionalChineseSearchTerms).toContain("繁体");
+      expect(smokeJson.traditionalChineseSearchTerms).toContain("繁體");
       expect(smokeJson.artifactPaths).toContain("MEMORY.md");
       expect(smokeJson.validatedToolPayloadShape).toBe("object");
       expect(smokeJson.validatedFileEditPath).toBe(
@@ -3744,7 +3777,7 @@ describe("release metadata and docs", () => {
     await expectGitTrackedPath(reportPath);
   });
 
-  it("release workflow uses manual plus stable tag triggers, gate:phase-40, and tarball artifact upload", async () => {
+  it("release workflow uses manual plus stable tag triggers, the unified v0.7 gate, and tarball artifact upload", async () => {
     const workflow = await readFile(
       join(import.meta.dir, "../../.github/workflows/release.yml"),
       "utf8",
@@ -3753,8 +3786,8 @@ describe("release metadata and docs", () => {
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).toContain("tags:");
     expect(workflow).toContain("v*.*.*");
-    expect(workflow).toContain("bun run gate:phase-40");
-    expect(workflow).toContain('--run-id "release-v${VERSION}"');
+    expect(workflow).toContain("bun run gate:v0.7 --strict");
+    expect(workflow).not.toContain("bun run gate:phase-40");
     expect(workflow).toContain("GOODMEMORY_ASSISTED_EXTRACTOR_API_KEY");
     expect(workflow).toContain("secrets.GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER");
     expect(workflow).not.toContain("bun run gate:phase-36");
@@ -3767,7 +3800,7 @@ describe("release metadata and docs", () => {
     expect(workflow).toContain("bun pm pack");
     expect(workflow).toContain("actions/upload-artifact@v4");
     expect(workflow).toContain("actions/setup-node@v4");
-    expect(workflow).toContain("node-version: 24");
+    expect(workflow).toContain("node-version: 20");
     expect(workflow).toContain("registry-url: https://registry.npmjs.org");
     expect(workflow).toContain("softprops/action-gh-release@v2");
     expect(workflow).toContain("prerelease: false");

@@ -62,13 +62,13 @@ export interface GeneralizedFusionInput {
   denseCandidates?: readonly DenseFusionCandidate[];
   maxCandidates?: number;
   maxEntityMemoryFrequency?: number;
-  acceptsEntityCandidate?: (input: LanguageEntityCandidateInput) => boolean;
-  matchesEntityAlias?: (query: string, alias: string) => boolean;
+  acceptsEntityCandidate: (input: LanguageEntityCandidateInput) => boolean;
+  matchesEntityAlias: (query: string, alias: string) => boolean;
   minRelativeStrength?: number;
   plan?: RecallPlan;
   referenceTime?: string;
   rrfK?: number;
-  tokenize?: (text: string) => string[];
+  tokenize: (text: string) => string[];
 }
 
 interface RawChannelCandidate {
@@ -199,7 +199,7 @@ function buildLexicalChannel(input: GeneralizedFusionInput): RankedChannelCandid
       id: document.id,
       text: document.text,
     })),
-    input.tokenize ? { tokenize: input.tokenize } : undefined,
+    { tokenize: input.tokenize },
   );
   const grouped = new Map<
     string,
@@ -268,42 +268,12 @@ function buildDenseChannel(
   return rankChannel([...grouped.values()]);
 }
 
-function normalizeEntityValue(value: string): string {
-  return value.normalize("NFKC").trim().toLocaleLowerCase("en-US");
-}
-
-function queryContainsAlias(normalizedQuery: string, alias: string): boolean {
-  const normalizedAlias = normalizeEntityValue(alias);
-  if (normalizedAlias.length < 2) {
-    return false;
-  }
-  const queryTokens = normalizedQuery
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter(Boolean);
-  const aliasTokens = normalizedAlias
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter(Boolean);
-  if (aliasTokens.length === 0) {
-    return false;
-  }
-  if (aliasTokens.length === 1) {
-    return queryTokens.includes(aliasTokens[0]!);
-  }
-  return queryTokens.some((_, start) =>
-    aliasTokens.every(
-      (token, offset) => queryTokens[start + offset] === token,
-    ),
-  );
-}
-
 function entityMatchesQuery(
   input: GeneralizedFusionInput,
-  normalizedQuery: string,
   entity: EntityProjection,
 ): boolean {
   const matches = (alias: string) =>
-    input.matchesEntityAlias?.(input.query, alias) ??
-    queryContainsAlias(normalizedQuery, alias);
+    input.matchesEntityAlias(input.query, alias);
   return matches(entity.canonicalKey) || entity.aliases.some(matches);
 }
 
@@ -312,18 +282,17 @@ function acceptsEntity(
   entity: EntityProjection,
   documentTexts: readonly string[],
 ): boolean {
-  return input.acceptsEntityCandidate?.({
+  return input.acceptsEntityCandidate({
     aliases: entity.aliases,
     canonicalKey: entity.canonicalKey,
     documentTexts,
-  }) ?? true;
+  });
 }
 
 function buildEntityChannel(
   input: GeneralizedFusionInput,
   visibleSourceKeys: ReadonlySet<string>,
 ): RankedChannelCandidate[] {
-  const normalizedQuery = normalizeEntityValue(input.query);
   const temporalConstraint = enforceDocumentVisibility(input);
   const sourceMemoryCount = temporalConstraint
     ? visibleSourceKeys.size
@@ -347,7 +316,7 @@ function buildEntityChannel(
       (entity) =>
         entity.memoryIds.length > 0 &&
         entity.memoryIds.length <= maxEntityMemoryFrequency &&
-        entityMatchesQuery(input, normalizedQuery, entity) &&
+        entityMatchesQuery(input, entity) &&
         acceptsEntity(input, entity, documentTexts),
     );
   if (matchedEntities.length === 0) {
@@ -361,7 +330,7 @@ function buildEntityChannel(
         " ",
       ),
     })),
-    input.tokenize ? { tokenize: input.tokenize } : undefined,
+    { tokenize: input.tokenize },
   );
   const grouped = new Map<string, RawChannelCandidate>();
   for (const entity of matchedEntities) {
@@ -409,18 +378,17 @@ function buildClaimRelevance(
   return computeBm25Scores(
     input.query,
     claims.map((claim) => ({ id: claim.id, text: claimText(claim) })),
-    input.tokenize ? { tokenize: input.tokenize } : undefined,
+    { tokenize: input.tokenize },
   );
 }
 
 function matchedQueryEntityIds(input: GeneralizedFusionInput): Set<string> {
-  const normalizedQuery = normalizeEntityValue(input.query);
   const documentTexts = input.documents.map(({ text }) => text);
   return new Set(
     input.entities
       .filter(
         (entity) =>
-          entityMatchesQuery(input, normalizedQuery, entity) &&
+          entityMatchesQuery(input, entity) &&
           acceptsEntity(input, entity, documentTexts),
       )
       .map((entity) => entity.id),

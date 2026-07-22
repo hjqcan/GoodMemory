@@ -40,6 +40,42 @@ function createEvidenceFailingDocumentStore(): DocumentStore {
 }
 
 describe("outcome telemetry promotion chain", () => {
+  it("persists language-pack provenance on behavioral outcome evidence", async () => {
+    const memory = createInternalGoodMemory(
+      {
+        language: { defaultLocale: "ja-JP" },
+        storage: { provider: "memory" },
+        testing: {
+          now: () => new Date("2026-04-20T00:00:00.000Z"),
+        },
+      },
+      { behavioralOutcomeRecorder: true },
+    );
+    const support = (
+      memory as typeof memory & {
+        [GOODMEMORY_EVAL_SUPPORT]?: GoodMemoryEvalSupport;
+      }
+    )[GOODMEMORY_EVAL_SUPPORT];
+
+    await support!.recordBehavioralOutcome!({
+      scope: { userId: "u-ja", workspaceId: "workspace-ja" },
+      cue: "移行検証",
+      evidenceExcerpt: "データベース移行がタイムアウトしました。",
+      failureClass: "timeout",
+      firstAction: { kind: "tool_call", name: "DeepAnalyzer" },
+    });
+    const exported = await memory.exportMemory({
+      scope: { userId: "u-ja", workspaceId: "workspace-ja" },
+    });
+
+    expect(exported.durable.evidence[0]?.source).toMatchObject({
+      languagePackId: "ja",
+      languagePackVersion: "5",
+      locale: "ja-JP",
+      localeSource: "detected",
+    });
+  });
+
   it("promotes repeated tool outcome failures into a validated pattern without explicit feedback memory", async () => {
     const memory = createInternalGoodMemory(
       {

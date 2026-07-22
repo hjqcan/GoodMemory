@@ -1,5 +1,12 @@
 import type { EpisodeMemory } from "../domain/records";
 import type {
+  LanguageBehavioralRuleAnalysis,
+  LanguageRenderKey,
+  LanguageService,
+  ResolvedLanguageContext,
+} from "../language";
+import { createLanguageService } from "../language";
+import type {
   ExperienceRecord,
   SessionArchive,
 } from "./contracts";
@@ -267,6 +274,8 @@ export interface BuildRawBehavioralPrototypeIndexInput {
 
 export interface SelectRawBehavioralExemplarsInput {
   index: RawBehavioralPrototypeIndex;
+  language?: LanguageService;
+  languageContext?: ResolvedLanguageContext | string;
   maxExemplars?: number;
   query: string;
   surfaceFamily: RawBehavioralSurfaceFamily;
@@ -298,36 +307,7 @@ const LATENT_CUE_ROUTE_MIN_OVERLAP = 0.18;
 const MAX_RENDERED_EXACT_SURFACE_LENGTH = 120;
 const MAX_RENDERED_TEXT_LENGTH = 180;
 const PROTOTYPE_MIN_CLUSTER_SIZE = 2;
-const STOPWORDS = new Set([
-  "a",
-  "an",
-  "and",
-  "as",
-  "at",
-  "be",
-  "by",
-  "do",
-  "for",
-  "from",
-  "if",
-  "in",
-  "into",
-  "is",
-  "it",
-  "of",
-  "on",
-  "or",
-  "reply",
-  "respond",
-  "that",
-  "the",
-  "then",
-  "this",
-  "to",
-  "use",
-  "with",
-  "you",
-]);
+const DEFAULT_LANGUAGE = createLanguageService();
 
 function clipText(value: string, maxLength = MAX_RENDERED_TEXT_LENGTH): string {
   const normalized = value.replace(/\s+/gu, " ").trim();
@@ -342,13 +322,22 @@ function normalizeText(value: string | undefined): string {
   return (value ?? "").replace(/\s+/gu, " ").trim();
 }
 
+function analyzeBehavioralText(
+  value: string | undefined,
+  language: LanguageService = DEFAULT_LANGUAGE,
+): LanguageBehavioralRuleAnalysis | undefined {
+  if (!value?.trim()) {
+    return undefined;
+  }
+  const context = language.resolveFromText({ text: value });
+  return language.analyzeBehavioralRule(value, context);
+}
+
 function tokenize(value: string): string[] {
-  return normalizeText(value)
-    .toLowerCase()
-    .replace(/[`"'“”‘’]/gu, "")
-    .split(/[^a-z0-9_./:-]+/u)
-    .map((token) => stripTrailingPunctuation(token.trim()))
-    .filter((token) => token.length >= 2 && !STOPWORDS.has(token));
+  const languageContext = DEFAULT_LANGUAGE.resolveFromText({ text: value });
+  return DEFAULT_LANGUAGE.tokenize(value, languageContext, {
+    excludeStopwords: true,
+  });
 }
 
 function uniqueStrings(values: readonly string[]): string[] {
@@ -371,68 +360,56 @@ function lexicalOverlap(left: readonly string[], right: readonly string[]): numb
 }
 
 function extractLatentCueKeys(value: string | undefined): string[] {
-  const lower = normalizeText(value).toLowerCase();
-  const keys: string[] = [];
-
-  if (/\b(?:failed|failure|error|denied|deprecated|unsupported|timeout|timed out)\b/u.test(lower)) {
-    keys.push("failure_signal");
-  }
-  if (/\bpermission denied\b|\bnot permitted\b|\bforbidden\b/u.test(lower)) {
-    keys.push("permission_failure");
-  }
-  if (/\btimeout\b|\btimed out\b|\bslow\b/u.test(lower)) {
-    keys.push("timeout_failure");
-  }
-  if (/\bdeprecated\b|\bunsafe\b|\buntrusted\b|\bunreliable\b/u.test(lower)) {
-    keys.push("unsafe_or_deprecated");
-  }
-  if (/\b(?:instead|replacement|alternative|corrected|avoid|do not|don't|never|rather than)\b/u.test(lower)) {
-    keys.push("inhibition_replacement");
-  }
-  if (/\b(?:safe|safer|backup|warn|warning|caution)\b/u.test(lower)) {
-    keys.push("safe_fallback");
-  }
-  if (/\b(?:directory|folder|path|root|home-directory|subfolder)\b|(?:~\/|\/)[a-z0-9._/-]+/u.test(lower)) {
-    keys.push("path_constraint");
-  }
-  if (/\b(?:api|endpoint|service|tool|command|function|utility)\b/u.test(lower)) {
-    keys.push("operation_surface");
-  }
-  if (/\b(?:argument|parameter|order|first|second|prefix|suffix)\b/u.test(lower)) {
-    keys.push("slot_order_contract");
-  }
-  if (/\b(?:http|https|url|link|protocol|subdomain|host)\b/u.test(lower)) {
-    keys.push("url_protocol");
-  }
-  if (/\b(?:filetype|extension|json|csv|yaml|yml|txt|pdf|docx)\b/u.test(lower)) {
-    keys.push("filetype_contract");
-  }
-  if (/\b(?:subject|signature|sign off|dear|regards|sincerely|opening|closing)\b/u.test(lower)) {
-    keys.push("format_contract");
-  }
-  if (/\b(?:jargon|analogy|beginner|plain language|avoid the term)\b/u.test(lower)) {
-    keys.push("style_simplification");
-  }
-  if (/\b(?:voice|pronoun|first-person|first person|character)\b/u.test(lower)) {
-    keys.push("voice_contract");
-  }
-  if (/\b(?:formula|sequence|operator|omega|recurrence|compute|calculate)\b/u.test(lower)) {
-    keys.push("symbolic_rule");
-  }
-  if (
-    /\b(?:precondition|only proceed|defer)\b/u.test(lower) ||
-    /\bcheck\b/u.test(lower) ||
-    /\b(?:load|status|queue|gpu|memory|network|maintenance)\b.*\b(?:normal|idle|available|stable|complete)\b/u.test(
-      lower,
-    )
-  ) {
-    keys.push("precondition_contract");
-  }
-  if (/\b(?:brief|brevity|concise|one-line|one line|short)\b/u.test(lower)) {
-    keys.push("brevity_contract");
-  }
-
-  return uniqueStrings(keys);
+  const analysis = analyzeBehavioralText(value);
+  const cues = analysis?.semanticCues ?? [];
+  return uniqueStrings([
+    ...(analysis?.hostAction ? ["operation_surface"] : []),
+    ...(analysis?.hostAction?.destination || analysis?.hostAction?.sources
+      ? ["path_constraint"]
+      : []),
+    ...cues.map((cue) => {
+    switch (cue) {
+      case "failure":
+        return "failure_signal";
+      case "permission_failure":
+        return "permission_failure";
+      case "timeout":
+        return "timeout_failure";
+      case "unsafe":
+        return "unsafe_or_deprecated";
+      case "inhibition_replacement":
+        return "inhibition_replacement";
+      case "safe_fallback":
+        return "safe_fallback";
+      case "path":
+        return "path_constraint";
+      case "api":
+      case "command":
+      case "operation":
+        return "operation_surface";
+      case "argument_order":
+        return "slot_order_contract";
+      case "url":
+        return "url_protocol";
+      case "filetype":
+        return "filetype_contract";
+      case "format":
+        return "format_contract";
+      case "analogy":
+        return "style_simplification";
+      case "voice":
+        return "voice_contract";
+      case "symbolic":
+        return "symbolic_rule";
+      case "precondition":
+        return "precondition_contract";
+      case "brevity":
+        return "brevity_contract";
+      case "style":
+        return "style_contract";
+    }
+    }),
+  ]);
 }
 
 function queryIntentCueKeys(queryIntent: RawQueryIntent): string[] {
@@ -472,15 +449,7 @@ function extractHostActionCommandName(value: string): string | undefined {
     normalized.match(/\b([A-Za-z_][A-Za-z0-9_@]*)\s*\(/u)?.[1] ??
     normalized.match(/\b([A-Za-z_][A-Za-z0-9_@]*)\s+\|[^|]+\|/u)?.[1] ??
     normalized.match(/\b([A-Z][A-Z0-9_]*)\s+[A-Za-z0-9_]+\s+\|/u)?.[1] ??
-    normalized.match(
-      /\b(?:API|tool|command|function)\s+name:\s*([A-Za-z_][A-Za-z0-9_@]*)\b/iu,
-    )?.[1] ??
-    normalized.match(
-      /\b([A-Za-z_][A-Za-z0-9_@]*)\s+(?:takes|uses|requires|accepts)\b/iu,
-    )?.[1] ??
-    normalized.match(
-      /\b(?:use|run|call|invoke|execute)\s+([A-Za-z_][A-Za-z0-9_@]*)\s+(?:with|for|to|instead|first|when|if|or)\b/iu,
-    )?.[1]
+    analyzeBehavioralText(value)?.commandName
   );
 }
 
@@ -495,64 +464,46 @@ function extractCommandLikeSurface(value: string): string | undefined {
 }
 
 function inferActionType(value: string): string {
-  const lower = normalizeText(value).toLowerCase();
+  const analysis = analyzeBehavioralText(value);
+  const cues = new Set(analysis?.semanticCues ?? []);
   if (
+    analysis?.hostAction ||
     extractHostActionCommandName(value) ||
-    /\brequired argument order\b|\bdestination first\b|\bsource second\b|\bpipe-wrapped\b|\blogiql syntax\b|\bexact logiql command\b/u.test(
-      lower,
-    )
+    cues.has("argument_order")
   ) {
+    return "structured_action";
+  }
+  if (cues.has("precondition")) {
+    return "guarded_api";
+  }
+  if (cues.has("command")) {
     return "structured_action";
   }
   if (
     /\b[A-Z][A-Za-z0-9_]*\((-?\d+)\)/u.test(value) &&
-    (/\bwhat is\b|\bcompute\b|\bcalculate\b|\bvalue\b/iu.test(value) ||
-      /=/u.test(value))
+    (cues.has("symbolic") || /=/u.test(value))
   ) {
     return "symbolic_rule";
   }
-  if (
-    /\banalogy\b|\bjargon\b|\bavoid the term\b|\bavoid using\b|\bbeginner\b/u.test(
-      lower,
-    )
-  ) {
+  if (cues.has("analogy")) {
     return "analogy_explanation";
   }
-  if (
-    /\bcheck\b[^.]*\bload\b|\bonly proceed\b|\bdefer\b|\b(?:load|status|queue|gpu|memory|network|maintenance)\b.*\b(?:normal|idle|available|stable|complete)\b/u.test(
-      lower,
-    )
-  ) {
-    return "guarded_api";
-  }
-  if (/\buse\b[^.]*\b[a-z0-9_]*api\b/u.test(lower)) {
-    return "guarded_api";
-  }
-  if (/\bhttps?\b|\burl\b|\blink\b/.test(lower)) {
+  if (cues.has("url")) {
     return "url_rewrite";
   }
-  if (/\bcopy\b|\barchive\b|\bsync\b|\bquery\b|\btool\b|\bcommand\b|\bfunction\b/.test(lower)) {
-    return "structured_action";
-  }
-  if (/\bnavigate\b|\bfolder\b|\bsubfolder\b|\bdirectory\b/.test(lower)) {
+  if (cues.has("path")) {
     return "path_redirect";
   }
-  if (/\bpath\b|\bdirectory\b|\/[a-z0-9._/-]+/u.test(lower)) {
-    return "path_redirect";
-  }
-  if (/\b[a-z0-9_]*api\b|\bendpoint\b|\bservice\b/.test(lower)) {
+  if (cues.has("api")) {
     return "api_route";
   }
-  if (
-    /\bsubject\b|\bsign(?:ed|ature| off)?\b|\bdear\b|\bregards\b|\bsincerely\b/.test(lower) ||
-    /\b(?:compose|draft|formal|notice|email|memo|letter)\b/.test(lower)
-  ) {
+  if (cues.has("format")) {
     return "format_contract";
   }
-  if (/\bformula\b|\bsequence\b|\boperator\b|\bcompute\b/.test(lower)) {
+  if (cues.has("symbolic")) {
     return "symbolic_rule";
   }
-  if (/\bvoice\b|\bfirst-person\b|\bpronoun\b/.test(lower)) {
+  if (cues.has("voice")) {
     return "voice_style";
   }
 
@@ -560,45 +511,43 @@ function inferActionType(value: string): string {
 }
 
 function inferEntityTypes(value: string): string[] {
-  const lower = normalizeText(value).toLowerCase();
+  const analysis = analyzeBehavioralText(value);
+  const cues = new Set(analysis?.semanticCues ?? []);
   const entities: string[] = [];
-  if (/\b[A-Z][A-Za-z0-9_]*\((-?\d+)\)/u.test(value)) {
+  if (/\b[A-Z][A-Za-z0-9_]*\((-?\d+)\)/u.test(value) || cues.has("symbolic")) {
     entities.push("symbolic");
   }
-  if (/\bhttps?\b|\burl\b|\blink\b/.test(lower)) {
+  if (cues.has("url")) {
     entities.push("url");
   }
-  if (extractHostActionCommandName(value) || /\bpipe-wrapped\b|\blogiql\b/u.test(lower)) {
+  if (
+    analysis?.hostAction ||
+    extractHostActionCommandName(value) ||
+    cues.has("command") ||
+    cues.has("operation")
+  ) {
     entities.push("command");
-  }
-  if (/\bcopy\b|\barchive\b|\bsync\b|\btool\b|\butility\b|\bcommand\b/u.test(lower)) {
-    entities.push("command");
-  }
-  if (/\bfolder\b|\bsubfolder\b|\bdirectory\b/u.test(lower)) {
-    entities.push("path");
-  }
-  if (/\bpath\b|\bdirectory\b|\/[a-z0-9._/-]+/u.test(lower)) {
-    entities.push("path");
-  }
-  if (/\b[a-z0-9_]*api\b|\bendpoint\b|\bservice\b/.test(lower)) {
-    entities.push("api");
-  }
-  if (/\banalogy\b|\bjargon\b|\bbeginner\b|\bconcept\b/.test(lower)) {
-    entities.push("analogy");
   }
   if (
-    /\bsubject\b|\bsign(?:ed|ature| off)?\b|\bdear\b|\bregards\b|\bsincerely\b/.test(lower) ||
-    /\b(?:compose|draft|formal|notice|email|memo|letter)\b/.test(lower)
+    cues.has("path") ||
+    analysis?.hostAction?.destination ||
+    analysis?.hostAction?.sources
   ) {
+    entities.push("path");
+  }
+  if (cues.has("api")) {
+    entities.push("api");
+  }
+  if (cues.has("analogy")) {
+    entities.push("analogy");
+  }
+  if (cues.has("format")) {
     entities.push("format");
   }
-  if (/\bquery\b|\blogiql\b|\bsql\b/.test(lower)) {
+  if (cues.has("command") && /\|/u.test(value)) {
     entities.push("query");
   }
-  if (/\bsequence\b|\bformula\b|\boperator\b|\bomega\b/.test(lower)) {
-    entities.push("symbolic");
-  }
-  if (/\bvoice\b|\bpronoun\b/.test(lower)) {
+  if (cues.has("voice")) {
     entities.push("voice");
   }
   return uniqueStrings(entities);
@@ -664,52 +613,44 @@ function parseExtension(path: string): string | undefined {
 }
 
 function inferConstraintTypes(value: string): RawCarryoverConstraintType[] {
-  const lower = normalizeText(value).toLowerCase();
+  const analysis = analyzeBehavioralText(value);
+  const cues = new Set(analysis?.semanticCues ?? []);
   const constraints: RawCarryoverConstraintType[] = [];
 
-  if (/\b[A-Z][A-Za-z0-9_]*\((-?\d+)\)/u.test(value)) {
+  if (/\b[A-Z][A-Za-z0-9_]*\((-?\d+)\)/u.test(value) || cues.has("symbolic")) {
     constraints.push("formula");
   }
-  if (/\bhttps?\b|\bhost\b|\bpath\b|\bsubdomain\b/u.test(lower)) {
+  if (cues.has("url")) {
     constraints.push("url_shape");
   }
-  if (/\bpath\b|\bdirectory\b|\broot\b|\/[a-z0-9._/-]+/u.test(lower)) {
+  if (
+    cues.has("path") ||
+    analysis?.hostAction?.destination ||
+    analysis?.hostAction?.sources
+  ) {
     constraints.push("path_root");
   }
-  if (/\bfolder\b|\bsubfolder\b/u.test(lower)) {
-    constraints.push("path_root");
-  }
-  if (/\barg(?:ument)?\b|\border\b|\bparameter\b|\bprefix\b|\bsuffix\b/u.test(lower)) {
+  if (cues.has("argument_order")) {
     constraints.push("arg_order");
   }
-  if (/\bformula\b|\bsequence\b|\boperator\b|\bomega\b|\brecurrence\b/u.test(lower)) {
-    constraints.push("formula");
-  }
-  if (/\bsafer?\b|\binstead\b|\bwarning\b|\bavoid\b/u.test(lower)) {
+  if (cues.has("safe_fallback") || cues.has("inhibition_replacement")) {
     constraints.push("safe_alternative");
   }
-  if (/\banalogy\b|\bjargon\b|\bbeginner\b|\bavoid the term\b/u.test(lower)) {
+  if (cues.has("analogy")) {
     constraints.push("analogy");
   }
-  if (
-    /\bcheck\b[^.]*\bload\b|\bonly proceed\b|\bdefer\b|\b(?:load|status|queue|gpu|memory|network|maintenance)\b.*\b(?:normal|idle|available|stable|complete)\b/u.test(
-      lower,
-    )
-  ) {
+  if (cues.has("precondition")) {
     constraints.push("precondition");
   }
-  if (/\bvoice\b|\bfirst-person\b|\bpronoun\b/u.test(lower)) {
+  if (cues.has("style") || cues.has("voice")) {
     constraints.push("style");
   }
   if (
+    analysis?.hostAction ||
     extractHostActionCommandName(value) ||
-    /\brequired argument order\b|\bdestination first\b|\bsource second\b|\bpipe-wrapped\b|\blogiql syntax\b|\bexact logiql command\b/u.test(
-      lower,
-    )
+    cues.has("argument_order") ||
+    cues.has("command")
   ) {
-    constraints.push("exact_action");
-  }
-  if (/\bcopy\b|\barchive\b|\bsync\b|\bquery\b|\btool\b|\bcommand\b|\bfunction\b/u.test(lower)) {
     constraints.push("exact_action");
   }
 
@@ -719,32 +660,14 @@ function inferConstraintTypes(value: string): RawCarryoverConstraintType[] {
 function inferSurfaceFamily(value: string): RawBehavioralSurfaceFamily {
   const normalized = normalizeText(value);
   if (
+    analyzeBehavioralText(normalized)?.hostAction ||
     extractHostActionCommandName(normalized) ||
-    /\b[a-z_][a-z0-9_]*\([^)]*\)/iu.test(normalized) ||
-    looksLikeBareCommandSurface(normalized)
+    /\b[a-z_][a-z0-9_]*\([^)]*\)/iu.test(normalized)
   ) {
     return "host_action";
   }
 
   return "text_response";
-}
-
-function looksLikeBareCommandSurface(value: string): boolean {
-  const firstLine = value.split(/\r?\n/u)[0]?.trim() ?? "";
-  if (!firstLine) {
-    return false;
-  }
-  if (
-    /^(?:a|an|can|could|dear|for|greetings|hello|here|hi|i|in|it|please|sure|the|this|to|you)\b/iu.test(
-      firstLine,
-    )
-  ) {
-    return false;
-  }
-
-  return /^(?:[a-z][a-z0-9_.@-]*|[A-Z][A-Z0-9_]{1,})(?:\s+(?:-[A-Za-z0-9-]+|\+\S+|\.|~?\/\S+|[A-Za-z0-9._/-]+\.[A-Za-z0-9]{1,8}|[A-Za-z0-9_@-]+=[^\s]+|'[^']+'|"[^"]+"|\|[^|]+\||[a-z0-9_@-]+)){1,8}$/u.test(
-    firstLine,
-  );
 }
 
 function parseExactSlots(
@@ -764,11 +687,11 @@ function parseExactSlots(
   const operatorSymbols = [...normalized.matchAll(/[⊗⊕⊖⊙]|->|=>|[+*=-]/gu)]
     .map((match) => match[0])
     .filter((token, index, values) => values.indexOf(token) === index);
-  const styleMarkers = [
-    /\bI\b/u.test(normalized) ? "first_person_i" : "",
-    /\bme\b/u.test(normalized) ? "first_person_me" : "",
-    /\bmy\b/u.test(normalized) ? "first_person_my" : "",
-  ].filter(Boolean);
+  const styleMarkers = analyzeBehavioralText(normalized)?.semanticCues?.includes(
+      "voice",
+    )
+    ? ["voice"]
+    : [];
 
   return {
     argNames,
@@ -852,15 +775,9 @@ function extractTextExactSurface(value: string): RawExactSurface | undefined {
     };
   }
 
-  const formatPrefixes = [
-    normalized.match(/^Subject:[^\n]*/iu)?.[0],
-    normalized.match(/^Dear [^,\n]+,/iu)?.[0],
-    normalized.match(/^Greetings,/iu)?.[0],
-  ].filter((entry): entry is string => Boolean(entry));
-  const formatSuffixes = [
-    normalized.match(/Regards,[^]*$/iu)?.[0],
-    normalized.match(/Sincerely,[^]*$/iu)?.[0],
-  ].filter((entry): entry is string => Boolean(entry));
+  const formatSurface = analyzeBehavioralText(normalized)?.formatSurface;
+  const formatPrefixes = formatSurface?.prefixes ?? [];
+  const formatSuffixes = formatSurface?.suffixes ?? [];
   if (formatPrefixes.length > 0 || formatSuffixes.length > 0) {
     return {
       formatPrefixes,
@@ -934,27 +851,10 @@ function buildInterferenceTags(query: string, exactSurface?: RawExactSurface): s
   const exactTokens = exactSurface ? tokenize(exactSurface.value) : [];
   const exactSet = new Set(exactTokens);
 
-  return uniqueStrings(
-    queryTokens.filter((token) =>
-      token === "http" ||
-      token === "https" ||
-      token === "api" ||
-      token === "analogy" ||
-      token === "jargon" ||
-      token === "load" ||
-      token === "path" ||
-      token === "directory" ||
-      token === "subject" ||
-      token === "signature" ||
-      token === "prefix" ||
-      token === "suffix" ||
-      token === "query" ||
-      token === "archive" ||
-      token === "copy" ||
-      token === "token" ||
-      !exactSet.has(token)
-    ),
-  );
+  return uniqueStrings([
+    ...queryTokens.filter((token) => !exactSet.has(token)),
+    ...extractLatentCueKeys(query),
+  ]);
 }
 
 function scoreExemplarConfidence(input: {
@@ -1035,98 +935,45 @@ function createExemplar(input: {
 
 function parseSystemFailure(content: string): string | undefined {
   const normalized = normalizeText(content);
-  const taggedMatch = normalized.match(
-    /^(?:tool\s+)?(?:outcome|failure)\s*:\s*(.+)$/iu,
-  );
-  if (taggedMatch?.[1]) {
-    return taggedMatch[1].trim();
-  }
-  if (/^success\s*:/iu.test(normalized)) {
-    return undefined;
-  }
-  if (
-    /\b(?:alert|deleted|denied|deprecated|empty result|error|exceeded|failed|failure|lost|not helpful|overwritten|permission denied|removed|reset|timed out|timeout|truncated|unsupported|warning)\b/iu.test(
-      normalized,
-    )
-  ) {
-    return normalized;
-  }
-  if (
-    /\b(?:busy|capacity|congested|locked|maintenance|not ready|overloaded|resource unavailable|try again later|too much detail|too verbose|unnecessary detail)\b/iu.test(
-      normalized,
-    )
-  ) {
-    return normalized;
-  }
-  if (
-    /\b(?:impatience|impatient|frustration|frustrated|lengthy answer|long answer|verbose response|too lengthy|too long|terse replies?|repl(?:y|ies)\b.{0,40}\bterse)\b/iu.test(
-      normalized,
-    )
-  ) {
-    return normalized;
-  }
-  if (
-    /\b(?:database\s+read-?only|data\s+source\s+lagging|gpu\s+busy|maintenance\s+window\s+active|memory\s+pressure\s+high|queue\s+full|rate\s+limit\s+exceeded|worker\s+pool\s+saturated)\b/iu.test(
-      normalized,
-    )
-  ) {
-    return normalized;
-  }
-  if (
-    /\b(?:confused|confusing|did not understand|didn't understand|do not understand|don't understand|not understood|too complex|jargon)\b/iu.test(
-      normalized,
-    )
-  ) {
-    return normalized;
-  }
-  if (
-    /^user feedback\s*:/iu.test(normalized) &&
-    /\b(?:just|only|minimal|concise|command|format|rush|too much|too verbose|without extras?)\b/iu.test(
-      normalized,
-    )
-  ) {
-    return normalized;
-  }
-
-  return undefined;
+  const languageContext = DEFAULT_LANGUAGE.resolveFromText({ text: normalized });
+  const analysis = DEFAULT_LANGUAGE.analyzeContent(normalized, languageContext);
+  return analysis.factPolarity === "negative" || analysis.unresolved
+    ? normalized
+    : undefined;
 }
 
 function parseSystemCorrection(content: string): string | undefined {
   const normalized = normalizeText(content);
-  const taggedMatch = normalized.match(
-    /^(?:(?:user\s+)?correction|expected\s+behavior|successful\s+alternative|replacement)\s*:\s*(.+)$/iu,
-  );
-  if (taggedMatch?.[1]) {
-    return taggedMatch[1].trim();
+  const languageContext = DEFAULT_LANGUAGE.resolveFromText({ text: normalized });
+  if (!DEFAULT_LANGUAGE.analyzeContent(normalized, languageContext).correctionCue) {
+    return undefined;
   }
-
-  return undefined;
+  return normalized.match(/^[^:：]+[:：]\s*(.+)$/u)?.[1]?.trim() ?? normalized;
 }
 
 function looksLikeCorrectionPrompt(content: string): boolean {
-  return /\b(?:instead|next time|what should i do|what should i use|how should i)\b/iu.test(
-    normalizeText(content),
-  );
+  const normalized = normalizeText(content);
+  const languageContext = DEFAULT_LANGUAGE.resolveFromText({ text: normalized });
+  return DEFAULT_LANGUAGE.analyzeContent(normalized, languageContext).correctionCue;
 }
 
 function looksLikeSaferAlternativePrompt(content: string): boolean {
-  return /\b(?:avoid|careful|keep|safe|safely|without|instead|preserve|do not|don't)\b/iu.test(
-    normalizeText(content),
-  );
+  const normalized = normalizeText(content);
+  const languageContext = DEFAULT_LANGUAGE.resolveFromText({ text: normalized });
+  const analysis = DEFAULT_LANGUAGE.analyzeContent(normalized, languageContext);
+  return analysis.correctionCue ||
+    analysis.feedbackKind === "dont" ||
+    analysis.feedbackKind === "prefer";
 }
 
 function parseSystemSuccess(content: string): string | undefined {
   const normalized = normalizeText(content);
-  if (
-    /\b(?:clear|completed|created|freed|generated|makes sense|operational|preserved|success|succeeded|understandable|understood)\b/iu.test(
-      normalized,
-    ) &&
-    !parseSystemFailure(normalized)
-  ) {
-    return normalized;
-  }
-
-  return undefined;
+  const languageContext = DEFAULT_LANGUAGE.resolveFromText({ text: normalized });
+  const analysis = DEFAULT_LANGUAGE.analyzeContent(normalized, languageContext);
+  return analysis.factPolarity === "positive" ||
+      analysis.feedbackKind === "validated_pattern"
+    ? normalized
+    : undefined;
 }
 
 function findFollowupCorrectedAssistantMove(input: {
@@ -1616,19 +1463,20 @@ function exactSurfaceTemplateCompatibility(
 
   const goal = queryIntent.goal.toLowerCase();
   const surface = exactSurface.value.toLowerCase();
+  const queryCues = new Set(queryIntentCueKeys(queryIntent));
   let score = 0;
   const literalOverlap = lexicalOverlap(queryIntent.goalTokens, tokenize(exactSurface.value));
   if (literalOverlap >= 0.12) {
     score = Math.max(score, 1.15);
   }
 
-  if (surface.includes("|folder|") && /\bfolder\b|\bsubfolder\b|\bdirectory\b/u.test(goal)) {
+  if (surface.includes("|folder|") && queryCues.has("path_constraint")) {
     score = Math.max(score, 1.4);
   }
-  if (surface.includes("|..|") && /\bback\b|\bprevious\b/u.test(goal)) {
+  if (surface.includes("|..|") && queryCues.has("path_constraint")) {
     score = Math.max(score, 1.2);
   }
-  if (surface.includes("|~|") && /\bhome\b/u.test(goal)) {
+  if (surface.includes("|~|") && queryCues.has("path_constraint")) {
     score = Math.max(score, 1.2);
   }
 
@@ -1638,7 +1486,7 @@ function exactSurfaceTemplateCompatibility(
     if (commandTokens.some((token) => goal.includes(token))) {
       score = Math.max(score, 1.3);
     }
-    if (/\btool\b|\butility\b|\bcommand\b|\bfunction\b|\bapi\b/u.test(goal)) {
+    if (queryCues.has("operation_surface")) {
       score = Math.max(score, 1.1);
     }
   }
@@ -1654,7 +1502,8 @@ function exactSurfaceTemplateCompatibility(
     }
     if (
       extractPaths(exactSurface.value).length >= 2 &&
-      /\bcopy\b|\bmove\b|\bsync\b|\barchive\b|\bpath\b|\bfile\b/u.test(goal)
+      queryCues.has("path_constraint") &&
+      queryCues.has("operation_surface")
     ) {
       score = Math.max(score, 1.2);
     }
@@ -1664,7 +1513,7 @@ function exactSurfaceTemplateCompatibility(
     /\b[A-Z][A-Z0-9_]*\s+[A-Za-z0-9_]+\s+\|\s+[A-Z][A-Z0-9_]*\s+/u.test(
       exactSurface.value,
     ) &&
-    /\bquery\b|\bfilter\b|\brecord\b|\bdatabase\b|\bsyntax\b/u.test(goal)
+    queryIntent.actionType === "structured_action"
   ) {
     score = Math.max(score, 1.2);
   }
@@ -1676,34 +1525,33 @@ function implicitActionRuleCompatibility(input: {
   prototype: RawBehavioralPrototype;
   queryIntent: RawQueryIntent;
 }): number {
-  const goal = input.queryIntent.goal.toLowerCase();
   const move = input.prototype.representative.episodeShape.relevantPriorMove.toLowerCase();
+  const moveAnalysis = analyzeBehavioralText(move);
+  const queryCues = new Set(queryIntentCueKeys(input.queryIntent));
   let score = 0;
 
   if (
-    /\bdestination first\b/u.test(move) &&
-    /\bsource second\b/u.test(move) &&
-    /\bcopy\b/u.test(goal)
+    (moveAnalysis?.argumentOrder?.length ?? 0) >= 2 &&
+    queryCues.has("operation_surface")
   ) {
     score = Math.max(score, 1.2);
   }
   if (
-    /\bprefix\b[^.]*token-/u.test(move) &&
-    /\bsuffix\b[^.]*-token/u.test(move) &&
-    /\btoken\b|\bgrant\b|\brole\b/u.test(goal)
+    (moveAnalysis?.formatPrefix || moveAnalysis?.formatSuffix) &&
+    queryCues.has("format_contract")
   ) {
     score = Math.max(score, 1.2);
   }
   if (
-    /\brequired argument order:\s*query_payload,\s*buffer,\s*auth\b/u.test(move) &&
-    /\brecord\b|\btool\b|\binvoice\b/u.test(goal)
+    moveAnalysis?.commandName &&
+    input.queryIntent.actionType === "structured_action"
   ) {
     score = Math.max(score, 1.2);
   }
-  if (/\bpipe-wrapped paths\b/u.test(move) && /\bfolder\b|\bsubfolder\b/u.test(goal)) {
-    score = Math.max(score, 1.2);
-  }
-  if (/\blogiql syntax\b/u.test(move) && /\blogidb\b|\bquery\b/u.test(goal)) {
+  if (
+    moveAnalysis?.semanticCues?.includes("path") &&
+    queryCues.has("path_constraint")
+  ) {
     score = Math.max(score, 1.2);
   }
 
@@ -1874,9 +1722,15 @@ function buildCandidatePool(input: {
     }
 
     const routes: CandidatePoolEntry["routes"] = [];
-    const lexicalSimilarity = lexicalOverlap(
-      input.queryIntent.goalTokens,
-      tokenize(prototype.representative.retrievalText),
+    const lexicalSimilarity = Math.max(
+      lexicalOverlap(
+        input.queryIntent.goalTokens,
+        tokenize(prototype.representative.retrievalText),
+      ),
+      lexicalOverlap(
+        input.queryIntent.goalTokens,
+        tokenize(prototype.representative.episodeShape.cue),
+      ),
     );
     const slotOverlap = exactSlotOverlap(
       input.queryIntent.exactSlots,
@@ -2224,6 +2078,10 @@ export function buildRawBehavioralPrototypeIndex(
 export function resolveRawBehavioralCarryover(
   input: SelectRawBehavioralExemplarsInput,
 ): RawCarryoverResolution {
+  const language = input.language ?? DEFAULT_LANGUAGE;
+  const languageContext = input.languageContext ?? language.resolveFromText({
+    text: input.query,
+  });
   const queryIntent = createRawQueryIntent(input.query, input.surfaceFamily);
   const candidatePool = buildCandidatePool({
     index: input.index,
@@ -2272,6 +2130,8 @@ export function resolveRawBehavioralCarryover(
   if (!first || first.probability < DEFAULT_ABSTAIN_THRESHOLD) {
     const fallbackPacket = buildFallbackRawTextResponsePacket({
       exemplars: input.index.exemplars,
+      language,
+      languageContext,
       queryIntent,
     });
     return {
@@ -2318,6 +2178,8 @@ export function resolveRawBehavioralCarryover(
   ) {
     const fallbackPacket = buildFallbackRawTextResponsePacket({
       exemplars: ranked.map((entry) => entry.exemplar),
+      language,
+      languageContext,
       queryIntent,
     });
     return {
@@ -2388,6 +2250,8 @@ export function resolveRawBehavioralCarryover(
   if (hypothesis?.executionMode === "abstain") {
     const fallbackPacket = buildFallbackRawTextResponsePacket({
       exemplars: ranked.map((entry) => entry.exemplar),
+      language,
+      languageContext,
       queryIntent,
     });
     return {
@@ -2427,6 +2291,8 @@ export function resolveRawBehavioralCarryover(
   const packet = buildRawCarryoverPacket({
     execution,
     hypothesis,
+    language,
+    languageContext,
     queryIntent,
     selections,
   });
@@ -2480,18 +2346,18 @@ function renderExactSurface(exemplar: RawBehavioralExemplar): string | undefined
 }
 
 function inferRawRuleKind(rule: string): "do" | "dont" | "prefer" {
-  const normalized = rule.toLowerCase();
-  if (
-    /\b(?:avoid|forbid|forbidden|do not|don't|must not|never|instead of|warn instead|failed)\b/u.test(
-      normalized,
-    )
-  ) {
+  const languageContext = DEFAULT_LANGUAGE.resolveFromText({ text: rule });
+  const feedbackKind = DEFAULT_LANGUAGE.deriveFeedbackKind(
+    rule,
+    languageContext,
+  );
+  if (feedbackKind === "dont") {
     return "dont";
   }
-  if (/\bor warn\b|\bwarning\b|\btimed out\b|\btimeout\b/u.test(normalized)) {
-    return "dont";
+  if (feedbackKind === "do") {
+    return "do";
   }
-  if (/\b(?:prefer|use|redirect|safe|replacement|instead)\b/u.test(normalized)) {
+  if (feedbackKind === "prefer") {
     return "prefer";
   }
 
@@ -2515,16 +2381,6 @@ function uniqueRawOperations(
   return unique;
 }
 
-const RAW_OPERATION_NAME_STOPWORDS = new Set([
-  "Assistant",
-  "Expected",
-  "System",
-  "The",
-  "Tool",
-  "Use",
-  "User",
-]);
-
 function extractLikelyOperationNames(value: string | undefined): string[] {
   if (!value) {
     return [];
@@ -2534,10 +2390,6 @@ function extractLikelyOperationNames(value: string | undefined): string[] {
     [...value.matchAll(/\b[A-Z][A-Za-z0-9_-]{2,}\b/gu)]
       .map((match) => match[0])
       .filter((name) => {
-        if (RAW_OPERATION_NAME_STOPWORDS.has(name)) {
-          return false;
-        }
-
         return (
           /[a-z][A-Z]/u.test(name) ||
           /(?:API|Analyzer|Check|Cleaner|Engine|Feed|Importer|Search)$/u.test(name)
@@ -2559,33 +2411,38 @@ function escapeRegExpLiteral(value: string): string {
 
 function inferRawInhibitionPairs(
   exemplar: RawBehavioralExemplar,
+  language: LanguageService,
 ): Array<{ forbidden: string; preferred: string }> {
   const safeCorrection = exemplar.episodeShape.safeCorrectedMove ?? "";
-  const explicitlyAvoidedNames = [
-    ...safeCorrection.matchAll(
-      /\b(?:avoid|do\s+not\s+use|don't\s+use|instead\s+of)\s+([A-Za-z_][A-Za-z0-9_-]*)\b/giu,
-    ),
-  ]
-    .map((match) => match[1])
-    .filter((name): name is string => Boolean(name));
-  const failedNames = uniqueStrings([
+  const analysis = analyzeBehavioralText(
+    safeCorrection,
+    language,
+  );
+  const explicitlyAvoidedNames = (analysis?.forbiddenFragments ?? []).filter(
+    (name) => /^[A-Za-z_][A-Za-z0-9_-]*$/u.test(name),
+  );
+  const candidateFailedNames = uniqueStrings([
+    ...explicitlyAvoidedNames,
     ...extractLikelyOperationNames(
       [
         exemplar.episodeShape.relevantPriorMove,
         exemplar.episodeShape.observedOutcome,
       ].join(" "),
     ),
-    ...explicitlyAvoidedNames,
   ]);
-  const preferredSegment =
-    safeCorrection.match(
-      /\buse\s+(.+?)(?:\s+(?:instead|first)\b|[.;]|$)/iu,
-    )?.[1] ?? safeCorrection;
-  const preferredNames = extractLikelyOperationNames(preferredSegment).filter(
+  const preferredNames = uniqueStrings([
+    ...(analysis?.preferredAlternatives ?? []),
+    ...extractLikelyOperationNames(safeCorrection),
+  ]).filter(
     (name) =>
       !explicitlyAvoidedNames.some(
         (avoided) => avoided.toLowerCase() === name.toLowerCase(),
       ),
+  );
+  const failedNames = candidateFailedNames.filter(
+    (name) => !preferredNames.some(
+      (preferred) => preferred.toLowerCase() === name.toLowerCase(),
+    ),
   );
   const pairs: Array<{ forbidden: string; preferred: string }> = [];
 
@@ -2600,79 +2457,6 @@ function inferRawInhibitionPairs(
   }
 
   return pairs;
-}
-
-function sanitizeRawJargonTerm(value: string | undefined): string | undefined {
-  const sanitized = normalizeText(value)
-    .replace(/^(?:an?|the)\s+/iu, "")
-    .replace(/\b(?:in|for)\s+(?:programming|coding|machine learning|software|simple terms|a simple way)\b.*$/iu, "")
-    .replace(/\b(?:to|for)\s+(?:a\s+)?beginner\b.*$/iu, "")
-    .replace(/[?.!,;:]+$/u, "")
-    .trim();
-  if (!sanitized || sanitized.length < 2) {
-    return undefined;
-  }
-  if (sanitized.split(/\s+/u).length > 4) {
-    return undefined;
-  }
-  if (
-    /^(?:concept|example|explanation|it|simple|something|term|that|this|what)$/iu.test(
-      sanitized,
-    )
-  ) {
-    return undefined;
-  }
-
-  return sanitized;
-}
-
-function extractRawJargonTermsFromCue(value: string): string[] {
-  const normalized = normalizeText(value);
-  const candidates = [
-    normalized.match(
-      /\bexplain\s+(?:what\s+)?(?:an?\s+|the\s+)?(.+?)(?:\s+(?:is|does|means?|refers?\s+to|to\s+(?:a\s+)?beginner|for\s+(?:a\s+)?beginner|in\s+(?:simple\s+terms|a\s+simple\s+way))|[?.]|$)/iu,
-    )?.[1],
-    normalized.match(
-      /\bwhat\s+(?:is|are|does)\s+(?:an?\s+|the\s+)?(.+?)(?:\s+(?:do|mean|refer)|[?.]|$)/iu,
-    )?.[1],
-    normalized.match(/\b(?:tell me about|clarify)\s+(.+?)(?:\s+(?:for|to)\b|[?.]|$)/iu)?.[1],
-    normalized.match(/\bconcept\s+of\s+(.+?)(?:\s+(?:in|for)\b|[?.]|$)/iu)?.[1],
-  ];
-
-  return uniqueStrings(
-    candidates
-      .map(sanitizeRawJargonTerm)
-      .filter((entry): entry is string => Boolean(entry)),
-  );
-}
-
-function extractRawJargonTermsFromFailedMove(value: string): string[] {
-  const normalized = normalizeText(value);
-  const candidates = [
-    normalized.match(
-      /^(?:sure[, ]+)?(?:an?\s+|the\s+)?(.+?)\s+(?:is|are|means?|refers?\s+to|happens\s+when|allows|enables)\b/iu,
-    )?.[1],
-  ];
-
-  return uniqueStrings(
-    candidates
-      .map(sanitizeRawJargonTerm)
-      .filter((entry): entry is string => Boolean(entry)),
-  );
-}
-
-function expandRawJargonForbiddenTerms(terms: readonly string[]): string[] {
-  const expanded: string[] = [];
-  for (const term of terms) {
-    expanded.push(term);
-    if (/\s+notation$/iu.test(term)) {
-      expanded.push(term.replace(/\s+notation$/iu, ""));
-    }
-    if (/^[A-Z][A-Z0-9-]{1,}$/u.test(term) && !term.endsWith("S")) {
-      expanded.push(`${term}s`);
-    }
-  }
-  return uniqueStrings(expanded);
 }
 
 function stripRawForbiddenTerms(value: string, terms: readonly string[]): string {
@@ -2697,37 +2481,19 @@ function buildRawAnalogyFallback(
   const safeMove = normalizeText(
     exemplar.episodeShape.safeCorrectedMove ?? exemplar.episodeShape.relevantPriorMove,
   );
-  const termAlternation = forbiddenTerms
-    .map(escapeRegExpLiteral)
-    .sort((left, right) => right.length - left.length)
-    .join("|");
-  if (safeMove && termAlternation) {
-    const termLike = safeMove.match(
-      new RegExp(
-        `^(?:sure[, ]+)?(?:an?\\s+|the\\s+)?(?:${termAlternation})\\s+(?:is|means|refers\\s+to)\\s+like\\s+(.+)$`,
-        "iu",
-      ),
-    )?.[1];
-    if (termLike) {
-      return `Think of it like ${termLike.replace(/[.。]+$/u, "")}.`;
-    }
-  }
-
-  const analogy =
-    safeMove.match(/\b(?:it(?:'s| is)?|this(?: is)?)\s+like\s+(.+)$/iu)?.[1] ??
-    safeMove.match(/\b(imagine\s+.+)$/iu)?.[1];
-  if (analogy) {
-    const normalizedAnalogy = analogy.replace(/[.。]+$/u, "").trim();
-    return /^imagine\b/iu.test(normalizedAnalogy)
-      ? stripRawForbiddenTerms(`${normalizedAnalogy}.`, forbiddenTerms)
-      : stripRawForbiddenTerms(`Think of it like ${normalizedAnalogy}.`, forbiddenTerms);
+  const safeMoveAnalysis = analyzeBehavioralText(safeMove);
+  if (safeMoveAnalysis?.analogyText) {
+    return stripRawForbiddenTerms(
+      `Think of it like ${safeMoveAnalysis.analogyText}.`,
+      forbiddenTerms,
+    );
   }
 
   const stripped = stripRawForbiddenTerms(
     safeMove.replace(/^sure[, ]*/iu, ""),
     forbiddenTerms,
   );
-  if (/\b(?:imagine|like|similar to|think of)\b/iu.test(stripped)) {
+  if (safeMoveAnalysis?.semanticCues?.includes("analogy")) {
     return stripped;
   }
 
@@ -2744,20 +2510,16 @@ function inferRawJargonAvoidanceOperation(
       exemplar.episodeShape.relevantPriorMove,
     ].join(" "),
   );
-  if (
-    !/\b(?:analogy|beginner|confused|confusing|did not understand|didn't understand|do not understand|don't understand|jargon|not understood|simple|too complex)\b/iu.test(
-      feedbackSurface,
-    )
-  ) {
+  const feedbackAnalysis = analyzeBehavioralText(feedbackSurface);
+  if (!feedbackAnalysis?.semanticCues?.includes("analogy")) {
     return undefined;
   }
 
-  const forbiddenFragments = expandRawJargonForbiddenTerms(
-    uniqueStrings([
-      ...extractRawJargonTermsFromCue(exemplar.episodeShape.cue),
-      ...extractRawJargonTermsFromFailedMove(exemplar.episodeShape.relevantPriorMove),
-    ]),
-  );
+  const forbiddenFragments = uniqueStrings([
+    ...(analyzeBehavioralText(exemplar.episodeShape.cue)?.structuredTerms ?? []),
+    ...(analyzeBehavioralText(exemplar.episodeShape.relevantPriorMove)
+      ?.structuredTerms ?? []),
+  ]);
   if (forbiddenFragments.length === 0) {
     return undefined;
   }
@@ -2767,35 +2529,6 @@ function inferRawJargonAvoidanceOperation(
     forbiddenFragments,
     kind: "block_surface",
   };
-}
-
-const FIRST_PERSON_ONLY_FORBIDDEN_PRONOUNS = [
-  "he",
-  "him",
-  "his",
-  "it",
-  "its",
-  "our",
-  "ours",
-  "she",
-  "them",
-  "their",
-  "theirs",
-  "they",
-  "us",
-  "we",
-  "you",
-  "your",
-  "yours",
-];
-
-function hasRawFirstPersonOnlyContract(value: string): boolean {
-  return /\b(?:answer|respond|speak|write)[^.。;:]*\bonly\s+in\s+first[-\s]?person\b/iu.test(
-    value,
-  ) ||
-    /\bonly\s+first[-\s]?person\s+pronouns?\b/iu.test(value) ||
-    /\bfirst[-\s]?person\s+pronouns?\s+only\b/iu.test(value) ||
-    /\bstrictly\s+(?:in|to)\s+first[-\s]?person\b/iu.test(value);
 }
 
 function buildRawFirstPersonVoiceFallback(): string {
@@ -2812,13 +2545,18 @@ function inferRawFirstPersonVoiceOperation(
       exemplar.exactSurface?.value,
     ].join(" "),
   );
-  if (!hasRawFirstPersonOnlyContract(surface)) {
+  const analysis = analyzeBehavioralText(surface);
+  const forbiddenFragments = analysis?.forbiddenFragments ?? [];
+  if (
+    !analysis?.semanticCues?.includes("voice") ||
+    forbiddenFragments.length === 0
+  ) {
     return undefined;
   }
 
   return {
     fallbackAnswer: buildRawFirstPersonVoiceFallback(),
-    forbiddenFragments: FIRST_PERSON_ONLY_FORBIDDEN_PRONOUNS,
+    forbiddenFragments,
     kind: "block_surface",
   };
 }
@@ -2849,14 +2587,16 @@ function inferRawExtensionReplacement(
 
 function inferRawProtocolReplacement(
   exemplar: RawBehavioralExemplar,
+  language: LanguageService,
 ): RawProtocolReplacement | undefined {
-  const explicitPair = exemplar.episodeShape.safeCorrectedMove?.match(
-    /\b(?:use|prefer|choose|select|offer)\s+(https?:\/\/[^\s)]+)\s+instead\s+of\s+(https?:\/\/[^\s)]+)/iu,
-  );
-  if (explicitPair?.[1] && explicitPair[2]) {
+  const explicitPair = analyzeBehavioralText(
+    exemplar.episodeShape.safeCorrectedMove,
+    language,
+  )?.protocolReplacement;
+  if (explicitPair) {
     try {
-      const safe = new URL(explicitPair[1]);
-      const failed = new URL(explicitPair[2]);
+      const safe = new URL(explicitPair.preferredUrl);
+      const failed = new URL(explicitPair.forbiddenUrl);
       if (
         (failed.protocol === "http:" || failed.protocol === "https:") &&
         (safe.protocol === "http:" || safe.protocol === "https:") &&
@@ -2964,6 +2704,7 @@ function inferRawPathReplacement(
 
 function inferRawPreconditionContract(
   exemplar: RawBehavioralExemplar,
+  language: LanguageService,
 ): RawPreconditionContract | undefined {
   const text = normalizeText(
     [
@@ -2972,71 +2713,23 @@ function inferRawPreconditionContract(
       exemplar.episodeShape.relevantPriorMove,
     ].join(" "),
   );
-  const beforeMatch = text.match(
-    /\bbefore\s+using\s+([A-Za-z_][A-Za-z0-9_-]*)\b[^.]*\bcheck\s+(.+?)\s+first\b[^.]*\bonly\s+(?:proceed|run|submit|dispatch|start|send|sync|process|render|aggregate|transcode|generate|update)\s+(?:if|when)\s+(.+?)(?:[.]|$)/iu,
-  );
-  if (beforeMatch?.[1] && beforeMatch[2] && beforeMatch[3]) {
-    const subject = beforeMatch[1].trim();
-    const precondition = beforeMatch[2].trim();
-    const allowed = beforeMatch[3].trim();
-    return {
-      allowedWhen: [allowed],
-      fallbackInstruction:
-        `Check ${precondition} before using ${subject}; warn or defer if ${allowed} is not true.`,
-      precondition,
-      subject,
-    };
+  const guard = analyzeBehavioralText(text, language)?.guard;
+  if (!guard) {
+    return undefined;
   }
-
-  const checkingMatch = text.match(
-    /\bchecking\s+(.+?)(?:;|,)\s*(.+?)(?:[.]|$)/iu,
-  );
-  const conditional = checkingMatch?.[2]?.match(
-    /\bonly\s+(?:proceed|run|running|submit|dispatch|start|send|sync|process|processing|render|rendering|aggregate|aggregating|transcode|transcoding|generate|generating|update|updating|call|calling|execute|executing)\s+(?:if|when)\s+(.+?)(?:[.]|$)/iu,
-  )?.[1] ?? checkingMatch?.[2]?.match(
-    /\b(?:proceed|run|running|submit|dispatch|start|send|sync|process|processing|render|rendering|aggregate|aggregating|transcode|transcoding|generate|generating|update|updating|call|calling|execute|executing)\b.+?\bonly\s+(?:if|when)\s+(.+?)(?:[.]|$)/iu,
-  )?.[1];
-  if (checkingMatch?.[1] && conditional) {
-    const precondition = checkingMatch[1].trim();
-    return {
-      allowedWhen: [conditional.trim()],
-      fallbackInstruction:
-        `Check ${precondition} first; warn or defer if ${conditional.trim()} is not true.`,
-      precondition,
-    };
-  }
-
-  return undefined;
-}
-
-function extractRawQuotedFragment(
-  value: string,
-  kind: "prefix" | "suffix",
-): string | undefined {
-  const patterns =
-    kind === "prefix"
-      ? [
-          /\b(?:start|begin|open|greet)(?:[^"'`]+)?with\s+["'`]([^"'`]+)["'`]/iu,
-          /\b(?:use|with)\s+["'`]([^"'`]+)["'`]\s+as\s+the\s+(?:opener|greeting)/iu,
-        ]
-      : [
-          /\b(?:end|close|sign off)(?:[^"'`]+)?with\s+["'`]([^"'`]+)["'`]/iu,
-          /\bsign off(?:[^"'`]+)?as\s+["'`]([^"'`]+)["'`]/iu,
-          /\b(?:use|with)\s+["'`]([^"'`]+)["'`]\s+as\s+the\s+closing/iu,
-        ];
-
-  for (const pattern of patterns) {
-    const fragment = value.match(pattern)?.[1]?.trim();
-    if (fragment) {
-      return fragment;
-    }
-  }
-
-  return undefined;
+  return {
+    ...(guard.allowedStates.length > 0
+      ? { allowedWhen: guard.allowedStates }
+      : {}),
+    fallbackInstruction: `Check ${guard.check} first; warn or defer unless the required state is available.`,
+    precondition: guard.check,
+    ...(guard.subject ? { subject: guard.subject } : {}),
+  };
 }
 
 function inferRawExactFragments(
   exemplar: RawBehavioralExemplar,
+  language: LanguageService,
 ): TextResponseEnactmentOperation | undefined {
   const text = [
     exemplar.episodeShape.safeCorrectedMove,
@@ -3048,8 +2741,9 @@ function inferRawExactFragments(
     return undefined;
   }
 
-  const prefix = extractRawQuotedFragment(text, "prefix");
-  const suffix = extractRawQuotedFragment(text, "suffix");
+  const analysis = analyzeBehavioralText(text, language);
+  const prefix = analysis?.formatPrefix;
+  const suffix = analysis?.formatSuffix;
   const required = uniqueStrings(
     [prefix, suffix].filter((fragment): fragment is string => Boolean(fragment)),
   );
@@ -3069,13 +2763,17 @@ function inferRawExactFragments(
 
 function buildRawHardControlOperations(
   selections: readonly RawBehavioralCarryoverSelection[],
+  language: LanguageService,
 ): TextResponseEnactmentOperation[] {
   const operations: TextResponseEnactmentOperation[] = [];
 
   for (const selection of selections) {
     const exemplar = selection.exemplar;
 
-    for (const pair of inferRawInhibitionPairs(exemplar)) {
+    for (const pair of inferRawInhibitionPairs(
+      exemplar,
+      language,
+    )) {
       const fallbackAnswer = buildRawInhibitionFallback(pair);
       operations.push({
         kind: "require_warning",
@@ -3113,12 +2811,18 @@ function buildRawHardControlOperations(
       });
     }
 
-    const exactFragmentOperation = inferRawExactFragments(exemplar);
+    const exactFragmentOperation = inferRawExactFragments(
+      exemplar,
+      language,
+    );
     if (exactFragmentOperation) {
       operations.push(exactFragmentOperation);
     }
 
-    const protocolReplacement = inferRawProtocolReplacement(exemplar);
+    const protocolReplacement = inferRawProtocolReplacement(
+      exemplar,
+      language,
+    );
     if (protocolReplacement) {
       const from = `${protocolReplacement.fromScheme}://`;
       const to = `${protocolReplacement.toScheme}://`;
@@ -3172,7 +2876,10 @@ function buildRawHardControlOperations(
       });
     }
 
-    const precondition = inferRawPreconditionContract(exemplar);
+    const precondition = inferRawPreconditionContract(
+      exemplar,
+      language,
+    );
     if (precondition) {
       operations.push({
         ...(precondition.allowedWhen ? { allowedWhen: precondition.allowedWhen } : {}),
@@ -3191,6 +2898,8 @@ function buildRawHardControlOperations(
 
 function buildRawTextResponsePlan(input: {
   hypothesis?: RawTaskHypothesis;
+  language: LanguageService;
+  languageContext: ResolvedLanguageContext | string;
   queryIntent?: RawQueryIntent;
   selections: readonly RawBehavioralCarryoverSelection[];
 }): TextResponseEnactmentPlan | undefined {
@@ -3218,38 +2927,32 @@ function buildRawTextResponsePlan(input: {
       appliesTo: input.queryIntent?.goal,
       exemplarCount: input.selections.length,
       kind: inferRawRuleKind(rule),
+      language: input.language,
+      languageContext: input.languageContext,
       rule,
     }),
   );
   const policyPlan = resolveTextResponseEnactmentPlanFromPolicies(policies);
   const operations = uniqueRawOperations([
     ...(policyPlan?.operations ?? []),
-    ...buildRawHardControlOperations(input.selections),
+    ...buildRawHardControlOperations(
+      input.selections,
+      input.language,
+    ),
   ]);
-  const bulletOnly = input.selections.some((selection) =>
-    [
+  const responseStyles = input.selections.map((selection) =>
+    analyzeBehavioralText(
+      [
       selection.exemplar.episodeShape.observedOutcome,
       selection.exemplar.episodeShape.relevantPriorMove,
       selection.exemplar.episodeShape.safeCorrectedMove,
       selection.exemplar.retrievalText,
-    ]
-      .join(" ")
-      .match(
-        /\b(?:bullet-pointed|bullet\s+list|bullets?|impatience|impatient|frustration|terse replies?|short summary|quick version|brief overview)\b/iu,
-      ),
+      ].join(" "),
+      input.language,
+    )?.responseStyle,
   );
-  const brevityOnly = !bulletOnly && input.selections.some((selection) =>
-    [
-      selection.exemplar.episodeShape.observedOutcome,
-      selection.exemplar.episodeShape.relevantPriorMove,
-      selection.exemplar.episodeShape.safeCorrectedMove,
-      selection.exemplar.retrievalText,
-    ]
-      .join(" ")
-      .match(
-        /\b(?:minimal|concise|brief|command only|only the command|just the command|just need the command|just give the command|without extras?|in a rush|too much detail|too verbose)\b/iu,
-      ),
-  );
+  const bulletOnly = responseStyles.includes("bullets");
+  const brevityOnly = !bulletOnly && responseStyles.includes("brief");
 
   return operations.length > 0 || brevityOnly || bulletOnly
     ? {
@@ -3263,6 +2966,8 @@ function buildRawTextResponsePlan(input: {
 
 function buildFallbackRawTextResponsePacket(input: {
   exemplars: readonly RawBehavioralExemplar[];
+  language: LanguageService;
+  languageContext: ResolvedLanguageContext | string;
   queryIntent: RawQueryIntent;
 }): RawCarryoverPacket | undefined {
   if (input.queryIntent.requestedSurface !== "text_response") {
@@ -3276,6 +2981,8 @@ function buildFallbackRawTextResponsePacket(input: {
     score: exemplar.confidence,
   }));
   const textResponsePlan = buildRawTextResponsePlan({
+    language: input.language,
+    languageContext: input.languageContext,
     queryIntent: input.queryIntent,
     selections,
   });
@@ -3284,7 +2991,10 @@ function buildFallbackRawTextResponsePacket(input: {
   }
 
   return {
-    promptPayload: "Relevant raw experience controls are available for deterministic final-answer repair.",
+    promptPayload: input.language.render(
+      { key: "behavioral_controls_available" },
+      input.languageContext,
+    ),
     retrievalText: input.exemplars.map((exemplar) => exemplar.retrievalText).join("\n"),
     textResponsePlan,
   };
@@ -3293,6 +3003,8 @@ function buildFallbackRawTextResponsePacket(input: {
 function buildRawCarryoverPacket(input: {
   execution: ReturnType<typeof executeProbeConditionedRawCarryover>;
   hypothesis?: RawTaskHypothesis;
+  language: LanguageService;
+  languageContext: ResolvedLanguageContext | string;
   queryIntent?: RawQueryIntent;
   selections: readonly RawBehavioralCarryoverSelection[];
 }): RawCarryoverPacket | undefined {
@@ -3302,34 +3014,42 @@ function buildRawCarryoverPacket(input: {
 
   const textResponsePlan = buildRawTextResponsePlan({
     hypothesis: input.hypothesis,
+    language: input.language,
+    languageContext: input.languageContext,
     queryIntent: input.queryIntent,
     selections: input.selections,
   });
   const controlLines = buildStructuredTextResponseControlLines(textResponsePlan);
+  const heading = (
+    key: LanguageRenderKey,
+    values?: Record<string, number | string>,
+  ) => input.language.render({ key, values }, input.languageContext);
 
   const promptPayload = [
-    "Relevant prior examples:",
+    heading("behavioral_relevant_prior_examples"),
     ...input.selections.flatMap(({ exemplar }, index) => {
       const lines = [
-        `Example ${index + 1}:`,
-        `Situation: ${clipText(exemplar.episodeShape.cue)}`,
-        `Successful move: ${clipText(exemplar.episodeShape.relevantPriorMove)}`,
-        `Observed outcome: ${clipText(exemplar.episodeShape.observedOutcome)}`,
+        heading("behavioral_example", { index: index + 1 }),
+        `${heading("behavioral_situation")} ${clipText(exemplar.episodeShape.cue)}`,
+        `${heading("behavioral_successful_move")} ${clipText(exemplar.episodeShape.relevantPriorMove)}`,
+        `${heading("behavioral_observed_outcome")} ${clipText(exemplar.episodeShape.observedOutcome)}`,
       ];
       if (exemplar.episodeShape.safeCorrectedMove) {
         lines.push(
-          `Safe corrected move: ${clipText(exemplar.episodeShape.safeCorrectedMove)}`,
+          `${heading("behavioral_safe_corrected_move")} ${clipText(exemplar.episodeShape.safeCorrectedMove)}`,
         );
       }
       const exactSurface = renderExactSurface(exemplar);
       if (exactSurface) {
-        lines.push(`Exact surface: ${clipText(exactSurface)}`);
+        lines.push(
+          `${heading("behavioral_exact_surface")} ${clipText(exactSurface)}`,
+        );
       }
       return lines;
     }),
     input.execution.hypothesisSketch,
     controlLines.length > 0
-      ? ["Raw response control:", ...controlLines].join("\n")
+      ? [heading("behavioral_raw_response_control"), ...controlLines].join("\n")
       : undefined,
   ].join("\n");
 
@@ -3352,12 +3072,22 @@ function buildRawCarryoverPacket(input: {
 
 export function renderRawBehavioralCarryoverContext(
   selections: readonly RawBehavioralCarryoverSelection[],
+  options: {
+    language?: LanguageService;
+    languageContext?: ResolvedLanguageContext | string;
+  } = {},
 ): string | undefined {
+  const language = options.language ?? DEFAULT_LANGUAGE;
+  const languageContext = options.languageContext ?? language.resolveFromText({
+    text: selections.map(({ exemplar }) => exemplar.retrievalText).join("\n"),
+  });
   return buildRawCarryoverPacket({
     execution: {
       lines: [],
       mode: "none",
     },
+    language,
+    languageContext,
     selections,
   })?.promptPayload;
 }

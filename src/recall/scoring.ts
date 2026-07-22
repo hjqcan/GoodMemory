@@ -13,7 +13,11 @@ import type { MemoryScope } from "../domain/scope";
 import type { MemorySourceMethod } from "../domain/provenance";
 import type { EmbeddingAdapter } from "../embedding/contracts";
 import type { SessionArchive } from "../domain/evolutionRecords";
-import type { LanguageService } from "../language";
+import type {
+  LanguageContentAnalysis,
+  LanguageQueryAnalysis,
+  LanguageService,
+} from "../language";
 import type { RecallVectorSearchPort } from "../storage/ports";
 import { factVerificationAdvisoryPenalty } from "../verify/policy";
 import type { RecallRouterStrategy } from "./router";
@@ -120,14 +124,12 @@ function effectiveRankingScore(
 
 function categoryPriority(
   category: FactMemory["category"],
-  query: string,
-  language: LanguageService,
-  locale: string,
+  queryAnalysis: LanguageQueryAnalysis,
 ): number {
   if (
-    language.isAnswerCompositionQuery(query, locale) ||
-    language.isFactConfirmationQuery(query, locale) ||
-    language.isProjectStateQuery(query, locale)
+    queryAnalysis.answerComposition ||
+    queryAnalysis.factConfirmation ||
+    queryAnalysis.projectState
   ) {
     if (category === "project" || category === "technical") {
       return 0.4;
@@ -141,36 +143,24 @@ function categoryPriority(
 }
 
 function factIntentPriority(
-  fact: FactMemory,
-  query: string,
-  factLocale: string,
-  queryLocale: string,
-  language: LanguageService,
+  factAnalysis: LanguageContentAnalysis,
+  queryAnalysis: LanguageQueryAnalysis,
 ): number {
   let score = 0;
 
-  if (language.isRoleQuery(query, queryLocale) && language.isRoleFact(fact.content, factLocale)) {
+  if (queryAnalysis.role && factAnalysis.roleFact) {
     score += 0.7;
   }
 
-  if (
-    language.isFocusQuery(query, queryLocale) &&
-    language.isFocusFact(fact.content, factLocale)
-  ) {
+  if (queryAnalysis.focus && factAnalysis.focusFact) {
     score += 0.6;
   }
 
-  if (
-    language.isOpenLoopQuery(query, queryLocale) &&
-    language.isOpenLoopFact(fact.content, factLocale)
-  ) {
+  if (queryAnalysis.openLoop && factAnalysis.openLoopFact) {
     score += 0.55;
   }
 
-  if (
-    language.isBlockerQuery(query, queryLocale) &&
-    language.isBlockerFact(fact.content, factLocale)
-  ) {
+  if (queryAnalysis.blocker && factAnalysis.blockerFact) {
     score += 0.55;
   }
 
@@ -405,25 +395,24 @@ function durableVerificationPressurePenalty(input: {
 
 function resolveFactKind(
   fact: FactMemory,
-  language: LanguageService,
-  locale: string,
+  analysis: LanguageContentAnalysis,
 ): FactKind | undefined {
   if (fact.factKind) {
     return fact.factKind;
   }
-  if (language.isRoleFact(fact.content, locale)) {
+  if (analysis.roleFact) {
     return "role_update";
   }
-  if (language.isFocusFact(fact.content, locale)) {
+  if (analysis.focusFact) {
     return "focus_update";
   }
-  if (language.isBlockerFact(fact.content, locale)) {
+  if (analysis.blockerFact) {
     return "blocker";
   }
-  if (language.isOpenLoopFact(fact.content, locale)) {
+  if (analysis.openLoopFact) {
     return "open_loop";
   }
-  if (language.isProjectStateFact(fact.content, locale)) {
+  if (analysis.projectStateFact) {
     return "project_state";
   }
   if (fact.category === "project" || fact.category === "technical") {
@@ -496,10 +485,14 @@ export function buildFactCandidates(
   referenceTime: string,
   semanticScores?: Map<string, number>,
   evidenceCountsByMemoryId?: Map<string, number>,
+  providedQueryAnalysis?: LanguageQueryAnalysis,
 ): RankedFactCandidate[] {
+  const queryAnalysis = providedQueryAnalysis ??
+    language.analyzeQuery(query, queryLocale);
   return sortFacts(facts).map((fact) => {
     const locale = resolveFactLocale(fact, language);
-    const factKind = resolveFactKind(fact, language, locale);
+    const factAnalysis = language.analyzeContent(fact.content, locale);
+    const factKind = resolveFactKind(fact, factAnalysis);
     const scopeKind = resolveFactScopeKind(fact, factKind);
     const subject = fact.subject ?? "unknown";
     const lexicalScore = language.tokenOverlap(fact.content, query, queryLocale, {
@@ -511,13 +504,7 @@ export function buildFactCandidates(
         : language.tokenOverlap(subject, query, queryLocale, {
             excludeStopwords: true,
           });
-    const intentScore = factIntentPriority(
-      fact,
-      query,
-      locale,
-      queryLocale,
-      language,
-    );
+    const intentScore = factIntentPriority(factAnalysis, queryAnalysis);
     const freshness = freshnessScore(fact.updatedAt, referenceTime);
     const explicitness = explicitnessScore(fact.source.method);
     const usageScore =
@@ -534,13 +521,14 @@ export function buildFactCandidates(
         referenceTime,
         locale: queryLocale,
         language,
+        queryAnalysis,
       }) +
       durableVerificationPressurePenalty({
         referenceTime,
         verificationPressureCount: fact.verificationPressureCount,
         lastVerificationHintAt: fact.lastVerificationHintAt,
       });
-    const categoryBoost = categoryPriority(fact.category, query, language, queryLocale);
+    const categoryBoost = categoryPriority(fact.category, queryAnalysis);
     const semanticScore = semanticScores?.get(fact.id) ?? 0;
 
     return {

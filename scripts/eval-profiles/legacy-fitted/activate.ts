@@ -1,9 +1,9 @@
-import { setFactSelectorForInternalEval } from "../../../src/recall/selection";
+import type { FactSelector } from "../../../src/recall/generalizedSelection";
 import { enableLegacyFittedNarrowGatesForInternalEval } from "./recall/narrowGates";
 import { selectFactsLegacy } from "./recall/selectionLegacy";
 
-/** Activates the historical fitted selector graph for repo-local evals only. */
-export function activateLegacyFittedEvalProfile(): void {
+/** Returns the historical selector for explicit repo-local eval injection. */
+export function createLegacyFittedEvalFactSelector(): FactSelector {
   enableLegacyFittedNarrowGatesForInternalEval();
-  setFactSelectorForInternalEval(selectFactsLegacy);
+  return selectFactsLegacy;
 }

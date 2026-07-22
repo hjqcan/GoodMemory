@@ -84,6 +84,12 @@ export interface GoodMemoryCapabilityDescriptor {
     readonly npmPackage: string;
     readonly bun: string;
   };
+  readonly releaseStatus: {
+    readonly installCommandsApplyAfterPublish: boolean;
+    readonly npmLatest: string;
+    readonly status: "release-candidate";
+    readonly tarball: string;
+  };
   readonly memoryApi: readonly string[];
   readonly onboarding: readonly GoodMemoryCapabilityOnboardingPath[];
   readonly mcp: {
@@ -115,6 +121,7 @@ export interface GoodMemoryCapabilityDescriptor {
   readonly capabilities: {
     readonly localFirst: boolean;
     readonly embeddingFreeDefault: boolean;
+    readonly builtInLanguagePacks: readonly string[];
     readonly durableStore: string;
     readonly audit: boolean;
     readonly deletion: boolean;
@@ -163,6 +170,12 @@ export function buildGoodMemoryCapabilityDescriptor(
       npmGlobal: `npm install -g goodmemory@${version}`,
       npmPackage: `npm install goodmemory@${version}`,
       bun: `bun add goodmemory@${version}`,
+    },
+    releaseStatus: {
+      installCommandsApplyAfterPublish: true,
+      npmLatest: "0.6.0",
+      status: "release-candidate",
+      tarball: `goodmemory-${version}.tgz`,
     },
     memoryApi: [
       "remember",
@@ -240,12 +253,21 @@ export function buildGoodMemoryCapabilityDescriptor(
       historicalEvidence: {
         url: `${REPO}/tree/main/benchmark-claims`,
         note:
-          "The v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus older LongMemEval and ImplicitMemBench runs, remain reproducible versioned evidence. None is a current v0.7.0 production claim until rerun against this package line.",
+          `The v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus older LongMemEval and ImplicitMemBench runs, remain reproducible versioned evidence. None is a current ${version} production claim until rerun against this package line. LongMemEval and ImplicitMemBench remain internal evidence.`,
       },
     },
     capabilities: {
       localFirst: true,
       embeddingFreeDefault: true,
+      builtInLanguagePacks: [
+        "en",
+        "zh-Hans",
+        "zh-Hant",
+        "ja",
+        "ko",
+        "fr",
+        "es",
+      ],
       durableStore: "sqlite (default), postgres (opt-in)",
       audit: true,
       deletion: true,
@@ -257,7 +279,8 @@ export function buildGoodMemoryCapabilityDescriptor(
     canonicalSources: {
       prose: `${REPO}#readme`,
       benchmarks: `${REPO}/tree/main/benchmark-claims`,
-      note: "This runtime descriptor exposes only claims accepted for the installed package version. Versioned historical results remain in benchmark-claims/*.json.",
+      note:
+        "Benchmark entries keep explicit measuredPackageVersion provenance; a package version bump never relabels historical results. Source declarations remain in benchmark-claims/*.json.",
     },
   };
 }

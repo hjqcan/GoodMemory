@@ -4,20 +4,23 @@
 
 ## Production Boundary
 
-生产入口是 `src/recall/selection.ts`。它只负责：
+生产事实选择由 `src/recall/engine.ts` 直接调用
+`selectGeneralizedFactsForInternalUse`。`src/recall/selection.ts` 是无状态的静态
+surface，只负责：
 
+- 将 `selectFacts` 固定导出为 `selectGeneralizedFactsForInternalUse` 的同一函数。
 - 导出稳定的 fact/record selector surface。
-- 默认分发到 `selectGeneralizedFactsForInternalUse`。
-- 保留一个不从 package root 导出的 repo-eval 注入点，供历史 profile 激活。
+- 不保存 selector、profile 或 eval activation 状态。
 
 通用事实选择实现在 `src/recall/generalizedSelection.ts`。生产默认不读取环境变量，也不导入 narrow gate、source-order rule table、benchmark query classifier 或 legacy route table。
 
-`src/recall/selectors/` 只保留四个通用模块：
+`src/recall/selectors/` 只保留两个通用模块：
 
 - `recordSelection.ts`：feedback、preference、reference、episode、archive。
 - `selectionContext.ts`：trace、tag、slot 和通用候选信号。
-- `temporal.ts`：通用时间和用户事件顺序判断。
-- `topic.ts`：通用 topic token helper。
+
+历史 `temporal.ts` 与 `topic.ts` 已完整移入 repo-only legacy profile；生产所需的
+时间与 query 语义来自 `LanguageQueryAnalysis`、RecallPlan 及通用 projection。
 
 `src/recall/factSelection/` 只保留四个通用基础模块：
 
@@ -61,9 +64,15 @@ selector。生产实体通道由 `src/recall/projections/` 与
 
 - `recall/` 保存历史 selector、narrow gates、source-order rules 和 route/augmenter graph。
 - `recall/` 下的少量 proxy 只复用生产的 domain、language、scoring、draft、semantic-union 和 slot primitives，不复制实现。
-- `activate.ts` 是唯一激活入口。
+- `activate.ts` 返回显式的 `FactSelector`，同时只在 legacy profile 内开启 narrow
+  gates；它不写入任何 production module state。
 - `tests/` 保存历史行为契约。
 - `gate-audit.json` 保存跨 BEAM 100K/500K/1M 的 148-gate census。
+
+`scripts/run-phase-63-beam-recall-diagnostic.ts --legacy-fitted-profile` 将该 selector
+作为实例依赖传给 `createInternalGoodMemory(..., { factSelector })`。历史 selector
+测试直接导入 `selectFactsLegacy`；legacy test preload 只管理 legacy narrow gates，
+不再替换生产 selector。
 
 历史 profile 只能通过 repo 内脚本或以下命令显式运行：
 
@@ -77,7 +86,10 @@ bun run test:legacy-fitted
 
 包发布只包含编译产物与 JavaScript bin wrapper，不包含 `src`、TypeScript bin source 或 `scripts/eval-profiles`。
 
-`selectFacts` 的内部签名、`RecallCandidateTrace` 结构和 GoodMemory 的公共 `recall` 结果保持兼容。legacy activation 不从 `src/index.ts` 或任何 package subpath 导出。
+`selectFacts` 是 generalized selector 的不可变别名。`FactSelector` 的内部签名、
+`RecallCandidateTrace` 结构和 GoodMemory 的公共 `recall` 结果保持兼容。
+实例级 `factSelector` 只存在于 `InternalGoodMemoryOptions`，不属于
+`GoodMemoryConfig`、`src/index.ts` 或任何 package subpath。
 
 ## Design Rules
 
@@ -101,6 +113,8 @@ bun run test:legacy-fitted
 - 生产 `factSelection/` 只能包含四个允许模块。
 - `src/recall` 不得出现 `narrowGates.ts`、`selectionLegacy.ts` 或 `selectionRunContext.ts`。
 - 生产 recall 不读取 `process.env`。
+- production selection 不保存 mutable selector，也不提供 activation/reset setter。
+- historical selector 只能通过 internal runtime 的实例级依赖注入进入 eval。
 - package 不包含 `src` 或 TypeScript entrypoint。
 - compiled JavaScript 不包含已知 fitted benchmark literal。
 - legacy census 必须完整覆盖 148 gates 和三个 BEAM split。

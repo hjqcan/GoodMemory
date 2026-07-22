@@ -2187,6 +2187,8 @@ describe("goodmemory cli installed host config", () => {
             "codex",
             "--user-id",
             "codex-user",
+            "--default-locale",
+            "zh-tw",
             "--writeback",
             "selective",
             "--json",
@@ -2229,10 +2231,12 @@ describe("goodmemory cli installed host config", () => {
             await readFile(join(home.root, ".goodmemory/codex.json"), "utf8"),
           ) as {
             host: string;
+            language?: { defaultLocale?: string };
             storage: { path: string; provider: string };
             userId: string;
           };
           expect(config.host).toBe("codex");
+          expect(config.language).toEqual({ defaultLocale: "zh-TW" });
           expect(config.userId).toBe("codex-user");
           expect(config.storage.path).toBe(join(home.root, ".goodmemory/memory.sqlite"));
           const codexConfig = await readFile(join(home.root, ".codex/config.toml"), "utf8");

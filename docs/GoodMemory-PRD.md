@@ -547,6 +547,27 @@ v1 支持，但不是主设计中心。
 
 这些能力在产品中被归类为 advanced internal capability。
 
+### 12.11 FR-11 LanguagePack 横向扩展
+
+GoodMemory 必须把语言支持实现为一个端到端语义边界，而不是散落在业务模块中的
+locale 分支或翻译文件。
+
+0.7 的产品契约是：
+
+- `LanguagePack` 是唯一语言扩展点；不保留旧 language adapter 兼容层
+- 一等支持 English、简体中文、繁体中文、日文、韩文、法文和西班牙文
+- 同一 pack 负责检测、抽取、query/content analysis、时间表达、实体、搜索词和人类可读渲染
+- remember、recall、answer、storage 和 installed-host 只能消费语言无关的结构化分析，不新增具体语言分支
+- 未支持的显式 locale 使用 neutral Unicode 行为，不继承英文语义
+- 简体和繁体分别保证同脚本写入与召回，不承诺简繁跨脚本词法召回
+- 原始用户内容永远不转换；OpenCC、第三方语言检测器和日文 NLP 运行时不进入默认依赖
+- analyzer、search schema 或 resolver identity 变化时，版本化派生 projection 必须 fail-closed 重建
+- 新增自定义语言只注册完整 pack，并通过同一 conformance 与 `xx-Test` 端到端门禁，不修改业务模块
+
+0.7 是干净 breaking release。升级必须完成 API/配置迁移、per-scope projection
+重建和发布验证；不发布 adapter shim、dual-write 或半迁移状态。完整决策见
+ADR-008，操作步骤见 `GoodMemory-0.6-to-0.7-Migration-Guide.md`。
+
 ---
 
 ## 13. 非功能需求

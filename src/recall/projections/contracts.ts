@@ -11,16 +11,24 @@ export type {
   ClaimProjectionWritePort,
 } from "../../domain/memoryCandidate";
 
-export const RECALL_DOCUMENTS_COLLECTION = "recall_documents_v2";
-export const ENTITIES_COLLECTION = "entities_v1";
-export const SCOPE_CATALOG_COLLECTION = "scope_catalog_v1";
+export const RECALL_DOCUMENTS_COLLECTION = "recall_documents_v3";
+export const ENTITIES_COLLECTION = "entities_v2";
+export const SCOPE_CATALOG_COLLECTION = "scope_catalog_v2";
 export const PROJECTION_MANIFESTS_COLLECTION =
   "recall_projection_manifests_v1";
 export const PROJECTION_REPAIRS_COLLECTION = "recall_projection_repairs_v1";
-export const CLAIM_PROJECTIONS_COLLECTION = "claim_projections_v1";
-export const CLAIM_PROJECTION_STATUS_COLLECTION = "claim_projection_status_v1";
-export const PROJECTION_SEARCH_SCHEMA_VERSION = "gm-search-v1";
-export const RECALL_PROJECTION_PIPELINE_VERSION = "gm-projection-v2";
+export const CLAIM_PROJECTIONS_COLLECTION = "claim_projections_v2";
+export const CLAIM_PROJECTION_STATUS_COLLECTION = "claim_projection_status_v2";
+export const PROJECTION_SEARCH_SCHEMA_VERSION = "gm-search-v2";
+export const RECALL_PROJECTION_PIPELINE_VERSION = "gm-projection-v3";
+
+export const LEGACY_RECALL_PROJECTION_COLLECTIONS = [
+  "recall_documents_v2",
+  "entities_v1",
+  "claim_projections_v1",
+  "claim_projection_status_v1",
+  "scope_catalog_v1",
+] as const;
 
 export const RECALL_PROJECTION_SOURCE_COLLECTIONS = [
   "profiles",
@@ -45,7 +53,7 @@ export interface RecallEntityMention {
 
 export interface RecallIndexDocument extends MemoryScope {
   id: string;
-  schemaVersion: 2;
+  schemaVersion: 3;
   scopeKey: string;
   sourceCollection: RecallProjectionSourceCollection;
   sourceMemoryId: string;
@@ -78,7 +86,7 @@ export interface RecallIndexDocument extends MemoryScope {
 
 export interface EntityProjection extends MemoryScope {
   id: string;
-  schemaVersion: 1;
+  schemaVersion: 2;
   scopeKey: string;
   canonicalKey: string;
   aliases: string[];
@@ -91,19 +99,19 @@ export interface EntityProjection extends MemoryScope {
 
 export interface EntityAdjacencyProjection extends MemoryScope {
   id: string;
-  schemaVersion: 1;
+  schemaVersion: 2;
   scopeKey: string;
   entityId: string;
   canonicalKey: string;
   memoryId: string;
   aliases: string[];
   description?: string;
-  text?: string;
-  searchText?: string;
-  searchLocale?: string;
-  languagePackId?: string;
-  searchAnalyzerVersion?: string;
-  searchSchemaVersion?: typeof PROJECTION_SEARCH_SCHEMA_VERSION;
+  text: string;
+  searchText: string;
+  searchLocale: string;
+  languagePackId: string;
+  searchAnalyzerVersion: string;
+  searchSchemaVersion: typeof PROJECTION_SEARCH_SCHEMA_VERSION;
   validFrom?: string;
   validUntil?: string;
   updatedAt: string;
@@ -111,10 +119,12 @@ export interface EntityAdjacencyProjection extends MemoryScope {
 
 export interface ScopeCatalogProjection extends MemoryScope {
   id: string;
-  schemaVersion: 1;
+  schemaVersion: 2;
   scopeKey: string;
   coverage: "partial" | "complete";
-  searchSchemaVersion?: typeof PROJECTION_SEARCH_SCHEMA_VERSION;
+  analyzerFingerprint: string | null;
+  projectionVersion: typeof RECALL_PROJECTION_PIPELINE_VERSION;
+  searchSchemaVersion: typeof PROJECTION_SEARCH_SCHEMA_VERSION;
   firstSeenAt: string;
   lastSeenAt: string;
 }
@@ -132,19 +142,19 @@ export interface RecallProjectionManifest extends MemoryScope {
 
 export interface ClaimProjection extends MemoryScope {
   id: string;
-  schemaVersion: 1;
+  schemaVersion: 2;
   scopeKey: string;
   sourceMemoryId: string;
   subjectText?: string;
   subjectEntityId: string;
   predicateKey: string;
   objectText: string;
-  text?: string;
-  searchText?: string;
-  searchLocale?: string;
-  languagePackId?: string;
-  searchAnalyzerVersion?: string;
-  searchSchemaVersion?: typeof PROJECTION_SEARCH_SCHEMA_VERSION;
+  text: string;
+  searchText: string;
+  searchLocale: string;
+  languagePackId: string;
+  searchAnalyzerVersion: string;
+  searchSchemaVersion: typeof PROJECTION_SEARCH_SCHEMA_VERSION;
   objectEntityText?: string;
   objectEntityId?: string;
   polarity: MemoryClaimPolarity;
@@ -164,7 +174,7 @@ export type ClaimProjectionState = "projected" | "unstructured" | "failed";
 
 export interface ClaimProjectionStatus extends MemoryScope {
   id: string;
-  schemaVersion: 1;
+  schemaVersion: 2;
   scopeKey: string;
   sourceMemoryId: string;
   state: ClaimProjectionState;

@@ -1,5 +1,7 @@
 import type { MemoryScope } from "../domain/scope";
-import type { RecallResult } from "../api/contracts";
+import type { GoodMemory, RecallResult } from "../api/contracts";
+import { readGoodMemoryIntegrationSupport } from "../api/integrationSupport";
+import { createLanguageService, type LanguageService } from "../language";
 import { estimateTextTokens } from "../tokenEstimator";
 import {
   normalizeText,
@@ -204,8 +206,21 @@ export async function executeInstalledHostHook(
     };
   }
 
-  const query = deriveHookQuery(input.command, input.payload, workspaceRootOf(resolved.context));
-  if (!query) {
+  const context = resolved.context;
+  const sessionMemory = input.command === "session-start"
+    ? createInstalledHostMemory(context, dependencies)
+    : undefined;
+  const language = sessionMemory
+    ? readGoodMemoryIntegrationSupport(sessionMemory)?.language ??
+      createLanguageService(context.language)
+    : undefined;
+  const hookQuery = deriveHookQuery(
+    input.command,
+    input.payload,
+    workspaceRootOf(context),
+    language,
+  );
+  if (!hookQuery) {
     return buildHookSkipResult({
       debug: resolved.context.debug,
       host: input.host,
@@ -214,7 +229,8 @@ export async function executeInstalledHostHook(
     });
   }
 
-  const context = resolved.context;
+  const query = hookQuery.query;
+  const memory = sessionMemory ?? createInstalledHostMemory(context, dependencies);
   // The once-per-session brief may spend more than per-prompt injection.
   const effectiveMaxTokens =
     input.command === "session-start"
@@ -248,6 +264,8 @@ export async function executeInstalledHostHook(
             homeRoot: input.homeRoot,
             host: input.host,
             maxTokens: effectiveMaxTokens,
+            locale: hookQuery.locale,
+            memory,
             query,
           }).catch(() => null)
         : null;
@@ -255,6 +273,8 @@ export async function executeInstalledHostHook(
       context,
       dependencies,
       maxTokens: effectiveMaxTokens,
+      locale: hookQuery.locale,
+      memory,
       query,
     });
     const recallLatencyMs = Math.round(performance.now() - recallStartedAt);
@@ -489,6 +509,8 @@ async function buildProgressiveHookContext(input: {
   homeRoot?: string;
   host: InstalledHostKind;
   maxTokens: number;
+  locale?: string;
+  memory: GoodMemory;
   query: string;
 }): Promise<HookContextBuildResult | null> {
   const mcpRegistered = await isInstalledHostMcpRegistered({
@@ -503,10 +525,12 @@ async function buildProgressiveHookContext(input: {
     context: input.context,
     dependencies: input.dependencies,
     homeRoot: input.homeRoot,
+    memory: input.memory,
   });
   const index = await service.searchRecallIndex({
     includeRuntime: true,
     limit: MAX_PROGRESSIVE_HOOK_RECORDS,
+    locale: input.locale,
     query: input.query,
     retrievalProfile: input.context.retrievalProfile,
     scope: input.context.scope,
@@ -550,15 +574,17 @@ async function buildFragmentHookContext(input: {
   context: InstalledHostResolvedContext;
   dependencies: InstalledHostHookDependencies;
   maxTokens: number;
+  locale?: string;
+  memory: GoodMemory;
   query: string;
 }): Promise<HookContextBuildResult | null> {
-  const memory = createInstalledHostMemory(input.context, input.dependencies);
-  const recall = await memory.recall({
+  const recall = await input.memory.recall({
+    locale: input.locale,
     scope: input.context.scope,
     query: input.query,
     retrievalProfile: input.context.retrievalProfile,
   });
-  const builtContext = await memory.buildContext({
+  const builtContext = await input.memory.buildContext({
     recall,
     output: "developer_prompt_fragment",
     maxTokens: input.maxTokens,
@@ -610,28 +636,41 @@ function deriveHookQuery(
   command: InstalledHostHookCommand,
   payload: Record<string, unknown>,
   workspaceRoot?: string,
-): string | null {
+  language?: LanguageService,
+): { locale?: string; query: string } | null {
   if (command === "pre-tool-use") {
     return null;
   }
   if (command === "user-prompt-submit") {
-    return normalizeText(readOptionalText(payload, "prompt"));
+    const query = normalizeText(readOptionalText(payload, "prompt"));
+    return query ? { query } : null;
   }
 
   if (command === "session-stop") {
     return null;
   }
 
+  const service = language ?? createLanguageService();
+  const locale = service.getAnalyzerManifest().defaultLocale;
+  const context = service.resolveFromText({ locale, text: "" });
   const source = normalizeText(readOptionalText(payload, "source")) ?? "startup";
-  const baseQuery =
-    source === "resume"
-      ? "What continuity, active context, and open loops should I resume for this coding session?"
-      : "What active context, continuity, and open loops should I know at the start of this coding session?";
+  const baseQuery = service.render(
+    {
+      key: source === "resume" ? "session_resume_query" : "session_start_query",
+    },
+    context,
+  );
   // The workspace name is a discriminative lexical anchor (BM25 IDF) for
   // project-tagged facts; the generic brief question alone has almost no
   // overlap with stored content.
   const workspaceName = workspaceRoot ? basename(workspaceRoot) : "";
-  return workspaceName ? `${baseQuery} Workspace: ${workspaceName}.` : baseQuery;
+  const query = workspaceName
+    ? `${baseQuery} ${service.render({
+        key: "workspace_query_anchor",
+        values: { workspace: workspaceName },
+      }, context)}`
+    : baseQuery;
+  return { locale: context.locale, query };
 }
 
 function mapHookEventName(

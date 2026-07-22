@@ -8,6 +8,7 @@ import {
 } from "../../src/evidence/contracts";
 import {
   createEnglishLanguagePack,
+  createJapaneseLanguagePack,
   createLanguageService,
 } from "../../src/language";
 import {
@@ -328,7 +329,7 @@ describe("recall projection runtime", () => {
     );
 
     expect(first).toBe(second);
-    expect(first).toStartWith("gm-projection-v2:");
+    expect(first).toStartWith("gm-projection-v3:");
     expect(alternateDefault).not.toBe(first);
   });
 
@@ -361,11 +362,11 @@ describe("recall projection runtime", () => {
     expect(
       documents.every(
         (document) =>
-          document.schemaVersion === 2 &&
+          document.schemaVersion === 3 &&
           typeof document.searchText === "string" &&
           document.searchText.length > 0 &&
           document.searchAnalyzerVersion.length > 0 &&
-          document.searchSchemaVersion === "gm-search-v1" &&
+          document.searchSchemaVersion === "gm-search-v2" &&
           document.languagePackId === "en" &&
           document.scopeKey === scopeToKey(scope) &&
           document.sourceMemoryId === fact.id &&
@@ -395,11 +396,13 @@ describe("recall projection runtime", () => {
     expect(catalogs).toEqual([
       expect.objectContaining({
         ...scope,
+        analyzerFingerprint: expect.any(String),
         coverage: "partial",
-        searchSchemaVersion: "gm-search-v1",
+        projectionVersion: "gm-projection-v3",
+        searchSchemaVersion: "gm-search-v2",
         firstSeenAt: NOW,
         lastSeenAt: NOW,
-        schemaVersion: 1,
+        schemaVersion: 2,
       }),
     ]);
   });
@@ -431,6 +434,44 @@ describe("recall projection runtime", () => {
       true,
     );
     expect(searchedFields).toEqual(["searchText"]);
+  });
+
+  it("forwards an explicit locale through every projection search channel", async () => {
+    const inner = createInMemoryDocumentStore();
+    const searchQueries: string[] = [];
+    const store: DocumentStore = {
+      projectionBatchSemantics: inner.projectionBatchSemantics,
+      set: (collection, id, document) => inner.set(collection, id, document),
+      get: (collection, id) => inner.get(collection, id),
+      update: (collection, id, patch) => inner.update(collection, id, patch),
+      query: (collection, filter) => inner.query(collection, filter),
+      delete: (collection, id) => inner.delete(collection, id),
+      searchText: (collection, input) => {
+        searchQueries.push(input.query);
+        return inner.searchText!(collection, input);
+      },
+      writeBatchIfUnchanged: (input) => inner.writeBatchIfUnchanged!(input),
+    };
+    const japanese = createJapaneseLanguagePack();
+    const runtime = createRecallProjectionRuntime({
+      documentStore: store,
+      language: createLanguageService({
+        packs: [{
+          ...japanese,
+          buildSearchTerms: () => ["ja-locale-marker"],
+        }],
+      }),
+    });
+
+    await runtime.searchDocuments(scope, "東京大学", 5, "ja-JP");
+    await runtime.searchEntities(scope, "東京大学", 5, "ja-JP");
+    await runtime.searchClaims(scope, "東京大学", 5, false, "ja-JP");
+
+    expect(searchQueries).toEqual([
+      "ja-locale-marker",
+      "ja-locale-marker",
+      "ja-locale-marker",
+    ]);
   });
 
   it("pre-tokenizes Traditional Chinese and Japanese projection search", async () => {
@@ -492,7 +533,7 @@ describe("recall projection runtime", () => {
     expect(
       (await runtime.searchEntities(scope, "資料庫部署", 5)).some(
         ({ aliases, canonicalKey }) =>
-          canonicalKey === "数据库部署" && aliases.includes("資料庫部署"),
+          canonicalKey === "資料庫部署" && aliases.includes("資料庫部署"),
       ),
     ).toBe(true);
     expect(
@@ -510,6 +551,58 @@ describe("recall projection runtime", () => {
         ({ sourceMemoryId }) => sourceMemoryId === japanese.id,
       ),
     ).toBe(true);
+  });
+
+  it("repairs only strongly detectable legacy locales during projection migration", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const runtime = createRecallProjectionRuntime({ documentStore: rawStore });
+    const facts = [
+      {
+        ...buildFact({ id: "legacy-kana", content: "現在の移行状態は確認待ちです。" }),
+        source: {
+          method: "explicit" as const,
+          extractedAt: NOW,
+          locale: "en-US",
+        },
+      },
+      {
+        ...buildFact({ id: "legacy-hant", content: "目前專案的發佈狀態仍待審批。" }),
+        source: {
+          method: "explicit" as const,
+          extractedAt: NOW,
+          locale: "en-US",
+        },
+      },
+      {
+        ...buildFact({ id: "legacy-han-ja", content: "田中東京大学" }),
+        source: {
+          method: "explicit" as const,
+          extractedAt: NOW,
+          locale: "ja-JP",
+        },
+      },
+      {
+        ...buildFact({ id: "legacy-han-zh", content: "田中東京大学" }),
+        source: {
+          method: "explicit" as const,
+          extractedAt: NOW,
+          locale: "zh-CN",
+        },
+      },
+    ];
+    for (const fact of facts) {
+      await runtime.documentStore.set("facts", fact.id, fact);
+    }
+
+    const documents = await runtime.queryDocuments(scope);
+    const localeFor = (id: string) =>
+      documents.find(({ granularity, sourceMemoryId }) =>
+        granularity === "memory" && sourceMemoryId === id
+      )?.searchLocale;
+    expect(localeFor("legacy-kana")).toBe("ja-JP");
+    expect(localeFor("legacy-hant")).toBe("zh-Hant");
+    expect(localeFor("legacy-han-ja")).toBe("ja-JP");
+    expect(localeFor("legacy-han-zh")).toBe("zh-CN");
   });
 
   it("uses the earliest validity boundary when both validUntil and TTL exist", async () => {
@@ -823,6 +916,170 @@ describe("recall projection runtime", () => {
     );
   });
 
+  it("migrates a scope into the 0.7 projection collections and removes legacy rows", async () => {
+    expect(RECALL_DOCUMENTS_COLLECTION).toBe("recall_documents_v3");
+    expect(ENTITIES_COLLECTION).toBe("entities_v2");
+    expect(CLAIM_PROJECTIONS_COLLECTION).toBe("claim_projections_v2");
+    expect(CLAIM_PROJECTION_STATUS_COLLECTION).toBe(
+      "claim_projection_status_v2",
+    );
+    expect(SCOPE_CATALOG_COLLECTION).toBe("scope_catalog_v2");
+
+    const rawStore = createInMemoryDocumentStore();
+    const historical = buildFact({ id: "fact-version-migration" });
+    await rawStore.set("facts", historical.id, historical);
+    for (const [collection, id] of [
+      ["recall_documents_v2", "legacy-document"],
+      ["entities_v1", "legacy-entity"],
+      ["claim_projections_v1", "legacy-claim"],
+      ["claim_projection_status_v1", "legacy-status"],
+      ["scope_catalog_v1", "legacy-catalog"],
+    ] as const) {
+      await rawStore.set(collection, id, {
+        id,
+        ...scope,
+        scopeKey: scopeToKey(scope),
+      });
+    }
+    const runtime = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      now: () => NOW,
+      persistentScopeProof: { buildId: "language-manifest-fingerprint" },
+    });
+
+    expect(await runtime.ensureScopeIndexed(scope)).toMatchObject({
+      complete: true,
+      indexedSources: 1,
+    });
+
+    for (const collection of [
+      "recall_documents_v2",
+      "entities_v1",
+      "claim_projections_v1",
+      "claim_projection_status_v1",
+      "scope_catalog_v1",
+    ]) {
+      expect(await rawStore.query(collection, { scopeKey: scopeToKey(scope) }))
+        .toEqual([]);
+    }
+    expect(
+      await rawStore.get<ScopeCatalogProjection>(
+        SCOPE_CATALOG_COLLECTION,
+        `scope:${scopeToKey(scope)}`,
+      ),
+    ).toMatchObject({
+      analyzerFingerprint: "language-manifest-fingerprint",
+      coverage: "complete",
+      projectionVersion: "gm-projection-v3",
+      schemaVersion: 2,
+    });
+  });
+
+  it("retries an interrupted legacy cleanup without mutating canonical memory", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const historical = buildFact({ id: "fact-interrupted-migration" });
+    await rawStore.set("facts", historical.id, historical);
+    await rawStore.set("recall_documents_v2", "legacy-interrupted", {
+      id: "legacy-interrupted",
+      ...scope,
+      scopeKey: scopeToKey(scope),
+    });
+    let failCleanup = true;
+    const interruptedStore: DocumentStore = {
+      projectionBatchSemantics: rawStore.projectionBatchSemantics,
+      set: (collection, id, document) => rawStore.set(collection, id, document),
+      get: (collection, id) => rawStore.get(collection, id),
+      update: (collection, id, patch) => rawStore.update(collection, id, patch),
+      query: (collection, filter) => rawStore.query(collection, filter),
+      delete(collection, id) {
+        if (collection === "recall_documents_v2" && failCleanup) {
+          failCleanup = false;
+          throw new Error("injected legacy cleanup interruption");
+        }
+        return rawStore.delete(collection, id);
+      },
+      searchText: (collection, input) => rawStore.searchText!(collection, input),
+      writeBatchIfUnchanged: (input) => rawStore.writeBatchIfUnchanged!(input),
+    };
+    const runtime = createRecallProjectionRuntime({
+      documentStore: interruptedStore,
+      now: () => NOW,
+      persistentScopeProof: { buildId: "interrupted-language-manifest" },
+    });
+
+    await expect(runtime.ensureScopeIndexed(scope)).rejects.toThrow(
+      "injected legacy cleanup interruption",
+    );
+    expect(await rawStore.get("facts", historical.id)).toEqual(historical);
+    expect(
+      await rawStore.get<ScopeCatalogProjection>(
+        SCOPE_CATALOG_COLLECTION,
+        `scope:${scopeToKey(scope)}`,
+      ),
+    ).toMatchObject({ coverage: "partial" });
+
+    expect(await runtime.ensureScopeIndexed(scope)).toMatchObject({
+      complete: true,
+      skipped: false,
+    });
+    expect(await rawStore.get("recall_documents_v2", "legacy-interrupted"))
+      .toBeNull();
+    expect(await rawStore.get("facts", historical.id)).toEqual(historical);
+  });
+
+  it("keeps catalog coverage partial when rebuilt entity adjacency is incomplete", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const store: DocumentStore = {
+      projectionBatchSemantics: rawStore.projectionBatchSemantics,
+      set: (collection, id, document) => rawStore.set(collection, id, document),
+      get: (collection, id) => rawStore.get(collection, id),
+      update: (collection, id, patch) => rawStore.update(collection, id, patch),
+      query: (collection, filter) => rawStore.query(collection, filter),
+      delete: (collection, id) => rawStore.delete(collection, id),
+      searchText: (collection, input) => rawStore.searchText!(collection, input),
+      writeBatchIfUnchanged: (input) => rawStore.writeBatchIfUnchanged!({
+        ...input,
+        set: input.set.filter(({ collection }) => collection !== ENTITIES_COLLECTION),
+      }),
+    };
+    const historical = buildFact({ id: "fact-missing-adjacency" });
+    await rawStore.set("facts", historical.id, historical);
+    const runtime = createRecallProjectionRuntime({
+      documentStore: store,
+      now: () => NOW,
+    });
+
+    expect(await runtime.ensureScopeIndexed(scope)).toMatchObject({
+      complete: false,
+    });
+    expect(
+      await rawStore.get<ScopeCatalogProjection>(
+        SCOPE_CATALOG_COLLECTION,
+        `scope:${scopeToKey(scope)}`,
+      ),
+    ).toMatchObject({ coverage: "partial" });
+  });
+
+  it("serializes concurrent migration attempts for the same scope", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const historical = buildFact({ id: "fact-concurrent-migration" });
+    await rawStore.set("facts", historical.id, historical);
+    const runtime = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      now: () => NOW,
+      persistentScopeProof: { buildId: "concurrent-language-manifest" },
+    });
+
+    const results = await Promise.all([
+      runtime.ensureScopeIndexed(scope),
+      runtime.ensureScopeIndexed(scope),
+    ]);
+
+    expect(results.every(({ complete }) => complete)).toBe(true);
+    expect(results.reduce((sum, result) => sum + result.indexedSources, 0)).toBe(1);
+    expect(results.some(({ skipped }) => skipped)).toBe(true);
+  });
+
   it("registers new durable scopes when projection write-through is disabled", async () => {
     const rawStore = createInMemoryDocumentStore();
     const runtime = createRecallProjectionRuntime({
@@ -915,7 +1172,7 @@ describe("recall projection runtime", () => {
     });
   });
 
-  it("bulk backfill scans projection collections once per scope", async () => {
+  it("bulk backfill reads projections once to replace and once to verify", async () => {
     const rawStore = createInMemoryDocumentStore();
     for (let index = 0; index < 40; index += 1) {
       const fact = buildFact({
@@ -956,8 +1213,8 @@ describe("recall projection runtime", () => {
       indexedSources: 40,
       skipped: false,
     });
-    expect(recallDocumentQueries).toBe(1);
-    expect(entityQueries).toBe(1);
+    expect(recallDocumentQueries).toBe(2);
+    expect(entityQueries).toBe(2);
   });
 
   it("does not let a narrow backfill mark the user-wide scope complete", async () => {
@@ -1220,7 +1477,7 @@ describe("recall projection runtime", () => {
       ...buildFact({ id: "fact-orphan-claim" }),
       workspaceId: "workspace-2",
     };
-    const orphanClaim: ClaimProjection = {
+    const orphanClaim = {
       id: "claim-orphan-history",
       schemaVersion: 1,
       ...scope,
@@ -1236,7 +1493,7 @@ describe("recall projection runtime", () => {
       evidenceIds: [],
       sourceMessageIds: [],
       extractorVersion: "legacy-v1",
-    };
+    } as unknown as ClaimProjection;
     await rawStore.set("facts", movedFact.id, movedFact);
     await rawStore.set(
       CLAIM_PROJECTIONS_COLLECTION,
@@ -1331,7 +1588,7 @@ describe("recall projection runtime", () => {
     for (const variant of variants) {
       const rawStore = createInMemoryDocumentStore();
       const fact = buildFact({ id: `fact-${variant.id}` });
-      const legacyClaim: ClaimProjection = {
+      const legacyClaim = {
         id: `claim-${variant.id}`,
         schemaVersion: 1,
         ...scope,
@@ -1348,8 +1605,8 @@ describe("recall projection runtime", () => {
         sourceMessageIds: [],
         extractorVersion: "legacy-v1",
         ...variant.claimFields,
-      };
-      const status: ClaimProjectionStatus = {
+      } as unknown as ClaimProjection;
+      const status = {
         id: buildClaimProjectionStatusId(scope, fact.id),
         schemaVersion: 1,
         ...scope,
@@ -1360,7 +1617,7 @@ describe("recall projection runtime", () => {
         extractorVersion: legacyClaim.extractorVersion,
         sourceUpdatedAt: fact.updatedAt,
         updatedAt: fact.updatedAt,
-      };
+      } as unknown as ClaimProjectionStatus;
       await rawStore.set("facts", fact.id, fact);
       await rawStore.set(
         CLAIM_PROJECTIONS_COLLECTION,
@@ -1606,6 +1863,61 @@ describe("recall projection runtime", () => {
     expect(first?.subjectEntityId).toBe(second?.subjectEntityId);
     expect(first?.validUntil).toBe(secondObservedAt);
     expect(second?.validUntil).toBeUndefined();
+  });
+
+  it("uses the projection LanguagePack when comparing structured claim values", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const language = createMarkedLanguageService({
+      analyzerVersion: "tr-equality-v1",
+      normalizeForEquality: (text) => text.normalize("NFKC").toLocaleLowerCase("tr"),
+      searchTerm: "turkish-term",
+    });
+    const runtime = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      language,
+    });
+    const firstObservedAt = "2026-07-08T10:00:00.000Z";
+    const secondObservedAt = "2026-07-08T11:00:00.000Z";
+    const firstFact = {
+      ...buildFact({ id: "fact-turkish-first" }),
+      subject: "Atlas",
+      updatedAt: firstObservedAt,
+    };
+    const secondFact = {
+      ...buildFact({ id: "fact-turkish-second" }),
+      subject: "Atlas",
+      updatedAt: secondObservedAt,
+    };
+
+    await runtime.documentStore.set("facts", firstFact.id, firstFact);
+    await runtime.appendClaim({
+      ...scope,
+      sourceMemoryId: firstFact.id,
+      subject: firstFact.subject,
+      claim: { predicateKey: "project.location", objectText: "IĞDIR" },
+      observedAt: firstObservedAt,
+      ingestedAt: firstObservedAt,
+      evidenceIds: [],
+      sourceMessageIds: [],
+      extractorVersion: "extractor-v1",
+    });
+    await runtime.documentStore.set("facts", secondFact.id, secondFact);
+    await runtime.appendClaim({
+      ...scope,
+      sourceMemoryId: secondFact.id,
+      subject: secondFact.subject,
+      claim: { predicateKey: "project.location", objectText: "ığdır" },
+      observedAt: secondObservedAt,
+      ingestedAt: secondObservedAt,
+      evidenceIds: [],
+      sourceMessageIds: [],
+      extractorVersion: "extractor-v1",
+    });
+
+    const history = await runtime.queryClaimHistory(scope);
+    expect(history.find(({ sourceMemoryId }) =>
+      sourceMemoryId === firstFact.id
+    )?.validUntil).toBeUndefined();
   });
 
   it("rolls back a canonical write when persistent proof invalidation fails", async () => {
@@ -2115,7 +2427,7 @@ describe("recall projection runtime", () => {
     const failedStatus: ClaimProjectionStatus = {
       ...scope,
       id: buildClaimProjectionStatusId(scope, fact.id),
-      schemaVersion: 1,
+      schemaVersion: 2,
       scopeKey: scopeToKey({ ...scope, sessionId: undefined }),
       sourceMemoryId: fact.id,
       state: "failed",

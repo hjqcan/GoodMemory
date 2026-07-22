@@ -5,6 +5,7 @@ import type {
 } from "../domain/memoryCandidate";
 import type {
   LanguageCandidateExtractionInput,
+  LanguageContentAnalysis,
   LanguagePack,
 } from "./contracts";
 import type {
@@ -26,11 +27,29 @@ import {
   parseEnglishTemporalExpressions,
   renderEnglish,
 } from "./englishSemantics";
-import { resolveEnglishTemporalReference } from "./englishTemporal";
 import {
   matchesNormalizedEntityAlias,
   splitSentencesGeneric,
 } from "./packHelpers";
+import { analyzeEnglishBehavioralRule } from "./englishBehavioral";
+
+const BEHAVIORAL_RULE_PATTERNS = {
+  firstAction: [
+    /\b(?:use|run|call|invoke|execute)\s+([A-Za-z_][A-Za-z0-9_@.-]*)\b[^.\n]{0,80}\b(?:first|before)\b/iu,
+    /\b(?:first|before)[^.\n]{0,40}\b(?:use|run|call|invoke|execute)\s+([A-Za-z_][A-Za-z0-9_@.-]*)\b/iu,
+    /\b([A-Za-z_][A-Za-z0-9_@.-]*)\s+(?:takes|uses|requires|accepts)\b[^.\n]{0,100}\bfirst\b/iu,
+  ],
+  format: /\b(?:closing|end with|opening|prefix|sign off|signature|start with|subject line|suffix)\b/iu,
+  general: /\b(?:always|for any|in this environment|must|should|whenever|when using)\b/iu,
+  negative: /\b(?:avoid|don['’]t|do not|must not|never|rather than|instead of)\b/iu,
+  trigger: [
+    /\bwhen\s+(.+?)(?:[,.]|$)/iu,
+    /\bif\s+(.+?)(?:[,.]|$)/iu,
+    /\bbefore\s+(.+?)(?:[,.]|$)/iu,
+    /\bfor\s+(.+?)(?:[,.]|$)/iu,
+    /\bon\s+(.+?)\s+requests?(?:[,.]|$)/iu,
+  ],
+} as const;
 
 const GREETING_PATTERN = /^(hi|hello|hey|thanks|thank you|ok|okay)[.!]?$/i;
 const PROFILE_NAME_PATTERN =
@@ -53,6 +72,13 @@ const PROFILE_LANGUAGE_PATTERN =
   /(?:my\s+preferred\s+language\s+is|my\s+language\s+is)\s+([A-Za-z][A-Za-z -]*)/i;
 const CURRENT_PROJECT_PATTERN =
   /(?:remember that\s+)?i(?:'m| am)\s+(?:leading|working on|focused on|owning)\s+(.+?)(?=\.|$)/i;
+const CURRENT_GOAL_PATTERN = /\bmy current goal is\s+(.+?)(?=[.!?]|$)/iu;
+const QUARTERLY_PRIORITY_PATTERN =
+  /\bmy top priority this quarter is\s+(.+?)(?=[.!?]|$)/iu;
+const HABIT_PATTERN = /\bmy habit is\s+(.+?)(?=[.!?]|$)/iu;
+const COACHING_STYLE_PATTERN = /\bplease coach me with\s+(.+?)(?=[.!?]|$)/iu;
+const POSITIVE_COACHING_FEEDBACK_PATTERN =
+  /\bkeep doing\s+(.+?)(?=[.!?]|$)/iu;
 const EDUCATION_DEGREE_PATTERN =
   /\bi\s+(?:graduated|earned|have|hold)\s+(?:with\s+)?(?:a\s+)?degree\s+in\s+([^,.!?]+)(?=[,.!?]|$)/i;
 const PET_NAME_PATTERN =
@@ -61,61 +87,34 @@ const PET_BREED_LIKE_PATTERN =
   /\b(?:suit|for)\s+(?:an?\s+)?([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,3})\s+like\s+([A-Z][A-Za-z'’-]{1,40})\b/i;
 const UNDERGRAD_INSTITUTION_PATTERN =
   /\bi\s+completed\s+my\s+(?:undergrad|undergraduate(?:\s+degree)?|bachelor['’]?s(?:\s+degree)?)\s+in\s+([^,.!?]+?)\s+from\s+([A-Z][A-Za-z0-9&.' -]{1,80}?)(?=\s*(?:[,.;!?]|\bwhich\b|$))/i;
-const STORE_PRODUCT_USE_PATTERN =
-  /\bi(?:'ve| have)?\s+(?:been\s+)?using\s+(?:an?\s+)?([^,.!?]{3,80}?\bshampoo)\b[\s\S]{0,120}?\bat\s+([A-Z][A-Za-z0-9&.' -]{1,80}?)(?=\s*(?:[,.;!?]|$))/i;
-const DAILY_COMMUTE_DURATION_PATTERN =
-  /\bmy daily commute\b[^.!?]*\btakes\s+([^,.!?]+)(?=[,.!?]|$)/i;
-const STORE_APP_PATTERN =
-  /\busing the\s+(.+?)\s+app\s+from\s+([A-Z][A-Za-z0-9&.' -]*?)(?=\s+and\b|[,.!?]|$)/i;
-const COUPON_REDEMPTION_PATTERN =
-  /\bi\s+(?:actually\s+)?redeemed\s+(a\s+)?(\$?\d+\s+coupon\s+on\s+[^,.!?]+?)(\s+last\s+\w+)?(?=[,.!?]|$)/i;
-const PENDING_PICKUP_OR_RETURN_PATTERN =
-  /\bi\s+(?:still\s+)?need\s+to\s+(pick up|return)\s+(?!or\b)([^.!?]+?)(?=[.!?]|$)/i;
-const DIRECT_PICKUP_TASK_PATTERN =
-  /\bi(?:'ll| will)\s+(?:take a break and\s+)?pick up\s+([^.!?]+?)(?=[.!?]|$)/i;
-const RECENT_PERSONAL_EVENT_PATTERN =
-  /\bi\s+just\s+(helped|ordered)\s+([^,.!?]+?)(?:\s+today)?(?=[,.!?]|$)/i;
+const FIRST_PERSON_USE_PATTERN =
+  /\bi(?:'ve| have)?\s+(?:been\s+)?using\s+(.+?)(?=[.!?]|$)/i;
+const PERSONAL_ATTRIBUTE_PATTERN =
+  /\bmy\s+([^,.!?]+?)(?:,\s+which)?\s+takes\s+([^,.!?]+?)(?=[,.!?]|$)/i;
+const OPEN_LOOP_PATTERN =
+  /\bi\s+(still\s+)?(?:need|have)\s+to\s+([^.!?]+?)(?=[.!?]|$)/i;
+const PLANNED_OPEN_LOOP_PATTERN =
+  /\bi(?:'ll| will)\s+([^.!?]+?)(?=[.!?]|$)/i;
+const RECENT_EVENT_PATTERN =
+  /\bi\s+(?:actually|just|recently|today|yesterday|last\s+\w+)\s+([A-Za-z][A-Za-z'’-]*(?:\s+(?:in|off|on|out|up))?)\s+([^,.!?]+?)(?=[,.!?]|$)/i;
 const PERSONAL_BEST_TIME_PATTERN =
   /\bpersonal best time(?:\s+in\s+(.+?))?\s+(?:with a time of|of)\s+([0-9]{1,2}:[0-9]{2}|[0-9]+\s+minutes?(?:\s+and\s+[0-9]+\s+seconds?)?)(?=\s|[,.!?]|$)/i;
-const PERSONAL_BEST_CONTEXT_TIME_PATTERN =
-  /\b((?:charity\s+)?5k\s+run|marathon|race)\b[\s\S]{0,240}?\bpersonal best time\s+of\s+([0-9]{1,2}:[0-9]{2}|[0-9]+\s+minutes?(?:\s+and\s+[0-9]+\s+seconds?)?)(?=\s|[,.!?]|$)/i;
-const TOOL_LEARNING_INTEREST_PATTERN =
+const LEARNING_WITH_TOOL_PATTERN =
   /\bi(?:'m| am)\s+trying\s+to\s+learn\s+more\s+about\s+(.+?)\s+with\s+(.+?),\s+which\s+i\s+enjoy\s+to\s+use\b/i;
-const MODEL_KIT_TARGET_PATTERN =
-  /\b(?:model kit|kit|\d+\/\d+\s+scale)\b/i;
-const MODEL_KIT_FINISHED_PATTERN =
-  /\bi\s+recently\s+finished\s+(?:a\s+)?(.+?(?:\bmodel kit\b|\bkit\b|\b\d+\/\d+\s+scale\b).*?)(?=\s+that\b|\s+and\b|[!?]|$)/i;
-const MODEL_KIT_NEW_PATTERN =
-  /\b(?:my|the|a)\s+new\s+([^,.!?]*?(?:\bmodel kit\b|\bkit\b|\b\d+\/\d+\s+scale\b)[^,.!?]*?)(?=\s+and\b|[,.!?]|$)/i;
-const MODEL_KIT_GOT_ADDITIONAL_PATTERN =
-  /\bi\s+just\s+got\s+(?:this\s+kit|[^,.!?]*?(?:\bmodel kit\b|\bkit\b|\b\d+\/\d+\s+scale\b)[^,.!?]*?)\s+and\s+(?:a\s+)?([^,.!?]*?(?:\bmodel kit\b|\bkit\b|\b\d+\/\d+\s+scale\b)[^,.!?]*?)(?=\s+at\b|\s+from\b|[,.!?]|$)/i;
-const MODEL_KIT_WORKING_ON_PATTERN =
-  /\b(?:i(?:'m| am)|i(?:\s+also)?)\s+(?:started\s+)?working\s+on\s+(?:a\s+diorama\s+featuring\s+)?(?:a\s+)?([^,.!?]*?(?:\bmodel kit\b|\bkit\b|\b\d+\/\d+\s+scale\b)[^,.!?]*?)(?=\s+next\b|[,.!?]|$)/i;
-const KOREAN_RESTAURANT_COUNT_PATTERN =
-  /\bkorean restaurants?\b[\s\S]*?\bi(?:'ve| have)\s+tried\s+([^,.!?]+?)\s+(?:different\s+)?(?:ones|restaurants?)\b/i;
 const CURRENT_PROJECT_INVOLVEMENT_PATTERN =
-  /\bi(?:'m| am|(?:'ve| have)\s+been)\s+working\s+on\s+(a\s+(?:solo\s+)?project[^,.!?]*?)(?=[,.!?]|$)/i;
+  /\bi(?:'m| am|(?:'ve| have)\s+been|(?:\s+also)?\s+started)\s+working\s+on\s+([^,.!?]+?)(?=[,.!?]|$)/i;
 const PROJECT_LEADERSHIP_PATTERN =
   /\bi\s+led\s+([^,.!?]+?)(?=\s+and\b|[,.!?]|$)/i;
 const PROJECT_LEADERSHIP_CONTEXT_PATTERN =
   /\b(?:in|from)\s+my\s+([^,.!?]*?\bproject\b[^,.!?]*?)[,.]?\s+(?:where\s+)?i\s+led\b/i;
-const CASE_COMPETITION_ACTIVITY_PATTERN =
-  /\bi\s+recently\s+participated\s+in\s+(a\s+case competition[^,.!?]*?)(?=[,.!?]|$)/i;
-const RESEARCH_PROJECT_PATTERN =
-  /\bi\s+recently\s+presented\s+a\s+poster\s+on\s+my\s+research\s+on\s+([^,.!?]+?)(?=\s+at\b|[,.!?]|$)/i;
+const PROJECT_ACTIVITY_PATTERN =
+  /\bi\s+(?:recently\s+)?(participated\s+in|presented)\s+([^,.!?]+?)(?=[,.!?]|$)/i;
 const RELATION_RELOCATION_WHO_PATTERN =
   /\bmy\s+(?:friend|cousin|aunt|uncle|sister|brother|partner|colleague)\s+([A-Z][A-Za-z'-]+)\s+who\s+(?:recently\s+|just\s+)?moved\s+(back\s+)?to\s+([^,.!?]+?)(?=[,.!?]|$)/i;
 const RELATION_RELOCATION_DIRECT_PATTERN =
   /\bmy\s+(?:friend|cousin|aunt|uncle|sister|brother|partner|colleague)\s+([A-Z][A-Za-z'-]+)\s+(?:actually\s+)?(?:recently\s+|just\s+)?moved\s+(back\s+)?to\s+([^,.!?]+?)(?=[,.!?]|$)/i;
-const PHOTOGRAPHY_COMPATIBLE_EQUIPMENT_PATTERN =
-  /\bcompatible with my\s+([^,.!?]+?)(?=[,.!?]|$)/i;
-const PHOTOGRAPHY_LENS_EQUIPMENT_PATTERN =
-  /\bmy\s+([A-Za-z0-9 /.+-]*?\blens)\b/i;
-const SONY_CAMERA_USER_PATTERN = /\bas a sony camera user\b/i;
-const PROFESSIONAL_FIELD_PATTERN =
-  /\bthis field of\s+([^?!.]+?)[?!.]\s*skip the basics as i am working in the field\b/i;
-const RESEARCH_ARTICLE_INTEREST_PATTERN =
-  /\bi(?:'d| would)\s+like\s+to\s+explore\s+some\s+more\s+research papers and articles\s+on\s+(?:the\s+topic\s+of\s+)?([^,.!?]+?)(?=[,.!?]|$)/i;
+const USER_IDENTITY_PATTERN =
+  /^as\s+(?:an?\s+)?([^,.!?]+?)\s+user\s*,/i;
 const EXPLICIT_FACT_PATTERN = /remember (?:that|this)\s+(.+)/i;
 const EXPLICIT_DECISION_PATTERN =
   /\b(?:we decided|canonical source of truth|must remain)\b/i;
@@ -213,6 +212,7 @@ const TOKEN_STOPWORDS = new Set([
   // acronyms and codes ("RL", "SF", "v2") stay searchable; these carry no
   // retrieval signal and are excluded wherever excludeStopwords is requested.
   "am",
+  "about",
   "an",
   "and",
   "are",
@@ -233,6 +233,7 @@ const TOKEN_STOPWORDS = new Set([
   "his",
   "how",
   "if",
+  "i'm",
   "in",
   "is",
   "it",
@@ -298,8 +299,11 @@ function deriveFactCategory(
   return "personal";
 }
 
-function deriveFeedbackKind(content: string): "do" | "dont" | "prefer" {
-  const kind = analyzeEnglishContent(content).feedbackKind;
+function deriveFeedbackKind(
+  content: string,
+  analysis?: LanguageContentAnalysis,
+): "do" | "dont" | "prefer" {
+  const kind = analysis?.feedbackKind ?? analyzeEnglishContent(content).feedbackKind;
   return kind === "validated_pattern" ? "do" : kind;
 }
 
@@ -551,19 +555,20 @@ function cleanExtractedValue(value: string): string {
 function cleanEventObject(value: string): string {
   return cleanExtractedValue(value)
     .replace(/,\s*actually$/i, "")
+    .replace(/\s+(?:that|which)\s+i\b.*$/i, "")
+    .trim();
+}
+
+function cleanPersonalUseTarget(value: string): string {
+  return cleanExtractedValue(value)
+    .replace(/\s+(?:that|which)\s+i\b.*$/i, "")
+    .replace(/\s+and\s+(?:it|they)(?:'s|\s+are|\s+were)\b.*$/i, "")
     .trim();
 }
 
 function cleanLearningTopic(value: string): string {
   return cleanExtractedValue(value)
     .replace(/^some\s+/i, "")
-    .trim();
-}
-
-function cleanModelKitTarget(value: string): string {
-  return cleanExtractedValue(value)
-    .replace(/\s+next$/i, "")
-    .replace(/\s+as well$/i, "")
     .trim();
 }
 
@@ -574,13 +579,6 @@ function extractProjectLeadershipContext(content: string): string | undefined {
   }
 
   return cleanExtractedValue(match[1]);
-}
-
-function cleanEquipmentTarget(value: string): string {
-  return cleanExtractedValue(value)
-    .replace(/^(?:a|an|the)\s+/i, "")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function cleanPersonalBestEvent(value: string): string {
@@ -602,19 +600,6 @@ function normalizeEducationSubject(value: string): string {
   }
 
   return cleaned;
-}
-
-function cleanStoreProductDescription(value: string): string {
-  return cleanExtractedValue(value)
-    .replace(/^(?:a|an|the)\s+/i, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function looksLikePhotographyEquipment(value: string): boolean {
-  return /\b(?:sony|canon|nikon|fujifilm|fuji|panasonic|olympus|leica|camera|lens|a7r|a7|z6|r5|x-t\d+|24-70mm|f\/\d)/i.test(
-    value,
-  );
 }
 
 function cleanRoleValue(value: string): string {
@@ -647,25 +632,6 @@ function looksLikeProceduralFeedback(content: string): boolean {
   );
 }
 
-function resolveUniqueStoreNameFromMessages(
-  messages: LanguageCandidateExtractionInput["messages"],
-): string | undefined {
-  const stores = new Set<string>();
-
-  for (const message of messages) {
-    if (message.role !== "user") {
-      continue;
-    }
-
-    const storeAppMatch = message.content.match(STORE_APP_PATTERN);
-    if (storeAppMatch?.[2]) {
-      stores.add(cleanExtractedValue(storeAppMatch[2]!));
-    }
-  }
-
-  return stores.size === 1 ? [...stores][0] : undefined;
-}
-
 function dedupeCandidates(candidates: MemoryCandidate[]): MemoryCandidate[] {
   return candidates.filter((candidate, candidateIndex, all) => {
     return (
@@ -686,9 +652,7 @@ function maybeExtractCandidatesFromClause(
   content: string,
   index: number,
   nextId: () => string,
-  context?: {
-    storeName?: string;
-  },
+  analysis?: LanguageContentAnalysis,
 ): MemoryCandidate[] {
   const trimmed = content.trim();
 
@@ -697,6 +661,74 @@ function maybeExtractCandidatesFromClause(
   }
 
   const candidates: MemoryCandidate[] = [];
+
+  const quarterlyPriority = trimmed.match(QUARTERLY_PRIORITY_PATTERN)?.[1];
+  if (quarterlyPriority) {
+    candidates.push(createFactCandidate(
+      index,
+      nextId,
+      `Quarterly priority: ${cleanExtractedValue(quarterlyPriority)}`,
+      undefined,
+      { category: "goal", tags: ["life_coach", "goal"] },
+    ));
+  }
+
+  const currentGoal = trimmed.match(CURRENT_GOAL_PATTERN)?.[1];
+  if (currentGoal) {
+    candidates.push(createFactCandidate(
+      index,
+      nextId,
+      cleanExtractedValue(currentGoal),
+      undefined,
+      { category: "goal", tags: ["life_coach", "goal"] },
+    ));
+  }
+
+  const habit = trimmed.match(HABIT_PATTERN)?.[1];
+  if (habit) {
+    candidates.push(createFactCandidate(
+      index,
+      nextId,
+      cleanExtractedValue(habit),
+      undefined,
+      { category: "habit", tags: ["life_coach", "habit"] },
+    ));
+  }
+
+  const coachingStyle = trimmed.match(COACHING_STYLE_PATTERN)?.[1];
+  if (coachingStyle) {
+    const preferenceValue = cleanExtractedValue(coachingStyle);
+    candidates.push({
+      content: preferenceValue,
+      explicitness: "explicit",
+      id: nextId(),
+      kindHint: "preference",
+      metadata: {
+        preferenceCategory: "coaching_style",
+        preferenceValue,
+        tags: ["life_coach", "coaching_style"],
+      },
+      sourceMessageIndex: index,
+      sourceRole: "user",
+    });
+  }
+
+  const positiveFeedback = trimmed.match(POSITIVE_COACHING_FEEDBACK_PATTERN)?.[1];
+  if (positiveFeedback) {
+    candidates.push({
+      content: cleanExtractedValue(positiveFeedback),
+      explicitness: "explicit",
+      id: nextId(),
+      kindHint: "feedback",
+      metadata: {
+        appliesTo: "life_coach_response",
+        feedbackKind: "do",
+        tags: ["life_coach", "intervention_feedback"],
+      },
+      sourceMessageIndex: index,
+      sourceRole: "user",
+    });
+  }
 
   const nameMatch = trimmed.match(PROFILE_NAME_PATTERN);
   const name = nameMatch ? cleanExtractedValue(nameMatch[1]!) : undefined;
@@ -926,80 +958,47 @@ function maybeExtractCandidatesFromClause(
     );
   }
 
-  const storeProductUseMatch = trimmed.match(STORE_PRODUCT_USE_PATTERN);
-  if (storeProductUseMatch) {
-    const product = cleanStoreProductDescription(storeProductUseMatch[1]!);
-    const store = cleanExtractedValue(storeProductUseMatch[2]!);
+  const firstPersonUseMatch = trimmed.match(FIRST_PERSON_USE_PATTERN);
+  if (firstPersonUseMatch) {
+    const target = cleanPersonalUseTarget(firstPersonUseMatch[1]!);
     candidates.push(
       createFactCandidate(
         index,
         nextId,
-        `I use ${store} ${product}.`,
+        `I use ${target}.`,
         "personal",
         {
           category: "personal",
           scopeKind: "identity",
-          subject: product,
+          subject: extractBoundedEnglishSubject(target) ?? "personal use",
         },
       ),
     );
   }
 
-  const commuteDurationMatch = trimmed.match(DAILY_COMMUTE_DURATION_PATTERN);
-  const commuteDuration = commuteDurationMatch
-    ? cleanExtractedValue(commuteDurationMatch[1]!)
-    : undefined;
-  if (commuteDuration) {
+  const personalAttributeMatch = trimmed.match(PERSONAL_ATTRIBUTE_PATTERN);
+  if (personalAttributeMatch) {
+    const subject = cleanExtractedValue(personalAttributeMatch[1]!);
+    const value = cleanExtractedValue(personalAttributeMatch[2]!);
     candidates.push(
       createFactCandidate(
         index,
         nextId,
-        `My daily commute takes ${commuteDuration}.`,
+        `My ${subject} takes ${value}.`,
         "personal",
+        {
+          category: "personal",
+          scopeKind: "identity",
+          subject: extractBoundedEnglishSubject(subject) ?? subject,
+        },
       ),
     );
   }
 
-  const storeAppMatch = trimmed.match(STORE_APP_PATTERN);
-  if (storeAppMatch) {
-    const appName = cleanExtractedValue(storeAppMatch[1]!);
-    const storeName = cleanExtractedValue(storeAppMatch[2]!);
-    candidates.push(
-      createFactCandidate(
-        index,
-        nextId,
-        `I use the ${appName} app from ${storeName}.`,
-        "personal",
-      ),
-    );
-  }
-
-  const couponRedemptionMatch = trimmed.match(COUPON_REDEMPTION_PATTERN);
-  if (couponRedemptionMatch) {
-    const article = couponRedemptionMatch[1] ?? "";
-    const coupon = cleanExtractedValue(couponRedemptionMatch[2]!);
-    const date = couponRedemptionMatch[3]
-      ? cleanExtractedValue(couponRedemptionMatch[3]!)
-      : "";
-    const store = context?.storeName ? ` at ${context.storeName}` : "";
-    candidates.push(
-      createFactCandidate(
-        index,
-        nextId,
-        `I redeemed ${article}${coupon}${date ? ` ${date}` : ""}${store}.`,
-        "event",
-      ),
-    );
-  }
-
-  const pendingPickupOrReturnMatch = trimmed.match(PENDING_PICKUP_OR_RETURN_PATTERN);
-  if (pendingPickupOrReturnMatch) {
-    const action = pendingPickupOrReturnMatch[1]!.toLowerCase();
-    const target = cleanEventObject(pendingPickupOrReturnMatch[2]!);
-    const content =
-      action === "pick up"
-        ? `I still need to pick up ${target}.`
-        : `I need to return ${target}.`;
+  const openLoopMatch = trimmed.match(OPEN_LOOP_PATTERN);
+  if (openLoopMatch) {
+    const task = cleanEventObject(openLoopMatch[2]!);
+    const content = `I ${openLoopMatch[1] ? "still " : ""}need to ${task}.`;
     candidates.push(
       createFactCandidate(
         index,
@@ -1010,35 +1009,36 @@ function maybeExtractCandidatesFromClause(
           category: "personal",
           factKind: "open_loop",
           scopeKind: "identity",
-          subject: extractBoundedEnglishSubject(target) ?? "unknown",
+          subject: extractBoundedEnglishSubject(task) ?? "open loop",
         },
       ),
     );
   }
 
-  const directPickupTaskMatch = trimmed.match(DIRECT_PICKUP_TASK_PATTERN);
-  if (directPickupTaskMatch) {
-    const target = cleanEventObject(directPickupTaskMatch[1]!);
+  const plannedOpenLoopMatch = trimmed.match(PLANNED_OPEN_LOOP_PATTERN);
+  if (plannedOpenLoopMatch) {
+    const task = cleanEventObject(plannedOpenLoopMatch[1]!);
     candidates.push(
       createFactCandidate(
         index,
         nextId,
-        `I still need to pick up ${target}.`,
+        `I still need to ${task}.`,
         "personal",
         {
           category: "personal",
           factKind: "open_loop",
           scopeKind: "identity",
-          subject: extractBoundedEnglishSubject(target) ?? "unknown",
+          subject: extractBoundedEnglishSubject(task) ?? "open loop",
         },
       ),
     );
   }
 
-  const recentPersonalEventMatch = trimmed.match(RECENT_PERSONAL_EVENT_PATTERN);
-  if (recentPersonalEventMatch) {
-    const action = recentPersonalEventMatch[1]!.toLowerCase();
-    const target = cleanEventObject(recentPersonalEventMatch[2]!);
+  const projectActivityMatch = trimmed.match(PROJECT_ACTIVITY_PATTERN);
+  const recentEventMatch = trimmed.match(RECENT_EVENT_PATTERN);
+  if (recentEventMatch && !projectActivityMatch) {
+    const action = recentEventMatch[1]!.toLowerCase();
+    const target = cleanEventObject(recentEventMatch[2]!);
     candidates.push(
       createFactCandidate(
         index,
@@ -1049,26 +1049,7 @@ function maybeExtractCandidatesFromClause(
     );
   }
 
-  const personalBestContextTimeMatch = trimmed.match(
-    PERSONAL_BEST_CONTEXT_TIME_PATTERN,
-  );
-  if (personalBestContextTimeMatch) {
-    const event = cleanPersonalBestEvent(personalBestContextTimeMatch[1]!);
-    const time = cleanExtractedValue(personalBestContextTimeMatch[2]!);
-    candidates.push(
-      createFactCandidate(
-        index,
-        nextId,
-        `My personal best time in ${event} is ${time}.`,
-        "personal",
-        {
-          category: "personal",
-          scopeKind: "identity",
-          subject: extractBoundedEnglishSubject(event) ?? "personal best time",
-        },
-      ),
-    );
-  } else if (trimmed.match(PERSONAL_BEST_TIME_PATTERN)) {
+  if (trimmed.match(PERSONAL_BEST_TIME_PATTERN)) {
     const personalBestTimeMatch = trimmed.match(PERSONAL_BEST_TIME_PATTERN)!;
     const event = personalBestTimeMatch[1]
       ? cleanPersonalBestEvent(personalBestTimeMatch[1]!)
@@ -1089,10 +1070,10 @@ function maybeExtractCandidatesFromClause(
     );
   }
 
-  const toolLearningInterestMatch = trimmed.match(TOOL_LEARNING_INTEREST_PATTERN);
-  if (toolLearningInterestMatch) {
-    const topic = cleanLearningTopic(toolLearningInterestMatch[1]!);
-    const tool = cleanExtractedValue(toolLearningInterestMatch[2]!);
+  const learningWithToolMatch = trimmed.match(LEARNING_WITH_TOOL_PATTERN);
+  if (learningWithToolMatch) {
+    const topic = cleanLearningTopic(learningWithToolMatch[1]!);
+    const tool = cleanExtractedValue(learningWithToolMatch[2]!);
     candidates.push(
       createFactCandidate(
         index,
@@ -1103,102 +1084,19 @@ function maybeExtractCandidatesFromClause(
     );
   }
 
-  const photographyEquipmentTargets = [
-    trimmed.match(PHOTOGRAPHY_COMPATIBLE_EQUIPMENT_PATTERN)?.[1],
-    trimmed.match(PHOTOGRAPHY_LENS_EQUIPMENT_PATTERN)?.[1],
-  ]
-    .filter((target): target is string => typeof target === "string")
-    .map(cleanEquipmentTarget)
-    .filter(looksLikePhotographyEquipment);
-  for (const target of [...new Set(photographyEquipmentTargets)]) {
+  const userIdentityMatch = trimmed.match(USER_IDENTITY_PATTERN);
+  if (userIdentityMatch) {
+    const identity = cleanExtractedValue(userIdentityMatch[1]!);
     candidates.push(
       createFactCandidate(
         index,
         nextId,
-        `My current photography setup includes ${target}.`,
+        `I am a ${identity} user.`,
         "personal",
         {
           category: "personal",
           scopeKind: "identity",
-          subject: "photography setup",
-        },
-      ),
-    );
-  }
-
-  if (SONY_CAMERA_USER_PATTERN.test(trimmed)) {
-    candidates.push(
-      createFactCandidate(
-        index,
-        nextId,
-        "I use Sony cameras.",
-        "personal",
-        {
-          category: "personal",
-          scopeKind: "identity",
-          subject: "photography setup",
-        },
-      ),
-    );
-  }
-
-  const researchArticleInterestMatch = trimmed.match(RESEARCH_ARTICLE_INTEREST_PATTERN);
-  if (researchArticleInterestMatch) {
-    const topic = cleanExtractedValue(researchArticleInterestMatch[1]!);
-    candidates.push(
-      createFactCandidate(
-        index,
-        nextId,
-        `I am interested in ${topic} research papers and articles.`,
-        "technical",
-        {
-          category: "technical",
-          scopeKind: "project",
-          subject: extractBoundedEnglishSubject(topic) ?? topic,
-        },
-      ),
-    );
-  }
-
-  const modelKitTargets = [
-    trimmed.match(MODEL_KIT_FINISHED_PATTERN)?.[1],
-    trimmed.match(MODEL_KIT_NEW_PATTERN)?.[1],
-    trimmed.match(MODEL_KIT_GOT_ADDITIONAL_PATTERN)?.[1],
-    trimmed.match(MODEL_KIT_WORKING_ON_PATTERN)?.[1],
-  ]
-    .filter((target): target is string => typeof target === "string")
-    .map(cleanModelKitTarget)
-    .filter((target) => MODEL_KIT_TARGET_PATTERN.test(target));
-  const uniqueModelKitTargets = [...new Set(modelKitTargets)];
-  for (const target of uniqueModelKitTargets) {
-    candidates.push(
-      createFactCandidate(
-        index,
-        nextId,
-        `I worked on or got the model kit: ${target}.`,
-        "personal",
-        {
-          category: "personal",
-          scopeKind: "identity",
-          subject: extractBoundedEnglishSubject(target) ?? "model kit",
-        },
-      ),
-    );
-  }
-
-  const koreanRestaurantCountMatch = trimmed.match(KOREAN_RESTAURANT_COUNT_PATTERN);
-  if (koreanRestaurantCountMatch) {
-    const count = cleanExtractedValue(koreanRestaurantCountMatch[1]!);
-    candidates.push(
-      createFactCandidate(
-        index,
-        nextId,
-        `I have tried ${count} Korean restaurants in my city.`,
-        "personal",
-        {
-          category: "personal",
-          scopeKind: "identity",
-          subject: "korean restaurants in my city",
+          subject: extractBoundedEnglishSubject(identity) ?? identity,
         },
       ),
     );
@@ -1223,23 +1121,6 @@ function maybeExtractCandidatesFromClause(
         },
       ),
     );
-    if (/\bsolo project\b/i.test(project)) {
-      candidates.push(
-        createFactCandidate(
-          index,
-          nextId,
-          `I am currently leading ${project}.`,
-          "project",
-          {
-            category: "project",
-            factKind: "generic_project",
-            scopeKind: "project",
-            subject: extractBoundedEnglishSubject(project) ?? "solo project",
-            tags: ["current_leadership"],
-          },
-        ),
-      );
-    }
   }
 
   const projectLeadershipMatch = trimmed.match(PROJECT_LEADERSHIP_PATTERN);
@@ -1266,41 +1147,20 @@ function maybeExtractCandidatesFromClause(
     );
   }
 
-  const caseCompetitionActivityMatch = trimmed.match(
-    CASE_COMPETITION_ACTIVITY_PATTERN,
-  );
-  if (caseCompetitionActivityMatch) {
-    const activity = cleanExtractedValue(caseCompetitionActivityMatch[1]!);
+  if (projectActivityMatch) {
+    const action = projectActivityMatch[1]!.toLowerCase();
+    const activity = cleanExtractedValue(projectActivityMatch[2]!);
     candidates.push(
       createFactCandidate(
         index,
         nextId,
-        `I participated in a project activity: ${activity}.`,
+        `I ${action} ${activity}.`,
         "project",
         {
           category: "project",
           factKind: "generic_project",
           scopeKind: "project",
-          subject: extractBoundedEnglishSubject(activity) ?? "case competition",
-        },
-      ),
-    );
-  }
-
-  const researchProjectMatch = trimmed.match(RESEARCH_PROJECT_PATTERN);
-  if (researchProjectMatch) {
-    const topic = cleanExtractedValue(researchProjectMatch[1]!);
-    candidates.push(
-      createFactCandidate(
-        index,
-        nextId,
-        `I worked on a research project on ${topic}.`,
-        "project",
-        {
-          category: "project",
-          factKind: "generic_project",
-          scopeKind: "project",
-          subject: extractBoundedEnglishSubject(topic) ?? "research project",
+          subject: extractBoundedEnglishSubject(activity) ?? "project activity",
         },
       ),
     );
@@ -1459,7 +1319,7 @@ function maybeExtractCandidatesFromClause(
       sourceMessageIndex: index,
       sourceRole: "user",
       metadata: {
-        feedbackKind: deriveFeedbackKind(trimmed),
+        feedbackKind: deriveFeedbackKind(trimmed, analysis),
         appliesTo: "general_response",
         ...(correctiveFeedback
           ? { attributes: { languageDurableSignal: "procedural_feedback" } }
@@ -1485,99 +1345,9 @@ function maybeExtractCandidatesFromClause(
   return dedupeCandidates(candidates);
 }
 
-function maybeExtractCrossClauseCandidatesFromMessage(
-  content: string,
-  index: number,
-  nextId: () => string,
-): MemoryCandidate[] {
-  const candidates: MemoryCandidate[] = [];
-  const koreanRestaurantCountMatch = content.match(KOREAN_RESTAURANT_COUNT_PATTERN);
-
-  if (koreanRestaurantCountMatch) {
-    const count = cleanExtractedValue(koreanRestaurantCountMatch[1]!);
-    candidates.push(
-      createFactCandidate(
-        index,
-        nextId,
-        `I have tried ${count} Korean restaurants in my city.`,
-        "personal",
-        {
-          category: "personal",
-          scopeKind: "identity",
-          subject: "korean restaurants in my city",
-        },
-      ),
-    );
-  }
-
-  const photographyEquipmentTargets = [
-    content.match(PHOTOGRAPHY_COMPATIBLE_EQUIPMENT_PATTERN)?.[1],
-    content.match(PHOTOGRAPHY_LENS_EQUIPMENT_PATTERN)?.[1],
-  ]
-    .filter((target): target is string => typeof target === "string")
-    .map(cleanEquipmentTarget)
-    .filter(looksLikePhotographyEquipment);
-  for (const target of [...new Set(photographyEquipmentTargets)]) {
-    candidates.push(
-      createFactCandidate(
-        index,
-        nextId,
-        `My current photography setup includes ${target}.`,
-        "personal",
-        {
-          category: "personal",
-          scopeKind: "identity",
-          subject: "photography setup",
-        },
-      ),
-    );
-  }
-
-  const professionalFieldMatch = content.match(PROFESSIONAL_FIELD_PATTERN);
-  if (professionalFieldMatch) {
-    const field = cleanExtractedValue(professionalFieldMatch[1]!);
-    candidates.push(
-      createFactCandidate(
-        index,
-        nextId,
-        `I work in ${field}.`,
-        "technical",
-        {
-          category: "technical",
-          scopeKind: "project",
-          subject: extractBoundedEnglishSubject(field) ?? field,
-        },
-      ),
-    );
-  }
-
-  const personalBestContextTimeMatch = content.match(
-    PERSONAL_BEST_CONTEXT_TIME_PATTERN,
-  );
-  if (personalBestContextTimeMatch) {
-    const event = cleanPersonalBestEvent(personalBestContextTimeMatch[1]!);
-    const time = cleanExtractedValue(personalBestContextTimeMatch[2]!);
-    candidates.push(
-      createFactCandidate(
-        index,
-        nextId,
-        `My personal best time in ${event} is ${time}.`,
-        "personal",
-        {
-          category: "personal",
-          scopeKind: "identity",
-          subject: extractBoundedEnglishSubject(event) ?? "personal best time",
-        },
-      ),
-    );
-  }
-
-  return candidates;
-}
-
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "7",
+    analyzerVersion: "9",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",
@@ -1619,10 +1389,12 @@ export function createEnglishLanguagePack(): LanguagePack {
         );
     },
     decomposeQuery: decomposeEnglishQuery,
+    analyzeBehavioralRule(text) {
+      return analyzeEnglishBehavioralRule(text, BEHAVIORAL_RULE_PATTERNS);
+    },
     analyzeQuery: analyzeEnglishQuery,
     analyzeContent: analyzeEnglishContent,
     parseTemporalExpressions: parseEnglishTemporalExpressions,
-    resolveTemporalReference: resolveEnglishTemporalReference,
     extractEntityMentions: extractEnglishEntityMentions,
     matchesEntityAlias(query, alias) {
       return matchesNormalizedEntityAlias(
@@ -1635,7 +1407,6 @@ export function createEnglishLanguagePack(): LanguagePack {
     render: renderEnglish,
     extractCandidates(input: LanguageCandidateExtractionInput): MemoryCandidate[] {
       const candidates: MemoryCandidate[] = [];
-      const storeName = resolveUniqueStoreNameFromMessages(input.messages);
 
       input.messages.forEach((message, index) => {
         if (message.role !== "user") {
@@ -1644,14 +1415,6 @@ export function createEnglishLanguagePack(): LanguagePack {
 
         const sourceMessageIndex = message.sourceMessageIndex ?? index;
 
-        candidates.push(
-          ...maybeExtractCrossClauseCandidatesFromMessage(
-            message.content,
-            sourceMessageIndex,
-            input.nextId,
-          ),
-        );
-
         const clauses = splitClausesGeneric(message.content);
         for (const clause of clauses) {
           candidates.push(
@@ -1659,7 +1422,7 @@ export function createEnglishLanguagePack(): LanguagePack {
               clause,
               sourceMessageIndex,
               input.nextId,
-              storeName ? { storeName } : undefined,
+              clauses.length === 1 ? message.analysis : undefined,
             ),
           );
         }

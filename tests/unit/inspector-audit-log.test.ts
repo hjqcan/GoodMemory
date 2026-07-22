@@ -71,6 +71,17 @@ describe("inspector audit ledger", () => {
     await appendInspectorAuditEvent({
       homeRoot: home,
       event: {
+        actionId: "insp_hant_secret",
+        action: "revise",
+        occurredAt: "2026-07-07T00:00:30.000Z",
+        scopeDigest: "scope:x",
+        resultStatus: "ok",
+        contentPreview: "密碼：hunter2-do-not-store",
+      },
+    });
+    await appendInspectorAuditEvent({
+      homeRoot: home,
+      event: {
         actionId: "insp_long",
         action: "revise",
         occurredAt: "2026-07-07T00:01:00.000Z",
@@ -93,10 +104,11 @@ describe("inspector audit ledger", () => {
 
     const ledger = await readInspectorAuditLedger(home);
     expect(ledger.events[0]?.contentPreview).toBe("[redacted secret-like content]");
-    const clamped = ledger.events[1]?.contentPreview ?? "";
+    expect(ledger.events[1]?.contentPreview).toBe("[redacted secret-like content]");
+    const clamped = ledger.events[2]?.contentPreview ?? "";
     expect(clamped.length).toBeLessThanOrEqual(160);
     expect(clamped.endsWith("...")).toBe(true);
-    expect(ledger.events[2]?.contentPreview).toBe(
+    expect(ledger.events[3]?.contentPreview).toBe(
       "Contact [redacted-email] for review.",
     );
   });

@@ -8,8 +8,11 @@ import type {
 } from "./contracts";
 import { createChineseLanguagePack } from "./chinese";
 import { createEnglishLanguagePack } from "./english";
+import { createFrenchLanguagePack } from "./french";
 import { createNeutralLanguagePack } from "./generic";
 import { createJapaneseLanguagePack } from "./japanese";
+import { createKoreanLanguagePack } from "./korean";
+import { createSpanishLanguagePack } from "./spanish";
 
 const NEUTRAL_PACK = createNeutralLanguagePack();
 
@@ -18,10 +21,14 @@ const BUILTIN_PACKS = [
   createChineseLanguagePack("Hans"),
   createChineseLanguagePack("Hant"),
   createJapaneseLanguagePack(),
+  createKoreanLanguagePack(),
+  createFrenchLanguagePack(),
+  createSpanishLanguagePack(),
   NEUTRAL_PACK,
 ] as const;
 
-const LANGUAGE_RESOLVER_VERSION = "1";
+const LANGUAGE_RESOLVER_VERSION = "3";
+const MAX_SEARCH_TERMS = 128;
 
 function stableCompare(left: string, right: string): number {
   const leftKey = left.toLowerCase();
@@ -113,6 +120,7 @@ function snapshotPack(pack: LanguagePack): LanguagePack {
   return Object.freeze({
     ...pack,
     acceptsEntityCandidate: pack.acceptsEntityCandidate,
+    analyzeBehavioralRule: pack.analyzeBehavioralRule,
     analyzeContent: pack.analyzeContent,
     analyzeQuery: pack.analyzeQuery,
     analyzerVersion: requireIdentity(
@@ -139,7 +147,6 @@ function snapshotPack(pack: LanguagePack): LanguagePack {
     normalizeForEquality: pack.normalizeForEquality,
     parseTemporalExpressions: pack.parseTemporalExpressions,
     render: pack.render,
-    resolveTemporalReference: pack.resolveTemporalReference,
     splitClauses: pack.splitClauses,
     splitSentences: pack.splitSentences,
     tokenizeForScoring: pack.tokenizeForScoring,
@@ -315,22 +322,17 @@ function resolveDetectedPack(
   matches: readonly LanguagePack[],
   defaultLocale: string,
 ): LanguagePack | undefined {
-  if (matches.length === 1) {
+  if (matches.length <= 1) {
     return matches[0];
   }
-  if (matches.length === 0) {
-    return undefined;
-  }
-  const groups = new Set(matches.map((pack) => pack.compatibilityGroup));
-  if (groups.size !== 1) {
-    return undefined;
-  }
-  const defaultPack = resolvePackForLocale(
-    defaultLocale,
-    matches,
-    defaultLocale,
+  const languages = new Set(
+    matches.map((pack) => primaryLanguage(pack.defaultLocale)),
   );
-  return matches.includes(defaultPack) ? defaultPack : matches[0];
+  if (languages.size !== 1) {
+    return undefined;
+  }
+  return matches.find((pack) => packSupportsLocale(pack, defaultLocale)) ??
+    matches[0];
 }
 
 export function createLanguageService(
@@ -456,7 +458,20 @@ export function createLanguageService(
       return packFor(context).tokenizeForScoring(text, "bm25", options);
     },
     buildSearchTerms(text, context) {
-      return packFor(context).buildSearchTerms(text);
+      const terms: string[] = [];
+      const seen = new Set<string>();
+      for (const candidate of packFor(context).buildSearchTerms(text)) {
+        const term = candidate.trim();
+        if (!term || seen.has(term)) {
+          continue;
+        }
+        seen.add(term);
+        terms.push(term);
+        if (terms.length === MAX_SEARCH_TERMS) {
+          break;
+        }
+      }
+      return terms;
     },
     splitClauses(text, context) {
       return packFor(context).splitClauses(text);
@@ -467,6 +482,9 @@ export function createLanguageService(
     decomposeQuery(text, context) {
       return packFor(context).decomposeQuery(text);
     },
+    analyzeBehavioralRule(text, context) {
+      return packFor(context).analyzeBehavioralRule(text);
+    },
     analyzeQuery(text, context) {
       return packFor(context).analyzeQuery(text);
     },
@@ -475,9 +493,6 @@ export function createLanguageService(
     },
     parseTemporalExpressions(text, context) {
       return packFor(context).parseTemporalExpressions(text);
-    },
-    resolveTemporalReference(text, referenceTime, context) {
-      return packFor(context).resolveTemporalReference(text, referenceTime);
     },
     extractEntityMentions(text, context) {
       return packFor(context).extractEntityMentions(text);

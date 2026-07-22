@@ -12,9 +12,9 @@ import { buildFactCandidates, rankFactCandidates } from "../../../../src/recall/
 import {
   selectFeedbackForQuery,
   selectFeedbackForProfile,
-  selectFacts,
   selectReferences,
 } from "../../../../src/recall/selection";
+import { selectFactsLegacy as selectFacts } from "../recall/selectionLegacy";
 import { selectContradictionEvidencePair } from "../recall/selectors/contradiction";
 import {
   isSleekNeutralSneakerPreferenceQuery,

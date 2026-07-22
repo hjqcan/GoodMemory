@@ -14,6 +14,7 @@ import {
   type RawBehavioralExemplar,
   type RawBehavioralPrototypeIndex,
 } from "../../src/evolution/rawBehavioralExemplars";
+import { createLanguageService } from "../../src/language";
 
 const baseScope = {
   userId: "raw-exemplar-user",
@@ -21,6 +22,119 @@ const baseScope = {
 };
 
 describe("raw behavioral exemplars", () => {
+  it("recognizes localized failure and correction outcomes through LanguagePack", () => {
+    const index = buildRawBehavioralPrototypeIndex({
+      memoryExport: {
+        durable: { archives: [], episodes: [], experiences: [] },
+        scope: baseScope,
+      },
+      runtimeMessages: [
+        { content: "Déploie Atlas.", role: "user" },
+        { content: "J’utilise LegacyDeploy.", role: "assistant" },
+        { content: "Échec : LegacyDeploy est obsolète.", role: "system" },
+        { content: "À la place, utilise SafeDeploy.", role: "user" },
+        { content: "SafeDeploy()", role: "assistant" },
+        { content: "Succès : déploiement terminé.", role: "system" },
+      ],
+      surfaceHint: "host_action",
+    });
+
+    expect(index.exemplars).toContainEqual(
+      expect.objectContaining({
+        episodeShape: expect.objectContaining({
+          observedOutcome: expect.stringContaining("Échec"),
+          safeCorrectedMove: "SafeDeploy()",
+        }),
+      }),
+    );
+  });
+
+  it("renders behavioral context headings through the selected language pack", () => {
+    const exemplar: RawBehavioralExemplar = {
+      confidence: 0.9,
+      episodeShape: {
+        cue: "심층 분석",
+        observedOutcome: "검증 성공",
+        relevantPriorMove: "QuickCheck를 먼저 실행",
+      },
+      id: "localized-context",
+      intentCue: {
+        query: {
+          actionType: "structured_action",
+          constraintTypes: ["exact_action"],
+          entityTypes: ["command"],
+          exactSlots: { argNames: [], operatorSymbols: [], styleMarkers: [] },
+          goal: "심층 분석",
+          goalTokens: ["심층", "분석"],
+          requestedSurface: "host_action",
+        },
+      },
+      interferenceTags: [],
+      retrievalText: "심층 분석에서는 QuickCheck를 먼저 실행",
+      scope: baseScope,
+      source: "episode",
+      sourceIds: ["localized-context"],
+      surfaceFamily: "host_action",
+      transferMode: "prototype_bounded",
+    };
+    const language = createLanguageService();
+
+    for (const { expected, locale } of [
+      { expected: "관련 이전 예시:", locale: "ko-KR" },
+      { expected: "Exemples antérieurs pertinents :", locale: "fr-FR" },
+      { expected: "Ejemplos anteriores relevantes:", locale: "es-ES" },
+    ] as const) {
+      const languageContext = language.resolveFromText({
+        locale,
+        text: exemplar.retrievalText,
+      });
+      const rendered = renderRawBehavioralCarryoverContext(
+        [{ exemplar, probability: 0.9, prototypeId: "p-1", score: 1 }],
+        { language, languageContext },
+      );
+
+      expect(rendered, locale).toContain(expected);
+      expect(rendered, locale).toContain("QuickCheck");
+    }
+  });
+
+  it("uses LanguagePack tokenization for Hangul raw carryover", () => {
+    const index = buildRawBehavioralPrototypeIndex({
+      memoryExport: {
+        durable: {
+          archives: [],
+          episodes: [
+            createEpisodeMemory({
+              id: "ko-policy-1",
+              keyDecisions: ["심층 분석에서는 QuickCheck를 먼저 실행하세요."],
+              summary: "심층 분석 전에 빠른 검증을 실행합니다.",
+              userId: baseScope.userId,
+              workspaceId: baseScope.workspaceId,
+            }),
+            createEpisodeMemory({
+              id: "ko-policy-2",
+              keyDecisions: ["심층 분석에서는 QuickCheck를 먼저 실행하세요."],
+              summary: "심층 분석 전에 빠른 검증을 실행합니다.",
+              userId: baseScope.userId,
+              workspaceId: baseScope.workspaceId,
+            }),
+          ],
+          experiences: [],
+        },
+        scope: baseScope,
+      },
+      surfaceHint: "host_action",
+    });
+
+    expect(
+      selectRawBehavioralExemplars({
+        index,
+        query: "네트워크 심층 분석을 실행해 주세요.",
+        surfaceFamily: "host_action",
+      }).length,
+    ).toBeGreaterThan(0);
+  });
+
   it("keeps conflicting exact surfaces in separate prototypes and builds hard negatives", () => {
     const index = buildRawBehavioralPrototypeIndex({
       memoryExport: {
@@ -1191,6 +1305,24 @@ describe("raw behavioral exemplars", () => {
         query: "I need a detailed analysis of the network traffic.",
       }),
     ).toBe("Warn first and use QuickCheck instead of DeepAnalyzer.");
+
+    const language = createLanguageService();
+    const frenchContext = language.resolveFromText({
+      locale: "fr-FR",
+      text: "analyse détaillée",
+    });
+    const localized = resolveRawBehavioralCarryover({
+      index,
+      language,
+      languageContext: frenchContext,
+      query: "I need a detailed analysis of the network traffic.",
+      surfaceFamily: "text_response",
+    });
+
+    expect(localized.packet?.promptPayload).toContain(
+      "Contrôle de réponse brute :",
+    );
+    expect(localized.packet?.promptPayload).toContain("block_surface");
   });
 
   it("does not retrieve corrected experiences with no latent cue overlap", () => {
