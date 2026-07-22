@@ -728,7 +728,7 @@ describe("GoodMemory.recall reranker adapter", () => {
     });
   });
 
-  it("does not call the reranker when fewer than two facts survive recall", async () => {
+  it("does not call the reranker when fewer than two durable candidates survive recall", async () => {
     let calls = 0;
     const { documentStore, makeFact, memory } = buildMemory({
       async rerank() {

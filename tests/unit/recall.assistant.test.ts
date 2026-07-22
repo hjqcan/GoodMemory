@@ -223,6 +223,79 @@ describe("recall assistant helpers", () => {
     expect(reranked.influence.suppressedCandidateIds).toEqual(["archive-1"]);
   });
 
+  it("keeps cross-collection ID collisions distinct during assisted rerank", () => {
+    const selection = {
+      facts: [
+        createFactMemory({
+          id: "shared-id",
+          userId: "u-1",
+          content: "Alpha status is awaiting approval.",
+          category: "project",
+          source: {
+            method: "explicit",
+            extractedAt: "2026-01-01T00:00:00.000Z",
+          },
+        }),
+        createFactMemory({
+          id: "kept-id",
+          userId: "u-1",
+          content: "Alpha owner is Lin.",
+          category: "project",
+          source: {
+            method: "explicit",
+            extractedAt: "2026-01-01T00:00:00.000Z",
+          },
+        }),
+      ],
+      references: [createReferenceMemory({
+        id: "shared-id",
+        userId: "u-1",
+        title: "Alpha approval guide",
+        pointer: "docs/alpha.md",
+        source: {
+          method: "explicit",
+          extractedAt: "2026-01-01T00:00:00.000Z",
+        },
+      })],
+      archives: [],
+      episodes: [],
+    };
+
+    expect(
+      buildRecallAssistantCandidates(selection).map(({ id }) => id),
+    ).toEqual(["facts:shared-id", "kept-id", "references:shared-id"]);
+
+    const reranked = applyRecallAssistantRerank({
+      influence: {
+        addedRequestedSlots: [],
+        addedSupportSlots: [],
+        decisions: [],
+        planApplied: true,
+        rerankApplied: false,
+        rerankedCandidateIds: [],
+        suppressedCandidateIds: [],
+      },
+      rerank: {
+        orderedCandidateIds: [
+          "kept-id",
+          "references:shared-id",
+          "facts:shared-id",
+        ],
+        rationale: "Keep the reference but suppress the stale status.",
+        suppressCandidateIds: ["facts:shared-id"],
+      },
+      selection,
+    });
+
+    expect(reranked.selection.facts.map(({ id }) => id)).toEqual(["kept-id"]);
+    expect(reranked.selection.references.map(({ id }) => id)).toEqual([
+      "shared-id",
+    ]);
+    expect(reranked.influence.suppressedCandidateIds).toEqual([
+      "facts:shared-id",
+    ]);
+  });
+
   it("drops explainability decisions that do not match the executed rerank outcome", () => {
     const fact = createFactMemory({
       id: "fact-1",
