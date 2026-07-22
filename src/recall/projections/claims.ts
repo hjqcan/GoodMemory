@@ -727,11 +727,12 @@ export function createClaimProjectionIndex(
         CLAIM_PROJECTION_STATUS_COLLECTION,
         id,
       );
+      let structuredPromotion = false;
       if (existingStatus?.sourceUpdatedAt) {
         const timeOrder = existingStatus.sourceUpdatedAt.localeCompare(
           input.ingestedAt,
         );
-        const structuredPromotion =
+        structuredPromotion =
           timeOrder === 0 &&
           existingStatus.state === "unstructured" &&
           state === "projected";
@@ -832,8 +833,24 @@ export function createClaimProjectionIndex(
       const supersession = state === "projected"
         ? await resolveSlotSupersession(claim, normalized)
         : undefined;
+      const deleteOperations = [
+        ...(supersession?.delete ?? []),
+        ...(structuredPromotion && existingStatus
+          ? existingStatus.claimIds
+              .filter((claimId) => claimId !== claim.id)
+              .map((claimId) => ({
+                collection: CLAIM_PROJECTIONS_COLLECTION,
+                id: claimId,
+              }))
+          : []),
+      ].filter((operation, index, operations) =>
+        operations.findIndex((candidate) =>
+          candidate.collection === operation.collection &&
+          candidate.id === operation.id
+        ) === index
+      );
       const committed = await documentStore.writeBatchIfUnchanged({
-        ...(supersession ? { delete: supersession.delete } : {}),
+        ...(deleteOperations.length > 0 ? { delete: deleteOperations } : {}),
         expected: {
           collection: "facts",
           id: sourceFact.id,
