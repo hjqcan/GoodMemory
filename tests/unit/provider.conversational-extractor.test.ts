@@ -31,7 +31,7 @@ describe("conversational atomic-fact extraction prompt", () => {
     expect(prompt).toContain("self-contained");
     expect(prompt.toLowerCase()).toContain("relative dates");
     expect(prompt).toContain("every durable explicit claim");
-    expect(prompt).toContain("coverage audit");
+    expect(prompt).not.toContain("coverage audit");
     expect(prompt).toContain("exactly once");
     expect(prompt).toContain("machine-style values");
     expect(prompt).toContain("snake_case");
@@ -39,6 +39,9 @@ describe("conversational atomic-fact extraction prompt", () => {
     expect(prompt).toContain("never reduce the relation to a generic attribute");
     expect(prompt).toContain("metadata.claim.objectEntity");
     expect(prompt).toContain("distinct named entity");
+    expect(prompt).toContain("polarity");
+    expect(prompt).toContain("modality");
+    expect(new TextEncoder().encode(prompt).byteLength).toBeLessThan(2_300);
     // The transcript is included with stable message indices.
     expect(prompt).toContain(
       "[1] user: I adopted a dog named Biscuit last weekend.",
@@ -97,6 +100,7 @@ describe("createProviderConversationalMemoryExtractor", () => {
       createMemoryExtractor: (factoryInput) =>
         createLLMMemoryExtractor({
           model: factoryInput.model,
+          outputProtocol: factoryInput.outputProtocol,
           promptBuilder: factoryInput.promptBuilder,
           system: factoryInput.system,
           dependencies: {
@@ -106,31 +110,35 @@ describe("createProviderConversationalMemoryExtractor", () => {
               seen.prompt = callInput.prompt as string;
               return {
                 object: {
-                  candidates: [
+                  c: [
                     {
-                      id: "c1",
-                      kindHint: "fact",
-                      explicitness: "explicit",
-                      content: "User adopted a beagle named Biscuit.",
-                      sourceMessageIndex: 1,
-                      sourceRole: "user",
-                      metadata: {
-                        attributes: { claimKey: "pet.dog.identity" },
-                        category: "personal",
-                        subject: "Biscuit",
+                      c: "User adopted a beagle named Biscuit.",
+                      m: {
+                        a: { claimKey: "pet.dog.identity" },
+                        ca: "personal",
+                        q: {
+                          o: "Biscuit",
+                          oe: "Biscuit",
+                          p: "pet.dog.identity",
+                        },
+                        u: "Biscuit",
                       },
+                      s: 1,
                     },
                     {
-                      id: "c2",
-                      kindHint: "fact",
-                      explicitness: "explicit",
-                      content: "User is taking Biscuit to the vet on Friday.",
-                      sourceMessageIndex: 3,
-                      sourceRole: "user",
-                      metadata: { subject: "Biscuit" },
+                      c: "User is taking Biscuit to the vet on Friday.",
+                      m: {
+                        q: {
+                          m: "planned",
+                          o: "the vet on Friday",
+                          p: "pet.vet_visit",
+                        },
+                        u: "Biscuit",
+                      },
+                      s: 3,
                     },
                   ],
-                  ignoredMessageCount: 2,
+                  i: 2,
                 },
               };
             }) as never,
@@ -145,6 +153,21 @@ describe("createProviderConversationalMemoryExtractor", () => {
     expect(result.candidates[0]?.metadata?.attributes?.claimKey).toBe(
       "pet.dog.identity",
     );
+    expect(result.candidates[0]).toMatchObject({
+      explicitness: "explicit",
+      id: "llm-1",
+      kindHint: "fact",
+      sourceMessageIndex: 1,
+      sourceRole: "user",
+    });
+    expect(result.candidates[0]?.metadata?.claim).toEqual({
+      modality: "asserted",
+      objectEntity: "Biscuit",
+      objectText: "Biscuit",
+      polarity: "positive",
+      predicateKey: "pet.dog.identity",
+    });
+    expect(result.candidates[1]?.metadata?.claim?.modality).toBe("planned");
     expect(result.candidates[1]?.content).toContain("vet on Friday");
     expect(result.ignoredMessageCount).toBe(2);
     // Proves the conversational system prompt + prompt builder were actually wired.

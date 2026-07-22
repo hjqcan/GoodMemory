@@ -34,26 +34,30 @@ describe("conversational contextual-descriptor option", () => {
   });
 
   it("threads the option through the provider factory into the built prompt", async () => {
-    const seen: { prompt?: string } = {};
+    const seen: { prompt?: string; protocol?: string } = {};
     const extractor = createProviderConversationalMemoryExtractor({
       model: { provider: "openai", model: "gpt-5.5" },
       contextualDescriptor: true,
-      createMemoryExtractor: (factoryInput) =>
-        createLLMMemoryExtractor({
+      createMemoryExtractor: (factoryInput) => {
+        seen.protocol = factoryInput.outputProtocol;
+        return createLLMMemoryExtractor({
           model: factoryInput.model,
+          outputProtocol: factoryInput.outputProtocol,
           promptBuilder: factoryInput.promptBuilder,
           system: factoryInput.system,
           dependencies: {
             resolveModel: (config) => ({ resolvedFrom: config.model }) as never,
             generateObject: (async (callInput: Record<string, unknown>) => {
               seen.prompt = callInput.prompt as string;
-              return { object: { candidates: [], ignoredMessageCount: 0 } };
+              return { object: { c: [], i: 0 } };
             }) as never,
           },
-        }),
+        });
+      },
     });
 
     await extractor.extract(CONVERSATION);
     expect(String(seen.prompt).toLowerCase()).toContain("contextual descriptor");
+    expect(seen.protocol).toBe("compact-conversational-v1");
   });
 });
