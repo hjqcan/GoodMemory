@@ -465,6 +465,7 @@ export interface OpenAICompatibleTextResult {
 interface OpenAICompatibleTextInput {
   maxOutputTokens?: number;
   model: AISDKModelConfig;
+  responseFormat?: "json_object";
   reasoningEffort?: OpenAICompatibleReasoningEffort;
   system?: string;
   prompt: string;
@@ -576,6 +577,9 @@ async function requestOpenAICompatibleTextInternal(
               ...(input.includeUsage
                 ? { stream_options: { include_usage: true } }
                 : {}),
+              ...(input.responseFormat === undefined
+                ? {}
+                : { response_format: { type: input.responseFormat } }),
               ...(input.temperature === undefined
                 ? {}
                 : { temperature: input.temperature }),
@@ -741,6 +745,7 @@ export async function requestOpenAICompatibleObject<T>(input: {
       maxOutputTokens: input.maxOutputTokens,
       system: input.system,
       prompt: input.prompt,
+      responseFormat: "json_object",
       reasoningEffort: input.reasoningEffort,
       temperature: input.temperature,
       fetch: input.fetch,
@@ -771,6 +776,7 @@ export async function requestOpenAICompatibleObjectResult<T>(input: {
     maxOutputTokens: input.maxOutputTokens,
     model: input.model,
     prompt: input.prompt,
+    responseFormat: "json_object",
     reasoningEffort: input.reasoningEffort,
     signal: input.signal,
     system: input.system,
