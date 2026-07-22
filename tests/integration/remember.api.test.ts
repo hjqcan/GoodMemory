@@ -93,7 +93,11 @@ describe("public remember API", () => {
     expect(evidence.every((record) => record.linkedMemoryIds.length === 1)).toBe(true);
     expect(
       result.events
-        .filter((event) => event.memoryType === "fact" || event.memoryType === "reference")
+        .filter(
+          (event) =>
+            event.outcome === "written" &&
+            (event.memoryType === "fact" || event.memoryType === "reference"),
+        )
         .every((event) => (event.evidenceIds?.length ?? 0) === 1),
     ).toBe(true);
   });

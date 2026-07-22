@@ -1528,7 +1528,7 @@ describe("release metadata and docs", () => {
     expect(guide).not.toContain("query-resolved");
   });
 
-  it("v0.7 package metadata, RC docs, and machine-readable descriptors agree", async () => {
+  it("v0.7 package metadata, stable-source docs, and machine-readable descriptors agree", async () => {
     expect(CURRENT_PACKAGE_VERSION).toBe("0.7.0");
     expect(CURRENT_TARBALL_NAME).toBe("goodmemory-0.7.0.tgz");
 
@@ -1551,7 +1551,7 @@ describe("release metadata and docs", () => {
     ) as {
       releaseStatus?: {
         installCommandsApplyAfterPublish?: boolean;
-        npmLatest?: string;
+        npmDistTag?: string;
         status?: string;
       };
       version?: string;
@@ -1578,8 +1578,8 @@ describe("release metadata and docs", () => {
     expect(capability.version).toBe(CURRENT_PACKAGE_VERSION);
     expect(capability.releaseStatus).toMatchObject({
       installCommandsApplyAfterPublish: true,
-      npmLatest: "0.6.0",
-      status: "release-candidate",
+      npmDistTag: "latest",
+      status: "stable",
     });
     expect(migrationGuide).toContain("GoodMemory 0.6 to 0.7 Migration Guide");
     expect(migrationGuide).toContain("historical 0.6 evidence");
@@ -3797,8 +3797,17 @@ describe("release metadata and docs", () => {
     expect(workflow).toContain("Stable release workflow only supports stable semver versions");
     expect(workflow).toContain("[[ \"$VERSION\" == *-* ]]");
     expect(workflow).toContain("[[ \"$TAG_VERSION\" != \"$VERSION\" ]]");
-    expect(workflow).toContain("bun pm pack");
+    expect(workflow).not.toContain("bun pm pack --destination dist-release");
     expect(workflow).toContain("scripts/prepare-v0-7-stable-artifact.ts");
+    expect(workflow).toContain("scripts/verify-v0-7-release-artifact.ts");
+    expect(workflow).toContain("prepublish-evidence.json");
+    expect(workflow).toContain('ARTIFACT_SOURCE_COMMIT="$(ARTIFACT_JSON="$ARTIFACT_JSON"');
+    expect(workflow).toContain('ARTIFACT_SOURCE_TREE="$(ARTIFACT_JSON="$ARTIFACT_JSON"');
+    expect(workflow).toContain('[[ "$ARTIFACT_SOURCE_COMMIT" != "$GITHUB_SHA" ]]');
+    expect(workflow).toContain('source-commit "${{ steps.pack.outputs.source_commit }}"');
+    expect(workflow).toContain('source-tree "${{ steps.pack.outputs.source_tree }}"');
+    expect(workflow).toContain("RUNNER_TEMP");
+    expect(workflow).toContain('expected-integrity "$ARTIFACT_INTEGRITY"');
     expect(workflow).toContain('if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]');
     expect(workflow).toContain("actions/upload-artifact@v4");
     expect(workflow).toContain("actions/setup-node@v4");
@@ -3841,12 +3850,17 @@ describe("release metadata and docs", () => {
     expect(workflow).toContain("make_latest: true");
 
     const uploadIndex = workflow.indexOf("- name: Upload tarball artifact");
+    const verifyArtifactIndex = workflow.indexOf(
+      "- name: Verify exact prepublish artifact",
+    );
     const authIndex = workflow.indexOf(
       "- name: Validate npm publishing credentials",
     );
     const publishIndex = workflow.indexOf("- name: Publish package to npm");
     const githubReleaseIndex = workflow.indexOf("- name: Create GitHub release");
     expect(uploadIndex).toBeGreaterThan(-1);
+    expect(verifyArtifactIndex).toBeGreaterThan(-1);
+    expect(uploadIndex).toBeGreaterThan(verifyArtifactIndex);
     expect(authIndex).toBeGreaterThan(uploadIndex);
     expect(publishIndex).toBeGreaterThan(authIndex);
     expect(githubReleaseIndex).toBeGreaterThan(publishIndex);

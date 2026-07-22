@@ -27,7 +27,6 @@ import type {
   Phase74HaluMemLiveDependencyInput,
 } from "./phase-74-halumem-live-providers";
 import {
-  PHASE74_HALUMEM_UPDATE_NOT_EVALUABLE_REASON,
   runPhase74HaluMemProtectionCli,
 } from "./run-phase-74-halumem-protection";
 import type {
@@ -45,13 +44,22 @@ import {
 import {
   PHASE74_HALUMEM_QA_JUDGE_SYSTEM_PROMPT,
   PHASE74_HALUMEM_READER_SYSTEM_PROMPT,
+  PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE,
+  PHASE74_HALUMEM_UPDATE_JUDGE_PROMPT_TEMPLATE,
+  PHASE74_HALUMEM_UPDATE_JUDGE_SYSTEM_PROMPT,
+  PHASE74_HALUMEM_UPDATE_PROMOTION_ROLE,
+  PHASE74_HALUMEM_UPDATE_TOP_K,
   PHASE74_HALUMEM_UPSTREAM,
   buildPhase74HaluMemQaJudgePrompt,
   buildPhase74HaluMemReaderPrompt,
   parsePhase74HaluMemJsonl,
   selectPhase74HaluMemUsers,
+  verifyPhase74HaluMemE4ProtectionArtifact,
+  verifyPhase74HaluMemPrivacyProtectionArtifact,
+  verifyPhase74HaluMemUpdateProtectionArtifact,
 } from "../src/eval/phase74HaluMemProtectionVerifier";
 import type {
+  Phase74HaluMemProtectionConfiguration,
   Phase74HaluMemUser,
 } from "../src/eval/phase74HaluMemProtectionVerifier";
 import {
@@ -78,6 +86,7 @@ import {
 } from "../src/eval/phase74ProviderConfiguration";
 import {
   hashPhase74ProtectionValue,
+  loadPhase74FrozenProtectionSuiteRunArtifact,
 } from "../src/eval/phase74ProtectionRun";
 import type {
   Phase74ProtectionReplicate,
@@ -150,7 +159,7 @@ export interface Phase74HaluMemLiveCompletion {
   identitySha256: string;
   schemaVersion: 1;
   selectionSha256: string;
-  updateStatus: "completed" | "not_evaluable";
+  updateStatus: "completed";
   usage: {
     eventCount: number;
     eventsSha256: string;
@@ -160,6 +169,18 @@ export interface Phase74HaluMemLiveCompletion {
     pendingRequestCount: 0;
   };
 }
+
+type Phase74HaluMemUsageSummary = Phase74HaluMemLiveCompletion["usage"] & {
+  branches: Record<"baseline" | "candidate" | "judge" | "shadow", number>;
+  ingestion: Array<{
+    eventCount: number;
+    eventsSha256: string;
+    intentCount: number;
+    intentsSha256: string;
+    key: string;
+  }>;
+  schemaVersion: 1;
+};
 
 export interface Phase74HaluMemLiveRunnerDependencies {
   captureEvaluatorSource(input: {
@@ -404,6 +425,13 @@ function haluMemPromptSha256s(): Record<string, string> {
     haluMemJudgeTemplate: sha256(buildPhase74HaluMemQaJudgePrompt.toString()),
     haluMemReaderSystem: sha256(PHASE74_HALUMEM_READER_SYSTEM_PROMPT),
     haluMemReaderTemplate: sha256(buildPhase74HaluMemReaderPrompt.toString()),
+    haluMemUpdateEvaluatorSource: PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE.sha256,
+    haluMemUpdateJudgeSystem: sha256(
+      PHASE74_HALUMEM_UPDATE_JUDGE_SYSTEM_PROMPT,
+    ),
+    haluMemUpdateJudgeTemplate: sha256(
+      PHASE74_HALUMEM_UPDATE_JUDGE_PROMPT_TEMPLATE,
+    ),
   };
 }
 
@@ -455,8 +483,11 @@ function buildRunIdentity(input: {
       selection: input.selection,
       selectionSha256: hashPhase74ProtectionValue(input.selection),
       update: {
-        reason: PHASE74_HALUMEM_UPDATE_NOT_EVALUABLE_REASON,
-        status: "not_evaluable",
+        evaluatorSource: PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE,
+        promotionRole: PHASE74_HALUMEM_UPDATE_PROMOTION_ROLE,
+        sessionPolicy: "causal-session-write-then-update-retrieval-v1",
+        status: "enabled",
+        topK: PHASE74_HALUMEM_UPDATE_TOP_K,
       },
       usageAccounting: "phase74-attributed-intent-terminal-v1",
     }),
@@ -573,8 +604,7 @@ function parseCompletion(value: unknown): Phase74HaluMemLiveCompletion {
     typeof completion.artifacts !== "object" ||
     !/^[a-f0-9]{64}$/u.test(completion.identitySha256 ?? "") ||
     !/^[a-f0-9]{64}$/u.test(completion.selectionSha256 ?? "") ||
-    (completion.updateStatus !== "completed" &&
-      completion.updateStatus !== "not_evaluable") ||
+    completion.updateStatus !== "completed" ||
     !completion.usage ||
     completion.usage.pendingRequestCount !== 0 ||
     !Number.isSafeInteger(completion.usage.ingestionKeyCount) ||
@@ -599,6 +629,65 @@ export async function verifyPhase74HaluMemLiveRun(
   const completion = parseCompletion(JSON.parse(
     await readFile(join(directory, "run-completion.json"), "utf8"),
   ));
+  const collectedUsage = await collectUsageSummary({
+    eventsPath: join(directory, "model-usage.jsonl"),
+    intentsPath: join(directory, "model-usage-intents.jsonl"),
+    runDirectory: directory,
+  });
+  const storedUsageSummary = JSON.parse(await readFile(
+    join(directory, "model-usage-summary.json"),
+    "utf8",
+  )) as unknown;
+  if (
+    hashPhase74ProtectionValue(storedUsageSummary) !==
+      hashPhase74ProtectionValue(collectedUsage.summary)
+  ) {
+    throw new Error("Phase 74 HaluMem model usage summary drifted from its ledgers.");
+  }
+  const {
+    branches: _branches,
+    ingestion: _ingestion,
+    schemaVersion: _schemaVersion,
+    ...usage
+  } = collectedUsage.summary;
+  if (
+    hashPhase74ProtectionValue(usage) !==
+      hashPhase74ProtectionValue(completion.usage)
+  ) {
+    throw new Error("Phase 74 HaluMem completion usage summary drifted.");
+  }
+  const canonicalArtifacts = [
+    "call-budget.json",
+    "e4/protection-run.json",
+    "e4/raw.json",
+    "model-usage-intents.jsonl",
+    "model-usage-summary.json",
+    "model-usage.jsonl",
+    "privacy/protection-run.json",
+    "privacy/raw.json",
+    "run-identity.json",
+    "selected-users.jsonl",
+    "selection-manifest.json",
+    "update/protection-run.json",
+    "update/raw.json",
+    ...collectedUsage.artifactPaths.map((path) =>
+      relativeArtifactPath(directory, path)
+    ),
+  ].sort();
+  const declaredArtifacts = Object.keys(completion.artifacts).sort();
+  if (
+    hashPhase74ProtectionValue(declaredArtifacts) !==
+      hashPhase74ProtectionValue(canonicalArtifacts)
+  ) {
+    throw new Error("Phase 74 HaluMem completion canonical artifact set drifted.");
+  }
+  for (const path of canonicalArtifacts) {
+    const absolute = resolve(directory, path);
+    relativeArtifactPath(directory, absolute);
+    if (sha256(await readFile(absolute)) !== completion.artifacts[path]) {
+      throw new Error(`Phase 74 HaluMem completion artifact drifted: ${path}.`);
+    }
+  }
   const [identityBytes, selectionBytes] = await Promise.all([
     readFile(join(directory, "run-identity.json")),
     readFile(join(directory, "selection-manifest.json")),
@@ -615,6 +704,12 @@ export async function verifyPhase74HaluMemLiveRun(
   ) as Phase74HaluMemSelectionManifest;
   const configuration = identity.configuration;
   if (
+    hashPhase74ProtectionValue(identity.promptSha256s) !==
+      hashPhase74ProtectionValue(haluMemPromptSha256s())
+  ) {
+    throw new Error("Phase 74 HaluMem prompt identity drifted.");
+  }
+  if (
     identity.datasetSha256 !== selection.datasetSha256 ||
     configuration.selectionSha256 !==
       hashPhase74ProtectionValue(selection) ||
@@ -623,42 +718,147 @@ export async function verifyPhase74HaluMemLiveRun(
   ) {
     throw new Error("Phase 74 HaluMem identity/selection binding drifted.");
   }
-  const usageSummary = JSON.parse(await readFile(
-    join(directory, "model-usage-summary.json"),
-    "utf8",
-  )) as Phase74HaluMemLiveCompletion["usage"];
-  const usageProjection = {
-    eventCount: usageSummary.eventCount,
-    eventsSha256: usageSummary.eventsSha256,
-    ingestionKeyCount: usageSummary.ingestionKeyCount,
-    intentCount: usageSummary.intentCount,
-    intentsSha256: usageSummary.intentsSha256,
-    pendingRequestCount: usageSummary.pendingRequestCount,
-  };
+  const selectedUsers = parsePhase74HaluMemJsonl(
+    await readFile(join(directory, "selected-users.jsonl"), "utf8"),
+    "selected-users.jsonl",
+  );
   if (
-    hashPhase74ProtectionValue(usageProjection) !==
-      hashPhase74ProtectionValue(completion.usage)
+    selectedUsers.length < 2 ||
+    new Set(selectedUsers.map(({ uuid }) => uuid)).size !== selectedUsers.length ||
+    selectedUsers.some(
+      (user) =>
+        user.uuid === PHASE74_HALUMEM_HISTORICALLY_SEEN_USER_UUID ||
+        !isEligibleUser(user),
+    )
   ) {
-    throw new Error("Phase 74 HaluMem completion usage summary drifted.");
+    throw new Error("Phase 74 HaluMem selected-user snapshot is not unseen/eligible.");
   }
-  for (const [path, expected] of Object.entries(completion.artifacts)) {
-    const absolute = resolve(directory, path);
-    relativeArtifactPath(directory, absolute);
-    if (sha256(await readFile(absolute)) !== expected) {
-      throw new Error(`Phase 74 HaluMem completion artifact drifted: ${path}.`);
-    }
+  const rebuiltSelection = buildPhase74HaluMemSelectionManifest({
+    datasetSha256: identity.datasetSha256,
+    users: selectedUsers,
+  });
+  if (
+    hashPhase74ProtectionValue(rebuiltSelection) !==
+      hashPhase74ProtectionValue(selection)
+  ) {
+    throw new Error("Phase 74 HaluMem selection manifest drifted from selected users.");
   }
+  const pipelines = configuration.pipelines;
+  if (!pipelines || typeof pipelines !== "object" || Array.isArray(pipelines)) {
+    throw new Error("Phase 74 HaluMem live pipeline identity is missing.");
+  }
+  const pipelineConfigurations = pipelines as Record<string, unknown>;
+  const e4Configuration = pipelineConfigurations.e4 as
+    | Phase74HaluMemProtectionConfiguration
+    | undefined;
+  const safetyConfiguration = pipelineConfigurations.safety as
+    | Phase74HaluMemProtectionConfiguration
+    | undefined;
+  if (!e4Configuration || !safetyConfiguration) {
+    throw new Error("Phase 74 HaluMem live pipeline identity is incomplete.");
+  }
+  if (
+    hashPhase74ProtectionValue(safetyConfiguration.updateEvaluator) !==
+      hashPhase74ProtectionValue(PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE)
+  ) {
+    throw new Error("Phase 74 HaluMem update evaluator identity drifted.");
+  }
+  const updateMetadata = configuration.update;
+  if (
+    !updateMetadata ||
+    typeof updateMetadata !== "object" ||
+    Array.isArray(updateMetadata) ||
+    hashPhase74ProtectionValue(updateMetadata) !== hashPhase74ProtectionValue({
+      evaluatorSource: PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE,
+      promotionRole: PHASE74_HALUMEM_UPDATE_PROMOTION_ROLE,
+      sessionPolicy: "causal-session-write-then-update-retrieval-v1",
+      status: "enabled",
+      topK: PHASE74_HALUMEM_UPDATE_TOP_K,
+    })
+  ) {
+    throw new Error("Phase 74 HaluMem update protocol identity drifted.");
+  }
+  const e4ArtifactPath = join(directory, "e4", "protection-run.json");
+  const privacyArtifactPath = join(directory, "privacy", "protection-run.json");
+  const updateArtifactPath = join(directory, "update", "protection-run.json");
+  const [e4Run, privacyRun, updateRun] = await Promise.all([
+    loadPhase74FrozenProtectionSuiteRunArtifact(e4ArtifactPath),
+    loadPhase74FrozenProtectionSuiteRunArtifact(privacyArtifactPath),
+    loadPhase74FrozenProtectionSuiteRunArtifact(updateArtifactPath),
+  ]);
+  const evaluatorSource = configuration.evaluatorSource as
+    | Phase74EvaluatorSource
+    | undefined;
+  const dataset = updateRun.identity.dataset;
+  const source = updateRun.identity.source;
+  if (
+    dataset.sha256 !== selection.datasetSha256 ||
+    hashPhase74ProtectionValue(e4Run.identity.dataset) !==
+      hashPhase74ProtectionValue(dataset) ||
+    hashPhase74ProtectionValue(privacyRun.identity.dataset) !==
+      hashPhase74ProtectionValue(dataset) ||
+    !evaluatorSource ||
+    source.id !== `git:${evaluatorSource.commit}` ||
+    source.sha256 !== evaluatorSource.sha256 ||
+    hashPhase74ProtectionValue(e4Run.identity.source) !==
+      hashPhase74ProtectionValue(source) ||
+    hashPhase74ProtectionValue(privacyRun.identity.source) !==
+      hashPhase74ProtectionValue(source)
+  ) {
+    throw new Error("Phase 74 HaluMem protection artifact provenance drifted.");
+  }
+  await verifyPhase74HaluMemE4ProtectionArtifact({
+    artifactPath: e4ArtifactPath,
+    configuration: e4Configuration,
+    dataset,
+    source,
+    users: selectedUsers,
+  });
+  await verifyPhase74HaluMemPrivacyProtectionArtifact({
+    artifactPath: privacyArtifactPath,
+    configuration: safetyConfiguration,
+    dataset,
+    source,
+    users: selectedUsers,
+  });
+  await verifyPhase74HaluMemUpdateProtectionArtifact({
+    artifactPath: updateArtifactPath,
+    configuration: safetyConfiguration,
+    dataset,
+    source,
+    users: selectedUsers,
+  });
   return completion;
 }
 
-async function writeUsageSummary(input: {
+async function canonicalIngestionKeys(
+  path: string,
+  label: string,
+): Promise<string[]> {
+  let entries: Dirent<string>[] = [];
+  try {
+    entries = await readdir(path, { withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+  }
+  const directories = entries.filter((entry) => entry.isDirectory());
+  if (directories.some(({ name }) => !/^[a-f0-9]{64}$/u.test(name))) {
+    throw new Error(
+      `Phase 74 HaluMem ${label} contains a non-canonical directory.`,
+    );
+  }
+  return directories.map(({ name }) => name).sort();
+}
+
+async function collectUsageSummary(input: {
   eventsPath: string;
   intentsPath: string;
-  path: string;
   runDirectory: string;
 }): Promise<{
   artifactPaths: string[];
-  usage: Phase74HaluMemLiveCompletion["usage"];
+  summary: Phase74HaluMemUsageSummary;
 }> {
   const direct = await loadPhase74ModelUsageLedger({
     eventsPath: input.eventsPath,
@@ -671,21 +871,25 @@ async function writeUsageSummary(input: {
     readFile(input.eventsPath),
     readFile(input.intentsPath),
   ]);
-  let ingestionEntries: Dirent<string>[] = [];
-  try {
-    ingestionEntries = await readdir(
+  const [ingestionKeys, usageKeys] = await Promise.all([
+    canonicalIngestionKeys(
+      join(input.runDirectory, "ingestion"),
+      "ingestion",
+    ),
+    canonicalIngestionKeys(
       join(input.runDirectory, "ingestion-usage"),
-      { withFileTypes: true },
+      "ingestion-usage",
+    ),
+  ]);
+  if (
+    hashPhase74ProtectionValue(ingestionKeys) !==
+      hashPhase74ProtectionValue(usageKeys)
+  ) {
+    throw new Error(
+      "Phase 74 HaluMem ingestion/ingestion-usage key sets drifted.",
     );
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      throw error;
-    }
   }
-  const ingestion = await Promise.all(ingestionEntries
-    .filter((entry) => entry.isDirectory() && /^[a-f0-9]{64}$/u.test(entry.name))
-    .sort((left, right) => left.name.localeCompare(right.name))
-    .map(async ({ name: key }) => {
+  const ingestion = await Promise.all(usageKeys.map(async (key) => {
       const paths = buildPhase74IngestionUsagePaths(input.runDirectory, key);
       const ledger = await loadPhase74ModelUsageLedger(paths);
       if (ledger.pendingIntents.length > 0) {
@@ -750,7 +954,7 @@ async function writeUsageSummary(input: {
     intentsSha256: hashPhase74ProtectionValue(intentLedgers),
     pendingRequestCount: 0 as const,
   };
-  await writeCreateOnlyJson(input.path, {
+  const summary: Phase74HaluMemUsageSummary = {
     ...usage,
     branches: Object.fromEntries(
       ["baseline", "candidate", "judge", "shadow"].map((branch) => [
@@ -763,16 +967,36 @@ async function writeUsageSummary(input: {
             0,
           ),
       ]),
-    ),
+    ) as Phase74HaluMemUsageSummary["branches"],
     ingestion: ingestion.map(({ artifactPaths: _artifactPaths, ...entry }) =>
       entry
     ),
     schemaVersion: 1,
-  });
+  };
   return {
     artifactPaths: ingestion.flatMap(({ artifactPaths }) => artifactPaths),
-    usage,
+    summary,
   };
+}
+
+async function writeUsageSummary(input: {
+  eventsPath: string;
+  intentsPath: string;
+  path: string;
+  runDirectory: string;
+}): Promise<{
+  artifactPaths: string[];
+  usage: Phase74HaluMemLiveCompletion["usage"];
+}> {
+  const collected = await collectUsageSummary(input);
+  await writeCreateOnlyJson(input.path, collected.summary);
+  const {
+    branches: _branches,
+    ingestion: _ingestion,
+    schemaVersion: _schemaVersion,
+    ...usage
+  } = collected.summary;
+  return { artifactPaths: collected.artifactPaths, usage };
 }
 
 export async function runPhase74HaluMemLiveProtection(
@@ -825,8 +1049,14 @@ export async function runPhase74HaluMemLiveProtection(
   await mkdir(runDirectory);
   const identityPath = join(runDirectory, "run-identity.json");
   const selectionPath = join(runDirectory, "selection-manifest.json");
+  const selectedUsersPath = join(runDirectory, "selected-users.jsonl");
   await writeCreateOnlyJson(selectionPath, selection.manifest);
   await writeCreateOnlyJson(identityPath, identity);
+  await writeFile(
+    selectedUsersPath,
+    `${selection.users.map((user) => JSON.stringify(user)).join("\n")}\n`,
+    { encoding: "utf8", flag: "wx" },
+  );
   if (options.mode === "preflight") {
     return {
       identity,
@@ -887,9 +1117,15 @@ export async function runPhase74HaluMemLiveProtection(
       captureEvaluatorSource: async () => evaluatorSource,
       e4: live.e4,
       privacy: live.privacy,
+      update: live.update,
     });
   } finally {
     globalThis.fetch = originalFetch;
+  }
+  if (protection.update.status !== "completed") {
+    throw new Error(
+      "Phase 74 HaluMem live protection requires completed update evidence.",
+    );
   }
 
   const usageSummaryPath = join(runDirectory, "model-usage-summary.json");
@@ -902,6 +1138,7 @@ export async function runPhase74HaluMemLiveProtection(
   const artifactPaths = [
     identityPath,
     selectionPath,
+    selectedUsersPath,
     usageEventsPath,
     usageIntentsPath,
     usageSummaryPath,
@@ -927,7 +1164,7 @@ export async function runPhase74HaluMemLiveProtection(
     identitySha256: sha256(identityBytes),
     schemaVersion: 1,
     selectionSha256: sha256(selectionBytes),
-    updateStatus: protection.update.status,
+    updateStatus: "completed",
     usage: usageSummary.usage,
   };
   await writeCreateOnlyJson(

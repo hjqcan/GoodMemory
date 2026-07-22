@@ -6,6 +6,9 @@ import {
   buildPhase74HaluMemCausalRecallCase,
   buildPhase74HaluMemLiveConfigurations,
   buildPhase74HaluMemPrivacyPipelineMaterial,
+  buildPhase74HaluMemUpdatePipelineMaterial,
+  buildPhase74HaluMemUpdateRecords,
+  createPhase74HaluMemScopedUpdateRuntime,
   createPhase74HaluMemScopedPrivacyRuntime,
   createPhase74HaluMemLiveDependencies,
 } from "../../scripts/phase-74-halumem-live-providers";
@@ -14,6 +17,10 @@ import type {
 } from "../../scripts/phase-74-halumem-live-providers";
 import type {
   Phase74HaluMemUser,
+} from "../../src/eval/phase74HaluMemProtectionVerifier";
+import {
+  buildPhase74HaluMemUpdateJudgePrompt,
+  scorePhase74HaluMemUpdateDecision,
 } from "../../src/eval/phase74HaluMemProtectionVerifier";
 import type {
   AttributedModelUsageAttempt,
@@ -47,7 +54,15 @@ function user(uuid: string): Phase74HaluMemUser {
           role: "assistant",
           timestamp: "2026-02-01T00:00:00.000Z",
         }],
-        memory_points: [],
+        memory_points: [{
+          importance: 1,
+          is_update: "True",
+          memory_content: `${uuid} now works on Mosaic.`,
+          memory_source: "dialogue_turn=0",
+          memory_type: "fact",
+          original_memories: [`${uuid} worked on Apollo.`],
+          timestamp: "2026-02-01T00:00:00.000Z",
+        }],
         questions: [],
         start_time: "2026-02-01T00:00:00.000Z",
       },
@@ -167,12 +182,30 @@ describe("Phase 74 HaluMem live provider wiring", () => {
 
     expect(configuration.safety.baselinePipeline.sha256).toBe(
       hashPhase74ProtectionValue(
-        buildPhase74HaluMemPrivacyPipelineMaterial("baseline", input.models),
+        {
+          privacy: buildPhase74HaluMemPrivacyPipelineMaterial(
+            "baseline",
+            input.models,
+          ),
+          update: buildPhase74HaluMemUpdatePipelineMaterial(
+            "baseline",
+            input.models,
+          ),
+        },
       ),
     );
     expect(configuration.safety.candidatePipeline.sha256).toBe(
       hashPhase74ProtectionValue(
-        buildPhase74HaluMemPrivacyPipelineMaterial("candidate", input.models),
+        {
+          privacy: buildPhase74HaluMemPrivacyPipelineMaterial(
+            "candidate",
+            input.models,
+          ),
+          update: buildPhase74HaluMemUpdatePipelineMaterial(
+            "candidate",
+            input.models,
+          ),
+        },
       ),
     );
     expect(buildPhase74HaluMemPrivacyPipelineMaterial(
@@ -193,6 +226,191 @@ describe("Phase 74 HaluMem live provider wiring", () => {
       "temporal",
       "relation",
     ]);
+    expect(buildPhase74HaluMemPrivacyPipelineMaterial(
+      "candidate",
+      input.models,
+    ).retrieval).not.toHaveProperty("generatedMemoryRecords");
+    const updatePipeline = buildPhase74HaluMemUpdatePipelineMaterial(
+      "candidate",
+      input.models,
+    );
+    expect(updatePipeline.retrieval.generatedMemoryRecords).toBe(
+      "final-ranked-durable-records-cross-kind-v1",
+    );
+    expect(updatePipeline.ingestionClock).toBe(
+      "latest-dialogue-time-through-session-v1",
+    );
+    expect(updatePipeline.reranker).toMatchObject({
+      gateway: "https://ai.gurkiai.com/v1",
+      model: "gpt-5.6-terra",
+      provider: "openai",
+    });
+    expect(configuration.safety.updateEvaluator).toMatchObject({
+      id: expect.stringContaining("eval/eval_tools.py"),
+      sha256: "0c08e5ecb8c93945bafc4bd0336bd6c9756b40d175f442ce44aca4a43169ee3b",
+    });
+  });
+
+  it("writes distinct HaluMem sessions causally before top-10 update retrieval", async () => {
+    const selected = user("user-a");
+    const calls: string[] = [];
+    const runtime = createPhase74HaluMemScopedUpdateRuntime({
+      branch: "candidate",
+      createMemory() {
+        return {
+          async recall({ query, topK }) {
+            calls.push(`recall:${query}`);
+            expect(topK).toBe(10);
+            return {
+              evidence: [{ sourceMessageIds: ["source-session-1"] }],
+              memories: ["user-a now works on Mosaic."],
+            };
+          },
+          setReferenceTime(referenceTime: string) {
+            calls.push(`time:${referenceTime}`);
+          },
+          async remember({ scope }) {
+            calls.push(`remember:${scope.sessionId}`);
+            return { warnings: [] };
+          },
+        };
+      },
+      users: [selected],
+    });
+
+    const snapshot = await runtime.retrieve({
+      branch: "candidate",
+      memoryPoint: selected.sessions[1]!.memory_points[0]!,
+      sessionIndex: 1,
+      updateCaseId: "user-a:session:1:update:0",
+      user: selected,
+    });
+
+    expect(calls).toEqual([
+      "time:2026-01-01T00:00:00.000Z",
+      "remember:session-0",
+      "time:2026-02-01T00:00:00.000Z",
+      "remember:session-1",
+      "recall:user-a now works on Mosaic.",
+    ]);
+    expect(snapshot.memories).toEqual(["user-a now works on Mosaic."]);
+    expect(snapshot.sourceMessageIds).toEqual(["source-session-1"]);
+  });
+
+  it("uses final ranked durable records across kinds for update top-10 and never raw evidence", () => {
+    const target = "user-a now works on Mosaic.";
+    const rawEvidenceOnly = `[RAW-EVIDENCE-ONLY]\n${target}`;
+    const facts = Array.from({ length: 9 }, (_, index) => ({
+      content: `rank-${index + 1}`,
+      id: `fact-${index + 1}`,
+    }));
+    const recall = {
+      evidence: [{ excerpt: rawEvidenceOnly }],
+      facts,
+      feedback: [{ id: "feedback-1", rule: "Keep project status current." }],
+      metadata: {
+        hits: [
+          { id: "preference-target", type: "preference" },
+          { id: "fact-1", type: "fact" },
+          { id: "feedback-1", type: "feedback" },
+        ],
+      },
+      preferences: [{
+        category: "project",
+        id: "preference-target",
+        value: target,
+      }],
+    };
+
+    const records = buildPhase74HaluMemUpdateRecords(recall);
+    expect(records).toHaveLength(10);
+    expect(records.slice(0, 3)).toEqual([
+      `project: ${target}`,
+      "rank-1",
+      "Keep project status current.",
+    ]);
+    expect(records).toContain("rank-8");
+    expect(records).not.toContain("rank-9");
+    expect(buildPhase74HaluMemUpdateJudgePrompt({
+      expectedUpdate: target,
+      originalMemories: ["user-a worked on Apollo."],
+      retrievedMemories: records,
+    })).not.toContain("[RAW-EVIDENCE-ONLY]");
+    expect(scorePhase74HaluMemUpdateDecision(JSON.stringify({
+      category: "Omission",
+      protocol: "halumem-upstream-per-item-update-v1",
+      rawDecision: JSON.stringify({
+        evaluation_result: "Omission",
+        reason: "The generated memories omit the target update.",
+      }),
+      usage: {
+        cacheCreationInputTokens: 0,
+        cacheReadInputTokens: 0,
+        inputTokens: 20,
+        outputTokens: 5,
+        uncachedInputTokens: 20,
+      },
+    }))).toBe(0);
+  });
+
+  it("uses the pinned HaluMem update prompt and preserves raw category plus usage", async () => {
+    const requests: Array<Record<string, unknown>> = [];
+    const input = liveInput({
+      fetch: async (_request: RequestInfo | URL, init?: RequestInit) => {
+        requests.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+        return new Response(JSON.stringify({
+          choices: [{
+            finish_reason: "stop",
+            index: 0,
+            message: {
+              content: JSON.stringify({
+                evaluation_result: "Hallucination",
+                reason: "The generated memory contradicts the target update.",
+              }),
+              role: "assistant",
+            },
+          }],
+          model: "gpt-5.5",
+          object: "chat.completion",
+          usage: { completion_tokens: 5, prompt_tokens: 20 },
+        }), { headers: { "content-type": "application/json" } });
+      },
+    });
+    const dependencies = createPhase74HaluMemLiveDependencies(input);
+    const selected = input.users[0]!;
+    const memoryPoint = selected.sessions[1]!.memory_points[0]!;
+    const decision = await dependencies.update.evaluateUpdate!({
+      branch: "candidate",
+      evaluator: buildPhase74HaluMemLiveConfigurations(input.models).safety
+        .updateEvaluator!,
+      expectedUpdate: memoryPoint.memory_content,
+      memoryPoint,
+      originalMemories: memoryPoint.original_memories,
+      retrievedMemories: ["user-a still works on Apollo."],
+      updateCaseId: "user-a:session:1:update:0",
+      user: selected,
+    });
+
+    expect(JSON.parse(decision)).toEqual({
+      category: "Hallucination",
+      protocol: "halumem-upstream-per-item-update-v1",
+      rawDecision: JSON.stringify({
+        evaluation_result: "Hallucination",
+        reason: "The generated memory contradicts the target update.",
+      }),
+      usage: {
+        cacheCreationInputTokens: null,
+        cacheReadInputTokens: null,
+        inputTokens: 20,
+        outputTokens: 5,
+        uncachedInputTokens: 20,
+      },
+    });
+    expect(JSON.stringify(requests[0])).toContain("Target Memory for Update");
+    expect(requests[0]!.messages).toEqual([
+      expect.objectContaining({ role: "user" }),
+    ]);
+    expect(input.intents[0]).toMatchObject({ branch: "judge", operation: "judge" });
   });
 
   it("calls Terra reader and independent gpt-5.5 judge with strict raw JSON and usage", async () => {

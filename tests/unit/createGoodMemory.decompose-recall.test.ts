@@ -9,12 +9,12 @@ import {
 import { createFactMemory } from "../../src/domain/records";
 import { createEvidenceRecord } from "../../src/evidence/contracts";
 
-// A query-only RecallPlan drives decomposition by default. The public option
-// remains as an explicit override for callers that need a single-query replay.
+// Planned decomposition remains an experimental opt-in until its promotion
+// gate is accepted. The public default stays on the unplanned single pass.
 describe("GoodMemory.recall decompose option", () => {
   const scope = { userId: "u-1", workspaceId: "workspace-a" };
 
-  function buildMemory(recallPlanExecution = true) {
+  function buildMemory(recallPlanExecution: boolean) {
     const documentStore = createInMemoryDocumentStore();
     const sessionStore = createInMemorySessionStore();
     const vectorStore = createInMemoryVectorStore();
@@ -37,8 +37,8 @@ describe("GoodMemory.recall decompose option", () => {
     return { documentStore, makeFact, memory };
   }
 
-  it("uses planned facets by default and keeps an explicit disable override", async () => {
-    const { documentStore, makeFact, memory } = buildMemory();
+  it("uses planned facets only when experimental execution is enabled", async () => {
+    const { documentStore, makeFact, memory } = buildMemory(true);
     const facts = [
       makeFact("db", "My production database is PostgreSQL."),
       makeFact("editor", "My preferred code editor is Neovim."),
@@ -136,7 +136,7 @@ describe("GoodMemory.recall decompose option", () => {
   });
 
   it("replans each facet so temporal intent does not leak between subqueries", async () => {
-    const { memory } = buildMemory();
+    const { memory } = buildMemory(true);
 
     const result = await memory.recall({
       scope,
@@ -287,7 +287,7 @@ describe("GoodMemory.recall decompose option", () => {
   });
 
   it("keeps merged evidence complete while deduping excerpts in the rebuilt packet", async () => {
-    const { documentStore, makeFact, memory } = buildMemory();
+    const { documentStore, makeFact, memory } = buildMemory(true);
     for (const fact of [
       makeFact("db", "My production database is PostgreSQL."),
       makeFact("editor", "My preferred code editor is Neovim."),
@@ -325,7 +325,7 @@ describe("GoodMemory.recall decompose option", () => {
   });
 
   it("is a no-op for a single-part query (no decomposition marker)", async () => {
-    const { documentStore, makeFact, memory } = buildMemory();
+    const { documentStore, makeFact, memory } = buildMemory(true);
     const fact = makeFact("home", "I live in Seattle.");
     await documentStore.set("facts", fact.id, fact);
 

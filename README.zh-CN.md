@@ -4,10 +4,9 @@
 
 GoodMemory 是面向 AI 产品和 coding agent 的记忆层。
 
-> **发布状态：**当前分支是 `0.7.0` release candidate；在带 tag 的稳定发布
-> workflow 真正发布 0.7.0 之前，npm `latest` 仍是 `0.6.0`。下文锁定
-> 0.7.0 的 registry 命令是发布后的契约；发布前请使用本地打包的
-> `goodmemory-0.7.0.tgz` 验证。
+> **发布源码：**这是不可变的 `0.7.0` 稳定发布源码。Registry 命令要求
+> `goodmemory@0.7.0` 已发布；release workflow 会先校验 npm `latest`
+> 与制品完整性，再创建 GitHub Release。
 
 它为 chat app、copilot 和 agent host 提供一条可审计的用户/项目记忆闭环：
 选择性写入事实，检索正确上下文，注入下一轮对话，记录发生过什么，并在记忆错误时删除。

@@ -181,6 +181,9 @@ function analyzeJapaneseSourceOfTruthDirective(content: string) {
       return /^\s*(?:を正とする|を基準にする|を参照する|が正本)/u.test(suffix);
     },
     negated,
+    trimPointerSuffix(pointer) {
+      return pointer.replace(/(?:を正とする|を基準にする|を参照する|が正本)$/u, "");
+    },
   });
 }
 
@@ -540,7 +543,7 @@ function renderJapanese(input: LanguageRenderInput): string {
 
 export function createJapaneseLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "6",
+    analyzerVersion: "7",
     apiVersion: 1,
     compatibilityGroup: "ja",
     defaultLocale: "ja-JP",

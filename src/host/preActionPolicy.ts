@@ -210,9 +210,8 @@ function splitRuleClauses(
   language: LanguageService,
   languageContext: ResolvedLanguageContext,
 ): string[] {
-  return rule
-    .split(/[;,，；\n]+|\bbut\b/iu)
-    .flatMap((part) => language.splitSentences(part, languageContext))
+  return language
+    .splitClauses(rule, languageContext)
     .map((clause) => clause.trim())
     .filter((clause) => clause.length > 0);
 }

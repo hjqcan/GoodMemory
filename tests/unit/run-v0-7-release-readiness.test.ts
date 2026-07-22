@@ -4,6 +4,9 @@ import { describe, expect, it } from "bun:test";
 
 import type { V07ReleaseReadinessReport } from "../../scripts/run-v0-7-release-readiness";
 import {
+  evaluateV07RuntimeVersions,
+  evaluateV07SourceIdentity,
+  evaluateV07SourceStability,
   evaluateVersionConsistency,
   evaluateV07RequiredEnvironment,
   evaluateV07PackManifest,
@@ -39,6 +42,14 @@ function report(
     generatedAt: "2026-07-21T00:00:00.000Z",
     generatedBy: "scripts/run-v0-7-release-readiness.ts",
     packageVersion: "0.7.0",
+    runtime: {
+      bunVersion: "1.3.0",
+      nodeVersion: "v20.19.0",
+    },
+    sourceIdentity: {
+      commitSha: "a".repeat(40),
+      treeSha: "b".repeat(40),
+    },
     summary: { failed: 1, passed: 1, skipped: 0, total: 2 },
     ...overrides,
   };
@@ -59,7 +70,7 @@ describe("v0.7 release readiness", () => {
         readFileSync(new URL(`../../${path}`, import.meta.url), "utf8"),
       ) as {
         packages?: Record<string, { version?: string }> | Array<{ version?: string }>;
-        releaseStatus?: { npmLatest?: string; status?: string };
+        releaseStatus?: { npmDistTag?: string; status?: string };
         version?: string;
       };
     const packageJson = readJson("package.json");
@@ -74,8 +85,8 @@ describe("v0.7 release readiness", () => {
     );
     expect(capability.version).toBe("0.7.0");
     expect(capability.releaseStatus).toEqual(expect.objectContaining({
-      npmLatest: "0.6.0",
-      status: "release-candidate",
+      npmDistTag: "latest",
+      status: "stable",
     }));
     expect(server.version).toBe("0.7.0");
     expect((server.packages as Array<{ version?: string }>)[0]?.version).toBe("0.7.0");
@@ -107,6 +118,90 @@ describe("v0.7 release readiness", () => {
       "tarball missing: dist/index.d.ts, dist/ai-sdk/index.js, dist/ai-sdk/index.d.ts, dist/host/index.js, dist/host/index.d.ts, dist/http/index.js, dist/http/index.d.ts, dist/runtime-kit/index.js, dist/runtime-kit/index.d.ts, docs/GoodMemory-0.6-to-0.7-Migration-Guide.md",
       "compressed tarball 4194304 bytes must be below 4194304 bytes",
     ]);
+  });
+
+  it("binds readiness to one clean commit and tree", () => {
+    expect(evaluateV07SourceIdentity({
+      commitSha: "a".repeat(40),
+      status: "",
+      treeSha: "b".repeat(40),
+    })).toEqual({
+      check: expect.objectContaining({ status: "pass" }),
+      sourceIdentity: {
+        commitSha: "a".repeat(40),
+        treeSha: "b".repeat(40),
+      },
+    });
+    expect(evaluateV07SourceIdentity({
+      commitSha: "a".repeat(40),
+      status: " M src/index.ts",
+      treeSha: "b".repeat(40),
+    }).check).toEqual(expect.objectContaining({
+      detail: expect.stringContaining("src/index.ts"),
+      status: "fail",
+    }));
+  });
+
+  it("rejects source drift while release checks are running", () => {
+    const initial = {
+      commitSha: "a".repeat(40),
+      treeSha: "b".repeat(40),
+    };
+    expect(evaluateV07SourceStability({
+      final: {
+        check: {
+          detail: "clean source",
+          durationMs: 0,
+          id: "source-identity",
+          required: true,
+          status: "pass",
+          title: "Exact source identity",
+        },
+        sourceIdentity: initial,
+      },
+      initial,
+    })).toEqual(expect.objectContaining({ status: "pass" }));
+    expect(evaluateV07SourceStability({
+      final: {
+        check: {
+          detail: "clean source",
+          durationMs: 0,
+          id: "source-identity",
+          required: true,
+          status: "pass",
+          title: "Exact source identity",
+        },
+        sourceIdentity: {
+          commitSha: "c".repeat(40),
+          treeSha: "d".repeat(40),
+        },
+      },
+      initial,
+    })).toEqual(expect.objectContaining({
+      detail: expect.stringContaining("changed while release checks ran"),
+      status: "fail",
+    }));
+  });
+
+  it("requires the release consumer to execute with Node 20", () => {
+    expect(evaluateV07RuntimeVersions({
+      bunVersion: "1.3.0",
+      nodeVersion: "v20.19.4",
+    })).toEqual(expect.objectContaining({ status: "pass" }));
+    expect(evaluateV07RuntimeVersions({
+      bunVersion: "1.3.11",
+      nodeVersion: "v22.14.0",
+    })).toEqual(expect.objectContaining({
+      detail: expect.stringContaining("Node 20"),
+      status: "fail",
+    }));
+    expect(evaluateV07RuntimeVersions({
+      bunVersion: "1.3.11",
+      nodeVersion: "v20.19.4",
+    })).toEqual(expect.objectContaining({
+      detail: expect.stringContaining("Bun 1.3.0"),
+      status: "fail",
+    }));
   });
 
   it("rejects duplicate CLI flags", () => {
@@ -144,6 +239,11 @@ describe("v0.7 release readiness", () => {
         args: ["run", "build"],
         command: "bun",
         id: "build",
+      },
+      {
+        args: ["run", "gate:public-benchmark-claim", "--strict"],
+        command: "bun",
+        id: "public-claims",
       },
       {
         args: ["run", "gate:phase-74-storage-scale"],
@@ -227,5 +327,7 @@ describe("v0.7 release readiness", () => {
     expect(markdown).toContain("# v0.7 Release Readiness");
     expect(markdown).toContain("REQUIRED CHECK(S) FAILED");
     expect(markdown).toContain("too large \\| 4194305 bytes");
+    expect(markdown).toContain(`source commit: ${"a".repeat(40)}`);
+    expect(markdown).toContain("runtime: Node v20.19.0 / Bun 1.3.0");
   });
 });

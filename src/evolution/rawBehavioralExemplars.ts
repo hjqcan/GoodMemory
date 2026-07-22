@@ -231,9 +231,9 @@ interface RankingFeatures {
 
 interface RawProtocolReplacement {
   fromScheme: "http" | "https";
-  host: string;
+  host?: string;
   toScheme: "http" | "https";
-  toUrl: string;
+  toUrl?: string;
 }
 
 interface RawPathReplacement {
@@ -563,6 +563,22 @@ function extractUrls(value: string | undefined): string[] {
   ]
     .map((match) => stripTrailingPunctuation(match[0] ?? ""))
     .filter((entry) => entry.length > 0);
+}
+
+function extractHttpSchemes(
+  value: string | undefined,
+): Array<"http" | "https"> {
+  const schemes: Array<"http" | "https"> = [];
+  for (const match of normalizeText(value).matchAll(/\bhttps?\b/giu)) {
+    const scheme = match[0]?.toLowerCase();
+    if (
+      (scheme === "http" || scheme === "https") &&
+      !schemes.includes(scheme)
+    ) {
+      schemes.push(scheme);
+    }
+  }
+  return schemes;
 }
 
 function extractPaths(value: string | undefined): string[] {
@@ -2654,6 +2670,20 @@ function inferRawProtocolReplacement(
     }
   }
 
+  const failedSchemes = extractHttpSchemes(
+    [exemplar.episodeShape.cue, exemplar.episodeShape.observedOutcome].join(" "),
+  );
+  const safeSchemes = extractHttpSchemes(
+    exemplar.episodeShape.safeCorrectedMove,
+  );
+  const fromScheme = failedSchemes.find((failed) =>
+    safeSchemes.some((safe) => safe !== failed),
+  );
+  const toScheme = safeSchemes.find((safe) => safe !== fromScheme);
+  if (fromScheme && toScheme) {
+    return { fromScheme, toScheme };
+  }
+
   return undefined;
 }
 
@@ -2826,16 +2856,18 @@ function buildRawHardControlOperations(
     if (protocolReplacement) {
       const from = `${protocolReplacement.fromScheme}://`;
       const to = `${protocolReplacement.toScheme}://`;
-      const urlTemplate = {
-        example: protocolReplacement.toUrl,
-        host: protocolReplacement.host,
-        pathPlacement: "path_after_host" as const,
-        scheme: protocolReplacement.toScheme,
-      };
+      const urlTemplate = protocolReplacement.host && protocolReplacement.toUrl
+        ? {
+            example: protocolReplacement.toUrl,
+            host: protocolReplacement.host,
+            pathPlacement: "path_after_host" as const,
+            scheme: protocolReplacement.toScheme,
+          }
+        : undefined;
       operations.push({
         kind: "rewrite_output_slot",
         replacementPairs: [{ from, to }],
-        urlTemplate,
+        ...(urlTemplate ? { urlTemplate } : {}),
       });
       operations.push({
         forbiddenFragments: [from],
@@ -2845,7 +2877,7 @@ function buildRawHardControlOperations(
       });
       operations.push({
         kind: "require_warning",
-        urlTemplate,
+        ...(urlTemplate ? { urlTemplate } : {}),
         warningMessage: `If the current probe requests a ${protocolReplacement.fromScheme} URL, warn first and offer the ${protocolReplacement.toScheme} URL instead.`,
       });
     }

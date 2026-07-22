@@ -1,7 +1,9 @@
-import { describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
+
+import { describe, expect, it } from "bun:test";
+
+import type { BenchmarkClaimReport } from "../../scripts/run-public-benchmark-claim-gate";
 import {
-  type BenchmarkClaimReport,
   buildClaimGateReport,
   checkClaimEvidenceArtifacts,
   checkReadmeHistoricalEvidenceTables,
@@ -750,18 +752,40 @@ describe("claim gate report", () => {
           path: "benchmark-claims/evidence/locomo-v0.6.0-historical.json",
         }],
       },
+      publicClaim: {
+        readmeDisclosureFragments: ["historical"],
+        readmeRequiredFragments: ["0.6300", "0.8700", "0.6100"],
+      },
       status: "internal_evidence",
     });
     const valid = await checkClaimEvidenceArtifacts({
       file: "locomo.json",
-      readFile: async (path) =>
-        path.endsWith("locomo-v0.6.0-historical.json")
-          ? JSON.stringify(projection)
-          : source,
+      readFile: async (path) => {
+        if (path.endsWith("locomo-v0.6.0-historical.json")) {
+          return JSON.stringify(projection);
+        }
+        throw new Error("claim gate must not read ignored historical sources");
+      },
       repoRoot: "/repo",
       report,
     });
     expect(valid).toEqual([]);
+
+    const selfAttested = await checkClaimEvidenceArtifacts({
+      file: "locomo.json",
+      readFile: async () => JSON.stringify(projection),
+      repoRoot: "/repo",
+      report: {
+        ...report,
+        publicClaim: {
+          ...report.publicClaim!,
+          readmeRequiredFragments: ["0.9999", "0.8700", "0.6100"],
+        },
+      },
+    });
+    expect(selfAttested.join(" ")).toContain(
+      "source-derived README fragment 0.6300",
+    );
 
     const arbitrary = await checkClaimEvidenceArtifacts({
       file: "locomo.json",

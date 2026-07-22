@@ -92,7 +92,7 @@ describe("run-phase-41 eval script", () => {
     expect(
       report.cases.find((caseResult) => caseResult.caseId === "low-risk-guidance")
         ?.installedPolicyBacked.reason,
-    ).toBe("Matched memory or runtime continuity guidance is available for this action.");
+    ).toBe("Guidance: Use the current runbook before deploy.");
     expect(report.evidence.installedStorageParity.sharedInstalledStorage).toBe(true);
     expect(report.evidence.installedStorageParity.actionTraceRecorded).toBe(true);
     expect(report.evidence.installedStorageParity.followupTraceRecorded).toBe(true);

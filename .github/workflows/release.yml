@@ -61,7 +61,8 @@ jobs:
         id: pack
         run: |
           set -euo pipefail
-          mkdir -p dist-release
+          RELEASE_OUTPUT_DIR="$RUNNER_TEMP/goodmemory-v0-7-release"
+          mkdir -p "$RELEASE_OUTPUT_DIR"
           VERSION="$(bun -e 'import { readFileSync } from "node:fs"; const pkg = JSON.parse(readFileSync("package.json", "utf8")); console.log(pkg.version);')"
           if [[ "$VERSION" == *-* ]]; then
             echo "::error::Stable release workflow only supports stable semver versions, got $VERSION"
@@ -74,23 +75,50 @@ jobs:
               exit 1
             fi
           fi
-          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
-            ARTIFACT_JSON="$(bun scripts/prepare-v0-7-stable-artifact.ts --output-dir dist-release)"
-            ARTIFACT_PATH="$(ARTIFACT_JSON="$ARTIFACT_JSON" bun -e 'console.log(JSON.parse(process.env.ARTIFACT_JSON).artifactPath)')"
-            ARTIFACT_INTEGRITY="$(ARTIFACT_JSON="$ARTIFACT_JSON" bun -e 'console.log(JSON.parse(process.env.ARTIFACT_JSON).integrity)')"
-          else
-            ARTIFACT_PATH="$(bun pm pack --destination dist-release --quiet | tail -n 1)"
-            ARTIFACT_INTEGRITY="$(ARTIFACT_PATH="$ARTIFACT_PATH" bun -e 'import { createHash } from "node:crypto"; import { readFileSync } from "node:fs"; console.log(`sha512-${createHash("sha512").update(readFileSync(process.env.ARTIFACT_PATH)).digest("base64")}`)')"
+          ARTIFACT_JSON="$(bun scripts/prepare-v0-7-stable-artifact.ts --output-dir "$RELEASE_OUTPUT_DIR")"
+          ARTIFACT_PATH="$(ARTIFACT_JSON="$ARTIFACT_JSON" bun -e 'console.log(JSON.parse(process.env.ARTIFACT_JSON).artifactPath)')"
+          ARTIFACT_INTEGRITY="$(ARTIFACT_JSON="$ARTIFACT_JSON" bun -e 'console.log(JSON.parse(process.env.ARTIFACT_JSON).integrity)')"
+          ARTIFACT_SOURCE_COMMIT="$(ARTIFACT_JSON="$ARTIFACT_JSON" bun -e 'console.log(JSON.parse(process.env.ARTIFACT_JSON).sourceCommit)')"
+          ARTIFACT_SOURCE_TREE="$(ARTIFACT_JSON="$ARTIFACT_JSON" bun -e 'console.log(JSON.parse(process.env.ARTIFACT_JSON).sourceTree)')"
+          if [[ "$ARTIFACT_SOURCE_COMMIT" != "$GITHUB_SHA" ]]; then
+            echo "::error::Artifact source $ARTIFACT_SOURCE_COMMIT does not match workflow source $GITHUB_SHA"
+            exit 1
           fi
           ARTIFACT_NAME="$(basename "$ARTIFACT_PATH")"
           echo "artifact_name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
           echo "artifact_path=$ARTIFACT_PATH" >> "$GITHUB_OUTPUT"
           echo "artifact_integrity=$ARTIFACT_INTEGRITY" >> "$GITHUB_OUTPUT"
+          echo "source_commit=$ARTIFACT_SOURCE_COMMIT" >> "$GITHUB_OUTPUT"
+          echo "source_tree=$ARTIFACT_SOURCE_TREE" >> "$GITHUB_OUTPUT"
           {
             echo "## Release artifact"
             echo "- Version: $VERSION"
             echo "- Name: $ARTIFACT_NAME"
             echo "- Path: $ARTIFACT_PATH"
+            echo "- Integrity: $ARTIFACT_INTEGRITY"
+            echo "- Source commit: $ARTIFACT_SOURCE_COMMIT"
+            echo "- Source tree: $ARTIFACT_SOURCE_TREE"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify exact prepublish artifact
+        id: prepublish
+        run: |
+          set -euo pipefail
+          ARTIFACT_PATH="${{ steps.pack.outputs.artifact_path }}"
+          ARTIFACT_INTEGRITY="${{ steps.pack.outputs.artifact_integrity }}"
+          EVIDENCE_PATH="$(dirname "$ARTIFACT_PATH")/prepublish-evidence.json"
+          EVIDENCE_JSON="$(bun scripts/verify-v0-7-release-artifact.ts \
+            --artifact "$ARTIFACT_PATH" \
+            --source-commit "${{ steps.pack.outputs.source_commit }}" \
+            --source-tree "${{ steps.pack.outputs.source_tree }}" \
+            --expected-integrity "$ARTIFACT_INTEGRITY")"
+          printf '%s\n' "$EVIDENCE_JSON" > "$EVIDENCE_PATH"
+          echo "evidence_path=$EVIDENCE_PATH" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Exact prepublish artifact verification"
+            echo "- Source commit: ${{ steps.pack.outputs.source_commit }}"
+            echo "- Source tree: ${{ steps.pack.outputs.source_tree }}"
+            echo "- Evidence: $EVIDENCE_PATH"
             echo "- Integrity: $ARTIFACT_INTEGRITY"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -98,7 +126,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.pack.outputs.artifact_name }}
-          path: ${{ steps.pack.outputs.artifact_path }}
+          path: |
+            ${{ steps.pack.outputs.artifact_path }}
+            ${{ steps.prepublish.outputs.evidence_path }}
 
       - name: Validate npm publishing credentials
         if: startsWith(github.ref, 'refs/tags/')
@@ -176,6 +206,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ steps.pack.outputs.artifact_path }}
+          files: |
+            ${{ steps.pack.outputs.artifact_path }}
+            ${{ steps.prepublish.outputs.evidence_path }}
           prerelease: false
           make_latest: true

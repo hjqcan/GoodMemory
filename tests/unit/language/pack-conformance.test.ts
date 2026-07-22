@@ -195,8 +195,23 @@ const REFERENCE_DIRECTIVE_CASES: Array<{
     pack: createChineseLanguagePack("Hant"),
   },
   {
+    content: "以https://example.com/docs/runbook为准。",
+    currentPointer: "https://example.com/docs/runbook",
+    pack: createChineseLanguagePack("Hans"),
+  },
+  {
+    content: "現在以https://example.com/文件/運行手冊為準。",
+    currentPointer: "https://example.com/文件/運行手冊",
+    pack: createChineseLanguagePack("Hant"),
+  },
+  {
     content: "資料/現在の手順書.mdを正とする。",
     currentPointer: "資料/現在の手順書.md",
+    pack: createJapaneseLanguagePack(),
+  },
+  {
+    content: "https://example.com/資料/現在の手順書を正とする。",
+    currentPointer: "https://example.com/資料/現在の手順書",
     pack: createJapaneseLanguagePack(),
   },
   {

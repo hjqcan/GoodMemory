@@ -41,6 +41,21 @@ import {
 } from "../../src/recall/projections/contracts";
 import { SCOPE_DELETION_LOCKS_COLLECTION } from "../../src/storage/scopeDeletion";
 
+function terminalDeletionAdapters(input: {
+  documentStore: ProjectionCapableDocumentStore;
+  sessionStore?: ReturnType<typeof createInMemorySessionStore>;
+  vectorStore?: ReturnType<typeof createInMemoryVectorStore>;
+}) {
+  const sessionStore = input.sessionStore ?? createInMemorySessionStore();
+  const vectorStore = input.vectorStore ?? createInMemoryVectorStore();
+  return {
+    documentStore: input.documentStore,
+    sessionStore,
+    terminalDeletionSemantics: "shared-coordinated-backends-v1" as const,
+    vectorStore,
+  };
+}
+
 describe("public governance API", () => {
   it("renders exported artifact labels with the explicitly requested locale", async () => {
     const memory = createGoodMemory({ storage: { provider: "memory" } });
@@ -89,7 +104,7 @@ describe("public governance API", () => {
     const sessionStore = createInMemorySessionStore();
     const memory = createGoodMemory({
       storage: { provider: "memory" },
-      adapters: { documentStore, sessionStore },
+      adapters: terminalDeletionAdapters({ documentStore, sessionStore }),
     });
 
     await memory.remember({
@@ -340,7 +355,7 @@ describe("public governance API", () => {
     const sessionStore = createInMemorySessionStore();
     const memory = createGoodMemory({
       storage: { provider: "memory" },
-      adapters: { documentStore, sessionStore },
+      adapters: terminalDeletionAdapters({ documentStore, sessionStore }),
     });
 
     await memory.remember({
@@ -584,10 +599,7 @@ describe("public governance API", () => {
   it("deletes scoped raw messages and claim projections without touching another session", async () => {
     const documentStore = createInMemoryDocumentStore();
     const memory = createGoodMemory({
-      adapters: {
-        documentStore,
-        sessionStore: createInMemorySessionStore(),
-      },
+      adapters: terminalDeletionAdapters({ documentStore }),
       testing: {
         extractor: {
           async extract(input) {
@@ -650,10 +662,7 @@ describe("public governance API", () => {
   it("deletes orphaned projection state even when its canonical fact is already absent", async () => {
     const documentStore = createInMemoryDocumentStore();
     const memory = createGoodMemory({
-      adapters: {
-        documentStore,
-        sessionStore: createInMemorySessionStore(),
-      },
+      adapters: terminalDeletionAdapters({ documentStore }),
     });
     const scope = {
       userId: "u-orphan-delete",
@@ -692,10 +701,7 @@ describe("public governance API", () => {
   it("deletes legacy session entity edges through their projected memory IDs", async () => {
     const documentStore = createInMemoryDocumentStore();
     const memory = createGoodMemory({
-      adapters: {
-        documentStore,
-        sessionStore: createInMemorySessionStore(),
-      },
+      adapters: terminalDeletionAdapters({ documentStore }),
       retrieval: { preset: "recommended" },
       testing: {
         extractor: {
@@ -804,17 +810,12 @@ describe("public governance API", () => {
       workspaceId: "workspace-a",
       sessionId: "s-1",
     };
+    const deletionAdapters = terminalDeletionAdapters({ documentStore });
     const deletingMemory = createGoodMemory({
-      adapters: {
-        documentStore,
-        sessionStore: createInMemorySessionStore(),
-      },
+      adapters: deletionAdapters,
     });
     const concurrentMemory = createGoodMemory({
-      adapters: {
-        documentStore,
-        sessionStore: createInMemorySessionStore(),
-      },
+      adapters: deletionAdapters,
     });
     await deletingMemory.remember({
       scope,
@@ -874,9 +875,11 @@ describe("public governance API", () => {
     });
     const memory = createGoodMemory({
       adapters: {
-        documentStore,
-        sessionStore,
-        vectorStore,
+        ...terminalDeletionAdapters({
+          documentStore,
+          sessionStore,
+          vectorStore,
+        }),
         embeddingAdapter: {
           async embed(texts) {
             signalEmbedding();
@@ -919,6 +922,150 @@ describe("public governance API", () => {
     ).toEqual([]);
   });
 
+  it("drains a pre-existing vector write across distinct runtime wrappers", async () => {
+    const innerDocumentStore = createInMemoryDocumentStore();
+    const innerSessionStore = createInMemorySessionStore();
+    const innerVectorStore = createInMemoryVectorStore();
+    const writerDocumentStore = { ...innerDocumentStore };
+    const deleterDocumentStore = { ...innerDocumentStore };
+    const writerSessionStore = { ...innerSessionStore };
+    const deleterSessionStore = { ...innerSessionStore };
+    const writerVectorStore = { ...innerVectorStore };
+    const deleterVectorStore = { ...innerVectorStore };
+    let releaseEmbedding = () => {};
+    let signalEmbedding = () => {};
+    const embeddingStarted = new Promise<void>((resolve) => {
+      signalEmbedding = resolve;
+    });
+    const embeddingRelease = new Promise<void>((resolve) => {
+      releaseEmbedding = resolve;
+    });
+    const writer = createGoodMemory({
+      adapters: {
+        documentStore: writerDocumentStore,
+        sessionStore: writerSessionStore,
+        terminalDeletionSemantics: "shared-coordinated-backends-v1",
+        vectorStore: writerVectorStore,
+        embeddingAdapter: {
+          async embed(texts) {
+            signalEmbedding();
+            await embeddingRelease;
+            return texts.map(() => [1, 1, 1]);
+          },
+        },
+      },
+    });
+    const deleter = createGoodMemory({
+      adapters: {
+        documentStore: deleterDocumentStore,
+        sessionStore: deleterSessionStore,
+        terminalDeletionSemantics: "shared-coordinated-backends-v1",
+        vectorStore: deleterVectorStore,
+      },
+    });
+    const scope = {
+      userId: "u-cross-runtime-vector",
+      workspaceId: "workspace-a",
+      sessionId: "session-a",
+    };
+
+    const remember = writer.remember({
+      scope,
+      messages: [{
+        role: "user",
+        content: "Remember that the private cross-runtime token is active.",
+      }],
+    });
+    await embeddingStarted;
+    let deletionResolved = false;
+    const deletion = deleter.deleteAllMemory({ scope }).then((result) => {
+      deletionResolved = true;
+      return result;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(deletionResolved).toBe(false);
+    releaseEmbedding();
+    await remember;
+    await deletion;
+    expect(await innerDocumentStore.query("facts", scope)).toEqual([]);
+    expect(
+      await innerVectorStore.search("facts", [1, 1, 1], {
+        filter: scope,
+        topK: 10,
+      }),
+    ).toEqual([]);
+  });
+
+  it("drains a pre-existing session write across distinct runtime wrappers", async () => {
+    const innerDocumentStore = createInMemoryDocumentStore();
+    const innerSessionStore = createInMemorySessionStore();
+    const innerVectorStore = createInMemoryVectorStore();
+    let pauseWorkingMemorySave = false;
+    let releaseSave = () => {};
+    let signalSave = () => {};
+    const saveStarted = new Promise<void>((resolve) => {
+      signalSave = resolve;
+    });
+    const saveRelease = new Promise<void>((resolve) => {
+      releaseSave = resolve;
+    });
+    const writerSessionStore = {
+      ...innerSessionStore,
+      async saveWorkingMemory(
+        scope: Parameters<typeof innerSessionStore.saveWorkingMemory>[0],
+        snapshot: Parameters<typeof innerSessionStore.saveWorkingMemory>[1],
+      ) {
+        if (pauseWorkingMemorySave) {
+          pauseWorkingMemorySave = false;
+          signalSave();
+          await saveRelease;
+        }
+        await innerSessionStore.saveWorkingMemory(scope, snapshot);
+      },
+    };
+    const writer = createGoodMemory({
+      adapters: {
+        documentStore: { ...innerDocumentStore },
+        sessionStore: writerSessionStore,
+        terminalDeletionSemantics: "shared-coordinated-backends-v1",
+        vectorStore: { ...innerVectorStore },
+      },
+    });
+    const deleter = createGoodMemory({
+      adapters: {
+        documentStore: { ...innerDocumentStore },
+        sessionStore: { ...innerSessionStore },
+        terminalDeletionSemantics: "shared-coordinated-backends-v1",
+        vectorStore: { ...innerVectorStore },
+      },
+    });
+    const scope = {
+      userId: "u-cross-runtime-session",
+      workspaceId: "workspace-a",
+      sessionId: "session-a",
+    };
+    await writer.runtime.startSession({ scope });
+    pauseWorkingMemorySave = true;
+    const update = writer.runtime.updateWorkingMemory({
+      scope,
+      patch: { currentGoal: "private late goal" },
+    });
+    await saveStarted;
+    let deletionResolved = false;
+    const deletion = deleter.deleteAllMemory({ scope }).then((result) => {
+      deletionResolved = true;
+      return result;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(deletionResolved).toBe(false);
+    releaseSave();
+    await update;
+    await deletion;
+    expect(await innerSessionStore.getWorkingMemory(scope)).toBeNull();
+  });
+
   it("rejects a runtime write that starts during terminal scoped deletion", async () => {
     const documentStore = createInMemoryDocumentStore();
     const innerSessionStore = createInMemorySessionStore();
@@ -942,7 +1089,7 @@ describe("public governance API", () => {
       },
     };
     const memory = createGoodMemory({
-      adapters: { documentStore, sessionStore },
+      adapters: terminalDeletionAdapters({ documentStore, sessionStore }),
     });
     const scope = {
       userId: "u-delete-runtime-write",
@@ -992,7 +1139,7 @@ describe("public governance API", () => {
       },
     };
     const memory = createGoodMemory({
-      adapters: { documentStore, sessionStore },
+      adapters: terminalDeletionAdapters({ documentStore, sessionStore }),
     });
     const scope = {
       userId: "u-delete-runtime-read",
@@ -1045,6 +1192,33 @@ describe("public governance API", () => {
     await expect(memory.deleteAllMemory({
       scope: { userId: "u-legacy-delete" },
     })).rejects.toThrow("projection-capable document store");
+  });
+
+  it("fails closed when custom storage adapters omit terminal deletion semantics", async () => {
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore: createInMemoryDocumentStore(),
+        sessionStore: createInMemorySessionStore(),
+        vectorStore: createInMemoryVectorStore(),
+      },
+    });
+
+    await expect(memory.deleteAllMemory({
+      scope: { userId: "u-incoherent-delete" },
+    })).rejects.toThrow("shared-coordinated-backends-v1");
+  });
+
+  it("fails closed when a custom terminal deletion bundle is incomplete", async () => {
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore: createInMemoryDocumentStore(),
+        terminalDeletionSemantics: "shared-coordinated-backends-v1",
+      },
+    });
+
+    await expect(memory.deleteAllMemory({
+      scope: { userId: "u-incomplete-custom-delete" },
+    })).rejects.toThrow("documentStore, sessionStore, and vectorStore");
   });
 
   it("keeps workspace-scoped proposals when deleting one contributing session", async () => {
@@ -1242,9 +1416,11 @@ describe("public governance API", () => {
     const memory = createGoodMemory({
       storage: { provider: "memory" },
       adapters: {
-        documentStore,
-        sessionStore,
-        vectorStore,
+        ...terminalDeletionAdapters({
+          documentStore,
+          sessionStore,
+          vectorStore,
+        }),
         embeddingAdapter,
       },
     });

@@ -27,8 +27,8 @@
   },
   "releaseStatus": {
     "installCommandsApplyAfterPublish": true,
-    "npmLatest": "0.6.0",
-    "status": "release-candidate",
+    "npmDistTag": "latest",
+    "status": "stable",
     "tarball": "goodmemory-0.7.0.tgz"
   },
   "memoryApi": [

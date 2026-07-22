@@ -100,6 +100,73 @@ describe("sqlite vector store read-only mode", () => {
 });
 
 describe("sqlite document conditional batches", () => {
+  it("drains a pre-existing mutation across independently opened runtimes", async () => {
+    const path = join(
+      tmpdir(),
+      `goodmemory-sqlite-terminal-delete-${Date.now()}-${Math.random()}.db`,
+    );
+    const scope = {
+      userId: "sqlite-terminal-user",
+      workspaceId: "workspace-a",
+      sessionId: "session-a",
+    };
+    let releaseEmbedding = () => {};
+    let signalEmbedding = () => {};
+    const embeddingStarted = new Promise<void>((resolve) => {
+      signalEmbedding = resolve;
+    });
+    const embeddingRelease = new Promise<void>((resolve) => {
+      releaseEmbedding = resolve;
+    });
+    try {
+      const writer = createGoodMemory({
+        adapters: {
+          embeddingAdapter: {
+            async embed(texts) {
+              signalEmbedding();
+              await embeddingRelease;
+              return texts.map(() => [1, 1, 1]);
+            },
+          },
+        },
+        storage: { provider: "sqlite", url: path },
+      });
+      const deleter = createGoodMemory({
+        storage: { provider: "sqlite", url: path },
+      });
+
+      const remember = writer.remember({
+        scope,
+        messages: [{
+          role: "user",
+          content: "Remember that the private SQLite rollout token is active.",
+        }],
+      });
+      await embeddingStarted;
+      let deletionResolved = false;
+      const deletion = deleter.deleteAllMemory({ scope }).then((result) => {
+        deletionResolved = true;
+        return result;
+      });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(deletionResolved).toBe(false);
+      releaseEmbedding();
+      await remember;
+      await deletion;
+      expect(await createSQLiteDocumentStore(path).query("facts", scope)).toEqual([]);
+      expect(
+        await createSQLiteVectorStore(path).search("facts", [1, 1, 1], {
+          filter: scope,
+          topK: 10,
+        }),
+      ).toEqual([]);
+    } finally {
+      releaseEmbedding();
+      await rm(path, { force: true });
+    }
+  });
+
   it("enables analyzer-derived persistent proof for owned SQLite storage", async () => {
     const path = join(
       tmpdir(),

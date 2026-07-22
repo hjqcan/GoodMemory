@@ -35,8 +35,8 @@ describe("GoodMemory capability descriptor", () => {
     expect(descriptor.version).toBe(version);
     expect(descriptor.releaseStatus).toEqual({
       installCommandsApplyAfterPublish: true,
-      npmLatest: "0.6.0",
-      status: "release-candidate",
+      npmDistTag: "latest",
+      status: "stable",
       tarball: `goodmemory-${version}.tgz`,
     });
     expect(descriptor.install.npmGlobal).toBe(
@@ -52,8 +52,8 @@ describe("GoodMemory capability descriptor", () => {
     const descriptor = buildGoodMemoryCapabilityDescriptor({
       packageMetadata: {
         goodmemoryRelease: {
-          installCommandsApplyAfterPublish: false,
-          npmLatest: "0.7.0",
+          installCommandsApplyAfterPublish: true,
+          npmDistTag: "latest",
           status: "stable",
         },
         version: "0.7.0",
@@ -61,8 +61,8 @@ describe("GoodMemory capability descriptor", () => {
     });
 
     expect(descriptor.releaseStatus).toEqual({
-      installCommandsApplyAfterPublish: false,
-      npmLatest: "0.7.0",
+      installCommandsApplyAfterPublish: true,
+      npmDistTag: "latest",
       status: "stable",
       tarball: "goodmemory-0.7.0.tgz",
     });

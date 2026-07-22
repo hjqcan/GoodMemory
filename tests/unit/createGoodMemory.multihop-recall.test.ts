@@ -7,8 +7,8 @@ import {
 } from "../../src";
 import { createFactMemory } from "../../src/domain/records";
 
-// A query-only RecallPlan drives multi-hop execution by default. The public
-// option remains as an explicit override for callers that need a one-pass replay.
+// Planned multi-hop remains an experimental opt-in until its promotion gate is
+// accepted. The public default stays on the unplanned single pass.
 describe("GoodMemory.recall multiHop option", () => {
   const scope = { userId: "u-1", workspaceId: "workspace-a" };
 
@@ -35,7 +35,7 @@ describe("GoodMemory.recall multiHop option", () => {
     return { documentStore, makeFact, memory };
   }
 
-  it("uses the planned hop count by default and keeps an explicit disable override", async () => {
+  it("uses the planned hop count only when experimental execution is enabled", async () => {
     const { documentStore, makeFact, memory } = buildMemory();
     const identity = makeFact("identity", "Mika Linna is our goaltender.");
     const attribute = makeFact("attribute", "Mika Linna competes in pesapallo.");

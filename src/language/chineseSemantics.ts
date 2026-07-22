@@ -178,6 +178,9 @@ function analyzeChineseSourceOfTruthDirective(content: string) {
       );
     },
     negated,
+    trimPointerSuffix(pointer) {
+      return pointer.replace(/(?:为准|為準)$/u, "");
+    },
   });
 }
 

@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { isDeepStrictEqual } from "node:util";
 
 import { normalizeScope, scopeToKey } from "../domain/scope";
@@ -9,23 +10,43 @@ import type {
 import { PROJECTION_BATCH_SEMANTICS } from "./contracts";
 
 export const SCOPE_DELETION_LOCKS_COLLECTION = "scope_deletion_locks_v1";
-const DEFAULT_SCOPE_DELETION_LEASE_MS = 60_000;
+export const SCOPE_MUTATION_BARRIERS_COLLECTION = "scope_mutation_barriers_v1";
+export const SCOPE_MUTATION_INTENTS_COLLECTION = "scope_mutation_intents_v1";
+const MUTATION_DRAIN_POLL_MS = 5;
 
 interface ScopeDeletionLock extends StorageDocument {
   agentId?: string;
   epoch?: number;
   generation?: string;
   id: string;
-  leaseExpiresAt?: number;
   operationId?: string;
   ownerId?: string;
-  phase?: "delete_all" | "open" | "release";
+  phase?: "delete_all" | "open";
   sessionId?: string;
   state?: "deleting" | "open";
   tenantId?: string;
   userId?: string;
   workspaceId?: string;
 }
+
+interface ScopeMutationIntent extends StorageDocument {
+  agentId?: string;
+  id: string;
+  operationId: string;
+  ownerId: string;
+  sessionId?: string;
+  tenantId?: string;
+  userId: string;
+  workspaceId?: string;
+}
+
+interface ScopeMutationContext {
+  id: string;
+  operationId: string;
+  scope: MemoryScope;
+}
+
+const SCOPE_MUTATION_CONTEXT = new AsyncLocalStorage<ScopeMutationContext>();
 
 const OPTIONAL_SCOPE_KEYS = [
   "tenantId",
@@ -61,6 +82,10 @@ function documentScope(document: StorageDocument): MemoryScope | null {
 
 export function scopeDeletionLockId(scope: MemoryScope): string {
   return scopeToKey(normalizeScope(scope));
+}
+
+function scopeMutationBarrierId(scope: MemoryScope): string {
+  return scopeDeletionLockId({ userId: normalizeScope(scope).userId });
 }
 
 export function scopeDeletionLockIdsForDocument(
@@ -201,7 +226,23 @@ export function createScopeDeletionAwareDocumentStore(
         SCOPE_DELETION_LOCKS_COLLECTION,
         id,
       );
-      if (isActiveLock(lock)) {
+      if (lock && isActiveLock(lock)) {
+        const mutation = SCOPE_MUTATION_CONTEXT.getStore();
+        const persistedMutation = mutation
+          ? await documentStore.get<ScopeMutationIntent>(
+              SCOPE_MUTATION_INTENTS_COLLECTION,
+              mutation.id,
+            )
+          : null;
+        const deletionScope = lockScope(lock);
+        if (
+          mutation &&
+          persistedMutation?.operationId === mutation.operationId &&
+          deletionScope &&
+          scopesOverlap(deletionScope, mutation.scope)
+        ) {
+          continue;
+        }
         throw new Error(`Memory deletion is in progress for scope ${id}`);
       }
       snapshots.set(id, lock);
@@ -370,8 +411,6 @@ export function createScopeDeletionAwareDocumentStore(
 }
 
 export interface ScopeDeletionCoordinatorConfig {
-  leaseDurationMs?: number;
-  now?: () => number;
   ownerId?: string;
 }
 
@@ -380,9 +419,11 @@ export function createScopeDeletionCoordinator(
   config: ScopeDeletionCoordinatorConfig = {},
 ): ScopeDeletionCoordinator {
   const gate = sharedScopeMutationGate(documentStore);
-  const leaseDurationMs = config.leaseDurationMs ?? DEFAULT_SCOPE_DELETION_LEASE_MS;
-  const now = config.now ?? Date.now;
   const ownerId = config.ownerId ?? crypto.randomUUID();
+  const retryableDeletions = new Map<string, {
+    barrier: ScopeDeletionLock;
+    lock: ScopeDeletionLock;
+  }>();
 
   function localDeletion(scope: MemoryScope): boolean {
     return [...gate.deletions].some((deletionScope) =>
@@ -390,22 +431,144 @@ export function createScopeDeletionCoordinator(
     );
   }
 
-  async function replaceLock(
-    expected: ScopeDeletionLock,
-    document: ScopeDeletionLock,
+  async function replaceLockPair(
+    expectedLock: ScopeDeletionLock,
+    expectedBarrier: ScopeDeletionLock,
+    lock: ScopeDeletionLock,
+    barrier: ScopeDeletionLock,
   ): Promise<boolean> {
     return documentStore.writeBatchIfUnchanged({
       expected: {
         collection: SCOPE_DELETION_LOCKS_COLLECTION,
-        document: expected,
-        id: expected.id,
+        document: expectedLock,
+        id: expectedLock.id,
       },
-      set: [{
-        collection: SCOPE_DELETION_LOCKS_COLLECTION,
-        document,
-        id: expected.id,
+      set: [
+        {
+          collection: SCOPE_DELETION_LOCKS_COLLECTION,
+          document: lock,
+          id: expectedLock.id,
+        },
+        {
+          collection: SCOPE_MUTATION_BARRIERS_COLLECTION,
+          document: barrier,
+          id: expectedBarrier.id,
+        },
+      ],
+      unchanged: [{
+        collection: SCOPE_MUTATION_BARRIERS_COLLECTION,
+        document: expectedBarrier,
+        id: expectedBarrier.id,
       }],
     });
+  }
+
+  async function drainPersistentMutations(scope: MemoryScope): Promise<void> {
+    while (true) {
+      const intents = await documentStore.query<ScopeMutationIntent>(
+        SCOPE_MUTATION_INTENTS_COLLECTION,
+        { userId: scope.userId },
+      );
+      const overlapping = intents.filter((intent) => {
+        const mutationScope = lockScope(intent);
+        return mutationScope && scopesOverlap(scope, mutationScope);
+      });
+      if (overlapping.length === 0) {
+        return;
+      }
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, MUTATION_DRAIN_POLL_MS);
+      });
+    }
+  }
+
+  async function runWithPersistentMutationIntent<T>(
+    scope: MemoryScope,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    const id = crypto.randomUUID();
+    const operationId = crypto.randomUUID();
+    const barrierId = scopeMutationBarrierId(scope);
+    let ownedIntent: ScopeMutationIntent | null = null;
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const barrier = await documentStore.get<ScopeDeletionLock>(
+        SCOPE_MUTATION_BARRIERS_COLLECTION,
+        barrierId,
+      );
+      const barrierScope = barrier ? lockScope(barrier) : null;
+      if (
+        isActiveLock(barrier) &&
+        (!barrierScope || scopesOverlap(barrierScope, scope))
+      ) {
+        throw new Error(
+          `Memory deletion is in progress for scope ${scopeDeletionLockId(scope)}`,
+        );
+      }
+      const candidate: ScopeMutationIntent = {
+        ...scope,
+        id,
+        operationId,
+        ownerId,
+      };
+      const acquired = await documentStore.writeBatchIfUnchanged({
+        expected: {
+          collection: SCOPE_MUTATION_INTENTS_COLLECTION,
+          document: null,
+          id,
+        },
+        set: [{
+          collection: SCOPE_MUTATION_INTENTS_COLLECTION,
+          document: candidate,
+          id,
+        }],
+        unchanged: [{
+          collection: SCOPE_MUTATION_BARRIERS_COLLECTION,
+          document: barrier,
+          id: barrierId,
+        }],
+      });
+      if (acquired) {
+        ownedIntent = candidate;
+        break;
+      }
+    }
+    if (!ownedIntent) {
+      throw new Error(
+        `Memory mutation intent changed repeatedly for scope ${scopeDeletionLockId(scope)}`,
+      );
+    }
+
+    let outcome: { ok: true; value: T } | { error: unknown; ok: false };
+    try {
+      const value = await SCOPE_MUTATION_CONTEXT.run(
+        { id, operationId, scope },
+        operation,
+      );
+      outcome = { ok: true, value };
+    } catch (error) {
+      outcome = { error, ok: false };
+    }
+    const released = await documentStore.writeBatchIfUnchanged({
+      delete: [{
+        collection: SCOPE_MUTATION_INTENTS_COLLECTION,
+        id,
+      }],
+      expected: {
+        collection: SCOPE_MUTATION_INTENTS_COLLECTION,
+        document: ownedIntent,
+        id,
+      },
+      set: [],
+    });
+    if (!released) {
+      throw new Error(
+        `Memory mutation intent was lost before release for ${scopeDeletionLockId(scope)}`,
+      );
+    }
+    if (!outcome.ok) {
+      throw outcome.error;
+    }
+    return outcome.value;
   }
 
   async function runWithPersistentLock<T>(
@@ -413,33 +576,56 @@ export function createScopeDeletionCoordinator(
     operation: () => Promise<T>,
   ): Promise<T> {
     const id = scopeDeletionLockId(scope);
+    const barrierId = scopeMutationBarrierId(scope);
     const operationId = crypto.randomUUID();
     let ownedLock: ScopeDeletionLock | null = null;
+    let ownedBarrier: ScopeDeletionLock | null = null;
     for (let attempt = 0; attempt < 8; attempt += 1) {
-      const existing = await documentStore.get<ScopeDeletionLock>(
-        SCOPE_DELETION_LOCKS_COLLECTION,
-        id,
-      );
-      const timestamp = now();
+      const [existing, barrier] = await Promise.all([
+        documentStore.get<ScopeDeletionLock>(
+          SCOPE_DELETION_LOCKS_COLLECTION,
+          id,
+        ),
+        documentStore.get<ScopeDeletionLock>(
+          SCOPE_MUTATION_BARRIERS_COLLECTION,
+          barrierId,
+        ),
+      ]);
+      const retryable = retryableDeletions.get(id);
+      const canRetry = retryable !== undefined &&
+        isDeepStrictEqual(existing, retryable.lock) &&
+        isDeepStrictEqual(barrier, retryable.barrier);
       if (
         existing &&
         isActiveLock(existing) &&
-        (existing.leaseExpiresAt === undefined || existing.leaseExpiresAt > timestamp)
+        !canRetry
       ) {
         throw new Error(
-          `Memory deletion is already in progress for scope ${id}`,
+          `Memory deletion is already in progress for scope ${id}; automatic takeover is disabled`,
+        );
+      }
+      if (
+        barrier &&
+        isActiveLock(barrier) &&
+        !canRetry
+      ) {
+        throw new Error(
+          `Memory deletion is already in progress for user ${scope.userId}; automatic takeover is disabled`,
         );
       }
       const candidate: ScopeDeletionLock = {
         ...scope,
-        epoch: (existing?.epoch ?? 0) + 1,
+        epoch: Math.max(existing?.epoch ?? 0, barrier?.epoch ?? 0) + 1,
         generation: crypto.randomUUID(),
         id,
-        leaseExpiresAt: timestamp + leaseDurationMs,
         operationId,
         ownerId,
         phase: "delete_all",
         state: "deleting",
+      };
+      const barrierCandidate: ScopeDeletionLock = {
+        ...candidate,
+        id: barrierId,
       };
       const acquired = await documentStore.writeBatchIfUnchanged({
         expected: {
@@ -447,76 +633,70 @@ export function createScopeDeletionCoordinator(
           document: existing,
           id,
         },
-        set: [{
-          collection: SCOPE_DELETION_LOCKS_COLLECTION,
-          document: candidate,
-          id,
+        set: [
+          {
+            collection: SCOPE_DELETION_LOCKS_COLLECTION,
+            document: candidate,
+            id,
+          },
+          {
+            collection: SCOPE_MUTATION_BARRIERS_COLLECTION,
+            document: barrierCandidate,
+            id: barrierId,
+          },
+        ],
+        unchanged: [{
+          collection: SCOPE_MUTATION_BARRIERS_COLLECTION,
+          document: barrier,
+          id: barrierId,
         }],
       });
       if (acquired) {
         ownedLock = candidate;
+        ownedBarrier = barrierCandidate;
+        retryableDeletions.set(id, {
+          barrier: barrierCandidate,
+          lock: candidate,
+        });
         break;
       }
     }
-    if (!ownedLock) {
+    if (!ownedLock || !ownedBarrier) {
       throw new Error(`Memory deletion lock changed repeatedly for scope ${id}`);
     }
 
-    let heartbeatFailure: unknown;
-    let heartbeatTask = Promise.resolve();
-    const heartbeat = setInterval(() => {
-      heartbeatTask = heartbeatTask.then(async () => {
-        if (heartbeatFailure) {
-          return;
-        }
-        const renewed: ScopeDeletionLock = {
-          ...ownedLock!,
-          leaseExpiresAt: now() + leaseDurationMs,
-        };
-        if (!await replaceLock(ownedLock!, renewed)) {
-          throw new Error(`Memory deletion lease was lost for scope ${id}`);
-        }
-        ownedLock = renewed;
-      }).catch((error: unknown) => {
-        heartbeatFailure = error;
-      });
-    }, Math.max(1, Math.floor(leaseDurationMs / 3)));
-    heartbeat.unref?.();
-
     let outcome: { ok: true; value: T } | { error: unknown; ok: false };
     try {
+      await drainPersistentMutations(scope);
       outcome = { ok: true, value: await operation() };
     } catch (error) {
       outcome = { error, ok: false };
     }
-    clearInterval(heartbeat);
-    await heartbeatTask;
-    if (heartbeatFailure) {
-      throw heartbeatFailure;
+    if (!outcome.ok) {
+      throw outcome.error;
     }
 
-    const releasing: ScopeDeletionLock = {
-      ...ownedLock,
-      leaseExpiresAt: now() + leaseDurationMs,
-      phase: "release",
-    };
-    if (!await replaceLock(ownedLock, releasing)) {
-      throw new Error(`Memory deletion lease was lost before release for ${id}`);
-    }
     const open: ScopeDeletionLock = {
       ...scope,
-      epoch: releasing.epoch,
-      generation: releasing.generation,
+      epoch: ownedLock.epoch,
+      generation: ownedLock.generation,
       id,
       phase: "open",
       state: "open",
     };
-    if (!await replaceLock(releasing, open)) {
-      throw new Error(`Memory deletion lock changed before release for ${id}`);
+    const openBarrier: ScopeDeletionLock = {
+      ...open,
+      id: barrierId,
+    };
+    if (!await replaceLockPair(
+      ownedLock,
+      ownedBarrier,
+      open,
+      openBarrier,
+    )) {
+      throw new Error(`Memory deletion ownership changed before release for ${id}`);
     }
-    if (!outcome.ok) {
-      throw outcome.error;
-    }
+    retryableDeletions.delete(id);
     return outcome.value;
   }
 
@@ -550,7 +730,7 @@ export function createScopeDeletionCoordinator(
       };
       gate.mutations.add(mutation);
       try {
-        return await operation();
+        return await runWithPersistentMutationIntent(normalized, operation);
       } finally {
         gate.mutations.delete(mutation);
         finish();

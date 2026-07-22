@@ -20,6 +20,11 @@ import {
   PHASE74_HALUMEM_PRE_RANK_LIMIT,
   PHASE74_HALUMEM_QA_JUDGE_PROTOCOL,
   PHASE74_HALUMEM_SELECTED_LIMIT,
+  PHASE74_HALUMEM_UPDATE_DECISION_PROTOCOL,
+  PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE,
+  PHASE74_HALUMEM_UPDATE_JUDGE_SYSTEM_PROMPT,
+  PHASE74_HALUMEM_UPDATE_TOP_K,
+  buildPhase74HaluMemUpdateJudgePrompt,
   buildPhase74HaluMemSourceMessageId,
 } from "../src/eval/phase74HaluMemProtectionVerifier";
 import type {
@@ -48,7 +53,9 @@ import {
 import type { FetchLike } from "../src/provider/ai-sdk-runtime";
 import {
   createProviderEmbeddingAdapter,
+  createProviderConversationalMemoryExtractor,
   createProviderListwiseReranker,
+  createProviderMemoryExtractor,
 } from "../src/provider/layer";
 import {
   normalizeAISDKLanguageModelUsage,
@@ -62,6 +69,8 @@ import type {
   Phase74HaluMemE4Dependencies,
   Phase74HaluMemPrivacyDependencies,
   Phase74HaluMemPrivacySnapshot,
+  Phase74HaluMemUpdateDependencies,
+  Phase74HaluMemUpdateEvidenceSnapshot,
 } from "./phase-74-halumem-protection";
 
 const ALL_FUSION_CHANNELS = [
@@ -133,6 +142,36 @@ export interface Phase74HaluMemScopedMemory {
     }>;
     scope: MemoryScope;
   }): Promise<unknown>;
+}
+
+export interface Phase74HaluMemUpdateMemory {
+  recall(input: {
+    query: string;
+    referenceTime: string;
+    scope: MemoryScope;
+    strategy: "hybrid";
+    topK: number;
+  }): Promise<{
+    evidence: readonly { sourceMessageIds: readonly string[] }[];
+    memories: readonly string[];
+  }>;
+  setReferenceTime(referenceTime: string): void;
+  remember(input: {
+    annotations: Array<{
+      confirmed: true;
+      messageIndex: number;
+      remember: "auto";
+      verified: true;
+    }>;
+    extractionStrategy: "llm-assisted";
+    messages: Array<{
+      content: string;
+      id: string;
+      observedAt: string;
+      role: "assistant" | "user";
+    }>;
+    scope: MemoryScope;
+  }): Promise<{ warnings?: string[] }>;
 }
 
 export interface Phase74HaluMemLiveDependencyInput {
@@ -282,6 +321,16 @@ const QA_DECISION_SCHEMA = z.object({
   verdict: z.enum(["correct", "incorrect"]),
 });
 
+const UPDATE_DECISION_SCHEMA = z.object({
+  evaluation_result: z.enum([
+    "Correct",
+    "Hallucination",
+    "Omission",
+    "Other",
+  ]),
+  reason: z.string().min(1),
+}).strict();
+
 function createJudge(input: Phase74HaluMemLiveDependencyInput) {
   const configuration = PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.judge.oracle;
   return async (payload: Parameters<Phase74HaluMemE4Dependencies["judgeQa"]>[0]) => {
@@ -315,6 +364,65 @@ function createJudge(input: Phase74HaluMemLiveDependencyInput) {
           });
           report(result.usage ?? normalizeAISDKLanguageModelUsage(undefined));
           return JSON.stringify(result.object);
+        },
+        sink,
+      });
+    }, { retryLimit: configuration.retryLimit });
+  };
+}
+
+function createUpdateJudge(input: Phase74HaluMemLiveDependencyInput) {
+  const configuration = PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.judge.oracle;
+  return async (
+    payload: Parameters<NonNullable<Phase74HaluMemUpdateDependencies["evaluateUpdate"]>>[0],
+  ) => {
+    if (
+      hashPhase74ProtectionValue(payload.evaluator) !==
+        hashPhase74ProtectionValue(PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE)
+    ) {
+      throw new Error("Phase 74 HaluMem update evaluator source drifted.");
+    }
+    const sink = createAttributedModelUsageSink({
+      branch: "judge",
+      caseId: `${payload.updateCaseId}:${payload.branch}:update`,
+      events: input.events,
+      intents: input.intents,
+      onEvent: input.onUsageEvent,
+      onIntent: input.onUsageIntent,
+    });
+    let attempt = 0;
+    return withAISDKRetries(async () => {
+      attempt += 1;
+      return runWithModelUsageAttempt({
+        attempt,
+        modelId: input.models.judge.model,
+        operation: "judge",
+        providerId: input.models.judge.provider,
+        run: async (report) => {
+          const result = await requestOpenAICompatibleObjectResult({
+            fetch: input.fetch,
+            maxOutputTokens: configuration.maxOutputTokens,
+            model: input.models.judge,
+            prompt: buildPhase74HaluMemUpdateJudgePrompt({
+              expectedUpdate: payload.expectedUpdate,
+              originalMemories: payload.originalMemories,
+              retrievedMemories: payload.retrievedMemories,
+            }),
+            reasoningEffort: configuration.reasoningEffort,
+            schema: UPDATE_DECISION_SCHEMA,
+            system: PHASE74_HALUMEM_UPDATE_JUDGE_SYSTEM_PROMPT,
+            temperature: configuration.temperature,
+            timeoutMs: configuration.requestTimeoutMs,
+          });
+          const usage = result.usage ??
+            normalizeAISDKLanguageModelUsage(undefined);
+          report(usage);
+          return JSON.stringify({
+            category: result.object.evaluation_result,
+            protocol: PHASE74_HALUMEM_UPDATE_DECISION_PROTOCOL,
+            rawDecision: JSON.stringify(result.object),
+            usage,
+          });
         },
         sink,
       });
@@ -369,11 +477,217 @@ async function seedUserThroughSession(input: {
   }
 }
 
+function updateCaseId(
+  userUuid: string,
+  sessionIndex: number,
+  memoryPointIndex: number,
+): string {
+  return `${userUuid}:session:${sessionIndex}:update:${memoryPointIndex}`;
+}
+
+export function createPhase74HaluMemScopedUpdateRuntime(input: {
+  branch: "baseline" | "candidate";
+  createMemory(input: {
+    referenceTime: string;
+    userUuid: string;
+  }): Phase74HaluMemUpdateMemory;
+  users: readonly Phase74HaluMemUser[];
+}): {
+  retrieve: Phase74HaluMemUpdateDependencies["retrieveUpdateEvidence"];
+} {
+  const snapshots = new Map<string, Phase74HaluMemUpdateEvidenceSnapshot>();
+  let ready: Promise<void> | undefined;
+  const prepare = () => {
+    ready ??= Promise.all(input.users.map(async (user) => {
+      const memory = input.createMemory({
+        referenceTime: referenceTimeThroughSession(
+          user,
+          0,
+        ),
+        userUuid: user.uuid,
+      });
+      const scope = buildPhase74HaluMemUserScope(user.uuid);
+      for (const [sessionIndex, session] of user.sessions.entries()) {
+        const referenceTime = referenceTimeThroughSession(user, sessionIndex);
+        memory.setReferenceTime(referenceTime);
+        const messages = session.dialogue.map((turn, turnIndex) => ({
+          content: turn.content,
+          id: buildPhase74HaluMemSourceMessageId({
+            sessionIndex,
+            turnIndex,
+            userUuid: user.uuid,
+          }),
+          observedAt: isoTimestamp(
+            turn.timestamp,
+            `${user.uuid} update source ${sessionIndex}:${turnIndex}`,
+          ),
+          role: turn.role === "assistant" ? "assistant" as const : "user" as const,
+        }));
+        const rememberResult = await memory.remember({
+          annotations: messages.flatMap((message, messageIndex) =>
+            message.role === "assistant"
+              ? [{
+                  confirmed: true as const,
+                  messageIndex,
+                  remember: "auto" as const,
+                  verified: true as const,
+                }]
+              : []
+          ),
+          extractionStrategy: "llm-assisted",
+          messages,
+          scope: { ...scope, sessionId: `session-${sessionIndex}` },
+        });
+        if (rememberResult.warnings?.includes("assisted_extraction_failed")) {
+          throw new Error(
+            `Phase 74 HaluMem ${input.branch} update extraction failed for session ${sessionIndex}.`,
+          );
+        }
+        for (const [memoryPointIndex, memoryPoint] of session.memory_points.entries()) {
+          if (
+            memoryPoint.is_update !== "True" ||
+            memoryPoint.original_memories.length === 0
+          ) {
+            continue;
+          }
+          const caseId = updateCaseId(user.uuid, sessionIndex, memoryPointIndex);
+          const recall = await memory.recall({
+            query: memoryPoint.memory_content,
+            referenceTime,
+            scope,
+            strategy: "hybrid",
+            topK: PHASE74_HALUMEM_UPDATE_TOP_K,
+          });
+          const memories = recall.memories.slice(0, PHASE74_HALUMEM_UPDATE_TOP_K);
+          const sourceMessageIds = recalledSourceMessageIds(recall.evidence);
+          snapshots.set(caseId, {
+            memories,
+            snapshotId: hashPhase74ProtectionValue({
+              branch: input.branch,
+              caseId,
+              memories,
+              sessionIndex,
+              sourceMessageIds,
+              topK: PHASE74_HALUMEM_UPDATE_TOP_K,
+            }),
+            sourceMessageIds,
+          });
+        }
+      }
+    })).then(() => undefined);
+    return ready;
+  };
+  return {
+    async retrieve(payload) {
+      if (payload.branch !== input.branch) {
+        throw new Error("Phase 74 HaluMem update branch drifted.");
+      }
+      await prepare();
+      const snapshot = snapshots.get(payload.updateCaseId);
+      if (!snapshot) {
+        throw new Error(
+          `Phase 74 HaluMem update case is not in the causal snapshot: ${payload.updateCaseId}.`,
+        );
+      }
+      return structuredClone(snapshot);
+    },
+  };
+}
+
 function recalledSourceMessageIds(
   evidence: readonly { sourceMessageIds: readonly string[] }[],
 ): string[] {
   return [...new Set(evidence.flatMap(({ sourceMessageIds }) => sourceMessageIds))]
     .sort();
+}
+
+export function buildPhase74HaluMemUpdateRecords(
+  recall: {
+    archives?: readonly { id: string; summary: string }[];
+    episodes?: readonly { id: string; summary: string }[];
+    facts?: readonly { content: string; id: string }[];
+    feedback?: readonly { id: string; rule: string }[];
+    metadata?: {
+      hits?: readonly { id: string; type: string }[];
+    };
+    preferences?: readonly { category: string; id: string; value: unknown }[];
+    profile?: {
+      activeContext: unknown;
+      expertise: unknown;
+      identity: unknown;
+      userId: string;
+    } | null;
+    references?: readonly {
+      description?: string;
+      id: string;
+      pointer: string;
+      title: string;
+    }[];
+  },
+  topK = PHASE74_HALUMEM_UPDATE_TOP_K,
+): string[] {
+  if (!Number.isSafeInteger(topK) || topK <= 0) {
+    throw new Error("Phase 74 HaluMem update topK must be positive.");
+  }
+  const candidates: Array<{ key: string; value: string }> = [];
+  if (recall.profile) {
+    candidates.push({
+      key: `profile:${recall.profile.userId}`,
+      value: JSON.stringify({
+        activeContext: recall.profile.activeContext,
+        expertise: recall.profile.expertise,
+        identity: recall.profile.identity,
+      }),
+    });
+  }
+  for (const preference of recall.preferences ?? []) {
+    candidates.push({
+      key: `preference:${preference.id}`,
+      value: `${preference.category}: ${
+        typeof preference.value === "string"
+          ? preference.value
+          : JSON.stringify(preference.value)
+      }`,
+    });
+  }
+  for (const reference of recall.references ?? []) {
+    candidates.push({
+      key: `reference:${reference.id}`,
+      value: `${reference.title}: ${reference.description ?? reference.pointer}`,
+    });
+  }
+  for (const fact of recall.facts ?? []) {
+    candidates.push({ key: `fact:${fact.id}`, value: fact.content });
+  }
+  for (const feedback of recall.feedback ?? []) {
+    candidates.push({ key: `feedback:${feedback.id}`, value: feedback.rule });
+  }
+  for (const archive of recall.archives ?? []) {
+    candidates.push({
+      key: `session_archive:${archive.id}`,
+      value: archive.summary,
+    });
+  }
+  for (const episode of recall.episodes ?? []) {
+    candidates.push({ key: `episode:${episode.id}`, value: episode.summary });
+  }
+
+  const byKey = new Map(candidates.map((candidate) => [candidate.key, candidate]));
+  const ordered = (recall.metadata?.hits ?? [])
+    .map(({ id, type }) => byKey.get(`${type}:${id}`))
+    .filter((candidate): candidate is { key: string; value: string } =>
+      candidate !== undefined
+    );
+  const seen = new Set(ordered.map(({ key }) => key));
+  for (const candidate of candidates) {
+    if (!seen.has(candidate.key)) {
+      ordered.push(candidate);
+      seen.add(candidate.key);
+    }
+  }
+  return ordered
+    .slice(0, Math.min(topK, PHASE74_HALUMEM_UPDATE_TOP_K))
+    .map(({ value }) => value);
 }
 
 export function createPhase74HaluMemScopedPrivacyRuntime(input: {
@@ -505,6 +819,86 @@ function createPrivacyMemory(input: {
   }, { environment: {} });
 }
 
+function createUpdateMemory(input: {
+  branch: "baseline" | "candidate";
+  caseId: string;
+  live: Phase74HaluMemLiveDependencyInput;
+  referenceTime: string;
+}): Phase74HaluMemUpdateMemory {
+  let referenceTime = input.referenceTime;
+  const configuration = buildPhase74HaluMemUpdatePipelineMaterial(
+    input.branch,
+    input.live.models,
+  );
+  const sink = createAttributedModelUsageSink({
+    branch: input.branch,
+    caseId: input.caseId,
+    events: input.live.events,
+    intents: input.live.intents,
+    onEvent: input.live.onUsageEvent,
+    onIntent: input.live.onUsageIntent,
+  });
+  const assistedExtractor = input.branch === "candidate"
+    ? createProviderConversationalMemoryExtractor({
+        contextualDescriptor: true,
+        ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction,
+        model: input.live.models.assistedExtraction,
+        modelUsageSink: sink,
+      })
+    : createProviderMemoryExtractor({
+        ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction,
+        model: input.live.models.assistedExtraction,
+        modelUsageSink: sink,
+      });
+  const memory = createInternalGoodMemory({
+    adapters: {
+      assistedExtractor,
+      embeddingAdapter: createProviderEmbeddingAdapter({
+        ...PHASE74_EMBEDDING_CALL_CONFIGURATION,
+        model: input.live.models.embedding,
+        modelUsageSink: sink,
+      }),
+      reranker: createProviderListwiseReranker({
+        ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.listwiseReranker,
+        model: input.live.models.reranker,
+        modelUsageSink: sink,
+      }),
+    },
+    remember: {
+      profiles: [{
+        assistantOutputs: { mode: "confirmed_or_verified_only" },
+        id: "external-evidence",
+      }],
+    },
+    retrieval: {
+      generalizedFusionChannels: [
+        ...configuration.retrieval.generalizedFusionChannels,
+      ],
+      preset: configuration.retrieval.preset,
+      recallPlanExecution: configuration.retrieval.recallPlanExecution,
+    },
+    testing: { now: () => new Date(referenceTime) },
+  }, { environment: {} });
+  return {
+    async recall({ topK, ...payload }) {
+      const result = await memory.recall({
+        ...payload,
+        decompose: false,
+        includeEvidence: true,
+        multiHop: false,
+      });
+      return {
+        evidence: result.evidence,
+        memories: buildPhase74HaluMemUpdateRecords(result, topK),
+      };
+    },
+    setReferenceTime(value) {
+      referenceTime = isoTimestamp(value, `${input.caseId} update clock`);
+    },
+    remember: (payload) => memory.remember(payload),
+  };
+}
+
 function privacySessionIndex(privacyCaseId: string): number {
   const match = privacyCaseId.match(/:session:(\d+):question:/u);
   if (!match) {
@@ -565,6 +959,54 @@ export function buildPhase74HaluMemPrivacyPipelineMaterial(
   };
 }
 
+export function buildPhase74HaluMemUpdatePipelineMaterial(
+  branch: "baseline" | "candidate",
+  models: Phase74LiveModels,
+) {
+  const publicModel = (model: Phase74LiveModels["answer"]) => ({
+    gateway: model.baseURL ?? "",
+    model: model.model,
+    provider: model.provider,
+  });
+  return {
+    embedding: {
+      ...publicModel(models.embedding),
+      ...PHASE74_EMBEDDING_CALL_CONFIGURATION,
+    },
+    extraction: {
+      ...publicModel(models.assistedExtraction),
+      ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction,
+      contextualDescriptors: branch === "candidate",
+      mode: branch === "candidate" ? "conversational" : "generic",
+    },
+    ingestionClock: "latest-dialogue-time-through-session-v1" as const,
+    reranker: {
+      ...publicModel(models.reranker),
+      ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.listwiseReranker,
+    },
+    retrieval: {
+      generatedMemoryRecords: "final-ranked-durable-records-cross-kind-v1" as const,
+      generalizedFusionChannels: branch === "candidate"
+        ? ALL_FUSION_CHANNELS
+        : BASELINE_FUSION_CHANNELS,
+      preset: "recommended" as const,
+      recallPlanExecution: branch === "candidate",
+      topK: PHASE74_HALUMEM_UPDATE_TOP_K,
+    },
+    sessionPolicy: "causal-session-write-then-update-retrieval-v1" as const,
+  };
+}
+
+function buildPhase74HaluMemSafetyPipelineMaterial(
+  branch: "baseline" | "candidate",
+  models: Phase74LiveModels,
+) {
+  return {
+    privacy: buildPhase74HaluMemPrivacyPipelineMaterial(branch, models),
+    update: buildPhase74HaluMemUpdatePipelineMaterial(branch, models),
+  };
+}
+
 export function buildPhase74HaluMemLiveConfigurations(
   models: Phase74LiveModels,
   baseConfiguration: EvalRunJsonObject = {},
@@ -579,15 +1021,15 @@ export function buildPhase74HaluMemLiveConfigurations(
     provider: model.provider,
   });
   const baselinePipeline = {
-    id: "halumem-live-privacy-baseline-v1",
+    id: "halumem-live-safety-baseline-v2",
     sha256: hashPhase74ProtectionValue(
-      buildPhase74HaluMemPrivacyPipelineMaterial("baseline", models),
+      buildPhase74HaluMemSafetyPipelineMaterial("baseline", models),
     ),
   };
   const candidatePipeline = {
-    id: "halumem-live-privacy-candidate-v1",
+    id: "halumem-live-safety-candidate-v2",
     sha256: hashPhase74ProtectionValue(
-      buildPhase74HaluMemPrivacyPipelineMaterial("candidate", models),
+      buildPhase74HaluMemSafetyPipelineMaterial("candidate", models),
     ),
   };
   const e4Pipeline = {
@@ -628,6 +1070,7 @@ export function buildPhase74HaluMemLiveConfigurations(
       ...common,
       baselinePipeline,
       candidatePipeline,
+      updateEvaluator: PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE,
     },
   };
 }
@@ -637,6 +1080,7 @@ export function createPhase74HaluMemLiveDependencies(
 ): {
   e4: Phase74HaluMemE4Dependencies;
   privacy: Phase74HaluMemPrivacyDependencies;
+  update: Phase74HaluMemUpdateDependencies;
 } {
   const configurations = buildPhase74StageConfigurations(
     input.baseConfiguration ?? {},
@@ -664,6 +1108,21 @@ export function createPhase74HaluMemLiveDependencies(
         createMemory: ({ referenceTime }) => createPrivacyMemory({
           branch,
           caseId: `halumem-privacy:${branch}`,
+          live: input,
+          referenceTime,
+        }),
+        users: input.users,
+      }),
+    ]),
+  );
+  const updateRuntimes = Object.fromEntries(
+    (["baseline", "candidate"] as const).map((branch) => [
+      branch,
+      createPhase74HaluMemScopedUpdateRuntime({
+        branch,
+        createMemory: ({ referenceTime, userUuid }) => createUpdateMemory({
+          branch,
+          caseId: `halumem-update:${userUuid}:${branch}`,
           live: input,
           referenceTime,
         }),
@@ -708,6 +1167,12 @@ export function createPhase74HaluMemLiveDependencies(
           sessionIndex: privacySessionIndex(payload.privacyCaseId),
           targetUserUuid: payload.targetUserUuid,
         });
+      },
+    },
+    update: {
+      evaluateUpdate: createUpdateJudge(input),
+      retrieveUpdateEvidence(payload) {
+        return updateRuntimes[payload.branch].retrieve(payload);
       },
     },
   };

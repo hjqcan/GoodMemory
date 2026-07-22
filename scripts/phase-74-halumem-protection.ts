@@ -29,6 +29,7 @@ import {
   PHASE74_HALUMEM_QA_JUDGE_SYSTEM_PROMPT,
   PHASE74_HALUMEM_READER_SYSTEM_PROMPT,
   PHASE74_HALUMEM_UPDATE_SUITE,
+  PHASE74_HALUMEM_UPDATE_TOP_K,
   phase74HaluMemPrivacyPopulationId,
   phase74HaluMemQuestionPopulationId,
   phase74HaluMemUpdatePopulationId,
@@ -396,6 +397,11 @@ export async function runPhase74HaluMemUpdateProtection(
       });
       assertSnapshotId(snapshot.snapshotId, caseId);
       assertStrings(snapshot.memories, `${caseId}.memories`);
+      if (snapshot.memories.length > PHASE74_HALUMEM_UPDATE_TOP_K) {
+        throw new Error(
+          `Phase 74 HaluMem ${caseId} memories exceeded the pinned top-10 limit.`,
+        );
+      }
       assertStrings(snapshot.sourceMessageIds, `${caseId}.sourceMessageIds`);
       const context = snapshot.memories.join("\n");
       const decision = await dependencies.evaluateUpdate!({

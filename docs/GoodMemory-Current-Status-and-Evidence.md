@@ -4,12 +4,14 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 
 ## Stable OSS Surface
 
-- Current stable package line: 0.6.0. Tag `v0.6.0` resolves to release commit
+- Last registry state verified when this release source was prepared: 0.6.0.
+  Tag `v0.6.0` resolves to release commit
   `6fdd63ec`; workflow run `29522907352` published the GitHub release and npm
   `latest` resolves to `goodmemory@0.6.0`.
-- The source tree now targets the breaking `0.7.0` release candidate. Publication,
-  the `v0.7.0` tag, and npm `latest` remain separate release actions and are not
-  claimed by this repository change.
+- This tree is the immutable source intended for the breaking `0.7.0` stable
+  artifact. Source status does not encode mutable registry observations.
+  Publication, the `v0.7.0` tag, and npm `latest` remain separate actions; the
+  workflow must verify the exact npm artifact before it creates a GitHub Release.
 - Main has completed Phases 68 through 72 on the generalization-first line.
   The production selector graph contains only
   generalized selection primitives, and the `recommended` preset now has a
@@ -27,7 +29,7 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 - The official CLI uses the package bin. The global CLI invocation path is `goodmemory ...` after `npm install -g goodmemory`; project-local installs use `npx goodmemory`, `npm exec -- goodmemory`, or `./node_modules/.bin/goodmemory ...`. Non-version command execution remains Bun-backed today.
 - Generic live-memory eval semantics are auto-storage aligned: `eval:live-memory`, `eval:live-auto-memory`, `runLiveMemoryEval()`, `eval:live-provider-memory`, and historical `reports/eval/live-memory/phase-*` paths keep their existing meanings.
 
-## Unreleased 0.7 LanguagePack Candidate
+## 0.7 LanguagePack Stable Release Source
 
 - 0.7 is defined as a clean breaking replacement of the former partial
   language adapter. The target public language surface is one complete
@@ -46,8 +48,9 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   not read a partial new generation; it uses canonical fallback until an
   interruptible, repeatable migration validates and atomically publishes
   complete proof.
-- This section records the accepted architecture and release boundary, not a
-  shipped artifact. 0.7 is not stable or publishable until its fresh full
+- This section records the accepted architecture and immutable release-source
+  boundary, not proof that an external registry publication occurred. 0.7 must
+  not be tagged or published until its fresh full
   suite, typecheck, coverage, storage/migration/scale gates, real PostgreSQL
   `EXPLAIN` run, Node 20 and Bun packed-consumer smokes, type/release tests, and
   sub-4-MiB package evidence are recorded for one exact source identity. A

@@ -2102,7 +2102,9 @@ describe("goodmemory cli host bootstrap", () => {
       };
       expect(payload.decision).toBe("review_required");
       expect(payload.executed).toBe(false);
-      expect(payload.recommendedFirstStep).toBe("run QuickCheck first");
+      expect(payload.recommendedFirstStep).toBe(
+        "Rather than DeepAnalyzer, use QuickCheck first.",
+      );
       expect(payload.rewritten).toBe(true);
       const quickCheckExecuted = await access(join(workspace.root, "quickcheck.log"))
         .then(() => true)
@@ -6260,7 +6262,7 @@ describe("goodmemory cli installed host config", () => {
       expect(payload.decision).toBe("blocked");
       expect(payload.executed).toBe(false);
       expect(payload.rewritten).toBe(false);
-      expect(payload.reason).toContain("destructive action");
+      expect(payload.reason).toContain("Never delete AGENTS.md");
       expect(await readFile(join(workspace.root, "AGENTS.md"), "utf8")).toBe("# Keep me\n");
     } finally {
       await home.cleanup();

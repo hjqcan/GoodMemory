@@ -13,28 +13,26 @@ import { describe, expect, it } from "bun:test";
 
 import { prepareV07StableArtifact } from "../../scripts/prepare-v0-7-stable-artifact";
 
-const README_RC = `# GoodMemory
+const README_STABLE = `# GoodMemory
 
-> **Release status:** this branch is the \`0.7.0\` release candidate. npm
-> \`latest\` remains \`0.6.0\` until the tagged stable workflow publishes 0.7.0.
-> The version-pinned registry commands below are the post-publish contract; use
-> the locally packed \`goodmemory-0.7.0.tgz\` for pre-publish verification.
+> **Release source:** this is the immutable \`0.7.0\` stable release source.
+> Registry commands require \`goodmemory@0.7.0\` to be published. The release
+> workflow verifies npm \`latest\` and artifact integrity before creating the
+> GitHub Release.
 `;
 
-const README_ZH_RC = `# GoodMemory
+const README_ZH_STABLE = `# GoodMemory
 
-> **发布状态：**当前分支是 \`0.7.0\` release candidate；在带 tag 的稳定发布
-> workflow 真正发布 0.7.0 之前，npm \`latest\` 仍是 \`0.6.0\`。下文锁定
-> 0.7.0 的 registry 命令是发布后的契约；发布前请使用本地打包的
-> \`goodmemory-0.7.0.tgz\` 验证。
+> **发布源码：**这是不可变的 \`0.7.0\` 稳定发布源码。Registry 命令要求
+> \`goodmemory@0.7.0\` 已发布；release workflow 会先校验 npm \`latest\`
+> 与制品完整性，再创建 GitHub Release。
 `;
 
-const LLMS_RC = `# GoodMemory
+const LLMS_STABLE = `# GoodMemory
 
-Release status: this source tree targets the 0.7.0 release candidate. npm
-latest remains 0.6.0 until the tagged stable workflow publishes 0.7.0. The
-version-pinned registry commands below apply after publication; pre-publish
-verification uses goodmemory-0.7.0.tgz.
+Release source: this is the immutable GoodMemory 0.7.0 stable release source.
+Registry commands require goodmemory@0.7.0 to be published. The release workflow
+verifies npm latest and artifact integrity before creating the GitHub Release.
 `;
 
 async function extractTarball(tarballPath: string, outputDir: string): Promise<void> {
@@ -50,8 +48,26 @@ async function extractTarball(tarballPath: string, outputDir: string): Promise<v
   }
 }
 
+async function runCommand(cmd: string[], cwd: string): Promise<string> {
+  const process = Bun.spawn({
+    cmd,
+    cwd,
+    stderr: "pipe",
+    stdout: "pipe",
+  });
+  const [exitCode, stderr, stdout] = await Promise.all([
+    process.exited,
+    new Response(process.stderr).text(),
+    new Response(process.stdout).text(),
+  ]);
+  if (exitCode !== 0) {
+    throw new Error(stderr);
+  }
+  return stdout.trim();
+}
+
 describe("v0.7 stable release artifact", () => {
-  it("projects RC metadata only inside a verified stable tarball", async () => {
+  it("packs the verified stable source without projecting different metadata", async () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-stable-artifact-test-"));
     const outputDir = join(root, "output");
     try {
@@ -67,29 +83,37 @@ describe("v0.7 stable release artifact", () => {
           ],
           goodmemoryRelease: {
             installCommandsApplyAfterPublish: true,
-            npmLatest: "0.6.0",
-            status: "release-candidate",
+            npmDistTag: "latest",
+            status: "stable",
           },
           name: "goodmemory",
           version: "0.7.0",
         }, null, 2)}\n`,
       );
-      await writeFile(join(root, "README.md"), README_RC);
-      await writeFile(join(root, "README.zh-CN.md"), README_ZH_RC);
-      await writeFile(join(root, "llms.txt"), LLMS_RC);
+      await writeFile(join(root, "README.md"), README_STABLE);
+      await writeFile(join(root, "README.zh-CN.md"), README_ZH_STABLE);
+      await writeFile(join(root, "llms.txt"), LLMS_STABLE);
+      await writeFile(join(root, ".gitignore"), "extracted/\noutput/\n");
       await writeFile(
         join(root, ".well-known/goodmemory.json"),
         `${JSON.stringify({
           name: "goodmemory",
           releaseStatus: {
             installCommandsApplyAfterPublish: true,
-            npmLatest: "0.6.0",
-            status: "release-candidate",
+            npmDistTag: "latest",
+            status: "stable",
             tarball: "goodmemory-0.7.0.tgz",
           },
           version: "0.7.0",
         }, null, 2)}\n`,
       );
+      await runCommand(["git", "init", "--quiet"], root);
+      await runCommand(["git", "config", "user.email", "release-test@example.com"], root);
+      await runCommand(["git", "config", "user.name", "Release Test"], root);
+      await runCommand(["git", "add", "."], root);
+      await runCommand(["git", "commit", "--quiet", "-m", "stable release source"], root);
+      const sourceCommit = await runCommand(["git", "rev-parse", "HEAD"], root);
+      const sourceTree = await runCommand(["git", "rev-parse", "HEAD^{tree}"], root);
 
       const sourceBefore = await Promise.all(
         ["README.md", "README.zh-CN.md", "llms.txt", ".well-known/goodmemory.json"]
@@ -98,6 +122,8 @@ describe("v0.7 stable release artifact", () => {
       const artifact = await prepareV07StableArtifact({
         outputDir,
         repoRoot: root,
+        sourceCommit,
+        verifyInstalledConsumers: false,
         verifyRuntimeDescriptor: false,
       });
       const extracted = join(root, "extracted");
@@ -114,33 +140,36 @@ describe("v0.7 stable release artifact", () => {
         await readFile(join(packageRoot, "package.json"), "utf8"),
       ) as { goodmemoryRelease?: Record<string, unknown> };
 
-      expect(readme).toContain("`0.7.0` is the current stable release");
-      expect(readme).toContain("npm `latest` points to `0.7.0`");
-      expect(readmeZh).toContain("`0.7.0` 是当前稳定版本");
-      expect(readmeZh).toContain("npm `latest` 指向 `0.7.0`");
-      expect(llms).toContain("GoodMemory 0.7.0 is the current stable release");
-      expect(llms).toContain("npm latest points to 0.7.0");
-      for (const content of [readme, readmeZh, llms]) {
-        expect(content).not.toContain("release candidate");
-        expect(content).not.toContain("0.6.0");
-      }
+      expect(readme).toContain("immutable `0.7.0` stable release source");
+      expect(readmeZh).toContain("不可变的 `0.7.0` 稳定发布源码");
+      expect(llms).toContain("immutable GoodMemory 0.7.0 stable release source");
       expect(descriptor.releaseStatus).toEqual({
-        installCommandsApplyAfterPublish: false,
-        npmLatest: "0.7.0",
+        installCommandsApplyAfterPublish: true,
+        npmDistTag: "latest",
         status: "stable",
         tarball: "goodmemory-0.7.0.tgz",
       });
       expect(packageJson.goodmemoryRelease).toEqual({
-        installCommandsApplyAfterPublish: false,
-        npmLatest: "0.7.0",
+        installCommandsApplyAfterPublish: true,
+        npmDistTag: "latest",
         status: "stable",
       });
       expect(artifact.artifactName).toBe("goodmemory-0.7.0.tgz");
+      expect(artifact.sourceCommit).toBe(sourceCommit);
+      expect(artifact.sourceTree).toBe(sourceTree);
       expect(artifact.integrity).toBe(
         `sha512-${createHash("sha512")
           .update(await readFile(artifact.artifactPath))
           .digest("base64")}`,
       );
+
+      await expect(prepareV07StableArtifact({
+        outputDir,
+        repoRoot: root,
+        sourceCommit: "a".repeat(40),
+        verifyInstalledConsumers: false,
+        verifyRuntimeDescriptor: false,
+      })).rejects.toThrow("does not match clean HEAD");
 
       const sourceAfter = await Promise.all(
         ["README.md", "README.zh-CN.md", "llms.txt", ".well-known/goodmemory.json"]

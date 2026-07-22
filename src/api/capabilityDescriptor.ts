@@ -16,7 +16,7 @@ const PACKAGE_JSON_URL = new URL("../../package.json", import.meta.url);
 
 export interface GoodMemoryPackageReleaseMetadata {
   readonly installCommandsApplyAfterPublish: boolean;
-  readonly npmLatest: string;
+  readonly npmDistTag: string;
   readonly status: "release-candidate" | "stable";
 }
 
@@ -41,8 +41,8 @@ function readPackageMetadata(): GoodMemoryCapabilityPackageMetadata {
     typeof packageJson.version !== "string" ||
     packageJson.version.length === 0 ||
     typeof release?.installCommandsApplyAfterPublish !== "boolean" ||
-    typeof release.npmLatest !== "string" ||
-    release.npmLatest.length === 0 ||
+    typeof release.npmDistTag !== "string" ||
+    release.npmDistTag.length === 0 ||
     (release.status !== "release-candidate" && release.status !== "stable")
   ) {
     throw new Error("Unable to read GoodMemory package release metadata.");
@@ -51,7 +51,7 @@ function readPackageMetadata(): GoodMemoryCapabilityPackageMetadata {
   packageMetadataCache = {
     goodmemoryRelease: {
       installCommandsApplyAfterPublish: release.installCommandsApplyAfterPublish,
-      npmLatest: release.npmLatest,
+      npmDistTag: release.npmDistTag,
       status: release.status,
     },
     version: packageJson.version,
@@ -110,7 +110,7 @@ export interface GoodMemoryCapabilityDescriptor {
   };
   readonly releaseStatus: {
     readonly installCommandsApplyAfterPublish: boolean;
-    readonly npmLatest: string;
+    readonly npmDistTag: string;
     readonly status: "release-candidate" | "stable";
     readonly tarball: string;
   };

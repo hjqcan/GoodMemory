@@ -5,7 +5,6 @@ import {
   readFile,
   rm,
   stat,
-  symlink,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -19,6 +18,7 @@ import { resolveRepoRootFromScriptUrl } from "./script-paths";
 
 const RELEASE_LINE = "0.7";
 const RELEASE_VERSION = "0.7.0";
+const RELEASE_BUN_VERSION = "1.3.0";
 const MAX_TARBALL_BYTES = 4 * 1024 * 1024;
 const REQUIRED_PACKED_FILES = [
   "dist/index.js",
@@ -52,12 +52,24 @@ export interface V07ReleaseReadinessReport {
   generatedAt: string;
   generatedBy: "scripts/run-v0-7-release-readiness.ts";
   packageVersion: string;
+  runtime: V07RuntimeIdentity;
+  sourceIdentity: V07SourceIdentity;
   summary: {
     failed: number;
     passed: number;
     skipped: number;
     total: number;
   };
+}
+
+export interface V07RuntimeIdentity {
+  bunVersion: string;
+  nodeVersion: string;
+}
+
+export interface V07SourceIdentity {
+  commitSha: string;
+  treeSha: string;
 }
 
 export interface V07ReleaseReadinessOptions {
@@ -88,6 +100,11 @@ export const V07_RELEASE_REQUIRED_COMMANDS = [
     args: ["run", "build"],
     command: "bun",
     id: "build",
+  },
+  {
+    args: ["run", "gate:public-benchmark-claim", "--strict"],
+    command: "bun",
+    id: "public-claims",
   },
   {
     args: ["run", "gate:phase-74-storage-scale"],
@@ -125,6 +142,11 @@ const REQUIRED_COMMAND_DETAILS: Record<
       "real Postgres functionality, migration, scale, and EXPLAIN gates passed",
     title: "Real Postgres functionality, migration, scale, and EXPLAIN gates",
   },
+  "public-claims": {
+    successDetail:
+      "strict public-claim and historical-evidence consistency gate passed",
+    title: "Public benchmark claim gate",
+  },
   scale: {
     successDetail:
       "Phase 74 scale gate passed at 100k searchable and 150k stored projection rows",
@@ -147,10 +169,88 @@ interface CommandOutcome {
   stdout: string;
 }
 
+export function evaluateV07SourceIdentity(input: {
+  commitSha: string;
+  status: string;
+  treeSha: string;
+}): {
+  check: V07ReleaseReadinessCheck;
+  sourceIdentity: V07SourceIdentity;
+} {
+  const commitSha = input.commitSha.trim();
+  const treeSha = input.treeSha.trim();
+  const status = input.status.trim();
+  const issues = [
+    ...(commitSha ? [] : ["git commit identity is unavailable"]),
+    ...(treeSha ? [] : ["git tree identity is unavailable"]),
+    ...(status ? [`worktree is not clean: ${status}`] : []),
+  ];
+  return {
+    check: {
+      detail: issues.length === 0
+        ? `clean source ${commitSha} / tree ${treeSha}`
+        : issues.join("; "),
+      durationMs: 0,
+      id: "source-identity",
+      required: true,
+      status: issues.length === 0 ? "pass" : "fail",
+      title: "Exact source identity",
+    },
+    sourceIdentity: { commitSha, treeSha },
+  };
+}
+
+export function evaluateV07SourceStability(input: {
+  final: {
+    check: V07ReleaseReadinessCheck;
+    sourceIdentity: V07SourceIdentity;
+  };
+  initial: V07SourceIdentity;
+}): V07ReleaseReadinessCheck {
+  const stable = input.final.check.status === "pass" &&
+    input.final.sourceIdentity.commitSha === input.initial.commitSha &&
+    input.final.sourceIdentity.treeSha === input.initial.treeSha;
+  return {
+    detail: stable
+      ? "commit, tree, and clean worktree remained stable throughout all release checks"
+      : `source identity changed while release checks ran: ${input.final.check.detail}`,
+    durationMs: 0,
+    id: "source-stability",
+    required: true,
+    status: stable ? "pass" : "fail",
+    title: "Source identity stability",
+  };
+}
+
+export function evaluateV07RuntimeVersions(
+  runtime: V07RuntimeIdentity,
+): V07ReleaseReadinessCheck {
+  const nodeVersion = runtime.nodeVersion.trim();
+  const bunVersion = runtime.bunVersion.trim();
+  const issues = [
+    ...(/^v?20(?:\.|$)/u.test(nodeVersion)
+      ? []
+      : [`Node 20 is required, got ${nodeVersion || "<unavailable>"}`]),
+    ...(bunVersion === RELEASE_BUN_VERSION
+      ? []
+      : [`Bun ${RELEASE_BUN_VERSION} is required, got ${bunVersion || "<unavailable>"}`]),
+  ];
+  return {
+    detail: issues.length === 0
+      ? `Node ${nodeVersion} / Bun ${bunVersion}`
+      : issues.join("; "),
+    durationMs: 0,
+    id: "runtime-identity",
+    required: true,
+    status: issues.length === 0 ? "pass" : "fail",
+    title: "Release runtime identity",
+  };
+}
+
 interface PackageJson {
   goodmemoryRelease?: {
     installCommandsApplyAfterPublish?: boolean;
-    npmLatest?: string;
+    npmDistTag?: string;
     status?: string;
   };
   version: string;
@@ -172,7 +272,7 @@ interface CapabilityDescriptor {
   };
   releaseStatus?: {
     installCommandsApplyAfterPublish?: boolean;
-    npmLatest?: string;
+    npmDistTag?: string;
     status?: string;
     tarball?: string;
   };
@@ -278,6 +378,44 @@ function runCommand(
   });
 }
 
+export async function collectV07SourceIdentity(repoRoot: string): Promise<{
+  check: V07ReleaseReadinessCheck;
+  sourceIdentity: V07SourceIdentity;
+}> {
+  const [commit, tree, status] = await Promise.all([
+    runCommand("git", ["rev-parse", "HEAD"], repoRoot),
+    runCommand("git", ["rev-parse", "HEAD^{tree}"], repoRoot),
+    runCommand(
+      "git",
+      ["status", "--porcelain", "--untracked-files=all"],
+      repoRoot,
+    ),
+  ]);
+  return evaluateV07SourceIdentity({
+    commitSha: commit.code === 0 ? commit.stdout : "",
+    status: status.code === 0 ? status.stdout : status.stderr || "git status failed",
+    treeSha: tree.code === 0 ? tree.stdout : "",
+  });
+}
+
+async function collectV07RuntimeIdentity(repoRoot: string): Promise<{
+  check: V07ReleaseReadinessCheck;
+  runtime: V07RuntimeIdentity;
+}> {
+  const [node, bun] = await Promise.all([
+    runCommand("node", ["--version"], repoRoot),
+    runCommand("bun", ["--version"], repoRoot),
+  ]);
+  const runtime = {
+    bunVersion: bun.code === 0 ? bun.stdout.trim() : "",
+    nodeVersion: node.code === 0 ? node.stdout.trim() : "",
+  };
+  return {
+    check: evaluateV07RuntimeVersions(runtime),
+    runtime,
+  };
+}
+
 function tail(value: string, lineCount = 12): string {
   return value.trimEnd().split("\n").slice(-lineCount).join("\n");
 }
@@ -330,11 +468,11 @@ export async function evaluateVersionConsistency(
     issues.push(`package.json version is ${packageJson.version}, expected ${RELEASE_VERSION}`);
   }
   if (
-    packageRelease?.status !== "release-candidate" ||
-    packageRelease?.npmLatest !== "0.6.0" ||
+    packageRelease?.status !== "stable" ||
+    packageRelease?.npmDistTag !== "latest" ||
     packageRelease?.installCommandsApplyAfterPublish !== true
   ) {
-    issues.push("package.json must describe the checked-out 0.7 release candidate");
+    issues.push("package.json must describe the immutable stable 0.7 release source");
   }
   if (
     packageLock.version !== RELEASE_VERSION ||
@@ -352,12 +490,12 @@ export async function evaluateVersionConsistency(
   }
   if (
     capabilityRelease?.status !== packageRelease?.status ||
-    capabilityRelease?.npmLatest !== packageRelease?.npmLatest ||
+    capabilityRelease?.npmDistTag !== packageRelease?.npmDistTag ||
     capabilityRelease?.tarball !== `goodmemory-${RELEASE_VERSION}.tgz` ||
     capabilityRelease?.installCommandsApplyAfterPublish !==
       packageRelease?.installCommandsApplyAfterPublish
   ) {
-    issues.push("capability descriptor does not distinguish the 0.7 release candidate from npm latest");
+    issues.push("capability descriptor release contract does not match package.json");
   }
   if (
     server.version !== RELEASE_VERSION ||
@@ -395,7 +533,7 @@ export async function evaluateVersionConsistency(
   return {
     detail:
       issues.length === 0
-        ? "0.7.0 release metadata is aligned; pre-0.7 benchmark evidence is not labeled current"
+        ? "stable 0.7.0 source metadata is aligned; mutable npm state is not encoded; pre-0.7 benchmark evidence is not labeled current"
         : issues.join("; "),
     durationMs: Math.round(performance.now() - startedAt),
     id: "version",
@@ -455,15 +593,52 @@ async function evaluatePack(repoRoot: string): Promise<V07ReleaseReadinessCheck>
   }
 }
 
-async function evaluateLanguageConsumers(
-  repoRoot: string,
-): Promise<V07ReleaseReadinessCheck> {
+export async function verifyV07ArtifactConsumers(input: {
+  artifactPath?: string;
+  repoRoot: string;
+}): Promise<V07RuntimeIdentity> {
   const smokeDirectory = await mkdtemp(join(tmpdir(), "goodmemory-v07-consumer-"));
-  const startedAt = performance.now();
 
   try {
-    await mkdir(join(smokeDirectory, "node_modules"), { recursive: true });
-    await symlink(repoRoot, join(smokeDirectory, "node_modules", "goodmemory"), "dir");
+    let tarballPath = input.artifactPath;
+    if (!tarballPath) {
+      const packDirectory = join(smokeDirectory, "pack");
+      await mkdir(packDirectory, { recursive: true });
+      const packed = await runCommand(
+        "bun",
+        ["pm", "pack", "--destination", packDirectory, "--quiet"],
+        input.repoRoot,
+      );
+      const tarballOutput = packed.stdout
+        .trim()
+        .split(/\r?\n/u)
+        .map((line) => line.trim())
+        .filter((line) => line.endsWith(".tgz"))
+        .at(-1);
+      if (packed.code !== 0 || !tarballOutput) {
+        throw new Error(tail(packed.stderr || packed.stdout));
+      }
+      tarballPath = tarballOutput.startsWith("/")
+        ? tarballOutput
+        : join(packDirectory, tarballOutput);
+    }
+    await writeFile(
+      join(smokeDirectory, "package.json"),
+      `${JSON.stringify({
+        dependencies: { goodmemory: `file:${tarballPath}` },
+        private: true,
+        type: "module",
+      }, null, 2)}\n`,
+      "utf8",
+    );
+    const installed = await runCommand(
+      "npm",
+      ["install", "--ignore-scripts", "--no-audit", "--no-fund"],
+      smokeDirectory,
+    );
+    if (installed.code !== 0) {
+      throw new Error(tail(installed.stderr || installed.stdout));
+    }
     const smokePath = join(smokeDirectory, "smoke.mjs");
     await writeFile(
       smokePath,
@@ -528,20 +703,43 @@ console.log("LANGUAGE_CONSUMER_OK");
         failures.push(`${runtime}: ${tail(outcome.stderr || outcome.stdout, 4)}`);
       }
     }
+    if (failures.length > 0) {
+      throw new Error(failures.join("; "));
+    }
+    const runtime = await collectV07RuntimeIdentity(input.repoRoot);
+    if (runtime.check.status !== "pass") {
+      throw new Error(runtime.check.detail);
+    }
+    return runtime.runtime;
+  } finally {
+    await rm(smokeDirectory, { force: true, recursive: true });
+  }
+}
 
+async function evaluateLanguageConsumers(
+  repoRoot: string,
+): Promise<V07ReleaseReadinessCheck> {
+  const startedAt = performance.now();
+  try {
+    const runtime = await verifyV07ArtifactConsumers({ repoRoot });
     return {
       detail:
-        failures.length === 0
-          ? "all seven public LanguagePack APIs passed under Node and Bun"
-          : failures.join("; "),
+        `installed tarball passed all seven public LanguagePack APIs under Node ${runtime.nodeVersion} and Bun ${runtime.bunVersion}`,
       durationMs: Math.round(performance.now() - startedAt),
       id: "language-consumers",
       required: true,
-      status: failures.length === 0 ? "pass" : "fail",
-      title: "Node and Bun LanguagePack consumers",
+      status: "pass",
+      title: "Node and Bun packed LanguagePack consumers",
     };
-  } finally {
-    await rm(smokeDirectory, { force: true, recursive: true });
+  } catch (error) {
+    return {
+      detail: error instanceof Error ? error.message : String(error),
+      durationMs: Math.round(performance.now() - startedAt),
+      id: "language-consumers",
+      required: true,
+      status: "fail",
+      title: "Node and Bun packed LanguagePack consumers",
+    };
   }
 }
 
@@ -600,7 +798,10 @@ export async function runV07ReleaseReadiness(
     await readFile(join(repoRoot, "package.json"), "utf8"),
   ) as PackageJson;
   const checks: V07ReleaseReadinessCheck[] = [];
+  const source = await collectV07SourceIdentity(repoRoot);
+  const runtime = await collectV07RuntimeIdentity(repoRoot);
 
+  checks.push(source.check, runtime.check);
   checks.push(await evaluateVersionConsistency(repoRoot));
 
   for (const command of V07_RELEASE_REQUIRED_COMMANDS) {
@@ -638,6 +839,11 @@ export async function runV07ReleaseReadiness(
 
   checks.push(await evaluatePack(repoRoot));
   checks.push(await evaluateLanguageConsumers(repoRoot));
+  const finalSource = await collectV07SourceIdentity(repoRoot);
+  checks.push(evaluateV07SourceStability({
+    final: finalSource,
+    initial: source.sourceIdentity,
+  }));
 
   const passed = checks.filter((check) => check.status === "pass").length;
   const failed = checks.filter((check) => check.status === "fail").length;
@@ -648,6 +854,8 @@ export async function runV07ReleaseReadiness(
     generatedAt: new Date().toISOString(),
     generatedBy: "scripts/run-v0-7-release-readiness.ts",
     packageVersion: packageJson.version,
+    runtime: runtime.runtime,
+    sourceIdentity: source.sourceIdentity,
     summary: {
       failed,
       passed,
@@ -674,6 +882,9 @@ export function renderV07ReleaseSummary(
     "",
     `- package version: ${report.packageVersion}`,
     `- generated: ${report.generatedAt}`,
+    `- source commit: ${report.sourceIdentity.commitSha}`,
+    `- source tree: ${report.sourceIdentity.treeSha}`,
+    `- runtime: Node ${report.runtime.nodeVersion} / Bun ${report.runtime.bunVersion}`,
     `- result: ${
       report.allRequiredPassed
         ? "ALL REQUIRED CHECKS PASS"

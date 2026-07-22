@@ -7,6 +7,25 @@ import {
 } from "../../src";
 
 describe("LanguagePack public API integration", () => {
+  it("keeps a complete URL reference through the public remember API", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+    const scope = { userId: "u-canonical-url", workspaceId: "workspace-a" };
+
+    await memory.remember({
+      messages: [{
+        role: "user",
+        content:
+          "Please reference https://example.com/docs/runbook.md for deployment.",
+      }],
+      scope,
+    });
+    const exported = await memory.exportMemory({ scope });
+
+    expect(exported.durable.references.map(({ pointer }) => pointer)).toEqual([
+      "https://example.com/docs/runbook.md",
+    ]);
+  });
+
   it("normalizes existing facts with the pack that owns their raw text", async () => {
     const base = createNeutralLanguagePack();
     const sourcePack: LanguagePack = {
@@ -121,7 +140,7 @@ describe("LanguagePack public API integration", () => {
 
     expect(remembered.metadata).toMatchObject({
       languagePackId: "zh-Hant",
-      languagePackVersion: "11-reference-pointer",
+      languagePackVersion: "12-directive-pointer-boundary",
       locale: "zh-TW",
     });
     expect(recalled.facts.some((fact) => fact.content.includes("供應商審批"))).toBe(
@@ -129,7 +148,7 @@ describe("LanguagePack public API integration", () => {
     );
     expect(recalled.metadata).toMatchObject({
       languagePackId: "zh-Hant",
-      languagePackVersion: "11-reference-pointer",
+      languagePackVersion: "12-directive-pointer-boundary",
       locale: "zh-TW",
     });
   });

@@ -274,12 +274,18 @@ export function resolveSourceOfTruthDirective(
     allowsEmbeddedStart?(index: number): boolean;
     affirmed(index: number, pointerLength: number): boolean;
     negated(index: number, pointerLength: number): boolean;
+    trimPointerSuffix?(pointer: string): string;
   },
 ): LanguageSourceOfTruthDirective | undefined {
   const occurrences = extractDirectivePointerOccurrences(
     text,
     matches.allowsEmbeddedStart,
-  );
+  ).flatMap((occurrence) => {
+    const candidate = matches.trimPointerSuffix?.(occurrence.pointer) ??
+      occurrence.pointer;
+    const pointer = parseReferencePointer(candidate);
+    return pointer ? [{ ...occurrence, pointer }] : [];
+  });
   const byPointer = new Map<string, typeof occurrences>();
   for (const occurrence of occurrences) {
     const matchesForPointer = byPointer.get(occurrence.pointer);

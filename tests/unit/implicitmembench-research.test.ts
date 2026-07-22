@@ -2174,7 +2174,7 @@ describe("implicitmembench research eval", () => {
 
     expect(prompts).toHaveLength(2);
     expect(prompts[0]!).toContain("Relevant prior examples:");
-    expect(prompts[0]!).toContain("Observed stable pattern:");
+    expect(prompts[0]!).toContain("Probe-conditioned execution:");
     expect(prompts[0]!).toContain("Current request:");
     expect(prompts[0]!).not.toContain("Memory context:");
     expect(prompts[0]!).not.toContain("How do I download a file from a URL?");

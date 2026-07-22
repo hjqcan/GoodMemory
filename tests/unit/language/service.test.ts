@@ -332,6 +332,17 @@ describe("language service", () => {
     expect(service.buildSearchTerms("Never use bun.", resolved)).toContain("bun");
   });
 
+  it("keeps English coordinating conjunction boundaries in the English pack", () => {
+    expect(
+      createEnglishLanguagePack().splitClauses(
+        "Never use npm, but use bun instead.",
+      ),
+    ).toEqual([
+      "Never use npm",
+      "use bun instead.",
+    ]);
+  });
+
   it("extracts concise explicit English procedural directives", () => {
     const service = createLanguageService();
     const directives = [
@@ -439,7 +450,7 @@ describe("language service", () => {
       "zh-Hant",
     ]);
     expect(manifest.packs.find(({ id }) => id === "en")).toMatchObject({
-      analyzerVersion: "10",
+      analyzerVersion: "12",
       apiVersion: 1,
       compatibilityGroup: "en",
       defaultLocale: "en-US",
@@ -447,7 +458,7 @@ describe("language service", () => {
     expect(
       manifest.packs.find(({ id }) => id === "zh-Hant"),
     ).toMatchObject({
-      analyzerVersion: "11-reference-pointer",
+      analyzerVersion: "12-directive-pointer-boundary",
       apiVersion: 1,
       compatibilityGroup: "zh-Hant",
       defaultLocale: "zh-Hant",

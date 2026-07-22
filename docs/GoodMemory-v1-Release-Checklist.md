@@ -2,9 +2,10 @@
 
 > **Historical baseline.** This checklist was authored for the v0.2 → v1 release,
 > so its gate/eval sections point at the accepted **Phase 40** release-candidate
-> gate. The current release-candidate line is **0.7.0**; the published stable
-> line remains 0.6.0 until the accepted commit is tagged and the stable release
-> workflow publishes it. Current releases follow the documented 0.7.x
+> gate. The current immutable stable release source is **0.7.0**; the last
+> registry state verified when that source was prepared remains 0.6.0. The
+> release workflow must publish and verify the exact npm artifact before it
+> creates the `v0.7.0` GitHub Release. Current releases follow the documented 0.7.x
 > version-bump recipe plus
 > `gate:public-benchmark-claim` and the
 > release-readiness gate rather than the Phase 40 gate. Treat the Phase 40

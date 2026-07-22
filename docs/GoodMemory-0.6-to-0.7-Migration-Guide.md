@@ -182,6 +182,42 @@ than a warm, pre-cutover rebuild.
   prohibition on durable completeness proof, not as permission to trust the
   existing index.
 
+## Declare custom-storage deletion semantics
+
+`deleteAllMemory()` now fails before deleting anything when custom document,
+session, or vector adapters are configured without an explicit terminal
+deletion contract. Custom storage must provide the document, session, and
+vector adapters as one complete bundle; mixing shared and runtime-local stores
+cannot support cross-runtime deletion. The declaration is a caller assertion:
+every cooperating GoodMemory runtime must point each of its document, session,
+and vector adapters at the same corresponding shared backend, and the shared
+projection-capable document-store namespace must own the persistent mutation
+intents and deletion barriers:
+
+```ts
+const memory = createGoodMemory({
+  adapters: {
+    documentStore,
+    sessionStore,
+    vectorStore,
+    terminalDeletionSemantics: "shared-coordinated-backends-v1",
+  },
+});
+```
+
+The declaration cannot prove remote adapter identity and does not make
+uncoordinated external writers safe. Do not set it when any cooperating runtime
+uses a process-local session/vector store, points an adapter at a different
+backend, or writes directly without entering the same GoodMemory mutation
+protocol. A false declaration can return success while leaving data behind.
+
+Deletion ownership and mutation intents do not expire. An operation failure
+keeps the scope closed; retry it on the same live `GoodMemory` instance after
+correcting the cause. After a process crash, stop every possible old writer and
+deleter before operator recovery. Never clear or replace a persisted deletion
+owner merely because a timestamp is old: without atomic epoch fencing in every
+store, a paused old owner could resume and delete data written after takeover.
+
 ## Verification before cutover
 
 Run the release commands from the 0.7 source identity you will publish:

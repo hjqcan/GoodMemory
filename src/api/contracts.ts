@@ -185,6 +185,13 @@ export interface GoodMemoryConfig {
     reranker?: Reranker;
     recallPlanner?: RecallPlanAssistant;
     sessionStore?: SessionStore;
+    /**
+     * Required before terminal deletion when custom storage adapters are used.
+     * Caller assertion: every cooperating runtime points documentStore,
+     * sessionStore, and vectorStore at the same corresponding shared backends,
+     * and every writer enters the GoodMemory mutation protocol.
+     */
+    terminalDeletionSemantics?: "shared-coordinated-backends-v1";
     vectorStore?: VectorStore;
   };
   testing?: {

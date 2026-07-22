@@ -15,6 +15,21 @@ describe("reference pointer parsing", () => {
     ]);
   });
 
+  it("keeps extensionless Unicode URLs and Unicode query values intact", () => {
+    expect(
+      extractReferencePointers(
+        "Use https://example.com/文档/运行手册 as the source of truth.",
+      ),
+    ).toEqual(["https://example.com/文档/运行手册"]);
+    expect(
+      extractReferencePointers(
+        "Use https://example.com/文档/运行手册.md?q=当前版本#已验证。",
+      ),
+    ).toEqual([
+      "https://example.com/文档/运行手册.md?q=当前版本#已验证",
+    ]);
+  });
+
   it("keeps Unicode local paths while rejecting numeric versions and decimals", () => {
     expect(extractReferencePointers("请查看 文档/当前运行手册.md。"))
       .toEqual(["文档/当前运行手册.md"]);

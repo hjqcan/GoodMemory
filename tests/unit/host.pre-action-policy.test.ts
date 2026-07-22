@@ -505,6 +505,16 @@ describe("host pre-action policy", () => {
     expect(result.matchedMemoryIds).toEqual([]);
   });
 
+  it("keeps English conjunction boundaries owned by the language pack", async () => {
+    const result = await assessCommandAgainstRule(
+      "Never use npm, but use bun instead.",
+      "bun run release",
+    );
+
+    expect(result.decision).toBe("allow");
+    expect(result.matchedMemoryIds).toEqual([]);
+  });
+
   it("finds the executable after environment assignments and wrappers", async () => {
     const result = await assessCommandAgainstRule(
       "Never use npm.",
@@ -518,6 +528,7 @@ describe("host pre-action policy", () => {
   it("reuses the custom language service owned by the GoodMemory instance", async () => {
     const documentStore = createInMemoryDocumentStore();
     const english = createEnglishLanguagePack();
+    let splitClausesCalls = 0;
     const customPack = {
       ...english,
       analyzerVersion: "host-policy-custom-v1",
@@ -531,6 +542,10 @@ describe("host pre-action policy", () => {
         return input.key === "instruction"
           ? "sentinel-instruction"
           : english.render(input);
+      },
+      splitClauses(text) {
+        splitClausesCalls += 1;
+        return english.splitClauses(text);
       },
       tokenizeForScoring(text, mode, options) {
         if (/sentinel-policy|opaque-action/u.test(text)) {
@@ -596,6 +611,7 @@ describe("host pre-action policy", () => {
       kind: "warning",
       message: "sentinel-policy",
     });
+    expect(splitClausesCalls).toBeGreaterThan(0);
   });
 
   it("rewrites to an executable QuickCheck path when the original command resolves a sibling executable", async () => {

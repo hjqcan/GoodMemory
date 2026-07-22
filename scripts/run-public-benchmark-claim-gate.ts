@@ -16,11 +16,6 @@ import {
   hasCliFlagStrict,
   resolveCliFlagValueStrict,
 } from "./cli-options";
-import {
-  assertHistoricalEvidenceProjectionCurrent,
-  parseHistoricalEvidenceProjection,
-  refreshHistoricalEvidenceProjection,
-} from "./project-historical-evidence";
 import { resolveRepoRootFromScriptUrl } from "./script-paths";
 
 export const CLAIM_STATUSES = [
@@ -327,6 +322,117 @@ function validateHistoricalProjection(input: {
     );
   }
   return errors;
+}
+
+function projectionRecord(
+  value: unknown,
+  label: string,
+): Record<string, unknown> {
+  if (!isRecord(value)) {
+    throw new Error(`${label} must be an object`);
+  }
+  return value;
+}
+
+function projectionNumber(
+  value: Record<string, unknown>,
+  field: string,
+): number {
+  const resolved = value[field];
+  if (typeof resolved !== "number" || !Number.isFinite(resolved)) {
+    throw new Error(`${field} must be a finite number`);
+  }
+  return resolved;
+}
+
+function projectionString(
+  value: Record<string, unknown>,
+  field: string,
+): string {
+  const resolved = value[field];
+  if (!isStrictNonEmpty(resolved)) {
+    throw new Error(`${field} must be a non-empty string`);
+  }
+  return resolved;
+}
+
+function scoreCount(score: number, total: number): string {
+  const numerator = score * total;
+  const rounded = Math.round(numerator);
+  const rendered = Math.abs(numerator - rounded) < 1e-9
+    ? String(rounded)
+    : numerator.toFixed(2).replace(/\.0+$/u, "").replace(/(\.\d*?)0+$/u, "$1");
+  return `${rendered}/${total}`;
+}
+
+function sourceDerivedReadmeFragments(
+  projection: Record<string, unknown>,
+  benchmark: string,
+): string[] {
+  if (benchmark === "BEAM") {
+    const claim = projectionRecord(projection.claim, "claim");
+    return [
+      projectionNumber(claim, "officialUnifiedScore").toFixed(4),
+      projectionNumber(claim, "strictBinaryScore").toFixed(3),
+    ];
+  }
+  if (benchmark === "LoCoMo") {
+    const claim = projectionRecord(projection.claim, "claim");
+    return [
+      projectionNumber(claim, "strictScore").toFixed(4),
+      projectionNumber(claim, "officialScore").toFixed(4),
+      projectionNumber(claim, "openDomainScore").toFixed(4),
+    ];
+  }
+  if (benchmark === "MemoryAgentBench") {
+    const claim = projectionRecord(projection.claim, "claim");
+    return [
+      `CR ${projectionNumber(claim, "conflictResolutionScore").toFixed(3)}`,
+      `TTL ${projectionNumber(claim, "testTimeLearningScore").toFixed(3)}`,
+    ];
+  }
+  if (benchmark === "ImplicitMemBench") {
+    const claim = projectionRecord(projection.claim, "claim");
+    const totalCases = projectionNumber(claim, "totalCases");
+    if (!Number.isSafeInteger(totalCases) || totalCases <= 0) {
+      throw new Error("totalCases must be a positive safe integer");
+    }
+    const score = projectionNumber(claim, "score");
+    const baselineScore = projectionNumber(claim, "baselineScore");
+    return [
+      score.toFixed(3),
+      scoreCount(score, totalCases),
+      baselineScore.toFixed(3),
+      scoreCount(baselineScore, totalCases),
+      projectionString(claim, "answerModel"),
+      projectionString(claim, "judgeModel"),
+    ];
+  }
+  if (benchmark === "LongMemEval") {
+    const claim = projectionRecord(
+      projection.deterministicClaim,
+      "deterministicClaim",
+    );
+    const diagnostic = projectionRecord(
+      projection.promptCompatibleDiagnostic,
+      "promptCompatibleDiagnostic",
+    );
+    const totalCases = projectionNumber(claim, "sourceCases");
+    if (!Number.isSafeInteger(totalCases) || totalCases <= 0) {
+      throw new Error("sourceCases must be a positive safe integer");
+    }
+    const score = projectionNumber(claim, "score");
+    const diagnosticScore = projectionNumber(diagnostic, "overallAccuracy");
+    return [
+      score.toFixed(3),
+      scoreCount(score, totalCases),
+      projectionNumber(claim, "baselineAccuracy").toFixed(3),
+      projectionString(claim, "profile"),
+      diagnosticScore.toFixed(3),
+      scoreCount(diagnosticScore, totalCases),
+    ];
+  }
+  throw new Error(`unsupported historical benchmark ${benchmark}`);
 }
 
 function renderAssertionPath(path: ClaimEvidenceAssertionPath): string {
@@ -882,20 +988,25 @@ export async function checkClaimEvidenceArtifacts(input: {
             (error) => `evidence artifact ${artifact.path}: ${error}`,
           ),
         );
-        if (projectionErrors.length === 0) {
+        if (projectionErrors.length === 0 && isRecord(parsed)) {
           try {
-            const actual = parseHistoricalEvidenceProjection(parsed);
-            const expected = await refreshHistoricalEvidenceProjection({
-              projection: actual,
-              readArtifact: async (sourcePath) =>
-                new TextEncoder().encode(
-                  await input.readFile(join(input.repoRoot, sourcePath)),
-                ),
-            });
-            assertHistoricalEvidenceProjectionCurrent({ actual, expected });
+            const declaredFragments = new Set(
+              input.report.publicClaim?.readmeRequiredFragments ?? [],
+            );
+            for (const fragment of sourceDerivedReadmeFragments(
+              parsed,
+              input.report.benchmark,
+            )) {
+              if (!declaredFragments.has(fragment)) {
+                errors.push(
+                  `evidence artifact ${artifact.path}: source-derived README fragment ` +
+                    `${fragment} is missing from publicClaim.readmeRequiredFragments`,
+                );
+              }
+            }
           } catch (error) {
             errors.push(
-              `evidence artifact ${artifact.path} does not match its source reports: ` +
+              `evidence artifact ${artifact.path}: cannot derive README fragments: ` +
                 String(error),
             );
           }

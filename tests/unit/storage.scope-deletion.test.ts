@@ -8,6 +8,7 @@ import {
   createScopeDeletionAwareDocumentStore,
   createScopeDeletionCoordinator,
   SCOPE_DELETION_LOCKS_COLLECTION,
+  SCOPE_MUTATION_INTENTS_COLLECTION,
   scopeDeletionLockId,
 } from "../../src/storage/scopeDeletion";
 
@@ -113,6 +114,87 @@ describe("scope deletion coordination", () => {
     ]);
   });
 
+  it("drains a mutation admitted through an independent coordinator before deletion", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const writer = createScopeDeletionCoordinator({ ...rawStore });
+    const deleter = createScopeDeletionCoordinator({ ...rawStore });
+    const scope = { userId: "u-persistent-writer", workspaceId: "workspace-a" };
+    const sessionValues = new Map<string, string>();
+    const vectorValues = new Set<string>();
+    let releaseWrite = () => {};
+    let signalWrite = () => {};
+    const writeStarted = new Promise<void>((resolve) => {
+      signalWrite = resolve;
+    });
+    const writeRelease = new Promise<void>((resolve) => {
+      releaseWrite = resolve;
+    });
+    let deletionEntered = false;
+
+    const activeWrite = writer.runMutation(scope, async () => {
+      signalWrite();
+      await writeRelease;
+      sessionValues.set("goal", "late-session-write");
+      vectorValues.add("late-vector-write");
+    });
+    await writeStarted;
+    const deletion = deleter.runExclusive(scope, async () => {
+      deletionEntered = true;
+      sessionValues.clear();
+      vectorValues.clear();
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(deletionEntered).toBe(false);
+
+    releaseWrite();
+    await activeWrite;
+    await deletion;
+    expect(sessionValues.size).toBe(0);
+    expect(vectorValues.size).toBe(0);
+  });
+
+  it("drains a persistent mutation intent across wrappers without shared object identity", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const writer = createScopeDeletionCoordinator({ ...rawStore });
+    const deleter = createScopeDeletionCoordinator({ ...rawStore });
+    const scope = {
+      userId: "u-persistent-mutation",
+      workspaceId: "workspace-a",
+      sessionId: "session-a",
+    };
+    let releaseWrite = () => {};
+    let signalWrite = () => {};
+    const writeStarted = new Promise<void>((resolve) => {
+      signalWrite = resolve;
+    });
+    const writeRelease = new Promise<void>((resolve) => {
+      releaseWrite = resolve;
+    });
+    const events: string[] = [];
+
+    const activeWrite = writer.runMutation(scope, async () => {
+      events.push("write-started");
+      signalWrite();
+      await writeRelease;
+      events.push("write-committed");
+    });
+    await writeStarted;
+    const deletion = deleter.runExclusive(scope, async () => {
+      events.push("deletion-started");
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(events).toEqual(["write-started"]);
+    releaseWrite();
+    await activeWrite;
+    await deletion;
+    expect(events).toEqual([
+      "write-started",
+      "write-committed",
+      "deletion-started",
+    ]);
+  });
+
   it("rejects a mutation through another wrapper while the persistent lock is active", async () => {
     const rawStore = createInMemoryDocumentStore();
     const writer = createScopeDeletionCoordinator({ ...rawStore });
@@ -204,7 +286,7 @@ describe("scope deletion coordination", () => {
     ).toMatchObject({ state: "open", generation: expect.any(String) });
   });
 
-  it("recovers an expired deletion lease with a higher epoch", async () => {
+  it("does not automatically take over an expired deletion owner", async () => {
     const rawStore = createInMemoryDocumentStore();
     const scope = { userId: "u-expired-lease", workspaceId: "workspace-a" };
     const id = scopeDeletionLockId(scope);
@@ -213,7 +295,7 @@ describe("scope deletion coordination", () => {
       epoch: 4,
       generation: "stale-generation",
       id,
-      leaseExpiresAt: 1,
+      leaseExpiresAt: Date.now() - 1,
       operationId: "stale-operation",
       ownerId: "stale-owner",
       phase: "delete_all",
@@ -221,40 +303,126 @@ describe("scope deletion coordination", () => {
     };
     await rawStore.set(SCOPE_DELETION_LOCKS_COLLECTION, id, staleLock);
     const coordinator = createScopeDeletionCoordinator(rawStore);
-    let entered = false;
 
-    await coordinator.runExclusive(scope, async () => {
-      entered = true;
-    });
-
-    expect(entered).toBe(true);
+    await expect(coordinator.runExclusive(scope, async () => {})).rejects.toThrow(
+      "Memory deletion is already in progress",
+    );
     expect(
       await rawStore.get<Record<string, unknown>>(
         SCOPE_DELETION_LOCKS_COLLECTION,
         id,
       ),
-    ).toMatchObject({
-      epoch: 5,
-      phase: "open",
-      state: "open",
-    });
-    expect(
-      await rawStore.writeBatchIfUnchanged({
-        expected: {
-          collection: SCOPE_DELETION_LOCKS_COLLECTION,
-          document: staleLock,
-          id,
-        },
-        set: [{
-          collection: SCOPE_DELETION_LOCKS_COLLECTION,
-          document: { ...staleLock, phase: "open", state: "open" },
-          id,
-        }],
-      }),
-    ).toBe(false);
+    ).toEqual(staleLock);
   });
 
-  it("does not take over an unexpired deletion lease", async () => {
+  it("keeps a failed deletion closed and lets only the same live coordinator retry", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const scope = { userId: "u-failed-delete", workspaceId: "workspace-a" };
+    const coordinator = createScopeDeletionCoordinator(rawStore, {
+      ownerId: "same-live-owner",
+    });
+
+    await expect(coordinator.runExclusive(scope, async () => {
+      throw new Error("partial deletion failed");
+    })).rejects.toThrow("partial deletion failed");
+    expect(
+      await rawStore.get<Record<string, unknown>>(
+        SCOPE_DELETION_LOCKS_COLLECTION,
+        scopeDeletionLockId(scope),
+      ),
+    ).toMatchObject({ ownerId: "same-live-owner", state: "deleting" });
+    await expect(coordinator.runMutation(scope, async () => "late"))
+      .rejects.toThrow("Memory deletion is in progress");
+    const sameNamedOwner = createScopeDeletionCoordinator(rawStore, {
+      ownerId: "same-live-owner",
+    });
+    await expect(sameNamedOwner.runExclusive(scope, async () => "unsafe"))
+      .rejects.toThrow("Memory deletion is already in progress");
+
+    await expect(coordinator.runExclusive(scope, async () => "recovered"))
+      .resolves.toBe("recovered");
+    expect(
+      await rawStore.get<Record<string, unknown>>(
+        SCOPE_DELETION_LOCKS_COLLECTION,
+        scopeDeletionLockId(scope),
+      ),
+    ).toMatchObject({ state: "open" });
+  });
+
+  it("keeps ownership retryable when the final open transition is rejected", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    let rejectOpenOnce = true;
+    const store: ProjectionCapableDocumentStore = {
+      ...rawStore,
+      async writeBatchIfUnchanged(input) {
+        if (
+          rejectOpenOnce &&
+          input.set.some(({ collection, document }) =>
+            collection === SCOPE_DELETION_LOCKS_COLLECTION &&
+            (document as { state?: string }).state === "open"
+          )
+        ) {
+          rejectOpenOnce = false;
+          return false;
+        }
+        return rawStore.writeBatchIfUnchanged(input);
+      },
+    };
+    const coordinator = createScopeDeletionCoordinator(store);
+    const scope = { userId: "u-release-retry", workspaceId: "workspace-a" };
+    let operationCount = 0;
+
+    await expect(coordinator.runExclusive(scope, async () => {
+      operationCount += 1;
+    })).rejects.toThrow("ownership changed before release");
+    await expect(coordinator.runExclusive(scope, async () => {
+      operationCount += 1;
+      return "recovered";
+    })).resolves.toBe("recovered");
+
+    expect(operationCount).toBe(2);
+  });
+
+  it("does not discard a mutation intent based on expired lease metadata", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const scope = {
+      userId: "u-expired-mutation",
+      workspaceId: "workspace-a",
+      sessionId: "session-a",
+    };
+    const staleIntent = {
+      ...scope,
+      id: "stale-mutation",
+      leaseExpiresAt: 1,
+      operationId: "stale-operation",
+      ownerId: "dead-owner",
+    };
+    await rawStore.set(
+      SCOPE_MUTATION_INTENTS_COLLECTION,
+      staleIntent.id,
+      staleIntent,
+    );
+    const coordinator = createScopeDeletionCoordinator(rawStore);
+    let deletionEntered = false;
+
+    const deletion = coordinator.runExclusive(scope, async () => {
+      deletionEntered = true;
+      return "deleted";
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const intentBeforeRecovery = await rawStore.get(
+      SCOPE_MUTATION_INTENTS_COLLECTION,
+      staleIntent.id,
+    );
+    const enteredBeforeRecovery = deletionEntered;
+    await rawStore.delete(SCOPE_MUTATION_INTENTS_COLLECTION, staleIntent.id);
+    await expect(deletion).resolves.toBe("deleted");
+
+    expect(enteredBeforeRecovery).toBe(false);
+    expect(intentBeforeRecovery).toEqual(staleIntent);
+  });
+
+  it("does not take over an active deletion owner", async () => {
     const rawStore = createInMemoryDocumentStore();
     const scope = { userId: "u-active-lease", workspaceId: "workspace-a" };
     const id = scopeDeletionLockId(scope);
@@ -263,7 +431,6 @@ describe("scope deletion coordination", () => {
       epoch: 2,
       generation: "active-generation",
       id,
-      leaseExpiresAt: Date.now() + 60_000,
       operationId: "active-operation",
       ownerId: "active-owner",
       phase: "delete_all",

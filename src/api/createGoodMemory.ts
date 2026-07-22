@@ -902,6 +902,7 @@ class GoodMemoryImpl implements GoodMemory {
   private readonly documentStore;
   private readonly sessionStore;
   private readonly scopeDeletion?: ScopeDeletionCoordinator;
+  private readonly terminalDeletionReady: boolean;
   private readonly governanceRepositories: GovernanceRepositoryPort;
   private readonly governanceVectors: GovernanceVectorPort | null;
   private readonly revisionVectorIndex: RememberVectorPort | null;
@@ -1079,6 +1080,17 @@ class GoodMemoryImpl implements GoodMemory {
         : explicitStorage?.provider === "sqlite"
           ? createSQLiteVectorStore(explicitStorage.url)
           : createInMemoryVectorStore());
+    const customStorageAdapters = config.adapters?.documentStore !== undefined ||
+      config.adapters?.sessionStore !== undefined ||
+      config.adapters?.vectorStore !== undefined;
+    const completeCustomStorageAdapters =
+      config.adapters?.documentStore !== undefined &&
+      config.adapters?.sessionStore !== undefined &&
+      config.adapters?.vectorStore !== undefined;
+    this.terminalDeletionReady = !customStorageAdapters ||
+      (completeCustomStorageAdapters &&
+        config.adapters?.terminalDeletionSemantics ===
+          "shared-coordinated-backends-v1");
     const repositories = createMemoryRepositories({
       documentStore,
       sessionStore,
@@ -1801,6 +1813,11 @@ class GoodMemoryImpl implements GoodMemory {
     if (!this.scopeDeletion) {
       throw new Error(
         "deleteAllMemory requires a projection-capable document store with atomic conditional batches.",
+      );
+    }
+    if (!this.terminalDeletionReady) {
+      throw new Error(
+        "deleteAllMemory requires custom storage adapters to provide documentStore, sessionStore, and vectorStore on shared coordinated backends and declare shared-coordinated-backends-v1 terminal deletion semantics.",
       );
     }
     const operation = () => deleteAllMemoryOperation(

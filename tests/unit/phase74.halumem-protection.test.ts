@@ -37,7 +37,9 @@ import {
   PHASE74_HALUMEM_UPDATE_PROTECTION_VERIFIER,
   PHASE74_HALUMEM_UPDATE_SUITE,
   PHASE74_HALUMEM_UPSTREAM,
+  countPhase74HaluMemContextTokens,
   parsePhase74HaluMemJsonl,
+  scorePhase74HaluMemUpdateDecision,
   selectPhase74HaluMemUsers,
   verifyPhase74HaluMemE4ProtectionArtifact,
   verifyPhase74HaluMemPrivacyProtectionArtifact,
@@ -201,13 +203,23 @@ function updateDependencies(
   return {
     evaluateUpdate: async ({ expectedUpdate, retrievedMemories }) => {
       calls.evaluate += 1;
+      const category = retrievedMemories.includes(expectedUpdate)
+        ? "Correct"
+        : "Omission";
       return JSON.stringify({
+        category,
         protocol: "halumem-upstream-per-item-update-v1",
-        rawDecision: { matched: retrievedMemories.includes(expectedUpdate) },
-        reason: "fake upstream item decision",
-        verdict: retrievedMemories.includes(expectedUpdate)
-          ? "correct"
-          : "incorrect",
+        rawDecision: JSON.stringify({
+          evaluation_result: category,
+          reason: "fake upstream item decision",
+        }),
+        usage: {
+          cacheCreationInputTokens: 0,
+          cacheReadInputTokens: 0,
+          inputTokens: 10,
+          outputTokens: 5,
+          uncachedInputTokens: 10,
+        },
       });
     },
     retrieveUpdateEvidence: async ({ branch, memoryPoint }) => {
@@ -257,6 +269,51 @@ async function rewriteRawArtifact(input: {
 }
 
 describe("Phase 74 HaluMem protection adapters", () => {
+  it("derives update correctness only from the strict raw HaluMem category", () => {
+    const usage = {
+      cacheCreationInputTokens: 0,
+      cacheReadInputTokens: 0,
+      inputTokens: 20,
+      outputTokens: 5,
+      uncachedInputTokens: 20,
+    };
+    const hallucination = JSON.stringify({
+      category: "Hallucination",
+      protocol: "halumem-upstream-per-item-update-v1",
+      rawDecision: JSON.stringify({
+        evaluation_result: "Hallucination",
+        reason: "The generated memory contradicts the target update.",
+      }),
+      usage,
+    });
+
+    expect(scorePhase74HaluMemUpdateDecision(hallucination)).toBe(0);
+    expect(() => scorePhase74HaluMemUpdateDecision(JSON.stringify({
+      category: "Correct",
+      protocol: "halumem-upstream-per-item-update-v1",
+      rawDecision: JSON.stringify({
+        evaluation_result: "Hallucination",
+        reason: "The generated memory contradicts the target update.",
+      }),
+      usage,
+    }))).toThrow("category drifted");
+    expect(() => scorePhase74HaluMemUpdateDecision(JSON.stringify({
+      category: "Correct",
+      protocol: "halumem-upstream-per-item-update-v1",
+      rawDecision: JSON.stringify({
+        evaluation_result: "Correct",
+        reason: "No token usage was observed.",
+      }),
+      usage: {
+        cacheCreationInputTokens: null,
+        cacheReadInputTokens: null,
+        inputTokens: null,
+        outputTokens: null,
+        uncachedInputTokens: null,
+      },
+    }))).toThrow("usage");
+  });
+
   it("parses the real HaluMem JSONL user contract and pins the upstream", () => {
     const parsed = parsePhase74HaluMemJsonl(datasetRaw(), "HaluMem-Medium.jsonl");
     expect(parsed).toEqual(users);
@@ -447,10 +504,19 @@ describe("Phase 74 HaluMem protection adapters", () => {
       users,
     }, {
       evaluateUpdate: async () => JSON.stringify({
+        category: "Correct",
         protocol: "halumem-upstream-per-item-update-v1",
-        rawDecision: { matched: true },
-        reason: "fake upstream item decision",
-        verdict: "correct",
+        rawDecision: JSON.stringify({
+          evaluation_result: "Correct",
+          reason: "fake upstream item decision",
+        }),
+        usage: {
+          cacheCreationInputTokens: 0,
+          cacheReadInputTokens: 0,
+          inputTokens: 10,
+          outputTokens: 5,
+          uncachedInputTokens: 10,
+        },
       }),
       retrieveUpdateEvidence: async ({ branch, memoryPoint }) => {
         if (branch === "baseline") {
@@ -521,6 +587,70 @@ describe("Phase 74 HaluMem protection adapters", () => {
       ),
     })).resolves.toBeUndefined();
     expect(calls).toEqual(before);
+  });
+
+  it("rejects update retrieval snapshots above the pinned top-10 before writing evidence", async () => {
+    const root = await createRoot();
+    const config = configuration({
+      candidatePipeline: descriptor("halumem-phase74-candidate", "4"),
+      updateEvaluator: descriptor("halumem-upstream-evaluation.py", "5"),
+    });
+    const dependencies = updateDependencies({ evaluate: 0, retrieve: 0 });
+    dependencies.retrieveUpdateEvidence = async ({ branch }) => ({
+      memories: Array.from({ length: 11 }, (_, index) => `fact-${index + 1}`),
+      snapshotId: `${branch}-snapshot`,
+      sourceMessageIds: [],
+    });
+
+    await expect(runPhase74HaluMemUpdateProtection({
+      artifactPath: join(root, "run.json"),
+      configuration: config,
+      dataset: descriptor("halumem-test-jsonl", "1"),
+      rawArtifactPath: join(root, "raw.json"),
+      replicate: 1,
+      runId: "halumem-update-top-k-source",
+      source: descriptor("git:test-source", "2"),
+      users: [users[0]!],
+    }, dependencies)).rejects.toThrow("top-10");
+  });
+
+  it("rejects a rehashed update artifact with more than ten generated records", async () => {
+    const root = await createRoot();
+    const config = configuration({
+      candidatePipeline: descriptor("halumem-phase74-candidate", "4"),
+      updateEvaluator: descriptor("halumem-upstream-evaluation.py", "5"),
+    });
+    const dataset = descriptor("halumem-test-jsonl", "1");
+    const source = descriptor("git:test-source", "2");
+    const result = await runPhase74HaluMemUpdateProtection({
+      artifactPath: join(root, "run.json"),
+      configuration: config,
+      dataset,
+      rawArtifactPath: join(root, "raw.json"),
+      replicate: 1,
+      runId: "halumem-update-top-k",
+      source,
+      users: [users[0]!],
+    }, updateDependencies({ evaluate: 0, retrieve: 0 }));
+    const raw = JSON.parse(await readFile(result.rawArtifactPath, "utf8"));
+    const memories = Array.from({ length: 11 }, (_, index) => `fact-${index + 1}`);
+    raw.rows[0].candidate.rawOutput.memories = memories;
+    raw.rows[0].candidate.rawOutput.context = memories.join("\n");
+    raw.rows[0].candidate.rawOutput.contextTokens =
+      countPhase74HaluMemContextTokens(memories.join("\n"));
+    await rewriteRawArtifact({
+      artifactPath: result.artifactPath,
+      raw,
+      rawArtifactPath: result.rawArtifactPath,
+    });
+
+    await expect(verifyPhase74HaluMemUpdateProtectionArtifact({
+      artifactPath: result.artifactPath,
+      configuration: config,
+      dataset,
+      source,
+      users: [users[0]!],
+    })).rejects.toThrow("top-10");
   });
 
   it("scores real cross-user scope isolation with an owner-scope positive control", async () => {

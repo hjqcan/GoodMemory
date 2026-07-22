@@ -13,6 +13,7 @@ import type {
   MemoryScopeKind,
   ReferenceKind,
 } from "../domain/records";
+import { extractReferencePointer } from "../domain/referencePointer";
 import {
   splitClausesGeneric,
   normalizeUnicodeForEquality,
@@ -20,7 +21,7 @@ import {
 } from "./generic";
 import {
   acceptsEnglishEntityCandidate,
-  analyzeEnglishContent,
+  analyzeEnglishContent as analyzeEnglishContentBase,
   analyzeEnglishQuery,
   decomposeEnglishQuery,
   extractEnglishEntityMentions,
@@ -135,8 +136,8 @@ const PROJECT_POLICY_ACTION_PATTERN =
   /\b(?:must|shall|uses?|forbids?|allows?|defaults?|represents?|wraps?|leaves?|keeps?|routes?|rejects?|stores?|retains?|removes?|runs?|writes?|reads?|treats?|maps?|converts?|passes?\s+through)\b/iu;
 const PROJECT_POLICY_DECLARATION_PATTERN =
   /\b(?:the\s+)?(?:project|repository|repo)\s+policy\s*(?:(:|=)\s*([^\n]+)|mandates?\s+that\s+([^\n]+)|is\s+that\s+([^\n]+)|is\s+to\s+([^\n]+))/iu;
-const TECHNICAL_REFERENCE_PATTERN =
-  /(~\/\.goodmemory(?:\/[A-Za-z0-9_./-]+)?|\.goodmemory\/[A-Za-z0-9_./-]*|(?:docs|task-board|reports|scripts|src|tests)\/[A-Za-z0-9_./-]*|(?:README|AGENTS|CLAUDE)\.md)/u;
+const TECHNICAL_REFERENCE_DIRECTIVE_PATTERN =
+  /\b(?:consult|follow|refer(?:ence)?\s+to|reference|see|use)\b/iu;
 const DURABLE_INFERENCE_PATTERNS = [
   /\b(currently|still|blocked|failing|working on|responsible for)\b/i,
   /\b(workflows?|migrations?|production|prod|projects?|roadmaps?|deadlines?|launch(?:es)?)\b/i,
@@ -263,6 +264,20 @@ const ENGLISH_SUBJECT_CLAUSE_PATTERN =
   /\b(?:while|because|after|before|when|if)\b.*$/i;
 const ENGLISH_SUBJECT_PREDICATE_BOUNDARY_PATTERN =
   /\s+(?:is|are|was|were|remains?|stays?|needs?|requires?|has|have)\b/gi;
+
+function splitEnglishClauses(text: string): string[] {
+  return splitClausesGeneric(text)
+    .flatMap((clause) => clause.split(/,\s*\bbut\b\s+/iu))
+    .map((clause) => clause.trim())
+    .filter(Boolean);
+}
+
+function analyzeEnglishContent(content: string): LanguageContentAnalysis {
+  const analysis = analyzeEnglishContentBase(content);
+  return /^\s*(?:warning|caution)\s*:/iu.test(content)
+    ? { ...analysis, factPolarity: "negative" }
+    : analysis;
+}
 
 function deriveFactCategory(
   content: string,
@@ -1244,9 +1259,13 @@ function maybeExtractCandidatesFromClause(
     });
   }
 
-  const technicalReferenceMatch = trimmed.match(TECHNICAL_REFERENCE_PATTERN);
-  if (!hasSourceOfTruthReference && technicalReferenceMatch?.[1]) {
-    const pointer = technicalReferenceMatch[1];
+  const technicalReferencePointer = TECHNICAL_REFERENCE_DIRECTIVE_PATTERN.test(
+      trimmed,
+    )
+    ? extractReferencePointer(trimmed)
+    : undefined;
+  if (!hasSourceOfTruthReference && technicalReferencePointer) {
+    const pointer = technicalReferencePointer;
     candidates.push({
       id: nextId(),
       kindHint: "reference",
@@ -1301,7 +1320,7 @@ function maybeExtractCandidatesFromClause(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "10",
+    analyzerVersion: "12",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",
@@ -1313,7 +1332,7 @@ export function createEnglishLanguagePack(): LanguagePack {
         : "none";
     },
     splitClauses(text: string): string[] {
-      return splitClausesGeneric(text);
+      return splitEnglishClauses(text);
     },
     normalizeForEquality(text: string): string {
       return normalizeUnicodeForEquality(text);

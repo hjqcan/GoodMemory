@@ -1250,6 +1250,75 @@ describe("raw behavioral exemplars", () => {
     ).toContain("/home/alice/safe/new.txt");
   });
 
+  it("derives a scheme-only rewrite only from a failed move and a different safe scheme", () => {
+    const buildResolution = (safeScheme: "http" | "https") => {
+      const index = buildRawBehavioralPrototypeIndex({
+        memoryExport: {
+          durable: {
+            archives: [],
+            episodes: [],
+            experiences: [],
+          },
+          scope: baseScope,
+        },
+        surfaceHint: "text_response",
+        transientMessages: [
+          {
+            role: "user",
+            content: "Can you generate a URL using http?",
+          },
+          {
+            role: "assistant",
+            content: "Generating URL with http...",
+          },
+          {
+            role: "system",
+            content: "Warning: Insecure protocol detected.",
+          },
+          {
+            role: "user",
+            content: `Can you generate a URL using ${safeScheme}?`,
+          },
+          {
+            role: "assistant",
+            content: `Generating URL with ${safeScheme}...`,
+          },
+          {
+            role: "system",
+            content: "URL created successfully.",
+          },
+        ],
+      });
+
+      return resolveRawBehavioralCarryover({
+        index,
+        query: "Can you generate a URL for my website?",
+        surfaceFamily: "text_response",
+      });
+    };
+
+    const corrected = buildResolution("https");
+    expect(
+      applyTextResponseEnactmentPlan({
+        answer: "Use http://example.com.",
+        plan: corrected.packet?.textResponsePlan,
+        query: "Can you generate a URL for my website?",
+      }),
+    ).toBe("Use https://example.com.");
+
+    const sameScheme = buildResolution("http");
+    expect(sameScheme.debug.mode).toBe("exemplar_only");
+    expect(
+      sameScheme.packet?.textResponsePlan?.operations.some((operation) =>
+        operation.kind === "rewrite_output_slot" &&
+        operation.replacementPairs?.some(
+          (replacement) =>
+            replacement.from === "http://" && replacement.to === "https://",
+        ),
+      ) ?? false,
+    ).toBe(false);
+  });
+
   it("compiles corrected timeout experience into inhibition plus preferred replacement", () => {
     const index = buildRawBehavioralPrototypeIndex({
       memoryExport: {

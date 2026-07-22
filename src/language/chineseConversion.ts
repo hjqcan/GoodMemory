@@ -3,7 +3,7 @@ import {
   tokenizeUnicodeText,
 } from "./generic";
 
-export const CHINESE_ANALYZER_VERSION = "11-reference-pointer";
+export const CHINESE_ANALYZER_VERSION = "12-directive-pointer-boundary";
 
 export function normalizeChineseForEquality(text: string): string {
   return normalizeUnicodeForEquality(text);

@@ -47,6 +47,11 @@ const PRODUCTION_MEMORY_DIRECTORIES = [
   "remember",
   "runtime",
 ] as const;
+const LANGUAGE_RULE_SCAN_EXCLUDED_PREFIXES = [
+  "eval/",
+  "language/",
+  "testing/",
+] as const;
 const BENCHMARK_METADATA_IDENTIFIERS = new Set([
   "caseId",
   "expectedAnswer",
@@ -184,9 +189,24 @@ function collectNaturalLanguageRuleLiterals(input: {
       const words = node.getText(sourceFile)
         .match(/[A-Za-z][A-Za-z'’-]*/gu)
         ?.map((word) => word.toLowerCase()) ?? [];
+      const splitCall = ts.isCallExpression(node.parent) &&
+          node.parent.arguments.includes(node) &&
+          ts.isPropertyAccessExpression(node.parent.expression) &&
+          node.parent.expression.name.text === "split"
+        ? node.parent
+        : undefined;
+      const containsNaturalLanguageSeparator = Boolean(
+        splitCall && (
+          /\\bbut\\b/iu.test(node.text) ||
+          /[，；]|\\u(?:FF0C|FF1B)/iu.test(node.text)
+        ),
+      );
       if (
         !isTechnicalLabelGrammar &&
-        new Set(words.filter((word) => NATURAL_LANGUAGE_RULE_TERMS.has(word))).size >= 2
+        (
+          containsNaturalLanguageSeparator ||
+          new Set(words.filter((word) => NATURAL_LANGUAGE_RULE_TERMS.has(word))).size >= 2
+        )
       ) {
         offenders.push(`${input.file}:${sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1}`);
       }
@@ -391,6 +411,18 @@ describe("architecture boundaries", () => {
     })).toEqual(["sample.ts:1"]);
   });
 
+  it("detects natural-language clause separators outside language packs", () => {
+    expect(collectNaturalLanguageRuleLiterals({
+      file: "sample.ts",
+      source: String.raw`export const split = (text: string) => text.split(/[;]+|\bbut\b/iu);`,
+    })).toEqual(["sample.ts:1"]);
+
+    expect(collectNaturalLanguageRuleLiterals({
+      file: "sample.ts",
+      source: String.raw`export const split = (text: string) => text.split(/[，；]+/u);`,
+    })).toEqual(["sample.ts:1"]);
+  });
+
   it("keeps built-in language analyzers free of runtime NLP dependencies", async () => {
     const packageJson = JSON.parse(
       await readFile(join(import.meta.dir, "../../package.json"), "utf8"),
@@ -481,12 +513,15 @@ describe("architecture boundaries", () => {
 
   it("keeps ASCII natural-language rule matching inside the language boundary", async () => {
     const offenders: string[] = [];
-    for (const relativePath of [
-      "evolution/behavioralPolicy.ts",
-      "evolution/rawBehavioralExemplars.ts",
-      "http/index.ts",
-    ]) {
-      const source = await readSource(join(SRC_ROOT, relativePath));
+    const files = await collectTypeScriptFiles(SRC_ROOT);
+    for (const file of files) {
+      const relativePath = toSourceRelativePath(file);
+      if (LANGUAGE_RULE_SCAN_EXCLUDED_PREFIXES.some((prefix) =>
+        relativePath.startsWith(prefix)
+      )) {
+        continue;
+      }
+      const source = await readSource(file);
       offenders.push(...collectNaturalLanguageRuleLiterals({
         file: relativePath,
         source,
