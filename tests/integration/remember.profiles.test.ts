@@ -237,6 +237,121 @@ describe("public remember profile customization", () => {
     });
   });
 
+  it("allows verified extracted assistant facts without forcing unextracted messages", async () => {
+    const memory = createGoodMemory({
+      adapters: {
+        assistedExtractor: {
+          async extract() {
+            return {
+              candidates: [{
+                content: "The deployment finished after the migration completed.",
+                explicitness: "explicit",
+                id: "assistant-fact",
+                kindHint: "fact",
+                sourceMessageIndex: 0,
+                sourceRole: "assistant",
+              }],
+              ignoredMessageCount: 1,
+            };
+          },
+        },
+      },
+      remember: {
+        profiles: [{
+          assistantOutputs: { mode: "confirmed_or_verified_only" },
+          id: "external-evidence",
+        }],
+      },
+      storage: { provider: "memory" },
+      testing: {
+        extractor: {
+          async extract() {
+            return { candidates: [], ignoredMessageCount: 2 };
+          },
+        },
+      },
+    });
+    const scope = { userId: "u-external-evidence" };
+
+    const result = await memory.remember({
+      annotations: [0, 1].map((messageIndex) => ({
+        confirmed: true,
+        messageIndex,
+        remember: "auto" as const,
+        verified: true,
+      })),
+      extractionStrategy: "llm-assisted",
+      messages: [
+        {
+          content: "The deployment finished after the migration completed.",
+          role: "assistant",
+        },
+        {
+          content: "Happy to help.",
+          role: "assistant",
+        },
+      ],
+      scope,
+    });
+    const exported = await memory.exportMemory({ scope });
+
+    expect(result.accepted).toBe(1);
+    expect(exported.durable.facts).toHaveLength(1);
+    expect(exported.durable.facts[0]?.content).toBe(
+      "The deployment finished after the migration completed.",
+    );
+    expect(exported.durable.facts[0]?.content).not.toBe("Happy to help.");
+  });
+
+  it("keeps unverified and never-annotated assistant candidates blocked", async () => {
+    const memory = createGoodMemory({
+      remember: {
+        profiles: [{
+          assistantOutputs: { mode: "confirmed_or_verified_only" },
+          id: "external-evidence",
+        }],
+      },
+      storage: { provider: "memory" },
+      testing: {
+        extractor: {
+          async extract() {
+            return {
+              candidates: [{
+                content: "The deployment finished.",
+                explicitness: "explicit",
+                id: "assistant-fact",
+                kindHint: "fact",
+                sourceMessageIndex: 0,
+                sourceRole: "assistant",
+              }],
+              ignoredMessageCount: 0,
+            };
+          },
+        },
+      },
+    });
+
+    const unverified = await memory.remember({
+      annotations: [{ messageIndex: 0, remember: "auto" }],
+      messages: [{ content: "The deployment finished.", role: "assistant" }],
+      scope: { userId: "u-unverified" },
+    });
+    const never = await memory.remember({
+      annotations: [{
+        confirmed: true,
+        messageIndex: 0,
+        remember: "never",
+        verified: true,
+      }],
+      messages: [{ content: "The deployment finished.", role: "assistant" }],
+      scope: { userId: "u-never" },
+    });
+
+    expect(unverified.accepted).toBe(0);
+    expect(unverified.events[0]?.reason).toBe("assistant_policy_blocked");
+    expect(never.accepted).toBe(0);
+  });
+
   it("persists preference metadata produced by public rules", async () => {
     const memory = createGoodMemory({
       storage: { provider: "memory" },

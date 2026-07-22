@@ -11,6 +11,7 @@ import {
   buildPhase74IngestionKey,
   buildPhase74IngestionUsagePaths,
   buildPhase74IngestionUsageFingerprint,
+  buildPhase74IngestionAnnotations,
   buildPhase74LabelFreeScope,
   buildPhase74RetrievalSnapshotId,
   createPhase74FullRetrievalRuntime,
@@ -59,6 +60,49 @@ const base = {
 } as const;
 
 describe("Phase 74 full ingestion identity", () => {
+  it("forces raw evidence only for the raw representation", () => {
+    const messages = [
+      { content: "User fact", role: "user" as const },
+      { content: "Assistant fact", role: "assistant" as const },
+    ];
+
+    expect(buildPhase74IngestionAnnotations({
+      messages,
+      representation: "raw-only",
+    })).toEqual([
+      {
+        confirmed: true,
+        kindHint: "fact",
+        messageIndex: 0,
+        reason: "Preserve immutable external benchmark evidence.",
+        remember: "always",
+        verified: true,
+      },
+      {
+        confirmed: true,
+        kindHint: "fact",
+        messageIndex: 1,
+        reason: "Preserve immutable external benchmark evidence.",
+        remember: "always",
+        verified: true,
+      },
+    ]);
+    for (const representation of [
+      "fact-only",
+      "atomic-contextual-raw-pointer",
+    ]) {
+      expect(buildPhase74IngestionAnnotations({
+        messages,
+        representation,
+      })).toEqual([{
+        confirmed: true,
+        messageIndex: 1,
+        remember: "auto",
+        verified: true,
+      }]);
+    }
+  });
+
   it("fails closed when a retrieved memory loses its immutable source pointer", () => {
     expect(() => assertPhase74RetrievedProvenance([{
       id: "fact-1",
@@ -385,7 +429,7 @@ describe("Phase 74 full ingestion identity", () => {
     try {
       await writeFile(manifestPath, JSON.stringify({
         key,
-        schemaVersion: 7,
+        schemaVersion: 8,
         usage: buildPhase74IngestionUsageFingerprint(ledger),
       }));
       await expect(verifyPhase74IngestionUsageManifest({
@@ -396,7 +440,7 @@ describe("Phase 74 full ingestion identity", () => {
 
       await writeFile(manifestPath, JSON.stringify({
         key,
-        schemaVersion: 7,
+        schemaVersion: 8,
         usage: {
           ...buildPhase74IngestionUsageFingerprint(ledger),
           eventCount: 0,

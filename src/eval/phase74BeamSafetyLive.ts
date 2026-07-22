@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { z } from "zod";
 
 import {
@@ -80,6 +82,23 @@ const BASELINE_ARM = "recall-plan-off" as const;
 const CANDIDATE_ARM = "recall-plan-deterministic" as const;
 const PIPELINE_RUNTIME_ID = "phase74-full-retrieval-runtime-v1";
 const READER_ID = "phase74-beam-query-only-protocol-reader-v1";
+const PHASE74_BEAM_FULL_100K_EXPORT_SHA256 =
+  "23a7b6bd1e69f775989df7a82f4f8441ce79e233fe88b858b451c1f23e71c162";
+
+export const PHASE74_BEAM_FULL_100K_DATASET_PROVENANCE = Object.freeze({
+  deterministicExport: Object.freeze({
+    format: "hf-datasets-server-rows-array-pretty-json-v1",
+    sha256: PHASE74_BEAM_FULL_100K_EXPORT_SHA256,
+  }),
+  huggingFace: Object.freeze({
+    parquetLfsSha256:
+      "c0519be25907005ba873c927c50877471d550873039d96c041554d0075a78ace",
+    parquetPath: "data/100K-00000-of-00001.parquet",
+    repository: "Mohammadta/BEAM",
+    revision: "3205395e897e7318c7b094ef4e6047b9b82dbb03",
+  }),
+  schemaVersion: 1,
+} as const);
 
 export interface Phase74BeamSafetyLiveSpec {
   configurations: {
@@ -87,6 +106,7 @@ export interface Phase74BeamSafetyLiveSpec {
     candidate: EvalRunJsonObject;
   };
   contract: Phase74BeamSafetyContract;
+  datasetProvenance: typeof PHASE74_BEAM_FULL_100K_DATASET_PROVENANCE;
   schemaVersion: 1;
 }
 
@@ -124,6 +144,22 @@ function sameValue(left: unknown, right: unknown): boolean {
   return hashPhase74ProtectionValue(left) === hashPhase74ProtectionValue(right);
 }
 
+export function assertPhase74BeamFull100kDatasetSha256(value: string): void {
+  if (value !== PHASE74_BEAM_FULL_100K_EXPORT_SHA256) {
+    throw new Error(
+      "Phase 74 BEAM formal runs require the official deterministic export SHA-256.",
+    );
+  }
+}
+
+export function assertPhase74BeamFull100kDatasetBytes(
+  value: Uint8Array,
+): void {
+  assertPhase74BeamFull100kDatasetSha256(
+    createHash("sha256").update(value).digest("hex"),
+  );
+}
+
 export function buildPhase74BeamSafetyLiveSpec(input: {
   dataset: Phase74ProtectionIdentityDescriptor;
   models: Phase74LiveModels;
@@ -134,6 +170,7 @@ export function buildPhase74BeamSafetyLiveSpec(input: {
       `Phase 74 BEAM live wiring requires ${PHASE74_BEAM_FULL_100K_DATASET_ID}.`,
     );
   }
+  assertPhase74BeamFull100kDatasetSha256(input.dataset.sha256);
   const configurations = buildPhase74StageConfigurations({}, "E3");
   const baseline = configurations[BASELINE_ARM]!;
   const candidate = configurations[CANDIDATE_ARM]!;
@@ -191,6 +228,7 @@ export function buildPhase74BeamSafetyLiveSpec(input: {
   return {
     configurations: { baseline, candidate },
     contract,
+    datasetProvenance: PHASE74_BEAM_FULL_100K_DATASET_PROVENANCE,
     schemaVersion: 1,
   };
 }
@@ -199,6 +237,7 @@ export function buildPhase74BeamSafetyLiveRunIdentity(input: {
   datasetBytes: Uint8Array;
   spec: Phase74BeamSafetyLiveSpec;
 }): Phase74ProtectionRunIdentity {
+  assertPhase74BeamFull100kDatasetBytes(input.datasetBytes);
   return buildPhase74BeamSafetyProtectionRunIdentity({
     contract: input.spec.contract,
     datasetBytes: input.datasetBytes,

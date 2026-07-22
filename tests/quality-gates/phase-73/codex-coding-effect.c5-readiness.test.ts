@@ -2,8 +2,8 @@ import { describe, expect, it, setDefaultTimeout } from "bun:test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { loadC5PilotReadiness } from "../../scripts/codex-coding-effect/c5-readiness";
-import { withAcceptedC4ReadinessFixture } from "../support/codex-coding-effect-c4-readiness-fixture";
+import { loadC5PilotReadiness } from "../../../scripts/codex-coding-effect/c5-readiness";
+import { withAcceptedC4ReadinessFixture } from "../../support/codex-coding-effect-c4-readiness-fixture";
 
 const DATASET_ROOT = "fixtures/codex-coding-effect/c4-controlled-pilot";
 

@@ -249,6 +249,11 @@ attestation. Final gate SHA bindings are tracked under
 113 episodes, 339 scored stages, 6 repositories, 3 seeds, and 2034 Codex calls.
 Token usage is accounted, but dollar cost remains null because no model-price
 snapshot was frozen.
+[DONE] The 2,359-line C5 projection/verifier/mutation replay and repeated C5
+readiness materialization moved to the explicit `bun run test:phase-73-gates`
+suite under `tests/quality-gates/`. Canonical `bun test` retains the fast
+tracked-evidence release contract but no longer spends roughly 20 minutes on
+the full evidence replay or several minutes rebuilding readiness fixtures.
 [BOUNDARY] C5 is accepted only as `internal-native-longitudinal-pilot`
 evidence. The controlled synthetic pilot, six incomparable pairs, opaque
 process-only source preimages, and absent external-authenticity proof keep

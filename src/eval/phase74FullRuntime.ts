@@ -20,7 +20,10 @@ import type {
   RememberResult,
 } from "../api/contracts";
 import type { MemoryScope } from "../domain/scope";
-import type { MemoryExtractor } from "../remember/candidates";
+import type {
+  MemoryExtractor,
+  MessageAnnotation,
+} from "../remember/candidates";
 import {
   createProviderConversationalMemoryExtractor,
   createProviderEmbeddingAdapter,
@@ -157,7 +160,7 @@ export function buildPhase74IngestionKey(
 ): string {
   return sha256(canonicalJson({
     ...input,
-    schemaVersion: 7,
+    schemaVersion: 8,
   }));
 }
 
@@ -206,7 +209,7 @@ export async function verifyPhase74IngestionUsageManifest(input: {
   };
   if (
     manifest.key !== input.ingestionKey ||
-    manifest.schemaVersion !== 7 ||
+    manifest.schemaVersion !== 8 ||
     canonicalJson(manifest.usage) !== canonicalJson(
       buildPhase74IngestionUsageFingerprint(input.ledger),
     )
@@ -471,6 +474,7 @@ function createMemory(input: {
 async function seedMemory(input: {
   memory: GoodMemory;
   extractionStrategy: "llm-assisted" | "rules-only";
+  representation: string;
   testCase: Phase74RecallCase;
 }): Promise<void> {
   const scope = buildPhase74LabelFreeScope(input.testCase);
@@ -487,14 +491,10 @@ async function seedMemory(input: {
       role: item.role === "assistant" ? "assistant" as const : "user" as const,
     }));
     const result = await input.memory.remember({
-      annotations: messages.map((_, messageIndex) => ({
-        confirmed: true,
-        kindHint: "fact" as const,
-        messageIndex,
-        reason: "Preserve immutable external benchmark evidence.",
-        remember: "always" as const,
-        verified: true,
-      })),
+      annotations: buildPhase74IngestionAnnotations({
+        messages,
+        representation: input.representation,
+      }),
       extractionStrategy: input.extractionStrategy,
       messages,
       scope: { ...scope, sessionId },
@@ -504,6 +504,32 @@ async function seedMemory(input: {
       result,
     });
   }
+}
+
+export function buildPhase74IngestionAnnotations(input: {
+  messages: readonly { role: string }[];
+  representation: string;
+}): MessageAnnotation[] {
+  if (input.representation === "raw-only") {
+    return input.messages.map((_, messageIndex) => ({
+      confirmed: true,
+      kindHint: "fact",
+      messageIndex,
+      reason: "Preserve immutable external benchmark evidence.",
+      remember: "always",
+      verified: true,
+    }));
+  }
+  return input.messages.flatMap((message, messageIndex) =>
+    message.role === "assistant"
+      ? [{
+          confirmed: true,
+          messageIndex,
+          remember: "auto" as const,
+          verified: true,
+        }]
+      : []
+  );
 }
 
 export function assertPhase74IngestionRememberResult(input: {
@@ -677,6 +703,7 @@ export function createPhase74FullRetrievalRuntime(input: {
       await seedMemory({
         extractionStrategy: runtime.extractionStrategy,
         memory: runtime.memory,
+        representation,
         testCase,
       });
       const completedLedger = {
@@ -687,7 +714,7 @@ export function createPhase74FullRetrievalRuntime(input: {
         key,
         memoryGroupId,
         representation,
-        schemaVersion: 7,
+        schemaVersion: 8,
         sourceMessageCount: testCase.rawEvidence.length,
         usage: buildPhase74IngestionUsageFingerprint(completedLedger),
       }, null, 2)}\n`, { encoding: "utf8", flag: "wx" });

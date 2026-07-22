@@ -284,12 +284,12 @@ export function createRememberEngine(config: RememberEngineConfig) {
     }
 
     const annotation = findAnnotation(input, candidate.sourceMessageIndex);
-    if (!annotation || annotation.remember !== "always") {
+    if (!annotation || annotation.remember === "never") {
       return false;
     }
 
     if (profile.assistantOutputs.mode === "host_tagged_only") {
-      return true;
+      return annotation.remember === "always";
     }
 
     if (profile.assistantOutputs.mode === "confirmed_only") {

@@ -5274,6 +5274,14 @@ describe("release metadata and docs", () => {
       import.meta.dir,
       "../quality-gates/phase-73/codex-coding-effect.c5-evidence.test.ts",
     );
+    const oldReadinessPath = join(
+      import.meta.dir,
+      "../integration/codex-coding-effect.c5-readiness.test.ts",
+    );
+    const gateReadinessPath = join(
+      import.meta.dir,
+      "../quality-gates/phase-73/codex-coding-effect.c5-readiness.test.ts",
+    );
 
     expect(bunfig).toContain(
       'pathIgnorePatterns = ["tests/quality-gates/**"]',
@@ -5286,5 +5294,7 @@ describe("release metadata and docs", () => {
     );
     expect(await Bun.file(oldPath).exists()).toBe(false);
     expect(await Bun.file(gatePath).exists()).toBe(true);
+    expect(await Bun.file(oldReadinessPath).exists()).toBe(false);
+    expect(await Bun.file(gateReadinessPath).exists()).toBe(true);
   });
 });

@@ -1,22 +1,18 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
   PHASE74_BEAM_FULL_100K_DATASET_ID,
-  PHASE74_BEAM_SAFETY_METRICS,
-  PHASE74_BEAM_SAFETY_SUITE,
-  PHASE74_BEAM_SAFETY_VERIFIER_ID,
 } from "../../src/eval/phase74BeamSafetyProtection";
 import {
-  buildPhase74BeamSafetyLiveRunIdentity,
   buildPhase74BeamSafetyLiveSpec,
   createPhase74BeamGroundednessJudge,
   createPhase74BeamProtocolReader,
   createPhase74BeamSafetyLiveDependencies,
+  PHASE74_BEAM_FULL_100K_DATASET_PROVENANCE,
   PHASE74_BEAM_PROTOCOL_READER_SYSTEM_PROMPT,
 } from "../../src/eval/phase74BeamSafetyLive";
 import type {
@@ -28,14 +24,12 @@ import type {
 } from "../../src/eval/modelUsage";
 import type { Phase74LiveModels } from "../../src/eval/phase74Live";
 import {
-  hashPhase74ProtectionSuiteIdentity,
-} from "../../src/eval/phase74ProtectionSuiteEvidence";
-import {
   parsePhase74ProtectionEvidenceCliOptions,
 } from "../../scripts/build-phase-74-protection-evidence";
 import {
   parsePhase74BeamSafetyProtectionCliOptions,
   runPhase74BeamSafetyProtectionCli,
+  verifyPhase74BeamSafetyLiveRun,
 } from "../../scripts/run-phase-74-beam-safety-protection";
 
 const roots: string[] = [];
@@ -139,45 +133,6 @@ function fullDataset(): Uint8Array {
   return Buffer.from(`${JSON.stringify(rows)}\n`);
 }
 
-function manifest(input: {
-  datasetPath: string;
-  datasetSha256: string;
-  identityHash: string;
-}) {
-  const dataset = {
-    id: PHASE74_BEAM_FULL_100K_DATASET_ID,
-    path: input.datasetPath,
-    sha256: input.datasetSha256,
-  };
-  const placeholder = (id: string, kind: string, metrics: string[]) => ({
-    dataset,
-    id,
-    identityHash: "1".repeat(64),
-    kind,
-    requiredMetrics: metrics,
-    verifierId: `${id}-verifier`,
-  });
-  return {
-    admission: "canonical-verifier-bound-v1",
-    artifactKind: "phase74-protection-suite-manifest",
-    schemaVersion: 2,
-    suites: [
-      {
-        dataset,
-        id: PHASE74_BEAM_SAFETY_SUITE.id,
-        identityHash: input.identityHash,
-        kind: PHASE74_BEAM_SAFETY_SUITE.kind,
-        requiredMetrics: [...PHASE74_BEAM_SAFETY_METRICS],
-        verifierId: PHASE74_BEAM_SAFETY_VERIFIER_ID,
-      },
-      placeholder("mab", "benchmark-protection", ["retrieval"]),
-      placeholder("halumem-e4", "e4", ["qa"]),
-      placeholder("halumem-update", "safety", ["updateCorrectness"]),
-      placeholder("halumem-privacy", "safety", ["privacyPassRate"]),
-    ],
-  };
-}
-
 function jsonResponse(content: unknown): Response {
   return new Response(JSON.stringify({
     choices: [{ message: { content: typeof content === "string"
@@ -234,7 +189,8 @@ describe("Phase 74 BEAM safety live wiring", () => {
     const spec = buildPhase74BeamSafetyLiveSpec({
       dataset: {
         id: PHASE74_BEAM_FULL_100K_DATASET_ID,
-        sha256: "a".repeat(64),
+        sha256:
+          PHASE74_BEAM_FULL_100K_DATASET_PROVENANCE.deterministicExport.sha256,
       },
       models: liveModels,
       source: { id: `git:${"b".repeat(40)}`, sha256: "c".repeat(64) },
@@ -380,8 +336,33 @@ describe("Phase 74 BEAM safety live wiring", () => {
       "24",
     ])).toMatchObject({
       caseConcurrency: 24,
+      mode: "live",
       replicate: 1,
       runId: "beam-r1",
+    });
+    expect(parsePhase74BeamSafetyProtectionCliOptions([
+      "bun",
+      "script",
+      "--preflight-only",
+      "--dataset-path",
+      join(root, "100K.json"),
+      "--output-dir",
+      join(root, "preflight"),
+      "--run-id",
+      "beam-preflight",
+    ])).toMatchObject({
+      mode: "preflight",
+      runId: "beam-preflight",
+    });
+    expect(parsePhase74BeamSafetyProtectionCliOptions([
+      "bun",
+      "script",
+      "--verify-only",
+      "--run-directory",
+      join(root, "run"),
+    ])).toEqual({
+      mode: "verify",
+      runDirectory: join(root, "run"),
     });
     expect(() => parsePhase74BeamSafetyProtectionCliOptions([
       "bun",
@@ -420,106 +401,147 @@ describe("Phase 74 BEAM safety live wiring", () => {
     expect(await readFile(contractPath, "utf8")).toBe("{}\n");
   });
 
-  it("matches the pre-bound manifest and writes identity before live providers are created", async () => {
+  it("pins the official HF revision, parquet LFS object, and deterministic export", () => {
+    expect(PHASE74_BEAM_FULL_100K_DATASET_PROVENANCE).toEqual({
+      deterministicExport: {
+        format: "hf-datasets-server-rows-array-pretty-json-v1",
+        sha256:
+          "23a7b6bd1e69f775989df7a82f4f8441ce79e233fe88b858b451c1f23e71c162",
+      },
+      huggingFace: {
+        parquetLfsSha256:
+          "c0519be25907005ba873c927c50877471d550873039d96c041554d0075a78ace",
+        parquetPath: "data/100K-00000-of-00001.parquet",
+        repository: "Mohammadta/BEAM",
+        revision: "3205395e897e7318c7b094ef4e6047b9b82dbb03",
+      },
+      schemaVersion: 1,
+    });
+    expect(() => buildPhase74BeamSafetyLiveSpec({
+      dataset: {
+        id: PHASE74_BEAM_FULL_100K_DATASET_ID,
+        sha256: sha256(fullDataset()),
+      },
+      models: models(),
+      source: { id: `git:${"b".repeat(40)}`, sha256: "c".repeat(64) },
+    })).toThrow("official deterministic export SHA-256");
+  });
+
+  it("rejects a shape-correct synthetic preflight before models, fetch, or providers", async () => {
     const root = await createRoot();
     const datasetPath = join(root, "100K.json");
-    const manifestPath = join(root, "manifest.json");
     const outputDir = join(root, "out");
     const datasetBytes = fullDataset();
     await writeFile(datasetPath, datasetBytes);
-    const evaluatorSource = {
-      commit: "b".repeat(40),
-      sha256: "c".repeat(64),
-    };
-    const spec = buildPhase74BeamSafetyLiveSpec({
-      dataset: {
-        id: PHASE74_BEAM_FULL_100K_DATASET_ID,
-        sha256: sha256(datasetBytes),
-      },
-      models: models(),
-      source: {
-        id: `git:${evaluatorSource.commit}`,
-        sha256: evaluatorSource.sha256,
-      },
-    });
-    const identityHash = hashPhase74ProtectionSuiteIdentity(
-      buildPhase74BeamSafetyLiveRunIdentity({ datasetBytes, spec }),
-    );
-    await writeFile(manifestPath, `${JSON.stringify(manifest({
+    const calls = { capture: 0, fetch: 0, providers: 0, resolveModels: 0 };
+
+    await expect(runPhase74BeamSafetyProtectionCli({
       datasetPath,
-      datasetSha256: sha256(datasetBytes),
-      identityHash,
-    }), null, 2)}\n`);
-    let identityExistedBeforeProviderFactory = false;
-    let providerCalls = 0;
-    const result = await runPhase74BeamSafetyProtectionCli({
-      caseConcurrency: 16,
-      datasetPath,
-      embeddingSpendLimitUsd: 1,
-      manifestPath,
-      maxLanguageCalls: 1000,
+      mode: "preflight",
       outputDir,
-      replicate: 1,
-      runId: "beam-live-r1",
+      runId: "beam-preflight",
     }, {
-      captureEvaluatorSource: async () => evaluatorSource,
-      createLiveDependencies: ({ runDirectory }) => {
-        identityExistedBeforeProviderFactory = existsSync(
-          join(runDirectory, "run-identity.json"),
-        );
-        return {
-          createPipeline: () => ({
-            run: async () => {
-              providerCalls += 1;
-              return { rawAnswer: "No answer.", retrievedEvidenceIds: [] };
-            },
-          }),
-          judgeGroundedness: async () => {
-            providerCalls += 1;
-            return {
-              rationale: "The answer abstains.",
-              schemaVersion: 1,
-              verdict: "grounded",
-            };
-          },
-        };
+      captureEvaluatorSource: async () => {
+        calls.capture += 1;
+        throw new Error("source capture must happen only after dataset provenance");
       },
-      resolveModels: models,
-    });
-
-    expect(identityExistedBeforeProviderFactory).toBe(true);
-    expect(providerCalls).toBe(160);
-    expect(result.result.artifact.executionFailures).toBe(0);
-    expect(existsSync(result.contractPath)).toBe(true);
-    expect(existsSync(result.summaryPath)).toBe(true);
-    const runIdentity = JSON.parse(await readFile(result.identityPath, "utf8"));
-    expect(runIdentity.caseConcurrency).toBe(16);
-    expect(runIdentity.protectionIdentityHash).toBe(identityHash);
-
-    const tamperedManifestPath = join(root, "tampered-manifest.json");
-    await writeFile(tamperedManifestPath, `${JSON.stringify(manifest({
-      datasetPath,
-      datasetSha256: sha256(datasetBytes),
-      identityHash: "f".repeat(64),
-    }), null, 2)}\n`);
-    let tamperedFactoryCalls = 0;
+      createLiveDependencies: () => {
+        calls.providers += 1;
+        throw new Error("preflight must not create providers");
+      },
+      fetch: Object.assign(async () => {
+        calls.fetch += 1;
+        throw new Error("preflight must not fetch");
+      }, { preconnect() {} }),
+      resolveModels: () => {
+        calls.resolveModels += 1;
+        throw new Error("preflight must not resolve models");
+      },
+    })).rejects.toThrow("official deterministic export SHA-256");
     await expect(runPhase74BeamSafetyProtectionCli({
       caseConcurrency: 16,
       datasetPath,
       embeddingSpendLimitUsd: 1,
-      manifestPath: tamperedManifestPath,
-      maxLanguageCalls: 1000,
+      manifestPath: join(root, "manifest.json"),
+      maxLanguageCalls: 1_000,
+      mode: "live",
       outputDir,
-      replicate: 2,
-      runId: "beam-live-r2",
+      replicate: 1,
+      runId: "beam-live",
     }, {
-      captureEvaluatorSource: async () => evaluatorSource,
-      createLiveDependencies: () => {
-        tamperedFactoryCalls += 1;
-        throw new Error("must not create providers");
+      captureEvaluatorSource: async () => {
+        calls.capture += 1;
+        throw new Error("source capture must happen only after dataset provenance");
       },
-      resolveModels: models,
-    })).rejects.toThrow("does not match the pre-bound manifest");
-    expect(tamperedFactoryCalls).toBe(0);
+      createLiveDependencies: () => {
+        calls.providers += 1;
+        throw new Error("live run must reject synthetic data before providers");
+      },
+      fetch: Object.assign(async () => {
+        calls.fetch += 1;
+        throw new Error("live run must reject synthetic data before fetch");
+      }, { preconnect() {} }),
+      resolveModels: () => {
+        calls.resolveModels += 1;
+        throw new Error("live run must reject synthetic data before models");
+      },
+    })).rejects.toThrow("official deterministic export SHA-256");
+    expect(calls).toEqual({
+      capture: 0,
+      fetch: 0,
+      providers: 0,
+      resolveModels: 0,
+    });
+  });
+
+  it("verify-only rejects forged provenance offline without resolving providers", async () => {
+    const root = await createRoot();
+    const runDirectory = join(root, "run");
+    const datasetPath = join(root, "100K.json");
+    await mkdir(runDirectory);
+    await writeFile(datasetPath, fullDataset());
+    await writeFile(join(runDirectory, "run-identity.json"), `${JSON.stringify({
+      artifactKind: "phase74-beam-safety-live-run-identity",
+      dataset: {
+        id: PHASE74_BEAM_FULL_100K_DATASET_ID,
+        path: datasetPath,
+        provenance: PHASE74_BEAM_FULL_100K_DATASET_PROVENANCE,
+        sha256:
+          PHASE74_BEAM_FULL_100K_DATASET_PROVENANCE.deterministicExport.sha256,
+      },
+      schemaVersion: 1,
+    })}\n`);
+    const calls = { capture: 0, fetch: 0, providers: 0, resolveModels: 0 };
+
+    await expect(runPhase74BeamSafetyProtectionCli({
+      mode: "verify",
+      runDirectory,
+    }, {
+      captureEvaluatorSource: async () => {
+        calls.capture += 1;
+        throw new Error("verify-only must not capture source");
+      },
+      createLiveDependencies: () => {
+        calls.providers += 1;
+        throw new Error("verify-only must not create providers");
+      },
+      fetch: Object.assign(async () => {
+        calls.fetch += 1;
+        throw new Error("verify-only must not fetch");
+      }, { preconnect() {} }),
+      resolveModels: () => {
+        calls.resolveModels += 1;
+        throw new Error("verify-only must not resolve models");
+      },
+    })).rejects.toThrow("official deterministic export SHA-256");
+    expect(calls).toEqual({
+      capture: 0,
+      fetch: 0,
+      providers: 0,
+      resolveModels: 0,
+    });
+    await expect(verifyPhase74BeamSafetyLiveRun(runDirectory)).rejects.toThrow(
+      "official deterministic export SHA-256",
+    );
   });
 });

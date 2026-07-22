@@ -105,8 +105,9 @@ drafts under `docs/archive/design-inputs/` are not current truth.
 
 ## Build, Test, and Development Commands
 
-- `bun test`: run the canonical repository suite rooted at `tests/` via `bunfig.toml`; this is the default red/green path in local work and CI.
+- `bun test`: run the canonical repository suite rooted at `tests/` via `bunfig.toml`; this is the default red/green path in local work and CI, excluding explicit quality-gate replays under `tests/quality-gates/`.
 - `bun run test:all`: sweep `tests/` plus vendored `third-party/` trees with the broad-root Bun config when you intentionally want the wider pass.
+- `bun run test:phase-73-gates`: run the expensive Phase 73 C5 readiness materialization, projection, independent-verifier, and mutation replay suite excluded from the canonical red/green loop.
 - `bun run test:watch`: rerun the canonical suite during local development.
 - `bun run test:coverage`: run the canonical suite with coverage gates, then enforce script/source coverage via `scripts/check-coverage.ts`.
 - `bun run typecheck`: run strict TypeScript checks with `tsc --noEmit`.
@@ -129,7 +130,7 @@ Use TypeScript with ESM imports, strict typing, and ASCII by default. Follow the
 
 ## Testing Guidelines
 
-TDD is mandatory here: add a failing test first, then implement. Put pure logic in `tests/unit/`, API and storage flows in `tests/integration/`, replay coverage in `tests/scenarios/`, product-level regressions in `tests/eval/`, and CLI/package/type-surface checks in `tests/cli/`, `tests/examples/`, `tests/release/`, and `tests/types/`. Live Postgres coverage requires `GOODMEMORY_TEST_POSTGRES_URL`; otherwise those suites are skipped. Generic `eval:live-memory` runs require the live eval/judge env vars plus `GOODMEMORY_EMBEDDING_*` and `GOODMEMORY_ASSISTED_EXTRACTOR_*`, while explicit provider-backed runs such as `eval:live-provider-memory` and phase-specific `*-live-memory` runners also require `GOODMEMORY_TEST_POSTGRES_URL`. Run `bun test` and `bun run typecheck` before opening a PR; use `bun run test:coverage` for release-facing changes.
+TDD is mandatory here: add a failing test first, then implement. Put pure logic in `tests/unit/`, API and storage flows in `tests/integration/`, replay coverage in `tests/scenarios/`, product-level regressions in `tests/eval/`, explicit slow evidence replays in `tests/quality-gates/`, and CLI/package/type-surface checks in `tests/cli/`, `tests/examples/`, `tests/release/`, and `tests/types/`. Live Postgres coverage requires `GOODMEMORY_TEST_POSTGRES_URL`; otherwise those suites are skipped. Generic `eval:live-memory` runs require the live eval/judge env vars plus `GOODMEMORY_EMBEDDING_*` and `GOODMEMORY_ASSISTED_EXTRACTOR_*`, while explicit provider-backed runs such as `eval:live-provider-memory` and phase-specific `*-live-memory` runners also require `GOODMEMORY_TEST_POSTGRES_URL`. Run `bun test` and `bun run typecheck` before opening a PR; run the relevant explicit quality-gate command when changing its verifier or evidence protocol, and use `bun run test:coverage` for release-facing changes.
 
 ## Commit & Pull Request Guidelines
 
