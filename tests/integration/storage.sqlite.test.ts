@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createGoodMemory } from "../../src";
 import { createFactMemory } from "../../src/domain/records";
+import { SOURCE_MESSAGES_COLLECTION } from "../../src/evidence/contracts";
 import {
   CLAIM_PROJECTIONS_COLLECTION,
   CLAIM_PROJECTION_STATUS_COLLECTION,
@@ -506,6 +507,57 @@ describe("sqlite filtered document queries", () => {
 });
 
 describe("sqlite projection text index", () => {
+  it("persists raw source messages without adding them to FTS", async () => {
+    const path = join(
+      tmpdir(),
+      `goodmemory-sqlite-source-messages-${Date.now()}-${Math.random()}.db`,
+    );
+    try {
+      const documentStore = createSQLiteDocumentStore(path);
+      const memory = createGoodMemory({
+        adapters: {
+          documentStore,
+          sessionStore: createInMemorySessionStore(),
+        },
+        testing: {
+          extractor: {
+            async extract() {
+              return { candidates: [], ignoredMessageCount: 0 };
+            },
+          },
+        },
+      });
+
+      await memory.remember({
+        scope: { userId: "source-user", sessionId: "source-session" },
+        messages: [
+          { id: "source-user-1", role: "user", content: "Raw user context." },
+          {
+            id: "source-assistant-1",
+            role: "assistant",
+            content: "Raw assistant context.",
+          },
+        ],
+      });
+
+      expect(await documentStore.query(SOURCE_MESSAGES_COLLECTION, {
+        userId: "source-user",
+      })).toHaveLength(2);
+      const database = new Database(path, { readonly: true, strict: true });
+      const indexed = database
+        .query<{ count: number }, [string]>(
+          `SELECT COUNT(*) AS count
+           FROM document_text_fts_keys
+           WHERE collection = ?1`,
+        )
+        .get(SOURCE_MESSAGES_COLLECTION);
+      database.close();
+      expect(indexed?.count).toBe(0);
+    } finally {
+      await rm(path, { force: true });
+    }
+  });
+
   it("keeps legacy read-only databases searchable before a writable migration", async () => {
     const path = join(
       tmpdir(),

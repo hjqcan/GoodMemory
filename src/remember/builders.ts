@@ -651,27 +651,36 @@ export function buildSourceMessageRecords(
     if (!message) {
       return [];
     }
-    const contentSha256 = sha256(message.content);
-    const id = `source-message:${sha256([
-      scopeToKey(scope),
-      message.id ?? `index:${messageIndex}`,
-      message.role,
-      message.observedAt ?? "",
-      contentSha256,
-    ].join("\u0000"))}`;
-
-    return [{
-      id,
-      schemaVersion: 1 as const,
-      ...scope,
-      sourceMessageId: message.id,
-      role: message.role,
-      content: message.content,
-      observedAt: message.observedAt,
-      ingestedAt,
-      contentSha256,
-    }];
+    return [buildSourceMessageRecord(scope, message, messageIndex, ingestedAt)];
   });
+}
+
+export function buildSourceMessageRecord(
+  scope: ScopedIdentity,
+  message: SessionMessage,
+  messageIndex: number,
+  ingestedAt: string,
+): SourceMessageRecord {
+  const contentSha256 = sha256(message.content);
+  const id = `source-message:${sha256([
+    scopeToKey(scope),
+    message.id ?? `index:${messageIndex}`,
+    message.role,
+    message.observedAt ?? "",
+    contentSha256,
+  ].join("\u0000"))}`;
+
+  return {
+    id,
+    schemaVersion: 1,
+    ...scope,
+    sourceMessageId: message.id,
+    role: message.role,
+    content: message.content,
+    observedAt: message.observedAt,
+    ingestedAt,
+    contentSha256,
+  };
 }
 
 export function sourceMessageRecordUri(record: SourceMessageRecord): string {

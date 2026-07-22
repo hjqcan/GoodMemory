@@ -11,8 +11,9 @@ import {
   buildFactEmbeddingWrite,
   buildReferenceEmbeddingWrite,
 } from "../embedding/vectorWrites";
+import { EVIDENCE_COLLECTION } from "../evidence/contracts";
+import type { SourceMessageRecord } from "../evidence/contracts";
 import { toPolicyMemoryRecord } from "../policy/hooks";
-import { buildRememberEventTrace } from "./classification";
 import {
   buildCandidateEvidence,
   buildFact,
@@ -20,7 +21,6 @@ import {
   buildPreference,
   buildProfile,
   buildReference,
-  buildSourceMessageRecords,
   enrichDuplicateFact,
   enrichDuplicateFeedback,
   enrichDuplicatePreference,
@@ -28,10 +28,9 @@ import {
   getProfileWriteReason,
   resolveCandidateObservedAt,
   resolveReferenceSubject,
-  type SourceLanguageMetadata,
 } from "./builders";
-import { EVIDENCE_COLLECTION, SOURCE_MESSAGES_COLLECTION } from "../evidence/contracts";
-import type { SourceMessageRecord } from "../evidence/contracts";
+import type { SourceLanguageMetadata } from "./builders";
+import { buildRememberEventTrace } from "./classification";
 import type {
   ClassifiedCandidate,
   RememberWriteContext,
@@ -99,43 +98,15 @@ async function persistCandidateEvidence(input: {
   memoryId: string;
   timestamp: string;
 }): Promise<SourceMessageRecord[]> {
-  const messages = [...input.context.input.messages];
   const sourceIndexes = [
     ...new Set(
       input.candidate.sourceMessageIndexes ?? [input.candidate.sourceMessageIndex],
     ),
   ];
-  if (input.context.policy?.redact) {
-    for (const messageIndex of sourceIndexes) {
-      const message = messages[messageIndex];
-      if (!message) {
-        continue;
-      }
-      const redacted = await input.context.policy.redact(
-        {
-          ...input.candidate,
-          content: message.content,
-          sourceMessageIndex: messageIndex,
-          sourceRole: message.role,
-        },
-        input.context.policyContext,
-      );
-      messages[messageIndex] = { ...message, content: redacted.content };
-    }
-  }
-  const sourceMessages = buildSourceMessageRecords(
-    input.context.input.scope,
-    input.candidate,
-    messages,
-    input.timestamp,
-  );
-  for (const sourceMessage of sourceMessages) {
-    await input.context.setDocumentWithRollback(
-      SOURCE_MESSAGES_COLLECTION,
-      sourceMessage.id,
-      sourceMessage,
-    );
-  }
+  const sourceMessages = sourceIndexes.flatMap((messageIndex) => {
+    const sourceMessage = input.context.sourceMessagesByIndex.get(messageIndex);
+    return sourceMessage ? [sourceMessage] : [];
+  });
   await input.context.setDocumentWithRollback(
     EVIDENCE_COLLECTION,
     input.evidenceId,

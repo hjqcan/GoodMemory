@@ -1,6 +1,10 @@
 import { buildEpisodeEmbeddingWrite } from "../embedding/vectorWrites";
+import { SOURCE_MESSAGES_COLLECTION } from "../evidence/contracts";
+import type { SourceMessageRecord } from "../evidence/contracts";
 import { createLanguageService } from "../language";
 import type { PolicyContext } from "../policy/hooks";
+import { isProjectionCapableDocumentStore } from "../storage/contracts";
+import type { DocumentStore } from "../storage/contracts";
 import { extractDeterministicMemoryWithLanguage } from "./deterministicExtractor";
 import { maybeBuildEpisode } from "./episodes";
 import {
@@ -24,6 +28,7 @@ import {
   classifyCandidate,
   toRememberEventMemoryType,
 } from "./classification";
+import { buildSourceMessageRecord } from "./builders";
 import type {
   MessageAnnotation,
   MemoryCandidate,
@@ -51,6 +56,65 @@ import { commitRememberVectors, rollbackRememberWrites } from "./vectorOps";
 import { createRememberWriteCoordinator } from "./writeOwnership";
 
 type EngineRememberResult = RememberResult & { outcome: ExtractionOutcome };
+
+function sourceMessageRecordsEquivalent(
+  existing: SourceMessageRecord,
+  incoming: SourceMessageRecord,
+): boolean {
+  return existing.id === incoming.id &&
+    existing.schemaVersion === incoming.schemaVersion &&
+    existing.userId === incoming.userId &&
+    existing.tenantId === incoming.tenantId &&
+    existing.workspaceId === incoming.workspaceId &&
+    existing.agentId === incoming.agentId &&
+    existing.sessionId === incoming.sessionId &&
+    existing.sourceMessageId === incoming.sourceMessageId &&
+    existing.role === incoming.role &&
+    existing.content === incoming.content &&
+    existing.observedAt === incoming.observedAt &&
+    existing.contentSha256 === incoming.contentSha256;
+}
+
+async function persistSourceMessageRecord(
+  documentStore: DocumentStore,
+  incoming: SourceMessageRecord,
+): Promise<SourceMessageRecord> {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const existing = await documentStore.get<SourceMessageRecord>(
+      SOURCE_MESSAGES_COLLECTION,
+      incoming.id,
+    );
+    if (existing) {
+      if (!sourceMessageRecordsEquivalent(existing, incoming)) {
+        throw new Error(`Immutable source-message conflict: ${incoming.id}`);
+      }
+      return existing;
+    }
+    if (!isProjectionCapableDocumentStore(documentStore)) {
+      await documentStore.set(
+        SOURCE_MESSAGES_COLLECTION,
+        incoming.id,
+        incoming,
+      );
+      return incoming;
+    }
+    if (await documentStore.writeBatchIfUnchanged({
+      expected: {
+        collection: SOURCE_MESSAGES_COLLECTION,
+        document: null,
+        id: incoming.id,
+      },
+      set: [{
+        collection: SOURCE_MESSAGES_COLLECTION,
+        document: incoming,
+        id: incoming.id,
+      }],
+    })) {
+      return incoming;
+    }
+  }
+  throw new Error(`Immutable source message changed repeatedly: ${incoming.id}`);
+}
 
 export type {
   ClassifiedCandidate,
@@ -738,10 +802,61 @@ export function createRememberEngine(config: RememberEngineConfig) {
       };
       const episodeCandidates: MemoryCandidate[] = [];
       const storedLanguageContexts = new Map<string, typeof resolvedLanguage>();
+      const sourceMessagesByIndex = new Map<number, SourceMessageRecord>();
       const setDocumentWithRollback = writeCoordinator.setDocument;
       const deleteDocumentWithRollback = writeCoordinator.deleteDocument;
 
       try {
+        const blockedSourceIndexes = getNeverAnnotatedMessageIndexes(input);
+        const ingestedAt = now();
+        for (const [messageIndex, message] of input.messages.entries()) {
+          if (blockedSourceIndexes.has(messageIndex)) {
+            continue;
+          }
+
+          const sourceLanguage = sourceAnalyses.get(messageIndex) ?? requestLanguage;
+          const policyContext: PolicyContext = {
+            scope: input.scope,
+            phase: "remember",
+            locale: sourceLanguage.context.locale,
+            localeSource: sourceLanguage.context.localeSource,
+          };
+          const sourceCandidate = extraction.candidates.find((candidate) =>
+            [
+              candidate.sourceMessageIndex,
+              ...(candidate.sourceMessageIndexes ?? []),
+            ].includes(messageIndex)
+          ) ?? {
+            id: `raw-source-${messageIndex + 1}`,
+            kindHint: "noise" as const,
+            explicitness: "inferred" as const,
+            content: message.content,
+            sourceMessageIndex: messageIndex,
+            sourceRole: message.role,
+          };
+          const redactedContent = config.policy?.redact
+            ? (await config.policy.redact(
+                {
+                  ...sourceCandidate,
+                  content: message.content,
+                  sourceMessageIndex: messageIndex,
+                  sourceRole: message.role,
+                },
+                policyContext,
+              )).content
+            : message.content;
+          const sourceMessage = buildSourceMessageRecord(
+            input.scope,
+            { ...message, content: redactedContent },
+            messageIndex,
+            ingestedAt,
+          );
+          sourceMessagesByIndex.set(
+            messageIndex,
+            await persistSourceMessageRecord(config.documentStore, sourceMessage),
+          );
+        }
+
         for (const candidate of extraction.candidates) {
           if (!isAssistantWriteAllowed(candidate, profile, input)) {
             state.rejected += 1;
@@ -850,6 +965,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
               createId,
               now,
               policy: config.policy,
+              sourceMessagesByIndex,
               setDocumentWithRollback,
               deleteDocumentWithRollback,
             },

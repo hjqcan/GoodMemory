@@ -1,8 +1,10 @@
+import type { MemorySourceMethod } from "../domain/provenance";
 import type { EmbeddingAdapter } from "../embedding/contracts";
 import type {
   MemoryEmbeddingWrite,
   PreparedMemoryEmbeddingRecord,
 } from "../embedding/vectorWrites";
+import type { SourceMessageRecord } from "../evidence/contracts";
 import type { LanguageService, ResolvedLanguageContext } from "../language";
 import type { GoodMemoryPolicyHooks, PolicyContext } from "../policy/hooks";
 import type { DocumentStore } from "../storage/contracts";
@@ -21,7 +23,6 @@ import type {
   MemoryExtractor,
 } from "./candidates";
 import type { RememberConfig } from "./profiles";
-import type { MemorySourceMethod } from "../domain/provenance";
 
 export type ScopedIdentity = {
   userId: string;
@@ -136,6 +137,7 @@ export interface RememberWriteContext {
   createId: () => string;
   now: () => string;
   policy?: Pick<GoodMemoryPolicyHooks, "redact" | "resolveConflict">;
+  sourceMessagesByIndex: ReadonlyMap<number, SourceMessageRecord>;
   setDocumentWithRollback: <TDocument extends object>(
     collection: string,
     id: string,

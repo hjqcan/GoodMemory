@@ -287,7 +287,7 @@ describe("public remember API", () => {
     expect(embedCalls[2]).toHaveLength(1);
   });
 
-  it("rolls back durable writes when embedding preparation fails before remember completes", async () => {
+  it("rolls back derived writes but retains raw messages when embedding preparation fails", async () => {
     const documentStore = createInMemoryDocumentStore();
     const sessionStore = createInMemorySessionStore();
     const vectorStore = createInMemoryVectorStore();
@@ -339,6 +339,9 @@ describe("public remember API", () => {
     expect(await documentStore.query(EVIDENCE_COLLECTION, { userId: "u-rollback" })).toHaveLength(
       0,
     );
+    expect(await documentStore.query(SOURCE_MESSAGES_COLLECTION, {
+      userId: "u-rollback",
+    })).toHaveLength(3);
     expect(
       await vectorStore.search("facts", [1, 2, 3], {
         topK: 5,
@@ -371,6 +374,9 @@ describe("public remember API", () => {
     expect(await documentStore.query(EVIDENCE_COLLECTION, { userId: "u-rollback" })).toHaveLength(
       2,
     );
+    expect(await documentStore.query(SOURCE_MESSAGES_COLLECTION, {
+      userId: "u-rollback",
+    })).toHaveLength(3);
   });
 
   it("does not let rollback delete a concurrent writer's replacement", async () => {
@@ -463,6 +469,9 @@ describe("public remember API", () => {
 
     expect(concurrentAccepted).toBeGreaterThan(0);
     expect(await documentStore.query("facts", {
+      userId: input.scope.userId,
+    })).toHaveLength(1);
+    expect(await documentStore.query(SOURCE_MESSAGES_COLLECTION, {
       userId: input.scope.userId,
     })).toHaveLength(1);
   });

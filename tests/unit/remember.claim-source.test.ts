@@ -323,7 +323,7 @@ describe("remember claim source provenance", () => {
     }
   });
 
-  it("rejects a candidate when any cited source message is annotated remember-never", async () => {
+  it("rejects a candidate that cites remember-never while retaining only allowed source messages", async () => {
     const rawStore = createInMemoryDocumentStore();
     const memory = createGoodMemory({
       adapters: {
@@ -351,7 +351,15 @@ describe("remember claim source provenance", () => {
 
     expect(result.accepted).toBe(0);
     expect(await rawStore.query("facts", {})).toEqual([]);
-    expect(await rawStore.query(SOURCE_MESSAGES_COLLECTION, {})).toEqual([]);
+    expect(await rawStore.query(SOURCE_MESSAGES_COLLECTION, {})).toEqual([
+      expect.objectContaining({
+        content: "Atlas uses the partner API.",
+        role: "user",
+      }),
+    ]);
+    expect(
+      JSON.stringify(await rawStore.query(SOURCE_MESSAGES_COLLECTION, {})),
+    ).not.toContain("DO NOT STORE");
   });
 
   it("redacts every cited source message with that message's actual role", async () => {
