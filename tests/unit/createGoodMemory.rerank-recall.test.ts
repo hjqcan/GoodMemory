@@ -7,7 +7,10 @@ import {
   createInMemoryVectorStore,
   type Reranker,
 } from "../../src";
-import { createFactMemory } from "../../src/domain/records";
+import {
+  createFactMemory,
+  createReferenceMemory,
+} from "../../src/domain/records";
 import { createEvidenceRecord } from "../../src/evidence/contracts";
 import {
   mergeDurableCandidateOrder,
@@ -217,6 +220,123 @@ describe("GoodMemory.recall reranker adapter", () => {
     expect(result.metadata.retrievalTrace?.reranker?.candidateCount).toBe(15);
     expect(result.metadata.retrievalTrace?.reranker?.scores).toContainEqual(
       expect.objectContaining({ memoryId: "fact-15", rankAfter: 1 }),
+    );
+  });
+
+  it("lets a globally reranked reference replace the occupied lane consistently", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    let rerankerCandidateIds: string[] = [];
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+        reranker: {
+          async rerank({ documents }) {
+            rerankerCandidateIds = documents.map(({ id }) => id);
+            return documents.map(({ id }) => ({
+              id,
+              score: id === "reference-b" ? 1 : 0,
+            }));
+          },
+        },
+      },
+      retrieval: { preset: "recommended" },
+      testing: { now: () => new Date("2026-01-03T00:00:00.000Z") },
+    });
+    for (const reference of [
+      createReferenceMemory({
+        id: "reference-a",
+        ...scope,
+        title: "Alpha operations guide",
+        pointer: "docs/alpha-a.md",
+        source: {
+          method: "explicit",
+          extractedAt: "2026-01-02T00:00:00.000Z",
+        },
+      }),
+      createReferenceMemory({
+        id: "reference-b",
+        ...scope,
+        title: "Alpha operations guide",
+        pointer: "docs/alpha-b.md",
+        source: {
+          method: "explicit",
+          extractedAt: "2026-01-01T00:00:00.000Z",
+        },
+      }),
+    ]) {
+      await documentStore.set("references", reference.id, reference);
+    }
+    await documentStore.set("evidence", "evidence-b", createEvidenceRecord({
+      id: "evidence-b",
+      ...scope,
+      kind: "conversation_excerpt",
+      excerpt: "Use the second Alpha operations guide.",
+      source: {
+        method: "explicit",
+        extractedAt: "2026-01-01T00:00:00.000Z",
+      },
+      linkedMemoryIds: ["reference-b"],
+    }));
+
+    const result = await memory.recall({
+      scope,
+      query: "Where is the Alpha operations guide?",
+      strategy: "hybrid",
+      includeEvidence: true,
+    });
+
+    expect(rerankerCandidateIds).toEqual(
+      expect.arrayContaining(["reference-a", "reference-b"]),
+    );
+    expect(result.references.map(({ id }) => id)).toEqual(["reference-b"]);
+    expect(result.evidence.map(({ id }) => id)).toContain("evidence-b");
+    expect(result.evidenceLedger).toContainEqual(
+      expect.objectContaining({
+        evidenceId: "evidence-b",
+        sourceMemoryId: "reference-b",
+      }),
+    );
+    expect(result.metadata.hits).toContainEqual(
+      expect.objectContaining({ id: "reference-b", type: "reference" }),
+    );
+    expect(result.metadata.hits).not.toContainEqual(
+      expect.objectContaining({ id: "reference-a", type: "reference" }),
+    );
+    expect(result.packet.referenceSummary).toContain("docs/alpha-b.md");
+    expect(result.packet.referenceSummary).not.toContain("docs/alpha-a.md");
+    expect(result.metadata.candidateTraces).toContainEqual(
+      expect.objectContaining({
+        memoryId: "reference-b",
+        returned: true,
+      }),
+    );
+    expect(result.metadata.candidateTraces).toContainEqual(
+      expect.objectContaining({
+        memoryId: "reference-a",
+        returned: false,
+        whySuppressed: "reranker_final_selection",
+      }),
+    );
+    expect(
+      result.metadata.retrievalTrace?.fusionRuns?.[0]?.candidates.find(
+        ({ sourceMemoryId }) => sourceMemoryId === "reference-b",
+      ),
+    ).toMatchObject({ selected: true });
+    expect(
+      result.metadata.retrievalTrace?.fusionRuns?.[0]?.candidates.find(
+        ({ sourceMemoryId }) => sourceMemoryId === "reference-a",
+      ),
+    ).toMatchObject({
+      eliminationReason: "not_selected",
+      selected: false,
+    });
+    expect(result.metadata.retrievalTrace?.reranker?.scores).toContainEqual(
+      expect.objectContaining({
+        memoryId: "reference-b",
+        rankAfter: 1,
+        sourceCollection: "references",
+      }),
     );
   });
 

@@ -593,6 +593,71 @@ describe("generalized fusion through the recall engine", () => {
     }
   });
 
+  it("reports final reference membership instead of the wider fusion budget", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const projectionIndex = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      now: () => "2026-07-10T00:00:00.000Z",
+    });
+    const repositories = createMemoryRepositories({
+      documentStore: projectionIndex.documentStore,
+      sessionStore: createInMemorySessionStore(),
+    });
+    for (const reference of [
+      createReferenceMemory({
+        id: "reference-newer",
+        ...scope,
+        title: "Nebula runbook",
+        pointer: "docs/nebula-newer.md",
+        source: {
+          method: "explicit",
+          extractedAt: "2026-07-09T00:00:00.000Z",
+        },
+      }),
+      createReferenceMemory({
+        id: "reference-older",
+        ...scope,
+        title: "Nebula runbook",
+        pointer: "docs/nebula-older.md",
+        source: {
+          method: "explicit",
+          extractedAt: "2026-07-08T00:00:00.000Z",
+        },
+      }),
+    ]) {
+      await repositories.references.add(reference);
+    }
+    const engine = createRecallEngine({
+      repositories,
+      runtime: createInMemorySessionStore(),
+      autoStrategyBias: "hybrid",
+      generalizedFusion: { maxCandidates: 8 },
+      projectionIndex,
+    });
+
+    const result = await engine.recall({
+      scope,
+      query: "Where is the Nebula runbook?",
+      retrievalProfile: "general_chat",
+    });
+    const traces = result.metadata.retrievalTrace?.fusionRuns?.[0]?.candidates ?? [];
+    const selectedReferenceIds = traces
+      .filter(
+        ({ selected, sourceCollection }) =>
+          selected && sourceCollection === "references",
+      )
+      .map(({ sourceMemoryId }) => sourceMemoryId);
+
+    expect(result.references.map(({ id }) => id)).toEqual(["reference-newer"]);
+    expect(selectedReferenceIds).toEqual(["reference-newer"]);
+    expect(
+      traces.find(({ sourceMemoryId }) => sourceMemoryId === "reference-older"),
+    ).toMatchObject({
+      eliminationReason: "not_selected",
+      selected: false,
+    });
+  });
+
   it("honors configured content-lane record quotas for fused episodes", async () => {
     const rawStore = createInMemoryDocumentStore();
     const projectionIndex = createRecallProjectionRuntime({
