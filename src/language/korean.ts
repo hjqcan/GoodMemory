@@ -15,6 +15,7 @@ import {
 } from "./generic";
 import {
   analyzeBehavioralRuleWithPatterns,
+  createSourceOfTruthReferenceCandidate,
   decomposeQueryByPattern,
   extractPatternMentions,
   matchesNormalizedEntityAlias,
@@ -288,7 +289,16 @@ function extractKoreanCandidates(
       "$1, ",
     );
     const clauses = splitKoreanClauses(content);
-    const messageAnalysis = clauses.length === 1 ? message.analysis : undefined;
+    const sourceAnalysis = message.analysis ?? analyzeKoreanContent(content);
+    const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
+      analysis: sourceAnalysis,
+      nextId: input.nextId,
+      sourceMessageIndex,
+    });
+    if (sourceOfTruthReference) {
+      candidates.push(sourceOfTruthReference);
+    }
+    const messageAnalysis = clauses.length === 1 ? sourceAnalysis : undefined;
 
     for (const clause of clauses) {
       const goal = clause.match(
@@ -358,27 +368,6 @@ function extractKoreanCandidates(
         });
       }
 
-      const reference = clause.match(
-        /([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)\s*(?:을|를|이|가)?\s*(?:현재\s*)?(?:기준 문서|정본|사실의 원천)(?:로|으로|이|가)/u,
-      );
-      if (reference?.[1]) {
-        const pointer = reference[1];
-        candidates.push({
-          content: pointer,
-          explicitness: "explicit",
-          id: input.nextId(),
-          kindHint: "reference",
-          metadata: {
-            referenceKind: "source_of_truth",
-            referencePointer: pointer,
-            referenceTitle: pointer.split("/").at(-1) ?? pointer,
-            subject: "unknown",
-          },
-          sourceMessageIndex,
-          sourceRole: "user",
-        });
-      }
-
       const explicitFact = clause.match(
         /(?:기억해\s*(?:주세요|두세요|둬)|잊지\s*마세요)[,，\s]*(.+)/u,
       );
@@ -404,7 +393,7 @@ function extractKoreanCandidates(
         !name &&
         !role &&
         !preference &&
-        !reference &&
+        !sourceOfTruthReference &&
         clause.length >= 8 &&
         /(현재|지금|장애\s*요인|차단|미완료|프로젝트|마이그레이션|출시|배포)/u.test(
           clause,

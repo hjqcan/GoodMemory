@@ -15,6 +15,7 @@ import {
 } from "./generic";
 import {
   analyzeBehavioralRuleWithPatterns,
+  createSourceOfTruthReferenceCandidate,
   decomposeQueryByPattern,
   extractPatternMentions,
   matchesNormalizedEntityAlias,
@@ -238,7 +239,17 @@ function extractJapaneseCandidates(
     }
     const sourceMessageIndex = message.sourceMessageIndex ?? index;
     const clauses = splitClausesGeneric(message.content);
-    const messageAnalysis = clauses.length === 1 ? message.analysis : undefined;
+    const sourceAnalysis = message.analysis ??
+      analyzeJapaneseContent(message.content);
+    const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
+      analysis: sourceAnalysis,
+      nextId: input.nextId,
+      sourceMessageIndex,
+    });
+    if (sourceOfTruthReference) {
+      candidates.push(sourceOfTruthReference);
+    }
+    const messageAnalysis = clauses.length === 1 ? sourceAnalysis : undefined;
     for (const clause of clauses) {
       const text = clause.trim();
       const goal = text.match(
@@ -304,25 +315,6 @@ function extractJapaneseCandidates(
         });
       }
 
-      const reference = text.match(/([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)\s*(?:を正とする|を基準にする|を参照する)/u);
-      if (reference?.[1]) {
-        const pointer = reference[1];
-        candidates.push({
-          content: pointer,
-          explicitness: "explicit",
-          id: input.nextId(),
-          kindHint: "reference",
-          metadata: {
-            referenceKind: "doc",
-            referencePointer: pointer,
-            referenceTitle: pointer.split("/").at(-1) ?? pointer,
-            subject: "unknown",
-          },
-          sourceMessageIndex,
-          sourceRole: "user",
-        });
-      }
-
       const explicitFact = text.match(/(?:覚えておいて|覚えて|記憶して|忘れないで)[、,\s]*(.+)/u);
       if (explicitFact?.[1]) {
         const content = explicitFact[1].trim();
@@ -342,7 +334,7 @@ function extractJapaneseCandidates(
       } else if (
         !role &&
         !preference &&
-        !reference &&
+        !sourceOfTruthReference &&
         text.length >= 6 &&
         /(現在|いま|ブロッカー|障害|未完了|移行|リリース|プロジェクト)/u.test(text)
       ) {

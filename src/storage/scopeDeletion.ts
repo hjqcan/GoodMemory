@@ -129,6 +129,54 @@ function sharedScopeMutationGate(
   return created;
 }
 
+function isActiveLock(lock: ScopeDeletionLock | null): boolean {
+  return lock !== null && lock.state !== "open";
+}
+
+function lockScope(lock: ScopeDeletionLock): MemoryScope | null {
+  if (!lock.userId) {
+    return null;
+  }
+  return normalizeScope({
+    userId: lock.userId,
+    ...(lock.tenantId ? { tenantId: lock.tenantId } : {}),
+    ...(lock.workspaceId ? { workspaceId: lock.workspaceId } : {}),
+    ...(lock.agentId ? { agentId: lock.agentId } : {}),
+    ...(lock.sessionId ? { sessionId: lock.sessionId } : {}),
+  });
+}
+
+async function activePersistentLock(
+  documentStore: ProjectionCapableDocumentStore,
+  scope: MemoryScope,
+): Promise<ScopeDeletionLock | null> {
+  const normalized = normalizeScope(scope);
+  const directIds = scopeDeletionLockIdsForDocument(normalized);
+  const directLocks = await Promise.all(directIds.map((id) =>
+    documentStore.get<ScopeDeletionLock>(SCOPE_DELETION_LOCKS_COLLECTION, id)
+  ));
+  const scopedLocks = await documentStore.query<ScopeDeletionLock>(
+    SCOPE_DELETION_LOCKS_COLLECTION,
+    { userId: normalized.userId },
+  );
+  const locks = new Map<string, ScopeDeletionLock>();
+  for (const lock of [...directLocks, ...scopedLocks]) {
+    if (lock) {
+      locks.set(lock.id, lock);
+    }
+  }
+  for (const lock of locks.values()) {
+    const persistedScope = lockScope(lock);
+    if (
+      isActiveLock(lock) &&
+      (!persistedScope || scopesOverlap(persistedScope, normalized))
+    ) {
+      return lock;
+    }
+  }
+  return null;
+}
+
 export function createScopeDeletionAwareDocumentStore(
   documentStore: ProjectionCapableDocumentStore,
   config: {
@@ -138,10 +186,6 @@ export function createScopeDeletionAwareDocumentStore(
     }) => boolean;
   } = {},
 ): ProjectionCapableDocumentStore {
-  function isActiveLock(lock: ScopeDeletionLock | null): boolean {
-    return lock !== null && lock.state !== "open";
-  }
-
   async function addGuardSnapshots(
     snapshots: Map<string, ScopeDeletionLock | null>,
     documents: readonly StorageDocument[],
@@ -221,6 +265,8 @@ export function createScopeDeletionAwareDocumentStore(
 
   return {
     projectionBatchSemantics: PROJECTION_BATCH_SEMANTICS,
+    scopeMutationFenceIdentity:
+      documentStore.scopeMutationFenceIdentity ?? documentStore,
     set: setWithGuards,
     get(collection, id) {
       return documentStore.get(collection, id);

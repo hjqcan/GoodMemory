@@ -50,4 +50,54 @@ describe("historical evidence projection", () => {
       expected: refreshed,
     })).not.toThrow();
   });
+
+  it("derives LoCoMo claim values from the frozen source report", async () => {
+    const path =
+      "reports/quality-gates/phase-72/run-20260716-final/phase-72-release-gate.json";
+    const source = new TextEncoder().encode(JSON.stringify({
+      metrics: {
+        locomo: {
+          executionFailures: 0,
+          officialJudgeFailures: 0,
+          officialScore: 0.87,
+          openDomainScore: 0.61,
+          strictScore: 0.63,
+        },
+      },
+      packageVersion: "0.6.0",
+    }));
+    const projection = {
+      artifactKind: "tracked-historical-evidence-projection",
+      benchmark: "LoCoMo",
+      claim: {
+        executionFailures: 0,
+        officialJudgeFailures: 0,
+        officialScore: 1,
+        openDomainScore: 1,
+        packageVersion: "0.6.0",
+        strictScore: 1,
+      },
+      generatedBy: "scripts/project-historical-evidence.ts",
+      schemaVersion: 1,
+      sourceArtifacts: [{ path }],
+    };
+
+    const refreshed = await refreshHistoricalEvidenceProjection({
+      projection,
+      readArtifact: async () => source,
+    });
+
+    expect(refreshed.claim).toEqual({
+      executionFailures: 0,
+      officialJudgeFailures: 0,
+      officialScore: 0.87,
+      openDomainScore: 0.61,
+      packageVersion: "0.6.0",
+      strictScore: 0.63,
+    });
+    expect(() => assertHistoricalEvidenceProjectionCurrent({
+      actual: projection,
+      expected: refreshed,
+    })).toThrow("claims or source fingerprints drifted");
+  });
 });
