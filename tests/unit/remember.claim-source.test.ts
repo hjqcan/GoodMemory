@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { createHash } from "node:crypto";
 
 import { createGoodMemory } from "../../src/api/createGoodMemory";
 import type { ClassifiedCandidate } from "../../src/remember/contracts";
@@ -394,6 +395,78 @@ describe("remember claim source provenance", () => {
       { role: "assistant", content: "[assistant-redacted]" },
     ]);
     expect(JSON.stringify(sourceMessages)).not.toContain("assistant-sensitive-source");
+  });
+
+  it("persists every allowed source message once without clipping uncited content", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const candidate = {
+      ...buildCandidate(),
+      sourceMessageIndexes: [0],
+    };
+    let now = NOW;
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore: rawStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      policy: {
+        redact(candidate) {
+          return candidate.sourceRole === "assistant"
+            ? {
+                ...candidate,
+                content: candidate.content.replace("secret", "[redacted]"),
+              }
+            : candidate;
+        },
+      },
+      testing: {
+        extractor: {
+          async extract() {
+            return { candidates: [candidate], ignoredMessageCount: 0 };
+          },
+        },
+        now: () => new Date(now),
+      },
+    });
+    const longAssistantContent = `assistant secret ${"context ".repeat(600)}`;
+    const input = {
+      scope,
+      messages: [
+        { id: "cited", role: "user", content: "Atlas uses the partner API." },
+        { id: "uncited", role: "user", content: "Nova is the current project." },
+        { id: "assistant", role: "assistant", content: longAssistantContent },
+        { id: "private", role: "user", content: "never persist this" },
+      ],
+      annotations: [{ messageIndex: 3, remember: "never" as const }],
+    };
+
+    await memory.remember(input);
+    now = "2026-07-16T13:00:00.000Z";
+    await memory.remember(input);
+
+    const sourceMessages = await rawStore.query<SourceMessageRecord>(
+      SOURCE_MESSAGES_COLLECTION,
+      { userId: scope.userId },
+    );
+    expect(sourceMessages).toHaveLength(3);
+    expect(sourceMessages.every(({ ingestedAt }) => ingestedAt === NOW)).toBe(true);
+    const assistant = sourceMessages.find(({ sourceMessageId }) =>
+      sourceMessageId === "assistant"
+    );
+    const expectedAssistantContent = longAssistantContent.replace(
+      "secret",
+      "[redacted]",
+    );
+    expect(assistant?.content).toBe(expectedAssistantContent);
+    expect(assistant?.contentSha256).toBe(
+      createHash("sha256").update(expectedAssistantContent).digest("hex"),
+    );
+    expect(JSON.stringify(sourceMessages)).not.toContain("never persist this");
+    const evidence = await rawStore.query<EvidenceRecord>("evidence", {
+      userId: scope.userId,
+    });
+    expect(evidence[0]?.sourceMessageIds).toEqual(["cited"]);
+    expect(evidence[0]?.sourceRecordIds).toHaveLength(1);
   });
 
   it("projects fallback fact claims with the evidence written by remember", async () => {

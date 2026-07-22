@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { createGoodMemory } from "../../src";
-import { EVIDENCE_COLLECTION } from "../../src/evidence/contracts";
+import {
+  EVIDENCE_COLLECTION,
+  SOURCE_MESSAGES_COLLECTION,
+  type SourceMessageRecord,
+} from "../../src/evidence/contracts";
 import {
   createInMemoryDocumentStore,
   createInMemorySessionStore,
@@ -11,6 +15,50 @@ import { createFakeEmbeddingAdapter } from "../../src/testing/fakes";
 import type { ModelUsageAttempt } from "../../src/provider/model-usage";
 
 describe("public remember API", () => {
+  it("retains allowed raw messages when extraction finds no admissible candidate", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      testing: {
+        extractor: {
+          async extract() {
+            return { candidates: [], ignoredMessageCount: 0 };
+          },
+        },
+      },
+    });
+
+    const result = await memory.remember({
+      scope: { userId: "u-raw", sessionId: "s-raw" },
+      messages: [
+        { id: "raw-user", role: "user", content: "No durable claim here." },
+        { id: "raw-assistant", role: "assistant", content: "Context only." },
+        { id: "raw-private", role: "user", content: "Do not retain." },
+      ],
+      annotations: [{ messageIndex: 2, remember: "never" }],
+    });
+
+    expect(result.outcome).toBe("no_admissible_candidate");
+    expect(
+      await documentStore.query<SourceMessageRecord>(
+        SOURCE_MESSAGES_COLLECTION,
+        { userId: "u-raw", sessionId: "s-raw" },
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        content: "No durable claim here.",
+        sourceMessageId: "raw-user",
+      }),
+      expect.objectContaining({
+        content: "Context only.",
+        sourceMessageId: "raw-assistant",
+      }),
+    ]);
+  });
+
   it("writes durable memory through the public API", async () => {
     const documentStore = createInMemoryDocumentStore();
     const memory = createGoodMemory({
