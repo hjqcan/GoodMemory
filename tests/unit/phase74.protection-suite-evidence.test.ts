@@ -300,6 +300,201 @@ async function createCompleteFixture(root: string) {
 }
 
 describe("Phase 74 protection suite evidence composer", () => {
+  it("bounds case concurrency without changing per-case or artifact order", async () => {
+    const root = await createRoot();
+    const cases = [1, 2, 3].map((index) => ({
+      caseId: `case-${index}`,
+      input: { index },
+    }));
+    const events: string[] = [];
+    const completionOrder: string[] = [];
+    let activeCases = 0;
+    let maxActiveCases = 0;
+
+    const result = await runPhase74ProtectionSuiteCases({
+      artifactPath: join(root, "concurrent", "run.json"),
+      caseConcurrency: 2,
+      cases,
+      evaluate: async ({ branch, caseId, input }) => {
+        events.push(`${caseId}:${branch}:start`);
+        if (branch === "baseline") {
+          activeCases += 1;
+          maxActiveCases = Math.max(maxActiveCases, activeCases);
+        }
+        await new Promise((resolvePromise) => setTimeout(
+          resolvePromise,
+          input.index === 1 ? 20 : 1,
+        ));
+        events.push(`${caseId}:${branch}:end`);
+        if (branch === "candidate") {
+          activeCases -= 1;
+          completionOrder.push(caseId);
+        }
+        return {
+          rawOutput: { branch, caseId },
+          scores: protectionScores(input.index / 10),
+        };
+      },
+      identity: identity(
+        "concurrent-suite",
+        "concurrent-population",
+        descriptor("concurrent-dataset"),
+      ),
+      rawArtifactPath: join(root, "concurrent", "raw.json"),
+      replicate: 1,
+      runId: "concurrent-run",
+      suite: { id: "concurrent-suite", kind: "benchmark-protection" },
+    });
+
+    expect(maxActiveCases).toBe(2);
+    expect(completionOrder).toEqual(["case-2", "case-3", "case-1"]);
+    for (const { caseId } of cases) {
+      expect(events.indexOf(`${caseId}:baseline:start`)).toBeLessThan(
+        events.indexOf(`${caseId}:baseline:end`),
+      );
+      expect(events.indexOf(`${caseId}:baseline:end`)).toBeLessThan(
+        events.indexOf(`${caseId}:candidate:start`),
+      );
+      expect(events.indexOf(`${caseId}:candidate:start`)).toBeLessThan(
+        events.indexOf(`${caseId}:candidate:end`),
+      );
+    }
+    expect(result.artifact.rows.map(({ caseId }) => caseId)).toEqual(
+      cases.map(({ caseId }) => caseId),
+    );
+    const raw = JSON.parse(await readFile(result.rawArtifactPath, "utf8"));
+    expect(raw.rows.map((row: { caseId: string }) => row.caseId)).toEqual(
+      cases.map(({ caseId }) => caseId),
+    );
+  });
+
+  it("defaults protection case concurrency to one", async () => {
+    const root = await createRoot();
+    let activeCases = 0;
+    let maxActiveCases = 0;
+    await runPhase74ProtectionSuiteCases({
+      artifactPath: join(root, "default-concurrency", "run.json"),
+      cases: [1, 2].map((index) => ({
+        caseId: `case-${index}`,
+        input: { index },
+      })),
+      evaluate: async ({ branch }) => {
+        if (branch === "baseline") {
+          activeCases += 1;
+          maxActiveCases = Math.max(maxActiveCases, activeCases);
+        } else {
+          activeCases -= 1;
+        }
+        return {
+          rawOutput: { branch },
+          scores: protectionScores(0.5),
+        };
+      },
+      identity: identity(
+        "default-concurrency-suite",
+        "default-concurrency-population",
+        descriptor("default-concurrency-dataset"),
+      ),
+      rawArtifactPath: join(root, "default-concurrency", "raw.json"),
+      replicate: 1,
+      runId: "default-concurrency-run",
+      suite: {
+        id: "default-concurrency-suite",
+        kind: "benchmark-protection",
+      },
+    });
+
+    expect(maxActiveCases).toBe(1);
+  });
+
+  it("keeps concurrent execution failures deterministic and composability closed", async () => {
+    const root = await createRoot();
+    const artifactPath = join(root, "failures", "run.json");
+    const rawArtifactPath = join(root, "failures", "raw.json");
+    const evaluationCalls: string[] = [];
+    await expect(runPhase74ProtectionSuiteCases({
+      artifactPath,
+      caseConcurrency: 3,
+      cases: [1, 2, 3].map((index) => ({
+        caseId: `case-${index}`,
+        input: { index },
+      })),
+      evaluate: async ({ branch, caseId, input }) => {
+        evaluationCalls.push(`${caseId}:${branch}`);
+        if (caseId === "case-1" && branch === "candidate") {
+          await new Promise((resolvePromise) => setTimeout(resolvePromise, 10));
+          throw new Error("candidate failed");
+        }
+        if (caseId === "case-2" && branch === "baseline") {
+          throw new Error("baseline failed");
+        }
+        return {
+          rawOutput: { branch, input },
+          scores: protectionScores(0.5),
+        };
+      },
+      identity: identity(
+        "failure-suite",
+        "failure-population",
+        descriptor("failure-dataset"),
+      ),
+      rawArtifactPath,
+      replicate: 1,
+      runId: "failure-run",
+      suite: { id: "failure-suite", kind: "benchmark-protection" },
+    })).rejects.toThrow("recorded 2 execution failures");
+
+    const raw = JSON.parse(await readFile(rawArtifactPath, "utf8"));
+    const artifact = JSON.parse(await readFile(artifactPath, "utf8"));
+    expect(raw.executionFailures).toBe(2);
+    expect(raw.failures.map((failure: {
+      branch: string;
+      caseId: string;
+    }) => [failure.caseId, failure.branch])).toEqual([
+      ["case-1", "candidate"],
+      ["case-2", "baseline"],
+    ]);
+    expect(evaluationCalls).not.toContain("case-2:candidate");
+    expect(raw.rows.map((row: { caseId: string }) => row.caseId))
+      .toEqual(["case-3"]);
+    expect(artifact.executionFailures).toBe(2);
+    expect(artifact.rows.map((row: { caseId: string }) => row.caseId))
+      .toEqual(["case-3"]);
+  });
+
+  it("rejects invalid case concurrency before evaluation or artifact writes", async () => {
+    const root = await createRoot();
+    for (const [index, caseConcurrency] of [0, -1, 1.5, Number.NaN].entries()) {
+      const artifactPath = join(root, `invalid-${index}`, "run.json");
+      const rawArtifactPath = join(root, `invalid-${index}`, "raw.json");
+      let evaluationCount = 0;
+      await expect(runPhase74ProtectionSuiteCases({
+        artifactPath,
+        caseConcurrency,
+        cases: [{ caseId: "case-1", input: {} }],
+        evaluate: async () => {
+          evaluationCount += 1;
+          return {
+            rawOutput: {},
+            scores: protectionScores(0.5),
+          };
+        },
+        identity: identity(
+          "invalid-suite",
+          "invalid-population",
+          descriptor("invalid-dataset"),
+        ),
+        rawArtifactPath,
+        replicate: 1,
+        runId: `invalid-run-${index}`,
+        suite: { id: "invalid-suite", kind: "benchmark-protection" },
+      })).rejects.toThrow("caseConcurrency must be a positive integer");
+      expect(evaluationCount).toBe(0);
+      await expect(readFile(artifactPath, "utf8")).rejects.toThrow();
+      await expect(readFile(rawArtifactPath, "utf8")).rejects.toThrow();
+    }
+  });
+
   it("composes three replicates per suite across different populations", async () => {
     const root = await createRoot();
     const fixture = await createCompleteFixture(root);

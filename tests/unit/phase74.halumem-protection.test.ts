@@ -428,6 +428,50 @@ describe("Phase 74 HaluMem protection adapters", () => {
     })).rejects.toThrow("per-item upstream update decision");
   });
 
+  it("passes case concurrency through the HaluMem suite adapter", async () => {
+    const root = await createRoot();
+    let activeCases = 0;
+    let maxActiveCases = 0;
+    await runPhase74HaluMemUpdateProtection({
+      artifactPath: join(root, "concurrent-run.json"),
+      caseConcurrency: 2,
+      configuration: configuration({
+        candidatePipeline: descriptor("halumem-phase74-candidate", "4"),
+        updateEvaluator: descriptor("halumem-upstream-evaluation.py", "5"),
+      }),
+      dataset: descriptor("halumem-test-jsonl", "1"),
+      rawArtifactPath: join(root, "concurrent-raw.json"),
+      replicate: 1,
+      runId: "halumem-concurrent",
+      source: descriptor("git:test-source", "2"),
+      users,
+    }, {
+      evaluateUpdate: async () => JSON.stringify({
+        protocol: "halumem-upstream-per-item-update-v1",
+        rawDecision: { matched: true },
+        reason: "fake upstream item decision",
+        verdict: "correct",
+      }),
+      retrieveUpdateEvidence: async ({ branch, memoryPoint }) => {
+        if (branch === "baseline") {
+          activeCases += 1;
+          maxActiveCases = Math.max(maxActiveCases, activeCases);
+        }
+        await new Promise((resolvePromise) => setTimeout(resolvePromise, 5));
+        if (branch === "candidate") {
+          activeCases -= 1;
+        }
+        return {
+          memories: [memoryPoint.memory_content],
+          snapshotId: `${branch}-${memoryPoint.memory_content}`,
+          sourceMessageIds: ["source-message-0"],
+        };
+      },
+    });
+
+    expect(maxActiveCases).toBe(2);
+  });
+
   it("replays update correctness only from strict raw upstream item decisions", async () => {
     const root = await createRoot();
     const calls = { evaluate: 0, retrieve: 0 };

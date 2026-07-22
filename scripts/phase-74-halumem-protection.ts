@@ -139,6 +139,7 @@ export interface Phase74HaluMemPrivacyDependencies {
 
 interface CommonRunInput {
   artifactPath: string;
+  caseConcurrency?: number;
   configuration: Phase74HaluMemProtectionConfiguration;
   dataset: Phase74ProtectionIdentityDescriptor;
   rawArtifactPath: string;
@@ -273,6 +274,7 @@ export async function runPhase74HaluMemE4Protection(
 
   return runPhase74ProtectionSuiteCases({
     artifactPath: input.artifactPath,
+    caseConcurrency: input.caseConcurrency,
     cases: population.cases,
     evaluate: async ({ branch, caseId }) => {
       const item = population.items.get(caseId)!;
@@ -374,6 +376,7 @@ export async function runPhase74HaluMemUpdateProtection(
   const population = buildPhase74HaluMemUpdatePopulation(input.users);
   return runPhase74ProtectionSuiteCases({
     artifactPath: input.artifactPath,
+    caseConcurrency: input.caseConcurrency,
     cases: population.cases,
     evaluate: async ({ branch, caseId }) => {
       const item = population.items.get(caseId)!;
@@ -450,6 +453,7 @@ export async function runPhase74HaluMemPrivacyProtection(
   const population = buildPhase74HaluMemPrivacyPopulation(input.users);
   return runPhase74ProtectionSuiteCases({
     artifactPath: input.artifactPath,
+    caseConcurrency: input.caseConcurrency,
     cases: population.cases,
     evaluate: async ({ branch, caseId }) => {
       const item = population.items.get(caseId)!;

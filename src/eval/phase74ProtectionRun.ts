@@ -114,6 +114,27 @@ function validateCasePopulation<Input>(
   return caseIds;
 }
 
+async function mapWithConcurrency<Input, Output>(
+  values: readonly Input[],
+  concurrency: number,
+  map: (value: Input) => Promise<Output>,
+): Promise<Output[]> {
+  const outputs = new Array<Output>(values.length);
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < values.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      outputs[index] = await map(values[index]!);
+    }
+  };
+  await Promise.all(Array.from(
+    { length: Math.min(concurrency, values.length) },
+    () => worker(),
+  ));
+  return outputs;
+}
+
 async function writeFrozenJson(path: string, value: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, {
@@ -207,6 +228,10 @@ interface Phase74ProtectionSuiteRawRow {
   caseId: string;
   inputSha256: string;
 }
+
+type Phase74ProtectionCaseOutcome =
+  | { failure: Phase74ProtectionRawFailure; row?: never }
+  | { failure?: never; row: Phase74ProtectionSuiteRawRow };
 
 interface Phase74ProtectionSuiteRawArtifact {
   artifactKind: "phase74-frozen-protection-suite-raw";
@@ -569,6 +594,7 @@ export async function loadPhase74FrozenProtectionSuiteRunArtifact(
 
 export async function runPhase74ProtectionSuiteCases<Input>(input: {
   artifactPath: string;
+  caseConcurrency?: number;
   cases: readonly Phase74ProtectionCase<Input>[];
   evaluate: (input: {
     branch: Phase74ProtectionBranch;
@@ -590,43 +616,64 @@ export async function runPhase74ProtectionSuiteCases<Input>(input: {
   }
   const suite = parseSuite(input.suite, "protection suite");
   const caseIds = validateCasePopulation(input.cases);
+  const caseConcurrency = input.caseConcurrency ?? 1;
+  if (!Number.isSafeInteger(caseConcurrency) || caseConcurrency <= 0) {
+    throw new Error(
+      "Phase 74 protection caseConcurrency must be a positive integer.",
+    );
+  }
   const caseIdsSha256 = hashPhase74ProtectionCaseIds(caseIds);
+  const outcomes = await mapWithConcurrency(
+    input.cases,
+    caseConcurrency,
+    async (testCase): Promise<Phase74ProtectionCaseOutcome> => {
+      const inputSnapshot = cloneJson(testCase.input, `${testCase.caseId} input`);
+      const evaluate = async (branch: Phase74ProtectionBranch) => {
+        const result = cloneJson(
+          await input.evaluate({
+            branch,
+            caseId: testCase.caseId,
+            input: cloneJson(inputSnapshot, `${testCase.caseId} ${branch} input`),
+          }),
+          `${testCase.caseId} ${branch} result`,
+        );
+        parseSuiteScores(result.scores, suite, `${testCase.caseId} ${branch}`);
+        return result;
+      };
+      let baseline: Phase74ProtectionSuiteEvaluationResult;
+      try {
+        baseline = await evaluate("baseline");
+      } catch (error) {
+        return {
+          failure: errorDetails(error, "baseline", testCase.caseId),
+        };
+      }
+      let candidate: Phase74ProtectionSuiteEvaluationResult;
+      try {
+        candidate = await evaluate("candidate");
+      } catch (error) {
+        return {
+          failure: errorDetails(error, "candidate", testCase.caseId),
+        };
+      }
+      return {
+        row: {
+          baseline,
+          candidate,
+          caseId: testCase.caseId,
+          inputSha256: hashPhase74ProtectionValue(inputSnapshot),
+        },
+      };
+    },
+  );
   const rows: Phase74ProtectionSuiteRawRow[] = [];
   const failures: Phase74ProtectionRawFailure[] = [];
-  for (const testCase of input.cases) {
-    const inputSnapshot = cloneJson(testCase.input, `${testCase.caseId} input`);
-    const evaluate = async (branch: Phase74ProtectionBranch) => {
-      const result = cloneJson(
-        await input.evaluate({
-          branch,
-          caseId: testCase.caseId,
-          input: cloneJson(inputSnapshot, `${testCase.caseId} ${branch} input`),
-        }),
-        `${testCase.caseId} ${branch} result`,
-      );
-      parseSuiteScores(result.scores, suite, `${testCase.caseId} ${branch}`);
-      return result;
-    };
-    let baseline: Phase74ProtectionSuiteEvaluationResult;
-    try {
-      baseline = await evaluate("baseline");
-    } catch (error) {
-      failures.push(errorDetails(error, "baseline", testCase.caseId));
-      continue;
+  for (const outcome of outcomes) {
+    if (outcome.failure !== undefined) {
+      failures.push(outcome.failure);
+    } else {
+      rows.push(outcome.row);
     }
-    let candidate: Phase74ProtectionSuiteEvaluationResult;
-    try {
-      candidate = await evaluate("candidate");
-    } catch (error) {
-      failures.push(errorDetails(error, "candidate", testCase.caseId));
-      continue;
-    }
-    rows.push({
-      baseline,
-      candidate,
-      caseId: testCase.caseId,
-      inputSha256: hashPhase74ProtectionValue(inputSnapshot),
-    });
   }
   const rawArtifact: Phase74ProtectionSuiteRawArtifact = {
     artifactKind: "phase74-frozen-protection-suite-raw",
