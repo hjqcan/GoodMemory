@@ -589,6 +589,74 @@ describe("Phase 74 HaluMem protection adapters", () => {
     expect(calls).toEqual(before);
   });
 
+  it("rejects rehashed update evidence with non-causal sources or a forged snapshot id", async () => {
+    const config = configuration({
+      candidatePipeline: descriptor("halumem-phase74-candidate", "4"),
+      updateEvaluator: descriptor("halumem-upstream-evaluation.py", "5"),
+    });
+    const dataset = descriptor("halumem-test-jsonl", "1");
+    const source = descriptor("git:test-source", "2");
+
+    const nonCausalRoot = await createRoot();
+    const nonCausal = await runPhase74HaluMemUpdateProtection({
+      artifactPath: join(nonCausalRoot, "run.json"),
+      configuration: config,
+      dataset,
+      rawArtifactPath: join(nonCausalRoot, "raw.json"),
+      replicate: 1,
+      runId: "halumem-update-non-causal",
+      source,
+      users,
+    }, updateDependencies({ evaluate: 0, retrieve: 0 }));
+    const nonCausalRaw = JSON.parse(
+      await readFile(nonCausal.rawArtifactPath, "utf8"),
+    );
+    nonCausalRaw.rows[0].candidate.rawOutput.sourceMessageIds = [
+      "halumem-source-from-another-user-or-future-session",
+    ];
+    await rewriteRawArtifact({
+      artifactPath: nonCausal.artifactPath,
+      raw: nonCausalRaw,
+      rawArtifactPath: nonCausal.rawArtifactPath,
+    });
+    await expect(verifyPhase74HaluMemUpdateProtectionArtifact({
+      artifactPath: nonCausal.artifactPath,
+      configuration: config,
+      dataset,
+      source,
+      users,
+    })).rejects.toThrow(/causal|source/iu);
+
+    const forgedSnapshotRoot = await createRoot();
+    const forgedSnapshot = await runPhase74HaluMemUpdateProtection({
+      artifactPath: join(forgedSnapshotRoot, "run.json"),
+      configuration: config,
+      dataset,
+      rawArtifactPath: join(forgedSnapshotRoot, "raw.json"),
+      replicate: 1,
+      runId: "halumem-update-forged-snapshot",
+      source,
+      users,
+    }, updateDependencies({ evaluate: 0, retrieve: 0 }));
+    const forgedSnapshotRaw = JSON.parse(
+      await readFile(forgedSnapshot.rawArtifactPath, "utf8"),
+    );
+    forgedSnapshotRaw.rows[0].candidate.rawOutput.snapshotId =
+      "self-declared-but-not-recomputed";
+    await rewriteRawArtifact({
+      artifactPath: forgedSnapshot.artifactPath,
+      raw: forgedSnapshotRaw,
+      rawArtifactPath: forgedSnapshot.rawArtifactPath,
+    });
+    await expect(verifyPhase74HaluMemUpdateProtectionArtifact({
+      artifactPath: forgedSnapshot.artifactPath,
+      configuration: config,
+      dataset,
+      source,
+      users,
+    })).rejects.toThrow(/snapshot/iu);
+  });
+
   it("records oversized update snapshots as non-composable execution evidence", async () => {
     const root = await createRoot();
     const config = configuration({

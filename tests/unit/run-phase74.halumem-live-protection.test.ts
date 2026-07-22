@@ -721,4 +721,47 @@ describe("Phase 74 HaluMem live runner", () => {
       "prompt identity",
     );
   });
+
+  it("verify-only rejects a rehashed model-call identity that diverges from the frozen pipelines", async () => {
+    const live = await frozenLiveRun();
+    const identityPath = join(live.runDirectory, "run-identity.json");
+    const completionPath = join(live.runDirectory, "run-completion.json");
+    const identity = JSON.parse(await readFile(identityPath, "utf8"));
+    identity.configuration.modelCalls.judge.gateway =
+      "https://forged-judge.example/v1";
+    const identityText = `${JSON.stringify(identity, null, 2)}\n`;
+    await writeFile(identityPath, identityText, "utf8");
+    const completion = JSON.parse(await readFile(completionPath, "utf8"));
+    completion.identitySha256 = sha256(identityText);
+    completion.artifacts["run-identity.json"] = sha256(identityText);
+    await writeFile(
+      completionPath,
+      `${JSON.stringify(completion, null, 2)}\n`,
+      "utf8",
+    );
+
+    await expect(verifyPhase74HaluMemLiveRun(live.runDirectory)).rejects.toThrow(
+      /model.call|pipeline/iu,
+    );
+  });
+
+  it("verify-only rejects update decision usage that is not backed by its judge ledger event", async () => {
+    const live = await frozenLiveRun();
+    const raw = JSON.parse(await readFile(
+      join(live.runDirectory, "update/raw.json"),
+      "utf8",
+    ));
+    const decision = JSON.parse(raw.rows[0].candidate.rawOutput.decision);
+    decision.usage.inputTokens += 1;
+    raw.rows[0].candidate.rawOutput.decision = JSON.stringify(decision);
+    await rewriteProtectionRaw({
+      raw,
+      runDirectory: live.runDirectory,
+      suite: "update",
+    });
+
+    await expect(verifyPhase74HaluMemLiveRun(live.runDirectory)).rejects.toThrow(
+      /judge.*usage|usage.*ledger/iu,
+    );
+  });
 });
