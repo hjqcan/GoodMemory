@@ -12,6 +12,7 @@ import {
   createReferenceMemory,
 } from "../../src/domain/records";
 import { createEvidenceRecord } from "../../src/evidence/contracts";
+import { estimateTextTokens } from "../../src/tokenEstimator";
 import {
   mergeDurableCandidateOrder,
   resolveRerankerTopK,
@@ -338,6 +339,134 @@ describe("GoodMemory.recall reranker adapter", () => {
         sourceCollection: "references",
       }),
     );
+  });
+
+  it("keeps colliding fact and reference IDs distinct through rerank and packet rebuild", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    let rerankerCandidateIds: string[] = [];
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+        reranker: {
+          async rerank({ documents }) {
+            rerankerCandidateIds = documents.map(({ id }) => id);
+            return documents.map(({ id }, index) => ({
+              id,
+              score: documents.length - index,
+            }));
+          },
+        },
+      },
+      retrieval: { preset: "recommended" },
+      testing: { now: () => new Date("2026-01-03T00:00:00.000Z") },
+    });
+    await documentStore.set("facts", "shared-id", createFactMemory({
+      id: "shared-id",
+      ...scope,
+      category: "project",
+      content: "Alpha status requires legal approval.",
+      source: {
+        method: "explicit",
+        extractedAt: "2026-01-02T00:00:00.000Z",
+      },
+      createdAt: "2026-01-02T00:00:00.000Z",
+      updatedAt: "2026-01-02T00:00:00.000Z",
+    }));
+    await documentStore.set("references", "shared-id", createReferenceMemory({
+      id: "shared-id",
+      ...scope,
+      title: "Alpha approval guide",
+      pointer: "docs/alpha-approval.md",
+      source: {
+        method: "explicit",
+        extractedAt: "2026-01-01T00:00:00.000Z",
+      },
+    }));
+    await documentStore.set("evidence", "shared-evidence", createEvidenceRecord({
+      id: "shared-evidence",
+      ...scope,
+      kind: "conversation_excerpt",
+      excerpt: "Alpha approval requires legal review; use the approval guide.",
+      source: {
+        method: "explicit",
+        extractedAt: "2026-01-02T00:00:00.000Z",
+      },
+      linkedMemoryIds: ["shared-id"],
+    }));
+
+    const result = await memory.recall({
+      scope,
+      query: "Where is the Alpha approval guide and what does Alpha status require?",
+      strategy: "hybrid",
+      includeEvidence: true,
+    });
+
+    expect(rerankerCandidateIds).toEqual(
+      expect.arrayContaining(["facts:shared-id", "references:shared-id"]),
+    );
+    expect(result.facts.map(({ id }) => id)).toContain("shared-id");
+    expect(result.references.map(({ id }) => id)).toContain("shared-id");
+    expect(result.packet.durableMemorySummary).toContain(
+      "Alpha status requires legal approval.",
+    );
+    expect(result.packet.durableMemorySummary).toContain(
+      "docs/alpha-approval.md",
+    );
+    expect(
+      result.evidenceLedger?.filter(
+        ({ evidenceId }) => evidenceId === "shared-evidence",
+      ),
+    ).toHaveLength(1);
+    expect(result.metadata.retrievalTrace?.reranker?.scores).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          memoryId: "shared-id",
+          sourceCollection: "facts",
+        }),
+        expect.objectContaining({
+          memoryId: "shared-id",
+          sourceCollection: "references",
+        }),
+      ]),
+    );
+  });
+
+  it("bounds every document sent to an injected reranker", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    let rerankerTexts: string[] = [];
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+        reranker: {
+          async rerank({ documents }) {
+            rerankerTexts = documents.map(({ text }) => text);
+            return documents.map(({ id }) => ({ id, score: 1 }));
+          },
+        },
+      },
+      testing: { now: () => new Date("2026-01-03T00:00:00.000Z") },
+    });
+    for (const [id, suffix] of [["large-a", "one"], ["large-b", "two"]] as const) {
+      await documentStore.set("facts", id, createFactMemory({
+        id,
+        ...scope,
+        category: "project",
+        content: `alpha ${"large candidate content ".repeat(2_000)} ${suffix}`,
+        source: {
+          method: "explicit",
+          extractedAt: "2026-01-02T00:00:00.000Z",
+        },
+        createdAt: "2026-01-02T00:00:00.000Z",
+        updatedAt: "2026-01-02T00:00:00.000Z",
+      }));
+    }
+
+    await memory.recall({ scope, query: "alpha", strategy: "rules-only" });
+
+    expect(rerankerTexts).toHaveLength(2);
+    expect(rerankerTexts.map(estimateTextTokens)).toEqual([256, 256]);
   });
 
   it("includes supplementary RecallPlan candidates in the global reranker pool", async () => {
