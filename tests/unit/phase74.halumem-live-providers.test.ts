@@ -325,7 +325,26 @@ describe("Phase 74 HaluMem live provider wiring", () => {
       id: `fact-${index + 1}`,
     }));
     const recall = {
-      evidence: [{ excerpt: rawEvidenceOnly }],
+      evidence: [
+        {
+          excerpt: rawEvidenceOnly,
+          linkedArchiveIds: [],
+          linkedMemoryIds: ["preference-target"],
+          sourceMessageIds: ["source-preference"],
+        },
+        ...facts.map(({ id }) => ({
+          excerpt: `evidence-${id}`,
+          linkedArchiveIds: [],
+          linkedMemoryIds: [id],
+          sourceMessageIds: [`source-${id}`],
+        })),
+        {
+          excerpt: "feedback evidence",
+          linkedArchiveIds: [],
+          linkedMemoryIds: ["feedback-1"],
+          sourceMessageIds: ["source-feedback"],
+        },
+      ],
       facts,
       feedback: [{ id: "feedback-1", rule: "Keep project status current." }],
       metadata: {
@@ -345,16 +364,34 @@ describe("Phase 74 HaluMem live provider wiring", () => {
     const records = buildPhase74HaluMemUpdateRecords(recall);
     expect(records).toHaveLength(10);
     expect(records.slice(0, 3)).toEqual([
-      `project: ${target}`,
-      "rank-1",
-      "Keep project status current.",
+      {
+        content: `project: ${target}`,
+        id: "preference-target",
+        rank: 1,
+        sourceMessageIds: ["source-preference"],
+        type: "preference",
+      },
+      {
+        content: "rank-1",
+        id: "fact-1",
+        rank: 2,
+        sourceMessageIds: ["source-fact-1"],
+        type: "fact",
+      },
+      {
+        content: "Keep project status current.",
+        id: "feedback-1",
+        rank: 3,
+        sourceMessageIds: ["source-feedback"],
+        type: "feedback",
+      },
     ]);
-    expect(records).toContain("rank-8");
-    expect(records).not.toContain("rank-9");
+    expect(records.some(({ content }) => content === "rank-8")).toBe(true);
+    expect(records.some(({ content }) => content === "rank-9")).toBe(false);
     expect(buildPhase74HaluMemUpdateJudgePrompt({
       expectedUpdate: target,
       originalMemories: ["user-a worked on Apollo."],
-      retrievedMemories: records,
+      retrievedMemories: records.map(({ content }) => content),
     })).not.toContain("[RAW-EVIDENCE-ONLY]");
     expect(scorePhase74HaluMemUpdateDecision(JSON.stringify({
       category: "Omission",
