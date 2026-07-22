@@ -341,16 +341,18 @@ async function createRuntimeGuidanceScenarioMemory(input: {
   };
 }
 
+const DEPLOY_PRECONDITION = "Before deploy, run smoke verification.";
+
 const PHASE34_CASES: readonly Phase34CaseSpec[] = [
   {
     caseId: "deploy-rewrite",
     expectedDecision: "review_required",
-    expectedFirstStep: "run smoke verification",
+    expectedFirstStep: DEPLOY_PRECONDITION,
     focus: "first_step_rewrite",
     query: "What should I do before deploy production?",
     risk: "high",
     reminderNeedles: [
-      "Before deploy, run smoke verification.",
+      DEPLOY_PRECONDITION,
       "Production deploy was blocked because smoke verification was skipped.",
     ],
     seed: async ({ scope, timestamp }) =>
@@ -358,7 +360,7 @@ const PHASE34_CASES: readonly Phase34CaseSpec[] = [
         evidenceExcerpt:
           "Production deploy was blocked because smoke verification was skipped.",
         evidenceId: "evidence-deploy-1",
-        rule: "Before deploy, run smoke verification.",
+        rule: DEPLOY_PRECONDITION,
         scope,
         timestamp,
       }),

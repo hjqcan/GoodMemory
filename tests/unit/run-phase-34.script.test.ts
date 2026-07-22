@@ -75,7 +75,7 @@ describe("run-phase-34 eval script", () => {
     ).toEqual({
       blocked: false,
       decision: "review_required",
-      effectiveFirstStep: "run smoke verification",
+      effectiveFirstStep: "Before deploy, run smoke verification.",
       executeOriginalActionNow: false,
       intercepted: true,
       matchedEvidenceIds: ["evidence-deploy-1"],
