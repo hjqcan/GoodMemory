@@ -622,7 +622,7 @@ export const CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT = [
 
 export const COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT = [
   "Convert substantive dialogue into grounded, self-contained atomic memory claims.",
-  "Cover every durable explicit user claim exactly once, resolve references, preserve relations, and never invent details.",
+  "Cover every durable explicit user claim and each concrete assistant contribution that establishes shared conversational state exactly once; resolve references, preserve relations, and never invent details.",
 ].join(" ");
 
 // Conversational atomic-fact extraction: rewrite raw dialogue turns into
@@ -649,7 +649,9 @@ export function buildConversationalMemoryExtractionPrompt(
   const rules = [
     "Rules for every fact:",
     "- Capture exactly ONE atomic claim (one subject, one predicate, one object).",
-    "- Extract every durable explicit claim from substantive user messages; do not select only a representative subset.",
+    "- Scan user messages clause by clause, including durable side facts inside requests; extract every durable explicit claim exactly once.",
+    "- From assistant messages, extract only concrete contributions that establish shared state: recommendations, decisions, commitments, and named artifacts; skip generic advice and exposition.",
+    "- Preserve item positions in ordered recommendations or named lists.",
     "- Preserve relational meaning: when a speaker says one thing matters because of, affects, supports, or is useful for another, retain that explicit predicate and never reduce the relation to a generic attribute about either side.",
     "- Resolve all coreferences: replace pronouns (he, she, it, they, this, that) and vague references with the explicit named entity, and attribute first-person statements to the speaker by name when the name is known.",
     "- Make it self-contained: it must be understandable without the surrounding turns.",
@@ -752,9 +754,11 @@ export function buildCompactConversationalMemoryExtractionPrompt(
 
   const rules = [
     "Rules:",
-    "- Emit one self-contained atomic candidate for every durable explicit claim in user messages; each exactly once.",
+    "- Scan user messages clause by clause, including durable side facts inside requests; emit every durable explicit claim exactly once.",
+    "- From assistant messages, emit only concrete contributions that establish shared state: recommendations, decisions, commitments, and named artifacts; skip generic advice and exposition.",
+    "- Preserve item positions in ordered recommendations or named lists.",
     "- Preserve relational meaning (because, affects, supports, useful for); never reduce the relation to a generic attribute.",
-    "- Resolve coreference, pronouns, speakers, and vague references; retain enough context to stand alone.",
+    "- Resolve coreference, pronouns, speakers, and vague references; make each claim self-contained.",
     "- Prefer full entity names. Convert relative dates only with a grounded reference date.",
     "- Rewrite machine-style values such as snake_case as natural language without changing meaning.",
     "- Facts use m.u=subject and m.q={p:stable predicate,o:object}. n=true means negative polarity; omit for positive. q.m is non-asserted modality (planned|attempted|completed|unknown); omit asserted.",
