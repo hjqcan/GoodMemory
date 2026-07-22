@@ -110,6 +110,39 @@ describe("Phase 74 eval model usage", () => {
     expect(events[0]?.requestId).toBe("request-1");
   });
 
+  it("resolves a contextual case id once when an attempt begins", () => {
+    const intents: AttributedModelUsageIntent[] = [];
+    const events: AttributedModelUsageAttempt[] = [];
+    let caseId = "case-a";
+    const sink = createAttributedModelUsageSink({
+      branch: "candidate",
+      caseId: () => caseId,
+      createRequestId: () => `request-${intents.length + 1}`,
+      events,
+      intents,
+    });
+
+    const commit = sink.begin!({
+      attempt: 1,
+      modelId: "model-v1",
+      operation: "embedding",
+      providerId: "openai",
+      schemaVersion: 1,
+    });
+    caseId = "case-b";
+    commit(attempt({ operation: "embedding" }));
+    sink.emit(attempt({ operation: "embedding" }));
+
+    expect(intents.map((intent) => intent.caseId)).toEqual([
+      "case-a",
+      "case-b",
+    ]);
+    expect(events.map((event) => event.caseId)).toEqual([
+      "case-a",
+      "case-b",
+    ]);
+  });
+
   it("loads pending intents but rejects duplicate or orphan terminals", async () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-phase74-usage-v2-"));
     const intentsPath = join(root, "intents.jsonl");

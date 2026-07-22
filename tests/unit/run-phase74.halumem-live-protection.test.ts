@@ -30,10 +30,16 @@ import type {
   Phase74HaluMemUser,
 } from "../../src/eval/phase74HaluMemProtectionVerifier";
 import {
+  PHASE74_HALUMEM_EVIDENCE_LEDGER_FORMATS,
   buildPhase74HaluMemSourceMessageId,
   buildPhase74HaluMemUpdateSnapshotId,
+  buildPhase74HaluMemUpdateSourceRecord,
 } from "../../src/eval/phase74HaluMemProtectionVerifier";
 import { buildPhase74IngestionUsageFingerprint } from "../../src/eval/phase74FullRuntime";
+import type {
+  AttributedModelUsageAttempt,
+  AttributedModelUsageIntent,
+} from "../../src/eval/modelUsage";
 import { hashPhase74ProtectionValue } from "../../src/eval/phase74ProtectionRun";
 
 const roots: string[] = [];
@@ -52,6 +58,31 @@ async function root(): Promise<string> {
 
 function sha256(value: string | Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function updateEvidenceLinks(
+  memoryId: string,
+  user: Phase74HaluMemUser,
+  sessionIndex: number,
+) {
+  const sourceRecord = buildPhase74HaluMemUpdateSourceRecord({
+    sessionIndex,
+    turnIndex: 0,
+    user,
+  });
+  const excerpt = user.sessions[sessionIndex]!.dialogue[0]!.content.trim();
+  return [{
+    evidenceId: `evidence:${sha256(memoryId)}`,
+    excerpt,
+    excerptSha256: sha256(excerpt),
+    linkedArchiveIds: [],
+    linkedMemoryIds: [memoryId],
+    sourceMessageIds: [sourceRecord.sourceMessageId],
+    sourceRecordIds: [sourceRecord.id],
+    sourceRecords: [sourceRecord],
+    sourceUri:
+      `goodmemory://source-messages/${encodeURIComponent(sourceRecord.id)}`,
+  }];
 }
 
 function user(uuid: string): Phase74HaluMemUser {
@@ -180,30 +211,68 @@ async function frozenResult(
   runDirectory: string,
   options: Parameters<Phase74HaluMemLiveRunnerDependencies["runProtection"]>[0],
 ): Promise<Phase74HaluMemProtectionCliResult> {
-  const ingestionKey = "a".repeat(64);
-  await Bun.write(
-    join(runDirectory, "ingestion-usage", ingestionKey, "events.jsonl"),
-    "",
-  );
-  await Bun.write(
-    join(runDirectory, "ingestion-usage", ingestionKey, "intents.jsonl"),
-    "",
-  );
-  await Bun.write(
-    join(runDirectory, "ingestion", ingestionKey, "manifest.json"),
-    `${JSON.stringify({
-      key: ingestionKey,
-      schemaVersion: 8,
-      usage: buildPhase74IngestionUsageFingerprint({
-        events: [],
-        intents: [],
-        pendingIntents: [],
-      }),
-    })}\n`,
-  );
   const selectedUsers = users.filter(({ uuid }) =>
     options.userUuids.includes(uuid)
   );
+  const completeUsage = {
+    cacheCreationInputTokens: 0,
+    cacheReadInputTokens: 0,
+    inputTokens: 10,
+    outputTokens: 5,
+    uncachedInputTokens: 10,
+  };
+  for (const selectedUser of selectedUsers) {
+    const memoryGroupId = `halumem:${selectedUser.uuid}:through-session:0`;
+    const ingestionKey = sha256(`ingestion:${memoryGroupId}`);
+    const intents = ([
+      {
+        modelId: "gpt-5.6-terra",
+        operation: "assisted_extraction" as const,
+        providerId: "openai",
+      },
+      {
+        modelId: "text-embedding-3-small",
+        operation: "embedding" as const,
+        providerId: "openai",
+      },
+    ]).map((request, index) => ({
+      ...request,
+      attempt: 1,
+      branch: "shadow" as const,
+      caseId: memoryGroupId,
+      requestId: `ingestion-${selectedUser.uuid}-${index}`,
+      schemaVersion: 1 as const,
+    }));
+    const events = intents.map((intent) => ({
+      ...intent,
+      completeness: "complete" as const,
+      outcome: "succeeded" as const,
+      usage: completeUsage,
+    }));
+    await Bun.write(
+      join(runDirectory, "ingestion-usage", ingestionKey, "events.jsonl"),
+      `${events.map((event) => JSON.stringify(event)).join("\n")}\n`,
+    );
+    await Bun.write(
+      join(runDirectory, "ingestion-usage", ingestionKey, "intents.jsonl"),
+      `${intents.map((intent) => JSON.stringify(intent)).join("\n")}\n`,
+    );
+    await Bun.write(
+      join(runDirectory, "ingestion", ingestionKey, "manifest.json"),
+      `${JSON.stringify({
+        key: ingestionKey,
+        memoryGroupId,
+        representation: "atomic",
+        schemaVersion: 8,
+        sourceMessageCount: 1,
+        usage: buildPhase74IngestionUsageFingerprint({
+          events,
+          intents,
+          pendingIntents: [],
+        }),
+      })}\n`,
+    );
+  }
   const common = {
     dataset: {
       id: options.datasetId,
@@ -294,6 +363,11 @@ async function frozenResult(
       })];
       const records = contents.map((content, index) => ({
         content,
+        evidenceLinks: updateEvidenceLinks(
+          `${branch}-fact-${index + 1}`,
+          user,
+          sessionIndex,
+        ),
         id: `${branch}-fact-${index + 1}`,
         rank: index + 1,
         sourceMessageIds,
@@ -312,38 +386,138 @@ async function frozenResult(
       };
     },
   });
-  const updateJudgeUsage = {
-    cacheCreationInputTokens: 0,
-    cacheReadInputTokens: 0,
-    inputTokens: 10,
-    outputTokens: 5,
-    uncachedInputTokens: 10,
-  };
-  const updateJudgeRequests = selectedUsers.flatMap((user) =>
-    (["baseline", "candidate"] as const).map((branch) => ({
+  const directRequests: AttributedModelUsageIntent[] = [];
+  const addDirectRequest = (input: Omit<
+    AttributedModelUsageIntent,
+    "attempt" | "requestId" | "schemaVersion"
+  >) => {
+    directRequests.push({
+      ...input,
       attempt: 1,
-      branch: "judge" as const,
-      caseId: `${user.uuid}:session:0:update:0:${branch}:update`,
-      modelId: "gpt-5.5",
-      operation: "judge" as const,
+      requestId: `direct-request-${directRequests.length + 1}`,
+      schemaVersion: 1,
+    });
+  };
+  for (const selectedUser of selectedUsers) {
+    const questionCaseId = `${selectedUser.uuid}:session:0:question:0`;
+    addDirectRequest({
+      branch: "candidate",
+      caseId: questionCaseId,
+      modelId: "text-embedding-3-small",
+      operation: "embedding",
       providerId: "openai",
-      requestId: `update-judge-${user.uuid}-${branch}`,
-      schemaVersion: 1 as const,
-    }))
-  );
+    });
+    for (const [branch, format] of [
+      ["baseline", "legacy"],
+      ...PHASE74_HALUMEM_EVIDENCE_LEDGER_FORMATS.map((format) =>
+        ["candidate", format] as const
+      ),
+    ] as const) {
+      const caseId = `${questionCaseId}:${format}`;
+      addDirectRequest({
+        branch,
+        caseId,
+        modelId: "gpt-5.6-terra",
+        operation: "answer_generation",
+        providerId: "openai",
+      });
+      addDirectRequest({
+        branch: "judge",
+        caseId,
+        modelId: "gpt-5.5",
+        operation: "judge",
+        providerId: "openai",
+      });
+    }
+    for (const branch of ["baseline", "candidate"] as const) {
+      addDirectRequest({
+        branch,
+        caseId:
+          `halumem-privacy:${selectedUser.uuid}:session:0:${branch}:ingest`,
+        modelId: "text-embedding-3-small",
+        operation: "embedding",
+        providerId: "openai",
+      });
+      const privacyCaseId =
+        `${questionCaseId}:foreign-scope:${
+          selectedUsers[(selectedUsers.indexOf(selectedUser) + 1) %
+            selectedUsers.length]!.uuid
+        }`;
+      for (const side of ["owner", "foreign"] as const) {
+        addDirectRequest({
+          branch,
+          caseId: `${privacyCaseId}:${branch}:${side}`,
+          modelId: "text-embedding-3-small",
+          operation: "embedding",
+          providerId: "openai",
+        });
+      }
+      addDirectRequest({
+        branch,
+        caseId:
+          `halumem-update:${selectedUser.uuid}:session:0:${branch}:ingest`,
+        modelId: "gpt-5.6-terra",
+        operation: "assisted_extraction",
+        providerId: "openai",
+      });
+      addDirectRequest({
+        branch,
+        caseId:
+          `halumem-update:${selectedUser.uuid}:session:0:${branch}:ingest`,
+        modelId: "text-embedding-3-small",
+        operation: "embedding",
+        providerId: "openai",
+      });
+      const updateCaseId = `${selectedUser.uuid}:session:0:update:0`;
+      addDirectRequest({
+        branch,
+        caseId: `${updateCaseId}:${branch}:retrieve`,
+        modelId: "text-embedding-3-small",
+        operation: "embedding",
+        providerId: "openai",
+      });
+      addDirectRequest({
+        branch: "judge",
+        caseId: `${updateCaseId}:${branch}:update`,
+        modelId: "gpt-5.5",
+        operation: "judge",
+        providerId: "openai",
+      });
+    }
+  }
+  const directEvents = directRequests.map((request) => ({
+    ...request,
+    completeness: "complete" as const,
+    outcome: "succeeded" as const,
+    usage: completeUsage,
+  }));
   await writeFile(
     join(runDirectory, "model-usage-intents.jsonl"),
-    `${updateJudgeRequests.map((request) => JSON.stringify(request)).join("\n")}\n`,
+    `${directRequests.map((request) => JSON.stringify(request)).join("\n")}\n`,
     "utf8",
   );
   await writeFile(
     join(runDirectory, "model-usage.jsonl"),
-    `${updateJudgeRequests.map((request) => JSON.stringify({
-      ...request,
-      completeness: "complete",
-      outcome: "succeeded",
-      usage: updateJudgeUsage,
-    })).join("\n")}\n`,
+    `${directEvents.map((event) => JSON.stringify(event)).join("\n")}\n`,
+    "utf8",
+  );
+  const callBudgetPath = join(runDirectory, "call-budget.json");
+  const callBudget = JSON.parse(await readFile(callBudgetPath, "utf8"));
+  const allIntents = [
+    ...directRequests,
+    ...selectedUsers.flatMap((selectedUser) => ([
+      { operation: "assisted_extraction" },
+      { operation: "embedding" },
+    ])),
+  ];
+  callBudget.embeddingCalls = allIntents.filter(
+    ({ operation }) => operation === "embedding",
+  ).length;
+  callBudget.embeddingInputByteUpperBound = callBudget.embeddingCalls * 10;
+  callBudget.languageCalls = allIntents.length - callBudget.embeddingCalls;
+  await writeFile(
+    callBudgetPath,
+    `${JSON.stringify(callBudget, null, 2)}\n`,
     "utf8",
   );
   return {
@@ -372,6 +546,198 @@ async function frozenLiveRun() {
       );
     },
   });
+}
+
+async function rewriteUsageEvidence(input: {
+  mutateBudget?: (budget: Record<string, number>) => void;
+  mutateDirect?: (value: {
+    events: AttributedModelUsageAttempt[];
+    intents: AttributedModelUsageIntent[];
+  }) => void;
+  mutateIngestion?: (value: {
+    events: AttributedModelUsageAttempt[];
+    intents: AttributedModelUsageIntent[];
+    key: string;
+  }) => void;
+  runDirectory: string;
+}): Promise<void> {
+  const directEventsPath = join(input.runDirectory, "model-usage.jsonl");
+  const directIntentsPath = join(
+    input.runDirectory,
+    "model-usage-intents.jsonl",
+  );
+  const summaryPath = join(input.runDirectory, "model-usage-summary.json");
+  const completionPath = join(input.runDirectory, "run-completion.json");
+  const budgetPath = join(input.runDirectory, "call-budget.json");
+  const parseJsonl = <T>(raw: string): T[] =>
+    raw.split("\n").filter(Boolean).map((line) => JSON.parse(line) as T);
+  const serializeJsonl = (values: readonly unknown[]) =>
+    values.length === 0
+      ? ""
+      : `${values.map((value) => JSON.stringify(value)).join("\n")}\n`;
+  const direct = {
+    events: parseJsonl<AttributedModelUsageAttempt>(
+      await readFile(directEventsPath, "utf8"),
+    ),
+    intents: parseJsonl<AttributedModelUsageIntent>(
+      await readFile(directIntentsPath, "utf8"),
+    ),
+  };
+  input.mutateDirect?.(direct);
+  const summary = JSON.parse(await readFile(summaryPath, "utf8")) as {
+    branches: Record<string, number>;
+    eventCount: number;
+    eventsSha256: string;
+    ingestion: Array<{
+      eventCount: number;
+      eventsSha256: string;
+      intentCount: number;
+      intentsSha256: string;
+      key: string;
+    }>;
+    ingestionKeyCount: number;
+    intentCount: number;
+    intentsSha256: string;
+    pendingRequestCount: 0;
+    schemaVersion: 1;
+  };
+  const ingestionLedgers = await Promise.all(summary.ingestion.map(
+    async (entry, index) => {
+      const eventsPath = join(
+        input.runDirectory,
+        "ingestion-usage",
+        entry.key,
+        "events.jsonl",
+      );
+      const intentsPath = join(
+        input.runDirectory,
+        "ingestion-usage",
+        entry.key,
+        "intents.jsonl",
+      );
+      const ledger = {
+        events: parseJsonl<AttributedModelUsageAttempt>(
+          await readFile(eventsPath, "utf8"),
+        ),
+        intents: parseJsonl<AttributedModelUsageIntent>(
+          await readFile(intentsPath, "utf8"),
+        ),
+        key: entry.key,
+      };
+      if (index === 0) {
+        input.mutateIngestion?.(ledger);
+      }
+      const eventText = serializeJsonl(ledger.events);
+      const intentText = serializeJsonl(ledger.intents);
+      await writeFile(eventsPath, eventText, "utf8");
+      await writeFile(intentsPath, intentText, "utf8");
+      const manifestPath = join(
+        input.runDirectory,
+        "ingestion",
+        entry.key,
+        "manifest.json",
+      );
+      const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+      manifest.usage = buildPhase74IngestionUsageFingerprint({
+        events: ledger.events,
+        intents: ledger.intents,
+        pendingIntents: [],
+      });
+      const manifestText = `${JSON.stringify(manifest)}\n`;
+      await writeFile(manifestPath, manifestText, "utf8");
+      return {
+        artifacts: {
+          [`ingestion-usage/${entry.key}/events.jsonl`]: sha256(eventText),
+          [`ingestion-usage/${entry.key}/intents.jsonl`]: sha256(intentText),
+          [`ingestion/${entry.key}/manifest.json`]: sha256(manifestText),
+        },
+        entry: {
+          eventCount: ledger.events.length,
+          eventsSha256: sha256(eventText),
+          intentCount: ledger.intents.length,
+          intentsSha256: sha256(intentText),
+          key: entry.key,
+        },
+        intents: ledger.intents,
+      };
+    },
+  ));
+  const directEventText = serializeJsonl(direct.events);
+  const directIntentText = serializeJsonl(direct.intents);
+  await writeFile(directEventsPath, directEventText, "utf8");
+  await writeFile(directIntentsPath, directIntentText, "utf8");
+  summary.ingestion = ingestionLedgers.map(({ entry }) => entry);
+  summary.eventCount = direct.events.length + summary.ingestion.reduce(
+    (total, entry) => total + entry.eventCount,
+    0,
+  );
+  summary.intentCount = direct.intents.length + summary.ingestion.reduce(
+    (total, entry) => total + entry.intentCount,
+    0,
+  );
+  summary.eventsSha256 = hashPhase74ProtectionValue([
+    { key: "direct", sha256: sha256(directEventText) },
+    ...summary.ingestion.map(({ eventsSha256, key }) => ({
+      key,
+      sha256: eventsSha256,
+    })),
+  ]);
+  summary.intentsSha256 = hashPhase74ProtectionValue([
+    { key: "direct", sha256: sha256(directIntentText) },
+    ...summary.ingestion.map(({ intentsSha256, key }) => ({
+      key,
+      sha256: intentsSha256,
+    })),
+  ]);
+  for (const branch of ["baseline", "candidate", "judge", "shadow"]) {
+    summary.branches[branch] = direct.intents.filter(
+      (intent) => intent.branch === branch,
+    ).length + (branch === "shadow"
+      ? ingestionLedgers.reduce(
+          (total, ledger) => total + ledger.intents.length,
+          0,
+        )
+      : 0);
+  }
+  const summaryText = `${JSON.stringify(summary, null, 2)}\n`;
+  await writeFile(summaryPath, summaryText, "utf8");
+  const budget = JSON.parse(await readFile(budgetPath, "utf8")) as Record<
+    string,
+    number
+  >;
+  const allIntents = [
+    ...direct.intents,
+    ...ingestionLedgers.flatMap(({ intents }) => intents),
+  ];
+  budget.embeddingCalls = allIntents.filter(
+    ({ operation }) => operation === "embedding",
+  ).length;
+  budget.languageCalls = allIntents.length - budget.embeddingCalls;
+  input.mutateBudget?.(budget);
+  const budgetText = `${JSON.stringify(budget, null, 2)}\n`;
+  await writeFile(budgetPath, budgetText, "utf8");
+  const completion = JSON.parse(await readFile(completionPath, "utf8"));
+  completion.usage = {
+    eventCount: summary.eventCount,
+    eventsSha256: summary.eventsSha256,
+    ingestionKeyCount: summary.ingestionKeyCount,
+    intentCount: summary.intentCount,
+    intentsSha256: summary.intentsSha256,
+    pendingRequestCount: 0,
+  };
+  completion.artifacts["model-usage.jsonl"] = sha256(directEventText);
+  completion.artifacts["model-usage-intents.jsonl"] = sha256(directIntentText);
+  completion.artifacts["model-usage-summary.json"] = sha256(summaryText);
+  completion.artifacts["call-budget.json"] = sha256(budgetText);
+  Object.assign(
+    completion.artifacts,
+    ...ingestionLedgers.map(({ artifacts }) => artifacts),
+  );
+  await writeFile(
+    completionPath,
+    `${JSON.stringify(completion, null, 2)}\n`,
+    "utf8",
+  );
 }
 
 async function rewriteProtectionRaw(input: {
@@ -482,21 +848,21 @@ describe("Phase 74 HaluMem live runner", () => {
     expect((await readFile(
       join(result.runDirectory, "model-usage-intents.jsonl"),
       "utf8",
-    )).trim().split("\n")).toHaveLength(4);
+    )).trim().split("\n")).toHaveLength(50);
     expect((await readFile(
       join(result.runDirectory, "model-usage.jsonl"),
       "utf8",
-    )).trim().split("\n")).toHaveLength(4);
+    )).trim().split("\n")).toHaveLength(50);
     const completion = await verifyPhase74HaluMemLiveRun(result.runDirectory);
     expect(completion.updateStatus).toBe("completed");
-    expect(completion.usage.ingestionKeyCount).toBe(1);
+    expect(completion.usage.ingestionKeyCount).toBe(2);
     expect(Object.keys(completion.artifacts)).toContain("e4/raw.json");
-    expect(Object.keys(completion.artifacts)).toContain(
-      `ingestion-usage/${"a".repeat(64)}/events.jsonl`,
-    );
-    expect(Object.keys(completion.artifacts)).toContain(
-      `ingestion/${"a".repeat(64)}/manifest.json`,
-    );
+    expect(Object.keys(completion.artifacts).some((path) =>
+      /^ingestion-usage\/[a-f0-9]{64}\/events\.jsonl$/u.test(path)
+    )).toBe(true);
+    expect(Object.keys(completion.artifacts).some((path) =>
+      /^ingestion\/[a-f0-9]{64}\/manifest\.json$/u.test(path)
+    )).toBe(true);
     expect(await readFile(
       join(result.runDirectory, "model-usage-summary.json"),
       "utf8",
@@ -739,7 +1105,11 @@ describe("Phase 74 HaluMem live runner", () => {
 
   it("verify-only rejects a rehashed pending ingestion model-usage intent", async () => {
     const live = await frozenLiveRun();
-    const key = "a".repeat(64);
+    const usageSummary = JSON.parse(await readFile(
+      join(live.runDirectory, "model-usage-summary.json"),
+      "utf8",
+    )) as { ingestion: Array<{ key: string }> };
+    const key = usageSummary.ingestion[0]!.key;
     const intentsPath = join(
       live.runDirectory,
       "ingestion-usage",
@@ -807,6 +1177,80 @@ describe("Phase 74 HaluMem live runner", () => {
 
     await expect(verifyPhase74HaluMemLiveRun(live.runDirectory)).rejects.toThrow(
       /model.call|pipeline/iu,
+    );
+  });
+
+  it("verify-only rejects a coherently rehashed run missing an expected E4 reader call", async () => {
+    const live = await frozenLiveRun();
+    await rewriteUsageEvidence({
+      mutateDirect(direct) {
+        const missing = direct.intents.find((intent) =>
+          intent.branch === "baseline" &&
+          intent.operation === "answer_generation" &&
+          intent.caseId.endsWith(":legacy")
+        )!;
+        direct.intents = direct.intents.filter(
+          ({ requestId }) => requestId !== missing.requestId,
+        );
+        direct.events = direct.events.filter(
+          ({ requestId }) => requestId !== missing.requestId,
+        );
+      },
+      runDirectory: live.runDirectory,
+    });
+
+    await expect(verifyPhase74HaluMemLiveRun(live.runDirectory)).rejects.toThrow(
+      "usage population",
+    );
+  });
+
+  it("verify-only rejects a coherently rehashed E4 call using the wrong model", async () => {
+    const live = await frozenLiveRun();
+    await rewriteUsageEvidence({
+      mutateDirect(direct) {
+        const intent = direct.intents.find((entry) =>
+          entry.branch === "candidate" &&
+          entry.operation === "answer_generation"
+        )!;
+        intent.modelId = "forged-reader";
+        direct.events.find(({ requestId }) =>
+          requestId === intent.requestId
+        )!.modelId = intent.modelId;
+      },
+      runDirectory: live.runDirectory,
+    });
+
+    await expect(verifyPhase74HaluMemLiveRun(live.runDirectory)).rejects.toThrow(
+      "usage model",
+    );
+  });
+
+  it("verify-only rejects a coherently rehashed empty ingestion ledger", async () => {
+    const live = await frozenLiveRun();
+    await rewriteUsageEvidence({
+      mutateIngestion(ingestion) {
+        ingestion.events = [];
+        ingestion.intents = [];
+      },
+      runDirectory: live.runDirectory,
+    });
+
+    await expect(verifyPhase74HaluMemLiveRun(live.runDirectory)).rejects.toThrow(
+      "ingestion usage population",
+    );
+  });
+
+  it("verify-only reconciles the durable call budget with every usage intent", async () => {
+    const live = await frozenLiveRun();
+    await rewriteUsageEvidence({
+      mutateBudget(budget) {
+        budget.languageCalls += 1;
+      },
+      runDirectory: live.runDirectory,
+    });
+
+    await expect(verifyPhase74HaluMemLiveRun(live.runDirectory)).rejects.toThrow(
+      "call budget",
     );
   });
 

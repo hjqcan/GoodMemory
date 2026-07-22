@@ -40,6 +40,7 @@ import {
   buildPhase74HaluMemSourceMessageId,
   buildPhase74HaluMemUpdateJudgePrompt,
   buildPhase74HaluMemUpdateSnapshotId,
+  buildPhase74HaluMemUpdateSourceRecord,
   countPhase74HaluMemContextTokens,
   parsePhase74HaluMemJsonl,
   scorePhase74HaluMemUpdateDecision,
@@ -72,6 +73,31 @@ async function createRoot(): Promise<string> {
 
 function sha256(value: string | Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function updateEvidenceLinks(
+  memoryId: string,
+  user: Phase74HaluMemUser,
+  sessionIndex: number,
+) {
+  const sourceRecord = buildPhase74HaluMemUpdateSourceRecord({
+    sessionIndex,
+    turnIndex: 0,
+    user,
+  });
+  const excerpt = user.sessions[sessionIndex]!.dialogue[0]!.content.trim();
+  return [{
+    evidenceId: `evidence:${sha256(memoryId)}`,
+    excerpt,
+    excerptSha256: sha256(excerpt),
+    linkedArchiveIds: [],
+    linkedMemoryIds: [memoryId],
+    sourceMessageIds: [sourceRecord.sourceMessageId],
+    sourceRecordIds: [sourceRecord.id],
+    sourceRecords: [sourceRecord],
+    sourceUri:
+      `goodmemory://source-messages/${encodeURIComponent(sourceRecord.id)}`,
+  }];
 }
 
 function descriptor(id: string, digit: string) {
@@ -243,6 +269,11 @@ function updateDependencies(
       })];
       const records = contents.map((content, index) => ({
         content,
+        evidenceLinks: updateEvidenceLinks(
+          `${branch}-fact-${index + 1}`,
+          user,
+          sessionIndex,
+        ),
         id: `${branch}-fact-${index + 1}`,
         rank: index + 1,
         sourceMessageIds,
@@ -353,6 +384,18 @@ describe("Phase 74 HaluMem protection adapters", () => {
       "09fe8f86418cf45248d1c12eb4bfe2b61e8ad0adf389fffcb4f0b4e56d014170",
     );
     expect(prompt.endsWith("```\n")).toBe(true);
+  });
+
+  it("renders upstream placeholders once without rewriting inserted memory text", () => {
+    const prompt = buildPhase74HaluMemUpdateJudgePrompt({
+      expectedUpdate: "updated {original_memory}",
+      originalMemories: ["original {memories}"],
+      retrievedMemories: ["retrieved {updated_memory}"],
+    });
+
+    expect(prompt).toContain("retrieved {updated_memory}");
+    expect(prompt).toContain("updated {original_memory}");
+    expect(prompt).toContain("original {memories}");
   });
 
   it("parses the real HaluMem JSONL user contract and pins the upstream", () => {
@@ -581,6 +624,11 @@ describe("Phase 74 HaluMem protection adapters", () => {
         })];
         const records = [{
           content: memoryPoint.memory_content,
+          evidenceLinks: updateEvidenceLinks(
+            `${branch}-fact-1`,
+            user,
+            sessionIndex,
+          ),
           id: `${branch}-fact-1`,
           rank: 1,
           sourceMessageIds,
@@ -733,6 +781,11 @@ describe("Phase 74 HaluMem protection adapters", () => {
     dependencies.retrieveUpdateEvidence = async ({ branch }) => ({
       records: Array.from({ length: 11 }, (_, index) => ({
         content: `fact-${index + 1}`,
+        evidenceLinks: updateEvidenceLinks(
+          `fact-${index + 1}`,
+          users[0]!,
+          0,
+        ),
         id: `fact-${index + 1}`,
         rank: index + 1,
         sourceMessageIds: ["source-message-0"],

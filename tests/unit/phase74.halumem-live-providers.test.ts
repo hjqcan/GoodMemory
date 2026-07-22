@@ -260,7 +260,7 @@ describe("Phase 74 HaluMem live provider wiring", () => {
       input.models,
     );
     expect(updatePipeline.retrieval.generatedMemoryRecords).toBe(
-      "final-ranked-durable-records-cross-kind-v1",
+      "evidence-backed-retrieved-records-v2",
     );
     expect(updatePipeline.ingestionClock).toBe(
       "latest-dialogue-time-through-session-v1",
@@ -279,12 +279,30 @@ describe("Phase 74 HaluMem live provider wiring", () => {
       branch: "candidate",
       createMemory() {
         return {
-          async recall({ query, topK }) {
-            calls.push(`recall:${query}`);
+          async recall({ query, topK, usageCaseId }) {
+            calls.push(`recall:${usageCaseId}:${query}`);
             expect(topK).toBe(10);
             return {
               records: [{
                 content: "user-a now works on Mosaic.",
+                evidenceLinks: [{
+                  evidenceId: "evidence-mosaic",
+                  excerpt: "user-a now works on Mosaic.",
+                  excerptSha256: "a".repeat(64),
+                  linkedArchiveIds: [],
+                  linkedMemoryIds: ["fact-mosaic"],
+                  sourceMessageIds: ["source-session-1"],
+                  sourceRecordIds: ["source-record-session-1"],
+                  sourceRecords: [{
+                    contentSha256: "b".repeat(64),
+                    id: "source-record-session-1",
+                    observedAt: "2026-02-01T00:00:00.000Z",
+                    role: "user",
+                    sourceMessageId: "source-session-1",
+                  }],
+                  sourceUri:
+                    "goodmemory://source-messages/source-record-session-1",
+                }],
                 id: "fact-mosaic",
                 rank: 1,
                 sourceMessageIds: ["source-session-1"],
@@ -295,8 +313,8 @@ describe("Phase 74 HaluMem live provider wiring", () => {
           setReferenceTime(referenceTime: string) {
             calls.push(`time:${referenceTime}`);
           },
-          async remember({ scope }) {
-            calls.push(`remember:${scope.sessionId}`);
+          async remember({ scope, usageCaseId }) {
+            calls.push(`remember:${usageCaseId}:${scope.sessionId}`);
             return { warnings: [] };
           },
         };
@@ -314,13 +332,30 @@ describe("Phase 74 HaluMem live provider wiring", () => {
 
     expect(calls).toEqual([
       "time:2026-01-01T00:00:00.000Z",
-      "remember:session-0",
+      "remember:halumem-update:user-a:session:0:candidate:ingest:session-0",
       "time:2026-02-01T00:00:00.000Z",
-      "remember:session-1",
-      "recall:user-a now works on Mosaic.",
+      "remember:halumem-update:user-a:session:1:candidate:ingest:session-1",
+      "recall:user-a:session:1:update:0:candidate:retrieve:user-a now works on Mosaic.",
     ]);
     expect(snapshot.records).toEqual([{
       content: "user-a now works on Mosaic.",
+      evidenceLinks: [{
+        evidenceId: "evidence-mosaic",
+        excerpt: "user-a now works on Mosaic.",
+        excerptSha256: "a".repeat(64),
+        linkedArchiveIds: [],
+        linkedMemoryIds: ["fact-mosaic"],
+        sourceMessageIds: ["source-session-1"],
+        sourceRecordIds: ["source-record-session-1"],
+        sourceRecords: [{
+          contentSha256: "b".repeat(64),
+          id: "source-record-session-1",
+          observedAt: "2026-02-01T00:00:00.000Z",
+          role: "user",
+          sourceMessageId: "source-session-1",
+        }],
+        sourceUri: "goodmemory://source-messages/source-record-session-1",
+      }],
       id: "fact-mosaic",
       rank: 1,
       sourceMessageIds: ["source-session-1"],
@@ -381,8 +416,26 @@ describe("Phase 74 HaluMem live provider wiring", () => {
         value: target,
       }],
     };
+    const sourceMessages = recall.evidence.map((evidence) => ({
+      content: evidence.excerpt,
+      contentSha256: createHash("sha256")
+        .update(evidence.excerpt)
+        .digest("hex"),
+      id: evidence.sourceRecordIds[0]!,
+      ingestedAt: "2026-01-01T00:00:00.000Z",
+      observedAt: "2026-01-01T00:00:00.000Z",
+      role: "user",
+      schemaVersion: 1 as const,
+      sourceMessageId: evidence.sourceMessageIds[0]!,
+      userId: "user-a",
+      workspaceId: "workspace-halu",
+    }));
 
-    const records = buildPhase74HaluMemUpdateRecords(recall);
+    const records = buildPhase74HaluMemUpdateRecords(
+      recall,
+      10,
+      sourceMessages,
+    );
     expect(records).toHaveLength(10);
     expect(records.slice(0, 3)).toEqual([
       {
@@ -534,14 +587,29 @@ describe("Phase 74 HaluMem live provider wiring", () => {
     expect(recalled.profile).not.toBeNull();
     expect(recalled.preferences).toHaveLength(1);
     expect(recalled.facts).toHaveLength(1);
-    expect(recalled.evidence).toHaveLength(1);
-    const records = buildPhase74HaluMemUpdateRecords(recalled);
-    expect(records).toHaveLength(1);
-    expect(records[0]).toMatchObject({
+    expect(recalled.evidence.some((evidence) =>
+      evidence.linkedMemoryIds.includes(recalled.profile!.userId) ||
+      evidence.linkedMemoryIds.includes(recalled.preferences[0]!.id)
+    )).toBe(false);
+    const exported = await memory.exportMemory({
+      scope: {
+        userId: scope.userId,
+        workspaceId: scope.workspaceId,
+      },
+    });
+    const records = buildPhase74HaluMemUpdateRecords(
+      recalled,
+      10,
+      exported.durable.sourceMessages ?? [],
+    );
+    expect(records.some(({ type }) =>
+      type === "profile" || type === "preference"
+    )).toBe(false);
+    expect(records).toContainEqual(expect.objectContaining({
       content: "Nadia now works on Mosaic.",
       sourceMessageIds: ["source-fact"],
       type: "fact",
-    });
+    }));
   });
 
   it("uses the pinned HaluMem update prompt and preserves raw category plus usage", async () => {
@@ -677,7 +745,10 @@ describe("Phase 74 HaluMem live provider wiring", () => {
     const recallReferenceTimes: string[] = [];
     let factoryCalls = 0;
     const memory: Phase74HaluMemScopedMemory = {
-      async recall({ referenceTime, scope }) {
+      async recall({ referenceTime, scope, usageCaseId }) {
+        expect(usageCaseId).toMatch(
+          /^user-a:session:0:question:0:foreign-scope:user-b:candidate:(owner|foreign)$/u,
+        );
         recallScopes.push(scope);
         recallReferenceTimes.push(referenceTime);
         return {
@@ -686,7 +757,10 @@ describe("Phase 74 HaluMem live provider wiring", () => {
           })),
         };
       },
-      async remember({ messages, scope }) {
+      async remember({ messages, scope, usageCaseId }) {
+        expect(usageCaseId).toMatch(
+          /^halumem-privacy:user-[ab]:session:[01]:candidate:ingest$/u,
+        );
         remembered.set(scope.userId, [
           ...(remembered.get(scope.userId) ?? []),
           ...messages.map(({ id }) => id!),
