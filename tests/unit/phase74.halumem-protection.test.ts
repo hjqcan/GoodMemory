@@ -589,29 +589,59 @@ describe("Phase 74 HaluMem protection adapters", () => {
     expect(calls).toEqual(before);
   });
 
-  it("rejects update retrieval snapshots above the pinned top-10 before writing evidence", async () => {
+  it("records oversized update snapshots as non-composable execution evidence", async () => {
     const root = await createRoot();
     const config = configuration({
       candidatePipeline: descriptor("halumem-phase74-candidate", "4"),
       updateEvaluator: descriptor("halumem-upstream-evaluation.py", "5"),
     });
-    const dependencies = updateDependencies({ evaluate: 0, retrieve: 0 });
+    const calls = { evaluate: 0, retrieve: 0 };
+    const dependencies = updateDependencies(calls);
     dependencies.retrieveUpdateEvidence = async ({ branch }) => ({
       memories: Array.from({ length: 11 }, (_, index) => `fact-${index + 1}`),
       snapshotId: `${branch}-snapshot`,
       sourceMessageIds: [],
     });
+    const artifactPath = join(root, "run.json");
+    const rawArtifactPath = join(root, "raw.json");
+    const dataset = descriptor("halumem-test-jsonl", "1");
+    const source = descriptor("git:test-source", "2");
 
     await expect(runPhase74HaluMemUpdateProtection({
-      artifactPath: join(root, "run.json"),
+      artifactPath,
       configuration: config,
-      dataset: descriptor("halumem-test-jsonl", "1"),
-      rawArtifactPath: join(root, "raw.json"),
+      dataset,
+      rawArtifactPath,
       replicate: 1,
       runId: "halumem-update-top-k-source",
-      source: descriptor("git:test-source", "2"),
+      source,
       users: [users[0]!],
-    }, dependencies)).rejects.toThrow("top-10");
+    }, dependencies)).rejects.toThrow("recorded 1 execution failure");
+
+    const raw = JSON.parse(await readFile(rawArtifactPath, "utf8"));
+    expect(raw).toMatchObject({
+      executionFailures: 1,
+      failures: [{
+        branch: "baseline",
+        caseId: "user-a:session:0:update:0",
+        name: "Error",
+      }],
+      rows: [],
+    });
+    expect(raw.failures[0].message).toContain("top-10");
+    expect(calls.evaluate).toBe(0);
+
+    const artifact = JSON.parse(await readFile(artifactPath, "utf8"));
+    expect(artifact).toMatchObject({ executionFailures: 1, rows: [] });
+    await expect(loadPhase74FrozenProtectionSuiteRunArtifact(artifactPath))
+      .rejects.toThrow("requires zero execution failures");
+    await expect(verifyPhase74HaluMemUpdateProtectionArtifact({
+      artifactPath,
+      configuration: config,
+      dataset,
+      source,
+      users: [users[0]!],
+    })).rejects.toThrow("requires zero execution failures");
   });
 
   it("rejects a rehashed update artifact with more than ten generated records", async () => {
