@@ -519,6 +519,72 @@ describe("runtime context service", () => {
     ).toEqual(["m1", "m2"]);
   });
 
+  it("preserves exact replay when a late cross-runtime trim follows a completed compaction", async () => {
+    const inner = createInMemorySessionStore();
+    let markLateTrimStarted: (() => void) | undefined;
+    let releaseLateTrim: (() => void) | undefined;
+    const lateTrimStarted = new Promise<void>((resolve) => {
+      markLateTrimStarted = resolve;
+    });
+    const lateTrimRelease = new Promise<void>((resolve) => {
+      releaseLateTrim = resolve;
+    });
+    let shouldPauseLateTrim = true;
+    const sessionStore: SessionStore = {
+      ...inner,
+      async saveBuffer(scope, buffer) {
+        const liveContents = buffer.messages.map(({ content }) => content);
+        const compactedContents = (buffer.compactedMessages ?? [])
+          .map(({ content }) => content);
+        if (
+          shouldPauseLateTrim &&
+          liveContents.join(",") === "m2,m3" &&
+          compactedContents.join(",") === "m1"
+        ) {
+          shouldPauseLateTrim = false;
+          markLateTrimStarted?.();
+          await lateTrimRelease;
+        }
+        await inner.saveBuffer(scope, buffer);
+      },
+    };
+    const first = createService(2, { sessionStore });
+    const second = createService(2, { sessionStore });
+    const scope = { userId: "u-cross-trim", sessionId: "s-cross-trim" };
+    await first.service.startSession(scope);
+    await first.service.appendToSession(scope, {
+      id: "m1",
+      role: "user",
+      content: "m1",
+    });
+    await first.service.appendToSession(scope, {
+      id: "m2",
+      role: "assistant",
+      content: "m2",
+    });
+
+    const lateTrim = first.service.appendToSession(scope, {
+      id: "m3",
+      role: "user",
+      content: "m3",
+    });
+    await lateTrimStarted;
+    await second.service.appendToSession(scope, {
+      id: "m4",
+      role: "assistant",
+      content: "m4",
+    });
+    releaseLateTrim?.();
+    await lateTrim;
+
+    const verifier = createService(2, { sessionStore });
+    await verifier.service.endSession(scope);
+    const archives = await verifier.repositories.archives.listByScope(scope);
+    expect(archives[0]?.normalizedTranscript).toBe(
+      "user: m1\nassistant: m2\nuser: m3\nassistant: m4",
+    );
+  });
+
   it("reconstructs the exact compacted transcript in the session archive", async () => {
     const { repositories, service } = createService(2, {
       salvageHooks: {
