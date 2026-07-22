@@ -384,7 +384,7 @@ const FRENCH_MONTHS = [
 ] as const;
 
 const DEFINITION = {
-  analyzerVersion: "4",
+  analyzerVersion: "5",
   behavioralRulePatterns: {
     firstAction: [
       /(?:d['’]abord|en\s+premier(?:\s+lieu)?)\s+([A-Za-z_][A-Za-z0-9_@.-]*)/iu,
@@ -462,8 +462,6 @@ const DEFINITION = {
       /\b(?:projet|migration|déploiement|publication|blocage|bloqué|validation|prochaine étape|en attente)\b/iu,
     name: /\b(?:je m['’]appelle|mon nom est)\s+([\p{L}\p{M}'’.-]+(?:\s+[\p{L}\p{M}'’.-]+){0,3})/iu,
     preference: /\b(?:je préfère|ma préférence est)\s+([^.!?]+)/iu,
-    reference:
-      /\b(?:utilise|utilisez|prends|considère)\s+([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)\s+comme\s+(?:la\s+)?source de vérité(?=$|[^\p{L}\p{N}])/iu,
     role: /\b(?:mon rôle actuel est|ma fonction actuelle est|mon poste actuel est)\s+([^.!?]+)/iu,
   },
   renderCatalog: FRENCH_RENDER_CATALOG,

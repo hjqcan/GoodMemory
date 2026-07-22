@@ -1301,7 +1301,7 @@ function maybeExtractCandidatesFromClause(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "9",
+    analyzerVersion: "10",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",

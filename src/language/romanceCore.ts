@@ -17,6 +17,7 @@ import {
 } from "./generic";
 import {
   analyzeBehavioralRuleWithPatterns,
+  createSourceOfTruthReferenceCandidate,
   decomposeQueryByPattern,
   extractPatternMentions,
   matchesNormalizedEntityAlias,
@@ -43,7 +44,6 @@ export interface RomanceCandidatePatterns {
   inferredFact: RegExp;
   name: RegExp;
   preference: RegExp;
-  reference: RegExp;
   role: RegExp;
 }
 
@@ -246,7 +246,17 @@ function extractRomanceCandidates(
     if (message.role !== "user") continue;
     const sourceMessageIndex = message.sourceMessageIndex ?? messageIndex;
     const clauses = splitClausesGeneric(message.content);
-    const messageAnalysis = clauses.length === 1 ? message.analysis : undefined;
+    const sourceAnalysis = message.analysis ??
+      definition.analyzeContent(message.content);
+    const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
+      analysis: sourceAnalysis,
+      nextId: input.nextId,
+      sourceMessageIndex,
+    });
+    if (sourceOfTruthReference) {
+      candidates.push(sourceOfTruthReference);
+    }
+    const messageAnalysis = clauses.length === 1 ? sourceAnalysis : undefined;
     for (const clause of clauses) {
       const content = clause.trim();
       const name = content.match(definition.candidatePatterns.name)?.[1];
@@ -294,27 +304,6 @@ function extractRomanceCandidates(
         });
       }
 
-      const reference = content.match(
-        definition.candidatePatterns.reference,
-      )?.[1];
-      if (reference) {
-        const pointer = cleanCapturedValue(reference);
-        pushCandidate(candidates, {
-          content: pointer,
-          explicitness: "explicit",
-          id: input.nextId(),
-          kindHint: "reference",
-          metadata: {
-            referenceKind: "source_of_truth",
-            referencePointer: pointer,
-            referenceTitle: pointer.split("/").at(-1) ?? pointer,
-            subject: "unknown",
-          },
-          sourceMessageIndex,
-          sourceRole: "user",
-        });
-      }
-
       const goal = content.match(definition.candidatePatterns.goal)?.[1];
       if (goal) {
         pushCandidate(candidates, {
@@ -335,7 +324,7 @@ function extractRomanceCandidates(
       const explicitFact = content.match(
         definition.candidatePatterns.explicitFact,
       )?.[1];
-      const inferredFact = !explicitFact &&
+      const inferredFact = !sourceOfTruthReference && !explicitFact &&
         content.length >= 16 &&
         definition.candidatePatterns.inferredFact.test(content)
         ? content

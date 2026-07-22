@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { createHash } from "node:crypto";
 import {
   type BenchmarkClaimReport,
   buildClaimGateReport,
@@ -694,29 +695,76 @@ describe("claim gate report", () => {
   });
 
   it("validates historical projections and rejects arbitrary ok JSON", async () => {
+    const sourcePath =
+      "reports/quality-gates/phase-72/run-20260716-final/phase-72-release-gate.json";
+    const source = JSON.stringify({
+      metrics: {
+        locomo: {
+          executionFailures: 0,
+          officialJudgeFailures: 0,
+          officialScore: 0.87,
+          openDomainScore: 0.61,
+          strictScore: 0.63,
+        },
+      },
+      packageVersion: "0.6.0",
+    });
+    const sourceBytes = new TextEncoder().encode(source).byteLength;
+    const sourceSha256 = createHash("sha256").update(source).digest("hex");
+    const projection = historicalProjection({
+      claim: {
+        executionFailures: 0,
+        officialJudgeFailures: 0,
+        officialScore: 0.87,
+        openDomainScore: 0.61,
+        packageVersion: "0.6.0",
+        strictScore: 0.63,
+      },
+      sourceArtifacts: [{
+        bytes: sourceBytes,
+        path: sourcePath,
+        sha256: sourceSha256,
+      }],
+    }, "LoCoMo");
+    const assertions = historicalProjectionAssertions("LoCoMo").map((assertion) => {
+      const path = assertion.path.join(".");
+      if (path === "sourceArtifacts.0.bytes") {
+        return { ...assertion, equals: sourceBytes };
+      }
+      if (path === "sourceArtifacts.0.path") {
+        return { ...assertion, equals: sourcePath };
+      }
+      if (path === "sourceArtifacts.0.sha256") {
+        return { ...assertion, equals: sourceSha256 };
+      }
+      return assertion;
+    });
     const report = cleanReport({
-      benchmark: "LongMemEval",
+      benchmark: "LoCoMo",
       claimBoundary: { publicClaimAllowed: false, reason: "historical only" },
       comparison: { ...cleanReport().comparison, availability: "historical" },
       evidence: {
         artifacts: [{
-          assertions: historicalProjectionAssertions(),
+          assertions,
           description: "tracked projection",
-          path: "benchmark-claims/evidence/longmemeval-historical.json",
+          path: "benchmark-claims/evidence/locomo-v0.6.0-historical.json",
         }],
       },
       status: "internal_evidence",
     });
     const valid = await checkClaimEvidenceArtifacts({
-      file: "longmemeval.json",
-      readFile: async () => JSON.stringify(historicalProjection()),
+      file: "locomo.json",
+      readFile: async (path) =>
+        path.endsWith("locomo-v0.6.0-historical.json")
+          ? JSON.stringify(projection)
+          : source,
       repoRoot: "/repo",
       report,
     });
     expect(valid).toEqual([]);
 
     const arbitrary = await checkClaimEvidenceArtifacts({
-      file: "longmemeval.json",
+      file: "locomo.json",
       readFile: async () => JSON.stringify({ ok: true }),
       repoRoot: "/repo",
       report,

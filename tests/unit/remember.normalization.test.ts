@@ -185,6 +185,47 @@ describe("reference candidate normalization", () => {
     }
   });
 
+  it("removes unproven supersession even when normalization cannot produce a reference", () => {
+    const language = createLanguageService();
+    const source = "I prefer concise answers.";
+    const resolved = language.resolveFromText({ locale: "en-US", text: source });
+    const analysis = language.analyzeContent(source, resolved);
+
+    for (const candidate of [
+      {
+        id: "invalid-reference",
+        kindHint: "reference" as const,
+        explicitness: "explicit" as const,
+        content: "not a pointer",
+        sourceMessageIndex: 0,
+        sourceRole: "user" as const,
+        metadata: { supersedesPointer: "docs/fabricated.md" },
+      },
+      {
+        id: "unrelated-preference",
+        kindHint: "preference" as const,
+        explicitness: "explicit" as const,
+        content: "concise answers",
+        sourceMessageIndex: 0,
+        sourceRole: "user" as const,
+        metadata: {
+          preferenceCategory: "response_style",
+          supersedesPointer: "docs/fabricated.md",
+        },
+      },
+    ]) {
+      const normalized = normalizeMemoryCandidate(candidate, source, {
+        analysis,
+        language,
+        resolved,
+      });
+
+      expect(
+        Object.hasOwn(normalized.metadata ?? {}, "supersedesPointer"),
+      ).toBe(false);
+    }
+  });
+
   it("uses the source directive instead of a conflicting metadata hint", () => {
     const language = createLanguageService();
     const source =

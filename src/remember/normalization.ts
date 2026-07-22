@@ -1,6 +1,7 @@
 import {
   extractReferencePointer,
   extractReferencePointers,
+  parseReferencePointer,
 } from "../domain/referencePointer";
 import type {
   LanguageContentAnalysis,
@@ -22,6 +23,46 @@ function basename(pointer: string): string {
 
 function extractCanonicalReferencePointers(value: string | undefined): string[] {
   return extractReferencePointers(value);
+}
+
+interface ProvenSourceOfTruthDirective {
+  currentPointer: string;
+  supersededPointer?: string;
+}
+
+function resolveProvenSourceOfTruthDirective(
+  sourceMessageContent: string | undefined,
+  languageContext: {
+    analysis?: LanguageContentAnalysis;
+    language: LanguageService;
+    resolved: ResolvedLanguageContext;
+  } | undefined,
+): ProvenSourceOfTruthDirective | undefined {
+  if (!sourceMessageContent || !languageContext) {
+    return undefined;
+  }
+
+  const directive = languageContext.analysis?.sourceOfTruthDirective ??
+    languageContext.language.analyzeContent(
+      sourceMessageContent,
+      languageContext.resolved,
+    ).sourceOfTruthDirective;
+  const currentPointer = parseReferencePointer(directive?.currentPointer);
+  if (!currentPointer || !sourceMessageContent.includes(currentPointer)) {
+    return undefined;
+  }
+
+  const supersededPointer = parseReferencePointer(
+    directive?.supersededPointer,
+  );
+  return {
+    currentPointer,
+    ...(supersededPointer &&
+        supersededPointer !== currentPointer &&
+        sourceMessageContent.includes(supersededPointer)
+      ? { supersededPointer }
+      : {}),
+  };
 }
 
 function tokenizeName(value: string): string[] {
@@ -132,6 +173,7 @@ function normalizeReferenceCandidate(
   candidate: MemoryCandidate,
   sourceMessageContent?: string,
   languageContext?: {
+    analysis?: LanguageContentAnalysis;
     language: LanguageService;
     resolved: ResolvedLanguageContext;
   },
@@ -141,12 +183,21 @@ function normalizeReferenceCandidate(
   }
 
   const rawPointer = candidate.metadata?.referencePointer ?? candidate.content;
+  const sourceDirective = resolveProvenSourceOfTruthDirective(
+    sourceMessageContent,
+    languageContext,
+  );
   const pointer =
+    (candidate.metadata?.referenceKind === "source_of_truth"
+      ? sourceDirective?.currentPointer
+      : undefined) ??
     extractCanonicalReferencePointer(rawPointer) ??
     extractCanonicalReferencePointer(sourceMessageContent);
+  const metadata = { ...candidate.metadata };
+  delete metadata.supersedesPointer;
 
   if (!pointer) {
-    return candidate;
+    return { ...candidate, metadata };
   }
 
   const rawTitle = candidate.metadata?.referenceTitle?.trim();
@@ -157,23 +208,15 @@ function normalizeReferenceCandidate(
     rawTitle.length > pointer.length + 24
       ? basename(pointer)
       : rawTitle;
-  const sourceDirective = languageContext
-    ? languageContext.language.analyzeContent(
-      sourceMessageContent ?? candidate.content,
-      languageContext.resolved,
-    ).sourceOfTruthDirective
+  const supersedesPointer = sourceDirective?.currentPointer === pointer
+    ? sourceDirective.supersededPointer
     : undefined;
-  const supersedesPointer =
-    extractCanonicalReferencePointer(candidate.metadata?.supersedesPointer) ??
-    (sourceDirective?.currentPointer === pointer
-      ? sourceDirective.supersededPointer
-      : undefined);
 
   return {
     ...candidate,
     content: pointer,
     metadata: {
-      ...candidate.metadata,
+      ...metadata,
       referencePointer: pointer,
       referenceTitle: resolvedTitle,
       ...(supersedesPointer ? { supersedesPointer } : {}),
@@ -194,50 +237,28 @@ function normalizeSourceOfTruthDirectiveCandidate(
     return candidate;
   }
 
-  const sourceText = [
-    candidate.content,
-    candidate.metadata?.preferenceValue,
+  const directive = resolveProvenSourceOfTruthDirective(
     sourceMessageContent,
-  ]
-    .filter((value) => typeof value === "string" && value.trim().length > 0)
-    .join("\n");
-
-  if (!languageContext) {
-    return candidate;
-  }
-
-  const directive = languageContext.analysis
-    ? languageContext.analysis.sourceOfTruthDirective
-    : languageContext.language.analyzeContent(
-        sourceText,
-        languageContext.resolved,
-      ).sourceOfTruthDirective;
+    languageContext,
+  );
   if (!directive) {
     return candidate;
   }
 
-  const sourcePointers = new Set(extractReferencePointers(sourceText));
-  if (!sourcePointers.has(directive.currentPointer)) {
-    return candidate;
-  }
-
-  const supersededPointer =
-    extractCanonicalReferencePointer(candidate.metadata?.supersedesPointer) ??
-    (directive.supersededPointer && sourcePointers.has(directive.supersededPointer)
-      ? directive.supersededPointer
-      : undefined);
+  const metadata = { ...candidate.metadata };
+  delete metadata.supersedesPointer;
 
   return {
     ...candidate,
     kindHint: "reference",
     content: directive.currentPointer,
     metadata: {
-      ...candidate.metadata,
+      ...metadata,
       referenceKind: "source_of_truth",
       referencePointer: directive.currentPointer,
       referenceTitle: basename(directive.currentPointer),
-      ...(supersededPointer
-        ? { supersedesPointer: supersededPointer }
+      ...(directive.supersededPointer
+        ? { supersedesPointer: directive.supersededPointer }
         : {}),
       appliesTo: undefined,
       feedbackKind: undefined,
@@ -245,6 +266,17 @@ function normalizeSourceOfTruthDirectiveCandidate(
       preferenceValue: undefined,
     },
   };
+}
+
+function stripUnprovenSupersession(
+  candidate: MemoryCandidate,
+): MemoryCandidate {
+  if (!candidate.metadata || !Object.hasOwn(candidate.metadata, "supersedesPointer")) {
+    return candidate;
+  }
+  const metadata = { ...candidate.metadata };
+  delete metadata.supersedesPointer;
+  return { ...candidate, metadata };
 }
 
 export function normalizeMemoryCandidate(
@@ -257,7 +289,7 @@ export function normalizeMemoryCandidate(
   },
 ): MemoryCandidate {
   const normalizedDirectiveCandidate = normalizeSourceOfTruthDirectiveCandidate(
-    candidate,
+    stripUnprovenSupersession(candidate),
     sourceMessageContent,
     languageContext,
   );

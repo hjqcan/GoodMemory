@@ -998,14 +998,18 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
         }
         const clauses = splitClausesGeneric(message.content);
         for (const clause of clauses) {
-          candidates.push(
-            ...maybeExtractCandidatesFromClause(
-              clause,
-              sourceMessageIndex,
-              input.nextId,
-              clauses.length === 1 ? sourceAnalysis : undefined,
-            ),
+          const clauseCandidates = maybeExtractCandidatesFromClause(
+            clause,
+            sourceMessageIndex,
+            input.nextId,
+            clauses.length === 1 ? sourceAnalysis : undefined,
           );
+          candidates.push(...(sourceOfTruthReference
+            ? clauseCandidates.filter(
+              ({ explicitness, kindHint }) =>
+                kindHint !== "fact" || explicitness !== "inferred",
+            )
+            : clauseCandidates));
         }
       });
 

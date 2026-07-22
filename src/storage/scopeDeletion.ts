@@ -369,34 +369,79 @@ export function createScopeDeletionAwareDocumentStore(
   };
 }
 
+export interface ScopeDeletionCoordinatorConfig {
+  leaseDurationMs?: number;
+  now?: () => number;
+  ownerId?: string;
+}
+
 export function createScopeDeletionCoordinator(
   documentStore: ProjectionCapableDocumentStore,
+  config: ScopeDeletionCoordinatorConfig = {},
 ): ScopeDeletionCoordinator {
   const gate = sharedScopeMutationGate(documentStore);
+  const leaseDurationMs = config.leaseDurationMs ?? DEFAULT_SCOPE_DELETION_LEASE_MS;
+  const now = config.now ?? Date.now;
+  const ownerId = config.ownerId ?? crypto.randomUUID();
+
+  function localDeletion(scope: MemoryScope): boolean {
+    return [...gate.deletions].some((deletionScope) =>
+      scopesOverlap(deletionScope, scope)
+    );
+  }
+
+  async function replaceLock(
+    expected: ScopeDeletionLock,
+    document: ScopeDeletionLock,
+  ): Promise<boolean> {
+    return documentStore.writeBatchIfUnchanged({
+      expected: {
+        collection: SCOPE_DELETION_LOCKS_COLLECTION,
+        document: expected,
+        id: expected.id,
+      },
+      set: [{
+        collection: SCOPE_DELETION_LOCKS_COLLECTION,
+        document,
+        id: expected.id,
+      }],
+    });
+  }
 
   async function runWithPersistentLock<T>(
     scope: MemoryScope,
     operation: () => Promise<T>,
   ): Promise<T> {
     const id = scopeDeletionLockId(scope);
-    const lock: ScopeDeletionLock = {
-      generation: crypto.randomUUID(),
-      id,
-      operationId: crypto.randomUUID(),
-      state: "deleting",
-    };
-    let acquired = false;
+    const operationId = crypto.randomUUID();
+    let ownedLock: ScopeDeletionLock | null = null;
     for (let attempt = 0; attempt < 8; attempt += 1) {
       const existing = await documentStore.get<ScopeDeletionLock>(
         SCOPE_DELETION_LOCKS_COLLECTION,
         id,
       );
-      if (existing && existing.state !== "open") {
+      const timestamp = now();
+      if (
+        existing &&
+        isActiveLock(existing) &&
+        (existing.leaseExpiresAt === undefined || existing.leaseExpiresAt > timestamp)
+      ) {
         throw new Error(
           `Memory deletion is already in progress for scope ${id}`,
         );
       }
-      acquired = await documentStore.writeBatchIfUnchanged({
+      const candidate: ScopeDeletionLock = {
+        ...scope,
+        epoch: (existing?.epoch ?? 0) + 1,
+        generation: crypto.randomUUID(),
+        id,
+        leaseExpiresAt: timestamp + leaseDurationMs,
+        operationId,
+        ownerId,
+        phase: "delete_all",
+        state: "deleting",
+      };
+      const acquired = await documentStore.writeBatchIfUnchanged({
         expected: {
           collection: SCOPE_DELETION_LOCKS_COLLECTION,
           document: existing,
@@ -404,41 +449,75 @@ export function createScopeDeletionCoordinator(
         },
         set: [{
           collection: SCOPE_DELETION_LOCKS_COLLECTION,
-          document: lock,
+          document: candidate,
           id,
         }],
       });
       if (acquired) {
+        ownedLock = candidate;
         break;
       }
     }
-    if (!acquired) {
+    if (!ownedLock) {
       throw new Error(`Memory deletion lock changed repeatedly for scope ${id}`);
     }
 
-    try {
-      return await operation();
-    } finally {
-      const released = await documentStore.writeBatchIfUnchanged({
-        expected: {
-          collection: SCOPE_DELETION_LOCKS_COLLECTION,
-          document: lock,
-          id,
-        },
-        set: [{
-          collection: SCOPE_DELETION_LOCKS_COLLECTION,
-          document: {
-            generation: crypto.randomUUID(),
-            id,
-            state: "open",
-          } satisfies ScopeDeletionLock,
-          id,
-        }],
+    let heartbeatFailure: unknown;
+    let heartbeatTask = Promise.resolve();
+    const heartbeat = setInterval(() => {
+      heartbeatTask = heartbeatTask.then(async () => {
+        if (heartbeatFailure) {
+          return;
+        }
+        const renewed: ScopeDeletionLock = {
+          ...ownedLock!,
+          leaseExpiresAt: now() + leaseDurationMs,
+        };
+        if (!await replaceLock(ownedLock!, renewed)) {
+          throw new Error(`Memory deletion lease was lost for scope ${id}`);
+        }
+        ownedLock = renewed;
+      }).catch((error: unknown) => {
+        heartbeatFailure = error;
       });
-      if (!released) {
-        throw new Error(`Memory deletion lock changed before release for ${id}`);
-      }
+    }, Math.max(1, Math.floor(leaseDurationMs / 3)));
+    heartbeat.unref?.();
+
+    let outcome: { ok: true; value: T } | { error: unknown; ok: false };
+    try {
+      outcome = { ok: true, value: await operation() };
+    } catch (error) {
+      outcome = { error, ok: false };
     }
+    clearInterval(heartbeat);
+    await heartbeatTask;
+    if (heartbeatFailure) {
+      throw heartbeatFailure;
+    }
+
+    const releasing: ScopeDeletionLock = {
+      ...ownedLock,
+      leaseExpiresAt: now() + leaseDurationMs,
+      phase: "release",
+    };
+    if (!await replaceLock(ownedLock, releasing)) {
+      throw new Error(`Memory deletion lease was lost before release for ${id}`);
+    }
+    const open: ScopeDeletionLock = {
+      ...scope,
+      epoch: releasing.epoch,
+      generation: releasing.generation,
+      id,
+      phase: "open",
+      state: "open",
+    };
+    if (!await replaceLock(releasing, open)) {
+      throw new Error(`Memory deletion lock changed before release for ${id}`);
+    }
+    if (!outcome.ok) {
+      throw outcome.error;
+    }
+    return outcome.value;
   }
 
   return {
@@ -447,9 +526,17 @@ export function createScopeDeletionCoordinator(
       operation: () => Promise<T>,
     ): Promise<T> {
       const normalized = normalizeScope(scope);
-      if ([...gate.deletions].some((deletionScope) =>
-        scopesOverlap(deletionScope, normalized)
-      )) {
+      if (localDeletion(normalized)) {
+        throw new Error(
+          `Memory deletion is in progress for scope ${scopeDeletionLockId(normalized)}`,
+        );
+      }
+      if (await activePersistentLock(documentStore, normalized)) {
+        throw new Error(
+          `Memory deletion is in progress for scope ${scopeDeletionLockId(normalized)}`,
+        );
+      }
+      if (localDeletion(normalized)) {
         throw new Error(
           `Memory deletion is in progress for scope ${scopeDeletionLockId(normalized)}`,
         );
@@ -474,9 +561,7 @@ export function createScopeDeletionCoordinator(
       operation: () => Promise<T>,
     ): Promise<T> {
       const normalized = normalizeScope(scope);
-      if ([...gate.deletions].some((deletionScope) =>
-        scopesOverlap(deletionScope, normalized)
-      )) {
+      if (localDeletion(normalized)) {
         throw new Error(
           `Memory deletion is already in progress for scope ${scopeDeletionLockId(normalized)}`,
         );

@@ -370,7 +370,7 @@ const SPANISH_MONTHS = [
 ] as const;
 
 const DEFINITION = {
-  analyzerVersion: "3",
+  analyzerVersion: "4",
   behavioralRulePatterns: {
     firstAction: [
       /(?:primero|en\s+primer\s+lugar)\s+([A-Za-z_][A-Za-z0-9_@.-]*)/iu,
@@ -447,8 +447,6 @@ const DEFINITION = {
       /\b(?:proyecto|migración|despliegue|publicación|bloqueo|bloqueado|validación|próximo paso|pendiente)\b/iu,
     name: /\b(?:me llamo|mi nombre es)\s+([\p{L}\p{M}'’.-]+(?:\s+[\p{L}\p{M}'’.-]+){0,3})/iu,
     preference: /\b(?:prefiero|mi preferencia es)\s+([^.!?]+)/iu,
-    reference:
-      /\b(?:usa|use|utiliza|toma|considera)\s+([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)\s+como\s+(?:la\s+)?fuente de verdad\b/iu,
     role: /\b(?:mi rol actual es|mi función actual es|mi puesto actual es)\s+([^.!?]+)/iu,
   },
   renderCatalog: SPANISH_RENDER_CATALOG,

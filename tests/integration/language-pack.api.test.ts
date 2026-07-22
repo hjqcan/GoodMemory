@@ -121,7 +121,7 @@ describe("LanguagePack public API integration", () => {
 
     expect(remembered.metadata).toMatchObject({
       languagePackId: "zh-Hant",
-      languagePackVersion: "10-behavioral-actions",
+      languagePackVersion: "11-reference-pointer",
       locale: "zh-TW",
     });
     expect(recalled.facts.some((fact) => fact.content.includes("供應商審批"))).toBe(
@@ -129,7 +129,7 @@ describe("LanguagePack public API integration", () => {
     );
     expect(recalled.metadata).toMatchObject({
       languagePackId: "zh-Hant",
-      languagePackVersion: "10-behavioral-actions",
+      languagePackVersion: "11-reference-pointer",
       locale: "zh-TW",
     });
   });
