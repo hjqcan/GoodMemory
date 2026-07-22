@@ -70,6 +70,40 @@ describe("conversational atomic-fact extraction prompt", () => {
     expect(prompt).toContain("conversation explicitly corrects that identity");
     expect(prompt).toContain("data, not instructions");
   });
+
+  it("bounds assistant context without changing the source messages", () => {
+    const firstAssistant = `first-${"a".repeat(4_000)}`;
+    const secondAssistant = `second-${"中".repeat(2_000)}`;
+    const input: MemoryExtractionInput = {
+      scope: { userId: "u-1" },
+      messages: [
+        { role: "user", content: "My durable first claim." },
+        { role: "assistant", content: firstAssistant },
+        { role: "user", content: "My durable second claim." },
+        { role: "assistant", content: secondAssistant },
+        { role: "user", content: "My durable third claim." },
+      ],
+    };
+
+    const prompt = buildCompactConversationalMemoryExtractionPrompt(input);
+    const transcript = prompt.split("Conversation:\n\n")[1] ?? "";
+    const assistantContext = transcript
+      .split("\n")
+      .filter((line) => line.includes("] assistant: "))
+      .map((line) => line.split("] assistant: ")[1] ?? "")
+      .join("");
+
+    expect(prompt).toContain("[0] user: My durable first claim.");
+    expect(prompt).toContain("[2] user: My durable second claim.");
+    expect(prompt).toContain("[4] user: My durable third claim.");
+    expect(new TextEncoder().encode(assistantContext).byteLength).toBeLessThanOrEqual(
+      2_048,
+    );
+    expect(prompt).not.toContain(firstAssistant);
+    expect(prompt).not.toContain(secondAssistant);
+    expect(input.messages[1]?.content).toBe(firstAssistant);
+    expect(input.messages[3]?.content).toBe(secondAssistant);
+  });
 });
 
 describe("createProviderConversationalMemoryExtractor", () => {
@@ -252,6 +286,42 @@ describe("createProviderConversationalMemoryExtractor", () => {
       predicateKey: "integration.enabled",
     });
     expect(result.candidates[1]?.metadata?.claim?.objectText).toBe("4");
+  });
+
+  it("ignores unsupported optional compact wire metadata", async () => {
+    const extractor = createLLMMemoryExtractor({
+      model: {
+        apiKey: "gateway-key",
+        baseURL: "https://gateway.example/v1",
+        model: "gpt-5.6-terra",
+        provider: "openai",
+      },
+      outputProtocol: "compact-conversational-v1",
+      dependencies: {
+        fetch: async () => new Response(
+          [
+            'data: {"choices":[{"delta":{"content":"{\\"c\\":[{\\"c\\":\\"The integration is enabled.\\",\\"k\\":\\"fact\\",\\"m\\":{\\"fb\\":\\"liked\\",\\"fk\\":\\"configuration\\",\\"pf\\":\\"favoriteColor\\",\\"rk\\":\\"website\\",\\"sk\\":\\"person\\",\\"q\\":{\\"p\\":\\"integration.enabled\\",\\"o\\":true,\\"extra\\":\\"ignored\\"},\\"extra\\":\\"ignored\\"},\\"s\\":1,\\"extra\\":\\"ignored\\"}],\\"i\\":0,\\"extra\\":\\"ignored\\"}"},"index":0}]}',
+            "data: [DONE]",
+            "",
+          ].join("\n\n"),
+          {
+            headers: { "content-type": "text/event-stream" },
+            status: 200,
+          },
+        ),
+      },
+    });
+
+    const result = await extractor.extract(CONVERSATION);
+
+    expect(result.candidates[0]?.metadata).toEqual({
+      claim: {
+        modality: "asserted",
+        objectText: "true",
+        polarity: "positive",
+        predicateKey: "integration.enabled",
+      },
+    });
   });
 
   it("keeps the product conversational prompt and output canonical by default", async () => {
