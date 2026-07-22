@@ -502,6 +502,7 @@ async function requestOpenAICompatibleTextInternal(
   const controller = new AbortController();
   const timeoutMs = input.timeoutMs ?? DEFAULT_OPENAI_COMPATIBLE_REQUEST_TIMEOUT_MS;
   const timeoutMessage = `OpenAI-compatible gateway timeout after ${timeoutMs}ms.`;
+  const deadlineAt = Date.now() + timeoutMs;
   const abortRequest = (reason: unknown = new Error(timeoutMessage)) => {
     if (controller.signal.aborted) {
       return;
@@ -519,14 +520,32 @@ async function requestOpenAICompatibleTextInternal(
   } else {
     input.signal?.addEventListener("abort", abortFromInputSignal, { once: true });
   }
+  const runWithinRequestDeadline = async <T>(
+    operation: () => Promise<T>,
+    onTimeout?: () => void,
+  ) => {
+    const remainingMs = deadlineAt - Date.now();
+    if (remainingMs <= 0) {
+      abortRequest();
+      onTimeout?.();
+      throw new Error(timeoutMessage);
+    }
+
+    return withOpenAICompatibleTimeout({
+      timeoutMs: remainingMs,
+      message: timeoutMessage,
+      onTimeout: () => {
+        abortRequest();
+        onTimeout?.();
+      },
+      operation,
+    });
+  };
   let response: Response;
 
   try {
-    response = await withOpenAICompatibleTimeout({
-      timeoutMs,
-      message: timeoutMessage,
-      onTimeout: abortRequest,
-      operation: () =>
+    response = await runWithinRequestDeadline(
+      () =>
         createOpenAICompatibleFetch(input.fetch)(
           buildOpenAICompatibleUrl(baseURL),
           {
@@ -564,7 +583,7 @@ async function requestOpenAICompatibleTextInternal(
             signal: controller.signal,
           },
         ),
-    });
+    );
   } catch (error) {
     if (controller.signal.aborted) {
       throw controller.signal.reason instanceof Error
@@ -577,12 +596,7 @@ async function requestOpenAICompatibleTextInternal(
 
   const contentType = response.headers.get("content-type");
   if (isJsonContentType(contentType)) {
-    const body = await withOpenAICompatibleTimeout({
-      timeoutMs,
-      message: timeoutMessage,
-      onTimeout: abortRequest,
-      operation: () => response.text(),
-    });
+    const body = await runWithinRequestDeadline(() => response.text());
     let payload: unknown = null;
 
     if (body.trim().length > 0) {
@@ -613,12 +627,7 @@ async function requestOpenAICompatibleTextInternal(
   }
 
   if (!response.ok) {
-    const body = await withOpenAICompatibleTimeout({
-      timeoutMs,
-      message: timeoutMessage,
-      onTimeout: abortRequest,
-      operation: () => response.text(),
-    });
+    const body = await runWithinRequestDeadline(() => response.text());
     throw new Error(
       `OpenAI-compatible gateway error ${response.status}: ${body.trim() || response.statusText || "Request failed"}`,
     );
@@ -636,15 +645,12 @@ async function requestOpenAICompatibleTextInternal(
   let sawDone = false;
 
   while (true) {
-    const { value, done } = await withOpenAICompatibleTimeout({
-      timeoutMs,
-      message: timeoutMessage,
-      onTimeout: () => {
-        abortRequest();
+    const { value, done } = await runWithinRequestDeadline(
+      () => reader.read(),
+      () => {
         void reader.cancel(controller.signal.reason).catch(() => undefined);
       },
-      operation: () => reader.read(),
-    });
+    );
     if (done) {
       break;
     }
