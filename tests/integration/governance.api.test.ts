@@ -969,6 +969,63 @@ describe("public governance API", () => {
     expect(await innerSessionStore.getWorkingMemory(scope)).toBeNull();
   });
 
+  it("does not let runtime reads recreate session state during terminal deletion", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const innerSessionStore = createInMemorySessionStore();
+    let releaseRuntimeDelete = () => {};
+    let signalRuntimeDelete = () => {};
+    const runtimeDeleteStarted = new Promise<void>((resolve) => {
+      signalRuntimeDelete = resolve;
+    });
+    const runtimeDeleteRelease = new Promise<void>((resolve) => {
+      releaseRuntimeDelete = resolve;
+    });
+    const sessionStore = {
+      ...innerSessionStore,
+      async deleteWorkingMemoryByScope(scope: Parameters<
+        typeof innerSessionStore.deleteWorkingMemoryByScope
+      >[0]) {
+        const deleted = await innerSessionStore.deleteWorkingMemoryByScope(scope);
+        signalRuntimeDelete();
+        await runtimeDeleteRelease;
+        return deleted;
+      },
+    };
+    const memory = createGoodMemory({
+      adapters: { documentStore, sessionStore },
+    });
+    const scope = {
+      userId: "u-delete-runtime-read",
+      workspaceId: "workspace-a",
+      sessionId: "session-a",
+    };
+    await memory.runtime.startSession({ scope });
+    await memory.runtime.updateWorkingMemory({
+      scope,
+      patch: { currentGoal: "private goal before deletion" },
+    });
+
+    const deletion = memory.deleteAllMemory({ scope });
+    await runtimeDeleteStarted;
+    const outcomes = await Promise.all([
+      memory.runtime.getState({ scope }).then(
+        () => "resolved" as const,
+        () => "rejected" as const,
+      ),
+      memory.runtime.getRecallSnapshot({ scope }).then(
+        () => "resolved" as const,
+        () => "rejected" as const,
+      ),
+    ]);
+    releaseRuntimeDelete();
+    await deletion;
+
+    expect(outcomes).toEqual(["rejected", "rejected"]);
+    expect(await innerSessionStore.getBuffer(scope)).toBeNull();
+    expect(await innerSessionStore.getWorkingMemory(scope)).toBeNull();
+    expect(await innerSessionStore.getJournal(scope)).toBeNull();
+  });
+
   it("fails closed when an adapter cannot provide terminal delete semantics", async () => {
     const inner = createInMemoryDocumentStore();
     const legacyStore: DocumentStore = {

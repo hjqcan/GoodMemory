@@ -91,13 +91,26 @@ jobs:
           name: ${{ steps.pack.outputs.artifact_name }}
           path: ${{ steps.pack.outputs.artifact_path }}
 
-      - name: Create GitHub release
+      - name: Validate npm publishing credentials
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ steps.pack.outputs.artifact_path }}
-          prerelease: false
-          make_latest: true
+        id: npm-auth
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::error::NPM_TOKEN is required for stable tag releases"
+            exit 1
+          fi
+          if ! NPM_USER="$(npm whoami)"; then
+            echo "::error::npm authentication failed: npm whoami did not succeed"
+            exit 1
+          fi
+          if [ -z "$NPM_USER" ]; then
+            echo "::error::npm authentication failed: npm whoami returned an empty user"
+            exit 1
+          fi
+          echo "npm_user=$NPM_USER" >> "$GITHUB_OUTPUT"
 
       - name: Publish package to npm
         if: startsWith(github.ref, 'refs/tags/')
@@ -106,18 +119,12 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="$(bun -e 'import { readFileSync } from "node:fs"; const pkg = JSON.parse(readFileSync("package.json", "utf8")); console.log(pkg.version);')"
-          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            {
-              echo "## npm publish"
-              echo "- Skipped: NPM_TOKEN secret is not configured."
-              echo "- This does not block the tarball-first stable release contract."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          NPM_USER="$(npm whoami 2>/dev/null || true)"
-          if npm view "goodmemory@${VERSION}" version >/tmp/goodmemory-published-version.txt 2>/dev/null; then
-            PUBLISHED_VERSION="$(cat /tmp/goodmemory-published-version.txt)"
-            echo "goodmemory@$VERSION already exists on npm; skipping publish."
+          if PUBLISHED_VERSION="$(npm view "goodmemory@${VERSION}" version 2>/dev/null)"; then
+            if [ "$PUBLISHED_VERSION" != "$VERSION" ]; then
+              echo "::error::npm returned unexpected version $PUBLISHED_VERSION for goodmemory@$VERSION"
+              exit 1
+            fi
+            echo "goodmemory@$VERSION already exists on npm; verifying registry state."
           else
             npm publish --access public "${{ steps.pack.outputs.artifact_path }}"
           fi
@@ -140,5 +147,13 @@ jobs:
             echo "## npm publish"
             echo "- Verified: goodmemory@$VERSION"
             echo "- Verified dist tag: latest -> $LATEST_VERSION"
-            echo "- npm user: ${NPM_USER:-unknown}"
+            echo "- npm user: ${{ steps.npm-auth.outputs.npm_user }}"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.pack.outputs.artifact_path }}
+          prerelease: false
+          make_latest: true

@@ -146,4 +146,104 @@ describe("reference candidate normalization", () => {
       extractReferencePointers("以https://example.com/docs/runbook.md为准。"),
     ).toEqual(["https://example.com/docs/runbook.md"]);
   });
+
+  it("rejects metadata-only supersession without source-language proof", () => {
+    const language = createLanguageService();
+    const source = "Use docs/current.md as the source of truth.";
+    const resolved = language.resolveFromText({ locale: "en-US", text: source });
+    const analysis = language.analyzeContent(source, resolved);
+
+    for (const supersedesPointer of [
+      "docs/fabricated.md",
+      "docs/current.md",
+      "release v0.7.0",
+      "not a pointer",
+      "",
+    ]) {
+      const normalized = normalizeMemoryCandidate(
+        {
+          id: `metadata-${supersedesPointer}`,
+          kindHint: "reference",
+          explicitness: "explicit",
+          content: "docs/current.md",
+          sourceMessageIndex: 0,
+          sourceRole: "user",
+          metadata: {
+            referenceKind: "source_of_truth",
+            referencePointer: "docs/current.md",
+            supersedesPointer,
+          },
+        },
+        source,
+        { analysis, language, resolved },
+      );
+
+      expect(normalized.metadata?.supersedesPointer).toBeUndefined();
+      expect(
+        Object.hasOwn(normalized.metadata ?? {}, "supersedesPointer"),
+      ).toBe(false);
+    }
+  });
+
+  it("uses the source directive instead of a conflicting metadata hint", () => {
+    const language = createLanguageService();
+    const source =
+      "docs/current.md is now the source of truth, not docs/old.md.";
+    const resolved = language.resolveFromText({ locale: "en-US", text: source });
+    const analysis = language.analyzeContent(source, resolved);
+    const normalized = normalizeMemoryCandidate(
+      {
+        id: "source-proven-supersession",
+        kindHint: "reference",
+        explicitness: "explicit",
+        content: "docs/current.md",
+        sourceMessageIndex: 0,
+        sourceRole: "user",
+        metadata: {
+          referenceKind: "source_of_truth",
+          referencePointer: "docs/current.md",
+          supersedesPointer: "docs/fabricated.md",
+        },
+      },
+      source,
+      { analysis, language, resolved },
+    );
+
+    expect(analysis.sourceOfTruthDirective).toEqual({
+      currentPointer: "docs/current.md",
+      supersededPointer: "docs/old.md",
+    });
+    expect(normalized.metadata?.supersedesPointer).toBe("docs/old.md");
+  });
+
+  it("rejects self-supersession even when supplied by typed analysis", () => {
+    const language = createLanguageService();
+    const source = "Use docs/current.md as the source of truth.";
+    const resolved = language.resolveFromText({ locale: "en-US", text: source });
+    const analysis = {
+      ...language.analyzeContent(source, resolved),
+      sourceOfTruthDirective: {
+        currentPointer: "docs/current.md",
+        supersededPointer: "docs/current.md",
+      },
+    };
+    const normalized = normalizeMemoryCandidate(
+      {
+        id: "self-supersession",
+        kindHint: "reference",
+        explicitness: "explicit",
+        content: "docs/current.md",
+        sourceMessageIndex: 0,
+        sourceRole: "user",
+        metadata: {
+          referenceKind: "source_of_truth",
+          referencePointer: "docs/current.md",
+        },
+      },
+      source,
+      { analysis, language, resolved },
+    );
+
+    expect(normalized.metadata?.supersedesPointer).toBeUndefined();
+  });
 });

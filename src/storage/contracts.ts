@@ -98,6 +98,7 @@ export interface DocumentStore {
 
 export interface ProjectionCapableDocumentStore extends DocumentStore {
   projectionBatchSemantics: typeof PROJECTION_BATCH_SEMANTICS;
+  scopeMutationFenceIdentity?: object;
   writeBatchIfUnchanged(input: ConditionalDocumentWriteBatch): Promise<boolean>;
 }
 

@@ -28,6 +28,7 @@ import {
   renderEnglish,
 } from "./englishSemantics";
 import {
+  createSourceOfTruthReferenceCandidate,
   matchesNormalizedEntityAlias,
   splitSentencesGeneric,
 } from "./packHelpers";
@@ -121,10 +122,6 @@ const EXPLICIT_DECISION_PATTERN =
 const FOLLOW_UP_OPEN_LOOP_PATTERN =
   /\bstill\s+have\s+an?\s+open\s+loop\s+on\s+(.+?)(?=\.|$)/i;
 const PREFERENCE_PATTERN = /i prefer\s+(.+?)(?:\.|$)/i;
-const REFERENCE_PATTERN =
-  /use\s+([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)\s+as the source of truth/i;
-const CORRECTED_REFERENCE_PATTERN =
-  /(?:correction:\s*)?([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)\s+is now the source of truth,\s*not\s+([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)/i;
 const CORRECTIVE_FEEDBACK_PATTERN =
   /\b(?:correction|wrong|not right|instead|next time|from now on|that approach was wrong)\b/i;
 const PROCEDURAL_FEEDBACK_PATTERN =
@@ -653,6 +650,7 @@ function maybeExtractCandidatesFromClause(
   index: number,
   nextId: () => string,
   analysis?: LanguageContentAnalysis,
+  hasSourceOfTruthReference = false,
 ): MemoryCandidate[] {
   const trimmed = content.trim();
 
@@ -1246,29 +1244,8 @@ function maybeExtractCandidatesFromClause(
     });
   }
 
-  const referenceMatch = trimmed.match(REFERENCE_PATTERN);
-  if (referenceMatch) {
-    const pointer = referenceMatch[1]!.trim();
-    const title = pointer.split("/").at(-1) ?? pointer;
-
-    candidates.push({
-      id: nextId(),
-      kindHint: "reference",
-      explicitness: "explicit",
-      content: pointer,
-      sourceMessageIndex: index,
-      sourceRole: "user",
-      metadata: {
-        referenceKind: deriveReferenceKind(trimmed, pointer),
-        referenceTitle: title,
-        referencePointer: pointer,
-        subject: extractReferenceSubject(trimmed) ?? "unknown",
-      },
-    });
-  }
-
   const technicalReferenceMatch = trimmed.match(TECHNICAL_REFERENCE_PATTERN);
-  if (technicalReferenceMatch?.[1]) {
+  if (!hasSourceOfTruthReference && technicalReferenceMatch?.[1]) {
     const pointer = technicalReferenceMatch[1];
     candidates.push({
       id: nextId(),
@@ -1281,29 +1258,6 @@ function maybeExtractCandidatesFromClause(
         referenceKind: deriveReferenceKind(trimmed, pointer),
         referenceTitle: pointer.split("/").at(-1) ?? pointer,
         referencePointer: pointer,
-        subject: extractReferenceSubject(trimmed) ?? "unknown",
-      },
-    });
-  }
-
-  const correctedReferenceMatch = trimmed.match(CORRECTED_REFERENCE_PATTERN);
-  if (correctedReferenceMatch) {
-    const pointer = correctedReferenceMatch[1]!.trim();
-    const previousPointer = correctedReferenceMatch[2]!.trim();
-    const title = pointer.split("/").at(-1) ?? pointer;
-
-    candidates.push({
-      id: nextId(),
-      kindHint: "reference",
-      explicitness: "explicit",
-      content: pointer,
-      sourceMessageIndex: index,
-      sourceRole: "user",
-      metadata: {
-        referenceKind: deriveReferenceKind(trimmed, pointer),
-        referenceTitle: title,
-        referencePointer: pointer,
-        supersedesPointer: previousPointer,
         subject: extractReferenceSubject(trimmed) ?? "unknown",
       },
     });
@@ -1414,7 +1368,17 @@ export function createEnglishLanguagePack(): LanguagePack {
         }
 
         const sourceMessageIndex = message.sourceMessageIndex ?? index;
-
+        const sourceAnalysis = message.analysis ??
+          analyzeEnglishContent(message.content);
+        const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
+          analysis: sourceAnalysis,
+          nextId: input.nextId,
+          sourceMessageIndex,
+          subject: extractReferenceSubject(message.content) ?? "unknown",
+        });
+        if (sourceOfTruthReference) {
+          candidates.push(sourceOfTruthReference);
+        }
         const clauses = splitClausesGeneric(message.content);
         for (const clause of clauses) {
           candidates.push(
@@ -1422,7 +1386,8 @@ export function createEnglishLanguagePack(): LanguagePack {
               clause,
               sourceMessageIndex,
               input.nextId,
-              clauses.length === 1 ? message.analysis : undefined,
+              clauses.length === 1 ? sourceAnalysis : undefined,
+              Boolean(sourceOfTruthReference),
             ),
           );
         }

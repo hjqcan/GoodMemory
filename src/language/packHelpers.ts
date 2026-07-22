@@ -1,3 +1,8 @@
+import type { MemoryCandidate } from "../domain/memoryCandidate";
+import {
+  extractReferencePointerOccurrences,
+  parseReferencePointer,
+} from "../domain/referencePointer";
 import type {
   LanguageBehavioralRuleAnalysis,
   LanguageContentAnalysis,
@@ -155,7 +160,64 @@ export function emptyBehavioralRuleAnalysis(): LanguageBehavioralRuleAnalysis {
     negativeRule: false,
   };
 }
-import { extractReferencePointerOccurrences } from "../domain/referencePointer";
+export function createSourceOfTruthReferenceCandidate(input: {
+  analysis: LanguageContentAnalysis | undefined;
+  nextId: () => string;
+  sourceMessageIndex: number;
+  subject?: string;
+}): MemoryCandidate | undefined {
+  const directive = input.analysis?.sourceOfTruthDirective;
+  const currentPointer = parseReferencePointer(directive?.currentPointer);
+  if (!currentPointer) {
+    return undefined;
+  }
+  const parsedSupersededPointer = parseReferencePointer(
+    directive?.supersededPointer,
+  );
+  const supersedesPointer = parsedSupersededPointer !== currentPointer
+    ? parsedSupersededPointer
+    : undefined;
+
+  return {
+    content: currentPointer,
+    explicitness: "explicit",
+    id: input.nextId(),
+    kindHint: "reference",
+    metadata: {
+      referenceKind: "source_of_truth",
+      referencePointer: currentPointer,
+      referenceTitle: currentPointer.split("/").at(-1) ?? currentPointer,
+      subject: input.subject ?? "unknown",
+      ...(supersedesPointer ? { supersedesPointer } : {}),
+    },
+    sourceMessageIndex: input.sourceMessageIndex,
+    sourceRole: "user",
+  };
+}
+
+function extractDirectivePointerOccurrences(
+  text: string,
+  allowsEmbeddedStart: ((index: number) => boolean) | undefined,
+): ReturnType<typeof extractReferencePointerOccurrences> {
+  const occurrences = extractReferencePointerOccurrences(text);
+  const expanded = new Map<string, (typeof occurrences)[number]>();
+
+  for (const occurrence of occurrences) {
+    expanded.set(`${occurrence.index}\u0000${occurrence.pointer}`, occurrence);
+    const end = occurrence.index + occurrence.pointer.length;
+    for (let start = occurrence.index + 1; start < end; start += 1) {
+      if (!allowsEmbeddedStart?.(start)) {
+        continue;
+      }
+      const pointer = parseReferencePointer(text.slice(start, end));
+      if (pointer) {
+        expanded.set(`${start}\u0000${pointer}`, { index: start, pointer });
+      }
+    }
+  }
+
+  return [...expanded.values()];
+}
 
 export function emptyQueryAnalysis(): LanguageQueryAnalysis {
   return {
@@ -209,11 +271,15 @@ export function emptyContentAnalysis(): LanguageContentAnalysis {
 export function resolveSourceOfTruthDirective(
   text: string,
   matches: {
+    allowsEmbeddedStart?(index: number): boolean;
     affirmed(index: number, pointerLength: number): boolean;
     negated(index: number, pointerLength: number): boolean;
   },
 ): LanguageSourceOfTruthDirective | undefined {
-  const occurrences = extractReferencePointerOccurrences(text);
+  const occurrences = extractDirectivePointerOccurrences(
+    text,
+    matches.allowsEmbeddedStart,
+  );
   const byPointer = new Map<string, typeof occurrences>();
   for (const occurrence of occurrences) {
     const matchesForPointer = byPointer.get(occurrence.pointer);

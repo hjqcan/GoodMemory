@@ -173,6 +173,49 @@ const ANALYSIS_REUSE_CASES: Array<{ content: string; pack: LanguagePack }> = [
   { content: "Nunca publiques sin revisión.", pack: createSpanishLanguagePack() },
 ];
 
+const REFERENCE_DIRECTIVE_CASES: Array<{
+  content: string;
+  currentPointer: string;
+  pack: LanguagePack;
+}> = [
+  {
+    content:
+      "Use https://example.com/文档/runbook.md as the source of truth.",
+    currentPointer: "https://example.com/文档/runbook.md",
+    pack: createEnglishLanguagePack(),
+  },
+  {
+    content: "现在以文档/运行手册.md为准。",
+    currentPointer: "文档/运行手册.md",
+    pack: createChineseLanguagePack("Hans"),
+  },
+  {
+    content: "現在以文件/運行手冊.md為準。",
+    currentPointer: "文件/運行手冊.md",
+    pack: createChineseLanguagePack("Hant"),
+  },
+  {
+    content: "資料/現在の手順書.mdを正とする。",
+    currentPointer: "資料/現在の手順書.md",
+    pack: createJapaneseLanguagePack(),
+  },
+  {
+    content: "문서/현재절차서.md를 현재 기준 문서로 사용합니다.",
+    currentPointer: "문서/현재절차서.md",
+    pack: createKoreanLanguagePack(),
+  },
+  {
+    content: "Utilise documents/guide-opérationnel.md comme source de vérité.",
+    currentPointer: "documents/guide-opérationnel.md",
+    pack: createFrenchLanguagePack(),
+  },
+  {
+    content: "Usa documentos/guía-operativa.md como la fuente de verdad.",
+    currentPointer: "documentos/guía-operativa.md",
+    pack: createSpanishLanguagePack(),
+  },
+];
+
 describe("LanguagePack candidate analysis reuse", () => {
   for (const { content, pack } of ANALYSIS_REUSE_CASES) {
     it(`${pack.id} reuses the supplied single-message analysis`, () => {
@@ -192,6 +235,51 @@ describe("LanguagePack candidate analysis reuse", () => {
 
       expect(candidates.find(({ kindHint }) => kindHint === "feedback")?.metadata)
         .toMatchObject({ feedbackKind: "do" });
+    });
+  }
+});
+
+describe("LanguagePack canonical reference directives", () => {
+  for (const { content, currentPointer, pack } of REFERENCE_DIRECTIVE_CASES) {
+    it(`${pack.id} emits the canonical parser result as its reference candidate`, () => {
+      const analysis = pack.analyzeContent(content);
+      expect(analysis.sourceOfTruthDirective).toEqual({ currentPointer });
+
+      let id = 0;
+      const references = pack.extractCandidates({
+        locale: pack.defaultLocale,
+        messages: [{ analysis, content, role: "user" }],
+        nextId: () => `${pack.id}-reference-${++id}`,
+      }).filter(({ kindHint }) => kindHint === "reference");
+
+      expect(references).toHaveLength(1);
+      expect(references[0]).toMatchObject({
+        content: currentPointer,
+        metadata: {
+          referenceKind: "source_of_truth",
+          referencePointer: currentPointer,
+        },
+      });
+    });
+
+    it(`${pack.id} preserves only typed directive supersession`, () => {
+      const supersededPointer = "archive/旧版-runbook.md";
+      const analysis = {
+        ...pack.analyzeContent(content),
+        sourceOfTruthDirective: { currentPointer, supersededPointer },
+      };
+      let id = 0;
+      const references = pack.extractCandidates({
+        locale: pack.defaultLocale,
+        messages: [{ analysis, content, role: "user" }],
+        nextId: () => `${pack.id}-supersession-${++id}`,
+      }).filter(({ kindHint }) => kindHint === "reference");
+
+      expect(references).toHaveLength(1);
+      expect(references[0]?.metadata).toMatchObject({
+        referencePointer: currentPointer,
+        supersedesPointer: supersededPointer,
+      });
     });
   }
 });

@@ -9,12 +9,22 @@ import type {
 import { PROJECTION_BATCH_SEMANTICS } from "./contracts";
 
 export const SCOPE_DELETION_LOCKS_COLLECTION = "scope_deletion_locks_v1";
+const DEFAULT_SCOPE_DELETION_LEASE_MS = 60_000;
 
 interface ScopeDeletionLock extends StorageDocument {
+  agentId?: string;
+  epoch?: number;
   generation?: string;
   id: string;
+  leaseExpiresAt?: number;
   operationId?: string;
+  ownerId?: string;
+  phase?: "delete_all" | "open" | "release";
+  sessionId?: string;
   state?: "deleting" | "open";
+  tenantId?: string;
+  userId?: string;
+  workspaceId?: string;
 }
 
 const OPTIONAL_SCOPE_KEYS = [
@@ -90,10 +100,7 @@ interface ScopeMutationGate {
   mutations: Set<ActiveScopeMutation>;
 }
 
-const SHARED_SCOPE_MUTATION_GATES = new WeakMap<
-  ProjectionCapableDocumentStore,
-  ScopeMutationGate
->();
+const SHARED_SCOPE_MUTATION_GATES = new WeakMap<object, ScopeMutationGate>();
 
 function scopesOverlap(left: MemoryScope, right: MemoryScope): boolean {
   if (left.userId !== right.userId) {
@@ -109,7 +116,8 @@ function scopesOverlap(left: MemoryScope, right: MemoryScope): boolean {
 function sharedScopeMutationGate(
   documentStore: ProjectionCapableDocumentStore,
 ): ScopeMutationGate {
-  const existing = SHARED_SCOPE_MUTATION_GATES.get(documentStore);
+  const identity = documentStore.scopeMutationFenceIdentity ?? documentStore;
+  const existing = SHARED_SCOPE_MUTATION_GATES.get(identity);
   if (existing) {
     return existing;
   }
@@ -117,7 +125,7 @@ function sharedScopeMutationGate(
     deletions: new Set(),
     mutations: new Set(),
   };
-  SHARED_SCOPE_MUTATION_GATES.set(documentStore, created);
+  SHARED_SCOPE_MUTATION_GATES.set(identity, created);
   return created;
 }
 

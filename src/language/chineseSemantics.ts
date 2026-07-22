@@ -160,6 +160,9 @@ function analyzeChineseSourceOfTruthDirective(content: string) {
   };
 
   return resolveSourceOfTruthDirective(content, {
+    allowsEmbeddedStart(index) {
+      return /以\s*$/u.test(content.slice(Math.max(0, index - 4), index));
+    },
     affirmed(index, pointerLength) {
       if (negated(index, pointerLength)) {
         return false;

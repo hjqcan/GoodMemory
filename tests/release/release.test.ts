@@ -3802,20 +3802,52 @@ describe("release metadata and docs", () => {
     expect(workflow).toContain("actions/setup-node@v4");
     expect(workflow).toContain("node-version: 20");
     expect(workflow).toContain("registry-url: https://registry.npmjs.org");
-    expect(workflow).toContain("softprops/action-gh-release@v2");
-    expect(workflow).toContain("prerelease: false");
-    expect(workflow).toContain("make_latest: true");
     expect(workflow).toContain("NPM_TOKEN");
-    expect(workflow).toContain("Skipped: NPM_TOKEN secret is not configured.");
-    expect(workflow).toContain("does not block the tarball-first stable release contract");
-    expect(workflow).toContain("NPM_USER=\"$(npm whoami 2>/dev/null || true)\"");
-    expect(workflow).toContain("npm user: ${NPM_USER:-unknown}");
-    expect(workflow).toContain("already exists on npm; skipping publish.");
+    expect(workflow).toContain([
+      'if [ -z "${NODE_AUTH_TOKEN:-}" ]; then',
+      '  echo "::error::NPM_TOKEN is required for stable tag releases"',
+      "  exit 1",
+      "fi",
+    ].join("\n          "));
+    expect(workflow).toContain([
+      'if ! NPM_USER="$(npm whoami)"; then',
+      '  echo "::error::npm authentication failed: npm whoami did not succeed"',
+      "  exit 1",
+      "fi",
+    ].join("\n          "));
+    expect(workflow).not.toMatch(/\bskip(?:ped|ping)?\b/iu);
+    expect(workflow).not.toContain("does not block the tarball-first stable release contract");
+    expect(workflow).not.toContain("npm whoami 2>/dev/null || true");
+    expect(workflow).not.toContain("npm user: ${NPM_USER:-unknown}");
+    expect(workflow).toContain("already exists on npm; verifying registry state.");
     expect(workflow).toContain("npm publish --access public");
     expect(workflow).toContain('npm view "goodmemory@${VERSION}" version');
     expect(workflow).toContain("npm view goodmemory@latest version");
     expect(workflow).toContain("Waiting for npm registry visibility");
     expect(workflow).toContain("npm registry verification failed");
+    expect(workflow).toContain("softprops/action-gh-release@v2");
+    expect(workflow).toContain("prerelease: false");
+    expect(workflow).toContain("make_latest: true");
+
+    const uploadIndex = workflow.indexOf("- name: Upload tarball artifact");
+    const authIndex = workflow.indexOf(
+      "- name: Validate npm publishing credentials",
+    );
+    const publishIndex = workflow.indexOf("- name: Publish package to npm");
+    const githubReleaseIndex = workflow.indexOf("- name: Create GitHub release");
+    expect(uploadIndex).toBeGreaterThan(-1);
+    expect(authIndex).toBeGreaterThan(uploadIndex);
+    expect(publishIndex).toBeGreaterThan(authIndex);
+    expect(githubReleaseIndex).toBeGreaterThan(publishIndex);
+    for (const stepName of [
+      "Validate npm publishing credentials",
+      "Publish package to npm",
+      "Create GitHub release",
+    ]) {
+      expect(workflow).toContain(
+        `- name: ${stepName}\n        if: startsWith(github.ref, 'refs/tags/')`,
+      );
+    }
     expect(workflow).not.toContain("npm publish --tag rc --access public");
     expect(workflow).not.toContain("npm view goodmemory@rc version");
   });

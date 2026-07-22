@@ -142,9 +142,9 @@ export function createGoodMemoryRuntimeFacade(
     async getState(
       input: GoodMemoryRuntimeStartSessionInput,
     ): Promise<GoodMemoryRuntimeStateResult> {
-      return {
+      return runMutation(input.scope, async () => ({
         state: await runtime.getRuntimeState(input.scope),
-      };
+      }));
     },
 
     async appendMessage(
@@ -185,12 +185,12 @@ export function createGoodMemoryRuntimeFacade(
     async getRecallSnapshot(
       input: GoodMemoryRuntimeGetRecallSnapshotInput,
     ): Promise<GoodMemoryRuntimeRecallSnapshotResult> {
-      return {
+      return runMutation(input.scope, async () => ({
         snapshot: await runtime.getRuntimeRecall(
           input.scope,
           input.retrievalProfile ?? "general_chat",
         ),
-      };
+      }));
     },
 
     async endSession(

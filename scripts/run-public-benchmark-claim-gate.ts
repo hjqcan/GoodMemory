@@ -16,6 +16,11 @@ import {
   hasCliFlagStrict,
   resolveCliFlagValueStrict,
 } from "./cli-options";
+import {
+  assertHistoricalEvidenceProjectionCurrent,
+  parseHistoricalEvidenceProjection,
+  refreshHistoricalEvidenceProjection,
+} from "./project-historical-evidence";
 import { resolveRepoRootFromScriptUrl } from "./script-paths";
 
 export const CLAIM_STATUSES = [
@@ -867,13 +872,34 @@ export async function checkClaimEvidenceArtifacts(input: {
         input.report.status === "internal_evidence" &&
         input.report.comparison.availability === "historical"
       ) {
+        const projectionErrors = validateHistoricalProjection({
+          artifact,
+          benchmark: input.report.benchmark,
+          parsed,
+        });
         errors.push(
-          ...validateHistoricalProjection({
-            artifact,
-            benchmark: input.report.benchmark,
-            parsed,
-          }).map((error) => `evidence artifact ${artifact.path}: ${error}`),
+          ...projectionErrors.map(
+            (error) => `evidence artifact ${artifact.path}: ${error}`,
+          ),
         );
+        if (projectionErrors.length === 0) {
+          try {
+            const actual = parseHistoricalEvidenceProjection(parsed);
+            const expected = await refreshHistoricalEvidenceProjection({
+              projection: actual,
+              readArtifact: async (sourcePath) =>
+                new TextEncoder().encode(
+                  await input.readFile(join(input.repoRoot, sourcePath)),
+                ),
+            });
+            assertHistoricalEvidenceProjectionCurrent({ actual, expected });
+          } catch (error) {
+            errors.push(
+              `evidence artifact ${artifact.path} does not match its source reports: ` +
+                String(error),
+            );
+          }
+        }
       }
       for (const assertion of artifact.assertions ?? []) {
         const actual = readAssertionValue(parsed, assertion.path);

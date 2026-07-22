@@ -11,7 +11,6 @@ import type {
 import type {
   FactKind,
   MemoryScopeKind,
-  ReferenceKind,
 } from "../domain/records";
 import {
   splitClausesGeneric,
@@ -34,6 +33,7 @@ import {
 } from "./chineseSemantics";
 import {
   analyzeBehavioralRuleWithPatterns,
+  createSourceOfTruthReferenceCandidate,
   matchesNormalizedEntityAlias,
   splitSentencesGeneric,
 } from "./packHelpers";
@@ -424,25 +424,6 @@ function createGenericProjectFactCandidate(
     scopeKind: "project",
     subject: extractStableSubject(subject) ?? "project",
   });
-}
-
-function deriveReferenceKind(content: string, pointer: string): ReferenceKind {
-  if (/(为准|事实来源)/u.test(content)) {
-    return "source_of_truth";
-  }
-
-  const basename = pointer.split("/").at(-1)?.toLowerCase() ?? pointer.toLowerCase();
-  if (basename.includes("runbook")) {
-    return "runbook";
-  }
-  if (basename.includes("dashboard")) {
-    return "dashboard";
-  }
-  if (basename.includes("tracker")) {
-    return "tracker";
-  }
-
-  return "doc";
 }
 
 function looksLikeDurableInferredFact(content: string): boolean {
@@ -900,48 +881,6 @@ function maybeExtractCandidatesFromClause(
     });
   }
 
-  const correctedReferenceMatch = trimmed.match(/(?:现在|現在)以\s*([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)\s*(?:为准|為準)[，,]?\s*(?:不要|不再)以\s*([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)\s*(?:为准|為準)/u);
-  if (correctedReferenceMatch?.[1] && correctedReferenceMatch?.[2]) {
-    const pointer = cleanValue(correctedReferenceMatch[1]);
-    const previousPointer = cleanValue(correctedReferenceMatch[2]);
-    const title = pointer.split("/").at(-1) ?? pointer;
-    candidates.push({
-      id: nextId(),
-      kindHint: "reference",
-      explicitness: "explicit",
-      content: pointer,
-      sourceMessageIndex: index,
-      sourceRole: "user",
-        metadata: {
-          referenceKind: deriveReferenceKind(trimmed, pointer),
-          referenceTitle: title,
-          referencePointer: pointer,
-          supersedesPointer: previousPointer,
-          subject: extractReferenceSubject(trimmed) ?? "unknown",
-        },
-      });
-  } else {
-    const referenceMatch = trimmed.match(/以\s*([A-Za-z0-9_./-]+\.[A-Za-z0-9]+)\s*(?:为准|為準|作为事实来源|作為事實來源)/u);
-    if (referenceMatch?.[1]) {
-      const pointer = cleanValue(referenceMatch[1]);
-      const title = pointer.split("/").at(-1) ?? pointer;
-      candidates.push({
-        id: nextId(),
-        kindHint: "reference",
-        explicitness: "explicit",
-        content: pointer,
-        sourceMessageIndex: index,
-        sourceRole: "user",
-        metadata: {
-          referenceKind: deriveReferenceKind(trimmed, pointer),
-          referenceTitle: title,
-          referencePointer: pointer,
-          subject: extractReferenceSubject(trimmed) ?? "unknown",
-        },
-      });
-    }
-  }
-
   if (
     trimmed.length >= 4 &&
     /^(?:请(?!记住)|請(?!記住)|不要|以后|以後|始终|始終|优先|優先)/u.test(trimmed)
@@ -1046,7 +985,17 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
         }
 
         const sourceMessageIndex = message.sourceMessageIndex ?? index;
-
+        const sourceAnalysis = message.analysis ??
+          analyzeChineseContent(message.content);
+        const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
+          analysis: sourceAnalysis,
+          nextId: input.nextId,
+          sourceMessageIndex,
+          subject: extractReferenceSubject(message.content) ?? "unknown",
+        });
+        if (sourceOfTruthReference) {
+          candidates.push(sourceOfTruthReference);
+        }
         const clauses = splitClausesGeneric(message.content);
         for (const clause of clauses) {
           candidates.push(
@@ -1054,7 +1003,7 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
               clause,
               sourceMessageIndex,
               input.nextId,
-              clauses.length === 1 ? message.analysis : undefined,
+              clauses.length === 1 ? sourceAnalysis : undefined,
             ),
           );
         }
