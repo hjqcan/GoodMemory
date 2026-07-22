@@ -365,8 +365,10 @@ describe("public provider facade", () => {
     expect(prompts).toHaveLength(1);
     expect(orderedCandidateIds).toHaveLength(24);
     expect(orderedCandidateIds.length).toBeLessThanOrEqual(32);
+    expect(orderedCandidateIds[0]).toBe("candidate-24");
+    expect(prompts[0]).not.toContain('"id":"fact-migration-');
     expect(result.facts).toHaveLength(12);
-    expect(result.facts[0]?.id).toBe(orderedCandidateIds[0]);
+    expect(result.facts[0]?.id).toBe("fact-migration-23");
     expect(result.packet.factSummary?.match(/^- /gmu)).toHaveLength(6);
     expect(result.metadata.retrievalTrace?.reranker).toMatchObject({
       adapter: "provider",

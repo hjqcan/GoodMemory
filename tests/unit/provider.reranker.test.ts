@@ -21,7 +21,7 @@ describe("provider listwise reranker", () => {
           prompts.push(String(input.prompt));
           return {
             object: {
-              orderedCandidateIds: ["other", "relevant"],
+              orderedCandidateIds: ["candidate-2", "candidate-1"],
             },
           };
         }) as never,
@@ -42,6 +42,9 @@ describe("provider listwise reranker", () => {
     });
 
     expect(prompts).toHaveLength(1);
+    expect(prompts[0]).toContain('"id":"candidate-1"');
+    expect(prompts[0]).toContain('"id":"candidate-2"');
+    expect(prompts[0]).not.toContain('"id":"relevant"');
     expect(prompts[0]).toContain("legal approval");
     expect(prompts[0]).toContain("office lunch");
     expect(scores).toEqual([
@@ -55,7 +58,7 @@ describe("provider listwise reranker", () => {
     const reranker = createLLMListwiseReranker({
       dependencies: {
         generateObject: async () => ({
-          object: { orderedCandidateIds: ["a", "b"] },
+          object: { orderedCandidateIds: ["candidate-1", "candidate-2"] },
           usage: { inputTokens: 30, outputTokens: 4 },
         }) as never,
         modelUsageSink: { emit(event) { events.push(event); } },
@@ -85,7 +88,7 @@ describe("provider listwise reranker", () => {
     const partial = createLLMListwiseReranker({
       dependencies: {
         generateObject: (async () => ({
-          object: { orderedCandidateIds: [" b "] },
+          object: { orderedCandidateIds: [" candidate-2 "] },
         })) as never,
         resolveModel: () => ({}) as never,
       },
@@ -147,7 +150,7 @@ describe("provider listwise reranker", () => {
         fetch: async (_url, init) => {
           requestBody = String(init?.body);
           return new Response(
-            'data: {"choices":[{"delta":{"content":"{\\"orderedCandidateIds\\":[\\"a\\"]}"},"index":0}]}\n\ndata: [DONE]\n\n',
+            'data: {"choices":[{"delta":{"content":"{\\"orderedCandidateIds\\":[\\"candidate-1\\"]}"},"index":0}]}\n\ndata: [DONE]\n\n',
             { headers: { "content-type": "text/event-stream" }, status: 200 },
           );
         },
@@ -185,7 +188,7 @@ describe("provider listwise reranker", () => {
           maxActive = Math.max(maxActive, active);
           await Bun.sleep(10);
           active -= 1;
-          return { object: { orderedCandidateIds: ["candidate"] } };
+          return { object: { orderedCandidateIds: ["candidate-1"] } };
         }) as never,
         maxConcurrency: 2,
         resolveModel: () => ({}) as never,

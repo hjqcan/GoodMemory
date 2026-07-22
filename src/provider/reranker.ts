@@ -302,7 +302,17 @@ export function createLLMListwiseReranker(input: {
       if (documents.length === 0) {
         return [];
       }
-      const prompt = buildListwiseRerankerPrompt({ documents, query });
+      const aliasedDocuments = documents.map((document, index) => ({
+        id: `candidate-${index + 1}`,
+        text: document.text,
+      }));
+      const originalIdByAlias = new Map(
+        aliasedDocuments.map(({ id }, index) => [id, documents[index]!.id]),
+      );
+      const prompt = buildListwiseRerankerPrompt({
+        documents: aliasedDocuments,
+        query,
+      });
       const system = input.system ?? LISTWISE_RERANKER_SYSTEM_PROMPT;
       let attempt = 0;
       const orderedCandidateIds = await runWithConcurrency(() =>
@@ -368,7 +378,7 @@ export function createLLMListwiseReranker(input: {
                 object = response.object;
               }
               return finalizeListwiseCandidateOrder({
-                documents,
+                documents: aliasedDocuments,
                 orderedCandidateIds: object.orderedCandidateIds,
               });
             },
@@ -376,12 +386,11 @@ export function createLLMListwiseReranker(input: {
         }, input.dependencies?.retryOptions),
       );
       const scoreById = new Map(
-        orderedCandidateIds.map(
-          (candidateId, index) =>
-            [
-              candidateId,
-              (orderedCandidateIds.length - index) / orderedCandidateIds.length,
-            ] as const,
+        orderedCandidateIds.map((candidateAlias, index) =>
+          [
+            originalIdByAlias.get(candidateAlias)!,
+            (orderedCandidateIds.length - index) / orderedCandidateIds.length,
+          ] as const,
         ),
       );
       return documents.map((document) => ({
