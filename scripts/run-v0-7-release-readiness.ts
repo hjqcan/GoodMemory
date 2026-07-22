@@ -323,14 +323,16 @@ export async function evaluateVersionConsistency(
     ),
   );
   const issues: string[] = [];
+  const packageRelease = packageJson.goodmemoryRelease;
+  const capabilityRelease = capability.releaseStatus;
 
   if (packageJson.version !== RELEASE_VERSION) {
     issues.push(`package.json version is ${packageJson.version}, expected ${RELEASE_VERSION}`);
   }
   if (
-    packageJson.goodmemoryRelease?.status !== "release-candidate" ||
-    packageJson.goodmemoryRelease.npmLatest !== "0.6.0" ||
-    packageJson.goodmemoryRelease.installCommandsApplyAfterPublish !== true
+    packageRelease?.status !== "release-candidate" ||
+    packageRelease?.npmLatest !== "0.6.0" ||
+    packageRelease?.installCommandsApplyAfterPublish !== true
   ) {
     issues.push("package.json must describe the checked-out 0.7 release candidate");
   }
@@ -349,11 +351,11 @@ export async function evaluateVersionConsistency(
     issues.push("capability descriptor version/install commands do not match 0.7.0");
   }
   if (
-    capability.releaseStatus?.status !== packageJson.goodmemoryRelease?.status ||
-    capability.releaseStatus.npmLatest !== packageJson.goodmemoryRelease.npmLatest ||
-    capability.releaseStatus.tarball !== `goodmemory-${RELEASE_VERSION}.tgz` ||
-    capability.releaseStatus.installCommandsApplyAfterPublish !==
-      packageJson.goodmemoryRelease.installCommandsApplyAfterPublish
+    capabilityRelease?.status !== packageRelease?.status ||
+    capabilityRelease?.npmLatest !== packageRelease?.npmLatest ||
+    capabilityRelease?.tarball !== `goodmemory-${RELEASE_VERSION}.tgz` ||
+    capabilityRelease?.installCommandsApplyAfterPublish !==
+      packageRelease?.installCommandsApplyAfterPublish
   ) {
     issues.push("capability descriptor does not distinguish the 0.7 release candidate from npm latest");
   }

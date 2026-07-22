@@ -74,15 +74,24 @@ jobs:
               exit 1
             fi
           fi
-          ARTIFACT_PATH="$(bun pm pack --destination dist-release --quiet | tail -n 1)"
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            ARTIFACT_JSON="$(bun scripts/prepare-v0-7-stable-artifact.ts --output-dir dist-release)"
+            ARTIFACT_PATH="$(ARTIFACT_JSON="$ARTIFACT_JSON" bun -e 'console.log(JSON.parse(process.env.ARTIFACT_JSON).artifactPath)')"
+            ARTIFACT_INTEGRITY="$(ARTIFACT_JSON="$ARTIFACT_JSON" bun -e 'console.log(JSON.parse(process.env.ARTIFACT_JSON).integrity)')"
+          else
+            ARTIFACT_PATH="$(bun pm pack --destination dist-release --quiet | tail -n 1)"
+            ARTIFACT_INTEGRITY="$(ARTIFACT_PATH="$ARTIFACT_PATH" bun -e 'import { createHash } from "node:crypto"; import { readFileSync } from "node:fs"; console.log(`sha512-${createHash("sha512").update(readFileSync(process.env.ARTIFACT_PATH)).digest("base64")}`)')"
+          fi
           ARTIFACT_NAME="$(basename "$ARTIFACT_PATH")"
           echo "artifact_name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
           echo "artifact_path=$ARTIFACT_PATH" >> "$GITHUB_OUTPUT"
+          echo "artifact_integrity=$ARTIFACT_INTEGRITY" >> "$GITHUB_OUTPUT"
           {
             echo "## Release artifact"
             echo "- Version: $VERSION"
             echo "- Name: $ARTIFACT_NAME"
             echo "- Path: $ARTIFACT_PATH"
+            echo "- Integrity: $ARTIFACT_INTEGRITY"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload tarball artifact
@@ -119,9 +128,15 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="$(bun -e 'import { readFileSync } from "node:fs"; const pkg = JSON.parse(readFileSync("package.json", "utf8")); console.log(pkg.version);')"
+          ARTIFACT_INTEGRITY="${{ steps.pack.outputs.artifact_integrity }}"
           if PUBLISHED_VERSION="$(npm view "goodmemory@${VERSION}" version 2>/dev/null)"; then
             if [ "$PUBLISHED_VERSION" != "$VERSION" ]; then
               echo "::error::npm returned unexpected version $PUBLISHED_VERSION for goodmemory@$VERSION"
+              exit 1
+            fi
+            PUBLISHED_INTEGRITY="$(npm view "goodmemory@${VERSION}" dist.integrity 2>/dev/null || true)"
+            if [ "$PUBLISHED_INTEGRITY" != "$ARTIFACT_INTEGRITY" ]; then
+              echo "::error::npm artifact identity verification failed for existing goodmemory@$VERSION"
               exit 1
             fi
             echo "goodmemory@$VERSION already exists on npm; verifying registry state."
@@ -129,16 +144,22 @@ jobs:
             npm publish --access public "${{ steps.pack.outputs.artifact_path }}"
           fi
           PUBLISHED_VERSION=""
+          PUBLISHED_INTEGRITY=""
           LATEST_VERSION=""
           for attempt in {1..12}; do
             PUBLISHED_VERSION="$(npm view "goodmemory@${VERSION}" version 2>/dev/null || true)"
+            PUBLISHED_INTEGRITY="$(npm view "goodmemory@${VERSION}" dist.integrity 2>/dev/null || true)"
             LATEST_VERSION="$(npm view goodmemory@latest version 2>/dev/null || true)"
-            if [ "$PUBLISHED_VERSION" = "$VERSION" ] && [ "$LATEST_VERSION" = "$VERSION" ]; then
+            if [ "$PUBLISHED_VERSION" = "$VERSION" ] && [ "$LATEST_VERSION" = "$VERSION" ] && [ "$PUBLISHED_INTEGRITY" = "$ARTIFACT_INTEGRITY" ]; then
               break
             fi
             echo "Waiting for npm registry visibility for goodmemory@$VERSION (attempt $attempt/12)..."
             sleep 10
           done
+          if [ "$PUBLISHED_INTEGRITY" != "$ARTIFACT_INTEGRITY" ]; then
+            echo "::error::npm artifact identity verification failed: registry integrity does not match the release tarball"
+            exit 1
+          fi
           if [ "$PUBLISHED_VERSION" != "$VERSION" ] || [ "$LATEST_VERSION" != "$VERSION" ]; then
             echo "::error::npm registry verification failed: expected version and latest tag $VERSION, got version=${PUBLISHED_VERSION:-<empty>} latest=${LATEST_VERSION:-<empty>}"
             exit 1
@@ -147,6 +168,7 @@ jobs:
             echo "## npm publish"
             echo "- Verified: goodmemory@$VERSION"
             echo "- Verified dist tag: latest -> $LATEST_VERSION"
+            echo "- Verified artifact integrity: $PUBLISHED_INTEGRITY"
             echo "- npm user: ${{ steps.npm-auth.outputs.npm_user }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
