@@ -6,10 +6,12 @@ import {
 import type {
   CurrentValueEntry,
 } from "../../src/answer/currentValueResolution";
+import { createLanguageService } from "../../src/language";
 import {
   fuseGeneralizedRecallCandidates,
 } from "../../src/recall/generalizedFusion";
 import type {
+  GeneralizedFusionInput,
   GeneralizedFusionResult,
 } from "../../src/recall/generalizedFusion";
 import type {
@@ -27,6 +29,7 @@ import type {
 const scope = { userId: "user-generalization", workspaceId: "workspace-generalization" };
 const scopeKey = "user-generalization::::workspace-generalization::::";
 const referenceTime = "2026-07-10T00:00:00.000Z";
+const language = createLanguageService({ defaultLocale: "en-US" });
 
 const fusionChannelNames = [
   "dense",
@@ -44,6 +47,26 @@ function buildPlan(query: string, resolvedReferenceTime = referenceTime): Recall
   });
 }
 
+function fuseCandidates(
+  input: Omit<
+    GeneralizedFusionInput,
+    "acceptsEntityCandidate" | "matchesEntityAlias" | "tokenize"
+  >,
+): GeneralizedFusionResult {
+  const context = language.resolveFromText({
+    locale: "en-US",
+    text: input.query,
+  });
+  return fuseGeneralizedRecallCandidates({
+    ...input,
+    acceptsEntityCandidate: (candidate) =>
+      language.acceptsEntityCandidate(candidate, context),
+    matchesEntityAlias: (query, alias) =>
+      language.matchesEntityAlias(query, alias, context),
+    tokenize: (text) => language.tokenize(text, context),
+  });
+}
+
 function document(input: {
   entityKeys?: string[];
   id: string;
@@ -53,7 +76,7 @@ function document(input: {
   const entityKeys = input.entityKeys ?? [];
   return {
     id: input.id,
-    schemaVersion: 2,
+    schemaVersion: 3,
     ...scope,
     scopeKey,
     sourceCollection: "facts",
@@ -65,7 +88,7 @@ function document(input: {
     searchLocale: "en-US",
     languagePackId: "en",
     searchAnalyzerVersion: "metamorphic-test-v1",
-    searchSchemaVersion: "gm-search-v1",
+    searchSchemaVersion: "gm-search-v2",
     entityIds: entityKeys.map((key) => `entity-${key}`),
     entityMentions: entityKeys.map((key) => ({
       canonicalKey: key,
@@ -83,7 +106,7 @@ function entity(input: {
 }): EntityProjection {
   return {
     id: `entity-${input.key}`,
-    schemaVersion: 1,
+    schemaVersion: 2,
     ...scope,
     scopeKey,
     canonicalKey: input.key,
@@ -106,7 +129,7 @@ function claim(input: {
 }): ClaimProjection {
   return {
     id: input.id,
-    schemaVersion: 1,
+    schemaVersion: 2,
     ...scope,
     scopeKey,
     sourceMemoryId: input.sourceMemoryId,
@@ -118,7 +141,7 @@ function claim(input: {
     searchLocale: "en-US",
     languagePackId: "en",
     searchAnalyzerVersion: "metamorphic-test-v1",
-    searchSchemaVersion: "gm-search-v1",
+    searchSchemaVersion: "gm-search-v2",
     objectEntityId: input.objectEntityId,
     polarity: input.polarity ?? "positive",
     modality: "asserted",
@@ -251,7 +274,7 @@ describe("Phase 74 metamorphic generalization", () => {
       ];
       const query = `What was Atlas project status before ${input.boundary}?`;
       const plan = buildPlan(query, `${input.boundary}T00:00:00.000Z`);
-      const result = fuseGeneralizedRecallCandidates({
+      const result = fuseCandidates({
         claims,
         documents: claims.map((item) => document({
           id: `document-${item.id}`,
@@ -301,7 +324,7 @@ describe("Phase 74 metamorphic generalization", () => {
       const objectKey = object.toLowerCase();
       const sourceMemoryId = "fact-team-relationship";
       const query = `How is ${subject} connected to ${object}?`;
-      const result = fuseGeneralizedRecallCandidates({
+      const result = fuseCandidates({
         claims: [claim({
           id: `claim-${subjectKey}-${objectKey}`,
           objectEntityId: `entity-${objectKey}`,
@@ -355,8 +378,8 @@ describe("Phase 74 metamorphic generalization", () => {
       query,
       referenceTime,
     };
-    const forward = fuseGeneralizedRecallCandidates(input);
-    const reordered = fuseGeneralizedRecallCandidates({
+    const forward = fuseCandidates(input);
+    const reordered = fuseCandidates({
       ...input,
       claims: [...claims].reverse(),
       denseCandidates: [...input.denseCandidates].reverse(),
@@ -368,7 +391,7 @@ describe("Phase 74 metamorphic generalization", () => {
 
   it("keeps current, history, and count selection predicate-aware", () => {
     const { claims, documents } = timelineFixture();
-    const run = (query: string) => fuseGeneralizedRecallCandidates({
+    const run = (query: string) => fuseCandidates({
       claims,
       documents,
       entities: [],
@@ -404,8 +427,8 @@ describe("Phase 74 metamorphic generalization", () => {
       query,
       referenceTime,
     };
-    const baseline = fuseGeneralizedRecallCandidates(input);
-    const withDistractor = fuseGeneralizedRecallCandidates({
+    const baseline = fuseCandidates(input);
+    const withDistractor = fuseCandidates({
       ...input,
       claims: [
         ...claims,
@@ -472,18 +495,21 @@ describe("Phase 74 metamorphic generalization", () => {
           content: `${input.entityName} enabled the ${input.domain}`,
           group: `${input.entityName}:${input.domain}`,
           orderKey: 1,
+          polarity: "positive",
           sourceId: "affirmative",
         },
         {
           content: `${input.entityName} never enabled the ${input.domain}`,
           group: `${input.entityName}:${input.domain}`,
           orderKey: 2,
+          polarity: "negative",
           sourceId: "retraction",
         },
         {
           content: `${input.entityName} has three unrelated notes`,
           group: `${input.entityName}:note_count`,
           orderKey: 3,
+          polarity: "positive",
           sourceId: "unrelated",
         },
       ];
@@ -515,7 +541,7 @@ describe("Phase 74 metamorphic generalization", () => {
   it("distinguishes spouse relations from commercial partner API wording", () => {
     const spouseQuery = "How is Alice related to her spouse Bob?";
     const spousePlan = buildPlan(spouseQuery);
-    const spouse = fuseGeneralizedRecallCandidates({
+    const spouse = fuseCandidates({
       claims: [claim({
         id: "claim-spouse",
         objectEntityId: "entity-bob",
@@ -543,7 +569,7 @@ describe("Phase 74 metamorphic generalization", () => {
 
     const businessQuery = "Which business partner API did Acme use?";
     const businessPlan = buildPlan(businessQuery);
-    const business = fuseGeneralizedRecallCandidates({
+    const business = fuseCandidates({
       claims: [claim({
         id: "claim-partner-api",
         objectEntityId: "entity-northwind",

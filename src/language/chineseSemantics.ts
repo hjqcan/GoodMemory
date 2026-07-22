@@ -21,9 +21,9 @@ const HAN_PATTERN = /\p{Script=Han}/u;
 const JAPANESE_SYLLABARY_PATTERN =
   /\p{Script=Hiragana}|\p{Script=Katakana}/u;
 const HANS_DISTINCTIVE_PATTERN =
-  /(?:[请记体复发布碍当前项总结束开环验证签审议与还里么这个为准优务径]|应该)/u;
+  /(?:[请记体复发布碍当项总结束开环验证签审议与还里么这个为准优务径码]|应该)/u;
 const HANT_DISTINCTIVE_PATTERN =
-  /(?:[請記體覆發佈礙當總結開環驗證簽審議與還裡麼這個為準優務徑]|應該)/u;
+  /(?:[請記體覆發佈礙當總結開環驗證簽審議與還裡麼這個為準優務徑碼]|應該)/u;
 const CHINESE_GRAMMAR_PATTERN =
   /(?:我|我的|我们|我們|请|請|记住|記住|目前|现在|当前|當前|需要|正在|项目|专案|偏好|喜欢|喜歡|不要|別)/u;
 

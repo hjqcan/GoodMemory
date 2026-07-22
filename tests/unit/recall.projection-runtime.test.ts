@@ -1520,7 +1520,7 @@ describe("recall projection runtime", () => {
     const fact = buildFact({ id: "fact-dangling-selected-claim" });
     const status: ClaimProjectionStatus = {
       id: buildClaimProjectionStatusId(scope, fact.id),
-      schemaVersion: 1,
+      schemaVersion: 2,
       ...scope,
       scopeKey: scopeToKey(scope),
       sourceMemoryId: fact.id,
