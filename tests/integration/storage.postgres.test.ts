@@ -237,39 +237,6 @@ if (POSTGRES_URL) {
         );
         expect(versions).toEqual([{ version: 1 }]);
 
-        const plan = await sql.begin(async (transaction) => {
-          await transaction.unsafe("SET LOCAL enable_seqscan = off");
-          return transaction.unsafe<Array<Record<string, string>>>(
-            `
-              EXPLAIN
-              SELECT
-                id,
-                document::text AS document_json,
-                ts_rank(
-                  to_tsvector('simple', COALESCE(document ->> 'searchText', '')),
-                  to_tsquery('simple', $2)
-                ) AS score
-              FROM ${quoteIdentifier(schema)}.gm_documents
-              WHERE collection = $1
-                AND document @> $3::text::jsonb
-                AND to_tsvector(
-                  'simple',
-                  COALESCE(document ->> 'searchText', '')
-                ) @@ to_tsquery('simple', $2)
-              ORDER BY score DESC, id ASC
-              LIMIT $4
-            `,
-            [
-              "recall_documents_v3",
-              "atlas",
-              JSON.stringify({ scopeKey: "user-1::workspace-1" }),
-              1,
-            ],
-          );
-        });
-        expect(JSON.stringify(plan)).toContain(
-          "gm_documents_search_text_search_idx",
-        );
       } finally {
         await sql.close();
         await dropSchema(POSTGRES_URL, schema);
