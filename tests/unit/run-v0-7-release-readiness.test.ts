@@ -4,6 +4,7 @@ import { describe, expect, it } from "bun:test";
 
 import type { V07ReleaseReadinessReport } from "../../scripts/run-v0-7-release-readiness";
 import {
+  evaluateVersionConsistency,
   evaluateV07RequiredEnvironment,
   evaluateV07PackManifest,
   evaluateV07RequiredChecks,
@@ -44,6 +45,14 @@ function report(
 }
 
 describe("v0.7 release readiness", () => {
+  it("allows current claims to stay empty until 0.7 benchmarks are rerun", async () => {
+    await expect(
+      evaluateVersionConsistency(
+        new URL("../..", import.meta.url).pathname,
+      ),
+    ).resolves.toEqual(expect.objectContaining({ status: "pass" }));
+  });
+
   it("pins package, lockfile, capability, and MCP descriptors to 0.7.0", () => {
     const readJson = (path: string) =>
       JSON.parse(

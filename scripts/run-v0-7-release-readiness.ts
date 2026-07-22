@@ -296,7 +296,7 @@ function commandCheck(input: {
   };
 }
 
-async function evaluateVersionConsistency(
+export async function evaluateVersionConsistency(
   repoRoot: string,
 ): Promise<V07ReleaseReadinessCheck> {
   const startedAt = performance.now();
@@ -372,17 +372,15 @@ async function evaluateVersionConsistency(
       (claim) => claim.measuredPackageVersion,
     ) ?? [];
   if (
-    benchmarkVersions.length === 0 ||
-    benchmarkVersions.some((version) => version !== "0.6.0") ||
-    benchmarkVersions.includes(RELEASE_VERSION)
+    benchmarkVersions.some((version) => version !== RELEASE_VERSION)
   ) {
-    issues.push("v0.6 benchmark provenance was relabeled as v0.7 evidence");
+    issues.push("current benchmark claims were not measured on 0.7.0");
   }
 
   return {
     detail:
       issues.length === 0
-        ? "0.7.0 release metadata is aligned; benchmark evidence remains measured on 0.6.0"
+        ? "0.7.0 release metadata is aligned; pre-0.7 benchmark evidence is not labeled current"
         : issues.join("; "),
     durationMs: Math.round(performance.now() - startedAt),
     id: "version",
