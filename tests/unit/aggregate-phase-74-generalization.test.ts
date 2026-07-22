@@ -1262,6 +1262,20 @@ describe("Phase 74 frozen artifact aggregation", () => {
     });
 
     expect(report.aggregation.caseCount).toBe(3);
+
+    const packetsPath = join(runDirectories[0]!, "e3-retrieval-packets.jsonl");
+    const packets = (await readFile(packetsPath, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    const ledgerPacket = packets.find(({ evidenceLedger }) => evidenceLedger);
+    ledgerPacket.evidenceLedger[0].excerpt += " tampered";
+    await writeJsonLines(packetsPath, packets);
+
+    await expect(aggregatePhase74StageDiagnosticArtifacts({
+      runDirectories,
+      stage: "E3",
+    })).rejects.toThrow("retrieval packet hash drift");
   });
 
   it("accepts content-addressed snapshots shared by multiple cases", async () => {

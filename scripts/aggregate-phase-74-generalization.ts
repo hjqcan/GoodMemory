@@ -1379,6 +1379,12 @@ async function validateRetrievalPackets(input: {
         `Phase 74 ${input.stage} retrieval packet memories are invalid.`,
       );
     }
+    const evidenceLedger = packet.evidenceLedger;
+    if (evidenceLedger !== undefined && !Array.isArray(evidenceLedger)) {
+      throw new Error(
+        `Phase 74 ${input.stage} retrieval packet evidence ledger is invalid.`,
+      );
+    }
     const costTraceRecord = recordValue(
       packet.costTrace,
       `${input.stage} retrieval packet cost trace`,
@@ -1422,6 +1428,7 @@ async function validateRetrievalPackets(input: {
     const expectedSnapshotId = buildPhase74RetrievalSnapshotId({
       arm: row.arm,
       costTrace,
+      evidenceLedger: evidenceLedger as Phase74RetrievalSnapshot["evidenceLedger"],
       evidenceLedgers: packet.evidenceLedgers,
       retrievedMemories,
       stage: input.stage,
@@ -1455,6 +1462,14 @@ async function validateRetrievalPackets(input: {
     }
     snapshots.push({
       costTrace,
+      ...(evidenceLedger === undefined
+        ? {}
+        : {
+            evidenceLedger:
+              evidenceLedger as unknown as NonNullable<
+                Phase74RetrievalSnapshot["evidenceLedger"]
+              >,
+          }),
       evidenceLedgers: packet.evidenceLedgers as Phase74RetrievalSnapshot["evidenceLedgers"],
       retrievedMemories,
       snapshotId,
