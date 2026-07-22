@@ -58,6 +58,10 @@ const MEMORY_CANDIDATE_EXPLICITNESS_VALUES = [
   "inferred",
 ] as const satisfies [MemoryCandidateExplicitness, ...MemoryCandidateExplicitness[]];
 
+const MEMORY_CANDIDATE_EXPLICITNESS_SET = new Set<string>(
+  MEMORY_CANDIDATE_EXPLICITNESS_VALUES,
+);
+
 const MEMORY_CANDIDATE_PROFILE_FIELD_VALUES = [
   "name",
   "role",
@@ -213,7 +217,7 @@ const compactClaimSchema = z.object({
   oe: z.string().optional(),
   p: z.string(),
   u: z.string().optional(),
-}).strict();
+});
 
 const compactMetadataSchema = z.object({
   a: z.record(
@@ -245,7 +249,7 @@ const compactMetadataSchema = z.object({
   sp: z.string().optional(),
   t: z.array(z.string()).optional(),
   u: z.string().optional(),
-}).strict();
+});
 
 export const compactConversationalMemoryExtractionResultSchema = z.object({
   c: z.array(z.object({
@@ -255,9 +259,9 @@ export const compactConversationalMemoryExtractionResultSchema = z.object({
     m: compactMetadataSchema.optional(),
     s: z.number().int().nonnegative(),
     ss: z.array(z.number().int().nonnegative()).optional(),
-  }).strict()),
+  })),
   i: z.number().int().nonnegative(),
-}).strict();
+});
 
 export type MemoryExtractionOutputProtocol =
   | "canonical-v1"
@@ -343,6 +347,51 @@ function normalizeCompactClaim(
     normalized.m = "unknown";
   }
   return normalized;
+}
+
+function compactEnumValue(
+  value: unknown,
+  allowed: readonly string[],
+): unknown {
+  return typeof value === "string" && allowed.includes(value)
+    ? value
+    : undefined;
+}
+
+function normalizeCompactMetadataPayload(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
+  const claim = value.q;
+  return {
+    ...value,
+    fb: compactEnumValue(value.fb, ["do", "dont", "prefer", "validated_pattern"]),
+    fk: compactEnumValue(value.fk, [
+      "blocker",
+      "open_loop",
+      "role_update",
+      "focus_update",
+      "project_state",
+      "generic_project",
+    ]),
+    pf: compactEnumValue(value.pf, MEMORY_CANDIDATE_PROFILE_FIELD_VALUES),
+    rk: compactEnumValue(value.rk, [
+      "source_of_truth",
+      "runbook",
+      "doc",
+      "dashboard",
+      "tracker",
+    ]),
+    sk: compactEnumValue(value.sk, [
+      "identity",
+      "project",
+      "runtime",
+      "reference",
+      "preference",
+    ]),
+    ...(claim && typeof claim === "object" && !Array.isArray(claim)
+      ? { q: normalizeCompactClaim(claim as Record<string, unknown>) }
+      : {}),
+  };
 }
 
 function finalizeMemoryExtractionResult(
@@ -459,30 +508,20 @@ function normalizeCompactConversationalMemoryExtractionPayload(
               !Array.isArray(metadata)
             ? metadata as Record<string, unknown>
             : undefined;
-          const claim = compactMetadata?.q;
-          const compactClaim = claim && typeof claim === "object" &&
-              !Array.isArray(claim)
-            ? claim as Record<string, unknown>
-            : undefined;
+          const explicitness = normalizeAliasedEnumValue(
+            value.e,
+            MEMORY_CANDIDATE_EXPLICITNESS_ALIASES,
+          );
           return {
             ...value,
-            e: normalizeAliasedEnumValue(
-              value.e,
-              MEMORY_CANDIDATE_EXPLICITNESS_ALIASES,
-            ),
+            e: typeof explicitness === "string" &&
+                MEMORY_CANDIDATE_EXPLICITNESS_SET.has(explicitness)
+              ? explicitness
+              : undefined,
             k: normalizeCandidateKindHint(value.k ?? "fact"),
             ...(compactMetadata === undefined
               ? {}
-              : {
-                  m: {
-                    ...compactMetadata,
-                    ...(compactClaim === undefined
-                      ? {}
-                      : {
-                          q: normalizeCompactClaim(compactClaim),
-                        }),
-                  },
-                }),
+              : { m: normalizeCompactMetadataPayload(compactMetadata) }),
             s: coerceNonNegativeInteger(value.s),
             ...(Array.isArray(value.ss)
               ? { ss: value.ss.map(coerceNonNegativeInteger) }
@@ -656,13 +695,59 @@ export function buildConversationalMemoryExtractionPrompt(
   ].join("\n\n");
 }
 
+const COMPACT_ASSISTANT_CONTEXT_MAX_UTF8_BYTES = 2_048;
+
+function utf8ByteLength(value: string): number {
+  return new TextEncoder().encode(value).byteLength;
+}
+
+function clipUtf8Prefix(value: string, maxBytes: number): string {
+  if (utf8ByteLength(value) <= maxBytes) {
+    return value;
+  }
+  const marker = " …";
+  const markerBytes = utf8ByteLength(marker);
+  const contentBudget = Math.max(0, maxBytes - markerBytes);
+  let clipped = "";
+  let usedBytes = 0;
+  for (const character of value) {
+    const characterBytes = utf8ByteLength(character);
+    if (usedBytes + characterBytes > contentBudget) {
+      break;
+    }
+    clipped += character;
+    usedBytes += characterBytes;
+  }
+  return maxBytes >= markerBytes ? `${clipped}${marker}` : clipped;
+}
+
+function buildCompactConversationalTranscript(
+  input: MemoryExtractionInput,
+): string {
+  let assistantMessagesRemaining = input.messages.filter(
+    (message) => message.role === "assistant",
+  ).length;
+  let assistantBytesRemaining = COMPACT_ASSISTANT_CONTEXT_MAX_UTF8_BYTES;
+
+  return input.messages.map((message, index) => {
+    if (message.role !== "assistant") {
+      return `[${index}] ${message.role}: ${message.content}`;
+    }
+    const maxBytes = assistantMessagesRemaining === 0
+      ? 0
+      : Math.floor(assistantBytesRemaining / assistantMessagesRemaining);
+    const content = clipUtf8Prefix(message.content, maxBytes);
+    assistantMessagesRemaining -= 1;
+    assistantBytesRemaining -= utf8ByteLength(content);
+    return `[${index}] ${message.role}: ${content}`;
+  }).join("\n");
+}
+
 export function buildCompactConversationalMemoryExtractionPrompt(
   input: MemoryExtractionInput,
   options?: ConversationalExtractionOptions,
 ): string {
-  const transcript = input.messages
-    .map((message, index) => `[${index}] ${message.role}: ${message.content}`)
-    .join("\n");
+  const transcript = buildCompactConversationalTranscript(input);
 
   const rules = [
     "Rules:",
