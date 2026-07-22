@@ -176,6 +176,7 @@ interface FixtureOptions {
     | "noncanonical-scorer";
   costBoundary?: "full-product" | "query-only";
   crossFamilyCallBudgetDrift?: boolean;
+  includeE3EvidenceLedger?: boolean;
   includeE4Scores?: boolean;
   negativeE3Replicate?: {
     benchmark: "locomo" | "longmemeval";
@@ -531,9 +532,20 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
             sourceIds: [],
           }];
           const storedMemories: unknown[] = [];
+          const evidenceLedger = options.includeE3EvidenceLedger &&
+              stage === "E3" && row.arm === "recall-plan-deterministic"
+            ? [{
+                evidenceId: `${row.caseId}-evidence`,
+                excerpt: `evidence for ${row.caseId}`,
+                relation: "supports" as const,
+                sourceMemoryId: `${row.caseId}-${row.arm}`,
+                temporalStatus: "current" as const,
+              }]
+            : undefined;
           const snapshotId = buildPhase74RetrievalSnapshotId({
             arm: row.arm,
             costTrace,
+            evidenceLedger,
             evidenceLedgers: undefined,
             retrievedMemories,
             stage,
@@ -552,6 +564,7 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
           Object.assign(row, { evaluationAttribution: attribution });
           return {
             costTrace,
+            ...(evidenceLedger === undefined ? {} : { evidenceLedger }),
             evaluation: {
               answer: row.answer,
               answerLatencyMs: row.answerLatencyMs,
@@ -1231,6 +1244,24 @@ describe("Phase 74 frozen artifact aggregation", () => {
       runDirectories,
       stage: "E2",
     })).rejects.toThrow("retrieval packet evaluation drift");
+  });
+
+  it("accepts an E3 retrieval packet whose typed ledger is bound into its hash", async () => {
+    const fixture = await createArtifactFixture({
+      admission: "deterministic-reranker",
+      includeE3EvidenceLedger: true,
+      subsetSelection: true,
+    });
+    const runDirectories = fixture.runDirectories.filter((path) =>
+      path.includes("locomo-replicate-")
+    );
+
+    const report = await aggregatePhase74StageDiagnosticArtifacts({
+      runDirectories,
+      stage: "E3",
+    });
+
+    expect(report.aggregation.caseCount).toBe(3);
   });
 
   it("accepts content-addressed snapshots shared by multiple cases", async () => {

@@ -12,6 +12,7 @@ import {
   buildPhase74IngestionUsagePaths,
   buildPhase74IngestionUsageFingerprint,
   buildPhase74LabelFreeScope,
+  buildPhase74RetrievalSnapshotId,
   createPhase74FullRetrievalRuntime,
   phase74ExecutionBranch,
   verifyPhase74IngestionUsageManifest,
@@ -193,7 +194,7 @@ describe("Phase 74 full ingestion identity", () => {
     });
   });
 
-  it("records ingestion use before a later query-path failure", async () => {
+  it("binds the deterministic E3 evidence ledger and records later query failure", async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = (async (request, init) => {
       const url = typeof request === "string"
@@ -266,7 +267,9 @@ describe("Phase 74 full ingestion identity", () => {
         },
         onIngestionUse(use) {
           uses.push(use);
-          throw new Error("query path unavailable");
+          if (use.comparisonBranch === "baseline") {
+            throw new Error("query path unavailable");
+          }
         },
         promptSha256s: {
           assistedExtraction:
@@ -278,6 +281,54 @@ describe("Phase 74 full ingestion identity", () => {
         runDirectory: root,
       });
 
+      const testCase = {
+        caseId: "case-1",
+        memoryGroupId: "conversation-1",
+        question: "What is Caroline's dog's name?",
+        rawEvidence: [{
+          content: "Caroline adopted a dog named Pepper.",
+          id: "message-1",
+          observedAt: "2023-05-08T00:00:00.000Z",
+          role: "user",
+          sourceIds: ["D1:1"],
+        }],
+        referenceTime: "2024-01-01T00:00:00.000Z",
+      };
+      const deterministic = await runtime.execute({
+        arm: "recall-plan-deterministic",
+        configuration: {
+          planner: { mode: "deterministic" },
+          representation: "atomic-contextual-raw-pointer",
+          retrieval: { recallPlanExecution: true },
+        },
+        stage: "E3",
+        testCase,
+      });
+      expect(deterministic.evidenceLedger?.length).toBeGreaterThan(0);
+      expect(deterministic.evidenceLedgers).toBeDefined();
+      expect(deterministic.snapshotId).toBe(buildPhase74RetrievalSnapshotId({
+        arm: "recall-plan-deterministic",
+        costTrace: deterministic.costTrace,
+        evidenceLedger: deterministic.evidenceLedger,
+        evidenceLedgers: deterministic.evidenceLedgers,
+        retrievedMemories: deterministic.retrievedMemories,
+        stage: "E3",
+        storedMemories: deterministic.storedMemories,
+      }));
+      const [firstEntry, ...remainingEntries] = deterministic.evidenceLedger!;
+      expect(buildPhase74RetrievalSnapshotId({
+        arm: "recall-plan-deterministic",
+        costTrace: deterministic.costTrace,
+        evidenceLedger: [{
+          ...firstEntry!,
+          excerpt: `${firstEntry!.excerpt} changed`,
+        }, ...remainingEntries],
+        evidenceLedgers: deterministic.evidenceLedgers,
+        retrievedMemories: deterministic.retrievedMemories,
+        stage: "E3",
+        storedMemories: deterministic.storedMemories,
+      })).not.toBe(deterministic.snapshotId);
+
       await expect(runtime.execute({
         arm: "recall-plan-off",
         configuration: {
@@ -286,27 +337,15 @@ describe("Phase 74 full ingestion identity", () => {
           retrieval: { recallPlanExecution: false },
         },
         stage: "E3",
-        testCase: {
-          caseId: "case-1",
-          memoryGroupId: "conversation-1",
-          question: "What is Caroline's dog's name?",
-          rawEvidence: [{
-            content: "Caroline adopted a dog named Pepper.",
-            id: "message-1",
-            observedAt: "2023-05-08T00:00:00.000Z",
-            role: "user",
-            sourceIds: ["D1:1"],
-          }],
-          referenceTime: "2024-01-01T00:00:00.000Z",
-        },
+        testCase,
       })).rejects.toThrow("query path unavailable");
-      expect(uses).toHaveLength(1);
+      expect(uses).toHaveLength(2);
       const allocation = buildPhase74IngestionUsageAllocation(
         uses.map((costTrace) => ({ costTrace })),
       );
-      expect(allocation.baselineExclusive).toHaveLength(1);
+      expect(allocation.baselineExclusive).toEqual([]);
       expect(allocation.candidateExclusive).toEqual([]);
-      expect(allocation.shared).toEqual([]);
+      expect(allocation.shared).toHaveLength(1);
     } finally {
       globalThis.fetch = originalFetch;
       await rm(root, { force: true, recursive: true });

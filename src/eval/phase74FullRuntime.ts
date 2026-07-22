@@ -133,6 +133,7 @@ function canonicalJson(value: unknown): string {
 export function buildPhase74RetrievalSnapshotId(input: {
   arm: string;
   costTrace?: Phase74RetrievalSnapshot["costTrace"];
+  evidenceLedger?: Phase74RetrievalSnapshot["evidenceLedger"];
   evidenceLedgers?: unknown;
   retrievedMemories: readonly unknown[];
   stage: string;
@@ -141,6 +142,9 @@ export function buildPhase74RetrievalSnapshotId(input: {
   return sha256(canonicalJson({
     arm: input.arm,
     costTrace: input.costTrace,
+    ...(input.evidenceLedger === undefined
+      ? {}
+      : { evidenceLedger: input.evidenceLedger }),
     evidenceLedgers: input.evidenceLedgers,
     retrievedMemories: input.retrievedMemories,
     stage: input.stage,
@@ -769,6 +773,10 @@ export function createPhase74FullRetrievalRuntime(input: {
           sourceIdsByMessageId,
         });
         assertPhase74RetrievedProvenance(retrievedMemories);
+        const evidenceLedger =
+          stage === "E3" && arm === "recall-plan-deterministic"
+            ? recall.evidenceLedger
+            : undefined;
         const evidenceLedgers =
           stage === "E3" && arm === "recall-plan-deterministic"
             ? Object.fromEntries(await Promise.all(EVIDENCE_LEDGER_FORMATS.map(
@@ -783,6 +791,7 @@ export function createPhase74FullRetrievalRuntime(input: {
         const snapshotId = buildPhase74RetrievalSnapshotId({
           arm,
           costTrace,
+          evidenceLedger,
           evidenceLedgers,
           retrievedMemories,
           stage,
@@ -790,6 +799,7 @@ export function createPhase74FullRetrievalRuntime(input: {
         });
         return {
           costTrace,
+          ...(evidenceLedger === undefined ? {} : { evidenceLedger }),
           ...(evidenceLedgers === undefined ? {} : { evidenceLedgers }),
           recallMetadata: {
             candidateTraces: recall.metadata.candidateTraces,

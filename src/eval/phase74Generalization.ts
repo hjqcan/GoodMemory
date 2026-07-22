@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { selectEvidenceLedgerFormat } from "./evidenceLedgerFormats";
 import type { EvidenceLedgerFormat } from "./evidenceLedgerFormats";
 import type { RecallResult } from "../api/contracts";
+import type { EvidenceLedgerEntry } from "../recall/evidenceLedger";
 import {
   measureOracleMatrixCoverage,
   PHASE74_CONTEXT_TOKEN_BUDGET,
@@ -79,6 +80,7 @@ export interface Phase74RetrievalSnapshot {
     representation: string;
   };
   evaluation?: Phase74RetrievalEvaluation;
+  evidenceLedger?: readonly EvidenceLedgerEntry[];
   evidenceLedgers?: Partial<Record<EvidenceLedgerFormat, string>>;
   recallMetadata?: Pick<
     RecallResult["metadata"],
