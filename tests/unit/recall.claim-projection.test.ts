@@ -743,7 +743,7 @@ describe("claim projection runtime", () => {
       }),
     ]);
 
-    await runtime.appendClaim(claimInput("active", "2026-07-16T11:00:00.000Z"));
+    await runtime.appendClaim(claimInput("active", fact.updatedAt));
 
     expect(await runtime.queryClaims(scope)).toEqual([
       expect.objectContaining({ predicateKey: "project.status", objectText: "active" }),
