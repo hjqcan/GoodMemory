@@ -1595,14 +1595,99 @@ describe("model adapters", () => {
     expect(result.candidates[0]?.metadata?.subject).toBe("runtime rollout");
     expect(fetchCalls[0]?.url).toBe("https://gateway.example/v1/chat/completions");
     expect(fetchCalls[0]?.init?.method).toBe("POST");
-    expect(JSON.parse(String(fetchCalls[0]?.init?.body))).toMatchObject({
+    const requestBody = JSON.parse(String(fetchCalls[0]?.init?.body));
+    expect(requestBody).toMatchObject({
       max_tokens: 4_096,
       reasoning_effort: "medium",
-      response_format: { type: "json_object" },
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "structured_response",
+          strict: false,
+          schema: {
+            type: "object",
+            required: ["candidates", "ignoredMessageCount"],
+          },
+        },
+      },
       temperature: 0,
     });
+    expect(JSON.stringify(requestBody.response_format)).not.toContain(
+      "propertyNames",
+    );
     expect(String(fetchCalls[0]?.init?.body)).toContain("\"content\":\"extract durable memory\"");
     expect(String(fetchCalls[0]?.init?.body)).toContain("runtime rollout");
+  });
+
+  it("uses schema-constrained structured output on every metered extraction retry", async () => {
+    const events: ModelUsageAttempt[] = [];
+    const requestBodies: Array<Record<string, unknown>> = [];
+    let calls = 0;
+    const extractor = createAISDKMemoryExtractor({
+      model: {
+        provider: "openai",
+        model: "gpt-5.6-terra",
+        apiKey: "gateway-key",
+        baseURL: "https://gateway.example/v1",
+      },
+      dependencies: {
+        fetch: async (_url, init) => {
+          calls += 1;
+          requestBodies.push(JSON.parse(String(init?.body)));
+          const content = calls === 1
+            ? '{"candidates":[],"ignoredMessageCount":0'
+            : '{"candidates":[],"ignoredMessageCount":1}';
+          return new Response(
+            [
+              `data: ${JSON.stringify({
+                choices: [{ delta: { content }, index: 0 }],
+              })}`,
+              `data: ${JSON.stringify({
+                choices: [],
+                usage: { prompt_tokens: 21, completion_tokens: 5 },
+              })}`,
+              "data: [DONE]",
+              "",
+            ].join("\n\n"),
+            {
+              status: 200,
+              headers: { "content-type": "text/event-stream" },
+            },
+          );
+        },
+        modelUsageSink: { emit(event) { events.push(event); } },
+        retryOptions: { retryLimit: 2, sleep: async () => {} },
+      },
+    });
+
+    await expect(extractor.extract({
+      scope: { userId: "u-1" },
+      messages: [{ role: "user", content: "hello" }],
+    })).resolves.toEqual({ candidates: [], ignoredMessageCount: 1 });
+
+    expect(requestBodies).toHaveLength(2);
+    for (const body of requestBodies) {
+      expect(body.response_format).toMatchObject({
+        type: "json_schema",
+        json_schema: {
+          name: "structured_response",
+          strict: false,
+        },
+      });
+    }
+    expect(events).toHaveLength(2);
+    expect(events[0]).toMatchObject({
+      attempt: 1,
+      completeness: "complete",
+      operation: "assisted_extraction",
+      outcome: "failed",
+    });
+    expect(events[1]).toMatchObject({
+      attempt: 2,
+      completeness: "complete",
+      operation: "assisted_extraction",
+      outcome: "succeeded",
+    });
   });
 
   it("normalizes openai-compatible memory extraction enum aliases before schema validation", async () => {
