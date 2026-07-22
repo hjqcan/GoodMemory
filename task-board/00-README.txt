@@ -92,8 +92,7 @@ Current Transition
   failures, `tie-both-pass`; the independent verifier replayed both patches and
   accepted 17 projected files with `externalAuthenticityVerified: false`.
   C3 source reproducibility is closed by a tracked 4,891,617-byte Git bundle
-  that reconstructs the exact recorded runner commit/tree and replays the
-  bundled historical verifier from a clean clone. C4's
+  that reconstructs the exact runner commit/tree and replays its historical verifier from a clean clone. C4's
   v8 core, review, baseline, and readiness are superseded historical evidence.
   The canonical v9 core, independent review, baseline, projected stages, raw
   stage sources, and readiness are accepted and tracked as one replayable
