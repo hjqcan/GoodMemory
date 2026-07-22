@@ -396,7 +396,17 @@ export function createClaimProjectionIndex(
       const changed = replacements.filter(({ previous, projection }) =>
         !isDeepStrictEqual(previous, projection)
       );
-      if (changed.length === 0) {
+      const selectedIds = new Set(status?.claimIds ?? []);
+      const staleFallbacks = status?.state === "projected" &&
+          status.sourceUpdatedAt === fact.updatedAt
+        ? claims.filter((claim) =>
+            !selectedIds.has(claim.id) &&
+            claim.sourceMemoryId === fact.id &&
+            claim.ingestedAt === status.sourceUpdatedAt &&
+            claim.predicateKey.startsWith("fact.")
+          )
+        : [];
+      if (changed.length === 0 && staleFallbacks.length === 0) {
         return status;
       }
       const nextIds = new Map(
@@ -413,15 +423,19 @@ export function createClaimProjectionIndex(
       const replacementIds = new Set(
         replacements.map(({ projection }) => projection.id),
       );
-      const committed = await documentStore.writeBatchIfUnchanged({
-        delete: changed
+      const deleteIds = new Set([
+        ...changed
           .filter(({ previous, projection }) =>
             previous.id !== projection.id && !replacementIds.has(previous.id)
           )
-          .map(({ previous }) => ({
-            collection: CLAIM_PROJECTIONS_COLLECTION,
-            id: previous.id,
-          })),
+          .map(({ previous }) => previous.id),
+        ...staleFallbacks.map(({ id }) => id),
+      ]);
+      const committed = await documentStore.writeBatchIfUnchanged({
+        delete: [...deleteIds].map((id) => ({
+          collection: CLAIM_PROJECTIONS_COLLECTION,
+          id,
+        })),
         expected: {
           collection: "facts",
           document: fact,
@@ -833,16 +847,34 @@ export function createClaimProjectionIndex(
       const supersession = state === "projected"
         ? await resolveSlotSupersession(claim, normalized)
         : undefined;
+      const replacesSameVersionFallback = state === "projected" &&
+        existingStatus?.sourceUpdatedAt === input.ingestedAt &&
+        (existingStatus.state === "unstructured" ||
+          existingStatus.state === "failed");
+      const previousClaimSnapshots = replacesSameVersionFallback
+        ? await Promise.all(existingStatus.claimIds.map(async (claimId) => ({
+            claim: await documentStore.get<ClaimProjection>(
+              CLAIM_PROJECTIONS_COLLECTION,
+              claimId,
+            ),
+            id: claimId,
+          })))
+        : [];
+      const fallbackClaims = previousClaimSnapshots.filter(
+        (snapshot): snapshot is { claim: ClaimProjection; id: string } =>
+          snapshot.claim !== null &&
+          snapshot.id !== claim.id &&
+          snapshot.claim.sourceMemoryId === input.sourceMemoryId &&
+          matchesScopeFilter(snapshot.claim, normalized) &&
+          snapshot.claim.ingestedAt === input.ingestedAt &&
+          snapshot.claim.predicateKey.startsWith("fact."),
+      );
       const deleteOperations = [
         ...(supersession?.delete ?? []),
-        ...(structuredPromotion && existingStatus
-          ? existingStatus.claimIds
-              .filter((claimId) => claimId !== claim.id)
-              .map((claimId) => ({
-                collection: CLAIM_PROJECTIONS_COLLECTION,
-                id: claimId,
-              }))
-          : []),
+        ...fallbackClaims.map(({ id: claimId }) => ({
+          collection: CLAIM_PROJECTIONS_COLLECTION,
+          id: claimId,
+        })),
       ].filter((operation, index, operations) =>
         operations.findIndex((candidate) =>
           candidate.collection === operation.collection &&
@@ -875,6 +907,11 @@ export function createClaimProjectionIndex(
             document: existingStatus,
             id,
           },
+          ...fallbackClaims.map(({ claim: previousClaim, id: claimId }) => ({
+            collection: CLAIM_PROJECTIONS_COLLECTION,
+            document: previousClaim,
+            id: claimId,
+          })),
           ...(supersession?.unchanged ?? []),
         ],
       });
