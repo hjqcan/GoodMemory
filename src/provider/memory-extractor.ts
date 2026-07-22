@@ -328,6 +328,23 @@ function normalizeCandidateMetadata(value: unknown): unknown {
   };
 }
 
+function normalizeCompactClaim(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
+  const normalized = { ...value };
+  if (typeof normalized.o === "boolean" || typeof normalized.o === "number") {
+    normalized.o = String(normalized.o);
+  }
+  if (normalized.n === false) {
+    delete normalized.n;
+  }
+  if (typeof normalized.m === "string" &&
+      !MEMORY_CLAIM_MODALITY_SET.has(normalized.m)) {
+    normalized.m = "unknown";
+  }
+  return normalized;
+}
+
 function finalizeMemoryExtractionResult(
   result: MemoryExtractionResult,
 ): MemoryExtractionResult {
@@ -462,13 +479,7 @@ function normalizeCompactConversationalMemoryExtractionPayload(
                     ...(compactClaim === undefined
                       ? {}
                       : {
-                          q: {
-                            ...compactClaim,
-                            ...(typeof compactClaim.m === "string" &&
-                                !MEMORY_CLAIM_MODALITY_SET.has(compactClaim.m)
-                              ? { m: "unknown" }
-                              : {}),
-                          },
+                          q: normalizeCompactClaim(compactClaim),
                         }),
                   },
                 }),
