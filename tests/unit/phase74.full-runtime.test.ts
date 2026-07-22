@@ -46,6 +46,7 @@ const base = {
       "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
     provider: "openai",
     reasoningEffort: "low",
+    responseFormat: "json_schema",
     temperature: 0,
   },
   memoryGroupId: "conversation-1",

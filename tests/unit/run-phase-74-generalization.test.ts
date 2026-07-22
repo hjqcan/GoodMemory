@@ -215,6 +215,7 @@ describe("phase 74 generalization smoke runner", () => {
         assistedExtraction: {
           maxOutputTokens: 4_096,
           reasoningEffort: "low",
+          responseFormat: "json_schema",
           requestTimeoutMs: 60_000,
           retryLimit: 4,
           temperature: 0,

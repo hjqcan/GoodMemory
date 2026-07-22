@@ -10,6 +10,7 @@ import type { EmbeddingAdapter } from "../embedding/contracts";
 import type {
   AISDKModelConfig,
   AISDKRetryOptions,
+  OpenAICompatibleObjectResponseFormat,
   OpenAICompatibleReasoningEffort,
 } from "./ai-sdk-runtime";
 import { createAISDKEmbeddingAdapter } from "./ai-sdk-runtime";
@@ -50,6 +51,7 @@ interface ProviderMemoryExtractorFactory {
       context?: MemoryExtractionContext,
     ) => string;
     reasoningEffort?: OpenAICompatibleReasoningEffort;
+    responseFormat?: OpenAICompatibleObjectResponseFormat;
     system?: string;
     temperature?: number;
   }): MemoryExtractor;
@@ -181,6 +183,7 @@ export function createProviderMemoryExtractor(input: {
   createMemoryExtractor?: ProviderMemoryExtractorFactory;
   modelUsageSink?: ModelUsageSink;
   reasoningEffort?: OpenAICompatibleReasoningEffort;
+  responseFormat?: OpenAICompatibleObjectResponseFormat;
   requestTimeoutMs?: number;
   retryLimit?: number;
   temperature?: number;
@@ -197,6 +200,7 @@ export function createProviderMemoryExtractor(input: {
     outputProtocol: input.outputProtocol,
     promptBuilder: input.promptBuilder,
     reasoningEffort: input.reasoningEffort,
+    responseFormat: input.responseFormat,
     system: input.system,
     temperature: input.temperature,
   });
@@ -219,6 +223,7 @@ export function createProviderConversationalMemoryExtractor(input: {
   modelUsageSink?: ModelUsageSink;
   outputProtocol?: MemoryExtractionOutputProtocol;
   reasoningEffort?: OpenAICompatibleReasoningEffort;
+  responseFormat?: OpenAICompatibleObjectResponseFormat;
   requestTimeoutMs?: number;
   retryLimit?: number;
   temperature?: number;
@@ -240,6 +245,7 @@ export function createProviderConversationalMemoryExtractor(input: {
     createMemoryExtractor: input.createMemoryExtractor,
     modelUsageSink: input.modelUsageSink,
     reasoningEffort: input.reasoningEffort,
+    responseFormat: input.responseFormat,
     requestTimeoutMs: input.requestTimeoutMs,
     retryLimit: input.retryLimit,
     temperature: input.temperature,

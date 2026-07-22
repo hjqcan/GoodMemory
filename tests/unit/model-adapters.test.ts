@@ -1550,6 +1550,7 @@ describe("model adapters", () => {
     const fetchCalls: Array<{ url: string; init?: RequestInit }> = [];
     const extractor = createAISDKMemoryExtractor({
       maxOutputTokens: 4_096,
+      responseFormat: "json_schema",
       model: {
         provider: "openai",
         model: "gpt-5.4",
@@ -1624,6 +1625,7 @@ describe("model adapters", () => {
     const requestBodies: Array<Record<string, unknown>> = [];
     let calls = 0;
     const extractor = createAISDKMemoryExtractor({
+      responseFormat: "json_schema",
       model: {
         provider: "openai",
         model: "gpt-5.6-terra",

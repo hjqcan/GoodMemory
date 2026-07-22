@@ -109,6 +109,7 @@ export interface Phase74IngestionKeyInput {
     outputProtocol: "canonical-v1" | "compact-conversational-v1";
     promptSha256: string;
     reasoningEffort: "low" | "medium" | "high";
+    responseFormat: "json_object" | "json_schema";
     temperature: number;
   };
   memoryGroupId: string;
@@ -365,6 +366,9 @@ export function buildPhase74IngestionDescriptor(input: {
         reasoningEffort:
           PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
             .reasoningEffort,
+        responseFormat:
+          PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
+            .responseFormat,
         temperature:
           PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
             .temperature,

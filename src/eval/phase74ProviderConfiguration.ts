@@ -17,6 +17,7 @@ export const PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION = {
   assistedExtraction: {
     maxOutputTokens: 4_096,
     reasoningEffort: "low",
+    responseFormat: "json_schema",
     requestTimeoutMs: 60_000,
     retryLimit: 4,
     temperature: 0,

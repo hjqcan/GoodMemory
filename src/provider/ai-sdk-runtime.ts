@@ -26,6 +26,20 @@ export interface AISDKModelConfig {
 }
 
 export type OpenAICompatibleReasoningEffort = "low" | "medium" | "high";
+export type OpenAICompatibleObjectResponseFormat =
+  | "json_object"
+  | "json_schema";
+
+type OpenAICompatibleResponseFormat =
+  | { type: "json_object" }
+  | {
+      type: "json_schema";
+      json_schema: {
+        name: "structured_response";
+        strict: false;
+        schema: unknown;
+      };
+    };
 
 interface EmbeddingAdapterDependencies {
   embedMany?: typeof embedMany;
@@ -465,7 +479,7 @@ export interface OpenAICompatibleTextResult {
 interface OpenAICompatibleTextInput {
   maxOutputTokens?: number;
   model: AISDKModelConfig;
-  responseFormat?: "json_object";
+  responseFormat?: OpenAICompatibleResponseFormat;
   reasoningEffort?: OpenAICompatibleReasoningEffort;
   system?: string;
   prompt: string;
@@ -579,7 +593,7 @@ async function requestOpenAICompatibleTextInternal(
                 : {}),
               ...(input.responseFormat === undefined
                 ? {}
-                : { response_format: { type: input.responseFormat } }),
+                : { response_format: input.responseFormat }),
               ...(input.temperature === undefined
                 ? {}
                 : { temperature: input.temperature }),
@@ -726,6 +740,40 @@ export async function requestOpenAICompatibleTextResult(
   });
 }
 
+function normalizeOpenAICompatibleJsonSchema(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalizeOpenAICompatibleJsonSchema);
+  }
+  if (value === null || typeof value !== "object") {
+    return value;
+  }
+
+  const normalized: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    if (key !== "$schema" && key !== "propertyNames") {
+      normalized[key] = normalizeOpenAICompatibleJsonSchema(child);
+    }
+  }
+  return normalized;
+}
+
+function buildOpenAICompatibleObjectResponseFormat(
+  mode: OpenAICompatibleObjectResponseFormat,
+  schema: z.ZodType<unknown>,
+): OpenAICompatibleResponseFormat {
+  if (mode === "json_object") {
+    return { type: "json_object" };
+  }
+  return {
+    type: "json_schema",
+    json_schema: {
+      name: "structured_response",
+      strict: false,
+      schema: normalizeOpenAICompatibleJsonSchema(z.toJSONSchema(schema)),
+    },
+  };
+}
+
 export async function requestOpenAICompatibleObject<T>(input: {
   maxOutputTokens?: number;
   model: AISDKModelConfig;
@@ -738,6 +786,7 @@ export async function requestOpenAICompatibleObject<T>(input: {
   signal?: AbortSignal;
   timeoutMs?: number;
   normalizePayload?: (payload: unknown) => unknown;
+  responseFormat?: OpenAICompatibleObjectResponseFormat;
 }): Promise<T> {
   return parseStructuredModelObject(
     await requestOpenAICompatibleText({
@@ -745,7 +794,10 @@ export async function requestOpenAICompatibleObject<T>(input: {
       maxOutputTokens: input.maxOutputTokens,
       system: input.system,
       prompt: input.prompt,
-      responseFormat: "json_object",
+      responseFormat: buildOpenAICompatibleObjectResponseFormat(
+        input.responseFormat ?? "json_object",
+        input.schema,
+      ),
       reasoningEffort: input.reasoningEffort,
       temperature: input.temperature,
       fetch: input.fetch,
@@ -765,6 +817,7 @@ export async function requestOpenAICompatibleObjectResult<T>(input: {
   onUsage?: (usage: ModelTokenUsage | null) => void;
   prompt: string;
   reasoningEffort?: OpenAICompatibleReasoningEffort;
+  responseFormat?: OpenAICompatibleObjectResponseFormat;
   schema: z.ZodType<T>;
   signal?: AbortSignal;
   system?: string;
@@ -776,7 +829,10 @@ export async function requestOpenAICompatibleObjectResult<T>(input: {
     maxOutputTokens: input.maxOutputTokens,
     model: input.model,
     prompt: input.prompt,
-    responseFormat: "json_object",
+    responseFormat: buildOpenAICompatibleObjectResponseFormat(
+      input.responseFormat ?? "json_object",
+      input.schema,
+    ),
     reasoningEffort: input.reasoningEffort,
     signal: input.signal,
     system: input.system,

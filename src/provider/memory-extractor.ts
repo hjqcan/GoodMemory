@@ -12,6 +12,7 @@ import type {
   AISDKModelConfig,
   AISDKRetryOptions,
   FetchLike,
+  OpenAICompatibleObjectResponseFormat,
   OpenAICompatibleReasoningEffort,
 } from "./ai-sdk-runtime";
 import {
@@ -796,6 +797,7 @@ export function createLLMMemoryExtractor(input: {
     context?: MemoryExtractionContext,
   ) => string;
   reasoningEffort?: OpenAICompatibleReasoningEffort;
+  responseFormat?: OpenAICompatibleObjectResponseFormat;
   system?: string;
   temperature?: number;
 }): MemoryExtractor {
@@ -845,6 +847,7 @@ export function createLLMMemoryExtractor(input: {
                     temperature: input.temperature,
                     prompt,
                     reasoningEffort: input.reasoningEffort,
+                    responseFormat: input.responseFormat,
                     fetch: input.dependencies?.fetch,
                     timeoutMs: input.dependencies?.requestTimeoutMs,
                     normalizePayload: outputProtocol === "canonical-v1"
@@ -862,6 +865,7 @@ export function createLLMMemoryExtractor(input: {
                     temperature: input.temperature,
                     prompt,
                     reasoningEffort: input.reasoningEffort,
+                    responseFormat: input.responseFormat,
                     fetch: input.dependencies?.fetch,
                     timeoutMs: input.dependencies?.requestTimeoutMs,
                     normalizePayload: outputProtocol === "canonical-v1"
