@@ -371,6 +371,7 @@ export async function deleteAllMemoryOperation(
     scope: input.scope,
     attributes: {
       includeRuntime: input.includeRuntime !== false,
+      resumeInterrupted: input.resumeInterrupted !== undefined,
     },
   });
   const deleted: DeleteAllMemoryResult["deleted"] = {

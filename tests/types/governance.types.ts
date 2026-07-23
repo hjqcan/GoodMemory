@@ -16,6 +16,13 @@ const deleteInput: DeleteAllMemoryInput = {
   scope: { userId: "user-1" },
 };
 
+const resumeDeleteInput: DeleteAllMemoryInput = {
+  resumeInterrupted: {
+    confirmPriorRuntimesStopped: true,
+  },
+  scope: { userId: "user-1" },
+};
+
 const recallInput: RecallInput = {
   scope: { userId: "user-1" },
   query: "answer the user",
@@ -25,6 +32,7 @@ const recallInput: RecallInput = {
 
 void memory.exportMemory(exportInput);
 void memory.deleteAllMemory(deleteInput);
+void memory.deleteAllMemory(resumeDeleteInput);
 void memory.recall(recallInput);
 
 async function assertGovernanceShapes() {

@@ -20,10 +20,11 @@ interface ScopeDeletionLock extends StorageDocument {
   generation?: string;
   id: string;
   operationId?: string;
+  operationKey?: string;
   ownerId?: string;
   phase?: "delete_all" | "open";
   sessionId?: string;
-  state?: "deleting" | "open";
+  state?: "deleting" | "failed" | "open";
   tenantId?: string;
   userId?: string;
   workspaceId?: string;
@@ -111,8 +112,19 @@ export function scopeDeletionLockIdsForDocument(
 }
 
 export interface ScopeDeletionCoordinator {
-  runExclusive<T>(scope: MemoryScope, operation: () => Promise<T>): Promise<T>;
+  runExclusive<T>(
+    scope: MemoryScope,
+    operation: () => Promise<T>,
+    options?: ScopeDeletionRunOptions,
+  ): Promise<T>;
   runMutation<T>(scope: MemoryScope, operation: () => Promise<T>): Promise<T>;
+}
+
+export interface ScopeDeletionRunOptions {
+  operationKey?: string;
+  resumeInterrupted?: {
+    confirmPriorRuntimesStopped: true;
+  };
 }
 
 interface ActiveScopeMutation {
@@ -420,10 +432,6 @@ export function createScopeDeletionCoordinator(
 ): ScopeDeletionCoordinator {
   const gate = sharedScopeMutationGate(documentStore);
   const ownerId = config.ownerId ?? crypto.randomUUID();
-  const retryableDeletions = new Map<string, {
-    barrier: ScopeDeletionLock;
-    lock: ScopeDeletionLock;
-  }>();
 
   function localDeletion(scope: MemoryScope): boolean {
     return [...gate.deletions].some((deletionScope) =>
@@ -463,16 +471,54 @@ export function createScopeDeletionCoordinator(
     });
   }
 
+  function deletionJournalMatches(
+    lock: ScopeDeletionLock,
+    barrier: ScopeDeletionLock,
+    scope: MemoryScope,
+  ): boolean {
+    const persistedScope = lockScope(lock);
+    const barrierScope = lockScope(barrier);
+    return (
+      isActiveLock(lock) &&
+      isActiveLock(barrier) &&
+      (lock.state === "deleting" || lock.state === "failed") &&
+      lock.phase === "delete_all" &&
+      typeof lock.epoch === "number" &&
+      typeof lock.generation === "string" &&
+      typeof lock.operationId === "string" &&
+      typeof lock.operationKey === "string" &&
+      typeof lock.ownerId === "string" &&
+      persistedScope !== null &&
+      barrierScope !== null &&
+      scopeDeletionLockId(persistedScope) === scopeDeletionLockId(scope) &&
+      scopeDeletionLockId(barrierScope) === scopeDeletionLockId(scope) &&
+      barrier.id === scopeMutationBarrierId(scope) &&
+      lock.epoch === barrier.epoch &&
+      lock.generation === barrier.generation &&
+      lock.operationId === barrier.operationId &&
+      lock.operationKey === barrier.operationKey &&
+      lock.ownerId === barrier.ownerId &&
+      lock.phase === barrier.phase &&
+      lock.state === barrier.state
+    );
+  }
+
+  async function listPersistentMutations(
+    scope: MemoryScope,
+  ): Promise<ScopeMutationIntent[]> {
+    const intents = await documentStore.query<ScopeMutationIntent>(
+      SCOPE_MUTATION_INTENTS_COLLECTION,
+      { userId: scope.userId },
+    );
+    return intents.filter((intent) => {
+      const mutationScope = lockScope(intent);
+      return mutationScope && scopesOverlap(scope, mutationScope);
+    });
+  }
+
   async function drainPersistentMutations(scope: MemoryScope): Promise<void> {
     while (true) {
-      const intents = await documentStore.query<ScopeMutationIntent>(
-        SCOPE_MUTATION_INTENTS_COLLECTION,
-        { userId: scope.userId },
-      );
-      const overlapping = intents.filter((intent) => {
-        const mutationScope = lockScope(intent);
-        return mutationScope && scopesOverlap(scope, mutationScope);
-      });
+      const overlapping = await listPersistentMutations(scope);
       if (overlapping.length === 0) {
         return;
       }
@@ -574,14 +620,19 @@ export function createScopeDeletionCoordinator(
   async function runWithPersistentLock<T>(
     scope: MemoryScope,
     operation: () => Promise<T>,
+    options: ScopeDeletionRunOptions,
   ): Promise<T> {
     const id = scopeDeletionLockId(scope);
     const barrierId = scopeMutationBarrierId(scope);
+    const operationKey =
+      options.operationKey ?? `scope-deletion:v1:${id}`;
     const operationId = crypto.randomUUID();
+    const resumeInterrupted =
+      options.resumeInterrupted?.confirmPriorRuntimesStopped === true;
     let ownedLock: ScopeDeletionLock | null = null;
     let ownedBarrier: ScopeDeletionLock | null = null;
     for (let attempt = 0; attempt < 8; attempt += 1) {
-      const [existing, barrier] = await Promise.all([
+      const [existing, barrier, interruptedMutations] = await Promise.all([
         documentStore.get<ScopeDeletionLock>(
           SCOPE_DELETION_LOCKS_COLLECTION,
           id,
@@ -590,24 +641,44 @@ export function createScopeDeletionCoordinator(
           SCOPE_MUTATION_BARRIERS_COLLECTION,
           barrierId,
         ),
+        resumeInterrupted
+          ? listPersistentMutations(scope)
+          : Promise.resolve([]),
       ]);
-      const retryable = retryableDeletions.get(id);
-      const canRetry = retryable !== undefined &&
-        isDeepStrictEqual(existing, retryable.lock) &&
-        isDeepStrictEqual(barrier, retryable.barrier);
+      const hasActiveLock = isActiveLock(existing);
+      const hasActiveBarrier = isActiveLock(barrier);
+      let canResume = false;
       if (
-        existing &&
-        isActiveLock(existing) &&
-        !canRetry
+        resumeInterrupted &&
+        (hasActiveLock || hasActiveBarrier)
+      ) {
+        if (
+          !existing ||
+          !barrier ||
+          !deletionJournalMatches(existing, barrier, scope)
+        ) {
+          throw new Error(
+            `Memory persistent deletion journal is incomplete for scope ${id}`,
+          );
+        }
+        if (existing.operationKey !== operationKey) {
+          throw new Error(
+            `Memory recovery request does not match the interrupted deletion contract for scope ${id}`,
+          );
+        }
+        canResume = true;
+      }
+      if (
+        hasActiveLock &&
+        !canResume
       ) {
         throw new Error(
           `Memory deletion is already in progress for scope ${id}; automatic takeover is disabled`,
         );
       }
       if (
-        barrier &&
-        isActiveLock(barrier) &&
-        !canRetry
+        hasActiveBarrier &&
+        !canResume
       ) {
         throw new Error(
           `Memory deletion is already in progress for user ${scope.userId}; automatic takeover is disabled`,
@@ -619,6 +690,7 @@ export function createScopeDeletionCoordinator(
         generation: crypto.randomUUID(),
         id,
         operationId,
+        operationKey,
         ownerId,
         phase: "delete_all",
         state: "deleting",
@@ -645,20 +717,36 @@ export function createScopeDeletionCoordinator(
             id: barrierId,
           },
         ],
-        unchanged: [{
-          collection: SCOPE_MUTATION_BARRIERS_COLLECTION,
-          document: barrier,
-          id: barrierId,
-        }],
+        ...(resumeInterrupted && interruptedMutations.length > 0
+          ? {
+              delete: interruptedMutations.map((intent) => ({
+                collection: SCOPE_MUTATION_INTENTS_COLLECTION,
+                id: intent.id,
+              })),
+            }
+          : {}),
+        unchanged: [
+          {
+            collection: SCOPE_MUTATION_BARRIERS_COLLECTION,
+            document: barrier,
+            id: barrierId,
+          },
+          ...interruptedMutations.map((intent) => ({
+            collection: SCOPE_MUTATION_INTENTS_COLLECTION,
+            document: intent,
+            id: intent.id,
+          })),
+        ],
       });
       if (acquired) {
         ownedLock = candidate;
         ownedBarrier = barrierCandidate;
-        retryableDeletions.set(id, {
-          barrier: barrierCandidate,
-          lock: candidate,
-        });
         break;
+      }
+      if (resumeInterrupted) {
+        throw new Error(
+          `Memory mutation journal changed during recovery for scope ${id}`,
+        );
       }
     }
     if (!ownedLock || !ownedBarrier) {
@@ -667,12 +755,34 @@ export function createScopeDeletionCoordinator(
 
     let outcome: { ok: true; value: T } | { error: unknown; ok: false };
     try {
+      if (
+        resumeInterrupted &&
+        (await listPersistentMutations(scope)).length > 0
+      ) {
+        throw new Error(
+          `Memory mutation journal changed during recovery for scope ${id}`,
+        );
+      }
       await drainPersistentMutations(scope);
       outcome = { ok: true, value: await operation() };
     } catch (error) {
       outcome = { error, ok: false };
     }
     if (!outcome.ok) {
+      const failed: ScopeDeletionLock = {
+        ...ownedLock,
+        state: "failed",
+      };
+      const failedBarrier: ScopeDeletionLock = {
+        ...ownedBarrier,
+        state: "failed",
+      };
+      await replaceLockPair(
+        ownedLock,
+        ownedBarrier,
+        failed,
+        failedBarrier,
+      );
       throw outcome.error;
     }
 
@@ -681,6 +791,7 @@ export function createScopeDeletionCoordinator(
       epoch: ownedLock.epoch,
       generation: ownedLock.generation,
       id,
+      operationKey: ownedLock.operationKey,
       phase: "open",
       state: "open",
     };
@@ -694,9 +805,22 @@ export function createScopeDeletionCoordinator(
       open,
       openBarrier,
     )) {
+      const failed: ScopeDeletionLock = {
+        ...ownedLock,
+        state: "failed",
+      };
+      const failedBarrier: ScopeDeletionLock = {
+        ...ownedBarrier,
+        state: "failed",
+      };
+      await replaceLockPair(
+        ownedLock,
+        ownedBarrier,
+        failed,
+        failedBarrier,
+      );
       throw new Error(`Memory deletion ownership changed before release for ${id}`);
     }
-    retryableDeletions.delete(id);
     return outcome.value;
   }
 
@@ -739,6 +863,7 @@ export function createScopeDeletionCoordinator(
     async runExclusive<T>(
       scope: MemoryScope,
       operation: () => Promise<T>,
+      options: ScopeDeletionRunOptions = {},
     ): Promise<T> {
       const normalized = normalizeScope(scope);
       if (localDeletion(normalized)) {
@@ -753,7 +878,7 @@ export function createScopeDeletionCoordinator(
             scopesOverlap(normalized, mutationScope)
           )
           .map(({ completion }) => completion));
-        return await runWithPersistentLock(normalized, operation);
+        return await runWithPersistentLock(normalized, operation, options);
       } finally {
         gate.deletions.delete(normalized);
       }

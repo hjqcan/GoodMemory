@@ -1,10 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { Database } from "bun:sqlite";
+import { spawnSync } from "node:child_process";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createGoodMemory } from "../../src";
 import { createFactMemory } from "../../src/domain/records";
+import { normalizeScope, scopeToKey } from "../../src/domain/scope";
 import { SOURCE_MESSAGES_COLLECTION } from "../../src/evidence/contracts";
 import {
   CLAIM_PROJECTIONS_COLLECTION,
@@ -25,6 +27,9 @@ import {
   createSQLiteSessionStore,
   createSQLiteVectorStore,
 } from "../../src/storage/sqlite";
+import {
+  SCOPE_MUTATION_INTENTS_COLLECTION,
+} from "../../src/storage/scopeDeletion";
 import {
   runDocumentStoreContract,
   runSessionStoreContract,
@@ -199,6 +204,146 @@ describe("sqlite vector store read-only mode", () => {
 });
 
 describe("sqlite document conditional batches", () => {
+  it("explicitly resumes a deletion after the owning process exits", async () => {
+    const path = join(
+      tmpdir(),
+      `goodmemory-sqlite-deletion-recovery-${Date.now()}-${Math.random()}.db`,
+    );
+    const scope = {
+      userId: "sqlite-recovery-user",
+      workspaceId: "workspace-a",
+      sessionId: "session-a",
+    };
+    const operationKey = JSON.stringify({
+      contract: "delete-all-memory-v1",
+      includeRuntime: true,
+      scope: scopeToKey(normalizeScope(scope)),
+    });
+    try {
+      const memory = createGoodMemory({
+        storage: { provider: "sqlite", url: path },
+      });
+      await memory.remember({
+        scope,
+        messages: [{
+          role: "user",
+          content: "Remember that the SQLite recovery token is private.",
+        }],
+      });
+      const child = spawnSync(
+        process.execPath,
+        ["--no-env-file", "-e", `
+          import { createSQLiteDocumentStore } from "./src/storage/sqlite";
+          import { createScopeDeletionCoordinator } from "./src/storage/scopeDeletion";
+
+          const coordinator = createScopeDeletionCoordinator(
+            createSQLiteDocumentStore(${JSON.stringify(path)}),
+          );
+          await coordinator.runExclusive(
+            ${JSON.stringify(scope)},
+            async () => {
+              process.exit(23);
+            },
+            {
+              operationKey: ${JSON.stringify(operationKey)},
+            },
+          );
+        `],
+        {
+          cwd: process.cwd(),
+          encoding: "utf8",
+        },
+      );
+      expect(child.status).toBe(23);
+
+      const recovery = createGoodMemory({
+        storage: { provider: "sqlite", url: path },
+      });
+      await expect(recovery.deleteAllMemory({ scope })).rejects.toThrow(
+        "automatic takeover is disabled",
+      );
+      await expect(recovery.deleteAllMemory({
+        resumeInterrupted: {
+          confirmPriorRuntimesStopped: true,
+        },
+        scope,
+      })).resolves.toMatchObject({ scope });
+      expect(
+        await createSQLiteDocumentStore(path).query("facts", scope),
+      ).toEqual([]);
+    } finally {
+      await Promise.all([
+        rm(path, { force: true }),
+        rm(`${path}-shm`, { force: true }),
+        rm(`${path}-wal`, { force: true }),
+      ]);
+    }
+  });
+
+  it("recovers a mutation intent after the owning process exits", async () => {
+    const path = join(
+      tmpdir(),
+      `goodmemory-sqlite-mutation-recovery-${Date.now()}-${Math.random()}.db`,
+    );
+    const scope = {
+      userId: "sqlite-mutation-recovery-user",
+      workspaceId: "workspace-a",
+      sessionId: "session-a",
+    };
+    try {
+      const child = spawnSync(
+        process.execPath,
+        ["--no-env-file", "-e", `
+          import { createSQLiteDocumentStore } from "./src/storage/sqlite";
+          import { createScopeDeletionCoordinator } from "./src/storage/scopeDeletion";
+
+          const coordinator = createScopeDeletionCoordinator(
+            createSQLiteDocumentStore(${JSON.stringify(path)}),
+          );
+          await coordinator.runMutation(
+            ${JSON.stringify(scope)},
+            async () => {
+              process.exit(24);
+            },
+          );
+        `],
+        {
+          cwd: process.cwd(),
+          encoding: "utf8",
+        },
+      );
+      expect(child.status).toBe(24);
+      expect(
+        await createSQLiteDocumentStore(path).query(
+          SCOPE_MUTATION_INTENTS_COLLECTION,
+          { userId: scope.userId },
+        ),
+      ).toHaveLength(1);
+
+      const recovery = createGoodMemory({
+        storage: { provider: "sqlite", url: path },
+      });
+      await expect(recovery.deleteAllMemory({
+        resumeInterrupted: {
+          confirmPriorRuntimesStopped: true,
+        },
+        scope,
+      })).resolves.toMatchObject({ scope });
+      expect(
+        await createSQLiteDocumentStore(path).query(
+          SCOPE_MUTATION_INTENTS_COLLECTION,
+          { userId: scope.userId },
+        ),
+      ).toEqual([]);
+    } finally {
+      await Promise.all([
+        rm(path, { force: true }),
+        rm(`${path}-shm`, { force: true }),
+        rm(`${path}-wal`, { force: true }),
+      ]);
+    }
+  });
+
   it("drains a pre-existing mutation across independently opened runtimes", async () => {
     const path = join(
       tmpdir(),

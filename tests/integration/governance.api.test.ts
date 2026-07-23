@@ -1174,6 +1174,99 @@ describe("public governance API", () => {
     expect(await innerSessionStore.getJournal(scope)).toBeNull();
   });
 
+  it("resumes an interrupted cross-runtime deletion only after explicit operator confirmation", async () => {
+    const innerDocumentStore = createInMemoryDocumentStore();
+    const sessionStore = createInMemorySessionStore();
+    const vectorStore = createInMemoryVectorStore();
+    let failFactDelete = false;
+    const crashingDocumentStore: ProjectionCapableDocumentStore = {
+      ...innerDocumentStore,
+      async writeBatchIfUnchanged(input) {
+        if (
+          failFactDelete &&
+          input.delete?.some(({ collection }) => collection === "facts")
+        ) {
+          failFactDelete = false;
+          throw new Error("injected terminal deletion crash");
+        }
+        return innerDocumentStore.writeBatchIfUnchanged(input);
+      },
+    };
+    const firstRuntime = createGoodMemory({
+      adapters: terminalDeletionAdapters({
+        documentStore: crashingDocumentStore,
+        sessionStore,
+        vectorStore,
+      }),
+    });
+    const scope = {
+      userId: "u-delete-recovery",
+      workspaceId: "workspace-a",
+      sessionId: "session-a",
+    };
+    await firstRuntime.remember({
+      scope,
+      messages: [{
+        role: "user",
+        content: "Remember that the recovery fixture uses a private token.",
+      }],
+    });
+    await firstRuntime.runtime.startSession({ scope });
+    await firstRuntime.runtime.updateWorkingMemory({
+      scope,
+      patch: { currentGoal: "remove the private token" },
+    });
+    failFactDelete = true;
+
+    await expect(firstRuntime.deleteAllMemory({
+      scope,
+    })).rejects.toThrow("injected terminal deletion crash");
+
+    const recoveryRuntime = createGoodMemory({
+      adapters: terminalDeletionAdapters({
+        documentStore: { ...innerDocumentStore },
+        sessionStore,
+        vectorStore,
+      }),
+    });
+    await expect(recoveryRuntime.deleteAllMemory({
+      includeRuntime: false,
+      resumeInterrupted: {
+        confirmPriorRuntimesStopped: true,
+      },
+      scope,
+    })).rejects.toThrow(
+      "does not match the interrupted deletion contract",
+    );
+    await expect(recoveryRuntime.remember({
+      scope,
+      messages: [{
+        role: "user",
+        content: "Remember that this late write must remain blocked.",
+      }],
+    })).rejects.toThrow("Memory deletion is in progress");
+
+    await expect(recoveryRuntime.deleteAllMemory({
+      resumeInterrupted: {
+        confirmPriorRuntimesStopped: true,
+      },
+      scope,
+    })).resolves.toMatchObject({
+      scope,
+    });
+    expect(await innerDocumentStore.query("facts", scope)).toEqual([]);
+    expect(await sessionStore.getWorkingMemory(scope)).toBeNull();
+    await expect(recoveryRuntime.remember({
+      scope,
+      messages: [{
+        role: "user",
+        content: "Remember that writes reopen only after recovery completes.",
+      }],
+    })).resolves.toMatchObject({
+      accepted: 1,
+    });
+  });
+
   it("fails closed when an adapter cannot provide terminal delete semantics", async () => {
     const inner = createInMemoryDocumentStore();
     const legacyStore: DocumentStore = {

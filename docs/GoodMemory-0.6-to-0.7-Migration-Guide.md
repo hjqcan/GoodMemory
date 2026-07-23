@@ -212,11 +212,28 @@ backend, or writes directly without entering the same GoodMemory mutation
 protocol. A false declaration can return success while leaving data behind.
 
 Deletion ownership and mutation intents do not expire. An operation failure
-keeps the scope closed; retry it on the same live `GoodMemory` instance after
-correcting the cause. After a process crash, stop every possible old writer and
-deleter before operator recovery. Never clear or replace a persisted deletion
-owner merely because a timestamp is old: without atomic epoch fencing in every
-store, a paused old owner could resume and delete data written after takeover.
+persists a failed journal and keeps the scope closed; a hard process exit leaves
+the journal in deleting state. After correcting the cause, stop every possible
+old writer and deleter, then explicitly resume the same request:
+
+```ts
+await memory.deleteAllMemory({
+  scope,
+  includeRuntime: true,
+  resumeInterrupted: {
+    confirmPriorRuntimesStopped: true,
+  },
+});
+```
+
+Recovery atomically verifies the canonical scope, deletion contract,
+`includeRuntime` mode, lock/barrier generation, and interrupted mutation
+intents before it starts the idempotent deletion again. Its `deleted` counts
+cover the recovery attempt; records removed before the interruption are already
+absent. Never set the confirmation while an old runtime may still be alive, and
+never clear or replace a persisted owner merely because a timestamp is old:
+without generation fencing in every document, session, and vector mutation, a
+paused old owner could resume after takeover.
 
 ## Verification before cutover
 

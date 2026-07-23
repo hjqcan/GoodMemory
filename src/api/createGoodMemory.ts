@@ -9,7 +9,11 @@ import {
   normalizeFeedbackAppliesTo,
 } from "../domain/records";
 import { createMemorySource } from "../domain/provenance";
-import type { MemoryScope } from "../domain/scope";
+import {
+  normalizeScope,
+  scopeToKey,
+  type MemoryScope,
+} from "../domain/scope";
 import type { EmbeddingAdapter } from "../embedding/contracts";
 import { EVIDENCE_COLLECTION } from "../evidence/contracts";
 import type { BehavioralOutcomeObservationResult } from "../evolution/behavioralTelemetry";
@@ -1842,7 +1846,20 @@ class GoodMemoryImpl implements GoodMemory {
       },
       input,
     );
-    return this.scopeDeletion.runExclusive(input.scope, operation);
+    return this.scopeDeletion.runExclusive(
+      input.scope,
+      operation,
+      {
+        operationKey: JSON.stringify({
+          contract: "delete-all-memory-v1",
+          includeRuntime: input.includeRuntime !== false,
+          scope: scopeToKey(normalizeScope(input.scope)),
+        }),
+        ...(input.resumeInterrupted
+          ? { resumeInterrupted: input.resumeInterrupted }
+          : {}),
+      },
+    );
   }
 
   async feedback(input: FeedbackInput): Promise<FeedbackResult> {

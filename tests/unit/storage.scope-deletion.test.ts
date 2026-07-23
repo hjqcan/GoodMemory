@@ -8,6 +8,7 @@ import {
   createScopeDeletionAwareDocumentStore,
   createScopeDeletionCoordinator,
   SCOPE_DELETION_LOCKS_COLLECTION,
+  SCOPE_MUTATION_BARRIERS_COLLECTION,
   SCOPE_MUTATION_INTENTS_COLLECTION,
   scopeDeletionLockId,
 } from "../../src/storage/scopeDeletion";
@@ -315,7 +316,7 @@ describe("scope deletion coordination", () => {
     ).toEqual(staleLock);
   });
 
-  it("keeps a failed deletion closed and lets only the same live coordinator retry", async () => {
+  it("keeps a failed deletion closed until a fresh coordinator explicitly resumes it", async () => {
     const rawStore = createInMemoryDocumentStore();
     const scope = { userId: "u-failed-delete", workspaceId: "workspace-a" };
     const coordinator = createScopeDeletionCoordinator(rawStore, {
@@ -330,7 +331,7 @@ describe("scope deletion coordination", () => {
         SCOPE_DELETION_LOCKS_COLLECTION,
         scopeDeletionLockId(scope),
       ),
-    ).toMatchObject({ ownerId: "same-live-owner", state: "deleting" });
+    ).toMatchObject({ ownerId: "same-live-owner", state: "failed" });
     await expect(coordinator.runMutation(scope, async () => "late"))
       .rejects.toThrow("Memory deletion is in progress");
     const sameNamedOwner = createScopeDeletionCoordinator(rawStore, {
@@ -339,7 +340,18 @@ describe("scope deletion coordination", () => {
     await expect(sameNamedOwner.runExclusive(scope, async () => "unsafe"))
       .rejects.toThrow("Memory deletion is already in progress");
 
-    await expect(coordinator.runExclusive(scope, async () => "recovered"))
+    const recovery = createScopeDeletionCoordinator({ ...rawStore }, {
+      ownerId: "recovery-owner",
+    });
+    await expect(recovery.runExclusive(
+      scope,
+      async () => "recovered",
+      {
+        resumeInterrupted: {
+          confirmPriorRuntimesStopped: true,
+        },
+      },
+    ))
       .resolves.toBe("recovered");
     expect(
       await rawStore.get<Record<string, unknown>>(
@@ -349,7 +361,7 @@ describe("scope deletion coordination", () => {
     ).toMatchObject({ state: "open" });
   });
 
-  it("keeps ownership retryable when the final open transition is rejected", async () => {
+  it("keeps the journal recoverable when the final open transition is rejected", async () => {
     const rawStore = createInMemoryDocumentStore();
     let rejectOpenOnce = true;
     const store: ProjectionCapableDocumentStore = {
@@ -375,12 +387,243 @@ describe("scope deletion coordination", () => {
     await expect(coordinator.runExclusive(scope, async () => {
       operationCount += 1;
     })).rejects.toThrow("ownership changed before release");
-    await expect(coordinator.runExclusive(scope, async () => {
-      operationCount += 1;
-      return "recovered";
-    })).resolves.toBe("recovered");
+    await expect(coordinator.runExclusive(
+      scope,
+      async () => {
+        operationCount += 1;
+        return "recovered";
+      },
+      {
+        resumeInterrupted: {
+          confirmPriorRuntimesStopped: true,
+        },
+      },
+    )).resolves.toBe("recovered");
 
     expect(operationCount).toBe(2);
+  });
+
+  it("atomically removes interrupted mutation intents during explicit recovery", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const scope = {
+      userId: "u-recovery-intents",
+      workspaceId: "workspace-a",
+    };
+    const first = createScopeDeletionCoordinator(rawStore);
+    await expect(first.runExclusive(
+      scope,
+      async () => {
+        throw new Error("interrupted deletion");
+      },
+      {
+        operationKey: "delete-all:v1:workspace-a:runtime",
+      },
+    )).rejects.toThrow("interrupted deletion");
+    const overlappingIntent = {
+      ...scope,
+      id: "stale-overlapping-intent",
+      operationId: "stale-overlapping-operation",
+      ownerId: "stopped-writer",
+      sessionId: "session-a",
+    };
+    const disjointIntent = {
+      id: "other-workspace-intent",
+      operationId: "other-workspace-operation",
+      ownerId: "other-writer",
+      userId: scope.userId,
+      workspaceId: "workspace-b",
+    };
+    await rawStore.set(
+      SCOPE_MUTATION_INTENTS_COLLECTION,
+      overlappingIntent.id,
+      overlappingIntent,
+    );
+    await rawStore.set(
+      SCOPE_MUTATION_INTENTS_COLLECTION,
+      disjointIntent.id,
+      disjointIntent,
+    );
+    const recovery = createScopeDeletionCoordinator({ ...rawStore });
+
+    await expect(recovery.runExclusive(
+      scope,
+      async () => {
+        expect(
+          await rawStore.get(
+            SCOPE_MUTATION_INTENTS_COLLECTION,
+            overlappingIntent.id,
+          ),
+        ).toBeNull();
+        return "recovered";
+      },
+      {
+        operationKey: "delete-all:v1:workspace-a:runtime",
+        resumeInterrupted: {
+          confirmPriorRuntimesStopped: true,
+        },
+      },
+    )).resolves.toBe("recovered");
+    expect(
+      await rawStore.get(
+        SCOPE_MUTATION_INTENTS_COLLECTION,
+        disjointIntent.id,
+      ),
+    ).toEqual(disjointIntent);
+  });
+
+  it("recovers an orphaned mutation intent after its runtime has stopped", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const scope = {
+      userId: "u-orphaned-mutation",
+      workspaceId: "workspace-a",
+    };
+    const orphanedIntent = {
+      ...scope,
+      id: "orphaned-intent",
+      operationId: "orphaned-operation",
+      ownerId: "stopped-writer",
+    };
+    await rawStore.set(
+      SCOPE_MUTATION_INTENTS_COLLECTION,
+      orphanedIntent.id,
+      orphanedIntent,
+    );
+    const recovery = createScopeDeletionCoordinator(rawStore);
+
+    await expect(recovery.runExclusive(
+      scope,
+      async () => "recovered",
+      {
+        resumeInterrupted: {
+          confirmPriorRuntimesStopped: true,
+        },
+      },
+    )).resolves.toBe("recovered");
+    expect(
+      await rawStore.get(
+        SCOPE_MUTATION_INTENTS_COLLECTION,
+        orphanedIntent.id,
+      ),
+    ).toBeNull();
+  });
+
+  it("rejects recovery when the persisted deletion contract does not match", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const scope = {
+      userId: "u-recovery-contract",
+      workspaceId: "workspace-a",
+    };
+    const first = createScopeDeletionCoordinator(rawStore);
+    await expect(first.runExclusive(
+      scope,
+      async () => {
+        throw new Error("interrupted deletion");
+      },
+      {
+        operationKey: "delete-all:v1:workspace-a:runtime",
+      },
+    )).rejects.toThrow("interrupted deletion");
+    const recovery = createScopeDeletionCoordinator({ ...rawStore });
+
+    await expect(recovery.runExclusive(
+      scope,
+      async () => "unsafe",
+      {
+        operationKey: "delete-all:v1:workspace-a:durable-only",
+        resumeInterrupted: {
+          confirmPriorRuntimesStopped: true,
+        },
+      },
+    )).rejects.toThrow("does not match the interrupted deletion contract");
+  });
+
+  it("fails closed when an interrupted mutation intent changes during recovery", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const scope = {
+      userId: "u-changing-recovery-intent",
+      workspaceId: "workspace-a",
+    };
+    const first = createScopeDeletionCoordinator(rawStore);
+    await expect(first.runExclusive(scope, async () => {
+      throw new Error("interrupted deletion");
+    })).rejects.toThrow("interrupted deletion");
+    const intent = {
+      ...scope,
+      id: "changing-intent",
+      operationId: "changing-operation",
+      ownerId: "stopped-writer",
+    };
+    await rawStore.set(
+      SCOPE_MUTATION_INTENTS_COLLECTION,
+      intent.id,
+      intent,
+    );
+    let changeIntent = true;
+    const changingStore: ProjectionCapableDocumentStore = {
+      ...rawStore,
+      async writeBatchIfUnchanged(input) {
+        if (
+          changeIntent &&
+          input.delete?.some(({ collection, id }) =>
+            collection === SCOPE_MUTATION_INTENTS_COLLECTION &&
+            id === intent.id
+          )
+        ) {
+          changeIntent = false;
+          await rawStore.delete(SCOPE_MUTATION_INTENTS_COLLECTION, intent.id);
+        }
+        return rawStore.writeBatchIfUnchanged(input);
+      },
+    };
+    const recovery = createScopeDeletionCoordinator(changingStore);
+    let operationEntered = false;
+
+    await expect(recovery.runExclusive(
+      scope,
+      async () => {
+        operationEntered = true;
+      },
+      {
+        resumeInterrupted: {
+          confirmPriorRuntimesStopped: true,
+        },
+      },
+    )).rejects.toThrow("mutation journal changed during recovery");
+    expect(operationEntered).toBe(false);
+  });
+
+  it("rejects recovery when the persistent lock and barrier journal is incomplete", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const scope = {
+      userId: "u-incomplete-recovery-journal",
+      workspaceId: "workspace-a",
+    };
+    const id = scopeDeletionLockId(scope);
+    await rawStore.set(SCOPE_DELETION_LOCKS_COLLECTION, id, {
+      ...scope,
+      epoch: 3,
+      generation: "incomplete-generation",
+      id,
+      operationId: "incomplete-operation",
+      operationKey: "scope-deletion:v1",
+      ownerId: "stopped-owner",
+      phase: "delete_all",
+      state: "deleting",
+    });
+    const coordinator = createScopeDeletionCoordinator(rawStore);
+
+    await expect(coordinator.runExclusive(
+      scope,
+      async () => "unsafe",
+      {
+        resumeInterrupted: {
+          confirmPriorRuntimesStopped: true,
+        },
+      },
+    )).rejects.toThrow("persistent deletion journal is incomplete");
+    expect(
+      await rawStore.query(SCOPE_MUTATION_BARRIERS_COLLECTION),
+    ).toEqual([]);
   });
 
   it("does not discard a mutation intent based on expired lease metadata", async () => {

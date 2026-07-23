@@ -410,6 +410,14 @@ export interface ExportMemoryResult {
 export interface DeleteAllMemoryInput {
   scope: MemoryScope;
   includeRuntime?: boolean;
+  /**
+   * Explicit recovery of a persisted interrupted deletion. Set this only
+   * after every runtime that could still own the old deletion or mutation
+   * attempt has terminated.
+   */
+  resumeInterrupted?: {
+    confirmPriorRuntimesStopped: true;
+  };
 }
 
 export interface DeleteAllMemoryResult {
