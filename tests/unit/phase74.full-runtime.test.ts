@@ -8,6 +8,7 @@ import {
   assertPhase74RecallProviderIntegrity,
   assertPhase74RetrievedProvenance,
   buildPhase74IngestionUsageAllocation,
+  buildPhase74IngestionDescriptor,
   buildPhase74IngestionKey,
   buildPhase74IngestionUsagePaths,
   buildPhase74IngestionUsageFingerprint,
@@ -19,6 +20,7 @@ import {
   restorePhase74RetiredIngestionSnapshot,
   verifyPhase74IngestionUsageManifest,
 } from "../../src/eval/phase74FullRuntime";
+import { buildPhase74EmbeddingIdentity } from "../../src/eval/phase74Live";
 import {
   archivePhase74IngestionSnapshot,
 } from "../../src/eval/phase74IngestionRetirement";
@@ -258,6 +260,48 @@ describe("Phase 74 full ingestion identity", () => {
       ...base,
       extraction: { ...base.extraction, reasoningEffort: "medium" },
     })).not.toBe(buildPhase74IngestionKey(base));
+  });
+
+  it("binds the complete BGE profile into the runtime ingestion identity", () => {
+    const languageModel = {
+      baseURL: base.extraction.gateway,
+      model: base.extraction.model,
+      provider: "openai" as const,
+    };
+    const embeddingModel = {
+      baseURL: "https://openrouter.ai/api/v1",
+      model: "baai/bge-m3",
+      provider: "openai" as const,
+    };
+    const descriptor = buildPhase74IngestionDescriptor({
+      configuration: {
+        representation: "atomic-contextual-raw-pointer",
+      },
+      datasetSha256: base.datasetSha256,
+      evaluatorSourceSha256: base.evaluatorSourceSha256,
+      models: {
+        answer: languageModel,
+        assistedExtraction: languageModel,
+        embedding: embeddingModel,
+        planner: languageModel,
+        reranker: languageModel,
+      },
+      promptSha256s: {
+        conversationalExtraction: base.extraction.promptSha256,
+      },
+      testCase: {
+        caseId: "case-1",
+        memoryGroupId: base.memoryGroupId,
+        question: "What happened?",
+        rawEvidence: base.rawEvidence,
+        referenceTime: base.referenceTime,
+      },
+    });
+
+    expect(descriptor.key).toBe(buildPhase74IngestionKey({
+      ...base,
+      embedding: buildPhase74EmbeddingIdentity(embeddingModel),
+    }));
   });
 
   it("allocates unique ingestion keys as baseline-exclusive, candidate-exclusive, or shared", () => {
