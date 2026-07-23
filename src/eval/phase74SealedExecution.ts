@@ -32,7 +32,7 @@ const executionCaseSchema = z.object({
 const executionBundleSchema = z.object({
   cases: z.array(executionCaseSchema),
   runId: z.string().min(1),
-  schemaVersion: z.literal(3),
+  schemaVersion: z.literal(4),
   stage: z.enum(["E1", "E2", "E3", "E4"]),
 }).strict();
 
@@ -42,6 +42,7 @@ const escrowCaseSchema = z.object({
   family: z.enum(["locomo", "longmemeval"]).optional(),
   goldEvidenceIds: z.array(z.string()),
   originalCaseId: z.string().min(1),
+  originalMemoryGroupId: z.string().min(1).optional(),
   protocolMetadata: z.record(z.string(), z.unknown()).optional(),
   unresolvedGoldEvidenceIds: z.array(z.string()),
 }).strict();
@@ -50,7 +51,7 @@ const escrowBundleSchema = z.object({
   cases: z.array(escrowCaseSchema),
   executionSha256: z.string().regex(/^[a-f0-9]{64}$/u),
   runId: z.string().min(1),
-  schemaVersion: z.literal(3),
+  schemaVersion: z.literal(4),
 }).strict();
 
 const executorRowSchema = z.object({
@@ -68,7 +69,7 @@ const executorOutputSchema = z.object({
   executorPid: z.number().int().positive(),
   rows: z.array(executorRowSchema),
   runId: z.string().min(1),
-  schemaVersion: z.literal(3),
+  schemaVersion: z.literal(4),
 }).strict();
 
 const scoreRowSchema = z.object({
@@ -86,7 +87,7 @@ const scoreReceiptSchema = z.object({
   executorOutputSha256: z.string().regex(/^[a-f0-9]{64}$/u),
   rows: z.array(scoreRowSchema),
   runId: z.string().min(1),
-  schemaVersion: z.literal(3),
+  schemaVersion: z.literal(4),
   scorerPid: z.number().int().positive(),
 }).strict();
 
@@ -187,7 +188,7 @@ export function buildPhase74SealedBundles(input: {
         : { referenceTime: boundary.recallCase.referenceTime }),
     })),
     runId: input.runId,
-    schemaVersion: 3,
+    schemaVersion: 4,
     stage: input.stage,
   });
   const escrow = parsePhase74SealedEscrowBundle({
@@ -197,6 +198,9 @@ export function buildPhase74SealedBundles(input: {
       ...(testCase.family === undefined ? {} : { family: testCase.family }),
       goldEvidenceIds: boundary.goldEvidenceIds,
       originalCaseId: testCase.caseId,
+      ...(testCase.memoryGroupId === undefined
+        ? {}
+        : { originalMemoryGroupId: testCase.memoryGroupId }),
       ...(testCase.protocolMetadata === undefined
         ? {}
         : { protocolMetadata: testCase.protocolMetadata }),
@@ -204,7 +208,7 @@ export function buildPhase74SealedBundles(input: {
     })),
     executionSha256: sha256Json(execution),
     runId: input.runId,
-    schemaVersion: 3,
+    schemaVersion: 4,
   });
   return { escrow, execution };
 }
@@ -221,7 +225,7 @@ export function buildPhase74SealedExecutorOutput(input: {
     executorPid: input.executorPid,
     rows: input.rows,
     runId: input.execution.runId,
-    schemaVersion: 3,
+    schemaVersion: 4,
   });
 }
 
@@ -237,7 +241,7 @@ export function buildPhase74SealedScoreReceipt(input: {
     executorOutputSha256: sha256Json(input.executorOutput),
     rows: input.rows,
     runId: input.escrow.runId,
-    schemaVersion: 3,
+    schemaVersion: 4,
     scorerPid: input.scorerPid,
   });
 }
@@ -431,7 +435,7 @@ export async function runPhase74SealedProcessPair(input: {
     executionSha256: sha256Json(execution),
     executorOutputSha256: sha256Json(executorOutput),
     receiptSha256: sha256Json(receipt),
-    schemaVersion: 3,
+    schemaVersion: 4,
   }, null, 2)}\n`);
   return {
     events,
