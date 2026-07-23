@@ -158,6 +158,50 @@ describe("Phase 74 protocol-compatible scoring", () => {
     ]);
   });
 
+  it("attributes judge usage to an opaque case id without changing the official protocol id", async () => {
+    const events: AttributedModelUsageAttempt[] = [];
+    const intents: AttributedModelUsageIntent[] = [];
+    let requestBody = "";
+    const assess = createPhase74ProtocolCompatibleAnswerAssessor({
+      benchmark: "longmemeval",
+      events,
+      fetch: async (_url, init) => {
+        requestBody = String(init?.body);
+        return new Response([
+          'data: {"choices":[{"delta":{"content":"Yes"},"index":0}]}',
+          'data: {"choices":[],"usage":{"prompt_tokens":30,"completion_tokens":1}}',
+          "data: [DONE]",
+          "",
+        ].join("\n\n"), {
+          headers: { "content-type": "text/event-stream" },
+          status: 200,
+        });
+      },
+      intents,
+      model: judgeModel,
+    });
+
+    await expect(assess({
+      answer: "The evidence is insufficient.",
+      purpose: "final:candidate:E2:claim-temporal-on",
+      testCase: {
+        caseId: "longmemeval_abs/official-case-1",
+        expectedAnswer: "The requested detail was not mentioned.",
+        goldEvidenceIds: [],
+        protocolMetadata: { questionType: "single-session-user" },
+        question: "What was not mentioned?",
+        rawEvidence: [],
+      },
+      usageCaseId: "opaque-case-4e94",
+    })).resolves.toEqual({ correct: true, score: 1 });
+    expect(requestBody).toContain("unanswerable question");
+    expect(events[0]?.caseId).toBe("opaque-case-4e94");
+    expect(intents[0]?.caseId).toBe("opaque-case-4e94");
+    expect(JSON.stringify({ events, intents })).not.toContain(
+      "longmemeval_abs/official-case-1",
+    );
+  });
+
   it("fails closed when required protocol metadata is missing", async () => {
     const assess = createPhase74ProtocolCompatibleAnswerAssessor({
       benchmark: "locomo",
@@ -175,6 +219,7 @@ describe("Phase 74 protocol-compatible scoring", () => {
         question: "question",
         rawEvidence: [],
       },
-    })).rejects.toThrow("valid pinned category");
+      usageCaseId: "opaque-case-1",
+    })).rejects.toThrow("locomo/q1");
   });
 });

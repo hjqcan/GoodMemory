@@ -11,7 +11,9 @@ import {
   PHASE74_EVALUATOR_SOURCE_SNAPSHOT,
   phase74LivePromptSha256s,
   resolvePhase74EvaluatorSource,
+  resolvePhase74ExecutorModels,
   resolvePhase74LiveModels,
+  resolvePhase74ScorerModels,
   verifyPhase74EvaluatorSource,
 } from "../../src/eval/phase74Live";
 import type {
@@ -266,6 +268,56 @@ describe("Phase 74 live provider boundary", () => {
       ...env,
       GOODMEMORY_EMBEDDING_MODEL: "text-embedding-3-large",
     })).toThrow("text-embedding-3-small through https://openrouter.ai/api/v1");
+  });
+
+  it("resolves executor and scorer credentials through disjoint capability boundaries", () => {
+    const executorEnv = new Proxy({
+      ...env,
+      GOODMEMORY_JUDGE_API_KEY: "judge-sentinel",
+      GOODMEMORY_JUDGE_BASE_URL: "judge-sentinel",
+      GOODMEMORY_JUDGE_MODEL: "judge-sentinel",
+      GOODMEMORY_JUDGE_PROVIDER: "judge-sentinel",
+    }, {
+      get(target, property, receiver) {
+        if (String(property).startsWith("GOODMEMORY_JUDGE_")) {
+          throw new Error("executor read judge credentials");
+        }
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const executorModels = resolvePhase74ExecutorModels(executorEnv);
+    expect(Object.keys(executorModels).sort()).toEqual([
+      "answer",
+      "assistedExtraction",
+      "embedding",
+      "planner",
+      "reranker",
+    ]);
+    expect("judge" in executorModels).toBe(false);
+
+    const scorerEnv = new Proxy({
+      GOODMEMORY_JUDGE_API_KEY: env.GOODMEMORY_JUDGE_API_KEY,
+      GOODMEMORY_JUDGE_BASE_URL: env.GOODMEMORY_JUDGE_BASE_URL,
+      GOODMEMORY_JUDGE_MODEL: env.GOODMEMORY_JUDGE_MODEL,
+      GOODMEMORY_JUDGE_PROVIDER: env.GOODMEMORY_JUDGE_PROVIDER,
+    }, {
+      get(target, property, receiver) {
+        if (
+          String(property).startsWith("GOODMEMORY_EVAL_") ||
+          String(property).startsWith("GOODMEMORY_EMBEDDING_")
+        ) {
+          throw new Error("scorer read executor credentials");
+        }
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const scorerModels = resolvePhase74ScorerModels(scorerEnv);
+    expect(Object.keys(scorerModels)).toEqual(["judge"]);
+    expect(scorerModels.judge).toMatchObject({
+      baseURL: "https://ai.gurkiai.com/v1",
+      model: "gpt-5.5",
+      provider: "openai",
+    });
   });
 
   it("records embedding configuration without a credential fingerprint", () => {
