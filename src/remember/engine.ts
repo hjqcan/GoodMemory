@@ -75,45 +75,96 @@ function sourceMessageRecordsEquivalent(
     existing.contentSha256 === incoming.contentSha256;
 }
 
-async function persistSourceMessageRecord(
+async function persistSourceMessageRecords(
   documentStore: DocumentStore,
-  incoming: SourceMessageRecord,
-): Promise<SourceMessageRecord> {
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    const existing = await documentStore.get<SourceMessageRecord>(
-      SOURCE_MESSAGES_COLLECTION,
-      incoming.id,
-    );
-    if (existing) {
-      if (!sourceMessageRecordsEquivalent(existing, incoming)) {
-        throw new Error(`Immutable source-message conflict: ${incoming.id}`);
-      }
-      return existing;
+  incomingRecords: readonly SourceMessageRecord[],
+): Promise<Map<string, SourceMessageRecord>> {
+  const incomingById = new Map<string, SourceMessageRecord>();
+  for (const incoming of incomingRecords) {
+    const duplicate = incomingById.get(incoming.id);
+    if (duplicate && !sourceMessageRecordsEquivalent(duplicate, incoming)) {
+      throw new Error(`Immutable source-message conflict: ${incoming.id}`);
     }
-    if (!isProjectionCapableDocumentStore(documentStore)) {
-      await documentStore.set(
+    incomingById.set(incoming.id, incoming);
+  }
+
+  if (!isProjectionCapableDocumentStore(documentStore)) {
+    const persisted = new Map<string, SourceMessageRecord>();
+    for (const incoming of incomingById.values()) {
+      const existing = await documentStore.get<SourceMessageRecord>(
         SOURCE_MESSAGES_COLLECTION,
         incoming.id,
-        incoming,
       );
-      return incoming;
+      if (existing && !sourceMessageRecordsEquivalent(existing, incoming)) {
+        throw new Error(`Immutable source-message conflict: ${incoming.id}`);
+      }
+      if (!existing) {
+        await documentStore.set(
+          SOURCE_MESSAGES_COLLECTION,
+          incoming.id,
+          incoming,
+        );
+      }
+      persisted.set(incoming.id, existing ?? incoming);
     }
+    return persisted;
+  }
+
+  const ordered = [...incomingById.values()].sort((left, right) =>
+    left.id.localeCompare(right.id)
+  );
+  if (ordered.length === 0) {
+    return new Map();
+  }
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const snapshots = await Promise.all(ordered.map(async (incoming) => ({
+      existing: await documentStore.get<SourceMessageRecord>(
+        SOURCE_MESSAGES_COLLECTION,
+        incoming.id,
+      ),
+      incoming,
+    })));
+    for (const { existing, incoming } of snapshots) {
+      if (existing && !sourceMessageRecordsEquivalent(existing, incoming)) {
+        throw new Error(`Immutable source-message conflict: ${incoming.id}`);
+      }
+    }
+    const missing = snapshots.filter(({ existing }) => existing === null);
+    if (missing.length === 0) {
+      return new Map(
+        snapshots.map(({ existing, incoming }) => [incoming.id, existing!]),
+      );
+    }
+    const missingIds = new Set(missing.map(({ incoming }) => incoming.id));
+    const constraints = snapshots.map(({ existing, incoming }) => ({
+      collection: SOURCE_MESSAGES_COLLECTION,
+      document: existing,
+      id: incoming.id,
+    }));
     if (await documentStore.writeBatchIfUnchanged({
-      expected: {
-        collection: SOURCE_MESSAGES_COLLECTION,
-        document: null,
-        id: incoming.id,
-      },
-      set: [{
-        collection: SOURCE_MESSAGES_COLLECTION,
-        document: incoming,
-        id: incoming.id,
-      }],
+      expected: constraints[0]!,
+      set: [...incomingById.values()]
+        .filter((incoming) => missingIds.has(incoming.id))
+        .map((incoming) => ({
+          collection: SOURCE_MESSAGES_COLLECTION,
+          document: incoming,
+          id: incoming.id,
+        })),
+      unchanged: constraints.slice(1),
     })) {
-      return incoming;
+      return new Map(
+        snapshots.map(({ existing, incoming }) => [
+          incoming.id,
+          existing ?? incoming,
+        ]),
+      );
     }
   }
-  throw new Error(`Immutable source message changed repeatedly: ${incoming.id}`);
+
+  throw new Error(
+    `Immutable source-message batch changed repeatedly: ${ordered[0]!.id}`,
+  );
 }
 
 export type {
@@ -809,6 +860,10 @@ export function createRememberEngine(config: RememberEngineConfig) {
       try {
         const blockedSourceIndexes = getNeverAnnotatedMessageIndexes(input);
         const ingestedAt = now();
+        const preparedSourceMessages: Array<{
+          messageIndex: number;
+          record: SourceMessageRecord;
+        }> = [];
         for (const [messageIndex, message] of input.messages.entries()) {
           if (blockedSourceIndexes.has(messageIndex)) {
             continue;
@@ -851,9 +906,19 @@ export function createRememberEngine(config: RememberEngineConfig) {
             messageIndex,
             ingestedAt,
           );
+          preparedSourceMessages.push({
+            messageIndex,
+            record: sourceMessage,
+          });
+        }
+        const persistedSourceMessages = await persistSourceMessageRecords(
+          config.documentStore,
+          preparedSourceMessages.map(({ record }) => record),
+        );
+        for (const { messageIndex, record } of preparedSourceMessages) {
           sourceMessagesByIndex.set(
             messageIndex,
-            await persistSourceMessageRecord(config.documentStore, sourceMessage),
+            persistedSourceMessages.get(record.id)!,
           );
         }
 

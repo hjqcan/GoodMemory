@@ -125,4 +125,73 @@ describe("remember source-message batching", () => {
       ),
     ).toEqual(existing);
   });
+
+  it("retries the whole batch after a conditional write miss", async () => {
+    const inner = createInMemoryDocumentStore();
+    const attemptedBatchSizes: number[] = [];
+    const store: ProjectionCapableDocumentStore = {
+      ...inner,
+      async writeBatchIfUnchanged(input) {
+        const sourceBatchSize = input.set.filter(({ collection }) =>
+          collection === SOURCE_MESSAGES_COLLECTION
+        ).length;
+        if (sourceBatchSize > 0) {
+          attemptedBatchSizes.push(sourceBatchSize);
+          if (attemptedBatchSizes.length === 1) {
+            return false;
+          }
+        }
+        return inner.writeBatchIfUnchanged(input);
+      },
+    };
+    const engine = createEngine(store, () => "2026-07-23T20:00:00.000Z");
+
+    await engine.remember({ messages, scope });
+
+    expect(attemptedBatchSizes).toEqual([3, 3]);
+    expect(
+      await store.query<SourceMessageRecord>(
+        SOURCE_MESSAGES_COLLECTION,
+        scope,
+      ),
+    ).toHaveLength(3);
+  });
+
+  it("does not partially commit the batch when a retry reveals a conflict", async () => {
+    const inner = createInMemoryDocumentStore();
+    let injectedConflict = false;
+    const store: ProjectionCapableDocumentStore = {
+      ...inner,
+      async writeBatchIfUnchanged(input) {
+        const firstSource = input.set.find(({ collection }) =>
+          collection === SOURCE_MESSAGES_COLLECTION
+        );
+        if (firstSource && !injectedConflict) {
+          injectedConflict = true;
+          await inner.set(
+            firstSource.collection,
+            firstSource.id,
+            {
+              ...(firstSource.document as SourceMessageRecord),
+              content: "Concurrent conflicting content.",
+            },
+          );
+          return false;
+        }
+        return inner.writeBatchIfUnchanged(input);
+      },
+    };
+    const engine = createEngine(store, () => "2026-07-23T20:00:00.000Z");
+
+    await expect(engine.remember({ messages, scope })).rejects.toThrow(
+      "Immutable source-message conflict",
+    );
+
+    const persisted = await store.query<SourceMessageRecord>(
+      SOURCE_MESSAGES_COLLECTION,
+      scope,
+    );
+    expect(persisted).toHaveLength(1);
+    expect(persisted[0]?.content).toBe("Concurrent conflicting content.");
+  });
 });
