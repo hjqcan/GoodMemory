@@ -80,6 +80,11 @@ describe("Phase 74 cumulative product runner", () => {
     expect(buildPhase74ProductRunIdentityConfiguration({
       candidateConfiguration: {
         caseScheduling: PHASE74_PRODUCT_CASE_SCHEDULING,
+        embedding: {
+          adapterVersion: "openai-compatible-embedding-v2",
+          model: "baai/bge-m3",
+          providerOrder: "parasail",
+        },
         evidenceLedger: { format: "compact_json" },
         planner: { mode: "deterministic" },
         representation: "atomic-contextual-raw-pointer",
@@ -121,6 +126,18 @@ describe("Phase 74 cumulative product runner", () => {
         representation: "atomic-contextual-raw-pointer",
       },
       evidenceBoundary: { seenCasesOnly: true },
+      embeddingRoutingByArm: {
+        baseline: {
+          adapterVersion: "openai-compatible-embedding-v2",
+          model: "baai/bge-m3",
+          providerOrder: "parasail",
+        },
+        candidate: {
+          adapterVersion: "openai-compatible-embedding-v2",
+          model: "baai/bge-m3",
+          providerOrder: "parasail",
+        },
+      },
       replicate: 1,
       selectedEvidenceLedgerFormat: "compact_json",
     });
@@ -302,6 +319,43 @@ describe("Phase 74 cumulative product runner", () => {
 
     expect(maxActiveQueries).toBe(2);
     expect(result.rows).toHaveLength(2);
+  });
+
+  it("waits for the paired arm to settle before propagating a query failure", async () => {
+    let candidateSettled = false;
+    await expect(runPhase74ProductComparison({
+      cases: CASES.slice(0, 1),
+      async prepare({ arm, memoryGroupId }) {
+        return {
+          arm,
+          ingestionKey: `${arm}/${memoryGroupId}`,
+          memoryGroupId,
+          async query() {
+            if (arm === "release-v0.6.0") {
+              throw new Error("release query failed");
+            }
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            candidateSettled = true;
+            return {
+              context: "evidence",
+              contextTokens: 1,
+              queryPathLatencyMs: 1,
+              recallLatencyMs: 1,
+            };
+          },
+        };
+      },
+      async read({ arm }) {
+        return { answer: arm, latencyMs: 1 };
+      },
+      async score() {
+        return { correct: true, latencyMs: 1, score: 1 };
+      },
+      preparationConcurrency: 2,
+      selectedEvidenceLedgerFormat: "compact_json",
+    })).rejects.toThrow("release query failed");
+
+    expect(candidateSettled).toBeTrue();
   });
 
   it("builds product query latency from recall and context assembly only", () => {
