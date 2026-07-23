@@ -7,6 +7,10 @@ import {
   buildPhase74LabelFreeCaseBoundary,
   type Phase74GeneralizationCase,
 } from "./phase74Generalization";
+import {
+  PHASE74_EXPERIMENT_ARMS,
+  type Phase74ExperimentStage,
+} from "./phase74ExperimentDesign";
 
 const rawEvidenceSchema = z.object({
   content: z.string(),
@@ -28,7 +32,8 @@ const executionCaseSchema = z.object({
 const executionBundleSchema = z.object({
   cases: z.array(executionCaseSchema),
   runId: z.string().min(1),
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
+  stage: z.enum(["E1", "E2", "E3", "E4"]),
 }).strict();
 
 const escrowCaseSchema = z.object({
@@ -45,7 +50,7 @@ const escrowBundleSchema = z.object({
   cases: z.array(escrowCaseSchema),
   executionSha256: z.string().regex(/^[a-f0-9]{64}$/u),
   runId: z.string().min(1),
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
 }).strict();
 
 const executorRowSchema = z.object({
@@ -61,7 +66,7 @@ const executorOutputSchema = z.object({
   executorPid: z.number().int().positive(),
   rows: z.array(executorRowSchema),
   runId: z.string().min(1),
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
 }).strict();
 
 const scoreRowSchema = z.object({
@@ -77,7 +82,7 @@ const scoreReceiptSchema = z.object({
   executorOutputSha256: z.string().regex(/^[a-f0-9]{64}$/u),
   rows: z.array(scoreRowSchema),
   runId: z.string().min(1),
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   scorerPid: z.number().int().positive(),
 }).strict();
 
@@ -147,6 +152,7 @@ export function parsePhase74SealedScoreReceipt(
 export function buildPhase74SealedBundles(input: {
   cases: readonly Phase74GeneralizationCase[];
   runId: string;
+  stage: Phase74ExperimentStage;
 }): {
   escrow: Phase74SealedEscrowBundle;
   execution: Phase74SealedExecutionBundle;
@@ -171,7 +177,8 @@ export function buildPhase74SealedBundles(input: {
         : { referenceTime: boundary.recallCase.referenceTime }),
     })),
     runId: input.runId,
-    schemaVersion: 1,
+    schemaVersion: 2,
+    stage: input.stage,
   });
   const escrow = parsePhase74SealedEscrowBundle({
     cases: boundaries.map(({ boundary, testCase }) => ({
@@ -187,7 +194,7 @@ export function buildPhase74SealedBundles(input: {
     })),
     executionSha256: sha256Json(execution),
     runId: input.runId,
-    schemaVersion: 1,
+    schemaVersion: 2,
   });
   return { escrow, execution };
 }
@@ -202,7 +209,7 @@ export function buildPhase74SealedExecutorOutput(input: {
     executorPid: input.executorPid,
     rows: input.rows,
     runId: input.execution.runId,
-    schemaVersion: 1,
+    schemaVersion: 2,
   });
 }
 
@@ -218,7 +225,7 @@ export function buildPhase74SealedScoreReceipt(input: {
     executorOutputSha256: sha256Json(input.executorOutput),
     rows: input.rows,
     runId: input.escrow.runId,
-    schemaVersion: 1,
+    schemaVersion: 2,
     scorerPid: input.scorerPid,
   });
 }
@@ -241,19 +248,28 @@ function sameOrderedRows(
   );
 }
 
-function hasUniqueValues(values: readonly string[]): boolean {
-  return new Set(values).size === values.length;
+export function buildPhase74SealedRowKey(input: {
+  caseKey: string;
+  stage: Phase74ExperimentStage;
+  unit: string;
+}): string {
+  return `${input.caseKey}:${input.stage}:${input.unit}`;
 }
 
-function coversExecutionCases(input: {
-  execution: Phase74SealedExecutionBundle;
-  rows: Phase74SealedExecutorOutput["rows"];
-}): boolean {
-  const expected = new Set(input.execution.cases.map(({ caseKey }) => caseKey));
-  const observed = new Set(input.rows.map(({ caseKey }) => caseKey));
-  return expected.size === input.execution.cases.length &&
-    observed.size === expected.size &&
-    [...observed].every((caseKey) => expected.has(caseKey));
+export function listPhase74SealedExpectedRows(
+  execution: Phase74SealedExecutionBundle,
+): Array<{ caseKey: string; rowKey: string; unit: string }> {
+  return execution.cases.flatMap(({ caseKey }) =>
+    PHASE74_EXPERIMENT_ARMS[execution.stage].map((unit) => ({
+      caseKey,
+      rowKey: buildPhase74SealedRowKey({
+        caseKey,
+        stage: execution.stage,
+        unit,
+      }),
+      unit,
+    }))
+  );
 }
 
 export function verifyPhase74SealedScoreReceipt(input: {
@@ -267,6 +283,7 @@ export function verifyPhase74SealedScoreReceipt(input: {
   const output = parsePhase74SealedExecutorOutput(input.executorOutput);
   const receipt = parsePhase74SealedScoreReceipt(input.receipt);
   const executionSha256 = sha256Json(execution);
+  const expectedRows = listPhase74SealedExpectedRows(execution);
   if (
     escrow.runId !== execution.runId ||
     output.runId !== execution.runId ||
@@ -277,8 +294,7 @@ export function verifyPhase74SealedScoreReceipt(input: {
     receipt.escrowSha256 !== sha256Json(escrow) ||
     receipt.executorOutputSha256 !== sha256Json(output) ||
     !sameOrderedCaseKeys(execution.cases, escrow.cases) ||
-    !coversExecutionCases({ execution, rows: output.rows }) ||
-    !hasUniqueValues(output.rows.map(({ rowKey }) => rowKey)) ||
+    !sameOrderedRows(expectedRows, output.rows) ||
     !sameOrderedRows(output.rows, receipt.rows)
   ) {
     throw new Error("Phase 74 sealed score receipt chain is invalid.");
@@ -380,7 +396,7 @@ export async function runPhase74SealedProcessPair(input: {
     executionSha256: sha256Json(execution),
     executorOutputSha256: sha256Json(executorOutput),
     receiptSha256: sha256Json(receipt),
-    schemaVersion: 1,
+    schemaVersion: 2,
   }, null, 2)}\n`);
   return {
     events,
