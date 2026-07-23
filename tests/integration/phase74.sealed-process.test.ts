@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -49,6 +49,7 @@ describe("Phase 74 sealed process boundary", () => {
 
       const result = await runPhase74SealedProcessPair({
         cwd: directory,
+        evidenceDirectory: join(directory, "sealed-evidence"),
         executorArtifactPath: join(directory, "executor-artifact.json"),
         execution: bundles.execution,
         escrow: bundles.escrow,
@@ -98,6 +99,20 @@ describe("Phase 74 sealed process boundary", () => {
         "PHASE74-AUTOLOAD-SENTINEL",
       );
       expect(result.scorer.receipt.rows[0]?.score).toBe(0);
+      expect((await readdir(join(directory, "sealed-evidence"))).sort()).toEqual([
+        "escrow.json",
+        "execution.json",
+        "executor-output.json",
+        "score-receipt.json",
+      ]);
+      expect(await readFile(
+        join(directory, "sealed-evidence", "execution.json"),
+        "utf8",
+      )).not.toContain(GOLD_SENTINEL);
+      expect(await readFile(
+        join(directory, "sealed-evidence", "escrow.json"),
+        "utf8",
+      )).toContain(GOLD_SENTINEL);
       expect(() => verifyPhase74SealedScoreReceipt({
         execution: bundles.execution,
         executorOutput: result.executor.output,
