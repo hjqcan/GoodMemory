@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { createHash } from "node:crypto";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -271,6 +272,69 @@ describe("Phase 74 sealed process boundary", () => {
       escrow: bundles.escrow,
       receipt: missingArmReceipt,
     })).toThrow("receipt chain is invalid");
+  });
+
+  it("verifies and commits the scorer-only E4 oracle artifact", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "phase74-sealed-e4-"));
+    try {
+      const bundles = buildPhase74SealedBundles({
+        cases: [{
+          caseId: "official-e4-case",
+          expectedAnswer: GOLD_SENTINEL,
+          goldEvidenceIds: ["session-a:turn-1"],
+          question: "Which database is current?",
+          rawEvidence: [{
+            content: "Postgres is current.",
+            id: "turn-1",
+            sourceIds: ["session-a:turn-1"],
+          }],
+        }],
+        runId: "sealed-e4-process",
+        stage: "E4",
+      });
+      const oracleArtifactPath = join(directory, "oracle-artifact.json");
+      const result = await runPhase74SealedProcessPair({
+        cwd: directory,
+        evidenceDirectory: join(directory, "sealed-evidence"),
+        execution: bundles.execution,
+        escrow: bundles.escrow,
+        executorArtifactPath: join(directory, "executor-artifact.json"),
+        executorEnv: {
+          HOME: process.env.HOME,
+          PATH: process.env.PATH,
+          PHASE74_SEALED_ARTIFACT_PATH: join(
+            directory,
+            "executor-artifact.json",
+          ),
+        },
+        executorScript: resolve("tests/fixtures/phase74-sealed-executor.ts"),
+        scorerArtifactPath: oracleArtifactPath,
+        scorerEnv: {
+          HOME: process.env.HOME,
+          PATH: process.env.PATH,
+          PHASE74_SEALED_ORACLE_ARTIFACT_PATH: oracleArtifactPath,
+        },
+        scorerScript: resolve("tests/fixtures/phase74-sealed-scorer.ts"),
+        transcriptPath: join(directory, "process-transcript.json"),
+      });
+
+      expect(result.scorer.receipt.oracleSha256).toBe(
+        createHash("sha256").update(result.scorer.artifact!).digest("hex"),
+      );
+      expect(await readFile(
+        join(directory, "sealed-evidence", "oracle-artifact.json"),
+        "utf8",
+      )).toBe(result.scorer.artifact);
+      expect((await readdir(join(directory, "sealed-evidence"))).sort()).toEqual([
+        "escrow.json",
+        "execution.json",
+        "executor-output.json",
+        "oracle-artifact.json",
+        "score-receipt.json",
+      ]);
+    } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
   });
 
   it("rejects an E4 receipt without a scorer-only oracle artifact", () => {
