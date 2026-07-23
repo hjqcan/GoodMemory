@@ -6,6 +6,7 @@ import {
 } from "../../src/eval/phase74SealedExecution";
 import {
   materializePhase74SealedReport,
+  runPhase74SealedOracleMatrix,
   scorePhase74UnscoredExecution,
 } from "../../src/eval/phase74SealedScoring";
 import {
@@ -192,5 +193,55 @@ describe("Phase 74 sealed scoring", () => {
       scorerPid: 304,
     })).rejects.toThrow("artifact digest");
     expect(assessmentCalls).toBe(0);
+  });
+
+  it("builds all six oracle arms only inside the sealed scorer", async () => {
+    const e3Bundles = buildPhase74SealedBundles({
+      cases: [scoredCase],
+      runId: "sealed-oracle",
+      stage: "E3",
+    });
+    const e3 = await runPhase74UnscoredExecution({
+      baseConfiguration: {},
+      countRenderedTokens: (content) => content.length,
+      executeRetrieval: async ({ arm }) => ({
+        retrievedMemories: [{
+          content: "Postgres is current.",
+          id: `retrieved-${arm}`,
+          sourceIds: ["session-1:source-1"],
+        }],
+        snapshotId: `snapshot-${arm}`,
+        storedMemories: [{
+          content: "Postgres is current.",
+          id: `stored-${arm}`,
+          sourceIds: ["session-1:source-1"],
+        }],
+      }),
+      execution: e3Bundles.execution,
+      executorPid: 501,
+      genericReader: async () => "Postgres",
+      renderEvidenceLedger: async () => "unused",
+    });
+    const e4Bundles = buildPhase74SealedBundles({
+      cases: [scoredCase],
+      runId: "sealed-oracle",
+      stage: "E4",
+    });
+    const oracle = await runPhase74SealedOracleMatrix({
+      countRenderedTokens: (content) => content.length,
+      e3Artifact: e3.artifact,
+      escrow: e4Bundles.escrow,
+      execution: e4Bundles.execution,
+      genericReader: async () => "Postgres",
+      judge: async () => ({ correct: true }),
+      protocolReader: async () => "Postgres",
+    });
+
+    expect(oracle.artifact.rows).toHaveLength(6);
+    expect(new Set(oracle.artifact.rows.map(({ arm }) => arm))).toHaveLength(6);
+    expect(oracle.artifact.rows.every(({ caseId }) =>
+      caseId === "official-private-id"
+    )).toBe(true);
+    expect(oracle.sha256).toMatch(/^[a-f0-9]{64}$/u);
   });
 });
