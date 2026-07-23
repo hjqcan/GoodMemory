@@ -149,7 +149,7 @@ export async function scorePhase74UnscoredExecution(input: {
     testCase,
   ]));
   const observed = new Map<string, Phase74SealedAssessment>();
-  for (const output of executorOutput.rows) {
+  const assessOutput = async (output: Phase74SealedExecutorOutput["rows"][number]) => {
     const executionCase = executionCases.get(output.caseKey);
     const escrowCase = escrowCases.get(output.caseKey);
     if (executionCase === undefined || escrowCase === undefined) {
@@ -171,7 +171,23 @@ export async function scorePhase74UnscoredExecution(input: {
     });
     validateAssessment(assessment, output.rowKey);
     observed.set(output.rowKey, assessment);
-  }
+  };
+  let nextRow = 0;
+  await Promise.all(Array.from(
+    {
+      length: Math.min(
+        execution.caseConcurrency,
+        executorOutput.rows.length,
+      ),
+    },
+    async () => {
+      while (nextRow < executorOutput.rows.length) {
+        const index = nextRow;
+        nextRow += 1;
+        await assessOutput(executorOutput.rows[index]!);
+      }
+    },
+  ));
 
   const receipt = buildPhase74SealedScoreReceipt({
     escrow,

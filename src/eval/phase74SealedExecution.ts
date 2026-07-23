@@ -32,10 +32,11 @@ const executionCaseSchema = z.object({
 }).strict();
 
 const executionBundleSchema = z.object({
+  caseConcurrency: z.number().int().positive(),
   cases: z.array(executionCaseSchema),
   configurationSha256: z.string().regex(/^[a-f0-9]{64}$/u),
   runId: z.string().min(1),
-  schemaVersion: z.literal(5),
+  schemaVersion: z.literal(6),
   stage: z.enum(["E1", "E2", "E3", "E4"]),
 }).strict();
 
@@ -54,7 +55,7 @@ const escrowBundleSchema = z.object({
   cases: z.array(escrowCaseSchema),
   executionSha256: z.string().regex(/^[a-f0-9]{64}$/u),
   runId: z.string().min(1),
-  schemaVersion: z.literal(5),
+  schemaVersion: z.literal(6),
 }).strict();
 
 const executorRowSchema = z.object({
@@ -72,7 +73,7 @@ const executorOutputSchema = z.object({
   executorPid: z.number().int().positive(),
   rows: z.array(executorRowSchema),
   runId: z.string().min(1),
-  schemaVersion: z.literal(5),
+  schemaVersion: z.literal(6),
 }).strict();
 
 const scoreRowSchema = z.object({
@@ -90,7 +91,7 @@ const scoreReceiptSchema = z.object({
   executorOutputSha256: z.string().regex(/^[a-f0-9]{64}$/u),
   rows: z.array(scoreRowSchema),
   runId: z.string().min(1),
-  schemaVersion: z.literal(5),
+  schemaVersion: z.literal(6),
   scorerPid: z.number().int().positive(),
 }).strict();
 
@@ -195,7 +196,15 @@ export function buildPhase74SealedBundles(input: {
     boundary: buildPhase74LabelFreeCaseBoundary(testCase),
     testCase,
   }));
+  const configuredConcurrency = input.executionConfiguration?.caseConcurrency;
+  const caseConcurrency = configuredConcurrency === undefined
+    ? 1
+    : configuredConcurrency;
+  if (!Number.isSafeInteger(caseConcurrency) || Number(caseConcurrency) <= 0) {
+    throw new Error("Phase 74 sealed caseConcurrency must be a positive integer.");
+  }
   const execution = parsePhase74SealedExecutionBundle({
+    caseConcurrency,
     cases: boundaries.map(({ boundary }) => ({
       caseKey: boundary.caseKey,
       ...(boundary.recallCase.locale === undefined
@@ -214,7 +223,7 @@ export function buildPhase74SealedBundles(input: {
       input.executionConfiguration ?? {},
     ),
     runId: input.runId,
-    schemaVersion: 5,
+    schemaVersion: 6,
     stage: input.stage,
   });
   const escrow = parsePhase74SealedEscrowBundle({
@@ -234,7 +243,7 @@ export function buildPhase74SealedBundles(input: {
     })),
     executionSha256: sha256Json(execution),
     runId: input.runId,
-    schemaVersion: 5,
+    schemaVersion: 6,
   });
   return { escrow, execution };
 }
@@ -251,7 +260,7 @@ export function buildPhase74SealedExecutorOutput(input: {
     executorPid: input.executorPid,
     rows: input.rows,
     runId: input.execution.runId,
-    schemaVersion: 5,
+    schemaVersion: 6,
   });
 }
 
@@ -267,7 +276,7 @@ export function buildPhase74SealedScoreReceipt(input: {
     executorOutputSha256: sha256Json(input.executorOutput),
     rows: input.rows,
     runId: input.escrow.runId,
-    schemaVersion: 5,
+    schemaVersion: 6,
     scorerPid: input.scorerPid,
   });
 }
@@ -492,7 +501,7 @@ export async function runPhase74SealedProcessPair(input: {
     executionSha256: sha256Json(execution),
     executorOutputSha256: sha256Json(executorOutput),
     receiptSha256: sha256Json(receipt),
-    schemaVersion: 5,
+    schemaVersion: 6,
   }, null, 2)}\n`);
   return {
     events,

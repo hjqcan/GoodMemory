@@ -348,11 +348,7 @@ export async function runPhase74UnscoredExecution(
   );
   const now = input.now ?? (() => performance.now());
   const expectedRows = listPhase74SealedExpectedRows(execution);
-  const concurrencyValue = input.baseConfiguration.caseConcurrency;
-  const caseConcurrency = concurrencyValue === undefined ? 1 : concurrencyValue;
-  if (!Number.isSafeInteger(caseConcurrency) || Number(caseConcurrency) <= 0) {
-    throw new Error("Phase 74 sealed caseConcurrency must be a positive integer.");
-  }
+  const caseConcurrency = execution.caseConcurrency;
 
   const executeCase = async (
     testCase: Phase74SealedExecutionBundle["cases"][number],
@@ -496,7 +492,7 @@ export async function runPhase74UnscoredExecution(
   const caseResults = new Array<Phase74UnscoredRow[]>(execution.cases.length);
   let nextCase = 0;
   const workers = Array.from(
-    { length: Math.min(Number(caseConcurrency), execution.cases.length) },
+    { length: Math.min(caseConcurrency, execution.cases.length) },
     async () => {
       while (nextCase < execution.cases.length) {
         const index = nextCase;
