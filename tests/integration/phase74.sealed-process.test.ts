@@ -324,7 +324,7 @@ describe("Phase 74 sealed process boundary", () => {
       expect(await readFile(
         join(directory, "sealed-evidence", "oracle-artifact.json"),
         "utf8",
-      )).toBe(result.scorer.artifact);
+      )).toBe(result.scorer.artifact!);
       expect((await readdir(join(directory, "sealed-evidence"))).sort()).toEqual([
         "escrow.json",
         "execution.json",

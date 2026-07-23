@@ -408,6 +408,7 @@ export async function runPhase74SealedProcessPair(input: {
   executorEnv: Readonly<Record<string, string | undefined>>;
   executorScript: string;
   scorerEnv: Readonly<Record<string, string | undefined>>;
+  scorerArtifactPath?: string;
   scorerScript: string;
   transcriptPath: string;
 }): Promise<{
@@ -420,7 +421,11 @@ export async function runPhase74SealedProcessPair(input: {
     stdin: string;
     stdout: string;
   };
-  scorer: { pid: number; receipt: Phase74SealedScoreReceipt };
+  scorer: {
+    artifact?: string;
+    pid: number;
+    receipt: Phase74SealedScoreReceipt;
+  };
 }> {
   const execution = parsePhase74SealedExecutionBundle(input.execution);
   const escrow = parsePhase74SealedEscrowBundle(input.escrow);
@@ -490,11 +495,33 @@ export async function runPhase74SealedProcessPair(input: {
     executorOutput,
     receipt,
   });
+  let scorerArtifact: string | undefined;
+  if (receipt.oracleSha256 !== undefined) {
+    if (input.scorerArtifactPath === undefined) {
+      throw new Error("Phase 74 sealed E4 scorer artifact path is required.");
+    }
+    scorerArtifact = await readFile(input.scorerArtifactPath, "utf8");
+    if (
+      createHash("sha256").update(scorerArtifact).digest("hex") !==
+        receipt.oracleSha256
+    ) {
+      throw new Error("Phase 74 sealed scorer artifact digest drifted.");
+    }
+  } else if (input.scorerArtifactPath !== undefined) {
+    throw new Error("Phase 74 sealed scorer artifact was not bound by receipt.");
+  }
   await writeFile(
     join(input.evidenceDirectory, "score-receipt.json"),
     JSON.stringify(receipt),
     { encoding: "utf8", flag: "wx" },
   );
+  if (scorerArtifact !== undefined) {
+    await writeFile(
+      join(input.evidenceDirectory, "oracle-artifact.json"),
+      scorerArtifact,
+      { encoding: "utf8", flag: "wx" },
+    );
+  }
   await writeFile(input.transcriptPath, `${JSON.stringify({
     events,
     artifactSha256: executorOutput.artifactSha256,
@@ -502,10 +529,16 @@ export async function runPhase74SealedProcessPair(input: {
       escrow: "escrow.json",
       execution: "execution.json",
       executorOutput: "executor-output.json",
+      ...(scorerArtifact === undefined
+        ? {}
+        : { oracleArtifact: "oracle-artifact.json" }),
       scoreReceipt: "score-receipt.json",
     },
     executionSha256: sha256Json(execution),
     executorOutputSha256: sha256Json(executorOutput),
+    ...(receipt.oracleSha256 === undefined
+      ? {}
+      : { oracleSha256: receipt.oracleSha256 }),
     receiptSha256: sha256Json(receipt),
     schemaVersion: 7,
   }, null, 2)}\n`);
@@ -519,6 +552,10 @@ export async function runPhase74SealedProcessPair(input: {
       stdin: executorStdin,
       stdout: executor.stdout,
     },
-    scorer: { pid: scorer.pid, receipt },
+    scorer: {
+      ...(scorerArtifact === undefined ? {} : { artifact: scorerArtifact }),
+      pid: scorer.pid,
+      receipt,
+    },
   };
 }
