@@ -17,6 +17,9 @@ const raw = JSON.parse(await Bun.stdin.text()) as {
 const escrow = parsePhase74SealedEscrowBundle(raw.escrow);
 const execution = parsePhase74SealedExecutionBundle(raw.execution);
 const executorOutput = parsePhase74SealedExecutorOutput(raw.executorOutput);
+if (process.env.PHASE74_SEALED_SCORER_FAIL === "1") {
+  throw new Error("deliberate sealed scorer failure");
+}
 const escrowCases = new Map(
   escrow.cases.map((testCase) => [testCase.caseKey, testCase]),
 );

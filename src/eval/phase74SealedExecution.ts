@@ -380,6 +380,30 @@ function processEnv(
   );
 }
 
+async function readOptional(path: string): Promise<string | null> {
+  try {
+    return await readFile(path, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+}
+
+async function writeExactOrMatch(path: string, content: string): Promise<void> {
+  try {
+    await writeFile(path, content, { encoding: "utf8", flag: "wx" });
+  } catch (error) {
+    if (
+      (error as NodeJS.ErrnoException).code !== "EEXIST" ||
+      await readFile(path, "utf8") !== content
+    ) {
+      throw error;
+    }
+  }
+}
+
 async function runChild(input: {
   cwd: string;
   env: Readonly<Record<string, string | undefined>>;
@@ -442,41 +466,69 @@ export async function runPhase74SealedProcessPair(input: {
   }
   const events: Array<{ event: string; pid?: number }> = [{ event: "seal" }];
   const executorStdin = JSON.stringify(execution);
-  const executor = await runChild({
-    cwd: input.cwd,
-    env: input.executorEnv,
-    script: input.executorScript,
-    stdin: executorStdin,
-  });
-  events.push({ event: "executor_exit", pid: executor.pid });
-  if (executor.exitCode !== 0) {
-    throw new Error(`Phase 74 sealed executor failed: ${executor.stderr.trim()}`);
-  }
-  const executorOutput = parsePhase74SealedExecutorOutput(
-    JSON.parse(executor.stdout),
+  await mkdir(input.evidenceDirectory, { recursive: true });
+  const executorOutputPath = join(
+    input.evidenceDirectory,
+    "executor-output.json",
   );
-  const artifact = await readFile(input.executorArtifactPath, "utf8");
+  const [savedOutputRaw, savedArtifact] = await Promise.all([
+    readOptional(executorOutputPath),
+    readOptional(input.executorArtifactPath),
+  ]);
+  let executor: Awaited<ReturnType<typeof runChild>>;
+  let executorOutput: Phase74SealedExecutorOutput;
+  let artifact: string;
+  if (savedOutputRaw !== null && savedArtifact !== null) {
+    executorOutput = parsePhase74SealedExecutorOutput(
+      JSON.parse(savedOutputRaw),
+    );
+    artifact = savedArtifact;
+    executor = {
+      exitCode: 0,
+      pid: executorOutput.executorPid,
+      stderr: "",
+      stdout: savedOutputRaw,
+    };
+    events.push({ event: "executor_reused", pid: executor.pid });
+  } else {
+    executor = await runChild({
+      cwd: input.cwd,
+      env: input.executorEnv,
+      script: input.executorScript,
+      stdin: executorStdin,
+    });
+    events.push({ event: "executor_exit", pid: executor.pid });
+    if (executor.exitCode !== 0) {
+      throw new Error(`Phase 74 sealed executor failed: ${executor.stderr.trim()}`);
+    }
+    executorOutput = parsePhase74SealedExecutorOutput(
+      JSON.parse(executor.stdout),
+    );
+    artifact = await readFile(input.executorArtifactPath, "utf8");
+  }
   if (createHash("sha256").update(artifact).digest("hex") !==
-    executorOutput.artifactSha256) {
+      executorOutput.artifactSha256 ||
+    executorOutput.runId !== execution.runId ||
+    executorOutput.executionSha256 !== sha256Json(execution) ||
+    !sameOrderedRows(
+      listPhase74SealedExpectedRows(execution),
+      executorOutput.rows,
+    )) {
     throw new Error("Phase 74 sealed executor artifact digest drifted.");
   }
   events.push({ event: "artifact_verified" });
-  await mkdir(input.evidenceDirectory, { recursive: true });
   await Promise.all([
-    writeFile(
+    writeExactOrMatch(
       join(input.evidenceDirectory, "execution.json"),
       JSON.stringify(execution),
-      { encoding: "utf8", flag: "wx" },
     ),
-    writeFile(
+    writeExactOrMatch(
       join(input.evidenceDirectory, "escrow.json"),
       JSON.stringify(escrow),
-      { encoding: "utf8", flag: "wx" },
     ),
-    writeFile(
-      join(input.evidenceDirectory, "executor-output.json"),
+    writeExactOrMatch(
+      executorOutputPath,
       JSON.stringify(executorOutput),
-      { encoding: "utf8", flag: "wx" },
     ),
   ]);
   events.push({ event: "labels_committed" });
@@ -519,16 +571,14 @@ export async function runPhase74SealedProcessPair(input: {
   } else if (input.scorerArtifactPath !== undefined) {
     throw new Error("Phase 74 sealed scorer artifact was not bound by receipt.");
   }
-  await writeFile(
+  await writeExactOrMatch(
     join(input.evidenceDirectory, "score-receipt.json"),
     JSON.stringify(receipt),
-    { encoding: "utf8", flag: "wx" },
   );
   if (scorerArtifact !== undefined) {
-    await writeFile(
+    await writeExactOrMatch(
       join(input.evidenceDirectory, "oracle-artifact.json"),
       scorerArtifact,
-      { encoding: "utf8", flag: "wx" },
     );
   }
   await writeFile(input.transcriptPath, `${JSON.stringify({
