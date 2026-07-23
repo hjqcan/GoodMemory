@@ -1,0 +1,122 @@
+{
+  "artifactSchemaVersion": "phase74-storage-scale-gate-v1",
+  "audit": {
+    "ftsIndexedDocumentCount": 100000,
+    "ftsKeyCount": 100000,
+    "languagePackCounts": {
+      "en": 14286,
+      "es": 14284,
+      "fr": 14286,
+      "ja": 14286,
+      "ko": 14286,
+      "zh-Hans": 14286,
+      "zh-Hant": 14286
+    },
+    "projectionCounts": {
+      "claims": 50000,
+      "entities": 50000,
+      "statuses": 50000
+    },
+    "sentinelJsonValid": false,
+    "storedRowCount": 150002,
+    "maxMaterializedDocumentsPerQuery": 12,
+    "materializationCounters": {
+      "fullCollectionReads": 0,
+      "maxDocumentsPerChannelPerQuery": 12,
+      "pagedReads": 0,
+      "pointReads": 540,
+      "textSearches": 90
+    },
+    "methodCalls": {
+      "get": 540,
+      "query": 0,
+      "queryPage": 0,
+      "searchText": 90
+    },
+    "nonMatchingSentinelDidNotBreakSearch": true,
+    "sqlQueryPlan": [
+      "claim_projections_v2: SCAN document_text_fts VIRTUAL TABLE INDEX 0:M3",
+      "claim_projections_v2: SEARCH documents USING INDEX sqlite_autoindex_documents_1 (collection=? AND id=?)",
+      "claim_projections_v2: USE TEMP B-TREE FOR ORDER BY",
+      "entities_v2: SCAN document_text_fts VIRTUAL TABLE INDEX 0:M3",
+      "entities_v2: SEARCH documents USING INDEX sqlite_autoindex_documents_1 (collection=? AND id=?)",
+      "entities_v2: USE TEMP B-TREE FOR ORDER BY"
+    ],
+    "usesFtsVirtualTableIndex": true
+  },
+  "database": "sqlite",
+  "gate": "claim-entity-projection-query",
+  "generatedAt": "2026-07-23T02:31:30.941Z",
+  "latencyMs": {
+    "max": 0.667,
+    "mean": 0.549,
+    "min": 0.497,
+    "p50": 0.533,
+    "p95": 0.643,
+    "p99": 0.667
+  },
+  "measuredQueryCount": 40,
+  "parameters": {
+    "measuredQueryCount": 40,
+    "searchableDocumentCount": 100000,
+    "selectedLimit": 12,
+    "storedProjectionDocumentCount": 150000,
+    "thresholdMs": 500,
+    "warmupQueryCount": 5
+  },
+  "passed": true,
+  "phase": "phase-74",
+  "runtime": {
+    "arch": "arm64",
+    "bunVersion": "1.3.11",
+    "platform": "darwin"
+  },
+  "selectedLimit": 12,
+  "sourceBinding": {
+    "commitSha": "3324817d1bd30b0f425c9d770ae6f3503dbe1d84",
+    "sourceManifestSha256": "abd2e35c4347f91e7b70816bffe50888814720187d23ab35007a896342e72d0c",
+    "sources": [
+      {
+        "path": "scripts/run-phase-74-storage-scale-gate.ts",
+        "sha256": "0cae15820ef76a3d7af359f36b605810a0c527a6b56d7b572d5dabaf93c6cb70"
+      },
+      {
+        "path": "src/recall/projections/claims.ts",
+        "sha256": "9ca210cbcde0a9c00c26099ec69154cf0787dd811da60dd3998a1be24baf9d77"
+      },
+      {
+        "path": "src/recall/projections/contracts.ts",
+        "sha256": "70c7b8a677df8fcbcbe953c37e14220f151ade57cd618ab0e18cca7e92e4547b"
+      },
+      {
+        "path": "src/recall/projections/entityIndex.ts",
+        "sha256": "9b625f6e193840cba04bddeffe494bfaffe6387d4daf7861040d323d8dd93eb7"
+      },
+      {
+        "path": "src/recall/projections/runtime.ts",
+        "sha256": "7238493521e2b46ba5e9ffd1f2ab5f97de3f01b20a87c87f5c491c808d370a24"
+      },
+      {
+        "path": "src/recall/projections/shared.ts",
+        "sha256": "2ba80b33ceb18c4c10c1ff6a73b6c3f1afb03137f30851675b3c1bb9ab977ed2"
+      },
+      {
+        "path": "src/storage/contracts.ts",
+        "sha256": "d860317b56716ae65db44ece1cda4332ea6320ee4000789c7d014c61104849c4"
+      },
+      {
+        "path": "src/storage/sqlite.ts",
+        "sha256": "636766e6fd24ff207b026418b325a806adffc50e0a3181b482fe3b7381c90c10"
+      },
+      {
+        "path": "src/storage/textSearch.ts",
+        "sha256": "15a7846183bdca0d3264565e411e72b02422bd012804bb14d329ea2dcc1fba57"
+      }
+    ],
+    "treeSha": "7de7b62b518d5b5bfddeb78b03fc8b18a979d3e6",
+    "worktreeClean": true
+  },
+  "syntheticDocumentCount": 100000,
+  "thresholdMs": 500,
+  "warmupQueryCount": 5
+}
