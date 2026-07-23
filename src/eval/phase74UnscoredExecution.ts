@@ -1,4 +1,8 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
+import { z } from "zod";
 
 import type { EvidenceLedgerFormat } from "./evidenceLedgerFormats";
 import {
@@ -83,8 +87,14 @@ export interface Phase74UnscoredExecutionArtifact {
   stage: Phase74SealedExecutionBundle["stage"];
 }
 
+export interface Phase74UnscoredCheckpoint {
+  load(rowKey: string): Promise<Phase74UnscoredRow | null>;
+  save(row: Phase74UnscoredRow): Promise<void>;
+}
+
 export interface RunPhase74UnscoredExecutionInput {
   baseConfiguration: EvalRunJsonObject;
+  checkpoint?: Phase74UnscoredCheckpoint;
   contextTokenBudget?: number;
   countRenderedTokens: RenderedTokenCounter;
   executeRetrieval(
@@ -106,6 +116,164 @@ export interface RunPhase74UnscoredExecutionInput {
 
 function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+const unscoredRowBaseSchema = z.object({
+  answer: z.string(),
+  answerLatencyMs: z.number().nonnegative(),
+  caseKey: z.string().min(1),
+  clusterKey: z.string().min(1),
+  contextTokens: z.number().nonnegative(),
+  contextTokensBeforeTruncation: z.number().nonnegative(),
+  contextTruncated: z.boolean(),
+  observedAnswer: z.string(),
+  productLatencyMs: z.number().nonnegative(),
+  readerInputSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+  recallLatencyMs: z.number().nonnegative(),
+  renderedContext: z.string(),
+  renderedContextSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+  reused: z.boolean(),
+  rowKey: z.string().min(1),
+  sourceRowKey: z.string().min(1),
+  sourceSnapshotId: z.string().min(1),
+  unit: z.string().min(1),
+});
+
+const unscoredSnapshotSchema = z.object({
+  retrievedMemories: z.array(z.unknown()),
+  snapshotId: z.string().min(1),
+  storedMemories: z.array(z.unknown()),
+}).passthrough();
+
+const unscoredRowSchema = z.discriminatedUnion("kind", [
+  unscoredRowBaseSchema.extend({
+    kind: z.literal("retrieval"),
+    snapshot: unscoredSnapshotSchema,
+    stage: z.enum(["E1", "E2", "E3"]),
+  }).strict(),
+  unscoredRowBaseSchema.extend({
+    format: z.enum(["prose", "chronology", "compact_json", "json_locale_note"]),
+    kind: z.literal("ledger"),
+    renderedLedgerSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+    stage: z.literal("E4"),
+  }).strict(),
+]);
+
+const checkpointEnvelopeSchema = z.object({
+  executionSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+  row: unscoredRowSchema,
+  rowSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+  schemaVersion: z.literal(1),
+}).strict();
+
+const FORBIDDEN_CHECKPOINT_KEYS = new Set([
+  "correct",
+  "evaluation",
+  "expectedAnswer",
+  "goldEvidenceIds",
+  "judge",
+  "observedCorrect",
+  "observedScore",
+  "protocolMetadata",
+]);
+
+function assertUnscoredValue(value: unknown): void {
+  if (Array.isArray(value)) {
+    value.forEach(assertUnscoredValue);
+    return;
+  }
+  if (value === null || typeof value !== "object") {
+    return;
+  }
+  for (const [key, nested] of Object.entries(value)) {
+    if (FORBIDDEN_CHECKPOINT_KEYS.has(key)) {
+      throw new Error(`Phase 74 unscored checkpoint contains forbidden key ${key}.`);
+    }
+    assertUnscoredValue(nested);
+  }
+}
+
+function parseUnscoredRow(value: unknown): Phase74UnscoredRow {
+  assertUnscoredValue(value);
+  const parsed = unscoredRowSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid Phase 74 unscored checkpoint row: ${parsed.error.issues[0]?.message ?? "invalid"}.`,
+    );
+  }
+  return parsed.data as Phase74UnscoredRow;
+}
+
+export function createPhase74UnscoredFileCheckpoint(input: {
+  directory: string;
+  execution: Phase74SealedExecutionBundle;
+}): Phase74UnscoredCheckpoint {
+  const execution = parsePhase74SealedExecutionBundle(input.execution);
+  const executionSha256 = sha256Phase74SealedExecution(execution);
+  const expectedRows = new Map(listPhase74SealedExpectedRows(execution).map(
+    (row) => [row.rowKey, row],
+  ));
+  const pathFor = (rowKey: string) =>
+    join(input.directory, `${sha256(rowKey)}.json`);
+
+  const parseEnvelope = (raw: string, rowKey: string): Phase74UnscoredRow => {
+    const parsed = checkpointEnvelopeSchema.safeParse(JSON.parse(raw));
+    if (!parsed.success) {
+      throw new Error("Invalid Phase 74 unscored checkpoint envelope.");
+    }
+    const row = parseUnscoredRow(parsed.data.row);
+    const expected = expectedRows.get(rowKey);
+    if (
+      expected === undefined ||
+      parsed.data.executionSha256 !== executionSha256 ||
+      parsed.data.rowSha256 !== sha256(JSON.stringify(row)) ||
+      row.rowKey !== rowKey ||
+      row.caseKey !== expected.caseKey ||
+      row.unit !== expected.unit ||
+      row.stage !== execution.stage
+    ) {
+      throw new Error("Phase 74 unscored checkpoint digest or identity drifted.");
+    }
+    return row;
+  };
+
+  return {
+    async load(rowKey) {
+      try {
+        return parseEnvelope(await readFile(pathFor(rowKey), "utf8"), rowKey);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+          return null;
+        }
+        throw error;
+      }
+    },
+    async save(row) {
+      const path = pathFor(row.rowKey);
+      const existing = await this.load(row.rowKey);
+      if (existing !== null) {
+        if (sha256(JSON.stringify(existing)) !== sha256(JSON.stringify(row))) {
+          throw new Error("Phase 74 unscored checkpoint row drifted.");
+        }
+        return;
+      }
+      const parsedRow = parseUnscoredRow(row);
+      const raw = `${JSON.stringify({
+        executionSha256,
+        row: parsedRow,
+        rowSha256: sha256(JSON.stringify(parsedRow)),
+        schemaVersion: 1,
+      })}\n`;
+      await mkdir(input.directory, { recursive: true });
+      const temporaryPath = `${path}.${randomUUID()}.tmp`;
+      try {
+        await writeFile(temporaryPath, raw, { encoding: "utf8", flag: "wx" });
+        await rename(temporaryPath, path);
+      } finally {
+        await rm(temporaryPath, { force: true });
+      }
+    },
+  };
 }
 
 function withoutEvaluation(
@@ -167,6 +335,16 @@ export async function runPhase74UnscoredExecution(
     const testCase = cases.get(expected.caseKey);
     if (testCase === undefined) {
       throw new Error(`Unknown Phase 74 sealed case ${expected.caseKey}.`);
+    }
+    const cached = await input.checkpoint?.load(expected.rowKey) ?? null;
+    if (cached !== null) {
+      rows.push(cached);
+      readerResults.set(`${cached.caseKey}:${cached.readerInputSha256}`, {
+        answer: cached.answer,
+        rowKey: cached.sourceRowKey,
+        snapshotId: cached.sourceSnapshotId,
+      });
+      continue;
     }
     const productStartedAt = now();
     let renderedContext: string;
@@ -264,7 +442,7 @@ export async function runPhase74UnscoredExecution(
       sourceSnapshotId,
       unit: expected.unit,
     };
-    rows.push(execution.stage === "E4"
+    const row: Phase74UnscoredRow = execution.stage === "E4"
       ? {
           ...common,
           format: expected.unit as EvidenceLedgerFormat,
@@ -277,7 +455,9 @@ export async function runPhase74UnscoredExecution(
           kind: "retrieval",
           snapshot,
           stage: execution.stage,
-        });
+        };
+    await input.checkpoint?.save(row);
+    rows.push(row);
   }
 
   const artifact: Phase74UnscoredExecutionArtifact = {
