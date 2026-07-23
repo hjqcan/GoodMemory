@@ -186,10 +186,18 @@ export async function runPhase74ProtectionEvidenceGeneration(
         ],
         liveClosureVerifier: dependencies.liveClosureVerifier ??
           PHASE74_CANONICAL_LIVE_CLOSURE_VERIFIER,
+        verifierSourceFiles: dependencies.verifierSourceFiles ??
+          (options.beamContractPath === undefined
+            ? []
+            : [resolve(options.beamContractPath)]),
       }
     : {
         liveClosureVerifier: dependencies.liveClosureVerifier ??
           PHASE74_CANONICAL_LIVE_CLOSURE_VERIFIER,
+        verifierSourceFiles: dependencies.verifierSourceFiles ??
+          (options.beamContractPath === undefined
+            ? []
+            : [resolve(options.beamContractPath)]),
         verifiers: [...dependencies.verifiers, ...beamVerifier],
       };
   const evidence = await buildPhase74FrozenProtectionSuiteEvidence({

@@ -1215,6 +1215,7 @@ class GoodMemoryImpl implements GoodMemory {
       language,
       projectionRepair: projectionRuntime,
       projectionMigration: projectionRuntime,
+      retrievalCues: config.adapters?.retrievalCueGenerator,
       now: () => this.now().toISOString(),
     });
     const dreamMaintenanceGate = createDreamMaintenanceGate();

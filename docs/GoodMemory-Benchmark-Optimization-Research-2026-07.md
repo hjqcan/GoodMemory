@@ -762,6 +762,23 @@ touched (owned by a parallel workstream).
   (misclassification confirmed on a live improver; also relevant to BEAM's
   aggregate_count vs temporal families).
 
+- **R6 increment 1 (2026-07-21) — write-time question expansion, retrieval
+  side + backfill job.** Cues live under the reserved
+  `attributes.retrievalCues` key (newline-joined; `MemoryAttributeValue` has
+  no arrays): fact attributes already project as field-granularity recall
+  documents, so cues feed the lexical/BM25 channel with zero projector
+  change, and the context builder never renders attributes, so cues cannot
+  leak into answer context — both properties pinned by tests (a fact whose
+  content shares no tokens with the query is admitted through its cue; the
+  cue string never appears in the packet). Generation is the opt-in
+  `retrievalCues` maintenance job driven by the injected
+  `adapters.retrievalCueGenerator` (bounded 16 facts/run, ≤4 cues ≤160 chars
+  each, sanitized/deduped, per-fact failure tolerant, idempotent — covered
+  facts never re-generate). Remaining for full R6: a provider-backed
+  generator factory (adapting the assisted-extraction provider) so installed
+  configs can enable it without custom code, and the LoCoMo missing-evidence
+  measurement once cue generation has a paid or stubbed corpus.
+
 Verification state at close of the pass: full canonical sweep green — 3,537
 unit + 645 integration/scenario/cli/eval/type/consumer + 101 example/release
 tests, 0 failures, typecheck clean. One unrelated pre-existing failure was

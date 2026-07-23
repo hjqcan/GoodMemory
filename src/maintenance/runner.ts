@@ -47,6 +47,7 @@ export type MaintenanceJobName =
   | "qualityRepair"
   | "consolidation"
   | "embeddingRepair"
+  | "retrievalCues"
   | "ttlExpiry";
 
 export interface MaintenanceRunnerConfig {
@@ -62,6 +63,16 @@ export interface MaintenanceRunnerConfig {
     }>;
   };
   repositories: MaintenanceRepositoryPort & { vectorIndex?: MaintenanceVectorPort | null };
+  // Opt-in generator for the retrievalCues job. Absent means the job applies
+  // nothing.
+  retrievalCues?: {
+    generate(input: {
+      category: string;
+      content: string;
+      subject?: string;
+    }): Promise<string[]>;
+    maxFactsPerRun?: number;
+  };
   vectorIndex?: MaintenanceVectorPort | null;
   now?: () => string;
 }
@@ -774,6 +785,85 @@ async function runEmbeddingRepair(
   };
 }
 
+const RETRIEVAL_CUES_ATTRIBUTE = "retrievalCues";
+const RETRIEVAL_CUES_MAX_PER_FACT = 4;
+const RETRIEVAL_CUES_MAX_CUE_CHARS = 160;
+const RETRIEVAL_CUES_DEFAULT_MAX_FACTS_PER_RUN = 16;
+
+// Backfill write-time question expansions ("retrieval cues") for active facts
+// that lack them. Cues bridge the question-to-fact phrasing gap in the lexical
+// channel: fact attributes already project as field-granularity recall
+// documents, and the context builder never renders attributes, so cues are
+// retrieval keys only. Generator failures skip the fact and never fail the
+// run; facts that already carry cues are never re-generated, so repeated runs
+// converge.
+async function runRetrievalCueBackfill(
+  repositories: MaintenanceRepositoryPort,
+  generator: MaintenanceRunnerConfig["retrievalCues"],
+  scope: MemoryScope,
+  timestamp: string,
+): Promise<MaintenanceJobReport> {
+  if (!generator) {
+    return { name: "retrievalCues", applied: 0 };
+  }
+  const maxFacts = Math.max(
+    1,
+    Math.floor(
+      generator.maxFactsPerRun ?? RETRIEVAL_CUES_DEFAULT_MAX_FACTS_PER_RUN,
+    ),
+  );
+  const facts = sortFactsForMaintenance(
+    (await repositories.facts.listByScope(scope)).filter(
+      (fact) =>
+        fact.lifecycle === "active" &&
+        typeof fact.attributes?.[RETRIEVAL_CUES_ATTRIBUTE] !== "string",
+    ),
+  ).slice(0, maxFacts);
+  let applied = 0;
+
+  for (const fact of facts) {
+    let cues: string[];
+    try {
+      cues = await generator.generate({
+        category: fact.category,
+        content: fact.content,
+        ...(fact.subject && fact.subject !== "unknown"
+          ? { subject: fact.subject }
+          : {}),
+      });
+    } catch (error) {
+      console.error("[goodmemory:maintenance] retrieval-cue generation failed", {
+        error: error instanceof Error ? error.message : String(error),
+        factId: fact.id,
+      });
+      continue;
+    }
+    const sanitized = [
+      ...new Set(
+        cues
+          .map((cue) => cue.trim().slice(0, RETRIEVAL_CUES_MAX_CUE_CHARS))
+          .filter((cue) => cue.length > 0),
+      ),
+    ].slice(0, RETRIEVAL_CUES_MAX_PER_FACT);
+    if (sanitized.length === 0) {
+      continue;
+    }
+    await repositories.facts.add(
+      createFactMemory({
+        ...fact,
+        attributes: {
+          ...fact.attributes,
+          [RETRIEVAL_CUES_ATTRIBUTE]: sanitized.join("\n"),
+        },
+        updatedAt: timestamp,
+      }),
+    );
+    applied += 1;
+  }
+
+  return { name: "retrievalCues", applied };
+}
+
 export function createMaintenanceRunner(config: MaintenanceRunnerConfig) {
   const language = config.language ?? createLanguageService();
   const now = config.now ?? (() => new Date().toISOString());
@@ -881,6 +971,18 @@ export function createMaintenanceRunner(config: MaintenanceRunnerConfig) {
             await runTtlExpiry(
               config.repositories,
               vectorIndex,
+              scope,
+              timestamp,
+            ),
+          );
+          continue;
+        }
+
+        if (job === "retrievalCues") {
+          reports.push(
+            await runRetrievalCueBackfill(
+              config.repositories,
+              config.retrievalCues,
               scope,
               timestamp,
             ),

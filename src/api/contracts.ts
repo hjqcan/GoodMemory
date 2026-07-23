@@ -186,6 +186,17 @@ export interface GoodMemoryConfig {
     // RecallPlan selectedLimit across facts, references, episodes, and archives.
     reranker?: Reranker;
     recallPlanner?: RecallPlanAssistant;
+    // Opt-in generator for the retrievalCues maintenance job: write-time
+    // question expansions stored under the reserved
+    // attributes.retrievalCues key. Cues are index-only retrieval keys —
+    // projected into the lexical channel, never rendered into context.
+    retrievalCueGenerator?: {
+      generate(input: {
+        category: string;
+        content: string;
+        subject?: string;
+      }): Promise<string[]>;
+    };
     sessionStore?: SessionStore;
     /**
      * Required before terminal deletion when custom storage adapters are used.

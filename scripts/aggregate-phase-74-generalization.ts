@@ -281,6 +281,7 @@ export interface Phase74ArtifactAggregationInput {
 
 export interface Phase74ArtifactAggregationDependencies {
   protectionLiveClosureVerifier?: Phase74ProtectionLiveClosureVerifier;
+  protectionVerifierSourceFiles?: readonly string[];
   protectionVerifiers?: readonly Phase74ProtectionSuiteVerifier[];
 }
 
@@ -2577,6 +2578,7 @@ async function loadProtectionArtifact(
   const { evidence, sha256: artifactSha256 } =
     await loadPhase74FrozenProtectionSuiteEvidence(path, {
       liveClosureVerifier: dependencies.protectionLiveClosureVerifier,
+      verifierSourceFiles: dependencies.protectionVerifierSourceFiles,
       verifiers: dependencies.protectionVerifiers,
     });
   return {
@@ -3231,6 +3233,11 @@ export async function runPhase74GeneralizationAggregation(
     protectionLiveClosureVerifier:
       dependencies.protectionLiveClosureVerifier ??
         PHASE74_CANONICAL_LIVE_CLOSURE_VERIFIER,
+    protectionVerifierSourceFiles:
+      dependencies.protectionVerifierSourceFiles ??
+        (options.beamContractPath === undefined
+          ? []
+          : [resolve(options.beamContractPath)]),
     protectionVerifiers,
   };
   if (options.protectionArtifactPath !== undefined) {
@@ -3240,6 +3247,8 @@ export async function runPhase74GeneralizationAggregation(
       {
         liveClosureVerifier:
           aggregationDependencies.protectionLiveClosureVerifier,
+        verifierSourceFiles:
+          aggregationDependencies.protectionVerifierSourceFiles,
         verifiers: protectionVerifiers,
       },
     );

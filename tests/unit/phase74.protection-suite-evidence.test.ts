@@ -66,9 +66,13 @@ import {
   isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible,
   loadPhase74ProtectionBlueprintDescriptor,
   loadPhase74FrozenProtectionSuiteEvidence,
+  PHASE74_BEAM_LIVE_CLOSURE_VERIFIER_ID,
+  PHASE74_HALUMEM_LIVE_CLOSURE_VERIFIER_ID,
   phase74ProtectionSuiteMetricName,
 } from "../../src/eval/phase74ProtectionSuiteEvidence";
 import type {
+  Phase74ProtectionFileReference,
+  Phase74ProtectionLiveClosureVerifier,
   Phase74ProtectionSuiteManifest,
 } from "../../src/eval/phase74ProtectionSuiteEvidence";
 import type {
@@ -579,6 +583,85 @@ async function createPlannedFixture(
   };
 }
 
+function createTestLiveClosureVerifier(
+  root: string,
+): Phase74ProtectionLiveClosureVerifier {
+  const reference = async (
+    path: string,
+    value: unknown,
+  ): Promise<Phase74ProtectionFileReference> => {
+    const text = `${JSON.stringify(value)}\n`;
+    await mkdir(dirname(path), { recursive: true });
+    try {
+      await writeFile(path, text, { encoding: "utf8", flag: "wx" });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+        throw error;
+      }
+    }
+    const persisted = await readFile(path, "utf8");
+    return { path: resolve(path), sha256: sha256(persisted) };
+  };
+  return {
+    async verify({ plan, runs }) {
+      const receipts = [];
+      for (const replicate of [1, 2, 3] as const) {
+        for (const kind of ["beam", "halumem"] as const) {
+          const selected = runs.filter(({ replicate: runReplicate, suite }) =>
+            runReplicate === replicate &&
+            (kind === "beam"
+              ? suite.id === PHASE74_BEAM_SAFETY_SUITE.id
+              : ([
+                  PHASE74_HALUMEM_E4_SUITE.id,
+                  PHASE74_HALUMEM_PRIVACY_SUITE.id,
+                  PHASE74_HALUMEM_UPDATE_SUITE.id,
+                ] as string[]).includes(suite.id))
+          );
+          const directory = join(root, "closure", kind, String(replicate));
+          const callBudgetArtifact = await reference(
+            join(directory, "call-budget.json"),
+            {
+              embeddingSpendLimitUsd: 0.25,
+              maxLanguageCalls: 1_000,
+              schemaVersion: 1,
+            },
+          );
+          const closureArtifact = await reference(
+            join(directory, "closure.json"),
+            { kind, replicate },
+          );
+          const usageArtifact = await reference(
+            join(directory, "usage.jsonl"),
+            { kind, replicate },
+          );
+          receipts.push({
+            callBudgetArtifact,
+            closureArtifact,
+            closureVerifier: canonicalVerifierDescriptor(
+              kind === "beam"
+                ? PHASE74_BEAM_LIVE_CLOSURE_VERIFIER_ID
+                : PHASE74_HALUMEM_LIVE_CLOSURE_VERIFIER_ID,
+            ),
+            kind,
+            planSha256: plan.sha256,
+            plannedRunSha256s: selected.map((run) => {
+              if (run.schemaVersion !== 2) {
+                throw new Error("Expected planned protection run.");
+              }
+              return run.plannedRunSha256;
+            }),
+            replicate,
+            runIds: selected.map(({ runId }) => runId),
+            suiteIds: selected.map(({ suite }) => suite.id),
+            usageArtifacts: [usageArtifact],
+          });
+        }
+      }
+      return receipts;
+    },
+  };
+}
+
 describe("Phase 74 protection suite evidence composer", () => {
   it("preflights a planned run before evaluation or artifact writes", async () => {
     const root = await createRoot();
@@ -715,11 +798,31 @@ describe("Phase 74 protection suite evidence composer", () => {
     }
     expect(firstRun.plannedRunSha256).toMatch(/^[a-f0-9]{64}$/);
 
-    const evidence = await buildPhase74FrozenProtectionSuiteEvidence({
+    const unclosed = await buildPhase74FrozenProtectionSuiteEvidence({
       manifestPath: fixture.manifestPath,
       planPath: fixture.planPath,
       runArtifactPaths: fixture.paths,
     }, { verifiers: fixture.verifiers });
+    expect(unclosed).toMatchObject({
+      admission: "diagnostic",
+      schemaVersion: 2,
+      source: { executionReceipts: [] },
+    });
+    expect(isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible(unclosed))
+      .toBe(false);
+
+    const liveClosureVerifier = createTestLiveClosureVerifier(root);
+    const verifierSourcePath = join(root, "beam-verifier-contract.json");
+    await writeFile(verifierSourcePath, "{}\n", "utf8");
+    const evidence = await buildPhase74FrozenProtectionSuiteEvidence({
+      manifestPath: fixture.manifestPath,
+      planPath: fixture.planPath,
+      runArtifactPaths: fixture.paths,
+    }, {
+      liveClosureVerifier,
+      verifierSourceFiles: [verifierSourcePath],
+      verifiers: fixture.verifiers,
+    });
 
     expect(fixture.paths).toHaveLength(15);
     expect(evidence).toMatchObject({
@@ -734,7 +837,17 @@ describe("Phase 74 protection suite evidence composer", () => {
     });
     expect(isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible(evidence))
       .toBe(true);
+    if (evidence.schemaVersion !== 2) {
+      throw new Error("Expected planned protection evidence.");
+    }
     expect(evidence.source.suites.flatMap(({ files }) => files)).toHaveLength(15);
+    expect(evidence.source.executionReceipts).toHaveLength(6);
+    expect(evidence.source.verifierSources).toEqual([
+      {
+        path: resolve(verifierSourcePath),
+        sha256: sha256("{}\n"),
+      },
+    ]);
     expect(new Set(evidence.source.suites.flatMap(({ files }) =>
       files.map(({ plannedRunSha256 }) => plannedRunSha256)
     )).size).toBe(15);
@@ -746,7 +859,11 @@ describe("Phase 74 protection suite evidence composer", () => {
     );
     const reloaded = await loadPhase74FrozenProtectionSuiteEvidence(
       evidencePath,
-      { verifiers: fixture.verifiers },
+      {
+        liveClosureVerifier,
+        verifierSourceFiles: [verifierSourcePath],
+        verifiers: fixture.verifiers,
+      },
     );
     expect(reloaded.evidence).toEqual(evidence);
     expect(
@@ -754,6 +871,26 @@ describe("Phase 74 protection suite evidence composer", () => {
         reloaded.evidence,
       ),
     ).toBe(true);
+
+    const budgetPath =
+      evidence.source.executionReceipts[0]!.callBudgetArtifact.path;
+    await writeFile(
+      budgetPath,
+      `${JSON.stringify({
+        embeddingSpendLimitUsd: 0.5,
+        maxLanguageCalls: 1_000,
+        schemaVersion: 1,
+      })}\n`,
+      "utf8",
+    );
+    await expect(loadPhase74FrozenProtectionSuiteEvidence(
+      evidencePath,
+      {
+        liveClosureVerifier,
+        verifierSourceFiles: [verifierSourcePath],
+        verifiers: fixture.verifiers,
+      },
+    )).rejects.toThrow("call budget drifted");
   });
 
   it("keeps planned diagnostic and unplanned schema-v1 evidence closed to promotion", async () => {

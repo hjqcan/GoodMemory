@@ -177,6 +177,7 @@ interface Phase74FrozenProtectionSuiteEvidenceBase {
       sha256: string;
     };
     suites: Phase74ProtectionSuiteSource[];
+    verifierSources?: Phase74ProtectionFileReference[];
   };
 }
 
@@ -196,6 +197,7 @@ export interface Phase74FrozenPlannedProtectionSuiteEvidence extends
   source: Phase74FrozenProtectionSuiteEvidenceBase["source"] & {
     executionReceipts: Phase74ProtectionLiveClosureReceipt[];
     plan: { path: string; sha256: string };
+    verifierSources: Phase74ProtectionFileReference[];
   };
 }
 
@@ -217,6 +219,7 @@ export interface LoadedPhase74ProtectionSuiteManifest {
 export interface Phase74ProtectionSuiteEvidenceDependencies {
   additionalVerifiers?: readonly Phase74ProtectionSuiteVerifier[];
   liveClosureVerifier?: Phase74ProtectionLiveClosureVerifier;
+  verifierSourceFiles?: readonly string[];
   verifiers?: readonly Phase74ProtectionSuiteVerifier[];
 }
 
@@ -228,7 +231,8 @@ export function isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible(
   return evidence.schemaVersion === 2 &&
     evidence.admission === "promotion-admissible" &&
     evidence.source.plan !== undefined &&
-    evidence.source.executionReceipts.length === 6;
+    evidence.source.executionReceipts.length === 6 &&
+    evidence.source.verifierSources.length === 1;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -307,6 +311,17 @@ function fileReference(
   return {
     path,
     sha256: sha256Value(record.sha256, `${label}.sha256`),
+  };
+}
+
+async function sourceFileReference(
+  path: string,
+  label: string,
+): Promise<Phase74ProtectionFileReference> {
+  const absolutePath = resolve(stringValue(path, label));
+  return {
+    path: absolutePath,
+    sha256: sha256(await readFile(absolutePath)),
   };
 }
 
@@ -488,8 +503,8 @@ async function validatePromotionClosureReceipts(input: {
       if (run.schemaVersion !== 2) {
         return true;
       }
-      const planned = input.loadedPlan.plan.runs.find((run) =>
-        hashPhase74ProtectionValue(run) === run.plannedRunSha256
+      const planned = input.loadedPlan.plan.runs.find((plannedRun) =>
+        hashPhase74ProtectionValue(plannedRun) === run.plannedRunSha256
       );
       return planned === undefined ||
         canonicalJson(planned.controls.callBudget) !==
@@ -995,6 +1010,15 @@ export async function buildPhase74FrozenProtectionSuiteEvidence(input: {
         runs: loadedRuns,
       })
     : [];
+  const verifierSources = loadedPlan === undefined
+    ? []
+    : await Promise.all(
+        [...new Set(dependencies.verifierSourceFiles ?? [])]
+          .sort()
+          .map((path, index) =>
+            sourceFileReference(path, `verifier source files[${index}]`)
+          ),
+      );
 
   const protections: Phase74ProtectionEvidence[] = [];
   const formatDeltas = Object.fromEntries(EVIDENCE_LEDGER_FORMATS.map((format) => [
@@ -1102,7 +1126,8 @@ export async function buildPhase74FrozenProtectionSuiteEvidence(input: {
   return {
     ...evidenceBase,
     admission: isPhase74ProtectionPlanPromotionAdmissible(loadedPlan.plan) &&
-        executionReceipts.length === 6
+        executionReceipts.length === 6 &&
+        verifierSources.length === 1
       ? "promotion-admissible"
       : "diagnostic",
     schemaVersion: 2,
@@ -1113,6 +1138,7 @@ export async function buildPhase74FrozenProtectionSuiteEvidence(input: {
         path: loadedPlan.path,
         sha256: loadedPlan.sha256,
       },
+      verifierSources,
     },
   };
 }

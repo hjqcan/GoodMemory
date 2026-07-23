@@ -448,6 +448,60 @@ describe("generalized fusion through the recall engine", () => {
     expect(strictRun?.budget).toBe(1);
   });
 
+  it("admits facts through projected retrieval cues without leaking them into context", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const projectionIndex = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      now: () => "2026-07-10T00:00:00.000Z",
+    });
+    const sessionStore = createInMemorySessionStore();
+    const repositories = createMemoryRepositories({
+      documentStore: projectionIndex.documentStore,
+      sessionStore,
+    });
+    // Content shares no useful tokens with the query; only the write-time
+    // retrieval cue bridges the phrasing gap.
+    await repositories.facts.add(
+      createFactMemory({
+        id: "fact-handbook",
+        ...scope,
+        category: "project",
+        content: "The infra handbook lives in the ops vault.",
+        attributes: {
+          retrievalCues:
+            "Where is the deploy runbook kept?\nWhich document explains deployments?",
+        },
+        source: { method: "explicit", extractedAt: "2026-07-09T00:00:00.000Z" },
+        createdAt: "2026-07-09T00:00:00.000Z",
+        updatedAt: "2026-07-09T00:00:00.000Z",
+      }),
+    );
+    const engine = createRecallEngine({
+      repositories,
+      runtime: sessionStore,
+      autoStrategyBias: "hybrid",
+      generalizedFusion: { maxCandidates: 8 },
+      projectionIndex,
+    });
+
+    const result = await engine.recall({
+      scope,
+      query: "Where is the deploy runbook kept?",
+      retrievalProfile: "general_chat",
+    });
+
+    const fusedIds =
+      result.metadata.retrievalTrace?.fusionRuns?.[0]?.candidates.map(
+        (candidate) => candidate.sourceMemoryId,
+      ) ?? [];
+    expect(fusedIds).toContain("fact-handbook");
+    // The cue is index-only: canonical fact content reaches the packet, the
+    // cue text never does.
+    const packetText = JSON.stringify(result.packet);
+    expect(packetText).toContain("ops vault");
+    expect(packetText).not.toContain("deploy runbook kept");
+  });
+
   it("never applies the dynamic-budget floor to enumeration-count plans", async () => {
     const rawStore = createInMemoryDocumentStore();
     const projectionIndex = createRecallProjectionRuntime({
