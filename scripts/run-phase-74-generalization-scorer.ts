@@ -64,6 +64,19 @@ export function parsePhase74SealedScorerConfig(
   return parsed.data;
 }
 
+async function writeExactOrMatch(path: string, content: string): Promise<void> {
+  try {
+    await writeFile(path, content, { encoding: "utf8", flag: "wx" });
+  } catch (error) {
+    if (
+      (error as NodeJS.ErrnoException).code !== "EEXIST" ||
+      await readFile(path, "utf8") !== content
+    ) {
+      throw error;
+    }
+  }
+}
+
 interface Phase74SealedScorerRawInput {
   artifact?: unknown;
   escrow?: unknown;
@@ -172,10 +185,7 @@ export async function runPhase74SealedScorer(input: {
     });
     const rawOracle = JSON.stringify(oracle.artifact);
     await mkdir(dirname(config.oracleArtifactPath!), { recursive: true });
-    await writeFile(config.oracleArtifactPath!, rawOracle, {
-      encoding: "utf8",
-      flag: "wx",
-    });
+    await writeExactOrMatch(config.oracleArtifactPath!, rawOracle);
     oracleSha256 = oracle.sha256;
   }
 

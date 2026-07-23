@@ -74,6 +74,19 @@ export function parsePhase74SealedExecutorConfig(
   return parsed.data;
 }
 
+async function writeExactOrMatch(path: string, content: string): Promise<void> {
+  try {
+    await writeFile(path, content, { encoding: "utf8", flag: "wx" });
+  } catch (error) {
+    if (
+      (error as NodeJS.ErrnoException).code !== "EEXIST" ||
+      await readFile(path, "utf8") !== content
+    ) {
+      throw error;
+    }
+  }
+}
+
 async function loadE3Snapshots(input: {
   path?: string;
   sha256?: string;
@@ -182,10 +195,7 @@ export async function runPhase74SealedExecutorCli(
       throw new Error("Phase 74 executor artifact serialization drifted.");
     }
     await mkdir(dirname(config.artifactPath), { recursive: true });
-    await writeFile(config.artifactPath, artifact, {
-      encoding: "utf8",
-      flag: "wx",
-    });
+    await writeExactOrMatch(config.artifactPath, artifact);
     process.stdout.write(`${JSON.stringify(result.executorOutput)}\n`);
   } finally {
     globalThis.fetch = originalFetch;
