@@ -394,4 +394,38 @@ describe("createProviderConversationalMemoryExtractor", () => {
       "source index 4 is out of range",
     );
   });
+
+  it("retries compact provenance that is structurally valid but out of range", async () => {
+    let attempts = 0;
+    const extractor = createLLMMemoryExtractor({
+      model: { model: "gpt-5.6-terra", provider: "openai" },
+      outputProtocol: "compact-conversational-v1",
+      dependencies: {
+        generateObject: async () => {
+          attempts += 1;
+          return {
+            object: attempts === 1
+              ? {
+                  c: [{ c: "User adopted Biscuit.", s: 4 }],
+                  i: 0,
+                }
+              : {
+                  c: [{ c: "User adopted Biscuit.", s: 0 }],
+                  i: 0,
+                },
+          } as never;
+        },
+        resolveModel: () => ({}) as never,
+        retryOptions: {
+          retryLimit: 2,
+          sleep: async () => {},
+        },
+      },
+    });
+
+    await expect(extractor.extract(CONVERSATION)).resolves.toMatchObject({
+      candidates: [{ content: "User adopted Biscuit.", sourceMessageIndex: 0 }],
+    });
+    expect(attempts).toBe(2);
+  });
 });
