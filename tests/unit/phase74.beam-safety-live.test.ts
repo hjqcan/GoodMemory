@@ -273,9 +273,13 @@ describe("Phase 74 BEAM safety live wiring", () => {
       models: liveModels,
       source: { id: `git:${"b".repeat(40)}`, sha256: "c".repeat(64) },
     });
+    const preparations: unknown[] = [];
     const executions: unknown[] = [];
     const readerInputs: unknown[] = [];
     const runtime: Phase74BeamSafetyLiveRetrievalRuntime = {
+      prepare: async (input) => {
+        preparations.push(input);
+      },
       execute: async (input) => {
         executions.push(input);
         return {
@@ -312,15 +316,31 @@ describe("Phase 74 BEAM safety live wiring", () => {
       sourceMessages: sourceMessages(),
     };
 
-    await dependencies.createPipeline(spec.contract.baselinePipeline).run({
+    const baselinePipeline = dependencies.createPipeline(
+      spec.contract.baselinePipeline,
+    );
+    const candidatePipeline = dependencies.createPipeline(
+      spec.contract.candidatePipeline,
+    );
+    await baselinePipeline.prepare({
       ...request,
       pipeline: spec.contract.baselinePipeline,
     });
-    await dependencies.createPipeline(spec.contract.candidatePipeline).run({
+    await candidatePipeline.prepare({
+      ...request,
+      pipeline: spec.contract.candidatePipeline,
+    });
+    await baselinePipeline.run({
+      ...request,
+      pipeline: spec.contract.baselinePipeline,
+    });
+    await candidatePipeline.run({
       ...request,
       pipeline: spec.contract.candidatePipeline,
     });
 
+    expect(preparations).toHaveLength(2);
+    expect(preparations).toEqual(executions);
     expect(executions).toHaveLength(2);
     expect(executions[0]).toMatchObject({
       arm: "recall-plan-off",

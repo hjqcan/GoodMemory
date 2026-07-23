@@ -350,6 +350,55 @@ describe("Phase 74 BEAM full-100K safety protection adapter", () => {
     expect(pipelineCalls).toBe(expectedPreparationCalls);
   });
 
+  it("waits for in-flight preparation before rejecting without querying", async () => {
+    const root = await createRoot();
+    const datasetBytes = createFull100kDataset();
+    const contract = createContract(datasetBytes);
+    let activePreparations = 0;
+    let preparationCalls = 0;
+    let pipelineCalls = 0;
+    let judgeCalls = 0;
+    const artifactPath = join(root, "failed-preparation-run.json");
+    const rawArtifactPath = join(root, "failed-preparation-raw.json");
+
+    await expect(runPhase74BeamSafetyProtection({
+      artifactPath,
+      caseConcurrency: 2,
+      contract,
+      datasetBytes,
+      rawArtifactPath,
+      replicate: 1,
+      runId: "beam-safety-failed-preparation-r1",
+    }, {
+      createPipeline: () => ({
+        prepare: async () => {
+          preparationCalls += 1;
+          if (preparationCalls === 1) {
+            throw new Error("injected BEAM preparation failure");
+          }
+          activePreparations += 1;
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          activePreparations -= 1;
+        },
+        run: async () => {
+          pipelineCalls += 1;
+          throw new Error("BEAM query must not start");
+        },
+      }),
+      judgeGroundedness: async () => {
+        judgeCalls += 1;
+        throw new Error("BEAM judge must not start");
+      },
+    })).rejects.toThrow("injected BEAM preparation failure");
+
+    expect(activePreparations).toBe(0);
+    expect(preparationCalls).toBe(2);
+    expect(pipelineCalls).toBe(0);
+    expect(judgeCalls).toBe(0);
+    expect(await Bun.file(artifactPath).exists()).toBe(false);
+    expect(await Bun.file(rawArtifactPath).exists()).toBe(false);
+  });
+
   it("passes bounded case concurrency through to the shared protection runner", async () => {
     const root = await createRoot();
     const datasetBytes = createFull100kDataset();
