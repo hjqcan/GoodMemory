@@ -28,6 +28,7 @@ import {
 import type { Phase74BenchmarkFamily } from "../src/eval/phase74Datasets";
 import { PHASE74_EXPERIMENT_ARMS } from "../src/eval/phase74ExperimentDesign";
 import { assertPhase74ExperimentIdentityContract } from "../src/eval/phase74ExperimentIdentity";
+import { buildPhase74EmbeddingIdentity } from "../src/eval/phase74Live";
 import { loadPhase74FrozenProtectionSuiteEvidence } from "../src/eval/phase74ProtectionSuiteEvidence";
 import type {
   Phase74ProtectionSuiteVerifier,
@@ -543,6 +544,28 @@ function assertAggregationAdmission(input: {
     throw new Error("Phase 74 aggregation admission selected population drifted.");
   }
 
+  const recordedEmbedding = recordValue(
+    configuration.embedding,
+    "aggregation admission embedding",
+  );
+  const embeddingProvider = stringValue(
+    recordedEmbedding.provider,
+    "aggregation admission embedding provider",
+  );
+  if (embeddingProvider !== "openai") {
+    throw new Error("Phase 74 aggregation admission embedding provider is unsupported.");
+  }
+  const expectedEmbedding = buildPhase74EmbeddingIdentity({
+    baseURL: stringValue(
+      recordedEmbedding.gateway,
+      "aggregation admission embedding gateway",
+    ),
+    model: stringValue(
+      recordedEmbedding.model,
+      "aggregation admission embedding model",
+    ),
+    provider: embeddingProvider,
+  });
   const providerReranker = {
     ...input.identity.answerModel,
     implementation: "provider-listwise-v1",
@@ -564,6 +587,7 @@ function assertAggregationAdmission(input: {
     benchmark: input.benchmark,
     configuration,
     dataset: input.datasetManifest,
+    expectedEmbedding,
     expectedReranker,
     judgeModel: input.identity.judgeModel,
   });
