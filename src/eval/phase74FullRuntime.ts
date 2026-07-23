@@ -35,6 +35,7 @@ import type { ModelUsageSink } from "../provider/model-usage";
 import type { GeneralizedFusionChannel } from "../recall/generalizedFusion";
 import { createLexicalCoverageReranker } from "../recall/reranker";
 import type { EvidenceLedgerFormat } from "./evidenceLedgerFormats";
+import { restorePhase74IngestionSnapshot } from "./phase74IngestionRetirement";
 import {
   appendPhase74ModelUsageEventSync,
   appendPhase74ModelUsageIntentSync,
@@ -175,6 +176,35 @@ export function buildPhase74IngestionUsagePaths(
     eventsPath: join(directory, "events.jsonl"),
     intentsPath: join(directory, "intents.jsonl"),
   };
+}
+
+export async function restorePhase74RetiredIngestionSnapshot(input: {
+  ingestionKey: string;
+  representation: string;
+  runDirectory: string;
+  sqlitePath: string;
+}): Promise<boolean> {
+  const receiptPath = join(
+    input.runDirectory,
+    "ingestion-retirement",
+    `${input.ingestionKey}.json`,
+  );
+  try {
+    await access(receiptPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return false;
+    }
+    throw error;
+  }
+  await restorePhase74IngestionSnapshot({
+    destinationSqlitePath: input.sqlitePath,
+    expectedIngestionKey: input.ingestionKey,
+    expectedRepresentation: input.representation,
+    expectedSourceSqlitePath: input.sqlitePath,
+    receiptPath,
+  });
+  return true;
 }
 
 export function buildPhase74IngestionUsageFingerprint(
@@ -706,6 +736,14 @@ export function createPhase74FullRetrievalRuntime(input: {
         if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
           throw error;
         }
+      }
+      if (await restorePhase74RetiredIngestionSnapshot({
+        ingestionKey: key,
+        representation,
+        runDirectory: input.runDirectory,
+        sqlitePath,
+      })) {
+        return { ingestionKey: key, representation, sqlitePath };
       }
       await rm(directory, { force: true, recursive: true });
       await mkdir(directory, { recursive: true });
