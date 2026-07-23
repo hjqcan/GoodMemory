@@ -1,12 +1,87 @@
 import { describe, expect, it } from "bun:test";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import {
+  preparePhase74VersionMemoryGroup,
+  queryPhase74VersionMemoryGroup,
   runPhase74VersionWorker,
   type Phase74VersionGoodMemory,
 } from "../../scripts/phase74-version-worker";
 import { PHASE74_RELEASE_COMMIT } from "../../src/eval/phase74VersionBaseline";
 
 describe("Phase 74 version worker", () => {
+  it("ingests one release memory group once and clones it for multiple queries", async () => {
+    const root = await mkdtemp(join(tmpdir(), "phase74-version-group-"));
+    const sqlitePath = join(root, "memory.sqlite");
+    await writeFile(sqlitePath, "prepared", "utf8");
+    const configurations: Array<Record<string, unknown>> = [];
+    let rememberCount = 0;
+    let recallCount = 0;
+    const createGoodMemory = (configuration: unknown): Phase74VersionGoodMemory => {
+      configurations.push(configuration as Record<string, unknown>);
+      return {
+        async exportMemory() {
+          return { durable: { evidence: [], facts: [] } };
+        },
+        async recall() {
+          recallCount += 1;
+          return { evidence: [], facts: [], metadata: { latencyMs: 0 } };
+        },
+        async remember(input) {
+          rememberCount += 1;
+          return { accepted: input.messages.length, rejected: 0, warnings: [] };
+        },
+      };
+    };
+    const first = {
+      arm: "release" as const,
+      caseId: "conversation-1/q1",
+      memoryGroupId: "conversation-1",
+      question: "What did Caroline adopt?",
+      rawEvidence: [{
+        content: "Caroline adopted Pepper.",
+        id: "conversation-1/D1:1",
+        sourceIds: ["D1:1"],
+      }],
+      schemaVersion: 1 as const,
+      sourceCommit: PHASE74_RELEASE_COMMIT,
+    };
+    try {
+      const prepared = await preparePhase74VersionMemoryGroup({
+        createGoodMemory,
+        input: first,
+        models: {
+          embedding: { apiKey: "e", model: "embed", provider: "openai" },
+          extraction: { apiKey: "x", model: "extract", provider: "openai" },
+        },
+        sqlitePath,
+      });
+      await queryPhase74VersionMemoryGroup({ prepared, input: first });
+      await queryPhase74VersionMemoryGroup({
+        prepared,
+        input: {
+          ...first,
+          caseId: "conversation-1/q2",
+          question: "What is Pepper's name?",
+        },
+      });
+
+      expect(rememberCount).toBe(1);
+      expect(recallCount).toBe(2);
+      expect(configurations).toHaveLength(3);
+      expect(configurations[0]).not.toHaveProperty("adapters");
+      const queryStoragePaths = configurations.slice(1).map((configuration) =>
+        (configuration.storage as { url: string }).url
+      );
+      expect(new Set(queryStoragePaths).size).toBe(2);
+      expect(queryStoragePaths.every((path) => path !== sqlitePath)).toBeTrue();
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("keeps opaque turns from one source session in one remember call", async () => {
     const remembered: Array<{ messageCount: number; sessionId: string }> = [];
     const memory: Phase74VersionGoodMemory = {
@@ -156,6 +231,7 @@ describe("Phase 74 version worker", () => {
       retrieval: { preset: "recommended" },
       storage: { provider: "sqlite", url: "/tmp/release-memory.sqlite" },
     });
+    expect(receivedConfig).not.toHaveProperty("adapters");
     expect(JSON.stringify(receivedConfig)).not.toContain("expectedAnswer");
     expect(result).toMatchObject({
       arm: "release",
