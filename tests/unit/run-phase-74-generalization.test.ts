@@ -61,6 +61,27 @@ describe("phase 74 generalization smoke runner", () => {
     expect(JSON.parse(
       environments.scorer.GOODMEMORY_PHASE74_SCORER_CONFIG!,
     )).toEqual({ role: "scorer" });
+
+    const e4Environments = buildPhase74SealedProcessEnvironments({
+      env: {
+        GOODMEMORY_EMBEDDING_API_KEY: "embedding-secret",
+        GOODMEMORY_EVAL_API_KEY: "reader-secret",
+        GOODMEMORY_EVAL_BASE_URL: "reader-gateway",
+        GOODMEMORY_EVAL_MODEL: "reader-model",
+        GOODMEMORY_EVAL_PROVIDER: "openai",
+        GOODMEMORY_JUDGE_API_KEY: "judge-secret",
+      },
+      executorConfig: {},
+      scorerConfig: {},
+      scorerNeedsReader: true,
+    });
+    expect(e4Environments.scorer).toMatchObject({
+      GOODMEMORY_EVAL_API_KEY: "reader-secret",
+      GOODMEMORY_JUDGE_API_KEY: "judge-secret",
+    });
+    expect(JSON.stringify(e4Environments.scorer)).not.toContain(
+      "embedding-secret",
+    );
   });
 
   it("serializes one live run id and recovers a stale process lock", async () => {

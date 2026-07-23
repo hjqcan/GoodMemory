@@ -243,5 +243,32 @@ describe("Phase 74 sealed scoring", () => {
       caseId === "official-private-id"
     )).toBe(true);
     expect(oracle.sha256).toMatch(/^[a-f0-9]{64}$/u);
+
+    const e4 = await runPhase74UnscoredExecution({
+      baseConfiguration: {},
+      countRenderedTokens: (content) => content.length,
+      executeRetrieval: async () => {
+        throw new Error("E4 must reuse the deterministic E3 snapshot");
+      },
+      execution: e4Bundles.execution,
+      executorPid: 502,
+      genericReader: async () => "Postgres",
+      loadDeterministicSnapshot: async () =>
+        e3.artifact.rows.find((row) =>
+          row.kind === "retrieval" &&
+          row.unit === "recall-plan-deterministic"
+        )?.snapshot ?? null,
+      renderEvidenceLedger: async ({ format }) => `${format}: Postgres`,
+    });
+    const scored = await scorePhase74UnscoredExecution({
+      artifact: e4.artifact,
+      assess: async () => ({ correct: true, score: 1 }),
+      escrow: e4Bundles.escrow,
+      execution: e4Bundles.execution,
+      executorOutput: e4.executorOutput,
+      oracleSha256: oracle.sha256,
+      scorerPid: 503,
+    });
+    expect(scored.receipt.oracleSha256).toBe(oracle.sha256);
   });
 });
