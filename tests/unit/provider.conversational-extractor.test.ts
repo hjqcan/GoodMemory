@@ -7,6 +7,7 @@ import {
   CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
   createLLMMemoryExtractor,
   memoryExtractionResultSchema,
+  normalizeMemoryExtractionPayload,
 } from "../../src/provider/memory-extractor";
 import { createProviderConversationalMemoryExtractor } from "../../src/provider/layer";
 import type { MemoryExtractionInput } from "../../src/remember/candidates";
@@ -127,6 +128,61 @@ describe("conversational atomic-fact extraction prompt", () => {
 });
 
 describe("createProviderConversationalMemoryExtractor", () => {
+  it("normalizes safe provider attribute lists without dropping the candidate", () => {
+    const result = memoryExtractionResultSchema.parse(
+      normalizeMemoryExtractionPayload({
+        candidates: [
+          {
+            content: "The user works on Atlas and Orion.",
+            explicitness: "explicit",
+            id: "c1",
+            kindHint: "fact",
+            metadata: {
+              attributes: {
+                pets: ["Biscuit"],
+                projects: ["Atlas", "Orion"],
+                skills: ["Rust", "TypeScript"],
+              },
+            },
+            sourceMessageIndex: 0,
+            sourceRole: "user",
+          },
+        ],
+        ignoredMessageCount: 0,
+      }),
+    );
+
+    expect(result.candidates[0]?.metadata?.attributes).toEqual({
+      pets: '["Biscuit"]',
+      projects: '["Atlas","Orion"]',
+      skills: '["Rust","TypeScript"]',
+    });
+  });
+
+  it("does not coerce nested provider attributes into durable scalar metadata", () => {
+    expect(() =>
+      memoryExtractionResultSchema.parse(
+        normalizeMemoryExtractionPayload({
+          candidates: [
+            {
+              content: "The user works on Atlas.",
+              explicitness: "explicit",
+              id: "c1",
+              kindHint: "fact",
+              metadata: {
+                attributes: {
+                  project: { name: "Atlas" },
+                },
+              },
+              sourceMessageIndex: 0,
+              sourceRole: "user",
+            },
+          ],
+          ignoredMessageCount: 0,
+        }),
+      )).toThrow("Invalid input");
+  });
+
   it("accepts structured metadata from provider output", () => {
     const result = memoryExtractionResultSchema.parse({
       candidates: [
@@ -286,7 +342,7 @@ describe("createProviderConversationalMemoryExtractor", () => {
       dependencies: {
         fetch: async () => new Response(
           [
-            'data: {"choices":[{"delta":{"content":"{\\"c\\":[{\\"c\\":\\"The integration is enabled.\\",\\"m\\":{\\"q\\":{\\"p\\":\\"integration.enabled\\",\\"o\\":true,\\"n\\":false}},\\"s\\":1},{\\"c\\":\\"The user owns four bikes.\\",\\"m\\":{\\"q\\":{\\"p\\":\\"inventory.bicycle.count\\",\\"o\\":4}},\\"s\\":3}],\\"i\\":0}"},"index":0}]}',
+            'data: {"choices":[{"delta":{"content":"{\\"c\\":[{\\"c\\":\\"The integration is enabled.\\",\\"m\\":{\\"a\\":{\\"projects\\":[\\"Atlas\\",\\"Orion\\"]},\\"q\\":{\\"p\\":\\"integration.enabled\\",\\"o\\":true,\\"n\\":false}},\\"s\\":1},{\\"c\\":\\"The user owns four bikes.\\",\\"m\\":{\\"q\\":{\\"p\\":\\"inventory.bicycle.count\\",\\"o\\":4}},\\"s\\":3}],\\"i\\":0}"},"index":0}]}',
             "data: [DONE]",
             "",
           ].join("\n\n"),
@@ -304,6 +360,9 @@ describe("createProviderConversationalMemoryExtractor", () => {
       objectText: "true",
       polarity: "positive",
       predicateKey: "integration.enabled",
+    });
+    expect(result.candidates[0]?.metadata?.attributes).toEqual({
+      projects: '["Atlas","Orion"]',
     });
     expect(result.candidates[1]?.metadata?.claim?.objectText).toBe("4");
   });

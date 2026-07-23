@@ -310,19 +310,45 @@ function normalizeCandidateKindHint(value: unknown): unknown {
     : normalized;
 }
 
+function normalizeProviderAttributes(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+  return Object.fromEntries(
+    Object.entries(value).map(([key, attribute]) => [
+      key,
+      Array.isArray(attribute) &&
+          attribute.every((item) =>
+            item === null ||
+            typeof item === "string" ||
+            typeof item === "number" ||
+            typeof item === "boolean"
+          )
+        ? JSON.stringify(attribute)
+        : attribute,
+    ]),
+  );
+}
+
 function normalizeCandidateMetadata(value: unknown): unknown {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return value;
   }
   const metadata = value as Record<string, unknown>;
+  const normalizedMetadata = metadata.attributes === undefined
+    ? metadata
+    : {
+        ...metadata,
+        attributes: normalizeProviderAttributes(metadata.attributes),
+      };
   const claim = metadata.claim;
   if (!claim || typeof claim !== "object" || Array.isArray(claim)) {
-    return metadata;
+    return normalizedMetadata;
   }
   const claimRecord = claim as Record<string, unknown>;
   const modality = claimRecord.modality;
   return {
-    ...metadata,
+    ...normalizedMetadata,
     claim: {
       ...claimRecord,
       ...(typeof modality === "string" &&
@@ -372,6 +398,7 @@ function normalizeCompactMetadataPayload(
     typeof normalizedClaim.o === "string";
   return {
     ...metadata,
+    a: normalizeProviderAttributes(value.a),
     fb: compactEnumValue(value.fb, ["do", "dont", "prefer", "validated_pattern"]),
     fk: compactEnumValue(value.fk, [
       "blocker",
