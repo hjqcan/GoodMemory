@@ -1,9 +1,13 @@
 import { describe, expect, it } from "bun:test";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import {
   buildPhase74SealedBundles,
 } from "../../src/eval/phase74SealedExecution";
 import {
+  createPhase74UnscoredFileCheckpoint,
   runPhase74UnscoredExecution,
   sha256Phase74UnscoredArtifact,
 } from "../../src/eval/phase74UnscoredExecution";
@@ -146,5 +150,92 @@ describe("Phase 74 unscored execution", () => {
     )).toBe(true);
     expect(new Set(result.artifact.rows.map((row) => row.renderedContextSha256)))
       .toHaveLength(4);
+  });
+
+  it("resumes only unscored units and rejects checkpoint tampering", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "phase74-unscored-"));
+    try {
+      const bundles = buildPhase74SealedBundles({
+        cases: [testCase],
+        runId: "unscored-resume",
+        stage: "E2",
+      });
+      let retrievalCalls = 0;
+      let readerCalls = 0;
+      const first = await runPhase74UnscoredExecution({
+        baseConfiguration: {},
+        checkpoint: createPhase74UnscoredFileCheckpoint({
+          directory,
+          execution: bundles.execution,
+        }),
+        countRenderedTokens: (content) => content.length,
+        executeRetrieval: async ({ arm }) => {
+          retrievalCalls += 1;
+          return snapshot(`resume-${arm}`);
+        },
+        execution: bundles.execution,
+        executorPid: 201,
+        genericReader: async () => {
+          readerCalls += 1;
+          return "Postgres";
+        },
+        renderEvidenceLedger: async () => "unused",
+      });
+      expect(retrievalCalls).toBe(2);
+      expect(readerCalls).toBe(2);
+
+      const resumed = await runPhase74UnscoredExecution({
+        baseConfiguration: {},
+        checkpoint: createPhase74UnscoredFileCheckpoint({
+          directory,
+          execution: bundles.execution,
+        }),
+        countRenderedTokens: (content) => content.length,
+        executeRetrieval: async () => {
+          throw new Error("retrieval must not rerun");
+        },
+        execution: bundles.execution,
+        executorPid: 202,
+        genericReader: async () => {
+          throw new Error("reader must not rerun");
+        },
+        renderEvidenceLedger: async () => "unused",
+      });
+      expect(resumed.artifact.rows).toEqual(first.artifact.rows);
+
+      const files = await readdir(directory);
+      expect(files).toHaveLength(2);
+      const raw = await readFile(join(directory, files[0]!), "utf8");
+      for (const forbidden of [
+        "expectedAnswer",
+        "goldEvidenceIds",
+        "protocolMetadata",
+        '"correct"',
+        '"score"',
+        '"judge"',
+      ]) {
+        expect(raw).not.toContain(forbidden);
+      }
+      const tampered = JSON.parse(raw) as {
+        row: { answer: string };
+      };
+      tampered.row.answer = "tampered";
+      await writeFile(join(directory, files[0]!), JSON.stringify(tampered));
+      await expect(runPhase74UnscoredExecution({
+        baseConfiguration: {},
+        checkpoint: createPhase74UnscoredFileCheckpoint({
+          directory,
+          execution: bundles.execution,
+        }),
+        countRenderedTokens: (content) => content.length,
+        executeRetrieval: async () => snapshot("unused"),
+        execution: bundles.execution,
+        executorPid: 203,
+        genericReader: async () => "unused",
+        renderEvidenceLedger: async () => "unused",
+      })).rejects.toThrow("checkpoint digest");
+    } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
   });
 });
