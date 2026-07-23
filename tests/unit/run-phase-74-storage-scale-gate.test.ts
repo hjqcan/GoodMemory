@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -10,19 +11,22 @@ import {
   runPhase74StorageScaleGate,
 } from "../../scripts/run-phase-74-storage-scale-gate";
 
+const SOURCE_FILES = [
+  {
+    path: "scripts/run-phase-74-storage-scale-gate.ts",
+    sha256: "c".repeat(64),
+  },
+  {
+    path: "src/storage/sqlite.ts",
+    sha256: "d".repeat(64),
+  },
+] as const;
 const SOURCE_BINDING = {
   commitSha: "a".repeat(40),
-  sourceManifestSha256: "b".repeat(64),
-  sources: [
-    {
-      path: "scripts/run-phase-74-storage-scale-gate.ts",
-      sha256: "c".repeat(64),
-    },
-    {
-      path: "src/storage/sqlite.ts",
-      sha256: "d".repeat(64),
-    },
-  ],
+  sourceManifestSha256: createHash("sha256")
+    .update(JSON.stringify(SOURCE_FILES))
+    .digest("hex"),
+  sources: SOURCE_FILES,
   treeSha: "e".repeat(40),
   worktreeClean: true,
 } as const;
@@ -228,5 +232,19 @@ describe("phase 74 storage scale gate", () => {
 
     expect(report.passed).toBe(false);
     expect(report.sourceBinding.worktreeClean).toBe(false);
+  });
+
+  it("fails closed when the recorded source manifest digest is forged", async () => {
+    const report = await runPhase74StorageScaleGate({
+      measuredQueryCount: 2,
+      sourceBinding: {
+        ...SOURCE_BINDING,
+        sourceManifestSha256: "0".repeat(64),
+      },
+      syntheticDocumentCount: 100,
+      warmupQueryCount: 1,
+    });
+
+    expect(report.passed).toBe(false);
   });
 });
