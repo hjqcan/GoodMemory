@@ -99,12 +99,51 @@ const scoreReceiptSchema = z.object({
   scorerPid: z.number().int().positive(),
 }).strict();
 
+const processManifestSchema = z.object({
+  events: z.tuple([
+    z.object({ event: z.literal("seal") }).strict(),
+    z.union([
+      z.object({
+        event: z.literal("executor_exit"),
+        pid: z.number().int().positive(),
+      }).strict(),
+      z.object({
+        event: z.literal("executor_reused"),
+        pid: z.number().int().positive(),
+      }).strict(),
+    ]),
+    z.object({ event: z.literal("artifact_verified") }).strict(),
+    z.object({ event: z.literal("labels_committed") }).strict(),
+    z.object({ event: z.literal("scorer_start") }).strict(),
+    z.object({
+      event: z.literal("scorer_exit"),
+      pid: z.number().int().positive(),
+    }).strict(),
+  ]),
+  artifactSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+  evidence: z.object({
+    escrow: z.literal("escrow.json"),
+    execution: z.literal("execution.json"),
+    executorOutput: z.literal("executor-output.json"),
+    oracleArtifact: z.literal("oracle-artifact.json").optional(),
+    scoreReceipt: z.literal("score-receipt.json"),
+  }).strict(),
+  executionSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+  executorOutputSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+  oracleSha256: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
+  receiptSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+  schemaVersion: z.literal(7),
+}).strict();
+
 export type Phase74SealedExecutionBundle = z.infer<
   typeof executionBundleSchema
 >;
 export type Phase74SealedEscrowBundle = z.infer<typeof escrowBundleSchema>;
 export type Phase74SealedExecutorOutput = z.infer<typeof executorOutputSchema>;
 export type Phase74SealedScoreReceipt = z.infer<typeof scoreReceiptSchema>;
+export type Phase74SealedProcessManifest = z.infer<
+  typeof processManifestSchema
+>;
 
 function sha256Json(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -183,6 +222,16 @@ export function parsePhase74SealedScoreReceipt(
   return parseWithMessage({
     message: "Invalid Phase 74 sealed score receipt",
     schema: scoreReceiptSchema,
+    value,
+  });
+}
+
+export function parsePhase74SealedProcessManifest(
+  value: unknown,
+): Phase74SealedProcessManifest {
+  return parseWithMessage({
+    message: "Invalid Phase 74 sealed process manifest",
+    schema: processManifestSchema,
     value,
   });
 }
@@ -287,6 +336,66 @@ export function buildPhase74SealedScoreReceipt(input: {
     schemaVersion: 7,
     scorerPid: input.scorerPid,
   });
+}
+
+export function buildPhase74SealedProcessManifest(input: {
+  events: readonly { event: string; pid?: number }[];
+  execution: Phase74SealedExecutionBundle;
+  executorOutput: Phase74SealedExecutorOutput;
+  receipt: Phase74SealedScoreReceipt;
+}): Phase74SealedProcessManifest {
+  const execution = parsePhase74SealedExecutionBundle(input.execution);
+  const executorOutput = parsePhase74SealedExecutorOutput(input.executorOutput);
+  const receipt = parsePhase74SealedScoreReceipt(input.receipt);
+  return parsePhase74SealedProcessManifest({
+    events: input.events,
+    artifactSha256: executorOutput.artifactSha256,
+    evidence: {
+      escrow: "escrow.json",
+      execution: "execution.json",
+      executorOutput: "executor-output.json",
+      ...(receipt.oracleSha256 === undefined
+        ? {}
+        : { oracleArtifact: "oracle-artifact.json" }),
+      scoreReceipt: "score-receipt.json",
+    },
+    executionSha256: sha256Json(execution),
+    executorOutputSha256: sha256Json(executorOutput),
+    ...(receipt.oracleSha256 === undefined
+      ? {}
+      : { oracleSha256: receipt.oracleSha256 }),
+    receiptSha256: sha256Json(receipt),
+    schemaVersion: 7,
+  });
+}
+
+export function verifyPhase74SealedProcessManifest(input: {
+  execution: Phase74SealedExecutionBundle;
+  executorOutput: Phase74SealedExecutorOutput;
+  manifest: unknown;
+  receipt: Phase74SealedScoreReceipt;
+}): Phase74SealedProcessManifest {
+  const manifest = parsePhase74SealedProcessManifest(input.manifest);
+  const expected = buildPhase74SealedProcessManifest({
+    events: manifest.events,
+    execution: input.execution,
+    executorOutput: input.executorOutput,
+    receipt: input.receipt,
+  });
+  if (
+    manifest.events[1].pid !== input.executorOutput.executorPid ||
+    manifest.events[5].pid !== input.receipt.scorerPid ||
+    JSON.stringify(manifest) !== JSON.stringify(expected)
+  ) {
+    throw new Error("Phase 74 sealed process manifest chain is invalid.");
+  }
+  return manifest;
+}
+
+export function serializePhase74SealedProcessManifest(
+  manifest: Phase74SealedProcessManifest,
+): string {
+  return `${JSON.stringify(parsePhase74SealedProcessManifest(manifest), null, 2)}\n`;
 }
 
 function sameOrderedCaseKeys(
@@ -581,26 +690,16 @@ export async function runPhase74SealedProcessPair(input: {
       scorerArtifact,
     );
   }
-  await writeFile(input.transcriptPath, `${JSON.stringify({
+  const manifest = buildPhase74SealedProcessManifest({
     events,
-    artifactSha256: executorOutput.artifactSha256,
-    evidence: {
-      escrow: "escrow.json",
-      execution: "execution.json",
-      executorOutput: "executor-output.json",
-      ...(scorerArtifact === undefined
-        ? {}
-        : { oracleArtifact: "oracle-artifact.json" }),
-      scoreReceipt: "score-receipt.json",
-    },
-    executionSha256: sha256Json(execution),
-    executorOutputSha256: sha256Json(executorOutput),
-    ...(receipt.oracleSha256 === undefined
-      ? {}
-      : { oracleSha256: receipt.oracleSha256 }),
-    receiptSha256: sha256Json(receipt),
-    schemaVersion: 7,
-  }, null, 2)}\n`);
+    execution,
+    executorOutput,
+    receipt,
+  });
+  await writeExactOrMatch(
+    input.transcriptPath,
+    serializePhase74SealedProcessManifest(manifest),
+  );
   return {
     events,
     executor: {
