@@ -78,6 +78,11 @@ describe("Phase 74 sealed live process entrypoints", () => {
       });
       const scorerConfig = JSON.stringify({
         benchmark: "locomo",
+        callBudget: {
+          embeddingSpendLimitUsd: 1,
+          maxLanguageCalls: 100,
+          path: join(runDirectory, "executor-call-budget.json"),
+        },
         usage: {
           eventsPath: join(runDirectory, "scorer-usage.jsonl"),
           intentsPath: join(runDirectory, "scorer-intents.jsonl"),
