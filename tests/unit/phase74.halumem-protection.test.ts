@@ -1,12 +1,13 @@
 import { createHash } from "node:crypto";
 import {
   mkdtemp,
+  readdir,
   readFile,
   rm,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "bun:test";
 
@@ -23,6 +24,7 @@ import type {
   Phase74HaluMemUpdateDependencies,
 } from "../../scripts/phase-74-halumem-protection";
 import {
+  preparePhase74HaluMemProtectionPlan,
   runPhase74HaluMemProtectionCli,
 } from "../../scripts/run-phase-74-halumem-protection";
 import type {
@@ -31,17 +33,29 @@ import type {
 import {
   PHASE74_HALUMEM_E4_METRIC,
   PHASE74_HALUMEM_E4_PROTECTION_VERIFIER,
+  PHASE74_HALUMEM_E4_PROTECTION_VERIFIER_ID,
   PHASE74_HALUMEM_E4_SUITE,
   PHASE74_HALUMEM_PRIVACY_PROTECTION_VERIFIER,
+  PHASE74_HALUMEM_PRIVACY_PROTECTION_VERIFIER_ID,
   PHASE74_HALUMEM_PRIVACY_SUITE,
   PHASE74_HALUMEM_UPDATE_PROTECTION_VERIFIER,
+  PHASE74_HALUMEM_UPDATE_PROTECTION_VERIFIER_ID,
   PHASE74_HALUMEM_UPDATE_SUITE,
   PHASE74_HALUMEM_UPSTREAM,
+  buildPhase74HaluMemE4RunIdentity,
   buildPhase74HaluMemSourceMessageId,
+  buildPhase74HaluMemPrivacyPopulation,
+  buildPhase74HaluMemPrivacyRunIdentity,
+  buildPhase74HaluMemQuestionPopulation,
+  buildPhase74HaluMemUpdatePopulation,
+  buildPhase74HaluMemUpdateRunIdentity,
   buildPhase74HaluMemUpdateJudgePrompt,
   buildPhase74HaluMemUpdateSnapshotId,
   buildPhase74HaluMemUpdateSourceRecord,
   countPhase74HaluMemContextTokens,
+  phase74HaluMemPrivacyPopulationId,
+  phase74HaluMemQuestionPopulationId,
+  phase74HaluMemUpdatePopulationId,
   parsePhase74HaluMemJsonl,
   scorePhase74HaluMemUpdateDecision,
   selectPhase74HaluMemUsers,
@@ -53,7 +67,21 @@ import type {
   Phase74HaluMemUser,
 } from "../../src/eval/phase74HaluMemProtectionVerifier";
 import {
+  hashPhase74ProtectionCaseIds,
+} from "../../src/eval/phase74ProtectionContracts";
+import {
+  buildPhase74ProtectionPlan,
+  describePhase74ProtectionCallBudget,
+} from "../../src/eval/phase74ProtectionPlan";
+import {
+  PHASE74_PROTECTION_BLUEPRINT_ID,
+} from "../../src/eval/phase74ProtectionVerifier";
+import {
+  hashPhase74ProtectionValue,
   loadPhase74FrozenProtectionSuiteRunArtifact,
+} from "../../src/eval/phase74ProtectionRun";
+import type {
+  Phase74ProtectionSuite,
 } from "../../src/eval/phase74ProtectionRun";
 
 const roots: string[] = [];
@@ -183,6 +211,124 @@ const users = [
 
 function datasetRaw(): string {
   return `${users.map((value) => JSON.stringify(value)).join("\n")}\n`;
+}
+
+function plannedIdentity(
+  identity: ReturnType<typeof buildPhase74HaluMemE4RunIdentity>,
+  caseIds: readonly string[],
+) {
+  const { populationId, ...descriptor } = identity;
+  return {
+    ...descriptor,
+    population: {
+      caseCount: caseIds.length,
+      caseIdsSha256: hashPhase74ProtectionCaseIds(caseIds),
+      id: populationId,
+    },
+  };
+}
+
+async function writeHaluMemProtectionPlan(input: {
+  embeddingSpendLimitUsd?: number;
+  maxLanguageCalls?: number;
+  options: Phase74HaluMemProtectionCliOptions;
+  path: string;
+}): Promise<void> {
+  const dataset = {
+    id: input.options.datasetId,
+    sha256: sha256(datasetRaw()),
+  };
+  const source = {
+    id: `git:${"a".repeat(40)}`,
+    sha256: "b".repeat(64),
+  };
+  const blueprint = {
+    id: PHASE74_PROTECTION_BLUEPRINT_ID,
+    sha256: "9".repeat(64),
+  };
+  const controls = {
+    callBudget: describePhase74ProtectionCallBudget({
+      embeddingSpendLimitUsd: input.embeddingSpendLimitUsd ?? 0.25,
+      maxLanguageCalls: input.maxLanguageCalls ?? 1_000,
+    }),
+    caseConcurrency: input.options.caseConcurrency ?? 1,
+    renderedContextTokens: 6_000,
+  };
+  const e4Population = buildPhase74HaluMemQuestionPopulation(users);
+  const updatePopulation = buildPhase74HaluMemUpdatePopulation(users);
+  const privacyPopulation = buildPhase74HaluMemPrivacyPopulation(users);
+  const run = (
+    caseIds: string[],
+    identity: ReturnType<typeof buildPhase74HaluMemE4RunIdentity>,
+    runId: string,
+    suite: Phase74ProtectionSuite,
+    verifierId: string,
+  ) => ({
+    caseIds,
+    controls,
+    identity: plannedIdentity(identity, caseIds),
+    protectionBlueprint: blueprint,
+    replicate: input.options.replicate,
+    runId,
+    suite,
+    verifier: {
+      id: verifierId,
+      sha256: hashPhase74ProtectionValue({ id: verifierId }),
+    },
+  });
+  const plan = buildPhase74ProtectionPlan({
+    admissionClass: "diagnostic",
+    evaluatorSource: source,
+    protectionBlueprint: blueprint,
+    runs: [
+      run(
+        e4Population.cases.map(({ caseId }) => caseId),
+        buildPhase74HaluMemE4RunIdentity({
+          configuration: input.options.e4Configuration,
+          dataset,
+          populationId: phase74HaluMemQuestionPopulationId(
+            dataset.id,
+            users,
+          ),
+          source,
+        }),
+        `${input.options.runId}-e4`,
+        PHASE74_HALUMEM_E4_SUITE,
+        PHASE74_HALUMEM_E4_PROTECTION_VERIFIER_ID,
+      ),
+      run(
+        updatePopulation.cases.map(({ caseId }) => caseId),
+        buildPhase74HaluMemUpdateRunIdentity({
+          configuration: input.options.updateConfiguration,
+          dataset,
+          populationId: phase74HaluMemUpdatePopulationId(
+            dataset.id,
+            users,
+          ),
+          source,
+        }),
+        `${input.options.runId}-update`,
+        PHASE74_HALUMEM_UPDATE_SUITE,
+        PHASE74_HALUMEM_UPDATE_PROTECTION_VERIFIER_ID,
+      ),
+      run(
+        privacyPopulation.cases.map(({ caseId }) => caseId),
+        buildPhase74HaluMemPrivacyRunIdentity({
+          configuration: input.options.privacyConfiguration,
+          dataset,
+          populationId: phase74HaluMemPrivacyPopulationId(
+            dataset.id,
+            users,
+          ),
+          source,
+        }),
+        `${input.options.runId}-privacy`,
+        PHASE74_HALUMEM_PRIVACY_SUITE,
+        PHASE74_HALUMEM_PRIVACY_PROTECTION_VERIFIER_ID,
+      ),
+    ],
+  });
+  await writeFile(input.path, `${JSON.stringify(plan, null, 2)}\n`, "utf8");
 }
 
 function e4Dependencies(calls: {
@@ -956,6 +1102,8 @@ describe("Phase 74 HaluMem protection adapters", () => {
       id: "halumem-cli-jsonl",
       sha256: sha256(raw),
     });
+    expect(result.e4.artifact.schemaVersion).toBe(1);
+    expect(result.privacy.artifact.schemaVersion).toBe(1);
     expect(result.privacy.artifact.identity.source).toEqual({
       id: `git:${"a".repeat(40)}`,
       sha256: "b".repeat(64),
@@ -991,5 +1139,228 @@ describe("Phase 74 HaluMem protection adapters", () => {
     expect(PHASE74_HALUMEM_UPDATE_PROTECTION_VERIFIER.requiredMetrics).toEqual([
       "updateCorrectness",
     ]);
+  });
+
+  it("binds one prevalidated plan into all three HaluMem run artifacts", async () => {
+    const root = await createRoot();
+    const planPath = join(root, "protection-plan.json");
+    const options: Phase74HaluMemProtectionCliOptions = {
+      caseConcurrency: 2,
+      datasetId: "halumem-cli-jsonl",
+      datasetPath: join(root, "HaluMem-Medium.jsonl"),
+      e4Configuration: configuration(),
+      embeddingSpendLimitUsd: 0.25,
+      maxLanguageCalls: 1_000,
+      outputDir: join(root, "runs"),
+      privacyConfiguration: configuration({
+        candidatePipeline: descriptor("halumem-privacy-candidate", "4"),
+      }),
+      protectionPlanPath: planPath,
+      replicate: 1,
+      runId: "halumem-planned-r1",
+      updateConfiguration: configuration({
+        candidatePipeline: descriptor("halumem-update-candidate", "5"),
+        updateEvaluator: descriptor("halumem-upstream-evaluation.py", "6"),
+      }),
+      userUuids: ["user-a", "user-b"],
+    };
+    await writeHaluMemProtectionPlan({ options, path: planPath });
+    const e4Calls = { answer: 0, judge: 0, retrieve: 0 };
+    const updateCalls = { evaluate: 0, retrieve: 0 };
+    let privacyCalls = 0;
+
+    const result = await runPhase74HaluMemProtectionCli(options, {
+      captureEvaluatorSource: async () => ({
+        commit: "a".repeat(40),
+        sha256: "b".repeat(64),
+      }),
+      e4: e4Dependencies(e4Calls),
+      privacy: {
+        recallScopes: async (input) => {
+          privacyCalls += 1;
+          return privacyDependencies().recallScopes(input);
+        },
+      },
+      readDataset: async () => Buffer.from(datasetRaw()),
+      update: updateDependencies(updateCalls),
+    });
+
+    expect(result.update.status).toBe("completed");
+    expect(e4Calls.retrieve).toBeGreaterThan(0);
+    expect(updateCalls.retrieve).toBeGreaterThan(0);
+    expect(privacyCalls).toBeGreaterThan(0);
+    expect(result.e4.artifact.schemaVersion).toBe(2);
+    expect(result.privacy.artifact.schemaVersion).toBe(2);
+    if (result.update.status !== "completed") {
+      throw new Error("Expected planned HaluMem update evidence.");
+    }
+    expect(result.update.result.artifact.schemaVersion).toBe(2);
+    expect(result.e4.artifact).toMatchObject({
+      planPath: resolve(planPath),
+      schemaVersion: 2,
+    });
+  });
+
+  it("guards direct E4 retrieval with the same pre-execution binding", async () => {
+    const root = await createRoot();
+    const planPath = join(root, "protection-plan.json");
+    const options: Phase74HaluMemProtectionCliOptions = {
+      caseConcurrency: 2,
+      datasetId: "halumem-cli-jsonl",
+      datasetPath: join(root, "HaluMem-Medium.jsonl"),
+      e4Configuration: configuration(),
+      embeddingSpendLimitUsd: 0.25,
+      maxLanguageCalls: 1_000,
+      outputDir: join(root, "runs"),
+      privacyConfiguration: configuration({
+        candidatePipeline: descriptor("halumem-privacy-candidate", "4"),
+      }),
+      protectionPlanPath: planPath,
+      replicate: 1,
+      runId: "halumem-direct-r1",
+      updateConfiguration: configuration({
+        candidatePipeline: descriptor("halumem-update-candidate", "5"),
+        updateEvaluator: descriptor("halumem-upstream-evaluation.py", "6"),
+      }),
+      userUuids: ["user-a", "user-b"],
+    };
+    await writeHaluMemProtectionPlan({ options, path: planPath });
+    const dataset = {
+      id: options.datasetId,
+      sha256: sha256(datasetRaw()),
+    };
+    const source = {
+      id: `git:${"a".repeat(40)}`,
+      sha256: "b".repeat(64),
+    };
+    const planned = await preparePhase74HaluMemProtectionPlan({
+      caseConcurrency: 2,
+      dataset,
+      e4Configuration: options.e4Configuration,
+      embeddingSpendLimitUsd: 0.25,
+      maxLanguageCalls: 1_000,
+      planPath,
+      privacyConfiguration: options.privacyConfiguration,
+      replicate: 1,
+      runId: options.runId,
+      source,
+      updateConfiguration: options.updateConfiguration,
+      users,
+    });
+    const calls = { answer: 0, judge: 0, retrieve: 0 };
+    const artifactPath = join(root, "direct", "protection-run.json");
+    const rawArtifactPath = join(root, "direct", "raw.json");
+
+    await expect(runPhase74HaluMemE4Protection({
+      artifactPath,
+      caseConcurrency: 2,
+      configuration: options.e4Configuration,
+      dataset,
+      plan: planned.e4,
+      rawArtifactPath,
+      replicate: 1,
+      runId: `${options.runId}-e4-drift`,
+      source,
+      users,
+    }, e4Dependencies(calls))).rejects.toThrow(/drift|plan/iu);
+
+    expect(calls).toEqual({ answer: 0, judge: 0, retrieve: 0 });
+    await expect(readFile(artifactPath, "utf8")).rejects.toThrow();
+    await expect(readFile(rawArtifactPath, "utf8")).rejects.toThrow();
+  });
+
+  it("rejects any planned control drift before callbacks or output", async () => {
+    const root = await createRoot();
+    const planPath = join(root, "protection-plan.json");
+    const outputDir = join(root, "planned-output");
+    const options: Phase74HaluMemProtectionCliOptions = {
+      caseConcurrency: 2,
+      datasetId: "halumem-cli-jsonl",
+      datasetPath: join(root, "HaluMem-Medium.jsonl"),
+      e4Configuration: configuration(),
+      embeddingSpendLimitUsd: 0.5,
+      maxLanguageCalls: 1_000,
+      outputDir,
+      privacyConfiguration: configuration({
+        candidatePipeline: descriptor("halumem-privacy-candidate", "4"),
+      }),
+      protectionPlanPath: planPath,
+      replicate: 1,
+      runId: "halumem-drifted-r1",
+      updateConfiguration: configuration({
+        candidatePipeline: descriptor("halumem-update-candidate", "5"),
+        updateEvaluator: descriptor("halumem-upstream-evaluation.py", "6"),
+      }),
+      userUuids: ["user-a", "user-b"],
+    };
+    await writeHaluMemProtectionPlan({
+      embeddingSpendLimitUsd: 0.25,
+      options,
+      path: planPath,
+    });
+    const calls = {
+      answer: 0,
+      evaluate: 0,
+      judge: 0,
+      privacy: 0,
+      retrieveE4: 0,
+      retrieveUpdate: 0,
+    };
+
+    await expect(runPhase74HaluMemProtectionCli(options, {
+      captureEvaluatorSource: async () => ({
+        commit: "a".repeat(40),
+        sha256: "b".repeat(64),
+      }),
+      e4: {
+        answer: async () => {
+          calls.answer += 1;
+          return "unexpected";
+        },
+        judgeQa: async () => {
+          calls.judge += 1;
+          return "unexpected";
+        },
+        retrieveEvidence: async () => {
+          calls.retrieveE4 += 1;
+          return { evidenceLedger: [], snapshotId: "unexpected" };
+        },
+      },
+      privacy: {
+        recallScopes: async () => {
+          calls.privacy += 1;
+          return {
+            foreignScopeSourceMessageIds: [],
+            ownerScopeSourceMessageIds: [],
+            snapshotId: "unexpected",
+          };
+        },
+      },
+      readDataset: async () => Buffer.from(datasetRaw()),
+      update: {
+        evaluateUpdate: async () => {
+          calls.evaluate += 1;
+          return "unexpected";
+        },
+        retrieveUpdateEvidence: async () => {
+          calls.retrieveUpdate += 1;
+          return {
+            records: [],
+            snapshotId: "unexpected",
+            sourceMessageIds: [],
+          };
+        },
+      },
+    })).rejects.toThrow(/drift|plan/iu);
+
+    expect(calls).toEqual({
+      answer: 0,
+      evaluate: 0,
+      judge: 0,
+      privacy: 0,
+      retrieveE4: 0,
+      retrieveUpdate: 0,
+    });
+    await expect(readdir(outputDir)).rejects.toThrow();
   });
 });

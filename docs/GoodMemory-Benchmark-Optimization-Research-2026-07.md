@@ -699,6 +699,69 @@ touched (owned by a parallel workstream).
   query-structural (ADR-005-clean) refinement that would capture the temporal
   win without touching multi-session paths; needs its own protection pass.
 
+  **Full-type coverage + count-conditional floor (2026-07-21, resolved):**
+  paired offset slices covered multi-session n=113 and temporal-reasoning
+  n=103 (identical tree per pair, `executionFailures: 0` throughout). Pooled
+  unconditional-0.35 deltas: multi-session **−0.44pt** (the earlier −1.25 was
+  n=20 amplification), temporal **+0.65pt** (the +3.33 concentrated in the
+  first 30 cases). The changed-case sample (8 of 216) separates cleanly on
+  structure: **all 3 `aggregateCount` questions regressed, none improved** —
+  enumeration counts need breadth, trimming clips instances — while all 4
+  improvements are non-count precision questions. That ≥2-case structural
+  pattern justified a **count-conditional floor** (never trim under an
+  enumeration-count query), now implemented in the engine keyed on the query
+  analysis (not the plan — default recalls carry a neutral unplanned plan
+  until plan execution is promoted; discovering that also surfaced the
+  staging boundary). Empirical validation: the regressor slice under the
+  conditional floor is byte-identical to floor-0 (0.8078, zero changed
+  cases). Recomputed pooled effect of conditional-0.35: multi-session
+  **+0.29pt**, temporal **+0.81pt** — Pareto-positive but below the 3pt
+  preset-promotion bar, so the preset default remains unset; the conditional
+  mechanism ships as inherent floor semantics, and the knob stays the
+  measured opt-in. A same-shape LoCoMo diagnostic is the natural second-family
+  check before any preset change. Note: the interval-vs-count plan fix landed
+  convergently via the language-pack workstream's `temporalInterval` analysis
+  flag; this workstream's failing test now pins it.
+
+  **LoCoMo second-family check (2026-07-21, full root 10/1986/5882, zero
+  failures, retrieval-only `--generalized-fusion`):** per-category
+  evidence-turn recall on the current tree vs the Phase 69 recorded
+  candidate: single_hop 0.3726 (−6.9pt), multi_hop 0.0925 (−4.1pt), temporal
+  0.3705 (−13.2pt), open_domain 0.1464 (−12.6pt), adversarial 0.3117
+  (−12.4pt); noise/question ~9.4-9.6 (was ~9.2-9.4). **Attribution by direct
+  single-conversation ablation (conv-26): this workstream's changes are
+  cleared** — neutralizing the common-word entity filter (R1f) is
+  byte-identical; restoring the pre-R1d ≥4 token floor is a net wash
+  (temporal −2.7 *without* R1d, multi_hop +0.8). Three confounds make the
+  cross-era delta non-attributable as a code regression alone: (1) the
+  benchmark-root fingerprint differs from the Phase 69 pin (prep script
+  changed in `6f8fc73a` and `563bc8c4` after the gate closed); (2) the
+  language-pack refactor rewrote entity extraction / analyzers / search
+  terms wholesale; (3) the runner's recorded `minRelativeStrength: 0.35` is
+  still declared-not-wired here (the smoke memory passes the bare preset), so
+  both eras actually ran floor-0 — the floor is exonerated too. **Action for
+  the language-pack workstream:** re-run this comparison against a
+  fingerprint-matched root to decide how much is data drift vs pack-refactor
+  behavior; the per-category table above is the baseline to beat. Runner
+  metadata honesty fix (record wired config) is also still owed here.
+
+  **Trigger analysis (2026-07-21, per-case join of the paired slices):** the
+  constraint-conditional design is **refuted** — both temporal improvers had
+  *no* plan temporal-constraints ("Which event happened first…", "How many
+  weeks passed between…"), and only 8/30 temporal-reasoning cases carry
+  constraints at all. The changed-case sample instead separates on question
+  shape: the improvers are *precision* questions (pairwise ordering; an
+  interval question misclassified as `aggregation: count`), while the one
+  multi-session regressor is a *true enumeration count* ("How many pieces of
+  furniture did I buy, assemble, sell, or fix…") that needs breadth. With
+  only 3 changed cases, any conditionality would be single-case fitting
+  (ADR-005), so: (a) full-type coverage runs are collecting a real
+  changed-case sample; (b) one standalone fix falls out regardless —
+  "how many &lt;time-unit&gt;s passed/between" is an **interval** question, not an
+  enumeration count, and the plan should not classify it as `count`
+  (misclassification confirmed on a live improver; also relevant to BEAM's
+  aggregate_count vs temporal families).
+
 Verification state at close of the pass: full canonical sweep green — 3,537
 unit + 645 integration/scenario/cli/eval/type/consumer + 101 example/release
 tests, 0 failures, typecheck clean. One unrelated pre-existing failure was

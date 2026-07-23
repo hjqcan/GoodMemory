@@ -362,9 +362,16 @@ function compactEnumValue(
 function normalizeCompactMetadataPayload(
   value: Record<string, unknown>,
 ): Record<string, unknown> {
-  const claim = value.q;
+  const { q: claim, ...metadata } = value;
+  const normalizedClaim =
+    claim && typeof claim === "object" && !Array.isArray(claim)
+      ? normalizeCompactClaim(claim as Record<string, unknown>)
+      : undefined;
+  const hasCompleteClaim =
+    typeof normalizedClaim?.p === "string" &&
+    typeof normalizedClaim.o === "string";
   return {
-    ...value,
+    ...metadata,
     fb: compactEnumValue(value.fb, ["do", "dont", "prefer", "validated_pattern"]),
     fk: compactEnumValue(value.fk, [
       "blocker",
@@ -389,9 +396,7 @@ function normalizeCompactMetadataPayload(
       "reference",
       "preference",
     ]),
-    ...(claim && typeof claim === "object" && !Array.isArray(claim)
-      ? { q: normalizeCompactClaim(claim as Record<string, unknown>) }
-      : {}),
+    ...(hasCompleteClaim ? { q: normalizedClaim } : {}),
   };
 }
 

@@ -448,6 +448,70 @@ describe("generalized fusion through the recall engine", () => {
     expect(strictRun?.budget).toBe(1);
   });
 
+  it("never applies the dynamic-budget floor to enumeration-count plans", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const projectionIndex = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      now: () => "2026-07-10T00:00:00.000Z",
+    });
+    const sessionStore = createInMemorySessionStore();
+    const repositories = createMemoryRepositories({
+      documentStore: projectionIndex.documentStore,
+      sessionStore,
+    });
+    await repositories.facts.add(
+      createFactMemory({
+        id: "fact-strong-court",
+        ...scope,
+        category: "personal",
+        content: "Marco booked the badminton court for the weekend games.",
+        source: { method: "explicit", extractedAt: "2026-07-09T00:00:00.000Z" },
+        createdAt: "2026-07-09T00:00:00.000Z",
+        updatedAt: "2026-07-09T00:00:00.000Z",
+      }),
+    );
+    await repositories.facts.add(
+      createFactMemory({
+        id: "fact-weak-court",
+        ...scope,
+        category: "personal",
+        content: "Weekend plans sometimes include games.",
+        source: { method: "explicit", extractedAt: "2026-07-09T00:00:00.000Z" },
+        createdAt: "2026-07-09T00:00:00.000Z",
+        updatedAt: "2026-07-09T00:00:00.000Z",
+      }),
+    );
+    const engine = createRecallEngine({
+      repositories,
+      runtime: sessionStore,
+      autoStrategyBias: "hybrid",
+      generalizedFusion: { maxCandidates: 8, minRelativeStrength: 0.9 },
+      projectionIndex,
+    });
+
+    // Enumeration counts need breadth: every instance matters, so the floor
+    // must not trim weak-but-real candidates (measured: count questions only
+    // ever regressed under the floor).
+    const countPlan = await engine.recall({
+      scope,
+      query: "How many weekend badminton games did Marco book?",
+      retrievalProfile: "general_chat",
+    });
+    const countRun = countPlan.metadata.retrievalTrace?.fusionRuns?.[0];
+    expect(countRun?.candidateCount).toBe(2);
+    expect(countRun?.budget).toBe(2);
+
+    // Precision questions keep the configured floor.
+    const directPlan = await engine.recall({
+      scope,
+      query: "Which court did Marco book for the weekend games?",
+      retrievalProfile: "general_chat",
+    });
+    const directRun = directPlan.metadata.retrievalTrace?.fusionRuns?.[0];
+    expect(directRun?.candidateCount).toBe(2);
+    expect(directRun?.budget).toBe(1);
+  });
+
   it("anchors temporal visibility to a per-call referenceTime", async () => {
     const rawStore = createInMemoryDocumentStore();
     const projectionIndex = createRecallProjectionRuntime({

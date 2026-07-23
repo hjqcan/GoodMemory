@@ -1,3 +1,7 @@
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+
 import {
   PHASE74_BEAM_SAFETY_SUITE,
   PHASE74_BEAM_SAFETY_VERIFIER_ID,
@@ -72,20 +76,32 @@ const SUITE_KINDS = [
   "e4",
   "safety",
 ] as const satisfies readonly Phase74ProtectionSuiteKind[];
+const NO_LIVE_MODEL_CALLS = "no-live-model-calls-v1" as const;
+const LIVE_CALL_BUDGET = "embedding-language-call-budget-v1" as const;
 
 export type Phase74ProtectionPlanAdmissionClass =
   (typeof PLAN_CLASSES)[number];
 
-export interface Phase74ProtectionPlanBudget {
-  maxModelCallsPerCase: number;
+export interface Phase74ProtectionLiveCallBudget {
+  embeddingSpendLimitUsd: number;
+  maxLanguageCalls: number;
+}
+
+export type Phase74ProtectionCallBudgetInput =
+  | typeof NO_LIVE_MODEL_CALLS
+  | Phase74ProtectionLiveCallBudget;
+
+export interface Phase74ProtectionPlanControls {
+  callBudget: Phase74ProtectionIdentityDescriptor;
+  caseConcurrency: number;
   renderedContextTokens: number;
 }
 
 export interface Phase74ProtectionPlanRunInput {
-  budget: Phase74ProtectionPlanBudget;
-  caseConcurrency: number;
   caseIds: readonly string[];
+  controls: Phase74ProtectionPlanControls;
   identity: Phase74ProtectionRunIdentity;
+  protectionBlueprint: Phase74ProtectionIdentityDescriptor;
   replicate: Phase74ProtectionReplicate;
   runId: string;
   suite: Phase74ProtectionSuite;
@@ -93,10 +109,10 @@ export interface Phase74ProtectionPlanRunInput {
 }
 
 export interface Phase74ProtectionPlannedRun {
-  budget: Phase74ProtectionPlanBudget;
-  caseConcurrency: number;
+  controls: Phase74ProtectionPlanControls;
   identity: Phase74ProtectionRunIdentity;
   orderedCaseIdsSha256: string;
+  protectionBlueprint: Phase74ProtectionIdentityDescriptor;
   replicate: Phase74ProtectionReplicate;
   runId: string;
   suite: Phase74ProtectionSuite;
@@ -110,14 +126,28 @@ export interface Phase74ProtectionPlan {
   };
   artifactKind: "phase74-protection-plan";
   evaluatorSource: Phase74ProtectionIdentityDescriptor;
+  protectionBlueprint: Phase74ProtectionIdentityDescriptor;
   runs: Phase74ProtectionPlannedRun[];
-  schemaVersion: 3;
+  schemaVersion: 4;
 }
 
 export interface Phase74ProtectionPlanInput {
   admissionClass: Phase74ProtectionPlanAdmissionClass;
   evaluatorSource: Phase74ProtectionIdentityDescriptor;
+  protectionBlueprint: Phase74ProtectionIdentityDescriptor;
   runs: readonly Phase74ProtectionPlanRunInput[];
+}
+
+export interface LoadedPhase74ProtectionPlan {
+  path: string;
+  plan: Phase74ProtectionPlan;
+  sha256: string;
+}
+
+export interface Phase74ProtectionPlannedRunBinding {
+  planPath: string;
+  planSha256: string;
+  plannedRunSha256: string;
 }
 
 function recordValue(
@@ -166,6 +196,17 @@ function positiveInteger(value: unknown, label: string): number {
   return Number(value);
 }
 
+function positiveNumber(value: unknown, label: string): number {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value <= 0
+  ) {
+    throw new Error(`Phase 74 ${label} must be a positive finite number.`);
+  }
+  return value;
+}
+
 function descriptor(
   value: unknown,
   label: string,
@@ -178,20 +219,52 @@ function descriptor(
   };
 }
 
-function budget(
+export function describePhase74ProtectionCallBudget(
+  input: Phase74ProtectionCallBudgetInput,
+): Phase74ProtectionIdentityDescriptor {
+  if (input === NO_LIVE_MODEL_CALLS) {
+    return {
+      id: NO_LIVE_MODEL_CALLS,
+      sha256: hashPhase74ProtectionValue(NO_LIVE_MODEL_CALLS),
+    };
+  }
+  const record = recordValue(input, "protection call budget");
+  assertExactKeys(
+    record,
+    ["embeddingSpendLimitUsd", "maxLanguageCalls"],
+    "protection call budget",
+  );
+  const callBudget = {
+    embeddingSpendLimitUsd: positiveNumber(
+      record.embeddingSpendLimitUsd,
+      "protection call budget embeddingSpendLimitUsd",
+    ),
+    maxLanguageCalls: positiveInteger(
+      record.maxLanguageCalls,
+      "protection call budget maxLanguageCalls",
+    ),
+  };
+  return {
+    id: LIVE_CALL_BUDGET,
+    sha256: hashPhase74ProtectionValue(callBudget),
+  };
+}
+
+function controls(
   value: unknown,
   label: string,
-): Phase74ProtectionPlanBudget {
+): Phase74ProtectionPlanControls {
   const record = recordValue(value, label);
   assertExactKeys(
     record,
-    ["maxModelCallsPerCase", "renderedContextTokens"],
+    ["callBudget", "caseConcurrency", "renderedContextTokens"],
     label,
   );
   return {
-    maxModelCallsPerCase: positiveInteger(
-      record.maxModelCallsPerCase,
-      `${label}.maxModelCallsPerCase`,
+    callBudget: descriptor(record.callBudget, `${label}.callBudget`),
+    caseConcurrency: positiveInteger(
+      record.caseConcurrency,
+      `${label}.caseConcurrency`,
     ),
     renderedContextTokens: positiveInteger(
       record.renderedContextTokens,
@@ -228,21 +301,17 @@ function parsePlannedRun(
 ): Phase74ProtectionPlannedRun {
   const record = recordValue(value, label);
   assertExactKeys(record, [
-    "budget",
-    "caseConcurrency",
+    "controls",
     "identity",
     "orderedCaseIdsSha256",
+    "protectionBlueprint",
     "replicate",
     "runId",
     "suite",
     "verifier",
   ], label);
   return {
-    budget: budget(record.budget, `${label}.budget`),
-    caseConcurrency: positiveInteger(
-      record.caseConcurrency,
-      `${label}.caseConcurrency`,
-    ),
+    controls: controls(record.controls, `${label}.controls`),
     identity: parsePhase74ProtectionRunIdentity(
       record.identity,
       `${label}.identity`,
@@ -250,6 +319,10 @@ function parsePlannedRun(
     orderedCaseIdsSha256: sha256Value(
       record.orderedCaseIdsSha256,
       `${label}.orderedCaseIdsSha256`,
+    ),
+    protectionBlueprint: descriptor(
+      record.protectionBlueprint,
+      `${label}.protectionBlueprint`,
     ),
     replicate: replicateValue(record.replicate, `${label}.replicate`),
     runId: stringValue(record.runId, `${label}.runId`),
@@ -289,10 +362,10 @@ function plannedRun(
     );
   }
   return parsePlannedRun({
-    budget: input.budget,
-    caseConcurrency: input.caseConcurrency,
+    controls: input.controls,
     identity,
     orderedCaseIdsSha256: hashPhase74ProtectionValue(caseIds),
+    protectionBlueprint: input.protectionBlueprint,
     replicate: input.replicate,
     runId: input.runId,
     suite: input.suite,
@@ -327,6 +400,13 @@ function assertUniqueRuns(runs: readonly Phase74ProtectionPlannedRun[]): void {
   }
 }
 
+function sameDescriptor(
+  left: Phase74ProtectionIdentityDescriptor,
+  right: Phase74ProtectionIdentityDescriptor,
+): boolean {
+  return left.id === right.id && left.sha256 === right.sha256;
+}
+
 function assertPromotionMatrix(
   runs: readonly Phase74ProtectionPlannedRun[],
 ): void {
@@ -346,18 +426,50 @@ function assertPromotionMatrix(
       "Phase 74 promotion requires the exact five-suite, three-replicate matrix.",
     );
   }
+
+  const noLiveCallBudget = describePhase74ProtectionCallBudget(
+    NO_LIVE_MODEL_CALLS,
+  );
   for (const suiteId of expectedSuiteIds) {
     const suiteRuns = runs.filter(({ suite }) => suite.id === suiteId);
     const binding = PROMOTION_BINDINGS.get(suiteId)!;
+    const expectedVerifier = {
+      id: binding.verifierId,
+      sha256: hashPhase74ProtectionValue({ id: binding.verifierId }),
+    };
     if (suiteRuns.some(({ suite, verifier }) =>
-      suite.kind !== binding.kind || verifier.id !== binding.verifierId
+      suite.kind !== binding.kind ||
+      !sameDescriptor(verifier, expectedVerifier)
     )) {
       throw new Error(
         `Phase 74 promotion suite ${suiteId} canonical binding drifted.`,
       );
     }
-    const replicateIdentity = ({ replicate: _replicate, runId: _runId, ...run }:
-      Phase74ProtectionPlannedRun) => run;
+    if (
+      suiteId === PHASE74_MAB_PROTECTION_SUITE.id &&
+      suiteRuns.some(({ controls }) =>
+        !sameDescriptor(controls.callBudget, noLiveCallBudget)
+      )
+    ) {
+      throw new Error(
+        "Phase 74 promotion MemoryAgentBench must use no-live-model-calls-v1.",
+      );
+    }
+    if (
+      suiteId !== PHASE74_MAB_PROTECTION_SUITE.id &&
+      suiteRuns.some(({ controls }) =>
+        controls.callBudget.id !== LIVE_CALL_BUDGET
+      )
+    ) {
+      throw new Error(
+        `Phase 74 promotion suite ${suiteId} requires a live call budget binding.`,
+      );
+    }
+
+    const replicateIdentity = (
+      { replicate: _replicate, runId: _runId, ...run }:
+        Phase74ProtectionPlannedRun,
+    ) => run;
     const expectedIdentity = hashPhase74ProtectionValue(
       replicateIdentity(suiteRuns[0]!),
     );
@@ -374,12 +486,14 @@ function assertPromotionMatrix(
 function assertPlanConsistency(plan: Phase74ProtectionPlan): void {
   assertUniqueRuns(plan.runs);
   for (const run of plan.runs) {
-    if (
-      hashPhase74ProtectionValue(run.identity.source) !==
-        hashPhase74ProtectionValue(plan.evaluatorSource)
-    ) {
+    if (!sameDescriptor(run.identity.source, plan.evaluatorSource)) {
       throw new Error(
         "Phase 74 protection plan evaluator source identity drifted.",
+      );
+    }
+    if (!sameDescriptor(run.protectionBlueprint, plan.protectionBlueprint)) {
+      throw new Error(
+        "Phase 74 protection plan blueprint identity drifted.",
       );
     }
   }
@@ -396,12 +510,13 @@ export function parsePhase74ProtectionPlan(
     "admission",
     "artifactKind",
     "evaluatorSource",
+    "protectionBlueprint",
     "runs",
     "schemaVersion",
   ], "protection plan");
   if (
     record.artifactKind !== "phase74-protection-plan" ||
-    record.schemaVersion !== 3
+    record.schemaVersion !== 4
   ) {
     throw new Error(
       "Phase 74 protection plan kind or schemaVersion is invalid.",
@@ -434,10 +549,14 @@ export function parsePhase74ProtectionPlan(
       record.evaluatorSource,
       "protection plan evaluatorSource",
     ),
+    protectionBlueprint: descriptor(
+      record.protectionBlueprint,
+      "protection plan protectionBlueprint",
+    ),
     runs: record.runs.map((run, index) =>
       parsePlannedRun(run, `protection plan runs[${index}]`)
     ).sort(compareRuns),
-    schemaVersion: 3,
+    schemaVersion: 4,
   };
   assertPlanConsistency(plan);
   return plan;
@@ -453,9 +572,31 @@ export function buildPhase74ProtectionPlan(
     },
     artifactKind: "phase74-protection-plan",
     evaluatorSource: input.evaluatorSource,
+    protectionBlueprint: input.protectionBlueprint,
     runs: input.runs.map(plannedRun),
-    schemaVersion: 3,
+    schemaVersion: 4,
   });
+}
+
+export async function loadPhase74ProtectionPlan(
+  path: string,
+): Promise<LoadedPhase74ProtectionPlan> {
+  const absolutePath = resolve(path);
+  const bytes = await readFile(absolutePath);
+  let value: unknown;
+  try {
+    value = JSON.parse(bytes.toString("utf8")) as unknown;
+  } catch (error) {
+    throw new Error(
+      `Phase 74 protection plan ${absolutePath} is not valid JSON.`,
+      { cause: error },
+    );
+  }
+  return {
+    path: absolutePath,
+    plan: parsePhase74ProtectionPlan(value),
+    sha256: createHash("sha256").update(bytes).digest("hex"),
+  };
 }
 
 export function isPhase74ProtectionPlanPromotionAdmissible(
@@ -466,17 +607,22 @@ export function isPhase74ProtectionPlanPromotionAdmissible(
 }
 
 export function verifyPhase74ProtectionPlanRun(
-  plan: Phase74ProtectionPlan,
+  loadedPlan: LoadedPhase74ProtectionPlan,
   input: Phase74ProtectionPlanRunInput,
-): void {
-  const trustedPlan = parsePhase74ProtectionPlan(plan);
-  const actual = plannedRun(input);
-  const suiteRuns = trustedPlan.runs.filter(
-    ({ suite }) => suite.id === actual.suite.id,
+): Phase74ProtectionPlannedRunBinding {
+  const trustedPlan = parsePhase74ProtectionPlan(loadedPlan.plan);
+  const planPath = resolve(stringValue(
+    loadedPlan.path,
+    "loaded protection plan path",
+  ));
+  const planSha256 = sha256Value(
+    loadedPlan.sha256,
+    "loaded protection plan sha256",
   );
-  const expected = suiteRuns.find(
-    ({ replicate }) => replicate === actual.replicate,
-  ) ?? (suiteRuns.length === 1 ? suiteRuns[0] : undefined);
+  const actual = plannedRun(input);
+  const expected = trustedPlan.runs.find(({ replicate, suite }) =>
+    suite.id === actual.suite.id && replicate === actual.replicate
+  );
   if (
     expected === undefined ||
     hashPhase74ProtectionValue(actual) !==
@@ -486,4 +632,9 @@ export function verifyPhase74ProtectionPlanRun(
       "Phase 74 protection run drifted from its pre-execution plan.",
     );
   }
+  return {
+    planPath,
+    planSha256,
+    plannedRunSha256: hashPhase74ProtectionValue(expected),
+  };
 }

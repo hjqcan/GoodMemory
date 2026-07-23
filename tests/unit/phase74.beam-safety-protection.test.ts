@@ -11,9 +11,12 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
 
 import {
+  buildPhase74BeamSafetyProtectionRunIdentity,
   createPhase74BeamSafetyProtectionVerifier,
   PHASE74_BEAM_FULL_100K_DATASET_ID,
   PHASE74_BEAM_SAFETY_BUDGET,
+  PHASE74_BEAM_SAFETY_SUITE,
+  PHASE74_BEAM_SAFETY_VERIFIER_ID,
   runPhase74BeamSafetyProtection,
   verifyPhase74BeamSafetyProtectionArtifact,
 } from "../../src/eval/phase74BeamSafetyProtection";
@@ -23,9 +26,17 @@ import type {
   Phase74BeamSafetyContract,
 } from "../../src/eval/phase74BeamSafetyProtection";
 import {
+  buildPhase74ProtectionPlan,
+  describePhase74ProtectionCallBudget,
+  loadPhase74ProtectionPlan,
+} from "../../src/eval/phase74ProtectionPlan";
+import {
   hashPhase74ProtectionValue,
   loadPhase74FrozenProtectionSuiteRunArtifact,
 } from "../../src/eval/phase74ProtectionRun";
+import {
+  PHASE74_PROTECTION_BLUEPRINT_ID,
+} from "../../src/eval/phase74ProtectionVerifier";
 
 const roots: string[] = [];
 
@@ -305,6 +316,159 @@ describe("Phase 74 BEAM full-100K safety protection adapter", () => {
 
     expect(maxActive).toBeGreaterThan(1);
     expect(maxActive).toBeLessThanOrEqual(4);
+  });
+
+  it("verifies actual live controls before providers and emits schema v2", async () => {
+    const root = await createRoot();
+    const datasetBytes = createFull100kDataset();
+    const contract = createContract(datasetBytes);
+    const identity = buildPhase74BeamSafetyProtectionRunIdentity({
+      contract,
+      datasetBytes,
+    });
+    const caseIds = Array.from({ length: 20 }, (_, conversationIndex) =>
+      Array.from({ length: 2 }, (_, questionIndex) =>
+        `${conversationIndex + 1}:abstention:${questionIndex + 1}`
+      )
+    ).flat();
+    const exactBudget = {
+      embeddingSpendLimitUsd: 0.25,
+      maxLanguageCalls: 1_000,
+    };
+    const blueprint = descriptor(
+      PHASE74_PROTECTION_BLUEPRINT_ID,
+      "exact protection manifest bytes",
+    );
+    const buildPlan = async (input: {
+      blueprintId?: string;
+      caseConcurrency: number;
+      liveCallBudget: typeof exactBudget;
+      path: string;
+    }) => {
+      const planBlueprint = {
+        ...blueprint,
+        id: input.blueprintId ?? blueprint.id,
+      };
+      const plan = buildPhase74ProtectionPlan({
+        admissionClass: "diagnostic",
+        evaluatorSource: contract.source,
+        protectionBlueprint: planBlueprint,
+        runs: [{
+          caseIds,
+          controls: {
+            callBudget: describePhase74ProtectionCallBudget(
+              input.liveCallBudget,
+            ),
+            caseConcurrency: input.caseConcurrency,
+            renderedContextTokens:
+              PHASE74_BEAM_SAFETY_BUDGET.renderedContextTokens,
+          },
+          identity,
+          protectionBlueprint: planBlueprint,
+          replicate: 1,
+          runId: "beam-planned-r1",
+          suite: PHASE74_BEAM_SAFETY_SUITE,
+          verifier: descriptor(PHASE74_BEAM_SAFETY_VERIFIER_ID, {
+            id: PHASE74_BEAM_SAFETY_VERIFIER_ID,
+          }),
+        }],
+      });
+      await writeFile(input.path, `${JSON.stringify(plan, null, 2)}\n`);
+      return loadPhase74ProtectionPlan(input.path);
+    };
+
+    const driftCases = [
+      {
+        caseConcurrency: 3,
+        liveCallBudget: exactBudget,
+        message: "drifted from its pre-execution plan",
+        suffix: "concurrency",
+      },
+      {
+        caseConcurrency: 4,
+        liveCallBudget: {
+          ...exactBudget,
+          maxLanguageCalls: exactBudget.maxLanguageCalls + 1,
+        },
+        message: "drifted from its pre-execution plan",
+        suffix: "call-budget",
+      },
+      {
+        blueprintId: "not-the-canonical-protection-blueprint",
+        caseConcurrency: 4,
+        liveCallBudget: exactBudget,
+        message: "canonical protection blueprint",
+        suffix: "blueprint",
+      },
+    ] as const;
+    for (const drift of driftCases) {
+      const loadedPlan = await buildPlan({
+        ...("blueprintId" in drift
+          ? { blueprintId: drift.blueprintId }
+          : {}),
+        caseConcurrency: drift.caseConcurrency,
+        liveCallBudget: drift.liveCallBudget,
+        path: join(root, `${drift.suffix}-plan.json`),
+      });
+      const artifactPath = join(root, `${drift.suffix}-run.json`);
+      const rawArtifactPath = join(root, `${drift.suffix}-raw.json`);
+      let providerCalls = 0;
+      await expect(runPhase74BeamSafetyProtection({
+        artifactPath,
+        caseConcurrency: 4,
+        contract,
+        datasetBytes,
+        protectionPlan: {
+          ...exactBudget,
+          loadedPlan,
+        },
+        rawArtifactPath,
+        replicate: 1,
+        runId: "beam-planned-r1",
+      }, {
+        createPipeline: () => {
+          providerCalls += 1;
+          throw new Error("provider must not run");
+        },
+        judgeGroundedness: async () => {
+          providerCalls += 1;
+          throw new Error("judge must not run");
+        },
+      })).rejects.toThrow(drift.message);
+      expect(providerCalls).toBe(0);
+      expect(await Bun.file(artifactPath).exists()).toBe(false);
+      expect(await Bun.file(rawArtifactPath).exists()).toBe(false);
+    }
+
+    const loadedPlan = await buildPlan({
+      caseConcurrency: 4,
+      liveCallBudget: exactBudget,
+      path: join(root, "protection-plan.json"),
+    });
+    const pipelineRequests: Phase74BeamPipelineRequest[] = [];
+    const judgeCalls: Phase74BeamGroundednessJudgeRequest[] = [];
+    const { dependencies } = createDependencies({
+      judgeCalls,
+      pipelineRequests,
+    });
+    const result = await runPhase74BeamSafetyProtection({
+      artifactPath: join(root, "planned-run.json"),
+      caseConcurrency: 4,
+      contract,
+      datasetBytes,
+      protectionPlan: {
+        ...exactBudget,
+        loadedPlan,
+      },
+      rawArtifactPath: join(root, "planned-raw.json"),
+      replicate: 1,
+      runId: "beam-planned-r1",
+    }, dependencies);
+    expect(result.artifact.schemaVersion).toBe(2);
+    expect(result.artifact).toMatchObject({
+      planPath: loadedPlan.path,
+      planSha256: loadedPlan.sha256,
+    });
   });
 
   it("rejects smoke, synthetic, and incomplete populations before providers run", async () => {

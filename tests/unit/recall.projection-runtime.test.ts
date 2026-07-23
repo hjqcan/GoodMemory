@@ -329,7 +329,7 @@ describe("recall projection runtime", () => {
     );
 
     expect(first).toBe(second);
-    expect(first).toStartWith("gm-projection-v3:");
+    expect(first).toStartWith("gm-projection-v4:");
     expect(alternateDefault).not.toBe(first);
   });
 
@@ -398,7 +398,7 @@ describe("recall projection runtime", () => {
         ...scope,
         analyzerFingerprint: expect.any(String),
         coverage: "partial",
-        projectionVersion: "gm-projection-v3",
+        projectionVersion: "gm-projection-v4",
         searchSchemaVersion: "gm-search-v2",
         firstSeenAt: NOW,
         lastSeenAt: NOW,
@@ -970,7 +970,7 @@ describe("recall projection runtime", () => {
     ).toMatchObject({
       analyzerFingerprint: "language-manifest-fingerprint",
       coverage: "complete",
-      projectionVersion: "gm-projection-v3",
+      projectionVersion: "gm-projection-v4",
       schemaVersion: 2,
     });
   });
@@ -1515,7 +1515,7 @@ describe("recall projection runtime", () => {
     ).toBeNull();
   });
 
-  it("removes a historical fallback once a same-version structured claim is selected", async () => {
+  it("retires a historical fallback once a same-version structured claim is selected", async () => {
     const rawStore = createInMemoryDocumentStore();
     const fact = buildFact({ id: "fact-dirty-fallback" });
     await rawStore.set("facts", fact.id, fact);
@@ -1558,7 +1558,13 @@ describe("recall projection runtime", () => {
     expect(result).toMatchObject({ complete: true, skipped: false });
     expect(
       await rawStore.get(CLAIM_PROJECTIONS_COLLECTION, fallback!.id),
-    ).toBeNull();
+    ).toEqual(fallback);
+    expect(await rawStore.get<ClaimProjectionStatus>(
+      CLAIM_PROJECTION_STATUS_COLLECTION,
+      buildClaimProjectionStatusId(scope, fact.id),
+    )).toMatchObject({
+      retiredRevisionIds: expect.arrayContaining([fallback!.id]),
+    });
     expect((await runtime.queryClaimHistory(scope)).map(({ id }) => id)).toEqual([
       structured!.id,
     ]);
@@ -1766,10 +1772,12 @@ describe("recall projection runtime", () => {
       CLAIM_PROJECTIONS_COLLECTION,
       { sourceMemoryId: fact.id },
     );
-    const oldStructured = oldClaims.find(
+    const oldLogicalClaims = await oldRuntime.queryClaimHistory(scope);
+    const oldStructured = oldLogicalClaims.find(
       ({ predicateKey }) => predicateKey === "project.location",
     );
-    expect(oldClaims).toHaveLength(1);
+    expect(oldClaims).toHaveLength(2);
+    expect(oldLogicalClaims).toHaveLength(1);
     expect(oldStructured?.objectEntityId).toBeDefined();
 
     const newLanguage = createMarkedLanguageService({
@@ -1793,7 +1801,8 @@ describe("recall projection runtime", () => {
       CLAIM_PROJECTIONS_COLLECTION,
       { sourceMemoryId: fact.id },
     );
-    const newStructured = newClaims.find(
+    const newLogicalClaims = await newRuntime.queryClaimHistory(scope);
+    const newStructured = newLogicalClaims.find(
       ({ predicateKey }) => predicateKey === "project.location",
     );
     const manifest = await rawStore.get<RecallProjectionManifest>(
@@ -1802,8 +1811,10 @@ describe("recall projection runtime", () => {
     );
 
     expect(rebuilt).toMatchObject({ complete: true, skipped: false });
-    expect(newClaims).toHaveLength(1);
-    expect(newClaims.every((claim) =>
+    expect(newClaims).toHaveLength(3);
+    expect(newClaims).toContainEqual(oldStructured!);
+    expect(newLogicalClaims).toHaveLength(1);
+    expect(newLogicalClaims.every((claim) =>
       claim.searchAnalyzerVersion === "marked-new-v1" &&
       claim.searchText === "new-term"
     )).toBe(true);
@@ -2481,6 +2492,7 @@ describe("recall projection runtime", () => {
       sourceMemoryId: fact.id,
       state: "failed",
       claimIds: [],
+      retiredRevisionIds: [],
       extractorVersion: "assisted-v1",
       sourceUpdatedAt: fact.updatedAt,
       lastError: "injected claim failure",

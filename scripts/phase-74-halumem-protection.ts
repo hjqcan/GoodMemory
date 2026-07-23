@@ -3,13 +3,22 @@ import type {
   Phase74ProtectionReplicate,
 } from "../src/eval/phase74ProtectionContracts";
 import {
+  hashPhase74ProtectionCaseIds,
+} from "../src/eval/phase74ProtectionContracts";
+import {
   hashPhase74ProtectionValue,
   runPhase74ProtectionSuiteCases,
 } from "../src/eval/phase74ProtectionRun";
 import type {
   Phase74ProtectionBranch,
+  Phase74ProtectionRunIdentityInput,
+  Phase74ProtectionRunPlanInput,
+  Phase74ProtectionSuite,
   Phase74ProtectionSuiteRunResult,
 } from "../src/eval/phase74ProtectionRun";
+import {
+  verifyPhase74ProtectionPlanRun,
+} from "../src/eval/phase74ProtectionPlan";
 import {
   assertPhase74HaluMemConfiguration,
   buildPhase74HaluMemE4RunIdentity,
@@ -143,11 +152,48 @@ interface CommonRunInput {
   caseConcurrency?: number;
   configuration: Phase74HaluMemProtectionConfiguration;
   dataset: Phase74ProtectionIdentityDescriptor;
+  plan?: Phase74ProtectionRunPlanInput;
   rawArtifactPath: string;
   replicate: Phase74ProtectionReplicate;
   runId: string;
   source: Phase74ProtectionIdentityDescriptor;
   users: readonly Phase74HaluMemUser[];
+}
+
+function effectiveCaseConcurrency(input: CommonRunInput): number {
+  return input.caseConcurrency ?? 1;
+}
+
+function verifyRunPlan(input: {
+  caseIds: readonly string[];
+  common: CommonRunInput;
+  identity: Phase74ProtectionRunIdentityInput;
+  suite: Phase74ProtectionSuite;
+}): void {
+  if (input.common.plan === undefined) {
+    return;
+  }
+  const { populationId, ...identity } = input.identity;
+  verifyPhase74ProtectionPlanRun(input.common.plan.loadedPlan, {
+    caseIds: input.caseIds,
+    controls: {
+      ...input.common.plan.controls,
+      caseConcurrency: effectiveCaseConcurrency(input.common),
+    },
+    identity: {
+      ...identity,
+      population: {
+        caseCount: input.caseIds.length,
+        caseIdsSha256: hashPhase74ProtectionCaseIds(input.caseIds),
+        id: populationId,
+      },
+    },
+    protectionBlueprint: input.common.plan.protectionBlueprint,
+    replicate: input.common.replicate,
+    runId: input.common.runId,
+    suite: input.suite,
+    verifier: input.common.plan.verifier,
+  });
 }
 
 function assertFormatOnlyConfiguration(
@@ -255,6 +301,21 @@ export async function runPhase74HaluMemE4Protection(
 ): Promise<Phase74ProtectionSuiteRunResult> {
   assertFormatOnlyConfiguration(input.configuration);
   const population = buildPhase74HaluMemQuestionPopulation(input.users);
+  const identity = buildPhase74HaluMemE4RunIdentity({
+    configuration: input.configuration,
+    dataset: input.dataset,
+    populationId: phase74HaluMemQuestionPopulationId(
+      input.dataset.id,
+      input.users,
+    ),
+    source: input.source,
+  });
+  verifyRunPlan({
+    caseIds: population.cases.map(({ caseId }) => caseId),
+    common: input,
+    identity,
+    suite: PHASE74_HALUMEM_E4_SUITE,
+  });
   const snapshots = new Map<string, Phase74HaluMemE4EvidenceSnapshot>();
   for (const [caseId, item] of population.items) {
     const snapshot = await dependencies.retrieveEvidence({
@@ -278,7 +339,7 @@ export async function runPhase74HaluMemE4Protection(
 
   return runPhase74ProtectionSuiteCases({
     artifactPath: input.artifactPath,
-    caseConcurrency: input.caseConcurrency,
+    caseConcurrency: effectiveCaseConcurrency(input),
     cases: population.cases,
     evaluate: async ({ branch, caseId }) => {
       const item = population.items.get(caseId)!;
@@ -352,15 +413,8 @@ export async function runPhase74HaluMemE4Protection(
         scores: qaScores(values),
       };
     },
-    identity: buildPhase74HaluMemE4RunIdentity({
-      configuration: input.configuration,
-      dataset: input.dataset,
-      populationId: phase74HaluMemQuestionPopulationId(
-        input.dataset.id,
-        input.users,
-      ),
-      source: input.source,
-    }),
+    identity,
+    plan: input.plan,
     rawArtifactPath: input.rawArtifactPath,
     replicate: input.replicate,
     runId: input.runId,
@@ -380,9 +434,24 @@ export async function runPhase74HaluMemUpdateProtection(
   }
   const updateEvaluator = input.configuration.updateEvaluator;
   const population = buildPhase74HaluMemUpdatePopulation(input.users);
+  const identity = buildPhase74HaluMemUpdateRunIdentity({
+    configuration: input.configuration,
+    dataset: input.dataset,
+    populationId: phase74HaluMemUpdatePopulationId(
+      input.dataset.id,
+      input.users,
+    ),
+    source: input.source,
+  });
+  verifyRunPlan({
+    caseIds: population.cases.map(({ caseId }) => caseId),
+    common: input,
+    identity,
+    suite: PHASE74_HALUMEM_UPDATE_SUITE,
+  });
   return runPhase74ProtectionSuiteCases({
     artifactPath: input.artifactPath,
-    caseConcurrency: input.caseConcurrency,
+    caseConcurrency: effectiveCaseConcurrency(input),
     cases: population.cases,
     evaluate: async ({ branch, caseId }) => {
       const item = population.items.get(caseId)!;
@@ -427,15 +496,8 @@ export async function runPhase74HaluMemUpdateProtection(
         scores: { safety: { updateCorrectness: score } },
       };
     },
-    identity: buildPhase74HaluMemUpdateRunIdentity({
-      configuration: input.configuration,
-      dataset: input.dataset,
-      populationId: phase74HaluMemUpdatePopulationId(
-        input.dataset.id,
-        input.users,
-      ),
-      source: input.source,
-    }),
+    identity,
+    plan: input.plan,
     rawArtifactPath: input.rawArtifactPath,
     replicate: input.replicate,
     runId: input.runId,
@@ -463,9 +525,24 @@ export async function runPhase74HaluMemPrivacyProtection(
 ): Promise<Phase74ProtectionSuiteRunResult> {
   assertPhase74HaluMemConfiguration(input.configuration);
   const population = buildPhase74HaluMemPrivacyPopulation(input.users);
+  const identity = buildPhase74HaluMemPrivacyRunIdentity({
+    configuration: input.configuration,
+    dataset: input.dataset,
+    populationId: phase74HaluMemPrivacyPopulationId(
+      input.dataset.id,
+      input.users,
+    ),
+    source: input.source,
+  });
+  verifyRunPlan({
+    caseIds: population.cases.map(({ caseId }) => caseId),
+    common: input,
+    identity,
+    suite: PHASE74_HALUMEM_PRIVACY_SUITE,
+  });
   return runPhase74ProtectionSuiteCases({
     artifactPath: input.artifactPath,
-    caseConcurrency: input.caseConcurrency,
+    caseConcurrency: effectiveCaseConcurrency(input),
     cases: population.cases,
     evaluate: async ({ branch, caseId }) => {
       const item = population.items.get(caseId)!;
@@ -501,15 +578,8 @@ export async function runPhase74HaluMemPrivacyProtection(
         },
       };
     },
-    identity: buildPhase74HaluMemPrivacyRunIdentity({
-      configuration: input.configuration,
-      dataset: input.dataset,
-      populationId: phase74HaluMemPrivacyPopulationId(
-        input.dataset.id,
-        input.users,
-      ),
-      source: input.source,
-    }),
+    identity,
+    plan: input.plan,
     rawArtifactPath: input.rawArtifactPath,
     replicate: input.replicate,
     runId: input.runId,

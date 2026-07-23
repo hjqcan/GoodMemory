@@ -3,19 +3,27 @@ import { readFile } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
 
 import type { EvidenceLedgerFormat } from "./evidenceLedgerFormats";
+import {
+  PHASE74_BEAM_SAFETY_SUITE,
+} from "./phase74BeamSafetyProtection";
 import type {
   Phase74ProtectionRunIdentity,
   Phase74ProtectionSafetyMetric,
 } from "./phase74ProtectionContracts";
 import {
+  PHASE74_MAB_PROTECTION_SUITE,
   PHASE74_MEMORY_AGENT_BENCH_PROTECTION_VERIFIER,
 } from "./phase74MemoryAgentBenchProtectionVerifier";
 import {
   PHASE74_HALUMEM_E4_PROTECTION_VERIFIER,
+  PHASE74_HALUMEM_E4_SUITE,
   PHASE74_HALUMEM_PRIVACY_PROTECTION_VERIFIER,
+  PHASE74_HALUMEM_PRIVACY_SUITE,
   PHASE74_HALUMEM_UPDATE_PROTECTION_VERIFIER,
+  PHASE74_HALUMEM_UPDATE_SUITE,
 } from "./phase74HaluMemProtectionVerifier";
 import {
+  hashPhase74ProtectionValue,
   loadPhase74FrozenProtectionSuiteRunArtifact,
 } from "./phase74ProtectionRun";
 import type {
@@ -23,6 +31,15 @@ import type {
   Phase74ProtectionSuiteBranchScores,
   Phase74ProtectionSuiteKind,
 } from "./phase74ProtectionRun";
+import {
+  describePhase74ProtectionCallBudget,
+  isPhase74ProtectionPlanPromotionAdmissible,
+  loadPhase74ProtectionPlan,
+} from "./phase74ProtectionPlan";
+import type {
+  LoadedPhase74ProtectionPlan,
+  Phase74ProtectionPlanAdmissionClass,
+} from "./phase74ProtectionPlan";
 import type { Phase74ProtectionEvidence } from "./phase74PromotionGate";
 import type {
   Phase74ProtectionDatasetReference,
@@ -52,6 +69,10 @@ const SUITE_KINDS = [
 const DERIVATION_METHOD =
   "paired-case-mean-per-suite-across-three-replicates-v1" as const;
 const MANIFEST_ADMISSION = "canonical-verifier-bound-v1" as const;
+export const PHASE74_BEAM_LIVE_CLOSURE_VERIFIER_ID =
+  "phase74-beam-live-closure-v1";
+export const PHASE74_HALUMEM_LIVE_CLOSURE_VERIFIER_ID =
+  "phase74-halumem-live-closure-v1";
 const DEFAULT_VERIFIERS = [
   PHASE74_MEMORY_AGENT_BENCH_PROTECTION_VERIFIER,
   PHASE74_HALUMEM_E4_PROTECTION_VERIFIER,
@@ -78,10 +99,37 @@ export interface Phase74ProtectionSuiteManifest {
 interface Phase74ProtectionSuiteSourceFile {
   artifactPath: string;
   artifactSha256: string;
+  plannedRunSha256?: string;
   rawArtifactPath: string;
   rawArtifactSha256: string;
   replicate: 1 | 2 | 3;
   runId: string;
+}
+
+export interface Phase74ProtectionFileReference {
+  path: string;
+  sha256: string;
+}
+
+export interface Phase74ProtectionLiveClosureReceipt {
+  callBudgetArtifact: Phase74ProtectionFileReference;
+  closureArtifact: Phase74ProtectionFileReference;
+  closureVerifier: Phase74ProtectionRunIdentity["source"];
+  kind: "beam" | "halumem";
+  planSha256: string;
+  plannedRunSha256s: string[];
+  replicate: 1 | 2 | 3;
+  runIds: string[];
+  suiteIds: string[];
+  usageArtifacts: Phase74ProtectionFileReference[];
+}
+
+export interface Phase74ProtectionLiveClosureVerifier {
+  verify(input: {
+    manifest: LoadedPhase74ProtectionSuiteManifest;
+    plan: LoadedPhase74ProtectionPlan;
+    runs: readonly LoadedPhase74FrozenProtectionSuiteRunArtifact[];
+  }): Promise<readonly Phase74ProtectionLiveClosureReceipt[]>;
 }
 
 interface Phase74ProtectionSuiteSource {
@@ -101,7 +149,7 @@ interface Phase74ProtectionSuiteSource {
   verifierId: string;
 }
 
-export interface Phase74FrozenProtectionSuiteEvidence {
+interface Phase74FrozenProtectionSuiteEvidenceBase {
   artifactKind: "phase74-frozen-protection-suite-evidence";
   derivation: {
     method: typeof DERIVATION_METHOD;
@@ -121,9 +169,9 @@ export interface Phase74FrozenProtectionSuiteEvidence {
       updateCorrectnessDelta: number;
     };
   };
-  schemaVersion: 1;
   source: {
     evaluatorSource: Phase74ProtectionRunIdentity["source"];
+    executionReceipts?: Phase74ProtectionLiveClosureReceipt[];
     manifest: {
       path: string;
       sha256: string;
@@ -131,6 +179,29 @@ export interface Phase74FrozenProtectionSuiteEvidence {
     suites: Phase74ProtectionSuiteSource[];
   };
 }
+
+export interface Phase74FrozenDiagnosticProtectionSuiteEvidence extends
+  Phase74FrozenProtectionSuiteEvidenceBase {
+  admission?: never;
+  schemaVersion: 1;
+  source: Phase74FrozenProtectionSuiteEvidenceBase["source"] & {
+    plan?: never;
+  };
+}
+
+export interface Phase74FrozenPlannedProtectionSuiteEvidence extends
+  Phase74FrozenProtectionSuiteEvidenceBase {
+  admission: Phase74ProtectionPlanAdmissionClass;
+  schemaVersion: 2;
+  source: Phase74FrozenProtectionSuiteEvidenceBase["source"] & {
+    executionReceipts: Phase74ProtectionLiveClosureReceipt[];
+    plan: { path: string; sha256: string };
+  };
+}
+
+export type Phase74FrozenProtectionSuiteEvidence =
+  | Phase74FrozenDiagnosticProtectionSuiteEvidence
+  | Phase74FrozenPlannedProtectionSuiteEvidence;
 
 export interface LoadedPhase74FrozenProtectionSuiteEvidence {
   evidence: Phase74FrozenProtectionSuiteEvidence;
@@ -145,7 +216,19 @@ export interface LoadedPhase74ProtectionSuiteManifest {
 
 export interface Phase74ProtectionSuiteEvidenceDependencies {
   additionalVerifiers?: readonly Phase74ProtectionSuiteVerifier[];
+  liveClosureVerifier?: Phase74ProtectionLiveClosureVerifier;
   verifiers?: readonly Phase74ProtectionSuiteVerifier[];
+}
+
+export function isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible(
+  evidence: Phase74FrozenProtectionSuiteEvidence,
+): evidence is Phase74FrozenPlannedProtectionSuiteEvidence & {
+  admission: "promotion-admissible";
+} {
+  return evidence.schemaVersion === 2 &&
+    evidence.admission === "promotion-admissible" &&
+    evidence.source.plan !== undefined &&
+    evidence.source.executionReceipts.length === 6;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -209,6 +292,232 @@ function canonicalJson(value: unknown): string {
 
 function sha256(value: string | Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function fileReference(
+  value: unknown,
+  label: string,
+): Phase74ProtectionFileReference {
+  const record = recordValue(value, label);
+  assertExactKeys(record, ["path", "sha256"], label);
+  const path = stringValue(record.path, `${label}.path`);
+  if (!isAbsolute(path)) {
+    throw new Error(`Phase 74 ${label}.path must be absolute.`);
+  }
+  return {
+    path,
+    sha256: sha256Value(record.sha256, `${label}.sha256`),
+  };
+}
+
+function closureVerifierDescriptor(
+  kind: Phase74ProtectionLiveClosureReceipt["kind"],
+): Phase74ProtectionRunIdentity["source"] {
+  const id = kind === "beam"
+    ? PHASE74_BEAM_LIVE_CLOSURE_VERIFIER_ID
+    : PHASE74_HALUMEM_LIVE_CLOSURE_VERIFIER_ID;
+  return { id, sha256: hashPhase74ProtectionValue({ id }) };
+}
+
+function stringArray(value: unknown, label: string): string[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(`Phase 74 ${label} must be a non-empty array.`);
+  }
+  const values = value.map((entry, index) =>
+    stringValue(entry, `${label}[${index}]`)
+  );
+  if (new Set(values).size !== values.length) {
+    throw new Error(`Phase 74 ${label} must not contain duplicates.`);
+  }
+  return values.sort();
+}
+
+function parseLiveClosureReceipt(
+  value: unknown,
+  index: number,
+): Phase74ProtectionLiveClosureReceipt {
+  const label = `protection live closure receipts[${index}]`;
+  const record = recordValue(value, label);
+  assertExactKeys(record, [
+    "callBudgetArtifact",
+    "closureArtifact",
+    "closureVerifier",
+    "kind",
+    "planSha256",
+    "plannedRunSha256s",
+    "replicate",
+    "runIds",
+    "suiteIds",
+    "usageArtifacts",
+  ], label);
+  if (record.kind !== "beam" && record.kind !== "halumem") {
+    throw new Error(`Phase 74 ${label}.kind is invalid.`);
+  }
+  if (
+    record.replicate !== 1 &&
+    record.replicate !== 2 &&
+    record.replicate !== 3
+  ) {
+    throw new Error(`Phase 74 ${label}.replicate must be 1, 2, or 3.`);
+  }
+  if (!Array.isArray(record.usageArtifacts) || record.usageArtifacts.length === 0) {
+    throw new Error(`Phase 74 ${label}.usageArtifacts must be non-empty.`);
+  }
+  const receipt: Phase74ProtectionLiveClosureReceipt = {
+    callBudgetArtifact: fileReference(
+      record.callBudgetArtifact,
+      `${label}.callBudgetArtifact`,
+    ),
+    closureArtifact: fileReference(
+      record.closureArtifact,
+      `${label}.closureArtifact`,
+    ),
+    closureVerifier: recordValue(
+      record.closureVerifier,
+      `${label}.closureVerifier`,
+    ) as unknown as Phase74ProtectionRunIdentity["source"],
+    kind: record.kind,
+    planSha256: sha256Value(record.planSha256, `${label}.planSha256`),
+    plannedRunSha256s: stringArray(
+      record.plannedRunSha256s,
+      `${label}.plannedRunSha256s`,
+    ).map((hash, hashIndex) =>
+      sha256Value(hash, `${label}.plannedRunSha256s[${hashIndex}]`)
+    ),
+    replicate: record.replicate,
+    runIds: stringArray(record.runIds, `${label}.runIds`),
+    suiteIds: stringArray(record.suiteIds, `${label}.suiteIds`),
+    usageArtifacts: record.usageArtifacts.map((artifact, artifactIndex) =>
+      fileReference(
+        artifact,
+        `${label}.usageArtifacts[${artifactIndex}]`,
+      )
+    ).sort((left, right) => left.path.localeCompare(right.path)),
+  };
+  if (
+    canonicalJson(receipt.closureVerifier) !==
+      canonicalJson(closureVerifierDescriptor(receipt.kind))
+  ) {
+    throw new Error(
+      `Phase 74 ${label}.closureVerifier is not canonical.`,
+    );
+  }
+  return receipt;
+}
+
+async function validatePromotionClosureReceipts(input: {
+  loadedPlan: LoadedPhase74ProtectionPlan;
+  receipts: readonly Phase74ProtectionLiveClosureReceipt[];
+  runs: readonly LoadedPhase74FrozenProtectionSuiteRunArtifact[];
+}): Promise<Phase74ProtectionLiveClosureReceipt[]> {
+  const receipts = input.receipts.map(parseLiveClosureReceipt)
+    .sort((left, right) =>
+      left.kind.localeCompare(right.kind) ||
+      left.replicate - right.replicate
+    );
+  if (receipts.length !== 6) {
+    throw new Error(
+      "Phase 74 promotion protection evidence requires six live closure receipts.",
+    );
+  }
+  const expectedSuiteIds: Record<
+    Phase74ProtectionLiveClosureReceipt["kind"],
+    readonly string[]
+  > = {
+    beam: [PHASE74_BEAM_SAFETY_SUITE.id],
+    halumem: [
+      PHASE74_HALUMEM_E4_SUITE.id,
+      PHASE74_HALUMEM_PRIVACY_SUITE.id,
+      PHASE74_HALUMEM_UPDATE_SUITE.id,
+    ].sort(),
+  };
+  const liveRuns = input.runs.filter(({ suite }) =>
+    suite.id !== PHASE74_MAB_PROTECTION_SUITE.id
+  );
+  for (const receipt of receipts) {
+    const expectedRuns = liveRuns.filter(({ replicate, suite }) =>
+      replicate === receipt.replicate &&
+      expectedSuiteIds[receipt.kind].includes(suite.id)
+    );
+    if (
+      receipt.planSha256 !== input.loadedPlan.sha256 ||
+      canonicalJson(receipt.suiteIds) !==
+        canonicalJson(expectedSuiteIds[receipt.kind]) ||
+      canonicalJson(receipt.runIds) !==
+        canonicalJson(expectedRuns.map(({ runId }) => runId).sort()) ||
+      canonicalJson(receipt.plannedRunSha256s) !==
+        canonicalJson(expectedRuns.map((run) => {
+          if (run.schemaVersion !== 2) {
+            throw new Error(
+              "Phase 74 live closure receipt referenced an unplanned run.",
+            );
+          }
+          return run.plannedRunSha256;
+        }).sort())
+    ) {
+      throw new Error(
+        "Phase 74 live closure receipt drifted from its planned runs.",
+      );
+    }
+    const references = [
+      receipt.callBudgetArtifact,
+      receipt.closureArtifact,
+      ...receipt.usageArtifacts,
+    ];
+    if (new Set(references.map(({ path }) => path)).size !== references.length) {
+      throw new Error(
+        "Phase 74 live closure receipt contains duplicate artifact paths.",
+      );
+    }
+    for (const reference of references) {
+      if (sha256(await readFile(reference.path)) !== reference.sha256) {
+        throw new Error(
+          `Phase 74 live closure receipt artifact drifted: ${reference.path}.`,
+        );
+      }
+    }
+    const callBudget = recordValue(
+      JSON.parse(await readFile(receipt.callBudgetArtifact.path, "utf8")),
+      "live closure call budget",
+    );
+    const callBudgetDescriptor = describePhase74ProtectionCallBudget({
+      embeddingSpendLimitUsd: callBudget.embeddingSpendLimitUsd as number,
+      maxLanguageCalls: callBudget.maxLanguageCalls as number,
+    });
+    if (expectedRuns.some((run) => {
+      if (run.schemaVersion !== 2) {
+        return true;
+      }
+      const planned = input.loadedPlan.plan.runs.find((run) =>
+        hashPhase74ProtectionValue(run) === run.plannedRunSha256
+      );
+      return planned === undefined ||
+        canonicalJson(planned.controls.callBudget) !==
+          canonicalJson(callBudgetDescriptor);
+    })) {
+      throw new Error(
+        "Phase 74 live closure call budget drifted from its planned runs.",
+      );
+    }
+  }
+  const expectedHashes = liveRuns.map((run) => {
+    if (run.schemaVersion !== 2) {
+      throw new Error("Phase 74 live protection run must be planned.");
+    }
+    return run.plannedRunSha256;
+  }).sort();
+  const actualHashes = receipts.flatMap(({ plannedRunSha256s }) =>
+    plannedRunSha256s
+  ).sort();
+  if (
+    new Set(actualHashes).size !== expectedHashes.length ||
+    canonicalJson(actualHashes) !== canonicalJson(expectedHashes)
+  ) {
+    throw new Error(
+      "Phase 74 live closure receipts do not cover every live planned run exactly once.",
+    );
+  }
+  return receipts;
 }
 
 export function hashPhase74ProtectionSuiteIdentity(
@@ -536,6 +845,9 @@ function sourceFile(
   return {
     artifactPath: run.artifactPath,
     artifactSha256: run.artifactSha256,
+    ...(run.schemaVersion === 2
+      ? { plannedRunSha256: run.plannedRunSha256 }
+      : {}),
     rawArtifactPath: run.rawArtifactPath,
     rawArtifactSha256: run.rawArtifactSha256,
     replicate: run.replicate,
@@ -543,17 +855,79 @@ function sourceFile(
   };
 }
 
+function validatePlannedRuns(input: {
+  loadedManifest: LoadedPhase74ProtectionSuiteManifest;
+  loadedPlan: LoadedPhase74ProtectionPlan;
+  runs: readonly LoadedPhase74FrozenProtectionSuiteRunArtifact[];
+}): void {
+  if (input.loadedPlan.plan.runs.length !== 15 || input.runs.length !== 15) {
+    throw new Error(
+      "Phase 74 planned protection evidence requires exactly 15 run artifacts.",
+    );
+  }
+  const expectedBlueprint = {
+    id: PHASE74_PROTECTION_BLUEPRINT_ID,
+    sha256: input.loadedManifest.sha256,
+  };
+  if (
+    canonicalJson(input.loadedPlan.plan.protectionBlueprint) !==
+      canonicalJson(expectedBlueprint)
+  ) {
+    throw new Error(
+      "Phase 74 planned protection evidence blueprint drifted from its manifest.",
+    );
+  }
+  if (input.runs.some(({ schemaVersion }) => schemaVersion !== 2)) {
+    throw new Error(
+      "Phase 74 planned protection evidence cannot mix schema-v1 and schema-v2 runs.",
+    );
+  }
+  const plannedRuns = input.runs.filter(
+    (run) => run.schemaVersion === 2,
+  );
+  if (plannedRuns.some(({ planSha256 }) =>
+    planSha256 !== input.loadedPlan.sha256
+  )) {
+    throw new Error(
+      "Phase 74 planned protection evidence run plan SHA-256 drifted.",
+    );
+  }
+  const expectedRunHashes = input.loadedPlan.plan.runs
+    .map(hashPhase74ProtectionValue)
+    .sort();
+  const actualRunHashes = plannedRuns
+    .map(({ plannedRunSha256 }) => plannedRunSha256)
+    .sort();
+  if (
+    new Set(actualRunHashes).size !== 15 ||
+    actualRunHashes.join("\0") !== expectedRunHashes.join("\0")
+  ) {
+    throw new Error(
+      "Phase 74 planned protection evidence has missing, extra, or duplicate planned runs.",
+    );
+  }
+}
+
 export async function buildPhase74FrozenProtectionSuiteEvidence(input: {
   manifestPath: string;
+  planPath?: string;
   runArtifactPaths: readonly string[];
 }, dependencies: Phase74ProtectionSuiteEvidenceDependencies = {}): Promise<Phase74FrozenProtectionSuiteEvidence> {
   const paths = input.runArtifactPaths.map((path) => resolve(path));
   if (new Set(paths).size !== paths.length) {
     throw new Error("Phase 74 protection suite evidence has a duplicate run artifact path.");
   }
+  if (input.planPath !== undefined && paths.length !== 15) {
+    throw new Error(
+      "Phase 74 planned protection evidence requires exactly 15 run artifacts.",
+    );
+  }
   const loadedManifest = await loadPhase74ProtectionSuiteManifest(
     input.manifestPath,
   );
+  const loadedPlan = input.planPath === undefined
+    ? undefined
+    : await loadPhase74ProtectionPlan(input.planPath);
   const verifiers = dependencies.verifiers ?? [
     ...DEFAULT_VERIFIERS,
     ...(dependencies.additionalVerifiers ?? []),
@@ -561,6 +935,15 @@ export async function buildPhase74FrozenProtectionSuiteEvidence(input: {
   const loadedRuns = await Promise.all(
     paths.map(loadPhase74FrozenProtectionSuiteRunArtifact),
   );
+  if (loadedPlan === undefined) {
+    if (loadedRuns.some(({ schemaVersion }) => schemaVersion !== 1)) {
+      throw new Error(
+        "Phase 74 unplanned diagnostic evidence accepts schema-v1 runs only.",
+      );
+    }
+  } else {
+    validatePlannedRuns({ loadedManifest, loadedPlan, runs: loadedRuns });
+  }
   const manifestById = new Map(
     loadedManifest.manifest.suites.map((suite) => [suite.id, suite]),
   );
@@ -599,6 +982,19 @@ export async function buildPhase74FrozenProtectionSuiteEvidence(input: {
       "Phase 74 protection evaluator source drift across suites.",
     );
   }
+  const executionReceipts = loadedPlan !== undefined &&
+      isPhase74ProtectionPlanPromotionAdmissible(loadedPlan.plan) &&
+      dependencies.liveClosureVerifier !== undefined
+    ? await validatePromotionClosureReceipts({
+        loadedPlan,
+        receipts: await dependencies.liveClosureVerifier.verify({
+          manifest: loadedManifest,
+          plan: loadedPlan,
+          runs: loadedRuns,
+        }),
+        runs: loadedRuns,
+      })
+    : [];
 
   const protections: Phase74ProtectionEvidence[] = [];
   const formatDeltas = Object.fromEntries(EVIDENCE_LEDGER_FORMATS.map((format) => [
@@ -670,7 +1066,7 @@ export async function buildPhase74FrozenProtectionSuiteEvidence(input: {
       ? Math.max(...deltas)
       : Math.min(...deltas);
   };
-  return {
+  const evidenceBase: Phase74FrozenProtectionSuiteEvidenceBase = {
     artifactKind: "phase74-frozen-protection-suite-evidence",
     derivation: {
       method: DERIVATION_METHOD,
@@ -691,7 +1087,6 @@ export async function buildPhase74FrozenProtectionSuiteEvidence(input: {
         updateCorrectnessDelta: conservativeSafetyDelta("updateCorrectness"),
       },
     },
-    schemaVersion: 1,
     source: {
       evaluatorSource,
       manifest: {
@@ -701,19 +1096,48 @@ export async function buildPhase74FrozenProtectionSuiteEvidence(input: {
       suites: sources,
     },
   };
+  if (loadedPlan === undefined) {
+    return { ...evidenceBase, schemaVersion: 1 };
+  }
+  return {
+    ...evidenceBase,
+    admission: isPhase74ProtectionPlanPromotionAdmissible(loadedPlan.plan) &&
+        executionReceipts.length === 6
+      ? "promotion-admissible"
+      : "diagnostic",
+    schemaVersion: 2,
+    source: {
+      ...evidenceBase.source,
+      executionReceipts,
+      plan: {
+        path: loadedPlan.path,
+        sha256: loadedPlan.sha256,
+      },
+    },
+  };
 }
 
 function sourcePaths(value: unknown): {
   manifestPath: string;
+  planPath?: string;
   runArtifactPaths: string[];
 } {
   const record = recordValue(value, "frozen protection suite evidence");
   if (
     record.artifactKind !== "phase74-frozen-protection-suite-evidence" ||
-    record.schemaVersion !== 1
+    (record.schemaVersion !== 1 && record.schemaVersion !== 2)
   ) {
     throw new Error(
       "Phase 74 frozen protection suite evidence kind or schemaVersion is invalid.",
+    );
+  }
+  if (
+    record.schemaVersion === 2 &&
+    record.admission !== "diagnostic" &&
+    record.admission !== "promotion-admissible"
+  ) {
+    throw new Error(
+      "Phase 74 planned protection suite evidence admission is invalid.",
     );
   }
   const source = recordValue(record.source, "frozen protection suite evidence source");
@@ -745,7 +1169,22 @@ function sourcePaths(value: unknown): {
       return path;
     });
   });
-  return { manifestPath, runArtifactPaths };
+  if (record.schemaVersion === 1) {
+    return { manifestPath, runArtifactPaths };
+  }
+  const plan = recordValue(
+    source.plan,
+    "planned protection suite evidence plan",
+  );
+  const planPath = stringValue(
+    plan.path,
+    "planned protection suite evidence plan.path",
+  );
+  if (!isAbsolute(planPath)) {
+    throw new Error("Phase 74 protection suite evidence plan path must be absolute.");
+  }
+  sha256Value(plan.sha256, "planned protection suite evidence plan.sha256");
+  return { manifestPath, planPath, runArtifactPaths };
 }
 
 export async function loadPhase74FrozenProtectionSuiteEvidence(
@@ -765,6 +1204,7 @@ export async function loadPhase74FrozenProtectionSuiteEvidence(
   const source = sourcePaths(parsed);
   const derived = await buildPhase74FrozenProtectionSuiteEvidence({
     manifestPath: source.manifestPath,
+    ...(source.planPath === undefined ? {} : { planPath: source.planPath }),
     runArtifactPaths: source.runArtifactPaths,
   }, dependencies);
   if (canonicalJson(parsed) !== canonicalJson(derived)) {

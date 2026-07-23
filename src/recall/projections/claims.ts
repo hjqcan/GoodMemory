@@ -81,6 +81,8 @@ export interface ClaimProjectionCanonicalSource {
   id: string;
 }
 
+const MAX_CLAIM_SEARCH_CANDIDATES = 512;
+
 function stableId(prefix: string, value: string): string {
   const digest = createHash("sha256").update(value).digest("hex").slice(0, 32);
   return `${prefix}:${digest}`;
@@ -115,12 +117,21 @@ export function buildClaimProjectionSearchText(input: {
 
 function projectionId(input: Omit<ClaimProjection, "id">): string {
   return stableId("claim", JSON.stringify({
+    schemaVersion: input.schemaVersion,
     scopeKey: input.scopeKey,
     sourceMemoryId: input.sourceMemoryId,
     subject: input.subjectText ?? input.subjectEntityId,
+    subjectEntityId: input.subjectEntityId,
     predicateKey: input.predicateKey,
     objectText: input.objectText,
+    text: input.text,
+    searchText: input.searchText,
+    searchLocale: input.searchLocale,
+    languagePackId: input.languagePackId,
+    searchAnalyzerVersion: input.searchAnalyzerVersion,
+    searchSchemaVersion: input.searchSchemaVersion,
     objectEntity: input.objectEntityText ?? input.objectEntityId,
+    objectEntityId: input.objectEntityId,
     polarity: input.polarity,
     modality: input.modality,
     validFrom: input.validFrom,
@@ -140,16 +151,62 @@ function isFactMemory(document: StorageDocument): document is FactMemory {
   return typeof record.id === "string" && typeof record.content === "string";
 }
 
+function matchesCanonicalClaimScope(
+  claim: ClaimProjection,
+  scope: MemoryScope,
+): boolean {
+  return matchesScopeFilter(claim, scope) &&
+    claim.scopeKey === recallScopeKey(scope);
+}
+
+function matchesCanonicalStatusScope(
+  status: ClaimProjectionStatus,
+  scope: MemoryScope,
+): boolean {
+  return matchesScopeFilter(status, scope) &&
+    status.scopeKey === recallScopeKey(scope) &&
+    status.id === buildClaimProjectionStatusId(scope, status.sourceMemoryId);
+}
+
 function selectedClaims(
   statuses: readonly ClaimProjectionStatus[],
   history: readonly ClaimProjection[],
 ): ClaimProjection[] {
-  const selectedIds = new Set(statuses.flatMap((status) => status.claimIds));
+  const statusBySourceMemoryId = new Map(
+    statuses.map((status) => [status.sourceMemoryId, status]),
+  );
   return history
-    .filter((claim) => selectedIds.has(claim.id))
+    .filter((claim) => {
+      const status = statusBySourceMemoryId.get(claim.sourceMemoryId);
+      return status?.claimIds.includes(claim.id) === true &&
+        !status.retiredRevisionIds?.includes(claim.id);
+    })
     .sort((left, right) =>
       left.ingestedAt.localeCompare(right.ingestedAt) || left.id.localeCompare(right.id),
     );
+}
+
+function logicalClaims(
+  statuses: readonly ClaimProjectionStatus[],
+  history: readonly ClaimProjection[],
+): ClaimProjection[] {
+  const statusBySourceMemoryId = new Map(
+    statuses.map((status) => [status.sourceMemoryId, status]),
+  );
+  return history.filter((claim) => {
+    const status = statusBySourceMemoryId.get(claim.sourceMemoryId);
+    return !status?.retiredRevisionIds?.includes(claim.id);
+  });
+}
+
+function retiredRevisionIds(
+  status: ClaimProjectionStatus | null | undefined,
+  additions: readonly string[] = [],
+): string[] {
+  return [...new Set([
+    ...(status?.retiredRevisionIds ?? []),
+    ...additions,
+  ])];
 }
 
 export function createClaimProjectionIndex(
@@ -185,19 +242,55 @@ export function createClaimProjectionIndex(
       CLAIM_PROJECTION_STATUS_COLLECTION,
       scopeFilter(scope),
     );
-    return queried.filter((status) => matchesScopeFilter(status, scope));
+    return queried
+      .filter((status) => matchesCanonicalStatusScope(status, scope))
+      .sort((left, right) => left.id.localeCompare(right.id));
   }
 
-  async function queryHistory(scope: MemoryScope): Promise<ClaimProjection[]> {
+  async function queryPhysicalHistory(
+    scope: MemoryScope,
+  ): Promise<ClaimProjection[]> {
     const queried = await documentStore.query<ClaimProjection>(
       CLAIM_PROJECTIONS_COLLECTION,
       scopeFilter(scope),
     );
     return queried
-      .filter((claim) => matchesScopeFilter(claim, scope))
+      .filter((claim) => matchesCanonicalClaimScope(claim, scope))
       .sort((left, right) =>
         left.ingestedAt.localeCompare(right.ingestedAt) || left.id.localeCompare(right.id),
       );
+  }
+
+  async function queryHistory(scope: MemoryScope): Promise<ClaimProjection[]> {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const before = await queryStatuses(scope);
+      const history = await queryPhysicalHistory(scope);
+      const after = await queryStatuses(scope);
+      if (isDeepStrictEqual(before, after)) {
+        return logicalClaims(after, history);
+      }
+    }
+    throw new Error(
+      `Claim history changed repeatedly during query: ${recallScopeKey(scope)}`,
+    );
+  }
+
+  async function loadSelectedClaims(
+    scope: MemoryScope,
+    statuses: readonly ClaimProjectionStatus[],
+  ): Promise<ClaimProjection[]> {
+    const claimIds = [...new Set(statuses.flatMap(({ claimIds }) => claimIds))];
+    const history = (
+      await Promise.all(claimIds.map((claimId) =>
+        documentStore.get<ClaimProjection>(
+          CLAIM_PROJECTIONS_COLLECTION,
+          claimId,
+        )
+      ))
+    ).filter((claim): claim is ClaimProjection =>
+      claim !== null && matchesCanonicalClaimScope(claim, scope)
+    );
+    return selectedClaims(statuses, history);
   }
 
   async function queryBySourceMemoryIds(
@@ -213,20 +306,9 @@ export function createClaimProjectionIndex(
         )
       ))
     ).filter((status): status is ClaimProjectionStatus =>
-      status !== null && matchesScopeFilter(status, scope)
+      status !== null && matchesCanonicalStatusScope(status, scope)
     );
-    const claimIds = [...new Set(statuses.flatMap(({ claimIds }) => claimIds))];
-    const history = (
-      await Promise.all(claimIds.map((claimId) =>
-        documentStore.get<ClaimProjection>(
-          CLAIM_PROJECTIONS_COLLECTION,
-          claimId,
-        )
-      ))
-    ).filter((claim): claim is ClaimProjection =>
-      claim !== null && matchesScopeFilter(claim, scope)
-    );
-    return selectedClaims(statuses, history);
+    return loadSelectedClaims(scope, statuses);
   }
 
   async function queryForSourceMemoryGroups(
@@ -241,28 +323,39 @@ export function createClaimProjectionIndex(
         subjectEntityId: claim.subjectEntityId,
       },
     ])).values()];
-    const history = [...new Map((await Promise.all(groups.map((group) =>
-      documentStore.query<ClaimProjection>(CLAIM_PROJECTIONS_COLLECTION, {
-        scopeKey: recallScopeKey(scope),
-        ...group,
-      })
-    ))).flat()
-      .filter((claim) => matchesScopeFilter(claim, scope))
-      .map((claim) => [claim.id, claim])).values()];
-    const peerSourceMemoryIds = [
-      ...new Set(history.map(({ sourceMemoryId }) => sourceMemoryId)),
-    ];
-    const statuses = (
-      await Promise.all(peerSourceMemoryIds.map((sourceMemoryId) =>
-        documentStore.get<ClaimProjectionStatus>(
-          CLAIM_PROJECTION_STATUS_COLLECTION,
-          buildClaimProjectionStatusId(scope, sourceMemoryId),
-        )
-      ))
-    ).filter((status): status is ClaimProjectionStatus =>
-      status !== null && matchesScopeFilter(status, scope)
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const loadGroupHistory = async () =>
+        [...new Map((await Promise.all(groups.map((group) =>
+          documentStore.query<ClaimProjection>(CLAIM_PROJECTIONS_COLLECTION, {
+            scopeKey: recallScopeKey(scope),
+            ...group,
+          })
+        ))).flat()
+          .filter((claim) => matchesCanonicalClaimScope(claim, scope))
+          .map((claim) => [claim.id, claim])).values()]
+          .sort((left, right) => left.id.localeCompare(right.id));
+      const before = await loadGroupHistory();
+      const peerSourceMemoryIds = [
+        ...new Set(before.map(({ sourceMemoryId }) => sourceMemoryId)),
+      ];
+      const statuses = (
+        await Promise.all(peerSourceMemoryIds.map((sourceMemoryId) =>
+          documentStore.get<ClaimProjectionStatus>(
+            CLAIM_PROJECTION_STATUS_COLLECTION,
+            buildClaimProjectionStatusId(scope, sourceMemoryId),
+          )
+        ))
+      ).filter((status): status is ClaimProjectionStatus =>
+        status !== null && matchesCanonicalStatusScope(status, scope)
+      );
+      const after = await loadGroupHistory();
+      if (isDeepStrictEqual(before, after)) {
+        return selectedClaims(statuses, after);
+      }
+    }
+    throw new Error(
+      `Claim groups changed repeatedly during query: ${recallScopeKey(scope)}`,
     );
-    return selectedClaims(statuses, history);
   }
 
   async function rebuildClaimAnalysis(
@@ -296,26 +389,52 @@ export function createClaimProjectionIndex(
         ),
       ]
         .filter((claim) => matchesScopeFilter(claim, scope))
+        .filter((claim) => !status?.retiredRevisionIds?.includes(claim.id))
         .map((claim) => [claim.id, claim])).values()];
       const hasInvalidSelection = status && status.state !== "failed" &&
-        (status.claimIds.length === 0 || selectedClaimSnapshots.some(
-          ({ document }) =>
-            !document ||
-            document.sourceMemoryId !== fact.id ||
-            !matchesScopeFilter(document, scope),
-        ));
+        (
+          status.claimIds.length === 0 ||
+          status.claimIds.some((id) =>
+            status.retiredRevisionIds?.includes(id)
+          ) ||
+          selectedClaimSnapshots.some(
+            ({ document }) =>
+              !document ||
+              document.sourceMemoryId !== fact.id ||
+              !matchesScopeFilter(document, scope),
+          )
+        );
       if (hasInvalidSelection) {
+        const { lastError: _lastError, ...statusWithoutError } = status;
+        const recoveredStatus: ClaimProjectionStatus = {
+          ...statusWithoutError,
+          schemaVersion: 2,
+          state: "unstructured",
+          claimIds: [],
+          retiredRevisionIds: retiredRevisionIds(
+            status,
+            selectedClaimSnapshots.flatMap(({ document }) =>
+              document &&
+                document.sourceMemoryId === fact.id &&
+                matchesScopeFilter(document, scope)
+                ? [document.id]
+                : []
+            ),
+          ),
+          sourceUpdatedAt: fact.updatedAt,
+          updatedAt: fact.updatedAt,
+        };
         const committed = await documentStore.writeBatchIfUnchanged({
-          delete: [{
-            collection: CLAIM_PROJECTION_STATUS_COLLECTION,
-            id: status.id,
-          }],
           expected: {
             collection: "facts",
             document: fact,
             id: fact.id,
           },
-          set: [],
+          set: [{
+            collection: CLAIM_PROJECTION_STATUS_COLLECTION,
+            document: recoveredStatus,
+            id: recoveredStatus.id,
+          }],
           unchanged: [
             {
               collection: CLAIM_PROJECTION_STATUS_COLLECTION,
@@ -330,7 +449,50 @@ export function createClaimProjectionIndex(
           ],
         });
         if (committed) {
-          return null;
+          return recoveredStatus;
+        }
+        continue;
+      }
+      if (!status && claims.length > 0) {
+        const recoveredStatus: ClaimProjectionStatus = {
+          id: statusId,
+          schemaVersion: 2,
+          ...scope,
+          scopeKey: recallScopeKey(scope),
+          sourceMemoryId: fact.id,
+          state: "unstructured",
+          claimIds: [],
+          retiredRevisionIds: claims.map(({ id }) => id),
+          extractorVersion: "deterministic-fact-v1",
+          sourceUpdatedAt: fact.updatedAt,
+          updatedAt: fact.updatedAt,
+        };
+        const committed = await documentStore.writeBatchIfUnchanged({
+          expected: {
+            collection: "facts",
+            document: fact,
+            id: fact.id,
+          },
+          set: [{
+            collection: CLAIM_PROJECTION_STATUS_COLLECTION,
+            document: recoveredStatus,
+            id: recoveredStatus.id,
+          }],
+          unchanged: [
+            {
+              collection: CLAIM_PROJECTION_STATUS_COLLECTION,
+              document: null,
+              id: statusId,
+            },
+            ...claims.map((claim) => ({
+              collection: CLAIM_PROJECTIONS_COLLECTION,
+              document: claim,
+              id: claim.id,
+            })),
+          ],
+        });
+        if (committed) {
+          return recoveredStatus;
         }
         continue;
       }
@@ -377,6 +539,7 @@ export function createClaimProjectionIndex(
         const { id: _id, objectEntityId: _oldObjectEntityId, ...base } = claim;
         const projectionWithoutId: Omit<ClaimProjection, "id"> = {
           ...base,
+          schemaVersion: 2,
           subjectText,
           subjectEntityId,
           text,
@@ -406,7 +569,18 @@ export function createClaimProjectionIndex(
             claim.predicateKey.startsWith("fact.")
           )
         : [];
-      if (changed.length === 0 && staleFallbacks.length === 0) {
+      const staleFallbackIds = new Set(staleFallbacks.map(({ id }) => id));
+      const revisionChanges = changed.filter(
+        ({ previous }) => !staleFallbackIds.has(previous.id),
+      );
+      const statusNeedsRevisionMetadata = status !== null &&
+        (status.schemaVersion !== 2 ||
+          status.retiredRevisionIds === undefined);
+      if (
+        changed.length === 0 &&
+        staleFallbacks.length === 0 &&
+        !statusNeedsRevisionMetadata
+      ) {
         return status;
       }
       const nextIds = new Map(
@@ -415,34 +589,26 @@ export function createClaimProjectionIndex(
       const nextStatus = status
         ? {
             ...status,
+            schemaVersion: 2 as const,
             claimIds: status.claimIds.map((claimId) =>
               nextIds.get(claimId) ?? claimId
             ),
+            retiredRevisionIds: retiredRevisionIds(status, [
+              ...revisionChanges.flatMap(({ previous, projection }) =>
+                previous.id === projection.id ? [] : [previous.id]
+              ),
+              ...staleFallbacks.map(({ id }) => id),
+            ]),
           }
         : null;
-      const replacementIds = new Set(
-        replacements.map(({ projection }) => projection.id),
-      );
-      const deleteIds = new Set([
-        ...changed
-          .filter(({ previous, projection }) =>
-            previous.id !== projection.id && !replacementIds.has(previous.id)
-          )
-          .map(({ previous }) => previous.id),
-        ...staleFallbacks.map(({ id }) => id),
-      ]);
       const committed = await documentStore.writeBatchIfUnchanged({
-        delete: [...deleteIds].map((id) => ({
-          collection: CLAIM_PROJECTIONS_COLLECTION,
-          id,
-        })),
         expected: {
           collection: "facts",
           document: fact,
           id: fact.id,
         },
         set: [
-          ...changed.map(({ projection }) => ({
+          ...revisionChanges.map(({ projection }) => ({
             collection: CLAIM_PROJECTIONS_COLLECTION,
             document: projection,
             id: projection.id,
@@ -489,10 +655,11 @@ export function createClaimProjectionIndex(
     scope: MemoryScope,
   ): Promise<void> {
     for (let attempt = 0; attempt < 8; attempt += 1) {
-      const [statuses, history] = await Promise.all([
+      const [statuses, physicalHistory] = await Promise.all([
         queryStatuses(scope),
-        queryHistory(scope),
+        queryPhysicalHistory(scope),
       ]);
+      const history = logicalClaims(statuses, physicalHistory);
       const selected = selectedClaims(statuses, history)
         .filter((claim) =>
           !claim.predicateKey.startsWith("fact.") &&
@@ -545,6 +712,10 @@ export function createClaimProjectionIndex(
           claimIds: status.claimIds.map((claimId) =>
             closures.get(claimId)?.id ?? claimId
           ),
+          retiredRevisionIds: retiredRevisionIds(
+            status,
+            status.claimIds.filter((claimId) => closures.has(claimId)),
+          ),
         },
       }));
       const changedStatuses = nextStatuses.filter(({ previous, status }) =>
@@ -556,7 +727,7 @@ export function createClaimProjectionIndex(
           document: status,
           id: status.id,
         })),
-        ...history.map((claim) => ({
+        ...physicalHistory.map((claim) => ({
           collection: CLAIM_PROJECTIONS_COLLECTION,
           document: claim,
           id: claim.id,
@@ -567,10 +738,6 @@ export function createClaimProjectionIndex(
         return;
       }
       const committed = await documentStore.writeBatchIfUnchanged({
-        delete: [...closures.keys()].map((id) => ({
-          collection: CLAIM_PROJECTIONS_COLLECTION,
-          id,
-        })),
         expected,
         set: [
           ...[...closures.values()].map((claim) => ({
@@ -609,7 +776,6 @@ export function createClaimProjectionIndex(
     scope: MemoryScope,
   ): Promise<
     | {
-        delete: Array<{ collection: string; id: string }>;
         set: Array<{
           collection: string;
           document: StorageDocument;
@@ -649,7 +815,6 @@ export function createClaimProjectionIndex(
       document: StorageDocument | null;
       id: string;
     }> = [];
-    const removals: Array<{ collection: string; id: string }> = [];
     const closedSources = new Set<string>();
     for (const older of slotClaims) {
       if (
@@ -697,6 +862,7 @@ export function createClaimProjectionIndex(
             claimIds: olderStatus.claimIds.map((claimId) =>
               claimId === older.id ? closed.id : claimId
             ),
+            retiredRevisionIds: retiredRevisionIds(olderStatus, [older.id]),
             updatedAt: claim.ingestedAt,
           },
           id: statusId,
@@ -707,15 +873,16 @@ export function createClaimProjectionIndex(
         document: olderStatus,
         id: statusId,
       });
-      removals.push({
+      unchanged.push({
         collection: CLAIM_PROJECTIONS_COLLECTION,
+        document: older,
         id: older.id,
       });
     }
     if (set.length === 0) {
       return undefined;
     }
-    return { delete: removals, set, unchanged };
+    return { set, unchanged };
   }
 
   async function append(
@@ -742,6 +909,7 @@ export function createClaimProjectionIndex(
         id,
       );
       let structuredPromotion = false;
+      let provenanceEnrichment = false;
       if (existingStatus?.sourceUpdatedAt) {
         const timeOrder = existingStatus.sourceUpdatedAt.localeCompare(
           input.ingestedAt,
@@ -750,7 +918,7 @@ export function createClaimProjectionIndex(
           timeOrder === 0 &&
           existingStatus.state === "unstructured" &&
           state === "projected";
-        const provenanceEnrichment =
+        provenanceEnrichment =
           timeOrder === 0 &&
           existingStatus.state === "unstructured" &&
           state === "unstructured";
@@ -832,26 +1000,18 @@ export function createClaimProjectionIndex(
         id: projectionId(projectionWithoutId),
         ...projectionWithoutId,
       };
-      const status: ClaimProjectionStatus = {
-        id,
-        schemaVersion: 2,
-        ...normalized,
-        scopeKey,
-        sourceMemoryId: input.sourceMemoryId,
-        state,
-        claimIds: [claim.id],
-        extractorVersion: input.extractorVersion,
-        sourceUpdatedAt: input.ingestedAt,
-        updatedAt: input.ingestedAt,
-      };
       const supersession = state === "projected"
         ? await resolveSlotSupersession(claim, normalized)
         : undefined;
-      const replacesSameVersionFallback = state === "projected" &&
+      const replacesSameVersionRevision =
         existingStatus?.sourceUpdatedAt === input.ingestedAt &&
-        (existingStatus.state === "unstructured" ||
+        (structuredPromotion ||
+          provenanceEnrichment ||
           existingStatus.state === "failed");
-      const previousClaimSnapshots = replacesSameVersionFallback
+      const failedSameVersion = existingStatus?.sourceUpdatedAt ===
+          input.ingestedAt &&
+        existingStatus.state === "failed";
+      const previousClaimSnapshots = replacesSameVersionRevision
         ? await Promise.all(existingStatus.claimIds.map(async (claimId) => ({
             claim: await documentStore.get<ClaimProjection>(
               CLAIM_PROJECTIONS_COLLECTION,
@@ -860,29 +1020,34 @@ export function createClaimProjectionIndex(
             id: claimId,
           })))
         : [];
-      const fallbackClaims = previousClaimSnapshots.filter(
+      const retiredClaims = previousClaimSnapshots.filter(
         (snapshot): snapshot is { claim: ClaimProjection; id: string } =>
           snapshot.claim !== null &&
           snapshot.id !== claim.id &&
           snapshot.claim.sourceMemoryId === input.sourceMemoryId &&
           matchesScopeFilter(snapshot.claim, normalized) &&
           snapshot.claim.ingestedAt === input.ingestedAt &&
-          snapshot.claim.predicateKey.startsWith("fact."),
+          (provenanceEnrichment ||
+            failedSameVersion ||
+            snapshot.claim.predicateKey.startsWith("fact.")),
       );
-      const deleteOperations = [
-        ...(supersession?.delete ?? []),
-        ...fallbackClaims.map(({ id: claimId }) => ({
-          collection: CLAIM_PROJECTIONS_COLLECTION,
-          id: claimId,
-        })),
-      ].filter((operation, index, operations) =>
-        operations.findIndex((candidate) =>
-          candidate.collection === operation.collection &&
-          candidate.id === operation.id
-        ) === index
-      );
+      const status: ClaimProjectionStatus = {
+        id,
+        schemaVersion: 2,
+        ...normalized,
+        scopeKey,
+        sourceMemoryId: input.sourceMemoryId,
+        state,
+        claimIds: [claim.id],
+        retiredRevisionIds: retiredRevisionIds(
+          existingStatus,
+          retiredClaims.map(({ id: claimId }) => claimId),
+        ),
+        extractorVersion: input.extractorVersion,
+        sourceUpdatedAt: input.ingestedAt,
+        updatedAt: input.ingestedAt,
+      };
       const committed = await documentStore.writeBatchIfUnchanged({
-        ...(deleteOperations.length > 0 ? { delete: deleteOperations } : {}),
         expected: {
           collection: "facts",
           id: sourceFact.id,
@@ -907,7 +1072,7 @@ export function createClaimProjectionIndex(
             document: existingStatus,
             id,
           },
-          ...fallbackClaims.map(({ claim: previousClaim, id: claimId }) => ({
+          ...retiredClaims.map(({ claim: previousClaim, id: claimId }) => ({
             collection: CLAIM_PROJECTIONS_COLLECTION,
             document: previousClaim,
             id: claimId,
@@ -1134,15 +1299,23 @@ export function createClaimProjectionIndex(
         });
         continue;
       }
-      const closed = current.map((claim): ClaimProjection => {
-        if (claim.validUntil) return claim;
+      const closed = current.map((claim) => {
+        if (claim.validUntil) {
+          return { previous: claim, projection: claim };
+        }
         const { id: _id, ...projectionWithoutId } = claim;
         const projection = {
           ...projectionWithoutId,
           validUntil: fact.updatedAt,
           ingestedAt: fact.updatedAt,
         };
-        return { id: projectionId(projection), ...projection };
+        return {
+          previous: claim,
+          projection: {
+            id: projectionId(projection),
+            ...projection,
+          },
+        };
       });
       const { lastError: _lastError, ...statusWithoutError } = status;
       const nextStatus: ClaimProjectionStatus = {
@@ -1151,7 +1324,13 @@ export function createClaimProjectionIndex(
           ? "unstructured"
           : "projected",
         extractorVersion: current[0]?.extractorVersion ?? status.extractorVersion,
-        claimIds: closed.map(({ id }) => id),
+        claimIds: closed.map(({ projection }) => projection.id),
+        retiredRevisionIds: retiredRevisionIds(
+          status,
+          closed.flatMap(({ previous, projection }) =>
+            previous.id === projection.id ? [] : [previous.id]
+          ),
+        ),
         sourceUpdatedAt: fact.updatedAt,
         updatedAt: input.timestamp,
       };
@@ -1162,22 +1341,33 @@ export function createClaimProjectionIndex(
           id: fact.id,
         },
         set: [
-          ...closed.map((claim) => ({
-            collection: CLAIM_PROJECTIONS_COLLECTION,
-            document: claim,
-            id: claim.id,
-          })),
+          ...closed.flatMap(({ previous, projection }) =>
+            previous.id === projection.id
+              ? []
+              : [{
+                  collection: CLAIM_PROJECTIONS_COLLECTION,
+                  document: projection,
+                  id: projection.id,
+                }]
+          ),
           {
             collection: CLAIM_PROJECTION_STATUS_COLLECTION,
             document: nextStatus,
             id: nextStatus.id,
           },
         ],
-        unchanged: [{
-          collection: CLAIM_PROJECTION_STATUS_COLLECTION,
-          document: status,
-          id: status.id,
-        }],
+        unchanged: [
+          {
+            collection: CLAIM_PROJECTION_STATUS_COLLECTION,
+            document: status,
+            id: status.id,
+          },
+          ...current.map((claim) => ({
+            collection: CLAIM_PROJECTIONS_COLLECTION,
+            document: claim,
+            id: claim.id,
+          })),
+        ],
       });
     }
   }
@@ -1218,6 +1408,7 @@ export function createClaimProjectionIndex(
         sourceMemoryId: input.sourceMemoryId,
         state: "failed",
         claimIds: existing?.claimIds ?? [],
+        retiredRevisionIds: retiredRevisionIds(existing),
         extractorVersion: input.extractorVersion,
         sourceUpdatedAt: input.ingestedAt,
         lastError: error instanceof Error ? error.message : String(error),
@@ -1242,11 +1433,8 @@ export function createClaimProjectionIndex(
       });
     },
     async query(scope) {
-      const [statuses, history] = await Promise.all([
-        queryStatuses(scope),
-        queryHistory(scope),
-      ]);
-      return selectedClaims(statuses, history);
+      const statuses = await queryStatuses(scope);
+      return loadSelectedClaims(scope, statuses);
     },
     queryBySourceMemoryIds,
     queryForSourceMemoryGroups,
@@ -1264,54 +1452,113 @@ export function createClaimProjectionIndex(
       if (!searchQuery) {
         return [];
       }
-      const results = await documentStore.searchText<ClaimProjection>(
-        CLAIM_PROJECTIONS_COLLECTION,
-        {
-          field: "searchText",
-          filter: scopeFilter(scope),
-          limit,
-          query: searchQuery,
-        },
-      );
-      const ranked = new Map<string, { claim: ClaimProjection; score: number }>();
-      for (const result of results) {
-        if (!matchesScopeFilter(result.document, scope)) {
-          continue;
-        }
-        const existing = ranked.get(result.id);
-        if (!existing || result.score > existing.score) {
-          ranked.set(result.id, {
-            claim: result.document,
-            score: result.score,
-          });
-        }
+      const targetLimit = Math.min(limit, MAX_CLAIM_SEARCH_CANDIDATES);
+      if (targetLimit <= 0) {
+        return [];
       }
-      const claims = [...ranked.values()]
-        .sort(
-          (left, right) =>
-            right.score - left.score || left.claim.id.localeCompare(right.claim.id),
-        )
-        .slice(0, limit)
-        .map(({ claim }) => claim);
-      if (history) {
-        return claims;
-      }
-      const sourceMemoryIds = [...new Set(
-        claims.map(({ sourceMemoryId }) => sourceMemoryId),
-      )];
-      const statuses = (
-        await Promise.all(
+      let ranked = new Map<
+        string,
+        { claim: ClaimProjection; score: number }
+      >();
+      let retriedInvisibleAtLimit: number | null = null;
+      let searchLimit = targetLimit;
+      while (true) {
+        const results = await documentStore.searchText<ClaimProjection>(
+          CLAIM_PROJECTIONS_COLLECTION,
+          {
+            field: "searchText",
+            filter: scopeFilter(scope),
+            limit: searchLimit,
+            query: searchQuery,
+          },
+        );
+        const sourceMemoryIds = [...new Set(
+          results.map(({ document }) => document.sourceMemoryId),
+        )];
+        const loadedStatuses = await Promise.all(
           sourceMemoryIds.map((sourceMemoryId) =>
             documentStore.get<ClaimProjectionStatus>(
               CLAIM_PROJECTION_STATUS_COLLECTION,
               buildClaimProjectionStatusId(scope, sourceMemoryId),
             )
           ),
+        );
+        const statusBySourceMemoryId = new Map<
+          string,
+          ClaimProjectionStatus | null
+        >();
+        for (const [index, sourceMemoryId] of sourceMemoryIds.entries()) {
+          const status = loadedStatuses[index] ?? null;
+          statusBySourceMemoryId.set(
+            sourceMemoryId,
+            status?.sourceMemoryId === sourceMemoryId &&
+                matchesCanonicalStatusScope(status, scope)
+              ? status
+              : null,
+          );
+        }
+        let sawInvisibleResult = false;
+        const iterationRanked = new Map<
+          string,
+          { claim: ClaimProjection; score: number }
+        >();
+        for (const result of results) {
+          if (!matchesCanonicalClaimScope(result.document, scope)) {
+            continue;
+          }
+          const status = statusBySourceMemoryId.get(
+            result.document.sourceMemoryId,
+          );
+          const retired = status?.retiredRevisionIds?.includes(result.id) ??
+            false;
+          const owned = status?.sourceMemoryId ===
+            result.document.sourceMemoryId;
+          const visible = owned && (history
+            ? !retired
+            : !retired && (status?.claimIds.includes(result.id) ?? false));
+          if (!visible) {
+            sawInvisibleResult = true;
+            continue;
+          }
+          const existing = iterationRanked.get(result.id);
+          if (!existing || result.score > existing.score) {
+            iterationRanked.set(result.id, {
+              claim: result.document,
+              score: result.score,
+            });
+          }
+        }
+        ranked = iterationRanked;
+        if (ranked.size >= targetLimit) {
+          break;
+        }
+        if (
+          results.length < searchLimit &&
+          sawInvisibleResult &&
+          retriedInvisibleAtLimit !== searchLimit
+        ) {
+          retriedInvisibleAtLimit = searchLimit;
+          continue;
+        }
+        if (
+          results.length < searchLimit ||
+          searchLimit === MAX_CLAIM_SEARCH_CANDIDATES
+        ) {
+          break;
+        }
+        searchLimit = Math.min(
+          searchLimit * 2,
+          MAX_CLAIM_SEARCH_CANDIDATES,
+        );
+        retriedInvisibleAtLimit = null;
+      }
+      return [...ranked.values()]
+        .sort(
+          (left, right) =>
+            right.score - left.score || left.claim.id.localeCompare(right.claim.id),
         )
-      ).filter((status): status is ClaimProjectionStatus =>
-        status !== null && matchesScopeFilter(status, scope)
-      );
-      return selectedClaims(statuses, claims);
+        .slice(0, targetLimit)
+        .map(({ claim }) => claim);
     },
     async rebuildScope({ scope, sources, timestamp }) {
       const factSources = sources.filter((source) => source.collection === "facts");
@@ -1327,10 +1574,22 @@ export function createClaimProjectionIndex(
       await this.reconcileScope({ canonicalSourceIds: canonicalIds, scope });
     },
     async reconcileScope({ canonicalSourceIds, scope }) {
-      const [statuses, history] = await Promise.all([
-        queryStatuses(scope),
-        queryHistory(scope),
+      const [queriedStatuses, queriedHistory] = await Promise.all([
+        documentStore.query<ClaimProjectionStatus>(
+          CLAIM_PROJECTION_STATUS_COLLECTION,
+          scopeFilter(scope),
+        ),
+        documentStore.query<ClaimProjection>(
+          CLAIM_PROJECTIONS_COLLECTION,
+          scopeFilter(scope),
+        ),
       ]);
+      const statuses = queriedStatuses.filter((status) =>
+        matchesScopeFilter(status, scope)
+      );
+      const history = queriedHistory.filter((claim) =>
+        matchesScopeFilter(claim, scope)
+      );
       const sourceMemoryIds = new Set([
         ...statuses.map(({ sourceMemoryId }) => sourceMemoryId),
         ...history.map(({ sourceMemoryId }) => sourceMemoryId),

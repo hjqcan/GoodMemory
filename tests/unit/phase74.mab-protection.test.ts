@@ -15,6 +15,12 @@ import {
   buildMemoryAgentBenchSmokeCases,
 } from "../../src/eval/memoryAgentBench";
 import {
+  buildPhase74ProtectionPlan,
+  describePhase74ProtectionCallBudget,
+  loadPhase74ProtectionPlan,
+} from "../../src/eval/phase74ProtectionPlan";
+import {
+  hashPhase74ProtectionValue,
   loadPhase74FrozenProtectionSuiteRunArtifact,
   runPhase74ProtectionSuiteCases,
 } from "../../src/eval/phase74ProtectionRun";
@@ -36,6 +42,9 @@ import {
 } from "../../src/eval/phase74MemoryAgentBenchProtectionVerifier";
 import type {
   Phase74ProtectionSuiteVerifier,
+} from "../../src/eval/phase74ProtectionVerifier";
+import {
+  PHASE74_PROTECTION_BLUEPRINT_ID,
 } from "../../src/eval/phase74ProtectionVerifier";
 import {
   createPhase74MemoryAgentBenchOfflineMemory,
@@ -73,6 +82,10 @@ function descriptor(id: string, digit: string) {
 
 function sha256(value: string | Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function canonicalDescriptor(id: string) {
+  return { id, sha256: hashPhase74ProtectionValue({ id }) };
 }
 
 interface MutableSuiteRawIdentity {
@@ -577,6 +590,93 @@ describe("Phase 74 MemoryAgentBench protection adapter", () => {
     }
   });
 
+  it("binds actual offline controls before creating runtimes and emits schema v2", async () => {
+    const root = await createRoot();
+    const testCase = buildMemoryAgentBenchSmokeCases()[0]!;
+    const dataset = descriptor("memoryagentbench-synthetic-ar", "1");
+    const source = descriptor("source-under-test", "2");
+    const seed = await runPhase74MemoryAgentBenchProtection({
+      artifactPath: join(root, "seed-run.json"),
+      cases: [testCase],
+      dataset,
+      rawArtifactPath: join(root, "seed-raw.json"),
+      replicate: 1,
+      runId: "mab-seed-r1",
+      source,
+    });
+    const blueprint = {
+      id: PHASE74_PROTECTION_BLUEPRINT_ID,
+      sha256: hashPhase74ProtectionValue("exact protection manifest bytes"),
+    };
+    const buildPlan = async (caseConcurrency: number, path: string) => {
+      const plan = buildPhase74ProtectionPlan({
+        admissionClass: "diagnostic",
+        evaluatorSource: source,
+        protectionBlueprint: blueprint,
+        runs: [{
+          caseIds: seed.artifact.rows.map(({ caseId }) => caseId),
+          controls: {
+            callBudget: describePhase74ProtectionCallBudget(
+              "no-live-model-calls-v1",
+            ),
+            caseConcurrency,
+            renderedContextTokens: 6_000,
+          },
+          identity: seed.artifact.identity,
+          protectionBlueprint: blueprint,
+          replicate: 1,
+          runId: "mab-planned-r1",
+          suite: PHASE74_MAB_PROTECTION_SUITE,
+          verifier: canonicalDescriptor(PHASE74_MAB_PROTECTION_VERIFIER_ID),
+        }],
+      });
+      await writeFile(path, `${JSON.stringify(plan, null, 2)}\n`);
+      return loadPhase74ProtectionPlan(path);
+    };
+
+    const driftedPlan = await buildPlan(2, join(root, "drifted-plan.json"));
+    const driftedArtifactPath = join(root, "drifted-run.json");
+    const driftedRawPath = join(root, "drifted-raw.json");
+    let runtimeCalls = 0;
+    await expect(runPhase74MemoryAgentBenchProtection({
+      artifactPath: driftedArtifactPath,
+      caseConcurrency: 1,
+      cases: [testCase],
+      dataset,
+      protectionPlan: driftedPlan,
+      rawArtifactPath: driftedRawPath,
+      replicate: 1,
+      runId: "mab-planned-r1",
+      source,
+    }, {
+      createMemory: (branch) => {
+        runtimeCalls += 1;
+        return createPhase74MemoryAgentBenchOfflineMemory(branch);
+      },
+    })).rejects.toThrow("drifted from its pre-execution plan");
+    expect(runtimeCalls).toBe(0);
+    expect(await Bun.file(driftedArtifactPath).exists()).toBe(false);
+    expect(await Bun.file(driftedRawPath).exists()).toBe(false);
+
+    const loadedPlan = await buildPlan(1, join(root, "protection-plan.json"));
+    const result = await runPhase74MemoryAgentBenchProtection({
+      artifactPath: join(root, "planned-run.json"),
+      caseConcurrency: 1,
+      cases: [testCase],
+      dataset,
+      protectionPlan: loadedPlan,
+      rawArtifactPath: join(root, "planned-raw.json"),
+      replicate: 1,
+      runId: "mab-planned-r1",
+      source,
+    });
+    expect(result.artifact.schemaVersion).toBe(2);
+    expect(result.artifact).toMatchObject({
+      planPath: loadedPlan.path,
+      planSha256: loadedPlan.sha256,
+    });
+  });
+
   it("uses identical generated IDs in the isolated baseline and candidate stores", async () => {
     const testCase = buildMemoryAgentBenchSmokeCases()[0]!;
     const scope = buildMemoryAgentBenchScope({
@@ -669,6 +769,61 @@ describe("Phase 74 MemoryAgentBench protection adapter", () => {
     expect(result.artifact.rows).toHaveLength(1);
     expect(readCount).toBe(1);
     expect(verifyCount).toBe(1);
+
+    const blueprint = {
+      id: PHASE74_PROTECTION_BLUEPRINT_ID,
+      sha256: hashPhase74ProtectionValue("exact protection manifest bytes"),
+    };
+    const planPath = join(root, "protection-plan.json");
+    await writeFile(planPath, `${JSON.stringify(buildPhase74ProtectionPlan({
+      admissionClass: "diagnostic",
+      evaluatorSource: result.artifact.identity.source,
+      protectionBlueprint: blueprint,
+      runs: [{
+        caseIds: result.artifact.rows.map(({ caseId }) => caseId),
+        controls: {
+          callBudget: describePhase74ProtectionCallBudget(
+            "no-live-model-calls-v1",
+          ),
+          caseConcurrency: 1,
+          renderedContextTokens: 6_000,
+        },
+        identity: result.artifact.identity,
+        protectionBlueprint: blueprint,
+        replicate: 1,
+        runId: "mab-cli-planned-r1",
+        suite: PHASE74_MAB_PROTECTION_SUITE,
+        verifier: canonicalDescriptor(PHASE74_MAB_PROTECTION_VERIFIER_ID),
+      }],
+    }), null, 2)}\n`);
+    const plannedOptions = parsePhase74MemoryAgentBenchProtectionCliOptions([
+      "bun",
+      "script.ts",
+      "--benchmark-root",
+      benchmarkRoot,
+      "--dataset-id",
+      "memoryagentbench-test-root",
+      "--output-dir",
+      root,
+      "--protection-plan",
+      planPath,
+      "--replicate",
+      "1",
+      "--run-id",
+      "mab-cli-planned-r1",
+    ]);
+    expect(plannedOptions.protectionPlanPath).toBe(planPath);
+    const planned = await runPhase74MemoryAgentBenchProtectionCli(
+      plannedOptions,
+      {
+        captureEvaluatorSource: async () => ({
+          commit: "a".repeat(40),
+          sha256: "b".repeat(64),
+        }),
+        readDataset: async () => Buffer.from(datasetRaw),
+      },
+    );
+    expect(planned.artifact.schemaVersion).toBe(2);
 
     expect(() => parsePhase74MemoryAgentBenchProtectionCliOptions([
       "--benchmark-root",

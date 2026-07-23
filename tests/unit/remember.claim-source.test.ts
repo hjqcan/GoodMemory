@@ -225,9 +225,20 @@ describe("remember claim source provenance", () => {
       CLAIM_PROJECTIONS_COLLECTION,
       {},
     );
-    const slotClaims = claims.filter(
+    const statuses = await rawStore.query<ClaimProjectionStatus>(
+      CLAIM_PROJECTION_STATUS_COLLECTION,
+      {},
+    );
+    const retiredRevisionIds = new Set(
+      statuses.flatMap((status) => status.retiredRevisionIds ?? []),
+    );
+    const physicalSlotClaims = claims.filter(
       (claim) => claim.predicateKey === "person.residence",
     );
+    const slotClaims = physicalSlotClaims.filter(
+      (claim) => !retiredRevisionIds.has(claim.id),
+    );
+    expect(physicalSlotClaims).toHaveLength(3);
     expect(slotClaims).toHaveLength(2);
     const paris = slotClaims.find((claim) => claim.objectText === "Paris");
     const lisbon = slotClaims.find((claim) => claim.objectText === "Lisbon");
@@ -236,10 +247,6 @@ describe("remember claim source provenance", () => {
     expect(paris?.validUntil).toBe("2026-06-01T10:00:00.000Z");
     expect(lisbon?.validUntil).toBeUndefined();
 
-    const statuses = await rawStore.query<ClaimProjectionStatus>(
-      CLAIM_PROJECTION_STATUS_COLLECTION,
-      {},
-    );
     const parisStatus = statuses.find(
       (status) => status.sourceMemoryId === paris?.sourceMemoryId,
     );

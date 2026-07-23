@@ -308,6 +308,41 @@ describe("createProviderConversationalMemoryExtractor", () => {
     expect(result.candidates[1]?.metadata?.claim?.objectText).toBe("4");
   });
 
+  it("preserves the fact when optional compact claim metadata is incomplete", async () => {
+    const extractor = createLLMMemoryExtractor({
+      model: {
+        apiKey: "gateway-key",
+        baseURL: "https://gateway.example/v1",
+        model: "gpt-5.6-terra",
+        provider: "openai",
+      },
+      outputProtocol: "compact-conversational-v1",
+      dependencies: {
+        fetch: async () => new Response(
+          [
+            'data: {"choices":[{"delta":{"content":"{\\"c\\":[{\\"c\\":\\"Atlas is the active project.\\",\\"m\\":{\\"q\\":{\\"p\\":\\"project.status\\"},\\"u\\":\\"Atlas\\"},\\"s\\":1}],\\"i\\":0}"},"index":0}]}',
+            "data: [DONE]",
+            "",
+          ].join("\n\n"),
+          {
+            headers: { "content-type": "text/event-stream" },
+            status: 200,
+          },
+        ),
+      },
+    });
+
+    const result = await extractor.extract(CONVERSATION);
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0]).toMatchObject({
+      content: "Atlas is the active project.",
+      metadata: { subject: "Atlas" },
+      sourceMessageIndex: 1,
+    });
+    expect(result.candidates[0]?.metadata?.claim).toBeUndefined();
+  });
+
   it("ignores unsupported optional compact wire metadata", async () => {
     const extractor = createLLMMemoryExtractor({
       model: {

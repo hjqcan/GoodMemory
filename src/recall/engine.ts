@@ -1614,8 +1614,18 @@ export function createRecallEngine(config: RecallEngineConfig) {
               maxCandidates: generalizedFusionBudget?.maxCandidates,
               // Honor the configured dynamic-budget floor; default stays 0
               // (no trimming) so existing profiles keep their behavior until
-              // a profile opts in after measurement.
-              minRelativeStrength: generalizedFusionConfig.minRelativeStrength ?? 0,
+              // a profile opts in after measurement. Enumeration-count
+              // queries never trim: counting needs every instance, and the
+              // paired slice sweep only ever measured regressions when the
+              // floor clipped weak-but-real candidates under a count
+              // aggregation. The query analysis is the trigger (not only the
+              // plan) because default recalls run with a neutral unplanned
+              // plan until plan execution is promoted.
+              minRelativeStrength:
+                queryAnalysis.aggregateCount ||
+                  recallPlan.aggregation === "count"
+                  ? 0
+                  : generalizedFusionConfig.minRelativeStrength ?? 0,
               acceptsEntityCandidate: (input) =>
                 language.acceptsEntityCandidate(input, resolvedLanguage),
               matchesEntityAlias: (query, alias) =>

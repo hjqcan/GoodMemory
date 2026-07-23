@@ -15,17 +15,56 @@ import {
   parsePhase74ProtectionEvidenceCliOptions,
   runPhase74ProtectionEvidenceGeneration,
 } from "../../scripts/build-phase-74-protection-evidence";
+import {
+  PHASE74_BEAM_SAFETY_METRICS,
+  PHASE74_BEAM_SAFETY_SUITE,
+  PHASE74_BEAM_SAFETY_VERIFIER_ID,
+} from "../../src/eval/phase74BeamSafetyProtection";
+import {
+  PHASE74_HALUMEM_E4_METRIC,
+  PHASE74_HALUMEM_E4_PROTECTION_VERIFIER_ID,
+  PHASE74_HALUMEM_E4_SUITE,
+  PHASE74_HALUMEM_PRIVACY_PROTECTION_VERIFIER_ID,
+  PHASE74_HALUMEM_PRIVACY_SUITE,
+  PHASE74_HALUMEM_UPDATE_PROTECTION_VERIFIER_ID,
+  PHASE74_HALUMEM_UPDATE_SUITE,
+} from "../../src/eval/phase74HaluMemProtectionVerifier";
+import {
+  PHASE74_MAB_PROTECTION_METRICS,
+  PHASE74_MAB_PROTECTION_SUITE,
+  PHASE74_MAB_PROTECTION_VERIFIER_ID,
+} from "../../src/eval/phase74MemoryAgentBenchProtectionVerifier";
+import {
+  hashPhase74ProtectionCaseIds,
+} from "../../src/eval/phase74ProtectionContracts";
+import type {
+  Phase74ProtectionIdentityDescriptor,
+  Phase74ProtectionRunIdentity,
+} from "../../src/eval/phase74ProtectionContracts";
+import {
+  buildPhase74ProtectionPlan,
+  describePhase74ProtectionCallBudget,
+  loadPhase74ProtectionPlan,
+} from "../../src/eval/phase74ProtectionPlan";
+import type {
+  Phase74ProtectionPlanAdmissionClass,
+  Phase74ProtectionPlanControls,
+} from "../../src/eval/phase74ProtectionPlan";
 import type {
   Phase74ProtectionRunIdentityInput,
   Phase74ProtectionSuiteBranchScores,
   Phase74ProtectionSuiteKind,
 } from "../../src/eval/phase74ProtectionRun";
 import {
+  hashPhase74ProtectionValue,
+  loadPhase74FrozenProtectionSuiteRunArtifact,
   runPhase74ProtectionSuiteCases,
 } from "../../src/eval/phase74ProtectionRun";
 import {
   buildPhase74FrozenProtectionSuiteEvidence,
   hashPhase74ProtectionSuiteIdentity,
+  isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible,
+  loadPhase74ProtectionBlueprintDescriptor,
   loadPhase74FrozenProtectionSuiteEvidence,
   phase74ProtectionSuiteMetricName,
 } from "../../src/eval/phase74ProtectionSuiteEvidence";
@@ -61,8 +100,14 @@ function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
-function descriptor(id: string): { id: string; sha256: string } {
+function descriptor(id: string): Phase74ProtectionIdentityDescriptor {
   return { id, sha256: sha256(id) };
+}
+
+function canonicalVerifierDescriptor(
+  id: string,
+): Phase74ProtectionIdentityDescriptor {
+  return { id, sha256: hashPhase74ProtectionValue({ id }) };
 }
 
 function identity(
@@ -299,7 +344,493 @@ async function createCompleteFixture(root: string) {
   };
 }
 
+interface PlannedSuiteDefinition {
+  kind: Phase74ProtectionSuiteKind;
+  requiredMetrics: readonly string[];
+  scores: Phase74ProtectionSuiteBranchScores;
+  suiteId: string;
+  verifierId: string;
+}
+
+const PLANNED_SUITE_DEFINITIONS = [
+  {
+    kind: PHASE74_MAB_PROTECTION_SUITE.kind,
+    requiredMetrics: PHASE74_MAB_PROTECTION_METRICS,
+    scores: {
+      protections: Object.fromEntries(
+        PHASE74_MAB_PROTECTION_METRICS.map((metric) => [metric, 0.5]),
+      ),
+    },
+    suiteId: PHASE74_MAB_PROTECTION_SUITE.id,
+    verifierId: PHASE74_MAB_PROTECTION_VERIFIER_ID,
+  },
+  {
+    kind: PHASE74_HALUMEM_E4_SUITE.kind,
+    requiredMetrics: [PHASE74_HALUMEM_E4_METRIC],
+    scores: {
+      e4: {
+        chronology: { [PHASE74_HALUMEM_E4_METRIC]: 0.5 },
+        compact_json: { [PHASE74_HALUMEM_E4_METRIC]: 0.5 },
+        json_locale_note: { [PHASE74_HALUMEM_E4_METRIC]: 0.5 },
+        prose: { [PHASE74_HALUMEM_E4_METRIC]: 0.5 },
+      },
+    },
+    suiteId: PHASE74_HALUMEM_E4_SUITE.id,
+    verifierId: PHASE74_HALUMEM_E4_PROTECTION_VERIFIER_ID,
+  },
+  {
+    kind: PHASE74_HALUMEM_UPDATE_SUITE.kind,
+    requiredMetrics: ["updateCorrectness"],
+    scores: { safety: { updateCorrectness: 0.5 } },
+    suiteId: PHASE74_HALUMEM_UPDATE_SUITE.id,
+    verifierId: PHASE74_HALUMEM_UPDATE_PROTECTION_VERIFIER_ID,
+  },
+  {
+    kind: PHASE74_HALUMEM_PRIVACY_SUITE.kind,
+    requiredMetrics: ["privacyPassRate"],
+    scores: { safety: { privacyPassRate: 0.5 } },
+    suiteId: PHASE74_HALUMEM_PRIVACY_SUITE.id,
+    verifierId: PHASE74_HALUMEM_PRIVACY_PROTECTION_VERIFIER_ID,
+  },
+  {
+    kind: PHASE74_BEAM_SAFETY_SUITE.kind,
+    requiredMetrics: PHASE74_BEAM_SAFETY_METRICS,
+    scores: {
+      safety: {
+        abstentionAccuracy: 0.5,
+        hallucinationRate: 0.1,
+      },
+    },
+    suiteId: PHASE74_BEAM_SAFETY_SUITE.id,
+    verifierId: PHASE74_BEAM_SAFETY_VERIFIER_ID,
+  },
+] as const satisfies readonly PlannedSuiteDefinition[];
+
+function plannedControls(
+  definition: PlannedSuiteDefinition,
+): Phase74ProtectionPlanControls {
+  return {
+    callBudget: definition.suiteId === PHASE74_MAB_PROTECTION_SUITE.id
+      ? describePhase74ProtectionCallBudget("no-live-model-calls-v1")
+      : describePhase74ProtectionCallBudget({
+        embeddingSpendLimitUsd: 0.25,
+        maxLanguageCalls: 1_000,
+      }),
+    caseConcurrency: 2,
+    renderedContextTokens: 6_000,
+  };
+}
+
+function runIdentity(
+  input: Phase74ProtectionRunIdentityInput,
+  caseIds: readonly string[],
+): Phase74ProtectionRunIdentity {
+  return {
+    dataset: input.dataset,
+    judge: input.judge,
+    model: input.model,
+    pipeline: input.pipeline,
+    population: {
+      caseCount: caseIds.length,
+      caseIdsSha256: hashPhase74ProtectionCaseIds(caseIds),
+      id: input.populationId,
+    },
+    prompt: input.prompt,
+    source: input.source,
+  };
+}
+
+async function createPlannedFixture(
+  root: string,
+  admissionClass: Phase74ProtectionPlanAdmissionClass =
+    "promotion-admissible",
+) {
+  const definitions = await Promise.all(
+    PLANNED_SUITE_DEFINITIONS.map(async (definition) => {
+      const directory = join(root, definition.suiteId);
+      await mkdir(directory, { recursive: true });
+      const datasetPath = join(directory, "dataset.json");
+      const datasetText = `${JSON.stringify({
+        suiteId: definition.suiteId,
+      })}\n`;
+      await writeFile(datasetPath, datasetText, "utf8");
+      const dataset = {
+        id: `${definition.suiteId}-dataset`,
+        path: datasetPath,
+        sha256: sha256(datasetText),
+      };
+      const caseIds = [`${definition.suiteId}:case-1`];
+      const suiteIdentity = identity(
+        definition.suiteId,
+        `${definition.suiteId}-population`,
+        { id: dataset.id, sha256: dataset.sha256 },
+      );
+      return {
+        ...definition,
+        caseIds,
+        controls: plannedControls(definition),
+        dataset,
+        identity: suiteIdentity,
+        runIdentity: runIdentity(suiteIdentity, caseIds),
+        suite: {
+          id: definition.suiteId,
+          kind: definition.kind,
+        },
+        verifier: canonicalVerifierDescriptor(definition.verifierId),
+      };
+    }),
+  );
+  const manifestPath = join(root, "planned-manifest.json");
+  const manifest: Phase74ProtectionSuiteManifest = {
+    admission: "canonical-verifier-bound-v1",
+    artifactKind: "phase74-protection-suite-manifest",
+    schemaVersion: 2,
+    suites: definitions.map((definition) => ({
+      dataset: definition.dataset,
+      id: definition.suiteId,
+      identityHash: hashPhase74ProtectionSuiteIdentity(
+        definition.runIdentity,
+      ),
+      kind: definition.kind,
+      requiredMetrics: [...definition.requiredMetrics],
+      verifierId: definition.verifierId,
+    })),
+  };
+  await writeFile(
+    manifestPath,
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    "utf8",
+  );
+  const protectionBlueprint = await loadPhase74ProtectionBlueprintDescriptor(
+    manifestPath,
+  );
+  const plan = buildPhase74ProtectionPlan({
+    admissionClass,
+    evaluatorSource: descriptor("git:trusted-source"),
+    protectionBlueprint,
+    runs: definitions.flatMap((definition) =>
+      ([1, 2, 3] as const).map((replicate) => ({
+        caseIds: definition.caseIds,
+        controls: definition.controls,
+        identity: definition.runIdentity,
+        protectionBlueprint,
+        replicate,
+        runId: `${definition.suiteId}-r${replicate}`,
+        suite: definition.suite,
+        verifier: definition.verifier,
+      }))
+    ),
+  });
+  const planPath = join(root, "protection-plan.json");
+  await writeFile(planPath, `${JSON.stringify(plan, null, 2)}\n`, "utf8");
+  const loadedPlan = await loadPhase74ProtectionPlan(planPath);
+  const paths: string[] = [];
+  const suites: SuiteFixture[] = [];
+  for (const definition of definitions) {
+    const suitePaths: string[] = [];
+    for (const replicate of [1, 2, 3] as const) {
+      const directory = join(
+        root,
+        definition.suiteId,
+        `replicate-${replicate}`,
+      );
+      const result = await runPhase74ProtectionSuiteCases({
+        artifactPath: join(directory, "run.json"),
+        cases: definition.caseIds.map((caseId) => ({
+          caseId,
+          input: { caseId },
+        })),
+        evaluate: async ({ branch }) => ({
+          rawOutput: { branch },
+          scores: definition.scores,
+        }),
+        identity: definition.identity,
+        plan: {
+          controls: definition.controls,
+          loadedPlan,
+          protectionBlueprint,
+          verifier: definition.verifier,
+        },
+        rawArtifactPath: join(directory, "raw.json"),
+        replicate,
+        runId: `${definition.suiteId}-r${replicate}`,
+        suite: definition.suite,
+      });
+      paths.push(result.artifactPath);
+      suitePaths.push(result.artifactPath);
+    }
+    suites.push({
+      dataset: definition.dataset,
+      identity: definition.identity,
+      kind: definition.kind,
+      paths: suitePaths,
+      requiredMetrics: [...definition.requiredMetrics],
+      suiteId: definition.suiteId,
+      verifierId: definition.verifierId,
+    });
+  }
+  return {
+    loadedPlan,
+    manifestPath,
+    paths,
+    planPath,
+    suites,
+    verifiers: suites.map((suite) => fixtureVerifier(suite)),
+  };
+}
+
 describe("Phase 74 protection suite evidence composer", () => {
+  it("preflights a planned run before evaluation or artifact writes", async () => {
+    const root = await createRoot();
+    const cases = [
+      { caseId: "case-1", input: {} },
+      { caseId: "case-2", input: {} },
+    ];
+    const caseIds = cases.map(({ caseId }) => caseId);
+    const suite = {
+      id: "diagnostic-preflight-suite",
+      kind: "benchmark-protection" as const,
+    };
+    const suiteIdentity = identity(
+      suite.id,
+      "diagnostic-preflight-population",
+      descriptor("diagnostic-preflight-dataset"),
+    );
+    const protectionBlueprint = descriptor("diagnostic-blueprint");
+    const verifier = descriptor("diagnostic-verifier");
+    const controls = {
+      callBudget: describePhase74ProtectionCallBudget(
+        "no-live-model-calls-v1",
+      ),
+      caseConcurrency: 2,
+      renderedContextTokens: 6_000,
+    };
+    const expectedRun = {
+      caseIds,
+      controls,
+      identity: runIdentity(suiteIdentity, caseIds),
+      protectionBlueprint,
+      replicate: 1 as const,
+      runId: "planned-run",
+      suite,
+      verifier,
+    };
+    const plan = buildPhase74ProtectionPlan({
+      admissionClass: "diagnostic",
+      evaluatorSource: suiteIdentity.source,
+      protectionBlueprint,
+      runs: [expectedRun],
+    });
+    const planPath = join(root, "preflight-plan.json");
+    await writeFile(planPath, `${JSON.stringify(plan, null, 2)}\n`, "utf8");
+    const loadedPlan = await loadPhase74ProtectionPlan(planPath);
+    let evaluationCount = 0;
+    const drifts: Array<{
+      caseConcurrency?: number;
+      cases?: typeof cases;
+      controls?: Phase74ProtectionPlanControls;
+      identity?: Phase74ProtectionRunIdentityInput;
+      label: string;
+      protectionBlueprint?: Phase74ProtectionIdentityDescriptor;
+      replicate?: 1 | 2 | 3;
+      runId?: string;
+      suite?: { id: string; kind: Phase74ProtectionSuiteKind };
+      verifier?: Phase74ProtectionIdentityDescriptor;
+    }> = [
+      { cases: [...cases].reverse(), label: "case-order" },
+      {
+        identity: {
+          ...suiteIdentity,
+          source: descriptor("drifted-source"),
+        },
+        label: "source",
+      },
+      {
+        label: "blueprint",
+        protectionBlueprint: descriptor("drifted-blueprint"),
+      },
+      {
+        controls: {
+          ...controls,
+          renderedContextTokens: controls.renderedContextTokens + 1,
+        },
+        label: "controls",
+      },
+      {
+        caseConcurrency: controls.caseConcurrency + 1,
+        label: "runtime-concurrency",
+      },
+      { label: "suite", suite: { ...suite, kind: "safety" } },
+      { label: "replicate", replicate: 2 },
+      { label: "run-id", runId: "drifted-run" },
+      { label: "verifier", verifier: descriptor("drifted-verifier") },
+    ];
+    for (const drift of drifts) {
+      const artifactPath = join(root, drift.label, "run.json");
+      const rawArtifactPath = join(root, drift.label, "raw.json");
+      await expect(runPhase74ProtectionSuiteCases({
+        artifactPath,
+        caseConcurrency: drift.caseConcurrency ?? controls.caseConcurrency,
+        cases: drift.cases ?? cases,
+        evaluate: async () => {
+          evaluationCount += 1;
+          return {
+            rawOutput: {},
+            scores: protectionScores(0.5),
+          };
+        },
+        identity: drift.identity ?? suiteIdentity,
+        plan: {
+          controls: drift.controls ?? controls,
+          loadedPlan,
+          protectionBlueprint: drift.protectionBlueprint ??
+            protectionBlueprint,
+          verifier: drift.verifier ?? verifier,
+        },
+        rawArtifactPath,
+        replicate: drift.replicate ?? 1,
+        runId: drift.runId ?? "planned-run",
+        suite: drift.suite ?? suite,
+      })).rejects.toThrow(/drift|plan/i);
+      await expect(readFile(artifactPath, "utf8")).rejects.toThrow();
+      await expect(readFile(rawArtifactPath, "utf8")).rejects.toThrow();
+    }
+    expect(evaluationCount).toBe(0);
+  });
+
+  it("binds the exact promotion plan into 15 schema-v2 run artifacts and evidence", async () => {
+    const root = await createRoot();
+    const fixture = await createPlannedFixture(root);
+    const firstRun = await loadPhase74FrozenProtectionSuiteRunArtifact(
+      fixture.paths[0]!,
+    );
+
+    expect(firstRun).toMatchObject({
+      planPath: resolve(fixture.planPath),
+      planSha256: fixture.loadedPlan.sha256,
+      schemaVersion: 2,
+    });
+    if (firstRun.schemaVersion !== 2) {
+      throw new Error("Expected a schema-v2 planned run.");
+    }
+    expect(firstRun.plannedRunSha256).toMatch(/^[a-f0-9]{64}$/);
+
+    const evidence = await buildPhase74FrozenProtectionSuiteEvidence({
+      manifestPath: fixture.manifestPath,
+      planPath: fixture.planPath,
+      runArtifactPaths: fixture.paths,
+    }, { verifiers: fixture.verifiers });
+
+    expect(fixture.paths).toHaveLength(15);
+    expect(evidence).toMatchObject({
+      admission: "promotion-admissible",
+      schemaVersion: 2,
+      source: {
+        plan: {
+          path: resolve(fixture.planPath),
+          sha256: fixture.loadedPlan.sha256,
+        },
+      },
+    });
+    expect(isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible(evidence))
+      .toBe(true);
+    expect(evidence.source.suites.flatMap(({ files }) => files)).toHaveLength(15);
+    expect(new Set(evidence.source.suites.flatMap(({ files }) =>
+      files.map(({ plannedRunSha256 }) => plannedRunSha256)
+    )).size).toBe(15);
+    const evidencePath = join(root, "planned-evidence.json");
+    await writeFile(
+      evidencePath,
+      `${JSON.stringify(evidence, null, 2)}\n`,
+      "utf8",
+    );
+    const reloaded = await loadPhase74FrozenProtectionSuiteEvidence(
+      evidencePath,
+      { verifiers: fixture.verifiers },
+    );
+    expect(reloaded.evidence).toEqual(evidence);
+    expect(
+      isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible(
+        reloaded.evidence,
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps planned diagnostic and unplanned schema-v1 evidence closed to promotion", async () => {
+    const diagnosticRoot = await createRoot();
+    const diagnostic = await createPlannedFixture(
+      diagnosticRoot,
+      "diagnostic",
+    );
+    const plannedEvidence = await buildPhase74FrozenProtectionSuiteEvidence({
+      manifestPath: diagnostic.manifestPath,
+      planPath: diagnostic.planPath,
+      runArtifactPaths: diagnostic.paths,
+    }, { verifiers: diagnostic.verifiers });
+    expect(plannedEvidence).toMatchObject({
+      admission: "diagnostic",
+      schemaVersion: 2,
+    });
+    expect(
+      isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible(
+        plannedEvidence,
+      ),
+    ).toBe(false);
+
+    const unplannedRoot = await createRoot();
+    const unplanned = await createCompleteFixture(unplannedRoot);
+    const unplannedEvidence = await buildPhase74FrozenProtectionSuiteEvidence({
+      manifestPath: unplanned.manifestPath,
+      runArtifactPaths: unplanned.paths,
+    }, { verifiers: unplanned.verifiers });
+    expect(unplannedEvidence.schemaVersion).toBe(1);
+    expect(
+      isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible(
+        unplannedEvidence,
+      ),
+    ).toBe(false);
+  });
+
+  it("rejects missing, extra, mixed, and cross-plan schema-v2 evidence inputs", async () => {
+    const root = await createRoot();
+    const fixture = await createPlannedFixture(root);
+    const unplanned = await createSuite({
+      baseline: protectionScores(0.4),
+      candidate: protectionScores(0.4),
+      caseCount: 1,
+      kind: "benchmark-protection",
+      requiredMetrics: ["evidence_recall", "stale_avoidance"],
+      root: join(root, "unplanned"),
+      suiteId: "unplanned",
+    });
+    const build = (runArtifactPaths: readonly string[]) =>
+      buildPhase74FrozenProtectionSuiteEvidence({
+        manifestPath: fixture.manifestPath,
+        planPath: fixture.planPath,
+        runArtifactPaths,
+      }, { verifiers: fixture.verifiers });
+
+    await expect(build(fixture.paths.slice(1))).rejects.toThrow(
+      /exactly 15|missing|planned/i,
+    );
+    await expect(build([...fixture.paths, unplanned.paths[0]!]))
+      .rejects.toThrow(/exactly 15|extra|planned/i);
+    await expect(build([
+      ...fixture.paths.slice(0, -1),
+      unplanned.paths[0]!,
+    ])).rejects.toThrow(/planned|schema-v2|mixed/i);
+
+    const driftedPath = fixture.paths[0]!;
+    const drifted = JSON.parse(await readFile(driftedPath, "utf8"));
+    drifted.planSha256 = "f".repeat(64);
+    await writeFile(
+      driftedPath,
+      `${JSON.stringify(drifted, null, 2)}\n`,
+      "utf8",
+    );
+    await expect(build(fixture.paths)).rejects.toThrow(/plan.*SHA|plan/i);
+  });
+
   it("bounds case concurrency without changing per-case or artifact order", async () => {
     const root = await createRoot();
     const cases = [1, 2, 3].map((index) => ({
@@ -587,12 +1118,15 @@ describe("Phase 74 protection suite evidence composer", () => {
     const root = await createRoot();
     const fixture = await createCompleteFixture(root);
     const outputPath = join(root, "frozen-suite-evidence.json");
+    const planPath = join(root, "protection-plan.json");
 
     expect(parsePhase74ProtectionEvidenceCliOptions([
       "bun",
       "script.ts",
       "--manifest",
       fixture.manifestPath,
+      "--protection-plan",
+      planPath,
       "--run-artifact",
       fixture.paths[0]!,
       "--output",
@@ -600,6 +1134,7 @@ describe("Phase 74 protection suite evidence composer", () => {
     ])).toEqual({
       manifestPath: fixture.manifestPath,
       outputPath,
+      planPath,
       runArtifactPaths: [fixture.paths[0]],
     });
     expect(() => parsePhase74ProtectionEvidenceCliOptions([

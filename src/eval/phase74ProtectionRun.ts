@@ -12,6 +12,11 @@ import type {
   Phase74ProtectionRunIdentity,
   Phase74ProtectionSafetyMetric,
 } from "./phase74ProtectionContracts";
+import type {
+  LoadedPhase74ProtectionPlan,
+  Phase74ProtectionPlanControls,
+  Phase74ProtectionPlannedRunBinding,
+} from "./phase74ProtectionPlan";
 import type { EvidenceLedgerFormat } from "./evidenceLedgerFormats";
 
 export type Phase74ProtectionBranch = "baseline" | "candidate";
@@ -178,7 +183,7 @@ export interface Phase74ProtectionSuiteCaseRow {
   caseId: string;
 }
 
-export interface Phase74FrozenProtectionSuiteRunArtifact {
+interface Phase74FrozenProtectionSuiteRunArtifactBase {
   artifactKind: "phase74-frozen-protection-suite-run";
   executionFailures: number;
   identity: Phase74ProtectionRunIdentity;
@@ -189,9 +194,23 @@ export interface Phase74FrozenProtectionSuiteRunArtifact {
   replicate: Phase74ProtectionReplicate;
   rows: Phase74ProtectionSuiteCaseRow[];
   runId: string;
-  schemaVersion: 1;
   suite: Phase74ProtectionSuite;
 }
+
+export interface Phase74FrozenDiagnosticProtectionSuiteRunArtifact extends
+  Phase74FrozenProtectionSuiteRunArtifactBase {
+  schemaVersion: 1;
+}
+
+export interface Phase74FrozenPlannedProtectionSuiteRunArtifact extends
+  Phase74FrozenProtectionSuiteRunArtifactBase,
+  Phase74ProtectionPlannedRunBinding {
+  schemaVersion: 2;
+}
+
+export type Phase74FrozenProtectionSuiteRunArtifact =
+  | Phase74FrozenDiagnosticProtectionSuiteRunArtifact
+  | Phase74FrozenPlannedProtectionSuiteRunArtifact;
 
 export interface Phase74ProtectionSuiteEvaluationResult {
   rawOutput: unknown;
@@ -204,7 +223,7 @@ export interface Phase74ProtectionSuiteRunResult {
   rawArtifactPath: string;
 }
 
-export interface LoadedPhase74FrozenProtectionSuiteRunArtifact {
+interface LoadedPhase74FrozenProtectionSuiteRunArtifactBase {
   artifactPath: string;
   artifactSha256: string;
   identity: Phase74ProtectionRunIdentity;
@@ -214,6 +233,28 @@ export interface LoadedPhase74FrozenProtectionSuiteRunArtifact {
   rows: Phase74ProtectionSuiteCaseRow[];
   runId: string;
   suite: Phase74ProtectionSuite;
+}
+
+export interface LoadedPhase74FrozenDiagnosticProtectionSuiteRunArtifact
+  extends LoadedPhase74FrozenProtectionSuiteRunArtifactBase {
+  schemaVersion: 1;
+}
+
+export interface LoadedPhase74FrozenPlannedProtectionSuiteRunArtifact extends
+  LoadedPhase74FrozenProtectionSuiteRunArtifactBase,
+  Phase74ProtectionPlannedRunBinding {
+  schemaVersion: 2;
+}
+
+export type LoadedPhase74FrozenProtectionSuiteRunArtifact =
+  | LoadedPhase74FrozenDiagnosticProtectionSuiteRunArtifact
+  | LoadedPhase74FrozenPlannedProtectionSuiteRunArtifact;
+
+export interface Phase74ProtectionRunPlanInput {
+  controls: Phase74ProtectionPlanControls;
+  loadedPlan: LoadedPhase74ProtectionPlan;
+  protectionBlueprint: Phase74ProtectionIdentityDescriptor;
+  verifier: Phase74ProtectionIdentityDescriptor;
 }
 
 interface Phase74ProtectionSuiteRawRow {
@@ -428,7 +469,8 @@ export async function loadPhase74FrozenProtectionSuiteRunArtifact(
     JSON.parse(artifactBytes.toString("utf8")) as unknown,
     "protection suite run artifact",
   );
-  assertExactKeys(record, [
+  const schemaVersion = record.schemaVersion;
+  const commonKeys = [
     "artifactKind",
     "executionFailures",
     "identity",
@@ -438,10 +480,22 @@ export async function loadPhase74FrozenProtectionSuiteRunArtifact(
     "runId",
     "schemaVersion",
     "suite",
-  ], "protection suite run artifact");
+  ];
+  assertExactKeys(
+    record,
+    schemaVersion === 2
+      ? [
+        ...commonKeys,
+        "planPath",
+        "planSha256",
+        "plannedRunSha256",
+      ]
+      : commonKeys,
+    "protection suite run artifact",
+  );
   if (
     record.artifactKind !== "phase74-frozen-protection-suite-run" ||
-    record.schemaVersion !== 1
+    (schemaVersion !== 1 && schemaVersion !== 2)
   ) {
     throw new Error(
       "Phase 74 protection suite run artifact kind or schemaVersion is invalid.",
@@ -579,7 +633,7 @@ export async function loadPhase74FrozenProtectionSuiteRunArtifact(
       "Phase 74 protection suite raw outcomes do not match frozen rows.",
     );
   }
-  return {
+  const loaded = {
     artifactPath,
     artifactSha256: sha256(artifactBytes),
     identity,
@@ -589,6 +643,66 @@ export async function loadPhase74FrozenProtectionSuiteRunArtifact(
     rows,
     runId,
     suite,
+  };
+  if (schemaVersion === 1) {
+    return { ...loaded, schemaVersion };
+  }
+
+  const planPath = resolve(
+    dirname(artifactPath),
+    nonEmptyString(record.planPath, "protection suite run planPath"),
+  );
+  const planSha256 = nonEmptyString(
+    record.planSha256,
+    "protection suite run planSha256",
+  );
+  const plannedRunSha256 = nonEmptyString(
+    record.plannedRunSha256,
+    "protection suite run plannedRunSha256",
+  );
+  if (
+    !/^[a-f0-9]{64}$/u.test(planSha256) ||
+    !/^[a-f0-9]{64}$/u.test(plannedRunSha256)
+  ) {
+    throw new Error("Phase 74 protection suite plan SHA-256 is invalid.");
+  }
+  const {
+    loadPhase74ProtectionPlan,
+    verifyPhase74ProtectionPlanRun,
+  } = await import("./phase74ProtectionPlan");
+  const loadedPlan = await loadPhase74ProtectionPlan(planPath);
+  if (loadedPlan.sha256 !== planSha256) {
+    throw new Error("Phase 74 protection suite plan SHA-256 mismatch.");
+  }
+  const expected = loadedPlan.plan.runs.find((plannedRun) =>
+    plannedRun.suite.id === suite.id &&
+    plannedRun.replicate === replicate
+  );
+  if (expected === undefined) {
+    throw new Error("Phase 74 protection suite run is missing from its plan.");
+  }
+  const binding = verifyPhase74ProtectionPlanRun(loadedPlan, {
+    caseIds: rows.map(({ caseId }) => caseId),
+    controls: expected.controls,
+    identity,
+    protectionBlueprint: expected.protectionBlueprint,
+    replicate,
+    runId,
+    suite,
+    verifier: expected.verifier,
+  });
+  if (
+    binding.planSha256 !== planSha256 ||
+    binding.plannedRunSha256 !== plannedRunSha256
+  ) {
+    throw new Error("Phase 74 protection suite run plan binding drifted.");
+  }
+  return {
+    ...loaded,
+    planPath,
+    planSha256,
+    plannedRunSha256,
+    schemaVersion,
   };
 }
 
@@ -602,6 +716,7 @@ export async function runPhase74ProtectionSuiteCases<Input>(input: {
     input: Input;
   }) => Promise<Phase74ProtectionSuiteEvaluationResult>;
   identity: Phase74ProtectionRunIdentityInput;
+  plan?: Phase74ProtectionRunPlanInput;
   rawArtifactPath: string;
   replicate: Phase74ProtectionReplicate;
   runId: string;
@@ -616,13 +731,47 @@ export async function runPhase74ProtectionSuiteCases<Input>(input: {
   }
   const suite = parseSuite(input.suite, "protection suite");
   const caseIds = validateCasePopulation(input.cases);
-  const caseConcurrency = input.caseConcurrency ?? 1;
+  const caseConcurrency = input.caseConcurrency ??
+    input.plan?.controls.caseConcurrency ??
+    1;
   if (!Number.isSafeInteger(caseConcurrency) || caseConcurrency <= 0) {
     throw new Error(
       "Phase 74 protection caseConcurrency must be a positive integer.",
     );
   }
   const caseIdsSha256 = hashPhase74ProtectionCaseIds(caseIds);
+  const identity: Phase74ProtectionRunIdentity = {
+    dataset: input.identity.dataset,
+    judge: input.identity.judge,
+    model: input.identity.model,
+    pipeline: input.identity.pipeline,
+    population: {
+      caseCount: caseIds.length,
+      caseIdsSha256,
+      id: input.identity.populationId,
+    },
+    prompt: input.identity.prompt,
+    source: input.identity.source,
+  };
+  let planBinding: Phase74ProtectionPlannedRunBinding | undefined;
+  if (input.plan !== undefined) {
+    const { verifyPhase74ProtectionPlanRun } = await import(
+      "./phase74ProtectionPlan"
+    );
+    planBinding = verifyPhase74ProtectionPlanRun(input.plan.loadedPlan, {
+      caseIds,
+      controls: {
+        ...input.plan.controls,
+        caseConcurrency,
+      },
+      identity,
+      protectionBlueprint: input.plan.protectionBlueprint,
+      replicate: input.replicate,
+      runId: input.runId,
+      suite,
+      verifier: input.plan.verifier,
+    });
+  }
   const outcomes = await mapWithConcurrency(
     input.cases,
     caseConcurrency,
@@ -688,22 +837,10 @@ export async function runPhase74ProtectionSuiteCases<Input>(input: {
   };
   await writeFrozenJson(rawArtifactPath, rawArtifact);
   const rawText = `${JSON.stringify(rawArtifact, null, 2)}\n`;
-  const artifact: Phase74FrozenProtectionSuiteRunArtifact = {
+  const artifactBase: Phase74FrozenProtectionSuiteRunArtifactBase = {
     artifactKind: "phase74-frozen-protection-suite-run",
     executionFailures: failures.length,
-    identity: {
-      dataset: input.identity.dataset,
-      judge: input.identity.judge,
-      model: input.identity.model,
-      pipeline: input.identity.pipeline,
-      population: {
-        caseCount: caseIds.length,
-        caseIdsSha256,
-        id: input.identity.populationId,
-      },
-      prompt: input.identity.prompt,
-      source: input.identity.source,
-    },
+    identity,
     rawArtifact: {
       path: relative(dirname(artifactPath), rawArtifactPath),
       sha256: sha256(rawText),
@@ -715,9 +852,12 @@ export async function runPhase74ProtectionSuiteCases<Input>(input: {
       caseId,
     })),
     runId: input.runId,
-    schemaVersion: 1,
     suite,
   };
+  const artifact: Phase74FrozenProtectionSuiteRunArtifact =
+    planBinding === undefined
+      ? { ...artifactBase, schemaVersion: 1 }
+      : { ...artifactBase, ...planBinding, schemaVersion: 2 };
   await writeFrozenJson(artifactPath, artifact);
   if (failures.length > 0) {
     const suffix = failures.length === 1 ? "failure" : "failures";

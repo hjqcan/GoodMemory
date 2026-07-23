@@ -14,6 +14,7 @@ import {
   ENTITIES_COLLECTION,
   PROJECTION_MANIFESTS_COLLECTION,
   PROJECTION_REPAIRS_COLLECTION,
+  type ClaimProjectionStatus,
   type RecallProjectionManifest,
 } from "../../src/recall/projections/contracts";
 import { createRecallProjectionRuntime } from "../../src/recall/projections/runtime";
@@ -440,7 +441,7 @@ describe("sqlite document conditional batches", () => {
       const [sealed] = await inspectionStore.query<RecallProjectionManifest>(
         PROJECTION_MANIFESTS_COLLECTION,
       );
-      expect(sealed?.projectionBuildId).toStartWith("gm-projection-v3:");
+      expect(sealed?.projectionBuildId).toStartWith("gm-projection-v4:");
       expect(sealed?.validatedGeneration).toBe(sealed?.sourceGeneration);
 
       const reopened = createGoodMemory({
@@ -1185,7 +1186,7 @@ describe("sqlite projection text index", () => {
     }
   });
 
-  it("removes a stale fallback before it can occupy claim FTS top one", async () => {
+  it("refills claim FTS after a retired fallback occupies top one", async () => {
     const path = join(
       tmpdir(),
       `goodmemory-sqlite-stale-claim-${Date.now()}-${Math.random()}.db`,
@@ -1251,7 +1252,15 @@ describe("sqlite projection text index", () => {
       ]);
       expect(
         await store.get(CLAIM_PROJECTIONS_COLLECTION, fallback!.id),
-      ).toBeNull();
+      ).toEqual(fallback);
+      expect(await store.query<ClaimProjectionStatus>(
+        CLAIM_PROJECTION_STATUS_COLLECTION,
+        { sourceMemoryId: fact.id },
+      )).toEqual([
+        expect.objectContaining({
+          retiredRevisionIds: expect.arrayContaining([fallback!.id]),
+        }),
+      ]);
     } finally {
       await rm(path, { force: true });
     }

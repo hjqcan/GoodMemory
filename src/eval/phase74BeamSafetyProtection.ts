@@ -18,6 +18,9 @@ import type {
 import {
   hashPhase74ProtectionCaseIds,
 } from "./phase74ProtectionContracts";
+import type {
+  LoadedPhase74ProtectionPlan,
+} from "./phase74ProtectionPlan";
 import {
   hashPhase74ProtectionValue,
   loadPhase74FrozenProtectionSuiteRunArtifact,
@@ -26,11 +29,15 @@ import {
 import type {
   LoadedPhase74FrozenProtectionSuiteRunArtifact,
   Phase74ProtectionBranch,
+  Phase74ProtectionRunPlanInput,
   Phase74ProtectionSuiteBranchScores,
   Phase74ProtectionSuiteRunResult,
 } from "./phase74ProtectionRun";
 import type {
   Phase74ProtectionSuiteVerifier,
+} from "./phase74ProtectionVerifier";
+import {
+  PHASE74_PROTECTION_BLUEPRINT_ID,
 } from "./phase74ProtectionVerifier";
 
 export const PHASE74_BEAM_FULL_100K_DATASET_ID = "beam-full-100k-v1";
@@ -112,6 +119,12 @@ export interface Phase74BeamSafetyDependencies {
     run(input: Phase74BeamPipelineRequest): Promise<Phase74BeamPipelineOutput>;
   };
   judgeGroundedness(input: Phase74BeamGroundednessJudgeRequest): Promise<unknown>;
+}
+
+export interface Phase74BeamSafetyProtectionPlanInput {
+  embeddingSpendLimitUsd: number;
+  loadedPlan: LoadedPhase74ProtectionPlan;
+  maxLanguageCalls: number;
 }
 
 interface BeamSafetyCaseInput {
@@ -517,17 +530,96 @@ function freshMessages(
   return sourceMessages.map((message) => ({ ...message }));
 }
 
+export async function verifyPhase74BeamSafetyProtectionPlan(input: {
+  caseConcurrency: number;
+  contract: Phase74BeamSafetyContract;
+  datasetBytes: Uint8Array;
+  protectionPlan: Phase74BeamSafetyProtectionPlanInput;
+  replicate: Phase74ProtectionReplicate;
+  runId: string;
+}): Promise<Phase74ProtectionRunPlanInput> {
+  const {
+    describePhase74ProtectionCallBudget,
+    verifyPhase74ProtectionPlanRun,
+  } = await import("./phase74ProtectionPlan");
+  const rows = parseFull100kRows(input);
+  const population = buildPopulation(rows);
+  const identity = buildPhase74BeamSafetyProtectionIdentity(input.contract);
+  const caseIds = population.cases.map(({ caseId }) => caseId);
+  const protectionBlueprint =
+    input.protectionPlan.loadedPlan.plan.protectionBlueprint;
+  if (protectionBlueprint.id !== PHASE74_PROTECTION_BLUEPRINT_ID) {
+    throw new Error(
+      "Phase 74 BEAM safety requires the canonical protection blueprint.",
+    );
+  }
+  const controls = {
+    callBudget: describePhase74ProtectionCallBudget({
+      embeddingSpendLimitUsd: input.protectionPlan.embeddingSpendLimitUsd,
+      maxLanguageCalls: input.protectionPlan.maxLanguageCalls,
+    }),
+    caseConcurrency: input.caseConcurrency,
+    renderedContextTokens:
+      PHASE74_BEAM_SAFETY_BUDGET.renderedContextTokens,
+  };
+  const verifier = descriptor(PHASE74_BEAM_SAFETY_VERIFIER_ID, {
+    id: PHASE74_BEAM_SAFETY_VERIFIER_ID,
+  });
+  const plan = {
+    controls,
+    loadedPlan: input.protectionPlan.loadedPlan,
+    protectionBlueprint,
+    verifier,
+  };
+  verifyPhase74ProtectionPlanRun(input.protectionPlan.loadedPlan, {
+    caseIds,
+    controls,
+    identity: {
+      dataset: identity.dataset,
+      judge: identity.judge,
+      model: identity.model,
+      pipeline: identity.pipeline,
+      population: {
+        caseCount: caseIds.length,
+        caseIdsSha256: hashPhase74ProtectionCaseIds(caseIds),
+        id: identity.populationId,
+      },
+      prompt: identity.prompt,
+      source: identity.source,
+    },
+    protectionBlueprint,
+    replicate: input.replicate,
+    runId: input.runId,
+    suite: PHASE74_BEAM_SAFETY_SUITE,
+    verifier,
+  });
+  return plan;
+}
+
 export async function runPhase74BeamSafetyProtection(input: {
   artifactPath: string;
   caseConcurrency?: number;
   contract: Phase74BeamSafetyContract;
   datasetBytes: Uint8Array;
+  protectionPlan?: Phase74BeamSafetyProtectionPlanInput;
   rawArtifactPath: string;
   replicate: Phase74ProtectionReplicate;
   runId: string;
 }, dependencies: Phase74BeamSafetyDependencies): Promise<Phase74ProtectionSuiteRunResult> {
   const rows = parseFull100kRows(input);
   const population = buildPopulation(rows);
+  const caseConcurrency = input.caseConcurrency ?? 1;
+  const identity = buildPhase74BeamSafetyProtectionIdentity(input.contract);
+  const plan = input.protectionPlan === undefined
+    ? undefined
+    : await verifyPhase74BeamSafetyProtectionPlan({
+        caseConcurrency,
+        contract: input.contract,
+        datasetBytes: input.datasetBytes,
+        protectionPlan: input.protectionPlan,
+        replicate: input.replicate,
+        runId: input.runId,
+      });
   const pipelines = {
     baseline: dependencies.createPipeline(input.contract.baselinePipeline),
     candidate: dependencies.createPipeline(input.contract.candidatePipeline),
@@ -542,7 +634,7 @@ export async function runPhase74BeamSafetyProtection(input: {
 
   return runPhase74ProtectionSuiteCases<BeamSafetyCaseInput>({
     artifactPath: input.artifactPath,
-    caseConcurrency: input.caseConcurrency,
+    caseConcurrency,
     cases: population.cases,
     evaluate: async ({ branch, input: caseInput }) => {
       const selected = population.selected.get(caseInput.questionId);
@@ -602,7 +694,8 @@ export async function runPhase74BeamSafetyProtection(input: {
         }),
       };
     },
-    identity: buildPhase74BeamSafetyProtectionIdentity(input.contract),
+    identity,
+    plan,
     rawArtifactPath: input.rawArtifactPath,
     replicate: input.replicate,
     runId: input.runId,

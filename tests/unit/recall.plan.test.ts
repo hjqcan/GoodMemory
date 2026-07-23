@@ -194,6 +194,31 @@ describe("deterministic recall plan", () => {
     ]);
   });
 
+  it("classifies time-unit interval questions as temporal, not enumeration counts", () => {
+    // "How many <time-unit>s passed/between" asks for an interval between two
+    // anchors — a precision question. Counting instances would plan for
+    // breadth instead.
+    const interval = plan(
+      "How many weeks passed between the bake sale and the marathon?",
+    );
+    expect(interval.aggregation).not.toBe("count");
+    expect(interval.evidenceNeeds).toContain("temporal");
+
+    const betweenDays = plan(
+      "How many days were there between my MoMA visit and the exhibit?",
+    );
+    expect(betweenDays.aggregation).not.toBe("count");
+    expect(betweenDays.evidenceNeeds).toContain("temporal");
+
+    // True enumeration counts keep the count aggregation.
+    const enumeration = plan("How many books did I buy last month?");
+    expect(enumeration.aggregation).toBe("count");
+
+    // Chinese interval phrasing is also not an enumeration count.
+    const hanInterval = plan("这两次活动之间过了多少天？", "zh-CN");
+    expect(hanInterval.aggregation).not.toBe("count");
+  });
+
   it("lets an optional query-only assistant refine the plan without changing fixed budgets", async () => {
     const result = await resolveRecallPlan({
       input: {

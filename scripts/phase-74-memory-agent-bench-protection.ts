@@ -6,11 +6,18 @@ import type {
   Phase74ProtectionReplicate,
 } from "../src/eval/phase74ProtectionContracts";
 import {
+  describePhase74ProtectionCallBudget,
+} from "../src/eval/phase74ProtectionPlan";
+import type {
+  LoadedPhase74ProtectionPlan,
+} from "../src/eval/phase74ProtectionPlan";
+import {
   hashPhase74ProtectionValue,
   runPhase74ProtectionSuiteCases,
 } from "../src/eval/phase74ProtectionRun";
 import type {
   Phase74ProtectionBranch,
+  Phase74ProtectionRunPlanInput,
   Phase74ProtectionSuiteRunResult,
 } from "../src/eval/phase74ProtectionRun";
 import {
@@ -18,7 +25,11 @@ import {
   buildPhase74MemoryAgentBenchQuestionPopulation,
   PHASE74_MAB_PROTECTION_METRICS,
   PHASE74_MAB_PROTECTION_SUITE,
+  PHASE74_MAB_PROTECTION_VERIFIER_ID,
 } from "../src/eval/phase74MemoryAgentBenchProtectionVerifier";
+import {
+  PHASE74_PROTECTION_BLUEPRINT_ID,
+} from "../src/eval/phase74ProtectionVerifier";
 export {
   PHASE74_MAB_PROTECTION_METRICS,
   PHASE74_MAB_PROTECTION_SUITE,
@@ -40,6 +51,9 @@ interface MemoryAgentBenchRuntime {
   memory: GoodMemory;
   scope: ReturnType<typeof buildMemoryAgentBenchScope>;
 }
+
+const DEFAULT_CASE_CONCURRENCY = 1;
+const RENDERED_CONTEXT_TOKENS = 6_000;
 
 export interface Phase74MemoryAgentBenchProtectionDependencies {
   createMemory?: (branch: Phase74ProtectionBranch) => GoodMemory;
@@ -83,8 +97,10 @@ export function createPhase74MemoryAgentBenchOfflineMemory(
 
 export async function runPhase74MemoryAgentBenchProtection(input: {
   artifactPath: string;
+  caseConcurrency?: number;
   cases: readonly MemoryAgentBenchCase[];
   dataset: Phase74ProtectionIdentityDescriptor;
+  protectionPlan?: LoadedPhase74ProtectionPlan;
   rawArtifactPath: string;
   replicate: Phase74ProtectionReplicate;
   runId: string;
@@ -97,6 +113,30 @@ export async function runPhase74MemoryAgentBenchProtection(input: {
   const runtimes = new Map<string, MemoryAgentBenchRuntime>();
   const createMemory = dependencies.createMemory ??
     createPhase74MemoryAgentBenchOfflineMemory;
+  const caseConcurrency = input.caseConcurrency ?? DEFAULT_CASE_CONCURRENCY;
+  let plan: Phase74ProtectionRunPlanInput | undefined;
+  if (input.protectionPlan !== undefined) {
+    const protectionBlueprint = input.protectionPlan.plan.protectionBlueprint;
+    if (protectionBlueprint.id !== PHASE74_PROTECTION_BLUEPRINT_ID) {
+      throw new Error(
+        "Phase 74 MemoryAgentBench requires the canonical protection blueprint.",
+      );
+    }
+    plan = {
+      controls: {
+        callBudget: describePhase74ProtectionCallBudget(
+          "no-live-model-calls-v1",
+        ),
+        caseConcurrency,
+        renderedContextTokens: RENDERED_CONTEXT_TOKENS,
+      },
+      loadedPlan: input.protectionPlan,
+      protectionBlueprint,
+      verifier: descriptor(PHASE74_MAB_PROTECTION_VERIFIER_ID, {
+        id: PHASE74_MAB_PROTECTION_VERIFIER_ID,
+      }),
+    };
+  }
 
   const runtime = async (
     branch: Phase74ProtectionBranch,
@@ -124,6 +164,7 @@ export async function runPhase74MemoryAgentBenchProtection(input: {
 
   return runPhase74ProtectionSuiteCases<MemoryAgentBenchProtectionInput>({
     artifactPath: input.artifactPath,
+    caseConcurrency,
     cases: population.cases,
     evaluate: async ({ branch, input: caseInput }) => {
       const selected = questions.get(caseInput.questionId);
@@ -173,6 +214,7 @@ export async function runPhase74MemoryAgentBenchProtection(input: {
       ),
       source: input.source,
     },
+    plan,
     rawArtifactPath: input.rawArtifactPath,
     replicate: input.replicate,
     runId: input.runId,

@@ -20,6 +20,7 @@ import {
   PHASE74_BEAM_SAFETY_SUITE,
   PHASE74_BEAM_SAFETY_VERIFIER_ID,
   runPhase74BeamSafetyProtection,
+  verifyPhase74BeamSafetyProtectionPlan,
   verifyPhase74BeamSafetyProtectionArtifact,
 } from "../src/eval/phase74BeamSafetyProtection";
 import type {
@@ -51,6 +52,9 @@ import {
 import type {
   Phase74ProtectionReplicate,
 } from "../src/eval/phase74ProtectionContracts";
+import {
+  loadPhase74ProtectionPlan,
+} from "../src/eval/phase74ProtectionPlan";
 import type {
   Phase74ProtectionSuiteRunResult,
 } from "../src/eval/phase74ProtectionRun";
@@ -81,6 +85,7 @@ interface Phase74BeamSafetyProtectionLiveCliOptions {
   maxLanguageCalls: number;
   mode: "live";
   outputDir: string;
+  protectionPlanPath?: string;
   replicate: Phase74ProtectionReplicate;
   runId: string;
 }
@@ -200,6 +205,7 @@ export function parsePhase74BeamSafetyProtectionCliOptions(
           "--manifest",
           "--max-language-calls",
           "--output-dir",
+          "--protection-plan",
           "--replicate",
           "--run-id",
         ]);
@@ -225,6 +231,10 @@ export function parsePhase74BeamSafetyProtectionCliOptions(
       runId,
     };
   }
+  const protectionPlanPath = resolveCliFlagValueStrict(
+    argv,
+    "--protection-plan",
+  );
   return {
     caseConcurrency: positiveInteger(
       resolveCliFlagValueStrict(argv, "--case-concurrency") ??
@@ -243,6 +253,9 @@ export function parsePhase74BeamSafetyProtectionCliOptions(
     ),
     mode: "live",
     outputDir: resolve(requiredFlag(argv, "--output-dir")),
+    ...(protectionPlanPath === undefined
+      ? {}
+      : { protectionPlanPath: resolve(protectionPlanPath) }),
     replicate: replicate(requiredFlag(argv, "--replicate")),
     runId,
   };
@@ -501,9 +514,25 @@ export function assertPhase74BeamSafetyLiveRunClosure(input: {
   if (
     input.protectionArtifact.artifactKind !==
       "phase74-frozen-protection-suite-run" ||
-    input.protectionArtifact.schemaVersion !== 1
+    (
+      input.protectionArtifact.schemaVersion !== 1 &&
+      input.protectionArtifact.schemaVersion !== 2
+    )
   ) {
     throw new Error("Phase 74 BEAM live protection artifact identity drifted.");
+  }
+  if (
+    input.protectionArtifact.schemaVersion === 2 &&
+    (
+      !isRecord(input.identity.protectionPlan) ||
+      input.protectionArtifact.planPath !== input.identity.protectionPlan.path ||
+      input.protectionArtifact.planSha256 !==
+        input.identity.protectionPlan.sha256 ||
+      typeof input.protectionArtifact.plannedRunSha256 !== "string" ||
+      !/^[a-f0-9]{64}$/u.test(input.protectionArtifact.plannedRunSha256)
+    )
+  ) {
+    throw new Error("Phase 74 BEAM live protection plan drifted.");
   }
   if (input.protectionArtifact.runId !== input.identity.runId) {
     throw new Error("Phase 74 BEAM live runId drifted.");
@@ -565,6 +594,8 @@ export function assertPhase74BeamSafetyLiveRunClosure(input: {
   }
   if (
     input.usage.pendingRequestCount !== 0 ||
+    input.usage.missingRequestCount !== 0 ||
+    input.usage.partialRequestCount !== 0 ||
     input.summary.modelUsage.completeRequestCount !==
       input.usage.completeRequestCount ||
     input.summary.modelUsage.embeddingIntentCount !==
@@ -820,6 +851,47 @@ export async function verifyPhase74BeamSafetyLiveRun(
       sha256: verified.rawArtifactSha256,
     },
   });
+  if (
+    isRecord(protectionArtifact) &&
+    protectionArtifact.schemaVersion === 2
+  ) {
+    if (
+      !isRecord(identity.protectionPlan) ||
+      typeof identity.protectionPlan.path !== "string" ||
+      typeof identity.protectionPlan.sha256 !== "string" ||
+      !isRecord(identity.callBudget) ||
+      typeof identity.callBudget.embeddingSpendLimitUsd !== "number" ||
+      typeof identity.callBudget.maxLanguageCalls !== "number" ||
+      typeof identity.caseConcurrency !== "number" ||
+      (
+        identity.replicate !== 1 &&
+        identity.replicate !== 2 &&
+        identity.replicate !== 3
+      ) ||
+      typeof identity.runId !== "string"
+    ) {
+      throw new Error("Phase 74 BEAM live protection plan identity is invalid.");
+    }
+    const loadedPlan = await loadPhase74ProtectionPlan(
+      identity.protectionPlan.path,
+    );
+    if (loadedPlan.sha256 !== identity.protectionPlan.sha256) {
+      throw new Error("Phase 74 BEAM live protection plan SHA-256 drifted.");
+    }
+    await verifyPhase74BeamSafetyProtectionPlan({
+      caseConcurrency: identity.caseConcurrency,
+      contract,
+      datasetBytes,
+      protectionPlan: {
+        embeddingSpendLimitUsd:
+          identity.callBudget.embeddingSpendLimitUsd,
+        loadedPlan,
+        maxLanguageCalls: identity.callBudget.maxLanguageCalls,
+      },
+      replicate: identity.replicate,
+      runId: identity.runId,
+    });
+  }
   return { runDirectory: directory, status: "verified", summaryPath };
 }
 
@@ -834,6 +906,9 @@ export async function runPhase74BeamSafetyProtectionCli(
   if (options.mode === "preflight") {
     return runPhase74BeamSafetyPreflight({ dependencies, options });
   }
+  const loadedProtectionPlan = options.protectionPlanPath === undefined
+    ? undefined
+    : await loadPhase74ProtectionPlan(options.protectionPlanPath);
   const datasetBytes = await (dependencies.readDataset ?? readFile)(
     options.datasetPath,
   );
@@ -867,6 +942,23 @@ export async function runPhase74BeamSafetyProtectionCli(
     identityHash,
     manifest,
   });
+  const protectionPlan = loadedProtectionPlan === undefined
+    ? undefined
+    : {
+        embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
+        loadedPlan: loadedProtectionPlan,
+        maxLanguageCalls: options.maxLanguageCalls,
+      };
+  if (protectionPlan !== undefined) {
+    await verifyPhase74BeamSafetyProtectionPlan({
+      caseConcurrency: options.caseConcurrency,
+      contract: spec.contract,
+      datasetBytes,
+      protectionPlan,
+      replicate: options.replicate,
+      runId: options.runId,
+    });
+  }
 
   await mkdir(options.outputDir, { recursive: true });
   const runDirectory = join(options.outputDir, options.runId);
@@ -906,6 +998,14 @@ export async function runPhase74BeamSafetyProtectionCli(
       },
       protectionIdentity,
       protectionIdentityHash: identityHash,
+      ...(loadedProtectionPlan === undefined
+        ? {}
+        : {
+            protectionPlan: {
+              path: loadedProtectionPlan.path,
+              sha256: loadedProtectionPlan.sha256,
+            },
+          }),
       replicate: options.replicate,
       runId: options.runId,
       schemaVersion: 1,
@@ -954,6 +1054,7 @@ export async function runPhase74BeamSafetyProtectionCli(
         caseConcurrency: options.caseConcurrency,
         contract: spec.contract,
         datasetBytes,
+        protectionPlan,
         rawArtifactPath: join(runDirectory, "raw.json"),
         replicate: options.replicate,
         runId: options.runId,

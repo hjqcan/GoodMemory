@@ -1,11 +1,19 @@
 import { SQL } from "bun";
 import { describe, expect, it } from "bun:test";
 import {
+  buildClaimProjectionStatusId,
+} from "../../src/recall/projections/claims";
+import {
   CLAIM_PROJECTIONS_COLLECTION,
   CLAIM_PROJECTION_STATUS_COLLECTION,
   ENTITIES_COLLECTION,
 } from "../../src/recall/projections/contracts";
+import type {
+  ClaimProjection,
+  ClaimProjectionStatus,
+} from "../../src/recall/projections/contracts";
 import { createRecallProjectionRuntime } from "../../src/recall/projections/runtime";
+import { recallScopeKey } from "../../src/recall/projections/shared";
 import type { ProjectionCapableDocumentStore } from "../../src/storage/contracts";
 import {
   createPostgresDocumentStore,
@@ -31,7 +39,7 @@ const SCALE_SCOPE = {
   userId: "postgres-language-scale-user",
   workspaceId: "postgres-language-scale-workspace",
 };
-const SCALE_SCOPE_KEY = `${SCALE_SCOPE.userId}::${SCALE_SCOPE.workspaceId}`;
+const SCALE_SCOPE_KEY = recallScopeKey(SCALE_SCOPE);
 
 interface PostgresScaleAdapterCalls {
   query: number;
@@ -278,6 +286,84 @@ if (POSTGRES_URL) {
       }
     });
 
+    it("refills claim search after retired revisions occupy the first page", async () => {
+      const schema = createSchemaName("claim_revision_refill");
+      const store = createPostgresDocumentStore({
+        schema,
+        url: POSTGRES_URL,
+      });
+      const scope = {
+        userId: "postgres-claim-revision-user",
+        workspaceId: "postgres-claim-revision-workspace",
+      };
+      const buildClaim = (id: string): ClaimProjection => ({
+        id,
+        schemaVersion: 2,
+        ...scope,
+        scopeKey: recallScopeKey(scope),
+        sourceMemoryId: "postgres-claim-revision-source",
+        subjectText: "Atlas",
+        subjectEntityId: "entity:postgres-atlas",
+        predicateKey: "project.status",
+        objectText: "active",
+        text: "Atlas project.status active",
+        searchText: "atlas project status active",
+        searchLocale: "en-US",
+        languagePackId: "en",
+        searchAnalyzerVersion: "postgres-claim-revision-test-v1",
+        searchSchemaVersion: "gm-search-v2",
+        polarity: "positive",
+        modality: "asserted",
+        observedAt: "2026-07-21T09:00:00.000Z",
+        ingestedAt: "2026-07-21T09:00:00.000Z",
+        evidenceIds: [],
+        sourceMessageIds: [],
+        extractorVersion: "postgres-claim-revision-test-v1",
+      });
+      const retiredOne = buildClaim("a-retired");
+      const retiredTwo = buildClaim("b-retired");
+      const active = buildClaim("z-active");
+      const status: ClaimProjectionStatus = {
+        id: buildClaimProjectionStatusId(scope, active.sourceMemoryId),
+        schemaVersion: 2,
+        ...scope,
+        scopeKey: recallScopeKey(scope),
+        sourceMemoryId: active.sourceMemoryId,
+        state: "projected",
+        claimIds: [active.id],
+        retiredRevisionIds: [retiredOne.id, retiredTwo.id],
+        extractorVersion: active.extractorVersion,
+        sourceUpdatedAt: active.ingestedAt,
+        updatedAt: active.ingestedAt,
+      };
+
+      try {
+        for (const claim of [retiredOne, retiredTwo, active]) {
+          await store.set(CLAIM_PROJECTIONS_COLLECTION, claim.id, claim);
+        }
+        await store.set(
+          CLAIM_PROJECTION_STATUS_COLLECTION,
+          status.id,
+          status,
+        );
+        const runtime = createRecallProjectionRuntime({
+          documentStore: store,
+        });
+
+        expect(await runtime.searchClaims(
+          scope,
+          "atlas project status active",
+          1,
+          true,
+        )).toEqual([active]);
+        expect(
+          await store.get(CLAIM_PROJECTIONS_COLLECTION, retiredOne.id),
+        ).toEqual(retiredOne);
+      } finally {
+        await dropSchema(POSTGRES_URL, schema);
+      }
+    });
+
     it("keeps mixed-language projection searches indexed at 150k rows", async () => {
       const schema = createSchemaName("language_scale");
       const sql = new SQL(POSTGRES_URL);
@@ -304,7 +390,18 @@ if (POSTGRES_URL) {
                 collection,
                 kind,
                 sequence,
-                kind || '-' || lpad(sequence::text, 6, '0') AS id,
+                CASE
+                  WHEN kind = 'status' THEN
+                    'claim-status:' || substr(encode(sha256(
+                      convert_to($8::text, 'UTF8') ||
+                      decode('00', 'hex') ||
+                      convert_to(
+                        'memory-' || lpad(sequence::text, 6, '0'),
+                        'UTF8'
+                      )
+                    ), 'hex'), 1, 32)
+                  ELSE kind || '-' || lpad(sequence::text, 6, '0')
+                END AS id,
                 CASE mod(sequence, 7)
                   WHEN 0 THEN 'en'
                   WHEN 1 THEN 'zh-Hans'

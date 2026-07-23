@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import {
   mkdtemp,
+  readdir,
   readFile,
   rm,
   writeFile,
@@ -19,6 +20,7 @@ import {
   runPhase74HaluMemUpdateProtection,
 } from "../../scripts/phase-74-halumem-protection";
 import {
+  parsePhase74HaluMemLiveRunnerOptions,
   runPhase74HaluMemLiveProtection,
   verifyPhase74HaluMemLiveRun,
 } from "../../scripts/run-phase-74-halumem-live-protection";
@@ -33,11 +35,23 @@ import type {
   Phase74HaluMemUser,
 } from "../../src/eval/phase74HaluMemProtectionVerifier";
 import {
+  PHASE74_HALUMEM_E4_PROTECTION_VERIFIER_ID,
+  PHASE74_HALUMEM_E4_SUITE,
   PHASE74_HALUMEM_EVIDENCE_LEDGER_FORMATS,
   buildPhase74HaluMemSourceMessageId,
   buildPhase74HaluMemUpdateSnapshotId,
   buildPhase74HaluMemUpdateSourceRecord,
 } from "../../src/eval/phase74HaluMemProtectionVerifier";
+import {
+  hashPhase74ProtectionCaseIds,
+} from "../../src/eval/phase74ProtectionContracts";
+import {
+  buildPhase74ProtectionPlan,
+  describePhase74ProtectionCallBudget,
+} from "../../src/eval/phase74ProtectionPlan";
+import {
+  PHASE74_PROTECTION_BLUEPRINT_ID,
+} from "../../src/eval/phase74ProtectionVerifier";
 import {
   buildPhase74IngestionDescriptor,
   buildPhase74IngestionUsageFingerprint,
@@ -66,6 +80,60 @@ async function root(): Promise<string> {
 
 function sha256(value: string | Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function identityDescriptor(id: string) {
+  return { id, sha256: hashPhase74ProtectionValue({ id }) };
+}
+
+async function writeDriftedLiveProtectionPlan(path: string): Promise<void> {
+  const caseIds = ["not-the-selected-halu-mem-case"];
+  const source = {
+    id: `git:${"c".repeat(40)}`,
+    sha256: "e".repeat(64),
+  };
+  const blueprint = {
+    id: PHASE74_PROTECTION_BLUEPRINT_ID,
+    sha256: "9".repeat(64),
+  };
+  const verifier = identityDescriptor(
+    PHASE74_HALUMEM_E4_PROTECTION_VERIFIER_ID,
+  );
+  const plan = buildPhase74ProtectionPlan({
+    admissionClass: "diagnostic",
+    evaluatorSource: source,
+    protectionBlueprint: blueprint,
+    runs: [{
+      caseIds,
+      controls: {
+        callBudget: describePhase74ProtectionCallBudget({
+          embeddingSpendLimitUsd: 0.25,
+          maxLanguageCalls: 1_000,
+        }),
+        caseConcurrency: 16,
+        renderedContextTokens: 6_000,
+      },
+      identity: {
+        dataset: identityDescriptor("wrong-dataset"),
+        judge: identityDescriptor("wrong-judge"),
+        model: identityDescriptor("wrong-model"),
+        pipeline: identityDescriptor("wrong-pipeline"),
+        population: {
+          caseCount: caseIds.length,
+          caseIdsSha256: hashPhase74ProtectionCaseIds(caseIds),
+          id: "wrong-population",
+        },
+        prompt: identityDescriptor("wrong-prompt"),
+        source,
+      },
+      protectionBlueprint: blueprint,
+      replicate: 1,
+      runId: "live-run-e4",
+      suite: PHASE74_HALUMEM_E4_SUITE,
+      verifier,
+    }],
+  });
+  await writeFile(path, `${JSON.stringify(plan, null, 2)}\n`, "utf8");
 }
 
 function updateEvidenceLinks(
@@ -806,6 +874,46 @@ async function rewriteProtectionRaw(input: {
 }
 
 describe("Phase 74 HaluMem live runner", () => {
+  it("parses an optional protection plan without changing planless mode", () => {
+    const parsed = parsePhase74HaluMemLiveRunnerOptions([
+      "--dataset-path",
+      "/tmp/HaluMem-Medium.jsonl",
+      "--output-dir",
+      "/tmp/halumem-runs",
+      "--protection-plan",
+      "/tmp/protection-plan.json",
+      "--replicate",
+      "1",
+      "--run-id",
+      "planned-run",
+    ]);
+
+    expect(parsed).toMatchObject({
+      mode: "live",
+      protectionPlanPath: "/tmp/protection-plan.json",
+      runId: "planned-run",
+    });
+  });
+
+  it("rejects plan drift before creating output or provider/runtime callbacks", async () => {
+    const options = await fixtureOptions("live");
+    if (options.mode !== "live") {
+      throw new Error("Expected live fixture options.");
+    }
+    const planPath = join(options.outputDir, "..", "protection-plan.json");
+    await writeDriftedLiveProtectionPlan(planPath);
+    const counters = { createProviders: 0, run: 0 };
+
+    await expect(runPhase74HaluMemLiveProtection({
+      ...options,
+      protectionPlanPath: planPath,
+    }, dependencies(counters))).rejects.toThrow(/drift|plan/iu);
+
+    expect(counters).toEqual({ createProviders: 0, run: 0 });
+    await expect(readdir(join(options.outputDir, options.runId))).rejects
+      .toThrow();
+  });
+
   it("freezes an unseen structural selection and identity before a zero-provider preflight exits", async () => {
     const options = await fixtureOptions("preflight");
     const counters = { createProviders: 0, run: 0 };

@@ -2119,6 +2119,9 @@ describe("Phase 74 frozen artifact aggregation", () => {
       .toMatchObject({ averageTokens: 80, macroScore: 0.835 });
     expect(report.promotion.status).toBe("not_evaluable");
     expect(report.promotion.gaps.join(" ")).toContain("seen-case");
+    expect(report.promotion.gaps.join(" ")).toContain(
+      "promotion-admissible pre-execution protection plan",
+    );
   });
 
   it("fails closed on comparison drift, missing cluster identity, and missing latency", async () => {
@@ -2396,14 +2399,22 @@ describe("Phase 74 frozen artifact aggregation", () => {
       "bun",
       "scripts/aggregate-phase-74-generalization.ts",
       ...fixture.runDirectories.flatMap((path) => ["--run-dir", path]),
+      "--beam-contract",
+      join(fixture.root, "beam-contract.json"),
       "--output",
       outputPath,
       "--promotion-stage",
       "E3",
     ]);
     expect(options.runDirectories).toEqual(fixture.runDirectories);
+    expect(options.beamContractPath).toBe(
+      join(fixture.root, "beam-contract.json"),
+    );
 
-    await runPhase74GeneralizationAggregation(options);
+    await runPhase74GeneralizationAggregation({
+      ...options,
+      beamContractPath: undefined,
+    });
     const persisted = JSON.parse(await readFile(outputPath, "utf8"));
     expect(persisted.schemaVersion).toBe(1);
 

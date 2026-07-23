@@ -19,6 +19,22 @@ import type {
 import { resolveRepoRootFromScriptUrl } from "./script-paths";
 import {
   assertPhase74HaluMemConfiguration,
+  buildPhase74HaluMemE4RunIdentity,
+  buildPhase74HaluMemPrivacyPopulation,
+  buildPhase74HaluMemPrivacyRunIdentity,
+  buildPhase74HaluMemQuestionPopulation,
+  buildPhase74HaluMemUpdatePopulation,
+  buildPhase74HaluMemUpdateRunIdentity,
+  PHASE74_HALUMEM_CONTEXT_TOKEN_BUDGET,
+  PHASE74_HALUMEM_E4_PROTECTION_VERIFIER_ID,
+  PHASE74_HALUMEM_E4_SUITE,
+  PHASE74_HALUMEM_PRIVACY_PROTECTION_VERIFIER_ID,
+  PHASE74_HALUMEM_PRIVACY_SUITE,
+  PHASE74_HALUMEM_UPDATE_PROTECTION_VERIFIER_ID,
+  PHASE74_HALUMEM_UPDATE_SUITE,
+  phase74HaluMemPrivacyPopulationId,
+  phase74HaluMemQuestionPopulationId,
+  phase74HaluMemUpdatePopulationId,
   parsePhase74HaluMemJsonl,
   selectPhase74HaluMemUsers,
   verifyPhase74HaluMemE4ProtectionArtifact,
@@ -27,6 +43,7 @@ import {
 } from "../src/eval/phase74HaluMemProtectionVerifier";
 import type {
   Phase74HaluMemProtectionConfiguration,
+  Phase74HaluMemUser,
 } from "../src/eval/phase74HaluMemProtectionVerifier";
 import {
   capturePhase74EvaluatorSource,
@@ -35,9 +52,32 @@ import type {
   Phase74EvaluatorSource,
 } from "../src/eval/phase74Live";
 import type {
+  Phase74ProtectionIdentityDescriptor,
   Phase74ProtectionReplicate,
+  Phase74ProtectionRunIdentity,
 } from "../src/eval/phase74ProtectionContracts";
+import {
+  hashPhase74ProtectionCaseIds,
+} from "../src/eval/phase74ProtectionContracts";
+import {
+  describePhase74ProtectionCallBudget,
+  loadPhase74ProtectionPlan,
+  verifyPhase74ProtectionPlanRun,
+} from "../src/eval/phase74ProtectionPlan";
 import type {
+  LoadedPhase74ProtectionPlan,
+  Phase74ProtectionPlanControls,
+} from "../src/eval/phase74ProtectionPlan";
+import {
+  PHASE74_PROTECTION_BLUEPRINT_ID,
+} from "../src/eval/phase74ProtectionVerifier";
+import {
+  hashPhase74ProtectionValue,
+} from "../src/eval/phase74ProtectionRun";
+import type {
+  Phase74ProtectionRunIdentityInput,
+  Phase74ProtectionRunPlanInput,
+  Phase74ProtectionSuite,
   Phase74ProtectionSuiteRunResult,
 } from "../src/eval/phase74ProtectionRun";
 
@@ -49,8 +89,11 @@ export interface Phase74HaluMemProtectionCliOptions {
   datasetId: string;
   datasetPath: string;
   e4Configuration: Phase74HaluMemProtectionConfiguration;
+  embeddingSpendLimitUsd?: number;
+  maxLanguageCalls?: number;
   outputDir: string;
   privacyConfiguration: Phase74HaluMemProtectionConfiguration;
+  protectionPlanPath?: string;
   replicate: Phase74ProtectionReplicate;
   runId: string;
   updateConfiguration: Phase74HaluMemProtectionConfiguration;
@@ -99,6 +142,22 @@ function parseReplicate(value: string): Phase74ProtectionReplicate {
   return Number(value) as Phase74ProtectionReplicate;
 }
 
+function positiveNumber(value: string, flag: string): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`${flag} must be a positive number.`);
+  }
+  return parsed;
+}
+
+function positiveInteger(value: string, flag: string): number {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new Error(`${flag} must be a positive integer.`);
+  }
+  return parsed;
+}
+
 function parseConfiguration(
   value: string,
   label: string,
@@ -129,6 +188,10 @@ export function parsePhase74HaluMemProtectionCliOptions(
   }
   const runId = requiredFlag(args, "--run-id");
   assertCliPathSegmentValue({ flag: "--run-id", value: runId });
+  const protectionPlanPath = resolveCliFlagValueStrict(
+    args,
+    "--protection-plan",
+  );
   const userUuids = requiredFlag(args, "--user-uuids")
     .split(",")
     .map((value) => value.trim());
@@ -157,6 +220,19 @@ export function parsePhase74HaluMemProtectionCliOptions(
       requiredFlag(args, "--e4-configuration-json"),
       "E4 configuration",
     ),
+    ...(protectionPlanPath === undefined
+      ? {}
+      : {
+          embeddingSpendLimitUsd: positiveNumber(
+            requiredFlag(args, "--embedding-spend-limit-usd"),
+            "--embedding-spend-limit-usd",
+          ),
+          maxLanguageCalls: positiveInteger(
+            requiredFlag(args, "--max-language-calls"),
+            "--max-language-calls",
+          ),
+          protectionPlanPath: resolve(protectionPlanPath),
+        }),
     outputDir: resolve(requiredFlag(args, "--output-dir")),
     privacyConfiguration: parseConfiguration(
       requiredFlag(args, "--privacy-configuration-json"),
@@ -174,6 +250,171 @@ export function parsePhase74HaluMemProtectionCliOptions(
 
 function sha256(value: Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+export interface Phase74HaluMemPreparedProtectionPlan {
+  e4: Phase74ProtectionRunPlanInput;
+  privacy: Phase74ProtectionRunPlanInput;
+  update: Phase74ProtectionRunPlanInput;
+}
+
+function canonicalVerifier(
+  id: string,
+): Phase74ProtectionIdentityDescriptor {
+  return {
+    id,
+    sha256: hashPhase74ProtectionValue({ id }),
+  };
+}
+
+function completeIdentity(
+  input: Phase74ProtectionRunIdentityInput,
+  caseIds: readonly string[],
+): Phase74ProtectionRunIdentity {
+  const { populationId, ...identity } = input;
+  return {
+    ...identity,
+    population: {
+      caseCount: caseIds.length,
+      caseIdsSha256: hashPhase74ProtectionCaseIds(caseIds),
+      id: populationId,
+    },
+  };
+}
+
+function preparedRun(input: {
+  caseIds: readonly string[];
+  controls: Phase74ProtectionPlanControls;
+  identity: Phase74ProtectionRunIdentityInput;
+  loadedPlan: LoadedPhase74ProtectionPlan;
+  replicate: Phase74ProtectionReplicate;
+  runId: string;
+  suite: Phase74ProtectionSuite;
+  verifierId: string;
+}): Phase74ProtectionRunPlanInput {
+  const protectionBlueprint = input.loadedPlan.plan.protectionBlueprint;
+  if (protectionBlueprint.id !== PHASE74_PROTECTION_BLUEPRINT_ID) {
+    throw new Error(
+      "Phase 74 HaluMem protection plan blueprint is not canonical.",
+    );
+  }
+  const verifier = canonicalVerifier(input.verifierId);
+  verifyPhase74ProtectionPlanRun(input.loadedPlan, {
+    caseIds: input.caseIds,
+    controls: input.controls,
+    identity: completeIdentity(input.identity, input.caseIds),
+    protectionBlueprint,
+    replicate: input.replicate,
+    runId: input.runId,
+    suite: input.suite,
+    verifier,
+  });
+  return {
+    controls: input.controls,
+    loadedPlan: input.loadedPlan,
+    protectionBlueprint,
+    verifier,
+  };
+}
+
+export async function preparePhase74HaluMemProtectionPlan(input: {
+  caseConcurrency: number;
+  dataset: Phase74ProtectionIdentityDescriptor;
+  e4Configuration: Phase74HaluMemProtectionConfiguration;
+  embeddingSpendLimitUsd: number;
+  maxLanguageCalls: number;
+  planPath: string;
+  privacyConfiguration: Phase74HaluMemProtectionConfiguration;
+  replicate: Phase74ProtectionReplicate;
+  runId: string;
+  source: Phase74ProtectionIdentityDescriptor;
+  updateConfiguration: Phase74HaluMemProtectionConfiguration;
+  users: readonly Phase74HaluMemUser[];
+}): Promise<Phase74HaluMemPreparedProtectionPlan> {
+  if (
+    !Number.isSafeInteger(input.caseConcurrency) ||
+    input.caseConcurrency <= 0
+  ) {
+    throw new Error(
+      "Phase 74 HaluMem planned caseConcurrency must be positive.",
+    );
+  }
+  const loadedPlan = await loadPhase74ProtectionPlan(input.planPath);
+  const controls = {
+    callBudget: describePhase74ProtectionCallBudget({
+      embeddingSpendLimitUsd: input.embeddingSpendLimitUsd,
+      maxLanguageCalls: input.maxLanguageCalls,
+    }),
+    caseConcurrency: input.caseConcurrency,
+    renderedContextTokens: PHASE74_HALUMEM_CONTEXT_TOKEN_BUDGET,
+  };
+  const e4Population = buildPhase74HaluMemQuestionPopulation(input.users);
+  const updatePopulation = buildPhase74HaluMemUpdatePopulation(input.users);
+  const privacyPopulation = buildPhase74HaluMemPrivacyPopulation(input.users);
+  const prepare = (
+    caseIds: string[],
+    identity: Phase74ProtectionRunIdentityInput,
+    suffix: "e4" | "privacy" | "update",
+    suite: Phase74ProtectionSuite,
+    verifierId: string,
+  ) =>
+    preparedRun({
+      caseIds,
+      controls,
+      identity,
+      loadedPlan,
+      replicate: input.replicate,
+      runId: `${input.runId}-${suffix}`,
+      suite,
+      verifierId,
+    });
+  return {
+    e4: prepare(
+      e4Population.cases.map(({ caseId }) => caseId),
+      buildPhase74HaluMemE4RunIdentity({
+        configuration: input.e4Configuration,
+        dataset: input.dataset,
+        populationId: phase74HaluMemQuestionPopulationId(
+          input.dataset.id,
+          input.users,
+        ),
+        source: input.source,
+      }),
+      "e4",
+      PHASE74_HALUMEM_E4_SUITE,
+      PHASE74_HALUMEM_E4_PROTECTION_VERIFIER_ID,
+    ),
+    privacy: prepare(
+      privacyPopulation.cases.map(({ caseId }) => caseId),
+      buildPhase74HaluMemPrivacyRunIdentity({
+        configuration: input.privacyConfiguration,
+        dataset: input.dataset,
+        populationId: phase74HaluMemPrivacyPopulationId(
+          input.dataset.id,
+          input.users,
+        ),
+        source: input.source,
+      }),
+      "privacy",
+      PHASE74_HALUMEM_PRIVACY_SUITE,
+      PHASE74_HALUMEM_PRIVACY_PROTECTION_VERIFIER_ID,
+    ),
+    update: prepare(
+      updatePopulation.cases.map(({ caseId }) => caseId),
+      buildPhase74HaluMemUpdateRunIdentity({
+        configuration: input.updateConfiguration,
+        dataset: input.dataset,
+        populationId: phase74HaluMemUpdatePopulationId(
+          input.dataset.id,
+          input.users,
+        ),
+        source: input.source,
+      }),
+      "update",
+      PHASE74_HALUMEM_UPDATE_SUITE,
+      PHASE74_HALUMEM_UPDATE_PROTECTION_VERIFIER_ID,
+    ),
+  };
 }
 
 export async function runPhase74HaluMemProtectionCli(
@@ -204,12 +445,47 @@ export async function runPhase74HaluMemProtectionCli(
     id: `git:${evaluatorSource.commit}`,
     sha256: evaluatorSource.sha256,
   };
+  const caseConcurrency = options.caseConcurrency ?? 1;
+  let planned: Phase74HaluMemPreparedProtectionPlan | undefined;
+  if (options.protectionPlanPath !== undefined) {
+    if (
+      options.embeddingSpendLimitUsd === undefined ||
+      options.maxLanguageCalls === undefined
+    ) {
+      throw new Error(
+        "Phase 74 planned HaluMem protection requires the actual embedding and language call budgets.",
+      );
+    }
+    if (
+      options.updateConfiguration.updateEvaluator === undefined ||
+      dependencies.update?.evaluateUpdate === undefined
+    ) {
+      throw new Error(
+        "Phase 74 planned HaluMem protection requires completed update evidence.",
+      );
+    }
+    planned = await preparePhase74HaluMemProtectionPlan({
+      caseConcurrency,
+      dataset,
+      e4Configuration: options.e4Configuration,
+      embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
+      maxLanguageCalls: options.maxLanguageCalls,
+      planPath: options.protectionPlanPath,
+      privacyConfiguration: options.privacyConfiguration,
+      replicate: options.replicate,
+      runId: options.runId,
+      source,
+      updateConfiguration: options.updateConfiguration,
+      users,
+    });
+  }
   const runDirectory = join(options.outputDir, options.runId);
   const e4 = await runPhase74HaluMemE4Protection({
     artifactPath: join(runDirectory, "e4", "protection-run.json"),
-    caseConcurrency: options.caseConcurrency,
+    caseConcurrency,
     configuration: options.e4Configuration,
     dataset,
+    plan: planned?.e4,
     rawArtifactPath: join(runDirectory, "e4", "raw.json"),
     replicate: options.replicate,
     runId: `${options.runId}-e4`,
@@ -226,9 +502,10 @@ export async function runPhase74HaluMemProtectionCli(
 
   const privacy = await runPhase74HaluMemPrivacyProtection({
     artifactPath: join(runDirectory, "privacy", "protection-run.json"),
-    caseConcurrency: options.caseConcurrency,
+    caseConcurrency,
     configuration: options.privacyConfiguration,
     dataset,
+    plan: planned?.privacy,
     rawArtifactPath: join(runDirectory, "privacy", "raw.json"),
     replicate: options.replicate,
     runId: `${options.runId}-privacy`,
@@ -261,9 +538,10 @@ export async function runPhase74HaluMemProtectionCli(
 
   const update = await runPhase74HaluMemUpdateProtection({
     artifactPath: join(runDirectory, "update", "protection-run.json"),
-    caseConcurrency: options.caseConcurrency,
+    caseConcurrency,
     configuration: options.updateConfiguration,
     dataset,
+    plan: planned?.update,
     rawArtifactPath: join(runDirectory, "update", "raw.json"),
     replicate: options.replicate,
     runId: `${options.runId}-update`,

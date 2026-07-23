@@ -26,13 +26,26 @@ import {
   truncateRenderedContext,
 } from "../src/eval/oracleMatrix";
 import type { Phase74BenchmarkFamily } from "../src/eval/phase74Datasets";
+import {
+  createPhase74BeamSafetyProtectionVerifier,
+  parsePhase74BeamSafetyContract,
+} from "../src/eval/phase74BeamSafetyProtection";
 import { PHASE74_EXPERIMENT_ARMS } from "../src/eval/phase74ExperimentDesign";
 import { assertPhase74ExperimentIdentityContract } from "../src/eval/phase74ExperimentIdentity";
 import { buildPhase74EmbeddingIdentity } from "../src/eval/phase74Live";
-import { loadPhase74FrozenProtectionSuiteEvidence } from "../src/eval/phase74ProtectionSuiteEvidence";
+import {
+  isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible,
+  loadPhase74FrozenProtectionSuiteEvidence,
+} from "../src/eval/phase74ProtectionSuiteEvidence";
 import type {
   Phase74ProtectionSuiteVerifier,
 } from "../src/eval/phase74ProtectionVerifier";
+import type {
+  Phase74ProtectionLiveClosureVerifier,
+} from "../src/eval/phase74ProtectionSuiteEvidence";
+import {
+  PHASE74_CANONICAL_LIVE_CLOSURE_VERIFIER,
+} from "./phase-74-protection-live-closure";
 import {
   buildPhase74IngestionUsageAllocation,
   buildPhase74IngestionUsagePaths,
@@ -244,10 +257,12 @@ interface ProtectionArtifact {
     protections: Phase74ProtectionEvidence[];
     safety: Phase74PromotionGateInput["safety"];
   };
+  promotionAdmissible: boolean;
   sha256: string;
 }
 
 export interface Phase74AggregationCliOptions {
+  beamContractPath?: string;
   bootstrapSamples?: number;
   outputPath: string;
   promotionStage?: RetrievalStage;
@@ -265,6 +280,7 @@ export interface Phase74ArtifactAggregationInput {
 }
 
 export interface Phase74ArtifactAggregationDependencies {
+  protectionLiveClosureVerifier?: Phase74ProtectionLiveClosureVerifier;
   protectionVerifiers?: readonly Phase74ProtectionSuiteVerifier[];
 }
 
@@ -2560,6 +2576,7 @@ async function loadProtectionArtifact(
 ): Promise<ProtectionArtifact> {
   const { evidence, sha256: artifactSha256 } =
     await loadPhase74FrozenProtectionSuiteEvidence(path, {
+      liveClosureVerifier: dependencies.protectionLiveClosureVerifier,
       verifiers: dependencies.protectionVerifiers,
     });
   return {
@@ -2567,6 +2584,8 @@ async function loadProtectionArtifact(
     e4: evidence.e4.formatDeltas,
     evaluatorSource: evidence.source.evaluatorSource,
     promotion: evidence.promotion,
+    promotionAdmissible:
+      isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible(evidence),
     sha256: artifactSha256,
   };
 }
@@ -2746,6 +2765,10 @@ function buildPromotionEvaluation(input: {
   }
   if (input.protection === null) {
     gaps.push("A frozen protection artifact is required for promotion.");
+  } else if (!input.protection.promotionAdmissible) {
+    gaps.push(
+      "A promotion-admissible pre-execution protection plan is required for promotion.",
+    );
   }
   if (input.e4.status !== "evaluated") {
     gaps.push("E4 evidence-ledger format selection is not evaluable.");
@@ -3093,6 +3116,7 @@ export function parsePhase74AggregationCliOptions(
   argv: readonly string[],
 ): Phase74AggregationCliOptions {
   const runDirectories: string[] = [];
+  let beamContractPath: string | undefined;
   let outputPath: string | undefined;
   let protectionArtifactPath: string | undefined;
   let promotionStage: RetrievalStage | undefined;
@@ -3110,6 +3134,7 @@ export function parsePhase74AggregationCliOptions(
     }
     sawOption = true;
     if (![
+      "--beam-contract",
       "--bootstrap-samples",
       "--output",
       "--promotion-stage",
@@ -3129,7 +3154,9 @@ export function parsePhase74AggregationCliOptions(
       throw new Error(`${flag} cannot be specified more than once.`);
     }
     seenSingletons.add(flag);
-    if (flag === "--output") {
+    if (flag === "--beam-contract") {
+      beamContractPath = resolve(value);
+    } else if (flag === "--output") {
       outputPath = resolve(value);
     } else if (flag === "--protection-artifact") {
       protectionArtifactPath = resolve(value);
@@ -3159,6 +3186,9 @@ export function parsePhase74AggregationCliOptions(
   ) {
     throw new Error("--output and --protection-artifact must be different paths.");
   }
+  if (beamContractPath === outputPath) {
+    throw new Error("--output and --beam-contract must be different paths.");
+  }
   for (const runDirectory of normalizedRunDirectories) {
     const outputRelative = relative(runDirectory, outputPath);
     if (
@@ -3169,6 +3199,7 @@ export function parsePhase74AggregationCliOptions(
     }
   }
   return {
+    ...(beamContractPath === undefined ? {} : { beamContractPath }),
     ...(bootstrapSamples === undefined ? {} : { bootstrapSamples }),
     outputPath,
     ...(promotionStage === undefined ? {} : { promotionStage }),
@@ -3185,11 +3216,32 @@ export async function runPhase74GeneralizationAggregation(
   dependencies: Phase74ArtifactAggregationDependencies = {},
 ): Promise<Phase74ArtifactAggregationReport> {
   const outputPath = resolve(options.outputPath);
+  const protectionVerifiers = options.beamContractPath === undefined
+    ? dependencies.protectionVerifiers
+    : [
+        ...(dependencies.protectionVerifiers ?? []),
+        createPhase74BeamSafetyProtectionVerifier(
+          parsePhase74BeamSafetyContract(JSON.parse(
+            await readFile(resolve(options.beamContractPath), "utf8"),
+          )),
+        ),
+      ];
+  const aggregationDependencies = {
+    ...dependencies,
+    protectionLiveClosureVerifier:
+      dependencies.protectionLiveClosureVerifier ??
+        PHASE74_CANONICAL_LIVE_CLOSURE_VERIFIER,
+    protectionVerifiers,
+  };
   if (options.protectionArtifactPath !== undefined) {
     const protectionArtifactPath = resolve(options.protectionArtifactPath);
     const { evidence } = await loadPhase74FrozenProtectionSuiteEvidence(
       protectionArtifactPath,
-      { verifiers: dependencies.protectionVerifiers },
+      {
+        liveClosureVerifier:
+          aggregationDependencies.protectionLiveClosureVerifier,
+        verifiers: protectionVerifiers,
+      },
     );
     const protectedPaths = [
       {
@@ -3220,7 +3272,7 @@ export async function runPhase74GeneralizationAggregation(
   }
   const report = await aggregatePhase74GeneralizationArtifacts(
     options,
-    dependencies,
+    aggregationDependencies,
   );
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(

@@ -196,11 +196,11 @@ function liveRunClosure() {
       caseConcurrency: 16,
       executionFailures: 0,
       modelUsage: {
-        completeRequestCount: 4,
+        completeRequestCount: 5,
         embeddingIntentCount: 1,
         eventCount: 5,
         missingRequestCount: 0,
-        partialRequestCount: 1,
+        partialRequestCount: 0,
         pendingRequestCount: 0,
         intentCount: 5,
         languageIntentCount: 4,
@@ -210,13 +210,13 @@ function liveRunClosure() {
       verifierId: PHASE74_BEAM_SAFETY_VERIFIER_ID,
     },
     usage: {
-      completeRequestCount: 4,
+      completeRequestCount: 5,
       embeddingIntentCount: 1,
       eventCount: 5,
       intentCount: 5,
       languageIntentCount: 4,
       missingRequestCount: 0,
-      partialRequestCount: 1,
+      partialRequestCount: 0,
       pendingRequestCount: 0,
     },
     verifiedRawArtifact: { ...rawArtifact },
@@ -402,6 +402,8 @@ describe("Phase 74 BEAM safety live wiring", () => {
       join(root, "manifest.json"),
       "--output-dir",
       join(root, "out"),
+      "--protection-plan",
+      join(root, "protection-plan.json"),
       "--run-id",
       "beam-r1",
       "--replicate",
@@ -415,6 +417,7 @@ describe("Phase 74 BEAM safety live wiring", () => {
     ])).toMatchObject({
       caseConcurrency: 24,
       mode: "live",
+      protectionPlanPath: join(root, "protection-plan.json"),
       replicate: 1,
       runId: "beam-r1",
     });
@@ -518,6 +521,27 @@ describe("Phase 74 BEAM safety live wiring", () => {
   it("closes run, replicate, concurrency, budget, usage, and raw-artifact identity", () => {
     const valid = liveRunClosure();
     expect(() => assertPhase74BeamSafetyLiveRunClosure(valid)).not.toThrow();
+    const planned = structuredClone(valid);
+    Object.assign(planned.identity, {
+      protectionPlan: {
+        path: "/tmp/phase74-protection-plan.json",
+        sha256: "c".repeat(64),
+      },
+    });
+    Object.assign(planned.protectionArtifact, {
+      planPath: "/tmp/phase74-protection-plan.json",
+      planSha256: "c".repeat(64),
+      plannedRunSha256: "d".repeat(64),
+      schemaVersion: 2,
+    });
+    expect(() => assertPhase74BeamSafetyLiveRunClosure(planned)).not.toThrow();
+    const driftedPlan = structuredClone(planned);
+    Object.assign(driftedPlan.protectionArtifact, {
+      planSha256: "e".repeat(64),
+    });
+    expect(() => assertPhase74BeamSafetyLiveRunClosure(driftedPlan)).toThrow(
+      "protection plan",
+    );
 
     const mutations: Array<[string, (value: ReturnType<typeof liveRunClosure>) => void]> = [
       ["runId", (value) => {
@@ -555,6 +579,18 @@ describe("Phase 74 BEAM safety live wiring", () => {
       }],
       ["model usage", (value) => {
         value.summary.modelUsage.eventCount = 6;
+      }],
+      ["model usage", (value) => {
+        value.summary.modelUsage.completeRequestCount = 4;
+        value.summary.modelUsage.missingRequestCount = 1;
+        value.usage.completeRequestCount = 4;
+        value.usage.missingRequestCount = 1;
+      }],
+      ["model usage", (value) => {
+        value.summary.modelUsage.completeRequestCount = 4;
+        value.summary.modelUsage.partialRequestCount = 1;
+        value.usage.completeRequestCount = 4;
+        value.usage.partialRequestCount = 1;
       }],
       ["raw artifact", (value) => {
         value.summary.rawArtifact.path = "/tmp/run/other-raw.json";
@@ -703,6 +739,75 @@ describe("Phase 74 BEAM safety live wiring", () => {
       providers: 0,
       resolveModels: 0,
     });
+  });
+
+  it("loads the protection plan before dataset, provider, runtime, or output work", async () => {
+    const root = await createRoot();
+    const datasetPath = join(root, "100K.json");
+    const outputDir = join(root, "out");
+    const protectionPlanPath = join(root, "protection-plan.json");
+    await Promise.all([
+      writeFile(datasetPath, fullDataset()),
+      writeFile(protectionPlanPath, "{not-json}\n"),
+    ]);
+    const options = parsePhase74BeamSafetyProtectionCliOptions([
+      "bun",
+      "script",
+      "--dataset-path",
+      datasetPath,
+      "--embedding-spend-limit-usd",
+      "1",
+      "--manifest",
+      join(root, "manifest.json"),
+      "--max-language-calls",
+      "1000",
+      "--output-dir",
+      outputDir,
+      "--protection-plan",
+      protectionPlanPath,
+      "--replicate",
+      "1",
+      "--run-id",
+      "beam-plan-first",
+    ]);
+    const calls = {
+      capture: 0,
+      providers: 0,
+      readDataset: 0,
+      resolveModels: 0,
+      runProtection: 0,
+    };
+
+    await expect(runPhase74BeamSafetyProtectionCli(options, {
+      captureEvaluatorSource: async () => {
+        calls.capture += 1;
+        throw new Error("source capture must not run");
+      },
+      createLiveDependencies: () => {
+        calls.providers += 1;
+        throw new Error("providers must not run");
+      },
+      readDataset: async () => {
+        calls.readDataset += 1;
+        throw new Error("dataset must not be read");
+      },
+      resolveModels: () => {
+        calls.resolveModels += 1;
+        throw new Error("models must not resolve");
+      },
+      runProtection: async () => {
+        calls.runProtection += 1;
+        throw new Error("protection runtime must not run");
+      },
+    })).rejects.toThrow("not valid JSON");
+    expect(calls).toEqual({
+      capture: 0,
+      providers: 0,
+      readDataset: 0,
+      resolveModels: 0,
+      runProtection: 0,
+    });
+    expect(await Bun.file(outputDir).exists()).toBe(false);
   });
 
   it("verify-only rejects forged provenance offline without resolving providers", async () => {

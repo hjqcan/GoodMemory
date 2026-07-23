@@ -20,6 +20,9 @@ import type {
 import type {
   Phase74ProtectionReplicate,
 } from "../src/eval/phase74ProtectionContracts";
+import {
+  loadPhase74ProtectionPlan,
+} from "../src/eval/phase74ProtectionPlan";
 import type {
   Phase74ProtectionSuiteRunResult,
 } from "../src/eval/phase74ProtectionRun";
@@ -34,6 +37,7 @@ export interface Phase74MemoryAgentBenchProtectionCliOptions {
   benchmarkRoot: string;
   datasetId: string;
   outputDir: string;
+  protectionPlanPath?: string;
   replicate: Phase74ProtectionReplicate;
   runId: string;
 }
@@ -77,10 +81,17 @@ export function parsePhase74MemoryAgentBenchProtectionCliOptions(
       "Phase 74 MemoryAgentBench protection requires --run-id.",
     );
   }
+  const protectionPlanPath = resolveCliFlagValueStrict(
+    args,
+    "--protection-plan",
+  );
   return {
     benchmarkRoot: resolve(requiredFlag(args, "--benchmark-root")),
     datasetId: requiredFlag(args, "--dataset-id"),
     outputDir: resolve(requiredFlag(args, "--output-dir")),
+    ...(protectionPlanPath === undefined
+      ? {}
+      : { protectionPlanPath: resolve(protectionPlanPath) }),
     replicate: replicateValue(requiredFlag(args, "--replicate")),
     runId,
   };
@@ -94,6 +105,9 @@ export async function runPhase74MemoryAgentBenchProtectionCli(
   options: Phase74MemoryAgentBenchProtectionCliOptions,
   dependencies: Phase74MemoryAgentBenchProtectionCliDependencies = {},
 ): Promise<Phase74ProtectionSuiteRunResult> {
+  const protectionPlan = options.protectionPlanPath === undefined
+    ? undefined
+    : await loadPhase74ProtectionPlan(options.protectionPlanPath);
   const evaluatorSource = await (
     dependencies.captureEvaluatorSource ?? capturePhase74EvaluatorSource
   )({ repoRoot: resolveRepoRootFromScriptUrl(import.meta.url) });
@@ -116,6 +130,7 @@ export async function runPhase74MemoryAgentBenchProtectionCli(
     artifactPath: join(runDirectory, "protection-run.json"),
     cases,
     dataset,
+    protectionPlan,
     rawArtifactPath: join(runDirectory, "raw.json"),
     replicate: options.replicate,
     runId: options.runId,

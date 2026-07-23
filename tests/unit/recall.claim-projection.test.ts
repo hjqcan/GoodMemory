@@ -120,8 +120,11 @@ function createConcurrentFallbackPromotionStore(
         : undefined,
       async writeBatchIfUnchanged(input) {
         if (
-          input.delete?.some(({ collection, id }) =>
-            collection === CLAIM_PROJECTIONS_COLLECTION && id === fallbackId
+          input.set.some(({ collection, document }) =>
+            collection === CLAIM_PROJECTION_STATUS_COLLECTION &&
+            (document as ClaimProjectionStatus).retiredRevisionIds?.includes(
+              fallbackId,
+            )
           )
         ) {
           promotionAttempts += 1;
@@ -628,13 +631,11 @@ describe("claim projection runtime", () => {
       "fact-1",
       "fact-2",
     ]);
-    expect(claimQueries).toEqual([
-      {
-        predicateKey: "project.status",
-        scopeKey: recallScopeKey(scope),
-        subjectEntityId: grouped[0]!.subjectEntityId,
-      },
-    ]);
+    expect(claimQueries).toEqual(Array.from({ length: 2 }, () => ({
+      predicateKey: "project.status",
+      scopeKey: recallScopeKey(scope),
+      subjectEntityId: grouped[0]!.subjectEntityId,
+    })));
   });
 
   it("searches one indexed claim text field and resolves status by deterministic id", async () => {
@@ -681,7 +682,7 @@ describe("claim projection runtime", () => {
     expect(matches).toEqual([
       expect.objectContaining({ objectText: "completed" }),
     ]);
-    expect(searchedFields).toEqual(["searchText"]);
+    expect(searchedFields).toEqual(["searchText", "searchText"]);
     expect(projectionQueries).toBe(0);
   });
 
@@ -733,6 +734,16 @@ describe("claim projection runtime", () => {
         text: expect.stringContaining("Atlas"),
       }),
     ]);
+    expect(
+      await store.get(CLAIM_PROJECTIONS_COLLECTION, legacyClaim.id),
+    ).toEqual(legacyClaim);
+    expect(await store.get<ClaimProjectionStatus>(
+      CLAIM_PROJECTION_STATUS_COLLECTION,
+      legacyStatus.id,
+    )).toMatchObject({
+      schemaVersion: 2,
+      retiredRevisionIds: [legacyClaim.id],
+    });
   });
 
   it("retries a concurrent claim append instead of silently dropping the newer value", async () => {
@@ -763,7 +774,7 @@ describe("claim projection runtime", () => {
     ).sort()).toEqual(["completed", "planned"]);
   });
 
-  it("backfills old facts with evidence and lets a structured claim replace the current fallback", async () => {
+  it("backfills old facts with evidence and retires the fallback after structured promotion", async () => {
     const store = createInMemoryDocumentStore();
     const fact = buildFact();
     await store.set("facts", fact.id, fact);
@@ -801,10 +812,16 @@ describe("claim projection runtime", () => {
     expect(await store.get(
       CLAIM_PROJECTIONS_COLLECTION,
       fallbackClaims[0]!.id,
-    )).toBeNull();
+    )).toEqual(fallbackClaims[0]);
+    expect(await store.get<ClaimProjectionStatus>(
+      CLAIM_PROJECTION_STATUS_COLLECTION,
+      buildClaimProjectionStatusId(scope, fact.id),
+    )).toMatchObject({
+      retiredRevisionIds: [fallbackClaims[0]!.id],
+    });
   });
 
-  it("retries same-version fallback promotion when the deleted claim changes", async () => {
+  it("retries same-version fallback promotion when the retired claim changes", async () => {
     const store = createInMemoryDocumentStore();
     const fact = buildFact();
     await store.set("facts", fact.id, fact);
@@ -824,7 +841,7 @@ describe("claim projection runtime", () => {
     expect(concurrent.promotionAttempts()).toBe(2);
     expect(
       await store.get(CLAIM_PROJECTIONS_COLLECTION, fallback!.id),
-    ).toBeNull();
+    ).not.toBeNull();
     expect(await runtime.queryClaimHistory(scope)).toHaveLength(1);
   });
 
@@ -834,6 +851,7 @@ describe("claim projection runtime", () => {
     const fact = buildFact();
     await runtime.documentStore.set("facts", fact.id, fact);
     await runtime.appendClaim(claimInput("active", "2026-07-16T11:00:00.000Z"));
+    const [openClaim] = await runtime.queryClaims(scope);
 
     await runtime.documentStore.set("facts", fact.id, {
       ...fact,
@@ -845,7 +863,16 @@ describe("claim projection runtime", () => {
     expect(await runtime.queryClaims(scope)).toEqual([
       expect.objectContaining({ objectText: "active", validUntil: NOW }),
     ]);
-    expect(await runtime.queryClaimHistory(scope)).toHaveLength(3);
+    expect(await runtime.queryClaimHistory(scope)).toHaveLength(2);
+    expect(
+      await store.get(CLAIM_PROJECTIONS_COLLECTION, openClaim!.id),
+    ).toEqual(openClaim);
+    expect(await store.get<ClaimProjectionStatus>(
+      CLAIM_PROJECTION_STATUS_COLLECTION,
+      buildClaimProjectionStatusId(scope, fact.id),
+    )).toMatchObject({
+      retiredRevisionIds: expect.arrayContaining([openClaim!.id]),
+    });
 
     await runtime.documentStore.delete("facts", fact.id);
     expect(await store.query<ClaimProjection>(CLAIM_PROJECTIONS_COLLECTION, {})).toEqual([]);
@@ -1096,7 +1123,7 @@ describe("claim projection runtime", () => {
     expect(await rawStore.query(PROJECTION_REPAIRS_COLLECTION, {})).toEqual([]);
   });
 
-  it("removes the fallback when a same-version structured promotion repairs", async () => {
+  it("retires the fallback when a same-version structured promotion repairs", async () => {
     const rawStore = createInMemoryDocumentStore();
     const fact = buildFact();
     await rawStore.set("facts", fact.id, fact);
@@ -1113,7 +1140,7 @@ describe("claim projection runtime", () => {
 
     expect(
       await rawStore.get(CLAIM_PROJECTIONS_COLLECTION, fallback!.id),
-    ).toBeNull();
+    ).not.toBeNull();
     expect(await runtime.queryClaimHistory(scope)).toEqual([
       expect.objectContaining({
         objectText: "active",

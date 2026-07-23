@@ -28,6 +28,7 @@ import type {
   Phase74HaluMemLiveDependencyInput,
 } from "./phase-74-halumem-live-providers";
 import {
+  preparePhase74HaluMemProtectionPlan,
   runPhase74HaluMemProtectionCli,
 } from "./run-phase-74-halumem-protection";
 import type {
@@ -137,6 +138,7 @@ interface Phase74HaluMemExecutionOptions {
   maxLanguageCalls: number;
   mode: "live" | "preflight";
   outputDir: string;
+  protectionPlanPath?: string;
   replicate: Phase74ProtectionReplicate;
   runId: string;
   selectionManifestPath?: string;
@@ -295,6 +297,10 @@ export function parsePhase74HaluMemLiveRunnerOptions(
     args,
     "--selection-manifest",
   );
+  const protectionPlanPath = resolveCliFlagValueStrict(
+    args,
+    "--protection-plan",
+  );
   return {
     caseConcurrency: positiveInteger(
       resolveCliFlagValueStrict(args, "--case-concurrency") ??
@@ -319,6 +325,9 @@ export function parsePhase74HaluMemLiveRunnerOptions(
     ),
     mode: args.includes("--preflight-only") ? "preflight" : "live",
     outputDir: resolve(requiredFlag(args, "--output-dir")),
+    ...(protectionPlanPath === undefined
+      ? {}
+      : { protectionPlanPath: resolve(protectionPlanPath) }),
     replicate: replicate(requiredFlag(args, "--replicate")),
     runId,
     ...(selectionManifestPath === undefined
@@ -1590,6 +1599,28 @@ export async function runPhase74HaluMemLiveProtection(
     options,
     selection: selection.manifest,
   });
+  if (options.protectionPlanPath !== undefined) {
+    await preparePhase74HaluMemProtectionPlan({
+      caseConcurrency,
+      dataset: {
+        id: options.datasetId,
+        sha256: datasetSha256,
+      },
+      e4Configuration: configurations.e4,
+      embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
+      maxLanguageCalls: options.maxLanguageCalls,
+      planPath: options.protectionPlanPath,
+      privacyConfiguration: configurations.privacy,
+      replicate: options.replicate,
+      runId: options.runId,
+      source: {
+        id: `git:${evaluatorSource.commit}`,
+        sha256: evaluatorSource.sha256,
+      },
+      updateConfiguration: configurations.update,
+      users: selection.users,
+    });
+  }
   const runDirectory = join(resolve(options.outputDir), options.runId);
   await mkdir(dirname(runDirectory), { recursive: true });
   await mkdir(runDirectory);
@@ -1653,8 +1684,13 @@ export async function runPhase74HaluMemLiveProtection(
       datasetId: options.datasetId,
       datasetPath: options.datasetPath,
       e4Configuration: configurations.e4,
+      embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
+      maxLanguageCalls: options.maxLanguageCalls,
       outputDir: options.outputDir,
       privacyConfiguration: configurations.privacy,
+      ...(options.protectionPlanPath === undefined
+        ? {}
+        : { protectionPlanPath: options.protectionPlanPath }),
       replicate: options.replicate,
       runId: options.runId,
       updateConfiguration: configurations.update,

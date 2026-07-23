@@ -19,6 +19,7 @@ import {
   SCOPE_CATALOG_COLLECTION,
 } from "./contracts";
 import {
+  buildClaimProjectionStatusId,
   createClaimProjectionIndex,
 } from "./claims";
 import type { ClaimProjectionIndex } from "./claims";
@@ -41,6 +42,7 @@ import { buildRecallIndexDocuments, resolveProjectionScope } from "./projector";
 import {
   matchesScopeFilter,
   normalizeRecallScope,
+  recallScopeKey,
   scopeFilter,
 } from "./shared";
 
@@ -409,6 +411,7 @@ export function createRecallProjectionOperations(input: {
       const statuses = queriedStatuses.filter((status) =>
         matchesScopeFilter(status, scope)
       );
+      const canonicalScopeKey = recallScopeKey(scope);
       const issues: string[] = [];
       if (!sameIds(documents, expectedDocuments)) {
         issues.push("document_set_mismatch");
@@ -439,15 +442,43 @@ export function createRecallProjectionOperations(input: {
         if (!factIds.has(status.sourceMemoryId)) {
           issues.push(`orphan_claim_status:${status.id}`);
         }
+        if (status.scopeKey !== canonicalScopeKey) {
+          issues.push(`claim_status_scope_key_mismatch:${status.id}`);
+        }
+        if (
+          status.id !==
+            buildClaimProjectionStatusId(scope, status.sourceMemoryId)
+        ) {
+          issues.push(`claim_status_id_mismatch:${status.id}`);
+        }
         for (const claimId of status.claimIds) {
-          if (!claimsById.has(claimId)) {
+          const claim = claimsById.get(claimId);
+          if (!claim) {
             issues.push(`missing_claim:${claimId}`);
+          } else if (claim.sourceMemoryId !== status.sourceMemoryId) {
+            issues.push(`claim_source_mismatch:${claimId}`);
+          }
+        }
+        for (const retiredRevisionId of status.retiredRevisionIds ?? []) {
+          if (status.claimIds.includes(retiredRevisionId)) {
+            issues.push(`active_claim_is_retired:${retiredRevisionId}`);
+          }
+          const claim = claimsById.get(retiredRevisionId);
+          if (!claim) {
+            issues.push(`missing_retired_claim:${retiredRevisionId}`);
+          } else if (claim.sourceMemoryId !== status.sourceMemoryId) {
+            issues.push(
+              `retired_claim_source_mismatch:${retiredRevisionId}`,
+            );
           }
         }
       }
       for (const claim of claims) {
         if (!factIds.has(claim.sourceMemoryId)) {
           issues.push(`orphan_claim:${claim.id}`);
+        }
+        if (claim.scopeKey !== canonicalScopeKey) {
+          issues.push(`claim_scope_key_mismatch:${claim.id}`);
         }
         for (const evidenceId of claim.evidenceIds) {
           if (!evidenceIds.has(evidenceId)) {
