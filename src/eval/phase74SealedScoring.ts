@@ -1,3 +1,28 @@
+import { createHash } from "node:crypto";
+
+import { selectEvidenceLedgerFormat } from "./evidenceLedgerFormats";
+import type { EvidenceLedgerFormat } from "./evidenceLedgerFormats";
+import {
+  measureOracleMatrixCoverage,
+  runOracleMatrixCase,
+} from "./oracleMatrix";
+import type {
+  OracleMatrixCaseResult,
+  OracleMatrixJudge,
+  OracleMatrixProtocolReader,
+  OracleMatrixReader,
+  RenderedTokenCounter,
+} from "./oracleMatrix";
+import { PHASE74_EXPERIMENT_ARMS } from "./phase74ExperimentDesign";
+import {
+  buildPhase74StageConfigurations,
+} from "./phase74Generalization";
+import type {
+  Phase74E4CaseResult,
+  Phase74E4FormatResult,
+  Phase74GeneralizationExecutionResult,
+  Phase74GeneralizationReport,
+} from "./phase74Generalization";
 import {
   buildPhase74SealedScoreReceipt,
   listPhase74SealedExpectedRows,
@@ -24,6 +49,7 @@ import {
 import type { EvalRunIdentity } from "./runIdentity";
 import type {
   Phase74UnscoredExecutionArtifact,
+  Phase74UnscoredRetrievalRow,
   Phase74UnscoredRow,
 } from "./phase74UnscoredExecution";
 
@@ -51,6 +77,19 @@ export type Phase74SealedScoredRow = Phase74UnscoredRow & {
   observedScore: number;
   score: number;
 };
+
+export type Phase74SealedOracleRow = OracleMatrixCaseResult & {
+  caseId: string;
+  caseKey: string;
+};
+
+export interface Phase74SealedOracleArtifact {
+  e3ArtifactSha256: string;
+  executionSha256: string;
+  rows: Phase74SealedOracleRow[];
+  runId: string;
+  schemaVersion: 1;
+}
 
 function sameOrderedCaseKeys(
   left: readonly { caseKey: string }[],
@@ -114,6 +153,112 @@ function assertArtifactProjection(input: {
       throw new Error("Phase 74 unscored artifact projection drifted.");
     }
   }
+}
+
+export async function runPhase74SealedOracleMatrix(input: {
+  countRenderedTokens: RenderedTokenCounter;
+  e3Artifact: Phase74UnscoredExecutionArtifact;
+  escrow: Phase74SealedEscrowBundle;
+  execution: Phase74SealedExecutionBundle;
+  genericReader: OracleMatrixReader;
+  judge: OracleMatrixJudge;
+  protocolReader: OracleMatrixProtocolReader;
+}): Promise<{
+  artifact: Phase74SealedOracleArtifact;
+  sha256: string;
+}> {
+  const execution = parsePhase74SealedExecutionBundle(input.execution);
+  const escrow = parsePhase74SealedEscrowBundle(input.escrow);
+  const e3Artifact = parsePhase74UnscoredArtifact(input.e3Artifact);
+  if (
+    execution.stage !== "E4" ||
+    e3Artifact.stage !== "E3" ||
+    execution.runId !== e3Artifact.runId ||
+    escrow.runId !== execution.runId ||
+    escrow.executionSha256 !== sha256Phase74SealedExecution(execution) ||
+    !sameOrderedCaseKeys(execution.cases, escrow.cases)
+  ) {
+    throw new Error("Phase 74 sealed oracle boundary drifted.");
+  }
+
+  const deterministicSnapshots = new Map(
+    e3Artifact.rows
+      .filter((row): row is Phase74UnscoredRetrievalRow =>
+        row.kind === "retrieval" &&
+        row.unit === "recall-plan-deterministic"
+      )
+      .map((row) => [row.caseKey, row.snapshot] as const),
+  );
+  if (
+    deterministicSnapshots.size !== execution.cases.length ||
+    execution.cases.some(({ caseKey }) => !deterministicSnapshots.has(caseKey))
+  ) {
+    throw new Error(
+      "Phase 74 sealed oracle requires one deterministic E3 snapshot per case.",
+    );
+  }
+
+  const escrowCases = new Map(escrow.cases.map((testCase) => [
+    testCase.caseKey,
+    testCase,
+  ]));
+  const rowsByCase = new Map<string, Phase74SealedOracleRow[]>();
+  let nextCase = 0;
+  await Promise.all(Array.from(
+    {
+      length: Math.min(execution.caseConcurrency, execution.cases.length),
+    },
+    async () => {
+      while (nextCase < execution.cases.length) {
+        const caseIndex = nextCase;
+        nextCase += 1;
+        const executionCase = execution.cases[caseIndex]!;
+        const escrowCase = escrowCases.get(executionCase.caseKey)!;
+        const snapshot = deterministicSnapshots.get(executionCase.caseKey)!;
+        const rows = await runOracleMatrixCase({
+            countRenderedTokens: input.countRenderedTokens,
+            genericReader: input.genericReader,
+            judge: input.judge,
+            protocolReader: input.protocolReader,
+            testCase: {
+              caseId: escrowCase.originalCaseId,
+              expectedAnswer: escrowCase.expectedAnswer,
+              goldEvidenceIds: escrowCase.goldEvidenceIds,
+              ...(escrowCase.protocolMetadata === undefined
+                ? {}
+                : { protocolMetadata: escrowCase.protocolMetadata }),
+              question: executionCase.question,
+              rawEvidence: executionCase.rawEvidence,
+              retrievedMemories: snapshot.retrievedMemories,
+              storedMemories: snapshot.storedMemories,
+              unresolvedGoldEvidenceIds: escrowCase.unresolvedGoldEvidenceIds,
+            },
+          });
+        rowsByCase.set(
+          executionCase.caseKey,
+          rows.map((row) => ({
+            ...row,
+            caseId: escrowCase.originalCaseId,
+            caseKey: executionCase.caseKey,
+          })),
+        );
+      }
+    },
+  ));
+
+  const artifact: Phase74SealedOracleArtifact = {
+    e3ArtifactSha256: sha256Phase74UnscoredArtifact(e3Artifact),
+    executionSha256: sha256Phase74SealedExecution(execution),
+    rows: execution.cases.flatMap(({ caseKey }) => rowsByCase.get(caseKey)!),
+    runId: execution.runId,
+    schemaVersion: 1,
+  };
+  return {
+    artifact,
+    sha256: createHash("sha256")
+      .update(JSON.stringify(artifact))
+      .digest("hex"),
+  };
 }
 
 export async function scorePhase74UnscoredExecution(input: {
@@ -403,19 +548,3 @@ export function materializePhase74SealedReport(input: {
     },
   };
 }
-import { selectEvidenceLedgerFormat } from "./evidenceLedgerFormats";
-import type { EvidenceLedgerFormat } from "./evidenceLedgerFormats";
-import {
-  buildPhase74StageConfigurations,
-} from "./phase74Generalization";
-import type {
-  Phase74E4CaseResult,
-  Phase74E4FormatResult,
-  Phase74GeneralizationExecutionResult,
-  Phase74GeneralizationReport,
-} from "./phase74Generalization";
-import {
-  measureOracleMatrixCoverage,
-} from "./oracleMatrix";
-import type { OracleMatrixCaseResult } from "./oracleMatrix";
-import { PHASE74_EXPERIMENT_ARMS } from "./phase74ExperimentDesign";
