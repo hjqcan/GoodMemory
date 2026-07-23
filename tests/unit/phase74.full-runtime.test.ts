@@ -35,9 +35,14 @@ const base = {
   datasetSha256: "dataset-sha",
   embedding: {
     adapterVersion: "openai-compatible-embedding-v1",
-    gateway: "https://ai.gurkiai.com/v1",
-    model: "embedding-v1",
+    batchMaxConcurrency: 8,
+    batchMaxInputs: 256,
+    batchMaxUtf8Bytes: 200_000,
+    gateway: "https://openrouter.ai/api/v1",
+    model: "text-embedding-3-small",
     provider: "openai",
+    requestTimeoutMs: 45_000,
+    retryLimit: 8,
   },
   evaluatorSourceSha256:
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -301,6 +306,10 @@ describe("Phase 74 full ingestion identity", () => {
     expect(descriptor.key).toBe(buildPhase74IngestionKey({
       ...base,
       embedding: buildPhase74EmbeddingIdentity(embeddingModel),
+      extraction: {
+        ...base.extraction,
+        extractorVersion: "provider-conversational-memory-extractor-v2",
+      },
     }));
   });
 
@@ -406,7 +415,11 @@ describe("Phase 74 full ingestion identity", () => {
         models: {
           answer: languageModel,
           assistedExtraction: languageModel,
-          embedding: { ...languageModel, model: "embedding-test" },
+          embedding: {
+            ...languageModel,
+            baseURL: "https://openrouter.ai/api/v1",
+            model: "text-embedding-3-small",
+          },
           planner: languageModel,
           reranker: languageModel,
         },

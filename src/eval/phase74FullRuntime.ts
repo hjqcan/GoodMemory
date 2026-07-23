@@ -55,7 +55,14 @@ import type {
   Phase74RetrievalExecutionInput,
   Phase74RetrievalSnapshot,
 } from "./phase74Generalization";
-import type { Phase74ExecutorModels } from "./phase74Live";
+import {
+  buildPhase74EmbeddingIdentity,
+  resolvePhase74EmbeddingAdapterOptions,
+} from "./phase74Live";
+import type {
+  Phase74EmbeddingIdentity,
+  Phase74ExecutorModels,
+} from "./phase74Live";
 import {
   PHASE74_EMBEDDING_CALL_CONFIGURATION,
   PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
@@ -99,9 +106,7 @@ interface IngestionModelIdentity {
 
 export interface Phase74IngestionKeyInput {
   datasetSha256: string;
-  embedding: IngestionModelIdentity & {
-    adapterVersion: string;
-  };
+  embedding: Phase74EmbeddingIdentity;
   evaluatorSourceSha256: string;
   extraction: IngestionModelIdentity & {
     contextualDescriptors: boolean;
@@ -373,10 +378,7 @@ export function buildPhase74IngestionDescriptor(input: {
   return {
     key: buildPhase74IngestionKey({
       datasetSha256: input.datasetSha256,
-      embedding: {
-        ...modelIdentity(input.models.embedding),
-        adapterVersion: "openai-compatible-embedding-v1",
-      },
+      embedding: buildPhase74EmbeddingIdentity(input.models.embedding),
       evaluatorSourceSha256: input.evaluatorSourceSha256,
       extraction: {
         ...modelIdentity(input.models.assistedExtraction),
@@ -522,6 +524,7 @@ function createMemory(input: {
       ...(assistedExtractor === undefined ? {} : { assistedExtractor }),
       embeddingAdapter: createProviderEmbeddingAdapter({
         ...PHASE74_EMBEDDING_CALL_CONFIGURATION,
+        ...resolvePhase74EmbeddingAdapterOptions(input.models.embedding),
         model: input.models.embedding,
         modelUsageSink: input.usageSink,
       }),
