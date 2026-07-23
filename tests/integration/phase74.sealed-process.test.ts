@@ -33,6 +33,7 @@ describe("Phase 74 sealed process boundary", () => {
           }],
         }],
         runId: "sealed-test-run",
+        stage: "E2",
       });
 
       expect(JSON.stringify(bundles.execution)).not.toContain(GOLD_SENTINEL);
@@ -72,7 +73,7 @@ describe("Phase 74 sealed process boundary", () => {
       expect(result.executor.stdout).not.toContain(GOLD_SENTINEL);
       expect(result.executor.stderr).not.toContain(GOLD_SENTINEL);
       expect(result.executor.stdout).not.toContain("upstream-case-1");
-      expect(result.executor.output.rows).toHaveLength(1);
+      expect(result.executor.output.rows).toHaveLength(2);
       const executorObservation = JSON.parse(
         result.executor.output.rows[0]!.answer ?? "null",
       ) as { argv: string[]; env: Record<string, string>; pid: number };
@@ -121,6 +122,7 @@ describe("Phase 74 sealed process boundary", () => {
         },
       ],
       runId: "sealed-multi-arm-run",
+      stage: "E2",
     });
     const [firstCase, secondCase] = bundles.execution.cases;
     const executorOutput = buildPhase74SealedExecutorOutput({
@@ -130,25 +132,25 @@ describe("Phase 74 sealed process boundary", () => {
         {
           answer: "Postgres",
           caseKey: firstCase!.caseKey,
-          rowKey: `${firstCase!.caseKey}:fact-only`,
+          rowKey: `${firstCase!.caseKey}:E2:claim-temporal-off`,
           snapshotId: "snapshot-a",
         },
         {
           answer: "Postgres",
           caseKey: firstCase!.caseKey,
-          rowKey: `${firstCase!.caseKey}:candidate`,
+          rowKey: `${firstCase!.caseKey}:E2:claim-temporal-on`,
           snapshotId: "snapshot-b",
         },
         {
           answer: "SQLite",
           caseKey: secondCase!.caseKey,
-          rowKey: `${secondCase!.caseKey}:fact-only`,
+          rowKey: `${secondCase!.caseKey}:E2:claim-temporal-off`,
           snapshotId: "snapshot-c",
         },
         {
           answer: "SQLite",
           caseKey: secondCase!.caseKey,
-          rowKey: `${secondCase!.caseKey}:candidate`,
+          rowKey: `${secondCase!.caseKey}:E2:claim-temporal-on`,
           snapshotId: "snapshot-d",
         },
       ],
@@ -202,6 +204,28 @@ describe("Phase 74 sealed process boundary", () => {
       executorOutput: missingCaseOutput,
       escrow: bundles.escrow,
       receipt: missingCaseReceipt,
+    })).toThrow("receipt chain is invalid");
+
+    const missingArmOutput = buildPhase74SealedExecutorOutput({
+      execution: bundles.execution,
+      executorPid: 100,
+      rows: executorOutput.rows.filter(({ rowKey }) =>
+        rowKey !== `${firstCase!.caseKey}:E2:claim-temporal-on`
+      ),
+    });
+    const missingArmReceipt = buildPhase74SealedScoreReceipt({
+      escrow: bundles.escrow,
+      executorOutput: missingArmOutput,
+      rows: scoreRows.filter(({ rowKey }) =>
+        rowKey !== `${firstCase!.caseKey}:E2:claim-temporal-on`
+      ),
+      scorerPid: 101,
+    });
+    expect(() => verifyPhase74SealedScoreReceipt({
+      execution: bundles.execution,
+      executorOutput: missingArmOutput,
+      escrow: bundles.escrow,
+      receipt: missingArmReceipt,
     })).toThrow("receipt chain is invalid");
   });
 });
