@@ -124,7 +124,11 @@ describe("Phase 74 full retrieval runtime", () => {
         models: {
           answer: languageModel,
           assistedExtraction: languageModel,
-          embedding: { ...languageModel, model: "embedding-test" },
+          embedding: {
+            ...languageModel,
+            baseURL: "https://openrouter.ai/api/v1",
+            model: "text-embedding-3-small",
+          },
           planner: languageModel,
           reranker: languageModel,
         },
