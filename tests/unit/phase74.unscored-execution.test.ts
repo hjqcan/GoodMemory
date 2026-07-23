@@ -158,6 +158,54 @@ describe("Phase 74 unscored execution", () => {
       .toBe(true);
   });
 
+  it("waits for in-flight preparation and stops new work before rejecting", async () => {
+    const bundles = buildPhase74SealedBundles({
+      cases: [
+        testCase,
+        {
+          ...testCase,
+          caseId: "private-upstream-id-2",
+          question: "Which cache is current?",
+          rawEvidence: [{
+            content: "Redis is current.",
+            id: "turn-2",
+            sourceIds: ["session-b:turn-2"],
+          }],
+        },
+      ],
+      executionConfiguration: { caseConcurrency: 2 },
+      runId: "unscored-failed-preparation",
+      stage: "E1",
+    });
+    const failingCaseKey = bundles.execution.cases[0]!.caseKey;
+    let activePreparations = 0;
+    let slowPreparations = 0;
+
+    await expect(runPhase74UnscoredExecution({
+      baseConfiguration: { caseConcurrency: 2 },
+      countRenderedTokens: (content) => Buffer.byteLength(content),
+      executeRetrieval: async () => {
+        throw new Error("retrieval must not start");
+      },
+      execution: bundles.execution,
+      executorPid: 101,
+      genericReader: async () => "unused",
+      prepareRetrieval: async ({ testCase: recallCase }) => {
+        if (recallCase.caseId === failingCaseKey) {
+          throw new Error("injected preparation failure");
+        }
+        slowPreparations += 1;
+        activePreparations += 1;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        activePreparations -= 1;
+      },
+      renderEvidenceLedger: async () => "unused",
+    })).rejects.toThrow("injected preparation failure");
+
+    expect(activePreparations).toBe(0);
+    expect(slowPreparations).toBe(1);
+  });
+
   it("rejects a retrieval snapshot contaminated by scored checkpoint state", async () => {
     const bundles = buildPhase74SealedBundles({
       cases: [testCase],
@@ -239,6 +287,9 @@ describe("Phase 74 unscored execution", () => {
       executorPid: 102,
       genericReader: async ({ context }) => context,
       loadDeterministicSnapshot: async () => source,
+      prepareRetrieval: async () => {
+        throw new Error("E4 must not prepare retrieval");
+      },
       renderEvidenceLedger: async ({ format }) => `ledger:${format}`,
     });
 
@@ -258,6 +309,7 @@ describe("Phase 74 unscored execution", () => {
         runId: "unscored-resume",
         stage: "E2",
       });
+      let preparationCalls = 0;
       let retrievalCalls = 0;
       let readerCalls = 0;
       const first = await runPhase74UnscoredExecution({
@@ -277,8 +329,12 @@ describe("Phase 74 unscored execution", () => {
           readerCalls += 1;
           return "Postgres";
         },
+        prepareRetrieval: async () => {
+          preparationCalls += 1;
+        },
         renderEvidenceLedger: async () => "unused",
       });
+      expect(preparationCalls).toBe(2);
       expect(retrievalCalls).toBe(2);
       expect(readerCalls).toBe(2);
 
@@ -296,6 +352,9 @@ describe("Phase 74 unscored execution", () => {
         executorPid: 202,
         genericReader: async () => {
           throw new Error("reader must not rerun");
+        },
+        prepareRetrieval: async () => {
+          throw new Error("committed ingestion must not be prepared again");
         },
         renderEvidenceLedger: async () => "unused",
       });
