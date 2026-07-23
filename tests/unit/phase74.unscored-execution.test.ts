@@ -206,6 +206,30 @@ describe("Phase 74 unscored execution", () => {
     expect(slowPreparations).toBe(1);
   });
 
+  it("fails closed before retrieval when an ingestion barrier is absent", async () => {
+    const bundles = buildPhase74SealedBundles({
+      cases: [testCase],
+      runId: "unscored-missing-preparation",
+      stage: "E1",
+    });
+    let retrievalCalls = 0;
+
+    await expect(runPhase74UnscoredExecution({
+      baseConfiguration: {},
+      countRenderedTokens: (content) => Buffer.byteLength(content),
+      executeRetrieval: async () => {
+        retrievalCalls += 1;
+        throw new Error("retrieval must not start");
+      },
+      execution: bundles.execution,
+      executorPid: 102,
+      genericReader: async () => "unused",
+      renderEvidenceLedger: async () => "unused",
+    })).rejects.toThrow("requires an ingestion preparation barrier");
+
+    expect(retrievalCalls).toBe(0);
+  });
+
   it("rejects a retrieval snapshot contaminated by scored checkpoint state", async () => {
     const bundles = buildPhase74SealedBundles({
       cases: [testCase],
