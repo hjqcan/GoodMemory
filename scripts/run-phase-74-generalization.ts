@@ -60,7 +60,6 @@ import type {
 import {
   buildPhase74IngestionUsageAllocation,
   buildPhase74IngestionUsagePaths,
-  createPhase74FullRetrievalRuntime,
   verifyPhase74IngestionUsageManifest,
 } from "../src/eval/phase74FullRuntime";
 import {
@@ -73,7 +72,6 @@ import { buildPhase74ReplicateComparison } from "../src/eval/phase74Replicates";
 import { createPhase74ProtocolReader } from "../src/eval/phase74ProtocolReader";
 import {
   buildPhase74ProtocolScoringIdentity,
-  createPhase74ProtocolCompatibleAnswerAssessor,
 } from "../src/eval/phase74ProtocolScoring";
 import type {
   Phase74EmbeddingIdentity,
@@ -81,23 +79,16 @@ import type {
 } from "../src/eval/phase74Live";
 import {
   buildPhase74EmbeddingIdentity,
-  createPhase74LiveJudge,
-  createPhase74LiveReader,
   phase74LivePromptSha256s,
   resolvePhase74EvaluatorSource,
   resolvePhase74LiveModels,
   verifyPhase74EvaluatorSource,
 } from "../src/eval/phase74Live";
 import {
-  appendPhase74ModelUsageEventSync,
-  appendPhase74ModelUsageIntentSync,
   buildPhase74ModelUsageEvidence,
   loadPhase74ModelUsageLedger,
-  reconcilePhase74PendingModelUsageSync,
 } from "../src/eval/modelUsage";
 import type {
-  AttributedModelUsageAttempt,
-  AttributedModelUsageIntent,
   Phase74IngestionUsageLedger,
 } from "../src/eval/modelUsage";
 import type { EvidenceLedgerFormat } from "../src/eval/evidenceLedgerFormats";
@@ -113,6 +104,16 @@ import type { EvalRunJsonObject } from "../src/eval/runIdentity";
 import {
   loadPhase74ProtectionBlueprintDescriptor,
 } from "../src/eval/phase74ProtectionSuiteEvidence";
+import {
+  buildPhase74SealedBundles,
+  runPhase74SealedProcessPair,
+} from "../src/eval/phase74SealedExecution";
+import {
+  materializePhase74SealedReport,
+} from "../src/eval/phase74SealedScoring";
+import {
+  parsePhase74UnscoredArtifact,
+} from "../src/eval/phase74UnscoredExecution";
 
 const DEFAULT_DATASET_PATH =
   "fixtures/external-benchmarks/longmemeval/longmemeval_s_smoke.json";
@@ -298,6 +299,46 @@ export interface Phase74GeneralizationFullResult {
 }
 
 export { buildPhase74FullRunIdentityConfiguration };
+
+export function buildPhase74SealedProcessEnvironments(input: {
+  env: Record<string, string | undefined>;
+  executorConfig: unknown;
+  scorerConfig: unknown;
+}): {
+  executor: Record<string, string | undefined>;
+  scorer: Record<string, string | undefined>;
+} {
+  const pick = (names: readonly string[]) => Object.fromEntries(
+    names.map((name) => [name, input.env[name]]),
+  );
+  const shared = ["HOME", "PATH"] as const;
+  return {
+    executor: {
+      ...pick([
+        ...shared,
+        "GOODMEMORY_EMBEDDING_API_KEY",
+        "GOODMEMORY_EMBEDDING_BASE_URL",
+        "GOODMEMORY_EMBEDDING_MODEL",
+        "GOODMEMORY_EMBEDDING_PROVIDER",
+        "GOODMEMORY_EVAL_API_KEY",
+        "GOODMEMORY_EVAL_BASE_URL",
+        "GOODMEMORY_EVAL_MODEL",
+        "GOODMEMORY_EVAL_PROVIDER",
+      ]),
+      GOODMEMORY_PHASE74_EXECUTOR_CONFIG: JSON.stringify(input.executorConfig),
+    },
+    scorer: {
+      ...pick([
+        ...shared,
+        "GOODMEMORY_JUDGE_API_KEY",
+        "GOODMEMORY_JUDGE_BASE_URL",
+        "GOODMEMORY_JUDGE_MODEL",
+        "GOODMEMORY_JUDGE_PROVIDER",
+      ]),
+      GOODMEMORY_PHASE74_SCORER_CONFIG: JSON.stringify(input.scorerConfig),
+    },
+  };
+}
 
 function phase74RequestUrl(request: RequestInfo | URL): string {
   if (typeof request === "string") {
@@ -1095,121 +1136,145 @@ export async function runPhase74GeneralizationFull(
   });
   const prefix = options.stage.toLowerCase();
   await persistRunIdentity({ identity, runDirectory });
-  const callBudget = createPhase74DurableCallBudget({
-    embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
-    fetch: globalThis.fetch,
-    maxLanguageCalls: options.maxLanguageCalls,
-    path: join(runDirectory, `${prefix}-call-budget.json`),
-  });
+  const callBudgetPath = join(runDirectory, `${prefix}-call-budget.json`);
   const usagePath = join(runDirectory, `${prefix}-model-usage.jsonl`);
   const usageIntentsPath = join(
     runDirectory,
     `${prefix}-model-usage-intents.jsonl`,
   );
-  const directUsage = reconcilePhase74PendingModelUsageSync({
-    eventsPath: usagePath,
-    ledger: await loadPhase74ModelUsageLedger({
-      eventsPath: usagePath,
-      intentsPath: usageIntentsPath,
-    }),
-  });
-  const events = directUsage.events;
-  const intents = directUsage.intents;
-  const ingestionUses: Array<{
-    costTrace: NonNullable<Phase74RetrievalSnapshot["costTrace"]>;
-  }> = [];
-  const onUsageEvent = (event: AttributedModelUsageAttempt) => {
-    appendPhase74ModelUsageEventSync(usagePath, event);
+  const executorUsage = {
+    eventsPath: join(runDirectory, `${prefix}-executor-model-usage.jsonl`),
+    intentsPath: join(
+      runDirectory,
+      `${prefix}-executor-model-usage-intents.jsonl`,
+    ),
   };
-  const onUsageIntent = (intent: AttributedModelUsageIntent) => {
-    appendPhase74ModelUsageIntentSync(usageIntentsPath, intent);
+  const scorerUsage = {
+    eventsPath: join(runDirectory, `${prefix}-scorer-model-usage.jsonl`),
+    intentsPath: join(
+      runDirectory,
+      `${prefix}-scorer-model-usage-intents.jsonl`,
+    ),
   };
-  const retrieval = createPhase74FullRetrievalRuntime({
-    datasetSha256: dataset.manifest.datasetSha256,
-    evaluatorSourceSha256: evaluatorSource.sha256,
-    events,
-    intents,
-    models,
-    onIngestionUse: (costTrace) => ingestionUses.push({ costTrace }),
-    runDirectory,
-    onUsageEvent,
-    onUsageIntent,
-    promptSha256s,
-    rerankerMode,
+  const artifactPath = join(runDirectory, `${prefix}-executor-artifact.json`);
+  const executionConfiguration: EvalRunJsonObject = {};
+  const bundles = buildPhase74SealedBundles({
+    cases: selectedCases,
+    executionConfiguration,
+    runId: options.runId,
+    stage: options.stage,
   });
-  const reader = createPhase74LiveReader({
-    events,
-    intents,
-    model: models.answer,
-    onUsageEvent,
-    onUsageIntent,
-  });
-  const judge = createPhase74LiveJudge({
-    events,
-    intents,
-    model: models.judge,
-    onUsageEvent,
-    onUsageIntent,
-  });
-  const protocolCompatibleAssessment = createPhase74ProtocolCompatibleAnswerAssessor({
-    benchmark: options.benchmark,
-    events,
-    intents,
-    model: models.judge,
-    onUsageEvent,
-    onUsageIntent,
-  });
-  const countRenderedTokens = (content: string) =>
-    Buffer.byteLength(content, "utf8");
-  const protocolReader = createPhase74ProtocolReader({
-    contextTokenBudget: CONTEXT_TOKEN_BUDGET,
-    countRenderedTokens,
-    reader,
-  });
-  const snapshots: Phase74RetrievalSnapshot[] = [];
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = callBudget.fetch;
-  let report: Phase74GeneralizationReport;
-  try {
-    report = await runPhase74Generalization({
-      assessAnswer: protocolCompatibleAssessment,
-      caseConcurrency: options.caseConcurrency ?? 1,
-      cases: selectedCases,
-      checkpoint: createPhase74FileCheckpoint(join(runDirectory, "checkpoints")),
-      contextTokenBudget: CONTEXT_TOKEN_BUDGET,
-      countRenderedTokens,
-      executeRetrieval: retrieval.execute,
-      genericReader: reader,
-      identity,
-      includeOracle: options.stage === "E4",
-      judge,
-      onRetrievalSnapshot: (snapshot) => {
-        snapshots.push(snapshot);
-      },
-      persistIdentity: (nextIdentity) => persistRunIdentity({
-        identity: nextIdentity,
-        runDirectory,
-      }),
-      protocolReader,
-      renderEvidenceLedger: retrieval.render,
-      serializeMemoryGroups: false,
-      stages: [options.stage],
-    });
-  } finally {
-    globalThis.fetch = originalFetch;
+  let e3Artifact: string | undefined;
+  if (options.stage === "E4") {
+    e3Artifact = await readFile(
+      join(runDirectory, "e3-executor-artifact.json"),
+      "utf8",
+    );
   }
+  const callBudgetConfiguration = {
+    embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
+    maxLanguageCalls: options.maxLanguageCalls,
+    path: callBudgetPath,
+  };
+  const processEnvironments = buildPhase74SealedProcessEnvironments({
+    env,
+    executorConfig: {
+      artifactPath,
+      baseConfiguration: executionConfiguration,
+      callBudget: callBudgetConfiguration,
+      checkpointDirectory: join(
+        runDirectory,
+        "unscored-checkpoints",
+        prefix,
+      ),
+      datasetSha256: dataset.manifest.datasetSha256,
+      ...(e3Artifact === undefined
+        ? {}
+        : {
+            e3ArtifactPath: join(runDirectory, "e3-executor-artifact.json"),
+            e3ArtifactSha256: sha256(e3Artifact),
+          }),
+      evaluatorSourceSha256: evaluatorSource.sha256,
+      rerankerMode,
+      runDirectory,
+      usage: executorUsage,
+    },
+    scorerConfig: {
+      benchmark: options.benchmark,
+      callBudget: callBudgetConfiguration,
+      usage: scorerUsage,
+    },
+  });
+  const executorCwd = join(runDirectory, `${prefix}-executor-cwd`);
+  await mkdir(executorCwd, { recursive: true });
+  const sealed = await runPhase74SealedProcessPair({
+    cwd: executorCwd,
+    evidenceDirectory: join(runDirectory, "sealed-evidence", prefix),
+    execution: bundles.execution,
+    escrow: bundles.escrow,
+    executorArtifactPath: artifactPath,
+    executorEnv: processEnvironments.executor,
+    executorScript: resolve(
+      "scripts/run-phase-74-generalization-executor.ts",
+    ),
+    scorerEnv: processEnvironments.scorer,
+    scorerScript: resolve(
+      "scripts/run-phase-74-generalization-scorer.ts",
+    ),
+    transcriptPath: join(runDirectory, `${prefix}-process-manifest.json`),
+  });
+  const artifact = parsePhase74UnscoredArtifact(
+    JSON.parse(sealed.executor.artifact),
+  );
+  const report = materializePhase74SealedReport({
+    artifact,
+    escrow: bundles.escrow,
+    execution: bundles.execution,
+    executorOutput: sealed.executor.output,
+    identity,
+    receipt: sealed.scorer.receipt,
+  });
+  const snapshots: Phase74RetrievalSnapshot[] = artifact.rows.flatMap((row) =>
+    row.kind === "retrieval" ? [row.snapshot] : []
+  );
+  if (options.stage === "E4" && e3Artifact !== undefined) {
+    const parsedE3 = parsePhase74UnscoredArtifact(JSON.parse(e3Artifact));
+    snapshots.push(...parsedE3.rows.flatMap((row) =>
+      row.kind === "retrieval" &&
+        row.unit === "recall-plan-deterministic"
+        ? [row.snapshot]
+        : []
+    ));
+  }
+  const [executorLedger, scorerLedger] = await Promise.all([
+    loadPhase74ModelUsageLedger(executorUsage),
+    loadPhase74ModelUsageLedger(scorerUsage),
+  ]);
+  const directUsage = {
+    events: [...executorLedger.events, ...scorerLedger.events],
+    intents: [...executorLedger.intents, ...scorerLedger.intents],
+    pendingIntents: [
+      ...executorLedger.pendingIntents,
+      ...scorerLedger.pendingIntents,
+    ],
+  };
+  if (directUsage.pendingIntents.length > 0) {
+    throw new Error("Phase 74 sealed process usage has pending requests.");
+  }
+  const callBudget = createPhase74DurableCallBudget({
+    embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
+    fetch: globalThis.fetch,
+    maxLanguageCalls: options.maxLanguageCalls,
+    path: callBudgetPath,
+  });
   const experimentIdentityHash = hashEvalExperimentIdentity(report.identity);
   const ingestionAllocation = options.stage === "E4"
     ? null
-    : buildPhase74IngestionUsageAllocation([...snapshots, ...ingestionUses]);
+    : buildPhase74IngestionUsageAllocation(snapshots);
   const modelUsage = options.stage === "E4"
     ? null
     : buildPhase74ModelUsageEvidence({
-        direct: {
-          events,
-          intents,
-          pendingIntents: [],
-        },
+        direct: directUsage,
         expected: {
           baselineCaseIds: selectedCases.map(
             (testCase) => buildPhase74LabelFreeCaseBoundary(testCase).caseKey,
@@ -1266,8 +1331,8 @@ export async function runPhase74GeneralizationFull(
       join(runDirectory, `${prefix}-retrieval-packets.jsonl`),
       snapshots,
     ),
-    writeFile(usagePath, "", { encoding: "utf8", flag: "a" }),
-    writeFile(usageIntentsPath, "", { encoding: "utf8", flag: "a" }),
+    writeJsonLines(usagePath, directUsage.events),
+    writeJsonLines(usageIntentsPath, directUsage.intents),
     writeJson(
       join(runDirectory, `${prefix}-model-usage-summary.json`),
       modelUsage ?? {
