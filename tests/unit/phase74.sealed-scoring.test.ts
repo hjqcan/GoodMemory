@@ -161,6 +161,14 @@ describe("Phase 74 sealed scoring", () => {
       caseCount: 1,
       executionFailures: 0,
     }));
+    expect(() => materializePhase74SealedReport({
+      artifact: unscored.artifact,
+      escrow: bundles.escrow,
+      execution: bundles.execution,
+      executorOutput: unscored.executorOutput,
+      identity: { ...report.identity, runId: "wrong-run" },
+      receipt: scored.receipt,
+    })).toThrow("run identity");
   });
 
   it("rejects a tampered unscored artifact before assessment", async () => {
@@ -295,6 +303,17 @@ describe("Phase 74 sealed scoring", () => {
       receipt: scored.receipt,
     });
     expect(report.oracle).toHaveLength(6);
+
+    expect(() => materializePhase74SealedReport({
+      artifact: e4.artifact,
+      escrow: e4Bundles.escrow,
+      execution: e4Bundles.execution,
+      executorOutput: e4.executorOutput,
+      expectedE3ArtifactSha256: "f".repeat(64),
+      identity: report.identity,
+      oracleArtifact: JSON.stringify(oracle.artifact),
+      receipt: scored.receipt,
+    })).toThrow("E3");
 
     expect(() => materializePhase74SealedReport({
       artifact: e4.artifact,
