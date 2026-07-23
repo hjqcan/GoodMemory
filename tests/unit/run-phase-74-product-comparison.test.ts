@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 
 import {
+  buildPhase74ProductRunIdentityConfiguration,
+  parsePhase74ProductComparisonCliOptions,
   runPhase74ProductComparison,
   type Phase74ProductPreparedGroup,
 } from "../../scripts/run-phase-74-product-comparison";
@@ -21,6 +23,92 @@ const CASES = [
 ] as const;
 
 describe("Phase 74 cumulative product runner", () => {
+  it("parses a source-bound release-to-final live run with explicit budgets", () => {
+    expect(parsePhase74ProductComparisonCliOptions([
+      "bun",
+      "run-phase-74-product-comparison.ts",
+      "--benchmark",
+      "locomo",
+      "--benchmark-root",
+      "/tmp/locomo",
+      "--output-dir",
+      "/tmp/output",
+      "--run-id",
+      "phase74-product-locomo-r1",
+      "--replicate",
+      "1",
+      "--case-selection-seed",
+      "74076",
+      "--case-selection-size",
+      "8",
+      "--release-source-root",
+      "/tmp/release",
+      "--release-archive",
+      "/tmp/release.tar",
+      "--protection-blueprint",
+      "/tmp/protection.json",
+      "--selected-evidence-ledger-format",
+      "compact_json",
+      "--max-language-calls",
+      "5000",
+      "--embedding-spend-limit-usd",
+      "1",
+    ])).toEqual({
+      benchmark: "locomo",
+      benchmarkRoot: "/tmp/locomo",
+      caseSelectionSeed: 74076,
+      caseSelectionSize: 8,
+      embeddingSpendLimitUsd: 1,
+      maxLanguageCalls: 5000,
+      outputDir: "/tmp/output",
+      protectionBlueprintPath: "/tmp/protection.json",
+      releaseArchive: "/tmp/release.tar",
+      releaseSourceRoot: "/tmp/release",
+      replicate: 1,
+      runId: "phase74-product-locomo-r1",
+      selectedEvidenceLedgerFormat: "compact_json",
+    });
+  });
+
+  it("binds the exact old and final products instead of a stage-local arm", () => {
+    expect(buildPhase74ProductRunIdentityConfiguration({
+      candidateConfiguration: {
+        evidenceLedger: { format: "compact_json" },
+        planner: { mode: "deterministic" },
+        representation: "atomic-contextual-raw-pointer",
+      },
+      candidateSource: {
+        commit: "a".repeat(40),
+        sha256: "b".repeat(64),
+      },
+      releaseSource: {
+        archiveSha256: "c".repeat(64),
+        arm: "release",
+        commit: "d".repeat(40),
+        lockfileSha256: "e".repeat(64),
+        ref: "v0.6.0",
+        tree: "f".repeat(40),
+        workerSha256: "1".repeat(64),
+      },
+      replicate: 1,
+      selectedEvidenceLedgerFormat: "compact_json",
+      seenCasesOnly: true,
+    })).toMatchObject({
+      arms: {
+        baseline: "release-v0.6.0",
+        candidate: "phase74-final",
+      },
+      candidateConfiguration: {
+        evidenceLedger: { format: "compact_json" },
+        planner: { mode: "deterministic" },
+        representation: "atomic-contextual-raw-pointer",
+      },
+      evidenceBoundary: { seenCasesOnly: true },
+      replicate: 1,
+      selectedEvidenceLedgerFormat: "compact_json",
+    });
+  });
+
   it("finishes every arm memory-group ingestion before the first query", async () => {
     const events: string[] = [];
     let preparedCount = 0;
