@@ -10,6 +10,7 @@ import {
   createPhase74DurableCallBudget,
   PHASE74_RUN_LOCK_FILENAME,
   parsePhase74GeneralizationCliOptions,
+  persistPhase74RunIdentity,
   runPhase74GeneralizationSmoke,
   selectPhase74GeneralizationCases,
 } from "../../scripts/run-phase-74-generalization";
@@ -99,6 +100,38 @@ describe("phase 74 generalization smoke runner", () => {
       );
       const releaseRecovered = await acquirePhase74RunLock(root);
       await releaseRecovered();
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("reuses the first frozen run identity across stage timestamps", async () => {
+    const root = await mkdtemp(join(tmpdir(), "phase74-run-identity-"));
+    try {
+      const first = buildEvalRunIdentity({
+        answerModel: { gateway: "g", model: "m", provider: "openai" },
+        benchmark: "longmemeval-full",
+        configuration: {},
+        datasetSha256: "d".repeat(64),
+        generatedAt: "2026-07-22T00:00:00.000Z",
+        generatedBy: "test",
+        judgeModel: { gateway: "g", model: "j", provider: "openai" },
+        promptSha256s: { reader: "e".repeat(64) },
+        runId: "frozen-run",
+      });
+      const later = {
+        ...first,
+        generatedAt: "2026-07-22T01:00:00.000Z",
+      };
+
+      expect(await persistPhase74RunIdentity({
+        identity: first,
+        runDirectory: root,
+      })).toEqual(first);
+      expect(await persistPhase74RunIdentity({
+        identity: later,
+        runDirectory: root,
+      })).toEqual(first);
     } finally {
       await rm(root, { force: true, recursive: true });
     }
