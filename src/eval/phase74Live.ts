@@ -19,6 +19,7 @@ import type {
   FetchLike,
 } from "../provider/ai-sdk-runtime";
 import {
+  COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_PROMPT_CONTRACT,
   COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
   MEMORY_EXTRACTION_SYSTEM_PROMPT,
 } from "../provider/memory-extractor";
@@ -101,8 +102,11 @@ export const PHASE74_EVALUATOR_SOURCE_SNAPSHOT = {
     "scripts/phase-74-memory-agent-bench-protection.ts",
     "scripts/phase-74-halumem-live-providers.ts",
     "scripts/phase-74-halumem-protection.ts",
+    "scripts/phase-74-confirmatory-plan-anchor.ts",
     "scripts/prepare-phase-65-locomo-data.ts",
     "scripts/prepare-phase-74-datasets.ts",
+    "scripts/prepare-phase-74-confirmatory-plan.ts",
+    "scripts/prepare-phase-74-protection-plan.ts",
     "scripts/run-eval.ts",
     "scripts/run-phase-64-memory-agent-bench-smoke.ts",
     "scripts/run-phase-74-beam-safety-protection.ts",
@@ -117,7 +121,7 @@ export const PHASE74_EVALUATOR_SOURCE_SNAPSHOT = {
   ],
   sourceExtensions: [".cts", ".mts", ".ts"],
   sourceTrees: ["src"],
-  version: 6,
+  version: 8,
 } as const;
 
 export interface Phase74EvaluatorSource {
@@ -132,6 +136,15 @@ export interface Phase74EvaluatorSourceVerificationDependencies {
   resolveSourceStatus(repoRoot: string): Promise<string>;
 }
 
+export interface Phase74PlannedEvaluatorSourceVerificationDependencies
+  extends Phase74EvaluatorSourceVerificationDependencies {
+  isAncestor(
+    repoRoot: string,
+    ancestorCommit: string,
+    descendantCommit: string,
+  ): Promise<boolean>;
+}
+
 const execFileAsync = promisify(execFile);
 
 export function phase74LivePromptSha256s(): Record<string, string> {
@@ -139,9 +152,10 @@ export function phase74LivePromptSha256s(): Record<string, string> {
     createHash("sha256").update(value).digest("hex");
   return {
     assistedExtraction: hash(MEMORY_EXTRACTION_SYSTEM_PROMPT),
-    conversationalExtraction: hash(
+    conversationalExtraction: hash([
       COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
-    ),
+      COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_PROMPT_CONTRACT,
+    ].join("\0")),
     genericReader: hash(PHASE74_GENERIC_READER_SYSTEM_PROMPT),
     judge: hash(PHASE74_CORRECTNESS_JUDGE_SYSTEM_PROMPT),
     planner: hash(RECALL_PLAN_ASSISTANT_SYSTEM_PROMPT),
@@ -428,6 +442,55 @@ export async function verifyPhase74EvaluatorSource(input: {
     );
   }
   return actual;
+}
+
+async function isPhase74GitAncestor(
+  repoRoot: string,
+  ancestorCommit: string,
+  descendantCommit: string,
+): Promise<boolean> {
+  try {
+    await execFileAsync(
+      "git",
+      ["merge-base", "--is-ancestor", ancestorCommit, descendantCommit],
+      { cwd: repoRoot, encoding: "utf8" },
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function verifyPhase74PlannedEvaluatorSource(input: {
+  declared: Phase74EvaluatorSource;
+  dependencies?: Phase74PlannedEvaluatorSourceVerificationDependencies;
+  repoRoot: string;
+}): Promise<Phase74EvaluatorSource> {
+  const actual = await capturePhase74EvaluatorSource({
+    dependencies: input.dependencies,
+    repoRoot: input.repoRoot,
+  });
+  if (actual.sha256 !== input.declared.sha256.toLowerCase()) {
+    throw new Error(
+      "Phase 74 evaluator source snapshot does not match the presealed plan.",
+    );
+  }
+  const ancestor = await (
+    input.dependencies?.isAncestor ?? isPhase74GitAncestor
+  )(
+    input.repoRoot,
+    input.declared.commit.toLowerCase(),
+    actual.commit,
+  );
+  if (!ancestor) {
+    throw new Error(
+      "Phase 74 planned evaluator source commit is not an ancestor of the execution history.",
+    );
+  }
+  return {
+    commit: input.declared.commit.toLowerCase(),
+    sha256: input.declared.sha256.toLowerCase(),
+  };
 }
 
 function requiredEnv(

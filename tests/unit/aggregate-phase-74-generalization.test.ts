@@ -55,6 +55,10 @@ import type {
   Phase74ProtectionSuiteVerifier,
 } from "../../src/eval/phase74ProtectionVerifier";
 import { buildPhase74EmbeddingIdentity } from "../../src/eval/phase74Live";
+import {
+  buildPhase74ConfirmatoryPlan,
+  hashPhase74ConfirmatoryPlan,
+} from "../../src/eval/phase74ConfirmatoryPlan";
 import { buildPhase74ProtocolScoringIdentity } from "../../src/eval/phase74ProtocolScoring";
 import { buildPhase74ReplicateComparison } from "../../src/eval/phase74Replicates";
 import {
@@ -560,6 +564,7 @@ interface FixtureOptions {
   costBoundary?: "full-product" | "query-only";
   crossFamilyCallBudgetDrift?: boolean;
   embeddingProfileDrift?: boolean;
+  confirmatoryPlan?: boolean;
   includeE3EvidenceLedger?: boolean;
   includeE4Scores?: boolean;
   negativeE3Replicate?: {
@@ -581,26 +586,25 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
     protection.path,
     "utf8",
   ));
-
-  for (const benchmark of ["longmemeval", "locomo"] as const) {
-    const cases = benchmark === "locomo"
-      ? [
-          { caseId: "locomo-1/q1", clusterId: "conversation-1" },
-          { caseId: "locomo-1/q2", clusterId: "conversation-1" },
-          { caseId: "locomo-2/q1", clusterId: "conversation-2" },
-        ]
-      : [
-          { caseId: "lme-q1", clusterId: "lme-q1" },
-          { caseId: "lme-q2", clusterId: "lme-q2" },
-        ];
-    const caseIds = cases.map(({ caseId }) => caseId);
-    const caseKeys = cases.map(({ caseId }) => `case-${sha256(caseId)}`);
-    const selectedCaseIdsSha256 = sha256(JSON.stringify(caseIds));
-
-    for (const replicate of [1, 2, 3] as const) {
-      const runDirectory = join(root, `${benchmark}-replicate-${replicate}`);
-      runDirectories.push(runDirectory);
-      await mkdir(runDirectory, { recursive: true });
+  const evaluatorSource = {
+    commit: "a".repeat(40),
+    sha256: "b".repeat(64),
+  };
+  const benchmarkFixtures = (["longmemeval", "locomo"] as const).map(
+    (benchmark) => {
+      const cases = benchmark === "locomo"
+        ? [
+            { caseId: "locomo-1/q1", clusterId: "conversation-1" },
+            { caseId: "locomo-1/q2", clusterId: "conversation-1" },
+            { caseId: "locomo-2/q1", clusterId: "conversation-2" },
+          ]
+        : [
+            { caseId: "lme-q1", clusterId: "lme-q1" },
+            { caseId: "lme-q2", clusterId: "lme-q2" },
+          ];
+      const caseIds = cases.map(({ caseId }) => caseId);
+      const caseKeys = cases.map(({ caseId }) => `case-${sha256(caseId)}`);
+      const selectedCaseIdsSha256 = sha256(JSON.stringify(caseIds));
       const datasetManifest = {
         adaptedCasesSha256: sha256(JSON.stringify(cases)),
         benchmark,
@@ -619,6 +623,104 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
         unresolvedGoldEvidence: [],
         unresolvedGoldEvidenceCount: 0,
       };
+      return {
+        benchmark,
+        caseIds,
+        caseKeys,
+        cases,
+        datasetManifest,
+        selectedCaseIdsSha256,
+      };
+    },
+  );
+  const parentDataset = (
+    fixture: (typeof benchmarkFixtures)[number],
+  ) => ({
+    adaptedCasesSha256: fixture.datasetManifest.adaptedCasesSha256,
+    caseCount: fixture.datasetManifest.caseCount,
+    datasetSha256: fixture.datasetManifest.datasetSha256,
+    memoryGroupCount: new Set(
+      fixture.cases.map(({ clusterId }) => clusterId),
+    ).size,
+    normalizedFingerprint: fixture.datasetManifest.normalizedFingerprint,
+    selectedCaseIdsSha256:
+      fixture.datasetManifest.selectedCaseIdsSha256,
+    sourceSha256: fixture.datasetManifest.source.sourceSha256,
+  });
+  const confirmatoryGitAnchor = {
+    commit: "8".repeat(40),
+    executionCommit: "9".repeat(40),
+    path: "reports/quality-gates/phase-74/confirmatory-plan.json",
+    remote: "origin" as const,
+    remoteRef: "refs/heads/main" as const,
+    remoteUrl: "https://github.com/hjqcan/GoodMemory.git" as const,
+  };
+  const confirmatoryPlan = options.confirmatoryPlan
+    ? buildPhase74ConfirmatoryPlan({
+        admissionClass: "confirmatory-only",
+        answerModel: {
+          gateway: "https://ai.gurkiai.com/v1",
+          model: "gpt-5.6-terra",
+          provider: "openai",
+        },
+        callBudget: {
+          embeddingSpendLimitUsd: 0.1,
+          maxLanguageCalls: 80,
+        },
+        caseConcurrency: 1,
+        embedding: {
+          gateway: "https://openrouter.ai/api/v1",
+          model: "text-embedding-3-small",
+          provider: "openai",
+        },
+        evaluatorSource,
+        families: benchmarkFixtures.map((fixture) => ({
+          benchmark: fixture.benchmark,
+          population: {
+            authority: "presealed-full-population" as const,
+            caseCount: fixture.cases.length,
+            selectedCaseIdsSha256: fixture.selectedCaseIdsSha256,
+            selectedCaseKeysSha256: sha256(
+              JSON.stringify([...fixture.caseKeys].sort()),
+            ),
+          },
+          parentDataset: parentDataset(fixture),
+          seenCasesOnly: true as const,
+        })),
+        judgeModel: {
+          gateway: "https://ai.gurkiai.com/v1",
+          model: "gpt-5.5",
+          provider: "openai",
+        },
+        protectionBlueprint: {
+          id: "phase74-protection-suite-manifest-v2",
+          sha256: protectionEvidence.source.manifest.sha256,
+        },
+        renderedContextTokens: 6_000,
+        reranker: {
+          gateway: "https://ai.gurkiai.com/v1",
+          implementation: "provider-listwise-v1",
+          mode: "provider",
+          model: "gpt-5.6-terra",
+          provider: "openai",
+        },
+      })
+    : null;
+
+  for (const fixture of benchmarkFixtures) {
+    const {
+      benchmark,
+      caseIds,
+      caseKeys,
+      cases,
+      datasetManifest,
+      selectedCaseIdsSha256,
+    } = fixture;
+
+    for (const replicate of [1, 2, 3] as const) {
+      const runDirectory = join(root, `${benchmark}-replicate-${replicate}`);
+      runDirectories.push(runDirectory);
+      await mkdir(runDirectory, { recursive: true });
       const canonicalConfiguration = {
         answer: {
           maxTokens: 512,
@@ -659,10 +761,10 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
               evaluatorSource: {
                 commit: options.protectionEvaluatorSourceMismatch
                   ? "c".repeat(40)
-                  : "a".repeat(40),
+                  : evaluatorSource.commit,
                 sha256: options.protectionEvaluatorSourceMismatch
                   ? "d".repeat(64)
-                  : "b".repeat(64),
+                  : evaluatorSource.sha256,
               },
             }),
         ...(options.admission === "missing-provider-object-calls"
@@ -685,7 +787,9 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
           provider: "openai",
         },
         scoring: buildPhase74ProtocolScoringIdentity(benchmark, {
-          gateway: "https://judge.example/v1",
+          gateway: confirmatoryPlan === null
+            ? "https://judge.example/v1"
+            : "https://ai.gurkiai.com/v1",
           model: "gpt-5.5",
           provider: "openai",
         }),
@@ -702,7 +806,17 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
         },
         selectedCaseIdsSha256,
         selectedLimit: 12,
-        seenCasesOnly: true,
+        ...(confirmatoryPlan === null
+          ? { seenCasesOnly: true }
+          : {
+              confirmatoryPlan: {
+                artifactKind: "phase74-full-family-confirmatory-plan",
+                gitAnchor: confirmatoryGitAnchor,
+                sha256: hashPhase74ConfirmatoryPlan(confirmatoryPlan),
+              },
+              parentDataset: parentDataset(fixture),
+              seenCasesOnly: true,
+            }),
       };
       const admission = options.admission ?? "canonical";
       const identity = buildEvalRunIdentity({
@@ -742,7 +856,9 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
         generatedAt: `2026-07-1${replicate}T00:00:00.000Z`,
         generatedBy: "scripts/run-phase-74-generalization.ts",
         judgeModel: {
-          gateway: "https://judge.example/v1",
+          gateway: confirmatoryPlan === null
+            ? "https://judge.example/v1"
+            : "https://ai.gurkiai.com/v1",
           model: "gpt-5.5",
           provider: "openai",
         },
@@ -750,7 +866,9 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
           genericReader: "reader-prompt",
           judge: "judge-prompt",
         },
-        runId: `${benchmark}-replicate-${replicate}`,
+        runId: confirmatoryPlan === null
+          ? `${benchmark}-replicate-${replicate}`
+          : `phase74-confirmatory-${benchmark}-r${replicate}`,
       });
       const identityHash = hashEvalRunIdentity(identity);
       const experimentIdentityHash = hashEvalExperimentIdentity(identity);
@@ -762,6 +880,12 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
       let sealedE3Artifact: Phase74UnscoredExecutionArtifact | undefined;
       await writeJson(join(runDirectory, "run-identity.json"), identity);
       await writeJson(join(runDirectory, "dataset-manifest.json"), datasetManifest);
+      if (confirmatoryPlan !== null) {
+        await writeJson(
+          join(runDirectory, "confirmatory-plan.json"),
+          confirmatoryPlan,
+        );
+      }
 
       for (const stage of STAGES) {
         const prefix = stage.toLowerCase();
@@ -2368,6 +2492,45 @@ describe("Phase 74 frozen artifact aggregation", () => {
     }, { protectionVerifiers: fixture.protection.verifiers })).rejects.toThrow(
       "does not match its manifest and source runs",
     );
+  });
+
+  it("loads all six confirmatory runs but permanently denies promotion", async () => {
+    const fixture = await createArtifactFixture({ confirmatoryPlan: true });
+    const planContent = await readFile(
+      join(fixture.runDirectories[0]!, "confirmatory-plan.json"),
+      "utf8",
+    );
+
+    const report = await aggregatePhase74GeneralizationArtifacts({
+      bootstrapSamples: 100,
+      promotionStage: "E3",
+      protectionArtifactPath: fixture.protection.path,
+      runDirectories: fixture.runDirectories,
+      seed: 74,
+    }, {
+      confirmatoryGitAnchorDependencies: {
+        isAncestor: async () => true,
+        readGitBlob: async () => planContent,
+        resolveGitHead: async () => "9".repeat(40),
+        resolvePlanCommit: async () => "8".repeat(40),
+        resolveRemoteRef: async () => "8".repeat(40),
+      },
+      confirmatoryRepoRoot: "/repo",
+      protectionVerifiers: fixture.protection.verifiers,
+    });
+
+    expect(report.inputs.runs).toHaveLength(6);
+    expect(report.inputs.runs.every(({ runId }) =>
+      runId.startsWith("phase74-confirmatory-")
+    )).toBeTrue();
+    expect(report.promotion.status).toBe("not_evaluable");
+    expect(report.promotion.gaps.join(" ")).toContain(
+      "Presealed full-family confirmatory evidence cannot authorize promotion.",
+    );
+    expect(report.promotion.gaps.join(" ")).toContain(
+      "seen-case evidence",
+    );
+    expect(report.promotion).not.toHaveProperty("result");
   });
 
   it("rejects cross-stage, E4, and model-usage population drift", async () => {

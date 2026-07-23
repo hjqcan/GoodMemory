@@ -52,7 +52,17 @@ describe("conversational atomic-fact extraction prompt", () => {
     expect(prompt).toContain("distinct named entity");
     expect(prompt).toContain("polarity");
     expect(prompt).toContain("modality");
-    expect(new TextEncoder().encode(prompt).byteLength).toBeLessThan(2_300);
+    expect(prompt).toContain("planned|attempted|completed|unknown");
+    expect(prompt).toContain(
+      "k=profile|preference|reference|fact|feedback|episode|noise",
+    );
+    expect(prompt).toContain(
+      "pf=name|role|organization|location|timezone|languagePreference|currentProject",
+    );
+    expect(prompt).toContain("pc/pv=preference");
+    expect(prompt).toContain("rk/rt/rp=reference");
+    expect(prompt).toContain("sp=supersedes");
+    expect(new TextEncoder().encode(prompt).byteLength).toBeLessThan(1_600);
     // The transcript is included with stable message indices.
     expect(prompt).toContain(
       "[1] user: I adopted a dog named Biscuit last weekend.",
@@ -330,6 +340,41 @@ describe("createProviderConversationalMemoryExtractor", () => {
     expect(events).toHaveLength(1);
   });
 
+  it("sends compact conversational extraction without repeating the JSON schema", async () => {
+    let requestBody: Record<string, unknown> | undefined;
+    const extractor = createLLMMemoryExtractor({
+      model: {
+        apiKey: "gateway-key",
+        baseURL: "https://gateway.example/v1",
+        model: "gpt-5.6-terra",
+        provider: "openai",
+      },
+      outputProtocol: "compact-conversational-v1",
+      responseFormat: "json_object",
+      dependencies: {
+        fetch: async (_url, init) => {
+          requestBody = JSON.parse(String(init?.body));
+          return new Response(
+            [
+              'data: {"choices":[{"delta":{"content":"{\\"c\\":[],\\"i\\":0}"},"index":0}]}',
+              "data: [DONE]",
+              "",
+            ].join("\n\n"),
+            {
+              headers: { "content-type": "text/event-stream" },
+              status: 200,
+            },
+          );
+        },
+      },
+    });
+
+    await extractor.extract(CONVERSATION);
+
+    expect(requestBody?.response_format).toEqual({ type: "json_object" });
+    expect(JSON.stringify(requestBody)).not.toContain("json_schema");
+  });
+
   it("normalizes scalar compact claim objects into canonical text", async () => {
     const extractor = createLLMMemoryExtractor({
       model: {
@@ -519,6 +564,46 @@ describe("createProviderConversationalMemoryExtractor", () => {
 
     await expect(extractor.extract(CONVERSATION)).resolves.toMatchObject({
       candidates: [{ content: "User adopted Biscuit.", sourceMessageIndex: 0 }],
+    });
+    expect(attempts).toBe(2);
+  });
+
+  it("retries an unsupported compact claim modality instead of weakening it to unknown", async () => {
+    let attempts = 0;
+    const extractor = createLLMMemoryExtractor({
+      model: { model: "gpt-5.6-terra", provider: "openai" },
+      outputProtocol: "compact-conversational-v1",
+      dependencies: {
+        generateObject: async () => {
+          attempts += 1;
+          return {
+            object: {
+              c: [{
+                c: "User plans to launch Atlas.",
+                m: {
+                  q: {
+                    m: attempts === 1 ? "future" : "planned",
+                    o: "Atlas",
+                    p: "project.launch",
+                  },
+                  u: "User",
+                },
+                s: 0,
+              }],
+              i: 0,
+            },
+          } as never;
+        },
+        resolveModel: () => ({}) as never,
+        retryOptions: {
+          retryLimit: 2,
+          sleep: async () => {},
+        },
+      },
+    });
+
+    await expect(extractor.extract(CONVERSATION)).resolves.toMatchObject({
+      candidates: [{ metadata: { claim: { modality: "planned" } } }],
     });
     expect(attempts).toBe(2);
   });

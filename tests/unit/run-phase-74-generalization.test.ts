@@ -6,21 +6,103 @@ import { join } from "node:path";
 import {
   buildPhase74FullRunIdentityConfiguration,
   buildPhase74SealedProcessEnvironments,
+  buildPhase74StandalonePromotionGate,
   acquirePhase74RunLock,
   createPhase74DurableCallBudget,
   PHASE74_RUN_LOCK_FILENAME,
   parsePhase74GeneralizationCliOptions,
+  persistPhase74ConfirmatoryPlan,
   persistPhase74RunIdentity,
+  runPhase74GeneralizationFull,
   retirePhase74CompletedStageIngestion,
   runPhase74GeneralizationSmoke,
   selectPhase74GeneralizationCases,
 } from "../../scripts/run-phase-74-generalization";
+import {
+  buildPhase74ConfirmatoryPlan,
+} from "../../src/eval/phase74ConfirmatoryPlan";
 import { loadPhase74ModelUsageLedger } from "../../src/eval/modelUsage";
 import {
   buildEvalRunIdentity,
   hashEvalExperimentIdentity,
 } from "../../src/eval/runIdentity";
 import { buildPhase74LabelFreeCaseBoundary } from "../../src/eval/phase74Generalization";
+
+function buildTestConfirmatoryPlan() {
+  const sha = (value: string) => value.repeat(64);
+  const parentDataset = (offset: string) => ({
+    adaptedCasesSha256: sha(offset),
+    caseCount: 4,
+    datasetSha256: sha(String(Number(offset) + 1)),
+    memoryGroupCount: 4,
+    normalizedFingerprint: sha(String(Number(offset) + 2)),
+    selectedCaseIdsSha256: sha(String(Number(offset) + 3)),
+    sourceSha256: sha(String(Number(offset) + 4)),
+  });
+  return buildPhase74ConfirmatoryPlan({
+    admissionClass: "confirmatory-only",
+    answerModel: {
+      gateway: "https://ai.gurkiai.com/v1",
+      model: "gpt-5.6-terra",
+      provider: "openai",
+    },
+    callBudget: {
+      embeddingSpendLimitUsd: 1,
+      maxLanguageCalls: 50_000,
+    },
+    caseConcurrency: 4,
+    embedding: {
+      gateway: "https://openrouter.ai/api/v1",
+      model: "baai/bge-m3",
+      provider: "openai",
+    },
+    evaluatorSource: {
+      commit: "7".repeat(40),
+      sha256: sha("1"),
+    },
+    families: [
+      {
+        benchmark: "locomo",
+        population: {
+          authority: "presealed-full-population",
+          caseCount: 4,
+          selectedCaseIdsSha256: sha("4"),
+          selectedCaseKeysSha256: sha("7"),
+        },
+        parentDataset: parentDataset("1"),
+        seenCasesOnly: true,
+      },
+      {
+        benchmark: "longmemeval",
+        population: {
+          authority: "presealed-full-population",
+          caseCount: 4,
+          selectedCaseIdsSha256: sha("5"),
+          selectedCaseKeysSha256: sha("8"),
+        },
+        parentDataset: parentDataset("2"),
+        seenCasesOnly: true,
+      },
+    ],
+    judgeModel: {
+      gateway: "https://ai.gurkiai.com/v1",
+      model: "gpt-5.5",
+      provider: "openai",
+    },
+    protectionBlueprint: {
+      id: "phase74-protection-suite-manifest-v2",
+      sha256: sha("9"),
+    },
+    renderedContextTokens: 6_000,
+    reranker: {
+      gateway: "https://ai.gurkiai.com/v1",
+      implementation: "provider-listwise-v1",
+      mode: "provider",
+      model: "gpt-5.6-terra",
+      provider: "openai",
+    },
+  });
+}
 
 describe("phase 74 generalization smoke runner", () => {
   it("retires completed stage ingestion only after receiving the sealed artifact digest", async () => {
@@ -174,6 +256,81 @@ describe("phase 74 generalization smoke runner", () => {
         identity: later,
         runDirectory: root,
       })).toEqual(first);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("creates or exact-matches the frozen confirmatory plan artifact", async () => {
+    const root = await mkdtemp(join(tmpdir(), "phase74-confirmatory-plan-"));
+    const plan = buildTestConfirmatoryPlan();
+    try {
+      await persistPhase74ConfirmatoryPlan({
+        plan,
+        runDirectory: root,
+      });
+      await persistPhase74ConfirmatoryPlan({
+        plan: JSON.parse(JSON.stringify(plan)),
+        runDirectory: root,
+      });
+      await writeFile(
+        join(root, "confirmatory-plan.json"),
+        JSON.stringify(plan),
+        "utf8",
+      );
+      await expect(persistPhase74ConfirmatoryPlan({
+        plan,
+        runDirectory: root,
+      })).rejects.toThrow(/confirmatory plan artifact drifted/i);
+      expect(JSON.parse(await readFile(
+        join(root, "confirmatory-plan.json"),
+        "utf8",
+      ))).toEqual(plan);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects a programmatic confirmatory run outside the provider-reranked path", async () => {
+    const root = await mkdtemp(join(tmpdir(), "phase74-confirmatory-provider-"));
+    const planPath = join(root, "confirmatory-plan.json");
+    try {
+      await writeFile(
+        planPath,
+        `${JSON.stringify(buildTestConfirmatoryPlan(), null, 2)}\n`,
+        "utf8",
+      );
+      await expect(runPhase74GeneralizationFull({
+        benchmark: "locomo",
+        benchmarkRoot: join(root, "missing-dataset"),
+        caseConcurrency: 4,
+        embeddingSpendLimitUsd: 1,
+        confirmatoryPlanPath: planPath,
+        maxLanguageCalls: 50_000,
+        outputDir: root,
+        protectionBlueprintPath: join(root, "missing-protection.json"),
+        replicate: 1,
+        rerankerMode: "deterministic",
+        runId: "phase74-confirmatory-locomo-r1",
+        stage: "E1",
+      })).rejects.toThrow(/confirmatory plan.*provider reranker/i);
+
+      const legacyOptions = {
+        benchmark: "locomo" as const,
+        benchmarkRoot: join(root, "missing-dataset"),
+        embeddingSpendLimitUsd: 1,
+        mainEvaluationPlanPath: planPath,
+        maxLanguageCalls: 50_000,
+        outputDir: root,
+        protectionBlueprintPath: join(root, "missing-protection.json"),
+        replicate: 1 as const,
+        rerankerMode: "provider" as const,
+        runId: "phase74-confirmatory-locomo-r1",
+        stage: "E1" as const,
+      };
+      await expect(runPhase74GeneralizationFull(
+        legacyOptions as Parameters<typeof runPhase74GeneralizationFull>[0],
+      )).rejects.toThrow(/mainEvaluationPlanPath.*removed/i);
     } finally {
       await rm(root, { force: true, recursive: true });
     }
@@ -427,7 +584,15 @@ describe("phase 74 generalization smoke runner", () => {
           maxOutputTokens: 4_096,
           reasoningEffort: "low",
           responseFormat: "json_schema",
-          requestTimeoutMs: 60_000,
+          requestTimeoutMs: 120_000,
+          retryLimit: 4,
+          temperature: 0,
+        },
+        contextualExtraction: {
+          maxOutputTokens: 4_096,
+          reasoningEffort: "low",
+          responseFormat: "json_object",
+          requestTimeoutMs: 120_000,
           retryLimit: 4,
           temperature: 0,
         },
@@ -513,6 +678,26 @@ describe("phase 74 generalization smoke runner", () => {
     expect(hashEvalExperimentIdentity(identity(configuration))).toBe(
       hashEvalExperimentIdentity(identity(configuration)),
     );
+  });
+
+  it("keeps confirmatory E4 permanently ineligible for promotion", () => {
+    expect(buildPhase74StandalonePromotionGate({
+      confirmatoryOnly: true,
+      seenCasesOnly: true,
+    })).toEqual({
+      reason:
+        "Presealed full-family confirmatory evidence cannot authorize promotion.",
+      seenCasesOnly: true,
+      status: "not_evaluable",
+    });
+    expect(buildPhase74StandalonePromotionGate({
+      seenCasesOnly: true,
+    })).toEqual({
+      reason:
+        "Full public datasets are seen-case diagnostics until sealed independent evidence exists.",
+      seenCasesOnly: true,
+      status: "not_evaluable",
+    });
   });
 
   it("parses an explicit full-family stage and replicate without benchmark fallbacks", () => {
@@ -653,6 +838,103 @@ describe("phase 74 generalization smoke runner", () => {
       runId: "longmemeval-r1",
       stage: "E1",
     });
+  });
+
+  it("rejects confirmatory and removed plan flags before the smoke early return", () => {
+    for (const planArgs of [
+      ["--main-evaluation-plan", "/tmp/legacy.json"],
+      ["--main-evaluation-plan=/tmp/legacy.json"],
+      ["--confirmatory-plan", "/tmp/confirmatory.json"],
+      ["--confirmatory-plan=/tmp/confirmatory.json"],
+    ]) {
+      expect(() => parsePhase74GeneralizationCliOptions([
+        "bun",
+        "run-phase-74-generalization.ts",
+        "--mode",
+        "smoke",
+        ...planArgs,
+      ])).toThrow(/plan.*removed|confirmatory.*full|separate value/i);
+    }
+  });
+
+  it("admits a presealed confirmatory plan only on the provider-reranked path", () => {
+    expect(parsePhase74GeneralizationCliOptions([
+      "bun",
+      "run-phase-74-generalization.ts",
+      "--mode",
+      "full",
+      "--benchmark",
+      "locomo",
+      "--benchmark-root",
+      "/private/tmp/phase74/locomo",
+      "--output-dir",
+      "/tmp/reports",
+      "--protection-blueprint",
+      "/tmp/phase74-protection-blueprint.json",
+      "--confirmatory-plan",
+      "/tmp/phase74-confirmatory-plan.json",
+      "--run-id",
+      "phase74-confirmatory-locomo-r2",
+      "--stage",
+      "E3",
+      "--replicate",
+      "2",
+      "--reranker-mode",
+      "provider",
+    ])).toMatchObject({
+      confirmatoryPlanPath: "/tmp/phase74-confirmatory-plan.json",
+      rerankerMode: "provider",
+    });
+
+    const base = [
+      "bun",
+      "run-phase-74-generalization.ts",
+      "--mode",
+      "full",
+      "--benchmark",
+      "locomo",
+      "--benchmark-root",
+      "/private/tmp/phase74/locomo",
+      "--output-dir",
+      "/tmp/reports",
+      "--protection-blueprint",
+      "/tmp/phase74-protection-blueprint.json",
+      "--confirmatory-plan",
+      "/tmp/phase74-confirmatory-plan.json",
+      "--run-id",
+      "phase74-confirmatory-locomo-r2",
+      "--stage",
+      "E3",
+      "--replicate",
+      "2",
+    ];
+    expect(() => parsePhase74GeneralizationCliOptions([
+      ...base,
+      "--reranker-mode",
+      "deterministic",
+    ])).toThrow(/confirmatory plan.*provider reranker/i);
+    expect(() => parsePhase74GeneralizationCliOptions([
+      ...base,
+      "--reranker-mode",
+      "provider",
+      "--case-selection-seed",
+      "74",
+      "--case-selection-size",
+      "20",
+    ])).toThrow(/confirmatory plan.*case selection/i);
+    expect(() => parsePhase74GeneralizationCliOptions(
+      base.map((value) =>
+        value === "--confirmatory-plan" ? "--main-evaluation-plan" : value
+      ),
+    )).toThrow(/removed.*confirmatory-plan/i);
+    expect(() => parsePhase74GeneralizationCliOptions(
+      base.flatMap((value, index) => {
+        if (value === "--confirmatory-plan") {
+          return ["--main-evaluation-plan=/tmp/phase74-confirmatory-plan.json"];
+        }
+        return base[index - 1] === "--confirmatory-plan" ? [] : [value];
+      }),
+    )).toThrow(/removed.*confirmatory-plan/i);
   });
 
   it("selects a deterministic content-bound subset without reading labels", () => {

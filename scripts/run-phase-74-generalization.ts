@@ -23,6 +23,7 @@ import {
   assertCliPathSegmentValue,
   resolveCliFlagValueStrict,
 } from "./cli-options";
+import { resolveRepoRootFromScriptUrl } from "./script-paths";
 
 import {
   createInternalGoodMemory,
@@ -66,11 +67,26 @@ import {
   retirePhase74StageIngestionSnapshots,
 } from "../src/eval/phase74IngestionRetirement";
 import {
+  assertPhase74ExperimentIdentityContract,
   buildPhase74FullRunIdentityConfiguration,
   PHASE74_CONTEXT_TOKEN_BUDGET,
   PHASE74_PRE_RANK_LIMIT,
   PHASE74_SELECTED_LIMIT,
 } from "../src/eval/phase74ExperimentIdentity";
+import {
+  buildPhase74ConfirmatoryObservedRun,
+  hashPhase74ConfirmatoryPlan,
+  parsePhase74ConfirmatoryPlan,
+} from "../src/eval/phase74ConfirmatoryPlan";
+import type {
+  Phase74ConfirmatoryPlan,
+} from "../src/eval/phase74ConfirmatoryPlan";
+import {
+  verifyPhase74ConfirmatoryPlanGitAnchor,
+} from "./phase-74-confirmatory-plan-anchor";
+import type {
+  Phase74ConfirmatoryPlanGitAnchor,
+} from "./phase-74-confirmatory-plan-anchor";
 import { buildPhase74ReplicateComparison } from "../src/eval/phase74Replicates";
 import { createPhase74ProtocolReader } from "../src/eval/phase74ProtocolReader";
 import {
@@ -87,6 +103,7 @@ import {
   resolvePhase74EvaluatorSource,
   resolvePhase74LiveModels,
   verifyPhase74EvaluatorSource,
+  verifyPhase74PlannedEvaluatorSource,
 } from "../src/eval/phase74Live";
 import {
   buildPhase74ModelUsageEvidence,
@@ -295,6 +312,7 @@ export interface Phase74GeneralizationFullOptions {
   caseConcurrency?: number;
   caseSelectionSeed?: number;
   caseSelectionSize?: number;
+  confirmatoryPlanPath?: string;
   embeddingSpendLimitUsd: number;
   generatedAt?: string;
   maxLanguageCalls: number;
@@ -313,6 +331,27 @@ export interface Phase74GeneralizationFullResult {
 }
 
 export { buildPhase74FullRunIdentityConfiguration };
+
+export function buildPhase74StandalonePromotionGate(input: {
+  confirmatoryOnly?: boolean;
+  seenCasesOnly: boolean;
+}) {
+  return input.seenCasesOnly
+    ? {
+        reason:
+          input.confirmatoryOnly === true
+            ? "Presealed full-family confirmatory evidence cannot authorize promotion."
+            : "Full public datasets are seen-case diagnostics until sealed independent evidence exists.",
+        seenCasesOnly: true,
+        status: "not_evaluable",
+      } as const
+    : {
+        reason:
+          "Unseen evidence requires external custody plus the complete aggregate and frozen protections.",
+        seenCasesOnly: false,
+        status: "pending_aggregate",
+      } as const;
+}
 
 export function buildPhase74SealedProcessEnvironments(input: {
   env: Record<string, string | undefined>;
@@ -580,6 +619,97 @@ export function selectPhase74GeneralizationCases(input: {
       ),
       selectedSize: cases.length,
     },
+  };
+}
+
+export function resolvePhase74ConfirmatoryAdmission(input: {
+  benchmark: Phase74BenchmarkFamily;
+  dataset: Phase74DatasetBundle;
+  gitAnchor: Phase74ConfirmatoryPlanGitAnchor;
+  plan: Phase74ConfirmatoryPlan;
+  planSha256: string;
+  replicate: 1 | 2 | 3;
+  runId: string;
+  stage: "E1" | "E2" | "E3" | "E4";
+}): {
+  dataset: Phase74DatasetBundle;
+  confirmatoryPlan: {
+    artifactKind: "phase74-full-family-confirmatory-plan";
+    gitAnchor: Phase74ConfirmatoryPlanGitAnchor;
+    sha256: string;
+  };
+  plannedRun: Phase74ConfirmatoryPlan["runs"][number];
+  seenCasesOnly: true;
+  selection: EvalRunJsonObject;
+} {
+  const plan = parsePhase74ConfirmatoryPlan(input.plan);
+  if (hashPhase74ConfirmatoryPlan(plan) !== input.planSha256) {
+    throw new Error("Phase 74 confirmatory plan SHA-256 drifted.");
+  }
+  const family = plan.families.find(
+    ({ benchmark }) => benchmark === input.benchmark,
+  );
+  if (family === undefined) {
+    throw new Error(
+      `Phase 74 confirmatory plan has no ${input.benchmark} family.`,
+    );
+  }
+  const parentDataset = {
+    adaptedCasesSha256: input.dataset.manifest.adaptedCasesSha256,
+    caseCount: input.dataset.manifest.caseCount,
+    datasetSha256: input.dataset.manifest.datasetSha256,
+    memoryGroupCount: new Set(
+      input.dataset.cases.map(
+        ({ caseId, memoryGroupId }) => memoryGroupId ?? caseId,
+      ),
+    ).size,
+    normalizedFingerprint: input.dataset.manifest.normalizedFingerprint,
+    selectedCaseIdsSha256: input.dataset.manifest.selectedCaseIdsSha256,
+    sourceSha256: input.dataset.manifest.source.sourceSha256,
+  };
+  if (!isDeepStrictEqual(parentDataset, family.parentDataset)) {
+    throw new Error(
+      `Phase 74 ${input.benchmark} parent dataset drifted from the confirmatory plan.`,
+    );
+  }
+  const selected = selectPhase74GeneralizationCases({
+    cases: input.dataset.cases,
+  });
+  if (
+    selected.identity.mode !== "all" ||
+    selected.identity.populationSize !== family.population.caseCount ||
+    selected.identity.selectedSize !== family.population.caseCount ||
+    selected.identity.selectedCaseIdsSha256 !==
+      family.population.selectedCaseIdsSha256 ||
+    selected.identity.selectedCaseKeysSha256 !==
+      family.population.selectedCaseKeysSha256
+  ) {
+    throw new Error(
+      `Phase 74 ${input.benchmark} presealed full population drifted.`,
+    );
+  }
+  const plannedRun = plan.runs.find((run) =>
+    run.benchmark === input.benchmark &&
+    run.replicate === input.replicate &&
+    run.runId === input.runId &&
+    run.stage === input.stage
+  );
+  if (plannedRun === undefined) {
+    throw new Error("Phase 74 confirmatory run does not match the planned run matrix.");
+  }
+  return {
+    dataset: createPhase74SelectedDatasetBundle({
+      bundle: input.dataset,
+      cases: selected.cases,
+    }),
+    confirmatoryPlan: {
+      artifactKind: "phase74-full-family-confirmatory-plan",
+      gitAnchor: input.gitAnchor,
+      sha256: input.planSha256,
+    },
+    plannedRun,
+    seenCasesOnly: true,
+    selection: selected.identity,
   };
 }
 
@@ -1084,6 +1214,26 @@ export async function persistPhase74RunIdentity(input: {
   return JSON.parse(await readFile(identityPath, "utf8"));
 }
 
+export async function persistPhase74ConfirmatoryPlan(input: {
+  plan: unknown;
+  runDirectory: string;
+}): Promise<Phase74ConfirmatoryPlan> {
+  const plan = parsePhase74ConfirmatoryPlan(input.plan);
+  const path = join(input.runDirectory, "confirmatory-plan.json");
+  const content = `${JSON.stringify(plan, null, 2)}\n`;
+  try {
+    await writeFile(path, content, { encoding: "utf8", flag: "wx" });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+      throw error;
+    }
+    if (await readFile(path, "utf8") !== content) {
+      throw new Error("Phase 74 confirmatory plan artifact drifted.");
+    }
+  }
+  return plan;
+}
+
 export async function loadVerifiedPhase74E3Stage(input: {
   e4Execution: Phase74SealedExecutionBundle;
   runDirectory: string;
@@ -1166,23 +1316,92 @@ export async function runPhase74GeneralizationFull(
   env: Record<string, string | undefined> = process.env,
 ): Promise<Phase74GeneralizationFullResult> {
   assertCliPathSegmentValue({ flag: "--run-id", value: options.runId });
+  if (
+    Object.prototype.hasOwnProperty.call(
+      options,
+      "mainEvaluationPlanPath",
+    )
+  ) {
+    throw new Error(
+      "Phase 74 option mainEvaluationPlanPath was removed; use confirmatoryPlanPath.",
+    );
+  }
+  const repoRoot = resolveRepoRootFromScriptUrl(import.meta.url);
+  const confirmatoryPlanContent =
+    options.confirmatoryPlanPath === undefined
+      ? null
+      : await readFile(options.confirmatoryPlanPath, "utf8");
+  const confirmatoryPlan = options.confirmatoryPlanPath === undefined
+    ? null
+    : parsePhase74ConfirmatoryPlan(JSON.parse(
+        confirmatoryPlanContent!,
+      ));
+  if (
+    confirmatoryPlan !== null &&
+    options.rerankerMode !== "provider"
+  ) {
+    throw new Error(
+      "Phase 74 confirmatory plan requires the provider reranker.",
+    );
+  }
+  if (
+    confirmatoryPlan !== null &&
+    (options.caseSelectionSeed !== undefined ||
+      options.caseSelectionSize !== undefined)
+  ) {
+    throw new Error(
+      "Phase 74 confirmatory plan cannot be combined with ad hoc case selection.",
+    );
+  }
+  const confirmatoryGitAnchor =
+    confirmatoryPlan === null ||
+      confirmatoryPlanContent === null ||
+      options.confirmatoryPlanPath === undefined
+      ? null
+      : await verifyPhase74ConfirmatoryPlanGitAnchor({
+          planContent: confirmatoryPlanContent,
+          planPath: options.confirmatoryPlanPath,
+          repoRoot,
+        });
   const preparedDataset = await loadPhase74PreparedDataset(options);
-  const selection = selectPhase74GeneralizationCases({
-    cases: preparedDataset.cases,
-    seed: options.caseSelectionSeed,
-    size: options.caseSelectionSize,
-  });
-  const selectedCases = selection.cases;
-  const dataset = createPhase74SelectedDatasetBundle({
-    bundle: preparedDataset,
-    cases: selectedCases,
-  });
+  const confirmatoryAdmission = confirmatoryPlan === null
+    ? null
+    : resolvePhase74ConfirmatoryAdmission({
+        benchmark: options.benchmark,
+        dataset: preparedDataset,
+        gitAnchor: confirmatoryGitAnchor!,
+        plan: confirmatoryPlan,
+        planSha256: hashPhase74ConfirmatoryPlan(confirmatoryPlan),
+        replicate: options.replicate,
+        runId: options.runId,
+        stage: options.stage,
+      });
+  const diagnosticSelection = confirmatoryAdmission === null
+    ? selectPhase74GeneralizationCases({
+      cases: preparedDataset.cases,
+      seed: options.caseSelectionSeed,
+      size: options.caseSelectionSize,
+    })
+    : null;
+  const selection = confirmatoryAdmission?.selection ??
+    diagnosticSelection!.identity;
+  const dataset = confirmatoryAdmission?.dataset ??
+    createPhase74SelectedDatasetBundle({
+      bundle: preparedDataset,
+      cases: diagnosticSelection!.cases,
+    });
+  const selectedCases = dataset.cases;
   const models = resolvePhase74LiveModels(env);
   const rerankerMode = options.rerankerMode ?? "provider";
-  const evaluatorSource = await verifyPhase74EvaluatorSource({
-    declared: resolvePhase74EvaluatorSource(env),
-    repoRoot: process.cwd(),
-  });
+  const evaluatorSource = confirmatoryPlan === null
+    ? await verifyPhase74EvaluatorSource({
+        declared: resolvePhase74EvaluatorSource(env),
+        repoRoot,
+      })
+    : await verifyPhase74PlannedEvaluatorSource({
+        declared: confirmatoryPlan.evaluatorSource,
+        repoRoot,
+      });
   const promptSha256s = phase74LivePromptSha256s();
   const protectionBlueprint =
     await loadPhase74ProtectionBlueprintDescriptor(
@@ -1193,40 +1412,58 @@ export async function runPhase74GeneralizationFull(
   await mkdir(runDirectory, { recursive: true });
   const releaseRunLock = await acquirePhase74RunLock(runDirectory);
   try {
+  if (confirmatoryPlan !== null) {
+    await persistPhase74ConfirmatoryPlan({
+      plan: confirmatoryPlan,
+      runDirectory,
+    });
+  }
   const selectedCaseIdsSha256 = sha256(
     JSON.stringify(selectedCases.map(({ caseId }) => caseId)),
   );
+  const fullRunConfiguration = buildPhase74FullRunIdentityConfiguration({
+    caseConcurrency: options.caseConcurrency ?? 1,
+    callBudget: {
+      embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
+      maxLanguageCalls: options.maxLanguageCalls,
+    },
+    dataset: dataset.manifest as unknown as EvalRunJsonObject,
+    embedding: buildPhase74EmbeddingIdentity(models.embedding),
+    evaluatorSource,
+    ...(confirmatoryAdmission === null || confirmatoryPlan === null
+      ? {}
+      : {
+          confirmatoryAdmission: {
+            confirmatoryPlan:
+              confirmatoryAdmission.confirmatoryPlan,
+            parentDataset: confirmatoryPlan.families.find(
+              ({ benchmark }) => benchmark === options.benchmark,
+            )!.parentDataset,
+          },
+        }),
+    protectionBlueprint,
+    replicate: options.replicate,
+    reranker: rerankerMode === "deterministic"
+      ? {
+          implementation: "lexical-coverage-v1",
+          mode: "deterministic",
+        }
+      : {
+          ...publicModelIdentity(models.reranker),
+          implementation: "provider-listwise-v1",
+          mode: "provider",
+        },
+    scoring: buildPhase74ProtocolScoringIdentity(
+      options.benchmark,
+      publicModelIdentity(models.judge),
+    ),
+    selection,
+    selectedCaseIdsSha256,
+  });
   const requestedIdentity = buildEvalRunIdentity({
     answerModel: publicModelIdentity(models.answer),
     benchmark: `${options.benchmark}-full`,
-    configuration: buildPhase74FullRunIdentityConfiguration({
-      caseConcurrency: options.caseConcurrency ?? 1,
-      callBudget: {
-        embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
-        maxLanguageCalls: options.maxLanguageCalls,
-      },
-      dataset: dataset.manifest as unknown as EvalRunJsonObject,
-      embedding: buildPhase74EmbeddingIdentity(models.embedding),
-      evaluatorSource,
-      protectionBlueprint,
-      replicate: options.replicate,
-      reranker: rerankerMode === "deterministic"
-        ? {
-            implementation: "lexical-coverage-v1",
-            mode: "deterministic",
-          }
-        : {
-            ...publicModelIdentity(models.reranker),
-            implementation: "provider-listwise-v1",
-            mode: "provider",
-          },
-      scoring: buildPhase74ProtocolScoringIdentity(
-        options.benchmark,
-        publicModelIdentity(models.judge),
-      ),
-      selection: selection.identity,
-      selectedCaseIdsSha256,
-    }),
+    configuration: fullRunConfiguration,
     datasetSha256: dataset.manifest.datasetSha256,
     generatedAt,
     generatedBy: "scripts/run-phase-74-generalization.ts",
@@ -1234,6 +1471,70 @@ export async function runPhase74GeneralizationFull(
     promptSha256s,
     runId: options.runId,
   });
+  if (confirmatoryAdmission !== null && confirmatoryPlan !== null) {
+    const family = confirmatoryPlan.families.find(
+      ({ benchmark }) => benchmark === options.benchmark,
+    )!;
+    const providerReranker = {
+      gateway: models.reranker.baseURL ?? "",
+      implementation: "provider-listwise-v1" as const,
+      mode: "provider" as const,
+      model: models.reranker.model,
+      provider: "openai" as const,
+    };
+    assertPhase74ExperimentIdentityContract({
+      benchmark: options.benchmark,
+      configuration: fullRunConfiguration,
+      dataset: dataset.manifest,
+      expectedEmbedding: buildPhase74EmbeddingIdentity(models.embedding),
+      expectedEvaluatorSource: evaluatorSource,
+      expectedReranker: providerReranker,
+      judgeModel: requestedIdentity.judgeModel,
+    });
+    const selectedCaseKeysSha256 = selection.selectedCaseKeysSha256;
+    if (typeof selectedCaseKeysSha256 !== "string") {
+      throw new Error(
+        "Phase 74 confirmatory selected case keys are missing.",
+      );
+    }
+    buildPhase74ConfirmatoryObservedRun(confirmatoryPlan, {
+      answerModel: {
+        gateway: models.answer.baseURL ?? "",
+        model: models.answer.model,
+        provider: "openai",
+      },
+      benchmark: options.benchmark,
+      callBudget: {
+        embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
+        maxLanguageCalls: options.maxLanguageCalls,
+      },
+      caseConcurrency: options.caseConcurrency ?? 1,
+      embedding: {
+        gateway: models.embedding.baseURL ?? "",
+        model: models.embedding.model,
+        provider: "openai",
+      },
+      evaluatorSource,
+      judgeModel: {
+        gateway: models.judge.baseURL ?? "",
+        model: models.judge.model,
+        provider: "openai",
+      },
+      parentDataset: family.parentDataset,
+      protectionBlueprint,
+      renderedContextTokens: PHASE74_CONTEXT_TOKEN_BUDGET,
+      replicate: options.replicate,
+      reranker: providerReranker,
+      runId: options.runId,
+      population: {
+        caseCount: selectedCases.length,
+        mode: "all",
+        selectedCaseIdsSha256,
+        selectedCaseKeysSha256,
+      },
+      stage: options.stage,
+    });
+  }
   const prefix = options.stage.toLowerCase();
   const identity = await persistPhase74RunIdentity({
     identity: requestedIdentity,
@@ -1488,12 +1789,13 @@ export async function runPhase74GeneralizationFull(
             join(runDirectory, "oracle-matrix.jsonl"),
             report.oracle,
           ),
-          writeJson(join(runDirectory, "promotion-gate.json"), {
-            reason:
-              "Full public datasets are seen-case diagnostics until sealed independent evidence exists.",
-            seenCasesOnly: true,
-            status: "not_evaluable",
-          }),
+          writeJson(
+            join(runDirectory, "promotion-gate.json"),
+            buildPhase74StandalonePromotionGate({
+              confirmatoryOnly: confirmatoryAdmission !== null,
+              seenCasesOnly: true,
+            }),
+          ),
         ]
       : []),
   ]);
@@ -1688,6 +1990,7 @@ export type Phase74GeneralizationCliOptions =
       caseSelectionSeed?: number;
       caseSelectionSize?: number;
       caseConcurrency?: number;
+      confirmatoryPlanPath?: string;
       embeddingSpendLimitUsd: number;
       maxLanguageCalls: number;
       mode: "full";
@@ -1703,9 +2006,32 @@ export function parsePhase74GeneralizationCliOptions(
   args: readonly string[],
 ): Phase74GeneralizationCliOptions {
   const readFlag = (name: string) => resolveCliFlagValueStrict(args, name);
+  if (
+    args.some((value) =>
+      value === "--main-evaluation-plan" ||
+      value.startsWith("--main-evaluation-plan=")
+    )
+  ) {
+    throw new Error(
+      "--main-evaluation-plan was removed; use --confirmatory-plan.",
+    );
+  }
+  if (
+    args.some((value) => value.startsWith("--confirmatory-plan="))
+  ) {
+    throw new Error(
+      "--confirmatory-plan requires a separate value.",
+    );
+  }
+  const confirmatoryPlanPath = readFlag("--confirmatory-plan");
   const mode = readFlag("--mode") ?? "smoke";
   const benchmark = readFlag("--benchmark") ?? "longmemeval";
   if (mode === "smoke") {
+    if (confirmatoryPlanPath !== undefined) {
+      throw new Error(
+        "--confirmatory-plan is available only in full mode.",
+      );
+    }
     if (benchmark !== "longmemeval") {
       throw new Error("Phase 74 smoke supports only --benchmark longmemeval.");
     }
@@ -1798,6 +2124,22 @@ export function parsePhase74GeneralizationCliOptions(
   ) {
     throw new Error("--reranker-mode must be deterministic or provider.");
   }
+  if (
+    confirmatoryPlanPath !== undefined &&
+    (rawCaseSelectionSeed !== undefined || rawCaseSelectionSize !== undefined)
+  ) {
+    throw new Error(
+      "Phase 74 confirmatory plan cannot be combined with ad hoc case selection.",
+    );
+  }
+  if (
+    confirmatoryPlanPath !== undefined &&
+    rerankerMode !== "provider"
+  ) {
+    throw new Error(
+      "Phase 74 confirmatory plan requires the provider reranker.",
+    );
+  }
   if (!benchmarkRoot || !outputDir || !protectionBlueprintPath || !runId) {
     throw new Error(
       "Phase 74 full mode requires --benchmark-root, --output-dir, --protection-blueprint, and --run-id.",
@@ -1817,6 +2159,9 @@ export function parsePhase74GeneralizationCliOptions(
       ? {}
       : { caseSelectionSize: Number(rawCaseSelectionSize) }),
     embeddingSpendLimitUsd,
+    ...(confirmatoryPlanPath === undefined
+      ? {}
+      : { confirmatoryPlanPath: resolve(confirmatoryPlanPath) }),
     maxLanguageCalls: Number(rawMaxLanguageCalls),
     mode,
     outputDir,

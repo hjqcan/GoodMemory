@@ -32,6 +32,15 @@ import {
 } from "../src/eval/phase74BeamSafetyProtection";
 import { PHASE74_EXPERIMENT_ARMS } from "../src/eval/phase74ExperimentDesign";
 import { assertPhase74ExperimentIdentityContract } from "../src/eval/phase74ExperimentIdentity";
+import {
+  buildPhase74ConfirmatoryObservedRun,
+  hashPhase74ConfirmatoryPlan,
+  parsePhase74ConfirmatoryPlan,
+  verifyPhase74ConfirmatoryRun,
+} from "../src/eval/phase74ConfirmatoryPlan";
+import type {
+  Phase74ConfirmatoryPlan,
+} from "../src/eval/phase74ConfirmatoryPlan";
 import { buildPhase74EmbeddingIdentity } from "../src/eval/phase74Live";
 import {
   isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible,
@@ -51,6 +60,13 @@ import {
 import {
   PHASE74_CANONICAL_LIVE_CLOSURE_VERIFIER,
 } from "./phase-74-protection-live-closure";
+import {
+  verifyRecordedPhase74ConfirmatoryPlanGitAnchor,
+} from "./phase-74-confirmatory-plan-anchor";
+import type {
+  Phase74ConfirmatoryPlanGitAnchorDependencies,
+} from "./phase-74-confirmatory-plan-anchor";
+import { resolveRepoRootFromScriptUrl } from "./script-paths";
 import {
   buildPhase74IngestionUsageAllocation,
   buildPhase74IngestionUsagePaths,
@@ -286,6 +302,9 @@ export interface Phase74ArtifactAggregationInput {
 }
 
 export interface Phase74ArtifactAggregationDependencies {
+  confirmatoryGitAnchorDependencies?:
+    Phase74ConfirmatoryPlanGitAnchorDependencies;
+  confirmatoryRepoRoot?: string;
   protectionAdditionalVerifiers?: readonly Phase74ProtectionSuiteVerifier[];
   protectionBeamContractSourceFiles?: readonly string[];
   protectionLiveClosureVerifier?: Phase74ProtectionLiveClosureVerifier;
@@ -729,6 +748,126 @@ async function readJson(path: string, label: string): Promise<unknown> {
       cause: error,
     });
   }
+}
+
+interface Phase74ConfirmatoryAggregateAdmissionInput {
+  gitAnchorDependencies?: Phase74ConfirmatoryPlanGitAnchorDependencies;
+  identity: {
+    configuration: {
+      confirmatoryPlan?: unknown;
+      seenCasesOnly?: unknown;
+    };
+  };
+  observedRun: {
+    identity: unknown;
+    identitySha256: string;
+    runId: string;
+    stage: ExperimentStage;
+  };
+  repoRoot?: string;
+  runDirectory: string;
+}
+
+async function loadPhase74ConfirmatoryAggregatePlan(input: {
+  gitAnchorDependencies?: Phase74ConfirmatoryPlanGitAnchorDependencies;
+  identity: Phase74ConfirmatoryAggregateAdmissionInput["identity"];
+  repoRoot?: string;
+  runDirectory: string;
+}): Promise<Phase74ConfirmatoryPlan> {
+  if (input.identity.configuration.seenCasesOnly !== true) {
+    throw new Error(
+      "Phase 74 full-family confirmatory plan requires seenCasesOnly=true.",
+    );
+  }
+  const descriptor = recordValue(
+    input.identity.configuration.confirmatoryPlan,
+    "confirmatory plan descriptor",
+  );
+  assertExactKeys(
+    descriptor,
+    ["artifactKind", "gitAnchor", "sha256"],
+    "confirmatory plan descriptor",
+  );
+  if (descriptor.artifactKind !== "phase74-full-family-confirmatory-plan") {
+    throw new Error("Phase 74 confirmatory plan artifact kind drifted.");
+  }
+  const descriptorSha256 = sha256Value(
+    descriptor.sha256,
+    "confirmatory plan descriptor SHA-256",
+  );
+  const gitAnchor = recordValue(
+    descriptor.gitAnchor,
+    "confirmatory plan Git anchor",
+  );
+  assertExactKeys(
+    gitAnchor,
+    [
+      "commit",
+      "executionCommit",
+      "path",
+      "remote",
+      "remoteRef",
+      "remoteUrl",
+    ],
+    "confirmatory plan Git anchor",
+  );
+  if (
+    typeof gitAnchor.commit !== "string" ||
+    typeof gitAnchor.executionCommit !== "string" ||
+    typeof gitAnchor.path !== "string" ||
+    gitAnchor.remote !== "origin" ||
+    gitAnchor.remoteRef !== "refs/heads/main" ||
+    gitAnchor.remoteUrl !== "https://github.com/hjqcan/GoodMemory.git"
+  ) {
+    throw new Error(
+      "Phase 74 confirmatory plan Git anchor descriptor drifted.",
+    );
+  }
+  const planContent = await readText(
+    join(input.runDirectory, "confirmatory-plan.json"),
+    "confirmatory plan",
+  );
+  let planValue: unknown;
+  try {
+    planValue = JSON.parse(planContent) as unknown;
+  } catch (error) {
+    throw new Error("Phase 74 confirmatory plan is not valid JSON.", {
+      cause: error,
+    });
+  }
+  const plan = parsePhase74ConfirmatoryPlan(planValue);
+  if (planContent !== `${JSON.stringify(plan, null, 2)}\n`) {
+    throw new Error(
+      "Phase 74 confirmatory plan artifact is not byte-exact canonical JSON.",
+    );
+  }
+  if (hashPhase74ConfirmatoryPlan(plan) !== descriptorSha256) {
+    throw new Error(
+      "Phase 74 confirmatory plan SHA-256 drifted from the run identity.",
+    );
+  }
+  await verifyRecordedPhase74ConfirmatoryPlanGitAnchor({
+    anchor: {
+      commit: gitAnchor.commit,
+      executionCommit: gitAnchor.executionCommit,
+      path: gitAnchor.path,
+      remote: gitAnchor.remote,
+      remoteRef: gitAnchor.remoteRef,
+      remoteUrl: gitAnchor.remoteUrl,
+    },
+    dependencies: input.gitAnchorDependencies,
+    planContent,
+    repoRoot:
+      input.repoRoot ?? resolveRepoRootFromScriptUrl(import.meta.url),
+  });
+  return plan;
+}
+
+export async function assertPhase74ConfirmatoryAggregateAdmission(
+  input: Phase74ConfirmatoryAggregateAdmissionInput,
+): Promise<void> {
+  const plan = await loadPhase74ConfirmatoryAggregatePlan(input);
+  verifyPhase74ConfirmatoryRun(plan, input.observedRun);
 }
 
 async function readJsonLines(path: string, label: string): Promise<unknown[]> {
@@ -1919,9 +2058,196 @@ function validateE4RenderedLedgers(input: {
   }
 }
 
+async function verifyPhase74ConfirmatoryRunBase(input: {
+  dataset: DatasetManifestEvidence;
+  gitAnchorDependencies?: Phase74ConfirmatoryPlanGitAnchorDependencies;
+  identity: EvalRunIdentity;
+  replicate: Replicate;
+  repoRoot?: string;
+  runDirectory: string;
+  selectedCaseKeysSha256: string;
+  selectionMode: "all" | "deterministic-content-hash-v2";
+}): Promise<void> {
+  if (input.selectionMode !== "all") {
+    throw new Error(
+      "Phase 74 confirmatory plan requires the complete derived population.",
+    );
+  }
+  const plan = await loadPhase74ConfirmatoryAggregatePlan({
+    gitAnchorDependencies: input.gitAnchorDependencies,
+    identity: input.identity,
+    repoRoot: input.repoRoot,
+    runDirectory: input.runDirectory,
+  });
+  const family = plan.families.find(
+    ({ benchmark }) => benchmark === input.dataset.benchmark,
+  );
+  if (family === undefined) {
+    throw new Error(
+      `Phase 74 confirmatory plan has no ${input.dataset.benchmark} family.`,
+    );
+  }
+  const configuration = input.identity.configuration;
+  const parentDataset = recordValue(
+    configuration.parentDataset,
+    "confirmatory parent dataset",
+  );
+  if (stableJson(parentDataset) !== stableJson(family.parentDataset)) {
+    throw new Error(
+      "Phase 74 confirmatory parent dataset drifted from its plan.",
+    );
+  }
+  const callBudget = recordValue(
+    configuration.callBudget,
+    "confirmatory call budget",
+  );
+  const embedding = recordValue(
+    configuration.embedding,
+    "confirmatory embedding",
+  );
+  const evaluatorSource = recordValue(
+    configuration.evaluatorSource,
+    "confirmatory evaluator source",
+  );
+  const protectionBlueprint = recordValue(
+    configuration.protectionBlueprint,
+    "confirmatory protection blueprint",
+  );
+  const context = recordValue(
+    configuration.context,
+    "confirmatory context",
+  );
+  const reranker = recordValue(
+    configuration.reranker,
+    "confirmatory reranker",
+  );
+  const answerModel = input.identity.answerModel;
+  const judgeModel = input.identity.judgeModel;
+  for (const stage of ALL_STAGES) {
+    buildPhase74ConfirmatoryObservedRun(plan, {
+      answerModel: {
+        gateway: stringValue(
+          answerModel.gateway,
+          "confirmatory answer gateway",
+        ),
+        model: stringValue(
+          answerModel.model,
+          "confirmatory answer model",
+        ),
+        provider: stringValue(
+          answerModel.provider,
+          "confirmatory answer provider",
+        ) as "openai",
+      },
+      benchmark: input.dataset.benchmark,
+      callBudget: {
+        embeddingSpendLimitUsd: Number(
+          callBudget.embeddingSpendLimitUsd,
+        ),
+        maxLanguageCalls: positiveIntegerValue(
+          callBudget.maxLanguageCalls,
+          "confirmatory maxLanguageCalls",
+        ),
+      },
+      caseConcurrency: positiveIntegerValue(
+        configuration.caseConcurrency,
+        "confirmatory caseConcurrency",
+      ),
+      embedding: {
+        gateway: stringValue(
+          embedding.gateway,
+          "confirmatory embedding gateway",
+        ),
+        model: stringValue(
+          embedding.model,
+          "confirmatory embedding model",
+        ),
+        provider: stringValue(
+          embedding.provider,
+          "confirmatory embedding provider",
+        ) as "openai",
+      },
+      evaluatorSource: {
+        commit: stringValue(
+          evaluatorSource.commit,
+          "confirmatory evaluator commit",
+        ),
+        sha256: sha256Value(
+          evaluatorSource.sha256,
+          "confirmatory evaluator source SHA-256",
+        ),
+      },
+      judgeModel: {
+        gateway: stringValue(
+          judgeModel.gateway,
+          "confirmatory judge gateway",
+        ),
+        model: stringValue(
+          judgeModel.model,
+          "confirmatory judge model",
+        ),
+        provider: stringValue(
+          judgeModel.provider,
+          "confirmatory judge provider",
+        ) as "openai",
+      },
+      parentDataset: family.parentDataset,
+      protectionBlueprint: {
+        id: stringValue(
+          protectionBlueprint.id,
+          "confirmatory protection blueprint id",
+        ),
+        sha256: sha256Value(
+          protectionBlueprint.sha256,
+          "confirmatory protection blueprint SHA-256",
+        ),
+      },
+      renderedContextTokens: positiveIntegerValue(
+        context.maxTokens,
+        "confirmatory rendered context tokens",
+      ),
+      replicate: input.replicate,
+      reranker: {
+        gateway: stringValue(
+          reranker.gateway,
+          "confirmatory reranker gateway",
+        ),
+        implementation: stringValue(
+          reranker.implementation,
+          "confirmatory reranker implementation",
+        ) as "provider-listwise-v1",
+        mode: stringValue(
+          reranker.mode,
+          "confirmatory reranker mode",
+        ) as "provider",
+        model: stringValue(
+          reranker.model,
+          "confirmatory reranker model",
+        ),
+        provider: stringValue(
+          reranker.provider,
+          "confirmatory reranker provider",
+        ) as "openai",
+      },
+      runId: input.identity.runId,
+      population: {
+        caseCount: input.dataset.caseCount,
+        mode: "all",
+        selectedCaseIdsSha256: input.dataset.selectedCaseIdsSha256,
+        selectedCaseKeysSha256: input.selectedCaseKeysSha256,
+      },
+      stage,
+    });
+  }
+}
+
 async function loadRunBaseArtifact(
   runDirectory: string,
   rerankerAdmission: "provider" | "recorded",
+  dependencies: Pick<
+    Phase74ArtifactAggregationDependencies,
+    "confirmatoryGitAnchorDependencies" | "confirmatoryRepoRoot"
+  > = {},
 ): Promise<RunBaseArtifact> {
   const identityEvidence = parseIdentity(
     await readJson(join(runDirectory, "run-identity.json"), "run identity"),
@@ -1957,6 +2283,22 @@ async function loadRunBaseArtifact(
     identityEvidence.identity.configuration.seenCasesOnly,
     "run identity seenCasesOnly",
   );
+  if (
+    identityEvidence.identity.configuration.confirmatoryPlan !==
+      undefined
+  ) {
+    await verifyPhase74ConfirmatoryRunBase({
+      dataset,
+      gitAnchorDependencies:
+        dependencies.confirmatoryGitAnchorDependencies,
+      identity: identityEvidence.identity,
+      replicate,
+      repoRoot: dependencies.confirmatoryRepoRoot,
+      runDirectory,
+      selectedCaseKeysSha256: admission.selectedCaseKeysSha256,
+      selectionMode: admission.selectionMode,
+    });
+  }
   return {
     benchmark: dataset.benchmark,
     dataset,
@@ -2169,8 +2511,18 @@ async function loadRetrievalStageArtifact(
   };
 }
 
-async function loadRunArtifact(runDirectory: string): Promise<RunArtifact> {
-  const base = await loadRunBaseArtifact(runDirectory, "provider");
+async function loadRunArtifact(
+  runDirectory: string,
+  dependencies: Pick<
+    Phase74ArtifactAggregationDependencies,
+    "confirmatoryGitAnchorDependencies" | "confirmatoryRepoRoot"
+  > = {},
+): Promise<RunArtifact> {
+  const base = await loadRunBaseArtifact(
+    runDirectory,
+    "provider",
+    dependencies,
+  );
   const retrieval = {} as Record<RetrievalStage, RetrievalStageArtifact>;
   for (const stage of RETRIEVAL_STAGES) {
     retrieval[stage] = await loadRetrievalStageArtifact(base, stage);
@@ -2651,6 +3003,7 @@ function fixedCrossFamilyIdentity(identity: EvalRunIdentity): unknown {
   )).filter(([field]) => !selectionPopulationFields.has(field)));
   const familySpecificFields = new Set([
     "dataset",
+    "parentDataset",
     "replicate",
     "scoring",
     "selectedCaseIdsSha256",
@@ -2811,6 +3164,15 @@ function buildPromotionEvaluation(input: {
   stageAggregations: readonly Phase74StageAggregation[];
 }): Phase74ArtifactAggregationReport["promotion"] {
   const gaps: string[] = [];
+  if (
+    input.artifacts.some(
+      ({ identity }) => identity.configuration.confirmatoryPlan !== undefined,
+    )
+  ) {
+    gaps.push(
+      "Presealed full-family confirmatory evidence cannot authorize promotion.",
+    );
+  }
   if (input.promotionStage === undefined) {
     gaps.push("A promotion comparison stage must be selected explicitly.");
     return {
@@ -3108,7 +3470,9 @@ async function aggregatePhase74GeneralizationArtifactsWithLoader(
 ): Promise<Phase74ArtifactAggregationReport> {
   const runDirectories = normalizeRunDirectories(input.runDirectories);
   const artifacts = orderArtifacts(await Promise.all(
-    runDirectories.map(loadRunArtifact),
+    runDirectories.map((runDirectory) =>
+      loadRunArtifact(runDirectory, dependencies)
+    ),
   ));
   const protection = input.protectionArtifactPath === undefined
     ? null

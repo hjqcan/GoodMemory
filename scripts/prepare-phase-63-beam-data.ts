@@ -1,10 +1,18 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import {
+  asyncBufferFromFile,
+  parquetReadObjects,
+} from "hyparquet";
 import { resolveCliFlagValueStrict } from "./cli-options";
 import { resolvePhase63BeamRootEnv } from "./run-phase-63-shared";
 
 export type Phase63BeamDatasetSplit = "100K" | "500K" | "1M";
-export type Phase63BeamPrepareSource = "huggingface" | "github-raw";
+export type Phase63BeamPrepareSource =
+  | "huggingface"
+  | "github-raw"
+  | "local-parquet";
 
 export interface Phase63BeamPrepareOptions {
   dataset: string;
@@ -14,6 +22,7 @@ export interface Phase63BeamPrepareOptions {
   length: number;
   offset: number;
   outputRoot: string;
+  parquetFile?: string;
   source?: Phase63BeamPrepareSource;
   split: Phase63BeamDatasetSplit;
 }
@@ -36,6 +45,7 @@ export interface Phase63BeamPrepareDependencies {
   now?: () => Date;
   requestJson?: (url: string) => Promise<unknown>;
   requestText?: (url: string) => Promise<string>;
+  readParquetObjects?: (path: string) => Promise<Record<string, unknown>[]>;
   writeFile?: (path: string, value: string) => Promise<void>;
 }
 
@@ -128,10 +138,14 @@ function parseSource(value: string | undefined): Phase63BeamPrepareSource | unde
   if (!value) {
     return undefined;
   }
-  if (value === "huggingface" || value === "github-raw") {
+  if (
+    value === "huggingface" ||
+    value === "github-raw" ||
+    value === "local-parquet"
+  ) {
     return value;
   }
-  throw new Error("--source must be huggingface or github-raw");
+  throw new Error("--source must be huggingface, github-raw, or local-parquet");
 }
 
 export function parsePhase63BeamPrepareCliOptions(
@@ -144,6 +158,13 @@ export function parsePhase63BeamPrepareCliOptions(
   );
   const githubRawRoot = resolveCliFlagValueStrict(argv, "--github-raw-root");
   const source = parseSource(resolveCliFlagValueStrict(argv, "--source"));
+  const parquetFile = resolveCliFlagValueStrict(argv, "--parquet-file");
+  if (source === "local-parquet" && parquetFile === undefined) {
+    throw new Error("--source local-parquet requires --parquet-file");
+  }
+  if (source !== "local-parquet" && parquetFile !== undefined) {
+    throw new Error("--parquet-file requires --source local-parquet");
+  }
   return {
     dataset: resolveCliFlagValueStrict(argv, "--dataset") ?? DEFAULT_DATASET,
     ...(githubApiRoot ? { githubApiRoot } : {}),
@@ -161,6 +182,7 @@ export function parsePhase63BeamPrepareCliOptions(
       resolveCliFlagValueStrict(argv, "--output-root") ??
       resolvePhase63BeamRootEnv() ??
       DEFAULT_OUTPUT_ROOT,
+    ...(parquetFile ? { parquetFile } : {}),
     ...(source ? { source } : {}),
     split: parseSplit(resolveCliFlagValueStrict(argv, "--split")),
   };
@@ -530,6 +552,57 @@ async function prepareHuggingFaceRows(input: {
   };
 }
 
+async function readLocalParquetObjects(
+  path: string,
+): Promise<Record<string, unknown>[]> {
+  const file = await asyncBufferFromFile(path);
+  return parquetReadObjects({ file });
+}
+
+function normalizeParquetJsonValue(value: unknown): unknown {
+  if (typeof value === "bigint") {
+    const number = Number(value);
+    if (!Number.isSafeInteger(number)) {
+      throw new Error("BEAM parquet contains an integer outside JSON safe range.");
+    }
+    return number;
+  }
+  if (Array.isArray(value)) {
+    return value.map(normalizeParquetJsonValue);
+  }
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [
+        key,
+        normalizeParquetJsonValue(child),
+      ]),
+    );
+  }
+  return value;
+}
+
+async function prepareLocalParquetRows(input: {
+  options: Phase63BeamPrepareOptions;
+  readParquetObjects: (path: string) => Promise<Record<string, unknown>[]>;
+}): Promise<{
+  rows: unknown[];
+  rowsEndpoint: string;
+  totalRows: number;
+}> {
+  const parquetFile = input.options.parquetFile;
+  if (parquetFile === undefined) {
+    throw new Error("BEAM local parquet source requires a parquet file.");
+  }
+  const rows = await input.readParquetObjects(parquetFile);
+  return {
+    rows: rows
+      .slice(input.options.offset, input.options.offset + input.options.length)
+      .map(normalizeParquetJsonValue),
+    rowsEndpoint: pathToFileURL(parquetFile).href,
+    totalRows: rows.length,
+  };
+}
+
 async function prepareGithubRawRows(input: {
   options: Phase63BeamPrepareOptions;
   requestJson: (url: string) => Promise<unknown>;
@@ -569,11 +642,14 @@ export async function preparePhase63BeamData(
   const writeFileImpl = dependencies.writeFile ?? writeFile;
   const requestJson = dependencies.requestJson ?? requestJsonWithCurl;
   const requestText = dependencies.requestText ?? requestTextWithCurl;
+  const readParquetObjects =
+    dependencies.readParquetObjects ?? readLocalParquetObjects;
   const now = dependencies.now ?? (() => new Date());
   const source = options.source ?? DEFAULT_SOURCE;
-  const prepared =
-    source === "github-raw"
-      ? await prepareGithubRawRows({ options, requestJson, requestText })
+  const prepared = source === "github-raw"
+    ? await prepareGithubRawRows({ options, requestJson, requestText })
+    : source === "local-parquet"
+      ? await prepareLocalParquetRows({ options, readParquetObjects })
       : await prepareHuggingFaceRows({ options, requestJson });
   const generatedAt = now().toISOString();
   const dataFile = join(options.outputRoot, `${options.split}.json`);

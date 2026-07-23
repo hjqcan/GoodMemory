@@ -18,12 +18,14 @@ import {
   resolvePhase74ReaderModel,
   resolvePhase74ScorerModels,
   verifyPhase74EvaluatorSource,
+  verifyPhase74PlannedEvaluatorSource,
 } from "../../src/eval/phase74Live";
 import type {
   AttributedModelUsageAttempt,
   AttributedModelUsageIntent,
 } from "../../src/eval/modelUsage";
 import {
+  COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_PROMPT_CONTRACT,
   COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
   CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
   MEMORY_EXTRACTION_SYSTEM_PROMPT,
@@ -49,7 +51,7 @@ const env = {
 
 describe("Phase 74 live provider boundary", () => {
   it("binds post-run aggregation and the real storage gate into evaluator source identity", () => {
-    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.version).toBe(6);
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.version).toBe(8);
     expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
       "scripts/aggregate-phase-74-generalization.ts",
     );
@@ -61,6 +63,15 @@ describe("Phase 74 live provider boundary", () => {
     );
     expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
       "scripts/run-phase-74-generalization-scorer.ts",
+    );
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
+      "scripts/prepare-phase-74-confirmatory-plan.ts",
+    );
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
+      "scripts/phase-74-confirmatory-plan-anchor.ts",
+    );
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
+      "scripts/prepare-phase-74-protection-plan.ts",
     );
     expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
       "scripts/phase-74-memory-agent-bench-protection.ts",
@@ -97,7 +108,10 @@ describe("Phase 74 live provider boundary", () => {
       sha256(MEMORY_EXTRACTION_SYSTEM_PROMPT),
     );
     expect(hashes.conversationalExtraction).toBe(
-      sha256(COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT),
+      sha256([
+        COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
+        COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_PROMPT_CONTRACT,
+      ].join("\0")),
     );
     expect(hashes.conversationalExtraction).not.toBe(
       sha256(CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT),
@@ -172,6 +186,44 @@ describe("Phase 74 live provider boundary", () => {
       },
       repoRoot: "/repo",
     })).rejects.toThrow("tracked tree or evaluator source snapshot is dirty");
+  });
+
+  it("admits a presealed evaluator snapshot after a plan-only descendant commit", async () => {
+    const declared = {
+      commit: "a".repeat(40),
+      sha256: "1".repeat(64),
+    };
+    const actualCommit = "b".repeat(40);
+    const dependencies = {
+      hashSnapshot: async () => declared.sha256,
+      isAncestor: async () => true,
+      resolveGitHead: async () => actualCommit,
+      resolveSourceStatus: async () => "",
+    };
+
+    await expect(verifyPhase74PlannedEvaluatorSource({
+      declared,
+      dependencies,
+      repoRoot: "/repo",
+    })).resolves.toEqual(declared);
+
+    await expect(verifyPhase74PlannedEvaluatorSource({
+      declared,
+      dependencies: {
+        ...dependencies,
+        isAncestor: async () => false,
+      },
+      repoRoot: "/repo",
+    })).rejects.toThrow(/ancestor|history/i);
+
+    await expect(verifyPhase74PlannedEvaluatorSource({
+      declared,
+      dependencies: {
+        ...dependencies,
+        hashSnapshot: async () => "2".repeat(64),
+      },
+      repoRoot: "/repo",
+    })).rejects.toThrow(/snapshot.*plan|plan.*snapshot/i);
   });
 
   it("captures evaluator source inside a sequential clean-tree bracket", async () => {

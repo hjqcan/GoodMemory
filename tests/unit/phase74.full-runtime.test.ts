@@ -308,7 +308,8 @@ describe("Phase 74 full ingestion identity", () => {
       embedding: buildPhase74EmbeddingIdentity(embeddingModel),
       extraction: {
         ...base.extraction,
-        extractorVersion: "provider-conversational-memory-extractor-v2",
+        extractorVersion: "provider-conversational-memory-extractor-v3",
+        responseFormat: "json_object",
       },
     }));
   });

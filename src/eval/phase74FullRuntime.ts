@@ -64,12 +64,14 @@ import type {
   Phase74ExecutorModels,
 } from "./phase74Live";
 import {
+  PHASE74_CONTEXTUAL_EXTRACTION_CALL_CONFIGURATION,
   PHASE74_EMBEDDING_CALL_CONFIGURATION,
   PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
 } from "./phase74ProviderConfiguration";
 import type { EvalRunJsonObject } from "./runIdentity";
 
 export {
+  PHASE74_CONTEXTUAL_EXTRACTION_CALL_CONFIGURATION,
   PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
 } from "./phase74ProviderConfiguration";
 
@@ -375,6 +377,9 @@ export function buildPhase74IngestionDescriptor(input: {
   const memoryGroupId = input.testCase.memoryGroupId ?? input.testCase.caseId;
   const contextualDescriptors =
     representation === "atomic-contextual-raw-pointer";
+  const extractionCallConfiguration = contextualDescriptors
+    ? PHASE74_CONTEXTUAL_EXTRACTION_CALL_CONFIGURATION
+    : PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction;
   return {
     key: buildPhase74IngestionKey({
       datasetSha256: input.datasetSha256,
@@ -384,11 +389,9 @@ export function buildPhase74IngestionDescriptor(input: {
         ...modelIdentity(input.models.assistedExtraction),
         contextualDescriptors,
         extractorVersion: contextualDescriptors
-          ? "provider-conversational-memory-extractor-v2"
+          ? "provider-conversational-memory-extractor-v3"
           : "provider-memory-extractor-v1",
-        maxOutputTokens:
-          PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
-            .maxOutputTokens,
+        maxOutputTokens: extractionCallConfiguration.maxOutputTokens,
         outputProtocol: contextualDescriptors
           ? "compact-conversational-v1"
           : "canonical-v1",
@@ -397,15 +400,9 @@ export function buildPhase74IngestionDescriptor(input: {
             ? "conversationalExtraction"
             : "assistedExtraction"
         ] ?? "",
-        reasoningEffort:
-          PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
-            .reasoningEffort,
-        responseFormat:
-          PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
-            .responseFormat,
-        temperature:
-          PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction
-            .temperature,
+        reasoningEffort: extractionCallConfiguration.reasoningEffort,
+        responseFormat: extractionCallConfiguration.responseFormat,
+        temperature: extractionCallConfiguration.temperature,
       },
       memoryGroupId,
       rawEvidence: input.testCase.rawEvidence,
@@ -509,7 +506,7 @@ function createMemory(input: {
       ? createProviderConversationalMemoryExtractor({
           contextualDescriptor: true,
           outputProtocol: "compact-conversational-v1",
-          ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction,
+          ...PHASE74_CONTEXTUAL_EXTRACTION_CALL_CONFIGURATION,
           model: input.models.assistedExtraction,
           modelUsageSink: input.usageSink,
         })

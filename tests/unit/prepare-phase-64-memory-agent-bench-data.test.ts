@@ -163,6 +163,22 @@ describe("prepare-phase-64 MemoryAgentBench data script", () => {
     });
   });
 
+  it("parses a fixed local parquet source", () => {
+    expect(
+      parsePhase64MabPrepareCliOptions([
+        "bun",
+        "run",
+        "scripts/prepare-phase-64-memory-agent-bench-data.ts",
+        "--competency",
+        "CR",
+        "--parquet-file",
+        "/evidence/MAB/conflict.parquet",
+      ]),
+    ).toMatchObject({
+      parquetFile: "/evidence/MAB/conflict.parquet",
+    });
+  });
+
   it("rejects duplicate CLI mode and output flags before preparation", () => {
     expect(() =>
       parsePhase64MabPrepareCliOptions([
@@ -185,6 +201,43 @@ describe("prepare-phase-64 MemoryAgentBench data script", () => {
         "/tmp/MAB-b",
       ]),
     ).toThrow("--output-root cannot be specified more than once.");
+  });
+
+  it("normalizes a selected row from fixed local parquet without reading dataset HEAD", async () => {
+    const writes = new Map<string, string>();
+    let parquetPath = "";
+    const result = await preparePhase64MemoryAgentBenchData(
+      {
+        competency: "CR",
+        dataset: "ai-hyz/MemoryAgentBench",
+        maxChunks: null,
+        maxEvidenceFacts: 3,
+        maxQuestions: null,
+        merge: false,
+        offset: 0,
+        outputRoot: "/tmp/MAB",
+        parquetFile: "/evidence/MAB/conflict.parquet",
+      },
+      {
+        mkdir: async () => undefined,
+        now: () => new Date("2026-07-23T00:00:00.000Z"),
+        readParquetObjects: async (path) => {
+          parquetPath = path;
+          return [buildFactConsolidationRowsResponse().rows[0].row];
+        },
+        requestJson: async () => {
+          throw new Error("dataset HEAD must not be read");
+        },
+        writeFile: async (path, value) => {
+          writes.set(path, value);
+        },
+      },
+    );
+
+    expect(parquetPath).toBe("/evidence/MAB/conflict.parquet");
+    expect(result.rowsEndpoint).toBe("file:///evidence/MAB/conflict.parquet#row=0");
+    expect(result.questionCount).toBe(3);
+    expect(JSON.parse(writes.get("/tmp/MAB/cases.json") ?? "{}").cases).toHaveLength(1);
   });
 
   it("rejects empty or whitespace-padded MemoryAgentBench root environment values", () => {

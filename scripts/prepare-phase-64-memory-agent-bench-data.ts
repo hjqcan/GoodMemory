@@ -48,6 +48,11 @@
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import {
+  asyncBufferFromFile,
+  parquetReadObjects,
+} from "hyparquet";
 import {
   hasCliFlagStrict,
   resolveCliFlagValueStrict,
@@ -118,6 +123,7 @@ export interface Phase64MabPrepareOptions {
   merge: boolean;
   offset: number;
   outputRoot: string;
+  parquetFile?: string;
 }
 
 export interface Phase64MabPrepareResult {
@@ -145,6 +151,7 @@ export interface Phase64MabPrepareDependencies {
   mkdir?: typeof mkdir;
   now?: () => Date;
   readFile?: (path: string) => Promise<string>;
+  readParquetObjects?: (path: string) => Promise<Record<string, unknown>[]>;
   requestJson?: (url: string) => Promise<unknown>;
   writeFile?: (path: string, value: string) => Promise<void>;
 }
@@ -222,6 +229,11 @@ export function parsePhase64MabPrepareCliOptions(
       resolveCliFlagValueStrict(argv, "--output-root") ??
       resolveEnvValueStrict(process.env, "GOODMEMORY_MAB_ROOT") ??
       DEFAULT_OUTPUT_ROOT,
+    ...(resolveCliFlagValueStrict(argv, "--parquet-file") === undefined
+      ? {}
+      : {
+          parquetFile: resolveCliFlagValueStrict(argv, "--parquet-file"),
+        }),
   };
 }
 
@@ -281,6 +293,13 @@ async function requestJsonWithCurl(url: string): Promise<unknown> {
       }`,
     );
   }
+}
+
+async function readLocalParquetObjects(
+  path: string,
+): Promise<Record<string, unknown>[]> {
+  const file = await asyncBufferFromFile(path);
+  return parquetReadObjects({ file });
 }
 
 interface UpstreamRow {
@@ -799,18 +818,29 @@ export async function preparePhase64MemoryAgentBenchData(
   const readFileImpl =
     dependencies.readFile ?? ((path: string) => readFile(path, "utf8"));
   const requestJson = dependencies.requestJson ?? requestJsonWithCurl;
+  const readParquetObjects =
+    dependencies.readParquetObjects ?? readLocalParquetObjects;
   const now = dependencies.now ?? (() => new Date());
 
   const split = MEMORY_AGENT_BENCH_COMPETENCY_SPLITS[options.competency];
-  const rowsEndpoint = buildPhase64MabRowsUrl({
-    dataset: options.dataset,
-    length: 1,
-    offset: options.offset,
-    split,
-  });
-  const { row, truncatedCells } = readSingleUpstreamRow(
-    await requestJson(rowsEndpoint),
-  );
+  const rowsEndpoint = options.parquetFile === undefined
+    ? buildPhase64MabRowsUrl({
+        dataset: options.dataset,
+        length: 1,
+        offset: options.offset,
+        split,
+      })
+    : `${pathToFileURL(options.parquetFile).href}#row=${options.offset}`;
+  const upstream = options.parquetFile === undefined
+    ? readSingleUpstreamRow(await requestJson(rowsEndpoint))
+    : readSingleUpstreamRow({
+        rows: [{
+          row: (await readParquetObjects(options.parquetFile))[options.offset],
+          row_idx: options.offset,
+          truncated_cells: [],
+        }],
+      });
+  const { row, truncatedCells } = upstream;
   const totalQuestionsAvailable = Array.isArray(row.questions)
     ? row.questions.length
     : 0;

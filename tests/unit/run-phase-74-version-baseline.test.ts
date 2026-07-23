@@ -80,6 +80,17 @@ function assertFullRunConfiguration(configuration: ReturnType<
 }
 
 describe("Phase 74 release baseline runner", () => {
+  it("rejects the removed mainEvaluationPlan identity field", () => {
+    const { configuration } = fullRunConfiguration();
+
+    expect(() => assertFullRunConfiguration({
+      ...configuration,
+      mainEvaluationPlan: {
+        artifactKind: "phase74-full-family-confirmatory-plan",
+      },
+    })).toThrow(/mainEvaluationPlan.*removed/i);
+  });
+
   it("prices the frozen embedding model and fails closed on unknown models", () => {
     expect(estimatePhase74VersionEmbeddingSpendUpperBoundUsd({
       inputByteUpperBound: 1_000_000,

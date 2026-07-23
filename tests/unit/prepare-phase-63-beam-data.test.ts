@@ -99,6 +99,23 @@ describe("prepare-phase-63 BEAM data script", () => {
     });
   });
 
+  it("parses a fixed local parquet source without consulting dataset HEAD", () => {
+    expect(
+      parsePhase63BeamPrepareCliOptions([
+        "bun",
+        "run",
+        "scripts/prepare-phase-63-beam-data.ts",
+        "--source",
+        "local-parquet",
+        "--parquet-file",
+        "/evidence/BEAM/100K.parquet",
+      ]),
+    ).toMatchObject({
+      parquetFile: "/evidence/BEAM/100K.parquet",
+      source: "local-parquet",
+    });
+  });
+
   it("rejects empty or whitespace-padded BEAM root environment values", () => {
     const original = process.env.GOODMEMORY_BEAM_ROOT;
     try {
@@ -167,6 +184,7 @@ describe("prepare-phase-63 BEAM data script", () => {
       "--length",
       "--offset",
       "--output-root",
+      "--parquet-file",
       "--source",
       "--split",
     ];
@@ -250,6 +268,56 @@ describe("prepare-phase-63 BEAM data script", () => {
     expect(result.rowCount).toBe(1);
     expect(writes.has("/tmp/BEAM/100K.json")).toBe(true);
     expect(writes.has("/tmp/BEAM/phase-63-beam-export-metadata.json")).toBe(true);
+    expect(JSON.parse(writes.get("/tmp/BEAM/100K.json") ?? "[]")).toEqual([
+      buildRowsResponse().rows[0].row,
+    ]);
+  });
+
+  it("rebuilds the canonical rows from a fixed local parquet file", async () => {
+    const writes = new Map<string, string>();
+    let parquetPath = "";
+    const result = await preparePhase63BeamData(
+      {
+        dataset: "Mohammadta/BEAM",
+        length: 1,
+        offset: 0,
+        outputRoot: "/tmp/BEAM",
+        parquetFile: "/evidence/BEAM/100K.parquet",
+        source: "local-parquet",
+        split: "100K",
+      },
+      {
+        mkdir: async () => undefined,
+        now: () => new Date("2026-07-23T00:00:00.000Z"),
+        readParquetObjects: async (path) => {
+          parquetPath = path;
+          return [{
+            ...buildRowsResponse().rows[0].row,
+            conversation_seed: {
+              ...buildRowsResponse().rows[0].row.conversation_seed as Record<
+                string,
+                unknown
+              >,
+              id: 1n,
+            },
+          }];
+        },
+        requestJson: async () => {
+          throw new Error("dataset HEAD must not be read");
+        },
+        writeFile: async (path, value) => {
+          writes.set(path, value);
+        },
+      },
+    );
+
+    expect(parquetPath).toBe("/evidence/BEAM/100K.parquet");
+    expect(result).toMatchObject({
+      rowCount: 1,
+      rowsEndpoint: "file:///evidence/BEAM/100K.parquet",
+      source: "local-parquet",
+      totalRows: 1,
+    });
     expect(JSON.parse(writes.get("/tmp/BEAM/100K.json") ?? "[]")).toEqual([
       buildRowsResponse().rows[0].row,
     ]);

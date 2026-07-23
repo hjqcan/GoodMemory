@@ -369,10 +369,6 @@ function normalizeCompactClaim(
   if (normalized.n === false) {
     delete normalized.n;
   }
-  if (typeof normalized.m === "string" &&
-      !MEMORY_CLAIM_MODALITY_SET.has(normalized.m)) {
-    normalized.m = "unknown";
-  }
   return normalized;
 }
 
@@ -732,6 +728,33 @@ export function buildConversationalMemoryExtractionPrompt(
 }
 
 const COMPACT_ASSISTANT_CONTEXT_MAX_UTF8_BYTES = 2_048;
+const COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_RULES = [
+  "Rules:",
+  "- Scan clause by clause; emit every durable explicit claim and durable side facts exactly once.",
+  "- From assistant messages emit only concrete contributions to shared state; skip generic advice.",
+  "- Recommendations, decisions, and commitments are facts. reference means only an external pointer: URL, file path, or document identifier.",
+  "- Preserve ordered recommendations. Preserve relational meaning; never reduce the relation to a generic attribute.",
+  "- Resolve coreference into self-contained claims. Full names; relative dates only from grounded dates; naturalize machine-style values like snake_case.",
+  "- Fact wire: m.u=subject,m.q={p:predicate,o:object}; m.q.oe (metadata.claim.objectEntity) only for a distinct named entity; n=true is negative polarity; q.m modality=planned|attempted|completed|unknown, omitted when asserted.",
+  "- s=primary source; ss=all sources for a multi-message claim; e=inferred; k=profile|preference|reference|fact|feedback|episode|noise (default fact). Skip chit-chat; count in i.",
+] as const;
+const COMPACT_CONVERSATIONAL_CONTEXTUAL_DESCRIPTOR_RULE =
+  "- Keep canonical content unchanged. Put a brief retrieval-only contextual descriptor in m.d, using only known topic, entity, and time or session.";
+const COMPACT_CONVERSATIONAL_JSON_RULE =
+  'JSON only: {"c":[{"c":"claim","s":0,"m":{"u":"subject","q":{"p":"predicate","o":"object"}}}],"i":0}. No markdown.';
+const COMPACT_CONVERSATIONAL_OPTIONAL_METADATA_RULE =
+  "Optional: m.d=context; pf=name|role|organization|location|timezone|languagePreference|currentProject; pc/pv=preference; rk/rt/rp=reference; sp=supersedes; fk/fb/sk/ap/ca/a/t=metadata; q.f/q.u=time; q.c=confidence.";
+
+export const COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_PROMPT_CONTRACT = [
+  "Extract grounded atomic memory for retrieval.",
+  ...COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_RULES,
+  COMPACT_CONVERSATIONAL_CONTEXTUAL_DESCRIPTOR_RULE,
+  "Known user identity from durable memory: <knownUserName>.",
+  COMPACT_CONVERSATIONAL_JSON_RULE,
+  COMPACT_CONVERSATIONAL_OPTIONAL_METADATA_RULE,
+  "Locale hint: <locale>",
+  "Conversation: <indexed transcript>",
+].join("\n");
 
 function utf8ByteLength(value: string): number {
   return new TextEncoder().encode(value).byteLength;
@@ -785,26 +808,9 @@ export function buildCompactConversationalMemoryExtractionPrompt(
 ): string {
   const transcript = buildCompactConversationalTranscript(input);
 
-  const rules = [
-    "Rules:",
-    "- Scan user messages clause by clause, including durable side facts inside requests; emit every durable explicit claim exactly once.",
-    "- From assistant messages, emit concrete contributions establishing shared state: recommendations, decisions, commitments, and named artifacts; skip generic advice and exposition.",
-    "- Recommendations, decisions, and commitments are facts. Use reference only for an external pointer: URL, file path, or document identifier.",
-    "- Preserve item positions in ordered recommendations or named lists.",
-    "- Preserve relational meaning (because, affects, supports, useful for); never reduce the relation to a generic attribute.",
-    "- Resolve coreference, pronouns, speakers, and vague references; make each claim self-contained.",
-    "- Prefer full entity names. Convert relative dates only with a grounded reference date.",
-    "- Rewrite machine-style values such as snake_case as natural language without changing meaning.",
-    "- Facts use m.u=subject and m.q={p:stable predicate,o:object}. n=true means negative polarity; omit for positive. q.m is non-asserted modality (planned|attempted|completed|unknown); omit asserted.",
-    "- A distinct named entity object uses m.q.oe (metadata.claim.objectEntity); omit for literals and self-relations.",
-    "- s=primary source index; ss=all source indices only for multi-message claims. e=inferred only.",
-    `- k defaults to fact. profile requires m.pf: ${MEMORY_CANDIDATE_PROFILE_FIELD_VALUES.join("|")}.`,
-    "- Skip greetings, acknowledgements, and chit-chat; count them in i.",
-  ];
+  const rules: string[] = [...COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_RULES];
   if (options?.contextualDescriptor) {
-    rules.push(
-      "- Keep canonical content unchanged. Put a brief retrieval-only contextual descriptor in m.d, using only known topic, entity, and time or session. Never prepend or invent details.",
-    );
+    rules.push(COMPACT_CONVERSATIONAL_CONTEXTUAL_DESCRIPTOR_RULE);
   }
   const knownUserName = options?.knownUserName?.trim();
 
@@ -816,9 +822,8 @@ export function buildCompactConversationalMemoryExtractionPrompt(
         ]
       : []),
     rules.join("\n"),
-    'JSON only: {"c":[candidate...],"i":ignoredCount}. No markdown.',
-    `Candidate: c=content,s=source,ss=all sources,k=kind (${MEMORY_CANDIDATE_KIND_HINT_VALUES.join("|")}),e=inferred,m=metadata. Omit defaults.`,
-    "Metadata: u=subject,d=context,q=claim,pf=profile field,pc/pv=preference,rk/rt/rp=reference,fk=fact kind,fb=feedback kind,sk=scope,ap=appliesTo,ca=category,a=attributes,sp=supersedes,t=tags. Claim: p=predicate,o=object,oe=object entity,n=negative,m=modality,f/u=validFrom/validUntil,c=confidence.",
+    COMPACT_CONVERSATIONAL_JSON_RULE,
+    COMPACT_CONVERSATIONAL_OPTIONAL_METADATA_RULE,
     `Locale hint: ${input.locale ?? "auto"}`,
     "Conversation:",
     transcript,
@@ -856,14 +861,25 @@ export function createLLMMemoryExtractor(input: {
         result:
           | MemoryExtractionResult
           | CompactConversationalMemoryExtractionResult,
-      ) => finalizeMemoryExtractionResult(
-        outputProtocol === "compact-conversational-v1"
+      ) => {
+        const validation = schema.safeParse(result);
+        if (!validation.success) {
+          throw new Error(
+            `Structured model response schema validation failed: ${
+              validation.error.issues[0]?.message ?? "invalid value"
+            }.`,
+          );
+        }
+        const parsed = validation.data;
+        return finalizeMemoryExtractionResult(
+          outputProtocol === "compact-conversational-v1"
           ? expandCompactConversationalMemoryExtractionResult(
-              result as CompactConversationalMemoryExtractionResult,
+              parsed as CompactConversationalMemoryExtractionResult,
               payload,
             )
-          : result as MemoryExtractionResult,
-      );
+          : parsed as MemoryExtractionResult,
+        );
+      };
       let attempt = 0;
 
       return withAISDKRetries(async () => {

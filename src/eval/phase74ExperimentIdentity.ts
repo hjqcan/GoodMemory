@@ -43,6 +43,10 @@ export function buildPhase74FullRunIdentityConfiguration(input: {
   dataset: EvalRunJsonObject;
   embedding: EvalRunJsonObject;
   evaluatorSource: EvalRunJsonObject;
+  confirmatoryAdmission?: {
+    confirmatoryPlan: EvalRunJsonObject;
+    parentDataset: EvalRunJsonObject;
+  };
   protectionBlueprint: EvalRunJsonObject;
   replicate: 1 | 2 | 3;
   reranker: EvalRunJsonObject;
@@ -65,6 +69,13 @@ export function buildPhase74FullRunIdentityConfiguration(input: {
     dataset: input.dataset,
     embedding: input.embedding,
     evaluatorSource: input.evaluatorSource,
+    ...(input.confirmatoryAdmission === undefined
+      ? {}
+      : {
+          confirmatoryPlan:
+            input.confirmatoryAdmission.confirmatoryPlan,
+          parentDataset: input.confirmatoryAdmission.parentDataset,
+        }),
     modelUsageAccounting: PHASE74_FULL_RUN_FIXED_CONFIGURATION.modelUsageAccounting,
     preRankLimit: PHASE74_FULL_RUN_FIXED_CONFIGURATION.preRankLimit,
     providerObjectCalls: PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
@@ -137,6 +148,42 @@ function assertProtectionBlueprint(value: unknown): void {
   }
 }
 
+function assertConfirmatoryAdmission(
+  configuration: EvalRunJsonObject,
+): void {
+  const descriptor = configuration.confirmatoryPlan;
+  const parentDataset = configuration.parentDataset;
+  const gitAnchor = isRecord(descriptor)
+    ? descriptor.gitAnchor
+    : undefined;
+  if (
+    !isRecord(descriptor) ||
+    Object.keys(descriptor).length !== 3 ||
+    descriptor.artifactKind !== "phase74-full-family-confirmatory-plan" ||
+    typeof descriptor.sha256 !== "string" ||
+    !/^[0-9a-f]{64}$/u.test(descriptor.sha256) ||
+    !isRecord(gitAnchor) ||
+    Object.keys(gitAnchor).length !== 6 ||
+    typeof gitAnchor.commit !== "string" ||
+    !/^[0-9a-f]{40}$/u.test(gitAnchor.commit) ||
+    typeof gitAnchor.executionCommit !== "string" ||
+    !/^[0-9a-f]{40}$/u.test(gitAnchor.executionCommit) ||
+    typeof gitAnchor.path !== "string" ||
+    gitAnchor.path.length === 0 ||
+    gitAnchor.path.startsWith("/") ||
+    gitAnchor.path.split("/").includes("..") ||
+    gitAnchor.remote !== "origin" ||
+    gitAnchor.remoteRef !== "refs/heads/main" ||
+    gitAnchor.remoteUrl !==
+      "https://github.com/hjqcan/GoodMemory.git" ||
+    !isRecord(parentDataset)
+  ) {
+    throw new Error(
+      "Phase 74 confirmatory identity requires a valid presealed full-family plan.",
+    );
+  }
+}
+
 function assertCallBudget(value: unknown): void {
   if (
     !isRecord(value) ||
@@ -161,6 +208,20 @@ export function assertPhase74ExperimentIdentityContract(input: {
   expectedReranker: EvalRunJsonObject;
   judgeModel: EvalRunModelIdentity;
 }): void {
+  if (
+    Object.prototype.hasOwnProperty.call(
+      input.configuration,
+      "mainEvaluationPlan",
+    ) ||
+    Object.prototype.hasOwnProperty.call(
+      input.configuration,
+      "mainEvaluationAdmission",
+    )
+  ) {
+    throw new Error(
+      "Phase 74 identity field mainEvaluationPlan was removed; use confirmatoryPlan.",
+    );
+  }
   for (const [field, expected] of Object.entries(
     PHASE74_FULL_RUN_FIXED_CONFIGURATION,
   )) {
@@ -177,6 +238,26 @@ export function assertPhase74ExperimentIdentityContract(input: {
   assertModelIdentity(input.configuration.embedding, "embedding");
   assertEvaluatorSource(input.configuration.evaluatorSource);
   assertProtectionBlueprint(input.configuration.protectionBlueprint);
+  if (input.configuration.seenCasesOnly === true) {
+    const hasConfirmatoryPlan =
+      input.configuration.confirmatoryPlan !== undefined;
+    const hasParentDataset =
+      input.configuration.parentDataset !== undefined;
+    if (hasConfirmatoryPlan !== hasParentDataset) {
+      throw new Error(
+        "Phase 74 confirmatory identity requires both confirmatory plan and parent dataset.",
+      );
+    }
+    if (hasConfirmatoryPlan) {
+      assertConfirmatoryAdmission(input.configuration);
+    }
+  } else if (input.configuration.seenCasesOnly === false) {
+    throw new Error(
+      "Phase 74 confirmatory datasets cannot be marked unseen.",
+    );
+  } else {
+    throw new Error("Phase 74 experiment identity seenCasesOnly drifted.");
+  }
   assertEqual(
     input.configuration.providerObjectCalls,
     PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
