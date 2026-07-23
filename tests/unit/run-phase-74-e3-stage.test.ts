@@ -52,6 +52,7 @@ describe("Phase 74 verified E3 stage loader", () => {
         execution: bundles.execution,
         executorPid: 701,
         genericReader: async () => "Postgres",
+        prepareRetrieval: async () => {},
         renderEvidenceLedger: async () => "unused",
       });
       const scored = await scorePhase74UnscoredExecution({

@@ -58,6 +58,7 @@ describe("Phase 74 sealed scorer entrypoint", () => {
         execution: e3Bundles.execution,
         executorPid: 601,
         genericReader: async () => "Postgres",
+        prepareRetrieval: async () => {},
         renderEvidenceLedger: async () => "unused",
       });
       const deterministic = e3.artifact.rows.find(

@@ -61,6 +61,7 @@ describe("Phase 74 unscored execution", () => {
       execution: bundles.execution,
       executorPid: 100,
       genericReader: async () => "Postgres",
+      prepareRetrieval: async () => {},
       renderEvidenceLedger: async () => "unused",
     });
 
@@ -89,6 +90,7 @@ describe("Phase 74 unscored execution", () => {
       executorPid: 101,
       genericReader: async ({ context }) => `answer:${context}`,
       now: () => clock++,
+      prepareRetrieval: async () => {},
       renderEvidenceLedger: async () => "unused",
     });
 
@@ -206,6 +208,33 @@ describe("Phase 74 unscored execution", () => {
     expect(slowPreparations).toBe(1);
   });
 
+  it("treats an undefined preparation rejection as a terminal failure", async () => {
+    const bundles = buildPhase74SealedBundles({
+      cases: [testCase],
+      runId: "unscored-undefined-preparation-failure",
+      stage: "E1",
+    });
+    let retrievalCalls = 0;
+
+    await expect(runPhase74UnscoredExecution({
+      baseConfiguration: {},
+      countRenderedTokens: (content) => Buffer.byteLength(content),
+      executeRetrieval: async () => {
+        retrievalCalls += 1;
+        return snapshot("unexpected-retrieval");
+      },
+      execution: bundles.execution,
+      executorPid: 102,
+      genericReader: async () => "unused",
+      prepareRetrieval: async () => {
+        throw undefined;
+      },
+      renderEvidenceLedger: async () => "unused",
+    })).rejects.toBeUndefined();
+
+    expect(retrievalCalls).toBe(0);
+  });
+
   it("fails closed before retrieval when an ingestion barrier is absent", async () => {
     const bundles = buildPhase74SealedBundles({
       cases: [testCase],
@@ -228,6 +257,65 @@ describe("Phase 74 unscored execution", () => {
     })).rejects.toThrow("requires an ingestion preparation barrier");
 
     expect(retrievalCalls).toBe(0);
+  });
+
+  it("waits for in-flight query work and starts no later case after failure", async () => {
+    const cases = [
+      testCase,
+      {
+        ...testCase,
+        caseId: "private-upstream-id-2",
+        question: "Which cache is current?",
+      },
+      {
+        ...testCase,
+        caseId: "private-upstream-id-3",
+        question: "Which queue is current?",
+      },
+    ];
+    const bundles = buildPhase74SealedBundles({
+      cases,
+      executionConfiguration: { caseConcurrency: 2 },
+      runId: "unscored-query-failure",
+      stage: "E2",
+    });
+    const [failingCaseKey, slowCaseKey, unstartedCaseKey] =
+      bundles.execution.cases.map(({ caseKey }) => caseKey);
+    const retrievalCases: string[] = [];
+    const readerCases: string[] = [];
+    let activeRetrievals = 0;
+
+    await expect(runPhase74UnscoredExecution({
+      baseConfiguration: { caseConcurrency: 2 },
+      countRenderedTokens: (content) => Buffer.byteLength(content),
+      executeRetrieval: async ({ testCase: recallCase }) => {
+        retrievalCases.push(recallCase.caseId);
+        if (recallCase.caseId === slowCaseKey) {
+          activeRetrievals += 1;
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          activeRetrievals -= 1;
+        }
+        return snapshot(`query-${recallCase.caseId}`);
+      },
+      execution: bundles.execution,
+      executorPid: 103,
+      genericReader: async ({ caseId }) => {
+        readerCases.push(caseId);
+        if (caseId === failingCaseKey) {
+          throw undefined;
+        }
+        return "unused";
+      },
+      prepareRetrieval: async () => {},
+      renderEvidenceLedger: async () => "unused",
+    })).rejects.toBeUndefined();
+
+    expect(activeRetrievals).toBe(0);
+    expect(retrievalCases).toHaveLength(2);
+    expect(retrievalCases).toContain(failingCaseKey);
+    expect(retrievalCases).toContain(slowCaseKey);
+    expect(retrievalCases).not.toContain(unstartedCaseKey);
+    expect(readerCases).toEqual([failingCaseKey]);
   });
 
   it("rejects a retrieval snapshot contaminated by scored checkpoint state", async () => {
@@ -265,6 +353,7 @@ describe("Phase 74 unscored execution", () => {
       execution: bundles.execution,
       executorPid: 101,
       genericReader: async () => "unused",
+      prepareRetrieval: async () => {},
       renderEvidenceLedger: async () => "unused",
     })).rejects.toThrow("scored retrieval state");
   });
@@ -413,6 +502,7 @@ describe("Phase 74 unscored execution", () => {
         execution: bundles.execution,
         executorPid: 203,
         genericReader: async () => "unused",
+        prepareRetrieval: async () => {},
         renderEvidenceLedger: async () => "unused",
       })).rejects.toThrow("checkpoint digest");
     } finally {
@@ -453,6 +543,7 @@ describe("Phase 74 unscored execution", () => {
       execution: bundles.execution,
       executorPid: 204,
       genericReader: async () => "Postgres",
+      prepareRetrieval: async () => {},
       renderEvidenceLedger: async () => "unused",
     });
 

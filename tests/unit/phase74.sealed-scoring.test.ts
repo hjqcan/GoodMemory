@@ -56,6 +56,7 @@ describe("Phase 74 sealed scoring", () => {
       execution: bundles.execution,
       executorPid: 301,
       genericReader: async () => readerCall++ === 0 ? "Postgres" : "wrong",
+      prepareRetrieval: async () => {},
       renderEvidenceLedger: async () => "unused",
     });
     expect(unscored.executorOutput.rows[1]?.answer).toBe("Postgres");
@@ -206,6 +207,7 @@ describe("Phase 74 sealed scoring", () => {
       execution: bundles.execution,
       executorPid: 303,
       genericReader: async () => "Postgres",
+      prepareRetrieval: async () => {},
       renderEvidenceLedger: async () => "unused",
     });
     unscored.artifact.rows[0]!.answer = "tampered";
@@ -249,6 +251,7 @@ describe("Phase 74 sealed scoring", () => {
       execution: e3Bundles.execution,
       executorPid: 501,
       genericReader: async () => "Postgres",
+      prepareRetrieval: async () => {},
       renderEvidenceLedger: async () => "unused",
     });
     const e4Bundles = buildPhase74SealedBundles({

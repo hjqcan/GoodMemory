@@ -55,6 +55,7 @@ describe("Phase 74 sealed live process entrypoints", () => {
         execution: bundles.execution,
         executorPid: process.pid,
         genericReader: async () => "Postgres",
+        prepareRetrieval: async () => {},
         renderEvidenceLedger: async () => "unused",
       });
 
