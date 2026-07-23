@@ -274,5 +274,36 @@ describe("Phase 74 sealed scoring", () => {
       scorerPid: 503,
     });
     expect(scored.receipt.oracleSha256).toBe(oracle.sha256);
+
+    const report = materializePhase74SealedReport({
+      artifact: e4.artifact,
+      escrow: e4Bundles.escrow,
+      execution: e4Bundles.execution,
+      executorOutput: e4.executorOutput,
+      identity: buildEvalRunIdentity({
+        answerModel: { gateway: "executor", model: "reader", provider: "openai" },
+        benchmark: "longmemeval-full",
+        configuration: {},
+        datasetSha256: "d".repeat(64),
+        generatedAt: "2026-07-22T00:00:00.000Z",
+        generatedBy: "sealed-test",
+        judgeModel: { gateway: "scorer", model: "judge", provider: "openai" },
+        promptSha256s: { reader: "e".repeat(64) },
+        runId: e4Bundles.execution.runId,
+      }),
+      oracleArtifact: JSON.stringify(oracle.artifact),
+      receipt: scored.receipt,
+    });
+    expect(report.oracle).toHaveLength(6);
+
+    expect(() => materializePhase74SealedReport({
+      artifact: e4.artifact,
+      escrow: e4Bundles.escrow,
+      execution: e4Bundles.execution,
+      executorOutput: e4.executorOutput,
+      identity: report.identity,
+      oracleArtifact: JSON.stringify({ ...oracle.artifact, rows: [] }),
+      receipt: scored.receipt,
+    })).toThrow("oracle artifact");
   });
 });
