@@ -196,7 +196,10 @@ describe("phase 74 generalization smoke runner", () => {
       });
       await budget.fetch("https://provider.test/v1/chat/completions");
       await budget.fetch("https://openrouter.ai/api/v1/embeddings", {
-        body: JSON.stringify({ input: "abcd" }),
+        body: JSON.stringify({
+          input: "abcd",
+          model: "text-embedding-3-small",
+        }),
         method: "POST",
       });
       await expect(
@@ -204,7 +207,10 @@ describe("phase 74 generalization smoke runner", () => {
       ).rejects.toThrow("language-call limit");
       await expect(
         budget.fetch("https://openrouter.ai/api/v1/embeddings", {
-          body: JSON.stringify({ input: "xx" }),
+          body: JSON.stringify({
+            input: "xx",
+            model: "text-embedding-3-small",
+          }),
           method: "POST",
         }),
       ).rejects.toThrow("embedding spend limit");
@@ -226,6 +232,56 @@ describe("phase 74 generalization smoke runner", () => {
       expect(JSON.parse(await readFile(path, "utf8"))).toEqual(
         resumed.snapshot(),
       );
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("prices the declared embedding profile and rejects unknown request models", async () => {
+    const root = await mkdtemp(join(tmpdir(), "phase74-call-budget-model-"));
+    const fetch = (async () =>
+      new Response("{}", { status: 200 })) as typeof globalThis.fetch;
+    const request = (model?: string) => ({
+      body: JSON.stringify({ input: "abcd", ...(model ? { model } : {}) }),
+      method: "POST",
+    });
+    try {
+      const bge = createPhase74DurableCallBudget({
+        embeddingSpendLimitUsd: 0.00000005,
+        fetch,
+        maxLanguageCalls: 1,
+        path: join(root, "bge.json"),
+      });
+      await expect(bge.fetch(
+        "https://openrouter.ai/api/v1/embeddings",
+        request("baai/bge-m3"),
+      )).resolves.toBeInstanceOf(Response);
+
+      const textSmall = createPhase74DurableCallBudget({
+        embeddingSpendLimitUsd: 0.00000005,
+        fetch,
+        maxLanguageCalls: 1,
+        path: join(root, "text-small.json"),
+      });
+      await expect(textSmall.fetch(
+        "https://openrouter.ai/api/v1/embeddings",
+        request("text-embedding-3-small"),
+      )).rejects.toThrow("embedding spend limit");
+
+      const invalid = createPhase74DurableCallBudget({
+        embeddingSpendLimitUsd: 1,
+        fetch,
+        maxLanguageCalls: 1,
+        path: join(root, "invalid.json"),
+      });
+      await expect(invalid.fetch(
+        "https://openrouter.ai/api/v1/embeddings",
+        request(),
+      )).rejects.toThrow("embedding model");
+      await expect(invalid.fetch(
+        "https://openrouter.ai/api/v1/embeddings",
+        request("unknown-embedding"),
+      )).rejects.toThrow("embedding model");
     } finally {
       await rm(root, { force: true, recursive: true });
     }
