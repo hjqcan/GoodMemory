@@ -16,6 +16,7 @@ import { gunzip, gzip } from "node:zlib";
 
 import {
   archivePhase74IngestionSnapshot,
+  retirePhase74StageIngestionSnapshots,
   restorePhase74IngestionSnapshot,
 } from "../../src/eval/phase74IngestionRetirement";
 
@@ -196,6 +197,70 @@ describe("Phase 74 ingestion retirement", () => {
         expect(await exists(archiveRoot)).toBe(false);
       });
     }
+  });
+
+  it("retires fact/raw after E1 and the shared atomic snapshot after E3", async () => {
+    await withDirectory(async (root) => {
+      const runDirectory = join(root, "run");
+      const snapshots = await Promise.all([
+        ["c".repeat(64), "fact-only"],
+        ["d".repeat(64), "raw-only"],
+        ["e".repeat(64), "atomic-contextual-raw-pointer"],
+      ].map(async ([ingestionKey, representation]) => {
+        const directory = join(runDirectory, "ingestion", ingestionKey!);
+        await mkdir(directory, { recursive: true });
+        await writeFile(join(directory, "manifest.json"), `${JSON.stringify({
+          key: ingestionKey,
+          representation,
+          schemaVersion: 8,
+        })}\n`, "utf8");
+        await writeFile(join(directory, "memory.sqlite"), SQLITE_BYTES);
+        return {
+          costTrace: {
+            comparisonBranch: "shadow" as const,
+            ingestionKey: ingestionKey!,
+            representation: representation!,
+          },
+        };
+      }));
+
+      const e1 = await retirePhase74StageIngestionSnapshots({
+        runDirectory,
+        runId: RUN_ID,
+        snapshots,
+        stage: "E1",
+        stageSealSha256: STAGE_SEAL_SHA256,
+      });
+      expect(e1.map(({ representation }) => representation).sort()).toEqual([
+        "fact-only",
+        "raw-only",
+      ]);
+      expect(await exists(join(
+        runDirectory,
+        "ingestion",
+        "e".repeat(64),
+        "memory.sqlite",
+      ))).toBe(true);
+
+      const e3 = await retirePhase74StageIngestionSnapshots({
+        runDirectory,
+        runId: RUN_ID,
+        snapshots,
+        stage: "E3",
+        stageSealSha256: "f".repeat(64),
+      });
+      expect(e3.map(({ representation }) => representation)).toEqual([
+        "atomic-contextual-raw-pointer",
+      ]);
+      for (const { costTrace } of snapshots) {
+        expect(await exists(join(
+          runDirectory,
+          "ingestion",
+          costTrace.ingestionKey,
+          "memory.sqlite",
+        ))).toBe(false);
+      }
+    });
   });
 });
 
