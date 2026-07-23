@@ -44,6 +44,33 @@ import type {
   Phase74RetrievalSnapshot,
 } from "../src/eval/phase74Generalization";
 import {
+  parsePhase74SealedEscrowBundle,
+  parsePhase74SealedExecutionBundle,
+  parsePhase74SealedExecutorOutput,
+  parsePhase74SealedScoreReceipt,
+  sha256Phase74SealedConfiguration,
+  verifyPhase74SealedProcessManifest,
+  verifyPhase74SealedScoreReceipt,
+} from "../src/eval/phase74SealedExecution";
+import type {
+  Phase74SealedEscrowBundle,
+  Phase74SealedExecutionBundle,
+  Phase74SealedExecutorOutput,
+  Phase74SealedScoreReceipt,
+} from "../src/eval/phase74SealedExecution";
+import {
+  materializePhase74SealedReport,
+  materializePhase74SealedRetrievalSnapshots,
+} from "../src/eval/phase74SealedScoring";
+import {
+  parsePhase74UnscoredArtifact,
+  serializePhase74UnscoredArtifact,
+  sha256Phase74UnscoredArtifact,
+} from "../src/eval/phase74UnscoredExecution";
+import type {
+  Phase74UnscoredExecutionArtifact,
+} from "../src/eval/phase74UnscoredExecution";
+import {
   evaluatePhase74PromotionGate,
   PHASE74_MAX_PROTECTION_REGRESSION,
   PHASE74_MODEL_USAGE_ACCOUNTING_VERSION,
@@ -155,12 +182,22 @@ interface RetrievalStageArtifact {
   modelUsage: Phase74ModelUsageEvidence;
   renderedContextMaxTokens: number;
   rows: RetrievalProgressRow[];
+  sealed: VerifiedSealedStage;
 }
 
 interface E4StageArtifact {
   executionFailures: number;
   renderedContextMaxTokens: number;
   rows: E4ProgressRow[];
+  sealed: VerifiedSealedStage;
+}
+
+interface VerifiedSealedStage {
+  artifact: Phase74UnscoredExecutionArtifact;
+  escrow: Phase74SealedEscrowBundle;
+  execution: Phase74SealedExecutionBundle;
+  executorOutput: Phase74SealedExecutorOutput;
+  receipt: Phase74SealedScoreReceipt;
 }
 
 interface RunArtifact {
@@ -638,6 +675,209 @@ async function readJsonLines(path: string, label: string): Promise<unknown[]> {
       );
     }
   });
+}
+
+async function readText(path: string, label: string): Promise<string> {
+  try {
+    return await readFile(path, "utf8");
+  } catch (error) {
+    throw new Error(`Phase 74 cannot read ${label} at ${path}.`, {
+      cause: error,
+    });
+  }
+}
+
+async function loadVerifiedSealedStage(input: {
+  base: RunBaseArtifact;
+  expectedE3Artifact?: Phase74UnscoredExecutionArtifact;
+  stage: ExperimentStage;
+}): Promise<VerifiedSealedStage> {
+  const prefix = input.stage.toLowerCase();
+  const evidenceDirectory = join(
+    input.base.runDirectory,
+    "sealed-evidence",
+    prefix,
+  );
+  const [
+    artifactRaw,
+    executionValue,
+    escrowValue,
+    executorOutputValue,
+    receiptValue,
+    processManifestValue,
+  ] = await Promise.all([
+    readText(
+      join(input.base.runDirectory, `${prefix}-executor-artifact.json`),
+      `${input.stage} sealed executor artifact`,
+    ),
+    readJson(
+      join(evidenceDirectory, "execution.json"),
+      `${input.stage} sealed execution`,
+    ),
+    readJson(
+      join(evidenceDirectory, "escrow.json"),
+      `${input.stage} sealed escrow`,
+    ),
+    readJson(
+      join(evidenceDirectory, "executor-output.json"),
+      `${input.stage} sealed executor output`,
+    ),
+    readJson(
+      join(evidenceDirectory, "score-receipt.json"),
+      `${input.stage} sealed score receipt`,
+    ),
+    readJson(
+      join(input.base.runDirectory, `${prefix}-process-manifest.json`),
+      `${input.stage} sealed process manifest`,
+    ),
+  ]);
+  let artifactValue: unknown;
+  try {
+    artifactValue = JSON.parse(artifactRaw) as unknown;
+  } catch (error) {
+    throw new Error(`Phase 74 ${input.stage} sealed executor artifact is not valid JSON.`, {
+      cause: error,
+    });
+  }
+  const artifact = parsePhase74UnscoredArtifact(artifactValue);
+  const execution = parsePhase74SealedExecutionBundle(executionValue);
+  const escrow = parsePhase74SealedEscrowBundle(escrowValue);
+  const executorOutput = parsePhase74SealedExecutorOutput(executorOutputValue);
+  const receipt = parsePhase74SealedScoreReceipt(receiptValue);
+  if (artifactRaw !== serializePhase74UnscoredArtifact(artifact)) {
+    throw new Error(
+      `Phase 74 ${input.stage} sealed executor artifact bytes are not canonical.`,
+    );
+  }
+  verifyPhase74SealedScoreReceipt({
+    escrow,
+    execution,
+    executorOutput,
+    receipt,
+  });
+  verifyPhase74SealedProcessManifest({
+    execution,
+    executorOutput,
+    manifest: processManifestValue,
+    receipt,
+  });
+  const caseConcurrency = positiveIntegerValue(
+    input.base.identity.configuration.caseConcurrency,
+    `${input.stage} sealed caseConcurrency`,
+  );
+  const originalCaseIds = escrow.cases.map(({ originalCaseId }) =>
+    originalCaseId
+  );
+  const caseKeys = execution.cases.map(({ caseKey }) => caseKey);
+  if (
+    execution.runId !== input.base.identity.runId ||
+    escrow.runId !== input.base.identity.runId ||
+    execution.stage !== input.stage ||
+    artifact.stage !== input.stage ||
+    artifact.runId !== input.base.identity.runId ||
+    execution.caseConcurrency !== caseConcurrency ||
+    execution.configurationSha256 !== sha256Phase74SealedConfiguration({
+      caseConcurrency,
+    }) ||
+    execution.cases.length !== input.base.dataset.caseCount ||
+    escrow.cases.length !== input.base.dataset.caseCount ||
+    sha256(JSON.stringify(originalCaseIds)) !==
+      input.base.dataset.selectedCaseIdsSha256 ||
+    sha256(JSON.stringify([...caseKeys].sort())) !==
+      input.base.selectedCaseKeysSha256 ||
+    escrow.cases.some(({ family }) => family !== input.base.benchmark)
+  ) {
+    throw new Error(
+      `Phase 74 ${input.stage} sealed stage identity or population drifted.`,
+    );
+  }
+
+  const reportRaw = await readJson(
+    join(input.base.runDirectory, `${prefix}-report.json`),
+    `${input.stage} sealed materialized report`,
+  );
+  let oracleRaw: string | undefined;
+  if (input.stage === "E4") {
+    if (input.expectedE3Artifact === undefined) {
+      throw new Error("Phase 74 E4 sealed stage requires the verified E3 artifact.");
+    }
+    const [rootOracle, evidenceOracle] = await Promise.all([
+      readText(
+        join(input.base.runDirectory, "e4-oracle-artifact.json"),
+        "E4 sealed root oracle artifact",
+      ),
+      readText(
+        join(evidenceDirectory, "oracle-artifact.json"),
+        "E4 sealed evidence oracle artifact",
+      ),
+    ]);
+    if (rootOracle !== evidenceOracle) {
+      throw new Error("Phase 74 E4 sealed oracle artifact copies drifted.");
+    }
+    oracleRaw = rootOracle;
+  } else if (
+    receipt.oracleSha256 !== undefined ||
+    input.expectedE3Artifact !== undefined
+  ) {
+    throw new Error(`Phase 74 ${input.stage} sealed oracle boundary drifted.`);
+  }
+  const report = materializePhase74SealedReport({
+    artifact,
+    escrow,
+    execution,
+    executorOutput,
+    ...(input.expectedE3Artifact === undefined
+      ? {}
+      : {
+          expectedE3ArtifactSha256: sha256Phase74UnscoredArtifact(
+            input.expectedE3Artifact,
+          ),
+        }),
+    identity: input.base.identity,
+    ...(oracleRaw === undefined ? {} : { oracleArtifact: oracleRaw }),
+    receipt,
+  });
+  if (stableJson(reportRaw) !== stableJson(report)) {
+    throw new Error(
+      `Phase 74 ${input.stage} sealed materialized report drifted.`,
+    );
+  }
+  const progress = await readJsonLines(
+    join(input.base.runDirectory, `${prefix}-progress.jsonl`),
+    `${input.stage} sealed materialized progress`,
+  );
+  const expectedProgress = input.stage === "E4"
+    ? report.e4.cases
+    : report.executions;
+  if (stableJson(progress) !== stableJson(expectedProgress)) {
+    throw new Error(
+      `Phase 74 ${input.stage} sealed materialized progress drifted.`,
+    );
+  }
+  if (input.stage === "E4") {
+    const oracleMatrix = await readJsonLines(
+      join(input.base.runDirectory, "oracle-matrix.jsonl"),
+      "E4 sealed oracle matrix",
+    );
+    if (stableJson(oracleMatrix) !== stableJson(report.oracle)) {
+      throw new Error("Phase 74 E4 sealed oracle matrix drifted.");
+    }
+  } else {
+    const packets = await readJsonLines(
+      join(input.base.runDirectory, `${prefix}-retrieval-packets.jsonl`),
+      `${input.stage} sealed materialized retrieval packets`,
+    );
+    const expectedPackets = materializePhase74SealedRetrievalSnapshots({
+      artifact,
+      report,
+    });
+    if (stableJson(packets) !== stableJson(expectedPackets)) {
+      throw new Error(
+        `Phase 74 ${input.stage} sealed materialized retrieval packets drifted.`,
+      );
+    }
+  }
+  return { artifact, escrow, execution, executorOutput, receipt };
 }
 
 async function loadRequiredModelUsageLedger(input: {
@@ -1839,12 +2079,14 @@ async function loadRetrievalStageArtifact(
   ) {
     throw new Error(`Phase 74 ${stage} raw model usage drift.`);
   }
+  const sealed = await loadVerifiedSealedStage({ base, stage });
   return {
     comparison,
     executionFailures: summary.executionFailures,
     modelUsage,
     renderedContextMaxTokens,
     rows,
+    sealed,
   };
 }
 
@@ -1865,6 +2107,14 @@ async function loadRunArtifact(runDirectory: string): Promise<RunArtifact> {
     );
     if (rows.some(({ caseId, clusterId }) => e1Clusters.get(caseId) !== clusterId)) {
       throw new Error(`Phase 74 ${stage} cluster population drifted from E1.`);
+    }
+    if (
+      stableJson(retrieval[stage].sealed.execution.cases) !==
+        stableJson(retrieval.E1.sealed.execution.cases) ||
+      stableJson(retrieval[stage].sealed.escrow.cases) !==
+        stableJson(retrieval.E1.sealed.escrow.cases)
+    ) {
+      throw new Error(`Phase 74 ${stage} sealed case population drifted from E1.`);
     }
   }
 
@@ -1960,6 +2210,19 @@ async function loadRunArtifact(runDirectory: string): Promise<RunArtifact> {
   if (e4Usage.status !== "not_applicable") {
     throw new Error("Phase 74 E4 model usage summary must be not_applicable.");
   }
+  const sealed = await loadVerifiedSealedStage({
+    base,
+    expectedE3Artifact: retrieval.E3.sealed.artifact,
+    stage: "E4",
+  });
+  if (
+    stableJson(sealed.execution.cases) !==
+      stableJson(retrieval.E1.sealed.execution.cases) ||
+    stableJson(sealed.escrow.cases) !==
+      stableJson(retrieval.E1.sealed.escrow.cases)
+  ) {
+    throw new Error("Phase 74 E4 sealed case population drifted from E1.");
+  }
   return {
     benchmark: base.benchmark,
     dataset: base.dataset,
@@ -1974,6 +2237,7 @@ async function loadRunArtifact(runDirectory: string): Promise<RunArtifact> {
       executionFailures: e4Summary.executionFailures,
       renderedContextMaxTokens: e4Summary.renderedContextMaxTokens,
       rows: e4Rows,
+      sealed,
     },
   };
 }

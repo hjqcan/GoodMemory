@@ -564,6 +564,7 @@ interface FixtureOptions {
     replicate: 1 | 2 | 3;
   };
   protectionEvaluatorSourceMismatch?: boolean;
+  sharedE2Snapshots?: boolean;
   subsetSelection?: boolean;
   unequalClusterE2?: boolean;
 }
@@ -950,9 +951,12 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
               ingestionUsageRows(ingestionKey),
             );
           }
+          const snapshotCaseId = options.sharedE2Snapshots && stage === "E2"
+            ? cases[0]!.caseId
+            : row.caseId;
           const retrievedMemories = [{
-            content: `evidence for ${row.caseId}`,
-            id: `${row.caseId}-${row.arm}`,
+            content: `evidence for ${snapshotCaseId}`,
+            id: `${snapshotCaseId}-${row.arm}`,
             sourceIds: [],
           }];
           const storedMemories: unknown[] = [];
@@ -1363,8 +1367,11 @@ describe("Phase 74 frozen artifact aggregation", () => {
 
     const reportPath = join(runDirectory, "e2-report.json");
     const report = JSON.parse(await readFile(reportPath, "utf8"));
-    const reportRow = report.executions.find(({ arm, caseId }) =>
-      arm === forged.arm && caseId === forged.caseId
+    const reportRow = report.executions.find((entry: {
+      arm: string;
+      caseId: string;
+    }) =>
+      entry.arm === forged.arm && entry.caseId === forged.caseId
     );
     reportRow.score = 0.5;
     reportRow.evaluationAttribution.observedScore = 0.5;
@@ -1939,43 +1946,12 @@ describe("Phase 74 frozen artifact aggregation", () => {
   it("accepts content-addressed snapshots shared by multiple cases", async () => {
     const fixture = await createArtifactFixture({
       admission: "deterministic-reranker",
+      sharedE2Snapshots: true,
       subsetSelection: true,
     });
     const runDirectories = fixture.runDirectories.filter((path) =>
       path.includes("locomo-replicate-")
     );
-    const runDirectory = runDirectories[0]!;
-    const progressPath = join(runDirectory, "e2-progress.jsonl");
-    const rows = (await readFile(progressPath, "utf8"))
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line));
-    const first = rows[0];
-    const second = rows.find(({ arm, caseId }) =>
-      arm === first.arm && caseId !== first.caseId
-    );
-    const secondSnapshotId = second.snapshotId;
-    second.snapshotId = first.snapshotId;
-    second.evaluationAttribution.sourceSnapshotId = first.snapshotId;
-    await writeJsonLines(progressPath, rows);
-
-    const packetsPath = join(runDirectory, "e2-retrieval-packets.jsonl");
-    const packets = (await readFile(packetsPath, "utf8"))
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line));
-    const firstPacket = packets.find(({ snapshotId }) =>
-      snapshotId === first.snapshotId
-    );
-    const secondPacket = packets.find(({ snapshotId }) =>
-      snapshotId === secondSnapshotId
-    );
-    secondPacket.retrievedMemories = firstPacket.retrievedMemories;
-    secondPacket.storedMemories = firstPacket.storedMemories;
-    secondPacket.snapshotId = firstPacket.snapshotId;
-    secondPacket.evaluation.attribution.sourceSnapshotId = firstPacket.snapshotId;
-    await writeJsonLines(packetsPath, packets);
-
     const report = await aggregatePhase74StageDiagnosticArtifacts({
       runDirectories,
       stage: "E2",
@@ -2228,18 +2204,23 @@ describe("Phase 74 frozen artifact aggregation", () => {
     );
   });
 
-  it("reports explicit blockers for legacy E4 scores and missing protection", async () => {
-    const fixture = await createArtifactFixture({
+  it("rejects legacy E4 rows without sealed scores", async () => {
+    const legacyFixture = await createArtifactFixture({
       includeE4Scores: false,
     });
 
+    await expect(aggregatePhase74GeneralizationArtifacts({
+      promotionStage: "E3",
+      runDirectories: legacyFixture.runDirectories,
+    }, { protectionVerifiers: legacyFixture.protection.verifiers }))
+      .rejects.toThrow("sealed materialized report drifted");
+
+    const fixture = await createArtifactFixture();
     const report = await aggregatePhase74GeneralizationArtifacts({
       promotionStage: "E3",
       runDirectories: fixture.runDirectories,
     }, { protectionVerifiers: fixture.protection.verifiers });
-
     expect(report.e4.status).toBe("not_evaluable");
-    expect(report.e4.gaps.join(" ")).toContain("per-case score");
     expect(report.e4.gaps.join(" ")).toContain("protection artifact");
     expect(report.promotion.status).toBe("not_evaluable");
     expect(report.promotion.gaps.join(" ")).toContain("seen-case");
@@ -2319,7 +2300,7 @@ describe("Phase 74 frozen artifact aggregation", () => {
     await writeJsonLines(e3ProgressPath, e3Progress);
     await expect(aggregatePhase74GeneralizationArtifacts({
       runDirectories: stageFixture.runDirectories,
-    })).rejects.toThrow("cluster population drifted from E1");
+    })).rejects.toThrow("sealed materialized progress drifted");
 
     const e4Fixture = await createArtifactFixture();
     const e4Run = e4Fixture.runDirectories[0]!;
