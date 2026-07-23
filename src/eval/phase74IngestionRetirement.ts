@@ -57,7 +57,23 @@ export interface ArchivePhase74IngestionSnapshotInput {
 
 export interface RestorePhase74IngestionSnapshotInput {
   destinationSqlitePath: string;
+  expectedIngestionKey?: string;
+  expectedRepresentation?: string;
+  expectedSourceSqlitePath?: string;
   receiptPath: string;
+}
+
+export interface RetirePhase74StageIngestionSnapshotsInput {
+  runDirectory: string;
+  runId: string;
+  snapshots: readonly {
+    costTrace?: {
+      ingestionKey: string;
+      representation: string;
+    };
+  }[];
+  stage: "E1" | "E2" | "E3" | "E4";
+  stageSealSha256: string;
 }
 
 export async function archivePhase74IngestionSnapshot(
@@ -121,6 +137,16 @@ export async function restorePhase74IngestionSnapshot(
   input: RestorePhase74IngestionSnapshotInput,
 ): Promise<Phase74IngestionArchiveReceipt> {
   const receipt = parseReceipt(await readFile(input.receiptPath));
+  if (
+    (input.expectedIngestionKey !== undefined &&
+      receipt.ingestionKey !== input.expectedIngestionKey) ||
+    (input.expectedRepresentation !== undefined &&
+      receipt.representation !== input.expectedRepresentation) ||
+    (input.expectedSourceSqlitePath !== undefined &&
+      receipt.source.path !== input.expectedSourceSqlitePath)
+  ) {
+    throw new Error("Phase 74 ingestion restore identity drifted.");
+  }
   await verifyFile(receipt.manifest);
   const sourceBytes = await verifyArchive(receipt);
   await writeCreateOnlyExact(input.destinationSqlitePath, sourceBytes);
@@ -130,6 +156,63 @@ export async function restorePhase74IngestionSnapshot(
     "restored SQLite",
   );
   return receipt;
+}
+
+export async function retirePhase74StageIngestionSnapshots(
+  input: RetirePhase74StageIngestionSnapshotsInput,
+): Promise<Phase74IngestionArchiveReceipt[]> {
+  const representations = input.stage === "E1"
+    ? new Set(["fact-only", "raw-only"])
+    : input.stage === "E3"
+      ? new Set(["atomic-contextual-raw-pointer"])
+      : new Set<string>();
+  if (representations.size === 0) {
+    return [];
+  }
+  const selected = new Map<string, string>();
+  for (const snapshot of input.snapshots) {
+    const trace = snapshot.costTrace;
+    if (trace === undefined || !representations.has(trace.representation)) {
+      continue;
+    }
+    const existing = selected.get(trace.ingestionKey);
+    if (existing !== undefined && existing !== trace.representation) {
+      throw new Error("Phase 74 ingestion retirement representation drifted.");
+    }
+    selected.set(trace.ingestionKey, trace.representation);
+  }
+  const entries = [...selected].sort(([left], [right]) =>
+    left.localeCompare(right)
+  );
+  const receipts = new Array<Phase74IngestionArchiveReceipt>(entries.length);
+  let next = 0;
+  await Promise.all(Array.from(
+    { length: Math.min(4, entries.length) },
+    async () => {
+      while (next < entries.length) {
+        const index = next;
+        next += 1;
+        const [ingestionKey, representation] = entries[index]!;
+        const directory = join(input.runDirectory, "ingestion", ingestionKey);
+        receipts[index] = await archivePhase74IngestionSnapshot({
+          archiveRoot: join(input.runDirectory, "ingestion-archive"),
+          ingestionKey,
+          receiptPath: join(
+            input.runDirectory,
+            "ingestion-retirement",
+            `${ingestionKey}.json`,
+          ),
+          representation,
+          runId: input.runId,
+          sourceManifestPath: join(directory, "manifest.json"),
+          sourceSqlitePath: join(directory, "memory.sqlite"),
+          stage: input.stage,
+          stageSealSha256: input.stageSealSha256,
+        });
+      }
+    },
+  ));
+  return receipts;
 }
 
 function parseReceipt(
