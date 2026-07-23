@@ -1157,7 +1157,9 @@ export async function runPhase74GeneralizationFull(
     ),
   };
   const artifactPath = join(runDirectory, `${prefix}-executor-artifact.json`);
-  const executionConfiguration: EvalRunJsonObject = {};
+  const executionConfiguration: EvalRunJsonObject = {
+    caseConcurrency: options.caseConcurrency ?? 1,
+  };
   const bundles = buildPhase74SealedBundles({
     cases: selectedCases,
     executionConfiguration,

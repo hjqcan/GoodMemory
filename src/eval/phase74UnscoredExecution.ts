@@ -346,145 +346,167 @@ export async function runPhase74UnscoredExecution(
     input.baseConfiguration,
     execution.stage,
   );
-  const cases = new Map(execution.cases.map((testCase) => [
-    testCase.caseKey,
-    testCase,
-  ]));
-  const readerResults = new Map<
-    string,
-    { answer: string; rowKey: string; snapshotId: string }
-  >();
-  const rows: Phase74UnscoredRow[] = [];
   const now = input.now ?? (() => performance.now());
-
-  for (const expected of listPhase74SealedExpectedRows(execution)) {
-    const testCase = cases.get(expected.caseKey);
-    if (testCase === undefined) {
-      throw new Error(`Unknown Phase 74 sealed case ${expected.caseKey}.`);
-    }
-    const cached = await input.checkpoint?.load(expected.rowKey) ?? null;
-    if (cached !== null) {
-      rows.push(cached);
-      readerResults.set(`${cached.caseKey}:${cached.readerInputSha256}`, {
-        answer: cached.answer,
-        rowKey: cached.sourceRowKey,
-        snapshotId: cached.sourceSnapshotId,
-      });
-      continue;
-    }
-    const productStartedAt = now();
-    let renderedContext: string;
-    let snapshot: Phase74UnscoredRetrievalSnapshot;
-    if (execution.stage === "E4") {
-      const loaded = await input.loadDeterministicSnapshot?.(testCase.caseKey) ??
-        null;
-      if (loaded === null) {
-        throw new Error(
-          `Phase 74 E4 lacks an unscored E3 snapshot for ${testCase.caseKey}.`,
-        );
-      }
-      snapshot = withoutEvaluation(loaded);
-      renderedContext = await input.renderEvidenceLedger({
-        format: expected.unit as EvidenceLedgerFormat,
-        ...(testCase.locale === undefined ? {} : { locale: testCase.locale }),
-        snapshot,
-      });
-    } else {
-      const configuration = configurations[expected.unit];
-      if (configuration === undefined) {
-        throw new Error(`Unknown Phase 74 ${execution.stage} unit ${expected.unit}.`);
-      }
-      snapshot = withoutEvaluation(await input.executeRetrieval({
-        arm: expected.unit as Phase74RetrievalExecutionInput["arm"],
-        configuration,
-        stage: execution.stage,
-        testCase: recallCase(testCase),
-      }));
-      renderedContext = renderOracleMatrixContext(snapshot.retrievedMemories);
-    }
-    const recallCompletedAt = now();
-    const budgeted = truncateRenderedContext({
-      content: renderedContext,
-      contextTokenBudget:
-        input.contextTokenBudget ?? PHASE74_CONTEXT_TOKEN_BUDGET,
-      countRenderedTokens: input.countRenderedTokens,
-    });
-    const readerInputSha256 = sha256(JSON.stringify({
-      context: budgeted.content,
-      question: testCase.question,
-      stage: execution.stage,
-    }));
-    const answerStartedAt = now();
-    const observedAnswer = await input.genericReader({
-      caseId: testCase.caseKey,
-      context: budgeted.content,
-      purpose: execution.stage === "E4"
-        ? `e4:${expected.unit}`
-        : `final:${phase74ComparisonBranch(
-          execution.stage,
-          expected.unit as Phase74RetrievalExecutionInput["arm"],
-        )}:${execution.stage}:${expected.unit}`,
-      question: testCase.question,
-    });
-    const answerCompletedAt = now();
-    const readerKey = `${testCase.caseKey}:${readerInputSha256}`;
-    const source = readerResults.get(readerKey);
-    const answer = source?.answer ?? observedAnswer;
-    const sourceRowKey = source?.rowKey ?? expected.rowKey;
-    const sourceSnapshotId = source?.snapshotId ?? snapshot.snapshotId;
-    if (source === undefined) {
-      readerResults.set(readerKey, {
-        answer,
-        rowKey: sourceRowKey,
-        snapshotId: sourceSnapshotId,
-      });
-    }
-    const common: Phase74UnscoredRowBase = {
-      answer,
-      answerLatencyMs: Math.max(0, answerCompletedAt - answerStartedAt),
-      caseKey: testCase.caseKey,
-      clusterKey: testCase.memoryGroupId ?? testCase.caseKey,
-      contextTokens: budgeted.renderedContextTokens,
-      contextTokensBeforeTruncation:
-        budgeted.renderedContextTokensBeforeTruncation,
-      contextTruncated: budgeted.contextTruncated,
-      observedAnswer,
-      productLatencyMs:
-        snapshot.recallMetadata?.queryPathLatencyMs === undefined
-          ? Math.max(0, answerCompletedAt - productStartedAt)
-          : Math.max(
-              0,
-              snapshot.recallMetadata.queryPathLatencyMs +
-                answerCompletedAt - recallCompletedAt,
-            ),
-      readerInputSha256,
-      recallLatencyMs: snapshot.recallMetadata?.latencyMs ??
-        Math.max(0, recallCompletedAt - productStartedAt),
-      renderedContext: budgeted.content,
-      renderedContextSha256: sha256(budgeted.content),
-      reused: source !== undefined,
-      rowKey: expected.rowKey,
-      sourceRowKey,
-      sourceSnapshotId,
-      unit: expected.unit,
-    };
-    const row: Phase74UnscoredRow = execution.stage === "E4"
-      ? {
-          ...common,
-          format: expected.unit as EvidenceLedgerFormat,
-          kind: "ledger",
-          renderedLedgerSha256: sha256(budgeted.content),
-          stage: "E4",
-        }
-      : {
-          ...common,
-          kind: "retrieval",
-          snapshot,
-          stage: execution.stage,
-        };
-    await input.checkpoint?.save(row);
-    rows.push(row);
+  const expectedRows = listPhase74SealedExpectedRows(execution);
+  const concurrencyValue = input.baseConfiguration.caseConcurrency;
+  const caseConcurrency = concurrencyValue === undefined ? 1 : concurrencyValue;
+  if (!Number.isSafeInteger(caseConcurrency) || Number(caseConcurrency) <= 0) {
+    throw new Error("Phase 74 sealed caseConcurrency must be a positive integer.");
   }
+
+  const executeCase = async (
+    testCase: Phase74SealedExecutionBundle["cases"][number],
+  ): Promise<Phase74UnscoredRow[]> => {
+    const readerResults = new Map<
+      string,
+      { answer: string; rowKey: string; snapshotId: string }
+    >();
+    const caseRows: Phase74UnscoredRow[] = [];
+    for (const expected of expectedRows.filter((row) =>
+      row.caseKey === testCase.caseKey
+    )) {
+      const cached = await input.checkpoint?.load(expected.rowKey) ?? null;
+      if (cached !== null) {
+        caseRows.push(cached);
+        readerResults.set(`${cached.caseKey}:${cached.readerInputSha256}`, {
+          answer: cached.answer,
+          rowKey: cached.sourceRowKey,
+          snapshotId: cached.sourceSnapshotId,
+        });
+        continue;
+      }
+      const productStartedAt = now();
+      let renderedContext: string;
+      let snapshot: Phase74UnscoredRetrievalSnapshot;
+      if (execution.stage === "E4") {
+        const loaded = await input.loadDeterministicSnapshot?.(testCase.caseKey) ??
+          null;
+        if (loaded === null) {
+          throw new Error(
+            `Phase 74 E4 lacks an unscored E3 snapshot for ${testCase.caseKey}.`,
+          );
+        }
+        snapshot = withoutEvaluation(loaded);
+        renderedContext = await input.renderEvidenceLedger({
+          format: expected.unit as EvidenceLedgerFormat,
+          ...(testCase.locale === undefined ? {} : { locale: testCase.locale }),
+          snapshot,
+        });
+      } else {
+        const configuration = configurations[expected.unit];
+        if (configuration === undefined) {
+          throw new Error(
+            `Unknown Phase 74 ${execution.stage} unit ${expected.unit}.`,
+          );
+        }
+        snapshot = withoutEvaluation(await input.executeRetrieval({
+          arm: expected.unit as Phase74RetrievalExecutionInput["arm"],
+          configuration,
+          stage: execution.stage,
+          testCase: recallCase(testCase),
+        }));
+        renderedContext = renderOracleMatrixContext(snapshot.retrievedMemories);
+      }
+      const recallCompletedAt = now();
+      const budgeted = truncateRenderedContext({
+        content: renderedContext,
+        contextTokenBudget:
+          input.contextTokenBudget ?? PHASE74_CONTEXT_TOKEN_BUDGET,
+        countRenderedTokens: input.countRenderedTokens,
+      });
+      const readerInputSha256 = sha256(JSON.stringify({
+        context: budgeted.content,
+        question: testCase.question,
+        stage: execution.stage,
+      }));
+      const answerStartedAt = now();
+      const observedAnswer = await input.genericReader({
+        caseId: testCase.caseKey,
+        context: budgeted.content,
+        purpose: execution.stage === "E4"
+          ? `e4:${expected.unit}`
+          : `final:${phase74ComparisonBranch(
+            execution.stage,
+            expected.unit as Phase74RetrievalExecutionInput["arm"],
+          )}:${execution.stage}:${expected.unit}`,
+        question: testCase.question,
+      });
+      const answerCompletedAt = now();
+      const readerKey = `${testCase.caseKey}:${readerInputSha256}`;
+      const source = readerResults.get(readerKey);
+      const answer = source?.answer ?? observedAnswer;
+      const sourceRowKey = source?.rowKey ?? expected.rowKey;
+      const sourceSnapshotId = source?.snapshotId ?? snapshot.snapshotId;
+      if (source === undefined) {
+        readerResults.set(readerKey, {
+          answer,
+          rowKey: sourceRowKey,
+          snapshotId: sourceSnapshotId,
+        });
+      }
+      const common: Phase74UnscoredRowBase = {
+        answer,
+        answerLatencyMs: Math.max(0, answerCompletedAt - answerStartedAt),
+        caseKey: testCase.caseKey,
+        clusterKey: testCase.memoryGroupId ?? testCase.caseKey,
+        contextTokens: budgeted.renderedContextTokens,
+        contextTokensBeforeTruncation:
+          budgeted.renderedContextTokensBeforeTruncation,
+        contextTruncated: budgeted.contextTruncated,
+        observedAnswer,
+        productLatencyMs:
+          snapshot.recallMetadata?.queryPathLatencyMs === undefined
+            ? Math.max(0, answerCompletedAt - productStartedAt)
+            : Math.max(
+                0,
+                snapshot.recallMetadata.queryPathLatencyMs +
+                  answerCompletedAt - recallCompletedAt,
+              ),
+        readerInputSha256,
+        recallLatencyMs: snapshot.recallMetadata?.latencyMs ??
+          Math.max(0, recallCompletedAt - productStartedAt),
+        renderedContext: budgeted.content,
+        renderedContextSha256: sha256(budgeted.content),
+        reused: source !== undefined,
+        rowKey: expected.rowKey,
+        sourceRowKey,
+        sourceSnapshotId,
+        unit: expected.unit,
+      };
+      const row: Phase74UnscoredRow = execution.stage === "E4"
+        ? {
+            ...common,
+            format: expected.unit as EvidenceLedgerFormat,
+            kind: "ledger",
+            renderedLedgerSha256: sha256(budgeted.content),
+            stage: "E4",
+          }
+        : {
+            ...common,
+            kind: "retrieval",
+            snapshot,
+            stage: execution.stage,
+          };
+      await input.checkpoint?.save(row);
+      caseRows.push(row);
+    }
+    return caseRows;
+  };
+
+  const caseResults = new Array<Phase74UnscoredRow[]>(execution.cases.length);
+  let nextCase = 0;
+  const workers = Array.from(
+    { length: Math.min(Number(caseConcurrency), execution.cases.length) },
+    async () => {
+      while (nextCase < execution.cases.length) {
+        const index = nextCase;
+        nextCase += 1;
+        caseResults[index] = await executeCase(execution.cases[index]!);
+      }
+    },
+  );
+  await Promise.all(workers);
+  const rows = caseResults.flat();
 
   const artifact: Phase74UnscoredExecutionArtifact = {
     executionSha256: sha256Phase74SealedExecution(execution),
