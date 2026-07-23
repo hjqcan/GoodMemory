@@ -124,6 +124,31 @@ describe("Phase 74 unscored execution", () => {
     })).rejects.toThrow("scored retrieval state");
   });
 
+  it("rejects execution configuration drift before retrieval", async () => {
+    const bundles = buildPhase74SealedBundles({
+      cases: [testCase],
+      executionConfiguration: {
+        retrieval: { preRankLimit: 32, selectedLimit: 12 },
+      },
+      runId: "unscored-config-drift",
+      stage: "E2",
+    });
+    let retrievalCalls = 0;
+    await expect(runPhase74UnscoredExecution({
+      baseConfiguration: {},
+      countRenderedTokens: (content) => content.length,
+      executeRetrieval: async () => {
+        retrievalCalls += 1;
+        return snapshot("unused");
+      },
+      execution: bundles.execution,
+      executorPid: 101,
+      genericReader: async () => "unused",
+      renderEvidenceLedger: async () => "unused",
+    })).rejects.toThrow("configuration digest");
+    expect(retrievalCalls).toBe(0);
+  });
+
   it("binds all four E4 renderings to one unscored E3 snapshot", async () => {
     const bundles = buildPhase74SealedBundles({
       cases: [testCase],
