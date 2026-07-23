@@ -72,6 +72,8 @@ export const PHASE74_EVALUATOR_SOURCE_SNAPSHOT = {
     "scripts/run-eval.ts",
     "scripts/run-phase-64-memory-agent-bench-smoke.ts",
     "scripts/run-phase-74-beam-safety-protection.ts",
+    "scripts/run-phase-74-generalization-executor.ts",
+    "scripts/run-phase-74-generalization-scorer.ts",
     "scripts/run-phase-74-generalization.ts",
     "scripts/run-phase-74-halumem-live-protection.ts",
     "scripts/run-phase-74-halumem-protection.ts",
@@ -81,7 +83,7 @@ export const PHASE74_EVALUATOR_SOURCE_SNAPSHOT = {
   ],
   sourceExtensions: [".cts", ".mts", ".ts"],
   sourceTrees: ["src"],
-  version: 5,
+  version: 6,
 } as const;
 
 export interface Phase74EvaluatorSource {
