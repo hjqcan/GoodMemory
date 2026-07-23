@@ -53,6 +53,7 @@ import type {
 import type {
   Phase74ProtectionSuiteVerifier,
 } from "../../src/eval/phase74ProtectionVerifier";
+import { buildPhase74EmbeddingIdentity } from "../../src/eval/phase74Live";
 import { buildPhase74ProtocolScoringIdentity } from "../../src/eval/phase74ProtocolScoring";
 import { buildPhase74ReplicateComparison } from "../../src/eval/phase74Replicates";
 import {
@@ -557,6 +558,7 @@ interface FixtureOptions {
     | "noncanonical-scorer";
   costBoundary?: "full-product" | "query-only";
   crossFamilyCallBudgetDrift?: boolean;
+  embeddingProfileDrift?: boolean;
   includeE3EvidenceLedger?: boolean;
   includeE4Scores?: boolean;
   negativeE3Replicate?: {
@@ -642,9 +644,12 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
           ? {}
           : {
               embedding: {
-                gateway: "https://openrouter.ai/api/v1",
-                model: "text-embedding-3-small",
-                provider: "openai",
+                ...buildPhase74EmbeddingIdentity({
+                  baseURL: "https://openrouter.ai/api/v1",
+                  model: "text-embedding-3-small",
+                  provider: "openai",
+                }),
+                ...(options.embeddingProfileDrift ? { retryLimit: 9 } : {}),
               },
             }),
         ...(options.admission === "missing-evaluator-source"
@@ -2171,6 +2176,16 @@ describe("Phase 74 frozen artifact aggregation", () => {
     await expect(aggregatePhase74GeneralizationArtifacts({
       runDirectories: fixture.runDirectories,
     })).rejects.toThrow("fixed cross-family identity drift");
+  });
+
+  it("rejects a synchronized embedding identity outside the allowed profile", async () => {
+    const fixture = await createArtifactFixture({
+      embeddingProfileDrift: true,
+    });
+
+    await expect(aggregatePhase74GeneralizationArtifacts({
+      runDirectories: fixture.runDirectories,
+    })).rejects.toThrow("embedding");
   });
 
   it("rejects protection suites produced from a different evaluator source", async () => {
