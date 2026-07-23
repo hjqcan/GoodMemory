@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import {
   buildPhase74FullRunIdentityConfiguration,
+  buildPhase74SealedProcessEnvironments,
   acquirePhase74RunLock,
   createPhase74DurableCallBudget,
   PHASE74_RUN_LOCK_FILENAME,
@@ -20,6 +21,48 @@ import {
 import { buildPhase74LabelFreeCaseBoundary } from "../../src/eval/phase74Generalization";
 
 describe("phase 74 generalization smoke runner", () => {
+  it("passes disjoint credentials to the sealed executor and scorer", () => {
+    const environments = buildPhase74SealedProcessEnvironments({
+      env: {
+        GOODMEMORY_EMBEDDING_API_KEY: "embedding-secret",
+        GOODMEMORY_EMBEDDING_BASE_URL: "embedding-gateway",
+        GOODMEMORY_EMBEDDING_MODEL: "embedding-model",
+        GOODMEMORY_EMBEDDING_PROVIDER: "openai",
+        GOODMEMORY_EVAL_API_KEY: "executor-secret",
+        GOODMEMORY_EVAL_BASE_URL: "executor-gateway",
+        GOODMEMORY_EVAL_MODEL: "executor-model",
+        GOODMEMORY_EVAL_PROVIDER: "openai",
+        GOODMEMORY_JUDGE_API_KEY: "judge-secret",
+        GOODMEMORY_JUDGE_BASE_URL: "judge-gateway",
+        GOODMEMORY_JUDGE_MODEL: "judge-model",
+        GOODMEMORY_JUDGE_PROVIDER: "openai",
+        GOLD_SENTINEL: "must-not-cross",
+        HOME: "/tmp/home",
+        PATH: "/usr/bin",
+      },
+      executorConfig: { role: "executor" },
+      scorerConfig: { role: "scorer" },
+    });
+
+    expect(environments.executor).toMatchObject({
+      GOODMEMORY_EMBEDDING_API_KEY: "embedding-secret",
+      GOODMEMORY_EVAL_API_KEY: "executor-secret",
+    });
+    expect(environments.scorer).toMatchObject({
+      GOODMEMORY_JUDGE_API_KEY: "judge-secret",
+    });
+    expect(JSON.stringify(environments.executor)).not.toContain("judge-secret");
+    expect(JSON.stringify(environments.executor)).not.toContain("must-not-cross");
+    expect(JSON.stringify(environments.scorer)).not.toContain("executor-secret");
+    expect(JSON.stringify(environments.scorer)).not.toContain("embedding-secret");
+    expect(JSON.parse(
+      environments.executor.GOODMEMORY_PHASE74_EXECUTOR_CONFIG!,
+    )).toEqual({ role: "executor" });
+    expect(JSON.parse(
+      environments.scorer.GOODMEMORY_PHASE74_SCORER_CONFIG!,
+    )).toEqual({ role: "scorer" });
+  });
+
   it("serializes one live run id and recovers a stale process lock", async () => {
     const root = await mkdtemp(join(tmpdir(), "phase74-run-lock-"));
     try {
