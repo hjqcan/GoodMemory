@@ -1,7 +1,8 @@
 import { Database } from "bun:sqlite";
-import { rm } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import {
   buildClaimProjectionSearchText,
@@ -23,6 +24,11 @@ import { recallScopeKey } from "../src/recall/projections/shared";
 import type { ProjectionCapableDocumentStore } from "../src/storage/contracts";
 import { createSQLiteDocumentStore } from "../src/storage/sqlite";
 import { buildDocumentSearchQuery } from "../src/storage/textSearch";
+import {
+  parseCliPositiveIntegerFlagStrict,
+  resolveCliFlagValueStrict,
+} from "./cli-options";
+import { resolveRepoRootFromScriptUrl } from "./script-paths";
 
 const DEFAULT_MEASURED_QUERY_COUNT = 40;
 const DEFAULT_SYNTHETIC_DOCUMENT_COUNT = 100_000;
@@ -37,6 +43,17 @@ const SCOPE = {
 };
 const SCOPE_KEY = recallScopeKey(SCOPE);
 const TIMESTAMP = "2026-07-18T00:00:00.000Z";
+const SOURCE_PATHS = [
+  "scripts/run-phase-74-storage-scale-gate.ts",
+  "src/recall/projections/claims.ts",
+  "src/recall/projections/contracts.ts",
+  "src/recall/projections/entityIndex.ts",
+  "src/recall/projections/runtime.ts",
+  "src/recall/projections/shared.ts",
+  "src/storage/contracts.ts",
+  "src/storage/sqlite.ts",
+  "src/storage/textSearch.ts",
+] as const;
 const SCALE_LANGUAGES = [
   {
     claimText: "Durable claim",
@@ -110,19 +127,40 @@ interface ProjectionCounts {
   statuses: number;
 }
 
+export interface Phase74StorageScaleGateSourceBinding {
+  commitSha: string;
+  sourceManifestSha256: string;
+  sources: ReadonlyArray<{
+    path: string;
+    sha256: string;
+  }>;
+  treeSha: string;
+  worktreeClean: boolean;
+}
+
 export interface Phase74StorageScaleGateOptions {
   measuredQueryCount?: number;
   onProgress?: (message: string) => void;
+  outputPath?: string;
+  sourceBinding?: Phase74StorageScaleGateSourceBinding;
   syntheticDocumentCount?: number;
   thresholdMs?: number;
   warmupQueryCount?: number;
 }
 
 export interface Phase74StorageScaleGateReport {
+  artifactSchemaVersion: "phase74-storage-scale-gate-v1";
   audit: {
     ftsIndexedDocumentCount: number;
     ftsKeyCount: number;
     languagePackCounts: Record<ScaleLanguagePackId, number>;
+    materializationCounters: {
+      fullCollectionReads: number;
+      maxDocumentsPerChannelPerQuery: number;
+      pagedReads: number;
+      pointReads: number;
+      textSearches: number;
+    };
     maxMaterializedDocumentsPerQuery: number;
     methodCalls: StoreMethodCalls;
     nonMatchingSentinelDidNotBreakSearch: boolean;
@@ -144,12 +182,34 @@ export interface Phase74StorageScaleGateReport {
     p99: number;
   };
   measuredQueryCount: number;
+  parameters: {
+    measuredQueryCount: number;
+    searchableDocumentCount: number;
+    selectedLimit: number;
+    storedProjectionDocumentCount: number;
+    thresholdMs: number;
+    warmupQueryCount: number;
+  };
   passed: boolean;
   phase: "phase-74";
+  runtime: {
+    arch: string;
+    bunVersion: string;
+    platform: NodeJS.Platform;
+  };
   selectedLimit: number;
+  sourceBinding: Phase74StorageScaleGateSourceBinding;
   syntheticDocumentCount: number;
   thresholdMs: number;
   warmupQueryCount: number;
+}
+
+export interface Phase74StorageScaleGateCliOptions {
+  measuredQueryCount?: number;
+  outputPath: string;
+  syntheticDocumentCount?: number;
+  thresholdMs?: number;
+  warmupQueryCount?: number;
 }
 
 function assertPositiveInteger(value: number, label: string): void {
@@ -160,6 +220,88 @@ function assertPositiveInteger(value: number, label: string): void {
 
 function roundMilliseconds(value: number): number {
   return Math.round(value * 1_000) / 1_000;
+}
+
+function sha256(value: string | Uint8Array): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+async function runGit(repoRoot: string, args: readonly string[]): Promise<string> {
+  const child = Bun.spawn({
+    cmd: ["git", ...args],
+    cwd: repoRoot,
+    stderr: "pipe",
+    stdout: "pipe",
+  });
+  const [exitCode, stderr, stdout] = await Promise.all([
+    child.exited,
+    new Response(child.stderr).text(),
+    new Response(child.stdout).text(),
+  ]);
+  if (exitCode !== 0) {
+    throw new Error(`git ${args.join(" ")} failed: ${stderr.trim()}`);
+  }
+  return stdout.trim();
+}
+
+export async function collectPhase74StorageScaleGateSourceBinding(
+  repoRoot: string,
+): Promise<Phase74StorageScaleGateSourceBinding> {
+  const [commitSha, status, treeSha, sources] = await Promise.all([
+    runGit(repoRoot, ["rev-parse", "HEAD"]),
+    runGit(repoRoot, ["status", "--porcelain", "--untracked-files=all"]),
+    runGit(repoRoot, ["rev-parse", "HEAD^{tree}"]),
+    Promise.all(SOURCE_PATHS.map(async (path) => ({
+      path,
+      sha256: sha256(await readFile(join(repoRoot, path))),
+    }))),
+  ]);
+  return {
+    commitSha,
+    sourceManifestSha256: sha256(JSON.stringify(sources)),
+    sources,
+    treeSha,
+    worktreeClean: status.length === 0,
+  };
+}
+
+function sourceBindingIsComplete(
+  binding: Phase74StorageScaleGateSourceBinding,
+): boolean {
+  return /^[0-9a-f]{40}$/u.test(binding.commitSha) &&
+    /^[0-9a-f]{40}$/u.test(binding.treeSha) &&
+    /^[0-9a-f]{64}$/u.test(binding.sourceManifestSha256) &&
+    binding.sources.length > 0 &&
+    binding.sources.every(({ path, sha256: digest }) =>
+      path.length > 0 && /^[0-9a-f]{64}$/u.test(digest)
+    );
+}
+
+export function parsePhase74StorageScaleGateCliOptions(
+  argv: readonly string[],
+  repoRoot = resolveRepoRootFromScriptUrl(import.meta.url),
+): Phase74StorageScaleGateCliOptions {
+  const output = resolveCliFlagValueStrict(argv, "--output") ??
+    join(
+      repoRoot,
+      "reports/quality-gates/phase-74/storage-scale/phase-74-sqlite-storage-scale-gate.json",
+    );
+  return {
+    measuredQueryCount: parseCliPositiveIntegerFlagStrict(
+      argv,
+      "--measured-query-count",
+    ),
+    outputPath: resolve(repoRoot, output),
+    syntheticDocumentCount: parseCliPositiveIntegerFlagStrict(
+      argv,
+      "--synthetic-document-count",
+    ),
+    thresholdMs: parseCliPositiveIntegerFlagStrict(argv, "--threshold-ms"),
+    warmupQueryCount: parseCliPositiveIntegerFlagStrict(
+      argv,
+      "--warmup-query-count",
+    ),
+  };
 }
 
 function percentile(sortedValues: readonly number[], probability: number): number {
@@ -472,6 +614,9 @@ export async function runPhase74StorageScaleGate(
   }
   assertPositiveInteger(thresholdMs, "thresholdMs");
   assertPositiveInteger(warmupQueryCount, "warmupQueryCount");
+  const repoRoot = resolveRepoRootFromScriptUrl(import.meta.url);
+  const sourceBinding = options.sourceBinding ??
+    await collectPhase74StorageScaleGateSourceBinding(repoRoot);
 
   const databasePath = join(
     tmpdir(),
@@ -554,7 +699,9 @@ export async function runPhase74StorageScaleGate(
       !seedAudit.sentinelJsonValid;
     const maximumStatusGets =
       (warmupQueryCount + measuredQueryCount) * SELECTED_LIMIT;
-    const passed = latencyMs.p95 <= thresholdMs &&
+    const passed = sourceBinding.worktreeClean &&
+      sourceBindingIsComplete(sourceBinding) &&
+      latencyMs.p95 <= thresholdMs &&
       methodCalls.get > 0 &&
       methodCalls.get <= maximumStatusGets &&
       methodCalls.query === 0 &&
@@ -567,10 +714,18 @@ export async function runPhase74StorageScaleGate(
       Object.values(seedAudit.languagePackCounts).every((count) => count > 0) &&
       maxMaterializedDocumentsPerQuery <= SELECTED_LIMIT;
 
-    return {
+    const report: Phase74StorageScaleGateReport = {
+      artifactSchemaVersion: "phase74-storage-scale-gate-v1",
       audit: {
         ...seedAudit,
         maxMaterializedDocumentsPerQuery,
+        materializationCounters: {
+          fullCollectionReads: methodCalls.query,
+          maxDocumentsPerChannelPerQuery: maxMaterializedDocumentsPerQuery,
+          pagedReads: methodCalls.queryPage,
+          pointReads: methodCalls.get,
+          textSearches: methodCalls.searchText,
+        },
         methodCalls,
         nonMatchingSentinelDidNotBreakSearch,
         sqlQueryPlan,
@@ -581,13 +736,37 @@ export async function runPhase74StorageScaleGate(
       generatedAt: new Date().toISOString(),
       latencyMs,
       measuredQueryCount,
+      parameters: {
+        measuredQueryCount,
+        searchableDocumentCount: syntheticDocumentCount,
+        selectedLimit: SELECTED_LIMIT,
+        storedProjectionDocumentCount: syntheticDocumentCount +
+          seedAudit.projectionCounts.statuses,
+        thresholdMs,
+        warmupQueryCount,
+      },
       passed,
       phase: "phase-74",
+      runtime: {
+        arch: process.arch,
+        bunVersion: Bun.version,
+        platform: process.platform,
+      },
       selectedLimit: SELECTED_LIMIT,
+      sourceBinding,
       syntheticDocumentCount,
       thresholdMs,
       warmupQueryCount,
     };
+    if (options.outputPath) {
+      await mkdir(dirname(options.outputPath), { recursive: true });
+      await writeFile(
+        options.outputPath,
+        `${JSON.stringify(report, null, 2)}\n`,
+        "utf8",
+      );
+    }
+    return report;
   } finally {
     await Promise.all([
       rm(databasePath, { force: true }),
@@ -598,7 +777,9 @@ export async function runPhase74StorageScaleGate(
 }
 
 if (import.meta.main) {
+  const cliOptions = parsePhase74StorageScaleGateCliOptions(Bun.argv);
   const report = await runPhase74StorageScaleGate({
+    ...cliOptions,
     onProgress(message) {
       console.error(`[phase-74-storage-scale] ${message}`);
     },
