@@ -54,7 +54,6 @@ describe("Phase 74 unscored execution", () => {
       baseConfiguration: {},
       countRenderedTokens: (content) => Buffer.byteLength(content),
       executeRetrieval: async ({ arm }) => ({
-        recallMetadata: { latencyMs: 1 },
         storedMemories: [],
         snapshotId: `snapshot-${arm}`,
         retrievedMemories: [],

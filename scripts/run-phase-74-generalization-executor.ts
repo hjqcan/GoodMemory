@@ -28,6 +28,7 @@ import {
   createPhase74UnscoredFileCheckpoint,
   parsePhase74UnscoredArtifact,
   runPhase74UnscoredExecution,
+  serializePhase74UnscoredArtifact,
   sha256Phase74UnscoredArtifact,
 } from "../src/eval/phase74UnscoredExecution";
 import type { Phase74RetrievalSnapshot } from "../src/eval/phase74Generalization";
@@ -189,7 +190,7 @@ export async function runPhase74SealedExecutorCli(
         e3Snapshots.get(caseKey) ?? null,
       renderEvidenceLedger: runtime.render,
     });
-    const artifact = JSON.stringify(result.artifact);
+    const artifact = serializePhase74UnscoredArtifact(result.artifact);
     if (createHash("sha256").update(artifact).digest("hex") !==
       result.executorOutput.artifactSha256) {
       throw new Error("Phase 74 executor artifact serialization drifted.");

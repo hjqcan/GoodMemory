@@ -226,6 +226,12 @@ export function parsePhase74UnscoredArtifact(
   return parsed.data as Phase74UnscoredExecutionArtifact;
 }
 
+export function serializePhase74UnscoredArtifact(
+  artifact: Phase74UnscoredExecutionArtifact,
+): string {
+  return JSON.stringify(parsePhase74UnscoredArtifact(artifact));
+}
+
 export function createPhase74UnscoredFileCheckpoint(input: {
   directory: string;
   execution: Phase74SealedExecutionBundle;
@@ -328,7 +334,7 @@ function recallCase(
 export function sha256Phase74UnscoredArtifact(
   artifact: Phase74UnscoredExecutionArtifact,
 ): string {
-  return sha256(JSON.stringify(parsePhase74UnscoredArtifact(artifact)));
+  return sha256(serializePhase74UnscoredArtifact(artifact));
 }
 
 export async function runPhase74UnscoredExecution(
