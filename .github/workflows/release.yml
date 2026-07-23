@@ -129,6 +129,7 @@ jobs:
           path: |
             ${{ steps.pack.outputs.artifact_path }}
             ${{ steps.prepublish.outputs.evidence_path }}
+            reports/release/v0.7/phase-74-storage-scale-gate.json
             reports/release/v0.7/readiness-report.json
             reports/release/v0.7/summary.md
 
@@ -211,6 +212,7 @@ jobs:
           files: |
             ${{ steps.pack.outputs.artifact_path }}
             ${{ steps.prepublish.outputs.evidence_path }}
+            reports/release/v0.7/phase-74-storage-scale-gate.json
             reports/release/v0.7/readiness-report.json
             reports/release/v0.7/summary.md
           prerelease: false

@@ -3813,6 +3813,11 @@ describe("release metadata and docs", () => {
     expect(
       workflow.match(/reports\/release\/v0\.7\/summary\.md/gu),
     ).toHaveLength(2);
+    expect(
+      workflow.match(
+        /reports\/release\/v0\.7\/phase-74-storage-scale-gate\.json/gu,
+      ),
+    ).toHaveLength(2);
     expect(workflow).toContain('ARTIFACT_SOURCE_COMMIT="$(ARTIFACT_JSON="$ARTIFACT_JSON"');
     expect(workflow).toContain('ARTIFACT_SOURCE_TREE="$(ARTIFACT_JSON="$ARTIFACT_JSON"');
     expect(workflow).toContain('[[ "$ARTIFACT_SOURCE_COMMIT" != "$GITHUB_SHA" ]]');
@@ -5308,6 +5313,10 @@ describe("release metadata and docs", () => {
       import.meta.dir,
       "../quality-gates/phase-73/codex-coding-effect.c5-readiness.test.ts",
     );
+    const c3ReplayPath = join(
+      import.meta.dir,
+      "../quality-gates/phase-73/codex-coding-effect.c3-source-reproducibility.test.ts",
+    );
 
     expect(bunfig).toContain(
       'pathIgnorePatterns = ["tests/quality-gates/**"]',
@@ -5322,5 +5331,6 @@ describe("release metadata and docs", () => {
     expect(await Bun.file(gatePath).exists()).toBe(true);
     expect(await Bun.file(oldReadinessPath).exists()).toBe(false);
     expect(await Bun.file(gateReadinessPath).exists()).toBe(true);
+    expect(await Bun.file(c3ReplayPath).exists()).toBe(true);
   });
 });

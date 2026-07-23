@@ -246,7 +246,12 @@ describe("v0.7 release readiness", () => {
         id: "public-claims",
       },
       {
-        args: ["run", "gate:phase-74-storage-scale"],
+        args: [
+          "run",
+          "gate:phase-74-storage-scale",
+          "--output",
+          "reports/release/v0.7/phase-74-storage-scale-gate.json",
+        ],
         command: "bun",
         id: "scale",
       },

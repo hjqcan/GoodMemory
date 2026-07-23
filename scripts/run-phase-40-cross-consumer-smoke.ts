@@ -167,19 +167,19 @@ export function buildPhase40CrossConsumerSmokeCommands(
 
   return [
     {
-      args: ["bun", "--no-env-file", "run", "examples/basic-chat.ts"],
+      args: ["bun", "--env-file=/dev/null", "run", "examples/basic-chat.ts"],
       cwd: root,
       env,
       label: "direct-typescript-app",
     },
     {
-      args: ["bun", "--no-env-file", "run", "examples/express-chat-server.ts"],
+      args: ["bun", "--env-file=/dev/null", "run", "examples/express-chat-server.ts"],
       cwd: root,
       env,
       label: "express-http-server",
     },
     {
-      args: ["bun", "--no-env-file", "run", "examples/fastify-chat-server.ts"],
+      args: ["bun", "--env-file=/dev/null", "run", "examples/fastify-chat-server.ts"],
       cwd: root,
       env,
       label: "fastify-http-server",
@@ -187,7 +187,7 @@ export function buildPhase40CrossConsumerSmokeCommands(
     {
       args: [
         "bun",
-        "--no-env-file",
+        "--env-file=/dev/null",
         "test",
         "tests/release/release.test.ts",
         "--test-name-pattern",
@@ -200,7 +200,7 @@ export function buildPhase40CrossConsumerSmokeCommands(
     {
       args: [
         "bun",
-        "--no-env-file",
+        "--env-file=/dev/null",
         "test",
         "tests/release/release.test.ts",
         "--test-name-pattern",

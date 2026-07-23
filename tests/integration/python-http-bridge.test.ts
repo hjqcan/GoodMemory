@@ -170,7 +170,7 @@ async function startPackagedBridgeProcess(input: {
     const serverProcess = Bun.spawn({
       cmd: [
         "bun",
-        "--no-env-file",
+        "--env-file=/dev/null",
         "run",
         "scripts/goodmemory-http-bridge.ts",
         "--host",

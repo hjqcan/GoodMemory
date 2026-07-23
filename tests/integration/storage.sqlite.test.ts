@@ -232,7 +232,7 @@ describe("sqlite document conditional batches", () => {
       });
       const child = spawnSync(
         process.execPath,
-        ["--no-env-file", "-e", `
+        ["--env-file=/dev/null", "-e", `
           import { createSQLiteDocumentStore } from "./src/storage/sqlite";
           import { createScopeDeletionCoordinator } from "./src/storage/scopeDeletion";
 
@@ -293,7 +293,7 @@ describe("sqlite document conditional batches", () => {
     try {
       const child = spawnSync(
         process.execPath,
-        ["--no-env-file", "-e", `
+        ["--env-file=/dev/null", "-e", `
           import { createSQLiteDocumentStore } from "./src/storage/sqlite";
           import { createScopeDeletionCoordinator } from "./src/storage/scopeDeletion";
 

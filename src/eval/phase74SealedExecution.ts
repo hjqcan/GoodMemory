@@ -520,7 +520,7 @@ async function runChild(input: {
   stdin: string;
 }): Promise<{ exitCode: number; pid: number; stderr: string; stdout: string }> {
   const child = Bun.spawn({
-    cmd: [process.execPath, "--no-env-file", input.script],
+    cmd: [process.execPath, "--env-file=/dev/null", input.script],
     cwd: input.cwd,
     env: processEnv(input.env),
     stdin: Buffer.from(input.stdin),

@@ -26,6 +26,71 @@ describe("LanguagePack public API integration", () => {
     ]);
   });
 
+  it("uses the canonical reference parser through public remember for every built-in language", async () => {
+    const cases = [
+      {
+        content:
+          "Use https://example.com/文档/runbook.md as the source of truth.",
+        expected: ["https://example.com/文档/runbook.md"],
+        locale: "en-US",
+      },
+      {
+        content: "现在以文档/运行手册.md为准。",
+        expected: ["文档/运行手册.md"],
+        locale: "zh-CN",
+      },
+      {
+        content: "現在以文件/運行手冊.md為準。",
+        expected: ["文件/運行手冊.md"],
+        locale: "zh-TW",
+      },
+      {
+        content: "https://example.com/資料/現在の手順書を正とする。",
+        expected: ["https://example.com/資料/現在の手順書"],
+        locale: "ja-JP",
+      },
+      {
+        content: "문서/현재절차서.md를 현재 기준 문서로 사용합니다.",
+        expected: ["문서/현재절차서.md"],
+        locale: "ko-KR",
+      },
+      {
+        content: "Utilise documents/guide-opérationnel.md comme source de vérité.",
+        expected: ["documents/guide-opérationnel.md"],
+        locale: "fr-FR",
+      },
+      {
+        content: "Usa documentos/guía-operativa.md como la fuente de verdad.",
+        expected: ["documentos/guía-operativa.md"],
+        locale: "es-ES",
+      },
+      {
+        content: "Use version 1.2 with Python 3.11.2.",
+        expected: [],
+        locale: "en-US",
+      },
+    ] as const;
+
+    for (const [index, testCase] of cases.entries()) {
+      const memory = createGoodMemory({ storage: { provider: "memory" } });
+      const scope = {
+        userId: `u-canonical-reference-${index}`,
+        workspaceId: "workspace-a",
+      };
+
+      await memory.remember({
+        locale: testCase.locale,
+        messages: [{ role: "user", content: testCase.content }],
+        scope,
+      });
+      const exported = await memory.exportMemory({ scope });
+
+      expect(exported.durable.references.map(({ pointer }) => pointer)).toEqual(
+        [...testCase.expected],
+      );
+    }
+  });
+
   it("normalizes existing facts with the pack that owns their raw text", async () => {
     const base = createNeutralLanguagePack();
     const sourcePack: LanguagePack = {

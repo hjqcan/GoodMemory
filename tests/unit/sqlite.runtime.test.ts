@@ -44,7 +44,7 @@ function runFactoryScript(
   source: string,
   envOverrides: Record<string, string | undefined> = {},
 ): ChildProcessResult {
-  const result = spawnSync(process.execPath, ["--no-env-file", "-e", source], {
+  const result = spawnSync(process.execPath, ["--env-file=/dev/null", "-e", source], {
     cwd: process.cwd(),
     encoding: "utf8",
     env: createChildEnv(envOverrides),

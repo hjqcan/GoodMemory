@@ -107,7 +107,7 @@ drafts under `docs/archive/design-inputs/` are not current truth.
 
 - `bun test`: run the canonical repository suite rooted at `tests/` via `bunfig.toml`; this is the default red/green path in local work and CI, excluding explicit quality-gate replays under `tests/quality-gates/`.
 - `bun run test:all`: sweep `tests/` plus vendored `third-party/` trees with the broad-root Bun config when you intentionally want the wider pass.
-- `bun run test:phase-73-gates`: run the expensive Phase 73 C5 readiness materialization, projection, independent-verifier, and mutation replay suite excluded from the canonical red/green loop.
+- `bun run test:phase-73-gates`: run the runtime-bound C3 source replay plus the expensive Phase 73 C5 readiness materialization, projection, independent-verifier, and mutation replay suite excluded from the canonical red/green loop.
 - `bun run test:watch`: rerun the canonical suite during local development.
 - `bun run test:coverage`: run the canonical suite with coverage gates, then enforce script/source coverage via `scripts/check-coverage.ts`.
 - `bun run typecheck`: run strict TypeScript checks with `tsc --noEmit`.

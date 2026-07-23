@@ -76,7 +76,7 @@ function acceptedReports(): Record<string, string> {
       acceptance: { decision: "accepted" },
       commands: [
         {
-          command: "bun --no-env-file run examples/basic-chat.ts",
+          command: "bun --env-file=/dev/null run examples/basic-chat.ts",
           durationMs: 10,
           exitCode: 0,
           label: "direct-typescript-app",
@@ -85,7 +85,7 @@ function acceptedReports(): Record<string, string> {
           stdoutTail: [],
         },
         {
-          command: "bun --no-env-file run examples/express-chat-server.ts",
+          command: "bun --env-file=/dev/null run examples/express-chat-server.ts",
           durationMs: 10,
           exitCode: 0,
           label: "express-http-server",
@@ -94,7 +94,7 @@ function acceptedReports(): Record<string, string> {
           stdoutTail: [],
         },
         {
-          command: "bun --no-env-file run examples/fastify-chat-server.ts",
+          command: "bun --env-file=/dev/null run examples/fastify-chat-server.ts",
           durationMs: 10,
           exitCode: 0,
           label: "fastify-http-server",
@@ -104,7 +104,7 @@ function acceptedReports(): Record<string, string> {
         },
         {
           command:
-            "bun --no-env-file test tests/release/release.test.ts --test-name-pattern installed-package Python bridge smoke covers goodmemory-http-bridge bin and Python consumer",
+            "bun --env-file=/dev/null test tests/release/release.test.ts --test-name-pattern installed-package Python bridge smoke covers goodmemory-http-bridge bin and Python consumer",
           durationMs: 10,
           exitCode: 0,
           label: "python-fastapi-bridge-consumer",
@@ -114,7 +114,7 @@ function acceptedReports(): Record<string, string> {
         },
         {
           command:
-            "bun --no-env-file test tests/release/release.test.ts --test-name-pattern installed-package write CLI smoke covers write -> hook recall -> MCP deep read",
+            "bun --env-file=/dev/null test tests/release/release.test.ts --test-name-pattern installed-package write CLI smoke covers write -> hook recall -> MCP deep read",
           durationMs: 10,
           exitCode: 0,
           label: "installed-host-package-path",
