@@ -429,6 +429,7 @@ describe("Phase 74 full ingestion identity", () => {
         datasetSha256: "dataset-sha",
         evaluatorSourceSha256:
           "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        evidenceLedgerFormats: ["compact_json"],
         events: [],
         intents: [],
         models: {
@@ -482,7 +483,12 @@ describe("Phase 74 full ingestion identity", () => {
         testCase,
       });
       expect(deterministic.evidenceLedger?.length).toBeGreaterThan(0);
-      expect(deterministic.evidenceLedgers).toBeDefined();
+      expect(Object.keys(deterministic.evidenceLedgers ?? {})).toEqual([
+        "compact_json",
+      ]);
+      expect(
+        deterministic.evidenceLedgerRenderLatencyMs?.compact_json,
+      ).toBeGreaterThanOrEqual(0);
       expect(deterministic.snapshotId).toBe(buildPhase74RetrievalSnapshotId({
         arm: "recall-plan-deterministic",
         costTrace: deterministic.costTrace,
