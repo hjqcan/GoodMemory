@@ -113,6 +113,51 @@ describe("Phase 74 unscored execution", () => {
     }
   });
 
+  it("prepares every pending ingestion before the first timed retrieval", async () => {
+    const bundles = buildPhase74SealedBundles({
+      cases: [
+        testCase,
+        {
+          ...testCase,
+          caseId: "private-upstream-id-2",
+          question: "Which cache is current?",
+          rawEvidence: [{
+            content: "Redis is current.",
+            id: "turn-2",
+            sourceIds: ["session-b:turn-2"],
+          }],
+        },
+      ],
+      executionConfiguration: { caseConcurrency: 2 },
+      runId: "unscored-prepared-ingestion",
+      stage: "E1",
+    });
+    const events: string[] = [];
+    const prepared = new Set<string>();
+    const result = await runPhase74UnscoredExecution({
+      baseConfiguration: { caseConcurrency: 2 },
+      countRenderedTokens: (content) => Buffer.byteLength(content),
+      executeRetrieval: async ({ arm, testCase: recallCase }) => {
+        events.push(`execute:${recallCase.caseId}:${arm}`);
+        expect(prepared).toHaveLength(6);
+        return snapshot(`snapshot-${recallCase.caseId}-${arm}`);
+      },
+      execution: bundles.execution,
+      executorPid: 101,
+      genericReader: async () => "current",
+      prepareRetrieval: async ({ arm, testCase: recallCase }) => {
+        await Promise.resolve();
+        prepared.add(`${recallCase.caseId}:${arm}`);
+        events.push(`prepare:${recallCase.caseId}:${arm}`);
+      },
+      renderEvidenceLedger: async () => "unused",
+    });
+
+    expect(result.artifact.rows).toHaveLength(6);
+    expect(events.slice(0, 6).every((event) => event.startsWith("prepare:")))
+      .toBe(true);
+  });
+
   it("rejects a retrieval snapshot contaminated by scored checkpoint state", async () => {
     const bundles = buildPhase74SealedBundles({
       cases: [testCase],
