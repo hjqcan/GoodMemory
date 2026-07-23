@@ -12,6 +12,7 @@ import { join } from "node:path";
 
 import {
   createPhase74VersionUsageBoundary,
+  hashPhase74DependencyTree,
   materializePhase74VersionExecutionRoot,
   preparePhase74VersionMemoryGroup,
   queryPhase74VersionMemoryGroup,
@@ -47,6 +48,11 @@ describe("Phase 74 version worker", () => {
         "export const release = 'mutated';\n",
         "utf8",
       ),
+      writeFile(
+        join(dependencyRoot, "node_modules", "dependency.js"),
+        "export const dependency = 'pinned';\n",
+        "utf8",
+      ),
     ]);
     const archive = Bun.spawn([
       "tar",
@@ -59,6 +65,17 @@ describe("Phase 74 version worker", () => {
     expect(await archive.exited).toBe(0);
 
     try {
+      const firstDependencySha256 = await hashPhase74DependencyTree(
+        join(dependencyRoot, "node_modules"),
+      );
+      await writeFile(
+        join(dependencyRoot, "node_modules", "dependency.js"),
+        "export const dependency = 'mutated';\n",
+        "utf8",
+      );
+      expect(await hashPhase74DependencyTree(
+        join(dependencyRoot, "node_modules"),
+      )).not.toBe(firstDependencySha256);
       const sourceRoot = await materializePhase74VersionExecutionRoot({
         archivePath,
         dependencyRoot,

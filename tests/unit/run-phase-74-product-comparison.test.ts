@@ -112,6 +112,7 @@ describe("Phase 74 cumulative product runner", () => {
         tree: "f".repeat(40),
         workerSha256: "1".repeat(64),
       },
+      releaseDependencyTreeSha256: "2".repeat(64),
       replicate: 1,
       selectedEvidenceLedgerFormat: "compact_json",
       seenCasesOnly: true,
@@ -138,6 +139,7 @@ describe("Phase 74 cumulative product runner", () => {
           providerOrder: "parasail",
         },
       },
+      releaseDependencyTreeSha256: "2".repeat(64),
       replicate: 1,
       selectedEvidenceLedgerFormat: "compact_json",
     });
