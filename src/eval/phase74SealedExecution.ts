@@ -36,7 +36,7 @@ const executionBundleSchema = z.object({
   cases: z.array(executionCaseSchema),
   configurationSha256: z.string().regex(/^[a-f0-9]{64}$/u),
   runId: z.string().min(1),
-  schemaVersion: z.literal(6),
+  schemaVersion: z.literal(7),
   stage: z.enum(["E1", "E2", "E3", "E4"]),
 }).strict();
 
@@ -55,7 +55,7 @@ const escrowBundleSchema = z.object({
   cases: z.array(escrowCaseSchema),
   executionSha256: z.string().regex(/^[a-f0-9]{64}$/u),
   runId: z.string().min(1),
-  schemaVersion: z.literal(6),
+  schemaVersion: z.literal(7),
 }).strict();
 
 const executorRowSchema = z.object({
@@ -73,7 +73,7 @@ const executorOutputSchema = z.object({
   executorPid: z.number().int().positive(),
   rows: z.array(executorRowSchema),
   runId: z.string().min(1),
-  schemaVersion: z.literal(6),
+  schemaVersion: z.literal(7),
 }).strict();
 
 const scoreRowSchema = z.object({
@@ -89,9 +89,10 @@ const scoreReceiptSchema = z.object({
   escrowSha256: z.string().regex(/^[a-f0-9]{64}$/u),
   executionSha256: z.string().regex(/^[a-f0-9]{64}$/u),
   executorOutputSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+  oracleSha256: z.string().regex(/^[a-f0-9]{64}$/u).optional(),
   rows: z.array(scoreRowSchema),
   runId: z.string().min(1),
-  schemaVersion: z.literal(6),
+  schemaVersion: z.literal(7),
   scorerPid: z.number().int().positive(),
 }).strict();
 
@@ -223,7 +224,7 @@ export function buildPhase74SealedBundles(input: {
       input.executionConfiguration ?? {},
     ),
     runId: input.runId,
-    schemaVersion: 6,
+    schemaVersion: 7,
     stage: input.stage,
   });
   const escrow = parsePhase74SealedEscrowBundle({
@@ -243,7 +244,7 @@ export function buildPhase74SealedBundles(input: {
     })),
     executionSha256: sha256Json(execution),
     runId: input.runId,
-    schemaVersion: 6,
+    schemaVersion: 7,
   });
   return { escrow, execution };
 }
@@ -260,13 +261,14 @@ export function buildPhase74SealedExecutorOutput(input: {
     executorPid: input.executorPid,
     rows: input.rows,
     runId: input.execution.runId,
-    schemaVersion: 6,
+    schemaVersion: 7,
   });
 }
 
 export function buildPhase74SealedScoreReceipt(input: {
   escrow: Phase74SealedEscrowBundle;
   executorOutput: Phase74SealedExecutorOutput;
+  oracleSha256?: string;
   rows: Phase74SealedScoreReceipt["rows"];
   scorerPid: number;
 }): Phase74SealedScoreReceipt {
@@ -274,9 +276,12 @@ export function buildPhase74SealedScoreReceipt(input: {
     escrowSha256: sha256Json(input.escrow),
     executionSha256: input.escrow.executionSha256,
     executorOutputSha256: sha256Json(input.executorOutput),
+    ...(input.oracleSha256 === undefined
+      ? {}
+      : { oracleSha256: input.oracleSha256 }),
     rows: input.rows,
     runId: input.escrow.runId,
-    schemaVersion: 6,
+    schemaVersion: 7,
     scorerPid: input.scorerPid,
   });
 }
@@ -352,6 +357,7 @@ export function verifyPhase74SealedScoreReceipt(input: {
     receipt.executionSha256 !== executionSha256 ||
     receipt.escrowSha256 !== sha256Json(escrow) ||
     receipt.executorOutputSha256 !== sha256Json(output) ||
+    (execution.stage === "E4") !== (receipt.oracleSha256 !== undefined) ||
     !sameOrderedCaseKeys(execution.cases, escrow.cases) ||
     !sameOrderedRows(expectedRows, output.rows) ||
     !sameOrderedRows(output.rows, receipt.rows) ||
@@ -501,7 +507,7 @@ export async function runPhase74SealedProcessPair(input: {
     executionSha256: sha256Json(execution),
     executorOutputSha256: sha256Json(executorOutput),
     receiptSha256: sha256Json(receipt),
-    schemaVersion: 6,
+    schemaVersion: 7,
   }, null, 2)}\n`);
   return {
     events,
