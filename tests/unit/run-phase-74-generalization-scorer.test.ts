@@ -87,7 +87,7 @@ describe("Phase 74 sealed scorer entrypoint", () => {
       const oracleArtifactPath = join(directory, "oracle-artifact.json");
       await writeFile(e3ArtifactPath, e3Raw);
 
-      const fetch: typeof globalThis.fetch = async (_request, init) => {
+      const fetch = (async (_request, init) => {
         const body = JSON.parse(String(init?.body)) as {
           response_format?: unknown;
         };
@@ -116,7 +116,7 @@ describe("Phase 74 sealed scorer entrypoint", () => {
           headers: { "content-type": "text/event-stream" },
           status: 200,
         });
-      };
+      }) as typeof globalThis.fetch;
       const receipt = await runPhase74SealedScorer({
         config: {
           benchmark: "locomo",
