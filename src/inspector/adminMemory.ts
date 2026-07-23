@@ -10,7 +10,7 @@ import {
   SCOPE_CATALOG_COLLECTION,
   type ScopeCatalogProjection,
 } from "../recall/projections/contracts";
-import type { DocumentStore } from "../storage/contracts";
+import type { DocumentStore, StorageFilter } from "../storage/contracts";
 import { listScopes } from "./scopeIndex";
 import { sanitizeViewerValue } from "./redaction";
 
@@ -202,10 +202,11 @@ async function queryExactScopePage(input: {
   scope: MemoryScope;
 }): Promise<StoredMemory[]> {
   const expectedScopeKey = scopeToKey(input.scope);
+  const filter = toStorageFilter(input.scope);
   if (!input.documentStore.queryPage) {
     return (await input.documentStore.query<Record<string, unknown>>(
       input.collection,
-      { ...input.scope },
+      filter,
     ))
       .flatMap((document) => {
         const id = typeof document.id === "string" ? document.id : undefined;
@@ -226,7 +227,7 @@ async function queryExactScopePage(input: {
       input.collection,
       {
         ...(cursor ? { cursor } : {}),
-        filter: { ...input.scope },
+        filter,
         limit: Math.max(50, input.limit),
       },
     );
@@ -394,12 +395,20 @@ async function queryExactScopeDocuments(
   const expectedScopeKey = scopeToKey(scope);
   const queried = await documentStore.query<Record<string, unknown>>(
     collection,
-    { ...scope },
+    toStorageFilter(scope),
   );
   return queried.filter((document) => {
     const storedScope = readStoredScope(document);
     return storedScope !== undefined && scopeToKey(storedScope) === expectedScopeKey;
   });
+}
+
+function toStorageFilter(scope: MemoryScope): StorageFilter {
+  return Object.fromEntries(
+    Object.entries(normalizeScope(scope)).filter(
+      (entry): entry is [string, string] => entry[1] !== undefined,
+    ),
+  );
 }
 
 function isScopeCatalogProjection(

@@ -524,7 +524,7 @@ export async function deleteAllMemoryOperation(
       RECALL_DOCUMENTS_COLLECTION,
       recallDocuments,
     );
-    const { sessionId: _sessionId, ...entityFilter } = input.scope;
+    const { sessionId: _sessionId, ...entityFilter } = scopeFilter(input.scope);
     const entityEdges = await deps.documentStore.query<EntityAdjacencyProjection>(
       ENTITIES_COLLECTION,
       entityFilter,
