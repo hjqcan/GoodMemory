@@ -77,6 +77,7 @@ describe("Phase 74 sealed process boundary", () => {
         "seal",
         "executor_exit",
         "artifact_verified",
+        "labels_committed",
         "scorer_start",
         "scorer_exit",
       ]);

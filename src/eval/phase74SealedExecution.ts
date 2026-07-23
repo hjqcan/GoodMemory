@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 
 import { z } from "zod";
 
@@ -360,6 +361,7 @@ async function runChild(input: {
 
 export async function runPhase74SealedProcessPair(input: {
   cwd: string;
+  evidenceDirectory: string;
   executorArtifactPath: string;
   execution: Phase74SealedExecutionBundle;
   escrow: Phase74SealedEscrowBundle;
@@ -406,6 +408,25 @@ export async function runPhase74SealedProcessPair(input: {
     throw new Error("Phase 74 sealed executor artifact digest drifted.");
   }
   events.push({ event: "artifact_verified" });
+  await mkdir(input.evidenceDirectory, { recursive: true });
+  await Promise.all([
+    writeFile(
+      join(input.evidenceDirectory, "execution.json"),
+      JSON.stringify(execution),
+      { encoding: "utf8", flag: "wx" },
+    ),
+    writeFile(
+      join(input.evidenceDirectory, "escrow.json"),
+      JSON.stringify(escrow),
+      { encoding: "utf8", flag: "wx" },
+    ),
+    writeFile(
+      join(input.evidenceDirectory, "executor-output.json"),
+      JSON.stringify(executorOutput),
+      { encoding: "utf8", flag: "wx" },
+    ),
+  ]);
+  events.push({ event: "labels_committed" });
   events.push({ event: "scorer_start" });
   const scorer = await runChild({
     cwd: input.cwd,
@@ -429,9 +450,20 @@ export async function runPhase74SealedProcessPair(input: {
     executorOutput,
     receipt,
   });
+  await writeFile(
+    join(input.evidenceDirectory, "score-receipt.json"),
+    JSON.stringify(receipt),
+    { encoding: "utf8", flag: "wx" },
+  );
   await writeFile(input.transcriptPath, `${JSON.stringify({
     events,
     artifactSha256: executorOutput.artifactSha256,
+    evidence: {
+      escrow: "escrow.json",
+      execution: "execution.json",
+      executorOutput: "executor-output.json",
+      scoreReceipt: "score-receipt.json",
+    },
     executionSha256: sha256Json(execution),
     executorOutputSha256: sha256Json(executorOutput),
     receiptSha256: sha256Json(receipt),

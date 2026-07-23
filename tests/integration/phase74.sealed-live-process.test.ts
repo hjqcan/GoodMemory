@@ -90,6 +90,7 @@ describe("Phase 74 sealed live process entrypoints", () => {
       });
       const result = await runPhase74SealedProcessPair({
         cwd: directory,
+        evidenceDirectory: join(runDirectory, "sealed-evidence"),
         execution: bundles.execution,
         escrow: bundles.escrow,
         executorArtifactPath: artifactPath,
