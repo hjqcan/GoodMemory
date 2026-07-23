@@ -46,12 +46,18 @@ const env = {
 
 describe("Phase 74 live provider boundary", () => {
   it("binds post-run aggregation and the real storage gate into evaluator source identity", () => {
-    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.version).toBe(5);
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.version).toBe(6);
     expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
       "scripts/aggregate-phase-74-generalization.ts",
     );
     expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
       "scripts/run-phase-74-storage-scale-gate.ts",
+    );
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
+      "scripts/run-phase-74-generalization-executor.ts",
+    );
+    expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
+      "scripts/run-phase-74-generalization-scorer.ts",
     );
     expect(PHASE74_EVALUATOR_SOURCE_SNAPSHOT.files).toContain(
       "scripts/phase-74-memory-agent-bench-protection.ts",
