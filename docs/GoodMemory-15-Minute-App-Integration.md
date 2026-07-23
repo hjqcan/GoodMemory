@@ -9,14 +9,18 @@ assembly, governed writes, corrections, audit, and deletion.
 
 ## Install
 
+The registry commands below apply after `goodmemory@0.7.0` is published. Before
+publication, install the verified local `goodmemory-0.7.0.tgz` produced by the
+release workflow.
+
 ```bash
-npm install goodmemory
+npm install goodmemory@0.7.0
 ```
 
 Bun services can use the same package:
 
 ```bash
-bun add goodmemory
+bun add goodmemory@0.7.0
 ```
 
 ## The Loop

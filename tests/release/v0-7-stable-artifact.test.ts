@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import {
   mkdir,
   mkdtemp,
@@ -7,7 +7,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { describe, expect, it } from "bun:test";
 
@@ -34,6 +34,20 @@ Release source: this is the immutable GoodMemory 0.7.0 stable release source.
 Registry commands require goodmemory@0.7.0 to be published. The release workflow
 verifies npm latest and artifact integrity before creating the GitHub Release.
 `;
+
+const REQUIRED_ARTIFACT_FIXTURE_FILES = [
+  "dist/index.js",
+  "dist/index.d.ts",
+  "dist/ai-sdk/index.js",
+  "dist/ai-sdk/index.d.ts",
+  "dist/host/index.js",
+  "dist/host/index.d.ts",
+  "dist/http/index.js",
+  "dist/http/index.d.ts",
+  "dist/runtime-kit/index.js",
+  "dist/runtime-kit/index.d.ts",
+  "docs/GoodMemory-0.6-to-0.7-Migration-Guide.md",
+] as const;
 
 async function extractTarball(tarballPath: string, outputDir: string): Promise<void> {
   await mkdir(outputDir, { recursive: true });
@@ -66,54 +80,90 @@ async function runCommand(cmd: string[], cwd: string): Promise<string> {
   return stdout.trim();
 }
 
+async function initializeStableSource(input: {
+  omitFile?: string;
+  oversized?: boolean;
+  root: string;
+}): Promise<{
+  sourceCommit: string;
+  sourceTree: string;
+}> {
+  await mkdir(join(input.root, ".well-known"), { recursive: true });
+  await writeFile(
+    join(input.root, "package.json"),
+    `${JSON.stringify({
+      files: [
+        ".well-known/goodmemory.json",
+        "README.md",
+        "README.zh-CN.md",
+        "dist",
+        "docs",
+        "llms.txt",
+        ...(input.oversized ? ["oversized.bin"] : []),
+      ],
+      goodmemoryRelease: {
+        installCommandsApplyAfterPublish: true,
+        npmDistTag: "latest",
+        status: "stable",
+      },
+      name: "goodmemory",
+      version: "0.7.0",
+    }, null, 2)}\n`,
+  );
+  await writeFile(join(input.root, "README.md"), README_STABLE);
+  await writeFile(join(input.root, "README.zh-CN.md"), README_ZH_STABLE);
+  await writeFile(join(input.root, "llms.txt"), LLMS_STABLE);
+  await writeFile(join(input.root, ".gitignore"), "extracted/\noutput/\n");
+  await writeFile(
+    join(input.root, ".well-known/goodmemory.json"),
+    `${JSON.stringify({
+      name: "goodmemory",
+      releaseStatus: {
+        installCommandsApplyAfterPublish: true,
+        npmDistTag: "latest",
+        status: "stable",
+        tarball: "goodmemory-0.7.0.tgz",
+      },
+      version: "0.7.0",
+    }, null, 2)}\n`,
+  );
+  for (const relativePath of REQUIRED_ARTIFACT_FIXTURE_FILES) {
+    if (relativePath === input.omitFile) {
+      continue;
+    }
+    const absolutePath = join(input.root, relativePath);
+    await mkdir(dirname(absolutePath), { recursive: true });
+    await writeFile(absolutePath, `fixture for ${relativePath}\n`);
+  }
+  if (input.oversized) {
+    await writeFile(
+      join(input.root, "oversized.bin"),
+      randomBytes(4 * 1024 * 1024 + 64 * 1024),
+    );
+  }
+  await runCommand(["git", "init", "--quiet"], input.root);
+  await runCommand(
+    ["git", "config", "user.email", "release-test@example.com"],
+    input.root,
+  );
+  await runCommand(["git", "config", "user.name", "Release Test"], input.root);
+  await runCommand(["git", "add", "."], input.root);
+  await runCommand(
+    ["git", "commit", "--quiet", "-m", "stable release source"],
+    input.root,
+  );
+  return {
+    sourceCommit: await runCommand(["git", "rev-parse", "HEAD"], input.root),
+    sourceTree: await runCommand(["git", "rev-parse", "HEAD^{tree}"], input.root),
+  };
+}
+
 describe("v0.7 stable release artifact", () => {
   it("packs the verified stable source without projecting different metadata", async () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-stable-artifact-test-"));
     const outputDir = join(root, "output");
     try {
-      await mkdir(join(root, ".well-known"), { recursive: true });
-      await writeFile(
-        join(root, "package.json"),
-        `${JSON.stringify({
-          files: [
-            ".well-known/goodmemory.json",
-            "README.md",
-            "README.zh-CN.md",
-            "llms.txt",
-          ],
-          goodmemoryRelease: {
-            installCommandsApplyAfterPublish: true,
-            npmDistTag: "latest",
-            status: "stable",
-          },
-          name: "goodmemory",
-          version: "0.7.0",
-        }, null, 2)}\n`,
-      );
-      await writeFile(join(root, "README.md"), README_STABLE);
-      await writeFile(join(root, "README.zh-CN.md"), README_ZH_STABLE);
-      await writeFile(join(root, "llms.txt"), LLMS_STABLE);
-      await writeFile(join(root, ".gitignore"), "extracted/\noutput/\n");
-      await writeFile(
-        join(root, ".well-known/goodmemory.json"),
-        `${JSON.stringify({
-          name: "goodmemory",
-          releaseStatus: {
-            installCommandsApplyAfterPublish: true,
-            npmDistTag: "latest",
-            status: "stable",
-            tarball: "goodmemory-0.7.0.tgz",
-          },
-          version: "0.7.0",
-        }, null, 2)}\n`,
-      );
-      await runCommand(["git", "init", "--quiet"], root);
-      await runCommand(["git", "config", "user.email", "release-test@example.com"], root);
-      await runCommand(["git", "config", "user.name", "Release Test"], root);
-      await runCommand(["git", "add", "."], root);
-      await runCommand(["git", "commit", "--quiet", "-m", "stable release source"], root);
-      const sourceCommit = await runCommand(["git", "rev-parse", "HEAD"], root);
-      const sourceTree = await runCommand(["git", "rev-parse", "HEAD^{tree}"], root);
+      const { sourceCommit, sourceTree } = await initializeStableSource({ root });
 
       const sourceBefore = await Promise.all(
         ["README.md", "README.zh-CN.md", "llms.txt", ".well-known/goodmemory.json"]
@@ -155,8 +205,10 @@ describe("v0.7 stable release artifact", () => {
         status: "stable",
       });
       expect(artifact.artifactName).toBe("goodmemory-0.7.0.tgz");
+      expect(artifact.packedFileCount).toBeGreaterThan(0);
       expect(artifact.sourceCommit).toBe(sourceCommit);
       expect(artifact.sourceTree).toBe(sourceTree);
+      expect(artifact.tarballBytes).toBeLessThan(4 * 1024 * 1024);
       expect(artifact.integrity).toBe(
         `sha512-${createHash("sha512")
           .update(await readFile(artifact.artifactPath))
@@ -176,6 +228,46 @@ describe("v0.7 stable release artifact", () => {
           .map((path) => readFile(join(root, path), "utf8")),
       );
       expect(sourceAfter).toEqual(sourceBefore);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects the exact final tarball when a required file is missing", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-stable-artifact-missing-"));
+    try {
+      const { sourceCommit } = await initializeStableSource({
+        omitFile: "dist/host/index.js",
+        root,
+      });
+
+      await expect(prepareV07StableArtifact({
+        outputDir: join(root, "output"),
+        repoRoot: root,
+        sourceCommit,
+        verifyInstalledConsumers: false,
+        verifyRuntimeDescriptor: false,
+      })).rejects.toThrow("tarball missing: dist/host/index.js");
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects the exact final tarball when it reaches 4 MiB", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-stable-artifact-size-"));
+    try {
+      const { sourceCommit } = await initializeStableSource({
+        oversized: true,
+        root,
+      });
+
+      await expect(prepareV07StableArtifact({
+        outputDir: join(root, "output"),
+        repoRoot: root,
+        sourceCommit,
+        verifyInstalledConsumers: false,
+        verifyRuntimeDescriptor: false,
+      })).rejects.toThrow("must be below 4194304 bytes");
     } finally {
       await rm(root, { force: true, recursive: true });
     }

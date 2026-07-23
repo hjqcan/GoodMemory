@@ -1496,6 +1496,8 @@ describe("release metadata and docs", () => {
     expect(readme).toContain("examples/fastify-chat-server.ts");
     expect(readme).toContain("docs/GoodMemory-15-Minute-App-Integration.md");
     expect(guide).toContain("15-Minute App Integration");
+    expect(guide).toContain("npm install goodmemory@0.7.0");
+    expect(guide).toContain("verified local `goodmemory-0.7.0.tgz`");
     expect(guide).toContain("createGoodMemory");
     expect(guide).toContain("GoodMemoryConfig.observability.traceSink");
     expect(guide).toContain("memory.runtime.startSession");
@@ -1631,6 +1633,8 @@ describe("release metadata and docs", () => {
     expect(standaloneGuide).toContain("GOODMEMORY_USER_ID");
     expect(standaloneGuide).toContain("GOODMEMORY_MCP_ALLOW_WRITE");
     expect(standaloneGuide).toContain("--agent-id");
+    expect(standaloneGuide).toContain("npm install -g goodmemory@0.7.0");
+    expect(standaloneGuide).toContain("verified local `goodmemory-0.7.0.tgz`");
     // Bun is a hard runtime prerequisite: the goodmemory-mcp bin spawns bun.
     expect(standaloneGuide).toContain("Bun");
 
@@ -3801,6 +3805,14 @@ describe("release metadata and docs", () => {
     expect(workflow).toContain("scripts/prepare-v0-7-stable-artifact.ts");
     expect(workflow).toContain("scripts/verify-v0-7-release-artifact.ts");
     expect(workflow).toContain("prepublish-evidence.json");
+    expect(
+      workflow.match(
+        /reports\/release\/v0\.7\/readiness-report\.json/gu,
+      ),
+    ).toHaveLength(2);
+    expect(
+      workflow.match(/reports\/release\/v0\.7\/summary\.md/gu),
+    ).toHaveLength(2);
     expect(workflow).toContain('ARTIFACT_SOURCE_COMMIT="$(ARTIFACT_JSON="$ARTIFACT_JSON"');
     expect(workflow).toContain('ARTIFACT_SOURCE_TREE="$(ARTIFACT_JSON="$ARTIFACT_JSON"');
     expect(workflow).toContain('[[ "$ARTIFACT_SOURCE_COMMIT" != "$GITHUB_SHA" ]]');

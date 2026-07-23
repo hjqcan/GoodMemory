@@ -129,6 +129,8 @@ jobs:
           path: |
             ${{ steps.pack.outputs.artifact_path }}
             ${{ steps.prepublish.outputs.evidence_path }}
+            reports/release/v0.7/readiness-report.json
+            reports/release/v0.7/summary.md
 
       - name: Validate npm publishing credentials
         if: startsWith(github.ref, 'refs/tags/')
@@ -209,5 +211,7 @@ jobs:
           files: |
             ${{ steps.pack.outputs.artifact_path }}
             ${{ steps.prepublish.outputs.evidence_path }}
+            reports/release/v0.7/readiness-report.json
+            reports/release/v0.7/summary.md
           prerelease: false
           make_latest: true

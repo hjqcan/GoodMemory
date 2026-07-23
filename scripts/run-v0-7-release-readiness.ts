@@ -456,9 +456,13 @@ export async function evaluateVersionConsistency(
     await readFile(join(repoRoot, "server.json"), "utf8"),
   ) as ServerDescriptor;
   const installSurfaces = await Promise.all(
-    ["README.md", "README.zh-CN.md", "llms.txt"].map((path) =>
-      readFile(join(repoRoot, path), "utf8"),
-    ),
+    [
+      "README.md",
+      "README.zh-CN.md",
+      "docs/GoodMemory-15-Minute-App-Integration.md",
+      "docs/GoodMemory-Standalone-MCP-Setup-Guide.md",
+      "llms.txt",
+    ].map((path) => readFile(join(repoRoot, path), "utf8")),
   );
   const issues: string[] = [];
   const packageRelease = packageJson.goodmemoryRelease;
@@ -517,7 +521,7 @@ export async function evaluateVersionConsistency(
       },
     )
   ) {
-    issues.push("README/llms.txt install commands do not consistently target 0.7.0");
+    issues.push("install guides do not consistently target 0.7.0");
   }
 
   const benchmarkVersions =

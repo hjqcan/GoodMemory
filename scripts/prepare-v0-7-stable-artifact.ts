@@ -4,6 +4,7 @@ import {
   mkdtemp,
   readFile,
   rm,
+  stat,
 } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -14,6 +15,7 @@ import type {
 } from "./run-v0-7-release-readiness";
 import {
   collectV07SourceIdentity,
+  evaluateV07PackManifest,
   evaluateV07SourceStability,
   verifyV07ArtifactConsumers,
 } from "./run-v0-7-release-readiness";
@@ -25,9 +27,11 @@ export interface V07StableArtifact {
   artifactName: string;
   artifactPath: string;
   integrity: string;
+  packedFileCount: number;
   runtime?: V07RuntimeIdentity;
   sourceCommit: string;
   sourceTree: string;
+  tarballBytes: number;
   version: string;
 }
 
@@ -64,6 +68,33 @@ async function extractTarball(
     cwd: outputDir,
   });
   return join(outputDir, "package");
+}
+
+async function verifyPackedManifest(
+  artifactPath: string,
+  outputDir: string,
+): Promise<{
+  packedFileCount: number;
+  tarballBytes: number;
+}> {
+  const listing = await runCommand({
+    cmd: ["tar", "-tzf", artifactPath],
+    cwd: outputDir,
+  });
+  const files = listing
+    .split(/\r?\n/u)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.startsWith("package/") && !entry.endsWith("/"))
+    .map((entry) => entry.slice("package/".length));
+  const tarballBytes = (await stat(artifactPath)).size;
+  const issues = evaluateV07PackManifest(files, tarballBytes);
+  if (issues.length > 0) {
+    throw new Error(`Stable artifact package gate failed: ${issues.join("; ")}`);
+  }
+  return {
+    packedFileCount: files.length,
+    tarballBytes,
+  };
 }
 
 async function verifyStableTarball(input: {
@@ -151,6 +182,7 @@ export async function prepareV07StableArtifact(input: {
     if (basename(artifactPath) !== `goodmemory-${RELEASE_VERSION}.tgz`) {
       throw new Error(`Expected goodmemory-${RELEASE_VERSION}.tgz.`);
     }
+    const packedManifest = await verifyPackedManifest(artifactPath, outputDir);
     const verifiedPackage = await extractTarball(artifactPath, verificationRoot);
     await verifyStableTarball({
       packageRoot: verifiedPackage,
@@ -174,9 +206,11 @@ export async function prepareV07StableArtifact(input: {
       artifactName: basename(artifactPath),
       artifactPath,
       integrity,
+      packedFileCount: packedManifest.packedFileCount,
       ...(runtime ? { runtime } : {}),
       sourceCommit: initialSource.commitSha,
       sourceTree: initialSource.treeSha,
+      tarballBytes: packedManifest.tarballBytes,
       version: RELEASE_VERSION,
     };
   } finally {
