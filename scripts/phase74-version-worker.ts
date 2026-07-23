@@ -1,8 +1,25 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { pathToFileURL } from "node:url";
 import { copyFile, mkdtemp, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import type { AISDKModelConfig } from "../src/provider/ai-sdk-runtime";
+import type {
+  AISDKModelConfig,
+  FetchLike,
+} from "../src/provider/ai-sdk-runtime";
+import {
+  createAttributedModelUsageSink,
+  type AttributedModelUsageAttempt,
+  type AttributedModelUsageIntent,
+  type Phase74ModelUsageBranch,
+} from "../src/eval/modelUsage";
+import {
+  modelUsageCompleteness,
+  normalizeAISDKEmbeddingUsage,
+  normalizeOpenAICompatibleUsage,
+  type ModelUsageOperation,
+  type ModelTokenUsage,
+} from "../src/provider/model-usage";
 import { buildPhase74LabelFreeScope } from "../src/eval/phase74FullRuntime";
 import {
   parsePhase74VersionWorkerInput,
@@ -81,6 +98,130 @@ export interface Phase74PreparedVersionMemoryGroup {
     extraction: AISDKModelConfig;
   };
   sqlitePath: string;
+}
+
+interface Phase74VersionUsageContext {
+  branch: Phase74ModelUsageBranch;
+  caseId: string;
+  languageOperation: ModelUsageOperation;
+}
+
+function requestUrl(request: RequestInfo | URL): string {
+  if (typeof request === "string") {
+    return request;
+  }
+  return request instanceof URL ? request.toString() : request.url;
+}
+
+function requestModel(init: RequestInit | undefined): string {
+  if (typeof init?.body !== "string") {
+    return "unknown";
+  }
+  try {
+    const value = JSON.parse(init.body) as { model?: unknown };
+    return typeof value.model === "string" && value.model.length > 0
+      ? value.model
+      : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+const MISSING_USAGE: ModelTokenUsage = {
+  cacheCreationInputTokens: null,
+  cacheReadInputTokens: null,
+  inputTokens: null,
+  outputTokens: null,
+  uncachedInputTokens: null,
+};
+
+export function createPhase74VersionUsageBoundary(input: {
+  events: AttributedModelUsageAttempt[];
+  fetch: FetchLike;
+  intents: AttributedModelUsageIntent[];
+  onUsageEvent?: (event: AttributedModelUsageAttempt) => void;
+  onUsageIntent?: (intent: AttributedModelUsageIntent) => void;
+}): {
+  fetch: FetchLike;
+  run<T>(
+    context: Phase74VersionUsageContext,
+    operation: () => Promise<T>,
+  ): Promise<T>;
+} {
+  const storage = new AsyncLocalStorage<Phase74VersionUsageContext>();
+  const wrappedFetch: FetchLike = async (request, init) => {
+    const context = storage.getStore();
+    const url = requestUrl(request);
+    const operation = url.endsWith("/embeddings")
+      ? "embedding"
+      : url.endsWith("/chat/completions")
+      ? context?.languageOperation
+      : undefined;
+    if (context === undefined || operation === undefined) {
+      return input.fetch(request, init);
+    }
+    const modelId = requestModel(init);
+    const sink = createAttributedModelUsageSink({
+      branch: context.branch,
+      caseId: context.caseId,
+      events: input.events,
+      intents: input.intents,
+      onEvent: input.onUsageEvent,
+      onIntent: input.onUsageIntent,
+    });
+    const report = sink.begin!({
+      attempt: 1,
+      modelId,
+      operation,
+      providerId: "openai",
+      schemaVersion: 1,
+    });
+    let response: Response;
+    try {
+      response = await input.fetch(request, init);
+    } catch (error) {
+      report({
+        attempt: 1,
+        completeness: "missing",
+        modelId,
+        operation,
+        outcome: "failed",
+        providerId: "openai",
+        schemaVersion: 1,
+        usage: MISSING_USAGE,
+      });
+      throw error;
+    }
+    let payload: unknown;
+    try {
+      payload = await response.clone().json();
+    } catch {
+      payload = undefined;
+    }
+    const normalized = normalizeOpenAICompatibleUsage(payload);
+    const usage = operation === "embedding"
+      ? normalizeAISDKEmbeddingUsage({
+        tokens: normalized.inputTokens ?? undefined,
+      })
+      : normalized;
+    report({
+      attempt: 1,
+      completeness: modelUsageCompleteness(usage),
+      modelId,
+      operation,
+      outcome: response.ok ? "succeeded" : "failed",
+      providerId: "openai",
+      schemaVersion: 1,
+      usage,
+    });
+    return response;
+  };
+  return {
+    fetch: wrappedFetch,
+    run(context, operation) {
+      return storage.run(context, operation);
+    },
+  };
 }
 
 export interface Phase74VersionWorkerResult {
