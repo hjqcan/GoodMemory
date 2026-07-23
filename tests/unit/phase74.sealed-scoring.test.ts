@@ -31,12 +31,13 @@ describe("Phase 74 sealed scoring", () => {
   it("scores only after the unscored artifact is sealed and preserves reuse attribution", async () => {
     const bundles = buildPhase74SealedBundles({
       cases: [scoredCase],
+      executionConfiguration: { caseConcurrency: 2 },
       runId: "sealed-scoring",
       stage: "E2",
     });
     let readerCall = 0;
     const unscored = await runPhase74UnscoredExecution({
-      baseConfiguration: {},
+      baseConfiguration: { caseConcurrency: 2 },
       countRenderedTokens: (content) => content.length,
       executeRetrieval: async ({ arm }) => ({
         retrievedMemories: [{
@@ -59,10 +60,19 @@ describe("Phase 74 sealed scoring", () => {
     );
 
     const observedOfficialIds: string[] = [];
+    let activeAssessments = 0;
+    let maximumActiveAssessments = 0;
     const scored = await scorePhase74UnscoredExecution({
       artifact: unscored.artifact,
       assess: async (input) => {
         observedOfficialIds.push(input.originalCaseId);
+        activeAssessments += 1;
+        maximumActiveAssessments = Math.max(
+          maximumActiveAssessments,
+          activeAssessments,
+        );
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        activeAssessments -= 1;
         expect(input.expectedAnswer).toBe("Postgres");
         expect(input.opaqueCaseKey).not.toBe(input.originalCaseId);
         return {
@@ -80,6 +90,7 @@ describe("Phase 74 sealed scoring", () => {
       "official-private-id",
       "official-private-id",
     ]);
+    expect(maximumActiveAssessments).toBe(2);
     expect(scored.receipt.rows).toEqual([
       expect.objectContaining({
         correct: true,
