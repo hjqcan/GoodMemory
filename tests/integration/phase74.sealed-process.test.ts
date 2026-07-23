@@ -7,6 +7,7 @@ import {
   buildPhase74SealedBundles,
   buildPhase74SealedExecutorOutput,
   buildPhase74SealedScoreReceipt,
+  listPhase74SealedExpectedRows,
   parsePhase74SealedExecutionBundle,
   runPhase74SealedProcessPair,
   verifyPhase74SealedScoreReceipt,
@@ -269,6 +270,58 @@ describe("Phase 74 sealed process boundary", () => {
       executorOutput: missingArmOutput,
       escrow: bundles.escrow,
       receipt: missingArmReceipt,
+    })).toThrow("receipt chain is invalid");
+  });
+
+  it("rejects an E4 receipt without a scorer-only oracle artifact", () => {
+    const bundles = buildPhase74SealedBundles({
+      cases: [{
+        caseId: "official-e4-case",
+        expectedAnswer: "Postgres",
+        goldEvidenceIds: [],
+        question: "Which database is current?",
+        rawEvidence: [{
+          content: "Postgres is current.",
+          id: "turn-1",
+          sourceIds: ["session-a:turn-1"],
+        }],
+      }],
+      runId: "sealed-e4-oracle",
+      stage: "E4",
+    });
+    const output = buildPhase74SealedExecutorOutput({
+      artifactSha256: "d".repeat(64),
+      execution: bundles.execution,
+      executorPid: 401,
+      rows: listPhase74SealedExpectedRows(bundles.execution).map(
+        ({ caseKey, rowKey }) => ({
+          answer: "Postgres",
+          caseKey,
+          observedAnswer: "Postgres",
+          rowKey,
+          snapshotId: "e3-snapshot",
+          sourceRowKey: rowKey,
+        }),
+      ),
+    });
+    const receipt = buildPhase74SealedScoreReceipt({
+      escrow: bundles.escrow,
+      executorOutput: output,
+      rows: output.rows.map(({ caseKey, rowKey }) => ({
+        caseKey,
+        correct: true,
+        observedCorrect: true,
+        observedScore: 1,
+        rowKey,
+        score: 1,
+      })),
+      scorerPid: 402,
+    });
+    expect(() => verifyPhase74SealedScoreReceipt({
+      escrow: bundles.escrow,
+      execution: bundles.execution,
+      executorOutput: output,
+      receipt,
     })).toThrow("receipt chain is invalid");
   });
 });
