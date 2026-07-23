@@ -125,7 +125,6 @@ describe("Phase 74 full retrieval runtime", () => {
           answer: languageModel,
           assistedExtraction: languageModel,
           embedding: { ...languageModel, model: "embedding-test" },
-          judge: { ...languageModel, model: "gpt-5.5" },
           planner: languageModel,
           reranker: languageModel,
         },

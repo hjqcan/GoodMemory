@@ -54,7 +54,7 @@ import type {
   Phase74RetrievalExecutionInput,
   Phase74RetrievalSnapshot,
 } from "./phase74Generalization";
-import type { Phase74LiveModels } from "./phase74Live";
+import type { Phase74ExecutorModels } from "./phase74Live";
 import {
   PHASE74_EMBEDDING_CALL_CONFIGURATION,
   PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
@@ -272,7 +272,9 @@ export function phase74ExecutionBranch(
   return phase74ComparisonBranch(stage, arm);
 }
 
-function modelIdentity(model: Phase74LiveModels["answer"]): IngestionModelIdentity {
+function modelIdentity(
+  model: Phase74ExecutorModels["answer"],
+): IngestionModelIdentity {
   return {
     gateway: model.baseURL ?? "",
     model: model.model,
@@ -326,7 +328,7 @@ export function buildPhase74IngestionDescriptor(input: {
   configuration: EvalRunJsonObject;
   datasetSha256: string;
   evaluatorSourceSha256: string;
-  models: Phase74LiveModels;
+  models: Phase74ExecutorModels;
   promptSha256s: Readonly<Record<string, string>>;
   testCase: Phase74RecallCase;
 }): {
@@ -455,7 +457,7 @@ export function assertPhase74RetrievedProvenance(
 function createMemory(input: {
   configuration: EvalRunJsonObject;
   includeExtractor: boolean;
-  models: Phase74LiveModels;
+  models: Phase74ExecutorModels;
   now: string;
   rerankerMode: "deterministic" | "provider";
   sqlitePath: string;
@@ -636,7 +638,7 @@ export function createPhase74FullRetrievalRuntime(input: {
   evaluatorSourceSha256: string;
   events: AttributedModelUsageAttempt[];
   intents: AttributedModelUsageIntent[];
-  models: Phase74LiveModels;
+  models: Phase74ExecutorModels;
   onIngestionUse?: (
     trace: NonNullable<Phase74RetrievalSnapshot["costTrace"]>,
   ) => void;

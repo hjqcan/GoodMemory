@@ -117,14 +117,21 @@ export function phase74LivePromptSha256s(): Record<string, string> {
   };
 }
 
-export interface Phase74LiveModels {
+export interface Phase74ExecutorModels {
   answer: AISDKModelConfig;
   assistedExtraction: AISDKModelConfig;
   embedding: AISDKModelConfig;
-  judge: AISDKModelConfig;
   planner: AISDKModelConfig;
   reranker: AISDKModelConfig;
 }
+
+export interface Phase74ScorerModels {
+  judge: AISDKModelConfig;
+}
+
+export interface Phase74LiveModels extends
+  Phase74ExecutorModels,
+  Phase74ScorerModels {}
 
 export interface Phase74EmbeddingIdentity {
   readonly [key: string]: number | string;
@@ -331,11 +338,10 @@ function modelFromEnv(
   };
 }
 
-export function resolvePhase74LiveModels(
+export function resolvePhase74ExecutorModels(
   env: Record<string, string | undefined>,
-): Phase74LiveModels {
+): Phase74ExecutorModels {
   const answer = modelFromEnv(env, "GOODMEMORY_EVAL");
-  const judge = modelFromEnv(env, "GOODMEMORY_JUDGE");
   const embedding = modelFromEnv(env, "GOODMEMORY_EMBEDDING");
   if (
     answer.provider !== "openai" ||
@@ -344,15 +350,6 @@ export function resolvePhase74LiveModels(
   ) {
     throw new Error(
       `Phase 74 language calls require ${PHASE74_LANGUAGE_MODEL} through ${PHASE74_GATEWAY}.`,
-    );
-  }
-  if (
-    judge.provider !== "openai" ||
-    judge.model !== PHASE74_JUDGE_MODEL ||
-    judge.baseURL !== PHASE74_GATEWAY
-  ) {
-    throw new Error(
-      `Phase 74 judging requires independent ${PHASE74_JUDGE_MODEL} through ${PHASE74_GATEWAY}.`,
     );
   }
   if (
@@ -368,9 +365,33 @@ export function resolvePhase74LiveModels(
     answer,
     assistedExtraction: answer,
     embedding,
-    judge,
     planner: answer,
     reranker: answer,
+  };
+}
+
+export function resolvePhase74ScorerModels(
+  env: Record<string, string | undefined>,
+): Phase74ScorerModels {
+  const judge = modelFromEnv(env, "GOODMEMORY_JUDGE");
+  if (
+    judge.provider !== "openai" ||
+    judge.model !== PHASE74_JUDGE_MODEL ||
+    judge.baseURL !== PHASE74_GATEWAY
+  ) {
+    throw new Error(
+      `Phase 74 judging requires independent ${PHASE74_JUDGE_MODEL} through ${PHASE74_GATEWAY}.`,
+    );
+  }
+  return { judge };
+}
+
+export function resolvePhase74LiveModels(
+  env: Record<string, string | undefined>,
+): Phase74LiveModels {
+  return {
+    ...resolvePhase74ExecutorModels(env),
+    ...resolvePhase74ScorerModels(env),
   };
 }
 

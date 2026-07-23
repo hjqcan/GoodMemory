@@ -48,6 +48,7 @@ export type Phase74ProtocolCompatibleAnswerAssessor = (input: {
   answer: string;
   purpose: string;
   testCase: Phase74GeneralizationCase;
+  usageCaseId?: string;
 }) => Promise<Phase74AnswerAssessment>;
 
 export function buildPhase74ProtocolScoringIdentity(
@@ -129,10 +130,10 @@ export function createPhase74ProtocolCompatibleAnswerAssessor(input: {
   const configuration =
     PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.judge.protocol;
 
-  return async ({ answer, testCase }) => {
+  return async ({ answer, testCase, usageCaseId }) => {
     const sink = createAttributedModelUsageSink({
       branch: "judge",
-      caseId: testCase.caseId,
+      caseId: usageCaseId ?? testCase.caseId,
       events: input.events,
       intents: input.intents,
       onEvent: input.onUsageEvent,
