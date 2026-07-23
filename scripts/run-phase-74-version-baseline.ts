@@ -18,6 +18,7 @@ import type { Phase74VersionWorkerResult } from "./phase74-version-worker";
 import {
   buildPhase74EmbeddingIdentity,
   createPhase74LiveReader,
+  phase74EmbeddingInputCostUsdPerMillionTokens,
   phase74LivePromptSha256s,
   resolvePhase74LiveModels,
 } from "../src/eval/phase74Live";
@@ -62,7 +63,6 @@ import type {
 } from "../src/eval/phase74Datasets";
 
 const CONTEXT_TOKEN_BUDGET = 6_000;
-const OPENROUTER_EMBEDDING_USD_PER_MILLION_INPUT_TOKENS = 0.02;
 
 type CandidateStage = "E1" | "E2" | "E3";
 
@@ -87,6 +87,14 @@ export interface Phase74VersionScoredOutcome {
   caseId: string;
   correct: boolean;
   score: number;
+}
+
+export function estimatePhase74VersionEmbeddingSpendUpperBoundUsd(input: {
+  inputByteUpperBound: number;
+  model: string;
+}): number {
+  return input.inputByteUpperBound *
+    phase74EmbeddingInputCostUsdPerMillionTokens(input.model) / 1_000_000;
 }
 
 export function buildPhase74VersionRunIdentity(input: {
@@ -479,8 +487,10 @@ export async function runPhase74VersionBaseline(
     } else if (url.endsWith("/embeddings")) {
       const requestBytes = embeddingRequestBytes(init);
       const projectedBytes = embeddingInputByteUpperBound + requestBytes;
-      const projectedUsd = projectedBytes *
-        OPENROUTER_EMBEDDING_USD_PER_MILLION_INPUT_TOKENS / 1_000_000;
+      const projectedUsd = estimatePhase74VersionEmbeddingSpendUpperBoundUsd({
+        inputByteUpperBound: projectedBytes,
+        model: models.embedding.model,
+      });
       if (projectedUsd > options.embeddingSpendLimitUsd) {
         throw new Error("Phase 74 embedding spend limit would be exceeded.");
       }
@@ -535,8 +545,10 @@ export async function runPhase74VersionBaseline(
       embeddingInputByteUpperBound,
       embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
       embeddingSpendUpperBoundUsd:
-        embeddingInputByteUpperBound *
-          OPENROUTER_EMBEDDING_USD_PER_MILLION_INPUT_TOKENS / 1_000_000,
+        estimatePhase74VersionEmbeddingSpendUpperBoundUsd({
+          inputByteUpperBound: embeddingInputByteUpperBound,
+          model: models.embedding.model,
+        }),
       languageCalls,
       maxLanguageCalls: options.maxLanguageCalls,
     },

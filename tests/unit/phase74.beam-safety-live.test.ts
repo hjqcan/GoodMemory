@@ -23,6 +23,7 @@ import type {
   AttributedModelUsageAttempt,
   AttributedModelUsageIntent,
 } from "../../src/eval/modelUsage";
+import { buildPhase74EmbeddingIdentity } from "../../src/eval/phase74Live";
 import type { Phase74LiveModels } from "../../src/eval/phase74Live";
 import {
   buildPhase74IngestionUsageFingerprint,
@@ -173,9 +174,7 @@ function liveRunClosure() {
         maxLanguageCalls: 10,
       },
       caseConcurrency: 16,
-      embedding: {
-        model: "text-embedding-3-small",
-      },
+      embedding: buildPhase74EmbeddingIdentity(models().embedding),
       replicate: 1,
       runId: "beam-r1",
     },
@@ -570,7 +569,10 @@ describe("Phase 74 BEAM safety live wiring", () => {
 
   it("prices embedding spend from the verifier-bound run identity", () => {
     const bge = liveRunClosure();
-    bge.identity.embedding.model = "baai/bge-m3";
+    bge.identity.embedding = buildPhase74EmbeddingIdentity({
+      ...models().embedding,
+      model: "baai/bge-m3",
+    });
     bge.identity.callBudget.embeddingSpendLimitUsd = 0.15;
     bge.callBudget.embeddingInputByteUpperBound = 10_000_000;
     bge.callBudget.embeddingSpendLimitUsd = 0.15;
@@ -579,7 +581,9 @@ describe("Phase 74 BEAM safety live wiring", () => {
     expect(() => assertPhase74BeamSafetyLiveRunClosure(bge)).not.toThrow();
 
     const textSmall = structuredClone(bge);
-    textSmall.identity.embedding.model = "text-embedding-3-small";
+    textSmall.identity.embedding = buildPhase74EmbeddingIdentity(
+      models().embedding,
+    );
     expect(() => assertPhase74BeamSafetyLiveRunClosure(textSmall)).toThrow(
       "call budget",
     );

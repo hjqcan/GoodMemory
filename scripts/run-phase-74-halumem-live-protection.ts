@@ -87,7 +87,9 @@ import {
   PHASE74_GATEWAY,
   PHASE74_JUDGE_MODEL,
   PHASE74_LANGUAGE_MODEL,
+  buildPhase74EmbeddingIdentity,
   capturePhase74EvaluatorSource,
+  phase74EmbeddingInputCostUsdPerMillionTokens,
   phase74LivePromptSha256s,
   resolvePhase74LiveModels,
 } from "../src/eval/phase74Live";
@@ -96,7 +98,6 @@ import type {
   Phase74LiveModels,
 } from "../src/eval/phase74Live";
 import {
-  PHASE74_EMBEDDING_CALL_CONFIGURATION,
   PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
 } from "../src/eval/phase74ProviderConfiguration";
 import {
@@ -429,7 +430,8 @@ function publicModel(model: Phase74LiveModels["answer"]) {
   };
 }
 
-function trustedHaluMemModels(): Phase74LiveModels {
+function trustedHaluMemModels(embeddingModel: string): Phase74LiveModels {
+  phase74EmbeddingInputCostUsdPerMillionTokens(embeddingModel);
   const language = {
     baseURL: PHASE74_GATEWAY,
     model: PHASE74_LANGUAGE_MODEL,
@@ -440,7 +442,7 @@ function trustedHaluMemModels(): Phase74LiveModels {
     assistedExtraction: language,
     embedding: {
       baseURL: PHASE74_EMBEDDING_GATEWAY,
-      model: PHASE74_EMBEDDING_MODEL,
+      model: embeddingModel,
       provider: "openai",
     },
     judge: {
@@ -453,12 +455,26 @@ function trustedHaluMemModels(): Phase74LiveModels {
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function frozenHaluMemEmbeddingModel(configuration: EvalRunJsonObject): string {
+  const modelCalls = configuration.modelCalls;
+  if (!isRecord(modelCalls)) {
+    throw new Error("Phase 74 HaluMem model-call identity drifted.");
+  }
+  const embedding = modelCalls.embedding;
+  if (!isRecord(embedding) || typeof embedding.model !== "string") {
+    throw new Error("Phase 74 HaluMem model-call identity drifted.");
+  }
+  return embedding.model;
+}
+
 function trustedHaluMemModelCalls(models: Phase74LiveModels) {
+  phase74EmbeddingInputCostUsdPerMillionTokens(models.embedding.model);
   return {
-    embedding: {
-      ...publicModel(models.embedding),
-      ...PHASE74_EMBEDDING_CALL_CONFIGURATION,
-    },
+    embedding: buildPhase74EmbeddingIdentity(models.embedding),
     extraction: {
       ...publicModel(models.assistedExtraction),
       ...PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.assistedExtraction,
@@ -874,9 +890,10 @@ function expectedDirectUsage(
 
 function expectedUsageModel(
   operation: AttributedModelUsageIntent["operation"],
+  embeddingModel: string,
 ): string {
   if (operation === "embedding") {
-    return PHASE74_EMBEDDING_MODEL;
+    return embeddingModel;
   }
   if (operation === "judge") {
     return PHASE74_JUDGE_MODEL;
@@ -885,13 +902,15 @@ function expectedUsageModel(
 }
 
 function verifyUsageLedgerPopulation(input: {
+  embeddingModel: string;
   label: string;
   ledger: Phase74ModelUsageLedger;
   requirements: ReadonlyMap<string, HaluMemUsageRequirement>;
 }): void {
   for (const intent of input.ledger.intents) {
     if (
-      intent.modelId !== expectedUsageModel(intent.operation) ||
+      intent.modelId !==
+        expectedUsageModel(intent.operation, input.embeddingModel) ||
       intent.providerId !== "openai"
     ) {
       throw new Error(
@@ -1001,6 +1020,7 @@ async function verifyIngestionUsagePopulation(input: {
       operation: "embedding",
     });
     verifyUsageLedgerPopulation({
+      embeddingModel: input.models.embedding.model,
       label: "ingestion",
       ledger,
       requirements,
@@ -1010,6 +1030,7 @@ async function verifyIngestionUsagePopulation(input: {
 
 async function verifyHaluMemCallBudget(input: {
   configuration: EvalRunJsonObject;
+  embeddingModel: string;
   ingestionLedgers: readonly { ledger: Phase74ModelUsageLedger }[];
   ledger: Phase74ModelUsageLedger;
   runDirectory: string;
@@ -1044,7 +1065,9 @@ async function verifyHaluMemCallBudget(input: {
     typeof spendLimit !== "number" ||
     !Number.isFinite(spendLimit) ||
     spendLimit <= 0 ||
-    embeddingBytes * 0.02 / 1_000_000 > spendLimit ||
+    embeddingBytes *
+      phase74EmbeddingInputCostUsdPerMillionTokens(input.embeddingModel) /
+      1_000_000 > spendLimit ||
     typeof budget.maxLanguageCalls !== "number" ||
     languageCalls > budget.maxLanguageCalls
   ) {
@@ -1139,7 +1162,8 @@ export async function verifyPhase74HaluMemLiveRun(
   ) {
     throw new Error("Phase 74 HaluMem prompt identity drifted.");
   }
-  const trustedModels = trustedHaluMemModels();
+  const embeddingModel = frozenHaluMemEmbeddingModel(configuration);
+  const trustedModels = trustedHaluMemModels(embeddingModel);
   if (
     hashPhase74ProtectionValue(configuration.modelCalls) !==
       hashPhase74ProtectionValue(trustedHaluMemModelCalls(trustedModels)) ||
@@ -1297,6 +1321,7 @@ export async function verifyPhase74HaluMemLiveRun(
     users: selectedUsers,
   });
   verifyUsageLedgerPopulation({
+    embeddingModel,
     label: "direct",
     ledger: collectedUsage.direct,
     requirements: expectedDirectUsage(selectedUsers),
@@ -1312,6 +1337,7 @@ export async function verifyPhase74HaluMemLiveRun(
   });
   await verifyHaluMemCallBudget({
     configuration,
+    embeddingModel,
     ingestionLedgers: collectedUsage.ingestionLedgers,
     ledger: collectedUsage.direct,
     runDirectory: directory,

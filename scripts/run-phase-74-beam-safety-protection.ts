@@ -26,7 +26,9 @@ import type {
   Phase74BeamSafetyDependencies,
 } from "../src/eval/phase74BeamSafetyProtection";
 import {
+  buildPhase74EmbeddingIdentity,
   capturePhase74EvaluatorSource,
+  phase74EmbeddingInputCostUsdPerMillionTokens,
   resolvePhase74LiveModels,
 } from "../src/eval/phase74Live";
 import type {
@@ -70,7 +72,6 @@ import { resolveRepoRootFromScriptUrl } from "./script-paths";
 
 const GENERATED_BY = "scripts/run-phase-74-beam-safety-protection.ts";
 const DEFAULT_CASE_CONCURRENCY = 16;
-const EMBEDDING_USD_PER_MILLION_INPUT_TOKENS = 0.02;
 
 interface Phase74BeamSafetyProtectionLiveCliOptions {
   caseConcurrency: number;
@@ -428,6 +429,26 @@ function nonNegativeInteger(value: unknown): value is number {
   return Number.isSafeInteger(value) && Number(value) >= 0;
 }
 
+function verifyBeamEmbeddingIdentity(value: Record<string, unknown>) {
+  if (
+    typeof value.gateway !== "string" ||
+    typeof value.model !== "string" ||
+    value.provider !== "openai"
+  ) {
+    throw new Error("Phase 74 BEAM live embedding identity drifted.");
+  }
+  phase74EmbeddingInputCostUsdPerMillionTokens(value.model);
+  const expected = buildPhase74EmbeddingIdentity({
+    baseURL: value.gateway,
+    model: value.model,
+    provider: value.provider,
+  });
+  if (canonicalJson(value) !== canonicalJson(expected)) {
+    throw new Error("Phase 74 BEAM live embedding identity drifted.");
+  }
+  return expected;
+}
+
 export function assertPhase74BeamSafetyLiveRunClosure(input: {
   callBudget: unknown;
   callBudgetSha256: string;
@@ -452,6 +473,8 @@ export function assertPhase74BeamSafetyLiveRunClosure(input: {
   if (
     !isRecord(input.identity) ||
     !isRecord(input.identity.callBudget) ||
+    !isRecord(input.identity.embedding) ||
+    typeof input.identity.embedding.model !== "string" ||
     !isRecord(input.protectionArtifact) ||
     !isRecord(input.protectionArtifact.rawArtifact) ||
     !isRecord(input.summary) ||
@@ -462,6 +485,11 @@ export function assertPhase74BeamSafetyLiveRunClosure(input: {
   ) {
     throw new Error("Phase 74 BEAM live run closure is invalid.");
   }
+  const embedding = verifyBeamEmbeddingIdentity(input.identity.embedding);
+  const embeddingInputCostUsdPerMillionTokens =
+    phase74EmbeddingInputCostUsdPerMillionTokens(
+      embedding.model,
+    );
   if (
     input.summary.artifactKind !==
       "phase74-beam-safety-live-run-summary" ||
@@ -503,7 +531,7 @@ export function assertPhase74BeamSafetyLiveRunClosure(input: {
     Number(input.callBudget.languageCalls) >
       Number(input.callBudget.maxLanguageCalls) ||
     Number(input.callBudget.embeddingInputByteUpperBound) *
-      EMBEDDING_USD_PER_MILLION_INPUT_TOKENS / 1_000_000 >
+      embeddingInputCostUsdPerMillionTokens / 1_000_000 >
       input.callBudget.embeddingSpendLimitUsd ||
     canonicalJson(input.summary.callBudget) !== canonicalJson(input.callBudget) ||
     input.identity.callBudget.embeddingSpendLimitUsd !==
@@ -871,6 +899,7 @@ export async function runPhase74BeamSafetyProtectionCli(
       },
       generatedAt,
       generatedBy: GENERATED_BY,
+      embedding: buildPhase74EmbeddingIdentity(models.embedding),
       manifest: {
         path: manifest.path,
         sha256: manifest.sha256,

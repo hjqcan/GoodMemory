@@ -218,6 +218,7 @@ function dependencies(
 async function frozenResult(
   runDirectory: string,
   options: Parameters<Phase74HaluMemLiveRunnerDependencies["runProtection"]>[0],
+  runModels: typeof models,
 ): Promise<Phase74HaluMemProtectionCliResult> {
   const selectedUsers = users.filter(({ uuid }) =>
     options.userUuids.includes(uuid)
@@ -243,7 +244,7 @@ async function frozenResult(
       )["recall-plan-deterministic"]!,
       datasetSha256: sha256(await readFile(options.datasetPath)),
       evaluatorSourceSha256: "e".repeat(64),
-      models,
+      models: runModels,
       promptSha256s: phase74LivePromptSha256s(),
       testCase,
     });
@@ -254,7 +255,7 @@ async function frozenResult(
         providerId: "openai",
       },
       {
-        modelId: "text-embedding-3-small",
+        modelId: runModels.embedding.model,
         operation: "embedding" as const,
         providerId: "openai",
       },
@@ -426,7 +427,7 @@ async function frozenResult(
     addDirectRequest({
       branch: "candidate",
       caseId: questionCaseId,
-      modelId: "text-embedding-3-small",
+      modelId: runModels.embedding.model,
       operation: "embedding",
       providerId: "openai",
     });
@@ -457,7 +458,7 @@ async function frozenResult(
         branch,
         caseId:
           `halumem-privacy:${selectedUser.uuid}:session:0:${branch}:ingest`,
-        modelId: "text-embedding-3-small",
+        modelId: runModels.embedding.model,
         operation: "embedding",
         providerId: "openai",
       });
@@ -470,7 +471,7 @@ async function frozenResult(
         addDirectRequest({
           branch,
           caseId: `${privacyCaseId}:${branch}:${side}`,
-          modelId: "text-embedding-3-small",
+          modelId: runModels.embedding.model,
           operation: "embedding",
           providerId: "openai",
         });
@@ -487,7 +488,7 @@ async function frozenResult(
         branch,
         caseId:
           `halumem-update:${selectedUser.uuid}:session:0:${branch}:ingest`,
-        modelId: "text-embedding-3-small",
+        modelId: runModels.embedding.model,
         operation: "embedding",
         providerId: "openai",
       });
@@ -495,7 +496,7 @@ async function frozenResult(
       addDirectRequest({
         branch,
         caseId: `${updateCaseId}:${branch}:retrieve`,
-        modelId: "text-embedding-3-small",
+        modelId: runModels.embedding.model,
         operation: "embedding",
         providerId: "openai",
       });
@@ -555,6 +556,9 @@ async function frozenLiveRun(input: {
   embeddingSpendLimitUsd?: number;
 } = {}) {
   const options = await fixtureOptions("live");
+  if (options.mode !== "live") {
+    throw new Error("Expected live HaluMem fixture options.");
+  }
   options.embeddingSpendLimitUsd =
     input.embeddingSpendLimitUsd ?? options.embeddingSpendLimitUsd;
   const runModels = {
@@ -578,6 +582,7 @@ async function frozenLiveRun(input: {
       return frozenResult(
         join(cliOptions.outputDir, cliOptions.runId),
         cliOptions,
+        runModels,
       );
     },
   });
@@ -876,6 +881,7 @@ describe("Phase 74 HaluMem live runner", () => {
         return frozenResult(
           join(cliOptions.outputDir, cliOptions.runId),
           cliOptions,
+          models,
         );
       },
     });
@@ -925,6 +931,7 @@ describe("Phase 74 HaluMem live runner", () => {
         return frozenResult(
           join(cliOptions.outputDir, cliOptions.runId),
           cliOptions,
+          models,
         );
       },
     });
@@ -965,6 +972,7 @@ describe("Phase 74 HaluMem live runner", () => {
         return frozenResult(
           join(cliOptions.outputDir, cliOptions.runId),
           cliOptions,
+          models,
         );
       },
     });
@@ -1318,12 +1326,10 @@ describe("Phase 74 HaluMem live runner", () => {
     await expect(verifyPhase74HaluMemLiveRun(textSmall.runDirectory)).rejects
       .toThrow("call budget");
 
-    const unknown = await frozenLiveRun({
+    await expect(frozenLiveRun({
       embeddingModel: "unknown-embedding-model",
       embeddingSpendLimitUsd: 0.15,
-    });
-    await expect(verifyPhase74HaluMemLiveRun(unknown.runDirectory)).rejects
-      .toThrow("Unsupported Phase 74 embedding model");
+    })).rejects.toThrow("Unsupported Phase 74 embedding model");
   });
 
   it("verify-only rejects update decision usage that is not backed by its judge ledger event", async () => {
