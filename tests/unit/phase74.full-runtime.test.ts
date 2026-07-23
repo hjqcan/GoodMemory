@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -16,8 +16,12 @@ import {
   buildPhase74RetrievalSnapshotId,
   createPhase74FullRetrievalRuntime,
   phase74ExecutionBranch,
+  restorePhase74RetiredIngestionSnapshot,
   verifyPhase74IngestionUsageManifest,
 } from "../../src/eval/phase74FullRuntime";
+import {
+  archivePhase74IngestionSnapshot,
+} from "../../src/eval/phase74IngestionRetirement";
 import {
   createAttributedModelUsageSink,
   validatePhase74ModelUsageLedger,
@@ -62,6 +66,57 @@ const base = {
 } as const;
 
 describe("Phase 74 full ingestion identity", () => {
+  it("restores a retired snapshot before attempting paid re-ingestion", async () => {
+    const root = await mkdtemp(join(tmpdir(), "phase74-ingestion-restore-"));
+    const ingestionKey = "a".repeat(64);
+    const directory = join(root, "ingestion", ingestionKey);
+    const sqlitePath = join(directory, "memory.sqlite");
+    const manifestPath = join(directory, "manifest.json");
+    const receiptPath = join(
+      root,
+      "ingestion-retirement",
+      `${ingestionKey}.json`,
+    );
+    const sqliteBytes = Buffer.from("SQLite format 3\0phase-74-runtime\n");
+    try {
+      await mkdir(directory, { recursive: true });
+      await writeFile(manifestPath, JSON.stringify({
+        key: ingestionKey,
+        schemaVersion: 8,
+      }));
+      await writeFile(sqlitePath, sqliteBytes);
+      await archivePhase74IngestionSnapshot({
+        archiveRoot: join(root, "ingestion-archive"),
+        ingestionKey,
+        receiptPath,
+        representation: "fact-only",
+        runId: "run-1",
+        sourceManifestPath: manifestPath,
+        sourceSqlitePath: sqlitePath,
+        stage: "E1",
+        stageSealSha256: "b".repeat(64),
+      });
+      await expect(access(sqlitePath)).rejects.toMatchObject({ code: "ENOENT" });
+
+      await expect(restorePhase74RetiredIngestionSnapshot({
+        ingestionKey,
+        representation: "fact-only",
+        runDirectory: root,
+        sqlitePath,
+      })).resolves.toBe(true);
+      expect(await readFile(sqlitePath)).toEqual(sqliteBytes);
+
+      await expect(restorePhase74RetiredIngestionSnapshot({
+        ingestionKey: "c".repeat(64),
+        representation: "fact-only",
+        runDirectory: root,
+        sqlitePath: join(root, "missing", "memory.sqlite"),
+      })).resolves.toBe(false);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("forces raw evidence only for the raw representation", () => {
     const messages = [
       { content: "User fact", role: "user" as const },
