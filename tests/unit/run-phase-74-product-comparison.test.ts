@@ -4,6 +4,7 @@ import {
   PHASE74_PRODUCT_CASE_SCHEDULING,
   buildPhase74ProductQueryPathLatencyMs,
   buildPhase74ProductRunIdentityConfiguration,
+  createPhase74ProductNetworkFetch,
   parsePhase74ProductComparisonCliOptions,
   runPhase74ProductComparison,
   type Phase74ProductPreparedGroup,
@@ -308,5 +309,33 @@ describe("Phase 74 cumulative product runner", () => {
       contextAssemblyLatencyMs: 7,
       recallLatencyMs: 23,
     })).toBe(30);
+  });
+
+  it("pins the same BGE provider route at the shared product network boundary", async () => {
+    const requests: string[] = [];
+    const fetch = createPhase74ProductNetworkFetch({
+      fetch: async (_request, init) => {
+        requests.push(String(init?.body));
+        return Response.json({ data: [], usage: { prompt_tokens: 0 } });
+      },
+      model: {
+        apiKey: "embedding-key",
+        baseURL: "https://openrouter.ai/api/v1",
+        model: "baai/bge-m3",
+        provider: "openai",
+      },
+    });
+
+    await fetch("https://openrouter.ai/api/v1/embeddings", {
+      body: JSON.stringify({ input: ["evidence"], model: "baai/bge-m3" }),
+      method: "POST",
+    });
+
+    expect(JSON.parse(requests[0]!)).toMatchObject({
+      provider: {
+        allow_fallbacks: false,
+        order: ["parasail"],
+      },
+    });
   });
 });
