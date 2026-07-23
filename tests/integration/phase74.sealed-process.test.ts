@@ -338,6 +338,62 @@ describe("Phase 74 sealed process boundary", () => {
     }
   });
 
+  it("resumes after scorer failure without rerunning the sealed executor", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "phase74-sealed-resume-"));
+    try {
+      const bundles = buildPhase74SealedBundles({
+        cases: [{
+          caseId: "resume-case",
+          expectedAnswer: GOLD_SENTINEL,
+          goldEvidenceIds: [],
+          question: "Which database is current?",
+          rawEvidence: [],
+        }],
+        runId: "sealed-resume",
+        stage: "E2",
+      });
+      const artifactPath = join(directory, "executor-artifact.json");
+      const common = {
+        cwd: directory,
+        evidenceDirectory: join(directory, "sealed-evidence"),
+        execution: bundles.execution,
+        escrow: bundles.escrow,
+        executorArtifactPath: artifactPath,
+        executorEnv: {
+          HOME: process.env.HOME,
+          PATH: process.env.PATH,
+          PHASE74_SEALED_ARTIFACT_PATH: artifactPath,
+        },
+        scorerScript: resolve("tests/fixtures/phase74-sealed-scorer.ts"),
+        transcriptPath: join(directory, "process-transcript.json"),
+      };
+      await expect(runPhase74SealedProcessPair({
+        ...common,
+        executorScript: resolve("tests/fixtures/phase74-sealed-executor.ts"),
+        scorerEnv: {
+          HOME: process.env.HOME,
+          PATH: process.env.PATH,
+          PHASE74_SEALED_SCORER_FAIL: "1",
+        },
+      })).rejects.toThrow("sealed scorer failed");
+
+      const resumed = await runPhase74SealedProcessPair({
+        ...common,
+        executorScript: join(directory, "must-not-run.ts"),
+        scorerEnv: {
+          HOME: process.env.HOME,
+          PATH: process.env.PATH,
+        },
+      });
+      expect(resumed.events.map(({ event }) => event)).toContain(
+        "executor_reused",
+      );
+      expect(resumed.scorer.receipt.rows).toHaveLength(2);
+    } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
+  });
+
   it("rejects an E4 receipt without a scorer-only oracle artifact", () => {
     const bundles = buildPhase74SealedBundles({
       cases: [{
