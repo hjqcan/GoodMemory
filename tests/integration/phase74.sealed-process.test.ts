@@ -394,6 +394,72 @@ describe("Phase 74 sealed process boundary", () => {
     }
   });
 
+  it("reuses a committed receipt after interruption and on a completed rerun", async () => {
+    const directory = await mkdtemp(
+      join(tmpdir(), "phase74-sealed-receipt-resume-"),
+    );
+    try {
+      const bundles = buildPhase74SealedBundles({
+        cases: [{
+          caseId: "receipt-resume-case",
+          expectedAnswer: GOLD_SENTINEL,
+          goldEvidenceIds: [],
+          question: "Which database is current?",
+          rawEvidence: [],
+        }],
+        runId: "sealed-receipt-resume",
+        stage: "E2",
+      });
+      const artifactPath = join(directory, "executor-artifact.json");
+      const evidenceDirectory = join(directory, "sealed-evidence");
+      const receiptPath = join(evidenceDirectory, "score-receipt.json");
+      const transcriptPath = join(directory, "process-transcript.json");
+      const common = {
+        cwd: directory,
+        evidenceDirectory,
+        execution: bundles.execution,
+        escrow: bundles.escrow,
+        executorArtifactPath: artifactPath,
+        executorEnv: {
+          HOME: process.env.HOME,
+          PATH: process.env.PATH,
+          PHASE74_SEALED_ARTIFACT_PATH: artifactPath,
+        },
+        scorerEnv: {
+          HOME: process.env.HOME,
+          PATH: process.env.PATH,
+        },
+        transcriptPath,
+      };
+      const completed = await runPhase74SealedProcessPair({
+        ...common,
+        executorScript: resolve("tests/fixtures/phase74-sealed-executor.ts"),
+        scorerScript: resolve("tests/fixtures/phase74-sealed-scorer.ts"),
+      });
+      const receiptBytes = await readFile(receiptPath, "utf8");
+
+      await rm(transcriptPath);
+      const resumed = await runPhase74SealedProcessPair({
+        ...common,
+        executorScript: join(directory, "must-not-run-executor.ts"),
+        scorerScript: join(directory, "must-not-run-scorer.ts"),
+      });
+      expect(resumed.scorer.receipt).toEqual(completed.scorer.receipt);
+      expect(await readFile(receiptPath, "utf8")).toBe(receiptBytes);
+      expect(await readFile(transcriptPath, "utf8")).not.toBe("");
+
+      const rerun = await runPhase74SealedProcessPair({
+        ...common,
+        executorScript: join(directory, "must-not-run-executor.ts"),
+        scorerScript: join(directory, "must-not-run-scorer.ts"),
+      });
+      expect(rerun.scorer.receipt).toEqual(completed.scorer.receipt);
+      expect(await readFile(receiptPath, "utf8")).toBe(receiptBytes);
+    } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
+  });
+
   it("rejects an E4 receipt without a scorer-only oracle artifact", () => {
     const bundles = buildPhase74SealedBundles({
       cases: [{
