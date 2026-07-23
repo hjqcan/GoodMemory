@@ -4,14 +4,64 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
+  createPhase74VersionUsageBoundary,
   preparePhase74VersionMemoryGroup,
   queryPhase74VersionMemoryGroup,
   runPhase74VersionWorker,
   type Phase74VersionGoodMemory,
 } from "../../scripts/phase74-version-worker";
 import { PHASE74_RELEASE_COMMIT } from "../../src/eval/phase74VersionBaseline";
+import type {
+  AttributedModelUsageAttempt,
+  AttributedModelUsageIntent,
+} from "../../src/eval/modelUsage";
 
 describe("Phase 74 version worker", () => {
+  it("captures complete release extraction and embedding usage inside its async boundary", async () => {
+    const events: AttributedModelUsageAttempt[] = [];
+    const intents: AttributedModelUsageIntent[] = [];
+    const boundary = createPhase74VersionUsageBoundary({
+      events,
+      fetch: async (request) => {
+        const url = typeof request === "string" ? request : request.toString();
+        return Response.json({
+          data: url.endsWith("/embeddings") ? [{ embedding: [1, 0] }] : undefined,
+          usage: url.endsWith("/embeddings")
+            ? { prompt_tokens: 7, total_tokens: 7 }
+            : { completion_tokens: 3, prompt_tokens: 11, total_tokens: 14 },
+        });
+      },
+      intents,
+    });
+
+    await boundary.run({
+      branch: "shadow",
+      caseId: "group-a",
+      languageOperation: "assisted_extraction",
+    }, async () => {
+      await boundary.fetch("https://provider.test/chat/completions", {
+        body: JSON.stringify({ model: "extract-v1" }),
+        method: "POST",
+      });
+      await boundary.fetch("https://provider.test/embeddings", {
+        body: JSON.stringify({ model: "embed-v1" }),
+        method: "POST",
+      });
+    });
+
+    expect(intents.map(({ operation }) => operation)).toEqual([
+      "assisted_extraction",
+      "embedding",
+    ]);
+    expect(events.map(({ completeness, operation }) => ({
+      completeness,
+      operation,
+    }))).toEqual([
+      { completeness: "complete", operation: "assisted_extraction" },
+      { completeness: "complete", operation: "embedding" },
+    ]);
+  });
+
   it("ingests one release memory group once and clones it for multiple queries", async () => {
     const root = await mkdtemp(join(tmpdir(), "phase74-version-group-"));
     const sqlitePath = join(root, "memory.sqlite");
