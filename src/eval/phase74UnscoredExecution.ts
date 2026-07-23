@@ -166,6 +166,14 @@ const checkpointEnvelopeSchema = z.object({
   schemaVersion: z.literal(1),
 }).strict();
 
+const unscoredArtifactSchema = z.object({
+  executionSha256: z.string().regex(/^[a-f0-9]{64}$/u),
+  rows: z.array(unscoredRowSchema),
+  runId: z.string().min(1),
+  schemaVersion: z.literal(1),
+  stage: z.enum(["E1", "E2", "E3", "E4"]),
+}).strict();
+
 const FORBIDDEN_CHECKPOINT_KEYS = new Set([
   "correct",
   "evaluation",
@@ -202,6 +210,19 @@ function parseUnscoredRow(value: unknown): Phase74UnscoredRow {
     );
   }
   return parsed.data as Phase74UnscoredRow;
+}
+
+export function parsePhase74UnscoredArtifact(
+  value: unknown,
+): Phase74UnscoredExecutionArtifact {
+  assertUnscoredValue(value);
+  const parsed = unscoredArtifactSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid Phase 74 unscored artifact: ${parsed.error.issues[0]?.message ?? "invalid"}.`,
+    );
+  }
+  return parsed.data as Phase74UnscoredExecutionArtifact;
 }
 
 export function createPhase74UnscoredFileCheckpoint(input: {
@@ -306,7 +327,7 @@ function recallCase(
 export function sha256Phase74UnscoredArtifact(
   artifact: Phase74UnscoredExecutionArtifact,
 ): string {
-  return sha256(JSON.stringify(artifact));
+  return sha256(JSON.stringify(parsePhase74UnscoredArtifact(artifact)));
 }
 
 export async function runPhase74UnscoredExecution(

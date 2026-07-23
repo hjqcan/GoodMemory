@@ -39,7 +39,7 @@ describe("Phase 74 sealed scoring", () => {
       executeRetrieval: async ({ arm }) => ({
         retrievedMemories: [{
           content: "Postgres is current.",
-          id: `retrieved-${arm}`,
+          id: "retrieved-shared",
           sourceIds: ["session-1:source-1"],
         }],
         snapshotId: `snapshot-${arm}`,
