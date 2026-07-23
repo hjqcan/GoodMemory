@@ -76,6 +76,16 @@ describe("Phase 74 cumulative product runner", () => {
         evidenceLedger: { format: "compact_json" },
         planner: { mode: "deterministic" },
         representation: "atomic-contextual-raw-pointer",
+        retrieval: {
+          generalizedFusionChannels: [
+            "lexical",
+            "dense",
+            "entity",
+            "temporal",
+            "relation",
+          ],
+          recallPlanExecution: true,
+        },
       },
       candidateSource: {
         commit: "a".repeat(40),

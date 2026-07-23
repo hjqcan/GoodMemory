@@ -1,4 +1,9 @@
 import type { EvidenceLedgerFormat } from "../src/eval/evidenceLedgerFormats";
+import type { EvalRunJsonObject } from "../src/eval/runIdentity";
+import {
+  assertCliPathSegmentValue,
+  resolveCliFlagValueStrict,
+} from "./cli-options";
 
 export const PHASE74_PRODUCT_ARMS = [
   "release-v0.6.0",
@@ -6,6 +11,22 @@ export const PHASE74_PRODUCT_ARMS = [
 ] as const;
 
 export type Phase74ProductArm = (typeof PHASE74_PRODUCT_ARMS)[number];
+
+export interface Phase74ProductComparisonOptions {
+  benchmark: "locomo" | "longmemeval";
+  benchmarkRoot: string;
+  caseSelectionSeed: number;
+  caseSelectionSize: number;
+  embeddingSpendLimitUsd: number;
+  maxLanguageCalls: number;
+  outputDir: string;
+  protectionBlueprintPath: string;
+  releaseArchive: string;
+  releaseSourceRoot: string;
+  replicate: 1 | 2 | 3;
+  runId: string;
+  selectedEvidenceLedgerFormat: EvidenceLedgerFormat;
+}
 
 export interface Phase74ProductCase {
   caseId: string;
@@ -43,6 +64,142 @@ export interface Phase74ProductComparisonRow {
   queryPathLatencyMs: number;
   recallLatencyMs: number;
   score: number;
+}
+
+function requiredFlag(args: readonly string[], name: string): string {
+  const value = resolveCliFlagValueStrict(args, name);
+  if (value === undefined) {
+    throw new Error(`Phase 74 product comparison requires ${name}.`);
+  }
+  return value;
+}
+
+function positiveInteger(value: string, name: string): number {
+  if (!/^[1-9]\d*$/u.test(value) || !Number.isSafeInteger(Number(value))) {
+    throw new Error(`${name} must be a positive integer.`);
+  }
+  return Number(value);
+}
+
+function positiveNumber(value: string, name: string): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`${name} must be a positive number.`);
+  }
+  return parsed;
+}
+
+export function parsePhase74ProductComparisonCliOptions(
+  args: readonly string[],
+): Phase74ProductComparisonOptions {
+  const benchmark = requiredFlag(args, "--benchmark");
+  if (benchmark !== "locomo" && benchmark !== "longmemeval") {
+    throw new Error("--benchmark must be locomo or longmemeval.");
+  }
+  const replicate = positiveInteger(
+    requiredFlag(args, "--replicate"),
+    "--replicate",
+  );
+  if (replicate !== 1 && replicate !== 2 && replicate !== 3) {
+    throw new Error("--replicate must be 1, 2, or 3.");
+  }
+  const selectedEvidenceLedgerFormat = requiredFlag(
+    args,
+    "--selected-evidence-ledger-format",
+  );
+  if (
+    selectedEvidenceLedgerFormat !== "prose" &&
+    selectedEvidenceLedgerFormat !== "chronology" &&
+    selectedEvidenceLedgerFormat !== "compact_json" &&
+    selectedEvidenceLedgerFormat !== "json_locale_note"
+  ) {
+    throw new Error("--selected-evidence-ledger-format is invalid.");
+  }
+  const runId = requiredFlag(args, "--run-id");
+  assertCliPathSegmentValue({ flag: "--run-id", value: runId });
+  return {
+    benchmark,
+    benchmarkRoot: requiredFlag(args, "--benchmark-root"),
+    caseSelectionSeed: positiveInteger(
+      requiredFlag(args, "--case-selection-seed"),
+      "--case-selection-seed",
+    ),
+    caseSelectionSize: positiveInteger(
+      requiredFlag(args, "--case-selection-size"),
+      "--case-selection-size",
+    ),
+    embeddingSpendLimitUsd: positiveNumber(
+      requiredFlag(args, "--embedding-spend-limit-usd"),
+      "--embedding-spend-limit-usd",
+    ),
+    maxLanguageCalls: positiveInteger(
+      requiredFlag(args, "--max-language-calls"),
+      "--max-language-calls",
+    ),
+    outputDir: requiredFlag(args, "--output-dir"),
+    protectionBlueprintPath: requiredFlag(args, "--protection-blueprint"),
+    releaseArchive: requiredFlag(args, "--release-archive"),
+    releaseSourceRoot: requiredFlag(args, "--release-source-root"),
+    replicate,
+    runId,
+    selectedEvidenceLedgerFormat,
+  };
+}
+
+function objectValue(value: unknown): Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Phase 74 product candidate configuration is invalid.");
+  }
+  return value as Record<string, unknown>;
+}
+
+export function buildPhase74ProductRunIdentityConfiguration(input: {
+  candidateConfiguration: EvalRunJsonObject;
+  candidateSource: EvalRunJsonObject;
+  releaseSource: EvalRunJsonObject;
+  replicate: 1 | 2 | 3;
+  selectedEvidenceLedgerFormat: EvidenceLedgerFormat;
+  seenCasesOnly: boolean;
+}): EvalRunJsonObject {
+  const planner = objectValue(input.candidateConfiguration.planner);
+  const retrieval = objectValue(input.candidateConfiguration.retrieval);
+  const evidenceLedger = objectValue(
+    input.candidateConfiguration.evidenceLedger,
+  );
+  if (
+    input.candidateConfiguration.representation !==
+      "atomic-contextual-raw-pointer" ||
+    planner.mode !== "deterministic" ||
+    retrieval.recallPlanExecution !== true ||
+    JSON.stringify(retrieval.generalizedFusionChannels) !== JSON.stringify([
+      "lexical",
+      "dense",
+      "entity",
+      "temporal",
+      "relation",
+    ]) ||
+    evidenceLedger.format !== input.selectedEvidenceLedgerFormat
+  ) {
+    throw new Error("Phase 74 final product configuration drifted.");
+  }
+  return {
+    arms: {
+      baseline: "release-v0.6.0",
+      candidate: "phase74-final",
+    },
+    candidateConfiguration: input.candidateConfiguration,
+    candidateSource: input.candidateSource,
+    comparisonKind: "cumulative-product",
+    costBoundary: "full-product",
+    evidenceBoundary: {
+      goldAware: false,
+      protocolReader: false,
+      seenCasesOnly: input.seenCasesOnly,
+    },
+    releaseSource: input.releaseSource,
+    replicate: input.replicate,
+    selectedEvidenceLedgerFormat: input.selectedEvidenceLedgerFormat,
+  };
 }
 
 function assertUniqueCases(cases: readonly Phase74ProductCase[]): void {
