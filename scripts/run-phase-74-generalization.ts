@@ -106,9 +106,18 @@ import {
 } from "../src/eval/phase74ProtectionSuiteEvidence";
 import {
   buildPhase74SealedBundles,
+  parsePhase74SealedEscrowBundle,
+  parsePhase74SealedExecutionBundle,
+  parsePhase74SealedExecutorOutput,
+  parsePhase74SealedScoreReceipt,
   runPhase74SealedProcessPair,
+  verifyPhase74SealedScoreReceipt,
+} from "../src/eval/phase74SealedExecution";
+import type {
+  Phase74SealedExecutionBundle,
 } from "../src/eval/phase74SealedExecution";
 import {
+  materializePhase74SealedRetrievalSnapshots,
   materializePhase74SealedReport,
 } from "../src/eval/phase74SealedScoring";
 import {
@@ -989,6 +998,12 @@ async function writeJsonLines(path: string, values: readonly unknown[]): Promise
   await writeFile(path, values.map(jsonLine).join(""), "utf8");
 }
 
+function parseJsonLines(raw: string): unknown[] {
+  return raw.split("\n").filter((line) => line.trim() !== "").map(
+    (line) => JSON.parse(line),
+  );
+}
+
 function publicModelIdentity(model: Phase74LiveModels["answer"]) {
   return {
     gateway: model.baseURL ?? "",
@@ -1051,6 +1066,66 @@ export async function persistPhase74RunIdentity(input: {
     },
   });
   return JSON.parse(await readFile(identityPath, "utf8"));
+}
+
+export async function loadVerifiedPhase74E3Stage(input: {
+  e4Execution: Phase74SealedExecutionBundle;
+  runDirectory: string;
+}): Promise<{
+  artifact: ReturnType<typeof parsePhase74UnscoredArtifact>;
+  artifactRaw: string;
+  artifactSha256: string;
+  deterministicSnapshots: Phase74RetrievalSnapshot[];
+}> {
+  const evidenceDirectory = join(input.runDirectory, "sealed-evidence", "e3");
+  const [artifactRaw, executionRaw, escrowRaw, outputRaw, receiptRaw, packetsRaw] =
+    await Promise.all([
+      readFile(join(input.runDirectory, "e3-executor-artifact.json"), "utf8"),
+      readFile(join(evidenceDirectory, "execution.json"), "utf8"),
+      readFile(join(evidenceDirectory, "escrow.json"), "utf8"),
+      readFile(join(evidenceDirectory, "executor-output.json"), "utf8"),
+      readFile(join(evidenceDirectory, "score-receipt.json"), "utf8"),
+      readFile(join(input.runDirectory, "e3-retrieval-packets.jsonl"), "utf8"),
+    ]);
+  const execution = parsePhase74SealedExecutionBundle(JSON.parse(executionRaw));
+  const escrow = parsePhase74SealedEscrowBundle(JSON.parse(escrowRaw));
+  const executorOutput = parsePhase74SealedExecutorOutput(JSON.parse(outputRaw));
+  const receipt = parsePhase74SealedScoreReceipt(JSON.parse(receiptRaw));
+  const artifact = parsePhase74UnscoredArtifact(JSON.parse(artifactRaw));
+  verifyPhase74SealedScoreReceipt({ execution, escrow, executorOutput, receipt });
+  const artifactSha256 = sha256(artifactRaw);
+  if (
+    execution.stage !== "E3" ||
+    artifact.stage !== "E3" ||
+    execution.runId !== input.e4Execution.runId ||
+    executorOutput.artifactSha256 !== artifactSha256 ||
+    execution.cases.length !== input.e4Execution.cases.length ||
+    execution.cases.some(({ caseKey }, index) =>
+      caseKey !== input.e4Execution.cases[index]?.caseKey
+    )
+  ) {
+    throw new Error("Phase 74 E4 requires the verified sealed E3 stage.");
+  }
+  const packets = parseJsonLines(packetsRaw) as Phase74RetrievalSnapshot[];
+  const retrievalRows = artifact.rows.filter((row) => row.kind === "retrieval");
+  if (
+    packets.length !== retrievalRows.length ||
+    packets.some((packet, index) =>
+      packet.snapshotId !== retrievalRows[index]?.snapshot.snapshotId ||
+      packet.evaluation === undefined
+    )
+  ) {
+    throw new Error("Phase 74 E3 evaluated retrieval packets drifted.");
+  }
+  return {
+    artifact,
+    artifactRaw,
+    artifactSha256,
+    deterministicSnapshots: packets.filter(
+      (_packet, index) =>
+        retrievalRows[index]?.unit === "recall-plan-deterministic",
+    ),
+  };
 }
 
 async function loadPhase74IngestionUsagePool(input: {
@@ -1169,6 +1244,7 @@ export async function runPhase74GeneralizationFull(
     ),
   };
   const artifactPath = join(runDirectory, `${prefix}-executor-artifact.json`);
+  const oracleArtifactPath = join(runDirectory, "e4-oracle-artifact.json");
   const executionConfiguration: EvalRunJsonObject = {
     caseConcurrency: options.caseConcurrency ?? 1,
   };
@@ -1178,13 +1254,12 @@ export async function runPhase74GeneralizationFull(
     runId: options.runId,
     stage: options.stage,
   });
-  let e3Artifact: string | undefined;
-  if (options.stage === "E4") {
-    e3Artifact = await readFile(
-      join(runDirectory, "e3-executor-artifact.json"),
-      "utf8",
-    );
-  }
+  const e3Stage = options.stage === "E4"
+    ? await loadVerifiedPhase74E3Stage({
+        e4Execution: bundles.execution,
+        runDirectory,
+      })
+    : undefined;
   const callBudgetConfiguration = {
     embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
     maxLanguageCalls: options.maxLanguageCalls,
@@ -1202,11 +1277,11 @@ export async function runPhase74GeneralizationFull(
         prefix,
       ),
       datasetSha256: dataset.manifest.datasetSha256,
-      ...(e3Artifact === undefined
+      ...(e3Stage === undefined
         ? {}
         : {
             e3ArtifactPath: join(runDirectory, "e3-executor-artifact.json"),
-            e3ArtifactSha256: sha256(e3Artifact),
+            e3ArtifactSha256: e3Stage.artifactSha256,
           }),
       evaluatorSourceSha256: evaluatorSource.sha256,
       rerankerMode,
@@ -1216,8 +1291,16 @@ export async function runPhase74GeneralizationFull(
     scorerConfig: {
       benchmark: options.benchmark,
       callBudget: callBudgetConfiguration,
+      ...(e3Stage === undefined
+        ? {}
+        : {
+            e3ArtifactPath: join(runDirectory, "e3-executor-artifact.json"),
+            e3ArtifactSha256: e3Stage.artifactSha256,
+            oracleArtifactPath,
+          }),
       usage: scorerUsage,
     },
+    scorerNeedsReader: options.stage === "E4",
   });
   const executorCwd = join(runDirectory, `${prefix}-executor-cwd`);
   await mkdir(executorCwd, { recursive: true });
@@ -1227,6 +1310,12 @@ export async function runPhase74GeneralizationFull(
     execution: bundles.execution,
     escrow: bundles.escrow,
     executorArtifactPath: artifactPath,
+    ...(e3Stage === undefined
+      ? {}
+      : {
+          expectedOracleE3ArtifactSha256: e3Stage.artifactSha256,
+          scorerArtifactPath: oracleArtifactPath,
+        }),
     executorEnv: processEnvironments.executor,
     executorScript: resolve(
       "scripts/run-phase-74-generalization-executor.ts",
@@ -1245,21 +1334,18 @@ export async function runPhase74GeneralizationFull(
     escrow: bundles.escrow,
     execution: bundles.execution,
     executorOutput: sealed.executor.output,
+    ...(e3Stage === undefined
+      ? {}
+      : { expectedE3ArtifactSha256: e3Stage.artifactSha256 }),
     identity,
+    ...(sealed.scorer.artifact === undefined
+      ? {}
+      : { oracleArtifact: sealed.scorer.artifact }),
     receipt: sealed.scorer.receipt,
   });
-  const snapshots: Phase74RetrievalSnapshot[] = artifact.rows.flatMap((row) =>
-    row.kind === "retrieval" ? [row.snapshot] : []
-  );
-  if (options.stage === "E4" && e3Artifact !== undefined) {
-    const parsedE3 = parsePhase74UnscoredArtifact(JSON.parse(e3Artifact));
-    snapshots.push(...parsedE3.rows.flatMap((row) =>
-      row.kind === "retrieval" &&
-        row.unit === "recall-plan-deterministic"
-        ? [row.snapshot]
-        : []
-    ));
-  }
+  const snapshots = e3Stage === undefined
+    ? materializePhase74SealedRetrievalSnapshots({ artifact, report })
+    : e3Stage.deterministicSnapshots;
   const [executorLedger, scorerLedger] = await Promise.all([
     loadPhase74ModelUsageLedger(executorUsage),
     loadPhase74ModelUsageLedger(scorerUsage),
