@@ -220,6 +220,32 @@ describe("Phase 74 pre-execution protection plan", () => {
         },
       ],
     })).toThrow(/unexpected-suite|promotion/i);
+
+    const wrongBinding = promotionRuns();
+    wrongBinding[0] = {
+      ...wrongBinding[0]!,
+      suite: { ...wrongBinding[0]!.suite, kind: "safety" },
+    };
+    expect(() => buildPhase74ProtectionPlan({
+      admissionClass: "promotion-admissible",
+      evaluatorSource: EVALUATOR_SOURCE,
+      runs: wrongBinding,
+    })).toThrow(/binding|promotion/i);
+
+    const inconsistentReplicate = promotionRuns();
+    inconsistentReplicate[1] = {
+      ...inconsistentReplicate[1]!,
+      budget: {
+        ...inconsistentReplicate[1]!.budget,
+        maxModelCallsPerCase:
+          inconsistentReplicate[1]!.budget.maxModelCallsPerCase + 1,
+      },
+    };
+    expect(() => buildPhase74ProtectionPlan({
+      admissionClass: "promotion-admissible",
+      evaluatorSource: EVALUATOR_SOURCE,
+      runs: inconsistentReplicate,
+    })).toThrow(/replicate|promotion/i);
   });
 
   it("keeps diagnostic plans structurally incapable of authorizing promotion", () => {
