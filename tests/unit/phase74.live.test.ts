@@ -13,6 +13,7 @@ import {
   resolvePhase74EvaluatorSource,
   resolvePhase74ExecutorModels,
   resolvePhase74LiveModels,
+  resolvePhase74ReaderModel,
   resolvePhase74ScorerModels,
   verifyPhase74EvaluatorSource,
 } from "../../src/eval/phase74Live";
@@ -322,6 +323,31 @@ describe("Phase 74 live provider boundary", () => {
     expect(scorerModels.judge).toMatchObject({
       baseURL: "https://ai.gurkiai.com/v1",
       model: "gpt-5.5",
+      provider: "openai",
+    });
+  });
+
+  it("resolves the E4 scorer reader without embedding or judge credentials", () => {
+    const readerEnv = new Proxy({
+      GOODMEMORY_EVAL_API_KEY: env.GOODMEMORY_EVAL_API_KEY,
+      GOODMEMORY_EVAL_BASE_URL: env.GOODMEMORY_EVAL_BASE_URL,
+      GOODMEMORY_EVAL_MODEL: env.GOODMEMORY_EVAL_MODEL,
+      GOODMEMORY_EVAL_PROVIDER: env.GOODMEMORY_EVAL_PROVIDER,
+    }, {
+      get(target, property, receiver) {
+        if (
+          String(property).startsWith("GOODMEMORY_EMBEDDING_") ||
+          String(property).startsWith("GOODMEMORY_JUDGE_")
+        ) {
+          throw new Error("reader resolver crossed its capability boundary");
+        }
+        return Reflect.get(target, property, receiver);
+      },
+    });
+
+    expect(resolvePhase74ReaderModel(readerEnv)).toMatchObject({
+      baseURL: "https://ai.gurkiai.com/v1",
+      model: "gpt-5.6-terra",
       provider: "openai",
     });
   });
