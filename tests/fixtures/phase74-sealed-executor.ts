@@ -19,6 +19,7 @@ const output = buildPhase74SealedExecutorOutput({
   rows: execution.cases.map(({ caseKey, question }) => ({
     answer: observation,
     caseKey,
+    rowKey: `${caseKey}:probe`,
     snapshotId: createHash("sha256").update(question).digest("hex"),
   })),
 });

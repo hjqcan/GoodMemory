@@ -10,15 +10,16 @@ const raw = JSON.parse(await Bun.stdin.text()) as {
 };
 const escrow = parsePhase74SealedEscrowBundle(raw.escrow);
 const executorOutput = parsePhase74SealedExecutorOutput(raw.executorOutput);
-const answers = new Map(
-  executorOutput.rows.map(({ answer, caseKey }) => [caseKey, answer]),
+const escrowCases = new Map(
+  escrow.cases.map((testCase) => [testCase.caseKey, testCase]),
 );
 const receipt = buildPhase74SealedScoreReceipt({
   escrow,
   executorOutput,
-  rows: escrow.cases.map(({ caseKey, expectedAnswer }) => {
-    const correct = answers.get(caseKey) === expectedAnswer;
-    return { caseKey, correct, score: Number(correct) };
+  rows: executorOutput.rows.map(({ answer, caseKey, rowKey }) => {
+    const expectedAnswer = escrowCases.get(caseKey)?.expectedAnswer;
+    const correct = expectedAnswer !== undefined && answer === expectedAnswer;
+    return { caseKey, correct, rowKey, score: Number(correct) };
   }),
   scorerPid: process.pid,
 });

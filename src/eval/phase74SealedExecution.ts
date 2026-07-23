@@ -52,6 +52,7 @@ const executorRowSchema = z.object({
   answer: z.string().nullable(),
   caseKey: z.string().min(1),
   executionError: z.string().optional(),
+  rowKey: z.string().min(1),
   snapshotId: z.string().min(1),
 }).strict();
 
@@ -66,6 +67,7 @@ const executorOutputSchema = z.object({
 const scoreRowSchema = z.object({
   caseKey: z.string().min(1),
   correct: z.boolean(),
+  rowKey: z.string().min(1),
   score: z.number().min(0).max(1),
 }).strict();
 
@@ -229,6 +231,31 @@ function sameOrderedCaseKeys(
     left.every(({ caseKey }, index) => caseKey === right[index]?.caseKey);
 }
 
+function sameOrderedRows(
+  left: readonly { caseKey: string; rowKey: string }[],
+  right: readonly { caseKey: string; rowKey: string }[],
+): boolean {
+  return left.length === right.length && left.every((row, index) =>
+    row.caseKey === right[index]?.caseKey &&
+    row.rowKey === right[index]?.rowKey
+  );
+}
+
+function hasUniqueValues(values: readonly string[]): boolean {
+  return new Set(values).size === values.length;
+}
+
+function coversExecutionCases(input: {
+  execution: Phase74SealedExecutionBundle;
+  rows: Phase74SealedExecutorOutput["rows"];
+}): boolean {
+  const expected = new Set(input.execution.cases.map(({ caseKey }) => caseKey));
+  const observed = new Set(input.rows.map(({ caseKey }) => caseKey));
+  return expected.size === input.execution.cases.length &&
+    observed.size === expected.size &&
+    [...observed].every((caseKey) => expected.has(caseKey));
+}
+
 export function verifyPhase74SealedScoreReceipt(input: {
   escrow: Phase74SealedEscrowBundle;
   execution: Phase74SealedExecutionBundle;
@@ -250,8 +277,9 @@ export function verifyPhase74SealedScoreReceipt(input: {
     receipt.escrowSha256 !== sha256Json(escrow) ||
     receipt.executorOutputSha256 !== sha256Json(output) ||
     !sameOrderedCaseKeys(execution.cases, escrow.cases) ||
-    !sameOrderedCaseKeys(execution.cases, output.rows) ||
-    !sameOrderedCaseKeys(execution.cases, receipt.rows)
+    !coversExecutionCases({ execution, rows: output.rows }) ||
+    !hasUniqueValues(output.rows.map(({ rowKey }) => rowKey)) ||
+    !sameOrderedRows(output.rows, receipt.rows)
   ) {
     throw new Error("Phase 74 sealed score receipt chain is invalid.");
   }
