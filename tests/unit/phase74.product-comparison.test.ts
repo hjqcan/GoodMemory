@@ -57,7 +57,8 @@ function directUsage() {
 function ingestionUsage(input: {
   inputTokens: number;
   key: string;
-}): Phase74IngestionUsageLedger {
+  memoryGroupId: string;
+}): Phase74IngestionUsageLedger & { memoryGroupId: string } {
   const events: AttributedModelUsageAttempt[] = [];
   const intents: AttributedModelUsageIntent[] = [];
   createAttributedModelUsageSink({
@@ -73,6 +74,7 @@ function ingestionUsage(input: {
   return {
     key: input.key,
     ledger: validatePhase74ModelUsageLedger({ events, intents }),
+    memoryGroupId: input.memoryGroupId,
   };
 }
 
@@ -82,10 +84,12 @@ describe("Phase 74 cumulative product comparison", () => {
       baselineIngestion: [ingestionUsage({
         inputTokens: 40,
         key: "release/group-a",
+        memoryGroupId: "group-a",
       })],
       candidateIngestion: [ingestionUsage({
         inputTokens: 70,
         key: "candidate/group-a",
+        memoryGroupId: "group-a",
       })],
       caseIds: ["case-a", "case-b"],
       direct: directUsage(),
@@ -117,6 +121,7 @@ describe("Phase 74 cumulative product comparison", () => {
       baselineIngestion: [ingestionUsage({
         inputTokens: 40,
         key: "release/group-a",
+        memoryGroupId: "group-a",
       })],
       candidateIngestion: [],
       caseIds: ["case-a", "case-b"],
@@ -128,10 +133,12 @@ describe("Phase 74 cumulative product comparison", () => {
       baselineIngestion: [ingestionUsage({
         inputTokens: 40,
         key: "release/group-a",
+        memoryGroupId: "group-a",
       })],
       candidateIngestion: [ingestionUsage({
         inputTokens: 70,
         key: "candidate/group-a",
+        memoryGroupId: "group-a",
       })],
       caseIds: ["case-a", "case-b"],
       direct: directUsage(),
