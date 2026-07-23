@@ -78,9 +78,17 @@ interface SQLiteLibraryController {
   setCustomSQLite(path: string): boolean;
 }
 
+interface SQLiteLibraryRegistry {
+  configuredPaths: WeakMap<SQLiteLibraryController, string>;
+}
+
 interface SQLiteExtensionLoader {
   loadExtension(path: string, entryPoint?: string): void;
 }
+
+const SQLITE_LIBRARY_REGISTRY_KEY = Symbol.for(
+  "goodmemory.sqlite.library-registry",
+);
 
 const SQLITE_LIBRARY_CANDIDATE_PATHS = [
   "/opt/homebrew/opt/sqlite/lib/libsqlite3.dylib",
@@ -493,7 +501,29 @@ export function applySQLiteCustomLibrary(
     return;
   }
 
+  const globalRegistry = globalThis as typeof globalThis & {
+    [key: symbol]: unknown;
+  };
+  const registry =
+    (globalRegistry[SQLITE_LIBRARY_REGISTRY_KEY] as
+      | SQLiteLibraryRegistry
+      | undefined) ?? {
+      configuredPaths: new WeakMap<SQLiteLibraryController, string>(),
+    };
+  globalRegistry[SQLITE_LIBRARY_REGISTRY_KEY] = registry;
+
+  const configuredPath = registry.configuredPaths.get(controller);
+  if (configuredPath === config.customLibraryPath) {
+    return;
+  }
+  if (configuredPath) {
+    throw new Error(
+      `SQLite runtime already uses ${configuredPath} and cannot switch to ${config.customLibraryPath}.`,
+    );
+  }
+
   controller.setCustomSQLite(config.customLibraryPath);
+  registry.configuredPaths.set(controller, config.customLibraryPath);
 }
 
 export function loadSQLiteVectorExtension(

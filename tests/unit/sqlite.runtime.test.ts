@@ -585,20 +585,53 @@ describe("sqlite runtime hooks", () => {
 
   it("applies a custom sqlite library path when configured", () => {
     const calls: string[] = [];
+    const controller = {
+      setCustomSQLite(path: string) {
+        calls.push(path);
+        return true;
+      },
+    };
 
     applySQLiteCustomLibrary(
       {
         customLibraryPath: "/opt/homebrew/lib/libsqlite3.dylib",
       },
+      controller,
+    );
+    applySQLiteCustomLibrary(
       {
-        setCustomSQLite(path: string) {
-          calls.push(path);
-          return true;
-        },
+        customLibraryPath: "/opt/homebrew/lib/libsqlite3.dylib",
       },
+      controller,
     );
 
     expect(calls).toEqual(["/opt/homebrew/lib/libsqlite3.dylib"]);
+  });
+
+  it("rejects a second custom sqlite library for the same runtime", () => {
+    const controller = {
+      setCustomSQLite() {
+        return true;
+      },
+    };
+
+    applySQLiteCustomLibrary(
+      {
+        customLibraryPath: "/opt/homebrew/lib/libsqlite3.dylib",
+      },
+      controller,
+    );
+
+    expect(() =>
+      applySQLiteCustomLibrary(
+        {
+          customLibraryPath: "/usr/local/lib/libsqlite3.dylib",
+        },
+        controller,
+      ),
+    ).toThrow(
+      "SQLite runtime already uses /opt/homebrew/lib/libsqlite3.dylib and cannot switch to /usr/local/lib/libsqlite3.dylib.",
+    );
   });
 
   it("does not apply a custom sqlite library when no path is configured", () => {
