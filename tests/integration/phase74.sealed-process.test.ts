@@ -71,6 +71,15 @@ describe("Phase 74 sealed process boundary", () => {
       expect(result.executor.stderr).not.toContain(GOLD_SENTINEL);
       expect(result.executor.stdout).not.toContain("upstream-case-1");
       expect(result.executor.output.rows).toHaveLength(1);
+      const executorObservation = JSON.parse(
+        result.executor.output.rows[0]!.answer ?? "null",
+      ) as { argv: string[]; env: Record<string, string>; pid: number };
+      expect(executorObservation.pid).toBe(result.executor.pid);
+      expect(JSON.stringify(executorObservation.argv)).not.toContain(GOLD_SENTINEL);
+      expect(JSON.stringify(executorObservation.env)).not.toContain(GOLD_SENTINEL);
+      expect(JSON.stringify(executorObservation.env)).not.toContain(
+        "benchmark-root",
+      );
       expect(result.scorer.receipt.rows[0]?.score).toBe(0);
       expect(() => verifyPhase74SealedScoreReceipt({
         execution: bundles.execution,
