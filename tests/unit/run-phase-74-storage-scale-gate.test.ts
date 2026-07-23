@@ -4,7 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
+  buildPhase74PostgresStorageScaleGateReport,
   parsePhase74StorageScaleGateCliOptions,
+  resolvePhase74PostgresStorageScaleGateUrl,
   runPhase74StorageScaleGate,
 } from "../../scripts/run-phase-74-storage-scale-gate";
 
@@ -135,12 +137,82 @@ describe("phase 74 storage scale gate", () => {
       ],
       "/repo",
     )).toEqual({
+      database: "sqlite",
       measuredQueryCount: 40,
       outputPath: "/repo/reports/scale.json",
       syntheticDocumentCount: 100_000,
       thresholdMs: 500,
       warmupQueryCount: 5,
     });
+  });
+
+  it("builds a Postgres gate only from real scale, EXPLAIN, and index provenance", () => {
+    const report = buildPhase74PostgresStorageScaleGateReport({
+      audit: {
+        collectionCounts: {
+          claims: 50_000,
+          entities: 50_000,
+          statuses: 50_000,
+        },
+        explain: {
+          actualRows: 12,
+          indexNames: ["gm_documents_search_text_search_idx"],
+          plan: [{ Plan: { "Actual Rows": 12, "Index Name": "gm_documents_search_text_search_idx" } }],
+          planSha256: "f".repeat(64),
+          querySha256: "1".repeat(64),
+        },
+        indexProvenance: {
+          definition: "CREATE INDEX gm_documents_search_text_search_idx ...",
+          definitionSha256: "2".repeat(64),
+          name: "gm_documents_search_text_search_idx",
+          schemaVersions: [{ component: "document_indexes", version: 2 }],
+        },
+        languagePackCountByCollection: {
+          claims: 7,
+          entities: 7,
+          statuses: 7,
+        },
+        materializationCounters: {
+          fullCollectionReads: 0,
+          maxDocumentsPerChannelPerQuery: 12,
+          pagedReads: 0,
+          pointReads: 0,
+          textSearches: 56,
+        },
+      },
+      latencyMs: {
+        max: 8,
+        mean: 4,
+        min: 2,
+        p50: 4,
+        p95: 7,
+        p99: 8,
+      },
+      measuredQueryCount: 24,
+      sourceBinding: SOURCE_BINDING,
+      thresholdMs: 500,
+      warmupQueryCount: 4,
+    });
+
+    expect(report.passed).toBe(true);
+    expect(report.database).toBe("postgres");
+    expect(report.parameters).toMatchObject({
+      searchableDocumentCount: 100_000,
+      storedProjectionDocumentCount: 150_000,
+    });
+    expect(report.audit.explain.indexNames).toContain(
+      "gm_documents_search_text_search_idx",
+    );
+    expect(report.audit.indexProvenance.definitionSha256).toHaveLength(64);
+  });
+
+  it("requires an explicit test Postgres URL instead of fabricating a result", () => {
+    expect(() => resolvePhase74PostgresStorageScaleGateUrl({})).toThrow(
+      "GOODMEMORY_TEST_POSTGRES_URL",
+    );
+    expect(resolvePhase74PostgresStorageScaleGateUrl({
+      GOODMEMORY_TEST_POSTGRES_URL: "postgres://localhost/goodmemory_test",
+    })).toBe("postgres://localhost/goodmemory_test");
   });
 
   it("fails closed when the measured source is not commit-clean", async () => {
