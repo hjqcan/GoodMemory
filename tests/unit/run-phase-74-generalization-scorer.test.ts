@@ -117,7 +117,7 @@ describe("Phase 74 sealed scorer entrypoint", () => {
           status: 200,
         });
       }) as typeof globalThis.fetch;
-      const receipt = await runPhase74SealedScorer({
+      const scorerInput = {
         config: {
           benchmark: "locomo",
           callBudget: {
@@ -151,12 +151,16 @@ describe("Phase 74 sealed scorer entrypoint", () => {
           executorOutput: e4.executorOutput,
         },
         scorerPid: 603,
-      });
+      } as const;
+      const receipt = await runPhase74SealedScorer(scorerInput);
       const oracleRaw = await readFile(oracleArtifactPath, "utf8");
       expect(receipt.oracleSha256).toBe(
         createHash("sha256").update(oracleRaw).digest("hex"),
       );
       expect(JSON.parse(oracleRaw).rows).toHaveLength(6);
+      await expect(runPhase74SealedScorer(scorerInput)).resolves.toEqual(
+        receipt,
+      );
     } finally {
       await rm(directory, { force: true, recursive: true });
     }
