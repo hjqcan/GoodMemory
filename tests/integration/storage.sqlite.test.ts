@@ -15,7 +15,10 @@ import {
   type RecallProjectionManifest,
 } from "../../src/recall/projections/contracts";
 import { createRecallProjectionRuntime } from "../../src/recall/projections/runtime";
-import type { DocumentStore } from "../../src/storage/contracts";
+import type {
+  DocumentStore,
+  StorageFilter,
+} from "../../src/storage/contracts";
 import { createInMemorySessionStore } from "../../src/storage/memory";
 import {
   createSQLiteDocumentStore,
@@ -56,6 +59,101 @@ runVectorStoreContract("sqlite vector store contract", () => {
     store: createSQLiteVectorStore(path),
     cleanup: () => rm(path, { force: true }),
   };
+});
+
+describe("sqlite document query pushdown", () => {
+  it("filters and limits projection pages in SQL before deserializing documents", async () => {
+    const path = join(
+      tmpdir(),
+      `goodmemory-sqlite-page-pushdown-${Date.now()}-${Math.random()}.db`,
+    );
+    const collection = CLAIM_PROJECTIONS_COLLECTION;
+    try {
+      const store = createSQLiteDocumentStore(path);
+      await store.set(collection, "000-match", {
+        id: "000-match",
+        scopeKey: "scope-a",
+        searchText: "Atlas first",
+      });
+      const database = new Database(path, { strict: true });
+      const insert = database.query(
+        `INSERT INTO documents (collection, id, json) VALUES (?1, ?2, ?3)`,
+      );
+      for (let index = 0; index < 128; index += 1) {
+        insert.run(
+          collection,
+          `100-corrupt-${index.toString().padStart(3, "0")}`,
+          "{not-json",
+        );
+      }
+      database.close();
+      await store.set(collection, "999-match", {
+        id: "999-match",
+        scopeKey: "scope-a",
+        searchText: "Atlas second",
+      });
+
+      const first = await store.queryPage!(collection, {
+        filter: { scopeKey: "scope-a" },
+        limit: 1,
+      });
+
+      expect(first).toEqual({
+        items: [{
+          id: "000-match",
+          scopeKey: "scope-a",
+          searchText: "Atlas first",
+        }],
+        nextCursor: "000-match",
+      });
+      await expect(store.queryPage!(collection, {
+        cursor: first.nextCursor,
+        filter: { scopeKey: "scope-a" },
+        limit: 1,
+      })).resolves.toEqual({
+        items: [{
+          id: "999-match",
+          scopeKey: "scope-a",
+          searchText: "Atlas second",
+        }],
+      });
+    } finally {
+      await rm(path, { force: true });
+    }
+  });
+
+  it("fails closed instead of scanning or ignoring unsupported filters", async () => {
+    const path = join(
+      tmpdir(),
+      `goodmemory-sqlite-filter-contract-${Date.now()}-${Math.random()}.db`,
+    );
+    try {
+      const store = createSQLiteDocumentStore(path);
+      await store.set("projection_documents", "atlas", {
+        id: "atlas",
+        searchText: "Atlas rollout active",
+        tags: ["phase-74"],
+      });
+      const unsupported = {
+        tags: ["phase-74"],
+      } as unknown as StorageFilter;
+
+      await expect(store.query("projection_documents", unsupported)).rejects
+        .toThrow("Storage filters only support scalar equality values");
+      await expect(store.queryPage!("projection_documents", {
+        filter: unsupported,
+        limit: 1,
+      })).rejects.toThrow("Storage filters only support scalar equality values");
+      await expect(store.searchText!("projection_documents", {
+        field: "searchText",
+        filter: unsupported,
+        limit: 1,
+        query: "Atlas",
+      })).rejects.toThrow("Storage filters only support scalar equality values");
+    } finally {
+      await rm(path, { force: true });
+    }
+  });
 });
 
 describe("sqlite vector store read-only mode", () => {
