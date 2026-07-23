@@ -5,11 +5,13 @@ import {
   verifyPhase74SealedScoreReceipt,
 } from "../../src/eval/phase74SealedExecution";
 import {
+  materializePhase74SealedReport,
   scorePhase74UnscoredExecution,
 } from "../../src/eval/phase74SealedScoring";
 import {
   runPhase74UnscoredExecution,
 } from "../../src/eval/phase74UnscoredExecution";
+import { buildEvalRunIdentity } from "../../src/eval/runIdentity";
 
 const scoredCase = {
   caseId: "official-private-id",
@@ -105,6 +107,45 @@ describe("Phase 74 sealed scoring", () => {
       executorOutput: unscored.executorOutput,
       receipt: scored.receipt,
     })).not.toThrow();
+
+    const report = materializePhase74SealedReport({
+      artifact: unscored.artifact,
+      escrow: bundles.escrow,
+      execution: bundles.execution,
+      executorOutput: unscored.executorOutput,
+      identity: buildEvalRunIdentity({
+        answerModel: { gateway: "executor", model: "reader", provider: "openai" },
+        benchmark: "longmemeval-full",
+        configuration: {},
+        datasetSha256: "d".repeat(64),
+        generatedAt: "2026-07-22T00:00:00.000Z",
+        generatedBy: "sealed-test",
+        judgeModel: { gateway: "scorer", model: "judge", provider: "openai" },
+        promptSha256s: { reader: "e".repeat(64) },
+        runId: bundles.execution.runId,
+      }),
+      receipt: scored.receipt,
+    });
+    expect(report.executions).toHaveLength(2);
+    expect(report.executions[0]).toEqual(expect.objectContaining({
+      arm: "claim-temporal-off",
+      caseId: "official-private-id",
+      correct: true,
+      score: 1,
+      stage: "E2",
+    }));
+    expect(report.executions[1]?.evaluationAttribution).toEqual(
+      expect.objectContaining({
+        observedAnswer: "wrong",
+        observedCorrect: false,
+        reused: true,
+        sourceArm: "claim-temporal-off",
+      }),
+    );
+    expect(report.summary).toEqual(expect.objectContaining({
+      caseCount: 1,
+      executionFailures: 0,
+    }));
   });
 
   it("rejects a tampered unscored artifact before assessment", async () => {
