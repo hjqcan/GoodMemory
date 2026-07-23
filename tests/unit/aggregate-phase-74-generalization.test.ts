@@ -21,6 +21,9 @@ import { PHASE74_EXPERIMENT_ARMS } from "../../src/eval/phase74ExperimentDesign"
 import {
   buildPhase74StageConfigurations,
   type Phase74EvaluationAttribution,
+  type Phase74GeneralizationCase,
+  type Phase74GeneralizationExecutionResult,
+  type Phase74RetrievalSnapshot,
 } from "../../src/eval/phase74Generalization";
 import {
   buildPhase74IngestionUsageFingerprint,
@@ -52,6 +55,30 @@ import type {
 } from "../../src/eval/phase74ProtectionVerifier";
 import { buildPhase74ProtocolScoringIdentity } from "../../src/eval/phase74ProtocolScoring";
 import { buildPhase74ReplicateComparison } from "../../src/eval/phase74Replicates";
+import {
+  buildPhase74SealedBundles,
+  buildPhase74SealedExecutorOutput,
+  buildPhase74SealedProcessManifest,
+  buildPhase74SealedScoreReceipt,
+  buildPhase74SealedRowKey,
+  serializePhase74SealedProcessManifest,
+  sha256Phase74SealedExecution,
+} from "../../src/eval/phase74SealedExecution";
+import {
+  materializePhase74SealedReport,
+  materializePhase74SealedRetrievalSnapshots,
+} from "../../src/eval/phase74SealedScoring";
+import type {
+  Phase74SealedOracleArtifact,
+} from "../../src/eval/phase74SealedOracle";
+import {
+  parsePhase74UnscoredArtifact,
+  serializePhase74UnscoredArtifact,
+  sha256Phase74UnscoredArtifact,
+  type Phase74UnscoredExecutionArtifact,
+  type Phase74UnscoredRow,
+} from "../../src/eval/phase74UnscoredExecution";
+import { ORACLE_MATRIX_ARMS } from "../../src/eval/oracleMatrix";
 import {
   buildEvalRunIdentity,
   hashEvalExperimentIdentity,
@@ -99,6 +126,352 @@ async function writeE4Rows(runDirectory: string, rows: readonly unknown[]) {
   const report = JSON.parse(await readFile(reportPath, "utf8"));
   report.e4.cases = rows;
   await writeJson(reportPath, report);
+}
+
+function fixtureGeneralizationCases(input: {
+  benchmark: "locomo" | "longmemeval";
+  caseKeys: readonly string[];
+  cases: readonly { caseId: string; clusterId: string }[];
+}): Phase74GeneralizationCase[] {
+  return input.cases.map(({ caseId, clusterId }, index) => ({
+    caseId,
+    expectedAnswer: "answer",
+    family: input.benchmark,
+    goldEvidenceIds: [`session-${index + 1}:turn-1`],
+    labelFreeCaseKey: input.caseKeys[index],
+    memoryGroupId: clusterId,
+    question: `question for ${caseId}`,
+    rawEvidence: [{
+      content: `evidence for ${caseId}`,
+      id: `turn-${index + 1}`,
+      sourceIds: [`session-${index + 1}:turn-1`],
+    }],
+  }));
+}
+
+function buildFixtureRetrievalArtifact(input: {
+  cases: readonly Phase74GeneralizationCase[];
+  identity: ReturnType<typeof buildEvalRunIdentity>;
+  packets: readonly Phase74RetrievalSnapshot[];
+  rows: readonly Phase74GeneralizationExecutionResult[];
+  stage: "E1" | "E2" | "E3";
+}): Phase74UnscoredExecutionArtifact {
+  const { execution } = buildPhase74SealedBundles({
+    cases: input.cases,
+    executionConfiguration: { caseConcurrency: 1 },
+    runId: input.identity.runId,
+    stage: input.stage,
+  });
+  const caseIndexById = new Map(input.cases.map(({ caseId }, index) => [
+    caseId,
+    index,
+  ]));
+  const packetsBySnapshotId = new Map(input.packets.map((packet) => [
+    packet.snapshotId,
+    packet,
+  ]));
+  const rows = input.rows.map((row): Phase74UnscoredRow => {
+    const caseIndex = caseIndexById.get(row.caseId)!;
+    const executionCase = execution.cases[caseIndex]!;
+    const packet = packetsBySnapshotId.get(row.snapshotId!)!;
+    const { evaluation: _evaluation, ...snapshot } = packet;
+    const attribution = row.evaluationAttribution!;
+    const renderedContext = JSON.stringify(snapshot.retrievedMemories);
+    return {
+      answer: row.answer!,
+      answerLatencyMs: row.answerLatencyMs!,
+      caseKey: executionCase.caseKey,
+      clusterKey: executionCase.memoryGroupId ?? executionCase.caseKey,
+      contextTokens: row.contextTokens!,
+      contextTokensBeforeTruncation: row.contextTokensBeforeTruncation!,
+      contextTruncated: row.contextTruncated!,
+      kind: "retrieval",
+      observedAnswer: attribution.observedAnswer,
+      productLatencyMs: row.productLatencyMs!,
+      readerInputSha256: attribution.inputSha256,
+      recallLatencyMs: row.recallLatencyMs!,
+      renderedContext,
+      renderedContextSha256: sha256(renderedContext),
+      reused: attribution.reused,
+      rowKey: buildPhase74SealedRowKey({
+        caseKey: executionCase.caseKey,
+        stage: input.stage,
+        unit: row.arm,
+      }),
+      snapshot,
+      sourceRowKey: buildPhase74SealedRowKey({
+        caseKey: executionCase.caseKey,
+        stage: input.stage,
+        unit: attribution.sourceArm,
+      }),
+      sourceSnapshotId: attribution.sourceSnapshotId,
+      stage: input.stage,
+      unit: row.arm,
+    };
+  });
+  return parsePhase74UnscoredArtifact({
+    executionSha256: sha256Phase74SealedExecution(execution),
+    rows,
+    runId: execution.runId,
+    schemaVersion: 1,
+    stage: input.stage,
+  });
+}
+
+interface FixtureE4Row {
+  answer: string;
+  caseId: string;
+  clusterId: string;
+  contextTokens: number;
+  contextTokensBeforeTruncation: number;
+  contextTruncated: boolean;
+  correct: boolean;
+  format: (typeof FORMATS)[number];
+  renderedLedgerSha256: string;
+  score: number;
+  sourceSnapshotId: string;
+}
+
+function buildFixtureE4Artifact(input: {
+  cases: readonly Phase74GeneralizationCase[];
+  identity: ReturnType<typeof buildEvalRunIdentity>;
+  packets: readonly Phase74RetrievalSnapshot[];
+  rows: readonly FixtureE4Row[];
+}): Phase74UnscoredExecutionArtifact {
+  const { execution } = buildPhase74SealedBundles({
+    cases: input.cases,
+    executionConfiguration: { caseConcurrency: 1 },
+    runId: input.identity.runId,
+    stage: "E4",
+  });
+  const caseIndexById = new Map(input.cases.map(({ caseId }, index) => [
+    caseId,
+    index,
+  ]));
+  const packetsBySnapshotId = new Map(input.packets.map((packet) => [
+    packet.snapshotId,
+    packet,
+  ]));
+  const rows = input.rows.map((row): Phase74UnscoredRow => {
+    const caseIndex = caseIndexById.get(row.caseId)!;
+    const executionCase = execution.cases[caseIndex]!;
+    const renderedContext = packetsBySnapshotId.get(row.sourceSnapshotId)
+      ?.evidenceLedgers?.[row.format];
+    if (renderedContext === undefined) {
+      throw new Error("E4 fixture is missing a rendered ledger.");
+    }
+    const rowKey = buildPhase74SealedRowKey({
+      caseKey: executionCase.caseKey,
+      stage: "E4",
+      unit: row.format,
+    });
+    return {
+      answer: row.answer,
+      answerLatencyMs: 1,
+      caseKey: executionCase.caseKey,
+      clusterKey: executionCase.memoryGroupId ?? executionCase.caseKey,
+      contextTokens: row.contextTokens,
+      contextTokensBeforeTruncation: row.contextTokensBeforeTruncation,
+      contextTruncated: row.contextTruncated,
+      format: row.format,
+      kind: "ledger",
+      observedAnswer: row.answer,
+      productLatencyMs: 1,
+      readerInputSha256: sha256(JSON.stringify({
+        caseKey: executionCase.caseKey,
+        format: row.format,
+        renderedContext,
+      })),
+      recallLatencyMs: 0,
+      renderedContext,
+      renderedContextSha256: sha256(renderedContext),
+      renderedLedgerSha256: sha256(renderedContext),
+      reused: false,
+      rowKey,
+      sourceRowKey: rowKey,
+      sourceSnapshotId: row.sourceSnapshotId,
+      stage: "E4",
+      unit: row.format,
+    };
+  });
+  return parsePhase74UnscoredArtifact({
+    executionSha256: sha256Phase74SealedExecution(execution),
+    rows,
+    runId: execution.runId,
+    schemaVersion: 1,
+    stage: "E4",
+  });
+}
+
+function processEvents(executorPid: number, scorerPid: number) {
+  return [
+    { event: "seal" },
+    { event: "executor_exit", pid: executorPid },
+    { event: "artifact_verified" },
+    { event: "labels_committed" },
+    { event: "scorer_start" },
+    { event: "scorer_exit", pid: scorerPid },
+  ];
+}
+
+async function writeSealedEvidence(input: {
+  artifact: Phase74UnscoredExecutionArtifact;
+  cases: readonly Phase74GeneralizationCase[];
+  e3Artifact?: Phase74UnscoredExecutionArtifact;
+  identity: ReturnType<typeof buildEvalRunIdentity>;
+  runDirectory: string;
+  scores: readonly { correct: boolean; score: number }[];
+  stage: (typeof STAGES)[number];
+}): Promise<ReturnType<typeof materializePhase74SealedReport>> {
+  const prefix = input.stage.toLowerCase();
+  const executorPid = 101;
+  const scorerPid = 202;
+  const bundles = buildPhase74SealedBundles({
+    cases: input.cases,
+    executionConfiguration: { caseConcurrency: 1 },
+    runId: input.identity.runId,
+    stage: input.stage,
+  });
+  const artifact = parsePhase74UnscoredArtifact(input.artifact);
+  const executorOutput = buildPhase74SealedExecutorOutput({
+    artifactSha256: sha256Phase74UnscoredArtifact(artifact),
+    execution: bundles.execution,
+    executorPid,
+    rows: artifact.rows.map((row) => ({
+      answer: row.answer,
+      caseKey: row.caseKey,
+      observedAnswer: row.observedAnswer,
+      rowKey: row.rowKey,
+      snapshotId: row.kind === "retrieval"
+        ? row.snapshot.snapshotId
+        : row.sourceSnapshotId,
+      sourceRowKey: row.sourceRowKey,
+    })),
+  });
+  let oracleArtifact: Phase74SealedOracleArtifact | undefined;
+  let oracleRaw: string | undefined;
+  if (input.stage === "E4") {
+    if (input.e3Artifact === undefined) {
+      throw new Error("E4 fixture requires E3 artifact.");
+    }
+    oracleArtifact = {
+      e3ArtifactSha256: sha256Phase74UnscoredArtifact(input.e3Artifact),
+      executionSha256: sha256Phase74SealedExecution(bundles.execution),
+      rows: bundles.execution.cases.flatMap((executionCase, caseIndex) =>
+        ORACLE_MATRIX_ARMS.map((arm) => ({
+          answer: "answer",
+          arm,
+          caseId: input.cases[caseIndex]!.caseId,
+          caseKey: executionCase.caseKey,
+          contextChars: 10,
+          contextCharsBeforeTruncation: 10,
+          contextItemIds: executionCase.rawEvidence.map(({ id }) => id),
+          contextTruncated: false,
+          correct: true,
+          evaluable: true,
+          renderedContextTokens: 10,
+          renderedContextTokensBeforeTruncation: 10,
+        }))
+      ),
+      runId: bundles.execution.runId,
+      schemaVersion: 1,
+    };
+    oracleRaw = JSON.stringify(oracleArtifact);
+  }
+  const receipt = buildPhase74SealedScoreReceipt({
+    escrow: bundles.escrow,
+    executorOutput,
+    ...(oracleRaw === undefined ? {} : { oracleSha256: sha256(oracleRaw) }),
+    rows: executorOutput.rows.map(({ caseKey, rowKey }, index) => ({
+      caseKey,
+      correct: input.scores[index]!.correct,
+      observedCorrect: input.scores[index]!.correct,
+      observedScore: input.scores[index]!.score,
+      rowKey,
+      score: input.scores[index]!.score,
+    })),
+    scorerPid,
+  });
+  const report = materializePhase74SealedReport({
+    artifact,
+    escrow: bundles.escrow,
+    execution: bundles.execution,
+    executorOutput,
+    ...(input.e3Artifact === undefined
+      ? {}
+      : {
+          expectedE3ArtifactSha256: sha256Phase74UnscoredArtifact(
+            input.e3Artifact,
+          ),
+        }),
+    identity: input.identity,
+    ...(oracleRaw === undefined ? {} : { oracleArtifact: oracleRaw }),
+    receipt,
+  });
+  const evidenceDirectory = join(input.runDirectory, "sealed-evidence", prefix);
+  await mkdir(evidenceDirectory, { recursive: true });
+  const processManifest = buildPhase74SealedProcessManifest({
+    events: processEvents(executorPid, scorerPid),
+    execution: bundles.execution,
+    executorOutput,
+    receipt,
+  });
+  await Promise.all([
+    writeFile(
+      join(input.runDirectory, `${prefix}-executor-artifact.json`),
+      serializePhase74UnscoredArtifact(artifact),
+      "utf8",
+    ),
+    writeFile(
+      join(evidenceDirectory, "execution.json"),
+      JSON.stringify(bundles.execution),
+      "utf8",
+    ),
+    writeFile(
+      join(evidenceDirectory, "escrow.json"),
+      JSON.stringify(bundles.escrow),
+      "utf8",
+    ),
+    writeFile(
+      join(evidenceDirectory, "executor-output.json"),
+      JSON.stringify(executorOutput),
+      "utf8",
+    ),
+    writeFile(
+      join(evidenceDirectory, "score-receipt.json"),
+      JSON.stringify(receipt),
+      "utf8",
+    ),
+    writeFile(
+      join(input.runDirectory, `${prefix}-process-manifest.json`),
+      serializePhase74SealedProcessManifest(processManifest),
+      "utf8",
+    ),
+    writeJson(join(input.runDirectory, `${prefix}-report.json`), report),
+    writeJsonLines(
+      join(input.runDirectory, `${prefix}-progress.jsonl`),
+      input.stage === "E4" ? report.e4.cases : report.executions,
+    ),
+    ...(oracleRaw === undefined
+      ? []
+      : [
+          writeFile(
+            join(input.runDirectory, "e4-oracle-artifact.json"),
+            oracleRaw,
+            "utf8",
+          ),
+          writeFile(
+            join(evidenceDirectory, "oracle-artifact.json"),
+            oracleRaw,
+            "utf8",
+          ),
+          writeJsonLines(
+            join(input.runDirectory, "oracle-matrix.jsonl"),
+            oracleArtifact!.rows,
+          ),
+        ]),
+  ]);
+  return report;
 }
 
 function stageArms(stage: "E1" | "E2" | "E3") {
@@ -374,6 +747,12 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
       });
       const identityHash = hashEvalRunIdentity(identity);
       const experimentIdentityHash = hashEvalExperimentIdentity(identity);
+      const generalizationCases = fixtureGeneralizationCases({
+        benchmark,
+        caseKeys,
+        cases,
+      });
+      let sealedE3Artifact: Phase74UnscoredExecutionArtifact | undefined;
       await writeJson(join(runDirectory, "run-identity.json"), identity);
       await writeJson(join(runDirectory, "dataset-manifest.json"), datasetManifest);
 
@@ -405,7 +784,7 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
           const deterministicSnapshotByCaseId = new Map(
             deterministicRows.map(({ caseId, snapshotId }) => [caseId, snapshotId]),
           );
-          const e4Rows = cases.flatMap(({ caseId, clusterId }) => {
+          const e4Rows: FixtureE4Row[] = cases.flatMap(({ caseId, clusterId }) => {
             const sourceSnapshotId = deterministicSnapshotByCaseId.get(caseId)!;
             const sourcePacket = deterministicPacketBySnapshotId.get(sourceSnapshotId)!;
             return FORMATS.map((format, formatIndex) => ({
@@ -417,9 +796,7 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
               contextTruncated: false,
               correct: true,
               format,
-              ...(options.includeE4Scores === false
-                ? {}
-                : { score: [0.82, 0.835, 0.84, 0.81][formatIndex] }),
+              score: [0.82, 0.835, 0.84, 0.81][formatIndex]!,
               renderedLedgerSha256: sha256(sourcePacket.evidenceLedgers[format]),
               sourceSnapshotId,
             }));
@@ -475,6 +852,27 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
               status: "not_evaluable",
             }),
           ]);
+          const e4Artifact = buildFixtureE4Artifact({
+            cases: generalizationCases,
+            identity,
+            packets,
+            rows: e4Rows,
+          });
+          await writeSealedEvidence({
+            artifact: e4Artifact,
+            cases: generalizationCases,
+            e3Artifact: sealedE3Artifact,
+            identity,
+            runDirectory,
+            scores: e4Rows.map(({ correct, score }) => ({ correct, score })),
+            stage,
+          });
+          if (options.includeE4Scores === false) {
+            await writeE4Rows(
+              runDirectory,
+              e4Rows.map(({ score: _score, ...row }) => row),
+            );
+          }
           continue;
         }
 
@@ -718,6 +1116,31 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
             ];
           }),
         ]);
+        const sealedArtifact = buildFixtureRetrievalArtifact({
+          cases: generalizationCases,
+          identity,
+          packets: packets as Phase74RetrievalSnapshot[],
+          rows: rows as Phase74GeneralizationExecutionResult[],
+          stage,
+        });
+        const sealedReport = await writeSealedEvidence({
+          artifact: sealedArtifact,
+          cases: generalizationCases,
+          identity,
+          runDirectory,
+          scores: rows.map(({ correct, score }) => ({ correct, score })),
+          stage,
+        });
+        await writeJsonLines(
+          join(runDirectory, `${prefix}-retrieval-packets.jsonl`),
+          materializePhase74SealedRetrievalSnapshots({
+            artifact: sealedArtifact,
+            report: sealedReport,
+          }),
+        );
+        if (stage === "E3") {
+          sealedE3Artifact = sealedArtifact;
+        }
       }
     }
   }
