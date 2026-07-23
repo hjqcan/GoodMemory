@@ -263,4 +263,48 @@ describe("Phase 74 unscored execution", () => {
       await rm(directory, { force: true, recursive: true });
     }
   });
+
+  it("executes cases concurrently while preserving canonical row order", async () => {
+    const secondCase = {
+      ...testCase,
+      caseId: "private-upstream-id-2",
+      question: "Which database was used before?",
+      rawEvidence: [{
+        content: "SQLite was used before Postgres.",
+        id: "turn-2",
+        sourceIds: ["session-b:turn-2"],
+      }],
+    };
+    const executionConfiguration = { caseConcurrency: 2 };
+    const bundles = buildPhase74SealedBundles({
+      cases: [testCase, secondCase],
+      executionConfiguration,
+      runId: "unscored-concurrency",
+      stage: "E2",
+    });
+    let active = 0;
+    let maximumActive = 0;
+    const result = await runPhase74UnscoredExecution({
+      baseConfiguration: executionConfiguration,
+      countRenderedTokens: (content) => content.length,
+      executeRetrieval: async ({ arm, testCase: recallCase }) => {
+        active += 1;
+        maximumActive = Math.max(maximumActive, active);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        active -= 1;
+        return snapshot(`${recallCase.caseId}-${arm}`);
+      },
+      execution: bundles.execution,
+      executorPid: 204,
+      genericReader: async () => "Postgres",
+      renderEvidenceLedger: async () => "unused",
+    });
+
+    expect(maximumActive).toBe(2);
+    expect(result.artifact.rows.map(({ caseKey, unit }) => ({ caseKey, unit })))
+      .toEqual(bundles.execution.cases.flatMap(({ caseKey }) => [
+        { caseKey, unit: "claim-temporal-off" },
+        { caseKey, unit: "claim-temporal-on" },
+      ]));
+  });
 });
