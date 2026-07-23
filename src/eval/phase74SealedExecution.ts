@@ -12,6 +12,7 @@ import {
   PHASE74_EXPERIMENT_ARMS,
   type Phase74ExperimentStage,
 } from "./phase74ExperimentDesign";
+import type { EvalRunJsonObject } from "./runIdentity";
 
 const rawEvidenceSchema = z.object({
   content: z.string(),
@@ -32,8 +33,9 @@ const executionCaseSchema = z.object({
 
 const executionBundleSchema = z.object({
   cases: z.array(executionCaseSchema),
+  configurationSha256: z.string().regex(/^[a-f0-9]{64}$/u),
   runId: z.string().min(1),
-  schemaVersion: z.literal(4),
+  schemaVersion: z.literal(5),
   stage: z.enum(["E1", "E2", "E3", "E4"]),
 }).strict();
 
@@ -52,7 +54,7 @@ const escrowBundleSchema = z.object({
   cases: z.array(escrowCaseSchema),
   executionSha256: z.string().regex(/^[a-f0-9]{64}$/u),
   runId: z.string().min(1),
-  schemaVersion: z.literal(4),
+  schemaVersion: z.literal(5),
 }).strict();
 
 const executorRowSchema = z.object({
@@ -70,7 +72,7 @@ const executorOutputSchema = z.object({
   executorPid: z.number().int().positive(),
   rows: z.array(executorRowSchema),
   runId: z.string().min(1),
-  schemaVersion: z.literal(4),
+  schemaVersion: z.literal(5),
 }).strict();
 
 const scoreRowSchema = z.object({
@@ -88,7 +90,7 @@ const scoreReceiptSchema = z.object({
   executorOutputSha256: z.string().regex(/^[a-f0-9]{64}$/u),
   rows: z.array(scoreRowSchema),
   runId: z.string().min(1),
-  schemaVersion: z.literal(4),
+  schemaVersion: z.literal(5),
   scorerPid: z.number().int().positive(),
 }).strict();
 
@@ -101,6 +103,25 @@ export type Phase74SealedScoreReceipt = z.infer<typeof scoreReceiptSchema>;
 
 function sha256Json(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalJson).join(",")}]`;
+  }
+  if (value !== null && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record).sort().map((key) =>
+      `${JSON.stringify(key)}:${canonicalJson(record[key])}`
+    ).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+export function sha256Phase74SealedConfiguration(
+  configuration: EvalRunJsonObject,
+): string {
+  return createHash("sha256").update(canonicalJson(configuration)).digest("hex");
 }
 
 export function sha256Phase74SealedExecution(
@@ -163,6 +184,7 @@ export function parsePhase74SealedScoreReceipt(
 
 export function buildPhase74SealedBundles(input: {
   cases: readonly Phase74GeneralizationCase[];
+  executionConfiguration?: EvalRunJsonObject;
   runId: string;
   stage: Phase74ExperimentStage;
 }): {
@@ -188,8 +210,11 @@ export function buildPhase74SealedBundles(input: {
         ? {}
         : { referenceTime: boundary.recallCase.referenceTime }),
     })),
+    configurationSha256: sha256Phase74SealedConfiguration(
+      input.executionConfiguration ?? {},
+    ),
     runId: input.runId,
-    schemaVersion: 4,
+    schemaVersion: 5,
     stage: input.stage,
   });
   const escrow = parsePhase74SealedEscrowBundle({
@@ -209,7 +234,7 @@ export function buildPhase74SealedBundles(input: {
     })),
     executionSha256: sha256Json(execution),
     runId: input.runId,
-    schemaVersion: 4,
+    schemaVersion: 5,
   });
   return { escrow, execution };
 }
@@ -226,7 +251,7 @@ export function buildPhase74SealedExecutorOutput(input: {
     executorPid: input.executorPid,
     rows: input.rows,
     runId: input.execution.runId,
-    schemaVersion: 4,
+    schemaVersion: 5,
   });
 }
 
@@ -242,7 +267,7 @@ export function buildPhase74SealedScoreReceipt(input: {
     executorOutputSha256: sha256Json(input.executorOutput),
     rows: input.rows,
     runId: input.escrow.runId,
-    schemaVersion: 4,
+    schemaVersion: 5,
     scorerPid: input.scorerPid,
   });
 }
@@ -467,7 +492,7 @@ export async function runPhase74SealedProcessPair(input: {
     executionSha256: sha256Json(execution),
     executorOutputSha256: sha256Json(executorOutput),
     receiptSha256: sha256Json(receipt),
-    schemaVersion: 4,
+    schemaVersion: 5,
   }, null, 2)}\n`);
   return {
     events,

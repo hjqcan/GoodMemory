@@ -27,6 +27,7 @@ import {
   buildPhase74SealedExecutorOutput,
   listPhase74SealedExpectedRows,
   parsePhase74SealedExecutionBundle,
+  sha256Phase74SealedConfiguration,
   sha256Phase74SealedExecution,
 } from "./phase74SealedExecution";
 import type {
@@ -337,6 +338,10 @@ export async function runPhase74UnscoredExecution(
   executorOutput: Phase74SealedExecutorOutput;
 }> {
   const execution = parsePhase74SealedExecutionBundle(input.execution);
+  if (execution.configurationSha256 !==
+    sha256Phase74SealedConfiguration(input.baseConfiguration)) {
+    throw new Error("Phase 74 sealed execution configuration digest drifted.");
+  }
   const configurations = buildPhase74StageConfigurations(
     input.baseConfiguration,
     execution.stage,
