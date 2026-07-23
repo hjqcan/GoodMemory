@@ -1026,7 +1026,7 @@ export async function loadPhase74PreparedDataset(input: {
   return bundle;
 }
 
-async function persistRunIdentity(input: {
+export async function persistPhase74RunIdentity(input: {
   identity: Parameters<typeof createOrMatchEvalRunIdentity>[0]["identity"];
   runDirectory: string;
 }) {
@@ -1105,7 +1105,7 @@ export async function runPhase74GeneralizationFull(
   const selectedCaseIdsSha256 = sha256(
     JSON.stringify(selectedCases.map(({ caseId }) => caseId)),
   );
-  const identity = buildEvalRunIdentity({
+  const requestedIdentity = buildEvalRunIdentity({
     answerModel: publicModelIdentity(models.answer),
     benchmark: `${options.benchmark}-full`,
     configuration: buildPhase74FullRunIdentityConfiguration({
@@ -1144,7 +1144,10 @@ export async function runPhase74GeneralizationFull(
     runId: options.runId,
   });
   const prefix = options.stage.toLowerCase();
-  await persistRunIdentity({ identity, runDirectory });
+  const identity = await persistPhase74RunIdentity({
+    identity: requestedIdentity,
+    runDirectory,
+  });
   const callBudgetPath = join(runDirectory, `${prefix}-call-budget.json`);
   const usagePath = join(runDirectory, `${prefix}-model-usage.jsonl`);
   const usageIntentsPath = join(
