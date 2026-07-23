@@ -9,6 +9,7 @@ import {
 import {
   createPhase74UnscoredFileCheckpoint,
   runPhase74UnscoredExecution,
+  serializePhase74UnscoredArtifact,
   sha256Phase74UnscoredArtifact,
 } from "../../src/eval/phase74UnscoredExecution";
 import type { Phase74RetrievalSnapshot } from "../../src/eval/phase74Generalization";
@@ -43,6 +44,34 @@ function snapshot(id: string): Phase74RetrievalSnapshot {
 }
 
 describe("Phase 74 unscored execution", () => {
+  it("serializes the normalized artifact bytes used by the sealed digest", async () => {
+    const bundles = buildPhase74SealedBundles({
+      cases: [testCase],
+      runId: "unscored-normalized-serialization",
+      stage: "E2",
+    });
+    const result = await runPhase74UnscoredExecution({
+      baseConfiguration: {},
+      countRenderedTokens: (content) => Buffer.byteLength(content),
+      executeRetrieval: async ({ arm }) => ({
+        recallMetadata: { latencyMs: 1 },
+        storedMemories: [],
+        snapshotId: `snapshot-${arm}`,
+        retrievedMemories: [],
+      }),
+      execution: bundles.execution,
+      executorPid: 100,
+      genericReader: async () => "Postgres",
+      renderEvidenceLedger: async () => "unused",
+    });
+
+    const serialized = serializePhase74UnscoredArtifact(result.artifact);
+    expect(Bun.SHA256.hash(serialized, "hex")).toBe(
+      result.executorOutput.artifactSha256,
+    );
+    expect(serialized).not.toBe(JSON.stringify(result.artifact));
+  });
+
   it("executes every sealed retrieval arm without labels or score fields", async () => {
     const bundles = buildPhase74SealedBundles({
       cases: [testCase],
