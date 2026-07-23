@@ -5,6 +5,7 @@ import {
   verifyPhase74SealedScoreReceipt,
 } from "../../src/eval/phase74SealedExecution";
 import {
+  materializePhase74SealedRetrievalSnapshots,
   materializePhase74SealedReport,
   runPhase74SealedOracleMatrix,
   scorePhase74UnscoredExecution,
@@ -161,6 +162,23 @@ describe("Phase 74 sealed scoring", () => {
       caseCount: 1,
       executionFailures: 0,
     }));
+    const snapshots = materializePhase74SealedRetrievalSnapshots({
+      artifact: unscored.artifact,
+      report,
+    });
+    expect(snapshots).toHaveLength(2);
+    expect(snapshots[0]?.evaluation).toEqual(expect.objectContaining({
+      answer: "Postgres",
+      correct: true,
+      score: 1,
+    }));
+    expect(snapshots[1]?.evaluation?.attribution).toEqual(
+      expect.objectContaining({
+        observedAnswer: "wrong",
+        observedCorrect: false,
+        reused: true,
+      }),
+    );
     expect(() => materializePhase74SealedReport({
       artifact: unscored.artifact,
       escrow: bundles.escrow,
