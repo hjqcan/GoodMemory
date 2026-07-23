@@ -267,6 +267,7 @@ export async function scorePhase74UnscoredExecution(input: {
   escrow: Phase74SealedEscrowBundle;
   execution: Phase74SealedExecutionBundle;
   executorOutput: Phase74SealedExecutorOutput;
+  oracleSha256?: string;
   scorerPid: number;
 }): Promise<{
   receipt: Phase74SealedScoreReceipt;
@@ -337,6 +338,9 @@ export async function scorePhase74UnscoredExecution(input: {
   const receipt = buildPhase74SealedScoreReceipt({
     escrow,
     executorOutput,
+    ...(input.oracleSha256 === undefined
+      ? {}
+      : { oracleSha256: input.oracleSha256 }),
     rows: executorOutput.rows.map((output) => {
       const observedAssessment = observed.get(output.rowKey)!;
       const finalAssessment = observed.get(output.sourceRowKey);

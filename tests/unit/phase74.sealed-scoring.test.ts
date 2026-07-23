@@ -12,6 +12,9 @@ import {
 import {
   runPhase74UnscoredExecution,
 } from "../../src/eval/phase74UnscoredExecution";
+import type {
+  Phase74UnscoredRetrievalRow,
+} from "../../src/eval/phase74UnscoredExecution";
 import { buildEvalRunIdentity } from "../../src/eval/runIdentity";
 
 const scoredCase = {
@@ -244,6 +247,11 @@ describe("Phase 74 sealed scoring", () => {
     )).toBe(true);
     expect(oracle.sha256).toMatch(/^[a-f0-9]{64}$/u);
 
+    const deterministicRow = e3.artifact.rows.find(
+      (row): row is Phase74UnscoredRetrievalRow =>
+        row.kind === "retrieval" &&
+        row.unit === "recall-plan-deterministic",
+    );
     const e4 = await runPhase74UnscoredExecution({
       baseConfiguration: {},
       countRenderedTokens: (content) => content.length,
@@ -253,11 +261,7 @@ describe("Phase 74 sealed scoring", () => {
       execution: e4Bundles.execution,
       executorPid: 502,
       genericReader: async () => "Postgres",
-      loadDeterministicSnapshot: async () =>
-        e3.artifact.rows.find((row) =>
-          row.kind === "retrieval" &&
-          row.unit === "recall-plan-deterministic"
-        )?.snapshot ?? null,
+      loadDeterministicSnapshot: async () => deterministicRow?.snapshot ?? null,
       renderEvidenceLedger: async ({ format }) => `${format}: Postgres`,
     });
     const scored = await scorePhase74UnscoredExecution({

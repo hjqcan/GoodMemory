@@ -303,6 +303,7 @@ export { buildPhase74FullRunIdentityConfiguration };
 export function buildPhase74SealedProcessEnvironments(input: {
   env: Record<string, string | undefined>;
   executorConfig: unknown;
+  scorerNeedsReader?: boolean;
   scorerConfig: unknown;
 }): {
   executor: Record<string, string | undefined>;
@@ -330,6 +331,14 @@ export function buildPhase74SealedProcessEnvironments(input: {
     scorer: {
       ...pick([
         ...shared,
+        ...(input.scorerNeedsReader
+          ? [
+              "GOODMEMORY_EVAL_API_KEY",
+              "GOODMEMORY_EVAL_BASE_URL",
+              "GOODMEMORY_EVAL_MODEL",
+              "GOODMEMORY_EVAL_PROVIDER",
+            ]
+          : []),
         "GOODMEMORY_JUDGE_API_KEY",
         "GOODMEMORY_JUDGE_BASE_URL",
         "GOODMEMORY_JUDGE_MODEL",
