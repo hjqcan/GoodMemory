@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -18,6 +18,10 @@ describe("Phase 74 sealed process boundary", () => {
   it("keeps labels out of the executor and starts scoring only after executor exit", async () => {
     const directory = await mkdtemp(join(tmpdir(), "phase74-sealed-"));
     try {
+      await writeFile(
+        join(directory, ".env"),
+        "GOODMEMORY_JUDGE_API_KEY=PHASE74-AUTOLOAD-SENTINEL\n",
+      );
       const bundles = buildPhase74SealedBundles({
         cases: [{
           caseId: "upstream-case-1",
@@ -44,7 +48,7 @@ describe("Phase 74 sealed process boundary", () => {
       })).toThrow("sealed execution bundle");
 
       const result = await runPhase74SealedProcessPair({
-        cwd: resolve("."),
+        cwd: directory,
         execution: bundles.execution,
         escrow: bundles.escrow,
         executorEnv: {
@@ -82,6 +86,9 @@ describe("Phase 74 sealed process boundary", () => {
       expect(JSON.stringify(executorObservation.env)).not.toContain(GOLD_SENTINEL);
       expect(JSON.stringify(executorObservation.env)).not.toContain(
         "benchmark-root",
+      );
+      expect(JSON.stringify(executorObservation.env)).not.toContain(
+        "PHASE74-AUTOLOAD-SENTINEL",
       );
       expect(result.scorer.receipt.rows[0]?.score).toBe(0);
       expect(() => verifyPhase74SealedScoreReceipt({
