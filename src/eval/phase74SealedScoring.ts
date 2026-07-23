@@ -21,6 +21,7 @@ import type {
   Phase74E4FormatResult,
   Phase74GeneralizationExecutionResult,
   Phase74GeneralizationReport,
+  Phase74RetrievalSnapshot,
 } from "./phase74Generalization";
 import {
   buildPhase74SealedScoreReceipt,
@@ -564,4 +565,57 @@ export function materializePhase74SealedReport(input: {
       renderedContextMaxTokens,
     },
   };
+}
+
+export function materializePhase74SealedRetrievalSnapshots(input: {
+  artifact: Phase74UnscoredExecutionArtifact;
+  report: Phase74GeneralizationReport;
+}): Phase74RetrievalSnapshot[] {
+  const artifact = parsePhase74UnscoredArtifact(input.artifact);
+  const rows = artifact.rows.filter(
+    (row): row is Phase74UnscoredRetrievalRow => row.kind === "retrieval",
+  );
+  if (
+    artifact.stage === "E4" ||
+    rows.length !== input.report.executions.length
+  ) {
+    throw new Error("Phase 74 sealed retrieval packet population drifted.");
+  }
+  return rows.map((row, index) => {
+    const execution = input.report.executions[index];
+    if (
+      execution === undefined ||
+      execution.arm !== row.unit ||
+      execution.stage !== row.stage ||
+      execution.snapshotId !== row.snapshot.snapshotId ||
+      execution.answer === undefined ||
+      execution.answerLatencyMs === undefined ||
+      execution.contextTokens === undefined ||
+      execution.contextTokensBeforeTruncation === undefined ||
+      execution.contextTruncated === undefined ||
+      execution.correct === undefined ||
+      execution.evaluationAttribution === undefined ||
+      execution.productLatencyMs === undefined ||
+      execution.recallLatencyMs === undefined ||
+      execution.score === undefined
+    ) {
+      throw new Error("Phase 74 sealed retrieval packet evaluation drifted.");
+    }
+    return {
+      ...row.snapshot,
+      evaluation: {
+        answer: execution.answer,
+        answerLatencyMs: execution.answerLatencyMs,
+        attribution: execution.evaluationAttribution,
+        contextTokens: execution.contextTokens,
+        contextTokensBeforeTruncation:
+          execution.contextTokensBeforeTruncation,
+        contextTruncated: execution.contextTruncated,
+        correct: execution.correct,
+        productLatencyMs: execution.productLatencyMs,
+        recallLatencyMs: execution.recallLatencyMs,
+        score: execution.score,
+      },
+    };
+  });
 }
