@@ -103,6 +103,7 @@ export const PHASE74_EVALUATOR_SOURCE_SNAPSHOT = {
     "scripts/phase-74-halumem-live-providers.ts",
     "scripts/phase-74-halumem-protection.ts",
     "scripts/phase-74-confirmatory-plan-anchor.ts",
+    "scripts/phase74-version-worker.ts",
     "scripts/prepare-phase-65-locomo-data.ts",
     "scripts/prepare-phase-74-datasets.ts",
     "scripts/prepare-phase-74-confirmatory-plan.ts",
@@ -116,12 +117,14 @@ export const PHASE74_EVALUATOR_SOURCE_SNAPSHOT = {
     "scripts/run-phase-74-halumem-live-protection.ts",
     "scripts/run-phase-74-halumem-protection.ts",
     "scripts/run-phase-74-memory-agent-bench-protection.ts",
+    "scripts/run-phase-74-product-comparison.ts",
     "scripts/run-phase-74-storage-scale-gate.ts",
+    "scripts/run-phase-74-version-baseline.ts",
     "scripts/script-paths.ts",
   ],
   sourceExtensions: [".cts", ".mts", ".ts"],
   sourceTrees: ["src"],
-  version: 8,
+  version: 9,
 } as const;
 
 export interface Phase74EvaluatorSource {

@@ -682,6 +682,7 @@ export function assertPhase74RecallProviderIntegrity(input: {
 
 export function createPhase74FullRetrievalRuntime(input: {
   datasetSha256: string;
+  evidenceLedgerFormats?: readonly EvidenceLedgerFormat[];
   evaluatorSourceSha256: string;
   events: AttributedModelUsageAttempt[];
   intents: AttributedModelUsageIntent[];
@@ -702,6 +703,16 @@ export function createPhase74FullRetrievalRuntime(input: {
     snapshot: Phase74RetrievalSnapshot;
   }): Promise<string>;
 } {
+  const evidenceLedgerFormats =
+    input.evidenceLedgerFormats ?? EVIDENCE_LEDGER_FORMATS;
+  if (
+    evidenceLedgerFormats.length === 0 ||
+    new Set(evidenceLedgerFormats).size !== evidenceLedgerFormats.length
+  ) {
+    throw new Error(
+      "Phase 74 evidence-ledger formats must be unique and non-empty.",
+    );
+  }
   const ready = new Map<string, Promise<{
     ingestionKey: string;
     representation: string;
@@ -912,17 +923,35 @@ export function createPhase74FullRetrievalRuntime(input: {
           stage === "E3" && arm === "recall-plan-deterministic"
             ? recall.evidenceLedger
             : undefined;
-        const evidenceLedgers =
+        const renderedLedgers =
           stage === "E3" && arm === "recall-plan-deterministic"
-            ? Object.fromEntries(await Promise.all(EVIDENCE_LEDGER_FORMATS.map(
-                async (format) => [format, (await runtime.memory.buildContext({
+            ? await Promise.all(evidenceLedgerFormats.map(async (format) => {
+                const startedAt = performance.now();
+                const content = (await runtime.memory.buildContext({
                   evidenceLedgerFormat: format,
                   maxTokens: CONTEXT_TOKEN_BUDGET,
                   output: "markdown",
                   recall,
-                })).content],
-              ))) as Record<EvidenceLedgerFormat, string>
+                })).content;
+                return {
+                  content,
+                  format,
+                  latencyMs: Math.max(0, performance.now() - startedAt),
+                };
+              }))
             : undefined;
+        const evidenceLedgers = renderedLedgers === undefined
+          ? undefined
+          : Object.fromEntries(renderedLedgers.map(({ content, format }) => [
+              format,
+              content,
+            ])) as Partial<Record<EvidenceLedgerFormat, string>>;
+        const evidenceLedgerRenderLatencyMs = renderedLedgers === undefined
+          ? undefined
+          : Object.fromEntries(renderedLedgers.map(({ format, latencyMs }) => [
+              format,
+              latencyMs,
+            ])) as Partial<Record<EvidenceLedgerFormat, number>>;
         const snapshotId = buildPhase74RetrievalSnapshotId({
           arm,
           costTrace,
@@ -935,6 +964,9 @@ export function createPhase74FullRetrievalRuntime(input: {
         return {
           costTrace,
           ...(evidenceLedger === undefined ? {} : { evidenceLedger }),
+          ...(evidenceLedgerRenderLatencyMs === undefined
+            ? {}
+            : { evidenceLedgerRenderLatencyMs }),
           ...(evidenceLedgers === undefined ? {} : { evidenceLedgers }),
           recallMetadata: {
             candidateTraces: recall.metadata.candidateTraces,

@@ -81,6 +81,9 @@ export interface Phase74RetrievalSnapshot {
   };
   evaluation?: Phase74RetrievalEvaluation;
   evidenceLedger?: readonly EvidenceLedgerEntry[];
+  evidenceLedgerRenderLatencyMs?: Partial<
+    Record<EvidenceLedgerFormat, number>
+  >;
   evidenceLedgers?: Partial<Record<EvidenceLedgerFormat, string>>;
   recallMetadata?: Pick<
     RecallResult["metadata"],

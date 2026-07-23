@@ -1,14 +1,100 @@
+import { createHash } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
+
 import type { EvidenceLedgerFormat } from "../src/eval/evidenceLedgerFormats";
-import type { EvalRunJsonObject } from "../src/eval/runIdentity";
+import {
+  buildPhase74IngestionDescriptor,
+  buildPhase74IngestionUsagePaths,
+  createPhase74FullRetrievalRuntime,
+} from "../src/eval/phase74FullRuntime";
+import {
+  buildPhase74LabelFreeCaseBoundary,
+} from "../src/eval/phase74Generalization";
+import type { Phase74DatasetCase } from "../src/eval/phase74Datasets";
+import { createPhase74SelectedDatasetBundle } from "../src/eval/phase74Datasets";
+import {
+  buildPhase74ProductCandidateConfiguration,
+  buildPhase74ProductModelUsageEvidence,
+  type Phase74ProductIngestionUsageLedger,
+} from "../src/eval/phase74ProductComparison";
+import {
+  appendPhase74ModelUsageEventSync,
+  appendPhase74ModelUsageIntentSync,
+  loadPhase74ModelUsageLedger,
+  validatePhase74ModelUsageLedger,
+  type AttributedModelUsageAttempt,
+  type AttributedModelUsageIntent,
+  type Phase74ModelUsageLedger,
+} from "../src/eval/modelUsage";
+import {
+  buildPhase74EmbeddingIdentity,
+  createPhase74LiveReader,
+  phase74LivePromptSha256s,
+  resolvePhase74EmbeddingAdapterOptions,
+  resolvePhase74EvaluatorSource,
+  resolvePhase74LiveModels,
+  verifyPhase74EvaluatorSource,
+} from "../src/eval/phase74Live";
+import {
+  buildPhase74ProtocolScoringIdentity,
+  createPhase74ProtocolCompatibleAnswerAssessor,
+} from "../src/eval/phase74ProtocolScoring";
+import {
+  PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
+} from "../src/eval/phase74ProviderConfiguration";
+import {
+  loadPhase74ProtectionBlueprintDescriptor,
+} from "../src/eval/phase74ProtectionSuiteEvidence";
+import {
+  buildEvalRunIdentity,
+  hashEvalExperimentIdentity,
+  hashEvalRunIdentity,
+  type EvalRunJsonObject,
+  type EvalRunModelIdentity,
+} from "../src/eval/runIdentity";
+import {
+  renderOracleMatrixContext,
+  truncateRenderedContext,
+} from "../src/eval/oracleMatrix";
+import {
+  PHASE74_RELEASE_COMMIT,
+  PHASE74_RELEASE_REF,
+  PHASE74_RELEASE_TREE,
+  buildPhase74VersionIngestionKey,
+  createPhase74VersionSourceIdentity,
+} from "../src/eval/phase74VersionBaseline";
 import {
   assertCliPathSegmentValue,
   resolveCliFlagValueStrict,
 } from "./cli-options";
+import {
+  createPhase74DurableCallBudget,
+  loadPhase74PreparedDataset,
+  selectPhase74GeneralizationCases,
+} from "./run-phase-74-generalization";
+import {
+  buildPhase74ReleaseWorkerInput,
+} from "./run-phase-74-version-baseline";
+import {
+  createPhase74VersionUsageBoundary,
+  hashPhase74DependencyTree,
+  loadPhase74VersionCreateGoodMemory,
+  materializePhase74VersionExecutionRoot,
+  preparePhase74VersionMemoryGroup,
+  queryPhase74VersionMemoryGroup,
+} from "./phase74-version-worker";
+import type {
+  AISDKModelConfig,
+  FetchLike,
+} from "../src/provider/ai-sdk-runtime";
 
 export const PHASE74_PRODUCT_ARMS = [
   "release-v0.6.0",
   "phase74-final",
 ] as const;
+export const PHASE74_PRODUCT_CASE_SCHEDULING =
+  "paired-arms-concurrent-selected-order-v1";
 
 export type Phase74ProductArm = (typeof PHASE74_PRODUCT_ARMS)[number];
 
@@ -20,6 +106,7 @@ export interface Phase74ProductComparisonOptions {
   embeddingSpendLimitUsd: number;
   maxLanguageCalls: number;
   outputDir: string;
+  preparationConcurrency: number;
   protectionBlueprintPath: string;
   releaseArchive: string;
   releaseSourceRoot: string;
@@ -137,6 +224,10 @@ export function parsePhase74ProductComparisonCliOptions(
       "--max-language-calls",
     ),
     outputDir: requiredFlag(args, "--output-dir"),
+    preparationConcurrency: positiveInteger(
+      requiredFlag(args, "--preparation-concurrency"),
+      "--preparation-concurrency",
+    ),
     protectionBlueprintPath: requiredFlag(args, "--protection-blueprint"),
     releaseArchive: requiredFlag(args, "--release-archive"),
     releaseSourceRoot: requiredFlag(args, "--release-source-root"),
@@ -156,6 +247,7 @@ function objectValue(value: unknown): Record<string, unknown> {
 export function buildPhase74ProductRunIdentityConfiguration(input: {
   candidateConfiguration: EvalRunJsonObject;
   candidateSource: EvalRunJsonObject;
+  releaseDependencyTreeSha256: string;
   releaseSource: EvalRunJsonObject;
   replicate: 1 | 2 | 3;
   selectedEvidenceLedgerFormat: EvidenceLedgerFormat;
@@ -166,7 +258,13 @@ export function buildPhase74ProductRunIdentityConfiguration(input: {
   const evidenceLedger = objectValue(
     input.candidateConfiguration.evidenceLedger,
   );
+  const embedding = objectValue(
+    input.candidateConfiguration.embedding,
+  ) as EvalRunJsonObject;
   if (
+    !/^[0-9a-f]{64}$/iu.test(input.releaseDependencyTreeSha256) ||
+    input.candidateConfiguration.caseScheduling !==
+      PHASE74_PRODUCT_CASE_SCHEDULING ||
     input.candidateConfiguration.representation !==
       "atomic-contextual-raw-pointer" ||
     planner.mode !== "deterministic" ||
@@ -191,11 +289,17 @@ export function buildPhase74ProductRunIdentityConfiguration(input: {
     candidateSource: input.candidateSource,
     comparisonKind: "cumulative-product",
     costBoundary: "full-product",
+    embeddingRoutingByArm: {
+      baseline: embedding,
+      candidate: embedding,
+    },
     evidenceBoundary: {
       goldAware: false,
       protocolReader: false,
       seenCasesOnly: input.seenCasesOnly,
     },
+    releaseDependencyTreeSha256:
+      input.releaseDependencyTreeSha256.toLowerCase(),
     releaseSource: input.releaseSource,
     replicate: input.replicate,
     selectedEvidenceLedgerFormat: input.selectedEvidenceLedgerFormat,
@@ -251,6 +355,7 @@ export async function runPhase74ProductComparison(input: {
     caseId: string;
     testCase: Phase74ProductCase;
   }): Promise<{ correct: boolean; latencyMs: number; score: number }>;
+  preparationConcurrency: number;
   selectedEvidenceLedgerFormat: EvidenceLedgerFormat;
 }): Promise<{
   rows: Phase74ProductComparisonRow[];
@@ -265,18 +370,54 @@ export async function runPhase74ProductComparison(input: {
     ]);
   }
   const prepared = new Map<string, Phase74ProductPreparedGroup>();
-
-  await Promise.all(PHASE74_PRODUCT_ARMS.flatMap((arm) =>
-    [...grouped].map(async ([memoryGroupId, cases]) => {
-      const value = await input.prepare({ arm, cases, memoryGroupId });
-      assertPreparedGroup({ arm, memoryGroupId, prepared: value });
-      prepared.set(`${arm}/${memoryGroupId}`, value);
-    })
-  ));
+  if (
+    !Number.isSafeInteger(input.preparationConcurrency) ||
+    input.preparationConcurrency <= 0
+  ) {
+    throw new Error(
+      "Phase 74 product preparation concurrency must be a positive integer.",
+    );
+  }
+  const preparationJobs = PHASE74_PRODUCT_ARMS.flatMap((arm) =>
+    [...grouped].map(([memoryGroupId, cases]) => ({
+      arm,
+      cases,
+      memoryGroupId,
+    }))
+  );
+  let nextPreparationJob = 0;
+  let preparationError: unknown;
+  const prepareWorker = async () => {
+    while (preparationError === undefined) {
+      const jobIndex = nextPreparationJob;
+      nextPreparationJob += 1;
+      const job = preparationJobs[jobIndex];
+      if (job === undefined) {
+        return;
+      }
+      try {
+        const value = await input.prepare(job);
+        assertPreparedGroup({
+          arm: job.arm,
+          memoryGroupId: job.memoryGroupId,
+          prepared: value,
+        });
+        prepared.set(`${job.arm}/${job.memoryGroupId}`, value);
+      } catch (error) {
+        preparationError ??= error;
+      }
+    }
+  };
+  await Promise.all(Array.from({
+    length: Math.min(input.preparationConcurrency, preparationJobs.length),
+  }, prepareWorker));
+  if (preparationError !== undefined) {
+    throw preparationError;
+  }
 
   const rows: Phase74ProductComparisonRow[] = [];
   for (const testCase of input.cases) {
-    for (const arm of PHASE74_PRODUCT_ARMS) {
+    const paired = await Promise.allSettled(PHASE74_PRODUCT_ARMS.map(async (arm) => {
       const group = prepared.get(`${arm}/${testCase.memoryGroupId}`)!;
       const query = await group.query(testCase);
       const reader = await input.read({
@@ -292,7 +433,7 @@ export async function runPhase74ProductComparison(input: {
         caseId: testCase.caseId,
         testCase,
       });
-      rows.push({
+      return {
         answer: reader.answer,
         answerLatencyMs: reader.latencyMs,
         arm,
@@ -307,11 +448,589 @@ export async function runPhase74ProductComparison(input: {
         queryPathLatencyMs: query.queryPathLatencyMs,
         recallLatencyMs: query.recallLatencyMs,
         score: assessment.score,
-      });
+      } satisfies Phase74ProductComparisonRow;
+    }));
+    const pairedRows: Phase74ProductComparisonRow[] = [];
+    for (const entry of paired) {
+      if (entry.status === "rejected") {
+        throw entry.reason;
+      }
+      pairedRows.push(entry.value);
     }
+    rows.push(...pairedRows);
   }
   return {
     rows,
     selectedEvidenceLedgerFormat: input.selectedEvidenceLedgerFormat,
   };
+}
+
+export function buildPhase74ProductQueryPathLatencyMs(input: {
+  contextAssemblyLatencyMs: number;
+  recallLatencyMs: number;
+}): number {
+  return Math.max(
+    0,
+    input.recallLatencyMs + input.contextAssemblyLatencyMs,
+  );
+}
+
+export function createPhase74ProductNetworkFetch(input: {
+  fetch: FetchLike;
+  model: AISDKModelConfig;
+}): FetchLike {
+  return resolvePhase74EmbeddingAdapterOptions(
+    input.model,
+    input.fetch,
+  ).fetch ?? input.fetch;
+}
+
+function sha256(value: string | Uint8Array): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+async function sha256File(path: string): Promise<string> {
+  return sha256(await readFile(path));
+}
+
+function publicModelIdentity(model: {
+  baseURL?: string;
+  model: string;
+  provider: string;
+}): EvalRunModelIdentity {
+  return {
+    gateway: model.baseURL ?? "",
+    model: model.model,
+    provider: model.provider,
+  };
+}
+
+async function writeJson(path: string, value: unknown): Promise<void> {
+  await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, {
+    encoding: "utf8",
+    flag: "wx",
+  });
+}
+
+function subsetUsageLedger(input: {
+  branch: "shadow";
+  caseId: string;
+  ledger: Phase74ModelUsageLedger;
+}): Phase74ModelUsageLedger {
+  const intents = input.ledger.intents.filter(
+    ({ branch, caseId }) =>
+      branch === input.branch && caseId === input.caseId,
+  );
+  const requestIds = new Set(intents.map(({ requestId }) => requestId));
+  return validatePhase74ModelUsageLedger({
+    events: input.ledger.events.filter(({ requestId }) =>
+      requestIds.has(requestId)
+    ),
+    intents,
+  });
+}
+
+function p95(values: readonly number[]): number {
+  const sorted = [...values].sort((left, right) => left - right);
+  return sorted[Math.floor((sorted.length - 1) * 0.95)]!;
+}
+
+export async function runPhase74LiveProductComparison(
+  options: Phase74ProductComparisonOptions,
+  env: Record<string, string | undefined> = process.env,
+): Promise<{ reportPath: string; runDirectory: string }> {
+  const root = resolve(options.outputDir);
+  const runDirectory = join(root, options.runId);
+  await mkdir(root, { recursive: true });
+  await mkdir(runDirectory);
+  const releaseDirectory = join(runDirectory, "release");
+  const candidateDirectory = join(runDirectory, "candidate");
+  await Promise.all([
+    mkdir(releaseDirectory),
+    mkdir(candidateDirectory),
+  ]);
+
+  const preparedDataset = await loadPhase74PreparedDataset({
+    benchmark: options.benchmark,
+    benchmarkRoot: options.benchmarkRoot,
+  });
+  const selection = selectPhase74GeneralizationCases({
+    cases: preparedDataset.cases,
+    seed: options.caseSelectionSeed,
+    size: options.caseSelectionSize,
+  });
+  const dataset = createPhase74SelectedDatasetBundle({
+    bundle: preparedDataset,
+    cases: selection.cases,
+  });
+  const selectedCases = dataset.cases;
+  const models = resolvePhase74LiveModels(env);
+  const evaluatorSource = await verifyPhase74EvaluatorSource({
+    declared: resolvePhase74EvaluatorSource(env),
+    repoRoot: process.cwd(),
+  });
+  const protectionBlueprint =
+    await loadPhase74ProtectionBlueprintDescriptor(
+      options.protectionBlueprintPath,
+    );
+  const promptSha256s = phase74LivePromptSha256s();
+  const selectedCaseIdsSha256 = sha256(
+    JSON.stringify(selectedCases.map(({ caseId }) => caseId)),
+  );
+  const scoring = buildPhase74ProtocolScoringIdentity(
+    options.benchmark,
+    publicModelIdentity(models.judge),
+  );
+  const baseConfiguration: EvalRunJsonObject = {
+    answer: {
+      maxTokens: 512,
+      reasoningEffort: "medium",
+      temperature: 0,
+    },
+    callBudget: {
+      embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
+      maxLanguageCalls: options.maxLanguageCalls,
+    },
+    caseScheduling: PHASE74_PRODUCT_CASE_SCHEDULING,
+    context: {
+      maxTokens: 6_000,
+      tokenizer: "utf8-byte-upper-bound-v1",
+    },
+    costBoundary: "full-product-standalone-shared-v1",
+    dataset: dataset.manifest as unknown as EvalRunJsonObject,
+    embedding: buildPhase74EmbeddingIdentity(models.embedding),
+    evaluatorSource,
+    modelUsageAccounting: "phase74-model-usage-v2",
+    preRankLimit: 32,
+    preparationConcurrency: options.preparationConcurrency,
+    providerObjectCalls: PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
+    protectionBlueprint,
+    reader: "generic-label-free-v1",
+    replicate: options.replicate,
+    reranker: {
+      implementation: "lexical-coverage-v1",
+      mode: "deterministic",
+    },
+    scoring,
+    selection: selection.identity,
+    selectedCaseIdsSha256,
+    selectedLimit: 12,
+    seenCasesOnly: true,
+  };
+  const candidateConfiguration = buildPhase74ProductCandidateConfiguration({
+    base: baseConfiguration,
+    selectedEvidenceLedgerFormat:
+      options.selectedEvidenceLedgerFormat,
+  });
+  const releaseSource = createPhase74VersionSourceIdentity({
+    archiveSha256: await sha256File(options.releaseArchive),
+    arm: "release",
+    commit: PHASE74_RELEASE_COMMIT,
+    lockfileSha256: await sha256File(
+      join(options.releaseSourceRoot, "bun.lock"),
+    ),
+    ref: PHASE74_RELEASE_REF,
+    tree: PHASE74_RELEASE_TREE,
+    workerSha256: await sha256File(
+      join(process.cwd(), "scripts/phase74-version-worker.ts"),
+    ),
+  });
+  const releaseDependencyTreeSha256 = await hashPhase74DependencyTree(
+    join(options.releaseSourceRoot, "node_modules"),
+  );
+  const configuration = buildPhase74ProductRunIdentityConfiguration({
+    candidateConfiguration,
+    candidateSource: evaluatorSource,
+    releaseDependencyTreeSha256,
+    releaseSource: releaseSource as unknown as EvalRunJsonObject,
+    replicate: options.replicate,
+    selectedEvidenceLedgerFormat:
+      options.selectedEvidenceLedgerFormat,
+    seenCasesOnly: true,
+  });
+  const identity = buildEvalRunIdentity({
+    answerModel: publicModelIdentity(models.answer),
+    benchmark: `${options.benchmark}-product-comparison`,
+    configuration,
+    datasetSha256: dataset.manifest.datasetSha256,
+    generatedAt: new Date().toISOString(),
+    generatedBy: "scripts/run-phase-74-product-comparison.ts",
+    judgeModel: publicModelIdentity(models.judge),
+    promptSha256s,
+    runId: options.runId,
+  });
+  await writeJson(join(runDirectory, "run-identity.json"), identity);
+  const releaseExecutionRoot =
+    await materializePhase74VersionExecutionRoot({
+      archivePath: options.releaseArchive,
+      dependencyRoot: options.releaseSourceRoot,
+      executionRoot: join(runDirectory, "release-source"),
+    });
+
+  const events: AttributedModelUsageAttempt[] = [];
+  const intents: AttributedModelUsageIntent[] = [];
+  const usagePath = join(runDirectory, "model-usage.jsonl");
+  const usageIntentsPath = join(runDirectory, "model-usage-intents.jsonl");
+  const onUsageEvent = (event: AttributedModelUsageAttempt) =>
+    appendPhase74ModelUsageEventSync(usagePath, event);
+  const onUsageIntent = (intent: AttributedModelUsageIntent) =>
+    appendPhase74ModelUsageIntentSync(usageIntentsPath, intent);
+  const originalFetch = globalThis.fetch;
+  const callBudget = createPhase74DurableCallBudget({
+    embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
+    fetch: originalFetch,
+    maxLanguageCalls: options.maxLanguageCalls,
+    path: join(runDirectory, "call-budget.json"),
+  });
+  const productNetworkFetch = createPhase74ProductNetworkFetch({
+    fetch: callBudget.fetch,
+    model: models.embedding,
+  });
+  const releaseUsage = createPhase74VersionUsageBoundary({
+    events,
+    fetch: productNetworkFetch,
+    intents,
+    onUsageEvent,
+    onUsageIntent,
+  });
+  globalThis.fetch = releaseUsage.fetch as typeof globalThis.fetch;
+
+  const reader = createPhase74LiveReader({
+    events,
+    intents,
+    model: models.answer,
+    onUsageEvent,
+    onUsageIntent,
+  });
+  const assessor = createPhase74ProtocolCompatibleAnswerAssessor({
+    benchmark: options.benchmark,
+    events,
+    intents,
+    model: models.judge,
+    onUsageEvent,
+    onUsageIntent,
+  });
+  const candidateRuntime = createPhase74FullRetrievalRuntime({
+    datasetSha256: dataset.manifest.datasetSha256,
+    evidenceLedgerFormats: [options.selectedEvidenceLedgerFormat],
+    evaluatorSourceSha256: evaluatorSource.sha256,
+    events,
+    intents,
+    models,
+    onUsageEvent,
+    onUsageIntent,
+    promptSha256s,
+    rerankerMode: "deterministic",
+    runDirectory: candidateDirectory,
+  });
+  const releaseCreateGoodMemory = await loadPhase74VersionCreateGoodMemory(
+    releaseExecutionRoot,
+  );
+  const casesByOpaqueId = new Map<string, {
+    boundary: ReturnType<typeof buildPhase74LabelFreeCaseBoundary>;
+    testCase: Phase74DatasetCase;
+  }>();
+  const productCases = selectedCases.map((testCase) => {
+    const boundary = buildPhase74LabelFreeCaseBoundary(testCase);
+    casesByOpaqueId.set(boundary.caseKey, { boundary, testCase });
+    return {
+      caseId: boundary.caseKey,
+      clusterId:
+        boundary.recallCase.memoryGroupId ?? boundary.caseKey,
+      memoryGroupId:
+        boundary.recallCase.memoryGroupId ?? boundary.caseKey,
+      question: boundary.recallCase.question,
+    };
+  });
+  const candidateIngestionKeys = new Map<string, string>();
+  const releaseIngestionKeys = new Map<string, string>();
+
+  let result: Awaited<ReturnType<typeof runPhase74ProductComparison>>;
+  try {
+    result = await runPhase74ProductComparison({
+      cases: productCases,
+      async prepare({ arm, cases, memoryGroupId }) {
+        const representative = casesByOpaqueId.get(cases[0]!.caseId)!;
+        if (arm === "phase74-final") {
+          const descriptor = buildPhase74IngestionDescriptor({
+            configuration: candidateConfiguration,
+            datasetSha256: dataset.manifest.datasetSha256,
+            evaluatorSourceSha256: evaluatorSource.sha256,
+            models,
+            promptSha256s,
+            testCase: representative.boundary.recallCase,
+          });
+          candidateIngestionKeys.set(memoryGroupId, descriptor.key);
+          await candidateRuntime.prepare({
+            arm: "recall-plan-deterministic",
+            configuration: candidateConfiguration,
+            stage: "E3",
+            testCase: representative.boundary.recallCase,
+          });
+          return {
+            arm,
+            ingestionKey: descriptor.key,
+            memoryGroupId,
+            async query(productCase) {
+              const current = casesByOpaqueId.get(productCase.caseId)!;
+              const snapshot = await candidateRuntime.execute({
+                arm: "recall-plan-deterministic",
+                configuration: candidateConfiguration,
+                stage: "E3",
+                testCase: current.boundary.recallCase,
+              });
+              const truncationStartedAt = performance.now();
+              const rendered = await candidateRuntime.render({
+                format: options.selectedEvidenceLedgerFormat,
+                snapshot,
+              });
+              const context = truncateRenderedContext({
+                content: rendered,
+                contextTokenBudget: 6_000,
+                countRenderedTokens: (value) =>
+                  Buffer.byteLength(value, "utf8"),
+              });
+              const recallLatencyMs =
+                snapshot.recallMetadata?.latencyMs ?? 0;
+              const contextAssemblyLatencyMs =
+                (
+                  snapshot.evidenceLedgerRenderLatencyMs?.[
+                    options.selectedEvidenceLedgerFormat
+                  ] ?? 0
+                ) +
+                Math.max(0, performance.now() - truncationStartedAt);
+              return {
+                context: context.content,
+                contextTokens: context.renderedContextTokens,
+                queryPathLatencyMs:
+                  buildPhase74ProductQueryPathLatencyMs({
+                    contextAssemblyLatencyMs,
+                    recallLatencyMs,
+                  }),
+                recallLatencyMs,
+              };
+            },
+          };
+        }
+
+        const releaseInput = buildPhase74ReleaseWorkerInput(
+          representative.testCase,
+        );
+        const ingestionKey = buildPhase74VersionIngestionKey({
+          configurationSha256: sha256(JSON.stringify({
+            embedding: publicModelIdentity(models.embedding),
+            extraction: publicModelIdentity(models.assistedExtraction),
+            profile: "v0.6.0-recommended",
+          })),
+          datasetSha256: dataset.manifest.datasetSha256,
+          memoryGroupId,
+          rawEvidence: releaseInput.rawEvidence,
+          sourceCommit: PHASE74_RELEASE_COMMIT,
+        });
+        releaseIngestionKeys.set(memoryGroupId, ingestionKey);
+        const sqlitePath = join(
+          releaseDirectory,
+          `${sha256(ingestionKey)}.sqlite`,
+        );
+        const prepared = await releaseUsage.run({
+          branch: "shadow",
+          caseId: memoryGroupId,
+          languageOperation: "assisted_extraction",
+        }, () => preparePhase74VersionMemoryGroup({
+          createGoodMemory: releaseCreateGoodMemory,
+          input: releaseInput,
+          models: {
+            embedding: models.embedding,
+            extraction: models.assistedExtraction,
+          },
+          sqlitePath,
+        }));
+        return {
+          arm,
+          ingestionKey,
+          memoryGroupId,
+          async query(productCase) {
+            const current = casesByOpaqueId.get(productCase.caseId)!;
+            const workerInput = buildPhase74ReleaseWorkerInput(
+              current.testCase,
+            );
+            const snapshot = await releaseUsage.run({
+              branch: "baseline",
+              caseId: productCase.caseId,
+              languageOperation: "recall_plan",
+            }, () => queryPhase74VersionMemoryGroup({
+              input: workerInput,
+              prepared,
+            }));
+            const contextStartedAt = performance.now();
+            const context = truncateRenderedContext({
+              content: renderOracleMatrixContext(
+                snapshot.retrievedMemories,
+              ),
+              contextTokenBudget: 6_000,
+              countRenderedTokens: (value) =>
+                Buffer.byteLength(value, "utf8"),
+            });
+            const contextAssemblyLatencyMs = Math.max(
+              0,
+              performance.now() - contextStartedAt,
+            );
+            return {
+              context: context.content,
+              contextTokens: context.renderedContextTokens,
+              queryPathLatencyMs:
+                buildPhase74ProductQueryPathLatencyMs({
+                  contextAssemblyLatencyMs,
+                  recallLatencyMs: snapshot.recallLatencyMs,
+                }),
+              recallLatencyMs: snapshot.recallLatencyMs,
+            };
+          },
+        };
+      },
+      async read({ arm, caseId, context, question }) {
+        const startedAt = performance.now();
+        const answer = await reader({
+          caseId,
+          context,
+          purpose: arm === "release-v0.6.0"
+            ? "final:baseline:product"
+            : "final:candidate:product",
+          question,
+        });
+        return {
+          answer,
+          latencyMs: Math.max(0, performance.now() - startedAt),
+        };
+      },
+      async score({ answer, arm, caseId }) {
+        const startedAt = performance.now();
+        const assessment = await assessor({
+          answer,
+          purpose: arm === "release-v0.6.0"
+            ? "final:baseline:product"
+            : "final:candidate:product",
+          testCase: casesByOpaqueId.get(caseId)!.testCase,
+          usageCaseId: caseId,
+        });
+        return {
+          ...assessment,
+          latencyMs: Math.max(0, performance.now() - startedAt),
+        };
+      },
+      preparationConcurrency: options.preparationConcurrency,
+      selectedEvidenceLedgerFormat:
+        options.selectedEvidenceLedgerFormat,
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  const direct = validatePhase74ModelUsageLedger({ events, intents });
+  const memoryGroupIds = [...new Set(
+    productCases.map(({ memoryGroupId }) => memoryGroupId),
+  )];
+  const baselineIngestion: Phase74ProductIngestionUsageLedger[] =
+    memoryGroupIds.map((memoryGroupId) => ({
+      key: releaseIngestionKeys.get(memoryGroupId)!,
+      ledger: subsetUsageLedger({
+        branch: "shadow",
+        caseId: memoryGroupId,
+        ledger: direct,
+      }),
+      memoryGroupId,
+    }));
+  const candidateIngestion: Phase74ProductIngestionUsageLedger[] =
+    await Promise.all(memoryGroupIds.map(async (memoryGroupId) => {
+      const key = candidateIngestionKeys.get(memoryGroupId)!;
+      const paths = buildPhase74IngestionUsagePaths(
+        candidateDirectory,
+        key,
+      );
+      return {
+        key,
+        ledger: await loadPhase74ModelUsageLedger({
+          eventsPath: paths.eventsPath,
+          intentsPath: paths.intentsPath,
+        }),
+        memoryGroupId,
+      };
+    }));
+  const modelUsage = buildPhase74ProductModelUsageEvidence({
+    baselineIngestion,
+    candidateIngestion,
+    caseIds: productCases.map(({ caseId }) => caseId),
+    direct,
+    memoryGroupIds,
+  });
+  const baselineRows = result.rows.filter(
+    ({ arm }) => arm === "release-v0.6.0",
+  );
+  const candidateRows = result.rows.filter(
+    ({ arm }) => arm === "phase74-final",
+  );
+  const report = {
+    benchmark: options.benchmark,
+    callBudget: callBudget.snapshot(),
+    candidateSource: evaluatorSource,
+    comparison: {
+      baselineMean: baselineRows.reduce(
+        (total, { score }) => total + score,
+        0,
+      ) / baselineRows.length,
+      candidateMean: candidateRows.reduce(
+        (total, { score }) => total + score,
+        0,
+      ) / candidateRows.length,
+    },
+    evidenceBoundary: {
+      goldAware: false,
+      protocolReader: false,
+      seenCasesOnly: true,
+    },
+    executionFailures: 0,
+    experimentIdentityHash: hashEvalExperimentIdentity(identity),
+    identityHash: hashEvalRunIdentity(identity),
+    kind: "phase74-cumulative-product-comparison",
+    latency: {
+      baselineP95Ms: p95(
+        baselineRows.map(({ productLatencyMs }) => productLatencyMs),
+      ),
+      candidateP95Ms: p95(
+        candidateRows.map(({ productLatencyMs }) => productLatencyMs),
+      ),
+    },
+    modelUsage,
+    releaseDependencyTreeSha256,
+    releaseSource,
+    renderedContextMaxTokens: Math.max(
+      ...result.rows.map(({ contextTokens }) => contextTokens),
+    ),
+    replicate: options.replicate,
+    rows: result.rows,
+    runId: options.runId,
+    schemaVersion: 1,
+    selectedEvidenceLedgerFormat:
+      options.selectedEvidenceLedgerFormat,
+    selection: selection.identity,
+    status: "not_evaluable",
+  };
+  const reportPath = join(runDirectory, "report.json");
+  await Promise.all([
+    writeFile(usagePath, "", { encoding: "utf8", flag: "a" }),
+    writeFile(usageIntentsPath, "", { encoding: "utf8", flag: "a" }),
+    writeJson(
+      join(runDirectory, "dataset-manifest.json"),
+      dataset.manifest,
+    ),
+    writeJson(reportPath, report),
+  ]);
+  return { reportPath, runDirectory };
+}
+
+if (import.meta.main) {
+  const result = await runPhase74LiveProductComparison(
+    parsePhase74ProductComparisonCliOptions(Bun.argv),
+  );
+  console.log(JSON.stringify(result, null, 2));
 }

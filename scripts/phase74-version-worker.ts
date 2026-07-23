@@ -1,7 +1,18 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { createHash } from "node:crypto";
+import { createReadStream } from "node:fs";
 import { pathToFileURL } from "node:url";
-import { copyFile, mkdtemp, rm } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import {
+  copyFile,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readlink,
+  rm,
+  symlink,
+} from "node:fs/promises";
+import { dirname, join, relative, resolve, sep } from "node:path";
 
 import type {
   AISDKModelConfig,
@@ -87,6 +98,92 @@ export interface Phase74VersionGoodMemory {
 export type Phase74VersionCreateGoodMemory = (
   config: unknown,
 ) => Phase74VersionGoodMemory;
+
+export async function hashPhase74DependencyTree(
+  nodeModulesPath: string,
+): Promise<string> {
+  const root = resolve(nodeModulesPath);
+  const hash = createHash("sha256");
+  hash.update("phase74-node-modules-v1\0");
+
+  const updateField = (value: string) => {
+    hash.update(`${Buffer.byteLength(value, "utf8")}:`);
+    hash.update(value);
+  };
+  const visit = async (directory: string): Promise<void> => {
+    const entries = await readdir(directory, { withFileTypes: true });
+    entries.sort((left, right) => left.name.localeCompare(right.name));
+    for (const entry of entries) {
+      const path = join(directory, entry.name);
+      const relativePath = relative(root, path);
+      if (entry.isDirectory()) {
+        await visit(path);
+        continue;
+      }
+      if (entry.isSymbolicLink()) {
+        const target = await readlink(path);
+        const resolvedTarget = resolve(dirname(path), target);
+        if (
+          resolvedTarget !== root &&
+          !resolvedTarget.startsWith(`${root}${sep}`)
+        ) {
+          throw new Error(
+            `Phase 74 dependency symlink escapes node_modules: ${relativePath}.`,
+          );
+        }
+        updateField("symlink");
+        updateField(relativePath);
+        updateField(target);
+        continue;
+      }
+      if (entry.isFile()) {
+        const metadata = await lstat(path);
+        updateField("file");
+        updateField(relativePath);
+        updateField(String(metadata.mode & 0o777));
+        updateField(String(metadata.size));
+        await new Promise<void>((resolveStream, rejectStream) => {
+          const stream = createReadStream(path);
+          stream.on("data", (chunk) => hash.update(chunk));
+          stream.on("end", resolveStream);
+          stream.on("error", rejectStream);
+        });
+      }
+    }
+  };
+
+  await visit(root);
+  return hash.digest("hex");
+}
+
+export async function materializePhase74VersionExecutionRoot(input: {
+  archivePath: string;
+  dependencyRoot: string;
+  executionRoot: string;
+}): Promise<string> {
+  const executionRoot = resolve(input.executionRoot);
+  const nodeModules = resolve(input.dependencyRoot, "node_modules");
+  if (!(await lstat(nodeModules)).isDirectory()) {
+    throw new Error("Phase 74 release dependency root has no node_modules directory.");
+  }
+  await mkdir(executionRoot);
+  const extraction = Bun.spawn([
+    "tar",
+    "-xf",
+    resolve(input.archivePath),
+    "-C",
+    executionRoot,
+  ], {
+    stderr: "pipe",
+    stdout: "ignore",
+  });
+  if (await extraction.exited !== 0) {
+    const error = await new Response(extraction.stderr).text();
+    throw new Error(`Phase 74 release archive extraction failed: ${error.trim()}`);
+  }
+  await symlink(nodeModules, join(executionRoot, "node_modules"), "dir");
+  return executionRoot;
+}
 
 export interface Phase74PreparedVersionMemoryGroup {
   createGoodMemory: Phase74VersionCreateGoodMemory;
