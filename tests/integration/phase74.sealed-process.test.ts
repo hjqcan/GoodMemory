@@ -49,11 +49,16 @@ describe("Phase 74 sealed process boundary", () => {
 
       const result = await runPhase74SealedProcessPair({
         cwd: directory,
+        executorArtifactPath: join(directory, "executor-artifact.json"),
         execution: bundles.execution,
         escrow: bundles.escrow,
         executorEnv: {
           HOME: process.env.HOME,
           PATH: process.env.PATH,
+          PHASE74_SEALED_ARTIFACT_PATH: join(
+            directory,
+            "executor-artifact.json",
+          ),
         },
         executorScript: resolve("tests/fixtures/phase74-sealed-executor.ts"),
         scorerEnv: {
@@ -76,6 +81,7 @@ describe("Phase 74 sealed process boundary", () => {
       expect(result.executor.stdin).not.toContain(GOLD_SENTINEL);
       expect(result.executor.stdout).not.toContain(GOLD_SENTINEL);
       expect(result.executor.stderr).not.toContain(GOLD_SENTINEL);
+      expect(result.executor.artifact).not.toContain(GOLD_SENTINEL);
       expect(result.executor.stdout).not.toContain("upstream-case-1");
       expect(result.executor.output.rows).toHaveLength(2);
       const executorObservation = JSON.parse(
