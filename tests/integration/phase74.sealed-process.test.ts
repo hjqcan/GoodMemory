@@ -75,6 +75,7 @@ describe("Phase 74 sealed process boundary", () => {
       expect(result.events.map(({ event }) => event)).toEqual([
         "seal",
         "executor_exit",
+        "artifact_verified",
         "scorer_start",
         "scorer_exit",
       ]);

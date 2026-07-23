@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 
 import { z } from "zod";
 
@@ -356,6 +356,7 @@ async function runChild(input: {
 
 export async function runPhase74SealedProcessPair(input: {
   cwd: string;
+  executorArtifactPath: string;
   execution: Phase74SealedExecutionBundle;
   escrow: Phase74SealedEscrowBundle;
   executorEnv: Readonly<Record<string, string | undefined>>;
@@ -366,6 +367,7 @@ export async function runPhase74SealedProcessPair(input: {
 }): Promise<{
   events: Array<{ event: string; pid?: number }>;
   executor: {
+    artifact: string;
     output: Phase74SealedExecutorOutput;
     pid: number;
     stderr: string;
@@ -394,12 +396,23 @@ export async function runPhase74SealedProcessPair(input: {
   const executorOutput = parsePhase74SealedExecutorOutput(
     JSON.parse(executor.stdout),
   );
+  const artifact = await readFile(input.executorArtifactPath, "utf8");
+  if (createHash("sha256").update(artifact).digest("hex") !==
+    executorOutput.artifactSha256) {
+    throw new Error("Phase 74 sealed executor artifact digest drifted.");
+  }
+  events.push({ event: "artifact_verified" });
   events.push({ event: "scorer_start" });
   const scorer = await runChild({
     cwd: input.cwd,
     env: input.scorerEnv,
     script: input.scorerScript,
-    stdin: JSON.stringify({ escrow, execution, executorOutput }),
+    stdin: JSON.stringify({
+      artifact: JSON.parse(artifact),
+      escrow,
+      execution,
+      executorOutput,
+    }),
   });
   events.push({ event: "scorer_exit", pid: scorer.pid });
   if (scorer.exitCode !== 0) {
@@ -414,6 +427,7 @@ export async function runPhase74SealedProcessPair(input: {
   });
   await writeFile(input.transcriptPath, `${JSON.stringify({
     events,
+    artifactSha256: executorOutput.artifactSha256,
     executionSha256: sha256Json(execution),
     executorOutputSha256: sha256Json(executorOutput),
     receiptSha256: sha256Json(receipt),
@@ -422,6 +436,7 @@ export async function runPhase74SealedProcessPair(input: {
   return {
     events,
     executor: {
+      artifact,
       output: executorOutput,
       pid: executor.pid,
       stderr: executor.stderr,

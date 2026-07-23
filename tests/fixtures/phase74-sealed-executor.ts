@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { writeFile } from "node:fs/promises";
 
 import {
   buildPhase74SealedExecutorOutput,
@@ -14,8 +15,14 @@ const observation = JSON.stringify({
   env: process.env,
   pid: process.pid,
 });
+const artifact = JSON.stringify({ observation });
+const artifactPath = process.env.PHASE74_SEALED_ARTIFACT_PATH;
+if (artifactPath === undefined) {
+  throw new Error("PHASE74_SEALED_ARTIFACT_PATH is required.");
+}
+await writeFile(artifactPath, artifact, { encoding: "utf8", flag: "wx" });
 const output = buildPhase74SealedExecutorOutput({
-  artifactSha256: createHash("sha256").update(observation).digest("hex"),
+  artifactSha256: createHash("sha256").update(artifact).digest("hex"),
   execution,
   executorPid: process.pid,
   rows: listPhase74SealedExpectedRows(execution).map(
