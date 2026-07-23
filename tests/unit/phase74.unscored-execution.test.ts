@@ -279,8 +279,9 @@ describe("Phase 74 unscored execution", () => {
       runId: "unscored-query-failure",
       stage: "E2",
     });
-    const [failingCaseKey, slowCaseKey, unstartedCaseKey] =
-      bundles.execution.cases.map(({ caseKey }) => caseKey);
+    const failingCaseKey = bundles.execution.cases[0]!.caseKey;
+    const slowCaseKey = bundles.execution.cases[1]!.caseKey;
+    const unstartedCaseKey = bundles.execution.cases[2]!.caseKey;
     const retrievalCases: string[] = [];
     const readerCases: string[] = [];
     let activeRetrievals = 0;
@@ -300,6 +301,9 @@ describe("Phase 74 unscored execution", () => {
       execution: bundles.execution,
       executorPid: 103,
       genericReader: async ({ caseId }) => {
+        if (caseId === undefined) {
+          throw new Error("reader case id is required");
+        }
         readerCases.push(caseId);
         if (caseId === failingCaseKey) {
           throw undefined;

@@ -116,6 +116,7 @@ export interface Phase74BeamGroundednessJudgeRequest {
 
 export interface Phase74BeamSafetyDependencies {
   createPipeline(pipeline: Phase74ProtectionIdentityDescriptor): {
+    prepare(input: Phase74BeamPipelineRequest): Promise<void>;
     run(input: Phase74BeamPipelineRequest): Promise<Phase74BeamPipelineOutput>;
   };
   judgeGroundedness(input: Phase74BeamGroundednessJudgeRequest): Promise<unknown>;
@@ -608,6 +609,11 @@ export async function runPhase74BeamSafetyProtection(input: {
   const rows = parseFull100kRows(input);
   const population = buildPopulation(rows);
   const caseConcurrency = input.caseConcurrency ?? 1;
+  if (!Number.isSafeInteger(caseConcurrency) || caseConcurrency <= 0) {
+    throw new Error(
+      "Phase 74 protection caseConcurrency must be a positive integer.",
+    );
+  }
   const plannedIdentity =
     buildPhase74BeamSafetyProtectionPlanIdentity(input).identity;
   const { population: identityPopulation, ...identity } = plannedIdentity;
@@ -625,12 +631,73 @@ export async function runPhase74BeamSafetyProtection(input: {
     baseline: dependencies.createPipeline(input.contract.baselinePipeline),
     candidate: dependencies.createPipeline(input.contract.candidatePipeline),
   } satisfies Record<Phase74ProtectionBranch, {
+    prepare(request: Phase74BeamPipelineRequest): Promise<void>;
     run(request: Phase74BeamPipelineRequest): Promise<Phase74BeamPipelineOutput>;
   }>;
   if (pipelines.baseline === pipelines.candidate) {
     throw new Error(
       "Phase 74 BEAM safety requires isolated baseline and candidate pipeline runtimes.",
     );
+  }
+
+  const pipelineRequest = (
+    caseInput: BeamSafetyCaseInput,
+    branch: Phase74ProtectionBranch,
+  ): Phase74BeamPipelineRequest => {
+    const selected = population.selected.get(caseInput.questionId);
+    if (
+      selected === undefined ||
+      selected.input.conversationId !== caseInput.conversationId
+    ) {
+      throw new Error(
+        `Phase 74 BEAM question ${caseInput.questionId} is outside the frozen population.`,
+      );
+    }
+    return {
+      answerModel: input.contract.answerModel,
+      answerPrompt: input.contract.answerPrompt,
+      attributionKey: hashPhase74ProtectionValue({
+        query: selected.testCase.question,
+        sourceMessages: selected.sourceMessages,
+      }),
+      pipeline: branch === "baseline"
+        ? input.contract.baselinePipeline
+        : input.contract.candidatePipeline,
+      query: selected.testCase.question,
+      reader: input.contract.reader,
+      renderedContextTokenLimit:
+        PHASE74_BEAM_SAFETY_BUDGET.renderedContextTokens,
+      sourceMessages: freshMessages(selected.sourceMessages),
+    };
+  };
+  const preparationUnits = population.cases.flatMap(({ input: caseInput }) =>
+    (["baseline", "candidate"] as const).map((branch) => ({
+      branch,
+      request: pipelineRequest(caseInput, branch),
+    }))
+  );
+  let nextPreparation = 0;
+  let preparationFailure: { error: unknown } | undefined;
+  const preparationWorkers = Array.from(
+    { length: Math.min(caseConcurrency, preparationUnits.length) },
+    async () => {
+      try {
+        while (
+          preparationFailure === undefined &&
+          nextPreparation < preparationUnits.length
+        ) {
+          const unit = preparationUnits[nextPreparation]!;
+          nextPreparation += 1;
+          await pipelines[unit.branch].prepare(unit.request);
+        }
+      } catch (error) {
+        preparationFailure ??= { error };
+      }
+    },
+  );
+  await Promise.all(preparationWorkers);
+  if (preparationFailure !== undefined) {
+    throw preparationFailure.error;
   }
 
   return runPhase74ProtectionSuiteCases<BeamSafetyCaseInput>({
@@ -647,22 +714,9 @@ export async function runPhase74BeamSafetyProtection(input: {
           `Phase 74 BEAM question ${caseInput.questionId} is outside the frozen population.`,
         );
       }
-      const pipelineOutput = parsePipelineOutput(await pipelines[branch].run({
-        answerModel: input.contract.answerModel,
-        answerPrompt: input.contract.answerPrompt,
-        attributionKey: hashPhase74ProtectionValue({
-          query: selected.testCase.question,
-          sourceMessages: selected.sourceMessages,
-        }),
-        pipeline: branch === "baseline"
-          ? input.contract.baselinePipeline
-          : input.contract.candidatePipeline,
-        query: selected.testCase.question,
-        reader: input.contract.reader,
-        renderedContextTokenLimit:
-          PHASE74_BEAM_SAFETY_BUDGET.renderedContextTokens,
-        sourceMessages: freshMessages(selected.sourceMessages),
-      }));
+      const pipelineOutput = parsePipelineOutput(
+        await pipelines[branch].run(pipelineRequest(caseInput, branch)),
+      );
       const retrievedEvidence = selectRetrievedEvidence(
         pipelineOutput,
         selected.sourceMessages,

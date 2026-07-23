@@ -115,6 +115,7 @@ export interface Phase74BeamSafetyLiveSpec {
 
 export interface Phase74BeamSafetyLiveRetrievalRuntime {
   execute(input: Phase74RetrievalExecutionInput): Promise<Phase74RetrievalSnapshot>;
+  prepare(input: Phase74RetrievalExecutionInput): Promise<void>;
 }
 
 export interface Phase74BeamProtocolReaderInput {
@@ -422,24 +423,34 @@ export function createPhase74BeamSafetyLiveDependencies(input: {
   return {
     createPipeline(pipeline) {
       const selected = pipelineSelection(input.spec, pipeline);
+      const retrievalInput = (
+        request: Phase74BeamPipelineRequest,
+      ): Phase74RetrievalExecutionInput => {
+        if (
+          !sameValue(request.answerModel, input.spec.contract.answerModel) ||
+          !sameValue(request.answerPrompt, input.spec.contract.answerPrompt) ||
+          !sameValue(request.pipeline, pipeline) ||
+          !sameValue(request.reader, input.spec.contract.reader) ||
+          request.renderedContextTokenLimit !==
+            PHASE74_BEAM_SAFETY_BUDGET.renderedContextTokens
+        ) {
+          throw new Error("Phase 74 BEAM live reader contract drifted.");
+        }
+        return {
+          arm: selected.arm,
+          configuration: selected.configuration,
+          stage: "E3",
+          testCase: toRecallCase(request),
+        };
+      };
       return {
+        prepare: async (request) => {
+          await input.retrievalRuntime.prepare(retrievalInput(request));
+        },
         run: async (request) => {
-          if (
-            !sameValue(request.answerModel, input.spec.contract.answerModel) ||
-            !sameValue(request.answerPrompt, input.spec.contract.answerPrompt) ||
-            !sameValue(request.pipeline, pipeline) ||
-            !sameValue(request.reader, input.spec.contract.reader) ||
-            request.renderedContextTokenLimit !==
-              PHASE74_BEAM_SAFETY_BUDGET.renderedContextTokens
-          ) {
-            throw new Error("Phase 74 BEAM live reader contract drifted.");
-          }
-          const snapshot = await input.retrievalRuntime.execute({
-            arm: selected.arm,
-            configuration: selected.configuration,
-            stage: "E3",
-            testCase: toRecallCase(request),
-          });
+          const snapshot = await input.retrievalRuntime.execute(
+            retrievalInput(request),
+          );
           const rendered = truncateRenderedContext({
             content: renderOracleMatrixContext(snapshot.retrievedMemories),
             contextTokenBudget: request.renderedContextTokenLimit,

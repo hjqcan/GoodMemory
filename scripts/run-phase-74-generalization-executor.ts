@@ -188,6 +188,7 @@ export async function runPhase74SealedExecutorCli(
       genericReader: reader,
       loadDeterministicSnapshot: async (caseKey) =>
         e3Snapshots.get(caseKey) ?? null,
+      prepareRetrieval: runtime.prepare,
       renderEvidenceLedger: runtime.render,
     });
     const artifact = serializePhase74UnscoredArtifact(result.artifact);

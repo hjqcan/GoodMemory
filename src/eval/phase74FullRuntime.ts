@@ -696,6 +696,7 @@ export function createPhase74FullRetrievalRuntime(input: {
   runDirectory: string;
 }): {
   execute(value: Phase74RetrievalExecutionInput): Promise<Phase74RetrievalSnapshot>;
+  prepare(value: Phase74RetrievalExecutionInput): Promise<void>;
   render(input: {
     format: EvidenceLedgerFormat;
     snapshot: Phase74RetrievalSnapshot;
@@ -828,6 +829,9 @@ export function createPhase74FullRetrievalRuntime(input: {
   };
 
   return {
+    async prepare({ configuration, testCase }) {
+      await ensureIngested(testCase, configuration);
+    },
     async execute({ arm, configuration, stage, testCase }) {
       const ingested = await ensureIngested(testCase, configuration);
       const costTrace = {

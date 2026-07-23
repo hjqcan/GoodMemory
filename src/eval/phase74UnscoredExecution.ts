@@ -108,6 +108,9 @@ export interface RunPhase74UnscoredExecutionInput {
     caseKey: string,
   ): Promise<Phase74RetrievalSnapshot | null>;
   now?(): number;
+  prepareRetrieval?(
+    input: Phase74RetrievalExecutionInput,
+  ): Promise<void>;
   renderEvidenceLedger(input: {
     format: EvidenceLedgerFormat;
     locale?: string;
@@ -356,6 +359,66 @@ export async function runPhase74UnscoredExecution(
   const expectedRows = listPhase74SealedExpectedRows(execution);
   const caseConcurrency = execution.caseConcurrency;
 
+  if (execution.stage !== "E4") {
+    const prepareRetrieval = input.prepareRetrieval;
+    if (prepareRetrieval === undefined) {
+      throw new Error(
+        `Phase 74 ${execution.stage} execution requires an ingestion preparation barrier.`,
+      );
+    }
+    const retrievalStage = execution.stage;
+    let nextPreparationCase = 0;
+    let preparationFailure: { error: unknown } | undefined;
+    const preparationWorkers = Array.from(
+      { length: Math.min(caseConcurrency, execution.cases.length) },
+      async () => {
+        try {
+          while (
+            preparationFailure === undefined &&
+            nextPreparationCase < execution.cases.length
+          ) {
+            const testCase = execution.cases[nextPreparationCase]!;
+            nextPreparationCase += 1;
+            for (const expected of expectedRows.filter((row) =>
+              row.caseKey === testCase.caseKey
+            )) {
+              if (preparationFailure !== undefined) {
+                break;
+              }
+              const cached =
+                await input.checkpoint?.load(expected.rowKey) ?? null;
+              if (preparationFailure !== undefined) {
+                break;
+              }
+              if (cached !== null) {
+                continue;
+              }
+              const configuration = configurations[expected.unit];
+              if (configuration === undefined) {
+                throw new Error(
+                  `Unknown Phase 74 ${execution.stage} unit ${expected.unit}.`,
+                );
+              }
+              await prepareRetrieval({
+                arm: expected.unit as Phase74RetrievalExecutionInput["arm"],
+                configuration,
+                stage: retrievalStage,
+                testCase: recallCase(testCase),
+              });
+            }
+          }
+        } catch (error) {
+          preparationFailure ??= { error };
+        }
+      },
+    );
+    await Promise.all(preparationWorkers);
+    if (preparationFailure !== undefined) {
+      throw preparationFailure.error;
+    }
+  }
+
+  let executionFailure: { error: unknown } | undefined;
   const executeCase = async (
     testCase: Phase74SealedExecutionBundle["cases"][number],
   ): Promise<Phase74UnscoredRow[]> => {
@@ -367,7 +430,13 @@ export async function runPhase74UnscoredExecution(
     for (const expected of expectedRows.filter((row) =>
       row.caseKey === testCase.caseKey
     )) {
+      if (executionFailure !== undefined) {
+        break;
+      }
       const cached = await input.checkpoint?.load(expected.rowKey) ?? null;
+      if (executionFailure !== undefined) {
+        break;
+      }
       if (cached !== null) {
         caseRows.push(cached);
         readerResults.set(`${cached.caseKey}:${cached.readerInputSha256}`, {
@@ -383,6 +452,9 @@ export async function runPhase74UnscoredExecution(
       if (execution.stage === "E4") {
         const loaded = await input.loadDeterministicSnapshot?.(testCase.caseKey) ??
           null;
+        if (executionFailure !== undefined) {
+          break;
+        }
         if (loaded === null) {
           throw new Error(
             `Phase 74 E4 lacks an unscored E3 snapshot for ${testCase.caseKey}.`,
@@ -394,6 +466,9 @@ export async function runPhase74UnscoredExecution(
           ...(testCase.locale === undefined ? {} : { locale: testCase.locale }),
           snapshot,
         });
+        if (executionFailure !== undefined) {
+          break;
+        }
       } else {
         const configuration = configurations[expected.unit];
         if (configuration === undefined) {
@@ -407,6 +482,9 @@ export async function runPhase74UnscoredExecution(
           stage: execution.stage,
           testCase: recallCase(testCase),
         }));
+        if (executionFailure !== undefined) {
+          break;
+        }
         renderedContext = renderOracleMatrixContext(snapshot.retrievedMemories);
       }
       const recallCompletedAt = now();
@@ -433,6 +511,9 @@ export async function runPhase74UnscoredExecution(
           )}:${execution.stage}:${expected.unit}`,
         question: testCase.question,
       });
+      if (executionFailure !== undefined) {
+        break;
+      }
       const answerCompletedAt = now();
       const readerKey = `${testCase.caseKey}:${readerInputSha256}`;
       const source = readerResults.get(readerKey);
@@ -489,6 +570,9 @@ export async function runPhase74UnscoredExecution(
             snapshot,
             stage: execution.stage,
           };
+      if (executionFailure !== undefined) {
+        break;
+      }
       await input.checkpoint?.save(row);
       caseRows.push(row);
     }
@@ -500,14 +584,24 @@ export async function runPhase74UnscoredExecution(
   const workers = Array.from(
     { length: Math.min(caseConcurrency, execution.cases.length) },
     async () => {
-      while (nextCase < execution.cases.length) {
-        const index = nextCase;
-        nextCase += 1;
-        caseResults[index] = await executeCase(execution.cases[index]!);
+      try {
+        while (
+          executionFailure === undefined &&
+          nextCase < execution.cases.length
+        ) {
+          const index = nextCase;
+          nextCase += 1;
+          caseResults[index] = await executeCase(execution.cases[index]!);
+        }
+      } catch (error) {
+        executionFailure ??= { error };
       }
     },
   );
   await Promise.all(workers);
+  if (executionFailure !== undefined) {
+    throw executionFailure.error;
+  }
   const rows = caseResults.flat();
 
   const artifact: Phase74UnscoredExecutionArtifact = {
