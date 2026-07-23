@@ -7,6 +7,7 @@ import type { DocumentStore } from "../storage/contracts";
 
 export const ARTIFACT_SPILL_COLLECTION = "artifact_spills";
 export const ARTIFACT_SPILL_PAYLOAD_COLLECTION = "artifact_spill_payloads_v1";
+const MAX_SPILL_COMMIT_ATTEMPTS = 4;
 
 export interface ArtifactSpillPayloadRecord {
   content: string;
@@ -76,52 +77,74 @@ export function createArtifactSpilloverService(
   config: ArtifactSpilloverServiceConfig,
 ) {
   const previewChars = Math.max(config.previewChars ?? 280, 8);
+  const writeBatchIfUnchanged =
+    config.documentStore.writeBatchIfUnchanged?.bind(config.documentStore);
 
   return {
     async spill(scope: MemoryScope, input: SpillInput): Promise<ArtifactSpillRecord> {
       const recordId = buildRecordId(scope, input.sourceId);
-      const existing = await config.documentStore.get<ArtifactSpillRecord>(
-        ARTIFACT_SPILL_COLLECTION,
-        recordId,
-      );
-
       const contentHash = buildContentHash(input.content);
       const payloadId = buildPayloadId(scope, contentHash);
       const originalBytes = new TextEncoder().encode(input.content).length;
-      const createdAt = existing?.createdAt ?? new Date(0).toISOString();
-      const payload: ArtifactSpillPayloadRecord = {
-        content: input.content,
-        contentHash,
-        createdAt,
-        id: payloadId,
-        originalBytes,
-        scope,
-      };
-      await config.documentStore.set(
-        ARTIFACT_SPILL_PAYLOAD_COLLECTION,
-        payloadId,
-        payload,
+      if (!writeBatchIfUnchanged) {
+        throw new Error("Artifact spillover requires atomic document batches.");
+      }
+
+      for (let attempt = 0; attempt < MAX_SPILL_COMMIT_ATTEMPTS; attempt += 1) {
+        const existing = await config.documentStore.get<ArtifactSpillRecord>(
+          ARTIFACT_SPILL_COLLECTION,
+          recordId,
+        );
+        const createdAt = existing?.createdAt ?? new Date(0).toISOString();
+        const payload: ArtifactSpillPayloadRecord = {
+          content: input.content,
+          contentHash,
+          createdAt,
+          id: payloadId,
+          originalBytes,
+          scope,
+        };
+        const record: ArtifactSpillRecord = {
+          id: existing?.id ?? recordId,
+          scope,
+          kind: input.kind,
+          sourceId: input.sourceId,
+          preview: buildPreview(input.content, previewChars),
+          replacementText:
+            existing?.replacementText ??
+            `[[spill:${input.kind}:${buildStableHandle(scope, input.sourceId)}]]`,
+          storageUri: input.storageUri ?? buildPayloadUri(payloadId),
+          originalBytes,
+          contentHash,
+          createdAt,
+        };
+        const committed = await writeBatchIfUnchanged({
+          expected: {
+            collection: ARTIFACT_SPILL_COLLECTION,
+            document: existing,
+            id: recordId,
+          },
+          set: [
+            {
+              collection: ARTIFACT_SPILL_PAYLOAD_COLLECTION,
+              document: payload,
+              id: payloadId,
+            },
+            {
+              collection: ARTIFACT_SPILL_COLLECTION,
+              document: record,
+              id: recordId,
+            },
+          ],
+        });
+        if (committed) {
+          return record;
+        }
+      }
+
+      throw new Error(
+        `Artifact spill commit conflicted ${MAX_SPILL_COMMIT_ATTEMPTS} times.`,
       );
-
-      const record: ArtifactSpillRecord = {
-        id: existing?.id ?? recordId,
-        scope,
-        kind: input.kind,
-        sourceId: input.sourceId,
-        preview: buildPreview(input.content, previewChars),
-        replacementText:
-          existing?.replacementText ??
-          `[[spill:${input.kind}:${buildStableHandle(scope, input.sourceId)}]]`,
-        storageUri:
-          input.storageUri ??
-          buildPayloadUri(payloadId),
-        originalBytes,
-        contentHash,
-        createdAt,
-      };
-
-      await config.documentStore.set(ARTIFACT_SPILL_COLLECTION, recordId, record);
-      return record;
     },
 
     async getBySource(

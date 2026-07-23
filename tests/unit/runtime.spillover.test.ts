@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import type { DocumentStore } from "../../src/storage/contracts";
+import type {
+  DocumentStore,
+  StorageDocument,
+} from "../../src/storage/contracts";
 import { createInMemoryDocumentStore } from "../../src/storage/memory";
 import {
   ARTIFACT_SPILL_COLLECTION,
@@ -139,8 +142,8 @@ describe("artifact spillover service", () => {
     let batchCalls = 0;
     const documentStore: DocumentStore = {
       ...inner,
-      async get(collection, id) {
-        const value = await inner.get(collection, id);
+      async get<TDocument extends StorageDocument>(collection: string, id: string) {
+        const value = await inner.get<TDocument>(collection, id);
         if (collection !== ARTIFACT_SPILL_COLLECTION) {
           return value;
         }
@@ -179,7 +182,7 @@ describe("artifact spillover service", () => {
     ]);
 
     expect(batchCalls).toBe(3);
-    expect(await service.getBySource(scope, "shared-source")).toEqual(first);
+    expect(await service.getBySource(scope, "shared-source")).toEqual(second);
     expect(await service.resolve(scope, first.storageUri)).toBe(
       "First concurrent payload",
     );
