@@ -43,7 +43,6 @@ describe("phase 74 generalization smoke runner", () => {
         runId: "run-1",
         snapshots: [{
           costTrace: {
-            comparisonBranch: "baseline",
             ingestionKey,
             representation: "fact-only",
           },

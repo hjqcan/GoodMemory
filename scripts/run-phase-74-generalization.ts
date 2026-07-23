@@ -63,6 +63,9 @@ import {
   verifyPhase74IngestionUsageManifest,
 } from "../src/eval/phase74FullRuntime";
 import {
+  retirePhase74StageIngestionSnapshots,
+} from "../src/eval/phase74IngestionRetirement";
+import {
   buildPhase74FullRunIdentityConfiguration,
   PHASE74_CONTEXT_TOKEN_BUDGET,
   PHASE74_PRE_RANK_LIMIT,
@@ -136,6 +139,8 @@ const PRE_RANK_LIMIT = PHASE74_PRE_RANK_LIMIT;
 const SELECTED_LIMIT = PHASE74_SELECTED_LIMIT;
 
 export const PHASE74_RUN_LOCK_FILENAME = ".phase74-run.lock";
+export const retirePhase74CompletedStageIngestion =
+  retirePhase74StageIngestionSnapshots;
 
 function phase74RunLockOwner(raw: string): { pid: number; token: string } {
   const value = JSON.parse(raw) as { pid?: unknown; token?: unknown };
@@ -1481,6 +1486,13 @@ export async function runPhase74GeneralizationFull(
         ]
       : []),
   ]);
+  await retirePhase74CompletedStageIngestion({
+    runDirectory,
+    runId: identity.runId,
+    snapshots,
+    stage: options.stage,
+    stageSealSha256: sealed.executor.output.artifactSha256,
+  });
   return { dataset, report, runDirectory };
   } finally {
     await releaseRunLock();
