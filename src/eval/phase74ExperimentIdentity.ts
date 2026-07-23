@@ -1,7 +1,6 @@
 import { buildPhase74ProtocolScoringIdentity } from "./phase74ProtocolScoring";
 import type { Phase74BenchmarkFamily } from "./phase74Datasets";
 import {
-  PHASE74_EMBEDDING_CALL_CONFIGURATION,
   PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
 } from "./phase74ProviderConfiguration";
 import type {
@@ -64,11 +63,7 @@ export function buildPhase74FullRunIdentityConfiguration(input: {
     context: PHASE74_FULL_RUN_FIXED_CONFIGURATION.context,
     costBoundary: PHASE74_FULL_RUN_FIXED_CONFIGURATION.costBoundary,
     dataset: input.dataset,
-    embedding: {
-      ...input.embedding,
-      adapterVersion: "openai-compatible-embedding-v1",
-      ...PHASE74_EMBEDDING_CALL_CONFIGURATION,
-    },
+    embedding: input.embedding,
     evaluatorSource: input.evaluatorSource,
     modelUsageAccounting: PHASE74_FULL_RUN_FIXED_CONFIGURATION.modelUsageAccounting,
     preRankLimit: PHASE74_FULL_RUN_FIXED_CONFIGURATION.preRankLimit,
