@@ -1,10 +1,18 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import {
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
   createPhase74VersionUsageBoundary,
+  materializePhase74VersionExecutionRoot,
   preparePhase74VersionMemoryGroup,
   queryPhase74VersionMemoryGroup,
   runPhase74VersionWorker,
@@ -17,6 +25,55 @@ import type {
 } from "../../src/eval/modelUsage";
 
 describe("Phase 74 version worker", () => {
+  it("executes release code extracted from the pinned archive", async () => {
+    const root = await mkdtemp(join(tmpdir(), "phase74-version-source-"));
+    const archiveRoot = join(root, "archive-root");
+    const dependencyRoot = join(root, "dependency-root");
+    const executionRoot = join(root, "execution-root");
+    const archivePath = join(root, "release.tar");
+    await Promise.all([
+      mkdir(join(archiveRoot, "src"), { recursive: true }),
+      mkdir(join(dependencyRoot, "node_modules"), { recursive: true }),
+    ]);
+    await Promise.all([
+      writeFile(join(archiveRoot, "bun.lock"), "pinned-lock", "utf8"),
+      writeFile(
+        join(archiveRoot, "src", "index.ts"),
+        "export const release = 'pinned';\n",
+        "utf8",
+      ),
+      writeFile(
+        join(dependencyRoot, "src-index.ts"),
+        "export const release = 'mutated';\n",
+        "utf8",
+      ),
+    ]);
+    const archive = Bun.spawn([
+      "tar",
+      "-cf",
+      archivePath,
+      "-C",
+      archiveRoot,
+      ".",
+    ]);
+    expect(await archive.exited).toBe(0);
+
+    try {
+      const sourceRoot = await materializePhase74VersionExecutionRoot({
+        archivePath,
+        dependencyRoot,
+        executionRoot,
+      });
+      expect(sourceRoot).toBe(executionRoot);
+      expect(await readFile(join(sourceRoot, "src", "index.ts"), "utf8"))
+        .toBe("export const release = 'pinned';\n");
+      expect((await lstat(join(sourceRoot, "node_modules"))).isSymbolicLink())
+        .toBeTrue();
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("captures complete release extraction and embedding usage inside its async boundary", async () => {
     const events: AttributedModelUsageAttempt[] = [];
     const intents: AttributedModelUsageIntent[] = [];

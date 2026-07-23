@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 
 import {
+  PHASE74_PRODUCT_CASE_SCHEDULING,
+  buildPhase74ProductQueryPathLatencyMs,
   buildPhase74ProductRunIdentityConfiguration,
   parsePhase74ProductComparisonCliOptions,
   runPhase74ProductComparison,
@@ -53,6 +55,8 @@ describe("Phase 74 cumulative product runner", () => {
       "5000",
       "--embedding-spend-limit-usd",
       "1",
+      "--preparation-concurrency",
+      "2",
     ])).toEqual({
       benchmark: "locomo",
       benchmarkRoot: "/tmp/locomo",
@@ -61,6 +65,7 @@ describe("Phase 74 cumulative product runner", () => {
       embeddingSpendLimitUsd: 1,
       maxLanguageCalls: 5000,
       outputDir: "/tmp/output",
+      preparationConcurrency: 2,
       protectionBlueprintPath: "/tmp/protection.json",
       releaseArchive: "/tmp/release.tar",
       releaseSourceRoot: "/tmp/release",
@@ -73,6 +78,7 @@ describe("Phase 74 cumulative product runner", () => {
   it("binds the exact old and final products instead of a stage-local arm", () => {
     expect(buildPhase74ProductRunIdentityConfiguration({
       candidateConfiguration: {
+        caseScheduling: PHASE74_PRODUCT_CASE_SCHEDULING,
         evidenceLedger: { format: "compact_json" },
         planner: { mode: "deterministic" },
         representation: "atomic-contextual-raw-pointer",
@@ -151,6 +157,7 @@ describe("Phase 74 cumulative product runner", () => {
         events.push(`score:${arm}:${caseId}`);
         return { correct: true, latencyMs: 11, score: 1 };
       },
+      preparationConcurrency: 2,
       selectedEvidenceLedgerFormat: "compact_json",
     });
 
@@ -186,6 +193,7 @@ describe("Phase 74 cumulative product runner", () => {
         scorerCalls += 1;
         return { correct: false, latencyMs: 13, score: 0.25 };
       },
+      preparationConcurrency: 2,
       selectedEvidenceLedgerFormat: "compact_json",
     });
 
@@ -204,5 +212,101 @@ describe("Phase 74 cumulative product runner", () => {
         "release-v0.6.0/case-b",
       ]);
     expect(result.selectedEvidenceLedgerFormat).toBe("compact_json");
+  });
+
+  it("bounds group preparation and waits for active work to settle on failure", async () => {
+    let active = 0;
+    let maxActive = 0;
+    let releaseSecondGroupSettled = false;
+    let releaseSecondGroupStarted!: () => void;
+    const secondStarted = new Promise<void>((resolve) => {
+      releaseSecondGroupStarted = resolve;
+    });
+
+    await expect(runPhase74ProductComparison({
+      cases: CASES,
+      async prepare({ arm, memoryGroupId }) {
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        try {
+          if (arm === "release-v0.6.0" && memoryGroupId === "group-a") {
+            await secondStarted;
+            throw new Error("prepare failed");
+          }
+          if (arm === "release-v0.6.0" && memoryGroupId === "group-b") {
+            releaseSecondGroupStarted();
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            releaseSecondGroupSettled = true;
+          }
+          return {
+            arm,
+            ingestionKey: `${arm}/${memoryGroupId}`,
+            memoryGroupId,
+            async query() {
+              throw new Error("query must not run after preparation failure");
+            },
+          };
+        } finally {
+          active -= 1;
+        }
+      },
+      async read() {
+        throw new Error("reader must not run after preparation failure");
+      },
+      async score() {
+        throw new Error("scorer must not run after preparation failure");
+      },
+      preparationConcurrency: 2,
+      selectedEvidenceLedgerFormat: "compact_json",
+    })).rejects.toThrow("prepare failed");
+
+    expect(maxActive).toBe(2);
+    expect(releaseSecondGroupSettled).toBeTrue();
+    expect(active).toBe(0);
+  });
+
+  it("runs paired product arms concurrently without a fixed release-first bias", async () => {
+    let activeQueries = 0;
+    let maxActiveQueries = 0;
+    const result = await runPhase74ProductComparison({
+      cases: CASES.slice(0, 1),
+      async prepare({ arm, memoryGroupId }) {
+        return {
+          arm,
+          ingestionKey: `${arm}/${memoryGroupId}`,
+          memoryGroupId,
+          async query() {
+            activeQueries += 1;
+            maxActiveQueries = Math.max(maxActiveQueries, activeQueries);
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            activeQueries -= 1;
+            return {
+              context: "evidence",
+              contextTokens: 1,
+              queryPathLatencyMs: 1,
+              recallLatencyMs: 1,
+            };
+          },
+        };
+      },
+      async read({ arm }) {
+        return { answer: arm, latencyMs: 1 };
+      },
+      async score() {
+        return { correct: true, latencyMs: 1, score: 1 };
+      },
+      preparationConcurrency: 2,
+      selectedEvidenceLedgerFormat: "compact_json",
+    });
+
+    expect(maxActiveQueries).toBe(2);
+    expect(result.rows).toHaveLength(2);
+  });
+
+  it("builds product query latency from recall and context assembly only", () => {
+    expect(buildPhase74ProductQueryPathLatencyMs({
+      contextAssemblyLatencyMs: 7,
+      recallLatencyMs: 23,
+    })).toBe(30);
   });
 });
