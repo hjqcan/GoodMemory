@@ -136,6 +136,43 @@ describe("Phase 74 version worker", () => {
     ]);
   });
 
+  it("captures release usage from OpenAI-compatible SSE terminals", async () => {
+    const events: AttributedModelUsageAttempt[] = [];
+    const intents: AttributedModelUsageIntent[] = [];
+    const boundary = createPhase74VersionUsageBoundary({
+      events,
+      fetch: async () => new Response([
+        'data: {"choices":[{"delta":{"content":"{}"}}],"usage":null}',
+        'data: {"choices":[],"usage":{"prompt_tokens":17,"completion_tokens":5,"total_tokens":22}}',
+        "data: [DONE]",
+        "",
+      ].join("\n"), {
+        headers: { "content-type": "text/event-stream" },
+      }),
+      intents,
+    });
+
+    await boundary.run({
+      branch: "shadow",
+      caseId: "group-stream",
+      languageOperation: "assisted_extraction",
+    }, () => boundary.fetch("https://provider.test/chat/completions", {
+      body: JSON.stringify({ model: "extract-v1" }),
+      method: "POST",
+    }).then((response) => response.text()));
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      completeness: "complete",
+      operation: "assisted_extraction",
+      outcome: "succeeded",
+      usage: {
+        inputTokens: 17,
+        outputTokens: 5,
+      },
+    });
+  });
+
   it("ingests one release memory group once and clones it for multiple queries", async () => {
     const root = await mkdtemp(join(tmpdir(), "phase74-version-group-"));
     const sqlitePath = join(root, "memory.sqlite");
