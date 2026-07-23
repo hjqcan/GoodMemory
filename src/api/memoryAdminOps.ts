@@ -124,7 +124,11 @@ async function deleteDocuments(
 }
 
 function scopeFilter(scope: ForgetInput["scope"]): StorageFilter {
-  return { ...scope };
+  return Object.fromEntries(
+    Object.entries(scope).filter(
+      (entry): entry is [string, string] => entry[1] !== undefined,
+    ),
+  );
 }
 
 export async function deleteMemorySupportingState(
