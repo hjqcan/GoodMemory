@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -11,6 +11,7 @@ import {
   PHASE74_RUN_LOCK_FILENAME,
   parsePhase74GeneralizationCliOptions,
   persistPhase74RunIdentity,
+  retirePhase74CompletedStageIngestion,
   runPhase74GeneralizationSmoke,
   selectPhase74GeneralizationCases,
 } from "../../scripts/run-phase-74-generalization";
@@ -22,6 +23,48 @@ import {
 import { buildPhase74LabelFreeCaseBoundary } from "../../src/eval/phase74Generalization";
 
 describe("phase 74 generalization smoke runner", () => {
+  it("retires completed stage ingestion only after receiving the sealed artifact digest", async () => {
+    const root = await mkdtemp(join(tmpdir(), "phase74-run-retirement-"));
+    const ingestionKey = "a".repeat(64);
+    const directory = join(root, "ingestion", ingestionKey);
+    try {
+      await mkdir(directory, { recursive: true });
+      await writeFile(join(directory, "manifest.json"), JSON.stringify({
+        key: ingestionKey,
+        schemaVersion: 8,
+      }));
+      await writeFile(
+        join(directory, "memory.sqlite"),
+        Buffer.from("SQLite format 3\0phase-74-runner\n"),
+      );
+
+      const receipts = await retirePhase74CompletedStageIngestion({
+        runDirectory: root,
+        runId: "run-1",
+        snapshots: [{
+          costTrace: {
+            comparisonBranch: "baseline",
+            ingestionKey,
+            representation: "fact-only",
+          },
+        }],
+        stage: "E1",
+        stageSealSha256: "b".repeat(64),
+      });
+
+      expect(receipts).toHaveLength(1);
+      expect(receipts[0]).toMatchObject({
+        ingestionKey,
+        stage: "E1",
+        stageSealSha256: "b".repeat(64),
+      });
+      await expect(readFile(join(directory, "memory.sqlite")))
+        .rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("passes disjoint credentials to the sealed executor and scorer", () => {
     const environments = buildPhase74SealedProcessEnvironments({
       env: {
