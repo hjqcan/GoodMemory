@@ -1309,6 +1309,120 @@ async function writeProtectionArtifact(
 }
 
 describe("Phase 74 frozen artifact aggregation", () => {
+  it("requires every sealed stage evidence file", async () => {
+    const fixture = await createArtifactFixture({
+      admission: "deterministic-reranker",
+      subsetSelection: true,
+    });
+    const runDirectories = fixture.runDirectories.filter((path) =>
+      path.includes("locomo-replicate-")
+    );
+    await rm(join(
+      runDirectories[0]!,
+      "sealed-evidence",
+      "e2",
+      "score-receipt.json",
+    ));
+
+    await expect(aggregatePhase74StageDiagnosticArtifacts({
+      runDirectories,
+      stage: "E2",
+    })).rejects.toThrow("sealed");
+  });
+
+  it("rejects a score forged consistently across every derived artifact", async () => {
+    const fixture = await createArtifactFixture({
+      admission: "deterministic-reranker",
+      subsetSelection: true,
+    });
+    const runDirectories = fixture.runDirectories.filter((path) =>
+      path.includes("locomo-replicate-")
+    );
+    const runDirectory = runDirectories[0]!;
+    const progressPath = join(runDirectory, "e2-progress.jsonl");
+    const rows = (await readFile(progressPath, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    const forged = rows[0];
+    forged.score = 0.5;
+    forged.evaluationAttribution.observedScore = 0.5;
+    await writeJsonLines(progressPath, rows);
+
+    const packetsPath = join(runDirectory, "e2-retrieval-packets.jsonl");
+    const packets = (await readFile(packetsPath, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    const packet = packets.find(({ snapshotId }) =>
+      snapshotId === forged.snapshotId
+    );
+    packet.evaluation.score = 0.5;
+    packet.evaluation.attribution.observedScore = 0.5;
+    await writeJsonLines(packetsPath, packets);
+
+    const reportPath = join(runDirectory, "e2-report.json");
+    const report = JSON.parse(await readFile(reportPath, "utf8"));
+    const reportRow = report.executions.find(({ arm, caseId }) =>
+      arm === forged.arm && caseId === forged.caseId
+    );
+    reportRow.score = 0.5;
+    reportRow.evaluationAttribution.observedScore = 0.5;
+    await writeJson(reportPath, report);
+
+    const summaryPath = join(runDirectory, "e2-summary.json");
+    const summary = JSON.parse(await readFile(summaryPath, "utf8"));
+    const armRows = rows.filter(({ arm }) => arm === forged.arm);
+    summary.endToEndScores[forged.arm].meanFamilyScore =
+      armRows.reduce((total, row) => total + row.score, 0) / armRows.length;
+    await writeJson(summaryPath, summary);
+
+    await expect(aggregatePhase74StageDiagnosticArtifacts({
+      runDirectories,
+      stage: "E2",
+    })).rejects.toThrow("sealed");
+  });
+
+  it("rejects a sealed process event whose pid drifted", async () => {
+    const fixture = await createArtifactFixture({
+      admission: "deterministic-reranker",
+      subsetSelection: true,
+    });
+    const runDirectories = fixture.runDirectories.filter((path) =>
+      path.includes("locomo-replicate-")
+    );
+    const manifestPath = join(runDirectories[0]!, "e2-process-manifest.json");
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    manifest.events[1].pid += 1;
+    await writeJson(manifestPath, manifest);
+
+    await expect(aggregatePhase74StageDiagnosticArtifacts({
+      runDirectories,
+      stage: "E2",
+    })).rejects.toThrow("process manifest");
+  });
+
+  it("rejects an E4 oracle matrix detached from its sealed oracle artifact", async () => {
+    const fixture = await createArtifactFixture();
+    const oraclePath = join(
+      fixture.runDirectories[0]!,
+      "oracle-matrix.jsonl",
+    );
+    const rows = (await readFile(oraclePath, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    rows[0].answer = "forged oracle answer";
+    await writeJsonLines(oraclePath, rows);
+
+    await expect(aggregatePhase74GeneralizationArtifacts({
+      promotionStage: "E3",
+      protectionArtifactPath: fixture.protection.path,
+      runDirectories: fixture.runDirectories,
+    }, { protectionVerifiers: fixture.protection.verifiers }))
+      .rejects.toThrow("oracle");
+  });
+
   it("keeps stage diagnostic score deltas question-weighted for unequal LoCoMo clusters", async () => {
     const fixture = await createArtifactFixture({
       admission: "deterministic-reranker",
