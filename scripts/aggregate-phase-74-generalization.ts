@@ -21,6 +21,10 @@ import type {
   Phase74IngestionUsageLedger,
   Phase74ModelUsageLedger,
 } from "../src/eval/modelUsage";
+import {
+  PHASE74_CONTEXT_TOKEN_BUDGET,
+  truncateRenderedContext,
+} from "../src/eval/oracleMatrix";
 import type { Phase74BenchmarkFamily } from "../src/eval/phase74Datasets";
 import { PHASE74_EXPERIMENT_ARMS } from "../src/eval/phase74ExperimentDesign";
 import { assertPhase74ExperimentIdentityContract } from "../src/eval/phase74ExperimentIdentity";
@@ -136,10 +140,13 @@ interface E4ProgressRow {
   caseId: string;
   clusterId: string;
   contextTokens: number;
+  contextTokensBeforeTruncation: number;
+  contextTruncated: boolean;
   executionError?: string;
   format: EvidenceLedgerFormat;
+  renderedLedgerSha256: string;
   score?: number;
-  snapshotId: string;
+  sourceSnapshotId: string;
 }
 
 interface RetrievalStageArtifact {
@@ -1317,18 +1324,20 @@ function validateUsagePopulation(
 async function validateRetrievalPackets(input: {
   comparison?: Phase74ReplicateComparison;
   expectedSnapshotIds: readonly string[];
+  labelStage?: ExperimentStage;
   path: string;
   rows?: readonly RetrievalProgressRow[];
   stage: ExperimentStage;
 }): Promise<Phase74RetrievalSnapshot[]> {
+  const artifactStage = input.labelStage ?? input.stage;
   const packets = await readJsonLines(
     input.path,
-    `${input.stage} retrieval packets`,
+    `${artifactStage} retrieval packets`,
   );
   const observed = packets.map((value, index) =>
     sha256Value(
-      recordValue(value, `${input.stage} retrieval packet ${index + 1}`).snapshotId,
-      `${input.stage} retrieval packet snapshotId`,
+      recordValue(value, `${artifactStage} retrieval packet ${index + 1}`).snapshotId,
+      `${artifactStage} retrieval packet snapshotId`,
     )
   );
   if (
@@ -1337,18 +1346,18 @@ async function validateRetrievalPackets(input: {
       snapshotId !== input.expectedSnapshotIds[index]
     )
   ) {
-    throw new Error(`Phase 74 ${input.stage} retrieval packet population drift.`);
+    throw new Error(`Phase 74 ${artifactStage} retrieval packet population drift.`);
   }
   if (input.rows === undefined) {
     return packets.map((value, index) => {
       const packet = recordValue(
         value,
-        `${input.stage} retrieval packet ${index + 1}`,
+        `${artifactStage} retrieval packet ${index + 1}`,
       );
       if (!Array.isArray(packet.retrievedMemories) ||
         !Array.isArray(packet.storedMemories)) {
         throw new Error(
-          `Phase 74 ${input.stage} retrieval packet memories are invalid.`,
+          `Phase 74 ${artifactStage} retrieval packet memories are invalid.`,
         );
       }
       return {
@@ -1362,13 +1371,13 @@ async function validateRetrievalPackets(input: {
     throw new Error("Phase 74 E4 retrieval packets cannot contain paired rows.");
   }
   if (input.comparison === undefined) {
-    throw new Error(`Phase 74 ${input.stage} retrieval packet comparison is missing.`);
+    throw new Error(`Phase 74 ${artifactStage} retrieval packet comparison is missing.`);
   }
   const snapshots: Phase74RetrievalSnapshot[] = [];
   for (const [index, packetValue] of packets.entries()) {
     const packet = recordValue(
       packetValue,
-      `${input.stage} retrieval packet ${index + 1}`,
+      `${artifactStage} retrieval packet ${index + 1}`,
     );
     const snapshotId = observed[index]!;
     const row = input.rows[index]!;
@@ -1376,34 +1385,34 @@ async function validateRetrievalPackets(input: {
     const storedMemories = packet.storedMemories;
     if (!Array.isArray(retrievedMemories) || !Array.isArray(storedMemories)) {
       throw new Error(
-        `Phase 74 ${input.stage} retrieval packet memories are invalid.`,
+        `Phase 74 ${artifactStage} retrieval packet memories are invalid.`,
       );
     }
     const evidenceLedger = packet.evidenceLedger;
     if (evidenceLedger !== undefined && !Array.isArray(evidenceLedger)) {
       throw new Error(
-        `Phase 74 ${input.stage} retrieval packet evidence ledger is invalid.`,
+        `Phase 74 ${artifactStage} retrieval packet evidence ledger is invalid.`,
       );
     }
     const costTraceRecord = recordValue(
       packet.costTrace,
-      `${input.stage} retrieval packet cost trace`,
+      `${artifactStage} retrieval packet cost trace`,
     );
     assertExactKeys(costTraceRecord, [
       "comparisonBranch",
       "ingestionKey",
       "representation",
-    ], `${input.stage} retrieval packet cost trace`);
+    ], `${artifactStage} retrieval packet cost trace`);
     const parsedComparisonBranch = stringValue(
       costTraceRecord.comparisonBranch,
-      `${input.stage} retrieval packet comparisonBranch`,
+      `${artifactStage} retrieval packet comparisonBranch`,
     );
     if (
       parsedComparisonBranch !== "baseline" &&
       parsedComparisonBranch !== "candidate" &&
       parsedComparisonBranch !== "shadow"
     ) {
-      throw new Error(`Phase 74 ${input.stage} retrieval packet cost trace branch is invalid.`);
+      throw new Error(`Phase 74 ${artifactStage} retrieval packet cost trace branch is invalid.`);
     }
     const comparisonBranch = parsedComparisonBranch;
     const expectedBranch = row.arm === input.comparison.baselineArm
@@ -1412,17 +1421,17 @@ async function validateRetrievalPackets(input: {
         ? "candidate"
         : "shadow";
     if (comparisonBranch !== expectedBranch) {
-      throw new Error(`Phase 74 ${input.stage} retrieval packet cost trace branch drift.`);
+      throw new Error(`Phase 74 ${artifactStage} retrieval packet cost trace branch drift.`);
     }
     const costTrace: NonNullable<Phase74RetrievalSnapshot["costTrace"]> = {
       comparisonBranch,
       ingestionKey: sha256Value(
         costTraceRecord.ingestionKey,
-        `${input.stage} retrieval packet ingestionKey`,
+        `${artifactStage} retrieval packet ingestionKey`,
       ),
       representation: stringValue(
         costTraceRecord.representation,
-        `${input.stage} retrieval packet representation`,
+        `${artifactStage} retrieval packet representation`,
       ),
     };
     const expectedSnapshotId = buildPhase74RetrievalSnapshotId({
@@ -1435,11 +1444,11 @@ async function validateRetrievalPackets(input: {
       storedMemories,
     });
     if (expectedSnapshotId !== snapshotId) {
-      throw new Error(`Phase 74 ${input.stage} retrieval packet hash drift.`);
+      throw new Error(`Phase 74 ${artifactStage} retrieval packet hash drift.`);
     }
     const evaluation = recordValue(
       packet.evaluation,
-      `${input.stage} retrieval packet evaluation`,
+      `${artifactStage} retrieval packet evaluation`,
     );
     const expectedEvaluation = {
       answer: row.answer,
@@ -1457,7 +1466,7 @@ async function validateRetrievalPackets(input: {
     };
     if (stableJson(evaluation) !== stableJson(expectedEvaluation)) {
       throw new Error(
-        `Phase 74 ${input.stage} retrieval packet evaluation drift.`,
+        `Phase 74 ${artifactStage} retrieval packet evaluation drift.`,
       );
     }
     snapshots.push({
@@ -1494,12 +1503,27 @@ function parseE4Progress(values: readonly unknown[]): E4ProgressRow[] {
       caseId: stringValue(row.caseId, "E4 progress caseId"),
       clusterId: stringValue(row.clusterId, "E4 progress clusterId"),
       contextTokens: integerValue(row.contextTokens, "E4 progress contextTokens"),
+      contextTokensBeforeTruncation: integerValue(
+        row.contextTokensBeforeTruncation,
+        "E4 progress contextTokensBeforeTruncation",
+      ),
+      contextTruncated: booleanValue(
+        row.contextTruncated,
+        "E4 progress contextTruncated",
+      ),
       ...(typeof row.executionError === "string"
         ? { executionError: row.executionError }
         : {}),
       format: format as EvidenceLedgerFormat,
+      renderedLedgerSha256: sha256Value(
+        row.renderedLedgerSha256,
+        "E4 progress renderedLedgerSha256",
+      ),
       ...(score === undefined ? {} : { score }),
-      snapshotId: sha256Value(row.snapshotId, "E4 progress snapshotId"),
+      sourceSnapshotId: sha256Value(
+        row.sourceSnapshotId,
+        "E4 progress sourceSnapshotId",
+      ),
     };
   });
   const seen = new Set<string>();
@@ -1537,6 +1561,41 @@ function validateE4Population(input: {
       if (row.clusterId !== proseRows[index]?.clusterId) {
         throw new Error(`Phase 74 E4/${format} cluster population drift.`);
       }
+      if (row.sourceSnapshotId !== proseRows[index]?.sourceSnapshotId) {
+        throw new Error("Phase 74 E4 format source snapshot drift.");
+      }
+    }
+  }
+}
+
+function validateE4RenderedLedgers(input: {
+  rows: readonly E4ProgressRow[];
+  snapshots: readonly Phase74RetrievalSnapshot[];
+}): void {
+  const snapshotsById = new Map(
+    input.snapshots.map((snapshot) => [snapshot.snapshotId, snapshot]),
+  );
+  for (const row of input.rows) {
+    const ledger = snapshotsById.get(row.sourceSnapshotId)
+      ?.evidenceLedgers?.[row.format];
+    if (typeof ledger !== "string") {
+      throw new Error("Phase 74 E4 source packet is missing a rendered ledger.");
+    }
+    const rendered = truncateRenderedContext({
+      content: ledger,
+      contextTokenBudget: PHASE74_CONTEXT_TOKEN_BUDGET,
+      countRenderedTokens: (content) => Buffer.byteLength(content, "utf8"),
+    });
+    if (
+      rendered.renderedContextTokens !== row.contextTokens ||
+      rendered.renderedContextTokensBeforeTruncation !==
+        row.contextTokensBeforeTruncation ||
+      rendered.contextTruncated !== row.contextTruncated
+    ) {
+      throw new Error("Phase 74 E4 rendered ledger context metadata drift.");
+    }
+    if (sha256(rendered.content) !== row.renderedLedgerSha256) {
+      throw new Error("Phase 74 E4 rendered ledger hash drift.");
     }
   }
 }
@@ -1868,13 +1927,29 @@ async function loadRunArtifact(runDirectory: string): Promise<RunArtifact> {
   ) {
     throw new Error("Phase 74 E4 report/summary drift.");
   }
-  await validateRetrievalPackets({
-    expectedSnapshotIds: e4Rows
-      .filter(({ format }) => format === "prose")
-      .map(({ snapshotId }) => snapshotId),
+  const deterministicRows = retrieval.E3.rows.filter(
+    ({ arm }) => arm === "recall-plan-deterministic",
+  );
+  const deterministicSnapshotByCaseId = new Map(
+    deterministicRows.map(({ caseId, snapshotId }) => [caseId, snapshotId]),
+  );
+  const proseRows = e4Rows.filter(({ format }) => format === "prose");
+  if (proseRows.some(({ caseId, sourceSnapshotId }) =>
+    deterministicSnapshotByCaseId.get(caseId) !== sourceSnapshotId
+  )) {
+    throw new Error(
+      "Phase 74 E4 source snapshot drifted from deterministic E3.",
+    );
+  }
+  const e4Snapshots = await validateRetrievalPackets({
+    comparison: retrieval.E3.comparison,
+    expectedSnapshotIds: deterministicRows.map(({ snapshotId }) => snapshotId),
+    labelStage: "E4",
     path: join(runDirectory, "e4-retrieval-packets.jsonl"),
-    stage: "E4",
+    rows: deterministicRows,
+    stage: "E3",
   });
+  validateE4RenderedLedgers({ rows: e4Rows, snapshots: e4Snapshots });
   const e4Usage = recordValue(
     await readJson(
       join(runDirectory, "e4-model-usage-summary.json"),

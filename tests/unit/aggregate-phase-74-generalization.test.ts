@@ -421,7 +421,6 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
                 ? {}
                 : { score: [0.82, 0.835, 0.84, 0.81][formatIndex] }),
               renderedLedgerSha256: sha256(sourcePacket.evidenceLedgers[format]),
-              snapshotId: sourceSnapshotId,
               sourceSnapshotId,
             }));
           });
@@ -1340,7 +1339,6 @@ describe("Phase 74 frozen artifact aggregation", () => {
     const forgedSnapshotId = sha256("forged shared E4 snapshot");
     for (const row of rows) {
       if (row.caseId === caseId) {
-        row.snapshotId = forgedSnapshotId;
         row.sourceSnapshotId = forgedSnapshotId;
       }
     }

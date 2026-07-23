@@ -29,8 +29,9 @@ describe("Phase 74 file checkpoint", () => {
         contextTruncated: false,
         correct: true,
         format: "prose",
+        renderedLedgerSha256: "a".repeat(64),
         score: 1,
-        snapshotId: "snapshot-1",
+        sourceSnapshotId: "snapshot-1",
       });
       await checkpoint.saveOracle("oracle-key", []);
 

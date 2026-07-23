@@ -180,8 +180,9 @@ export interface Phase74E4CaseResult {
   correct: boolean;
   executionError?: string;
   format: EvidenceLedgerFormat;
+  renderedLedgerSha256: string;
   score: number;
-  snapshotId: string;
+  sourceSnapshotId: string;
 }
 
 export interface Phase74E4FormatResult {
@@ -885,6 +886,7 @@ export async function runPhase74Generalization(
             "e4",
             testCase.caseId,
             snapshot.snapshotId,
+            "source-ledger-v1",
             format,
           );
           const cached = await input.checkpoint?.loadE4(key) ?? null;
@@ -932,8 +934,9 @@ export async function runPhase74Generalization(
               contextTruncated,
               correct: assessment.correct,
               format,
+              renderedLedgerSha256: sha256(context),
               score: assessment.score,
-              snapshotId: snapshot.snapshotId,
+              sourceSnapshotId: snapshot.snapshotId,
             };
             caseResults.push(result);
             await input.checkpoint?.saveE4(key, result);
@@ -948,8 +951,9 @@ export async function runPhase74Generalization(
               correct: false,
               executionError: errorMessage(error),
               format,
+              renderedLedgerSha256: sha256(context),
               score: 0,
-              snapshotId: snapshot.snapshotId,
+              sourceSnapshotId: snapshot.snapshotId,
             });
           }
         }
