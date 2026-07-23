@@ -82,6 +82,7 @@ import type {
 } from "../src/eval/phase74Live";
 import {
   buildPhase74EmbeddingIdentity,
+  phase74EmbeddingInputCostUsdPerMillionTokens,
   phase74LivePromptSha256s,
   resolvePhase74EvaluatorSource,
   resolvePhase74LiveModels,
@@ -134,7 +135,6 @@ const DEFAULT_OUTPUT_DIR =
 const CONTEXT_TOKEN_BUDGET = PHASE74_CONTEXT_TOKEN_BUDGET;
 const DEFAULT_EMBEDDING_SPEND_LIMIT_USD = 1;
 const DEFAULT_MAX_LANGUAGE_CALLS = 50_000;
-const OPENROUTER_EMBEDDING_USD_PER_MILLION_INPUT_TOKENS = 0.02;
 const PRE_RANK_LIMIT = PHASE74_PRE_RANK_LIMIT;
 const SELECTED_LIMIT = PHASE74_SELECTED_LIMIT;
 
@@ -370,19 +370,29 @@ function phase74RequestUrl(request: RequestInfo | URL): string {
   return request instanceof URL ? request.toString() : request.url;
 }
 
-function phase74EmbeddingRequestBytes(init: RequestInit | undefined): number {
+function phase74EmbeddingRequestUsage(init: RequestInit | undefined): {
+  inputBytes: number;
+  usdPerMillionInputTokens: number;
+} {
   if (typeof init?.body !== "string") {
     throw new Error("Phase 74 embedding budget requires a JSON string body.");
   }
-  const parsed = JSON.parse(init.body) as { input?: unknown };
+  const parsed = JSON.parse(init.body) as { input?: unknown; model?: unknown };
+  if (typeof parsed.model !== "string") {
+    throw new Error("Phase 74 embedding model is missing from the request.");
+  }
   const values = Array.isArray(parsed.input) ? parsed.input : [parsed.input];
   if (!values.every((value) => typeof value === "string")) {
     throw new Error("Phase 74 embedding budget requires string inputs.");
   }
-  return values.reduce(
-    (total, value) => total + Buffer.byteLength(value as string),
-    0,
-  );
+  return {
+    inputBytes: values.reduce(
+      (total, value) => total + Buffer.byteLength(value as string),
+      0,
+    ),
+    usdPerMillionInputTokens:
+      phase74EmbeddingInputCostUsdPerMillionTokens(parsed.model),
+  };
 }
 
 function parsePhase74CallBudgetState(
@@ -452,10 +462,11 @@ export function createPhase74DurableCallBudget(input: {
       state = { ...state, languageCalls: state.languageCalls + 1 };
       persist();
     } else if (pathname.endsWith("/embeddings")) {
-      const requestBytes = phase74EmbeddingRequestBytes(init);
-      const projectedBytes = state.embeddingInputByteUpperBound + requestBytes;
+      const request = phase74EmbeddingRequestUsage(init);
+      const projectedBytes =
+        state.embeddingInputByteUpperBound + request.inputBytes;
       const projectedUsd = projectedBytes *
-        OPENROUTER_EMBEDDING_USD_PER_MILLION_INPUT_TOKENS / 1_000_000;
+        request.usdPerMillionInputTokens / 1_000_000;
       if (projectedUsd > state.embeddingSpendLimitUsd) {
         throw new Error("Phase 74 embedding spend limit would be exceeded.");
       }

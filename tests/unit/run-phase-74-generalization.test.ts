@@ -239,7 +239,7 @@ describe("phase 74 generalization smoke runner", () => {
 
   it("prices the declared embedding profile and rejects unknown request models", async () => {
     const root = await mkdtemp(join(tmpdir(), "phase74-call-budget-model-"));
-    const fetch = (async () =>
+    const fetch = (async (_request: RequestInfo | URL) =>
       new Response("{}", { status: 200 })) as typeof globalThis.fetch;
     const request = (model?: string) => ({
       body: JSON.stringify({ input: "abcd", ...(model ? { model } : {}) }),

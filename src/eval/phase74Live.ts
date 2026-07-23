@@ -54,6 +54,7 @@ export const PHASE74_BGE_M3_EMBEDDING_MODEL = "baai/bge-m3";
 const PHASE74_EMBEDDING_PROFILES = {
   [PHASE74_EMBEDDING_MODEL]: {
     adapterVersion: "openai-compatible-embedding-v1",
+    inputCostUsdPerMillionTokens: 0.02,
     kind: "legacy",
   },
   [PHASE74_BGE_M3_EMBEDDING_MODEL]: {
@@ -66,6 +67,18 @@ const PHASE74_EMBEDDING_PROFILES = {
     providerOrder: ["parasail"],
   },
 } as const;
+
+export function phase74EmbeddingInputCostUsdPerMillionTokens(
+  model: string,
+): number {
+  const profile = PHASE74_EMBEDDING_PROFILES[
+    model as keyof typeof PHASE74_EMBEDDING_PROFILES
+  ];
+  if (!profile) {
+    throw new Error(`Unsupported Phase 74 embedding model: ${model}.`);
+  }
+  return profile.inputCostUsdPerMillionTokens;
+}
 
 export const PHASE74_GENERIC_READER_SYSTEM_PROMPT = [
   "Answer the user's question using only the supplied memory evidence.",
