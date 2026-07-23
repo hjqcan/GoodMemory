@@ -135,6 +135,22 @@ export interface Phase74LiveModels extends
   Phase74ExecutorModels,
   Phase74ScorerModels {}
 
+export function resolvePhase74ReaderModel(
+  env: Record<string, string | undefined>,
+): AISDKModelConfig {
+  const answer = modelFromEnv(env, "GOODMEMORY_EVAL");
+  if (
+    answer.provider !== "openai" ||
+    answer.model !== PHASE74_LANGUAGE_MODEL ||
+    answer.baseURL !== PHASE74_GATEWAY
+  ) {
+    throw new Error(
+      `Phase 74 language calls require ${PHASE74_LANGUAGE_MODEL} through ${PHASE74_GATEWAY}.`,
+    );
+  }
+  return answer;
+}
+
 export interface Phase74EmbeddingIdentity {
   readonly [key: string]: number | string;
   adapterVersion: "openai-compatible-embedding-v1";
@@ -343,17 +359,8 @@ function modelFromEnv(
 export function resolvePhase74ExecutorModels(
   env: Record<string, string | undefined>,
 ): Phase74ExecutorModels {
-  const answer = modelFromEnv(env, "GOODMEMORY_EVAL");
+  const answer = resolvePhase74ReaderModel(env);
   const embedding = modelFromEnv(env, "GOODMEMORY_EMBEDDING");
-  if (
-    answer.provider !== "openai" ||
-    answer.model !== PHASE74_LANGUAGE_MODEL ||
-    answer.baseURL !== PHASE74_GATEWAY
-  ) {
-    throw new Error(
-      `Phase 74 language calls require ${PHASE74_LANGUAGE_MODEL} through ${PHASE74_GATEWAY}.`,
-    );
-  }
   if (
     embedding.provider !== "openai" ||
     embedding.model !== PHASE74_EMBEDDING_MODEL ||
