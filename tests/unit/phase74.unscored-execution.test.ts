@@ -2,7 +2,6 @@ import { describe, expect, it } from "bun:test";
 
 import {
   buildPhase74SealedBundles,
-  verifyPhase74SealedScoreReceipt,
 } from "../../src/eval/phase74SealedExecution";
 import {
   runPhase74UnscoredExecution,
@@ -147,6 +146,5 @@ describe("Phase 74 unscored execution", () => {
     )).toBe(true);
     expect(new Set(result.artifact.rows.map((row) => row.renderedContextSha256)))
       .toHaveLength(4);
-    expect(() => verifyPhase74SealedScoreReceipt).not.toThrow();
   });
 });

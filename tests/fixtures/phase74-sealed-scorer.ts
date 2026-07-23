@@ -16,10 +16,18 @@ const escrowCases = new Map(
 const receipt = buildPhase74SealedScoreReceipt({
   escrow,
   executorOutput,
-  rows: executorOutput.rows.map(({ answer, caseKey, rowKey }) => {
+  rows: executorOutput.rows.map(({ caseKey, observedAnswer, rowKey }) => {
     const expectedAnswer = escrowCases.get(caseKey)?.expectedAnswer;
-    const correct = expectedAnswer !== undefined && answer === expectedAnswer;
-    return { caseKey, correct, rowKey, score: Number(correct) };
+    const observedCorrect = expectedAnswer !== undefined &&
+      observedAnswer === expectedAnswer;
+    return {
+      caseKey,
+      correct: observedCorrect,
+      observedCorrect,
+      observedScore: Number(observedCorrect),
+      rowKey,
+      score: Number(observedCorrect),
+    };
   }),
   scorerPid: process.pid,
 });

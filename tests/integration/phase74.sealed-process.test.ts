@@ -133,38 +133,49 @@ describe("Phase 74 sealed process boundary", () => {
     });
     const [firstCase, secondCase] = bundles.execution.cases;
     const executorOutput = buildPhase74SealedExecutorOutput({
+      artifactSha256: "a".repeat(64),
       execution: bundles.execution,
       executorPid: 100,
       rows: [
         {
           answer: "Postgres",
           caseKey: firstCase!.caseKey,
+          observedAnswer: "Postgres",
           rowKey: `${firstCase!.caseKey}:E2:claim-temporal-off`,
           snapshotId: "snapshot-a",
+          sourceRowKey: `${firstCase!.caseKey}:E2:claim-temporal-off`,
         },
         {
           answer: "Postgres",
           caseKey: firstCase!.caseKey,
+          observedAnswer: "Postgres",
           rowKey: `${firstCase!.caseKey}:E2:claim-temporal-on`,
           snapshotId: "snapshot-b",
+          sourceRowKey: `${firstCase!.caseKey}:E2:claim-temporal-on`,
         },
         {
           answer: "SQLite",
           caseKey: secondCase!.caseKey,
+          observedAnswer: "SQLite",
           rowKey: `${secondCase!.caseKey}:E2:claim-temporal-off`,
           snapshotId: "snapshot-c",
+          sourceRowKey: `${secondCase!.caseKey}:E2:claim-temporal-off`,
         },
         {
           answer: "SQLite",
           caseKey: secondCase!.caseKey,
+          observedAnswer: "SQLite",
           rowKey: `${secondCase!.caseKey}:E2:claim-temporal-on`,
           snapshotId: "snapshot-d",
+          sourceRowKey: `${secondCase!.caseKey}:E2:claim-temporal-on`,
         },
       ],
     });
     const scoreRows = executorOutput.rows.map(({ caseKey, rowKey }) => ({
       caseKey,
       correct: true,
+      observedCorrect: true,
+      observedScore: 1,
       rowKey,
       score: 1,
     }));
@@ -196,6 +207,7 @@ describe("Phase 74 sealed process boundary", () => {
     })).toThrow("receipt chain is invalid");
 
     const missingCaseOutput = buildPhase74SealedExecutorOutput({
+      artifactSha256: "b".repeat(64),
       execution: bundles.execution,
       executorPid: 100,
       rows: executorOutput.rows.slice(0, 2),
@@ -214,6 +226,7 @@ describe("Phase 74 sealed process boundary", () => {
     })).toThrow("receipt chain is invalid");
 
     const missingArmOutput = buildPhase74SealedExecutorOutput({
+      artifactSha256: "c".repeat(64),
       execution: bundles.execution,
       executorPid: 100,
       rows: executorOutput.rows.filter(({ rowKey }) =>

@@ -15,16 +15,19 @@ const observation = JSON.stringify({
   pid: process.pid,
 });
 const output = buildPhase74SealedExecutorOutput({
+  artifactSha256: createHash("sha256").update(observation).digest("hex"),
   execution,
   executorPid: process.pid,
   rows: listPhase74SealedExpectedRows(execution).map(
     ({ caseKey, rowKey, unit }) => ({
       answer: observation,
       caseKey,
+      observedAnswer: observation,
       rowKey,
       snapshotId: createHash("sha256")
         .update(`${execution.cases.find((entry) => entry.caseKey === caseKey)!.question}:${unit}`)
         .digest("hex"),
+      sourceRowKey: rowKey,
     }),
   ),
 });
