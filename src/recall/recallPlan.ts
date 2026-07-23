@@ -180,7 +180,11 @@ export function buildDeterministicRecallPlan(
   if (aggregation) {
     evidenceNeeds.push("aggregation");
   }
-  if (temporalConstraints.length > 0 || aggregation === "change") {
+  if (
+    temporalConstraints.length > 0 ||
+    aggregation === "change" ||
+    analysis.temporalInterval
+  ) {
     evidenceNeeds.push("temporal");
   }
   if (relation) {
@@ -194,6 +198,7 @@ export function buildDeterministicRecallPlan(
   if (
     temporalConstraints.length > 0 ||
     aggregation === "change" ||
+    analysis.temporalInterval ||
     relation ||
     facets.length > 0
   ) {
@@ -208,7 +213,7 @@ export function buildDeterministicRecallPlan(
     planes.push("runtime");
   }
 
-  const maxHops = relation ? 2 : 1;
+  const maxHops = relation || analysis.temporalInterval ? 2 : 1;
   const broadAggregation =
     aggregation === "change" ||
     aggregation === "count" ||

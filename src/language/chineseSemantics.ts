@@ -106,6 +106,13 @@ export function detectChinese(
 }
 
 export function analyzeChineseQuery(query: string): LanguageQueryAnalysis {
+  const temporalInterval =
+    /(?:之间|之間|相隔)[^。！？?]{0,60}(?:过了|過了|经过|經過|多少|几|幾)[^。！？?]{0,20}(?:秒|分钟|分鐘|小时|小時|天|周|週|月|年)/u.test(
+      query,
+    ) ||
+    /(?:多少|几|幾)\s*(?:秒|分钟|分鐘|小时|小時|天|周|週|月|年)[^。！？?]{0,60}(?:之间|之間|相隔|过去|過去|经过|經過)/u.test(
+      query,
+    );
   const role = QUERY.role.test(query);
   const focus = QUERY.focus.test(query);
   const openLoop = QUERY.openLoop.test(query);
@@ -119,7 +126,7 @@ export function analyzeChineseQuery(query: string): LanguageQueryAnalysis {
   return {
     actionDriving: QUERY.actionDriving.test(query),
     after: QUERY.after.test(query),
-    aggregateCount: QUERY.aggregateCount.test(query),
+    aggregateCount: QUERY.aggregateCount.test(query) && !temporalInterval,
     answerComposition: QUERY.answer.test(query),
     assistantEvidenceRecall: QUERY.assistantEvidenceRecall.test(query),
     before,
@@ -141,6 +148,7 @@ export function analyzeChineseQuery(query: string): LanguageQueryAnalysis {
     relation: QUERY.relation.test(query),
     referenceSeeking: QUERY.reference.test(query),
     role,
+    temporalInterval,
     userGroundedEventOrder,
   };
 }

@@ -91,6 +91,10 @@ const CONTENT = {
 } as const;
 
 export function analyzeEnglishQuery(query: string): LanguageQueryAnalysis {
+  const temporalInterval =
+    /\bhow\s+(?:long|many\s+(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?))\b[\s\S]{0,120}\b(?:between|elapsed|passed|since|until)\b/iu.test(
+      query,
+    );
   const role = QUERY.role.test(query) &&
     !/\b(?:application|deadline|submitting|submission)\b/iu.test(query) &&
     !/\b(?:age\s+and\s+role\s+of|role\s+of\s+the\s+mentor)\b/iu.test(query) &&
@@ -119,7 +123,7 @@ export function analyzeEnglishQuery(query: string): LanguageQueryAnalysis {
   return {
     actionDriving: QUERY.actionDriving.test(query),
     after: QUERY.after.test(query),
-    aggregateCount: QUERY.aggregateCount.test(query),
+    aggregateCount: QUERY.aggregateCount.test(query) && !temporalInterval,
     answerComposition: QUERY.answer.test(query),
     assistantEvidenceRecall: QUERY.assistantEvidenceRecall.test(query),
     before: QUERY.before.test(query),
@@ -142,6 +146,7 @@ export function analyzeEnglishQuery(query: string): LanguageQueryAnalysis {
     relation: QUERY.relation.test(query),
     referenceSeeking,
     role,
+    temporalInterval,
     userGroundedEventOrder,
   };
 }

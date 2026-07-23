@@ -49,6 +49,7 @@ export interface LanguageQueryAnalysis {
   relation: boolean;
   referenceSeeking: boolean;
   role: boolean;
+  temporalInterval?: boolean;
   userGroundedEventOrder: boolean;
 }
 
