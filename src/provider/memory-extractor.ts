@@ -456,7 +456,7 @@ function expandCompactConversationalMemoryExtractionResult(
       const source = input.messages[candidate.s];
       if (!source) {
         throw new Error(
-          `Compact conversational extraction source index ${candidate.s} is out of range.`,
+          `Structured model response schema validation failed: compact conversational extraction source index ${candidate.s} is out of range.`,
         );
       }
       const sourceMessageIndexes = [
@@ -465,7 +465,7 @@ function expandCompactConversationalMemoryExtractionResult(
       for (const sourceIndex of sourceMessageIndexes) {
         if (!input.messages[sourceIndex]) {
           throw new Error(
-            `Compact conversational extraction source index ${sourceIndex} is out of range.`,
+            `Structured model response schema validation failed: compact conversational extraction source index ${sourceIndex} is out of range.`,
           );
         }
       }
