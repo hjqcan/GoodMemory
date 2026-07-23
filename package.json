@@ -108,7 +108,7 @@
     "test": "bun test",
     "test:legacy-fitted": "bun --config=bunfig.legacy-fitted.toml test",
     "test:all": "bun --config=bunfig.all.toml test tests third-party",
-    "test:phase-73-gates": "bun --config=bunfig.phase-73-gates.toml test",
+    "test:phase-73-gates": "bun --config=bunfig.phase-73-gates.toml test ./tests/quality-gates/phase-73/*.gate.ts",
     "test:unit": "bun test tests/unit",
     "test:integration": "bun test tests/integration",
     "test:scenarios": "bun test tests/scenarios",

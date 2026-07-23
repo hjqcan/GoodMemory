@@ -5303,7 +5303,7 @@ describe("release metadata and docs", () => {
     );
     const gatePath = join(
       import.meta.dir,
-      "../quality-gates/phase-73/codex-coding-effect.c5-evidence.test.ts",
+      "../quality-gates/phase-73/codex-coding-effect.c5-evidence.gate.ts",
     );
     const oldReadinessPath = join(
       import.meta.dir,
@@ -5311,11 +5311,11 @@ describe("release metadata and docs", () => {
     );
     const gateReadinessPath = join(
       import.meta.dir,
-      "../quality-gates/phase-73/codex-coding-effect.c5-readiness.test.ts",
+      "../quality-gates/phase-73/codex-coding-effect.c5-readiness.gate.ts",
     );
     const c3ReplayPath = join(
       import.meta.dir,
-      "../quality-gates/phase-73/codex-coding-effect.c3-source-reproducibility.test.ts",
+      "../quality-gates/phase-73/codex-coding-effect.c3-source-reproducibility.gate.ts",
     );
 
     expect(bunfig).toContain(
@@ -5325,7 +5325,7 @@ describe("release metadata and docs", () => {
       'root = "tests/quality-gates/phase-73"',
     );
     expect(packageJson.scripts["test:phase-73-gates"]).toBe(
-      "bun --config=bunfig.phase-73-gates.toml test",
+      "bun --config=bunfig.phase-73-gates.toml test ./tests/quality-gates/phase-73/*.gate.ts",
     );
     expect(await Bun.file(oldPath).exists()).toBe(false);
     expect(await Bun.file(gatePath).exists()).toBe(true);
