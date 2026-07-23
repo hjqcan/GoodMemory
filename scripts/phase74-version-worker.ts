@@ -1,8 +1,8 @@
 import { pathToFileURL } from "node:url";
-import { join } from "node:path";
+import { copyFile, mkdtemp, rm } from "node:fs/promises";
+import { dirname, join } from "node:path";
 
 import type { AISDKModelConfig } from "../src/provider/ai-sdk-runtime";
-import { createLexicalCoverageReranker } from "../src/recall/reranker";
 import { buildPhase74LabelFreeScope } from "../src/eval/phase74FullRuntime";
 import {
   parsePhase74VersionWorkerInput,
@@ -52,6 +52,7 @@ export interface Phase74VersionGoodMemory {
     includeEvidence: true;
     locale?: string;
     query: string;
+    referenceTime?: string;
     scope: { userId: string; workspaceId?: string };
     strategy: "hybrid";
   }): Promise<{
@@ -69,6 +70,18 @@ export interface Phase74VersionGoodMemory {
 export type Phase74VersionCreateGoodMemory = (
   config: unknown,
 ) => Phase74VersionGoodMemory;
+
+export interface Phase74PreparedVersionMemoryGroup {
+  createGoodMemory: Phase74VersionCreateGoodMemory;
+  ingestionLatencyMs: number;
+  input: Phase74VersionWorkerInput;
+  memory: Phase74VersionGoodMemory;
+  models: {
+    embedding: AISDKModelConfig;
+    extraction: AISDKModelConfig;
+  };
+  sqlitePath: string;
+}
 
 export interface Phase74VersionWorkerResult {
   arm: Phase74VersionWorkerInput["arm"];
@@ -136,20 +149,16 @@ export async function loadPhase74VersionCreateGoodMemory(
   return module.createGoodMemory as Phase74VersionCreateGoodMemory;
 }
 
-export async function runPhase74VersionWorker(input: {
+function createVersionMemory(input: {
   createGoodMemory: Phase74VersionCreateGoodMemory;
-  input: Phase74VersionWorkerInput;
   models: {
     embedding: AISDKModelConfig;
     extraction: AISDKModelConfig;
   };
-  now?: () => number;
+  referenceTime?: string;
   sqlitePath: string;
-}): Promise<Phase74VersionWorkerResult> {
-  const workerInput = parsePhase74VersionWorkerInput(input.input);
-  const now = input.now ?? (() => performance.now());
-  const memory = input.createGoodMemory({
-    adapters: { reranker: createLexicalCoverageReranker() },
+}): Phase74VersionGoodMemory {
+  return input.createGoodMemory({
     providers: {
       embedding: input.models.embedding,
       extraction: {
@@ -167,8 +176,43 @@ export async function runPhase74VersionWorker(input: {
     retrieval: { preset: "recommended" },
     storage: { provider: "sqlite", url: input.sqlitePath },
     testing: {
-      now: () => new Date(isoDate(workerInput.referenceTime)),
+      now: () => new Date(isoDate(input.referenceTime)),
     },
+  });
+}
+
+function assertSamePreparedGroup(input: {
+  prepared: Phase74PreparedVersionMemoryGroup;
+  query: Phase74VersionWorkerInput;
+}): void {
+  const prepared = input.prepared.input;
+  if (
+    prepared.arm !== input.query.arm ||
+    prepared.memoryGroupId !== input.query.memoryGroupId ||
+    prepared.sourceCommit !== input.query.sourceCommit ||
+    JSON.stringify(prepared.rawEvidence) !== JSON.stringify(input.query.rawEvidence)
+  ) {
+    throw new Error("Phase 74 version query drifted from its prepared memory group.");
+  }
+}
+
+export async function preparePhase74VersionMemoryGroup(input: {
+  createGoodMemory: Phase74VersionCreateGoodMemory;
+  input: Phase74VersionWorkerInput;
+  models: {
+    embedding: AISDKModelConfig;
+    extraction: AISDKModelConfig;
+  };
+  now?: () => number;
+  sqlitePath: string;
+}): Promise<Phase74PreparedVersionMemoryGroup> {
+  const workerInput = parsePhase74VersionWorkerInput(input.input);
+  const now = input.now ?? (() => performance.now());
+  const memory = createVersionMemory({
+    createGoodMemory: input.createGoodMemory,
+    models: input.models,
+    referenceTime: workerInput.referenceTime,
+    sqlitePath: input.sqlitePath,
   });
   const scope = buildPhase74LabelFreeScope(workerInput);
   const groups = new Map<string, typeof workerInput.rawEvidence>();
@@ -202,21 +246,42 @@ export async function runPhase74VersionWorker(input: {
     }
   }
   const ingestionLatencyMs = Math.max(0, now() - ingestionStartedAt);
-  const recalled = await memory.recall({
+  return {
+    createGoodMemory: input.createGoodMemory,
+    ingestionLatencyMs,
+    input: workerInput,
+    memory,
+    models: input.models,
+    sqlitePath: input.sqlitePath,
+  };
+}
+
+async function queryVersionMemory(input: {
+  ingestionLatencyMs: number;
+  memory: Phase74VersionGoodMemory;
+  workerInput: Phase74VersionWorkerInput;
+}): Promise<Phase74VersionWorkerResult> {
+  const scope = buildPhase74LabelFreeScope(input.workerInput);
+  const recalled = await input.memory.recall({
     includeEvidence: true,
-    ...(workerInput.locale === undefined ? {} : { locale: workerInput.locale }),
-    query: workerInput.question,
+    ...(input.workerInput.locale === undefined
+      ? {}
+      : { locale: input.workerInput.locale }),
+    query: input.workerInput.question,
+    ...(input.workerInput.referenceTime === undefined
+      ? {}
+      : { referenceTime: input.workerInput.referenceTime }),
     scope,
     strategy: "hybrid",
   });
-  const exported = await memory.exportMemory({ scope });
+  const exported = await input.memory.exportMemory({ scope });
   const sourceIdsByMessageId = new Map(
-    workerInput.rawEvidence.map((item) => [item.id, item.sourceIds] as const),
+    input.workerInput.rawEvidence.map((item) => [item.id, item.sourceIds] as const),
   );
   return {
-    arm: workerInput.arm,
-    caseId: workerInput.caseId,
-    ingestionLatencyMs,
+    arm: input.workerInput.arm,
+    caseId: input.workerInput.caseId,
+    ingestionLatencyMs: input.ingestionLatencyMs,
     recallLatencyMs: recalled.metadata.latencyMs,
     retrievedMemories: contextItems({
       evidence: recalled.evidence,
@@ -224,11 +289,57 @@ export async function runPhase74VersionWorker(input: {
       sourceIdsByMessageId,
     }),
     schemaVersion: 1,
-    sourceCommit: workerInput.sourceCommit,
+    sourceCommit: input.workerInput.sourceCommit,
     storedMemories: contextItems({
       evidence: exported.durable.evidence,
       facts: exported.durable.facts,
       sourceIdsByMessageId,
     }),
   };
+}
+
+export async function queryPhase74VersionMemoryGroup(input: {
+  input: Phase74VersionWorkerInput;
+  prepared: Phase74PreparedVersionMemoryGroup;
+}): Promise<Phase74VersionWorkerResult> {
+  const workerInput = parsePhase74VersionWorkerInput(input.input);
+  assertSamePreparedGroup({ prepared: input.prepared, query: workerInput });
+  const queryDirectory = await mkdtemp(
+    join(dirname(input.prepared.sqlitePath), ".phase74-version-query-"),
+  );
+  const sqlitePath = join(queryDirectory, "memory.sqlite");
+  await copyFile(input.prepared.sqlitePath, sqlitePath);
+  try {
+    const memory = createVersionMemory({
+      createGoodMemory: input.prepared.createGoodMemory,
+      models: input.prepared.models,
+      referenceTime: workerInput.referenceTime,
+      sqlitePath,
+    });
+    return await queryVersionMemory({
+      ingestionLatencyMs: input.prepared.ingestionLatencyMs,
+      memory,
+      workerInput,
+    });
+  } finally {
+    await rm(queryDirectory, { force: true, recursive: true });
+  }
+}
+
+export async function runPhase74VersionWorker(input: {
+  createGoodMemory: Phase74VersionCreateGoodMemory;
+  input: Phase74VersionWorkerInput;
+  models: {
+    embedding: AISDKModelConfig;
+    extraction: AISDKModelConfig;
+  };
+  now?: () => number;
+  sqlitePath: string;
+}): Promise<Phase74VersionWorkerResult> {
+  const prepared = await preparePhase74VersionMemoryGroup(input);
+  return queryVersionMemory({
+    ingestionLatencyMs: prepared.ingestionLatencyMs,
+    memory: prepared.memory,
+    workerInput: prepared.input,
+  });
 }
