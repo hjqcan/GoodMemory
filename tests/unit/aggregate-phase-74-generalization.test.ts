@@ -93,6 +93,14 @@ async function writeJsonLines(
   );
 }
 
+async function writeE4Rows(runDirectory: string, rows: readonly unknown[]) {
+  await writeJsonLines(join(runDirectory, "e4-progress.jsonl"), rows);
+  const reportPath = join(runDirectory, "e4-report.json");
+  const report = JSON.parse(await readFile(reportPath, "utf8"));
+  report.e4.cases = rows;
+  await writeJson(reportPath, report);
+}
+
 function stageArms(stage: "E1" | "E2" | "E3") {
   return PHASE74_EXPERIMENT_ARMS[stage];
 }
@@ -380,8 +388,27 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
           schemaVersion: 1,
         };
         if (stage === "E4") {
-          const e4Rows = cases.flatMap(({ caseId, clusterId }) =>
-            FORMATS.map((format, formatIndex) => ({
+          const e3Rows = (await readFile(
+            join(runDirectory, "e3-progress.jsonl"),
+            "utf8",
+          )).trim().split("\n").map((line) => JSON.parse(line));
+          const e3Packets = (await readFile(
+            join(runDirectory, "e3-retrieval-packets.jsonl"),
+            "utf8",
+          )).trim().split("\n").map((line) => JSON.parse(line));
+          const deterministicRows = e3Rows.filter(
+            ({ arm }) => arm === "recall-plan-deterministic",
+          );
+          const deterministicPacketBySnapshotId = new Map(
+            e3Packets.map((packet) => [packet.snapshotId, packet]),
+          );
+          const deterministicSnapshotByCaseId = new Map(
+            deterministicRows.map(({ caseId, snapshotId }) => [caseId, snapshotId]),
+          );
+          const e4Rows = cases.flatMap(({ caseId, clusterId }) => {
+            const sourceSnapshotId = deterministicSnapshotByCaseId.get(caseId)!;
+            const sourcePacket = deterministicPacketBySnapshotId.get(sourceSnapshotId)!;
+            return FORMATS.map((format, formatIndex) => ({
               answer: "answer",
               caseId,
               clusterId,
@@ -393,14 +420,14 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
               ...(options.includeE4Scores === false
                 ? {}
                 : { score: [0.82, 0.835, 0.84, 0.81][formatIndex] }),
-              snapshotId: sha256(`${identity.runId}/${caseId}/E4`),
-            }))
+              renderedLedgerSha256: sha256(sourcePacket.evidenceLedgers[format]),
+              snapshotId: sourceSnapshotId,
+              sourceSnapshotId,
+            }));
+          });
+          const packets = deterministicRows.map(({ snapshotId }) =>
+            deterministicPacketBySnapshotId.get(snapshotId)
           );
-          const packets = cases.map(({ caseId }) => ({
-            retrievedMemories: [],
-            snapshotId: sha256(`${identity.runId}/${caseId}/E4`),
-            storedMemories: [],
-          }));
           const report = {
             e4: {
               cases: e4Rows,
@@ -542,11 +569,18 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
                 temporalStatus: "current" as const,
               }]
             : undefined;
+          const evidenceLedgers =
+            stage === "E3" && row.arm === "recall-plan-deterministic"
+              ? Object.fromEntries(FORMATS.map((format, index) => [
+                  format,
+                  format.padEnd([120, 80, 100, 90][index]!, " "),
+                ]))
+              : undefined;
           const snapshotId = buildPhase74RetrievalSnapshotId({
             arm: row.arm,
             costTrace,
             evidenceLedger,
-            evidenceLedgers: undefined,
+            evidenceLedgers,
             retrievedMemories,
             stage,
             storedMemories,
@@ -565,6 +599,7 @@ async function createArtifactFixture(options: FixtureOptions = {}) {
           return {
             costTrace,
             ...(evidenceLedger === undefined ? {} : { evidenceLedger }),
+            ...(evidenceLedgers === undefined ? {} : { evidenceLedgers }),
             evaluation: {
               answer: row.answer,
               answerLatencyMs: row.answerLatencyMs,
@@ -1276,6 +1311,94 @@ describe("Phase 74 frozen artifact aggregation", () => {
       runDirectories,
       stage: "E3",
     })).rejects.toThrow("retrieval packet hash drift");
+  });
+
+  it("rejects one E4 format detached from its case source snapshot", async () => {
+    const fixture = await createArtifactFixture();
+    const runDirectory = fixture.runDirectories[0]!;
+    const rows = (await readFile(
+      join(runDirectory, "e4-progress.jsonl"),
+      "utf8",
+    )).trim().split("\n").map((line) => JSON.parse(line));
+    const chronology = rows.find(({ format }) => format === "chronology");
+    chronology.sourceSnapshotId = sha256("detached chronology snapshot");
+    await writeE4Rows(runDirectory, rows);
+
+    await expect(aggregatePhase74GeneralizationArtifacts({
+      runDirectories: fixture.runDirectories,
+    })).rejects.toThrow("E4 format source snapshot drift");
+  });
+
+  it("rejects four E4 formats consistently forged away from deterministic E3", async () => {
+    const fixture = await createArtifactFixture();
+    const runDirectory = fixture.runDirectories[0]!;
+    const progressPath = join(runDirectory, "e4-progress.jsonl");
+    const rows = (await readFile(progressPath, "utf8")).trim().split("\n")
+      .map((line) => JSON.parse(line));
+    const caseId = rows[0].caseId;
+    const sourceSnapshotId = rows[0].sourceSnapshotId;
+    const forgedSnapshotId = sha256("forged shared E4 snapshot");
+    for (const row of rows) {
+      if (row.caseId === caseId) {
+        row.snapshotId = forgedSnapshotId;
+        row.sourceSnapshotId = forgedSnapshotId;
+      }
+    }
+    await writeE4Rows(runDirectory, rows);
+    const packetsPath = join(runDirectory, "e4-retrieval-packets.jsonl");
+    const packets = (await readFile(packetsPath, "utf8")).trim().split("\n")
+      .map((line) => JSON.parse(line));
+    packets.find(({ snapshotId }) => snapshotId === sourceSnapshotId).snapshotId =
+      forgedSnapshotId;
+    await writeJsonLines(packetsPath, packets);
+
+    await expect(aggregatePhase74GeneralizationArtifacts({
+      runDirectories: fixture.runDirectories,
+    })).rejects.toThrow("E4 source snapshot drifted from deterministic E3");
+  });
+
+  it("rejects an E4 rendered-ledger digest forged in progress and report", async () => {
+    const fixture = await createArtifactFixture();
+    const runDirectory = fixture.runDirectories[0]!;
+    const rows = (await readFile(
+      join(runDirectory, "e4-progress.jsonl"),
+      "utf8",
+    )).trim().split("\n").map((line) => JSON.parse(line));
+    rows.find(({ format }) => format === "compact_json")
+      .renderedLedgerSha256 = sha256("forged rendered ledger");
+    await writeE4Rows(runDirectory, rows);
+
+    await expect(aggregatePhase74GeneralizationArtifacts({
+      runDirectories: fixture.runDirectories,
+    })).rejects.toThrow("E4 rendered ledger hash drift");
+  });
+
+  it("rejects E4 packet ledger tampering synchronized into progress and report", async () => {
+    const fixture = await createArtifactFixture();
+    const runDirectory = fixture.runDirectories[0]!;
+    const rows = (await readFile(
+      join(runDirectory, "e4-progress.jsonl"),
+      "utf8",
+    )).trim().split("\n").map((line) => JSON.parse(line));
+    const target = rows.find(({ format }) => format === "json_locale_note");
+    const packetsPath = join(runDirectory, "e4-retrieval-packets.jsonl");
+    const packets = (await readFile(packetsPath, "utf8")).trim().split("\n")
+      .map((line) => JSON.parse(line));
+    const packet = packets.find(
+      ({ snapshotId }) => snapshotId === target.sourceSnapshotId,
+    );
+    packet.evidenceLedgers.json_locale_note += " tampered";
+    target.renderedLedgerSha256 = sha256(
+      packet.evidenceLedgers.json_locale_note,
+    );
+    await Promise.all([
+      writeE4Rows(runDirectory, rows),
+      writeJsonLines(packetsPath, packets),
+    ]);
+
+    await expect(aggregatePhase74GeneralizationArtifacts({
+      runDirectories: fixture.runDirectories,
+    })).rejects.toThrow("E4 retrieval packet hash drift");
   });
 
   it("accepts content-addressed snapshots shared by multiple cases", async () => {
