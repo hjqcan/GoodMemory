@@ -641,6 +641,78 @@ export async function runPhase74SealedProcessPair(input: {
     ),
   ]);
   events.push({ event: "labels_committed" });
+  const receiptPath = join(input.evidenceDirectory, "score-receipt.json");
+  const savedReceiptRaw = await readOptional(receiptPath);
+  if (savedReceiptRaw !== null) {
+    const receipt = parsePhase74SealedScoreReceipt(
+      JSON.parse(savedReceiptRaw),
+    );
+    verifyPhase74SealedScoreReceipt({
+      escrow,
+      execution,
+      executorOutput,
+      receipt,
+    });
+    let scorerArtifact: string | undefined;
+    if (receipt.oracleSha256 !== undefined) {
+      if (input.scorerArtifactPath === undefined) {
+        throw new Error("Phase 74 sealed E4 scorer artifact path is required.");
+      }
+      scorerArtifact = await readFile(
+        join(input.evidenceDirectory, "oracle-artifact.json"),
+        "utf8",
+      );
+      verifyPhase74SealedOracleArtifact({
+        escrow,
+        execution,
+        expectedE3ArtifactSha256: input.expectedOracleE3ArtifactSha256,
+        expectedSha256: receipt.oracleSha256,
+        raw: scorerArtifact,
+      });
+    } else if (input.scorerArtifactPath !== undefined) {
+      throw new Error("Phase 74 sealed scorer artifact was not bound by receipt.");
+    }
+    const savedManifestRaw = await readOptional(input.transcriptPath);
+    const manifest = savedManifestRaw === null
+      ? buildPhase74SealedProcessManifest({
+          events: [
+            ...events,
+            { event: "scorer_start" },
+            { event: "scorer_exit", pid: receipt.scorerPid },
+          ],
+          execution,
+          executorOutput,
+          receipt,
+        })
+      : verifyPhase74SealedProcessManifest({
+          execution,
+          executorOutput,
+          manifest: JSON.parse(savedManifestRaw),
+          receipt,
+        });
+    if (savedManifestRaw === null) {
+      await writeExactOrMatch(
+        input.transcriptPath,
+        serializePhase74SealedProcessManifest(manifest),
+      );
+    }
+    return {
+      events: [...manifest.events],
+      executor: {
+        artifact,
+        output: executorOutput,
+        pid: executor.pid,
+        stderr: executor.stderr,
+        stdin: executorStdin,
+        stdout: executor.stdout,
+      },
+      scorer: {
+        ...(scorerArtifact === undefined ? {} : { artifact: scorerArtifact }),
+        pid: receipt.scorerPid,
+        receipt,
+      },
+    };
+  }
   events.push({ event: "scorer_start" });
   const scorer = await runChild({
     cwd: input.cwd,
@@ -681,7 +753,7 @@ export async function runPhase74SealedProcessPair(input: {
     throw new Error("Phase 74 sealed scorer artifact was not bound by receipt.");
   }
   await writeExactOrMatch(
-    join(input.evidenceDirectory, "score-receipt.json"),
+    receiptPath,
     JSON.stringify(receipt),
   );
   if (scorerArtifact !== undefined) {
