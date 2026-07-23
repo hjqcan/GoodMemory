@@ -232,6 +232,42 @@ const MISSING_USAGE: ModelTokenUsage = {
   uncachedInputTokens: null,
 };
 
+async function normalizePhase74VersionResponseUsage(
+  response: Response,
+): Promise<ModelTokenUsage> {
+  const clone = response.clone();
+  if (
+    clone.headers.get("content-type")?.toLowerCase()
+      .includes("text/event-stream")
+  ) {
+    let usage = MISSING_USAGE;
+    for (const line of (await clone.text()).split(/\r?\n/u)) {
+      const data = line.startsWith("data:")
+        ? line.slice("data:".length).trim()
+        : "";
+      if (data === "" || data === "[DONE]") {
+        continue;
+      }
+      try {
+        const normalized = normalizeOpenAICompatibleUsage(
+          JSON.parse(data) as unknown,
+        );
+        if (modelUsageCompleteness(normalized) !== "missing") {
+          usage = normalized;
+        }
+      } catch {
+        continue;
+      }
+    }
+    return usage;
+  }
+  try {
+    return normalizeOpenAICompatibleUsage(await clone.json());
+  } catch {
+    return MISSING_USAGE;
+  }
+}
+
 export function createPhase74VersionUsageBoundary(input: {
   events: AttributedModelUsageAttempt[];
   fetch: FetchLike;
@@ -289,13 +325,7 @@ export function createPhase74VersionUsageBoundary(input: {
       });
       throw error;
     }
-    let payload: unknown;
-    try {
-      payload = await response.clone().json();
-    } catch {
-      payload = undefined;
-    }
-    const normalized = normalizeOpenAICompatibleUsage(payload);
+    const normalized = await normalizePhase74VersionResponseUsage(response);
     const usage = operation === "embedding"
       ? normalizeAISDKEmbeddingUsage({
         tokens: normalized.inputTokens ?? undefined,
