@@ -47,6 +47,7 @@ import {
   PHASE74_PROTECTION_BLUEPRINT_ID,
 } from "../../src/eval/phase74ProtectionVerifier";
 import {
+  buildPhase74MemoryAgentBenchProtectionPlanIdentity,
   createPhase74MemoryAgentBenchOfflineMemory,
   PHASE74_MAB_PROTECTION_METRICS,
   runPhase74MemoryAgentBenchProtection,
@@ -111,6 +112,31 @@ async function rewriteRawArtifact(input: {
 }
 
 describe("Phase 74 MemoryAgentBench protection adapter", () => {
+  it("exports the canonical ordered population and run identity for planning", () => {
+    const cases = buildMemoryAgentBenchSmokeCases();
+    const dataset = descriptor("memoryagentbench-synthetic-ar", "1");
+    const source = descriptor("source-under-test", "2");
+    const planned = buildPhase74MemoryAgentBenchProtectionPlanIdentity({
+      cases,
+      dataset,
+      source,
+    });
+
+    expect(planned.caseIds).toEqual(
+      cases.flatMap(({ questions }) =>
+        questions.map(({ questionId }) => questionId)
+      ),
+    );
+    expect(planned.identity).toMatchObject({
+      dataset,
+      population: {
+        caseCount: planned.caseIds.length,
+        id: `${dataset.id}:question-population-v1`,
+      },
+      source,
+    });
+  });
+
   it("runs the legacy and Phase 74 retrieval paths on one identical question population", async () => {
     const root = await createRoot();
     const testCase = buildMemoryAgentBenchSmokeCases()[0]!;

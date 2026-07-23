@@ -280,6 +280,7 @@ export interface Phase74ArtifactAggregationInput {
 }
 
 export interface Phase74ArtifactAggregationDependencies {
+  protectionAdditionalVerifiers?: readonly Phase74ProtectionSuiteVerifier[];
   protectionLiveClosureVerifier?: Phase74ProtectionLiveClosureVerifier;
   protectionVerifierSourceFiles?: readonly string[];
   protectionVerifiers?: readonly Phase74ProtectionSuiteVerifier[];
@@ -2577,6 +2578,7 @@ async function loadProtectionArtifact(
 ): Promise<ProtectionArtifact> {
   const { evidence, sha256: artifactSha256 } =
     await loadPhase74FrozenProtectionSuiteEvidence(path, {
+      additionalVerifiers: dependencies.protectionAdditionalVerifiers,
       liveClosureVerifier: dependencies.protectionLiveClosureVerifier,
       verifierSourceFiles: dependencies.protectionVerifierSourceFiles,
       verifiers: dependencies.protectionVerifiers,
@@ -3220,16 +3222,32 @@ export async function runPhase74GeneralizationAggregation(
   const outputPath = resolve(options.outputPath);
   const protectionVerifiers = options.beamContractPath === undefined
     ? dependencies.protectionVerifiers
-    : [
-        ...(dependencies.protectionVerifiers ?? []),
+    : dependencies.protectionVerifiers === undefined
+      ? undefined
+      : [
+        ...dependencies.protectionVerifiers,
         createPhase74BeamSafetyProtectionVerifier(
           parsePhase74BeamSafetyContract(JSON.parse(
             await readFile(resolve(options.beamContractPath), "utf8"),
           )),
         ),
       ];
+  const protectionAdditionalVerifiers = [
+    ...(dependencies.protectionAdditionalVerifiers ?? []),
+    ...(options.beamContractPath === undefined ||
+        dependencies.protectionVerifiers !== undefined
+      ? []
+      : [
+          createPhase74BeamSafetyProtectionVerifier(
+            parsePhase74BeamSafetyContract(JSON.parse(
+              await readFile(resolve(options.beamContractPath), "utf8"),
+            )),
+          ),
+        ]),
+  ];
   const aggregationDependencies = {
     ...dependencies,
+    protectionAdditionalVerifiers,
     protectionLiveClosureVerifier:
       dependencies.protectionLiveClosureVerifier ??
         PHASE74_CANONICAL_LIVE_CLOSURE_VERIFIER,
@@ -3245,6 +3263,8 @@ export async function runPhase74GeneralizationAggregation(
     const { evidence } = await loadPhase74FrozenProtectionSuiteEvidence(
       protectionArtifactPath,
       {
+        additionalVerifiers:
+          aggregationDependencies.protectionAdditionalVerifiers,
         liveClosureVerifier:
           aggregationDependencies.protectionLiveClosureVerifier,
         verifierSourceFiles:

@@ -4,6 +4,10 @@ import type { MemoryAgentBenchCase } from "../src/eval/memoryAgentBench";
 import type {
   Phase74ProtectionIdentityDescriptor,
   Phase74ProtectionReplicate,
+  Phase74ProtectionRunIdentity,
+} from "../src/eval/phase74ProtectionContracts";
+import {
+  hashPhase74ProtectionCaseIds,
 } from "../src/eval/phase74ProtectionContracts";
 import {
   describePhase74ProtectionCallBudget,
@@ -63,6 +67,49 @@ function descriptor(id: string, material: unknown) {
   return { id, sha256: hashPhase74ProtectionValue(material) };
 }
 
+export function buildPhase74MemoryAgentBenchProtectionPlanIdentity(input: {
+  cases: readonly MemoryAgentBenchCase[];
+  dataset: Phase74ProtectionIdentityDescriptor;
+  source: Phase74ProtectionIdentityDescriptor;
+}): {
+  caseIds: string[];
+  identity: Phase74ProtectionRunIdentity;
+} {
+  const population = buildPhase74MemoryAgentBenchQuestionPopulation(
+    input.cases,
+  );
+  const caseIds = population.cases.map(({ caseId }) => caseId);
+  return {
+    caseIds,
+    identity: {
+      dataset: input.dataset,
+      judge: descriptor(
+        "memoryagentbench-deterministic-retrieval-diagnostics-v1",
+        PHASE74_MAB_PROTECTION_METRICS,
+      ),
+      model: descriptor("no-answer-model-retrieval-only", "none"),
+      pipeline: descriptor(
+        "memoryagentbench-legacy-vs-recommended-hybrid-retrieval-diagnostic-v1",
+        {
+          baseline: "rules-only",
+          candidate: "recommended-hybrid",
+          source: input.source,
+        },
+      ),
+      population: {
+        caseCount: caseIds.length,
+        caseIdsSha256: hashPhase74ProtectionCaseIds(caseIds),
+        id: `${input.dataset.id}:question-population-v1`,
+      },
+      prompt: descriptor(
+        "memoryagentbench-verbatim-question-query-v1",
+        "query=question.question",
+      ),
+      source: input.source,
+    },
+  };
+}
+
 export function createPhase74MemoryAgentBenchOfflineMemory(
   branch: Phase74ProtectionBranch,
 ): GoodMemory {
@@ -114,6 +161,9 @@ export async function runPhase74MemoryAgentBenchProtection(input: {
   const createMemory = dependencies.createMemory ??
     createPhase74MemoryAgentBenchOfflineMemory;
   const caseConcurrency = input.caseConcurrency ?? DEFAULT_CASE_CONCURRENCY;
+  const plannedIdentity =
+    buildPhase74MemoryAgentBenchProtectionPlanIdentity(input).identity;
+  const { population: identityPopulation, ...identity } = plannedIdentity;
   let plan: Phase74ProtectionRunPlanInput | undefined;
   if (input.protectionPlan !== undefined) {
     const protectionBlueprint = input.protectionPlan.plan.protectionBlueprint;
@@ -193,26 +243,8 @@ export async function runPhase74MemoryAgentBenchProtection(input: {
       };
     },
     identity: {
-      dataset: input.dataset,
-      judge: descriptor(
-        "memoryagentbench-deterministic-retrieval-diagnostics-v1",
-        PHASE74_MAB_PROTECTION_METRICS,
-      ),
-      model: descriptor("no-answer-model-retrieval-only", "none"),
-      pipeline: descriptor(
-        "memoryagentbench-legacy-vs-recommended-hybrid-retrieval-diagnostic-v1",
-        {
-          baseline: "rules-only",
-          candidate: "recommended-hybrid",
-          source: input.source,
-        },
-      ),
-      populationId: `${input.dataset.id}:question-population-v1`,
-      prompt: descriptor(
-        "memoryagentbench-verbatim-question-query-v1",
-        "query=question.question",
-      ),
-      source: input.source,
+      ...identity,
+      populationId: identityPopulation.id,
     },
     plan,
     rawArtifactPath: input.rawArtifactPath,

@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
 
 import {
+  buildPhase74BeamSafetyProtectionPlanIdentity,
   buildPhase74BeamSafetyProtectionRunIdentity,
   createPhase74BeamSafetyProtectionVerifier,
   PHASE74_BEAM_FULL_100K_DATASET_ID,
@@ -207,6 +208,29 @@ async function rewriteRawArtifact(input: {
 }
 
 describe("Phase 74 BEAM full-100K safety protection adapter", () => {
+  it("exports the canonical ordered abstention population and identity for planning", () => {
+    const datasetBytes = createFull100kDataset();
+    const contract = createContract(datasetBytes);
+    const planned = buildPhase74BeamSafetyProtectionPlanIdentity({
+      contract,
+      datasetBytes,
+    });
+
+    expect(planned.caseIds).toEqual(
+      Array.from({ length: 20 }, (_, conversationIndex) =>
+        Array.from({ length: 2 }, (_, questionIndex) =>
+          `${conversationIndex + 1}:abstention:${questionIndex + 1}`
+        )
+      ).flat(),
+    );
+    expect(planned.identity).toEqual(
+      buildPhase74BeamSafetyProtectionRunIdentity({
+        contract,
+        datasetBytes,
+      }),
+    );
+  });
+
   it("runs isolated paired pipelines with one query-only reader and 6k budget", async () => {
     const root = await createRoot();
     const datasetBytes = createFull100kDataset();

@@ -501,27 +501,40 @@ export function buildPhase74BeamSafetyProtectionIdentity(
   };
 }
 
-export function buildPhase74BeamSafetyProtectionRunIdentity(input: {
+export function buildPhase74BeamSafetyProtectionPlanIdentity(input: {
   contract: Phase74BeamSafetyContract;
   datasetBytes: Uint8Array;
-}): Phase74ProtectionRunIdentity {
+}): {
+  caseIds: string[];
+  identity: Phase74ProtectionRunIdentity;
+} {
   const rows = parseFull100kRows(input);
   const population = buildPopulation(rows);
   const identity = buildPhase74BeamSafetyProtectionIdentity(input.contract);
   const caseIds = population.cases.map(({ caseId }) => caseId);
   return {
-    dataset: identity.dataset,
-    judge: identity.judge,
-    model: identity.model,
-    pipeline: identity.pipeline,
-    population: {
-      caseCount: caseIds.length,
-      caseIdsSha256: hashPhase74ProtectionCaseIds(caseIds),
-      id: identity.populationId,
+    caseIds,
+    identity: {
+      dataset: identity.dataset,
+      judge: identity.judge,
+      model: identity.model,
+      pipeline: identity.pipeline,
+      population: {
+        caseCount: caseIds.length,
+        caseIdsSha256: hashPhase74ProtectionCaseIds(caseIds),
+        id: identity.populationId,
+      },
+      prompt: identity.prompt,
+      source: identity.source,
     },
-    prompt: identity.prompt,
-    source: identity.source,
   };
+}
+
+export function buildPhase74BeamSafetyProtectionRunIdentity(input: {
+  contract: Phase74BeamSafetyContract;
+  datasetBytes: Uint8Array;
+}): Phase74ProtectionRunIdentity {
+  return buildPhase74BeamSafetyProtectionPlanIdentity(input).identity;
 }
 
 function freshMessages(
@@ -542,10 +555,8 @@ export async function verifyPhase74BeamSafetyProtectionPlan(input: {
     describePhase74ProtectionCallBudget,
     verifyPhase74ProtectionPlanRun,
   } = await import("./phase74ProtectionPlan");
-  const rows = parseFull100kRows(input);
-  const population = buildPopulation(rows);
-  const identity = buildPhase74BeamSafetyProtectionIdentity(input.contract);
-  const caseIds = population.cases.map(({ caseId }) => caseId);
+  const { caseIds, identity } =
+    buildPhase74BeamSafetyProtectionPlanIdentity(input);
   const protectionBlueprint =
     input.protectionPlan.loadedPlan.plan.protectionBlueprint;
   if (protectionBlueprint.id !== PHASE74_PROTECTION_BLUEPRINT_ID) {
@@ -574,19 +585,7 @@ export async function verifyPhase74BeamSafetyProtectionPlan(input: {
   verifyPhase74ProtectionPlanRun(input.protectionPlan.loadedPlan, {
     caseIds,
     controls,
-    identity: {
-      dataset: identity.dataset,
-      judge: identity.judge,
-      model: identity.model,
-      pipeline: identity.pipeline,
-      population: {
-        caseCount: caseIds.length,
-        caseIdsSha256: hashPhase74ProtectionCaseIds(caseIds),
-        id: identity.populationId,
-      },
-      prompt: identity.prompt,
-      source: identity.source,
-    },
+    identity,
     protectionBlueprint,
     replicate: input.replicate,
     runId: input.runId,
@@ -609,7 +608,9 @@ export async function runPhase74BeamSafetyProtection(input: {
   const rows = parseFull100kRows(input);
   const population = buildPopulation(rows);
   const caseConcurrency = input.caseConcurrency ?? 1;
-  const identity = buildPhase74BeamSafetyProtectionIdentity(input.contract);
+  const plannedIdentity =
+    buildPhase74BeamSafetyProtectionPlanIdentity(input).identity;
+  const { population: identityPopulation, ...identity } = plannedIdentity;
   const plan = input.protectionPlan === undefined
     ? undefined
     : await verifyPhase74BeamSafetyProtectionPlan({
@@ -694,7 +695,10 @@ export async function runPhase74BeamSafetyProtection(input: {
         }),
       };
     },
-    identity,
+    identity: {
+      ...identity,
+      populationId: identityPopulation.id,
+    },
     plan,
     rawArtifactPath: input.rawArtifactPath,
     replicate: input.replicate,
@@ -748,7 +752,8 @@ export async function verifyPhase74BeamSafetyProtectionArtifact(input: {
   if (!sameValue(loaded.suite, PHASE74_BEAM_SAFETY_SUITE)) {
     throw new Error("Phase 74 BEAM safety suite identity drifted.");
   }
-  const identity = buildPhase74BeamSafetyProtectionIdentity(input.contract);
+  const planned = buildPhase74BeamSafetyProtectionPlanIdentity(input);
+  const identity = planned.identity;
   if (!sameValue(loaded.identity.dataset, identity.dataset)) {
     throw new Error("Phase 74 BEAM safety dataset identity drifted.");
   }
@@ -763,13 +768,13 @@ export async function verifyPhase74BeamSafetyProtectionArtifact(input: {
       "Phase 74 BEAM safety evaluator identity drifted (selection, source, model, prompt, reader, or budget).",
     );
   }
-  const caseIds = population.cases.map(({ caseId }) => caseId);
+  const caseIds = planned.caseIds;
   if (
     !sameValue(loaded.rows.map(({ caseId }) => caseId), caseIds) ||
     loaded.identity.population.caseCount !== caseIds.length ||
     loaded.identity.population.caseIdsSha256 !==
       hashPhase74ProtectionCaseIds(caseIds) ||
-    loaded.identity.population.id !== identity.populationId
+    loaded.identity.population.id !== identity.population.id
   ) {
     throw new Error("Phase 74 BEAM safety population identity drifted.");
   }
