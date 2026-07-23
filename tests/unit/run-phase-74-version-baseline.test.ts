@@ -9,6 +9,7 @@ import {
   buildPhase74VersionComparison,
   buildPhase74VersionRunIdentity,
   createPhase74FreshVersionRunDirectory,
+  estimatePhase74VersionEmbeddingSpendUpperBoundUsd,
   parsePhase74VersionBaselineCliOptions,
   parsePhase74VersionCandidateOutcomes,
   preparePhase74VersionDataset,
@@ -79,6 +80,21 @@ function assertFullRunConfiguration(configuration: ReturnType<
 }
 
 describe("Phase 74 release baseline runner", () => {
+  it("prices the frozen embedding model and fails closed on unknown models", () => {
+    expect(estimatePhase74VersionEmbeddingSpendUpperBoundUsd({
+      inputByteUpperBound: 1_000_000,
+      model: "baai/bge-m3",
+    })).toBe(0.01);
+    expect(estimatePhase74VersionEmbeddingSpendUpperBoundUsd({
+      inputByteUpperBound: 1_000_000,
+      model: "text-embedding-3-small",
+    })).toBe(0.02);
+    expect(() => estimatePhase74VersionEmbeddingSpendUpperBoundUsd({
+      inputByteUpperBound: 1,
+      model: "unknown-embedding-model",
+    })).toThrow("Unsupported Phase 74 embedding model");
+  });
+
   it("fails closed on every frozen full-run identity field and malformed budgets", () => {
     const { configuration } = fullRunConfiguration();
 

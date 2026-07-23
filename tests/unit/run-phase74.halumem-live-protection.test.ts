@@ -550,8 +550,20 @@ async function frozenResult(
   };
 }
 
-async function frozenLiveRun() {
+async function frozenLiveRun(input: {
+  embeddingModel?: string;
+  embeddingSpendLimitUsd?: number;
+} = {}) {
   const options = await fixtureOptions("live");
+  options.embeddingSpendLimitUsd =
+    input.embeddingSpendLimitUsd ?? options.embeddingSpendLimitUsd;
+  const runModels = {
+    ...models,
+    embedding: {
+      ...models.embedding,
+      model: input.embeddingModel ?? models.embedding.model,
+    },
+  };
   return runPhase74HaluMemLiveProtection(options, {
     async captureEvaluatorSource() {
       return { commit: "c".repeat(40), sha256: "e".repeat(64) };
@@ -560,7 +572,7 @@ async function frozenLiveRun() {
       return { e4: {} as never, privacy: {} as never, update: {} as never };
     },
     resolveModels() {
-      return models;
+      return runModels;
     },
     async runProtection(cliOptions) {
       return frozenResult(
@@ -1277,6 +1289,41 @@ describe("Phase 74 HaluMem live runner", () => {
     await expect(verifyPhase74HaluMemLiveRun(live.runDirectory)).rejects.toThrow(
       "call budget",
     );
+  });
+
+  it("prices embedding spend from the verifier-bound run identity", async () => {
+    const bge = await frozenLiveRun({
+      embeddingModel: "baai/bge-m3",
+      embeddingSpendLimitUsd: 0.15,
+    });
+    await rewriteUsageEvidence({
+      mutateBudget(budget) {
+        budget.embeddingInputByteUpperBound = 10_000_000;
+      },
+      runDirectory: bge.runDirectory,
+    });
+    await expect(verifyPhase74HaluMemLiveRun(bge.runDirectory)).resolves
+      .toBeDefined();
+
+    const textSmall = await frozenLiveRun({
+      embeddingModel: "text-embedding-3-small",
+      embeddingSpendLimitUsd: 0.15,
+    });
+    await rewriteUsageEvidence({
+      mutateBudget(budget) {
+        budget.embeddingInputByteUpperBound = 10_000_000;
+      },
+      runDirectory: textSmall.runDirectory,
+    });
+    await expect(verifyPhase74HaluMemLiveRun(textSmall.runDirectory)).rejects
+      .toThrow("call budget");
+
+    const unknown = await frozenLiveRun({
+      embeddingModel: "unknown-embedding-model",
+      embeddingSpendLimitUsd: 0.15,
+    });
+    await expect(verifyPhase74HaluMemLiveRun(unknown.runDirectory)).rejects
+      .toThrow("Unsupported Phase 74 embedding model");
   });
 
   it("verify-only rejects update decision usage that is not backed by its judge ledger event", async () => {

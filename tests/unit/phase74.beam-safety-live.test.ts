@@ -173,6 +173,9 @@ function liveRunClosure() {
         maxLanguageCalls: 10,
       },
       caseConcurrency: 16,
+      embedding: {
+        model: "text-embedding-3-small",
+      },
       replicate: 1,
       runId: "beam-r1",
     },
@@ -563,6 +566,29 @@ describe("Phase 74 BEAM safety live wiring", () => {
       mutate(value);
       expect(() => assertPhase74BeamSafetyLiveRunClosure(value)).toThrow(message);
     }
+  });
+
+  it("prices embedding spend from the verifier-bound run identity", () => {
+    const bge = liveRunClosure();
+    bge.identity.embedding.model = "baai/bge-m3";
+    bge.identity.callBudget.embeddingSpendLimitUsd = 0.15;
+    bge.callBudget.embeddingInputByteUpperBound = 10_000_000;
+    bge.callBudget.embeddingSpendLimitUsd = 0.15;
+    bge.summary.callBudget.embeddingInputByteUpperBound = 10_000_000;
+    bge.summary.callBudget.embeddingSpendLimitUsd = 0.15;
+    expect(() => assertPhase74BeamSafetyLiveRunClosure(bge)).not.toThrow();
+
+    const textSmall = structuredClone(bge);
+    textSmall.identity.embedding.model = "text-embedding-3-small";
+    expect(() => assertPhase74BeamSafetyLiveRunClosure(textSmall)).toThrow(
+      "call budget",
+    );
+
+    const unknown = liveRunClosure();
+    unknown.identity.embedding.model = "unknown-embedding-model";
+    expect(() => assertPhase74BeamSafetyLiveRunClosure(unknown)).toThrow(
+      "Unsupported Phase 74 embedding model",
+    );
   });
 
   it("replays every ingestion usage key and rejects a missing usage directory", async () => {
