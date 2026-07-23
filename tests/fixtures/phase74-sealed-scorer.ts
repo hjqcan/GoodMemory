@@ -7,6 +7,7 @@ import {
   parsePhase74SealedExecutionBundle,
   parsePhase74SealedExecutorOutput,
 } from "../../src/eval/phase74SealedExecution";
+import { ORACLE_MATRIX_ARMS } from "../../src/eval/oracleMatrix";
 
 const raw = JSON.parse(await Bun.stdin.text()) as {
   escrow?: unknown;
@@ -26,7 +27,25 @@ if (execution.stage === "E4") {
     throw new Error("PHASE74_SEALED_ORACLE_ARTIFACT_PATH is required for E4.");
   }
   const artifact = JSON.stringify({
-    rows: [],
+    e3ArtifactSha256: "0".repeat(64),
+    executionSha256: escrow.executionSha256,
+    rows: execution.cases.flatMap(({ caseKey }) => {
+      const caseId = escrowCases.get(caseKey)!.originalCaseId;
+      return ORACLE_MATRIX_ARMS.map((arm) => ({
+        answer: null,
+        arm,
+        caseId,
+        caseKey,
+        contextChars: 0,
+        contextCharsBeforeTruncation: 0,
+        contextItemIds: [],
+        contextTruncated: false,
+        correct: false,
+        evaluable: true,
+        renderedContextTokens: 0,
+        renderedContextTokensBeforeTruncation: 0,
+      }));
+    }),
     runId: execution.runId,
     schemaVersion: 1,
   });

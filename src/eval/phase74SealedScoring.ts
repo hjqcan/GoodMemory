@@ -7,7 +7,6 @@ import {
   runOracleMatrixCase,
 } from "./oracleMatrix";
 import type {
-  OracleMatrixCaseResult,
   OracleMatrixJudge,
   OracleMatrixProtocolReader,
   OracleMatrixReader,
@@ -32,6 +31,13 @@ import {
   sha256Phase74SealedExecution,
   verifyPhase74SealedScoreReceipt,
 } from "./phase74SealedExecution";
+import type {
+  Phase74SealedOracleArtifact,
+  Phase74SealedOracleRow,
+} from "./phase74SealedOracle";
+import {
+  verifyPhase74SealedOracleArtifact,
+} from "./phase74SealedOracle";
 import type {
   Phase74SealedEscrowBundle,
   Phase74SealedExecutionBundle,
@@ -77,19 +83,6 @@ export type Phase74SealedScoredRow = Phase74UnscoredRow & {
   observedScore: number;
   score: number;
 };
-
-export type Phase74SealedOracleRow = OracleMatrixCaseResult & {
-  caseId: string;
-  caseKey: string;
-};
-
-export interface Phase74SealedOracleArtifact {
-  e3ArtifactSha256: string;
-  executionSha256: string;
-  rows: Phase74SealedOracleRow[];
-  runId: string;
-  schemaVersion: 1;
-}
 
 function sameOrderedCaseKeys(
   left: readonly { caseKey: string }[],
@@ -385,7 +378,7 @@ export function materializePhase74SealedReport(input: {
   execution: Phase74SealedExecutionBundle;
   executorOutput: Phase74SealedExecutorOutput;
   identity: EvalRunIdentity;
-  oracle?: readonly OracleMatrixCaseResult[];
+  oracleArtifact?: string;
   receipt: Phase74SealedScoreReceipt;
 }): Phase74GeneralizationReport {
   const execution = parsePhase74SealedExecutionBundle(input.execution);
@@ -399,6 +392,17 @@ export function materializePhase74SealedReport(input: {
     receipt: input.receipt,
   });
   assertArtifactProjection({ artifact, execution, executorOutput });
+  const oracleArtifact = input.oracleArtifact === undefined
+    ? undefined
+    : verifyPhase74SealedOracleArtifact({
+        escrow,
+        execution,
+        expectedSha256: input.receipt.oracleSha256 ?? "",
+        raw: input.oracleArtifact,
+      });
+  if ((execution.stage === "E4") !== (oracleArtifact !== undefined)) {
+    throw new Error("Phase 74 sealed report oracle artifact is missing.");
+  }
   const receiptByRowKey = new Map(input.receipt.rows.map((row) => [
     row.rowKey,
     row,
@@ -527,7 +531,7 @@ export function materializePhase74SealedReport(input: {
         protectionDelta: result.protectionDelta!,
       })))
     : "not_evaluable";
-  const oracle = [...(input.oracle ?? [])];
+  const oracle = [...(oracleArtifact?.rows ?? [])];
   const renderedContextMaxTokens = Math.max(
     0,
     ...artifact.rows.map((row) => row.contextTokens),

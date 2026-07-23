@@ -13,6 +13,9 @@ import {
   type Phase74ExperimentStage,
 } from "./phase74ExperimentDesign";
 import type { EvalRunJsonObject } from "./runIdentity";
+import {
+  verifyPhase74SealedOracleArtifact,
+} from "./phase74SealedOracle";
 
 const rawEvidenceSchema = z.object({
   content: z.string(),
@@ -501,12 +504,12 @@ export async function runPhase74SealedProcessPair(input: {
       throw new Error("Phase 74 sealed E4 scorer artifact path is required.");
     }
     scorerArtifact = await readFile(input.scorerArtifactPath, "utf8");
-    if (
-      createHash("sha256").update(scorerArtifact).digest("hex") !==
-        receipt.oracleSha256
-    ) {
-      throw new Error("Phase 74 sealed scorer artifact digest drifted.");
-    }
+    verifyPhase74SealedOracleArtifact({
+      escrow,
+      execution,
+      expectedSha256: receipt.oracleSha256,
+      raw: scorerArtifact,
+    });
   } else if (input.scorerArtifactPath !== undefined) {
     throw new Error("Phase 74 sealed scorer artifact was not bound by receipt.");
   }
