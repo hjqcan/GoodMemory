@@ -306,6 +306,50 @@ describe("Phase 74 BEAM full-100K safety protection adapter", () => {
     );
   });
 
+  it("prepares the full paired population before the first evaluated query", async () => {
+    const root = await createRoot();
+    const datasetBytes = createFull100kDataset();
+    const contract = createContract(datasetBytes);
+    let preparationCalls = 0;
+    let pipelineCalls = 0;
+    const expectedPreparationCalls = 80;
+    const result = await runPhase74BeamSafetyProtection({
+      artifactPath: join(root, "prepared-run.json"),
+      caseConcurrency: 4,
+      contract,
+      datasetBytes,
+      rawArtifactPath: join(root, "prepared-raw.json"),
+      replicate: 1,
+      runId: "beam-safety-prepared-r1",
+    }, {
+      createPipeline: () => ({
+        prepare: async () => {
+          await Promise.resolve();
+          preparationCalls += 1;
+        },
+        run: async () => {
+          if (preparationCalls !== expectedPreparationCalls) {
+            throw new Error("BEAM query started before ingestion completed.");
+          }
+          pipelineCalls += 1;
+          return {
+            rawAnswer: "No answer.",
+            retrievedEvidenceIds: [],
+          };
+        },
+      }),
+      judgeGroundedness: async () => ({
+        rationale: "The answer makes no unsupported claim.",
+        schemaVersion: 1 as const,
+        verdict: "grounded" as const,
+      }),
+    });
+
+    expect(result.artifact.executionFailures).toBe(0);
+    expect(preparationCalls).toBe(expectedPreparationCalls);
+    expect(pipelineCalls).toBe(expectedPreparationCalls);
+  });
+
   it("passes bounded case concurrency through to the shared protection runner", async () => {
     const root = await createRoot();
     const datasetBytes = createFull100kDataset();
