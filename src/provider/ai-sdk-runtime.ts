@@ -49,6 +49,7 @@ interface EmbeddingAdapterDependencies {
   retryOptions?: AISDKRetryOptions;
 }
 
+export type EmbeddingNormalization = "l2-v1";
 type FetchInput = Parameters<FetchFunction>[0];
 type FetchInit = Parameters<FetchFunction>[1];
 export type FetchLike = (input: FetchInput, init?: FetchInit) => Promise<Response>;
@@ -152,6 +153,38 @@ export function createOpenAICompatibleFetch(
   wrappedFetch.preconnect = (globalThis.fetch as FetchFunction).preconnect;
 
   return wrappedFetch;
+}
+
+export function createOpenRouterEmbeddingFetch(input: {
+  allowFallbacks: boolean;
+  baseFetch?: FetchLike;
+  providerOrder: readonly string[];
+}): FetchFunction {
+  const baseFetch =
+    input.baseFetch ?? globalThis.fetch.bind(globalThis) as FetchLike;
+  return (async (request, init) => {
+    let pathname: string;
+    try {
+      pathname = new URL(resolveFetchUrl(request)).pathname.replace(/\/+$/u, "");
+    } catch {
+      return baseFetch(request, init);
+    }
+    if (!pathname.endsWith("/embeddings") || typeof init?.body !== "string") {
+      return baseFetch(request, init);
+    }
+
+    const payload = JSON.parse(init.body) as Record<string, unknown>;
+    return baseFetch(request, {
+      ...init,
+      body: JSON.stringify({
+        ...payload,
+        provider: {
+          allow_fallbacks: input.allowFallbacks,
+          order: [...input.providerOrder],
+        },
+      }),
+    });
+  }) as FetchFunction;
 }
 
 function resolveAISDKRetryDelayMs(
@@ -912,6 +945,7 @@ export function resolveAISDKModel(config: AISDKModelConfig): LanguageModel {
 
 export function resolveAISDKEmbeddingModel(
   config: AISDKModelConfig,
+  fetch?: FetchLike,
 ): EmbeddingModel {
   if (config.provider === "openai") {
     if (config.baseURL) {
@@ -919,7 +953,7 @@ export function resolveAISDKEmbeddingModel(
         name: "openai-compatible",
         apiKey: config.apiKey,
         baseURL: config.baseURL,
-        fetch: createOpenAICompatibleFetch(),
+        fetch: createOpenAICompatibleFetch(fetch),
       });
 
       return provider.embeddingModel(config.model);
@@ -948,7 +982,10 @@ export function createAISDKEmbeddingAdapter(input: {
   batchMaxConcurrency?: number;
   batchMaxInputs?: number;
   batchMaxUtf8Bytes?: number;
+  expectedDimensions?: number;
+  fetch?: FetchLike;
   model: AISDKModelConfig;
+  normalization?: EmbeddingNormalization;
   dependencies?: EmbeddingAdapterDependencies;
 }): EmbeddingAdapter {
   const batchMaxConcurrency =
@@ -965,6 +1002,15 @@ export function createAISDKEmbeddingAdapter(input: {
     if (!Number.isSafeInteger(value) || value <= 0) {
       throw new Error(`AI SDK embedding ${name} must be a positive integer.`);
     }
+  }
+  if (
+    input.expectedDimensions !== undefined &&
+    (!Number.isSafeInteger(input.expectedDimensions) ||
+      input.expectedDimensions <= 0)
+  ) {
+    throw new Error(
+      "AI SDK embedding expectedDimensions must be a positive integer.",
+    );
   }
   return {
     async embed(texts: string[]): Promise<number[][]> {
@@ -1001,7 +1047,7 @@ export function createAISDKEmbeddingAdapter(input: {
                       model: (
                         input.dependencies?.resolveEmbeddingModel ??
                         resolveAISDKEmbeddingModel
-                      )(input.model),
+                      )(input.model, input.fetch),
                       values,
                     }),
                 });
@@ -1021,11 +1067,31 @@ export function createAISDKEmbeddingAdapter(input: {
       );
       const embeddings = batchEmbeddings.flat();
 
-      if (embeddings.some((embedding) => embedding.length === 0)) {
-        throw new Error("Empty embedding response");
-      }
-
-      return embeddings.map((embedding) => embedding.map((value) => Number(value)));
+      return embeddings.map((embedding) => {
+        if (embedding.length === 0) {
+          throw new Error("Empty embedding response");
+        }
+        if (
+          input.expectedDimensions !== undefined &&
+          embedding.length !== input.expectedDimensions
+        ) {
+          throw new Error(
+            `Embedding dimension mismatch: expected ${input.expectedDimensions}, received ${embedding.length}.`,
+          );
+        }
+        const values = embedding.map((value) => Number(value));
+        if (values.some((value) => !Number.isFinite(value))) {
+          throw new Error("Embedding response contains a non-finite value.");
+        }
+        if (input.normalization !== "l2-v1") {
+          return values;
+        }
+        const norm = Math.hypot(...values);
+        if (norm === 0) {
+          throw new Error("Cannot L2-normalize a zero-norm embedding.");
+        }
+        return values.map((value) => value / norm);
+      });
     },
   };
 }

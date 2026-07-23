@@ -7,12 +7,16 @@ import { promisify } from "node:util";
 import { z } from "zod";
 
 import {
+  createOpenRouterEmbeddingFetch,
   requestOpenAICompatibleObjectResult,
   requestOpenAICompatibleTextResult,
   stripThinkingBlocks,
   withAISDKRetries,
-  type AISDKModelConfig,
-  type FetchLike,
+} from "../provider/ai-sdk-runtime";
+import type {
+  AISDKModelConfig,
+  EmbeddingNormalization,
+  FetchLike,
 } from "../provider/ai-sdk-runtime";
 import {
   COMPACT_CONVERSATIONAL_MEMORY_EXTRACTION_SYSTEM_PROMPT,
@@ -45,6 +49,23 @@ export const PHASE74_JUDGE_MODEL = "gpt-5.5";
 export const PHASE74_GATEWAY = "https://ai.gurkiai.com/v1";
 export const PHASE74_EMBEDDING_GATEWAY = "https://openrouter.ai/api/v1";
 export const PHASE74_EMBEDDING_MODEL = "text-embedding-3-small";
+export const PHASE74_BGE_M3_EMBEDDING_MODEL = "baai/bge-m3";
+
+const PHASE74_EMBEDDING_PROFILES = {
+  [PHASE74_EMBEDDING_MODEL]: {
+    adapterVersion: "openai-compatible-embedding-v1",
+    kind: "legacy",
+  },
+  [PHASE74_BGE_M3_EMBEDDING_MODEL]: {
+    adapterVersion: "openai-compatible-embedding-v2",
+    allowFallbacks: false,
+    dimensions: 1_024,
+    inputCostUsdPerMillionTokens: 0.01,
+    kind: "bge-m3",
+    normalization: "l2-v1",
+    providerOrder: ["parasail"],
+  },
+} as const;
 
 export const PHASE74_GENERIC_READER_SYSTEM_PROMPT = [
   "Answer the user's question using only the supplied memory evidence.",
@@ -152,8 +173,10 @@ export function resolvePhase74ReaderModel(
 }
 
 export interface Phase74EmbeddingIdentity {
-  readonly [key: string]: number | string;
-  adapterVersion: "openai-compatible-embedding-v1";
+  readonly [key: string]: boolean | number | string;
+  adapterVersion:
+    | "openai-compatible-embedding-v1"
+    | "openai-compatible-embedding-v2";
   batchMaxConcurrency: number;
   batchMaxInputs: number;
   batchMaxUtf8Bytes: number;
@@ -164,14 +187,75 @@ export interface Phase74EmbeddingIdentity {
   retryLimit: number;
 }
 
+export interface Phase74EmbeddingAdapterOptions {
+  expectedDimensions?: number;
+  fetch?: FetchLike;
+  normalization?: EmbeddingNormalization;
+}
+
+function resolvePhase74EmbeddingProfile(model: AISDKModelConfig) {
+  const profile =
+    PHASE74_EMBEDDING_PROFILES[
+      model.model as keyof typeof PHASE74_EMBEDDING_PROFILES
+    ];
+  if (!profile) {
+    throw new Error(
+      `Phase 74 embedding calls require a supported profile through ${PHASE74_EMBEDDING_GATEWAY}.`,
+    );
+  }
+  if (
+    model.provider !== "openai" ||
+    model.baseURL !== PHASE74_EMBEDDING_GATEWAY
+  ) {
+    throw new Error(
+      `Phase 74 embedding calls require ${model.model} through ${PHASE74_EMBEDDING_GATEWAY}.`,
+    );
+  }
+  return profile;
+}
+
+export function resolvePhase74EmbeddingAdapterOptions(
+  model: AISDKModelConfig,
+  fetch?: FetchLike,
+): Phase74EmbeddingAdapterOptions {
+  const profile = resolvePhase74EmbeddingProfile(model);
+  if (profile.kind === "legacy") {
+    return {};
+  }
+  return {
+    expectedDimensions: profile.dimensions,
+    fetch: createOpenRouterEmbeddingFetch({
+      allowFallbacks: profile.allowFallbacks,
+      baseFetch: fetch,
+      providerOrder: profile.providerOrder,
+    }),
+    normalization: profile.normalization,
+  };
+}
+
 export function buildPhase74EmbeddingIdentity(
   model: AISDKModelConfig,
 ): Phase74EmbeddingIdentity {
   if (!model.baseURL) {
     throw new Error("Phase 74 embedding identity requires a base URL.");
   }
+  const profile = resolvePhase74EmbeddingProfile(model);
+  if (profile.kind === "bge-m3") {
+    return {
+      adapterVersion: profile.adapterVersion,
+      allowFallbacks: profile.allowFallbacks,
+      ...PHASE74_EMBEDDING_CALL_CONFIGURATION,
+      dimensions: profile.dimensions,
+      gateway: model.baseURL,
+      inputCostUsdPerMillionTokens: profile.inputCostUsdPerMillionTokens,
+      model: model.model,
+      normalization: profile.normalization,
+      provider: model.provider,
+      providerOrder: profile.providerOrder.join(","),
+    };
+  }
   return {
-    adapterVersion: "openai-compatible-embedding-v1",
+    adapterVersion: profile.adapterVersion,
     ...PHASE74_EMBEDDING_CALL_CONFIGURATION,
     gateway: model.baseURL,
     model: model.model,
@@ -361,15 +445,7 @@ export function resolvePhase74ExecutorModels(
 ): Phase74ExecutorModels {
   const answer = resolvePhase74ReaderModel(env);
   const embedding = modelFromEnv(env, "GOODMEMORY_EMBEDDING");
-  if (
-    embedding.provider !== "openai" ||
-    embedding.model !== PHASE74_EMBEDDING_MODEL ||
-    embedding.baseURL !== PHASE74_EMBEDDING_GATEWAY
-  ) {
-    throw new Error(
-      `Phase 74 embedding calls require ${PHASE74_EMBEDDING_MODEL} through ${PHASE74_EMBEDDING_GATEWAY}.`,
-    );
-  }
+  resolvePhase74EmbeddingProfile(embedding);
   return {
     answer,
     assistedExtraction: answer,

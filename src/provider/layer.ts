@@ -10,6 +10,8 @@ import type { EmbeddingAdapter } from "../embedding/contracts";
 import type {
   AISDKModelConfig,
   AISDKRetryOptions,
+  EmbeddingNormalization,
+  FetchLike,
   OpenAICompatibleObjectResponseFormat,
   OpenAICompatibleReasoningEffort,
 } from "./ai-sdk-runtime";
@@ -63,7 +65,10 @@ interface ProviderEmbeddingAdapterFactory {
     batchMaxInputs?: number;
     batchMaxUtf8Bytes?: number;
     dependencies?: ProviderRequestDependencies;
+    expectedDimensions?: number;
+    fetch?: FetchLike;
     model: AISDKModelConfig;
+    normalization?: EmbeddingNormalization;
   }): EmbeddingAdapter;
 }
 
@@ -258,7 +263,10 @@ export function createProviderEmbeddingAdapter(input: {
   batchMaxUtf8Bytes?: number;
   model: AISDKModelConfig;
   createEmbeddingAdapter?: ProviderEmbeddingAdapterFactory;
+  expectedDimensions?: number;
+  fetch?: FetchLike;
   modelUsageSink?: ModelUsageSink;
+  normalization?: EmbeddingNormalization;
   requestTimeoutMs?: number;
   retryLimit?: number;
 }): EmbeddingAdapter {
@@ -272,7 +280,10 @@ export function createProviderEmbeddingAdapter(input: {
       input.modelUsageSink,
       input.retryLimit,
     ),
+    expectedDimensions: input.expectedDimensions,
+    fetch: input.fetch,
     model: input.model,
+    normalization: input.normalization,
   });
 }
 
