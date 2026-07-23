@@ -288,6 +288,7 @@ describe("Phase 74 sealed scoring", () => {
       escrow: e4Bundles.escrow,
       execution: e4Bundles.execution,
       executorOutput: e4.executorOutput,
+      expectedE3ArtifactSha256: oracle.artifact.e3ArtifactSha256,
       identity: buildEvalRunIdentity({
         answerModel: { gateway: "executor", model: "reader", provider: "openai" },
         benchmark: "longmemeval-full",

@@ -410,6 +410,7 @@ export async function runPhase74SealedProcessPair(input: {
   escrow: Phase74SealedEscrowBundle;
   executorEnv: Readonly<Record<string, string | undefined>>;
   executorScript: string;
+  expectedOracleE3ArtifactSha256?: string;
   scorerEnv: Readonly<Record<string, string | undefined>>;
   scorerArtifactPath?: string;
   scorerScript: string;
@@ -432,7 +433,11 @@ export async function runPhase74SealedProcessPair(input: {
 }> {
   const execution = parsePhase74SealedExecutionBundle(input.execution);
   const escrow = parsePhase74SealedEscrowBundle(input.escrow);
-  if (escrow.executionSha256 !== sha256Json(execution)) {
+  if (
+    escrow.executionSha256 !== sha256Json(execution) ||
+    (execution.stage === "E4") !==
+      (input.expectedOracleE3ArtifactSha256 !== undefined)
+  ) {
     throw new Error("Phase 74 sealed escrow does not bind the execution bundle.");
   }
   const events: Array<{ event: string; pid?: number }> = [{ event: "seal" }];
@@ -507,6 +512,7 @@ export async function runPhase74SealedProcessPair(input: {
     verifyPhase74SealedOracleArtifact({
       escrow,
       execution,
+      expectedE3ArtifactSha256: input.expectedOracleE3ArtifactSha256,
       expectedSha256: receipt.oracleSha256,
       raw: scorerArtifact,
     });

@@ -299,6 +299,7 @@ describe("Phase 74 sealed process boundary", () => {
         execution: bundles.execution,
         escrow: bundles.escrow,
         executorArtifactPath: join(directory, "executor-artifact.json"),
+        expectedOracleE3ArtifactSha256: "0".repeat(64),
         executorEnv: {
           HOME: process.env.HOME,
           PATH: process.env.PATH,

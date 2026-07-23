@@ -78,11 +78,15 @@ export function verifyPhase74SealedOracleArtifact(input: {
   if (
     input.execution.stage !== "E4" ||
     artifact.runId !== input.execution.runId ||
-    artifact.executionSha256 !== input.escrow.executionSha256 ||
-    (input.expectedE3ArtifactSha256 !== undefined &&
-      artifact.e3ArtifactSha256 !== input.expectedE3ArtifactSha256)
+    artifact.executionSha256 !== input.escrow.executionSha256
   ) {
     throw new Error("Phase 74 sealed oracle artifact identity drifted.");
+  }
+  if (
+    input.expectedE3ArtifactSha256 !== undefined &&
+    artifact.e3ArtifactSha256 !== input.expectedE3ArtifactSha256
+  ) {
+    throw new Error("Phase 74 sealed oracle E3 artifact digest drifted.");
   }
   const escrowCases = new Map(input.escrow.cases.map((testCase) => [
     testCase.caseKey,

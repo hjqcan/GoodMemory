@@ -377,6 +377,7 @@ export function materializePhase74SealedReport(input: {
   escrow: Phase74SealedEscrowBundle;
   execution: Phase74SealedExecutionBundle;
   executorOutput: Phase74SealedExecutorOutput;
+  expectedE3ArtifactSha256?: string;
   identity: EvalRunIdentity;
   oracleArtifact?: string;
   receipt: Phase74SealedScoreReceipt;
@@ -385,6 +386,9 @@ export function materializePhase74SealedReport(input: {
   const escrow = parsePhase74SealedEscrowBundle(input.escrow);
   const executorOutput = parsePhase74SealedExecutorOutput(input.executorOutput);
   const artifact = parsePhase74UnscoredArtifact(input.artifact);
+  if (input.identity.runId !== execution.runId) {
+    throw new Error("Phase 74 sealed report run identity drifted.");
+  }
   verifyPhase74SealedScoreReceipt({
     escrow,
     execution,
@@ -397,10 +401,15 @@ export function materializePhase74SealedReport(input: {
     : verifyPhase74SealedOracleArtifact({
         escrow,
         execution,
+        expectedE3ArtifactSha256: input.expectedE3ArtifactSha256,
         expectedSha256: input.receipt.oracleSha256 ?? "",
         raw: input.oracleArtifact,
       });
-  if ((execution.stage === "E4") !== (oracleArtifact !== undefined)) {
+  if (
+    (execution.stage === "E4") !== (oracleArtifact !== undefined) ||
+    (execution.stage === "E4") !==
+      (input.expectedE3ArtifactSha256 !== undefined)
+  ) {
     throw new Error("Phase 74 sealed report oracle artifact is missing.");
   }
   const receiptByRowKey = new Map(input.receipt.rows.map((row) => [
