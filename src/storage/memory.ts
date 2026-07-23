@@ -13,6 +13,7 @@ import type {
   DocumentTextSearchInput,
   SessionStore,
   StorageDocument,
+  StorageFilter,
   VectorRecord,
   VectorSearchResult,
   VectorStore,
@@ -83,7 +84,7 @@ export function createInMemoryDocumentStore(): ProjectionCapableDocumentStore {
 
     async query<TDocument extends StorageDocument>(
       collection: string,
-      filter?: Record<string, unknown>,
+      filter?: StorageFilter,
     ) {
       return [...getCollection(collection).values()]
         .filter((document) => matchesFilter(document, filter))

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import type { StorageFilter } from "../../src/storage/contracts";
 import { createSQLiteVectorStore } from "../../src/storage/sqlite";
 import {
   DEFAULT_SQLITE_VECTOR_SEARCH_FUNCTION,
@@ -261,7 +262,7 @@ describe("sqlite vector extension search path", () => {
     await expect(
       store.search("facts", [1, 0, 0], {
         topK: 10,
-        filter: { tags: ["a"] },
+        filter: { tags: ["a"] } as unknown as StorageFilter,
       }),
     ).rejects.toThrow(
       "Failed to execute SQLite vector extension search for facts: SQLite vector extension search could not satisfy the current query without durable fallback.",

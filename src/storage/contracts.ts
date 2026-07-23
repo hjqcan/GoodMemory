@@ -6,7 +6,10 @@ import type {
 import type { MemoryScope } from "../domain/scope";
 
 export type StorageDocument = object;
-export type StorageFilter = Record<string, unknown>;
+export type StorageFilter = Record<
+  string,
+  boolean | number | string | null
+>;
 
 export const PROJECTION_BATCH_SEMANTICS = "unchanged-delete-v1" as const;
 
@@ -115,6 +118,7 @@ export function assertDocumentQueryPageInput(
   if (!Number.isSafeInteger(input.limit) || input.limit <= 0) {
     throw new Error("Document query page limit must be a positive integer.");
   }
+  assertStorageFilter(input.filter);
 }
 
 export function assertDocumentTextSearchInput(
@@ -125,6 +129,20 @@ export function assertDocumentTextSearchInput(
   }
   if (!Number.isSafeInteger(input.limit) || input.limit <= 0) {
     throw new Error("Document text search limit must be a positive integer.");
+  }
+  assertStorageFilter(input.filter);
+}
+
+export function assertStorageFilter(filter?: StorageFilter): void {
+  for (const value of Object.values(filter ?? {}) as unknown[]) {
+    if (
+      value !== null &&
+      typeof value !== "boolean" &&
+      typeof value !== "string" &&
+      (typeof value !== "number" || !Number.isFinite(value))
+    ) {
+      throw new Error("Storage filters only support scalar equality values.");
+    }
   }
 }
 

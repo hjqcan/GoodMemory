@@ -17,6 +17,7 @@ import type {
   ProjectionCapableDocumentStore,
   SessionStore,
   StorageDocument,
+  StorageFilter,
   VectorRecord,
   VectorSearchResult,
   VectorStore,
@@ -25,6 +26,7 @@ import {
   PROJECTION_BATCH_SEMANTICS,
   assertDocumentQueryPageInput,
   assertDocumentTextSearchInput,
+  assertStorageFilter,
   matchesFilter,
   shallowMergeDocument,
 } from "./contracts";
@@ -605,16 +607,6 @@ export function createSQLiteDocumentStore(
   const listStatement = database.query<DocumentRow, [string]>(
     `SELECT json FROM documents WHERE collection = ?1`,
   );
-  const pageStatement = database.query<
-    DocumentPageRow,
-    [string, string | null, number]
-  >(
-    `SELECT id, json
-     FROM documents
-     WHERE collection = ?1 AND (?2 IS NULL OR id > ?2)
-     ORDER BY id ASC
-     LIMIT ?3`,
-  );
   const deleteStatement = database.query(
     `DELETE FROM documents WHERE collection = ?1 AND id = ?2`,
   );
@@ -704,7 +696,7 @@ export function createSQLiteDocumentStore(
 
   function buildSearchFilter(input: {
     alias: string;
-    filter?: Record<string, unknown>;
+    filter?: StorageFilter;
     values: SQLiteBindingValue[];
   }): string[] {
     const entries = Object.entries(input.filter ?? {});
@@ -712,9 +704,6 @@ export function createSQLiteDocumentStore(
       ? [`json_valid(${input.alias}.json)`]
       : [];
     for (const [key, value] of entries) {
-      if (!canUseSQLiteJsonFilterValue(value)) {
-        continue;
-      }
       const indexedPath = readIndexedDocumentJsonPath(key);
       if (indexedPath) {
         if (value === null) {
@@ -823,12 +812,12 @@ export function createSQLiteDocumentStore(
 
     async query<TDocument extends StorageDocument>(
       collection: string,
-      filter?: Record<string, unknown>,
+      filter?: StorageFilter,
     ) {
+      assertStorageFilter(filter);
       if (
         filter &&
-        Object.keys(filter).length > 0 &&
-        Object.values(filter).every(canUseSQLiteJsonFilterValue)
+        Object.keys(filter).length > 0
       ) {
         const values: SQLiteBindingValue[] = [collection];
         const filterClauses = buildSearchFilter({
@@ -846,9 +835,7 @@ export function createSQLiteDocumentStore(
       }
       const rows = listStatement.all(collection);
 
-      return rows
-        .map((row) => parseJson<TDocument>(row.json))
-        .filter((document) => matchesFilter(document, filter));
+      return rows.map((row) => parseJson<TDocument>(row.json));
     },
 
     async queryPage<TDocument extends StorageDocument>(
@@ -856,32 +843,30 @@ export function createSQLiteDocumentStore(
       input: DocumentQueryPageInput,
     ) {
       assertDocumentQueryPageInput(input);
-      const matched: Array<{ document: TDocument; id: string }> = [];
-      const batchSize = Math.max(64, input.limit + 1);
-      let cursor = input.cursor ?? null;
-      while (matched.length <= input.limit) {
-        const rows = pageStatement.all(collection, cursor, batchSize);
-        if (rows.length === 0) {
-          break;
-        }
-        for (const row of rows) {
-          const document = parseJson<TDocument>(row.json);
-          if (matchesFilter(document, input.filter)) {
-            matched.push({ document, id: row.id });
-            if (matched.length > input.limit) {
-              break;
-            }
-          }
-        }
-        cursor = rows.at(-1)!.id;
-        if (rows.length < batchSize) {
-          break;
-        }
-      }
-      const page = matched.slice(0, input.limit);
+      const values: SQLiteBindingValue[] = [collection];
+      const filterClauses = buildSearchFilter({
+        alias: "documents",
+        filter: input.filter,
+        values,
+      });
+      values.push(input.cursor ?? null);
+      const cursorParameter = values.length;
+      values.push(input.limit + 1);
+      const rows = database
+        .query<DocumentPageRow, SQLiteBindingValue[]>(
+          `SELECT documents.id, documents.json
+           FROM documents
+           WHERE documents.collection = ?1
+             ${filterClauses.length > 0 ? `AND ${filterClauses.join(" AND ")}` : ""}
+             AND (?${cursorParameter} IS NULL OR documents.id > ?${cursorParameter})
+           ORDER BY documents.id ASC
+           LIMIT ?${values.length}`,
+        )
+        .all(...values);
+      const page = rows.slice(0, input.limit);
       return {
-        items: page.map(({ document }) => document),
-        ...(matched.length > input.limit
+        items: page.map((row) => parseJson<TDocument>(row.json)),
+        ...(rows.length > input.limit
           ? { nextCursor: page.at(-1)!.id }
           : {}),
       };
@@ -1438,7 +1423,7 @@ export function createSQLiteVectorStore(
 
   function searchSQLiteVectorsWithVss(input: {
     collection: string;
-    filter?: Record<string, unknown>;
+    filter?: StorageFilter;
     queryEmbedding: number[];
     topK: number;
   }): VectorSearchResult[] | null {

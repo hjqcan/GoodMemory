@@ -25,6 +25,7 @@ import type {
   DocumentStore,
   ProjectionCapableDocumentStore,
   StorageDocument,
+  StorageFilter,
 } from "../../src/storage/contracts";
 import { createFakeEmbeddingAdapter } from "../../src/testing/fakes";
 import { createArtifactSpilloverService } from "../../src/runtime/spillover";
@@ -794,7 +795,7 @@ describe("public governance API", () => {
       ...inner,
       async query<TDocument extends StorageDocument>(
         collection: string,
-        filter?: Record<string, unknown>,
+        filter?: StorageFilter,
       ) {
         const records = await inner.query<TDocument>(collection, filter);
         if (pauseProjectionScan && collection === PROJECTION_REPAIRS_COLLECTION) {

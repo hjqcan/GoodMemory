@@ -168,7 +168,7 @@ describe("public forget API", () => {
     expect(await documentStore.query(EVIDENCE_COLLECTION, scope)).toHaveLength(1);
     expect(await documentStore.query(SOURCE_MESSAGES_COLLECTION, scope)).toHaveLength(1);
     expect(await documentStore.query(CLAIM_PROJECTIONS_COLLECTION, {
-      sourceMemoryId: memoryId,
+      sourceMemoryId: memoryId!,
     })).toHaveLength(1);
 
     await memory.forget({ scope, memoryId });
@@ -176,10 +176,10 @@ describe("public forget API", () => {
     expect(await documentStore.query(EVIDENCE_COLLECTION, scope)).toHaveLength(0);
     expect(await documentStore.query(SOURCE_MESSAGES_COLLECTION, scope)).toHaveLength(0);
     expect(await documentStore.query(CLAIM_PROJECTIONS_COLLECTION, {
-      sourceMemoryId: memoryId,
+      sourceMemoryId: memoryId!,
     })).toHaveLength(0);
     expect(await documentStore.query(CLAIM_PROJECTION_STATUS_COLLECTION, {
-      sourceMemoryId: memoryId,
+      sourceMemoryId: memoryId!,
     })).toHaveLength(0);
   });
 
@@ -555,7 +555,7 @@ describe("public forget API", () => {
     );
     expect(await rawStore.get("facts", memoryId!)).toBeNull();
     expect(await rawStore.query(PROJECTION_REPAIRS_COLLECTION, {
-      sourceMemoryId: memoryId,
+      sourceMemoryId: memoryId!,
     })).toHaveLength(1);
   });
 });

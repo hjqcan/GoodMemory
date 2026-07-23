@@ -27,7 +27,9 @@ import {
 import type {
   DocumentStore,
   SessionStore,
+  StorageFilter,
   VectorRecord,
+  VectorSearchInput,
   VectorStore,
 } from "./contracts";
 
@@ -133,7 +135,7 @@ export interface MemoryRepositories {
     ): Promise<void>;
     searchFactEmbedding(
       queryEmbedding: number[],
-      input: { topK: number; filter?: Record<string, unknown> },
+      input: VectorSearchInput,
     ): Promise<
       Array<{
         id: string;
@@ -155,7 +157,7 @@ export interface MemoryRepositories {
     ): Promise<void>;
     searchReferenceEmbedding(
       queryEmbedding: number[],
-      input: { topK: number; filter?: Record<string, unknown> },
+      input: VectorSearchInput,
     ): Promise<
       Array<{
         id: string;
@@ -177,7 +179,7 @@ export interface MemoryRepositories {
     ): Promise<void>;
     searchEpisodeEmbedding(
       queryEmbedding: number[],
-      input: { topK: number; filter?: Record<string, unknown> },
+      input: VectorSearchInput,
     ): Promise<
       Array<{
         id: string;
@@ -195,14 +197,14 @@ export interface MemoryRepositories {
 export function createMemoryRepositories(
   config: MemoryRepositoriesConfig,
 ): MemoryRepositories {
-  function buildScopeFilter(scope: MemoryScope): Record<string, unknown> {
+  function buildScopeFilter(scope: MemoryScope): StorageFilter {
     return Object.fromEntries(
       Object.entries({
         userId: scope.userId,
         tenantId: scope.tenantId,
         workspaceId: scope.workspaceId,
         agentId: scope.agentId,
-      }).filter(([, value]) => value !== undefined),
+      }).filter((entry): entry is [string, string] => entry[1] !== undefined),
     );
   }
 
@@ -510,7 +512,7 @@ export function createMemoryRepositories(
           ),
           searchFactEmbedding: (
             queryEmbedding: number[],
-            input: { topK: number; filter?: Record<string, unknown> },
+            input: VectorSearchInput,
           ) => config.vectorStore!.search("facts", queryEmbedding, input),
           getFactEmbedding: (id: string) => config.vectorStore!.get("facts", id),
           deleteFactEmbedding: (id: string) => config.vectorStore!.delete("facts", id),
@@ -520,7 +522,7 @@ export function createMemoryRepositories(
           ),
           searchReferenceEmbedding: (
             queryEmbedding: number[],
-            input: { topK: number; filter?: Record<string, unknown> },
+            input: VectorSearchInput,
           ) => config.vectorStore!.search("references", queryEmbedding, input),
           getReferenceEmbedding: (id: string) => config.vectorStore!.get("references", id),
           deleteReferenceEmbedding: (id: string) =>
@@ -531,7 +533,7 @@ export function createMemoryRepositories(
           ),
           searchEpisodeEmbedding: (
             queryEmbedding: number[],
-            input: { topK: number; filter?: Record<string, unknown> },
+            input: VectorSearchInput,
           ) => config.vectorStore!.search("episodes", queryEmbedding, input),
           getEpisodeEmbedding: (id: string) => config.vectorStore!.get("episodes", id),
           deleteEpisodeEmbedding: (id: string) => config.vectorStore!.delete("episodes", id),

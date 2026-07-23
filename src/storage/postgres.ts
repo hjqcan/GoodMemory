@@ -654,7 +654,7 @@ export function createPostgresDocumentStore(
 
     async query<TDocument extends StorageDocument>(
       collection: string,
-      filter?: Record<string, unknown>,
+      filter?: StorageFilter,
     ) {
       if (options?.readOnly && !(await runtime.hasDocumentStore())) {
         return [];

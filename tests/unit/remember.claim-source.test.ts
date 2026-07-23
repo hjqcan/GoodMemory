@@ -514,7 +514,7 @@ describe("remember claim source provenance", () => {
     const factEvent = result.events.find(({ memoryType }) => memoryType === "fact")!;
     const claims = await rawStore.query<ClaimProjection>(
       CLAIM_PROJECTIONS_COLLECTION,
-      { sourceMemoryId: factEvent.memoryId },
+      { sourceMemoryId: factEvent.memoryId! },
     );
 
     expect(claims).toHaveLength(1);
@@ -558,7 +558,7 @@ describe("remember claim source provenance", () => {
       ?.memoryId;
     const statuses = await rawStore.query<ClaimProjectionStatus>(
       CLAIM_PROJECTION_STATUS_COLLECTION,
-      { sourceMemoryId: memoryId },
+      { sourceMemoryId: memoryId! },
     );
     const rawMessages = await rawStore.query<SourceMessageRecord>(
       SOURCE_MESSAGES_COLLECTION,
@@ -786,7 +786,7 @@ describe("remember claim source provenance", () => {
     ]);
     expect(await rawStore.query<ClaimProjectionStatus>(
       CLAIM_PROJECTION_STATUS_COLLECTION,
-      { sourceMemoryId: factEvent?.memoryId },
+      { sourceMemoryId: factEvent?.memoryId! },
     )).toEqual([
       expect.objectContaining({ state: "unstructured" }),
     ]);

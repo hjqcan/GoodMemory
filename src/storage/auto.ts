@@ -5,6 +5,7 @@ import type {
   ProjectionCapableDocumentStore,
   SessionStore,
   StorageDocument,
+  StorageFilter,
   VectorRecord,
   VectorSearchInput,
   VectorSearchResult,
@@ -88,7 +89,7 @@ function createAutoDocumentStore(
 
     async query<TDocument extends StorageDocument>(
       collection: string,
-      filter?: Record<string, unknown>,
+      filter?: StorageFilter,
     ) {
       const backend = await resolveBackend();
       return backend.documentStore.query<TDocument>(collection, filter);

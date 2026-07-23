@@ -241,7 +241,7 @@ describe("recall projections through the public API", () => {
     expect(
       await documentStore.query<RecallIndexDocument>(
         RECALL_DOCUMENTS_COLLECTION,
-        { sourceMemoryId: previousMemoryId },
+        { sourceMemoryId: previousMemoryId! },
       ),
     ).not.toEqual([]);
 
@@ -256,12 +256,12 @@ describe("recall projections through the public API", () => {
     expect(revised.newMemoryId).toBeString();
     expect(
       await documentStore.query(RECALL_DOCUMENTS_COLLECTION, {
-        sourceMemoryId: previousMemoryId,
+        sourceMemoryId: previousMemoryId!,
       }),
     ).toEqual([]);
     expect(
       await documentStore.query(RECALL_DOCUMENTS_COLLECTION, {
-        sourceMemoryId: revised.newMemoryId,
+        sourceMemoryId: revised.newMemoryId!,
       }),
     ).not.toEqual([]);
 
@@ -272,7 +272,7 @@ describe("recall projections through the public API", () => {
     expect(forgotten.forgotten).toBe(true);
     expect(
       await documentStore.query(RECALL_DOCUMENTS_COLLECTION, {
-        sourceMemoryId: revised.newMemoryId,
+        sourceMemoryId: revised.newMemoryId!,
       }),
     ).toEqual([]);
   });
@@ -319,7 +319,7 @@ describe("recall projections through the public API", () => {
     expect(maintenance.ran).toBe(true);
     expect(
       await rawStore.query(RECALL_DOCUMENTS_COLLECTION, {
-        sourceMemoryId: memoryId,
+        sourceMemoryId: memoryId!,
       }),
     ).not.toEqual([]);
     expect(await rawStore.query(PROJECTION_REPAIRS_COLLECTION)).toEqual([]);
@@ -359,7 +359,7 @@ describe("recall projections through the public API", () => {
     expect(await rawStore.get("facts", memoryId!)).toBeNull();
     expect(
       await rawStore.query(RECALL_DOCUMENTS_COLLECTION, {
-        sourceMemoryId: memoryId,
+        sourceMemoryId: memoryId!,
       }),
     ).not.toEqual([]);
 
@@ -367,7 +367,7 @@ describe("recall projections through the public API", () => {
 
     expect(
       await rawStore.query(RECALL_DOCUMENTS_COLLECTION, {
-        sourceMemoryId: memoryId,
+        sourceMemoryId: memoryId!,
       }),
     ).toEqual([]);
   });

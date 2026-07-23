@@ -39,7 +39,7 @@ export function scopeFilter(scope: MemoryScope): StorageFilter {
       tenantId: normalized.tenantId,
       workspaceId: normalized.workspaceId,
       agentId: normalized.agentId,
-    }).filter(([, value]) => value !== undefined),
+    }).filter((entry): entry is [string, string] => entry[1] !== undefined),
   );
 }
 
