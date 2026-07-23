@@ -1,0 +1,1774 @@
+{
+  "admission": {
+    "class": "confirmatory-only",
+    "protocol": "presealed-full-family-confirmatory-v1"
+  },
+  "answerModel": {
+    "gateway": "https://ai.gurkiai.com/v1",
+    "model": "gpt-5.6-terra",
+    "provider": "openai"
+  },
+  "artifactKind": "phase74-full-family-confirmatory-plan",
+  "callBudget": {
+    "embeddingSpendLimitUsd": 8,
+    "maxLanguageCalls": 500000
+  },
+  "caseConcurrency": 100,
+  "embedding": {
+    "gateway": "https://openrouter.ai/api/v1",
+    "model": "baai/bge-m3",
+    "provider": "openai"
+  },
+  "evaluatorSource": {
+    "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+    "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+  },
+  "families": [
+    {
+      "benchmark": "locomo",
+      "parentDataset": {
+        "adaptedCasesSha256": "3ad2284e7c68dc8f678ca785a442adfec26c47f0818e7c86a355500044d4fb28",
+        "caseCount": 1986,
+        "datasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+        "memoryGroupCount": 10,
+        "normalizedFingerprint": "87abd829cbb3bd5110f80ae1df6c42338ca338b131fac48919ed171d46cb7692",
+        "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+        "sourceSha256": "79fa87e90f04081343b8c8debecb80a9a6842b76a7aa537dc9fdf651ea698ff4"
+      },
+      "population": {
+        "authority": "presealed-full-population",
+        "populationCommitment": {
+          "id": "phase74-confirmatory-locomo-population-v1",
+          "sha256": "449c8a6faee30f6a8cde5b502119eed7dd67946ae56203eab70a6ec4cdabec31"
+        },
+        "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+        "selectedCaseKeysSha256": "030e88c32e12340bb8b8726c9a8d5688bf1726141b2f1dd21bdabb92c98a7ff1",
+        "caseCount": 1986
+      },
+      "seenCasesOnly": true
+    },
+    {
+      "benchmark": "longmemeval",
+      "parentDataset": {
+        "adaptedCasesSha256": "09ddeaa96924520bebe8d642453e31983c210431ec63cac5cd907e2fd05569bb",
+        "caseCount": 500,
+        "datasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+        "memoryGroupCount": 500,
+        "normalizedFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+        "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+        "sourceSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+      },
+      "population": {
+        "authority": "presealed-full-population",
+        "populationCommitment": {
+          "id": "phase74-confirmatory-longmemeval-population-v1",
+          "sha256": "8885a6c5bf31b90468fb79f8f5607910c5420cc00e597c0bbb5faa805cfbe9f3"
+        },
+        "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+        "selectedCaseKeysSha256": "4d3762f914ca1c8ccaad08c35627d64066666d08b62b22e72863c24b14709459",
+        "caseCount": 500
+      },
+      "seenCasesOnly": true
+    }
+  ],
+  "judgeModel": {
+    "gateway": "https://ai.gurkiai.com/v1",
+    "model": "gpt-5.5",
+    "provider": "openai"
+  },
+  "protectionBlueprint": {
+    "id": "phase74-protection-suite-manifest-v2",
+    "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+  },
+  "renderedContextTokens": 6000,
+  "reranker": {
+    "gateway": "https://ai.gurkiai.com/v1",
+    "model": "gpt-5.6-terra",
+    "provider": "openai",
+    "implementation": "provider-listwise-v1",
+    "mode": "provider"
+  },
+  "runs": [
+    {
+      "benchmark": "locomo",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "locomo",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "3ad2284e7c68dc8f678ca785a442adfec26c47f0818e7c86a355500044d4fb28",
+            "caseCount": 1986,
+            "datasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "memoryGroupCount": 10,
+            "normalizedFingerprint": "87abd829cbb3bd5110f80ae1df6c42338ca338b131fac48919ed171d46cb7692",
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "sourceSha256": "79fa87e90f04081343b8c8debecb80a9a6842b76a7aa537dc9fdf651ea698ff4"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 1986,
+            "mode": "all",
+            "parentDatasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-locomo-population-v1",
+              "sha256": "449c8a6faee30f6a8cde5b502119eed7dd67946ae56203eab70a6ec4cdabec31"
+            },
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "selectedCaseKeysSha256": "030e88c32e12340bb8b8726c9a8d5688bf1726141b2f1dd21bdabb92c98a7ff1"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "63b13e9e0bb8c97ae1be0d62d60e8111157f10d86cfe8daeeb1f898c93e391b7",
+      "replicate": 1,
+      "runId": "phase74-confirmatory-locomo-r1",
+      "stage": "E1"
+    },
+    {
+      "benchmark": "locomo",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "locomo",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "3ad2284e7c68dc8f678ca785a442adfec26c47f0818e7c86a355500044d4fb28",
+            "caseCount": 1986,
+            "datasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "memoryGroupCount": 10,
+            "normalizedFingerprint": "87abd829cbb3bd5110f80ae1df6c42338ca338b131fac48919ed171d46cb7692",
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "sourceSha256": "79fa87e90f04081343b8c8debecb80a9a6842b76a7aa537dc9fdf651ea698ff4"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 1986,
+            "mode": "all",
+            "parentDatasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-locomo-population-v1",
+              "sha256": "449c8a6faee30f6a8cde5b502119eed7dd67946ae56203eab70a6ec4cdabec31"
+            },
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "selectedCaseKeysSha256": "030e88c32e12340bb8b8726c9a8d5688bf1726141b2f1dd21bdabb92c98a7ff1"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "63b13e9e0bb8c97ae1be0d62d60e8111157f10d86cfe8daeeb1f898c93e391b7",
+      "replicate": 1,
+      "runId": "phase74-confirmatory-locomo-r1",
+      "stage": "E2"
+    },
+    {
+      "benchmark": "locomo",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "locomo",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "3ad2284e7c68dc8f678ca785a442adfec26c47f0818e7c86a355500044d4fb28",
+            "caseCount": 1986,
+            "datasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "memoryGroupCount": 10,
+            "normalizedFingerprint": "87abd829cbb3bd5110f80ae1df6c42338ca338b131fac48919ed171d46cb7692",
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "sourceSha256": "79fa87e90f04081343b8c8debecb80a9a6842b76a7aa537dc9fdf651ea698ff4"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 1986,
+            "mode": "all",
+            "parentDatasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-locomo-population-v1",
+              "sha256": "449c8a6faee30f6a8cde5b502119eed7dd67946ae56203eab70a6ec4cdabec31"
+            },
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "selectedCaseKeysSha256": "030e88c32e12340bb8b8726c9a8d5688bf1726141b2f1dd21bdabb92c98a7ff1"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "63b13e9e0bb8c97ae1be0d62d60e8111157f10d86cfe8daeeb1f898c93e391b7",
+      "replicate": 1,
+      "runId": "phase74-confirmatory-locomo-r1",
+      "stage": "E3"
+    },
+    {
+      "benchmark": "locomo",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "locomo",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "3ad2284e7c68dc8f678ca785a442adfec26c47f0818e7c86a355500044d4fb28",
+            "caseCount": 1986,
+            "datasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "memoryGroupCount": 10,
+            "normalizedFingerprint": "87abd829cbb3bd5110f80ae1df6c42338ca338b131fac48919ed171d46cb7692",
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "sourceSha256": "79fa87e90f04081343b8c8debecb80a9a6842b76a7aa537dc9fdf651ea698ff4"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 1986,
+            "mode": "all",
+            "parentDatasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-locomo-population-v1",
+              "sha256": "449c8a6faee30f6a8cde5b502119eed7dd67946ae56203eab70a6ec4cdabec31"
+            },
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "selectedCaseKeysSha256": "030e88c32e12340bb8b8726c9a8d5688bf1726141b2f1dd21bdabb92c98a7ff1"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "63b13e9e0bb8c97ae1be0d62d60e8111157f10d86cfe8daeeb1f898c93e391b7",
+      "replicate": 1,
+      "runId": "phase74-confirmatory-locomo-r1",
+      "stage": "E4"
+    },
+    {
+      "benchmark": "locomo",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "locomo",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "3ad2284e7c68dc8f678ca785a442adfec26c47f0818e7c86a355500044d4fb28",
+            "caseCount": 1986,
+            "datasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "memoryGroupCount": 10,
+            "normalizedFingerprint": "87abd829cbb3bd5110f80ae1df6c42338ca338b131fac48919ed171d46cb7692",
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "sourceSha256": "79fa87e90f04081343b8c8debecb80a9a6842b76a7aa537dc9fdf651ea698ff4"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 1986,
+            "mode": "all",
+            "parentDatasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-locomo-population-v1",
+              "sha256": "449c8a6faee30f6a8cde5b502119eed7dd67946ae56203eab70a6ec4cdabec31"
+            },
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "selectedCaseKeysSha256": "030e88c32e12340bb8b8726c9a8d5688bf1726141b2f1dd21bdabb92c98a7ff1"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "63b13e9e0bb8c97ae1be0d62d60e8111157f10d86cfe8daeeb1f898c93e391b7",
+      "replicate": 2,
+      "runId": "phase74-confirmatory-locomo-r2",
+      "stage": "E1"
+    },
+    {
+      "benchmark": "locomo",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "locomo",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "3ad2284e7c68dc8f678ca785a442adfec26c47f0818e7c86a355500044d4fb28",
+            "caseCount": 1986,
+            "datasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "memoryGroupCount": 10,
+            "normalizedFingerprint": "87abd829cbb3bd5110f80ae1df6c42338ca338b131fac48919ed171d46cb7692",
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "sourceSha256": "79fa87e90f04081343b8c8debecb80a9a6842b76a7aa537dc9fdf651ea698ff4"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 1986,
+            "mode": "all",
+            "parentDatasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-locomo-population-v1",
+              "sha256": "449c8a6faee30f6a8cde5b502119eed7dd67946ae56203eab70a6ec4cdabec31"
+            },
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "selectedCaseKeysSha256": "030e88c32e12340bb8b8726c9a8d5688bf1726141b2f1dd21bdabb92c98a7ff1"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "63b13e9e0bb8c97ae1be0d62d60e8111157f10d86cfe8daeeb1f898c93e391b7",
+      "replicate": 2,
+      "runId": "phase74-confirmatory-locomo-r2",
+      "stage": "E2"
+    },
+    {
+      "benchmark": "locomo",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "locomo",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "3ad2284e7c68dc8f678ca785a442adfec26c47f0818e7c86a355500044d4fb28",
+            "caseCount": 1986,
+            "datasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "memoryGroupCount": 10,
+            "normalizedFingerprint": "87abd829cbb3bd5110f80ae1df6c42338ca338b131fac48919ed171d46cb7692",
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "sourceSha256": "79fa87e90f04081343b8c8debecb80a9a6842b76a7aa537dc9fdf651ea698ff4"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 1986,
+            "mode": "all",
+            "parentDatasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-locomo-population-v1",
+              "sha256": "449c8a6faee30f6a8cde5b502119eed7dd67946ae56203eab70a6ec4cdabec31"
+            },
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "selectedCaseKeysSha256": "030e88c32e12340bb8b8726c9a8d5688bf1726141b2f1dd21bdabb92c98a7ff1"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "63b13e9e0bb8c97ae1be0d62d60e8111157f10d86cfe8daeeb1f898c93e391b7",
+      "replicate": 2,
+      "runId": "phase74-confirmatory-locomo-r2",
+      "stage": "E3"
+    },
+    {
+      "benchmark": "locomo",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "locomo",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "3ad2284e7c68dc8f678ca785a442adfec26c47f0818e7c86a355500044d4fb28",
+            "caseCount": 1986,
+            "datasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "memoryGroupCount": 10,
+            "normalizedFingerprint": "87abd829cbb3bd5110f80ae1df6c42338ca338b131fac48919ed171d46cb7692",
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "sourceSha256": "79fa87e90f04081343b8c8debecb80a9a6842b76a7aa537dc9fdf651ea698ff4"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 1986,
+            "mode": "all",
+            "parentDatasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-locomo-population-v1",
+              "sha256": "449c8a6faee30f6a8cde5b502119eed7dd67946ae56203eab70a6ec4cdabec31"
+            },
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "selectedCaseKeysSha256": "030e88c32e12340bb8b8726c9a8d5688bf1726141b2f1dd21bdabb92c98a7ff1"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "63b13e9e0bb8c97ae1be0d62d60e8111157f10d86cfe8daeeb1f898c93e391b7",
+      "replicate": 2,
+      "runId": "phase74-confirmatory-locomo-r2",
+      "stage": "E4"
+    },
+    {
+      "benchmark": "locomo",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "locomo",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "3ad2284e7c68dc8f678ca785a442adfec26c47f0818e7c86a355500044d4fb28",
+            "caseCount": 1986,
+            "datasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "memoryGroupCount": 10,
+            "normalizedFingerprint": "87abd829cbb3bd5110f80ae1df6c42338ca338b131fac48919ed171d46cb7692",
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "sourceSha256": "79fa87e90f04081343b8c8debecb80a9a6842b76a7aa537dc9fdf651ea698ff4"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 1986,
+            "mode": "all",
+            "parentDatasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-locomo-population-v1",
+              "sha256": "449c8a6faee30f6a8cde5b502119eed7dd67946ae56203eab70a6ec4cdabec31"
+            },
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "selectedCaseKeysSha256": "030e88c32e12340bb8b8726c9a8d5688bf1726141b2f1dd21bdabb92c98a7ff1"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "63b13e9e0bb8c97ae1be0d62d60e8111157f10d86cfe8daeeb1f898c93e391b7",
+      "replicate": 3,
+      "runId": "phase74-confirmatory-locomo-r3",
+      "stage": "E1"
+    },
+    {
+      "benchmark": "locomo",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "locomo",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "3ad2284e7c68dc8f678ca785a442adfec26c47f0818e7c86a355500044d4fb28",
+            "caseCount": 1986,
+            "datasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "memoryGroupCount": 10,
+            "normalizedFingerprint": "87abd829cbb3bd5110f80ae1df6c42338ca338b131fac48919ed171d46cb7692",
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "sourceSha256": "79fa87e90f04081343b8c8debecb80a9a6842b76a7aa537dc9fdf651ea698ff4"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 1986,
+            "mode": "all",
+            "parentDatasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-locomo-population-v1",
+              "sha256": "449c8a6faee30f6a8cde5b502119eed7dd67946ae56203eab70a6ec4cdabec31"
+            },
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "selectedCaseKeysSha256": "030e88c32e12340bb8b8726c9a8d5688bf1726141b2f1dd21bdabb92c98a7ff1"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "63b13e9e0bb8c97ae1be0d62d60e8111157f10d86cfe8daeeb1f898c93e391b7",
+      "replicate": 3,
+      "runId": "phase74-confirmatory-locomo-r3",
+      "stage": "E2"
+    },
+    {
+      "benchmark": "locomo",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "locomo",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "3ad2284e7c68dc8f678ca785a442adfec26c47f0818e7c86a355500044d4fb28",
+            "caseCount": 1986,
+            "datasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "memoryGroupCount": 10,
+            "normalizedFingerprint": "87abd829cbb3bd5110f80ae1df6c42338ca338b131fac48919ed171d46cb7692",
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "sourceSha256": "79fa87e90f04081343b8c8debecb80a9a6842b76a7aa537dc9fdf651ea698ff4"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 1986,
+            "mode": "all",
+            "parentDatasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-locomo-population-v1",
+              "sha256": "449c8a6faee30f6a8cde5b502119eed7dd67946ae56203eab70a6ec4cdabec31"
+            },
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "selectedCaseKeysSha256": "030e88c32e12340bb8b8726c9a8d5688bf1726141b2f1dd21bdabb92c98a7ff1"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "63b13e9e0bb8c97ae1be0d62d60e8111157f10d86cfe8daeeb1f898c93e391b7",
+      "replicate": 3,
+      "runId": "phase74-confirmatory-locomo-r3",
+      "stage": "E3"
+    },
+    {
+      "benchmark": "locomo",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "locomo",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "3ad2284e7c68dc8f678ca785a442adfec26c47f0818e7c86a355500044d4fb28",
+            "caseCount": 1986,
+            "datasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "memoryGroupCount": 10,
+            "normalizedFingerprint": "87abd829cbb3bd5110f80ae1df6c42338ca338b131fac48919ed171d46cb7692",
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "sourceSha256": "79fa87e90f04081343b8c8debecb80a9a6842b76a7aa537dc9fdf651ea698ff4"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 1986,
+            "mode": "all",
+            "parentDatasetSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-locomo-population-v1",
+              "sha256": "449c8a6faee30f6a8cde5b502119eed7dd67946ae56203eab70a6ec4cdabec31"
+            },
+            "selectedCaseIdsSha256": "b9c97dcf7f6092309e90cf9810ca969111e6fdac6b723ffbe96b1a414fce4a0e",
+            "selectedCaseKeysSha256": "030e88c32e12340bb8b8726c9a8d5688bf1726141b2f1dd21bdabb92c98a7ff1"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "63b13e9e0bb8c97ae1be0d62d60e8111157f10d86cfe8daeeb1f898c93e391b7",
+      "replicate": 3,
+      "runId": "phase74-confirmatory-locomo-r3",
+      "stage": "E4"
+    },
+    {
+      "benchmark": "longmemeval",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "longmemeval",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "09ddeaa96924520bebe8d642453e31983c210431ec63cac5cd907e2fd05569bb",
+            "caseCount": 500,
+            "datasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "memoryGroupCount": 500,
+            "normalizedFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "sourceSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 500,
+            "mode": "all",
+            "parentDatasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-longmemeval-population-v1",
+              "sha256": "8885a6c5bf31b90468fb79f8f5607910c5420cc00e597c0bbb5faa805cfbe9f3"
+            },
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "selectedCaseKeysSha256": "4d3762f914ca1c8ccaad08c35627d64066666d08b62b22e72863c24b14709459"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "b14c0ceaf33ba1343ee66ca3bdc4b857b3af1d13de9178f4b3bc275c37c6b9d2",
+      "replicate": 1,
+      "runId": "phase74-confirmatory-longmemeval-r1",
+      "stage": "E1"
+    },
+    {
+      "benchmark": "longmemeval",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "longmemeval",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "09ddeaa96924520bebe8d642453e31983c210431ec63cac5cd907e2fd05569bb",
+            "caseCount": 500,
+            "datasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "memoryGroupCount": 500,
+            "normalizedFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "sourceSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 500,
+            "mode": "all",
+            "parentDatasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-longmemeval-population-v1",
+              "sha256": "8885a6c5bf31b90468fb79f8f5607910c5420cc00e597c0bbb5faa805cfbe9f3"
+            },
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "selectedCaseKeysSha256": "4d3762f914ca1c8ccaad08c35627d64066666d08b62b22e72863c24b14709459"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "b14c0ceaf33ba1343ee66ca3bdc4b857b3af1d13de9178f4b3bc275c37c6b9d2",
+      "replicate": 1,
+      "runId": "phase74-confirmatory-longmemeval-r1",
+      "stage": "E2"
+    },
+    {
+      "benchmark": "longmemeval",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "longmemeval",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "09ddeaa96924520bebe8d642453e31983c210431ec63cac5cd907e2fd05569bb",
+            "caseCount": 500,
+            "datasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "memoryGroupCount": 500,
+            "normalizedFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "sourceSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 500,
+            "mode": "all",
+            "parentDatasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-longmemeval-population-v1",
+              "sha256": "8885a6c5bf31b90468fb79f8f5607910c5420cc00e597c0bbb5faa805cfbe9f3"
+            },
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "selectedCaseKeysSha256": "4d3762f914ca1c8ccaad08c35627d64066666d08b62b22e72863c24b14709459"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "b14c0ceaf33ba1343ee66ca3bdc4b857b3af1d13de9178f4b3bc275c37c6b9d2",
+      "replicate": 1,
+      "runId": "phase74-confirmatory-longmemeval-r1",
+      "stage": "E3"
+    },
+    {
+      "benchmark": "longmemeval",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "longmemeval",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "09ddeaa96924520bebe8d642453e31983c210431ec63cac5cd907e2fd05569bb",
+            "caseCount": 500,
+            "datasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "memoryGroupCount": 500,
+            "normalizedFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "sourceSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 500,
+            "mode": "all",
+            "parentDatasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-longmemeval-population-v1",
+              "sha256": "8885a6c5bf31b90468fb79f8f5607910c5420cc00e597c0bbb5faa805cfbe9f3"
+            },
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "selectedCaseKeysSha256": "4d3762f914ca1c8ccaad08c35627d64066666d08b62b22e72863c24b14709459"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "b14c0ceaf33ba1343ee66ca3bdc4b857b3af1d13de9178f4b3bc275c37c6b9d2",
+      "replicate": 1,
+      "runId": "phase74-confirmatory-longmemeval-r1",
+      "stage": "E4"
+    },
+    {
+      "benchmark": "longmemeval",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "longmemeval",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "09ddeaa96924520bebe8d642453e31983c210431ec63cac5cd907e2fd05569bb",
+            "caseCount": 500,
+            "datasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "memoryGroupCount": 500,
+            "normalizedFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "sourceSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 500,
+            "mode": "all",
+            "parentDatasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-longmemeval-population-v1",
+              "sha256": "8885a6c5bf31b90468fb79f8f5607910c5420cc00e597c0bbb5faa805cfbe9f3"
+            },
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "selectedCaseKeysSha256": "4d3762f914ca1c8ccaad08c35627d64066666d08b62b22e72863c24b14709459"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "b14c0ceaf33ba1343ee66ca3bdc4b857b3af1d13de9178f4b3bc275c37c6b9d2",
+      "replicate": 2,
+      "runId": "phase74-confirmatory-longmemeval-r2",
+      "stage": "E1"
+    },
+    {
+      "benchmark": "longmemeval",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "longmemeval",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "09ddeaa96924520bebe8d642453e31983c210431ec63cac5cd907e2fd05569bb",
+            "caseCount": 500,
+            "datasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "memoryGroupCount": 500,
+            "normalizedFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "sourceSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 500,
+            "mode": "all",
+            "parentDatasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-longmemeval-population-v1",
+              "sha256": "8885a6c5bf31b90468fb79f8f5607910c5420cc00e597c0bbb5faa805cfbe9f3"
+            },
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "selectedCaseKeysSha256": "4d3762f914ca1c8ccaad08c35627d64066666d08b62b22e72863c24b14709459"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "b14c0ceaf33ba1343ee66ca3bdc4b857b3af1d13de9178f4b3bc275c37c6b9d2",
+      "replicate": 2,
+      "runId": "phase74-confirmatory-longmemeval-r2",
+      "stage": "E2"
+    },
+    {
+      "benchmark": "longmemeval",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "longmemeval",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "09ddeaa96924520bebe8d642453e31983c210431ec63cac5cd907e2fd05569bb",
+            "caseCount": 500,
+            "datasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "memoryGroupCount": 500,
+            "normalizedFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "sourceSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 500,
+            "mode": "all",
+            "parentDatasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-longmemeval-population-v1",
+              "sha256": "8885a6c5bf31b90468fb79f8f5607910c5420cc00e597c0bbb5faa805cfbe9f3"
+            },
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "selectedCaseKeysSha256": "4d3762f914ca1c8ccaad08c35627d64066666d08b62b22e72863c24b14709459"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "b14c0ceaf33ba1343ee66ca3bdc4b857b3af1d13de9178f4b3bc275c37c6b9d2",
+      "replicate": 2,
+      "runId": "phase74-confirmatory-longmemeval-r2",
+      "stage": "E3"
+    },
+    {
+      "benchmark": "longmemeval",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "longmemeval",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "09ddeaa96924520bebe8d642453e31983c210431ec63cac5cd907e2fd05569bb",
+            "caseCount": 500,
+            "datasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "memoryGroupCount": 500,
+            "normalizedFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "sourceSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 500,
+            "mode": "all",
+            "parentDatasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-longmemeval-population-v1",
+              "sha256": "8885a6c5bf31b90468fb79f8f5607910c5420cc00e597c0bbb5faa805cfbe9f3"
+            },
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "selectedCaseKeysSha256": "4d3762f914ca1c8ccaad08c35627d64066666d08b62b22e72863c24b14709459"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "b14c0ceaf33ba1343ee66ca3bdc4b857b3af1d13de9178f4b3bc275c37c6b9d2",
+      "replicate": 2,
+      "runId": "phase74-confirmatory-longmemeval-r2",
+      "stage": "E4"
+    },
+    {
+      "benchmark": "longmemeval",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "longmemeval",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "09ddeaa96924520bebe8d642453e31983c210431ec63cac5cd907e2fd05569bb",
+            "caseCount": 500,
+            "datasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "memoryGroupCount": 500,
+            "normalizedFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "sourceSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 500,
+            "mode": "all",
+            "parentDatasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-longmemeval-population-v1",
+              "sha256": "8885a6c5bf31b90468fb79f8f5607910c5420cc00e597c0bbb5faa805cfbe9f3"
+            },
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "selectedCaseKeysSha256": "4d3762f914ca1c8ccaad08c35627d64066666d08b62b22e72863c24b14709459"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "b14c0ceaf33ba1343ee66ca3bdc4b857b3af1d13de9178f4b3bc275c37c6b9d2",
+      "replicate": 3,
+      "runId": "phase74-confirmatory-longmemeval-r3",
+      "stage": "E1"
+    },
+    {
+      "benchmark": "longmemeval",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "longmemeval",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "09ddeaa96924520bebe8d642453e31983c210431ec63cac5cd907e2fd05569bb",
+            "caseCount": 500,
+            "datasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "memoryGroupCount": 500,
+            "normalizedFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "sourceSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 500,
+            "mode": "all",
+            "parentDatasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-longmemeval-population-v1",
+              "sha256": "8885a6c5bf31b90468fb79f8f5607910c5420cc00e597c0bbb5faa805cfbe9f3"
+            },
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "selectedCaseKeysSha256": "4d3762f914ca1c8ccaad08c35627d64066666d08b62b22e72863c24b14709459"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "b14c0ceaf33ba1343ee66ca3bdc4b857b3af1d13de9178f4b3bc275c37c6b9d2",
+      "replicate": 3,
+      "runId": "phase74-confirmatory-longmemeval-r3",
+      "stage": "E2"
+    },
+    {
+      "benchmark": "longmemeval",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "longmemeval",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "09ddeaa96924520bebe8d642453e31983c210431ec63cac5cd907e2fd05569bb",
+            "caseCount": 500,
+            "datasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "memoryGroupCount": 500,
+            "normalizedFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "sourceSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 500,
+            "mode": "all",
+            "parentDatasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-longmemeval-population-v1",
+              "sha256": "8885a6c5bf31b90468fb79f8f5607910c5420cc00e597c0bbb5faa805cfbe9f3"
+            },
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "selectedCaseKeysSha256": "4d3762f914ca1c8ccaad08c35627d64066666d08b62b22e72863c24b14709459"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "b14c0ceaf33ba1343ee66ca3bdc4b857b3af1d13de9178f4b3bc275c37c6b9d2",
+      "replicate": 3,
+      "runId": "phase74-confirmatory-longmemeval-r3",
+      "stage": "E3"
+    },
+    {
+      "benchmark": "longmemeval",
+      "identity": {
+        "answerModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.6-terra",
+          "provider": "openai"
+        },
+        "benchmark": "longmemeval",
+        "configuration": {
+          "callBudget": {
+            "embeddingSpendLimitUsd": 8,
+            "maxLanguageCalls": 500000
+          },
+          "caseConcurrency": 100,
+          "embedding": {
+            "gateway": "https://openrouter.ai/api/v1",
+            "model": "baai/bge-m3",
+            "provider": "openai"
+          },
+          "evaluatorSource": {
+            "commit": "c79950758adc9429b0cbc08debc1799eac026b13",
+            "sha256": "aa833a8c542a6ba77be6babe2d1bb0591d1ac86e9e9e587e232b856a62152d53"
+          },
+          "parentDataset": {
+            "adaptedCasesSha256": "09ddeaa96924520bebe8d642453e31983c210431ec63cac5cd907e2fd05569bb",
+            "caseCount": 500,
+            "datasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "memoryGroupCount": 500,
+            "normalizedFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "sourceSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442"
+          },
+          "population": {
+            "authority": "presealed-full-population",
+            "caseCount": 500,
+            "mode": "all",
+            "parentDatasetSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+            "populationCommitment": {
+              "id": "phase74-confirmatory-longmemeval-population-v1",
+              "sha256": "8885a6c5bf31b90468fb79f8f5607910c5420cc00e597c0bbb5faa805cfbe9f3"
+            },
+            "selectedCaseIdsSha256": "a4849b8afda6b6ed31ead4fc28d00784d2d5fef945be87642f5ce3ab710b21c4",
+            "selectedCaseKeysSha256": "4d3762f914ca1c8ccaad08c35627d64066666d08b62b22e72863c24b14709459"
+          },
+          "protectionBlueprint": {
+            "id": "phase74-protection-suite-manifest-v2",
+            "sha256": "5abcfaeb6a7f8832011d2fa10695cd64347505632f55745286b569eb8b228569"
+          },
+          "renderedContextTokens": 6000,
+          "reranker": {
+            "gateway": "https://ai.gurkiai.com/v1",
+            "model": "gpt-5.6-terra",
+            "provider": "openai",
+            "implementation": "provider-listwise-v1",
+            "mode": "provider"
+          },
+          "seenCasesOnly": true
+        },
+        "judgeModel": {
+          "gateway": "https://ai.gurkiai.com/v1",
+          "model": "gpt-5.5",
+          "provider": "openai"
+        }
+      },
+      "identitySha256": "b14c0ceaf33ba1343ee66ca3bdc4b857b3af1d13de9178f4b3bc275c37c6b9d2",
+      "replicate": 3,
+      "runId": "phase74-confirmatory-longmemeval-r3",
+      "stage": "E4"
+    }
+  ],
+  "schemaVersion": 2
+}
