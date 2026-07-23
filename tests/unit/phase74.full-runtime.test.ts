@@ -200,6 +200,18 @@ describe("Phase 74 full ingestion identity", () => {
       policyApplied: [],
       reranker: { status: "skipped" },
     })).not.toThrow();
+
+    expect(() => assertPhase74RecallProviderIntegrity({
+      plannerMode: "deterministic",
+      policyApplied: ["generalized_fusion_unavailable"],
+      reranker: { status: "skipped" },
+    })).toThrow("generalized fusion unavailable");
+
+    expect(() => assertPhase74RecallProviderIntegrity({
+      plannerMode: "deterministic",
+      policyApplied: ["generalized_fusion_partial_projection"],
+      reranker: { status: "skipped" },
+    })).toThrow("generalized fusion projection incomplete");
   });
 
   it("fails closed when assisted extraction silently degrades to rules-only", () => {
@@ -258,6 +270,12 @@ describe("Phase 74 full ingestion identity", () => {
     const first = buildPhase74IngestionKey(base);
     const second = buildPhase74IngestionKey({ ...base });
     expect(second).toBe(first);
+  });
+
+  it("pins the projection-proof ingestion key schema", () => {
+    expect(buildPhase74IngestionKey(base)).toBe(
+      "e6cda0b236b366502f748bf93ed2056920679e9d49867a7c1bc52aedefc0effe",
+    );
   });
 
   it("changes the ingestion identity when extraction reasoning effort changes", () => {

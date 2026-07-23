@@ -14,6 +14,7 @@ import { join } from "node:path";
 import {
   createInternalGoodMemory,
 } from "../api/createGoodMemory";
+import { readGoodMemoryEvalSupport } from "../api/evalSupport";
 import type {
   GoodMemory,
   RecallResult,
@@ -170,7 +171,7 @@ export function buildPhase74IngestionKey(
 ): string {
   return sha256(canonicalJson({
     ...input,
-    schemaVersion: 8,
+    schemaVersion: 9,
   }));
 }
 
@@ -488,7 +489,9 @@ function createMemory(input: {
   includeExtractor: boolean;
   models: Phase74ExecutorModels;
   now: string;
+  projectionPreparationSupport?: boolean;
   rerankerMode: "deterministic" | "provider";
+  sqliteReadOnly?: boolean;
   sqlitePath: string;
   usageSink: ModelUsageSink;
 }): {
@@ -560,7 +563,13 @@ function createMemory(input: {
         : {}),
       now: () => new Date(input.now),
     },
-  }, { environment: {} });
+  }, {
+    environment: {},
+    ...(input.projectionPreparationSupport
+      ? { projectionPreparationSupport: true }
+      : {}),
+    ...(input.sqliteReadOnly ? { sqliteReadOnly: true } : {}),
+  });
   return {
     extractionStrategy: assistedExtractor === undefined ? "rules-only" : "llm-assisted",
     memory,
@@ -650,6 +659,14 @@ export function assertPhase74RecallProviderIntegrity(input: {
     status: "applied" | "fallback" | "skipped";
   };
 }): void {
+  if (input.policyApplied.includes("generalized_fusion_unavailable")) {
+    throw new Error("Phase 74 generalized fusion unavailable.");
+  }
+  if (
+    input.policyApplied.includes("generalized_fusion_partial_projection")
+  ) {
+    throw new Error("Phase 74 generalized fusion projection incomplete.");
+  }
   if (input.reranker?.status === "fallback") {
     throw new Error(
       `Phase 74 provider reranker fell back (${input.reranker.fallbackReason ?? "unknown"}).`,
@@ -773,6 +790,7 @@ export function createPhase74FullRetrievalRuntime(input: {
         includeExtractor: true,
         models: input.models,
         now: isoDate(testCase.referenceTime),
+        projectionPreparationSupport: true,
         rerankerMode: input.rerankerMode ?? "provider",
         sqlitePath,
         usageSink: sink,
@@ -783,6 +801,14 @@ export function createPhase74FullRetrievalRuntime(input: {
         representation,
         testCase,
       });
+      const prepareProjectionScope = readGoodMemoryEvalSupport(runtime.memory)
+        ?.prepareProjectionScope;
+      if (prepareProjectionScope === undefined) {
+        throw new Error(
+          "Phase 74 projection preparation support is unavailable.",
+        );
+      }
+      await prepareProjectionScope(buildPhase74LabelFreeScope(testCase));
       const completedLedger = {
         ...ledger,
         pendingIntents: [],
@@ -835,6 +861,7 @@ export function createPhase74FullRetrievalRuntime(input: {
           models: input.models,
           now: isoDate(testCase.referenceTime),
           rerankerMode: input.rerankerMode ?? "provider",
+          sqliteReadOnly: true,
           sqlitePath,
           usageSink: sink,
         });

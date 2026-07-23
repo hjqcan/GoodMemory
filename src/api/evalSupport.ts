@@ -7,6 +7,7 @@ export const GOODMEMORY_EVAL_SUPPORT = Symbol.for("goodmemory.eval.support");
 export interface GoodMemoryEvalSupport {
   assistedRecallRouter?: boolean;
   assistedReviewer?: boolean;
+  prepareProjectionScope?: (scope: MemoryScope) => Promise<void>;
   recordBehavioralOutcome?: (
     input: BehavioralOutcomeRecordInput & {
       scope: MemoryScope;

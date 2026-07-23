@@ -198,10 +198,14 @@ export interface InternalGoodMemoryOptions {
   /** Repo-only instance selector override for historical evaluation profiles. */
   factSelector?: FactSelector;
   projectionBulkBackfill?: boolean;
+  /** Repo-only hook for sealing derived projection state before immutable replay. */
+  projectionPreparationSupport?: boolean;
   projectionWriteThrough?: boolean;
   providerRerankingStrategy?: "listwise" | "pointwise";
   retrievalStrategyRollout?: RetrievalStrategyRolloutConfig;
   runtimeCompactionExtraction?: boolean;
+  /** Repo-only immutable SQLite view; also disables post-recall mutations. */
+  sqliteReadOnly?: boolean;
 }
 
 const ASSISTED_REVIEWER_PREFIX = "[assisted reviewer] ";
@@ -924,7 +928,11 @@ class GoodMemoryImpl implements GoodMemory {
   private readonly revisionVectorIndex: RememberVectorPort | null;
   private readonly runtimeResolution: GoodMemoryRuntimeResolution;
   private readonly recallEngine;
+  private readonly recallObservationsEnabled: boolean;
   private readonly rememberEngine;
+  private readonly projectionRuntime:
+    | ReturnType<typeof createRecallProjectionRuntime>
+    | undefined;
   private readonly evolutionRuntime: ReturnType<typeof createEvolutionRuntime>;
   private readonly embeddingAdapter?: EmbeddingAdapter;
   private readonly reranker?: Reranker;
@@ -951,6 +959,13 @@ class GoodMemoryImpl implements GoodMemory {
     this.runtimeResolution = runtimeResolution;
     const storagePlan = runtimeResolution.storagePlan;
     const explicitStorage = storagePlan.mode === "explicit" ? storagePlan.storage : null;
+    this.recallObservationsEnabled = !(
+      internal?.sqliteReadOnly &&
+      explicitStorage?.provider === "sqlite"
+    );
+    const sqliteStoreOptions = internal?.sqliteReadOnly
+      ? { readOnly: true }
+      : undefined;
     const autoStorageAdapters =
       storagePlan.mode === "auto"
         ? createAutoStorageAdapters(
@@ -1038,7 +1053,7 @@ class GoodMemoryImpl implements GoodMemory {
       (autoStorageAdapters
         ? autoStorageAdapters.documentStore
         : explicitStorage?.provider === "sqlite"
-        ? createSQLiteDocumentStore(explicitStorage.url)
+        ? createSQLiteDocumentStore(explicitStorage.url, sqliteStoreOptions)
         : explicitStorage?.provider === "postgres"
           ? createPostgresDocumentStore({
               url: explicitStorage.url,
@@ -1072,6 +1087,7 @@ class GoodMemoryImpl implements GoodMemory {
             internal?.projectionWriteThrough !== false,
         })
       : undefined;
+    this.projectionRuntime = projectionRuntime;
     this.scopeDeletion = projectionRuntime?.scopeDeletion;
     const documentStore = projectionRuntime?.documentStore ?? rawDocumentStore;
     const sessionStore =
@@ -1079,7 +1095,7 @@ class GoodMemoryImpl implements GoodMemory {
       (autoStorageAdapters
         ? autoStorageAdapters.sessionStore
         : explicitStorage?.provider === "sqlite"
-        ? createSQLiteSessionStore(explicitStorage.url)
+        ? createSQLiteSessionStore(explicitStorage.url, sqliteStoreOptions)
         : explicitStorage?.provider === "postgres"
           ? createPostgresSessionStore({
               url: explicitStorage.url,
@@ -1094,7 +1110,7 @@ class GoodMemoryImpl implements GoodMemory {
             url: explicitStorage.url,
           })
         : explicitStorage?.provider === "sqlite"
-          ? createSQLiteVectorStore(explicitStorage.url)
+          ? createSQLiteVectorStore(explicitStorage.url, sqliteStoreOptions)
           : createInMemoryVectorStore());
     const customStorageAdapters = config.adapters?.documentStore !== undefined ||
       config.adapters?.sessionStore !== undefined ||
@@ -1542,10 +1558,12 @@ class GoodMemoryImpl implements GoodMemory {
           },
         };
       }
-      await this.evolutionRuntime.handleRecall({
-        scope: input.scope,
-        result,
-      });
+      if (this.recallObservationsEnabled) {
+        await this.evolutionRuntime.handleRecall({
+          scope: input.scope,
+          result,
+        });
+      }
       const traced = withRecallTrace(result, trace);
       await trace.succeeded({
         attributes: {
@@ -2071,6 +2089,7 @@ export function createInternalGoodMemory(
     feedback: GoodMemory["feedback"];
     language: ReturnType<typeof createLanguageService>;
     now: () => Date;
+    projectionRuntime?: ReturnType<typeof createRecallProjectionRuntime>;
     runtimeResolution: GoodMemoryRuntimeResolution;
   };
   type BehavioralOutcomeSupportInput = Parameters<
@@ -2142,6 +2161,19 @@ export function createInternalGoodMemory(
   const support = {
     ...(internal?.assistedRecallRouter ? { assistedRecallRouter: true } : {}),
     ...(internal?.assistedReviewer ? { assistedReviewer: true } : {}),
+    ...(internal?.projectionPreparationSupport
+      ? {
+          prepareProjectionScope: async (scope: MemoryScope) => {
+            const result = await implWithInternals.projectionRuntime
+              ?.ensureScopeIndexed(scope);
+            if (result?.complete !== true) {
+              throw new Error(
+                "GoodMemory projection preparation did not complete.",
+              );
+            }
+          },
+        }
+      : {}),
     ...(internal?.behavioralOutcomeRecorder
       ? {
           recordBehavioralOutcome: (input: BehavioralOutcomeSupportInput) =>

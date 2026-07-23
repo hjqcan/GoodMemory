@@ -1,8 +1,20 @@
 import { describe, expect, it } from "bun:test";
+import { createHash } from "node:crypto";
+import {
+  access,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { createGoodMemory } from "../../src";
 import { createInternalGoodMemory } from "../../src/api/createGoodMemory";
+import { readGoodMemoryEvalSupport } from "../../src/api/evalSupport";
 import { createFactMemory } from "../../src/domain/records";
+import { assertPhase74RecallProviderIntegrity } from "../../src/eval/phase74FullRuntime";
 import {
   PROJECTION_MANIFESTS_COLLECTION,
   PROJECTION_REPAIRS_COLLECTION,
@@ -17,6 +29,7 @@ import {
   createInMemoryDocumentStore,
   createInMemorySessionStore,
 } from "../../src/storage/memory";
+import { createSQLiteDocumentStore } from "../../src/storage/sqlite";
 
 function createOneShotProjectionFailureStore(inner: DocumentStore): DocumentStore {
   let shouldFail = true;
@@ -74,6 +87,166 @@ function createOneShotProjectionDeleteFailureStore(
 }
 
 describe("recall projections through the public API", () => {
+  it("prepares a persistent projection proof before read-only SQLite recall", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-projection-proof-"));
+    const sqlitePath = join(root, "memory.sqlite");
+    const scope = {
+      userId: "projection-proof-user",
+      workspaceId: "projection-proof-workspace",
+    };
+    try {
+      const writable = createInternalGoodMemory(
+        {
+          retrieval: { preset: "recommended" },
+          storage: { provider: "sqlite", url: sqlitePath },
+          testing: {
+            now: () => new Date("2026-07-23T00:00:00.000Z"),
+          },
+        },
+        {
+          environment: {},
+          projectionPreparationSupport: true,
+          projectionWriteThrough: false,
+        },
+      );
+      await writable.remember({
+        scope,
+        messages: [{
+          role: "user",
+          content: "Remember that the Atlas rollout is blocked on Paris approval.",
+        }],
+      });
+      const beforePreparation = await writable.exportMemory({ scope });
+      expect(beforePreparation.durable.facts.length).toBeGreaterThan(0);
+
+      const support = readGoodMemoryEvalSupport(writable);
+      expect(support?.prepareProjectionScope).toBeFunction();
+      if (support?.prepareProjectionScope === undefined) {
+        throw new Error("projection preparation support missing");
+      }
+      await support.prepareProjectionScope(scope);
+
+      const afterPreparation = await writable.exportMemory({ scope });
+      expect({
+        ...afterPreparation,
+        exportedAt: beforePreparation.exportedAt,
+      }).toEqual(beforePreparation);
+      expect(
+        await createSQLiteDocumentStore(sqlitePath).query(
+          RECALL_DOCUMENTS_COLLECTION,
+        ),
+      ).not.toEqual([]);
+
+      const beforeBytes = await readFile(sqlitePath);
+      const beforeStat = await stat(sqlitePath);
+      const beforeSha256 = createHash("sha256").update(beforeBytes).digest("hex");
+      const readOnly = createInternalGoodMemory(
+        {
+          retrieval: { preset: "recommended" },
+          storage: { provider: "sqlite", url: sqlitePath },
+          testing: {
+            now: () => new Date("2026-07-23T00:00:00.000Z"),
+          },
+        },
+        { environment: {}, sqliteReadOnly: true },
+      );
+
+      const recalled = await readOnly.recall({
+        scope,
+        query: "What is blocking the Atlas rollout?",
+        strategy: "hybrid",
+      });
+      expect(recalled.facts.length).toBeGreaterThan(0);
+      expect(recalled.metadata.policyApplied).toContain("generalized_fusion");
+      expect(recalled.metadata.policyApplied).not.toContain(
+        "generalized_fusion_unavailable",
+      );
+      expect(recalled.metadata.policyApplied).not.toContain(
+        "generalized_fusion_partial_projection",
+      );
+      expect({
+        ...(await readOnly.exportMemory({ scope })),
+        exportedAt: beforePreparation.exportedAt,
+      }).toEqual(beforePreparation);
+
+      const afterBytes = await readFile(sqlitePath);
+      const afterStat = await stat(sqlitePath);
+      expect(createHash("sha256").update(afterBytes).digest("hex")).toBe(
+        beforeSha256,
+      );
+      expect(afterStat.size).toBe(beforeStat.size);
+      expect(afterStat.mtimeMs).toBe(beforeStat.mtimeMs);
+      for (const suffix of ["-journal", "-wal", "-shm"]) {
+        await expect(access(`${sqlitePath}${suffix}`)).rejects.toMatchObject({
+          code: "ENOENT",
+        });
+      }
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects an unsealed projection snapshot during read-only evaluation", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-unsealed-proof-"));
+    const sqlitePath = join(root, "memory.sqlite");
+    const scope = {
+      userId: "unsealed-proof-user",
+      workspaceId: "unsealed-proof-workspace",
+    };
+    try {
+      const writable = createInternalGoodMemory(
+        {
+          retrieval: { preset: "recommended" },
+          storage: { provider: "sqlite", url: sqlitePath },
+          testing: {
+            now: () => new Date("2026-07-23T00:00:00.000Z"),
+          },
+        },
+        { environment: {}, projectionWriteThrough: false },
+      );
+      await writable.remember({
+        scope,
+        messages: [{
+          role: "user",
+          content: "Remember that the Atlas rollout is blocked on Paris approval.",
+        }],
+      });
+      const beforeBytes = await readFile(sqlitePath);
+      const beforeStat = await stat(sqlitePath);
+
+      const readOnly = createInternalGoodMemory(
+        {
+          retrieval: { preset: "recommended" },
+          storage: { provider: "sqlite", url: sqlitePath },
+          testing: {
+            now: () => new Date("2026-07-23T00:00:00.000Z"),
+          },
+        },
+        { environment: {}, sqliteReadOnly: true },
+      );
+      const recalled = await readOnly.recall({
+        scope,
+        query: "What is blocking the Atlas rollout?",
+        strategy: "hybrid",
+      });
+      expect(() => assertPhase74RecallProviderIntegrity({
+        plannerMode: "deterministic",
+        policyApplied: recalled.metadata.policyApplied,
+        reranker: { status: "skipped" },
+      })).toThrow("generalized fusion unavailable");
+
+      expect(await readFile(sqlitePath)).toEqual(beforeBytes);
+      expect((await stat(sqlitePath)).mtimeMs).toBe(beforeStat.mtimeMs);
+      for (const suffix of ["-journal", "-wal", "-shm"]) {
+        await expect(access(`${sqlitePath}${suffix}`)).rejects.toMatchObject({
+          code: "ENOENT",
+        });
+      }
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("runs an explicit projectionMigration maintenance job from canonical memory", async () => {
     const documentStore = createInMemoryDocumentStore();
     const memory = createGoodMemory({
