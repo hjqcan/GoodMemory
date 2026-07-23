@@ -774,10 +774,15 @@ touched (owned by a parallel workstream).
   `retrievalCues` maintenance job driven by the injected
   `adapters.retrievalCueGenerator` (bounded 16 facts/run, ≤4 cues ≤160 chars
   each, sanitized/deduped, per-fact failure tolerant, idempotent — covered
-  facts never re-generate). Remaining for full R6: a provider-backed
-  generator factory (adapting the assisted-extraction provider) so installed
-  configs can enable it without custom code, and the LoCoMo missing-evidence
-  measurement once cue generation has a paid or stubbed corpus.
+  facts never re-generate). Increment 2 (`86db625e`) adds
+  `createProviderRetrievalCueGenerator` (src/provider/retrievalCueGenerator.ts):
+  any OpenAI-compatible chat model becomes the cue adapter — structured
+  output, temperature 0, timeout/retry guards, corpus-agnostic prompt.
+  Enable with `adapters.retrievalCueGenerator` +
+  `runMaintenance({ jobs: ["retrievalCues"] })`. Remaining for full R6: the
+  LoCoMo missing-evidence measurement (cue-backfill a conversation corpus
+  with a live model, then re-run the admission repair queues — needs the
+  paid-validation go-ahead).
 
 Verification state at close of the pass: full canonical sweep green — 3,537
 unit + 645 integration/scenario/cli/eval/type/consumer + 101 example/release
