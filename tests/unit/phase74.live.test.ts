@@ -8,9 +8,11 @@ import {
   createPhase74LiveJudge,
   createPhase74LiveReader,
   PHASE74_GENERIC_READER_SYSTEM_PROMPT,
+  PHASE74_BGE_M3_EMBEDDING_MODEL,
   PHASE74_EVALUATOR_SOURCE_SNAPSHOT,
   phase74LivePromptSha256s,
   resolvePhase74EvaluatorSource,
+  resolvePhase74EmbeddingAdapterOptions,
   resolvePhase74ExecutorModels,
   resolvePhase74LiveModels,
   resolvePhase74ReaderModel,
@@ -274,7 +276,62 @@ describe("Phase 74 live provider boundary", () => {
     expect(() => resolvePhase74LiveModels({
       ...env,
       GOODMEMORY_EMBEDDING_MODEL: "text-embedding-3-large",
-    })).toThrow("text-embedding-3-small through https://openrouter.ai/api/v1");
+    })).toThrow("supported profile through https://openrouter.ai/api/v1");
+  });
+
+  it("resolves the unique BGE-M3 Phase 74 adapter profile", async () => {
+    const calls: string[] = [];
+    const models = resolvePhase74LiveModels({
+      ...env,
+      GOODMEMORY_EMBEDDING_MODEL: PHASE74_BGE_M3_EMBEDDING_MODEL,
+    });
+    const options = resolvePhase74EmbeddingAdapterOptions(
+      models.embedding,
+      async (_input, init) => {
+        calls.push(String(init?.body));
+        return new Response("{}", { status: 200 });
+      },
+    );
+
+    expect(options).toMatchObject({
+      expectedDimensions: 1_024,
+      normalization: "l2-v1",
+    });
+    await options.fetch?.("https://openrouter.ai/api/v1/embeddings", {
+      body: JSON.stringify({
+        input: ["alpha"],
+        model: "baai/bge-m3",
+      }),
+      method: "POST",
+    });
+    expect(JSON.parse(calls[0]!)).toMatchObject({
+      provider: {
+        allow_fallbacks: false,
+        order: ["parasail"],
+      },
+    });
+    expect(buildPhase74EmbeddingIdentity(models.embedding)).toEqual({
+      adapterVersion: "openai-compatible-embedding-v2",
+      allowFallbacks: false,
+      batchMaxConcurrency: 8,
+      batchMaxInputs: 256,
+      batchMaxUtf8Bytes: 200_000,
+      dimensions: 1_024,
+      gateway: "https://openrouter.ai/api/v1",
+      inputCostUsdPerMillionTokens: 0.01,
+      model: "baai/bge-m3",
+      normalization: "l2-v1",
+      provider: "openai",
+      providerOrder: "parasail",
+      requestTimeoutMs: 45_000,
+      retryLimit: 8,
+    });
+  });
+
+  it("preserves the legacy text-small embedding adapter behavior", () => {
+    expect(resolvePhase74EmbeddingAdapterOptions(
+      resolvePhase74LiveModels(env).embedding,
+    )).toEqual({});
   });
 
   it("resolves executor and scorer credentials through disjoint capability boundaries", () => {

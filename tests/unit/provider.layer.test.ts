@@ -169,15 +169,19 @@ describe("provider layer contract", () => {
 
   it("routes provider-backed embedding creation through the same provider layer", async () => {
     const embeddingCalls: Array<Record<string, unknown>> = [];
+    const fetch = async () => new Response("{}");
 
     const adapter = createProviderEmbeddingAdapter({
       batchMaxConcurrency: 2,
       batchMaxInputs: 64,
       batchMaxUtf8Bytes: 12_345,
+      expectedDimensions: 1_024,
+      fetch,
       model: {
         provider: "openai",
-        model: "text-embedding-3-small",
+        model: "baai/bge-m3",
       },
+      normalization: "l2-v1",
       requestTimeoutMs: 1234,
       retryLimit: 4,
       createEmbeddingAdapter: (input) => {
@@ -197,12 +201,15 @@ describe("provider layer contract", () => {
     expect(vectors).toEqual([[1, 0, 0]]);
     expect(embeddingCalls[0]?.model).toEqual({
       provider: "openai",
-      model: "text-embedding-3-small",
+      model: "baai/bge-m3",
     });
     expect(embeddingCalls[0]).toMatchObject({
       batchMaxConcurrency: 2,
       batchMaxInputs: 64,
       batchMaxUtf8Bytes: 12_345,
+      expectedDimensions: 1_024,
+      fetch,
+      normalization: "l2-v1",
       dependencies: {
         requestTimeoutMs: 1234,
         retryOptions: { retryLimit: 4 },

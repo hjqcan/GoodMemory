@@ -8,6 +8,7 @@ import {
 } from "../../src/eval/judge-model";
 import {
   createAISDKEmbeddingAdapter,
+  createOpenRouterEmbeddingFetch,
   createOpenAICompatibleFetch,
   DEFAULT_AISDK_REQUEST_TIMEOUT_MS,
   parseAISDKModelConfigFromEnv,
@@ -948,6 +949,96 @@ describe("model adapters", () => {
     expect(result).toEqual([[1, 0, 0], [0, 1, 0]]);
     expect(calls[0]?.maxRetries).toBe(0);
     expect(calls[0]?.values).toEqual(["alpha", "beta"]);
+  });
+
+  it("routes only OpenRouter embedding requests through the pinned provider", async () => {
+    const calls: Array<{ body: string; url: string }> = [];
+    const fetch = createOpenRouterEmbeddingFetch({
+      allowFallbacks: false,
+      baseFetch: async (input, init) => {
+        calls.push({
+          body: String(init?.body),
+          url: String(input),
+        });
+        return new Response("{}", { status: 200 });
+      },
+      providerOrder: ["parasail"],
+    });
+
+    await fetch("https://openrouter.ai/api/v1/embeddings", {
+      body: JSON.stringify({
+        input: ["alpha"],
+        model: "baai/bge-m3",
+      }),
+      method: "POST",
+    });
+    await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      body: JSON.stringify({
+        messages: [],
+        model: "gpt-5.6-terra",
+      }),
+      method: "POST",
+    });
+
+    expect(JSON.parse(calls[0]!.body)).toEqual({
+      input: ["alpha"],
+      model: "baai/bge-m3",
+      provider: {
+        allow_fallbacks: false,
+        order: ["parasail"],
+      },
+    });
+    expect(JSON.parse(calls[1]!.body)).toEqual({
+      messages: [],
+      model: "gpt-5.6-terra",
+    });
+  });
+
+  it("validates and L2-normalizes embedding vectors when requested", async () => {
+    const adapter = createAISDKEmbeddingAdapter({
+      expectedDimensions: 2,
+      model: {
+        provider: "openai",
+        model: "baai/bge-m3",
+      },
+      normalization: "l2-v1",
+      dependencies: {
+        resolveEmbeddingModel: () => ({}) as never,
+        embedMany: async () => ({
+          embeddings: [[3, 4]],
+        }) as never,
+      },
+    });
+
+    expect(await adapter.embed(["alpha"])).toEqual([[0.6, 0.8]]);
+  });
+
+  it("fails closed on invalid embedding dimensions, values, and L2 norms", async () => {
+    const embed = (embedding: number[]) =>
+      createAISDKEmbeddingAdapter({
+        expectedDimensions: 2,
+        model: {
+          provider: "openai",
+          model: "baai/bge-m3",
+        },
+        normalization: "l2-v1",
+        dependencies: {
+          resolveEmbeddingModel: () => ({}) as never,
+          embedMany: async () => ({
+            embeddings: [embedding],
+          }) as never,
+        },
+      }).embed(["alpha"]);
+
+    await expect(embed([1])).rejects.toThrow(
+      "Embedding dimension mismatch: expected 2, received 1.",
+    );
+    await expect(embed([Number.NaN, 1])).rejects.toThrow(
+      "Embedding response contains a non-finite value.",
+    );
+    await expect(embed([0, 0])).rejects.toThrow(
+      "Cannot L2-normalize a zero-norm embedding.",
+    );
   });
 
   it("batches large embedding requests while preserving input order", async () => {
