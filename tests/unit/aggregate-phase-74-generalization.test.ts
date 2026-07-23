@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import {
   aggregatePhase74GeneralizationArtifacts,
   aggregatePhase74StageDiagnosticArtifacts,
+  assertPhase74ProtectionProfileAlignment,
   parsePhase74AggregationCliOptions,
   runPhase74GeneralizationAggregation,
 } from "../../scripts/aggregate-phase-74-generalization";
@@ -2189,6 +2190,72 @@ describe("Phase 74 frozen artifact aggregation", () => {
     await expect(aggregatePhase74GeneralizationArtifacts({
       runDirectories: fixture.runDirectories,
     })).rejects.toThrow("embedding");
+  });
+
+  it("requires one protection embedding and reranker profile across every main run", () => {
+    const embedding = buildPhase74EmbeddingIdentity({
+      baseURL: "https://openrouter.ai/api/v1",
+      model: "text-embedding-3-small",
+      provider: "openai",
+    });
+    const reranker = {
+      gateway: "https://ai.gurkiai.com/v1",
+      implementation: "provider-listwise-v1",
+      mode: "provider",
+      model: "gpt-5.6-terra",
+      provider: "openai",
+    };
+    const protectionProfile = { embedding, reranker };
+    const mainProfiles = [
+      protectionProfile,
+      structuredClone(protectionProfile),
+    ];
+
+    expect(() =>
+      assertPhase74ProtectionProfileAlignment({
+        mainProfiles,
+        profile: protectionProfile,
+        promotionAdmissible: true,
+      })
+    ).not.toThrow();
+    expect(() =>
+      assertPhase74ProtectionProfileAlignment({
+        mainProfiles,
+        promotionAdmissible: true,
+      })
+    ).toThrow(/profile/i);
+    expect(() =>
+      assertPhase74ProtectionProfileAlignment({
+        mainProfiles,
+        profile: {
+          ...protectionProfile,
+          embedding: {
+            ...embedding,
+            model: "baai/bge-m3",
+          },
+        },
+        promotionAdmissible: true,
+      })
+    ).toThrow(/embedding/i);
+    expect(() =>
+      assertPhase74ProtectionProfileAlignment({
+        mainProfiles,
+        profile: {
+          ...protectionProfile,
+          reranker: {
+            implementation: "lexical-coverage-v1",
+            mode: "deterministic",
+          },
+        },
+        promotionAdmissible: true,
+      })
+    ).toThrow(/reranker/i);
+    expect(() =>
+      assertPhase74ProtectionProfileAlignment({
+        mainProfiles,
+        promotionAdmissible: false,
+      })
+    ).not.toThrow();
   });
 
   it("rejects protection suites produced from a different evaluator source", async () => {

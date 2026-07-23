@@ -12,14 +12,19 @@ import { dirname, join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
 
 import {
+  assertPhase74CanonicalProtectionPlanIdentities,
   parsePhase74ProtectionEvidenceCliOptions,
   runPhase74ProtectionEvidenceGeneration,
 } from "../../scripts/build-phase-74-protection-evidence";
 import {
+  PHASE74_BEAM_FULL_100K_DATASET_ID,
   PHASE74_BEAM_SAFETY_METRICS,
   PHASE74_BEAM_SAFETY_SUITE,
   PHASE74_BEAM_SAFETY_VERIFIER_ID,
 } from "../../src/eval/phase74BeamSafetyProtection";
+import {
+  PHASE74_BEAM_FULL_100K_DATASET_PROVENANCE,
+} from "../../src/eval/phase74BeamSafetyLive";
 import {
   PHASE74_HALUMEM_E4_METRIC,
   PHASE74_HALUMEM_E4_PROTECTION_VERIFIER_ID,
@@ -30,6 +35,8 @@ import {
   PHASE74_HALUMEM_UPDATE_SUITE,
 } from "../../src/eval/phase74HaluMemProtectionVerifier";
 import {
+  PHASE74_MAB_PROTECTION_DATASET_ID,
+  PHASE74_MAB_PROTECTION_DATASET_SHA256,
   PHASE74_MAB_PROTECTION_METRICS,
   PHASE74_MAB_PROTECTION_SUITE,
   PHASE74_MAB_PROTECTION_VERIFIER_ID,
@@ -47,6 +54,7 @@ import {
   loadPhase74ProtectionPlan,
 } from "../../src/eval/phase74ProtectionPlan";
 import type {
+  Phase74ProtectionPlan,
   Phase74ProtectionPlanAdmissionClass,
   Phase74ProtectionPlanControls,
 } from "../../src/eval/phase74ProtectionPlan";
@@ -78,6 +86,10 @@ import type {
 import type {
   Phase74ProtectionSuiteVerifier,
 } from "../../src/eval/phase74ProtectionVerifier";
+import {
+  PHASE74_HALUMEM_MEDIUM_DATASET_ID,
+  PHASE74_HALUMEM_MEDIUM_SHA256,
+} from "../../scripts/run-phase-74-halumem-live-protection";
 
 const FORMATS = [
   "prose",
@@ -583,6 +595,71 @@ async function createPlannedFixture(
   };
 }
 
+const CANONICAL_HALUMEM_POPULATIONS = {
+  [PHASE74_HALUMEM_E4_SUITE.id]: {
+    caseCount: 3_303,
+    caseIdsSha256:
+      "826364d831dcf57635c21129ab1af0ff1490c36a8084ba1cbdb7ccc1f45be0a3",
+    id:
+      "HaluMem-Medium:2d8cf791abdd767e4dcdbb2a6a7116d82cef08d366f30ea93151ac30fc73c958:question-population-v1",
+  },
+  [PHASE74_HALUMEM_UPDATE_SUITE.id]: {
+    caseCount: 2_980,
+    caseIdsSha256:
+      "32391c6d44eb2276d055d93f8a2b55aecbbe9d8dc52639204858f796b377d419",
+    id:
+      "HaluMem-Medium:2d8cf791abdd767e4dcdbb2a6a7116d82cef08d366f30ea93151ac30fc73c958:update-population-v1",
+  },
+  [PHASE74_HALUMEM_PRIVACY_SUITE.id]: {
+    caseCount: 3_303,
+    caseIdsSha256:
+      "2b82668b32232e0cac11580924b62def4a595598369cd454efc8eb498ba77d92",
+    id:
+      "HaluMem-Medium:2d8cf791abdd767e4dcdbb2a6a7116d82cef08d366f30ea93151ac30fc73c958:cross-user-privacy-population-v1",
+  },
+} as const;
+
+function canonicalizePlanIdentities(
+  value: Phase74ProtectionPlan,
+): {
+  expected: Map<string, Phase74ProtectionRunIdentity>;
+  plan: Phase74ProtectionPlan;
+} {
+  const plan = structuredClone(value);
+  for (const run of plan.runs) {
+    if (run.suite.id === PHASE74_MAB_PROTECTION_SUITE.id) {
+      run.identity.dataset = {
+        id: PHASE74_MAB_PROTECTION_DATASET_ID,
+        sha256: PHASE74_MAB_PROTECTION_DATASET_SHA256,
+      };
+    } else if (run.suite.id === PHASE74_BEAM_SAFETY_SUITE.id) {
+      run.identity.dataset = {
+        id: PHASE74_BEAM_FULL_100K_DATASET_ID,
+        sha256:
+          PHASE74_BEAM_FULL_100K_DATASET_PROVENANCE.deterministicExport.sha256,
+      };
+    } else {
+      run.identity.dataset = {
+        id: PHASE74_HALUMEM_MEDIUM_DATASET_ID,
+        sha256: PHASE74_HALUMEM_MEDIUM_SHA256,
+      };
+      run.identity.population =
+        CANONICAL_HALUMEM_POPULATIONS[
+          run.suite.id as keyof typeof CANONICAL_HALUMEM_POPULATIONS
+        ];
+    }
+  }
+  return {
+    expected: new Map(PLANNED_SUITE_DEFINITIONS.map(({ suiteId }) => [
+      suiteId,
+      structuredClone(
+        plan.runs.find(({ suite }) => suite.id === suiteId)!.identity,
+      ),
+    ])),
+    plan,
+  };
+}
+
 function createTestLiveClosureVerifier(
   root: string,
 ): Phase74ProtectionLiveClosureVerifier {
@@ -781,7 +858,7 @@ describe("Phase 74 protection suite evidence composer", () => {
     expect(evaluationCount).toBe(0);
   });
 
-  it("binds the exact promotion plan into 15 schema-v2 run artifacts and evidence", async () => {
+  it("binds the exact promotion plan but keeps injected closure evidence diagnostic", async () => {
     const root = await createRoot();
     const fixture = await createPlannedFixture(root);
     const firstRun = await loadPhase74FrozenProtectionSuiteRunArtifact(
@@ -819,14 +896,14 @@ describe("Phase 74 protection suite evidence composer", () => {
       planPath: fixture.planPath,
       runArtifactPaths: fixture.paths,
     }, {
+      beamContractSourceFiles: [verifierSourcePath],
       liveClosureVerifier,
-      verifierSourceFiles: [verifierSourcePath],
       verifiers: fixture.verifiers,
     });
 
     expect(fixture.paths).toHaveLength(15);
     expect(evidence).toMatchObject({
-      admission: "promotion-admissible",
+      admission: "diagnostic",
       schemaVersion: 2,
       source: {
         plan: {
@@ -836,13 +913,13 @@ describe("Phase 74 protection suite evidence composer", () => {
       },
     });
     expect(isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible(evidence))
-      .toBe(true);
+      .toBe(false);
     if (evidence.schemaVersion !== 2) {
       throw new Error("Expected planned protection evidence.");
     }
     expect(evidence.source.suites.flatMap(({ files }) => files)).toHaveLength(15);
     expect(evidence.source.executionReceipts).toHaveLength(6);
-    expect(evidence.source.verifierSources).toEqual([
+    expect(evidence.source.beamContractSources).toEqual([
       {
         path: resolve(verifierSourcePath),
         sha256: sha256("{}\n"),
@@ -860,8 +937,8 @@ describe("Phase 74 protection suite evidence composer", () => {
     const reloaded = await loadPhase74FrozenProtectionSuiteEvidence(
       evidencePath,
       {
+        beamContractSourceFiles: [verifierSourcePath],
         liveClosureVerifier,
-        verifierSourceFiles: [verifierSourcePath],
         verifiers: fixture.verifiers,
       },
     );
@@ -870,7 +947,25 @@ describe("Phase 74 protection suite evidence composer", () => {
       isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible(
         reloaded.evidence,
       ),
-    ).toBe(true);
+    ).toBe(false);
+
+    const injectedOutputPath = join(root, "injected-planned-evidence.json");
+    const injected = await runPhase74ProtectionEvidenceGeneration({
+      manifestPath: fixture.manifestPath,
+      outputPath: injectedOutputPath,
+      planPath: fixture.planPath,
+      runArtifactPaths: fixture.paths,
+    }, {
+      liveClosureVerifier,
+      verifiers: fixture.verifiers,
+    });
+    expect(injected).toMatchObject({
+      admission: "diagnostic",
+      schemaVersion: 2,
+    });
+    expect(
+      isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible(injected),
+    ).toBe(false);
 
     const budgetPath =
       evidence.source.executionReceipts[0]!.callBudgetArtifact.path;
@@ -886,11 +981,67 @@ describe("Phase 74 protection suite evidence composer", () => {
     await expect(loadPhase74FrozenProtectionSuiteEvidence(
       evidencePath,
       {
+        beamContractSourceFiles: [verifierSourcePath],
         liveClosureVerifier,
-        verifierSourceFiles: [verifierSourcePath],
         verifiers: fixture.verifiers,
       },
     )).rejects.toThrow("call budget drifted");
+  });
+
+  it("requires canonical datasets, all 19 HaluMem users, and full rebuilt identities before sealing promotion", async () => {
+    const root = await createRoot();
+    const fixture = await createPlannedFixture(root);
+    const canonical = canonicalizePlanIdentities(fixture.loadedPlan.plan);
+
+    expect(() =>
+      assertPhase74CanonicalProtectionPlanIdentities(
+        canonical.plan,
+        canonical.expected,
+      )
+    ).not.toThrow();
+
+    const reducedHaluMem = structuredClone(canonical.plan);
+    for (const run of reducedHaluMem.runs.filter(({ suite }) =>
+      suite.id === PHASE74_HALUMEM_E4_SUITE.id
+    )) {
+      run.identity.population = {
+        caseCount: 2,
+        caseIdsSha256: "a".repeat(64),
+        id: "HaluMem-Medium:two-users:question-population-v1",
+      };
+    }
+    expect(() =>
+      assertPhase74CanonicalProtectionPlanIdentities(
+        reducedHaluMem,
+        canonical.expected,
+      )
+    ).toThrow(/19-user|population/i);
+
+    const unpinnedBeam = structuredClone(canonical.plan);
+    for (const run of unpinnedBeam.runs.filter(({ suite }) =>
+      suite.id === PHASE74_BEAM_SAFETY_SUITE.id
+    )) {
+      run.identity.dataset.sha256 = "b".repeat(64);
+    }
+    expect(() =>
+      assertPhase74CanonicalProtectionPlanIdentities(
+        unpinnedBeam,
+        canonical.expected,
+      )
+    ).toThrow(/BEAM.*dataset/i);
+
+    for (const field of ["model", "pipeline", "prompt"] as const) {
+      const drifted = structuredClone(canonical.plan);
+      drifted.runs.find(({ suite }) =>
+        suite.id === PHASE74_HALUMEM_UPDATE_SUITE.id
+      )!.identity[field] = descriptor(`drifted-${field}`);
+      expect(() =>
+        assertPhase74CanonicalProtectionPlanIdentities(
+          drifted,
+          canonical.expected,
+        )
+      ).toThrow(/full canonical identity/i);
+    }
   });
 
   it("keeps planned diagnostic and unplanned schema-v1 evidence closed to promotion", async () => {

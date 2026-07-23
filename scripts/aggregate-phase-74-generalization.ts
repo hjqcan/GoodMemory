@@ -38,11 +38,16 @@ import {
   loadPhase74FrozenProtectionSuiteEvidence,
 } from "../src/eval/phase74ProtectionSuiteEvidence";
 import type {
-  Phase74ProtectionSuiteVerifier,
-} from "../src/eval/phase74ProtectionVerifier";
-import type {
+  LoadedPhase74FrozenProtectionSuiteEvidence,
+  Phase74ProtectionExecutionProfile,
   Phase74ProtectionLiveClosureVerifier,
 } from "../src/eval/phase74ProtectionSuiteEvidence";
+import type {
+  Phase74ProtectionSuiteVerifier,
+} from "../src/eval/phase74ProtectionVerifier";
+import {
+  loadCanonicalPhase74FrozenProtectionSuiteEvidence,
+} from "./build-phase-74-protection-evidence";
 import {
   PHASE74_CANONICAL_LIVE_CLOSURE_VERIFIER,
 } from "./phase-74-protection-live-closure";
@@ -258,6 +263,7 @@ interface ProtectionArtifact {
     safety: Phase74PromotionGateInput["safety"];
   };
   promotionAdmissible: boolean;
+  profile?: Phase74ProtectionExecutionProfile;
   sha256: string;
 }
 
@@ -281,10 +287,14 @@ export interface Phase74ArtifactAggregationInput {
 
 export interface Phase74ArtifactAggregationDependencies {
   protectionAdditionalVerifiers?: readonly Phase74ProtectionSuiteVerifier[];
+  protectionBeamContractSourceFiles?: readonly string[];
   protectionLiveClosureVerifier?: Phase74ProtectionLiveClosureVerifier;
-  protectionVerifierSourceFiles?: readonly string[];
   protectionVerifiers?: readonly Phase74ProtectionSuiteVerifier[];
 }
+
+type Phase74ProtectionEvidenceLoader = (
+  path: string,
+) => Promise<LoadedPhase74FrozenProtectionSuiteEvidence>;
 
 export interface Phase74StageDiagnosticAggregationInput {
   bootstrapSamples?: number;
@@ -520,6 +530,33 @@ function stableJson(value: unknown): string {
     ).join(",")}}`;
   }
   return JSON.stringify(value);
+}
+
+export function assertPhase74ProtectionProfileAlignment(input: {
+  mainProfiles: readonly Phase74ProtectionExecutionProfile[];
+  profile?: Phase74ProtectionExecutionProfile;
+  promotionAdmissible: boolean;
+}): void {
+  if (!input.promotionAdmissible) {
+    return;
+  }
+  if (input.profile === undefined) {
+    throw new Error(
+      "Phase 74 promotion-admissible protection evidence is missing its execution profile.",
+    );
+  }
+  for (const profile of input.mainProfiles) {
+    if (stableJson(profile.embedding) !== stableJson(input.profile.embedding)) {
+      throw new Error(
+        "Phase 74 protection embedding profile does not match the main run.",
+      );
+    }
+    if (stableJson(profile.reranker) !== stableJson(input.profile.reranker)) {
+      throw new Error(
+        "Phase 74 protection reranker profile does not match the main run.",
+      );
+    }
+  }
 }
 
 function assertAggregationAdmission(input: {
@@ -2575,14 +2612,17 @@ function buildStageAggregation(input: {
 async function loadProtectionArtifact(
   path: string,
   dependencies: Phase74ArtifactAggregationDependencies,
+  loader?: Phase74ProtectionEvidenceLoader,
 ): Promise<ProtectionArtifact> {
-  const { evidence, sha256: artifactSha256 } =
-    await loadPhase74FrozenProtectionSuiteEvidence(path, {
-      additionalVerifiers: dependencies.protectionAdditionalVerifiers,
-      liveClosureVerifier: dependencies.protectionLiveClosureVerifier,
-      verifierSourceFiles: dependencies.protectionVerifierSourceFiles,
-      verifiers: dependencies.protectionVerifiers,
-    });
+  const { evidence, sha256: artifactSha256 } = loader === undefined
+    ? await loadPhase74FrozenProtectionSuiteEvidence(path, {
+        additionalVerifiers: dependencies.protectionAdditionalVerifiers,
+        beamContractSourceFiles:
+          dependencies.protectionBeamContractSourceFiles,
+        liveClosureVerifier: dependencies.protectionLiveClosureVerifier,
+        verifiers: dependencies.protectionVerifiers,
+      })
+    : await loader(path);
   return {
     blueprintSha256: evidence.source.manifest.sha256,
     e4: evidence.e4.formatDeltas,
@@ -2590,6 +2630,9 @@ async function loadProtectionArtifact(
     promotion: evidence.promotion,
     promotionAdmissible:
       isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible(evidence),
+    ...(evidence.source.profile === undefined
+      ? {}
+      : { profile: evidence.source.profile }),
     sha256: artifactSha256,
   };
 }
@@ -2631,6 +2674,22 @@ function assertProtectionIdentityAlignment(
   artifacts: readonly RunArtifact[],
   protection: ProtectionArtifact,
 ): void {
+  assertPhase74ProtectionProfileAlignment({
+    mainProfiles: artifacts.map(({ identity }) => ({
+      embedding: recordValue(
+        identity.configuration.embedding,
+        "main run embedding profile",
+      ) as EvalRunJsonObject,
+      reranker: recordValue(
+        identity.configuration.reranker,
+        "main run reranker profile",
+      ) as EvalRunJsonObject,
+    })),
+    ...(protection.profile === undefined
+      ? {}
+      : { profile: protection.profile }),
+    promotionAdmissible: protection.promotionAdmissible,
+  });
   for (const artifact of artifacts) {
     const blueprint = recordValue(
       artifact.identity.configuration.protectionBlueprint,
@@ -3042,9 +3101,10 @@ export async function aggregatePhase74StageDiagnosticArtifacts(
   };
 }
 
-export async function aggregatePhase74GeneralizationArtifacts(
+async function aggregatePhase74GeneralizationArtifactsWithLoader(
   input: Phase74ArtifactAggregationInput,
-  dependencies: Phase74ArtifactAggregationDependencies = {},
+  dependencies: Phase74ArtifactAggregationDependencies,
+  protectionEvidenceLoader?: Phase74ProtectionEvidenceLoader,
 ): Promise<Phase74ArtifactAggregationReport> {
   const runDirectories = normalizeRunDirectories(input.runDirectories);
   const artifacts = orderArtifacts(await Promise.all(
@@ -3055,6 +3115,7 @@ export async function aggregatePhase74GeneralizationArtifacts(
     : await loadProtectionArtifact(
         resolve(input.protectionArtifactPath),
         dependencies,
+        protectionEvidenceLoader,
       );
   if (protection !== null) {
     assertProtectionIdentityAlignment(artifacts, protection);
@@ -3106,6 +3167,16 @@ export async function aggregatePhase74GeneralizationArtifacts(
     schemaVersion: 1,
     stageAggregations,
   };
+}
+
+export async function aggregatePhase74GeneralizationArtifacts(
+  input: Phase74ArtifactAggregationInput,
+  dependencies: Phase74ArtifactAggregationDependencies = {},
+): Promise<Phase74ArtifactAggregationReport> {
+  return aggregatePhase74GeneralizationArtifactsWithLoader(
+    input,
+    dependencies,
+  );
 }
 
 function cliValue(argv: readonly string[], index: number, flag: string): string {
@@ -3217,15 +3288,17 @@ export function parsePhase74AggregationCliOptions(
 
 export async function runPhase74GeneralizationAggregation(
   options: Phase74AggregationCliOptions,
-  dependencies: Phase74ArtifactAggregationDependencies = {},
+  dependencies?: Phase74ArtifactAggregationDependencies,
 ): Promise<Phase74ArtifactAggregationReport> {
+  const canonicalAuthority = dependencies === undefined;
+  const injectedDependencies = dependencies ?? {};
   const outputPath = resolve(options.outputPath);
   const protectionVerifiers = options.beamContractPath === undefined
-    ? dependencies.protectionVerifiers
-    : dependencies.protectionVerifiers === undefined
+    ? injectedDependencies.protectionVerifiers
+    : injectedDependencies.protectionVerifiers === undefined
       ? undefined
       : [
-        ...dependencies.protectionVerifiers,
+        ...injectedDependencies.protectionVerifiers,
         createPhase74BeamSafetyProtectionVerifier(
           parsePhase74BeamSafetyContract(JSON.parse(
             await readFile(resolve(options.beamContractPath), "utf8"),
@@ -3233,9 +3306,9 @@ export async function runPhase74GeneralizationAggregation(
         ),
       ];
   const protectionAdditionalVerifiers = [
-    ...(dependencies.protectionAdditionalVerifiers ?? []),
+    ...(injectedDependencies.protectionAdditionalVerifiers ?? []),
     ...(options.beamContractPath === undefined ||
-        dependencies.protectionVerifiers !== undefined
+        injectedDependencies.protectionVerifiers !== undefined
       ? []
       : [
           createPhase74BeamSafetyProtectionVerifier(
@@ -3246,32 +3319,43 @@ export async function runPhase74GeneralizationAggregation(
         ]),
   ];
   const aggregationDependencies = {
-    ...dependencies,
+    ...injectedDependencies,
     protectionAdditionalVerifiers,
     protectionLiveClosureVerifier:
-      dependencies.protectionLiveClosureVerifier ??
+      injectedDependencies.protectionLiveClosureVerifier ??
         PHASE74_CANONICAL_LIVE_CLOSURE_VERIFIER,
-    protectionVerifierSourceFiles:
-      dependencies.protectionVerifierSourceFiles ??
+    protectionBeamContractSourceFiles:
+      injectedDependencies.protectionBeamContractSourceFiles ??
         (options.beamContractPath === undefined
           ? []
           : [resolve(options.beamContractPath)]),
     protectionVerifiers,
   };
+  const protectionEvidenceLoader: Phase74ProtectionEvidenceLoader | undefined =
+    canonicalAuthority
+      ? (path) =>
+        loadCanonicalPhase74FrozenProtectionSuiteEvidence(path, {
+          ...(options.beamContractPath === undefined
+            ? {}
+            : { beamContractPath: options.beamContractPath }),
+        })
+      : undefined;
   if (options.protectionArtifactPath !== undefined) {
     const protectionArtifactPath = resolve(options.protectionArtifactPath);
-    const { evidence } = await loadPhase74FrozenProtectionSuiteEvidence(
-      protectionArtifactPath,
-      {
-        additionalVerifiers:
-          aggregationDependencies.protectionAdditionalVerifiers,
-        liveClosureVerifier:
-          aggregationDependencies.protectionLiveClosureVerifier,
-        verifierSourceFiles:
-          aggregationDependencies.protectionVerifierSourceFiles,
-        verifiers: protectionVerifiers,
-      },
-    );
+    const { evidence } = protectionEvidenceLoader === undefined
+      ? await loadPhase74FrozenProtectionSuiteEvidence(
+          protectionArtifactPath,
+          {
+            additionalVerifiers:
+              aggregationDependencies.protectionAdditionalVerifiers,
+            beamContractSourceFiles:
+              aggregationDependencies.protectionBeamContractSourceFiles,
+            liveClosureVerifier:
+              aggregationDependencies.protectionLiveClosureVerifier,
+            verifiers: protectionVerifiers,
+          },
+        )
+      : await protectionEvidenceLoader(protectionArtifactPath);
     const protectedPaths = [
       {
         label: "the frozen protection evidence",
@@ -3299,9 +3383,10 @@ export async function runPhase74GeneralizationAggregation(
       throw new Error(`--output must not overwrite ${conflict.label}.`);
     }
   }
-  const report = await aggregatePhase74GeneralizationArtifacts(
+  const report = await aggregatePhase74GeneralizationArtifactsWithLoader(
     options,
     aggregationDependencies,
+    protectionEvidenceLoader,
   );
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(

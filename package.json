@@ -272,6 +272,7 @@
     "eval:phase-74-protection-evidence": "bun run scripts/build-phase-74-protection-evidence.ts",
     "aggregate:phase-74-generalization": "bun run scripts/aggregate-phase-74-generalization.ts",
     "prepare:phase-74-datasets": "bun run scripts/prepare-phase-74-datasets.ts",
+    "prepare:phase-74-protection-plan": "bun run scripts/prepare-phase-74-protection-plan.ts",
     "gate:phase-74-storage-scale": "bun run scripts/run-phase-74-storage-scale-gate.ts",
     "merge:phase-72-implicitmembench-retry": "bun run scripts/merge-phase-72-implicitmembench-retry.ts",
     "prepare:phase-72-beam-stored-retry": "bun run scripts/prepare-phase-72-beam-stored-retry.ts",

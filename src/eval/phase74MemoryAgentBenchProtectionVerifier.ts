@@ -37,6 +37,64 @@ export const PHASE74_MAB_PROTECTION_SUITE = {
 export const PHASE74_MAB_PROTECTION_VERIFIER_ID =
   "memoryagentbench-retrieval-replay-v1";
 
+export const PHASE74_MAB_PROTECTION_DATASET_PROVENANCE = Object.freeze({
+  dataset: "ai-hyz/MemoryAgentBench",
+  huggingFace: Object.freeze({
+    conflictResolutionParquetSha256:
+      "24d5c3f09ce0ce15625cb9f8a98f44f0d864ca6c94d7b4ad04eb697ca3a5ff45",
+    revision: "7ea066982b140a19337e17e60d45d4076e042faf",
+    testTimeLearningParquetSha256:
+      "5338753be48f925d03318eed66117286e3489025fabe050a547bd086cd7d79c0",
+  }),
+  normalization: Object.freeze([
+    Object.freeze({
+      competency: "CR",
+      maxEvidenceFacts: 3,
+      maxQuestions: 0,
+      merge: false,
+      offset: 4,
+      split: "Conflict_Resolution",
+    }),
+    Object.freeze({
+      competency: "TTL",
+      maxEvidenceFacts: 3,
+      maxQuestions: 30,
+      merge: true,
+      offset: 1,
+      split: "Test_Time_Learning",
+    }),
+  ]),
+  normalized: Object.freeze({
+    caseCount: 2,
+    caseIds: Object.freeze([
+      "cr_factconsolidation_sh_6k",
+      "ttl_icl_banking77_5900shot_balance",
+    ]),
+    questionCount: 103,
+    sha256:
+      "c2a9f0d5ecd3dd1fbaddf5a28c3acac7226ce9a96e5e33e6197973b4ceb8e78f",
+  }),
+  repository: Object.freeze({
+    commit: "455306dcabc3842526eb83cd4e225e5d486c5c5d",
+    url: "https://github.com/HUST-AI-HYZ/MemoryAgentBench",
+  }),
+  schemaVersion: 1,
+} as const);
+
+export const PHASE74_MAB_PROTECTION_DATASET_PROVENANCE_SHA256 =
+  hashPhase74ProtectionValue(PHASE74_MAB_PROTECTION_DATASET_PROVENANCE);
+
+export const PHASE74_MAB_PROTECTION_DATASET_SHA256 =
+  PHASE74_MAB_PROTECTION_DATASET_PROVENANCE.normalized.sha256;
+
+export const PHASE74_MAB_PROTECTION_DATASET_ID = [
+  "memoryagentbench-normalized",
+  `hf-${PHASE74_MAB_PROTECTION_DATASET_PROVENANCE.huggingFace.revision}`,
+  "cr-o4-e3-q0",
+  "ttl-o1-e3-q30",
+  `provenance-${PHASE74_MAB_PROTECTION_DATASET_PROVENANCE_SHA256}`,
+].join("-");
+
 interface MemoryAgentBenchProtectionInput {
   questionId: string;
   testCaseId: string;

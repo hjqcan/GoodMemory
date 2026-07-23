@@ -46,7 +46,10 @@ import type {
   Phase74RetrievalSnapshot,
 } from "./phase74Generalization";
 import type { Phase74LiveModels } from "./phase74Live";
-import { phase74LivePromptSha256s } from "./phase74Live";
+import {
+  buildPhase74EmbeddingIdentity,
+  phase74LivePromptSha256s,
+} from "./phase74Live";
 import {
   PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION,
 } from "./phase74ProviderConfiguration";
@@ -176,6 +179,7 @@ export function buildPhase74BeamSafetyLiveSpec(input: {
   const candidate = configurations[CANDIDATE_ARM]!;
   const answerCall = PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.reader;
   const judgeCall = PHASE74_PROVIDER_OBJECT_CALL_CONFIGURATION.judge.oracle;
+  const embedding = buildPhase74EmbeddingIdentity(input.models.embedding);
   const contract = parsePhase74BeamSafetyContract({
     answerModel: descriptor(`openai:${input.models.answer.model}`, {
       call: answerCall,
@@ -188,12 +192,14 @@ export function buildPhase74BeamSafetyLiveSpec(input: {
     baselinePipeline: descriptor(`phase74-e3-${BASELINE_ARM}`, {
       arm: BASELINE_ARM,
       configuration: baseline,
+      embedding,
       reranker: publicModel(input.models.reranker),
       runtime: PIPELINE_RUNTIME_ID,
     }),
     candidatePipeline: descriptor(`phase74-e3-${CANDIDATE_ARM}`, {
       arm: CANDIDATE_ARM,
       configuration: candidate,
+      embedding,
       reranker: publicModel(input.models.reranker),
       runtime: PIPELINE_RUNTIME_ID,
     }),

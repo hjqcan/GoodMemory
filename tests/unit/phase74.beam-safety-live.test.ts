@@ -343,6 +343,40 @@ describe("Phase 74 BEAM safety live wiring", () => {
     );
   });
 
+  it("binds the embedding profile into both BEAM pipeline identities", () => {
+    const textSmallModels = models();
+    const bgeModels = {
+      ...models(),
+      embedding: {
+        ...models().embedding,
+        model: "baai/bge-m3",
+      },
+    };
+    const input = {
+      dataset: {
+        id: PHASE74_BEAM_FULL_100K_DATASET_ID,
+        sha256:
+          PHASE74_BEAM_FULL_100K_DATASET_PROVENANCE.deterministicExport.sha256,
+      },
+      source: { id: `git:${"b".repeat(40)}`, sha256: "c".repeat(64) },
+    };
+    const textSmall = buildPhase74BeamSafetyLiveSpec({
+      ...input,
+      models: textSmallModels,
+    });
+    const bge = buildPhase74BeamSafetyLiveSpec({
+      ...input,
+      models: bgeModels,
+    });
+
+    expect(textSmall.contract.baselinePipeline).not.toEqual(
+      bge.contract.baselinePipeline,
+    );
+    expect(textSmall.contract.candidatePipeline).not.toEqual(
+      bge.contract.candidatePipeline,
+    );
+  });
+
   it("uses an independent strict groundedness object judge with durable usage attribution", async () => {
     const events: AttributedModelUsageAttempt[] = [];
     const intents: AttributedModelUsageIntent[] = [];

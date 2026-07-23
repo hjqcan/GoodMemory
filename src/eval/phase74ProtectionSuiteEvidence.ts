@@ -48,6 +48,7 @@ import type {
 import {
   PHASE74_PROTECTION_BLUEPRINT_ID,
 } from "./phase74ProtectionVerifier";
+import type { EvalRunJsonObject } from "./runIdentity";
 
 const EVIDENCE_LEDGER_FORMATS = [
   "prose",
@@ -170,15 +171,21 @@ interface Phase74FrozenProtectionSuiteEvidenceBase {
     };
   };
   source: {
+    beamContractSources?: Phase74ProtectionFileReference[];
     evaluatorSource: Phase74ProtectionRunIdentity["source"];
     executionReceipts?: Phase74ProtectionLiveClosureReceipt[];
     manifest: {
       path: string;
       sha256: string;
     };
+    profile?: Phase74ProtectionExecutionProfile;
     suites: Phase74ProtectionSuiteSource[];
-    verifierSources?: Phase74ProtectionFileReference[];
   };
+}
+
+export interface Phase74ProtectionExecutionProfile {
+  embedding: EvalRunJsonObject;
+  reranker: EvalRunJsonObject;
 }
 
 export interface Phase74FrozenDiagnosticProtectionSuiteEvidence extends
@@ -195,9 +202,10 @@ export interface Phase74FrozenPlannedProtectionSuiteEvidence extends
   admission: Phase74ProtectionPlanAdmissionClass;
   schemaVersion: 2;
   source: Phase74FrozenProtectionSuiteEvidenceBase["source"] & {
+    beamContractSources: Phase74ProtectionFileReference[];
     executionReceipts: Phase74ProtectionLiveClosureReceipt[];
     plan: { path: string; sha256: string };
-    verifierSources: Phase74ProtectionFileReference[];
+    profile?: Phase74ProtectionExecutionProfile;
   };
 }
 
@@ -218,8 +226,8 @@ export interface LoadedPhase74ProtectionSuiteManifest {
 
 export interface Phase74ProtectionSuiteEvidenceDependencies {
   additionalVerifiers?: readonly Phase74ProtectionSuiteVerifier[];
+  beamContractSourceFiles?: readonly string[];
   liveClosureVerifier?: Phase74ProtectionLiveClosureVerifier;
-  verifierSourceFiles?: readonly string[];
   verifiers?: readonly Phase74ProtectionSuiteVerifier[];
 }
 
@@ -231,8 +239,9 @@ export function isPhase74FrozenProtectionSuiteEvidencePromotionAdmissible(
   return evidence.schemaVersion === 2 &&
     evidence.admission === "promotion-admissible" &&
     evidence.source.plan !== undefined &&
+    evidence.source.profile !== undefined &&
     evidence.source.executionReceipts.length === 6 &&
-    evidence.source.verifierSources.length === 1;
+    evidence.source.beamContractSources.length === 1;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1010,13 +1019,13 @@ export async function buildPhase74FrozenProtectionSuiteEvidence(input: {
         runs: loadedRuns,
       })
     : [];
-  const verifierSources = loadedPlan === undefined
+  const beamContractSources = loadedPlan === undefined
     ? []
     : await Promise.all(
-        [...new Set(dependencies.verifierSourceFiles ?? [])]
+        [...new Set(dependencies.beamContractSourceFiles ?? [])]
           .sort()
           .map((path, index) =>
-            sourceFileReference(path, `verifier source files[${index}]`)
+            sourceFileReference(path, `BEAM contract source files[${index}]`)
           ),
       );
 
@@ -1125,20 +1134,16 @@ export async function buildPhase74FrozenProtectionSuiteEvidence(input: {
   }
   return {
     ...evidenceBase,
-    admission: isPhase74ProtectionPlanPromotionAdmissible(loadedPlan.plan) &&
-        executionReceipts.length === 6 &&
-        verifierSources.length === 1
-      ? "promotion-admissible"
-      : "diagnostic",
+    admission: "diagnostic",
     schemaVersion: 2,
     source: {
       ...evidenceBase.source,
+      beamContractSources,
       executionReceipts,
       plan: {
         path: loadedPlan.path,
         sha256: loadedPlan.sha256,
       },
-      verifierSources,
     },
   };
 }
@@ -1213,6 +1218,18 @@ function sourcePaths(value: unknown): {
   return { manifestPath, planPath, runArtifactPaths };
 }
 
+export async function rebuildPhase74FrozenProtectionSuiteEvidence(
+  value: unknown,
+  dependencies: Phase74ProtectionSuiteEvidenceDependencies = {},
+): Promise<Phase74FrozenProtectionSuiteEvidence> {
+  const source = sourcePaths(value);
+  return buildPhase74FrozenProtectionSuiteEvidence({
+    manifestPath: source.manifestPath,
+    ...(source.planPath === undefined ? {} : { planPath: source.planPath }),
+    runArtifactPaths: source.runArtifactPaths,
+  }, dependencies);
+}
+
 export async function loadPhase74FrozenProtectionSuiteEvidence(
   path: string,
   dependencies: Phase74ProtectionSuiteEvidenceDependencies = {},
@@ -1227,12 +1244,10 @@ export async function loadPhase74FrozenProtectionSuiteEvidence(
       cause: error,
     });
   }
-  const source = sourcePaths(parsed);
-  const derived = await buildPhase74FrozenProtectionSuiteEvidence({
-    manifestPath: source.manifestPath,
-    ...(source.planPath === undefined ? {} : { planPath: source.planPath }),
-    runArtifactPaths: source.runArtifactPaths,
-  }, dependencies);
+  const derived = await rebuildPhase74FrozenProtectionSuiteEvidence(
+    parsed,
+    dependencies,
+  );
   if (canonicalJson(parsed) !== canonicalJson(derived)) {
     throw new Error(
       "Phase 74 frozen protection suite evidence does not match its manifest and source runs.",

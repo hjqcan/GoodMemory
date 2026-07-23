@@ -118,6 +118,7 @@ import type {
 
 export const PHASE74_HALUMEM_MEDIUM_SHA256 =
   "486fbc130a5c8781a2af27ffa508a1d7855245137aa449c193ac4d29c45634e7";
+export const PHASE74_HALUMEM_MEDIUM_DATASET_ID = "HaluMem-Medium";
 export const PHASE74_HALUMEM_HISTORICALLY_SEEN_USER_UUID =
   "2f1f897e-d67f-dbc5-6a7b-b7634a9e294f";
 export const PHASE74_HALUMEM_SELECTION_POLICY =
@@ -127,6 +128,7 @@ const DEFAULT_CASE_CONCURRENCY = 16;
 const DEFAULT_EMBEDDING_SPEND_LIMIT_USD = 0.5;
 const DEFAULT_MAX_LANGUAGE_CALLS = 50_000;
 const DEFAULT_USER_COUNT = 2;
+export const PHASE74_HALUMEM_PROMOTION_USER_COUNT = 19;
 
 interface Phase74HaluMemExecutionOptions {
   caseConcurrency?: number;
@@ -308,7 +310,7 @@ export function parsePhase74HaluMemLiveRunnerOptions(
       "--case-concurrency",
     ),
     datasetId: resolveCliFlagValueStrict(args, "--dataset-id") ??
-      "HaluMem-Medium",
+      PHASE74_HALUMEM_MEDIUM_DATASET_ID,
     datasetPath: resolve(requiredFlag(args, "--dataset-path")),
     embeddingSpendLimitUsd: positiveNumber(
       resolveCliFlagValueStrict(args, "--embedding-spend-limit-usd") ??

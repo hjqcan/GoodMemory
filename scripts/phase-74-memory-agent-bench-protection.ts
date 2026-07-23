@@ -56,7 +56,7 @@ interface MemoryAgentBenchRuntime {
   scope: ReturnType<typeof buildMemoryAgentBenchScope>;
 }
 
-const DEFAULT_CASE_CONCURRENCY = 1;
+export const PHASE74_MAB_PROTECTION_CASE_CONCURRENCY = 1;
 const RENDERED_CONTEXT_TOKENS = 6_000;
 
 export interface Phase74MemoryAgentBenchProtectionDependencies {
@@ -160,7 +160,8 @@ export async function runPhase74MemoryAgentBenchProtection(input: {
   const runtimes = new Map<string, MemoryAgentBenchRuntime>();
   const createMemory = dependencies.createMemory ??
     createPhase74MemoryAgentBenchOfflineMemory;
-  const caseConcurrency = input.caseConcurrency ?? DEFAULT_CASE_CONCURRENCY;
+  const caseConcurrency = input.caseConcurrency ??
+    PHASE74_MAB_PROTECTION_CASE_CONCURRENCY;
   const plannedIdentity =
     buildPhase74MemoryAgentBenchProtectionPlanIdentity(input).identity;
   const { population: identityPopulation, ...identity } = plannedIdentity;
