@@ -501,6 +501,7 @@ describe("Phase 74 release version process", () => {
     const valid = {
       action: "query",
       pid: 123,
+      preparedReceiptSha256: "f".repeat(64),
       result: {
         arm: "release",
         caseId: "case-opaque",

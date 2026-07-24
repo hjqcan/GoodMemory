@@ -81,10 +81,13 @@ import {
   materializePhase74VersionExecutionRoot,
 } from "./phase74-version-worker";
 import {
+  buildPhase74VersionPreparedReceiptSet,
   parsePhase74VersionProcessJob,
   parsePhase74VersionProcessOutput,
   runPhase74VersionChildProcess,
+  sealPhase74VersionPreparedSnapshot,
   type Phase74VersionPreparedReceipt,
+  type Phase74VersionPreparedReceiptSet,
   type Phase74VersionProcessConfig,
 } from "./phase74-version-process";
 import type {
@@ -664,6 +667,7 @@ export async function runPhase74LiveProductComparison(
     promptSha256s,
     runId: options.runId,
   });
+  const executionIdentityHash = hashEvalRunIdentity(identity);
   await writeJson(join(runDirectory, "run-identity.json"), identity);
   const releaseExecutionRoot =
     await materializePhase74VersionExecutionRoot({
@@ -740,6 +744,7 @@ export async function runPhase74LiveProductComparison(
   const candidateIngestionKeys = new Map<string, string>();
   const releaseIngestionKeys = new Map<string, string>();
   const releasePrepared = new Map<string, Phase74VersionPreparedReceipt>();
+  let releasePreparedReceiptSet: Phase74VersionPreparedReceiptSet | undefined;
   const releaseProcessPids = new Set<number>();
   const releaseUsagePath = join(releaseDirectory, "model-usage.jsonl");
   const releaseUsageIntentsPath = join(
@@ -805,7 +810,13 @@ export async function runPhase74LiveProductComparison(
       env,
       job: parsePhase74VersionProcessJob({
         action: "prepare",
-        groups: [...releaseGroups.values()].map(({ input, sqlitePath }) => ({
+        groups: [...releaseGroups.values()].map(({
+          ingestionKey,
+          input,
+          sqlitePath,
+        }) => ({
+          executionIdentityHash,
+          ingestionKey,
           input,
           sqlitePath,
         })),
@@ -823,16 +834,33 @@ export async function runPhase74LiveProductComparison(
     ) {
       throw new Error("Phase 74 release process preparation drifted.");
     }
-    for (const prepared of preparedOutput.groups) {
-      const expected = releaseGroups.get(prepared.memoryGroupId);
-      if (
-        expected === undefined ||
-        expected.sqlitePath !== prepared.sqlitePath
-      ) {
-        throw new Error("Phase 74 release process memory group drifted.");
-      }
+    const sealedReceipts = await Promise.all(
+      preparedOutput.groups.map(async (prepared) => {
+        const expected = releaseGroups.get(prepared.memoryGroupId);
+        if (
+          expected === undefined ||
+          expected.ingestionKey !== prepared.ingestionKey ||
+          expected.sqlitePath !== prepared.sqlitePath ||
+          prepared.executionIdentityHash !== executionIdentityHash
+        ) {
+          throw new Error("Phase 74 release process memory group drifted.");
+        }
+        return sealPhase74VersionPreparedSnapshot({
+          prepared,
+          snapshotRoot: join(releaseDirectory, "sealed-snapshots"),
+        });
+      }),
+    );
+    releasePreparedReceiptSet = buildPhase74VersionPreparedReceiptSet(
+      sealedReceipts,
+    );
+    for (const prepared of releasePreparedReceiptSet.receipts) {
       releasePrepared.set(prepared.memoryGroupId, prepared);
     }
+    await writeJson(
+      join(releaseDirectory, "prepared-receipts.json"),
+      releasePreparedReceiptSet,
+    );
 
     result = await runPhase74ProductComparison({
       cases: productCases,
@@ -929,6 +957,8 @@ export async function runPhase74LiveProductComparison(
             );
             if (
               queryOutput.action !== "query" ||
+              queryOutput.preparedReceiptSha256 !==
+                prepared.receiptSha256 ||
               queryOutput.result.caseId !== productCase.caseId
             ) {
               throw new Error("Phase 74 release process query drifted.");
@@ -1087,6 +1117,18 @@ export async function runPhase74LiveProductComparison(
     },
     modelUsage,
     releaseDependencyTreeSha256,
+    releasePreparedReceiptSet: {
+      path: "release/prepared-receipts.json",
+      receiptSetSha256: releasePreparedReceiptSet!.receiptSetSha256,
+      sha256: await sha256File(
+        join(releaseDirectory, "prepared-receipts.json"),
+      ),
+    },
+    releasePreparedReceipts: releasePreparedReceiptSet!.receipts.map((receipt) => ({
+      ingestionKey: receipt.ingestionKey,
+      memoryGroupId: receipt.memoryGroupId,
+      receiptSha256: receipt.receiptSha256,
+    })),
     releaseProcessPids: [...releaseProcessPids].sort((left, right) =>
       left - right
     ),

@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 
+import {
+  assertNoSqliteSidecars,
+  writeCreateOnlyExact,
+} from "../src/eval/phase74IngestionRetirement";
 import {
   appendPhase74ModelUsageEventSync,
   appendPhase74ModelUsageIntentSync,
@@ -29,17 +33,39 @@ import {
 } from "./phase74-version-worker";
 
 interface Phase74VersionPrepareGroup {
+  executionIdentityHash: string;
+  ingestionKey: string;
   input: Phase74VersionWorkerInput;
   sqlitePath: string;
 }
 
-export interface Phase74VersionPreparedReceipt {
+export interface Phase74VersionPreparedState {
+  executionIdentityHash: string;
+  ingestionKey: string;
   ingestionLatencyMs: number;
   memoryGroupId: string;
   rawEvidenceSha256: string;
   sourceCommit: string;
   sqlitePath: string;
+}
+
+export interface Phase74VersionPreparedReceipt {
+  executionIdentityHash: string;
+  ingestionKey: string;
+  ingestionLatencyMs: number;
+  memoryGroupId: string;
+  rawEvidenceSha256: string;
+  receiptSha256: string;
+  sourceCommit: string;
+  sourceSqlitePath: string;
+  sqlitePath: string;
   sqliteSha256: string;
+}
+
+export interface Phase74VersionPreparedReceiptSet {
+  receiptSetSha256: string;
+  receipts: Phase74VersionPreparedReceipt[];
+  schemaVersion: 1;
 }
 
 export type Phase74VersionProcessJob =
@@ -72,13 +98,14 @@ export interface Phase74VersionProcessConfig {
 export type Phase74VersionProcessOutput =
   | {
       action: "prepare";
-      groups: Phase74VersionPreparedReceipt[];
+      groups: Phase74VersionPreparedState[];
       pid: number;
       schemaVersion: 1;
     }
   | {
       action: "query";
       pid: number;
+      preparedReceiptSha256: string;
       result: Phase74VersionWorkerResult;
       schemaVersion: 1;
     };
@@ -103,7 +130,7 @@ export function parsePhase74VersionProcessOutput(
     if (!Array.isArray(output.groups)) {
       throw new Error("Invalid Phase 74 version process output.");
     }
-    const groups = output.groups.map(preparedReceipt);
+    const groups = output.groups.map(preparedState);
     return {
       action: "prepare",
       groups,
@@ -114,7 +141,13 @@ export function parsePhase74VersionProcessOutput(
   if (output.action === "query") {
     exactFields(
       output,
-      ["action", "pid", "result", "schemaVersion"],
+      [
+        "action",
+        "pid",
+        "preparedReceiptSha256",
+        "result",
+        "schemaVersion",
+      ],
       "Phase 74 version process output",
     );
     const rawResult = recordValue(
@@ -193,6 +226,10 @@ export function parsePhase74VersionProcessOutput(
     return {
       action: "query",
       pid: Number(output.pid),
+      preparedReceiptSha256: exactSha256(
+        output.preparedReceiptSha256,
+        "Phase 74 version process prepared receipt",
+      ),
       result,
       schemaVersion: 1,
     };
@@ -253,10 +290,18 @@ function prepareGroup(value: unknown): Phase74VersionPrepareGroup {
   const group = recordValue(value, "Phase 74 version process group");
   exactFields(
     group,
-    ["input", "sqlitePath"],
+    ["executionIdentityHash", "ingestionKey", "input", "sqlitePath"],
     "Phase 74 version process group",
   );
   return {
+    executionIdentityHash: exactSha256(
+      group.executionIdentityHash,
+      "Phase 74 version process execution identity",
+    ),
+    ingestionKey: exactSha256(
+      group.ingestionKey,
+      "Phase 74 version process ingestion key",
+    ),
     input: parsePhase74VersionWorkerInput(group.input),
     sqlitePath: nonEmptyString(
       group.sqlitePath,
@@ -273,6 +318,81 @@ function sha256RawEvidence(input: Phase74VersionWorkerInput): string {
   return sha256(JSON.stringify(input.rawEvidence));
 }
 
+function exactSha256(candidate: unknown, label: string): string {
+  const parsed = nonEmptyString(candidate, label);
+  if (!/^[a-f0-9]{64}$/u.test(parsed)) {
+    throw new Error(`${label} must be an exact SHA-256.`);
+  }
+  return parsed;
+}
+
+function preparedState(value: unknown): Phase74VersionPreparedState {
+  const state = recordValue(value, "Phase 74 version prepared state");
+  exactFields(
+    state,
+    [
+      "executionIdentityHash",
+      "ingestionKey",
+      "ingestionLatencyMs",
+      "memoryGroupId",
+      "rawEvidenceSha256",
+      "sourceCommit",
+      "sqlitePath",
+    ],
+    "Phase 74 version prepared state",
+  );
+  const sourceCommit = nonEmptyString(
+    state.sourceCommit,
+    "Phase 74 version prepared source",
+  );
+  if (sourceCommit !== PHASE74_RELEASE_COMMIT) {
+    throw new Error("Phase 74 version prepared state source drifted.");
+  }
+  return {
+    executionIdentityHash: exactSha256(
+      state.executionIdentityHash,
+      "Phase 74 version prepared execution identity",
+    ),
+    ingestionKey: exactSha256(
+      state.ingestionKey,
+      "Phase 74 version prepared ingestion key",
+    ),
+    ingestionLatencyMs: nonNegativeNumber(
+      state.ingestionLatencyMs,
+      "Phase 74 version prepared ingestion latency",
+    ),
+    memoryGroupId: nonEmptyString(
+      state.memoryGroupId,
+      "Phase 74 version prepared memory group",
+    ),
+    rawEvidenceSha256: exactSha256(
+      state.rawEvidenceSha256,
+      "Phase 74 version prepared raw-evidence digest",
+    ),
+    sourceCommit,
+    sqlitePath: nonEmptyString(
+      state.sqlitePath,
+      "Phase 74 version prepared SQLite path",
+    ),
+  };
+}
+
+function receiptContent(
+  value: Omit<Phase74VersionPreparedReceipt, "receiptSha256">,
+) {
+  return {
+    executionIdentityHash: value.executionIdentityHash,
+    ingestionKey: value.ingestionKey,
+    ingestionLatencyMs: value.ingestionLatencyMs,
+    memoryGroupId: value.memoryGroupId,
+    rawEvidenceSha256: value.rawEvidenceSha256,
+    sourceCommit: value.sourceCommit,
+    sourceSqlitePath: value.sourceSqlitePath,
+    sqlitePath: value.sqlitePath,
+    sqliteSha256: value.sqliteSha256,
+  };
+}
+
 function preparedReceipt(value: unknown): Phase74VersionPreparedReceipt {
   const receipt = recordValue(
     value,
@@ -281,22 +401,19 @@ function preparedReceipt(value: unknown): Phase74VersionPreparedReceipt {
   exactFields(
     receipt,
     [
+      "executionIdentityHash",
+      "ingestionKey",
       "ingestionLatencyMs",
       "memoryGroupId",
       "rawEvidenceSha256",
+      "receiptSha256",
       "sourceCommit",
+      "sourceSqlitePath",
       "sqlitePath",
       "sqliteSha256",
     ],
     "Phase 74 version prepared receipt",
   );
-  const exactSha256 = (candidate: unknown, label: string) => {
-    const parsed = nonEmptyString(candidate, label);
-    if (!/^[a-f0-9]{64}$/u.test(parsed)) {
-      throw new Error(`${label} must be an exact SHA-256.`);
-    }
-    return parsed;
-  };
   const sourceCommit = nonEmptyString(
     receipt.sourceCommit,
     "Phase 74 version prepared source",
@@ -304,7 +421,15 @@ function preparedReceipt(value: unknown): Phase74VersionPreparedReceipt {
   if (sourceCommit !== PHASE74_RELEASE_COMMIT) {
     throw new Error("Phase 74 version prepared receipt source drifted.");
   }
-  return {
+  const parsed = {
+    executionIdentityHash: exactSha256(
+      receipt.executionIdentityHash,
+      "Phase 74 version prepared execution identity",
+    ),
+    ingestionKey: exactSha256(
+      receipt.ingestionKey,
+      "Phase 74 version prepared ingestion key",
+    ),
     ingestionLatencyMs: nonNegativeNumber(
       receipt.ingestionLatencyMs,
       "Phase 74 version prepared ingestion latency",
@@ -317,7 +442,15 @@ function preparedReceipt(value: unknown): Phase74VersionPreparedReceipt {
       receipt.rawEvidenceSha256,
       "Phase 74 version prepared raw-evidence digest",
     ),
+    receiptSha256: exactSha256(
+      receipt.receiptSha256,
+      "Phase 74 version prepared receipt digest",
+    ),
     sourceCommit,
+    sourceSqlitePath: nonEmptyString(
+      receipt.sourceSqlitePath,
+      "Phase 74 version prepared source SQLite path",
+    ),
     sqlitePath: nonEmptyString(
       receipt.sqlitePath,
       "Phase 74 version prepared SQLite path",
@@ -327,31 +460,105 @@ function preparedReceipt(value: unknown): Phase74VersionPreparedReceipt {
       "Phase 74 version prepared SQLite digest",
     ),
   };
+  if (
+    parsed.receiptSha256 !==
+      sha256(JSON.stringify(receiptContent(parsed)))
+  ) {
+    throw new Error("Phase 74 version prepared receipt digest drifted.");
+  }
+  return parsed;
 }
 
-export async function buildPhase74VersionPreparedReceipt(input: {
+export function buildPhase74VersionPreparedReceipt(input: {
+  executionIdentityHash: string;
+  ingestionKey: string;
   ingestionLatencyMs: number;
   input: Phase74VersionWorkerInput;
   sqlitePath: string;
-}): Promise<Phase74VersionPreparedReceipt> {
+}): Phase74VersionPreparedState {
   const workerInput = parsePhase74VersionWorkerInput(input.input);
-  return preparedReceipt({
+  return preparedState({
+    executionIdentityHash: input.executionIdentityHash,
+    ingestionKey: input.ingestionKey,
     ingestionLatencyMs: input.ingestionLatencyMs,
     memoryGroupId: workerInput.memoryGroupId,
     rawEvidenceSha256: sha256RawEvidence(workerInput),
     sourceCommit: workerInput.sourceCommit,
     sqlitePath: input.sqlitePath,
-    sqliteSha256: sha256(await readFile(input.sqlitePath)),
   });
 }
 
+export async function sealPhase74VersionPreparedSnapshot(input: {
+  prepared: Phase74VersionPreparedState;
+  snapshotRoot: string;
+}): Promise<Phase74VersionPreparedReceipt> {
+  const prepared = preparedState(input.prepared);
+  await assertNoSqliteSidecars(prepared.sqlitePath);
+  const sourceBytes = await readFile(prepared.sqlitePath);
+  const sqliteSha256 = sha256(sourceBytes);
+  const sqlitePath = join(
+    input.snapshotRoot,
+    "sha256",
+    sqliteSha256.slice(0, 2),
+    `${sqliteSha256}.sqlite`,
+  );
+  await writeCreateOnlyExact(sqlitePath, sourceBytes);
+  if (
+    sha256(await readFile(prepared.sqlitePath)) !== sqliteSha256
+  ) {
+    throw new Error("Phase 74 version prepared source SQLite drifted.");
+  }
+  await assertNoSqliteSidecars(prepared.sqlitePath);
+  const content = receiptContent({
+    ...prepared,
+    sourceSqlitePath: prepared.sqlitePath,
+    sqlitePath,
+    sqliteSha256,
+  });
+  return preparedReceipt({
+    ...content,
+    receiptSha256: sha256(JSON.stringify(content)),
+  });
+}
+
+export function buildPhase74VersionPreparedReceiptSet(
+  values: readonly Phase74VersionPreparedReceipt[],
+): Phase74VersionPreparedReceiptSet {
+  const receipts = values.map(preparedReceipt).sort((left, right) =>
+    left.memoryGroupId.localeCompare(right.memoryGroupId)
+  );
+  if (
+    receipts.length === 0 ||
+    new Set(receipts.map(({ memoryGroupId }) => memoryGroupId)).size !==
+      receipts.length ||
+    new Set(receipts.map(({ ingestionKey }) => ingestionKey)).size !==
+      receipts.length ||
+    new Set(receipts.map(({ executionIdentityHash }) =>
+      executionIdentityHash
+    )).size !== 1
+  ) {
+    throw new Error("Phase 74 version prepared receipt set drifted.");
+  }
+  return {
+    receiptSetSha256: sha256(JSON.stringify(
+      receipts.map(({ receiptSha256 }) => receiptSha256),
+    )),
+    receipts,
+    schemaVersion: 1,
+  };
+}
+
 export async function verifyPhase74VersionPreparedReceipt(input: {
+  executionIdentityHash: string;
+  ingestionKey: string;
   input: Phase74VersionWorkerInput;
   receipt: Phase74VersionPreparedReceipt;
 }): Promise<Phase74VersionPreparedReceipt> {
   const workerInput = parsePhase74VersionWorkerInput(input.input);
   const receipt = preparedReceipt(input.receipt);
   if (
+    receipt.executionIdentityHash !== input.executionIdentityHash ||
+    receipt.ingestionKey !== input.ingestionKey ||
     receipt.memoryGroupId !== workerInput.memoryGroupId ||
     receipt.sourceCommit !== workerInput.sourceCommit ||
     receipt.rawEvidenceSha256 !== sha256RawEvidence(workerInput) ||
@@ -382,7 +589,12 @@ export function parsePhase74VersionProcessJob(
     const groups = job.groups.map(prepareGroup);
     if (
       new Set(groups.map(({ input }) => input.memoryGroupId)).size !==
-        groups.length
+        groups.length ||
+      new Set(groups.map(({ ingestionKey }) => ingestionKey)).size !==
+        groups.length ||
+      new Set(groups.map(({ executionIdentityHash }) =>
+        executionIdentityHash
+      )).size !== 1
     ) {
       throw new Error("Phase 74 version process groups must be unique.");
     }
@@ -543,7 +755,7 @@ async function prepareAll(input: {
   concurrency: number;
   groups: readonly Phase74VersionPrepareGroup[];
   run(group: Phase74VersionPrepareGroup): Promise<
-    Phase74VersionPreparedReceipt
+    Phase74VersionPreparedState
   >;
 }) {
   const results = new Array<Awaited<ReturnType<typeof input.run>>>(
@@ -645,6 +857,8 @@ export async function runPhase74VersionProcessJob(input: {
             sqlitePath: group.sqlitePath,
           }));
           return buildPhase74VersionPreparedReceipt({
+            executionIdentityHash: group.executionIdentityHash,
+            ingestionKey: group.ingestionKey,
             ingestionLatencyMs: prepared.ingestionLatencyMs,
             input: group.input,
             sqlitePath: group.sqlitePath,
@@ -654,6 +868,8 @@ export async function runPhase74VersionProcessJob(input: {
       return { action: "prepare", groups, pid, schemaVersion: 1 };
     }
     const prepared = await verifyPhase74VersionPreparedReceipt({
+      executionIdentityHash: job.prepared.executionIdentityHash,
+      ingestionKey: job.prepared.ingestionKey,
       input: job.input,
       receipt: job.prepared,
     });
@@ -671,7 +887,13 @@ export async function runPhase74VersionProcessJob(input: {
       },
       sqlitePath: prepared.sqlitePath,
     }));
-    return { action: "query", pid, result, schemaVersion: 1 };
+    return {
+      action: "query",
+      pid,
+      preparedReceiptSha256: prepared.receiptSha256,
+      result,
+      schemaVersion: 1,
+    };
   } finally {
     globalThis.fetch = originalFetch;
   }

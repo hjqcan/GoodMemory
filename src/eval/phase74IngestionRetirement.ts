@@ -317,7 +317,9 @@ function serializeReceipt(receipt: Phase74IngestionArchiveReceipt): string {
   return `${JSON.stringify(receipt)}\n`;
 }
 
-async function assertNoSqliteSidecars(sqlitePath: string): Promise<void> {
+export async function assertNoSqliteSidecars(
+  sqlitePath: string,
+): Promise<void> {
   for (const suffix of ["-journal", "-wal", "-shm"]) {
     if (await pathExists(`${sqlitePath}${suffix}`)) {
       throw new Error(
@@ -327,7 +329,7 @@ async function assertNoSqliteSidecars(sqlitePath: string): Promise<void> {
   }
 }
 
-async function writeCreateOnlyExact(
+export async function writeCreateOnlyExact(
   path: string,
   bytes: Uint8Array,
 ): Promise<void> {
