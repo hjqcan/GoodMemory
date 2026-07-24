@@ -78,6 +78,37 @@ function fakeMemory(input: {
 }
 
 describe("Phase 74 release version process", () => {
+  it("accepts only source-bound versioned ingestion keys", () => {
+    const job = {
+      action: "prepare",
+      groups: [{
+        ...PREPARE_IDENTITY,
+        input: WORKER_INPUT,
+        sqlitePath: "/tmp/release.sqlite",
+      }],
+      schemaVersion: 1,
+    } as const;
+
+    expect(parsePhase74VersionProcessJob(job)).toMatchObject({
+      groups: [{ ingestionKey: INGESTION_KEY }],
+    });
+    expect(() => parsePhase74VersionProcessJob({
+      ...job,
+      groups: [{
+        ...job.groups[0],
+        ingestionKey: "d".repeat(64),
+      }],
+    })).toThrow("source-bound versioned key");
+    expect(() => parsePhase74VersionProcessJob({
+      ...job,
+      groups: [{
+        ...job.groups[0],
+        ingestionKey:
+          `phase74-version-ingestion-v1:${"a".repeat(40)}:${"b".repeat(64)}`,
+      }],
+    })).toThrow("source-bound versioned key");
+  });
+
   it("accepts only label-free prepare and receipt-bound query jobs", async () => {
     const directory = await mkdtemp(join(tmpdir(), "phase74-version-receipt-"));
     const sourceSqlitePath = join(directory, "release.sqlite");
