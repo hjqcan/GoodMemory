@@ -895,7 +895,21 @@ touched (owned by a parallel workstream).
   Pooled: **+23.2pt** recall on n=304 questions; 88 questions improved vs 9
   regressed; noise/question flat-to-down (cues admit true evidence that
   displaces noise — the same context-budget displacement mechanism the floor
-  sweep exposed, now working *for* admission). Clears the ≥3pt bar ~7× with
+  sweep exposed, now working *for* admission).
+
+  **Answer-side conversion (same day): the recall gain converts.** Live
+  answers replayed over both arms' retrieved sets (evidence-pack context,
+  strict abstention, no chain-of-note, identical settings per pair; zero
+  failures across all 10 runs): conv-26 answer accuracy 0.1960 → 0.3719
+  (**+17.59pt**; fixed 43 / broken 8; mean token-F1 +13.19), conv-30 0.2571
+  → 0.4095 (**+15.24pt**; fixed 19 / broken 3; mean token-F1 +13.79).
+  Per-category deltas positive everywhere that scores: single_hop
+  +24.3/+18.2, temporal +21.6/+26.9, multi_hop +18.8/+9.1, open_domain
+  +15.4 (conv-26 only), adversarial +4.3/±0 (the near-zero adversarial base
+  in both arms is the verbose-abstention-vs-scorer-alias phrasing artifact
+  documented under the R2 measurement — equal in both arms, so protection
+  holds). Pooled: **+16.8pt answer accuracy on n=304**, 62 fixed vs 11
+  broken. Clears the ≥3pt bar ~7× with
   no protection regression (adversarial recall up = better grounded-abstention
   support; noise did not inflate — the R1a floor counterweight was not even
   needed). Guardrail holds by construction: the generator sees only stored
