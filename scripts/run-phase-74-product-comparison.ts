@@ -1259,7 +1259,7 @@ export async function runPhase74LiveProductComparison(
       configurationSha256: sha256(JSON.stringify({
         embedding: publicModelIdentity(models.embedding),
         extraction: publicModelIdentity(models.assistedExtraction),
-        profile: "v0.7.0-recommended",
+        profile: `${PHASE74_RELEASE_REF}-recommended`,
       })),
       datasetSha256: dataset.manifest.datasetSha256,
       memoryGroupId: productCase.memoryGroupId,

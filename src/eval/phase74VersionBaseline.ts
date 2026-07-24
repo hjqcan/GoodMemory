@@ -2,15 +2,15 @@ import { createHash } from "node:crypto";
 
 import type { EvalRunJsonObject } from "./runIdentity";
 
-export const PHASE74_RELEASE_REF = "v0.7.0";
+export const PHASE74_RELEASE_REF = "v0.6.0";
 export const PHASE74_RELEASE_COMMIT =
-  "5ad83df2e3e5e9763318e74994a335cd681a32f6";
+  "6fdd63ecc316da725d2a1e19cb61f4eb3a9ee235";
 export const PHASE74_RELEASE_TREE =
-  "80f7f5a1ff94862565767b5b45be5354c4754f9e";
+  "caad85c55d06431585d0405718f90bd4d2e76965";
 export const PHASE74_RELEASE_ARCHIVE_SHA256 =
-  "4cefbac3d9a9e8c3e4773a8e5cb8bca91f0eb50e87c58497c063cfe3c0d270f8";
+  "098586707fb3c6b105ab695866007a923c634ffd8bbd024c63bef0e040aad714";
 export const PHASE74_RELEASE_LOCKFILE_SHA256 =
-  "cf18263a6823508afa2c95c49fcad709621b1887d39bb2c21b65d88d2afb54c8";
+  "d6adae8b283d6255c9af23dfaa14378fc11264127b5f89d04f28773c7253034b";
 export const PHASE74_ALPHA_COMMIT =
   "5d7639a8fa164d86e0aa1ed10a8ea398b7912464";
 export const PHASE74_ALPHA_TREE =
