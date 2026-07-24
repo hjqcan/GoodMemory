@@ -1,12 +1,17 @@
 import { describe, expect, it } from "bun:test";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import {
   PHASE74_PRODUCT_CASE_SCHEDULING,
+  buildPhase74ProductAttemptTerminal,
   buildPhase74ProductQueryPathLatencyMs,
   buildPhase74ProductRunIdentityConfiguration,
   createPhase74ProductNetworkFetch,
   parsePhase74ProductComparisonCliOptions,
   runPhase74ProductComparison,
+  writePhase74ProductAttemptTerminal,
   type Phase74ProductPreparedGroup,
 } from "../../scripts/run-phase-74-product-comparison";
 
@@ -393,5 +398,74 @@ describe("Phase 74 cumulative product runner", () => {
         order: ["parasail"],
       },
     });
+  });
+
+  it("writes a redacted create-only terminal artifact for failed attempts", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "phase74-product-terminal-"));
+    const terminalPath = join(directory, "attempt-terminal.json");
+    const candidateBudgetPath = join(directory, "candidate-budget.json");
+    const candidateEventsPath = join(directory, "candidate-events.jsonl");
+    const candidateIntentsPath = join(directory, "candidate-intents.jsonl");
+    try {
+      await writeFile(candidateBudgetPath, "{\"languageCalls\":1}\n");
+      await writeFile(candidateEventsPath, "{}\n");
+      await writeFile(candidateIntentsPath, "");
+      const terminal = await buildPhase74ProductAttemptTerminal({
+        completedReceiptSetSha256: "a".repeat(64),
+        error: new Error("PHASE74-SECRET-ERROR-SENTINEL"),
+        identityHash: "b".repeat(64),
+        paths: {
+          candidateBudgetPath,
+          candidateEventsPath,
+          candidateIntentsPath,
+          releaseBudgetPath: join(directory, "release-budget.json"),
+          releaseEventsPath: join(directory, "release-events.jsonl"),
+          releaseIntentsPath: join(directory, "release-intents.jsonl"),
+        },
+        process: {
+          failed: {
+            exitCode: 7,
+            pid: 43,
+            stderrSha256: "c".repeat(64),
+          },
+          successfulPids: [42],
+        },
+        status: "failed",
+      });
+      const written = await writePhase74ProductAttemptTerminal({
+        path: terminalPath,
+        terminal,
+      });
+      const raw = await readFile(terminalPath, "utf8");
+
+      expect(raw).not.toContain("PHASE74-SECRET-ERROR-SENTINEL");
+      expect(written.sha256).toMatch(/^[a-f0-9]{64}$/u);
+      expect(terminal).toMatchObject({
+        completedReceiptSetSha256: "a".repeat(64),
+        evidence: {
+          candidateBudget: {
+            exists: true,
+            sha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+          },
+          candidateUsage: { reconciled: false },
+          releaseBudget: { exists: false },
+          releaseUsage: { reconciled: false },
+        },
+        errorFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/u),
+        identityHash: "b".repeat(64),
+        process: {
+          failed: { exitCode: 7, pid: 43 },
+          successfulPids: [42],
+        },
+        schemaVersion: 1,
+        status: "failed",
+      });
+      await expect(writePhase74ProductAttemptTerminal({
+        path: terminalPath,
+        terminal,
+      })).rejects.toThrow();
+    } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
   });
 });

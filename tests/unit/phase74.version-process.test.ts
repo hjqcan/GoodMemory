@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 import {
+  Phase74VersionChildProcessError,
   buildPhase74VersionPreparedReceipt,
   buildPhase74VersionPreparedReceiptSet,
   parsePhase74VersionProcessJob,
@@ -215,6 +216,37 @@ describe("Phase 74 release version process", () => {
       "PHASE74-JUDGE-SENTINEL",
     );
     await rm(directory, { force: true, recursive: true });
+  });
+
+  it("returns structured redacted evidence when a child process fails", async () => {
+    try {
+      await runPhase74VersionChildProcess({
+        cwd: process.cwd(),
+        env: {
+          HOME: process.env.HOME,
+          PATH: process.env.PATH,
+        },
+        job: parsePhase74VersionProcessJob({
+          action: "prepare",
+          groups: [{
+            ...PREPARE_IDENTITY,
+            input: WORKER_INPUT,
+            sqlitePath: "/tmp/release.sqlite",
+          }],
+          schemaVersion: 1,
+        }),
+        script: resolve("tests/fixtures/phase74-version-process-fail.ts"),
+      });
+      throw new Error("expected Phase 74 version child failure");
+    } catch (error) {
+      expect(error).toBeInstanceOf(Phase74VersionChildProcessError);
+      const failure = error as Phase74VersionChildProcessError;
+      expect(failure.exitCode).toBe(7);
+      expect(failure.pid).toBeGreaterThan(0);
+      expect(failure.stderrSha256).toMatch(/^[a-f0-9]{64}$/u);
+      expect(JSON.stringify(failure))
+        .not.toContain("PHASE74-CHILD-SECRET-SENTINEL");
+    }
   });
 
   it("refuses to seal a release snapshot with live SQLite sidecars", async () => {
