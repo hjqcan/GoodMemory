@@ -676,7 +676,7 @@ describe("Phase 74 cumulative product runner", () => {
       await expect(verifyPhase74ProductAttemptTerminal({
         path: terminalPath,
         paths,
-      })).rejects.toThrow("terminal drifted");
+      })).rejects.toThrow("terminal");
 
       await writeFile(terminalPath, JSON.stringify(originalTerminal));
       await writeFile(paths.reportPath, "{\"status\":\"tampered\"}\n");

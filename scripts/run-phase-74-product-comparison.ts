@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import type { EvidenceLedgerFormat } from "../src/eval/evidenceLedgerFormats";
 import {
@@ -51,6 +51,7 @@ import {
   hashEvalExperimentIdentity,
   hashEvalRunIdentity,
   type EvalRunJsonObject,
+  type EvalRunIdentity,
   type EvalRunModelIdentity,
 } from "../src/eval/runIdentity";
 import {
@@ -780,6 +781,7 @@ export async function verifyPhase74ProductAttemptTerminal(input: {
     throw new Error("Phase 74 product attempt terminal is invalid.");
   }
   const terminal = value as Phase74ProductAttemptTerminal;
+  const failedProcess = terminal.process?.failed;
   if (
     terminal.schemaVersion !== 1 ||
     (terminal.status !== "failed" && terminal.status !== "succeeded") ||
@@ -793,7 +795,36 @@ export async function verifyPhase74ProductAttemptTerminal(input: {
       !/^[a-f0-9]{64}$/u.test(terminal.errorFingerprint)
     ) ||
     terminal.evidence === undefined ||
-    terminal.process === undefined
+    terminal.process === undefined ||
+    !Array.isArray(terminal.process.successfulPids) ||
+    terminal.process.successfulPids.some(
+      (pid) => !Number.isSafeInteger(pid) || pid <= 0,
+    ) ||
+    new Set(terminal.process.successfulPids).size !==
+      terminal.process.successfulPids.length ||
+    (
+      failedProcess !== null &&
+      (
+        failedProcess === undefined ||
+        !Number.isSafeInteger(failedProcess.exitCode) ||
+        !Number.isSafeInteger(failedProcess.pid) ||
+        failedProcess.pid <= 0 ||
+        !/^[a-f0-9]{64}$/u.test(failedProcess.stderrSha256)
+      )
+    ) ||
+    (
+      terminal.status === "succeeded" &&
+      (
+        terminal.completedReceiptSetSha256 === null ||
+        terminal.errorFingerprint !== null ||
+        failedProcess !== null ||
+        terminal.process.successfulPids.length === 0
+      )
+    ) ||
+    (
+      terminal.status === "failed" &&
+      terminal.errorFingerprint === null
+    )
   ) {
     throw new Error("Phase 74 product attempt terminal is invalid.");
   }
@@ -829,6 +860,55 @@ export async function verifyPhase74ProductAttemptTerminal(input: {
     })
   ) {
     throw new Error("Phase 74 product attempt terminal artifact drifted.");
+  }
+  const root = dirname(input.path);
+  const runIdentity = JSON.parse(
+    await readFile(join(root, "run-identity.json"), "utf8"),
+  ) as EvalRunIdentity;
+  const identityHash = hashEvalRunIdentity(runIdentity);
+  const rawReceiptSet: unknown = JSON.parse(
+    await readFile(
+      join(root, "release", "prepared-receipts.json"),
+      "utf8",
+    ),
+  );
+  if (
+    rawReceiptSet === null ||
+    typeof rawReceiptSet !== "object" ||
+    Array.isArray(rawReceiptSet) ||
+    !Array.isArray(
+      (rawReceiptSet as { receipts?: unknown }).receipts,
+    )
+  ) {
+    throw new Error("Phase 74 product attempt terminal drifted.");
+  }
+  const receiptSet = buildPhase74VersionPreparedReceiptSet(
+    (rawReceiptSet as Phase74VersionPreparedReceiptSet).receipts,
+  );
+  const reportValue: unknown = JSON.parse(
+    await readFile(input.paths.reportPath, "utf8"),
+  );
+  if (
+    reportValue === null ||
+    typeof reportValue !== "object" ||
+    Array.isArray(reportValue)
+  ) {
+    throw new Error("Phase 74 product attempt terminal drifted.");
+  }
+  const reportRecord = reportValue as Record<string, unknown>;
+  const reportReceiptSet = reportRecord.releasePreparedReceiptSet;
+  if (
+    identityHash !== terminal.identityHash ||
+    terminal.completedReceiptSetSha256 !== receiptSet.receiptSetSha256 ||
+    reportRecord.identityHash !== terminal.identityHash ||
+    reportReceiptSet === null ||
+    typeof reportReceiptSet !== "object" ||
+    Array.isArray(reportReceiptSet) ||
+    (
+      reportReceiptSet as Record<string, unknown>
+    ).receiptSetSha256 !== terminal.completedReceiptSetSha256
+  ) {
+    throw new Error("Phase 74 product attempt terminal drifted.");
   }
   return terminal;
 }
