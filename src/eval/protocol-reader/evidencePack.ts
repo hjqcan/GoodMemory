@@ -402,6 +402,22 @@ export function buildAnswerEvidencePack(input: {
   if (OPERATION_FRAMING[operation].length > 0) {
     sections.push(OPERATION_FRAMING[operation]);
   }
+  // Deterministic retrieval-coverage signal (only when the caller supplied
+  // channel provenance): lets the reader calibrate confidence and abstention
+  // on corroboration structure instead of prose tone.
+  const provenancedTurns = ordered.filter(
+    (turn) => (turn.channels?.length ?? 0) > 0,
+  );
+  if (provenancedTurns.length > 0) {
+    const corroborated = provenancedTurns.filter(
+      (turn) => (turn.channels?.length ?? 0) > 1,
+    ).length;
+    sections.push(
+      `Evidence coverage: ${ordered.length} entries; ${corroborated} ` +
+        "corroborated by more than one retrieval channel; " +
+        `${provenancedTurns.length - corroborated} single-channel.`,
+    );
+  }
   const answerShapeGuidance = buildAnswerShapeGuidance({
     operation,
     question: input.question,

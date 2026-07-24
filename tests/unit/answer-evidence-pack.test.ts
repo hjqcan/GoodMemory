@@ -1917,6 +1917,27 @@ describe("structured evidence entries and chain-of-note reading", () => {
     );
   });
 
+  it("summarizes deterministic evidence coverage when channel provenance is present", () => {
+    const pack = buildAnswerEvidencePack({
+      question: "Where do I live?",
+      turns: [
+        { ...moveTurns[0], channels: ["lexical", "dense"] },
+        { ...moveTurns[1], channels: ["entity"] },
+      ],
+    });
+    expect(pack).toContain(
+      "Evidence coverage: 2 entries; 1 corroborated by more than one retrieval channel; 1 single-channel.",
+    );
+  });
+
+  it("omits the coverage line when no entry carries provenance", () => {
+    const pack = buildAnswerEvidencePack({
+      question: "Where do I live?",
+      turns: moveTurns,
+    });
+    expect(pack).not.toContain("Evidence coverage:");
+  });
+
   it("keeps the historical entry format when the typed fields are absent", () => {
     const pack = buildAnswerEvidencePack({
       question: "Where do I live?",

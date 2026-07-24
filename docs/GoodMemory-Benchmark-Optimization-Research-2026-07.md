@@ -815,6 +815,15 @@ touched (owned by a parallel workstream).
   `wrongFullRecallNoisy` / BEAM full-recall buckets, and the BEAM-side runner
   flag once that measurement is approved.
 
+- **R11 increment 1 (2026-07-23) — deterministic evidence-coverage line.**
+  When pack entries carry channel provenance (the R2 typed field), the pack
+  emits `Evidence coverage: N entries; M corroborated by more than one
+  retrieval channel; K single-channel.` — a structural corroboration signal
+  the reader can calibrate confidence/abstention against, replacing prose
+  tone. Provenance-free entries are never mislabeled single-channel; packs
+  without provenance are byte-identical to before. Activates exactly when a
+  runner starts passing fusion provenance into the pack.
+
 - **R5 increment 1 (2026-07-23) — episode event time + span pointers.**
   `EpisodeMemory` gained `observedAt` (event time = earliest contributing
   source message, mirroring R3.1's fact stamping; transaction time stays on
