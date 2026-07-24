@@ -173,6 +173,76 @@ describe("Phase 74 version worker", () => {
     });
   });
 
+  it("buffers one provider response without depending on Response.clone", async () => {
+    const events: AttributedModelUsageAttempt[] = [];
+    const intents: AttributedModelUsageIntent[] = [];
+    const response = new Response([
+      'data: {"choices":[],"usage":{"prompt_tokens":17,"completion_tokens":5,"total_tokens":22}}',
+      "data: [DONE]",
+      "",
+    ].join("\n"), {
+      headers: { "content-type": "text/event-stream" },
+    });
+    Object.defineProperty(response, "clone", {
+      value: () => {
+        throw new Error("Response.clone must not be used");
+      },
+    });
+    const boundary = createPhase74VersionUsageBoundary({
+      events,
+      fetch: async () => response,
+      intents,
+    });
+
+    const body = await boundary.run({
+      branch: "shadow",
+      caseId: "group-stream",
+      languageOperation: "assisted_extraction",
+    }, () => boundary.fetch("https://provider.test/chat/completions", {
+      body: JSON.stringify({ model: "extract-v1" }),
+      method: "POST",
+    }).then((result) => result.text()));
+
+    expect(body).toContain("prompt_tokens");
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      completeness: "complete",
+      outcome: "succeeded",
+    });
+  });
+
+  it("closes the usage intent when buffering the provider body fails", async () => {
+    const events: AttributedModelUsageAttempt[] = [];
+    const intents: AttributedModelUsageIntent[] = [];
+    const response = new Response("unreadable");
+    Object.defineProperty(response, "arrayBuffer", {
+      value: async () => {
+        throw new Error("socket connection was closed unexpectedly");
+      },
+    });
+    const boundary = createPhase74VersionUsageBoundary({
+      events,
+      fetch: async () => response,
+      intents,
+    });
+
+    await expect(boundary.run({
+      branch: "shadow",
+      caseId: "group-stream",
+      languageOperation: "assisted_extraction",
+    }, () => boundary.fetch("https://provider.test/chat/completions", {
+      body: JSON.stringify({ model: "extract-v1" }),
+      method: "POST",
+    }))).rejects.toThrow("socket connection was closed unexpectedly");
+
+    expect(intents).toHaveLength(1);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      completeness: "missing",
+      outcome: "failed",
+    });
+  });
+
   it("ingests one release memory group once and clones it for multiple queries", async () => {
     const root = await mkdtemp(join(tmpdir(), "phase74-version-group-"));
     const sqlitePath = join(root, "memory.sqlite");
