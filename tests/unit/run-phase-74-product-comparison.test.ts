@@ -468,4 +468,28 @@ describe("Phase 74 cumulative product runner", () => {
       await rm(directory, { force: true, recursive: true });
     }
   });
+
+  it("refuses a success terminal without complete receipts and reconciled evidence", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "phase74-product-success-"));
+    try {
+      await expect(buildPhase74ProductAttemptTerminal({
+        identityHash: "b".repeat(64),
+        paths: {
+          candidateBudgetPath: join(directory, "candidate-budget.json"),
+          candidateEventsPath: join(directory, "candidate-events.jsonl"),
+          candidateIntentsPath: join(directory, "candidate-intents.jsonl"),
+          releaseBudgetPath: join(directory, "release-budget.json"),
+          releaseEventsPath: join(directory, "release-events.jsonl"),
+          releaseIntentsPath: join(directory, "release-intents.jsonl"),
+        },
+        process: {
+          failed: null,
+          successfulPids: [42],
+        },
+        status: "succeeded",
+      })).rejects.toThrow("success terminal");
+    } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
+  });
 });
