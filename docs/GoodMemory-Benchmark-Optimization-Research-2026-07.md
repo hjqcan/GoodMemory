@@ -840,6 +840,38 @@ touched (owned by a parallel workstream).
   needs its own measured pass) and span rendering in the evidence pack via
   `sourceMessageIds` → session-archive turns.
 
+  **R2 measurement (2026-07-23, paid validation, complete): chain-of-note is
+  NOT promotable as a default — verdict negative on the target bucket,
+  positive on protection.** Paired live replay (gpt-5.6-terra, concurrency 4,
+  zero execution failures in all 12 runs) on the full-root union report's
+  wrong-despite-full-recall-noisy bucket (n=314 non-adversarial: single_hop
+  182, temporal 76, multi_hop 30, open_domain 26) plus a 60-row adversarial
+  protection sample (45 union-correct + 15 union-wrong), both arms identical
+  except `--chain-of-note`. Target: control 0.2229 vs chain-of-note 0.2006 —
+  **−2.23pt** (18 fixed / 25 broken; mean token-F1 −2.72pt). Per category:
+  multi_hop +3.33 (n=30), single_hop +1.65, temporal **−10.53**, open_domain
+  **−11.54**. Protection: abstention *behavior* improved (declines 54/60 →
+  58/60, bait-rate 0 in both arms; scored-boolean 1/60 in both — the verbose
+  abstention phrasing vs scorer alias-set mismatch affects both arms
+  equally). Failure taxonomy from the broken flips: (1) **answer-shape
+  drift** dominates the temporal losses — the note pass makes the model
+  resolve relative gold phrasings ("the week before X") into concrete dates,
+  often defensibly correct but token-F1-fatal; (2) over-terseness ("Yes."
+  where gold is "Yes, she is supportive"); (3) two over-abstentions on
+  answerable rows. Mechanism read: under strict token-F1, CoN's
+  evidence-use benefit is swamped by answer-shape side effects; the
+  published +7–10pp CoN numbers are EM/judged-metric results and do not
+  transfer to this scoring shape — exactly the external-transfer failure
+  mode the plan's measurement-first guardrails exist to catch.
+  Dispositions: `--chain-of-note` stays a measured opt-in (never default);
+  the abstention-only conditional variant (CoN only for abstention-operation
+  questions) is structurally supported by this data (improves the family it
+  is known to improve, regresses the others) but needs its own protection
+  pass before any promotion; the judged-track LongMemEval replay is the
+  right second family if CoN is revisited, since judged scoring removes the
+  answer-shape penalty. Artifacts: scratchpad `r2-con/` (source reshape note,
+  selection, 12 run reports, flips.json).
+
 Verification state at close of the pass: full canonical sweep green — 3,537
 unit + 645 integration/scenario/cli/eval/type/consumer + 101 example/release
 tests, 0 failures, typecheck clean. One unrelated pre-existing failure was
