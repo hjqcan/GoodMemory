@@ -1,8 +1,9 @@
 # Phase 74: Generalized Memory Core Implementation
 
-Status: implemented in the current working tree as an experimental pipeline.
-Product promotion is not authorized yet because the required repeated,
-cross-benchmark live evaluation has not run.
+Status: the engineering pipeline is implemented and verified at candidate
+commit `da82e844239cfabc846a1360fe96bcf6e4532acc`. It remains an experimental
+profile. Product promotion is not authorized because the required repeated,
+cross-benchmark live evaluation and protection gate have not passed.
 
 ## Implemented boundaries
 
@@ -115,6 +116,10 @@ cross-benchmark live evaluation has not run.
 ## Verification completed
 
 - `bun run typecheck`: passed.
+- At the exact candidate above, the Phase 74 focused sweep passed 445 tests
+  across 47 files with 2,379 assertions and zero failures. The canonical suite
+  then passed 5,095 tests across 549 files with 27,297 assertions, 13 snapshots,
+  and zero failures.
 - The current scoring, selection, dataset, product-boundary, aggregation,
   rescore, concurrent version-baseline, and public-claim focused sweep passed
   111 tests across 10 files with 477 assertions and zero failures.
@@ -128,13 +133,14 @@ cross-benchmark live evaluation has not run.
   promotion-gate focused suites passed.
 - `bun run gate:phase-74-storage-scale`: 50,000 real ClaimProjection records,
   50,000 real EntityAdjacencyProjection records, and 50,000 status records in
-  SQLite. Five warmups plus 40 measured searches produced p95 0.501 ms and
-  maximum 0.646 ms, with at most 12 materialized documents per query. The audit
+  SQLite. Five warmups plus 40 measured searches produced p95 0.818 ms and
+  maximum 0.922 ms, with at most 12 materialized documents per query. The audit
   recorded 90 indexed `searchText` calls, 540 bounded direct `get` calls, and
   zero `query` or `queryPage` calls; both searchable collections used the FTS
   virtual-table index, and invalid-JSON sentinels were never deserialized. The
-  500 ms gate passed. The corresponding Postgres query implementation exists,
-  but no live Postgres scale result is claimed without a configured test URL.
+  500 ms gate passed. A native PostgreSQL integration populated 150,000
+  mixed-language projection rows, verified indexed server-side search, bounded
+  materialization, and zero `query` / `queryPage` calls, and passed.
 - `bun run eval:phase-74-generalization -- --benchmark longmemeval --mode smoke
   --output-dir /private/tmp/GoodMemory-Phase74/smoke-runs --run-id
   phase74-smoke-20260718-final`: 3 cases, 24 E1-E3 retrieval-and-answer
@@ -292,23 +298,41 @@ turn local `.env` provider credentials into live calls.
 Smoke remains a deterministic wiring diagnostic with zero live model requests
 and is always `not_evaluable`. The complete external roots have been prepared
 outside the repository: LongMemEval-S contains 500 cases in 500 memory groups,
-and LoCoMo contains 1,986 questions in 10 conversation groups. No paid model
-run or score has been produced from those roots.
+and LoCoMo contains 1,986 questions in 10 conversation groups. No paid
+promotion run has been produced from those roots.
+
+An exact-source LoCoMo diagnostic was completed on 2026-07-23 from a clean
+detached clone of `da82e844`, using seed 621 and two label-free selected cases.
+The sealed process manifest records the required order
+`seal -> executor_exit -> artifact_verified -> labels_committed ->
+scorer_start -> scorer_exit`; all artifact and receipt digests verified. It
+produced six E3 executions with zero execution failures and a maximum rendered
+context of 1,755 tokens. Mean storage coverage was 0.9 in every arm, but
+retrieved gold-evidence recall and end-to-end score were both zero for
+`recall-plan-off`, `recall-plan-deterministic`, and `recall-plan-assisted`.
+The three arms returned the same selected evidence, context, and final answers;
+planning did not alter effective retrieval membership on this two-case sample.
+The usage ledger reconciled 26 language calls and 23 embedding calls with no
+pending requests. This is useful negative diagnostic evidence, not an estimate
+of full-family quality.
+
+A cumulative comparison against the exact pre-Phase-74 `v0.6.0` source was
+attempted twice with the same two cases. Both attempts failed closed during the
+release arm's preparation: four assisted-extraction calls failed, one embedding
+call succeeded, all intents had terminal events, no request remained pending,
+and the candidate and scorer never started. Therefore no v0.6-versus-current
+score delta exists; release-arm failure is not counted as a candidate win.
 
 The full adapter persists committed retrieval, E4, and oracle units plus
 attributed usage artifacts. Its extraction and embedding snapshots are
 replayable across the intended arms, and a fake-provider integration exercises
 the real SQLite write, extraction, embedding, recall, and rerank chain. Usage is
 fsynced before checkpoint commit and survives ordinary resume; failures to
-commit a terminal event fail closed. A hard crash after a request is sent but
-before its terminal event is available can still leave no record because the
-runner has no durable pre-request intent. More importantly, current
-baseline/candidate accounting is explicitly `query-only`: shared ingestion is
-recorded as shadow traffic and is not yet allocated to each comparison branch.
-The promotion gate requires `full-product`, so current usage evidence cannot
-pass it. A genuinely sealed external cohort is also still required; both public
-benchmark families are known data, so `seenCasesOnly` remains true. No real E4
-protection delta has been supplied, so format selection remains
+commit a terminal event fail closed. Durable request intents now reconcile with
+terminal events, and the live diagnostic above finished with no pending
+requests. A genuinely sealed external cohort is still required; both public
+benchmark families are known data, so `seenCasesOnly` remains true. No complete
+E4 protection delta has been supplied, so format selection remains
 `not_evaluable`.
 
 The following evidence is still required before changing the default pipeline
@@ -323,9 +347,8 @@ or making a generalized-memory uplift claim:
 3. Feed the six frozen run directories and an independently frozen protection
    artifact to the aggregation CLI; inspect hierarchical confidence intervals,
    per-replicate McNemar diagnostics, per-case deltas, and E4 selection.
-4. Add full-product branch cost allocation and a durable pre-request
-   write-ahead attempt record, then confirm model-token cost, end-to-end p95
-   latency, hallucination, update, abstention, and privacy thresholds.
+4. Confirm full-product model-token cost, end-to-end p95 latency,
+   hallucination, update, abstention, and privacy thresholds.
 
 Until those steps pass, the new pipeline remains experimental, the existing
 retrieval path remains the rollback path, and no benchmark score improvement is
