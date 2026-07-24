@@ -5,10 +5,12 @@ import { join, resolve } from "node:path";
 
 import {
   buildPhase74VersionPreparedReceipt,
+  buildPhase74VersionPreparedReceiptSet,
   parsePhase74VersionProcessJob,
   parsePhase74VersionProcessOutput,
   runPhase74VersionChildProcess,
   runPhase74VersionProcessJob,
+  sealPhase74VersionPreparedSnapshot,
   verifyPhase74VersionPreparedReceipt,
 } from "../../scripts/phase74-version-process";
 import { PHASE74_RELEASE_COMMIT } from "../../src/eval/phase74VersionBaseline";
@@ -37,6 +39,12 @@ const PROCESS_ENV = {
   GOODMEMORY_EVAL_MODEL: "gpt-5.6-terra",
   GOODMEMORY_EVAL_PROVIDER: "openai",
 } as const;
+const EXECUTION_IDENTITY_HASH = "c".repeat(64);
+const INGESTION_KEY = "d".repeat(64);
+const PREPARE_IDENTITY = {
+  executionIdentityHash: EXECUTION_IDENTITY_HASH,
+  ingestionKey: INGESTION_KEY,
+} as const;
 
 function fakeMemory(input: {
   remember?: () => Promise<void>;
@@ -62,30 +70,41 @@ function fakeMemory(input: {
 describe("Phase 74 release version process", () => {
   it("accepts only label-free prepare and receipt-bound query jobs", async () => {
     const directory = await mkdtemp(join(tmpdir(), "phase74-version-receipt-"));
-    const sqlitePath = join(directory, "release.sqlite");
-    await writeFile(sqlitePath, "prepared-snapshot");
-    const receipt = await buildPhase74VersionPreparedReceipt({
+    const sourceSqlitePath = join(directory, "release.sqlite");
+    await writeFile(sourceSqlitePath, "prepared-snapshot");
+    const prepared = buildPhase74VersionPreparedReceipt({
+      ...PREPARE_IDENTITY,
       ingestionLatencyMs: 1,
       input: WORKER_INPUT,
-      sqlitePath,
+      sqlitePath: sourceSqlitePath,
+    });
+    const receipt = await sealPhase74VersionPreparedSnapshot({
+      prepared,
+      snapshotRoot: join(directory, "sealed"),
     });
 
     expect(parsePhase74VersionProcessJob({
       action: "prepare",
       groups: [{
+        ...PREPARE_IDENTITY,
         input: WORKER_INPUT,
         sqlitePath: "/tmp/release.sqlite",
       }],
       schemaVersion: 1,
     })).toMatchObject({
       action: "prepare",
-      groups: [{ input: { caseId: "case-opaque" } }],
+      groups: [{
+        executionIdentityHash: EXECUTION_IDENTITY_HASH,
+        ingestionKey: INGESTION_KEY,
+        input: { caseId: "case-opaque" },
+      }],
     });
 
     expect(() => parsePhase74VersionProcessJob({
       action: "prepare",
       expectedAnswer: "PHASE74-GOLD-SENTINEL",
       groups: [{
+        ...PREPARE_IDENTITY,
         input: WORKER_INPUT,
         sqlitePath: "/tmp/release.sqlite",
       }],
@@ -107,10 +126,28 @@ describe("Phase 74 release version process", () => {
       schemaVersion: 1,
     })).toMatchObject({
       action: "query",
-      prepared: { memoryGroupId: "group-opaque" },
+      prepared: {
+        executionIdentityHash: EXECUTION_IDENTITY_HASH,
+        ingestionKey: INGESTION_KEY,
+        memoryGroupId: "group-opaque",
+      },
+    });
+    expect(receipt.receiptSha256).toMatch(/^[a-f0-9]{64}$/u);
+    expect(receipt.sqlitePath).not.toBe(sourceSqlitePath);
+    expect(await readFile(receipt.sqlitePath, "utf8"))
+      .toBe("prepared-snapshot");
+    const receiptSet = buildPhase74VersionPreparedReceiptSet([receipt]);
+    expect(receiptSet).toMatchObject({
+      receiptSetSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+      receipts: [{
+        ingestionKey: INGESTION_KEY,
+        receiptSha256: receipt.receiptSha256,
+      }],
+      schemaVersion: 1,
     });
 
     await expect(verifyPhase74VersionPreparedReceipt({
+      ...PREPARE_IDENTITY,
       input: {
         ...WORKER_INPUT,
         rawEvidence: [{
@@ -120,8 +157,15 @@ describe("Phase 74 release version process", () => {
       },
       receipt,
     })).rejects.toThrow("prepared receipt");
-    await writeFile(sqlitePath, "tampered-snapshot");
     await expect(verifyPhase74VersionPreparedReceipt({
+      executionIdentityHash: "e".repeat(64),
+      ingestionKey: INGESTION_KEY,
+      input: WORKER_INPUT,
+      receipt,
+    })).rejects.toThrow("prepared receipt");
+    await writeFile(receipt.sqlitePath, "tampered-snapshot");
+    await expect(verifyPhase74VersionPreparedReceipt({
+      ...PREPARE_IDENTITY,
       input: WORKER_INPUT,
       receipt,
     })).rejects.toThrow("prepared receipt");
@@ -129,6 +173,18 @@ describe("Phase 74 release version process", () => {
   });
 
   it("runs the release job in a different process without inherited judge secrets", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "phase74-version-child-"));
+    const sourceSqlitePath = join(directory, "release.sqlite");
+    await writeFile(sourceSqlitePath, "prepared-snapshot");
+    const receipt = await sealPhase74VersionPreparedSnapshot({
+      prepared: buildPhase74VersionPreparedReceipt({
+        ...PREPARE_IDENTITY,
+        ingestionLatencyMs: 1,
+        input: WORKER_INPUT,
+        sqlitePath: sourceSqlitePath,
+      }),
+      snapshotRoot: join(directory, "sealed"),
+    });
     const result = await runPhase74VersionChildProcess({
       cwd: process.cwd(),
       env: {
@@ -140,14 +196,7 @@ describe("Phase 74 release version process", () => {
       job: parsePhase74VersionProcessJob({
         action: "query",
         input: WORKER_INPUT,
-        prepared: {
-          ingestionLatencyMs: 1,
-          memoryGroupId: "group-opaque",
-          rawEvidenceSha256: "a".repeat(64),
-          sourceCommit: PHASE74_RELEASE_COMMIT,
-          sqlitePath: "/tmp/release.sqlite",
-          sqliteSha256: "b".repeat(64),
-        },
+        prepared: receipt,
         schemaVersion: 1,
       }),
       script: resolve("tests/fixtures/phase74-version-process-echo.ts"),
@@ -165,6 +214,30 @@ describe("Phase 74 release version process", () => {
     expect(JSON.stringify(observation.env)).not.toContain(
       "PHASE74-JUDGE-SENTINEL",
     );
+    await rm(directory, { force: true, recursive: true });
+  });
+
+  it("refuses to seal a release snapshot with live SQLite sidecars", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "phase74-version-sidecar-"));
+    const sqlitePath = join(directory, "release.sqlite");
+    try {
+      await writeFile(sqlitePath, "prepared-snapshot");
+      for (const suffix of ["-journal", "-wal", "-shm"]) {
+        await writeFile(`${sqlitePath}${suffix}`, "unsealed state");
+        await expect(sealPhase74VersionPreparedSnapshot({
+          prepared: buildPhase74VersionPreparedReceipt({
+            ...PREPARE_IDENTITY,
+            ingestionLatencyMs: 1,
+            input: WORKER_INPUT,
+            sqlitePath,
+          }),
+          snapshotRoot: join(directory, "sealed"),
+        })).rejects.toThrow("sidecar");
+        await rm(`${sqlitePath}${suffix}`);
+      }
+    } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
   });
 
   it("forbids loading the v0.6 runtime in the product orchestrator process", async () => {
@@ -248,6 +321,7 @@ describe("Phase 74 release version process", () => {
         job: parsePhase74VersionProcessJob({
           action: "prepare",
           groups: [{
+            ...PREPARE_IDENTITY,
             input: WORKER_INPUT,
             sqlitePath: join(directory, "release.sqlite"),
           }],
@@ -330,6 +404,7 @@ describe("Phase 74 release version process", () => {
         job: parsePhase74VersionProcessJob({
           action: "prepare",
           groups: [{
+            ...PREPARE_IDENTITY,
             input: WORKER_INPUT,
             sqlitePath: join(directory, "release.sqlite"),
           }],
@@ -387,6 +462,7 @@ describe("Phase 74 release version process", () => {
           action: "prepare",
           groups: [
             {
+              ...PREPARE_IDENTITY,
               input: {
                 ...WORKER_INPUT,
                 memoryGroupId: "group-first",
@@ -398,6 +474,8 @@ describe("Phase 74 release version process", () => {
               sqlitePath: join(directory, "first.sqlite"),
             },
             {
+              executionIdentityHash: EXECUTION_IDENTITY_HASH,
+              ingestionKey: "e".repeat(64),
               input: {
                 ...WORKER_INPUT,
                 memoryGroupId: "group-second",
