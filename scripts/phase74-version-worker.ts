@@ -235,13 +235,12 @@ const MISSING_USAGE: ModelTokenUsage = {
 async function normalizePhase74VersionResponseUsage(
   response: Response,
 ): Promise<ModelTokenUsage> {
-  const clone = response.clone();
   if (
-    clone.headers.get("content-type")?.toLowerCase()
+    response.headers.get("content-type")?.toLowerCase()
       .includes("text/event-stream")
   ) {
     let usage = MISSING_USAGE;
-    for (const line of (await clone.text()).split(/\r?\n/u)) {
+    for (const line of (await response.text()).split(/\r?\n/u)) {
       const data = line.startsWith("data:")
         ? line.slice("data:".length).trim()
         : "";
@@ -262,10 +261,26 @@ async function normalizePhase74VersionResponseUsage(
     return usage;
   }
   try {
-    return normalizeOpenAICompatibleUsage(await clone.json());
+    return normalizeOpenAICompatibleUsage(await response.json());
   } catch {
     return MISSING_USAGE;
   }
+}
+
+async function bufferPhase74VersionResponse(response: Response): Promise<{
+  consumer: Response;
+  usage: Response;
+}> {
+  const body = await response.arrayBuffer();
+  const init = {
+    headers: response.headers,
+    status: response.status,
+    statusText: response.statusText,
+  };
+  return {
+    consumer: new Response(body.byteLength === 0 ? null : body, init),
+    usage: new Response(body.byteLength === 0 ? null : body.slice(0), init),
+  };
 }
 
 export function createPhase74VersionUsageBoundary(input: {
@@ -310,8 +325,13 @@ export function createPhase74VersionUsageBoundary(input: {
       schemaVersion: 1,
     });
     let response: Response;
+    let consumer: Response;
+    let normalized: ModelTokenUsage;
     try {
       response = await input.fetch(request, init);
+      const buffered = await bufferPhase74VersionResponse(response);
+      consumer = buffered.consumer;
+      normalized = await normalizePhase74VersionResponseUsage(buffered.usage);
     } catch (error) {
       report({
         attempt: 1,
@@ -325,7 +345,6 @@ export function createPhase74VersionUsageBoundary(input: {
       });
       throw error;
     }
-    const normalized = await normalizePhase74VersionResponseUsage(response);
     const usage = operation === "embedding"
       ? normalizeAISDKEmbeddingUsage({
         tokens: normalized.inputTokens ?? undefined,
@@ -341,7 +360,7 @@ export function createPhase74VersionUsageBoundary(input: {
       schemaVersion: 1,
       usage,
     });
-    return response;
+    return consumer;
   };
   return {
     fetch: wrappedFetch,
