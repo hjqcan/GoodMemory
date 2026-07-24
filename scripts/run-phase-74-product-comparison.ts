@@ -84,6 +84,7 @@ import {
   parsePhase74VersionProcessJob,
   parsePhase74VersionProcessOutput,
   runPhase74VersionChildProcess,
+  type Phase74VersionPreparedReceipt,
   type Phase74VersionProcessConfig,
 } from "./phase74-version-process";
 import type {
@@ -738,10 +739,7 @@ export async function runPhase74LiveProductComparison(
   });
   const candidateIngestionKeys = new Map<string, string>();
   const releaseIngestionKeys = new Map<string, string>();
-  const releasePrepared = new Map<string, {
-    ingestionLatencyMs: number;
-    sqlitePath: string;
-  }>();
+  const releasePrepared = new Map<string, Phase74VersionPreparedReceipt>();
   const releaseProcessPids = new Set<number>();
   const releaseUsagePath = join(releaseDirectory, "model-usage.jsonl");
   const releaseUsageIntentsPath = join(
@@ -833,10 +831,7 @@ export async function runPhase74LiveProductComparison(
       ) {
         throw new Error("Phase 74 release process memory group drifted.");
       }
-      releasePrepared.set(prepared.memoryGroupId, {
-        ingestionLatencyMs: prepared.ingestionLatencyMs,
-        sqlitePath: prepared.sqlitePath,
-      });
+      releasePrepared.set(prepared.memoryGroupId, prepared);
     }
 
     result = await runPhase74ProductComparison({
@@ -922,10 +917,9 @@ export async function runPhase74LiveProductComparison(
               env,
               job: parsePhase74VersionProcessJob({
                 action: "query",
-                ingestionLatencyMs: prepared.ingestionLatencyMs,
                 input: workerInput,
+                prepared,
                 schemaVersion: 1,
-                sqlitePath: prepared.sqlitePath,
               }),
               script: releaseProcessScript,
             });

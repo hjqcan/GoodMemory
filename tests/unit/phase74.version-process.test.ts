@@ -196,33 +196,39 @@ describe("Phase 74 release version process", () => {
           usage: { eventsPath, intentsPath },
         },
         dependencies: {
-          loadCreateGoodMemory: async () => () => fakeMemory({
-            async remember() {
-              await globalThis.fetch(
-                "https://ai.gurkiai.com/v1/chat/completions",
-                {
-                  body: JSON.stringify({
-                    messages: [],
-                    model: "gpt-5.6-terra",
-                  }),
-                  method: "POST",
-                },
-              );
-              await globalThis.fetch(
-                "https://openrouter.ai/api/v1/embeddings",
-                {
-                  body: JSON.stringify({
-                    input: ["Postgres is current."],
-                    model: "baai/bge-m3",
-                  }),
-                  method: "POST",
-                },
-              );
-            },
-          }),
+          loadCreateGoodMemory: async () => (config) => {
+            const sqlitePath = String(
+              (config as { storage?: { url?: string } }).storage?.url ?? "",
+            );
+            return fakeMemory({
+              async remember() {
+                await globalThis.fetch(
+                  "https://ai.gurkiai.com/v1/chat/completions",
+                  {
+                    body: JSON.stringify({
+                      messages: [],
+                      model: "gpt-5.6-terra",
+                    }),
+                    method: "POST",
+                  },
+                );
+                await globalThis.fetch(
+                  "https://openrouter.ai/api/v1/embeddings",
+                  {
+                    body: JSON.stringify({
+                      input: ["Postgres is current."],
+                      model: "baai/bge-m3",
+                    }),
+                    method: "POST",
+                  },
+                );
+                await writeFile(sqlitePath, "prepared-snapshot");
+              },
+            });
+          },
         },
         env: PROCESS_ENV,
-        fetch: async (request) => {
+        fetch: (async (request) => {
           const url = String(request);
           requests.push(url);
           return url.endsWith("/embeddings")
@@ -238,7 +244,7 @@ describe("Phase 74 release version process", () => {
                   total_tokens: 5,
                 },
               });
-        },
+        }) as typeof globalThis.fetch,
         job: parsePhase74VersionProcessJob({
           action: "prepare",
           groups: [{
@@ -310,7 +316,7 @@ describe("Phase 74 release version process", () => {
           }),
         },
         env: PROCESS_ENV,
-        fetch: async () => {
+        fetch: Object.assign(async () => {
           providerCalls += 1;
           return Response.json({
             choices: [],
@@ -320,7 +326,7 @@ describe("Phase 74 release version process", () => {
               total_tokens: 2,
             },
           });
-        },
+        }, { preconnect() {} }),
         job: parsePhase74VersionProcessJob({
           action: "prepare",
           groups: [{
@@ -366,13 +372,17 @@ describe("Phase 74 release version process", () => {
                   throw new Error("first preparation failed");
                 }
                 await new Promise((resolve) => setTimeout(resolve, 20));
+                await writeFile(sqlitePath, "prepared-snapshot");
                 secondSettled = true;
               },
             });
           },
         },
         env: PROCESS_ENV,
-        fetch: async () => Response.json({}),
+        fetch: Object.assign(
+          async () => Response.json({}),
+          { preconnect() {} },
+        ),
         job: parsePhase74VersionProcessJob({
           action: "prepare",
           groups: [
