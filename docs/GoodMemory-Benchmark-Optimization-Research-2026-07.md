@@ -166,7 +166,7 @@ by §2.2.
 |---|---|---|
 | Time-aware query expansion (parse time range from question → constrain/boost retrieval) | +7–11% temporal recall (LongMemEval paper ablation, arXiv 2410.10813) | LME temporal, LoCoMo temporal, BEAM temporal_order |
 | Structured JSON evidence + Chain-of-Note reading | up to +10pp reading accuracy (2410.10813); CoN +7.9 EM under noise, +10.5 rejection (arXiv 2311.09210) | answer-side buckets everywhere, abstention |
-| Deterministic freshness (versioned states, `max(serial)` in code; never LLM date comparison) | CR 94.8 SH / 51.5 MH; deterministic beats LLM timestamp judgment 64.4 vs 57.8 (arXiv 2606.01435) | BEAM conflict/knowledge-update, MAB CR, LME knowledge-update |
+| Deterministic freshness (versioned states, `max(serial)` in code; never LLM date comparison) | CR 94.8 SH / 51.5 MH (arXiv 2606.01435). Correction 2026-07-23 (user-reported): an earlier draft stated the paper's deterministic-vs-LLM timestamp comparison backwards — the LLM-judgment regime scored 64.4 vs 57.8 for the deterministic one, and both numbers come from whole-pipeline configurations, not an isolated freshness-resolver ablation. The 94.8/51.5 recipe result stands; the head-to-head no longer supports "deterministic beats LLM" here | BEAM conflict/knowledge-update, MAB CR, LME knowledge-update |
 | Bi-temporal soft invalidation (close `validUntil` of contradicted claim at write; never delete) | Zep/Graphiti (arXiv 2501.13956, DMR 94.8, LME +18.5% vs full-context); Mem0g converged on same | update/temporal families |
 | Segment/episode granularity (topic-coherent segments as retrieval units) | SeCom, ICLR 2025 (arXiv 2502.05589): segment-level beats turn- and session-level across retrievers; Nemori 0.83 LoCoMo with episodes+BM25+vectors | multi-session, LoCoMo open_domain/multi_hop |
 | Turn-level scoring with session-context injection | Emergence/MemMachine ablations (contextualized retrieval +, retrieval-depth +4.2%) | LME multi-session, LoCoMo multi_hop |
@@ -309,10 +309,17 @@ fixtures in its tests (architecture-boundary test already scans for these).
 
 **Why:** conflict_update is BEAM's largest repair family (29), knowledge_update
 is 0.594, MAB CR is the retained-stale-facts case, and the published SOTA
-recipe here is exactly the project's own ethos: **deterministic, never asking
-the LLM to compare dates** (arXiv 2606.01435: 94.8 CR-SH). The write side
-already extracts `(subject, predicateKey, objectText, polarity, validFrom)` —
-it just doesn't use them for supersession (§2.2-1).
+recipe here matches the project's own ethos: structural, versioned supersession
+(arXiv 2606.01435: 94.8 CR-SH). Note (corrected 2026-07-23): that paper's
+deterministic-vs-LLM timestamp head-to-head actually favored the LLM regime
+(64.4 vs 57.8) and compared whole pipelines, so it is *not* evidence that
+deterministic freshness beats LLM date comparison in isolation — the case for
+R4.1 rests on the repo's own failure taxonomy (both values staying "current"
+per §2.2-1), the Zep/Graphiti convergence, and determinism as a product
+principle, and it raises the priority of R4.2's mutation-time LLM hook as the
+measured complement. The write side already extracts
+`(subject, predicateKey, objectText, polarity, validFrom)` — it just doesn't
+use them for supersession (§2.2-1).
 
 **How (in order):**
 1. **Structural write-time supersession:** when a new claim arrives with the
@@ -783,6 +790,30 @@ touched (owned by a parallel workstream).
   LoCoMo missing-evidence measurement (cue-backfill a conversation corpus
   with a live model, then re-run the admission repair queues — needs the
   paid-validation go-ahead).
+
+- **R2 (2026-07-23) — structured evidence entries + chain-of-note reading,
+  code-complete.** Two additive pieces on the eval answer side, both inert by
+  default. (1) `EvidenceTurn` gained optional `validity` (caller-formatted
+  bi-temporal note, e.g. "superseded 2023-08-01") and `channels` (fusion
+  provenance) fields; the pack renders them in the typed entry header
+  (`[t=… | #id | role | validity | via lexical+dense]`) and keeps the
+  historical byte format when absent (pinned). (2) Opt-in `chainOfNote` mode
+  appends a generic reading protocol — one brief note per evidence entry
+  citing its `#id` (relevant / background / irrelevant / conflicts-with-#id),
+  then a marked `Final answer:` line — and `extractFinalAnswer` strips the
+  working notes before strict scoring (last-marker extraction; degenerate
+  outputs fall back to the raw text so scoring never sees an artificial empty
+  answer). Wired end-to-end into the R2 measurement instrument:
+  `eval:phase-65-reanswer-report --chain-of-note` threads the protocol into
+  the pack and the LoCoMo answer system prompt, scores only the extracted
+  answer, and records `chainOfNote` in the report (record==wire). Guarded
+  against the frozen `temporal-bounded-v3` union profile (combining them
+  would silently change what that profile measures). Guardrail holds: the
+  protocol text is operation/question-type-generic; abstention framing is
+  strengthened, not loosened (the notes must state when no entry supports an
+  answer). Remaining for full R2: the paid replay measurement on the
+  `wrongFullRecallNoisy` / BEAM full-recall buckets, and the BEAM-side runner
+  flag once that measurement is approved.
 
 Verification state at close of the pass: full canonical sweep green — 3,537
 unit + 645 integration/scenario/cli/eval/type/consumer + 101 example/release
