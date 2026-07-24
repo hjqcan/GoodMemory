@@ -201,6 +201,12 @@ export interface EpisodeMemory {
   confidence: number;
   locale?: string;
   embeddingId?: string;
+  // Event time: when the summarized exchange happened (earliest contributing
+  // source message), as opposed to createdAt's transaction time.
+  observedAt?: string;
+  // Ids of the source messages the episode summarizes, when the caller
+  // supplied message ids — the non-lossy pointer back to the dialogue span.
+  sourceMessageIds?: string[];
   createdAt: string;
   archivedAt?: string;
 }
@@ -447,6 +453,8 @@ export function createEpisodeMemory(
     confidence: input.confidence ?? 1,
     locale: input.locale,
     embeddingId: input.embeddingId,
+    observedAt: input.observedAt,
+    sourceMessageIds: input.sourceMessageIds,
     createdAt: input.createdAt ?? new Date(0).toISOString(),
     archivedAt: input.archivedAt,
   };

@@ -938,4 +938,46 @@ describe("context builder output modes", () => {
     expect(japaneseJson.languagePackId).toBe("ja");
     expect(japaneseJson.renderLabels).toBeUndefined();
   });
+
+  it("anchors episode summaries to their event date when observed time is known", () => {
+    const baseEpisode = {
+      confidence: 0.8,
+      createdAt: "2026-01-10T00:00:00.000Z",
+      importance: 0.7,
+      keyDecisions: [],
+      topics: [],
+      unresolvedItems: [],
+      userId: "u-1",
+    };
+    const packet = buildMemoryPacket({
+      profile: null,
+      preferences: [],
+      references: [],
+      facts: [],
+      feedback: [],
+      archives: [],
+      evidence: [],
+      episodes: [
+        {
+          ...baseEpisode,
+          id: "episode-anchored",
+          observedAt: "2026-01-05T09:30:00.000Z",
+          summary: "Discussed the rollout blocker.",
+        },
+        {
+          ...baseEpisode,
+          id: "episode-unanchored",
+          summary: "Covered the follow-up review.",
+        },
+      ],
+      workingMemory: null,
+      journal: null,
+    });
+
+    expect(packet.episodeSummary).toContain(
+      "- [2026-01-05] Discussed the rollout blocker.",
+    );
+    // Episodes without event time keep the historical unprefixed line.
+    expect(packet.episodeSummary).toContain("- Covered the follow-up review.");
+  });
 });

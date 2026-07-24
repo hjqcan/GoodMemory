@@ -67,6 +67,62 @@ describe("remember episodes", () => {
     expect(episode?.summary).toContain("Assistant follow-through");
     expect(episode?.keyDecisions[0]).toContain("Assistant follow-through on");
     expect(episode?.keyDecisions[0]).toContain("Runtime rollout is blocked on legal signoff.");
+    expect(episode?.observedAt).toBeUndefined();
+    expect(episode?.sourceMessageIds).toBeUndefined();
+  });
+
+  it("stamps event time and source-message span from the contributing messages", () => {
+    const episode = maybeBuildEpisode(
+      {
+        scope: { userId: "user-1", sessionId: "s-1" },
+        messages: [
+          {
+            content: "Earlier unrelated aside about the weather being nice.",
+            id: "m-0",
+            observedAt: "2026-01-04T08:00:00.000Z",
+            role: "user",
+          },
+          {
+            content:
+              "Remember that runtime rollout is blocked on legal signoff.",
+            id: "m-1",
+            observedAt: "2026-01-05T09:30:00.000Z",
+            role: "user",
+          },
+          {
+            content:
+              "I will keep that blocker and the next review step in mind.",
+            id: "m-2",
+            observedAt: "2026-01-05T09:31:00.000Z",
+            role: "assistant",
+          },
+        ],
+      },
+      [
+        {
+          id: "candidate-1",
+          kindHint: "fact",
+          explicitness: "explicit",
+          content: "Runtime rollout is blocked on legal signoff.",
+          sourceMessageIndex: 1,
+          sourceRole: "user",
+          metadata: {
+            category: "project",
+            factKind: "blocker",
+          },
+        },
+      ],
+      "episode-1",
+      TIMESTAMP,
+      createLanguageService(),
+      "en-US",
+    );
+
+    // Event time is the earliest contributing message, not the transaction
+    // clock and not the unrelated earlier message; the span points at the
+    // contributing candidate and assistant messages.
+    expect(episode?.observedAt).toBe("2026-01-05T09:30:00.000Z");
+    expect(episode?.sourceMessageIds).toEqual(["m-1", "m-2"]);
   });
 
   it("does not persist paraphrased assistant follow-through that reintroduces redacted content", () => {

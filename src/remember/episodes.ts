@@ -185,6 +185,42 @@ function buildEpisodeTopics(
     .slice(0, 2);
 }
 
+const MAX_EPISODE_SOURCE_MESSAGE_IDS = 32;
+
+// Contributing messages are the candidate sources plus the assistant messages
+// that justified the episode; the earliest of their observed times is the
+// episode's event time (transaction time stays on createdAt).
+function resolveEpisodeProvenance(
+  messages: MemoryExtractionInput["messages"],
+  contributingIndexes: ReadonlySet<number>,
+): { observedAt?: string; sourceMessageIds?: string[] } {
+  const contributing = [...contributingIndexes]
+    .sort((left, right) => left - right)
+    .map((index) => messages[index])
+    .filter((message) => message !== undefined);
+  const observedTimes = contributing
+    .map((message) => message.observedAt)
+    .filter(
+      (value): value is string =>
+        typeof value === "string" && Number.isFinite(Date.parse(value)),
+    )
+    .sort((left, right) => Date.parse(left) - Date.parse(right));
+  const sourceMessageIds = [
+    ...new Set(
+      contributing
+        .map((message) => message.id)
+        .filter(
+          (value): value is string =>
+            typeof value === "string" && value.trim().length > 0,
+        ),
+    ),
+  ].slice(0, MAX_EPISODE_SOURCE_MESSAGE_IDS);
+  return {
+    ...(observedTimes.length > 0 ? { observedAt: observedTimes[0] } : {}),
+    ...(sourceMessageIds.length > 0 ? { sourceMessageIds } : {}),
+  };
+}
+
 export function maybeBuildEpisode(
   input: MemoryExtractionInput,
   candidates: MemoryCandidate[],
@@ -255,6 +291,16 @@ export function maybeBuildEpisode(
       ),
   );
 
+  const provenance = resolveEpisodeProvenance(
+    input.messages,
+    new Set([
+      ...candidates.map((candidate) => candidate.sourceMessageIndex),
+      ...assistantContinuityMessages.map(
+        ({ sourceMessageIndex }) => sourceMessageIndex,
+      ),
+    ]),
+  );
+
   return createEpisodeMemory({
     id,
     userId: input.scope.userId,
@@ -262,6 +308,7 @@ export function maybeBuildEpisode(
     workspaceId: input.scope.workspaceId,
     agentId: input.scope.agentId,
     sessionId: input.scope.sessionId,
+    ...provenance,
     summary: language.render({
       key: "episode_conversation_covered",
       values: { segments: summarySegments.join(" / ") },

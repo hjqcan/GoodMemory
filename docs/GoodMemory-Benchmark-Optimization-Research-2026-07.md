@@ -815,6 +815,22 @@ touched (owned by a parallel workstream).
   `wrongFullRecallNoisy` / BEAM full-recall buckets, and the BEAM-side runner
   flag once that measurement is approved.
 
+- **R5 increment 1 (2026-07-23) — episode event time + span pointers.**
+  `EpisodeMemory` gained `observedAt` (event time = earliest contributing
+  source message, mirroring R3.1's fact stamping; transaction time stays on
+  `createdAt`) and `sourceMessageIds` (the non-lossy pointer back to the
+  dialogue span, capped at 32, only when the caller supplies message ids).
+  "Contributing" = candidate source messages ∪ the assistant-continuity
+  messages that justified the episode — an unrelated earlier message does not
+  drag the anchor back. The context builder now renders
+  `- [YYYY-MM-DD] summary` for anchored episodes (unanchored episodes keep
+  the historical byte format, pinned). This is the prerequisite plumbing for
+  R5's dialogue-span rendering and for record-level validity on the episode
+  fusion lane; the lane itself (quotas) shipped in R1c. Remaining for full
+  R5: multi-episode topic segmentation at write time (behavior-changing —
+  needs its own measured pass) and span rendering in the evidence pack via
+  `sourceMessageIds` → session-archive turns.
+
 Verification state at close of the pass: full canonical sweep green — 3,537
 unit + 645 integration/scenario/cli/eval/type/consumer + 101 example/release
 tests, 0 failures, typecheck clean. One unrelated pre-existing failure was

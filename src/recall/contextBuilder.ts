@@ -389,7 +389,14 @@ function summarizeEpisodes(episodes: EpisodeMemory[]): string | undefined {
 
   return episodes
     .slice(0, 2)
-    .map((episode) => `- ${episode.summary}`)
+    .map((episode) => {
+      // Event-date anchor so answer-time reasoning can order episodes;
+      // episodes without observed time keep the historical line format.
+      const eventDate = episode.observedAt?.slice(0, 10);
+      return eventDate
+        ? `- [${eventDate}] ${episode.summary}`
+        : `- ${episode.summary}`;
+    })
     .join("\n");
 }
 
