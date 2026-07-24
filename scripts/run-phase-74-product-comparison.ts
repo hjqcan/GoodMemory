@@ -81,6 +81,7 @@ import {
   materializePhase74VersionExecutionRoot,
 } from "./phase74-version-worker";
 import {
+  Phase74VersionChildProcessError,
   buildPhase74VersionPreparedReceiptSet,
   parsePhase74VersionProcessJob,
   parsePhase74VersionProcessOutput,
@@ -518,6 +519,204 @@ async function writeJson(path: string, value: unknown): Promise<void> {
   });
 }
 
+type Phase74ProductTerminalFileEvidence =
+  | {
+      exists: false;
+    }
+  | {
+      exists: true;
+      sha256: string;
+      sizeBytes: number;
+    }
+  | {
+      errorFingerprint: string;
+      exists: "unreadable";
+    };
+
+interface Phase74ProductTerminalPaths {
+  candidateBudgetPath: string;
+  candidateEventsPath: string;
+  candidateIntentsPath: string;
+  releaseBudgetPath: string;
+  releaseEventsPath: string;
+  releaseIntentsPath: string;
+}
+
+export interface Phase74ProductAttemptTerminal {
+  completedReceiptSetSha256: string | null;
+  errorFingerprint: string | null;
+  evidence: {
+    candidateBudget: Phase74ProductTerminalFileEvidence;
+    candidateUsage: Phase74ProductTerminalUsageEvidence;
+    releaseBudget: Phase74ProductTerminalFileEvidence;
+    releaseUsage: Phase74ProductTerminalUsageEvidence;
+  };
+  identityHash: string;
+  process: {
+    failed: {
+      exitCode: number;
+      pid: number;
+      stderrSha256: string;
+    } | null;
+    successfulPids: number[];
+  };
+  schemaVersion: 1;
+  status: "failed" | "succeeded";
+}
+
+interface Phase74ProductTerminalUsageEvidence {
+  eventCount: number | null;
+  events: Phase74ProductTerminalFileEvidence;
+  intentCount: number | null;
+  intents: Phase74ProductTerminalFileEvidence;
+  pendingIntentCount: number | null;
+  reconciled: boolean;
+  reconciliationErrorFingerprint?: string;
+}
+
+function errorFingerprint(error: unknown): string {
+  const descriptor = error instanceof Error
+    ? `${error.name}\u0000${error.message}`
+    : String(error);
+  return sha256(descriptor);
+}
+
+async function terminalFileEvidence(
+  path: string,
+): Promise<Phase74ProductTerminalFileEvidence> {
+  try {
+    const bytes = await readFile(path);
+    return {
+      exists: true,
+      sha256: sha256(bytes),
+      sizeBytes: bytes.byteLength,
+    };
+  } catch (error) {
+    if (
+      error !== null &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
+      return { exists: false };
+    }
+    return {
+      errorFingerprint: errorFingerprint(error),
+      exists: "unreadable",
+    };
+  }
+}
+
+async function terminalUsageEvidence(input: {
+  eventsPath: string;
+  intentsPath: string;
+}): Promise<Phase74ProductTerminalUsageEvidence> {
+  const [events, intents] = await Promise.all([
+    terminalFileEvidence(input.eventsPath),
+    terminalFileEvidence(input.intentsPath),
+  ]);
+  if (events.exists !== true || intents.exists !== true) {
+    return {
+      eventCount: null,
+      events,
+      intentCount: null,
+      intents,
+      pendingIntentCount: null,
+      reconciled: false,
+    };
+  }
+  try {
+    const ledger = await loadPhase74ModelUsageLedger(input);
+    return {
+      eventCount: ledger.events.length,
+      events,
+      intentCount: ledger.intents.length,
+      intents,
+      pendingIntentCount: ledger.pendingIntents.length,
+      reconciled: ledger.pendingIntents.length === 0,
+    };
+  } catch (error) {
+    return {
+      eventCount: null,
+      events,
+      intentCount: null,
+      intents,
+      pendingIntentCount: null,
+      reconciled: false,
+      reconciliationErrorFingerprint: errorFingerprint(error),
+    };
+  }
+}
+
+export async function buildPhase74ProductAttemptTerminal(input: {
+  completedReceiptSetSha256?: string;
+  error?: unknown;
+  identityHash: string;
+  paths: Phase74ProductTerminalPaths;
+  process: Phase74ProductAttemptTerminal["process"];
+  status: Phase74ProductAttemptTerminal["status"];
+}): Promise<Phase74ProductAttemptTerminal> {
+  if (
+    !/^[a-f0-9]{64}$/u.test(input.identityHash) ||
+    (
+      input.completedReceiptSetSha256 !== undefined &&
+      !/^[a-f0-9]{64}$/u.test(input.completedReceiptSetSha256)
+    ) ||
+    input.process.successfulPids.some((pid) =>
+      !Number.isSafeInteger(pid) || pid <= 0
+    ) ||
+    (input.status === "failed") !== (input.error !== undefined)
+  ) {
+    throw new Error("Phase 74 product attempt terminal input drifted.");
+  }
+  const [candidateBudget, candidateUsage, releaseBudget, releaseUsage] =
+    await Promise.all([
+      terminalFileEvidence(input.paths.candidateBudgetPath),
+      terminalUsageEvidence({
+        eventsPath: input.paths.candidateEventsPath,
+        intentsPath: input.paths.candidateIntentsPath,
+      }),
+      terminalFileEvidence(input.paths.releaseBudgetPath),
+      terminalUsageEvidence({
+        eventsPath: input.paths.releaseEventsPath,
+        intentsPath: input.paths.releaseIntentsPath,
+      }),
+    ]);
+  return {
+    completedReceiptSetSha256:
+      input.completedReceiptSetSha256 ?? null,
+    errorFingerprint: input.error === undefined
+      ? null
+      : errorFingerprint(input.error),
+    evidence: {
+      candidateBudget,
+      candidateUsage,
+      releaseBudget,
+      releaseUsage,
+    },
+    identityHash: input.identityHash,
+    process: {
+      failed: input.process.failed,
+      successfulPids: [...input.process.successfulPids].sort(
+        (left, right) => left - right,
+      ),
+    },
+    schemaVersion: 1,
+    status: input.status,
+  };
+}
+
+export async function writePhase74ProductAttemptTerminal(input: {
+  path: string;
+  terminal: Phase74ProductAttemptTerminal;
+}): Promise<{ path: string; sha256: string }> {
+  await writeJson(input.path, input.terminal);
+  return {
+    path: input.path,
+    sha256: await sha256File(input.path),
+  };
+}
+
 function subsetUsageLedger(input: {
   branch: "shadow";
   caseId: string;
@@ -551,6 +750,24 @@ export async function runPhase74LiveProductComparison(
   await mkdir(runDirectory);
   const releaseDirectory = join(runDirectory, "release");
   const candidateDirectory = join(runDirectory, "candidate");
+  const attemptTerminalPath = join(runDirectory, "attempt-terminal.json");
+  const candidateBudgetPath = join(
+    runDirectory,
+    "candidate-call-budget.json",
+  );
+  const candidateUsagePath = join(runDirectory, "model-usage.jsonl");
+  const candidateUsageIntentsPath = join(
+    runDirectory,
+    "model-usage-intents.jsonl",
+  );
+  const releaseBudgetPath = join(releaseDirectory, "call-budget.json");
+  const releaseUsagePath = join(releaseDirectory, "model-usage.jsonl");
+  const releaseUsageIntentsPath = join(
+    releaseDirectory,
+    "model-usage-intents.jsonl",
+  );
+  const releaseProcessPids = new Set<number>();
+  let releasePreparedReceiptSet: Phase74VersionPreparedReceiptSet | undefined;
   await Promise.all([
     mkdir(releaseDirectory),
     mkdir(candidateDirectory),
@@ -669,6 +886,7 @@ export async function runPhase74LiveProductComparison(
   });
   const executionIdentityHash = hashEvalRunIdentity(identity);
   await writeJson(join(runDirectory, "run-identity.json"), identity);
+  try {
   const releaseExecutionRoot =
     await materializePhase74VersionExecutionRoot({
       archivePath: options.releaseArchive,
@@ -678,18 +896,16 @@ export async function runPhase74LiveProductComparison(
 
   const events: AttributedModelUsageAttempt[] = [];
   const intents: AttributedModelUsageIntent[] = [];
-  const usagePath = join(runDirectory, "model-usage.jsonl");
-  const usageIntentsPath = join(runDirectory, "model-usage-intents.jsonl");
   const onUsageEvent = (event: AttributedModelUsageAttempt) =>
-    appendPhase74ModelUsageEventSync(usagePath, event);
+    appendPhase74ModelUsageEventSync(candidateUsagePath, event);
   const onUsageIntent = (intent: AttributedModelUsageIntent) =>
-    appendPhase74ModelUsageIntentSync(usageIntentsPath, intent);
+    appendPhase74ModelUsageIntentSync(candidateUsageIntentsPath, intent);
   const originalFetch = globalThis.fetch;
   const callBudget = createPhase74DurableCallBudget({
     embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
     fetch: originalFetch,
     maxLanguageCalls: options.maxLanguageCalls,
-    path: join(runDirectory, "candidate-call-budget.json"),
+    path: candidateBudgetPath,
   });
   const productNetworkFetch = createPhase74ProductNetworkFetch({
     fetch: callBudget.fetch,
@@ -744,18 +960,11 @@ export async function runPhase74LiveProductComparison(
   const candidateIngestionKeys = new Map<string, string>();
   const releaseIngestionKeys = new Map<string, string>();
   const releasePrepared = new Map<string, Phase74VersionPreparedReceipt>();
-  let releasePreparedReceiptSet: Phase74VersionPreparedReceiptSet | undefined;
-  const releaseProcessPids = new Set<number>();
-  const releaseUsagePath = join(releaseDirectory, "model-usage.jsonl");
-  const releaseUsageIntentsPath = join(
-    releaseDirectory,
-    "model-usage-intents.jsonl",
-  );
   const releaseProcessConfig: Phase74VersionProcessConfig = {
     callBudget: {
       embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
       maxLanguageCalls: options.maxLanguageCalls,
-      path: join(releaseDirectory, "call-budget.json"),
+      path: releaseBudgetPath,
     },
     preparationConcurrency: options.preparationConcurrency,
     releaseSourceRoot: releaseExecutionRoot,
@@ -1078,7 +1287,41 @@ export async function runPhase74LiveProductComparison(
   const candidateRows = result.rows.filter(
     ({ arm }) => arm === "phase74-final",
   );
+  await Promise.all([
+    writeFile(candidateUsagePath, "", { encoding: "utf8", flag: "a" }),
+    writeFile(candidateUsageIntentsPath, "", {
+      encoding: "utf8",
+      flag: "a",
+    }),
+  ]);
+  const attemptTerminal = await buildPhase74ProductAttemptTerminal({
+    completedReceiptSetSha256:
+      releasePreparedReceiptSet!.receiptSetSha256,
+    identityHash: executionIdentityHash,
+    paths: {
+      candidateBudgetPath,
+      candidateEventsPath: candidateUsagePath,
+      candidateIntentsPath: candidateUsageIntentsPath,
+      releaseBudgetPath,
+      releaseEventsPath: releaseUsagePath,
+      releaseIntentsPath: releaseUsageIntentsPath,
+    },
+    process: {
+      failed: null,
+      successfulPids: [...releaseProcessPids],
+    },
+    status: "succeeded",
+  });
+  const attemptTerminalArtifact =
+    await writePhase74ProductAttemptTerminal({
+      path: attemptTerminalPath,
+      terminal: attemptTerminal,
+    });
   const report = {
+    attemptTerminal: {
+      path: "attempt-terminal.json",
+      sha256: attemptTerminalArtifact.sha256,
+    },
     benchmark: options.benchmark,
     callBudget: {
       accounting: "independent-process-pools-v1",
@@ -1147,8 +1390,6 @@ export async function runPhase74LiveProductComparison(
   };
   const reportPath = join(runDirectory, "report.json");
   await Promise.all([
-    writeFile(usagePath, "", { encoding: "utf8", flag: "a" }),
-    writeFile(usageIntentsPath, "", { encoding: "utf8", flag: "a" }),
     writeJson(
       join(runDirectory, "dataset-manifest.json"),
       dataset.manifest,
@@ -1156,6 +1397,46 @@ export async function runPhase74LiveProductComparison(
     writeJson(reportPath, report),
   ]);
   return { reportPath, runDirectory };
+  } catch (error) {
+    const failed = error instanceof Phase74VersionChildProcessError
+      ? {
+          exitCode: error.exitCode,
+          pid: error.pid,
+          stderrSha256: error.stderrSha256,
+        }
+      : null;
+    const terminal = await buildPhase74ProductAttemptTerminal({
+      completedReceiptSetSha256:
+        releasePreparedReceiptSet?.receiptSetSha256,
+      error,
+      identityHash: executionIdentityHash,
+      paths: {
+        candidateBudgetPath,
+        candidateEventsPath: candidateUsagePath,
+        candidateIntentsPath: candidateUsageIntentsPath,
+        releaseBudgetPath,
+        releaseEventsPath: releaseUsagePath,
+        releaseIntentsPath: releaseUsageIntentsPath,
+      },
+      process: {
+        failed,
+        successfulPids: [...releaseProcessPids],
+      },
+      status: "failed",
+    });
+    try {
+      await writePhase74ProductAttemptTerminal({
+        path: attemptTerminalPath,
+        terminal,
+      });
+    } catch (terminalError) {
+      throw new AggregateError(
+        [error, terminalError],
+        "Phase 74 product attempt and terminal persistence failed.",
+      );
+    }
+    throw error;
+  }
 }
 
 if (import.meta.main) {

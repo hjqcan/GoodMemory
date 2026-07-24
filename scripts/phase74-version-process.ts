@@ -95,6 +95,24 @@ export interface Phase74VersionProcessConfig {
   };
 }
 
+export class Phase74VersionChildProcessError extends Error {
+  readonly exitCode: number;
+  readonly pid: number;
+  readonly stderrSha256: string;
+
+  constructor(input: {
+    exitCode: number;
+    pid: number;
+    stderr: string;
+  }) {
+    super(`Phase 74 version child failed with exit ${input.exitCode}.`);
+    this.name = "Phase74VersionChildProcessError";
+    this.exitCode = input.exitCode;
+    this.pid = input.pid;
+    this.stderrSha256 = sha256(input.stderr);
+  }
+}
+
 export type Phase74VersionProcessOutput =
   | {
       action: "prepare";
@@ -744,9 +762,11 @@ export async function runPhase74VersionChildProcess(input: {
     new Response(child.stdout).text(),
   ]);
   if (exitCode !== 0) {
-    throw new Error(
-      `Phase 74 version child failed: ${stderr.trim() || `exit ${exitCode}`}`,
-    );
+    throw new Phase74VersionChildProcessError({
+      exitCode,
+      pid: child.pid,
+      stderr,
+    });
   }
   return { pid: child.pid, stderr, stdout };
 }
