@@ -97,8 +97,10 @@ import type {
   FetchLike,
 } from "../src/provider/ai-sdk-runtime";
 
+export const PHASE74_PRODUCT_RELEASE_ARM =
+  `release-${PHASE74_RELEASE_REF}` as const;
 export const PHASE74_PRODUCT_ARMS = [
-  "release-v0.6.0",
+  PHASE74_PRODUCT_RELEASE_ARM,
   "phase74-deterministic-candidate",
 ] as const;
 export const PHASE74_PRODUCT_CASE_SCHEDULING =
@@ -309,7 +311,7 @@ export function buildPhase74ProductRunIdentityConfiguration(input: {
   }
   return {
     arms: {
-      baseline: "release-v0.6.0",
+      baseline: PHASE74_PRODUCT_RELEASE_ARM,
       candidate: "phase74-deterministic-candidate",
     },
     candidateConfiguration: input.candidateConfiguration,
@@ -1074,7 +1076,7 @@ export async function runPhase74LiveProductComparison(
       accounting: "independent-process-pools-v1",
       embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
       maxLanguageCallsPerPool: options.maxLanguageCalls,
-      pools: ["candidate-and-scoring", "release-v0.6.0"],
+      pools: ["candidate-and-scoring", PHASE74_PRODUCT_RELEASE_ARM],
     },
     caseScheduling: PHASE74_PRODUCT_CASE_SCHEDULING,
     context: {
@@ -1257,7 +1259,7 @@ export async function runPhase74LiveProductComparison(
       configurationSha256: sha256(JSON.stringify({
         embedding: publicModelIdentity(models.embedding),
         extraction: publicModelIdentity(models.assistedExtraction),
-        profile: "v0.6.0-recommended",
+        profile: "v0.7.0-recommended",
       })),
       datasetSha256: dataset.manifest.datasetSha256,
       memoryGroupId: productCase.memoryGroupId,
@@ -1469,7 +1471,7 @@ export async function runPhase74LiveProductComparison(
         const answer = await reader({
           caseId,
           context,
-          purpose: arm === "release-v0.6.0"
+          purpose: arm === PHASE74_PRODUCT_RELEASE_ARM
             ? "final:baseline:product"
             : "final:candidate:product",
           question,
@@ -1483,7 +1485,7 @@ export async function runPhase74LiveProductComparison(
         const startedAt = performance.now();
         const assessment = await assessor({
           answer,
-          purpose: arm === "release-v0.6.0"
+          purpose: arm === PHASE74_PRODUCT_RELEASE_ARM
             ? "final:baseline:product"
             : "final:candidate:product",
           testCase: casesByOpaqueId.get(caseId)!.testCase,
@@ -1547,7 +1549,7 @@ export async function runPhase74LiveProductComparison(
     memoryGroupIds,
   });
   const baselineRows = result.rows.filter(
-    ({ arm }) => arm === "release-v0.6.0",
+    ({ arm }) => arm === PHASE74_PRODUCT_RELEASE_ARM,
   );
   const candidateRows = result.rows.filter(
     ({ arm }) => arm === "phase74-deterministic-candidate",
