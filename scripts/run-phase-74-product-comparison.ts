@@ -98,12 +98,31 @@ import type {
 
 export const PHASE74_PRODUCT_ARMS = [
   "release-v0.6.0",
-  "phase74-final",
+  "phase74-deterministic-candidate",
 ] as const;
 export const PHASE74_PRODUCT_CASE_SCHEDULING =
   "paired-arms-concurrent-selected-order-v1";
 
 export type Phase74ProductArm = (typeof PHASE74_PRODUCT_ARMS)[number];
+
+export function buildPhase74ProductEvidenceBoundary(input: {
+  seenCasesOnly: boolean;
+}): EvalRunJsonObject {
+  return {
+    executionIsolation: "same-process-with-gold-scorer-v1",
+    goldAware: true,
+    nonPromotionReasons: [
+      "gold-material-in-executor-process",
+      ...(input.seenCasesOnly ? ["seen-cases-only"] : []),
+      "independent-call-budget-pools",
+      "deterministic-reranker",
+      "unprotected-ledger-format-selection",
+    ],
+    promotionEligible: false,
+    protocolReader: false,
+    seenCasesOnly: input.seenCasesOnly,
+  };
+}
 
 export interface Phase74ProductComparisonOptions {
   benchmark: "locomo" | "longmemeval";
@@ -290,21 +309,19 @@ export function buildPhase74ProductRunIdentityConfiguration(input: {
   return {
     arms: {
       baseline: "release-v0.6.0",
-      candidate: "phase74-final",
+      candidate: "phase74-deterministic-candidate",
     },
     candidateConfiguration: input.candidateConfiguration,
     candidateSource: input.candidateSource,
-    comparisonKind: "cumulative-product",
+    comparisonKind: "cumulative-product-diagnostic",
     costBoundary: "full-product",
     embeddingRoutingByArm: {
       baseline: embedding,
       candidate: embedding,
     },
-    evidenceBoundary: {
-      goldAware: false,
-      protocolReader: false,
+    evidenceBoundary: buildPhase74ProductEvidenceBoundary({
       seenCasesOnly: input.seenCasesOnly,
-    },
+    }),
     releaseDependencyTreeSha256:
       input.releaseDependencyTreeSha256.toLowerCase(),
     releaseSource: input.releaseSource,
@@ -1233,7 +1250,7 @@ export async function runPhase74LiveProductComparison(
       cases: productCases,
       async prepare({ arm, cases, memoryGroupId }) {
         const representative = casesByOpaqueId.get(cases[0]!.caseId)!;
-        if (arm === "phase74-final") {
+        if (arm === "phase74-deterministic-candidate") {
           const descriptor = buildPhase74IngestionDescriptor({
             configuration: candidateConfiguration,
             datasetSha256: dataset.manifest.datasetSha256,
@@ -1443,7 +1460,7 @@ export async function runPhase74LiveProductComparison(
     ({ arm }) => arm === "release-v0.6.0",
   );
   const candidateRows = result.rows.filter(
-    ({ arm }) => arm === "phase74-final",
+    ({ arm }) => arm === "phase74-deterministic-candidate",
   );
   await Promise.all([
     writeFile(candidateUsagePath, "", { encoding: "utf8", flag: "a" }),
@@ -1473,15 +1490,13 @@ export async function runPhase74LiveProductComparison(
         0,
       ) / candidateRows.length,
     },
-    evidenceBoundary: {
-      goldAware: false,
-      protocolReader: false,
+    evidenceBoundary: buildPhase74ProductEvidenceBoundary({
       seenCasesOnly: true,
-    },
+    }),
     executionFailures: 0,
     experimentIdentityHash: hashEvalExperimentIdentity(identity),
     identityHash: hashEvalRunIdentity(identity),
-    kind: "phase74-cumulative-product-comparison",
+    kind: "phase74-cumulative-product-comparison-diagnostic",
     latency: {
       baselineP95Ms: p95(
         baselineRows.map(({ productLatencyMs }) => productLatencyMs),

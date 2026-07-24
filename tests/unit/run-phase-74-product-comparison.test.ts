@@ -246,8 +246,8 @@ describe("Phase 74 cumulative product runner", () => {
     )).toBeTrue();
     expect(result.rows.map(({ arm, caseId }) => `${arm}/${caseId}`).sort())
       .toEqual([
-        "phase74-final/case-a",
-        "phase74-final/case-b",
+        "phase74-deterministic-candidate/case-a",
+        "phase74-deterministic-candidate/case-b",
         "release-v0.6.0/case-a",
         "release-v0.6.0/case-b",
       ]);
