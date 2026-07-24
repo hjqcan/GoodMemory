@@ -8,9 +8,11 @@ import {
   buildPhase74ProductAttemptTerminal,
   buildPhase74ProductQueryPathLatencyMs,
   buildPhase74ProductRunIdentityConfiguration,
+  commitPhase74ProductSuccessArtifacts,
   createPhase74ProductNetworkFetch,
   parsePhase74ProductComparisonCliOptions,
   runPhase74ProductComparison,
+  verifyPhase74ProductAttemptTerminal,
   writePhase74ProductAttemptTerminal,
   type Phase74ProductPreparedGroup,
 } from "../../scripts/run-phase-74-product-comparison";
@@ -418,9 +420,11 @@ describe("Phase 74 cumulative product runner", () => {
           candidateBudgetPath,
           candidateEventsPath,
           candidateIntentsPath,
+          datasetManifestPath: join(directory, "dataset-manifest.json"),
           releaseBudgetPath: join(directory, "release-budget.json"),
           releaseEventsPath: join(directory, "release-events.jsonl"),
           releaseIntentsPath: join(directory, "release-intents.jsonl"),
+          reportPath: join(directory, "report.json"),
         },
         process: {
           failed: {
@@ -448,8 +452,10 @@ describe("Phase 74 cumulative product runner", () => {
             sha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
           },
           candidateUsage: { reconciled: false },
+          datasetManifest: { exists: false },
           releaseBudget: { exists: false },
           releaseUsage: { reconciled: false },
+          report: { exists: false },
         },
         errorFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/u),
         identityHash: "b".repeat(64),
@@ -478,9 +484,11 @@ describe("Phase 74 cumulative product runner", () => {
           candidateBudgetPath: join(directory, "candidate-budget.json"),
           candidateEventsPath: join(directory, "candidate-events.jsonl"),
           candidateIntentsPath: join(directory, "candidate-intents.jsonl"),
+          datasetManifestPath: join(directory, "dataset-manifest.json"),
           releaseBudgetPath: join(directory, "release-budget.json"),
           releaseEventsPath: join(directory, "release-events.jsonl"),
           releaseIntentsPath: join(directory, "release-intents.jsonl"),
+          reportPath: join(directory, "report.json"),
         },
         process: {
           failed: null,
@@ -490,6 +498,120 @@ describe("Phase 74 cumulative product runner", () => {
       })).rejects.toThrow("success terminal");
     } finally {
       await rm(directory, { force: true, recursive: true });
+    }
+  });
+
+  it("commits manifest and report before the final success terminal", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "phase74-product-commit-"));
+    const paths = {
+      candidateBudgetPath: join(directory, "candidate-budget.json"),
+      candidateEventsPath: join(directory, "candidate-events.jsonl"),
+      candidateIntentsPath: join(directory, "candidate-intents.jsonl"),
+      datasetManifestPath: join(directory, "dataset-manifest.json"),
+      releaseBudgetPath: join(directory, "release-budget.json"),
+      releaseEventsPath: join(directory, "release-events.jsonl"),
+      releaseIntentsPath: join(directory, "release-intents.jsonl"),
+      reportPath: join(directory, "report.json"),
+    };
+    const terminalPath = join(directory, "attempt-terminal.json");
+    try {
+      await Promise.all([
+        writeFile(paths.candidateBudgetPath, "{}\n"),
+        writeFile(paths.candidateEventsPath, ""),
+        writeFile(paths.candidateIntentsPath, ""),
+        writeFile(paths.releaseBudgetPath, "{}\n"),
+        writeFile(paths.releaseEventsPath, ""),
+        writeFile(paths.releaseIntentsPath, ""),
+      ]);
+      const committed = await commitPhase74ProductSuccessArtifacts({
+        datasetManifest: { datasetSha256: "d".repeat(64) },
+        report: { status: "not_evaluable" },
+        terminalInput: {
+          completedReceiptSetSha256: "a".repeat(64),
+          identityHash: "b".repeat(64),
+          paths,
+          process: {
+            failed: null,
+            successfulPids: [42],
+          },
+          status: "succeeded",
+        },
+        terminalPath,
+      });
+
+      expect(committed.terminal).toMatchObject({
+        evidence: {
+          datasetManifest: {
+            exists: true,
+            sha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+          },
+          report: {
+            exists: true,
+            sha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+          },
+        },
+        status: "succeeded",
+      });
+      await expect(verifyPhase74ProductAttemptTerminal({
+        path: terminalPath,
+        paths,
+      })).resolves.toEqual(committed.terminal);
+
+      await writeFile(paths.reportPath, "{\"status\":\"tampered\"}\n");
+      await expect(verifyPhase74ProductAttemptTerminal({
+        path: terminalPath,
+        paths,
+      })).rejects.toThrow("artifact drifted");
+    } finally {
+      await rm(directory, { force: true, recursive: true });
+    }
+  });
+
+  it("commits only a failed terminal when manifest or report creation fails", async () => {
+    for (const blocked of ["datasetManifestPath", "reportPath"] as const) {
+      const directory = await mkdtemp(join(tmpdir(), "phase74-product-fault-"));
+      const paths = {
+        candidateBudgetPath: join(directory, "candidate-budget.json"),
+        candidateEventsPath: join(directory, "candidate-events.jsonl"),
+        candidateIntentsPath: join(directory, "candidate-intents.jsonl"),
+        datasetManifestPath: join(directory, "dataset-manifest.json"),
+        releaseBudgetPath: join(directory, "release-budget.json"),
+        releaseEventsPath: join(directory, "release-events.jsonl"),
+        releaseIntentsPath: join(directory, "release-intents.jsonl"),
+        reportPath: join(directory, "report.json"),
+      };
+      const terminalPath = join(directory, "attempt-terminal.json");
+      try {
+        await Promise.all([
+          writeFile(paths.candidateBudgetPath, "{}\n"),
+          writeFile(paths.candidateEventsPath, ""),
+          writeFile(paths.candidateIntentsPath, ""),
+          writeFile(paths.releaseBudgetPath, "{}\n"),
+          writeFile(paths.releaseEventsPath, ""),
+          writeFile(paths.releaseIntentsPath, ""),
+          writeFile(paths[blocked], "pre-existing"),
+        ]);
+        await expect(commitPhase74ProductSuccessArtifacts({
+          datasetManifest: { datasetSha256: "d".repeat(64) },
+          report: { status: "not_evaluable" },
+          terminalInput: {
+            completedReceiptSetSha256: "a".repeat(64),
+            identityHash: "b".repeat(64),
+            paths,
+            process: {
+              failed: null,
+              successfulPids: [42],
+            },
+            status: "succeeded",
+          },
+          terminalPath,
+        })).rejects.toThrow();
+
+        expect(JSON.parse(await readFile(terminalPath, "utf8")))
+          .toMatchObject({ status: "failed" });
+      } finally {
+        await rm(directory, { force: true, recursive: true });
+      }
     }
   });
 });
