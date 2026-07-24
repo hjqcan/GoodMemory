@@ -861,6 +861,9 @@ export async function verifyPhase74ProductAttemptTerminal(input: {
   ) {
     throw new Error("Phase 74 product attempt terminal artifact drifted.");
   }
+  if (terminal.status === "failed") {
+    return terminal;
+  }
   const root = dirname(input.path);
   const runIdentity = JSON.parse(
     await readFile(join(root, "run-identity.json"), "utf8"),
@@ -897,10 +900,17 @@ export async function verifyPhase74ProductAttemptTerminal(input: {
   }
   const reportRecord = reportValue as Record<string, unknown>;
   const reportReceiptSet = reportRecord.releasePreparedReceiptSet;
+  const reportProcessPids = reportRecord.releaseProcessPids;
   if (
     identityHash !== terminal.identityHash ||
     terminal.completedReceiptSetSha256 !== receiptSet.receiptSetSha256 ||
     reportRecord.identityHash !== terminal.identityHash ||
+    !Array.isArray(reportProcessPids) ||
+    reportProcessPids.some(
+      (pid) => !Number.isSafeInteger(pid) || Number(pid) <= 0,
+    ) ||
+    JSON.stringify(reportProcessPids) !==
+      JSON.stringify(terminal.process.successfulPids) ||
     reportReceiptSet === null ||
     typeof reportReceiptSet !== "object" ||
     Array.isArray(reportReceiptSet) ||
