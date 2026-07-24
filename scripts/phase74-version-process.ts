@@ -311,16 +311,18 @@ function prepareGroup(value: unknown): Phase74VersionPrepareGroup {
     ["executionIdentityHash", "ingestionKey", "input", "sqlitePath"],
     "Phase 74 version process group",
   );
+  const input = parsePhase74VersionWorkerInput(group.input);
   return {
     executionIdentityHash: exactSha256(
       group.executionIdentityHash,
       "Phase 74 version process execution identity",
     ),
-    ingestionKey: exactSha256(
+    ingestionKey: versionIngestionKey(
       group.ingestionKey,
+      input.sourceCommit,
       "Phase 74 version process ingestion key",
     ),
-    input: parsePhase74VersionWorkerInput(group.input),
+    input,
     sqlitePath: nonEmptyString(
       group.sqlitePath,
       "Phase 74 version process SQLite path",
@@ -340,6 +342,20 @@ function exactSha256(candidate: unknown, label: string): string {
   const parsed = nonEmptyString(candidate, label);
   if (!/^[a-f0-9]{64}$/u.test(parsed)) {
     throw new Error(`${label} must be an exact SHA-256.`);
+  }
+  return parsed;
+}
+
+function versionIngestionKey(
+  candidate: unknown,
+  sourceCommit: string,
+  label: string,
+): string {
+  const parsed = nonEmptyString(candidate, label);
+  const match =
+    /^phase74-version-ingestion-v1:([a-f0-9]{40}):[a-f0-9]{64}$/u.exec(parsed);
+  if (match?.[1] !== sourceCommit) {
+    throw new Error(`${label} must be a source-bound versioned key.`);
   }
   return parsed;
 }
@@ -371,8 +387,9 @@ function preparedState(value: unknown): Phase74VersionPreparedState {
       state.executionIdentityHash,
       "Phase 74 version prepared execution identity",
     ),
-    ingestionKey: exactSha256(
+    ingestionKey: versionIngestionKey(
       state.ingestionKey,
+      sourceCommit,
       "Phase 74 version prepared ingestion key",
     ),
     ingestionLatencyMs: nonNegativeNumber(
@@ -444,8 +461,9 @@ function preparedReceipt(value: unknown): Phase74VersionPreparedReceipt {
       receipt.executionIdentityHash,
       "Phase 74 version prepared execution identity",
     ),
-    ingestionKey: exactSha256(
+    ingestionKey: versionIngestionKey(
       receipt.ingestionKey,
+      sourceCommit,
       "Phase 74 version prepared ingestion key",
     ),
     ingestionLatencyMs: nonNegativeNumber(

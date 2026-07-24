@@ -547,7 +547,8 @@ describe("Phase 74 release version process", () => {
             },
             {
               executionIdentityHash: EXECUTION_IDENTITY_HASH,
-              ingestionKey: "e".repeat(64),
+              ingestionKey:
+                `phase74-version-ingestion-v1:${PHASE74_RELEASE_COMMIT}:${"e".repeat(64)}`,
               input: {
                 ...WORKER_INPUT,
                 memoryGroupId: "group-second",
