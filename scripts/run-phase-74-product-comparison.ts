@@ -682,6 +682,22 @@ export async function buildPhase74ProductAttemptTerminal(input: {
         intentsPath: input.paths.releaseIntentsPath,
       }),
     ]);
+  if (
+    input.status === "succeeded" &&
+    (
+      input.completedReceiptSetSha256 === undefined ||
+      input.process.failed !== null ||
+      input.process.successfulPids.length === 0 ||
+      candidateBudget.exists !== true ||
+      releaseBudget.exists !== true ||
+      !candidateUsage.reconciled ||
+      !releaseUsage.reconciled
+    )
+  ) {
+    throw new Error(
+      "Phase 74 product success terminal evidence is incomplete.",
+    );
+  }
   return {
     completedReceiptSetSha256:
       input.completedReceiptSetSha256 ?? null,
