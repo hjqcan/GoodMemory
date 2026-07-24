@@ -14,7 +14,10 @@ import {
   sealPhase74VersionPreparedSnapshot,
   verifyPhase74VersionPreparedReceipt,
 } from "../../scripts/phase74-version-process";
-import { PHASE74_RELEASE_COMMIT } from "../../src/eval/phase74VersionBaseline";
+import {
+  PHASE74_RELEASE_COMMIT,
+  buildPhase74VersionIngestionKey,
+} from "../../src/eval/phase74VersionBaseline";
 
 const WORKER_INPUT = {
   arm: "release",
@@ -41,7 +44,13 @@ const PROCESS_ENV = {
   GOODMEMORY_EVAL_PROVIDER: "openai",
 } as const;
 const EXECUTION_IDENTITY_HASH = "c".repeat(64);
-const INGESTION_KEY = "d".repeat(64);
+const INGESTION_KEY = buildPhase74VersionIngestionKey({
+  configurationSha256: "d".repeat(64),
+  datasetSha256: "e".repeat(64),
+  memoryGroupId: WORKER_INPUT.memoryGroupId,
+  rawEvidence: WORKER_INPUT.rawEvidence,
+  sourceCommit: WORKER_INPUT.sourceCommit,
+});
 const PREPARE_IDENTITY = {
   executionIdentityHash: EXECUTION_IDENTITY_HASH,
   ingestionKey: INGESTION_KEY,
