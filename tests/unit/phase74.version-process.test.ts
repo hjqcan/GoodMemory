@@ -312,7 +312,7 @@ describe("Phase 74 release version process", () => {
     }
   });
 
-  it("forbids loading the v0.7 runtime in the product orchestrator process", async () => {
+  it("forbids loading the pre-Phase-74 runtime in the product orchestrator process", async () => {
     const source = await readFile(
       resolve("scripts/run-phase-74-product-comparison.ts"),
       "utf8",

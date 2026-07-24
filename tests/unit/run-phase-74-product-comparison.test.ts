@@ -219,7 +219,7 @@ describe("Phase 74 cumulative product runner", () => {
         arm: "release",
         commit: "d".repeat(40),
         lockfileSha256: "e".repeat(64),
-        ref: "v0.7.0",
+        ref: "v0.6.0",
         tree: "f".repeat(40),
         workerSha256: "1".repeat(64),
       },
@@ -229,7 +229,7 @@ describe("Phase 74 cumulative product runner", () => {
       seenCasesOnly: true,
     })).toMatchObject({
       arms: {
-        baseline: "release-v0.7.0",
+        baseline: "release-v0.6.0",
         candidate: "phase74-deterministic-candidate",
       },
       candidateConfiguration: {
@@ -352,8 +352,8 @@ describe("Phase 74 cumulative product runner", () => {
       .toEqual([
         "phase74-deterministic-candidate/case-a",
         "phase74-deterministic-candidate/case-b",
-        "release-v0.7.0/case-a",
-        "release-v0.7.0/case-b",
+        "release-v0.6.0/case-a",
+        "release-v0.6.0/case-b",
       ]);
     expect(result.selectedEvidenceLedgerFormat).toBe("compact_json");
   });
@@ -373,11 +373,11 @@ describe("Phase 74 cumulative product runner", () => {
         active += 1;
         maxActive = Math.max(maxActive, active);
         try {
-          if (arm === "release-v0.7.0" && memoryGroupId === "group-a") {
+          if (arm === "release-v0.6.0" && memoryGroupId === "group-a") {
             await secondStarted;
             throw new Error("prepare failed");
           }
-          if (arm === "release-v0.7.0" && memoryGroupId === "group-b") {
+          if (arm === "release-v0.6.0" && memoryGroupId === "group-b") {
             releaseSecondGroupStarted();
             await new Promise((resolve) => setTimeout(resolve, 20));
             releaseSecondGroupSettled = true;
@@ -457,7 +457,7 @@ describe("Phase 74 cumulative product runner", () => {
           ingestionKey: `${arm}/${memoryGroupId}`,
           memoryGroupId,
           async query() {
-            if (arm === "release-v0.7.0") {
+            if (arm === "release-v0.6.0") {
               throw new Error("release query failed");
             }
             await new Promise((resolve) => setTimeout(resolve, 20));
