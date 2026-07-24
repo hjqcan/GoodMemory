@@ -1,6 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -20,6 +27,7 @@ import {
   commitPhase74ProductSuccessArtifacts,
   createPhase74ProductNetworkFetch,
   parsePhase74ProductComparisonCliOptions,
+  runPhase74LiveProductComparison,
   runPhase74ProductComparison,
   verifyPhase74ProductAttemptTerminal,
   writePhase74ProductAttemptTerminal,
@@ -137,6 +145,33 @@ describe("Phase 74 cumulative product runner", () => {
       runId: "phase74-product-locomo-r1",
       selectedEvidenceLedgerFormat: "compact_json",
     });
+  });
+
+  it("does not leave an attempt directory when preflight cannot build an identity", async () => {
+    const root = await mkdtemp(join(tmpdir(), "phase74-product-preflight-"));
+    const runId = "phase74-product-preflight-failure";
+    try {
+      await expect(runPhase74LiveProductComparison({
+        benchmark: "locomo",
+        benchmarkRoot: join(root, "missing-benchmark"),
+        caseSelectionSeed: 74076,
+        caseSelectionSize: 2,
+        embeddingSpendLimitUsd: 1,
+        maxLanguageCalls: 10,
+        outputDir: root,
+        preparationConcurrency: 1,
+        protectionBlueprintPath: join(root, "missing-protection.json"),
+        releaseArchive: join(root, "missing-release.tar"),
+        releaseSourceRoot: join(root, "missing-release"),
+        replicate: 1,
+        runId,
+        selectedEvidenceLedgerFormat: "compact_json",
+      }, {})).rejects.toThrow();
+
+      await expect(access(join(root, runId))).rejects.toThrow();
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
   });
 
   it("marks the same-process deterministic product comparison as diagnostic", () => {
