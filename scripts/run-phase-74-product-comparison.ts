@@ -537,9 +537,11 @@ interface Phase74ProductTerminalPaths {
   candidateBudgetPath: string;
   candidateEventsPath: string;
   candidateIntentsPath: string;
+  datasetManifestPath: string;
   releaseBudgetPath: string;
   releaseEventsPath: string;
   releaseIntentsPath: string;
+  reportPath: string;
 }
 
 export interface Phase74ProductAttemptTerminal {
@@ -548,8 +550,10 @@ export interface Phase74ProductAttemptTerminal {
   evidence: {
     candidateBudget: Phase74ProductTerminalFileEvidence;
     candidateUsage: Phase74ProductTerminalUsageEvidence;
+    datasetManifest: Phase74ProductTerminalFileEvidence;
     releaseBudget: Phase74ProductTerminalFileEvidence;
     releaseUsage: Phase74ProductTerminalUsageEvidence;
+    report: Phase74ProductTerminalFileEvidence;
   };
   identityHash: string;
   process: {
@@ -669,18 +673,27 @@ export async function buildPhase74ProductAttemptTerminal(input: {
   ) {
     throw new Error("Phase 74 product attempt terminal input drifted.");
   }
-  const [candidateBudget, candidateUsage, releaseBudget, releaseUsage] =
+  const [
+    candidateBudget,
+    candidateUsage,
+    datasetManifest,
+    releaseBudget,
+    releaseUsage,
+    report,
+  ] =
     await Promise.all([
       terminalFileEvidence(input.paths.candidateBudgetPath),
       terminalUsageEvidence({
         eventsPath: input.paths.candidateEventsPath,
         intentsPath: input.paths.candidateIntentsPath,
       }),
+      terminalFileEvidence(input.paths.datasetManifestPath),
       terminalFileEvidence(input.paths.releaseBudgetPath),
       terminalUsageEvidence({
         eventsPath: input.paths.releaseEventsPath,
         intentsPath: input.paths.releaseIntentsPath,
       }),
+      terminalFileEvidence(input.paths.reportPath),
     ]);
   if (
     input.status === "succeeded" &&
@@ -689,7 +702,9 @@ export async function buildPhase74ProductAttemptTerminal(input: {
       input.process.failed !== null ||
       input.process.successfulPids.length === 0 ||
       candidateBudget.exists !== true ||
+      datasetManifest.exists !== true ||
       releaseBudget.exists !== true ||
+      report.exists !== true ||
       !candidateUsage.reconciled ||
       !releaseUsage.reconciled
     )
@@ -707,8 +722,10 @@ export async function buildPhase74ProductAttemptTerminal(input: {
     evidence: {
       candidateBudget,
       candidateUsage,
+      datasetManifest,
       releaseBudget,
       releaseUsage,
+      report,
     },
     identityHash: input.identityHash,
     process: {
@@ -731,6 +748,129 @@ export async function writePhase74ProductAttemptTerminal(input: {
     path: input.path,
     sha256: await sha256File(input.path),
   };
+}
+
+export async function verifyPhase74ProductAttemptTerminal(input: {
+  path: string;
+  paths: Phase74ProductTerminalPaths;
+}): Promise<Phase74ProductAttemptTerminal> {
+  const value: unknown = JSON.parse(await readFile(input.path, "utf8"));
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    Array.isArray(value)
+  ) {
+    throw new Error("Phase 74 product attempt terminal is invalid.");
+  }
+  const terminal = value as Phase74ProductAttemptTerminal;
+  if (
+    terminal.schemaVersion !== 1 ||
+    (terminal.status !== "failed" && terminal.status !== "succeeded") ||
+    !/^[a-f0-9]{64}$/u.test(terminal.identityHash) ||
+    (
+      terminal.completedReceiptSetSha256 !== null &&
+      !/^[a-f0-9]{64}$/u.test(terminal.completedReceiptSetSha256)
+    ) ||
+    (
+      terminal.errorFingerprint !== null &&
+      !/^[a-f0-9]{64}$/u.test(terminal.errorFingerprint)
+    ) ||
+    terminal.evidence === undefined ||
+    terminal.process === undefined
+  ) {
+    throw new Error("Phase 74 product attempt terminal is invalid.");
+  }
+  const [
+    candidateBudget,
+    candidateUsage,
+    datasetManifest,
+    releaseBudget,
+    releaseUsage,
+    report,
+  ] = await Promise.all([
+    terminalFileEvidence(input.paths.candidateBudgetPath),
+    terminalUsageEvidence({
+      eventsPath: input.paths.candidateEventsPath,
+      intentsPath: input.paths.candidateIntentsPath,
+    }),
+    terminalFileEvidence(input.paths.datasetManifestPath),
+    terminalFileEvidence(input.paths.releaseBudgetPath),
+    terminalUsageEvidence({
+      eventsPath: input.paths.releaseEventsPath,
+      intentsPath: input.paths.releaseIntentsPath,
+    }),
+    terminalFileEvidence(input.paths.reportPath),
+  ]);
+  if (
+    JSON.stringify(terminal.evidence) !== JSON.stringify({
+      candidateBudget,
+      candidateUsage,
+      datasetManifest,
+      releaseBudget,
+      releaseUsage,
+      report,
+    })
+  ) {
+    throw new Error("Phase 74 product attempt terminal artifact drifted.");
+  }
+  return terminal;
+}
+
+export async function commitPhase74ProductSuccessArtifacts(input: {
+  datasetManifest: unknown;
+  report: unknown;
+  terminalInput: Parameters<
+    typeof buildPhase74ProductAttemptTerminal
+  >[0];
+  terminalPath: string;
+}): Promise<{
+  artifact: { path: string; sha256: string };
+  terminal: Phase74ProductAttemptTerminal;
+}> {
+  if (
+    input.terminalInput.status !== "succeeded" ||
+    input.terminalInput.error !== undefined
+  ) {
+    throw new Error("Phase 74 product success commit input drifted.");
+  }
+  try {
+    await writeJson(
+      input.terminalInput.paths.datasetManifestPath,
+      input.datasetManifest,
+    );
+    await writeJson(
+      input.terminalInput.paths.reportPath,
+      input.report,
+    );
+    const terminal = await buildPhase74ProductAttemptTerminal(
+      input.terminalInput,
+    );
+    return {
+      artifact: await writePhase74ProductAttemptTerminal({
+        path: input.terminalPath,
+        terminal,
+      }),
+      terminal,
+    };
+  } catch (error) {
+    const terminal = await buildPhase74ProductAttemptTerminal({
+      ...input.terminalInput,
+      error,
+      status: "failed",
+    });
+    try {
+      await writePhase74ProductAttemptTerminal({
+        path: input.terminalPath,
+        terminal,
+      });
+    } catch (terminalError) {
+      throw new AggregateError(
+        [error, terminalError],
+        "Phase 74 product success commit and failure terminal both failed.",
+      );
+    }
+    throw error;
+  }
 }
 
 function subsetUsageLedger(input: {
@@ -767,6 +907,8 @@ export async function runPhase74LiveProductComparison(
   const releaseDirectory = join(runDirectory, "release");
   const candidateDirectory = join(runDirectory, "candidate");
   const attemptTerminalPath = join(runDirectory, "attempt-terminal.json");
+  const datasetManifestPath = join(runDirectory, "dataset-manifest.json");
+  const reportPath = join(runDirectory, "report.json");
   const candidateBudgetPath = join(
     runDirectory,
     "candidate-call-budget.json",
@@ -1310,34 +1452,8 @@ export async function runPhase74LiveProductComparison(
       flag: "a",
     }),
   ]);
-  const attemptTerminal = await buildPhase74ProductAttemptTerminal({
-    completedReceiptSetSha256:
-      releasePreparedReceiptSet!.receiptSetSha256,
-    identityHash: executionIdentityHash,
-    paths: {
-      candidateBudgetPath,
-      candidateEventsPath: candidateUsagePath,
-      candidateIntentsPath: candidateUsageIntentsPath,
-      releaseBudgetPath,
-      releaseEventsPath: releaseUsagePath,
-      releaseIntentsPath: releaseUsageIntentsPath,
-    },
-    process: {
-      failed: null,
-      successfulPids: [...releaseProcessPids],
-    },
-    status: "succeeded",
-  });
-  const attemptTerminalArtifact =
-    await writePhase74ProductAttemptTerminal({
-      path: attemptTerminalPath,
-      terminal: attemptTerminal,
-    });
   const report = {
-    attemptTerminal: {
-      path: "attempt-terminal.json",
-      sha256: attemptTerminalArtifact.sha256,
-    },
+    attemptTerminalPath: "attempt-terminal.json",
     benchmark: options.benchmark,
     callBudget: {
       accounting: "independent-process-pools-v1",
@@ -1404,16 +1520,36 @@ export async function runPhase74LiveProductComparison(
     selection: selection.identity,
     status: "not_evaluable",
   };
-  const reportPath = join(runDirectory, "report.json");
-  await Promise.all([
-    writeJson(
-      join(runDirectory, "dataset-manifest.json"),
-      dataset.manifest,
-    ),
-    writeJson(reportPath, report),
-  ]);
+  await commitPhase74ProductSuccessArtifacts({
+    datasetManifest: dataset.manifest,
+    report,
+    terminalInput: {
+      completedReceiptSetSha256:
+        releasePreparedReceiptSet!.receiptSetSha256,
+      identityHash: executionIdentityHash,
+      paths: {
+        candidateBudgetPath,
+        candidateEventsPath: candidateUsagePath,
+        candidateIntentsPath: candidateUsageIntentsPath,
+        datasetManifestPath,
+        releaseBudgetPath,
+        releaseEventsPath: releaseUsagePath,
+        releaseIntentsPath: releaseUsageIntentsPath,
+        reportPath,
+      },
+      process: {
+        failed: null,
+        successfulPids: [...releaseProcessPids],
+      },
+      status: "succeeded",
+    },
+    terminalPath: attemptTerminalPath,
+  });
   return { reportPath, runDirectory };
   } catch (error) {
+    if ((await terminalFileEvidence(attemptTerminalPath)).exists === true) {
+      throw error;
+    }
     const failed = error instanceof Phase74VersionChildProcessError
       ? {
           exitCode: error.exitCode,
@@ -1430,9 +1566,11 @@ export async function runPhase74LiveProductComparison(
         candidateBudgetPath,
         candidateEventsPath: candidateUsagePath,
         candidateIntentsPath: candidateUsageIntentsPath,
+        datasetManifestPath,
         releaseBudgetPath,
         releaseEventsPath: releaseUsagePath,
         releaseIntentsPath: releaseUsageIntentsPath,
+        reportPath,
       },
       process: {
         failed,
