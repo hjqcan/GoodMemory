@@ -1,8 +1,17 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import {
+  buildEvalRunIdentity,
+  hashEvalRunIdentity,
+} from "../../src/eval/runIdentity";
+import { PHASE74_RELEASE_COMMIT } from "../../src/eval/phase74VersionBaseline";
+import {
+  buildPhase74VersionPreparedReceiptSet,
+} from "../../scripts/phase74-version-process";
 import {
   PHASE74_PRODUCT_CASE_SCHEDULING,
   buildPhase74ProductAttemptTerminal,
@@ -31,6 +40,53 @@ const CASES = [
     question: "Question B?",
   },
 ] as const;
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function productTestIdentity() {
+  return buildEvalRunIdentity({
+    answerModel: {
+      gateway: "https://answer.invalid/v1",
+      model: "answer-model",
+      provider: "openai",
+    },
+    benchmark: "locomo-product-comparison",
+    configuration: { comparisonKind: "diagnostic" },
+    datasetSha256: "d".repeat(64),
+    generatedAt: "2026-07-23T00:00:00.000Z",
+    generatedBy: "run-phase-74-product-comparison.test.ts",
+    judgeModel: {
+      gateway: "https://judge.invalid/v1",
+      model: "judge-model",
+      provider: "openai",
+    },
+    promptSha256s: { answer: "e".repeat(64) },
+    runId: "phase74-product-test",
+  });
+}
+
+function productTestReceiptSet(input: {
+  executionIdentityHash: string;
+  root: string;
+}) {
+  const content = {
+    executionIdentityHash: input.executionIdentityHash,
+    ingestionKey: "1".repeat(64),
+    ingestionLatencyMs: 1,
+    memoryGroupId: "group-a",
+    rawEvidenceSha256: "2".repeat(64),
+    sourceCommit: PHASE74_RELEASE_COMMIT,
+    sourceSqlitePath: join(input.root, "source.sqlite"),
+    sqlitePath: join(input.root, "sealed.sqlite"),
+    sqliteSha256: "3".repeat(64),
+  };
+  return buildPhase74VersionPreparedReceiptSet([{
+    ...content,
+    receiptSha256: sha256(JSON.stringify(content)),
+  }]);
+}
 
 describe("Phase 74 cumulative product runner", () => {
   it("parses a source-bound release-to-final live run with explicit budgets", () => {
@@ -528,6 +584,13 @@ describe("Phase 74 cumulative product runner", () => {
     };
     const terminalPath = join(directory, "attempt-terminal.json");
     try {
+      const identity = productTestIdentity();
+      const identityHash = hashEvalRunIdentity(identity);
+      const receiptSet = productTestReceiptSet({
+        executionIdentityHash: identityHash,
+        root: directory,
+      });
+      await mkdir(join(directory, "release"));
       await Promise.all([
         writeFile(paths.candidateBudgetPath, "{}\n"),
         writeFile(paths.candidateEventsPath, ""),
@@ -535,13 +598,27 @@ describe("Phase 74 cumulative product runner", () => {
         writeFile(paths.releaseBudgetPath, "{}\n"),
         writeFile(paths.releaseEventsPath, ""),
         writeFile(paths.releaseIntentsPath, ""),
+        writeFile(
+          join(directory, "run-identity.json"),
+          `${JSON.stringify(identity, null, 2)}\n`,
+        ),
+        writeFile(
+          join(directory, "release", "prepared-receipts.json"),
+          `${JSON.stringify(receiptSet, null, 2)}\n`,
+        ),
       ]);
       const committed = await commitPhase74ProductSuccessArtifacts({
         datasetManifest: { datasetSha256: "d".repeat(64) },
-        report: { status: "not_evaluable" },
+        report: {
+          identityHash,
+          releasePreparedReceiptSet: {
+            receiptSetSha256: receiptSet.receiptSetSha256,
+          },
+          status: "not_evaluable",
+        },
         terminalInput: {
-          completedReceiptSetSha256: "a".repeat(64),
-          identityHash: "b".repeat(64),
+          completedReceiptSetSha256: receiptSet.receiptSetSha256,
+          identityHash,
           paths,
           process: {
             failed: null,
@@ -570,6 +647,38 @@ describe("Phase 74 cumulative product runner", () => {
         paths,
       })).resolves.toEqual(committed.terminal);
 
+      const originalTerminal = JSON.parse(
+        await readFile(terminalPath, "utf8"),
+      );
+      await writeFile(terminalPath, JSON.stringify({
+        ...originalTerminal,
+        identityHash: "f".repeat(64),
+      }));
+      await expect(verifyPhase74ProductAttemptTerminal({
+        path: terminalPath,
+        paths,
+      })).rejects.toThrow("terminal drifted");
+
+      await writeFile(terminalPath, JSON.stringify({
+        ...originalTerminal,
+        completedReceiptSetSha256: "f".repeat(64),
+      }));
+      await expect(verifyPhase74ProductAttemptTerminal({
+        path: terminalPath,
+        paths,
+      })).rejects.toThrow("terminal drifted");
+
+      await writeFile(terminalPath, JSON.stringify({
+        ...originalTerminal,
+        errorFingerprint: null,
+        status: "failed",
+      }));
+      await expect(verifyPhase74ProductAttemptTerminal({
+        path: terminalPath,
+        paths,
+      })).rejects.toThrow("terminal drifted");
+
+      await writeFile(terminalPath, JSON.stringify(originalTerminal));
       await writeFile(paths.reportPath, "{\"status\":\"tampered\"}\n");
       await expect(verifyPhase74ProductAttemptTerminal({
         path: terminalPath,
