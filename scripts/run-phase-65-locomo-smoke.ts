@@ -499,6 +499,9 @@ export interface LocomoSmokeReport {
   answerEvaluation: "deferred-to-live-mode" | "scored";
   answerSystem?: string | null;
   answerTimeoutMs?: number | null;
+  // Chain-of-note reading mode: the evidence pack carries a per-entry note
+  // protocol and only the extracted final answer is scored.
+  chainOfNote?: boolean;
   benchmark: "locomo";
   // Resolved case source: "synthetic-smoke" or the external cases.json path.
   benchmarkSource: string;
@@ -2322,6 +2325,7 @@ function locomoEvidencePackQuestionType(
 // operation-framing + current-value resolution validated on BEAM and MAB, with
 // no LoCoMo-specific tuning.
 export function buildLocomoEvidencePackContext(input: {
+  chainOfNote?: boolean;
   question: LocomoQuestion;
   retrievedTurnIds: readonly string[];
   testCase: LocomoCase;
@@ -2338,6 +2342,7 @@ export function buildLocomoEvidencePackContext(input: {
       timeAnchor: turn.date ?? `session ${parseLocomoSession(turn.diaId)}`,
     }));
   return buildAnswerEvidencePack({
+    chainOfNote: input.chainOfNote,
     question: input.question.question,
     questionType: locomoEvidencePackQuestionType(input.question.category),
     turns,
@@ -2392,10 +2397,16 @@ const LOCOMO_ANSWER_SYSTEM =
 
 export function buildLocomoSystemPrompt(input: {
   allowCommonsenseResolution?: boolean;
+  chainOfNote?: boolean;
   questionCategory?: LocomoQaCategory;
   strictNoEvidenceAbstention?: boolean;
 }): string {
   const instructions = [LOCOMO_ANSWER_SYSTEM];
+  if (input.chainOfNote) {
+    instructions.push(
+      'Exception to the output rule: the dialog context ends with a reading protocol. Follow it — first write one brief note per evidence entry citing its #id, then give the answer on a final line beginning with "Final answer:". Only that line is your answer and it must obey every answer-shape rule above; the notes are discarded.',
+    );
+  }
   if (input.questionCategory === "multi_hop") {
     instructions.push(
       "For multi-hop questions, compose the final answer from every required evidence link; return the requested final entity, count, relationship, or attribute, and do not stop at the first matching clue or quote a partial chain.",
@@ -2446,12 +2457,14 @@ export const LOCOMO_LIVE_REQUEST_TIMEOUT_MS = 120_000;
 // downstream, so no judge).
 export function createLocomoLiveAnswerGenerator(input: {
   allowCommonsenseResolution?: boolean;
+  chainOfNote?: boolean;
   strictNoEvidenceAbstention?: boolean;
 } = {}): LocomoAnswerGenerator {
   const model = resolveLiveModelConfig("GOODMEMORY_EVAL");
   return async (answerInput) => {
     const system = buildLocomoSystemPrompt({
       allowCommonsenseResolution: input.allowCommonsenseResolution,
+      chainOfNote: input.chainOfNote,
       questionCategory: answerInput.question.category,
       strictNoEvidenceAbstention: input.strictNoEvidenceAbstention,
     });

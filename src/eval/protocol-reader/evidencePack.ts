@@ -264,16 +264,60 @@ function selectOperationTurns(
     .map((index) => ordered[index]);
 }
 
+// Typed entry header: time anchor and source id always; bi-temporal validity
+// and fusion channel provenance only when the caller supplies them, so packs
+// built from provenance-free paths keep the historical byte format.
+function formatEvidenceEntryMeta(turn: EvidenceTurn): string {
+  const parts = [`t=${turn.timeAnchor}`, `#${turn.sourceId}`, turn.role];
+  if (turn.validity) {
+    parts.push(turn.validity);
+  }
+  if (turn.channels && turn.channels.length > 0) {
+    parts.push(`via ${turn.channels.join("+")}`);
+  }
+  return parts.join(" | ");
+}
+
 function formatTurnsForEvidence(turns: readonly EvidenceTurn[]): string {
   if (turns.length === 0) {
     return "(no evidence)";
   }
   return turns
-    .map(
-      (turn) =>
-        `- [t=${turn.timeAnchor} | #${turn.sourceId} | ${turn.role}] ${turn.content}`,
-    )
+    .map((turn) => `- [${formatEvidenceEntryMeta(turn)}] ${turn.content}`)
     .join("\n");
+}
+
+// Chain-of-note reading: a per-entry relevance pass before synthesis improves
+// reading accuracy over noisy evidence and strengthens rejection of
+// unanswerable questions. The notes are working text — the harness extracts
+// only the marked final answer for strict scoring (extractFinalAnswer).
+const CHAIN_OF_NOTE_PROTOCOL = [
+  "Reading protocol: before answering, write one brief note per evidence entry",
+  "citing its #id — say whether the entry answers the question, is background,",
+  "is irrelevant, or conflicts with another entry (cite that entry's #id).",
+  "If no entry directly states the requested information, say so in the notes.",
+  'Then write a line beginning with "Final answer:" followed by only the answer',
+  "in the required shape. Everything before that line is discarded working",
+  "notes, so the final-answer line must stand alone.",
+].join(" ");
+
+const FINAL_ANSWER_MARKER_PATTERN = /final answer\s*\**\s*[::]/giu;
+
+// Strips the chain-of-note working notes from a model response: returns the
+// text after the last "Final answer:" marker. Without a usable marker (absent,
+// or nothing after it), returns the raw trimmed text so an answer is never
+// replaced with an empty string at scoring time.
+export function extractFinalAnswer(raw: string): string {
+  const matches = [...raw.matchAll(FINAL_ANSWER_MARKER_PATTERN)];
+  const last = matches.at(-1);
+  if (!last || last.index === undefined) {
+    return raw.trim();
+  }
+  const after = raw
+    .slice(last.index + last[0].length)
+    .replace(/^[\s*_]+/u, "")
+    .trim();
+  return after.length > 0 ? after : raw.trim();
 }
 
 // Source-ordered (earliest orderKey first), deduplicated, timestamped. The
@@ -281,6 +325,7 @@ function formatTurnsForEvidence(turns: readonly EvidenceTurn[]): string {
 // contradictions: the latest entry is the current state unless two entries are
 // irreconcilable.
 export function buildAnswerEvidencePack(input: {
+  chainOfNote?: boolean;
   question: string;
   questionType?: string;
   turns: readonly EvidenceTurn[];
@@ -302,10 +347,7 @@ export function buildAnswerEvidencePack(input: {
   const evidenceLines =
     selectOperationTurns(operation, ordered).length > 0
       ? selectOperationTurns(operation, ordered)
-          .map(
-            (turn) =>
-              `- [t=${turn.timeAnchor} | #${turn.sourceId} | ${turn.role}] ${turn.content}`,
-          )
+          .map((turn) => `- [${formatEvidenceEntryMeta(turn)}] ${turn.content}`)
           .join("\n")
       : "(no evidence)";
   const instructionConstraintIndexes =
@@ -348,21 +390,13 @@ export function buildAnswerEvidencePack(input: {
       ? ordered
           .map(
             (turn, index) =>
-              `${index + 1}. [t=${turn.timeAnchor} | #${turn.sourceId} | ${turn.role}] ${turn.content}`,
+              `${index + 1}. [${formatEvidenceEntryMeta(turn)}] ${turn.content}`,
           )
           .join("\n")
       : "(no evidence)";
   const orderTimelineLines =
     operation === "order" ? formatOrderTimelineTurns(ordered) : timelineLines;
-  const countLines =
-    ordered.length > 0
-      ? ordered
-          .map(
-            (turn, index) =>
-              `${index + 1}. [t=${turn.timeAnchor} | #${turn.sourceId} | ${turn.role}] ${turn.content}`,
-          )
-          .join("\n")
-      : "(no evidence)";
+  const countLines = timelineLines;
 
   const sections: string[] = [];
   if (OPERATION_FRAMING[operation].length > 0) {
@@ -481,6 +515,9 @@ export function buildAnswerEvidencePack(input: {
     sections.push(
       "When a fact changed across these entries, the latest entry is the current value; only call entries conflicting when they cannot be reconciled as an update.",
     );
+  }
+  if (input.chainOfNote) {
+    sections.push(CHAIN_OF_NOTE_PROTOCOL);
   }
   return sections.join("\n\n");
 }

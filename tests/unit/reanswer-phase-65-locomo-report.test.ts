@@ -155,6 +155,7 @@ describe("phase-65 LoCoMo report reanswer runner", () => {
     ).toEqual({
       allowCommonsenseResolution: true,
       answerProfile: "temporal-bounded-v3",
+      chainOfNote: false,
       concurrency: 3,
       maxEvidenceTurns: 6,
       outputDir: "/reports/out",
@@ -188,6 +189,119 @@ describe("phase-65 LoCoMo report reanswer runner", () => {
     ).toThrow(
       "--answer-profile must be temporal-bounded-v3 when provided.",
     );
+  });
+
+  it("parses the chain-of-note reading flag", () => {
+    expect(
+      parseLocomoReanswerCliOptions([
+        "bun",
+        "run",
+        "scripts/reanswer-phase-65-locomo-report.ts",
+        "--source-report",
+        "/reports/source.json",
+        "--chain-of-note",
+      ]).chainOfNote,
+    ).toBe(true);
+  });
+
+  it("rejects chain-of-note combined with the frozen union answer profile", () => {
+    expect(() =>
+      parseLocomoReanswerCliOptions([
+        "bun",
+        "run",
+        "scripts/reanswer-phase-65-locomo-report.ts",
+        "--source-report",
+        "/reports/source.json",
+        "--chain-of-note",
+        "--answer-profile",
+        "temporal-bounded-v3",
+      ]),
+    ).toThrow(
+      "--chain-of-note cannot be combined with --answer-profile temporal-bounded-v3.",
+    );
+  });
+
+  it("threads chain-of-note into the evidence pack and scores only the extracted final answer", async () => {
+    const seenContexts: string[] = [];
+    const report = await runLocomoReportReanswer(
+      {
+        allowCommonsenseResolution: false,
+        chainOfNote: true,
+        outputDir: "/reports/out",
+        questionIds: ["conv-test:q2"],
+        runId: "reanswer-chain-of-note",
+        sourceReportPath: "/reports/source/smoke-report.json",
+        strictNoEvidenceAbstention: false,
+      },
+      {
+        answerGenerator: async ({ memoryContext }) => {
+          seenContexts.push(memoryContext);
+          return [
+            "- #D1:2: states where Hartford came up, relevant.",
+            "Final answer: Connecticut",
+          ].join("\n");
+        },
+        mkdir: async () => undefined,
+        readFile: async (path) => {
+          if (path === "/reports/source/smoke-report.json") {
+            return JSON.stringify(sourceReport());
+          }
+          if (path === "/tmp/LOCOMO/cases.json") {
+            return JSON.stringify({ cases: [testCase] });
+          }
+          throw new Error(`unexpected read: ${path}`);
+        },
+        writeFile: async () => undefined,
+      },
+    );
+
+    expect(seenContexts).toHaveLength(1);
+    expect(seenContexts[0]).toContain("one brief note per evidence entry");
+    expect(seenContexts[0]).toContain('"Final answer:"');
+    const result = report.cases.find(
+      (candidate) => candidate.questionId === "conv-test:q2",
+    );
+    // The working notes are stripped before scoring; only the extracted final
+    // answer is recorded and scored.
+    expect(result?.generatedAnswer).toBe("Connecticut");
+    expect(result?.answerCorrect).toBe(true);
+    expect(result?.answerTokenF1).toBe(1);
+    expect(report.chainOfNote).toBe(true);
+  });
+
+  it("keeps the default reading mode free of the chain-of-note protocol", async () => {
+    const seenContexts: string[] = [];
+    const report = await runLocomoReportReanswer(
+      {
+        allowCommonsenseResolution: false,
+        outputDir: "/reports/out",
+        questionIds: ["conv-test:q2"],
+        runId: "reanswer-default-mode",
+        sourceReportPath: "/reports/source/smoke-report.json",
+        strictNoEvidenceAbstention: false,
+      },
+      {
+        answerGenerator: async ({ memoryContext }) => {
+          seenContexts.push(memoryContext);
+          return "Connecticut";
+        },
+        mkdir: async () => undefined,
+        readFile: async (path) => {
+          if (path === "/reports/source/smoke-report.json") {
+            return JSON.stringify(sourceReport());
+          }
+          if (path === "/tmp/LOCOMO/cases.json") {
+            return JSON.stringify({ cases: [testCase] });
+          }
+          throw new Error(`unexpected read: ${path}`);
+        },
+        writeFile: async () => undefined,
+      },
+    );
+
+    expect(seenContexts).toHaveLength(1);
+    expect(seenContexts[0]).not.toContain("Final answer");
+    expect(report.chainOfNote).toBe(false);
   });
 
   it("rejects empty targeted list entries before replay selection", () => {

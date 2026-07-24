@@ -73,6 +73,16 @@ describe("LoCoMo live answer evidence-pack wiring", () => {
     );
   });
 
+  it("permits the chain-of-note note pass only when the reading mode is on", () => {
+    const chainOfNotePrompt = buildLocomoSystemPrompt({ chainOfNote: true });
+    expect(chainOfNotePrompt).toContain("reading protocol");
+    expect(chainOfNotePrompt).toContain('"Final answer:"');
+
+    const defaultPrompt = buildLocomoSystemPrompt({});
+    expect(defaultPrompt).not.toContain("reading protocol");
+    expect(defaultPrompt).toContain("Output only the final answer");
+  });
+
   it("routes the answer context through the pack when evidencePack is set", async () => {
     const capturedContexts: string[] = [];
     const report = await runLocomoSmoke(

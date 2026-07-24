@@ -6,6 +6,7 @@ import {
   scoreLocomoAnswer,
 } from "../src/eval/locomo";
 import type { LocomoQaCategory } from "../src/eval/locomo";
+import { extractFinalAnswer } from "../src/eval/protocol-reader/evidencePack";
 import {
   assertCliPathSegmentValue,
   hasCliFlagStrict,
@@ -60,6 +61,7 @@ export type LocomoReanswerAnswerProfile = "temporal-bounded-v3";
 export interface LocomoReanswerCliOptions {
   allowCommonsenseResolution: boolean;
   answerProfile?: LocomoReanswerAnswerProfile;
+  chainOfNote?: boolean;
   concurrency?: number;
   goldEvidenceOnlyContext?: boolean;
   maxEvidenceTurns?: number;
@@ -189,11 +191,20 @@ export function parseLocomoReanswerCliOptions(
     throw new Error("--source-report is required.");
   }
   const answerProfile = parseLocomoReanswerAnswerProfile(argv);
+  const chainOfNote = hasCliFlagStrict(argv, "--chain-of-note");
+  if (chainOfNote && answerProfile === "temporal-bounded-v3") {
+    // The union profile's answer system is a frozen artifact; layering the
+    // note protocol onto it would silently change what that profile measures.
+    throw new Error(
+      "--chain-of-note cannot be combined with --answer-profile temporal-bounded-v3.",
+    );
+  }
   const options: LocomoReanswerCliOptions = {
     allowCommonsenseResolution: hasCliFlagStrict(
       argv,
       "--allow-commonsense-resolution",
     ),
+    chainOfNote,
     concurrency: parseCliPositiveIntegerFlagStrict(argv, "--concurrency") ?? 1,
     goldEvidenceOnlyContext: hasCliFlagStrict(
       argv,
@@ -1336,12 +1347,21 @@ export async function runLocomoReportReanswer(
     options.answerProfile === "temporal-bounded-v3"
       ? LOCOMO_UNION_LIVE_ANSWER_SYSTEM_ID
       : LOCOMO_LIVE_ANSWER_SYSTEM_ID;
+  if (
+    options.chainOfNote === true &&
+    options.answerProfile === "temporal-bounded-v3"
+  ) {
+    throw new Error(
+      "--chain-of-note cannot be combined with --answer-profile temporal-bounded-v3.",
+    );
+  }
   const answerGenerator =
     deps.answerGenerator ??
     (options.answerProfile === "temporal-bounded-v3"
       ? createUnionLiveAnswerGenerator(LOCOMO_LIVE_REQUEST_TIMEOUT_MS)
       : createLocomoLiveAnswerGenerator({
           allowCommonsenseResolution: options.allowCommonsenseResolution,
+          chainOfNote: options.chainOfNote,
           strictNoEvidenceAbstention: options.strictNoEvidenceAbstention,
         }));
   const concurrency = options.concurrency ?? 1;
@@ -1372,6 +1392,7 @@ export async function runLocomoReportReanswer(
       try {
         const candidateAnswer = await answerGenerator({
           memoryContext: buildLocomoEvidencePackContext({
+            chainOfNote: options.chainOfNote,
             question,
             retrievedTurnIds: contextTurnIds,
             testCase,
@@ -1380,10 +1401,16 @@ export async function runLocomoReportReanswer(
           retrievedTurnIds: contextTurnIds,
           testCase,
         });
-        if (candidateAnswer.trim().length === 0) {
+        // Chain-of-note responses carry working notes before the marked final
+        // answer; score (and record) only the extracted answer.
+        const finalAnswer =
+          options.chainOfNote === true
+            ? extractFinalAnswer(candidateAnswer)
+            : candidateAnswer;
+        if (finalAnswer.trim().length === 0) {
           throw new Error("empty generated answer");
         }
-        generatedAnswer = candidateAnswer;
+        generatedAnswer = finalAnswer;
         break;
       } catch {
         const delay = REANSWER_RETRY_DELAYS_MS[attempt];
@@ -1487,6 +1514,7 @@ export async function runLocomoReportReanswer(
       ? "gold-evidence-only-pack"
       : "evidence-pack",
     answerEvidenceTurnLimit: options.maxEvidenceTurns ?? null,
+    chainOfNote: options.chainOfNote === true,
     answerEvaluation: "scored",
     answerSystem:
       deps.answerGenerator === undefined || options.answerProfile !== undefined

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   buildAnswerEvidencePack,
+  extractFinalAnswer,
   inferAnswerOperation,
 } from "../../src/eval/protocol-reader/evidencePack";
 
@@ -1871,5 +1872,120 @@ describe("answer evidence pack", () => {
       turns: [],
     });
     expect(pack).toContain("(no evidence)");
+  });
+});
+
+describe("structured evidence entries and chain-of-note reading", () => {
+  const moveTurns = [
+    {
+      content: "I moved to Kirkland.",
+      orderKey: 1,
+      role: "user",
+      sourceId: "a1",
+      timeAnchor: "2023-05-01",
+    },
+    {
+      content: "I moved to Bellevue.",
+      orderKey: 2,
+      role: "user",
+      sourceId: "a2",
+      timeAnchor: "2023-08-01",
+    },
+  ];
+
+  it("renders validity and channel provenance when the caller provides them", () => {
+    const pack = buildAnswerEvidencePack({
+      question: "Where do I live?",
+      turns: [
+        {
+          ...moveTurns[0],
+          channels: ["lexical", "dense"],
+          validity: "superseded 2023-08-01",
+        },
+        {
+          ...moveTurns[1],
+          channels: ["lexical"],
+          validity: "current",
+        },
+      ],
+    });
+    expect(pack).toContain(
+      "[t=2023-05-01 | #a1 | user | superseded 2023-08-01 | via lexical+dense] I moved to Kirkland.",
+    );
+    expect(pack).toContain(
+      "[t=2023-08-01 | #a2 | user | current | via lexical] I moved to Bellevue.",
+    );
+  });
+
+  it("keeps the historical entry format when the typed fields are absent", () => {
+    const pack = buildAnswerEvidencePack({
+      question: "Where do I live?",
+      turns: moveTurns,
+    });
+    expect(pack).toContain("[t=2023-05-01 | #a1 | user] I moved to Kirkland.");
+    expect(pack).not.toContain("via ");
+  });
+
+  it("appends the chain-of-note reading protocol only when requested", () => {
+    const withNotes = buildAnswerEvidencePack({
+      chainOfNote: true,
+      question: "Where do I live?",
+      turns: moveTurns,
+    });
+    // Per-entry note pass citing entry ids, then a marked final answer the
+    // harness can extract for strict scoring.
+    expect(withNotes).toContain("one brief note per evidence entry");
+    expect(withNotes).toContain("#id");
+    expect(withNotes).toContain('"Final answer:"');
+
+    const withoutNotes = buildAnswerEvidencePack({
+      question: "Where do I live?",
+      turns: moveTurns,
+    });
+    expect(withoutNotes).not.toContain("Final answer");
+  });
+
+  it("keeps the chain-of-note protocol as the last section for every operation", () => {
+    const pack = buildAnswerEvidencePack({
+      chainOfNote: true,
+      question: "What happened?",
+      questionType: "abstention",
+      turns: moveTurns,
+    });
+    const protocolIndex = pack.indexOf("one brief note per evidence entry");
+    expect(protocolIndex).toBeGreaterThan(-1);
+    expect(protocolIndex).toBeGreaterThan(
+      pack.indexOf("Evidence for absence check:"),
+    );
+  });
+
+  it("extracts the final answer after the last marker", () => {
+    expect(
+      extractFinalAnswer(
+        "- #a1: superseded move\n- #a2: current move\nFinal answer: Bellevue",
+      ),
+    ).toBe("Bellevue");
+    expect(extractFinalAnswer("**Final answer:** Bellevue")).toBe("Bellevue");
+    expect(
+      extractFinalAnswer(
+        "notes\nfinal answer:\nBellevue and Kirkland\nsince 2023",
+      ),
+    ).toBe("Bellevue and Kirkland\nsince 2023");
+    // A note that mentions the phrase must not clip the real answer.
+    expect(
+      extractFinalAnswer(
+        "The final answer depends on #a2.\nFinal answer: Bellevue",
+      ),
+    ).toBe("Bellevue");
+  });
+
+  it("returns the raw text when no usable marker is present", () => {
+    expect(extractFinalAnswer("Bellevue")).toBe("Bellevue");
+    expect(extractFinalAnswer("  Bellevue \n")).toBe("Bellevue");
+    // Degenerate output (marker with nothing after it) keeps the raw text
+    // rather than scoring an empty answer.
+    expect(extractFinalAnswer("notes only\nFinal answer:")).toBe(
+      "notes only\nFinal answer:",
+    );
   });
 });

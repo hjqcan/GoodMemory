@@ -22,6 +22,12 @@ export interface EvidenceTurn {
   role: string;
   sourceId: number | string;
   timeAnchor: string;
+  // Retrieval channels that surfaced this entry (fusion provenance). Rendered
+  // into the entry header when present; callers without provenance omit it.
+  channels?: readonly string[];
+  // Caller-formatted validity note (e.g. "current", "superseded 2023-08-01")
+  // from the claim projection's bi-temporal fields. Rendered when present.
+  validity?: string;
 }
 
 export const CURRENT_VALUE_QUERY_STOP_WORDS = new Set([
