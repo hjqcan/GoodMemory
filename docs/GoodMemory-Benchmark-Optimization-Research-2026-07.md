@@ -872,6 +872,44 @@ touched (owned by a parallel workstream).
   answer-shape penalty. Artifacts: scratchpad `r2-con/` (source reshape note,
   selection, 12 run reports, flips.json).
 
+  **R6 measurement (2026-07-23, paid validation, two-conversation replication):
+  write-time question expansion is a LARGE, category-uniform admission win.**
+  Instrument: new `--retrieval-cues` on the phase-65 runner (commit
+  `118b97f4`) — after seeding, every stored fact gets cues through the
+  shipped `retrievalCues` maintenance job (record → concurrent prefetch →
+  replay through the job, so stored bytes match the product path;
+  record==wire stats in the report). Paired retrieval-only arms, identical
+  tree/config/root (`--generalized-fusion`), gpt-5.6-terra cue generation at
+  temperature 0, zero execution failures, all facts cued (458 and 428).
+  Evidence-turn recall per conversation:
+
+  | category | conv-26 base → cues (n) | conv-30 base → cues (n) |
+  |---|---|---|
+  | single_hop | 0.3500 → 0.5643 **+21.4** (70) | 0.2159 → 0.4432 **+22.7** (44) |
+  | temporal | 0.4324 → 0.7297 **+29.7** (37) | 0.5385 → 0.8077 **+26.9** (26) |
+  | multi_hop | 0.0703 → 0.2344 **+16.4** (32) | 0.0606 → 0.1742 **+11.4** (11) |
+  | open_domain | 0.1923 → 0.3077 **+11.5** (13) | — (0) |
+  | adversarial | 0.2660 → 0.5000 **+23.4** (47) | 0.2500 → 0.6042 **+35.4** (24) |
+  | **overall** | **0.2902 → 0.5101 (+21.98)** | **0.2873 → 0.5421 (+25.48)** |
+
+  Pooled: **+23.2pt** recall on n=304 questions; 88 questions improved vs 9
+  regressed; noise/question flat-to-down (cues admit true evidence that
+  displaces noise — the same context-budget displacement mechanism the floor
+  sweep exposed, now working *for* admission). Clears the ≥3pt bar ~7× with
+  no protection regression (adversarial recall up = better grounded-abstention
+  support; noise did not inflate — the R1a floor counterweight was not even
+  needed). Guardrail holds by construction: the generator sees only stored
+  memory content through the corpus-agnostic prompt (`86db625e`), so cues
+  structurally cannot encode benchmark question phrasing. Caveats: (1)
+  retrieval-only — the answer-accuracy conversion is unmeasured; (2) the
+  baseline is the current tree's depressed post-refactor floor (fingerprint
+  drift note above), so absolute levels are not Phase 69-comparable even
+  though the paired delta is internally valid; (3) cost is one short LLM
+  call per stored fact at maintenance time (~430-460/conversation,
+  concurrency 4, ~4-6 min) with zero query-time cost. Next steps in order:
+  full 10-conversation run for the claim track (~5.9k cue calls), answer-side
+  conversion (live answers over cued retrieval), LongMemEval second family.
+
 Verification state at close of the pass: full canonical sweep green — 3,537
 unit + 645 integration/scenario/cli/eval/type/consumer + 101 example/release
 tests, 0 failures, typecheck clean. One unrelated pre-existing failure was
