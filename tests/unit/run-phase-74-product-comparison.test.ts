@@ -15,7 +15,10 @@ import {
   buildEvalRunIdentity,
   hashEvalRunIdentity,
 } from "../../src/eval/runIdentity";
-import { PHASE74_RELEASE_COMMIT } from "../../src/eval/phase74VersionBaseline";
+import {
+  PHASE74_RELEASE_COMMIT,
+  buildPhase74VersionIngestionKey,
+} from "../../src/eval/phase74VersionBaseline";
 import {
   buildPhase74VersionPreparedReceiptSet,
 } from "../../scripts/phase74-version-process";
@@ -81,7 +84,17 @@ function productTestReceiptSet(input: {
 }) {
   const content = {
     executionIdentityHash: input.executionIdentityHash,
-    ingestionKey: "1".repeat(64),
+    ingestionKey: buildPhase74VersionIngestionKey({
+      configurationSha256: "4".repeat(64),
+      datasetSha256: "5".repeat(64),
+      memoryGroupId: "group-a",
+      rawEvidence: [{
+        content: "Postgres is current.",
+        id: "evidence-a",
+        sourceIds: ["source-a"],
+      }],
+      sourceCommit: PHASE74_RELEASE_COMMIT,
+    }),
     ingestionLatencyMs: 1,
     memoryGroupId: "group-a",
     rawEvidenceSha256: "2".repeat(64),
