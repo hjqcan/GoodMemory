@@ -38,6 +38,7 @@ import type {
   RecallResult,
 } from "../src/api/contracts";
 import { inspectGoodMemoryRuntime } from "../src/api/runtimeInfo";
+import { createProviderRetrievalCueGenerator } from "../src/provider/retrievalCueGenerator";
 import type { EmbeddingAdapter } from "../src/embedding/contracts";
 import { createLexicalCoverageReranker } from "../src/recall/reranker";
 import {
@@ -173,6 +174,11 @@ export interface LocomoSmokeCliOptions {
   // Opt-in Phase 69 generalized projection retrieval (multi-granular BM25 +
   // direct entity adjacency, plus dense only when a real provider is present).
   generalizedFusion?: boolean;
+  // Opt-in R6 write-time question expansion: after seeding each case, backfill
+  // attributes.retrievalCues on every stored fact through the shipped
+  // retrievalCues maintenance job (generation is prefetched concurrently, the
+  // writes replay through the job so stored bytes match the product path).
+  retrievalCues?: boolean;
   // Phase 69 protocol: preserve raw turns uniformly without benchmark-only
   // category or answer-label metadata.
   labelFreeIngest?: boolean;
@@ -414,6 +420,16 @@ export interface LocomoSmokeDependencies {
   // Injected conversational extractor (tests pass a deterministic mock; live
   // runs resolve the configured GOODMEMORY_EVAL_* model).
   conversationalExtractor?: MemoryExtractor;
+  // Injected retrieval-cue generator for --retrieval-cues (tests pass a
+  // deterministic stub; live runs resolve the configured GOODMEMORY_EVAL_*
+  // model through createProviderRetrievalCueGenerator).
+  retrievalCueGenerator?: {
+    generate(input: {
+      category: string;
+      content: string;
+      subject?: string;
+    }): Promise<string[]>;
+  };
   createMemory?: () => GoodMemory;
   mkdir?: typeof mkdir;
   now?: () => Date;
@@ -516,6 +532,10 @@ export interface LocomoSmokeReport {
     minRelativeStrength: number;
     rrfK: number;
   } | null;
+  // R6 write-time question expansion: present exactly when --retrieval-cues
+  // ran; factsSeen counts facts offered to the generator, cuesApplied counts
+  // facts whose cues were written through the maintenance job.
+  retrievalCues?: { cuesApplied: number; factsSeen: number };
   labelFreeIngest?: boolean;
   // Selected case ids after --case-id filtering, in source order.
   caseIds: string[];
@@ -671,6 +691,7 @@ export function parseLocomoSmokeCliOptions(
     answerFromRecalled: hasCliFlagStrict(argv, "--answer-from-recalled"),
     bm25: hasCliFlagStrict(argv, "--bm25"),
     generalizedFusion: hasCliFlagStrict(argv, "--generalized-fusion"),
+    retrievalCues: hasCliFlagStrict(argv, "--retrieval-cues"),
     labelFreeIngest: hasCliFlagStrict(argv, "--label-free-ingest"),
     caseIds: parseUniqueStringListFlag(argv, "--case-id"),
     questionIdFile: resolveCliFlagValueStrict(argv, "--question-id-file"),
@@ -2581,6 +2602,16 @@ export function createLocomoSmokeMemory(
     providerRerankingConfig?: GoodMemoryRerankingProviderConfig;
     providerRerankingStrategy?: "listwise" | "pointwise";
     rerank?: boolean;
+    retrievalCueAdapter?: {
+      generate(input: {
+        category: string;
+        content: string;
+        subject?: string;
+      }): Promise<string[]>;
+      // Honored by the maintenance job config; the smoke backfill raises it so
+      // one enumeration round sees every seeded fact.
+      maxFactsPerRun?: number;
+    };
     semanticCandidates?: boolean;
     semanticCandidateMaxAdditions?: number;
     semanticCandidateMinRelativeScore?: number;
@@ -2601,6 +2632,9 @@ export function createLocomoSmokeMemory(
   // over the top-K (Move 5).
   const adapters: NonNullable<GoodMemoryConfig["adapters"]> = {
     assistedExtractor: createNoopAssistedExtractor(),
+    ...(options.retrievalCueAdapter
+      ? { retrievalCueGenerator: options.retrievalCueAdapter }
+      : {}),
   };
   if (options.providerEmbedding && options.bm25) {
     throw new Error(
@@ -3375,6 +3409,25 @@ export async function runLocomoSmoke(
         : { requestTimeoutMs: options.providerRerankingTimeoutMs }),
     };
   })();
+  if (options.retrievalCues && dependencies.createMemory) {
+    throw new Error(
+      "--retrieval-cues requires the built-in memory factory; it cannot be combined with an injected createMemory dependency.",
+    );
+  }
+  // R6 backfill transport: the maintenance job calls the adapter one fact at a
+  // time, so the runner records the requested inputs first (returning no cues
+  // keeps every fact uncovered), prefetches generations concurrently, then
+  // replays the job against the prefetched map — the stored bytes go through
+  // the shipped job exactly as a sequential run would write them.
+  const cueDispatch = options.retrievalCues
+    ? {
+        handler: async (_input: {
+          category: string;
+          content: string;
+          subject?: string;
+        }): Promise<string[]> => [],
+      }
+    : undefined;
   const createMemory =
     dependencies.createMemory ??
     (() =>
@@ -3385,6 +3438,14 @@ export async function runLocomoSmoke(
         providerEmbeddingTimeoutMs: options.providerEmbeddingTimeoutMs,
         providerRerankingConfig,
         rerank: options.rerank,
+        ...(cueDispatch
+          ? {
+              retrievalCueAdapter: {
+                generate: (input) => cueDispatch.handler(input),
+                maxFactsPerRun: 1_000_000,
+              },
+            }
+          : {}),
         semanticCandidateMaxAdditions: options.semanticCandidateMaxAdditions,
         semanticCandidateMinRelativeScore:
           options.semanticCandidateMinRelativeScore,
@@ -3620,6 +3681,15 @@ export async function runLocomoSmoke(
     }
   };
   let providerTimedOut = false;
+  const cueStats = { cuesApplied: 0, factsSeen: 0 };
+  let liveCueGenerator:
+    | NonNullable<LocomoSmokeDependencies["retrievalCueGenerator"]>
+    | undefined;
+  const cueInputKey = (input: {
+    category: string;
+    content: string;
+    subject?: string;
+  }): string => `${input.category} ${input.content} ${input.subject ?? ""}`;
   for (const [caseIndex, testCase] of cases.entries()) {
     try {
       assertProviderRunDeadline(`starting case ${testCase.caseId}`);
@@ -3671,6 +3741,56 @@ export async function runLocomoSmoke(
           smartFusion: options.smartFusion,
           testCase,
         });
+      }
+      if (cueDispatch) {
+        const recorded: Array<{
+          category: string;
+          content: string;
+          subject?: string;
+        }> = [];
+        cueDispatch.handler = async (input) => {
+          recorded.push(input);
+          return [];
+        };
+        await memory.runMaintenance({ jobs: ["retrievalCues"], scope });
+        const generator =
+          dependencies.retrievalCueGenerator ?? (liveCueGenerator ??= createProviderRetrievalCueGenerator({
+            model: resolveLiveModelConfig("GOODMEMORY_EVAL"),
+          }));
+        const prefetched = new Map<string, string[]>();
+        let cursor = 0;
+        const prefetchWorker = async (): Promise<void> => {
+          while (true) {
+            const index = cursor;
+            cursor += 1;
+            const input = recorded[index];
+            if (input === undefined) {
+              return;
+            }
+            try {
+              prefetched.set(cueInputKey(input), await generator.generate(input));
+            } catch {
+              // Per-fact tolerance: an unmapped input replays as no cues and
+              // the fact stays uncovered, matching the job's failure posture.
+            }
+          }
+        };
+        await Promise.all(
+          Array.from(
+            { length: Math.max(1, Math.min(4, recorded.length)) },
+            () => prefetchWorker(),
+          ),
+        );
+        cueDispatch.handler = async (input) =>
+          prefetched.get(cueInputKey(input)) ?? [];
+        const replay = await memory.runMaintenance({
+          jobs: ["retrievalCues"],
+          scope,
+        });
+        cueStats.factsSeen += recorded.length;
+        cueStats.cuesApplied +=
+          replay.maintenance?.jobs.find((job) => job.name === "retrievalCues")
+            ?.applied ?? 0;
       }
       assertProviderRunDeadline(`seeding case ${testCase.caseId}`);
     } catch (error) {
@@ -3852,6 +3972,7 @@ export async function runLocomoSmoke(
     labelFreeIngest: options.labelFreeIngest ?? false,
     license: UPSTREAM_LICENSE,
     mode: liveAnswer ? "live-answer" : "retrieval-only",
+    ...(options.retrievalCues ? { retrievalCues: cueStats } : {}),
     phase: "phase-65",
     profilesCompared: options.generalizedFusion
       ? ["goodmemory-recommended"]

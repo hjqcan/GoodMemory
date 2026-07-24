@@ -73,6 +73,69 @@ describe("LoCoMo live answer evidence-pack wiring", () => {
     );
   });
 
+  it("backfills retrieval cues through the shipped maintenance path when enabled", async () => {
+    const seenInputs: Array<{ category: string; content: string }> = [];
+    const report = await runLocomoSmoke(
+      { retrievalCues: true },
+      {
+        mkdir: async () => undefined,
+        retrievalCueGenerator: {
+          generate: async (input) => {
+            seenInputs.push({ category: input.category, content: input.content });
+            return ["Where did that conversation topic come up?"];
+          },
+        },
+        writeFile: async () => undefined,
+      },
+    );
+
+    const totalTurns = buildLocomoSmokeCases().reduce(
+      (sum, testCase) => sum + testCase.turns.length,
+      0,
+    );
+    // Every stored fact gets exactly one cue generation (raw-turn facts plus
+    // any facts the deterministic extractor derived), and every generated cue
+    // is written back through the maintenance job (record==wire in the
+    // report).
+    expect(report.retrievalCues?.factsSeen).toBeGreaterThanOrEqual(totalTurns);
+    expect(report.retrievalCues?.cuesApplied).toBe(
+      report.retrievalCues?.factsSeen,
+    );
+    expect(seenInputs).toHaveLength(report.retrievalCues?.factsSeen ?? -1);
+    expect(
+      seenInputs.filter((input) => input.content.includes("[LOCOMO dia_id="))
+        .length,
+    ).toBe(totalTurns);
+  });
+
+  it("omits retrieval-cue stats when the flag is off", async () => {
+    const report = await runLocomoSmoke(
+      {},
+      {
+        mkdir: async () => undefined,
+        writeFile: async () => undefined,
+      },
+    );
+    expect(report.retrievalCues).toBeUndefined();
+  });
+
+  it("rejects retrieval cues with an injected memory factory", async () => {
+    await expect(
+      runLocomoSmoke(
+        { retrievalCues: true },
+        {
+          createMemory: () => {
+            throw new Error("unreachable");
+          },
+          mkdir: async () => undefined,
+          writeFile: async () => undefined,
+        },
+      ),
+    ).rejects.toThrow(
+      "--retrieval-cues requires the built-in memory factory; it cannot be combined with an injected createMemory dependency.",
+    );
+  });
+
   it("permits the chain-of-note note pass only when the reading mode is on", () => {
     const chainOfNotePrompt = buildLocomoSystemPrompt({ chainOfNote: true });
     expect(chainOfNotePrompt).toContain("reading protocol");
