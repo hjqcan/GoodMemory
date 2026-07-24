@@ -83,7 +83,7 @@ describe("Phase 74 cumulative product runner", () => {
     });
   });
 
-  it("binds the exact old and final products instead of a stage-local arm", () => {
+  it("marks the same-process deterministic product comparison as diagnostic", () => {
     expect(buildPhase74ProductRunIdentityConfiguration({
       candidateConfiguration: {
         caseScheduling: PHASE74_PRODUCT_CASE_SCHEDULING,
@@ -126,14 +126,27 @@ describe("Phase 74 cumulative product runner", () => {
     })).toMatchObject({
       arms: {
         baseline: "release-v0.6.0",
-        candidate: "phase74-final",
+        candidate: "phase74-deterministic-candidate",
       },
       candidateConfiguration: {
         evidenceLedger: { format: "compact_json" },
         planner: { mode: "deterministic" },
         representation: "atomic-contextual-raw-pointer",
       },
-      evidenceBoundary: { seenCasesOnly: true },
+      evidenceBoundary: {
+        executionIsolation: "same-process-with-gold-scorer-v1",
+        goldAware: true,
+        nonPromotionReasons: [
+          "gold-material-in-executor-process",
+          "seen-cases-only",
+          "independent-call-budget-pools",
+          "deterministic-reranker",
+          "unprotected-ledger-format-selection",
+        ],
+        promotionEligible: false,
+        protocolReader: false,
+        seenCasesOnly: true,
+      },
       embeddingRoutingByArm: {
         baseline: {
           adapterVersion: "openai-compatible-embedding-v2",
