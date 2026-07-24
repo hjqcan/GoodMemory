@@ -574,6 +574,19 @@ describe("Phase 74 cumulative product runner", () => {
         path: terminalPath,
         terminal,
       })).rejects.toThrow();
+      await expect(verifyPhase74ProductAttemptTerminal({
+        path: terminalPath,
+        paths: {
+          candidateBudgetPath,
+          candidateEventsPath,
+          candidateIntentsPath,
+          datasetManifestPath: join(directory, "dataset-manifest.json"),
+          releaseBudgetPath: join(directory, "release-budget.json"),
+          releaseEventsPath: join(directory, "release-events.jsonl"),
+          releaseIntentsPath: join(directory, "release-intents.jsonl"),
+          reportPath: join(directory, "report.json"),
+        },
+      })).resolves.toEqual(terminal);
     } finally {
       await rm(directory, { force: true, recursive: true });
     }
@@ -646,6 +659,7 @@ describe("Phase 74 cumulative product runner", () => {
         datasetManifest: { datasetSha256: "d".repeat(64) },
         report: {
           identityHash,
+          releaseProcessPids: [42],
           releasePreparedReceiptSet: {
             receiptSetSha256: receiptSet.receiptSetSha256,
           },
@@ -712,6 +726,18 @@ describe("Phase 74 cumulative product runner", () => {
         path: terminalPath,
         paths,
       })).rejects.toThrow("terminal");
+
+      await writeFile(terminalPath, JSON.stringify({
+        ...originalTerminal,
+        process: {
+          ...originalTerminal.process,
+          successfulPids: [99],
+        },
+      }));
+      await expect(verifyPhase74ProductAttemptTerminal({
+        path: terminalPath,
+        paths,
+      })).rejects.toThrow("terminal drifted");
 
       await writeFile(terminalPath, JSON.stringify(originalTerminal));
       await writeFile(paths.reportPath, "{\"status\":\"tampered\"}\n");
