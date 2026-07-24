@@ -1000,7 +1000,6 @@ export async function runPhase74LiveProductComparison(
   const root = resolve(options.outputDir);
   const runDirectory = join(root, options.runId);
   await mkdir(root, { recursive: true });
-  await mkdir(runDirectory);
   const releaseDirectory = join(runDirectory, "release");
   const candidateDirectory = join(runDirectory, "candidate");
   const attemptTerminalPath = join(runDirectory, "attempt-terminal.json");
@@ -1023,10 +1022,6 @@ export async function runPhase74LiveProductComparison(
   );
   const releaseProcessPids = new Set<number>();
   let releasePreparedReceiptSet: Phase74VersionPreparedReceiptSet | undefined;
-  await Promise.all([
-    mkdir(releaseDirectory),
-    mkdir(candidateDirectory),
-  ]);
 
   const preparedDataset = await loadPhase74PreparedDataset({
     benchmark: options.benchmark,
@@ -1140,8 +1135,13 @@ export async function runPhase74LiveProductComparison(
     runId: options.runId,
   });
   const executionIdentityHash = hashEvalRunIdentity(identity);
-  await writeJson(join(runDirectory, "run-identity.json"), identity);
+  await mkdir(runDirectory);
   try {
+  await writeJson(join(runDirectory, "run-identity.json"), identity);
+  await Promise.all([
+    mkdir(releaseDirectory),
+    mkdir(candidateDirectory),
+  ]);
   const releaseExecutionRoot =
     await materializePhase74VersionExecutionRoot({
       archivePath: options.releaseArchive,
