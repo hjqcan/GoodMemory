@@ -77,13 +77,15 @@ import {
   buildPhase74ReleaseWorkerInput,
 } from "./run-phase-74-version-baseline";
 import {
-  createPhase74VersionUsageBoundary,
   hashPhase74DependencyTree,
-  loadPhase74VersionCreateGoodMemory,
   materializePhase74VersionExecutionRoot,
-  preparePhase74VersionMemoryGroup,
-  queryPhase74VersionMemoryGroup,
 } from "./phase74-version-worker";
+import {
+  parsePhase74VersionProcessJob,
+  parsePhase74VersionProcessOutput,
+  runPhase74VersionChildProcess,
+  type Phase74VersionProcessConfig,
+} from "./phase74-version-process";
 import type {
   AISDKModelConfig,
   FetchLike,
@@ -588,15 +590,17 @@ export async function runPhase74LiveProductComparison(
       temperature: 0,
     },
     callBudget: {
+      accounting: "independent-process-pools-v1",
       embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
-      maxLanguageCalls: options.maxLanguageCalls,
+      maxLanguageCallsPerPool: options.maxLanguageCalls,
+      pools: ["candidate-and-scoring", "release-v0.6.0"],
     },
     caseScheduling: PHASE74_PRODUCT_CASE_SCHEDULING,
     context: {
       maxTokens: 6_000,
       tokenizer: "utf8-byte-upper-bound-v1",
     },
-    costBoundary: "full-product-standalone-shared-v1",
+    costBoundary: "full-product-process-isolated-v2",
     dataset: dataset.manifest as unknown as EvalRunJsonObject,
     embedding: buildPhase74EmbeddingIdentity(models.embedding),
     evaluatorSource,
@@ -680,20 +684,13 @@ export async function runPhase74LiveProductComparison(
     embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
     fetch: originalFetch,
     maxLanguageCalls: options.maxLanguageCalls,
-    path: join(runDirectory, "call-budget.json"),
+    path: join(runDirectory, "candidate-call-budget.json"),
   });
   const productNetworkFetch = createPhase74ProductNetworkFetch({
     fetch: callBudget.fetch,
     model: models.embedding,
   });
-  const releaseUsage = createPhase74VersionUsageBoundary({
-    events,
-    fetch: productNetworkFetch,
-    intents,
-    onUsageEvent,
-    onUsageIntent,
-  });
-  globalThis.fetch = releaseUsage.fetch as typeof globalThis.fetch;
+  globalThis.fetch = productNetworkFetch as typeof globalThis.fetch;
 
   const reader = createPhase74LiveReader({
     events,
@@ -723,9 +720,6 @@ export async function runPhase74LiveProductComparison(
     rerankerMode: "deterministic",
     runDirectory: candidateDirectory,
   });
-  const releaseCreateGoodMemory = await loadPhase74VersionCreateGoodMemory(
-    releaseExecutionRoot,
-  );
   const casesByOpaqueId = new Map<string, {
     boundary: ReturnType<typeof buildPhase74LabelFreeCaseBoundary>;
     testCase: Phase74DatasetCase;
@@ -744,9 +738,107 @@ export async function runPhase74LiveProductComparison(
   });
   const candidateIngestionKeys = new Map<string, string>();
   const releaseIngestionKeys = new Map<string, string>();
+  const releasePrepared = new Map<string, {
+    ingestionLatencyMs: number;
+    sqlitePath: string;
+  }>();
+  const releaseProcessPids = new Set<number>();
+  const releaseUsagePath = join(releaseDirectory, "model-usage.jsonl");
+  const releaseUsageIntentsPath = join(
+    releaseDirectory,
+    "model-usage-intents.jsonl",
+  );
+  const releaseProcessConfig: Phase74VersionProcessConfig = {
+    callBudget: {
+      embeddingSpendLimitUsd: options.embeddingSpendLimitUsd,
+      maxLanguageCalls: options.maxLanguageCalls,
+      path: join(releaseDirectory, "call-budget.json"),
+    },
+    preparationConcurrency: options.preparationConcurrency,
+    releaseSourceRoot: releaseExecutionRoot,
+    usage: {
+      eventsPath: releaseUsagePath,
+      intentsPath: releaseUsageIntentsPath,
+    },
+  };
+  const releaseProcessScript = join(
+    process.cwd(),
+    "scripts/phase74-version-process.ts",
+  );
+  const releaseGroups = new Map<string, {
+    ingestionKey: string;
+    input: ReturnType<typeof buildPhase74ReleaseWorkerInput>;
+    sqlitePath: string;
+  }>();
+  for (const productCase of productCases) {
+    if (releaseGroups.has(productCase.memoryGroupId)) {
+      continue;
+    }
+    const current = casesByOpaqueId.get(productCase.caseId)!;
+    const releaseInput = buildPhase74ReleaseWorkerInput(current.testCase);
+    const ingestionKey = buildPhase74VersionIngestionKey({
+      configurationSha256: sha256(JSON.stringify({
+        embedding: publicModelIdentity(models.embedding),
+        extraction: publicModelIdentity(models.assistedExtraction),
+        profile: "v0.6.0-recommended",
+      })),
+      datasetSha256: dataset.manifest.datasetSha256,
+      memoryGroupId: productCase.memoryGroupId,
+      rawEvidence: releaseInput.rawEvidence,
+      sourceCommit: PHASE74_RELEASE_COMMIT,
+    });
+    const sqlitePath = join(
+      releaseDirectory,
+      `${sha256(ingestionKey)}.sqlite`,
+    );
+    releaseGroups.set(productCase.memoryGroupId, {
+      ingestionKey,
+      input: releaseInput,
+      sqlitePath,
+    });
+    releaseIngestionKeys.set(productCase.memoryGroupId, ingestionKey);
+  }
 
   let result: Awaited<ReturnType<typeof runPhase74ProductComparison>>;
   try {
+    const preparedChild = await runPhase74VersionChildProcess({
+      config: releaseProcessConfig,
+      cwd: process.cwd(),
+      env,
+      job: parsePhase74VersionProcessJob({
+        action: "prepare",
+        groups: [...releaseGroups.values()].map(({ input, sqlitePath }) => ({
+          input,
+          sqlitePath,
+        })),
+        schemaVersion: 1,
+      }),
+      script: releaseProcessScript,
+    });
+    releaseProcessPids.add(preparedChild.pid);
+    const preparedOutput = parsePhase74VersionProcessOutput(
+      JSON.parse(preparedChild.stdout),
+    );
+    if (
+      preparedOutput.action !== "prepare" ||
+      preparedOutput.groups.length !== releaseGroups.size
+    ) {
+      throw new Error("Phase 74 release process preparation drifted.");
+    }
+    for (const prepared of preparedOutput.groups) {
+      const expected = releaseGroups.get(prepared.memoryGroupId);
+      if (
+        expected === undefined ||
+        expected.sqlitePath !== prepared.sqlitePath
+      ) {
+        throw new Error("Phase 74 release process memory group drifted.");
+      }
+      releasePrepared.set(prepared.memoryGroupId, {
+        ingestionLatencyMs: prepared.ingestionLatencyMs,
+        sqlitePath: prepared.sqlitePath,
+      });
+    }
+
     result = await runPhase74ProductComparison({
       cases: productCases,
       async prepare({ arm, cases, memoryGroupId }) {
@@ -813,55 +905,41 @@ export async function runPhase74LiveProductComparison(
           };
         }
 
-        const releaseInput = buildPhase74ReleaseWorkerInput(
-          representative.testCase,
-        );
-        const ingestionKey = buildPhase74VersionIngestionKey({
-          configurationSha256: sha256(JSON.stringify({
-            embedding: publicModelIdentity(models.embedding),
-            extraction: publicModelIdentity(models.assistedExtraction),
-            profile: "v0.6.0-recommended",
-          })),
-          datasetSha256: dataset.manifest.datasetSha256,
-          memoryGroupId,
-          rawEvidence: releaseInput.rawEvidence,
-          sourceCommit: PHASE74_RELEASE_COMMIT,
-        });
-        releaseIngestionKeys.set(memoryGroupId, ingestionKey);
-        const sqlitePath = join(
-          releaseDirectory,
-          `${sha256(ingestionKey)}.sqlite`,
-        );
-        const prepared = await releaseUsage.run({
-          branch: "shadow",
-          caseId: memoryGroupId,
-          languageOperation: "assisted_extraction",
-        }, () => preparePhase74VersionMemoryGroup({
-          createGoodMemory: releaseCreateGoodMemory,
-          input: releaseInput,
-          models: {
-            embedding: models.embedding,
-            extraction: models.assistedExtraction,
-          },
-          sqlitePath,
-        }));
+        const release = releaseGroups.get(memoryGroupId)!;
+        const prepared = releasePrepared.get(memoryGroupId)!;
         return {
           arm,
-          ingestionKey,
+          ingestionKey: release.ingestionKey,
           memoryGroupId,
           async query(productCase) {
             const current = casesByOpaqueId.get(productCase.caseId)!;
             const workerInput = buildPhase74ReleaseWorkerInput(
               current.testCase,
             );
-            const snapshot = await releaseUsage.run({
-              branch: "baseline",
-              caseId: productCase.caseId,
-              languageOperation: "recall_plan",
-            }, () => queryPhase74VersionMemoryGroup({
-              input: workerInput,
-              prepared,
-            }));
+            const queryChild = await runPhase74VersionChildProcess({
+              config: releaseProcessConfig,
+              cwd: process.cwd(),
+              env,
+              job: parsePhase74VersionProcessJob({
+                action: "query",
+                ingestionLatencyMs: prepared.ingestionLatencyMs,
+                input: workerInput,
+                schemaVersion: 1,
+                sqlitePath: prepared.sqlitePath,
+              }),
+              script: releaseProcessScript,
+            });
+            releaseProcessPids.add(queryChild.pid);
+            const queryOutput = parsePhase74VersionProcessOutput(
+              JSON.parse(queryChild.stdout),
+            );
+            if (
+              queryOutput.action !== "query" ||
+              queryOutput.result.caseId !== productCase.caseId
+            ) {
+              throw new Error("Phase 74 release process query drifted.");
+            }
+            const snapshot = queryOutput.result;
             const contextStartedAt = performance.now();
             const context = truncateRenderedContext({
               content: renderOracleMatrixContext(
@@ -926,7 +1004,14 @@ export async function runPhase74LiveProductComparison(
     globalThis.fetch = originalFetch;
   }
 
-  const direct = validatePhase74ModelUsageLedger({ events, intents });
+  const releaseDirect = await loadPhase74ModelUsageLedger({
+    eventsPath: releaseUsagePath,
+    intentsPath: releaseUsageIntentsPath,
+  });
+  const direct = validatePhase74ModelUsageLedger({
+    events: [...events, ...releaseDirect.events],
+    intents: [...intents, ...releaseDirect.intents],
+  });
   const memoryGroupIds = [...new Set(
     productCases.map(({ memoryGroupId }) => memoryGroupId),
   )];
@@ -971,7 +1056,13 @@ export async function runPhase74LiveProductComparison(
   );
   const report = {
     benchmark: options.benchmark,
-    callBudget: callBudget.snapshot(),
+    callBudget: {
+      accounting: "independent-process-pools-v1",
+      candidateAndScoring: callBudget.snapshot(),
+      release: JSON.parse(
+        await readFile(releaseProcessConfig.callBudget.path, "utf8"),
+      ) as EvalRunJsonObject,
+    },
     candidateSource: evaluatorSource,
     comparison: {
       baselineMean: baselineRows.reduce(
@@ -1002,6 +1093,9 @@ export async function runPhase74LiveProductComparison(
     },
     modelUsage,
     releaseDependencyTreeSha256,
+    releaseProcessPids: [...releaseProcessPids].sort((left, right) =>
+      left - right
+    ),
     releaseSource,
     renderedContextMaxTokens: Math.max(
       ...result.rows.map(({ contextTokens }) => contextTokens),

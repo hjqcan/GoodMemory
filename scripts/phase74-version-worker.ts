@@ -572,20 +572,40 @@ export async function queryPhase74VersionMemoryGroup(input: {
 }): Promise<Phase74VersionWorkerResult> {
   const workerInput = parsePhase74VersionWorkerInput(input.input);
   assertSamePreparedGroup({ prepared: input.prepared, query: workerInput });
+  return queryPhase74PersistedVersionMemoryGroup({
+    createGoodMemory: input.prepared.createGoodMemory,
+    ingestionLatencyMs: input.prepared.ingestionLatencyMs,
+    input: workerInput,
+    models: input.prepared.models,
+    sqlitePath: input.prepared.sqlitePath,
+  });
+}
+
+export async function queryPhase74PersistedVersionMemoryGroup(input: {
+  createGoodMemory: Phase74VersionCreateGoodMemory;
+  ingestionLatencyMs: number;
+  input: Phase74VersionWorkerInput;
+  models: {
+    embedding: AISDKModelConfig;
+    extraction: AISDKModelConfig;
+  };
+  sqlitePath: string;
+}): Promise<Phase74VersionWorkerResult> {
+  const workerInput = parsePhase74VersionWorkerInput(input.input);
   const queryDirectory = await mkdtemp(
-    join(dirname(input.prepared.sqlitePath), ".phase74-version-query-"),
+    join(dirname(input.sqlitePath), ".phase74-version-query-"),
   );
   const sqlitePath = join(queryDirectory, "memory.sqlite");
-  await copyFile(input.prepared.sqlitePath, sqlitePath);
+  await copyFile(input.sqlitePath, sqlitePath);
   try {
     const memory = createVersionMemory({
-      createGoodMemory: input.prepared.createGoodMemory,
-      models: input.prepared.models,
+      createGoodMemory: input.createGoodMemory,
+      models: input.models,
       referenceTime: workerInput.referenceTime,
       sqlitePath,
     });
     return await queryVersionMemory({
-      ingestionLatencyMs: input.prepared.ingestionLatencyMs,
+      ingestionLatencyMs: input.ingestionLatencyMs,
       memory,
       workerInput,
     });

@@ -6,6 +6,7 @@ import {
   parsePhase74VersionProcessJob,
   runPhase74VersionChildProcess,
 } from "../../scripts/phase74-version-process";
+import { PHASE74_RELEASE_COMMIT } from "../../src/eval/phase74VersionBaseline";
 
 const WORKER_INPUT = {
   arm: "release",
@@ -18,7 +19,7 @@ const WORKER_INPUT = {
     sourceIds: ["session-1:source-1"],
   }],
   schemaVersion: 1,
-  sourceCommit: "a".repeat(40),
+  sourceCommit: PHASE74_RELEASE_COMMIT,
 } as const;
 
 describe("Phase 74 release version process", () => {

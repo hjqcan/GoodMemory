@@ -103,6 +103,7 @@ export const PHASE74_EVALUATOR_SOURCE_SNAPSHOT = {
     "scripts/phase-74-halumem-live-providers.ts",
     "scripts/phase-74-halumem-protection.ts",
     "scripts/phase-74-confirmatory-plan-anchor.ts",
+    "scripts/phase74-version-process.ts",
     "scripts/phase74-version-worker.ts",
     "scripts/prepare-phase-65-locomo-data.ts",
     "scripts/prepare-phase-74-datasets.ts",

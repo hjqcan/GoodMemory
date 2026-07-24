@@ -5,3 +5,5 @@ process.stdout.write(`${JSON.stringify({
   pid: process.pid,
   raw,
 })}\n`);
+
+export {};
