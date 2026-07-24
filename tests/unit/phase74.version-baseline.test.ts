@@ -62,7 +62,7 @@ function workerInput(input: {
 }
 
 describe("Phase 74 version baseline source identity", () => {
-  it("pins the release arm to the published v0.6.0 commit and tree", () => {
+  it("pins the release arm to the published v0.7.0 commit and tree", () => {
     const identity = createPhase74VersionSourceIdentity({
       ...sourceIdentityInput("release", PHASE74_RELEASE_COMMIT, PHASE74_RELEASE_TREE),
       archiveSha256: PHASE74_RELEASE_ARCHIVE_SHA256,
@@ -73,10 +73,10 @@ describe("Phase 74 version baseline source identity", () => {
     expect(identity).toEqual({
       archiveSha256: PHASE74_RELEASE_ARCHIVE_SHA256,
       arm: "release",
-      commit: "6fdd63ecc316da725d2a1e19cb61f4eb3a9ee235",
+      commit: "5ad83df2e3e5e9763318e74994a335cd681a32f6",
       lockfileSha256: PHASE74_RELEASE_LOCKFILE_SHA256,
-      ref: "v0.6.0",
-      tree: "caad85c55d06431585d0405718f90bd4d2e76965",
+      ref: "v0.7.0",
+      tree: "80f7f5a1ff94862565767b5b45be5354c4754f9e",
       workerSha256: SHA_C,
     });
     expect(() => createPhase74VersionSourceIdentity({
