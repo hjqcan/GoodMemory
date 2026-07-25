@@ -341,6 +341,16 @@ export function createLongMemEvalMemoryFactory(
     fusionMinRelativeStrength?: number;
     postgresSchema?: string;
     requestTimeoutMs?: number;
+    // R6: injected cue adapter for the retrievalCues maintenance job; the
+    // runner mutates the handler between record and replay rounds.
+    retrievalCueAdapter?: {
+      generate(input: {
+        category: string;
+        content: string;
+        subject?: string;
+      }): Promise<string[]>;
+      maxFactsPerRun?: number;
+    };
     runNamespace?: string;
   } = {},
 ): (
@@ -374,6 +384,9 @@ export function createLongMemEvalMemoryFactory(
         adapters: {
           assistedExtractor: NO_PROVIDER_ASSISTED_EXTRACTOR,
           embeddingAdapter: NO_PROVIDER_EMBEDDING_ADAPTER,
+          ...(options.retrievalCueAdapter
+            ? { retrievalCueGenerator: options.retrievalCueAdapter }
+            : {}),
         },
         remember: LONGMEMEVAL_REMEMBER_CONFIG,
         storage: {
@@ -387,6 +400,9 @@ export function createLongMemEvalMemoryFactory(
       return createMemory({
         adapters: {
           assistedExtractor: NO_PROVIDER_ASSISTED_EXTRACTOR,
+          ...(options.retrievalCueAdapter
+            ? { retrievalCueGenerator: options.retrievalCueAdapter }
+            : {}),
         },
         remember: LONGMEMEVAL_REMEMBER_CONFIG,
         retrieval: {

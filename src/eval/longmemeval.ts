@@ -68,6 +68,8 @@ export function resolveLongMemEvalReportIngestMode(
 
 export interface LongMemEvalRecallRunConfiguration {
   contextMaxTokens: number;
+  // R6 second-family arm: cue backfill ran after seeding (record == wire).
+  retrievalCues?: boolean;
   evidenceAugmentation?: {
     maxAdditions: number;
     strategy: "retrieved-session-bm25" | "retrieved-session-dense";
@@ -296,6 +298,14 @@ export interface LongMemEvalGoodMemoryContextBuilderInput {
   extractionStrategy?: LongMemEvalExtractionStrategy;
   ingestMode?: LongMemEvalIngestMode;
   maxTokens?: number;
+  // R6 seam: runs after the full haystack is stored and before recall —
+  // e.g. retrieval-cue backfill through the maintenance job. The scope is
+  // the case's base scope (no sessionId), matching the recall scope.
+  postSeed?: (input: {
+    memory: GoodMemory;
+    scope: MemoryScope;
+    testCase: LongMemEvalCase;
+  }) => Promise<void>;
   runId?: string;
   supplementalEvidenceAugmenter?: LongMemEvalSupplementalEvidenceAugmenter;
   supplementalEvidenceLimit?: number;
@@ -4769,6 +4779,10 @@ export function createLongMemEvalGoodMemoryContextBuilder(
           sessionId,
         },
       });
+    }
+
+    if (input.postSeed) {
+      await input.postSeed({ memory, scope: baseScope, testCase });
     }
 
     const recall = await memory.recall({

@@ -31,6 +31,8 @@ import {
   createHermeticLongMemEvalMemory,
   createLongMemEvalMemoryFactory,
 } from "./run-phase-62-eval";
+import { createProviderRetrievalCueGenerator } from "../src/provider/retrievalCueGenerator";
+import { resolveLiveModelConfig } from "./run-eval";
 import type { Phase62CliOptions } from "./run-phase-62-shared";
 import {
   parsePhase62CliOptions,
@@ -73,6 +75,14 @@ export interface Phase62RecallDiagnosticDependencies {
   }) => Promise<EvalPostgresRunLease>;
   createMemory?: typeof createGoodMemory;
   fileExists?: (path: string) => boolean;
+  // Test seam: replaces the live cue generator for --retrieval-cues runs.
+  retrievalCueGenerator?: {
+    generate(input: {
+      category: string;
+      content: string;
+      subject?: string;
+    }): Promise<string[]>;
+  };
   runDiagnostic?: typeof runLongMemEvalRecallDiagnostic;
   verifyReport?: (report: LongMemEvalRecallDiagnosticReport) => Promise<void>;
 }
@@ -128,8 +138,10 @@ function resolveRecallDiagnosticProfile(
 function buildRecallRunConfiguration(
   profile: LongMemEvalRecallDiagnosticProfile,
   fusionMinRelativeStrength?: number,
+  retrievalCues?: boolean,
 ): LongMemEvalRecallRunConfiguration {
   return {
+    ...(retrievalCues ? { retrievalCues: true } : {}),
     contextMaxTokens: LONGMEMEVAL_DEFAULT_CONTEXT_MAX_TOKENS,
     extractionStrategy: "rules-only",
     // The recorded floor equals the wired floor. Earlier reports recorded the
@@ -231,6 +243,7 @@ export function buildPhase62RecallDiagnosticOptions(
     runConfiguration: buildRecallRunConfiguration(
       profile,
       options.fusionMinRelativeStrength,
+      options.retrievalCues,
     ),
     runId,
   };
@@ -267,11 +280,40 @@ export async function runPhase62LongMemEvalRecallDiagnostic(
       dependencies.createMemory ?? createHermeticLongMemEvalMemory;
     const wiredFusionFloor =
       runOptions.runConfiguration?.generalizedFusion?.minRelativeStrength;
+    // R6 second-family arm: the factory injects a dispatch-backed cue
+    // adapter; postSeed records the job's inputs, prefetches generations
+    // concurrently, then replays them through the maintenance job so stored
+    // bytes match the product path (mirrors the phase-65 instrument).
+    const cueDispatch = runOptions.runConfiguration?.retrievalCues
+      ? {
+          handler: (async () => []) as (input: {
+            category: string;
+            content: string;
+            subject?: string;
+          }) => Promise<string[]>,
+        }
+      : undefined;
+    let liveCueGenerator:
+      | Phase62RecallDiagnosticDependencies["retrievalCueGenerator"]
+      | undefined;
+    const cueInputKey = (input: {
+      category: string;
+      content: string;
+      subject?: string;
+    }): string => `${input.category}\u0000${input.content}\u0000${input.subject ?? ""}`;
     const createProfileMemory = createLongMemEvalMemoryFactory(
       createMemory,
       {
         ...(wiredFusionFloor !== undefined
           ? { fusionMinRelativeStrength: wiredFusionFloor }
+          : {}),
+        ...(cueDispatch
+          ? {
+              retrievalCueAdapter: {
+                generate: (input) => cueDispatch.handler(input),
+                maxFactsPerRun: 1_000_000,
+              },
+            }
           : {}),
         postgresSchema,
         runNamespace: runOptions.runId,
@@ -282,6 +324,64 @@ export async function runPhase62LongMemEvalRecallDiagnostic(
         createMemory: createProfileMemory,
         ingestMode: runOptions.ingestMode,
         maxTokens: runOptions.runConfiguration?.contextMaxTokens,
+        ...(cueDispatch
+          ? {
+              postSeed: async ({ memory, scope }) => {
+                const recorded: Array<{
+                  category: string;
+                  content: string;
+                  subject?: string;
+                }> = [];
+                cueDispatch.handler = async (input) => {
+                  recorded.push(input);
+                  return [];
+                };
+                await memory.runMaintenance({
+                  jobs: ["retrievalCues"],
+                  scope,
+                });
+                const generator =
+                  dependencies.retrievalCueGenerator ??
+                  (liveCueGenerator ??= createProviderRetrievalCueGenerator({
+                    model: resolveLiveModelConfig("GOODMEMORY_EVAL"),
+                  }));
+                const prefetched = new Map<string, string[]>();
+                let cursor = 0;
+                const prefetchWorker = async (): Promise<void> => {
+                  while (true) {
+                    const index = cursor;
+                    cursor += 1;
+                    const input = recorded[index];
+                    if (input === undefined) {
+                      return;
+                    }
+                    try {
+                      prefetched.set(
+                        cueInputKey(input),
+                        await generator.generate(input),
+                      );
+                    } catch {
+                      // Per-fact tolerance: an unmapped input replays as no
+                      // cues and the fact stays uncovered, matching the
+                      // job's failure posture.
+                    }
+                  }
+                };
+                await Promise.all(
+                  Array.from(
+                    { length: Math.max(1, Math.min(4, recorded.length)) },
+                    () => prefetchWorker(),
+                  ),
+                );
+                cueDispatch.handler = async (input) =>
+                  prefetched.get(cueInputKey(input)) ?? [];
+                await memory.runMaintenance({
+                  jobs: ["retrievalCues"],
+                  scope,
+                });
+              },
+            }
+          : {}),
         runId: runOptions.runId,
       }),
     });

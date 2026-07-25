@@ -1104,3 +1104,37 @@ describe("run-phase-62 LongMemEval script", () => {
     }
   });
 });
+
+// R6 second-family instrument: --retrieval-cues records in runConfiguration
+// (record == wire) and only the recall-diagnostic path consumes it.
+it("records the retrieval-cues arm in the recall run configuration", () => {
+  const options = buildPhase62RecallDiagnosticOptions(
+    "/tmp/goodmemory",
+    {
+      benchmarkRoot: "/tmp/LongMemEval",
+      mode: "smoke",
+      retrievalCues: true,
+    },
+  );
+  expect(options.runConfiguration?.retrievalCues).toBe(true);
+
+  const off = buildPhase62RecallDiagnosticOptions(
+    "/tmp/goodmemory",
+    {
+      benchmarkRoot: "/tmp/LongMemEval",
+      mode: "smoke",
+    },
+  );
+  expect(off.runConfiguration?.retrievalCues).toBeUndefined();
+});
+
+it("parses --retrieval-cues", () => {
+  expect(
+    parsePhase62CliOptions([
+      "bun",
+      "run",
+      "scripts/run-phase-62-recall-diagnostic.ts",
+      "--retrieval-cues",
+    ]).retrievalCues,
+  ).toBe(true);
+});

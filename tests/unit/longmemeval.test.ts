@@ -5737,3 +5737,73 @@ describe("LongMemEval adapter", () => {
     expect(maxActive).toBe(1);
   });
 });
+
+// R6 second family: the context builder exposes a post-seed hook so runners
+// can backfill attributes.retrievalCues through the shipped maintenance job
+// after the haystack is stored and before recall. The property under test is
+// R6's core admission mechanic: a stored fact whose content shares no tokens
+// with the question becomes retrievable through its cue.
+describe("longmemeval post-seed retrieval-cue backfill", () => {
+  it("admits cue-matched evidence that the raw content cannot reach", async () => {
+    const { createLongMemEvalGoodMemoryContextBuilder } = await import(
+      "../../src/eval/longmemeval"
+    );
+    const { createGoodMemory } = await import("../../src");
+    const [testCase] = validateLongMemEvalCases([
+      {
+        answer: "the falcon device",
+        answer_session_ids: ["session-1"],
+        haystack_dates: ["2026-01-02"],
+        haystack_session_ids: ["session-1"],
+        haystack_sessions: [[
+          {
+            content: "The falcon device shipped with a cracked hinge.",
+            has_answer: true,
+            role: "user",
+          },
+          { content: "Understood, logging that report.", role: "assistant" },
+        ]],
+        question: "Which gadget arrived broken?",
+        question_date: "2026-01-03",
+        question_id: "q-cue-admission",
+        question_type: "single-session-user",
+      },
+    ]);
+    const seen: string[] = [];
+    let postSeedRan = 0;
+    const builder = createLongMemEvalGoodMemoryContextBuilder({
+      createMemory: () =>
+        createGoodMemory({
+          adapters: {
+            retrievalCueGenerator: {
+              async generate(input: { content: string }) {
+                seen.push(input.content);
+                return input.content.includes("falcon")
+                  ? ["Which gadget arrived broken?"]
+                  : [];
+              },
+            },
+          },
+          retrieval: { preset: "recommended" },
+          storage: { provider: "memory" },
+        }),
+      postSeed: async ({ memory, scope }) => {
+        postSeedRan += 1;
+        await memory.runMaintenance({ jobs: ["retrievalCues"], scope });
+      },
+      runId: "run-cue-admission",
+    });
+
+    const context = await builder({
+      profile: "goodmemory-recommended",
+      testCase: testCase!,
+    });
+
+    expect(postSeedRan).toBe(1);
+    expect(seen.length).toBeGreaterThan(0);
+    // The cue (not the content) matches the question tokens; the evidence
+    // must be admitted, and the cue text itself never renders.
+    expect(context.content).toContain("falcon");
+    expect(context.content).not.toContain("Which gadget arrived broken?");
+  });
+});

@@ -25,6 +25,10 @@ export interface Phase62CliOptions {
   fusionMinRelativeStrength?: number;
   labelFreeIngest?: boolean;
   limit?: number;
+  // R6 second-family arm (recall-diagnostic only): backfill
+  // attributes.retrievalCues on every stored fact through the maintenance
+  // job after seeding, before recall (record -> prefetch -> replay).
+  retrievalCues?: boolean;
   maxConcurrency?: number;
   mode: LongMemEvalMode;
   offset?: number;
@@ -311,6 +315,7 @@ export function parsePhase62CliOptions(
     profiles: parseRepeatedFlag(argv, "--profile"),
     questionTypes: parseRepeatedFlag(argv, "--question-type"),
     resume: parseFlagPresence(argv, "--resume"),
+    retrievalCues: parseFlagPresence(argv, "--retrieval-cues"),
     runId: resolveCliPathSegmentFlagValueStrict(argv, "--run-id"),
   };
 }
