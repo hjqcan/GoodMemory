@@ -946,6 +946,36 @@ touched (owned by a parallel workstream).
   and non-asserted/negative claims excluded. Wired through the projection
   runtime; the fact-level polarity pass is unchanged.
 
+- **R5 increment 2b (2026-07-25) — opt-in time-gap episode segmentation.**
+  `buildEpisodes` splits a remember batch at observation-time gaps ≥
+  `remember.episodeSegmentTimeGapMs` and synthesizes one episode per
+  sitting through the unchanged single-episode logic (per-segment
+  candidates, span pointers, event anchors; content-agnostic boundary =
+  time, not topic text). Off by default; single-episode behavior pinned
+  end-to-end. Measurement (episodes as a retrieval channel with spans +
+  segmentation on a multi-session corpus) still owed before promotion.
+
+- **R7 increment 1 measurement (2026-07-25, free paired retrieval,
+  two conversations): entity PageRank is a real but non-promotable
+  admission lever — ships as measured opt-in.** Instrument: opt-in
+  `retrieval.generalizedFusionEntityPageRank` + `--entity-page-rank`
+  (bipartite entity-memory PPR, d=0.5, 3 iterations, seeds = query-matched
+  entities under the existing rarity×BM25 weights; 2-hop association
+  becomes admissible; hub conduits dampen by degree normalization; 1-hop
+  channel byte-identical when off, pinned). Paired vs the same-tree
+  baselines, zero failures: conv-26 overall +4.40pt (every category
+  positive; multi_hop only +0.78, n=32), conv-30 overall +8.89pt
+  (multi_hop +7.58 n=11, temporal +19.2, single_hop +10.2, adversarial
+  **−4.17**). Pooled n=304: overall **+5.9pt**, 26 improved vs 6
+  regressed, noise flat-to-down — but the target family multi_hop pools
+  to **+2.5pt (< the 3pt bar)** and adversarial is sign-inconsistent
+  (+8.5 / −4.2; conv-30 breaches the ≤1pt protection rule). Verdict: not
+  the preset default; the knob stays a measured opt-in. Natural next
+  steps: the R6×R7 interaction arm (cues fix lexical admission, PPR adds
+  associative admission — likely complementary), and R7 increment 3's
+  recognition filter as the designed precision control for the
+  adversarial noise this channel adds.
+
 - **Runner config honesty (2026-07-25, owed since the floor sweep):**
   phase-65 reports now record the actually-wired fusion floor (bare
   preset = 0, not the 0.35 library constant), and the new
