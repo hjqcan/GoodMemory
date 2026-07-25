@@ -111,6 +111,15 @@ export interface MemoryPacket {
   };
 }
 
+// One quoted dialogue turn hydrated from an episode's sourceMessageIds. The
+// builder stays storage-free: the recall engine (or another caller with store
+// access) resolves ids to turns and passes the narrow render shape.
+export interface EpisodeSpanTurn {
+  content: string;
+  observedAt?: string;
+  role: string;
+}
+
 export interface MemoryPacketInput {
   profile: UserProfile | null;
   preferences: PreferenceMemory[];
@@ -118,6 +127,9 @@ export interface MemoryPacketInput {
   facts: FactMemory[];
   feedback: FeedbackMemory[];
   episodes: EpisodeMemory[];
+  // Hydrated dialogue spans keyed by episode id; absent episodes render the
+  // historical summary-only line (byte-identical).
+  episodeSpans?: Readonly<Record<string, readonly EpisodeSpanTurn[]>>;
   archives: SessionArchive[];
   evidence: EvidenceRecord[];
   workingMemory: WorkingMemorySnapshot | null;
@@ -382,20 +394,41 @@ function summarizeEvidenceRecord(
   return excerpt;
 }
 
-function summarizeEpisodes(episodes: EpisodeMemory[]): string | undefined {
+// Dialogue-span rendering bounds: spans are token-expensive, so each rendered
+// episode quotes at most this many source turns, each clipped like evidence
+// excerpts. Episodes without a hydrated span keep the summary-only line.
+const EPISODE_SPAN_TURN_LIMIT = 6;
+
+function renderEpisodeSpanTurn(turn: EpisodeSpanTurn): string {
+  const content = clipSummaryText(turn.content, EVIDENCE_EXCERPT_SUMMARY_LENGTH);
+  const eventDate = turn.observedAt?.slice(0, 10);
+  return eventDate
+    ? `  > [${eventDate}] ${turn.role}: ${content}`
+    : `  > ${turn.role}: ${content}`;
+}
+
+function summarizeEpisodes(
+  episodes: EpisodeMemory[],
+  episodeSpans?: MemoryPacketInput["episodeSpans"],
+): string | undefined {
   if (episodes.length === 0) {
     return undefined;
   }
 
   return episodes
     .slice(0, 2)
-    .map((episode) => {
+    .flatMap((episode) => {
       // Event-date anchor so answer-time reasoning can order episodes;
       // episodes without observed time keep the historical line format.
       const eventDate = episode.observedAt?.slice(0, 10);
-      return eventDate
+      const summaryLine = eventDate
         ? `- [${eventDate}] ${episode.summary}`
         : `- ${episode.summary}`;
+      const span = episodeSpans?.[episode.id] ?? [];
+      return [
+        summaryLine,
+        ...span.slice(0, EPISODE_SPAN_TURN_LIMIT).map(renderEpisodeSpanTurn),
+      ];
     })
     .join("\n");
 }
@@ -574,7 +607,7 @@ export function buildMemoryPacket(input: MemoryPacketInput): MemoryPacket {
       input.routingDecision,
     ),
     feedbackSummary: summarizeFeedback(input.feedback),
-    episodeSummary: summarizeEpisodes(input.episodes),
+    episodeSummary: summarizeEpisodes(input.episodes, input.episodeSpans),
     archiveSummary: summarizeArchives(input.archives, labels),
     evidenceSummary: summarizeEvidence(input.evidence, labels),
     workingMemorySummary: summarizeWorkingMemory(input.workingMemory, labels),

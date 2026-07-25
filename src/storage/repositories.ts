@@ -10,8 +10,11 @@ import type {
   WorkingMemorySnapshot,
 } from "../domain/records";
 import type { MemoryScope } from "../domain/scope";
-import type { EvidenceRecord } from "../evidence/contracts";
-import { EVIDENCE_COLLECTION } from "../evidence/contracts";
+import type { EvidenceRecord, SourceMessageRecord } from "../evidence/contracts";
+import {
+  EVIDENCE_COLLECTION,
+  SOURCE_MESSAGES_COLLECTION,
+} from "../evidence/contracts";
 import type {
   ExperienceRecord,
   LearningProposal,
@@ -111,6 +114,12 @@ export interface MemoryRepositories {
     get(id: string): Promise<PromotionRecord | null>;
     listByUser(userId: string): Promise<PromotionRecord[]>;
     listByScope(scope: MemoryScope): Promise<PromotionRecord[]>;
+  };
+  sourceMessages: {
+    getByIds(input: {
+      ids: readonly string[];
+      scope: MemoryScope;
+    }): Promise<SourceMessageRecord[]>;
   };
   sessionBuffers: {
     save(scope: MemoryScope, buffer: SessionBuffer): Promise<void>;
@@ -471,6 +480,45 @@ export function createMemoryRepositories(
           PROMOTION_RECORDS_COLLECTION,
           buildScopeFilter(scope),
         );
+      },
+    },
+
+    sourceMessages: {
+      // Episode span hydration: resolve sourceMessageIds to stored source
+      // messages, preserving request order. Ids may be storage record ids or
+      // caller-supplied message ids (SourceMessageRecord.sourceMessageId) —
+      // ingestion writes the caller id when one exists, so match either key.
+      async getByIds(input: {
+        ids: readonly string[];
+        scope: MemoryScope;
+      }): Promise<SourceMessageRecord[]> {
+        if (input.ids.length === 0) {
+          return [];
+        }
+        const scoped = await config.documentStore.query<SourceMessageRecord>(
+          SOURCE_MESSAGES_COLLECTION,
+          buildScopeFilter(input.scope),
+        );
+        const byKey = new Map<string, SourceMessageRecord>();
+        for (const record of scoped) {
+          if (!byKey.has(record.id)) {
+            byKey.set(record.id, record);
+          }
+          const messageId = record.sourceMessageId;
+          if (messageId !== undefined && !byKey.has(messageId)) {
+            byKey.set(messageId, record);
+          }
+        }
+        const seen = new Set<string>();
+        const records: SourceMessageRecord[] = [];
+        for (const id of input.ids) {
+          const record = byKey.get(id);
+          if (record && !seen.has(record.id)) {
+            seen.add(record.id);
+            records.push(record);
+          }
+        }
+        return records;
       },
     },
 

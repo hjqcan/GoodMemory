@@ -31,7 +31,9 @@ import {
 } from "../verify/policy";
 import {
   buildMemoryPacket,
+  type EpisodeSpanTurn,
   type MemoryPacket,
+  type MemoryPacketInput,
 } from "./contextBuilder";
 import {
   buildEvidenceLedger,
@@ -351,6 +353,56 @@ export function resolveActiveGeneralizedFusionConfig(input: {
   reranking?: RecallGeneralizedFusionConfig;
 }): RecallGeneralizedFusionConfig | undefined {
   return input.rerank ? input.reranking ?? input.base : input.base;
+}
+
+// The context builder renders at most 2 episodes and 6 span turns per episode
+// (its own caps); hydration fetches no more than the render path can use.
+const EPISODE_SPAN_HYDRATION_EPISODE_LIMIT = 2;
+const EPISODE_SPAN_HYDRATION_TURN_LIMIT = 6;
+
+// Resolve admitted episodes' sourceMessageIds to stored source messages so the
+// packet can quote the dialogue span. Additive: the port is optional and any
+// lookup failure degrades that episode to the historical summary-only line.
+async function hydrateEpisodeSpans(input: {
+  episodes: readonly EpisodeMemory[];
+  scope: MemoryScope;
+  sourceMessages: RecallRepositoryPort["sourceMessages"];
+}): Promise<MemoryPacketInput["episodeSpans"]> {
+  const port = input.sourceMessages;
+  if (!port) {
+    return undefined;
+  }
+  const targets = input.episodes
+    .slice(0, EPISODE_SPAN_HYDRATION_EPISODE_LIMIT)
+    .filter((episode) => (episode.sourceMessageIds?.length ?? 0) > 0);
+  if (targets.length === 0) {
+    return undefined;
+  }
+  const spans: Record<string, EpisodeSpanTurn[]> = {};
+  for (const episode of targets) {
+    const ids = (episode.sourceMessageIds ?? []).slice(
+      0,
+      EPISODE_SPAN_HYDRATION_TURN_LIMIT,
+    );
+    try {
+      const records = await port.getByIds({ ids, scope: input.scope });
+      if (records.length > 0) {
+        spans[episode.id] = records.map((record) => ({
+          content: record.content,
+          role: record.role,
+          ...(record.observedAt !== undefined
+            ? { observedAt: record.observedAt }
+            : {}),
+        }));
+      }
+    } catch (error) {
+      console.error(
+        "[goodmemory:episode-span] source message lookup failed; rendering summary only",
+        error,
+      );
+    }
+  }
+  return Object.keys(spans).length > 0 ? spans : undefined;
 }
 
 const MAX_FUSION_TRACE_CANDIDATES = 20;
@@ -2239,6 +2291,11 @@ export function createRecallEngine(config: RecallEngineConfig) {
             selectedMemoryIds,
           })
         : undefined;
+      const episodeSpans = await hydrateEpisodeSpans({
+        episodes,
+        scope: input.scope,
+        sourceMessages: config.repositories.sourceMessages,
+      });
       const packet = buildMemoryPacket({
         profile: filteredProfile,
         preferences,
@@ -2248,6 +2305,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
         archives,
         evidence: contextEvidence,
         episodes,
+        ...(episodeSpans !== undefined ? { episodeSpans } : {}),
         workingMemory,
         journal,
         maxRenderedTokens: recallPlan.maxRenderedTokens,

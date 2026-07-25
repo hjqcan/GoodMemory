@@ -1110,6 +1110,8 @@ describe("public recall API", () => {
     expect(result.episodes).toHaveLength(1);
     expect(result.packet.episodeSummary).toContain("episodic retrieval");
     expect(result.metadata.hits.some((hit) => hit.type === "episode")).toBe(true);
+    // Without span pointers the episode line stays summary-only.
+    expect(result.packet.episodeSummary).not.toContain("  > ");
 
     const context = await memory.buildContext({
       recall: result,
@@ -1118,6 +1120,76 @@ describe("public recall API", () => {
     });
 
     expect(context.content).toContain("## Relevant Episodes");
+  });
+
+  it("hydrates episode dialogue spans from stored source messages", async () => {
+    const { documentStore, sessionStore, repositories, runtime } = seedMemory();
+
+    await documentStore.set("source_messages_v1", "sm-1", {
+      content: "Let's continue the episodic retrieval refactor tomorrow.",
+      contentSha256: "sha-1",
+      id: "sm-1",
+      ingestedAt: "2026-01-01T10:00:00.000Z",
+      observedAt: "2026-01-01T09:30:00.000Z",
+      role: "user",
+      schemaVersion: 1,
+      userId: "u-1",
+      workspaceId: "workspace-a",
+    });
+    await documentStore.set("source_messages_v1", "sm-2", {
+      content: "Agreed - the context sections still need the episode lane.",
+      contentSha256: "sha-2",
+      id: "sm-2",
+      ingestedAt: "2026-01-01T10:00:01.000Z",
+      role: "assistant",
+      schemaVersion: 1,
+      userId: "u-1",
+      workspaceId: "workspace-a",
+    });
+    await repositories.episodes.add(
+      createEpisodeMemory({
+        id: "ep-span",
+        userId: "u-1",
+        workspaceId: "workspace-a",
+        sessionId: "s-prev",
+        summary: "Last session narrowed the recall work to episodic retrieval.",
+        keyDecisions: [],
+        unresolvedItems: [],
+        topics: ["recall", "episodes"],
+        importance: 0.9,
+        confidence: 0.95,
+        createdAt: "2026-01-02T00:00:00.000Z",
+        observedAt: "2026-01-01T09:30:00.000Z",
+        sourceMessageIds: ["sm-1", "sm-2"],
+      }),
+    );
+    await runtime.startSession({
+      userId: "u-1",
+      sessionId: "s-1",
+      workspaceId: "workspace-a",
+    });
+
+    const memory = createGoodMemory({
+      storage: { provider: "memory" },
+      adapters: { documentStore, sessionStore },
+    });
+
+    const result = await memory.recall({
+      scope: { userId: "u-1", sessionId: "s-1", workspaceId: "workspace-a" },
+      query: "Continue the recall work from last time.",
+      retrievalProfile: "coding_agent",
+    });
+
+    expect(result.episodes).toHaveLength(1);
+    expect(result.packet.episodeSummary).toContain(
+      "- [2026-01-01] Last session narrowed the recall work to episodic retrieval.",
+    );
+    expect(result.packet.episodeSummary).toContain(
+      "  > [2026-01-01] user: Let's continue the episodic retrieval refactor tomorrow.",
+    );
+    expect(result.packet.episodeSummary).toContain(
+      "  > assistant: Agreed - the context sections still need the episode lane.",
+    );
   });
 
   it("retrieves session archive summaries for continuation queries when prior sessions were archived", async () => {

@@ -9,7 +9,7 @@ import type {
   WorkingMemorySnapshot,
 } from "../domain/records";
 import type { MemoryScope } from "../domain/scope";
-import type { EvidenceRecord } from "../evidence/contracts";
+import type { EvidenceRecord, SourceMessageRecord } from "../evidence/contracts";
 import type {
   ExperienceRecord,
   LearningProposal,
@@ -106,6 +106,19 @@ interface PromotionRepositoryPort {
   };
 }
 
+interface SourceMessageRepositoryPort {
+  // Optional: episode dialogue-span hydration resolves EpisodeMemory
+  // sourceMessageIds to their stored source messages at packet-build time.
+  // Adapters without raw-message retention omit it and episodes render
+  // summary-only (historical behavior).
+  sourceMessages?: {
+    getByIds(input: {
+      ids: readonly string[];
+      scope: MemoryScope;
+    }): Promise<SourceMessageRecord[]>;
+  };
+}
+
 export interface RecallRepositoryPort extends
   ProfileRepositoryPort,
   PreferenceRepositoryPort,
@@ -114,6 +127,7 @@ export interface RecallRepositoryPort extends
   FeedbackRepositoryPort,
   ArchiveRepositoryPort,
   EvidenceRepositoryPort,
+  SourceMessageRepositoryPort,
   EpisodeRepositoryPort {}
 
 export interface RememberRepositoryPort extends

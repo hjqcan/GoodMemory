@@ -608,4 +608,50 @@ describe("memory repositories", () => {
 
     expect(repositories.vectorIndex).toBeNull();
   });
+
+  it("reads stored source messages by id within scope (episode span hydration)", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const repositories = createMemoryRepositories({
+      documentStore,
+      sessionStore: createInMemorySessionStore(),
+    });
+    const base = {
+      contentSha256: "sha",
+      ingestedAt: "2026-01-05T10:00:00.000Z",
+      schemaVersion: 1 as const,
+    };
+    await documentStore.set("source_messages_v1", "m-1", {
+      ...base,
+      content: "We hit the rollout blocker in staging.",
+      id: "m-1",
+      observedAt: "2026-01-05T09:30:00.000Z",
+      role: "user",
+      userId: "u-1",
+    });
+    await documentStore.set("source_messages_v1", "m-2", {
+      ...base,
+      content: "The missing feature flag blocks the rollout.",
+      id: "m-2",
+      role: "assistant",
+      userId: "u-1",
+    });
+    await documentStore.set("source_messages_v1", "m-other-user", {
+      ...base,
+      content: "Unrelated user's message.",
+      id: "m-other-user",
+      role: "user",
+      userId: "u-2",
+    });
+
+    const records = await repositories.sourceMessages.getByIds({
+      ids: ["m-1", "m-2", "m-other-user", "m-missing"],
+      scope: { userId: "u-1" },
+    });
+    expect(records.map((record) => record.id)).toEqual(["m-1", "m-2"]);
+    expect(records[0]?.content).toContain("rollout blocker");
+
+    // Satisfies the recall port's optional span-hydration surface.
+    const recallPort: RecallRepositoryPort = repositories;
+    expect(recallPort.sourceMessages).toBeDefined();
+  });
 });

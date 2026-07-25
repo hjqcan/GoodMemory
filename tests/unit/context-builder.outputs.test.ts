@@ -980,4 +980,125 @@ describe("context builder output modes", () => {
     // Episodes without event time keep the historical unprefixed line.
     expect(packet.episodeSummary).toContain("- Covered the follow-up review.");
   });
+
+  it("renders hydrated dialogue spans under episodes and keeps span-free output byte-identical", () => {
+    const baseEpisode = {
+      confidence: 0.8,
+      createdAt: "2026-01-10T00:00:00.000Z",
+      importance: 0.7,
+      keyDecisions: [],
+      topics: [],
+      unresolvedItems: [],
+      userId: "u-1",
+    };
+    const episodes = [
+      {
+        ...baseEpisode,
+        id: "episode-spanned",
+        observedAt: "2026-01-05T09:30:00.000Z",
+        sourceMessageIds: ["m-1", "m-2"],
+        summary: "Discussed the rollout blocker.",
+      },
+      {
+        ...baseEpisode,
+        id: "episode-plain",
+        summary: "Covered the follow-up review.",
+      },
+    ];
+    const baseInput = {
+      profile: null,
+      preferences: [],
+      references: [],
+      facts: [],
+      feedback: [],
+      archives: [],
+      evidence: [],
+      episodes,
+      workingMemory: null,
+      journal: null,
+    };
+    const withSpans = buildMemoryPacket({
+      ...baseInput,
+      episodeSpans: {
+        "episode-spanned": [
+          {
+            content: "We hit the rollout blocker in staging.",
+            observedAt: "2026-01-05T09:30:00.000Z",
+            role: "user",
+          },
+          {
+            content: "The missing feature flag blocks the rollout.",
+            role: "assistant",
+          },
+        ],
+      },
+    });
+    expect(withSpans.episodeSummary).toContain(
+      "- [2026-01-05] Discussed the rollout blocker.",
+    );
+    expect(withSpans.episodeSummary).toContain(
+      "  > [2026-01-05] user: We hit the rollout blocker in staging.",
+    );
+    expect(withSpans.episodeSummary).toContain(
+      "  > assistant: The missing feature flag blocks the rollout.",
+    );
+    // Episodes without a hydrated span never gain span lines.
+    expect(withSpans.episodeSummary).toContain("- Covered the follow-up review.");
+    expect(withSpans.episodeSummary).not.toContain(
+      "- Covered the follow-up review.\n  >",
+    );
+
+    // Without spans the render stays byte-identical to the historical format.
+    const without = buildMemoryPacket(baseInput);
+    expect(without.episodeSummary).toBe(
+      [
+        "- [2026-01-05] Discussed the rollout blocker.",
+        "- Covered the follow-up review.",
+      ].join("\n"),
+    );
+  });
+
+  it("caps rendered span turns per episode and clips long turn content", () => {
+    const packet = buildMemoryPacket({
+      profile: null,
+      preferences: [],
+      references: [],
+      facts: [],
+      feedback: [],
+      archives: [],
+      evidence: [],
+      episodes: [
+        {
+          confidence: 0.8,
+          createdAt: "2026-01-10T00:00:00.000Z",
+          id: "episode-long",
+          importance: 0.7,
+          keyDecisions: [],
+          observedAt: "2026-01-05T09:30:00.000Z",
+          sourceMessageIds: ["m-1"],
+          summary: "Long discussion.",
+          topics: [],
+          unresolvedItems: [],
+          userId: "u-1",
+        },
+      ],
+      episodeSpans: {
+        "episode-long": Array.from({ length: 9 }, (_, index) => ({
+          content:
+            index === 0
+              ? `${"very long turn content ".repeat(12)}tail-marker`
+              : `turn number ${index + 1}`,
+          role: "user",
+        })),
+      },
+      workingMemory: null,
+      journal: null,
+    });
+    const spanLines = (packet.episodeSummary ?? "")
+      .split("\n")
+      .filter((line) => line.startsWith("  > "));
+    expect(spanLines).toHaveLength(6);
+    expect(packet.episodeSummary).not.toContain("tail-marker");
+    expect(packet.episodeSummary).toContain("...");
+  });
 });
