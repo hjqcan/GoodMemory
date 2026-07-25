@@ -1035,6 +1035,19 @@ touched (owned by a parallel workstream).
   ~55k facts to cue) — a larger paid run left to the next budget
   decision. No protection concern at this scale.
 
+  **R6×R7 interaction (same day, paired cues vs cues+PPR, two
+  conversations, zero failures): DO NOT STACK.** conv-26 +0.67pt overall
+  (multi_hop +8.9 but temporal −8.1, open_domain −3.9; 17↑/13↓), conv-30
+  **−8.10pt** (every category negative; 3↑/14↓); pooled ≈ −2.4pt,
+  sign-inconsistent, noise flat-to-up. Mechanism: with cues already
+  repairing lexical admission, the fixed candidate budget is contested —
+  PPR's associative expansions displace cue-admitted true evidence (the
+  familiar budget-displacement mechanism, now adversarial). R7's
+  standalone gains largely came from filling the same admission gaps cues
+  fill better. Disposition: the PPR knob is for cue-less deployments;
+  any stacked revisit needs R7 increment 3's recognition filter or a
+  measured budget increase first.
+
 - **Runner config honesty (2026-07-25, owed since the floor sweep):**
   phase-65 reports now record the actually-wired fusion floor (bare
   preset = 0, not the 0.35 library constant), and the new
@@ -1049,10 +1062,36 @@ board's old "Current verdict" wording after the board was reworded to
 "Historical verdict" (Phase 68 supersession); the test fragments now match the
 board's deliberate wording.
 
-Next measurement steps (unchanged from §6): frozen recall diagnostics for the
-R1 knobs and R1f; LongMemEval temporal / BEAM conflict-update slices for
-R3/R4; then the Stage D/E build-outs (episodes, write-time expansion, PPR,
-consolidation, rerank coverage).
+### Program status at close (2026-07-25)
+
+Every recommendation now has a resolved disposition:
+
+- **R0** gate run (done, earlier pass). **R1a-f** built; floor sweep measured
+  → count-conditional floor ships as inherent semantics, knob stays opt-in.
+  **R2** built; measured NEGATIVE on the strict track (−2.23pt) → opt-in
+  only; judged-track replay is the revisit condition. **R3.1-3.3 / R4.1**
+  built (write-path event time, temporal grammar, structural supersession).
+  **R5** built through increment 2b (episode spans + opt-in time-gap
+  segmentation); channel-level measurement still owed — needs an
+  eval-runner segmentation knob (deferred, next build). **R6** built and
+  measured at every layer: full-root recall **+24.1pt**, strict answers
+  **+15.0pt**, official-judge **+24.5pt** (n=1540); LME second family
+  neutral (session-granular ceiling); THE promotable result — next step is
+  promoting cues into the production claim stack (provider embedding +
+  reranking + conversational extraction rerun). **R7** increment 1 built;
+  measured +5.9pt overall but multi_hop below the family bar, adversarial
+  sign-inconsistent, and stacking with R6 is net-negative → opt-in for
+  cue-less deployments; recognition filter (increment 3) is the revisit
+  condition. **R9.4** built (claim-slot sweep in the contradiction job);
+  the R9 observation-synthesis jobs remain unstarted. **R11** increment 1
+  built (coverage line); full calibration unstarted. **R8 / R10 / R12**
+  unstarted Stage E/F builds — untouched by this pass and explicitly out
+  of its scope; they queue behind the R6 production-stack promotion, which
+  is the highest-leverage open item.
+
+Verification at close: unit+integration sweep 5105 pass / typecheck clean
+(the only failure is a parallel workstream's uncommitted in-flight file,
+`codex-coding-effect.c6-package-closure-materializer-cli.test.ts`).
 
 ## 8. Primary sources
 
