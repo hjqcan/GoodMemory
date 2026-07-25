@@ -95,6 +95,7 @@ describe("phase-65 LoCoMo smoke adapter", () => {
       conversationalExtraction: false,
       corefNormalize: false,
       decompose: false,
+      entityPageRank: false,
       evidencePack: false,
       fusionMinRelativeStrength: undefined,
       limit: 2,
@@ -2970,6 +2971,34 @@ describe("phase-65 LoCoMo smoke adapter", () => {
   it("rejects --fusion-min-relative-strength without --generalized-fusion", () => {
     expect(() =>
       parseLocomoSmokeCliOptions(["--fusion-min-relative-strength", "0.35"]),
+    ).toThrow(/--generalized-fusion/);
+  });
+
+  it("wires and records --entity-page-rank", async () => {
+    const options = parseLocomoSmokeCliOptions([
+      "--generalized-fusion",
+      "--entity-page-rank",
+    ]);
+    expect(options.entityPageRank).toBe(true);
+    const report = await runLocomoSmoke(
+      {
+        generalizedFusion: true,
+        entityPageRank: true,
+        outputDir: "/tmp/locomo-out",
+        runId: "run-locomo-entity-ppr",
+      },
+      {
+        mkdir: async () => undefined,
+        writeFile: (async () => undefined) as never,
+      },
+    );
+    expect(report.generalizedFusionConfig?.entityPageRank).toBe(true);
+    expect(report.executionFailures).toBe(0);
+  });
+
+  it("rejects --entity-page-rank without --generalized-fusion", () => {
+    expect(() =>
+      parseLocomoSmokeCliOptions(["--entity-page-rank"]),
     ).toThrow(/--generalized-fusion/);
   });
 

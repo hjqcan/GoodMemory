@@ -178,6 +178,9 @@ export interface LocomoSmokeCliOptions {
   // threads retrieval.generalizedFusionMinRelativeStrength through the
   // recommended preset. Absent = preset default (engine floor 0, no trimming).
   fusionMinRelativeStrength?: number;
+  // R7 opt-in (requires --generalized-fusion): entity PageRank channel via
+  // retrieval.generalizedFusionEntityPageRank.
+  entityPageRank?: boolean;
   // Opt-in R6 write-time question expansion: after seeding each case, backfill
   // attributes.retrievalCues on every stored fact through the shipped
   // retrievalCues maintenance job (generation is prefetched concurrently, the
@@ -531,6 +534,7 @@ export interface LocomoSmokeReport {
   bm25Ranking: boolean;
   generalizedFusion?: boolean;
   generalizedFusionConfig?: {
+    entityPageRank?: boolean;
     maxCandidates: number;
     maxTotalFacts: number;
     minRelativeStrength: number;
@@ -691,6 +695,10 @@ export function parseLocomoSmokeCliOptions(
       "--fusion-min-relative-strength requires --generalized-fusion",
     );
   }
+  const entityPageRank = hasCliFlagStrict(argv, "--entity-page-rank");
+  if (entityPageRank && !hasCliFlagStrict(argv, "--generalized-fusion")) {
+    throw new Error("--entity-page-rank requires --generalized-fusion");
+  }
   const parsed = {
     benchmarkRoot:
       resolveCliFlagValueStrict(argv, "--benchmark-root") ??
@@ -708,6 +716,7 @@ export function parseLocomoSmokeCliOptions(
     bm25: hasCliFlagStrict(argv, "--bm25"),
     generalizedFusion: hasCliFlagStrict(argv, "--generalized-fusion"),
     fusionMinRelativeStrength,
+    entityPageRank,
     retrievalCues: hasCliFlagStrict(argv, "--retrieval-cues"),
     labelFreeIngest: hasCliFlagStrict(argv, "--label-free-ingest"),
     caseIds: parseUniqueStringListFlag(argv, "--case-id"),
@@ -2635,6 +2644,7 @@ export function createLocomoSmokeMemory(
     semanticCandidateMinSimilarity?: number;
     semanticCandidateTopK?: number;
     fusionMinRelativeStrength?: number;
+    entityPageRank?: boolean;
   } = {},
 ): GoodMemory {
   assertProviderEmbeddingTimeoutsRequireProvider(options);
@@ -2700,6 +2710,9 @@ export function createLocomoSmokeMemory(
           generalizedFusionMinRelativeStrength:
             options.fusionMinRelativeStrength,
         }
+      : {}),
+    ...(options.generalizedFusion && options.entityPageRank
+      ? { generalizedFusionEntityPageRank: true }
       : {}),
     ...(options.bm25 ? { bm25Ranking: true } : {}),
     ...(options.semanticCandidates
@@ -3007,6 +3020,7 @@ function locomoSemanticCandidateConfig(
 function locomoGeneralizedFusionConfig(
   enabled: boolean,
   fusionMinRelativeStrength?: number,
+  entityPageRank?: boolean,
 ): NonNullable<LocomoSmokeReport["generalizedFusionConfig"]> | null {
   // Config honesty: record the WIRED floor. The bare recommended preset
   // leaves minRelativeStrength unset and the engine then runs 0 (no
@@ -3015,6 +3029,7 @@ function locomoGeneralizedFusionConfig(
   // sweep note).
   return enabled
     ? {
+        ...(entityPageRank ? { entityPageRank: true } : {}),
         maxCandidates: RECOMMENDED_GENERALIZED_FUSION_MAX_CANDIDATES,
         maxTotalFacts: RECOMMENDED_GENERALIZED_FUSION_MAX_TOTAL_FACTS,
         minRelativeStrength: fusionMinRelativeStrength ?? 0,
@@ -3096,6 +3111,7 @@ function buildLocomoProgressConfig(input: {
     generalizedFusionConfig: locomoGeneralizedFusionConfig(
       input.options.generalizedFusion ?? false,
       input.options.fusionMinRelativeStrength,
+      input.options.entityPageRank,
     ),
     ingestMode: input.options.conversationalExtraction
       ? "conversational-extraction"
@@ -3466,6 +3482,7 @@ export async function runLocomoSmoke(
         bm25: options.bm25,
         generalizedFusion: options.generalizedFusion,
         fusionMinRelativeStrength: options.fusionMinRelativeStrength,
+        entityPageRank: options.entityPageRank,
         providerEmbedding: options.providerEmbedding,
         providerEmbeddingTimeoutMs: options.providerEmbeddingTimeoutMs,
         providerRerankingConfig,
@@ -3989,6 +4006,7 @@ export async function runLocomoSmoke(
     generalizedFusionConfig: locomoGeneralizedFusionConfig(
       options.generalizedFusion ?? false,
       options.fusionMinRelativeStrength,
+      options.entityPageRank,
     ),
     caseIds: cases.map((testCase) => testCase.caseId),
     caseCount: cases.length,
