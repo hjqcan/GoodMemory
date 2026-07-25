@@ -74,6 +74,10 @@ export interface RememberConfig {
   preset?: RememberPresetId;
   profiles?: RememberProfile[];
   fallbackPreset?: RememberPresetId;
+  // R5 opt-in: split a remember batch into topic-coherent episodes at
+  // observation-time gaps of at least this many milliseconds (multi-session
+  // bulk ingestion). Omit to keep the single-episode-per-batch behavior.
+  episodeSegmentTimeGapMs?: number;
 }
 
 export interface ResolvedRememberProfile {

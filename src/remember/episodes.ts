@@ -221,6 +221,98 @@ function resolveEpisodeProvenance(
   };
 }
 
+// R5 increment 2b: deterministic multi-episode segmentation. A remember batch
+// that replays several sittings (bulk/multi-session ingestion) splits at
+// observation-time gaps of at least segmentTimeGapMs; each segment then runs
+// the ordinary episode synthesis with its own candidates, span pointers, and
+// event anchor. Content-agnostic by design: the boundary signal is time, not
+// topic text. Without the option (or without parseable timestamps) the batch
+// stays one segment — exactly the historical single-episode behavior.
+function segmentBoundaries(
+  messages: MemoryExtractionInput["messages"],
+  segmentTimeGapMs: number,
+): number[] {
+  const starts = [0];
+  let previousObserved: number | undefined;
+  for (let index = 0; index < messages.length; index += 1) {
+    const observedAt = messages[index]?.observedAt;
+    const observed = observedAt === undefined ? Number.NaN : Date.parse(observedAt);
+    if (Number.isFinite(observed)) {
+      if (
+        previousObserved !== undefined &&
+        observed - previousObserved >= segmentTimeGapMs &&
+        index > 0
+      ) {
+        starts.push(index);
+      }
+      previousObserved = observed;
+    }
+  }
+  return starts;
+}
+
+export function buildEpisodes(
+  input: MemoryExtractionInput,
+  candidates: MemoryCandidate[],
+  createId: () => string,
+  timestamp: string,
+  language: LanguageService,
+  locale: string,
+  sourceAnalyses?: RememberSourceLanguageAnalyses,
+  options?: { segmentTimeGapMs?: number },
+): EpisodeMemory[] {
+  const segmentTimeGapMs = options?.segmentTimeGapMs;
+  const starts =
+    segmentTimeGapMs !== undefined && segmentTimeGapMs > 0
+      ? segmentBoundaries(input.messages, segmentTimeGapMs)
+      : [0];
+  const analyses = sourceAnalyses ? [...sourceAnalyses] : undefined;
+  const episodes: EpisodeMemory[] = [];
+  for (let segment = 0; segment < starts.length; segment += 1) {
+    const start = starts[segment]!;
+    const end = starts[segment + 1] ?? input.messages.length;
+    const segmentInput: MemoryExtractionInput = {
+      ...input,
+      messages: input.messages.slice(start, end),
+    };
+    const segmentCandidates = candidates
+      .filter(
+        (candidate) =>
+          candidate.sourceMessageIndex >= start &&
+          candidate.sourceMessageIndex < end,
+      )
+      .map((candidate) => ({
+        ...candidate,
+        sourceMessageIndex: candidate.sourceMessageIndex - start,
+      }));
+    const segmentAnalyses = analyses
+      ? new Map(
+          analyses
+            .filter(
+              ([messageIndex]) => messageIndex >= start && messageIndex < end,
+            )
+            .map(([messageIndex, analysis]) => [
+              messageIndex - start,
+              analysis,
+            ]),
+        )
+      : undefined;
+    const episode = maybeBuildEpisode(
+      segmentInput,
+      segmentCandidates,
+      createId(),
+      timestamp,
+      language,
+      locale,
+      segmentAnalyses,
+    );
+    if (episode) {
+      episodes.push(episode);
+    }
+  }
+  return episodes;
+}
+
 export function maybeBuildEpisode(
   input: MemoryExtractionInput,
   candidates: MemoryCandidate[],

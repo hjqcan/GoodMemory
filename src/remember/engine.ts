@@ -6,7 +6,7 @@ import type { PolicyContext } from "../policy/hooks";
 import { isProjectionCapableDocumentStore } from "../storage/contracts";
 import type { DocumentStore } from "../storage/contracts";
 import { extractDeterministicMemoryWithLanguage } from "./deterministicExtractor";
-import { maybeBuildEpisode } from "./episodes";
+import { buildEpisodes } from "./episodes";
 import {
   annotateExtractionResult,
   dedupeExtractionResult,
@@ -1042,16 +1042,19 @@ export function createRememberEngine(config: RememberEngineConfig) {
           }
         }
 
-        const episode = maybeBuildEpisode(
+        const episodes = buildEpisodes(
           input,
           episodeCandidates,
-          createId(),
+          createId,
           now(),
           language,
           resolvedLanguage.locale,
           sourceAnalyses,
+          config.remember?.episodeSegmentTimeGapMs !== undefined
+            ? { segmentTimeGapMs: config.remember.episodeSegmentTimeGapMs }
+            : undefined,
         );
-        if (episode) {
+        for (const episode of episodes) {
           await setDocumentWithRollback("episodes", episode.id, episode);
           state.pendingEmbeddingWrites.push(buildEpisodeEmbeddingWrite(episode));
           state.accepted += 1;

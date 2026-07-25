@@ -475,3 +475,209 @@ describe("remember episodes", () => {
     expect(episode?.keyDecisions).toEqual([]);
   });
 });
+
+// R5 increment 2b: opt-in deterministic multi-episode segmentation. A remember
+// batch replaying several sittings (multi-session ingestion) splits at large
+// observation-time gaps; each segment synthesizes its own episode with its own
+// span pointers. Absent the option, behavior stays single-episode.
+describe("remember episode segmentation", () => {
+  const language = createLanguageService();
+  const sitting = (
+    dayHour: [string, string],
+    topic: string,
+  ): Array<{
+    content: string;
+    id?: string;
+    observedAt?: string;
+    role: "user" | "assistant";
+  }> => [
+    {
+      role: "user",
+      content: `Remember that ${topic}.`,
+      id: `m-${dayHour[0]}-u`,
+      observedAt: `${dayHour[0]}T${dayHour[1]}:00:00.000Z`,
+    },
+    {
+      role: "assistant",
+      content: `I will keep the plan for ${topic} and the next review step in mind.`,
+      id: `m-${dayHour[0]}-a`,
+      observedAt: `${dayHour[0]}T${dayHour[1]}:05:00.000Z`,
+    },
+  ];
+  const candidateAt = (
+    index: number,
+    content: string,
+  ): import("../../src/remember/candidates").MemoryCandidate => ({
+    id: `candidate-${index}`,
+    kindHint: "fact",
+    explicitness: "explicit",
+    content,
+    sourceMessageIndex: index,
+    sourceRole: "user",
+    metadata: { category: "project", factKind: "blocker" },
+  });
+
+  it("splits a multi-sitting batch at large observation gaps", async () => {
+    const { buildEpisodes } = await import("../../src/remember/episodes");
+    const messages = [
+      ...sitting(["2026-01-05", "09"], "the rollout is blocked on legal signoff"),
+      ...sitting(["2026-01-12", "18"], "the audit report is due next Friday"),
+    ];
+    let idCounter = 0;
+    const episodes = buildEpisodes(
+      {
+        scope: { userId: "user-1", sessionId: "s-1" },
+        messages,
+      },
+      [
+        candidateAt(0, "The rollout is blocked on legal signoff."),
+        candidateAt(2, "The audit report is due next Friday."),
+      ],
+      () => `episode-${(idCounter += 1)}`,
+      TIMESTAMP,
+      language,
+      "en-US",
+      undefined,
+      { segmentTimeGapMs: 6 * 60 * 60 * 1000 },
+    );
+
+    expect(episodes).toHaveLength(2);
+    expect(episodes[0]?.summary).toContain("rollout is blocked");
+    expect(episodes[1]?.summary).toContain("audit report is due");
+    // Each segment anchors to its own sitting.
+    expect(episodes[0]?.observedAt).toBe("2026-01-05T09:00:00.000Z");
+    expect(episodes[1]?.observedAt).toBe("2026-01-12T18:00:00.000Z");
+    expect(episodes[0]?.sourceMessageIds).toEqual(["m-2026-01-05-u", "m-2026-01-05-a"]);
+    expect(episodes[1]?.sourceMessageIds).toEqual(["m-2026-01-12-u", "m-2026-01-12-a"]);
+  });
+
+  it("keeps single-episode behavior when segmentation is off or gaps are small", async () => {
+    const { buildEpisodes } = await import("../../src/remember/episodes");
+    const messages = [
+      ...sitting(["2026-01-05", "09"], "the rollout is blocked on legal signoff"),
+      ...sitting(["2026-01-05", "10"], "the audit report is due next Friday"),
+    ];
+    const candidates = [
+      candidateAt(0, "The rollout is blocked on legal signoff."),
+      candidateAt(2, "The audit report is due next Friday."),
+    ];
+    let idCounter = 0;
+    const segmentedSmallGap = buildEpisodes(
+      { scope: { userId: "user-1", sessionId: "s-1" }, messages },
+      candidates,
+      () => `episode-${(idCounter += 1)}`,
+      TIMESTAMP,
+      language,
+      "en-US",
+      undefined,
+      { segmentTimeGapMs: 6 * 60 * 60 * 1000 },
+    );
+    // One hour apart: same sitting, one episode.
+    expect(segmentedSmallGap).toHaveLength(1);
+
+    const off = buildEpisodes(
+      { scope: { userId: "user-1", sessionId: "s-1" }, messages },
+      candidates,
+      () => "episode-off",
+      TIMESTAMP,
+      language,
+      "en-US",
+    );
+    expect(off).toHaveLength(1);
+    expect(off[0]?.id).toBe("episode-off");
+  });
+});
+
+describe("remember engine episode segmentation wiring", () => {
+  it("writes one episode per sitting when remember.episodeSegmentTimeGapMs is set", async () => {
+    const { createGoodMemory } = await import("../../src");
+    const { createInMemoryDocumentStore, createInMemorySessionStore } =
+      await import("../../src/storage/memory");
+    const documentStore = createInMemoryDocumentStore();
+    const candidates = [
+      {
+        id: "candidate-1",
+        kindHint: "fact" as const,
+        memoryType: "fact" as const,
+        decision: "write" as const,
+        score: 1,
+        explicitness: "explicit" as const,
+        content: "The rollout is blocked on legal signoff.",
+        sourceMessageIndex: 0,
+        sourceRole: "user" as const,
+        metadata: { category: "project", factKind: "blocker" },
+      },
+      {
+        id: "candidate-2",
+        kindHint: "fact" as const,
+        memoryType: "fact" as const,
+        decision: "write" as const,
+        score: 1,
+        explicitness: "explicit" as const,
+        content: "The audit report is due next Friday.",
+        sourceMessageIndex: 2,
+        sourceRole: "user" as const,
+        metadata: { category: "project", factKind: "blocker" },
+      },
+    ];
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      remember: { episodeSegmentTimeGapMs: 6 * 60 * 60 * 1000 },
+      testing: {
+        extractor: {
+          async extract() {
+            return { candidates, ignoredMessageCount: 0 };
+          },
+        },
+        now: () => new Date("2026-07-01T00:00:00.000Z"),
+      },
+    });
+
+    await memory.remember({
+      scope: { userId: "u-1", sessionId: "s-1" },
+      messages: [
+        {
+          role: "user",
+          content: "Remember that the rollout is blocked on legal signoff.",
+          id: "m-1",
+          observedAt: "2026-01-05T09:00:00.000Z",
+        },
+        {
+          role: "assistant",
+          content:
+            "I will keep the plan for the rollout blocker and the next review step in mind.",
+          id: "m-2",
+          observedAt: "2026-01-05T09:05:00.000Z",
+        },
+        {
+          role: "user",
+          content: "Remember that the audit report is due next Friday.",
+          id: "m-3",
+          observedAt: "2026-01-12T18:00:00.000Z",
+        },
+        {
+          role: "assistant",
+          content:
+            "I will keep the plan for the audit report deadline and the next review step in mind.",
+          id: "m-4",
+          observedAt: "2026-01-12T18:05:00.000Z",
+        },
+      ],
+    });
+
+    const episodes = await documentStore.query<{
+      observedAt?: string;
+      sourceMessageIds?: string[];
+      summary: string;
+    }>("episodes", {});
+    expect(episodes).toHaveLength(2);
+    const anchors = episodes.map((episode) => episode.observedAt).sort();
+    expect(anchors).toEqual([
+      "2026-01-05T09:00:00.000Z",
+      "2026-01-12T18:00:00.000Z",
+    ]);
+  });
+});
