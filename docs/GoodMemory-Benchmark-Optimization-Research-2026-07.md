@@ -1017,6 +1017,24 @@ touched (owned by a parallel workstream).
   extraction) — the paired delta is the valid readout, not the absolutes;
   promoting cues into the production claim stack is the follow-on run.
 
+  **LongMemEval second family (same day, paired 18-case balanced subset,
+  7218/7218 facts cued, zero failures): NEUTRAL — no recall movement at
+  ceiling.** New `--retrieval-cues` on the phase-62 recall diagnostic
+  (postSeed seam + factory adapter, record==wire; cue-only-admission
+  property pinned hermetically). Evidence-session recall 0.9583 → 0.9583
+  (identical; the 2 multi-session enumeration misses stay missed), 6/18
+  cases shifted their retrieved-session sets, session-level noise net +4.
+  Mechanism read, not a surprise in hindsight: R6 repairs *turn-granular
+  admission* — LoCoMo stores each dialog turn as a fact and its baseline
+  recall was 0.31, so cues had 69pt of admission headroom; the LME
+  balanced subset retrieves *sessions* at 0.958 baseline — near ceiling,
+  nothing for cues to admit, and extra cue matches only shuffle
+  low-margin session sets. Disposition: R6 stays a LoCoMo-shaped
+  (turn/atomic-fact corpora) admission lever; the LME slice with real
+  headroom is the full-500 multi-session type (0.787 recall, n=133,
+  ~55k facts to cue) — a larger paid run left to the next budget
+  decision. No protection concern at this scale.
+
 - **Runner config honesty (2026-07-25, owed since the floor sweep):**
   phase-65 reports now record the actually-wired fusion floor (bare
   preset = 0, not the 0.35 library constant), and the new
