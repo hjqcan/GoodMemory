@@ -146,6 +146,34 @@ describe("resolveGoodMemoryRetrievalRuntime with preset recommended", () => {
     });
   });
 
+  it("preserves the explicit entity PageRank opt-in in the experimental preset", () => {
+    const resolved = resolve({
+      retrieval: {
+        generalizedFusionEntityPageRank: true,
+        preset: "recommended",
+      },
+    });
+
+    expect(resolved.retrieval.generalizedFusion).toEqual({
+      entityPageRank: true,
+      maxCandidates: RECOMMENDED_GENERALIZED_FUSION_MAX_CANDIDATES,
+      maxTotalFacts: RECOMMENDED_GENERALIZED_FUSION_MAX_TOTAL_FACTS,
+    });
+
+    const reranking = resolve({
+      providerRerankerConfigured: true,
+      retrieval: {
+        generalizedFusionEntityPageRank: true,
+        preset: "recommended",
+      },
+    });
+    expect(reranking.retrieval.rerankGeneralizedFusion).toEqual({
+      entityPageRank: true,
+      maxCandidates: RECOMMENDED_RERANK_GENERALIZED_FUSION_MAX_CANDIDATES,
+      maxTotalFacts: RECOMMENDED_RERANK_GENERALIZED_FUSION_MAX_TOTAL_FACTS,
+    });
+  });
+
   it("widens only the first-party provider reranker lane", () => {
     const resolved = resolve({
       embeddingEnabled: true,

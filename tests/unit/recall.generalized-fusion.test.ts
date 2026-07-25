@@ -1272,3 +1272,136 @@ describe("dynamic fusion noise budget", () => {
     expect(selected).toHaveLength(3);
   });
 });
+
+// R7: opt-in personalized PageRank over the bipartite entity-memory graph as
+// the entity channel's scoring. Seeded by query-matched entities; ≤3 damped
+// iterations (d=0.5) let mass reach 2-hop associated memories that 1-hop
+// adjacency can never admit. Default (flag absent) keeps the historical
+// 1-hop rarity channel untouched.
+describe("entity PageRank channel (R7)", () => {
+  function associationFixture() {
+    return {
+      query: "What changed for Atlas?",
+      documents: [
+        document({
+          id: "doc-hub",
+          sourceMemoryId: "fact-hub",
+          text: "Atlas moved to Lisbon last spring.",
+          entityKeys: ["atlas", "lisbon"],
+        }),
+        document({
+          id: "doc-detail",
+          sourceMemoryId: "fact-detail",
+          text: "The riverside office keeps a standing desk reserved.",
+          entityKeys: ["lisbon"],
+        }),
+      ],
+      entities: [
+        entity({
+          key: "atlas",
+          aliases: ["Atlas"],
+          memoryIds: ["facts:fact-hub"],
+        }),
+        entity({
+          key: "lisbon",
+          aliases: ["Lisbon"],
+          memoryIds: ["facts:fact-hub", "facts:fact-detail"],
+        }),
+      ],
+      maxCandidates: 8,
+    };
+  }
+
+  it("admits 2-hop associated memories through damped propagation", () => {
+    const result = fuseGeneralizedRecallCandidates({
+      ...associationFixture(),
+      entityPageRank: true,
+    });
+    const hub = result.rankedCandidates.find(
+      (candidate) => candidate.sourceMemoryId === "fact-hub",
+    );
+    const detail = result.rankedCandidates.find(
+      (candidate) => candidate.sourceMemoryId === "fact-detail",
+    );
+    expect(hub?.channels.entity).toBeDefined();
+    // The associated memory is reachable only through Atlas -> fact-hub ->
+    // Lisbon -> fact-detail; PPR admits it on the entity channel.
+    expect(detail?.channels.entity).toBeDefined();
+    // Directly seeded memories keep more mass than 2-hop associations.
+    expect(hub?.channels.entity?.rawScore ?? 0).toBeGreaterThan(
+      detail?.channels.entity?.rawScore ?? 0,
+    );
+  });
+
+  it("keeps the historical 1-hop channel when the flag is absent", () => {
+    const result = fuseGeneralizedRecallCandidates(associationFixture());
+    const detail = result.rankedCandidates.find(
+      (candidate) => candidate.sourceMemoryId === "fact-detail",
+    );
+    // "lisbon" does not match the query: without PPR the associated memory
+    // never earns an entity channel.
+    expect(detail?.channels.entity).toBeUndefined();
+  });
+
+  it("dampens hub conduits: rare bridges beat high-degree bridges", () => {
+    const hubMemoryIds = Array.from(
+      { length: 6 },
+      (_, index) => `facts:fact-hub-fan-${index}`,
+    );
+    const result = fuseGeneralizedRecallCandidates({
+      query: "What changed for Atlas?",
+      documents: [
+        document({
+          id: "doc-seedmem",
+          sourceMemoryId: "fact-seedmem",
+          text: "Atlas visited the harbor with Nadia.",
+          entityKeys: ["atlas", "nadia", "harbor"],
+        }),
+        document({
+          id: "doc-rare",
+          sourceMemoryId: "fact-rare",
+          text: "A quiet dinner happened downtown.",
+          entityKeys: ["nadia"],
+        }),
+        ...hubMemoryIds.map((memoryId, index) =>
+          document({
+            id: `doc-hub-fan-${index}`,
+            sourceMemoryId: memoryId.split(":")[1]!,
+            text: `Harbor log entry ${index}.`,
+            entityKeys: ["harbor"],
+          })
+        ),
+      ],
+      entities: [
+        entity({
+          key: "atlas",
+          aliases: ["Atlas"],
+          memoryIds: ["facts:fact-seedmem"],
+        }),
+        entity({
+          key: "nadia",
+          aliases: ["Nadia"],
+          memoryIds: ["facts:fact-seedmem", "facts:fact-rare"],
+        }),
+        entity({
+          key: "harbor",
+          aliases: ["Harbor"],
+          memoryIds: ["facts:fact-seedmem", ...hubMemoryIds],
+        }),
+      ],
+      maxCandidates: 12,
+      entityPageRank: true,
+    });
+    const rare = result.rankedCandidates.find(
+      (candidate) => candidate.sourceMemoryId === "fact-rare",
+    );
+    const hubFan = result.rankedCandidates.find(
+      (candidate) => candidate.sourceMemoryId === "fact-hub-fan-0",
+    );
+    // Both are 2-hop associations, but the high-degree conduit spreads its
+    // mass across six memories: the rare bridge must score higher.
+    expect(rare?.channels.entity?.rawScore ?? 0).toBeGreaterThan(
+      hubFan?.channels.entity?.rawScore ?? 0,
+    );
+  });
+});

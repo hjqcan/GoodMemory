@@ -147,6 +147,10 @@ export interface GoodMemoryRetrievalConfig {
   // evidence strength falls below this fraction of the strongest candidate are
   // trimmed before selection. Omit to keep the fixed top-N cut (no trimming).
   generalizedFusionMinRelativeStrength?: number;
+  // Experimental R7 entity-graph upgrade: score the fusion entity channel
+  // with personalized PageRank over the entity-memory graph (2-hop
+  // association) instead of 1-hop adjacency. Omit to keep 1-hop.
+  generalizedFusionEntityPageRank?: boolean;
   // Experimental Phase 74 execution path. When enabled, the query-derived
   // RecallPlan drives retrieval, decomposition, and iterative recall unless a
   // call supplies an explicit override. Off uses the unplanned baseline until

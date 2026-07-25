@@ -111,6 +111,9 @@ export function resolveGoodMemoryRetrievalRuntime(input: {
             input.retrieval.generalizedFusionMinRelativeStrength,
         }
       : {}),
+    ...(input.retrieval.generalizedFusionEntityPageRank !== undefined
+      ? { entityPageRank: input.retrieval.generalizedFusionEntityPageRank }
+      : {}),
     maxCandidates: RECOMMENDED_GENERALIZED_FUSION_MAX_CANDIDATES,
     maxTotalFacts: RECOMMENDED_GENERALIZED_FUSION_MAX_TOTAL_FACTS,
   };
@@ -124,6 +127,12 @@ export function resolveGoodMemoryRetrievalRuntime(input: {
             ? {
                 minRelativeStrength:
                   input.retrieval.generalizedFusionMinRelativeStrength,
+              }
+            : {}),
+          ...(input.retrieval.generalizedFusionEntityPageRank !== undefined
+            ? {
+                entityPageRank:
+                  input.retrieval.generalizedFusionEntityPageRank,
               }
             : {}),
           maxCandidates:

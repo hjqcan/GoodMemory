@@ -64,6 +64,11 @@ export interface GeneralizedFusionInput {
   maxEntityMemoryFrequency?: number;
   acceptsEntityCandidate: (input: LanguageEntityCandidateInput) => boolean;
   matchesEntityAlias: (query: string, alias: string) => boolean;
+  // R7 opt-in: score the entity channel with personalized PageRank over the
+  // bipartite entity-memory graph instead of 1-hop rarity adjacency. Seeds
+  // are the query-matched entities; ≤3 damped iterations reach 2-hop
+  // associated memories. Absent keeps the historical channel byte-identical.
+  entityPageRank?: boolean;
   minRelativeStrength?: number;
   plan?: RecallPlan;
   referenceTime?: string;
@@ -289,10 +294,143 @@ function acceptsEntity(
   });
 }
 
+// R7: personalized PageRank over the bipartite entity-memory graph. A uniform
+// random walk with restart (damping 0.5, 3 iterations) from the query-matched
+// seed entities; memory-node mass becomes the channel score. Hub entities are
+// dampened by degree normalization instead of the 1-hop channel's hard
+// frequency gate, and 2-hop associated memories (seed -> memory -> entity ->
+// memory) become reachable — the association the 1-hop channel structurally
+// cannot admit. Deterministic: nodes iterate in sorted order.
+const ENTITY_PAGERANK_DAMPING = 0.5;
+const ENTITY_PAGERANK_ITERATIONS = 3;
+const ENTITY_PAGERANK_EVIDENCE_LIMIT = 4;
+
+function buildEntityPageRankChannel(
+  input: GeneralizedFusionInput,
+  visibleSourceKeys: ReadonlySet<string>,
+): RankedChannelCandidate[] {
+  const temporalConstraint = enforceDocumentVisibility(input);
+  const documentTexts = input.documents.map(({ text }) => text);
+  const entityToMemories = new Map<string, readonly string[]>();
+  for (const entity of input.entities) {
+    const memoryIds = [
+      ...new Set(
+        (temporalConstraint
+          ? entity.memoryIds.filter((memoryId) =>
+              visibleSourceKeys.has(memoryId),
+            )
+          : entity.memoryIds
+        ).filter((memoryId) => parseSourceKey(memoryId) !== undefined),
+      ),
+    ].sort();
+    if (memoryIds.length > 0) {
+      entityToMemories.set(entity.id, memoryIds);
+    }
+  }
+  const memoryToEntities = new Map<string, string[]>();
+  for (const [entityId, memoryIds] of [...entityToMemories.entries()].sort(
+    ([left], [right]) => left.localeCompare(right),
+  )) {
+    for (const memoryId of memoryIds) {
+      const adjacent = memoryToEntities.get(memoryId);
+      if (adjacent) {
+        adjacent.push(entityId);
+      } else {
+        memoryToEntities.set(memoryId, [entityId]);
+      }
+    }
+  }
+  const seedEntities = input.entities.filter(
+    (entity) =>
+      entityToMemories.has(entity.id) &&
+      entityMatchesQuery(input, entity) &&
+      acceptsEntity(input, entity, documentTexts),
+  );
+  if (seedEntities.length === 0) {
+    return [];
+  }
+  const descriptionScores = computeBm25Scores(
+    input.query,
+    seedEntities.map((entity) => ({
+      id: entity.id,
+      text: [entity.canonicalKey, ...entity.aliases, entity.description ?? ""].join(
+        " ",
+      ),
+    })),
+    { tokenize: input.tokenize },
+  );
+  const seeds = new Map<string, number>();
+  let seedTotal = 0;
+  for (const entity of seedEntities) {
+    const rarity = 1 / Math.max(1, entityToMemories.get(entity.id)!.length);
+    const weight = rarity * (1 + (descriptionScores.get(entity.id) ?? 0) * 0.25);
+    seeds.set(entity.id, weight);
+    seedTotal += weight;
+  }
+  for (const [entityId, weight] of seeds) {
+    seeds.set(entityId, weight / seedTotal);
+  }
+  let mass = new Map(seeds);
+  for (let step = 0; step < ENTITY_PAGERANK_ITERATIONS; step += 1) {
+    const next = new Map<string, number>();
+    for (const [nodeId, value] of [...mass.entries()].sort(([left], [right]) =>
+      left.localeCompare(right),
+    )) {
+      const neighbors =
+        entityToMemories.get(nodeId) ?? memoryToEntities.get(nodeId) ?? [];
+      if (neighbors.length === 0) {
+        continue;
+      }
+      const share = (ENTITY_PAGERANK_DAMPING * value) / neighbors.length;
+      for (const neighbor of neighbors) {
+        next.set(neighbor, (next.get(neighbor) ?? 0) + share);
+      }
+    }
+    for (const [entityId, seedWeight] of seeds) {
+      next.set(
+        entityId,
+        (next.get(entityId) ?? 0) + (1 - ENTITY_PAGERANK_DAMPING) * seedWeight,
+      );
+    }
+    mass = next;
+  }
+  const candidates: RawChannelCandidate[] = [];
+  for (const [memoryId, entityIds] of [...memoryToEntities.entries()].sort(
+    ([left], [right]) => left.localeCompare(right),
+  )) {
+    const score = mass.get(memoryId) ?? 0;
+    if (score <= 0) {
+      continue;
+    }
+    const source = parseSourceKey(memoryId);
+    if (!source) {
+      continue;
+    }
+    const evidenceDocumentIds = entityIds
+      .filter((entityId) => (mass.get(entityId) ?? 0) > 0)
+      .sort(
+        (left, right) =>
+          (mass.get(right) ?? 0) - (mass.get(left) ?? 0) ||
+          left.localeCompare(right),
+      )
+      .slice(0, ENTITY_PAGERANK_EVIDENCE_LIMIT)
+      .sort();
+    candidates.push({
+      ...source,
+      rawScore: score,
+      evidenceDocumentIds,
+    });
+  }
+  return rankChannel(candidates);
+}
+
 function buildEntityChannel(
   input: GeneralizedFusionInput,
   visibleSourceKeys: ReadonlySet<string>,
 ): RankedChannelCandidate[] {
+  if (input.entityPageRank) {
+    return buildEntityPageRankChannel(input, visibleSourceKeys);
+  }
   const temporalConstraint = enforceDocumentVisibility(input);
   const sourceMemoryCount = temporalConstraint
     ? visibleSourceKeys.size

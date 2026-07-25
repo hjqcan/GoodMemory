@@ -278,6 +278,9 @@ export interface RecallGeneralizedFusionConfig {
   // Caps baseline plus generalized facts. Other content lanes keep their own
   // small record limits.
   maxTotalFacts?: number;
+  // R7 opt-in: personalized PageRank scoring for the entity channel (see
+  // GeneralizedFusionInput.entityPageRank). Absent keeps 1-hop adjacency.
+  entityPageRank?: boolean;
   minRelativeStrength?: number;
   rrfK?: number;
 }
@@ -1680,6 +1683,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
                   : generalizedFusionConfig.minRelativeStrength ?? 0,
               acceptsEntityCandidate: (input) =>
                 language.acceptsEntityCandidate(input, resolvedLanguage),
+              entityPageRank: generalizedFusionConfig.entityPageRank,
               matchesEntityAlias: (query, alias) =>
                 language.matchesEntityAlias(query, alias, resolvedLanguage),
               referenceTime: temporalReferenceTime,
