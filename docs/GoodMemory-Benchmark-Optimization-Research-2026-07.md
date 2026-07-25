@@ -976,6 +976,29 @@ touched (owned by a parallel workstream).
   recognition filter as the designed precision control for the
   adversarial noise this channel adds.
 
+- **R6 FULL-ROOT claim-track measurement (2026-07-25): the write-time
+  question-expansion win holds at n=1986 — the queued claim run is
+  complete.** All 10 conversations, paired base/cues retrieval arms plus
+  answer replay over both retrieved sets (evidence-pack context, strict
+  abstention, no chain-of-note), 6729/6729 facts cued, **zero execution
+  failures across all 40 runs** (one transient cue-arm hang on conv-42 was
+  killed and re-run clean; the resumable driver + artifacts live in the
+  session scratchpad `r6full/`). Pooled evidence-turn recall 0.3073 →
+  0.5484 (**+24.10pt**; per category: single_hop +27.1, adversarial +28.0,
+  temporal +24.1, multi_hop +13.1, open_domain +11.9; 578 questions
+  improved vs 39 regressed; noise/question DOWN in every category).
+  Answer accuracy under the strict scorer 0.2085 → 0.3580 (**+14.95pt**;
+  347 fixed vs 50 broken; mean token-F1 +13.69pt; single_hop +22.1,
+  temporal +21.8, multi_hop +12.4, open_domain +7.3, adversarial −0.2 on
+  the near-zero verbose-abstention-alias base — noise-level, protection
+  holds). This is the ≥3pt bar cleared ~5-8× end-to-end at full-root
+  scale with category uniformity and a protection profile that improved.
+  Remaining before any headline-number claim: official-protocol scoring
+  comparability (the strict scorer here is the repo's own; the recorded
+  0.8708 official track uses the upstream judge), and the LongMemEval
+  second family. Cost: one short cue call per stored fact at maintenance
+  time (~670/conversation), zero query-time cost.
+
 - **Runner config honesty (2026-07-25, owed since the floor sweep):**
   phase-65 reports now record the actually-wired fusion floor (bare
   preset = 0, not the 0.35 library constant), and the new
