@@ -923,6 +923,35 @@ touched (owned by a parallel workstream).
   full 10-conversation run for the claim track (~5.9k cue calls; answer
   conversion measured above), LongMemEval second family.
 
+- **R5 increment 2a (2026-07-25) — episode dialogue-span rendering.**
+  Admitted episodes with `sourceMessageIds` now quote their source turns in
+  the context packet: an optional `sourceMessages.getByIds` repository port
+  resolves ids (storage or caller message ids) scope-filtered in request
+  order; the recall engine hydrates ≤2 episodes × ≤6 turns (matching the
+  builder's render caps) with per-episode failure tolerance; the builder
+  renders `  > [date] role: content` lines under the episode summary,
+  clipped like evidence excerpts. Span-free episodes stay byte-identical
+  (pinned). Remaining for full R5: multi-episode topic segmentation at
+  write time (its own measured pass).
+
+- **R9.4 (2026-07-25) — claim-slot supersession sweep, batch form.** The
+  write path's R4.1 supersession only closes slot values older than the
+  arriving claim, so out-of-order ingestion leaves two open "current"
+  values in one `(subjectEntityId, predicateKey)` slot (pinned by a
+  failing-first test). The contradiction maintenance job now also sweeps
+  stored current claims: multi-value slots resolve exactly as the write
+  path would have (newest observation stays open; stale values close at
+  its observedAt through the same closure/status-swap machinery),
+  optimistic-concurrency guarded per slot, idempotent, fact.* namespace
+  and non-asserted/negative claims excluded. Wired through the projection
+  runtime; the fact-level polarity pass is unchanged.
+
+- **Runner config honesty (2026-07-25, owed since the floor sweep):**
+  phase-65 reports now record the actually-wired fusion floor (bare
+  preset = 0, not the 0.35 library constant), and the new
+  `--fusion-min-relative-strength` knob threads a sweep floor through the
+  preset for the queued LoCoMo floor second-family check.
+
 Verification state at close of the pass: full canonical sweep green — 3,537
 unit + 645 integration/scenario/cli/eval/type/consumer + 101 example/release
 tests, 0 failures, typecheck clean. One unrelated pre-existing failure was
