@@ -999,6 +999,24 @@ touched (owned by a parallel workstream).
   second family. Cost: one short cue call per stored fact at maintenance
   time (~670/conversation), zero query-time cost.
 
+  **Official-protocol comparability (same day, complete): the R6 gain
+  EXPANDS under the official judge.** Both full-root answer arms rescored
+  with the industry-comparable J-metric judge (mem0ai/memory-benchmarks
+  LoCoMo prompt, no-evidence variant, categories 1-4, adversarial excluded
+  per that methodology; judge gpt-5.5, answers unchanged, 20 runs, zero
+  failures): base 0.4169 → cues **0.6617** on n=1540 — **+24.48pt
+  official-judge accuracy** (single_hop +26.5, temporal +25.2, multi_hop
+  +20.9, open_domain +14.6). The strict +14.95pt is the conservative floor;
+  the official judge credits the paraphrase-shaped correct answers the
+  token-F1 scorer rejects, so the mechanism's full conversion chain now
+  reads: admission +24.1pt → strict answers +15.0pt → official-judge
+  +24.5pt, every category positive at every layer. Comparability caveat:
+  these arms run the research profile (provider-free retrieval,
+  current-tree floor, evidence-pack replay answers), NOT the 0.8708 claim's
+  production stack (provider embedding + reranking + conversational
+  extraction) — the paired delta is the valid readout, not the absolutes;
+  promoting cues into the production claim stack is the follow-on run.
+
 - **Runner config honesty (2026-07-25, owed since the floor sweep):**
   phase-65 reports now record the actually-wired fusion floor (bare
   preset = 0, not the 0.35 library constant), and the new
