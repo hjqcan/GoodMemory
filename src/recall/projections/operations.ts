@@ -72,6 +72,7 @@ export interface RecallProjectionOperations {
     sourceMemoryIds: readonly string[],
   ): Promise<ClaimProjection[]>;
   queryClaimHistory(scope: MemoryScope): Promise<ClaimProjection[]>;
+  sweepClaimSlots(scope: MemoryScope): Promise<number>;
   queryDocuments(scope: MemoryScope): Promise<RecallIndexDocument[]>;
   searchDocuments(
     scope: MemoryScope,
@@ -309,6 +310,9 @@ export function createRecallProjectionOperations(input: {
     },
     queryClaimHistory(scope) {
       return claimIndex.queryHistory(scope);
+    },
+    sweepClaimSlots(scope) {
+      return claimIndex.sweepSlotSupersession(scope);
     },
     searchClaims(scope, query, limit, history = false, locale) {
       return claimIndex.search(scope, query, limit, history, locale);

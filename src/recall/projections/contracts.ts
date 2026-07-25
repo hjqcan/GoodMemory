@@ -237,6 +237,9 @@ export interface RecallProjectionSearchPort {
     sourceMemoryIds: readonly string[],
   ): Promise<ClaimProjection[]>;
   queryClaimHistory(scope: MemoryScope): Promise<ClaimProjection[]>;
+  // R4.1's batch form (R9.4): close stale open values in multi-value claim
+  // slots; returns the number of claims closed.
+  sweepClaimSlots(scope: MemoryScope): Promise<number>;
 }
 
 export function isRecallProjectionSourceCollection(

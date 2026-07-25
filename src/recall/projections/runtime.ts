@@ -177,6 +177,9 @@ export function createRecallProjectionRuntime(
     queryClaimHistory(scope) {
       return operations.queryClaimHistory(scope);
     },
+    sweepClaimSlots(scope) {
+      return operations.sweepClaimSlots(scope);
+    },
     queryDocuments(scope) {
       return operations.queryDocuments(scope);
     },

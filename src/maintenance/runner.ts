@@ -63,6 +63,12 @@ export interface MaintenanceRunnerConfig {
     }>;
   };
   repositories: MaintenanceRepositoryPort & { vectorIndex?: MaintenanceVectorPort | null };
+  // R9.4: the contradiction job additionally runs the claim-slot supersession
+  // sweep (R4.1's batch form) when the projection runtime is wired. Absent
+  // means the job keeps its fact-level polarity pass only.
+  claimSlotSweep?: {
+    sweepClaimSlots(scope: MemoryScope): Promise<number>;
+  };
   // Opt-in generator for the retrievalCues job. Absent means the job applies
   // nothing.
   retrievalCues?: {
@@ -990,16 +996,24 @@ export function createMaintenanceRunner(config: MaintenanceRunnerConfig) {
           continue;
         }
 
-        reports.push(
-          await runContradictionRepair(
-            config.repositories,
-            vectorIndex,
-            language,
-            analyzeContent,
-            scope,
-            timestamp,
-          ),
+        const contradiction = await runContradictionRepair(
+          config.repositories,
+          vectorIndex,
+          language,
+          analyzeContent,
+          scope,
+          timestamp,
         );
+        // R9.4: the structural claim-slot sweep (R4.1's batch form) runs as
+        // part of the contradiction job — same repair intent, structured
+        // layer. Slot closures count into the job's applied total.
+        const slotClosures = config.claimSlotSweep
+          ? await config.claimSlotSweep.sweepClaimSlots(scope)
+          : 0;
+        reports.push({
+          name: contradiction.name,
+          applied: contradiction.applied + slotClosures,
+        });
       }
 
       const report = {

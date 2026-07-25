@@ -72,6 +72,10 @@ export interface ClaimProjectionIndex {
     sourceMemoryId: string;
     timestamp: string;
   }): Promise<void>;
+  // R4.1's batch form: close stale open values in multi-value
+  // (subjectEntityId, predicateKey) slots that out-of-order ingestion left
+  // behind. Returns the number of claims closed.
+  sweepSlotSupersession(scope: MemoryScope): Promise<number>;
 }
 
 export interface ClaimProjectionCanonicalSource {
@@ -885,6 +889,73 @@ export function createClaimProjectionIndex(
     return { set, unchanged };
   }
 
+  // R4.1's batch form (R9.4): sweep stored current claims for slots holding
+  // more than one open value — the state out-of-order ingestion leaves behind,
+  // since append-time supersession only closes claims older than the arriving
+  // one. Each such slot resolves exactly as the write path would have: the
+  // newest observation stays open, stale values close at its observedAt. The
+  // per-slot commit is optimistic-concurrency guarded on the winner claim;
+  // contested slots are skipped and repaired on the next run.
+  async function sweepSlotSupersession(scope: MemoryScope): Promise<number> {
+    const statuses = await queryStatuses(scope);
+    const selected = await loadSelectedClaims(scope, statuses);
+    const slots = new Map<string, ClaimProjection[]>();
+    for (const claim of selected) {
+      if (
+        claim.predicateKey.startsWith("fact.") ||
+        claim.polarity !== "positive" ||
+        claim.modality !== "asserted" ||
+        claim.validUntil !== undefined
+      ) {
+        continue;
+      }
+      const key = `${claim.subjectEntityId} ${claim.predicateKey}`;
+      const bucket = slots.get(key);
+      if (bucket) {
+        bucket.push(claim);
+      } else {
+        slots.set(key, [claim]);
+      }
+    }
+    let closed = 0;
+    for (const slotClaims of slots.values()) {
+      if (slotClaims.length < 2) {
+        continue;
+      }
+      const values = new Set(
+        slotClaims.map((claim) => normalizeClaimObjectText(claim)),
+      );
+      if (values.size < 2) {
+        continue;
+      }
+      const winner = [...slotClaims].sort(
+        (left, right) =>
+          right.observedAt.localeCompare(left.observedAt) ||
+          right.ingestedAt.localeCompare(left.ingestedAt) ||
+          right.id.localeCompare(left.id),
+      )[0]!;
+      const supersession = await resolveSlotSupersession(winner, scope);
+      if (!supersession) {
+        continue;
+      }
+      const committed = await documentStore.writeBatchIfUnchanged({
+        expected: {
+          collection: CLAIM_PROJECTIONS_COLLECTION,
+          id: winner.id,
+          document: winner,
+        },
+        set: supersession.set,
+        unchanged: supersession.unchanged,
+      });
+      if (committed) {
+        closed += supersession.set.filter(
+          (entry) => entry.collection === CLAIM_PROJECTIONS_COLLECTION,
+        ).length;
+      }
+    }
+    return closed;
+  }
+
   async function append(
     input: AppendClaimProjectionInput,
     state: ClaimProjectionState = "projected",
@@ -1374,6 +1445,7 @@ export function createClaimProjectionIndex(
 
   return {
     append,
+    sweepSlotSupersession,
     async markFailed(input, error) {
       const normalized = normalizeScope(input);
       const id = buildClaimProjectionStatusId(normalized, input.sourceMemoryId);

@@ -1231,6 +1231,7 @@ class GoodMemoryImpl implements GoodMemory {
       language,
       projectionRepair: projectionRuntime,
       projectionMigration: projectionRuntime,
+      claimSlotSweep: projectionRuntime,
       retrievalCues: config.adapters?.retrievalCueGenerator,
       now: () => this.now().toISOString(),
     });
