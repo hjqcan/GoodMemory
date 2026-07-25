@@ -174,6 +174,10 @@ export interface LocomoSmokeCliOptions {
   // Opt-in Phase 69 generalized projection retrieval (multi-granular BM25 +
   // direct entity adjacency, plus dense only when a real provider is present).
   generalizedFusion?: boolean;
+  // Optional dynamic-budget floor sweep knob (requires --generalized-fusion):
+  // threads retrieval.generalizedFusionMinRelativeStrength through the
+  // recommended preset. Absent = preset default (engine floor 0, no trimming).
+  fusionMinRelativeStrength?: number;
   // Opt-in R6 write-time question expansion: after seeding each case, backfill
   // attributes.retrievalCues on every stored fact through the shipped
   // retrievalCues maintenance job (generation is prefetched concurrently, the
@@ -675,6 +679,18 @@ export function parseLocomoSmokeCliOptions(
     argv,
     "--semantic-candidate-min-relative-score",
   );
+  const fusionMinRelativeStrength = parseUnitIntervalFlag(
+    argv,
+    "--fusion-min-relative-strength",
+  );
+  if (
+    fusionMinRelativeStrength !== undefined &&
+    !hasCliFlagStrict(argv, "--generalized-fusion")
+  ) {
+    throw new Error(
+      "--fusion-min-relative-strength requires --generalized-fusion",
+    );
+  }
   const parsed = {
     benchmarkRoot:
       resolveCliFlagValueStrict(argv, "--benchmark-root") ??
@@ -691,6 +707,7 @@ export function parseLocomoSmokeCliOptions(
     answerFromRecalled: hasCliFlagStrict(argv, "--answer-from-recalled"),
     bm25: hasCliFlagStrict(argv, "--bm25"),
     generalizedFusion: hasCliFlagStrict(argv, "--generalized-fusion"),
+    fusionMinRelativeStrength,
     retrievalCues: hasCliFlagStrict(argv, "--retrieval-cues"),
     labelFreeIngest: hasCliFlagStrict(argv, "--label-free-ingest"),
     caseIds: parseUniqueStringListFlag(argv, "--case-id"),
@@ -2617,6 +2634,7 @@ export function createLocomoSmokeMemory(
     semanticCandidateMinRelativeScore?: number;
     semanticCandidateMinSimilarity?: number;
     semanticCandidateTopK?: number;
+    fusionMinRelativeStrength?: number;
   } = {},
 ): GoodMemory {
   assertProviderEmbeddingTimeoutsRequireProvider(options);
@@ -2676,6 +2694,13 @@ export function createLocomoSmokeMemory(
   }
   const retrieval: NonNullable<GoodMemoryConfig["retrieval"]> = {
     ...(options.generalizedFusion ? { preset: "recommended" as const } : {}),
+    ...(options.generalizedFusion &&
+    options.fusionMinRelativeStrength !== undefined
+      ? {
+          generalizedFusionMinRelativeStrength:
+            options.fusionMinRelativeStrength,
+        }
+      : {}),
     ...(options.bm25 ? { bm25Ranking: true } : {}),
     ...(options.semanticCandidates
       ? {
@@ -2981,13 +3006,18 @@ function locomoSemanticCandidateConfig(
 
 function locomoGeneralizedFusionConfig(
   enabled: boolean,
+  fusionMinRelativeStrength?: number,
 ): NonNullable<LocomoSmokeReport["generalizedFusionConfig"]> | null {
+  // Config honesty: record the WIRED floor. The bare recommended preset
+  // leaves minRelativeStrength unset and the engine then runs 0 (no
+  // trimming) — earlier reports recorded the 0.35 library constant while
+  // the engine ran 0 (declared-not-wired; see the research doc's floor
+  // sweep note).
   return enabled
     ? {
         maxCandidates: RECOMMENDED_GENERALIZED_FUSION_MAX_CANDIDATES,
         maxTotalFacts: RECOMMENDED_GENERALIZED_FUSION_MAX_TOTAL_FACTS,
-        minRelativeStrength:
-          DEFAULT_GENERALIZED_FUSION_MIN_RELATIVE_STRENGTH,
+        minRelativeStrength: fusionMinRelativeStrength ?? 0,
         rrfK: DEFAULT_GENERALIZED_FUSION_RRF_K,
       }
     : null;
@@ -3065,6 +3095,7 @@ function buildLocomoProgressConfig(input: {
     externalRoot: input.options.benchmarkRoot ?? null,
     generalizedFusionConfig: locomoGeneralizedFusionConfig(
       input.options.generalizedFusion ?? false,
+      input.options.fusionMinRelativeStrength,
     ),
     ingestMode: input.options.conversationalExtraction
       ? "conversational-extraction"
@@ -3434,6 +3465,7 @@ export async function runLocomoSmoke(
       createLocomoSmokeMemory({
         bm25: options.bm25,
         generalizedFusion: options.generalizedFusion,
+        fusionMinRelativeStrength: options.fusionMinRelativeStrength,
         providerEmbedding: options.providerEmbedding,
         providerEmbeddingTimeoutMs: options.providerEmbeddingTimeoutMs,
         providerRerankingConfig,
@@ -3956,6 +3988,7 @@ export async function runLocomoSmoke(
     generalizedFusion: options.generalizedFusion ?? false,
     generalizedFusionConfig: locomoGeneralizedFusionConfig(
       options.generalizedFusion ?? false,
+      options.fusionMinRelativeStrength,
     ),
     caseIds: cases.map((testCase) => testCase.caseId),
     caseCount: cases.length,

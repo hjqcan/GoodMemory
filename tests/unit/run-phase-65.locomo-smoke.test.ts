@@ -96,6 +96,7 @@ describe("phase-65 LoCoMo smoke adapter", () => {
       corefNormalize: false,
       decompose: false,
       evidencePack: false,
+      fusionMinRelativeStrength: undefined,
       limit: 2,
       live: false,
       multiHop: false,
@@ -112,6 +113,7 @@ describe("phase-65 LoCoMo smoke adapter", () => {
         repairJobRetrievalBuckets: undefined,
         rerank: false,
         resume: false,
+        retrievalCues: false,
         runId: "run-locomo",
         semanticCandidateMaxAdditions: undefined,
         semanticCandidateMinSimilarity: undefined,
@@ -2929,14 +2931,46 @@ describe("phase-65 LoCoMo smoke adapter", () => {
     );
 
     expect(report.generalizedFusion).toBe(true);
+    // Config honesty: the bare recommended preset leaves the dynamic-budget
+    // floor unset, so the engine runs 0 (no trimming) — the report must
+    // record the wired value, not the library constant (0.35).
     expect(report.generalizedFusionConfig).toEqual({
       maxCandidates: 8,
       maxTotalFacts: 10,
-      minRelativeStrength: 0.35,
+      minRelativeStrength: 0,
       rrfK: 60,
     });
     expect(report.profilesCompared).toEqual(["goodmemory-recommended"]);
     expect(report.executionFailures).toBe(0);
+  });
+
+  it("wires and records --fusion-min-relative-strength", async () => {
+    const options = parseLocomoSmokeCliOptions([
+      "--generalized-fusion",
+      "--fusion-min-relative-strength",
+      "0.35",
+    ]);
+    expect(options.fusionMinRelativeStrength).toBe(0.35);
+    const report = await runLocomoSmoke(
+      {
+        generalizedFusion: true,
+        fusionMinRelativeStrength: 0.35,
+        outputDir: "/tmp/locomo-out",
+        runId: "run-locomo-fusion-floor",
+      },
+      {
+        mkdir: async () => undefined,
+        writeFile: (async () => undefined) as never,
+      },
+    );
+    expect(report.generalizedFusionConfig?.minRelativeStrength).toBe(0.35);
+    expect(report.executionFailures).toBe(0);
+  });
+
+  it("rejects --fusion-min-relative-strength without --generalized-fusion", () => {
+    expect(() =>
+      parseLocomoSmokeCliOptions(["--fusion-min-relative-strength", "0.35"]),
+    ).toThrow(/--generalized-fusion/);
   });
 
   it("defaults bm25Ranking to false (rules-only floor)", async () => {

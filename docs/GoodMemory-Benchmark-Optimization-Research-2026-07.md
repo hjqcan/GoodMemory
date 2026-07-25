@@ -914,15 +914,14 @@ touched (owned by a parallel workstream).
   support; noise did not inflate — the R1a floor counterweight was not even
   needed). Guardrail holds by construction: the generator sees only stored
   memory content through the corpus-agnostic prompt (`86db625e`), so cues
-  structurally cannot encode benchmark question phrasing. Caveats: (1)
-  retrieval-only — the answer-accuracy conversion is unmeasured; (2) the
+  structurally cannot encode benchmark question phrasing. Caveats: (1) the
   baseline is the current tree's depressed post-refactor floor (fingerprint
   drift note above), so absolute levels are not Phase 69-comparable even
-  though the paired delta is internally valid; (3) cost is one short LLM
+  though the paired delta is internally valid; (2) cost is one short LLM
   call per stored fact at maintenance time (~430-460/conversation,
   concurrency 4, ~4-6 min) with zero query-time cost. Next steps in order:
-  full 10-conversation run for the claim track (~5.9k cue calls), answer-side
-  conversion (live answers over cued retrieval), LongMemEval second family.
+  full 10-conversation run for the claim track (~5.9k cue calls; answer
+  conversion measured above), LongMemEval second family.
 
 Verification state at close of the pass: full canonical sweep green — 3,537
 unit + 645 integration/scenario/cli/eval/type/consumer + 101 example/release
