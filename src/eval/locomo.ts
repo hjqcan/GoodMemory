@@ -75,6 +75,34 @@ export function normalizeLocomoDateTime(value: string): string {
   return parsed.toISOString();
 }
 
+// Exact inverse of normalizeLocomoDateTime for upstream-shaped inputs:
+// renders a normalized ISO timestamp back to the upstream human form
+// ("1:56 pm on 8 May, 2023"). Non-ISO values pass through unchanged, so
+// render sites stay stable on roots that already carry raw date strings.
+// Rationale (drift attribution, 2026-07-26): machine-format dates in seeded
+// turn markers cost −3.6pt official end-to-end; storage keeps ISO, rendering
+// keeps the human shape.
+export function formatLocomoHumanDateTime(value: string): string {
+  if (!LOCOMO_ISO_DATE_TIME_PATTERN.test(value)) {
+    return value;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString() !== value) {
+    return value;
+  }
+  const monthName = [...LOCOMO_MONTHS.entries()].find(
+    ([, index]) => index === parsed.getUTCMonth(),
+  )?.[0];
+  if (monthName === undefined) {
+    return value;
+  }
+  const hour24 = parsed.getUTCHours();
+  const meridiem = hour24 >= 12 ? "pm" : "am";
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  const minute = String(parsed.getUTCMinutes()).padStart(2, "0");
+  return `${hour12}:${minute} ${meridiem} on ${parsed.getUTCDate()} ${monthName}, ${parsed.getUTCFullYear()}`;
+}
+
 // Upstream QA "category" is an integer 1-5; these are the normalized names.
 export const LOCOMO_QA_CATEGORIES = [
   "single_hop",

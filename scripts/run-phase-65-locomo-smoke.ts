@@ -46,6 +46,7 @@ import {
   DEFAULT_GENERALIZED_FUSION_RRF_K,
 } from "../src/recall/generalizedFusion";
 import {
+  formatLocomoHumanDateTime,
   buildLocomoSmokeCases,
   locomoTokenF1,
   LOCOMO_QA_CATEGORIES,
@@ -1931,7 +1932,9 @@ export async function seedLocomoCase(input: {
           otherLocomoSpeaker(input.testCase, turn.speaker),
         )
       : turn.content;
-    const dateTag = turn.date ? ` date=${turn.date}` : "";
+    const dateTag = turn.date
+    ? ` date=${formatLocomoHumanDateTime(turn.date)}`
+    : "";
     return `[LOCOMO dia_id=${turn.diaId} speaker=${turn.speaker}${dateTag}] ${text}`;
   };
   await input.memory.remember({
@@ -2100,7 +2103,7 @@ export async function seedLocomoCaseConversational(input: {
       messages: facts.map((fact) => {
         const turn = resolveTurn(fact.sourceMessageIndex);
         return {
-          content: `[LOCOMO dia_id=${turn.diaId} speaker=${turn.speaker}${turn.date ? ` date=${turn.date}` : ""}] ${fact.content}`,
+          content: `[LOCOMO dia_id=${turn.diaId} speaker=${turn.speaker}${turn.date ? ` date=${formatLocomoHumanDateTime(turn.date)}` : ""}] ${fact.content}`,
           role: "user",
         };
       }),
