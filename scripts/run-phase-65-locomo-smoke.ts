@@ -3826,7 +3826,14 @@ export async function runLocomoSmoke(
         };
         await Promise.all(
           Array.from(
-            { length: Math.max(1, Math.min(4, recorded.length)) },
+            {
+              // Prefetch width follows the run's question concurrency so
+              // production-scale backfills are not pinned to 4 workers.
+              length: Math.max(
+                1,
+                Math.min(options.concurrency ?? 4, recorded.length),
+              ),
+            },
             () => prefetchWorker(),
           ),
         );
