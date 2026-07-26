@@ -1062,6 +1062,27 @@ board's old "Current verdict" wording after the board was reworded to
 "Historical verdict" (Phase 68 supersession); the test fragments now match the
 board's deliberate wording.
 
+  **R6 production-stack promotion (2026-07-26, paired, captioned full
+  root, claim configuration: provider embedding + provider reranking +
+  conversational extraction + label-free ingest, categories 1-4,
+  concurrency 40, temporal-bounded-v3 answers, official gpt-5.5 judge;
+  both arms resumed to zero retrieval failures): NOT PROMOTABLE — the
+  production stack was never admission-bottlenecked.** Recall 0.8125 →
+  0.8356 (**+2.31pt**; noise down ~0.4/question), strict answers 0.6208 →
+  0.6420 (+2.1pt; answer-step failures 37 vs 79 — judge scored all 1540
+  regardless), **official judge 0.8442 → 0.8390 (−0.5pt, a wash)**. The
+  dense retriever + reranker already capture what cues add lexically, so
+  the research profile's +24.5pt collapses to noise here. This bounds
+  R6's domain precisely: **transformative for provider-free / lexical-only
+  deployments (edge, local, no embedding model) and neutral on the full
+  provider stack** — the cues job stays opt-in with that guidance, and no
+  new headline claim is minted from it. Reference point: the current-tree
+  production base scores 0.8442 official vs the v0.6.0 claim's 0.8708 —
+  consistent with the root-fingerprint + pack-refactor drift flagged
+  earlier (this workstream's changes were ablated clean), still owned by
+  the language-pack workstream. Artifacts: scratchpad `prod/`,
+  `reports/eval/research/official-rescore/prod-*-official/`.
+
 ### Program status at close (2026-07-25)
 
 Every recommendation now has a resolved disposition:
@@ -1074,11 +1095,13 @@ Every recommendation now has a resolved disposition:
   **R5** built through increment 2b (episode spans + opt-in time-gap
   segmentation); channel-level measurement still owed — needs an
   eval-runner segmentation knob (deferred, next build). **R6** built and
-  measured at every layer: full-root recall **+24.1pt**, strict answers
-  **+15.0pt**, official-judge **+24.5pt** (n=1540); LME second family
-  neutral (session-granular ceiling); THE promotable result — next step is
-  promoting cues into the production claim stack (provider embedding +
-  reranking + conversational extraction rerun). **R7** increment 1 built;
+  measured at every layer and on both stacks: research profile full-root
+  recall **+24.1pt** / strict **+15.0pt** / official **+24.5pt** (n=1540);
+  LME second family neutral (session-granular ceiling); production claim
+  stack **neutral** (+2.3pt recall, official −0.5pt wash — the dense
+  retriever already covers the lexical admission gap). Final disposition:
+  the cues job ships opt-in, recommended for provider-free / lexical-only
+  deployments where it is transformative; no production-claim change. **R7** increment 1 built;
   measured +5.9pt overall but multi_hop below the family bar, adversarial
   sign-inconsistent, and stacking with R6 is net-negative → opt-in for
   cue-less deployments; recognition filter (increment 3) is the revisit
@@ -1086,8 +1109,8 @@ Every recommendation now has a resolved disposition:
   the R9 observation-synthesis jobs remain unstarted. **R11** increment 1
   built (coverage line); full calibration unstarted. **R8 / R10 / R12**
   unstarted Stage E/F builds — untouched by this pass and explicitly out
-  of its scope; they queue behind the R6 production-stack promotion, which
-  is the highest-leverage open item.
+  of its scope; they are the remaining open build queue now that the R6
+  production-stack question is settled.
 
 Verification at close: unit+integration sweep 5105 pass / typecheck clean
 (the only failure is a parallel workstream's uncommitted in-flight file,
