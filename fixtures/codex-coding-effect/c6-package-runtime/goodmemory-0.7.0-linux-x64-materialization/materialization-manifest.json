@@ -1,0 +1,54 @@
+{
+  "closure": {
+    "assetLock": {
+      "path": "closure/asset-lock.json",
+      "sha256": "f41fd2288334bf8296d8296ef720f00f459be3cd2187ec269f4f37a54880ede9",
+      "assetRootSha256": "0f9a86a3ba0514ee0aad51cfbc2260f12f6079022e51301948af38108787f6d5"
+    },
+    "manifest": {
+      "path": "closure/closure.json",
+      "sha256": "ff8b9add78b93136c9f32e7302ab7bd8766b1ee35919a72a1518f4f212abb5b8"
+    }
+  },
+  "expectedIdentity": {
+    "path": "expected-identity.json",
+    "sha256": "770d7a80938a62c86914e863e639c20e63358fc0fc56afb99f2823f212179c30"
+  },
+  "kind": "c6-package-closure-materialization",
+  "linuxRebuildReceipt": {
+    "path": "linux-rebuild-receipt.json",
+    "sha256": "7be421af8a9a6823e66573e57abe3927c0e012d1976f75dd2789e31c5d2796e1"
+  },
+  "package": {
+    "imageSha256": "420f9c50e115184234e0e355d8a9ffed8b49c1b8512972ec9a8a402bb259834f",
+    "packageSha256": "5f9b98600ff024a80a7a337fa8953e162b7498bf909a67e8b217a9bba5dd2757",
+    "version": "0.7.0"
+  },
+  "runnerSources": {
+    "assetLock": {
+      "path": "runner-sources/c6-asset-lock.ts",
+      "sha256": "21a9a605171552d5e284c581abd0d36d0a36a1be8e599b27a6987b0bb3320254"
+    },
+    "cli": {
+      "path": "runner-sources/materialize-codex-coding-effect-c6-package-closure.ts",
+      "sha256": "3e8893a596439fc8a2bbce07ae2c72c0fc4951a78078d500bf0cc765bae86f2f"
+    },
+    "closureValidator": {
+      "path": "runner-sources/c6-package-closure.ts",
+      "sha256": "e66e1c057d45526c99054c697bee385d2f21204e01e86789a13cc0ce4f1c2927"
+    },
+    "linuxRebuild": {
+      "path": "runner-sources/c6-package-closure-linux.ts",
+      "sha256": "052b4c668690fb681b3a1c39d801e57acf0d5ad543bb1e0df22a55d42cdff530"
+    },
+    "materializer": {
+      "path": "runner-sources/c6-package-closure-materializer.ts",
+      "sha256": "c3f4efbecb2e9e7ac7b1469a6f0ec2336b75b007cc746a9178b02204c67b1e4f"
+    },
+    "packageInspector": {
+      "path": "runner-sources/c6-package.ts",
+      "sha256": "dc258ae34b65d1aa256d47c001b03eb4780cbbd3695942c384a158ffdb45e915"
+    }
+  },
+  "schemaVersion": 1
+}

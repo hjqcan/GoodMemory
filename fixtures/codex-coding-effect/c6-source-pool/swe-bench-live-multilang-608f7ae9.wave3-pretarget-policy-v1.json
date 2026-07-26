@@ -1,0 +1,217 @@
+{
+  "artifactKind": "c6-wave3-pretarget-policy",
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "codexRunReady": false,
+    "commitAncestryProven": false,
+    "independentReview": false,
+    "preregisteredBeforeWave3Capture": false,
+    "selectionExecuted": false,
+    "status": "review-and-freeze-commit-required"
+  },
+  "capacityPlanning": {
+    "assumptions": {
+      "actorSurvivalRate": 0.75,
+      "downstreamQualificationSurvivalRate": 0.25,
+      "preActorStructuralYieldRate": 0.15,
+      "repositoryCapSurvivalRate": 0.8
+    },
+    "derivedActorCappedStructuralYieldRate": 0.09,
+    "status": "planning-only-not-acceptance-evidence",
+    "targets": {
+      "acceptedRegistryCount": 470,
+      "finalCandidateManifestEpisodeCount": 391,
+      "minimumRawMetadataCount": 240000,
+      "minimumSelectedPretargetCount": 20000,
+      "reserveRawMetadataCount": 615000,
+      "reserveSelectedPretargetCount": 51000
+    }
+  },
+  "chronology": {
+    "applicablePopulation": "unseen-wave3-only",
+    "derivedAfterWave1AndWave2Inspection": true,
+    "evidenceUse": "retrospective-exploratory-only",
+    "wave1AndWave2BackselectionProhibited": true
+  },
+  "inputPolicy": {
+    "decisionInputs": [
+      "commitTotalCount",
+      "reviewCount",
+      "reviewThreadCount"
+    ],
+    "defaultDeny": true,
+    "forbiddenSelectionInputs": [
+      "acceptedEpisode",
+      "actorEligibilityDecision",
+      "actorIdentity",
+      "body",
+      "checkOutcome",
+      "commitMessage",
+      "deepCaptureOrder",
+      "diff",
+      "evaluatorDecision",
+      "files",
+      "gold",
+      "hiddenTest",
+      "language",
+      "languageYield",
+      "machineDecision",
+      "observationRefs",
+      "outcome",
+      "patch",
+      "pilotRank",
+      "priorTrancheOutcome",
+      "pullRequestBody",
+      "pullRequestTitle",
+      "rank",
+      "repositoryYield",
+      "responseNodeRank",
+      "reviewBody",
+      "selectedSequence",
+      "semanticDecision",
+      "status",
+      "test",
+      "testOutcome",
+      "title"
+    ],
+    "identityOnlyInputs": [
+      {
+        "field": "canonicalAnchorId",
+        "permittedRoles": [
+          "novelty-against-frozen-pre-wave3-exclusion",
+          "deduplication"
+        ]
+      },
+      {
+        "field": "canonicalRepository",
+        "permittedRoles": [
+          "novelty-against-frozen-pre-wave3-exclusion",
+          "deduplication",
+          "repository-cap-grouping"
+        ]
+      },
+      {
+        "field": "frozenPreWave3AnchorExclusions",
+        "permittedRoles": [
+          "novelty-reference-set-only"
+        ]
+      },
+      {
+        "field": "frozenPreWave3RepositoryExclusions",
+        "permittedRoles": [
+          "novelty-reference-set-only"
+        ]
+      }
+    ],
+    "provenanceOnlyInputs": [
+      "authorLogin",
+      "baseRefOid",
+      "commentCount",
+      "createdAt",
+      "mergeCommitOid",
+      "mergedAt",
+      "sourceDataset",
+      "sourceSplit",
+      "url"
+    ],
+    "strictDecisionInputSchema": "c6-wave3-pretarget-decision-input-v1"
+  },
+  "observedEvidence": {
+    "combined": {
+      "exactStructuralCount": 49,
+      "exactStructuralProjectionSha256": "f98011f44136509ebb952df6665e388de63c65f709f67742ea26722067f42151",
+      "metadataCount": 170,
+      "metadataProjectionSha256": "c2fd1b14853158222e8ef012b3a93e7e71a1ca351808db21421a36c6738a41d0",
+      "scope": "review-count-and-thread-count-threshold-only-no-commit-count-observation"
+    },
+    "structuralUnion": {
+      "artifactKind": "c6-live-multilang-neighbor-structural-union",
+      "bytes": 2597956,
+      "exactStructuralCandidateCount": 56,
+      "path": "swe-bench-live-multilang-608f7ae9.neighbor-structural-union-v1.json",
+      "pullAuthorOccurrenceProjectionSha256": "a35fe54aafc61279b769774c4c8e176a4a95c634cfdeaabb0f664772deb68c2c",
+      "reviewerActorOccurrenceProjectionSha256": "d426b898d5bddb5da2a187e5927695b3df6fb850168dc755ba0fd3c8e96c9fc7",
+      "reviewerLoginProjectionSha256": "4c03e130ce0b6c945f2bf526c3cfa0c25e5c17f0734cc34eafb264ebb9d56a61",
+      "schemaVersion": 1,
+      "sha256": "3a438e999450b96c039dbea6eba7ae971bb03223c42c2b2ff502f85ed76ad208",
+      "structuralResultProjectionSha256": "796eb8477e750a76ab96ae0eeccec00f7ee6a5feb03603e469630a7432d8a975",
+      "targetCount": 1334
+    },
+    "waves": [
+      {
+        "metadataQualification": {
+          "artifactKind": "c6-live-multilang-neighbor-census-qualification",
+          "bytes": 912748,
+          "canonicalPullProjectionSha256": "06b6ac9ac67447b72a492e5e118b41d1eb9195895421e94ae8eb832b69c402c8",
+          "deepCaptureTargetProjectionSha256": "f45d9ef61b55d73d2b94c8018d7874ae58887fa01133a4fd77883f0548701404",
+          "excludedAnchorProjectionSha256": "f33883edbbca727e49ab68d77e517a02323174c85b973fb3f40452d4a2ea9f5b",
+          "existingAnchorProjectionSha256": "2a144a3e31a2451c8a8076a2146d0c08bf76c23d77e7ee6c3a3d174f1cbe3aa8",
+          "metadataQuerySha256": "ad41b6656f21f35e45a592e3b39549a02a0ae9536d01ac6052c1f31b0ee635d3",
+          "path": "swe-bench-live-multilang-608f7ae9.neighbor-census-qualification-v2.json",
+          "qualificationPolicySha256": "a80ef0981b35dc5479d9d8b346d14a4187494dbb0c0591bd4dd412cb49acb025",
+          "schemaVersion": 2,
+          "sha256": "e51243ea3aa740a3a0812f8c1289ac2d3cf51436440ae0ecfea67a280743f1cc"
+        },
+        "reviewThresholdObservation": {
+          "exactStructuralCount": 29,
+          "exactStructuralProjectionSha256": "26334b3d80666ac16d1ce78af6e6263ac977a6d6824b8b5f3e635eccaa370453",
+          "metadataCount": 96,
+          "metadataProjectionSha256": "c0f062b6ec1fc0686047af36dee7cf21500222d41abce0e684c35c024a730d9d"
+        },
+        "sourceWave": "wave1",
+        "structuralQualification": {
+          "artifactKind": "c6-live-multilang-neighbor-structural-qualification",
+          "bytes": 1358575,
+          "path": "swe-bench-live-multilang-608f7ae9.neighbor-structural-qualification-v1.json",
+          "pullAuthorOccurrenceProjectionSha256": "72b4f597546917d0140b07c516a6a8577849f4f54e8b8ef074177a47b4aeaffc",
+          "reviewerActorOccurrenceProjectionSha256": "881aafcfad9a9675e353adb8b2a3aaa8fd623ff0525c29ba34a3b08f29ee0c49",
+          "reviewerLoginProjectionSha256": "a26324b895357d9191a0d84baddbca968bea218859d968a743ebdd7b48f0aa34",
+          "schemaVersion": 1,
+          "sha256": "ae096d86f779cb04f1fb0bb336d6bb4e02ced04e72385d9332d4dba82a9c1210",
+          "structuralResultProjectionSha256": "f599d7ced72a3cebd4f175a059a604d2bb2c09b97d81e268dd18915cdd136081"
+        }
+      },
+      {
+        "metadataQualification": {
+          "artifactKind": "c6-live-multilang-neighbor-census-qualification",
+          "bytes": 914091,
+          "canonicalPullProjectionSha256": "2a286123ea113d8192e90e5da87e2a268f5adcb28e07aa5b1c082e04625fd58b",
+          "deepCaptureTargetProjectionSha256": "d4aefe655c93875656c48e789af96801ba02a98edb423d6da8303ef8ddc1dbe6",
+          "excludedAnchorProjectionSha256": "d01b8d6d6497ff590a2fffbc1b9fc718dae4ce41672173f24a97550187f38bdf",
+          "existingAnchorProjectionSha256": "2a144a3e31a2451c8a8076a2146d0c08bf76c23d77e7ee6c3a3d174f1cbe3aa8",
+          "metadataQuerySha256": "ad41b6656f21f35e45a592e3b39549a02a0ae9536d01ac6052c1f31b0ee635d3",
+          "path": "swe-bench-live-multilang-608f7ae9.neighbor-census-qualification-v3.json",
+          "qualificationPolicySha256": "a80ef0981b35dc5479d9d8b346d14a4187494dbb0c0591bd4dd412cb49acb025",
+          "schemaVersion": 3,
+          "sha256": "011c264e496fb849a1f14baee1289cb815e90bd81adfa4f6bec44d08b11030ef"
+        },
+        "reviewThresholdObservation": {
+          "exactStructuralCount": 20,
+          "exactStructuralProjectionSha256": "06aa94c1e4189c4108e4d04fe78e9c22364d5bebc029aa6c96d38d7e85780f43",
+          "metadataCount": 74,
+          "metadataProjectionSha256": "af8f7bfe17059e97c80da6cb8542d2bcf264893e970a309a69ef4f1a84e7c08e"
+        },
+        "sourceWave": "wave2",
+        "structuralQualification": {
+          "artifactKind": "c6-live-multilang-neighbor-structural-qualification",
+          "bytes": 1159147,
+          "path": "swe-bench-live-multilang-608f7ae9.neighbor-continuation-structural-qualification-v1.json",
+          "pullAuthorOccurrenceProjectionSha256": "724faa616c60707b316ee24fcd1b49f6366c993ce50905919937e4b1ee8b9d4b",
+          "reviewerActorOccurrenceProjectionSha256": "b70ac3ac8cf1ae8fe73c7c6ae6f849c5501ea7df4640335157e26cb6d90cdcef",
+          "reviewerLoginProjectionSha256": "0e4d2f838e1c3fe0cd50ce3ff7e84a9018f9ab482f21209f74df51a8ed835333",
+          "schemaVersion": 1,
+          "sha256": "9dc625cbfb5c1c0bc47f9b09511b9ce7c8df789bf4bcbaafa2d8d182dd88be91",
+          "structuralResultProjectionSha256": "398b700f0521054f8c3b491e34a741df2c0e733864dc679e365d40e992a541d3"
+        }
+      }
+    ]
+  },
+  "rule": {
+    "canonicalPullRequestNovelAgainst": "frozen-pre-wave3-anchor-exclusion-set",
+    "canonicalRepositoryNovelAgainst": "frozen-pre-wave3-repository-exclusion-set",
+    "maximumCommitTotalCount": 250,
+    "minimumReviewCount": 4,
+    "minimumReviewThreadCount": 2
+  },
+  "schemaVersion": 1
+}

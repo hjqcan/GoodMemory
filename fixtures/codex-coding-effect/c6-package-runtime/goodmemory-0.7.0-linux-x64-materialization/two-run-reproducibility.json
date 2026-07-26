@@ -1,0 +1,45 @@
+{
+  "artifactKind": "c6-goodmemory-package-two-run-reproducibility",
+  "boundary": {
+    "cryptographicExecutionReceipt": false,
+    "fullClosureVendored": false,
+    "independentReplayRequired": true,
+    "localOrchestratorObservedLiveRuns": true,
+    "persistedReceiptLinuxRebuildProven": false,
+    "rawExecutionWitnessIncluded": false,
+    "status": "two-live-local-runs-projection-independent-replay-required"
+  },
+  "inputs": {
+    "imageSha256": "420f9c50e115184234e0e355d8a9ffed8b49c1b8512972ec9a8a402bb259834f",
+    "packageSha256": "5f9b98600ff024a80a7a337fa8953e162b7498bf909a67e8b217a9bba5dd2757",
+    "packageVersion": "0.7.0",
+    "runtimeIdentitySha256": "37960d64a793126071fe0d89f7b0245505b7375e06ef45cf65a879f794a45792"
+  },
+  "projection": {
+    "closure-asset-lock.json": "f41fd2288334bf8296d8296ef720f00f459be3cd2187ec269f4f37a54880ede9",
+    "closure-manifest.json": "ff8b9add78b93136c9f32e7302ab7bd8766b1ee35919a72a1518f4f212abb5b8",
+    "expected-identity.json": "770d7a80938a62c86914e863e639c20e63358fc0fc56afb99f2823f212179c30",
+    "installed-tree.jsonl": "c73a5db06353bd0dc8c0a31e2a3837e8636eca6e4d59f221df338b1acf0dc3eb",
+    "linux-rebuild-receipt.json": "7be421af8a9a6823e66573e57abe3927c0e012d1976f75dd2789e31c5d2796e1",
+    "linux-x64-build-profile.json": "6feb4fcf3067a12d83c9ec95053e6838fda0105a6c56ae2287c8092e4eb90bcd",
+    "materialization-manifest.json": "c5621f92ba894b56eb4af45a71c488a63e6e76dcce4eca74bad385e4bceac0c2",
+    "offline-index.json": "970434b32694de778b7082398d9eaa4bd256847902239d46faa13a6732774a33",
+    "package-lock.json": "0c43022e4434f2e16c7052ab3e392181d95cc4c72926bb284a709cbb04f06574",
+    "root-asset-lock.json": "24a0566c365aa6f1b9f6e91584d400a90c4642a34ac04c43d710d3c213e6bc1a"
+  },
+  "result": {
+    "byteIdenticalAcrossRuns": true,
+    "closureAssetLockSha256": "f41fd2288334bf8296d8296ef720f00f459be3cd2187ec269f4f37a54880ede9",
+    "closureAssetRootSha256": "0f9a86a3ba0514ee0aad51cfbc2260f12f6079022e51301948af38108787f6d5",
+    "expectedIdentitySha256": "770d7a80938a62c86914e863e639c20e63358fc0fc56afb99f2823f212179c30",
+    "fileCountPerRun": 124,
+    "fullClosureBytesPerRun": 57233374,
+    "installedTreeManifestSha256": "c73a5db06353bd0dc8c0a31e2a3837e8636eca6e4d59f221df338b1acf0dc3eb",
+    "linuxRebuildReceiptSha256": "7be421af8a9a6823e66573e57abe3927c0e012d1976f75dd2789e31c5d2796e1",
+    "materializationManifestSha256": "c5621f92ba894b56eb4af45a71c488a63e6e76dcce4eca74bad385e4bceac0c2",
+    "rootAssetLockSha256": "24a0566c365aa6f1b9f6e91584d400a90c4642a34ac04c43d710d3c213e6bc1a",
+    "rootAssetRootSha256": "021a686e433c459ecab4335063f246240d5a3a6effab5a565cc164030ad50a6e",
+    "runCount": 2
+  },
+  "schemaVersion": 1
+}

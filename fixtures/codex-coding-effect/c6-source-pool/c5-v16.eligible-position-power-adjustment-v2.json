@@ -1,0 +1,152 @@
+{
+  "artifactKind": "c6-eligible-position-power-adjustment",
+  "boundary": {
+    "c6CandidateCapacityInput": false,
+    "c6OutcomeInput": false,
+    "independentReviewStatus": "pending",
+    "independentlyReviewed": false,
+    "minimumEpisodeFloorReductionSupported": false,
+    "publicClaimEligible": false,
+    "status": "deterministic-c5-v16-recalculation-review-pending"
+  },
+  "correlation": {
+    "betweenMeanSquare": 0.8,
+    "completeEpisodeCount": 5,
+    "confidenceLevel": 0.95,
+    "method": "one-way-random-effects-icc-1-1-on-paired-delta",
+    "pointEstimate": 1,
+    "upperBoundMethod": "parameter-upper-bound-after-saturated-point-estimate",
+    "upperConfidenceBound": 1,
+    "withinMeanSquare": 0
+  },
+  "counts": {
+    "completeComparableEpisodeCount": 5,
+    "c6HeadlineObservationsPerEpisode": 6,
+    "eligibleComparablePairCount": 20,
+    "eligibleIncomparablePairCount": 4,
+    "eligibleScheduledPairCount": 24,
+    "fullyIncomparableEpisodeCount": 1,
+    "interruptedAttemptCount": 1,
+    "pilotEligibleObservationsPerCompleteEpisode": 4,
+    "scheduledPairCount": 36,
+    "stageExecutionCount": 72
+  },
+  "eligiblePairProjectionSha256": "88e704280d7603f6b33ed3c703236740fd34a74c1b3279d7919aae5e7573aa35",
+  "episodeSummaries": [
+    {
+      "comparableEligiblePairCount": 4,
+      "eligiblePairCount": 4,
+      "episodeId": "delimiter-boundary-policy",
+      "pairedDeltas": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "status": "complete-comparable"
+    },
+    {
+      "comparableEligiblePairCount": 4,
+      "eligiblePairCount": 4,
+      "episodeId": "duration-configuration-policy",
+      "pairedDeltas": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "status": "complete-comparable"
+    },
+    {
+      "comparableEligiblePairCount": 4,
+      "eligiblePairCount": 4,
+      "episodeId": "endpoint-open-loop",
+      "pairedDeltas": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "status": "complete-comparable"
+    },
+    {
+      "comparableEligiblePairCount": 0,
+      "eligiblePairCount": 4,
+      "episodeId": "field-boundary-policy",
+      "pairedDeltas": [],
+      "status": "fully-incomparable"
+    },
+    {
+      "comparableEligiblePairCount": 4,
+      "eligiblePairCount": 4,
+      "episodeId": "independent-string-utilities",
+      "pairedDeltas": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "status": "complete-comparable"
+    },
+    {
+      "comparableEligiblePairCount": 4,
+      "eligiblePairCount": 4,
+      "episodeId": "parse-result-correction",
+      "pairedDeltas": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "status": "complete-comparable"
+    }
+  ],
+  "planning": {
+    "alpha": 0.05,
+    "c6EligiblePositionsPerEpisode": 2,
+    "c6Seeds": 3,
+    "designEffect": 6,
+    "materialEffectRate": 0.1,
+    "minimumEpisodeFloor": 391,
+    "minimumEpisodeFloorReductionSupported": false,
+    "pairedObservationsBeforeClustering": 391,
+    "planningDiscordanceRate": 0.5,
+    "power": 0.8
+  },
+  "inputs": {
+    "attemptLedger": {
+      "bytes": 354,
+      "path": "run-attempts.jsonl",
+      "sha256": "6f563835048bcb376c24be48002bcf6c2ec46fe8122c4e669feb558502ae7beb"
+    },
+    "pairs": {
+      "bytes": 26602,
+      "path": "pairs.jsonl",
+      "sha256": "633a8af83ff25e06de644bd380359544f9f0aacc1cffa00585fb58b6dc6f17fe"
+    },
+    "pilotPlan": {
+      "bytes": 74793,
+      "path": "pilot-plan.json",
+      "sha256": "ef7668a289d1eadbc63f020d5dcd2d1973f39722399d8349a4fd3437fbe2e72b"
+    },
+    "projectedEvidenceAggregateSha256": "dd3c40ac0b516bc43b795ac932754aaa0ddebf259d512d2158c2989dba2b67d6",
+    "projectionManifest": {
+      "bytes": 118365,
+      "path": "projection-manifest.json",
+      "sha256": "41656ed99fbadfabe836aafc39d82b2416ecda368fd8a13830ff5197e6176323"
+    },
+    "report": {
+      "bytes": 3378,
+      "path": "report.json",
+      "sha256": "5985be5969750286ef2d2af623741e12051d3830f96bd4b8e0907b849b1eab0b"
+    },
+    "runId": "run-c5-pilot-v16-20260721T150112Z",
+    "sourceRunIdentitySha256": "14aecc2ae91fe72a38f4d83b06ab493dd0790e3d8274b6cd2f1ddfa2acbaf00f",
+    "stageExecutions": {
+      "bytes": 48180,
+      "path": "stage-executions.jsonl",
+      "sha256": "c0bb87ff4f4c8c9763012ef4793954ee48c46fc64b6428a4f1a01237ff2a1c07"
+    }
+  },
+  "schemaVersion": 2
+}

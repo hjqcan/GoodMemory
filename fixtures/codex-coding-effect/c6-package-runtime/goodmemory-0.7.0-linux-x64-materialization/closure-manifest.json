@@ -1,0 +1,60 @@
+{
+  "buildProfile": {
+    "path": "profiles/linux-x64-build.json",
+    "sha256": "6feb4fcf3067a12d83c9ec95053e6838fda0105a6c56ae2287c8092e4eb90bcd"
+  },
+  "consumer": {
+    "goodmemorySpecifier": "file:../package/goodmemory-0.7.0.tgz",
+    "packageJson": {
+      "path": "consumer/package.json",
+      "sha256": "b1b2cb6c6cab65705798c8c96562c435f05ee76fa8a1df880bbafe247c59d81d"
+    },
+    "packageLock": {
+      "lockfileVersion": 3,
+      "path": "consumer/package-lock.json",
+      "sha256": "0c43022e4434f2e16c7052ab3e392181d95cc4c72926bb284a709cbb04f06574"
+    },
+    "productionOnly": true
+  },
+  "installedTree": {
+    "archive": {
+      "bytes": 47134720,
+      "path": "installed/node_modules.tar",
+      "sha256": "38d9cef94bc2fedaf6f2229465781b1f7410c2dbac03480ceb6ee4736d19bacc"
+    },
+    "manifest": {
+      "entryCount": 5424,
+      "path": "installed/tree.jsonl",
+      "sha256": "c73a5db06353bd0dc8c0a31e2a3837e8636eca6e4d59f221df338b1acf0dc3eb"
+    }
+  },
+  "kind": "c6-goodmemory-package-closure",
+  "offline": {
+    "index": {
+      "path": "offline/index.json",
+      "sha256": "970434b32694de778b7082398d9eaa4bd256847902239d46faa13a6732774a33"
+    },
+    "tarballCount": 105,
+    "tarballSetSha256": "9cc1d7970dfe9b7278afde3e206cf49d02c60f8e830b10375314cfa873216c51"
+  },
+  "package": {
+    "packageJson": {
+      "bundledDependencyCount": 0,
+      "dependencySpecSha256": "d737f89c7bc900921351b91c5ed34d1c64be65417e7ce236bbd7005a316da2b1",
+      "name": "goodmemory",
+      "sha256": "2f95f06fe2af8f06d234dd789ea6dad2cebff5b120e443eb4023cfd49539f2ee",
+      "version": "0.7.0"
+    },
+    "tarball": {
+      "bytes": 1035700,
+      "integrity": "sha512-TJ/r5r5K4EI0Uh4CHze4g+0srVhzi+jU8oE9p5u3kB0aKJkmbj9JSjzMImYJt8eocbcSSR5nfV7ZVWfSm6XsJA==",
+      "path": "package/goodmemory-0.7.0.tgz",
+      "sha256": "5f9b98600ff024a80a7a337fa8953e162b7498bf909a67e8b217a9bba5dd2757"
+    }
+  },
+  "schemaVersion": 1,
+  "target": {
+    "architecture": "x64",
+    "operatingSystem": "linux"
+  }
+}

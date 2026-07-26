@@ -1,0 +1,36 @@
+{
+  "assetRootSha256": "b13f088c33b7a1862257d8b5521bcb3dcff9078b019a2e385e4148e876c077d9",
+  "files": [
+    {
+      "bytes": 5084,
+      "mode": 420,
+      "path": "evidence.json",
+      "sha256": "b304af5ad2733aa05bb36d8ac7066bc93ab51bfeaca54d8d3cbb22f2a5846749"
+    },
+    {
+      "bytes": 4604,
+      "mode": 420,
+      "path": "source-final.patch",
+      "sha256": "8b40790051649e06d24692b51aa59cea9269aae4dab10494c229e36786e812bf"
+    },
+    {
+      "bytes": 4579,
+      "mode": 420,
+      "path": "source-first-fix.patch",
+      "sha256": "0491d1613765394b34a79fa791d3da1cc5480c126cc612144c60681b31d316da"
+    },
+    {
+      "bytes": 2774,
+      "mode": 420,
+      "path": "source-initial.patch",
+      "sha256": "d997516d96139ca4802733d7cc7fa5be1b7c15c8ad7e9e2d6919528d78e723a1"
+    },
+    {
+      "bytes": 1793,
+      "mode": 420,
+      "path": "test.patch",
+      "sha256": "94603293a25737d785ee4dde82953f40a71e6318daafadc103aa8e18c7954004"
+    }
+  ],
+  "schemaVersion": 1
+}

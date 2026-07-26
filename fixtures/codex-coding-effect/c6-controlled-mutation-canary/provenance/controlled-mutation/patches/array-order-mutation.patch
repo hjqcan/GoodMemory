@@ -1,0 +1,12 @@
+diff --git a/src/defu.ts b/src/defu.ts
+--- a/src/defu.ts
++++ b/src/defu.ts
+@@ -25,7 +25,7 @@ function _defu<T>(baseObject: T, defaults: any, namespace = ".", merger?: Mer
+     }
+ 
+     if (Array.isArray(value) && Array.isArray(object[key])) {
+-      object[key] = [...value, ...object[key]];
++      object[key] = [...object[key], ...value];
+     } else if (isPlainObject(value) && isPlainObject(object[key])) {
+       object[key] = _defu(
+         value,

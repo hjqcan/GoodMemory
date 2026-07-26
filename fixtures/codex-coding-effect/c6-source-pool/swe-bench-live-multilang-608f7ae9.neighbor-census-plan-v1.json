@@ -1,0 +1,819 @@
+{
+  "artifactKind": "c6-live-multilang-neighbor-census-plan",
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "candidateManifestFrozen": false,
+    "censusCaptured": false,
+    "codexRunReady": false,
+    "machineQualifiedEpisodeCount": 0,
+    "semanticallyQualifiedEpisodeCount": 0,
+    "status": "repository-neighbor-census-plan-only"
+  },
+  "counts": {
+    "canonicalRedirectCollapseCount": 1,
+    "canonicalRepositoryCount": 380,
+    "censusCandidateCeiling": 1024,
+    "currentFrameRepositoryCount": 57,
+    "eligibleRepositoryCount": 343,
+    "excludedCurrentFrameRepositoryCount": 37,
+    "selectedRepositoryCount": 64,
+    "sourceAnchorCount": 743,
+    "sourceRequestedRepositoryCount": 381
+  },
+  "independenceBoundary": {
+    "actorFrameRepositoryProjectionSha256": "6ebadc33cb46e2394247cc8b12e1ec76c90d442d4b70d1397f8c1141199d879a",
+    "canonicalRepositoryProjectionSha256": "96753ed3689dea5589bf5ed875cbabec354a9cc8a02f403b11892de1a549160d",
+    "eligibleRepositoryProjectionSha256": "f41529c6ac7c8c63ba08b384ea9c1a1c7fa04c8af4ac69426959e8aeb59f23be",
+    "existingAnchorProjectionSha256": "2a144a3e31a2451c8a8076a2146d0c08bf76c23d77e7ee6c3a3d174f1cbe3aa8",
+    "goldInput": false,
+    "machineDecisionInput": false,
+    "outcomeInput": false,
+    "patchInput": false,
+    "selectedRepositoryProjectionSha256": "dee7643fa9693c4b43cb56f985d7cf7aded9ed4de3c8fc6c62c0def428a0fe0e",
+    "semanticDecisionInput": false,
+    "testInput": false
+  },
+  "inputs": {
+    "actorFrame": {
+      "bytes": 88335,
+      "path": "multi-source.reviewer-actor-qualified-screening-frame-v1.json",
+      "sha256": "6838de7f36875b3b3de104ffd896b9e30dcf95ad1eb285a87b465789800f4b0c"
+    },
+    "actorFrameCandidateProjectionSha256": "1d0c5689521aa906e7fb2bf015579bbcc7638b31093966edec5339724aec82af",
+    "capturePlan": {
+      "bytes": 346092,
+      "path": "swe-bench-live-multilang-608f7ae9.capture-plan-v1.json",
+      "sha256": "3923d3de3fd1bc5906530b918e2ca4c38cf0e83e3f93d1c590447dce1f5d1f37"
+    },
+    "capturePlanTargetProjectionSha256": "c8851de5b5d1172089d73472dfc40d237876c3600c0c483373bd619c75f7f652",
+    "graphqlRootSha256": "8b8ad4ac1b3b1f92b0d352cb808eef0953ac07cd1bf74eb9f61d592f4e481dcc"
+  },
+  "rule": {
+    "canonicalIdentity": "lowercase-resolved-repository-plus-pull-number",
+    "currentFrameRepositoryExclusion": "exclude-all-current-actor-qualified-frame-repositories",
+    "existingAnchorExclusion": "exclude-all-canonical-source-anchors-before-neighbor-qualification",
+    "forbiddenSelectionInputs": [
+      "patch",
+      "test",
+      "gold",
+      "outcome",
+      "semanticDecision",
+      "machineDecision"
+    ],
+    "perRepositoryCensusCap": 16,
+    "repositorySplitAssignment": "earliest-source-captureOrder",
+    "selectionOrder": "withinSplitRank-ascending-then-frozen-sourceSplit-order",
+    "sourceSplitOrder": [
+      "c",
+      "cpp",
+      "go",
+      "js",
+      "rust",
+      "java",
+      "ts",
+      "cs"
+    ],
+    "withinSplitSelection": "first-8-eligible-canonical-repositories-by-seed-captureOrder"
+  },
+  "schemaVersion": 1,
+  "splitCounts": {
+    "c": {
+      "eligible": 17,
+      "selected": 8
+    },
+    "cpp": {
+      "eligible": 27,
+      "selected": 8
+    },
+    "go": {
+      "eligible": 84,
+      "selected": 8
+    },
+    "js": {
+      "eligible": 38,
+      "selected": 8
+    },
+    "rust": {
+      "eligible": 37,
+      "selected": 8
+    },
+    "java": {
+      "eligible": 52,
+      "selected": 8
+    },
+    "ts": {
+      "eligible": 59,
+      "selected": 8
+    },
+    "cs": {
+      "eligible": 29,
+      "selected": 8
+    }
+  },
+  "targets": [
+    {
+      "canonicalRepository": "samtools/samtools",
+      "censusCap": 16,
+      "owner": "samtools",
+      "pilotRank": 1,
+      "repo": "samtools",
+      "seedAnchorId": "samtools/samtools#2235",
+      "seedCaptureOrder": 1,
+      "sourceSplit": "c",
+      "withinSplitRank": 1
+    },
+    {
+      "canonicalRepository": "khronosgroup/glslang",
+      "censusCap": 16,
+      "owner": "khronosgroup",
+      "pilotRank": 2,
+      "repo": "glslang",
+      "seedAnchorId": "khronosgroup/glslang#4006",
+      "seedCaptureOrder": 39,
+      "sourceSplit": "cpp",
+      "withinSplitRank": 1
+    },
+    {
+      "canonicalRepository": "openfga/openfga",
+      "censusCap": 16,
+      "owner": "openfga",
+      "pilotRank": 3,
+      "repo": "openfga",
+      "seedAnchorId": "openfga/openfga#2598",
+      "seedCaptureOrder": 113,
+      "sourceSplit": "go",
+      "withinSplitRank": 1
+    },
+    {
+      "canonicalRepository": "multiqc/multiqc",
+      "censusCap": 16,
+      "owner": "multiqc",
+      "pilotRank": 4,
+      "repo": "multiqc",
+      "seedAnchorId": "multiqc/multiqc#3242",
+      "seedCaptureOrder": 251,
+      "sourceSplit": "js",
+      "withinSplitRank": 1
+    },
+    {
+      "canonicalRepository": "linebender/vello",
+      "censusCap": 16,
+      "owner": "linebender",
+      "pilotRank": 5,
+      "repo": "vello",
+      "seedAnchorId": "linebender/vello#1100",
+      "seedCaptureOrder": 344,
+      "sourceSplit": "rust",
+      "withinSplitRank": 1
+    },
+    {
+      "canonicalRepository": "apple/pkl",
+      "censusCap": 16,
+      "owner": "apple",
+      "pilotRank": 6,
+      "repo": "pkl",
+      "seedAnchorId": "apple/pkl#1165",
+      "seedCaptureOrder": 439,
+      "sourceSplit": "java",
+      "withinSplitRank": 1
+    },
+    {
+      "canonicalRepository": "owid/owid-grapher",
+      "censusCap": 16,
+      "owner": "owid",
+      "pilotRank": 7,
+      "repo": "owid-grapher",
+      "seedAnchorId": "owid/owid-grapher#5115",
+      "seedCaptureOrder": 546,
+      "sourceSplit": "ts",
+      "withinSplitRank": 1
+    },
+    {
+      "canonicalRepository": "dotnet/winforms",
+      "censusCap": 16,
+      "owner": "dotnet",
+      "pilotRank": 8,
+      "repo": "winforms",
+      "seedAnchorId": "dotnet/winforms#13797",
+      "seedCaptureOrder": 658,
+      "sourceSplit": "cs",
+      "withinSplitRank": 1
+    },
+    {
+      "canonicalRepository": "micropython/micropython",
+      "censusCap": 16,
+      "owner": "micropython",
+      "pilotRank": 9,
+      "repo": "micropython",
+      "seedAnchorId": "micropython/micropython#17683",
+      "seedCaptureOrder": 2,
+      "sourceSplit": "c",
+      "withinSplitRank": 2
+    },
+    {
+      "canonicalRepository": "musescore/musescore",
+      "censusCap": 16,
+      "owner": "musescore",
+      "pilotRank": 10,
+      "repo": "musescore",
+      "seedAnchorId": "musescore/musescore#28806",
+      "seedCaptureOrder": 42,
+      "sourceSplit": "cpp",
+      "withinSplitRank": 2
+    },
+    {
+      "canonicalRepository": "oauth2-proxy/oauth2-proxy",
+      "censusCap": 16,
+      "owner": "oauth2-proxy",
+      "pilotRank": 11,
+      "repo": "oauth2-proxy",
+      "seedAnchorId": "oauth2-proxy/oauth2-proxy#2524",
+      "seedCaptureOrder": 114,
+      "sourceSplit": "go",
+      "withinSplitRank": 2
+    },
+    {
+      "canonicalRepository": "less/less.js",
+      "censusCap": 16,
+      "owner": "less",
+      "pilotRank": 12,
+      "repo": "less.js",
+      "seedAnchorId": "less/less.js#4349",
+      "seedCaptureOrder": 260,
+      "sourceSplit": "js",
+      "withinSplitRank": 2
+    },
+    {
+      "canonicalRepository": "uutils/coreutils",
+      "censusCap": 16,
+      "owner": "uutils",
+      "pilotRank": 13,
+      "repo": "coreutils",
+      "seedAnchorId": "uutils/coreutils#8447",
+      "seedCaptureOrder": 346,
+      "sourceSplit": "rust",
+      "withinSplitRank": 2
+    },
+    {
+      "canonicalRepository": "alibaba/nacos",
+      "censusCap": 16,
+      "owner": "alibaba",
+      "pilotRank": 14,
+      "repo": "nacos",
+      "seedAnchorId": "alibaba/nacos#13650",
+      "seedCaptureOrder": 440,
+      "sourceSplit": "java",
+      "withinSplitRank": 2
+    },
+    {
+      "canonicalRepository": "remotion-dev/remotion",
+      "censusCap": 16,
+      "owner": "remotion-dev",
+      "pilotRank": 15,
+      "repo": "remotion",
+      "seedAnchorId": "remotion-dev/remotion#5529",
+      "seedCaptureOrder": 547,
+      "sourceSplit": "ts",
+      "withinSplitRank": 2
+    },
+    {
+      "canonicalRepository": "dotnet/machinelearning",
+      "censusCap": 16,
+      "owner": "dotnet",
+      "pilotRank": 16,
+      "repo": "machinelearning",
+      "seedAnchorId": "dotnet/machinelearning#7494",
+      "seedCaptureOrder": 661,
+      "sourceSplit": "cs",
+      "withinSplitRank": 2
+    },
+    {
+      "canonicalRepository": "timescale/timescaledb",
+      "censusCap": 16,
+      "owner": "timescale",
+      "pilotRank": 17,
+      "repo": "timescaledb",
+      "seedAnchorId": "timescale/timescaledb#8559",
+      "seedCaptureOrder": 3,
+      "sourceSplit": "c",
+      "withinSplitRank": 3
+    },
+    {
+      "canonicalRepository": "alibaba/yalantinglibs",
+      "censusCap": 16,
+      "owner": "alibaba",
+      "pilotRank": 18,
+      "repo": "yalantinglibs",
+      "seedAnchorId": "alibaba/yalantinglibs#1002",
+      "seedCaptureOrder": 43,
+      "sourceSplit": "cpp",
+      "withinSplitRank": 3
+    },
+    {
+      "canonicalRepository": "kubernetes/kops",
+      "censusCap": 16,
+      "owner": "kubernetes",
+      "pilotRank": 19,
+      "repo": "kops",
+      "seedAnchorId": "kubernetes/kops#17519",
+      "seedCaptureOrder": 115,
+      "sourceSplit": "go",
+      "withinSplitRank": 3
+    },
+    {
+      "canonicalRepository": "codeceptjs/codeceptjs",
+      "censusCap": 16,
+      "owner": "codeceptjs",
+      "pilotRank": 20,
+      "repo": "codeceptjs",
+      "seedAnchorId": "codeceptjs/codeceptjs#5106",
+      "seedCaptureOrder": 261,
+      "sourceSplit": "js",
+      "withinSplitRank": 3
+    },
+    {
+      "canonicalRepository": "casey/just",
+      "censusCap": 16,
+      "owner": "casey",
+      "pilotRank": 21,
+      "repo": "just",
+      "seedAnchorId": "casey/just#2835",
+      "seedCaptureOrder": 348,
+      "sourceSplit": "rust",
+      "withinSplitRank": 3
+    },
+    {
+      "canonicalRepository": "wiremock/wiremock",
+      "censusCap": 16,
+      "owner": "wiremock",
+      "pilotRank": 22,
+      "repo": "wiremock",
+      "seedAnchorId": "wiremock/wiremock#3130",
+      "seedCaptureOrder": 441,
+      "sourceSplit": "java",
+      "withinSplitRank": 3
+    },
+    {
+      "canonicalRepository": "openai/openai-agents-js",
+      "censusCap": 16,
+      "owner": "openai",
+      "pilotRank": 23,
+      "repo": "openai-agents-js",
+      "seedAnchorId": "openai/openai-agents-js#340",
+      "seedCaptureOrder": 548,
+      "sourceSplit": "ts",
+      "withinSplitRank": 3
+    },
+    {
+      "canonicalRepository": "dotnetcore/bootstrapblazor",
+      "censusCap": 16,
+      "owner": "dotnetcore",
+      "pilotRank": 24,
+      "repo": "bootstrapblazor",
+      "seedAnchorId": "dotnetcore/bootstrapblazor#6540",
+      "seedCaptureOrder": 662,
+      "sourceSplit": "cs",
+      "withinSplitRank": 3
+    },
+    {
+      "canonicalRepository": "cilium/tetragon",
+      "censusCap": 16,
+      "owner": "cilium",
+      "pilotRank": 25,
+      "repo": "tetragon",
+      "seedAnchorId": "cilium/tetragon#4069",
+      "seedCaptureOrder": 4,
+      "sourceSplit": "c",
+      "withinSplitRank": 4
+    },
+    {
+      "canonicalRepository": "apache/kvrocks",
+      "censusCap": 16,
+      "owner": "apache",
+      "pilotRank": 26,
+      "repo": "kvrocks",
+      "seedAnchorId": "apache/kvrocks#3084",
+      "seedCaptureOrder": 44,
+      "sourceSplit": "cpp",
+      "withinSplitRank": 4
+    },
+    {
+      "canonicalRepository": "apache/casbin",
+      "censusCap": 16,
+      "owner": "apache",
+      "pilotRank": 27,
+      "repo": "casbin",
+      "seedAnchorId": "apache/casbin#1512",
+      "seedCaptureOrder": 116,
+      "sourceSplit": "go",
+      "withinSplitRank": 4
+    },
+    {
+      "canonicalRepository": "moment/luxon",
+      "censusCap": 16,
+      "owner": "moment",
+      "pilotRank": 28,
+      "repo": "luxon",
+      "seedAnchorId": "moment/luxon#1720",
+      "seedCaptureOrder": 264,
+      "sourceSplit": "js",
+      "withinSplitRank": 4
+    },
+    {
+      "canonicalRepository": "gleam-lang/gleam",
+      "censusCap": 16,
+      "owner": "gleam-lang",
+      "pilotRank": 29,
+      "repo": "gleam",
+      "seedAnchorId": "gleam-lang/gleam#4854",
+      "seedCaptureOrder": 349,
+      "sourceSplit": "rust",
+      "withinSplitRank": 4
+    },
+    {
+      "canonicalRepository": "openapitools/openapi-generator",
+      "censusCap": 16,
+      "owner": "openapitools",
+      "pilotRank": 30,
+      "repo": "openapi-generator",
+      "seedAnchorId": "openapitools/openapi-generator#21579",
+      "seedCaptureOrder": 442,
+      "sourceSplit": "java",
+      "withinSplitRank": 4
+    },
+    {
+      "canonicalRepository": "firefox-devtools/profiler",
+      "censusCap": 16,
+      "owner": "firefox-devtools",
+      "pilotRank": 31,
+      "repo": "profiler",
+      "seedAnchorId": "firefox-devtools/profiler#5512",
+      "seedCaptureOrder": 549,
+      "sourceSplit": "ts",
+      "withinSplitRank": 4
+    },
+    {
+      "canonicalRepository": "dotnet/efcore",
+      "censusCap": 16,
+      "owner": "dotnet",
+      "pilotRank": 32,
+      "repo": "efcore",
+      "seedAnchorId": "dotnet/efcore#36620",
+      "seedCaptureOrder": 663,
+      "sourceSplit": "cs",
+      "withinSplitRank": 4
+    },
+    {
+      "canonicalRepository": "quickjs-ng/quickjs",
+      "censusCap": 16,
+      "owner": "quickjs-ng",
+      "pilotRank": 33,
+      "repo": "quickjs",
+      "seedAnchorId": "quickjs-ng/quickjs#1113",
+      "seedCaptureOrder": 5,
+      "sourceSplit": "c",
+      "withinSplitRank": 5
+    },
+    {
+      "canonicalRepository": "esphome/esphome",
+      "censusCap": 16,
+      "owner": "esphome",
+      "pilotRank": 34,
+      "repo": "esphome",
+      "seedAnchorId": "esphome/esphome#10345",
+      "seedCaptureOrder": 45,
+      "sourceSplit": "cpp",
+      "withinSplitRank": 5
+    },
+    {
+      "canonicalRepository": "netbirdio/netbird",
+      "censusCap": 16,
+      "owner": "netbirdio",
+      "pilotRank": 35,
+      "repo": "netbird",
+      "seedAnchorId": "netbirdio/netbird#3970",
+      "seedCaptureOrder": 117,
+      "sourceSplit": "go",
+      "withinSplitRank": 5
+    },
+    {
+      "canonicalRepository": "automattic/mongoose",
+      "censusCap": 16,
+      "owner": "automattic",
+      "pilotRank": 36,
+      "repo": "mongoose",
+      "seedAnchorId": "automattic/mongoose#15534",
+      "seedCaptureOrder": 268,
+      "sourceSplit": "js",
+      "withinSplitRank": 5
+    },
+    {
+      "canonicalRepository": "jtroo/kanata",
+      "censusCap": 16,
+      "owner": "jtroo",
+      "pilotRank": 37,
+      "repo": "kanata",
+      "seedAnchorId": "jtroo/kanata#1681",
+      "seedCaptureOrder": 351,
+      "sourceSplit": "rust",
+      "withinSplitRank": 5
+    },
+    {
+      "canonicalRepository": "diffplug/spotless",
+      "censusCap": 16,
+      "owner": "diffplug",
+      "pilotRank": 38,
+      "repo": "spotless",
+      "seedAnchorId": "diffplug/spotless#2520",
+      "seedCaptureOrder": 443,
+      "sourceSplit": "java",
+      "withinSplitRank": 5
+    },
+    {
+      "canonicalRepository": "chainsafe/lodestar",
+      "censusCap": 16,
+      "owner": "chainsafe",
+      "pilotRank": 39,
+      "repo": "lodestar",
+      "seedAnchorId": "chainsafe/lodestar#8203",
+      "seedCaptureOrder": 551,
+      "sourceSplit": "ts",
+      "withinSplitRank": 5
+    },
+    {
+      "canonicalRepository": "unoplatform/uno",
+      "censusCap": 16,
+      "owner": "unoplatform",
+      "pilotRank": 40,
+      "repo": "uno",
+      "seedAnchorId": "unoplatform/uno#20897",
+      "seedCaptureOrder": 665,
+      "sourceSplit": "cs",
+      "withinSplitRank": 5
+    },
+    {
+      "canonicalRepository": "fluent/fluent-bit",
+      "censusCap": 16,
+      "owner": "fluent",
+      "pilotRank": 41,
+      "repo": "fluent-bit",
+      "seedAnchorId": "fluent/fluent-bit#10563",
+      "seedCaptureOrder": 6,
+      "sourceSplit": "c",
+      "withinSplitRank": 6
+    },
+    {
+      "canonicalRepository": "pybind/pybind11",
+      "censusCap": 16,
+      "owner": "pybind",
+      "pilotRank": 42,
+      "repo": "pybind11",
+      "seedAnchorId": "pybind/pybind11#5776",
+      "seedCaptureOrder": 47,
+      "sourceSplit": "cpp",
+      "withinSplitRank": 6
+    },
+    {
+      "canonicalRepository": "ossf/scorecard",
+      "censusCap": 16,
+      "owner": "ossf",
+      "pilotRank": 43,
+      "repo": "scorecard",
+      "seedAnchorId": "ossf/scorecard#4728",
+      "seedCaptureOrder": 118,
+      "sourceSplit": "go",
+      "withinSplitRank": 6
+    },
+    {
+      "canonicalRepository": "facebook/stylex",
+      "censusCap": 16,
+      "owner": "facebook",
+      "pilotRank": 44,
+      "repo": "stylex",
+      "seedAnchorId": "facebook/stylex#1209",
+      "seedCaptureOrder": 273,
+      "sourceSplit": "js",
+      "withinSplitRank": 6
+    },
+    {
+      "canonicalRepository": "immunant/c2rust",
+      "censusCap": 16,
+      "owner": "immunant",
+      "pilotRank": 45,
+      "repo": "c2rust",
+      "seedAnchorId": "immunant/c2rust#1322",
+      "seedCaptureOrder": 352,
+      "sourceSplit": "rust",
+      "withinSplitRank": 6
+    },
+    {
+      "canonicalRepository": "automq/automq",
+      "censusCap": 16,
+      "owner": "automq",
+      "pilotRank": 46,
+      "repo": "automq",
+      "seedAnchorId": "automq/automq#2699",
+      "seedCaptureOrder": 444,
+      "sourceSplit": "java",
+      "withinSplitRank": 6
+    },
+    {
+      "canonicalRepository": "excalidraw/excalidraw",
+      "censusCap": 16,
+      "owner": "excalidraw",
+      "pilotRank": 47,
+      "repo": "excalidraw",
+      "seedAnchorId": "excalidraw/excalidraw#9760",
+      "seedCaptureOrder": 553,
+      "sourceSplit": "ts",
+      "withinSplitRank": 6
+    },
+    {
+      "canonicalRepository": "dotnet/orleans",
+      "censusCap": 16,
+      "owner": "dotnet",
+      "pilotRank": 48,
+      "repo": "orleans",
+      "seedAnchorId": "dotnet/orleans#9605",
+      "seedCaptureOrder": 666,
+      "sourceSplit": "cs",
+      "withinSplitRank": 6
+    },
+    {
+      "canonicalRepository": "php/php-src",
+      "censusCap": 16,
+      "owner": "php",
+      "pilotRank": 49,
+      "repo": "php-src",
+      "seedAnchorId": "php/php-src#19478",
+      "seedCaptureOrder": 7,
+      "sourceSplit": "c",
+      "withinSplitRank": 7
+    },
+    {
+      "canonicalRepository": "gothenburgbitfactory/taskwarrior",
+      "censusCap": 16,
+      "owner": "gothenburgbitfactory",
+      "pilotRank": 50,
+      "repo": "taskwarrior",
+      "seedAnchorId": "gothenburgbitfactory/taskwarrior#3911",
+      "seedCaptureOrder": 48,
+      "sourceSplit": "cpp",
+      "withinSplitRank": 7
+    },
+    {
+      "canonicalRepository": "nats-io/nats-server",
+      "censusCap": 16,
+      "owner": "nats-io",
+      "pilotRank": 51,
+      "repo": "nats-server",
+      "seedAnchorId": "nats-io/nats-server#7089",
+      "seedCaptureOrder": 119,
+      "sourceSplit": "go",
+      "withinSplitRank": 7
+    },
+    {
+      "canonicalRepository": "rollup/rollup",
+      "censusCap": 16,
+      "owner": "rollup",
+      "pilotRank": 52,
+      "repo": "rollup",
+      "seedAnchorId": "rollup/rollup#6041",
+      "seedCaptureOrder": 274,
+      "sourceSplit": "js",
+      "withinSplitRank": 7
+    },
+    {
+      "canonicalRepository": "provablehq/leo",
+      "censusCap": 16,
+      "owner": "provablehq",
+      "pilotRank": 53,
+      "repo": "leo",
+      "seedAnchorId": "provablehq/leo#28814",
+      "seedCaptureOrder": 356,
+      "sourceSplit": "rust",
+      "withinSplitRank": 7
+    },
+    {
+      "canonicalRepository": "springdoc/springdoc-openapi",
+      "censusCap": 16,
+      "owner": "springdoc",
+      "pilotRank": 54,
+      "repo": "springdoc-openapi",
+      "seedAnchorId": "springdoc/springdoc-openapi#3051",
+      "seedCaptureOrder": 445,
+      "sourceSplit": "java",
+      "withinSplitRank": 7
+    },
+    {
+      "canonicalRepository": "shopify/hydrogen",
+      "censusCap": 16,
+      "owner": "shopify",
+      "pilotRank": 55,
+      "repo": "hydrogen",
+      "seedAnchorId": "shopify/hydrogen#3072",
+      "seedCaptureOrder": 555,
+      "sourceSplit": "ts",
+      "withinSplitRank": 7
+    },
+    {
+      "canonicalRepository": "dotnet/sdk",
+      "censusCap": 16,
+      "owner": "dotnet",
+      "pilotRank": 56,
+      "repo": "sdk",
+      "seedAnchorId": "dotnet/sdk#50083",
+      "seedCaptureOrder": 670,
+      "sourceSplit": "cs",
+      "withinSplitRank": 7
+    },
+    {
+      "canonicalRepository": "varnishcache/varnish-cache",
+      "censusCap": 16,
+      "owner": "varnishcache",
+      "pilotRank": 57,
+      "repo": "varnish-cache",
+      "seedAnchorId": "varnishcache/varnish-cache#4370",
+      "seedCaptureOrder": 8,
+      "sourceSplit": "c",
+      "withinSplitRank": 8
+    },
+    {
+      "canonicalRepository": "versatica/mediasoup",
+      "censusCap": 16,
+      "owner": "versatica",
+      "pilotRank": 58,
+      "repo": "mediasoup",
+      "seedAnchorId": "versatica/mediasoup#1570",
+      "seedCaptureOrder": 53,
+      "sourceSplit": "cpp",
+      "withinSplitRank": 8
+    },
+    {
+      "canonicalRepository": "graphql-go/graphql",
+      "censusCap": 16,
+      "owner": "graphql-go",
+      "pilotRank": 59,
+      "repo": "graphql",
+      "seedAnchorId": "graphql-go/graphql#727",
+      "seedCaptureOrder": 120,
+      "sourceSplit": "go",
+      "withinSplitRank": 8
+    },
+    {
+      "canonicalRepository": "marko-js/marko",
+      "censusCap": 16,
+      "owner": "marko-js",
+      "pilotRank": 60,
+      "repo": "marko",
+      "seedAnchorId": "marko-js/marko#2793",
+      "seedCaptureOrder": 277,
+      "sourceSplit": "js",
+      "withinSplitRank": 8
+    },
+    {
+      "canonicalRepository": "rust-lang/rust-analyzer",
+      "censusCap": 16,
+      "owner": "rust-lang",
+      "pilotRank": 61,
+      "repo": "rust-analyzer",
+      "seedAnchorId": "rust-lang/rust-analyzer#20185",
+      "seedCaptureOrder": 358,
+      "sourceSplit": "rust",
+      "withinSplitRank": 8
+    },
+    {
+      "canonicalRepository": "openliberty/open-liberty",
+      "censusCap": 16,
+      "owner": "openliberty",
+      "pilotRank": 62,
+      "repo": "open-liberty",
+      "seedAnchorId": "openliberty/open-liberty#32198",
+      "seedCaptureOrder": 447,
+      "sourceSplit": "java",
+      "withinSplitRank": 8
+    },
+    {
+      "canonicalRepository": "recharts/recharts",
+      "censusCap": 16,
+      "owner": "recharts",
+      "pilotRank": 63,
+      "repo": "recharts",
+      "seedAnchorId": "recharts/recharts#6068",
+      "seedCaptureOrder": 557,
+      "sourceSplit": "ts",
+      "withinSplitRank": 8
+    },
+    {
+      "canonicalRepository": "dotnet/aspnetcore",
+      "censusCap": 16,
+      "owner": "dotnet",
+      "pilotRank": 64,
+      "repo": "aspnetcore",
+      "seedAnchorId": "dotnet/aspnetcore#62868",
+      "seedCaptureOrder": 674,
+      "sourceSplit": "cs",
+      "withinSplitRank": 8
+    }
+  ]
+}

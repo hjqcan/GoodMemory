@@ -1,0 +1,94 @@
+{
+  "archives": {
+    "captureA": {
+      "bytes": 513569,
+      "outerAssetLock": {
+        "artifactKind": "c6-asset-lock",
+        "assetRootSha256": "73050021573d611b9b55e93a4e12f7b91c58b8ec986956af6ae228dd4d9a1526",
+        "schemaVersion": 1,
+        "sha256": "ffe9b216e6fb2539bcbfca81331ea2735ebad8990d902c2d75c7e4a52e438379"
+      },
+      "rawEvidenceAssetLock": {
+        "artifactKind": "c6-asset-lock",
+        "assetRootSha256": "ef837a8c53d8b9ee154c23af69cd0f4d521218507f3f1afabc61346b495713ea",
+        "schemaVersion": 1,
+        "sha256": "518579d067b802d5e0f27c25e409369cbb1085c20520e9eab1fa5b3ab29b2d1a"
+      },
+      "sha256": "5fe5a4c2cf6769095a0f3e05d4316dde22019f05adbb62cce6df6473de5c7120",
+      "structure": {
+        "bytes": 1540580,
+        "path": "swe-bench-live-multilang-608f7ae9.source-v3-simple-prior-repository-identity-structure-v1.json",
+        "sha256": "c570fc22f10595c46656fb51c1e75b10fddec41f7295cb16bcd93f0dd02dbe97"
+      },
+      "path": "capture-a.tar.gz"
+    },
+    "captureB": {
+      "bytes": 514548,
+      "outerAssetLock": {
+        "artifactKind": "c6-asset-lock",
+        "assetRootSha256": "50a22693d343eef064817d098f1592d4af6ba6e168a1c30cf12dc5e6de81bbf2",
+        "schemaVersion": 1,
+        "sha256": "876ef8aa57ce8ae52bacdf74c9184b01fc3bd05aa7733555484302c3d7ae5d50"
+      },
+      "rawEvidenceAssetLock": {
+        "artifactKind": "c6-asset-lock",
+        "assetRootSha256": "56408ac2829923ba6c7b0e97b47c86a9d13188fde1776fa225421dc9c7c25e4f",
+        "schemaVersion": 1,
+        "sha256": "ec5eb8033340c9a2cde89499703b3b1b9292a9d96e561e05be3085e7d60df758"
+      },
+      "sha256": "4a04936a325108ab189f68f6d5354d7ccab1be5aad6a010ffc0add85cb9e5b10",
+      "structure": {
+        "bytes": 1540440,
+        "path": "swe-bench-live-multilang-608f7ae9.source-v3-simple-prior-repository-identity-structure-v1.json",
+        "sha256": "5f10f3618ec9d06d8079c5197159d6f4e49a8f6c2589e7c19c443d59c8c1713c"
+      },
+      "path": "capture-b.tar.gz"
+    }
+  },
+  "artifactKind": "c6-source-v3-simple-prior-repository-identity-portable-evidence",
+  "boundary": {
+    "candidateManifestFrozen": false,
+    "captureOriginIndependentlyVerified": false,
+    "codexRunReady": false,
+    "externalAuthenticityVerified": false,
+    "formalCensusPermitted": false,
+    "independentCaptureProcessProven": false,
+    "liveNetworkExecutionProven": false,
+    "portableEvidenceClosureVerified": true,
+    "priorRepositoryNodeIdExclusionComplete": false,
+    "repositoryIdentityReplayAgreementObserved": true,
+    "sourceV3SimpleFrozen": false
+  },
+  "inputs": {
+    "plan": {
+      "artifactKind": "c6-wave3-prior-repository-identity-plan",
+      "bytes": 76257,
+      "path": "swe-bench-live-multilang-608f7ae9.wave3-prior-repository-identity-plan-v1.json",
+      "schemaVersion": 1,
+      "sha256": "70b202cd6da6c2c504a0c23168dc9bcb6a73e9697ff98884dcc83ca785cd4ee2"
+    },
+    "protocol": {
+      "artifactKind": "c6-source-v3-simple-protocol",
+      "bytes": 3992,
+      "path": "swe-bench-live-multilang-608f7ae9.source-v3-simple-protocol-v1.json",
+      "schemaVersion": 1,
+      "sha256": "5f989ab640c684dac287142edc9d2f9d8ee46099c082f63bb20f2a9546205132"
+    },
+    "sourceUniverse": {
+      "artifactKind": "c6-wave3-source-universe",
+      "bytes": 631004,
+      "path": "swe-bench-live-multilang-608f7ae9.wave3-source-universe-v2.json",
+      "schemaVersion": 2,
+      "sha256": "822c458e792ee31f7738cae2526b05dfc3b63fcaac58e3f4f87dcd3803ccdba1"
+    }
+  },
+  "replayReceipt": {
+    "artifactKind": "c6-source-v3-simple-prior-repository-identity-observation-replay",
+    "bytes": 4769,
+    "canonicalJson": "{\n  \"artifactKind\": \"c6-source-v3-simple-prior-repository-identity-observation-replay\",\n  \"boundary\": {\n    \"candidateManifestFrozen\": false,\n    \"captureOriginIndependentlyVerified\": false,\n    \"codexRunReady\": false,\n    \"externalAuthenticityVerified\": false,\n    \"formalCensusPermitted\": false,\n    \"independentCaptureProcessProven\": false,\n    \"liveNetworkExecutionProven\": false,\n    \"priorRepositoryNodeIdExclusionComplete\": false,\n    \"repositoryIdentityReplayAgreementObserved\": true,\n    \"sourceV3SimpleFrozen\": false,\n    \"status\": \"two-observation-set-structures-agree-awaiting-live-provenance-independent-review-and-freeze-ancestry\"\n  },\n  \"captures\": {\n    \"captureA\": {\n      \"finalRequestIdProjectionSha256\": \"62625c59df4ecfa17e87a300fb0dd6b7f4a01b758f3c2ab20ed6dca27cc1ac9d\",\n      \"networkAttemptCount\": 356,\n      \"nodeIdDedupProjectionSha256\": \"c1d0d92294306042872f73a7e98acd7a64cd6aa82c01ef2cdd81bcf2620e4076\",\n      \"outerAssetLock\": {\n        \"artifactKind\": \"c6-asset-lock\",\n        \"assetRootSha256\": \"73050021573d611b9b55e93a4e12f7b91c58b8ec986956af6ae228dd4d9a1526\",\n        \"sha256\": \"ffe9b216e6fb2539bcbfca81331ea2735ebad8990d902c2d75c7e4a52e438379\",\n        \"schemaVersion\": 1\n      },\n      \"rawEvidenceAssetLock\": {\n        \"artifactKind\": \"c6-asset-lock\",\n        \"assetRootSha256\": \"ef837a8c53d8b9ee154c23af69cd0f4d521218507f3f1afabc61346b495713ea\",\n        \"sha256\": \"518579d067b802d5e0f27c25e409369cbb1085c20520e9eab1fa5b3ab29b2d1a\",\n        \"schemaVersion\": 1\n      },\n      \"repositoryIdentityProjectionSha256\": \"05f0f541bfdbca903d93b8de0c1beabcc5255feedbb99ccfa224e0a30e485191\",\n      \"structure\": {\n        \"bytes\": 1540580,\n        \"path\": \"swe-bench-live-multilang-608f7ae9.source-v3-simple-prior-repository-identity-structure-v1.json\",\n        \"sha256\": \"c570fc22f10595c46656fb51c1e75b10fddec41f7295cb16bcd93f0dd02dbe97\"\n      },\n      \"uniqueNodeIdCount\": 178\n    },\n    \"captureB\": {\n      \"finalRequestIdProjectionSha256\": \"ed8d359c72a1a0f7ea71e9a6939c64d6d37b321ff5fb79eeae1a15b6b6fd2f48\",\n      \"networkAttemptCount\": 356,\n      \"nodeIdDedupProjectionSha256\": \"c1d0d92294306042872f73a7e98acd7a64cd6aa82c01ef2cdd81bcf2620e4076\",\n      \"outerAssetLock\": {\n        \"artifactKind\": \"c6-asset-lock\",\n        \"assetRootSha256\": \"50a22693d343eef064817d098f1592d4af6ba6e168a1c30cf12dc5e6de81bbf2\",\n        \"sha256\": \"876ef8aa57ce8ae52bacdf74c9184b01fc3bd05aa7733555484302c3d7ae5d50\",\n        \"schemaVersion\": 1\n      },\n      \"rawEvidenceAssetLock\": {\n        \"artifactKind\": \"c6-asset-lock\",\n        \"assetRootSha256\": \"56408ac2829923ba6c7b0e97b47c86a9d13188fde1776fa225421dc9c7c25e4f\",\n        \"sha256\": \"ec5eb8033340c9a2cde89499703b3b1b9292a9d96e561e05be3085e7d60df758\",\n        \"schemaVersion\": 1\n      },\n      \"repositoryIdentityProjectionSha256\": \"05f0f541bfdbca903d93b8de0c1beabcc5255feedbb99ccfa224e0a30e485191\",\n      \"structure\": {\n        \"bytes\": 1540440,\n        \"path\": \"swe-bench-live-multilang-608f7ae9.source-v3-simple-prior-repository-identity-structure-v1.json\",\n        \"sha256\": \"5f10f3618ec9d06d8079c5197159d6f4e49a8f6c2589e7c19c443d59c8c1713c\"\n      },\n      \"uniqueNodeIdCount\": 178\n    }\n  },\n  \"comparison\": {\n    \"combinedFinalRequestIdProjectionSha256\": \"ef161f837bb07cc8979bfe257842df31e4c6dee57e42b3589df85d02fd59c1e9\",\n    \"finalRequestIdIntersectionCount\": 0,\n    \"nodeIdDedupProjectionEqual\": true,\n    \"nodeIdDedupProjectionSha256\": \"c1d0d92294306042872f73a7e98acd7a64cd6aa82c01ef2cdd81bcf2620e4076\",\n    \"repositoryIdentityProjectionEqual\": true,\n    \"repositoryIdentityProjectionSha256\": \"05f0f541bfdbca903d93b8de0c1beabcc5255feedbb99ccfa224e0a30e485191\"\n  },\n  \"counts\": {\n    \"captureCount\": 2,\n    \"finalRequestIdCountPerCapture\": 356,\n    \"logicalLookupCountPerCapture\": 356,\n    \"totalNetworkAttemptCount\": 712,\n    \"uniqueNodeIdCount\": 178\n  },\n  \"inputs\": {\n    \"plan\": {\n      \"artifactKind\": \"c6-wave3-prior-repository-identity-plan\",\n      \"bytes\": 76257,\n      \"path\": \"swe-bench-live-multilang-608f7ae9.wave3-prior-repository-identity-plan-v1.json\",\n      \"schemaVersion\": 1,\n      \"sha256\": \"70b202cd6da6c2c504a0c23168dc9bcb6a73e9697ff98884dcc83ca785cd4ee2\"\n    },\n    \"protocol\": {\n      \"artifactKind\": \"c6-source-v3-simple-protocol\",\n      \"bytes\": 3992,\n      \"path\": \"swe-bench-live-multilang-608f7ae9.source-v3-simple-protocol-v1.json\",\n      \"schemaVersion\": 1,\n      \"sha256\": \"5f989ab640c684dac287142edc9d2f9d8ee46099c082f63bb20f2a9546205132\"\n    },\n    \"sourceUniverse\": {\n      \"artifactKind\": \"c6-wave3-source-universe\",\n      \"bytes\": 631004,\n      \"path\": \"swe-bench-live-multilang-608f7ae9.wave3-source-universe-v2.json\",\n      \"schemaVersion\": 2,\n      \"sha256\": \"822c458e792ee31f7738cae2526b05dfc3b63fcaac58e3f4f87dcd3803ccdba1\"\n    }\n  },\n  \"schemaVersion\": 1\n}\n",
+    "path": "swe-bench-live-multilang-608f7ae9.source-v3-simple-prior-repository-identity-observation-replay-v1.json",
+    "schemaVersion": 1,
+    "sha256": "903912db14ed999cd19f32ffaef81658bc241daf8be9e2f33aa14b1784b94d0a"
+  },
+  "schemaVersion": 1
+}

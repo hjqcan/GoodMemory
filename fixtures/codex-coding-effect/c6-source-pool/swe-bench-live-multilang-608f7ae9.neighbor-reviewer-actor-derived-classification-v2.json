@@ -1,0 +1,4887 @@
+{
+  "artifactKind": "c6-reviewer-actor-derived-classification",
+  "boundary": {
+    "actorFilteredSelectionExecuted": false,
+    "automationExclusionComplete": false,
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "commitAncestryProven": false,
+    "eventTimeActorTypeProven": false,
+    "humanReviewerIdentityProven": false,
+    "independentReviewCompleted": false,
+    "independentReviewReceiptRequired": true,
+    "status": "policy-v2-independent-review-and-commit-freeze-required"
+  },
+  "chronology": {
+    "adaptiveAfterActorCapture": true,
+    "commitAncestryProven": false,
+    "policyV2PreregisteredBeforeActorCapture": false,
+    "selectionExecuted": false
+  },
+  "classifications": [
+    {
+      "captureOrder": 1,
+      "login": "0101",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 2,
+      "login": "0xda157",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 3,
+      "login": "1sonofqiu",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 4,
+      "login": "a4-tacks",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 5,
+      "login": "abdelrahmanhafez",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 6,
+      "login": "adriantam",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 7,
+      "login": "agatti",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 8,
+      "login": "agneszitte",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 9,
+      "login": "ahomescu",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 10,
+      "login": "ajpinedam",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 11,
+      "login": "ajuncosa",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 12,
+      "login": "akuzm",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 13,
+      "login": "alexpavlov96",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 14,
+      "login": "andrewstrohman",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 15,
+      "login": "andriysvyryd",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 16,
+      "login": "anicka-net",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 17,
+      "login": "ankddev",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 18,
+      "login": "antekresic",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 19,
+      "login": "arcady-lunarg",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 20,
+      "login": "argozhang",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 21,
+      "login": "arnaud-lb",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 22,
+      "login": "ashketchumwashere",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 23,
+      "login": "autocarl",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 24,
+      "login": "baronfel",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 25,
+      "login": "bb-auto",
+      "v1": {
+        "eligible": false,
+        "reason": "platform-actor-unresolved"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "platform-actor-unresolved"
+      }
+    },
+    {
+      "captureOrder": 26,
+      "login": "bdraco",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 27,
+      "login": "bioball",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 28,
+      "login": "bl00d-b0b",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 29,
+      "login": "bnoordhuis",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 30,
+      "login": "braginini",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 31,
+      "login": "canova",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 32,
+      "login": "carldebilly",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 33,
+      "login": "chatgpt-codex-connector",
+      "v1": {
+        "eligible": false,
+        "reason": "platform-actor-not-user"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "platform-actor-not-user"
+      }
+    },
+    {
+      "captureOrder": 34,
+      "login": "chayimfriedman2",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 35,
+      "login": "chris-ramon",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 36,
+      "login": "cincuranet",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 37,
+      "login": "clydebarrow",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 38,
+      "login": "coderabbitai",
+      "v1": {
+        "eligible": false,
+        "reason": "platform-actor-not-user"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "platform-actor-not-user"
+      }
+    },
+    {
+      "captureOrder": 39,
+      "login": "copilot-pull-request-reviewer",
+      "v1": {
+        "eligible": false,
+        "reason": "platform-actor-not-user"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "platform-actor-not-user"
+      }
+    },
+    {
+      "captureOrder": 40,
+      "login": "copilot-swe-agent",
+      "v1": {
+        "eligible": false,
+        "reason": "known-automation-login"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "known-automation-login"
+      }
+    },
+    {
+      "captureOrder": 41,
+      "login": "cosmo0920",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 42,
+      "login": "ctangonan123",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 43,
+      "login": "cubic-dev-ai",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "automation-style-login-excluded"
+      }
+    },
+    {
+      "captureOrder": 44,
+      "login": "dancech",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 45,
+      "login": "danielwegener",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 46,
+      "login": "dariatiurina",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 47,
+      "login": "davertmik",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 48,
+      "login": "dbeck",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 49,
+      "login": "devalibm",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 50,
+      "login": "devhl-labs",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 51,
+      "login": "devnexen",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 52,
+      "login": "diesieben07",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 53,
+      "login": "djmitche",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 54,
+      "login": "dmitri-netbird",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 55,
+      "login": "dneto0",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 56,
+      "login": "dnovillo",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 57,
+      "login": "dobon",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 58,
+      "login": "dotnet-policy-service",
+      "v1": {
+        "eligible": false,
+        "reason": "platform-actor-unresolved"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "platform-actor-unresolved"
+      }
+    },
+    {
+      "captureOrder": 59,
+      "login": "dpgeorge",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 60,
+      "login": "dr1rrb",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 61,
+      "login": "dridi",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 62,
+      "login": "ducmerida",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 63,
+      "login": "dwelle",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 64,
+      "login": "easytarget",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 65,
+      "login": "ehsanestaji",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 66,
+      "login": "eism",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 67,
+      "login": "emanuel2258",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 68,
+      "login": "ensi321",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 69,
+      "login": "ericstj",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 70,
+      "login": "esphbot",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "automation-style-login-excluded"
+      }
+    },
+    {
+      "captureOrder": 71,
+      "login": "evangelink",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 72,
+      "login": "evilgenius13",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 73,
+      "login": "ewels",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 74,
+      "login": "exciton",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 75,
+      "login": "fatadel",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 76,
+      "login": "fededp",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 77,
+      "login": "fredericoo",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 78,
+      "login": "fw-immunant",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 79,
+      "login": "gemini-code-assist",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "automation-style-login-excluded"
+      }
+    },
+    {
+      "captureOrder": 80,
+      "login": "gezi-lzq",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 81,
+      "login": "girgias",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 82,
+      "login": "git-hulk",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 83,
+      "login": "github-actions",
+      "v1": {
+        "eligible": false,
+        "reason": "platform-actor-unresolved"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "platform-actor-unresolved"
+      }
+    },
+    {
+      "captureOrder": 84,
+      "login": "github-advanced-security",
+      "v1": {
+        "eligible": false,
+        "reason": "platform-actor-unresolved"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "platform-actor-unresolved"
+      }
+    },
+    {
+      "captureOrder": 85,
+      "login": "github-code-quality",
+      "v1": {
+        "eligible": false,
+        "reason": "platform-actor-unresolved"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "platform-actor-unresolved"
+      }
+    },
+    {
+      "captureOrder": 86,
+      "login": "graygilmore",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 87,
+      "login": "grebmeg",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 88,
+      "login": "greptile-apps",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "automation-style-login-excluded"
+      }
+    },
+    {
+      "captureOrder": 89,
+      "login": "hakman",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 90,
+      "login": "halter73",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 91,
+      "login": "hasezoey",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 92,
+      "login": "heisbrot",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 93,
+      "login": "henryiii",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 94,
+      "login": "hlhoots",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 95,
+      "login": "hsluoyz",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 96,
+      "login": "ht154",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 97,
+      "login": "hxy-asdw",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 98,
+      "login": "ibc",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 99,
+      "login": "igi-111",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 100,
+      "login": "igorkorsukov",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 101,
+      "login": "ihornehrutsa",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 102,
+      "login": "ikesau",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 103,
+      "login": "iliaal",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 104,
+      "login": "ilonatommy",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 105,
+      "login": "iluuu1994",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 106,
+      "login": "ingvarskagg",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 107,
+      "login": "jamiemagee",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 108,
+      "login": "jankrivanek",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 109,
+      "login": "javiercn",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 110,
+      "login": "jeffmendoza",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 111,
+      "login": "jefftree",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 112,
+      "login": "jeremy-lunarg",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 113,
+      "login": "jesserockz",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 114,
+      "login": "jhanders34",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 115,
+      "login": "jihuayu",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 116,
+      "login": "jkbonfield",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 117,
+      "login": "jmillan",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 118,
+      "login": "jmstephensgit",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 119,
+      "login": "joelspeed",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 120,
+      "login": "jonpryor",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 121,
+      "login": "josverl",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 122,
+      "login": "jplhomer",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 123,
+      "login": "jtroo",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 124,
+      "login": "justaugustus",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 125,
+      "login": "justincoh",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 126,
+      "login": "kanywst",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 127,
+      "login": "kkourt",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 128,
+      "login": "klausloeffelmann",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 129,
+      "login": "komachision",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 130,
+      "login": "kotlarmilos",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 131,
+      "login": "kyleaure",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 132,
+      "login": "lamentxu123",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 133,
+      "login": "laurenzv",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 134,
+      "login": "lbussell",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 135,
+      "login": "leafshi1",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 136,
+      "login": "lewing",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 137,
+      "login": "littledivy",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 138,
+      "login": "lixmal",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 139,
+      "login": "lodekeeper",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 140,
+      "login": "lpil",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 141,
+      "login": "lucyxiang",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 142,
+      "login": "lukastaegert",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 143,
+      "login": "madokakaroto",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 144,
+      "login": "maennchen",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 145,
+      "login": "manickap",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 146,
+      "login": "maoyouaa",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 147,
+      "login": "maraf",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 148,
+      "login": "marcelgerber",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 149,
+      "login": "marcpopmsft",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 150,
+      "login": "marigold",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 151,
+      "login": "mashehu",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 152,
+      "login": "matouskozak",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 153,
+      "login": "matthew-dean",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 154,
+      "login": "matthewkeil",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 155,
+      "login": "mattias-sehlstedt",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 156,
+      "login": "mauricevanveen",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 157,
+      "login": "melihmutlu",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 158,
+      "login": "mellyeliu",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 159,
+      "login": "mentatbot",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "automation-style-login-excluded"
+      }
+    },
+    {
+      "captureOrder": 160,
+      "login": "michaelsimons",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 161,
+      "login": "mikekirin",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 162,
+      "login": "mmitche",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 163,
+      "login": "mohammadfawaz",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 164,
+      "login": "mstange",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 165,
+      "login": "mswatosh",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 166,
+      "login": "mtardy",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 167,
+      "login": "mthalman",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 168,
+      "login": "mtolmacs",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 169,
+      "login": "mythicalfish",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 170,
+      "login": "nagilson",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 171,
+      "login": "natalya-aksman",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 172,
+      "login": "nazarhussain",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 173,
+      "login": "ndossche",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 174,
+      "login": "neilalexander",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 175,
+      "login": "nflaig",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 176,
+      "login": "ngmr",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 177,
+      "login": "nhancdt2602",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 178,
+      "login": "nicoburns",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 179,
+      "login": "nidhin-cp",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 180,
+      "login": "nigoroll",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 181,
+      "login": "nmn",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 182,
+      "login": "nthalk",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 183,
+      "login": "oroztocil",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 184,
+      "login": "pappz",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 185,
+      "login": "pascal-fischer",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 186,
+      "login": "patrick-stephens",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 187,
+      "login": "pavelvanecek",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 188,
+      "login": "pcalouche",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 189,
+      "login": "pnicolucci",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 190,
+      "login": "poor-circle",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 191,
+      "login": "poroma-banerjee",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 192,
+      "login": "pragmatwice",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 193,
+      "login": "priyamkarn",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 194,
+      "login": "projectgus",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 195,
+      "login": "pullfrog",
+      "v1": {
+        "eligible": false,
+        "reason": "platform-actor-not-user"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "platform-actor-not-user"
+      }
+    },
+    {
+      "captureOrder": 196,
+      "login": "qicosmos",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 197,
+      "login": "rafael-rosa-knowcode",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 198,
+      "login": "rakyi",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 199,
+      "login": "ramezgerges",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 200,
+      "login": "randompoison",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 201,
+      "login": "realflowcontrol",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 202,
+      "login": "renovate-approve",
+      "v1": {
+        "eligible": false,
+        "reason": "platform-actor-unresolved"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "platform-actor-unresolved"
+      }
+    },
+    {
+      "captureOrder": 203,
+      "login": "reubenbond",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 204,
+      "login": "rhamzeh",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 205,
+      "login": "rhpvorderman",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 206,
+      "login": "riccardomanfrin",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 207,
+      "login": "rifelpet",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 208,
+      "login": "rokonec",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 209,
+      "login": "romanpudashkin",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 210,
+      "login": "rosebyte",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 211,
+      "login": "rszyma",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 212,
+      "login": "rwgk",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 213,
+      "login": "saad-h1",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 214,
+      "login": "saghul",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 215,
+      "login": "sammonort",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 216,
+      "login": "sashankbhamidi",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 217,
+      "login": "sayboras",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 218,
+      "login": "senojj",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 219,
+      "login": "seratch",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 220,
+      "login": "serathius",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 221,
+      "login": "shyam-gupta",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 222,
+      "login": "simonzhao888",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 223,
+      "login": "sophiamersmann",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 224,
+      "login": "soulpancake",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 225,
+      "login": "sourcery-ai",
+      "v1": {
+        "eligible": false,
+        "reason": "platform-actor-not-user"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "platform-actor-not-user"
+      }
+    },
+    {
+      "captureOrder": 226,
+      "login": "spencerschrock",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 227,
+      "login": "spiral-ladder",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 228,
+      "login": "stackoverflow",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 229,
+      "login": "sunsetdrifter",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 230,
+      "login": "superhx",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 231,
+      "login": "surister",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 232,
+      "login": "suve",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 233,
+      "login": "svenklemm",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 234,
+      "login": "swoboda1337",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 235,
+      "login": "sylvestre",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 236,
+      "login": "synadia-claude-reviewer",
+      "v1": {
+        "eligible": false,
+        "reason": "platform-actor-unresolved"
+      },
+      "v2": {
+        "eligible": false,
+        "reason": "platform-actor-unresolved"
+      }
+    },
+    {
+      "captureOrder": 237,
+      "login": "tarekgh",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 238,
+      "login": "thedataking",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 239,
+      "login": "theodorsm",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 240,
+      "login": "timwolla",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 241,
+      "login": "tjwatson",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 242,
+      "login": "tloodu",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 243,
+      "login": "torwig",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 244,
+      "login": "tpapagian",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 245,
+      "login": "tuunit",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 246,
+      "login": "twoeths",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 247,
+      "login": "upodroid",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 248,
+      "login": "vasudeva8",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 249,
+      "login": "veykril",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 250,
+      "login": "vic-dev",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 251,
+      "login": "virtuald",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 252,
+      "login": "visakh005hyu",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 253,
+      "login": "vkarpov15",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 254,
+      "login": "vseanreesermsft",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 255,
+      "login": "walid-git",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 256,
+      "login": "wemeetagain",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 257,
+      "login": "whitwham",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 258,
+      "login": "wing328",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 259,
+      "login": "wtgodbe",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 260,
+      "login": "xiaoy312",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 261,
+      "login": "yahiabadr",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 262,
+      "login": "yaqiyang",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 263,
+      "login": "yas-franco",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 264,
+      "login": "yezhizhen",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 265,
+      "login": "youssef1313",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 266,
+      "login": "yuliiakovalova",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    },
+    {
+      "captureOrder": 267,
+      "login": "yxmura",
+      "v1": {
+        "eligible": true,
+        "reason": "eligible-platform-user"
+      },
+      "v2": {
+        "eligible": true,
+        "reason": "current-platform-user-no-known-automation-signal"
+      }
+    }
+  ],
+  "counts": {
+    "actorCount": 267,
+    "newlyExcludedActorCount": 5,
+    "resolvedActorCount": 260,
+    "unresolvedActorCount": 7,
+    "v1EligibleActorCount": 254,
+    "v1IneligibleActorCount": 13,
+    "v2EligibleActorCount": 249,
+    "v2IneligibleActorCount": 18
+  },
+  "independenceBoundary": {
+    "goldInput": false,
+    "reviewBodyInput": false,
+    "reviewOutcomeInput": false,
+    "selectedSequenceInput": false
+  },
+  "inputs": {
+    "actorPlan": {
+      "bytes": 48002,
+      "path": "swe-bench-live-multilang-608f7ae9.neighbor-reviewer-actor-plan-v1.json",
+      "sha256": "abb0a817611c7f5568c0f3390625598a46a1a56c687617815260ee98121a92d3",
+      "targetProjectionSha256": "8393f1a04a25b3288932b954ab5825ec8ceca37f57dd3d3da8dc9bdd7ac62205"
+    },
+    "actorRoot": {
+      "assetRootSha256": "f92953b8a0cfbf10e41a54c6912b67541a847c1b11b7b57dc7d5cb647b1a4ab4",
+      "captureManifestSha256": "ec047aba9c5e862193627d814432bd2d29d9387505de56c1e834891aba511f51",
+      "fileCount": 1069,
+      "totalBytes": 1035264
+    }
+  },
+  "newlyExcludedLogins": [
+    "cubic-dev-ai",
+    "esphbot",
+    "gemini-code-assist",
+    "greptile-apps",
+    "mentatbot"
+  ],
+  "policy": {
+    "v1": {
+      "bytes": 763,
+      "policyId": "reviewer-platform-actor-eligibility-v1",
+      "schemaVersion": 1,
+      "sha256": "ca0014e5e6d47dc63f490b49bff6835b9d5ed99e69b3eb8d8ddf4266edc8643f"
+    },
+    "v2": {
+      "bytes": 1334,
+      "policyId": "reviewer-platform-actor-eligibility-v2",
+      "schemaVersion": 2,
+      "sha256": "c243571bc95c44494dca68606ba772c26a7b640d1c2bbe60fc1818603efc0e44"
+    }
+  },
+  "sanitizedProjection": {
+    "bytes": 22244,
+    "rows": [
+      {
+        "captureOrder": 1,
+        "login": "0101",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 2,
+        "login": "0xda157",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 3,
+        "login": "1sonofqiu",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 4,
+        "login": "a4-tacks",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 5,
+        "login": "abdelrahmanhafez",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 6,
+        "login": "adriantam",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 7,
+        "login": "agatti",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 8,
+        "login": "agneszitte",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 9,
+        "login": "ahomescu",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 10,
+        "login": "ajpinedam",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 11,
+        "login": "ajuncosa",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 12,
+        "login": "akuzm",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 13,
+        "login": "alexpavlov96",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 14,
+        "login": "andrewstrohman",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 15,
+        "login": "andriysvyryd",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 16,
+        "login": "anicka-net",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 17,
+        "login": "ankddev",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 18,
+        "login": "antekresic",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 19,
+        "login": "arcady-lunarg",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 20,
+        "login": "argozhang",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 21,
+        "login": "arnaud-lb",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 22,
+        "login": "ashketchumwashere",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 23,
+        "login": "autocarl",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 24,
+        "login": "baronfel",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 25,
+        "login": "bb-auto",
+        "status": 404,
+        "currentPlatformType": null
+      },
+      {
+        "captureOrder": 26,
+        "login": "bdraco",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 27,
+        "login": "bioball",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 28,
+        "login": "bl00d-b0b",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 29,
+        "login": "bnoordhuis",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 30,
+        "login": "braginini",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 31,
+        "login": "canova",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 32,
+        "login": "carldebilly",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 33,
+        "login": "chatgpt-codex-connector",
+        "status": 200,
+        "currentPlatformType": "Organization"
+      },
+      {
+        "captureOrder": 34,
+        "login": "chayimfriedman2",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 35,
+        "login": "chris-ramon",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 36,
+        "login": "cincuranet",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 37,
+        "login": "clydebarrow",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 38,
+        "login": "coderabbitai",
+        "status": 200,
+        "currentPlatformType": "Organization"
+      },
+      {
+        "captureOrder": 39,
+        "login": "copilot-pull-request-reviewer",
+        "status": 200,
+        "currentPlatformType": "Organization"
+      },
+      {
+        "captureOrder": 40,
+        "login": "copilot-swe-agent",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 41,
+        "login": "cosmo0920",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 42,
+        "login": "ctangonan123",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 43,
+        "login": "cubic-dev-ai",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 44,
+        "login": "dancech",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 45,
+        "login": "danielwegener",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 46,
+        "login": "dariatiurina",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 47,
+        "login": "davertmik",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 48,
+        "login": "dbeck",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 49,
+        "login": "devalibm",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 50,
+        "login": "devhl-labs",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 51,
+        "login": "devnexen",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 52,
+        "login": "diesieben07",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 53,
+        "login": "djmitche",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 54,
+        "login": "dmitri-netbird",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 55,
+        "login": "dneto0",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 56,
+        "login": "dnovillo",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 57,
+        "login": "dobon",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 58,
+        "login": "dotnet-policy-service",
+        "status": 404,
+        "currentPlatformType": null
+      },
+      {
+        "captureOrder": 59,
+        "login": "dpgeorge",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 60,
+        "login": "dr1rrb",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 61,
+        "login": "dridi",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 62,
+        "login": "ducmerida",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 63,
+        "login": "dwelle",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 64,
+        "login": "easytarget",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 65,
+        "login": "ehsanestaji",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 66,
+        "login": "eism",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 67,
+        "login": "emanuel2258",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 68,
+        "login": "ensi321",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 69,
+        "login": "ericstj",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 70,
+        "login": "esphbot",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 71,
+        "login": "evangelink",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 72,
+        "login": "evilgenius13",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 73,
+        "login": "ewels",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 74,
+        "login": "exciton",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 75,
+        "login": "fatadel",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 76,
+        "login": "fededp",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 77,
+        "login": "fredericoo",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 78,
+        "login": "fw-immunant",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 79,
+        "login": "gemini-code-assist",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 80,
+        "login": "gezi-lzq",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 81,
+        "login": "girgias",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 82,
+        "login": "git-hulk",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 83,
+        "login": "github-actions",
+        "status": 404,
+        "currentPlatformType": null
+      },
+      {
+        "captureOrder": 84,
+        "login": "github-advanced-security",
+        "status": 404,
+        "currentPlatformType": null
+      },
+      {
+        "captureOrder": 85,
+        "login": "github-code-quality",
+        "status": 404,
+        "currentPlatformType": null
+      },
+      {
+        "captureOrder": 86,
+        "login": "graygilmore",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 87,
+        "login": "grebmeg",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 88,
+        "login": "greptile-apps",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 89,
+        "login": "hakman",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 90,
+        "login": "halter73",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 91,
+        "login": "hasezoey",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 92,
+        "login": "heisbrot",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 93,
+        "login": "henryiii",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 94,
+        "login": "hlhoots",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 95,
+        "login": "hsluoyz",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 96,
+        "login": "ht154",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 97,
+        "login": "hxy-asdw",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 98,
+        "login": "ibc",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 99,
+        "login": "igi-111",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 100,
+        "login": "igorkorsukov",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 101,
+        "login": "ihornehrutsa",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 102,
+        "login": "ikesau",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 103,
+        "login": "iliaal",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 104,
+        "login": "ilonatommy",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 105,
+        "login": "iluuu1994",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 106,
+        "login": "ingvarskagg",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 107,
+        "login": "jamiemagee",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 108,
+        "login": "jankrivanek",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 109,
+        "login": "javiercn",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 110,
+        "login": "jeffmendoza",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 111,
+        "login": "jefftree",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 112,
+        "login": "jeremy-lunarg",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 113,
+        "login": "jesserockz",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 114,
+        "login": "jhanders34",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 115,
+        "login": "jihuayu",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 116,
+        "login": "jkbonfield",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 117,
+        "login": "jmillan",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 118,
+        "login": "jmstephensgit",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 119,
+        "login": "joelspeed",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 120,
+        "login": "jonpryor",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 121,
+        "login": "josverl",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 122,
+        "login": "jplhomer",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 123,
+        "login": "jtroo",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 124,
+        "login": "justaugustus",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 125,
+        "login": "justincoh",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 126,
+        "login": "kanywst",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 127,
+        "login": "kkourt",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 128,
+        "login": "klausloeffelmann",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 129,
+        "login": "komachision",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 130,
+        "login": "kotlarmilos",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 131,
+        "login": "kyleaure",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 132,
+        "login": "lamentxu123",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 133,
+        "login": "laurenzv",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 134,
+        "login": "lbussell",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 135,
+        "login": "leafshi1",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 136,
+        "login": "lewing",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 137,
+        "login": "littledivy",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 138,
+        "login": "lixmal",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 139,
+        "login": "lodekeeper",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 140,
+        "login": "lpil",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 141,
+        "login": "lucyxiang",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 142,
+        "login": "lukastaegert",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 143,
+        "login": "madokakaroto",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 144,
+        "login": "maennchen",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 145,
+        "login": "manickap",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 146,
+        "login": "maoyouaa",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 147,
+        "login": "maraf",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 148,
+        "login": "marcelgerber",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 149,
+        "login": "marcpopmsft",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 150,
+        "login": "marigold",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 151,
+        "login": "mashehu",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 152,
+        "login": "matouskozak",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 153,
+        "login": "matthew-dean",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 154,
+        "login": "matthewkeil",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 155,
+        "login": "mattias-sehlstedt",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 156,
+        "login": "mauricevanveen",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 157,
+        "login": "melihmutlu",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 158,
+        "login": "mellyeliu",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 159,
+        "login": "mentatbot",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 160,
+        "login": "michaelsimons",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 161,
+        "login": "mikekirin",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 162,
+        "login": "mmitche",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 163,
+        "login": "mohammadfawaz",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 164,
+        "login": "mstange",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 165,
+        "login": "mswatosh",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 166,
+        "login": "mtardy",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 167,
+        "login": "mthalman",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 168,
+        "login": "mtolmacs",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 169,
+        "login": "mythicalfish",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 170,
+        "login": "nagilson",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 171,
+        "login": "natalya-aksman",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 172,
+        "login": "nazarhussain",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 173,
+        "login": "ndossche",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 174,
+        "login": "neilalexander",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 175,
+        "login": "nflaig",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 176,
+        "login": "ngmr",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 177,
+        "login": "nhancdt2602",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 178,
+        "login": "nicoburns",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 179,
+        "login": "nidhin-cp",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 180,
+        "login": "nigoroll",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 181,
+        "login": "nmn",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 182,
+        "login": "nthalk",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 183,
+        "login": "oroztocil",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 184,
+        "login": "pappz",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 185,
+        "login": "pascal-fischer",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 186,
+        "login": "patrick-stephens",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 187,
+        "login": "pavelvanecek",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 188,
+        "login": "pcalouche",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 189,
+        "login": "pnicolucci",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 190,
+        "login": "poor-circle",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 191,
+        "login": "poroma-banerjee",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 192,
+        "login": "pragmatwice",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 193,
+        "login": "priyamkarn",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 194,
+        "login": "projectgus",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 195,
+        "login": "pullfrog",
+        "status": 200,
+        "currentPlatformType": "Organization"
+      },
+      {
+        "captureOrder": 196,
+        "login": "qicosmos",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 197,
+        "login": "rafael-rosa-knowcode",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 198,
+        "login": "rakyi",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 199,
+        "login": "ramezgerges",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 200,
+        "login": "randompoison",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 201,
+        "login": "realflowcontrol",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 202,
+        "login": "renovate-approve",
+        "status": 404,
+        "currentPlatformType": null
+      },
+      {
+        "captureOrder": 203,
+        "login": "reubenbond",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 204,
+        "login": "rhamzeh",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 205,
+        "login": "rhpvorderman",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 206,
+        "login": "riccardomanfrin",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 207,
+        "login": "rifelpet",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 208,
+        "login": "rokonec",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 209,
+        "login": "romanpudashkin",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 210,
+        "login": "rosebyte",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 211,
+        "login": "rszyma",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 212,
+        "login": "rwgk",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 213,
+        "login": "saad-h1",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 214,
+        "login": "saghul",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 215,
+        "login": "sammonort",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 216,
+        "login": "sashankbhamidi",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 217,
+        "login": "sayboras",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 218,
+        "login": "senojj",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 219,
+        "login": "seratch",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 220,
+        "login": "serathius",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 221,
+        "login": "shyam-gupta",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 222,
+        "login": "simonzhao888",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 223,
+        "login": "sophiamersmann",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 224,
+        "login": "soulpancake",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 225,
+        "login": "sourcery-ai",
+        "status": 200,
+        "currentPlatformType": "Organization"
+      },
+      {
+        "captureOrder": 226,
+        "login": "spencerschrock",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 227,
+        "login": "spiral-ladder",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 228,
+        "login": "stackoverflow",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 229,
+        "login": "sunsetdrifter",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 230,
+        "login": "superhx",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 231,
+        "login": "surister",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 232,
+        "login": "suve",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 233,
+        "login": "svenklemm",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 234,
+        "login": "swoboda1337",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 235,
+        "login": "sylvestre",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 236,
+        "login": "synadia-claude-reviewer",
+        "status": 404,
+        "currentPlatformType": null
+      },
+      {
+        "captureOrder": 237,
+        "login": "tarekgh",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 238,
+        "login": "thedataking",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 239,
+        "login": "theodorsm",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 240,
+        "login": "timwolla",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 241,
+        "login": "tjwatson",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 242,
+        "login": "tloodu",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 243,
+        "login": "torwig",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 244,
+        "login": "tpapagian",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 245,
+        "login": "tuunit",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 246,
+        "login": "twoeths",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 247,
+        "login": "upodroid",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 248,
+        "login": "vasudeva8",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 249,
+        "login": "veykril",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 250,
+        "login": "vic-dev",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 251,
+        "login": "virtuald",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 252,
+        "login": "visakh005hyu",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 253,
+        "login": "vkarpov15",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 254,
+        "login": "vseanreesermsft",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 255,
+        "login": "walid-git",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 256,
+        "login": "wemeetagain",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 257,
+        "login": "whitwham",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 258,
+        "login": "wing328",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 259,
+        "login": "wtgodbe",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 260,
+        "login": "xiaoy312",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 261,
+        "login": "yahiabadr",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 262,
+        "login": "yaqiyang",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 263,
+        "login": "yas-franco",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 264,
+        "login": "yezhizhen",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 265,
+        "login": "youssef1313",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 266,
+        "login": "yuliiakovalova",
+        "status": 200,
+        "currentPlatformType": "User"
+      },
+      {
+        "captureOrder": 267,
+        "login": "yxmura",
+        "status": 200,
+        "currentPlatformType": "User"
+      }
+    ],
+    "sha256": "7749134e4bf7b3c799188a1f27ca7f48d0d387d3b7e6a7b69a7a9f1e8d089237"
+  },
+  "schemaVersion": 1
+}

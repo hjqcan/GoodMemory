@@ -1,4 +1,13 @@
 import { describe, expect, it } from "bun:test";
+import { createHash } from "node:crypto";
+import {
+  cp,
+  mkdtemp,
+  realpath,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
@@ -18,6 +27,51 @@ import { loadCodexCodingEffectDataset } from "../../scripts/codex-coding-effect/
 const DATASET_ROOT = "fixtures/codex-coding-effect/c4-controlled-pilot";
 
 describe("Codex coding-effect C5 leakage input", () => {
+  it("keeps empty prehistory fail-closed unless a C6 caller opts in", async () => {
+    const root = await mkdtemp(
+      join(await realpath(tmpdir()), "goodmemory-c5-empty-leakage-"),
+    );
+    try {
+      await cp(DATASET_ROOT, root, { recursive: true });
+      const loaded = await loadCodexCodingEffectDataset(root);
+      const dataset = validateC4ControlledPilotDataset(loaded.dataset);
+      const episode = dataset.episodes[0]!;
+      const stage = episode.stages[0]!;
+      const prehistory = episode.prehistory;
+      if (prehistory.source !== "frozen-artifact") {
+        throw new Error("fixture requires frozen prehistory");
+      }
+      await writeFile(join(root, prehistory.path), "");
+      episode.prehistory = {
+        ...prehistory,
+        sha256: sha256(""),
+      };
+      const input = {
+        datasetRoot: root,
+        episode,
+        repositoryRoot: join(
+          root,
+          "repositories",
+          c4RepositoryIdForUrl(episode.repository.url),
+        ),
+        stage,
+      };
+
+      await expect(buildC5StageLeakageInput(input)).rejects.toThrow(
+        "frozen prehistory must contain at least one record",
+      );
+      const auditInput = await buildC5StageLeakageInput({
+        ...input,
+        allowEmptyPrehistory: true,
+      });
+      expect(auditInput.staticSurfaces.find((surface) =>
+        surface.id === "frozen-prehistory"
+      )?.content).toBe("");
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("honors asset-locked public relation proofs without exempting other relations", async () => {
     const loaded = await loadCodexCodingEffectDataset(DATASET_ROOT);
     const dataset = validateC4ControlledPilotDataset(loaded.dataset);
@@ -118,3 +172,7 @@ describe("Codex coding-effect C5 leakage input", () => {
     }));
   });
 });
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}

@@ -57,7 +57,6 @@ import { runCodexProcess } from "./codex-runner";
 import { loadCodexCodingEffectDataset } from "./dataset";
 import type {
   CodexCodingEffectDatasetV2,
-  CodexCodingEffectEpisode,
 } from "./dataset";
 import {
   createCodexCodingEffectLogger,
@@ -663,7 +662,7 @@ async function materializeEvaluator(input: {
 
 function hiddenReadPaths(
   datasetRoot: string,
-  episode: CodexCodingEffectEpisode,
+  episode: CodexCodingEffectDatasetV2["episodes"][number],
   goldPatchPath: string,
 ): Array<{ label: string; path: string }> {
   if (episode.prehistory.source !== "frozen-artifact") {

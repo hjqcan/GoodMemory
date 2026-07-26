@@ -68,7 +68,10 @@ export interface FrozenPrehistoryLeakageAudit {
 
 export type FrozenPrehistorySeedReceipt = z.infer<typeof seedReceiptSchema>;
 
+export const EMPTY_FROZEN_PREHISTORY_SHA256 = sha256("");
+
 export async function loadFrozenPrehistory(input: {
+  allowEmpty?: boolean;
   expectedSha256: string;
   path: string;
 }): Promise<Readonly<FrozenPrehistoryArtifact>> {
@@ -78,6 +81,11 @@ export async function loadFrozenPrehistory(input: {
   if (sourceSha256 !== input.expectedSha256) {
     throw new Error(
       `frozen prehistory hash does not match ${input.path}: expected ${input.expectedSha256}, received ${sourceSha256}`,
+    );
+  }
+  if (sourceBytes.length > 0 && sourceBytes.trim().length === 0) {
+    throw new Error(
+      "canonical empty frozen prehistory must be exactly zero bytes",
     );
   }
 
@@ -110,10 +118,9 @@ export async function loadFrozenPrehistory(input: {
       role: parsed.data.payload.role,
     }));
   }
-  if (records.length === 0) {
+  if (records.length === 0 && input.allowEmpty !== true) {
     throw new Error("frozen prehistory must contain at least one record");
   }
-
   return Object.freeze({
     path: input.path,
     records: Object.freeze(records),
@@ -194,9 +201,16 @@ export async function assertFrozenPrehistoryUnchanged(
 }
 
 export async function sealFrozenPrehistory(input: {
+  allowEmpty?: boolean;
   artifact: FrozenPrehistoryArtifact;
   sealedPath: string;
 }): Promise<Readonly<FrozenPrehistoryArtifact>> {
+  if (
+    input.artifact.sourceBytes.length === 0 &&
+    input.allowEmpty !== true
+  ) {
+    throw new Error("frozen prehistory must contain at least one record");
+  }
   await mkdir(dirname(input.sealedPath), { recursive: true });
   await writeFile(input.sealedPath, input.artifact.sourceBytes, {
     encoding: "utf8",
@@ -205,6 +219,7 @@ export async function sealFrozenPrehistory(input: {
   });
   await chmod(input.sealedPath, 0o400);
   return loadFrozenPrehistory({
+    allowEmpty: input.allowEmpty,
     expectedSha256: input.artifact.sourceSha256,
     path: input.sealedPath,
   });

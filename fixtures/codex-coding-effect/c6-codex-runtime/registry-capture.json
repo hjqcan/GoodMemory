@@ -1,0 +1,32 @@
+{
+  "capturedAt": "2026-07-25T17:13:47Z",
+  "captureBoundary": "npm-registry-metadata-and-tarball-bytes-no-independent-registry-receipt",
+  "packageLockSha256": "fdf4dcd7dc1b7a6d578beebf95527d49ae3ffa74ed39528245984712113d8844",
+  "packages": [
+    {
+      "alias": "@openai/codex",
+      "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@openai%2fcodex@0.145.0",
+      "byteLength": 4311,
+      "filename": "openai-codex-0.145.0.tgz",
+      "integrity": "sha512-/PSPSFujjjmiyVFvG2yu/grOFhsWdokTH8t2KGWhXSo/M5n/dIDsnbsnO82/7bLtIoDuzQf7ATBUMWqPWQINlQ==",
+      "name": "@openai/codex",
+      "npmShasum": "7055d605dec459e33926bd84fc872802cf9a328b",
+      "sha256": "416399796cac371d1a033b17f34b08ba9b25c8f298a5b9d00e10f72c3b128c8d",
+      "tarballUrl": "https://registry.npmjs.org/@openai/codex/-/codex-0.145.0.tgz",
+      "version": "0.145.0"
+    },
+    {
+      "alias": "@openai/codex-linux-x64",
+      "attestationUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@openai%2fcodex@0.145.0-linux-x64",
+      "byteLength": 135637111,
+      "filename": "openai-codex-0.145.0-linux-x64.tgz",
+      "integrity": "sha512-u8w8LLv3DvsfrDCoswLIemZ0SoNEXyi511WsfFsSiYUazk9qMsB/NtU8N9vhAfN7mZAxLFoMex4v66JjHuZWwA==",
+      "name": "@openai/codex",
+      "npmShasum": "ff7b16287345f0dc9d087002dfd0aafe280b01a7",
+      "sha256": "11239480f8e3efd1430f23bbe91c1a397856b8bbe6185ccbaee2382d25e03df2",
+      "tarballUrl": "https://registry.npmjs.org/@openai/codex/-/codex-0.145.0-linux-x64.tgz",
+      "version": "0.145.0-linux-x64"
+    }
+  ],
+  "schemaVersion": 1
+}

@@ -1,0 +1,70 @@
+{
+  "artifactKind": "c6-original-request-semantic-review-receipt",
+  "assessments": [
+    {
+      "anchorId": "fmtlib/fmt#974",
+      "beforeCommit": "bf1f1c73e39c7ee6581ee0d5bb2471856a14bdb2",
+      "beforeCommitBinding": "reviewer-derived-public-ancestry-not-qualification-bound",
+      "cappedPoolRank": 5,
+      "classification": "behavioral-coding-request",
+      "decision": "stage1-semantic-pass",
+      "finding": "The prompt requests terminal-palette colors without hard-coded RGB, and the reviewed public commit ancestry adds terminal_color foreground and background ANSI escape behavior.",
+      "promptBytes": 581,
+      "promptSha256": "b634ea04d647a8a4fbc47673633981fcf9cd279f948469a12bcc39268c918984",
+      "stage1AfterCommit": "4ffb4992a35a9f95bf60bad14cf0dfbb6d32ec50"
+    },
+    {
+      "anchorId": "vuejs/core#9213",
+      "beforeCommit": "b775b71c788499ec7ee58bc2cf4cd04ed388e072",
+      "beforeCommitBinding": "reviewer-derived-public-ancestry-not-qualification-bound",
+      "cappedPoolRank": 14,
+      "classification": "behavioral-coding-request",
+      "decision": "stage1-semantic-pass",
+      "finding": "The prompt supplies reproduction steps and expected slot toggling behavior, and the reviewed public commit ancestry changes fallback block tracking and patch flags in response.",
+      "promptBytes": 1107,
+      "promptSha256": "ff36fc0b8c8477d51d0236677d457083e13879933d3b843fd23a6c7d9a830b93",
+      "stage1AfterCommit": "636df656d33976844f9b40c1744b69b1462744f8"
+    },
+    {
+      "anchorId": "clap-rs/clap#2796",
+      "beforeCommit": "a9bd06945a57aa0bdfa4f6825f97908f992efe5e",
+      "beforeCommitBinding": "reviewer-derived-public-ancestry-not-qualification-bound",
+      "cappedPoolRank": 19,
+      "classification": "behavioral-coding-request",
+      "decision": "stage1-semantic-pass",
+      "finding": "The prompt requests a user-defined help subcommand when the built-in one is disabled, and the reviewed public commit ancestry checks DisableHelpSubcommand before built-in parsing.",
+      "promptBytes": 1521,
+      "promptSha256": "7981a33ddbc754245c75ffd32f1e63033eac8ea964912b84e29d360348bbd123",
+      "stage1AfterCommit": "2aebb6fc06e7326cf5d7b70a6fc6438c6a115c68"
+    }
+  ],
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "machineQualificationCandidateCount": 0,
+    "stage1TransitionQualificationBound": false,
+    "status": "semantic-review-only-source-auth-and-machine-qualification-required"
+  },
+  "projection": {
+    "path": "multi-swe-full-56ff018.real-history-original-request-projections.json",
+    "sha256": "b5babf8bab47c2005b20a0dba731252fc3cbb1f9612216152f7e0e13cdd4692d"
+  },
+  "qualification": {
+    "path": "multi-swe-full-56ff018.real-history-transition-qualification.json",
+    "sha256": "59136d44da3f5687afe08cffbed98f0eae71a114389114cb422b73680c1185f8"
+  },
+  "review": {
+    "authorTaskName": "/root",
+    "contextPolicy": "fork-turns-none",
+    "cryptographicReceipt": false,
+    "hiddenEvaluatorAccess": false,
+    "outcomeAccess": false,
+    "rawGoldAccess": false,
+    "reviewedAt": "2026-07-25T23:31:03.000Z",
+    "reviewerAgentName": "/root/c6_rank17_gold_blind_review",
+    "sourcePullTitleBodyAccess": false,
+    "sourceRowAccess": false
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,15 @@
+{
+  "artifactKind": "c6-wave3-activation-salt-proposal",
+  "boundary": {
+    "firstAndOnlyDrawReviewAccepted": false,
+    "officialWave3CapturePermitted": false,
+    "originReceiptAccepted": false,
+    "status": "external-origin-receipt-and-first-only-review-required"
+  },
+  "provenance": {
+    "origin": "local-literal-proposal-only",
+    "priorEvidenceContentInput": false
+  },
+  "publicSaltHex": "de6c101137b6353d129105ca88c75a6050245f4ecb69fdd3b05c3e006a62cf20",
+  "schemaVersion": 1
+}

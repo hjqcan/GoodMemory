@@ -37,6 +37,7 @@ const evaluatorCasesSchema = z.object({
 }).strict();
 
 export async function buildC5StageLeakageInput(input: {
+  allowEmptyPrehistory?: boolean;
   datasetRoot: string;
   episode: C5Episode;
   repositoryRoot: string;
@@ -57,6 +58,7 @@ export async function buildC5StageLeakageInput(input: {
     repositoryFiles,
   ] = await Promise.all([
     loadFrozenPrehistory({
+      allowEmpty: input.allowEmptyPrehistory,
       expectedSha256: input.episode.prehistory.sha256,
       path: join(input.datasetRoot, input.episode.prehistory.path),
     }),

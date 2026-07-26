@@ -1,0 +1,56 @@
+{
+  "cases": [
+    {
+      "args": [
+        {
+          "value": "caller"
+        },
+        {
+          "extra": true,
+          "value": "default"
+        }
+      ],
+      "expected": {
+        "extra": true,
+        "value": "caller"
+      },
+      "id": "scalar-precedence"
+    },
+    {
+      "args": [
+        {
+          "items": [
+            "caller"
+          ]
+        },
+        {
+          "items": "default"
+        }
+      ],
+      "expected": {
+        "items": [
+          "caller"
+        ]
+      },
+      "id": "array-over-scalar"
+    },
+    {
+      "args": [
+        {
+          "value": null
+        },
+        {
+          "value": "fallback"
+        }
+      ],
+      "expected": {
+        "value": "fallback"
+      },
+      "id": "null-fallback"
+    }
+  ],
+  "exportName": "defu",
+  "factoryId": "bun-typescript-module-cases-v1",
+  "modulePath": "src/defu.ts",
+  "schemaVersion": 1
+}

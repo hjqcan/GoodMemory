@@ -1,0 +1,17 @@
+{
+  "bun": {
+    "executableSha256": "45598a2814020c231575487a560e47d397d6902355d7e08171a2e56221a6d675",
+    "version": "1.3.11"
+  },
+  "bunBaseImageSha256": "420f9c50e115184234e0e355d8a9ffed8b49c1b8512972ec9a8a402bb259834f",
+  "dockerfileSha256": "35be4399abf5bfaae4544ce6f29e07a462a31ce02172d66cb8c25b94d011a786",
+  "finalImageSha256": "6967283eaf7c1e0ca4dbf4c72fd43b1cf3676f28371a635619fde3f07975373c",
+  "git": {
+    "executableSha256": "00c84136d8294294580daa32f25b3e83ddb8341e9b5b70722e4c9a973ba5f749",
+    "version": "2.39.5"
+  },
+  "gitBaseImageSha256": "aadc030db762ec18d3dd50b77d02ff3b317e1feff9c29ef222f7aced9354677c",
+  "imageBuildNetworkMode": "none",
+  "platform": "linux/amd64",
+  "schemaVersion": 1
+}

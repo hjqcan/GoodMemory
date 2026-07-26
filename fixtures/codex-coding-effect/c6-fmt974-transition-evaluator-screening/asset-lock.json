@@ -1,0 +1,150 @@
+{
+  "assetRootSha256": "8a73c28419fe230e15130068a836d7c1e0043b1144aee94128eea43a5e2e369b",
+  "files": [
+    {
+      "bytes": 202,
+      "mode": 420,
+      "path": "color-header-smoke.cc",
+      "sha256": "589c1ea8edd77414f4fe8a7f038ba27b09b515754838f630f10f81f6133d62c8"
+    },
+    {
+      "bytes": 10153,
+      "mode": 420,
+      "path": "evidence.json",
+      "sha256": "5235b39c9bffd688a62e384edf77c9ae165c7c9d898bb2ea83d821a74e1c12f8"
+    },
+    {
+      "bytes": 658,
+      "mode": 420,
+      "path": "git-objects/24594c747e7d516baa6dac0113e81f3bfd1970b6.commit.hex",
+      "sha256": "96593651c1a786c3d6a33be676cb6e29ed29ecaf89d732211bf19eca44869e0b"
+    },
+    {
+      "bytes": 2230,
+      "mode": 420,
+      "path": "git-objects/2efaf142e2d4b7690edf0ea00ecc692e7da1e267.commit.hex",
+      "sha256": "72db6420cea155110d733c639f57ccecb075f05bd33a38338dd7e134035c789c"
+    },
+    {
+      "bytes": 1577,
+      "mode": 420,
+      "path": "git-objects/4ffb4992a35a9f95bf60bad14cf0dfbb6d32ec50.commit.hex",
+      "sha256": "7d0d5077db938cba4604026ea0a43e17cf60118c4db2cdc86c5bb7335859c390"
+    },
+    {
+      "bytes": 508,
+      "mode": 420,
+      "path": "git-objects/7f7504b3f532c6cd7d6de405241f774df6b4b666.commit.hex",
+      "sha256": "17a2d694a33eaac5a546c0efaf418a8a5f6ec9b4c7811f0d140f8cfa5ccddf4d"
+    },
+    {
+      "bytes": 2224,
+      "mode": 420,
+      "path": "git-objects/a92ff7e1bd72d399615a6a4e747416c67e0f9a90.commit.hex",
+      "sha256": "118e15ccdc5496a55d48994c0ed334b889bc64f743a10000bf5ec32eb7606e18"
+    },
+    {
+      "bytes": 2431,
+      "mode": 420,
+      "path": "git-objects/e636236a31b8a4f3139a8efdf9b166d58a9c46b2.commit.hex",
+      "sha256": "c93e94009ed393eb7f45596283bb221b8fd12d961e9f4d551bf45a819d3ca15f"
+    },
+    {
+      "bytes": 1702,
+      "mode": 420,
+      "path": "results/protection-stage1.log",
+      "sha256": "dee27ab9d915e790e2823e9fa8138a705c935792d784d3971c04a19a39e7c737"
+    },
+    {
+      "bytes": 1714,
+      "mode": 420,
+      "path": "results/protection-stage1before-24594.log",
+      "sha256": "7694be28b8acf457227d6d6c1e8addea8cf074af11bd90399b9fb353931542ba"
+    },
+    {
+      "bytes": 1702,
+      "mode": 420,
+      "path": "results/protection-stage2.log",
+      "sha256": "627a2a57082b85abcec348cf70af1c385b9ab6da942eac13cad885734b514ff5"
+    },
+    {
+      "bytes": 1707,
+      "mode": 420,
+      "path": "results/protection-stage3after.log",
+      "sha256": "bad5f4d02275c685fa4ccc07ae38a7c22f81ee8be726cc3fe379804bc254586b"
+    },
+    {
+      "bytes": 1708,
+      "mode": 420,
+      "path": "results/protection-stage3before.log",
+      "sha256": "ef9723f716e7f484f6a2ee9703a0268f258a8fd6a2acbb4c3c1402e81e8f1c79"
+    },
+    {
+      "bytes": 212,
+      "mode": 420,
+      "path": "results/stage1-after-4ff.log",
+      "sha256": "524acd8bd890ab2b0f6688199b95c9fb4791fdc8ebacb6e31117a722019002a3"
+    },
+    {
+      "bytes": 774,
+      "mode": 420,
+      "path": "results/stage1-before-24594.log",
+      "sha256": "5a469e44fc10854947d4b657639abb128d2346c656a89de43d25c5917243f46c"
+    },
+    {
+      "bytes": 1414,
+      "mode": 420,
+      "path": "results/stage2-after-e636.log",
+      "sha256": "db11228447aca551073169504b8f3877505f23d009d5be4fb28bbaac6c8b4da3"
+    },
+    {
+      "bytes": 214,
+      "mode": 420,
+      "path": "results/stage2-before-4ff.log",
+      "sha256": "f5acdd68c33af97333bd39345d3da16892ddbf0304860b5755e15440e58c4278"
+    },
+    {
+      "bytes": 1388,
+      "mode": 420,
+      "path": "results/stage2-e636-header-smoke.log",
+      "sha256": "99fb3156cfc179c14ce9c0e1d139c3105d931744b60416a54588cae31522a27c"
+    },
+    {
+      "bytes": 1554,
+      "mode": 420,
+      "path": "results/stage3-2efa-werror-terminate.log",
+      "sha256": "6fca27c099eaa24970b14646fd759d443528260cdf4dfa730f56091c9381054d"
+    },
+    {
+      "bytes": 1592,
+      "mode": 420,
+      "path": "results/stage3-after-2efa-or.log",
+      "sha256": "7a6eded25788c75d55a2dfaefb0fc62d41b684478aefa4f4d4c1055b0242aab5"
+    },
+    {
+      "bytes": 456,
+      "mode": 420,
+      "path": "results/stage3-before-a92-or.log",
+      "sha256": "f2a26ad8152ce1ad2d69a16d47374ca372aef55ecaf42985592a7984965c64fd"
+    },
+    {
+      "bytes": 619,
+      "mode": 420,
+      "path": "stage-1-terminal-color-public.cc",
+      "sha256": "7f7fb82e2cb02363c63e5d3ec46ad8baa5053a8da3c0b194e7d9e7d5828eda08"
+    },
+    {
+      "bytes": 649,
+      "mode": 420,
+      "path": "stage-2-rgb-discriminant-public.cc",
+      "sha256": "afa7781db91b1d67f1fb3366896138e12990af52a66dbfc0c81e2d14b0716aa7"
+    },
+    {
+      "bytes": 579,
+      "mode": 420,
+      "path": "stage-3-format-error-public.cc",
+      "sha256": "cbdd7e3fdafcadb5302d20a8299bbab0f1ab92a98bbe8b1c78278990862d0881"
+    }
+  ],
+  "schemaVersion": 1
+}

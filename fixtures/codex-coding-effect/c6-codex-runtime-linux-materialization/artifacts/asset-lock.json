@@ -1,0 +1,48 @@
+{
+  "assetRootSha256": "66884e8b6152694f7ab941916dc2d33f225640fee2ff40c1de19378a15a2ff91",
+  "files": [
+    {
+      "bytes": 5426,
+      "mode": 384,
+      "path": "manifest.json",
+      "sha256": "71366e55f8f667d6adcc799abe5e6d023034bb921a68ffb05df578da0800af01"
+    },
+    {
+      "bytes": 8339,
+      "mode": 384,
+      "path": "run-1.json",
+      "sha256": "31dc6b7ca5babf01d6bcff7e012a63aaf12f1e1141b4e44dfea7ea01e997463b"
+    },
+    {
+      "bytes": 8339,
+      "mode": 384,
+      "path": "run-2.json",
+      "sha256": "31dc6b7ca5babf01d6bcff7e012a63aaf12f1e1141b4e44dfea7ea01e997463b"
+    },
+    {
+      "bytes": 6070,
+      "mode": 384,
+      "path": "runner-sources/c6-asset-lock.ts",
+      "sha256": "21a9a605171552d5e284c581abd0d36d0a36a1be8e599b27a6987b0bb3320254"
+    },
+    {
+      "bytes": 87384,
+      "mode": 384,
+      "path": "runner-sources/c6-codex-runtime-linux.ts",
+      "sha256": "4a54ce6a0b3ba9e72ba11cdabd6b2c283e27c897b054bc8f3b69916d0c055138"
+    },
+    {
+      "bytes": 13875,
+      "mode": 384,
+      "path": "runner-sources/c6-codex-runtime.ts",
+      "sha256": "7904e4496a2e972af58b6a3af3574c0a392daf4fa97d314c65e45e6eb8878097"
+    },
+    {
+      "bytes": 5587,
+      "mode": 384,
+      "path": "runner-sources/materialize-codex-coding-effect-c6-codex-runtime-linux.ts",
+      "sha256": "dad248694a553c5715555ff9e4e2f048f06e85009a0d926a9b797fe45a80fe77"
+    }
+  ],
+  "schemaVersion": 1
+}

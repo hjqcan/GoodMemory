@@ -1,0 +1,98 @@
+{
+  "artifactKind": "c6-source-v3-simple-protocol",
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "formalCensusPermitted": false,
+    "sourceV3SimpleFrozen": false,
+    "status": "independent-review-and-freeze-ancestry-required"
+  },
+  "censusProtocol": {
+    "callerOrderOverrideAllowed": false,
+    "capturePasses": 2,
+    "completeRootShardCount": 1536,
+    "downstreamYieldStoppingAllowed": false,
+    "failurePolicy": "fail-evaluation-id-without-redraw-or-frame-expansion",
+    "metadataDecisionLedger": "one-accepted-or-rejected-decision-per-enumerated-pull-request",
+    "mode": "complete-finite-frame",
+    "pullRequestOrder": "createdAt-descending-then-pullRequestNodeId-utf8-byte-ascending",
+    "quotaStoppingAllowed": false,
+    "redrawAllowed": false,
+    "repositoryEnumeration": "all-normalized-repository-node-ids-from-every-complete-root-shard",
+    "repositoryOrder": "repositoryNodeId-utf8-byte-ascending",
+    "rootShardOrder": "rootShardId-utf8-byte-ascending",
+    "pullRequestEnumeration": "all-merged-pull-requests-in-frozen-window-for-every-frame-repository",
+    "twoPassNormalizedProjectionEqualityRequired": true
+  },
+  "censusReceiptContract": {
+    "actualReceiptPresent": false,
+    "artifactKind": "c6-source-v3-simple-census-receipt",
+    "requiredBindings": [
+      "protocol-bytes-and-sha256",
+      "complete-root-count-tree-and-leaf-set",
+      "repository-page-request-response-cursor-and-terminal-closure",
+      "repository-normalization-source-sha256-and-two-pass-row-set-sha256",
+      "alias-and-node-id-exclusion-closure",
+      "pull-request-page-request-response-cursor-and-terminal-closure",
+      "pull-request-normalization-source-sha256-and-two-pass-row-set-sha256",
+      "one-metadata-decision-per-normalized-pull-request-row",
+      "asset-lock-and-terminal-input-replay"
+    ],
+    "schemaVersion": 1
+  },
+  "estimand": {
+    "cohort": "frozen-public-github-convenience-frame",
+    "representative": false,
+    "treatmentOutcomeObservationBeforeAllocation": "prohibited"
+  },
+  "evaluationId": "goodmemory-c6-codex-coding-effect-source-v3-simple-v1",
+  "downstreamGates": {
+    "candidateSelectionPermitted": false,
+    "episodeConstructionProtocol": "required-separate-complete-edge-and-stage-triple-protocol",
+    "repositoryAllocationProtocol": "required-separate-outcome-blind-power-and-precision-artifact",
+    "taskOriginAndRelationshipProtocol": "required-separate-raw-row-projector-and-per-edge-review"
+  },
+  "promotionReceiptContract": {
+    "artifactKind": "c6-source-v3-simple-promotion-receipt",
+    "requiredBindings": [
+      "protocol-bytes-and-sha256",
+      "review-request-input-dispatch-response-provenance",
+      "reviewer-identity-and-author-separation",
+      "freeze-commit-tree-parent-and-ancestry",
+      "verifier-source-sha256",
+      "prior-repository-node-id-exclusion-closure"
+    ],
+    "schemaVersion": 1,
+    "selfAuthorizationAllowed": false
+  },
+  "schemaVersion": 1,
+  "sourceFrame": {
+    "inheritedSections": [
+      "exclusions",
+      "inputPolicy",
+      "repositoryUniverse",
+      "searchProtocol"
+    ],
+    "rootShardCount": 1536,
+    "metadataPredicate": {
+      "artifactKind": "c6-wave3-pretarget-policy",
+      "bytes": 9105,
+      "path": "swe-bench-live-multilang-608f7ae9.wave3-pretarget-policy-v1.json",
+      "schemaVersion": 1,
+      "sha256": "eb3df63ff269b1d0166ed4b2faba682d60cdce3fb1ea64946e66f08e5eda9856"
+    },
+    "sourceFrameProjectionSha256": "efb76e58585c6c422020954783eee50e37290d94f78310bd88c176929fa85474",
+    "sourceV2": {
+      "artifactKind": "c6-wave3-source-universe",
+      "bytes": 631004,
+      "path": "swe-bench-live-multilang-608f7ae9.wave3-source-universe-v2.json",
+      "schemaVersion": 2,
+      "sha256": "822c458e792ee31f7738cae2526b05dfc3b63fcaac58e3f4f87dcd3803ccdba1"
+    },
+    "supersededSections": [
+      "activationPlanProtocol",
+      "antiGrindingProtocol"
+    ]
+  }
+}

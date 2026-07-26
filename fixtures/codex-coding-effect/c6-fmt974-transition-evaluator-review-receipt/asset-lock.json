@@ -1,0 +1,12 @@
+{
+  "assetRootSha256": "7671e327880434cef13fd4d02dfe2bd83a5e540991012dd8076c58f8bbe63421",
+  "files": [
+    {
+      "bytes": 3752,
+      "mode": 420,
+      "path": "receipt.json",
+      "sha256": "70db5d33a9f165973107c2349ab5f9487ff239c76655451535690d7b59ffebaf"
+    }
+  ],
+  "schemaVersion": 1
+}

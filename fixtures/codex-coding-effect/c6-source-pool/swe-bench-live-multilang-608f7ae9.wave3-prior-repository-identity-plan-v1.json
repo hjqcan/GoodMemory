@@ -1,0 +1,2084 @@
+{
+  "artifactKind": "c6-wave3-prior-repository-identity-plan",
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "officialWave3SearchPermitted": false,
+    "policyCommitAncestryProven": false,
+    "policyIndependentReviewAccepted": false,
+    "priorIdentityCaptureExecuted": false,
+    "priorIdentityCapturePermitted": false,
+    "sourceUniverseCommitAncestryProven": false,
+    "sourceUniverseIndependentReviewAccepted": false,
+    "status": "prior-repository-identity-plan-proposal-only"
+  },
+  "captureArtifactContract": {
+    "artifactKind": "c6-wave3-prior-repository-identity-capture",
+    "authorizationRule": "capture-artifact-alone-never-authorizes-official-wave3-search",
+    "boundary": {
+      "captureCompleted": true,
+      "officialWave3SearchPermitted": false,
+      "priorIdentityQualificationExecuted": false,
+      "status": "capture-complete-awaiting-qualification"
+    },
+    "completion": {
+      "allAttemptReferencesRequired": true,
+      "everyLookupFinalOutcome": "complete-graphql-http-200",
+      "lookupOrder": "1-through-356-exactly-once",
+      "rawEvidenceAssetLockRequired": true,
+      "successfulLogicalLookupCount": 356
+    },
+    "inputClosure": {
+      "filesystemVerification": "no-symlink-stable-read-identity-and-bytes-terminal-replay",
+      "fixedInputBasenames": [
+        "swe-bench-live-multilang-608f7ae9.wave3-prior-repository-identity-plan-v1.json",
+        "swe-bench-live-multilang-608f7ae9.wave3-source-universe-v2.json"
+      ]
+    },
+    "recordSchemas": {
+      "artifactReferenceRequiredFields": [
+        "bytes",
+        "path",
+        "sha256"
+      ],
+      "attemptOutcomeEnum": [
+        "complete-graphql-http-200",
+        "graphql-http-200-invalid",
+        "retryable-http-status",
+        "terminal-http-status",
+        "transient-transport-failure",
+        "terminal-transport-failure"
+      ],
+      "attemptRecordRequiredFields": [
+        "attempt",
+        "attemptArtifact",
+        "httpResponseExists",
+        "httpStatus",
+        "lookupOrder",
+        "outcome",
+        "request",
+        "requestBody",
+        "requestProjection",
+        "responseBody",
+        "responseBodyReadCompleted",
+        "responseHeaders",
+        "retryDecision",
+        "selectedResponseHeaders",
+        "transportError"
+      ],
+      "countsRequiredFields": [
+        "logicalLookupCount",
+        "networkAttemptCount",
+        "successfulLogicalLookupCount"
+      ],
+      "inputsRequiredFields": [
+        "captureAssetLock",
+        "plan",
+        "sourceUniverse"
+      ],
+      "lookupRecordRequiredFields": [
+        "attempts",
+        "finalAttempt",
+        "lookupOrder",
+        "pass",
+        "repositoryNodeId",
+        "repositoryOrder",
+        "requestedName",
+        "requestedNameWithOwner",
+        "requestedOwner",
+        "requestedRepositorySha256",
+        "resolvedNameWithOwner",
+        "resolvedUrl",
+        "response",
+        "success"
+      ],
+      "requestRecordRequiredFields": [
+        "attempt",
+        "body",
+        "endpoint",
+        "headers",
+        "lookupOrder",
+        "method",
+        "redirect",
+        "timeoutMilliseconds",
+        "variables"
+      ],
+      "nullabilityRules": {
+        "httpStatus": "integer-100-through-599-iff-httpResponseExists-else-null",
+        "responseBody": "artifact-reference-iff-responseBodyReadCompleted-else-null",
+        "responseBodyReadCompleted": "true-implies-httpResponseExists",
+        "transportError": "artifact-reference-iff-transport-failure-outcome-else-null"
+      },
+      "outcomeDecisionRules": [
+        "complete-graphql-http-200=>stop-success:complete-graphql-response",
+        "graphql-http-200-invalid=>abort:graphql-or-required-field-or-header-reason",
+        "retryable-http-status=>retry-if-attempt-below-4-and-retry-after-null-or-canonical-0-through-60-else-abort",
+        "terminal-http-status=>abort:nonretryable-http-status",
+        "transient-transport-failure=>retry-if-attempt-below-4-else-abort",
+        "terminal-transport-failure=>abort:terminal-transport-error"
+      ],
+      "retryDecisionEnum": [
+        "abort",
+        "retry",
+        "stop-success"
+      ],
+      "retryDecisionRequiredFields": [
+        "decision",
+        "delayMilliseconds",
+        "reason",
+        "retryAfter"
+      ],
+      "retryReasonEnum": [
+        "complete-graphql-response",
+        "graphql-errors-or-partial-data",
+        "missing-required-success-header",
+        "missing-required-response-field",
+        "retryable-http-429",
+        "retryable-http-502",
+        "retryable-http-503",
+        "retryable-http-504",
+        "nonretryable-http-status",
+        "retry-after-invalid-or-over-maximum",
+        "transient-transport-code",
+        "terminal-transport-error",
+        "maximum-attempts-exhausted"
+      ],
+      "transportErrorPhaseEnum": [
+        "body-read",
+        "fetch",
+        "timeout"
+      ],
+      "transportErrorRecordRequiredFields": [
+        "code",
+        "message",
+        "phase",
+        "transient"
+      ],
+      "topLevelRequiredFields": [
+        "artifactKind",
+        "boundary",
+        "counts",
+        "inputs",
+        "lookups",
+        "schemaVersion"
+      ]
+    },
+    "schemaVersion": 1,
+    "serialization": {
+      "canonicalJsonRequired": true,
+      "terminalInputReplayRequired": true,
+      "unknownFields": "reject"
+    }
+  },
+  "captureProtocol": {
+    "asciiCaseFoldCollisionChecks": {
+      "algorithm": "ascii-A-through-Z-to-a-through-z-only",
+      "exactCasePreservedInputs": true,
+      "requestedNameWithOwner": "preserve-group-require-same-node-id-and-resolved-fold",
+      "resolvedNameWithOwner": "require-one-node-id-per-fold"
+    },
+    "aliasResolution": {
+      "duplicateRepositoryNodeId": "allowed-across-requested-aliases-deduplicate-after-both-passes",
+      "requestedToResolvedMapping": "preserve-every-exact-requested-name",
+      "resolvedIdentityConsistency": "one-node-id-must-map-to-one-ascii-folded-resolved-name"
+    },
+    "crossPassEquality": {
+      "exactCasePreservedFields": [
+        "requestedNameWithOwner",
+        "resolvedNameWithOwner",
+        "repositoryNodeId"
+      ],
+      "required": true
+    },
+    "endpoint": "GraphQL Query.repository",
+    "evidenceClosure": {
+      "attemptDirectoryPattern": "lookup-{lookupOrder-4-digit}/attempt-{attempt-2-digit}",
+      "completionAssetLock": {
+        "coversEveryAttemptArtifact": true,
+        "format": "c6-asset-lock-v1",
+        "path": "asset-lock.json",
+        "requiredAfterAllLookups": true,
+        "symlinksRejected": true,
+        "verifiedBeforeQualification": true
+      },
+      "graphqlBodyRateLimitFields": [
+        "cost",
+        "limit",
+        "remaining",
+        "resetAt",
+        "used"
+      ],
+      "perAttemptArtifacts": {
+        "artifactReference": "path-bytes-sha256",
+        "attemptRecord": "attempt.json",
+        "rawRequestBody": "request-body.raw",
+        "rawResponseBody": "response-body.raw-required-when-response-body-read-completes",
+        "requestMetadata": "request.json",
+        "responseHeaders": "response-headers.json",
+        "retryDecision": "retry-decision.json",
+        "transportError": "transport-error.json-only-on-transport-failure"
+      },
+      "selectedResponseHeaders": {
+        "alwaysRequiredOnCompleteGraphqlHttp200": [
+          "date",
+          "x-github-request-id",
+          "x-ratelimit-limit",
+          "x-ratelimit-remaining",
+          "x-ratelimit-reset",
+          "x-ratelimit-resource",
+          "x-ratelimit-used"
+        ],
+        "names": [
+          "date",
+          "retry-after",
+          "x-github-request-id",
+          "x-ratelimit-limit",
+          "x-ratelimit-remaining",
+          "x-ratelimit-reset",
+          "x-ratelimit-resource",
+          "x-ratelimit-used"
+        ],
+        "projection": "all-selected-names-present-as-string-or-null",
+        "retryAfterDecision": "null-or-absent-use-exponential-1000-2000-4000-canonical-unsigned-decimal-seconds-0-through-60-use-seconds-times-1000-invalid-fraction-http-date-or-over-60-abort",
+        "successValidation": {
+          "bodyCost": "nonnegative-safe-integer",
+          "date": "rfc7231-imf-fixdate",
+          "rateLimitBounds": "zero-through-limit-for-remaining-and-used",
+          "rateLimitNumbers": "canonical-unsigned-decimal-safe-integer",
+          "rateLimitProjection": "limit-remaining-used-equal-body-and-reset-equals-resetAt-epoch-seconds",
+          "requestId": "ascii-alphanumeric-first-then-alphanumeric-colon-hyphen-up-to-128",
+          "resetAt": "canonical-utc-second",
+          "resource": "exact-graphql",
+          "retryAfter": "null"
+        }
+      },
+      "tokenRedaction": {
+        "authorizationHeaderReceipt": "Bearer <redacted>",
+        "completionCapability": "not-issued-by-source-v2-external-promotion-verifier-required",
+        "preAssetLockOrdering": "scan-every-runner-owned-regular-file-before-build-asset-lock",
+        "runnerErrorAndProgressTokenEmission": false,
+        "runnerOwnedCaptureRootTokenPersistence": false,
+        "scanScope": "every-regular-file-byte-in-runner-owned-temporary-capture-root",
+        "terminalOrdering": "write-and-load-asset-lock-then-rescan-token-and-verify-closure-before-structural-verifier",
+        "transportErrorSanitization": "replace-all-exact-runtime-token-occurrences-before-runner-write-error-or-progress"
+      }
+    },
+    "fullPassBeforeNext": true,
+    "lookupConcurrency": 1,
+    "lookupOrder": "pass-A-repositoryOrder-ascending-then-pass-B-repositoryOrder-ascending",
+    "networkExecuted": false,
+    "nextLookupRule": "complete-and-reference-all-current-lookup-attempts-or-abort-before-next",
+    "normalization": {
+      "repositoryNodeId": "case-preserved-exact-nonempty-string",
+      "requestedNameWithOwner": "case-preserved-exact-owner-slash-name",
+      "resolvedNameWithOwner": "case-preserved-exact-owner-slash-name"
+    },
+    "operationName": "C6Wave3PriorRepositoryIdentity",
+    "passOrder": [
+      "A",
+      "B"
+    ],
+    "requestBody": {
+      "canonicalization": "utf8-JSON.stringify-no-trailing-newline-key-order-query-variables-name-owner",
+      "topLevelKeys": [
+        "query",
+        "variables"
+      ],
+      "variableKeys": [
+        "name",
+        "owner"
+      ],
+      "variables": "name-and-owner-exactly-from-frozen-target"
+    },
+    "query": "query C6Wave3PriorRepositoryIdentity($owner: String!, $name: String!) {\n  repository(owner: $owner, name: $name, followRenames: true) {\n    id\n    nameWithOwner\n    url\n  }\n  rateLimit {\n    cost\n    limit\n    remaining\n    resetAt\n    used\n  }\n}\n",
+    "querySha256": "c182b2706394b838b194d053077c6d1af3d0b76ca541a31a78f7c8846492566b",
+    "rateLimitReceipt": {
+      "fields": [
+        "cost",
+        "limit",
+        "remaining",
+        "resetAt",
+        "used"
+      ],
+      "requiredPerLookup": true
+    },
+    "retryPolicy": {
+      "decisionReceiptRequiredEveryAttempt": true,
+      "maximumNetworkAttemptsPerLookup": 4,
+      "maximumRetryDelayMilliseconds": 60000,
+      "retryDelayRule": "null-or-absent-use-exponential-1000-2000-4000-canonical-unsigned-decimal-seconds-0-through-60-use-seconds-times-1000-invalid-fraction-http-date-or-over-60-abort",
+      "retryableHttpStatuses": [
+        429,
+        502,
+        503,
+        504
+      ],
+      "retryableStatusDecisionBeforeSuccessHeaderValidation": true,
+      "transientTransportCodes": [
+        "EAI_AGAIN",
+        "ECONNREFUSED",
+        "ECONNRESET",
+        "EHOSTUNREACH",
+        "ENETDOWN",
+        "ENETRESET",
+        "ENETUNREACH",
+        "ENOTFOUND",
+        "ETIMEDOUT",
+        "UND_ERR_CONNECT_TIMEOUT",
+        "UND_ERR_HEADERS_TIMEOUT",
+        "UND_ERR_SOCKET"
+      ]
+    },
+    "responseFields": [
+      "id",
+      "nameWithOwner",
+      "url"
+    ],
+    "transport": {
+      "endpoint": "https://api.github.com/graphql",
+      "headers": {
+        "accept": "application/vnd.github+json",
+        "authorization": "Bearer <redacted>",
+        "content-type": "application/json",
+        "user-agent": "GoodMemory-C6-Wave3-Prior-Repository-Identity/1",
+        "x-github-api-version": "2022-11-28"
+      },
+      "method": "POST",
+      "redirect": "error",
+      "timeoutMilliseconds": 60000
+    },
+    "validation": {
+      "crossPassMismatch": "fail-closed",
+      "graphqlErrorsOrPartialData": "fail-closed",
+      "missingRequiredHeader": "fail-closed-only-on-complete-graphql-http-200",
+      "missingRequiredResponseField": "fail-closed",
+      "non200HttpStatus": "retry-only-under-frozen-policy-otherwise-fail-closed",
+      "nullRepository": "fail-closed",
+      "oneRepositoryNodeIdWithInconsistentResolvedFold": "fail-closed"
+    }
+  },
+  "counts": {
+    "lookupCount": 356,
+    "passCount": 2,
+    "priorRepositoryCount": 178
+  },
+  "independenceBoundary": {
+    "goldInput": false,
+    "hiddenTestInput": false,
+    "receiptHashAuthorizesCapture": false,
+    "requestedRepositoryProjectionSha256": "360da907fb4dd3c4e3e023c528b90e8f5401e5f52bc13b69fcce034b8b44ab01",
+    "targetProjectionSha256": "f7b60db10785fc13c3bcef9038cd82db325ba78c8373387f219220e4c9623718"
+  },
+  "inputs": {
+    "sourceUniverse": {
+      "artifactKind": "c6-wave3-source-universe",
+      "bytes": 631004,
+      "canonicalRepositoryCount": 178,
+      "canonicalRepositoryProjectionSha256": "360da907fb4dd3c4e3e023c528b90e8f5401e5f52bc13b69fcce034b8b44ab01",
+      "path": "swe-bench-live-multilang-608f7ae9.wave3-source-universe-v2.json",
+      "schemaVersion": 2,
+      "sha256": "822c458e792ee31f7738cae2526b05dfc3b63fcaac58e3f4f87dcd3803ccdba1"
+    }
+  },
+  "qualificationArtifactContract": {
+    "artifactKind": "c6-wave3-prior-repository-identity-qualification",
+    "authorizationRule": "qualification-artifact-alone-never-authorizes-official-wave3-search",
+    "boundary": {
+      "officialWave3SearchPermitted": false,
+      "priorRepositoryNodeIdExclusionComplete": true,
+      "status": "qualified-prior-node-id-closure-awaiting-external-promotion"
+    },
+    "caseFoldRules": {
+      "algorithm": "ascii-A-through-Z-to-a-through-z-only",
+      "nodeIdToResolvedFold": "exactly-one-otherwise-fail-closed",
+      "requestedFoldToNodeId": "exactly-one-otherwise-fail-closed",
+      "resolvedFoldToNodeId": "exactly-one-otherwise-fail-closed"
+    },
+    "closure": {
+      "aliasMappingCount": 178,
+      "allRequestedAliasesPreserved": true,
+      "assetLockRequired": true,
+      "attemptReferencesRequiredForBothPasses": true,
+      "successfulLogicalLookupCount": 356,
+      "uniqueNodeIdCount": "1-through-178-equals-nodeIdDedup-row-count"
+    },
+    "inputClosure": {
+      "artifactReferenceFields": [
+        "artifactKind",
+        "bytes",
+        "path",
+        "schemaVersion",
+        "sha256"
+      ],
+      "assetLock": "c6-asset-lock-v1-plus-assetRootSha256-and-lockSha256",
+      "filesystemVerification": "no-symlink-stable-read-identity-and-bytes-terminal-replay",
+      "fixedInputBasenames": [
+        "swe-bench-live-multilang-608f7ae9.wave3-prior-repository-identity-capture-v1.json",
+        "swe-bench-live-multilang-608f7ae9.wave3-prior-repository-identity-plan-v1.json",
+        "swe-bench-live-multilang-608f7ae9.wave3-source-universe-v2.json"
+      ],
+      "terminalReplay": "all-input-bytes-and-asset-lock-must-match-before-publication"
+    },
+    "inputsRequired": [
+      "capture",
+      "captureAssetLock",
+      "plan",
+      "sourceUniverse"
+    ],
+    "mapping": {
+      "crossPassRule": "same-exact-requested-name-must-have-identical-resolved-exact-name-and-node-id",
+      "rowRequiredFields": [
+        "passAAttemptReferences",
+        "passBAttemptReferences",
+        "repositoryNodeId",
+        "requestedNameWithOwner",
+        "resolvedNameWithOwner"
+      ],
+      "sort": "requestedNameWithOwner-code-unit-ascending"
+    },
+    "nodeIdDedup": {
+      "rowRequiredFields": [
+        "repositoryNodeId",
+        "requestedAliases",
+        "resolvedNameWithOwnerAsciiFold",
+        "resolvedNameWithOwnerExactValues"
+      ],
+      "requestedAliasesSort": "code-unit-ascending",
+      "resolvedExactValuesSort": "code-unit-ascending",
+      "sort": "repositoryNodeId-code-unit-then-resolved-fold-ascending"
+    },
+    "projections": {
+      "attemptReferenceRows": "mapping-order-requested-name-passA-all-references-passB-all-references",
+      "formula": "sha256-JSON.stringify-canonical-sorted-array",
+      "nodeIdDedupRows": "exact-nodeIdDedup-rows-in-frozen-sort-order",
+      "requestedToResolvedRows": "exact-mapping-rows-in-frozen-sort-order",
+      "requiredHashes": [
+        "attemptReferenceProjectionSha256",
+        "nodeIdDedupProjectionSha256",
+        "requestedToResolvedMappingProjectionSha256"
+      ]
+    },
+    "schemaVersion": 1,
+    "serialization": {
+      "canonicalJsonRequired": true,
+      "terminalInputReplayRequired": true,
+      "unknownFields": "reject"
+    },
+    "topLevelRequiredFields": [
+      "artifactKind",
+      "boundary",
+      "counts",
+      "inputs",
+      "mappings",
+      "nodeIdDedup",
+      "projections",
+      "schemaVersion"
+    ]
+  },
+  "schemaVersion": 1,
+  "targets": [
+    {
+      "passALookupOrder": 1,
+      "passBLookupOrder": 179,
+      "repositoryOrder": 1,
+      "requestedName": "templ",
+      "requestedNameWithOwner": "a-h/templ",
+      "requestedOwner": "a-h",
+      "requestedRepositorySha256": "9fa43dc4c58367fe4f9f3515aa279b4c45b2b475060c2f8e710da61b4cb8a22c"
+    },
+    {
+      "passALookupOrder": 2,
+      "passBLookupOrder": 180,
+      "repositoryOrder": 2,
+      "requestedName": "nacos",
+      "requestedNameWithOwner": "alibaba/nacos",
+      "requestedOwner": "alibaba",
+      "requestedRepositorySha256": "36f2484d1675657e6f2082cd9ae3903c28b728e7b4f9a9f4a179fd9ae4d33f8b"
+    },
+    {
+      "passALookupOrder": 3,
+      "passBLookupOrder": 181,
+      "repositoryOrder": 3,
+      "requestedName": "yalantinglibs",
+      "requestedNameWithOwner": "alibaba/yalantinglibs",
+      "requestedOwner": "alibaba",
+      "requestedRepositorySha256": "3425577b64998942622104f8842a5573b842a9b80d3e57c0abdf05b3cf3162d7"
+    },
+    {
+      "passALookupOrder": 4,
+      "passBLookupOrder": 182,
+      "repositoryOrder": 4,
+      "requestedName": "antennapod",
+      "requestedNameWithOwner": "antennapod/antennapod",
+      "requestedOwner": "antennapod",
+      "requestedRepositorySha256": "56b399b7af2c55bbebc83ee839419de9ffaae7320fd49e239266dbf15b7ed98a"
+    },
+    {
+      "passALookupOrder": 5,
+      "passBLookupOrder": 183,
+      "repositoryOrder": 5,
+      "requestedName": "accumulo",
+      "requestedNameWithOwner": "apache/accumulo",
+      "requestedOwner": "apache",
+      "requestedRepositorySha256": "dabb1775084103dd71d690ce5ae987f8b6ed5b52c87f648f15088ed3c842c160"
+    },
+    {
+      "passALookupOrder": 6,
+      "passBLookupOrder": 184,
+      "repositoryOrder": 6,
+      "requestedName": "arrow-rs",
+      "requestedNameWithOwner": "apache/arrow-rs",
+      "requestedOwner": "apache",
+      "requestedRepositorySha256": "7b2eb8d2878fed1ab3029f0c8d1ec0837055528a670eb65f55ac592492d13ab1"
+    },
+    {
+      "passALookupOrder": 7,
+      "passBLookupOrder": 185,
+      "repositoryOrder": 7,
+      "requestedName": "casbin",
+      "requestedNameWithOwner": "apache/casbin",
+      "requestedOwner": "apache",
+      "requestedRepositorySha256": "b681359ef52c3985af2e076a9c4a7ed94e767f8f1461d1001ede317c172cdaef"
+    },
+    {
+      "passALookupOrder": 8,
+      "passBLookupOrder": 186,
+      "repositoryOrder": 8,
+      "requestedName": "datafusion",
+      "requestedNameWithOwner": "apache/datafusion",
+      "requestedOwner": "apache",
+      "requestedRepositorySha256": "6f0206db701003d7256a992ab26cebda124b0ad821832cce82d8f7ec38d3c584"
+    },
+    {
+      "passALookupOrder": 9,
+      "passBLookupOrder": 187,
+      "repositoryOrder": 9,
+      "requestedName": "druid",
+      "requestedNameWithOwner": "apache/druid",
+      "requestedOwner": "apache",
+      "requestedRepositorySha256": "aa3ab282b3fbbb41736249eaecb3f52c0f79c8a7b06d6b52ade5ad7dd45ed55e"
+    },
+    {
+      "passALookupOrder": 10,
+      "passBLookupOrder": 188,
+      "repositoryOrder": 10,
+      "requestedName": "incubator-seata",
+      "requestedNameWithOwner": "apache/incubator-seata",
+      "requestedOwner": "apache",
+      "requestedRepositorySha256": "c19752f0c35be7f4ea8a1756162dbf729bdfaa87d24a5a0756e234bc4e280f1d"
+    },
+    {
+      "passALookupOrder": 11,
+      "passBLookupOrder": 189,
+      "repositoryOrder": 11,
+      "requestedName": "inlong",
+      "requestedNameWithOwner": "apache/inlong",
+      "requestedOwner": "apache",
+      "requestedRepositorySha256": "56d7eb99cf18c826f80dd6f9c4d182a30c117fb74de8a818119da0d6e69cd63b"
+    },
+    {
+      "passALookupOrder": 12,
+      "passBLookupOrder": 190,
+      "repositoryOrder": 12,
+      "requestedName": "kvrocks",
+      "requestedNameWithOwner": "apache/kvrocks",
+      "requestedOwner": "apache",
+      "requestedRepositorySha256": "c2ba2968a74f1fe0242d0bd98465973975be51965a8cfa1c39724bef4ebf0d29"
+    },
+    {
+      "passALookupOrder": 13,
+      "passBLookupOrder": 191,
+      "repositoryOrder": 13,
+      "requestedName": "lucene",
+      "requestedNameWithOwner": "apache/lucene",
+      "requestedOwner": "apache",
+      "requestedRepositorySha256": "3dbbf38946eda567ee6b74f765dfeb02c19bc8acb2de55aabe28a92416f00f45"
+    },
+    {
+      "passALookupOrder": 14,
+      "passBLookupOrder": 192,
+      "repositoryOrder": 14,
+      "requestedName": "pkl",
+      "requestedNameWithOwner": "apple/pkl",
+      "requestedOwner": "apple",
+      "requestedRepositorySha256": "8747ddc6ef69c156996493cd2071c11b975c55799fdf3f2e5c1bf4c031e5f152"
+    },
+    {
+      "passALookupOrder": 15,
+      "passBLookupOrder": 193,
+      "repositoryOrder": 15,
+      "requestedName": "mongoose",
+      "requestedNameWithOwner": "automattic/mongoose",
+      "requestedOwner": "automattic",
+      "requestedRepositorySha256": "e2f1614fc9d22c0a5329d1cac9bf275ba2d2bdddb8b6b460ffc0f91fd18fd949"
+    },
+    {
+      "passALookupOrder": 16,
+      "passBLookupOrder": 194,
+      "repositoryOrder": 16,
+      "requestedName": "automq",
+      "requestedNameWithOwner": "automq/automq",
+      "requestedOwner": "automq",
+      "requestedRepositorySha256": "cabaa159e8e7aa0ceca6f8e221a535178a9b404c19c48697af201613ec830e9a"
+    },
+    {
+      "passALookupOrder": 17,
+      "passBLookupOrder": 195,
+      "repositoryOrder": 17,
+      "requestedName": "s2n-tls",
+      "requestedNameWithOwner": "aws/s2n-tls",
+      "requestedOwner": "aws",
+      "requestedRepositorySha256": "940bb9cbc1009c5e73365df78aec51f5dbc74ad3f578e3ccf2027aae4678ef47"
+    },
+    {
+      "passALookupOrder": 18,
+      "passBLookupOrder": 196,
+      "repositoryOrder": 18,
+      "requestedName": "azure-mcp",
+      "requestedNameWithOwner": "azure/azure-mcp",
+      "requestedOwner": "azure",
+      "requestedRepositorySha256": "c52e0116a170a67527e42a4e2b65f7883dbefb877fa03e6c27f2e0c6647bb2fa"
+    },
+    {
+      "passALookupOrder": 19,
+      "passBLookupOrder": 197,
+      "repositoryOrder": 19,
+      "requestedName": "babel",
+      "requestedNameWithOwner": "babel/babel",
+      "requestedOwner": "babel",
+      "requestedRepositorySha256": "c3cc0e58ad997f331c722a8ddc77d0b51659ab9dc2cea8e85d38075d57ad5975"
+    },
+    {
+      "passALookupOrder": 20,
+      "passBLookupOrder": 198,
+      "repositoryOrder": 20,
+      "requestedName": "caddy",
+      "requestedNameWithOwner": "caddyserver/caddy",
+      "requestedOwner": "caddyserver",
+      "requestedRepositorySha256": "6844f4bed6bbbe111bae20b7e0168c4f96c6a5ebaac9fc5d3881da4a2e2f955b"
+    },
+    {
+      "passALookupOrder": 21,
+      "passBLookupOrder": 199,
+      "repositoryOrder": 21,
+      "requestedName": "camunda-modeler",
+      "requestedNameWithOwner": "camunda/camunda-modeler",
+      "requestedOwner": "camunda",
+      "requestedRepositorySha256": "c40defba751592f9496227a15b53c971f442404d1541784b229775ec14b007cd"
+    },
+    {
+      "passALookupOrder": 22,
+      "passBLookupOrder": 200,
+      "repositoryOrder": 22,
+      "requestedName": "multipass",
+      "requestedNameWithOwner": "canonical/multipass",
+      "requestedOwner": "canonical",
+      "requestedRepositorySha256": "6149e587e1e0d127e7731b6dcff8bf43c0777b2999f3e83f3a837f91db8651a4"
+    },
+    {
+      "passALookupOrder": 23,
+      "passBLookupOrder": 201,
+      "repositoryOrder": 23,
+      "requestedName": "capstone",
+      "requestedNameWithOwner": "capstone-engine/capstone",
+      "requestedOwner": "capstone-engine",
+      "requestedRepositorySha256": "f324358a93cefe3b2e7383565396c2266f7634848d1a4f34341ccdd0c744258e"
+    },
+    {
+      "passALookupOrder": 24,
+      "passBLookupOrder": 202,
+      "repositoryOrder": 24,
+      "requestedName": "cc65",
+      "requestedNameWithOwner": "cc65/cc65",
+      "requestedOwner": "cc65",
+      "requestedRepositorySha256": "8ab144d1fcf714317731ca41e6b73245300644a1ccbe36d2a4c413b1900edb81"
+    },
+    {
+      "passALookupOrder": 25,
+      "passBLookupOrder": 203,
+      "repositoryOrder": 25,
+      "requestedName": "lodestar",
+      "requestedNameWithOwner": "chainsafe/lodestar",
+      "requestedOwner": "chainsafe",
+      "requestedRepositorySha256": "3a1436d2a4a5146ee34ab09f6902e19ca428a237287c80a9abf82208c7666a67"
+    },
+    {
+      "passALookupOrder": 26,
+      "passBLookupOrder": 204,
+      "repositoryOrder": 26,
+      "requestedName": "crush",
+      "requestedNameWithOwner": "charmbracelet/crush",
+      "requestedOwner": "charmbracelet",
+      "requestedRepositorySha256": "868327aaa6ebd3416d8a29b37281cc8a2d41c35c4f1c8e43dd43a4f7a4e9d32a"
+    },
+    {
+      "passALookupOrder": 27,
+      "passBLookupOrder": 205,
+      "repositoryOrder": 27,
+      "requestedName": "tetragon",
+      "requestedNameWithOwner": "cilium/tetragon",
+      "requestedOwner": "cilium",
+      "requestedRepositorySha256": "9105039139f43f2b39928ca6fba1e978442d8aa1de3bfc253e2725c11cbb24dc"
+    },
+    {
+      "passALookupOrder": 28,
+      "passBLookupOrder": 206,
+      "repositoryOrder": 28,
+      "requestedName": "clap",
+      "requestedNameWithOwner": "clap-rs/clap",
+      "requestedOwner": "clap-rs",
+      "requestedRepositorySha256": "814ce8de5b30d724dc383f0b249e8e94b09a48a8aa5467b6cb13988285e6dfaf"
+    },
+    {
+      "passALookupOrder": 29,
+      "passBLookupOrder": 207,
+      "repositoryOrder": 29,
+      "requestedName": "cli",
+      "requestedNameWithOwner": "cli/cli",
+      "requestedOwner": "cli",
+      "requestedRepositorySha256": "0969f93425965decdde980e2f8b8201e694bec0dde6e3d27050e03e9bbe30937"
+    },
+    {
+      "passALookupOrder": 30,
+      "passBLookupOrder": 208,
+      "repositoryOrder": 30,
+      "requestedName": "codeceptjs",
+      "requestedNameWithOwner": "codeceptjs/codeceptjs",
+      "requestedOwner": "codeceptjs",
+      "requestedRepositorySha256": "917945a0084c0cbaa1e08c5772a6759e360de5d5f7636762831b53354dca436b"
+    },
+    {
+      "passALookupOrder": 31,
+      "passBLookupOrder": 209,
+      "repositoryOrder": 31,
+      "requestedName": "detekt",
+      "requestedNameWithOwner": "detekt/detekt",
+      "requestedOwner": "detekt",
+      "requestedRepositorySha256": "e240b91ad1e2d4741268e7259d55b34adde7c48085a1ca6f137bb8f5ecb18138"
+    },
+    {
+      "passALookupOrder": 32,
+      "passBLookupOrder": 210,
+      "repositoryOrder": 32,
+      "requestedName": "aspnetcore",
+      "requestedNameWithOwner": "dotnet/aspnetcore",
+      "requestedOwner": "dotnet",
+      "requestedRepositorySha256": "0dce64cd6b14fae7acd8d5fb3ad8745a618a3346af855ab4a6e86e72221e676c"
+    },
+    {
+      "passALookupOrder": 33,
+      "passBLookupOrder": 211,
+      "repositoryOrder": 33,
+      "requestedName": "command-line-api",
+      "requestedNameWithOwner": "dotnet/command-line-api",
+      "requestedOwner": "dotnet",
+      "requestedRepositorySha256": "00f5bb2a2a02448167077e6061f0cbcd781323425a3f2804f2369ab8d47ed2fa"
+    },
+    {
+      "passALookupOrder": 34,
+      "passBLookupOrder": 212,
+      "repositoryOrder": 34,
+      "requestedName": "efcore",
+      "requestedNameWithOwner": "dotnet/efcore",
+      "requestedOwner": "dotnet",
+      "requestedRepositorySha256": "1db12d5245622b7fc1cbb1aafb85b2f70c65a3451d1c3b39d6c8152b3d37cfa6"
+    },
+    {
+      "passALookupOrder": 35,
+      "passBLookupOrder": 213,
+      "repositoryOrder": 35,
+      "requestedName": "machinelearning",
+      "requestedNameWithOwner": "dotnet/machinelearning",
+      "requestedOwner": "dotnet",
+      "requestedRepositorySha256": "b3d0b69b9813af393f7dc0c0aa5871b9f4206260ee284051b80921678bab0c6a"
+    },
+    {
+      "passALookupOrder": 36,
+      "passBLookupOrder": 214,
+      "repositoryOrder": 36,
+      "requestedName": "orleans",
+      "requestedNameWithOwner": "dotnet/orleans",
+      "requestedOwner": "dotnet",
+      "requestedRepositorySha256": "3b653bf2abfe5650d9d7a71ef5ddc77782763ad5342421c53b199c3d3acc2a65"
+    },
+    {
+      "passALookupOrder": 37,
+      "passBLookupOrder": 215,
+      "repositoryOrder": 37,
+      "requestedName": "runtime",
+      "requestedNameWithOwner": "dotnet/runtime",
+      "requestedOwner": "dotnet",
+      "requestedRepositorySha256": "6e1384f77777a9b10114a36e5580a488e7af19c6e07b132028cef2716de491cf"
+    },
+    {
+      "passALookupOrder": 38,
+      "passBLookupOrder": 216,
+      "repositoryOrder": 38,
+      "requestedName": "sdk",
+      "requestedNameWithOwner": "dotnet/sdk",
+      "requestedOwner": "dotnet",
+      "requestedRepositorySha256": "72e94f3b496fb6880d54d1b1a58d6e155764af03553c92ff3cec8d4653399a12"
+    },
+    {
+      "passALookupOrder": 39,
+      "passBLookupOrder": 217,
+      "repositoryOrder": 39,
+      "requestedName": "winforms",
+      "requestedNameWithOwner": "dotnet/winforms",
+      "requestedOwner": "dotnet",
+      "requestedRepositorySha256": "4229cee4a19e090bcd3afb06b97a3d2e14eff8a0e600ab28bced7c59abbc3e84"
+    },
+    {
+      "passALookupOrder": 40,
+      "passBLookupOrder": 218,
+      "repositoryOrder": 40,
+      "requestedName": "yarp",
+      "requestedNameWithOwner": "dotnet/yarp",
+      "requestedOwner": "dotnet",
+      "requestedRepositorySha256": "e0bd123caf0cc3638bcc51f9f110aaf3fab7e5fbba200c7ec2a12a99f1a241c4"
+    },
+    {
+      "passALookupOrder": 41,
+      "passBLookupOrder": 219,
+      "repositoryOrder": 41,
+      "requestedName": "bootstrapblazor",
+      "requestedNameWithOwner": "dotnetcore/bootstrapblazor",
+      "requestedOwner": "dotnetcore",
+      "requestedRepositorySha256": "0314e0fa8d96397df8366a5677008c235be33fdd170f4a53ea953131da1be5c3"
+    },
+    {
+      "passALookupOrder": 42,
+      "passBLookupOrder": 220,
+      "repositoryOrder": 42,
+      "requestedName": "dynamorio",
+      "requestedNameWithOwner": "dynamorio/dynamorio",
+      "requestedOwner": "dynamorio",
+      "requestedRepositorySha256": "d70293efb56b04369a9445a624771b42c39cf2fa0392e23e8ec3e82ac3915a11"
+    },
+    {
+      "passALookupOrder": 43,
+      "passBLookupOrder": 221,
+      "repositoryOrder": 43,
+      "requestedName": "logstash",
+      "requestedNameWithOwner": "elastic/logstash",
+      "requestedOwner": "elastic",
+      "requestedRepositorySha256": "ac9df4cabab59e17fede4666af26b0595ed9caf5882d7610d42fb8a94497f1ed"
+    },
+    {
+      "passALookupOrder": 44,
+      "passBLookupOrder": 222,
+      "repositoryOrder": 44,
+      "requestedName": "esphome",
+      "requestedNameWithOwner": "esphome/esphome",
+      "requestedOwner": "esphome",
+      "requestedRepositorySha256": "e38d332a8659c3efe86ae5361ce480780cea13475b63b147759f5d2561ba1658"
+    },
+    {
+      "passALookupOrder": 45,
+      "passBLookupOrder": 223,
+      "repositoryOrder": 45,
+      "requestedName": "excalidraw",
+      "requestedNameWithOwner": "excalidraw/excalidraw",
+      "requestedOwner": "excalidraw",
+      "requestedRepositorySha256": "c165fbec9f74a7faffea4bfae6499a464c7ba7c7591da98c306e73c8d7ca83ac"
+    },
+    {
+      "passALookupOrder": 46,
+      "passBLookupOrder": 224,
+      "repositoryOrder": 46,
+      "requestedName": "docusaurus",
+      "requestedNameWithOwner": "facebook/docusaurus",
+      "requestedOwner": "facebook",
+      "requestedRepositorySha256": "7e94fcab70b1bb7eb24016980f09db3ff0bf72def11fb683c17d1d1d689a85d5"
+    },
+    {
+      "passALookupOrder": 47,
+      "passBLookupOrder": 225,
+      "repositoryOrder": 47,
+      "requestedName": "stylex",
+      "requestedNameWithOwner": "facebook/stylex",
+      "requestedOwner": "facebook",
+      "requestedRepositorySha256": "a54f4e952bac7db518bef08cb9e0a44411af9b8f3740f2b5be835c174d024c33"
+    },
+    {
+      "passALookupOrder": 48,
+      "passBLookupOrder": 226,
+      "repositoryOrder": 48,
+      "requestedName": "finbuckle.multitenant",
+      "requestedNameWithOwner": "finbuckle/finbuckle.multitenant",
+      "requestedOwner": "finbuckle",
+      "requestedRepositorySha256": "555f21244aece32d12082b532201f8a44f255d51658e1e14f0a68d41f93f982a"
+    },
+    {
+      "passALookupOrder": 49,
+      "passBLookupOrder": 227,
+      "repositoryOrder": 49,
+      "requestedName": "profiler",
+      "requestedNameWithOwner": "firefox-devtools/profiler",
+      "requestedOwner": "firefox-devtools",
+      "requestedRepositorySha256": "06f4e292ab6bda0264155342a51ba5ceb898dc630b1447e272049585072635bf"
+    },
+    {
+      "passALookupOrder": 50,
+      "passBLookupOrder": 228,
+      "repositoryOrder": 50,
+      "requestedName": "fluent-bit",
+      "requestedNameWithOwner": "fluent/fluent-bit",
+      "requestedOwner": "fluent",
+      "requestedRepositorySha256": "7a9ccb2b65fd3892865a689de004fae5c8d107c1344bb472d08baeb5015bd4f8"
+    },
+    {
+      "passALookupOrder": 51,
+      "passBLookupOrder": 229,
+      "repositoryOrder": 51,
+      "requestedName": "fluentmigrator",
+      "requestedNameWithOwner": "fluentmigrator/fluentmigrator",
+      "requestedOwner": "fluentmigrator",
+      "requestedRepositorySha256": "94b621d925e109027768ce23244e904013403130dd8d765a242f989252e60f10"
+    },
+    {
+      "passALookupOrder": 52,
+      "passBLookupOrder": 230,
+      "repositoryOrder": 52,
+      "requestedName": "fmt",
+      "requestedNameWithOwner": "fmtlib/fmt",
+      "requestedOwner": "fmtlib",
+      "requestedRepositorySha256": "c7e52d73216839d5408ff29ab8052c53194b997e5269cb3ff0f701b15ff1ca1b"
+    },
+    {
+      "passALookupOrder": 53,
+      "passBLookupOrder": 231,
+      "repositoryOrder": 53,
+      "requestedName": "sentry-javascript",
+      "requestedNameWithOwner": "getsentry/sentry-javascript",
+      "requestedOwner": "getsentry",
+      "requestedRepositorySha256": "3a7eb5038029b0862e7392fc0d5efd3e9fe1b429700b695fe6beaeb4e4fd21be"
+    },
+    {
+      "passALookupOrder": 54,
+      "passBLookupOrder": 232,
+      "repositoryOrder": 54,
+      "requestedName": "gin",
+      "requestedNameWithOwner": "gin-gonic/gin",
+      "requestedOwner": "gin-gonic",
+      "requestedRepositorySha256": "7ae31811b699aada5d5e2aaa44dcca335411ea7d8362cd5b2ded9c2ca99389c5"
+    },
+    {
+      "passALookupOrder": 55,
+      "passBLookupOrder": 233,
+      "repositoryOrder": 55,
+      "requestedName": "github-mcp-server",
+      "requestedNameWithOwner": "github/github-mcp-server",
+      "requestedOwner": "github",
+      "requestedRepositorySha256": "ee54398caa24c67eda3edacc26c64b16e6c93674873ef54209045aa5d0e6d856"
+    },
+    {
+      "passALookupOrder": 56,
+      "passBLookupOrder": 234,
+      "repositoryOrder": 56,
+      "requestedName": "gleam",
+      "requestedNameWithOwner": "gleam-lang/gleam",
+      "requestedOwner": "gleam-lang",
+      "requestedRepositorySha256": "7a8ab329f3dc7b6858abbb4199211de5a083b159e3c5b5860e36d23b49c3875a"
+    },
+    {
+      "passALookupOrder": 57,
+      "passBLookupOrder": 235,
+      "repositoryOrder": 57,
+      "requestedName": "gson",
+      "requestedNameWithOwner": "google/gson",
+      "requestedOwner": "google",
+      "requestedRepositorySha256": "3ef2c81d736216160e0b3cfb864ebdb592aca07aa31d48bc1f8747b9091eba3c"
+    },
+    {
+      "passALookupOrder": 58,
+      "passBLookupOrder": 236,
+      "repositoryOrder": 58,
+      "requestedName": "zx",
+      "requestedNameWithOwner": "google/zx",
+      "requestedOwner": "google",
+      "requestedRepositorySha256": "e16f78bd037806f9efab6d782b58ca4ba39949ec1623e92ec21e1045b8e8babe"
+    },
+    {
+      "passALookupOrder": 59,
+      "passBLookupOrder": 237,
+      "repositoryOrder": 59,
+      "requestedName": "taskwarrior",
+      "requestedNameWithOwner": "gothenburgbitfactory/taskwarrior",
+      "requestedOwner": "gothenburgbitfactory",
+      "requestedRepositorySha256": "249a88b39e20b7bc7023e23b2311f7c4258a6e9e4e04a53d0d8a85265afadf52"
+    },
+    {
+      "passALookupOrder": 60,
+      "passBLookupOrder": 238,
+      "repositoryOrder": 60,
+      "requestedName": "graphql",
+      "requestedNameWithOwner": "graphql-go/graphql",
+      "requestedOwner": "graphql-go",
+      "requestedRepositorySha256": "24cad8d8926db8ec7d40ea56603ec3d6a49c41d57ce47489990fae0883deaf24"
+    },
+    {
+      "passALookupOrder": 61,
+      "passBLookupOrder": 239,
+      "repositoryOrder": 61,
+      "requestedName": "grommet",
+      "requestedNameWithOwner": "grommet/grommet",
+      "requestedOwner": "grommet",
+      "requestedRepositorySha256": "621c41fcd12abf113ad4b64c1c2505eb17030213f1542126b3c81343c2f720fd"
+    },
+    {
+      "passALookupOrder": 62,
+      "passBLookupOrder": 240,
+      "repositoryOrder": 62,
+      "requestedName": "grpc-go",
+      "requestedNameWithOwner": "grpc/grpc-go",
+      "requestedOwner": "grpc",
+      "requestedRepositorySha256": "78d130c1abd3948a94779d0925bb39604935ffde22786bdd7b160d01307656ae"
+    },
+    {
+      "passALookupOrder": 63,
+      "passBLookupOrder": 241,
+      "repositoryOrder": 63,
+      "requestedName": "joi",
+      "requestedNameWithOwner": "hapijs/joi",
+      "requestedOwner": "hapijs",
+      "requestedRepositorySha256": "409f73b6177ec0cff0c6c5b87cd472888994d58a653335b67a605a1fc6e0bad5"
+    },
+    {
+      "passALookupOrder": 64,
+      "passBLookupOrder": 242,
+      "repositoryOrder": 64,
+      "requestedName": "harfbuzz",
+      "requestedNameWithOwner": "harfbuzz/harfbuzz",
+      "requestedOwner": "harfbuzz",
+      "requestedRepositorySha256": "e503825aaf474a21b9af9b31b48d6adcefab1dbb5011bd5a3f0960d7d7f82352"
+    },
+    {
+      "passALookupOrder": 65,
+      "passBLookupOrder": 243,
+      "repositoryOrder": 65,
+      "requestedName": "highcharts",
+      "requestedNameWithOwner": "highcharts/highcharts",
+      "requestedOwner": "highcharts",
+      "requestedRepositorySha256": "98c8412e404443ca5aab41bee60b6b73ab0bc7fca76313d727e6f6e2f33baae7"
+    },
+    {
+      "passALookupOrder": 66,
+      "passBLookupOrder": 244,
+      "repositoryOrder": 66,
+      "requestedName": "hono",
+      "requestedNameWithOwner": "honojs/hono",
+      "requestedOwner": "honojs",
+      "requestedRepositorySha256": "6471b22c68b8e0d9385d939c251d3a1eae79b2e4c993f2e97c3b7fd46a2f8fb8"
+    },
+    {
+      "passALookupOrder": 67,
+      "passBLookupOrder": 245,
+      "repositoryOrder": 67,
+      "requestedName": "turbo",
+      "requestedNameWithOwner": "hotwired/turbo",
+      "requestedOwner": "hotwired",
+      "requestedRepositorySha256": "9ca02cc8490b08d353e026b08ec80ba5439e3d4721718cc1ea58ce2af083b424"
+    },
+    {
+      "passALookupOrder": 68,
+      "passBLookupOrder": 246,
+      "repositoryOrder": 68,
+      "requestedName": "c2rust",
+      "requestedNameWithOwner": "immunant/c2rust",
+      "requestedOwner": "immunant",
+      "requestedRepositorySha256": "00d65cf6f62a8b13363ba240f9c84e300dc32f73f3b8b4bc83f81562d8a55c85"
+    },
+    {
+      "passALookupOrder": 69,
+      "passBLookupOrder": 247,
+      "repositoryOrder": 69,
+      "requestedName": "include-what-you-use",
+      "requestedNameWithOwner": "include-what-you-use/include-what-you-use",
+      "requestedOwner": "include-what-you-use",
+      "requestedRepositorySha256": "4096144930e5c6a671906daa19cb335d5a66d5780224674da13ba400e85dacc5"
+    },
+    {
+      "passALookupOrder": 70,
+      "passBLookupOrder": 248,
+      "repositoryOrder": 70,
+      "requestedName": "jekyll",
+      "requestedNameWithOwner": "jekyll/jekyll",
+      "requestedOwner": "jekyll",
+      "requestedRepositorySha256": "59384d93034c01f0ae71622664672c282b2334463b0508ecf024140e8323c36b"
+    },
+    {
+      "passALookupOrder": 71,
+      "passBLookupOrder": 249,
+      "repositoryOrder": 71,
+      "requestedName": "jest",
+      "requestedNameWithOwner": "jestjs/jest",
+      "requestedOwner": "jestjs",
+      "requestedRepositorySha256": "945ae9302726b7e26adf9deda732f7dfa6f552f154a942fc100ddcd53ce252d1"
+    },
+    {
+      "passALookupOrder": 72,
+      "passBLookupOrder": 250,
+      "repositoryOrder": 72,
+      "requestedName": "chess.js",
+      "requestedNameWithOwner": "jhlywa/chess.js",
+      "requestedOwner": "jhlywa",
+      "requestedRepositorySha256": "d9050f59161d5711cd04454e07856c4d7dd68d5814d101cdb52b6683d32e050c"
+    },
+    {
+      "passALookupOrder": 73,
+      "passBLookupOrder": 251,
+      "repositoryOrder": 73,
+      "requestedName": "jj",
+      "requestedNameWithOwner": "jj-vcs/jj",
+      "requestedOwner": "jj-vcs",
+      "requestedRepositorySha256": "9a1c88e6671116fa505977f9f8f710c4b7712a00807fa6858bd4b5b3de559405"
+    },
+    {
+      "passALookupOrder": 74,
+      "passBLookupOrder": 252,
+      "repositoryOrder": 74,
+      "requestedName": "js-primer",
+      "requestedNameWithOwner": "js-primer/js-primer",
+      "requestedOwner": "js-primer",
+      "requestedRepositorySha256": "fcfcf44bc1d5f0e9e38aa6ba921c5c2ec8d0d5e48a55482ec03f9fdb3af1a1ba"
+    },
+    {
+      "passALookupOrder": 75,
+      "passBLookupOrder": 253,
+      "repositoryOrder": 75,
+      "requestedName": "kanata",
+      "requestedNameWithOwner": "jtroo/kanata",
+      "requestedOwner": "jtroo",
+      "requestedRepositorySha256": "60cae7b381e7fd66ea1924cdf01c29ec4eec282f2e42132378d1d953c4ece5b2"
+    },
+    {
+      "passALookupOrder": 76,
+      "passBLookupOrder": 254,
+      "repositoryOrder": 76,
+      "requestedName": "junit-framework",
+      "requestedNameWithOwner": "junit-team/junit-framework",
+      "requestedOwner": "junit-team",
+      "requestedRepositorySha256": "1a037c763384bf2691c20093661d3fef7ef9d1a0b080d2c9caeb0ad49cc5c45b"
+    },
+    {
+      "passALookupOrder": 77,
+      "passBLookupOrder": 255,
+      "repositoryOrder": 77,
+      "requestedName": "glslang",
+      "requestedNameWithOwner": "khronosgroup/glslang",
+      "requestedOwner": "khronosgroup",
+      "requestedRepositorySha256": "efc74ab7401a22defbccfd0739b2d1ac00732d0e1dbf348f01d65ceac79abece"
+    },
+    {
+      "passALookupOrder": 78,
+      "passBLookupOrder": 256,
+      "repositoryOrder": 78,
+      "requestedName": "kokkos",
+      "requestedNameWithOwner": "kokkos/kokkos",
+      "requestedOwner": "kokkos",
+      "requestedRepositorySha256": "38dd16084b3d3b4b92fa1fd88988a342e4e8bb8710c43a8b887ddcf3f708d5b8"
+    },
+    {
+      "passALookupOrder": 79,
+      "passBLookupOrder": 257,
+      "repositoryOrder": 79,
+      "requestedName": "kops",
+      "requestedNameWithOwner": "kubernetes/kops",
+      "requestedOwner": "kubernetes",
+      "requestedRepositorySha256": "fadc20bd9387b65f94216642e105bf28940029b15a4822459349acabfc05c050"
+    },
+    {
+      "passALookupOrder": 80,
+      "passBLookupOrder": 258,
+      "repositoryOrder": 80,
+      "requestedName": "lalrpop",
+      "requestedNameWithOwner": "lalrpop/lalrpop",
+      "requestedOwner": "lalrpop",
+      "requestedRepositorySha256": "dea73d85cfa0b00cb9c9c9e2e7d9c82ffba27ce99512f26841ce18877a63e64f"
+    },
+    {
+      "passALookupOrder": 81,
+      "passBLookupOrder": 259,
+      "repositoryOrder": 81,
+      "requestedName": "framework",
+      "requestedNameWithOwner": "laravel/framework",
+      "requestedOwner": "laravel",
+      "requestedRepositorySha256": "3597021415fe6386b88ab741fabdf612d3229d48b367aa2834a54e4a001084ab"
+    },
+    {
+      "passALookupOrder": 82,
+      "passBLookupOrder": 260,
+      "repositoryOrder": 82,
+      "requestedName": "less.js",
+      "requestedNameWithOwner": "less/less.js",
+      "requestedOwner": "less",
+      "requestedRepositorySha256": "08a9ddbd7c2d9237aa6f6708aab737007ef7b359c70729ba09e6aa54ff094bed"
+    },
+    {
+      "passALookupOrder": 83,
+      "passBLookupOrder": 261,
+      "repositoryOrder": 83,
+      "requestedName": "libarchive",
+      "requestedNameWithOwner": "libarchive/libarchive",
+      "requestedOwner": "libarchive",
+      "requestedRepositorySha256": "2be16d4c1511be07b023ca458dbd7b24b2436df9c7f487860a20aee09602b3de"
+    },
+    {
+      "passALookupOrder": 84,
+      "passBLookupOrder": 262,
+      "repositoryOrder": 84,
+      "requestedName": "go-libp2p",
+      "requestedNameWithOwner": "libp2p/go-libp2p",
+      "requestedOwner": "libp2p",
+      "requestedRepositorySha256": "9ab32386ade35db174dcc6fb03976036920de0b70837c7c5f9269b6648a7ff1d"
+    },
+    {
+      "passALookupOrder": 85,
+      "passBLookupOrder": 263,
+      "repositoryOrder": 85,
+      "requestedName": "lightdash",
+      "requestedNameWithOwner": "lightdash/lightdash",
+      "requestedOwner": "lightdash",
+      "requestedRepositorySha256": "9ff7f014fd858b3acac78fe99afb00ef409402955420b81adfff0ebb2aca4de7"
+    },
+    {
+      "passALookupOrder": 86,
+      "passBLookupOrder": 264,
+      "repositoryOrder": 86,
+      "requestedName": "vello",
+      "requestedNameWithOwner": "linebender/vello",
+      "requestedOwner": "linebender",
+      "requestedRepositorySha256": "b9af3950b83b929fcf8cd32f8dc8d58e366efcf6472b2f7d6af49794188b0905"
+    },
+    {
+      "passALookupOrder": 87,
+      "passBLookupOrder": 265,
+      "repositoryOrder": 87,
+      "requestedName": "okhttp",
+      "requestedNameWithOwner": "lysine-dev/okhttp",
+      "requestedOwner": "lysine-dev",
+      "requestedRepositorySha256": "a44c22d5ab7e7cd9c6823f2680da31cea1def3af9c0a0d435933266b9e1c642e"
+    },
+    {
+      "passALookupOrder": 88,
+      "passBLookupOrder": 266,
+      "repositoryOrder": 88,
+      "requestedName": "marko",
+      "requestedNameWithOwner": "marko-js/marko",
+      "requestedOwner": "marko-js",
+      "requestedRepositorySha256": "860fb2878b22412e625f650b6b5d7145333a17ae7315900393d236f1cf2bc3bb"
+    },
+    {
+      "passALookupOrder": 89,
+      "passBLookupOrder": 267,
+      "repositoryOrder": 89,
+      "requestedName": "matrix-rust-sdk",
+      "requestedNameWithOwner": "matrix-org/matrix-rust-sdk",
+      "requestedOwner": "matrix-org",
+      "requestedRepositorySha256": "372ab8b949fb7859bec32267a14f82e7952c6f25f6b5d117772e0fa24b737d6f"
+    },
+    {
+      "passALookupOrder": 90,
+      "passBLookupOrder": 268,
+      "repositoryOrder": 90,
+      "requestedName": "mbedtls",
+      "requestedNameWithOwner": "mbed-tls/mbedtls",
+      "requestedOwner": "mbed-tls",
+      "requestedRepositorySha256": "921a6ae411322af66e3df3833289b7f7552ae1b76c78feb9918bf3e05f7fb2b4"
+    },
+    {
+      "passALookupOrder": 91,
+      "passBLookupOrder": 269,
+      "repositoryOrder": 91,
+      "requestedName": "blazorise",
+      "requestedNameWithOwner": "megabit/blazorise",
+      "requestedOwner": "megabit",
+      "requestedRepositorySha256": "76a8db72aa44696bbc99af5765f2b53526e8fa50e22eadc45071f502b7ba7735"
+    },
+    {
+      "passALookupOrder": 92,
+      "passBLookupOrder": 270,
+      "repositoryOrder": 92,
+      "requestedName": "micropython",
+      "requestedNameWithOwner": "micropython/micropython",
+      "requestedOwner": "micropython",
+      "requestedRepositorySha256": "d36d613d0989698584899026e525da7b764b35522c73b6d3aa04efd0ab5b6f3f"
+    },
+    {
+      "passALookupOrder": 93,
+      "passBLookupOrder": 271,
+      "repositoryOrder": 93,
+      "requestedName": "playwright-java",
+      "requestedNameWithOwner": "microsoft/playwright-java",
+      "requestedOwner": "microsoft",
+      "requestedRepositorySha256": "9e89244171a916cff6b38a1dc941db0c92b492bedeccf8df33c174eff6dc2903"
+    },
+    {
+      "passALookupOrder": 94,
+      "passBLookupOrder": 272,
+      "repositoryOrder": 94,
+      "requestedName": "mockito",
+      "requestedNameWithOwner": "mockito/mockito",
+      "requestedOwner": "mockito",
+      "requestedRepositorySha256": "79fa2b2923a4d6252f40ba9f32e7f96e3b52e6ab30ccd9acd193a41a68225dbe"
+    },
+    {
+      "passALookupOrder": 95,
+      "passBLookupOrder": 273,
+      "repositoryOrder": 95,
+      "requestedName": "luxon",
+      "requestedNameWithOwner": "moment/luxon",
+      "requestedOwner": "moment",
+      "requestedRepositorySha256": "c9985898f3dab837d20ba6b7da16d270b2e84477c8a5a539b94a3e6d7ccb0e07"
+    },
+    {
+      "passALookupOrder": 96,
+      "passBLookupOrder": 274,
+      "repositoryOrder": 96,
+      "requestedName": "pdf.js",
+      "requestedNameWithOwner": "mozilla/pdf.js",
+      "requestedOwner": "mozilla",
+      "requestedRepositorySha256": "36958ab36359b73adeef36947c21fb4114a6d490fadecc28c5e9bc51969f8edb"
+    },
+    {
+      "passALookupOrder": 97,
+      "passBLookupOrder": 275,
+      "repositoryOrder": 97,
+      "requestedName": "mudblazor",
+      "requestedNameWithOwner": "mudblazor/mudblazor",
+      "requestedOwner": "mudblazor",
+      "requestedRepositorySha256": "9f68d5d06759989ec1f62334ca5e89072d599b5444c538ac93584ec85e411ec3"
+    },
+    {
+      "passALookupOrder": 98,
+      "passBLookupOrder": 276,
+      "repositoryOrder": 98,
+      "requestedName": "base-ui",
+      "requestedNameWithOwner": "mui/base-ui",
+      "requestedOwner": "mui",
+      "requestedRepositorySha256": "980bc026b01c04565cdf14e3e2505cd1dfc56b613a3e204613e13c2f5eec07d6"
+    },
+    {
+      "passALookupOrder": 99,
+      "passBLookupOrder": 277,
+      "repositoryOrder": 99,
+      "requestedName": "material-ui",
+      "requestedNameWithOwner": "mui/material-ui",
+      "requestedOwner": "mui",
+      "requestedRepositorySha256": "4d1855e565058737f49b32689ef0626dd21786946e16b580fcb6fac7637c17b1"
+    },
+    {
+      "passALookupOrder": 100,
+      "passBLookupOrder": 278,
+      "repositoryOrder": 100,
+      "requestedName": "multiqc",
+      "requestedNameWithOwner": "multiqc/multiqc",
+      "requestedOwner": "multiqc",
+      "requestedRepositorySha256": "ce0609c6873571f99f5b4a0c6de32f8df271b72dd02a16d9503f1d9b8ca8d85d"
+    },
+    {
+      "passALookupOrder": 101,
+      "passBLookupOrder": 279,
+      "repositoryOrder": 101,
+      "requestedName": "musescore",
+      "requestedNameWithOwner": "musescore/musescore",
+      "requestedOwner": "musescore",
+      "requestedRepositorySha256": "4df632a4e38e6df3388ff2bc55b5600a29d52758d6c290506250c3cdf83c09a3"
+    },
+    {
+      "passALookupOrder": 102,
+      "passBLookupOrder": 280,
+      "repositoryOrder": 102,
+      "requestedName": "nats-server",
+      "requestedNameWithOwner": "nats-io/nats-server",
+      "requestedOwner": "nats-io",
+      "requestedRepositorySha256": "509df3de159369289f1953e0c8a25051206d6c61f2b069c9f4c71c030bb9f6ce"
+    },
+    {
+      "passALookupOrder": 103,
+      "passBLookupOrder": 281,
+      "repositoryOrder": 103,
+      "requestedName": "netbird",
+      "requestedNameWithOwner": "netbirdio/netbird",
+      "requestedOwner": "netbirdio",
+      "requestedRepositorySha256": "84121b6713c3fb9470e5d3d2be54c98e8a5dcea2e8b935b0a8d5f3c949950634"
+    },
+    {
+      "passALookupOrder": 104,
+      "passBLookupOrder": 282,
+      "repositoryOrder": 104,
+      "requestedName": "ninja",
+      "requestedNameWithOwner": "ninja-build/ninja",
+      "requestedOwner": "ninja-build",
+      "requestedRepositorySha256": "b1664414d9bc15fae27bada08407fbb8c82a09c8bdf6c7f7586064cdd940c5c1"
+    },
+    {
+      "passALookupOrder": 105,
+      "passBLookupOrder": 283,
+      "repositoryOrder": 105,
+      "requestedName": "nock",
+      "requestedNameWithOwner": "nock/nock",
+      "requestedOwner": "nock",
+      "requestedRepositorySha256": "da26fd61afd04dbb347a62a49488f8c483c4e1d1b457fddf8db1d720996a3af6"
+    },
+    {
+      "passALookupOrder": 106,
+      "passBLookupOrder": 284,
+      "repositoryOrder": 106,
+      "requestedName": "node-addon-api",
+      "requestedNameWithOwner": "nodejs/node-addon-api",
+      "requestedOwner": "nodejs",
+      "requestedRepositorySha256": "fe15fd22a4b657a63480dcf9d31f60c51d56d8f39a64238e72b1cce4d578c07c"
+    },
+    {
+      "passALookupOrder": 107,
+      "passBLookupOrder": 285,
+      "repositoryOrder": 107,
+      "requestedName": "noir",
+      "requestedNameWithOwner": "noir-lang/noir",
+      "requestedOwner": "noir-lang",
+      "requestedRepositorySha256": "56384f8310a0b1b30c9beb9a56f86130427103a8ffbe5d84c511789252b03ae8"
+    },
+    {
+      "passALookupOrder": 108,
+      "passBLookupOrder": 286,
+      "repositoryOrder": 108,
+      "requestedName": "notify",
+      "requestedNameWithOwner": "notify-rs/notify",
+      "requestedOwner": "notify-rs",
+      "requestedRepositorySha256": "74dacdb036c038a352ff52b1731507f69258ef6124cfd9703032bbc713c2e29e"
+    },
+    {
+      "passALookupOrder": 109,
+      "passBLookupOrder": 287,
+      "repositoryOrder": 109,
+      "requestedName": "oauth2-proxy",
+      "requestedNameWithOwner": "oauth2-proxy/oauth2-proxy",
+      "requestedOwner": "oauth2-proxy",
+      "requestedRepositorySha256": "196d404b40ceb28be373fcf6456f7536991e3d2aad07f2003cfe17db51ddef49"
+    },
+    {
+      "passALookupOrder": 110,
+      "passBLookupOrder": 288,
+      "repositoryOrder": 110,
+      "requestedName": "opentelemetry-collector-contrib",
+      "requestedNameWithOwner": "open-telemetry/opentelemetry-collector-contrib",
+      "requestedOwner": "open-telemetry",
+      "requestedRepositorySha256": "a80cca51d9e9edd871c22d146910889126e5abd7d6dbf0b782e0d8f11cbbc299"
+    },
+    {
+      "passALookupOrder": 111,
+      "passBLookupOrder": 289,
+      "repositoryOrder": 111,
+      "requestedName": "opentelemetry-go",
+      "requestedNameWithOwner": "open-telemetry/opentelemetry-go",
+      "requestedOwner": "open-telemetry",
+      "requestedRepositorySha256": "6d0c330912142dd7be19cd8af93c76876ca57946121069cbde009543ee6c138c"
+    },
+    {
+      "passALookupOrder": 112,
+      "passBLookupOrder": 290,
+      "repositoryOrder": 112,
+      "requestedName": "opentelemetry-go-contrib",
+      "requestedNameWithOwner": "open-telemetry/opentelemetry-go-contrib",
+      "requestedOwner": "open-telemetry",
+      "requestedRepositorySha256": "2708013e4e1d4ac206ebcbc29f9bd690228bf03e7bd707b40fed906d668ec791"
+    },
+    {
+      "passALookupOrder": 113,
+      "passBLookupOrder": 291,
+      "repositoryOrder": 113,
+      "requestedName": "opentelemetry-operator",
+      "requestedNameWithOwner": "open-telemetry/opentelemetry-operator",
+      "requestedOwner": "open-telemetry",
+      "requestedRepositorySha256": "6e892b90bb273690bedb1ce09d1fd1386ad745712a6e6320549acf39cef8bdd6"
+    },
+    {
+      "passALookupOrder": 114,
+      "passBLookupOrder": 292,
+      "repositoryOrder": 114,
+      "requestedName": "openai-agents-js",
+      "requestedNameWithOwner": "openai/openai-agents-js",
+      "requestedOwner": "openai",
+      "requestedRepositorySha256": "592c1816a5d54f3a4a81070cd7845e646e9f33371e34188e9ac3c7f60653c1f9"
+    },
+    {
+      "passALookupOrder": 115,
+      "passBLookupOrder": 293,
+      "repositoryOrder": 115,
+      "requestedName": "openai-dotnet",
+      "requestedNameWithOwner": "openai/openai-dotnet",
+      "requestedOwner": "openai",
+      "requestedRepositorySha256": "5b2afc1db9e5c422a2d4c552581b47c07192177ccc3c0db2d16a53c5288956d5"
+    },
+    {
+      "passALookupOrder": 116,
+      "passBLookupOrder": 294,
+      "repositoryOrder": 116,
+      "requestedName": "openapi-typescript",
+      "requestedNameWithOwner": "openapi-ts/openapi-typescript",
+      "requestedOwner": "openapi-ts",
+      "requestedRepositorySha256": "4d6b45126642689db48a3af5efe4169199fb1ad33493d65beab82c6c06f59fbc"
+    },
+    {
+      "passALookupOrder": 117,
+      "passBLookupOrder": 295,
+      "repositoryOrder": 117,
+      "requestedName": "openapi-generator",
+      "requestedNameWithOwner": "openapitools/openapi-generator",
+      "requestedOwner": "openapitools",
+      "requestedRepositorySha256": "86d5581e53280993d8c15ddc0e902ebe62bc47d84c3fe890a64c64a82171e312"
+    },
+    {
+      "passALookupOrder": 118,
+      "passBLookupOrder": 296,
+      "repositoryOrder": 118,
+      "requestedName": "openfga",
+      "requestedNameWithOwner": "openfga/openfga",
+      "requestedOwner": "openfga",
+      "requestedRepositorySha256": "00369c501ffc95ad3f50fa010461ff0ae473001f2e29734114b52d465478d6ef"
+    },
+    {
+      "passALookupOrder": 119,
+      "passBLookupOrder": 297,
+      "repositoryOrder": 119,
+      "requestedName": "openhab-addons",
+      "requestedNameWithOwner": "openhab/openhab-addons",
+      "requestedOwner": "openhab",
+      "requestedRepositorySha256": "8461075ef5655623e8560513f034001c25e409919c3ca4b5d9a1c5522efe9846"
+    },
+    {
+      "passALookupOrder": 120,
+      "passBLookupOrder": 298,
+      "repositoryOrder": 120,
+      "requestedName": "open-liberty",
+      "requestedNameWithOwner": "openliberty/open-liberty",
+      "requestedOwner": "openliberty",
+      "requestedRepositorySha256": "10adee971e0e86002d208cb0230f655617337966efcae8db2ba92a3157b56f9a"
+    },
+    {
+      "passALookupOrder": 121,
+      "passBLookupOrder": 299,
+      "repositoryOrder": 121,
+      "requestedName": "openlineage",
+      "requestedNameWithOwner": "openlineage/openlineage",
+      "requestedOwner": "openlineage",
+      "requestedRepositorySha256": "88f22a7df2534e70d6cf35837e16da3515c25c87a2e39443cdb1fae1f5e3cd33"
+    },
+    {
+      "passALookupOrder": 122,
+      "passBLookupOrder": 300,
+      "repositoryOrder": 122,
+      "requestedName": "rewrite",
+      "requestedNameWithOwner": "openrewrite/rewrite",
+      "requestedOwner": "openrewrite",
+      "requestedRepositorySha256": "0e987fe4dc90bc40b4a14972586aa787919312cf0c4c5272511aa2d758bd016f"
+    },
+    {
+      "passALookupOrder": 123,
+      "passBLookupOrder": 301,
+      "repositoryOrder": 123,
+      "requestedName": "opentripplanner",
+      "requestedNameWithOwner": "opentripplanner/opentripplanner",
+      "requestedOwner": "opentripplanner",
+      "requestedRepositorySha256": "0c7d05d33436fbc4090f7c608cbe041410ed075051240063261dea5d43f9fcd5"
+    },
+    {
+      "passALookupOrder": 124,
+      "passBLookupOrder": 302,
+      "repositoryOrder": 124,
+      "requestedName": "scorecard",
+      "requestedNameWithOwner": "ossf/scorecard",
+      "requestedOwner": "ossf",
+      "requestedRepositorySha256": "559766b78a7236d624c23939206283bf0ad19e74038935cdfdfe6a8c185cad9e"
+    },
+    {
+      "passALookupOrder": 125,
+      "passBLookupOrder": 303,
+      "repositoryOrder": 125,
+      "requestedName": "owid-grapher",
+      "requestedNameWithOwner": "owid/owid-grapher",
+      "requestedOwner": "owid",
+      "requestedRepositorySha256": "bdedb2fec2f9930720c46af4ae41421b5eced427d77fe4475229e0c3f81efda8"
+    },
+    {
+      "passALookupOrder": 126,
+      "passBLookupOrder": 304,
+      "repositoryOrder": 126,
+      "requestedName": "php-src",
+      "requestedNameWithOwner": "php/php-src",
+      "requestedOwner": "php",
+      "requestedRepositorySha256": "b31a8560fdea9b7a2fc1af7cca5f10d823cd65f8e638beb389a1e78c74615b16"
+    },
+    {
+      "passALookupOrder": 127,
+      "passBLookupOrder": 305,
+      "repositoryOrder": 127,
+      "requestedName": "poco",
+      "requestedNameWithOwner": "pocoproject/poco",
+      "requestedOwner": "pocoproject",
+      "requestedRepositorySha256": "ef811d385d20e5256a7a9d55f8cfbd653ca8b6aef80f7ff3c0f9cff50a80a513"
+    },
+    {
+      "passALookupOrder": 128,
+      "passBLookupOrder": 306,
+      "repositoryOrder": 128,
+      "requestedName": "ponyc",
+      "requestedNameWithOwner": "ponylang/ponyc",
+      "requestedOwner": "ponylang",
+      "requestedRepositorySha256": "e0ab8222a4b76dbc3d2e7749d030b4dcf89a47836da1b2e3154d2380587d5410"
+    },
+    {
+      "passALookupOrder": 129,
+      "passBLookupOrder": 307,
+      "repositoryOrder": 129,
+      "requestedName": "portfolio",
+      "requestedNameWithOwner": "portfolio-performance/portfolio",
+      "requestedOwner": "portfolio-performance",
+      "requestedRepositorySha256": "77fd3a01bda40ca786979d3c11199b5dcf547ccf9b47778b96b5867aecaf208c"
+    },
+    {
+      "passALookupOrder": 130,
+      "passBLookupOrder": 308,
+      "repositoryOrder": 130,
+      "requestedName": "preact",
+      "requestedNameWithOwner": "preactjs/preact",
+      "requestedOwner": "preactjs",
+      "requestedRepositorySha256": "e5b3a665c862e75e2fff27d61cb4d59593a8ca5995c91353b9c08dba42abf4ca"
+    },
+    {
+      "passALookupOrder": 131,
+      "passBLookupOrder": 309,
+      "repositoryOrder": 131,
+      "requestedName": "prettier",
+      "requestedNameWithOwner": "prettier/prettier",
+      "requestedOwner": "prettier",
+      "requestedRepositorySha256": "5fef8a8289d56d7b7c6ff9cc3ca62b513f268968b901f1d86175f61e23c942c4"
+    },
+    {
+      "passALookupOrder": 132,
+      "passBLookupOrder": 310,
+      "repositoryOrder": 132,
+      "requestedName": "alertmanager",
+      "requestedNameWithOwner": "prometheus/alertmanager",
+      "requestedOwner": "prometheus",
+      "requestedRepositorySha256": "d5944af254206d8e37910717c2687eaa11dccdfd687a8eda0394ee9282d99492"
+    },
+    {
+      "passALookupOrder": 133,
+      "passBLookupOrder": 311,
+      "repositoryOrder": 133,
+      "requestedName": "client_js",
+      "requestedNameWithOwner": "prometheus/client_js",
+      "requestedOwner": "prometheus",
+      "requestedRepositorySha256": "3f9fca2ad48428429faab053ec1c45610c5687ef4626a11c35efac34612900c4"
+    },
+    {
+      "passALookupOrder": 134,
+      "passBLookupOrder": 312,
+      "repositoryOrder": 134,
+      "requestedName": "prometheus",
+      "requestedNameWithOwner": "prometheus/prometheus",
+      "requestedOwner": "prometheus",
+      "requestedRepositorySha256": "1025f972a9e83dc095bfc4035a5a517cc1d68f3cbc16bd011066c76c8c58d1be"
+    },
+    {
+      "passALookupOrder": 135,
+      "passBLookupOrder": 313,
+      "repositoryOrder": 135,
+      "requestedName": "leo",
+      "requestedNameWithOwner": "provablehq/leo",
+      "requestedOwner": "provablehq",
+      "requestedRepositorySha256": "6122d26f0c34583ce264f6a9676e3411352e632ad345c4a3ba4b4f9e6ca8649b"
+    },
+    {
+      "passALookupOrder": 136,
+      "passBLookupOrder": 314,
+      "repositoryOrder": 136,
+      "requestedName": "pybind11",
+      "requestedNameWithOwner": "pybind/pybind11",
+      "requestedOwner": "pybind",
+      "requestedRepositorySha256": "6e158865c5ee424a3f2287646a6c4f9b68468a92cb4d07c119e9def2bc5f17dc"
+    },
+    {
+      "passALookupOrder": 137,
+      "passBLookupOrder": 315,
+      "repositoryOrder": 137,
+      "requestedName": "quickjs",
+      "requestedNameWithOwner": "quickjs-ng/quickjs",
+      "requestedOwner": "quickjs-ng",
+      "requestedRepositorySha256": "b5449adffef2e5fc8f1932524a77134107e3400248d14a0101e289def1f76b29"
+    },
+    {
+      "passALookupOrder": 138,
+      "passBLookupOrder": 316,
+      "repositoryOrder": 138,
+      "requestedName": "recharts",
+      "requestedNameWithOwner": "recharts/recharts",
+      "requestedOwner": "recharts",
+      "requestedRepositorySha256": "f1db19f04971eb6f97fdf7607207d4cf6eea881dcbdde08377c91f7ec58893b5"
+    },
+    {
+      "passALookupOrder": 139,
+      "passBLookupOrder": 317,
+      "repositoryOrder": 139,
+      "requestedName": "redis-rs",
+      "requestedNameWithOwner": "redis-rs/redis-rs",
+      "requestedOwner": "redis-rs",
+      "requestedRepositorySha256": "5db59bebf8eb0ced0ffdf7ec87c169b16b95100322ab9247494d18adc380c4de"
+    },
+    {
+      "passALookupOrder": 140,
+      "passBLookupOrder": 318,
+      "repositoryOrder": 140,
+      "requestedName": "redis",
+      "requestedNameWithOwner": "redis/redis",
+      "requestedOwner": "redis",
+      "requestedRepositorySha256": "bf451cb8534506146c500b697ffc964a6ae64da32b923c36e0def100f23b2dea"
+    },
+    {
+      "passALookupOrder": 141,
+      "passBLookupOrder": 319,
+      "repositoryOrder": 141,
+      "requestedName": "remotion",
+      "requestedNameWithOwner": "remotion-dev/remotion",
+      "requestedOwner": "remotion-dev",
+      "requestedRepositorySha256": "a6c034bb089e659bc7bd32adc497f80469f6911c69c4e84c54917ecd66d607d6"
+    },
+    {
+      "passALookupOrder": 142,
+      "passBLookupOrder": 320,
+      "repositoryOrder": 142,
+      "requestedName": "appkit",
+      "requestedNameWithOwner": "reown-com/appkit",
+      "requestedOwner": "reown-com",
+      "requestedRepositorySha256": "b93140aa41e1fc75109f9d557d5b16b50f81b0118626e08ce3e0133abe93aadf"
+    },
+    {
+      "passALookupOrder": 143,
+      "passBLookupOrder": 321,
+      "repositoryOrder": 143,
+      "requestedName": "rizin",
+      "requestedNameWithOwner": "rizinorg/rizin",
+      "requestedOwner": "rizinorg",
+      "requestedRepositorySha256": "6834783727077b9fdc730fcb29d20345237ed2c4a506a0994c3f4fef2e94a52d"
+    },
+    {
+      "passALookupOrder": 144,
+      "passBLookupOrder": 322,
+      "repositoryOrder": 144,
+      "requestedName": "rocket.chat.reactnative",
+      "requestedNameWithOwner": "rocketchat/rocket.chat.reactnative",
+      "requestedOwner": "rocketchat",
+      "requestedRepositorySha256": "fe14a4c9c8bf26d1f8077b70e0b6d4144b0d72076c64ceb9c8a115b1891d92bd"
+    },
+    {
+      "passALookupOrder": 145,
+      "passBLookupOrder": 323,
+      "repositoryOrder": 145,
+      "requestedName": "rollup",
+      "requestedNameWithOwner": "rollup/rollup",
+      "requestedOwner": "rollup",
+      "requestedRepositorySha256": "75861a347ec7cf91f98a13f6eda5bc79d8b289a384a6674796c5e09a09f69d45"
+    },
+    {
+      "passALookupOrder": 146,
+      "passBLookupOrder": 324,
+      "repositoryOrder": 146,
+      "requestedName": "rook",
+      "requestedNameWithOwner": "rook/rook",
+      "requestedOwner": "rook",
+      "requestedRepositorySha256": "e91a268e4dceee4d49097ef373316a5809941e35f851a563b391e164f16b9f1c"
+    },
+    {
+      "passALookupOrder": 147,
+      "passBLookupOrder": 325,
+      "repositoryOrder": 147,
+      "requestedName": "rsyslog",
+      "requestedNameWithOwner": "rsyslog/rsyslog",
+      "requestedOwner": "rsyslog",
+      "requestedRepositorySha256": "859cb98b27b37f7f33fca7a97f2e46f2242d6cf0648d283d2570bcef82facc1b"
+    },
+    {
+      "passALookupOrder": 148,
+      "passBLookupOrder": 326,
+      "repositoryOrder": 148,
+      "requestedName": "mdbook",
+      "requestedNameWithOwner": "rust-lang/mdbook",
+      "requestedOwner": "rust-lang",
+      "requestedRepositorySha256": "8df28cff9f86ae18d1c5fe77227a3c6bbf95364a8215284df462b38dfef41e11"
+    },
+    {
+      "passALookupOrder": 149,
+      "passBLookupOrder": 327,
+      "repositoryOrder": 149,
+      "requestedName": "rust-analyzer",
+      "requestedNameWithOwner": "rust-lang/rust-analyzer",
+      "requestedOwner": "rust-lang",
+      "requestedRepositorySha256": "e02dae99cfdf01652ea80a1ca52712a6605bcd63d06678b5c6f3eb4ffb5c6736"
+    },
+    {
+      "passALookupOrder": 150,
+      "passBLookupOrder": 328,
+      "repositoryOrder": 150,
+      "requestedName": "samtools",
+      "requestedNameWithOwner": "samtools/samtools",
+      "requestedOwner": "samtools",
+      "requestedRepositorySha256": "bbbecbaf33c8fe42561b7a967538f2d73ff715dd2819f318560194ecb83ce589"
+    },
+    {
+      "passALookupOrder": 151,
+      "passBLookupOrder": 329,
+      "repositoryOrder": 151,
+      "requestedName": "sea-query",
+      "requestedNameWithOwner": "seaql/sea-query",
+      "requestedOwner": "seaql",
+      "requestedRepositorySha256": "4c724b000da82a714a6526b049981d64e4290286841cfc0747eef094cdd65cf9"
+    },
+    {
+      "passALookupOrder": 152,
+      "passBLookupOrder": 330,
+      "repositoryOrder": 152,
+      "requestedName": "slang",
+      "requestedNameWithOwner": "shader-slang/slang",
+      "requestedOwner": "shader-slang",
+      "requestedRepositorySha256": "5cfcb8b2f5414d4c88b99e0369494f8898b5a6c1b2c8a8c3976267b862967d44"
+    },
+    {
+      "passALookupOrder": 153,
+      "passBLookupOrder": 331,
+      "repositoryOrder": 153,
+      "requestedName": "bat",
+      "requestedNameWithOwner": "sharkdp/bat",
+      "requestedOwner": "sharkdp",
+      "requestedRepositorySha256": "e7bc612a7731267e4f8e908ced04959a04eb715469cc54966ebd1e7cea7c0c73"
+    },
+    {
+      "passALookupOrder": 154,
+      "passBLookupOrder": 332,
+      "repositoryOrder": 154,
+      "requestedName": "hydrogen",
+      "requestedNameWithOwner": "shopify/hydrogen",
+      "requestedOwner": "shopify",
+      "requestedRepositorySha256": "94c0ba07871733aa953b063755a45a78d29a220201291428e82bfb5cf9beb75d"
+    },
+    {
+      "passALookupOrder": 155,
+      "passBLookupOrder": 333,
+      "repositoryOrder": 155,
+      "requestedName": "imagesharp",
+      "requestedNameWithOwner": "sixlabors/imagesharp",
+      "requestedOwner": "sixlabors",
+      "requestedRepositorySha256": "ca1af28e9447a2348a7d81b7d997344e642a919dae31f5971a1ef6d49b05a002"
+    },
+    {
+      "passALookupOrder": 156,
+      "passBLookupOrder": 334,
+      "repositoryOrder": 156,
+      "requestedName": "springdoc-openapi",
+      "requestedNameWithOwner": "springdoc/springdoc-openapi",
+      "requestedOwner": "springdoc",
+      "requestedRepositorySha256": "dc916a6fd47d6d059c4f2ddd912585223fc951485b55d25efe3d81b6091ee955"
+    },
+    {
+      "passALookupOrder": 157,
+      "passBLookupOrder": 335,
+      "repositoryOrder": 157,
+      "requestedName": "stdlib",
+      "requestedNameWithOwner": "stdlib-js/stdlib",
+      "requestedOwner": "stdlib-js",
+      "requestedRepositorySha256": "06c9b48e0ac34402b43f4ded0f9b781a90577587812f63459a3e4497de795936"
+    },
+    {
+      "passALookupOrder": 158,
+      "passBLookupOrder": 336,
+      "repositoryOrder": 158,
+      "requestedName": "json-java",
+      "requestedNameWithOwner": "stleary/json-java",
+      "requestedOwner": "stleary",
+      "requestedRepositorySha256": "d4742fcce7dd87d84edbc637ed21bd02bbee0ead7bea67898218e7ca67a1d868"
+    },
+    {
+      "passALookupOrder": 159,
+      "passBLookupOrder": 337,
+      "repositoryOrder": 159,
+      "requestedName": "strimzi-kafka-operator",
+      "requestedNameWithOwner": "strimzi/strimzi-kafka-operator",
+      "requestedOwner": "strimzi",
+      "requestedRepositorySha256": "f5406b48d2b6057790f32042bc07008d7bb2cf203c6486d37e67f1aba50dca9f"
+    },
+    {
+      "passALookupOrder": 160,
+      "passBLookupOrder": 338,
+      "repositoryOrder": 160,
+      "requestedName": "stripe-cli",
+      "requestedNameWithOwner": "stripe/stripe-cli",
+      "requestedOwner": "stripe",
+      "requestedRepositorySha256": "7b86038dc9661d4c56d73396d0bf6c9c27a36fbab46a940c6ef2536d84062596"
+    },
+    {
+      "passALookupOrder": 161,
+      "passBLookupOrder": 339,
+      "repositoryOrder": 161,
+      "requestedName": "svelte",
+      "requestedNameWithOwner": "sveltejs/svelte",
+      "requestedOwner": "sveltejs",
+      "requestedRepositorySha256": "2ad0ca58a33bb4486da5f6cd1659693a3ad6569c0e6a6e015ed8632fb6b7e8a8"
+    },
+    {
+      "passALookupOrder": 162,
+      "passBLookupOrder": 340,
+      "repositoryOrder": 162,
+      "requestedName": "tailwindcss",
+      "requestedNameWithOwner": "tailwindlabs/tailwindcss",
+      "requestedOwner": "tailwindlabs",
+      "requestedRepositorySha256": "e8eedb06167a7a1f92415741d8e10aa0a73f8a00fbc9924382f8057866009dfd"
+    },
+    {
+      "passALookupOrder": 163,
+      "passBLookupOrder": 341,
+      "repositoryOrder": 163,
+      "requestedName": "router",
+      "requestedNameWithOwner": "tanstack/router",
+      "requestedOwner": "tanstack",
+      "requestedRepositorySha256": "da16207187edd6c3df2443d02f2a14549f3d3d49cec26406e8528b1a262876bf"
+    },
+    {
+      "passALookupOrder": 164,
+      "passBLookupOrder": 342,
+      "repositoryOrder": 164,
+      "requestedName": "newpipeextractor",
+      "requestedNameWithOwner": "teamnewpipe/newpipeextractor",
+      "requestedOwner": "teamnewpipe",
+      "requestedRepositorySha256": "eafc2ed8fb5c4ebd81d9a40df628a1165d6ec352ec124c33d135c7b0d1ce85b3"
+    },
+    {
+      "passALookupOrder": 165,
+      "passBLookupOrder": 343,
+      "repositoryOrder": 165,
+      "requestedName": "pd",
+      "requestedNameWithOwner": "tikv/pd",
+      "requestedOwner": "tikv",
+      "requestedRepositorySha256": "163b30cda28fd10f4d2c2c4a35897925101bb508f71125bf4f696fb62055ddfd"
+    },
+    {
+      "passALookupOrder": 166,
+      "passBLookupOrder": 344,
+      "repositoryOrder": 166,
+      "requestedName": "timescaledb",
+      "requestedNameWithOwner": "timescale/timescaledb",
+      "requestedOwner": "timescale",
+      "requestedRepositorySha256": "a802b1d4675cf3fa523ec1f8af656a8eaf05174140e167e74d292102bc44104f"
+    },
+    {
+      "passALookupOrder": 167,
+      "passBLookupOrder": 345,
+      "repositoryOrder": 167,
+      "requestedName": "axum",
+      "requestedNameWithOwner": "tokio-rs/axum",
+      "requestedOwner": "tokio-rs",
+      "requestedRepositorySha256": "2782fa7228ff097064ee0fdce20aeced6926f29f5a60a68a57716ce802d75b9e"
+    },
+    {
+      "passALookupOrder": 168,
+      "passBLookupOrder": 346,
+      "repositoryOrder": 168,
+      "requestedName": "tokio",
+      "requestedNameWithOwner": "tokio-rs/tokio",
+      "requestedOwner": "tokio-rs",
+      "requestedRepositorySha256": "03babd9e453eba6b73b46c5d1fc5944e28c08825a974373a34edcb355c28c184"
+    },
+    {
+      "passALookupOrder": 169,
+      "passBLookupOrder": 347,
+      "repositoryOrder": 169,
+      "requestedName": "uno",
+      "requestedNameWithOwner": "unoplatform/uno",
+      "requestedOwner": "unoplatform",
+      "requestedRepositorySha256": "f56121fa81bcaf158e6ec40396d659979d0fd4045968aae094a535a2c1d67aec"
+    },
+    {
+      "passALookupOrder": 170,
+      "passBLookupOrder": 348,
+      "repositoryOrder": 170,
+      "requestedName": "coreutils",
+      "requestedNameWithOwner": "uutils/coreutils",
+      "requestedOwner": "uutils",
+      "requestedRepositorySha256": "7c058255df697ebc3724ccbee50ca351559c1da10eddf06a8a02e786cfb43b8f"
+    },
+    {
+      "passALookupOrder": 171,
+      "passBLookupOrder": 349,
+      "repositoryOrder": 171,
+      "requestedName": "valkey",
+      "requestedNameWithOwner": "valkey-io/valkey",
+      "requestedOwner": "valkey-io",
+      "requestedRepositorySha256": "44a454ef5e8ad73a8d78acdb540748752505018bceb831fde75d4cb843246c0e"
+    },
+    {
+      "passALookupOrder": 172,
+      "passBLookupOrder": 350,
+      "repositoryOrder": 172,
+      "requestedName": "varnish-cache",
+      "requestedNameWithOwner": "varnishcache/varnish-cache",
+      "requestedOwner": "varnishcache",
+      "requestedRepositorySha256": "0baeee5d8abd19a1b1407f95c63de10570d49c0d57a225fd65a551e9e1d9411c"
+    },
+    {
+      "passALookupOrder": 173,
+      "passBLookupOrder": 351,
+      "repositoryOrder": 173,
+      "requestedName": "velero",
+      "requestedNameWithOwner": "velero-io/velero",
+      "requestedOwner": "velero-io",
+      "requestedRepositorySha256": "d2fde79545403b18785c16e9bb0ea99e0887bb6c2eccca19fcfcb8dc3ba65938"
+    },
+    {
+      "passALookupOrder": 174,
+      "passBLookupOrder": 352,
+      "repositoryOrder": 174,
+      "requestedName": "mediasoup",
+      "requestedNameWithOwner": "versatica/mediasoup",
+      "requestedOwner": "versatica",
+      "requestedRepositorySha256": "59e9e804a88ac90c8de0f7c4965f51fb171edd45d6c2c5e70a72e1b9a7d5f185"
+    },
+    {
+      "passALookupOrder": 175,
+      "passBLookupOrder": 353,
+      "repositoryOrder": 175,
+      "requestedName": "core",
+      "requestedNameWithOwner": "vuejs/core",
+      "requestedOwner": "vuejs",
+      "requestedRepositorySha256": "131fb5ee3995b10f298aa33d6b792e667ac4adff0e87ede701269338f1782a32"
+    },
+    {
+      "passALookupOrder": 176,
+      "passBLookupOrder": 354,
+      "repositoryOrder": 176,
+      "requestedName": "wasmedge",
+      "requestedNameWithOwner": "wasmedge/wasmedge",
+      "requestedOwner": "wasmedge",
+      "requestedRepositorySha256": "59fe81f0d6e6e2b1eacd4a74bc347f749787648b85c29126ca37fb11cf510ab6"
+    },
+    {
+      "passALookupOrder": 177,
+      "passBLookupOrder": 355,
+      "repositoryOrder": 177,
+      "requestedName": "zitadel",
+      "requestedNameWithOwner": "zitadel/zitadel",
+      "requestedOwner": "zitadel",
+      "requestedRepositorySha256": "9a8278e24fec59bff5d54a67f3fa47532b5b055a85ec2dea80d53d280c5e579f"
+    },
+    {
+      "passALookupOrder": 178,
+      "passBLookupOrder": 356,
+      "repositoryOrder": 178,
+      "requestedName": "zmk",
+      "requestedNameWithOwner": "zmkfirmware/zmk",
+      "requestedOwner": "zmkfirmware",
+      "requestedRepositorySha256": "ca58c7ae3267cf829efca65745917863f3696e072884ec76956f587473eda6bf"
+    }
+  ]
+}

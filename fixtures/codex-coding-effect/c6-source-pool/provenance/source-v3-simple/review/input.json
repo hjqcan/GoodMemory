@@ -1,0 +1,26 @@
+{
+  "artifactKind": "c6-source-v3-simple-review-input",
+  "evaluationId": "goodmemory-c6-codex-coding-effect-source-v3-simple-v1",
+  "metadataPredicate": {
+    "byteLength": 9105,
+    "path": "swe-bench-live-multilang-608f7ae9.wave3-pretarget-policy-v1.json",
+    "sha256": "eb3df63ff269b1d0166ed4b2faba682d60cdce3fb1ea64946e66f08e5eda9856"
+  },
+  "protocol": {
+    "byteLength": 3992,
+    "path": "swe-bench-live-multilang-608f7ae9.source-v3-simple-protocol-v1.json",
+    "sha256": "5f989ab640c684dac287142edc9d2f9d8ee46099c082f63bb20f2a9546205132"
+  },
+  "schemaVersion": 1,
+  "sourceFrameProjectionSha256": "efb76e58585c6c422020954783eee50e37290d94f78310bd88c176929fa85474",
+  "sourceV2": {
+    "byteLength": 631004,
+    "path": "swe-bench-live-multilang-608f7ae9.wave3-source-universe-v2.json",
+    "sha256": "822c458e792ee31f7738cae2526b05dfc3b63fcaac58e3f4f87dcd3803ccdba1"
+  },
+  "verifierSource": {
+    "byteLength": 17575,
+    "path": "scripts/codex-coding-effect/c6-source-v3-simple-review.ts",
+    "sha256": "1be2d014bef2f975fd4a7280e9521d1bca63d299e0a47d3cef1668c70e53f492"
+  }
+}

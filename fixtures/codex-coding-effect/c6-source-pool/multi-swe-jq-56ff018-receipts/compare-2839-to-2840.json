@@ -1,0 +1,273 @@
+{
+  "url": "https://api.github.com/repos/jqlang/jq/compare/3fa10e8cc197390392f5f5f6e0c9e2fcd5590530...4cf1408e0bbac8fc714b051fe420921905128efd",
+  "html_url": "https://github.com/jqlang/jq/compare/3fa10e8cc197390392f5f5f6e0c9e2fcd5590530...4cf1408e0bbac8fc714b051fe420921905128efd",
+  "permalink_url": "https://github.com/jqlang/jq/compare/jqlang:3fa10e8...jqlang:4cf1408",
+  "diff_url": "https://github.com/jqlang/jq/compare/3fa10e8cc197390392f5f5f6e0c9e2fcd5590530...4cf1408e0bbac8fc714b051fe420921905128efd.diff",
+  "patch_url": "https://github.com/jqlang/jq/compare/3fa10e8cc197390392f5f5f6e0c9e2fcd5590530...4cf1408e0bbac8fc714b051fe420921905128efd.patch",
+  "base_commit": {
+    "sha": "3fa10e8cc197390392f5f5f6e0c9e2fcd5590530",
+    "node_id": "C_kwDOAE3WVdoAKDNmYTEwZThjYzE5NzM5MDM5MmY1ZjVmNmUwYzllMmZjZDU1OTA1MzA",
+    "commit": {
+      "author": {
+        "name": "itchyny",
+        "email": "itchyny@cybozu.co.jp",
+        "date": "2023-08-13T03:06:16Z"
+      },
+      "committer": {
+        "name": "Emanuele Torre",
+        "email": "torreemanuele6@gmail.com",
+        "date": "2023-08-13T12:17:25Z"
+      },
+      "message": "Fix crash on numeric comparison again (ref #2825)\n\nThe decNumber library subtracts the exponents of two numbers,\nwe make sure to limit the number of digits not to make it overflows.\nSince the maximum adjusted exponent is `emax` and the minimum is\n`emin - digits + 1`, we follow `emax - (emin - digits + 1) <= INT32_MAX`.",
+      "tree": {
+        "sha": "5147c50e6bda43d4d68e0f3fe5c17d7e748427da",
+        "url": "https://api.github.com/repos/jqlang/jq/git/trees/5147c50e6bda43d4d68e0f3fe5c17d7e748427da"
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/git/commits/3fa10e8cc197390392f5f5f6e0c9e2fcd5590530",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    },
+    "url": "https://api.github.com/repos/jqlang/jq/commits/3fa10e8cc197390392f5f5f6e0c9e2fcd5590530",
+    "html_url": "https://github.com/jqlang/jq/commit/3fa10e8cc197390392f5f5f6e0c9e2fcd5590530",
+    "comments_url": "https://api.github.com/repos/jqlang/jq/commits/3fa10e8cc197390392f5f5f6e0c9e2fcd5590530/comments",
+    "author": {
+      "login": "itchyny",
+      "id": 375258,
+      "node_id": "MDQ6VXNlcjM3NTI1OA==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/375258?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/itchyny",
+      "html_url": "https://github.com/itchyny",
+      "followers_url": "https://api.github.com/users/itchyny/followers",
+      "following_url": "https://api.github.com/users/itchyny/following{/other_user}",
+      "gists_url": "https://api.github.com/users/itchyny/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/itchyny/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/itchyny/subscriptions",
+      "organizations_url": "https://api.github.com/users/itchyny/orgs",
+      "repos_url": "https://api.github.com/users/itchyny/repos",
+      "events_url": "https://api.github.com/users/itchyny/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/itchyny/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "emanuele6",
+      "id": 20175435,
+      "node_id": "MDQ6VXNlcjIwMTc1NDM1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/20175435?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/emanuele6",
+      "html_url": "https://github.com/emanuele6",
+      "followers_url": "https://api.github.com/users/emanuele6/followers",
+      "following_url": "https://api.github.com/users/emanuele6/following{/other_user}",
+      "gists_url": "https://api.github.com/users/emanuele6/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/emanuele6/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/emanuele6/subscriptions",
+      "organizations_url": "https://api.github.com/users/emanuele6/orgs",
+      "repos_url": "https://api.github.com/users/emanuele6/repos",
+      "events_url": "https://api.github.com/users/emanuele6/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/emanuele6/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "f86566b2631b777c0d0c9a4572eb21146a14829b",
+        "url": "https://api.github.com/repos/jqlang/jq/commits/f86566b2631b777c0d0c9a4572eb21146a14829b",
+        "html_url": "https://github.com/jqlang/jq/commit/f86566b2631b777c0d0c9a4572eb21146a14829b"
+      }
+    ]
+  },
+  "merge_base_commit": {
+    "sha": "3fa10e8cc197390392f5f5f6e0c9e2fcd5590530",
+    "node_id": "C_kwDOAE3WVdoAKDNmYTEwZThjYzE5NzM5MDM5MmY1ZjVmNmUwYzllMmZjZDU1OTA1MzA",
+    "commit": {
+      "author": {
+        "name": "itchyny",
+        "email": "itchyny@cybozu.co.jp",
+        "date": "2023-08-13T03:06:16Z"
+      },
+      "committer": {
+        "name": "Emanuele Torre",
+        "email": "torreemanuele6@gmail.com",
+        "date": "2023-08-13T12:17:25Z"
+      },
+      "message": "Fix crash on numeric comparison again (ref #2825)\n\nThe decNumber library subtracts the exponents of two numbers,\nwe make sure to limit the number of digits not to make it overflows.\nSince the maximum adjusted exponent is `emax` and the minimum is\n`emin - digits + 1`, we follow `emax - (emin - digits + 1) <= INT32_MAX`.",
+      "tree": {
+        "sha": "5147c50e6bda43d4d68e0f3fe5c17d7e748427da",
+        "url": "https://api.github.com/repos/jqlang/jq/git/trees/5147c50e6bda43d4d68e0f3fe5c17d7e748427da"
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/git/commits/3fa10e8cc197390392f5f5f6e0c9e2fcd5590530",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    },
+    "url": "https://api.github.com/repos/jqlang/jq/commits/3fa10e8cc197390392f5f5f6e0c9e2fcd5590530",
+    "html_url": "https://github.com/jqlang/jq/commit/3fa10e8cc197390392f5f5f6e0c9e2fcd5590530",
+    "comments_url": "https://api.github.com/repos/jqlang/jq/commits/3fa10e8cc197390392f5f5f6e0c9e2fcd5590530/comments",
+    "author": {
+      "login": "itchyny",
+      "id": 375258,
+      "node_id": "MDQ6VXNlcjM3NTI1OA==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/375258?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/itchyny",
+      "html_url": "https://github.com/itchyny",
+      "followers_url": "https://api.github.com/users/itchyny/followers",
+      "following_url": "https://api.github.com/users/itchyny/following{/other_user}",
+      "gists_url": "https://api.github.com/users/itchyny/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/itchyny/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/itchyny/subscriptions",
+      "organizations_url": "https://api.github.com/users/itchyny/orgs",
+      "repos_url": "https://api.github.com/users/itchyny/repos",
+      "events_url": "https://api.github.com/users/itchyny/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/itchyny/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "emanuele6",
+      "id": 20175435,
+      "node_id": "MDQ6VXNlcjIwMTc1NDM1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/20175435?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/emanuele6",
+      "html_url": "https://github.com/emanuele6",
+      "followers_url": "https://api.github.com/users/emanuele6/followers",
+      "following_url": "https://api.github.com/users/emanuele6/following{/other_user}",
+      "gists_url": "https://api.github.com/users/emanuele6/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/emanuele6/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/emanuele6/subscriptions",
+      "organizations_url": "https://api.github.com/users/emanuele6/orgs",
+      "repos_url": "https://api.github.com/users/emanuele6/repos",
+      "events_url": "https://api.github.com/users/emanuele6/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/emanuele6/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "f86566b2631b777c0d0c9a4572eb21146a14829b",
+        "url": "https://api.github.com/repos/jqlang/jq/commits/f86566b2631b777c0d0c9a4572eb21146a14829b",
+        "html_url": "https://github.com/jqlang/jq/commit/f86566b2631b777c0d0c9a4572eb21146a14829b"
+      }
+    ]
+  },
+  "status": "ahead",
+  "ahead_by": 1,
+  "behind_by": 0,
+  "total_commits": 1,
+  "commits": [
+    {
+      "sha": "4cf1408e0bbac8fc714b051fe420921905128efd",
+      "node_id": "C_kwDOAE3WVdoAKDRjZjE0MDhlMGJiYWM4ZmM3MTRiMDUxZmU0MjA5MjE5MDUxMjhlZmQ",
+      "commit": {
+        "author": {
+          "name": "Emanuele Torre",
+          "email": "torreemanuele6@gmail.com",
+          "date": "2023-08-13T13:39:54Z"
+        },
+        "committer": {
+          "name": "GitHub",
+          "email": "noreply@github.com",
+          "date": "2023-08-13T13:39:54Z"
+        },
+        "message": "Cast function pointers without prototype before calling them (#2842)\n\nclang complained that this is deprecated in all versions of standard C,\r\nand unsupported in C2x.",
+        "tree": {
+          "sha": "06bc1d548831c6f9f9d036c84df092a3e126db77",
+          "url": "https://api.github.com/repos/jqlang/jq/git/trees/06bc1d548831c6f9f9d036c84df092a3e126db77"
+        },
+        "url": "https://api.github.com/repos/jqlang/jq/git/commits/4cf1408e0bbac8fc714b051fe420921905128efd",
+        "comment_count": 0,
+        "verification": {
+          "verified": true,
+          "reason": "valid",
+          "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJk2N0qCRBK7hj4Ov3rIwAATGQIABdk/NU6WabV0MUL72ygiOyl\ndyru72It9PuzasNkZCJH8uedB7irZOCBNiIeYnPJvivhzfkqJdcb/mLDiYpUYoI0\nE45lNj2428kvver47m3iYfDPtMBwtJazPWj2qsSkdXGSMxaP5NXORPxa5AuhOhHC\ndkArlUYtJBLGlybOrptju8Vfu2Jw+VvitTZNF49gpYIwmxsubDQrqlaCkYrzrE/0\nijvzHbWMhzr+muTICrBgyAiFDir2WDJcreJW5X2k0cWSFdj7fW175FVk/pNAqrzf\nVWaqMcY6BGSCX8HbEmCcM9+9rP52/BBw2MSp7z5/iZODojIN0MXrRg0FMW9PKYM=\n=e17S\n-----END PGP SIGNATURE-----\n",
+          "payload": "tree 06bc1d548831c6f9f9d036c84df092a3e126db77\nparent 3fa10e8cc197390392f5f5f6e0c9e2fcd5590530\nauthor Emanuele Torre <torreemanuele6@gmail.com> 1691933994 +0200\ncommitter GitHub <noreply@github.com> 1691933994 +0900\n\nCast function pointers without prototype before calling them (#2842)\n\nclang complained that this is deprecated in all versions of standard C,\r\nand unsupported in C2x.",
+          "verified_at": "2024-01-16T19:59:59Z"
+        }
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/commits/4cf1408e0bbac8fc714b051fe420921905128efd",
+      "html_url": "https://github.com/jqlang/jq/commit/4cf1408e0bbac8fc714b051fe420921905128efd",
+      "comments_url": "https://api.github.com/repos/jqlang/jq/commits/4cf1408e0bbac8fc714b051fe420921905128efd/comments",
+      "author": {
+        "login": "emanuele6",
+        "id": 20175435,
+        "node_id": "MDQ6VXNlcjIwMTc1NDM1",
+        "avatar_url": "https://avatars.githubusercontent.com/u/20175435?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/emanuele6",
+        "html_url": "https://github.com/emanuele6",
+        "followers_url": "https://api.github.com/users/emanuele6/followers",
+        "following_url": "https://api.github.com/users/emanuele6/following{/other_user}",
+        "gists_url": "https://api.github.com/users/emanuele6/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/emanuele6/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/emanuele6/subscriptions",
+        "organizations_url": "https://api.github.com/users/emanuele6/orgs",
+        "repos_url": "https://api.github.com/users/emanuele6/repos",
+        "events_url": "https://api.github.com/users/emanuele6/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/emanuele6/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "committer": {
+        "login": "web-flow",
+        "id": 19864447,
+        "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+        "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/web-flow",
+        "html_url": "https://github.com/web-flow",
+        "followers_url": "https://api.github.com/users/web-flow/followers",
+        "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+        "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+        "organizations_url": "https://api.github.com/users/web-flow/orgs",
+        "repos_url": "https://api.github.com/users/web-flow/repos",
+        "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/web-flow/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "parents": [
+        {
+          "sha": "3fa10e8cc197390392f5f5f6e0c9e2fcd5590530",
+          "url": "https://api.github.com/repos/jqlang/jq/commits/3fa10e8cc197390392f5f5f6e0c9e2fcd5590530",
+          "html_url": "https://github.com/jqlang/jq/commit/3fa10e8cc197390392f5f5f6e0c9e2fcd5590530"
+        }
+      ]
+    }
+  ],
+  "files": [
+    {
+      "sha": "ae92c37317cf4aa0b68b04121e6ec58f3645a02b",
+      "filename": "src/execute.c",
+      "status": "modified",
+      "additions": 5,
+      "deletions": 5,
+      "changes": 10,
+      "blob_url": "https://github.com/jqlang/jq/blob/4cf1408e0bbac8fc714b051fe420921905128efd/src%2Fexecute.c",
+      "raw_url": "https://github.com/jqlang/jq/raw/4cf1408e0bbac8fc714b051fe420921905128efd/src%2Fexecute.c",
+      "contents_url": "https://api.github.com/repos/jqlang/jq/contents/src%2Fexecute.c?ref=4cf1408e0bbac8fc714b051fe420921905128efd",
+      "patch": "@@ -921,11 +921,11 @@ jv jq_next(jq_state *jq) {\n       }\n       struct cfunction* function = &frame_current(jq)->bc->globals->cfunctions[*pc++];\n       switch (function->nargs) {\n-      case 1: top = function->fptr(jq, in[0]); break;\n-      case 2: top = function->fptr(jq, in[0], in[1]); break;\n-      case 3: top = function->fptr(jq, in[0], in[1], in[2]); break;\n-      case 4: top = function->fptr(jq, in[0], in[1], in[2], in[3]); break;\n-      case 5: top = function->fptr(jq, in[0], in[1], in[2], in[3], in[4]); break;\n+      case 1: top = ((jv (*)(jq_state *, jv))function->fptr)(jq, in[0]); break;\n+      case 2: top = ((jv (*)(jq_state *, jv, jv))function->fptr)(jq, in[0], in[1]); break;\n+      case 3: top = ((jv (*)(jq_state *, jv, jv, jv))function->fptr)(jq, in[0], in[1], in[2]); break;\n+      case 4: top = ((jv (*)(jq_state *, jv, jv, jv, jv))function->fptr)(jq, in[0], in[1], in[2], in[3]); break;\n+      case 5: top = ((jv (*)(jq_state *, jv, jv, jv, jv, jv))function->fptr)(jq, in[0], in[1], in[2], in[3], in[4]); break;\n       // FIXME: a) up to 7 arguments (input + 6), b) should assert\n       // because the compiler should not generate this error.\n       default: return jv_invalid_with_msg(jv_string(\"Function takes too many arguments\"));"
+    }
+  ]
+}

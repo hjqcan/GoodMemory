@@ -1,0 +1,2126 @@
+{
+  "artifactKind": "c6-real-history-semantic-screening-ledger",
+  "assessments": [
+    {
+      "anchorId": "fmtlib/fmt#2940",
+      "blockingStagePositions": [
+        3
+      ],
+      "cappedPoolRank": 1,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "The third review round is style-only and does not form an executable coding transition.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "88bdd35b2ec2e9e77bda9a2b7982b0bd1df85603",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The original pull request asks for observable tuple formattability behavior.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "272b3c9c408a031c972a1d257c3320f461179bd2d68bf7d7153691d0a3f554a5"
+        },
+        {
+          "afterCommit": "d6b0075742735940144e8367403bc0ffd7a9a4a6",
+          "beforeCommit": "88bdd35b2ec2e9e77bda9a2b7982b0bd1df85603",
+          "classification": "behavioral-coding-request",
+          "finding": "The review round identifies missing Char propagation and a reproducible wide-character regression.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "f71a8b296a550bc8fb542173defd1cd86a5469d489f643b7592072a17d2d4a0a"
+        },
+        {
+          "afterCommit": "1ea1738c22225854309b07c6912b1ad3357ed977",
+          "beforeCommit": "907a07cbae7ca434deed1a3b602ca1338bb85dc1",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review round only removes a namespace qualifier and reuses an existing test type, without changing behavior.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "22c5f7a33306e62490ff6a2d9102ed460af13fd440c0734c8d4986df6dc9b451"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "f32cc19975ee5f890aff9b274ee8c70508b63255ed85c926dca19f9d9c6fde6c",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T21:37:13.000Z",
+        "reviewerAgentName": "/root/c6_rank1_fmt_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "mui/material-ui#37850",
+      "blockingStagePositions": [
+        2,
+        3
+      ],
+      "cappedPoolRank": 2,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "The frozen review targets do not align with their selected fix commits.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "edf1b7d12b1ee393a494211d0fbe0635206d6e27",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The original Badge pull request is behavioral; its historical base snapshot remains deferred to machine qualification.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "d81528f6ef9669bf820a80c01a0ac07a521099f09b3e5643e7113b8db4a487bc"
+        },
+        {
+          "afterCommit": "26db4d893b08a707556519c699a1b317086ced0f",
+          "beforeCommit": "edf1b7d12b1ee393a494211d0fbe0635206d6e27",
+          "classification": "ambiguous-review-request",
+          "finding": "The selected question does not choose a migration policy and the fix only renames variant to size.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "e963560faf85b9ad6508f89386d83eb4b350f6887c7e405a1d231c015f54cf52"
+        },
+        {
+          "afterCommit": "98fe0bab4a1b8ee053332ba5062a3ffbe57d3226",
+          "beforeCommit": "b2b0aa6238cc2567c6d6e366c9b86872aab2c389",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The review requests one-prop-per-class behavior, but the selected fix only changes warning palette values.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "b0413a5ed4eb5bf96f8ec8e302f9651cbc696e2947ab2471fb86f4011bcc3bc8"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "898fc6f4f5998c0337240f961715e2d258995b2d7dfab22a5ba3a2b3121b6191",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T21:46:10.000Z",
+        "reviewerAgentName": "/root/c6_rank2_mui_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "cli/cli#549",
+      "blockingStagePositions": [
+        2,
+        3
+      ],
+      "cappedPoolRank": 3,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "None of the three frozen transition boundaries supports a target-directed behavioral fail-before/pass-after.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "8a3337ca66d819e723f42fddadc87f3dc9b0b8e9",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The original repo-fork request is behavioral; its historical base snapshot remains deferred to machine qualification.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "e8a9be63535893c1b6cb70ad94a17e350bf92b4e980ef4147336218805da8cce"
+        },
+        {
+          "afterCommit": "1217bfce0917a5a0b2d3db76a112b95d39ecdc6a",
+          "beforeCommit": "8a3337ca66d819e723f42fddadc87f3dc9b0b8e9",
+          "classification": "non-behavioral-style-only",
+          "finding": "The selected target is only a GitHubRepoExists naming suggestion and the fix does not perform that rename.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "0a5e3a6ae68d57f10cc1497d0fec1f577e33d544deea58bb1334a12480d8e764"
+        },
+        {
+          "afterCommit": "6a57f04285ed12945c6c0e67658513633b7fbfa4",
+          "beforeCommit": "bb65bda62f69100473079a0db0db29a993dc67fe",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The target specifies boolean flag behavior, but the selected fix only changes existing-fork command flow.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "b77f6b925a139e4b46d11c077d470738f371fec8da15c34556c9b463806cc681"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "1eedb8d17013bf9eab19fc7223c47fd44f933412c26a2ee32dc456c03acfd934",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T21:50:05.000Z",
+        "reviewerAgentName": "/root/c6_rank3_cli_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "sveltejs/svelte#13437",
+      "blockingStagePositions": [
+        2,
+        3
+      ],
+      "cappedPoolRank": 4,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "The frozen second stage is refactor-only and the third fix does not close its selected behavioral target.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "ee64e491e41c12dece3c299618353236dd92c45e",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The original PR and direct-ancestry transition implement observable svelte:component migration behavior.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "43dc0790e808abf2c226f933ffeaf7e4a1bad66aee0da2dcee74dfa9c6ae7d29"
+        },
+        {
+          "afterCommit": "bc8b443404b77e0ceb0f40abf70226fea75b44b2",
+          "beforeCommit": "ee64e491e41c12dece3c299618353236dd92c45e",
+          "classification": "non-behavioral-style-only",
+          "finding": "The selected review requests a simpler visitor implementation without an observable behavior change.",
+          "position": 2,
+          "targetKind": "review",
+          "targetSha256": "ba81a580a085bed2712849d71395d5b5644dde8a6cb79e5db76b3b87c837afb0"
+        },
+        {
+          "afterCommit": "425a4d2f318b63b290e958a169ac97b0c78703f0",
+          "beforeCommit": "316a55a7b4271406df5dcc28d5243b7c84bc1051",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The named-slot target already passes before the selected fix, which only replaces the AST walk implementation.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "d3df784db7f0cc34780bbc3a8b25aa761452586de78b5f490ac77ebe0d13885e"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "80ff4cb5866b868abb9bf08120d4feb1a936d9fb0cab758cdc3c02070ba34125",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T21:50:05.000Z",
+        "reviewerAgentName": "/root/c6_rank4_svelte_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "fmtlib/fmt#974",
+      "blockingStagePositions": [],
+      "cappedPoolRank": 5,
+      "decisionReason": "semantic-screening-passed-machine-qualification-required",
+      "finding": "All three frozen targets are behavioral coding requests and align with their selected transitions.",
+      "screeningDecision": "continue-machine-qualification",
+      "stages": [
+        {
+          "afterCommit": "4ffb4992a35a9f95bf60bad14cf0dfbb6d32ec50",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The original PR adds observable builtin terminal-color formatting behavior; its historical base remains deferred.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "c270fa493c58479d1490b488060136138b7dc8a0ce3564cebf572433094c94a9"
+        },
+        {
+          "afterCommit": "e636236a31b8a4f3139a8efdf9b166d58a9c46b2",
+          "beforeCommit": "4ffb4992a35a9f95bf60bad14cf0dfbb6d32ec50",
+          "classification": "behavioral-coding-request",
+          "finding": "The transition separates mutually exclusive RGB and terminal-color representations while preserving terminal-color formatting.",
+          "position": 2,
+          "targetKind": "review",
+          "targetSha256": "e5dbf067392efaf06869a204e33092d6ba2b1de4ca31c3d328c5031a86237dc8"
+        },
+        {
+          "afterCommit": "2efaf142e2d4b7690edf0ea00ecc692e7da1e267",
+          "beforeCommit": "a92ff7e1bd72d399615a6a4e747416c67e0f9a90",
+          "classification": "behavioral-coding-request",
+          "finding": "The transition changes invalid terminal-color combinations from assertion failure to catchable format_error behavior.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "f5621b85ade45cc0c6dd7bc83a8f7c45afcae2be2aadce185f55e43755b10d54"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "a42b9186e491d8472bbaa6d86d6fc62c2d51cec07228dfb5961b9eb62d2cc66d",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T21:53:09.000Z",
+        "reviewerAgentName": "/root/c6_rank3_cli_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "tokio-rs/bytes#547",
+      "blockingStagePositions": [
+        2,
+        3
+      ],
+      "cappedPoolRank": 6,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "The second target is refactor-only and incompletely fixed, while the third transition closes a different review comment.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "21fe23aa133af96fc32908aad974f1f4c999d034",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The original PR requests observable Bytes-to-Vec conversion and ownership behavior; its historical base remains deferred.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "b40e9992be82707bf81957499c3056ecea400b172eb06b856fc1b7781b90f628"
+        },
+        {
+          "afterCommit": "ff47582e872710656283251b4f365c74ee552bb6",
+          "beforeCommit": "21fe23aa133af96fc32908aad974f1f4c999d034",
+          "classification": "non-behavioral-style-only",
+          "finding": "The target requests equivalent slice::to_vec refactoring, and the selected fix changes only one of multiple requested sites.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "0c5e89db60e4754bbafba4281d7e43b1039a9ae92a38568472a3ee1927797bad"
+        },
+        {
+          "afterCommit": "5ed21dbe95f6b4a092ac58de3bff7bb3e1413044",
+          "beforeCommit": "7eb6ca8c19a7abb2bd082fb6c8b62ba58c8f881d",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The target requests Arc-style atomic ordering, but the selected fix addresses a different mutable-reference safety comment.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "cfee4401f949ef678c739a26831d3ca231863bb42d7a777ef708f484bd7b57e7"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "4476deefe0269a9e710d4ff165d37987ff601c6aad1a1247ddbe6c9c6c93f275",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T21:53:09.000Z",
+        "reviewerAgentName": "/root/c6_rank4_svelte_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "ponylang/ponyc#4505",
+      "blockingStagePositions": [
+        2,
+        3
+      ],
+      "cappedPoolRank": 7,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Both frozen review transitions only edit release-note wording and cannot form behavioral coding stages.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "ee0e5f59ffe9655bac79a3d5b345456e95e211ac",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The original PR replaces a compiler crash with an observable diagnostic; its historical base remains deferred.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "3567275bf3e78941ce897580fbb084a3673e5c654edc292f4deb9cc47a7bf7da"
+        },
+        {
+          "afterCommit": "0aab38d4513bf1de4b1b47f839e9c97ccc95aae2",
+          "beforeCommit": "ee0e5f59ffe9655bac79a3d5b345456e95e211ac",
+          "classification": "non-behavioral-style-only",
+          "finding": "The selected target and transition only revise release-note prose.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "a6b1082c2d563e40aa272e5d2b2cbc9d604b9521da06b6ee0c3d03fbf1e399b5"
+        },
+        {
+          "afterCommit": "1b8735457a7955337d25370806a322426ef10d25",
+          "beforeCommit": "0aab38d4513bf1de4b1b47f839e9c97ccc95aae2",
+          "classification": "non-behavioral-style-only",
+          "finding": "The selected target and transition only rename a release-note title from segmentation fault to crash.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "775624a50d11fd3c76a237d461738115be4d61351b8aa3dd4dfd997b6f7ca782"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "73b8d86c465a02b984cfe7dd4fd2290bcab022edcde7e445b90c1d0aac76308f",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T21:57:30.000Z",
+        "reviewerAgentName": "/root/c6_rank3_cli_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "mui/material-ui#31172",
+      "blockingStagePositions": [
+        2
+      ],
+      "cappedPoolRank": 8,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "The frozen second stage is type-alias-only and cannot produce a behavioral or type-checking result change.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "6d73beb6e6fd999780b47f7e92a7429c8162810a",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The original PR changes exported TypeScript API behavior; its historical base remains deferred.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "8ccd49d96d6fb388ff2dab4a36689af2063601514aed21439cf2e4756d4cc515"
+        },
+        {
+          "afterCommit": "f7874e4222e7dc060cbd8229810721e22a3dce09",
+          "beforeCommit": "6d73beb6e6fd999780b47f7e92a7429c8162810a",
+          "classification": "non-behavioral-style-only",
+          "finding": "The transition replaces an identical inline event-handler type with its existing alias and changes no type-checking result.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "c1dd5014530228d2857dc27d3b24a3c85d29891ba002eb7a1d225d25db6fb542"
+        },
+        {
+          "afterCommit": "b0fdc61f925a9cee0c459078edddff1fb7c91666",
+          "beforeCommit": "7dc0f1ea2a28184e10d7570a831d91dd8f20b6ae",
+          "classification": "behavioral-coding-request",
+          "finding": "The transition restores the components prop and enables a concrete TypeScript compile-fail-before/pass-after check.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "fffdcf010042cf03a885bcc2ce441a6453c48b1042d4ab76e90367c23c9453f3"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "f92d28b34826d3d58ac1da6b23c7d79dd8601897846ec13cc6b19430553210c4",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T22:00:17.000Z",
+        "reviewerAgentName": "/root/c6_rank4_svelte_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "mui/material-ui#38169",
+      "blockingStagePositions": [
+        2
+      ],
+      "cappedPoolRank": 9,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "The frozen second stage is a scope-refactor request and its selected fix removes a different component.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "dc14a1633ea300d4cecd1910a50f9385d07722fc",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The original PR adds an observable Joy UI Drawer component; its historical base remains deferred.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "fdd379b9ba26fa487aceb85df1804f4f9e10fc8702f95d23484fc1b189e006df"
+        },
+        {
+          "afterCommit": "c24f50632d0db448f1970c3425e6c7dbaa0d2141",
+          "beforeCommit": "dc14a1633ea300d4cecd1910a50f9385d07722fc",
+          "classification": "non-behavioral-style-only",
+          "finding": "The target narrows PR scope by excluding PermanentDrawer, while the selected fix removes DrawerContent instead.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "77e174cf78b7b1bdb6de32c075bca3449638b83be7ae4f0148863a13ec4f4eb5"
+        },
+        {
+          "afterCommit": "bb96ac7ee207d975e458fd714560bbd3785f8a76",
+          "beforeCommit": "9e5ee836277030fc79499fa58e1dd77973cbec18",
+          "classification": "behavioral-coding-request",
+          "finding": "The transition adds the requested interactive default Drawer demo and separate anchor demo.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "ccc31e24fcdc034f7c2468d4578edb59fa15a38f801df77162b192308ed5e237"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "4b95d871dc985d8594110d2aa9a49cb4479d4286bd27f4c6c8184a0a1d3c874c",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T22:07:50.000Z",
+        "reviewerAgentName": "/root/c6_rank3_cli_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "mui/material-ui#37667",
+      "blockingStagePositions": [
+        2,
+        3
+      ],
+      "cappedPoolRank": 10,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "The frozen second and third stages are naming-only requests whose selected fix commits close different review targets.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "d64e35bd6ccdafd27fec35ede229f8ed322e1c04",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The original PR adds observable Dropdown, MenuButton, and Menu state, keyboard, and ARIA behavior; its historical base remains deferred.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "9c228d7714f589161122f8188928b762f90f3a6986b21d2ed85e627d16a69fa9"
+        },
+        {
+          "afterCommit": "9e2068cae2605c7e6f05afd1c76a1316c05450bf",
+          "beforeCommit": "d64e35bd6ccdafd27fec35ede229f8ed322e1c04",
+          "classification": "non-behavioral-style-only",
+          "finding": "The whole-review target only renames DropdownMenu to Dropdown, while the selected fix instead adds ARIA attributes.",
+          "position": 2,
+          "targetKind": "review",
+          "targetSha256": "8e5064154c311f1cf8e80a83d4ecb58c9d4ba6abc20fdf619e6e6efedea9d0d2"
+        },
+        {
+          "afterCommit": "b82ea23a3f2ef534c93ba9cdd6c42ffabe769e76",
+          "beforeCommit": "8a322f363274be58dd0e8a3f814d06b16835e243",
+          "classification": "non-behavioral-style-only",
+          "finding": "The target debates demo naming, while the selected fix restores the popup slot and leaves UnstyledMenuSimple unchanged.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "733ce8487059c2a712b7ce3c9de322a1c41d29d5df6c3ec37fbdde7b69c4add9"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "d5db378c7f97314bec04eaccc1d8cb50a9e808b8d410d3dc8ba87691e5982d53",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T22:11:52.000Z",
+        "reviewerAgentName": "/root/c6_rank4_svelte_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "cli/cli#7288",
+      "blockingStagePositions": [
+        2,
+        3
+      ],
+      "cappedPoolRank": 11,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "The frozen second-stage request is paired with an unrelated SSH-key fix, while the third-stage request is ambiguous and also paired with unrelated files.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "e7401f1c8b15daf42e9eff3e6db36faea3d39a35",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The original issue requests observable gh codespace list and create --web behavior; its historical base remains deferred.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "e87d9bb2cbee39473bb8e44e5553e521b59fee906d7278f91b251a6dbc7f837e"
+        },
+        {
+          "afterCommit": "5f5559abcf89ae12d17cce3d511d7c82668671ff",
+          "beforeCommit": "e7401f1c8b15daf42e9eff3e6db36faea3d39a35",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The target removes machine selection for browser-default creation, but the selected fix changes only SSH-key files.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "076ed39a0484e5d400eaff2544b2677e6451c5cf7dad0682945313e2f767128d"
+        },
+        {
+          "afterCommit": "fcf9c8ed668abc66437d874c41f36fe7f60bc619",
+          "beforeCommit": "079845623f0e7b52f3357992a102140b190c6deb",
+          "classification": "ambiguous-review-request",
+          "finding": "The target offers two alternatives for internal opts assertions, while the selected fix changes extension, repo, and search files and satisfies neither.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "3d0ad3424360bbf76dd6dbb2c50a42ef691f41bcaf296ef1e6a8517b4d0f18ac"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "9e07fae186579cddba495771257367dbc6e1d433b42ba8f32a300b25cb9796d8",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T22:19:58.000Z",
+        "reviewerAgentName": "/root/c6_rank11_cli_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "cli/cli#9113",
+      "blockingStagePositions": [
+        2
+      ],
+      "cappedPoolRank": 12,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "The frozen second stage is a lint-only rewrite and cannot provide a behavioral fail-before/pass-after transition.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "c2c82a993599f00748dd19295caa533110d77c65",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The original issue requests that annotation-fetch failures not prevent gh run watch from rendering jobs; its historical base remains deferred.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "bd8d131e68a20e05b975f09064a0d99895a4feaed259cf1c05f25cec5e48de52"
+        },
+        {
+          "afterCommit": "98ddb1e8f2217cc9844adb286d7b6073c8bd89ab",
+          "beforeCommit": "c2c82a993599f00748dd19295caa533110d77c65",
+          "classification": "non-behavioral-style-only",
+          "finding": "The target only reports a lint error and the fix replaces Fprintln(Sprintf(...)) with behaviorally equivalent Fprintf(...).",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "1e77ea9e5db0a8dd5170e668f87ced37ccf153fc25fd94a885517c84b3a3de66"
+        },
+        {
+          "afterCommit": "751f37f1e179d41722905e2d55063e69951f72b1",
+          "beforeCommit": "ce17ea2d3652cfbb4ebad8d44553562f85564273",
+          "classification": "behavioral-coding-request",
+          "finding": "The selected fix continues after individual annotation failures, retains successful annotations, and renders accumulated warnings under ANNOTATIONS.",
+          "position": 3,
+          "targetKind": "review",
+          "targetSha256": "8c71396873a0171471931b433d3ebcdfc0c15c06b072ef16a0376643c8307936"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "a436b2bb729d7ce11aebb565301d84be7498408f6b45af36c1a7130a8f592b40",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T22:23:21.000Z",
+        "reviewerAgentName": "/root/c6_rank11_cli_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "simdjson/simdjson#1667",
+      "blockingStagePositions": [
+        3
+      ],
+      "cappedPoolRank": 13,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "The third review target is documentation-only and does not define an executable coding transition.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "0506be7da78e958fe3740fe98293f5fbd9a2eab2",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The source request asks the on-demand API to parse numeric values encoded as JSON strings, and the frozen snapshot adds that observable behavior.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "8d644e9f764f0e0178a1fb1e58c607b6ce4750fc0cc491cb8eb4efef56332250"
+        },
+        {
+          "afterCommit": "3d6f2a1bb07d2c4addefe2d368ce07eaf3598eef",
+          "beforeCommit": "0506be7da78e958fe3740fe98293f5fbd9a2eab2",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests invalid number-string error coverage and continued access to the original string after failure; the selected fix adds those regressions.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "4c23a85810fef0abd3fc5952327272bdf62d1386d74d8b7fbd051e6b6a84b86f"
+        },
+        {
+          "afterCommit": "9fa07ffbe9fd1927b38f5dc76149aa7f6dba7314",
+          "beforeCommit": "d894ec990d0d4071134e4d4270e48ddaacd66bc3",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review requests explanatory documentation for choosing the on-demand API, and the selected fix only changes documentation.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "3afaf61902a13c0c20fc9a2e09dff144f6a94c1da6d0fa54d20ed06ab29e93d0"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "a2c20415e1e80548e00826d1f99860caedd1f55f7fe82c802da3ef137bbbb1b4",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-3",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T22:40:54.000Z",
+        "reviewerAgentName": "/root/c6_rank13_simdjson_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "vuejs/core#9213",
+      "blockingStagePositions": [],
+      "cappedPoolRank": 14,
+      "decisionReason": "semantic-screening-passed-machine-qualification-required",
+      "finding": "All three frozen requests ask for observable runtime behavior changes and each selected fix is aligned with its reviewed commit boundary.",
+      "screeningDecision": "continue-machine-qualification",
+      "stages": [
+        {
+          "afterCommit": "636df656d33976844f9b40c1744b69b1462744f8",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The source request requires slot and fallback updates to force a full diff, and the frozen snapshot implements that observable behavior.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "33cf80551117259f44cb9bb48ed04233a8e2d9d98c9e375b813b6109747bc262"
+        },
+        {
+          "afterCommit": "a2c79ed6f3a7643af3a5b4c4da9ab8c29255fb18",
+          "beforeCommit": "636df656d33976844f9b40c1744b69b1462744f8",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests unmounting the old vnode instead of reusing it, and the direct child fix implements that lifecycle change.",
+          "position": 2,
+          "targetKind": "review",
+          "targetSha256": "a1f0adff3465c73dc6d83a987732780735052b0613f6675497d00fb051f57537"
+        },
+        {
+          "afterCommit": "63b477abfab05338081f9b28efdced7696dc0b21",
+          "beforeCommit": "16b2850efc1731a0b821458ba722af3aa67a8349",
+          "classification": "behavioral-coding-request",
+          "finding": "The inline review requests removing the extra custom-element renderer behavior, and the direct child fix reverts that branch-specific logic.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "c09ba6ac5aeffe6a894ceb69ba321af76578802969032326a26d3f0fa757321e"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "a923fa322d4c54b334704d8a14ba1deab4d39eefb521dd914078031c9b18c3f4",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T22:50:34.000Z",
+        "reviewerAgentName": "/root/c6_rank14_vue_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "sveltejs/svelte#12560",
+      "blockingStagePositions": [
+        2,
+        3
+      ],
+      "cappedPoolRank": 15,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "The frozen stage-2 fix addresses a different review request, while stage 3 asks only for rationale and its selected fix changes documentation.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "10988dce2ac3315b8e5cd356260138fc02d88024",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The source request asks the Svelte CSS compiler to change observable :global parsing and output behavior.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "6043262f676d43e8cff6d7f2d7eaa168b873b5599f29f055553dff9af4b0725f"
+        },
+        {
+          "afterCommit": "86eeeab4ca139b06766afcc100d9c620afe8777e",
+          "beforeCommit": "10988dce2ac3315b8e5cd356260138fc02d88024",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The review requests rejecting top-level :global.y and standalone &, but the selected direct-child fix restores combinator validation for a different review request.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "0e6bfabefaf7c789db6f563d67aa2b1219dbbdb65bc0dbcb8ee390083d461b9c"
+        },
+        {
+          "afterCommit": "8ba8511ef2a2d26ae1f4a3e90a55b7004a462603",
+          "beforeCommit": "7c640eeb1915d0a2d283cd6078ce90df0968d8f9",
+          "classification": "ambiguous-review-request",
+          "finding": "The review asks why declarations are allowed without prescribing a change; after the author explains the use case, the selected direct-child fix only tweaks documentation.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "b468d1479e7cdd1c06ad66d8a953554f37684f208097c7b44117f90b94680122"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "7a9228c47847916e97ee393af4687d189871d1ced7ac85a03cdc8a9072c9e626",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T22:56:16.000Z",
+        "reviewerAgentName": "/root/c6_rank15_svelte_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "cli/cli#9083",
+      "blockingStagePositions": [
+        2
+      ],
+      "cappedPoolRank": 16,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "The frozen stage-2 transition is an unrelated upstream merge; the requested interactive remote selection lands only in the following commit.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "29ad2b6786e7b05b93d993f63dfca6228384e8e2",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The source request asks gh to resolve multiple remotes correctly instead of silently selecting the wrong repository.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "2fe9438c7935735c38d373d6f428f713eec06f48284ad1537143287a350f3063"
+        },
+        {
+          "afterCommit": "1d03581c3f607d0efda279718887c0be09ccb92f",
+          "beforeCommit": "29ad2b6786e7b05b93d993f63dfca6228384e8e2",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The review requests an interactive remote prompt and a non-interactive error, but the selected fix is an upstream merge that leaves the relevant files unchanged.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "ff461868a94a185cc4b5b6c8aced18400e90ebbbd296b1f6fd8f3faa30b73ade"
+        },
+        {
+          "afterCommit": "5798eb7c4b40561afff241a61ae59285e025d811",
+          "beforeCommit": "df723bdb3933b94d32d92dae47c9faf9544d8cd0",
+          "classification": "behavioral-coding-request",
+          "finding": "The review asks that an explicitly configured gh repo set-default remote take precedence, and the selected direct-child fix implements that behavior.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "1a0964b821e6c73e2b2452b2119c4abd2144a0cd87aa6dab2eaba29628d48874"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "d246d602d007c980c74076eb8ec89dbc36493fde48afa38cd0eb795f92dc5f1f",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T23:02:41.000Z",
+        "reviewerAgentName": "/root/c6_rank16_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "sveltejs/svelte#13850",
+      "blockingStagePositions": [
+        2
+      ],
+      "cappedPoolRank": 17,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "The frozen stage-2 request changes only changeset classification and wording, so it does not define an executable coding transition.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "4774d101df07a0a27614b2f105e7500734374a66",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The source request asks Svelte to preserve transition behavior when a state field is mutated from an async callback.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "74f507852bb3eb58016f9bfd9acbbeef1759efa8049f436869f4ec70cc62a1c0"
+        },
+        {
+          "afterCommit": "276ba986eff5c926af2c60691230a3d59c2a0056",
+          "beforeCommit": "4774d101df07a0a27614b2f105e7500734374a66",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review requests changing the changeset from minor to patch and its wording from feat to fix; the selected fix changes only release-note metadata.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "61d4a0654cba2d8da1f550da3fa54079bea738c58b400a8359fff73ae77e8084"
+        },
+        {
+          "afterCommit": "68f71c9a41df5624fbe4b35d329f6d5dc51676d0",
+          "beforeCommit": "ce53bd6fd56c887cfab5ab4543af4b714c87ba5e",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests avoiding an unrelated transition reset, and the selected direct-child fix removes that executable behavior change.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "93a701d6f3f7abdfbc382caddf5912a02c9cad004ac019c13f23f336dc778880"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "9203574c64cc1f8ba824d09d1b14d234df2114b3beae3ddf4fd570d0aa525389",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T23:08:38.000Z",
+        "reviewerAgentName": "/root/c6_rank17_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "anuraghazra/github-readme-stats#2099",
+      "blockingStagePositions": [
+        2
+      ],
+      "cappedPoolRank": 18,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stage 2 is a documentation-formatting request whose selected fix only changes README markup; that later-stage blocker is sufficient to reject the episode independently of the unmaterialized stage-1 prompt.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "b6356a85ec8d42e140f92e1d018a31f65a705a03",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The public issue describes a behavioral coding task, but this source-row binding is provisional until the resolved-issues-only agent-visible prompt is materialized.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "c3cd379669edfbadfc282c984b812e6c1223de85e72667e26e6179c53a5a4bbb"
+        },
+        {
+          "afterCommit": "a6e4fcc93695e44bc8bac8572959e5008b91094d",
+          "beforeCommit": "b6356a85ec8d42e140f92e1d018a31f65a705a03",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review only asks to preserve indentation or use a code block, and the selected direct-child fix changes one README line to inline-code markup.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "fb04d6e316a37f4c28bfba48641635428f766b47b8ee16677f2b085553c1531e"
+        },
+        {
+          "afterCommit": "d931754a00f69804a3e9b74911146775defd95e6",
+          "beforeCommit": "527300fad89e49e89bad1df2f29298061308e78c",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests replacing D3 and JSDOM with plain JavaScript and SVG strings, and the selected transition removes those dependencies and adds executable SVG-path generation.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "afa3af30bb9e27422ce515ae9945383ad30570ee961fabd34242d665f723ffd7"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "603e176d639cec558a4d24da20433d42f95f3df755dbb30a5df247bffcca5c0f",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T23:14:55.000Z",
+        "reviewerAgentName": "/root/c6_rank17_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "clap-rs/clap#2796",
+      "blockingStagePositions": [],
+      "cappedPoolRank": 19,
+      "decisionReason": "semantic-screening-passed-machine-qualification-required",
+      "finding": "Stages 2 and 3 are executable behavioral requests with aligned direct-child fixes; the candidate remains pending exact stage-1 prompt materialization.",
+      "screeningDecision": "continue-machine-qualification",
+      "stages": [
+        {
+          "afterCommit": "2aebb6fc06e7326cf5d7b70a6fc6438c6a115c68",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The source row is provisionally associated with a behavioral task, but its resolved-issues-only agent-visible prompt is not yet materialized.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "210e1a0bbd2374eb32f7a98a23a86770fa44546f3b2a621adea8fc5cb816b440"
+        },
+        {
+          "afterCommit": "c870a09c0c1486f6aa54e80dccbdeb5b562240f2",
+          "beforeCommit": "2aebb6fc06e7326cf5d7b70a6fc6438c6a115c68",
+          "classification": "behavioral-coding-request",
+          "finding": "The review changes executable test semantics by removing default_missing_value and checking short-version presence, and the selected direct-child fix implements it.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "cdaf0a59d4a27d5ecbae171e4ded941463e6d1baab241c21d61be9cb4b7b247b"
+        },
+        {
+          "afterCommit": "55998aace3fc6878cd93ed63b3a5a6d31196c0b3",
+          "beforeCommit": "c870a09c0c1486f6aa54e80dccbdeb5b562240f2",
+          "classification": "behavioral-coding-request",
+          "finding": "The review replaces brittle full-stderr comparisons with ErrorKind and err.info assertions, and the selected direct-child fix updates both executable tests accordingly.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "b5efc7a093c3e66cf943b62b1c4d62b705f24bd2b8d0b8c8b91e518ca1b88508"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "f1d3e9686ea5fdda172beec40a843a9b7f14199d198063d1402be838e9b53091",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T23:21:50.000Z",
+        "reviewerAgentName": "/root/c6_rank17_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "sveltejs/svelte#12413",
+      "blockingStagePositions": [
+        2
+      ],
+      "cappedPoolRank": 20,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stage 2 is an executable behavioral request, but its frozen transition is an unrelated main-branch merge; that mismatch is sufficient to reject the episode independently of the unmaterialized stage-1 prompt.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "5de3524c460680e84b51d880fc46eb19bd486ef9",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The source row is provisionally associated with a behavioral task, but its resolved-issues-only agent-visible prompt is not yet materialized.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "71130f5d0ddc9ac92e02af7d2764f4d2c2076df5f82d32ad2c67cf1cf3d9dc0c"
+        },
+        {
+          "afterCommit": "f19d1381610cf3f7e7319938f74756c171a4fc87",
+          "beforeCommit": "5de3524c460680e84b51d880fc46eb19bd486ef9",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The review requests runtime handling for proxied values passed to $state.frozen, but the selected transition is an unrelated main-branch merge with no corresponding freeze implementation.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "500807233075737d17c915c47b90cc10d4c5366d744d32359a4a2935a06ba1c6"
+        },
+        {
+          "afterCommit": "3301a33815f1a8fdc5aabef0662c1cfae7b41686",
+          "beforeCommit": "f19d1381610cf3f7e7319938f74756c171a4fc87",
+          "classification": "behavioral-coding-request",
+          "finding": "The changes-requested review points to the runtime freeze concern, and the selected direct-child fix replaces snapshotting with shallow copying while preserving nested object identity.",
+          "position": 3,
+          "targetKind": "review",
+          "targetSha256": "a451ab57c14d7cdf20222bfb86f90f20adedc46048c5a4e2eb0a15490b7b2fc1"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "a75c81677cf8061ba487c94a76d7d460b4c395927eab76796ec06591b9364702",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T23:25:49.000Z",
+        "reviewerAgentName": "/root/c6_rank17_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "google/gson#1787",
+      "blockingStagePositions": [
+        2,
+        3
+      ],
+      "cappedPoolRank": 21,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stage 2 does not state a concrete executable request, and stage 3 only requests a test-framework style change; both later stages block the episode independently of the unmaterialized stage-1 prompt.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "764286a779c6ba6041c3884cd739bb73b94c7019",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The source row is provisionally associated with a behavioral task, but its resolved-issues-only agent-visible prompt is not yet materialized.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "481cced985b297b909b301b9a5b74cc23e49fc49dc1026629f4d33174d759b2b"
+        },
+        {
+          "afterCommit": "5be9071f400b69cbe564aebc9347f776e4118026",
+          "beforeCommit": "764286a779c6ba6041c3884cd739bb73b94c7019",
+          "classification": "ambiguous-review-request",
+          "finding": "The review only says that several minor requests exist without specifying a concrete executable behavior, and the selected transition is a large master merge that cannot be attributed to that target.",
+          "position": 2,
+          "targetKind": "review",
+          "targetSha256": "0c6361b656262ff49663508a193ab0e6e65056278d453c538da7f98f8e7b5f9d"
+        },
+        {
+          "afterCommit": "3d2b33a188a814462fde833c95db316914f774ce",
+          "beforeCommit": "767c10e8302a5a01fbff0f8af7a36c6147b785cd",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review only requests using JUnit 4 for a new test, and the selected master-merge transition does not provide an attributable product behavior change.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "980f8f736e7081ecb75181805c21eeb3e98179ad759e90f1a96b9813bb28a038"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "65cee2b7d286cab4237ed6ca3aa5a2306a3832ab0a3156ea9dfced773276583b",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T23:33:19.000Z",
+        "reviewerAgentName": "/root/c6_rank17_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "vuejs/core#10416",
+      "blockingStagePositions": [
+        2,
+        3
+      ],
+      "cappedPoolRank": 22,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Both later requests are non-behavioral: stage 2 is a test-only type refinement and stage 3 asks only for an explanatory code comment.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "b8aff0b9a0e1d3486b4cac8bdf178b9f67aae405",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The source row is provisionally associated with a behavioral task, but its resolved-issues-only agent-visible prompt is not yet materialized.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "52ff4d547acd04e0bf755da01047e07d4297cc464f9cd88acc7250de4f1cf2be"
+        },
+        {
+          "afterCommit": "03ed4a955e5edb846f19f62cc20abe32cbf09b66",
+          "beforeCommit": "b8aff0b9a0e1d3486b4cac8bdf178b9f67aae405",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review only asks for an HTMLSelectElement assertion in test code, and the selected direct-child fix changes no production file.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "b1e2822bf5cc6b968572d0e810179054cff8aa2003213a65b0d881c04a350d42"
+        },
+        {
+          "afterCommit": "c799b0005ee44aad09c298df1e79f9796e3f41f8",
+          "beforeCommit": "03ed4a955e5edb846f19f62cc20abe32cbf09b66",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review explicitly asks only for an explanatory comment, and the selected direct-child fix adds comments without changing executable logic.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "ac67321e837294e424f3a5faf9cdb660ce40e886362746b4b87f52fb2d92182a"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "6133495a570aa871e5e7ea57f94e4097375dd2bcddcbc110df7fe56978db622a",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T23:36:30.000Z",
+        "reviewerAgentName": "/root/c6_rank17_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "tokio-rs/tokio#6618",
+      "blockingStagePositions": [
+        2
+      ],
+      "cappedPoolRank": 23,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stage 2 requests replacing an incorrectly used loom test with a normal integration test, but the selected direct-child transition changes production code and features without the requested test transition.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "58406d805fb9ec4c666161d8a389d66926537ea8",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The source row is provisionally associated with a behavioral task, but its resolved-issues-only agent-visible prompt is not yet materialized.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "210bc89e5b41ebcd4c134563ce1edabac11be328a1f2b91de9e2a53480cb41fc"
+        },
+        {
+          "afterCommit": "f1d381f692bfd6da82ad8eea04ecd19c5f3908dd",
+          "beforeCommit": "58406d805fb9ec4c666161d8a389d66926537ea8",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The review requests replacing an incorrectly used loom test with a normal integration test, but the selected direct-child transition contains no corresponding test change.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "f754c90deb85d828eda4d9d03d09516d2912ce3d4fd529d1d30cc8ebcb5fd079"
+        },
+        {
+          "afterCommit": "1f1c78dad5f0a058e75dbb992c753a2c657cbc5a",
+          "beforeCommit": "604b141468e0482f2b9aa65907d2a44fb41b4dc7",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests cancellation wake-up behavior through WaitForCancellationFuture, and the selected direct-child production diff implements that behavior.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "79531cabd136a3ed49de02ee51ab6c0a667ec8863d44e795d71a27c1f020986a"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "ecb0ea65983764a9f82e36c60c1fd08df4d0142e5b31eee9f3bfaf13e5b33eff",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T23:38:22.000Z",
+        "reviewerAgentName": "/root/c6_rank17_gold_blind_review"
+      }
+    },
+    {
+      "anchorId": "tokio-rs/tokio#6409",
+      "blockingStagePositions": [
+        3
+      ],
+      "cappedPoolRank": 24,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stage 3 only observes inconsistent documentation wording without specifying a concrete executable behavioral transition.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "f7c1f2b3739556245834005a4e2a84ee2bcc6545",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The source row is provisionally associated with a behavioral task, but its resolved-issues-only agent-visible prompt is not yet materialized.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "caab14c4b3bb696f4634f39d1c2a835566e7f52fcb4b6a3f54b7ebe63c042a84"
+        },
+        {
+          "afterCommit": "ccb4fcad4aeb6d16467933758207ce9acd1ef70f",
+          "beforeCommit": "f7c1f2b3739556245834005a4e2a84ee2bcc6545",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests avoiding a futures dependency by copying poll_fn or implementing a custom Future, and the selected transition adds PollFn<F>: Future while removing futures::future::poll_fn.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "ae4d3a3673ad396e6f46ffd48f54489ce8305b83a5a2e397e9e72f1aa81f9e33"
+        },
+        {
+          "afterCommit": "7702da88ba26c6a48d4a8a773e41c01b4d40755f",
+          "beforeCommit": "9251336e486b8df3722335e53abb8665be1d8296",
+          "classification": "ambiguous-review-request",
+          "finding": "The review only notes that documentation sometimes says recv instead of next, without locating or defining a concrete executable behavior change.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "3e5b67c73969f8f19af80c5cf437d5be9fe3a93f62e97e63ab86390bb856ac85"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "a8921abb183196266e52964f25d8c718203f3d40cf2658832b4c430dee6f37fc",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T23:45:27.000Z",
+        "reviewerAgentName": "/root/c6_rank14_leakage_receipt_audit"
+      }
+    },
+    {
+      "anchorId": "detekt/detekt#7635",
+      "blockingStagePositions": [
+        2
+      ],
+      "cappedPoolRank": 25,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stage 2 refers to two thoughts but contains neither request, so the frozen target is not a self-contained behavioral coding request.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "925a261dd565d1cba69fb70e0d4ca3fdff39d745",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The source row is provisionally associated with a behavioral task, but its resolved-issues-only agent-visible prompt is not yet materialized.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "38581eefa93e5079a5d44ddfb1293a25124757afb361e3aa79df2e69a8ee98ba"
+        },
+        {
+          "afterCommit": "510ab72e33036357bbc2f085476417883c33b4d9",
+          "beforeCommit": "925a261dd565d1cba69fb70e0d4ca3fdff39d745",
+          "classification": "ambiguous-review-request",
+          "finding": "The frozen review says only that the feature makes sense and mentions two thoughts without including either requested change.",
+          "position": 2,
+          "targetKind": "review",
+          "targetSha256": "6c4492b6c13148fa1336560fcab32ad4a0e4bbe2edb85bce6f8d9130c2af9f39"
+        },
+        {
+          "afterCommit": "7bf2f9daa55a5d73fe1a36f7a220eaeb67cfd692",
+          "beforeCommit": "49e1eae60a1d56141f5631fbbf2daadb7338d730",
+          "classification": "behavioral-coding-request",
+          "finding": "The review supplies concrete user-facing configuration wording, and the selected production transition implements the requested exemption description with more precise terminology.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "a35a35db35763753ff057581cfa5c68aa1585e5092cdfd6f981d6091d1a3681b"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "14158a596c9c31f2931718db8a92a4090a0e329a07fb3ecedfe4fe2d3ab3d9c5",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-25T23:47:50.000Z",
+        "reviewerAgentName": "/root/c6_rank14_leakage_receipt_audit"
+      }
+    },
+    {
+      "anchorId": "facebook/zstd#1726",
+      "blockingStagePositions": [
+        2,
+        3
+      ],
+      "cappedPoolRank": 26,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "The source issue is behavioral, but both selected review transitions fail to implement their corresponding behavioral requests.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "85d07c6c474abc8f16b069332fbaba3054819d14",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The issue reports an observable compression-ratio discrepancy between stdin and file input and requests resolution or user-facing documentation; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "6a2fe9babddcdbde8ae29044b1a879bb8e9cb91fbea16a371b8e48d0be7fdb5d"
+        },
+        {
+          "afterCommit": "c403b12f9dbab9ba3ab30fca6e1ce3c31d2f8923",
+          "beforeCommit": "85d07c6c474abc8f16b069332fbaba3054819d14",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The review requests a bounded srcSizeHint library parameter in CCtxParams for parameter and dictionary selection, but the transition only relocates pledged-source-size handling within programs/fileio.c.",
+          "position": 2,
+          "targetKind": "review",
+          "targetSha256": "6057b35b4dca8ded57574b2cc6b6fb5d68b6dc612d67f37796262fd8a387970b"
+        },
+        {
+          "afterCommit": "f781cf672bfd23dd467a6dcf08ba094180032c76",
+          "beforeCommit": "bbd83c2ab34dc498a63ff10e869e26fbe1e221a4",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The review requests leaving contentSizeFlag enabled for an exact pledged stream size, but the transition only removes unused source-size plumbing and leaves contentSizeFlag behavior unchanged.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "945589a9f7c0ac5c7d9c4745bf1b336c92c61f46a0e92dd635b9e74fdef2454b"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "52def220da2bf57df45b21d6b93e27d42f41ee7742ba4c42f6c2ba170a178e1b",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T00:58:38.000Z",
+        "reviewerAgentName": "/root/c6_rank26_sanitized_review"
+      }
+    },
+    {
+      "anchorId": "vuejs/core#8470",
+      "blockingStagePositions": [
+        2
+      ],
+      "cappedPoolRank": 27,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stages 1 and 3 are behavioral requests, but stage 2 only corrects a typo in a test name and has no behavioral coding content.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "560bb4393981b91d849e1ad40b59def3758b32b9",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue requests defineEmits runtime generation to include events inherited through an extended interface; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "12ecd69ba02a654fd3146e8f3a39e99dec8e527486acbcabe7a368107738b037"
+        },
+        {
+          "afterCommit": "83f22022fb071bf4f25da7e37d3070ff4c54b20d",
+          "beforeCommit": "560bb4393981b91d849e1ad40b59def3758b32b9",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review and selected transition only correct entends to extends in a test name and change no executable behavior.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "5d45fe4ca3ade95ed5f268988fbf317583f073d27096e22a2bdc9933380c8822"
+        },
+        {
+          "afterCommit": "3c38213b6d8da7a33cce6f1d4100cd3067a63d61",
+          "beforeCommit": "83f22022fb071bf4f25da7e37d3070ff4c54b20d",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests preserving Node.js and browser parse compatibility by replacing logical-OR assignment, and the selected production transition implements that request.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "9f48f2f25bf7ed086988724674e5a17a09d129ffd44abd16444a2758c72272f0"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "f4a397abf43d7f624431d064668c86b6afc5780fa55c4f9ea00fb12a02c8435b",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T01:09:19.000Z",
+        "reviewerAgentName": "/root/c6_rank27_sanitized_review"
+      }
+    },
+    {
+      "anchorId": "vuejs/core#10522",
+      "blockingStagePositions": [
+        3
+      ],
+      "cappedPoolRank": 28,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stages 1 and 2 are behavioral requests and stage 2 matches its selected transition, but stage 3 only renames a test with clearer terminology and has no behavioral coding content.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "147f1243cc20afd1d5110db960dc952d4b8f6c67",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue reports a scoped-CSS specificity regression that prevents hover behavior; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "a09a6ad3ffdf92dc32d620770436e693d689851616b128cec182806d08a2f6b5"
+        },
+        {
+          "afterCommit": "96cd5c258cd8e3295d4ddd5b6e3246dab5d6ec0e",
+          "beforeCommit": "147f1243cc20afd1d5110db960dc952d4b8f6c67",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests valid CSS declaration and block termination, and the selected transition applies that correction consistently and updates the snapshots.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "6230a8652323c31702b3bb30e84a12cded6ce414810af25686d5e4ee86f527ab"
+        },
+        {
+          "afterCommit": "a202618bf0b906459d886db29c04dfa2b33fb2c8",
+          "beforeCommit": "3c6e496cb252823c4cc6afb3349b399a57ce8a82",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review requests clearer CSS terminology in a test description, and the selected transition changes only that test title.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "8a3f9f486aa3de54178bcff3ce97bc3e3ab40636b06c865c762d14a98adea4d3"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "4d3bb374bf580b1cf626c70e1b0d834efc66be906c8ecf5ad9a8065222610c70",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T01:13:04.000Z",
+        "reviewerAgentName": "/root/c6_rank28_sanitized_review"
+      }
+    },
+    {
+      "anchorId": "fasterxml/jackson-databind#3851",
+      "blockingStagePositions": [
+        2
+      ],
+      "cappedPoolRank": 29,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stage 1 is a behavioral bug report and stage 3 matches its lazy-construction request, but stage 2 asks for a separate synchronized method while the selected transition introduces inline AtomicReference logic.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "c5add484cef8bfa7980c37d3023dcb58c1363ea2",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue reports incorrect Enum deserialization when delegating and properties creators coexist; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "2f2ab14095df2d5bfc4572fdf3e9f5488feda73e5c8abd530b253c5f3efb8213"
+        },
+        {
+          "afterCommit": "fb7c84368aeb3b429bda38eba6e52736d410b659",
+          "beforeCommit": "c5add484cef8bfa7980c37d3023dcb58c1363ea2",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The review requests extracting multi-threaded initialization into a separate synchronized method, but the transition instead uses inline AtomicReference compare-and-set logic.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "8849fc29480930ddf5f8b1f3cc9fc1084003f977c0c135591848354f32fd7c9c"
+        },
+        {
+          "afterCommit": "3bc0de2bd6f114bfb800a95a948b18c0ca6cf0b1",
+          "beforeCommit": "8e3878786395441e9f882d37ed4175c57bdcf710",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests avoiding construction on every access by checking the reference first, and the selected transition adds that null check before construction and compare-and-set.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "67e9ea7e198c5a43b33dc3cf94df9b76a1592f0f1a3217af2764c46d009136da"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "ac10bd12b2579b61c978231124837ef9646b8e556ad45b72cb7e5d32c80ec646",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T01:16:15.000Z",
+        "reviewerAgentName": "/root/c6_rank29_sanitized_review"
+      }
+    },
+    {
+      "anchorId": "fmtlib/fmt#2310",
+      "blockingStagePositions": [],
+      "cappedPoolRank": 30,
+      "decisionReason": "semantic-screening-passed-machine-qualification-required",
+      "finding": "All three targets are concrete behavioral coding requests; stage 2 makes width apply to non-finite values without zero fill, and stage 3 preserves explicitly requested alignment, with both selected transitions aligned.",
+      "screeningDecision": "continue-machine-qualification",
+      "stages": [
+        {
+          "afterCommit": "5951dc2ee4d852bd649b96e04501f576892b0da2",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue requests correcting zero-fill behavior for infinity and NaN; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "e5e5470bfd9d24110454457b36add2772e021e4daa3908848014c8dbc8e6f41e"
+        },
+        {
+          "afterCommit": "49b77edfc30fd500754516ee5787039da18b2f9c",
+          "beforeCommit": "5951dc2ee4d852bd649b96e04501f576892b0da2",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests width-preserving space padding for non-finite values, and the selected transition implements that behavior with NaN and infinity coverage.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "069c7e32eebdafd4d6940aa4f5cc5682d55ccf1f82b52d4902188837d43326a4"
+        },
+        {
+          "afterCommit": "96e08b0cdae6035da3b6ffe5f5e95b6e2e4c085d",
+          "beforeCommit": "49b77edfc30fd500754516ee5787039da18b2f9c",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests preserving explicit alignment when zero fill is present, and the selected transition applies numeric alignment only when none was specified and updates the tests.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "0a9ec6b2274adf2d372d2e1d38abe298907e9ac597e5c9231113693a43b77cbb"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "e675eaac0fa57d5b0c2962ab6719d7330d6d783111cf66823b579da8b6d7c983",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T01:19:30.000Z",
+        "reviewerAgentName": "/root/c6_rank30_sanitized_review"
+      }
+    },
+    {
+      "anchorId": "fmtlib/fmt#3863",
+      "blockingStagePositions": [
+        2,
+        3
+      ],
+      "cappedPoolRank": 31,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stage 1 requests observable C++23 character-range formatting support, but stages 2 and 3 are only dependency cleanup and control-flow refactoring with no requested behavior change.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "d17e9c96ed2fb4b843bd4adedf7b9c2f5ff6de04",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue requests observable C++23 character-range formatting support; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "718832e848e6042b846ab555c5668d34ac01fb6964e84f52ff8a3bc5ec221570"
+        },
+        {
+          "afterCommit": "556e412d3ce8ac9d309062f381787f6251819d4a",
+          "beforeCommit": "d17e9c96ed2fb4b843bd4adedf7b9c2f5ff6de04",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review requests removing a redundant include, and the selected transition performs dependency cleanup without a requested behavior change.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "b4e3574068cddbf89ce25eadb6384e25aa6f3a579d73fb0dd9b6d3362a4e68a8"
+        },
+        {
+          "afterCommit": "645fde421dc48a02908f40de8ccbac58bdb2a103",
+          "beforeCommit": "e36ec0410ae340d346b760920ea663bcb5b4bbc7",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review requests control-flow simplification via an early return and switch, and the selected transition implements that structural refactor without requesting new behavior.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "eb916e6d7090fbb0d7148022c4cd07cca88501bb95117e4dc3fcef55f9c67000"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "be75d735c0b88630121a76caf17ef4db810461d42f243d7bdfbd3c8d46ddcc9a",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T01:22:41.000Z",
+        "reviewerAgentName": "/root/c6_rank31_sanitized_review"
+      }
+    },
+    {
+      "anchorId": "tokio-rs/tokio#5343",
+      "blockingStagePositions": [],
+      "cappedPoolRank": 32,
+      "decisionReason": "semantic-screening-passed-machine-qualification-required",
+      "finding": "All three targets are clear behavioral coding requests, and both review-stage transitions implement the requested executable test behavior.",
+      "screeningDecision": "continue-machine-qualification",
+      "stages": [
+        {
+          "afterCommit": "fe350d7c054f80fa3ec0a09c4a2b8ef82e6a9d72",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue requests Sender::len with defined queue-length semantics; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "736f89d07cd543a18d42bf2b6c97e4204ad71d083d093771e78c1139568f818d"
+        },
+        {
+          "afterCommit": "623f4dc4ebb2d9690889274600cb2f2912799605",
+          "beforeCommit": "fe350d7c054f80fa3ec0a09c4a2b8ef82e6a9d72",
+          "classification": "behavioral-coding-request",
+          "finding": "The review defines randomized pass/fail semantics over 1000 receive and send iterations, and the transition adds that test with Sender::len checks after every iteration.",
+          "position": 2,
+          "targetKind": "review",
+          "targetSha256": "47ba2b4cf84a739f0794f8ea56eab2ca547f3f599ddd52fa8bf321be7836c180"
+        },
+        {
+          "afterCommit": "997e61825015d46a1412f12d45b0c0a9b16c967f",
+          "beforeCommit": "d65f7c6496cc6bd108c4b0fcb2c03c6a10bfa86f",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests equal aggregate probabilities for receive and send actions, and the selected transition changes the random range to produce that distribution.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "ce4561fbdb9f46f2cbf8044ace0937beec2c92b83fdad1c8a2dab9542dd54ce9"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "2fba62c84fe59ec273d25dad52f7f41c1f1c16b4f0d00342649efb1135a3e20e",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T01:26:24.000Z",
+        "reviewerAgentName": "/root/c6_rank32_sanitized_review"
+      }
+    },
+    {
+      "anchorId": "ponylang/ponyc#3819",
+      "blockingStagePositions": [
+        2,
+        3
+      ],
+      "cappedPoolRank": 33,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stage 1 is a behavioral coding request, but stages 2 and 3 are documentation/readability requests; stage 3 is also unrelated to its selected transition.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "37eaa2d75dfab24571b12ac0dc8e5c34951673dd",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue requests infallible FilePath construction with AmbientAuth-derived authority; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "8ede7607681a5a09314eb59275bd324baad32fa239a4af7c67f4a12ed4b52773"
+        },
+        {
+          "afterCommit": "e10275403aebe8a830462085e8e21acd06e54a07",
+          "beforeCommit": "37eaa2d75dfab24571b12ac0dc8e5c34951673dd",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review only requests splitting difficult release-note prose into clearer sentences, and the selected transition performs that documentation rewrite.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "93fb1abd0eb3ee177d96abe9253726ce3350a12319c8d6d751cb5b14d9f9e128"
+        },
+        {
+          "afterCommit": "d6bdb270a014d02de3aa56262b42aa28373c27ff",
+          "beforeCommit": "a497c188e24c49c9ac7957577b0c8c91ba6508bf",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review only requests rewording mkdtemp documentation, while the selected transition merely inlines an AmbientAuth expression in an example and does not address that wording.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "b3552246fb451ddd13f68ff535ecdebcfeb82c772d426e0ef9d8c0fab0739d07"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "f4093297f68c03458995c3b503dd9abd4a033d579ea6db17cd2e31fffbe470b4",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T01:30:19.000Z",
+        "reviewerAgentName": "/root/c6_rank33_sanitized_review"
+      }
+    },
+    {
+      "anchorId": "ponylang/ponyc#3675",
+      "blockingStagePositions": [
+        3
+      ],
+      "cappedPoolRank": 34,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stages 1 and 2 are aligned behavioral coding requests, but stage 3 only requests Markdown line-wrapping style.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "e6910e81d2e2ad539f7cbe51924f03f52b3d882b",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue requests preventing unsafe null-pointer-backed array access; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "a7dc2a41efaeccd2699173a69274fbeab7b3588e2a33bb61dd46daddcd25cabe"
+        },
+        {
+          "afterCommit": "b226dab7de9556f336d6aab1214f210ef04fed16",
+          "beforeCommit": "e6910e81d2e2ad539f7cbe51924f03f52b3d882b",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests zero allocation with the null pointer retained until insertion, and the selected transition implements that behavior.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "695289063b55368efe86af31aaecf0947e802e7340afe1027a792e94c7342926"
+        },
+        {
+          "afterCommit": "e40f86c4a8c369b56642059535869bb367a2715d",
+          "beforeCommit": "0fdc95a0cd8e9d7bc32575a7aa7201d66f36abe7",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review only requests reflowing release-note prose and specifies no executable or test behavior.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "a2151bee11732fc2218c1e71fadfd1feb8adafea7c1c89826e5d6367162201f4"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "6f285aea02c2d8bedaefdc420822a169bf8a06459fe0587d0ef1350ec99222b1",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T01:35:05.000Z",
+        "reviewerAgentName": "/root/c6_rank34_sanitized_review"
+      }
+    },
+    {
+      "anchorId": "simdjson/simdjson#1695",
+      "blockingStagePositions": [
+        3
+      ],
+      "cappedPoolRank": 35,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stages 1 and 2 are aligned behavioral coding requests, but stage 3 contains only praise and a reviewer-owned follow-up promise.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "10caf9cf86a8dc4b0172006b54f36e8c7c2b4d3f",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue requests an executable current-location API for On Demand parsing; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "69fa6b2098402451571144ff427c81575dfc3b80ef559edfb01f66c89f3163d7"
+        },
+        {
+          "afterCommit": "f0b30b64c2948f5cfc1962907c47083d08b57d9c",
+          "beforeCommit": "10caf9cf86a8dc4b0172006b54f36e8c7c2b4d3f",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests safe behavior when the parser is null after abandonment, and the selected transition adds the liveness branch and regression tests.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "e11b2454151e7de74cd876764a14c7e37f8da6427f390f8947a760b7b902d9ff"
+        },
+        {
+          "afterCommit": "1dc9ccd3aa4b92ccf65da5225efbcc7d3e445c93",
+          "beforeCommit": "5a18e604230656e1070c1cf861402c86ddc21451",
+          "classification": "ambiguous-review-request",
+          "finding": "The review only praises existing work and promises the reviewer's own documentation follow-up; it does not ask the agent to implement behavior.",
+          "position": 3,
+          "targetKind": "review",
+          "targetSha256": "0e2e9b8ff739425889b201a5e73e79afd0280ab7d85566fb5a1aea2a46c8fa42"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "4813384817836a75f642f4ea85453f3d2b24ae7b08cd7e1493e67ec35a0c02cf",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T01:38:25.000Z",
+        "reviewerAgentName": "/root/c6_rank35_sanitized_review"
+      }
+    },
+    {
+      "anchorId": "ponylang/ponyc#4299",
+      "blockingStagePositions": [
+        2,
+        3
+      ],
+      "cappedPoolRank": 36,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stage 2 requests diagnostic regression assertions but its transition changes implementation only; stage 3 is release-note wording only.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "d0d502fd4f5a0107e26537a475e645cdc6701962",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue requests clearer compiler diagnostics for unsafe writes; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "50845d7d557bdf655d2017e210556c087d829268e8f7327ee46cc6ec0a587be8"
+        },
+        {
+          "afterCommit": "0e05800f0e3bf42e09ebc929e5992fad570e5f67",
+          "beforeCommit": "d0d502fd4f5a0107e26537a475e645cdc6701962",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The review requests a test asserting all diagnostic messages, but the selected transition only refactors production diagnostic emission and adds no message assertion.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "856ff606376145286443c9070ca88408aea0aa755fdb6b73ff0316c5e8e24b98"
+        },
+        {
+          "afterCommit": "f69f4f8b53b3438cdbe5c72c9ea28ed92a96578f",
+          "beforeCommit": "2f5a769a694cce8194115c420c03e3a48e799e31",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review and selected transition concern release-note wording only; the transition merely retitles the note and changes no executable or pass/fail test semantics.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "166ec5b36f9da7c60cc7e2fe631f604dc19ffc0cb99c2dc891ecde04e7d8cf64"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "73ab08d86c707d28f46eb4aa4e557792efa7da4f2bb1f9d45e6b00c744c18a64",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T01:44:45.000Z",
+        "reviewerAgentName": "/root/c6_rank36_sanitized_review_v2"
+      }
+    },
+    {
+      "anchorId": "simdjson/simdjson#1615",
+      "blockingStagePositions": [
+        2
+      ],
+      "cappedPoolRank": 37,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stages 1 and 3 are aligned behavioral coding requests, but stage 2 is explanatory narrative without a self-contained coding request.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "279366b2221ef43374c52c349f37e5b6e0bf9a02",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue requests On Demand JSON Pointer behavior; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "083c181ae27a11c3eb19891ccdc201d34fe10016062d027d26b17ef22cf24750"
+        },
+        {
+          "afterCommit": "5669008b4b65f45acab351f43b9fe82d9ee7ff1b",
+          "beforeCommit": "279366b2221ef43374c52c349f37e5b6e0bf9a02",
+          "classification": "ambiguous-review-request",
+          "finding": "The review explains why exception-free C++ is supported but asks for no concrete change, while the selected transition independently converts tests to explicit error-code handling.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "9892a118e758cc98be4bf4d6846b0cb3cdeee3692c93638bb4465e085a2eb64e"
+        },
+        {
+          "afterCommit": "bba836ce01db9a3d2772044955fbf422c2f5d012",
+          "beforeCommit": "5669008b4b65f45acab351f43b9fe82d9ee7ff1b",
+          "classification": "behavioral-coding-request",
+          "finding": "The review provides executable error-code propagation logic, and the selected transition applies type().get(t), SIMDJSON_TRY, and dispatches on the resolved type.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "64d71d893d3589be5a11f42b529d22d13bf5462da97fa6515451fa7345fe00cc"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "b7c1ad514fa7047d0565c117ad135b39b00b834bf8449f8d944087c58321fccb",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T01:47:55.000Z",
+        "reviewerAgentName": "/root/c6_rank37_sanitized_review"
+      }
+    },
+    {
+      "anchorId": "tokio-rs/tokio#6345",
+      "blockingStagePositions": [
+        3
+      ],
+      "cappedPoolRank": 38,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stages 1 and 2 are aligned behavioral API changes, but stage 3 changes documentation link text only.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "435396ff606e5a25be374615cc4d55380618800d",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue requests fallible AsyncFd construction that returns the owned inner value on error; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "acd302ec59bcfd611f54e3f9638bde5ac18d134b25743a7d3ff6c51ca83693ee"
+        },
+        {
+          "afterCommit": "5e90ce39d018f243cae04d9d151e6c773568fa7c",
+          "beforeCommit": "435396ff606e5a25be374615cc4d55380618800d",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests the public error type AsyncFdTryNewError, and the selected transition renames the type and constructor return types accordingly.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "f6b7fc91afecb69c611f2527b0031227c4bf5049a31acd8d6a16132ffc07f1e7"
+        },
+        {
+          "afterCommit": "32aaa1170bec69cbbc77dbd026410222ec9cf274",
+          "beforeCommit": "c35168155a4f0b696e108bd2fbc32c2db66cea8b",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review and selected transition only change a documentation link from AsyncFd::with_interest to AsyncFd::try_with_interest.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "67c6138ddab1fe8a3cc745e92e93ba4edb96ef2eaf5a5b5342da142c711c79fe"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "f82279b69e016cd3de51c462fcddb163c5d72e6adbd56483a4f0d3c157eb805c",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T01:51:22.000Z",
+        "reviewerAgentName": "/root/c6_rank38_sanitized_review"
+      }
+    },
+    {
+      "anchorId": "Hannah-Sten/TeXiFy-IDEA#3128",
+      "blockingStagePositions": [
+        3
+      ],
+      "cappedPoolRank": 39,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stages 1 and 2 are behavioral coding requests, but stage 3 is conditional rather than an unambiguous coding request.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "8678162d85e23424f3acc39bebb5017bc183c26d",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue requests suppressing the non-breaking-space warning after punctuation; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "1f690d91a1435e858303792bcbde0f6c1254aa90515e4407a72f7cf2a01aa6ec"
+        },
+        {
+          "afterCommit": "5a7e1d8a7805fa329cedcb661116febfe1488101",
+          "beforeCommit": "8678162d85e23424f3acc39bebb5017bc183c26d",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests suppressing warnings after sentence-ending punctuation while retaining them for ordinary mid-sentence spacing, and the selected transition implements that behavior with tests.",
+          "position": 2,
+          "targetKind": "review",
+          "targetSha256": "8f4d9720c17def15a55a159aa00724cf939546a82ebd280bd54da1553b52116a"
+        },
+        {
+          "afterCommit": "918afa154d67ea619433f260ed4ff7a639dabac0",
+          "beforeCommit": "5a7e1d8a7805fa329cedcb661116febfe1488101",
+          "classification": "ambiguous-review-request",
+          "finding": "The review gives concrete false-positive and true-positive examples but explicitly permits leaving the existing behavior and presents the quick-fix idea only tentatively.",
+          "position": 3,
+          "targetKind": "review",
+          "targetSha256": "08ef1fab8228d6da7b38efe7b18e7be40170a5b0d01f064e8419b09842bc5c55"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "f2aaf6fbf69629ec12aebef26fd6afb4effd07874a0549aedc4870715a9f4c50",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T01:56:21.000Z",
+        "reviewerAgentName": "/root/c6_rank39_sanitized_review"
+      }
+    },
+    {
+      "anchorId": "tokio-rs/tracing#1983",
+      "blockingStagePositions": [
+        2,
+        3
+      ],
+      "cappedPoolRank": 40,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stage 1 is a behavioral API request, but stage 2's selected transition does not add the requested integration tests and stage 3 is unused-variable lint cleanup only.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "27722bc6dd1cac3390e77cf9d0e698144ac24fca",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue requests support for using EnvFilter as a layer::Filter; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "70a86884840b41e15677f42c0d05ee5557531a3bb874e0d0f07b0eae56f64ffc"
+        },
+        {
+          "afterCommit": "76c2a3d5a6880ff33c7d7c8994b68be85722e27c",
+          "beforeCommit": "27722bc6dd1cac3390e77cf9d0e698144ac24fca",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The review requests integration tests for EnvFilter's Filter implementation, but the selected transition only feature-gates the existing implementation and adds no tests.",
+          "position": 2,
+          "targetKind": "review",
+          "targetSha256": "03594cbebfb9d7d3cd18817f8ef69205f45c4b0860dfda7b323ae8676e8e3c19"
+        },
+        {
+          "afterCommit": "6f273caeeecda15d482310170f8cf7613ce814db",
+          "beforeCommit": "abc3b76e362995ef5549c420e3a20e089f5e6074",
+          "classification": "non-behavioral-style-only",
+          "finding": "The review asks to remove or use unused test variables solely to satisfy clippy, and the selected transition removes them without defining product behavior.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "78904b97346b709dcd671e4071f4c09219597fcb3b8a0dedf135e4b580eb0b7d"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "01c029a850156d2a4d05fe1cb385bd990195ee09bc4e72d6e022bd264a7062b3",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T02:02:11.000Z",
+        "reviewerAgentName": "/root/c6_rank40_sanitized_review"
+      }
+    },
+    {
+      "anchorId": "elastic/logstash#14058",
+      "blockingStagePositions": [
+        3
+      ],
+      "cappedPoolRank": 41,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stages 1 and 2 are behavioral coding requests, but stage 3's selected transition does not implement the requested distinction between dropped and discarded events.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "baa2bd1b63aacc0b926ad670ab6733a4531040c4",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue requests dropped-event and last-error metrics for both DLQ storage modes; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "9f53e430b1e61facb0bb638abb7138bd1b5f15cefecdb217773e816a0af6934c"
+        },
+        {
+          "afterCommit": "23c778add2aa43fba8108b102dc4eac4a8939881",
+          "beforeCommit": "baa2bd1b63aacc0b926ad670ab6733a4531040c4",
+          "classification": "behavioral-coding-request",
+          "finding": "The review requests deletion despite event-counting failures, and the selected transition moves segment deletion into a finally block.",
+          "position": 2,
+          "targetKind": "review-comment",
+          "targetSha256": "8ff0f54856cb6f2178130b95b24fa2813f38d3e156d84a28ca3f2cae0f750642"
+        },
+        {
+          "afterCommit": "2239af9b0cfdc2bd7dad8ad87b804616dbae52ad",
+          "beforeCommit": "23c778add2aa43fba8108b102dc4eac4a8939881",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The review requests a behavioral distinction between dropped and discarded events, but the selected transition only changes logging while both paths still share the same counter exposed as discarded_events.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "382ba5a45e06300e1faf73cfc5622a5a2953aa05e883630b33edec5e8f91aaf8"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "58e13b033d69b59af1aecbcbe8fa58d2978dd5d0408a2a3d764b8bf74612bfd8",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T02:07:02.000Z",
+        "reviewerAgentName": "/root/c6_rank41_sanitized_review"
+      }
+    },
+    {
+      "anchorId": "elastic/logstash#13880",
+      "blockingStagePositions": [
+        3
+      ],
+      "cappedPoolRank": 42,
+      "decisionReason": "semantic-dependency-rejected",
+      "finding": "Stages 1 and 2 are behavioral coding requests, but stage 3's selected transition does not implement the requested user-facing warning guidance.",
+      "screeningDecision": "reject",
+      "stages": [
+        {
+          "afterCommit": "c54ddfa94cd724ca00f65d3daca9c5c27b173df6",
+          "beforeCommit": null,
+          "classification": "behavioral-coding-request",
+          "finding": "The resolved issue requests packaging a bundled-JDK version file and including that version in launcher warnings; with beforeCommit unbound, no transition-match claim is made.",
+          "position": 1,
+          "targetKind": "source-row",
+          "targetSha256": "2a0a484fb9c7e9d4a4ffc9f1a6d9f2fead4bb75567cfe3cf29a7755c2fce051f"
+        },
+        {
+          "afterCommit": "e8f410b790458a4003ba3c6434766180db59e322",
+          "beforeCommit": "c54ddfa94cd724ca00f65d3daca9c5c27b173df6",
+          "classification": "behavioral-coding-request",
+          "finding": "The review reports that packaged artifacts omit JDK_VERSION, and the selected transition wires extraction into copyJdk and includes the file in packaged artifacts.",
+          "position": 2,
+          "targetKind": "review",
+          "targetSha256": "cb28f1c3813cafb6099f3c1fa3d2a9bd166454301f61b4df77a39ffc5d1fc316"
+        },
+        {
+          "afterCommit": "32f6abccc07b5bb6f48e7a5af53b87abc2818660",
+          "beforeCommit": "bc79e04c66f86fe8753546a917a412e8b375d436",
+          "classification": "behavioral-request-transition-mismatch",
+          "finding": "The review requests warning text that directs users to the bundled JDK, but the selected transition changes no warning diagnostic and instead adjusts non-bundled packaging plus cleanup/debug output.",
+          "position": 3,
+          "targetKind": "review-comment",
+          "targetSha256": "8335a95aa04ff6071f187d900692cf827a44d8a3fe8bafcdd55ec4dc99c57fca"
+        }
+      ],
+      "review": {
+        "assessmentSha256": "3baa6f0a54e2c31a1a3fa1ce42df77bac4e4f5d5eb2224ff766d9d8681c02bd6",
+        "authorTaskName": "/root",
+        "contextPolicy": "fork-turns-none",
+        "cryptographicReceipt": false,
+        "hiddenEvaluatorAccess": false,
+        "outcomeAccess": false,
+        "rawGoldAccess": false,
+        "reviewedAt": "2026-07-26T02:10:12.000Z",
+        "reviewerAgentName": "/root/c6_rank42_sanitized_review"
+      }
+    }
+  ],
+  "originalRequestConstruction": {
+    "agentVisiblePromptProjectionCount": 0,
+    "policy": "resolved-issues-only-sorted-lf-trim-v1",
+    "sourcePullTitleBodyExcluded": true,
+    "stage1Binding": "source-row-only-agent-visible-prompt-not-materialized",
+    "status": "policy-defined-projection-materialization-required"
+  },
+  "qualification": {
+    "path": "multi-swe-full-56ff018.real-history-transition-qualification.json",
+    "sha256": "59136d44da3f5687afe08cffbed98f0eae71a114389114cb422b73680c1185f8"
+  },
+  "schemaVersion": 3,
+  "trajectory": {
+    "path": "multi-swe-full-56ff018.review-trajectory-discovery.json",
+    "sha256": "5931a911b919a9c53068311185f0bd1c78c0be18220ebe92c3b795c8e38357fd"
+  }
+}

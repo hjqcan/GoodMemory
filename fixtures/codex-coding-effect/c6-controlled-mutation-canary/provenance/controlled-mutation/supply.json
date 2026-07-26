@@ -1,0 +1,204 @@
+{
+  "baseRepositories": [
+    {
+      "baseHealth": {
+        "evaluatorFactoryId": "bun-typescript-module-cases-v1",
+        "spec": {
+          "path": "provenance/controlled-mutation/evaluators/base-health.json",
+          "sha256": "42cbb25010295177c42e90d3b9f1f77671e93211f53f446a930ad80c92644c51"
+        }
+      },
+      "agentVisibleProjection": {
+        "path": "provenance/controlled-mutation/projections/defu-source-only.json",
+        "sha256": "ecd453b4d1a6938fd7936dc5eacda2e1ee23800a27a6802ef3a3d560c10ed0ff"
+      },
+      "baseRepositoryId": "defu-82632b66",
+      "canonicalUrl": "https://github.com/unjs/defu",
+      "ecosystem": "npm",
+      "language": "TypeScript",
+      "license": {
+        "evidence": {
+          "path": "provenance/controlled-mutation/licenses/defu-82632b66-MIT.txt",
+          "sha256": "46231df5a7733c3f52f11b71f3df61813007745b62b09031acfb45fb42d75082"
+        },
+        "spdx": "MIT"
+      },
+      "repositoryFamilyId": "repository-family-unjs-defu",
+      "sourceBundle": {
+        "path": "provenance/controlled-mutation/sources/defu-82632b66.bundle",
+        "sha256": "6771b72328b65736fff54a39e929b44efcb5a57022adc7882e6f3bc8f14fbf95"
+      },
+      "upstreamCommit": "82632b66f5914e9946edce300e10633a3d5c0cb7",
+      "upstreamTree": "f98fd0ecb1056fb087f117a97241a433309f087c"
+    }
+  ],
+  "derivations": [
+    {
+      "baseRepositoryId": "defu-82632b66",
+      "decision": "selected",
+      "episodeId": "defu-array-order",
+      "mutationFamilyId": "mutation-family-ddb8499ea5038e7fc4d851bd78c0022992b2639ee3dae61a91eeb68d0c811531",
+      "representativeEpisodeId": "defu-array-order",
+      "stages": [
+        {
+          "evaluators": {
+            "failToPass": {
+              "path": "provenance/controlled-mutation/evaluators/array-order-f2p.json",
+              "sha256": "8373b181c982c224527a093f54d5f02b755c9dec810bde381755794c1d0bab83"
+            },
+            "passToPass": {
+              "path": "provenance/controlled-mutation/evaluators/array-order-p2p.json",
+              "sha256": "61bf3cf5907bca42a2b762b5a6e75ab6db0d642eda7dd8cac39742a9a23d15b6"
+            }
+          },
+          "goldPatch": {
+            "path": "provenance/controlled-mutation/patches/array-order-gold.patch",
+            "sha256": "031a479b18502c4427df318c6d5c21a42365f7aa5ada78076647ba799b57acd1"
+          },
+          "goldTreeSha256": "2b946822f67ce41738d71cd5155fe6bac10181d19d6cf721757b5b0c25f31474",
+          "mutationPatch": {
+            "path": "provenance/controlled-mutation/patches/array-order-mutation.patch",
+            "sha256": "8f8cb63b4a97af8efb87b43be5481f94e8fe02d2d53bc4f2db552d5e63f1a107"
+          },
+          "preparedTreeSha256": "c0eb75561805805d31b2b486b673abf70c00a54f724122af34079c8788e23432",
+          "prompt": {
+            "path": "provenance/controlled-mutation/prompts/array-order.md",
+            "sha256": "172cd1c89d31bed243d24c980c3ae7bbe7fded8150336737265f74d3bc88445b"
+          },
+          "stageId": "stage-1"
+        }
+      ],
+      "variantId": "canonical"
+    },
+    {
+      "baseRepositoryId": "defu-82632b66",
+      "decision": "selected",
+      "episodeId": "defu-null-default",
+      "mutationFamilyId": "mutation-family-e631d85d6267bc5d16aaaaee66ac97b3a5254fdbcb2cc15bd65bf93d60eb44a7",
+      "representativeEpisodeId": "defu-null-default",
+      "stages": [
+        {
+          "evaluators": {
+            "failToPass": {
+              "path": "provenance/controlled-mutation/evaluators/null-default-f2p.json",
+              "sha256": "b5d50c39d08b9e37aec6ed6bfbdec4306d41039236b3aa0f1ea0a6350eae2a6c"
+            },
+            "passToPass": {
+              "path": "provenance/controlled-mutation/evaluators/null-default-p2p.json",
+              "sha256": "825dded6168a536e1b04e71eb7ca4f700e6ece94643e9a0b024df57c0d588fd7"
+            }
+          },
+          "goldPatch": {
+            "path": "provenance/controlled-mutation/patches/null-default-gold.patch",
+            "sha256": "cc4e1235c8a16c0500b5090be0a03897480bb4950383e298db628b6a23daa7bd"
+          },
+          "goldTreeSha256": "2b946822f67ce41738d71cd5155fe6bac10181d19d6cf721757b5b0c25f31474",
+          "mutationPatch": {
+            "path": "provenance/controlled-mutation/patches/null-default-mutation.patch",
+            "sha256": "be41dc66de88cb4ead04eeac88fb23e4051ad61f984373e044d8e77c88cbd3cc"
+          },
+          "preparedTreeSha256": "db7a9058315d8531ab8bba7be38a6080460dc757858a8874e7f642fe53ed06a8",
+          "prompt": {
+            "path": "provenance/controlled-mutation/prompts/null-default.md",
+            "sha256": "7e7d3588cdf11752b45d47b077035cc79199fa048aa08f8c1068c52e8bc17b4a"
+          },
+          "stageId": "stage-1"
+        }
+      ],
+      "variantId": "canonical"
+    },
+    {
+      "baseRepositoryId": "defu-82632b66",
+      "decision": "semantic-duplicate",
+      "episodeId": "defu-null-default-cosmetic",
+      "mutationFamilyId": "mutation-family-e631d85d6267bc5d16aaaaee66ac97b3a5254fdbcb2cc15bd65bf93d60eb44a7",
+      "representativeEpisodeId": "defu-null-default",
+      "stages": [
+        {
+          "evaluators": {
+            "failToPass": {
+              "path": "provenance/controlled-mutation/evaluators/null-default-f2p.json",
+              "sha256": "b5d50c39d08b9e37aec6ed6bfbdec4306d41039236b3aa0f1ea0a6350eae2a6c"
+            },
+            "passToPass": {
+              "path": "provenance/controlled-mutation/evaluators/null-default-p2p.json",
+              "sha256": "825dded6168a536e1b04e71eb7ca4f700e6ece94643e9a0b024df57c0d588fd7"
+            }
+          },
+          "goldPatch": {
+            "path": "provenance/controlled-mutation/patches/null-default-cosmetic-gold.patch",
+            "sha256": "6430ff5f60ce2383139449d8e2de2b1baab41f05b2f3c670f31eae217539ae5c"
+          },
+          "goldTreeSha256": "2b946822f67ce41738d71cd5155fe6bac10181d19d6cf721757b5b0c25f31474",
+          "mutationPatch": {
+            "path": "provenance/controlled-mutation/patches/null-default-cosmetic-mutation.patch",
+            "sha256": "e2fa0121514fb39a95ee1364e2c8bedd6d6efbd34ac13c8ea926f06647dc14e8"
+          },
+          "preparedTreeSha256": "d579c8c3790d83acfe83884adf1a369282b4b816e4e3947db6ecc507b5f20844",
+          "prompt": {
+            "path": "provenance/controlled-mutation/prompts/null-default-cosmetic.md",
+            "sha256": "a7d65fb6e8d9e35687d59f354bb5b78862a9c7cb8f133a0f798f638356732777"
+          },
+          "stageId": "stage-1"
+        }
+      ],
+      "variantId": "cosmetic-control-flow-and-prompt"
+    }
+  ],
+  "mutationFamilies": [
+    {
+      "evaluatorFactory": {
+        "id": "bun-typescript-module-cases-v1",
+        "source": {
+          "path": "provenance/controlled-mutation/evaluator-factories/c6-hidden-evaluator-factory.ts",
+          "sha256": "668210d3a2d43f3d6826df10f3b03688af897b1a52d3b0c2e3936f98e0fd4720"
+        }
+      },
+      "mutationFamilyId": "mutation-family-ddb8499ea5038e7fc4d851bd78c0022992b2639ee3dae61a91eeb68d0c811531",
+      "primaryStratum": "project-convention",
+      "semanticContract": {
+        "behaviorId": "caller-array-precedes-default-array",
+        "changedSurface": [
+          "src/defu.ts"
+        ],
+        "expectedBehavior": "Caller-provided array entries precede default entries at every nesting level.",
+        "preservedBehavior": [
+          "input-immutability",
+          "null-fallback",
+          "scalar-precedence"
+        ],
+        "schemaVersion": 1,
+        "targetExport": "defu"
+      },
+      "stageCount": 1
+    },
+    {
+      "evaluatorFactory": {
+        "id": "bun-typescript-module-cases-v1",
+        "source": {
+          "path": "provenance/controlled-mutation/evaluator-factories/c6-hidden-evaluator-factory.ts",
+          "sha256": "668210d3a2d43f3d6826df10f3b03688af897b1a52d3b0c2e3936f98e0fd4720"
+        }
+      },
+      "mutationFamilyId": "mutation-family-e631d85d6267bc5d16aaaaee66ac97b3a5254fdbcb2cc15bd65bf93d60eb44a7",
+      "primaryStratum": "failure-avoidance",
+      "semanticContract": {
+        "behaviorId": "null-falls-back-to-default",
+        "changedSurface": [
+          "src/defu.ts"
+        ],
+        "expectedBehavior": "Explicit null values fall back to defaults at every nesting level.",
+        "preservedBehavior": [
+          "array-order",
+          "input-immutability",
+          "scalar-precedence",
+          "valid-falsy-values"
+        ],
+        "schemaVersion": 1,
+        "targetExport": "defu"
+      },
+      "stageCount": 1
+    }
+  ],
+  "schemaVersion": 1
+}

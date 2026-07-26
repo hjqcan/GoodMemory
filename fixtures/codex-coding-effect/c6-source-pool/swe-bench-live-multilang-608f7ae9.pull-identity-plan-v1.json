@@ -1,0 +1,679 @@
+{
+  "artifactKind": "c6-rest-identity-supplement-plan",
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "candidateManifestFrozen": false,
+    "captureExecuted": false,
+    "codexRunReady": false,
+    "status": "multilingual-pull-identity-capture-plan-only"
+  },
+  "counts": {
+    "originalTargetCount": 743,
+    "supplementRepositoryCount": 40,
+    "supplementTargetCount": 64
+  },
+  "independenceBoundary": {
+    "candidateOrderChanged": false,
+    "machineOutcomeInput": false,
+    "originalTargetProjectionSha256": "07ab37956dac6ff62ea9fd7b6fe89f7b7c0a629c63affc4e1c6c9d2b9706c772",
+    "retryTargetingDependsOnMissingClosure": false,
+    "semanticLedgerInput": false,
+    "supplementTargetProjectionSha256": "0de7e99509c98eb48d2d07e5dcc22f0f057b14e8f3d54feb84b2b0e22168e33c"
+  },
+  "inputs": {
+    "expansion": {
+      "bytes": 709213,
+      "path": "swe-bench-live-multilang-608f7ae9.review-trajectory-expansion-v1.json",
+      "sha256": "5c0202ba4d03fc7d59381351f4542b9d9619f539d498f619d0e41d7acf0e9d76"
+    }
+  },
+  "rule": {
+    "endpoint": "GET /repos/{owner}/{repo}/pulls/{pull_number}",
+    "order": "original-captureOrder-ascending",
+    "purpose": "pull-author-and-canonical-identity-only-no-comment-enumeration",
+    "selection": "all-broad-structural-pretargets-including-prior-frame-overlaps"
+  },
+  "schemaVersion": 1,
+  "targets": [
+    {
+      "anchorId": "redis/redis#14274",
+      "canonicalAnchorId": "redis/redis#14274",
+      "canonicalOwner": "redis",
+      "canonicalRepository": "redis",
+      "captureDirectory": "redis__redis__14274",
+      "originalCaptureOrder": 18,
+      "pullNumber": 14274,
+      "supplementOrder": 1
+    },
+    {
+      "anchorId": "valkey-io/valkey#2277",
+      "canonicalAnchorId": "valkey-io/valkey#2277",
+      "canonicalOwner": "valkey-io",
+      "canonicalRepository": "valkey",
+      "captureDirectory": "valkey-io__valkey__2277",
+      "originalCaptureOrder": 25,
+      "pullNumber": 2277,
+      "supplementOrder": 2
+    },
+    {
+      "anchorId": "valkey-io/valkey#2553",
+      "canonicalAnchorId": "valkey-io/valkey#2553",
+      "canonicalOwner": "valkey-io",
+      "canonicalRepository": "valkey",
+      "captureDirectory": "valkey-io__valkey__2553",
+      "originalCaptureOrder": 31,
+      "pullNumber": 2553,
+      "supplementOrder": 3
+    },
+    {
+      "anchorId": "rizinorg/rizin#6079",
+      "canonicalAnchorId": "rizinorg/rizin#6079",
+      "canonicalOwner": "rizinorg",
+      "canonicalRepository": "rizin",
+      "captureDirectory": "rizinorg__rizin__6079",
+      "originalCaptureOrder": 36,
+      "pullNumber": 6079,
+      "supplementOrder": 4
+    },
+    {
+      "anchorId": "shader-slang/slang#7864",
+      "canonicalAnchorId": "shader-slang/slang#7864",
+      "canonicalOwner": "shader-slang",
+      "canonicalRepository": "slang",
+      "captureDirectory": "shader-slang__slang__7864",
+      "originalCaptureOrder": 40,
+      "pullNumber": 7864,
+      "supplementOrder": 5
+    },
+    {
+      "anchorId": "shader-slang/slang#7581",
+      "canonicalAnchorId": "shader-slang/slang#7581",
+      "canonicalOwner": "shader-slang",
+      "canonicalRepository": "slang",
+      "captureDirectory": "shader-slang__slang__7581",
+      "originalCaptureOrder": 41,
+      "pullNumber": 7581,
+      "supplementOrder": 6
+    },
+    {
+      "anchorId": "kokkos/kokkos#8967",
+      "canonicalAnchorId": "kokkos/kokkos#8967",
+      "canonicalOwner": "kokkos",
+      "canonicalRepository": "kokkos",
+      "captureDirectory": "kokkos__kokkos__8967",
+      "originalCaptureOrder": 55,
+      "pullNumber": 8967,
+      "supplementOrder": 7
+    },
+    {
+      "anchorId": "shader-slang/slang#10758",
+      "canonicalAnchorId": "shader-slang/slang#10758",
+      "canonicalOwner": "shader-slang",
+      "canonicalRepository": "slang",
+      "captureDirectory": "shader-slang__slang__10758",
+      "originalCaptureOrder": 56,
+      "pullNumber": 10758,
+      "supplementOrder": 8
+    },
+    {
+      "anchorId": "shader-slang/slang#10856",
+      "canonicalAnchorId": "shader-slang/slang#10856",
+      "canonicalOwner": "shader-slang",
+      "canonicalRepository": "slang",
+      "captureDirectory": "shader-slang__slang__10856",
+      "originalCaptureOrder": 57,
+      "pullNumber": 10856,
+      "supplementOrder": 9
+    },
+    {
+      "anchorId": "shader-slang/slang#10664",
+      "canonicalAnchorId": "shader-slang/slang#10664",
+      "canonicalOwner": "shader-slang",
+      "canonicalRepository": "slang",
+      "captureDirectory": "shader-slang__slang__10664",
+      "originalCaptureOrder": 62,
+      "pullNumber": 10664,
+      "supplementOrder": 10
+    },
+    {
+      "anchorId": "shader-slang/slang#10768",
+      "canonicalAnchorId": "shader-slang/slang#10768",
+      "canonicalOwner": "shader-slang",
+      "canonicalRepository": "slang",
+      "captureDirectory": "shader-slang__slang__10768",
+      "originalCaptureOrder": 73,
+      "pullNumber": 10768,
+      "supplementOrder": 11
+    },
+    {
+      "anchorId": "shader-slang/slang#10682",
+      "canonicalAnchorId": "shader-slang/slang#10682",
+      "canonicalOwner": "shader-slang",
+      "canonicalRepository": "slang",
+      "captureDirectory": "shader-slang__slang__10682",
+      "originalCaptureOrder": 75,
+      "pullNumber": 10682,
+      "supplementOrder": 12
+    },
+    {
+      "anchorId": "shader-slang/slang#10738",
+      "canonicalAnchorId": "shader-slang/slang#10738",
+      "canonicalOwner": "shader-slang",
+      "canonicalRepository": "slang",
+      "captureDirectory": "shader-slang__slang__10738",
+      "originalCaptureOrder": 83,
+      "pullNumber": 10738,
+      "supplementOrder": 13
+    },
+    {
+      "anchorId": "shader-slang/slang#10697",
+      "canonicalAnchorId": "shader-slang/slang#10697",
+      "canonicalOwner": "shader-slang",
+      "canonicalRepository": "slang",
+      "captureDirectory": "shader-slang__slang__10697",
+      "originalCaptureOrder": 91,
+      "pullNumber": 10697,
+      "supplementOrder": 14
+    },
+    {
+      "anchorId": "openfga/openfga#2598",
+      "canonicalAnchorId": "openfga/openfga#2598",
+      "canonicalOwner": "openfga",
+      "canonicalRepository": "openfga",
+      "captureDirectory": "openfga__openfga__2598",
+      "originalCaptureOrder": 113,
+      "pullNumber": 2598,
+      "supplementOrder": 15
+    },
+    {
+      "anchorId": "open-telemetry/opentelemetry-collector-contrib#40522",
+      "canonicalAnchorId": "open-telemetry/opentelemetry-collector-contrib#40522",
+      "canonicalOwner": "open-telemetry",
+      "canonicalRepository": "opentelemetry-collector-contrib",
+      "captureDirectory": "open-telemetry__opentelemetry-collector-contrib__40522",
+      "originalCaptureOrder": 125,
+      "pullNumber": 40522,
+      "supplementOrder": 16
+    },
+    {
+      "anchorId": "a-h/templ#1213",
+      "canonicalAnchorId": "a-h/templ#1213",
+      "canonicalOwner": "a-h",
+      "canonicalRepository": "templ",
+      "captureDirectory": "a-h__templ__1213",
+      "originalCaptureOrder": 127,
+      "pullNumber": 1213,
+      "supplementOrder": 17
+    },
+    {
+      "anchorId": "libp2p/go-libp2p#3306",
+      "canonicalAnchorId": "libp2p/go-libp2p#3306",
+      "canonicalOwner": "libp2p",
+      "canonicalRepository": "go-libp2p",
+      "captureDirectory": "libp2p__go-libp2p__3306",
+      "originalCaptureOrder": 131,
+      "pullNumber": 3306,
+      "supplementOrder": 18
+    },
+    {
+      "anchorId": "zitadel/zitadel#10197",
+      "canonicalAnchorId": "zitadel/zitadel#10197",
+      "canonicalOwner": "zitadel",
+      "canonicalRepository": "zitadel",
+      "captureDirectory": "zitadel__zitadel__10197",
+      "originalCaptureOrder": 132,
+      "pullNumber": 10197,
+      "supplementOrder": 19
+    },
+    {
+      "anchorId": "open-telemetry/opentelemetry-operator#4118",
+      "canonicalAnchorId": "open-telemetry/opentelemetry-operator#4118",
+      "canonicalOwner": "open-telemetry",
+      "canonicalRepository": "opentelemetry-operator",
+      "captureDirectory": "open-telemetry__opentelemetry-operator__4118",
+      "originalCaptureOrder": 135,
+      "pullNumber": 4118,
+      "supplementOrder": 20
+    },
+    {
+      "anchorId": "open-telemetry/opentelemetry-go#6393",
+      "canonicalAnchorId": "open-telemetry/opentelemetry-go#6393",
+      "canonicalOwner": "open-telemetry",
+      "canonicalRepository": "opentelemetry-go",
+      "captureDirectory": "open-telemetry__opentelemetry-go__6393",
+      "originalCaptureOrder": 147,
+      "pullNumber": 6393,
+      "supplementOrder": 21
+    },
+    {
+      "anchorId": "open-telemetry/opentelemetry-go-contrib#7607",
+      "canonicalAnchorId": "open-telemetry/opentelemetry-go-contrib#7607",
+      "canonicalOwner": "open-telemetry",
+      "canonicalRepository": "opentelemetry-go-contrib",
+      "captureDirectory": "open-telemetry__opentelemetry-go-contrib__7607",
+      "originalCaptureOrder": 156,
+      "pullNumber": 7607,
+      "supplementOrder": 22
+    },
+    {
+      "anchorId": "tikv/pd#9618",
+      "canonicalAnchorId": "tikv/pd#9618",
+      "canonicalOwner": "tikv",
+      "canonicalRepository": "pd",
+      "captureDirectory": "tikv__pd__9618",
+      "originalCaptureOrder": 170,
+      "pullNumber": 9618,
+      "supplementOrder": 23
+    },
+    {
+      "anchorId": "open-telemetry/opentelemetry-collector-contrib#46272",
+      "canonicalAnchorId": "open-telemetry/opentelemetry-collector-contrib#46272",
+      "canonicalOwner": "open-telemetry",
+      "canonicalRepository": "opentelemetry-collector-contrib",
+      "captureDirectory": "open-telemetry__opentelemetry-collector-contrib__46272",
+      "originalCaptureOrder": 236,
+      "pullNumber": 46272,
+      "supplementOrder": 24
+    },
+    {
+      "anchorId": "sveltejs/svelte#16542",
+      "canonicalAnchorId": "sveltejs/svelte#16542",
+      "canonicalOwner": "sveltejs",
+      "canonicalRepository": "svelte",
+      "captureDirectory": "sveltejs__svelte__16542",
+      "originalCaptureOrder": 254,
+      "pullNumber": 16542,
+      "supplementOrder": 25
+    },
+    {
+      "anchorId": "stdlib-js/stdlib#6527",
+      "canonicalAnchorId": "stdlib-js/stdlib#6527",
+      "canonicalOwner": "stdlib-js",
+      "canonicalRepository": "stdlib",
+      "captureDirectory": "stdlib-js__stdlib__6527",
+      "originalCaptureOrder": 255,
+      "pullNumber": 6527,
+      "supplementOrder": 26
+    },
+    {
+      "anchorId": "stdlib-js/stdlib#5735",
+      "canonicalAnchorId": "stdlib-js/stdlib#5735",
+      "canonicalOwner": "stdlib-js",
+      "canonicalRepository": "stdlib",
+      "captureDirectory": "stdlib-js__stdlib__5735",
+      "originalCaptureOrder": 266,
+      "pullNumber": 5735,
+      "supplementOrder": 27
+    },
+    {
+      "anchorId": "stdlib-js/stdlib#5914",
+      "canonicalAnchorId": "stdlib-js/stdlib#5914",
+      "canonicalOwner": "stdlib-js",
+      "canonicalRepository": "stdlib",
+      "captureDirectory": "stdlib-js__stdlib__5914",
+      "originalCaptureOrder": 278,
+      "pullNumber": 5914,
+      "supplementOrder": 28
+    },
+    {
+      "anchorId": "stdlib-js/stdlib#1716",
+      "canonicalAnchorId": "stdlib-js/stdlib#1716",
+      "canonicalOwner": "stdlib-js",
+      "canonicalRepository": "stdlib",
+      "captureDirectory": "stdlib-js__stdlib__1716",
+      "originalCaptureOrder": 299,
+      "pullNumber": 1716,
+      "supplementOrder": 29
+    },
+    {
+      "anchorId": "grommet/grommet#7712",
+      "canonicalAnchorId": "grommet/grommet#7712",
+      "canonicalOwner": "grommet",
+      "canonicalRepository": "grommet",
+      "captureDirectory": "grommet__grommet__7712",
+      "originalCaptureOrder": 301,
+      "pullNumber": 7712,
+      "supplementOrder": 30
+    },
+    {
+      "anchorId": "grommet/grommet#7709",
+      "canonicalAnchorId": "grommet/grommet#7709",
+      "canonicalOwner": "grommet",
+      "canonicalRepository": "grommet",
+      "captureDirectory": "grommet__grommet__7709",
+      "originalCaptureOrder": 304,
+      "pullNumber": 7709,
+      "supplementOrder": 31
+    },
+    {
+      "anchorId": "nock/nock#2880",
+      "canonicalAnchorId": "nock/nock#2880",
+      "canonicalOwner": "nock",
+      "canonicalRepository": "nock",
+      "captureDirectory": "nock__nock__2880",
+      "originalCaptureOrder": 305,
+      "pullNumber": 2880,
+      "supplementOrder": 32
+    },
+    {
+      "anchorId": "Automattic/mongoose#16153",
+      "canonicalAnchorId": "automattic/mongoose#16153",
+      "canonicalOwner": "automattic",
+      "canonicalRepository": "mongoose",
+      "captureDirectory": "Automattic__mongoose__16153",
+      "originalCaptureOrder": 325,
+      "pullNumber": 16153,
+      "supplementOrder": 33
+    },
+    {
+      "anchorId": "apache/datafusion#16726",
+      "canonicalAnchorId": "apache/datafusion#16726",
+      "canonicalOwner": "apache",
+      "canonicalRepository": "datafusion",
+      "captureDirectory": "apache__datafusion__16726",
+      "originalCaptureOrder": 343,
+      "pullNumber": 16726,
+      "supplementOrder": 34
+    },
+    {
+      "anchorId": "apache/datafusion#16610",
+      "canonicalAnchorId": "apache/datafusion#16610",
+      "canonicalOwner": "apache",
+      "canonicalRepository": "datafusion",
+      "captureDirectory": "apache__datafusion__16610",
+      "originalCaptureOrder": 359,
+      "pullNumber": 16610,
+      "supplementOrder": 35
+    },
+    {
+      "anchorId": "matrix-org/matrix-rust-sdk#5522",
+      "canonicalAnchorId": "matrix-org/matrix-rust-sdk#5522",
+      "canonicalOwner": "matrix-org",
+      "canonicalRepository": "matrix-rust-sdk",
+      "captureDirectory": "matrix-org__matrix-rust-sdk__5522",
+      "originalCaptureOrder": 380,
+      "pullNumber": 5522,
+      "supplementOrder": 36
+    },
+    {
+      "anchorId": "apache/arrow-rs#7783",
+      "canonicalAnchorId": "apache/arrow-rs#7783",
+      "canonicalOwner": "apache",
+      "canonicalRepository": "arrow-rs",
+      "captureDirectory": "apache__arrow-rs__7783",
+      "originalCaptureOrder": 382,
+      "pullNumber": 7783,
+      "supplementOrder": 37
+    },
+    {
+      "anchorId": "apache/datafusion#21121",
+      "canonicalAnchorId": "apache/datafusion#21121",
+      "canonicalOwner": "apache",
+      "canonicalRepository": "datafusion",
+      "captureDirectory": "apache__datafusion__21121",
+      "originalCaptureOrder": 430,
+      "pullNumber": 21121,
+      "supplementOrder": 38
+    },
+    {
+      "anchorId": "microsoft/playwright-java#1817",
+      "canonicalAnchorId": "microsoft/playwright-java#1817",
+      "canonicalOwner": "microsoft",
+      "canonicalRepository": "playwright-java",
+      "captureDirectory": "microsoft__playwright-java__1817",
+      "originalCaptureOrder": 437,
+      "pullNumber": 1817,
+      "supplementOrder": 39
+    },
+    {
+      "anchorId": "AutoMQ/automq#2699",
+      "canonicalAnchorId": "automq/automq#2699",
+      "canonicalOwner": "automq",
+      "canonicalRepository": "automq",
+      "captureDirectory": "AutoMQ__automq__2699",
+      "originalCaptureOrder": 444,
+      "pullNumber": 2699,
+      "supplementOrder": 40
+    },
+    {
+      "anchorId": "strimzi/strimzi-kafka-operator#11510",
+      "canonicalAnchorId": "strimzi/strimzi-kafka-operator#11510",
+      "canonicalOwner": "strimzi",
+      "canonicalRepository": "strimzi-kafka-operator",
+      "captureDirectory": "strimzi__strimzi-kafka-operator__11510",
+      "originalCaptureOrder": 448,
+      "pullNumber": 11510,
+      "supplementOrder": 41
+    },
+    {
+      "anchorId": "apache/accumulo#5763",
+      "canonicalAnchorId": "apache/accumulo#5763",
+      "canonicalOwner": "apache",
+      "canonicalRepository": "accumulo",
+      "captureDirectory": "apache__accumulo__5763",
+      "originalCaptureOrder": 449,
+      "pullNumber": 5763,
+      "supplementOrder": 42
+    },
+    {
+      "anchorId": "AntennaPod/AntennaPod#7755",
+      "canonicalAnchorId": "antennapod/antennapod#7755",
+      "canonicalOwner": "antennapod",
+      "canonicalRepository": "antennapod",
+      "captureDirectory": "AntennaPod__AntennaPod__7755",
+      "originalCaptureOrder": 470,
+      "pullNumber": 7755,
+      "supplementOrder": 43
+    },
+    {
+      "anchorId": "apache/incubator-seata#7482",
+      "canonicalAnchorId": "apache/incubator-seata#7482",
+      "canonicalOwner": "apache",
+      "canonicalRepository": "incubator-seata",
+      "captureDirectory": "apache__incubator-seata__7482",
+      "originalCaptureOrder": 478,
+      "pullNumber": 7482,
+      "supplementOrder": 44
+    },
+    {
+      "anchorId": "apache/lucene#14932",
+      "canonicalAnchorId": "apache/lucene#14932",
+      "canonicalOwner": "apache",
+      "canonicalRepository": "lucene",
+      "captureDirectory": "apache__lucene__14932",
+      "originalCaptureOrder": 489,
+      "pullNumber": 14932,
+      "supplementOrder": 45
+    },
+    {
+      "anchorId": "opentripplanner/OpenTripPlanner#6770",
+      "canonicalAnchorId": "opentripplanner/opentripplanner#6770",
+      "canonicalOwner": "opentripplanner",
+      "canonicalRepository": "opentripplanner",
+      "captureDirectory": "opentripplanner__OpenTripPlanner__6770",
+      "originalCaptureOrder": 490,
+      "pullNumber": 6770,
+      "supplementOrder": 46
+    },
+    {
+      "anchorId": "openrewrite/rewrite#7286",
+      "canonicalAnchorId": "openrewrite/rewrite#7286",
+      "canonicalOwner": "openrewrite",
+      "canonicalRepository": "rewrite",
+      "captureDirectory": "openrewrite__rewrite__7286",
+      "originalCaptureOrder": 517,
+      "pullNumber": 7286,
+      "supplementOrder": 47
+    },
+    {
+      "anchorId": "mui/base-ui#2269",
+      "canonicalAnchorId": "mui/base-ui#2269",
+      "canonicalOwner": "mui",
+      "canonicalRepository": "base-ui",
+      "captureDirectory": "mui__base-ui__2269",
+      "originalCaptureOrder": 554,
+      "pullNumber": 2269,
+      "supplementOrder": 48
+    },
+    {
+      "anchorId": "TanStack/router#4978",
+      "canonicalAnchorId": "tanstack/router#4978",
+      "canonicalOwner": "tanstack",
+      "canonicalRepository": "router",
+      "captureDirectory": "TanStack__router__4978",
+      "originalCaptureOrder": 578,
+      "pullNumber": 4978,
+      "supplementOrder": 49
+    },
+    {
+      "anchorId": "formbricks/formbricks#6413",
+      "canonicalAnchorId": "formbricks/formbricks#6413",
+      "canonicalOwner": "formbricks",
+      "canonicalRepository": "formbricks",
+      "captureDirectory": "formbricks__formbricks__6413",
+      "originalCaptureOrder": 579,
+      "pullNumber": 6413,
+      "supplementOrder": 50
+    },
+    {
+      "anchorId": "RocketChat/Rocket.Chat.ReactNative#6382",
+      "canonicalAnchorId": "rocketchat/rocket.chat.reactnative#6382",
+      "canonicalOwner": "rocketchat",
+      "canonicalRepository": "rocket.chat.reactnative",
+      "captureDirectory": "RocketChat__Rocket.Chat.ReactNative__6382",
+      "originalCaptureOrder": 586,
+      "pullNumber": 6382,
+      "supplementOrder": 51
+    },
+    {
+      "anchorId": "formbricks/formbricks#6361",
+      "canonicalAnchorId": "formbricks/formbricks#6361",
+      "canonicalOwner": "formbricks",
+      "canonicalRepository": "formbricks",
+      "captureDirectory": "formbricks__formbricks__6361",
+      "originalCaptureOrder": 602,
+      "pullNumber": 6361,
+      "supplementOrder": 52
+    },
+    {
+      "anchorId": "formbricks/formbricks#6270",
+      "canonicalAnchorId": "formbricks/formbricks#6270",
+      "canonicalOwner": "formbricks",
+      "canonicalRepository": "formbricks",
+      "captureDirectory": "formbricks__formbricks__6270",
+      "originalCaptureOrder": 608,
+      "pullNumber": 6270,
+      "supplementOrder": 53
+    },
+    {
+      "anchorId": "highcharts/highcharts#23356",
+      "canonicalAnchorId": "highcharts/highcharts#23356",
+      "canonicalOwner": "highcharts",
+      "canonicalRepository": "highcharts",
+      "captureDirectory": "highcharts__highcharts__23356",
+      "originalCaptureOrder": 623,
+      "pullNumber": 23356,
+      "supplementOrder": 54
+    },
+    {
+      "anchorId": "Azure/azure-mcp#647",
+      "canonicalAnchorId": "azure/azure-mcp#647",
+      "canonicalOwner": "azure",
+      "canonicalRepository": "azure-mcp",
+      "captureDirectory": "Azure__azure-mcp__647",
+      "originalCaptureOrder": 657,
+      "pullNumber": 647,
+      "supplementOrder": 55
+    },
+    {
+      "anchorId": "Azure/azure-mcp#870",
+      "canonicalAnchorId": "azure/azure-mcp#870",
+      "canonicalOwner": "azure",
+      "canonicalRepository": "azure-mcp",
+      "captureDirectory": "Azure__azure-mcp__870",
+      "originalCaptureOrder": 659,
+      "pullNumber": 870,
+      "supplementOrder": 56
+    },
+    {
+      "anchorId": "Azure/azure-mcp#533",
+      "canonicalAnchorId": "azure/azure-mcp#533",
+      "canonicalOwner": "azure",
+      "canonicalRepository": "azure-mcp",
+      "captureDirectory": "Azure__azure-mcp__533",
+      "originalCaptureOrder": 660,
+      "pullNumber": 533,
+      "supplementOrder": 57
+    },
+    {
+      "anchorId": "Azure/azure-mcp#594",
+      "canonicalAnchorId": "azure/azure-mcp#594",
+      "canonicalOwner": "azure",
+      "canonicalRepository": "azure-mcp",
+      "captureDirectory": "Azure__azure-mcp__594",
+      "originalCaptureOrder": 664,
+      "pullNumber": 594,
+      "supplementOrder": 58
+    },
+    {
+      "anchorId": "Azure/azure-mcp#609",
+      "canonicalAnchorId": "azure/azure-mcp#609",
+      "canonicalOwner": "azure",
+      "canonicalRepository": "azure-mcp",
+      "captureDirectory": "Azure__azure-mcp__609",
+      "originalCaptureOrder": 667,
+      "pullNumber": 609,
+      "supplementOrder": 59
+    },
+    {
+      "anchorId": "dotnet/runtime#118239",
+      "canonicalAnchorId": "dotnet/runtime#118239",
+      "canonicalOwner": "dotnet",
+      "canonicalRepository": "runtime",
+      "captureDirectory": "dotnet__runtime__118239",
+      "originalCaptureOrder": 668,
+      "pullNumber": 118239,
+      "supplementOrder": 60
+    },
+    {
+      "anchorId": "dotnet/runtime#117313",
+      "canonicalAnchorId": "dotnet/runtime#117313",
+      "canonicalOwner": "dotnet",
+      "canonicalRepository": "runtime",
+      "captureDirectory": "dotnet__runtime__117313",
+      "originalCaptureOrder": 672,
+      "pullNumber": 117313,
+      "supplementOrder": 61
+    },
+    {
+      "anchorId": "dotnet/runtime#126719",
+      "canonicalAnchorId": "dotnet/runtime#126719",
+      "canonicalOwner": "dotnet",
+      "canonicalRepository": "runtime",
+      "captureDirectory": "dotnet__runtime__126719",
+      "originalCaptureOrder": 698,
+      "pullNumber": 126719,
+      "supplementOrder": 62
+    },
+    {
+      "anchorId": "openai/openai-dotnet#1060",
+      "canonicalAnchorId": "openai/openai-dotnet#1060",
+      "canonicalOwner": "openai",
+      "canonicalRepository": "openai-dotnet",
+      "captureDirectory": "openai__openai-dotnet__1060",
+      "originalCaptureOrder": 701,
+      "pullNumber": 1060,
+      "supplementOrder": 63
+    },
+    {
+      "anchorId": "Azure/azure-sdk-for-net#58482",
+      "canonicalAnchorId": "azure/azure-sdk-for-net#58482",
+      "canonicalOwner": "azure",
+      "canonicalRepository": "azure-sdk-for-net",
+      "captureDirectory": "Azure__azure-sdk-for-net__58482",
+      "originalCaptureOrder": 739,
+      "pullNumber": 58482,
+      "supplementOrder": 64
+    }
+  ]
+}

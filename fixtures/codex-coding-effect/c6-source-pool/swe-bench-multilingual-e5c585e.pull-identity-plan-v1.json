@@ -1,0 +1,299 @@
+{
+  "artifactKind": "c6-rest-identity-supplement-plan",
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "candidateManifestFrozen": false,
+    "captureExecuted": false,
+    "codexRunReady": false,
+    "status": "multilingual-pull-identity-capture-plan-only"
+  },
+  "counts": {
+    "originalTargetCount": 300,
+    "supplementRepositoryCount": 17,
+    "supplementTargetCount": 26
+  },
+  "independenceBoundary": {
+    "candidateOrderChanged": false,
+    "machineOutcomeInput": false,
+    "originalTargetProjectionSha256": "335e9ef3adae03bfbd0cbed01069840ebefa46ac81e9e356623b1ca42b76d145",
+    "retryTargetingDependsOnMissingClosure": false,
+    "semanticLedgerInput": false,
+    "supplementTargetProjectionSha256": "acb23d1edae43902595883c996fea1a70329680368fe30473b1b7bfe7323b68c"
+  },
+  "inputs": {
+    "expansion": {
+      "bytes": 253899,
+      "path": "swe-bench-multilingual-e5c585e.review-trajectory-expansion-v1.json",
+      "sha256": "50197487c467753d874756b9946452c88aebddb6da8356e6081b6b0485482736"
+    }
+  },
+  "rule": {
+    "endpoint": "GET /repos/{owner}/{repo}/pulls/{pull_number}",
+    "order": "original-captureOrder-ascending",
+    "purpose": "pull-author-and-canonical-identity-only-no-comment-enumeration",
+    "selection": "all-broad-structural-pretargets-including-prior-frame-overlaps"
+  },
+  "schemaVersion": 1,
+  "targets": [
+    {
+      "anchorId": "apache/druid#14092",
+      "canonicalAnchorId": "apache/druid#14092",
+      "canonicalOwner": "apache",
+      "canonicalRepository": "druid",
+      "captureDirectory": "apache__druid__14092",
+      "originalCaptureOrder": 2,
+      "pullNumber": 14092,
+      "supplementOrder": 1
+    },
+    {
+      "anchorId": "apache/druid#15402",
+      "canonicalAnchorId": "apache/druid#15402",
+      "canonicalOwner": "apache",
+      "canonicalRepository": "druid",
+      "captureDirectory": "apache__druid__15402",
+      "originalCaptureOrder": 4,
+      "pullNumber": 15402,
+      "supplementOrder": 2
+    },
+    {
+      "anchorId": "babel/babel#15649",
+      "canonicalAnchorId": "babel/babel#15649",
+      "canonicalOwner": "babel",
+      "canonicalRepository": "babel",
+      "captureDirectory": "babel__babel__15649",
+      "originalCaptureOrder": 31,
+      "pullNumber": 15649,
+      "supplementOrder": 3
+    },
+    {
+      "anchorId": "facebook/docusaurus#10309",
+      "canonicalAnchorId": "facebook/docusaurus#10309",
+      "canonicalOwner": "facebook",
+      "canonicalRepository": "docusaurus",
+      "captureDirectory": "facebook__docusaurus__10309",
+      "originalCaptureOrder": 60,
+      "pullNumber": 10309,
+      "supplementOrder": 4
+    },
+    {
+      "anchorId": "facebook/docusaurus#9183",
+      "canonicalAnchorId": "facebook/docusaurus#9183",
+      "canonicalOwner": "facebook",
+      "canonicalRepository": "docusaurus",
+      "captureDirectory": "facebook__docusaurus__9183",
+      "originalCaptureOrder": 62,
+      "pullNumber": 9183,
+      "supplementOrder": 5
+    },
+    {
+      "anchorId": "fmtlib/fmt#2310",
+      "canonicalAnchorId": "fmtlib/fmt#2310",
+      "canonicalOwner": "fmtlib",
+      "canonicalRepository": "fmt",
+      "captureDirectory": "fmtlib__fmt__2310",
+      "originalCaptureOrder": 86,
+      "pullNumber": 2310,
+      "supplementOrder": 6
+    },
+    {
+      "anchorId": "fmtlib/fmt#3863",
+      "canonicalAnchorId": "fmtlib/fmt#3863",
+      "canonicalOwner": "fmtlib",
+      "canonicalRepository": "fmt",
+      "captureDirectory": "fmtlib__fmt__3863",
+      "originalCaptureOrder": 94,
+      "pullNumber": 3863,
+      "supplementOrder": 7
+    },
+    {
+      "anchorId": "gin-gonic/gin#1957",
+      "canonicalAnchorId": "gin-gonic/gin#1957",
+      "canonicalOwner": "gin-gonic",
+      "canonicalRepository": "gin",
+      "captureDirectory": "gin-gonic__gin__1957",
+      "originalCaptureOrder": 97,
+      "pullNumber": 1957,
+      "supplementOrder": 8
+    },
+    {
+      "anchorId": "google/gson#2024",
+      "canonicalAnchorId": "google/gson#2024",
+      "canonicalOwner": "google",
+      "canonicalRepository": "gson",
+      "captureDirectory": "google__gson__2024",
+      "originalCaptureOrder": 114,
+      "pullNumber": 2024,
+      "supplementOrder": 9
+    },
+    {
+      "anchorId": "google/gson#2158",
+      "canonicalAnchorId": "google/gson#2158",
+      "canonicalOwner": "google",
+      "canonicalRepository": "gson",
+      "captureDirectory": "google__gson__2158",
+      "originalCaptureOrder": 117,
+      "pullNumber": 2158,
+      "supplementOrder": 10
+    },
+    {
+      "anchorId": "google/gson#2479",
+      "canonicalAnchorId": "google/gson#2479",
+      "canonicalOwner": "google",
+      "canonicalRepository": "gson",
+      "captureDirectory": "google__gson__2479",
+      "originalCaptureOrder": 119,
+      "pullNumber": 2479,
+      "supplementOrder": 11
+    },
+    {
+      "anchorId": "hashicorp/terraform#35543",
+      "canonicalAnchorId": "hashicorp/terraform#35543",
+      "canonicalOwner": "hashicorp",
+      "canonicalRepository": "terraform",
+      "captureDirectory": "hashicorp__terraform__35543",
+      "originalCaptureOrder": 123,
+      "pullNumber": 35543,
+      "supplementOrder": 12
+    },
+    {
+      "anchorId": "jekyll/jekyll#8771",
+      "canonicalAnchorId": "jekyll/jekyll#8771",
+      "canonicalOwner": "jekyll",
+      "canonicalRepository": "jekyll",
+      "captureDirectory": "jekyll__jekyll__8771",
+      "originalCaptureOrder": 132,
+      "pullNumber": 8771,
+      "supplementOrder": 13
+    },
+    {
+      "anchorId": "laravel/framework#53696",
+      "canonicalAnchorId": "laravel/framework#53696",
+      "canonicalOwner": "laravel",
+      "canonicalRepository": "framework",
+      "captureDirectory": "laravel__framework__53696",
+      "originalCaptureOrder": 155,
+      "pullNumber": 53696,
+      "supplementOrder": 14
+    },
+    {
+      "anchorId": "preactjs/preact#3562",
+      "canonicalAnchorId": "preactjs/preact#3562",
+      "canonicalOwner": "preactjs",
+      "canonicalRepository": "preact",
+      "captureDirectory": "preactjs__preact__3562",
+      "originalCaptureOrder": 199,
+      "pullNumber": 3562,
+      "supplementOrder": 15
+    },
+    {
+      "anchorId": "preactjs/preact#4182",
+      "canonicalAnchorId": "preactjs/preact#4182",
+      "canonicalOwner": "preactjs",
+      "canonicalRepository": "preact",
+      "captureDirectory": "preactjs__preact__4182",
+      "originalCaptureOrder": 205,
+      "pullNumber": 4182,
+      "supplementOrder": 16
+    },
+    {
+      "anchorId": "prometheus/prometheus#9248",
+      "canonicalAnchorId": "prometheus/prometheus#9248",
+      "canonicalOwner": "prometheus",
+      "canonicalRepository": "prometheus",
+      "captureDirectory": "prometheus__prometheus__9248",
+      "originalCaptureOrder": 233,
+      "pullNumber": 9248,
+      "supplementOrder": 17
+    },
+    {
+      "anchorId": "redis/redis#11734",
+      "canonicalAnchorId": "redis/redis#11734",
+      "canonicalOwner": "redis",
+      "canonicalRepository": "redis",
+      "captureDirectory": "redis__redis__11734",
+      "originalCaptureOrder": 241,
+      "pullNumber": 11734,
+      "supplementOrder": 18
+    },
+    {
+      "anchorId": "redis/redis#13115",
+      "canonicalAnchorId": "redis/redis#13115",
+      "canonicalOwner": "redis",
+      "canonicalRepository": "redis",
+      "captureDirectory": "redis__redis__13115",
+      "originalCaptureOrder": 244,
+      "pullNumber": 13115,
+      "supplementOrder": 19
+    },
+    {
+      "anchorId": "sharkdp/bat#1892",
+      "canonicalAnchorId": "sharkdp/bat#1892",
+      "canonicalOwner": "sharkdp",
+      "canonicalRepository": "bat",
+      "captureDirectory": "sharkdp__bat__1892",
+      "originalCaptureOrder": 263,
+      "pullNumber": 1892,
+      "supplementOrder": 20
+    },
+    {
+      "anchorId": "tokio-rs/axum#1119",
+      "canonicalAnchorId": "tokio-rs/axum#1119",
+      "canonicalOwner": "tokio-rs",
+      "canonicalRepository": "axum",
+      "captureDirectory": "tokio-rs__axum__1119",
+      "originalCaptureOrder": 271,
+      "pullNumber": 1119,
+      "supplementOrder": 21
+    },
+    {
+      "anchorId": "tokio-rs/axum#682",
+      "canonicalAnchorId": "tokio-rs/axum#682",
+      "canonicalOwner": "tokio-rs",
+      "canonicalRepository": "axum",
+      "captureDirectory": "tokio-rs__axum__682",
+      "originalCaptureOrder": 275,
+      "pullNumber": 682,
+      "supplementOrder": 22
+    },
+    {
+      "anchorId": "tokio-rs/tokio#6551",
+      "canonicalAnchorId": "tokio-rs/tokio#6551",
+      "canonicalOwner": "tokio-rs",
+      "canonicalRepository": "tokio",
+      "captureDirectory": "tokio-rs__tokio__6551",
+      "originalCaptureOrder": 281,
+      "pullNumber": 6551,
+      "supplementOrder": 23
+    },
+    {
+      "anchorId": "valkey-io/valkey#1842",
+      "canonicalAnchorId": "valkey-io/valkey#1842",
+      "canonicalOwner": "valkey-io",
+      "canonicalRepository": "valkey",
+      "captureDirectory": "valkey-io__valkey__1842",
+      "originalCaptureOrder": 293,
+      "pullNumber": 1842,
+      "supplementOrder": 24
+    },
+    {
+      "anchorId": "valkey-io/valkey#790",
+      "canonicalAnchorId": "valkey-io/valkey#790",
+      "canonicalOwner": "valkey-io",
+      "canonicalRepository": "valkey",
+      "captureDirectory": "valkey-io__valkey__790",
+      "originalCaptureOrder": 294,
+      "pullNumber": 790,
+      "supplementOrder": 25
+    },
+    {
+      "anchorId": "vuejs/core#11899",
+      "canonicalAnchorId": "vuejs/core#11899",
+      "canonicalOwner": "vuejs",
+      "canonicalRepository": "core",
+      "captureDirectory": "vuejs__core__11899",
+      "originalCaptureOrder": 299,
+      "pullNumber": 11899,
+      "supplementOrder": 26
+    }
+  ]
+}

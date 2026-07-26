@@ -236,6 +236,69 @@ describe("Codex coding-effect dataset", () => {
     })).toThrow("goldPatchPath");
   });
 
+  it("parses schema v3 with one sealed history binding per stage", () => {
+    const dataset = validDatasetV3();
+    const parsed = parseCodexCodingEffectDataset(dataset);
+
+    expect(parsed.schemaVersion).toBe(3);
+    expect(parsed.episodes[0]).toMatchObject({
+      historyPolicy: "stage-scoped-sealed-prefix-v1",
+      stages: [
+        {
+          history: {
+            path: "prehistory/episode-001-stage-1.jsonl",
+            source: "frozen-artifact",
+          },
+        },
+        {
+          history: {
+            path: "prehistory/episode-001-stage-2.jsonl",
+            source: "frozen-artifact",
+          },
+        },
+      ],
+    });
+    expect(parsed.episodes[0]).not.toHaveProperty("prehistory");
+
+    const episode = dataset.episodes[0];
+    expect(() => parseCodexCodingEffectDataset({
+      ...dataset,
+      episodes: [{
+        ...episode,
+        prehistory: episode.stages[0].history,
+      }],
+    })).toThrow("prehistory");
+    expect(() => parseCodexCodingEffectDataset({
+      ...dataset,
+      episodes: [{
+        ...episode,
+        stages: [{
+          ...episode.stages[0],
+          history: {
+            ...episode.stages[0].history,
+            path: "../future-history.jsonl",
+          },
+        }, episode.stages[1]],
+      }],
+    })).toThrow("history.path");
+  });
+
+  it("requires task-origin evidence for claim-eligible external benchmarks", () => {
+    const dataset = validDatasetV3();
+    const episode = dataset.episodes[0];
+
+    expect(() => parseCodexCodingEffectDataset({
+      ...dataset,
+      episodes: [{
+        ...episode,
+        claimEligibility: "claim-eligible",
+        sourceType: "external-benchmark",
+      }],
+    })).toThrow(
+      "C6 external-benchmark episode episode-001 requires task-origin evidence",
+    );
+  });
+
   it("rejects unknown, duplicate, or undeclared memory strata", () => {
     const dataset = validDataset();
     expect(() => parseCodexCodingEffectDataset({
@@ -318,5 +381,28 @@ function validDatasetV2() {
       }),
     }],
     schemaVersion: 2 as const,
+  };
+}
+
+function validDatasetV3() {
+  const legacy = validDatasetV2();
+  const episode = legacy.episodes[0];
+  const { prehistory: _prehistory, ...episodeWithoutPrehistory } = episode;
+  return {
+    ...legacy,
+    episodes: [{
+      ...episodeWithoutPrehistory,
+      historyPolicy: "stage-scoped-sealed-prefix-v1" as const,
+      stages: episode.stages.map((stage, index) => ({
+        ...stage,
+        history: {
+          forbiddenLeakageSha256: [SHA256],
+          path: `prehistory/episode-001-stage-${index + 1}.jsonl`,
+          sha256: String(index + 1).repeat(64),
+          source: "frozen-artifact" as const,
+        },
+      })),
+    }],
+    schemaVersion: 3 as const,
   };
 }

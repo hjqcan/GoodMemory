@@ -1,0 +1,8 @@
+{
+  "name": "goodmemory-c6-codex-runtime",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "@openai/codex": "0.145.0"
+  }
+}

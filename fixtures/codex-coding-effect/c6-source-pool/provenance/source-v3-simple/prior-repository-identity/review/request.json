@@ -1,0 +1,31 @@
+{
+  "accessBoundary": {
+    "censusOutcomeAccess": false,
+    "downstreamOutcomeAccess": false,
+    "rawGoldAccess": false
+  },
+  "artifactKind": "c6-source-v3-simple-prior-identity-replay-review-request",
+  "input": {
+    "byteLength": 2239,
+    "path": "provenance/source-v3-simple/prior-repository-identity/review/input.json",
+    "sha256": "1ee5412f02ba28456449229d4af38dfd8485483d78df337265bc36ea2196acfc"
+  },
+  "requiredChecks": [
+    "canonical-replay-receipt-and-sha256",
+    "capture-a-full-local-bundle-and-inner-outer-asset-lock-replay",
+    "capture-b-full-local-bundle-and-inner-outer-asset-lock-replay",
+    "356-final-request-ids-each-unique-and-cross-capture-intersection-zero",
+    "178-repository-identities-and-node-id-dedup-agree",
+    "all-authority-and-readiness-flags-remain-false",
+    "no-live-network-external-authenticity-or-independent-process-claim",
+    "no-formal-census-freeze-or-codex-ready-claim"
+  ],
+  "reviewExecutionBoundary": {
+    "packetValidatorReplaysLocalBundles": false,
+    "reviewerMustReplayBothLocalBundles": true,
+    "reviewerMustVerifyInnerAndOuterAssetLocks": true
+  },
+  "schemaVersion": 1,
+  "scope": "local-observation-replay-review-only-no-provenance-or-promotion-authority",
+  "task": "independent-c6-source-v3-simple-prior-identity-replay-review-v1"
+}

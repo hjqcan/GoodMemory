@@ -1,0 +1,154 @@
+{
+  "schemaVersion": "goodmemory.c6.fd546-evaluator-canary.v1",
+  "identity": {
+    "repository": "sharkdp/fd",
+    "pullRequest": 546,
+    "instanceId": "sharkdp__fd-546",
+    "harness": {
+      "repositoryUrl": "https://github.com/multi-swe-bench/multi-swe-bench",
+      "commitSha": "24f493f8a103e72312ded4f6b9c89f081d69cb09",
+      "treeSha": "741ce10a4ec220fec713112502850b381a6226b9",
+      "repositoryHarnessPath": "multi_swe_bench/harness/repos/rust/sharkdp/fd.py",
+      "repositoryHarnessSha256": "5b19bf090313ab14e6dad8234a10da0780e00004d75755b22564d6706eb123ee",
+      "imagesVerifiedSha256": "4fb39524cbeaadb103ed459c234c47f1ea3d85d5361bd958293a7357fa9c1d69",
+      "datasetRowBytes": 44670,
+      "datasetRowSha256": "0b52d0177e4133b7b71e210cd404b26224905bcb6c3813b57b12615cb63658f4"
+    },
+    "image": {
+      "reference": "mswebench/sharkdp_m_fd@sha256:aadc030db762ec18d3dd50b77d02ff3b317e1feff9c29ef222f7aced9354677c",
+      "digest": "sha256:aadc030db762ec18d3dd50b77d02ff3b317e1feff9c29ef222f7aced9354677c",
+      "operatingSystem": "linux",
+      "architecture": "amd64",
+      "embeddedAssets": {
+        "fix.patch": "8b40790051649e06d24692b51aa59cea9269aae4dab10494c229e36786e812bf",
+        "test.patch": "94603293a25737d785ee4dde82953f40a71e6318daafadc103aa8e18c7954004",
+        "run.sh": "8b5a80f583eb7b5d7ab529ef7ff4485cd04a52ec65d9dcb5510f04614152b239",
+        "test-run.sh": "2e6f75ef8178a0efa25d09d02a3f0879c06f2407cd7a91f4784ca54d2e3c0d08",
+        "fix-run.sh": "f700c7b9c56ca090914584282f18f36ce4c3058b3a3bb903d6f843f1aed35222"
+      }
+    }
+  },
+  "source": {
+    "base": {
+      "commitSha": "d05e7171d4e2f8feb7d5402026b02aa67a9f9b91",
+      "treeSha": "7e448a88cb9f87dfbf962fa856e7fe7848040dd2"
+    },
+    "initial": {
+      "commitSha": "04bb426960d69e82342741d336de0596400322a9",
+      "treeSha": "065785700e82d0040a1b6f3d24b25910f1714029",
+      "patchPath": "source-initial.patch",
+      "patchSha256": "d997516d96139ca4802733d7cc7fa5be1b7c15c8ad7e9e2d6919528d78e723a1"
+    },
+    "firstFix": {
+      "commitSha": "58cf3aa80dc2e32c757099a50f452d717a33c6e9",
+      "treeSha": "e7a5e1fa1eaa3e75b5ab4a178c086ed28a2c1628",
+      "patchPath": "source-first-fix.patch",
+      "patchSha256": "0491d1613765394b34a79fa791d3da1cc5480c126cc612144c60681b31d316da"
+    },
+    "finalFix": {
+      "commitSha": "8ce10d229ed225f021cad16bfa425bc7e5f5e36e",
+      "treeSha": "e21787b46482750a47ad38a206a9297af2e34d94",
+      "patchPath": "source-final.patch",
+      "patchSha256": "8b40790051649e06d24692b51aa59cea9269aae4dab10494c229e36786e812bf"
+    },
+    "testPatchPath": "test.patch",
+    "testPatchSha256": "94603293a25737d785ee4dde82953f40a71e6318daafadc103aa8e18c7954004",
+    "patchDerivation": "git-diff-binary-abbrev-9-base-to-commit-excluding-tests"
+  },
+  "dockerProfile": {
+    "pull": "never",
+    "platform": "linux/amd64",
+    "network": "none",
+    "capDrop": "ALL",
+    "noNewPrivileges": true,
+    "daemonIdentityCryptographicallyAttested": false,
+    "daemonTrustBoundary": "local-docker-daemon-not-cryptographically-attested"
+  },
+  "trials": [
+    {
+      "id": "base",
+      "sourcePatchPath": null,
+      "testPatchApplied": false,
+      "exitCode": 0,
+      "mainSuite": {
+        "passed": 167,
+        "failed": 0
+      },
+      "failedTests": []
+    },
+    {
+      "id": "test-only",
+      "sourcePatchPath": null,
+      "testPatchApplied": true,
+      "exitCode": 101,
+      "mainSuite": {
+        "passed": 167,
+        "failed": 1
+      },
+      "failedTests": [
+        "test_prune"
+      ]
+    },
+    {
+      "id": "gold-and-test",
+      "sourcePatchPath": "source-final.patch",
+      "testPatchApplied": true,
+      "exitCode": 0,
+      "mainSuite": {
+        "passed": 168,
+        "failed": 0
+      },
+      "failedTests": []
+    },
+    {
+      "id": "initial-and-test",
+      "sourcePatchPath": "source-initial.patch",
+      "testPatchApplied": true,
+      "exitCode": 101,
+      "mainSuite": {
+        "passed": 167,
+        "failed": 1
+      },
+      "failedTests": [
+        "test_prune"
+      ]
+    },
+    {
+      "id": "first-fix-and-test",
+      "sourcePatchPath": "source-first-fix.patch",
+      "testPatchApplied": true,
+      "exitCode": 0,
+      "mainSuite": {
+        "passed": 168,
+        "failed": 0
+      },
+      "failedTests": []
+    },
+    {
+      "id": "final-fix-and-test",
+      "sourcePatchPath": "source-final.patch",
+      "testPatchApplied": true,
+      "exitCode": 0,
+      "mainSuite": {
+        "passed": 168,
+        "failed": 0
+      },
+      "failedTests": []
+    }
+  ],
+  "recording": {
+    "recordedExecutorAuthority": "local-system-docker",
+    "recordedLiveDockerReplayObserved": true,
+    "projectionProvesLiveDockerReplay": false,
+    "rawExecutionWitnessRetained": false,
+    "executionAuthenticated": false,
+    "persistedValidation": "frozen-assets-and-receipt-structure-only"
+  },
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "executionAuthenticated": false,
+    "stageSpecificEvaluatorRequired": true
+  }
+}

@@ -25,6 +25,58 @@ const SHA256 = (value: string): string =>
   createHash("sha256").update(value).digest("hex");
 
 describe("Codex coding-effect C3 frozen prehistory", () => {
+  it("requires explicit opt-in for exact zero-byte history", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c3-empty-history-"));
+    const path = join(root, "empty.jsonl");
+    try {
+      await writeFile(path, "", "utf8");
+      await expect(loadFrozenPrehistory({
+        expectedSha256: SHA256(""),
+        path,
+      })).rejects.toThrow(
+        "frozen prehistory must contain at least one record",
+      );
+
+      const artifact = await loadFrozenPrehistory({
+        allowEmpty: true,
+        expectedSha256: SHA256(""),
+        path,
+      });
+
+      expect(artifact.sourceBytes).toBe("");
+      expect(artifact.sourceSha256).toBe(SHA256(""));
+      expect(artifact.records).toEqual([]);
+      expect(Object.isFrozen(artifact.records)).toBe(true);
+
+      for (const nonCanonicalEmpty of ["\n", " \t"]) {
+        await writeFile(path, nonCanonicalEmpty, "utf8");
+        await expect(loadFrozenPrehistory({
+          allowEmpty: true,
+          expectedSha256: SHA256(nonCanonicalEmpty),
+          path,
+        })).rejects.toThrow(
+          "canonical empty frozen prehistory must be exactly zero bytes",
+        );
+      }
+
+      await writeFile(path, "", "utf8");
+      await expect(sealFrozenPrehistory({
+        artifact,
+        sealedPath: join(root, "sealed-default.jsonl"),
+      })).rejects.toThrow(
+        "frozen prehistory must contain at least one record",
+      );
+      const sealed = await sealFrozenPrehistory({
+        allowEmpty: true,
+        artifact,
+        sealedPath: join(root, "sealed-opt-in.jsonl"),
+      });
+      expect(sealed.records).toEqual([]);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("loads strict JSONL, binds the source bytes, and freezes parsed records", async () => {
     await withPrehistory(async ({ path, raw }) => {
       const artifact = await loadFrozenPrehistory({

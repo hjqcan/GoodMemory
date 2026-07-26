@@ -1,0 +1,846 @@
+{
+  "artifactKind": "c6-reviewer-actor-identity-plan",
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "actorCaptureExecuted": false,
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "status": "reviewer-actor-identity-capture-required"
+  },
+  "counts": {
+    "sourceReviewReferenceCount": 1887,
+    "sourceTargetCount": 64,
+    "uniqueActorCount": 155
+  },
+  "independenceBoundary": {
+    "goldInput": false,
+    "machineOutcomeInput": false,
+    "semanticLedgerInput": false,
+    "selectedSequenceInput": false,
+    "targetProjectionSha256": "1e50f6b79834407f49a9b921740752c733b62d9759c6deaec2badd4a4ad27585"
+  },
+  "inputs": {
+    "graphqlRootSha256": "8b8ad4ac1b3b1f92b0d352cb808eef0953ac07cd1bf74eb9f61d592f4e481dcc",
+    "qualification": {
+      "bytes": 187922,
+      "path": "swe-bench-live-multilang-608f7ae9.source-expansion-qualification-v1.json",
+      "sha256": "ccf5a3bdd93955b90e416c4a861000adba7526103e21c1cd5898600743305760"
+    }
+  },
+  "policy": {
+    "definition": {
+      "actorEligibility": {
+        "automationLoginRule": {
+          "containsCaseInsensitive": [
+            "coderabbit",
+            "copilot",
+            "cursor"
+          ],
+          "exactCaseInsensitive": [
+            "github-actions",
+            "github-advanced-security"
+          ],
+          "suffixCaseInsensitive": "[bot]"
+        },
+        "platformType": "User",
+        "unresolvedStatus": 404
+      },
+      "boundary": {
+        "automationExclusionComplete": false,
+        "eventTimeActorTypeProven": false,
+        "humanReviewerIdentityProven": false,
+        "platformActorTypeCaptured": true
+      },
+      "inputClosure": "all-broad-target-review-authors-before-actor-filtering",
+      "policyId": "reviewer-platform-actor-eligibility-v1",
+      "responseIdentity": "case-insensitive-login-exact-match",
+      "schemaVersion": 1
+    },
+    "policyId": "reviewer-platform-actor-eligibility-v1",
+    "schemaVersion": 1,
+    "sha256": "ca0014e5e6d47dc63f490b49bff6835b9d5ed99e69b3eb8d8ddf4266edc8643f"
+  },
+  "rule": {
+    "actorSurface": "all-non-null-whole-review-and-review-thread-comment-authors",
+    "captureOrder": "normalized-login-code-unit-ascending",
+    "normalization": "case-insensitive-login"
+  },
+  "schemaVersion": 1,
+  "targets": [
+    {
+      "captureDirectory": "actor-2a00b63c9cf236ff1dee7db1258728fbba4eec89f006f56166eadb373228a88b",
+      "captureOrder": 1,
+      "login": "0prashantyadav0"
+    },
+    {
+      "captureDirectory": "actor-a97f30cbd732efcb2a21dc4b290a4f4602a8d75c8fa9ae253fe6939b22f3e586",
+      "captureOrder": 2,
+      "login": "a-h"
+    },
+    {
+      "captureDirectory": "actor-fe50f96f90d70ad544377f2b55054ce73540b5024ee88eb9f876de74cd3c9099",
+      "captureOrder": 3,
+      "login": "a74nh"
+    },
+    {
+      "captureDirectory": "actor-3a345fff42c1e29decda7dbe52b279b9f9ec93712bb71e865fd146f5368bc5eb",
+      "captureOrder": 4,
+      "login": "aayush0325"
+    },
+    {
+      "captureDirectory": "actor-45d1e8547015fe585da8c8d7d8b47282c517160bea05c6336eec28a763324569",
+      "captureOrder": 5,
+      "login": "adriantam"
+    },
+    {
+      "captureDirectory": "actor-192aee55ce8a66e164502ddafe1a9fdf803b2a6180b88ce6733fde3f03d353ff",
+      "captureOrder": 6,
+      "login": "adrien-tab"
+    },
+    {
+      "captureDirectory": "actor-e5b7a57ba3e35d645a30f3d4a1f4df09c8db734c54f90582f7153381fb0ae77f",
+      "captureOrder": 7,
+      "login": "akats7"
+    },
+    {
+      "captureDirectory": "actor-40913cc56d1cf5c4ba8eb1638e87caaffd8c0879a9ccf3ff748164eb0d343eaf",
+      "captureOrder": 8,
+      "login": "akshays-19"
+    },
+    {
+      "captureDirectory": "actor-c6e00dfe096ae77fa23167a4a5c7f3ffbbd35a0700fb12786503c96d7706d9b9",
+      "captureOrder": 9,
+      "login": "alamb"
+    },
+    {
+      "captureDirectory": "actor-5f7bcf52723060a037cf4acfe4cf1a4d96c788de41d5240f07dfea3e7378fd3e",
+      "captureOrder": 10,
+      "login": "amanasifkhalid"
+    },
+    {
+      "captureDirectory": "actor-2e3c10a9d9ffed78b4294ab1b56be6e253a97ca75c4fc5bfc8eadd9cf44acd17",
+      "captureOrder": 11,
+      "login": "anandkaranubc"
+    },
+    {
+      "captureDirectory": "actor-e3d198fe22df2cce6d3c6caa80889ba140cc32147c792b3d580dc31ba5b9c415",
+      "captureOrder": 12,
+      "login": "anuchandy"
+    },
+    {
+      "captureDirectory": "actor-ba37369fb358e97acbb0d5a27bb0b7504d5f50fd3169f8dfe3f830e13a4f42a6",
+      "captureOrder": 13,
+      "login": "arcturuszhang"
+    },
+    {
+      "captureDirectory": "actor-514ad06b788cf3c021dfb157f3fcbd0dcf005276b1f40529cb9bea505704877e",
+      "captureOrder": 14,
+      "login": "arielg-nv"
+    },
+    {
+      "captureDirectory": "actor-78c7ebbfe745063e07e272ff890d5365018427a31435d9d2f6ee166c5cf6c169",
+      "captureOrder": 15,
+      "login": "asagege"
+    },
+    {
+      "captureDirectory": "actor-8a2029376e0332f8d9762cf504517e6ac3a099f3a7a4be4d8ac407277a22773f",
+      "captureOrder": 16,
+      "login": "atomiks"
+    },
+    {
+      "captureDirectory": "actor-87aa0bc1ef4151f6f83cc295de6d55be07b0728004b9adaaa2833fb166d4c5df",
+      "captureOrder": 17,
+      "login": "aylonsk"
+    },
+    {
+      "captureDirectory": "actor-8f591949bd687e57affa1b35c28938137540af917a109318db3d20e595cebdbf",
+      "captureOrder": 18,
+      "login": "benwtrent"
+    },
+    {
+      "captureDirectory": "actor-3a29573c228367a4313af4ae798dfdefbc392a48595550403cdea82221e6faf1",
+      "captureOrder": 19,
+      "login": "bnjbvr"
+    },
+    {
+      "captureDirectory": "actor-3bf001dc4b5dc2050eda0bd8ccb19bc76c1cc5ad5a22f8a7794da8e343cf85d0",
+      "captureOrder": 20,
+      "login": "britt6612"
+    },
+    {
+      "captureDirectory": "actor-50dfc7da297695c243bb69ffcf05deef98d893da30f6a03c29d1264d34c1fb03",
+      "captureOrder": 21,
+      "login": "bytehamster"
+    },
+    {
+      "captureDirectory": "actor-faf8976d84153d8141bd3f9965872a527ee559b2fe0fc59bca345c8af0fef377",
+      "captureOrder": 22,
+      "login": "cazorla19"
+    },
+    {
+      "captureDirectory": "actor-96d8afe987d55d594777eaba7ac14ff3c2588e9377e41dba25dff9a2b8559ea2",
+      "captureOrder": 23,
+      "login": "chenkovsky"
+    },
+    {
+      "captureDirectory": "actor-062560227e8fdc4cb1ae55588688b65451e17ba021a3ad5e0b5176e8e4b27f2a",
+      "captureOrder": 24,
+      "login": "christothes"
+    },
+    {
+      "captureDirectory": "actor-50ee4b54048cf2fd9ab9f1f7e10a10b9c74a5c2538890b1b7903f9f7d5cf9701",
+      "captureOrder": 25,
+      "login": "cjksplunk"
+    },
+    {
+      "captureDirectory": "actor-5ee48d23f9461f7a189d690a90d7df0256e777ba8469324a14021acade0c408c",
+      "captureOrder": 26,
+      "login": "coderabbitai"
+    },
+    {
+      "captureDirectory": "actor-08a117eef40165f565ecc17d6e29cbaca1bc2f2302ce9903039ea37d1f351ac8",
+      "captureOrder": 27,
+      "login": "conniey"
+    },
+    {
+      "captureDirectory": "actor-6d0325aebe25ebd8d69fe13fc8da6d05e8b7b3b769f73521b4b258aed1543ce2",
+      "captureOrder": 28,
+      "login": "copilot-pull-request-reviewer"
+    },
+    {
+      "captureDirectory": "actor-84731d305504e504f62a29066a2b77afa969255c6c189958ec2c008b11253d89",
+      "captureOrder": 29,
+      "login": "copilot-swe-agent"
+    },
+    {
+      "captureDirectory": "actor-072fac4d1c76e987b11cb9c71fb9b40d152b65bbdbb0145e3cc166ed37bcdae4",
+      "captureOrder": 30,
+      "login": "crepererum"
+    },
+    {
+      "captureDirectory": "actor-dbf1e5fea49414113ea2faf6b32ee7731104bb3fd29500f9b5e0ed590991767c",
+      "captureOrder": 31,
+      "login": "crobert-1"
+    },
+    {
+      "captureDirectory": "actor-fd4bee463f10a5a2b284e900b48edd01a321956fa1692503758cf2133ad4004d",
+      "captureOrder": 32,
+      "login": "crtrott"
+    },
+    {
+      "captureDirectory": "actor-16b7d6ce8611daf176ded2c77d9e9b59ca9fbe7be8abbe8ac3f76d4d0dfdf746",
+      "captureOrder": 33,
+      "login": "csyonghe"
+    },
+    {
+      "captureDirectory": "actor-46a4eebd20d881ecfc0ecb54f6d8346524fadb143726d256b1a045303fc67717",
+      "captureOrder": 34,
+      "login": "cursor"
+    },
+    {
+      "captureDirectory": "actor-30bb2349055d4adc40f67db3cb3fd51bebb0edf30729dc15417aa48a7136a63b",
+      "captureOrder": 35,
+      "login": "dalg24"
+    },
+    {
+      "captureDirectory": "actor-ef1bb513cbaeee6fcf1fea51502fb5bd55a2f26fd6083b205adeae972c2441c6",
+      "captureOrder": 36,
+      "login": "dashpole"
+    },
+    {
+      "captureDirectory": "actor-b7e4b233315f4fd5f47ef1171fd33165ca7e586385ed44ec046dbd22d4534cd2",
+      "captureOrder": 37,
+      "login": "ddragula"
+    },
+    {
+      "captureDirectory": "actor-a50287337211cec6d06a385bfdcd97e52bdadf6d7329842a3cd14e4ea6d39dc4",
+      "captureOrder": 38,
+      "login": "dgozman"
+    },
+    {
+      "captureDirectory": "actor-308a5d0f87ff09636349d1032e692dff2ea4e0e60ac5f27e90aa1a55259517b7",
+      "captureOrder": 39,
+      "login": "dhruwang"
+    },
+    {
+      "captureDirectory": "actor-59f931a86652ec4e8266a7dcc4f3e218c9188d54809c84af3e5cf2db8b100c3a",
+      "captureOrder": 40,
+      "login": "diegolmello"
+    },
+    {
+      "captureDirectory": "actor-016053d5e83bb45ea1fd58be77e7b9c451711ba9f29077c84b079e30c53565ba",
+      "captureOrder": 41,
+      "login": "dmathieu"
+    },
+    {
+      "captureDirectory": "actor-ff0052eda4990c4d23f2132a53c95b6ab1cc14c25b16baf81b30e44e55fd2be4",
+      "captureOrder": 42,
+      "login": "dmitryax"
+    },
+    {
+      "captureDirectory": "actor-83835b984045de4d43ed26fa19f789c5937033b27eb29d0ceb261dd4b29a27a6",
+      "captureOrder": 43,
+      "login": "domgarguilo"
+    },
+    {
+      "captureDirectory": "actor-5770954b3b3d2456e92ea85cca901008af4934806454f9f0ab5662a60ff87316",
+      "captureOrder": 44,
+      "login": "douglascamata"
+    },
+    {
+      "captureDirectory": "actor-de0f077df75fdae5ece1fd3604ba5cb0dfd898045bea8958865799994117a83a",
+      "captureOrder": 45,
+      "login": "dragonfly1033"
+    },
+    {
+      "captureDirectory": "actor-6eb01356f10da293be82381b8d47c5983295800994c26038f48a3d6815040cd6",
+      "captureOrder": 46,
+      "login": "ebrdarsplunk"
+    },
+    {
+      "captureDirectory": "actor-9b411c2da01009b0c3508af42b352918031b1823f8d0b647091aec6fdaf164cd",
+      "captureOrder": 47,
+      "login": "enjoy-binbin"
+    },
+    {
+      "captureDirectory": "actor-31dc8963f0c910b09110bf4740ec6f48b01594937e66d8e1c1a531f76791215c",
+      "captureOrder": 48,
+      "login": "ericstj"
+    },
+    {
+      "captureDirectory": "actor-c791e01c0f405415c914548555d22e0e373700624a2140754c45a7451a32cd19",
+      "captureOrder": 49,
+      "login": "evan-bradley"
+    },
+    {
+      "captureDirectory": "actor-9b625d5198d67b8787146c1886b8b239fcdae7f23a2bdaf325be4451ffee288c",
+      "captureOrder": 50,
+      "login": "expipiplus1"
+    },
+    {
+      "captureDirectory": "actor-9eb7791872668dfde57ba6a5a7ae60bf509c5abe8f8670d1654340da595aef68",
+      "captureOrder": 51,
+      "login": "felixying"
+    },
+    {
+      "captureDirectory": "actor-c10b49e2eb5e1891c2e5ddba0e17aa090fc04119cfd7a9b14a2efaa5f6e306e1",
+      "captureOrder": 52,
+      "login": "flc1125"
+    },
+    {
+      "captureDirectory": "actor-e4c1725f752c72dc20384e2524617d78e009f000f1f5315bc93cec211a9735ca",
+      "captureOrder": 53,
+      "login": "funky-eyes"
+    },
+    {
+      "captureDirectory": "actor-0104945be2a8bc8c2ca76bb09191aa3db1835d5cfa6fee5ccb4c70256364db89",
+      "captureOrder": 54,
+      "login": "g2vinay"
+    },
+    {
+      "captureDirectory": "actor-4b7663ca1077c2604fd39c91c7e5aac5abb084a281f7314e7318484765a5ccfb",
+      "captureOrder": 55,
+      "login": "gabotechs"
+    },
+    {
+      "captureDirectory": "actor-86e299fb5e1494bfe35e3539d7e411c0f980303f38812d8d69a7e4d62435206a",
+      "captureOrder": 56,
+      "login": "github-actions"
+    },
+    {
+      "captureDirectory": "actor-35d9100ce8e60d92142746e99292ce09ec0e0088a92ddcb70c47755b47471c93",
+      "captureOrder": 57,
+      "login": "github-advanced-security"
+    },
+    {
+      "captureDirectory": "actor-01cfd9ee083842e8465e445d6e1f57d7971c63ec07d6ad4d56c01c217725c1cd",
+      "captureOrder": 58,
+      "login": "goldmedal"
+    },
+    {
+      "captureDirectory": "actor-8673ad7a3b3fff7d41516c825fff7f38a72a2081763a382ef16c415c2697d2ec",
+      "captureOrder": 59,
+      "login": "greg-at-moderne"
+    },
+    {
+      "captureDirectory": "actor-99bfa87446533298504b95d474f5c0ce5d5d53cef7bf0a25d612399a932833c5",
+      "captureOrder": 60,
+      "login": "gunjjoshi"
+    },
+    {
+      "captureDirectory": "actor-c34f302d11693e787017ad8d22676622e7ccf00b5971912f754ae8c36885efef",
+      "captureOrder": 61,
+      "login": "gupta-piyush19"
+    },
+    {
+      "captureDirectory": "actor-c29e4c20895ce892e30cb5df71d43f62a554932d224e52dc1caaaad636f87b8f",
+      "captureOrder": 62,
+      "login": "gururaj1512"
+    },
+    {
+      "captureDirectory": "actor-d6678929c9a5040b1f282b6ad3544cf5bcb7c9f2e6d5c5022a82143e69670deb",
+      "captureOrder": 63,
+      "login": "hallipr"
+    },
+    {
+      "captureDirectory": "actor-b9ab46e7e76fd8daeeedd55c3571253a4ce0ae3d1ccdc70b006410abc29b0d3a",
+      "captureOrder": 64,
+      "login": "hareshkh"
+    },
+    {
+      "captureDirectory": "actor-7b4f0ee1214e3b1f0160af240c50d5b6692e235548db4d2a8d832356286527f3",
+      "captureOrder": 65,
+      "login": "harshmotw-db"
+    },
+    {
+      "captureDirectory": "actor-f970338664f839c1f92efef237bd284789c1ba422b5665a359453db1044a3d5e",
+      "captureOrder": 66,
+      "login": "hjb-2000"
+    },
+    {
+      "captureDirectory": "actor-b1ea83c8a8a123c19f2446dfb049de5c9928b7de586f3f41c5aa7e075d2252ba",
+      "captureOrder": 67,
+      "login": "hpatro"
+    },
+    {
+      "captureDirectory": "actor-a518b09362833df78eeeb2b385daaddf5f9e3a37a59ca09660bdda45300b6037",
+      "captureOrder": 68,
+      "login": "iblancasa"
+    },
+    {
+      "captureDirectory": "actor-2a23c15ab091ee44953de1a6137d7fbdddb17def974432a3e7f0e6e436c932f2",
+      "captureOrder": 69,
+      "login": "im-konge"
+    },
+    {
+      "captureDirectory": "actor-27874685dae9185b276e3bb9c0f0d42edac48e5274298db283e0510cd4ffef0d",
+      "captureOrder": 70,
+      "login": "janciesko"
+    },
+    {
+      "captureDirectory": "actor-0a324ee9e936af63b05b32da8773da8e88c40a8ea5f5a7050af049fcbee2018f",
+      "captureOrder": 71,
+      "login": "jaronoff97"
+    },
+    {
+      "captureDirectory": "actor-050497abe2e8bb90880801d0cd7ee0d4deba08303a758ff9a96b8932532da239",
+      "captureOrder": 72,
+      "login": "jcfilben"
+    },
+    {
+      "captureDirectory": "actor-1c8de88c9d8ac3bfb66b49b4cb51424a60515e3947db9be8035a638dc4e4cb6f",
+      "captureOrder": 73,
+      "login": "jhelferty-nv"
+    },
+    {
+      "captureDirectory": "actor-19803dfb87ca278e938b40fff70c1259d684fa725c03805b3495948792bfdc99",
+      "captureOrder": 74,
+      "login": "jimb123"
+    },
+    {
+      "captureDirectory": "actor-cf5ccdc3894d1f722273a5d784c431a880d891b433677387e0b05026cb1a7529",
+      "captureOrder": 75,
+      "login": "jkoritzinsky"
+    },
+    {
+      "captureDirectory": "actor-a7e85d99ded008dab77bd7228c9359effdacfd9046ee6e9d2926578a200e829c",
+      "captureOrder": 76,
+      "login": "jkwak-work"
+    },
+    {
+      "captureDirectory": "actor-e860d1de0868250615c3a70e7a1a3d47a39537ef52773b972df54ffb305ff71e",
+      "captureOrder": 77,
+      "login": "jmpotato"
+    },
+    {
+      "captureDirectory": "actor-27c4204912e6a074bf245ec4f9755b36739feaffa4053b4f5cd0a17cc7f4a4b6",
+      "captureOrder": 78,
+      "login": "jongio"
+    },
+    {
+      "captureDirectory": "actor-47697b86d226816ef9d71d379b148dd54bf19b9af7746e705a6130f1254ad5f2",
+      "captureOrder": 79,
+      "login": "joseharriaga"
+    },
+    {
+      "captureDirectory": "actor-1a4576eb7fbd3a72ff7177aff69de9270d1425b2f1e4724e9b041d5a1a131024",
+      "captureOrder": 80,
+      "login": "joshfree"
+    },
+    {
+      "captureDirectory": "actor-03c650fa0cda867e5af1651176e2c763bfb7ade156eae88befbf84bd0ea19a27",
+      "captureOrder": 81,
+      "login": "jpountz"
+    },
+    {
+      "captureDirectory": "actor-d96e1310a0b774c938d9bf40feb1b6323335c8415aed47d5cc2b3972d245d242",
+      "captureOrder": 82,
+      "login": "jsquire"
+    },
+    {
+      "captureDirectory": "actor-4011b21f8b1ca7b996880fa09dc6ca756c040452d388ea338cd1a75e685327e6",
+      "captureOrder": 83,
+      "login": "jtschuster"
+    },
+    {
+      "captureDirectory": "actor-638b21e2239b1fc71f96a97ee1b20e3666538ff12ecda49962eadf52626e879c",
+      "captureOrder": 84,
+      "login": "justincoh"
+    },
+    {
+      "captureDirectory": "actor-c9a31d46b7dd574e09ae5969b8e76f66232032cb32d45f9696a11ea55e6bb2cb",
+      "captureOrder": 85,
+      "login": "jvepsalainen-nv"
+    },
+    {
+      "captureDirectory": "actor-92ebc55fde510af6cbbd1963376920b3ed26fc3dd876005bc31f14092b84f147",
+      "captureOrder": 86,
+      "login": "kaivalnp"
+    },
+    {
+      "captureDirectory": "actor-9c8d91523f0f3e6624ba1554b03b7cdeb1cd47c27c68a81b203782ec52c1cd2f",
+      "captureOrder": 87,
+      "login": "kamilkubik"
+    },
+    {
+      "captureDirectory": "actor-905971d5952447d073c66846a25420814e9ee12702ddf9d81d3fd0a85d3eb801",
+      "captureOrder": 88,
+      "login": "karolkolodziej"
+    },
+    {
+      "captureDirectory": "actor-707487d1025b9d24c7f02227ba41b86ca144cc85c1230aed02fddc997874540f",
+      "captureOrder": 89,
+      "login": "keith-turner"
+    },
+    {
+      "captureDirectory": "actor-5347a3d994ff4c6be9ac69aed1e6684ebe15436ca57ef2335e2937245776576a",
+      "captureOrder": 90,
+      "login": "kgryte"
+    },
+    {
+      "captureDirectory": "actor-7ba9755d31fd1992967d027f1f6d99573499d57f7b9bffea495a377a1862dec8",
+      "captureOrder": 91,
+      "login": "kyriosgn0"
+    },
+    {
+      "captureDirectory": "actor-b0ef36f425cda9034b5890009df8b2f02446958b27277793f672ffa94689931b",
+      "captureOrder": 92,
+      "login": "leon19"
+    },
+    {
+      "captureDirectory": "actor-f973525de8a087ef9d868c9a4dbed379a30daa2712478f1a0562c28a7acf78ec",
+      "captureOrder": 93,
+      "login": "leonardehrenfried"
+    },
+    {
+      "captureDirectory": "actor-69dc60eb45507bc34550ab63c1171e292713cd80d79bc05d3bf812e26278e343",
+      "captureOrder": 94,
+      "login": "live1206"
+    },
+    {
+      "captureDirectory": "actor-bc97c75df447c778dd45f26c899822e73462b69f6b9a1a22fda4655bef1d21e6",
+      "captureOrder": 95,
+      "login": "livio-a"
+    },
+    {
+      "captureDirectory": "actor-73ecb6d4cfaf0f0bd1f9526e940816c5339833f543b0c0745222837f09fe7af3",
+      "captureOrder": 96,
+      "login": "loaki07"
+    },
+    {
+      "captureDirectory": "actor-148e97f13935af7eb03a03e706a5a6e8c69d7246aafc74f2dec4d4f581a1efec",
+      "captureOrder": 97,
+      "login": "madolson"
+    },
+    {
+      "captureDirectory": "actor-f4d6e96a3a52ebc19e4511c0bd244bcc2205a535c3523ebc474a0491e3d51f0f",
+      "captureOrder": 98,
+      "login": "maple525866"
+    },
+    {
+      "captureDirectory": "actor-ceb52a7987ac20b763ecaceaf3490c7b65a0c2602e2a1f0f34809284ea006d5f",
+      "captureOrder": 99,
+      "login": "masterleinad"
+    },
+    {
+      "captureDirectory": "actor-7b33b07667d8a417a5d1bfc26ccd8cdc53c19294fc245af31e04bd5585ef6565",
+      "captureOrder": 100,
+      "login": "michaldudak"
+    },
+    {
+      "captureDirectory": "actor-a1707d7af564e8d0229b53518acec781c99fba80e0be783c98bf4e56c9c968cf",
+      "captureOrder": 101,
+      "login": "mikekingdom"
+    },
+    {
+      "captureDirectory": "actor-c41dd8c01790c786a856d1e609cb483d8c827cc013a8ea1bef5d926a7086042d",
+      "captureOrder": 102,
+      "login": "mikicho"
+    },
+    {
+      "captureDirectory": "actor-8511e39b33d8a2bf4830e97937ff8a3955056c40b62a5aef95be9d4e70bf7595",
+      "captureOrder": 103,
+      "login": "msokolov"
+    },
+    {
+      "captureDirectory": "actor-3b9d34d8df576e955f81fc20b356b5bb51c093023b7e5cd3a053e9c706ab40fe",
+      "captureOrder": 104,
+      "login": "nenadnoveljic"
+    },
+    {
+      "captureDirectory": "actor-56b935cbe1ad0f9476e5bdce518be135329cf726b1c5d81f20109ca250b11596",
+      "captureOrder": 105,
+      "login": "nlynzaad"
+    },
+    {
+      "captureDirectory": "actor-bd2ed6cd2cac7daf743f3451cc65661a5ce8cad535646e9539060cad66b2046b",
+      "captureOrder": 106,
+      "login": "notxvilka"
+    },
+    {
+      "captureDirectory": "actor-6c24c6e86dddb44575a6476678b22e05fa37df7e1de0e0fbf6c31e0fa84e2f11",
+      "captureOrder": 107,
+      "login": "nv-xiaoyongs"
+    },
+    {
+      "captureDirectory": "actor-61bd749552076d6f791009a248af8e5a4d65f0765c54e2eee3d4e1829290d1b9",
+      "captureOrder": 108,
+      "login": "ocean-os"
+    },
+    {
+      "captureDirectory": "actor-9d103f1f44075b8a71c50793c713f122bc794ec9b7be3f526dfb051f74d6f5f8",
+      "captureOrder": 109,
+      "login": "optionsome"
+    },
+    {
+      "captureDirectory": "actor-8e70b6d512cbe1f999d8afd83eae39024b2124b6772608b2d24d10ac0cae9d8c",
+      "captureOrder": 110,
+      "login": "oranagra"
+    },
+    {
+      "captureDirectory": "actor-da38c7bd97a7c7808bba1cf11d5776a936800710e6e9647882aca959aabfcce3",
+      "captureOrder": 111,
+      "login": "pandeymangg"
+    },
+    {
+      "captureDirectory": "actor-4a2d408547ffa284db434fb300c83bb26994cd351757c5f653ce1a7eb5a8b5fd",
+      "captureOrder": 112,
+      "login": "pellared"
+    },
+    {
+      "captureDirectory": "actor-ffb5efa90f29899c483e6688b8cad37082b3a98b3712317997b2cbb415253fa9",
+      "captureOrder": 113,
+      "login": "ppatierno"
+    },
+    {
+      "captureDirectory": "actor-485cae8a0acb446cfeaef004e044fc58e7dd2f78b5a7b2e17f3286a8b75ce82b",
+      "captureOrder": 114,
+      "login": "prabhat1308"
+    },
+    {
+      "captureDirectory": "actor-9e243a038d22dd6c823495dd4d82e474f1377eb97a005dfe13c5b6cba9af6d26",
+      "captureOrder": 115,
+      "login": "pranavchiku"
+    },
+    {
+      "captureDirectory": "actor-9dc462952fd528b72647ca3c96e5d69a7f99bd0b64d7f99b581d6da163c0aae6",
+      "captureOrder": 116,
+      "login": "rich-harris"
+    },
+    {
+      "captureDirectory": "actor-669417a7b47d6a9e4cec9a0e01eb59eec4f91d17d53e1afd963eefced403a402",
+      "captureOrder": 117,
+      "login": "rleungx"
+    },
+    {
+      "captureDirectory": "actor-a5c7201d16e52701d70ee3ee15bbbd39eced0e1a4a5d6fa3e2502bd037aa639f",
+      "captureOrder": 118,
+      "login": "rokonec"
+    },
+    {
+      "captureDirectory": "actor-96898c74f13c4ba7436f922af404fb1e04fc3cebbc3c153e24f8a174dfa1433e",
+      "captureOrder": 119,
+      "login": "romgrk"
+    },
+    {
+      "captureDirectory": "actor-5ecc9098a94a8b2e1fab9a4df71f777d9cecdf9088589297787d0a74f0ef4d99",
+      "captureOrder": 120,
+      "login": "rot127"
+    },
+    {
+      "captureDirectory": "actor-b0134f8f8f13c42d04a63d7f0ecf6f050fa8484e5d85fb28afc7243f9f46e87b",
+      "captureOrder": 121,
+      "login": "ryanburkeiw"
+    },
+    {
+      "captureDirectory": "actor-c8b75fa6d034406f2d6bd10efd6fcc8301c84103b9b60f69aa7d8f3c43ed8b24",
+      "captureOrder": 122,
+      "login": "rzikm"
+    },
+    {
+      "captureDirectory": "actor-b3c18b1bd242b2ba55f72d4ffa0cab24f28d8ee6c176283a0161ee53e227dd4c",
+      "captureOrder": 123,
+      "login": "sarthakaggarwal97"
+    },
+    {
+      "captureDirectory": "actor-021d5bbf8a58d7a7de6cd8a31275dc630efc05fd294586c9d70bbbe92f19c904",
+      "captureOrder": 124,
+      "login": "satyr09"
+    },
+    {
+      "captureDirectory": "actor-098146b62f6f6be8f06394f1b3fff568060051fe437b77bcea7ed97adf6655b5",
+      "captureOrder": 125,
+      "login": "scholzj"
+    },
+    {
+      "captureDirectory": "actor-ecc5a52e951382d45d5ca298128f7a0ca53eb4a90d9750f78575f355cc3bb2c1",
+      "captureOrder": 126,
+      "login": "scovich"
+    },
+    {
+      "captureDirectory": "actor-88d1eb43754fd19e9d2b07787fab3ee68ff4c49ca173384d34f27af31215b723",
+      "captureOrder": 127,
+      "login": "seancassiere"
+    },
+    {
+      "captureDirectory": "actor-331dca8ac7d45604601dca7cfd745f6591d258b52614f009a5549c65f790f421",
+      "captureOrder": 128,
+      "login": "sebastianbochan"
+    },
+    {
+      "captureDirectory": "actor-b4f546b049cf123a6ac64feb54863ba0754216788043bf9398ca7024505a25e1",
+      "captureOrder": 129,
+      "login": "senojj"
+    },
+    {
+      "captureDirectory": "actor-0d81be2a9de8dabed8faf533005315bf6087f93eccd94a9269915824eeebd9b2",
+      "captureOrder": 130,
+      "login": "shabishett07"
+    },
+    {
+      "captureDirectory": "actor-213a93c34dc4db4dcfc4b8648ebce633f646441b9e8bcf169dcaaaa09fc05d7e",
+      "captureOrder": 131,
+      "login": "shivangireja"
+    },
+    {
+      "captureDirectory": "actor-a03b00cfd2ca2973463b93cec15f84e5002f2ba333d2d1672e57c4497358cec6",
+      "captureOrder": 132,
+      "login": "skiminki-nv"
+    },
+    {
+      "captureDirectory": "actor-b34200cf084fe81b63314fe29c4198a165b4a74b46f12251054bdb050b08bde6",
+      "captureOrder": 133,
+      "login": "skn0tt"
+    },
+    {
+      "captureDirectory": "actor-136445dde1f78c3d8faa9c38af2eda06f0a13b56bd60494ec94b319bd620419e",
+      "captureOrder": 134,
+      "login": "stephentoub"
+    },
+    {
+      "captureDirectory": "actor-544c097a6347d466376dc236397a639c6d58cec322faaabfbb8f87bc2c5f1fb5",
+      "captureOrder": 135,
+      "login": "sukunrt"
+    },
+    {
+      "captureDirectory": "actor-0310fe371d2189e69a39cf1bf15a0a441de5450d9179856e09da1765915a42b0",
+      "captureOrder": 136,
+      "login": "sulaymon333"
+    },
+    {
+      "captureDirectory": "actor-7a7cb6ba3f9e8fad7298dc2c719b53ab0d96f8edf3bb9c3a90ddb229793bc28c",
+      "captureOrder": 137,
+      "login": "sungming2"
+    },
+    {
+      "captureDirectory": "actor-1077acd11da0a7c3fb1b7bff650cfca096e49a2bd03311ba8ecb46b0b6363e2f",
+      "captureOrder": 138,
+      "login": "superhx"
+    },
+    {
+      "captureDirectory": "actor-0386cd91373633a1106b8138ace0209ed45391b34f52d6c03f6256c85697a435",
+      "captureOrder": 139,
+      "login": "swiatekm"
+    },
+    {
+      "captureDirectory": "actor-e3e48c0c5ce846952c32244543b658b6b37bcb48fccf2d115e6e0ebf29abdb3c",
+      "captureOrder": 140,
+      "login": "tannergooding"
+    },
+    {
+      "captureDirectory": "actor-04fc06386b497b5eba4c5ae7a746d884c52b5e1f68266dc5bb3a3eeb5c2711e7",
+      "captureOrder": 141,
+      "login": "taysea"
+    },
+    {
+      "captureDirectory": "actor-7c0485361de30205ccaf2c7516f40dd5d2d28e11f9893631c9a6855783dc9298",
+      "captureOrder": 142,
+      "login": "tema"
+    },
+    {
+      "captureDirectory": "actor-a2571f7d6d6885c1235eef7e31b0af2b093ba45611d618ed158df7e67a5c7f95",
+      "captureOrder": 143,
+      "login": "tezc"
+    },
+    {
+      "captureDirectory": "actor-067ebd15260a85058d25cd4c35a0659ea1c7699b44069dd2815db93a453f55b4",
+      "captureOrder": 144,
+      "login": "timtebeek"
+    },
+    {
+      "captureDirectory": "actor-5a73ac722f6abaa3e148cfd726bc266313bb464007384cd61d64cf67aac542b0",
+      "captureOrder": 145,
+      "login": "tmatale"
+    },
+    {
+      "captureDirectory": "actor-018dc4a3f962eda56d34db2f2e6b0ab851c546e904a79127e10e9c1d8cc2d31a",
+      "captureOrder": 146,
+      "login": "vcolin7"
+    },
+    {
+      "captureDirectory": "actor-c6250569bae9102b92470e0b0ceb5b51af28349e520e15224270e05d51b3ce0e",
+      "captureOrder": 147,
+      "login": "victorvhs017"
+    },
+    {
+      "captureDirectory": "actor-fbb91ff1ae579af4205500dce935f12cc7f1e0fb40726e0e31e4d904bf8be20f",
+      "captureOrder": 148,
+      "login": "vkarpov15"
+    },
+    {
+      "captureDirectory": "actor-a413a1d0f3f117379ae3567521274b312ef80475f9938a1c623dcb286ef60f6f",
+      "captureOrder": 149,
+      "login": "wargio"
+    },
+    {
+      "captureDirectory": "actor-b30363d5dccd61b3048300fc8ef0d245184d905818fe73c71c30035457f6ab3d",
+      "captureOrder": 150,
+      "login": "wbreza"
+    },
+    {
+      "captureDirectory": "actor-5794713489a6f1c8f22cdf948b0c34bac8f340c787630772f946b1ae8990f2a1",
+      "captureOrder": 151,
+      "login": "xiangyan99"
+    },
+    {
+      "captureDirectory": "actor-067482f2d17bfe729affa59c82044a44d3268ee2fed6384dde7e925c6d82c357",
+      "captureOrder": 152,
+      "login": "xudong963"
+    },
+    {
+      "captureDirectory": "actor-8c2532cdcdb438aa57cfea240def32edab2241d80cbdf9f5f1e9a8e495ae387a",
+      "captureOrder": 153,
+      "login": "yonggoose"
+    },
+    {
+      "captureDirectory": "actor-10ea7b0fe9db013fb37bb1b6e8c314792e74bdeb063f58b5f1613ae976caa613",
+      "captureOrder": 154,
+      "login": "zecakeh"
+    },
+    {
+      "captureDirectory": "actor-2403d7e8c8f4c850a76b5d10134736ce9fbdc2502f1a3718affbef6c3e894223",
+      "captureOrder": 155,
+      "login": "zuiderkwast"
+    }
+  ]
+}

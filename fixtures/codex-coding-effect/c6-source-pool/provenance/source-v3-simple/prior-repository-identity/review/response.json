@@ -1,0 +1,33 @@
+{
+  "acceptedChecks": [
+    "canonical-replay-receipt-and-sha256",
+    "capture-a-full-local-bundle-and-inner-outer-asset-lock-replay",
+    "capture-b-full-local-bundle-and-inner-outer-asset-lock-replay",
+    "356-final-request-ids-each-unique-and-cross-capture-intersection-zero",
+    "178-repository-identities-and-node-id-dedup-agree",
+    "all-authority-and-readiness-flags-remain-false",
+    "no-live-network-external-authenticity-or-independent-process-claim",
+    "no-formal-census-freeze-or-codex-ready-claim"
+  ],
+  "artifactKind": "c6-source-v3-simple-prior-identity-replay-review-response",
+  "blockingFindings": [],
+  "boundary": {
+    "candidateManifestFrozen": false,
+    "captureOriginIndependentlyVerified": false,
+    "codexRunReady": false,
+    "externalAuthenticityVerified": false,
+    "formalCensusPermitted": false,
+    "independentCaptureProcessProven": false,
+    "liveNetworkExecutionProven": false,
+    "priorRepositoryNodeIdExclusionComplete": false,
+    "sourceV3SimpleFrozen": false,
+    "status": "local-observation-replay-review-accepted-no-live-provenance-or-promotion-authority"
+  },
+  "decision": "accepted-as-local-observation-replay-only",
+  "dispatchSha256": "474b7a658f831758fec711c5367971a64e4130009d55190882fe5306a5c04b50",
+  "inputSha256": "1ee5412f02ba28456449229d4af38dfd8485483d78df337265bc36ea2196acfc",
+  "requestSha256": "8352f25e17c9e1fbd4b0bae3c01f11f559ebaba319cf0be1ea83af1277c85011",
+  "reviewedAt": "2026-07-26T17:15:26.326Z",
+  "reviewerAgentName": "/root/c6_prior_identity_replay_independent_review",
+  "schemaVersion": 1
+}

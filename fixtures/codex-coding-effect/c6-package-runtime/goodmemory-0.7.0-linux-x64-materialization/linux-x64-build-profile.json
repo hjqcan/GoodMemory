@@ -1,0 +1,53 @@
+{
+  "architecture": "x64",
+  "bun": {
+    "executableSha256": "45598a2814020c231575487a560e47d397d6902355d7e08171a2e56221a6d675",
+    "version": "1.3.11"
+  },
+  "imageSha256": "420f9c50e115184234e0e355d8a9ffed8b49c1b8512972ec9a8a402bb259834f",
+  "install": {
+    "cacheStartedEmpty": true,
+    "command": [
+      "npm",
+      "ci",
+      "--offline",
+      "--ignore-scripts",
+      "--omit=dev",
+      "--include=optional",
+      "--install-strategy=hoisted",
+      "--no-audit",
+      "--no-fund",
+      "--cache",
+      "<empty-ephemeral-cache>"
+    ],
+    "credentialsPresent": false,
+    "exitCode": 0,
+    "networkIsolation": "container-network-none",
+    "packageLockSha256After": "0c43022e4434f2e16c7052ab3e392181d95cc4c72926bb284a709cbb04f06574",
+    "packageLockSha256Before": "0c43022e4434f2e16c7052ab3e392181d95cc4c72926bb284a709cbb04f06574",
+    "sourceCheckoutMounted": false
+  },
+  "installedTreeManifestSha256": "c73a5db06353bd0dc8c0a31e2a3837e8636eca6e4d59f221df338b1acf0dc3eb",
+  "libc": {
+    "family": "glibc",
+    "version": "2.36"
+  },
+  "node": {
+    "executableSha256": "1abce2374a485bddae3c27b17a3e3143e2780232026e627c4fe74ddde3f380a1",
+    "version": "v22.14.0"
+  },
+  "npm": {
+    "cliSha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+    "launcherSha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+    "version": "10.9.2"
+  },
+  "operatingSystem": "linux",
+  "osReleaseSha256": "59a77b5f2666d9c85c489bd1911a6eebbd91ef22fe48b90a3b75f1b21f3844d4",
+  "schemaVersion": 1,
+  "smoke": {
+    "goodmemoryHostCommandExitCode": 0,
+    "goodmemoryVersion": "0.7.0",
+    "goodmemoryVersionExitCode": 0,
+    "sqliteVssLinuxX64Present": true
+  }
+}

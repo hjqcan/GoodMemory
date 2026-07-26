@@ -1,0 +1,27 @@
+{
+  "acceptedChecks": [
+    "protocol-exact-byte-closure",
+    "source-v2-and-metadata-predicate-exact-byte-closure",
+    "complete-finite-frame-with-two-pass-equality",
+    "no-quota-redraw-or-downstream-yield-stopping",
+    "prior-repository-node-id-exclusion-required-for-later-promotion",
+    "candidate-selection-and-census-remain-prohibited",
+    "freeze-ancestry-required-after-review"
+  ],
+  "artifactKind": "c6-source-v3-simple-review-response",
+  "blockingFindings": [],
+  "boundary": {
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "formalCensusPermitted": false,
+    "sourceV3SimpleFrozen": false,
+    "status": "protocol-review-accepted-freeze-and-promotion-receipt-still-required"
+  },
+  "decision": "accepted-for-freeze-preparation",
+  "dispatchSha256": "6d2e9bffe33f7aa3daa92a0dde2270bd2fb9ac37c14593f078a0612e4f8d4fd1",
+  "inputSha256": "f09977d56c669996d5e0a3b39cc1f59e9f437ed0dbcdbbd9317ac4c82871ee73",
+  "requestSha256": "7c0fb5466812e6c30a601ed9435330a7390490146899b7458a02ab0a8ef4f3ca",
+  "reviewedAt": "2026-07-26T16:16:01.272Z",
+  "reviewerAgentName": "/root/c6_source_v3_simple_review_v1",
+  "schemaVersion": 1
+}

@@ -1,0 +1,33 @@
+{
+  "image": {
+    "architecture": "x64",
+    "operatingSystem": "linux",
+    "runtime": {
+      "bun": {
+        "executableSha256": "45598a2814020c231575487a560e47d397d6902355d7e08171a2e56221a6d675",
+        "version": "1.3.11"
+      },
+      "node": {
+        "executableSha256": "1abce2374a485bddae3c27b17a3e3143e2780232026e627c4fe74ddde3f380a1",
+        "version": "v22.14.0"
+      },
+      "npm": {
+        "cliSha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+        "launcherSha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+        "version": "10.9.2"
+      }
+    },
+    "sha256": "420f9c50e115184234e0e355d8a9ffed8b49c1b8512972ec9a8a402bb259834f"
+  },
+  "package": {
+    "dependencyClosure": {
+      "assetLockSha256": "f41fd2288334bf8296d8296ef720f00f459be3cd2187ec269f4f37a54880ede9",
+      "assetRootSha256": "0f9a86a3ba0514ee0aad51cfbc2260f12f6079022e51301948af38108787f6d5",
+      "installedTreeManifestSha256": "c73a5db06353bd0dc8c0a31e2a3837e8636eca6e4d59f221df338b1acf0dc3eb",
+      "manifestSha256": "ff8b9add78b93136c9f32e7302ab7bd8766b1ee35919a72a1518f4f212abb5b8"
+    },
+    "name": "goodmemory",
+    "sha256": "5f9b98600ff024a80a7a337fa8953e162b7498bf909a67e8b217a9bba5dd2757",
+    "version": "0.7.0"
+  }
+}

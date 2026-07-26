@@ -1,0 +1,125 @@
+{
+  "artifactKind": "c6-real-history-original-request-projection",
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "machineQualificationCandidateCount": 0
+  },
+  "policy": "resolved-issues-only-sorted-lf-trim-v1",
+  "projections": [
+    {
+      "anchorId": "fmtlib/fmt#974",
+      "cappedPoolRank": 5,
+      "originalRequest": {
+        "bytes": 581,
+        "sha256": "b634ea04d647a8a4fbc47673633981fcf9cd279f948469a12bcc39268c918984",
+        "value": "Issue #968: Support ASCII color escape code numbers\n\nWe currently support a wide range of colors, but the \"default\" ones from the terminal aren't really there.\n\nI think it would be a good idea to support them, because (now correct me if I'm wrong) that the colors can change slightly depending on the pallete of the terminal. Hard coding the rgb doesn't always look nice and so that the colors are more readable I'd suggest that we add another color mode with only those colors supported.\n\nWhat do you think?\n\nNote: I just realized that this is what the old color printing does. :)"
+      },
+      "recording": {
+        "externalSourceCaptureAuthenticated": false,
+        "fullSourceFileRetained": false,
+        "fullSourceRowRetained": false,
+        "projectionProvesUpstreamAuthenticity": false
+      },
+      "resolvedIssueRecordSha256": "be318319ffb54cb3a850b62a5885cae468612db56c69a7fcd1199e711629f187",
+      "resolvedIssues": [
+        {
+          "body": "We currently support a wide range of colors, but the \"default\" ones from the terminal aren't really there.\n\nI think it would be a good idea to support them, because (now correct me if I'm wrong) that the colors can change slightly depending on the pallete of the terminal. Hard coding the rgb doesn't always look nice and so that the colors are more readable I'd suggest that we add another color mode with only those colors supported.\n\nWhat do you think?\n\nNote: I just realized that this is what the old color printing does. :)",
+          "number": 968,
+          "title": "Support ASCII color escape code numbers"
+        }
+      ],
+      "source": {
+        "fileBytes": 375788,
+        "fileSha256": "7d060ca46ba6343373aa68ced7fcca70e2ce0addac7ec610c47d2bbfcfed6762",
+        "path": "cpp/fmtlib__fmt_dataset.jsonl",
+        "rowIndex": 39,
+        "rowSha256": "c270fa493c58479d1490b488060136138b7dc8a0ce3564cebf572433094c94a9"
+      },
+      "sourcePullExcluded": {
+        "bodySha256": "ac799e0ba83a04b90a9e21b015dc629ac36efc67023ca1f6d99fbff46fcb7056",
+        "titleSha256": "0c02277d3bb97df262f6d9ac8c66b37e3ade4e51fc20a3c3638f05d203643aff"
+      }
+    },
+    {
+      "anchorId": "vuejs/core#9213",
+      "cappedPoolRank": 14,
+      "originalRequest": {
+        "bytes": 1107,
+        "sha256": "ff36fc0b8c8477d51d0236677d457083e13879933d3b843fd23a6c7d9a830b93",
+        "value": "Issue #7256: [Bug] When `slot` is used with `v-if`, the slot content is not displayed as expected\n\n### Vue version\n\n^3.2.45\n\n### Link to minimal reproduction\n\nhttps://sfc.vuejs.org/#eNqFks9ugzAMxl/Fy6WdVMgd0W5TpZ33AFwoGJo2JFES6AHx7nOAUfb/BHbsn/N9Ts9ejIm7FlnCUldYYTw49K05ZEo0RlsPPVisYIDK6gY2VLpZjo5a+VwotPNhzJdMYFJhpgqtHDHP+gb7QNpWuXT4mKmUT/NoEgUeGyNzjxQBpKfWe63guZCiuO4zNrc/hG/GxhoAr+taIkTQ9xN/GMZmPnVPpPsVk1ATFWchS4uKoGta5tNSdNBFoprHLWMA3qzuRInlqBeVn/Ipp45pyF02xSlftLAdm5yKmtzEF6cV2dyP8+YDl7EExkzIkWchztjZe+MSzl1VBCMvLta25vQX21Z50WCMrolOVt8cWX0hym7F4JTs0EYks0SL9i/ml9Jv3IAlWweS8mm3q/cic1WTaUHL8nagxIpKyTnj0klfMPU4u/+UwElriTmtHobD9p/n4KQO+Z/W9EFcres1l/KUF9ff1zXz1psa3gFE5As4\n\n### Steps to reproduce\n\n1. open the reproduction link\n2. click the toggle button\n3. observe whether the slot content is toggled.\n\n### What is expected?\n\n1. The provided content should be displayed when `show` is `true`.\n2. The fallback content should be displayed when `show` is `false`.\n\n### What is actually happening?\n\nThe slot content is not toggled.\n\n### System Info\n\n_No response_\n\n### Any additional comments?\n\n_No response_"
+      },
+      "recording": {
+        "externalSourceCaptureAuthenticated": false,
+        "fullSourceFileRetained": false,
+        "fullSourceRowRetained": false,
+        "projectionProvesUpstreamAuthenticity": false
+      },
+      "resolvedIssueRecordSha256": "a4dfba3e6727af08e68f940398d2d2ab981b888d8f7ed1f1d678f78501eeb24f",
+      "resolvedIssues": [
+        {
+          "body": "### Vue version\n\n^3.2.45\n\n### Link to minimal reproduction\n\nhttps://sfc.vuejs.org/#eNqFks9ugzAMxl/Fy6WdVMgd0W5TpZ33AFwoGJo2JFES6AHx7nOAUfb/BHbsn/N9Ts9ejIm7FlnCUldYYTw49K05ZEo0RlsPPVisYIDK6gY2VLpZjo5a+VwotPNhzJdMYFJhpgqtHDHP+gb7QNpWuXT4mKmUT/NoEgUeGyNzjxQBpKfWe63guZCiuO4zNrc/hG/GxhoAr+taIkTQ9xN/GMZmPnVPpPsVk1ATFWchS4uKoGta5tNSdNBFoprHLWMA3qzuRInlqBeVn/Ipp45pyF02xSlftLAdm5yKmtzEF6cV2dyP8+YDl7EExkzIkWchztjZe+MSzl1VBCMvLta25vQX21Z50WCMrolOVt8cWX0hym7F4JTs0EYks0SL9i/ml9Jv3IAlWweS8mm3q/cic1WTaUHL8nagxIpKyTnj0klfMPU4u/+UwElriTmtHobD9p/n4KQO+Z/W9EFcres1l/KUF9ff1zXz1psa3gFE5As4\n\n### Steps to reproduce\n\n1. open the reproduction link\n2. click the toggle button\n3. observe whether the slot content is toggled.\n\n### What is expected?\n\n1. The provided content should be displayed when `show` is `true`.\n2. The fallback content should be displayed when `show` is `false`.\n\n### What is actually happening?\n\nThe slot content is not toggled.\n\n### System Info\n\n_No response_\n\n### Any additional comments?\n\n_No response_",
+          "number": 7256,
+          "title": "[Bug] When `slot` is used with `v-if`, the slot content is not displayed as expected"
+        }
+      ],
+      "source": {
+        "fileBytes": 73660728,
+        "fileSha256": "10365ee2414d80b0985a1fda64588c06e260646b7f90b916551d0bfd00203b30",
+        "path": "ts/vuejs__core_dataset.jsonl",
+        "rowIndex": 38,
+        "rowSha256": "33cf80551117259f44cb9bb48ed04233a8e2d9d98c9e375b813b6109747bc262"
+      },
+      "sourcePullExcluded": {
+        "bodySha256": "5b51a66b1fa669269c7286ad4eff5238103412dab266156e926f29afe6307c64",
+        "titleSha256": "53324c2534778aff98342310ff6478f20d5dd08b3530924bbbf32d5ccd9738f1"
+      }
+    },
+    {
+      "anchorId": "clap-rs/clap#2796",
+      "cappedPoolRank": 19,
+      "originalRequest": {
+        "bytes": 1521,
+        "sha256": "7981a33ddbc754245c75ffd32f1e63033eac8ea964912b84e29d360348bbd123",
+        "value": "Issue #2789: Cannot override the help subcommand\n\n### Please complete the following tasks\n\n- [X] I have searched the [discussions](https://github.com/clap-rs/clap/discussions)\n- [X] I have searched the existing issues\n\n### Rust Version\n\n1.54.0\n\n### Clap Version\n\nmaster\n\n### Minimal reproducible code\n\n```rust\n\nuse clap::Clap;\n\n#[derive(Clap)]\n#[clap(\n    global_setting = AppSettings::DisableHelpSubcommand\n)]\nenum Helper {\n    Help {\n        arg: String\n    },\n    NotHelp {\n        arg: String\n    }\n}\n\nimpl Helper {\n    fn handle(&self) -> String {\n        match self {\n            Helper::Help { arg } => format!(\"Helping {}\", arg),\n            Helper::NotHelp { arg } => format!(\"Not Helping {}\", arg)\n        }\n    }\n}\n\nfn main() {\n    // Test with a subcommand that is not `help`.\n    let command = Helper::parse_from([\"help_cmd\", \"not-help\", \"foo\"]).handle();\n    assert_eq!(command, \"Not Helping foo\");\n\n    // Test with the `help` subcommand.\n    let command = Helper::parse_from([\"help_cmd\", \"help\", \"foo\"]).handle();\n    assert_eq!(command, \"Helping foo\");\n}\n```\n\n\n### Steps to reproduce the bug with the above code\n\ncargo run\n\n### Actual Behaviour\n\nThe second assertion fails, and outputs a help message for the builtin Help subcommand:\n\n```\nerror:  The subcommand 'foo' wasn't recognized\n\nUSAGE:\n    help_cmd <subcommands>\n\nFor more information try --help\n```\n\n### Expected Behaviour\n\nThe tests should pass\n\n### Additional Context\n\nhttps://github.com/clap-rs/clap/pull/2788\n\n### Debug Output\n\n_No response_"
+      },
+      "recording": {
+        "externalSourceCaptureAuthenticated": false,
+        "fullSourceFileRetained": false,
+        "fullSourceRowRetained": false,
+        "projectionProvesUpstreamAuthenticity": false
+      },
+      "resolvedIssueRecordSha256": "0a728aec86f4cbcb33a30f7e16fc7904ef3ce87eed31ab3f8d2dc28443d47298",
+      "resolvedIssues": [
+        {
+          "body": "### Please complete the following tasks\n\n- [X] I have searched the [discussions](https://github.com/clap-rs/clap/discussions)\n- [X] I have searched the existing issues\n\n### Rust Version\n\n1.54.0\n\n### Clap Version\n\nmaster\n\n### Minimal reproducible code\n\n```rust\n\nuse clap::Clap;\n\n#[derive(Clap)]\n#[clap(\n    global_setting = AppSettings::DisableHelpSubcommand\n)]\nenum Helper {\n    Help {\n        arg: String\n    },\n    NotHelp {\n        arg: String\n    }\n}\n\nimpl Helper {\n    fn handle(&self) -> String {\n        match self {\n            Helper::Help { arg } => format!(\"Helping {}\", arg),\n            Helper::NotHelp { arg } => format!(\"Not Helping {}\", arg)\n        }\n    }\n}\n\nfn main() {\n    // Test with a subcommand that is not `help`.\n    let command = Helper::parse_from([\"help_cmd\", \"not-help\", \"foo\"]).handle();\n    assert_eq!(command, \"Not Helping foo\");\n\n    // Test with the `help` subcommand.\n    let command = Helper::parse_from([\"help_cmd\", \"help\", \"foo\"]).handle();\n    assert_eq!(command, \"Helping foo\");\n}\n```\n\n\n### Steps to reproduce the bug with the above code\n\ncargo run\n\n### Actual Behaviour\n\nThe second assertion fails, and outputs a help message for the builtin Help subcommand:\n\n```\nerror:  The subcommand 'foo' wasn't recognized\n\nUSAGE:\n    help_cmd <subcommands>\n\nFor more information try --help\n```\n\n### Expected Behaviour\n\nThe tests should pass\n\n### Additional Context\n\nhttps://github.com/clap-rs/clap/pull/2788\n\n### Debug Output\n\n_No response_",
+          "number": 2789,
+          "title": "Cannot override the help subcommand"
+        }
+      ],
+      "source": {
+        "fileBytes": 28813289,
+        "fileSha256": "098ea3afa5700cb67e3a27e859bdcce18f4468e373172254155862c313f9cf32",
+        "path": "rust/clap-rs__clap_dataset.jsonl",
+        "rowIndex": 79,
+        "rowSha256": "210e1a0bbd2374eb32f7a98a23a86770fa44546f3b2a621adea8fc5cb816b440"
+      },
+      "sourcePullExcluded": {
+        "bodySha256": "8f9737b73216df306a12e8a6a3dce6b73d4edb81de48b3179f76e7e33a6e395c",
+        "titleSha256": "ec7785de80af92d44705c72b99bb9aece82f3b62a521089e3a674ec3d4afc27f"
+      }
+    }
+  ],
+  "recording": {
+    "exactSourceFilesRequiredForReplay": true,
+    "externalSourceCaptureAuthenticated": false,
+    "independentReviewComplete": false
+  },
+  "schemaVersion": 1,
+  "source": {
+    "datasetId": "ByteDance-Seed/Multi-SWE-bench",
+    "inventorySha256": "14c406f6bb9d4b8c789380b62511bd1312dd67819eaeb44d64c9ea54593bed51",
+    "revision": "56ff018c04a38e27ada1e9d0a6d5839a51f88f0d"
+  }
+}

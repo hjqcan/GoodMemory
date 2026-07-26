@@ -1,0 +1,39 @@
+{
+  "artifactKind": "c6-source-v3-simple-prior-identity-replay-review-provenance",
+  "attestationScope": "orchestrator-attestation-only",
+  "authorTaskName": "/root",
+  "dispatch": {
+    "byteLength": 845,
+    "path": "provenance/source-v3-simple/prior-repository-identity/review/dispatch.json",
+    "sha256": "474b7a658f831758fec711c5367971a64e4130009d55190882fe5306a5c04b50"
+  },
+  "independenceVerified": false,
+  "input": {
+    "byteLength": 2239,
+    "path": "provenance/source-v3-simple/prior-repository-identity/review/input.json",
+    "sha256": "1ee5412f02ba28456449229d4af38dfd8485483d78df337265bc36ea2196acfc"
+  },
+  "recordedAt": "2026-07-26T17:15:26.326Z",
+  "request": {
+    "byteLength": 1312,
+    "path": "provenance/source-v3-simple/prior-repository-identity/review/request.json",
+    "sha256": "8352f25e17c9e1fbd4b0bae3c01f11f559ebaba319cf0be1ea83af1277c85011"
+  },
+  "response": {
+    "byteLength": 1579,
+    "path": "provenance/source-v3-simple/prior-repository-identity/review/response.json",
+    "sha256": "b71f659284b477b85d3cb7fd19912774b8f72b953f9b543966ced1f795e0a740"
+  },
+  "reviewer": {
+    "agentName": "/root/c6_prior_identity_replay_independent_review",
+    "contextPolicy": "fork-turns-none",
+    "orchestratorAttestation": {
+      "attestedByTaskName": "/root",
+      "basis": "orchestrator-observed-local-replay-review-dispatch-no-cryptographic-receipt",
+      "cryptographicReceipt": false
+    },
+    "requestedTaskName": "c6_source_v3_simple_prior_identity_replay_review_v1",
+    "type": "separate-ai-agent-identity-claimed"
+  },
+  "schemaVersion": 1
+}

@@ -1,0 +1,19 @@
+{
+  "artifactKind": "c6-source-v3-simple-review-dispatch",
+  "authorTaskName": "/root",
+  "contextPolicy": "fork-turns-none",
+  "input": {
+    "byteLength": 1092,
+    "path": "provenance/source-v3-simple/review/input.json",
+    "sha256": "f09977d56c669996d5e0a3b39cc1f59e9f437ed0dbcdbbd9317ac4c82871ee73"
+  },
+  "request": {
+    "byteLength": 913,
+    "path": "provenance/source-v3-simple/review/request.json",
+    "sha256": "7c0fb5466812e6c30a601ed9435330a7390490146899b7458a02ab0a8ef4f3ca"
+  },
+  "requestedTaskName": "c6_source_v3_simple_review_v1",
+  "responsePath": "provenance/source-v3-simple/review/response.json",
+  "reviewerAgentName": "/root/c6_source_v3_simple_review_v1",
+  "schemaVersion": 1
+}

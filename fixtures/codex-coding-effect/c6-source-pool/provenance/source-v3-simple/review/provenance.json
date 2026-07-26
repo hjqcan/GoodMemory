@@ -1,0 +1,37 @@
+{
+  "artifactKind": "c6-source-v3-simple-review-provenance",
+  "authorTaskName": "/root",
+  "dispatch": {
+    "byteLength": 708,
+    "path": "provenance/source-v3-simple/review/dispatch.json",
+    "sha256": "6d2e9bffe33f7aa3daa92a0dde2270bd2fb9ac37c14593f078a0612e4f8d4fd1"
+  },
+  "input": {
+    "byteLength": 1092,
+    "path": "provenance/source-v3-simple/review/input.json",
+    "sha256": "f09977d56c669996d5e0a3b39cc1f59e9f437ed0dbcdbbd9317ac4c82871ee73"
+  },
+  "recordedAt": "2026-07-26T16:16:01.272Z",
+  "request": {
+    "byteLength": 913,
+    "path": "provenance/source-v3-simple/review/request.json",
+    "sha256": "7c0fb5466812e6c30a601ed9435330a7390490146899b7458a02ab0a8ef4f3ca"
+  },
+  "response": {
+    "byteLength": 1162,
+    "path": "provenance/source-v3-simple/review/response.json",
+    "sha256": "9cd7202589ea964ce4767b31b28d7710c4799696b6de0b4003ff7697a1d6dc18"
+  },
+  "reviewer": {
+    "agentName": "/root/c6_source_v3_simple_review_v1",
+    "contextPolicy": "fork-turns-none",
+    "orchestratorAttestation": {
+      "attestedByTaskName": "/root",
+      "basis": "orchestrator-observed-dispatch-no-cryptographic-receipt",
+      "cryptographicReceipt": false
+    },
+    "requestedTaskName": "c6_source_v3_simple_review_v1",
+    "type": "independent-ai-agent"
+  },
+  "schemaVersion": 1
+}

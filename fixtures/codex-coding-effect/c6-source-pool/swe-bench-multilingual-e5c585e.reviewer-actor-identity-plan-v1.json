@@ -1,0 +1,361 @@
+{
+  "artifactKind": "c6-reviewer-actor-identity-plan",
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "actorCaptureExecuted": false,
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "status": "reviewer-actor-identity-capture-required"
+  },
+  "counts": {
+    "sourceReviewReferenceCount": 517,
+    "sourceTargetCount": 26,
+    "uniqueActorCount": 58
+  },
+  "independenceBoundary": {
+    "goldInput": false,
+    "machineOutcomeInput": false,
+    "semanticLedgerInput": false,
+    "selectedSequenceInput": false,
+    "targetProjectionSha256": "4ae34a373348c13da1047edcbcfb63d2682593665db29c81cfc3a4e5682af12c"
+  },
+  "inputs": {
+    "graphqlRootSha256": "397ced8b4aab15ca0b1e03f2bec64a3a3fd0b17b74540c0d83127071350c99a2",
+    "qualification": {
+      "bytes": 58274,
+      "path": "swe-bench-multilingual-e5c585e.source-expansion-qualification-v1.json",
+      "sha256": "3cf7722c1fa76a5da48ef312211a6358c5a266fe414e69288ee1c23fd9fca115"
+    }
+  },
+  "policy": {
+    "definition": {
+      "actorEligibility": {
+        "automationLoginRule": {
+          "containsCaseInsensitive": [
+            "coderabbit",
+            "copilot",
+            "cursor"
+          ],
+          "exactCaseInsensitive": [
+            "github-actions",
+            "github-advanced-security"
+          ],
+          "suffixCaseInsensitive": "[bot]"
+        },
+        "platformType": "User",
+        "unresolvedStatus": 404
+      },
+      "boundary": {
+        "automationExclusionComplete": false,
+        "eventTimeActorTypeProven": false,
+        "humanReviewerIdentityProven": false,
+        "platformActorTypeCaptured": true
+      },
+      "inputClosure": "all-broad-target-review-authors-before-actor-filtering",
+      "policyId": "reviewer-platform-actor-eligibility-v1",
+      "responseIdentity": "case-insensitive-login-exact-match",
+      "schemaVersion": 1
+    },
+    "policyId": "reviewer-platform-actor-eligibility-v1",
+    "schemaVersion": 1,
+    "sha256": "ca0014e5e6d47dc63f490b49bff6835b9d5ed99e69b3eb8d8ddf4266edc8643f"
+  },
+  "rule": {
+    "actorSurface": "all-non-null-whole-review-and-review-thread-comment-authors",
+    "captureOrder": "normalized-login-code-unit-ascending",
+    "normalization": "case-insensitive-login"
+  },
+  "schemaVersion": 1,
+  "targets": [
+    {
+      "captureDirectory": "actor-0e8136f17c2d99849bb0bb4f0924d2daac434952bdd0859948eaccb2e590233c",
+      "captureOrder": 1,
+      "login": "abhishek-chouhan"
+    },
+    {
+      "captureDirectory": "actor-5bfb851436ab711eb524568352fac503b40abcd3a7cfaec19bdcabdb1713b6f7",
+      "captureOrder": 2,
+      "login": "abhishekagarwal87"
+    },
+    {
+      "captureDirectory": "actor-aed07255755a32ed135f7c536e4a40d2952b21da1f34ff5095db88f1be3df0e8",
+      "captureOrder": 3,
+      "login": "andrewiggins"
+    },
+    {
+      "captureDirectory": "actor-3bbad4f64ad9f38656113cf2915b015d2818534dd6cd94e955f0e70f1de4f8da",
+      "captureOrder": 4,
+      "login": "appleboy"
+    },
+    {
+      "captureDirectory": "actor-5f7a1cce975a8fb35e36209493a1a1d134a84626fecc0b5585940efe077f8c42",
+      "captureOrder": 5,
+      "login": "ashmaroli"
+    },
+    {
+      "captureDirectory": "actor-ddd3a78ff03ed2eacf6b1980864cdbe5b58c79cd7607234633de3a278f99805d",
+      "captureOrder": 6,
+      "login": "bojan88"
+    },
+    {
+      "captureDirectory": "actor-5eee4f24e1a64d40619d2ae1039b7eebf59c0687c92b67a50635a5884e9e455b",
+      "captureOrder": 7,
+      "login": "coderaiser"
+    },
+    {
+      "captureDirectory": "actor-e70cf0dd6d5c651810afc94af5d0d366af03c6097b3c7f37553548b485d32a8f",
+      "captureOrder": 8,
+      "login": "conradludgate"
+    },
+    {
+      "captureDirectory": "actor-a5f1820163da4ff48f8396525b93e72ca764bc4b629679716a942bbd8d31941a",
+      "captureOrder": 9,
+      "login": "crynobone"
+    },
+    {
+      "captureDirectory": "actor-5904dcd150c05b87fe06e4de15de808433e2927fbd10f4e04fcd3a68ebf97693",
+      "captureOrder": 10,
+      "login": "darksonn"
+    },
+    {
+      "captureDirectory": "actor-a9be9f8e3e4d25bf2a260ae88afafdecdc45ed2ceae6667cff2c508062cfec14",
+      "captureOrder": 11,
+      "login": "davidpdrsn"
+    },
+    {
+      "captureDirectory": "actor-171f142b2cebaa004c95a6358c74848e0c229808d3f19b9520c0a4aec4b6cf61",
+      "captureOrder": 12,
+      "login": "developit"
+    },
+    {
+      "captureDirectory": "actor-8ec62df947591b398bf275b8b34da59c9c823779a53b1464bf2cc3793bcf028a",
+      "captureOrder": 13,
+      "login": "eamonnmcmanus"
+    },
+    {
+      "captureDirectory": "actor-ac9b4f373280c8836c03435a68c2df6994b830cafeb15842afccd1db548301d7",
+      "captureOrder": 14,
+      "login": "edgrosvenor"
+    },
+    {
+      "captureDirectory": "actor-e5066ae14bd8bfbbd9816a0e92cdd5edc5ee500fb77b8e5fd8e936416bebac97",
+      "captureOrder": 15,
+      "login": "edison1105"
+    },
+    {
+      "captureDirectory": "actor-9b411c2da01009b0c3508af42b352918031b1823f8d0b647091aec6fdaf164cd",
+      "captureOrder": 16,
+      "login": "enjoy-binbin"
+    },
+    {
+      "captureDirectory": "actor-749bc502e5ec6589072c32f6b4788918da366576246cca2fad3d40d166d87f23",
+      "captureOrder": 17,
+      "login": "enselic"
+    },
+    {
+      "captureDirectory": "actor-35d9100ce8e60d92142746e99292ce09ec0e0088a92ddcb70c47755b47471c93",
+      "captureOrder": 18,
+      "login": "github-advanced-security"
+    },
+    {
+      "captureDirectory": "actor-c32260eb0efbed55f94998a82b6c362baa3cbdc24d303b229b3000e83176ef76",
+      "captureOrder": 19,
+      "login": "guonaihong"
+    },
+    {
+      "captureDirectory": "actor-cacfa7c47401f132eb92c4e75fdf7bd5beca2b684304e7f3a96c1f029e26c073",
+      "captureOrder": 20,
+      "login": "heysujal"
+    },
+    {
+      "captureDirectory": "actor-b1ea83c8a8a123c19f2446dfb049de5c9928b7de586f3f41c5aa7e075d2252ba",
+      "captureOrder": 21,
+      "login": "hpatro"
+    },
+    {
+      "captureDirectory": "actor-f8a5ab8b996b685e170b412cde3cff10d0e69fc3bc13a52851941c53c0243779",
+      "captureOrder": 22,
+      "login": "hwware"
+    },
+    {
+      "captureDirectory": "actor-84575d755248cc15595766a7500b0dfd6028d47eb0db0ed882549eb33580c40c",
+      "captureOrder": 23,
+      "login": "jbardin"
+    },
+    {
+      "captureDirectory": "actor-fc09be7c45414faf1ebde5938b118e05cd338642bade4a25f66bcba0dc525164",
+      "captureOrder": 24,
+      "login": "jovidecroock"
+    },
+    {
+      "captureDirectory": "actor-b4fc575df29f7e525e40894f7571c0c8d6512d30e144bcda1ba8ba9080b6cae7",
+      "captureOrder": 25,
+      "login": "jplatte"
+    },
+    {
+      "captureDirectory": "actor-3d3b7064baa29cc374637e4e5f0727a1af2d2581bb4c51dfb30c09eb503f4cb8",
+      "captureOrder": 26,
+      "login": "js324"
+    },
+    {
+      "captureDirectory": "actor-4a8112277ce89ddf1126836f886d76fa220914d632abd384ac71f97f59b90e5c",
+      "captureOrder": 27,
+      "login": "juliusv"
+    },
+    {
+      "captureDirectory": "actor-e634bb754d9718db3e7e037f66eb529d3927f271b229fae290c5e2cfcdc14fa8",
+      "captureOrder": 28,
+      "login": "keith-hall"
+    },
+    {
+      "captureDirectory": "actor-dae1f11d22963dcbfff2bb7b8a506feeb9fe1ddc7d2835a94ed358d9d89f3ac1",
+      "captureOrder": 29,
+      "login": "kgyrtkirk"
+    },
+    {
+      "captureDirectory": "actor-a8641c24241df861aadd5abe4c4096ac0e581057d58b9a718aa6c592f39d4fde",
+      "captureOrder": 30,
+      "login": "lakshsingla"
+    },
+    {
+      "captureDirectory": "actor-7e1ecbb24cc1f3748abba2f1436ace4629547e730da6fe87e670392bbef7fc83",
+      "captureOrder": 31,
+      "login": "leonerd"
+    },
+    {
+      "captureDirectory": "actor-5dc12e0ea94b7c0a7163fdd05787d0da15eb894920247bde6eca50a21c25de85",
+      "captureOrder": 32,
+      "login": "leviharrison"
+    },
+    {
+      "captureDirectory": "actor-389d54986eebc629ff2d9fabf5a022bda5034458eb3d59da893280d0df4531b6",
+      "captureOrder": 33,
+      "login": "liamcervante"
+    },
+    {
+      "captureDirectory": "actor-bb38da37522fdb4aaeb87c3c301af32f14ac618e1d5ff077a88220be57e2af52",
+      "captureOrder": 34,
+      "login": "liedtke"
+    },
+    {
+      "captureDirectory": "actor-0e985f6312ddb8bebefdf5f2d9638e1120a2ab87a2efc90d7404e97ee1f5219f",
+      "captureOrder": 35,
+      "login": "liuxingbaoyu"
+    },
+    {
+      "captureDirectory": "actor-148e97f13935af7eb03a03e706a5a6e8c69d7246aafc74f2dec4d4f581a1efec",
+      "captureOrder": 36,
+      "login": "madolson"
+    },
+    {
+      "captureDirectory": "actor-de05cb86e05d2f37d9b1e0d4f9122af21d5dc8d47a66c0f922feff3eb792ac8a",
+      "captureOrder": 37,
+      "login": "marconi1992"
+    },
+    {
+      "captureDirectory": "actor-2111b41b4636418e2b9a8b607346b08f51af93c93de80018d30bd52a0fbfe7cd",
+      "captureOrder": 38,
+      "login": "marcono1234"
+    },
+    {
+      "captureDirectory": "actor-0fd22edd8aa1813dae0ec4767edc2a6040ce54bca10bbc6c2dad0e567ebaf9e9",
+      "captureOrder": 39,
+      "login": "mattr-"
+    },
+    {
+      "captureDirectory": "actor-5abea6b3da010474edf0bce4e280b660d4c3379a778adf9df7ddf2b39d7d6bd0",
+      "captureOrder": 40,
+      "login": "mdouglass"
+    },
+    {
+      "captureDirectory": "actor-d142e40f12212c9f8cfd9af0a38d54460c72ac3a7985785283d1923ec33b53c7",
+      "captureOrder": 41,
+      "login": "nashley"
+    },
+    {
+      "captureDirectory": "actor-4c3c2818961eb377967806027afe203d57e718ab509249584f84a13aa017ede4",
+      "captureOrder": 42,
+      "login": "neverbehave"
+    },
+    {
+      "captureDirectory": "actor-50bf90bbcff115a08b831d47764a642a81a661e1a92c896a00784220e4c9bda4",
+      "captureOrder": 43,
+      "login": "nexucis"
+    },
+    {
+      "captureDirectory": "actor-cf88aecb34a7ec411c76e9bdbaeec3b28338ba6a7119e4e7e920c2312e11f0b9",
+      "captureOrder": 44,
+      "login": "nicolo-ribaudo"
+    },
+    {
+      "captureDirectory": "actor-8e70b6d512cbe1f999d8afd83eae39024b2124b6772608b2d24d10ac0cae9d8c",
+      "captureOrder": 45,
+      "login": "oranagra"
+    },
+    {
+      "captureDirectory": "actor-49452b211f6d620b7c116605c4f439f5d51517d005028c88bfe30309bd7514ab",
+      "captureOrder": 46,
+      "login": "parkr"
+    },
+    {
+      "captureDirectory": "actor-a04bd4cb590f319d5aa4e39c822830ea20a3e6fb005312ab8abd74e6898f7edb",
+      "captureOrder": 47,
+      "login": "pingxie"
+    },
+    {
+      "captureDirectory": "actor-2ce81e3a861da9485dfa622f874437e36c96f856bbdbdef9d86f6df47cac54ee",
+      "captureOrder": 48,
+      "login": "projektgopher"
+    },
+    {
+      "captureDirectory": "actor-95bc4ce992d4ed91bc804bb6c74a5f6a7dd53e91ddb6c8ee09a5c1439fe7e30e",
+      "captureOrder": 49,
+      "login": "roidelapluie"
+    },
+    {
+      "captureDirectory": "actor-dfd9f4bd4e3624ec5e0ce53ac76e0bfda3e60e301e340bd4c171c5f4a4076e69",
+      "captureOrder": 50,
+      "login": "sachinp97"
+    },
+    {
+      "captureDirectory": "actor-5fb5e18ee2edc118b7fe607a77634d4cb0f77d903d12e40b8ac96ed3c5c7332e",
+      "captureOrder": 51,
+      "login": "sharkdp"
+    },
+    {
+      "captureDirectory": "actor-dc7bcd4da601cde2174d02eb3377e6e06145e63e0d0ff8cd1a2e7e959e1c2348",
+      "captureOrder": 52,
+      "login": "slorber"
+    },
+    {
+      "captureDirectory": "actor-3a877e500445e33f89f3f1b9e1b72de5f719d4b4d8d55a0c2a5381c87244f03c",
+      "captureOrder": 53,
+      "login": "sundb"
+    },
+    {
+      "captureDirectory": "actor-a7e3a0d866c3d1f880a7363d0fb31f03aeedd65c93b818d1aae8ec8c15d92a3e",
+      "captureOrder": 54,
+      "login": "thinkerou"
+    },
+    {
+      "captureDirectory": "actor-526996b8ab3268e7d8ba102af36e8e987af06477adcbdc43e045ef8f844da755",
+      "captureOrder": 55,
+      "login": "vitaut"
+    },
+    {
+      "captureDirectory": "actor-217e99a096af7f40138e84049bbd48f37f58f9b944a37b6b99e68c0fd0041209",
+      "captureOrder": 56,
+      "login": "vkd"
+    },
+    {
+      "captureDirectory": "actor-b686944e9519dd1d5f3837da2824b142af0fd65779a3bc19d8881b8ed35b4108",
+      "captureOrder": 57,
+      "login": "yyx990803"
+    },
+    {
+      "captureDirectory": "actor-2403d7e8c8f4c850a76b5d10134736ce9fbdc2502f1a3718affbef6c3e894223",
+      "captureOrder": 58,
+      "login": "zuiderkwast"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "accessBoundary": {
+    "censusOutcomeAccess": false,
+    "downstreamOutcomeAccess": false,
+    "rawGoldAccess": false
+  },
+  "artifactKind": "c6-source-v3-simple-review-request",
+  "input": {
+    "byteLength": 1092,
+    "path": "provenance/source-v3-simple/review/input.json",
+    "sha256": "f09977d56c669996d5e0a3b39cc1f59e9f437ed0dbcdbbd9317ac4c82871ee73"
+  },
+  "requiredChecks": [
+    "protocol-exact-byte-closure",
+    "source-v2-and-metadata-predicate-exact-byte-closure",
+    "complete-finite-frame-with-two-pass-equality",
+    "no-quota-redraw-or-downstream-yield-stopping",
+    "prior-repository-node-id-exclusion-required-for-later-promotion",
+    "candidate-selection-and-census-remain-prohibited",
+    "freeze-ancestry-required-after-review"
+  ],
+  "schemaVersion": 1,
+  "scope": "protocol-review-only-does-not-authorize-census-or-freeze",
+  "task": "independent-c6-source-v3-simple-review-v1"
+}

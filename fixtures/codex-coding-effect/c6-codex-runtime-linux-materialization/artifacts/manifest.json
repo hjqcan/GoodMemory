@@ -1,0 +1,140 @@
+{
+  "dockerAuthority": {
+    "cliMode": 493,
+    "cliPath": "/Applications/Docker.app/Contents/Resources/bin/docker",
+    "cliSha256": "f15161bac7f4149be33d96cc42c2f90d88f76abd3a5fd6f4dd792dfc509bf905",
+    "daemonIdentityCryptographicallyAttested": false,
+    "daemonTrustBoundary": "explicit-unix-socket-daemon-not-cryptographically-attested",
+    "host": "unix:///Users/hjqcan/.docker/run/docker.sock",
+    "serverVersion": "28.4.0"
+  },
+  "image": {
+    "architecture": "amd64",
+    "id": "sha256:420f9c50e115184234e0e355d8a9ffed8b49c1b8512972ec9a8a402bb259834f",
+    "operatingSystem": "linux",
+    "runtime": {
+      "bun": {
+        "executableSha256": "45598a2814020c231575487a560e47d397d6902355d7e08171a2e56221a6d675",
+        "version": "1.3.11"
+      },
+      "node": {
+        "executableSha256": "1abce2374a485bddae3c27b17a3e3143e2780232026e627c4fe74ddde3f380a1",
+        "version": "v22.14.0"
+      },
+      "npm": {
+        "cliSha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+        "launcherSha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+        "version": "10.9.2"
+      }
+    },
+    "runtimeIdentitySha256": "37960d64a793126071fe0d89f7b0245505b7375e06ef45cf65a879f794a45792"
+  },
+  "inputClosure": {
+    "captureSha256": "6c4a975bfacd686c7e3ce7b2a1a20c0ceefe05c074df0587bf1dab7db603aeab",
+    "linuxTarballSha256": "11239480f8e3efd1430f23bbe91c1a397856b8bbe6185ccbaee2382d25e03df2",
+    "mainTarballSha256": "416399796cac371d1a033b17f34b08ba9b25c8f298a5b9d00e10f72c3b128c8d",
+    "packageJsonSha256": "170bcc26fc9f0fbf8d34f2eb9a43c0100f3088bbb4e41704505e43ef121b923b",
+    "packageLockSha256": "fdf4dcd7dc1b7a6d578beebf95527d49ae3ffa74ed39528245984712113d8844",
+    "version": "0.145.0"
+  },
+  "packagePayload": {
+    "binCodex": {
+      "path": "node_modules/.bin/codex",
+      "target": "../@openai/codex/bin/codex.js",
+      "type": "symlink"
+    },
+    "executables": {
+      "bwrap": {
+        "bytes": 529776,
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex-resources/bwrap",
+        "sha256": "77360cb751ccedc5971391444ac86a8a33c15b04d6b4a6fe45f5d25496e62c4c"
+      },
+      "codeModeHost": {
+        "bytes": 46139288,
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex-code-mode-host",
+        "sha256": "60bf16414be5333f09ff082540082304c7352931ef64bdeb170d4c35a82e6ef8"
+      },
+      "nativeCodex": {
+        "bytes": 310730800,
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex",
+        "sha256": "a2a05dafaa1acb002a45eaec0a462de5b13694fcfcd7bc43305f14781ce7be14"
+      },
+      "rg": {
+        "bytes": 5408904,
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex-path/rg",
+        "sha256": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849"
+      },
+      "wrapperCodexJs": {
+        "bytes": 7236,
+        "mode": 493,
+        "path": "node_modules/@openai/codex/bin/codex.js",
+        "sha256": "134063e133f0b4244fa3b251acf973d4fe4b4aeeacbdc135211bf480f59f1477"
+      },
+      "zsh": {
+        "bytes": 898480,
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex-resources/zsh/bin/zsh",
+        "sha256": "67faaaa89242c4a332e16e508a1977cffc24bf7fca31d4411cdfd101f3831ef3"
+      }
+    },
+    "packageManifests": {
+      "linuxX64": {
+        "bytes": 511,
+        "mode": 420,
+        "path": "node_modules/@openai/codex-linux-x64/package.json",
+        "sha256": "84f3243fd73f23dc27effde18f96db6ed0a939448299a14d594022e6341f0fd5"
+      },
+      "main": {
+        "bytes": 1082,
+        "mode": 420,
+        "path": "node_modules/@openai/codex/package.json",
+        "sha256": "ff896fd5e5444cfc645890b21273ad1c6b3e26e4e4ab0934de597a0f8db5aafb"
+      }
+    }
+  },
+  "kind": "c6-codex-runtime-linux-materialization",
+  "reproducibility": {
+    "byteIdentical": true,
+    "runArtifactSha256": "31dc6b7ca5babf01d6bcff7e012a63aaf12f1e1141b4e44dfea7ea01e997463b"
+  },
+  "runnerSourceSnapshotSha256": "64e3719bf5694d146e606797cba0d70c727b0bb39900cbbe0a9d71aa218af284",
+  "runnerSources": {
+    "assetLock": {
+      "bytes": 6070,
+      "path": "runner-sources/c6-asset-lock.ts",
+      "sha256": "21a9a605171552d5e284c581abd0d36d0a36a1be8e599b27a6987b0bb3320254"
+    },
+    "cli": {
+      "bytes": 5587,
+      "path": "runner-sources/materialize-codex-coding-effect-c6-codex-runtime-linux.ts",
+      "sha256": "dad248694a553c5715555ff9e4e2f048f06e85009a0d926a9b797fe45a80fe77"
+    },
+    "materializer": {
+      "bytes": 87384,
+      "path": "runner-sources/c6-codex-runtime-linux.ts",
+      "sha256": "4a54ce6a0b3ba9e72ba11cdabd6b2c283e27c897b054bc8f3b69916d0c055138"
+    },
+    "staticValidator": {
+      "bytes": 13875,
+      "path": "runner-sources/c6-codex-runtime.ts",
+      "sha256": "7904e4496a2e972af58b6a3af3574c0a392daf4fa97d314c65e45e6eb8878097"
+    }
+  },
+  "runs": [
+    {
+      "bytes": 8339,
+      "path": "run-1.json",
+      "sha256": "31dc6b7ca5babf01d6bcff7e012a63aaf12f1e1141b4e44dfea7ea01e997463b"
+    },
+    {
+      "bytes": 8339,
+      "path": "run-2.json",
+      "sha256": "31dc6b7ca5babf01d6bcff7e012a63aaf12f1e1141b4e44dfea7ea01e997463b"
+    }
+  ],
+  "schemaVersion": 1
+}

@@ -1,0 +1,85 @@
+{
+  "cases": [
+    {
+      "args": [
+        {
+          "items": [
+            "caller-a",
+            "caller-b"
+          ]
+        },
+        {
+          "items": [
+            "default-a"
+          ]
+        }
+      ],
+      "expected": {
+        "items": [
+          "caller-a",
+          "caller-b",
+          "default-a"
+        ]
+      },
+      "id": "root-array-order"
+    },
+    {
+      "args": [
+        {
+          "nested": {
+            "items": [
+              "caller"
+            ]
+          }
+        },
+        {
+          "nested": {
+            "items": [
+              "default"
+            ]
+          }
+        }
+      ],
+      "expected": {
+        "nested": {
+          "items": [
+            "caller",
+            "default"
+          ]
+        }
+      },
+      "id": "nested-array-order"
+    },
+    {
+      "args": [
+        {
+          "items": [
+            "first"
+          ]
+        },
+        {
+          "items": [
+            "second"
+          ]
+        },
+        {
+          "items": [
+            "third"
+          ]
+        }
+      ],
+      "expected": {
+        "items": [
+          "first",
+          "second",
+          "third"
+        ]
+      },
+      "id": "multi-default-array-order"
+    }
+  ],
+  "exportName": "defu",
+  "factoryId": "bun-typescript-module-cases-v1",
+  "modulePath": "src/defu.ts",
+  "schemaVersion": 1
+}

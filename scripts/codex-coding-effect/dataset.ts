@@ -107,20 +107,48 @@ const stageV2Schema = z.object({
   }
 });
 
+const frozenHistorySchema = z.object({
+  forbiddenLeakageSha256: z.array(sha256Schema),
+  path: relativeManifestPathSchema,
+  sha256: sha256Schema,
+  source: z.literal("frozen-artifact"),
+}).strict();
+
 const prehistorySchema = z.discriminatedUnion("source", [
   z.object({
     source: z.literal("none"),
   }).strict(),
-  z.object({
-    forbiddenLeakageSha256: z.array(sha256Schema),
-    path: relativeManifestPathSchema,
-    sha256: sha256Schema,
-    source: z.literal("frozen-artifact"),
-  }).strict(),
+  frozenHistorySchema,
   z.object({
     source: z.literal("native-longitudinal"),
   }).strict(),
 ]);
+
+const taskOriginReceiptSchema = z.object({
+  path: relativeManifestPathSchema.refine(
+    (value) => value.startsWith("provenance/task-origin/reviews/"),
+    "task-origin receipt must stay under provenance/task-origin/reviews/",
+  ),
+  sha256: sha256Schema,
+}).strict();
+
+const taskOriginReviewProvenanceSchema = z.object({
+  path: relativeManifestPathSchema.refine(
+    (value) =>
+      value === "provenance/task-origin/review/provenance.json",
+    "task-origin review provenance must use the canonical path",
+  ),
+  sha256: sha256Schema,
+}).strict();
+
+const sourceLineageSchema = z.object({
+  path: relativeManifestPathSchema.refine(
+    (value) =>
+      value === "provenance/dataset-lineage/lineage.json",
+    "dataset source lineage must use the canonical path",
+  ),
+  sha256: sha256Schema,
+}).strict();
 
 const leakageScalarSchema = z.union([
   z.string(),
@@ -153,11 +181,16 @@ const episodeBaseShape = {
       "allowlisted",
     ]),
   }).strict(),
-  prehistory: prehistorySchema,
   provenance: trimmedStringSchema,
   repository: z.object({
+    assetPath: relativeManifestPathSchema.refine(
+      (value) => value.startsWith("repositories/"),
+      "repository asset path must stay under repositories/",
+    ).optional(),
     baseCommit: gitCommitSchema,
     license: trimmedStringSchema,
+    redistributionAllowed: z.boolean().optional(),
+    redistributionReviewed: z.boolean().optional(),
     url: z.url().refine(
       (value) => value.startsWith("https://") || value.startsWith("http://"),
       "repository.url must use http or https",
@@ -170,6 +203,7 @@ const episodeBaseShape = {
   ]),
   stateMode: z.enum(["canonical-snapshot", "persistent-branch"]),
   strata: z.array(memoryStratumSchema).min(1),
+  taskOriginReceipt: taskOriginReceiptSchema.optional(),
 };
 
 const episodeV1Schema = z.object({
@@ -178,6 +212,7 @@ const episodeV1Schema = z.object({
     (value) => value.startsWith("evaluator/"),
     "goldPatchPath must be under evaluator/",
   ),
+  prehistory: prehistorySchema,
   stages: z.array(stageV1Schema).min(1),
 }).strict().superRefine((episode, context) => {
   validateEpisodeStructure(
@@ -194,8 +229,44 @@ const episodeV1Schema = z.object({
 
 const episodeV2Schema = z.object({
   ...episodeBaseShape,
+  prehistory: prehistorySchema,
+  primaryStratum: memoryStratumSchema.optional(),
   stages: z.array(stageV2Schema).min(1),
 }).strict().superRefine((episode, context) => {
+  validateEpisodeStructure(
+    episode.id,
+    episode.strata,
+    episode.stages.map((stage) => ({
+      dependencies: stage.memoryExpectation.dependencies,
+      id: stage.id,
+      position: stage.position,
+    })),
+    (message, path) => context.addIssue({ code: "custom", message, path }),
+  );
+});
+
+const stageV3Schema = stageV2Schema.safeExtend({
+  history: frozenHistorySchema,
+});
+
+const episodeV3Schema = z.object({
+  ...episodeBaseShape,
+  historyPolicy: z.literal("stage-scoped-sealed-prefix-v1"),
+  primaryStratum: memoryStratumSchema.optional(),
+  stages: z.array(stageV3Schema).min(1),
+}).strict().superRefine((episode, context) => {
+  if (
+    episode.claimEligibility === "claim-eligible" &&
+    episode.sourceType !== "controlled-mutation" &&
+    episode.taskOriginReceipt === undefined
+  ) {
+    context.addIssue({
+      code: "custom",
+      message:
+        `C6 ${episode.sourceType} episode ${episode.id} requires task-origin evidence`,
+      path: ["taskOriginReceipt"],
+    });
+  }
   validateEpisodeStructure(
     episode.id,
     episode.strata,
@@ -223,6 +294,21 @@ const datasetV2Schema = z.object({
   datasetId: identifierSchema,
   episodes: z.array(episodeV2Schema).min(1),
   schemaVersion: z.literal(2),
+  sourceLineage: sourceLineageSchema.optional(),
+  taskOriginReviewProvenance: taskOriginReviewProvenanceSchema.optional(),
+}).strict().superRefine((dataset, context) => {
+  validateDatasetEpisodeIds(
+    dataset.episodes,
+    (message, path) => context.addIssue({ code: "custom", message, path }),
+  );
+});
+
+const datasetV3Schema = z.object({
+  datasetId: identifierSchema,
+  episodes: z.array(episodeV3Schema).min(1),
+  schemaVersion: z.literal(3),
+  sourceLineage: sourceLineageSchema.optional(),
+  taskOriginReviewProvenance: taskOriginReviewProvenanceSchema.optional(),
 }).strict().superRefine((dataset, context) => {
   validateDatasetEpisodeIds(
     dataset.episodes,
@@ -233,10 +319,12 @@ const datasetV2Schema = z.object({
 const datasetSchema = z.discriminatedUnion("schemaVersion", [
   datasetV1Schema,
   datasetV2Schema,
+  datasetV3Schema,
 ]);
 
 export type CodexCodingEffectDatasetV1 = z.infer<typeof datasetV1Schema>;
 export type CodexCodingEffectDatasetV2 = z.infer<typeof datasetV2Schema>;
+export type CodexCodingEffectDatasetV3 = z.infer<typeof datasetV3Schema>;
 export type CodexCodingEffectDataset = z.infer<typeof datasetSchema>;
 export type CodexCodingEffectEpisode = CodexCodingEffectDataset["episodes"][number];
 

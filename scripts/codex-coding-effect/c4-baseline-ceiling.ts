@@ -8,7 +8,10 @@ import {
   c4RepositoryIdForUrl,
   materializeC4SourceRepository,
 } from "./c4-controlled-dataset";
-import type { CodexCodingEffectDataset } from "./dataset";
+import type {
+  CodexCodingEffectDataset,
+  CodexCodingEffectDatasetV2,
+} from "./dataset";
 
 export interface C4BaselineCeilingTarget {
   episodeId: string;
@@ -203,8 +206,8 @@ export function buildC4BaselineCeilingTargets(
 }
 
 export function c4BaselineStageInputSha256(
-  episode: CodexCodingEffectDataset["episodes"][number],
-  stage: CodexCodingEffectDataset["episodes"][number]["stages"][number],
+  episode: CodexCodingEffectDatasetV2["episodes"][number],
+  stage: CodexCodingEffectDatasetV2["episodes"][number]["stages"][number],
 ): string {
   return sha256(canonicalJson({
     episode: {

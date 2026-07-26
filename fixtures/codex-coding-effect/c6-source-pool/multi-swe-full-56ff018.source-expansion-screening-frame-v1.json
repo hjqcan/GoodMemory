@@ -1,0 +1,2512 @@
+{
+  "artifactKind": "c6-source-expansion-screening-frame",
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "adaptiveProspective": true,
+    "candidateManifestFrozen": false,
+    "captureAttemptCompletenessProven": false,
+    "codexRunReady": false,
+    "machineQualifiedEpisodeCount": 0,
+    "status": "combined-structural-screening-frame-semantic-and-machine-qualification-required",
+    "structuralCapacityOnly": true
+  },
+  "candidates": [
+    {
+      "canonicalAnchorId": "fmtlib/fmt#2940",
+      "canonicalRepository": "fmtlib/fmt",
+      "lineageIdentitySha256": "5d7d6da002c7dda9ff66dc3857b95d64e28592e4f7338c81d8a50b5c03a35d7a",
+      "requestedAnchorId": "fmtlib/fmt#2940",
+      "screeningRank": 1,
+      "source": {
+        "path": "cpp/fmtlib__fmt_dataset.jsonl",
+        "rowIndex": 25,
+        "rowSha256": "272b3c9c408a031c972a1d257c3320f461179bd2d68bf7d7153691d0a3f554a5"
+      },
+      "sourceRank": 1,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#37850",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "f84e04462b43b1dc778799935238a7a7611ff5671ea0f8a2d3c2fdf41f9552b9",
+      "requestedAnchorId": "mui/material-ui#37850",
+      "screeningRank": 2,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 23,
+        "rowSha256": "d81528f6ef9669bf820a80c01a0ac07a521099f09b3e5643e7113b8db4a487bc"
+      },
+      "sourceRank": 2,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#549",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "c50e7e343973e88c4ac06da197774c1aad5cfa97130ac5a49b2c7bae1559a91a",
+      "requestedAnchorId": "cli/cli#549",
+      "screeningRank": 3,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 385,
+        "rowSha256": "e8a9be63535893c1b6cb70ad94a17e350bf92b4e980ef4147336218805da8cce"
+      },
+      "sourceRank": 3,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#13437",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "ebf118143b241e8df475f83049d5d773e8726680282909f5dc20c438a62f8d9a",
+      "requestedAnchorId": "sveltejs/svelte#13437",
+      "screeningRank": 4,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 83,
+        "rowSha256": "43dc0790e808abf2c226f933ffeaf7e4a1bad66aee0da2dcee74dfa9c6ae7d29"
+      },
+      "sourceRank": 4,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "fmtlib/fmt#974",
+      "canonicalRepository": "fmtlib/fmt",
+      "lineageIdentitySha256": "e762f489ccb1f0ea5d91c971cbccd8c25de8c29ded27b441f467d84caba11ea2",
+      "requestedAnchorId": "fmtlib/fmt#974",
+      "screeningRank": 5,
+      "source": {
+        "path": "cpp/fmtlib__fmt_dataset.jsonl",
+        "rowIndex": 39,
+        "rowSha256": "c270fa493c58479d1490b488060136138b7dc8a0ce3564cebf572433094c94a9"
+      },
+      "sourceRank": 5,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "tokio-rs/bytes#547",
+      "canonicalRepository": "tokio-rs/bytes",
+      "lineageIdentitySha256": "53f336e6f2753de20ff009873569bf56e81028ea329ff668d9d1e929511e9e46",
+      "requestedAnchorId": "tokio-rs/bytes#547",
+      "screeningRank": 6,
+      "source": {
+        "path": "rust/tokio-rs__bytes_dataset.jsonl",
+        "rowIndex": 4,
+        "rowSha256": "b40e9992be82707bf81957499c3056ecea400b172eb06b856fc1b7781b90f628"
+      },
+      "sourceRank": 6,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "ponylang/ponyc#4505",
+      "canonicalRepository": "ponylang/ponyc",
+      "lineageIdentitySha256": "ac9134b259aeaa3906551a11ad600b062b285412884c46f015e7c1a26c31c16c",
+      "requestedAnchorId": "ponylang/ponyc#4505",
+      "screeningRank": 7,
+      "source": {
+        "path": "c/ponylang__ponyc_dataset.jsonl",
+        "rowIndex": 6,
+        "rowSha256": "3567275bf3e78941ce897580fbb084a3673e5c654edc292f4deb9cc47a7bf7da"
+      },
+      "sourceRank": 7,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#31172",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "9fb37737b8a43739dade0579d9e4a023083a4b90e04386a3330c4fe935030087",
+      "requestedAnchorId": "mui/material-ui#31172",
+      "screeningRank": 8,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 108,
+        "rowSha256": "8ccd49d96d6fb388ff2dab4a36689af2063601514aed21439cf2e4756d4cc515"
+      },
+      "sourceRank": 8,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#38169",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "e0438da241620998b597435d93c9b05b2af34dd226b7d50895d95aaa335335d7",
+      "requestedAnchorId": "mui/material-ui#38169",
+      "screeningRank": 9,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 19,
+        "rowSha256": "fdd379b9ba26fa487aceb85df1804f4f9e10fc8702f95d23484fc1b189e006df"
+      },
+      "sourceRank": 9,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#37667",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "c43ddb2cd46adc1e7d4fe81b31cfaf85cdaef351294d3c821d900e7750563725",
+      "requestedAnchorId": "mui/material-ui#37667",
+      "screeningRank": 10,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 26,
+        "rowSha256": "9c228d7714f589161122f8188928b762f90f3a6986b21d2ed85e627d16a69fa9"
+      },
+      "sourceRank": 10,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#7288",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "a5b3d4faaaff4c4e3c7d6613ce1cb4ef6ba3f45d3ec44c38e6f272f63d126cc7",
+      "requestedAnchorId": "cli/cli#7288",
+      "screeningRank": 11,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 124,
+        "rowSha256": "e87d9bb2cbee39473bb8e44e5553e521b59fee906d7278f91b251a6dbc7f837e"
+      },
+      "sourceRank": 11,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#9113",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "36cee62b4c70f2434fd8a9092523efdf19e60f5688652d3a4dfa910927f78670",
+      "requestedAnchorId": "cli/cli#9113",
+      "screeningRank": 12,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 50,
+        "rowSha256": "bd8d131e68a20e05b975f09064a0d99895a4feaed259cf1c05f25cec5e48de52"
+      },
+      "sourceRank": 12,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "simdjson/simdjson#1667",
+      "canonicalRepository": "simdjson/simdjson",
+      "lineageIdentitySha256": "bdd2caeeffce5f6723611f4d7a33b84d7db5893fbe959b954b5037bb4ae94b16",
+      "requestedAnchorId": "simdjson/simdjson#1667",
+      "screeningRank": 13,
+      "source": {
+        "path": "cpp/simdjson__simdjson_dataset.jsonl",
+        "rowIndex": 9,
+        "rowSha256": "8d644e9f764f0e0178a1fb1e58c607b6ce4750fc0cc491cb8eb4efef56332250"
+      },
+      "sourceRank": 13,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "vuejs/core#9213",
+      "canonicalRepository": "vuejs/core",
+      "lineageIdentitySha256": "fd53c3bd75a115746f9c42667598800387a6d76784007e4f24187910ee2cb5dc",
+      "requestedAnchorId": "vuejs/core#9213",
+      "screeningRank": 14,
+      "source": {
+        "path": "ts/vuejs__core_dataset.jsonl",
+        "rowIndex": 38,
+        "rowSha256": "33cf80551117259f44cb9bb48ed04233a8e2d9d98c9e375b813b6109747bc262"
+      },
+      "sourceRank": 14,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#12560",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "3f58b9da423a10f84b9198830bd4aaad52c209e512625ff215bebbd43bc75254",
+      "requestedAnchorId": "sveltejs/svelte#12560",
+      "screeningRank": 15,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 126,
+        "rowSha256": "6043262f676d43e8cff6d7f2d7eaa168b873b5599f29f055553dff9af4b0725f"
+      },
+      "sourceRank": 15,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#9083",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "10e49a9140507239a2158d1d169d3dae4629ef9b5537e75fadc3d7c52980bf86",
+      "requestedAnchorId": "cli/cli#9083",
+      "screeningRank": 16,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 53,
+        "rowSha256": "2fe9438c7935735c38d373d6f428f713eec06f48284ad1537143287a350f3063"
+      },
+      "sourceRank": 16,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#13850",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "0de2a62cee9d2163a7d06e52a8628d847f34fb31e99f0532ab038b3982db1eb1",
+      "requestedAnchorId": "sveltejs/svelte#13850",
+      "screeningRank": 17,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 54,
+        "rowSha256": "74f507852bb3eb58016f9bfd9acbbeef1759efa8049f436869f4ec70cc62a1c0"
+      },
+      "sourceRank": 17,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "anuraghazra/github-readme-stats#2099",
+      "canonicalRepository": "anuraghazra/github-readme-stats",
+      "lineageIdentitySha256": "868ea1b958e2afeb220eb651b7f91da96a8d80622d1092b544360f0a647600c3",
+      "requestedAnchorId": "anuraghazra/github-readme-stats#2099",
+      "screeningRank": 18,
+      "source": {
+        "path": "js/anuraghazra__github-readme-stats_dataset.jsonl",
+        "rowIndex": 5,
+        "rowSha256": "c3cd379669edfbadfc282c984b812e6c1223de85e72667e26e6179c53a5a4bbb"
+      },
+      "sourceRank": 18,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "clap-rs/clap#2796",
+      "canonicalRepository": "clap-rs/clap",
+      "lineageIdentitySha256": "23cd91086ad84d497e0ec6e81f65329d9da1be550de18d481f7807c31a5a87a0",
+      "requestedAnchorId": "clap-rs/clap#2796",
+      "screeningRank": 19,
+      "source": {
+        "path": "rust/clap-rs__clap_dataset.jsonl",
+        "rowIndex": 79,
+        "rowSha256": "210e1a0bbd2374eb32f7a98a23a86770fa44546f3b2a621adea8fc5cb816b440"
+      },
+      "sourceRank": 19,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#12413",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "76ebd9760599ac43436d481409ee412e53f8b1006c6a862c983e96ec9fcf01f4",
+      "requestedAnchorId": "sveltejs/svelte#12413",
+      "screeningRank": 20,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 136,
+        "rowSha256": "71130f5d0ddc9ac92e02af7d2764f4d2c2076df5f82d32ad2c67cf1cf3d9dc0c"
+      },
+      "sourceRank": 20,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "google/gson#1787",
+      "canonicalRepository": "google/gson",
+      "lineageIdentitySha256": "4f7402d0a02bead66821d9a000fdd760a6af18c5b38fe81deb8361bd091e6026",
+      "requestedAnchorId": "google/gson#1787",
+      "screeningRank": 21,
+      "source": {
+        "path": "java/google__gson_dataset.jsonl",
+        "rowIndex": 1,
+        "rowSha256": "481cced985b297b909b301b9a5b74cc23e49fc49dc1026629f4d33174d759b2b"
+      },
+      "sourceRank": 21,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "vuejs/core#10416",
+      "canonicalRepository": "vuejs/core",
+      "lineageIdentitySha256": "c54d7fb5824040134edc4a230554f6910f12010a53cb7da12cb94a46ab892ce8",
+      "requestedAnchorId": "vuejs/core#10416",
+      "screeningRank": 22,
+      "source": {
+        "path": "ts/vuejs__core_dataset.jsonl",
+        "rowIndex": 22,
+        "rowSha256": "52ff4d547acd04e0bf755da01047e07d4297cc464f9cd88acc7250de4f1cf2be"
+      },
+      "sourceRank": 22,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "tokio-rs/tokio#6618",
+      "canonicalRepository": "tokio-rs/tokio",
+      "lineageIdentitySha256": "e1edbb7415828da45fcb0b90e582060e769fd1fca9b7aca71cb2cda5a4a7fdd5",
+      "requestedAnchorId": "tokio-rs/tokio#6618",
+      "screeningRank": 23,
+      "source": {
+        "path": "rust/tokio-rs__tokio_dataset.jsonl",
+        "rowIndex": 5,
+        "rowSha256": "210bc89e5b41ebcd4c134563ce1edabac11be328a1f2b91de9e2a53480cb41fc"
+      },
+      "sourceRank": 23,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "tokio-rs/tokio#6409",
+      "canonicalRepository": "tokio-rs/tokio",
+      "lineageIdentitySha256": "182de3598a85d9c1099ec2f706af0504417f78b909d459bffaa68bfdd1a5fa7c",
+      "requestedAnchorId": "tokio-rs/tokio#6409",
+      "screeningRank": 24,
+      "source": {
+        "path": "rust/tokio-rs__tokio_dataset.jsonl",
+        "rowIndex": 7,
+        "rowSha256": "caab14c4b3bb696f4634f39d1c2a835566e7f52fcb4b6a3f54b7ebe63c042a84"
+      },
+      "sourceRank": 24,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "detekt/detekt#7635",
+      "canonicalRepository": "detekt/detekt",
+      "lineageIdentitySha256": "170d2816a5dadf06953787ae7f0624e44bbd1e1ef77edb1d4169d85eb8e91f91",
+      "requestedAnchorId": "detekt/detekt#7635",
+      "screeningRank": 25,
+      "source": {
+        "path": "kotlin/detekt__detekt_dataset.jsonl",
+        "rowIndex": 6,
+        "rowSha256": "38581eefa93e5079a5d44ddfb1293a25124757afb361e3aa79df2e69a8ee98ba"
+      },
+      "sourceRank": 25,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "facebook/zstd#1726",
+      "canonicalRepository": "facebook/zstd",
+      "lineageIdentitySha256": "dfd2ed55fe1e61ef4bc33eebf6f9515cd988eee96a703953f8ea3976aacc4640",
+      "requestedAnchorId": "facebook/zstd#1726",
+      "screeningRank": 26,
+      "source": {
+        "path": "c/facebook__zstd_dataset.jsonl",
+        "rowIndex": 11,
+        "rowSha256": "6a2fe9babddcdbde8ae29044b1a879bb8e9cb91fbea16a371b8e48d0be7fdb5d"
+      },
+      "sourceRank": 26,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "vuejs/core#8470",
+      "canonicalRepository": "vuejs/core",
+      "lineageIdentitySha256": "1132b2a72535eea35fc9cd91a40b867910080f52796f2406351bbfcd6d4fdc60",
+      "requestedAnchorId": "vuejs/core#8470",
+      "screeningRank": 27,
+      "source": {
+        "path": "ts/vuejs__core_dataset.jsonl",
+        "rowIndex": 45,
+        "rowSha256": "12ecd69ba02a654fd3146e8f3a39e99dec8e527486acbcabe7a368107738b037"
+      },
+      "sourceRank": 27,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "vuejs/core#10522",
+      "canonicalRepository": "vuejs/core",
+      "lineageIdentitySha256": "89f16acf361d9b5581689551f3e64676e86ff33d411eadc64c0d43d2d9d31f78",
+      "requestedAnchorId": "vuejs/core#10522",
+      "screeningRank": 28,
+      "source": {
+        "path": "ts/vuejs__core_dataset.jsonl",
+        "rowIndex": 21,
+        "rowSha256": "a09a6ad3ffdf92dc32d620770436e693d689851616b128cec182806d08a2f6b5"
+      },
+      "sourceRank": 28,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "fasterxml/jackson-databind#3851",
+      "canonicalRepository": "fasterxml/jackson-databind",
+      "lineageIdentitySha256": "044801d6d0f7b0ec4d217360863e89eba15ad13ac5e3fb43d8cc3ab8a94bf5d8",
+      "requestedAnchorId": "fasterxml/jackson-databind#3851",
+      "screeningRank": 29,
+      "source": {
+        "path": "java/fasterxml__jackson-databind_dataset.jsonl",
+        "rowIndex": 42,
+        "rowSha256": "2f2ab14095df2d5bfc4572fdf3e9f5488feda73e5c8abd530b253c5f3efb8213"
+      },
+      "sourceRank": 29,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "fmtlib/fmt#2310",
+      "canonicalRepository": "fmtlib/fmt",
+      "lineageIdentitySha256": "9f3ac9583b991643a3638f1ebe51ad7099f56dfbd615d76e438af61d49e633de",
+      "requestedAnchorId": "fmtlib/fmt#2310",
+      "screeningRank": 30,
+      "source": {
+        "path": "cpp/fmtlib__fmt_dataset.jsonl",
+        "rowIndex": 29,
+        "rowSha256": "e5e5470bfd9d24110454457b36add2772e021e4daa3908848014c8dbc8e6f41e"
+      },
+      "sourceRank": 30,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "fmtlib/fmt#3863",
+      "canonicalRepository": "fmtlib/fmt",
+      "lineageIdentitySha256": "afa831d50220be6d255f39f7696d6a5f5e0b4afedeca6cb9ea98f48cd58e7ac0",
+      "requestedAnchorId": "fmtlib/fmt#3863",
+      "screeningRank": 31,
+      "source": {
+        "path": "cpp/fmtlib__fmt_dataset.jsonl",
+        "rowIndex": 7,
+        "rowSha256": "718832e848e6042b846ab555c5668d34ac01fb6964e84f52ff8a3bc5ec221570"
+      },
+      "sourceRank": 31,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "tokio-rs/tokio#5343",
+      "canonicalRepository": "tokio-rs/tokio",
+      "lineageIdentitySha256": "312495539a7fee84298f2cb92d87e5833d5de7966a7d4fdd172066a3763d4fe4",
+      "requestedAnchorId": "tokio-rs/tokio#5343",
+      "screeningRank": 32,
+      "source": {
+        "path": "rust/tokio-rs__tokio_dataset.jsonl",
+        "rowIndex": 18,
+        "rowSha256": "736f89d07cd543a18d42bf2b6c97e4204ad71d083d093771e78c1139568f818d"
+      },
+      "sourceRank": 32,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "ponylang/ponyc#3819",
+      "canonicalRepository": "ponylang/ponyc",
+      "lineageIdentitySha256": "5fef83022259647d62cb95363a8fe2f8a2b01abc2b14f0e06da577e936f279ed",
+      "requestedAnchorId": "ponylang/ponyc#3819",
+      "screeningRank": 33,
+      "source": {
+        "path": "c/ponylang__ponyc_dataset.jsonl",
+        "rowIndex": 28,
+        "rowSha256": "8ede7607681a5a09314eb59275bd324baad32fa239a4af7c67f4a12ed4b52773"
+      },
+      "sourceRank": 33,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "ponylang/ponyc#3675",
+      "canonicalRepository": "ponylang/ponyc",
+      "lineageIdentitySha256": "ef557d846bc7f0908ee1edf73a52bb5b9031666feddd80473f30a18dda71737f",
+      "requestedAnchorId": "ponylang/ponyc#3675",
+      "screeningRank": 34,
+      "source": {
+        "path": "c/ponylang__ponyc_dataset.jsonl",
+        "rowIndex": 37,
+        "rowSha256": "a7dc2a41efaeccd2699173a69274fbeab7b3588e2a33bb61dd46daddcd25cabe"
+      },
+      "sourceRank": 34,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "simdjson/simdjson#1695",
+      "canonicalRepository": "simdjson/simdjson",
+      "lineageIdentitySha256": "a22d7081d26b31a3f5cc7aba7691996e20cb193d61cea235d164d871136ebb2c",
+      "requestedAnchorId": "simdjson/simdjson#1695",
+      "screeningRank": 35,
+      "source": {
+        "path": "cpp/simdjson__simdjson_dataset.jsonl",
+        "rowIndex": 8,
+        "rowSha256": "69fa6b2098402451571144ff427c81575dfc3b80ef559edfb01f66c89f3163d7"
+      },
+      "sourceRank": 35,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "ponylang/ponyc#4299",
+      "canonicalRepository": "ponylang/ponyc",
+      "lineageIdentitySha256": "6cdf7cc7be79cb4a9cc23dba24e7bed2fe93e81eb5ea3c9bc5dd7ff43c7358c9",
+      "requestedAnchorId": "ponylang/ponyc#4299",
+      "screeningRank": 36,
+      "source": {
+        "path": "c/ponylang__ponyc_dataset.jsonl",
+        "rowIndex": 8,
+        "rowSha256": "50845d7d557bdf655d2017e210556c087d829268e8f7327ee46cc6ec0a587be8"
+      },
+      "sourceRank": 36,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "simdjson/simdjson#1615",
+      "canonicalRepository": "simdjson/simdjson",
+      "lineageIdentitySha256": "34b8b2fea19fb60c23d8fa01a0a6dcff1e0d34a8bcb7ec776ae4ac946c37d080",
+      "requestedAnchorId": "simdjson/simdjson#1615",
+      "screeningRank": 37,
+      "source": {
+        "path": "cpp/simdjson__simdjson_dataset.jsonl",
+        "rowIndex": 11,
+        "rowSha256": "083c181ae27a11c3eb19891ccdc201d34fe10016062d027d26b17ef22cf24750"
+      },
+      "sourceRank": 37,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "tokio-rs/tokio#6345",
+      "canonicalRepository": "tokio-rs/tokio",
+      "lineageIdentitySha256": "336307d564d31a5c96ecb0aefdcac036d1c48106a5ddfd53ddc3119ca5f4f9ad",
+      "requestedAnchorId": "tokio-rs/tokio#6345",
+      "screeningRank": 38,
+      "source": {
+        "path": "rust/tokio-rs__tokio_dataset.jsonl",
+        "rowIndex": 8,
+        "rowSha256": "acd302ec59bcfd611f54e3f9638bde5ac18d134b25743a7d3ff6c51ca83693ee"
+      },
+      "sourceRank": 38,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "hannah-sten/texify-idea#3128",
+      "canonicalRepository": "hannah-sten/texify-idea",
+      "lineageIdentitySha256": "7c7099d56483de04166aeddc0dbc4b11d9cb9331762047904135e37453840f95",
+      "requestedAnchorId": "Hannah-Sten/TeXiFy-IDEA#3128",
+      "screeningRank": 39,
+      "source": {
+        "path": "kotlin/Hannah-Sten__TeXiFy-IDEA_dataset.jsonl",
+        "rowIndex": 6,
+        "rowSha256": "1f690d91a1435e858303792bcbde0f6c1254aa90515e4407a72f7cf2a01aa6ec"
+      },
+      "sourceRank": 39,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "tokio-rs/tracing#1983",
+      "canonicalRepository": "tokio-rs/tracing",
+      "lineageIdentitySha256": "45ba0bd9dc0846a1bd97c44e444d1d1ec79e0acd40da73f0cf5fda33e4b3fceb",
+      "requestedAnchorId": "tokio-rs/tracing#1983",
+      "screeningRank": 40,
+      "source": {
+        "path": "rust/tokio-rs__tracing_dataset.jsonl",
+        "rowIndex": 9,
+        "rowSha256": "70a86884840b41e15677f42c0d05ee5557531a3bb874e0d0f07b0eae56f64ffc"
+      },
+      "sourceRank": 40,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "elastic/logstash#14058",
+      "canonicalRepository": "elastic/logstash",
+      "lineageIdentitySha256": "73b4c91b7ca26d36cf0317b937a1e8eef7572d96bd3c5d923db595b24fd78870",
+      "requestedAnchorId": "elastic/logstash#14058",
+      "screeningRank": 41,
+      "source": {
+        "path": "java/elastic__logstash_dataset.jsonl",
+        "rowIndex": 28,
+        "rowSha256": "9f53e430b1e61facb0bb638abb7138bd1b5f15cefecdb217773e816a0af6934c"
+      },
+      "sourceRank": 41,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "elastic/logstash#13880",
+      "canonicalRepository": "elastic/logstash",
+      "lineageIdentitySha256": "34dc6d4006962c24e30279b91058223661423fe3a786d616e57161bf082eb0ea",
+      "requestedAnchorId": "elastic/logstash#13880",
+      "screeningRank": 42,
+      "source": {
+        "path": "java/elastic__logstash_dataset.jsonl",
+        "rowIndex": 37,
+        "rowSha256": "2a0a484fb9c7e9d4a4ffc9f1a6d9f2fead4bb75567cfe3cf29a7755c2fce051f"
+      },
+      "sourceRank": 42,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "tokio-rs/tracing#1252",
+      "canonicalRepository": "tokio-rs/tracing",
+      "lineageIdentitySha256": "e6707a023f0c34f860990dc260182e51ffd3d6cee3c68d243c4a500a38aab7eb",
+      "requestedAnchorId": "tokio-rs/tracing#1252",
+      "screeningRank": 43,
+      "source": {
+        "path": "rust/tokio-rs__tracing_dataset.jsonl",
+        "rowIndex": 15,
+        "rowSha256": "5610700796ada8600a9628c96a891e658a6160f660564ef4d3cd724884239f38"
+      },
+      "sourceRank": 43,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "grpc/grpc-go#2760",
+      "canonicalRepository": "grpc/grpc-go",
+      "lineageIdentitySha256": "73baa932365b57869ef6b446c3913e4ce642f628a9ffe8242f9f4c24d6dbeece",
+      "requestedAnchorId": "grpc/grpc-go#2760",
+      "screeningRank": 44,
+      "source": {
+        "path": "go/grpc__grpc-go_dataset.jsonl",
+        "rowIndex": 10,
+        "rowSha256": "6b9c2e5d1e6ceb5eb32d0c8ffdf82a2cb2ebe7a225b920244eb26ff6c3815d6f"
+      },
+      "sourceRank": 44,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "googlecontainertools/jib#2542",
+      "canonicalRepository": "googlecontainertools/jib",
+      "lineageIdentitySha256": "fedddba8cf0739b1fdde5568aaac20d7b5fbcf2d86ac5155ec32fe725b764bca",
+      "requestedAnchorId": "googlecontainertools/jib#2542",
+      "screeningRank": 45,
+      "source": {
+        "path": "java/googlecontainertools__jib_dataset.jsonl",
+        "rowIndex": 3,
+        "rowSha256": "b17ef80093fc5eedd1ead2286812c005357aec9e94a921469448b2887a1bc054"
+      },
+      "sourceRank": 45,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "tokio-rs/tracing#1015",
+      "canonicalRepository": "tokio-rs/tracing",
+      "lineageIdentitySha256": "f2f67dea8e70bf5835473845ca023e8284bf5aab2de9068095c0604fbc5739ab",
+      "requestedAnchorId": "tokio-rs/tracing#1015",
+      "screeningRank": 46,
+      "source": {
+        "path": "rust/tokio-rs__tracing_dataset.jsonl",
+        "rowIndex": 21,
+        "rowSha256": "95dedbd24d18fd903dde233c2e7b32f9843bad5617bb8eac459444198cbbd537"
+      },
+      "sourceRank": 46,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "facebook/zstd#1733",
+      "canonicalRepository": "facebook/zstd",
+      "lineageIdentitySha256": "dd7dd2dfb17fff4111c721fcd1c520a3e2cb25e04dbc4cab26bead69b0fa7dcb",
+      "requestedAnchorId": "facebook/zstd#1733",
+      "screeningRank": 47,
+      "source": {
+        "path": "c/facebook__zstd_dataset.jsonl",
+        "rowIndex": 10,
+        "rowSha256": "60b3c916c19730e4ec7d293aacd38fb7c43c98313e9b23ad498b6a5151d144e4"
+      },
+      "sourceRank": 47,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "tokio-rs/tracing#1853",
+      "canonicalRepository": "tokio-rs/tracing",
+      "lineageIdentitySha256": "bf9b8c28b8b536ca6f4635d788fc59ca7ea798226705f7a73a558d494acf6b15",
+      "requestedAnchorId": "tokio-rs/tracing#1853",
+      "screeningRank": 48,
+      "source": {
+        "path": "rust/tokio-rs__tracing_dataset.jsonl",
+        "rowIndex": 10,
+        "rowSha256": "8d30bbde0416a55cd1945b586aba7c4a670a7621e626cebcd00a9fd2e1a0a2d5"
+      },
+      "sourceRank": 48,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sharkdp/fd#546",
+      "canonicalRepository": "sharkdp/fd",
+      "lineageIdentitySha256": "041438036478ef0827c6fd70c4263d181326e6844104f2b491ce1239fcaacf23",
+      "requestedAnchorId": "sharkdp/fd#546",
+      "screeningRank": 49,
+      "source": {
+        "path": "rust/sharkdp__fd_dataset.jsonl",
+        "rowIndex": 13,
+        "rowSha256": "0b52d0177e4133b7b71e210cd404b26224905bcb6c3813b57b12615cb63658f4"
+      },
+      "sourceRank": 49,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "nlohmann/json#4512",
+      "canonicalRepository": "nlohmann/json",
+      "lineageIdentitySha256": "7bc744e48b69e10f03671bbb19072f1e33aa52bf62c6ee387214a41d1c6e9884",
+      "requestedAnchorId": "nlohmann/json#4512",
+      "screeningRank": 50,
+      "source": {
+        "path": "cpp/nlohmann__json_dataset.jsonl",
+        "rowIndex": 4,
+        "rowSha256": "ed3ab21be5dac5ec5db3f68741a994921cf199cb0d10f5e8d8d5a99280f7421b"
+      },
+      "sourceRank": 50,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "clap-rs/clap#2749",
+      "canonicalRepository": "clap-rs/clap",
+      "lineageIdentitySha256": "28291a582125ed3278cf1c42d17bd79b3d11765a49a6e47c25be6beab3f84d93",
+      "requestedAnchorId": "clap-rs/clap#2749",
+      "screeningRank": 51,
+      "source": {
+        "path": "rust/clap-rs__clap_dataset.jsonl",
+        "rowIndex": 83,
+        "rowSha256": "88ca48c9039d03fb50218d9e00c0090793961cdf5b053c6d1b8d7024685522f2"
+      },
+      "sourceRank": 51,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "nlohmann/json#3543",
+      "canonicalRepository": "nlohmann/json",
+      "lineageIdentitySha256": "3f1406ca9a33b51d7ba6953c9f387615e2465d3a7f0b2ec43708172b928f2420",
+      "requestedAnchorId": "nlohmann/json#3543",
+      "screeningRank": 52,
+      "source": {
+        "path": "cpp/nlohmann__json_dataset.jsonl",
+        "rowIndex": 11,
+        "rowSha256": "633d2899f09237eabbd88f771989c3e80ff043c1b1a533e891832e88539bdd1f"
+      },
+      "sourceRank": 52,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "clap-rs/clap#2543",
+      "canonicalRepository": "clap-rs/clap",
+      "lineageIdentitySha256": "15f4b3a5f0909caf47bbe33137456cda3b8000ff2b667a8539356127ef1481fe",
+      "requestedAnchorId": "clap-rs/clap#2543",
+      "screeningRank": 53,
+      "source": {
+        "path": "rust/clap-rs__clap_dataset.jsonl",
+        "rowIndex": 98,
+        "rowSha256": "53f1600f1d580611ee4d09bea22b53abdb78dbf2a6e6247c96527d1d7678e218"
+      },
+      "sourceRank": 53,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "nlohmann/json#2576",
+      "canonicalRepository": "nlohmann/json",
+      "lineageIdentitySha256": "de2febd6fd1ef4a06ce0f78df69557378d850b78c5779adb326d842c22717579",
+      "requestedAnchorId": "nlohmann/json#2576",
+      "screeningRank": 54,
+      "source": {
+        "path": "cpp/nlohmann__json_dataset.jsonl",
+        "rowIndex": 25,
+        "rowSha256": "68ab9d8be5da82cb798a32d169f4c74e0ad10de7e7387e594bcc06e8d392cfc5"
+      },
+      "sourceRank": 54,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#35477",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "6450e79f01cd8ed875192165a8fbd75ac2a668411d9abb0c5d1e0427573881f2",
+      "requestedAnchorId": "mui/material-ui#35477",
+      "screeningRank": 55,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 52,
+        "rowSha256": "dc37a43b72e3b17303d3109629083ffc0711ac68720f4b09b05d13fb005a5764"
+      },
+      "sourceRank": 55,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#36400",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "f139719c98dcd7cfdeed4d931334ebbae4390bedc429ad6e56675d3e49ae6e47",
+      "requestedAnchorId": "mui/material-ui#36400",
+      "screeningRank": 56,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 39,
+        "rowSha256": "d8ecc82506f5eaf63ad9f7c14b97f338f1acc4f240abfa1e3e8ef73ba8e7ea78"
+      },
+      "sourceRank": 56,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#23806",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "07b0c2f30ea83fc1129a557bb277a48bc846431e33ac604f16f5a793bc733aac",
+      "requestedAnchorId": "mui/material-ui#23806",
+      "screeningRank": 57,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 170,
+        "rowSha256": "941e113f8fec42999a050936be85e44fe9afa48f9824f354d7b2a91f224163a2"
+      },
+      "sourceRank": 57,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#7879",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "e6d03963b9972d659d2b83352b38e2fada72ed5bef8ec7c59bd4d2ff42badf22",
+      "requestedAnchorId": "cli/cli#7879",
+      "screeningRank": 58,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 93,
+        "rowSha256": "0184114687c0cfa86bda8e760275bcade65da7d479b46cfde407d91ebf6dc0f6"
+      },
+      "sourceRank": 58,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#9642",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "53d0f7d8523cf9652baa21fefa5ae5a73a847d96834a677b20e3d5b285139b39",
+      "requestedAnchorId": "cli/cli#9642",
+      "screeningRank": 59,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 31,
+        "rowSha256": "21f534bf337ccf07e92eee95621198f0478ba038c65dfcb8a1a82c80bbd5264f"
+      },
+      "sourceRank": 59,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#5380",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "2c71aa065f84b3397ba38bd078b3acb5ae3655b8ebbf04887420f647d0bbdf41",
+      "requestedAnchorId": "cli/cli#5380",
+      "screeningRank": 60,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 199,
+        "rowSha256": "8033b612273faacd6c3d0b24b0033dfd8eee7685c06d2b56a7fb74b02a1eb2f5"
+      },
+      "sourceRank": 60,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#11184",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "1b19c3da84b1575e23217830bb51b8a246ce2c2cd506d865cec81e84718889c2",
+      "requestedAnchorId": "sveltejs/svelte#11184",
+      "screeningRank": 61,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 200,
+        "rowSha256": "6becaf136f275f5501bc413add0d6e3a60ae9f429906917f6f76612eab4df682"
+      },
+      "sourceRank": 61,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#5108",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "d43cce40b6a4f1d67a2f76c6306b32591297dcff4d27cf565c0692c8cbb84bd7",
+      "requestedAnchorId": "cli/cli#5108",
+      "screeningRank": 62,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 209,
+        "rowSha256": "488e6e5b74682f547a40776c73906836948cd241343f205abd369d76525ef2d6"
+      },
+      "sourceRank": 62,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#26026",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "31b9e4f36a38b4f2eba917909e27fa5007c6438d617c315cf37fe9da1aee2a34",
+      "requestedAnchorId": "mui/material-ui#26026",
+      "screeningRank": 63,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 143,
+        "rowSha256": "888b2c53d85a82c5b6160ccd8aaa266650e722dee643ce34ad3ac7eaeb82ed2e"
+      },
+      "sourceRank": 63,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#29898",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "af6c375e44d14e90e2ca5a9c9bce6f7078c1fa0922bb19d38aad473e33b54590",
+      "requestedAnchorId": "mui/material-ui#29898",
+      "screeningRank": 64,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 123,
+        "rowSha256": "9e1c0b625f0cf6075602b75a231d5bfa62479790a3e8e6c0e7b24ee7c5e6b966"
+      },
+      "sourceRank": 64,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#9866",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "d5d6e7f72be2049c8bcc047464e58509784451a6bfbd0b2d7228b891178ffb62",
+      "requestedAnchorId": "cli/cli#9866",
+      "screeningRank": 65,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 25,
+        "rowSha256": "74c4703331df4129096e947583762c4f9396b7adc9cba9e9d80ef7edc61619d0"
+      },
+      "sourceRank": 65,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#24968",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "d27d6efe3389d9bfd865a056de638fe818551aea274f4e5f7f579ccbcd48b0ec",
+      "requestedAnchorId": "mui/material-ui#24968",
+      "screeningRank": 66,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 158,
+        "rowSha256": "df1f9441447fc817d6b9c9943fa69a2e1700c4e892fd2764f4cfc42eb2716e23"
+      },
+      "sourceRank": 66,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#39679",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "924957925eced6ccad50f097529c903960928490912c7774c3272c62819d4ca6",
+      "requestedAnchorId": "mui/material-ui#39679",
+      "screeningRank": 67,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 4,
+        "rowSha256": "60fc1cf59c1c4aaa246b6a6a9c1f6a7bd994fdf708d5fe35bf0411263e269a49"
+      },
+      "sourceRank": 67,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#8141",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "e2547e87f18c76baa844e6f62560dedcfcfd963257ce5719cf24e8823e97a86f",
+      "requestedAnchorId": "cli/cli#8141",
+      "screeningRank": 68,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 85,
+        "rowSha256": "2380b37db135039546bf4d6c48e2227805cb6b8bae62a92abb64907b3a5882f5"
+      },
+      "sourceRank": 68,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#3972",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "4f73fe8b6232d4418edfa632b44649702ccf5d78f0faca3844b063968e28b2ff",
+      "requestedAnchorId": "cli/cli#3972",
+      "screeningRank": 69,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 262,
+        "rowSha256": "2498976b1a47a11434ac5e93bdac01eceba3f5bb38ebfc19599aa7b94cd6a718"
+      },
+      "sourceRank": 69,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#24010",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "b0dc940a05a99f5cbb1cc90e420cbc14aed6ef78e35cd9392e880732077ac4a1",
+      "requestedAnchorId": "mui/material-ui#24010",
+      "screeningRank": 70,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 168,
+        "rowSha256": "460717468b1f3e4a7b465a76f043913b2e5cbcdd61b3246626d50ff49b8b1a99"
+      },
+      "sourceRank": 70,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#12660",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "4456868f665e09ca6c7bc96e1eafa92174717dd0e0ebb754feb944b4ade69c4c",
+      "requestedAnchorId": "sveltejs/svelte#12660",
+      "screeningRank": 71,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 121,
+        "rowSha256": "8410ad71fdca24e4f9f6fb152de7b7c2808f32c7cbfa848ea2f02a2327ce47a5"
+      },
+      "sourceRank": 71,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#36971",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "cf088a2b34106986623324c84125a22756605b6b118af0f04435d08a0524d2cc",
+      "requestedAnchorId": "mui/material-ui#36971",
+      "screeningRank": 72,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 32,
+        "rowSha256": "fc62db137d288d0704b8888c07116360a7e474a63dd78bd39c1681e26fb40c71"
+      },
+      "sourceRank": 72,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#36399",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "b0a29b5bee1685e429c7978aec9170105daacb8c7bcd08e89eb73f91a55bff21",
+      "requestedAnchorId": "mui/material-ui#36399",
+      "screeningRank": 73,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 40,
+        "rowSha256": "63e98e236c350abdfc87892bb122acaa80f8aef5645f41a6ce22adb86f045aa6"
+      },
+      "sourceRank": 73,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#8395",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "42d2a9ef3e7a6a36113971c51194829f139c9eef5c5c4e8ac1ffa12b956bfb8f",
+      "requestedAnchorId": "cli/cli#8395",
+      "screeningRank": 74,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 74,
+        "rowSha256": "53e0814da87bb99d7ba9c8fb148df175bcc624d38928ef95d123b029f3fd1410"
+      },
+      "sourceRank": 74,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#1462",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "ab1893832935a54dd40d63a658f59bace0cf35e6ac2221167ad373315fba835c",
+      "requestedAnchorId": "cli/cli#1462",
+      "screeningRank": 75,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 344,
+        "rowSha256": "cbbe94552c6312119cd1593a2e884a48e62d6af08c674ced6b3a86c1dfcf3335"
+      },
+      "sourceRank": 75,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#12618",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "ed0ddb6334ebf813dd83abf224e9758b976ce27f4dfdbeaa8c28dbfcb13d2f10",
+      "requestedAnchorId": "sveltejs/svelte#12618",
+      "screeningRank": 76,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 124,
+        "rowSha256": "0752f0163b52a44f2910c4db6b5baf9176cccdb8ce2ce819160ed6b861d538c0"
+      },
+      "sourceRank": 76,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#35088",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "36cfb6666c69b6478cb4cf5bedf219c8128a3636879f1311935d15108580c124",
+      "requestedAnchorId": "mui/material-ui#35088",
+      "screeningRank": 77,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 57,
+        "rowSha256": "d133e02055ad11062e68ff8da2c04aa643fe4d117caf97724fa40a1f9d00c95b"
+      },
+      "sourceRank": 77,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#590",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "a2da4ef95fbf85f58675e5bd7229bc554050df0251957488bfff0e1803ee9732",
+      "requestedAnchorId": "cli/cli#590",
+      "screeningRank": 78,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 384,
+        "rowSha256": "da5eaf175ece069234884eb3fcea5c8f1f69303e174556ec06075c478a79fab4"
+      },
+      "sourceRank": 78,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#13362",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "bed798b490a1b11bb45daa6fe350944d47792645fb82698110a11d8ab0ec4128",
+      "requestedAnchorId": "sveltejs/svelte#13362",
+      "screeningRank": 79,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 87,
+        "rowSha256": "2a86a22b02307dfeedf33a24529da97e6666924559d0013ed066c7ecbbe3abbd"
+      },
+      "sourceRank": 79,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#10617",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "d175004423e0d5a76430f4322d8041f3b7aeeb71ef2e3809594981ee8bc32066",
+      "requestedAnchorId": "sveltejs/svelte#10617",
+      "screeningRank": 80,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 220,
+        "rowSha256": "661cb296c7008dd8cbd3a14ea97452c29c9ab3a23822bf2ba73668bfedd0a258"
+      },
+      "sourceRank": 80,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#37692",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "83f8d2b51b5402c438e0b15127fd97c910cacdc1676ad9b0690dbfb8fa02a663",
+      "requestedAnchorId": "mui/material-ui#37692",
+      "screeningRank": 81,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 25,
+        "rowSha256": "28f5aa52c39a015ec0c30b105934c01024725550ee63caa256772d44d10a4c4d"
+      },
+      "sourceRank": 81,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#4676",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "3eed35d667e08edeab3a3d08ce5146af6f77453a741155101b9a167113a3d233",
+      "requestedAnchorId": "cli/cli#4676",
+      "screeningRank": 82,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 228,
+        "rowSha256": "482c212a823cd1bc366051c80be2d603da6c75bb7c1d61eea332fed7615c4300"
+      },
+      "sourceRank": 82,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#4562",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "b99e23cdb678c465d123adeb50ab752292206d848dfb93bf43abcc3184f558b2",
+      "requestedAnchorId": "cli/cli#4562",
+      "screeningRank": 83,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 233,
+        "rowSha256": "c9c0e13564193d0bd660bdc1180df91cf1bb98d8d78c23a4b18d5375426078bd"
+      },
+      "sourceRank": 83,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#12545",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "b882a2419171d2f9fa7e7f460030403d04e90efd08484faebfb578c027b3c015",
+      "requestedAnchorId": "sveltejs/svelte#12545",
+      "screeningRank": 84,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 127,
+        "rowSha256": "bb26fae25e146086e1bdcf795ae721db66cdb290d6667f6d859c30631310a7ed"
+      },
+      "sourceRank": 84,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#35946",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "f4dc2d6785d852fe0bc40b4893c717829e1194c36209a63b9efe6b51aef01f15",
+      "requestedAnchorId": "mui/material-ui#35946",
+      "screeningRank": 85,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 48,
+        "rowSha256": "b92921b575e42844cc3ad5d34e03116a9b34cecf0d4edefc1a61a400b3652db3"
+      },
+      "sourceRank": 85,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#32746",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "752aaa81ea8a0131155acbc617968e750c4619577fc7005738425bd93d187291",
+      "requestedAnchorId": "mui/material-ui#32746",
+      "screeningRank": 86,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 100,
+        "rowSha256": "81c273731df6fe067743dc86c63ed2e1aaeecb1b9147c3068619cf4741ff7766"
+      },
+      "sourceRank": 86,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#34247",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "ef5ba7b94cc9951a437e0a61263b00fb3e8b9d63b2d5495ca83deb2eb8693bde",
+      "requestedAnchorId": "mui/material-ui#34247",
+      "screeningRank": 87,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 72,
+        "rowSha256": "8aa299e7e1d6e5a9929d2b3a6a4b46df535bbc4d79281ea9b8325eca4f61135e"
+      },
+      "sourceRank": 87,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#33797",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "8ca6df040d9b569dc442ead8570dc02c69081dbfe99ed7659ba2952324753b21",
+      "requestedAnchorId": "mui/material-ui#33797",
+      "screeningRank": 88,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 88,
+        "rowSha256": "8f20e8f0fefc8ae75d20eade75e3f33af8bfb0d8cb5afe91402ffd5c9c085599"
+      },
+      "sourceRank": 88,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#690",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "32294777136059b56acfeba0bfa9bcc915e9ecc44e8208919c16124909fc3f4c",
+      "requestedAnchorId": "cli/cli#690",
+      "screeningRank": 89,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 375,
+        "rowSha256": "d5fafaf84c80e6202451a7da64b45cd091b75c24fea62295eff6673d7457215e"
+      },
+      "sourceRank": 89,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#11463",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "3ae55a083319196b50ef4589f45ded3d811d3b5e967d05a0cbf734ef632c0191",
+      "requestedAnchorId": "sveltejs/svelte#11463",
+      "screeningRank": 90,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 179,
+        "rowSha256": "b71baa739b4ee1e024ed90724f0f392481d422a777aafa9a30e098a14fa1694e"
+      },
+      "sourceRank": 90,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#38801",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "7798866cfea4cc3f726fb050d731284fb8f066d8cf83510696d44af5e02ad1da",
+      "requestedAnchorId": "mui/material-ui#38801",
+      "screeningRank": 91,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 13,
+        "rowSha256": "90d8b07aafbd0df450c52c8233dd07e010fd7dbecd8df533acbe5372392e6ac7"
+      },
+      "sourceRank": 91,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#7347",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "21c3aa68e033a265658b11988f6c97b09df66fab4f089495e49540c7a6cc4457",
+      "requestedAnchorId": "cli/cli#7347",
+      "screeningRank": 92,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 119,
+        "rowSha256": "168709c882497f4d10f4d5f02e1a3c42ee6d52efe26286ee45a6db6eccab9c0d"
+      },
+      "sourceRank": 92,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#9868",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "5b3d30b356d55ddd09bee9ac309ed2ce9aa240751a87566960eccf08a68c6630",
+      "requestedAnchorId": "cli/cli#9868",
+      "screeningRank": 93,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 24,
+        "rowSha256": "55a039a940d40bc410932e4b15b55618d310ba7a1eef174c1947412a874eb9ab"
+      },
+      "sourceRank": 93,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#4451",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "ab83c192ff94f13f2a6067279970f3da32222cebf59335bab399232459af523a",
+      "requestedAnchorId": "cli/cli#4451",
+      "screeningRank": 94,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 242,
+        "rowSha256": "193abbd61d85168228e92d129089b899c14e51a7176958c3b2ebc5ac21ce6f1c"
+      },
+      "sourceRank": 94,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#5044",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "7fafaddae0fdbacbb440bd310ca967e1394705c52c2db61cb216ae4b1075b83d",
+      "requestedAnchorId": "cli/cli#5044",
+      "screeningRank": 95,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 214,
+        "rowSha256": "606c200a9fca43cd7beb5ec9400c1831c6f359b4fbb6d1da7b04363ff15355b2"
+      },
+      "sourceRank": 95,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#9794",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "8b9062e6c76158f3cecfc40fcd259504d0e35e212993e6cd29e2a0cf73fc3ef3",
+      "requestedAnchorId": "cli/cli#9794",
+      "screeningRank": 96,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 28,
+        "rowSha256": "0526980473b4507d3111b87b5f69ce8c616e41e6b383b340b2f9be068e472a6b"
+      },
+      "sourceRank": 96,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#39071",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "58a4d23357ec5098e57e30917fd1542fe667fe8e60cbdd45f803b70be11490d1",
+      "requestedAnchorId": "mui/material-ui#39071",
+      "screeningRank": 97,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 11,
+        "rowSha256": "e3b2697681274eb72446691712d605d13c9e10cbfe9996bfa6688d3292e0aee9"
+      },
+      "sourceRank": 97,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#26186",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "8d0634f23126b3f7acc9644b95547cb8ea3df93ab1fecdf62cb6fe761ef4b790",
+      "requestedAnchorId": "mui/material-ui#26186",
+      "screeningRank": 98,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 138,
+        "rowSha256": "974194a46e36e48f154c85c64e0e6ffdb1d4538eed94d17178b5b8405f511b3e"
+      },
+      "sourceRank": 98,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "vuejs/core#11899",
+      "canonicalRepository": "vuejs/core",
+      "lineageIdentitySha256": "04a35b19099d4366efc030ed0651c36a1e11eafddc2d52e2c22aebb1b3f97ec4",
+      "requestedAnchorId": "vuejs/core#11899",
+      "screeningRank": 99,
+      "source": {
+        "path": "ts/vuejs__core_dataset.jsonl",
+        "rowIndex": 1,
+        "rowSha256": "80e3b602b7c6cdb4c3483afc2779d2d06a384a26b887d716eb45e9298b418b85"
+      },
+      "sourceRank": 99,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#28645",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "a8d5799c784a82ba2c00372f1dbbda42b9c563c66e05b7b773b16c4159377675",
+      "requestedAnchorId": "mui/material-ui#28645",
+      "screeningRank": 100,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 132,
+        "rowSha256": "9d0bf3b814ccb22690d539a753eb7b05d0e648a1bbd92baa23d2fd892ee5ac92"
+      },
+      "sourceRank": 100,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#26098",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "40adb9821abd76e22bee1ecb5dcf4fe7bf3d0b317626369f399b916db20dfa7a",
+      "requestedAnchorId": "mui/material-ui#26098",
+      "screeningRank": 101,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 141,
+        "rowSha256": "0261318e11839ab7fe5a7a676b26272a0a57e7d86a02990a6b7cb12678917606"
+      },
+      "sourceRank": 101,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#9988",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "bc4896dabb2670e399026ccedc29c37c97b6e8026396fa97dbdcd69e837d391e",
+      "requestedAnchorId": "sveltejs/svelte#9988",
+      "screeningRank": 102,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 247,
+        "rowSha256": "36ce8923baac066ea2822a6f88c80ca2ab027f894bcdc07538c227c7bd346030"
+      },
+      "sourceRank": 102,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#38916",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "2a75491b63e1fab91ae1a08c68146ff4407acee9cd595205a346cc0d492885ed",
+      "requestedAnchorId": "mui/material-ui#38916",
+      "screeningRank": 103,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 12,
+        "rowSha256": "7e7bf39a4f8b6642ca3bede8b9e1ac6a3aad96127885c65e323b9524175b219f"
+      },
+      "sourceRank": 103,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#9431",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "80cdafa3f12e017afc8548a41d62fa6bebc160951c72ca49aa19bd27fa72e531",
+      "requestedAnchorId": "cli/cli#9431",
+      "screeningRank": 104,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 40,
+        "rowSha256": "59c03abc448f07b872f7f12baa486f4f23f54a4e350c669a76802836cd92b3c2"
+      },
+      "sourceRank": 104,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#5479",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "9c486544761b1f5c8bd5c139e9b52d90df06b7c33c66a650f948299231da62ec",
+      "requestedAnchorId": "cli/cli#5479",
+      "screeningRank": 105,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 194,
+        "rowSha256": "e818c9a0df47b96c6864cc4ebc188a8ed35dbc44fbe0b2d5315e5be22481e159"
+      },
+      "sourceRank": 105,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#8953",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "0d26a9e809e80901ea85894c69ab299ab6c49e3b94b0925da8e320c9eec1c18b",
+      "requestedAnchorId": "cli/cli#8953",
+      "screeningRank": 106,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 57,
+        "rowSha256": "cdf01b338e7312a0ce0ce53badd1e0219fe36feaa267cdfaf50731f9eb924321"
+      },
+      "sourceRank": 106,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#25149",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "aa4a04a4491380c20c4b77287002a2a8233f41d7bac324fc36bfa1d52c3f012e",
+      "requestedAnchorId": "mui/material-ui#25149",
+      "screeningRank": 107,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 156,
+        "rowSha256": "d89126a426541cffbc84350895da6ea58e4f3fbd5b8ac59f8cdfc4a273b2d641"
+      },
+      "sourceRank": 107,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#8552",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "08c6b0559a6bf51f0974cff6ad1c680e88a845c431f265be6a18a0d1efbedf13",
+      "requestedAnchorId": "cli/cli#8552",
+      "screeningRank": 108,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 68,
+        "rowSha256": "7b3cf424c6a3e032e96d1383d4dc6609a4efe9c8d814d2b4a5337f4e988efef1"
+      },
+      "sourceRank": 108,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#30788",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "3cc0d69aee403cb664fa19a4240b9967cecbbb3093ff88a25aa4d0cf098649f1",
+      "requestedAnchorId": "mui/material-ui#30788",
+      "screeningRank": 109,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 110,
+        "rowSha256": "208b2231759cbf9812238e3d77f6a733ec026f196f7172c9c56fb260804eb31f"
+      },
+      "sourceRank": 109,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#26470",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "0ecd62ab89c5f5fd6186ba5b6c1073cacd7768b25a1b0d6292354a66cedaf7c5",
+      "requestedAnchorId": "mui/material-ui#26470",
+      "screeningRank": 110,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 134,
+        "rowSha256": "195b131e83262136bcb826e2e689a9e5557b9ab4ef56cad9f1de423e32174bdc"
+      },
+      "sourceRank": 110,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#36426",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "d3dae612a21709f9b87763c4474e4f589ad3aef1a9c1421d02d4f1a7212bb884",
+      "requestedAnchorId": "mui/material-ui#36426",
+      "screeningRank": 111,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 36,
+        "rowSha256": "3fd9bff60dfd9436a944d5549f872424edb18d79ba7da574ce343b24df6befd0"
+      },
+      "sourceRank": 111,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#30524",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "57cb439b3efde89249639f5aba0d6219a2b7078a330a2aac8be150e18f09f3e8",
+      "requestedAnchorId": "mui/material-ui#30524",
+      "screeningRank": 112,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 112,
+        "rowSha256": "9d67a0797ffab20eb6c29b35d939d73f160d29925572a9837806c6634a3fa874"
+      },
+      "sourceRank": 112,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#9962",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "dd339ff75a6b4e5c946d189ed47d0f0a309026ac9a4e0a60adde1e53f31fc815",
+      "requestedAnchorId": "sveltejs/svelte#9962",
+      "screeningRank": 113,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 250,
+        "rowSha256": "15d74ab0a88ad0efaf142bd042ee403d9a592a3b278b73d4cb168903c9e737c3"
+      },
+      "sourceRank": 113,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#34131",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "24dddc22f8602da82df55965af984da0cafd992818dbc0edc3de7ffde60d73fa",
+      "requestedAnchorId": "mui/material-ui#34131",
+      "screeningRank": 114,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 79,
+        "rowSha256": "133db21b66915901f9ec961bbef788a67e2a711e5b672f23371c38bc369b7b9d"
+      },
+      "sourceRank": 114,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#15086",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "1c667ed34cea3a38e0cc204387bb068c16fd21e9577e1eaeadfdb7cd8eb06e69",
+      "requestedAnchorId": "sveltejs/svelte#15086",
+      "screeningRank": 115,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 2,
+        "rowSha256": "4033c6b866c660c851488441ef1bee509c4bb51dea528af080103e53fd7e3b8f"
+      },
+      "sourceRank": 115,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#696",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "7258a58bedeb7a03784ccab0badeff173dbf39f2f5828b48463410668d4c4529",
+      "requestedAnchorId": "cli/cli#696",
+      "screeningRank": 116,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 374,
+        "rowSha256": "4c879decb8d58e8b54d049ef902855a919cb2188f6ff689a6bc37dc8e3c91498"
+      },
+      "sourceRank": 116,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#9933",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "f062886c1ad91e6f1c70824c0b36ecc71c6c06bab8d78290381a5b7b5f95fb6b",
+      "requestedAnchorId": "cli/cli#9933",
+      "screeningRank": 117,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 23,
+        "rowSha256": "ea87821a5ee19197ce95df6c9a2b79fe922287be8ac012e222d8b4235efff397"
+      },
+      "sourceRank": 117,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#728",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "988b7cbde2d559272d6c24e933454fac76a5629b57f0ea0be01b49c7d07452e2",
+      "requestedAnchorId": "cli/cli#728",
+      "screeningRank": 118,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 371,
+        "rowSha256": "f625bc5a8b1ec8e8613ddf575646dd54fb2b88e54a9adc482cd3c5a307bc1fad"
+      },
+      "sourceRank": 118,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#31998",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "3662ae08b48d003f2b2da96a2d648b5be73bddfab34e03c6debc768affdd852e",
+      "requestedAnchorId": "mui/material-ui#31998",
+      "screeningRank": 119,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 106,
+        "rowSha256": "a565a511043c75b794533c39259e63296f7d33d30569ba822ae3fdbbe8a8340d"
+      },
+      "sourceRank": 119,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "tokio-rs/tokio#6205",
+      "canonicalRepository": "tokio-rs/tokio",
+      "lineageIdentitySha256": "ed462aec18a2493e3e9c22c776225d158e719f408010df827c785bc110c88359",
+      "requestedAnchorId": "tokio-rs/tokio#6205",
+      "screeningRank": 120,
+      "source": {
+        "path": "rust/tokio-rs__tokio_dataset.jsonl",
+        "rowIndex": 13,
+        "rowSha256": "a54bb8b461dbdb663c6c1377f536d3f1429136cbff21c07d2bf2a64bb5d4d836"
+      },
+      "sourceRank": 120,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#33801",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "3111bfb3dc816f3b861dfc50b2d6bc4e8c7deb764c475e9be09acd0f45378924",
+      "requestedAnchorId": "mui/material-ui#33801",
+      "screeningRank": 121,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 87,
+        "rowSha256": "89b76f1dad19dd0cb8e3c4a8dff9d4b5e55f96342ab86e18c9c221625820f062"
+      },
+      "sourceRank": 121,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#24213",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "4bb93eece89b8beb313c4443925b964b3b455025d7086c89967c6ab432a8db24",
+      "requestedAnchorId": "mui/material-ui#24213",
+      "screeningRank": 122,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 165,
+        "rowSha256": "d4d4c59d5a138d967530748f72470e390c9631c05ba20d2f4da8bfd0ebeca09c"
+      },
+      "sourceRank": 122,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#24782",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "f4cefe56120980b23ed38d51d11634a10ca633733047ddbcbf6a215598a8a627",
+      "requestedAnchorId": "mui/material-ui#24782",
+      "screeningRank": 123,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 162,
+        "rowSha256": "06be3fbdc80ea13813e3358e1d5a82ed2bd2b31b8f844037bdda9e85ed3dccc5"
+      },
+      "sourceRank": 123,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#33812",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "d09886da6109733d044215250373ba4fdeb0d0620e2c282fcf32b6e35b7c948c",
+      "requestedAnchorId": "mui/material-ui#33812",
+      "screeningRank": 124,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 86,
+        "rowSha256": "4ad749c8b9073515dc81ac47c3986dc16411509bf4fa71b84fe2fd5adbbeec70"
+      },
+      "sourceRank": 124,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#4748",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "1b6d98e831d15e3695e71f10af68ff738b5e55740e452f48705bb0f1e71bbb5b",
+      "requestedAnchorId": "cli/cli#4748",
+      "screeningRank": 125,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 226,
+        "rowSha256": "2a784672f75bc9acf910dce718f289f47983c35f411f62841999f9d3d1593f51"
+      },
+      "sourceRank": 125,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#26460",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "884c737ac730c27b98ef73b9f6e5229637298b1da35c12e685c11b3422b64dd8",
+      "requestedAnchorId": "mui/material-ui#26460",
+      "screeningRank": 126,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 135,
+        "rowSha256": "36712cb7c11c6a33add42c01e751080f5a116c0a72cbf3e8c6f273649e3a5142"
+      },
+      "sourceRank": 126,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#7376",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "bf902ade6dd690612bd273570a3325a3263d67a54881541e9b044e39a6f4b29f",
+      "requestedAnchorId": "cli/cli#7376",
+      "screeningRank": 127,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 115,
+        "rowSha256": "93498533021a2f37873fd5f6bca3e14e4513a76b230e9948e3547a187c676b9e"
+      },
+      "sourceRank": 127,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#13553",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "ec95fb542934814d8874b381788b205399ab5688676a2dcb86ff97b2dcef2b3b",
+      "requestedAnchorId": "sveltejs/svelte#13553",
+      "screeningRank": 128,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 76,
+        "rowSha256": "1e80983291a753d983bf44de0d26ac3e481e51af4aaaa957c608371129c32c73"
+      },
+      "sourceRank": 128,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "fmtlib/fmt#1663",
+      "canonicalRepository": "fmtlib/fmt",
+      "lineageIdentitySha256": "9d4f94c799d6cb7dbe4d1768411db42eac5028648de7e4035c21e631aafacc07",
+      "requestedAnchorId": "fmtlib/fmt#1663",
+      "screeningRank": 129,
+      "source": {
+        "path": "cpp/fmtlib__fmt_dataset.jsonl",
+        "rowIndex": 34,
+        "rowSha256": "188ec7b980e67cf2b450cd5028ea022dd9a896f733f81779cc13c05fd28153aa"
+      },
+      "sourceRank": 129,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "fmtlib/fmt#3913",
+      "canonicalRepository": "fmtlib/fmt",
+      "lineageIdentitySha256": "01c886fa08a5c85b0ee1d5f72f73e6fca3cd8404771e637812003a37b96caebe",
+      "requestedAnchorId": "fmtlib/fmt#3913",
+      "screeningRank": 130,
+      "source": {
+        "path": "cpp/fmtlib__fmt_dataset.jsonl",
+        "rowIndex": 5,
+        "rowSha256": "a54289f753c22e8bd963b9cce76aefad612d7e8fb66af8cbb6a06187bd40f7fe"
+      },
+      "sourceRank": 130,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#34216",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "4a4a614a99c18307d4c1b8dc3540eadafa38d2d1c65aacae89808d833032e1d4",
+      "requestedAnchorId": "mui/material-ui#34216",
+      "screeningRank": 131,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 75,
+        "rowSha256": "bcef8329d92c4f002bbdfbcef9c2268ddc828402eda1261f35c4bf5449600877"
+      },
+      "sourceRank": 131,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#13679",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "f4daf779ef76361da95183366084346a448e1862fb0fbad9baa4e6ed17a4b452",
+      "requestedAnchorId": "sveltejs/svelte#13679",
+      "screeningRank": 132,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 65,
+        "rowSha256": "31771a1afd0913c8a53ccca909d59ab1dcdb23645b19ffe609ceaa64361db006"
+      },
+      "sourceRank": 132,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#4450",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "fed1d3e36d47aa217f9c3c7a46b191f06d0b481cfd7fb1c76e983395f910489b",
+      "requestedAnchorId": "cli/cli#4450",
+      "screeningRank": 133,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 243,
+        "rowSha256": "29fb906071c4228283be4ba3aae0696ba7048520972fcaddbcaed2237e34f602"
+      },
+      "sourceRank": 133,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#39353",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "42d758ef3f28933eb7dfce73c3d5af034e8e3c2e65a1d5921a73b9b7c44becb8",
+      "requestedAnchorId": "mui/material-ui#39353",
+      "screeningRank": 134,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 8,
+        "rowSha256": "b9111dc140ae41afb74563a31f6b948037799a696e968b2f97b9f5837c252aef"
+      },
+      "sourceRank": 134,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#10139",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "4ff6dbf8f3098927f7915b00200740892935559a87c1be5ec7ecda0b05fad782",
+      "requestedAnchorId": "cli/cli#10139",
+      "screeningRank": 135,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 11,
+        "rowSha256": "97e7f0f38f911796328b372a672cb05f10e0023ad839f1ba4cde85619b263fd4"
+      },
+      "sourceRank": 135,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#38788",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "c6d7775f5e7133131961073cda9577fa71b349e288f34f0a807f531164eabc75",
+      "requestedAnchorId": "mui/material-ui#38788",
+      "screeningRank": 136,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 14,
+        "rowSha256": "b07232a38f344e3f1438a159f8cfcdb8df1cfb26853132d06626412d684c5d7f"
+      },
+      "sourceRank": 136,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#25105",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "fc84751cee0fdbf559234f08f85e024bb893c7c16c3ac909b5cdb8e55d19c416",
+      "requestedAnchorId": "mui/material-ui#25105",
+      "screeningRank": 137,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 157,
+        "rowSha256": "b44c2c3d2ab6a2729265bfef31e1da8bbb995e6bc5abd9bbd0c2a76ddd5b4bfb"
+      },
+      "sourceRank": 137,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#9271",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "0296637fbd13f7d7bf60df256d0afdf1101eaa9cc3cb9d1e176f0bd049a44131",
+      "requestedAnchorId": "cli/cli#9271",
+      "screeningRank": 138,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 44,
+        "rowSha256": "b8cd802b6562508a1e8c6502d0d8d69c772fe66ad39bca65565d021f24444814"
+      },
+      "sourceRank": 138,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#1893",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "3f979de07f01358442569080e826604b8c373ce36d3e54a768adcc1fab978358",
+      "requestedAnchorId": "cli/cli#1893",
+      "screeningRank": 139,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 330,
+        "rowSha256": "3412bf96e15d6ab7559b6fecf464cf20e0680fcc8ca81ed725c9098aebe7fd18"
+      },
+      "sourceRank": 139,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "tokio-rs/tracing#2008",
+      "canonicalRepository": "tokio-rs/tracing",
+      "lineageIdentitySha256": "9649cb584cf7288a0aad12582f50b74ffa3537532ffb8fbb0ed1c1b94981fe19",
+      "requestedAnchorId": "tokio-rs/tracing#2008",
+      "screeningRank": 140,
+      "source": {
+        "path": "rust/tokio-rs__tracing_dataset.jsonl",
+        "rowIndex": 7,
+        "rowSha256": "bc85ac131976cd87760d06d1cbfd3ebbdedfca1f65245ee59d7a239da84aa2b8"
+      },
+      "sourceRank": 140,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#14640",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "9cddea85df795ce200280499b962d7a8920061297bc67db82a76a8e65156fb2b",
+      "requestedAnchorId": "sveltejs/svelte#14640",
+      "screeningRank": 141,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 16,
+        "rowSha256": "3e7c9e47bc754a94a73cbe65a8792ec64e94dfd11ad34aef9f1e5dd475648fda"
+      },
+      "sourceRank": 141,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#38167",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "8ee245f781742d420a1bde5acb19ebfa024ce4c9513767f0e524d88c01f07ad3",
+      "requestedAnchorId": "mui/material-ui#38167",
+      "screeningRank": 142,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 20,
+        "rowSha256": "535e305c71b64be1066e6f572efb8e5d6396f5adb6e2613988d3f90d0c8bbda9"
+      },
+      "sourceRank": 142,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#35872",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "4fd7cda11cf9836d6ffdd89aecb1f414223237a37ede11a476ac2a812c2de7cd",
+      "requestedAnchorId": "mui/material-ui#35872",
+      "screeningRank": 143,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 49,
+        "rowSha256": "e723ba9d8e4ddd96e42836b4a869fe9a55cee952ca2e7557e9da6fa7b3cb224b"
+      },
+      "sourceRank": 143,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "tokio-rs/tokio#6742",
+      "canonicalRepository": "tokio-rs/tokio",
+      "lineageIdentitySha256": "8da85bfce7cd04f68bc717c77b12378c509c7611e1517fae13e7816460c6a313",
+      "requestedAnchorId": "tokio-rs/tokio#6742",
+      "screeningRank": 144,
+      "source": {
+        "path": "rust/tokio-rs__tokio_dataset.jsonl",
+        "rowIndex": 4,
+        "rowSha256": "8ef074e10724e846c0feda0427e2702515b25bb007f0a5238bc4d4fc19e99bd5"
+      },
+      "sourceRank": 144,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "tokio-rs/tokio#6280",
+      "canonicalRepository": "tokio-rs/tokio",
+      "lineageIdentitySha256": "00e1ac915c3c40d0d1037ad2cea48d5f2f29b2f0444820e2ec2cef335725d400",
+      "requestedAnchorId": "tokio-rs/tokio#6280",
+      "screeningRank": 145,
+      "source": {
+        "path": "rust/tokio-rs__tokio_dataset.jsonl",
+        "rowIndex": 11,
+        "rowSha256": "ac983e22804b3d43d55f1065c964f44da84f509a1d4e542f354b45f00cb4b5f3"
+      },
+      "sourceRank": 145,
+      "sourceTranche": "legacy-screening-frame-v1"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#26061",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "2c4e381a615cf7af82251cc5f03e5941708d7a3806c28703339555edea0e586c",
+      "requestedAnchorId": "mui/material-ui#26061",
+      "screeningRank": 146,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 142,
+        "rowSha256": "29526cd72768095e945ca9ead8bc41e18ae6752a95a60bf1196fbbd14537a84a"
+      },
+      "sourceRank": 1,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "tokio-rs/tokio#6252",
+      "canonicalRepository": "tokio-rs/tokio",
+      "lineageIdentitySha256": "1ffd41cdd19d370aa7bea459d09a4b50ec16413bfe40b3b75b3579f9babadd13",
+      "requestedAnchorId": "tokio-rs/tokio#6252",
+      "screeningRank": 147,
+      "source": {
+        "path": "rust/tokio-rs__tokio_dataset.jsonl",
+        "rowIndex": 12,
+        "rowSha256": "f32d4473c570c9b3f4ca025a1908037eba83d673b3b86ee7d0bbd2eac08b8e61"
+      },
+      "sourceRank": 2,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#11290",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "0e215b25e04a653b68875c4d4901f2d7ed12e9103807c3bba2ad406911349b81",
+      "requestedAnchorId": "sveltejs/svelte#11290",
+      "screeningRank": 148,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 192,
+        "rowSha256": "b8a24f738a64bffdd8e6d553a86cf1830f95ce90723316600c92b00ceb21d6ae"
+      },
+      "sourceRank": 4,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "sharkdp/bat#1402",
+      "canonicalRepository": "sharkdp/bat",
+      "lineageIdentitySha256": "001375c3cac55bf8108ee93d66ecec3010917e21fccf412851bbbe70ce4f8ea0",
+      "requestedAnchorId": "sharkdp/bat#1402",
+      "screeningRank": 149,
+      "source": {
+        "path": "rust/sharkdp__bat_dataset.jsonl",
+        "rowIndex": 8,
+        "rowSha256": "1c7017b4511a5d504989213b9ff753b5be3eccd72aef908b1e1a689403114985"
+      },
+      "sourceRank": 5,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "elastic/logstash#14045",
+      "canonicalRepository": "elastic/logstash",
+      "lineageIdentitySha256": "07047745902e1ea0440f766e80f30bfad9b994e860616e0a50a298ae26dc8a23",
+      "requestedAnchorId": "elastic/logstash#14045",
+      "screeningRank": 150,
+      "source": {
+        "path": "java/elastic__logstash_dataset.jsonl",
+        "rowIndex": 29,
+        "rowSha256": "fefdea8b4274db4a703c674ffbcefc81b546c8c93717e43c7c5961fc49085c0b"
+      },
+      "sourceRank": 6,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "grpc/grpc-go#3361",
+      "canonicalRepository": "grpc/grpc-go",
+      "lineageIdentitySha256": "3674406d10652737fa43362ee388835b99147ac49a7afa455d6e4eed490a206e",
+      "requestedAnchorId": "grpc/grpc-go#3361",
+      "screeningRank": 151,
+      "source": {
+        "path": "go/grpc__grpc-go_dataset.jsonl",
+        "rowIndex": 2,
+        "rowSha256": "cbc37e00fff881c5ce7349793084aeb1dee7104362c075d1c5ced53100169fdf"
+      },
+      "sourceRank": 7,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "ponylang/ponyc#3650",
+      "canonicalRepository": "ponylang/ponyc",
+      "lineageIdentitySha256": "0bfdf7c843db07e4e0e7bf6cfa48e0c8eab803d40da2244f135389f7274fb1c4",
+      "requestedAnchorId": "ponylang/ponyc#3650",
+      "screeningRank": 152,
+      "source": {
+        "path": "c/ponylang__ponyc_dataset.jsonl",
+        "rowIndex": 38,
+        "rowSha256": "24a8a788b1e1c7c23283b6c7d130fc3f39c1f196a22673be37efcca3d52e2ab0"
+      },
+      "sourceRank": 8,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "vuejs/core#10250",
+      "canonicalRepository": "vuejs/core",
+      "lineageIdentitySha256": "04665eefb55be68b68bc0e873d00f79ad0db193b5afd217deb1a2b1c4744a8fe",
+      "requestedAnchorId": "vuejs/core#10250",
+      "screeningRank": 153,
+      "source": {
+        "path": "ts/vuejs__core_dataset.jsonl",
+        "rowIndex": 25,
+        "rowSha256": "dfac89f8b76d563c4e38580d117a219c210ac9d23ee4f8e3c1a091f4eab60f3f"
+      },
+      "sourceRank": 9,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "clap-rs/clap#2075",
+      "canonicalRepository": "clap-rs/clap",
+      "lineageIdentitySha256": "1fba826123a2675013a51fa7cd103db985679a7397f1b68638832513b5931bd9",
+      "requestedAnchorId": "clap-rs/clap#2075",
+      "screeningRank": 154,
+      "source": {
+        "path": "rust/clap-rs__clap_dataset.jsonl",
+        "rowIndex": 122,
+        "rowSha256": "c9f8964156212496dca9dc277a54678b4edc1339648766b808048e289b90500e"
+      },
+      "sourceRank": 12,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "detekt/detekt#5009",
+      "canonicalRepository": "detekt/detekt",
+      "lineageIdentitySha256": "16f01faa4ef278d01541f728ddfb8d12026399b1f14b6b86a395b6fc715d65e2",
+      "requestedAnchorId": "detekt/detekt#5009",
+      "screeningRank": 155,
+      "source": {
+        "path": "kotlin/detekt__detekt_dataset.jsonl",
+        "rowIndex": 18,
+        "rowSha256": "05744b3cbb96d68186daf39c675143b00d43a2bca0c5ca6a41a4652be338a4f5"
+      },
+      "sourceRank": 13,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#6404",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "0bf3b7ae569feb90048686f2de56df841128382e16039f1f6c1a067e386ce350",
+      "requestedAnchorId": "cli/cli#6404",
+      "screeningRank": 156,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 154,
+        "rowSha256": "c4f271967b30164262f11a33bff8f9436309a84696745148eb592b84dd658028"
+      },
+      "sourceRank": 14,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "tokio-rs/tokio#5179",
+      "canonicalRepository": "tokio-rs/tokio",
+      "lineageIdentitySha256": "344738dbece4e36819893f7f0554e62835707698eec29b0a8940992ad881afa1",
+      "requestedAnchorId": "tokio-rs/tokio#5179",
+      "screeningRank": 157,
+      "source": {
+        "path": "rust/tokio-rs__tokio_dataset.jsonl",
+        "rowIndex": 21,
+        "rowSha256": "b5ecbcbe64da5b12511e66c66b011c8fec8960d35da5c6fc7741d6ffad41a300"
+      },
+      "sourceRank": 18,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "grpc/grpc-go#3476",
+      "canonicalRepository": "grpc/grpc-go",
+      "lineageIdentitySha256": "8aab1e07ff50825ae409aca395c143a896c7a1c2740bd650a2d25b2f36f51504",
+      "requestedAnchorId": "grpc/grpc-go#3476",
+      "screeningRank": 158,
+      "source": {
+        "path": "go/grpc__grpc-go_dataset.jsonl",
+        "rowIndex": 1,
+        "rowSha256": "0dd9c1c13d04ce77999b2111b29181b0a02ca019b8f3607dab25de738620ddd2"
+      },
+      "sourceRank": 19,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#13461",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "028e99f4efebcb953f81a6d2bee3a5cb3df0cf88f5dddbaee9947151d3a140fa",
+      "requestedAnchorId": "sveltejs/svelte#13461",
+      "screeningRank": 159,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 80,
+        "rowSha256": "9fd2b894b88660c56987f9238df795b13191e2041233e5730bc682cdac93d24e"
+      },
+      "sourceRank": 21,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#35178",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "258a969d017f73557f4e7d84603fb623d5fcba25f15f15fc2ab618120f0a51db",
+      "requestedAnchorId": "mui/material-ui#35178",
+      "screeningRank": 160,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 56,
+        "rowSha256": "5669478ddc4c21a84ada87c9cf5a4ce619bfd850b818669b7e58b0d3f6b8c10b"
+      },
+      "sourceRank": 22,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "elastic/logstash#13902",
+      "canonicalRepository": "elastic/logstash",
+      "lineageIdentitySha256": "081fd64da0277bdffacc4090dd0c9881b374fb32e5d5c0271fcc7dca1fc0b846",
+      "requestedAnchorId": "elastic/logstash#13902",
+      "screeningRank": 161,
+      "source": {
+        "path": "java/elastic__logstash_dataset.jsonl",
+        "rowIndex": 36,
+        "rowSha256": "126a57b346702a8fdfee659488e977835894ded0578738de1f93987d38e36cdf"
+      },
+      "sourceRank": 23,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#4467",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "2d5097bc7878f3cdc36d641e50a0dba0408c1feb4ac804573e4fb3fbd5de9a33",
+      "requestedAnchorId": "cli/cli#4467",
+      "screeningRank": 162,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 240,
+        "rowSha256": "5eda58fbba9cd120792d271fde28b2e44382abad06513f2b89803326503ec852"
+      },
+      "sourceRank": 24,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#33312",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "0f1fcae6c15355c194612cda0da8862e826df1defc25b4b92ff8823341caa214",
+      "requestedAnchorId": "mui/material-ui#33312",
+      "screeningRank": 163,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 94,
+        "rowSha256": "90daa52a985289c22acf0f574d98631df94eafd2cf6e5ddf14b8c24fc82758e7"
+      },
+      "sourceRank": 25,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#11946",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "081e11da613ae2601063cab145b7b81f34d660b787a88e00ae10aad45e820ee1",
+      "requestedAnchorId": "sveltejs/svelte#11946",
+      "screeningRank": 164,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 161,
+        "rowSha256": "6f26c9e189016f9233dff05b31c0aefef2ca0733b78a97c7aa1f59b5c45cc9d7"
+      },
+      "sourceRank": 26,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#8773",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "87f4d6b5229272bc7323916eac4d86c758167368bb5a2eaec72ca3ddcdb9eefc",
+      "requestedAnchorId": "cli/cli#8773",
+      "screeningRank": 165,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 64,
+        "rowSha256": "1b6ceccd239a1534ed24650b7468d6317a39b1894625b3d9639f6c013ac8258f"
+      },
+      "sourceRank": 27,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#25428",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "1de568c51de506efab4517418c9c1b5ea1c5dd0572d0d2ef898d438c5f16f8f4",
+      "requestedAnchorId": "mui/material-ui#25428",
+      "screeningRank": 166,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 151,
+        "rowSha256": "11da3c1dd82497bf786cfffaa463ad0584a0631b92a5b218f2efa5f58b767904"
+      },
+      "sourceRank": 28,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "sveltejs/svelte#12649",
+      "canonicalRepository": "sveltejs/svelte",
+      "lineageIdentitySha256": "a011722a8f46acc67ef4b69f195390a93c6ec24f810a4142d34a4804dbe3853f",
+      "requestedAnchorId": "sveltejs/svelte#12649",
+      "screeningRank": 167,
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 122,
+        "rowSha256": "a8693f243c5a14d4e12b82a5c9f3c482bf20b2839fe5a0e9180292d9d6c7e7e4"
+      },
+      "sourceRank": 29,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#36024",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "0d39d0be40c8fdf3022af0930cdbcf89595a89ede658f5fab982a3ed2f86514d",
+      "requestedAnchorId": "mui/material-ui#36024",
+      "screeningRank": 168,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 45,
+        "rowSha256": "d557b47439a4ee5460eacbf3337a8ee67f060931ea63389334e7175cbf35b0e3"
+      },
+      "sourceRank": 31,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "mui/material-ui#29297",
+      "canonicalRepository": "mui/material-ui",
+      "lineageIdentitySha256": "032184cf5db9fab7549980de064e538f8c8778ff8c0d9f04b20e26766e28d2ab",
+      "requestedAnchorId": "mui/material-ui#29297",
+      "screeningRank": 169,
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 131,
+        "rowSha256": "0edbf52b475a2fb9c7a7478d3ae024b4b9761c45a649035a370afe98c98c6861"
+      },
+      "sourceRank": 33,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#9452",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "209b5f2371794e0dc5317147fc5cc085a5e97e54a90df3c825a86735f4530cef",
+      "requestedAnchorId": "cli/cli#9452",
+      "screeningRank": 170,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 38,
+        "rowSha256": "2c00ed95cc2367a7fe21256fed4756aa795a496348fd7b7b250c64f0ac074066"
+      },
+      "sourceRank": 37,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#3833",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "51ef6dc5015910ea09bd37c9e84109aaa5ddba9247c5bb35f1be12f24bd4e69a",
+      "requestedAnchorId": "cli/cli#3833",
+      "screeningRank": 171,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 265,
+        "rowSha256": "215c847c8ba8b789dc1949585ad84f2cc41804104d3ba9464d39ecbce934b08e"
+      },
+      "sourceRank": 40,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#9701",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "2df765269f058943c4883bf50e5c794607bcbb322ff3fcdf254fce74b4ec1c4e",
+      "requestedAnchorId": "cli/cli#9701",
+      "screeningRank": 172,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 30,
+        "rowSha256": "a0cd1a3aca18f56c031bba53f6e539773fc6f9950992face2a006e08b6d6c88f"
+      },
+      "sourceRank": 45,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#625",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "8491eb11b96ac16f538765f761b16cdc9ce13d0bce6a7ad9f4ce1ba12095a80d",
+      "requestedAnchorId": "cli/cli#625",
+      "screeningRank": 173,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 381,
+        "rowSha256": "75cf4b2e963c3f710cbba1df199a1eac3ad638bfe710678a8b67bfb77133227b"
+      },
+      "sourceRank": 49,
+      "sourceTranche": "prospective-rest-exact-v2"
+    },
+    {
+      "canonicalAnchorId": "cli/cli#2982",
+      "canonicalRepository": "cli/cli",
+      "lineageIdentitySha256": "2ac94d5871e6791f2adb590fa919c93e15794aac39c29944677ca8253a69c120",
+      "requestedAnchorId": "cli/cli#2982",
+      "screeningRank": 174,
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 293,
+        "rowSha256": "e5a2a5bd564f1562815cdf05308b6d41dcf4b5e5709c0adf15e537201afd356e"
+      },
+      "sourceRank": 51,
+      "sourceTranche": "prospective-rest-exact-v2"
+    }
+  ],
+  "counts": {
+    "combinedStructuralCandidateCount": 174,
+    "exactStructuralCandidateCount": 29,
+    "legacyCandidateCount": 145,
+    "minimumRequiredEpisodes": 48,
+    "missingRestClosureCount": 15,
+    "noExactStructuralSequenceCount": 7,
+    "qualificationTargetCount": 51,
+    "rawStructuralMargin": 13,
+    "repositoryCappedStructuralCeiling": 61,
+    "repositoryCount": 23
+  },
+  "independenceBoundary": {
+    "adaptiveProspective": true,
+    "candidateProjectionSha256": "0deafb438d2618a232aa0dd9b5981a6df2b189b48bc1753d03dbaa01b4ffa6b9",
+    "exactCandidateProjectionSha256": "28a3687c6341f6e67c26f5cbc21dc1d5fe49e0a327db89a7bfd55139c27a2606",
+    "legacyCandidateProjectionSha256": "f2875d922dc5aef657363660b9efd0b39799923cbd8068f84ef921791da2e47e",
+    "legacyOrderPreserved": true,
+    "machineOutcomeInput": false,
+    "personnelOutcomeBlindnessClaimed": false,
+    "prospectiveTrancheAppendedAfterLegacyFrame": true,
+    "selectionDependsOnForbiddenFields": false,
+    "semanticLedgerInput": false
+  },
+  "inputs": {
+    "inventory": {
+      "bytes": 2645700,
+      "path": "multi-swe-full-56ff018.github-graphql-discovery-inventory.json",
+      "sha256": "14c406f6bb9d4b8c789380b62511bd1312dd67819eaeb44d64c9ea54593bed51"
+    },
+    "legacyFrame": {
+      "bytes": 210812,
+      "path": "multi-swe-full-56ff018.real-history-screening-frame.json",
+      "sha256": "751929cc423d0ad132cbb5d5841a442242b9d59ab713406f352424a33c22def9",
+      "candidateProjectionSha256": "f2875d922dc5aef657363660b9efd0b39799923cbd8068f84ef921791da2e47e"
+    },
+    "restQualification": {
+      "bytes": 80059,
+      "path": "multi-swe-full-56ff018.review-trajectory-source-expansion-rest-qualification-v1.json",
+      "sha256": "256f267868303faf9e4fc4745508efaa023a241cb96d5bfac1a2c4a3aebfc5da",
+      "capturePlanSha256": "6de24fb5e71aed98341cd1f529645cf6d53826ce77bb8ff3ddeb105197860cbc",
+      "graphqlRootSha256": "a529f3fd0226303f6d70c6222bf528f59ccc213145f4be44305aac80151b140b",
+      "restRootSha256": "eacf953f250d1ce652a85248aabec863555f4849bdb789f4c4be22fcbc460ff9"
+    }
+  },
+  "policy": {
+    "canonicalIdentity": "lowercase-resolved-repository-plus-pull-number",
+    "exactV2Eligibility": "exact-structural-candidate-from-frozen-rest-qualification",
+    "forbiddenSelectionInputs": [
+      "sourceTestSignals",
+      "patch",
+      "test",
+      "gold",
+      "outcome",
+      "semanticScreeningDecision",
+      "machineQualificationDecision"
+    ],
+    "order": "complete-legacy-screeningRank-then-exact-v2-restCaptureOrder",
+    "repositoryCap": 4
+  },
+  "schemaVersion": 1
+}

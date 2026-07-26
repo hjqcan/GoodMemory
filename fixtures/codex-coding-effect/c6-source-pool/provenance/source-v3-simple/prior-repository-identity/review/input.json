@@ -1,0 +1,44 @@
+{
+  "artifactKind": "c6-source-v3-simple-prior-identity-replay-review-input",
+  "bundleVerifierSource": {
+    "byteLength": 40724,
+    "path": "scripts/codex-coding-effect/c6-source-v3-simple-prior-repository-identity.ts",
+    "sha256": "46a0c59b645f62199519936247e0cbf4f043e8b41d7ca6de8437851cf5190423"
+  },
+  "captureRoots": {
+    "captureA": "/private/tmp/goodmemory-c6-source-v3-simple-prior-identity-live-20260725-v1",
+    "captureB": "/private/tmp/goodmemory-c6-source-v3-simple-prior-identity-live-20260725-v2"
+  },
+  "evaluationId": "goodmemory-c6-codex-coding-effect-source-v3-simple-prior-identity-replay-v1",
+  "plan": {
+    "byteLength": 76257,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/swe-bench-live-multilang-608f7ae9.wave3-prior-repository-identity-plan-v1.json",
+    "sha256": "70b202cd6da6c2c504a0c23168dc9bcb6a73e9697ff98884dcc83ca785cd4ee2"
+  },
+  "protocol": {
+    "byteLength": 3992,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/swe-bench-live-multilang-608f7ae9.source-v3-simple-protocol-v1.json",
+    "sha256": "5f989ab640c684dac287142edc9d2f9d8ee46099c082f63bb20f2a9546205132"
+  },
+  "replayComparatorSource": {
+    "byteLength": 14972,
+    "path": "scripts/codex-coding-effect/c6-source-v3-simple-prior-repository-identity-replay.ts",
+    "sha256": "3690d76e06f25527fa0c6f4a3b6c0e58d4028e342bb0f12be5e2cc11eeab660c"
+  },
+  "replayMaterializerSource": {
+    "byteLength": 4404,
+    "path": "scripts/record-codex-coding-effect-c6-source-v3-simple-prior-identity-replay.ts",
+    "sha256": "ad39b8a3f02cdeee11000131a06bde2a9bbd60744180bad3dceb159c9e34254b"
+  },
+  "replayReceipt": {
+    "byteLength": 4769,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/prior-repository-identity/swe-bench-live-multilang-608f7ae9.source-v3-simple-prior-repository-identity-observation-replay-v1.json",
+    "sha256": "903912db14ed999cd19f32ffaef81658bc241daf8be9e2f33aa14b1784b94d0a"
+  },
+  "schemaVersion": 1,
+  "sourceUniverse": {
+    "byteLength": 631004,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/swe-bench-live-multilang-608f7ae9.wave3-source-universe-v2.json",
+    "sha256": "822c458e792ee31f7738cae2526b05dfc3b63fcaac58e3f4f87dcd3803ccdba1"
+  }
+}

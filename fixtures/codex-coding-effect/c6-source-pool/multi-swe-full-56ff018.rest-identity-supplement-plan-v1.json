@@ -1,0 +1,193 @@
+{
+  "artifactKind": "c6-rest-identity-supplement-plan",
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "candidateManifestFrozen": false,
+    "captureExecuted": false,
+    "codexRunReady": false,
+    "status": "missing-rest-pull-identity-supplement-plan-only"
+  },
+  "counts": {
+    "originalTargetCount": 51,
+    "supplementRepositoryCount": 4,
+    "supplementTargetCount": 15
+  },
+  "independenceBoundary": {
+    "candidateOrderChanged": false,
+    "machineOutcomeInput": false,
+    "originalTargetProjectionSha256": "4ffec5578d284bf3e7992b36da5169d80f34957368f6c7bf484077f3e3150449",
+    "retryTargetingDependsOnMissingClosure": true,
+    "semanticLedgerInput": false,
+    "supplementTargetProjectionSha256": "abe5dee5d221a09fbaf48fd8f7a81eb6b2156e57392a1da868ee57aa785d49e0"
+  },
+  "inputs": {
+    "capturePlan": {
+      "bytes": 26534,
+      "path": "multi-swe-full-56ff018.review-trajectory-source-expansion-rest-capture-plan-v1.json",
+      "sha256": "6de24fb5e71aed98341cd1f529645cf6d53826ce77bb8ff3ddeb105197860cbc"
+    },
+    "restQualification": {
+      "bytes": 80059,
+      "path": "multi-swe-full-56ff018.review-trajectory-source-expansion-rest-qualification-v1.json",
+      "sha256": "256f267868303faf9e4fc4745508efaa023a241cb96d5bfac1a2c4a3aebfc5da"
+    }
+  },
+  "rule": {
+    "endpoint": "GET /repos/{owner}/{repo}/pulls/{pull_number}",
+    "order": "original-captureOrder-ascending",
+    "purpose": "pull-author-and-canonical-identity-only-no-comment-enumeration"
+  },
+  "schemaVersion": 1,
+  "targets": [
+    {
+      "anchorId": "cli/cli#7873",
+      "canonicalAnchorId": "cli/cli#7873",
+      "canonicalOwner": "cli",
+      "canonicalRepository": "cli",
+      "captureDirectory": "cli__cli__7873",
+      "originalCaptureOrder": 3,
+      "pullNumber": 7873,
+      "supplementOrder": 1
+    },
+    {
+      "anchorId": "mockito/mockito#3424",
+      "canonicalAnchorId": "mockito/mockito#3424",
+      "canonicalOwner": "mockito",
+      "canonicalRepository": "mockito",
+      "captureDirectory": "mockito__mockito__3424",
+      "originalCaptureOrder": 10,
+      "pullNumber": 3424,
+      "supplementOrder": 2
+    },
+    {
+      "anchorId": "square/okhttp#6887",
+      "canonicalAnchorId": "lysine-dev/okhttp#6887",
+      "canonicalOwner": "lysine-dev",
+      "canonicalRepository": "okhttp",
+      "captureDirectory": "square__okhttp__6887",
+      "originalCaptureOrder": 11,
+      "pullNumber": 6887,
+      "supplementOrder": 3
+    },
+    {
+      "anchorId": "elastic/logstash#14027",
+      "canonicalAnchorId": "elastic/logstash#14027",
+      "canonicalOwner": "elastic",
+      "canonicalRepository": "logstash",
+      "captureDirectory": "elastic__logstash__14027",
+      "originalCaptureOrder": 17,
+      "pullNumber": 14027,
+      "supplementOrder": 4
+    },
+    {
+      "anchorId": "cli/cli#4519",
+      "canonicalAnchorId": "cli/cli#4519",
+      "canonicalOwner": "cli",
+      "canonicalRepository": "cli",
+      "captureDirectory": "cli__cli__4519",
+      "originalCaptureOrder": 20,
+      "pullNumber": 4519,
+      "supplementOrder": 5
+    },
+    {
+      "anchorId": "cli/cli#2997",
+      "canonicalAnchorId": "cli/cli#2997",
+      "canonicalOwner": "cli",
+      "canonicalRepository": "cli",
+      "captureDirectory": "cli__cli__2997",
+      "originalCaptureOrder": 30,
+      "pullNumber": 2997,
+      "supplementOrder": 6
+    },
+    {
+      "anchorId": "cli/cli#4410",
+      "canonicalAnchorId": "cli/cli#4410",
+      "canonicalOwner": "cli",
+      "canonicalRepository": "cli",
+      "captureDirectory": "cli__cli__4410",
+      "originalCaptureOrder": 32,
+      "pullNumber": 4410,
+      "supplementOrder": 7
+    },
+    {
+      "anchorId": "cli/cli#8595",
+      "canonicalAnchorId": "cli/cli#8595",
+      "canonicalOwner": "cli",
+      "canonicalRepository": "cli",
+      "captureDirectory": "cli__cli__8595",
+      "originalCaptureOrder": 34,
+      "pullNumber": 8595,
+      "supplementOrder": 8
+    },
+    {
+      "anchorId": "cli/cli#9934",
+      "canonicalAnchorId": "cli/cli#9934",
+      "canonicalOwner": "cli",
+      "canonicalRepository": "cli",
+      "captureDirectory": "cli__cli__9934",
+      "originalCaptureOrder": 36,
+      "pullNumber": 9934,
+      "supplementOrder": 9
+    },
+    {
+      "anchorId": "cli/cli#9465",
+      "canonicalAnchorId": "cli/cli#9465",
+      "canonicalOwner": "cli",
+      "canonicalRepository": "cli",
+      "captureDirectory": "cli__cli__9465",
+      "originalCaptureOrder": 38,
+      "pullNumber": 9465,
+      "supplementOrder": 10
+    },
+    {
+      "anchorId": "cli/cli#7709",
+      "canonicalAnchorId": "cli/cli#7709",
+      "canonicalOwner": "cli",
+      "canonicalRepository": "cli",
+      "captureDirectory": "cli__cli__7709",
+      "originalCaptureOrder": 41,
+      "pullNumber": 7709,
+      "supplementOrder": 11
+    },
+    {
+      "anchorId": "cli/cli#4845",
+      "canonicalAnchorId": "cli/cli#4845",
+      "canonicalOwner": "cli",
+      "canonicalRepository": "cli",
+      "captureDirectory": "cli__cli__4845",
+      "originalCaptureOrder": 46,
+      "pullNumber": 4845,
+      "supplementOrder": 12
+    },
+    {
+      "anchorId": "cli/cli#3414",
+      "canonicalAnchorId": "cli/cli#3414",
+      "canonicalOwner": "cli",
+      "canonicalRepository": "cli",
+      "captureDirectory": "cli__cli__3414",
+      "originalCaptureOrder": 47,
+      "pullNumber": 3414,
+      "supplementOrder": 13
+    },
+    {
+      "anchorId": "cli/cli#6567",
+      "canonicalAnchorId": "cli/cli#6567",
+      "canonicalOwner": "cli",
+      "canonicalRepository": "cli",
+      "captureDirectory": "cli__cli__6567",
+      "originalCaptureOrder": 48,
+      "pullNumber": 6567,
+      "supplementOrder": 14
+    },
+    {
+      "anchorId": "cli/cli#10239",
+      "canonicalAnchorId": "cli/cli#10239",
+      "canonicalOwner": "cli",
+      "canonicalRepository": "cli",
+      "captureDirectory": "cli__cli__10239",
+      "originalCaptureOrder": 50,
+      "pullNumber": 10239,
+      "supplementOrder": 15
+    }
+  ]
+}

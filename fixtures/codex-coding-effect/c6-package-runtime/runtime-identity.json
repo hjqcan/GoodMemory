@@ -1,0 +1,15 @@
+{
+  "bun": {
+    "executableSha256": "45598a2814020c231575487a560e47d397d6902355d7e08171a2e56221a6d675",
+    "version": "1.3.11"
+  },
+  "node": {
+    "executableSha256": "1abce2374a485bddae3c27b17a3e3143e2780232026e627c4fe74ddde3f380a1",
+    "version": "v22.14.0"
+  },
+  "npm": {
+    "cliSha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+    "launcherSha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+    "version": "10.9.2"
+  }
+}

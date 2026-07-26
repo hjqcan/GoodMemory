@@ -1,0 +1,693 @@
+{
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "candidateManifestFrozen": false,
+    "fullMultiSWESourcePopulationCovered": false,
+    "status": "relationship-discovery-only-independent-review-required"
+  },
+  "counts": {
+    "candidateTriples": 1,
+    "crossSourceAliases": 15,
+    "newCanonicalUpstreamTasks": 246,
+    "observedRows": 261,
+    "referenceSignals": 6,
+    "repositories": 24,
+    "sharedResolvedIssueGroups": 6,
+    "sourceFiles": 24
+  },
+  "crossSourceAliases": [
+    {
+      "canonicalUpstreamIdentity": "https://github.com/axios/axios/pull/5085",
+      "existingBaseCommit": "85740c3e7a1fa48346dfcbd4497f463ccb1c1b05",
+      "existingSourceId": "swe-bench-multilingual-e5c585e",
+      "sameBaseCommit": true,
+      "sourceBaseCommit": "85740c3e7a1fa48346dfcbd4497f463ccb1c1b05"
+    },
+    {
+      "canonicalUpstreamIdentity": "https://github.com/fmtlib/fmt/pull/2310",
+      "existingBaseCommit": "7612f18dc8e0112e64e0845a1ebe9da6cfb8a123",
+      "existingSourceId": "swe-bench-multilingual-e5c585e",
+      "sameBaseCommit": false,
+      "sourceBaseCommit": "bc13c6de390751ecf8daa1b1ce8f775d104fdc65"
+    },
+    {
+      "canonicalUpstreamIdentity": "https://github.com/fmtlib/fmt/pull/2317",
+      "existingBaseCommit": "ece4b4b33a96db77beccca3957505e689cbc4279",
+      "existingSourceId": "swe-bench-multilingual-e5c585e",
+      "sameBaseCommit": false,
+      "sourceBaseCommit": "7612f18dc8e0112e64e0845a1ebe9da6cfb8a123"
+    },
+    {
+      "canonicalUpstreamIdentity": "https://github.com/fmtlib/fmt/pull/3158",
+      "existingBaseCommit": "80f8d34427d40ec5e7ce3b10ededc46bd4bd5759",
+      "existingSourceId": "swe-bench-multilingual-e5c585e",
+      "sameBaseCommit": true,
+      "sourceBaseCommit": "80f8d34427d40ec5e7ce3b10ededc46bd4bd5759"
+    },
+    {
+      "canonicalUpstreamIdentity": "https://github.com/fmtlib/fmt/pull/3248",
+      "existingBaseCommit": "840ec8569ddb304345f082bb82d733742f431504",
+      "existingSourceId": "swe-bench-multilingual-e5c585e",
+      "sameBaseCommit": false,
+      "sourceBaseCommit": "275b4b3417e26be3bdb5b45e16fa9af6584973a2"
+    },
+    {
+      "canonicalUpstreamIdentity": "https://github.com/fmtlib/fmt/pull/3272",
+      "existingBaseCommit": "0f42c17d85f26bbbd6a30d71ce8306d371426bfc",
+      "existingSourceId": "swe-bench-multilingual-e5c585e",
+      "sameBaseCommit": false,
+      "sourceBaseCommit": "bfc0924eacaa3c6163eb872c8948098565464192"
+    },
+    {
+      "canonicalUpstreamIdentity": "https://github.com/fmtlib/fmt/pull/3729",
+      "existingBaseCommit": "5cfd28d476c6859617878f951931b8ce7d36b9df",
+      "existingSourceId": "swe-bench-multilingual-e5c585e",
+      "sameBaseCommit": true,
+      "sourceBaseCommit": "5cfd28d476c6859617878f951931b8ce7d36b9df"
+    },
+    {
+      "canonicalUpstreamIdentity": "https://github.com/fmtlib/fmt/pull/3750",
+      "existingBaseCommit": "5471a2426c432503bdadeab0c03df387bea97463",
+      "existingSourceId": "swe-bench-multilingual-e5c585e",
+      "sameBaseCommit": false,
+      "sourceBaseCommit": "274ba2645bdae12f6f0c7d7ca24659c4af670548"
+    },
+    {
+      "canonicalUpstreamIdentity": "https://github.com/fmtlib/fmt/pull/3863",
+      "existingBaseCommit": "dfe5b12c08dfa803fe5a275b380991df25f4b52d",
+      "existingSourceId": "swe-bench-multilingual-e5c585e",
+      "sameBaseCommit": false,
+      "sourceBaseCommit": "0166f455f6681144a18553d2ea0cda8946bff019"
+    },
+    {
+      "canonicalUpstreamIdentity": "https://github.com/google/gson/pull/1093",
+      "existingBaseCommit": "0aaef0fd1bb1b9729543dc40168adfb829eb75a4",
+      "existingSourceId": "swe-bench-multilingual-e5c585e",
+      "sameBaseCommit": true,
+      "sourceBaseCommit": "0aaef0fd1bb1b9729543dc40168adfb829eb75a4"
+    },
+    {
+      "canonicalUpstreamIdentity": "https://github.com/jqlang/jq/pull/2658",
+      "existingBaseCommit": "c077b95ba2dcaafee39e302cc086bf99fa9248d0",
+      "existingSourceId": "swe-bench-multilingual-e5c585e",
+      "sameBaseCommit": true,
+      "sourceBaseCommit": "c077b95ba2dcaafee39e302cc086bf99fa9248d0"
+    },
+    {
+      "canonicalUpstreamIdentity": "https://github.com/jqlang/jq/pull/2728",
+      "existingBaseCommit": "87e3dfddb80015bd71259a4a295ca73bed398bd2",
+      "existingSourceId": "swe-bench-multilingual-e5c585e",
+      "sameBaseCommit": false,
+      "sourceBaseCommit": "0b558f6ed498717546406b5367483b976578a9b2"
+    },
+    {
+      "canonicalUpstreamIdentity": "https://github.com/jqlang/jq/pull/2839",
+      "existingBaseCommit": "f86566b2631b777c0d0c9a4572eb21146a14829b",
+      "existingSourceId": "swe-bench-multilingual-e5c585e",
+      "sameBaseCommit": false,
+      "sourceBaseCommit": "f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2"
+    },
+    {
+      "canonicalUpstreamIdentity": "https://github.com/jqlang/jq/pull/2919",
+      "existingBaseCommit": "7f547827e47b5ade563a293329deb4226496d72f",
+      "existingSourceId": "swe-bench-multilingual-e5c585e",
+      "sameBaseCommit": true,
+      "sourceBaseCommit": "7f547827e47b5ade563a293329deb4226496d72f"
+    },
+    {
+      "canonicalUpstreamIdentity": "https://github.com/sharkdp/bat/pull/3108",
+      "existingBaseCommit": "2be3a14a7e2c74360765a5fa213750f727f2c5bb",
+      "existingSourceId": "swe-bench-multilingual-e5c585e",
+      "sameBaseCommit": true,
+      "sourceBaseCommit": "2be3a14a7e2c74360765a5fa213750f727f2c5bb"
+    }
+  ],
+  "discoveryPolicy": {
+    "candidateDoesNotFreezeAgentVisiblePrompt": true,
+    "issueBodyCanPromoteCandidate": false,
+    "mergeOrderDoesNotEstablishOriginalRequestChronology": true,
+    "pullBodyEvidenceVisibility": "evaluator-only-not-agent-request",
+    "qualifiedPullReference": "pull-body-pr-or-pull-request-prefix-followed-by-hash-number",
+    "strongCandidateRule": "one-later-pull-body-qualified-references-two-source-pulls"
+  },
+  "discoverySignals": {
+    "candidateTriples": [
+      {
+        "candidateId": "sharkdp-bat-prs-2896-3075-3189",
+        "laterPullNumber": 3189,
+        "laterSourceUnitId": "multi-swe-56ff018:rust/sharkdp__bat_dataset.jsonl:line:1",
+        "memberPullNumbers": [
+          2896,
+          3075,
+          3189
+        ],
+        "orderedPullNumbers": null,
+        "priorPullNumbers": [
+          2896,
+          3075
+        ],
+        "priorSourceUnitIds": [
+          "multi-swe-56ff018:rust/sharkdp__bat_dataset.jsonl:line:4",
+          "multi-swe-56ff018:rust/sharkdp__bat_dataset.jsonl:line:3"
+        ],
+        "repository": "sharkdp/bat",
+        "status": "relationship-candidate-ancestry-and-review-required"
+      }
+    ],
+    "referenceSignals": [
+      {
+        "evidenceField": "pull-body",
+        "fromPullNumber": 2532,
+        "fromSourceUnitId": "multi-swe-56ff018:js/iamkun__dayjs_dataset.jsonl:line:1",
+        "matchedSyntax": "bare-hash",
+        "occurrences": 1,
+        "repository": "iamkun/dayjs",
+        "targetKinds": [
+          "candidate-pull"
+        ],
+        "targetNumber": 2399,
+        "targetSourceUnitIds": [
+          "multi-swe-56ff018:js/iamkun__dayjs_dataset.jsonl:line:3"
+        ]
+      },
+      {
+        "evidenceField": "pull-body",
+        "fromPullNumber": 3189,
+        "fromSourceUnitId": "multi-swe-56ff018:rust/sharkdp__bat_dataset.jsonl:line:1",
+        "matchedSyntax": "qualified-pull-hash",
+        "occurrences": 1,
+        "repository": "sharkdp/bat",
+        "targetKinds": [
+          "candidate-pull"
+        ],
+        "targetNumber": 2896,
+        "targetSourceUnitIds": [
+          "multi-swe-56ff018:rust/sharkdp__bat_dataset.jsonl:line:4"
+        ]
+      },
+      {
+        "evidenceField": "pull-body",
+        "fromPullNumber": 3189,
+        "fromSourceUnitId": "multi-swe-56ff018:rust/sharkdp__bat_dataset.jsonl:line:1",
+        "matchedSyntax": "qualified-pull-hash",
+        "occurrences": 1,
+        "repository": "sharkdp/bat",
+        "targetKinds": [
+          "candidate-pull"
+        ],
+        "targetNumber": 3075,
+        "targetSourceUnitIds": [
+          "multi-swe-56ff018:rust/sharkdp__bat_dataset.jsonl:line:3"
+        ]
+      },
+      {
+        "evidenceField": "pull-body",
+        "fromPullNumber": 3189,
+        "fromSourceUnitId": "multi-swe-56ff018:rust/sharkdp__bat_dataset.jsonl:line:1",
+        "matchedSyntax": "qualified-issue-hash",
+        "occurrences": 1,
+        "repository": "sharkdp/bat",
+        "targetKinds": [
+          "candidate-issue"
+        ],
+        "targetNumber": 3073,
+        "targetSourceUnitIds": [
+          "multi-swe-56ff018:rust/sharkdp__bat_dataset.jsonl:line:3"
+        ]
+      },
+      {
+        "evidenceField": "pull-body",
+        "fromPullNumber": 658,
+        "fromSourceUnitId": "multi-swe-56ff018:rust/sharkdp__fd_dataset.jsonl:line:8",
+        "matchedSyntax": "qualified-pull-hash",
+        "occurrences": 2,
+        "repository": "sharkdp/fd",
+        "targetKinds": [
+          "candidate-pull"
+        ],
+        "targetNumber": 546,
+        "targetSourceUnitIds": [
+          "multi-swe-56ff018:rust/sharkdp__fd_dataset.jsonl:line:13"
+        ]
+      },
+      {
+        "evidenceField": "pull-body",
+        "fromPullNumber": 547,
+        "fromSourceUnitId": "multi-swe-56ff018:rust/tokio-rs__bytes_dataset.jsonl:line:4",
+        "matchedSyntax": "bare-hash",
+        "occurrences": 1,
+        "repository": "tokio-rs/bytes",
+        "targetKinds": [
+          "candidate-pull"
+        ],
+        "targetNumber": 543,
+        "targetSourceUnitIds": [
+          "multi-swe-56ff018:rust/tokio-rs__bytes_dataset.jsonl:line:5"
+        ]
+      }
+    ],
+    "sharedResolvedIssueGroups": [
+      {
+        "issueNumber": 1720,
+        "memberPullNumbers": [
+          1726,
+          1733
+        ],
+        "memberSourceUnitIds": [
+          "multi-swe-56ff018:c/facebook__zstd_dataset.jsonl:line:11",
+          "multi-swe-56ff018:c/facebook__zstd_dataset.jsonl:line:10"
+        ],
+        "repository": "facebook/zstd",
+        "status": "parallel-or-superseding-attempts-not-dependency-proof"
+      },
+      {
+        "issueNumber": 3772,
+        "memberPullNumbers": [
+          3912,
+          3913
+        ],
+        "memberSourceUnitIds": [
+          "multi-swe-56ff018:cpp/fmtlib__fmt_dataset.jsonl:line:6",
+          "multi-swe-56ff018:cpp/fmtlib__fmt_dataset.jsonl:line:5"
+        ],
+        "repository": "fmtlib/fmt",
+        "status": "parallel-or-superseding-attempts-not-dependency-proof"
+      },
+      {
+        "issueNumber": 587,
+        "memberPullNumbers": [
+          589,
+          591
+        ],
+        "memberSourceUnitIds": [
+          "multi-swe-56ff018:js/iamkun__dayjs_dataset.jsonl:line:51",
+          "multi-swe-56ff018:js/iamkun__dayjs_dataset.jsonl:line:50"
+        ],
+        "repository": "iamkun/dayjs",
+        "status": "parallel-or-superseding-attempts-not-dependency-proof"
+      },
+      {
+        "issueNumber": 2248,
+        "memberPullNumbers": [
+          2399,
+          2532
+        ],
+        "memberSourceUnitIds": [
+          "multi-swe-56ff018:js/iamkun__dayjs_dataset.jsonl:line:3",
+          "multi-swe-56ff018:js/iamkun__dayjs_dataset.jsonl:line:1"
+        ],
+        "repository": "iamkun/dayjs",
+        "status": "parallel-or-superseding-attempts-not-dependency-proof"
+      },
+      {
+        "issueNumber": 535,
+        "memberPullNumbers": [
+          546,
+          658
+        ],
+        "memberSourceUnitIds": [
+          "multi-swe-56ff018:rust/sharkdp__fd_dataset.jsonl:line:13",
+          "multi-swe-56ff018:rust/sharkdp__fd_dataset.jsonl:line:8"
+        ],
+        "repository": "sharkdp/fd",
+        "status": "parallel-or-superseding-attempts-not-dependency-proof"
+      },
+      {
+        "issueNumber": 427,
+        "memberPullNumbers": [
+          543,
+          547
+        ],
+        "memberSourceUnitIds": [
+          "multi-swe-56ff018:rust/tokio-rs__bytes_dataset.jsonl:line:5",
+          "multi-swe-56ff018:rust/tokio-rs__bytes_dataset.jsonl:line:4"
+        ],
+        "repository": "tokio-rs/bytes",
+        "status": "parallel-or-superseding-attempts-not-dependency-proof"
+      }
+    ]
+  },
+  "evidenceBoundary": {
+    "githubCaptureStatus": "local-public-api-responses-hash-bound-no-platform-signature",
+    "independentCaptureAuthenticationVerified": false,
+    "independentSemanticReviewVerified": false,
+    "localMergeOrderAndAncestryVerifiedCandidates": 1,
+    "linuxReplayVerified": false,
+    "orderedOriginalRequestChronologyVerifiedCandidates": 0,
+    "treeCaptureStatus": "local-merged-body-no-response-header-or-platform-signature"
+  },
+  "existingSourcePool": {
+    "artifactSha256": "15cf8d4a0a7ab0e3e7dee32555f266f1bccfd47ace7f5b31d8e474e064c37cf5",
+    "sourceId": "swe-bench-multilingual-e5c585e"
+  },
+  "locallyVerifiedCandidates": [
+    {
+      "ancestryEdges": [
+        {
+          "aheadBy": 39,
+          "compareReceiptSha256": "de5dba605710ff773d8cd83cbf70aee7595cde6fa638eb9d31cc245d1d98ff49",
+          "fromMergeCommit": "eca6b8a3768ec3931a41330c42b138107b1786b5",
+          "fromPullNumber": 3075,
+          "request": "GET /repos/sharkdp/bat/compare/eca6b8a3768ec3931a41330c42b138107b1786b5...d00e05643ff6ef00de1aa8da90c869db993c93e2?per_page=1&page=2",
+          "toBaseCommit": "d00e05643ff6ef00de1aa8da90c869db993c93e2",
+          "toPullNumber": 2896
+        },
+        {
+          "aheadBy": 90,
+          "compareReceiptSha256": "2b2cf1b0d81861a5bed63d6b858da115e6c55c1075224742fef64d14a4cd267f",
+          "fromMergeCommit": "8a4701f93ff296b80b813bde07002796f9ff2f1d",
+          "fromPullNumber": 2896,
+          "request": "GET /repos/sharkdp/bat/compare/8a4701f93ff296b80b813bde07002796f9ff2f1d...f8c6e90647221d8a5142bc50c7ea972562f6cdcd?per_page=1&page=2",
+          "toBaseCommit": "f8c6e90647221d8a5142bc50c7ea972562f6cdcd",
+          "toPullNumber": 3189
+        }
+      ],
+      "blockers": [
+        "original-request-chronology-conflict-eligibility-decision",
+        "independent-upstream-capture-authentication",
+        "gold-blind-independent-semantic-dependency-review",
+        "independent-semantic-duplicate-review",
+        "original-request-construction-review",
+        "repository-commit-reachability-and-tree",
+        "historical-project-license-review",
+        "base-gold-protection-linux-replay",
+        "cross-stage-gold-and-leakage-review",
+        "deterministic-prehistory-materialization",
+        "full-source-population-selection-closure"
+      ],
+      "candidateId": "sharkdp-bat-prs-2896-3075-3189",
+      "episodeEligibility": "blocked-pending-preregistered-merge-order-regression-policy",
+      "mergeChronologyVerified": true,
+      "mergeOrderPullNumbers": [
+        3075,
+        2896,
+        3189
+      ],
+      "originalRequestChronology": {
+        "issueCreatedOrderPullNumbers": [
+          2896,
+          3075,
+          3189
+        ],
+        "pullCreatedOrderPullNumbers": [
+          2896,
+          3075,
+          3189
+        ],
+        "requestChronologyVerified": false,
+        "status": "conflicts-with-merge-order"
+      },
+      "relationshipKind": "merge-order-regression",
+      "semanticDependency": {
+        "independentReviewReceiptSha256": null,
+        "independentReviewVerified": false,
+        "status": "explicit-regression-narrative-detected-independent-review-required",
+        "thirdStagePullBodySha256": "07ba56a4914af16a097355327cb2492825dd08b5d01fc513d108767b955413c6",
+        "thirdStageQualifiedIssueReferences": [
+          3073
+        ],
+        "thirdStageQualifiedPullReferences": [
+          2896,
+          3075
+        ]
+      },
+      "stages": [
+        {
+          "baseCommit": "61c9f312c9d10103b33b7d8069401304ca938f06",
+          "issueCreatedAt": "2024-08-18T17:20:09Z",
+          "issueReceiptSha256": "3f98a9d36612c9e33d6f8ff2c460d0b3f9c6f7b570e31330f45f606079ed5f24",
+          "mergeCommit": "eca6b8a3768ec3931a41330c42b138107b1786b5",
+          "mergedAt": "2024-10-06T19:27:19Z",
+          "originalIssueNumber": 3073,
+          "pullCreatedAt": "2024-08-25T09:40:42Z",
+          "pullNumber": 3075,
+          "pullReceiptSha256": "5dc31a2b621ad7873afbb0d498ac3a2d4ca79ebb34062c2c53dea867cc7eddd0",
+          "sourceRecordMatchesIssueReceipt": true,
+          "sourceRecordMatchesPullReceipt": true,
+          "sourceUnitId": "multi-swe-56ff018:rust/sharkdp__bat_dataset.jsonl:line:3"
+        },
+        {
+          "baseCommit": "d00e05643ff6ef00de1aa8da90c869db993c93e2",
+          "issueCreatedAt": "2021-07-21T08:19:18Z",
+          "issueReceiptSha256": "3ed8014c2d2a11838831f5125ddc611770f7c3e54a16ce0bc984e7e4fbb2ffe0",
+          "mergeCommit": "8a4701f93ff296b80b813bde07002796f9ff2f1d",
+          "mergedAt": "2024-11-13T19:10:50Z",
+          "originalIssueNumber": 1746,
+          "pullCreatedAt": "2024-03-15T17:17:48Z",
+          "pullNumber": 2896,
+          "pullReceiptSha256": "f9efb007b0bb7ef891c0c46539d0cd2295b86c8fce57f5bb2aacd3202d3dc201",
+          "sourceRecordMatchesIssueReceipt": true,
+          "sourceRecordMatchesPullReceipt": true,
+          "sourceUnitId": "multi-swe-56ff018:rust/sharkdp__bat_dataset.jsonl:line:4"
+        },
+        {
+          "baseCommit": "f8c6e90647221d8a5142bc50c7ea972562f6cdcd",
+          "issueCreatedAt": "2025-01-27T14:44:30Z",
+          "issueReceiptSha256": "01cae0c9d99ced87ec9b6c60b3c6389f9dac79179f3d822321bd87c25eeae705",
+          "mergeCommit": "b14fb9db243225c87deb73557c19b53b71d40c9c",
+          "mergedAt": "2025-01-27T19:59:19Z",
+          "originalIssueNumber": 3188,
+          "pullCreatedAt": "2025-01-27T16:23:22Z",
+          "pullNumber": 3189,
+          "pullReceiptSha256": "b2cf484e034f7051153774be6c972077a4c102b968155214f3eb024afdb20aa4",
+          "sourceRecordMatchesIssueReceipt": true,
+          "sourceRecordMatchesPullReceipt": true,
+          "sourceUnitId": "multi-swe-56ff018:rust/sharkdp__bat_dataset.jsonl:line:1"
+        }
+      ],
+      "status": "merge-order-regression-candidate-original-request-chronology-conflict"
+    }
+  ],
+  "populationSha256": "e79d4812f1e4e1877c94d9dece3201973e10a5373334e0da7e35aa5ffd4af144",
+  "requiredNextEvidence": [
+    "original-request-chronology-conflict-eligibility-decision",
+    "independent-upstream-capture-authentication",
+    "gold-blind-independent-semantic-dependency-review",
+    "independent-semantic-duplicate-review",
+    "original-request-construction-review",
+    "repository-commit-reachability-and-tree",
+    "historical-project-license-review",
+    "base-gold-protection-linux-replay",
+    "cross-stage-gold-and-leakage-review",
+    "deterministic-prehistory-materialization",
+    "full-source-population-selection-closure"
+  ],
+  "schemaVersion": 2,
+  "source": {
+    "datasetCard": {
+      "bytes": 11283,
+      "gitBlobOid": "5f9e55e14d014e4ce253d49e7b2fea974744bccd",
+      "path": "README.md",
+      "sha256": "26638a5dc8d8c10e04de4578c904beecefb584d44e618cfe2c33fd350ca9810d"
+    },
+    "datasetId": "ByteDance-Seed/Multi-SWE-bench",
+    "revision": "56ff018c04a38e27ada1e9d0a6d5839a51f88f0d",
+    "selection": {
+      "maximumSourceFileBytes": 1000000,
+      "pathSuffix": "_dataset.jsonl",
+      "policy": "all-revision-tree-files-at-or-below-byte-threshold-v1"
+    },
+    "treeReceipt": {
+      "bytes": 38112,
+      "captureForm": "locally-merged-two-page-body-no-response-header-authentication",
+      "entryCount": 59,
+      "matchingPathEntries": 47,
+      "paginationAuthenticationVerified": false,
+      "sha256": "69b4797acb34252fcc726daf6d3e0480577017d9b8faf25b7dbd53f7f82e07b6"
+    }
+  },
+  "sourceFiles": [
+    {
+      "bytes": 677646,
+      "gitBlobOid": "778933d67c8a091627d9fca7003d4042c137e110",
+      "path": "c/facebook__zstd_dataset.jsonl",
+      "sha256": "689b60bfbe9b1c9558ac345468b54c40fbb30748069caa1a92ca747773610e7b",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/c/facebook__zstd_dataset.jsonl",
+      "observedRows": 29
+    },
+    {
+      "bytes": 148809,
+      "gitBlobOid": "e5648629616c7ff5b319954202aa1db6d89fd7c5",
+      "path": "c/jqlang__jq_dataset.jsonl",
+      "sha256": "8be07a2281fa766b310037db9bc2abc3f8c7150c3d471ea56a964921d5609e8f",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/c/jqlang__jq_dataset.jsonl",
+      "observedRows": 17
+    },
+    {
+      "bytes": 698675,
+      "gitBlobOid": "8145e4cc6eff4dad5db9530814b62855962d6d1d",
+      "path": "cpp/catchorg__Catch2_dataset.jsonl",
+      "sha256": "a2fad917a116bca66692129bfa91bbf6d1e8563dd0bbd7fd82732d6a82f3048f",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/cpp/catchorg__Catch2_dataset.jsonl",
+      "observedRows": 12
+    },
+    {
+      "bytes": 375788,
+      "gitBlobOid": "b660726d4edf6bec9d6b9e9ef598852c42df0ca4",
+      "path": "cpp/fmtlib__fmt_dataset.jsonl",
+      "sha256": "7d060ca46ba6343373aa68ced7fcca70e2ce0addac7ec610c47d2bbfcfed6762",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/cpp/fmtlib__fmt_dataset.jsonl",
+      "observedRows": 41
+    },
+    {
+      "bytes": 60772,
+      "gitBlobOid": "6b2dd554bdf594e38f878f0195c491adbe25649f",
+      "path": "cpp/yhirose__cpp-httplib_dataset.jsonl",
+      "sha256": "3551b73936dd788873b7727649ca94c102678d5541f1eb0a14d27730799d6143",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/cpp/yhirose__cpp-httplib_dataset.jsonl",
+      "observedRows": 1
+    },
+    {
+      "bytes": 864342,
+      "gitBlobOid": "8120a559a1d9050b939cab94aa7bfce2a52179ee",
+      "path": "go/grpc__grpc-go_dataset.jsonl",
+      "sha256": "cd8984b884679c44f71c2af958d74c692f4a1feb6ec68e74b0ddc312526b4e13",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/go/grpc__grpc-go_dataset.jsonl",
+      "observedRows": 16
+    },
+    {
+      "bytes": 376821,
+      "gitBlobOid": "ea813f36abeaf1e8fc99490ef0986c3cbee7a974",
+      "path": "java/apache__dubbo_dataset.jsonl",
+      "sha256": "a12c85a7232a449cfd4f9ef93bb475a3b2193c2c0d53cd0802942259d0d3ccd6",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/java/apache__dubbo_dataset.jsonl",
+      "observedRows": 3
+    },
+    {
+      "bytes": 967999,
+      "gitBlobOid": "7a37489c45c90c7450afb7f1effc80ec111ce5c6",
+      "path": "java/fasterxml__jackson-core_dataset.jsonl",
+      "sha256": "21f1f1350dcaf687840f6cf0dce4198c7958cc66cd6ab6722a0dd3a18860147e",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/java/fasterxml__jackson-core_dataset.jsonl",
+      "observedRows": 18
+    },
+    {
+      "bytes": 279932,
+      "gitBlobOid": "68f4528317296eee59a5d0d75a859bcc54a0a48b",
+      "path": "java/fasterxml__jackson-dataformat-xml_dataset.jsonl",
+      "sha256": "a5690cb59b2c8d244139bae8a6f99937df9aebc320bbaf9cbf8505f02c025ea9",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/java/fasterxml__jackson-dataformat-xml_dataset.jsonl",
+      "observedRows": 5
+    },
+    {
+      "bytes": 122857,
+      "gitBlobOid": "8683ce6d91b7d916f799bfe1d9a4a40d19f31970",
+      "path": "java/google__gson_dataset.jsonl",
+      "sha256": "fc4e6547d8ccd761719c68dc09053b9e10ba9aca8db97b4b565dbf88c83473f6",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/java/google__gson_dataset.jsonl",
+      "observedRows": 5
+    },
+    {
+      "bytes": 135084,
+      "gitBlobOid": "cc01812133fad16d7bf6a137cd493a6bebc43681",
+      "path": "java/googlecontainertools__jib_dataset.jsonl",
+      "sha256": "ca2b733714ff2886cc3a47df8ff50cadf74bc7afcf9bfce16ec96c666e9362f3",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/java/googlecontainertools__jib_dataset.jsonl",
+      "observedRows": 5
+    },
+    {
+      "bytes": 255347,
+      "gitBlobOid": "3e7c689c8192b194a264cc3bb554d9716623a88a",
+      "path": "java/mockito__mockito_dataset.jsonl",
+      "sha256": "ba9658d470f9365c764342cb41af899db0ab616c18887498e8db038bea7669bf",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/java/mockito__mockito_dataset.jsonl",
+      "observedRows": 6
+    },
+    {
+      "bytes": 64765,
+      "gitBlobOid": "3d123cdf33c3b5afc7b284a6226d0982847a2055",
+      "path": "js/Kong__insomnia_dataset.jsonl",
+      "sha256": "a12c192097969d351c1081cfb5728680864b0c7d8f3bf2a9e90c2f0a60c8836f",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/js/Kong__insomnia_dataset.jsonl",
+      "observedRows": 1
+    },
+    {
+      "bytes": 151870,
+      "gitBlobOid": "d19999a3b6070d4c6b3950c122e458d844d265fa",
+      "path": "js/axios__axios_dataset.jsonl",
+      "sha256": "64217dadc28cf21cc3b4d0777eef8207f957a5f0edfc7de43e13bee680d76c64",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/js/axios__axios_dataset.jsonl",
+      "observedRows": 4
+    },
+    {
+      "bytes": 995502,
+      "gitBlobOid": "a5ebbb9a124738b0fb3c21d6e04c839cdce6c017",
+      "path": "js/expressjs__express_dataset.jsonl",
+      "sha256": "b409503d27b227982c8063b3735463899b7134afd7c3b712d75e04d50c442913",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/js/expressjs__express_dataset.jsonl",
+      "observedRows": 4
+    },
+    {
+      "bytes": 954834,
+      "gitBlobOid": "ed49ace984f9c2c94e2f1328007c0d290512aa1e",
+      "path": "js/iamkun__dayjs_dataset.jsonl",
+      "sha256": "2385ad31059b7448d35aa2dba38c03c2cae9ed09f6e794d299649a22bef71c71",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/js/iamkun__dayjs_dataset.jsonl",
+      "observedRows": 56
+    },
+    {
+      "bytes": 34371,
+      "gitBlobOid": "8962dbc83fabe0856fce801d50a90668c1a09808",
+      "path": "kotlin/GradleUp__shadow_dataset.jsonl",
+      "sha256": "0b4401c7d5b86a05538085b910ce862dfad978363af34fb09be901df5d6f0c3e",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/kotlin/GradleUp__shadow_dataset.jsonl",
+      "observedRows": 1
+    },
+    {
+      "bytes": 816039,
+      "gitBlobOid": "fa9932a7d90a242dc245ab814586ed7f8041e344",
+      "path": "kotlin/square__okhttp_dataset.jsonl",
+      "sha256": "068cdcf7946a147098518383cb9c97557e35e63a8bdd9330d0196bdb97ddc01d",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/kotlin/square__okhttp_dataset.jsonl",
+      "observedRows": 2
+    },
+    {
+      "bytes": 163860,
+      "gitBlobOid": "fcce0ba5772c34e91fc65f7d6a37650557132627",
+      "path": "rust/rayon-rs__rayon_dataset.jsonl",
+      "sha256": "03dbe8d22c1b61eddf3b0f729426a1f9579e9efd80bfbecf6dd68f802c2b589d",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/rust/rayon-rs__rayon_dataset.jsonl",
+      "observedRows": 2
+    },
+    {
+      "bytes": 138138,
+      "gitBlobOid": "f59fbbee8d1b58f22b82541f71921c85719507bf",
+      "path": "rust/serde-rs__serde_dataset.jsonl",
+      "sha256": "164ea8543f438b964c40e5e1cd09f5b82dc917aa5e4348b644d4b5e17e81142f",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/rust/serde-rs__serde_dataset.jsonl",
+      "observedRows": 2
+    },
+    {
+      "bytes": 610685,
+      "gitBlobOid": "5355f5b1fbc743a14ffb4914aa4743cd9e644c10",
+      "path": "rust/sharkdp__bat_dataset.jsonl",
+      "sha256": "5d2a10fd1adef574b8a21c41d2f1b7bcd904e40c7c0c563c3b92efea7b576348",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/rust/sharkdp__bat_dataset.jsonl",
+      "observedRows": 10
+    },
+    {
+      "bytes": 648192,
+      "gitBlobOid": "08e3e4cec4c2084554f2a76c4b36df41282d1e9c",
+      "path": "rust/sharkdp__fd_dataset.jsonl",
+      "sha256": "3e2b3862f7b17a39aa27bf03458d27204af0a5e72c71f1e6e19b2bdd52ef45ea",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/rust/sharkdp__fd_dataset.jsonl",
+      "observedRows": 14
+    },
+    {
+      "bytes": 143947,
+      "gitBlobOid": "58dffb169d2cc61a71488bc27847af58c3033036",
+      "path": "rust/tokio-rs__bytes_dataset.jsonl",
+      "sha256": "9516b916eb11556a27a62d79296829c821b19873fea0a9f8f02d52c043f855a0",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/rust/tokio-rs__bytes_dataset.jsonl",
+      "observedRows": 5
+    },
+    {
+      "bytes": 38899,
+      "gitBlobOid": "5372fa046d1400b7a03008f3c2f2a684152ec9a7",
+      "path": "ts/darkreader__darkreader_dataset.jsonl",
+      "sha256": "350ddd200d2774be699d72062b356a9ceecdf38c3f9ab72e1ece3887626a93a8",
+      "url": "https://huggingface.co/datasets/ByteDance-Seed/Multi-SWE-bench/resolve/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d/ts/darkreader__darkreader_dataset.jsonl",
+      "observedRows": 2
+    }
+  ]
+}

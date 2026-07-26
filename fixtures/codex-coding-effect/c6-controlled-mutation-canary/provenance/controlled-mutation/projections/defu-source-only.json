@@ -1,0 +1,34 @@
+{
+  "baseRepositoryId": "defu-82632b66",
+  "excludedPaths": [
+    ".editorconfig",
+    ".github/banner.svg",
+    ".github/workflows/ci.yml",
+    ".gitignore",
+    ".oxfmtrc.json",
+    ".oxlintrc.json",
+    "CHANGELOG.md",
+    "README.md",
+    "lib/defu.cjs",
+    "lib/defu.d.cts",
+    "pnpm-lock.yaml",
+    "renovate.json",
+    "tea.yaml",
+    "test/defu.test.ts",
+    "test/fixtures/index.ts",
+    "test/fixtures/nested.ts",
+    "test/utils.test.ts"
+  ],
+  "includedPaths": [
+    "LICENSE",
+    "package.json",
+    "src/_utils.ts",
+    "src/defu.ts",
+    "src/types.ts",
+    "tsconfig.json"
+  ],
+  "policy": "source-only-no-upstream-tests-v1",
+  "schemaVersion": 1,
+  "upstreamCommit": "82632b66f5914e9946edce300e10633a3d5c0cb7",
+  "upstreamTree": "f98fd0ecb1056fb087f117a97241a433309f087c"
+}

@@ -1,0 +1,39 @@
+{
+  "artifactKind": "c6-goodmemory-package-source-rebuild-projection",
+  "boundary": {
+    "c6PackageOfflineClosureProven": false,
+    "externalIndependentAttestation": false,
+    "fullArtifactClosureVendored": false,
+    "localOrchestratorObservedLiveBuilds": true,
+    "networkDisabled": false,
+    "sourceBuildReproducible": false,
+    "status": "networked-source-build-diagnostic-independent-replay-required"
+  },
+  "inputs": {
+    "commitSha": "5d6dab3bf8b406455068c01863c5cbd51cf65756",
+    "imageSha256": "420f9c50e115184234e0e355d8a9ffed8b49c1b8512972ec9a8a402bb259834f",
+    "packageSha256": "5f9b98600ff024a80a7a337fa8953e162b7498bf909a67e8b217a9bba5dd2757",
+    "runtimeIdentitySha256": "37960d64a793126071fe0d89f7b0245505b7375e06ef45cf65a879f794a45792",
+    "treeSha": "8563c9136864430772e024925811be55402f3372"
+  },
+  "omittedExternalArtifacts": {
+    "runPackageBytesEach": 1035700,
+    "runPackageCount": 2,
+    "sourceArchiveBytes": 36628480,
+    "sourceArchiveSha256": "9a45c0d9d4a06b54586a6d8321a96e2a781d6f9c316d5bb4405aad6b6d1f9c37"
+  },
+  "projection": {
+    "receipt.json": "230948d69f433600e31e239944d19b76bde1282d6ddd390212f0d298aed57e16",
+    "source-tree.jsonl": "058763e0db5fdd36027259e030f8c5b60f15775cdbede950b3aeb85f7b3b2a30"
+  },
+  "result": {
+    "executorAuthority": "native-docker-cli",
+    "locallyExecutedLinuxBuild": true,
+    "networkedSourceBuildDiagnosticReproduced": true,
+    "packageOutputsByteIdentical": true,
+    "runCount": 2,
+    "runnerSourceRootSha256": "e18b9b7ce6c7929deb20c5aa3ca394d3a779f23bfb69055b21907f2bd3d2f84f",
+    "sourceEntryCount": 2595
+  },
+  "schemaVersion": 1
+}

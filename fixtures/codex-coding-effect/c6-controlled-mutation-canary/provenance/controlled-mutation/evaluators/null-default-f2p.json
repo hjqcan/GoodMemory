@@ -1,0 +1,59 @@
+{
+  "cases": [
+    {
+      "args": [
+        {
+          "value": null
+        },
+        {
+          "value": "fallback"
+        }
+      ],
+      "expected": {
+        "value": "fallback"
+      },
+      "id": "root-null-fallback"
+    },
+    {
+      "args": [
+        {
+          "nested": {
+            "value": null
+          }
+        },
+        {
+          "nested": {
+            "value": "fallback"
+          }
+        }
+      ],
+      "expected": {
+        "nested": {
+          "value": "fallback"
+        }
+      },
+      "id": "nested-null-fallback"
+    },
+    {
+      "args": [
+        {
+          "value": null
+        },
+        {
+          "value": "middle"
+        },
+        {
+          "value": "last"
+        }
+      ],
+      "expected": {
+        "value": "middle"
+      },
+      "id": "multi-default-null-fallback"
+    }
+  ],
+  "exportName": "defu",
+  "factoryId": "bun-typescript-module-cases-v1",
+  "modulePath": "src/defu.ts",
+  "schemaVersion": 1
+}

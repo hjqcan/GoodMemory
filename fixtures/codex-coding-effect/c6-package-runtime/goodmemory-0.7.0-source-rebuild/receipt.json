@@ -1,0 +1,174 @@
+{
+  "commands": {
+    "build": [
+      "bun",
+      "run",
+      "build"
+    ],
+    "install": [
+      "bun",
+      "install",
+      "--frozen-lockfile",
+      "--ignore-scripts"
+    ],
+    "pack": [
+      "npm",
+      "pack",
+      "--ignore-scripts",
+      "--pack-destination",
+      "/work/output"
+    ]
+  },
+  "executor": {
+    "allCapabilitiesDropped": true,
+    "authority": "native-docker-cli",
+    "dockerServerVersion": "28.4.0",
+    "fixedPath": "/work/tool-bin:/usr/local/bin:/usr/bin:/bin",
+    "hostCredentialMountsAbsent": true,
+    "imageArchitecture": "amd64",
+    "imageId": "sha256:420f9c50e115184234e0e355d8a9ffed8b49c1b8512972ec9a8a402bb259834f",
+    "imageOperatingSystem": "linux",
+    "imageReference": "sha256:420f9c50e115184234e0e355d8a9ffed8b49c1b8512972ec9a8a402bb259834f",
+    "imageSha256": "420f9c50e115184234e0e355d8a9ffed8b49c1b8512972ec9a8a402bb259834f",
+    "kind": "docker",
+    "networkMode": "bridge",
+    "noNewPrivileges": true,
+    "npmConfigFilesForcedEmpty": true,
+    "numericUser": true,
+    "platform": "linux/amd64",
+    "rootFilesystemReadOnly": true
+  },
+  "c6PackageOfflineClosureProven": false,
+  "evidenceScope": "source-build-only",
+  "executionMode": "networked-source-build-diagnostic",
+  "externalIndependentAttestation": false,
+  "kind": "c6-package-source-reproducibility",
+  "locallyExecutedLinuxBuild": true,
+  "networkDisabled": false,
+  "networkedSourceBuildDiagnosticReproduced": true,
+  "offlineDependencyClosureUsed": false,
+  "outcome": "passed",
+  "runnerProtocolSha256": "ebaae8bf95379b48426b5c9f966aa914f42b5294c744cb8b118cbc192969c16a",
+  "runnerSource": {
+    "files": [
+      {
+        "bytes": 6070,
+        "path": "scripts/codex-coding-effect/c6-asset-lock.ts",
+        "sha256": "21a9a605171552d5e284c581abd0d36d0a36a1be8e599b27a6987b0bb3320254"
+      },
+      {
+        "bytes": 89218,
+        "path": "scripts/codex-coding-effect/c6-package-source-reproducibility.ts",
+        "sha256": "65b32f99150ff14f5eb4618a1e10cc72a1808d1bfb58b649d353e07385c37459"
+      },
+      {
+        "bytes": 3930,
+        "path": "scripts/codex-coding-effect/c6-package.ts",
+        "sha256": "dc258ae34b65d1aa256d47c001b03eb4780cbbd3695942c384a158ffdb45e915"
+      },
+      {
+        "bytes": 5496,
+        "path": "scripts/rebuild-codex-coding-effect-c6-package-source.ts",
+        "sha256": "1b2a2ad4b13710acff3d61a5cbe56eb36058ed5f9a5633e2d3ef77168cce2df4"
+      }
+    ],
+    "rootSha256": "e18b9b7ce6c7929deb20c5aa3ca394d3a779f23bfb69055b21907f2bd3d2f84f"
+  },
+  "runs": [
+    {
+      "exitCode": 0,
+      "input": {
+        "bunLockSha256": "843cc9822293aa8d5498369b129c9ce17bac25aaf0625c84f6800b6e50503129",
+        "packageJsonSha256": "2f95f06fe2af8f06d234dd789ea6dad2cebff5b120e443eb4023cfd49539f2ee",
+        "sourceArchiveSha256": "9a45c0d9d4a06b54586a6d8321a96e2a781d6f9c316d5bb4405aad6b6d1f9c37",
+        "sourceEntryManifestSha256": "058763e0db5fdd36027259e030f8c5b60f15775cdbede950b3aeb85f7b3b2a30"
+      },
+      "logs": {
+        "stderr": {
+          "path": "runs/1/build.stderr.log",
+          "sha256": "7a12f929d4a1a0f9895ad2dcac98f760eec6a823377acedd6e78fdc297f918ab"
+        },
+        "stdout": {
+          "path": "runs/1/build.stdout.log",
+          "sha256": "2507966b159147dff6f1c6b46085614e4d4c33bd50d4ef66d9499cd35d566cb5"
+        }
+      },
+      "output": {
+        "bytes": 1035700,
+        "packageVersion": "0.7.0",
+        "path": "runs/1/goodmemory-0.7.0.tgz",
+        "sha256": "5f9b98600ff024a80a7a337fa8953e162b7498bf909a67e8b217a9bba5dd2757"
+      },
+      "run": 1,
+      "runtime": {
+        "bun": {
+          "executableSha256": "45598a2814020c231575487a560e47d397d6902355d7e08171a2e56221a6d675",
+          "version": "1.3.11"
+        },
+        "node": {
+          "executableSha256": "1abce2374a485bddae3c27b17a3e3143e2780232026e627c4fe74ddde3f380a1",
+          "version": "v22.14.0"
+        },
+        "npm": {
+          "cliSha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+          "launcherSha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+          "version": "10.9.2"
+        }
+      }
+    },
+    {
+      "exitCode": 0,
+      "input": {
+        "bunLockSha256": "843cc9822293aa8d5498369b129c9ce17bac25aaf0625c84f6800b6e50503129",
+        "packageJsonSha256": "2f95f06fe2af8f06d234dd789ea6dad2cebff5b120e443eb4023cfd49539f2ee",
+        "sourceArchiveSha256": "9a45c0d9d4a06b54586a6d8321a96e2a781d6f9c316d5bb4405aad6b6d1f9c37",
+        "sourceEntryManifestSha256": "058763e0db5fdd36027259e030f8c5b60f15775cdbede950b3aeb85f7b3b2a30"
+      },
+      "logs": {
+        "stderr": {
+          "path": "runs/2/build.stderr.log",
+          "sha256": "7a12f929d4a1a0f9895ad2dcac98f760eec6a823377acedd6e78fdc297f918ab"
+        },
+        "stdout": {
+          "path": "runs/2/build.stdout.log",
+          "sha256": "a1f674ba311ae5ac5212d32e77722678babf6a032fcb65120de445a91d60c3ae"
+        }
+      },
+      "output": {
+        "bytes": 1035700,
+        "packageVersion": "0.7.0",
+        "path": "runs/2/goodmemory-0.7.0.tgz",
+        "sha256": "5f9b98600ff024a80a7a337fa8953e162b7498bf909a67e8b217a9bba5dd2757"
+      },
+      "run": 2,
+      "runtime": {
+        "bun": {
+          "executableSha256": "45598a2814020c231575487a560e47d397d6902355d7e08171a2e56221a6d675",
+          "version": "1.3.11"
+        },
+        "node": {
+          "executableSha256": "1abce2374a485bddae3c27b17a3e3143e2780232026e627c4fe74ddde3f380a1",
+          "version": "v22.14.0"
+        },
+        "npm": {
+          "cliSha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+          "launcherSha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+          "version": "10.9.2"
+        }
+      }
+    }
+  ],
+  "schemaVersion": 2,
+  "source": {
+    "archivePath": "source/source.tar",
+    "archiveSha256": "9a45c0d9d4a06b54586a6d8321a96e2a781d6f9c316d5bb4405aad6b6d1f9c37",
+    "bunLockSha256": "843cc9822293aa8d5498369b129c9ce17bac25aaf0625c84f6800b6e50503129",
+    "commitSha": "5d6dab3bf8b406455068c01863c5cbd51cf65756",
+    "entryCount": 2595,
+    "entryManifestPath": "source/source-tree.jsonl",
+    "entryManifestSha256": "058763e0db5fdd36027259e030f8c5b60f15775cdbede950b3aeb85f7b3b2a30",
+    "packageJsonSha256": "2f95f06fe2af8f06d234dd789ea6dad2cebff5b120e443eb4023cfd49539f2ee",
+    "treeSha": "8563c9136864430772e024925811be55402f3372"
+  },
+  "sourceBuildReproducible": false
+}

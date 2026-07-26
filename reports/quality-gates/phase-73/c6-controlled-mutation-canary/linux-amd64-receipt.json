@@ -1,0 +1,459 @@
+{
+  "candidateManifestFrozen": false,
+  "codexRunReady": false,
+  "evidenceScope": "real-controlled-mutation-canary-local-replay",
+  "executionProfile": {
+    "architecture": "x64",
+    "bunVersion": "1.3.11",
+    "gitVersion": "git version 2.39.5",
+    "operatingSystem": "linux",
+    "receiptAuthentication": "none"
+  },
+  "evaluatorDependencyClosureFrozen": false,
+  "evaluatorFactoryBundleSha256": "4de00487bd5e4fe4a397c17e2ae2b7da32425fdf23da189f9587e659a0ba0b83",
+  "fullUpstreamCiExecuted": false,
+  "inputSnapshotSha256": "c2ebf22628d046ce862f80206b747616a310ceb567040ddd98b8884d8e8c3f81",
+  "networkIsolation": "not-attested",
+  "projection": {
+    "baseTreeSha256": "2b946822f67ce41738d71cd5155fe6bac10181d19d6cf721757b5b0c25f31474",
+    "excludedPaths": [
+      ".editorconfig",
+      ".github/banner.svg",
+      ".github/workflows/ci.yml",
+      ".gitignore",
+      ".oxfmtrc.json",
+      ".oxlintrc.json",
+      "CHANGELOG.md",
+      "README.md",
+      "lib/defu.cjs",
+      "lib/defu.d.cts",
+      "pnpm-lock.yaml",
+      "renovate.json",
+      "tea.yaml",
+      "test/defu.test.ts",
+      "test/fixtures/index.ts",
+      "test/fixtures/nested.ts",
+      "test/utils.test.ts"
+    ],
+    "includedPaths": [
+      "LICENSE",
+      "package.json",
+      "src/_utils.ts",
+      "src/defu.ts",
+      "src/types.ts",
+      "tsconfig.json"
+    ],
+    "policy": "source-only-no-upstream-tests-v1",
+    "projectionSha256": "ecd453b4d1a6938fd7936dc5eacda2e1ee23800a27a6802ef3a3d560c10ed0ff"
+  },
+  "runs": [
+    {
+      "baseHealth": {
+        "caseCount": 5,
+        "evaluationBundleSha256": "49a075439ea9bc78405843c4251593e25935879319b47c0e5f556ef2cb0cb64b",
+        "evaluatorSpecSha256": "42cbb25010295177c42e90d3b9f1f77671e93211f53f446a930ad80c92644c51",
+        "factoryId": "bun-typescript-module-cases-v1",
+        "failedCaseIds": [],
+        "moduleSha256": "3ac1d2adc4b97158839c078e32e03c86f5d01239c82fe290d1401474805d84dd",
+        "passed": true
+      },
+      "closureSha256": "383247fa598266ca00ff45d8f79cc336e845e36c75df54afe63cd53a0ff126cd",
+      "derivations": [
+        {
+          "decision": "selected",
+          "episodeId": "defu-array-order",
+          "mutationFamilyId": "mutation-family-ddb8499ea5038e7fc4d851bd78c0022992b2639ee3dae61a91eeb68d0c811531",
+          "representativeEpisodeId": "defu-array-order",
+          "stages": [
+            {
+              "gold": {
+                "failToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "49a075439ea9bc78405843c4251593e25935879319b47c0e5f556ef2cb0cb64b",
+                  "evaluatorSpecSha256": "8373b181c982c224527a093f54d5f02b755c9dec810bde381755794c1d0bab83",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "3ac1d2adc4b97158839c078e32e03c86f5d01239c82fe290d1401474805d84dd",
+                  "passed": true
+                },
+                "passToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "49a075439ea9bc78405843c4251593e25935879319b47c0e5f556ef2cb0cb64b",
+                  "evaluatorSpecSha256": "61bf3cf5907bca42a2b762b5a6e75ab6db0d642eda7dd8cac39742a9a23d15b6",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "3ac1d2adc4b97158839c078e32e03c86f5d01239c82fe290d1401474805d84dd",
+                  "passed": true
+                },
+                "treeSha256": "2b946822f67ce41738d71cd5155fe6bac10181d19d6cf721757b5b0c25f31474"
+              },
+              "prepared": {
+                "failToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "dbd95b346251a981a054f1909fce098dc281ec08a5bb12dcb67dfa4071d0163d",
+                  "evaluatorSpecSha256": "8373b181c982c224527a093f54d5f02b755c9dec810bde381755794c1d0bab83",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [
+                    "root-array-order",
+                    "nested-array-order",
+                    "multi-default-array-order"
+                  ],
+                  "moduleSha256": "8287a14e5e5dd1dd65f0c810e7d69fd789594cd940767f44b248c6d39c8a24a9",
+                  "passed": false
+                },
+                "passToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "dbd95b346251a981a054f1909fce098dc281ec08a5bb12dcb67dfa4071d0163d",
+                  "evaluatorSpecSha256": "61bf3cf5907bca42a2b762b5a6e75ab6db0d642eda7dd8cac39742a9a23d15b6",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "8287a14e5e5dd1dd65f0c810e7d69fd789594cd940767f44b248c6d39c8a24a9",
+                  "passed": true
+                },
+                "treeSha256": "c0eb75561805805d31b2b486b673abf70c00a54f724122af34079c8788e23432"
+              },
+              "stageId": "stage-1"
+            }
+          ],
+          "variantId": "canonical"
+        },
+        {
+          "decision": "selected",
+          "episodeId": "defu-null-default",
+          "mutationFamilyId": "mutation-family-e631d85d6267bc5d16aaaaee66ac97b3a5254fdbcb2cc15bd65bf93d60eb44a7",
+          "representativeEpisodeId": "defu-null-default",
+          "stages": [
+            {
+              "gold": {
+                "failToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "49a075439ea9bc78405843c4251593e25935879319b47c0e5f556ef2cb0cb64b",
+                  "evaluatorSpecSha256": "b5d50c39d08b9e37aec6ed6bfbdec4306d41039236b3aa0f1ea0a6350eae2a6c",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "3ac1d2adc4b97158839c078e32e03c86f5d01239c82fe290d1401474805d84dd",
+                  "passed": true
+                },
+                "passToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "49a075439ea9bc78405843c4251593e25935879319b47c0e5f556ef2cb0cb64b",
+                  "evaluatorSpecSha256": "825dded6168a536e1b04e71eb7ca4f700e6ece94643e9a0b024df57c0d588fd7",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "3ac1d2adc4b97158839c078e32e03c86f5d01239c82fe290d1401474805d84dd",
+                  "passed": true
+                },
+                "treeSha256": "2b946822f67ce41738d71cd5155fe6bac10181d19d6cf721757b5b0c25f31474"
+              },
+              "prepared": {
+                "failToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "5a64bd3043963903045b415be3df1891f420a5312594da8c56959b9677e57262",
+                  "evaluatorSpecSha256": "b5d50c39d08b9e37aec6ed6bfbdec4306d41039236b3aa0f1ea0a6350eae2a6c",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [
+                    "root-null-fallback",
+                    "nested-null-fallback",
+                    "multi-default-null-fallback"
+                  ],
+                  "moduleSha256": "8dc9b9dc4cb6ef65b14a5efdc7576552415cd626e776d578b8fe240d80df9ee1",
+                  "passed": false
+                },
+                "passToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "5a64bd3043963903045b415be3df1891f420a5312594da8c56959b9677e57262",
+                  "evaluatorSpecSha256": "825dded6168a536e1b04e71eb7ca4f700e6ece94643e9a0b024df57c0d588fd7",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "8dc9b9dc4cb6ef65b14a5efdc7576552415cd626e776d578b8fe240d80df9ee1",
+                  "passed": true
+                },
+                "treeSha256": "db7a9058315d8531ab8bba7be38a6080460dc757858a8874e7f642fe53ed06a8"
+              },
+              "stageId": "stage-1"
+            }
+          ],
+          "variantId": "canonical"
+        },
+        {
+          "decision": "semantic-duplicate",
+          "episodeId": "defu-null-default-cosmetic",
+          "mutationFamilyId": "mutation-family-e631d85d6267bc5d16aaaaee66ac97b3a5254fdbcb2cc15bd65bf93d60eb44a7",
+          "representativeEpisodeId": "defu-null-default",
+          "stages": [
+            {
+              "gold": {
+                "failToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "49a075439ea9bc78405843c4251593e25935879319b47c0e5f556ef2cb0cb64b",
+                  "evaluatorSpecSha256": "b5d50c39d08b9e37aec6ed6bfbdec4306d41039236b3aa0f1ea0a6350eae2a6c",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "3ac1d2adc4b97158839c078e32e03c86f5d01239c82fe290d1401474805d84dd",
+                  "passed": true
+                },
+                "passToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "49a075439ea9bc78405843c4251593e25935879319b47c0e5f556ef2cb0cb64b",
+                  "evaluatorSpecSha256": "825dded6168a536e1b04e71eb7ca4f700e6ece94643e9a0b024df57c0d588fd7",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "3ac1d2adc4b97158839c078e32e03c86f5d01239c82fe290d1401474805d84dd",
+                  "passed": true
+                },
+                "treeSha256": "2b946822f67ce41738d71cd5155fe6bac10181d19d6cf721757b5b0c25f31474"
+              },
+              "prepared": {
+                "failToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "08413ea23a365ee64e5df8e837400d985036dfb6425a2e0538dadcbceae14d07",
+                  "evaluatorSpecSha256": "b5d50c39d08b9e37aec6ed6bfbdec4306d41039236b3aa0f1ea0a6350eae2a6c",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [
+                    "root-null-fallback",
+                    "nested-null-fallback",
+                    "multi-default-null-fallback"
+                  ],
+                  "moduleSha256": "0ee6d0547c98cf0380cc3ada00021e74be302bbe29f08f71e8eee9e45f06c9d8",
+                  "passed": false
+                },
+                "passToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "08413ea23a365ee64e5df8e837400d985036dfb6425a2e0538dadcbceae14d07",
+                  "evaluatorSpecSha256": "825dded6168a536e1b04e71eb7ca4f700e6ece94643e9a0b024df57c0d588fd7",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "0ee6d0547c98cf0380cc3ada00021e74be302bbe29f08f71e8eee9e45f06c9d8",
+                  "passed": true
+                },
+                "treeSha256": "d579c8c3790d83acfe83884adf1a369282b4b816e4e3947db6ecc507b5f20844"
+              },
+              "stageId": "stage-1"
+            }
+          ],
+          "variantId": "cosmetic-control-flow-and-prompt"
+        }
+      ],
+      "run": 1
+    },
+    {
+      "baseHealth": {
+        "caseCount": 5,
+        "evaluationBundleSha256": "49a075439ea9bc78405843c4251593e25935879319b47c0e5f556ef2cb0cb64b",
+        "evaluatorSpecSha256": "42cbb25010295177c42e90d3b9f1f77671e93211f53f446a930ad80c92644c51",
+        "factoryId": "bun-typescript-module-cases-v1",
+        "failedCaseIds": [],
+        "moduleSha256": "3ac1d2adc4b97158839c078e32e03c86f5d01239c82fe290d1401474805d84dd",
+        "passed": true
+      },
+      "closureSha256": "383247fa598266ca00ff45d8f79cc336e845e36c75df54afe63cd53a0ff126cd",
+      "derivations": [
+        {
+          "decision": "selected",
+          "episodeId": "defu-array-order",
+          "mutationFamilyId": "mutation-family-ddb8499ea5038e7fc4d851bd78c0022992b2639ee3dae61a91eeb68d0c811531",
+          "representativeEpisodeId": "defu-array-order",
+          "stages": [
+            {
+              "gold": {
+                "failToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "49a075439ea9bc78405843c4251593e25935879319b47c0e5f556ef2cb0cb64b",
+                  "evaluatorSpecSha256": "8373b181c982c224527a093f54d5f02b755c9dec810bde381755794c1d0bab83",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "3ac1d2adc4b97158839c078e32e03c86f5d01239c82fe290d1401474805d84dd",
+                  "passed": true
+                },
+                "passToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "49a075439ea9bc78405843c4251593e25935879319b47c0e5f556ef2cb0cb64b",
+                  "evaluatorSpecSha256": "61bf3cf5907bca42a2b762b5a6e75ab6db0d642eda7dd8cac39742a9a23d15b6",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "3ac1d2adc4b97158839c078e32e03c86f5d01239c82fe290d1401474805d84dd",
+                  "passed": true
+                },
+                "treeSha256": "2b946822f67ce41738d71cd5155fe6bac10181d19d6cf721757b5b0c25f31474"
+              },
+              "prepared": {
+                "failToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "dbd95b346251a981a054f1909fce098dc281ec08a5bb12dcb67dfa4071d0163d",
+                  "evaluatorSpecSha256": "8373b181c982c224527a093f54d5f02b755c9dec810bde381755794c1d0bab83",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [
+                    "root-array-order",
+                    "nested-array-order",
+                    "multi-default-array-order"
+                  ],
+                  "moduleSha256": "8287a14e5e5dd1dd65f0c810e7d69fd789594cd940767f44b248c6d39c8a24a9",
+                  "passed": false
+                },
+                "passToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "dbd95b346251a981a054f1909fce098dc281ec08a5bb12dcb67dfa4071d0163d",
+                  "evaluatorSpecSha256": "61bf3cf5907bca42a2b762b5a6e75ab6db0d642eda7dd8cac39742a9a23d15b6",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "8287a14e5e5dd1dd65f0c810e7d69fd789594cd940767f44b248c6d39c8a24a9",
+                  "passed": true
+                },
+                "treeSha256": "c0eb75561805805d31b2b486b673abf70c00a54f724122af34079c8788e23432"
+              },
+              "stageId": "stage-1"
+            }
+          ],
+          "variantId": "canonical"
+        },
+        {
+          "decision": "selected",
+          "episodeId": "defu-null-default",
+          "mutationFamilyId": "mutation-family-e631d85d6267bc5d16aaaaee66ac97b3a5254fdbcb2cc15bd65bf93d60eb44a7",
+          "representativeEpisodeId": "defu-null-default",
+          "stages": [
+            {
+              "gold": {
+                "failToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "49a075439ea9bc78405843c4251593e25935879319b47c0e5f556ef2cb0cb64b",
+                  "evaluatorSpecSha256": "b5d50c39d08b9e37aec6ed6bfbdec4306d41039236b3aa0f1ea0a6350eae2a6c",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "3ac1d2adc4b97158839c078e32e03c86f5d01239c82fe290d1401474805d84dd",
+                  "passed": true
+                },
+                "passToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "49a075439ea9bc78405843c4251593e25935879319b47c0e5f556ef2cb0cb64b",
+                  "evaluatorSpecSha256": "825dded6168a536e1b04e71eb7ca4f700e6ece94643e9a0b024df57c0d588fd7",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "3ac1d2adc4b97158839c078e32e03c86f5d01239c82fe290d1401474805d84dd",
+                  "passed": true
+                },
+                "treeSha256": "2b946822f67ce41738d71cd5155fe6bac10181d19d6cf721757b5b0c25f31474"
+              },
+              "prepared": {
+                "failToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "5a64bd3043963903045b415be3df1891f420a5312594da8c56959b9677e57262",
+                  "evaluatorSpecSha256": "b5d50c39d08b9e37aec6ed6bfbdec4306d41039236b3aa0f1ea0a6350eae2a6c",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [
+                    "root-null-fallback",
+                    "nested-null-fallback",
+                    "multi-default-null-fallback"
+                  ],
+                  "moduleSha256": "8dc9b9dc4cb6ef65b14a5efdc7576552415cd626e776d578b8fe240d80df9ee1",
+                  "passed": false
+                },
+                "passToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "5a64bd3043963903045b415be3df1891f420a5312594da8c56959b9677e57262",
+                  "evaluatorSpecSha256": "825dded6168a536e1b04e71eb7ca4f700e6ece94643e9a0b024df57c0d588fd7",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "8dc9b9dc4cb6ef65b14a5efdc7576552415cd626e776d578b8fe240d80df9ee1",
+                  "passed": true
+                },
+                "treeSha256": "db7a9058315d8531ab8bba7be38a6080460dc757858a8874e7f642fe53ed06a8"
+              },
+              "stageId": "stage-1"
+            }
+          ],
+          "variantId": "canonical"
+        },
+        {
+          "decision": "semantic-duplicate",
+          "episodeId": "defu-null-default-cosmetic",
+          "mutationFamilyId": "mutation-family-e631d85d6267bc5d16aaaaee66ac97b3a5254fdbcb2cc15bd65bf93d60eb44a7",
+          "representativeEpisodeId": "defu-null-default",
+          "stages": [
+            {
+              "gold": {
+                "failToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "49a075439ea9bc78405843c4251593e25935879319b47c0e5f556ef2cb0cb64b",
+                  "evaluatorSpecSha256": "b5d50c39d08b9e37aec6ed6bfbdec4306d41039236b3aa0f1ea0a6350eae2a6c",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "3ac1d2adc4b97158839c078e32e03c86f5d01239c82fe290d1401474805d84dd",
+                  "passed": true
+                },
+                "passToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "49a075439ea9bc78405843c4251593e25935879319b47c0e5f556ef2cb0cb64b",
+                  "evaluatorSpecSha256": "825dded6168a536e1b04e71eb7ca4f700e6ece94643e9a0b024df57c0d588fd7",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "3ac1d2adc4b97158839c078e32e03c86f5d01239c82fe290d1401474805d84dd",
+                  "passed": true
+                },
+                "treeSha256": "2b946822f67ce41738d71cd5155fe6bac10181d19d6cf721757b5b0c25f31474"
+              },
+              "prepared": {
+                "failToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "08413ea23a365ee64e5df8e837400d985036dfb6425a2e0538dadcbceae14d07",
+                  "evaluatorSpecSha256": "b5d50c39d08b9e37aec6ed6bfbdec4306d41039236b3aa0f1ea0a6350eae2a6c",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [
+                    "root-null-fallback",
+                    "nested-null-fallback",
+                    "multi-default-null-fallback"
+                  ],
+                  "moduleSha256": "0ee6d0547c98cf0380cc3ada00021e74be302bbe29f08f71e8eee9e45f06c9d8",
+                  "passed": false
+                },
+                "passToPass": {
+                  "caseCount": 3,
+                  "evaluationBundleSha256": "08413ea23a365ee64e5df8e837400d985036dfb6425a2e0538dadcbceae14d07",
+                  "evaluatorSpecSha256": "825dded6168a536e1b04e71eb7ca4f700e6ece94643e9a0b024df57c0d588fd7",
+                  "factoryId": "bun-typescript-module-cases-v1",
+                  "failedCaseIds": [],
+                  "moduleSha256": "0ee6d0547c98cf0380cc3ada00021e74be302bbe29f08f71e8eee9e45f06c9d8",
+                  "passed": true
+                },
+                "treeSha256": "d579c8c3790d83acfe83884adf1a369282b4b816e4e3947db6ecc507b5f20844"
+              },
+              "stageId": "stage-1"
+            }
+          ],
+          "variantId": "cosmetic-control-flow-and-prompt"
+        }
+      ],
+      "run": 2
+    }
+  ],
+  "schemaVersion": 1,
+  "source": {
+    "baseRepositoryId": "defu-82632b66",
+    "sourceBundleSha256": "6771b72328b65736fff54a39e929b44efcb5a57022adc7882e6f3bc8f14fbf95",
+    "upstreamCommit": "82632b66f5914e9946edce300e10633a3d5c0cb7",
+    "upstreamTree": "f98fd0ecb1056fb087f117a97241a433309f087c"
+  },
+  "supply": {
+    "assetLockSha256": "50cf13e60d2e8930b84d1a9349ecacf7a4765df69e2abba48c0ed5e07bbfcaad",
+    "assetRootSha256": "c2ebf22628d046ce862f80206b747616a310ceb567040ddd98b8884d8e8c3f81",
+    "baseRepositoryCount": 1,
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "controlledMutationCellByEpisodeId": {
+      "defu-array-order": "controlled-cell-e34975c3cdae4a0ba7b0f844ed16b8a59ba1220a148790ff5f8fd3b5eae124ec",
+      "defu-null-default": "controlled-cell-f96ed077dcdd6c291aee3c3a72b75acdead7edb40baf7388255665718f18d3ce",
+      "defu-null-default-cosmetic": "controlled-cell-f96ed077dcdd6c291aee3c3a72b75acdead7edb40baf7388255665718f18d3ce"
+    },
+    "evidenceScope": "controlled-mutation-supply-structure-plus-mechanical-lower-bounds",
+    "exactOutcomeCloneLowerBoundVerified": true,
+    "mutationFamilyCount": 2,
+    "promptLeakageLowerBoundVerified": true,
+    "qualifiedReserveRepresentativeCount": 0,
+    "representativeCellCount": 2,
+    "selectedRepresentativeCount": 2,
+    "semanticEquivalenceReviewVerified": false,
+    "semanticDuplicateCount": 1,
+    "supplySha256": "0f5442114641603c5775f964f2cee9e0502ec79c3565f5e4ab8819a8db348cee",
+    "totalDerivationCount": 3
+  }
+}

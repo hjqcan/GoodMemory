@@ -1,0 +1,906 @@
+{
+  "artifactKind": "c6-source-expansion-rest-capture-plan",
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "candidateManifestFrozen": false,
+    "captureExecuted": false,
+    "codexRunReady": false,
+    "status": "rest-capture-plan-only-no-network-result"
+  },
+  "counts": {
+    "repositoryCount": 13,
+    "targetCount": 51
+  },
+  "independenceBoundary": {
+    "selectionDependsOnCaptureOutcome": false,
+    "targetProjectionSha256": "4ffec5578d284bf3e7992b36da5169d80f34957368f6c7bf484077f3e3150449"
+  },
+  "input": {
+    "bytes": 130044,
+    "path": "multi-swe-full-56ff018.review-trajectory-source-expansion-v2.json",
+    "policyId": "prospective-structural-review-v2",
+    "policySha256": "b51613368026c09ad1aab3e4d08fe19197ddc1beea9499c9d8e068830527703a",
+    "sha256": "629acdc312e611e066d181dacfb1206448c2a3f885921b99eff036159439317f"
+  },
+  "rule": {
+    "order": "source-expansion-restCaptureOrder-ascending",
+    "sourceRows": "exact-path-rowIndex-rowSha256-from-frozen-source-revision"
+  },
+  "schemaVersion": 1,
+  "source": {
+    "fullSourceRootRehashed": false,
+    "revision": "56ff018c04a38e27ada1e9d0a6d5839a51f88f0d",
+    "rootSha256": "16ad77277902c818f30e9b282caaa44d6dfef2bfd67bcccd1b2455c91d9c9bd7",
+    "selectedRowsReplayed": true,
+    "treeReceiptSha256": "8de0f6501c0fa3dd844d38704a4a44eb8f3b4aaa997aa74c9507c79d501c8384"
+  },
+  "targets": [
+    {
+      "anchorId": "mui/material-ui#26061",
+      "canonicalAnchorId": "mui/material-ui#26061",
+      "captureDirectory": "mui__material-ui__26061",
+      "captureOrder": 1,
+      "owner": "mui",
+      "pullNumber": 26061,
+      "repository": "material-ui",
+      "resolvedIssueNumbers": [
+        25923
+      ],
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 142,
+        "rowSha256": "29526cd72768095e945ca9ead8bc41e18ae6752a95a60bf1196fbbd14537a84a"
+      }
+    },
+    {
+      "anchorId": "tokio-rs/tokio#6252",
+      "canonicalAnchorId": "tokio-rs/tokio#6252",
+      "captureDirectory": "tokio-rs__tokio__6252",
+      "captureOrder": 2,
+      "owner": "tokio-rs",
+      "pullNumber": 6252,
+      "repository": "tokio",
+      "resolvedIssueNumbers": [
+        6086
+      ],
+      "source": {
+        "path": "rust/tokio-rs__tokio_dataset.jsonl",
+        "rowIndex": 12,
+        "rowSha256": "f32d4473c570c9b3f4ca025a1908037eba83d673b3b86ee7d0bbd2eac08b8e61"
+      }
+    },
+    {
+      "anchorId": "cli/cli#7873",
+      "canonicalAnchorId": "cli/cli#7873",
+      "captureDirectory": "cli__cli__7873",
+      "captureOrder": 3,
+      "owner": "cli",
+      "pullNumber": 7873,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        7872
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 94,
+        "rowSha256": "c08efe7b1869e002314c31cdcbe7fb8f662becdf5342a79d0ddd1697885b6f36"
+      }
+    },
+    {
+      "anchorId": "sveltejs/svelte#11290",
+      "canonicalAnchorId": "sveltejs/svelte#11290",
+      "captureDirectory": "sveltejs__svelte__11290",
+      "captureOrder": 4,
+      "owner": "sveltejs",
+      "pullNumber": 11290,
+      "repository": "svelte",
+      "resolvedIssueNumbers": [
+        11286
+      ],
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 192,
+        "rowSha256": "b8a24f738a64bffdd8e6d553a86cf1830f95ce90723316600c92b00ceb21d6ae"
+      }
+    },
+    {
+      "anchorId": "sharkdp/bat#1402",
+      "canonicalAnchorId": "sharkdp/bat#1402",
+      "captureDirectory": "sharkdp__bat__1402",
+      "captureOrder": 5,
+      "owner": "sharkdp",
+      "pullNumber": 1402,
+      "repository": "bat",
+      "resolvedIssueNumbers": [
+        1063
+      ],
+      "source": {
+        "path": "rust/sharkdp__bat_dataset.jsonl",
+        "rowIndex": 8,
+        "rowSha256": "1c7017b4511a5d504989213b9ff753b5be3eccd72aef908b1e1a689403114985"
+      }
+    },
+    {
+      "anchorId": "elastic/logstash#14045",
+      "canonicalAnchorId": "elastic/logstash#14045",
+      "captureDirectory": "elastic__logstash__14045",
+      "captureOrder": 6,
+      "owner": "elastic",
+      "pullNumber": 14045,
+      "repository": "logstash",
+      "resolvedIssueNumbers": [
+        13884
+      ],
+      "source": {
+        "path": "java/elastic__logstash_dataset.jsonl",
+        "rowIndex": 29,
+        "rowSha256": "fefdea8b4274db4a703c674ffbcefc81b546c8c93717e43c7c5961fc49085c0b"
+      }
+    },
+    {
+      "anchorId": "grpc/grpc-go#3361",
+      "canonicalAnchorId": "grpc/grpc-go#3361",
+      "captureDirectory": "grpc__grpc-go__3361",
+      "captureOrder": 7,
+      "owner": "grpc",
+      "pullNumber": 3361,
+      "repository": "grpc-go",
+      "resolvedIssueNumbers": [
+        3353
+      ],
+      "source": {
+        "path": "go/grpc__grpc-go_dataset.jsonl",
+        "rowIndex": 2,
+        "rowSha256": "cbc37e00fff881c5ce7349793084aeb1dee7104362c075d1c5ced53100169fdf"
+      }
+    },
+    {
+      "anchorId": "ponylang/ponyc#3650",
+      "canonicalAnchorId": "ponylang/ponyc#3650",
+      "captureDirectory": "ponylang__ponyc__3650",
+      "captureOrder": 8,
+      "owner": "ponylang",
+      "pullNumber": 3650,
+      "repository": "ponyc",
+      "resolvedIssueNumbers": [
+        3463
+      ],
+      "source": {
+        "path": "c/ponylang__ponyc_dataset.jsonl",
+        "rowIndex": 38,
+        "rowSha256": "24a8a788b1e1c7c23283b6c7d130fc3f39c1f196a22673be37efcca3d52e2ab0"
+      }
+    },
+    {
+      "anchorId": "vuejs/core#10250",
+      "canonicalAnchorId": "vuejs/core#10250",
+      "captureDirectory": "vuejs__core__10250",
+      "captureOrder": 9,
+      "owner": "vuejs",
+      "pullNumber": 10250,
+      "repository": "core",
+      "resolvedIssueNumbers": [
+        10215
+      ],
+      "source": {
+        "path": "ts/vuejs__core_dataset.jsonl",
+        "rowIndex": 25,
+        "rowSha256": "dfac89f8b76d563c4e38580d117a219c210ac9d23ee4f8e3c1a091f4eab60f3f"
+      }
+    },
+    {
+      "anchorId": "mockito/mockito#3424",
+      "canonicalAnchorId": "mockito/mockito#3424",
+      "captureDirectory": "mockito__mockito__3424",
+      "captureOrder": 10,
+      "owner": "mockito",
+      "pullNumber": 3424,
+      "repository": "mockito",
+      "resolvedIssueNumbers": [
+        3419
+      ],
+      "source": {
+        "path": "java/mockito__mockito_dataset.jsonl",
+        "rowIndex": 1,
+        "rowSha256": "8d99ca44d3c2edc8509b1771cbda14e2a536027d2dcf89de62e3e0be4820a503"
+      }
+    },
+    {
+      "anchorId": "square/okhttp#6887",
+      "canonicalAnchorId": "lysine-dev/okhttp#6887",
+      "captureDirectory": "square__okhttp__6887",
+      "captureOrder": 11,
+      "owner": "square",
+      "pullNumber": 6887,
+      "repository": "okhttp",
+      "resolvedIssueNumbers": [
+        6668
+      ],
+      "source": {
+        "path": "kotlin/square__okhttp_dataset.jsonl",
+        "rowIndex": 2,
+        "rowSha256": "e3c49d7f672bfa5f748433bb8afe8120a13d5e2b3f198b6b343657788d4a4639"
+      }
+    },
+    {
+      "anchorId": "clap-rs/clap#2075",
+      "canonicalAnchorId": "clap-rs/clap#2075",
+      "captureDirectory": "clap-rs__clap__2075",
+      "captureOrder": 12,
+      "owner": "clap-rs",
+      "pullNumber": 2075,
+      "repository": "clap",
+      "resolvedIssueNumbers": [
+        1464
+      ],
+      "source": {
+        "path": "rust/clap-rs__clap_dataset.jsonl",
+        "rowIndex": 122,
+        "rowSha256": "c9f8964156212496dca9dc277a54678b4edc1339648766b808048e289b90500e"
+      }
+    },
+    {
+      "anchorId": "detekt/detekt#5009",
+      "canonicalAnchorId": "detekt/detekt#5009",
+      "captureDirectory": "detekt__detekt__5009",
+      "captureOrder": 13,
+      "owner": "detekt",
+      "pullNumber": 5009,
+      "repository": "detekt",
+      "resolvedIssueNumbers": [
+        4753
+      ],
+      "source": {
+        "path": "kotlin/detekt__detekt_dataset.jsonl",
+        "rowIndex": 18,
+        "rowSha256": "05744b3cbb96d68186daf39c675143b00d43a2bca0c5ca6a41a4652be338a4f5"
+      }
+    },
+    {
+      "anchorId": "cli/cli#6404",
+      "canonicalAnchorId": "cli/cli#6404",
+      "captureDirectory": "cli__cli__6404",
+      "captureOrder": 14,
+      "owner": "cli",
+      "pullNumber": 6404,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        6380
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 154,
+        "rowSha256": "c4f271967b30164262f11a33bff8f9436309a84696745148eb592b84dd658028"
+      }
+    },
+    {
+      "anchorId": "sveltejs/svelte#14195",
+      "canonicalAnchorId": "sveltejs/svelte#14195",
+      "captureDirectory": "sveltejs__svelte__14195",
+      "captureOrder": 15,
+      "owner": "sveltejs",
+      "pullNumber": 14195,
+      "repository": "svelte",
+      "resolvedIssueNumbers": [
+        14183
+      ],
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 47,
+        "rowSha256": "57a07fe13e3233d8b073452a938b25c87f010cffd7f214cb9b6932ca8f32720d"
+      }
+    },
+    {
+      "anchorId": "mui/material-ui#29988",
+      "canonicalAnchorId": "mui/material-ui#29988",
+      "captureDirectory": "mui__material-ui__29988",
+      "captureOrder": 16,
+      "owner": "mui",
+      "pullNumber": 29988,
+      "repository": "material-ui",
+      "resolvedIssueNumbers": [
+        29320
+      ],
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 119,
+        "rowSha256": "904d237f06a93686c683e98b6edaaa849f211b9b21e63733fbc0f2d7b57e082c"
+      }
+    },
+    {
+      "anchorId": "elastic/logstash#14027",
+      "canonicalAnchorId": "elastic/logstash#14027",
+      "captureDirectory": "elastic__logstash__14027",
+      "captureOrder": 17,
+      "owner": "elastic",
+      "pullNumber": 14027,
+      "repository": "logstash",
+      "resolvedIssueNumbers": [
+        12005
+      ],
+      "source": {
+        "path": "java/elastic__logstash_dataset.jsonl",
+        "rowIndex": 30,
+        "rowSha256": "b0cd13e9b49753178de13f5f6587541bf4497e5d0bbef2041bad66b68cbe7a20"
+      }
+    },
+    {
+      "anchorId": "tokio-rs/tokio#5179",
+      "canonicalAnchorId": "tokio-rs/tokio#5179",
+      "captureDirectory": "tokio-rs__tokio__5179",
+      "captureOrder": 18,
+      "owner": "tokio-rs",
+      "pullNumber": 5179,
+      "repository": "tokio",
+      "resolvedIssueNumbers": [
+        5162
+      ],
+      "source": {
+        "path": "rust/tokio-rs__tokio_dataset.jsonl",
+        "rowIndex": 21,
+        "rowSha256": "b5ecbcbe64da5b12511e66c66b011c8fec8960d35da5c6fc7741d6ffad41a300"
+      }
+    },
+    {
+      "anchorId": "grpc/grpc-go#3476",
+      "canonicalAnchorId": "grpc/grpc-go#3476",
+      "captureDirectory": "grpc__grpc-go__3476",
+      "captureOrder": 19,
+      "owner": "grpc",
+      "pullNumber": 3476,
+      "repository": "grpc-go",
+      "resolvedIssueNumbers": [
+        3472
+      ],
+      "source": {
+        "path": "go/grpc__grpc-go_dataset.jsonl",
+        "rowIndex": 1,
+        "rowSha256": "0dd9c1c13d04ce77999b2111b29181b0a02ca019b8f3607dab25de738620ddd2"
+      }
+    },
+    {
+      "anchorId": "cli/cli#4519",
+      "canonicalAnchorId": "cli/cli#4519",
+      "captureDirectory": "cli__cli__4519",
+      "captureOrder": 20,
+      "owner": "cli",
+      "pullNumber": 4519,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        3669
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 238,
+        "rowSha256": "4bbefc3d697a1657400f61060a4cf2e58d73edc304119db8088bc73a0418b893"
+      }
+    },
+    {
+      "anchorId": "sveltejs/svelte#13461",
+      "canonicalAnchorId": "sveltejs/svelte#13461",
+      "captureDirectory": "sveltejs__svelte__13461",
+      "captureOrder": 21,
+      "owner": "sveltejs",
+      "pullNumber": 13461,
+      "repository": "svelte",
+      "resolvedIssueNumbers": [
+        13459
+      ],
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 80,
+        "rowSha256": "9fd2b894b88660c56987f9238df795b13191e2041233e5730bc682cdac93d24e"
+      }
+    },
+    {
+      "anchorId": "mui/material-ui#35178",
+      "canonicalAnchorId": "mui/material-ui#35178",
+      "captureDirectory": "mui__material-ui__35178",
+      "captureOrder": 22,
+      "owner": "mui",
+      "pullNumber": 35178,
+      "repository": "material-ui",
+      "resolvedIssueNumbers": [
+        35159
+      ],
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 56,
+        "rowSha256": "5669478ddc4c21a84ada87c9cf5a4ce619bfd850b818669b7e58b0d3f6b8c10b"
+      }
+    },
+    {
+      "anchorId": "elastic/logstash#13902",
+      "canonicalAnchorId": "elastic/logstash#13902",
+      "captureDirectory": "elastic__logstash__13902",
+      "captureOrder": 23,
+      "owner": "elastic",
+      "pullNumber": 13902,
+      "repository": "logstash",
+      "resolvedIssueNumbers": [
+        12345
+      ],
+      "source": {
+        "path": "java/elastic__logstash_dataset.jsonl",
+        "rowIndex": 36,
+        "rowSha256": "126a57b346702a8fdfee659488e977835894ded0578738de1f93987d38e36cdf"
+      }
+    },
+    {
+      "anchorId": "cli/cli#4467",
+      "canonicalAnchorId": "cli/cli#4467",
+      "captureDirectory": "cli__cli__4467",
+      "captureOrder": 24,
+      "owner": "cli",
+      "pullNumber": 4467,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        4466
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 240,
+        "rowSha256": "5eda58fbba9cd120792d271fde28b2e44382abad06513f2b89803326503ec852"
+      }
+    },
+    {
+      "anchorId": "mui/material-ui#33312",
+      "canonicalAnchorId": "mui/material-ui#33312",
+      "captureDirectory": "mui__material-ui__33312",
+      "captureOrder": 25,
+      "owner": "mui",
+      "pullNumber": 33312,
+      "repository": "material-ui",
+      "resolvedIssueNumbers": [
+        33258
+      ],
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 94,
+        "rowSha256": "90daa52a985289c22acf0f574d98631df94eafd2cf6e5ddf14b8c24fc82758e7"
+      }
+    },
+    {
+      "anchorId": "sveltejs/svelte#11946",
+      "canonicalAnchorId": "sveltejs/svelte#11946",
+      "captureDirectory": "sveltejs__svelte__11946",
+      "captureOrder": 26,
+      "owner": "sveltejs",
+      "pullNumber": 11946,
+      "repository": "svelte",
+      "resolvedIssueNumbers": [
+        11939
+      ],
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 161,
+        "rowSha256": "6f26c9e189016f9233dff05b31c0aefef2ca0733b78a97c7aa1f59b5c45cc9d7"
+      }
+    },
+    {
+      "anchorId": "cli/cli#8773",
+      "canonicalAnchorId": "cli/cli#8773",
+      "captureDirectory": "cli__cli__8773",
+      "captureOrder": 27,
+      "owner": "cli",
+      "pullNumber": 8773,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        8721
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 64,
+        "rowSha256": "1b6ceccd239a1534ed24650b7468d6317a39b1894625b3d9639f6c013ac8258f"
+      }
+    },
+    {
+      "anchorId": "mui/material-ui#25428",
+      "canonicalAnchorId": "mui/material-ui#25428",
+      "captureDirectory": "mui__material-ui__25428",
+      "captureOrder": 28,
+      "owner": "mui",
+      "pullNumber": 25428,
+      "repository": "material-ui",
+      "resolvedIssueNumbers": [
+        25321
+      ],
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 151,
+        "rowSha256": "11da3c1dd82497bf786cfffaa463ad0584a0631b92a5b218f2efa5f58b767904"
+      }
+    },
+    {
+      "anchorId": "sveltejs/svelte#12649",
+      "canonicalAnchorId": "sveltejs/svelte#12649",
+      "captureDirectory": "sveltejs__svelte__12649",
+      "captureOrder": 29,
+      "owner": "sveltejs",
+      "pullNumber": 12649,
+      "repository": "svelte",
+      "resolvedIssueNumbers": [
+        12643
+      ],
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 122,
+        "rowSha256": "a8693f243c5a14d4e12b82a5c9f3c482bf20b2839fe5a0e9180292d9d6c7e7e4"
+      }
+    },
+    {
+      "anchorId": "cli/cli#2997",
+      "canonicalAnchorId": "cli/cli#2997",
+      "captureDirectory": "cli__cli__2997",
+      "captureOrder": 30,
+      "owner": "cli",
+      "pullNumber": 2997,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        2903
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 292,
+        "rowSha256": "05620b42f14a4bb4bce64f7fd58f65da8686f608205573d63d349b2a4ef10ea0"
+      }
+    },
+    {
+      "anchorId": "mui/material-ui#36024",
+      "canonicalAnchorId": "mui/material-ui#36024",
+      "captureDirectory": "mui__material-ui__36024",
+      "captureOrder": 31,
+      "owner": "mui",
+      "pullNumber": 36024,
+      "repository": "material-ui",
+      "resolvedIssueNumbers": [
+        34731
+      ],
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 45,
+        "rowSha256": "d557b47439a4ee5460eacbf3337a8ee67f060931ea63389334e7175cbf35b0e3"
+      }
+    },
+    {
+      "anchorId": "cli/cli#4410",
+      "canonicalAnchorId": "cli/cli#4410",
+      "captureDirectory": "cli__cli__4410",
+      "captureOrder": 32,
+      "owner": "cli",
+      "pullNumber": 4410,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        1398
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 246,
+        "rowSha256": "0cb438c12bce642b8b524f99cd5367d308bdd7d9381a10d41239263b31e68b4e"
+      }
+    },
+    {
+      "anchorId": "mui/material-ui#29297",
+      "canonicalAnchorId": "mui/material-ui#29297",
+      "captureDirectory": "mui__material-ui__29297",
+      "captureOrder": 33,
+      "owner": "mui",
+      "pullNumber": 29297,
+      "repository": "material-ui",
+      "resolvedIssueNumbers": [
+        29274
+      ],
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 131,
+        "rowSha256": "0edbf52b475a2fb9c7a7478d3ae024b4b9761c45a649035a370afe98c98c6861"
+      }
+    },
+    {
+      "anchorId": "cli/cli#8595",
+      "canonicalAnchorId": "cli/cli#8595",
+      "captureDirectory": "cli__cli__8595",
+      "captureOrder": 34,
+      "owner": "cli",
+      "pullNumber": 8595,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        7849
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 67,
+        "rowSha256": "acb519c508c50df76f4277bdf48341e6129a9e933d8ffdaa5122e71341a20f02"
+      }
+    },
+    {
+      "anchorId": "mui/material-ui#25259",
+      "canonicalAnchorId": "mui/material-ui#25259",
+      "captureDirectory": "mui__material-ui__25259",
+      "captureOrder": 35,
+      "owner": "mui",
+      "pullNumber": 25259,
+      "repository": "material-ui",
+      "resolvedIssueNumbers": [
+        25215
+      ],
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 154,
+        "rowSha256": "c605c4331a6fe4c0f8d3bb85d74accd64de05e68fa62229e785a0a6009c971e5"
+      }
+    },
+    {
+      "anchorId": "cli/cli#9934",
+      "canonicalAnchorId": "cli/cli#9934",
+      "captureDirectory": "cli__cli__9934",
+      "captureOrder": 36,
+      "owner": "cli",
+      "pullNumber": 9934,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        9925
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 22,
+        "rowSha256": "201eb2fada5f96af00b587c8a71edbfd386d67edfd6febd5765d7c95c5875490"
+      }
+    },
+    {
+      "anchorId": "cli/cli#9452",
+      "canonicalAnchorId": "cli/cli#9452",
+      "captureDirectory": "cli__cli__9452",
+      "captureOrder": 37,
+      "owner": "cli",
+      "pullNumber": 9452,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        9390
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 38,
+        "rowSha256": "2c00ed95cc2367a7fe21256fed4756aa795a496348fd7b7b250c64f0ac074066"
+      }
+    },
+    {
+      "anchorId": "cli/cli#9465",
+      "canonicalAnchorId": "cli/cli#9465",
+      "captureDirectory": "cli__cli__9465",
+      "captureOrder": 38,
+      "owner": "cli",
+      "pullNumber": 9465,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        9464
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 37,
+        "rowSha256": "d39daec50e19d6ccc97316c076e1e5d5bb6e53d5e9ffa048f7b812ae613efcfc"
+      }
+    },
+    {
+      "anchorId": "cli/cli#992",
+      "canonicalAnchorId": "cli/cli#992",
+      "captureDirectory": "cli__cli__992",
+      "captureOrder": 39,
+      "owner": "cli",
+      "pullNumber": 992,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        966
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 360,
+        "rowSha256": "9b4209f0cda99edd9932f6e0bb1fe888ee79e11bf1cf4ae4904489baf6450696"
+      }
+    },
+    {
+      "anchorId": "cli/cli#3833",
+      "canonicalAnchorId": "cli/cli#3833",
+      "captureDirectory": "cli__cli__3833",
+      "captureOrder": 40,
+      "owner": "cli",
+      "pullNumber": 3833,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        3775
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 265,
+        "rowSha256": "215c847c8ba8b789dc1949585ad84f2cc41804104d3ba9464d39ecbce934b08e"
+      }
+    },
+    {
+      "anchorId": "cli/cli#7709",
+      "canonicalAnchorId": "cli/cli#7709",
+      "captureDirectory": "cli__cli__7709",
+      "captureOrder": 41,
+      "owner": "cli",
+      "pullNumber": 7709,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        7355
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 101,
+        "rowSha256": "4cbffb096681f558760ca8c63d71ffa66e5031faf884ee3d8ef8bcac7b04ed33"
+      }
+    },
+    {
+      "anchorId": "cli/cli#667",
+      "canonicalAnchorId": "cli/cli#667",
+      "captureDirectory": "cli__cli__667",
+      "captureOrder": 42,
+      "owner": "cli",
+      "pullNumber": 667,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        652
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 378,
+        "rowSha256": "3614a3de29b64e2222c293275cce41c65808c9c3b130f6a028b71bfe6b6d5b59"
+      }
+    },
+    {
+      "anchorId": "cli/cli#10362",
+      "canonicalAnchorId": "cli/cli#10362",
+      "captureDirectory": "cli__cli__10362",
+      "captureOrder": 43,
+      "owner": "cli",
+      "pullNumber": 10362,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        10120
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 4,
+        "rowSha256": "f18c0eec1adcec2a1e0b57b6706817f65a703e177b7065e16c607d85b106c23e"
+      }
+    },
+    {
+      "anchorId": "cli/cli#6043",
+      "canonicalAnchorId": "cli/cli#6043",
+      "captureDirectory": "cli__cli__6043",
+      "captureOrder": 44,
+      "owner": "cli",
+      "pullNumber": 6043,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        4547
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 165,
+        "rowSha256": "c86db63c62298d9c25d301b545f319c16e4a1a5b638a6f3401d1423d9a09a1fc"
+      }
+    },
+    {
+      "anchorId": "cli/cli#9701",
+      "canonicalAnchorId": "cli/cli#9701",
+      "captureDirectory": "cli__cli__9701",
+      "captureOrder": 45,
+      "owner": "cli",
+      "pullNumber": 9701,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        9698
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 30,
+        "rowSha256": "a0cd1a3aca18f56c031bba53f6e539773fc6f9950992face2a006e08b6d6c88f"
+      }
+    },
+    {
+      "anchorId": "cli/cli#4845",
+      "canonicalAnchorId": "cli/cli#4845",
+      "captureDirectory": "cli__cli__4845",
+      "captureOrder": 46,
+      "owner": "cli",
+      "pullNumber": 4845,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        4715
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 222,
+        "rowSha256": "1fc5f50e3397a4c12a619ddaa91ac9f7b08156c6d23c5d9d0a3da02b85c71d71"
+      }
+    },
+    {
+      "anchorId": "cli/cli#3414",
+      "canonicalAnchorId": "cli/cli#3414",
+      "captureDirectory": "cli__cli__3414",
+      "captureOrder": 47,
+      "owner": "cli",
+      "pullNumber": 3414,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        1532
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 285,
+        "rowSha256": "86f2cea47d6c26bc7147f8e251477115c09bce66b9723de778733b61a503acd8"
+      }
+    },
+    {
+      "anchorId": "cli/cli#6567",
+      "canonicalAnchorId": "cli/cli#6567",
+      "captureDirectory": "cli__cli__6567",
+      "captureOrder": 48,
+      "owner": "cli",
+      "pullNumber": 6567,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        6540
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 151,
+        "rowSha256": "79ebf85c94ef49790a92575b7ab8b6f5bcde3a561676c63761ceb13fe211c496"
+      }
+    },
+    {
+      "anchorId": "cli/cli#625",
+      "canonicalAnchorId": "cli/cli#625",
+      "captureDirectory": "cli__cli__625",
+      "captureOrder": 49,
+      "owner": "cli",
+      "pullNumber": 625,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        389
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 381,
+        "rowSha256": "75cf4b2e963c3f710cbba1df199a1eac3ad638bfe710678a8b67bfb77133227b"
+      }
+    },
+    {
+      "anchorId": "cli/cli#10239",
+      "canonicalAnchorId": "cli/cli#10239",
+      "captureDirectory": "cli__cli__10239",
+      "captureOrder": 50,
+      "owner": "cli",
+      "pullNumber": 10239,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        10235
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 7,
+        "rowSha256": "ab32606c38ac4cda8b66d1abe528784319b876c6f304517eaf4a5501ca223e05"
+      }
+    },
+    {
+      "anchorId": "cli/cli#2982",
+      "canonicalAnchorId": "cli/cli#2982",
+      "captureDirectory": "cli__cli__2982",
+      "captureOrder": 51,
+      "owner": "cli",
+      "pullNumber": 2982,
+      "repository": "cli",
+      "resolvedIssueNumbers": [
+        2904
+      ],
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 293,
+        "rowSha256": "e5a2a5bd564f1562815cdf05308b6d41dcf4b5e5709c0adf15e537201afd356e"
+      }
+    }
+  ]
+}

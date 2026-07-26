@@ -1,0 +1,84 @@
+{
+  "artifactKind": "c6-transition-evaluator-independent-review-receipt",
+  "bindings": {
+    "evidence": {
+      "path": "fixtures/codex-coding-effect/c6-fmt974-transition-evaluator-screening/evidence.json",
+      "sha256": "5235b39c9bffd688a62e384edf77c9ae165c7c9d898bb2ea83d821a74e1c12f8"
+    },
+    "gate": {
+      "path": "tests/quality-gates/phase-73/codex-coding-effect.c6-real-history-transition-evaluator-screening.gate.ts",
+      "sha256": "11fb074514b31f0b469d24398105b75b7320c3e2ca44ede5407a26515d1f828f"
+    },
+    "implementation": {
+      "path": "scripts/codex-coding-effect/c6-real-history-transition-evaluator-screening.ts",
+      "sha256": "85ab4d865612fb124288526fb2a3dc04e416195cb1b9a0e7a593d0fc611fa39b"
+    },
+    "qualification": {
+      "path": "fixtures/codex-coding-effect/c6-source-pool/multi-swe-full-56ff018.real-history-transition-qualification.json",
+      "sha256": "59136d44da3f5687afe08cffbed98f0eae71a114389114cb422b73680c1185f8"
+    },
+    "semanticLedger": {
+      "amendmentBasisAssessmentCount": 12,
+      "amendmentBasisAssessmentPrefixSha256": "5f9174c939fe8d662a84a764d909130c860efbb67bebb603b3874178571a6a1d",
+      "path": "fixtures/codex-coding-effect/c6-source-pool/multi-swe-full-56ff018.real-history-semantic-screening.json",
+      "reviewedAssessmentCount": 13,
+      "reviewedAssessmentPrefixSha256": "9fcbe0ec85a1fdd4cfd09c9a109cacd84f1f807d86a0dfaa87cf776e07aaf4ca",
+      "reviewedSha256": "7f0f005182f335cdde7d6f8feb2422df8b2b169218b85985f7ab219f386579a2"
+    },
+    "semanticPrefixSha256": "8d1aa140755188e8c9d670ba8e79c94f475c1999a5a24e1ef98988d4aa3c6002",
+    "trajectory": {
+      "path": "fixtures/codex-coding-effect/c6-source-pool/multi-swe-full-56ff018.review-trajectory-discovery.json",
+      "sha256": "5931a911b919a9c53068311185f0bd1c78c0be18220ebe92c3b795c8e38357fd"
+    },
+    "transitionFixture": {
+      "assetLockSha256": "a9455232d26beeec738f647969506e248542dde4a6cb8d7405d270287aedeff0",
+      "assetRootSha256": "8a73c28419fe230e15130068a836d7c1e0043b1144aee94128eea43a5e2e369b",
+      "path": "fixtures/codex-coding-effect/c6-fmt974-transition-evaluator-screening"
+    },
+    "unitTest": {
+      "path": "tests/unit/codex-coding-effect.c6-real-history-transition-evaluator-screening.test.ts",
+      "sha256": "a73ae460667a737d1fdfa55d63ee34c44719350662291753e572f216aa1ac201"
+    }
+  },
+  "review": {
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "contextPolicy": "parent-context-inherited",
+    "episodeAccepted": false,
+    "executionAuthenticated": false,
+    "fullEvaluatorDockerReplayPerformedByReviewer": false,
+    "hiddenEvaluatorAccess": false,
+    "localPinnedImageIdentityProbePerformed": true,
+    "localProbeExecutionAuthenticated": false,
+    "machineQualified": false,
+    "noRemainingBlockersWithinScope": true,
+    "organizationalIndependenceAttested": false,
+    "originalExecutionWitnessed": false,
+    "projectionProvesLiveDockerReplay": false,
+    "rawGoldAccess": false,
+    "retainedOutcomeLogAccess": true,
+    "reviewCryptographicReceipt": false,
+    "reviewedAt": "2026-07-25T22:43:40Z",
+    "reviewedImplementationOwnerTaskName": "/root",
+    "reviewerEditedFiles": false,
+    "reviewerIdentityCryptographicallyAttested": false,
+    "reviewerTaskName": "/root/c6_transition_evaluator_receipt_audit",
+    "separateReadOnlyAgentTask": true,
+    "verdict": "frozen-receipt-rejection-derivation-accepted"
+  },
+  "reviewEvidence": {
+    "focusedGate": {
+      "assertions": 6,
+      "failed": 0,
+      "passed": 1
+    },
+    "focusedUnit": {
+      "assertions": 19,
+      "failed": 0,
+      "passed": 4
+    },
+    "mutationProbeClassesRejected": 9,
+    "retainedCommitBodiesComparedAgainstFullClone": 6
+  },
+  "schemaVersion": 1
+}

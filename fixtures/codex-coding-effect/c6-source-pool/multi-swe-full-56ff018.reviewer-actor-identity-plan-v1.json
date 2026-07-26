@@ -1,0 +1,506 @@
+{
+  "artifactKind": "c6-reviewer-actor-identity-plan",
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "actorCaptureExecuted": false,
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "status": "reviewer-actor-identity-capture-required"
+  },
+  "counts": {
+    "sourceReviewReferenceCount": 1023,
+    "sourceTargetCount": 51,
+    "uniqueActorCount": 87
+  },
+  "independenceBoundary": {
+    "goldInput": false,
+    "machineOutcomeInput": false,
+    "semanticLedgerInput": false,
+    "selectedSequenceInput": false,
+    "targetProjectionSha256": "ca83ec9e75fb0f478354f59337cc74a57c15a09971ec9df70f29ec2209149ea9"
+  },
+  "inputs": {
+    "graphqlRootSha256": "a529f3fd0226303f6d70c6222bf528f59ccc213145f4be44305aac80151b140b",
+    "qualification": {
+      "bytes": 111920,
+      "path": "multi-swe-full-56ff018.review-trajectory-source-expansion-rest-qualification-v2.json",
+      "sha256": "e11752f957a3a8de992866ef2d83a36710a3e9134f5c84728100d67d5c87e0f3"
+    }
+  },
+  "policy": {
+    "definition": {
+      "actorEligibility": {
+        "automationLoginRule": {
+          "containsCaseInsensitive": [
+            "coderabbit",
+            "copilot",
+            "cursor"
+          ],
+          "exactCaseInsensitive": [
+            "github-actions",
+            "github-advanced-security"
+          ],
+          "suffixCaseInsensitive": "[bot]"
+        },
+        "platformType": "User",
+        "unresolvedStatus": 404
+      },
+      "boundary": {
+        "automationExclusionComplete": false,
+        "eventTimeActorTypeProven": false,
+        "humanReviewerIdentityProven": false,
+        "platformActorTypeCaptured": true
+      },
+      "inputClosure": "all-broad-target-review-authors-before-actor-filtering",
+      "policyId": "reviewer-platform-actor-eligibility-v1",
+      "responseIdentity": "case-insensitive-login-exact-match",
+      "schemaVersion": 1
+    },
+    "policyId": "reviewer-platform-actor-eligibility-v1",
+    "schemaVersion": 1,
+    "sha256": "ca0014e5e6d47dc63f490b49bff6835b9d5ed99e69b3eb8d8ddf4266edc8643f"
+  },
+  "rule": {
+    "actorSurface": "all-non-null-whole-review-and-review-thread-comment-authors",
+    "captureOrder": "normalized-login-code-unit-ascending",
+    "normalization": "case-insensitive-login"
+  },
+  "schemaVersion": 1,
+  "targets": [
+    {
+      "captureDirectory": "actor-465c625b913756b0f8c81e324c509578d151a7519ed4616490ebc0e5ab8ce25c",
+      "captureOrder": 1,
+      "login": "aliabbasmerchant"
+    },
+    {
+      "captureDirectory": "actor-7323b4714ec000114b92dbe98ce4082f2869043064561092c682677cce512030",
+      "captureOrder": 2,
+      "login": "amitd291"
+    },
+    {
+      "captureDirectory": "actor-d16ae64b5bb11ded753eaa66cb5383e6e2cc6919afb5d7aca6224af697ef88dd",
+      "captureOrder": 3,
+      "login": "andsel"
+    },
+    {
+      "captureDirectory": "actor-ac23b4be669e0c23d5793923a98e07993e20ceb8109fb29c91bfa733a827a465",
+      "captureOrder": 4,
+      "login": "andyfeller"
+    },
+    {
+      "captureDirectory": "actor-23153437ccf9053bb80a215c277be7d0be646696bfc70a1eab125423d22205f6",
+      "captureOrder": 5,
+      "login": "anish-khanna"
+    },
+    {
+      "captureDirectory": "actor-5231115133ecd66bd38e62e1558fea3c1075febca3759abf4248b8771cff512a",
+      "captureOrder": 6,
+      "login": "armandgrillet"
+    },
+    {
+      "captureDirectory": "actor-c1443e2b6613a7c53d5a577c2f147877736c38d26e0c40bfa74ee32aeace4d22",
+      "captureOrder": 7,
+      "login": "bagtoad"
+    },
+    {
+      "captureDirectory": "actor-1b91510e2b92a0c0d0cca7947e15a07a6f969ce645535290ea6fa4d9f1eb56b6",
+      "captureOrder": 8,
+      "login": "bchadwic"
+    },
+    {
+      "captureDirectory": "actor-da057f107885f54ce72a0b76d4474c069be58e1c557520ca51f0a9d1b77aa15c",
+      "captureOrder": 9,
+      "login": "benebsiny"
+    },
+    {
+      "captureDirectory": "actor-6840a5e2211d799cde5f00bb8e8eef6020ecd2653a3f133ce4a705250d244515",
+      "captureOrder": 10,
+      "login": "billygriffin"
+    },
+    {
+      "captureDirectory": "actor-04d088e9c46bb30a26b7f668e5f249ad62e019918c36367d17bc60e94786aa49",
+      "captureOrder": 11,
+      "login": "braisgabin"
+    },
+    {
+      "captureDirectory": "actor-3ff1815591eddc4aec7ce71db46bd292ae0b6c6ef7a306918e7620ea67e14b95",
+      "captureOrder": 12,
+      "login": "carllerche"
+    },
+    {
+      "captureDirectory": "actor-acb873652c9731614ff91e622eef2f1fda5dec783e5c88dd6d3441b740178b07",
+      "captureOrder": 13,
+      "login": "cmbrose"
+    },
+    {
+      "captureDirectory": "actor-4a2892afb4d3286b5e965692202890ec875439be31918f5e5ee5ab3d40b6fae8",
+      "captureOrder": 14,
+      "login": "creepyskeleton"
+    },
+    {
+      "captureDirectory": "actor-5904dcd150c05b87fe06e4de15de808433e2927fbd10f4e04fcd3a68ebf97693",
+      "captureOrder": 15,
+      "login": "darksonn"
+    },
+    {
+      "captureDirectory": "actor-042146d21fcef0deb92f4810a7ce88600ccce29332822ce5d1bbc356afd9b8f5",
+      "captureOrder": 16,
+      "login": "dfawley"
+    },
+    {
+      "captureDirectory": "actor-78a84ec2629c800f68e32eff8f1322d122a766e69384ce6f4cfd692cd7a62a96",
+      "captureOrder": 17,
+      "login": "doi-t"
+    },
+    {
+      "captureDirectory": "actor-d753444cfd5067cda5f54e35e2bdaa4fe4c532ed680cec3c022ce412e05d7310",
+      "captureOrder": 18,
+      "login": "dsaff"
+    },
+    {
+      "captureDirectory": "actor-8dc8f0cec6ecfd0e2e1d4bae52ba286e223dfaa79ee8371ced2a2e0069e61d52",
+      "captureOrder": 19,
+      "login": "dummdidumm"
+    },
+    {
+      "captureDirectory": "actor-8b5dfd930733d2834c3df672cf4592a32b3bf2e9e177ebc19cec9f0b8c3b1918",
+      "captureOrder": 20,
+      "login": "dynasty-coder"
+    },
+    {
+      "captureDirectory": "actor-e1c13009dd3cef2b396e84ec1482b8280afaed39407a25555f58d01b25c967f1",
+      "captureOrder": 21,
+      "login": "easwars"
+    },
+    {
+      "captureDirectory": "actor-471af3c0b59257f6a8e589c7c3f998679c3058f25f10db8ff4b30b5fa670dd3f",
+      "captureOrder": 22,
+      "login": "eddumelendez"
+    },
+    {
+      "captureDirectory": "actor-e5066ae14bd8bfbbd9816a0e92cdd5edc5ee500fb77b8e5fd8e936416bebac97",
+      "captureOrder": 23,
+      "login": "edison1105"
+    },
+    {
+      "captureDirectory": "actor-f1f591418154ed5962221dce192b25dd0903167094a93f994f968ad8e70669b6",
+      "captureOrder": 24,
+      "login": "endorama"
+    },
+    {
+      "captureDirectory": "actor-749bc502e5ec6589072c32f6b4788918da366576246cca2fad3d40d166d87f23",
+      "captureOrder": 25,
+      "login": "enselic"
+    },
+    {
+      "captureDirectory": "actor-2d81fab5f11c52f2e1a4f8a1ede28afa566a23e41db78efbb60016e11cf358a0",
+      "captureOrder": 26,
+      "login": "eps1lon"
+    },
+    {
+      "captureDirectory": "actor-b1204ac59b49b17c58f2a7eac4b00d720c0228216471ca626ee30496bf1976e9",
+      "captureOrder": 27,
+      "login": "forsworns"
+    },
+    {
+      "captureDirectory": "actor-033341da525f7d9d63f3638f6ccb8d9521f6d66891bb0b02c570c1936e75dcb0",
+      "captureOrder": 28,
+      "login": "g14a"
+    },
+    {
+      "captureDirectory": "actor-35d9100ce8e60d92142746e99292ce09ec0e0088a92ddcb70c47755b47471c93",
+      "captureOrder": 29,
+      "login": "github-advanced-security"
+    },
+    {
+      "captureDirectory": "actor-71c7405c1c2756cfaa63e166ffb9982d38fa000af4066fa86303d36f7d5f36f8",
+      "captureOrder": 30,
+      "login": "gouri-panda"
+    },
+    {
+      "captureDirectory": "actor-21098bcb73e00ae9582d7ad86225bcc4a384b80afe4533e3ab4796973864efec",
+      "captureOrder": 31,
+      "login": "harveysanders"
+    },
+    {
+      "captureDirectory": "actor-704ef5cb06c7efc2e00c882bbec5c22a6ba97a0b25fa9cd7e271adba504b4ea7",
+      "captureOrder": 32,
+      "login": "hbjorbj"
+    },
+    {
+      "captureDirectory": "actor-353794ce9822f281b86fd616636f8661d818aaf0eca143872ef1ab23c2cd85ea",
+      "captureOrder": 33,
+      "login": "hoffm"
+    },
+    {
+      "captureDirectory": "actor-c03cd1c9c83ba8094735d806bbc445ee0b41686c23e82403f60ff8ce8aa643de",
+      "captureOrder": 34,
+      "login": "jakewharton"
+    },
+    {
+      "captureDirectory": "actor-4236040d50bb861a322ea221aa88081a7d025e4b4a9ba4b856df8678b1f39374",
+      "captureOrder": 35,
+      "login": "jemc"
+    },
+    {
+      "captureDirectory": "actor-5186b4a647fd9d4b29df5222f758e14a003dfbd5bab6e8618b7eb116a0b36843",
+      "captureOrder": 36,
+      "login": "jj-crypto"
+    },
+    {
+      "captureDirectory": "actor-22f7e7d92b83338e3076410834d52b3ae1b1708c7d3925b8acbdb1a58c9f66a1",
+      "captureOrder": 37,
+      "login": "josebalius"
+    },
+    {
+      "captureDirectory": "actor-c47718527889fe724802b1af839ec34a40898f11e64332bbc01054be3a70634b",
+      "captureOrder": 38,
+      "login": "jsoref"
+    },
+    {
+      "captureDirectory": "actor-696803a1e4eb056ab85ffc75d2d9ddd454f0a4a274b5f481a8e1b1620ae6571b",
+      "captureOrder": 39,
+      "login": "jsvd"
+    },
+    {
+      "captureDirectory": "actor-f419a9bf2cd067cc5cb2e3d46a06a8759bc3029a4c89b145dd0658a38e1bb26a",
+      "captureOrder": 40,
+      "login": "jthurne"
+    },
+    {
+      "captureDirectory": "actor-cbb9a64be153e3a048ded601496c408f791494ffdf1470be903db03265e75ade",
+      "captureOrder": 41,
+      "login": "jtmcg"
+    },
+    {
+      "captureDirectory": "actor-182a67fb1013c43c84a1de730531a283caa07e5f385182e14cd89f5dae732300",
+      "captureOrder": 42,
+      "login": "jungaretti"
+    },
+    {
+      "captureDirectory": "actor-96e78e76c6a4430f408776d52c207b1820cd38741d57d0cbedd0fdb0f0e8cead",
+      "captureOrder": 43,
+      "login": "kaisecheng"
+    },
+    {
+      "captureDirectory": "actor-310fb98291dc6c0d05a3486aa214d4af47f4f3a39f7804e29f365789a415cb98",
+      "captureOrder": 44,
+      "login": "kapilash"
+    },
+    {
+      "captureDirectory": "actor-5f0803c0cc66219db609ebb1c943598eef8b4bfca7a42c3b7709fc92caea586d",
+      "captureOrder": 45,
+      "login": "karenzone"
+    },
+    {
+      "captureDirectory": "actor-61c7c6acf80d205d28c2c5a9122500d64a86b640fe539198032a15edd9904b6e",
+      "captureOrder": 46,
+      "login": "kares"
+    },
+    {
+      "captureDirectory": "actor-2a7a1cb84c8691dad12d372b828b3ae1201b98c4e39a942504fd4abe1e0ccc06",
+      "captureOrder": 47,
+      "login": "litera"
+    },
+    {
+      "captureDirectory": "actor-4c88ea7dfbc9d4fc852ea0be1ee1aac838e15ff0003fee76a0caf224afa197af",
+      "captureOrder": 48,
+      "login": "m4theushw"
+    },
+    {
+      "captureDirectory": "actor-b4e358c87e96b6d805ea748adf74cac79014021b56f5538882bdd728429dfae1",
+      "captureOrder": 49,
+      "login": "marekdedic"
+    },
+    {
+      "captureDirectory": "actor-c2d5a4b3f9474b9924210e0071dadd3d666333e8e5aee7dcdfad5cb2977f6d5d",
+      "captureOrder": 50,
+      "login": "mashhurs"
+    },
+    {
+      "captureDirectory": "actor-7966aaf69f3bf03bb6f14c388844be77955e024085470def507a25aea8d0fd6b",
+      "captureOrder": 51,
+      "login": "mehrandmband"
+    },
+    {
+      "captureDirectory": "actor-5f1e42da8d0b5de756ca9f7b20923edbde22bdec51b4e96a32d588f96fa7848e",
+      "captureOrder": 52,
+      "login": "meiji163"
+    },
+    {
+      "captureDirectory": "actor-f12526fa4acee132daa3f557b3c09ce36aaf3328bce211b09c4d9005557128e5",
+      "captureOrder": 53,
+      "login": "menghanl"
+    },
+    {
+      "captureDirectory": "actor-a3a41c0fc2308c6ad465e223cb688fa22995635f958b6a4390ec904783e3c7c6",
+      "captureOrder": 54,
+      "login": "michaelu5"
+    },
+    {
+      "captureDirectory": "actor-7b33b07667d8a417a5d1bfc26ccd8cdc53c19294fc245af31e04bd5585ef6565",
+      "captureOrder": 55,
+      "login": "michaldudak"
+    },
+    {
+      "captureDirectory": "actor-9f1efbd1c86f2eb4a9623e03952488fce54f2be1e876f0a3e984ebb191fdc4e7",
+      "captureOrder": 56,
+      "login": "milkly1235writer"
+    },
+    {
+      "captureDirectory": "actor-6397e12a0b7b4f16e144003ab55b4b2fca0916e579cc27ebb68e90b3326d7adf",
+      "captureOrder": 57,
+      "login": "mislav"
+    },
+    {
+      "captureDirectory": "actor-5e71cb59e8aa049fc978c6dbe36d6ca9e6e9d8e0e608b03342fc78331e68f2c8",
+      "captureOrder": 58,
+      "login": "mm324-sys"
+    },
+    {
+      "captureDirectory": "actor-e016397bfb4ba9ea570bead15ff1ec58f99db97327d1c777eb1d0ace6895250c",
+      "captureOrder": 59,
+      "login": "mnajdova"
+    },
+    {
+      "captureDirectory": "actor-16a4a05ab58a63be698ab90822f47cf3e965ba35686402a5cd5e9750c41a14c0",
+      "captureOrder": 60,
+      "login": "mntlty"
+    },
+    {
+      "captureDirectory": "actor-831b509f1cfa1a67b791b901f8be9f91e2752dbf2f08ecaa972546bf5572f0c2",
+      "captureOrder": 61,
+      "login": "oliviertassinari"
+    },
+    {
+      "captureDirectory": "actor-f3c1d263d21b19f23029c33bd32844e15db42cbecab8653f7a752675faed6f8b",
+      "captureOrder": 62,
+      "login": "paoloricciuti"
+    },
+    {
+      "captureDirectory": "actor-32388889a247720e28505760a3a57d36d97364c61b4c0d80463cea604d586386",
+      "captureOrder": 63,
+      "login": "paulolteanu"
+    },
+    {
+      "captureDirectory": "actor-ea598c41f37e31337bf6937aa3267584b2282f7998c2b9f3b23a8dc8ae9bc115",
+      "captureOrder": 64,
+      "login": "pksunkara"
+    },
+    {
+      "captureDirectory": "actor-af557f19d5512a22b0a39ac226b9a7c4ce648d9e798fbffc0fde07f38072fd04",
+      "captureOrder": 65,
+      "login": "pshevche"
+    },
+    {
+      "captureDirectory": "actor-9dc462952fd528b72647ca3c96e5d69a7f99bd0b64d7f99b581d6da163c0aae6",
+      "captureOrder": 66,
+      "login": "rich-harris"
+    },
+    {
+      "captureDirectory": "actor-12659ff879ea100738606bf7450d9c666780a4d608c4dd5fce8a891b2c511580",
+      "captureOrder": 67,
+      "login": "rmw"
+    },
+    {
+      "captureDirectory": "actor-fe844838298b61ef1406151a56da1b878e829e070c2638660a0c3aba723caf3b",
+      "captureOrder": 68,
+      "login": "roaksoax"
+    },
+    {
+      "captureDirectory": "actor-e05ffa685ebade37ab3f525d0d3b0dc47ed629679af5689d1919385abf8617aa",
+      "captureOrder": 69,
+      "login": "runningcode"
+    },
+    {
+      "captureDirectory": "actor-79e09ccba8da7a2be2351a88adb1ecd3caf3fd06b41729eecb3e89f088049cf5",
+      "captureOrder": 70,
+      "login": "rwe"
+    },
+    {
+      "captureDirectory": "actor-bd1f28e32f817313cfee05cf8629d5e41641e19224d8597f0ef93fc6f27bd171",
+      "captureOrder": 71,
+      "login": "samcoe"
+    },
+    {
+      "captureDirectory": "actor-43179c1701255eb1e818751908e940abde612bf37c5ceb1df0a204310be9ddc4",
+      "captureOrder": 72,
+      "login": "schalkms"
+    },
+    {
+      "captureDirectory": "actor-66fddc5456d8bd158ec238b4bda861737ab2375aa40b8595468afd5ac0f8a012",
+      "captureOrder": 73,
+      "login": "seantallen"
+    },
+    {
+      "captureDirectory": "actor-5fb5e18ee2edc118b7fe607a77634d4cb0f77d903d12e40b8ac96ed3c5c7332e",
+      "captureOrder": 74,
+      "login": "sharkdp"
+    },
+    {
+      "captureDirectory": "actor-20830edd61d370270ed8ab594088b7e790f7261ac772ce2c47dc50f2a01926b5",
+      "captureOrder": 75,
+      "login": "siriwatknp"
+    },
+    {
+      "captureDirectory": "actor-c417471ea3b7b758c8ac2aefe7c7a7b39d96ea472d35e8e6474270508ba90c7f",
+      "captureOrder": 76,
+      "login": "sixeight"
+    },
+    {
+      "captureDirectory": "actor-c46803b88c9dc40ed165a8427ca4052e745155532862e8b9d047aee13b116a94",
+      "captureOrder": 77,
+      "login": "swankjesse"
+    },
+    {
+      "captureDirectory": "actor-2eb2a8f629fe0c33e4a84caa30647f3fec7da4922d38d67fe9cdf804d9138c1c",
+      "captureOrder": 78,
+      "login": "tenebrisvulpes"
+    },
+    {
+      "captureDirectory": "actor-c263f5f21886982e7500673a9cc833d714e1279a87633c3167bc0737b84274a1",
+      "captureOrder": 79,
+      "login": "timvdlippe"
+    },
+    {
+      "captureDirectory": "actor-3a9d11eb82b7d777de17c2112f03bde778974aae3ace6614ed4bd2fa22f38b14",
+      "captureOrder": 80,
+      "login": "tomjw64"
+    },
+    {
+      "captureDirectory": "actor-7ab150c9dabff683fc7829355e4a009fa7857017402ee94f57a5dfc026748651",
+      "captureOrder": 81,
+      "login": "trueadm"
+    },
+    {
+      "captureDirectory": "actor-1dc9fb2985eded1a835e7419fe8c25584ee4adcfff793eecf7af1fde74349882",
+      "captureOrder": 82,
+      "login": "vilmibm"
+    },
+    {
+      "captureDirectory": "actor-86942a49275979fc71bbeb85cc07cdbe24b573d60ad24076c07852bd3fc3630b",
+      "captureOrder": 83,
+      "login": "voanhcung"
+    },
+    {
+      "captureDirectory": "actor-40dbcd71b5db1134853079ae8aa558625f4f4a362d0dbbfa9e4b5a96f8eaf793",
+      "captureOrder": 84,
+      "login": "williammartin"
+    },
+    {
+      "captureDirectory": "actor-a33f04325009a9ca53346a7f381dd77932edbf5f0cef78dadb14c8e5a32062ee",
+      "captureOrder": 85,
+      "login": "ycmjason"
+    },
+    {
+      "captureDirectory": "actor-f259571943265cf073eedf84477953eb664a38ad7ea520279507135df1308914",
+      "captureOrder": 86,
+      "login": "yschimke"
+    },
+    {
+      "captureDirectory": "actor-a8afc94f1750b5c33329378ba05fcbc632125c05950adba01c3fa855cbb38d01",
+      "captureOrder": 87,
+      "login": "zeeshantamboli"
+    }
+  ]
+}

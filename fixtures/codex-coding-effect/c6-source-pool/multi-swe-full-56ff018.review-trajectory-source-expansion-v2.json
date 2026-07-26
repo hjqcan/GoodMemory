@@ -1,0 +1,2483 @@
+{
+  "artifactKind": "c6-review-trajectory-source-expansion",
+  "boundary": {
+    "acceptedEpisodeCount": 0,
+    "adaptiveProspective": true,
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "pretargetsRequireExactRestClosure": true,
+    "status": "prospective-structural-pretargets-not-episodes",
+    "upperBoundClaimPermitted": false
+  },
+  "counts": {
+    "canonicalLegacyExclusionCount": 145,
+    "discoverySurfaceUnsupportedCount": 2,
+    "inventoryAnchorCount": 1737,
+    "prospectiveAnchorCount": 1592,
+    "repositoryCappedStructuralCeiling": 26,
+    "structuralPretargetCount": 51,
+    "structuralPretargetRepositoryCount": 13
+  },
+  "inventory": {
+    "bytes": 2645700,
+    "captureRootSha256": "a529f3fd0226303f6d70c6222bf528f59ccc213145f4be44305aac80151b140b",
+    "captureStructureSha256": "878bb80e7cfb897f3946df14a788be25c3c3bb13392fcc4a9ee052807f59ca75",
+    "path": "multi-swe-full-56ff018.github-graphql-discovery-inventory.json",
+    "sha256": "14c406f6bb9d4b8c789380b62511bd1312dd67819eaeb44d64c9ea54593bed51",
+    "sourceDatasetId": "ByteDance-Seed/Multi-SWE-bench",
+    "sourcePopulationSha256": "a7837b1266d5915759bea0229c0917a0205f2ce3263f6d22295297b11137bd6c",
+    "sourceRevision": "56ff018c04a38e27ada1e9d0a6d5839a51f88f0d",
+    "sourceRootSha256": "16ad77277902c818f30e9b282caaa44d6dfef2bfd67bcccd1b2455c91d9c9bd7",
+    "treeReceiptSha256": "8de0f6501c0fa3dd844d38704a4a44eb8f3b4aaa997aa74c9507c79d501c8384"
+  },
+  "legacyFrame": {
+    "bytes": 210812,
+    "candidateCount": 145,
+    "candidateProjectionSha256": "f2875d922dc5aef657363660b9efd0b39799923cbd8068f84ef921791da2e47e",
+    "canonicalExclusionSetSha256": "9c8a1eafae39dd6e39cda8e92cb4f7d747b039fb5f6a479e79c4f4011651d45e",
+    "path": "multi-swe-full-56ff018.real-history-screening-frame.json",
+    "sha256": "751929cc423d0ad132cbb5d5841a442242b9d59ab713406f352424a33c22def9"
+  },
+  "policy": {
+    "definition": {
+      "boundary": {
+        "adaptiveProspective": true,
+        "application": "prospective-expansion-tranches-only",
+        "legacyFrameImmutable": true,
+        "personnelOutcomeBlindnessClaimed": false
+      },
+      "eventOrdering": [
+        "createdAt",
+        "reviewedCommit",
+        "source",
+        "threadId",
+        "bodySha256",
+        "id"
+      ],
+      "inputClosure": {
+        "selectionDependsOnUnlistedFields": false,
+        "usedFields": [
+          "pullAuthor",
+          "reviews[].author",
+          "reviews[].body",
+          "reviews[].commit",
+          "reviews[].id",
+          "reviews[].state",
+          "reviews[].submittedAt",
+          "reviewThreads[].id",
+          "reviewThreads[].comments[].author",
+          "reviewThreads[].comments[].body",
+          "reviewThreads[].comments[].createdAt",
+          "reviewThreads[].comments[].id",
+          "reviewThreads[].comments[].originalCommit",
+          "commits[].committedAt",
+          "commits[].oid",
+          "commits[].parents"
+        ]
+      },
+      "lineage": {
+        "domainSeparator": "goodmemory:c6:prospective-structural-review-v2:lineage:v1",
+        "perAnchorSelection": "minimum-lineage-sha256",
+        "search": "all-legal-linear-review-fix-review-fix-sequences"
+      },
+      "normalization": {
+        "body": "crlf-and-cr-to-lf-then-ecmascript-trim",
+        "identity": "author-login-case-insensitive"
+      },
+      "policyId": "prospective-structural-review-v2",
+      "reviewThreadComments": {
+        "bodyMinimumUtf8Bytes": 0,
+        "commitBinding": "originalCommit-required",
+        "selection": "first-canonical-non-author-non-bot-comment-per-thread",
+        "threadResolutionAffectsSelection": false
+      },
+      "schemaVersion": 2,
+      "wholeReviews": {
+        "bodyMinimumUtf8Bytes": 10,
+        "commitBinding": "commit-required",
+        "state": "CHANGES_REQUESTED"
+      }
+    },
+    "policyId": "prospective-structural-review-v2",
+    "schemaVersion": 2,
+    "sha256": "b51613368026c09ad1aab3e4d08fe19197ddc1beea9499c9d8e068830527703a"
+  },
+  "pretargets": [
+    {
+      "anchorId": "mui/material-ui#26061",
+      "canonicalAnchorId": "mui/material-ui#26061",
+      "captureDirectory": "mui__material-ui__26061",
+      "legalSequenceCount": 3,
+      "lineageIdentitySha256": "2c4e381a615cf7af82251cc5f03e5941708d7a3806c28703339555edea0e586c",
+      "linearReviewSequence": {
+        "firstFixCommit": "4f898ea031b573b99d605685f0b4346f14761efd",
+        "firstReview": {
+          "author": "oliviertassinari",
+          "body": "Using `event.key` directly is fine.\n\n```suggestion\n```",
+          "bodyBytes": 54,
+          "bodySha256": "66e3411da55186bf400c96a0738104d7f46a317d0c80f77bc258f45ddbe60b0c",
+          "createdAt": "2021-04-29T19:16:55Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDYyMzMyNDE5OQ==",
+          "reviewedCommit": "5d2d76a891d09b757365acfe9cefe163ab6f86f6",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMzk0NzMzNDA1OnYy"
+        },
+        "initialCommit": "5d2d76a891d09b757365acfe9cefe163ab6f86f6",
+        "secondFixCommit": "400b75d2c8108bdbc0d38591b2865055bc0d37ac",
+        "secondReview": {
+          "author": "eps1lon",
+          "body": "These are always `false` so let's remove those options for now.",
+          "bodyBytes": 63,
+          "bodySha256": "115ce87c8fc1bd47d42c0337228f2113ae96869ad2074e510a71ab997f7718cb",
+          "createdAt": "2021-04-29T20:46:38Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDYyMzM4NjY5NQ==",
+          "reviewedCommit": "4f898ea031b573b99d605685f0b4346f14761efd",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMzk0NzczMTk4OnYy"
+        }
+      },
+      "pretargetEventCount": 4,
+      "rankSha256": "00039b39c35b0f11b6b466ce13ecd803e3e7cde4d9c7bf083212f1d2309c7c50",
+      "repository": "mui/material-ui",
+      "requestedRepository": "mui/material-ui",
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 142,
+        "rowSha256": "29526cd72768095e945ca9ead8bc41e18ae6752a95a60bf1196fbbd14537a84a"
+      },
+      "pretargetRank": 1,
+      "repositoryRank": 1,
+      "restCaptureOrder": 1
+    },
+    {
+      "anchorId": "tokio-rs/tokio#6252",
+      "canonicalAnchorId": "tokio-rs/tokio#6252",
+      "captureDirectory": "tokio-rs__tokio__6252",
+      "legalSequenceCount": 12,
+      "lineageIdentitySha256": "0693972a443af535ddb4ea393b58f3d515dcec73a84be9f1eb306652b1588614",
+      "linearReviewSequence": {
+        "firstFixCommit": "b6198f8ad330e5fdd680eb722dba55d4f9189584",
+        "firstReview": {
+          "author": "Darksonn",
+          "body": "I don't know how important the warning really is. It applies to anything that works with concurrency. You could say something along the lines of if another message is sent concurrently with the call to `mark_unchanged`, then you cannot predict whether the message or the `mark_unchanged` call comes first.",
+          "bodyBytes": 305,
+          "bodySha256": "d9372b3e76f4c0b36249eec7338799a10b0288902286b805b199a2c3fde7da7c",
+          "createdAt": "2023-12-29T15:44:41Z",
+          "id": "PRRC_kwDOBAsbdc5Vut7V",
+          "reviewedCommit": "dc8e7abb7cfe92c5a75c472b4e9acfce7926315a",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOBAsbdc42v4FJ"
+        },
+        "initialCommit": "dc8e7abb7cfe92c5a75c472b4e9acfce7926315a",
+        "secondFixCommit": "aa322fb9976320bbca1f09517259d709374a45a9",
+        "secondReview": {
+          "author": "Darksonn",
+          "body": "Honestly, I think this is more confusing than it is useful. It's not clear what \"single-threaded context\" and \"multi-threaded context\" means. Does code running on a multi-threaded runtime necessarily imply that you are in a \"multi-threaded context\" according to this paragraph? No, but I anticipate being asked that question in the future. I would rather just take it out entirely.",
+          "bodyBytes": 381,
+          "bodySha256": "da75bb1f4cf20db7060c88ca67b9fdc66af320c185c1351179ebdf7946097562",
+          "createdAt": "2023-12-30T14:36:31Z",
+          "id": "PRRC_kwDOBAsbdc5Vv46O",
+          "reviewedCommit": "b6198f8ad330e5fdd680eb722dba55d4f9189584",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOBAsbdc42yyuE"
+        }
+      },
+      "pretargetEventCount": 6,
+      "rankSha256": "00f9b8dc80e8e00e49995cce533cc124c0ff3e37011e6bef7bcc54fee411ea99",
+      "repository": "tokio-rs/tokio",
+      "requestedRepository": "tokio-rs/tokio",
+      "source": {
+        "path": "rust/tokio-rs__tokio_dataset.jsonl",
+        "rowIndex": 12,
+        "rowSha256": "f32d4473c570c9b3f4ca025a1908037eba83d673b3b86ee7d0bbd2eac08b8e61"
+      },
+      "pretargetRank": 2,
+      "repositoryRank": 1,
+      "restCaptureOrder": 2
+    },
+    {
+      "anchorId": "cli/cli#7873",
+      "canonicalAnchorId": "cli/cli#7873",
+      "captureDirectory": "cli__cli__7873",
+      "legalSequenceCount": 40,
+      "lineageIdentitySha256": "0632778d070be9cd3b7a49b6fcbc4fa3ac47e5bcb90e9b8e52ad6ab7aca627ab",
+      "linearReviewSequence": {
+        "firstFixCommit": "1f9cf51be481c520bb25db081a5fcbec394a83d3",
+        "firstReview": {
+          "author": "andyfeller",
+          "body": "**Would you find this more readable?** 🙇\n\nI agree with you that a `404` comment means the user cannot fetch it shouldn't stop the `gh status` output. 👍  Aside from a minor change in the wording &mdash; _(keeping the verbiage consistent and it isn't like we can't find it but can't fetch it)_ &mdash; I think this is more idiomatic handling the error immediately while also allowing us to handle http and non-http errors without duplicating the outcomes.\n\n```suggestion\n\t\t\t\t\tactual, err := s.ActualMention(n.Subject.LatestCommentURL)\n\n\t\t\t\t\tif err != nil {\n\t\t\t\t\t\tvar httpErr api.HTTPError\n\t\t\t\t\t\thttpStatusCode := -1\n\n\t\t\t\t\t\tif errors.As(err, &httpErr) {\n\t\t\t\t\t\t\thttpStatusCode = httpErr.StatusCode\n\t\t\t\t\t\t}\n\n\t\t\t\t\t\tswitch httpStatusCode {\n\t\t\t\t\t\tcase 403:\n\t\t\t\t\t\t\ts.addAuthError(httpErr.Message, factory.SSOURL())\n\t\t\t\t\t\t\treturn nil\n\t\t\t\t\t\tcase 404:\n\t\t\t\t\t\t\tactual = \"(could not fetch comment)\"\n\t\t\t\t\t\tdefault:\n\t\t\t\t\t\t\tabortFetching()\n\t\t\t\t\t\t\treturn fmt.Errorf(\"could not fetch comment: %w\", err)\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\n\t\t\t\t\tif actual != \"\" {\n```",
+          "bodyBytes": 1031,
+          "bodySha256": "46b5dcd48989db21afa6e68bb3b9c1cc80df24d98d54ddee4caade2d8e564953",
+          "createdAt": "2023-08-23T13:43:36Z",
+          "id": "PRRC_kwDODKw3uc5NquKi",
+          "reviewedCommit": "476ec8326154d1e1dfb10fe9349b8c079412a951",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4xoCHy"
+        },
+        "initialCommit": "476ec8326154d1e1dfb10fe9349b8c079412a951",
+        "secondFixCommit": "73a774553ade66f4635e02a6c70d4a6bb0feaf13",
+        "secondReview": {
+          "author": "samcoe",
+          "body": "I think the more common case of this occurring is that a comment was purposefully deleted for one reason or another and in that case showing nothing seems like the correct behavior. \n\nFor now lets go with not displaying anything and we can change the behavior in the future if we hear from users that they would rather have the other behavior.",
+          "bodyBytes": 343,
+          "bodySha256": "315ddeeece392cfd3021e58ff0e7218e94217aaa141c71ffe629ea20475602f5",
+          "createdAt": "2023-08-31T13:30:01Z",
+          "id": "PRRC_kwDODKw3uc5OLevo",
+          "reviewedCommit": "1f9cf51be481c520bb25db081a5fcbec394a83d3",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4x2rGd"
+        }
+      },
+      "pretargetEventCount": 9,
+      "rankSha256": "02b9979a3731467995521ab3d1d9e5dce800db2100579d20882e545fee572c94",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 94,
+        "rowSha256": "c08efe7b1869e002314c31cdcbe7fb8f662becdf5342a79d0ddd1697885b6f36"
+      },
+      "pretargetRank": 3,
+      "repositoryRank": 1,
+      "restCaptureOrder": 3
+    },
+    {
+      "anchorId": "cli/cli#6404",
+      "canonicalAnchorId": "cli/cli#6404",
+      "captureDirectory": "cli__cli__6404",
+      "legalSequenceCount": 44,
+      "lineageIdentitySha256": "046b564fd192e11e0e44deedee64d0b677eac0ec80485e12aa83b83a5b866d2f",
+      "linearReviewSequence": {
+        "firstFixCommit": "b373fbbe4447b7740b86571ef7c5ad3166b8148d",
+        "firstReview": {
+          "author": "jungaretti",
+          "body": "I don't think so. The RPC call _only_ returns `true`/`false`. Unfortunately, there doesn't seem to be a more detailed message available here.\n\nNote that the lines above this one check for an error after making the RPC call. If something goes wrong there, we get a helpful error message.",
+          "bodyBytes": 286,
+          "bodySha256": "69a083d52913f0b416ff5846f011c0d7c992cabadecde891428ab26c558002ac",
+          "createdAt": "2022-10-08T16:19:08Z",
+          "id": "PRRC_kwDODKw3uc47DEXB",
+          "reviewedCommit": "d05cdf5ff32629f8661066b1c4e4b67f79abad0a",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4lyQfJ"
+        },
+        "initialCommit": "d05cdf5ff32629f8661066b1c4e4b67f79abad0a",
+        "secondFixCommit": "982aa5ba82810043507711689706ba23afe94359",
+        "secondReview": {
+          "author": "josebalius",
+          "body": "nit: `RebuildContainer` - `session.Rebuild` describes to me that the liveshare session itself will be rebuilt/reconnected, etc.",
+          "bodyBytes": 127,
+          "bodySha256": "d6f765eb21350335ef8dc6d1e9ace9494b41aa6de1f088a4b89602e87da35c0f",
+          "createdAt": "2022-10-10T11:44:57Z",
+          "id": "PRRC_kwDODKw3uc47FHBm",
+          "reviewedCommit": "0e963ebd4f85be5216852dd0ae6d6224d67920e0",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4lzxru"
+        }
+      },
+      "pretargetEventCount": 12,
+      "rankSha256": "059005a21def6c7e533c9493a75192e84796f6c3c1a638e792dbae46109b8f87",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 154,
+        "rowSha256": "c4f271967b30164262f11a33bff8f9436309a84696745148eb592b84dd658028"
+      },
+      "pretargetRank": 4,
+      "repositoryRank": 2,
+      "restCaptureOrder": 14
+    },
+    {
+      "anchorId": "sveltejs/svelte#11290",
+      "canonicalAnchorId": "sveltejs/svelte#11290",
+      "captureDirectory": "sveltejs__svelte__11290",
+      "legalSequenceCount": 60,
+      "lineageIdentitySha256": "0965ef66e9e012394488f5ebcc880dd91d825d33134738a8afbcc4e2875c9d52",
+      "linearReviewSequence": {
+        "firstFixCommit": "04d159b8ea3dbf6869df25f5816cebe2552ac098",
+        "firstReview": {
+          "author": "paoloricciuti",
+          "body": "Just to avoid possible situations where two consequent keys changes but the resulting join doesnt\n\n```ts\nconst x = $state({\n  foo: true,\n  bar: true,\n});\n\nx = {\n  foob: true,\n  ar: true,\n}\n```",
+          "bodyBytes": 192,
+          "bodySha256": "f882200bd03df60b4b752d7ed348f86a9dbfd1ff19cb993a0615393ba4db023b",
+          "createdAt": "2024-05-09T13:50:36Z",
+          "id": "PRRC_kwDOBG2gSc5fGR4D",
+          "reviewedCommit": "5acbfce6dda68c6699bf474a6df2781a5f88d3ed",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOBG2gSc48v2YK"
+        },
+        "initialCommit": "5acbfce6dda68c6699bf474a6df2781a5f88d3ed",
+        "secondFixCommit": "1c20bf312515b3a820e72936215d76c43091d6d2",
+        "secondReview": {
+          "author": "Rich-Harris",
+          "body": "all this stuff is unnecessary! we can create the derived inside `spread_props`",
+          "bodyBytes": 78,
+          "bodySha256": "e4eb8acf4ea20a94b96be13e4beac7f27af981c9619dedfcdad2209fac714137",
+          "createdAt": "2024-05-15T21:45:15Z",
+          "id": "PRRC_kwDOBG2gSc5fgPiq",
+          "reviewedCommit": "77a955c1145cd8c08986e8e288ec5dc6e7437ebe",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOBG2gSc49A4Aq"
+        }
+      },
+      "pretargetEventCount": 10,
+      "rankSha256": "0a7d2e799692d397377fc292eb5ec98f29cfbfe25e4a90b7478f000146409c3a",
+      "repository": "sveltejs/svelte",
+      "requestedRepository": "sveltejs/svelte",
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 192,
+        "rowSha256": "b8a24f738a64bffdd8e6d553a86cf1830f95ce90723316600c92b00ceb21d6ae"
+      },
+      "pretargetRank": 5,
+      "repositoryRank": 1,
+      "restCaptureOrder": 4
+    },
+    {
+      "anchorId": "sharkdp/bat#1402",
+      "canonicalAnchorId": "sharkdp/bat#1402",
+      "captureDirectory": "sharkdp__bat__1402",
+      "legalSequenceCount": 5760,
+      "lineageIdentitySha256": "00113e773fb85f1a1ee58931c6751797f06edbb60cd0e7fb2ac170a014719cf9",
+      "linearReviewSequence": {
+        "firstFixCommit": "46487b201ff0f4cdcbfdea9d328cbac6d29a22d1",
+        "firstReview": {
+          "author": "Enselic",
+          "body": "Sorry about the typo, should have been `--pager`, not `--config`. I completely reworded the entry now though, please take a look.",
+          "bodyBytes": 129,
+          "bodySha256": "a51f6b393a6fe5d031a9699ac484f90dd0f3eed31e0a2d7a48e2ea7229072af0",
+          "createdAt": "2020-12-30T07:29:23Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDU0OTk4NTgyOA==",
+          "reviewedCommit": "552545fe5f807f7fca51ab5a52cebcd15dd0021a",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMzQ1NzE0NDkyOnYy"
+        },
+        "initialCommit": "552545fe5f807f7fca51ab5a52cebcd15dd0021a",
+        "secondFixCommit": "dd6f57e1073100ab0f85f272177efe9568550940",
+        "secondReview": {
+          "author": "Enselic",
+          "body": "I'll happily fix that, but prefer to do it in a separate follow-up PR, since this PR is not making it worse, so good that you think it's OK to do so.\n\nI agree it's nicer to use types that better represents the data that you're working with.",
+          "bodyBytes": 240,
+          "bodySha256": "6f7a2b6a2f3a39b4cf82de13dba3df5cf3fc6ef42946d24b468282b9ff62a598",
+          "createdAt": "2021-01-09T17:23:54Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDU1NDQ1MDYzOA==",
+          "reviewedCommit": "da1016662588cae98aeb96b2ec570b14f02f9c62",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMzQ4OTg1MzMwOnYy"
+        }
+      },
+      "pretargetEventCount": 28,
+      "rankSha256": "0cd05745f2cd361b2ceb5bcdb783f471245d2ecd2c069f983e545faef15e5104",
+      "repository": "sharkdp/bat",
+      "requestedRepository": "sharkdp/bat",
+      "source": {
+        "path": "rust/sharkdp__bat_dataset.jsonl",
+        "rowIndex": 8,
+        "rowSha256": "1c7017b4511a5d504989213b9ff753b5be3eccd72aef908b1e1a689403114985"
+      },
+      "pretargetRank": 6,
+      "repositoryRank": 1,
+      "restCaptureOrder": 5
+    },
+    {
+      "anchorId": "sveltejs/svelte#14195",
+      "canonicalAnchorId": "sveltejs/svelte#14195",
+      "captureDirectory": "sveltejs__svelte__14195",
+      "legalSequenceCount": 4,
+      "lineageIdentitySha256": "21b59fd809fafe18504f0f34ebffa46e022915539a31541447e6e2ca746cff53",
+      "linearReviewSequence": {
+        "firstFixCommit": "22b6058ad3ba8c0c4191b50ab003db9ac52a0e7d",
+        "firstReview": {
+          "author": "dummdidumm",
+          "body": "The comment says \"...in case it's reassigned\", but I don't see that in the if condition - is that on purpose or should we add it?\n```suggestion\n\t\t\t\tdeclaration.declaration_kind === 'let' &&\n\t\t\t\tdeclaration.reassigned\n```",
+          "bodyBytes": 220,
+          "bodySha256": "991595212f69971faf38f51cf13f38c5a2e17283f3976a860d75ae5e75b9dddb",
+          "createdAt": "2024-11-07T08:53:45Z",
+          "id": "PRRC_kwDOBG2gSc5tNnRd",
+          "reviewedCommit": "7952bd021b33470abf0e927f0109125446337ac1",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOBG2gSc5F2jpZ"
+        },
+        "initialCommit": "7952bd021b33470abf0e927f0109125446337ac1",
+        "secondFixCommit": "4f30961b699a4ad998b477b4d24bd383888db6b6",
+        "secondReview": {
+          "author": "paoloricciuti",
+          "body": "```suggestion\n\tlet count = 0;\n```",
+          "bodyBytes": 33,
+          "bodySha256": "cdefbefbf75cf48c0eb25fe6c6dbe0a4d9a8641a6a3145590e407c5b2803f5e2",
+          "createdAt": "2024-11-07T09:10:02Z",
+          "id": "PRRC_kwDOBG2gSc5tNuC1",
+          "reviewedCommit": "22b6058ad3ba8c0c4191b50ab003db9ac52a0e7d",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOBG2gSc5F2n59"
+        }
+      },
+      "pretargetEventCount": 5,
+      "rankSha256": "175d2e3a391555b150804c7f16492399c53cf271b2d538e77081fe3a7ded2b21",
+      "repository": "sveltejs/svelte",
+      "requestedRepository": "sveltejs/svelte",
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 47,
+        "rowSha256": "57a07fe13e3233d8b073452a938b25c87f010cffd7f214cb9b6932ca8f32720d"
+      },
+      "pretargetRank": 7,
+      "repositoryRank": 2,
+      "restCaptureOrder": 15
+    },
+    {
+      "anchorId": "cli/cli#4519",
+      "canonicalAnchorId": "cli/cli#4519",
+      "captureDirectory": "cli__cli__4519",
+      "legalSequenceCount": 16,
+      "lineageIdentitySha256": "07f5e9afeb373e93f0515eab92c83fe70cb06856b2df62fe20368302f7d7c7e8",
+      "linearReviewSequence": {
+        "firstFixCommit": "fd18e06f66e589dc243fb55203d470db80dfda2a",
+        "firstReview": {
+          "author": "samcoe",
+          "body": "@vilmibm Can I get a double check on if we should be using this code to clear the screen or the one you used for `run watch`.",
+          "bodyBytes": 125,
+          "bodySha256": "5293ce318488b132d0c27a451ff937daf6c0ebdc0ae3a0ebe98f3f45a2e73c8d",
+          "createdAt": "2022-01-28T08:09:07Z",
+          "id": "PRRC_kwDODKw3uc4vV7-T",
+          "reviewedCommit": "97fd9acea6177652e2071b3635b05ffa9138040d",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4eRJ65"
+        },
+        "initialCommit": "97fd9acea6177652e2071b3635b05ffa9138040d",
+        "secondFixCommit": "9d0e4bc18c0df4a1bc0350837799dc6c16afc1ef",
+        "secondReview": {
+          "author": "vilmibm",
+          "body": "Unless I'm missing a reason not to, this should use the same screen redrawing logic as `run watch`.",
+          "bodyBytes": 99,
+          "bodySha256": "a2808e1c3a0c9fac31f211e28b6d73777d20e909009ee715fc7b76e9500d39a6",
+          "createdAt": "2022-01-31T21:51:40Z",
+          "id": "PRR_kwDODKw3uc4zw590",
+          "reviewedCommit": "fd18e06f66e589dc243fb55203d470db80dfda2a",
+          "source": "whole-review",
+          "threadId": null
+        }
+      },
+      "pretargetEventCount": 26,
+      "rankSha256": "20528f264c0c9269ffbffa7a3d60318d8f9b2fb87011932ce1e1ade6d33f456f",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 238,
+        "rowSha256": "4bbefc3d697a1657400f61060a4cf2e58d73edc304119db8088bc73a0418b893"
+      },
+      "pretargetRank": 8,
+      "repositoryRank": 3,
+      "restCaptureOrder": 20
+    },
+    {
+      "anchorId": "elastic/logstash#14045",
+      "canonicalAnchorId": "elastic/logstash#14045",
+      "captureDirectory": "elastic__logstash__14045",
+      "legalSequenceCount": 252,
+      "lineageIdentitySha256": "013212fe7b912c7a60c0cad602c883f8ff6dbf649a10c032464d1fe74ba2f094",
+      "linearReviewSequence": {
+        "firstFixCommit": "4cac662ef2006c793db0680e8229b7391dc1c11c",
+        "firstReview": {
+          "author": "mashhurs",
+          "body": "Thanks @karenzone ,\nAll your suggestions LGTM!",
+          "bodyBytes": 46,
+          "bodySha256": "77a3a7050d383cd0db2c7edddb41276a3799311881e36ed0eb1fa3024fa13a43",
+          "createdAt": "2022-04-30T06:08:08Z",
+          "id": "PRRC_kwDOABCjB84zZctD",
+          "reviewedCommit": "fbd3ca5ba433f58d81f65f093a4133b2f78e48fa",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOABCjB84g1zmQ"
+        },
+        "initialCommit": "fbd3ca5ba433f58d81f65f093a4133b2f78e48fa",
+        "secondFixCommit": "a5300a4b67383830133f2bc787e350122058b6c2",
+        "secondReview": {
+          "author": "jsvd",
+          "body": "```suggestion\n           Setting::Numeric.new(\"password_policy.length.minimum\", 8),\n```",
+          "bodyBytes": 87,
+          "bodySha256": "b5858641db05a7df5cdd0799f6c755e60e1be704ef1f2739cfe691aabee5fb91",
+          "createdAt": "2022-05-02T09:39:13Z",
+          "id": "PRRC_kwDOABCjB84za_8Z",
+          "reviewedCommit": "65d6cdbe92f331432d9cab1ec8e6a141dd4cd6f0",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOABCjB84g5Glu"
+        }
+      },
+      "pretargetEventCount": 22,
+      "rankSha256": "21645ab36c15df5720f204d275dbff840920c6f4c3ea4df07923d6701e1d8d27",
+      "repository": "elastic/logstash",
+      "requestedRepository": "elastic/logstash",
+      "source": {
+        "path": "java/elastic__logstash_dataset.jsonl",
+        "rowIndex": 29,
+        "rowSha256": "fefdea8b4274db4a703c674ffbcefc81b546c8c93717e43c7c5961fc49085c0b"
+      },
+      "pretargetRank": 9,
+      "repositoryRank": 1,
+      "restCaptureOrder": 6
+    },
+    {
+      "anchorId": "cli/cli#4467",
+      "canonicalAnchorId": "cli/cli#4467",
+      "captureDirectory": "cli__cli__4467",
+      "legalSequenceCount": 14,
+      "lineageIdentitySha256": "07f3ccb4eefe83df4599c4b0674bb211c25060a382fd1c199940f4a7161a0821",
+      "linearReviewSequence": {
+        "firstFixCommit": "06ab2261f89be7c41af23666ac54e97d116616c5",
+        "firstReview": {
+          "author": "mislav",
+          "body": "With this, we now offer two very similar options to the user:\n```\n? Release notes  [Use arrows to move, type to filter]\n> Write my own\n  Write using generated notes as template\n  Write using git tag message as template\n  Leave blank\n```\nBoth \"generated notes\" and \"git tag message\" are generated using git history; the difference is that one is generated on the platform, while the other one is generated locally. Since the platform implementation is more advanced and configurable, I would only offer that one and not the \"git tag message\" option.",
+          "bodyBytes": 548,
+          "bodySha256": "8180b6d64d2c6aeb494ae4064c1b8ee03283c0ea9a7b2bc4ce7f65ba8f9923e9",
+          "createdAt": "2021-12-07T18:59:33Z",
+          "id": "PRRC_kwDODKw3uc4tjgFw",
+          "reviewedCommit": "6607e7c25e153678662c4870dd2bb7f9b756e4fa",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4dGtOi"
+        },
+        "initialCommit": "6607e7c25e153678662c4870dd2bb7f9b756e4fa",
+        "secondFixCommit": "6504762451628ec82f8321b9fed76d1d3286359d",
+        "secondReview": {
+          "author": "samcoe",
+          "body": "Yeah 🤦",
+          "bodyBytes": 9,
+          "bodySha256": "e40ea6540008d15c9dc8543db45c8673fe7e50c3efd7396eab86e188cce7b62f",
+          "createdAt": "2021-12-08T11:09:54Z",
+          "id": "PRRC_kwDODKw3uc4tlXFb",
+          "reviewedCommit": "06ab2261f89be7c41af23666ac54e97d116616c5",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4dH5Os"
+        }
+      },
+      "pretargetEventCount": 23,
+      "rankSha256": "21933c87b496c250e228c977d3081e6635409fc14a5517d43cccce76cff2741a",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 240,
+        "rowSha256": "5eda58fbba9cd120792d271fde28b2e44382abad06513f2b89803326503ec852"
+      },
+      "pretargetRank": 10,
+      "repositoryRank": 4,
+      "restCaptureOrder": 24
+    },
+    {
+      "anchorId": "grpc/grpc-go#3361",
+      "canonicalAnchorId": "grpc/grpc-go#3361",
+      "captureDirectory": "grpc__grpc-go__3361",
+      "legalSequenceCount": 9,
+      "lineageIdentitySha256": "29ffd2a6c3afb501a40c736b5f78d0aaecb5858b416feba96089c25874f61d0f",
+      "linearReviewSequence": {
+        "firstFixCommit": "15858363d211ed0bcbd19d63fabd2089aae53cde",
+        "firstReview": {
+          "author": "dfawley",
+          "body": "I'm not sure I like the string manipulation when there is only one non-nil error (the norm).  How about this?",
+          "bodyBytes": 109,
+          "bodySha256": "0d051f24eed72fdb2d13e83ae717507a0f0f2bb4421c6356f9b5cf4ce3788a7f",
+          "createdAt": "2020-02-05T16:01:23Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDM3NTM0NzM5MQ==",
+          "reviewedCommit": "1dc4888c5d628ef4b569633ca9f2a4ee58b2f08d",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMjMxOTcyMzc5OnYy"
+        },
+        "initialCommit": "1dc4888c5d628ef4b569633ca9f2a4ee58b2f08d",
+        "secondFixCommit": "0d766b7ef05a4da9753e88339e0a38af1ecdf5e9",
+        "secondReview": {
+          "author": "menghanl",
+          "body": "Also move concatenating`\"last resolver error:\"` here?",
+          "bodyBytes": 53,
+          "bodySha256": "3636c24f13bdeaee47f8b275575c8083d4420527c26b3ba429d662745ff20ef1",
+          "createdAt": "2020-02-05T18:12:08Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDM3NTQyMTkxOA==",
+          "reviewedCommit": "15858363d211ed0bcbd19d63fabd2089aae53cde",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMjMyMTg2OTg0OnYy"
+        }
+      },
+      "pretargetEventCount": 7,
+      "rankSha256": "221f9101a5482965f920b1a5546848b068ca1738aa4a31b6bc06d6c57228df57",
+      "repository": "grpc/grpc-go",
+      "requestedRepository": "grpc/grpc-go",
+      "source": {
+        "path": "go/grpc__grpc-go_dataset.jsonl",
+        "rowIndex": 2,
+        "rowSha256": "cbc37e00fff881c5ce7349793084aeb1dee7104362c075d1c5ced53100169fdf"
+      },
+      "pretargetRank": 11,
+      "repositoryRank": 1,
+      "restCaptureOrder": 7
+    },
+    {
+      "anchorId": "mui/material-ui#29988",
+      "canonicalAnchorId": "mui/material-ui#29988",
+      "captureDirectory": "mui__material-ui__29988",
+      "legalSequenceCount": 20,
+      "lineageIdentitySha256": "10e348893e35d4983f1253d983d61a6e4585a7b77041afc7f75d9e8628320f88",
+      "linearReviewSequence": {
+        "firstFixCommit": "31d8d6907a9a26d6615b835831d94a7f0f922fe1",
+        "firstReview": {
+          "author": "siriwatknp",
+          "body": "```suggestion\n    it('does not forward invalid props to DOM', () => {\n```",
+          "bodyBytes": 73,
+          "bodySha256": "3f2a3cf05bc2be09f61b74e2ded13d03caeb18a7de7d7dd9b8d74503d22d8b32",
+          "createdAt": "2021-12-01T08:12:35Z",
+          "id": "PRRC_kwDOAWA4lM4tS9Bs",
+          "reviewedCommit": "940b0713ca44b989cb0154d4c6d6efadf6dc99ad",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOAWA4lM4c79AE"
+        },
+        "initialCommit": "940b0713ca44b989cb0154d4c6d6efadf6dc99ad",
+        "secondFixCommit": "638cef9195200de814bb84bd92f29331eee4d889",
+        "secondReview": {
+          "author": "mnajdova",
+          "body": "We should document that this works only if developers don't use the MUI options (or at least the slot). Otherwise, this would behave differently:\n\n```\nstyled('a', { slot: 'Root' })``;\nstyled('a')``\n```\n\nBtw, was there a reason for this?",
+          "bodyBytes": 236,
+          "bodySha256": "1643e979281a5d633486dc8780d2b001c76d0187e9e9ea30e1b84308adbda603",
+          "createdAt": "2021-12-01T11:33:34Z",
+          "id": "PRRC_kwDOAWA4lM4tTjMG",
+          "reviewedCommit": "31d8d6907a9a26d6615b835831d94a7f0f922fe1",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOAWA4lM4c8VL-"
+        }
+      },
+      "pretargetEventCount": 4,
+      "rankSha256": "22e5242b9011062a0e9d0176a4df4ebead0e2517cb9ac1f6dc849c41297cefea",
+      "repository": "mui/material-ui",
+      "requestedRepository": "mui/material-ui",
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 119,
+        "rowSha256": "904d237f06a93686c683e98b6edaaa849f211b9b21e63733fbc0f2d7b57e082c"
+      },
+      "pretargetRank": 12,
+      "repositoryRank": 2,
+      "restCaptureOrder": 16
+    },
+    {
+      "anchorId": "cli/cli#8773",
+      "canonicalAnchorId": "cli/cli#8773",
+      "captureDirectory": "cli__cli__8773",
+      "legalSequenceCount": 2,
+      "lineageIdentitySha256": "87f4d6b5229272bc7323916eac4d86c758167368bb5a2eaec72ca3ddcdb9eefc",
+      "linearReviewSequence": {
+        "firstFixCommit": "3c90a3f0535e8b23984a189495654d2d79d9c1e3",
+        "firstReview": {
+          "author": "williammartin",
+          "body": "Thanks for this, it generally looks really good. A couple of things jump out to me:\n\nOne downside of this approach is that if I provide the owner and project ID as flags, we make 2 API round trips in order to fetch the user/org info and then the project itself. Previously, it looks like `buildURL` only required 1 request.\n\nOne upside of this approach is that handles non-github.com URLs automatically because we're not trying to [build them ourselves](https://github.com/cli/cli/blob/590208f5d6760b427f7120dcc7c14a6310947096/pkg/cmd/project/view/view.go#L115).\n\nI feel like the upside strongly outweighs the downside here, and I don't think it's worth the maintenance burden of supporting a shortcircuit url building step if the flags are provided, so yes, please remove the `buildURL` function.",
+          "bodyBytes": 797,
+          "bodySha256": "ab7a4c1ae0650f408360df87409e8b813034b06c2045e6e027cf94d7f5d6bada",
+          "createdAt": "2024-03-01T13:43:13Z",
+          "id": "PRR_kwDODKw3uc5x6skR",
+          "reviewedCommit": "313b482e7a24beaeb82a77ad31e3996a5f6228e4",
+          "source": "whole-review",
+          "threadId": null
+        },
+        "initialCommit": "313b482e7a24beaeb82a77ad31e3996a5f6228e4",
+        "secondFixCommit": "4f98933cfc56405173e21e762a44c3e013f89b7e",
+        "secondReview": {
+          "author": "williammartin",
+          "body": "```suggestion\n\t\treturn config.URLOpener(project.URL)\n```",
+          "bodyBytes": 56,
+          "bodySha256": "b75d8aa24446f89de4727e31cf54267ba5a0325bfe9d52312c96ac2dea62c0d8",
+          "createdAt": "2024-03-01T16:24:22Z",
+          "id": "PRRC_kwDODKw3uc5Z9Pi_",
+          "reviewedCommit": "3c90a3f0535e8b23984a189495654d2d79d9c1e3",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc45eDuo"
+        }
+      },
+      "pretargetEventCount": 3,
+      "rankSha256": "23dc801dbb1750511ef5171dd4d2453a91c8e7fc0bd70e7bfb4604a8d8445ccf",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 64,
+        "rowSha256": "1b6ceccd239a1534ed24650b7468d6317a39b1894625b3d9639f6c013ac8258f"
+      },
+      "pretargetRank": 13,
+      "repositoryRank": 5,
+      "restCaptureOrder": 27
+    },
+    {
+      "anchorId": "cli/cli#2997",
+      "canonicalAnchorId": "cli/cli#2997",
+      "captureDirectory": "cli__cli__2997",
+      "legalSequenceCount": 896,
+      "lineageIdentitySha256": "004e03cda77ab537551d7d99abb8bf7bf225f5aceb788dd6e43b9e5ef229cdeb",
+      "linearReviewSequence": {
+        "firstFixCommit": "faffc4de95e31e8e59951956ad967f82688ab419",
+        "firstReview": {
+          "author": "vilmibm",
+          "body": "this conditional is a no-op. should this be an early return? I'm not following why, if this failed, the later glob would help.",
+          "bodyBytes": 126,
+          "bodySha256": "f50b2f4aaea37c319a74f5d51bdfc755abfa38be7aec3d9830d7f002901e92a7",
+          "createdAt": "2021-02-18T22:02:45Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDU3ODc3NTk0MQ==",
+          "reviewedCommit": "882bd1adb1fadc1c99e67d56f71d9204b19e25cc",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMzY0OTk3MTczOnYy"
+        },
+        "initialCommit": "882bd1adb1fadc1c99e67d56f71d9204b19e25cc",
+        "secondFixCommit": "3e5d5a23c083848b510a7ad6c0b6056140031680",
+        "secondReview": {
+          "author": "vilmibm",
+          "body": "```suggestion\n```",
+          "bodyBytes": 17,
+          "bodySha256": "f39cc7ff9c1182ca6a08006ac958286e05aa607fe1e17dc5aa88d1af2ac0f9e0",
+          "createdAt": "2021-02-23T18:09:41Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDU4MTI3MDQyOA==",
+          "reviewedCommit": "a60a6d854b1c2f35eaf1ad032195f4efc7a70427",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMzY2Njc1MjQ3OnYy"
+        }
+      },
+      "pretargetEventCount": 12,
+      "rankSha256": "265dd72d44a77fa839f762d6f37f8e9736c57a71584037e104a9851455362e67",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 292,
+        "rowSha256": "05620b42f14a4bb4bce64f7fd58f65da8686f608205573d63d349b2a4ef10ea0"
+      },
+      "pretargetRank": 14,
+      "repositoryRank": 6,
+      "restCaptureOrder": 30
+    },
+    {
+      "anchorId": "sveltejs/svelte#13461",
+      "canonicalAnchorId": "sveltejs/svelte#13461",
+      "captureDirectory": "sveltejs__svelte__13461",
+      "legalSequenceCount": 240,
+      "lineageIdentitySha256": "0086d2392540efeebcde791688fe1f96b034b5e0ffd97d9b0f1707bed1652a20",
+      "linearReviewSequence": {
+        "firstFixCommit": "ef4b3172ce33b5e7f81fc371378db3eaca886c30",
+        "firstReview": {
+          "author": "paoloricciuti",
+          "body": "Yeah i usually go with indices just because this just stores a reference to a number instead of an object but that's silly in this case.",
+          "bodyBytes": 136,
+          "bodySha256": "1f6da38882579ac735924bbed93d07731d569bc10d86feafde6ad2a4b56d54ec",
+          "createdAt": "2024-10-01T11:11:54Z",
+          "id": "PRRC_kwDOBG2gSc5qP_5C",
+          "reviewedCommit": "6695a5eec99adb9fe90469aead69dae7d3fb6fcf",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOBG2gSc5D7PEQ"
+        },
+        "initialCommit": "6695a5eec99adb9fe90469aead69dae7d3fb6fcf",
+        "secondFixCommit": "c7d6d3281971ad4e6ad8040661b4f0d3239bb427",
+        "secondReview": {
+          "author": "dummdidumm",
+          "body": "I also saw things like\n```js\n\t$: should_also_be_state = 42;\n```\nwithout a preceeding `let` with the same name in the wild. Would be good to handle that aswell. and transform that into `let should_also_be_state = $state(42)`",
+          "bodyBytes": 223,
+          "bodySha256": "e657143a2427db44524cc390a58f3d4ed867c28ad85bf1eaff637754cab5bf9a",
+          "createdAt": "2024-10-04T08:01:37Z",
+          "id": "PRRC_kwDOBG2gSc5qiGQ3",
+          "reviewedCommit": "12697d17143fece6c3f1e834b230b8083c547b81",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOBG2gSc5EG3Ci"
+        }
+      },
+      "pretargetEventCount": 12,
+      "rankSha256": "2cd2cfeac973a863afa7383e3b2c0f18734c4b230fcbeafc64853988be39cd6f",
+      "repository": "sveltejs/svelte",
+      "requestedRepository": "sveltejs/svelte",
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 80,
+        "rowSha256": "9fd2b894b88660c56987f9238df795b13191e2041233e5730bc682cdac93d24e"
+      },
+      "pretargetRank": 15,
+      "repositoryRank": 3,
+      "restCaptureOrder": 21
+    },
+    {
+      "anchorId": "cli/cli#4410",
+      "canonicalAnchorId": "cli/cli#4410",
+      "captureDirectory": "cli__cli__4410",
+      "legalSequenceCount": 282,
+      "lineageIdentitySha256": "00ce610f3e4229347dc3d40e0ba4301e33b18b2b0acfff64c998c8b0f11b64cd",
+      "linearReviewSequence": {
+        "firstFixCommit": "766c3adedc0ed683a4ca827fbac2645b5712d38d",
+        "firstReview": {
+          "author": "mislav",
+          "body": "If no test scenario needs to specify the `opts` field, then this field doesn't need to be declared here.\n\nAlternatively, you could deal away with the `repoName` field and have each scenario specify:\n```\nopts: ArchiveOptions{RepoArg: \"owner/myrepo\"}\n```",
+          "bodyBytes": 252,
+          "bodySha256": "599a5b132dc8132f697fbb8718e369a88bd7fb100dfa11a1682d993f00686671",
+          "createdAt": "2021-10-06T17:28:08Z",
+          "id": "PRRC_kwDODKw3uc4rICQu",
+          "reviewedCommit": "e3a770dc7acebd5be946a127c1fcf0d35586b57f",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4bhDFG"
+        },
+        "initialCommit": "e3a770dc7acebd5be946a127c1fcf0d35586b57f",
+        "secondFixCommit": "e81ab96534ffc01d68beedf7377d5af7ba3d41a7",
+        "secondReview": {
+          "author": "mislav",
+          "body": "Everything great except one important thing!",
+          "bodyBytes": 44,
+          "bodySha256": "58199d7c4995d0005cf24d3549280acd15fb8a7a7c65393ce353752934d0fc6e",
+          "createdAt": "2021-10-11T17:00:10Z",
+          "id": "PRR_kwDODKw3uc4uSHgk",
+          "reviewedCommit": "766c3adedc0ed683a4ca827fbac2645b5712d38d",
+          "source": "whole-review",
+          "threadId": null
+        }
+      },
+      "pretargetEventCount": 10,
+      "rankSha256": "2d587fa2f85127a90b6d22b71b1dd3aeaba413710293586cf53403b73f404a34",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 246,
+        "rowSha256": "0cb438c12bce642b8b524f99cd5367d308bdd7d9381a10d41239263b31e68b4e"
+      },
+      "pretargetRank": 16,
+      "repositoryRank": 7,
+      "restCaptureOrder": 32
+    },
+    {
+      "anchorId": "cli/cli#8595",
+      "canonicalAnchorId": "cli/cli#8595",
+      "captureDirectory": "cli__cli__8595",
+      "legalSequenceCount": 3222,
+      "lineageIdentitySha256": "0016a0d4e392b8effce1e927cdd772cc44830f4b11760b290fa439f32084a64f",
+      "linearReviewSequence": {
+        "firstFixCommit": "b57f4028c324c696610910798a8e6239f281083a",
+        "firstReview": {
+          "author": "andyfeller",
+          "body": "Bringing this inline with the suggestion above:\n\n```suggestion\n\t\t\tif config.opts.repo != \"\" && config.opts.team != \"\" {\n\t\t\t\treturn fmt.Errorf(\"specify only one of `--repo` or `--team`\")\n\t\t\t} else if config.opts.repo == \"\" && config.opts.team == \"\" {\n\t\t\t\treturn fmt.Errorf(\"specify either `--repo` or `--team`\")\n\t\t\t}\n```",
+          "bodyBytes": 319,
+          "bodySha256": "3d2fbcda7dc5b44fe7196cb4cc2c9a947ea2bdb40276300002495e5ae3df4e83",
+          "createdAt": "2024-01-23T20:42:36Z",
+          "id": "PRRC_kwDODKw3uc5XQl8V",
+          "reviewedCommit": "c9184d2ba26d2b9f1a224ea05f1f7021f402eded",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc43v33W"
+        },
+        "initialCommit": "c9184d2ba26d2b9f1a224ea05f1f7021f402eded",
+        "secondFixCommit": "9225102a673c3127c806ef7db5bb2c717d9a89c3",
+        "secondReview": {
+          "author": "williammartin",
+          "body": "I'm not sure. I think if we were to print something it should be like `\"Linked X to Y\" and \"Unlinked X from Y\". What do you think?",
+          "bodyBytes": 130,
+          "bodySha256": "1943140943b2fa977d534898c529ee716b941e03819552164a8da2e8bbec03e1",
+          "createdAt": "2024-01-25T14:45:27Z",
+          "id": "PRRC_kwDODKw3uc5XaLth",
+          "reviewedCommit": "b57f4028c324c696610910798a8e6239f281083a",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc43ygqj"
+        }
+      },
+      "pretargetEventCount": 27,
+      "rankSha256": "313aa0cf0c05c8b38aa2f72b549a809dc1c4e3d0fa7a6cec83c5640e5f94e2a0",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 67,
+        "rowSha256": "acb519c508c50df76f4277bdf48341e6129a9e933d8ffdaa5122e71341a20f02"
+      },
+      "pretargetRank": 17,
+      "repositoryRank": 8,
+      "restCaptureOrder": 34
+    },
+    {
+      "anchorId": "cli/cli#9934",
+      "canonicalAnchorId": "cli/cli#9934",
+      "captureDirectory": "cli__cli__9934",
+      "legalSequenceCount": 19156,
+      "lineageIdentitySha256": "0001941e927bac63fdb7cc3148a76cc29b98291443c6a032f6eec3e9f484ba7d",
+      "linearReviewSequence": {
+        "firstFixCommit": "bfc63a14cc2cc0da8665387e65f2b0c6b55fe803",
+        "firstReview": {
+          "author": "andyfeller",
+          "body": "I agree this is a little too obtuse as-is.\n\nIn retrospect after our paired review, I got to thinking whether the duplicate logic between the 2 functions was valuable.  I began thinking this specific criteria should be moved out of to the gh update logic in `cmd.go` so it could be reused:\n\n```go\nfunc checkForUpdate(ctx context.Context, f *cmdutil.Factory, currentVersion string) (*update.ReleaseInfo, error) {\n\tif updaterEnabled == \"\" || !update.ShouldCheckForUpdate() {\n\t\treturn nil, nil\n\t}\n\thttpClient, err := f.HttpClient()\n\tif err != nil {\n\t\treturn nil, err\n\t}\n\trepo := updaterEnabled\n\tstateFilePath := filepath.Join(config.StateDir(), \"state.yml\")\n\treturn update.CheckForUpdate(ctx, httpClient, stateFilePath, repo, currentVersion)\n}\n```",
+          "bodyBytes": 743,
+          "bodySha256": "5204463805dbeba6d10b26a15e35112fda7866c8dd844511d5da0763b42e6466",
+          "createdAt": "2024-12-14T03:30:30Z",
+          "id": "PRRC_kwDODKw3uc5wVyDQ",
+          "reviewedCommit": "c8501d82f25b59762ddddb99885540ff71200749",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc5H3V-g"
+        },
+        "initialCommit": "c8501d82f25b59762ddddb99885540ff71200749",
+        "secondFixCommit": "3ada5af872cdd4916649d2d33f0090951344d591",
+        "secondReview": {
+          "author": "BagToad",
+          "body": "I like it!",
+          "bodyBytes": 10,
+          "bodySha256": "15f2b8392c91775c88f7a14a15101ea75b22dc19ca209f08751aa5bb28b88e90",
+          "createdAt": "2025-01-07T21:30:39Z",
+          "id": "PRRC_kwDODKw3uc5xnDuc",
+          "reviewedCommit": "edc0351c85c429af8ce404e7df504fafe076e9e9",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc5H4YBr"
+        }
+      },
+      "pretargetEventCount": 46,
+      "rankSha256": "31575f71201fdd8ae26cf0ae7e9aabef4efdc5737d6e55ce303ef475641ad6e8",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 22,
+        "rowSha256": "201eb2fada5f96af00b587c8a71edbfd386d67edfd6febd5765d7c95c5875490"
+      },
+      "pretargetRank": 18,
+      "repositoryRank": 9,
+      "restCaptureOrder": 36
+    },
+    {
+      "anchorId": "mui/material-ui#35178",
+      "canonicalAnchorId": "mui/material-ui#35178",
+      "captureDirectory": "mui__material-ui__35178",
+      "legalSequenceCount": 68,
+      "lineageIdentitySha256": "06a029968781ba7009223023b2cde7b200922eb7230cc924b03673dd022cf0ce",
+      "linearReviewSequence": {
+        "firstFixCommit": "81e757f63171f69c59c9951ec5dc4d77f4b95316",
+        "firstReview": {
+          "author": "mnajdova",
+          "body": "Maybe show a warning message? At least so that people know that they won't be able to depend on CSS vars for some CSS vals.",
+          "bodyBytes": 123,
+          "bodySha256": "0ca6f3ce3301433cb73fe6051f57012c9206c106b0b8f34b7a71f4a281bc1755",
+          "createdAt": "2022-11-18T13:59:56Z",
+          "id": "PRRC_kwDOAWA4lM49LqSp",
+          "reviewedCommit": "75bdc2c5905a5430dd0ef64f390019e07a626d2e",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOAWA4lM4nJuLi"
+        },
+        "initialCommit": "75bdc2c5905a5430dd0ef64f390019e07a626d2e",
+        "secondFixCommit": "73c11f3291191cb4493f2b04d5b9c23e4585b9b3",
+        "secondReview": {
+          "author": "siriwatknp",
+          "body": "Something like this?\n\n```js\n// colorManipulator.js\nexport const colorChannel = ...;\nexport const safeColorChannel = (color, warning) => {\n  try {\n    return colorChannel(color);\n  } catch (error) {\n    if (warning && process.env.NODE_ENV !== 'production') {\n      console.warn(warning);\n    }\n    return undefined;\n  }\n}\n\n// experimental_extendTheme.js\nsetColor(\n  palette[color],\n  'activeChannel',\n  colorChannelSafe(colors.active, 'MUI: The value of \"palette.action.active\" should be one of these formats: #nnn, #nnnnnn, rgb(), rgba(), hsl(), hsla(), color().'),\n);\n```",
+          "bodyBytes": 572,
+          "bodySha256": "24fe2b015c378fd3a31311a1e761824e6ee62b53a76f870d7d468201eb58a864",
+          "createdAt": "2022-11-23T03:54:10Z",
+          "id": "PRRC_kwDOAWA4lM49ZI6S",
+          "reviewedCommit": "81e757f63171f69c59c9951ec5dc4d77f4b95316",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOAWA4lM4nQg8C"
+        }
+      },
+      "pretargetEventCount": 8,
+      "rankSha256": "31f6ba8aa71ed58e92dba6f09a2446221da4687f6bbcadc7c9a116ca4f7bfa15",
+      "repository": "mui/material-ui",
+      "requestedRepository": "mui/material-ui",
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 56,
+        "rowSha256": "5669478ddc4c21a84ada87c9cf5a4ce619bfd850b818669b7e58b0d3f6b8c10b"
+      },
+      "pretargetRank": 19,
+      "repositoryRank": 3,
+      "restCaptureOrder": 22
+    },
+    {
+      "anchorId": "cli/cli#9452",
+      "canonicalAnchorId": "cli/cli#9452",
+      "captureDirectory": "cli__cli__9452",
+      "legalSequenceCount": 20,
+      "lineageIdentitySha256": "209b5f2371794e0dc5317147fc5cc085a5e97e54a90df3c825a86735f4530cef",
+      "linearReviewSequence": {
+        "firstFixCommit": "53e0c4abee027eb679be1eb83591ac10a10416de",
+        "firstReview": {
+          "author": "jtmcg",
+          "body": "I don't think this belongs here, I think it belongs with the `gh pr checks` command only, as that's the only command that returns it. This falls into the following \"NOTE: Specific commands may have additional exit codes. Refer to the command's help for more information\" string",
+          "bodyBytes": 277,
+          "bodySha256": "55ab9afdcc06a8e40f45e44f60f5f9fb3e0d25885843dd05985e136ee600a94e",
+          "createdAt": "2024-08-15T17:29:06Z",
+          "id": "PRRC_kwDODKw3uc5mcjWH",
+          "reviewedCommit": "044bbe5950f4321f48e6707d474310c62f612d46",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc5BfAog"
+        },
+        "initialCommit": "044bbe5950f4321f48e6707d474310c62f612d46",
+        "secondFixCommit": "203a8e703b8bb9b1f23d4ca0331a4ebdcea4def1",
+        "secondReview": {
+          "author": "jtmcg",
+          "body": "Alright, thank you! These changes look good. \n\nThere's one thing left in the Acceptance Criteria on #9390: Add exit-codes section to man command generated by [internal/docs/man.go](https://github.com/cli/cli/blob/trunk/internal/docs/man.go). Once that's done I'll give you the ✅",
+          "bodyBytes": 280,
+          "bodySha256": "452d46e11eb1dd67ffb16ff7bcd138bf2d65b4beeb079cbb2cf33711405591e0",
+          "createdAt": "2024-08-16T15:38:37Z",
+          "id": "PRR_kwDODKw3uc6FsWQ0",
+          "reviewedCommit": "53e0c4abee027eb679be1eb83591ac10a10416de",
+          "source": "whole-review",
+          "threadId": null
+        }
+      },
+      "pretargetEventCount": 6,
+      "rankSha256": "325df7bf84485df989730d98cf8b90b1781dd7ef9fc9e06a03097004bb7cee2e",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 38,
+        "rowSha256": "2c00ed95cc2367a7fe21256fed4756aa795a496348fd7b7b250c64f0ac074066"
+      },
+      "pretargetRank": 20,
+      "repositoryRank": 10,
+      "restCaptureOrder": 37
+    },
+    {
+      "anchorId": "ponylang/ponyc#3650",
+      "canonicalAnchorId": "ponylang/ponyc#3650",
+      "captureDirectory": "ponylang__ponyc__3650",
+      "legalSequenceCount": 80,
+      "lineageIdentitySha256": "006a91baa3e9f3227c7fa15f8499bce59a31efc7ea2d499c04a8476cddc4593d",
+      "linearReviewSequence": {
+        "firstFixCommit": "7c84f1b816dd3523a217aca76e9a876a5120133b",
+        "firstReview": {
+          "author": "kapilash",
+          "body": "@jemc , this is one change needed in `generate_multi_dot_name`.  \nI believe this\n\n*  will do no harm to working pony code:  The new code was added in a place where it is throwing an assert. So no working code will get affected.\n\n*  is in sync with the rest of the method: if the parent ast node has null `data`,  we are supposed to return empty string. That is possible when we have expressions wrapped in braces.",
+          "bodyBytes": 413,
+          "bodySha256": "e23512a8d382addba2f1d63a9b710065b23ac98b360b76b62b5b8c186c7a97bc",
+          "createdAt": "2020-09-14T13:12:18Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDQ4NzkwMDYwNg==",
+          "reviewedCommit": "567df593f24a89af9ecdec7935003b36a3a98eba",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMzA1MjYwMTcwOnYy"
+        },
+        "initialCommit": "567df593f24a89af9ecdec7935003b36a3a98eba",
+        "secondFixCommit": "3fb6649efd08af67476c4998b769230b9403c3b1",
+        "secondReview": {
+          "author": "SeanTAllen",
+          "body": "```suggestion\nThe fix ensures:\n \n```",
+          "bodyBytes": 36,
+          "bodySha256": "dc29ba45cd13a980f397b15d99da3064df91aefe967873c520c05e11754491ed",
+          "createdAt": "2020-09-14T17:44:05Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDQ4ODExMjExOA==",
+          "reviewedCommit": "c08a8916c410d361fea0a1d1d1f1b86d809ac651",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMzA1Mzk1OTg0OnYy"
+        }
+      },
+      "pretargetEventCount": 10,
+      "rankSha256": "3791018ecca2b550040b969d771c98ece500856f2d752248cb164fa0ff255f7b",
+      "repository": "ponylang/ponyc",
+      "requestedRepository": "ponylang/ponyc",
+      "source": {
+        "path": "c/ponylang__ponyc_dataset.jsonl",
+        "rowIndex": 38,
+        "rowSha256": "24a8a788b1e1c7c23283b6c7d130fc3f39c1f196a22673be37efcca3d52e2ab0"
+      },
+      "pretargetRank": 21,
+      "repositoryRank": 1,
+      "restCaptureOrder": 8
+    },
+    {
+      "anchorId": "elastic/logstash#14027",
+      "canonicalAnchorId": "elastic/logstash#14027",
+      "captureDirectory": "elastic__logstash__14027",
+      "legalSequenceCount": 366,
+      "lineageIdentitySha256": "0087fde23b7c191ee057df05827d437b66094c2f236d85605d9fa0665888eab9",
+      "linearReviewSequence": {
+        "firstFixCommit": "19a75c6625fa53ab3740676ea420025b6ccaa844",
+        "firstReview": {
+          "author": "andsel",
+          "body": "For statuses `CLOSING` and `COMPLETED` I would agree but for `FAIL`, and this is the reason for this class to exists, is carry also the context (exception and position) when the error was thrown.",
+          "bodyBytes": 195,
+          "bodySha256": "239f51f2999089315a034ccef016a5bb6b843f74b4f03339a6a5a4e279f304c1",
+          "createdAt": "2022-04-29T14:14:40Z",
+          "id": "PRRC_kwDOABCjB84zXr1z",
+          "reviewedCommit": "2a0ab6befca3a87363f4aa229452b6b18762bf6a",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOABCjB84g0qCd"
+        },
+        "initialCommit": "2a0ab6befca3a87363f4aa229452b6b18762bf6a",
+        "secondFixCommit": "bdb3fc8e8784ce041f80f8e0cc4473dd27bbfa91",
+        "secondReview": {
+          "author": "kares",
+          "body": "`rescue java.lang.InterruptedException, IOError` is probably better, haven't looked deep enough and I thought you wanted to catch a bit more (as a precaution) -> on the other hand catching ruby errors (except the known `IOError`) seemed like too much given most of it can only come from the `decorate` invocation.\nthus ended up with `java.lang.Exception` :mechanic:",
+          "bodyBytes": 365,
+          "bodySha256": "1b4f201be2cf724f7a2004807cb9520679a989841159569dec2c6e3f198c575e",
+          "createdAt": "2022-05-02T14:56:49Z",
+          "id": "PRRC_kwDOABCjB84zbx2V",
+          "reviewedCommit": "19a75c6625fa53ab3740676ea420025b6ccaa844",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOABCjB84g5HEp"
+        }
+      },
+      "pretargetEventCount": 19,
+      "rankSha256": "3a6d341c762ce568ae289561f3755b112fb9eab33facbaa5bd1330eaf57dd65c",
+      "repository": "elastic/logstash",
+      "requestedRepository": "elastic/logstash",
+      "source": {
+        "path": "java/elastic__logstash_dataset.jsonl",
+        "rowIndex": 30,
+        "rowSha256": "b0cd13e9b49753178de13f5f6587541bf4497e5d0bbef2041bad66b68cbe7a20"
+      },
+      "pretargetRank": 22,
+      "repositoryRank": 2,
+      "restCaptureOrder": 17
+    },
+    {
+      "anchorId": "vuejs/core#10250",
+      "canonicalAnchorId": "vuejs/core#10250",
+      "captureDirectory": "vuejs__core__10250",
+      "legalSequenceCount": 15,
+      "lineageIdentitySha256": "04665eefb55be68b68bc0e873d00f79ad0db193b5afd217deb1a2b1c4744a8fe",
+      "linearReviewSequence": {
+        "firstFixCommit": "e559a341e1aabedb2f3628273dadc42d0a79b4fb",
+        "firstReview": {
+          "author": "edison1105",
+          "body": "I don't think this is a good idea to use updateTeleports to get cssVars. It is only used to apply cssVars inside Teleport.\nMaybe you can do something like this\n```js\ninstance.getCssVars=()=>getter(instance.proxy)\n```",
+          "bodyBytes": 216,
+          "bodySha256": "ba9995b81c4dc6ffae4b429def44051c75fce78c7f7e53a4da5e1479371720e5",
+          "createdAt": "2024-02-01T01:28:14Z",
+          "id": "PRRC_kwDOCCum185X1qBy",
+          "reviewedCommit": "01af548ebcbbf6ee89b329ca3da27a4bcbf4310f",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOCCum1844Hf2D"
+        },
+        "initialCommit": "01af548ebcbbf6ee89b329ca3da27a4bcbf4310f",
+        "secondFixCommit": "d4bb921214c87214d41c55652d033595dfac9569",
+        "secondReview": {
+          "author": "edison1105",
+          "body": "```suggestion\n  if (__DEV__) {\n```",
+          "bodyBytes": 34,
+          "bodySha256": "5108d48762fda08c3616f06ef4adebb97f6ca49304688f79ea2576555f08ed5a",
+          "createdAt": "2024-02-01T03:43:17Z",
+          "id": "PRRC_kwDOCCum185X18nb",
+          "reviewedCommit": "e559a341e1aabedb2f3628273dadc42d0a79b4fb",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOCCum1844HroA"
+        }
+      },
+      "pretargetEventCount": 4,
+      "rankSha256": "40b34fe97d08bc208a8b4b337da6b1e836627ffe4f5d41d7b5bde713fdbd4e25",
+      "repository": "vuejs/core",
+      "requestedRepository": "vuejs/core",
+      "source": {
+        "path": "ts/vuejs__core_dataset.jsonl",
+        "rowIndex": 25,
+        "rowSha256": "dfac89f8b76d563c4e38580d117a219c210ac9d23ee4f8e3c1a091f4eab60f3f"
+      },
+      "pretargetRank": 23,
+      "repositoryRank": 1,
+      "restCaptureOrder": 9
+    },
+    {
+      "anchorId": "mockito/mockito#3424",
+      "canonicalAnchorId": "mockito/mockito#3424",
+      "captureDirectory": "mockito__mockito__3424",
+      "legalSequenceCount": 77,
+      "lineageIdentitySha256": "02c8bd96b653cab23a4c3b2e0a257569c2dabef4b575876f1b6d8a1d58e1f280",
+      "linearReviewSequence": {
+        "firstFixCommit": "ece6c5544120a9b285e09bfee8ab1ae70fec8544",
+        "firstReview": {
+          "author": "TimvdLippe",
+          "body": "I don't think we should introduce a new API for the behavior here. The feature for `clearInlineMocks` isn't widely used, but we also don't promise the behavior of mocks after clearing of inline mocks. Therefore, I propose we integrate your improvement (good suggestion, I like it!) into `clearInlineMocks`.\n\nIn other words: we don't introduce a new API, but instead change the implementation of the existing `clearInlineMocks` and add corresponding tests. This does not pollute our API surface, while improving the usability of this specific API.",
+          "bodyBytes": 546,
+          "bodySha256": "5d816d348e67a14764e4178cd38778e82b48ba56955157898285f4bd18c523da",
+          "createdAt": "2024-08-25T10:44:15Z",
+          "id": "PRRC_kwDOAF62v85nImBW",
+          "reviewedCommit": "3f2a9011afaec9f86c16ab96f1189eac1501d8d6",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOAF62v85B7V7v"
+        },
+        "initialCommit": "3f2a9011afaec9f86c16ab96f1189eac1501d8d6",
+        "secondFixCommit": "0057ca0d36150f65fde9e1abc5a8c9946ddfb514",
+        "secondReview": {
+          "author": "dsaff",
+          "body": "Totally want to avoid the memory leak issues, which also affected us (which is why we're using clearAllMocks in the first place)\n\nIt looks like CyclicMockMethodArgumentMemoryLeakTest was [added](https://github.com/mockito/mockito/pull/1619) at the same time as clearAllMocks.  I confirmed that clearing the logic of clearAllMocks causes that test to fail with an OOM, and that the test still passes after this change; I believe that by replacing the mock records in the WeakHashMap, this change still allows all of the actual mock values to be GC'ed.\n\nDoes that match your memory?",
+          "bodyBytes": 580,
+          "bodySha256": "410854a91e914127c42df329e515c44ff191074535b2f5c1303cd539bd9a3572",
+          "createdAt": "2024-09-05T14:51:43Z",
+          "id": "PRRC_kwDOAF62v85oDUaB",
+          "reviewedCommit": "ece6c5544120a9b285e09bfee8ab1ae70fec8544",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOAF62v85Cb-u-"
+        }
+      },
+      "pretargetEventCount": 10,
+      "rankSha256": "4730fa288e87ee10f4812d180eb298b9bf17ef94c5332b282248fb4589641c25",
+      "repository": "mockito/mockito",
+      "requestedRepository": "mockito/mockito",
+      "source": {
+        "path": "java/mockito__mockito_dataset.jsonl",
+        "rowIndex": 1,
+        "rowSha256": "8d99ca44d3c2edc8509b1771cbda14e2a536027d2dcf89de62e3e0be4820a503"
+      },
+      "pretargetRank": 24,
+      "repositoryRank": 1,
+      "restCaptureOrder": 10
+    },
+    {
+      "anchorId": "cli/cli#9465",
+      "canonicalAnchorId": "cli/cli#9465",
+      "captureDirectory": "cli__cli__9465",
+      "legalSequenceCount": 88,
+      "lineageIdentitySha256": "004b7d9ca7995959aec49a03ee42c099df550f5d84493571454c1c6e2a7f45bb",
+      "linearReviewSequence": {
+        "firstFixCommit": "396c1aff0bfe74584cfd149b6bb4f3aec4a6ad61",
+        "firstReview": {
+          "author": "andyfeller",
+          "body": "This change makes sense after reviewing `interactiveRepoNameAndOwner` will return a non-empty string for owner if an organization:\n\nhttps://github.com/cli/cli/blob/74b9724c02876b024d03f4c26680ed0ed79860ac/pkg/cmd/repo/create/create.go#L903-L908\n\nOutside the scope of this issue, there are some types of organizations that cannot create `public` repositories like [Enterprise Managed Users](https://docs.github.com/en/enterprise-cloud@latest/admin/managing-iam/understanding-iam-for-enterprises/about-enterprise-managed-users); only noting a similar use case which would require inspection of the selected owner to detect.\n\n> Managed user accounts cannot create public content or collaborate outside your enterprise. See \"[Abilities and restrictions of managed user accounts](https://docs.github.com/en/enterprise-cloud@latest/admin/identity-and-access-management/understanding-iam-for-enterprises/abilities-and-restrictions-of-managed-user-accounts).\"",
+          "bodyBytes": 951,
+          "bodySha256": "b60a9c8acb4cb66c19001004843882fe728b836609b1044f7d528532ab1189c1",
+          "createdAt": "2024-08-16T11:28:01Z",
+          "id": "PRRC_kwDODKw3uc5mgNh8",
+          "reviewedCommit": "74b9724c02876b024d03f4c26680ed0ed79860ac",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc5BhZO3"
+        },
+        "initialCommit": "74b9724c02876b024d03f4c26680ed0ed79860ac",
+        "secondFixCommit": "baae645d5ace24ae951a250e4c4d6cc0661b3b11",
+        "secondReview": {
+          "author": "jtmcg",
+          "body": "Ah, gotcha. Yeah, your understanding is correct, but I'll add one piece that I think will help solidify this\n\n> Tests that Register stubs are ensuring that specific HTTP requests are being made for REST or GraphQL APIs when the test calls Verify after being deferred. It in turn iterates over all the stubs registered, finds whether any stubs have not been matched, and errors appropriately.\n\nWhen a match is found (and before anything errors), it also runs the [provided callback, called `Responder`](https://github.com/cli/cli/blob/c81ccab4b8bb1ef1c774f4ba9851e9dcb11fa5e7/pkg/httpmock/registry.go#L77), on the stub. I've leveraged this so that the callback is hardcoded for the `Exclude` method so that when the match is found the callback that is invoked results in a failing test. That way I can avoid relying on errors to communicate that an excluded endpoint was called. This is important because testing for errors is a common pattern throughout the code (see [wantErr](https://github.com/cli/cli/blob/c81ccab4b8bb1ef1c774f4ba9851e9dcb11fa5e7/pkg/cmd/repo/create/create_test.go#L858-L862))",
+          "bodyBytes": 1097,
+          "bodySha256": "136adccf590b020d987941e19fe29209e76c36f8d7b2b5937aa365bdc274db44",
+          "createdAt": "2024-08-21T23:06:09Z",
+          "id": "PRRC_kwDODKw3uc5m39sD",
+          "reviewedCommit": "95b83872156a7dd2f16cd37ad7b29de2871a2d85",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc5BqMpt"
+        }
+      },
+      "pretargetEventCount": 11,
+      "rankSha256": "506159ad684f8cc8007e5b12f2f0b1e65a135470b3041e56e6d2046ad05fb14c",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 37,
+        "rowSha256": "d39daec50e19d6ccc97316c076e1e5d5bb6e53d5e9ffa048f7b812ae613efcfc"
+      },
+      "pretargetRank": 25,
+      "repositoryRank": 11,
+      "restCaptureOrder": 38
+    },
+    {
+      "anchorId": "cli/cli#992",
+      "canonicalAnchorId": "cli/cli#992",
+      "captureDirectory": "cli__cli__992",
+      "legalSequenceCount": 10,
+      "lineageIdentitySha256": "2b4174ba6bcd6efd7ef679fd8bc167f50dc1ed1ef4ddb4361484177dd2a74928",
+      "linearReviewSequence": {
+        "firstFixCommit": "f95b8916f33d8c1ba860ad33be9acd0adbc5af6a",
+        "firstReview": {
+          "author": "mislav",
+          "body": "Let's avoid renaming variables unless there's a strong reason to. It makes the overall PR diff harder to review for us.",
+          "bodyBytes": 119,
+          "bodySha256": "50ba018adb996e9083929a635fffc3709893553a98222d6dc08a5b159e3ca738",
+          "createdAt": "2020-05-25T13:03:55Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDQyOTkyMzgyNA==",
+          "reviewedCommit": "5fc722fbb802064f4bf4be98abaac630fcb681d4",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMjY3NzgyNzU1OnYy"
+        },
+        "initialCommit": "5fc722fbb802064f4bf4be98abaac630fcb681d4",
+        "secondFixCommit": "e910c039f0b619729d77c57ceb5b64da85d0ec3a",
+        "secondReview": {
+          "author": "AliabbasMerchant",
+          "body": "The query parameters are sorted by key by the `Encode` function",
+          "bodyBytes": 63,
+          "bodySha256": "9e8c46148a2376758d881b86d8e7b2971b9fe8243c24a6bc106ac6042ca5b9fd",
+          "createdAt": "2020-05-26T02:19:23Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDQzMDEyNDMyMg==",
+          "reviewedCommit": "f95b8916f33d8c1ba860ad33be9acd0adbc5af6a",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMjY3OTEzNjQ0OnYy"
+        }
+      },
+      "pretargetEventCount": 6,
+      "rankSha256": "575daf5de0ed3230e343670197b3d14e3a1c269622dd38582045160d1c2197c9",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 360,
+        "rowSha256": "9b4209f0cda99edd9932f6e0bb1fe888ee79e11bf1cf4ae4904489baf6450696"
+      },
+      "pretargetRank": 26,
+      "repositoryRank": 12,
+      "restCaptureOrder": 39
+    },
+    {
+      "anchorId": "mui/material-ui#33312",
+      "canonicalAnchorId": "mui/material-ui#33312",
+      "captureDirectory": "mui__material-ui__33312",
+      "legalSequenceCount": 29,
+      "lineageIdentitySha256": "0f1fcae6c15355c194612cda0da8862e826df1defc25b4b92ff8823341caa214",
+      "linearReviewSequence": {
+        "firstFixCommit": "abdfe7bb260823c546d83ece98314a6234069dd7",
+        "firstReview": {
+          "author": "michaldudak",
+          "body": "I'd replace \"Popper\" (as it's implementation-specific) with \"listbox\" here.\n```suggestion\n  /** State class applied to the root element if the listbox is displayed */\n```",
+          "bodyBytes": 170,
+          "bodySha256": "7236f862b458e9caf77171ebcc2c91344905363baaef0eb22b44dd972e2e2159",
+          "createdAt": "2022-07-01T11:22:42Z",
+          "id": "PRRC_kwDOAWA4lM42Whx7",
+          "reviewedCommit": "67712fb74c27da432d69ce59744c0ffc455843ef",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOAWA4lM4ixcAJ"
+        },
+        "initialCommit": "67712fb74c27da432d69ce59744c0ffc455843ef",
+        "secondFixCommit": "33d584ec7df96a7cfd006947ce5b3e9c70c99d7e",
+        "secondReview": {
+          "author": "mnajdova",
+          "body": "```suggestion\n      \"description\": \"State class applied to the root element if the options list is displayed.\"\n```",
+          "bodyBytes": 114,
+          "bodySha256": "8d8d146f1307249855e873976f1835fc43a5652fab0237dbf1d30ed8316f0144",
+          "createdAt": "2023-02-23T07:38:54Z",
+          "id": "PRRC_kwDOAWA4lM5CenBF",
+          "reviewedCommit": "abdfe7bb260823c546d83ece98314a6234069dd7",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOAWA4lM4qiDzT"
+        }
+      },
+      "pretargetEventCount": 4,
+      "rankSha256": "64c9b5b3f799a48cd73a65a64e0a3c6cf53ddda0439caf85de00c7693a4cc973",
+      "repository": "mui/material-ui",
+      "requestedRepository": "mui/material-ui",
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 94,
+        "rowSha256": "90daa52a985289c22acf0f574d98631df94eafd2cf6e5ddf14b8c24fc82758e7"
+      },
+      "pretargetRank": 27,
+      "repositoryRank": 4,
+      "restCaptureOrder": 25
+    },
+    {
+      "anchorId": "cli/cli#3833",
+      "canonicalAnchorId": "cli/cli#3833",
+      "captureDirectory": "cli__cli__3833",
+      "legalSequenceCount": 12,
+      "lineageIdentitySha256": "51ef6dc5015910ea09bd37c9e84109aaa5ddba9247c5bb35f1be12f24bd4e69a",
+      "linearReviewSequence": {
+        "firstFixCommit": "49652cdefa175cb62616d8cf8958f1bb7fc2e88e",
+        "firstReview": {
+          "author": "jsoref",
+          "body": "Not entirely certain about the style, but this feels _closer_ to the style of the other similar tasks (and you should probably include the workflow number):\n\n```suggestion\n\tfmt.Fprintf(opts.IO.Out, \"%s Request to cancel workflow submitted.\", cs.SuccessIcon())\n```\n\nhttps://github.com/cli/cli/blob/09b09810dd812e3ede54b59ad9d6912b946ac6c5/pkg/cmd/issue/delete/delete.go#L94\n\nhttps://github.com/cli/cli/blob/f30afce5da8103b78f18ff43bf0347f35884a56d/pkg/cmd/pr/close/close.go#L89",
+          "bodyBytes": 476,
+          "bodySha256": "efadc25fbc335fb88b9196cf7c5ba4fd8345b2ed8706c51399e4c1b959d68302",
+          "createdAt": "2021-06-16T03:26:04Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDY1MjMyMjA2Ng==",
+          "reviewedCommit": "6ba70d4a1e75e6c715a8c3d1348bef2081e09505",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkNDE0MDk1NjU1OnYy"
+        },
+        "initialCommit": "6ba70d4a1e75e6c715a8c3d1348bef2081e09505",
+        "secondFixCommit": "a4015b7f09438cfe1729a0112b55aa0939393787",
+        "secondReview": {
+          "author": "vilmibm",
+          "body": "I like this a lot, thank you!\n\nI think it would be nice if this was consistent with other run commands in that it prompts with a list of in progress runs to choose from if no argument is supplied. There is reusable code for this; see the `run watch` command for an example.",
+          "bodyBytes": 273,
+          "bodySha256": "6837743abe656993e7ce9e15d6f1d574942b8a60beec688468167ba8a174b1c2",
+          "createdAt": "2021-09-02T18:01:55Z",
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NzQ1MzY5MDMw",
+          "reviewedCommit": "49652cdefa175cb62616d8cf8958f1bb7fc2e88e",
+          "source": "whole-review",
+          "threadId": null
+        }
+      },
+      "pretargetEventCount": 3,
+      "rankSha256": "719362954928c3366fec5f02c89ec41b28e828c931570d3a1cd318d29eb7511b",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 265,
+        "rowSha256": "215c847c8ba8b789dc1949585ad84f2cc41804104d3ba9464d39ecbce934b08e"
+      },
+      "pretargetRank": 28,
+      "repositoryRank": 13,
+      "restCaptureOrder": 40
+    },
+    {
+      "anchorId": "mui/material-ui#25428",
+      "canonicalAnchorId": "mui/material-ui#25428",
+      "captureDirectory": "mui__material-ui__25428",
+      "legalSequenceCount": 6,
+      "lineageIdentitySha256": "1de568c51de506efab4517418c9c1b5ea1c5dd0572d0d2ef898d438c5f16f8f4",
+      "linearReviewSequence": {
+        "firstFixCommit": "b8f1176c4ba99bb03f703cf9442b7f05d58eb749",
+        "firstReview": {
+          "author": "oliviertassinari",
+          "body": "We can't do this, the tab doesn't support it. e.g. try the <kbd>Arrow Left</kbd>. I would propose we reuse this demo: https://next.material-ui.com/components/dividers/#vertical-divider",
+          "bodyBytes": 184,
+          "bodySha256": "23e60edb3a7a6823a1c9897ecc63a02a3d80dbaa3191bfe43c2de55ed55d786b",
+          "createdAt": "2021-03-20T17:52:49Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDU5ODE0MDE3OQ==",
+          "reviewedCommit": "b9f020f7b313b21912a8e5f7f8a254bd6706ec4f",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMzc3ODQzNDEyOnYy"
+        },
+        "initialCommit": "b9f020f7b313b21912a8e5f7f8a254bd6706ec4f",
+        "secondFixCommit": "308ceacb23a312df2acbff81440d72468a212b4a",
+        "secondReview": {
+          "author": "oliviertassinari",
+          "body": "We can't import from other demos, it breaks the export to Codesandbox\n\n```suggestion\n```\n\nWe usually duplicate the demos.",
+          "bodyBytes": 121,
+          "bodySha256": "7ace475ac58214921dda67fa5e31d8b8b59d6fa4243eb1a3a5461acb5c3e5911",
+          "createdAt": "2021-03-20T23:03:36Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDU5ODE3MDY0Nw==",
+          "reviewedCommit": "b8f1176c4ba99bb03f703cf9442b7f05d58eb749",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMzc3ODY5Mjk1OnYy"
+        }
+      },
+      "pretargetEventCount": 2,
+      "rankSha256": "719f3db169e647e47b5cf8369313489a7db7d49dc24229c48ac5273d7737b576",
+      "repository": "mui/material-ui",
+      "requestedRepository": "mui/material-ui",
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 151,
+        "rowSha256": "11da3c1dd82497bf786cfffaa463ad0584a0631b92a5b218f2efa5f58b767904"
+      },
+      "pretargetRank": 29,
+      "repositoryRank": 5,
+      "restCaptureOrder": 28
+    },
+    {
+      "anchorId": "square/okhttp#6887",
+      "canonicalAnchorId": "lysine-dev/okhttp#6887",
+      "captureDirectory": "square__okhttp__6887",
+      "legalSequenceCount": 6,
+      "lineageIdentitySha256": "1618db20fc183bf025de91696e68d27c8e1c38212ae45261db393f58bf7cb593",
+      "linearReviewSequence": {
+        "firstFixCommit": "4cc25f7052410cb29a0d75830f57a20d7a9a9cba",
+        "firstReview": {
+          "author": "yschimke",
+          "body": "I don't actually think we need this because of\n\nmockwebserver-junit5/src/main/resources/META-INF/services/org.junit.jupiter.api.extension.Extension",
+          "bodyBytes": 147,
+          "bodySha256": "597dea032800916018f3b868adba51e55db8c2daa355f52c65a2be681f4827dd",
+          "createdAt": "2021-10-21T19:36:04Z",
+          "id": "PRRC_kwDOAE6eHc4rv80R",
+          "reviewedCommit": "90370cfbfff713cf1ceb732298ba030d10cb53fc",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOAE6eHc4b7XPp"
+        },
+        "initialCommit": "90370cfbfff713cf1ceb732298ba030d10cb53fc",
+        "secondFixCommit": "9745b2a9d24ccabbcd8a3cd95e2af56994c9b232",
+        "secondReview": {
+          "author": "JakeWharton",
+          "body": "Using `?` here is inappropriate as it will never be null. `!!` is better, but annoying. I would prefer just extracting a local we can re-use:\n```kotlin\nval realCall = client.newCall(request) as RealCall\ncall = realCall\nrealCall.enqueue(this)\n```",
+          "bodyBytes": 245,
+          "bodySha256": "ce6a601f4c9ef09ed38dde471d8d9b2a0c28ff34f7be927a482bf173011743f0",
+          "createdAt": "2021-10-22T13:17:22Z",
+          "id": "PRRC_kwDOAE6eHc4ryBLN",
+          "reviewedCommit": "fb8470ea189e9231f616fd7acc89e5e7950854d8",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOAE6eHc4b8vq9"
+        }
+      },
+      "pretargetEventCount": 9,
+      "rankSha256": "7e65b787da11039ae7be797f387fbc556066e1da71e79065db8cc2e40435548c",
+      "repository": "lysine-dev/okhttp",
+      "requestedRepository": "square/okhttp",
+      "source": {
+        "path": "kotlin/square__okhttp_dataset.jsonl",
+        "rowIndex": 2,
+        "rowSha256": "e3c49d7f672bfa5f748433bb8afe8120a13d5e2b3f198b6b343657788d4a4639"
+      },
+      "pretargetRank": 30,
+      "repositoryRank": 1,
+      "restCaptureOrder": 11
+    },
+    {
+      "anchorId": "cli/cli#7709",
+      "canonicalAnchorId": "cli/cli#7709",
+      "captureDirectory": "cli__cli__7709",
+      "legalSequenceCount": 4,
+      "lineageIdentitySha256": "150518e00f913e7244bdeac35683e991b66fc702de15ab8c008e95431b6ec71e",
+      "linearReviewSequence": {
+        "firstFixCommit": "8f709fdc64bc792e8840c84c32ce0586d63530c9",
+        "firstReview": {
+          "author": "armandgrillet",
+          "body": "Not having this check made the test `TestPrMerge_alreadyMerged_withMergeStrategy_crossRepo` crashing but I was able to update the test correctly, removing the need for this additional check.",
+          "bodyBytes": 190,
+          "bodySha256": "ebeef592971d1447521b3ea6e1febf602885e9604052048576ae74b350a2a55e",
+          "createdAt": "2023-07-25T05:16:36Z",
+          "id": "PRRC_kwDODKw3uc5L4JA5",
+          "reviewedCommit": "38375dd70eb1e8ae82e9b4a85d87cf59db75a8d2",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4weW2U"
+        },
+        "initialCommit": "38375dd70eb1e8ae82e9b4a85d87cf59db75a8d2",
+        "secondFixCommit": "13b58a597ca34ca9d1155c07973f9a9e81080d1c",
+        "secondReview": {
+          "author": "samcoe",
+          "body": "I know this variable was already in place before your changes but would you mind changing the name of it to something more descriptive such as `switchedStatement`?",
+          "bodyBytes": 163,
+          "bodySha256": "0b90ea3c608243c109948bffddff9acec854fab198f47272d023cd547cf8c3b5",
+          "createdAt": "2023-07-25T14:44:07Z",
+          "id": "PRRC_kwDODKw3uc5L6n9G",
+          "reviewedCommit": "8f709fdc64bc792e8840c84c32ce0586d63530c9",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4whPEN"
+        }
+      },
+      "pretargetEventCount": 8,
+      "rankSha256": "92a667e562c32d65220900006be4a9a35150b25a2a91990498283ccde57c3d07",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 101,
+        "rowSha256": "4cbffb096681f558760ca8c63d71ffa66e5031faf884ee3d8ef8bcac7b04ed33"
+      },
+      "pretargetRank": 31,
+      "repositoryRank": 14,
+      "restCaptureOrder": 41
+    },
+    {
+      "anchorId": "cli/cli#667",
+      "canonicalAnchorId": "cli/cli#667",
+      "captureDirectory": "cli__cli__667",
+      "legalSequenceCount": 48,
+      "lineageIdentitySha256": "09fc32d870e4ad57c7fea322b2bbaf350ef857c03721cc2d0241a207007a51ab",
+      "linearReviewSequence": {
+        "firstFixCommit": "327a80495983de42ad87be8da8ee4c28c88d8d5d",
+        "firstReview": {
+          "author": "doi-t",
+          "body": "Since `colorFuncForState` was referenced from both `command/issue.go` and `command/pr.go`, I moved it to `utils.go`.",
+          "bodyBytes": 116,
+          "bodySha256": "856e24fcb60f292bea89d8403583aa52ed754fa7e61bb008d40244c3da669bfc",
+          "createdAt": "2020-03-17T23:46:35Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDM5NDAzMzg0MQ==",
+          "reviewedCommit": "762e806c9eed784d732899425c16f6adb51c6f61",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMjQ0MjQwNzIxOnYy"
+        },
+        "initialCommit": "762e806c9eed784d732899425c16f6adb51c6f61",
+        "secondFixCommit": "4c2f15fe37e7eaf9b0212e67cae200e46f5c6893",
+        "secondReview": {
+          "author": "mislav",
+          "body": "Massive props for table-driven test 🥇",
+          "bodyBytes": 40,
+          "bodySha256": "16bce8d5966c4840d375d2c2eb6fc4f1d38e169e8fbbd4dde27d7b52c3ed8109",
+          "createdAt": "2020-03-31T15:28:04Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDQwMTAwNTU5OQ==",
+          "reviewedCommit": "7d42f46cda781f24e555561a9cdff2b8189955cb",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMjQ4Njg0MjczOnYy"
+        }
+      },
+      "pretargetEventCount": 4,
+      "rankSha256": "92d05186625b37ea1dcafa8799c3bfbfa485e09ec2b7a0a03bcd358641cc5070",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 378,
+        "rowSha256": "3614a3de29b64e2222c293275cce41c65808c9c3b130f6a028b71bfe6b6d5b59"
+      },
+      "pretargetRank": 32,
+      "repositoryRank": 15,
+      "restCaptureOrder": 42
+    },
+    {
+      "anchorId": "sveltejs/svelte#11946",
+      "canonicalAnchorId": "sveltejs/svelte#11946",
+      "captureDirectory": "sveltejs__svelte__11946",
+      "legalSequenceCount": 27,
+      "lineageIdentitySha256": "081e11da613ae2601063cab145b7b81f34d660b787a88e00ae10aad45e820ee1",
+      "linearReviewSequence": {
+        "firstFixCommit": "9841bf4399916dca6dc55777dc671b6ccf70b2fd",
+        "firstReview": {
+          "author": "trueadm",
+          "body": "Like in Map, you can check if the sizes of the two match before doing this.",
+          "bodyBytes": 75,
+          "bodySha256": "3b55d54cebe9b0710f162baf4093d777db6949f65bc71e0cfe628561c5ddab79",
+          "createdAt": "2024-06-07T13:43:48Z",
+          "id": "PRRC_kwDOBG2gSc5hOqc3",
+          "reviewedCommit": "c112864787fa4a2fd0a6181e4910064be9efcff0",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOBG2gSc4-H7PI"
+        },
+        "initialCommit": "c112864787fa4a2fd0a6181e4910064be9efcff0",
+        "secondFixCommit": "29cae713706882aa25a2af51a97b3b404ed49ac0",
+        "secondReview": {
+          "author": "Rich-Harris",
+          "body": "We shouldn't create this iterator eagerly, it can go inside the if block",
+          "bodyBytes": 72,
+          "bodySha256": "17420807e7a9a6f4353453b4c60b20008caf6ab37ab30a18a39a79bce444f3bd",
+          "createdAt": "2024-06-08T11:49:11Z",
+          "id": "PRRC_kwDOBG2gSc5hRs-2",
+          "reviewedCommit": "683302978de65755b938ebac4d9e33a0d82fdebf",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOBG2gSc4-J7M_"
+        }
+      },
+      "pretargetEventCount": 6,
+      "rankSha256": "9c621daecfa09563d029ec994ef848ec1ef1064242e77f6b2c6594a826f8c785",
+      "repository": "sveltejs/svelte",
+      "requestedRepository": "sveltejs/svelte",
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 161,
+        "rowSha256": "6f26c9e189016f9233dff05b31c0aefef2ca0733b78a97c7aa1f59b5c45cc9d7"
+      },
+      "pretargetRank": 33,
+      "repositoryRank": 4,
+      "restCaptureOrder": 26
+    },
+    {
+      "anchorId": "clap-rs/clap#2075",
+      "canonicalAnchorId": "clap-rs/clap#2075",
+      "captureDirectory": "clap-rs__clap__2075",
+      "legalSequenceCount": 20,
+      "lineageIdentitySha256": "11e448e16ce41a8da09325b98a162881ba7b85cc5ff4126dc0cb3f2985163a6f",
+      "linearReviewSequence": {
+        "firstFixCommit": "35f761e699d3a0f2b92a53f8f389241d19db0965",
+        "firstReview": {
+          "author": "tomjw64",
+          "body": "I don't believe the original messages are correct. Or more specifically, I believe it must be the case that either these messages are incorrect or the assertions in `two_conflicting_arguments` and `three_conflicting_arguments` are incorrect.\n\nFrom the PR description:\n> I edited the `CONFLICT_ERR` and `CONFLICT_ERR_REV` static strings because they did not follow the convention that other tests were following, i.e. mention the conflicting parameters in the order in which they appear (e.g. `two_conflicting_arguments` or `three_conflicting_arguments`).\n\nI'll expand on that here to be more clear. **Before** my change this was the state of both some existing tests and the ones using these strings:\n```\n+-----------------------------+----------------------+----------------------------+\n| Test                        | input argument order | test assertion order       |\n+-----------------------------+----------------------+----------------------------+\n+-----------------------------+----------------------+----------------------------+\n| two_conflicting_arguments   | develop, production  | develop, production        |\n+-----------------------------+----------------------+----------------------------+\n| three_conflicting_arguments | one, two, three      | one, two                   |\n+-----------------------------+----------------------+----------------------------+\n| conflict_output             | flag, F              | F, flag (CONFLICT_ERR)     |\n+-----------------------------+----------------------+----------------------------+\n| conflict_output_rev         | F, flag              | flag, F (CONFLICT_ERR_REV) |\n+-----------------------------+----------------------+----------------------------+\n```\nIt looks like it is desired that the conflicting arguments are listed in the order they appeared in the input, so I changed the strings to match that understanding. I'm happy to change it back, but if I do, then shouldn't the assertions in the other tests change? If neither, how are we supposed to choose the order in which to display the conflicting arguments in the message?",
+          "bodyBytes": 2094,
+          "bodySha256": "a4a9e3f60faf2165f8c4bf27fb249158547466707c464a14f435206152a5dd99",
+          "createdAt": "2020-08-15T22:35:04Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDQ3MTA0MDI4MQ==",
+          "reviewedCommit": "481229fffd41b6063bde37a9c1da7bac556c6a44",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMjk0MzYzODk3OnYy"
+        },
+        "initialCommit": "481229fffd41b6063bde37a9c1da7bac556c6a44",
+        "secondFixCommit": "27771ceeb7fd1d1bcff6357e3242db8510d3b534",
+        "secondReview": {
+          "author": "pksunkara",
+          "body": "```suggestion\n                        let usg = self.build_conflict_err_usage(matcher, former_arg, latter);\n```",
+          "bodyBytes": 111,
+          "bodySha256": "b5af2329d4e0153680332c57abb051bb91a72a4c0559f7e3ad161da1079b5551",
+          "createdAt": "2020-08-16T07:30:43Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDQ3MTA3ODAxMQ==",
+          "reviewedCommit": "35f761e699d3a0f2b92a53f8f389241d19db0965",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMjk0NDE2MzMxOnYy"
+        }
+      },
+      "pretargetEventCount": 10,
+      "rankSha256": "a2cfce9f682679536ada1c1a63213ee98b47342b486a36c80ed5a24b042c3948",
+      "repository": "clap-rs/clap",
+      "requestedRepository": "clap-rs/clap",
+      "source": {
+        "path": "rust/clap-rs__clap_dataset.jsonl",
+        "rowIndex": 122,
+        "rowSha256": "c9f8964156212496dca9dc277a54678b4edc1339648766b808048e289b90500e"
+      },
+      "pretargetRank": 34,
+      "repositoryRank": 1,
+      "restCaptureOrder": 12
+    },
+    {
+      "anchorId": "sveltejs/svelte#12649",
+      "canonicalAnchorId": "sveltejs/svelte#12649",
+      "captureDirectory": "sveltejs__svelte__12649",
+      "legalSequenceCount": 6,
+      "lineageIdentitySha256": "1ab5afda77be0d6bfa8f7c110e887a8376c1279c0f7a7a22956d79b2fb6e6ccf",
+      "linearReviewSequence": {
+        "firstFixCommit": "beb3a487f4206956c06d3c1c79296d3212a1dea3",
+        "firstReview": {
+          "author": "dummdidumm",
+          "body": "Would be better to first name the draggable case, then the \"if this list becomes too big\" sentence - that way things are grouped better",
+          "bodyBytes": 135,
+          "bodySha256": "21777bff4146620d20d6d25469c14f5d85f5d80f51a7dd493f1eb1ab3dc93051",
+          "createdAt": "2024-07-29T13:03:49Z",
+          "id": "PRRC_kwDOBG2gSc5lCnhe",
+          "reviewedCommit": "f366ef4186563d41a4372059567e8f84b971b64a",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOBG2gSc5AlNoV"
+        },
+        "initialCommit": "f366ef4186563d41a4372059567e8f84b971b64a",
+        "secondFixCommit": "d4d7c14c44200da6a6b81fad4ec4fc91b3f084c6",
+        "secondReview": {
+          "author": "paoloricciuti",
+          "body": "Updated the test to check both the property and the attribute and i've added the spread attributes to the check.",
+          "bodyBytes": 112,
+          "bodySha256": "b735d87412e42b02d734c98a96dcec146c3d52312cc58e32cd613da1dbbc017c",
+          "createdAt": "2024-07-29T13:21:28Z",
+          "id": "PRRC_kwDOBG2gSc5lCySM",
+          "reviewedCommit": "beb3a487f4206956c06d3c1c79296d3212a1dea3",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOBG2gSc5AlRpp"
+        }
+      },
+      "pretargetEventCount": 6,
+      "rankSha256": "a48b334a757624b7e9f9bc8c8d844ec0d2c532da66f046eca3788e7bebf80d68",
+      "repository": "sveltejs/svelte",
+      "requestedRepository": "sveltejs/svelte",
+      "source": {
+        "path": "js/sveltejs__svelte_dataset.jsonl",
+        "rowIndex": 122,
+        "rowSha256": "a8693f243c5a14d4e12b82a5c9f3c482bf20b2839fe5a0e9180292d9d6c7e7e4"
+      },
+      "pretargetRank": 35,
+      "repositoryRank": 5,
+      "restCaptureOrder": 29
+    },
+    {
+      "anchorId": "cli/cli#10362",
+      "canonicalAnchorId": "cli/cli#10362",
+      "captureDirectory": "cli__cli__10362",
+      "legalSequenceCount": 205,
+      "lineageIdentitySha256": "007de72cbc0324ce3120262d4e7c5b4587552623b26aee666178352310374851",
+      "linearReviewSequence": {
+        "firstFixCommit": "e195b24cb10592bd941dc829b107d5a910cb967c",
+        "firstReview": {
+          "author": "hoffm",
+          "body": "This test should always have been checking that the opts including the correct `ID`.",
+          "bodyBytes": 84,
+          "bodySha256": "828503b971f891ae449f2baf6bb52a1210448c87788d15c7bd09827171d8b269",
+          "createdAt": "2025-02-03T02:36:06Z",
+          "id": "PRRC_kwDODKw3uc5zjghy",
+          "reviewedCommit": "021557912d08ce7d168c08694d2bd67b33e9b38e",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc5J_2BS"
+        },
+        "initialCommit": "021557912d08ce7d168c08694d2bd67b33e9b38e",
+        "secondFixCommit": "9eaaf4451630e9f8dd056ea95826bbb27e195ced",
+        "secondReview": {
+          "author": "jtmcg",
+          "body": "These tests look solid 🫶 I read them before anything else, and not only do they suggest the separation between your logic layer and api layer is 👨‍🍳 💋, but they also do a great job documenting the logic demonstrating that you've implemented the AC 🎉 \n\nThat said, I think we're missing one test for this AC:\n> **Given** I have the admin role on the repository\n> **And Given** I have a local repository cloned from GitHub\n> **When** I run gh repo autolink delete <keyPrefix> in non-interactive mode\n> **Then** I see an informational message stating --yes flag is required to delete autolink in non-interactive mode followed by the usage statement\n\nWe'll probably have to force the terminal to be non-tty for this use case. There's an example of how we usually do this in the [alias/delete tests](https://github.com/cli/cli/blob/9da292d3a6dd4047700c1f921e7d91c9b2e98a83/pkg/cmd/alias/delete/delete_test.go#L159-L161)",
+          "bodyBytes": 930,
+          "bodySha256": "c8c9a953d5a5436f00e994d0302c4ff07cd624f31d00984699dd49bb70a719f2",
+          "createdAt": "2025-02-06T22:06:10Z",
+          "id": "PRRC_kwDODKw3uc5z9psm",
+          "reviewedCommit": "7a5b49a4c4d1c6b907733dbf4133c6e8145b4b9d",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc5KQ3eC"
+        }
+      },
+      "pretargetEventCount": 12,
+      "rankSha256": "aa21c0fe70c4180f839afbe9bf918f9bfa4b7d62403893c3b02eea1bd973e507",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 4,
+        "rowSha256": "f18c0eec1adcec2a1e0b57b6706817f65a703e177b7065e16c607d85b106c23e"
+      },
+      "pretargetRank": 36,
+      "repositoryRank": 16,
+      "restCaptureOrder": 43
+    },
+    {
+      "anchorId": "tokio-rs/tokio#5179",
+      "canonicalAnchorId": "tokio-rs/tokio#5179",
+      "captureDirectory": "tokio-rs__tokio__5179",
+      "legalSequenceCount": 15,
+      "lineageIdentitySha256": "11bc2bcb0cce9a10cdf76ac8816d5a78b85711d30683946b26db36e9d196d47a",
+      "linearReviewSequence": {
+        "firstFixCommit": "105931a32e0f1ee40b8193cc9d4c628a94672c81",
+        "firstReview": {
+          "author": "Forsworns",
+          "body": "typo?",
+          "bodyBytes": 5,
+          "bodySha256": "8e0e03ac672de988ec78cc4a919af15c79f71eff4a4ac1ecdf241cd9b6d6923e",
+          "createdAt": "2022-11-10T03:43:08Z",
+          "id": "PRRC_kwDOBAsbdc48tveG",
+          "reviewedCommit": "8cd2f7386a65ba34e15cb2463df1f10632792d6b",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOBAsbdc4m2uqo"
+        },
+        "initialCommit": "8cd2f7386a65ba34e15cb2463df1f10632792d6b",
+        "secondFixCommit": "4f3433e11c825bfe561c4b13a90a8ca9a0a0cb40",
+        "secondReview": {
+          "author": "Darksonn",
+          "body": "I guess no.",
+          "bodyBytes": 11,
+          "bodySha256": "a12b41d124273744070a0ed8e6575ad9d162bc9c1d792291e53def864046a7dc",
+          "createdAt": "2022-11-10T17:25:24Z",
+          "id": "PRRC_kwDOBAsbdc48wyem",
+          "reviewedCommit": "d89cd96f4325e84f08bace2a73b9aee9a488ed9f",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOBAsbdc4m4m4e"
+        }
+      },
+      "pretargetEventCount": 5,
+      "rankSha256": "ad709620e8fabf68a542a1ef3159531511c63d4d0102b713d7e3898b7319a1b6",
+      "repository": "tokio-rs/tokio",
+      "requestedRepository": "tokio-rs/tokio",
+      "source": {
+        "path": "rust/tokio-rs__tokio_dataset.jsonl",
+        "rowIndex": 21,
+        "rowSha256": "b5ecbcbe64da5b12511e66c66b011c8fec8960d35da5c6fc7741d6ffad41a300"
+      },
+      "pretargetRank": 37,
+      "repositoryRank": 2,
+      "restCaptureOrder": 18
+    },
+    {
+      "anchorId": "mui/material-ui#36024",
+      "canonicalAnchorId": "mui/material-ui#36024",
+      "captureDirectory": "mui__material-ui__36024",
+      "legalSequenceCount": 240,
+      "lineageIdentitySha256": "02cfcfb32afc981796062028f315de588353318130fe59299658e7a1aa73fb82",
+      "linearReviewSequence": {
+        "firstFixCommit": "c07f03e958ce338cd6b1a1f6751a7d14a696fa72",
+        "firstReview": {
+          "author": "michaldudak",
+          "body": "For the record, we've discussed it outside GitHub and agreed to provide both options - the static field and a prop. I'll document both options.\n\nSince we're looking for a prop, not an attribute (as the DOM is not constructed at this point), I chose the same name as the static field: `muiSkipOptionHighlight`. See the added tests for usage.",
+          "bodyBytes": 340,
+          "bodySha256": "de67131fccd7423289d2c85d8e5cc68e2026b1ddab28fff603a1df398cca3606",
+          "createdAt": "2023-02-08T13:03:45Z",
+          "id": "PRRC_kwDOAWA4lM5BkjaG",
+          "reviewedCommit": "eb56017399a54d720d27ea436729bcdc46e90b1d",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOAWA4lM4pyPQX"
+        },
+        "initialCommit": "eb56017399a54d720d27ea436729bcdc46e90b1d",
+        "secondFixCommit": "527709bf877de5dc464e92f1f06c1b65e62938da",
+        "secondReview": {
+          "author": "mnajdova",
+          "body": "```suggestion\nOption 2: Place a `muiSkipListHighlight` prop on each instance of your component.\n```",
+          "bodyBytes": 99,
+          "bodySha256": "d2355089a2b90c3b47640536bac5df1a46221df96b2927b71eee86bf32573e86",
+          "createdAt": "2023-02-22T08:11:21Z",
+          "id": "PRRC_kwDOAWA4lM5CZcdb",
+          "reviewedCommit": "d94cf025fd9586ac80fa0e2eb9e7e79556a9b01c",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOAWA4lM4qe2tZ"
+        }
+      },
+      "pretargetEventCount": 14,
+      "rankSha256": "afbb99b09ecd6de3f86eea6cd7703d9716cd523570d9cc1aeb688c3fe90c7b3a",
+      "repository": "mui/material-ui",
+      "requestedRepository": "mui/material-ui",
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 45,
+        "rowSha256": "d557b47439a4ee5460eacbf3337a8ee67f060931ea63389334e7175cbf35b0e3"
+      },
+      "pretargetRank": 38,
+      "repositoryRank": 6,
+      "restCaptureOrder": 31
+    },
+    {
+      "anchorId": "cli/cli#6043",
+      "canonicalAnchorId": "cli/cli#6043",
+      "captureDirectory": "cli__cli__6043",
+      "legalSequenceCount": 42,
+      "lineageIdentitySha256": "0bbb14cfdd73dccf420e8f7cad4b4c9abb5ca4c9dc6942a511c2ca668e7fdef1",
+      "linearReviewSequence": {
+        "firstFixCommit": "73c723a63378bf71e085fa30a3576062774e686b",
+        "firstReview": {
+          "author": "pshevche",
+          "body": ":question: Question from my side. This would mean that users would require to have `read:project` and `read:org` permissions which earlier was not the case. Is it fine to do it this way or should we look up these projects lazily only when there are potential project V2 references?",
+          "bodyBytes": 281,
+          "bodySha256": "05577500f48b1b84ea55e239b5792711f2e8f33c971ae71f915f2ad53185d3eb",
+          "createdAt": "2022-08-07T21:50:41Z",
+          "id": "PRRC_kwDODKw3uc44AxeA",
+          "reviewedCommit": "5e35ecf1d82496407e99fca5a374bb58d84b7932",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4j13L4"
+        },
+        "initialCommit": "5e35ecf1d82496407e99fca5a374bb58d84b7932",
+        "secondFixCommit": "fe17a0b98ba36db8bbcb834c4aaa6ddee366b708",
+        "secondReview": {
+          "author": "pshevche",
+          "body": ":thought_balloon: Tests for editing are pretty shallow and I'd like to improve them, but I am a bit lost.. I am open for some advice on how to approach testing and set those up. Currently, I make sure existing tests are not broken and that the logic flow is correct and proper APIs are called. But testing the interactive mode more properly or different combinations would be nice",
+          "bodyBytes": 380,
+          "bodySha256": "44d2ed39fea66cbde93145af0745861088877647c7d618d33766c71e98b094ff",
+          "createdAt": "2022-08-08T19:46:00Z",
+          "id": "PRRC_kwDODKw3uc44EH1R",
+          "reviewedCommit": "1798177cf67b2fdeef80a526469f9bc90e198d26",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4j4A4P"
+        }
+      },
+      "pretargetEventCount": 6,
+      "rankSha256": "b973286a205de912e10720a1c3b21232f08b2b6c54979d5a6ee25670289c9eb6",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 165,
+        "rowSha256": "c86db63c62298d9c25d301b545f319c16e4a1a5b638a6f3401d1423d9a09a1fc"
+      },
+      "pretargetRank": 39,
+      "repositoryRank": 17,
+      "restCaptureOrder": 44
+    },
+    {
+      "anchorId": "cli/cli#9701",
+      "canonicalAnchorId": "cli/cli#9701",
+      "captureDirectory": "cli__cli__9701",
+      "legalSequenceCount": 168,
+      "lineageIdentitySha256": "00a1c605bea9e3e5d10ee4648657e74ab46a396030b470d219e9c133bd600fa0",
+      "linearReviewSequence": {
+        "firstFixCommit": "4df2e7be634cf2eb7f7d63b61351d68afc1c6c07",
+        "firstReview": {
+          "author": "jtmcg",
+          "body": "The `io` argument is being passed in from `opts.io`, so as far as I understand it's technically already doing that.",
+          "bodyBytes": 115,
+          "bodySha256": "02139a7de74b7c00d24c37d2de03be4645b03b53561613d252db7a03621954e0",
+          "createdAt": "2024-10-15T19:13:40Z",
+          "id": "PRRC_kwDODKw3uc5rZQkI",
+          "reviewedCommit": "dcbd1b728cd87523768807262b44f7cc94bbb582",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc5EUJCb"
+        },
+        "initialCommit": "dcbd1b728cd87523768807262b44f7cc94bbb582",
+        "secondFixCommit": "14acbe00a93106cccb70cfd3c5fb290618d21866",
+        "secondReview": {
+          "author": "andyfeller",
+          "body": "Seems to work 🤔 \n\n```shell\nandyfeller@Andys-MBP:cli/cli ‹jtmcg/9698*›$ git diff | cat\ndiff --git a/pkg/cmd/pr/shared/survey.go b/pkg/cmd/pr/shared/survey.go\nindex 3d53be4c..ce38535d 100644\n--- a/pkg/cmd/pr/shared/survey.go\n+++ b/pkg/cmd/pr/shared/survey.go\n@@ -119,9 +119,7 @@ func TitleSurvey(p Prompt, io *iostreams.IOStreams, state *IssueMetadataState) e\n \t\t\treturn err\n \t\t}\n \t\tif result == \"\" {\n-\t\t\tcolorizeRed := io.ColorScheme().ColorFromString(\"red\")\n-\t\t\tmsg := fmt.Sprintf(\"%s Title cannot be blank.\", colorizeRed(\"X\"))\n-\t\t\tfmt.Fprintln(io.ErrOut, msg)\n+\t\t\tfmt.Fprintf(io.ErrOut, \"%s Title cannot be blank\\n\", io.ColorScheme().FailureIcon())\n \t\t}\n \t}\n \nandyfeller@Andys-MBP:cli/cli ‹jtmcg/9698*›$ make\ngo build -trimpath -ldflags \"-X github.com/cli/cli/v2/internal/build.Date=2024-10-17 -X github.com/cli/cli/v2/internal/build.Version=v2.58.0-105-gc1897f31 \" -o bin/gh ./cmd/gh\nandyfeller@Andys-MBP:cli/cli ‹jtmcg/9698*›$ ./bin/gh issue create              \n\nCreating issue in cli/cli\n\n? Title (required) \nX Title cannot be blank\n? Title (required) \nX Title cannot be blank\n? Title (required) \nX Title cannot be blank\n? Title (required) \nX Title cannot be blank\n? Title (required) \n```",
+          "bodyBytes": 1208,
+          "bodySha256": "4d550c18627be143dedb1c30e9517728b7f534c122906d29df7429e5a03b0346",
+          "createdAt": "2024-10-17T15:53:11Z",
+          "id": "PRRC_kwDODKw3uc5rlqPc",
+          "reviewedCommit": "c1897f3122131a6c5052e3c765f4842ded38dd40",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc5EyxlS"
+        }
+      },
+      "pretargetEventCount": 8,
+      "rankSha256": "bac334095a98ea318004e489c81e6fe69ef7f2155b507933ee08194027aee3a4",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 30,
+        "rowSha256": "a0cd1a3aca18f56c031bba53f6e539773fc6f9950992face2a006e08b6d6c88f"
+      },
+      "pretargetRank": 40,
+      "repositoryRank": 18,
+      "restCaptureOrder": 45
+    },
+    {
+      "anchorId": "mui/material-ui#29297",
+      "canonicalAnchorId": "mui/material-ui#29297",
+      "captureDirectory": "mui__material-ui__29297",
+      "legalSequenceCount": 252,
+      "lineageIdentitySha256": "00e7cc3dd63d5269d3e088b39c6d7b7b5f530976ad00ed5c69bd4a76c9be501f",
+      "linearReviewSequence": {
+        "firstFixCommit": "fa7ff8fa65db40c9afd2889d17741a63f5fdcf74",
+        "firstReview": {
+          "author": "mnajdova",
+          "body": "Shouldn't we do deep merge?",
+          "bodyBytes": 27,
+          "bodySha256": "62bcab222017862087956c75a9943085e73774a1e57d2f5b9a1150fb54ebb013",
+          "createdAt": "2021-10-26T09:32:15Z",
+          "id": "PRRC_kwDOAWA4lM4r46Ul",
+          "reviewedCommit": "f07279ca40b97b0f81e43fca9fcd0ff63203aab9",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOAWA4lM4cBZsK"
+        },
+        "initialCommit": "f07279ca40b97b0f81e43fca9fcd0ff63203aab9",
+        "secondFixCommit": "c9ca06f87c1e63fa5e93f86ee6983ce567b1a2c9",
+        "secondReview": {
+          "author": "siriwatknp",
+          "body": "@hbjORbj What do you think?",
+          "bodyBytes": 27,
+          "bodySha256": "763fe6c1c1f434ae5c5f8b0de9629e543fbcc2301f5e298e932c5fe259cdf791",
+          "createdAt": "2021-10-27T07:52:43Z",
+          "id": "PRRC_kwDOAWA4lM4r8MgL",
+          "reviewedCommit": "501d34d4f358676ed3ad6113a5dfb961f7d8d010",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOAWA4lM4cDfKn"
+        }
+      },
+      "pretargetEventCount": 14,
+      "rankSha256": "c45e4ad73493e7314f27b33a862633c2e2a463e60631b53283b1b38d90e8642c",
+      "repository": "mui/material-ui",
+      "requestedRepository": "mui/material-ui",
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 131,
+        "rowSha256": "0edbf52b475a2fb9c7a7478d3ae024b4b9761c45a649035a370afe98c98c6861"
+      },
+      "pretargetRank": 41,
+      "repositoryRank": 7,
+      "restCaptureOrder": 33
+    },
+    {
+      "anchorId": "cli/cli#4845",
+      "canonicalAnchorId": "cli/cli#4845",
+      "captureDirectory": "cli__cli__4845",
+      "legalSequenceCount": 10,
+      "lineageIdentitySha256": "008ba24028594376cadfd6e8082c17ea2bf320586160b7a7a8a7551864126f8f",
+      "linearReviewSequence": {
+        "firstFixCommit": "c06fa435f3c178fbb7d808ce71c72a75ec37f4f0",
+        "firstReview": {
+          "author": "mislav",
+          "body": "Instead of reading `History` off of a Commit object, you can read its `oid` field which will be the commit SHA.\n\n```graphql\nquery ($repoOwner: String!, $repoName: String!) {\n\trepository(owner: $repoOwner, name: $repoName) {\n\t\tdefaultBranchRef {\n\t\t\tname\n\t\t\ttarget {\n\t\t\t\t... on Commit {\n\t\t\t\t\toid\n\t\t\t\t\tmessageHeadline\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}\n```",
+          "bodyBytes": 338,
+          "bodySha256": "919a2811afbcedd2513b0a7378b5c7894a16aacf9d2c22e7b035a0dee185d19d",
+          "createdAt": "2021-12-06T17:39:42Z",
+          "id": "PRRC_kwDODKw3uc4tfe_r",
+          "reviewedCommit": "afaf8d9de46b6761edb58bb779e9fd80c3ebcc46",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4dEEcc"
+        },
+        "initialCommit": "afaf8d9de46b6761edb58bb779e9fd80c3ebcc46",
+        "secondFixCommit": "e5b232fc22475724c70b5ef21c50114b398e8d5b",
+        "secondReview": {
+          "author": "mislav",
+          "body": "1. If there was an error, that error should be surfaced to the user and the command aborted. Is there a reason to intentionally silence it?\n2. What are the cases when `commit == nil`?",
+          "bodyBytes": 183,
+          "bodySha256": "bff3d4cdd33a3333a36548065f8a5fb359b1d5e00eb49a32e596c7555384b70f",
+          "createdAt": "2021-12-07T15:12:06Z",
+          "id": "PRRC_kwDODKw3uc4tixsv",
+          "reviewedCommit": "c06fa435f3c178fbb7d808ce71c72a75ec37f4f0",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4dGQmJ"
+        }
+      },
+      "pretargetEventCount": 8,
+      "rankSha256": "cbfb81e78d626f22d3222cf3cac1dfbd57b0eadc62e10b5ec51f71306072c130",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 222,
+        "rowSha256": "1fc5f50e3397a4c12a619ddaa91ac9f7b08156c6d23c5d9d0a3da02b85c71d71"
+      },
+      "pretargetRank": 42,
+      "repositoryRank": 19,
+      "restCaptureOrder": 46
+    },
+    {
+      "anchorId": "cli/cli#3414",
+      "canonicalAnchorId": "cli/cli#3414",
+      "captureDirectory": "cli__cli__3414",
+      "legalSequenceCount": 480,
+      "lineageIdentitySha256": "000954cb20f3ea533242d02953c2f447faed760597202bbd82fac38414cde6dc",
+      "linearReviewSequence": {
+        "firstFixCommit": "e63904bacd8e0b8e77cefb373dc4901f6dbcfffc",
+        "firstReview": {
+          "author": "samcoe",
+          "body": "Another possibility is that the Exporter interface could do the work that  `api/export_pr.go` is doing now. The interface could have additional functions like `ExportIssues` and `ExportPullRequests` that match up with  the `ExportData` functions there and then those functions could call the `Export` function once the issue/pr has been massaged into the right format.",
+          "bodyBytes": 368,
+          "bodySha256": "baf26ca152564edbcc56fb7d00805642d6361fa3072fdcf86c48980964983d19",
+          "createdAt": "2021-04-13T22:09:27Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDYxMjgwODA5Nw==",
+          "reviewedCommit": "a516ee68335c49f0bd54478fc34524f588040533",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMzg3NjgxNzc3OnYy"
+        },
+        "initialCommit": "a516ee68335c49f0bd54478fc34524f588040533",
+        "secondFixCommit": "654bd29ca0810785b1fdccf9933a8c56497552f2",
+        "secondReview": {
+          "author": "samcoe",
+          "body": "I think we could add one additional test for when the fields requested are invalid.",
+          "bodyBytes": 83,
+          "bodySha256": "aa0eae3b2126aaa661277b2e27e6294e213f8146716ca0d1706ecd8a9a4a3682",
+          "createdAt": "2021-04-14T17:18:30Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDYxMzQzMzg4NA==",
+          "reviewedCommit": "78e48e2dfdecb907ee8c956514e7434a39f1830e",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMzg4MDkxMTE0OnYy"
+        }
+      },
+      "pretargetEventCount": 18,
+      "rankSha256": "cc041f58af811218081d6c358db4907cdf79b2fcd6484c46b86cfd6127d23b9a",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 285,
+        "rowSha256": "86f2cea47d6c26bc7147f8e251477115c09bce66b9723de778733b61a503acd8"
+      },
+      "pretargetRank": 43,
+      "repositoryRank": 20,
+      "restCaptureOrder": 47
+    },
+    {
+      "anchorId": "mui/material-ui#25259",
+      "canonicalAnchorId": "mui/material-ui#25259",
+      "captureDirectory": "mui__material-ui__25259",
+      "legalSequenceCount": 7,
+      "lineageIdentitySha256": "33354c9ddcc44848c5ce848f1a5b3d5961f4b790f9cad21c5614aa483ee05a92",
+      "linearReviewSequence": {
+        "firstFixCommit": "d74bd2d718cb9c55a0cf0708f7b047b261fe5730",
+        "firstReview": {
+          "author": "m4theushw",
+          "body": "If `fireEvent.keyDown` is used the test passes even without the [fix](https://github.com/mui-org/material-ui/pull/25259/files#diff-568ef920605c2dd514b8da1ec390e9946f27fb02e3045de295fea37ae9916b39R204). I had to manually dispatch to not have RTL calling it inside an `act`.",
+          "bodyBytes": 272,
+          "bodySha256": "204881904d1ea2b6540eb3360a9efd9a96292396d73b3188546283737ff5c2d8",
+          "createdAt": "2021-03-08T02:14:56Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDU4OTEzMjQ1MA==",
+          "reviewedCommit": "6fb86426b66606c91cf4226f1db7ebc0caf9674e",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMzcxODczOTQxOnYy"
+        },
+        "initialCommit": "6fb86426b66606c91cf4226f1db7ebc0caf9674e",
+        "secondFixCommit": "34ec9c6053c3c73ae6cfc31e8cf084aa0f0590ab",
+        "secondReview": {
+          "author": "eps1lon",
+          "body": "This is great work. But we need to investigate https://github.com/mui-org/material-ui/pull/25259#discussion_r589132450 first. That analysis is incomplete.",
+          "bodyBytes": 154,
+          "bodySha256": "84cc72a74f8b6d2e882050fdb00183b286dc48b0da852a5952bd83f96c089aee",
+          "createdAt": "2021-03-10T08:38:58Z",
+          "id": "MDE3OlB1bGxSZXF1ZXN0UmV2aWV3NjA4NDUxOTMy",
+          "reviewedCommit": "d74bd2d718cb9c55a0cf0708f7b047b261fe5730",
+          "source": "whole-review",
+          "threadId": null
+        }
+      },
+      "pretargetEventCount": 12,
+      "rankSha256": "cfea0d6d739a8eb14674a380453b28f9755eff7b9a3540d23b82f3b62a7af563",
+      "repository": "mui/material-ui",
+      "requestedRepository": "mui/material-ui",
+      "source": {
+        "path": "ts/mui__material-ui_dataset.jsonl",
+        "rowIndex": 154,
+        "rowSha256": "c605c4331a6fe4c0f8d3bb85d74accd64de05e68fa62229e785a0a6009c971e5"
+      },
+      "pretargetRank": 44,
+      "repositoryRank": 8,
+      "restCaptureOrder": 35
+    },
+    {
+      "anchorId": "cli/cli#6567",
+      "canonicalAnchorId": "cli/cli#6567",
+      "captureDirectory": "cli__cli__6567",
+      "legalSequenceCount": 360,
+      "lineageIdentitySha256": "0022b95147b9444e0c435164b8537a0b3956f9923fe86fc438cd8d78f761d1d0",
+      "linearReviewSequence": {
+        "firstFixCommit": "869248fc53214b4ca179a1a503997ffcd3f00e06",
+        "firstReview": {
+          "author": "vilmibm",
+          "body": "my thinking was it might matter for interpreted extensions, but my non-scientific estimate of the current crop of extensions is they are either shell scripts or precompiled. i'm fine taking this out.",
+          "bodyBytes": 199,
+          "bodySha256": "1b278efbe1919d8aec4bc5829fa4d529c6f9f27af8467c13b3437a4ffd01ead6",
+          "createdAt": "2022-11-07T22:08:56Z",
+          "id": "PRRC_kwDODKw3uc48jiHz",
+          "reviewedCommit": "4a2c5f222a1041f377d60764413cc4fb0ec20a23",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4mv_Ke"
+        },
+        "initialCommit": "4a2c5f222a1041f377d60764413cc4fb0ec20a23",
+        "secondFixCommit": "3abba558f317acee75eef53b9bcbbc2d1179f603",
+        "secondReview": {
+          "author": "mntlty",
+          "body": "Would adding a space or a = make this more readable? For example `L 300`",
+          "bodyBytes": 72,
+          "bodySha256": "983ef39175dff0b0ef12811493badbe1de6a027da26b0b321030abff84745335",
+          "createdAt": "2022-11-08T19:23:56Z",
+          "id": "PRRC_kwDODKw3uc48nqdC",
+          "reviewedCommit": "e84383589e2f181440d05e1925505ffb17639e84",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc4my5mt"
+        }
+      },
+      "pretargetEventCount": 20,
+      "rankSha256": "d5c3e119f89337131df74ae431676fc9a369beeba4fecffd769cbc09a1a3ed99",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 151,
+        "rowSha256": "79ebf85c94ef49790a92575b7ab8b6f5bcde3a561676c63761ceb13fe211c496"
+      },
+      "pretargetRank": 45,
+      "repositoryRank": 21,
+      "restCaptureOrder": 48
+    },
+    {
+      "anchorId": "cli/cli#625",
+      "canonicalAnchorId": "cli/cli#625",
+      "captureDirectory": "cli__cli__625",
+      "legalSequenceCount": 1,
+      "lineageIdentitySha256": "8491eb11b96ac16f538765f761b16cdc9ce13d0bce6a7ad9f4ce1ba12095a80d",
+      "linearReviewSequence": {
+        "firstFixCommit": "2a87dabf59498c12030413d61d784446f5a71f4b",
+        "firstReview": {
+          "author": "mislav",
+          "body": "How come you are requesting author fields from the API? Is this going to be displayed somewhere?",
+          "bodyBytes": 96,
+          "bodySha256": "d0ab96f920ca1f67460ee045470eab5994599d350bb0a73eadf68ecb0b2869dc",
+          "createdAt": "2020-03-10T13:08:14Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDM5MDI5ODk0Ng==",
+          "reviewedCommit": "8e7ba907b195bf03f8ccb0ecb4d0595a740c93be",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMjQxODc1MjE0OnYy"
+        },
+        "initialCommit": "8e7ba907b195bf03f8ccb0ecb4d0595a740c93be",
+        "secondFixCommit": "834755acb6fc11c0d20c96162c5856245e75f297",
+        "secondReview": {
+          "author": "mislav",
+          "body": "Note: we are not requesting this field anymore, therefore we don't need this in stubbed results",
+          "bodyBytes": 95,
+          "bodySha256": "fad9d05d69ad8272bf99aecf771bca75d2696398ab991a9d4e0b2c2759e81520",
+          "createdAt": "2020-03-11T15:17:47Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDM5MTA0ODAyNQ==",
+          "reviewedCommit": "2a87dabf59498c12030413d61d784446f5a71f4b",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMjQyMzQ3Njk3OnYy"
+        }
+      },
+      "pretargetEventCount": 4,
+      "rankSha256": "db574d5568ee0285f21f61586423aedca0039a10d91f42b80a57ab25e9b2da48",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 381,
+        "rowSha256": "75cf4b2e963c3f710cbba1df199a1eac3ad638bfe710678a8b67bfb77133227b"
+      },
+      "pretargetRank": 46,
+      "repositoryRank": 22,
+      "restCaptureOrder": 49
+    },
+    {
+      "anchorId": "cli/cli#10239",
+      "canonicalAnchorId": "cli/cli#10239",
+      "captureDirectory": "cli__cli__10239",
+      "legalSequenceCount": 4,
+      "lineageIdentitySha256": "64946149f7b9d958a7e07d0f7c71cb49f6d62ae796daaf4ef22a47b2f9288319",
+      "linearReviewSequence": {
+        "firstFixCommit": "243acaf5792d62234f769c2a9125f81616cd6328",
+        "firstReview": {
+          "author": "andyfeller",
+          "body": "When I was changing the blocking behavior to non-blocking, I was worried about the extension dispatch completing too fast to allow the update check goroutine to complete and resulting in race conditions.\n\nThat said, happy to remove and deal with problems if/when they emerge.",
+          "bodyBytes": 275,
+          "bodySha256": "a9e26cc4864204c3fe8429e3f4d6d1b0ed993b062b0f3befcf909df963c1a2fc",
+          "createdAt": "2025-01-16T04:32:09Z",
+          "id": "PRRC_kwDODKw3uc5yTP6W",
+          "reviewedCommit": "bc8c46b0b1c1fd411e286990b950aad254cfb78f",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc5JJUg8"
+        },
+        "initialCommit": "bc8c46b0b1c1fd411e286990b950aad254cfb78f",
+        "secondFixCommit": "cc4bf0fc9fc58da7f4eb522aad3fa41f0f0068f5",
+        "secondReview": {
+          "author": "MM324-sys",
+          "body": "Rp command required",
+          "bodyBytes": 19,
+          "bodySha256": "b3843e0cb2c41e5b885a66d3c7d64f3bd6d3b203442173ac46c76fc0fb71756e",
+          "createdAt": "2025-01-16T06:08:19Z",
+          "id": "PRRC_kwDODKw3uc5yT0ed",
+          "reviewedCommit": "243acaf5792d62234f769c2a9125f81616cd6328",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDODKw3uc5JLaF3"
+        }
+      },
+      "pretargetEventCount": 9,
+      "rankSha256": "dcfb0963816b7696159817186705d7a70ff24986cd04aff44157607fce7a667d",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 7,
+        "rowSha256": "ab32606c38ac4cda8b66d1abe528784319b876c6f304517eaf4a5501ca223e05"
+      },
+      "pretargetRank": 47,
+      "repositoryRank": 23,
+      "restCaptureOrder": 50
+    },
+    {
+      "anchorId": "detekt/detekt#5009",
+      "canonicalAnchorId": "detekt/detekt#5009",
+      "captureDirectory": "detekt__detekt__5009",
+      "legalSequenceCount": 13,
+      "lineageIdentitySha256": "0b1ae66062b7d9b91811b610031375378e71aeb711eff8e51e358b98b5b3cda6",
+      "linearReviewSequence": {
+        "firstFixCommit": "1a9aa3cffec0b1da628e5a86fa670645ee96d8a3",
+        "firstReview": {
+          "author": "amitd291",
+          "body": "Refer reply to the code suggestion earlier.",
+          "bodyBytes": 43,
+          "bodySha256": "9a400e4eb727daf27c2f0f4b56225e8df9d772e7bf892eee63de4a4864d34146",
+          "createdAt": "2022-07-04T17:11:32Z",
+          "id": "PRR_kwDOBEaCBc49QoEK",
+          "reviewedCommit": "5736f427df5f38faeaddda12dbaceb1326eea3b9",
+          "source": "whole-review",
+          "threadId": null
+        },
+        "initialCommit": "5736f427df5f38faeaddda12dbaceb1326eea3b9",
+        "secondFixCommit": "69b3fd32157890e824e84781471fc660a14a19fd",
+        "secondReview": {
+          "author": "amitd291",
+          "body": "@gouri-panda I have an idea to solve this in a generic manner. If you're okay I can raise a PR on your fork branch `gouri-panda:fix-4753`?",
+          "bodyBytes": 138,
+          "bodySha256": "57c3ca2c7a4c71b23a4950b7aba433bdddb299bb82e1775f8a6a24871368fbe6",
+          "createdAt": "2022-07-09T07:35:45Z",
+          "id": "PRRC_kwDOBEaCBc42q-Rm",
+          "reviewedCommit": "1a9aa3cffec0b1da628e5a86fa670645ee96d8a3",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOBEaCBc4i7hOn"
+        }
+      },
+      "pretargetEventCount": 21,
+      "rankSha256": "e229859d010273ec03be3bb405885fd34f331b166b20ea2303a5d313d451cc6a",
+      "repository": "detekt/detekt",
+      "requestedRepository": "detekt/detekt",
+      "source": {
+        "path": "kotlin/detekt__detekt_dataset.jsonl",
+        "rowIndex": 18,
+        "rowSha256": "05744b3cbb96d68186daf39c675143b00d43a2bca0c5ca6a41a4652be338a4f5"
+      },
+      "pretargetRank": 48,
+      "repositoryRank": 1,
+      "restCaptureOrder": 13
+    },
+    {
+      "anchorId": "elastic/logstash#13902",
+      "canonicalAnchorId": "elastic/logstash#13902",
+      "captureDirectory": "elastic__logstash__13902",
+      "legalSequenceCount": 58,
+      "lineageIdentitySha256": "081fd64da0277bdffacc4090dd0c9881b374fb32e5d5c0271fcc7dca1fc0b846",
+      "linearReviewSequence": {
+        "firstFixCommit": "b5d4d48bcb8a262c4e7d13f45f5b397eed1f0728",
+        "firstReview": {
+          "author": "andsel",
+          "body": "Both can be `static`, I think in that case we have one instance for all the backoff instances",
+          "bodyBytes": 93,
+          "bodySha256": "2a311e478523430f34702201540b54dca74d78fd1f0085395dd9380d5d811cd6",
+          "createdAt": "2022-03-18T14:40:14Z",
+          "id": "PRRC_kwDOABCjB84xecoC",
+          "reviewedCommit": "c58cd03e3206c74197647cf569c808b4a0a40626",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOABCjB84for1c"
+        },
+        "initialCommit": "c58cd03e3206c74197647cf569c808b4a0a40626",
+        "secondFixCommit": "9b8f019963792523db874d533055e90da4e557bb",
+        "secondReview": {
+          "author": "andsel",
+          "body": "Also `maxRetry` could be primitive type",
+          "bodyBytes": 39,
+          "bodySha256": "4653bba35b7139f89cbdee51951861932f1130105486aa002c946d44621bd248",
+          "createdAt": "2022-03-18T16:28:02Z",
+          "id": "PRRC_kwDOABCjB84xe0t9",
+          "reviewedCommit": "b5d4d48bcb8a262c4e7d13f45f5b397eed1f0728",
+          "source": "review-thread-comment",
+          "threadId": "PRRT_kwDOABCjB84fo63d"
+        }
+      },
+      "pretargetEventCount": 15,
+      "rankSha256": "f1d2e89d7476f2c1c9b0c759c832163c88d59ebc8bb3f9235b9ae9633a2c5dfb",
+      "repository": "elastic/logstash",
+      "requestedRepository": "elastic/logstash",
+      "source": {
+        "path": "java/elastic__logstash_dataset.jsonl",
+        "rowIndex": 36,
+        "rowSha256": "126a57b346702a8fdfee659488e977835894ded0578738de1f93987d38e36cdf"
+      },
+      "pretargetRank": 49,
+      "repositoryRank": 3,
+      "restCaptureOrder": 23
+    },
+    {
+      "anchorId": "grpc/grpc-go#3476",
+      "canonicalAnchorId": "grpc/grpc-go#3476",
+      "captureDirectory": "grpc__grpc-go__3476",
+      "legalSequenceCount": 9,
+      "lineageIdentitySha256": "470c2cf9a3a4e51f38b74a7929b8369a037e0dbaad00db1ed410a53e4b200549",
+      "linearReviewSequence": {
+        "firstFixCommit": "d3c61a9402020e1de2537f0ed5ccb1095510622f",
+        "firstReview": {
+          "author": "easwars",
+          "body": "The reason I had the nil check in the `BuilderMap.Equal` was because it is a type alias to a map, and it can be nil. But the `builder` type is a struct, and the receiver for this method is not a pointer type, so this cannot be `nil`.",
+          "bodyBytes": 233,
+          "bodySha256": "24478c18009aab5fb4ec017668128ea5f626edc53decaf168941d3e71f0ac38c",
+          "createdAt": "2020-03-26T22:30:01Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDM5ODkzMTA4Nw==",
+          "reviewedCommit": "b2c7cc3743e31a7e2e847e5303a07a0ade5a56fd",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMjQ2ODk0NDcxOnYy"
+        },
+        "initialCommit": "b2c7cc3743e31a7e2e847e5303a07a0ade5a56fd",
+        "secondFixCommit": "648bc50f216b26899037ed3e56f52f5bdfcf0f8c",
+        "secondReview": {
+          "author": "menghanl",
+          "body": "Nit: `bBuider` can be defined in `for`\n```go\nfor key, bBuider := range bm {\n```",
+          "bodyBytes": 79,
+          "bodySha256": "e7727110ca45b670556905e935b55ff0886f6cfde963ded78db8642ab832cf1a",
+          "createdAt": "2020-03-30T22:47:29Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDQwMDU0MDI2NQ==",
+          "reviewedCommit": "d3c61a9402020e1de2537f0ed5ccb1095510622f",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMjQ4Mzg4MzY3OnYy"
+        }
+      },
+      "pretargetEventCount": 10,
+      "rankSha256": "f66c6d0c5cd1d83eee8d407e75b76ed2c634e89236485a959f1ab70d37405e4c",
+      "repository": "grpc/grpc-go",
+      "requestedRepository": "grpc/grpc-go",
+      "source": {
+        "path": "go/grpc__grpc-go_dataset.jsonl",
+        "rowIndex": 1,
+        "rowSha256": "0dd9c1c13d04ce77999b2111b29181b0a02ca019b8f3607dab25de738620ddd2"
+      },
+      "pretargetRank": 50,
+      "repositoryRank": 2,
+      "restCaptureOrder": 19
+    },
+    {
+      "anchorId": "cli/cli#2982",
+      "canonicalAnchorId": "cli/cli#2982",
+      "captureDirectory": "cli__cli__2982",
+      "legalSequenceCount": 12,
+      "lineageIdentitySha256": "121a3c708fc0678e11566a705d2a79810cf5577faf2aa9a5512569aba0b45a45",
+      "linearReviewSequence": {
+        "firstFixCommit": "c2966aa0085c6c1a795c1cb0390dd0b5ae15e6a6",
+        "firstReview": {
+          "author": "mislav",
+          "body": "I'm guessing the only way for `remoteName` to be blank is if the user passed `--remote-name=\"\"`, and in that case I expect that the command should fail since that isn't a valid value.",
+          "bodyBytes": 183,
+          "bodySha256": "94dd90c78b60ace164b4f0853bcd80a8de86aab78530381c5f30f7e75c2a825e",
+          "createdAt": "2021-02-17T11:48:21Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDU3NzU0Njg3NQ==",
+          "reviewedCommit": "d8af2e5630606bb5fa7d23e422c0998141a03e8e",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMzY0MDQxMDA0OnYy"
+        },
+        "initialCommit": "d8af2e5630606bb5fa7d23e422c0998141a03e8e",
+        "secondFixCommit": "26d23153a5fe48520b0ff5230c67e5cb8e7b8f40",
+        "secondReview": {
+          "author": "mislav",
+          "body": "Nit: this error could be more descriptive, e.g. `a git remote named '...' already exists`",
+          "bodyBytes": 89,
+          "bodySha256": "33b44ce4e8399f77ee6725b633b9563841ca84a929588ce0dea7d05966a1fed8",
+          "createdAt": "2021-02-17T18:24:55Z",
+          "id": "MDI0OlB1bGxSZXF1ZXN0UmV2aWV3Q29tbWVudDU3Nzg0Mjc5NA==",
+          "reviewedCommit": "57f1d4811a4fdcc53026c42ceb59959d6bc06653",
+          "source": "review-thread-comment",
+          "threadId": "MDIzOlB1bGxSZXF1ZXN0UmV2aWV3VGhyZWFkMzY0Mzk3Nzk2OnYy"
+        }
+      },
+      "pretargetEventCount": 5,
+      "rankSha256": "f8766a0f187a61533eeb7845d189a6a579494fde03fab0bed03e5b1d4419ec4b",
+      "repository": "cli/cli",
+      "requestedRepository": "cli/cli",
+      "source": {
+        "path": "go/cli__cli_dataset.jsonl",
+        "rowIndex": 293,
+        "rowSha256": "e5a2a5bd564f1562815cdf05308b6d41dcf4b5e5709c0adf15e537201afd356e"
+      },
+      "pretargetRank": 51,
+      "repositoryRank": 24,
+      "restCaptureOrder": 51
+    }
+  ],
+  "rule": {
+    "canonicalIdentity": "lowercase-resolved-repository-plus-pull-number",
+    "forbiddenSelectionInputs": [
+      "sourceTestSignals",
+      "patch",
+      "test",
+      "gold",
+      "outcome",
+      "isResolved",
+      "currentCommit",
+      "semanticScreeningDecision",
+      "machineQualificationDecision",
+      "captureHash"
+    ],
+    "legacyExclusion": "all-canonical-pulls-in-complete-legacy-screening-frame",
+    "pretargetOrder": "rankSha256-then-canonicalAnchorId",
+    "repositoryCap": 4,
+    "restCaptureOrder": "repositoryRank-then-rankSha256-then-canonicalAnchorId"
+  },
+  "schemaVersion": 1,
+  "unsupportedCaptures": [
+    {
+      "anchorId": "cli/cli#7201",
+      "reason": "graphql-pagination-not-linear-dag-complete"
+    },
+    {
+      "anchorId": "tokio-rs/tracing#1523",
+      "reason": "graphql-pagination-not-linear-dag-complete"
+    }
+  ]
+}

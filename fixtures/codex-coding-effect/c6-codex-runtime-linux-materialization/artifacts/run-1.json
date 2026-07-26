@@ -1,0 +1,251 @@
+{
+  "architecture": "x86_64",
+  "binCodex": {
+    "path": "node_modules/.bin/codex",
+    "target": "../@openai/codex/bin/codex.js",
+    "type": "symlink"
+  },
+  "codexVersionOutput": "codex-cli 0.145.0",
+  "executables": {
+    "bwrap": {
+      "bytes": 529776,
+      "mode": 493,
+      "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex-resources/bwrap",
+      "sha256": "77360cb751ccedc5971391444ac86a8a33c15b04d6b4a6fe45f5d25496e62c4c"
+    },
+    "codeModeHost": {
+      "bytes": 46139288,
+      "mode": 493,
+      "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex-code-mode-host",
+      "sha256": "60bf16414be5333f09ff082540082304c7352931ef64bdeb170d4c35a82e6ef8"
+    },
+    "nativeCodex": {
+      "bytes": 310730800,
+      "mode": 493,
+      "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex",
+      "sha256": "a2a05dafaa1acb002a45eaec0a462de5b13694fcfcd7bc43305f14781ce7be14"
+    },
+    "rg": {
+      "bytes": 5408904,
+      "mode": 493,
+      "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex-path/rg",
+      "sha256": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849"
+    },
+    "wrapperCodexJs": {
+      "bytes": 7236,
+      "mode": 493,
+      "path": "node_modules/@openai/codex/bin/codex.js",
+      "sha256": "134063e133f0b4244fa3b251acf973d4fe4b4aeeacbdc135211bf480f59f1477"
+    },
+    "zsh": {
+      "bytes": 898480,
+      "mode": 493,
+      "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex-resources/zsh/bin/zsh",
+      "sha256": "67faaaa89242c4a332e16e508a1977cffc24bf7fca31d4411cdfd101f3831ef3"
+    }
+  },
+  "installedPackages": [
+    {
+      "location": "node_modules/@openai/codex",
+      "name": "@openai/codex",
+      "version": "0.145.0"
+    },
+    {
+      "location": "node_modules/@openai/codex-linux-x64",
+      "name": "@openai/codex",
+      "version": "0.145.0-linux-x64"
+    }
+  ],
+  "installedTree": {
+    "entries": [
+      {
+        "mode": 493,
+        "path": "node_modules/.bin",
+        "type": "directory"
+      },
+      {
+        "mode": 493,
+        "path": "node_modules/.bin/codex",
+        "target": "../@openai/codex/bin/codex.js",
+        "type": "symlink"
+      },
+      {
+        "bytes": 1552,
+        "mode": 420,
+        "path": "node_modules/.package-lock.json",
+        "sha256": "be3b344b1d49c872333e769fe1b57b940fb4b7c72c0afed104e674f13484d71f",
+        "type": "file"
+      },
+      {
+        "mode": 493,
+        "path": "node_modules/@openai",
+        "type": "directory"
+      },
+      {
+        "mode": 493,
+        "path": "node_modules/@openai/codex",
+        "type": "directory"
+      },
+      {
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64",
+        "type": "directory"
+      },
+      {
+        "bytes": 2814,
+        "mode": 420,
+        "path": "node_modules/@openai/codex-linux-x64/README.md",
+        "sha256": "8ef3dd9dd00c7dd39d1f0b77de69d25cff4dd3fe7768ec3a3cd1fc9c0aa5b76c",
+        "type": "file"
+      },
+      {
+        "bytes": 511,
+        "mode": 420,
+        "path": "node_modules/@openai/codex-linux-x64/package.json",
+        "sha256": "84f3243fd73f23dc27effde18f96db6ed0a939448299a14d594022e6341f0fd5",
+        "type": "file"
+      },
+      {
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor",
+        "type": "directory"
+      },
+      {
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl",
+        "type": "directory"
+      },
+      {
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin",
+        "type": "directory"
+      },
+      {
+        "bytes": 310730800,
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex",
+        "sha256": "a2a05dafaa1acb002a45eaec0a462de5b13694fcfcd7bc43305f14781ce7be14",
+        "type": "file"
+      },
+      {
+        "bytes": 46139288,
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex-code-mode-host",
+        "sha256": "60bf16414be5333f09ff082540082304c7352931ef64bdeb170d4c35a82e6ef8",
+        "type": "file"
+      },
+      {
+        "bytes": 205,
+        "mode": 420,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex-package.json",
+        "sha256": "8da5349aa5a4242f5e11c5ca8ff4a16d8f9f912cb8accebea4def94edbf30aee",
+        "type": "file"
+      },
+      {
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex-path",
+        "type": "directory"
+      },
+      {
+        "bytes": 5408904,
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex-path/rg",
+        "sha256": "e62198eb19b136b88c330af83647b5a962cb99b6b1f066758568f12de1974849",
+        "type": "file"
+      },
+      {
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex-resources",
+        "type": "directory"
+      },
+      {
+        "bytes": 529776,
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex-resources/bwrap",
+        "sha256": "77360cb751ccedc5971391444ac86a8a33c15b04d6b4a6fe45f5d25496e62c4c",
+        "type": "file"
+      },
+      {
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex-resources/zsh",
+        "type": "directory"
+      },
+      {
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex-resources/zsh/bin",
+        "type": "directory"
+      },
+      {
+        "bytes": 898480,
+        "mode": 493,
+        "path": "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex-resources/zsh/bin/zsh",
+        "sha256": "67faaaa89242c4a332e16e508a1977cffc24bf7fca31d4411cdfd101f3831ef3",
+        "type": "file"
+      },
+      {
+        "bytes": 2814,
+        "mode": 420,
+        "path": "node_modules/@openai/codex/README.md",
+        "sha256": "8ef3dd9dd00c7dd39d1f0b77de69d25cff4dd3fe7768ec3a3cd1fc9c0aa5b76c",
+        "type": "file"
+      },
+      {
+        "mode": 493,
+        "path": "node_modules/@openai/codex/bin",
+        "type": "directory"
+      },
+      {
+        "bytes": 7236,
+        "mode": 493,
+        "path": "node_modules/@openai/codex/bin/codex.js",
+        "sha256": "134063e133f0b4244fa3b251acf973d4fe4b4aeeacbdc135211bf480f59f1477",
+        "type": "file"
+      },
+      {
+        "bytes": 1082,
+        "mode": 420,
+        "path": "node_modules/@openai/codex/package.json",
+        "sha256": "ff896fd5e5444cfc645890b21273ad1c6b3e26e4e4ab0934de597a0f8db5aafb",
+        "type": "file"
+      }
+    ],
+    "sha256": "f4dd92f92e35501f547e76be3e9f916d4b701ac28d78a533c89337dcd0d4e39a"
+  },
+  "kind": "c6-codex-runtime-linux-run",
+  "operatingSystem": "Linux",
+  "packageLock": {
+    "afterSha256": "fdf4dcd7dc1b7a6d578beebf95527d49ae3ffa74ed39528245984712113d8844",
+    "beforeSha256": "fdf4dcd7dc1b7a6d578beebf95527d49ae3ffa74ed39528245984712113d8844",
+    "unchanged": true
+  },
+  "packageManifests": {
+    "linuxX64": {
+      "bytes": 511,
+      "mode": 420,
+      "path": "node_modules/@openai/codex-linux-x64/package.json",
+      "sha256": "84f3243fd73f23dc27effde18f96db6ed0a939448299a14d594022e6341f0fd5"
+    },
+    "main": {
+      "bytes": 1082,
+      "mode": 420,
+      "path": "node_modules/@openai/codex/package.json",
+      "sha256": "ff896fd5e5444cfc645890b21273ad1c6b3e26e4e4ab0934de597a0f8db5aafb"
+    }
+  },
+  "runtime": {
+    "bun": {
+      "executableSha256": "45598a2814020c231575487a560e47d397d6902355d7e08171a2e56221a6d675",
+      "version": "1.3.11"
+    },
+    "node": {
+      "executableSha256": "1abce2374a485bddae3c27b17a3e3143e2780232026e627c4fe74ddde3f380a1",
+      "version": "v22.14.0"
+    },
+    "npm": {
+      "cliSha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+      "launcherSha256": "8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7",
+      "version": "10.9.2"
+    }
+  },
+  "schemaVersion": 1
+}

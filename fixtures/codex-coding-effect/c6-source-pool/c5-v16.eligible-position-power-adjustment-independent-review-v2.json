@@ -1,0 +1,83 @@
+{
+  "artifactKind": "c6-eligible-position-power-adjustment-independent-review",
+  "boundary": {
+    "acceptedUse": "internal deterministic C5 v16 eligible-position power recalculation retaining the 391-episode floor",
+    "c6CandidateCapacityEvidence": false,
+    "c6OutcomeEvidence": false,
+    "cryptographicReceipt": false,
+    "minimumEpisodeFloorReductionSupported": false,
+    "notAcceptedFor": [
+      "reducing the C6 primary cohort below 391 analyzable episodes",
+      "proving current C6 candidate supply or capacity",
+      "C6 outcome inference",
+      "public coding-effect claims"
+    ],
+    "publicClaimEligible": false,
+    "receiptStructureStatus": "captured-from-independent-agent-response-not-cryptographically-authenticated"
+  },
+  "decision": "accept-with-boundaries",
+  "findings": {
+    "openP0": 0,
+    "openP1": 0,
+    "openP2": 0,
+    "postReviewP3Remediation": {
+      "artifactBytesChanged": false,
+      "artifactSha256AfterRename": "7c0ce1f26af3540fc84359db10500e9e9bc04b4186e80a87ca3bbc3174ac4b72",
+      "focusedFrozenInputTestsAfterRename": {
+        "assertions": 18,
+        "failed": 0,
+        "passed": 6
+      },
+      "newPath": "c5-v16.eligible-position-power-adjustment-v2.json",
+      "oldPath": "c5-v16.eligible-position-power-adjustment-v1.json",
+      "status": "schema-version-filename-aligned"
+    },
+    "reviewedP3": [
+      {
+        "finding": "The reviewed artifact used a v1 filename while declaring schemaVersion 2.",
+        "status": "remediated-by-byte-preserving-rename-after-review"
+      }
+    ]
+  },
+  "independentRecalculation": {
+    "betweenMeanSquare": 0.8,
+    "completeComparableEpisodeCount": 5,
+    "designEffect": 6,
+    "eligibleComparablePairCount": 20,
+    "eligibleIncomparablePairCount": 4,
+    "eligiblePairProjectionSha256": "88e704280d7603f6b33ed3c703236740fd34a74c1b3279d7919aae5e7573aa35",
+    "eligibleScheduledPairCount": 24,
+    "iccPointEstimate": 1,
+    "minimumEpisodeFloor": 391,
+    "pairedObservationsBeforeClustering": 391,
+    "withinMeanSquare": 0
+  },
+  "inputs": {
+    "attemptLedgerSha256": "6f563835048bcb376c24be48002bcf6c2ec46fe8122c4e669feb558502ae7beb",
+    "pairsSha256": "633a8af83ff25e06de644bd380359544f9f0aacc1cffa00585fb58b6dc6f17fe",
+    "pilotPlanSha256": "ef7668a289d1eadbc63f020d5dcd2d1973f39722399d8349a4fd3437fbe2e72b",
+    "projectionManifestSha256": "41656ed99fbadfabe836aafc39d82b2416ecda368fd8a13830ff5197e6176323",
+    "reportSha256": "5985be5969750286ef2d2af623741e12051d3830f96bd4b8e0907b849b1eab0b",
+    "stageExecutionsSha256": "c0bb87ff4f4c8c9763012ef4793954ee48c46fc64b6428a4f1a01237ff2a1c07"
+  },
+  "planningInputs": {
+    "alpha": 0.05,
+    "materialEffectRate": 0.1,
+    "planningDiscordanceRate": 0.5,
+    "power": 0.8
+  },
+  "review": {
+    "filesModifiedByReviewer": false,
+    "gitHead": "3cb4eede61d0c7385806e13f5cac1e18d6415d19",
+    "gitIndexTree": "2d5b368c2d4d613906419f017888a435205b123e",
+    "mode": "fork-turns-none-read-only",
+    "networkUsed": false,
+    "reviewedArtifact": {
+      "bytesSha256": "7c0ce1f26af3540fc84359db10500e9e9bc04b4186e80a87ca3bbc3174ac4b72",
+      "schemaVersion": 2
+    },
+    "receiptCapturedAt": "2026-07-26T04:12:25Z",
+    "reviewerAgentName": "/root/c6_power_rereview"
+  },
+  "schemaVersion": 1
+}

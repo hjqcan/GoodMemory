@@ -1,0 +1,815 @@
+{
+  "url": "https://api.github.com/repos/jqlang/jq/compare/a6920601299913ec5f9c9a8883517ec10dd71ffe...f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+  "html_url": "https://github.com/jqlang/jq/compare/a6920601299913ec5f9c9a8883517ec10dd71ffe...f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+  "permalink_url": "https://github.com/jqlang/jq/compare/jqlang:a692060...jqlang:f31c180",
+  "diff_url": "https://github.com/jqlang/jq/compare/a6920601299913ec5f9c9a8883517ec10dd71ffe...f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2.diff",
+  "patch_url": "https://github.com/jqlang/jq/compare/a6920601299913ec5f9c9a8883517ec10dd71ffe...f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2.patch",
+  "base_commit": {
+    "sha": "a6920601299913ec5f9c9a8883517ec10dd71ffe",
+    "node_id": "C_kwDOAE3WVdoAKGE2OTIwNjAxMjk5OTEzZWM1ZjljOWE4ODgzNTE3ZWMxMGRkNzFmZmU",
+    "commit": {
+      "author": {
+        "name": "itchyny",
+        "email": "itchyny@cybozu.co.jp",
+        "date": "2023-08-05T10:18:07Z"
+      },
+      "committer": {
+        "name": "Nico Williams",
+        "email": "nico@cryptonector.com",
+        "date": "2023-08-06T04:21:12Z"
+      },
+      "message": "Change the default color of null to Bright Black",
+      "tree": {
+        "sha": "abe1dbc2eb65473186a4962dd4ff156562c2a5e3",
+        "url": "https://api.github.com/repos/jqlang/jq/git/trees/abe1dbc2eb65473186a4962dd4ff156562c2a5e3"
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/git/commits/a6920601299913ec5f9c9a8883517ec10dd71ffe",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    },
+    "url": "https://api.github.com/repos/jqlang/jq/commits/a6920601299913ec5f9c9a8883517ec10dd71ffe",
+    "html_url": "https://github.com/jqlang/jq/commit/a6920601299913ec5f9c9a8883517ec10dd71ffe",
+    "comments_url": "https://api.github.com/repos/jqlang/jq/commits/a6920601299913ec5f9c9a8883517ec10dd71ffe/comments",
+    "author": {
+      "login": "itchyny",
+      "id": 375258,
+      "node_id": "MDQ6VXNlcjM3NTI1OA==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/375258?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/itchyny",
+      "html_url": "https://github.com/itchyny",
+      "followers_url": "https://api.github.com/users/itchyny/followers",
+      "following_url": "https://api.github.com/users/itchyny/following{/other_user}",
+      "gists_url": "https://api.github.com/users/itchyny/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/itchyny/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/itchyny/subscriptions",
+      "organizations_url": "https://api.github.com/users/itchyny/orgs",
+      "repos_url": "https://api.github.com/users/itchyny/repos",
+      "events_url": "https://api.github.com/users/itchyny/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/itchyny/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nicowilliams",
+      "id": 604851,
+      "node_id": "MDQ6VXNlcjYwNDg1MQ==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/604851?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nicowilliams",
+      "html_url": "https://github.com/nicowilliams",
+      "followers_url": "https://api.github.com/users/nicowilliams/followers",
+      "following_url": "https://api.github.com/users/nicowilliams/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nicowilliams/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nicowilliams/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nicowilliams/subscriptions",
+      "organizations_url": "https://api.github.com/users/nicowilliams/orgs",
+      "repos_url": "https://api.github.com/users/nicowilliams/repos",
+      "events_url": "https://api.github.com/users/nicowilliams/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nicowilliams/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "f94a9d463ffb3422861a0da140470dbf5ce76632",
+        "url": "https://api.github.com/repos/jqlang/jq/commits/f94a9d463ffb3422861a0da140470dbf5ce76632",
+        "html_url": "https://github.com/jqlang/jq/commit/f94a9d463ffb3422861a0da140470dbf5ce76632"
+      }
+    ]
+  },
+  "merge_base_commit": {
+    "sha": "a6920601299913ec5f9c9a8883517ec10dd71ffe",
+    "node_id": "C_kwDOAE3WVdoAKGE2OTIwNjAxMjk5OTEzZWM1ZjljOWE4ODgzNTE3ZWMxMGRkNzFmZmU",
+    "commit": {
+      "author": {
+        "name": "itchyny",
+        "email": "itchyny@cybozu.co.jp",
+        "date": "2023-08-05T10:18:07Z"
+      },
+      "committer": {
+        "name": "Nico Williams",
+        "email": "nico@cryptonector.com",
+        "date": "2023-08-06T04:21:12Z"
+      },
+      "message": "Change the default color of null to Bright Black",
+      "tree": {
+        "sha": "abe1dbc2eb65473186a4962dd4ff156562c2a5e3",
+        "url": "https://api.github.com/repos/jqlang/jq/git/trees/abe1dbc2eb65473186a4962dd4ff156562c2a5e3"
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/git/commits/a6920601299913ec5f9c9a8883517ec10dd71ffe",
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    },
+    "url": "https://api.github.com/repos/jqlang/jq/commits/a6920601299913ec5f9c9a8883517ec10dd71ffe",
+    "html_url": "https://github.com/jqlang/jq/commit/a6920601299913ec5f9c9a8883517ec10dd71ffe",
+    "comments_url": "https://api.github.com/repos/jqlang/jq/commits/a6920601299913ec5f9c9a8883517ec10dd71ffe/comments",
+    "author": {
+      "login": "itchyny",
+      "id": 375258,
+      "node_id": "MDQ6VXNlcjM3NTI1OA==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/375258?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/itchyny",
+      "html_url": "https://github.com/itchyny",
+      "followers_url": "https://api.github.com/users/itchyny/followers",
+      "following_url": "https://api.github.com/users/itchyny/following{/other_user}",
+      "gists_url": "https://api.github.com/users/itchyny/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/itchyny/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/itchyny/subscriptions",
+      "organizations_url": "https://api.github.com/users/itchyny/orgs",
+      "repos_url": "https://api.github.com/users/itchyny/repos",
+      "events_url": "https://api.github.com/users/itchyny/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/itchyny/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "nicowilliams",
+      "id": 604851,
+      "node_id": "MDQ6VXNlcjYwNDg1MQ==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/604851?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/nicowilliams",
+      "html_url": "https://github.com/nicowilliams",
+      "followers_url": "https://api.github.com/users/nicowilliams/followers",
+      "following_url": "https://api.github.com/users/nicowilliams/following{/other_user}",
+      "gists_url": "https://api.github.com/users/nicowilliams/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/nicowilliams/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/nicowilliams/subscriptions",
+      "organizations_url": "https://api.github.com/users/nicowilliams/orgs",
+      "repos_url": "https://api.github.com/users/nicowilliams/repos",
+      "events_url": "https://api.github.com/users/nicowilliams/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/nicowilliams/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "f94a9d463ffb3422861a0da140470dbf5ce76632",
+        "url": "https://api.github.com/repos/jqlang/jq/commits/f94a9d463ffb3422861a0da140470dbf5ce76632",
+        "html_url": "https://github.com/jqlang/jq/commit/f94a9d463ffb3422861a0da140470dbf5ce76632"
+      }
+    ]
+  },
+  "status": "ahead",
+  "ahead_by": 6,
+  "behind_by": 0,
+  "total_commits": 6,
+  "commits": [
+    {
+      "sha": "d1a6da22054fc249ae4cbe04402709b029101786",
+      "node_id": "C_kwDOAE3WVdoAKGQxYTZkYTIyMDU0ZmMyNDlhZTRjYmUwNDQwMjcwOWIwMjkxMDE3ODY",
+      "commit": {
+        "author": {
+          "name": "Naïm Favier",
+          "email": "n@monade.li",
+          "date": "2023-08-09T15:51:22Z"
+        },
+        "committer": {
+          "name": "Emanuele Torre",
+          "email": "torreemanuele6@gmail.com",
+          "date": "2023-08-09T16:20:04Z"
+        },
+        "message": "docs: fix delpaths description",
+        "tree": {
+          "sha": "a274e39cb67d66a17e60ee2e4a2220c72f3eda66",
+          "url": "https://api.github.com/repos/jqlang/jq/git/trees/a274e39cb67d66a17e60ee2e4a2220c72f3eda66"
+        },
+        "url": "https://api.github.com/repos/jqlang/jq/git/commits/d1a6da22054fc249ae4cbe04402709b029101786",
+        "comment_count": 0,
+        "verification": {
+          "verified": false,
+          "reason": "unsigned",
+          "signature": null,
+          "payload": null,
+          "verified_at": null
+        }
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/commits/d1a6da22054fc249ae4cbe04402709b029101786",
+      "html_url": "https://github.com/jqlang/jq/commit/d1a6da22054fc249ae4cbe04402709b029101786",
+      "comments_url": "https://api.github.com/repos/jqlang/jq/commits/d1a6da22054fc249ae4cbe04402709b029101786/comments",
+      "author": {
+        "login": "ncfavier",
+        "id": 4323933,
+        "node_id": "MDQ6VXNlcjQzMjM5MzM=",
+        "avatar_url": "https://avatars.githubusercontent.com/u/4323933?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/ncfavier",
+        "html_url": "https://github.com/ncfavier",
+        "followers_url": "https://api.github.com/users/ncfavier/followers",
+        "following_url": "https://api.github.com/users/ncfavier/following{/other_user}",
+        "gists_url": "https://api.github.com/users/ncfavier/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/ncfavier/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/ncfavier/subscriptions",
+        "organizations_url": "https://api.github.com/users/ncfavier/orgs",
+        "repos_url": "https://api.github.com/users/ncfavier/repos",
+        "events_url": "https://api.github.com/users/ncfavier/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/ncfavier/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "committer": {
+        "login": "emanuele6",
+        "id": 20175435,
+        "node_id": "MDQ6VXNlcjIwMTc1NDM1",
+        "avatar_url": "https://avatars.githubusercontent.com/u/20175435?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/emanuele6",
+        "html_url": "https://github.com/emanuele6",
+        "followers_url": "https://api.github.com/users/emanuele6/followers",
+        "following_url": "https://api.github.com/users/emanuele6/following{/other_user}",
+        "gists_url": "https://api.github.com/users/emanuele6/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/emanuele6/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/emanuele6/subscriptions",
+        "organizations_url": "https://api.github.com/users/emanuele6/orgs",
+        "repos_url": "https://api.github.com/users/emanuele6/repos",
+        "events_url": "https://api.github.com/users/emanuele6/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/emanuele6/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "parents": [
+        {
+          "sha": "a6920601299913ec5f9c9a8883517ec10dd71ffe",
+          "url": "https://api.github.com/repos/jqlang/jq/commits/a6920601299913ec5f9c9a8883517ec10dd71ffe",
+          "html_url": "https://github.com/jqlang/jq/commit/a6920601299913ec5f9c9a8883517ec10dd71ffe"
+        }
+      ]
+    },
+    {
+      "sha": "765a5c77eb919bca04a20c000b8a1df65f8d81eb",
+      "node_id": "C_kwDOAE3WVdoAKDc2NWE1Yzc3ZWI5MTliY2EwNGEyMGMwMDBiOGExZGY2NWY4ZDgxZWI",
+      "commit": {
+        "author": {
+          "name": "Mattias Wadman",
+          "email": "mattias.wadman@gmail.com",
+          "date": "2023-08-10T16:53:50Z"
+        },
+        "committer": {
+          "name": "GitHub",
+          "email": "noreply@github.com",
+          "date": "2023-08-10T16:53:50Z"
+        },
+        "message": "Make sure to init dtoa_ctx_key also on win32 (#2834)\n\nFixes page fault for mingw build\r\n\r\nRelated to #2831",
+        "tree": {
+          "sha": "36f251aec82c746c1fc40094290bd58de3f6a279",
+          "url": "https://api.github.com/repos/jqlang/jq/git/trees/36f251aec82c746c1fc40094290bd58de3f6a279"
+        },
+        "url": "https://api.github.com/repos/jqlang/jq/git/commits/765a5c77eb919bca04a20c000b8a1df65f8d81eb",
+        "comment_count": 0,
+        "verification": {
+          "verified": true,
+          "reason": "valid",
+          "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJk1RYeCRBK7hj4Ov3rIwAAObAIAF4hP/G4HQfAxdt8yGMwXubs\n/K/rzBfLkyoCDLON65toD+76sC9bwmQfmyI0ng+jdlSkvw/7YRdREOdmdOznl6af\nwpHoYsUN89QAmzF4ZOI5krZWJ1TuNntEUgTVCMyv6IysQhci+EC6VCugIn07kwFt\nYR1SpJASQOk6fug7GTUtzSM6ffw3pi3HdX53VR0RlmxSGisSQHdTYZlm4/sdLoDa\n7QZVEb8MbdyvnBVRmDUbS74DOCR18uXmqtcntj9BPVkMpwyF66dh+9N+HLOoyy0R\nwB5ev1HbXCwn4WIA1uDK4/7osS1M4KnVZi7uU99nnG9qh3ISmc6SzlmTH2qHTt0=\n=CVeF\n-----END PGP SIGNATURE-----\n",
+          "payload": "tree 36f251aec82c746c1fc40094290bd58de3f6a279\nparent d1a6da22054fc249ae4cbe04402709b029101786\nauthor Mattias Wadman <mattias.wadman@gmail.com> 1691686430 +0200\ncommitter GitHub <noreply@github.com> 1691686430 +0200\n\nMake sure to init dtoa_ctx_key also on win32 (#2834)\n\nFixes page fault for mingw build\r\n\r\nRelated to #2831",
+          "verified_at": "2024-01-16T19:59:59Z"
+        }
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/commits/765a5c77eb919bca04a20c000b8a1df65f8d81eb",
+      "html_url": "https://github.com/jqlang/jq/commit/765a5c77eb919bca04a20c000b8a1df65f8d81eb",
+      "comments_url": "https://api.github.com/repos/jqlang/jq/commits/765a5c77eb919bca04a20c000b8a1df65f8d81eb/comments",
+      "author": {
+        "login": "wader",
+        "id": 185566,
+        "node_id": "MDQ6VXNlcjE4NTU2Ng==",
+        "avatar_url": "https://avatars.githubusercontent.com/u/185566?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/wader",
+        "html_url": "https://github.com/wader",
+        "followers_url": "https://api.github.com/users/wader/followers",
+        "following_url": "https://api.github.com/users/wader/following{/other_user}",
+        "gists_url": "https://api.github.com/users/wader/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/wader/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/wader/subscriptions",
+        "organizations_url": "https://api.github.com/users/wader/orgs",
+        "repos_url": "https://api.github.com/users/wader/repos",
+        "events_url": "https://api.github.com/users/wader/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/wader/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "committer": {
+        "login": "web-flow",
+        "id": 19864447,
+        "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+        "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/web-flow",
+        "html_url": "https://github.com/web-flow",
+        "followers_url": "https://api.github.com/users/web-flow/followers",
+        "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+        "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+        "organizations_url": "https://api.github.com/users/web-flow/orgs",
+        "repos_url": "https://api.github.com/users/web-flow/repos",
+        "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/web-flow/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "parents": [
+        {
+          "sha": "d1a6da22054fc249ae4cbe04402709b029101786",
+          "url": "https://api.github.com/repos/jqlang/jq/commits/d1a6da22054fc249ae4cbe04402709b029101786",
+          "html_url": "https://github.com/jqlang/jq/commit/d1a6da22054fc249ae4cbe04402709b029101786"
+        }
+      ]
+    },
+    {
+      "sha": "5a52553a3be6ef3e44928cab20f96cdaa3e8b5dc",
+      "node_id": "C_kwDOAE3WVdoAKDVhNTI1NTNhM2JlNmVmM2U0NDkyOGNhYjIwZjk2Y2RhYTNlOGI1ZGM",
+      "commit": {
+        "author": {
+          "name": "Mattias Wadman",
+          "email": "mattias.wadman@gmail.com",
+          "date": "2023-08-10T17:13:58Z"
+        },
+        "committer": {
+          "name": "Nico Williams",
+          "email": "nico@cryptonector.com",
+          "date": "2023-08-10T18:06:03Z"
+        },
+        "message": "Make sure to init key and dbl_key also on win32\n\nHopefully fixes page fault for mingw build\n\nRelated to #2831",
+        "tree": {
+          "sha": "c00ad020b914a83031e1195d7d6eaa3f8845beb6",
+          "url": "https://api.github.com/repos/jqlang/jq/git/trees/c00ad020b914a83031e1195d7d6eaa3f8845beb6"
+        },
+        "url": "https://api.github.com/repos/jqlang/jq/git/commits/5a52553a3be6ef3e44928cab20f96cdaa3e8b5dc",
+        "comment_count": 0,
+        "verification": {
+          "verified": false,
+          "reason": "unsigned",
+          "signature": null,
+          "payload": null,
+          "verified_at": null
+        }
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/commits/5a52553a3be6ef3e44928cab20f96cdaa3e8b5dc",
+      "html_url": "https://github.com/jqlang/jq/commit/5a52553a3be6ef3e44928cab20f96cdaa3e8b5dc",
+      "comments_url": "https://api.github.com/repos/jqlang/jq/commits/5a52553a3be6ef3e44928cab20f96cdaa3e8b5dc/comments",
+      "author": {
+        "login": "wader",
+        "id": 185566,
+        "node_id": "MDQ6VXNlcjE4NTU2Ng==",
+        "avatar_url": "https://avatars.githubusercontent.com/u/185566?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/wader",
+        "html_url": "https://github.com/wader",
+        "followers_url": "https://api.github.com/users/wader/followers",
+        "following_url": "https://api.github.com/users/wader/following{/other_user}",
+        "gists_url": "https://api.github.com/users/wader/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/wader/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/wader/subscriptions",
+        "organizations_url": "https://api.github.com/users/wader/orgs",
+        "repos_url": "https://api.github.com/users/wader/repos",
+        "events_url": "https://api.github.com/users/wader/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/wader/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "committer": {
+        "login": "nicowilliams",
+        "id": 604851,
+        "node_id": "MDQ6VXNlcjYwNDg1MQ==",
+        "avatar_url": "https://avatars.githubusercontent.com/u/604851?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/nicowilliams",
+        "html_url": "https://github.com/nicowilliams",
+        "followers_url": "https://api.github.com/users/nicowilliams/followers",
+        "following_url": "https://api.github.com/users/nicowilliams/following{/other_user}",
+        "gists_url": "https://api.github.com/users/nicowilliams/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/nicowilliams/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/nicowilliams/subscriptions",
+        "organizations_url": "https://api.github.com/users/nicowilliams/orgs",
+        "repos_url": "https://api.github.com/users/nicowilliams/repos",
+        "events_url": "https://api.github.com/users/nicowilliams/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/nicowilliams/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "parents": [
+        {
+          "sha": "765a5c77eb919bca04a20c000b8a1df65f8d81eb",
+          "url": "https://api.github.com/repos/jqlang/jq/commits/765a5c77eb919bca04a20c000b8a1df65f8d81eb",
+          "html_url": "https://github.com/jqlang/jq/commit/765a5c77eb919bca04a20c000b8a1df65f8d81eb"
+        }
+      ]
+    },
+    {
+      "sha": "fdab39bc7b8d41c1ae410f03a42afc10a9322c99",
+      "node_id": "C_kwDOAE3WVdoAKGZkYWIzOWJjN2I4ZDQxYzFhZTQxMGYwM2E0MmFmYzEwYTkzMjJjOTk",
+      "commit": {
+        "author": {
+          "name": "Mattias Wadman",
+          "email": "mattias.wadman@gmail.com",
+          "date": "2023-08-12T18:18:45Z"
+        },
+        "committer": {
+          "name": "GitHub",
+          "email": "noreply@github.com",
+          "date": "2023-08-12T18:18:45Z"
+        },
+        "message": "Build windows 64bit binary using UCRT64 (#2832)\n\n* Build windows 64bit binary using UCRT64\r\n\r\nIs the default and recommended msystem setting. Will produce\r\nbinaries that are compatible with windows 10 and later.\r\n\r\nAlso run tests for 32bit build.\r\n\r\nRelated to #2831\r\n\r\n* Use jq -b in tests/shtest\r\n\r\n* Add Windows strptime\r\n\r\n* Make Windows-optional tests not run on Windows again\r\n\r\n---------\r\n\r\nCo-authored-by: Nicolas Williams <nico@cryptonector.com>",
+        "tree": {
+          "sha": "bbc3acf5253585e348a720b4706bd0427e81e392",
+          "url": "https://api.github.com/repos/jqlang/jq/git/trees/bbc3acf5253585e348a720b4706bd0427e81e392"
+        },
+        "url": "https://api.github.com/repos/jqlang/jq/git/commits/fdab39bc7b8d41c1ae410f03a42afc10a9322c99",
+        "comment_count": 0,
+        "verification": {
+          "verified": true,
+          "reason": "valid",
+          "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJk180FCRBK7hj4Ov3rIwAAdMkIAKgkvGVHq+i5pZIhmOPcOFJM\nE2YdPsWcQ5CF67PJC/qinJx9UV+MA6XzoPtGzaJyJBiWzDXK2OhO/EALtLHZOMeU\na/YodAq3+P/ZSxcBhVOkMQpriJl8IZdd0sfuW8zBIf/XC6+amqzy6NRrfdImyPk6\nNDwSj2hkRTC+3KC9VbMaKqaQcMC2+tfxp4+BLre6CO3FVU0lHhu5xNPBnDhFwVhD\nB03cL5OzsU75cTeWHpypEd057UpbILcNxuyRgyRf4Aovc4P0TQjeNofr3XPpucj0\ncY1IZ8Cn93nHWfYAIGGYX/SC5DWk0HCbwKH5saj3rIOOrP5Rje1P37Mts0trguY=\n=uE99\n-----END PGP SIGNATURE-----\n",
+          "payload": "tree bbc3acf5253585e348a720b4706bd0427e81e392\nparent 5a52553a3be6ef3e44928cab20f96cdaa3e8b5dc\nauthor Mattias Wadman <mattias.wadman@gmail.com> 1691864325 +0200\ncommitter GitHub <noreply@github.com> 1691864325 +0200\n\nBuild windows 64bit binary using UCRT64 (#2832)\n\n* Build windows 64bit binary using UCRT64\r\n\r\nIs the default and recommended msystem setting. Will produce\r\nbinaries that are compatible with windows 10 and later.\r\n\r\nAlso run tests for 32bit build.\r\n\r\nRelated to #2831\r\n\r\n* Use jq -b in tests/shtest\r\n\r\n* Add Windows strptime\r\n\r\n* Make Windows-optional tests not run on Windows again\r\n\r\n---------\r\n\r\nCo-authored-by: Nicolas Williams <nico@cryptonector.com>",
+          "verified_at": "2024-11-06T22:03:24Z"
+        }
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/commits/fdab39bc7b8d41c1ae410f03a42afc10a9322c99",
+      "html_url": "https://github.com/jqlang/jq/commit/fdab39bc7b8d41c1ae410f03a42afc10a9322c99",
+      "comments_url": "https://api.github.com/repos/jqlang/jq/commits/fdab39bc7b8d41c1ae410f03a42afc10a9322c99/comments",
+      "author": {
+        "login": "wader",
+        "id": 185566,
+        "node_id": "MDQ6VXNlcjE4NTU2Ng==",
+        "avatar_url": "https://avatars.githubusercontent.com/u/185566?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/wader",
+        "html_url": "https://github.com/wader",
+        "followers_url": "https://api.github.com/users/wader/followers",
+        "following_url": "https://api.github.com/users/wader/following{/other_user}",
+        "gists_url": "https://api.github.com/users/wader/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/wader/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/wader/subscriptions",
+        "organizations_url": "https://api.github.com/users/wader/orgs",
+        "repos_url": "https://api.github.com/users/wader/repos",
+        "events_url": "https://api.github.com/users/wader/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/wader/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "committer": {
+        "login": "web-flow",
+        "id": 19864447,
+        "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+        "avatar_url": "https://avatars.githubusercontent.com/u/19864447?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/web-flow",
+        "html_url": "https://github.com/web-flow",
+        "followers_url": "https://api.github.com/users/web-flow/followers",
+        "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+        "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+        "organizations_url": "https://api.github.com/users/web-flow/orgs",
+        "repos_url": "https://api.github.com/users/web-flow/repos",
+        "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/web-flow/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "parents": [
+        {
+          "sha": "5a52553a3be6ef3e44928cab20f96cdaa3e8b5dc",
+          "url": "https://api.github.com/repos/jqlang/jq/commits/5a52553a3be6ef3e44928cab20f96cdaa3e8b5dc",
+          "html_url": "https://github.com/jqlang/jq/commit/5a52553a3be6ef3e44928cab20f96cdaa3e8b5dc"
+        }
+      ]
+    },
+    {
+      "sha": "65ed95c93aeaeea96796eb6af5dfe8870eda0992",
+      "node_id": "C_kwDOAE3WVdoAKDY1ZWQ5NWM5M2FlYWVlYTk2Nzk2ZWI2YWY1ZGZlODg3MGVkYTA5OTI",
+      "commit": {
+        "author": {
+          "name": "Alex Wilson",
+          "email": "gpg@probablyfine.co.uk",
+          "date": "2023-08-12T11:04:00Z"
+        },
+        "committer": {
+          "name": "Nico Williams",
+          "email": "nico@cryptonector.com",
+          "date": "2023-08-13T01:46:36Z"
+        },
+        "message": "Expose the names of a module's defined function via `modulemeta`\n\nThis reuses the existing `block_list_funcs` capability and adds an extra field on the `modulemeta` output, called `defs`, containing that list of functions.",
+        "tree": {
+          "sha": "5840f220e3763b289e3dccfa6582e8a0c18d8d04",
+          "url": "https://api.github.com/repos/jqlang/jq/git/trees/5840f220e3763b289e3dccfa6582e8a0c18d8d04"
+        },
+        "url": "https://api.github.com/repos/jqlang/jq/git/commits/65ed95c93aeaeea96796eb6af5dfe8870eda0992",
+        "comment_count": 0,
+        "verification": {
+          "verified": false,
+          "reason": "unsigned",
+          "signature": null,
+          "payload": null,
+          "verified_at": null
+        }
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/commits/65ed95c93aeaeea96796eb6af5dfe8870eda0992",
+      "html_url": "https://github.com/jqlang/jq/commit/65ed95c93aeaeea96796eb6af5dfe8870eda0992",
+      "comments_url": "https://api.github.com/repos/jqlang/jq/commits/65ed95c93aeaeea96796eb6af5dfe8870eda0992/comments",
+      "author": {
+        "login": "mrwilson",
+        "id": 460299,
+        "node_id": "MDQ6VXNlcjQ2MDI5OQ==",
+        "avatar_url": "https://avatars.githubusercontent.com/u/460299?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/mrwilson",
+        "html_url": "https://github.com/mrwilson",
+        "followers_url": "https://api.github.com/users/mrwilson/followers",
+        "following_url": "https://api.github.com/users/mrwilson/following{/other_user}",
+        "gists_url": "https://api.github.com/users/mrwilson/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/mrwilson/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/mrwilson/subscriptions",
+        "organizations_url": "https://api.github.com/users/mrwilson/orgs",
+        "repos_url": "https://api.github.com/users/mrwilson/repos",
+        "events_url": "https://api.github.com/users/mrwilson/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/mrwilson/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "committer": {
+        "login": "nicowilliams",
+        "id": 604851,
+        "node_id": "MDQ6VXNlcjYwNDg1MQ==",
+        "avatar_url": "https://avatars.githubusercontent.com/u/604851?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/nicowilliams",
+        "html_url": "https://github.com/nicowilliams",
+        "followers_url": "https://api.github.com/users/nicowilliams/followers",
+        "following_url": "https://api.github.com/users/nicowilliams/following{/other_user}",
+        "gists_url": "https://api.github.com/users/nicowilliams/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/nicowilliams/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/nicowilliams/subscriptions",
+        "organizations_url": "https://api.github.com/users/nicowilliams/orgs",
+        "repos_url": "https://api.github.com/users/nicowilliams/repos",
+        "events_url": "https://api.github.com/users/nicowilliams/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/nicowilliams/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "parents": [
+        {
+          "sha": "fdab39bc7b8d41c1ae410f03a42afc10a9322c99",
+          "url": "https://api.github.com/repos/jqlang/jq/commits/fdab39bc7b8d41c1ae410f03a42afc10a9322c99",
+          "html_url": "https://github.com/jqlang/jq/commit/fdab39bc7b8d41c1ae410f03a42afc10a9322c99"
+        }
+      ]
+    },
+    {
+      "sha": "f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+      "node_id": "C_kwDOAE3WVdoAKGYzMWMxODBlOGYzOGMwODVjNDM2NmE5MWY5YmZmZmMyZGQ3YzJiYzI",
+      "commit": {
+        "author": {
+          "name": "Alex Wilson",
+          "email": "gpg@probablyfine.co.uk",
+          "date": "2023-08-12T11:04:27Z"
+        },
+        "committer": {
+          "name": "Nico Williams",
+          "email": "nico@cryptonector.com",
+          "date": "2023-08-13T01:46:36Z"
+        },
+        "message": "Update documentation to reflect new `defs` field on `modulemeta`",
+        "tree": {
+          "sha": "25f4c65810c0abf284ae7e26b92df29820d2a576",
+          "url": "https://api.github.com/repos/jqlang/jq/git/trees/25f4c65810c0abf284ae7e26b92df29820d2a576"
+        },
+        "url": "https://api.github.com/repos/jqlang/jq/git/commits/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+        "comment_count": 0,
+        "verification": {
+          "verified": false,
+          "reason": "unsigned",
+          "signature": null,
+          "payload": null,
+          "verified_at": null
+        }
+      },
+      "url": "https://api.github.com/repos/jqlang/jq/commits/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+      "html_url": "https://github.com/jqlang/jq/commit/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+      "comments_url": "https://api.github.com/repos/jqlang/jq/commits/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/comments",
+      "author": {
+        "login": "mrwilson",
+        "id": 460299,
+        "node_id": "MDQ6VXNlcjQ2MDI5OQ==",
+        "avatar_url": "https://avatars.githubusercontent.com/u/460299?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/mrwilson",
+        "html_url": "https://github.com/mrwilson",
+        "followers_url": "https://api.github.com/users/mrwilson/followers",
+        "following_url": "https://api.github.com/users/mrwilson/following{/other_user}",
+        "gists_url": "https://api.github.com/users/mrwilson/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/mrwilson/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/mrwilson/subscriptions",
+        "organizations_url": "https://api.github.com/users/mrwilson/orgs",
+        "repos_url": "https://api.github.com/users/mrwilson/repos",
+        "events_url": "https://api.github.com/users/mrwilson/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/mrwilson/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "committer": {
+        "login": "nicowilliams",
+        "id": 604851,
+        "node_id": "MDQ6VXNlcjYwNDg1MQ==",
+        "avatar_url": "https://avatars.githubusercontent.com/u/604851?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/nicowilliams",
+        "html_url": "https://github.com/nicowilliams",
+        "followers_url": "https://api.github.com/users/nicowilliams/followers",
+        "following_url": "https://api.github.com/users/nicowilliams/following{/other_user}",
+        "gists_url": "https://api.github.com/users/nicowilliams/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/nicowilliams/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/nicowilliams/subscriptions",
+        "organizations_url": "https://api.github.com/users/nicowilliams/orgs",
+        "repos_url": "https://api.github.com/users/nicowilliams/repos",
+        "events_url": "https://api.github.com/users/nicowilliams/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/nicowilliams/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "parents": [
+        {
+          "sha": "65ed95c93aeaeea96796eb6af5dfe8870eda0992",
+          "url": "https://api.github.com/repos/jqlang/jq/commits/65ed95c93aeaeea96796eb6af5dfe8870eda0992",
+          "html_url": "https://github.com/jqlang/jq/commit/65ed95c93aeaeea96796eb6af5dfe8870eda0992"
+        }
+      ]
+    }
+  ],
+  "files": [
+    {
+      "sha": "ba6449c61976a884a7f224bba44e1ebd49d2de84",
+      "filename": ".github/workflows/ci.yml",
+      "status": "modified",
+      "additions": 7,
+      "deletions": 14,
+      "changes": 21,
+      "blob_url": "https://github.com/jqlang/jq/blob/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/.github%2Fworkflows%2Fci.yml",
+      "raw_url": "https://github.com/jqlang/jq/raw/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/.github%2Fworkflows%2Fci.yml",
+      "contents_url": "https://api.github.com/repos/jqlang/jq/contents/.github%2Fworkflows%2Fci.yml?ref=f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+      "patch": "@@ -196,19 +196,16 @@ jobs:\n           - i386\n         include:\n           - arch: amd64\n-            CC: x86_64-pc-msys\n-            toolchain: gcc\n-            msystem: msys\n+            msystem: UCRT64\n           - arch: i386\n-            CC: i686-w64-mingw32\n-            toolchain: mingw-w64-i686-toolchain\n-            msystem: mingw32\n+            msystem: MINGW32\n     runs-on: windows-2022\n     env:\n-      CHOST: ${{ matrix.CC }}\n-      CC: ${{ matrix.CC }}-gcc\n       LDFLAGS: -s\n       SUFFIX: windows-${{ matrix.arch }}\n+    defaults:\n+      run:\n+        shell: msys2 {0}\n     steps:\n       - name: Clone repository\n         uses: actions/checkout@v3\n@@ -224,13 +221,12 @@ jobs:\n             autoconf\n             automake\n             libtool\n-            ${{ matrix.toolchain }}\n+          pacboy: >-\n+            toolchain:p\n       - name: Build\n-        shell: msys2 {0}\n         run: |\n           autoreconf -i\n           ./configure \\\n-            --host=${{ matrix.CC }} \\\n             --disable-docs \\\n             --disable-valgrind \\\n             --with-oniguruma=builtin \\\n@@ -242,9 +238,6 @@ jobs:\n           file ./jq.exe\n           cp ./jq.exe jq-${{ env.SUFFIX }}.exe\n       - name: Test\n-        # Only run tests for amd64 matching the CI machine arch\n-        if: ${{ matrix.arch == 'amd64' }}\n-        shell: msys2 {0}\n         run: |\n           make check VERBOSE=yes\n           git diff --exit-code --ignore-submodules"
+    },
+    {
+      "sha": "2cd6b5f29b24e8c1c63f1552813e8501cb241820",
+      "filename": "Makefile.am",
+      "status": "modified",
+      "additions": 4,
+      "deletions": 1,
+      "changes": 5,
+      "blob_url": "https://github.com/jqlang/jq/blob/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/Makefile.am",
+      "raw_url": "https://github.com/jqlang/jq/raw/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/Makefile.am",
+      "contents_url": "https://api.github.com/repos/jqlang/jq/contents/Makefile.am?ref=f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+      "patch": "@@ -133,7 +133,10 @@ endif\n \n ### Tests (make check)\n \n-TESTS = tests/optionaltest tests/mantest tests/jqtest tests/shtest tests/utf8test tests/base64test\n+TESTS = tests/mantest tests/jqtest tests/shtest tests/utf8test tests/base64test\n+if !WIN32\n+TESTS += tests/optionaltest\n+endif\n AM_TESTS_ENVIRONMENT = JQ=$(abs_builddir)/jq NO_VALGRIND=$(NO_VALGRIND)\n \n # This is a magic make variable that causes it to treat tests/man.test as a"
+    },
+    {
+      "sha": "6382d8354abe68e02add3fe0072163560c1ec5f9",
+      "filename": "docs/content/manual/manual.yml",
+      "status": "modified",
+      "additions": 3,
+      "deletions": 2,
+      "changes": 5,
+      "blob_url": "https://github.com/jqlang/jq/blob/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/docs%2Fcontent%2Fmanual%2Fmanual.yml",
+      "raw_url": "https://github.com/jqlang/jq/raw/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/docs%2Fcontent%2Fmanual%2Fmanual.yml",
+      "contents_url": "https://api.github.com/repos/jqlang/jq/contents/docs%2Fcontent%2Fmanual%2Fmanual.yml?ref=f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+      "patch": "@@ -1142,7 +1142,7 @@ sections:\n       - title: \"`delpaths(PATHS)`\"\n         body: |\n \n-          The builtin function `delpaths` sets the `PATHS` in `.`.\n+          The builtin function `delpaths` deletes the `PATHS` in `.`.\n           `PATHS` must be an array of paths, where each path is an array\n           of strings and numbers.\n \n@@ -3633,7 +3633,8 @@ sections:\n \n           Takes a module name as input and outputs the module's metadata\n           as an object, with the module's imports (including metadata)\n-          as an array value for the `deps` key.\n+          as an array value for the `deps` key and the module's defined\n+          functions as an array value for the `defs` key.\n \n           Programs can use this to query a module's metadata, which they\n           could then use to, for example, search for, download, and"
+    },
+    {
+      "sha": "f386b49ce860bc18d0ad2da4259c43c373a7c8f2",
+      "filename": "jq.1.prebuilt",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 2,
+      "changes": 4,
+      "blob_url": "https://github.com/jqlang/jq/blob/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/jq.1.prebuilt",
+      "raw_url": "https://github.com/jqlang/jq/raw/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/jq.1.prebuilt",
+      "contents_url": "https://api.github.com/repos/jqlang/jq/contents/jq.1.prebuilt?ref=f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+      "patch": "@@ -1161,7 +1161,7 @@ jq \\'setpath([0,\"a\"]; 1)\\'\n .IP \"\" 0\n .\n .SS \"delpaths(PATHS)\"\n-The builtin function \\fBdelpaths\\fR sets the \\fBPATHS\\fR in \\fB\\.\\fR\\. \\fBPATHS\\fR must be an array of paths, where each path is an array of strings and numbers\\.\n+The builtin function \\fBdelpaths\\fR deletes the \\fBPATHS\\fR in \\fB\\.\\fR\\. \\fBPATHS\\fR must be an array of paths, where each path is an array of strings and numbers\\.\n .\n .IP \"\" 4\n .\n@@ -4011,7 +4011,7 @@ This directive is entirely optional\\. It\\'s not required for proper operation\\.\n The metadata must be a constant jq expression\\. It should be an object with keys like \\fBhomepage\\fR\\. At this time jq doesn\\'t use this metadata, but it is made available to users via the \\fBmodulemeta\\fR builtin\\.\n .\n .SS \"modulemeta\"\n-Takes a module name as input and outputs the module\\'s metadata as an object, with the module\\'s imports (including metadata) as an array value for the \\fBdeps\\fR key\\.\n+Takes a module name as input and outputs the module\\'s metadata as an object, with the module\\'s imports (including metadata) as an array value for the \\fBdeps\\fR key and the module\\'s defined functions as an array value for the \\fBdefs\\fR key\\.\n .\n .P\n Programs can use this to query a module\\'s metadata, which they could then use to, for example, search for, download, and install missing dependencies\\."
+    },
+    {
+      "sha": "5476c6590defcc2eb7e691da09ed7efa7076bfc3",
+      "filename": "src/builtin.c",
+      "status": "modified",
+      "additions": 3,
+      "deletions": 19,
+      "changes": 22,
+      "blob_url": "https://github.com/jqlang/jq/blob/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/src%2Fbuiltin.c",
+      "raw_url": "https://github.com/jqlang/jq/raw/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/src%2Fbuiltin.c",
+      "contents_url": "https://api.github.com/repos/jqlang/jq/contents/src%2Fbuiltin.c?ref=f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+      "patch": "@@ -43,6 +43,7 @@ void *alloca (size_t);\n #include \"locfile.h\"\n #include \"jv_unicode.h\"\n #include \"jv_alloc.h\"\n+#include \"util.h\"\n \n \n #define BINOP(name) \\\n@@ -1417,25 +1418,6 @@ static void set_tm_yday(struct tm *tm) {\n   tm->tm_yday = yday;\n }\n \n-#ifndef HAVE_STRPTIME\n-static char *strptime(const char *s, const char *format, struct tm *tm) {\n-  if (strcmp(format, \"%Y-%m-%dT%H:%M:%SZ\"))\n-    return NULL;\n-\n-  int count, end;\n-  count = sscanf(s, \"%d-%d-%dT%d:%d:%d%n\",\n-                    &tm->tm_year, &tm->tm_mon, &tm->tm_mday,\n-                    &tm->tm_hour, &tm->tm_min, &tm->tm_sec,\n-                    &end );\n-  if (count == 6 && s[end] == 'Z') {\n-    tm->tm_year -= 1900;\n-    tm->tm_mon--;\n-    return (char*)s + end + 1;\n-  }\n-  return NULL;\n-}\n-#endif\n-\n static jv f_strptime(jq_state *jq, jv a, jv b) {\n   if (jv_get_kind(a) != JV_KIND_STRING || jv_get_kind(b) != JV_KIND_STRING) {\n     return ret_error2(a, b, jv_string(\"strptime/1 requires string inputs and arguments\"));\n@@ -1478,6 +1460,8 @@ static jv f_strptime(jq_state *jq, jv a, jv b) {\n    */\n   set_tm_wday(&tm);\n   set_tm_yday(&tm);\n+#elif defined(WIN32)\n+  set_tm_wday(&tm);\n #else\n   if (tm.tm_wday == 8 && tm.tm_mday != 0 && tm.tm_mon >= 0 && tm.tm_mon <= 11)\n     set_tm_wday(&tm);"
+    },
+    {
+      "sha": "ddc2948a79a7cee5ff373b5fd53f21f3d4c659d6",
+      "filename": "src/jv.c",
+      "status": "modified",
+      "additions": 0,
+      "deletions": 6,
+      "changes": 6,
+      "blob_url": "https://github.com/jqlang/jq/blob/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/src%2Fjv.c",
+      "raw_url": "https://github.com/jqlang/jq/raw/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/src%2Fjv.c",
+      "contents_url": "https://api.github.com/repos/jqlang/jq/contents/src%2Fjv.c?ref=f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+      "patch": "@@ -490,9 +490,7 @@ pthread_getspecific(pthread_key_t key)\n \n static pthread_key_t dec_ctx_key;\n static pthread_key_t dec_ctx_dbl_key;\n-#ifndef WIN32\n static pthread_once_t dec_ctx_once = PTHREAD_ONCE_INIT;\n-#endif\n \n #define DEC_CONTEXT() tsd_dec_ctx_get(&dec_ctx_key)\n #define DEC_CONTEXT_TO_DOUBLE() tsd_dec_ctx_get(&dec_ctx_dbl_key)\n@@ -515,15 +513,11 @@ void jv_tsd_dec_ctx_init() {\n     fprintf(stderr, \"error: cannot create thread specific key\");\n     abort();\n   }\n-#ifndef WIN32\n   atexit(jv_tsd_dec_ctx_fini);\n-#endif\n }\n \n static decContext* tsd_dec_ctx_get(pthread_key_t *key) {\n-#ifndef WIN32\n   pthread_once(&dec_ctx_once, jv_tsd_dec_ctx_init); // cannot fail\n-#endif\n   decContext *ctx = (decContext*)pthread_getspecific(*key);\n   if (ctx) {\n     return ctx;"
+    },
+    {
+      "sha": "4bea31b565dd97ef514c29bb9d8cd2e78c26a271",
+      "filename": "src/jv_dtoa_tsd.c",
+      "status": "modified",
+      "additions": 0,
+      "deletions": 6,
+      "changes": 6,
+      "blob_url": "https://github.com/jqlang/jq/blob/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/src%2Fjv_dtoa_tsd.c",
+      "raw_url": "https://github.com/jqlang/jq/raw/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/src%2Fjv_dtoa_tsd.c",
+      "contents_url": "https://api.github.com/repos/jqlang/jq/contents/src%2Fjv_dtoa_tsd.c?ref=f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+      "patch": "@@ -6,9 +6,7 @@\n #include \"jv_dtoa.h\"\n #include \"jv_alloc.h\"\n \n-#ifndef WIN32\n static pthread_once_t dtoa_ctx_once = PTHREAD_ONCE_INIT;\n-#endif\n \n static pthread_key_t dtoa_ctx_key;\n static void tsd_dtoa_ctx_dtor(void *ctx) {\n@@ -35,15 +33,11 @@ void jv_tsd_dtoa_ctx_init() {\n     fprintf(stderr, \"error: cannot create thread specific key\");\n     abort();\n   }\n-#ifndef WIN32\n   atexit(jv_tsd_dtoa_ctx_fini);\n-#endif\n }\n \n inline struct dtoa_context *tsd_dtoa_context_get() {\n-#ifndef WIN32\n   pthread_once(&dtoa_ctx_once, jv_tsd_dtoa_ctx_init); // cannot fail\n-#endif\n   struct dtoa_context *ctx = (struct dtoa_context*)pthread_getspecific(dtoa_ctx_key);\n   if (!ctx) {\n     ctx = malloc(sizeof(struct dtoa_context));"
+    },
+    {
+      "sha": "e86c2b4e77a8713355c4cd3bd99615836ebf3f35",
+      "filename": "src/linker.c",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 0,
+      "changes": 1,
+      "blob_url": "https://github.com/jqlang/jq/blob/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/src%2Flinker.c",
+      "raw_url": "https://github.com/jqlang/jq/raw/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/src%2Flinker.c",
+      "contents_url": "https://api.github.com/repos/jqlang/jq/contents/src%2Flinker.c?ref=f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+      "patch": "@@ -390,6 +390,7 @@ jv load_module_meta(jq_state *jq, jv mod_relpath) {\n       if (jv_get_kind(meta) == JV_KIND_NULL)\n         meta = jv_object();\n       meta = jv_object_set(meta, jv_string(\"deps\"), block_take_imports(&program));\n+      meta = jv_object_set(meta, jv_string(\"defs\"), block_list_funcs(program, 0));\n     }\n     locfile_free(src);\n     block_free(program);"
+    },
+    {
+      "sha": "e35eb9067d1c19755212db6bb7ebb6bffd2094be",
+      "filename": "src/util.c",
+      "status": "modified",
+      "additions": 835,
+      "deletions": 0,
+      "changes": 835,
+      "blob_url": "https://github.com/jqlang/jq/blob/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/src%2Futil.c",
+      "raw_url": "https://github.com/jqlang/jq/raw/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/src%2Futil.c",
+      "contents_url": "https://api.github.com/repos/jqlang/jq/contents/src%2Futil.c?ref=f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+      "patch": "@@ -1,3 +1,32 @@\n+/*-\n+ * Parts (strptime()) Copyright (c) 1997, 1998, 2005, 2008 The NetBSD Foundation, Inc.\n+ * All rights reserved.\n+ *\n+ * This code was contributed to The NetBSD Foundation by Klaus Klein.\n+ * Heavily optimised by David Laight\n+ *\n+ * Redistribution and use in source and binary forms, with or without\n+ * modification, are permitted provided that the following conditions\n+ * are met:\n+ * 1. Redistributions of source code must retain the above copyright\n+ *    notice, this list of conditions and the following disclaimer.\n+ * 2. Redistributions in binary form must reproduce the above copyright\n+ *    notice, this list of conditions and the following disclaimer in the\n+ *    documentation and/or other materials provided with the distribution.\n+ *\n+ * THIS SOFTWARE IS PROVIDED BY THE NETBSD FOUNDATION, INC. AND CONTRIBUTORS\n+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED\n+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR\n+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE FOUNDATION OR CONTRIBUTORS\n+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR\n+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF\n+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS\n+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN\n+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)\n+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE\n+ * POSSIBILITY OF SUCH DAMAGE.\n+ */\n+\n #include <sys/types.h>\n #include <sys/stat.h>\n #include <assert.h>\n@@ -442,3 +471,809 @@ jv jq_util_input_next_input(jq_util_input_state *state) {\n   }\n   return value;\n }\n+\n+#if defined(WIN32) && !defined(HAVE_STRPTIME)\n+/* http://cvsweb.netbsd.org/bsdweb.cgi/~checkout~/src/lib/libc/time/strptime.c?only_with_tag=HEAD\n+ * NetBSD implementation strptime().\n+ * Format description: https://netbsd.gw.com/cgi-bin/man-cgi?strptime+3+NetBSD-current\n+ * Adapted by https://github.com/res2001 (https://github.com/res2001/strptime).\n+*/\n+\n+#include <ctype.h>\n+#include <string.h>\n+#include <time.h>\n+#include <stdint.h>\n+\n+static const unsigned char *conv_num(const unsigned char *, int *, unsigned int, unsigned int);\n+static const unsigned char *find_string(const unsigned char *, int *, const char * const *, const char * const *, int);\n+\n+/*\n+ * We do not implement alternate representations. However, we always\n+ * check whether a given modifier is allowed for a certain conversion.\n+ */\n+#define ALT_E\t\t\t0x01\n+#define ALT_O\t\t\t0x02\n+#define LEGAL_ALT(x)\t{ if (alt_format & ~(x)) return NULL; }\n+\n+#define TM_YEAR_BASE\t1900\n+\n+#define TM_SUNDAY       0\n+#define TM_MONDAY       1\n+#define TM_TUESDAY      2\n+#define TM_WEDNESDAY    3\n+#define TM_THURSDAY     4\n+#define TM_FRIDAY       5\n+#define TM_SATURDAY     6\n+\n+#define S_YEAR\t\t\t(1 << 0)\n+#define S_MON\t\t\t(1 << 1)\n+#define S_YDAY\t\t\t(1 << 2)\n+#define S_MDAY\t\t\t(1 << 3)\n+#define S_WDAY\t\t\t(1 << 4)\n+#define S_HOUR\t\t\t(1 << 5)\n+\n+#define HAVE_MDAY(s)\t(s & S_MDAY)\n+#define HAVE_MON(s)\t\t(s & S_MON)\n+#define HAVE_WDAY(s)\t(s & S_WDAY)\n+#define HAVE_YDAY(s)\t(s & S_YDAY)\n+#define HAVE_YEAR(s)\t(s & S_YEAR)\n+#define HAVE_HOUR(s)\t(s & S_HOUR)\n+\n+#define SECSPERMIN      60\n+#define MINSPERHOUR     60\n+#define SECSPERHOUR     (SECSPERMIN * MINSPERHOUR)\n+#define HOURSPERDAY     24\n+\n+#define HERE_D_T_FMT    \"%a %b %e %H:%M:%S %Y\"\n+#define HERE_D_FMT      \"%y/%m/%d\"\n+#define HERE_T_FMT_AMPM \"%I:%M:%S %p\"\n+#define HERE_T_FMT      \"%H:%M:%S\"\n+\n+#define isleap(y) (((y) % 4) == 0 && (((y) % 100) != 0 || ((y) % 400) == 0))\n+\n+/*\n+** Since everything in isleap is modulo 400 (or a factor of 400), we know that\n+**\tisleap(y) == isleap(y % 400)\n+** and so\n+**\tisleap(a + b) == isleap((a + b) % 400)\n+** or\n+**\tisleap(a + b) == isleap(a % 400 + b % 400)\n+** This is true even if % means modulo rather than Fortran remainder\n+** (which is allowed by C89 but not by C99 or later).\n+** We use this to avoid addition overflow problems.\n+*/\n+\n+#define isleap_sum(a, b)\tisleap((a) % 400 + (b) % 400)\n+\n+#ifdef _MSC_VER\n+#define tzname              _tzname\n+#define strncasecmp         _strnicmp\n+#endif\n+\n+#ifdef TM_ZONE\n+static char* utc = \"UTC\";\n+#endif\n+/* RFC-822/RFC-2822 */\n+static const char* const nast[] = {\n+       \"EST\",    \"CST\",    \"MST\",    \"PST\",    \"\\0\\0\\0\"\n+};\n+static const char* const nadt[] = {\n+       \"EDT\",    \"CDT\",    \"MDT\",    \"PDT\",    \"\\0\\0\\0\"\n+};\n+static const char* weekday_name[] =\n+{\n+    \"Sunday\", \"Monday\", \"Tuesday\", \"Wednesday\",\n+    \"Thursday\", \"Friday\", \"Saturday\"\n+};\n+static const char* ab_weekday_name[] =\n+{\n+    \"Sun\", \"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\"\n+};\n+static const char* month_name[] =\n+{\n+    \"January\", \"February\", \"March\", \"April\", \"May\", \"June\",\n+    \"July\", \"August\", \"September\", \"October\", \"November\", \"December\"\n+};\n+static const char* ab_month_name[] =\n+{\n+    \"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\",\n+    \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"\n+};\n+static const char* am_pm[] = {\"AM\", \"PM\"};\n+\n+\n+/*\n+ * Table to determine the ordinal date for the start of a month.\n+ * Ref: http://en.wikipedia.org/wiki/ISO_week_date\n+ */\n+static const int start_of_month[2][13] = {\n+    /* non-leap year */\n+    { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },\n+    /* leap year */\n+    { 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 }\n+};\n+\n+/*\n+ * Calculate the week day of the first day of a year. Valid for\n+ * the Gregorian calendar, which began Sept 14, 1752 in the UK\n+ * and its colonies. Ref:\n+ * http://en.wikipedia.org/wiki/Determination_of_the_day_of_the_week\n+ */\n+\n+static int\n+first_wday_of(int yr)\n+{\n+    return ((2 * (3 - (yr / 100) % 4)) + (yr % 100) + ((yr % 100) /  4) +\n+        (isleap(yr) ? 6 : 0) + 1) % 7;\n+}\n+\n+#define delim(p)\t((p) == '\\0' || isspace((unsigned char)(p)))\n+\n+static int\n+fromzone(const unsigned char **bp, struct tm *tm, int mandatory)\n+{\n+//    timezone_t tz;\n+    char buf[512], *p;\n+    const unsigned char *rp;\n+\n+    for (p = buf, rp = *bp; !delim(*rp) && p < &buf[sizeof(buf) - 1]; rp++)\n+        *p++ = *rp;\n+    *p = '\\0';\n+\n+    if (mandatory)\n+        *bp = rp;\n+    if (!isalnum((unsigned char)*buf))\n+        return 0;\n+//    tz = tzalloc(buf);\n+//    if (tz == NULL)\n+//        return 0;\n+\n+    *bp = rp;\n+    tm->tm_isdst = 0;\t/* XXX */\n+#ifdef TM_GMTOFF\n+    tm->TM_GMTOFF = tzgetgmtoff(tz, tm->tm_isdst);\n+#endif\n+#ifdef TM_ZONE\n+    // Can't use tzgetname() here because we are going to free()\n+    tm->TM_ZONE = NULL; /* XXX */\n+#endif\n+//    tzfree(tz);\n+    return 1;\n+}\n+\n+char* strptime(const char *buf, const char *fmt, struct tm *tm)\n+{\n+    unsigned char c;\n+    const unsigned char *bp, *ep, *zname;\n+    int alt_format, i, split_year = 0, neg = 0, state = 0,\n+        day_offset = -1, week_offset = 0, offs, mandatory;\n+    const char *new_fmt;\n+\n+    bp = (const unsigned char *)buf;\n+\n+    while (bp != NULL && (c = *fmt++) != '\\0') {\n+        /* Clear `alternate' modifier prior to new conversion. */\n+        alt_format = 0;\n+        i = 0;\n+\n+        /* Eat up white-space. */\n+        if (isspace(c)) {\n+            while (isspace(*bp))\n+                bp++;\n+            continue;\n+        }\n+\n+        if (c != '%')\n+            goto literal;\n+\n+\n+again:\t\tswitch (c = *fmt++) {\n+        case '%':\t/* \"%%\" is converted to \"%\". */\n+literal:\n+            if (c != *bp++)\n+                return NULL;\n+            LEGAL_ALT(0);\n+            continue;\n+\n+        /*\n+         * \"Alternative\" modifiers. Just set the appropriate flag\n+         * and start over again.\n+         */\n+        case 'E':\t/* \"%E?\" alternative conversion modifier. */\n+            LEGAL_ALT(0);\n+            alt_format |= ALT_E;\n+            goto again;\n+\n+        case 'O':\t/* \"%O?\" alternative conversion modifier. */\n+            LEGAL_ALT(0);\n+            alt_format |= ALT_O;\n+            goto again;\n+\n+        /*\n+         * \"Complex\" conversion rules, implemented through recursion.\n+         */\n+        case 'c':\t/* Date and time, using the locale's format. */\n+//            new_fmt = _TIME_LOCALE(loc)->d_t_fmt;\n+            new_fmt = HERE_D_T_FMT;\n+            state |= S_WDAY | S_MON | S_MDAY | S_YEAR;\n+            goto recurse;\n+\n+        case 'F':\t/* The date as \"%Y-%m-%d\". */\n+            new_fmt = \"%Y-%m-%d\";\n+            LEGAL_ALT(0);\n+            state |= S_MON | S_MDAY | S_YEAR;\n+            goto recurse;\n+\n+        case 'R':\t/* The time as \"%H:%M\". */\n+            new_fmt = \"%H:%M\";\n+            LEGAL_ALT(0);\n+            goto recurse;\n+\n+        case 'r':\t/* The time in 12-hour clock representation. */\n+//            new_fmt = _TIME_LOCALE(loc)->t_fmt_ampm;\n+            new_fmt = HERE_T_FMT_AMPM;\n+            LEGAL_ALT(0);\n+            goto recurse;\n+\n+        case 'X':\t/* The time, using the locale's format. */\n+            /* fall through */\n+\n+        case 'T':\t/* The time as \"%H:%M:%S\". */\n+            new_fmt = HERE_T_FMT;\n+            LEGAL_ALT(0);\n+\n+recurse:\n+            bp = (const unsigned char *)strptime((const char *)bp,\n+                                new_fmt, tm);\n+            LEGAL_ALT(ALT_E);\n+            continue;\n+\n+        case 'x':\t/* The date, using the locale's format. */\n+            /* fall throug */\n+\n+        case 'D':\t/* The date as \"%y/%m/%d\". */\n+        {\n+            new_fmt = HERE_D_FMT;\n+            LEGAL_ALT(0);\n+            state |= S_MON | S_MDAY | S_YEAR;\n+            const int year = split_year ? tm->tm_year : 0;\n+\n+            bp = (const unsigned char *)strptime((const char *)bp,\n+                                new_fmt, tm);\n+            LEGAL_ALT(ALT_E);\n+            tm->tm_year += year;\n+            if (split_year && tm->tm_year % (2000 - TM_YEAR_BASE) <= 68)\n+                tm->tm_year -= 2000 - TM_YEAR_BASE;\n+            split_year = 1;\n+            continue;\n+        }\n+        /*\n+         * \"Elementary\" conversion rules.\n+         */\n+        case 'A':\t/* The day of week, using the locale's form. */\n+        case 'a':\n+            bp = find_string(bp, &tm->tm_wday, weekday_name, ab_weekday_name, 7);\n+            LEGAL_ALT(0);\n+            state |= S_WDAY;\n+            continue;\n+\n+        case 'B':\t/* The month, using the locale's form. */\n+        case 'b':\n+        case 'h':\n+            bp = find_string(bp, &tm->tm_mon, month_name, ab_month_name, 12);\n+            LEGAL_ALT(0);\n+            state |= S_MON;\n+            continue;\n+\n+        case 'C':\t/* The century number. */\n+            i = 20;\n+            bp = conv_num(bp, &i, 0, 99);\n+\n+            i = i * 100 - TM_YEAR_BASE;\n+            if (split_year)\n+                i += tm->tm_year % 100;\n+            split_year = 1;\n+            tm->tm_year = i;\n+            LEGAL_ALT(ALT_E);\n+            state |= S_YEAR;\n+            continue;\n+\n+        case 'd':\t/* The day of month. */\n+        case 'e':\n+            bp = conv_num(bp, &tm->tm_mday, 1, 31);\n+            LEGAL_ALT(ALT_O);\n+            state |= S_MDAY;\n+            continue;\n+\n+        case 'k':\t/* The hour (24-hour clock representation). */\n+            LEGAL_ALT(0);\n+            /* FALLTHROUGH */\n+        case 'H':\n+            bp = conv_num(bp, &tm->tm_hour, 0, 23);\n+            LEGAL_ALT(ALT_O);\n+            state |= S_HOUR;\n+            continue;\n+\n+        case 'l':\t/* The hour (12-hour clock representation). */\n+            LEGAL_ALT(0);\n+            /* FALLTHROUGH */\n+        case 'I':\n+            bp = conv_num(bp, &tm->tm_hour, 1, 12);\n+            if (tm->tm_hour == 12)\n+                tm->tm_hour = 0;\n+            LEGAL_ALT(ALT_O);\n+            state |= S_HOUR;\n+            continue;\n+\n+        case 'j':\t/* The day of year. */\n+            i = 1;\n+            bp = conv_num(bp, &i, 1, 366);\n+            tm->tm_yday = i - 1;\n+            LEGAL_ALT(0);\n+            state |= S_YDAY;\n+            continue;\n+\n+        case 'M':\t/* The minute. */\n+            bp = conv_num(bp, &tm->tm_min, 0, 59);\n+            LEGAL_ALT(ALT_O);\n+            continue;\n+\n+        case 'm':\t/* The month. */\n+            i = 1;\n+            bp = conv_num(bp, &i, 1, 12);\n+            tm->tm_mon = i - 1;\n+            LEGAL_ALT(ALT_O);\n+            state |= S_MON;\n+            continue;\n+\n+        case 'p':\t/* The locale's equivalent of AM/PM. */\n+            bp = find_string(bp, &i, am_pm, NULL, 2);\n+            if (HAVE_HOUR(state) && tm->tm_hour > 11)\n+                return NULL;\n+            tm->tm_hour += i * 12;\n+            LEGAL_ALT(0);\n+            continue;\n+\n+        case 'S':\t/* The seconds. */\n+            bp = conv_num(bp, &tm->tm_sec, 0, 61);\n+            LEGAL_ALT(ALT_O);\n+            continue;\n+\n+#ifndef TIME_MAX\n+#define TIME_MAX\tINT64_MAX\n+#endif\n+        case 's':\t/* seconds since the epoch */\n+            {\n+                time_t sse = 0;\n+                uint64_t rulim = TIME_MAX;\n+\n+                if (*bp < '0' || *bp > '9') {\n+                    bp = NULL;\n+                    continue;\n+                }\n+\n+                do {\n+                    sse *= 10;\n+                    sse += *bp++ - '0';\n+                    rulim /= 10;\n+                } while ((sse * 10 <= TIME_MAX) &&\n+                     rulim && *bp >= '0' && *bp <= '9');\n+\n+                if (sse < 0 || (uint64_t)sse > TIME_MAX) {\n+                    bp = NULL;\n+                    continue;\n+                }\n+#ifdef _WIN32\n+                if (localtime_s(tm, &sse) == 0)\n+#else\n+                if (localtime_r(&sse, tm))\n+#endif\n+                    state |= S_YDAY | S_WDAY | S_MON | S_MDAY | S_YEAR;\n+                else\n+                    bp = NULL;\n+            }\n+            continue;\n+\n+        case 'U':\t/* The week of year, beginning on sunday. */\n+        case 'W':\t/* The week of year, beginning on monday. */\n+            /*\n+             * This is bogus, as we can not assume any valid\n+             * information present in the tm structure at this\n+             * point to calculate a real value, so save the\n+             * week for now in case it can be used later.\n+             */\n+            bp = conv_num(bp, &i, 0, 53);\n+            LEGAL_ALT(ALT_O);\n+            if (c == 'U')\n+                day_offset = TM_SUNDAY;\n+            else\n+                day_offset = TM_MONDAY;\n+            week_offset = i;\n+            continue;\n+\n+        case 'w':\t/* The day of week, beginning on sunday. */\n+            bp = conv_num(bp, &tm->tm_wday, 0, 6);\n+            LEGAL_ALT(ALT_O);\n+            state |= S_WDAY;\n+            continue;\n+\n+        case 'u':\t/* The day of week, monday = 1. */\n+            bp = conv_num(bp, &i, 1, 7);\n+            tm->tm_wday = i % 7;\n+            LEGAL_ALT(ALT_O);\n+            state |= S_WDAY;\n+            continue;\n+\n+        case 'g':\t/* The year corresponding to the ISO week\n+                 * number but without the century.\n+                 */\n+            bp = conv_num(bp, &i, 0, 99);\n+            continue;\n+\n+        case 'G':\t/* The year corresponding to the ISO week\n+                 * number with century.\n+                 */\n+            do\n+                bp++;\n+            while (isdigit(*bp));\n+            continue;\n+\n+        case 'V':\t/* The ISO 8601:1988 week number as decimal */\n+            bp = conv_num(bp, &i, 0, 53);\n+            continue;\n+\n+        case 'Y':\t/* The year. */\n+            i = TM_YEAR_BASE;\t/* just for data sanity... */\n+            bp = conv_num(bp, &i, 0, 9999);\n+            tm->tm_year = i - TM_YEAR_BASE;\n+            LEGAL_ALT(ALT_E);\n+            state |= S_YEAR;\n+            continue;\n+\n+        case 'y':\t/* The year within 100 years of the epoch. */\n+            /* LEGAL_ALT(ALT_E | ALT_O); */\n+            bp = conv_num(bp, &i, 0, 99);\n+\n+            if (split_year)\n+                /* preserve century */\n+                i += (tm->tm_year / 100) * 100;\n+            else {\n+                split_year = 1;\n+                if (i <= 68)\n+                    i = i + 2000 - TM_YEAR_BASE;\n+            }\n+            tm->tm_year = i;\n+            state |= S_YEAR;\n+            continue;\n+\n+        case 'Z':       // time zone name\n+        case 'z':       //\n+#ifdef _WIN32\n+            _tzset();\n+#else\n+            tzset();\n+#endif\n+            mandatory = c == 'z';\n+            /*\n+             * We recognize all ISO 8601 formats:\n+             * Z\t= Zulu time/UTC\n+             * [+-]hhmm\n+             * [+-]hh:mm\n+             * [+-]hh\n+             * We recognize all RFC-822/RFC-2822 formats:\n+             * UT|GMT\n+             *          North American : UTC offsets\n+             * E[DS]T = Eastern : -4 | -5\n+             * C[DS]T = Central : -5 | -6\n+             * M[DS]T = Mountain: -6 | -7\n+             * P[DS]T = Pacific : -7 | -8\n+             *          Nautical/Military\n+             * [A-IL-M] = -1 ... -9 (J not used)\n+             * [N-Y]  = +1 ... +12\n+             * Note: J maybe used to denote non-nautical\n+             *       local time\n+             */\n+            if (mandatory)\n+                while (isspace(*bp))\n+                    bp++;\n+\n+            zname = bp;\n+            switch (*bp++) {\n+            case 'G':\n+                if (*bp++ != 'M')\n+                    goto namedzone;\n+                /*FALLTHROUGH*/\n+            case 'U':\n+                if (*bp++ != 'T')\n+                    goto namedzone;\n+                else if (!delim(*bp) && *bp++ != 'C')\n+                    goto namedzone;\n+                /*FALLTHROUGH*/\n+            case 'Z':\n+                if (!delim(*bp))\n+                    goto namedzone;\n+                tm->tm_isdst = 0;\n+#ifdef TM_GMTOFF\n+                tm->TM_GMTOFF = 0;\n+#endif\n+#ifdef TM_ZONE\n+                tm->TM_ZONE = utc;\n+#endif\n+                continue;\n+            case '+':\n+                neg = 0;\n+                break;\n+            case '-':\n+                neg = 1;\n+                break;\n+            default:\n+namedzone:\n+                bp = zname;\n+\n+                /* Nautical / Military style */\n+                if (delim(bp[1]) &&\n+                    ((*bp >= 'A' && *bp <= 'I') ||\n+                     (*bp >= 'L' && *bp <= 'Y'))) {\n+#ifdef TM_GMTOFF\n+                    /* Argh! No 'J'! */\n+                    if (*bp >= 'A' && *bp <= 'I')\n+                        tm->TM_GMTOFF =\n+                            (int)*bp - ('A' - 1);\n+                    else if (*bp >= 'L' && *bp <= 'M')\n+                        tm->TM_GMTOFF = (int)*bp - 'A';\n+                    else if (*bp >= 'N' && *bp <= 'Y')\n+                        tm->TM_GMTOFF = 'M' - (int)*bp;\n+                    tm->TM_GMTOFF *= SECSPERHOUR;\n+#endif\n+#ifdef TM_ZONE\n+                    tm->TM_ZONE = NULL; /* XXX */\n+#endif\n+                    bp++;\n+                    continue;\n+                }\n+                /* 'J' is local time */\n+                if (delim(bp[1]) && *bp == 'J') {\n+#ifdef TM_GMTOFF\n+                    tm->TM_GMTOFF = -timezone;\n+#endif\n+#ifdef TM_ZONE\n+                    tm->TM_ZONE = NULL; /* XXX */\n+#endif\n+                    bp++;\n+                    continue;\n+                }\n+\n+                /*\n+                 * From our 3 letter hard-coded table\n+                 * XXX: Can be removed, handled by tzload()\n+                 */\n+                if (delim(bp[0]) || delim(bp[1]) ||\n+                    delim(bp[2]) || !delim(bp[3]))\n+                    goto loadzone;\n+                ep = find_string(bp, &i, nast, NULL, 4);\n+                if (ep != NULL) {\n+#ifdef TM_GMTOFF\n+                    tm->TM_GMTOFF = (-5 - i) * SECSPERHOUR;\n+#endif\n+#ifdef TM_ZONE\n+                    tm->TM_ZONE = __UNCONST(nast[i]);\n+#endif\n+                    bp = ep;\n+                    continue;\n+                }\n+                ep = find_string(bp, &i, nadt, NULL, 4);\n+                if (ep != NULL) {\n+                    tm->tm_isdst = 1;\n+#ifdef TM_GMTOFF\n+                    tm->TM_GMTOFF = (-4 - i) * SECSPERHOUR;\n+#endif\n+#ifdef TM_ZONE\n+                    tm->TM_ZONE = __UNCONST(nadt[i]);\n+#endif\n+                    bp = ep;\n+                    continue;\n+                }\n+                /*\n+                 * Our current timezone\n+                 */\n+                ep = find_string(bp, &i,\n+                             (const char * const *)tzname,\n+                              NULL, 2);\n+                if (ep != NULL) {\n+                    tm->tm_isdst = i;\n+#ifdef TM_GMTOFF\n+                    tm->TM_GMTOFF = -timezone;\n+#endif\n+#ifdef TM_ZONE\n+                    tm->TM_ZONE = tzname[i];\n+#endif\n+                    bp = ep;\n+                    continue;\n+                }\n+loadzone:\n+                /*\n+                 * The hard way, load the zone!\n+                 */\n+                if (fromzone(&bp, tm, mandatory))\n+                    continue;\n+                goto out;\n+            }\n+            offs = 0;\n+            for (i = 0; i < 4; ) {\n+                if (isdigit(*bp)) {\n+                    offs = offs * 10 + (*bp++ - '0');\n+                    i++;\n+                    continue;\n+                }\n+                if (i == 2 && *bp == ':') {\n+                    bp++;\n+                    continue;\n+                }\n+                break;\n+            }\n+            if (isdigit(*bp))\n+                goto out;\n+            switch (i) {\n+            case 2:\n+                offs *= SECSPERHOUR;\n+                break;\n+            case 4:\n+                i = offs % 100;\n+                offs /= 100;\n+                if (i >= SECSPERMIN)\n+                    goto out;\n+                /* Convert minutes into decimal */\n+                offs = offs * SECSPERHOUR + i * SECSPERMIN;\n+                break;\n+            default:\n+out:\n+                if (mandatory)\n+                    return NULL;\n+                bp = zname;\n+                continue;\n+            }\n+            /* ISO 8601 & RFC 3339 limit to 23:59 max */\n+            if (offs >= (HOURSPERDAY * SECSPERHOUR))\n+                goto out;\n+            if (neg)\n+                offs = -offs;\n+            tm->tm_isdst = 0;\t/* XXX */\n+#ifdef TM_GMTOFF\n+            tm->TM_GMTOFF = offs;\n+#endif\n+#ifdef TM_ZONE\n+            tm->TM_ZONE = NULL;\t/* XXX */\n+#endif\n+            continue;\n+\n+        /*\n+         * Miscellaneous conversions.\n+         */\n+        case 'n':\t/* Any kind of white-space. */\n+        case 't':\n+            while (isspace(*bp))\n+                bp++;\n+            LEGAL_ALT(0);\n+            continue;\n+\n+\n+        default:\t/* Unknown/unsupported conversion. */\n+            return NULL;\n+        }\n+    }\n+\n+    if (!HAVE_YDAY(state) && HAVE_YEAR(state)) {\n+        if (HAVE_MON(state) && HAVE_MDAY(state)) {\n+            /* calculate day of year (ordinal date) */\n+            tm->tm_yday =  start_of_month[isleap_sum(tm->tm_year,\n+                TM_YEAR_BASE)][tm->tm_mon] + (tm->tm_mday - 1);\n+            state |= S_YDAY;\n+        } else if (day_offset != -1) {\n+            /*\n+             * Set the date to the first Sunday (or Monday)\n+             * of the specified week of the year.\n+             */\n+            if (!HAVE_WDAY(state)) {\n+                tm->tm_wday = day_offset;\n+                state |= S_WDAY;\n+            }\n+            tm->tm_yday = (7 -\n+                first_wday_of(tm->tm_year + TM_YEAR_BASE) +\n+                day_offset) % 7 + (week_offset - 1) * 7 +\n+                tm->tm_wday  - day_offset;\n+            state |= S_YDAY;\n+        }\n+    }\n+\n+    if (HAVE_YDAY(state) && HAVE_YEAR(state)) {\n+        int isleap;\n+\n+        if (!HAVE_MON(state)) {\n+            /* calculate month of day of year */\n+            i = 0;\n+            isleap = isleap_sum(tm->tm_year, TM_YEAR_BASE);\n+            while (tm->tm_yday >= start_of_month[isleap][i])\n+                i++;\n+            if (i > 12) {\n+                i = 1;\n+                tm->tm_yday -= start_of_month[isleap][12];\n+                tm->tm_year++;\n+            }\n+            tm->tm_mon = i - 1;\n+            state |= S_MON;\n+        }\n+\n+        if (!HAVE_MDAY(state)) {\n+            /* calculate day of month */\n+            isleap = isleap_sum(tm->tm_year, TM_YEAR_BASE);\n+            tm->tm_mday = tm->tm_yday -\n+                start_of_month[isleap][tm->tm_mon] + 1;\n+            state |= S_MDAY;\n+        }\n+\n+        if (!HAVE_WDAY(state)) {\n+            /* calculate day of week */\n+            i = 0;\n+            week_offset = first_wday_of(tm->tm_year);\n+            while (i++ <= tm->tm_yday) {\n+                if (week_offset++ >= 6)\n+                    week_offset = 0;\n+            }\n+            tm->tm_wday = week_offset;\n+            state |= S_WDAY;\n+        }\n+    }\n+\n+    return (char*)bp;\n+}\n+\n+\n+static const unsigned char *\n+conv_num(const unsigned char *buf, int *dest, unsigned int llim, unsigned int ulim)\n+{\n+    unsigned int result = 0;\n+    unsigned char ch;\n+\n+    /* The limit also determines the number of valid digits. */\n+    unsigned int rulim = ulim;\n+\n+    ch = *buf;\n+    if (ch < '0' || ch > '9')\n+        return NULL;\n+\n+    do {\n+        result *= 10;\n+        result += ch - '0';\n+        rulim /= 10;\n+        ch = *++buf;\n+    } while ((result <= ulim) && rulim && ch >= '0' && ch <= '9');\n+\n+    if (result < llim || result > ulim)\n+        return NULL;\n+\n+    *dest = result;\n+    return buf;\n+}\n+\n+static const unsigned char *\n+find_string(const unsigned char *bp, int *tgt, const char * const *n1,\n+        const char * const *n2, int c)\n+{\n+    int i;\n+    size_t len;\n+\n+    /* check full name - then abbreviated ones */\n+    for (; n1 != NULL; n1 = n2, n2 = NULL) {\n+        for (i = 0; i < c; i++, n1++) {\n+            len = strlen(*n1);\n+            if (strncasecmp(*n1, (const char *)bp, len) == 0) {\n+                *tgt = i;\n+                return bp + len;\n+            }\n+        }\n+    }\n+\n+    /* Nothing matched */\n+    return NULL;\n+}\n+#endif"
+    },
+    {
+      "sha": "0372225ce294c28cb5516bfdf956e39d0efee73c",
+      "filename": "src/util.h",
+      "status": "modified",
+      "additions": 6,
+      "deletions": 0,
+      "changes": 6,
+      "blob_url": "https://github.com/jqlang/jq/blob/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/src%2Futil.h",
+      "raw_url": "https://github.com/jqlang/jq/raw/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/src%2Futil.h",
+      "contents_url": "https://api.github.com/repos/jqlang/jq/contents/src%2Futil.h?ref=f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+      "patch": "@@ -61,4 +61,10 @@ const void *_jq_memmem(const void *haystack, size_t haystacklen,\n    _a > _b ? _a : _b; })\n #endif\n \n+#include <time.h>\n+\n+#if defined(WIN32) && !defined(HAVE_STRPTIME)\n+char* strptime(const char *buf, const char *fmt, struct tm *tm);\n+#endif\n+\n #endif /* UTIL_H */"
+    },
+    {
+      "sha": "eff15e0009ebb7774abf8bbc544d15aac00920dc",
+      "filename": "tests/jq.test",
+      "status": "modified",
+      "additions": 7,
+      "deletions": 3,
+      "changes": 10,
+      "blob_url": "https://github.com/jqlang/jq/blob/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/tests%2Fjq.test",
+      "raw_url": "https://github.com/jqlang/jq/raw/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/tests%2Fjq.test",
+      "contents_url": "https://api.github.com/repos/jqlang/jq/contents/tests%2Fjq.test?ref=f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+      "patch": "@@ -1624,11 +1624,15 @@ jq: error: Import path must be constant at <top-level>, line 1:\n \n modulemeta\n \"c\"\n-{\"whatever\":null,\"deps\":[{\"as\":\"foo\",\"is_data\":false,\"relpath\":\"a\"},{\"search\":\"./\",\"as\":\"d\",\"is_data\":false,\"relpath\":\"d\"},{\"search\":\"./\",\"as\":\"d2\",\"is_data\":false,\"relpath\":\"d\"},{\"search\":\"./../lib/jq\",\"as\":\"e\",\"is_data\":false,\"relpath\":\"e\"},{\"search\":\"./../lib/jq\",\"as\":\"f\",\"is_data\":false,\"relpath\":\"f\"},{\"as\":\"d\",\"is_data\":true,\"relpath\":\"data\"}]}\n+{\"whatever\":null,\"deps\":[{\"as\":\"foo\",\"is_data\":false,\"relpath\":\"a\"},{\"search\":\"./\",\"as\":\"d\",\"is_data\":false,\"relpath\":\"d\"},{\"search\":\"./\",\"as\":\"d2\",\"is_data\":false,\"relpath\":\"d\"},{\"search\":\"./../lib/jq\",\"as\":\"e\",\"is_data\":false,\"relpath\":\"e\"},{\"search\":\"./../lib/jq\",\"as\":\"f\",\"is_data\":false,\"relpath\":\"f\"},{\"as\":\"d\",\"is_data\":true,\"relpath\":\"data\"}],\"defs\":[\"a/0\",\"c/0\"]}\n \n-modulemeta | .deps |= length\n+modulemeta | .deps | length\n \"c\"\n-{\"whatever\":null,\"deps\":6}\n+6\n+\n+modulemeta | .defs | length\n+\"c\"\n+2\n \n %%FAIL IGNORE MSG\n import \"syntaxerror\" as e; ."
+    },
+    {
+      "sha": "52a82190d089635a2983cc619a2fadba2e6d8aab",
+      "filename": "tests/shtest",
+      "status": "modified",
+      "additions": 21,
+      "deletions": 5,
+      "changes": 26,
+      "blob_url": "https://github.com/jqlang/jq/blob/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/tests%2Fshtest",
+      "raw_url": "https://github.com/jqlang/jq/raw/f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2/tests%2Fshtest",
+      "contents_url": "https://api.github.com/repos/jqlang/jq/contents/tests%2Fshtest?ref=f31c180e8f38c085c4366a91f9bfffc2dd7c2bc2",
+      "patch": "@@ -2,6 +2,9 @@\n \n . \"${0%/*}/setup\" \"$@\"\n \n+JQ_NO_B=$JQ\n+JQ=\"$JQ -b\"\n+\n PATH=$JQBASEDIR:$PATH $JQBASEDIR/tests/jq-f-test.sh > /dev/null\n \n if [ -f \"$JQBASEDIR/.libs/libinject_errors.so\" ]; then\n@@ -493,7 +496,12 @@ cmp $d/color $d/expect\n cmp $d/warning $d/expect_warning\n \n # Check $NO_COLOR\n-if command -v script >/dev/null 2>&1; then\n+case \"$(uname -s)\" in\n+MSYS*)  test_no_color=false;;\n+MINGW*) test_no_color=false;;\n+*)      test_no_color=true;;\n+esac\n+if $test_no_color && command -v script >/dev/null 2>&1; then\n   unset NO_COLOR\n   if script -qc echo /dev/null >/dev/null 2>&1; then\n     faketty() { script -qec \"$*\" /dev/null; }\n@@ -502,17 +510,25 @@ if command -v script >/dev/null 2>&1; then\n       sed 's/^\\x5E\\x44\\x08\\x08//'; }\n   fi\n \n-  faketty $JQ -n . > $d/color\n+  faketty $JQ_NO_B -n . > $d/color\n   printf '\\033[0;90mnull\\033[0m\\r\\n' > $d/expect\n+  od -c $d/expect\n+  od -c $d/color\n   cmp $d/color $d/expect\n-  NO_COLOR= faketty $JQ -n . > $d/color\n+  NO_COLOR= faketty $JQ_NO_B -n . > $d/color\n   printf '\\033[0;90mnull\\033[0m\\r\\n' > $d/expect\n+  od -c $d/expect\n+  od -c $d/color\n   cmp $d/color $d/expect\n-  NO_COLOR=1 faketty $JQ -n . > $d/color\n+  NO_COLOR=1 faketty $JQ_NO_B -n . > $d/color\n   printf 'null\\r\\n' > $d/expect\n+  od -c $d/expect\n+  od -c $d/color\n   cmp $d/color $d/expect\n-  NO_COLOR=1 faketty $JQ -Cn . > $d/color\n+  NO_COLOR=1 faketty $JQ_NO_B -Cn . > $d/color\n   printf '\\033[0;90mnull\\033[0m\\r\\n' > $d/expect\n+  od -c $d/expect\n+  od -c $d/color\n   cmp $d/color $d/expect\n fi\n "
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "startRequest": "https://huggingface.co/api/datasets/ByteDance-Seed/Multi-SWE-bench/tree/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d?recursive=true&expand=true",
+  "pages": [
+    {
+      "page": 1,
+      "requestUrl": "https://huggingface.co/api/datasets/ByteDance-Seed/Multi-SWE-bench/tree/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d?recursive=true&expand=true",
+      "status": 200,
+      "xRepoCommit": null,
+      "etag": "W/\"7dc9-//iWYzvOv02NJ5/9gRoQtd2YPhY\"",
+      "entryCount": 50,
+      "bodyBytes": 32201,
+      "link": "<https://huggingface.co/api/datasets/ByteDance-Seed/Multi-SWE-bench/tree/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d?expand=true&recursive=true&limit=50&cursor=ZXlKbWFXeGxYMjVoYldVaU9pSnlkWE4wTDNKaGVXOXVMWEp6WDE5eVlYbHZibDlrWVhSaGMyVjBMbXB6YjI1c0lpd2lkSEpsWlY5dmFXUWlPaUk0TVRVMk9HTXdPVEl4TkdRMFpXRmlOVFJsWm1FMlpUZG1aR1EzTVdSaE0yWmxNVFU0TXpZeUluMD06NTA%3D>; rel=\"next\""
+    },
+    {
+      "page": 2,
+      "requestUrl": "https://huggingface.co/api/datasets/ByteDance-Seed/Multi-SWE-bench/tree/56ff018c04a38e27ada1e9d0a6d5839a51f88f0d?expand=true&recursive=true&limit=50&cursor=ZXlKbWFXeGxYMjVoYldVaU9pSnlkWE4wTDNKaGVXOXVMWEp6WDE5eVlYbHZibDlrWVhSaGMyVjBMbXB6YjI1c0lpd2lkSEpsWlY5dmFXUWlPaUk0TVRVMk9HTXdPVEl4TkdRMFpXRmlOVFJsWm1FMlpUZG1aR1EzTVdSaE0yWmxNVFU0TXpZeUluMD06NTA%3D",
+      "status": 200,
+      "xRepoCommit": null,
+      "etag": "W/\"1844-mKXVlfoy46Y8nfhMrU5lExbVEoE\"",
+      "entryCount": 9,
+      "bodyBytes": 6212,
+      "link": null
+    }
+  ]
+}

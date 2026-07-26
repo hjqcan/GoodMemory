@@ -245,10 +245,10 @@ all five review assertions. Provenance SHA-256
 records the reviewer/author split and a non-cryptographic orchestrator
 attestation. Final gate SHA bindings are tracked under
 `reports/quality-gates/phase-73/c5-native-longitudinal-pilot-v16/`.
-[DONE] C5 produced the predeclared power analysis and a C6 minimum budget of
-113 episodes, 339 scored stages, 6 repositories, 3 seeds, and 2034 Codex calls.
-Token usage is accounted, but dollar cost remains null because no model-price
-snapshot was frozen.
+[DONE] C5 produced its predeclared all-three-stage power analysis: 113
+episodes, 339 scored stages, 6 repositories, 3 seeds, and 2034 two-arm Codex
+calls. Token usage is accounted, but dollar cost remains null because no
+model-price snapshot was frozen.
 [DONE] The 2,359-line C5 projection/verifier/mutation replay and repeated C5
 readiness materialization moved to the explicit `bun run test:phase-73-gates`
 suite under `tests/quality-gates/`. Canonical `bun test` retains the fast
@@ -260,7 +260,1308 @@ process-only source preimages, and absent external-authenticity proof keep
 `publicClaimEligible`, `publicCodingEffectProof`, and `readmeRowAllowed` false.
 C4 made no paired treatment comparison; C5 is a positive internal signal, not
 a public coding-uplift claim.
-[OPEN] C6-C7 expanded candidate, statistics, gate, and narrow claim decision.
+[BOUNDARY] C5's 113-episode calculation pools all three execution positions,
+but C6's headline estimand uses positions two and later. The accepted five-file
+C5 bundle contains no separately verified eligible-position correlation.
+Mechanically reusing the all-stage correlation would produce 131 episodes, but
+that is not accepted power evidence.
+[DONE] C6's deterministic preflight fails closed with worst-case
+within-episode correlation: exactly 391 primary episodes and 1173 scored
+stages, the historical 6-repository diversity floor, 2 ecosystems,
+`real-history` plus `external-benchmark` primary sources,
+at least 48 actual headline episodes per memory stratum, frozen stage history,
+three seeds, and a pinned Linux x64 package-only environment. This implies
+7038 no-memory-plus-GoodMemory calls, 10557 total three-arm Codex stage calls,
+and at most 1173 stage-history summary-generation calls. The candidate plan
+rejects more or fewer than 391 primary rows, any row with other than exactly
+three stages, and every `controlled-mutation` row. Controlled mutations remain
+in a separately reported diagnostic registry and are never consumed by this
+schedule. Identical
+stage-history hashes may reuse one summary across seeds; distinct prefixes may
+not share an episode-level summary.
+[DONE] Gate-policy schema v4 gives every primary episode equal weight, demotes
+the episode-only bootstrap to diagnostic-only, and preregisters canonical
+upstream repository families, a 10,000-sample repository-then-episode
+hierarchical bootstrap, equal-repository sensitivity, full
+leave-one-repository-out influence output, and exact superiority/non-inferiority
+acceptance bounds. It defines `real-history|external-benchmark` as the primary
+cohort and controlled mutations as separately reported diagnostics. One
+repository URL cannot be split across family IDs.
+[BOUNDARY] 391 corrects only within-episode repeated observations and is not a
+sufficient final sample size. C5 has no accepted between-repository
+heterogeneity estimate. Candidate freeze and the 10557-call full run therefore
+remain blocked on a freeze-time, outcome-blind, independently reviewed
+repository allocation/power artifact. More episodes from the same few
+repositories cannot substitute for that evidence.
+[DONE] C6 now rejects a symlinked dataset root or ancestor, binds candidate
+asset bytes and modes through non-following file handles, revalidates the full
+asset closure at terminal preflight, and binds the exact five
+accepted C5 files; structurally inspects a gzip archive's declared
+`goodmemory` name/version/entry closure; freezes environment/runner identity;
+rejects duplicate agent-visible repository-plus-ordered-prompt fingerprints
+without allowing hidden gold/evaluator metadata to manufacture uniqueness,
+rejects aliased repository content, and balances
+three-seed arm positions per episode. A `real-history` label now counts only
+when a strict asset-locked source record binds the original-request hash,
+repository URL/base commit, HTTPS source locator and immutable revision, and
+exact agent-visible candidate `taskContentSha256`. Per-episode receipts count
+only as asset-bound review structure. A canonical dataset-level
+request/input/dispatch/response/provenance envelope binds all real-history
+records and enforces author/reviewer separation, but records that no
+cryptographic platform receipt exists; independent authenticity, package source
+origin/runtime behavior, repository source provenance, and semantic task
+independence remain candidate-freeze prerequisites.
+[DONE] C6 preflight dataset intake now requires an asset-locked canonical
+source-lineage manifest. It pins source revision, source-population manifest,
+normalized source-record JSONL bytes, per-row index/hash, and source-license
+receipt structure. It covers every episode and ordered stage; binds the
+agent-visible task, prehistory unit list/materialization receipt, repository,
+prompt, snapshot, source request, locator, source-snapshot revision,
+upstream-item revision, and record bytes. Every ordered-stage real-history
+record must match the reviewed task-origin locator,
+`ecmascript-string-trim-v1` original-request hash, and item revision. It
+rejects reused target unit IDs, record bytes, locators, or target aliases in
+candidate prehistory. The candidate plan binds that lineage and records its
+per-episode stage targets. Sampling quotas now use one exclusive
+`primaryStratum` per episode, so multi-label episodes cannot inflate the
+48-per-stratum minimum; no-history controls must remain `none` at scored
+positions.
+[BOUNDARY] Source-lineage and license artifacts prove only asset-locked
+normalized-record consistency and review structure. They do not independently
+authenticate the local capture against upstream, reproduce the prehistory
+artifact from the named units, or prove that a task is semantically dependent
+on earlier work. No SWE-bench-family row is accepted as a three-stage memory
+episode merely because it shares a repository, files, PR adjacency, or
+keywords. Deterministic materialization or an independently authenticated
+receipt, relationship review, base/gold/protection replay, repository
+reachability/tree proof, historical license evidence, accepted and rejected
+intake closure, and independent semantic-duplicate review remain open.
+[DONE] The first real C6 source-pool capture pins SWE-bench Multilingual
+revision `e5c585e008e2cb5eecc7c64192d855c53279d788`, its exact 1165968-byte
+Parquet and 729-byte dataset-card README, then deterministically commits all
+300 normalized rows across 41 repositories. The tracked 333573-byte snapshot
+has SHA-256
+`15cf8d4a0a7ab0e3e7dee32555f266f1bccfd47ace7f5b31d8e474e064c37cf5`;
+274 rows are queued for origin/relationship review and 26 are mechanically
+rejected before that review. Raw problem/gold/test text is not copied into the
+tracked snapshot, and MIT is identified only as the dataset-card license.
+[BOUNDARY] The source-pool capture contains zero accepted episodes and leaves
+`candidateManifestFrozen: false`. It is neither an accepted/rejected candidate
+partition nor task-origin, repository, license, relationship, deterministic
+prehistory, Linux replay, or independent-review evidence. At that checkpoint,
+the prior episode-level step 1 was complete and step 2 had started; the later
+stage-scoped protocol correction supersedes that step-1 status.
+[DONE] The second real source-pool capture pins Multi-SWE-bench revision
+`56ff018c04a38e27ada1e9d0a6d5839a51f88f0d`, exact 148809-byte
+`c/jqlang__jq_dataset.jsonl`, and its 11283-byte dataset card. The 25676-byte
+tracked snapshot SHA-256 is
+`fe513b9810bcc2bee926402c8384a4a0e438dd5ed5495b8d84fe3a4665fe1d4e`.
+It commits all 17 LF-terminated records, retains no raw issue/PR/gold/test
+text, and identifies four canonical PR aliases already present in the first
+source pool, leaving at most 13 new upstream tasks.
+[DONE] The jq canary decision ledger explicitly enumerates all 136 unordered
+pairs and all 680 unordered triples. Its 700325-byte artifact SHA-256 is
+`4d0942ec59aa3de906c9c621211d84ae7750d2f3d4f953d65f59fdd00d22154a`.
+Two pair edges have hash-bound local GitHub PR/compare captures proving
+2824 -> 2839 and 2839 -> 2840 commit ancestry. A first-base jq `COPYING`
+capture is also hash-bound. All 680 triples remain blocked with null ordering,
+zero accepted episodes, and an unfrozen candidate manifest.
+[BOUNDARY] The GitHub captures are unauthenticated local public-API responses,
+not independently authenticated receipts. Commit ancestry is separate from
+semantic dependency; no gold-blind semantic review establishes a concrete
+earlier contract consumed by a later original request. The license capture
+covers one base only and is not a completed license review. The 17-row
+combinatorial universe is complete, but intake selection, original-request
+construction, cross-source duplicate review, Linux replay, deterministic
+prehistory, and the 391-episode dataset remain open. This was recorded before
+the later stage-scoped protocol correction reopened step 1.
+[DONE] A systematic Multi-SWE relationship-discovery tranche now binds a
+locally merged 59-entry revision-tree capture and all 24 `_dataset.jsonl`
+files no larger than 1000000 bytes relative to that capture: 9725174 source
+bytes, 261 rows, and 24 repositories. Its schema-v2 29589-byte tracked artifact
+SHA-256 is `4c7fb407078905f2ad1705f21e617796b31fcca4777cb8fd912e0801f6c20c06`.
+It finds 15 canonical aliases against the first pool, leaving at most 246 new
+upstream tasks; records six pull-body reference signals and six shared-issue
+ambiguity groups; and promotes exactly one mechanical relationship candidate.
+Hash-bound local pull, issue, and compare captures prove only that
+`sharkdp/bat` merge/base order is PRs `3075 -> 2896 -> 3189`, with
+merge-to-next-base ancestry of 39 and 90 commits. All three source rows match
+their captured pull and original issue responses, and the third solution PR
+identifies 2896 as reintroducing behavior fixed by 3075. The same receipts show
+that issue and pull creation order is instead `2896 -> 3075 -> 3189`.
+[BOUNDARY] The bat triple is relationship-discovery evidence only. Its
+qualifying text is evaluator-only solution-PR content, not a frozen
+agent-visible request. It is now explicitly a
+`merge-order-regression-candidate-original-request-chronology-conflict`, with
+`requestChronologyVerified: false` and zero chronological-request candidates.
+It cannot enter the current 391-episode claim set; a merge-order-regression
+class would require uniform preregistration before candidate selection.
+The locally merged tree body does not retain response headers or independently
+authenticate pagination. The GitHub captures have no platform signature or
+independent authentication; repository reachability/tree proof, gold-blind
+semantic and duplicate review, prompt construction, historical license review,
+base/gold/protection Linux replay, cross-stage gold/leakage review,
+deterministic prehistory, and full Multi-SWE selection closure remain open.
+The artifact records zero accepted episodes, `candidateManifestFrozen: false`, and
+`fullMultiSWESourcePopulationCovered: false`. At that checkpoint step 2
+remained open; the later stage-scoped protocol correction also reopened the
+prior form of step 1.
+[DONE] The explicit Phase-73 C6 Multi-SWE replay gate now executes the complete
+24-file loader, byte-for-byte artifact reproduction, output overwrite refusal,
+and a chronology-receipt mutation probe when the two pinned external-source
+environment paths are supplied. It skips without them because raw dataset text
+is not vendored.
+[DONE] A fourth deterministic Multi-SWE intake increment scans all 39 exact
+revision-tree files no larger than 15000000 bytes: 561 rows, 561 canonical PR
+anchors, and four bound local GitHub response bodies per anchor. Its 876631-byte
+tracked artifact SHA-256 is
+`afe795834113e1b859783948d2977511e77d6126563d6c5f481385d085a3b076`.
+It records 39 strict timestamp-only review/fix heuristic signals, two
+repository-identity redirects, complete initial/parsed/terminal source and
+capture closure agreement, and zero accepted episodes. The explicit replay
+gate reproduces all 561 decisions byte-for-byte and rejects overwrite when the
+two non-vendored local roots are supplied.
+[BOUNDARY] The 39 signals are neither accepted episodes nor an upper bound.
+The capture is local response-body-only: request URLs, headers, independently
+verifiable pagination, issue/PR discussion comments, platform authenticity,
+commit ancestry, semantic dependency, replay, licenses, and independent intake
+acceptance remain absent. It therefore records quota feasibility as
+`not-estimable-from-partial-review-signal-surface`,
+`candidateManifestFrozen: false`, and `acceptedEpisodeCount: 0`.
+[DONE] The complete Multi-SWE revision-tree intake now covers all 47 exact
+`_dataset.jsonl` files: 1764624161 source bytes, 1737 rows, 47 repositories,
+and 1737 canonical PR anchors. Its current two-page Hugging Face tree capture
+is retained separately from the older 38112-byte receipt: the merged
+2026-07-25 body is 38412 bytes at SHA-256
+`8de0f6501c0fa3dd844d38704a4a44eb8f3b4aaa997aa74c9507c79d501c8384`.
+All 1737 per-anchor GraphQL captures are structurally and semantically
+replayed; 45 explicit repository redirects are cross-bound. GraphQL is
+complete for 1735 anchors, while the two first-100 commit gaps are strictly
+completed by REST captures containing 114 and 141 commits and cross-checked
+against the GraphQL base/head and commit prefix. The resulting 2645700-byte
+tracked inventory has SHA-256
+`14c406f6bb9d4b8c789380b62511bd1312dd67819eaeb44d64c9ea54593bed51`.
+Its explicit Phase-73 replay gate rebuilds the inventory from the non-vendored
+1764624161-byte source, GraphQL capture, and REST-supplement roots, reproduces
+the tracked bytes, and verifies overwrite refusal.
+[BOUNDARY] This is full discovery-source and capture closure, not a candidate
+dataset. HTTPS response bodies and selected headers are local captures, not
+cryptographic platform receipts. The raw 1764624161-byte source, GraphQL
+captures, and REST supplements remain external; only their deterministic
+projection and small tree-pagination receipts are tracked. No review
+trajectory has yet passed repository replay, hidden fail/pass tests, license,
+gold-blind semantic review, or independent intake acceptance. The inventory
+therefore retains zero accepted episodes, `candidateManifestFrozen: false`,
+`codexRunReady: false`, and forbids an upper-bound claim.
+[DONE] The review-trajectory replay now covers all 175 preliminary targets.
+160 have strict REST closure and 15 remain missing; 156 have at least two
+non-author request events, 148 have timestamp sequences, and 146 satisfy
+first-fix-to-first-review, second-fix-to-second-review, and
+second-fix-to-first-fix ancestry. A stricter linear rule additionally requires
+the second reviewed commit to descend from the first fix and each reviewed
+commit timestamp not to follow its review event. 145 sequences pass that rule;
+79 have non-empty fail-to-pass signals and 76 have both fail-to-pass and
+pass-to-pass signals. `mui/material-ui#25259` is retained as a three-edge
+signal but rejected as linear because its second review points to a stale
+commit preceding the first fix. The earlier 140 count was a timestamp-first
+diagnostic that selected the wrong branch in six PRs; search-time ancestry
+constraints recover those six with no rejected legacy sequence. The
+2568475-byte tracked artifact has SHA-256
+`5931a911b919a9c53068311185f0bd1c78c0be18220ebe92c3b795c8e38357fd`,
+and its explicit Phase-73 gate replays it byte-for-byte and verifies overwrite
+refusal. A separate read-only audit rebuilt the DAG from `matchedCommits`
+without trusting the stored validity flags and independently reproduced the
+160 strict closures, 146 three-edge signals, 145 linear signals, and the sole
+`146 -> 145` rejection. The gate now uses a 900-second cold-cache budget after
+one full scan exceeded the prior 300-second ceiling; a warm-cache replay
+passed in 24.44 seconds.
+[BOUNDARY] The 145 linear rows are post-discovery trajectory signals, not accepted
+three-stage episodes or a preregistered sample. The source revision remains a
+declared, unbound label; HTTPS captures are not platform authenticity receipts.
+The 76 rows with both test-signal types are also concentrated in only 12 raw
+upstream repositories; MUI, Svelte, and CLI contribute 61/76 = 80.26%, and
+MUI alone contributes 30/76 = 39.47%. The approximately 4.07
+size-concentration equivalent count is a diagnostic, not an independent-
+repository count or acceptance threshold.
+Repository snapshots, per-stage hidden fail-before/pass-after replay, licenses,
+semantic independence, and gold-blind intake review remain open. Accordingly
+`acceptedEpisodeCount: 0`, `candidateManifestFrozen: false`, and
+`codexRunReady: false` remain unchanged.
+[DONE] A deterministic audit-order projection now replays the exact
+`5931a911...57fd` trajectory artifact, retains the full 145-signal closure over
+22 repositories, caps each repository at four, retains 54 capped signals, and
+marks 48 priority seeds across 20 repositories. Its tracked SHA-256 is
+`938ffaff2d185b3e3ba5d0ccf8e97f626879ffe0c7c44d65f6c6313958a06044`;
+the Phase-73 gate replays it byte-for-byte. Maximum priority concentration is
+4/48 and the Kish concentration diagnostic is approximately 14.96.
+[BOUNDARY] The 48 priority seeds are an outcome-field-independent audit order,
+not episodes or a final accepted/rejected partition. Target availability and
+transition-specific evaluators are unchecked, and personnel outcome blindness
+is not claimed.
+[DONE] A transition-qualification intake exact-binds the
+`5931a911...57fd` trajectory and `938ffaff...6044` audit-order projections,
+retains all 54 capped candidates in fixed `cappedPoolRank` order, and freezes
+three-stage plus episode-wide evidence requirements without inventing any
+qualification result. Its tracked SHA-256 is
+`59136d44da3f5687afe08cffbed98f0eae71a114389114cb422b73680c1185f8`;
+unit tests pass 6/6 with 35 assertions and its replay gate passes 1/1.
+[BOUNDARY] Only 22/54 candidates expose any final-source fail-to-pass signal
+and 19/54 expose both fail-to-pass and pass-to-pass; within the priority 48,
+the counts are 20 and 17. These are availability hints, not transition-
+specific evaluator evidence. The intake therefore records zero machine-
+qualified and zero independently accepted episodes, refuses dataset assembly,
+and leaves the manifest unfrozen. The priority seeds cannot be counted as the
+required 48 real-history episodes.
+[DONE] C6-T001b starts the actual gold-blind semantic audit in the frozen
+`cappedPoolRank` order. The schema-v3 ledger exact-binds qualification
+`59136d44...85f8` and trajectory `5931a911...57fd`, rejects skipped or
+reordered ranks in the assessed prefix, binds every stage transition and
+review-body hash, and binds each candidate to its own reviewer receipt and
+normalized-assessment hash. Every receipt records reviewer separation plus no
+raw-gold, outcome, or hidden-evaluator access. The current working-tree ledger
+SHA-256 is
+`35a5ebc83da5a6ac4c3bc799d6d7484d7fc89e049b5ddb3e8b9ee752c9cc4796`;
+it also exact-binds whether each target is a whole `review` or inline
+`review-comment`. Its focused unit suite passes 6/6 with 16 assertions and
+its explicit Phase-73
+gate passes 1/1 with 2 assertions.
+[RESULT] Forty-two ranks are assessed. Ranks 1-4, 6-13, 15-18, 20-29, 31,
+and 33-42
+are rejected for a style/refactor/release-note/documentation-only stage, an
+already-passing target, an ambiguous request, or a target/fix mismatch. Rank
+5, `fmtlib/fmt#974`, rank 14, `vuejs/core#9213`, rank 19,
+`clap-rs/clap#2796`, rank 30, `fmtlib/fmt#2310`, and rank 32,
+`tokio-rs/tokio#5343`, are later-stage semantic continuations only; schema v3 cannot yet promote them to
+machine-qualification candidates.
+Rank 5's terminal-color support, RGB/terminal-color separation, and catchable
+`format_error` behavior each align with the frozen target and transition.
+Rank 14's three stages respectively require a full slot/fallback diff,
+unmounting the old vnode instead of reusing it, and removing extra custom-
+element renderer behavior; each selected fix aligns with its frozen request
+and reviewed-commit boundary. Rank 13, `simdjson/simdjson#1667`, is rejected
+because its third target and fix are documentation-only. Rank 15,
+`sveltejs/svelte#12560`, is rejected because stage 2's selected fix closes a
+different review request and stage 3 only asks for rationale while its
+selected fix changes documentation.
+Rank 16, `cli/cli#9083`, is rejected because stage 2 is bound to an unrelated
+upstream merge and the requested remote-selection behavior lands only in the
+following commit. Rank 17, `sveltejs/svelte#13850`, is rejected because its
+stage-2 request and selected fix only change changeset classification and
+wording, not executable behavior. Rank 18,
+`anuraghazra/github-readme-stats#2099`, is rejected because stage 2 only asks
+for README formatting and its selected fix changes one markup line. Rank 20,
+`sveltejs/svelte#12413`, is rejected because its stage-2 runtime request is
+paired with an unrelated main-branch merge. Rank 21, `google/gson#1787`, is
+rejected because stage 2 is ambiguous and stage 3 only requests a JUnit
+test-style change. Rank 22, `vuejs/core#10416`, has only a test-only type
+refinement and explanatory-comment request. Rank 23,
+`tokio-rs/tokio#6618`, pairs a test-migration request with a production-code
+transition. Rank 24, `tokio-rs/tokio#6409`, only observes documentation
+inconsistency at stage 3. Rank 25, `detekt/detekt#7635`, refers to two absent
+thoughts instead of supplying a self-contained stage-2 request. Rank 26,
+`facebook/zstd#1726`, asks for a bounded `srcSizeHint` library/CCtxParams
+parameter and dictionary/parameter selection at stage 2, but its selected
+transition only moves pledged-size handling in `programs/fileio.c`; stage 3
+asks to keep `contentSizeFlag` enabled while its selected transition only
+removes unused source-size plumbing. Rank 27, `vuejs/core#8470`, is rejected
+because stage 2 only corrects `entends` to `extends` in a test name; its
+behavioral stage 1 and aligned Node/browser compatibility stage 3 do not make
+that typo-only middle stage a behavioral coding task. Rank 28,
+`vuejs/core#10522`, is rejected because stage 3 only renames a test with
+clearer CSS terminology; the behavioral scoped-CSS task and aligned stage-2
+fixture correction do not make that final stage behavioral. Rank 29,
+`fasterxml/jackson-databind#3851`, asks for a separate synchronized method at
+stage 2, but its selected transition instead introduces inline
+`AtomicReference` compare-and-set logic; stage 3's get-before-create request
+and transition align. Rank 30's later requests make width apply to non-finite
+values without zero fill and preserve explicit alignment; both transitions
+align. Rank 31, `fmtlib/fmt#3863`, is rejected because stage 2 only removes a
+redundant include and stage 3 only simplifies parser control flow via an early
+return and switch; neither requests observable behavior. Rank 19's two later
+stages remain behavioral and aligned.
+Rank 32's later stages define a 1000-iteration randomized `Sender::len`
+pass/fail test and equal aggregate receive/send probabilities; both selected
+test transitions align.
+Rank 33, `ponylang/ponyc#3819`, is rejected because stages 2 and 3 only ask
+for release-note/documentation wording changes; stage 3's selected transition
+instead inlines an `AmbientAuth` expression in an example.
+Rank 34, `ponylang/ponyc#3675`, is rejected because stage 3 only asks for
+Markdown line wrapping; its memory-safety task and zero-allocation stage 2
+are behavioral and aligned.
+Rank 35, `simdjson/simdjson#1695`, is rejected because stage 3 contains only
+praise and a reviewer-owned documentation follow-up, not a self-contained
+coding request; stages 1 and 2 are behavioral and aligned.
+Rank 36, `ponylang/ponyc#4299`, is rejected because stage 2 requests
+diagnostic regression assertions while its selected transition changes only
+production diagnostics, and stage 3 is release-note wording only. The
+fail-closed ledger validator rejected an initial GraphQL-timestamp target in
+place of the frozen REST/linear-ancestry target; a fresh isolated review binds
+the corrected target.
+Rank 37, `simdjson/simdjson#1615`, is rejected because stage 2 only explains
+exception-free C++ context without requesting a change; its JSON Pointer task
+and stage-3 explicit error-code propagation are behavioral and aligned.
+Rank 38, `tokio-rs/tokio#6345`, is rejected because stage 3 only corrects a
+documentation link; its owned-inner error behavior and public error-type
+rename are behavioral and aligned.
+Rank 39, `Hannah-Sten/TeXiFy-IDEA#3128`, is rejected because stage 3 gives
+concrete cases but explicitly permits leaving behavior unchanged and offers
+its quick-fix idea only tentatively. A reviewer correction preserved the rule
+that unbound stage 1 cannot claim transition mismatch.
+Rank 40, `tokio-rs/tracing#1983`, is rejected because stage 2 requests
+integration tests for `EnvFilter`'s `Filter` implementation while its
+selected transition only feature-gates the existing implementation and adds
+no tests; stage 3 is unused-variable clippy cleanup only.
+Rank 41, `elastic/logstash#14058`, is rejected because stage 3 requests a
+behavioral distinction between dropped and discarded DLQ events, while its
+selected transition only changes logging and leaves both paths in the same
+counter exposed as `discarded_events`.
+Rank 42, `elastic/logstash#13880`, is rejected because stage 3 requests
+user-facing guidance to use the bundled JDK, while its selected transition
+changes no warning diagnostic and instead adjusts no-JDK packaging plus
+cleanup/debug output.
+Rank 43 is next in the screening prefix, but frame v2 is now structurally
+insufficient and must be expanded prospectively before it can support a
+48-episode allocation. The rank-13 receipt
+records the actual bounded
+`fork-turns-3` policy; it is not rewritten as `fork-turns-none`.
+[CORRECTION] Stage 1 is intentionally frozen with `beforeCommit: null`.
+Mutable GitHub pull `base.sha` is diagnostic-only and cannot accept or reject
+that transition; the historical base and ancestry belong to machine
+qualification. Later commits also cannot be aggregated into a frozen target
+after review.
+[CORRECTION] Multi-SWE source PR title/body are evaluator-only, not an
+agent-visible task. The new uniform
+`resolved-issues-only-sorted-lf-trim-v1` constructor excludes both fields,
+sorts resolved issues, and normalizes line endings; its unit suite passes
+3/3 with 9 assertions. A separate 11006-byte exact projection now materializes
+the three continuation prompts and binds SHA-256
+`b5babf8bab47c2005b20a0dba731252fc3cbb1f9612216152f7e0e13cdd4692d`.
+It retains normalized resolved-issue records, re-derives each prompt, and
+replays byte-for-byte from the three exact local source files, while correctly
+keeping upstream authentication false. A separate 3317-byte gold-blind
+stage-1 semantic-review receipt at
+`d3c274149a1b2f7a5c04ff96fd560b91f424733fb90aa0d3534cf78767584f2d`
+accepts those three prompts as behavioral requests. The receipt is
+self-attested, not cryptographic, and does not bind machine-qualification
+before snapshots. Schema v3 still records zero incorporated prompt
+projections, reports `stage1AgentVisibleRequestsBound: false` and
+`machineQualificationCandidateCount: 0`, and therefore cannot promote ranks
+5, 14, 19, 30, or 32. The separate three-prompt projection predates ranks 30
+and 32, so neither has an exact stage-1 prompt projection or semantic-review
+receipt. An independently audited rank-14 draft leakage fixture was deleted:
+it only proved that the forbidden PR solution body contained an implementation
+hint and did not bind the alleged future target bytes.
+[BOUNDARY] This is semantic-screening and prompt-review evidence, not machine
+qualification or episode acceptance. It has no cryptographic receipt; none of
+the five continuations is an episode. Machine-qualified and accepted counts remain zero, dataset
+assembly is forbidden, and the candidate manifest remains unfrozen.
+[DONE] The rank-5 continuation now has a fail-closed transition-evaluator
+screening receipt. It binds asset-lock
+`a9455232d26beeec738f647969506e248542dde4a6cb8d7405d270287aedeff0`,
+asset root
+`8a73c28419fe230e15130068a836d7c1e0043b1144aee94128eea43a5e2e369b`,
+and evidence
+`5235b39c9bffd688a62e384edf77c9ae165c7c9d898bb2ea83d821a74e1c12f8`.
+The validator exact-binds the semantic assessment, stage commits/trees,
+six retained raw Git commit objects, public-API evaluator sources, retained
+logs, and offline Linux/amd64 profile. It recomputes each commit-object ID and
+tree mapping and derives only stage 1 as fail-before/pass-after. Rank 5 is
+rejected because stage 2's selected after snapshot fails to compile for a
+normal `fmt/color.h` consumer and stage 3 terminates after throwing inside
+`noexcept` instead of exposing catchable `format_error`. The recorded
+non-ancestry value is diagnostic-only and not a rejection reason. Focused
+unit tests pass 4/4 with 19 assertions; the explicit Phase-73 gate
+passes 1/1 with 6 assertions.
+[BOUNDARY] The protection slice is 13/13 but excludes `format-test` and is not
+a native Linux-x64-complete suite. The result logs are retained and asset-
+locked, but the local Docker executor is unauthenticated and the source
+repository archive is not retained. This is a deterministic rejection from a
+frozen local-observation receipt, not independent execution proof and not
+machine qualification. Machine-qualified and accepted counts remain zero.
+[DONE] A separate read-only agent accepted the rank-5 frozen-receipt rejection
+derivation only. The review receipt binds receipt SHA
+`70db5d33a9f165973107c2349ab5f9487ff239c76655451535690d7b59ffebaf`,
+lock `a7770e4d1c7dd6b7fd9bb17f3822e1e0e985018ceee16f66ca52d5380430f7a2`,
+and root `7671e327880434cef13fd4d02dfe2bd83a5e540991012dd8076c58f8bbe63421`.
+It explicitly does not authenticate reviewer identity, original Docker
+execution, or local probe execution and does not promote an episode.
+[STOP/GO] Thirty-seven semantic rejections plus the rank-5 machine rejection
+leave a maximum of 16 possible qualifiers in the original 54-row capped pool. That
+fixed pool is impossible.
+[DONE] A 145-row expanded screening frame keeps the original 54 candidates as
+an exact prefix and appends all 91 deferred rows by frozen `eligibleRank`.
+The tracked frame SHA-256 is
+`751929cc423d0ad132cbb5d5841a442242b9d59ab713406f352424a33c22def9`;
+the candidate-only projection SHA-256 is
+`f2875d922dc5aef657363660b9efd0b39799923cbd8068f84ef921791da2e47e`.
+Its gate chains trajectory-to-selection replay, derives rejection IDs from the
+same semantic object validated by the independent-review receipt, and executes
+the repository-cap then global-first-48 selector. The policy was selected
+after rank 12, while review metadata was refreshed after rank 13; temporal
+order is not cryptographically attested.
+[BOUNDARY] With the current 38 definitive rejections, the old 145-row frame has
+107 remaining rows, a conditional repository-capped maximum of 35, and margin
+-13. It no longer meets the 48-episode minimum. No
+candidate is machine-qualified or accepted and the final 48 are not selected.
+[DONE] A prospective structural-review v2 expansion keeps the old 145-pull
+exclusion set and does not read the semantic ledger. It replays all 1,737
+inventory rows, excludes the complete old frame, retains two unsupported
+GraphQL pagination closures, and freezes 51 broad pretargets across 13
+repositories. The expansion artifact SHA-256 is
+`629acdc312e611e066d181dacfb1206448c2a3f885921b99eff036159439317f`;
+policy SHA-256 is
+`b51613368026c09ad1aab3e4d08fe19197ddc1beea9499c9d8e068830527703a`.
+Its all-51 REST plan was frozen before capture at SHA-256
+`6de24fb5e71aed98341cd1f529645cf6d53826ce77bb8ff3ddeb105197860cbc`.
+[RESULT] Strict REST capture closed 36/51 targets under asset root
+`eacf953f250d1ce652a85248aabec863555f4849bdb789f4c4be22fcbc460ff9`.
+The other 15 remain missing infrastructure closures, not semantic
+rejections. Exact pull-author-aware replay yields 29 structural candidates
+and seven captured no-sequence rows. Qualification SHA-256 is
+`256f267868303faf9e4fc4745508efaa023a241cb96d5bfac1a2c4a3aebfc5da`;
+its v2-only repository-capped ceiling is 23.
+[DONE] The combined frame appends the 29 exact v2 rows after all 145 legacy
+rows, preserving the complete old screening order. Its SHA-256 is
+`7d44dd550f0921d8fa561fde0a6338f9b34afb076b182d05d76181ef4dcb6290`,
+candidate projection is
+`0deafb438d2618a232aa0dd9b5981a6df2b189b48bc1753d03dbaa01b4ffa6b9`,
+and exact-v2 projection is
+`28a3687c6341f6e67c26f5cbc21dc1d5fe49e0a327db89a7bfd55139c27a2606`.
+The raw 174-row frame spans 23 canonical repositories with a capped ceiling
+of 61 and margin 13. The gate binds the current 37 semantic rejections and
+rank-5 machine rejection separately, leaving 136 rows, ceiling 44, and margin
+-4. Frame v1 can no longer meet the minimum. The focused expansion suite
+passes 18/18 with 56 assertions; the REST and
+combined-frame replay gates pass 1/1 with 7 and 10 assertions respectively.
+[BOUNDARY] This restores only conditional structural capacity.
+`captureAttemptCompletenessProven: false`, accepted and machine-qualified
+counts remain zero, dataset assembly and freeze remain forbidden, and the
+observed rejection rate makes a still broader source pool prudent before
+machine qualification or any full Codex run.
+[DONE] A separately frozen REST identity-supplement plan binds the 15 missing
+targets at SHA-256
+`72dcc45d43978cdda255937bd9773fb4f4685b7ac862416143dc1d777c97bfb6`.
+The executed hardened-path 15/15 recapture root is
+`26e14cad198c2b12b71c9ecd4c77231447cd53ef6210e391ec6f24a841e53615`.
+The capture path rejects reflected authorization material before writing,
+rejects an existing output root before making a request, publishes files with
+no-replace semantics, and verifies the same asset closure before and after
+publication.
+[RESULT] GraphQL-history plus REST-identity replay closes the structural
+identity requirement for all 51 targets: 44 are exact structural candidates,
+seven have no exact sequence, and zero remain missing. Qualification v2
+SHA-256 is
+`e11752f957a3a8de992866ef2d83a36710a3e9134f5c84728100d67d5c87e0f3`;
+its repository-capped ceiling is 26. It truthfully retains
+`originalFullRestCaptureAttemptCompletenessProven: false` and records only
+`pullIdentitySupplementClosureComplete: true`; bearer use is not a
+cryptographic platform-authentication receipt.
+[DONE] The append-only screening-frame transition binds frame v1 and
+qualification v2, verifies their qualification lineage, preserves all 174
+prior candidates and ranks, and appends only the 15 supplement-exact rows at
+ranks 175-189 by original capture order. Frame v2 SHA-256 is
+`9afc398b3475d5f4f6ab016c8fa36df80ed74880971acad789b54cbf4fcc022e`;
+candidate projection is
+`7b6499bfc62ad8a6c3fce9f26028bcd62354f4c3c4d86acc91e1deca5fe0c992`;
+supplement projection is
+`efb86b1827955d67eb61e79a7e25a9707f5992c304be74603cb55c9295b34229`.
+The frame records 15 still-missing full REST closures separately from zero
+missing required identity closures. The raw 189 rows span 25 repositories
+with capped ceiling 63 and margin 15.
+The derived check applies 37 semantic-ledger rejections plus the separately
+receipt-supported rank-5 machine rejection without feeding either decision
+back into selection; 151 rows across 19 repositories remain, with ceiling 47
+and margin -1. The qualification and frame gates pass 1/1 with 6 and 11
+assertions.
+[STOP/GO] Frame v2 can no longer meet the 48-episode minimum. Freeze and
+replay an outcome-independent prospective v3 source expansion before further
+expensive transition qualification or any Codex calls.
+[BOUNDARY] This removes the 15 identity-closure infrastructure gaps but does
+not accept an episode. Semantic and transition qualification for the new
+tranche have not run; accepted and machine-qualified counts are zero;
+`candidateManifestFrozen: false`; `codexRunReady: false`; no summary corpus,
+Linux package run, 10557-call experiment, statistical report, or C7 claim
+gate exists.
+[DONE] The tracked `sharkdp/fd#546` evaluator canary binds asset-lock
+`d1f87de8146cf05903bf83d5ebf3dd7c93e403f0ef625207e0d7e4288afbe2db`,
+asset root
+`b13f088c33b7a1862257d8b5521bcb3dcff9078b019a2e385e4148e876c077d9`,
+and evidence projection
+`b304af5ad2733aa05bb36d8ac7066bc93ab51bfeaca54d8d3cbb22f2a5846749`.
+Its exact Linux/amd64 replay observes base at 167/0, test-only and
+initial-plus-test at 167/1, and gold-, first-fix-, and final-fix-plus-test at
+168/0. The gate derives `sourceUnitReplayEligible: true`,
+`threeStageEpisodeEligible: false`, and
+`stageSpecificEvaluatorRequired: true`.
+[BOUNDARY] The persisted canary contains no raw execution witness and does not
+authenticate the local Docker daemon. It freezes and validates the projection,
+but only records the observed live replay. The final hidden test cannot score
+the second review transition, so fd#546 is not a three-stage episode.
+Historical review trajectories also require growing history prefixes, while
+the current C6 schema binds one episode-level prehistory and one episode-level
+summary. Reusing the maximal prefix leaks future history; reusing the minimal
+prefix removes required later context; carrying experimental-arm output would
+break frozen-prehistory isolation.
+[DONE] Readiness-ladder step 1 is complete under the corrected stage-scoped
+protocol. Dataset v3, the stage-prefix helper, lineage v2, summary
+protocol/artifact v3, candidate-plan v6, leakage, gate-policy v4, readiness,
+CLI, and the end-to-end fixture all consume the same sealed-prefix and
+zero-history contracts. Lineage loads each actual history artifact and binds
+ordered source units, materialization, targets, and stage/episode closure
+hashes. Leakage audits every exact prefix, later suffix, future prompt, and the
+episode-wide hidden/gold/evaluator closure.
+[DONE] A `no-history-negative-control` stage now requires canonical zero-byte
+history and zero source units. It invokes no flat-summary provider, writes no
+summary artifact, and both treatment arms carry an explicit
+`no-history-zero-injection` receipt. Candidate-plan v4 counts only non-empty
+stage-history bindings; the production ceiling remains 1173 and the actual
+generation count is derived only after dataset freeze.
+[EVIDENCE] The root current-tree validation passes 125/125 tests with 1923
+assertions in 110.12 seconds. Full typecheck and diff checks pass. Current
+implementation SHA-256 values are
+`61780da38620044ec24b4b86b39024ac6db76bf50695fa0c8ab4d6dc5a0f6d2e`
+for lineage,
+`26d1682e4eff07d31e96f5ddc1f3c80a99fd59f8e809f1e017bfd7280f8582c9`
+for leakage,
+`30d4b8cb9ce0e8cd930d3101049a6e1f6133d3bacbb427e88395625fa3ec14a0`
+for flat-summary, and
+`71519c4c06e4a0cc0a529afeaa2756fa21e0192943af69aa4ac3e9325b5b6f69`
+for candidate-plan.
+[BOUNDARY] This closes deterministic preflight implementation only. It is
+byte/count/hash closure, not semantic reconstruction, upstream authenticity,
+an accepted dataset, a summary corpus, or a Codex outcome.
+[DONE] `c6-package-closure.ts` validates an externally frozen asset root,
+closure, lockfile, GoodMemory archive, offline tarball set, installed tree, and
+declared Linux x64 runtime profile as one cross-bound static package identity.
+It rejects unsafe archive paths, dependency-graph gaps, missing or substituted
+packages, and internally self-consistent root replacement.
+[DONE] The separate package materializer completed two fresh-root runs in the
+pinned Linux/amd64 image. Each run performed empty-cache network-none
+`npm ci --offline`, repeated install, a second frozen-closure rebuild, and
+read-only CLI smoke. The two 124-file, 57233374-byte outputs are byte-identical;
+expected identity is
+`770d7a80938a62c86914e863e639c20e63358fc0fc56afb99f2823f212179c30`,
+installed-tree hash is
+`c73a5db06353bd0dc8c0a31e2a3837e8636eca6e4d59f221df338b1acf0dc3eb`,
+and the 1173473-byte tracked projection is bound by receipt SHA-256
+`3a066d1e841f9902bb499a60715feba3bbac6cc9feca0bf3d376e7503d6ab0cd`.
+[BOUNDARY] The full closure roots remain external. Persisted replay correctly
+returns `linuxRebuildProven: false` because the receipt includes no raw
+execution witness; the explicit gate revalidates both roots without treating
+self-reported JSON as cryptographic execution proof. Package source-to-archive
+proof and the final Codex/host profile are still required before C6-T003 closes.
+[DONE] A separate exact-source diagnostic archived commit
+`5d6dab3bf8b406455068c01863c5cbd51cf65756` / tree
+`8563c9136864430772e024925811be55402f3372` and rebuilt it in two independent
+pinned-Linux containers. Both runs produced the frozen package
+`5f9b98600ff024a80a7a337fa8953e162b7498bf909a67e8b217a9bba5dd2757`.
+Receipt SHA-256 is
+`230948d69f433600e31e239944d19b76bde1282d6ddd390212f0d298aed57e16`;
+the 499308-byte tracked projection is
+`16360426083d7ee2d79cb89ee90880edc4276e24e5c5c35ce09b1c2bcfaa14bc`.
+[BOUNDARY] Source dependency acquisition was networked. The receipt therefore
+keeps `sourceBuildReproducible: false`, `networkDisabled: false`, offline
+closure false, and external attestation false. The full 39223537-byte closure
+remains external; an offline frozen dev-dependency build or equivalent
+independent attestation is still required for source-to-archive closure.
+[DONE] A subsequent v3 run rebuilt the same exact source twice in fresh
+pinned-Linux, network-none containers from two independently materialized
+copies of one frozen dev-dependency closure. Both runs installed 292
+dependencies and produced the same 1035700-byte package at
+`5f9b98600ff024a80a7a337fa8953e162b7498bf909a67e8b217a9bba5dd2757`.
+The external nine-file root is
+`/private/tmp/goodmemory-c6-package-source-offline-v3-sync-v1`; receipt
+SHA-256 is
+`21599cb09660c944cf759a6f97e1e9ed1cb15ca35d619b088c104d92c5deb732`
+and runner-source root is
+`047e3939016d0ba646139354edad44902008183f8e0d3078ed0ab104547f4826`.
+The explicit external-root gate passes 2/2 with 14 assertions.
+[DONE] The frozen dependency-cache scanner no longer relies on an unresolved
+asynchronous `FileHandle.read`. It uses exact synchronous FD reads with
+per-chunk monotonic deadline checks and `finally` FD closure; the focused suite
+passes 11/11 with 141 assertions. This closes scanner termination semantics,
+not execution authentication.
+[BOUNDARY] This is a locally observed same-host two-run offline build plus
+static replay of the retained closure. The receipt deliberately keeps
+`sourceBuildReproducible: false`,
+`c6PackageOfflineClosureProven: false`,
+`executionAuthenticated: false`,
+`externalIndependentAttestation: false`, and
+`rawExecutionWitnessIncluded: false`. It does not close authenticated
+source-to-archive proof or C6-T003.
+[CURRENT DRIFT] The v3 receipt remains historical local evidence, but its
+source-replay gate is red against the current worktree. The receipt pins
+runner-source root
+`047e3939016d0ba646139354edad44902008183f8e0d3078ed0ab104547f4826`;
+the current nine-file runner closure is
+`39cc7f153b2e532d9d4a2179d20d2dfc8704dee9fb05c3581ddc44c52e9d62bf`.
+The package bytes still match, but current verifier/source ancestry does not.
+Do not update the expected hash in place: after the C6 runner sources are
+stable, execute a fresh two-run source materialization and issue a new
+receipt. The C6 package/source/Codex materializers, gates, and projections are
+also worktree-only in the present Git snapshot, not landed or staged evidence.
+[DONE] A separate static Codex runtime validator cross-binds the exact
+`@openai/codex@0.145.0` package/lock, registry metadata capture, main tarball,
+Linux x64 optional tarball, and the complete platform optional-dependency
+graph. Two captures of both tarballs were byte-identical; a manual pinned-image,
+network-none diagnostic reached `codex-cli 0.145.0`.
+[DONE] The formal Codex materializer then performed two fresh, read-only,
+network-none Linux/amd64 installs. Both returned `codex-cli 0.145.0` and
+produced the same 8339-byte run artifact at SHA-256
+`31dc6b7ca5babf01d6bcff7e012a63aaf12f1e1141b4e44dfea7ea01e997463b`;
+installed-tree SHA-256 is
+`f4dd92f92e35501f547e76be3e9f916d4b701ac28d78a533c89337dcd0d4e39a`.
+The tracked nine-file closure has receipt SHA-256
+`c5301d9ae73447b9ab78ba3e4c2575dd76c831af6701244e00db5602ea9fc0df`
+and asset-root SHA-256
+`66884e8b6152694f7ab941916dc2d33f225640fee2ff40c1de19378a15a2ff91`.
+Its explicit Phase-73 gate verifies the retained projection and can revalidate
+it against the external tarball root.
+[BOUNDARY] The live orchestrator observed both installs, but the persisted
+receipt has no cryptographically authenticated execution witness. Persisted
+verification therefore correctly keeps `linuxOfflineInstallProven: false` and
+`codexRunReady: false`. The package-install materialization prerequisite is
+historically observed but not current-tree reproducible; installed-host
+profile/config, treatment injection, unified admission, dataset replay, and
+full Codex execution remain open.
+[DONE] `c6-episode-intake-review.ts` schema v2 validates a five-file,
+asset-bound independent-review envelope against the caller-reconstructed
+candidate universe. A family representative must be selected or
+qualified-reserve; every non-representative must be semantic-duplicate; the
+selected IDs must exactly equal final dataset IDs and the reserve set must be
+complete.
+[BOUNDARY] It reports `selectionClosureRebuilt: false`,
+`sourceIntakeClosureRebuilt: false`, and `cryptographicReceipt: false`. Until
+an independent verifier rebuilds both closures from frozen inputs, this is
+review-receipt structure, not accepted episode evidence.
+[DONE] C6 performs stage-scoped hidden/gold leakage matrices over each exact
+history prefix, later history suffixes, future prompts, feedback,
+repository-visible surfaces, the summary prompt, and summary output. The
+hidden/gold/evaluator closure remains episode-wide, and declared forbidden
+file hashes resolve uniquely to evaluator content. Flat summaries bind the
+episode, stage, exact history, dataset, prompt, the same
+`goodmemory-estimate-text-tokens-v1` estimator used by installed-host
+GoodMemory, a local pricing receipt, and exact output; injection size is
+recomputed in that shared unit. The receipt contract freezes the flat-summary
+final text as verbatim output with no wrapper and the GoodMemory final text as
+installed-host `additionalContext`, and hashes/counts either arm's actual final
+text. That helper is not connected to the runner and does not establish
+event-placement parity. Before summary generation, the packaged-Linux profile
+must recover the exact ordered native hook events/segments, bind per-event
+content hashes and token counts plus the ordered composition hash, and freeze
+equivalent flat-summary placement and per-event caps. Equal aggregate tokens
+alone are insufficient; unrecoverable native composition makes the pair
+incomparable. Packaged-Linux per-stage injection receipts and authenticated
+provider generation receipts remain required before run
+identity/Codex execution, and independent pricing-source review is required for
+the cost branch.
+[DONE] No-history stages are a strict exception to summary generation:
+canonical zero-byte history, zero source units, no provider request, no
+artifact, and zero injected text in both treatment arms.
+[DONE] The documented gate policy is frozen as an input: installed-host
+identity/path/hash/hook/injection/Stop/ledger checks; positions-two-and-later
++10.0 points versus no-memory;
++3.0 points for flat-summary superiority; repository-robust superiority also
+requires positive hierarchical lower bounds for the episode-weighted and
+equal-repository statistics plus a positive delta after omitting every
+repository. Comparator-specific non-inferiority applies the same three checks
+above the negative margin. The old episode-only interval is diagnostic-only.
+[SUPERSEDED] Gate-policy v2 rebuilds every stage/seed from one episode-level
+sealed prehistory. The real-history replay shows that this cannot represent a
+growing review trajectory without missing context or leaking future history.
+The replacement must rebuild from each stage's upstream-frozen sealed prefix;
+Stop and writeback remain host-integrity observations, the store is discarded,
+and no experimental output carries across stages, seeds, or arms.
+[DONE] Gate-policy v4 retains the clean
+`rebuild-from-stage-sealed-prefix` lifecycle; candidate-plan v6, readiness,
+CLI, and the end-to-end fixture consume it and reject the legacy contracts.
+[BOUNDARY] `prepare:codex-coding-effect:c6-candidate` is a zero-write,
+zero-model-call checkpoint. Its current terminal state is
+`preflight-accepted-freeze-prerequisites-required`, with
+`candidateManifestFrozen: false` and `codexRunReady: false`. Authenticated
+package source-to-archive proof, repository URL/commit/snapshot and license receipts,
+independent semantic-duplicate review, packaged-Linux GoodMemory
+profile/config, and real injection-token receipts remain required. No actual
+391-episode candidate dataset, authenticated summary corpus, Linux execution,
+C6 outcome, or public claim exists yet. A smaller budget requires a tracked,
+independently verified eligible-position power-adjustment artifact before
+candidate freeze; that artifact now exists and explicitly retains the
+391-episode floor, so it authorizes no reduction. Readiness-ladder step 1 is
+complete under the corrected
+stage-scoped protocol; steps 2 through 10 remain open.
+[DONE] C6-T001a real controlled-mutation canary binds `unjs/defu` commit
+`82632b66f5914e9946edce300e10633a3d5c0cb7`, tree
+`f98fd0ecb1056fb087f117a97241a433309f087c`, MIT evidence, a source-only
+six-file projection, two genuine mutation families, and one cosmetic
+null-default duplicate. Repository-family identity is frozen in supply;
+exact evaluator/gold-outcome family splitting and corpus-wide direct
+gold/evaluator prompt leakage are mutation-tested; the actual evaluator
+factory and target modules are content-hashed execution bundles.
+[EVIDENCE] The Linux/amd64 receipt is
+`reports/quality-gates/phase-73/c6-controlled-mutation-canary/linux-amd64-receipt.json`
+at `b084eda0c425925947644e59f9c86495743d381c5ab19e728bc9b6712211c60b`.
+Two runs in pinned image
+`6967283eaf7c1e0ca4dbf4c72fd43b1cf3676f28371a635619fde3f07975373c`
+share closure
+`383247fa598266ca00ff45d8f79cc336e845e36c75df54afe63cd53a0ff126cd`;
+the gate passes locally and in that image.
+[BOUNDARY] C6-T001 remains open with zero accepted episodes. The receipt keeps
+`semanticEquivalenceReviewVerified: false`,
+`evaluatorDependencyClosureFrozen: false`,
+`networkIsolation: not-attested`, `receiptAuthentication: none`,
+`fullUpstreamCiExecuted: false`, `candidateManifestFrozen: false`, and
+`codexRunReady: false`. The canary is not a sealed Codex input, an independently
+accepted episode, a 391-episode registry, or uplift evidence; cosmetic clones
+never count toward 391, quotas, repository-family count, or effective sample
+size.
+[DONE] C6-T001 prospective actor correction now fails closed on the
+suffix-only bot-filter defect. It freezes current GitHub actor receipts for
+every raw review/comment author in the Multi-SWE, SWE-bench Multilingual, and
+Live/MultiLang broad target sets, filters before review-thread head selection,
+and reselects the legal sequence from the complete raw GraphQL event set.
+The corrected qualification SHA-256 values are
+`69e6417308279fb398cdec5abdf7b41e77d501097830264a502175815e8e98f8`
+(44 exact / 7 no exact),
+`7fb942cd87126d360ed820e91cf8bee1073153cd21c674eeb91d3cb09b05929f`
+(19 fresh exact / 3 actor-requalified overlap / 4 no exact), and
+`728453138ee33e6b6e5525ea6e3555c998d9f17774afed8da18c8ff845283a66`
+(47 exact / 17 no exact). The current-platform rule is HTTP 200 + matching
+login + `type: User` + a frozen automation-login exclusion. It does not prove
+human identity, event-time type, complete automation exclusion, or signed
+platform provenance.
+[DONE] The separate prospective-only actor-qualified screening frame has
+SHA-256
+`6838de7f36875b3b3de104ffd896b9e30dcf95ad1eb285a87b465789800f4b0c`
+and candidate projection
+`1d0c5689521aa906e7fb2bf015579bbcc7638b31093966edec5339724aec82af`.
+Its pre-semantic order is Multi-SWE, Multilingual, then Live/MultiLang capture
+order. It has 113 candidates across 57 repositories, zero cross-tranche
+duplicates, and repository-cap-4 ceiling 93. The gate replays all three actor
+closures, corrected qualifications, the new frame, and unchanged old
+frame-v2/v3/v4 hashes; it passes 1/1 with 18 assertions. Thread-head promotion
+and actor-plan/root terminal mutation are covered by focused regression tests.
+[BOUNDARY] The 93 ceiling only clears the current 72-candidate screening
+buffer. It is 298 below the 391-episode headline floor; the raw count is 278
+short and is therefore independently insufficient. Cap 4 is a screening
+diversity diagnostic, not a substituted final repository-allocation rule;
+that allocation still needs its outcome-blind power/precision artifact. The
+frame records `headlineRawStructuralCandidateFloorMet: false`,
+`acceptedEpisodeCount: 0`, `machineQualifiedEpisodeCount: 0`,
+`candidateManifestFrozen: false`, and `codexRunReady: false`. Old frame-v4 and
+the old 42-row semantic ledger are superseded provenance, not actor-qualified
+selection inputs; rank 43 must not be resumed. The new replay gate still needs
+eight external raw roots and is not repo-only proof. C6-T001 remains open:
+expand actor-closed outcome-blind supply above 391 with rejection headroom,
+then perform fresh semantic/machine intake before dataset freeze or model
+calls.
+[DONE] Gate-policy v4 and candidate-plan v6 now close the source-cohort
+estimand defect. The primary candidate dataset accepts only `real-history` and
+`external-benchmark`, requires exactly 391 such episodes, exactly three stages
+per episode, and at least 48 real-history episodes, and computes all repository,
+stage, stratum, and power floors from that primary cohort. A
+controlled-mutation row cannot satisfy the floor and is rejected from the
+primary candidate dataset. Controlled mutations remain a separately reported,
+repository-family by mutation-family diagnostic; the candidate plan does not
+consume or count that external registry, and it does not enter the primary
+estimand, quotas, clusters, or the frozen 10,557 Codex-call schedule. Mutation
+tests now reject 392 episodes, a fourth stage, and an enlarged declared budget
+that would otherwise schedule 10,584 or 10,566 calls.
+[DONE] A fresh `fork-turns-none` primary-cohort review rejected schema v5 for
+one P1 fixed-budget bypass, one stale-task-board P2, and one misleading
+controlled-diagnostic count P3. Schema v6 closes all three: the exact
+391-by-3 schedule is enforced, this board now matches gate-policy v4, and the
+candidate output describes controlled mutations as an unconsumed external
+diagnostic registry rather than reporting a synthetic zero episode count.
+Focused candidate/gate tests pass 22/22 with 1674 assertions; the focused
+protocol materialization and full typecheck pass. The same independent reviewer
+then performed a final static closure check and returned `ACCEPT`: current
+plan, status, task board, runtime, and tests consistently say candidate-plan
+v6, gate-policy v4, exact 391-by-3, and exactly 10,557 calls.
+[DONE] The controlled-mutation builder can mechanically replay a multi-
+repository registry twice with a deterministic global closure while retaining
+`acceptedEpisodeCount: 0`, `candidateManifestFrozen: false`, and
+`codexRunReady: false`. Registry, canary, and supply tests pass 12/12 with 106
+assertions. This is diagnostic infrastructure only; it is intentionally not a
+way to fill the 391 primary episodes.
+[DONE] The C5 v16 eligible-position recalculation now binds the frozen
+`report.json` planning inputs in addition to the plan, pairs, attempts, stage
+executions, and projection manifest; validates stage-position
+`memoryExpectation`; performs stable terminal reads; rejects symlinked inputs
+and output parents; and creates the output exclusively. Artifact schema v2 is
+SHA-256
+`7c0ce1f26af3540fc84359db10500e9e9bc04b4186e80a87ca3bbc3174ac4b72`;
+the schema-aligned tracked filename is
+`c5-v16.eligible-position-power-adjustment-v2.json`.
+It retains 24 eligible pairs, 20 comparable pairs, five complete episodes,
+ICC 1, design effect 6, and the 391-episode floor. The frozen-input and
+receipt-binding suite passes 7/7 with 20 assertions.
+[DONE] A fresh `fork-turns-none`, read-only reviewer independently replayed all
+six frozen inputs and returned `ACCEPT_WITH_BOUNDARIES`: 24 eligible pairs,
+20 comparable, 4 incomparable, five complete episodes, BMS 0.8, WMS 0,
+ICC 1, design effect 6, and floor 391. It found no P0-P2 issue. Its only P3,
+the old v1 filename carrying schema v2, was closed by a byte-preserving rename;
+the artifact SHA is unchanged. The separate review receipt SHA-256 is
+`3f8292aba907acf947148c925d61e7698312177f25fdf521b634106efbafd918`.
+[BOUNDARY] The immutable reviewed artifact's own embedded pre-review boundary
+still says pending; the separate receipt records the later decision without
+rewriting reviewed bytes. That receipt is not cryptographically authenticated,
+and neither artifact can reduce the floor, prove candidate capacity, consume
+C6 outcomes, or support a public claim. Primary dataset supply remains the
+decisive open path: the current actor-qualified structural frame still has 113
+raw candidates, zero accepted episodes, and a raw shortfall of 278.
+[DONE] The next outcome-blind supply action is frozen as a Live/MultiLang
+neighbor-census plan at SHA-256
+`1b07d57ebc5601b9ab7f6742fdb5da91b9181784d7b2a33bf28ad318fa2e10f1`
+with selected-repository projection
+`dee7643fa9693c4b43cb56f985d7cf7aded9ed4de3c8fc6c62c0def428a0fe0e`.
+It reconstructs 743 anchors / 381 requested repositories / 380 canonical
+repositories, excludes the 37 current-frame overlaps, and freezes 64 unused
+repositories as eight per language split in rotated order. The 16-PR cap yields
+a maximum of 1024 raw anchors. Focused tests pass 5/5 with 14 assertions and a
+real external-closure rebuild is byte-identical.
+[BOUNDARY] The census plan consumes no patch/test/gold/outcome/semantic/machine
+decision and still records zero qualified or accepted episodes. `1024` is a
+query ceiling, not candidate supply.
+[DONE] The frozen metadata-only census captured all 64 planned repositories.
+Completion SHA-256
+`68727cb0aefb04a3f9b84f8e67a41f9aaba952665e2fef798f61110e36352b53`
+binds 1024 raw anchors; all 64 histories record `hasNextPage: true` because the
+newest-16 cap truncated a larger merged-PR history. The external 257-file root
+is SHA-256
+`79d7d23097ec1ee11082a7b01a8f36d59383b3e2cf5d536630b29fde7a9400c4`.
+Token-pattern scan is clean, target order is contiguous, and the persisted
+query contains no PR/issue body, diff, files, tests, gold, checks, or outcome.
+[DONE] Deterministic census qualification SHA-256
+`e51243ea3aa740a3a0812f8c1289ac2d3cf51436440ae0ecfea67a280743f1cc`
+byte-replays the source capture plan from its frozen source pool and the
+neighbor plan from its frozen actor frame, rejects untracked initial/terminal
+root entries, rebuilds all 743 old canonical anchors from the frozen 2972-file
+source root, excludes three overlaps, and classifies 1021 novel anchors.
+Exactly 692 have
+`reviewCount > 0 || reviewThreadCount > 0` and become deep-capture pretargets;
+329 have no review surface. Ordinary discussion comments alone never qualify.
+Deep-target projection SHA-256 is
+`f45d9ef61b55d73d2b94c8018d7874ae58887fa01133a4fd77883f0548701404`.
+[DONE] Independent rereview accepted qualification v2 with no P0/P1. The
+external-root gate passes 3/3 with 14 assertions and covers byte replay,
+terminal asset-lock/empty-directory mutations, hidden outcome input, and
+independent actor-frame/source-pool byte mutations.
+[DONE] A 692-target / 61-repository deep-capture plan is materialized at
+SHA-256
+`9c1ebdafd700a274cffc4dba807a2425013079d1bfe74a1e99f1144399da492a`.
+It is qualification-v2 bound, keeps all acceptance/run/freeze gates closed,
+and excludes PR/issue title/body, discussion comments, files/diff/patch,
+tests/gold/checks/outcome, and commit messages.
+[DONE] Independent plan review accepted with no P0/P1/P2. The initial GraphQL
+query also executed successfully for one frozen target with no schema error
+and cost 2; this does not prove the 692-target paginated capture. The four
+focused suites pass 23/23 with 384 assertions.
+[DONE] The hardened paginated runner received fresh independent ACCEPT with no
+P0/P1/P2 after terminal asset-closure, bounded transport/body/timeout and
+rate/transient-GraphQL retries, nullable timestamp, identity/total drift, and
+publication mutation probes. The exact accepted runner captured 692/692
+targets with 693 logical/network requests and one commit-page supplement.
+Completion SHA-256 is
+`62ba6ada2d0ae54f4d43149e592ec06b70899e712a12f97dd503d8650ff2063d`;
+the external 2772-file root is
+`80c360d58b1959e5a47cbd70c5eb620276ed2105c49a595dccdb4aa178d1f83b`.
+Independent replay closed all 4919 connections, matched every total/raw
+hash/byte count, rebuilt the terminal root byte-identically, and found zero
+transport/GraphQL errors, symlink/mode drift, or exact token occurrence.
+[DONE] The independent Wave1 deep-evidence loader received ACCEPT with
+P0/P1/P2=0/0/0. It replays 692 manifests, 693 final-success responses, the
+2772-file/2771-directory closure, retry provenance, and every cursor/total/node
+identity. The frozen raw surface contains 2009 commits / 2137 parent edges /
+1848 reviews / 834 threads / 1337 comments, plus 3185 review/comment actor
+occurrences across 267 unique logins and 692 separately bound pull authors.
+[BOUNDARY] These are complete raw structural/actor inputs, not structural,
+actor, semantic, evaluator, or episode acceptance.
+[DONE] Before observing any wave-one deep result, the repository-cap-4
+capacity bound proved that wave one cannot reach 391: the current frame ceiling
+is 93 and 61 new repositories contribute at most 244, so the absolute maximum
+is 337 with a shortfall of 54 even if every row survives. This is a supply
+bound, not an acceptance estimate.
+[DONE] The outcome-blind continuation census plan is frozen at SHA-256
+`1de54a4da9087502213022ccdf0703f007158ecaca4ef1dd5f51af2a93591aab`
+with selected-repository projection
+`d613a9d8c2eac5e14cb3646eab384e60856fb141bf5218f193a6ae9476de5d79`.
+It byte-rederives the prior plan, excludes its 64 repositories and the actor
+frame, then selects ranks 9-16 in every frozen language split: 64 new unique
+repositories, zero overlap, 279 continuation-eligible repositories, and a
+2048 cumulative raw-anchor ceiling across both 128-repository tranches.
+[DONE] Independent continuation-plan review found no P0/P1 and replayed the
+real root byte-identically. The explicit gate passes 3/3 with 24 assertions,
+including prior-plan terminal drift and recursively nested hidden-gold
+mutations.
+[DONE] The continuation census executor's forged-prior/cross-tranche and
+published-closure P1s were closed with failing mutations and a fresh
+independent ACCEPT with no P0/P1/P2. Before any wave-one deep outcome was
+observed, the exact accepted runner captured all 64 planned repositories and
+1024 raw anchors. Completion SHA-256 is
+`684abebb2c7a496fffc535495af780276778443b9798cbf427dd60a2993301f5`;
+the external 257-file root is
+`9624c9db465e53af12ba9ee385b334e1f24a965c61361d2a2e9963e18e6596ed`.
+Independent replay found exactly 64 target directories, correct prior bindings,
+a byte-identical terminal root, and no untracked entry, symlink/mode drift, or
+exact token occurrence.
+[DONE] Continuation qualification v3 is frozen at SHA-256
+`011c264e496fb849a1f14baee1289cb815e90bd81adfa4f6bec44d08b11030ef`
+with deep-target projection
+`d4aefe655c93875656c48e789af96801ba02a98edb423d6da8303ef8ddc1dbe6`.
+It independently rebuilds source/v1/v2 plans and classifies only tranche two:
+1024 unique pulls, six source overlaps, 643 deep pretargets across 60
+repositories, and 375 novel no-review-surface pulls. Independent review
+accepted the closure/materializer with P0/P1/P2=0/0/0; its external-root gate
+passes 2/2 with 10 assertions. The artifact still records zero accepted/
+qualified episodes and all freeze/run gates false.
+[DONE] The 643-target continuation deep plan is independently accepted,
+materialized at SHA-256
+`9af58b2033aa67d8bb1d056ff0f56fe8db9c1b0c7a75f73ed1a6a784ad0f4472`,
+and passes its explicit gate 1/1 with 11 assertions.
+[DONE] Wave1 pre-actor structural qualification is independently accepted and
+materialized at SHA-256
+`ae096d86f779cb04f1fb0bb336d6bb4e02ced04e72385d9332d4dba82a9c1210`.
+Its explicit gate passes 4/4 with 30 assertions. The complete 692-target replay
+yields 34 exact pre-actor sequences, 658 no-exact rows, 830 events, 3185
+review/comment actor occurrences, 267 normalized reviewer logins, and a
+current cap-4 diagnostic of 30. Actor filtering has not run and may change
+thread-head selection, so these are not accepted episodes.
+[DONE] The first continuation live attempt failed closed at target
+257, `mbed-tls/mbedtls#10815`, because GitHub reported 308 pull-request commits
+but terminated that surface after 250 nodes. No Wave2 deep root was published.
+An outcome-blind all-643 count diagnostic found that this is the only target
+above 250. The single `totalCount <= 250` rule was frozen after that failed
+attempt and diagnostic, but before canonical capture; it is not
+preregistration before exploration.
+[DONE] The formal 643-target plan is frozen at SHA-256
+`eebd85d07feb0346455bcdba1cc4a180346b2e8473191008647653bd4aea301a`;
+its exact-byte gate passes 3/3 with 21 assertions. Canonical capture completed
+643 logical/643 network requests with asset root
+`5525d57c663351f8c3c2724822d9d68c39fc78bc1c145357223ec0a8b69f4182`
+and completion
+`e2fc07337ea01cfb1c5a1879dc9d3a5638d92c250b881e8d5520cbc6141045db`.
+The closed artifact reports 642 within-cap and exactly one excluded target,
+`mbed-tls/mbedtls#10815` at 308 commits.
+[DONE] The strict 643-response qualifier is frozen at
+`3c5f0fdece74c51174c47eef4dd8bffd404675f015adb314005e1ae13b7631d9`
+and derives 642 eligible / one excluded without replacement. Its external-root
+gate passes 1/1 with eight assertions. The 642-target plan-v3 is frozen at
+`a0dd0fa0a106d6d1e65645dcec9e44f9e04eb08d7f47e59d25f37920d7cae411`
+and its exact-byte gate passes 1/1 with ten assertions.
+[DONE] Wave2 deep capture completed 642 targets with 644 one-attempt
+logical/network requests. Asset root is
+`85b3d8db9ef328c3c0bb29025da6b428552435d1188c53dd8aa4b1a4b1f46ea1`;
+completion is
+`63b203ec0bd52765e1fedcf980f2cc7cb74d899c004b2ec7499eabfb94b0a939`.
+Independent replay accepted the 2575-file/2573-directory closure. Frozen
+structural-review-v2 produces 22 exact pre-actor sequences and 620 no-exact
+rows; the single-wave qualification is
+`9dc625cbfb5c1c0bc47f9b09511b9ce7c8df789bf4bcbaafa2d8d182dd88be91`
+and passes its external-root gate 1/1 with eight assertions.
+[DONE] The local canonical Wave1+Wave2 structural union is materialized at
+2,597,956 bytes with SHA-256
+`3a438e999450b96c039dbea6eba7ae971bb03223c42c2b2ff502f85ed76ad208`.
+It preserves all 1334 source-ordered pretargets, 5886 reviewer occurrences,
+and 507 cross-wave-deduplicated normalized reviewer logins. Its external-root
+gate rebuilds both child qualifications from raw closures and compares the
+children and union byte-for-byte; it passes 1/1 with 18 assertions. Independent
+review found no P0/P1; the P2 rollback error-propagation finding was fixed by
+a red mutation test. Only 56 union rows have exact pre-actor sequences.
+[DONE] The policy-neutral union-wide actor lookup plan is materialized at
+86,991 bytes with SHA-256
+`9603ab1f3ccf52efb632ca090a0a87b4235dad178f85d1f9b7ecb976b9d0dc17`.
+It contains exactly 507 targets with projection
+`68ac8d1823039f7375dc6903676ed146b3704511c4bb79bd077a15d38bc5b53c`.
+Its full raw-chain gate passes 1/1 with 24 assertions. The plan binds no actor
+policy or eligibility decision; policy application is deferred until the
+complete identity capture exists.
+[DONE] The schema-v2 capture runner keeps the new path policy-neutral while
+preserving the historical v1 classifier; focused tests pass 30/30 with 622
+assertions and independent review found no P0/P1/P2. The real 507-login
+capture completed 507/507 on attempt 1 with zero retries. Its independently
+rebuilt asset root is
+`4ff26b0d9dd69900f750c8699d30ff588ec9a82eaff73ea4954e8c3db23f5842`
+over 2029 files / 1,883,615 bytes; canonical capture manifest SHA-256 is
+`a3695941b1d7d12fdaf6d08df46023176ff10e1f12b4f833d3e1ee391a95b2c5`.
+The closure has 500 resolved and seven unresolved identities, zero
+policy/eligible/reason fields, and exact request/response/header replay.
+[DONE] The union-wide policy-v3 post-capture classification is materialized
+locally at 225,600 bytes with SHA-256
+`7b8a812b7740ce2703eee470b01043fce8f8a64a120dca5ebc11f8226920696b`.
+It replays the exact 507-target plan and 2029-file raw closure, records v2
+487/20 and v3 486/21, and changes only `joestump-agent`. Focused tests pass
+13/13 with 58 assertions; its external-root exact gate passes 1/1; final
+independent code/raw review found no P0/P1/P2. Provenance now states that the
+507-login population is a structural-union reviewer-login projection and
+that policy v3 was adaptive after the complete actor capture.
+[BLOCKED GATE] Do not feed policy-v3 into actor-filtered selection. The local
+artifact still records durable independent-review receipt and commit ancestry
+as false, selection as false, accepted episodes as zero, and
+`codexRunReady: false`. Current-platform type also does not prove human
+identity or event-time actor type.
+[DONE] The complete Wave1 reviewer-actor lookup plan is frozen from all 3185
+occurrences: 267 normalized logins, target projection
+`8393f1a04a25b3288932b954ab5825ec8ceca37f57dd3d3da8dc9bdd7ac62205`,
+artifact SHA-256
+`abb0a817611c7f5568c0f3390625598a46a1a56c687617815260ee98121a92d3`,
+and an exact-byte gate passing 4/4 with 27 assertions.
+[DONE] The hardened 267-login capture completed 267/267 one-attempt requests.
+Its asset root is
+`f92953b8a0cfbf10e41a54c6912b67541a847c1b11b7b57dc7d5cb647b1a4ab4`;
+the root manifest is
+`ec047aba9c5e862193627d814432bd2d29d9387505de56c1e834891aba511f51`;
+the 1069-file closure records 260 resolved and seven unresolved actors.
+[DONE] The minimal outcome-blind policy-v2 classification is frozen at
+`739193f348ee15852e9f337a009233dab3bde3479ea85aa2b73299960280cebc`.
+It binds exactly 267 sanitized login/type/status rows, excludes the five known
+policy-v1 false positives, and yields 249 policy-pass / 18 ineligible actors.
+Its external-root exact-byte gate passes 6/6 with 33 assertions.
+[BLOCKED GATE] Do not feed policy-v2 into actor-filtered selection yet. The
+artifact truthfully records independent review and commit ancestry as false;
+a durable independently dispatched review receipt and a freeze commit that is
+an ancestor of the later selection commit are still required. It also covers
+only the Wave1 267-login population, not the complete 507-login union-wide
+identity capture.
+[BOUNDARY] These 1334 rows are review-surface pretargets, not structural
+candidates or episodes. Only 56 have an exact pre-actor sequence. Together
+with the earlier 113-row source frame, current raw structural supply is 169;
+the combined repository-cap-4 diagnostic is at most 145, leaving shortfalls
+of 222 raw and 246 capped rows before actor/semantic/evaluator attrition. The
+source is a merged-only, newest-16,
+post-merge-metadata-enriched, adaptive convenience sample; representativeness
+is false. Union-wide actor closure, semantic/duplicate review,
+evaluator construction and replay, and final intake remain open. All
+accepted/qualified counts remain zero; candidate freeze and Codex execution
+remain false.
+[DECISION] Do not run a third 64-repository/newest-16 continuation tranche.
+Wave1+Wave2 deep-to-exact yield is 56/1334 (4.20%) and cap 4 retains 52;
+another 1024 raw metadata rows would add only about 24 cap-retained rows.
+Do not continue the Ethereum/Quicknet activation path. The recovery protocol
+is `source-v3-simple`: freeze one finite source frame, enumerate every row,
+qualify without Codex outcomes, then allocate exactly 391 without replacement.
+There is no yield-driven stop, quota stop, adaptive frame expansion, salt,
+redraw, or replacement; insufficient supply fails the evaluation ID.
+[HISTORICAL INPUT / NOT PREREGISTRATION] The retrospective Wave3
+pretarget-policy proposal remains materialized at
+9,105 bytes with SHA-256
+`eb3df63ff269b1d0166ed4b2faba682d60cdce3fb1ea64946e66f08e5eda9856`.
+It exact-replays the Wave1/Wave2 96/29, 74/20, and combined 170/49
+observations. Its strict default-deny selector permits only review/thread/
+commit counts as decision inputs; repository/anchor identity is role-scoped
+to novelty/dedup/cap grouping, cross-identity mismatch fails closed, and
+language/rank/status/yield/outcome/gold injections are rejected. Focused
+tests pass 7/7 with 63 assertions, its repo-only exact gate passes 1/1 with
+six assertions, and final independent review found no P0/P1/P2.
+It may only act as the source-v3-simple metadata predicate if a new exact
+independent-review and freeze-ancestor chain binds it before formal census.
+It cannot retroactively authorize Wave1/Wave2 or any prior observed outcome.
+[SUPERSEDED PROPOSAL] Wave3 source-universe v1 still exactly rebuilds at
+841425 bytes / SHA-256
+`ffa3d50be892d7b80d987f68a72bcfd639392f67cbd173350987944beb594c9c`,
+with its separate 491-byte local-literal salt proposal at SHA-256
+`66793fb6426c5719feb6fca61f75fa38dd0d02ce2a927c61135f34cda4725e71`.
+It is retained for audit only. A local literal cannot be retroactively proven
+to be the first and only draw, so v1 is not promotable and gets no
+compatibility path.
+[HISTORICAL/NON-AUTHORIZING] The salt-independent Wave3 source-universe v2 is
+materialized at
+631004 canonical bytes with SHA-256
+`822c458e792ee31f7738cae2526b05dfc3b63fcaac58e3f4f87dcd3803ccdba1`.
+It independently rebuilds the 1,447-anchor/178-repository exclusion projection
+and 1,536 eight-language shards from three original frozen inputs. It contains
+no salt, activation key, or activation order. It freezes the future
+commitment-bound KDF, no-tier terminal quota, cap 4, GitHub Search/direct
+two-pass `Repository.pullRequests` contracts, complete Quicknet chain profile,
+and exact BigInt earliest-round-not-before rule. Focused tests pass 10/10 with
+3146 assertions, its exact repo-only rebuild gate passes 1/1 with 12
+assertions, typecheck passes, and final independent proposal rereview found no
+P0/P1/P2.
+[HISTORICAL/PREFLIGHT ONLY] The source-v2-bound prior-178 repository identity
+plan is materialized at 76257 canonical bytes / SHA-256
+`70b202cd6da6c2c504a0c23168dc9bcb6a73e9697ff98884dcc83ca785cd4ee2`.
+It freezes 178 requested repositories into complete pass A then pass B, for
+356 logical lookups, but contains no captured node IDs. All six formal
+capture/qualification build, serialize, and parse paths fail before formal
+artifact construction/parsing; a forged structural capability is rejected,
+the offline verifier returns no artifact, and the formal runner makes zero
+transport calls. Focused tests pass 19/19 with 462 assertions, its exact
+rebuild gate passes 1/1 with 12 assertions, typecheck passes, and final
+independent review found no P0-P3. That historical source-v2 path authorized
+no external lookup or capture and produced no qualification, node-ID closure,
+promotion, Search authorization, accepted episode, or C6 effect evidence.
+[SUPERSEDED BLOCKED DESIGN] Source-v2, its prior-178 plan, Quicknet, and the
+Ethereum publisher path remain reproducible but non-authorizing. The source-v2
+authorizer continues to throw, all prior network-call counts and hashes remain
+unchanged, and none of those artifacts can be silently promoted or used as a
+compatibility authorization path.
+[DONE/PROPOSAL ONLY] `source-v3-simple` now exact-binds the 631004-byte
+source-v2 frame but inherits only exclusions, input policy, repository
+universe, and search protocol. Its 469987-byte frame projection is SHA-256
+`efb76e58585c6c422020954783eee50e37290d94f78310bd88c176929fa85474`.
+The canonical 3992-byte protocol artifact is SHA-256
+`5f989ab640c684dac287142edc9d2f9d8ee46099c082f63bb20f2a9546205132`;
+focused replay passes 3/3 with 15 assertions, its exact non-authorizing gate
+passes 1/1 with 11 assertions, and typecheck passes. It requires all 1536
+shards, two-pass normalized equality, the exact metadata predicate, and a
+future accepted/rejected source-row ledger plus full count-tree,
+page/cursor/terminal, normalization, two-pass row-set, exclusion, and
+asset-lock closure. `actualReceiptPresent` remains false. It explicitly leaves
+episode-edge/triple construction, relationship review, and final
+repository-family power/precision allocation to separate unopened gates; cap
+4 remains only a screening diagnostic.
+[OPEN GATE] The source-v3-simple proposal still reports formal census false
+and source freeze false. Local review and portable replay evidence now exist,
+but freeze-commit ancestry does not, so no formal census or allocation is
+authorized.
+[DONE/OBSERVATION ONLY] Two source-v3-specific prior-identity executions each
+completed 356 successful lookups with zero retries, 356 unique final request
+IDs, and 178 repository node IDs. Their request-ID sets have zero intersection
+and their repository-identity and node-ID/alias-dedup projections agree. The
+4769-byte replay receipt SHA-256 is
+`903912db14ed999cd19f32ffaef81658bc241daf8be9e2f33aa14b1784b94d0a`.
+All live-network, external-authenticity, independent-process, capture-origin,
+prior-exclusion, census, freeze, candidate-manifest, and Codex-readiness flags
+remain false.
+[DONE/LOCAL REVIEW ONLY] A fork-none reviewer replayed both local bundles and
+their inner/outer asset locks. Response SHA-256 is
+`b71f659284b477b85d3cb7fd19912774b8f72b953f9b543966ced1f795e0a740`;
+the non-cryptographic orchestrator provenance SHA-256 is
+`14ac08a41e2fbcc4bc0cc8a33409d6a029951fd6b61c8f50457a0395394b228e`.
+This accepts only local observation replay and grants no promotion authority.
+[DONE/DURABLE LOCAL BYTES] Both complete 2139-file bundles are preserved as
+portable archives instead of being represented only by hashes. Capture A is
+513569 bytes / SHA-256
+`5fe5a4c2cf6769095a0f3e05d4316dde22019f05adbb62cce6df6473de5c7120`;
+capture B is 514548 bytes / SHA-256
+`4a04936a325108ab189f68f6d5354d7ccab1be5aad6a010ffc0add85cb9e5b10`;
+the 9028-byte manifest SHA-256 is
+`3add09d058514b37c71aaf5204cbcbae52a0223f0c99820e872ad19878631dec`.
+A fresh process replayed the complete A/B closure without either original
+`/private/tmp` root. Bounded reads/decompression/entry counts, safe tar entry
+types and paths, inner/outer locks, and terminal stable-file identity are
+enforced. Strict portable/promotion reads reject hard links without breaking
+legacy atomic publication. The asset-lock plus portable slice passes 10/10
+with 33 assertions;
+independent repair review reports no remaining P0/P1.
+[DONE/GATE IMPLEMENTATION ONLY] The promotion verifier passes 10/10 with 42
+assertions in isolated Git histories. It binds exact protocol/review receipts,
+portable evidence, promotion CLI/verifier sources, `package.json`, `bun.lock`,
+one-parent freeze identity, a strict descendant exact census-authorization
+entrypoint, generation HEAD, and the complete F/I/base/HEAD/runtime closure.
+Raw Git reads disable replace/inherited `GIT_*`, reject grafts, and use
+`ls-tree` to distinguish an absent path from an unreadable old blob. The
+positive test dynamically imports the activation and uses it to verify the
+published receipt. This can authorize only entry into formal source-row
+census; it does not prove a census or full runner.
+[EVIDENCE] After synchronizing the frozen controlled-mutation asset reader and
+rematerializing the receipt in the exact pinned Linux/amd64 image, the default
+canonical suite passes 5938 tests with 17 skips, 0 failures, 50726 assertions,
+and 13 snapshots across 678 files. This is checkpoint regression evidence
+only; it does not advance any C6 dataset, run, or claim flag.
+[OPEN GATE] No real freeze commit, descendant source-v3 census
+activation/implementation commit, or promotion receipt exists on `main`.
+Therefore
+`priorRepositoryNodeIdExclusionComplete`, `sourceV3SimpleFrozen`, and
+`formalCensusPermitted` remain false. The next state-changing step is a
+separate freeze commit; census activation and implementation must be added
+only in later descendant commits.
+[BOUNDARY] Accepted and qualified episode counts remain zero;
+`candidateManifestFrozen: false` and `codexRunReady: false`. No dataset,
+summary corpus, 10557-call run, statistics report, or C7 gate exists.
+[DONE/PREFLIGHT ONLY] Adjacent-task relationship evidence is now executable.
+Source-record v5 requires two ordered edge receipts for every three-stage
+episode. Each edge exact-binds unedited prior/later issue projections, the
+prior merged-PR projection, and a raw SHA-1/SHA-256 Git commit-object ancestry
+path from the later snapshot to the prior merge commit. The verifier rejects
+mixed object formats, forged bytes, sibling paths, detached or duplicate
+requests, chronology equality, URL-kind/port aliases, traversal, and
+missing/reordered edges.
+[DONE/PREFLIGHT ONLY] Task-origin review v5 is raw-gold-blind and
+run-outcome-blind and requires one exact semantic verdict per edge. Missing,
+duplicate, extra, reordered, or hash-drifted decisions fail closed. The old
+per-episode reviewer string is removed; the only reviewer/reviewedAt source is
+the asset-bound request/input/dispatch/response provenance, still honestly
+marked `cryptographicReceipt: false`. Relationship bytes now feed lineage,
+episode, and candidate-plan-v7 closures.
+[VERIFIED/PREFLIGHT] The focused relationship/review/lineage/candidate/
+source-v3 unit slice passes 43/43 with 1751 assertions; full readiness passes
+38/38 with 90 assertions; the source-v3 exact gate passes 1/1 with 11
+assertions; typecheck passes. The standalone candidate builder rechecks the
+episode-ID, edge/receipt identity, and decision-count closures, while its
+status explicitly leaves artifact-byte verification to readiness.
+[BOUNDARY] Those 782 edge receipts belong only to the synthetic 391-episode
+readiness fixture. Raw self-hashes do not authenticate GitHub capture or
+repository reachability, and no actual independent per-edge semantic review
+exists. Formal source-v3 census/capture, real relationship receipts,
+evaluator replay, and allocation remain open. Accepted episodes remain zero;
+`candidateManifestFrozen: false` and `codexRunReady: false`.
+[DONE/PREFLIGHT ONLY] The flat-summary corpus protocol now keeps distinct
+generation receipts separate from per-stage, per-seed output bindings and
+exact-set rejects missing, extra, duplicate, no-history, history/key, and
+cross-seed-output mismatches. Readiness reports structural counts only and
+hard-codes authenticated generation count/provider authenticity/run readiness
+to zero/false. Focused unit/readiness replay is 74/74 and typecheck passes.
+No canonical corpus, authenticated provider capture, or installed-host
+ordered-injection parity exists, so this does not complete C6-T002.
+[DONE/PREFLIGHT ONLY] The injected flat-summary transport now binds the exact
+endpoint, frozen request, prompt/history/protocol, code-unit ordering, and raw
+observed `$.model`. HTTP 200 remains pending until JSON, shape, usage, model,
+and the shared final-text budget all pass; every rejected 200 retains its raw
+bytes/hash, retry attempts, and canonical manifest. No-history remains zero
+calls, and token-reflecting responses are rejected without retaining the
+token. Independent review found no P0-P3 inside this structural-only boundary
+and replayed 50/50 tests with 1848 assertions; the wider local C6 combination
+passed 105/105 with 2391 assertions and typecheck. No live request or corpus
+materialization occurred, and provider/TLS identity, pricing, leakage,
+asset-lock, external witness, canonical corpus, stage binding, and
+installed-host parity remain absent. This still does not complete C6-T002.
+[DONE/PREFLIGHT ONLY] A minimal installed-host structural aggregator now
+cross-checks the retained source-v2/package/Codex receipt relationships and
+ordered hook-event metadata without promoting proof. The public verifier has
+no current-root override and correctly rejects the retained source receipt:
+current runner root `39cc7f153b2e532d9d4a2179d20d2dfc8704dee9fb05c3581ddc44c52e9d62bf`
+does not equal retained root
+`e18b9b7ce6c7929deb20c5aa3ca394d3a779f23bfb69055b21907f2bd3d2f84f`.
+Its structural-only helper fixes current-runner binding, final-composition
+bytes, flat-summary placement parity, execution, authentication, witness, and
+readiness to false. Focused replay is 5/5; independent rereview found no
+P0-P3 within that boundary. This does not complete C6-T003.
+[DONE/LOCAL STRUCTURAL CANARY ONLY] Two fresh pinned Linux x64, network-none
+containers now install the frozen GoodMemory and Codex 0.145.0 package
+closures and expose eight real Codex loopback Responses requests across
+GoodMemory, mirrored-hook, hooks-disabled, and frozen flat-summary-hook
+controls. Exact native SessionStart/UserPromptSubmit placement, Stop behavior,
+installed profile, transport normalization, and two-run semantic stability are
+verified. The flat control reads one exact no-wrapper output from the read-only
+runner mount, binds its 45-token bytes to separate 1024/512 event receipts with
+the shared token counter, and reproduces GoodMemory's placement geometry. It is
+not a provider-generated corpus artifact.
+Deletion authority is separate from execution acceptance; every attempted
+ownership must reach zero candidates before roots are deleted; cleanup cannot
+mask the primary error; final checks and exclusive publication occur only
+after cleanup. The current-runner wrapper binds frozen package/image/Codex
+identity, exact 512/1024 profile, flat control, and transport preimage; it
+rejects the earlier v7/v8 diagnostics even though their self-contained
+structure remains readable.
+The external-only v9 diagnostic is 488782 bytes at SHA-256
+`3ba8c0d57e5f5a39ef723939a9063e4aed6c7c2fbd68e70ea056c0a60abd3b0a`;
+its frozen/two observed/current runner hashes all equal
+`2cf3e767852cc3d4d056e7b152c6b2028501e025833c64145f9a8a24959e2dc1`.
+Both verifiers pass and no container or temporary root remains. Independent
+read-only consistency review found no P0/P1; synchronized package, image,
+Codex tarball/version, GoodMemory version, and 512/1024 budget mutations are
+covered. Focused runner/verifier/CLI replay is 18/18 with 130 assertions and
+typecheck passes. The prior full canonical suite was interrupted without a
+verdict. The v9 file remains under `/private/tmp`, is not retained,
+asset-locked, authenticated, or externally attested evidence, and its frozen
+local summary is not the final 391-item corpus. All completion, readiness,
+authentication, final-profile, and parity boundaries remain false.
+`flatSummaryHookProjectionStructurallyBound: true` does not complete
+C6-T002 or C6-T003.
+[OPEN] C6-T002-T004 authenticated summaries/final installed-host
+profile/three-seed execution; C7 report integration, independent gate, and
+narrow claim decision. `c6-repository-statistics.ts` is only a tested
+statistical primitive, not a frozen report or C7 gate.
 
 C3's deterministic hidden fail-to-pass and pass-to-pass tests alone decide task
 correctness. Memory, injection, transcript, and writeback diagnostics can
