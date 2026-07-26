@@ -605,7 +605,10 @@ describe("remember engine episode segmentation wiring", () => {
         content: "The rollout is blocked on legal signoff.",
         sourceMessageIndex: 0,
         sourceRole: "user" as const,
-        metadata: { category: "project", factKind: "blocker" },
+        metadata: {
+          category: "project",
+          factKind: "blocker" as const,
+        },
       },
       {
         id: "candidate-2",
@@ -617,7 +620,10 @@ describe("remember engine episode segmentation wiring", () => {
         content: "The audit report is due next Friday.",
         sourceMessageIndex: 2,
         sourceRole: "user" as const,
-        metadata: { category: "project", factKind: "blocker" },
+        metadata: {
+          category: "project",
+          factKind: "blocker" as const,
+        },
       },
     ];
     const memory = createGoodMemory({
