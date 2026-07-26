@@ -182,6 +182,12 @@ export interface LocomoSmokeCliOptions {
   // R7 opt-in (requires --generalized-fusion): entity PageRank channel via
   // retrieval.generalizedFusionEntityPageRank.
   entityPageRank?: boolean;
+  // R5 opt-in: episodic ingestion — map the second speaker to the assistant
+  // role (retention via confirmed_or_verified_only), carry per-turn
+  // observedAt/message ids, and segment the batch into per-sitting episodes
+  // (remember.episodeSegmentTimeGapMs = 6h). Evidence-turn facts are
+  // unchanged (probe: all 419 conv-26 diaIds retained).
+  episodicIngest?: boolean;
   // Opt-in R6 write-time question expansion: after seeding each case, backfill
   // attributes.retrievalCues on every stored fact through the shipped
   // retrievalCues maintenance job (generation is prefetched concurrently, the
@@ -546,6 +552,8 @@ export interface LocomoSmokeReport {
   // facts whose cues were written through the maintenance job.
   retrievalCues?: { cuesApplied: number; factsSeen: number };
   labelFreeIngest?: boolean;
+  // R5 episodic-ingest arm (record == wire).
+  episodicIngest?: boolean;
   // Selected case ids after --case-id filtering, in source order.
   caseIds: string[];
   caseCount: number;
@@ -718,6 +726,7 @@ export function parseLocomoSmokeCliOptions(
     generalizedFusion: hasCliFlagStrict(argv, "--generalized-fusion"),
     fusionMinRelativeStrength,
     entityPageRank,
+    episodicIngest: hasCliFlagStrict(argv, "--episodic-ingest"),
     retrievalCues: hasCliFlagStrict(argv, "--retrieval-cues"),
     labelFreeIngest: hasCliFlagStrict(argv, "--label-free-ingest"),
     caseIds: parseUniqueStringListFlag(argv, "--case-id"),
@@ -1918,12 +1927,19 @@ export function resolveSpeakerCoref(
 
 export async function seedLocomoCase(input: {
   corefNormalize?: boolean;
+  episodicIngest?: boolean;
   labelFreeIngest?: boolean;
   memory: GoodMemory;
   runId: string;
   testCase: LocomoCase;
 }): Promise<void> {
   const { turns } = input.testCase;
+  // Episodic ingestion maps the second speaker to the assistant role so the
+  // episode builder's continuity machinery can run; the true speaker stays in
+  // the content marker and attributes either way.
+  const assistantSpeaker = input.episodicIngest
+    ? [...new Set(turns.map((turn) => turn.speaker))][1]
+    : undefined;
   const renderTurnContent = (turn: LocomoTurn): string => {
     const text = input.corefNormalize
       ? resolveSpeakerCoref(
@@ -1965,7 +1981,14 @@ export async function seedLocomoCase(input: {
     // speaker is preserved in attributes and the content prefix.
     messages: turns.map((turn) => ({
       content: renderTurnContent(turn),
-      role: "user",
+      role:
+        assistantSpeaker !== undefined && turn.speaker === assistantSpeaker
+          ? ("assistant" as const)
+          : ("user" as const),
+      ...(input.episodicIngest && turn.date
+        ? { observedAt: turn.date }
+        : {}),
+      ...(input.episodicIngest ? { id: `msg-${turn.diaId}` } : {}),
     })),
     scope: buildLocomoScope({
       caseId: input.testCase.caseId,
@@ -2650,6 +2673,7 @@ export function createLocomoSmokeMemory(
     semanticCandidateTopK?: number;
     fusionMinRelativeStrength?: number;
     entityPageRank?: boolean;
+    episodicIngest?: boolean;
   } = {},
 ): GoodMemory {
   assertProviderEmbeddingTimeoutsRequireProvider(options);
@@ -2750,6 +2774,21 @@ export function createLocomoSmokeMemory(
   };
   const memory = createInternalGoodMemory(
     {
+      ...(options.episodicIngest
+        ? {
+            remember: {
+              episodeSegmentTimeGapMs: 6 * 60 * 60 * 1000,
+              profiles: [
+                {
+                  id: "locomo-episodic-ingest",
+                  assistantOutputs: {
+                    mode: "confirmed_or_verified_only" as const,
+                  },
+                },
+              ],
+            },
+          }
+        : {}),
       ...(Object.keys(retrieval).length > 0 ? { retrieval } : {}),
       ...(Object.keys(adapters).length > 0 ? { adapters } : {}),
       ...(Object.keys(providers).length > 0 ? { providers } : {}),
@@ -3778,6 +3817,7 @@ export async function runLocomoSmoke(
       // extraction rather than replacing it.
       await seedLocomoCase({
         corefNormalize: options.corefNormalize,
+        episodicIngest: options.episodicIngest,
         labelFreeIngest: options.labelFreeIngest,
         memory,
         runId,
@@ -4033,6 +4073,7 @@ export async function runLocomoSmoke(
       ? "conversational-extraction"
       : "raw-turns",
     labelFreeIngest: options.labelFreeIngest ?? false,
+    episodicIngest: options.episodicIngest ?? false,
     license: UPSTREAM_LICENSE,
     mode: liveAnswer ? "live-answer" : "retrieval-only",
     ...(options.retrievalCues ? { retrievalCues: cueStats } : {}),

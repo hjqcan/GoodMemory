@@ -96,6 +96,7 @@ describe("phase-65 LoCoMo smoke adapter", () => {
       corefNormalize: false,
       decompose: false,
       entityPageRank: false,
+      episodicIngest: false,
       evidencePack: false,
       fusionMinRelativeStrength: undefined,
       limit: 2,
@@ -3000,6 +3001,24 @@ describe("phase-65 LoCoMo smoke adapter", () => {
     expect(() =>
       parseLocomoSmokeCliOptions(["--entity-page-rank"]),
     ).toThrow(/--generalized-fusion/);
+  });
+
+  it("records --episodic-ingest in the report", async () => {
+    const options = parseLocomoSmokeCliOptions(["--episodic-ingest"]);
+    expect(options.episodicIngest).toBe(true);
+    const report = await runLocomoSmoke(
+      {
+        episodicIngest: true,
+        outputDir: "/tmp/locomo-out",
+        runId: "run-locomo-episodic",
+      },
+      {
+        mkdir: async () => undefined,
+        writeFile: (async () => undefined) as never,
+      },
+    );
+    expect(report.episodicIngest).toBe(true);
+    expect(report.executionFailures).toBe(0);
   });
 
   it("defaults bm25Ranking to false (rules-only floor)", async () => {
