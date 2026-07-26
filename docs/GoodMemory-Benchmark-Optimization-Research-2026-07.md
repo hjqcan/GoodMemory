@@ -1127,6 +1127,26 @@ board's deliberate wording.
   the date format is the only variable. Artifacts: `prod/oldroot-base`,
   `official-rescore/oldroot-base-official/`.
 
+  **R5 episode-channel measurement (2026-07-26, paired free retrieval,
+  two conversations, zero failures): NEGATIVE on turn-granular corpora —
+  the episode lane displaces evidence.** Instrument: `--episodic-ingest`
+  on the phase-65 runner (second speaker mapped to the assistant role
+  with a confirmed_or_verified_only retention policy; per-turn
+  observedAt/message ids; 6h time-gap segmentation → ~9 per-sitting
+  episodes per conversation with span pointers; probe verified every
+  evidence-turn fact retained). Paired vs the same-tree baselines:
+  conv-26 **−6.28pt** evidence recall (19↑/32↓), conv-30 **−6.03pt**
+  (11↑/16↓). Mechanism — the budget-displacement pattern's third
+  appearance: admitted episodes are token-expensive packet occupants
+  whose few surfaced turn ids do not repay the fact slots they displace
+  (same family as the floor sweep's count regression and the R6×R7
+  stacking loss). Disposition: episodic ingestion is NOT a LoCoMo lever;
+  the episode channel's domain is span-granular retrieval (LongMemEval
+  multi-session, product continuation queries — where the phase-62
+  diagnostic already exercises episodes through the product path). The
+  R5 build increments (spans, segmentation) remain shipped-off-by-default
+  product capabilities with their measurement now on record.
+
 ### Program status at close (2026-07-25)
 
 Every recommendation now has a resolved disposition:
@@ -1137,8 +1157,9 @@ Every recommendation now has a resolved disposition:
   only; judged-track replay is the revisit condition. **R3.1-3.3 / R4.1**
   built (write-path event time, temporal grammar, structural supersession).
   **R5** built through increment 2b (episode spans + opt-in time-gap
-  segmentation); channel-level measurement still owed — needs an
-  eval-runner segmentation knob (deferred, next build). **R6** built and
+  segmentation) and measured 2026-07-26: NEGATIVE on turn-granular
+  LoCoMo (−6.3/−6.0pt, budget displacement) → off by default, domain =
+  span-granular corpora. **R6** built and
   measured at every layer and on both stacks: research profile full-root
   recall **+24.1pt** / strict **+15.0pt** / official **+24.5pt** (n=1540);
   LME second family neutral (session-granular ceiling); production claim
