@@ -1,0 +1,281 @@
+{
+  "aggregateSha256": "86cf74f83ee662006a6ca6b6877fc63ecaeb194ffd92bb983888c90a4c7d805d",
+  "artifactKind": "c6-source-v3-simple-census-runtime-source-manifest",
+  "entrypoints": [
+    "scripts/codex-coding-effect/c6-source-v3-simple-census-cli.ts",
+    "scripts/codex-coding-effect/c6-source-v3-simple-census-runner.ts"
+  ],
+  "files": [
+    {
+      "bytes": 46301,
+      "gitMode": "100644",
+      "path": "bun.lock",
+      "sha256": "843cc9822293aa8d5498369b129c9ce17bac25aaf0625c84f6800b6e50503129"
+    },
+    {
+      "bytes": 112,
+      "gitMode": "100644",
+      "path": "bunfig.toml",
+      "sha256": "17d5c5428362ec122ffa1e44108dd0085e9ad2f7cab0c33788bfe4174ac4d33b"
+    },
+    {
+      "bytes": 24285,
+      "gitMode": "100644",
+      "path": "package.json",
+      "sha256": "33cea47224c41a1f8cef3cae6d44fde40307df5a6bed8d612d14318f2d0aa311"
+    },
+    {
+      "bytes": 7390,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-asset-lock.ts",
+      "sha256": "d0421852923bc7024f4875bfa8e868b60f6218fb9732757d1abdc7cb6d78be9d"
+    },
+    {
+      "bytes": 18951,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-live-multilang-neighbor-commit-count-eligibility-plan.ts",
+      "sha256": "278652fff2130a1c310094106ca050569f89f7a82c18aaee6351b5dd8703ad8d"
+    },
+    {
+      "bytes": 66080,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-live-multilang-neighbor-commit-count-eligibility-qualification.ts",
+      "sha256": "99839ae5eb1ac9d1534daed042b93bfde9c1399e095a52aabf457635048963f8"
+    },
+    {
+      "bytes": 46279,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-live-multilang-neighbor-deep-capture-plan.ts",
+      "sha256": "7a503e114dce19a1bb7b6fc4a4715faf5da4eedfb67024c74d914a025a9e5823"
+    },
+    {
+      "bytes": 82073,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-live-multilang-neighbor-deep-evidence.ts",
+      "sha256": "c6f6ff8322ea3445fa18ce67eaeee443d1c28f65b133d1113462ef5206e6231d"
+    },
+    {
+      "bytes": 34651,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-live-multilang-neighbor-structural-qualification.ts",
+      "sha256": "fd7510233253825957ee2623492627c28c5cfc5bba2824e4d795d51ecb7f0c0b"
+    },
+    {
+      "bytes": 37478,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-live-multilang-neighbor-structural-union.ts",
+      "sha256": "d553246d8699603776863eb78e6a608c0ee46e439b32f75dd020c8f4aa89eade"
+    },
+    {
+      "bytes": 13842,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-review-event-policy.ts",
+      "sha256": "aa5c08bccafe9617e0422bb520d11bab3cd13ba99612e5bc40c1a7fe102c50a6"
+    },
+    {
+      "bytes": 32847,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-activation.ts",
+      "sha256": "0b69a8acae4b5578ef4f570c999b9b322e1c7bfafae8372152ea1b70fbb5d5e8"
+    },
+    {
+      "bytes": 15484,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-artifacts.ts",
+      "sha256": "d19a9974394eaa14025c88275e863e47aad0e83465509e2feb2c5158699cbd27"
+    },
+    {
+      "bytes": 2981,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-cli.ts",
+      "sha256": "a6025147d524d5661450a6c0deac15043a4366f10de7ac4afb1fb5af0426e8af"
+    },
+    {
+      "bytes": 28458,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-contract.ts",
+      "sha256": "50ddb7b3e986032642692a19ead0fad6e23db9fbd7cce68cbb4bc514f35f1f3d"
+    },
+    {
+      "bytes": 50727,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-core.ts",
+      "sha256": "756e3aed15cf648ab32585220451d6cb8aa9de9a2c2476c57ced1265a82feb6e"
+    },
+    {
+      "bytes": 1061,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-errors.ts",
+      "sha256": "10ffe1ecac07863715cda0f84598e54646ef92a4f7103120010e21e6326d1043"
+    },
+    {
+      "bytes": 22329,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-executor.ts",
+      "sha256": "aed90a5f7d07ee928dd948be912d2bd340ecbdfc9449309e966e86b6873b1795"
+    },
+    {
+      "bytes": 24461,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-finalization.ts",
+      "sha256": "5f2780c48fa71339dbbdecf8591c3008ae922660128396a86471478d72436d29"
+    },
+    {
+      "bytes": 6971,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-graphql.ts",
+      "sha256": "8352a36bfad67a532f3fff729829d3bb8833019e7cad9330ccea39729ac738e5"
+    },
+    {
+      "bytes": 93807,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-ledger.ts",
+      "sha256": "b366114a9ce3bbdbb198b3c52dd3f45a3fbb0da59275819f492acaeb3f6909fa"
+    },
+    {
+      "bytes": 5071,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-lock.ts",
+      "sha256": "61e978fa31f1f91c175b3eccb457afd07e2f7fea2e0a606dd1d5092d7a1eda8b"
+    },
+    {
+      "bytes": 16859,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-pass-runner.ts",
+      "sha256": "dee51eef03dd6e6504042d9a6c1cbcaa6b165e89730ad6b4a5dd34457de2f9c2"
+    },
+    {
+      "bytes": 7939,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-preflight.ts",
+      "sha256": "83a8cec002016061350eef841720cb3dd4173d7da20bcc494738f8880e67f897"
+    },
+    {
+      "bytes": 73230,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-publication.ts",
+      "sha256": "5e5d6450dfc12db968b70496d8581df68d58e366a3a7f9d506094a04a9e7afce"
+    },
+    {
+      "bytes": 7414,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-replay.ts",
+      "sha256": "9f2f7bf877af2370c3ac96d29719cda6b7487745ed5f68b7ce0964c2c9cc54e4"
+    },
+    {
+      "bytes": 23188,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-runner.ts",
+      "sha256": "096de39dff13babfb5f4e72e9472cc836e3eeb13ae95f4482bbe077d0940beb0"
+    },
+    {
+      "bytes": 7631,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-runtime-source.ts",
+      "sha256": "779aaf8e296d48dea7ee6a749d6e6199a2bb07883536f18fc3f2d9eff9863f7b"
+    },
+    {
+      "bytes": 15836,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-transport.ts",
+      "sha256": "22c20459d8ef725092bba05b57e420e34925507b37b457101063a0a007d3c50d"
+    },
+    {
+      "bytes": 1146,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census.ts",
+      "sha256": "37784302c4c90473114d56e8a7494e0ebd8040017a79fdb10d6533805ffd17b3"
+    },
+    {
+      "bytes": 4711,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-prior-exclusion.ts",
+      "sha256": "db9aa24accd82721293e316cde44f3046fba389ec6c9bbee596ac34605dbb582"
+    },
+    {
+      "bytes": 28699,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-prior-identity-portable-evidence.ts",
+      "sha256": "078483ce83f4ec5b5347b104954e6c78b12dfeb8eab81c70279d522b2150698c"
+    },
+    {
+      "bytes": 24046,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-prior-identity-replay-review.ts",
+      "sha256": "a065f789d5fb8c477e6664d55cf137bf4061d80c1854d6e6685df1c10ef1555d"
+    },
+    {
+      "bytes": 14972,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-prior-repository-identity-replay.ts",
+      "sha256": "3690d76e06f25527fa0c6f4a3b6c0e58d4028e342bb0f12be5e2cc11eeab660c"
+    },
+    {
+      "bytes": 15981,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-prior-repository-identity-structure.ts",
+      "sha256": "c0a4afaf6875e41a79adf534179dfe2662f5403db11a4d6000a5328c8527779b"
+    },
+    {
+      "bytes": 40724,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-prior-repository-identity.ts",
+      "sha256": "46a0c59b645f62199519936247e0cbf4f043e8b41d7ca6de8437851cf5190423"
+    },
+    {
+      "bytes": 39634,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-promotion.ts",
+      "sha256": "d492724cb945c1fa12461aa013425f764814e358d1b6bead5abf2c9689b5fdfe"
+    },
+    {
+      "bytes": 17575,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-review.ts",
+      "sha256": "1be2d014bef2f975fd4a7280e9521d1bca63d299e0a47d3cef1668c70e53f492"
+    },
+    {
+      "bytes": 11576,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple.ts",
+      "sha256": "90fe7816e23451fc81a0405ea7080eef74370c53ca19138eda832db80dbaab6d"
+    },
+    {
+      "bytes": 39833,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-wave3-pretarget-policy.ts",
+      "sha256": "feaaee5f4648723d798ece39b2734fcad97bd25a10ecdec43cbcf2b18be4592a"
+    },
+    {
+      "bytes": 55217,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-wave3-prior-repository-identity-artifacts.ts",
+      "sha256": "aa6fa2a198e757f785b2f41ca821e9ce20f7aa0013a798cc3c0ee924d48df493"
+    },
+    {
+      "bytes": 2510,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-wave3-prior-repository-identity-capture.ts",
+      "sha256": "566effeb29df4f52b5a9439c9a879caa9492086a76aa17d8f824857584580ef5"
+    },
+    {
+      "bytes": 60000,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-wave3-prior-repository-identity-plan.ts",
+      "sha256": "01ce6007977510eeee97a12e1ccc07f5a6faaef2eb1e1a3bbf3e2e9979fe7b85"
+    },
+    {
+      "bytes": 47796,
+      "gitMode": "100644",
+      "path": "scripts/codex-coding-effect/c6-wave3-source-universe-v2.ts",
+      "sha256": "46963ce7afc95b79c4a335a8442499fbcedee38a1f70b736edb9e93567d07724"
+    },
+    {
+      "bytes": 714,
+      "gitMode": "100644",
+      "path": "tsconfig.json",
+      "sha256": "c67d727a851a7155f7f684914663e1aec178c1a69244bdf00ef2e91d9fd2e7af"
+    }
+  ],
+  "schemaVersion": 1
+}

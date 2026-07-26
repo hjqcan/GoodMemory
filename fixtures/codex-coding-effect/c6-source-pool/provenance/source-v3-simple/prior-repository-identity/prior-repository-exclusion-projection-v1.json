@@ -1,0 +1,1786 @@
+{
+  "artifactKind": "c6-source-v3-simple-prior-repository-exclusion-projection",
+  "nodeIdDedup": [
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk0MDE4NzM3NQ==",
+      "requestedAliases": [
+        "multiqc/multiqc"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "multiqc/multiqc",
+      "resolvedNameWithOwnerExactValues": [
+        "MultiQC/MultiQC"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk0MDM0NTY1OA==",
+      "requestedAliases": [
+        "recharts/recharts"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "recharts/recharts",
+      "resolvedNameWithOwnerExactValues": [
+        "recharts/recharts"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk0MjI4MzI4Nw==",
+      "requestedAliases": [
+        "preactjs/preact"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "preactjs/preact",
+      "resolvedNameWithOwnerExactValues": [
+        "preactjs/preact"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk0MjcxMjc2Mg==",
+      "requestedAliases": [
+        "camunda/camunda-modeler"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "camunda/camunda-modeler",
+      "resolvedNameWithOwnerExactValues": [
+        "camunda/camunda-modeler"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk0MzQ2NTY3NQ==",
+      "requestedAliases": [
+        "libp2p/go-libp2p"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "libp2p/go-libp2p",
+      "resolvedNameWithOwnerExactValues": [
+        "libp2p/go-libp2p"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk0MzY4MTgyNA==",
+      "requestedAliases": [
+        "varnishcache/varnish-cache"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "varnishcache/varnish-cache",
+      "resolvedNameWithOwnerExactValues": [
+        "varnishcache/varnish-cache"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk0NDU0Nzkz",
+      "requestedAliases": [
+        "musescore/musescore"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "musescore/musescore",
+      "resolvedNameWithOwnerExactValues": [
+        "musescore/MuseScore"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk0NjU4MjAyNA==",
+      "requestedAliases": [
+        "prometheus/client_js"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "prometheus/client_js",
+      "resolvedNameWithOwnerExactValues": [
+        "prometheus/client_js"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk0NjY0MTI1MA==",
+      "requestedAliases": [
+        "codeceptjs/codeceptjs"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "codeceptjs/codeceptjs",
+      "resolvedNameWithOwnerExactValues": [
+        "codeceptjs/CodeceptJS"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk0NzExODEyOQ==",
+      "requestedAliases": [
+        "moment/luxon"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "moment/luxon",
+      "resolvedNameWithOwnerExactValues": [
+        "moment/luxon"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk1MDUwNTI1",
+      "requestedAliases": [
+        "harfbuzz/harfbuzz"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "harfbuzz/harfbuzz",
+      "resolvedNameWithOwnerExactValues": [
+        "harfbuzz/harfbuzz"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk1MDg5NjExMQ==",
+      "requestedAliases": [
+        "js-primer/js-primer"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "js-primer/js-primer",
+      "resolvedNameWithOwnerExactValues": [
+        "js-primer/js-primer"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk1MTUyMjg1",
+      "requestedAliases": [
+        "lysine-dev/okhttp"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "lysine-dev/okhttp",
+      "resolvedNameWithOwnerExactValues": [
+        "lysine-dev/okhttp"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk1MjQ0NDQ1",
+      "requestedAliases": [
+        "antennapod/antennapod"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "antennapod/antennapod",
+      "resolvedNameWithOwnerExactValues": [
+        "AntennaPod/AntennaPod"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk1Mjc2NDQ=",
+      "requestedAliases": [
+        "less/less.js"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "less/less.js",
+      "resolvedNameWithOwnerExactValues": [
+        "less/less.js"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk1MzMxMTcxNg==",
+      "requestedAliases": [
+        "tikv/pd"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "tikv/pd",
+      "resolvedNameWithOwnerExactValues": [
+        "tikv/pd"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk1NDYxNDIzOA==",
+      "requestedAliases": [
+        "stdlib-js/stdlib"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "stdlib-js/stdlib",
+      "resolvedNameWithOwnerExactValues": [
+        "stdlib-js/stdlib"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk1ODE5NDE4MA==",
+      "requestedAliases": [
+        "strimzi/strimzi-kafka-operator"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "strimzi/strimzi-kafka-operator",
+      "resolvedNameWithOwnerExactValues": [
+        "strimzi/strimzi-kafka-operator"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk1ODMwOTg3",
+      "requestedAliases": [
+        "hapijs/joi"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "hapijs/joi",
+      "resolvedNameWithOwnerExactValues": [
+        "hapijs/joi"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk1ODkzNDk=",
+      "requestedAliases": [
+        "fluentmigrator/fluentmigrator"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "fluentmigrator/fluentmigrator",
+      "resolvedNameWithOwnerExactValues": [
+        "fluentmigrator/fluentmigrator"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk1OTc4Nzk=",
+      "requestedAliases": [
+        "automattic/mongoose"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "automattic/mongoose",
+      "resolvedNameWithOwnerExactValues": [
+        "Automattic/mongoose"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk2MjA3MTY3",
+      "requestedAliases": [
+        "mockito/mockito"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "mockito/mockito",
+      "resolvedNameWithOwnerExactValues": [
+        "mockito/mockito"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk2MjA5MTMzOQ==",
+      "requestedAliases": [
+        "kubernetes/kops"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "kubernetes/kops",
+      "resolvedNameWithOwnerExactValues": [
+        "kubernetes/kops"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk2MjM0MTU0Mw==",
+      "requestedAliases": [
+        "gleam-lang/gleam"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "gleam-lang/gleam",
+      "resolvedNameWithOwnerExactValues": [
+        "gleam-lang/gleam"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk2MjkyMTU1Mw==",
+      "requestedAliases": [
+        "rook/rook"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "rook/rook",
+      "resolvedNameWithOwnerExactValues": [
+        "rook/rook"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk2MzU4MTg4",
+      "requestedAliases": [
+        "apache/druid"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "apache/druid",
+      "resolvedNameWithOwnerExactValues": [
+        "apache/druid"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk2Mzc2MzM3",
+      "requestedAliases": [
+        "pocoproject/poco"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "pocoproject/poco",
+      "resolvedNameWithOwnerExactValues": [
+        "pocoproject/poco"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk2Mzk4NDMwNw==",
+      "requestedAliases": [
+        "dotnet/sdk"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "dotnet/sdk",
+      "resolvedNameWithOwnerExactValues": [
+        "dotnet/sdk"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk2NDQzNDM1",
+      "requestedAliases": [
+        "nats-io/nats-server"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "nats-io/nats-server",
+      "resolvedNameWithOwnerExactValues": [
+        "nats-io/nats-server"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk2NTI1Mg==",
+      "requestedAliases": [
+        "jekyll/jekyll"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "jekyll/jekyll",
+      "resolvedNameWithOwnerExactValues": [
+        "jekyll/jekyll"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk2NjY3MDg0",
+      "requestedAliases": [
+        "ponylang/ponyc"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "ponylang/ponyc",
+      "resolvedNameWithOwnerExactValues": [
+        "ponylang/ponyc"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk2Njg3OTM2",
+      "requestedAliases": [
+        "mbed-tls/mbedtls"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "mbed-tls/mbedtls",
+      "resolvedNameWithOwnerExactValues": [
+        "Mbed-TLS/mbedtls"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk2NzgzNjc4OQ==",
+      "requestedAliases": [
+        "tokio-rs/tokio"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "tokio-rs/tokio",
+      "resolvedNameWithOwnerExactValues": [
+        "tokio-rs/tokio"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk2ODM4OTIx",
+      "requestedAliases": [
+        "prometheus/prometheus"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "prometheus/prometheus",
+      "resolvedNameWithOwnerExactValues": [
+        "prometheus/prometheus"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk3MDU2MjAy",
+      "requestedAliases": [
+        "fmtlib/fmt"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "fmtlib/fmt",
+      "resolvedNameWithOwnerExactValues": [
+        "fmtlib/fmt"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk3MTU1NDc=",
+      "requestedAliases": [
+        "highcharts/highcharts"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "highcharts/highcharts",
+      "resolvedNameWithOwnerExactValues": [
+        "highcharts/highcharts"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk3MTcyOTY2OQ==",
+      "requestedAliases": [
+        "detekt/detekt"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "detekt/detekt",
+      "resolvedNameWithOwnerExactValues": [
+        "detekt/detekt"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk3MjE3NDE2NA==",
+      "requestedAliases": [
+        "sixlabors/imagesharp"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "sixlabors/imagesharp",
+      "resolvedNameWithOwnerExactValues": [
+        "SixLabors/ImageSharp"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk3NDI5MzMyMQ==",
+      "requestedAliases": [
+        "sveltejs/svelte"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "sveltejs/svelte",
+      "resolvedNameWithOwnerExactValues": [
+        "sveltejs/svelte"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk3NTEwNDEyMw==",
+      "requestedAliases": [
+        "prettier/prettier"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "prettier/prettier",
+      "resolvedNameWithOwnerExactValues": [
+        "prettier/prettier"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk3NTQ4OTg2",
+      "requestedAliases": [
+        "laravel/framework"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "laravel/framework",
+      "resolvedNameWithOwnerExactValues": [
+        "laravel/framework"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk4MTM4NDU3OA==",
+      "requestedAliases": [
+        "nodejs/node-addon-api"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "nodejs/node-addon-api",
+      "resolvedNameWithOwnerExactValues": [
+        "nodejs/node-addon-api"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk4MzU4MzgzMg==",
+      "requestedAliases": [
+        "teamnewpipe/newpipeextractor"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "teamnewpipe/newpipeextractor",
+      "resolvedNameWithOwnerExactValues": [
+        "TeamNewPipe/NewPipeExtractor"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk4NDI0MDg1MA==",
+      "requestedAliases": [
+        "timescale/timescaledb"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "timescale/timescaledb",
+      "resolvedNameWithOwnerExactValues": [
+        "timescale/timescaledb"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk4NzYxNzUwOA==",
+      "requestedAliases": [
+        "apache/casbin"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "apache/casbin",
+      "resolvedNameWithOwnerExactValues": [
+        "apache/casbin"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk4OTMyNDg5",
+      "requestedAliases": [
+        "cc65/cc65"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "cc65/cc65",
+      "resolvedNameWithOwnerExactValues": [
+        "cc65/cc65"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk5Mzg4Mjg5Nw==",
+      "requestedAliases": [
+        "shader-slang/slang"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "shader-slang/slang",
+      "resolvedNameWithOwnerExactValues": [
+        "shader-slang/slang"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk5NDkxMTE0NQ==",
+      "requestedAliases": [
+        "facebook/docusaurus"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "facebook/docusaurus",
+      "resolvedNameWithOwnerExactValues": [
+        "facebook/docusaurus"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk5ODE1NA==",
+      "requestedAliases": [
+        "jhlywa/chess.js"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "jhlywa/chess.js",
+      "resolvedNameWithOwnerExactValues": [
+        "jhlywa/chess.js"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk5OTE0MzI3Ng==",
+      "requestedAliases": [
+        "velero-io/velero"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "velero-io/velero",
+      "resolvedNameWithOwnerExactValues": [
+        "velero-io/velero"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnk5OTI2MjY4Mw==",
+      "requestedAliases": [
+        "rocketchat/rocket.chat.reactnative"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "rocketchat/rocket.chat.reactnative",
+      "resolvedNameWithOwnerExactValues": [
+        "RocketChat/Rocket.Chat.ReactNative"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMDIxMTYwOTQ=",
+      "requestedAliases": [
+        "finbuckle/finbuckle.multitenant"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "finbuckle/finbuckle.multitenant",
+      "resolvedNameWithOwnerExactValues": [
+        "Finbuckle/Finbuckle.MultiTenant"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMDM2OTQzNzc=",
+      "requestedAliases": [
+        "openliberty/open-liberty"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "openliberty/open-liberty",
+      "resolvedNameWithOwnerExactValues": [
+        "OpenLiberty/open-liberty"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMDQ1ODM2Mg==",
+      "requestedAliases": [
+        "rsyslog/rsyslog"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "rsyslog/rsyslog",
+      "resolvedNameWithOwnerExactValues": [
+        "rsyslog/rsyslog"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMDUyNjI3MTQ=",
+      "requestedAliases": [
+        "oauth2-proxy/oauth2-proxy"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "oauth2-proxy/oauth2-proxy",
+      "resolvedNameWithOwnerExactValues": [
+        "oauth2-proxy/oauth2-proxy"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMDYwMTczNDM=",
+      "requestedAliases": [
+        "tailwindlabs/tailwindcss"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "tailwindlabs/tailwindcss",
+      "resolvedNameWithOwnerExactValues": [
+        "tailwindlabs/tailwindcss"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMDkwMzEx",
+      "requestedAliases": [
+        "elastic/logstash"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "elastic/logstash",
+      "resolvedNameWithOwnerExactValues": [
+        "elastic/logstash"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMTQ1MjUzOA==",
+      "requestedAliases": [
+        "prometheus/alertmanager"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "prometheus/alertmanager",
+      "resolvedNameWithOwnerExactValues": [
+        "prometheus/alertmanager"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMTQxMjgxOTk=",
+      "requestedAliases": [
+        "canonical/multipass"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "canonical/multipass",
+      "resolvedNameWithOwnerExactValues": [
+        "canonical/multipass"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMTUwMzk3MDY=",
+      "requestedAliases": [
+        "rust-lang/rust-analyzer"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "rust-lang/rust-analyzer",
+      "resolvedNameWithOwnerExactValues": [
+        "rust-lang/rust-analyzer"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMTg0NzUwMA==",
+      "requestedAliases": [
+        "uutils/coreutils"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "uutils/coreutils",
+      "resolvedNameWithOwnerExactValues": [
+        "uutils/coreutils"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMTg3ODUz",
+      "requestedAliases": [
+        "stleary/json-java"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "stleary/json-java",
+      "resolvedNameWithOwnerExactValues": [
+        "stleary/JSON-java"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMjAwODAzNzc=",
+      "requestedAliases": [
+        "gothenburgbitfactory/taskwarrior"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "gothenburgbitfactory/taskwarrior",
+      "resolvedNameWithOwnerExactValues": [
+        "GothenburgBitFactory/taskwarrior"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMjcyNDYxMzI=",
+      "requestedAliases": [
+        "reown-com/appkit"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "reown-com/appkit",
+      "resolvedNameWithOwnerExactValues": [
+        "reown-com/appkit"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMjg0Nzk2NDQ=",
+      "requestedAliases": [
+        "esphome/esphome"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "esphome/esphome",
+      "resolvedNameWithOwnerExactValues": [
+        "esphome/esphome"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMjk5MzQ4ODQ=",
+      "requestedAliases": [
+        "dotnet/command-line-api"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "dotnet/command-line-api",
+      "resolvedNameWithOwnerExactValues": [
+        "dotnet/command-line-api"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMzA0NjQ5NjE=",
+      "requestedAliases": [
+        "sharkdp/bat"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "sharkdp/bat",
+      "resolvedNameWithOwnerExactValues": [
+        "sharkdp/bat"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMzAyODU1NTM=",
+      "requestedAliases": [
+        "immunant/c2rust"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "immunant/c2rust",
+      "resolvedNameWithOwnerExactValues": [
+        "immunant/c2rust"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMzI0NTM0Mzg=",
+      "requestedAliases": [
+        "unoplatform/uno"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "unoplatform/uno",
+      "resolvedNameWithOwnerExactValues": [
+        "unoplatform/uno"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMzIwMjExNjY=",
+      "requestedAliases": [
+        "dotnet/machinelearning"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "dotnet/machinelearning",
+      "resolvedNameWithOwnerExactValues": [
+        "dotnet/machinelearning"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMzM1MTMy",
+      "requestedAliases": [
+        "ninja-build/ninja"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "ninja-build/ninja",
+      "resolvedNameWithOwnerExactValues": [
+        "ninja-build/ninja"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMzMxMzQwMDc=",
+      "requestedAliases": [
+        "openapitools/openapi-generator"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "openapitools/openapi-generator",
+      "resolvedNameWithOwnerExactValues": [
+        "OpenAPITools/openapi-generator"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMzc0NTE0MDM=",
+      "requestedAliases": [
+        "alibaba/nacos"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "alibaba/nacos",
+      "resolvedNameWithOwnerExactValues": [
+        "alibaba/nacos"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMzcwNzg0ODc=",
+      "requestedAliases": [
+        "vuejs/core"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "vuejs/core",
+      "resolvedNameWithOwnerExactValues": [
+        "vuejs/core"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxMzgzMTM0OTc=",
+      "requestedAliases": [
+        "chainsafe/lodestar"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "chainsafe/lodestar",
+      "resolvedNameWithOwnerExactValues": [
+        "ChainSafe/lodestar"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxNDczNTQyOQ==",
+      "requestedAliases": [
+        "capstone-engine/capstone"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "capstone-engine/capstone",
+      "resolvedNameWithOwnerExactValues": [
+        "capstone-engine/capstone"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxNTA2Mjg2OQ==",
+      "requestedAliases": [
+        "jestjs/jest"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "jestjs/jest",
+      "resolvedNameWithOwnerExactValues": [
+        "jestjs/jest"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxNTM3MTE4MzA=",
+      "requestedAliases": [
+        "dotnet/winforms"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "dotnet/winforms",
+      "resolvedNameWithOwnerExactValues": [
+        "dotnet/winforms"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxNTMzNzE0Mg==",
+      "requestedAliases": [
+        "micropython/micropython"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "micropython/micropython",
+      "resolvedNameWithOwnerExactValues": [
+        "micropython/micropython"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxNTUxMDY3Nw==",
+      "requestedAliases": [
+        "redis-rs/redis-rs"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "redis-rs/redis-rs",
+      "resolvedNameWithOwnerExactValues": [
+        "redis-rs/redis-rs"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxNTYwMTg=",
+      "requestedAliases": [
+        "redis/redis"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "redis/redis",
+      "resolvedNameWithOwnerExactValues": [
+        "redis/redis"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxNTcyMDQ0NQ==",
+      "requestedAliases": [
+        "marko-js/marko"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "marko-js/marko",
+      "resolvedNameWithOwnerExactValues": [
+        "marko-js/marko"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxNTk5NzM5MTc=",
+      "requestedAliases": [
+        "megabit/blazorise"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "megabit/blazorise",
+      "resolvedNameWithOwnerExactValues": [
+        "Megabit/Blazorise"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxNjE1Nzc0Ng==",
+      "requestedAliases": [
+        "dotnet/efcore"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "dotnet/efcore",
+      "resolvedNameWithOwnerExactValues": [
+        "dotnet/efcore"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxNjE2OTEzMjQ=",
+      "requestedAliases": [
+        "openapi-ts/openapi-typescript"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "openapi-ts/openapi-typescript",
+      "resolvedNameWithOwnerExactValues": [
+        "openapi-ts/openapi-typescript"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxNjMzODczMzc=",
+      "requestedAliases": [
+        "apache/incubator-seata"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "apache/incubator-seata",
+      "resolvedNameWithOwnerExactValues": [
+        "apache/incubator-seata"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxNjU2NzAzMDk=",
+      "requestedAliases": [
+        "tanstack/router"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "tanstack/router",
+      "resolvedNameWithOwnerExactValues": [
+        "TanStack/router"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxNjYzNDY4",
+      "requestedAliases": [
+        "mozilla/pdf.js"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "mozilla/pdf.js",
+      "resolvedNameWithOwnerExactValues": [
+        "mozilla/pdf.js"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxNzYyMDM0Nw==",
+      "requestedAliases": [
+        "dotnet/aspnetcore"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "dotnet/aspnetcore",
+      "resolvedNameWithOwnerExactValues": [
+        "dotnet/aspnetcore"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxODcwODYxNjE=",
+      "requestedAliases": [
+        "open-telemetry/opentelemetry-go"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "open-telemetry/opentelemetry-go",
+      "resolvedNameWithOwnerExactValues": [
+        "open-telemetry/opentelemetry-go"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxOTAzNTIy",
+      "requestedAliases": [
+        "php/php-src"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "php/php-src",
+      "resolvedNameWithOwnerExactValues": [
+        "php/php-src"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxOTE4NDg1MDE=",
+      "requestedAliases": [
+        "stripe/stripe-cli"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "stripe/stripe-cli",
+      "resolvedNameWithOwnerExactValues": [
+        "stripe/stripe-cli"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxOTY0MTQ5MzM=",
+      "requestedAliases": [
+        "open-telemetry/opentelemetry-collector-contrib"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "open-telemetry/opentelemetry-collector-contrib",
+      "resolvedNameWithOwnerExactValues": [
+        "open-telemetry/opentelemetry-collector-contrib"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxOTY0NzU3MTk=",
+      "requestedAliases": [
+        "springdoc/springdoc-openapi"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "springdoc/springdoc-openapi",
+      "resolvedNameWithOwnerExactValues": [
+        "springdoc/springdoc-openapi"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkxOTc1MzE5NQ==",
+      "requestedAliases": [
+        "openhab/openhab-addons"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "openhab/openhab-addons",
+      "resolvedNameWithOwnerExactValues": [
+        "openhab/openhab-addons"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyMDI0ODMzNDg=",
+      "requestedAliases": [
+        "apache/kvrocks"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "apache/kvrocks",
+      "resolvedNameWithOwnerExactValues": [
+        "apache/kvrocks"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyMDY3MjUz",
+      "requestedAliases": [
+        "opentripplanner/opentripplanner"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "opentripplanner/opentripplanner",
+      "resolvedNameWithOwnerExactValues": [
+        "opentripplanner/OpenTripPlanner"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyMDkwNDQzNw==",
+      "requestedAliases": [
+        "gin-gonic/gin"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "gin-gonic/gin",
+      "resolvedNameWithOwnerExactValues": [
+        "gin-gonic/gin"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyMTA3MTYwMDU=",
+      "requestedAliases": [
+        "dotnet/runtime"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "dotnet/runtime",
+      "resolvedNameWithOwnerExactValues": [
+        "dotnet/runtime"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyMTI2MTMwNDk=",
+      "requestedAliases": [
+        "cli/cli"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "cli/cli",
+      "resolvedNameWithOwnerExactValues": [
+        "cli/cli"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyMTI4NzA3Ng==",
+      "requestedAliases": [
+        "aws/s2n-tls"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "aws/s2n-tls",
+      "resolvedNameWithOwnerExactValues": [
+        "aws/s2n-tls"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyMjQ5MDgyNDQ=",
+      "requestedAliases": [
+        "wasmedge/wasmedge"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "wasmedge/wasmedge",
+      "resolvedNameWithOwnerExactValues": [
+        "WasmEdge/WasmEdge"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyMjg5MjU4NzA=",
+      "requestedAliases": [
+        "open-telemetry/opentelemetry-operator"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "open-telemetry/opentelemetry-operator",
+      "resolvedNameWithOwnerExactValues": [
+        "open-telemetry/opentelemetry-operator"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyMzA4MzE1Ng==",
+      "requestedAliases": [
+        "mui/material-ui"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "mui/material-ui",
+      "resolvedNameWithOwnerExactValues": [
+        "mui/material-ui"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyMzE1MzM1NzM=",
+      "requestedAliases": [
+        "apache/inlong"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "apache/inlong",
+      "resolvedNameWithOwnerExactValues": [
+        "apache/inlong"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyMzEyODM0NTI=",
+      "requestedAliases": [
+        "excalidraw/excalidraw"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "excalidraw/excalidraw",
+      "resolvedNameWithOwnerExactValues": [
+        "excalidraw/excalidraw"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNDIxNzQ0NDY=",
+      "requestedAliases": [
+        "matrix-org/matrix-rust-sdk"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "matrix-org/matrix-rust-sdk",
+      "resolvedNameWithOwnerExactValues": [
+        "matrix-org/matrix-rust-sdk"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNDIyMDIxNjY=",
+      "requestedAliases": [
+        "open-telemetry/opentelemetry-go-contrib"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "open-telemetry/opentelemetry-go-contrib",
+      "resolvedNameWithOwnerExactValues": [
+        "open-telemetry/opentelemetry-go-contrib"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNDM2MjY3",
+      "requestedAliases": [
+        "nock/nock"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "nock/nock",
+      "resolvedNameWithOwnerExactValues": [
+        "nock/nock"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNDU2MDMwNw==",
+      "requestedAliases": [
+        "babel/babel"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "babel/babel",
+      "resolvedNameWithOwnerExactValues": [
+        "babel/babel"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNDUyMzUxMzM=",
+      "requestedAliases": [
+        "dotnet/yarp"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "dotnet/yarp",
+      "resolvedNameWithOwnerExactValues": [
+        "dotnet/yarp"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNDYyMDM0NDQ=",
+      "requestedAliases": [
+        "provablehq/leo"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "provablehq/leo",
+      "resolvedNameWithOwnerExactValues": [
+        "ProvableHQ/leo"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNDc3MTQ3NTA=",
+      "requestedAliases": [
+        "zitadel/zitadel"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "zitadel/zitadel",
+      "resolvedNameWithOwnerExactValues": [
+        "zitadel/zitadel"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNDg3Mjk4NTA=",
+      "requestedAliases": [
+        "dotnetcore/bootstrapblazor"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "dotnetcore/bootstrapblazor",
+      "resolvedNameWithOwnerExactValues": [
+        "dotnetcore/BootstrapBlazor"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNTI0NDg4",
+      "requestedAliases": [
+        "apache/accumulo"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "apache/accumulo",
+      "resolvedNameWithOwnerExactValues": [
+        "apache/accumulo"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNTU5NjY0NDM=",
+      "requestedAliases": [
+        "linebender/vello"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "linebender/vello",
+      "resolvedNameWithOwnerExactValues": [
+        "linebender/vello"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNjM0NDI2MjI=",
+      "requestedAliases": [
+        "openrewrite/rewrite"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "openrewrite/rewrite",
+      "resolvedNameWithOwnerExactValues": [
+        "openrewrite/rewrite"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNzA2OTI1MjE=",
+      "requestedAliases": [
+        "zmkfirmware/zmk"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "zmkfirmware/zmk",
+      "resolvedNameWithOwnerExactValues": [
+        "zmkfirmware/zmk"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNzI0MjkzNQ==",
+      "requestedAliases": [
+        "dynamorio/dynamorio"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "dynamorio/dynamorio",
+      "resolvedNameWithOwnerExactValues": [
+        "DynamoRIO/dynamorio"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNzQ0OTU0MjU=",
+      "requestedAliases": [
+        "remotion-dev/remotion"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "remotion-dev/remotion",
+      "resolvedNameWithOwnerExactValues": [
+        "remotion-dev/remotion"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNzcyOTkwNw==",
+      "requestedAliases": [
+        "grpc/grpc-go"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "grpc/grpc-go",
+      "resolvedNameWithOwnerExactValues": [
+        "grpc/grpc-go"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNzg2MTk3OA==",
+      "requestedAliases": [
+        "notify-rs/notify"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "notify-rs/notify",
+      "resolvedNameWithOwnerExactValues": [
+        "notify-rs/notify"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyNzkxODY5Nw==",
+      "requestedAliases": [
+        "versatica/mediasoup"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "versatica/mediasoup",
+      "resolvedNameWithOwnerExactValues": [
+        "versatica/mediasoup"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyODIzMjY2Mw==",
+      "requestedAliases": [
+        "dotnet/orleans"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "dotnet/orleans",
+      "resolvedNameWithOwnerExactValues": [
+        "dotnet/orleans"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyODUwMDQ1Nzc=",
+      "requestedAliases": [
+        "noir-lang/noir"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "noir-lang/noir",
+      "resolvedNameWithOwnerExactValues": [
+        "noir-lang/noir"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyODg0Mjg2NzY=",
+      "requestedAliases": [
+        "mudblazor/mudblazor"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "mudblazor/mudblazor",
+      "resolvedNameWithOwnerExactValues": [
+        "MudBlazor/MudBlazor"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyOTEwMjM2Nw==",
+      "requestedAliases": [
+        "junit-team/junit-framework"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "junit-team/junit-framework",
+      "resolvedNameWithOwnerExactValues": [
+        "junit-team/junit-framework"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyOTIwNzYyMQ==",
+      "requestedAliases": [
+        "caddyserver/caddy"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "caddyserver/caddy",
+      "resolvedNameWithOwnerExactValues": [
+        "caddyserver/caddy"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyOTg2NDAwMjc=",
+      "requestedAliases": [
+        "microsoft/playwright-java"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "microsoft/playwright-java",
+      "resolvedNameWithOwnerExactValues": [
+        "microsoft/playwright-java"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyOTk4Njc0OTk=",
+      "requestedAliases": [
+        "rizinorg/rizin"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "rizinorg/rizin",
+      "resolvedNameWithOwnerExactValues": [
+        "rizinorg/rizin"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkyOTkzMzk0OA==",
+      "requestedAliases": [
+        "fluent/fluent-bit"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "fluent/fluent-bit",
+      "resolvedNameWithOwnerExactValues": [
+        "fluent/fluent-bit"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzMDI2NzA3OTc=",
+      "requestedAliases": [
+        "ossf/scorecard"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "ossf/scorecard",
+      "resolvedNameWithOwnerExactValues": [
+        "ossf/scorecard"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzMDY5NzcwMzg=",
+      "requestedAliases": [
+        "openlineage/openlineage"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "openlineage/openlineage",
+      "resolvedNameWithOwnerExactValues": [
+        "OpenLineage/OpenLineage"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzMTMxNTEyMQ==",
+      "requestedAliases": [
+        "clap-rs/clap"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "clap-rs/clap",
+      "resolvedNameWithOwnerExactValues": [
+        "clap-rs/clap"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzMTkzNzAyNjM=",
+      "requestedAliases": [
+        "hotwired/turbo"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "hotwired/turbo",
+      "resolvedNameWithOwnerExactValues": [
+        "hotwired/turbo"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzMjE4NjAwMDA=",
+      "requestedAliases": [
+        "seaql/sea-query"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "seaql/sea-query",
+      "resolvedNameWithOwnerExactValues": [
+        "SeaQL/sea-query"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzMjE5ODA0",
+      "requestedAliases": [
+        "libarchive/libarchive"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "libarchive/libarchive",
+      "resolvedNameWithOwnerExactValues": [
+        "libarchive/libarchive"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzMjI0ODQ3MDA=",
+      "requestedAliases": [
+        "jj-vcs/jj"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "jj-vcs/jj",
+      "resolvedNameWithOwnerExactValues": [
+        "jj-vcs/jj"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzMjUzODg3MQ==",
+      "requestedAliases": [
+        "google/gson"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "google/gson",
+      "resolvedNameWithOwnerExactValues": [
+        "google/gson"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzMjc4NzE3NA==",
+      "requestedAliases": [
+        "grommet/grommet"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "grommet/grommet",
+      "resolvedNameWithOwnerExactValues": [
+        "grommet/grommet"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzMzI4NTcy",
+      "requestedAliases": [
+        "getsentry/sentry-javascript"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "getsentry/sentry-javascript",
+      "resolvedNameWithOwnerExactValues": [
+        "getsentry/sentry-javascript"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzMzYzNDM1OQ==",
+      "requestedAliases": [
+        "kokkos/kokkos"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "kokkos/kokkos",
+      "resolvedNameWithOwnerExactValues": [
+        "kokkos/kokkos"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzNDE2MzEzNTA=",
+      "requestedAliases": [
+        "apache/lucene"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "apache/lucene",
+      "resolvedNameWithOwnerExactValues": [
+        "apache/lucene"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzNDkzNzIxNzk=",
+      "requestedAliases": [
+        "lightdash/lightdash"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "lightdash/lightdash",
+      "resolvedNameWithOwnerExactValues": [
+        "lightdash/lightdash"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzNTAzMDEzMw==",
+      "requestedAliases": [
+        "owid/owid-grapher"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "owid/owid-grapher",
+      "resolvedNameWithOwnerExactValues": [
+        "owid/owid-grapher"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzNTY0MDIyOQ==",
+      "requestedAliases": [
+        "rollup/rollup"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "rollup/rollup",
+      "resolvedNameWithOwnerExactValues": [
+        "rollup/rollup"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzNTY2NzcxNzc=",
+      "requestedAliases": [
+        "a-h/templ"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "a-h/templ",
+      "resolvedNameWithOwnerExactValues": [
+        "a-h/templ"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzNTc4OTcxOTk=",
+      "requestedAliases": [
+        "netbirdio/netbird"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "netbirdio/netbird",
+      "resolvedNameWithOwnerExactValues": [
+        "netbirdio/netbird"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzNTg5MTcyNTA=",
+      "requestedAliases": [
+        "apache/arrow-rs"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "apache/arrow-rs",
+      "resolvedNameWithOwnerExactValues": [
+        "apache/arrow-rs"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzNTg5MTczMTg=",
+      "requestedAliases": [
+        "apache/datafusion"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "apache/datafusion",
+      "resolvedNameWithOwnerExactValues": [
+        "apache/datafusion"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzNjA3MzA4",
+      "requestedAliases": [
+        "firefox-devtools/profiler"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "firefox-devtools/profiler",
+      "resolvedNameWithOwnerExactValues": [
+        "firefox-devtools/profiler"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzNjQ0NzQzMzU=",
+      "requestedAliases": [
+        "google/zx"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "google/zx",
+      "resolvedNameWithOwnerExactValues": [
+        "google/zx"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzNjY2ODQx",
+      "requestedAliases": [
+        "samtools/samtools"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "samtools/samtools",
+      "resolvedNameWithOwnerExactValues": [
+        "samtools/samtools"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzNzIxNzIyNTQ=",
+      "requestedAliases": [
+        "tokio-rs/axum"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "tokio-rs/axum",
+      "resolvedNameWithOwnerExactValues": [
+        "tokio-rs/axum"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzNzM0MTEyMQ==",
+      "requestedAliases": [
+        "lalrpop/lalrpop"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "lalrpop/lalrpop",
+      "resolvedNameWithOwnerExactValues": [
+        "lalrpop/lalrpop"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzNzQ0MDMzOA==",
+      "requestedAliases": [
+        "include-what-you-use/include-what-you-use"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "include-what-you-use/include-what-you-use",
+      "resolvedNameWithOwnerExactValues": [
+        "include-what-you-use/include-what-you-use"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzODA2NDkzMg==",
+      "requestedAliases": [
+        "khronosgroup/glslang"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "khronosgroup/glslang",
+      "resolvedNameWithOwnerExactValues": [
+        "KhronosGroup/glslang"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzODE2MjM4",
+      "requestedAliases": [
+        "portfolio-performance/portfolio"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "portfolio-performance/portfolio",
+      "resolvedNameWithOwnerExactValues": [
+        "portfolio-performance/portfolio"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzODU4MTYyNg==",
+      "requestedAliases": [
+        "pybind/pybind11"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "pybind/pybind11",
+      "resolvedNameWithOwnerExactValues": [
+        "pybind/pybind11"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzODY1NTA1Ng==",
+      "requestedAliases": [
+        "rust-lang/mdbook"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "rust-lang/mdbook",
+      "resolvedNameWithOwnerExactValues": [
+        "rust-lang/mdBook"
+      ]
+    },
+    {
+      "repositoryNodeId": "MDEwOlJlcG9zaXRvcnkzOTMzMjkxMw==",
+      "requestedAliases": [
+        "graphql-go/graphql"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "graphql-go/graphql",
+      "resolvedNameWithOwnerExactValues": [
+        "graphql-go/graphql"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOGiE5WA",
+      "requestedAliases": [
+        "honojs/hono"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "honojs/hono",
+      "resolvedNameWithOwnerExactValues": [
+        "honojs/hono"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOHDOB4Q",
+      "requestedAliases": [
+        "cilium/tetragon"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "cilium/tetragon",
+      "resolvedNameWithOwnerExactValues": [
+        "cilium/tetragon"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOHMWrXg",
+      "requestedAliases": [
+        "jtroo/kanata"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "jtroo/kanata",
+      "resolvedNameWithOwnerExactValues": [
+        "jtroo/kanata"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOHeJWtw",
+      "requestedAliases": [
+        "openfga/openfga"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "openfga/openfga",
+      "resolvedNameWithOwnerExactValues": [
+        "openfga/openfga"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOIBthgA",
+      "requestedAliases": [
+        "shopify/hydrogen"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "shopify/hydrogen",
+      "resolvedNameWithOwnerExactValues": [
+        "Shopify/hydrogen"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOIR59lA",
+      "requestedAliases": [
+        "alibaba/yalantinglibs"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "alibaba/yalantinglibs",
+      "resolvedNameWithOwnerExactValues": [
+        "alibaba/yalantinglibs"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOIlDXFw",
+      "requestedAliases": [
+        "facebook/stylex"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "facebook/stylex",
+      "resolvedNameWithOwnerExactValues": [
+        "facebook/stylex"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOKIHmkw",
+      "requestedAliases": [
+        "automq/automq"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "automq/automq",
+      "resolvedNameWithOwnerExactValues": [
+        "AutoMQ/automq"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOKoBoCw",
+      "requestedAliases": [
+        "quickjs-ng/quickjs"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "quickjs-ng/quickjs",
+      "resolvedNameWithOwnerExactValues": [
+        "quickjs-ng/quickjs"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOLHD3LA",
+      "requestedAliases": [
+        "apple/pkl"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "apple/pkl",
+      "resolvedNameWithOwnerExactValues": [
+        "apple/pkl"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOLW-eZg",
+      "requestedAliases": [
+        "mui/base-ui"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "mui/base-ui",
+      "resolvedNameWithOwnerExactValues": [
+        "mui/base-ui"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOLjzmIw",
+      "requestedAliases": [
+        "valkey-io/valkey"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "valkey-io/valkey",
+      "resolvedNameWithOwnerExactValues": [
+        "valkey-io/valkey"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOLzYRmw",
+      "requestedAliases": [
+        "openai/openai-dotnet"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "openai/openai-dotnet",
+      "resolvedNameWithOwnerExactValues": [
+        "openai/openai-dotnet"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOODGMVA",
+      "requestedAliases": [
+        "github/github-mcp-server"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "github/github-mcp-server",
+      "resolvedNameWithOwnerExactValues": [
+        "github/github-mcp-server"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOOarutQ",
+      "requestedAliases": [
+        "azure/azure-mcp"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "azure/azure-mcp",
+      "resolvedNameWithOwnerExactValues": [
+        "Azure/azure-mcp"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOOt6mSA",
+      "requestedAliases": [
+        "charmbracelet/crush"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "charmbracelet/crush",
+      "resolvedNameWithOwnerExactValues": [
+        "charmbracelet/crush"
+      ]
+    },
+    {
+      "repositoryNodeId": "R_kgDOOzfwkA",
+      "requestedAliases": [
+        "openai/openai-agents-js"
+      ],
+      "resolvedNameWithOwnerAsciiFold": "openai/openai-agents-js",
+      "resolvedNameWithOwnerExactValues": [
+        "openai/openai-agents-js"
+      ]
+    }
+  ],
+  "schemaVersion": 1
+}
