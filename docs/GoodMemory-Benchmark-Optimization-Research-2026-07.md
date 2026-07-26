@@ -1083,6 +1083,32 @@ board's deliberate wording.
   the language-pack workstream. Artifacts: scratchpad `prod/`,
   `reports/eval/research/official-rescore/prod-*-official/`.
 
+  **Drift attribution (2026-07-26, single-variable, RESOLVED): the
+  "post-refactor floor" was the prep's date normalization, and the current
+  tree beats the v0.6.0 claim on a matched root.** The claim-era and
+  current roots differ ONLY in the session date format — all 5,882 turns:
+  raw upstream strings ("1:56 pm on 8 May, 2023") vs
+  `normalizeLocomoDateTime` ISO ("2023-05-08T13:56:00.000Z"); content and
+  questions byte-identical. Production base on the claim-era root, current
+  tree, zero failures: retrieval recall 0.8252 (vs 0.8125 on the ISO
+  root), **official judge 0.8805** — vs 0.8442 on the ISO root and the
+  v0.6.0 claim's 0.8708. Conclusions: (1) the ISO date rendering costs
+  **−3.6pt official** end-to-end (answer-shape and temporal-resolution
+  degradation from machine-format dates in turn markers) — an
+  eval-harness regression introduced in `563bc8c4`, NOT a retrieval-code
+  regression; (2) the pack refactor is **cleared** — the current tree is
+  **+1.0pt over the v0.6.0 claim** on the matched root (0.8805 vs
+  0.8708), so the July workstream's landed changes are net-positive on
+  the claim configuration; (3) the earlier LoCoMo second-family drift
+  note (2026-07-21) is resolved by this attribution. Recommended fix for
+  the language-pack workstream: keep normalized storage but render
+  human-readable dates into seeded turn markers / answer context (or
+  revert prep to raw dates); re-pin the claim root fingerprint after.
+  Caveat: single arm at n=1540 (~answer-model nondeterminism applies),
+  but the comparison is same-tree, same-config, content-identical —
+  the date format is the only variable. Artifacts: `prod/oldroot-base`,
+  `official-rescore/oldroot-base-official/`.
+
 ### Program status at close (2026-07-25)
 
 Every recommendation now has a resolved disposition:
