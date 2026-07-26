@@ -2389,7 +2389,9 @@ export function buildLocomoEvidencePackContext(input: {
       orderKey: index,
       role: turn.speaker,
       sourceId: turn.diaId,
-      timeAnchor: turn.date ?? `session ${parseLocomoSession(turn.diaId)}`,
+      timeAnchor: turn.date
+        ? formatLocomoHumanDateTime(turn.date)
+        : `session ${parseLocomoSession(turn.diaId)}`,
     }));
   return buildAnswerEvidencePack({
     chainOfNote: input.chainOfNote,
