@@ -1443,31 +1443,35 @@ enforced. Strict portable/promotion reads reject hard links without breaking
 legacy atomic publication. The asset-lock plus portable slice passes 10/10
 with 33 assertions;
 independent repair review reports no remaining P0/P1.
-[DONE/GATE IMPLEMENTATION ONLY] The promotion verifier passes 10/10 with 42
+[DONE/PROMOTION TO CENSUS ONLY] The promotion verifier passes 11/11 with 45
 assertions in isolated Git histories. It binds exact protocol/review receipts,
 portable evidence, promotion CLI/verifier sources, `package.json`, `bun.lock`,
 one-parent freeze identity, a strict descendant exact census-authorization
 entrypoint, generation HEAD, and the complete F/I/base/HEAD/runtime closure.
 Raw Git reads disable replace/inherited `GIT_*`, reject grafts, and use
 `ls-tree` to distinguish an absent path from an unreadable old blob. The
-positive test dynamically imports the activation and uses it to verify the
-published receipt. This can authorize only entry into formal source-row
-census; it does not prove a census or full runner.
+positive test and the repository-specific regression dynamically import the
+activation. This can authorize only entry into formal source-row census; it
+does not prove a census or full runner.
 [EVIDENCE] After synchronizing the frozen controlled-mutation asset reader and
 rematerializing the receipt in the exact pinned Linux/amd64 image, the default
 canonical suite passes 5938 tests with 17 skips, 0 failures, 50726 assertions,
 and 13 snapshots across 678 files. This is checkpoint regression evidence
 only; it does not advance any C6 dataset, run, or claim flag.
-[OPEN GATE] No real freeze commit, descendant source-v3 census
-activation/implementation commit, or promotion receipt exists on `main`.
-Therefore
-`priorRepositoryNodeIdExclusionComplete`, `sourceV3SimpleFrozen`, and
-`formalCensusPermitted` remain false. The next state-changing step is a
-separate freeze commit; census activation and implementation must be added
-only in later descendant commits.
+[EVIDENCE] The one-parent freeze is
+`ba4cee1e668adff0354b23dd743ae44e23e42af9`; strict descendant
+activation/promotion base is
+`cc42f0bbd673b6595a6c82b3c5cb995a8efbe826`. The 12,652-byte receipt at
+`fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/promotion/promotion-receipt-v1.json`
+has SHA-256
+`a0892b9c87cce89b23604a43b02d06ad1344fe010afd4894a5f6c387c7d43e3b`
+and exact rebuild verification passes. It sets
+`priorRepositoryNodeIdExclusionComplete: true`,
+`sourceV3SimpleFrozen: true`, and `formalCensusPermitted: true`.
 [BOUNDARY] Accepted and qualified episode counts remain zero;
-`candidateManifestFrozen: false` and `codexRunReady: false`. No dataset,
-summary corpus, 10557-call run, statistics report, or C7 gate exists.
+`candidateSelectionPermitted: false`, `candidateManifestFrozen: false`, and
+`codexRunReady: false`. No 1,536-shard census result, source-row ledger,
+dataset, summary corpus, 10557-call run, statistics report, or C7 gate exists.
 [DONE/PREFLIGHT ONLY] Adjacent-task relationship evidence is now executable.
 Source-record v5 requires two ordered edge receipts for every three-stage
 episode. Each edge exact-binds unedited prior/later issue projections, the

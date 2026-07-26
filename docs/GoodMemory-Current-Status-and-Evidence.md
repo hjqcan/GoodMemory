@@ -1127,15 +1127,24 @@ cutover, and rollback contracts.
   `3add09d0...1dec`; a fresh process replayed them without the original
   `/private/tmp` roots. This proves durable local byte closure, not external
   authenticity or independent network provenance.
-  The promotion gate implementation passes 10/10 with 42 assertions. It binds
+  The promotion gate implementation passes 11/11 with 45 assertions. It binds
   committed protocol/review/portable bytes, the promotion CLI and verifier
   sources, dependency locks, raw Git object view, strict freeze-to-activation
   ancestry, generation HEAD, and F/I/base/HEAD/runtime equality. Its exact
   activation entrypoint is dynamically imported and verifies the published
-  receipt, but grants only permission to enter census. No real freeze commit,
-  descendant census activation/implementation commit, promotion receipt, or
-  census exists yet, so prior exclusion, source freeze, formal census,
-  candidate selection, and Codex readiness all remain false.
+  receipt, but grants only permission to enter census. The one-parent freeze
+  is `ba4cee1e668adff0354b23dd743ae44e23e42af9`; the strict descendant
+  activation and promotion base is
+  `cc42f0bbd673b6595a6c82b3c5cb995a8efbe826`. The 12,652-byte receipt at
+  `fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/promotion/promotion-receipt-v1.json`
+  has SHA-256
+  `a0892b9c87cce89b23604a43b02d06ad1344fe010afd4894a5f6c387c7d43e3b`.
+  It verifies `priorRepositoryNodeIdExclusionComplete: true`,
+  `sourceV3SimpleFrozen: true`, and `formalCensusPermitted: true`, while
+  retaining `candidateManifestFrozen: false`,
+  `candidateSelectionPermitted: false`, and `codexRunReady: false`.
+  No source-row census, Search capture, candidate selection, or Codex run
+  exists yet.
   After synchronizing the frozen controlled-mutation asset reader and
   rematerializing its receipt in the exact pinned Linux/amd64 image, the
   canonical repository suite passes 5938 tests with 17 skips, 0 failures,

@@ -3814,15 +3814,16 @@ The protocol requires:
    fail this evaluation ID. A larger source frame is a new protocol and
    cannot be introduced as a continuation draw.
 
-The proposal deliberately reports `acceptedEpisodeCount: 0`,
+The frozen proposal deliberately reports `acceptedEpisodeCount: 0`,
 `formalCensusPermitted: false`, `sourceV3SimpleFrozen: false`,
-`candidateManifestFrozen: false`, and `codexRunReady: false`. Formal census
-still requires a separate asset-bound independent-review and freeze-ancestry
-gate. Its census-receipt contract reports `actualReceiptPresent: false`.
-Protocol and local replay review receipts plus portable prior-identity bytes
-now exist, but they are non-authorizing until the separate freeze ancestry
-and promotion receipt close. No ancestor freeze commit, repository/PR row
-set, or formal source-v3 census exists yet.
+`candidateManifestFrozen: false`, and `codexRunReady: false`; those fields are
+historical proposal state and are not rewritten. The separate asset-bound
+review and freeze-ancestry gate is now closed by freeze commit
+`ba4cee1e668adff0354b23dd743ae44e23e42af9`, strict descendant
+activation/base `cc42f0bbd673b6595a6c82b3c5cb995a8efbe826`, and the promotion
+receipt described below. Current authority therefore permits only formal
+source-row census. No repository/PR row set or completed source-v3 census
+exists yet.
 
 The original source-universe v1 proposal is materialized at
 `fixtures/codex-coding-effect/c6-source-pool/swe-bench-live-multilang-608f7ae9.wave3-source-universe-v1.json`.
@@ -3922,8 +3923,8 @@ legacy atomic hard-link publication protocol remains available to existing
 materializers. The asset-lock plus portable slice passes 10/10 tests with
 33 assertions and typecheck.
 
-The source-v3 promotion gate is implemented and passes 10/10 focused tests
-with 42 assertions in isolated Git repositories. It requires a one-parent
+The source-v3 promotion gate is implemented and passes 11/11 focused tests
+with 45 assertions in isolated Git repositories. It requires a one-parent
 freeze commit, a strict descendant containing the exact pre-registered census
 authorization entrypoint, and an explicit promotion base that equals HEAD at
 generation. Durable verification permits only a later HEAD descended from that
@@ -3944,11 +3945,20 @@ skips, 0 failures, 50726 assertions, and 13 snapshots across 678 files.
 This is regression evidence for the checkpoint, not a completed readiness
 step, candidate freeze, Codex execution, or uplift result.
 
-This is not yet promotion evidence. `main` has no qualifying freeze commit,
-no descendant source-v3 census activation/implementation commit, and no
-materialized promotion receipt. Therefore prior node-ID exclusion,
-source-v3 freeze, formal census, Search capture, accepted episodes, candidate
-allocation, and all coding-effect claims remain unauthorized.
+`main` now contains the qualifying one-parent freeze
+`ba4cee1e668adff0354b23dd743ae44e23e42af9` and strict descendant census
+activation/promotion base
+`cc42f0bbd673b6595a6c82b3c5cb995a8efbe826`. The materialized 12,652-byte
+receipt is
+`fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/promotion/promotion-receipt-v1.json`
+at SHA-256
+`a0892b9c87cce89b23604a43b02d06ad1344fe010afd4894a5f6c387c7d43e3b`.
+Exact rebuild verification closes prior node-ID exclusion, freezes
+source-v3-simple, and permits formal source-row census. It deliberately keeps
+external authenticity, independent capture-process proof, candidate
+selection, candidate-manifest freeze, and Codex readiness false. No census
+rows, Search capture, accepted episodes, candidate allocation, or
+coding-effect result exists yet.
 
 The earlier Rekor/Quicknet/Ethereum provider analysis remains useful only as
 the explanation for why source-v2 never authorized capture. It showed that a

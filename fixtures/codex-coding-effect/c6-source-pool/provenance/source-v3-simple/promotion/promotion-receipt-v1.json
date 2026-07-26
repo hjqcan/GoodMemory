@@ -1,0 +1,288 @@
+{
+  "artifactKind": "c6-source-v3-simple-promotion-receipt",
+  "boundary": {
+    "candidateManifestFrozen": false,
+    "candidateSelectionPermitted": false,
+    "captureOriginIndependentlyVerified": false,
+    "codexRunReady": false,
+    "cryptographicReviewIndependence": false,
+    "externalAuthenticityVerified": false,
+    "formalCensusPermitted": true,
+    "independentCaptureProcessProven": false,
+    "liveNetworkExecutionProven": false,
+    "priorRepositoryNodeIdExclusionComplete": true,
+    "sourceV3SimpleFrozen": true
+  },
+  "censusImplementation": {
+    "activationEntrypoint": {
+      "bytes": 1146,
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-census.ts",
+      "sha256": "37784302c4c90473114d56e8a7494e0ebd8040017a79fdb10d6533805ffd17b3"
+    },
+    "activationPath": "scripts/codex-coding-effect/c6-source-v3-simple-census.ts",
+    "commitSha": "cc42f0bbd673b6595a6c82b3c5cb995a8efbe826",
+    "treeSha": "087f7a98d3614f3a3c001b4fc9b1c4e05fe3bc5f"
+  },
+  "evaluationId": "goodmemory-c6-codex-coding-effect-source-v3-simple-v1",
+  "freeze": {
+    "commitSha": "ba4cee1e668adff0354b23dd743ae44e23e42af9",
+    "parentCommitSha": "ad7ffeb2de5b90583bd99421e5a29d2df731407a",
+    "treeSha": "1f4c86106ae54c69b6efd3acd6d6c150fa20800f"
+  },
+  "frozenArtifacts": [
+    {
+      "bytes": 3992,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/swe-bench-live-multilang-608f7ae9.source-v3-simple-protocol-v1.json",
+      "sha256": "5f989ab640c684dac287142edc9d2f9d8ee46099c082f63bb20f2a9546205132"
+    },
+    {
+      "bytes": 631004,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/swe-bench-live-multilang-608f7ae9.wave3-source-universe-v2.json",
+      "sha256": "822c458e792ee31f7738cae2526b05dfc3b63fcaac58e3f4f87dcd3803ccdba1"
+    },
+    {
+      "bytes": 9105,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/swe-bench-live-multilang-608f7ae9.wave3-pretarget-policy-v1.json",
+      "sha256": "eb3df63ff269b1d0166ed4b2faba682d60cdce3fb1ea64946e66f08e5eda9856"
+    },
+    {
+      "bytes": 76257,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/swe-bench-live-multilang-608f7ae9.wave3-prior-repository-identity-plan-v1.json",
+      "sha256": "70b202cd6da6c2c504a0c23168dc9bcb6a73e9697ff98884dcc83ca785cd4ee2"
+    },
+    {
+      "bytes": 913,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/review/request.json",
+      "sha256": "7c0fb5466812e6c30a601ed9435330a7390490146899b7458a02ab0a8ef4f3ca"
+    },
+    {
+      "bytes": 1092,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/review/input.json",
+      "sha256": "f09977d56c669996d5e0a3b39cc1f59e9f437ed0dbcdbbd9317ac4c82871ee73"
+    },
+    {
+      "bytes": 708,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/review/dispatch.json",
+      "sha256": "6d2e9bffe33f7aa3daa92a0dde2270bd2fb9ac37c14593f078a0612e4f8d4fd1"
+    },
+    {
+      "bytes": 1162,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/review/response.json",
+      "sha256": "9cd7202589ea964ce4767b31b28d7710c4799696b6de0b4003ff7697a1d6dc18"
+    },
+    {
+      "bytes": 1304,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/review/provenance.json",
+      "sha256": "4fa2253a60280e6bc440c07a817e0e6120611f13266283d9928003425e830439"
+    },
+    {
+      "bytes": 4769,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/prior-repository-identity/swe-bench-live-multilang-608f7ae9.source-v3-simple-prior-repository-identity-observation-replay-v1.json",
+      "sha256": "903912db14ed999cd19f32ffaef81658bc241daf8be9e2f33aa14b1784b94d0a"
+    },
+    {
+      "bytes": 1312,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/prior-repository-identity/review/request.json",
+      "sha256": "8352f25e17c9e1fbd4b0bae3c01f11f559ebaba319cf0be1ea83af1277c85011"
+    },
+    {
+      "bytes": 2239,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/prior-repository-identity/review/input.json",
+      "sha256": "1ee5412f02ba28456449229d4af38dfd8485483d78df337265bc36ea2196acfc"
+    },
+    {
+      "bytes": 845,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/prior-repository-identity/review/dispatch.json",
+      "sha256": "474b7a658f831758fec711c5367971a64e4130009d55190882fe5306a5c04b50"
+    },
+    {
+      "bytes": 1579,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/prior-repository-identity/review/response.json",
+      "sha256": "b71f659284b477b85d3cb7fd19912774b8f72b953f9b543966ced1f795e0a740"
+    },
+    {
+      "bytes": 1589,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/prior-repository-identity/review/provenance.json",
+      "sha256": "14ac08a41e2fbcc4bc0cc8a33409d6a029951fd6b61c8f50457a0395394b228e"
+    },
+    {
+      "bytes": 9028,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/prior-repository-identity/portable-evidence-v1/portable-evidence.json",
+      "sha256": "3add09d058514b37c71aaf5204cbcbae52a0223f0c99820e872ad19878631dec"
+    },
+    {
+      "bytes": 513569,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/prior-repository-identity/portable-evidence-v1/capture-a.tar.gz",
+      "sha256": "5fe5a4c2cf6769095a0f3e05d4316dde22019f05adbb62cce6df6473de5c7120"
+    },
+    {
+      "bytes": 514548,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/prior-repository-identity/portable-evidence-v1/capture-b.tar.gz",
+      "sha256": "4a04936a325108ab189f68f6d5354d7ccab1be5aad6a010ffc0add85cb9e5b10"
+    },
+    {
+      "bytes": 24285,
+      "path": "package.json",
+      "sha256": "33cea47224c41a1f8cef3cae6d44fde40307df5a6bed8d612d14318f2d0aa311"
+    },
+    {
+      "bytes": 46301,
+      "path": "bun.lock",
+      "sha256": "843cc9822293aa8d5498369b129c9ce17bac25aaf0625c84f6800b6e50503129"
+    },
+    {
+      "bytes": 7390,
+      "path": "scripts/codex-coding-effect/c6-asset-lock.ts",
+      "sha256": "d0421852923bc7024f4875bfa8e868b60f6218fb9732757d1abdc7cb6d78be9d"
+    },
+    {
+      "bytes": 18951,
+      "path": "scripts/codex-coding-effect/c6-live-multilang-neighbor-commit-count-eligibility-plan.ts",
+      "sha256": "278652fff2130a1c310094106ca050569f89f7a82c18aaee6351b5dd8703ad8d"
+    },
+    {
+      "bytes": 66080,
+      "path": "scripts/codex-coding-effect/c6-live-multilang-neighbor-commit-count-eligibility-qualification.ts",
+      "sha256": "99839ae5eb1ac9d1534daed042b93bfde9c1399e095a52aabf457635048963f8"
+    },
+    {
+      "bytes": 46279,
+      "path": "scripts/codex-coding-effect/c6-live-multilang-neighbor-deep-capture-plan.ts",
+      "sha256": "7a503e114dce19a1bb7b6fc4a4715faf5da4eedfb67024c74d914a025a9e5823"
+    },
+    {
+      "bytes": 82073,
+      "path": "scripts/codex-coding-effect/c6-live-multilang-neighbor-deep-evidence.ts",
+      "sha256": "c6f6ff8322ea3445fa18ce67eaeee443d1c28f65b133d1113462ef5206e6231d"
+    },
+    {
+      "bytes": 34651,
+      "path": "scripts/codex-coding-effect/c6-live-multilang-neighbor-structural-qualification.ts",
+      "sha256": "fd7510233253825957ee2623492627c28c5cfc5bba2824e4d795d51ecb7f0c0b"
+    },
+    {
+      "bytes": 37478,
+      "path": "scripts/codex-coding-effect/c6-live-multilang-neighbor-structural-union.ts",
+      "sha256": "d553246d8699603776863eb78e6a608c0ee46e439b32f75dd020c8f4aa89eade"
+    },
+    {
+      "bytes": 13842,
+      "path": "scripts/codex-coding-effect/c6-review-event-policy.ts",
+      "sha256": "aa5c08bccafe9617e0422bb520d11bab3cd13ba99612e5bc40c1a7fe102c50a6"
+    },
+    {
+      "bytes": 28699,
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-prior-identity-portable-evidence.ts",
+      "sha256": "078483ce83f4ec5b5347b104954e6c78b12dfeb8eab81c70279d522b2150698c"
+    },
+    {
+      "bytes": 24046,
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-prior-identity-replay-review.ts",
+      "sha256": "a065f789d5fb8c477e6664d55cf137bf4061d80c1854d6e6685df1c10ef1555d"
+    },
+    {
+      "bytes": 14972,
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-prior-repository-identity-replay.ts",
+      "sha256": "3690d76e06f25527fa0c6f4a3b6c0e58d4028e342bb0f12be5e2cc11eeab660c"
+    },
+    {
+      "bytes": 15981,
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-prior-repository-identity-structure.ts",
+      "sha256": "c0a4afaf6875e41a79adf534179dfe2662f5403db11a4d6000a5328c8527779b"
+    },
+    {
+      "bytes": 40724,
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-prior-repository-identity.ts",
+      "sha256": "46a0c59b645f62199519936247e0cbf4f043e8b41d7ca6de8437851cf5190423"
+    },
+    {
+      "bytes": 17575,
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-review.ts",
+      "sha256": "1be2d014bef2f975fd4a7280e9521d1bca63d299e0a47d3cef1668c70e53f492"
+    },
+    {
+      "bytes": 11576,
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple.ts",
+      "sha256": "90fe7816e23451fc81a0405ea7080eef74370c53ca19138eda832db80dbaab6d"
+    },
+    {
+      "bytes": 39833,
+      "path": "scripts/codex-coding-effect/c6-wave3-pretarget-policy.ts",
+      "sha256": "feaaee5f4648723d798ece39b2734fcad97bd25a10ecdec43cbcf2b18be4592a"
+    },
+    {
+      "bytes": 55217,
+      "path": "scripts/codex-coding-effect/c6-wave3-prior-repository-identity-artifacts.ts",
+      "sha256": "aa6fa2a198e757f785b2f41ca821e9ce20f7aa0013a798cc3c0ee924d48df493"
+    },
+    {
+      "bytes": 2510,
+      "path": "scripts/codex-coding-effect/c6-wave3-prior-repository-identity-capture.ts",
+      "sha256": "566effeb29df4f52b5a9439c9a879caa9492086a76aa17d8f824857584580ef5"
+    },
+    {
+      "bytes": 60000,
+      "path": "scripts/codex-coding-effect/c6-wave3-prior-repository-identity-plan.ts",
+      "sha256": "01ce6007977510eeee97a12e1ccc07f5a6faaef2eb1e1a3bbf3e2e9979fe7b85"
+    },
+    {
+      "bytes": 47796,
+      "path": "scripts/codex-coding-effect/c6-wave3-source-universe-v2.ts",
+      "sha256": "46963ce7afc95b79c4a335a8442499fbcedee38a1f70b736edb9e93567d07724"
+    },
+    {
+      "bytes": 4404,
+      "path": "scripts/record-codex-coding-effect-c6-source-v3-simple-prior-identity-replay.ts",
+      "sha256": "ad39b8a3f02cdeee11000131a06bde2a9bbd60744180bad3dceb159c9e34254b"
+    },
+    {
+      "bytes": 5044,
+      "path": "scripts/promote-codex-coding-effect-c6-source-v3-simple.ts",
+      "sha256": "f940ca91fcfda6e58bf46a42fbdeab93c62e42f53eb78f6ec3c37ca93972eee8"
+    },
+    {
+      "bytes": 39634,
+      "path": "scripts/codex-coding-effect/c6-source-v3-simple-promotion.ts",
+      "sha256": "d492724cb945c1fa12461aa013425f764814e358d1b6bead5abf2c9689b5fdfe"
+    }
+  ],
+  "promotionBase": {
+    "commitSha": "cc42f0bbd673b6595a6c82b3c5cb995a8efbe826",
+    "treeSha": "087f7a98d3614f3a3c001b4fc9b1c4e05fe3bc5f"
+  },
+  "priorRepositoryNodeIdExclusionClosure": {
+    "localReplayReviewAccepted": true,
+    "observationReplayReceipt": {
+      "bytes": 4769,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/prior-repository-identity/swe-bench-live-multilang-608f7ae9.source-v3-simple-prior-repository-identity-observation-replay-v1.json",
+      "sha256": "903912db14ed999cd19f32ffaef81658bc241daf8be9e2f33aa14b1784b94d0a"
+    },
+    "portableEvidenceClosureVerified": true,
+    "portableEvidenceManifest": {
+      "bytes": 9028,
+      "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/prior-repository-identity/portable-evidence-v1/portable-evidence.json",
+      "sha256": "3add09d058514b37c71aaf5204cbcbae52a0223f0c99820e872ad19878631dec"
+    },
+    "repositoryIdentityReplayAgreementObserved": true
+  },
+  "protocolReviewReceiptStructureVerified": true,
+  "reviewIdentities": {
+    "priorRepositoryIdentity": {
+      "authorTaskName": "/root",
+      "cryptographicReviewIndependence": false,
+      "reviewerAgentName": "/root/c6_prior_identity_replay_independent_review"
+    },
+    "protocol": {
+      "authorTaskName": "/root",
+      "cryptographicReviewIndependence": false,
+      "reviewerAgentName": "/root/c6_source_v3_simple_review_v1"
+    }
+  },
+  "schemaVersion": 1,
+  "status": "formal-source-row-census-only-no-candidate-allocation-manifest-or-codex-run-authority",
+  "verifierSource": {
+    "bytes": 39634,
+    "path": "scripts/codex-coding-effect/c6-source-v3-simple-promotion.ts",
+    "sha256": "d492724cb945c1fa12461aa013425f764814e358d1b6bead5abf2c9689b5fdfe"
+  }
+}
