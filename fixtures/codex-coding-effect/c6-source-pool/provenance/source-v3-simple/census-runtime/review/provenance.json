@@ -1,0 +1,30 @@
+{
+  "artifactKind": "c6-source-v3-simple-census-runtime-review-provenance",
+  "authorTaskName": "/root",
+  "cryptographicReceipt": false,
+  "dispatch": {
+    "bytes": 691,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/census-runtime/review/dispatch.json",
+    "sha256": "915eb671517515a60ac02347630b189aba9af6d29bbdd012ed6d260ed330b3de"
+  },
+  "input": {
+    "bytes": 812,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/census-runtime/review/input.json",
+    "sha256": "5b22721f3d7b65af5a5b186a7fa8177a7cde1f6340b68b627ef9e9b012859f61"
+  },
+  "independenceVerified": false,
+  "orchestratorObservedSeparateAgentReceiptStructure": true,
+  "request": {
+    "bytes": 1064,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/census-runtime/review/request.json",
+    "sha256": "85cf51994b10d60bbf4d5fae50bd99c6f638cda3b48d90900355a50d416f718c"
+  },
+  "response": {
+    "bytes": 974,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/census-runtime/review/response.json",
+    "sha256": "405640b406be61d7792cc29732c8ba609508790ac023bc8c1525f5911d6f5d51"
+  },
+  "reviewerAgentName": "/root/c6_p1_counterexample_reaudit",
+  "reviewerTaskName": "c6_p1_counterexample_reaudit",
+  "schemaVersion": 1
+}
