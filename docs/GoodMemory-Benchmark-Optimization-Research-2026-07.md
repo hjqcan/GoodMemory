@@ -1105,10 +1105,17 @@ board's deliberate wording.
   5,882 root dates round-trip byte-exact to the claim-era raw strings)
   now renders seeded turn markers human-readable while storage keeps
   ISO — the 0.8805 old-root measurement IS this rendering's validated
-  effect, since seeded bytes are identical. Expected official on the
-  claim configuration with the current tree ≈ 0.8805 (+1.0pt over the
-  v0.6.0 claim); a fresh claim re-pin (rerun + fingerprint) is the
-  remaining formality before publishing a new number.
+  effect, since seeded bytes are identical. **Re-pin complete
+  (same day): the current tree scores 0.8799 official on the claim
+  configuration** (ISO root + both render fixes; zero failures after
+  resume; retrieval recall 0.8226). The first re-pin recovered only
+  +0.77pt and exposed a SECOND ISO leak — `EvidenceTurn.timeAnchor` read
+  the root date directly into pack entry headers, bypassing the marker
+  fix; with both render sites fixed the score matches the claim-era
+  proof (0.8805) within run noise. **New claimable number: 0.8799
+  official (n=1540, gpt-5.5 judge) vs the v0.6.0 claim's 0.8708 —
+  +0.91pt — with normalized ISO storage retained.** Artifacts:
+  `prod/repin-base`, `official-rescore/repin-base-official/`.
   Caveat: single arm at n=1540 (~answer-model nondeterminism applies),
   but the comparison is same-tree, same-config, content-identical —
   the date format is the only variable. Artifacts: `prod/oldroot-base`,
