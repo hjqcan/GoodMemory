@@ -46,6 +46,23 @@ afterEach(async () => {
 });
 
 describe("C6 source-v3-simple promotion gate", () => {
+  it("keeps the repository census activation byte-exact", async () => {
+    const activationPath = resolve(
+      workspaceRoot,
+      C6_SOURCE_V3_SIMPLE_CENSUS_IMPLEMENTATION_PATH,
+    );
+    expect(await readFile(activationPath, "utf8")).toBe(
+      C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_SOURCE,
+    );
+    const activation = await loadCensusActivation(workspaceRoot);
+    expect(
+      activation.C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_VERSION,
+    ).toBe(1);
+    expect(
+      activation.requireC6SourceV3SimpleCensusAuthorization,
+    ).toBeFunction();
+  });
+
   it("promotes only an exact one-parent freeze followed by a strict census implementation descendant", async () => {
     const repository = await createPromotionRepository();
     const outputPath = join(repository.root, "promotion.json");
@@ -938,6 +955,7 @@ type PromotionCliModule = typeof import(
 );
 
 interface CensusActivationModule {
+  C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_VERSION: 1;
   requireC6SourceV3SimpleCensusAuthorization(input: {
     promotionInput: {
       censusImplementationCommitSha: string;
