@@ -1115,7 +1115,13 @@ board's deliberate wording.
   proof (0.8805) within run noise. **New claimable number: 0.8799
   official (n=1540, gpt-5.5 judge) vs the v0.6.0 claim's 0.8708 —
   +0.91pt — with normalized ISO storage retained.** Artifacts:
-  `prod/repin-base`, `official-rescore/repin-base-official/`.
+  `prod/repin-base`, `official-rescore/repin-base-official/`. Claim-file
+  publication is deliberately left to the release process (it rewrites
+  public README fragments, evidence projections, and the claim gate, and
+  pins a release commit): at release time, rerun the recorded claim
+  command chain at the release commit, then update
+  `benchmark-claims/locomo.json` readmeRequiredFragments (0.8708 → the
+  fresh number) and regenerate the historical evidence projection.
   Caveat: single arm at n=1540 (~answer-model nondeterminism applies),
   but the comparison is same-tree, same-config, content-identical —
   the date format is the only variable. Artifacts: `prod/oldroot-base`,
