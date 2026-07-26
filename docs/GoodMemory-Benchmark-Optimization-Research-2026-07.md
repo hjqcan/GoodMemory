@@ -1100,10 +1100,15 @@ board's deliberate wording.
   **+1.0pt over the v0.6.0 claim** on the matched root (0.8805 vs
   0.8708), so the July workstream's landed changes are net-positive on
   the claim configuration; (3) the earlier LoCoMo second-family drift
-  note (2026-07-21) is resolved by this attribution. Recommended fix for
-  the language-pack workstream: keep normalized storage but render
-  human-readable dates into seeded turn markers / answer context (or
-  revert prep to raw dates); re-pin the claim root fingerprint after.
+  note (2026-07-21) is resolved by this attribution. **Fix landed same day:**
+  `formatLocomoHumanDateTime` (exact inverse of the normalizer; all
+  5,882 root dates round-trip byte-exact to the claim-era raw strings)
+  now renders seeded turn markers human-readable while storage keeps
+  ISO — the 0.8805 old-root measurement IS this rendering's validated
+  effect, since seeded bytes are identical. Expected official on the
+  claim configuration with the current tree ≈ 0.8805 (+1.0pt over the
+  v0.6.0 claim); a fresh claim re-pin (rerun + fingerprint) is the
+  remaining formality before publishing a new number.
   Caveat: single arm at n=1540 (~answer-model nondeterminism applies),
   but the comparison is same-tree, same-config, content-identical —
   the date format is the only variable. Artifacts: `prod/oldroot-base`,
