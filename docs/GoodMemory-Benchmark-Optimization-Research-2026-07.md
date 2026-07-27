@@ -1232,6 +1232,34 @@ board's deliberate wording.
   cue baseline, not the naked one, and the R6×R7 stacking negative
   warns that hop-2 candidates contest the same budget.
 
+  **R8 measurement (2026-07-26, paired, two conversations, zero
+  failures): follow-up generation is a REAL, COMPOSING multi-hop lever —
+  it clears the family bar ON TOP of cues.** Instrument:
+  `--follow-up-queries` (requires `--multihop`) wires the provider
+  generator into recall. conv-26: follow-up vs base +12.19pt overall
+  (multi_hop +3.91; lexical bridging manages only +1.30); **stacked on
+  cues: +6.20pt overall / +7.29pt multi_hop** (0.5209 → 0.5829).
+  conv-30 replication: **+6.16pt overall / +4.24pt multi_hop**,
+  adversarial +4.17 (protection positive). Pooled n=304: **+6.19pt
+  overall, +6.51pt multi_hop** on top of the cue baseline — unlike PPR,
+  the second hop admits evidence cues cannot reach (relation chains),
+  so the two compose. Costs: one LLM call per query (latency) and noise
+  +3-4 turns/question. Disposition: measured opt-in — the query-time
+  cost and the noise rise keep it off the preset default until the
+  answer-side conversion and a noisy-full-recall protection pass are
+  run (the R2 taxonomy warns noise-sensitive scoring can eat the recall
+  gain).
+
+  **R5 verdict CORRECTED (2026-07-26):** the −6.28pt episodic-ingest
+  result was confounded — the live factory call never passed
+  `episodicIngest`, so the arms ran without the permissive assistant
+  policy and dropped derived assistant-turn facts (the exact confound
+  the design probe flagged). With the wiring fixed the paired conv-26
+  result is **−1.01pt: near-neutral, not strongly negative.** The
+  disposition (off by default; span-granular corpora are the domain)
+  stands, but the mechanism is cheaper than previously recorded and a
+  conv-30 + answer-side pass could revisit it.
+
 ### Program status at close (2026-07-25)
 
 Every recommendation now has a resolved disposition:
@@ -1259,8 +1287,9 @@ Every recommendation now has a resolved disposition:
   observation synthesis built 2026-07-26 (opt-in job + provider adapter,
   measurement owed on the open_domain slice). **R11** built and measured 2026-07-26: provenance-wired packs
   +15.5pt adversarial scored-abstention with answerable protection
-  positive — recommended for pack-based runs. **R8** built 2026-07-26 (opt-in follow-up generation replacing lexical
-  bridging; measurement owed vs the cue baseline). **R10** dispositioned 2026-07-26 (listwise verified; frozen LME gate
+  positive — recommended for pack-based runs. **R8** built AND measured 2026-07-26: composes with cues (+6.2pt
+  overall / +6.5pt multi_hop pooled on top of the cue baseline) —
+  measured opt-in pending answer conversion + noise protection. **R10** dispositioned 2026-07-26 (listwise verified; frozen LME gate
   unreproducible — LoCoMo-profile-only reranking stands). **R12.3** run 2026-07-26 (paraphrase probe: R6 anti-fragile, +28.4pt
   under paraphrase); R12's other items are release-process practices
   (multi-seed and fixed confounds already policy in the Phase 74 gate).
