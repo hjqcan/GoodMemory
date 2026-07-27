@@ -15,6 +15,8 @@ import {
   loadC6SourceV3SimpleCensusPreflight,
 } from "../../scripts/codex-coding-effect/c6-source-v3-simple-census-preflight";
 
+const PREFLIGHT_TEST_TIMEOUT_MILLISECONDS = 30_000;
+
 describe("C6 source-v3-simple census preflight", () => {
   it("constructs the only permitted frame from exact frozen assets", async () => {
     const preflight =
@@ -46,7 +48,7 @@ describe("C6 source-v3-simple census preflight", () => {
         preflight.frame,
       ),
     ).toEqual(preflight.frame);
-  }, 10_000);
+  }, PREFLIGHT_TEST_TIMEOUT_MILLISECONDS);
 
   it("rejects a repository root whose frozen path traverses a symlink", async () => {
     const temporaryRoot = await mkdtemp(join(

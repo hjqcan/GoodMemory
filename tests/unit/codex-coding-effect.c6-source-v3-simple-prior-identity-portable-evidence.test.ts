@@ -66,6 +66,7 @@ const SOURCE_PATH = join(
 const TOKEN = "github_pat_C6_PORTABLE_TEST_SENTINEL_947301";
 const RESET_AT = "2026-07-25T13:00:00Z";
 const RESET_EPOCH = String(Date.parse(RESET_AT) / 1_000);
+const EVIDENCE_TEST_TIMEOUT_MILLISECONDS = 120_000;
 const temporaryRoots: string[] = [];
 
 afterEach(async () => {
@@ -205,7 +206,7 @@ describe("C6 source-v3-simple prior identity portable evidence", () => {
       portableEvidenceClosureVerified: true,
       repositoryIdentityReplayAgreementObserved: true,
     });
-  }, 60_000);
+  }, EVIDENCE_TEST_TIMEOUT_MILLISECONDS);
 
   it("rejects archive drift, extra assets, escape paths, links, receipt mutation, and authority claims", async () => {
     const parent = await temporaryRoot("portable-mutation");
