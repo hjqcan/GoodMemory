@@ -9,6 +9,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import {
+  parseC6SourceV3SimpleFrameDefinition,
+} from "../../scripts/codex-coding-effect/c6-source-v3-simple-census-core";
+import {
   loadC6SourceV3SimpleCensusPreflight,
 } from "../../scripts/codex-coding-effect/c6-source-v3-simple-census-preflight";
 
@@ -38,7 +41,12 @@ describe("C6 source-v3-simple census preflight", () => {
       preflight.frame.priorRepositoryNodeIds,
     ).toHaveLength(178);
     expect(preflight.frozenInputs).toHaveLength(7);
-  });
+    expect(
+      parseC6SourceV3SimpleFrameDefinition(
+        preflight.frame,
+      ),
+    ).toEqual(preflight.frame);
+  }, 10_000);
 
   it("rejects a repository root whose frozen path traverses a symlink", async () => {
     const temporaryRoot = await mkdtemp(join(

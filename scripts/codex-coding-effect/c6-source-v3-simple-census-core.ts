@@ -421,8 +421,11 @@ export function deriveC6SourceV3SimpleRootShards(
   const shards = sourceUniverse.repositoryUniverse.languageSplits
     .flatMap((languageSplit) =>
       languageSplit.rootShards.map((rootShard) => ({
-        ...rootShard,
+        createdFrom: rootShard.createdFrom,
+        createdTo: rootShard.createdTo,
         language: languageSplit.language,
+        query: rootShard.query,
+        rootShardId: rootShard.rootShardId,
         split: languageSplit.split,
       }))
     )
