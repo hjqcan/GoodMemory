@@ -1194,6 +1194,27 @@ board's deliberate wording.
   promotion wants the remaining answerable families (multi_hop,
   open_domain) replicated first. R11 is now built AND measured.
 
+- **R10 disposition (2026-07-26): verified where verifiable; the frozen
+  LME gate is unreproducible; the standing decision is affirmed.**
+  (1) The LoCoMo claim profile DID run listwise: the recommended preset
+  resolves `providerRerankingStrategy: "listwise"` whenever a provider
+  reranker is configured (`retrievalPreset.ts`, pinned by the preset
+  test), and the v0.6.0 claim's own recorded run-id says
+  "production-listwise" — R10.1 closed. (2) The previously-failed
+  LongMemEval rerank arm (47/64 → 45/64, pointwise era) cannot be rerun
+  faithfully: its 64-case cohort manifest predates the phase-62 harness
+  and is not in the tree, so the "rerun the exact frozen gate" ask is
+  impossible as specified. The decision it gated — **rerank
+  LoCoMo-profile-only, keep LME un-reranked** — stands by default and is
+  consistent with current evidence (the listwise claim path measures
+  0.8799 official; LME balanced-subset recall sits at its 0.958 ceiling
+  without reranking). Any future LME rerank revisit needs a NEW
+  instrument (phase-62 factory rerank wiring) and a fresh frozen cohort,
+  losing comparability with the historical number — recorded here so
+  nobody mistakes a new cohort for the old gate. (3) The Phase 74 global
+  rerank-pool verification belongs to the Phase 74 workstream; the local
+  cross-encoder (R10.3) stays an optional future build.
+
 ### Program status at close (2026-07-25)
 
 Every recommendation now has a resolved disposition:
@@ -1221,7 +1242,8 @@ Every recommendation now has a resolved disposition:
   observation synthesis built 2026-07-26 (opt-in job + provider adapter,
   measurement owed on the open_domain slice). **R11** built and measured 2026-07-26: provenance-wired packs
   +15.5pt adversarial scored-abstention with answerable protection
-  positive — recommended for pack-based runs. **R12.3** run 2026-07-26 (paraphrase probe: R6 anti-fragile, +28.4pt
+  positive — recommended for pack-based runs. **R10** dispositioned 2026-07-26 (listwise verified; frozen LME gate
+  unreproducible — LoCoMo-profile-only reranking stands). **R12.3** run 2026-07-26 (paraphrase probe: R6 anti-fragile, +28.4pt
   under paraphrase); R12's other items are release-process practices
   (multi-seed and fixed confounds already policy in the Phase 74 gate).
   **R8 / R10** unstarted Stage E/F builds — untouched by this pass and explicitly out
