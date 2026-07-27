@@ -7,6 +7,9 @@ import {
 } from "node:fs/promises";
 
 import {
+  assertC6SourceV3SimpleCensusRuntimeMatchesFrozen,
+  assertC6SourceV3SimpleCensusRuntimeSupported,
+  currentC6SourceV3SimpleCensusRuntime,
   requireC6SourceV3SimpleCensusRuntimeAuthorization,
 } from "./c6-source-v3-simple-census-activation";
 import {
@@ -88,6 +91,11 @@ export async function runC6SourceV3SimpleFormalCensus(
       "C6 source-v3-simple live census confirmation is missing",
     );
   }
+  const observedRuntime =
+    currentC6SourceV3SimpleCensusRuntime();
+  assertC6SourceV3SimpleCensusRuntimeSupported(
+    observedRuntime,
+  );
   const durableStateExists =
     await exists(input.assetRoot, "asset-lock.json") ||
     await exists(input.assetRoot, "terminal.json");
@@ -104,6 +112,11 @@ export async function runC6SourceV3SimpleFormalCensus(
   let expected: C6SourceV3SimpleExpectedFrozenInputs;
   if (durableClosure !== null) {
     expected = durableClosure.expected;
+    assertC6SourceV3SimpleCensusRuntimeMatchesFrozen({
+      frozen:
+        expected.runtimeAuthorization.runtimeVersions,
+      observed: observedRuntime,
+    });
     assertActivationReceiptBinding(
       input.activationReceiptBytes,
       expected,

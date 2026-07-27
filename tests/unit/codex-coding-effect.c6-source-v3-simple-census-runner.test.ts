@@ -518,6 +518,47 @@ describe("C6 source-v3-simple formal census runner", () => {
     );
   });
 
+  it("rejects frozen runtime drift before token, dispatch, or writer acquisition", async () => {
+    await withLockedFailureOutcome(
+      async ({ assetRoot, repositoryRoot }) => {
+        let fetchCount = 0;
+        let tokenProviderCount = 0;
+        const before = await readdir(assetRoot);
+
+        await expect(
+          runC6SourceV3SimpleFormalCensus({
+            activationReceiptBytes:
+              ACTIVATION_RECEIPT_BYTES,
+            assetRoot,
+            authorizationTokenProvider: async () => {
+              tokenProviderCount += 1;
+              return Buffer.from("github-token");
+            },
+            fetchImpl: async () => {
+              fetchCount += 1;
+              throw new Error("must not dispatch");
+            },
+            liveNetworkConfirmation: LIVE_CONFIRMATION,
+            repositoryRoot,
+          }),
+        ).rejects.toThrow("frozen runtime");
+
+        expect(fetchCount).toBe(0);
+        expect(tokenProviderCount).toBe(0);
+        expect(await readdir(assetRoot)).toEqual(before);
+        expect(
+          await readFile(
+            join(assetRoot, "writer-lock.json"),
+          ).catch(() => null),
+        ).toBeNull();
+      },
+      {
+        bun: "1.3.13",
+        node: process.versions.node,
+      },
+    );
+  });
+
   it("recovers a known nested post-link pending artifact before locked finalization", async () => {
     await withLockedFailureOutcome(
       async ({ assetRoot, repositoryRoot }) => {
@@ -591,6 +632,10 @@ async function withLockedFailureOutcome(
     >;
     repositoryRoot: string;
   }) => Promise<void>,
+  runtimeVersions?: {
+    bun: string;
+    node: string;
+  },
 ): Promise<void> {
   const root = await mkdtemp(join(
     process.cwd(),
@@ -616,6 +661,7 @@ async function withLockedFailureOutcome(
         "goodmemory-c6-codex-coding-effect-source-v3-simple-v1",
       executionContractSha256: "a".repeat(64),
       frozenInputs,
+      runtimeVersions,
     });
   try {
     await mkdir(join(assetRoot, "pass-a"), {

@@ -37,6 +37,10 @@ export function createC6SourceV3SimpleTestExpectedFrozenInputs(
       path: string;
       sha256: string;
     }[];
+    runtimeVersions?: {
+      bun: string;
+      node: string;
+    };
   },
 ): C6SourceV3SimpleExpectedFrozenInputs {
   const reference = (path: string) => ({
@@ -96,8 +100,10 @@ export function createC6SourceV3SimpleTestExpectedFrozenInputs(
     runtimeSourceAggregateSha256: SHA256,
     runtimeSourceManifest: reference("manifest.json"),
     runtimeVersions: {
-      bun: Bun.version,
-      node: process.versions.node,
+      bun: input.runtimeVersions?.bun ??
+        Bun.version,
+      node: input.runtimeVersions?.node ??
+        process.versions.node,
     },
     schemaVersion: 1 as const,
     status:

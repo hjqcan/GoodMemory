@@ -21,6 +21,8 @@ import {
   C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_RECEIPT_PATH,
   C6_SOURCE_V3_SIMPLE_CENSUS_REQUIRED_REVIEW_CHECKS,
   C6_SOURCE_V3_SIMPLE_CENSUS_REQUIRED_REVIEW_COMMANDS,
+  assertC6SourceV3SimpleCensusRuntimeMatchesFrozen,
+  assertC6SourceV3SimpleCensusRuntimeSupported,
   buildC6SourceV3SimpleCensusRuntimeAuthorization,
   locateActivationCommit,
   parseC6SourceV3SimpleCensusActivationReceipt,
@@ -33,6 +35,63 @@ const SHA1 = "1".repeat(40);
 const SHA256 = "2".repeat(64);
 
 describe("C6 source-v3-simple runtime activation", () => {
+  it("rejects the affected arm64 Bun runtime and exact-matches frozen runtime versions", () => {
+    expect(() =>
+      assertC6SourceV3SimpleCensusRuntimeSupported({
+        arch: "arm64",
+        bun: "1.3.11",
+      })
+    ).toThrow("Bun 1.3.12 or newer");
+    expect(() =>
+      assertC6SourceV3SimpleCensusRuntimeSupported({
+        arch: "arm64",
+        bun: "1.3.12",
+      })
+    ).not.toThrow();
+    expect(() =>
+      assertC6SourceV3SimpleCensusRuntimeSupported({
+        arch: "x64",
+        bun: "1.3.11",
+      })
+    ).not.toThrow();
+    expect(() =>
+      assertC6SourceV3SimpleCensusRuntimeMatchesFrozen({
+        frozen: {
+          bun: "1.3.12",
+          node: "24.3.0",
+        },
+        observed: {
+          bun: "1.3.12",
+          node: "24.3.0",
+        },
+      })
+    ).not.toThrow();
+    expect(() =>
+      assertC6SourceV3SimpleCensusRuntimeMatchesFrozen({
+        frozen: {
+          bun: "1.3.12",
+          node: "24.3.0",
+        },
+        observed: {
+          bun: "1.3.13",
+          node: "24.3.0",
+        },
+      })
+    ).toThrow("frozen runtime");
+    expect(() =>
+      assertC6SourceV3SimpleCensusRuntimeMatchesFrozen({
+        frozen: {
+          bun: "1.3.12",
+          node: "24.3.0",
+        },
+        observed: {
+          bun: "1.3.12",
+          node: "24.4.0",
+        },
+      })
+    ).toThrow("frozen runtime");
+  });
+
   it("keeps the reviewed bridge exact and rejects authority expansion", () => {
     const receipt = activationReceipt();
 

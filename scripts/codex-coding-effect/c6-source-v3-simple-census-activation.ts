@@ -89,6 +89,14 @@ const sha1Schema = z.string().regex(
 const sha256Schema = z.string().regex(
   /^[a-f0-9]{64}$/u,
 );
+const bunVersionSchema = z.string().regex(
+  /^\d+\.\d+\.\d+$/u,
+);
+const MINIMUM_ARM64_BUN_VERSION = [
+  1,
+  3,
+  12,
+] as const;
 const artifactReferenceSchema = z.object({
   bytes: z.number().int().nonnegative(),
   path: z.string().min(1),
@@ -231,6 +239,56 @@ export type C6SourceV3SimpleCensusRuntimeAuthorizationSnapshot =
     typeof C6SourceV3SimpleCensusRuntimeAuthorizationSnapshotSchema
   >;
 
+export function currentC6SourceV3SimpleCensusRuntime() {
+  return {
+    arch: process.arch,
+    bun: Bun.version,
+    node: process.versions.node,
+  };
+}
+
+export function assertC6SourceV3SimpleCensusRuntimeSupported(
+  input: {
+    arch: string;
+    bun: string;
+  },
+): void {
+  const version = parseBunVersion(input.bun);
+  if (
+    input.arch === "arm64" &&
+    compareVersion(
+      version,
+      MINIMUM_ARM64_BUN_VERSION,
+    ) < 0
+  ) {
+    throw new Error(
+      "C6 source-v3-simple formal census requires Bun 1.3.12 or newer on arm64",
+    );
+  }
+}
+
+export function assertC6SourceV3SimpleCensusRuntimeMatchesFrozen(
+  input: {
+    frozen: {
+      bun: string;
+      node: string;
+    };
+    observed: {
+      bun: string;
+      node: string;
+    };
+  },
+): void {
+  if (
+    input.observed.bun !== input.frozen.bun ||
+    input.observed.node !== input.frozen.node
+  ) {
+    throw new Error(
+      "C6 source-v3-simple observed runtime does not match the frozen runtime",
+    );
+  }
+}
+
 export function buildC6SourceV3SimpleCensusRuntimeAuthorization(
   input: {
     activationCommit: z.input<
@@ -316,6 +374,9 @@ export async function buildC6SourceV3SimpleCensusActivationReceipt(
     reviewCommitSha: string;
   },
 ): Promise<C6SourceV3SimpleCensusActivationReceipt> {
+  assertC6SourceV3SimpleCensusRuntimeSupported(
+    currentC6SourceV3SimpleCensusRuntime(),
+  );
   const repositoryRoot = await assertRepository(
     input.repositoryRoot,
   );
@@ -500,6 +561,9 @@ export async function requireC6SourceV3SimpleCensusRuntimeAuthorization(
     repositoryRoot: string;
   },
 ) {
+  assertC6SourceV3SimpleCensusRuntimeSupported(
+    currentC6SourceV3SimpleCensusRuntime(),
+  );
   const repositoryRoot = await assertRepository(
     input.repositoryRoot,
   );
@@ -1308,4 +1372,29 @@ function sha256(value: Uint8Array): string {
   return createHash("sha256")
     .update(value)
     .digest("hex");
+}
+
+function parseBunVersion(
+  input: string,
+): readonly [number, number, number] {
+  const value = bunVersionSchema.parse(input);
+  const parts = value.split(".").map(Number);
+  return [
+    parts[0]!,
+    parts[1]!,
+    parts[2]!,
+  ];
+}
+
+function compareVersion(
+  left: readonly [number, number, number],
+  right: readonly [number, number, number],
+): number {
+  for (let index = 0; index < left.length; index += 1) {
+    const delta = left[index]! - right[index]!;
+    if (delta !== 0) {
+      return delta;
+    }
+  }
+  return 0;
 }
