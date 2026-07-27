@@ -253,6 +253,105 @@ describe("C6 source-v3-simple runtime activation", () => {
       });
     }
   });
+
+  it("rejects two activation children hidden by merge history simplification", async () => {
+    const root = await mkdtemp(join(
+      tmpdir(),
+      "goodmemory-c6-activation-merge-",
+    ));
+    try {
+      await git(root, ["init", "--quiet"]);
+      await git(root, [
+        "config",
+        "user.name",
+        "C6 Test",
+      ]);
+      await git(root, [
+        "config",
+        "user.email",
+        "c6@example.invalid",
+      ]);
+      await git(root, [
+        "commit",
+        "--allow-empty",
+        "-m",
+        "review",
+      ]);
+      const reviewCommitSha = await gitOutput(
+        root,
+        ["rev-parse", "HEAD"],
+      );
+      const receiptPath = join(
+        root,
+        C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_RECEIPT_PATH,
+      );
+      const bridgePath = join(
+        root,
+        C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_BRIDGE_PATH,
+      );
+      await mkdir(dirname(receiptPath), {
+        recursive: true,
+      });
+      await mkdir(dirname(bridgePath), {
+        recursive: true,
+      });
+      await git(root, [
+        "switch",
+        "-c",
+        "activation-a",
+      ]);
+      await writeFile(receiptPath, "a\n");
+      await writeFile(bridgePath, "a\n");
+      await git(root, [
+        "add",
+        C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_RECEIPT_PATH,
+        C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_BRIDGE_PATH,
+      ]);
+      await git(root, ["commit", "-m", "activation a"]);
+      await git(root, [
+        "switch",
+        "-c",
+        "activation-b",
+        reviewCommitSha,
+      ]);
+      await mkdir(dirname(receiptPath), {
+        recursive: true,
+      });
+      await mkdir(dirname(bridgePath), {
+        recursive: true,
+      });
+      await writeFile(receiptPath, "b\n");
+      await writeFile(bridgePath, "b\n");
+      await git(root, [
+        "add",
+        C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_RECEIPT_PATH,
+        C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_BRIDGE_PATH,
+      ]);
+      await git(root, ["commit", "-m", "activation b"]);
+      await git(root, ["switch", "activation-a"]);
+      await git(root, [
+        "merge",
+        "--no-ff",
+        "-s",
+        "ours",
+        "activation-b",
+        "-m",
+        "merge activations",
+      ]);
+
+      await expect(
+        locateActivationCommit(
+          root,
+          reviewCommitSha,
+        ),
+      ).rejects.toThrow("not unique for review");
+    } finally {
+      await rm(root, {
+        force: true,
+        recursive: true,
+      });
+    }
+  });
 });
 
 function activationReceipt() {

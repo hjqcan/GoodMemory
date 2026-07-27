@@ -1103,6 +1103,7 @@ export async function locateActivationCommit(
   const commits = (
     await gitText(repositoryRoot, [
       "log",
+      "--full-history",
       "--format=%H",
       "--diff-filter=A",
       "--",

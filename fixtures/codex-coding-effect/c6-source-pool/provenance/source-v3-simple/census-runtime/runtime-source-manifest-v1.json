@@ -1,5 +1,5 @@
 {
-  "aggregateSha256": "d8ba4a784a2293fdb130289922eb028d4272b64997c4f7670fd5f98ebd795e3c",
+  "aggregateSha256": "2e747d27f3156661bb6a9c3644e4487eb55479ed5f604c0dacf34e4b387ddff9",
   "artifactKind": "c6-source-v3-simple-census-runtime-source-manifest",
   "entrypoints": [
     "scripts/codex-coding-effect/c6-source-v3-simple-census-cli.ts",
@@ -73,10 +73,10 @@
       "sha256": "aa5c08bccafe9617e0422bb520d11bab3cd13ba99612e5bc40c1a7fe102c50a6"
     },
     {
-      "bytes": 33354,
+      "bytes": 33378,
       "gitMode": "100644",
       "path": "scripts/codex-coding-effect/c6-source-v3-simple-census-activation.ts",
-      "sha256": "d72f43fcade5e0c855c4cb129f8d38b0c9ff42eca2b90282010ae398e5ea5469"
+      "sha256": "31821714186c2b27b07da3186e489a73f6ab32bd8ad7901c569e57743c2e99b6"
     },
     {
       "bytes": 15484,
