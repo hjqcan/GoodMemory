@@ -1147,6 +1147,20 @@ board's deliberate wording.
   R5 build increments (spans, segmentation) remain shipped-off-by-default
   product capabilities with their measurement now on record.
 
+- **R9 observation synthesis (2026-07-26) — built, opt-in, measurement
+  owed.** New `observationSynthesis` maintenance job: each subject with
+  ≥4 active facts gets one compact observation memory through the
+  injected `adapters.observationSynthesizer` (inferred provenance,
+  `observationOf`/`observationMemberIds` attribute pointers — auditable
+  and forgettable through existing fact paths; stable per-subject ids so
+  replacement is a same-id overwrite; member-set idempotency; per-subject
+  failure tolerance; bounded subjects/run).
+  `createProviderObservationSynthesizer` adapts any OpenAI-compatible
+  model (generic grounded-synthesis prompt, temperature 0, guards). The
+  measurement path is the LoCoMo open_domain slice per §R9 —
+  budget-displacement risk applies (observations add index mass), so the
+  paired run must watch the same protection families that caught R5/R7.
+
 ### Program status at close (2026-07-25)
 
 Every recommendation now has a resolved disposition:
@@ -1170,8 +1184,9 @@ Every recommendation now has a resolved disposition:
   measured +5.9pt overall but multi_hop below the family bar, adversarial
   sign-inconsistent, and stacking with R6 is net-negative → opt-in for
   cue-less deployments; recognition filter (increment 3) is the revisit
-  condition. **R9.4** built (claim-slot sweep in the contradiction job);
-  the R9 observation-synthesis jobs remain unstarted. **R11** increment 1
+  condition. **R9.4** built (claim-slot sweep in the contradiction job); R9
+  observation synthesis built 2026-07-26 (opt-in job + provider adapter,
+  measurement owed on the open_domain slice). **R11** increment 1
   built (coverage line); full calibration unstarted. **R8 / R10 / R12**
   unstarted Stage E/F builds — untouched by this pass and explicitly out
   of its scope; they are the remaining open build queue now that the R6
