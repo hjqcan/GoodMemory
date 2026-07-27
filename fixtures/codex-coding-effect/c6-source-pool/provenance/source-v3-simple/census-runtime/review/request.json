@@ -1,0 +1,23 @@
+{
+  "artifactKind": "c6-source-v3-simple-census-runtime-review-request",
+  "evaluationId": "goodmemory-c6-codex-coding-effect-source-v3-simple-v1",
+  "freezeCommitSha": "c6f97a11fd73074297a77dcfb1a382c82ada9539",
+  "proposedActivationBridge": {
+    "bytes": 352,
+    "path": "scripts/run-codex-coding-effect-c6-source-v3-simple-census.ts",
+    "sha256": "87c4f5eaf3a9f4189bc2b20fa1038e3dea0573bf1faefa2e8db4c29b6da198c4"
+  },
+  "requestedByTaskName": "/root",
+  "requestedChecks": [
+    "runtime-source-manifest-exact-files-bytes-sha256-and-100644-modes",
+    "freeze-review-activation-direct-child-topology-and-exact-added-paths",
+    "activation-boundary-receipt-and-review-provenance-bindings",
+    "runner-preflight-resume-timeout-secret-and-publication-state-machine"
+  ],
+  "runtimeManifest": {
+    "bytes": 10529,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/census-runtime/runtime-source-manifest-v1.json",
+    "sha256": "aef70f3845b353d9ccc0b73a55965ce71ff21b7f5e151831c88eec570a5dc7c8"
+  },
+  "schemaVersion": 1
+}

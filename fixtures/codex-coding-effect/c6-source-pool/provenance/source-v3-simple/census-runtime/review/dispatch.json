@@ -1,0 +1,16 @@
+{
+  "artifactKind": "c6-source-v3-simple-census-runtime-review-dispatch",
+  "input": {
+    "bytes": 812,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/census-runtime/review/input.json",
+    "sha256": "505eebb896fb7da9f6df7a83221c4ec5b0b3330f95235399f19e6112428e4636"
+  },
+  "request": {
+    "bytes": 1064,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/census-runtime/review/request.json",
+    "sha256": "60399d2d5a1fcfbaa39d1ba613d7d04c95a6269fa17eeb7d14e63dc6db45d987"
+  },
+  "reviewerAgentName": "/root/c6_rf4_final_reaudit",
+  "reviewerTaskName": "c6_rf4_final_reaudit",
+  "schemaVersion": 1
+}

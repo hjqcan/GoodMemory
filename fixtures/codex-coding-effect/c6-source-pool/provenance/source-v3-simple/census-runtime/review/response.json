@@ -1,0 +1,21 @@
+{
+  "acceptedChecks": [
+    "runtime-source-manifest-exact-files-bytes-sha256-and-100644-modes",
+    "freeze-review-activation-direct-child-topology-and-exact-added-paths",
+    "activation-boundary-receipt-and-review-provenance-bindings",
+    "runner-preflight-resume-timeout-secret-and-publication-state-machine"
+  ],
+  "artifactKind": "c6-source-v3-simple-census-runtime-review-response",
+  "blockingFindings": [],
+  "dispatchSha256": "8c2129ed86653eec3e4e7251c3c4d49ef8601ce0e89258bc6aa85e20a5eb0696",
+  "inputSha256": "505eebb896fb7da9f6df7a83221c4ec5b0b3330f95235399f19e6112428e4636",
+  "requestSha256": "60399d2d5a1fcfbaa39d1ba613d7d04c95a6269fa17eeb7d14e63dc6db45d987",
+  "reviewerAgentName": "/root/c6_rf4_final_reaudit",
+  "reviewerTaskName": "c6_rf4_final_reaudit",
+  "schemaVersion": 1,
+  "verdict": "accepted",
+  "verificationCommands": [
+    "bun run typecheck",
+    "bun test tests/unit/codex-coding-effect.c6-source-v3-simple-*.test.ts"
+  ]
+}
