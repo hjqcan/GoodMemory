@@ -1176,6 +1176,24 @@ board's deliberate wording.
   reviewers' top-named failure mode, tested and passed. Artifacts:
   scratchpad `r12/`, variant root `/private/tmp/LOCOMO-paraphrase`.
 
+- **R11 calibration measurement (2026-07-26, paired adversarial replay,
+  zero failures across 6 runs): the provenance-wired coverage line is a
+  LARGE abstention win with protection held.** Instrument: retrieval
+  reports now record `retrievedTurnChannels` from the fusion trace
+  (`collectLocomoTurnChannels`); the reanswer's `--evidence-provenance`
+  threads them into the pack, activating the R2 `via` entry headers and
+  the R11 deterministic Evidence coverage line. Paired arms on the
+  71-row adversarial set (conv-26+30, gold "No information available",
+  strict abstention): scored-correct declines **3/71 → 14/71 (+15.5pt;
+  12 fixed vs 1 broken)** — the structural corroboration signal
+  (single-channel labeling) converts verbose hedges into scoreable
+  declines. KILL-rule protection check (conv-30 single_hop+temporal
+  answerable, n=70): 0.3714 → 0.3857 (+1.4pt — no trade of grounded
+  answers for abstention). Disposition: `--evidence-provenance` is the
+  recommended setting for pack-based answer runs; preset-default
+  promotion wants the remaining answerable families (multi_hop,
+  open_domain) replicated first. R11 is now built AND measured.
+
 ### Program status at close (2026-07-25)
 
 Every recommendation now has a resolved disposition:
@@ -1201,8 +1219,9 @@ Every recommendation now has a resolved disposition:
   cue-less deployments; recognition filter (increment 3) is the revisit
   condition. **R9.4** built (claim-slot sweep in the contradiction job); R9
   observation synthesis built 2026-07-26 (opt-in job + provider adapter,
-  measurement owed on the open_domain slice). **R11** increment 1
-  built (coverage line); full calibration unstarted. **R12.3** run 2026-07-26 (paraphrase probe: R6 anti-fragile, +28.4pt
+  measurement owed on the open_domain slice). **R11** built and measured 2026-07-26: provenance-wired packs
+  +15.5pt adversarial scored-abstention with answerable protection
+  positive — recommended for pack-based runs. **R12.3** run 2026-07-26 (paraphrase probe: R6 anti-fragile, +28.4pt
   under paraphrase); R12's other items are release-process practices
   (multi-seed and fixed confounds already policy in the Phase 74 gate).
   **R8 / R10** unstarted Stage E/F builds — untouched by this pass and explicitly out
