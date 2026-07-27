@@ -494,6 +494,9 @@ export interface LocomoQuestionRetrieval {
   noiseTurnIds: string[];
   questionId: string;
   retrievedTurnIds: string[];
+  // R11: fusion channel provenance per retrieved turn (present only on
+  // generalized-fusion runs where the trace surfaced the record).
+  retrievedTurnChannels?: Record<string, string[]>;
 }
 
 export interface LocomoCategoryRetrievalSummary {
@@ -532,6 +535,8 @@ export interface LocomoSmokeReport {
   // Chain-of-note reading mode: the evidence pack carries a per-entry note
   // protocol and only the extracted final answer is scored.
   chainOfNote?: boolean;
+  // R11: reanswer arm that threads recorded channel provenance into packs.
+  evidenceProvenance?: boolean;
   benchmark: "locomo";
   // Resolved case source: "synthetic-smoke" or the external cases.json path.
   benchmarkSource: string;
@@ -2309,6 +2314,68 @@ export function collectLocomoRetrievedTurnIds(recall: RecallResult): string[] {
   return [...ids];
 }
 
+// R11 provenance: map each retrieved turn to the fusion channels that
+// surfaced its record, from the recall's retrieval trace (present whenever
+// generalized fusion ran). Turns whose records were not fusion candidates
+// (baseline selectors) carry no channels — the pack must not mislabel them.
+export function collectLocomoTurnChannels(
+  recall: RecallResult,
+): Record<string, string[]> {
+  const trace = recall.metadata?.retrievalTrace;
+  const byMemoryId = new Map<string, Set<string>>();
+  for (const run of trace?.fusionRuns ?? []) {
+    for (const candidate of run.candidates) {
+      if (!candidate.selected) {
+        continue;
+      }
+      const channels = Object.keys(candidate.channels);
+      if (channels.length === 0) {
+        continue;
+      }
+      const existing = byMemoryId.get(candidate.sourceMemoryId);
+      if (existing) {
+        for (const channel of channels) existing.add(channel);
+      } else {
+        byMemoryId.set(candidate.sourceMemoryId, new Set(channels));
+      }
+    }
+  }
+  if (byMemoryId.size === 0) {
+    return {};
+  }
+  const turnChannels: Record<string, Set<string>> = {};
+  const recallRecord = recall as unknown as Record<string, unknown>;
+  for (const key of ["facts", "references", "episodes", "archives"]) {
+    const records = recallRecord[key];
+    if (!Array.isArray(records)) {
+      continue;
+    }
+    for (const record of records) {
+      if (!isRecord(record) || typeof record.id !== "string") {
+        continue;
+      }
+      const channels = byMemoryId.get(record.id);
+      if (!channels) {
+        continue;
+      }
+      for (const turnId of collectLocomoTurnIdsFromRecord(record)) {
+        const existing = turnChannels[turnId];
+        if (existing) {
+          for (const channel of channels) existing.add(channel);
+        } else {
+          turnChannels[turnId] = new Set(channels);
+        }
+      }
+    }
+  }
+  return Object.fromEntries(
+    Object.entries(turnChannels).map(([turnId, channels]) => [
+      turnId,
+      [...channels].sort(),
+    ]),
+  );
+}
+
 export function collectLocomoPacketTurnIds(
   recall: Pick<RecallResult, "packet">,
 ): string[] {
@@ -2329,6 +2396,7 @@ export function collectLocomoPacketTurnIds(
 export function scoreLocomoRetrieval(input: {
   question: LocomoQuestion;
   retrievedTurnIds: string[];
+  retrievedTurnChannels?: Record<string, string[]>;
   testCase: LocomoCase;
 }): LocomoQuestionRetrieval {
   const { question } = input;
@@ -2363,6 +2431,10 @@ export function scoreLocomoRetrieval(input: {
     noiseTurnIds,
     questionId: question.questionId,
     retrievedTurnIds: input.retrievedTurnIds,
+    ...(input.retrievedTurnChannels &&
+    Object.keys(input.retrievedTurnChannels).length > 0
+      ? { retrievedTurnChannels: input.retrievedTurnChannels }
+      : {}),
   };
 }
 
@@ -2402,20 +2474,27 @@ export function buildLocomoEvidencePackContext(input: {
   question: LocomoQuestion;
   retrievedTurnIds: readonly string[];
   testCase: LocomoCase;
+  // R11: per-turn fusion channel provenance; when present the pack renders
+  // entry `via ...` headers and the deterministic Evidence coverage line.
+  turnChannels?: Readonly<Record<string, readonly string[]>>;
 }): string {
   const retrieved = new Set(input.retrievedTurnIds);
   const turns: EvidenceTurn[] = input.testCase.turns
     .map((turn, index) => ({ index, turn }))
     .filter(({ turn }) => retrieved.has(turn.diaId))
-    .map(({ index, turn }) => ({
-      content: turn.content,
-      orderKey: index,
-      role: turn.speaker,
-      sourceId: turn.diaId,
-      timeAnchor: turn.date
-        ? formatLocomoHumanDateTime(turn.date)
-        : `session ${parseLocomoSession(turn.diaId)}`,
-    }));
+    .map(({ index, turn }) => {
+      const channels = input.turnChannels?.[turn.diaId];
+      return {
+        content: turn.content,
+        orderKey: index,
+        role: turn.speaker,
+        sourceId: turn.diaId,
+        timeAnchor: turn.date
+          ? formatLocomoHumanDateTime(turn.date)
+          : `session ${parseLocomoSession(turn.diaId)}`,
+        ...(channels && channels.length > 0 ? { channels } : {}),
+      };
+    });
   return buildAnswerEvidencePack({
     chainOfNote: input.chainOfNote,
     question: input.question.question,
@@ -3947,6 +4026,7 @@ export async function runLocomoSmoke(
         retrieval = scoreLocomoRetrieval({
           question,
           retrievedTurnIds,
+          retrievedTurnChannels: collectLocomoTurnChannels(recall),
           testCase,
         });
         if (answerGenerator) {

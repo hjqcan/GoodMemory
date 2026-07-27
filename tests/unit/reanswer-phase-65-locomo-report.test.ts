@@ -156,6 +156,7 @@ describe("phase-65 LoCoMo report reanswer runner", () => {
       allowCommonsenseResolution: true,
       answerProfile: "temporal-bounded-v3",
       chainOfNote: false,
+      evidenceProvenance: false,
       concurrency: 3,
       maxEvidenceTurns: 6,
       outputDir: "/reports/out",

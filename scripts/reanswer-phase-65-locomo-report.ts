@@ -62,6 +62,9 @@ export interface LocomoReanswerCliOptions {
   allowCommonsenseResolution: boolean;
   answerProfile?: LocomoReanswerAnswerProfile;
   chainOfNote?: boolean;
+  // R11: thread recorded fusion-channel provenance into the pack
+  // (entry via-headers + the deterministic Evidence coverage line).
+  evidenceProvenance?: boolean;
   concurrency?: number;
   goldEvidenceOnlyContext?: boolean;
   maxEvidenceTurns?: number;
@@ -192,6 +195,7 @@ export function parseLocomoReanswerCliOptions(
   }
   const answerProfile = parseLocomoReanswerAnswerProfile(argv);
   const chainOfNote = hasCliFlagStrict(argv, "--chain-of-note");
+const evidenceProvenance = hasCliFlagStrict(argv, "--evidence-provenance");
   if (chainOfNote && answerProfile === "temporal-bounded-v3") {
     // The union profile's answer system is a frozen artifact; layering the
     // note protocol onto it would silently change what that profile measures.
@@ -205,6 +209,7 @@ export function parseLocomoReanswerCliOptions(
       "--allow-commonsense-resolution",
     ),
     chainOfNote,
+  evidenceProvenance,
     concurrency: parseCliPositiveIntegerFlagStrict(argv, "--concurrency") ?? 1,
     goldEvidenceOnlyContext: hasCliFlagStrict(
       argv,
@@ -1396,6 +1401,9 @@ export async function runLocomoReportReanswer(
             question,
             retrievedTurnIds: contextTurnIds,
             testCase,
+            ...(options.evidenceProvenance && sourceResult.retrievedTurnChannels
+              ? { turnChannels: sourceResult.retrievedTurnChannels }
+              : {}),
           }),
           question,
           retrievedTurnIds: contextTurnIds,
@@ -1515,6 +1523,7 @@ export async function runLocomoReportReanswer(
       : "evidence-pack",
     answerEvidenceTurnLimit: options.maxEvidenceTurns ?? null,
     chainOfNote: options.chainOfNote === true,
+    evidenceProvenance: options.evidenceProvenance === true,
     answerEvaluation: "scored",
     answerSystem:
       deps.answerGenerator === undefined || options.answerProfile !== undefined
