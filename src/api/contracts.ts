@@ -201,6 +201,15 @@ export interface GoodMemoryConfig {
         subject?: string;
       }): Promise<string[]>;
     };
+    // R9 opt-in synthesizer for the observationSynthesis maintenance job:
+    // one compact observation memory per subject with enough active facts,
+    // stored with inferred provenance and member-id attribute pointers.
+    observationSynthesizer?: {
+      synthesize(input: {
+        contents: readonly string[];
+        subject: string;
+      }): Promise<string | null>;
+    };
     sessionStore?: SessionStore;
     /**
      * Required before terminal deletion when custom storage adapters are used.

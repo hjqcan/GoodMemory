@@ -48,6 +48,7 @@ export type MaintenanceJobName =
   | "consolidation"
   | "embeddingRepair"
   | "retrievalCues"
+  | "observationSynthesis"
   | "ttlExpiry";
 
 export interface MaintenanceRunnerConfig {
@@ -68,6 +69,17 @@ export interface MaintenanceRunnerConfig {
   // means the job keeps its fact-level polarity pass only.
   claimSlotSweep?: {
     sweepClaimSlots(scope: MemoryScope): Promise<number>;
+  };
+  // R9 opt-in synthesizer for the observationSynthesis job: one compact
+  // observation per subject with enough active facts. Absent means the job
+  // applies nothing.
+  observationSynthesis?: {
+    synthesize(input: {
+      contents: readonly string[];
+      subject: string;
+    }): Promise<string | null>;
+    maxSubjectsPerRun?: number;
+    minFactsPerSubject?: number;
   };
   // Opt-in generator for the retrievalCues job. Absent means the job applies
   // nothing.
@@ -870,6 +882,161 @@ async function runRetrievalCueBackfill(
   return { name: "retrievalCues", applied };
 }
 
+const OBSERVATION_SYNTHESIS_DEFAULT_MIN_FACTS = 4;
+const OBSERVATION_SYNTHESIS_DEFAULT_MAX_SUBJECTS_PER_RUN = 16;
+const OBSERVATION_SYNTHESIS_MAX_CONTENT_CHARS = 800;
+const OBSERVATION_OF_ATTRIBUTE = "observationOf";
+const OBSERVATION_MEMBER_IDS_ATTRIBUTE = "observationMemberIds";
+
+// R9: synthesize one compact observation memory per subject with enough
+// active facts. The observation is a regular fact with inferred provenance
+// and attribute pointers to its member fact ids, so it indexes into recall
+// like any memory and stays auditable/forgettable through existing paths.
+// Idempotent by member set: a stored observation whose member-id list still
+// matches is skipped; when the set changes, the stale observation is
+// replaced (demoted to inactive) and one fresh observation is written.
+async function runObservationSynthesis(
+  repositories: MaintenanceRepositoryPort,
+  synthesizer: MaintenanceRunnerConfig["observationSynthesis"],
+  vectorIndex: MaintenanceVectorPort | null,
+  scope: MemoryScope,
+  timestamp: string,
+): Promise<MaintenanceJobReport> {
+  if (!synthesizer) {
+    return { name: "observationSynthesis", applied: 0 };
+  }
+  const minFacts = Math.max(
+    2,
+    Math.floor(
+      synthesizer.minFactsPerSubject ?? OBSERVATION_SYNTHESIS_DEFAULT_MIN_FACTS,
+    ),
+  );
+  const maxSubjects = Math.max(
+    1,
+    Math.floor(
+      synthesizer.maxSubjectsPerRun ??
+        OBSERVATION_SYNTHESIS_DEFAULT_MAX_SUBJECTS_PER_RUN,
+    ),
+  );
+  const active = (await repositories.facts.listByScope(scope)).filter(
+    (fact) => fact.lifecycle === "active" && fact.isActive !== false,
+  );
+  const observations = new Map<string, FactMemory>();
+  for (const fact of active) {
+    const subject = fact.attributes?.[OBSERVATION_OF_ATTRIBUTE];
+    if (typeof subject === "string") {
+      observations.set(subject, fact);
+    }
+  }
+  const members = new Map<string, FactMemory[]>();
+  for (const fact of sortFactsForMaintenance(active)) {
+    if (typeof fact.attributes?.[OBSERVATION_OF_ATTRIBUTE] === "string") {
+      continue;
+    }
+    const subject = fact.subject?.trim();
+    if (!subject || subject === "unknown") {
+      continue;
+    }
+    const bucket = members.get(subject);
+    if (bucket) {
+      bucket.push(fact);
+    } else {
+      members.set(subject, [fact]);
+    }
+  }
+  let applied = 0;
+  let processed = 0;
+  for (const [subject, facts] of [...members.entries()].sort(([left], [right]) =>
+    left.localeCompare(right),
+  )) {
+    if (facts.length < minFacts) {
+      continue;
+    }
+    const memberIds = facts.map((fact) => fact.id).sort().join("\n");
+    const existing = observations.get(subject);
+    if (
+      existing &&
+      existing.attributes?.[OBSERVATION_MEMBER_IDS_ATTRIBUTE] === memberIds
+    ) {
+      continue;
+    }
+    if (processed >= maxSubjects) {
+      break;
+    }
+    processed += 1;
+    let content: string | null;
+    try {
+      content = await synthesizer.synthesize({
+        contents: facts.map((fact) => fact.content),
+        subject,
+      });
+    } catch (error) {
+      console.error(
+        "[goodmemory:maintenance] observation synthesis failed",
+        {
+          error: error instanceof Error ? error.message : String(error),
+          subject,
+        },
+      );
+      continue;
+    }
+    const trimmed = content?.trim().slice(
+      0,
+      OBSERVATION_SYNTHESIS_MAX_CONTENT_CHARS,
+    );
+    if (!trimmed) {
+      continue;
+    }
+    // Stable per-subject identity: replacement is a same-id overwrite, so a
+    // stale observation can never coexist with its successor. A legacy
+    // observation under a different id (if any) is demoted first.
+    const observationId = `observation:${scopeKeyForObservation(scope)}:${subject}`;
+    if (existing && existing.id !== observationId) {
+      await repositories.facts.add(
+        createFactMemory({
+          ...existing,
+          lifecycle: "inactive",
+          isActive: false,
+          demotedAt: timestamp,
+          demotionReason: "superseded_observation",
+          updatedAt: timestamp,
+        }),
+      );
+      await vectorIndex?.deleteFactEmbedding(existing.id);
+    }
+    const template = facts[0]!;
+    await repositories.facts.add(
+      createFactMemory({
+        id: observationId,
+        userId: template.userId,
+        tenantId: template.tenantId,
+        workspaceId: template.workspaceId,
+        agentId: template.agentId,
+        category: template.category,
+        content: trimmed,
+        subject,
+        confidence: 0.7,
+        importance: 0.7,
+        source: { method: "inferred", extractedAt: timestamp },
+        attributes: {
+          [OBSERVATION_OF_ATTRIBUTE]: subject,
+          [OBSERVATION_MEMBER_IDS_ATTRIBUTE]: memberIds,
+        },
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }),
+    );
+    applied += 1;
+  }
+  return { name: "observationSynthesis", applied };
+}
+
+function scopeKeyForObservation(scope: MemoryScope): string {
+  return [scope.userId, scope.tenantId, scope.workspaceId, scope.agentId]
+    .filter((segment): segment is string => Boolean(segment))
+    .join(":");
+}
+
 export function createMaintenanceRunner(config: MaintenanceRunnerConfig) {
   const language = config.language ?? createLanguageService();
   const now = config.now ?? (() => new Date().toISOString());
@@ -989,6 +1156,19 @@ export function createMaintenanceRunner(config: MaintenanceRunnerConfig) {
             await runRetrievalCueBackfill(
               config.repositories,
               config.retrievalCues,
+              scope,
+              timestamp,
+            ),
+          );
+          continue;
+        }
+
+        if (job === "observationSynthesis") {
+          reports.push(
+            await runObservationSynthesis(
+              config.repositories,
+              config.observationSynthesis,
+              vectorIndex,
               scope,
               timestamp,
             ),

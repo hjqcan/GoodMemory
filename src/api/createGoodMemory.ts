@@ -1232,6 +1232,7 @@ class GoodMemoryImpl implements GoodMemory {
       projectionRepair: projectionRuntime,
       projectionMigration: projectionRuntime,
       claimSlotSweep: projectionRuntime,
+      observationSynthesis: config.adapters?.observationSynthesizer,
       retrievalCues: config.adapters?.retrievalCueGenerator,
       now: () => this.now().toISOString(),
     });
