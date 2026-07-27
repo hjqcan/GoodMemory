@@ -1215,6 +1215,23 @@ board's deliberate wording.
   rerank-pool verification belongs to the Phase 74 workstream; the local
   cross-encoder (R10.3) stays an optional future build.
 
+- **R8 (2026-07-26) — built, opt-in, measurement owed.** Multi-hop
+  recall gains evidence-conditioned sub-query generation:
+  `adapters.followUpQueryGenerator` plugs into `iterativeRecall`'s
+  existing `expandQuery` seam — it reads hop-1 evidence and writes one
+  focused follow-up for the missing link (or null to stop), replacing
+  the lexical bridge expansion that was measured to hurt. Failure
+  tolerant (single pass preserved), bounded by the existing hop ceiling
+  and no-new-evidence stops, merged through the shared decomposition
+  merge path; `createProviderFollowUpQueryGenerator` adapts any
+  OpenAI-compatible model with a generic missing-link prompt. Off
+  without the adapter; rules-only unchanged. Measurement path: the R7
+  multi_hop queues (paired conv-26/30 with `--multihop` + a runner
+  adapter flag) — and per §R8's own note, compare against R6 cues first:
+  cues already moved multi_hop +13.1pt full-root, so R8 must beat the
+  cue baseline, not the naked one, and the R6×R7 stacking negative
+  warns that hop-2 candidates contest the same budget.
+
 ### Program status at close (2026-07-25)
 
 Every recommendation now has a resolved disposition:
@@ -1242,7 +1259,8 @@ Every recommendation now has a resolved disposition:
   observation synthesis built 2026-07-26 (opt-in job + provider adapter,
   measurement owed on the open_domain slice). **R11** built and measured 2026-07-26: provenance-wired packs
   +15.5pt adversarial scored-abstention with answerable protection
-  positive — recommended for pack-based runs. **R10** dispositioned 2026-07-26 (listwise verified; frozen LME gate
+  positive — recommended for pack-based runs. **R8** built 2026-07-26 (opt-in follow-up generation replacing lexical
+  bridging; measurement owed vs the cue baseline). **R10** dispositioned 2026-07-26 (listwise verified; frozen LME gate
   unreproducible — LoCoMo-profile-only reranking stands). **R12.3** run 2026-07-26 (paraphrase probe: R6 anti-fragile, +28.4pt
   under paraphrase); R12's other items are release-process practices
   (multi-seed and fixed confounds already policy in the Phase 74 gate).
