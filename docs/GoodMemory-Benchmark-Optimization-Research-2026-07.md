@@ -1161,6 +1161,21 @@ board's deliberate wording.
   budget-displacement risk applies (observations add index mass), so the
   paired run must watch the same protection families that caught R5/R7.
 
+- **R12.3 paraphrase probe on R6 (2026-07-26, free paired retrieval,
+  conv-26, zero failures): the cue mechanism is ANTI-FRAGILE to
+  paraphrase — the overfitting critique is refuted.** 194/199 questions
+  machine-paraphrased (meaning-preserving, temperature 0; evidence ids,
+  turns, and answers untouched). Baseline recall drops 0.2915 → 0.2337
+  (−5.8pt: raw lexical matching was partly fitted to original phrasing —
+  exactly what this probe detects), while the cues arm holds at 0.5176
+  (vs 0.5042-0.5101 on original phrasing), so the R6 delta GROWS to
+  **+28.39pt** under paraphrase (vs +21.3-22.0 original). Mechanism:
+  cues are multiple natural phrasings generated from stored content —
+  never from benchmark questions — so they span the paraphrase space
+  that single-phrasing token matching cannot. This is the external
+  reviewers' top-named failure mode, tested and passed. Artifacts:
+  scratchpad `r12/`, variant root `/private/tmp/LOCOMO-paraphrase`.
+
 ### Program status at close (2026-07-25)
 
 Every recommendation now has a resolved disposition:
@@ -1187,8 +1202,10 @@ Every recommendation now has a resolved disposition:
   condition. **R9.4** built (claim-slot sweep in the contradiction job); R9
   observation synthesis built 2026-07-26 (opt-in job + provider adapter,
   measurement owed on the open_domain slice). **R11** increment 1
-  built (coverage line); full calibration unstarted. **R8 / R10 / R12**
-  unstarted Stage E/F builds — untouched by this pass and explicitly out
+  built (coverage line); full calibration unstarted. **R12.3** run 2026-07-26 (paraphrase probe: R6 anti-fragile, +28.4pt
+  under paraphrase); R12's other items are release-process practices
+  (multi-seed and fixed confounds already policy in the Phase 74 gate).
+  **R8 / R10** unstarted Stage E/F builds — untouched by this pass and explicitly out
   of its scope; they are the remaining open build queue now that the R6
   production-stack question is settled.
 
