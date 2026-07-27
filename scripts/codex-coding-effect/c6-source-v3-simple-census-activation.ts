@@ -520,7 +520,10 @@ export async function requireC6SourceV3SimpleCensusRuntimeAuthorization(
     );
   }
   const activationCommitSha =
-    await locateActivationCommit(repositoryRoot);
+    await locateActivationCommit(
+      repositoryRoot,
+      receipt.reviewCommit.commitSha,
+    );
   const activationCommit = await readCommit(
     repositoryRoot,
     activationCommitSha,
@@ -1090,9 +1093,13 @@ async function assertPathAbsentAtCommit(
   }
 }
 
-async function locateActivationCommit(
+export async function locateActivationCommit(
   repositoryRoot: string,
+  reviewCommitShaInput: string,
 ): Promise<string> {
+  const reviewCommitSha = sha1Schema.parse(
+    reviewCommitShaInput,
+  );
   const commits = (
     await gitText(repositoryRoot, [
       "log",
@@ -1104,12 +1111,25 @@ async function locateActivationCommit(
   ).split("\n").filter((value) =>
     value.length > 0
   );
-  if (commits.length !== 1) {
+  const matching: string[] = [];
+  for (const commitShaInput of commits) {
+    const commit = await readCommit(
+      repositoryRoot,
+      sha1Schema.parse(commitShaInput),
+    );
+    if (
+      commit.parentCommitShas.length === 1 &&
+      commit.parentCommitShas[0] === reviewCommitSha
+    ) {
+      matching.push(commit.commitSha);
+    }
+  }
+  if (matching.length !== 1) {
     throw new Error(
-      "C6 source-v3-simple activation commit is not unique",
+      "C6 source-v3-simple activation commit is not unique for review",
     );
   }
-  return sha1Schema.parse(commits[0]);
+  return matching[0]!;
 }
 
 function nulSeparatedPaths(

@@ -1,19 +1,34 @@
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { dirname } from "node:path";
+import {
+  mkdir,
+  mkdtemp,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import {
+  dirname,
+  join,
+} from "node:path";
+import { promisify } from "node:util";
 
 import { describe, expect, it } from "bun:test";
 
 import {
   C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_BRIDGE_PATH,
   C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_BRIDGE_SOURCE,
+  C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_RECEIPT_PATH,
   C6_SOURCE_V3_SIMPLE_CENSUS_REQUIRED_REVIEW_CHECKS,
   C6_SOURCE_V3_SIMPLE_CENSUS_REQUIRED_REVIEW_COMMANDS,
   buildC6SourceV3SimpleCensusRuntimeAuthorization,
+  locateActivationCommit,
   parseC6SourceV3SimpleCensusActivationReceipt,
   requireC6SourceV3SimpleCensusRuntimeAuthorization,
   verifyC6SourceV3SimpleCensusReviewScope,
 } from "../../scripts/codex-coding-effect/c6-source-v3-simple-census-activation";
 
+const execFileAsync = promisify(execFile);
 const SHA1 = "1".repeat(40);
 const SHA256 = "2".repeat(64);
 
@@ -157,6 +172,87 @@ describe("C6 source-v3-simple runtime activation", () => {
         .runtimeSourceAggregateSha256,
     ).toBe(receipt.runtimeSourceAggregateSha256);
   });
+
+  it("locates the activation directly after its bound review across refreeze history", async () => {
+    const root = await mkdtemp(join(
+      tmpdir(),
+      "goodmemory-c6-activation-history-",
+    ));
+    try {
+      await git(root, ["init", "--quiet"]);
+      await git(root, [
+        "config",
+        "user.name",
+        "C6 Test",
+      ]);
+      await git(root, [
+        "config",
+        "user.email",
+        "c6@example.invalid",
+      ]);
+      await git(root, [
+        "commit",
+        "--allow-empty",
+        "-m",
+        "old review",
+      ]);
+      const receiptPath = join(
+        root,
+        C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_RECEIPT_PATH,
+      );
+      await mkdir(dirname(receiptPath), {
+        recursive: true,
+      });
+      await writeFile(receiptPath, "{}\n");
+      await git(root, [
+        "add",
+        C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_RECEIPT_PATH,
+      ]);
+      await git(root, ["commit", "-m", "old activation"]);
+      await rm(receiptPath);
+      await git(root, [
+        "add",
+        C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_RECEIPT_PATH,
+      ]);
+      await git(root, [
+        "commit",
+        "-m",
+        "invalidate old activation",
+      ]);
+      await git(root, [
+        "commit",
+        "--allow-empty",
+        "-m",
+        "new review",
+      ]);
+      const reviewCommitSha = await gitOutput(
+        root,
+        ["rev-parse", "HEAD"],
+      );
+      await writeFile(receiptPath, "{}\n");
+      await git(root, [
+        "add",
+        C6_SOURCE_V3_SIMPLE_CENSUS_ACTIVATION_RECEIPT_PATH,
+      ]);
+      await git(root, ["commit", "-m", "new activation"]);
+      const activationCommitSha = await gitOutput(
+        root,
+        ["rev-parse", "HEAD"],
+      );
+
+      expect(
+        await locateActivationCommit(
+          root,
+          reviewCommitSha,
+        ),
+      ).toBe(activationCommitSha);
+    } finally {
+      await rm(root, {
+        force: true,
+        recursive: true,
+      });
+    }
+  });
 });
 
 function activationReceipt() {
@@ -220,4 +316,24 @@ function activationReceipt() {
 
 function canonical(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
+}
+
+async function git(
+  repositoryRoot: string,
+  args: string[],
+): Promise<void> {
+  await execFileAsync("git", args, {
+    cwd: repositoryRoot,
+  });
+}
+
+async function gitOutput(
+  repositoryRoot: string,
+  args: string[],
+): Promise<string> {
+  const { stdout } = await execFileAsync("git", args, {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  });
+  return stdout.trim();
 }
