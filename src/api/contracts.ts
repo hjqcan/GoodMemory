@@ -201,6 +201,16 @@ export interface GoodMemoryConfig {
         subject?: string;
       }): Promise<string[]>;
     };
+    // R8 opt-in: evidence-conditioned multi-hop follow-up queries. When
+    // configured, multi-hop recall generates one focused sub-query from
+    // hop-1 evidence (null = stop) instead of lexical bridge expansion.
+    followUpQueryGenerator?: {
+      generate(input: {
+        evidence: readonly string[];
+        hop: number;
+        query: string;
+      }): Promise<string | null>;
+    };
     // R9 opt-in synthesizer for the observationSynthesis maintenance job:
     // one compact observation memory per subject with enough active facts,
     // stored with inferred provenance and member-id attribute pointers.

@@ -936,6 +936,11 @@ class GoodMemoryImpl implements GoodMemory {
   private readonly evolutionRuntime: ReturnType<typeof createEvolutionRuntime>;
   private readonly embeddingAdapter?: EmbeddingAdapter;
   private readonly reranker?: Reranker;
+  // R8: evidence-conditioned follow-up query generation for multi-hop recall
+  // (replaces lexical bridging when configured).
+  private readonly followUpQueryGenerator?: NonNullable<
+    GoodMemoryConfig["adapters"]
+  >["followUpQueryGenerator"];
   private readonly rerankerTarget?: RerankerExecutionTarget;
   private readonly language;
   private readonly now: () => Date;
@@ -1135,6 +1140,7 @@ class GoodMemoryImpl implements GoodMemory {
     this.revisionVectorIndex = repositories.vectorIndex;
     this.embeddingAdapter = embeddingAdapter;
     this.reranker = reranker;
+    this.followUpQueryGenerator = config.adapters?.followUpQueryGenerator;
     this.rerankerTarget = rerankerTarget;
     this.language = language;
     this.now = config.testing?.now ?? (() => new Date());
@@ -1392,6 +1398,10 @@ class GoodMemoryImpl implements GoodMemory {
         };
 
         if (queryMultiHopEnabled) {
+          // R8: an injected follow-up generator replaces lexical bridge
+          // expansion — it reads hop-1 evidence and writes one focused
+          // sub-query (or null to stop). Failures degrade to single-pass.
+          const followUpGenerator = this.followUpQueryGenerator;
           const outcome = await iterativeRecall({
             query: context.query,
             recall: singlePassRecall,
@@ -1404,6 +1414,27 @@ class GoodMemoryImpl implements GoodMemory {
                 "iterative_recall",
             ),
             options: {
+              ...(followUpGenerator
+                ? {
+                    expandQuery: async ({ originalQuery, facts, hop }) => {
+                      try {
+                        return await followUpGenerator.generate({
+                          evidence: facts
+                            .slice(0, 8)
+                            .map((fact) => fact.content.slice(0, 300)),
+                          hop,
+                          query: originalQuery,
+                        });
+                      } catch (error) {
+                        console.error(
+                          "[goodmemory:iterative-recall] follow-up generation failed; keeping single pass",
+                          error,
+                        );
+                        return null;
+                      }
+                    },
+                  }
+                : {}),
               analyzeBridgeText: (text) => {
                 const bridgeLanguage = resolveQueryLanguage(text);
                 return {
