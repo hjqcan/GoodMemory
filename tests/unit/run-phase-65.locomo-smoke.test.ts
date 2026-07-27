@@ -98,6 +98,7 @@ describe("phase-65 LoCoMo smoke adapter", () => {
       entityPageRank: false,
       episodicIngest: false,
       evidencePack: false,
+      followUpQueries: false,
       fusionMinRelativeStrength: undefined,
       limit: 2,
       live: false,
@@ -3001,6 +3002,16 @@ describe("phase-65 LoCoMo smoke adapter", () => {
     expect(() =>
       parseLocomoSmokeCliOptions(["--entity-page-rank"]),
     ).toThrow(/--generalized-fusion/);
+  });
+
+  it("parses --follow-up-queries and requires --multihop", () => {
+    expect(
+      parseLocomoSmokeCliOptions(["--multihop", "--follow-up-queries"])
+        .followUpQueries,
+    ).toBe(true);
+    expect(() =>
+      parseLocomoSmokeCliOptions(["--follow-up-queries"]),
+    ).toThrow(/--multihop/);
   });
 
   it("records --episodic-ingest in the report", async () => {

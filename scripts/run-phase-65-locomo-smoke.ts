@@ -39,6 +39,7 @@ import type {
 } from "../src/api/contracts";
 import { inspectGoodMemoryRuntime } from "../src/api/runtimeInfo";
 import { createProviderRetrievalCueGenerator } from "../src/provider/retrievalCueGenerator";
+import { createProviderFollowUpQueryGenerator } from "../src/provider/followUpQueryGenerator";
 import type { EmbeddingAdapter } from "../src/embedding/contracts";
 import { createLexicalCoverageReranker } from "../src/recall/reranker";
 import {
@@ -188,6 +189,8 @@ export interface LocomoSmokeCliOptions {
   // (remember.episodeSegmentTimeGapMs = 6h). Evidence-turn facts are
   // unchanged (probe: all 419 conv-26 diaIds retained).
   episodicIngest?: boolean;
+  // R8 opt-in (requires --multihop): live follow-up second-hop queries.
+  followUpQueries?: boolean;
   // Opt-in R6 write-time question expansion: after seeding each case, backfill
   // attributes.retrievalCues on every stored fact through the shipped
   // retrievalCues maintenance job (generation is prefetched concurrently, the
@@ -559,6 +562,8 @@ export interface LocomoSmokeReport {
   labelFreeIngest?: boolean;
   // R5 episodic-ingest arm (record == wire).
   episodicIngest?: boolean;
+  // R8 follow-up-query arm (record == wire).
+  followUpQueries?: boolean;
   // Selected case ids after --case-id filtering, in source order.
   caseIds: string[];
   caseCount: number;
@@ -713,6 +718,12 @@ export function parseLocomoSmokeCliOptions(
   if (entityPageRank && !hasCliFlagStrict(argv, "--generalized-fusion")) {
     throw new Error("--entity-page-rank requires --generalized-fusion");
   }
+  if (
+    hasCliFlagStrict(argv, "--follow-up-queries") &&
+    !hasCliFlagStrict(argv, "--multihop")
+  ) {
+    throw new Error("--follow-up-queries requires --multihop");
+  }
   const parsed = {
     benchmarkRoot:
       resolveCliFlagValueStrict(argv, "--benchmark-root") ??
@@ -755,6 +766,7 @@ export function parseLocomoSmokeCliOptions(
     decompose: hasCliFlagStrict(argv, "--decompose"),
     evidencePack: hasCliFlagStrict(argv, "--evidence-pack"),
     multiHop: hasCliFlagStrict(argv, "--multihop"),
+    followUpQueries: hasCliFlagStrict(argv, "--follow-up-queries"),
     providerEmbedding,
     providerEmbeddingRunTimeoutMs,
     providerEmbeddingTimeoutMs,
@@ -2753,6 +2765,13 @@ export function createLocomoSmokeMemory(
     fusionMinRelativeStrength?: number;
     entityPageRank?: boolean;
     episodicIngest?: boolean;
+    followUpQueryAdapter?: {
+      generate(input: {
+        evidence: readonly string[];
+        hop: number;
+        query: string;
+      }): Promise<string | null>;
+    };
   } = {},
 ): GoodMemory {
   assertProviderEmbeddingTimeoutsRequireProvider(options);
@@ -2770,6 +2789,9 @@ export function createLocomoSmokeMemory(
     assistedExtractor: createNoopAssistedExtractor(),
     ...(options.retrievalCueAdapter
       ? { retrievalCueGenerator: options.retrievalCueAdapter }
+      : {}),
+    ...(options.followUpQueryAdapter
+      ? { followUpQueryGenerator: options.followUpQueryAdapter }
       : {}),
   };
   if (options.providerEmbedding && options.bm25) {
@@ -3606,6 +3628,14 @@ export async function runLocomoSmoke(
         generalizedFusion: options.generalizedFusion,
         fusionMinRelativeStrength: options.fusionMinRelativeStrength,
         entityPageRank: options.entityPageRank,
+        episodicIngest: options.episodicIngest,
+        ...(options.followUpQueries
+          ? {
+              followUpQueryAdapter: createProviderFollowUpQueryGenerator({
+                model: resolveLiveModelConfig("GOODMEMORY_EVAL"),
+              }),
+            }
+          : {}),
         providerEmbedding: options.providerEmbedding,
         providerEmbeddingTimeoutMs: options.providerEmbeddingTimeoutMs,
         providerRerankingConfig,
@@ -4154,6 +4184,7 @@ export async function runLocomoSmoke(
       : "raw-turns",
     labelFreeIngest: options.labelFreeIngest ?? false,
     episodicIngest: options.episodicIngest ?? false,
+    followUpQueries: options.followUpQueries ?? false,
     license: UPSTREAM_LICENSE,
     mode: liveAnswer ? "live-answer" : "retrieval-only",
     ...(options.retrievalCues ? { retrievalCues: cueStats } : {}),
