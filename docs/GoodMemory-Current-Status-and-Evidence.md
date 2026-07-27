@@ -93,29 +93,33 @@ cutover, and rollback contracts.
   corpus-wide leakage core, independent review, baseline, authenticated raw
   and projected stage evidence, and final readiness are accepted. C5 internal
   pilot `run-c5-pilot-v16-20260721T150112Z` is accepted; C6-C7 remain open.
-  C6 now has a deterministic preflight/checkpoint implementation, but its
-  candidate manifest is not frozen and there is no finalized candidate
-  dataset, packaged-Linux host profile, flat-summary corpus, Linux execution,
-  or C6 result.
-  Source-v1, source-v2, and the 76,257-byte prior-178 plan remain historical,
-  reproducible, and non-authorizing; the v2 authorizer still throws and the
-  prior-178 runner still makes zero transport calls. The current recovery
-  protocol is the 3,992-byte `source-v3-simple` proposal, SHA-256
-  `5f989ab640c684dac287142edc9d2f9d8ee46099c082f63bb20f2a9546205132`.
-  It inherits only the exact source-v2 exclusions, input policy, 1,536-shard
-  repository universe, search protocol, and exact metadata predicate, then
-  requires a future complete two-pass source-row census receipt with count
-  tree, page/cursor terminal closure, normalization hashes, and row-set
-  hashes. It explicitly
-  removes salt, Quicknet/Ethereum, quota stopping, redraw, and adaptive source
-  expansion from the current dependency chain. Focused replay passes 3/3 with
-  15 assertions, its exact non-authorizing gate passes 1/1 with 11 assertions,
-  and typecheck passes. This is still only a proposal:
-  independent review and freeze-commit ancestry are absent, formal census and
-  the census receipt are absent, accepted episodes are zero, and no repository
-  node ID has been captured. Episode-edge construction, relationship
-  qualification, and the
-  independent power/precision allocation artifact remain separate open gates.
+  C6 has a deterministic preflight/checkpoint implementation, but its candidate
+  manifest is not frozen and there is no finalized candidate dataset,
+  packaged-Linux host profile, flat-summary corpus, Linux execution, or C6
+  result.
+  Source-v1, source-v2, the 76,257-byte prior-178 plan, and
+  `source-v3-simple` are historical, reproducible, and non-authorizing. The
+  source-v3 promotion chain validly granted census-entry authority, but the RF5
+  observation on Apple arm64 with Bun 1.3.11 encountered the affected runtime
+  liveness incident and was stopped. Its terminal disposition is
+  `abandoned-infeasible-observation` and `not-promotable`; the incomplete
+  runtime root is diagnostic evidence only. Commit `16bb256a` now rejects
+  arm64 Bun versions below 1.3.12 and exact-matches observed Bun and Node
+  versions to the frozen runtime. That guard does not repair, resume, or
+  promote the stopped observation.
+  The bounded successor
+  `goodmemory-c6-codex-coding-effect-source-v4-bounded-v1` is now a tracked,
+  separate protocol. It exact-replays the 4,497-request repository prefix,
+  binds all 9,277 committed attempts, derives all 3,578 PR-target exclusions,
+  and selects 16,384 repositories across eight languages. Its 269,523,056-byte
+  external snapshot has 12 exact assets plus an asset lock. The latest
+  materialization holds the historical v3 writer lock from before source scan
+  through a terminal exact source reread and atomic publication; it is
+  byte-identical to the earlier snapshot. Positive replay and controlled
+  disk/in-memory mutations pass. This establishes only
+  `selectionMaterialized: true`; independent review, freeze, live capture,
+  episode-edge construction, relationship qualification, and the independent
+  power/precision allocation artifact remain open gates.
   The adjacent-edge preflight is now executable: source-record v5 binds two
   chronology/ancestry receipts per three-stage episode, task-origin review v5
   requires one raw-gold-blind and run-outcome-blind semantic verdict per edge,
@@ -1104,15 +1108,14 @@ cutover, and rollback contracts.
   closure, actor, machine, and semantic qualification and accepted counts
   remain zero.
   The historical 841,425-byte source-v1 and 631,004-byte source-v2 proposals
-  retain their exact hashes and gates for audit, but neither is the current
-  capture protocol. `source-v3-simple` exact-binds source-v2 SHA-256
+  retain their exact hashes and gates for audit. The historical
+  `source-v3-simple` protocol exact-binds source-v2 SHA-256
   `822c458e792ee31f7738cae2526b05dfc3b63fcaac58e3f4f87dcd3803ccdba1`
   and the inherited source-frame projection SHA-256
   `efb76e58585c6c422020954783eee50e37290d94f78310bd88c176929fa85474`.
-  Every one of the 1,536 shards and every in-window merged PR must enter the
-  complete ledger; processing order cannot change membership. No formal
-  source-v3 census is permitted until its separate independent-review and
-  freeze-ancestry gate exists.
+  Its contract required every one of the 1,536 shards and every in-window
+  merged PR to enter the complete ledger; processing order could not change
+  membership.
   Two source-v3-specific prior-identity observations now cover 356 successful
   lookups each, with 356 unique request IDs per observation, zero cross-set
   intersection, and agreement on all 178 repository node IDs and alias-dedup
@@ -1127,24 +1130,77 @@ cutover, and rollback contracts.
   `3add09d0...1dec`; a fresh process replayed them without the original
   `/private/tmp` roots. This proves durable local byte closure, not external
   authenticity or independent network provenance.
-  The promotion gate implementation passes 11/11 with 45 assertions. It binds
+  The historical promotion gate implementation passes 11/11 with 45
+  assertions. It binds
   committed protocol/review/portable bytes, the promotion CLI and verifier
   sources, dependency locks, raw Git object view, strict freeze-to-activation
   ancestry, generation HEAD, and F/I/base/HEAD/runtime equality. Its exact
   activation entrypoint is dynamically imported and verifies the published
-  receipt, but grants only permission to enter census. The one-parent freeze
+  receipt; at promotion time it granted only permission to enter census. The
+  one-parent freeze
   is `ba4cee1e668adff0354b23dd743ae44e23e42af9`; the strict descendant
   activation and promotion base is
   `cc42f0bbd673b6595a6c82b3c5cb995a8efbe826`. The 12,652-byte receipt at
   `fixtures/codex-coding-effect/c6-source-pool/provenance/source-v3-simple/promotion/promotion-receipt-v1.json`
   has SHA-256
   `a0892b9c87cce89b23604a43b02d06ad1344fe010afd4894a5f6c387c7d43e3b`.
-  It verifies `priorRepositoryNodeIdExclusionComplete: true`,
+  As a historical promotion snapshot it verifies
+  `priorRepositoryNodeIdExclusionComplete: true`,
   `sourceV3SimpleFrozen: true`, and `formalCensusPermitted: true`, while
   retaining `candidateManifestFrozen: false`,
   `candidateSelectionPermitted: false`, and `codexRunReady: false`.
-  No source-row census, Search capture, candidate selection, or Codex run
-  exists yet.
+  The later RF5 observation on Apple arm64 with Bun 1.3.11 encountered the
+  affected runtime liveness incident and was stopped with terminal disposition
+  `abandoned-infeasible-observation` and `not-promotable`. Commit `16bb256a`
+  rejects arm64 Bun below 1.3.12 and exact-matches observed and frozen Bun/Node
+  versions; this is a runtime safety and provenance guard, not new promotion
+  authority.
+  The stopped observation contains a complete repository-phase prefix with
+  4,497 logical requests, 191,612 repository rows, and 191,604 rows after the
+  historical prior exclusions. The bounded successor
+  `goodmemory-c6-codex-coding-effect-source-v4-bounded-v1` now exact-binds that
+  prefix plus all 9,277 committed attempts, derives 3,578 PR-targeted
+  repository exclusions, and deterministically selects 2,048 repositories for
+  each of eight languages (16,384 total) without replacement. The external
+  canonical selection snapshot contains 12 assets plus `asset-lock.json`,
+  occupies 269,523,056 bytes, and has asset-lock SHA-256
+  `73ccd3d157a1ea3e211c72be80f88c4891d08909226e95cf1011e65e37c3c3a9`.
+  Its prefix, pilot-exclusion, and selection receipt SHA-256 values are
+  `fe6791ea6d94ae35ac706c49867a5b54a4bcf5289f2c88f3941611ad771851e6`,
+  `20a80aedbd4492b1e8e83d5d3fda8ca9fc82b3b230b79666b68ef141a3523084`,
+  and `733bd7e3473164d48a4419fcd59d66f33b6c198807935cae0d6ea9a3a2704305`.
+  The source transaction takes the same writer lock used by the historical v3
+  runner before scanning, holds it while writing, replays the complete exact
+  v3 source again immediately before publication, and releases it only after
+  atomic rename and verified reload. The resulting v1/v2 snapshot directories
+  are byte-identical. Every committed logical completion is also replayed
+  through the original v3 evidence verifier, including attempt, response,
+  retry-decision, and projected-result identity; response values are verified
+  for integrity but are not selector inputs. A verified in-memory snapshot is
+  revalidated against its receipt chain, manifest, asset lock, and byte count
+  whenever a capture plan is built. The initially loaded asset identity is also
+  retained in a private `WeakMap`, and the returned ordinary object/array graph
+  is deeply frozen, so self-consistent hash rewrites, cohort writes, copied
+  brands, and accessor substitutions cannot create a second identity between
+  verification and plan construction. The transport collector is not an
+  exported API. The focused v4/Bun unit slice passes 29/29 with 135 assertions.
+  The pinned Bun 1.3.12 snapshot gate passes 5/5 with 21 assertions, including
+  request substitution, manifest drift, extra-file mutations after rebuilding
+  the asset lock, same-language in-memory cohort substitution, asset-identity
+  rewrites, and accessor substitution. The runtime liveness gate separately
+  exact-binds Bun binary SHA-256
+  `39e644cea4e6db24a3af36013695655d6f789b4b98f1f13bacb882ac6e5c3c18`
+  and executing child-source SHA-256
+  `019cde93809a7cf052b33a965d562a7b8466726766dbf28ccfa8d1ba66b9ce90`,
+  uses per-seed challenge-bound canonical records capped at 16 KiB, ignores
+  child output streams, preserves partial operation counts in a failed result,
+  and imposes a bounded post-kill reap. It passes 1/1
+  with 18 assertions across three seeds, 100,000 work items and 700,000
+  filesystem promise operations per seed. This proves
+  `selectionMaterialized: true` only. Independent review, freeze, and live
+  capture authority remain false. No frozen
+  391-episode dataset, authenticated summary corpus, 10,557-call execution,
+  frozen statistical report, C7 gate, or Codex run exists.
   After synchronizing the frozen controlled-mutation asset reader and
   rematerializing its receipt in the exact pinned Linux/amd64 image, the
   canonical repository suite passes 5938 tests with 17 skips, 0 failures,

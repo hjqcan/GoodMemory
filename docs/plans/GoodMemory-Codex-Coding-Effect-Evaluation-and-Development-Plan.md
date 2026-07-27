@@ -3700,7 +3700,7 @@ repository-cap-4 diagnostic is at most 145 (93 + 30 + 22), leaving raw and
 capped shortfalls of 222 and 246 before semantic/evaluator attrition. The
 1334 deep pretargets cannot be counted toward the 391 floor.
 
-##### C6-T001c: source-v3-simple freezes one finite frame and runs a complete census
+##### C6-T001c historical: source-v3-simple promotion and stopped observation
 
 The Wave1/Wave2 supply data rejects a third copy of the current sampling
 shape. Wave1 produced 34 exact pre-actor rows from 692 deep pretargets;
@@ -3754,7 +3754,7 @@ for the paired treatment contrast. What matters before any Codex outcome is
 observed is a finite source frame, complete enumeration, outcome-blind
 qualification, immutable allocation, and no redraw.
 
-The clean recovery protocol is `source-v3-simple`. It exact-references the
+The historical recovery protocol was `source-v3-simple`. It exact-references the
 existing 631,004-byte source-v2 artifact but inherits only its `exclusions`,
 `inputPolicy`, `repositoryUniverse`, and `searchProtocol` sections, plus the
 exact 9,105-byte pretarget predicate already referenced by source-v2. Its
@@ -3762,7 +3762,7 @@ exact 9,105-byte pretarget predicate already referenced by source-v2. Its
 `efb76e58585c6c422020954783eee50e37290d94f78310bd88c176929fa85474`.
 The source-v2 activation and anti-grinding sections are explicitly
 superseded; Quicknet, Ethereum, caller salt/nonce/round, quota stopping, and
-redraw are not inputs to the current protocol.
+redraw were not inputs to that protocol.
 
 The 3,992-byte canonical proposal is materialized at
 `fixtures/codex-coding-effect/c6-source-pool/swe-bench-live-multilang-608f7ae9.source-v3-simple-protocol-v1.json`
@@ -3772,8 +3772,8 @@ with SHA-256
 strictly parses canonical JSON, and rejects source drift and unknown
 authorization fields. Its focused replay passes 3/3 with 15 assertions, its
 exact non-authorizing quality gate passes 1/1 with 11 assertions, and
-typecheck passes. This is a protocol proposal, not a capture receipt or
-preregistration.
+typecheck passes. At creation this was a protocol proposal, not a capture
+receipt or preregistration; it is now a historical artifact.
 
 The protocol requires:
 
@@ -3818,12 +3818,13 @@ The frozen proposal deliberately reports `acceptedEpisodeCount: 0`,
 `formalCensusPermitted: false`, `sourceV3SimpleFrozen: false`,
 `candidateManifestFrozen: false`, and `codexRunReady: false`; those fields are
 historical proposal state and are not rewritten. The separate asset-bound
-review and freeze-ancestry gate is now closed by freeze commit
+review and freeze-ancestry gate was later closed by freeze commit
 `ba4cee1e668adff0354b23dd743ae44e23e42af9`, strict descendant
 activation/base `cc42f0bbd673b6595a6c82b3c5cb995a8efbe826`, and the promotion
-receipt described below. Current authority therefore permits only formal
-source-row census. No repository/PR row set or completed source-v3 census
-exists yet.
+receipt described below. That promotion validly granted census-entry authority
+at the time, but the later RF5 runtime observation was stopped with terminal
+disposition `abandoned-infeasible-observation` and `not-promotable`. It cannot
+be resumed, topped up, or reinterpreted as a completed source-v3 census.
 
 The original source-universe v1 proposal is materialized at
 `fixtures/codex-coding-effect/c6-source-pool/swe-bench-live-multilang-608f7ae9.wave3-source-universe-v1.json`.
@@ -3876,7 +3877,7 @@ It freezes 178 requested repositories into complete pass A then pass B, for
 historical source-v2 formal capture/qualification paths remain permanently
 unavailable and receive no compatibility authorization path.
 
-The current `source-v3-simple` evidence path is separate from those historical
+The historical `source-v3-simple` evidence path is separate from those
 source-v2 authorizers. Two operator-observed executions each completed 356
 successful logical lookups with no retry. Capture A and B each contain 356
 unique final request IDs with zero cross-capture intersection and resolve the
@@ -3923,7 +3924,7 @@ legacy atomic hard-link publication protocol remains available to existing
 materializers. The asset-lock plus portable slice passes 10/10 tests with
 33 assertions and typecheck.
 
-The source-v3 promotion gate is implemented and passes 11/11 focused tests
+The historical source-v3 promotion gate is implemented and passes 11/11 focused tests
 with 45 assertions in isolated Git repositories. It requires a one-parent
 freeze commit, a strict descendant containing the exact pre-registered census
 authorization entrypoint, and an explicit promotion base that equals HEAD at
@@ -3935,8 +3936,9 @@ overrides, rejects legacy grafts, proves freeze-time path absence with
 the promotion CLI, verifier sources, `package.json`, and `bun.lock`. The
 canonical activation module is dynamically imported in the positive test and
 must verify the exact promotion receipt before returning census-entry
-authority. This authorizes entry into formal source-row census only; it is not
-a census result, full census runner, candidate allocation, or Codex-run proof.
+authority. This historically authorized entry into formal source-row census
+only; it was not a census result, full census runner, candidate allocation, or
+Codex-run proof.
 
 The stable pre-freeze checkpoint also rematerializes the controlled-mutation
 receipt in its exact pinned Linux/amd64 image after synchronizing the frozen
@@ -3954,11 +3956,11 @@ receipt is
 at SHA-256
 `a0892b9c87cce89b23604a43b02d06ad1344fe010afd4894a5f6c387c7d43e3b`.
 Exact rebuild verification closes prior node-ID exclusion, freezes
-source-v3-simple, and permits formal source-row census. It deliberately keeps
-external authenticity, independent capture-process proof, candidate
-selection, candidate-manifest freeze, and Codex readiness false. No census
-rows, Search capture, accepted episodes, candidate allocation, or
-coding-effect result exists yet.
+source-v3-simple, and proves that historical promotion boundary. It deliberately
+keeps external authenticity, independent capture-process proof, candidate
+selection, candidate-manifest freeze, and Codex readiness false. It does not
+override the later terminal observation disposition or grant current authority
+to resume or promote v3.
 
 The earlier Rekor/Quicknet/Ethereum provider analysis remains useful only as
 the explanation for why source-v2 never authorized capture. It showed that a
@@ -3966,18 +3968,74 @@ locally chosen salt, best-effort Rekor lookup, hidden timestamp, or freshly
 generated nonce-zero account cannot prove a unique first draw. That
 anti-grinding design is now a historical, superseded blocked design, not a
 current T001 dependency. No provider receipt, BLS verifier, Ethereum
-transaction, or user-supplied key is required by `source-v3-simple`, because
-complete census means processing order cannot change cohort membership.
+transaction, or user-supplied key was required by `source-v3-simple`, because
+complete census meant processing order could not change cohort membership.
 
-Source-v1, source-v2, and the prior-178 plan remain reproducible,
-non-authorizing historical artifacts. Their exact hashes and fail-closed
-behavior are not rewritten as current evidence, and they receive no
-compatibility authorization path. The current next gate is narrowly the exact
-`source-v3-simple` independent review plus freeze-commit ancestry, followed by
-the complete census. Existing pagination, asset-lock, alias/node-ID
-normalization, policy-neutral actor capture, and structural-review primitives
-may be reused; the activation, external-witness, quota-stop, and redraw stack
-must not be reused.
+Source-v1, source-v2, the prior-178 plan, and source-v3-simple remain
+reproducible, non-authorizing historical artifacts. Their exact hashes and
+fail-closed behavior are not rewritten as current evidence, and they receive no
+compatibility authorization path. The v3 RF5 observation ran on Apple arm64
+with Bun 1.3.11, encountered the affected runtime liveness incident, and is
+terminally `abandoned-infeasible-observation` and `not-promotable`. Commit
+`16bb256a` now rejects arm64 Bun below 1.3.12 and exact-matches observed Bun and
+Node versions to the frozen runtime; that guard does not repair, resume, or
+promote the stopped observation.
+
+The observation contains a complete repository-phase prefix of 4,497 logical
+requests, 191,612 repository rows, and 191,604 rows after the historical
+prior-repository exclusions. The successor evaluation ID
+`goodmemory-c6-codex-coding-effect-source-v4-bounded-v1` is now implemented as
+a separate bounded protocol, not a continuation of v3. Its formal loader pins
+the exact v3 frame/input/runtime identities, all 9,277 committed attempts, the
+4,497-completion prefix root, normalized rows/decisions/leaf closures, and all
+3,578 distinct repositories appearing in every committed v3 PR request,
+including retry and in-flight evidence. The selector consumes only
+`repositoryNodeId` and `sourceSplit`, ranks with the pre-pilot runtime
+authorization SHA-256, and selects 2,048 repositories per language without
+replacement or top-up.
+
+One canonical external selection snapshot has been materialized and then
+re-materialized under the pinned Bun 1.3.12 (`700fc117...`) / Node 24.3.0 /
+Apple arm64 runtime. The two published directories are byte-identical. It
+contains 12 exact assets plus `asset-lock.json`, totals 269,523,056 bytes, and
+has asset-lock SHA-256
+`73ccd3d157a1ea3e211c72be80f88c4891d08909226e95cf1011e65e37c3c3a9`.
+The prefix, pilot-exclusion, selection, and selected-row SHA-256 values are
+`fe6791ea...51e6`, `20a80aed...3084`, `733bd7e3...4305`, and
+`a7e858c8...efaf`. Parsing does not grant authority: the loader rebuilds and
+verifies each branded receipt, checks an exact 12-file set, reloads the asset
+lock at the end, and rejects request substitution, frozen-manifest drift, or
+extra hidden files even after the attacker rebuilds the asset lock. The
+materializer takes the same writer lock used by the historical v3 runner before
+its first source scan, holds it through temporary-asset writing, performs a
+second complete exact v3 source replay immediately before publication, and
+releases it only after atomic rename and verified reload. The
+historical-request scanner validates each logical completion through the
+original v3 evidence verifier, including attempt, response, retry-decision,
+projected-result, and terminal `stop-success` identity, rather than accepting a
+schema-valid self-consistent completion. Those response values are read only
+to validate evidence integrity and are not selector inputs. A verified snapshot
+is revalidated against its receipt chain, manifest, asset lock, and byte count
+on every capture-plan build, so post-verification same-language cohort mutation
+fails closed. The loader retains the first asset identity in a private
+`WeakMap` and deeply freezes its returned ordinary object/array graph, closing
+self-consistent identity rewrites and getter-based verification/use TOCTOU.
+The transport collector is module-private; there is no exported live transport
+entrypoint. The focused v4/Bun unit slice passes 29/29 with 135 assertions; the
+pinned Bun 1.3.12 real snapshot gate passes 5/5 with 21 assertions. The
+separate liveness protocol exact-binds the Bun executable and copied child
+source hashes, replaces stdout claims with per-seed challenge-bound canonical
+records capped at 16 KiB, preserves partial operation counts in failed results,
+and bounds post-kill reap. Its real pinned gate passes 1/1 with 18 assertions
+over three seeds, 100,000 work items and 700,000 filesystem promise operations
+per seed.
+
+This is a materialized selection input, not a reviewed/frozen source capture.
+Its manifest deliberately keeps `independentReviewAccepted: false`,
+`liveCaptureAuthorized: false`, `candidateManifestFrozen: false`, and
+`codexRunReady: false`. A separately provenance-bound independent review and
+freeze must authorize the one live capture. The historical v3 activation
+authority remains unusable.
 
 None of those rows is a three-stage memory episode by itself. Before an
 upstream row can enter C6, intake must pin dataset revision/path/file hash/row
@@ -4036,10 +4094,11 @@ rejected by the end-to-end readiness path.
 
 This checkpoint does not authenticate GitHub or Git object provenance.
 Self-hashes prove internal byte closure, not that the bytes came from the
-claimed repository. Formal source-v3 HTTP/census capture, repository
-ref/object reachability, actual gold-blind per-edge review, evaluator replay,
-and final allocation remain required. Therefore accepted episodes remain
-zero, `candidateManifestFrozen: false`, and `codexRunReady: false`.
+claimed repository. No completed source-v3 HTTP/census capture exists; the
+planned v4 capture, repository ref/object reachability, actual gold-blind
+per-edge review, evaluator replay, and final allocation remain open. Therefore
+accepted episodes remain zero, `candidateManifestFrozen: false`, and
+`codexRunReady: false`.
 
 #### C6-T002: add flat-summary arm
 
@@ -4165,6 +4224,11 @@ therefore keeps
 promotion boundary false. `flatSummaryHookProjectionStructurallyBound: true`
 is only a local structural canary result, not C6-T002/C6-T003 completion or
 coding-effect evidence.
+
+Current readiness remains pre-execution: there is no frozen real 391-episode
+dataset, authenticated summary corpus, 10,557-call execution, frozen
+statistical report, or C7 gate. The tested statistical primitive does not
+change that boundary.
 
 #### C6-T004: execute three seeds
 
