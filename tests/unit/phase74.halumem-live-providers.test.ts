@@ -21,6 +21,7 @@ import type {
 } from "../../src/eval/phase74HaluMemProtectionVerifier";
 import {
   buildPhase74HaluMemUpdateJudgePrompt,
+  PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE,
   scorePhase74HaluMemUpdateDecision,
 } from "../../src/eval/phase74HaluMemProtectionVerifier";
 import type {
@@ -218,6 +219,9 @@ describe("Phase 74 HaluMem live provider wiring", () => {
       id: expect.stringContaining("eval/eval_tools.py"),
       sha256: "0c08e5ecb8c93945bafc4bd0336bd6c9756b40d175f442ce44aca4a43169ee3b",
     });
+    expect(configuration.update.updateEvaluator).not.toBe(
+      PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE,
+    );
 
     expect(hashPhase74ProtectionValue({
       ...baselinePrivacy,

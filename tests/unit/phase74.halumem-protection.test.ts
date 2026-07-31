@@ -42,6 +42,7 @@ import {
   PHASE74_HALUMEM_UPDATE_PROTECTION_VERIFIER_ID,
   PHASE74_HALUMEM_UPDATE_SUITE,
   PHASE74_HALUMEM_UPSTREAM,
+  assertPhase74HaluMemConfiguration,
   buildPhase74HaluMemE4RunIdentity,
   buildPhase74HaluMemSourceMessageId,
   buildPhase74HaluMemPrivacyPopulation,
@@ -474,6 +475,23 @@ async function rewriteRawArtifact(input: {
 }
 
 describe("Phase 74 HaluMem protection adapters", () => {
+  it("reports the invalid HaluMem descriptor field", () => {
+    expect(() =>
+      assertPhase74HaluMemConfiguration(
+        configuration({
+          updateEvaluator: {
+            id: " halumem-upstream-evaluation.py ",
+            sha256: "not-a-sha",
+          },
+        }),
+      )
+    ).toThrow(
+      "Phase 74 HaluMem update evaluator identity is invalid: " +
+        "id must not have leading or trailing whitespace; " +
+        "sha256 must be 64 lowercase hex characters.",
+    );
+  });
+
   it("derives update correctness only from the strict raw HaluMem category", () => {
     const usage = {
       cacheCreationInputTokens: 0,

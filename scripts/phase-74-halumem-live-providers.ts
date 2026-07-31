@@ -1222,7 +1222,7 @@ export function buildPhase74HaluMemLiveConfigurations(
       ...common,
       baselinePipeline: updateBaselinePipeline,
       candidatePipeline: updateCandidatePipeline,
-      updateEvaluator: PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE,
+      updateEvaluator: { ...PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE },
     },
   };
 }

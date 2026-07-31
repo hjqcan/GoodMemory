@@ -36,6 +36,7 @@ import {
 import {
   parseC6Wave3PriorRepositoryIdentityPlan,
 } from "../../scripts/codex-coding-effect/c6-wave3-prior-repository-identity-plan";
+import { ciTestTimeout } from "../support/ci-timeout";
 
 const SOURCE_ROOT = join(
   process.cwd(),
@@ -60,7 +61,7 @@ const TOKEN = "github_pat_C6_REPLAY_TEST_SENTINEL_947301";
 const RESET_AT = "2026-07-25T13:00:00Z";
 const RESET_EPOCH = String(Date.parse(RESET_AT) / 1_000);
 const temporaryRoots: string[] = [];
-const EVIDENCE_TEST_TIMEOUT_MILLISECONDS = 120_000;
+const EVIDENCE_TEST_TIMEOUT_MILLISECONDS = ciTestTimeout(120_000);
 
 afterEach(async () => {
   await Promise.all(
@@ -269,7 +270,7 @@ describe("C6 source-v3-simple prior identity observation replay receipt", () => 
     expect(
       receipt.captures.captureB.uniqueNodeIdCount,
     ).toBe(177);
-  }, 30_000);
+  }, EVIDENCE_TEST_TIMEOUT_MILLISECONDS);
 });
 
 async function materializeBundle(

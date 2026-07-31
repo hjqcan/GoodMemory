@@ -72,10 +72,10 @@ export const PHASE74_HALUMEM_UPDATE_DECISION_PROTOCOL =
   "halumem-upstream-per-item-update-v1";
 export const PHASE74_HALUMEM_UPDATE_PROMOTION_ROLE =
   "gold-aware-safety-protection-only";
-export const PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE = {
+export const PHASE74_HALUMEM_UPDATE_EVALUATOR_SOURCE = Object.freeze({
   id: `github:MemTensor/HaluMem@${PHASE74_HALUMEM_UPSTREAM.codeCommit}:eval/eval_tools.py`,
   sha256: "0c08e5ecb8c93945bafc4bd0336bd6c9756b40d175f442ce44aca4a43169ee3b",
-} as const satisfies Phase74ProtectionIdentityDescriptor;
+} as const satisfies Phase74ProtectionIdentityDescriptor);
 // The upstream evaluator sends the rendered rubric as one user message.
 export const PHASE74_HALUMEM_UPDATE_JUDGE_SYSTEM_PROMPT = "";
 export const PHASE74_HALUMEM_UPDATE_JUDGE_PROMPT_TEMPLATE = `Your task is to **evaluate the update accuracy** of an AI memory system.
@@ -1080,11 +1080,19 @@ function assertDescriptor(
   value: Phase74ProtectionIdentityDescriptor,
   label: string,
 ): void {
-  if (
-    value.id === "" || value.id.trim() !== value.id ||
-    !/^[a-f0-9]{64}$/u.test(value.sha256)
-  ) {
-    throw new Error(`Phase 74 HaluMem ${label} identity is invalid.`);
+  const problems: string[] = [];
+  if (typeof value.id !== "string" || value.id === "") {
+    problems.push("id must be a non-empty string");
+  } else if (value.id.trim() !== value.id) {
+    problems.push("id must not have leading or trailing whitespace");
+  }
+  if (typeof value.sha256 !== "string" || !/^[a-f0-9]{64}$/u.test(value.sha256)) {
+    problems.push("sha256 must be 64 lowercase hex characters");
+  }
+  if (problems.length > 0) {
+    throw new Error(
+      `Phase 74 HaluMem ${label} identity is invalid: ${problems.join("; ")}.`,
+    );
   }
 }
 
