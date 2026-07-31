@@ -78,9 +78,7 @@ async function main(): Promise<void> {
     stderr: "inherit",
   });
   const exitCode = await child.exited;
-  if (exitCode !== 0) {
-    process.exit(exitCode);
-  }
+  process.exit(exitCode);
 }
 
 if (import.meta.main) {
