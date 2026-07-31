@@ -360,6 +360,13 @@ describe("v0.7 release readiness", () => {
     const summarized = summarizeCommandFailureOutput([
       "bun test v1.3.14",
       "(pass) unrelated > succeeds [1.00ms]",
+      "error: expected noisy diagnostic from a passing test",
+      "(pass) noisy test still succeeds [2.00ms]",
+      "(pass) spacer one [1.00ms]",
+      "(pass) spacer two [1.00ms]",
+      "(pass) spacer three [1.00ms]",
+      "(pass) spacer four [1.00ms]",
+      "(pass) spacer five [1.00ms]",
       "tests/unit/example.test.ts:",
       "(fail) important suite > exposes the real failure [5010.00ms]",
       "^ this test timed out",
@@ -371,6 +378,7 @@ describe("v0.7 release readiness", () => {
 
     expect(summarized).toContain("(fail) important suite");
     expect(summarized).toContain("^ this test timed out");
+    expect(summarized).not.toContain("expected noisy diagnostic");
     expect(summarized.trimStart().startsWith("(skip)")).toBe(false);
   });
 });

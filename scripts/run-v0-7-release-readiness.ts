@@ -350,6 +350,7 @@ function runCommand(
   command: string,
   args: readonly string[],
   cwd: string,
+  options: { logGroupName?: string } = {},
 ): Promise<CommandOutcome> {
   return new Promise((resolve) => {
     const startedAt = performance.now();
@@ -359,14 +360,35 @@ function runCommand(
     });
     let stdout = "";
     let stderr = "";
+    let groupClosed = false;
+    const closeGroup = () => {
+      if (options.logGroupName === undefined || groupClosed) {
+        return;
+      }
+      groupClosed = true;
+      process.stdout.write("::endgroup::\n");
+    };
+
+    if (options.logGroupName !== undefined) {
+      process.stdout.write(`::group::${options.logGroupName}\n`);
+    }
 
     child.stdout?.on("data", (chunk: Buffer) => {
-      stdout += chunk.toString();
+      const text = chunk.toString();
+      stdout += text;
+      if (options.logGroupName !== undefined) {
+        process.stdout.write(text);
+      }
     });
     child.stderr?.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString();
+      const text = chunk.toString();
+      stderr += text;
+      if (options.logGroupName !== undefined) {
+        process.stderr.write(text);
+      }
     });
     child.on("error", (error: Error) => {
+      closeGroup();
       resolve({
         code: null,
         durationMs: Math.round(performance.now() - startedAt),
@@ -375,6 +397,7 @@ function runCommand(
       });
     });
     child.on("close", (code: number | null) => {
+      closeGroup();
       resolve({
         code,
         durationMs: Math.round(performance.now() - startedAt),
@@ -433,9 +456,8 @@ export function summarizeCommandFailureOutput(output: string): string {
   const signalPatterns = [
     /^\(fail\)/u,
     /\^ this test timed out/u,
-    /^error:/iu,
     /^FAIL\b/u,
-    /Process completed with exit code/u,
+    /^\s*[1-9]\d* fail\b/u,
   ];
 
   for (const [index, line] of lines.entries()) {
@@ -897,7 +919,9 @@ export async function runV07ReleaseReadiness(
       }
     }
 
-    const outcome = await runCommand(command.command, command.args, repoRoot);
+    const outcome = await runCommand(command.command, command.args, repoRoot, {
+      logGroupName: `${details.title}: ${command.command} ${command.args.join(" ")}`,
+    });
     checks.push(
       commandCheck({
         id: command.id,
