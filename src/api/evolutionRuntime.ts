@@ -137,42 +137,53 @@ async function applyRecallTouchHelpers(
       .filter((hint) => hint.memoryType === "fact")
       .map((hint) => hint.memoryId),
   );
-  const pressureFacts = result.facts
-    .filter(
-      (fact) =>
-        fact.lifecycle === "active" &&
-        verificationHintFactIds.has(fact.id),
-    )
-    .map((fact) => {
-      const pressuredFact: FactMemory = {
-        ...fact,
-        verificationPressureCount: Math.min(
-          (fact.verificationPressureCount ?? 0) + 1,
-          MAX_VERIFICATION_PRESSURE_COUNT,
-        ),
+  let touchedFactCount = 0;
+  let verificationPressureFactCount = 0;
+
+  for (const recalledFact of result.facts) {
+    const canonicalFact = repositories.facts.get
+      ? await repositories.facts.get(recalledFact.id)
+      : recalledFact;
+    if (!canonicalFact || canonicalFact.lifecycle !== "active") {
+      continue;
+    }
+
+    if (verificationHintFactIds.has(recalledFact.id)) {
+      const verificationPressureCount = Math.min(
+        (canonicalFact.verificationPressureCount ?? 0) + 1,
+        MAX_VERIFICATION_PRESSURE_COUNT,
+      );
+      await repositories.facts.add({
+        ...canonicalFact,
+        verificationPressureCount,
         lastVerificationHintAt: timestamp,
-      };
+      });
+      touchedFacts.set(recalledFact.id, {
+        ...recalledFact,
+        verificationPressureCount,
+        lastVerificationHintAt: timestamp,
+      });
+      verificationPressureFactCount += 1;
+      continue;
+    }
 
-      touchedFacts.set(pressuredFact.id, pressuredFact);
-      return pressuredFact;
-    });
-  const nextFacts = result.facts
-    .filter(
-      (fact) =>
-        fact.lifecycle === "active" &&
-        !verificationHintFactIds.has(fact.id) &&
-        shouldApplyLowRiskTouch(fact.lastAccessedAt, timestamp),
-    )
-    .map((fact) => {
-      const nextFact: FactMemory = {
-        ...fact,
-        accessCount: fact.accessCount + 1,
-        lastAccessedAt: timestamp,
-      };
+    if (!shouldApplyLowRiskTouch(canonicalFact.lastAccessedAt, timestamp)) {
+      continue;
+    }
 
-      touchedFacts.set(nextFact.id, nextFact);
-      return nextFact;
+    const accessCount = canonicalFact.accessCount + 1;
+    await repositories.facts.add({
+      ...canonicalFact,
+      accessCount,
+      lastAccessedAt: timestamp,
     });
+    touchedFacts.set(recalledFact.id, {
+      ...recalledFact,
+      accessCount,
+      lastAccessedAt: timestamp,
+    });
+    touchedFactCount += 1;
+  }
   const nextFeedback = result.feedback
     .filter(
       (feedback) =>
@@ -192,14 +203,6 @@ async function applyRecallTouchHelpers(
     nextFeedback.map((feedback) => [feedback.id, feedback] as const),
   );
 
-  const factsToPersist = new Map(
-    [...pressureFacts, ...touchedFacts.values()].map((fact) =>
-      [fact.id, fact] as const
-    ),
-  );
-  for (const fact of factsToPersist.values()) {
-    await repositories.facts.add(fact);
-  }
   await Promise.all(
     nextFeedback.map((feedback) => repositories.feedback.upsert(feedback)),
   );
@@ -216,8 +219,8 @@ async function applyRecallTouchHelpers(
 
   return {
     reinforcedFeedbackCount: nextFeedback.length,
-    touchedFactCount: nextFacts.length,
-    verificationPressureFactCount: pressureFacts.length,
+    touchedFactCount,
+    verificationPressureFactCount,
   };
 }
 

@@ -936,11 +936,10 @@ class GoodMemoryImpl implements GoodMemory {
   private readonly evolutionRuntime: ReturnType<typeof createEvolutionRuntime>;
   private readonly embeddingAdapter?: EmbeddingAdapter;
   private readonly reranker?: Reranker;
-  // R8: evidence-conditioned follow-up query generation for multi-hop recall
-  // (replaces lexical bridging when configured).
-  private readonly followUpQueryGenerator?: NonNullable<
+  // R8: evidence-conditioned sufficiency decisions for multi-hop recall.
+  private readonly followUpDecisionGenerator?: NonNullable<
     GoodMemoryConfig["adapters"]
-  >["followUpQueryGenerator"];
+  >["followUpDecisionGenerator"];
   private readonly rerankerTarget?: RerankerExecutionTarget;
   private readonly language;
   private readonly now: () => Date;
@@ -1140,7 +1139,7 @@ class GoodMemoryImpl implements GoodMemory {
     this.revisionVectorIndex = repositories.vectorIndex;
     this.embeddingAdapter = embeddingAdapter;
     this.reranker = reranker;
-    this.followUpQueryGenerator = config.adapters?.followUpQueryGenerator;
+    this.followUpDecisionGenerator = config.adapters?.followUpDecisionGenerator;
     this.rerankerTarget = rerankerTarget;
     this.language = language;
     this.now = config.testing?.now ?? (() => new Date());
@@ -1398,10 +1397,10 @@ class GoodMemoryImpl implements GoodMemory {
         };
 
         if (queryMultiHopEnabled) {
-          // R8: an injected follow-up generator replaces lexical bridge
-          // expansion — it reads hop-1 evidence and writes one focused
-          // sub-query (or null to stop). Failures degrade to single-pass.
-          const followUpGenerator = this.followUpQueryGenerator;
+          // R8: an injected decision adapter replaces lexical bridging. It may
+          // continue only after naming a concrete missing-slot query. Provider
+          // failures remain distinguishable from a positive sufficiency stop.
+          const followUpDecisionGenerator = this.followUpDecisionGenerator;
           const outcome = await iterativeRecall({
             query: context.query,
             recall: singlePassRecall,
@@ -1414,12 +1413,16 @@ class GoodMemoryImpl implements GoodMemory {
                 "iterative_recall",
             ),
             options: {
-              ...(followUpGenerator
+              ...(followUpDecisionGenerator
                 ? {
-                    expandQuery: async ({ originalQuery, facts, hop }) => {
+                    decideNextHop: async ({
+                      evidence,
+                      originalQuery,
+                      hop,
+                    }) => {
                       try {
-                        return await followUpGenerator.generate({
-                          evidence: facts
+                        return await followUpDecisionGenerator.generate({
+                          evidence: evidence
                             .slice(0, 8)
                             .map((fact) => fact.content.slice(0, 300)),
                           hop,

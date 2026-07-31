@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from "node:util";
+
 import type { MemoryScope } from "../../domain/scope";
 import {
   EVIDENCE_COLLECTION,
@@ -27,6 +29,56 @@ import {
   scopeFilter,
   sourceMutationKey,
 } from "./shared";
+
+const PROJECTION_NEUTRAL_FIELDS: Partial<
+  Record<RecallProjectionSourceCollection, ReadonlySet<string>>
+> = {
+  facts: new Set([
+    "accessCount",
+    "lastAccessedAt",
+    "lastVerificationHintAt",
+    "verificationPressureCount",
+  ]),
+  feedback: new Set(["lastUsedAt"]),
+};
+
+function hasEquivalentProjectionInput(
+  collection: string,
+  existing: StorageDocument,
+  next: StorageDocument,
+): boolean {
+  if (!isRecallProjectionSourceCollection(collection)) {
+    return false;
+  }
+  const neutralFields = PROJECTION_NEUTRAL_FIELDS[collection];
+  if (!neutralFields) {
+    return false;
+  }
+  const comparable = (document: StorageDocument) =>
+    Object.fromEntries(
+      Object.entries(document).filter(([field]) => !neutralFields.has(field)),
+    );
+  return isDeepStrictEqual(comparable(existing), comparable(next));
+}
+
+function changedDocumentFields(
+  existing: StorageDocument | null,
+  next: StorageDocument,
+): string[] {
+  if (!existing) {
+    return Object.keys(next).sort();
+  }
+  const existingFields = existing as Record<string, unknown>;
+  const nextFields = next as Record<string, unknown>;
+  return [...new Set([
+    ...Object.keys(existing),
+    ...Object.keys(next),
+  ])]
+    .filter((field) =>
+      !isDeepStrictEqual(existingFields[field], nextFields[field])
+    )
+    .sort();
+}
 
 export function createProjectionAwareDocumentStore(input: {
   documentStore: ProjectionCapableDocumentStore;
@@ -66,9 +118,27 @@ export function createProjectionAwareDocumentStore(input: {
     collection: string,
     id: string,
     document: StorageDocument,
-  ): Promise<StorageDocument | null> {
+  ): Promise<{
+    existing: StorageDocument | null;
+    projectionChanged: boolean;
+  }> {
+    let lastExisting: StorageDocument | null = null;
     for (let attempt = 0; attempt < 8; attempt += 1) {
       const existing = await documentStore.get<StorageDocument>(collection, id);
+      lastExisting = existing;
+      if (
+        existing &&
+        hasEquivalentProjectionInput(collection, existing, document)
+      ) {
+        const committed = await documentStore.writeBatchIfUnchanged({
+          expected: { collection, document: existing, id },
+          set: [{ collection, document, id }],
+        });
+        if (committed) {
+          return { existing, projectionChanged: false };
+        }
+        continue;
+      }
       const invalidation = await manifests.prepareInvalidation(
         projectionScopes([existing, document]),
       );
@@ -81,11 +151,13 @@ export function createProjectionAwareDocumentStore(input: {
         unchanged: invalidation.unchanged,
       });
       if (committed) {
-        return existing;
+        return { existing, projectionChanged: true };
       }
     }
+    const changedFields = changedDocumentFields(lastExisting, document);
     throw new Error(
-      `Projection input changed repeatedly during write: ${collection}/${id}`,
+      `Projection input changed repeatedly during write: ${collection}/${id}` +
+        ` (changed fields: ${changedFields.join(", ") || "none"})`,
     );
   }
 
@@ -430,22 +502,36 @@ export function createProjectionAwareDocumentStore(input: {
         return;
       }
       if (!writeThrough) {
-        await setProjectionInputAndInvalidate(collection, id, document);
-        await registerScopeAfterCanonicalWrite(collection, id, document);
+        await mutationLock.runExclusive(
+          [sourceMutationKey(collection, id)],
+          async () => {
+            const mutation = await setProjectionInputAndInvalidate(
+              collection,
+              id,
+              document,
+            );
+            if (mutation.projectionChanged) {
+              await registerScopeAfterCanonicalWrite(collection, id, document);
+            }
+          },
+        );
         return;
       }
       await mutationLock.runExclusive(
         [sourceMutationKey(collection, id)],
         async () => {
-          const existing = await setProjectionInputAndInvalidate(
+          const mutation = await setProjectionInputAndInvalidate(
             collection,
             id,
             document,
           );
+          if (!mutation.projectionChanged) {
+            return;
+          }
           await synchronizeAfterCanonicalWrite(
             collection,
             id,
-            existing ?? undefined,
+            mutation.existing ?? undefined,
             document,
           );
         },

@@ -101,9 +101,21 @@ export function extractBridgeEntities(input: {
 }
 
 // Safety ceiling on the number of recall passes, independent of the requested
-// maxHops, so an injected expandQuery strategy can never trigger a runaway loop.
+// maxHops, so an injected follow-up strategy can never trigger a runaway loop.
 const MAX_HOPS_CEILING = 6;
 const DEFAULT_MAX_HOPS = 2;
+
+export type FollowUpDecision =
+  | {
+      missingSlots: readonly [];
+      sufficient: true;
+    }
+  | {
+      // R8 executes one focused query per hop. The only missing slot is that
+      // standalone query, so there is no second query field to drift.
+      missingSlots: readonly [string];
+      sufficient: false;
+    };
 
 export interface IterativeRecallOptions {
   // Required for the built-in bridge strategy. The caller must use the same
@@ -114,16 +126,16 @@ export interface IterativeRecallOptions {
   // historical two-pass behavior. The literature shows 2-3 hops capture most of
   // the multi-hop gain; clamped to MAX_HOPS_CEILING.
   maxHops?: number;
-  // Optional strategy for the next-hop query, e.g. an LLM that reads the facts so
-  // far and writes a focused follow-up question (reasoning-driven multi-hop).
-  // Returns the next query, or null to stop. When provided it replaces the
-  // default lexical bridge-entity expansion (so bridgeEntities stays empty).
-  expandQuery?: (input: {
+  // Optional evidence-sufficiency decision. It may request another hop only
+  // when it identifies at least one concrete missing slot and a focused query.
+  // null means the decision adapter was unavailable. When provided it replaces
+  // lexical bridge expansion, so bridgeEntities stays empty.
+  decideNextHop?: (input: {
+    evidence: readonly { content: string }[];
     originalQuery: string;
     query: string;
-    facts: readonly { content: string }[];
     hop: number;
-  }) => string | null | Promise<string | null>;
+  }) => FollowUpDecision | null | Promise<FollowUpDecision | null>;
 }
 
 export interface IterativeRecallOutcome<TResult> {
@@ -136,8 +148,10 @@ export interface IterativeRecallOutcome<TResult> {
 }
 
 export type IterativeRecallStopReason =
-  | "expander_stopped"
+  | "decision_unavailable"
+  | "evidence_sufficient"
   | "max_hops_reached"
+  | "missing_slots_unresolved"
   | "no_bridge_entities"
   | "no_new_evidence"
   | "unchanged_query";
@@ -147,10 +161,11 @@ export interface IterativeRecallStep {
   factCount: number;
   hop: number;
   query: string;
+  sufficiencyDecision?: FollowUpDecision;
 }
 
 export async function iterativeRecall<
-  TResult extends { facts: readonly { content: string }[] },
+  TResult extends { facts: readonly { content: string; id: string }[] },
 >(input: {
   query: string;
   recall: (query: string) => Promise<TResult>;
@@ -161,10 +176,10 @@ export async function iterativeRecall<
     MAX_HOPS_CEILING,
     Math.max(1, input.options?.maxHops ?? DEFAULT_MAX_HOPS),
   );
-  const expandQuery = input.options?.expandQuery;
-  if (maxHops > 1 && !expandQuery && !input.options?.analyzeBridgeText) {
+  const decideNextHop = input.options?.decideNextHop;
+  if (maxHops > 1 && !decideNextHop && !input.options?.analyzeBridgeText) {
     throw new Error(
-      "iterativeRecall requires analyzeBridgeText when no expandQuery is provided",
+      "iterativeRecall requires analyzeBridgeText when no decideNextHop is provided",
     );
   }
 
@@ -175,7 +190,8 @@ export async function iterativeRecall<
   let hops = 1;
   const bridgeEntities: string[] = [];
   const seenBridge = new Set<string>();
-  const seenFactContent = new Set(result.facts.map((fact) => fact.content));
+  const seenFactIds = new Set(result.facts.map((fact) => fact.id));
+  const accumulatedEvidence = [...result.facts];
   const steps: IterativeRecallStep[] = [
     {
       bridgeEntities: [],
@@ -188,15 +204,26 @@ export async function iterativeRecall<
 
   while (hops < maxHops) {
     let nextQuery: string | null;
-    if (expandQuery) {
-      nextQuery = await expandQuery({
+    if (decideNextHop) {
+      const decision = await decideNextHop({
+        evidence: accumulatedEvidence,
         originalQuery: input.query,
         query: activeQuery,
-        facts: result.facts,
         hop: hops,
       });
-      if (!nextQuery?.trim()) {
-        stopReason = "expander_stopped";
+      if (!decision) {
+        stopReason = "decision_unavailable";
+        break;
+      }
+      const activeStep = steps[steps.length - 1]!;
+      activeStep.sufficiencyDecision = decision;
+      if (decision.sufficient) {
+        stopReason = "evidence_sufficient";
+        break;
+      }
+      nextQuery = decision.missingSlots[0].trim();
+      if (!nextQuery) {
+        stopReason = "missing_slots_unresolved";
         break;
       }
     } else {
@@ -236,11 +263,14 @@ export async function iterativeRecall<
       query: activeQuery,
     });
     // Stop early once a hop surfaces nothing new, so extra hops are not wasted.
-    const sizeBefore = seenFactContent.size;
+    const sizeBefore = seenFactIds.size;
     for (const fact of result.facts) {
-      seenFactContent.add(fact.content);
+      if (!seenFactIds.has(fact.id)) {
+        accumulatedEvidence.push(fact);
+      }
+      seenFactIds.add(fact.id);
     }
-    if (seenFactContent.size === sizeBefore) {
+    if (seenFactIds.size === sizeBefore) {
       stopReason = "no_new_evidence";
       break;
     }

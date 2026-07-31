@@ -39,8 +39,9 @@ import type {
 } from "../src/api/contracts";
 import { inspectGoodMemoryRuntime } from "../src/api/runtimeInfo";
 import { createProviderRetrievalCueGenerator } from "../src/provider/retrievalCueGenerator";
-import { createProviderFollowUpQueryGenerator } from "../src/provider/followUpQueryGenerator";
+import { createProviderFollowUpDecisionGenerator } from "../src/provider/followUpDecisionGenerator";
 import type { EmbeddingAdapter } from "../src/embedding/contracts";
+import type { FollowUpDecision } from "../src/recall/iterativeRecall";
 import { createLexicalCoverageReranker } from "../src/recall/reranker";
 import {
   DEFAULT_GENERALIZED_FUSION_MIN_RELATIVE_STRENGTH,
@@ -152,6 +153,11 @@ function isLocomoRepairJobRetrievalBucket(
 // generator profile is added later.
 const PROFILES_COMPARED = ["goodmemory-rules-only"] as const;
 
+export type LocomoFollowUpMode =
+  | "off"
+  | "query_only"
+  | "structured_sufficiency";
+
 export interface LocomoSmokeCliOptions {
   // Opt-in live-answer policy probe: LoCoMo open-domain questions sometimes
   // require resolving common world facts from dialog evidence (for example a
@@ -189,8 +195,8 @@ export interface LocomoSmokeCliOptions {
   // (remember.episodeSegmentTimeGapMs = 6h). Evidence-turn facts are
   // unchanged (probe: all 419 conv-26 diaIds retained).
   episodicIngest?: boolean;
-  // R8 opt-in (requires --multihop): live follow-up second-hop queries.
-  followUpQueries?: boolean;
+  // R8 experiment mode. Both provider-backed modes require --multihop.
+  followUpMode?: LocomoFollowUpMode;
   // Opt-in R6 write-time question expansion: after seeding each case, backfill
   // attributes.retrievalCues on every stored fact through the shipped
   // retrievalCues maintenance job (generation is prefetched concurrently, the
@@ -475,6 +481,18 @@ export type LocomoExecutionFailureStage =
   | "recall"
   | "seed";
 
+export interface LocomoFollowUpTrace {
+  logicalDecisionCalls: number;
+  queryExecutions: Array<{
+    hops: Array<{
+      factCount: number;
+      query: string;
+      sufficiencyDecision?: FollowUpDecision;
+    }>;
+    stopReason: string;
+  }>;
+}
+
 // Per-question result. Retrieval fields are always populated; answer fields are
 // null unless a live-answer generator is supplied.
 export interface LocomoQuestionRetrieval {
@@ -490,6 +508,7 @@ export interface LocomoQuestionRetrieval {
   evidenceTurnIds: string[];
   executionFailureMessage?: string | null;
   executionFailureStage?: LocomoExecutionFailureStage | null;
+  followUpTrace?: LocomoFollowUpTrace;
   generatedAnswer: string | null;
   goldEvidenceFullyRetrieved: boolean;
   missingEvidenceTurnIds: string[];
@@ -562,8 +581,8 @@ export interface LocomoSmokeReport {
   labelFreeIngest?: boolean;
   // R5 episodic-ingest arm (record == wire).
   episodicIngest?: boolean;
-  // R8 follow-up-query arm (record == wire).
-  followUpQueries?: boolean;
+  // R8 follow-up decision arm (record == wire).
+  followUpMode?: LocomoFollowUpMode;
   // Selected case ids after --case-id filtering, in source order.
   caseIds: string[];
   caseCount: number;
@@ -617,6 +636,7 @@ export interface LocomoSmokeReport {
     bm25Ranking: boolean;
     corefNormalize: boolean;
     decompose: boolean;
+    followUpMode?: LocomoFollowUpMode;
     generalizedFusion: boolean;
     labelFreeIngest: boolean;
     multiHop: boolean;
@@ -718,11 +738,21 @@ export function parseLocomoSmokeCliOptions(
   if (entityPageRank && !hasCliFlagStrict(argv, "--generalized-fusion")) {
     throw new Error("--entity-page-rank requires --generalized-fusion");
   }
+  const queryOnlyFollowUp = hasCliFlagStrict(argv, "--follow-up-queries");
+  const structuredFollowUp = hasCliFlagStrict(
+    argv,
+    "--follow-up-sufficiency",
+  );
+  if (queryOnlyFollowUp && structuredFollowUp) {
+    throw new Error(
+      "--follow-up-queries and --follow-up-sufficiency are mutually exclusive",
+    );
+  }
   if (
-    hasCliFlagStrict(argv, "--follow-up-queries") &&
+    (queryOnlyFollowUp || structuredFollowUp) &&
     !hasCliFlagStrict(argv, "--multihop")
   ) {
-    throw new Error("--follow-up-queries requires --multihop");
+    throw new Error("follow-up decision modes require --multihop");
   }
   const parsed = {
     benchmarkRoot:
@@ -766,7 +796,11 @@ export function parseLocomoSmokeCliOptions(
     decompose: hasCliFlagStrict(argv, "--decompose"),
     evidencePack: hasCliFlagStrict(argv, "--evidence-pack"),
     multiHop: hasCliFlagStrict(argv, "--multihop"),
-    followUpQueries: hasCliFlagStrict(argv, "--follow-up-queries"),
+    followUpMode: structuredFollowUp
+      ? "structured_sufficiency" as const
+      : queryOnlyFollowUp
+        ? "query_only" as const
+        : "off" as const,
     providerEmbedding,
     providerEmbeddingRunTimeoutMs,
     providerEmbeddingTimeoutMs,
@@ -2182,6 +2216,50 @@ function isNullableFailureStage(
   );
 }
 
+function isLocomoFollowUpTrace(value: unknown): value is LocomoFollowUpTrace {
+  if (
+    !isRecord(value) ||
+    !Number.isSafeInteger(value.logicalDecisionCalls) ||
+    (value.logicalDecisionCalls as number) < 0 ||
+    !Array.isArray(value.queryExecutions)
+  ) {
+    return false;
+  }
+  return value.queryExecutions.every((execution) => {
+    if (
+      !isRecord(execution) ||
+      typeof execution.stopReason !== "string" ||
+      !Array.isArray(execution.hops)
+    ) {
+      return false;
+    }
+    return execution.hops.every((hop) => {
+      if (
+        !isRecord(hop) ||
+        !Number.isSafeInteger(hop.factCount) ||
+        (hop.factCount as number) < 0 ||
+        typeof hop.query !== "string"
+      ) {
+        return false;
+      }
+      const decision = hop.sufficiencyDecision;
+      if (decision === undefined) {
+        return true;
+      }
+      if (
+        !isRecord(decision) ||
+        typeof decision.sufficient !== "boolean" ||
+        !isStringArray(decision.missingSlots)
+      ) {
+        return false;
+      }
+      return decision.sufficient
+        ? decision.missingSlots.length === 0
+        : decision.missingSlots.length === 1;
+    });
+  });
+}
+
 function isLocomoProgressCategory(value: unknown): value is LocomoQaCategory {
   return typeof value === "string" && LOCOMO_QA_CATEGORY_SET.has(value);
 }
@@ -2193,6 +2271,7 @@ function isLocomoProgressRow(value: unknown): value is LocomoQuestionRetrieval {
   const answerTokenF1 = value.answerTokenF1;
   const executionFailureMessage = value.executionFailureMessage;
   const executionFailureStage = value.executionFailureStage;
+  const followUpTrace = value.followUpTrace;
   return (
     isNullableBoolean(value.answerCorrect) &&
     typeof value.caseId === "string" &&
@@ -2211,6 +2290,7 @@ function isLocomoProgressRow(value: unknown): value is LocomoQuestionRetrieval {
         executionFailureMessage.trim() === executionFailureMessage)) &&
     (executionFailureStage === undefined ||
       isNullableFailureStage(executionFailureStage)) &&
+    (followUpTrace === undefined || isLocomoFollowUpTrace(followUpTrace)) &&
     isNullableString(value.generatedAnswer) &&
     typeof value.goldEvidenceFullyRetrieved === "boolean" &&
     isStringArray(value.missingEvidenceTurnIds) &&
@@ -2324,6 +2404,35 @@ export function collectLocomoRetrievedTurnIds(recall: RecallResult): string[] {
     }
   }
   return [...ids];
+}
+
+export function collectLocomoFollowUpTrace(
+  recall: RecallResult,
+): LocomoFollowUpTrace | undefined {
+  const trace = recall.metadata?.retrievalTrace;
+  if (trace?.schemaVersion !== 2) {
+    return undefined;
+  }
+  const queryExecutions = trace.queryExecutions.map((execution) => ({
+    hops: execution.hops.map((hop) => ({
+      factCount: hop.factCount,
+      query: hop.query,
+      ...(hop.sufficiencyDecision
+        ? { sufficiencyDecision: hop.sufficiencyDecision }
+        : {}),
+    })),
+    stopReason: execution.stopReason,
+  }));
+  const logicalDecisionCalls = trace.queryExecutions.reduce(
+    (total, execution) =>
+      total +
+      execution.hops.filter((hop) => hop.sufficiencyDecision).length +
+      (execution.stopReason === "decision_unavailable" ? 1 : 0),
+    0,
+  );
+  return logicalDecisionCalls > 0
+    ? { logicalDecisionCalls, queryExecutions }
+    : undefined;
 }
 
 // R11 provenance: map each retrieved turn to the fusion channels that
@@ -2765,12 +2874,12 @@ export function createLocomoSmokeMemory(
     fusionMinRelativeStrength?: number;
     entityPageRank?: boolean;
     episodicIngest?: boolean;
-    followUpQueryAdapter?: {
+    followUpDecisionAdapter?: {
       generate(input: {
         evidence: readonly string[];
         hop: number;
         query: string;
-      }): Promise<string | null>;
+      }): Promise<FollowUpDecision>;
     };
   } = {},
 ): GoodMemory {
@@ -2790,8 +2899,8 @@ export function createLocomoSmokeMemory(
     ...(options.retrievalCueAdapter
       ? { retrievalCueGenerator: options.retrievalCueAdapter }
       : {}),
-    ...(options.followUpQueryAdapter
-      ? { followUpQueryGenerator: options.followUpQueryAdapter }
+    ...(options.followUpDecisionAdapter
+      ? { followUpDecisionGenerator: options.followUpDecisionAdapter }
       : {}),
   };
   if (options.providerEmbedding && options.bm25) {
@@ -3088,6 +3197,7 @@ interface LocomoProgressConfig {
   decompose: boolean;
   externalRoot: string | null;
   generalizedFusionConfig: LocomoSmokeReport["generalizedFusionConfig"];
+  followUpMode: LocomoFollowUpMode;
   ingestMode: LocomoSmokeReport["ingestMode"];
   labelFreeIngest: boolean;
   limit: number | null;
@@ -3258,6 +3368,7 @@ function buildLocomoProgressConfig(input: {
       input.options.fusionMinRelativeStrength,
       input.options.entityPageRank,
     ),
+    followUpMode: input.options.followUpMode ?? "off",
     ingestMode: input.options.conversationalExtraction
       ? "conversational-extraction"
       : "raw-turns",
@@ -3629,10 +3740,11 @@ export async function runLocomoSmoke(
         fusionMinRelativeStrength: options.fusionMinRelativeStrength,
         entityPageRank: options.entityPageRank,
         episodicIngest: options.episodicIngest,
-        ...(options.followUpQueries
+        ...(options.followUpMode && options.followUpMode !== "off"
           ? {
-              followUpQueryAdapter: createProviderFollowUpQueryGenerator({
+              followUpDecisionAdapter: createProviderFollowUpDecisionGenerator({
                 model: resolveLiveModelConfig("GOODMEMORY_EVAL"),
+                mode: options.followUpMode,
               }),
             }
           : {}),
@@ -3745,6 +3857,7 @@ export async function runLocomoSmoke(
   const checkpointing =
     answerGenerator !== undefined ||
     options.conversationalExtraction === true ||
+    (options.followUpMode !== undefined && options.followUpMode !== "off") ||
     options.providerEmbedding === true ||
     options.providerReranking === true;
   const progressPath = join(runDirectory, LOCOMO_LIVE_PROGRESS_FILE_NAME);
@@ -4053,12 +4166,17 @@ export async function runLocomoSmoke(
         const retrievedTurnIds = options.answerFromPacket
           ? collectLocomoPacketTurnIds(recall)
           : collectLocomoRetrievedTurnIds(recall);
-        retrieval = scoreLocomoRetrieval({
+        const scoredRetrieval = scoreLocomoRetrieval({
           question,
           retrievedTurnIds,
           retrievedTurnChannels: collectLocomoTurnChannels(recall),
           testCase,
         });
+        const followUpTrace = collectLocomoFollowUpTrace(recall);
+        retrieval = {
+          ...scoredRetrieval,
+          ...(followUpTrace ? { followUpTrace } : {}),
+        };
         if (answerGenerator) {
           const generatedAnswer = await answerGenerator({
             memoryContext: options.answerFromRecalled
@@ -4184,7 +4302,7 @@ export async function runLocomoSmoke(
       : "raw-turns",
     labelFreeIngest: options.labelFreeIngest ?? false,
     episodicIngest: options.episodicIngest ?? false,
-    followUpQueries: options.followUpQueries ?? false,
+    followUpMode: options.followUpMode ?? "off",
     license: UPSTREAM_LICENSE,
     mode: liveAnswer ? "live-answer" : "retrieval-only",
     ...(options.retrievalCues ? { retrievalCues: cueStats } : {}),
@@ -4210,6 +4328,7 @@ export async function runLocomoSmoke(
       generalizedFusion: options.generalizedFusion ?? false,
       labelFreeIngest: options.labelFreeIngest ?? false,
       multiHop: options.multiHop ?? false,
+      followUpMode: options.followUpMode ?? "off",
       providerEmbedding: options.providerEmbedding ?? false,
       providerReranking: options.providerReranking ?? false,
       rerank: options.rerank ?? false,

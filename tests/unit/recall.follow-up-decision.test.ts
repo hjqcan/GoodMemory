@@ -5,15 +5,16 @@ import {
   createInMemorySessionStore,
 } from "../../src";
 import { createFactMemory } from "../../src/domain/records";
+import type { FollowUpDecision } from "../../src/recall/iterativeRecall";
 
-// R8: when adapters.followUpQueryGenerator is configured, multi-hop recall
-// generates one focused sub-query from hop-1 evidence (replacing lexical
-// bridge expansion) and merges the second hop's evidence. The generator
-// returning null (or throwing) keeps the single-pass result.
-describe("follow-up query generation (R8)", () => {
+// R8: the opt-in adapter decides whether evidence is sufficient and names the
+// missing slot before it may generate another retrieval query.
+describe("follow-up sufficiency decisions (R8)", () => {
   const scope = { userId: "u-1", workspaceId: "workspace-a" };
 
-  async function seed(documentStore: ReturnType<typeof createInMemoryDocumentStore>) {
+  async function seed(
+    documentStore: ReturnType<typeof createInMemoryDocumentStore>,
+  ) {
     const mk = (id: string, content: string) =>
       createFactMemory({
         id,
@@ -41,16 +42,20 @@ describe("follow-up query generation (R8)", () => {
     evidence: readonly string[];
     hop: number;
     query: string;
-  }) => Promise<string | null>) {
+  }) => Promise<FollowUpDecision>) {
     const documentStore = createInMemoryDocumentStore();
-    const calls: Array<{ evidence: readonly string[]; hop: number; query: string }> = [];
+    const calls: Array<{
+      evidence: readonly string[];
+      hop: number;
+      query: string;
+    }> = [];
     const memory = createGoodMemory({
       adapters: {
         documentStore,
         sessionStore: createInMemorySessionStore(),
         ...(generate
           ? {
-              followUpQueryGenerator: {
+              followUpDecisionGenerator: {
                 async generate(input: {
                   evidence: readonly string[];
                   hop: number;
@@ -70,9 +75,10 @@ describe("follow-up query generation (R8)", () => {
   }
 
   it("merges evidence reached only through the generated follow-up", async () => {
-    const { calls, documentStore, memory } = build(async () =>
-      "What sport does Priya Raman practice?",
-    );
+    const { calls, documentStore, memory } = build(async () => ({
+      missingSlots: ["What sport does Priya Raman practice?"],
+      sufficient: false,
+    }));
     await seed(documentStore);
 
     const result = await memory.recall({
@@ -86,10 +92,21 @@ describe("follow-up query generation (R8)", () => {
     expect(calls[0]?.evidence.join(" ")).toContain("Priya Raman");
     const contents = result.facts.map((fact) => fact.content);
     expect(contents.join(" ")).toContain("water polo");
+    const trace = result.metadata.retrievalTrace;
+    expect(trace?.schemaVersion).toBe(2);
+    expect(trace?.schemaVersion === 2
+      ? trace.queryExecutions[0]?.hops[0]?.sufficiencyDecision
+      : undefined).toEqual({
+      missingSlots: ["What sport does Priya Raman practice?"],
+      sufficient: false,
+    });
   });
 
-  it("keeps the single pass when the generator stops or fails", async () => {
-    const stopped = build(async () => null);
+  it("keeps the single pass when evidence is sufficient or the generator fails", async () => {
+    const stopped = build(async () => ({
+      missingSlots: [],
+      sufficient: true,
+    }));
     await seed(stopped.documentStore);
     const stoppedResult = await stopped.memory.recall({
       multiHop: 2,
@@ -100,6 +117,10 @@ describe("follow-up query generation (R8)", () => {
     expect(
       stoppedResult.facts.map((fact) => fact.content).join(" "),
     ).not.toContain("water polo");
+    expect(stoppedResult.metadata.retrievalTrace).toMatchObject({
+      queryExecutions: [{ stopReason: "evidence_sufficient" }],
+      schemaVersion: 2,
+    });
 
     const failing = build(async () => {
       throw new Error("provider outage");
@@ -111,5 +132,9 @@ describe("follow-up query generation (R8)", () => {
       scope,
     });
     expect(failingResult.facts.length).toBeGreaterThan(0);
+    expect(failingResult.metadata.retrievalTrace).toMatchObject({
+      queryExecutions: [{ stopReason: "decision_unavailable" }],
+      schemaVersion: 2,
+    });
   });
 });

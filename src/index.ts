@@ -125,6 +125,7 @@ export {
   iterativeRecall,
 } from "./recall/iterativeRecall";
 export type {
+  FollowUpDecision,
   IterativeRecallOptions,
   IterativeRecallOutcome,
 } from "./recall/iterativeRecall";

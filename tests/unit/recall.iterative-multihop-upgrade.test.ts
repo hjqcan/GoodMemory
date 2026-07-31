@@ -145,7 +145,7 @@ describe("iterativeRecall multi-hop upgrade", () => {
     expect(outcome.hops).toBeLessThan(5);
   });
 
-  it("uses an injected expandQuery strategy and leaves lexical bridges empty", async () => {
+  it("uses an injected follow-up decision and leaves lexical bridges empty", async () => {
     const queriesSeen: string[] = [];
     const outcome = await iterativeRecall({
       query,
@@ -156,12 +156,21 @@ describe("iterativeRecall multi-hop upgrade", () => {
       options: {
         maxHops: 3,
         // A stand-in "reasoning" strategy that walks the chain explicitly.
-        expandQuery: ({ hop }) =>
+        decideNextHop: ({ hop }) =>
           hop === 1
-            ? "Brunhilde Vasquez"
+            ? {
+                missingSlots: ["Brunhilde Vasquez"],
+                sufficient: false,
+              }
             : hop === 2
-              ? "Tobias Quill"
-              : null,
+              ? {
+                  missingSlots: ["Tobias Quill"],
+                  sufficient: false,
+                }
+              : {
+                  missingSlots: [],
+                  sufficient: true,
+                },
       },
     });
     expect(outcome.hops).toBe(3);
@@ -170,12 +179,111 @@ describe("iterativeRecall multi-hop upgrade", () => {
     expect(queriesSeen).toEqual([query, "Brunhilde Vasquez", "Tobias Quill"]);
   });
 
-  it("stays single-hop when expandQuery returns null", async () => {
+  it("stops after one hop when the retrieved evidence is sufficient", async () => {
     const outcome = await iterativeRecall({
       query,
       recall: lexicalRecall(corpus),
-      options: { maxHops: 4, expandQuery: () => null },
+      options: {
+        maxHops: 4,
+        decideNextHop: () => ({
+          missingSlots: [],
+          sufficient: true,
+        }),
+      },
     });
+
     expect(outcome.hops).toBe(1);
+    expect(outcome.stopReason).toBe("evidence_sufficient");
+    expect(outcome.steps[0]).toMatchObject({
+      sufficiencyDecision: {
+        missingSlots: [],
+        sufficient: true,
+      },
+    });
+  });
+
+  it("does not retrieve again when the decision has no actionable missing slot", async () => {
+    const queriesSeen: string[] = [];
+    const outcome = await iterativeRecall({
+      query,
+      recall: async (activeQuery) => {
+        queriesSeen.push(activeQuery);
+        return lexicalRecall(corpus)(activeQuery);
+      },
+      options: {
+        maxHops: 4,
+        decideNextHop: () => ({
+          missingSlots: [""],
+          sufficient: false,
+        }),
+      },
+    });
+
+    expect(queriesSeen).toEqual([query]);
+    expect(outcome.stopReason).toBe("missing_slots_unresolved");
+  });
+
+  it("passes cumulative unique evidence into later follow-up decisions", async () => {
+    const evidenceByHop: string[][] = [];
+    const factsByQuery = new Map([
+      [query, [start]],
+      ["Brunhilde Vasquez", [mid]],
+      ["Tobias Quill", [end]],
+    ]);
+    const outcome = await iterativeRecall({
+      query,
+      recall: async (activeQuery) =>
+        ({ facts: factsByQuery.get(activeQuery) ?? [] }) as RecallResult,
+      options: {
+        maxHops: 3,
+        decideNextHop: ({ evidence, hop }) => {
+          evidenceByHop.push(evidence.map((entry) => entry.content));
+          return {
+            missingSlots: [
+              hop === 1 ? "Brunhilde Vasquez" : "Tobias Quill",
+            ],
+            sufficient: false,
+          };
+        },
+      },
+    });
+
+    expect(outcome.hops).toBe(3);
+    expect(evidenceByHop).toEqual([
+      [start.content],
+      [start.content, mid.content],
+    ]);
+  });
+
+  it("treats distinct fact ids with identical content as new evidence", async () => {
+    const decisions: number[] = [];
+    const first = fact("same-content-1", "The status is unchanged.");
+    const second = fact("same-content-2", "The status is unchanged.");
+    let recallCount = 0;
+    const outcome = await iterativeRecall({
+      query: "What is the status?",
+      recall: async () =>
+        ({
+          facts: recallCount++ === 0 ? [first] : [second],
+        }) as RecallResult,
+      options: {
+        maxHops: 3,
+        decideNextHop: ({ hop }) => {
+          decisions.push(hop);
+          return hop === 1
+            ? {
+                missingSlots: ["Retrieve the independently sourced status."],
+                sufficient: false,
+              }
+            : {
+                missingSlots: [],
+                sufficient: true,
+              };
+        },
+      },
+    });
+
+    expect(decisions).toEqual([1, 2]);
+    expect(outcome.stopReason).toBe("evidence_sufficient");
   });
 });

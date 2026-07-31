@@ -1,8 +1,9 @@
 # GoodMemory Benchmark Optimization — Research Synthesis and Plan
 
-Date: 2026-07-20. Status: research input plus a first implementation pass (see
-the implementation log at the end). No scores below are new evidence; no
-benchmark measurement has been run against the implemented changes yet. Sources: full repo exploration
+Date: 2026-07-20, updated through 2026-07-31. Status: research, implementation,
+and explicitly labeled benchmark experiments (see the implementation log).
+Historical claims whose raw artifacts are absent are not treated as
+reproducible current evidence. Sources: full repo exploration
 (recall/write/eval/task-board), the Claude Code source snapshot under
 `third-party/claude-code-main`, and external web/paper research (benchmarks
 SOTA + memory-system architectures, cited inline). All external effect sizes
@@ -1215,7 +1216,8 @@ board's deliberate wording.
   rerank-pool verification belongs to the Phase 74 workstream; the local
   cross-encoder (R10.3) stays an optional future build.
 
-- **R8 (2026-07-26) — built, opt-in, measurement owed.** Multi-hop
+- **R8 (2026-07-26 historical implementation; raw reports no longer
+  available).** Multi-hop
   recall gains evidence-conditioned sub-query generation:
   `adapters.followUpQueryGenerator` plugs into `iterativeRecall`'s
   existing `expandQuery` seam — it reads hop-1 evidence and writes one
@@ -1232,9 +1234,10 @@ board's deliberate wording.
   cue baseline, not the naked one, and the R6×R7 stacking negative
   warns that hop-2 candidates contest the same budget.
 
-  **R8 measurement (2026-07-26, paired, two conversations, zero
-  failures): follow-up generation is a REAL, COMPOSING multi-hop lever —
-  it clears the family bar ON TOP of cues.** Instrument:
+  **R8 historical reported measurement (2026-07-26, paired, two
+  conversations, zero
+  failures): follow-up generation was reported as a composing multi-hop
+  lever on top of cues.** Instrument:
   `--follow-up-queries` (requires `--multihop`) wires the provider
   generator into recall. conv-26: follow-up vs base +12.19pt overall
   (multi_hop +3.91; lexical bridging manages only +1.30); **stacked on
@@ -1248,7 +1251,9 @@ board's deliberate wording.
   cost and the noise rise keep it off the preset default until the
   answer-side conversion and a noisy-full-recall protection pass are
   run (the R2 taxonomy warns noise-sensitive scoring can eat the recall
-  gain).
+  gain). The underlying `/private/tmp` reports were never committed and
+  no longer exist. The numbers remain provenance for the next experiment,
+  not a currently reproducible scored artifact.
 
   **R5 verdict CORRECTED (2026-07-26):** the −6.28pt episodic-ingest
   result was confounded — the live factory call never passed
@@ -1293,13 +1298,284 @@ Every recommendation now has a resolved disposition:
   unreproducible — LoCoMo-profile-only reranking stands). **R12.3** run 2026-07-26 (paraphrase probe: R6 anti-fragile, +28.4pt
   under paraphrase); R12's other items are release-process practices
   (multi-seed and fixed confounds already policy in the Phase 74 gate).
-  **R8 / R10** unstarted Stage E/F builds — untouched by this pass and explicitly out
-  of its scope; they are the remaining open build queue now that the R6
-  production-stack question is settled.
+  The final sentence in the original closeout called **R8 / R10**
+  "unstarted" even though the same log records both as built or
+  dispositioned. That sentence was stale and is superseded by the explicit
+  per-item dispositions above.
 
 Verification at close: unit+integration sweep 5105 pass / typecheck clean
 (the only failure is a parallel workstream's uncommitted in-flight file,
 `codex-coding-effect.c6-package-closure-materializer-cli.test.ts`).
+
+### Source audit and paper refresh (2026-07-30)
+
+This pass answers a narrower question than a leaderboard comparison: when
+another memory system reports a higher number, which part is an architectural
+signal that GoodMemory should test, and which part comes from a different
+answer model, judge, context budget, prompt, split, or unavailable managed
+implementation?
+
+#### Reproducible source/protocol audit
+
+All conclusions below are tied to immutable source revisions. A headline is not
+treated as a GoodMemory regression unless the question set, answer model,
+judge, prompt, retrieved-context budget, and scoring contract match.
+
+| System | Locked evidence and reported result | Why the headline is not directly comparable | Mechanism worth testing in GoodMemory |
+| --- | --- | --- | --- |
+| Hindsight | Core [`a90f922`](https://github.com/vectorize-io/hindsight/tree/a90f9223765af3c8ad5692ce2b9fa22efbb656ba), AMB [`aa9273a`](https://github.com/vectorize-io/agent-memory-benchmark/tree/aa9273ab9e34bbeaff3c6ef2f694142a552d5b22): LongMemEval 473/500 (0.946), LoCoMo 1417/1540 (0.9201) | The published artifacts use Gemini 3.1 Pro for answers, Gemini 2.5 Flash Lite for judging/extraction, and average retrieved contexts of about 43.6K / 36.2K tokens. The source permits up to 32,768 fact tokens plus 16,384 raw-chunk tokens. This is not GoodMemory's frozen model/judge/budget protocol. | Four independently admitting semantic, BM25, graph, and temporal arms; true union by RRF; time-bucket coverage; bounded reranking; structured facts retaining raw-source fallback. |
+| Mem0 Platform v3 | Core [`760dca6`](https://github.com/mem0ai/mem0/tree/760dca6f391277d79c3c7d2096c1bf1d037526c3), benchmark [`4b61c5d`](https://github.com/mem0ai/memory-benchmarks/tree/4b61c5d31b9c668a12b4f5e78064248a02c82d2b): README says LongMemEval 0.944/0.948 and LoCoMo 0.925/0.918 at top-200/top-50 | The claims are for the managed v3 platform. The pinned per-question artifacts are older and lower (LongMemEval 0.934/0.904; LoCoMo 0.9156/0.8266), the latest change does not include matching new outputs, managed temporal APIs are not implemented in the OSS path, and the benchmark answer/judge prompts contain benchmark-specific answer rules and a deliberately permissive judge. | Completeness-biased additive extraction and entity linking are plausible write-side ablations. Do not copy the prompt literals or call its semantic-candidate reranking a true hybrid admission union. |
+| LazyMem | Source [`af41099`](https://github.com/allacnobug/LazyMem/tree/af4109960aacb90d6dba994e9103a36a165cc380), paper [arXiv:2607.22690](https://arxiv.org/abs/2607.22690): 0.85 on a LongMemEval 100-question test split and 0.68 on a 314-question LoCoMo subset | It does not score the official full LongMemEval-500 or LoCoMo-1540 protocols. Its 360/40/100 LongMemEval split trains and selects a query-conditioned 4B policy with gold-support supervision; datasets, weights, annotations, checkpoints, and result artifacts are not released. | Broad dense+BM25 RRF union, neighbor-window restoration, then query-time KEEP/compress/deduplicate/chronological assembly over raw history. Test the inference contract before considering any trained controller. |
+| swafra | Source [`669e7bd`](https://github.com/kunal12203/swafra/tree/669e7bdbcbcd421deb172a05f8fe52b741c0e915), advertised 94.7% | The number is session-retrieval recall, skips abstention, and is not end-to-end answer QA. | No score-driven change. Its result is useful only as another reminder to keep retrieval, answer conversion, and abstention metrics separate. |
+
+The most important negative finding is that there is no missing universal
+"graph memory" primitive. GoodMemory already has independent generalized
+fusion, entity adjacency, temporal/claim projections, episodes, raw evidence,
+iterative follow-up, and a listwise reranker. Adding a new graph database,
+service, or parallel memory truth would duplicate existing boundaries without
+explaining the remaining LoCoMo open-domain/multi-hop misses.
+
+The most useful competitor delta is narrower:
+
+1. Hindsight protects admission diversity and temporal coverage before
+   reranking. GoodMemory should test time-bucket coverage inside the existing
+   candidate arms, not import Hindsight's storage stack.
+2. LazyMem separates broad lossless retrieval from query-time evidence
+   construction. GoodMemory should test a bounded evidence refinery over the
+   existing candidate set, always retaining raw-source pointers and a fallback.
+3. Mem0's high managed score is a protocol/configuration lead, not evidence
+   that its OSS retrieval architecture is stronger. Its completeness-oriented
+   extraction is testable; its benchmark-specific answer literals are not.
+
+#### What the newer papers change
+
+| Paper | General lesson | GoodMemory interpretation |
+| --- | --- | --- |
+| [S2G-RAG](https://arxiv.org/abs/2604.23783) | Retrieval should stop on structured sufficiency and expose missing information slots. | Add a missing-slot/stop decision to the already bounded R8 follow-up loop; do not add another retrieval controller. Its gold-support training means the contract, not its headline, is transferable. |
+| [Over-Searching](https://aclanthology.org/2026.eacl-long.361/) | Extra search can improve answerable questions while hurting abstention and noise robustness. | Every multi-hop recall gain must report calls, added noise, answer conversion, and abstention protection. R8's +3–4 turns/query is an unresolved cost, not a footnote. |
+| [SURE-RAG](https://arxiv.org/abs/2605.03534) | Interpretable sufficiency signals can beat fixed retrieval depth in-domain, but external results can reverse. | Start with deterministic evidence coverage and missing slots; do not train a benchmark-fitted classifier first. |
+| [TrustMem](https://arxiv.org/abs/2606.25161) | Memory writes need coverage, preservation, and faithfulness checks. | Reuse the contract for derived observation writes only. Do not put an LLM verifier or RL loop on explicit/raw memory. |
+| [MemoryArena](https://arxiv.org/abs/2602.16313) | Systems near saturation on static recall can still fail interdependent agent tasks. | Protect against optimizing only LoCoMo/LongMemEval. Agentic task success belongs in the promotion gate. |
+| [LongMemEval-v2](https://arxiv.org/abs/2605.12493) | Stronger tests emphasize context gathering and substantially larger histories. | Use it as a generalization/protection family before promoting a benchmark-tuned read path. |
+| [MemDelta](https://arxiv.org/abs/2606.29914) | Backbone/embedding changes can move memory scores materially. | Freeze answerer, judge, embedding, prompt, temperature, top-k, and token/call budget before attributing a delta to memory. |
+| [Useful memories become faulty](https://arxiv.org/abs/2605.12978) | Rewriting a useful memory can convert it into a future fault. | Prefer additive derived observations with provenance over destructive canonical rewriting. |
+
+No reviewed paper demonstrates one mechanism improving every benchmark family.
+The evidence instead supports selective retrieval, explicit sufficiency, and
+non-destructive evidence preservation, each with a protection suite.
+
+#### Next experiment queue (minimal, ordered)
+
+1. **R8 sufficiency gate:** on the existing follow-up-query path, compare the
+   current fixed hop bound with a structured evidence-sufficiency/missing-slot
+   stop gate. Primary metrics: multi-hop answer accuracy, added turns, provider
+   calls, latency, and adversarial abstention.
+2. **Current-value assembly isolation:** hold the candidate ids and order fixed;
+   compare raw-turn assembly with claim/current-value assembly. This isolates
+   answer conversion from retrieval and avoids taking credit for a different
+   candidate pool.
+3. **Risk/coverage curve:** turn the existing EvidenceLedger signals into a
+   scored selective-answer analysis. Report accuracy versus coverage rather
+   than selecting a single threshold on the target set.
+4. **Evidence-refinery factorial:** raw only; raw+atomic; raw+episode;
+   raw+observation; and raw+query-time refinement. Include a shuffled
+   observation negative control and always keep a raw fallback.
+5. **Derived-write transition verifier:** verify only observation/consolidation
+   transitions for coverage, preservation, and faithfulness. Do not place it
+   on explicit facts or raw source retention.
+
+Promotion rules for all five:
+
+- no benchmark name, category, gold answer/evidence, case id, or literal answer
+  rule in runtime code;
+- freeze source commit/fingerprint, model, judge, embedding, prompt,
+  temperature, top-k, token budget, call budget, and candidate ids as
+  appropriate;
+- change one variable and report retrieval, answer, and write-side attribution
+  separately;
+- use paired bootstrap or McNemar where applicable; repeat nondeterministic
+  arms three times and across two model families before a default change;
+- promote only when at least two benchmark families move in the same direction
+  and abstention, temporal/update, noisy-recall, and agentic protections hold.
+
+#### Runtime defect found by the research replay
+
+The full-root concurrent LoCoMo diagnostic exposed a general runtime bug rather
+than a score lever: query-time `factKind` / `scopeKind` inference and fallback
+`subject` materialization were being spread into the recall result and then
+persisted by the low-risk access touch. That changed canonical projection input
+during concurrent reads, repeatedly rotated the scope manifest, and caused
+projection compare-and-set failures.
+
+The fix keeps query-time classification in the returned recall view, reloads
+the canonical fact before persisting only touch metadata, treats fact/feedback
+touch counters as projection-neutral, serializes deferred same-source writes,
+and reuses an already-dirty generation for the same projection build. The
+focused touch/projection suite is 72/72 green, typecheck is clean, and the
+previously failing fixed LoCoMo conversation completed 199/199 questions at
+concurrency 10 with `executionFailures: 0`. The fixed full-10 replay then
+completed 1,986/1,986 questions at concurrency 10 with
+`executionFailures: 0`.
+
+The canonical `bun test` sweep completed with 6,067 pass, 52 skip, and 18
+failures. The three C6 protocol-readiness timeouts passed 3/3 when rerun alone.
+The remaining 15 failures are outside the changed recall/projection paths: six
+require Bun 1.3.12 while the local runtime is 1.3.11, eight require the absent
+frozen C6 reviewer-actor root under `/private/tmp`, and one existing C6
+source-v4 fixture reaches a clean `git commit` with nothing to commit. The
+repository therefore is not reported as globally green.
+
+This is runtime/recovery proof only. Concurrency changes the order in which
+touch metadata becomes visible to later questions, so this run is not a valid
+retrieval-score comparison and creates no new benchmark or public claim.
+
+### R8 structured-sufficiency experiment (2026-07-31)
+
+This experiment implemented the first item in the refreshed queue and then
+stopped when its held-out result failed the promotion rule. It did not add a
+controller, service, database, benchmark label, category label, gold answer, or
+gold-evidence input.
+
+#### Contract and obvious defects fixed first
+
+- The old `string | null` follow-up result conflated “the evidence is
+  sufficient,” “no useful query exists,” and “the provider failed.” It was
+  replaced cleanly by one discriminated decision:
+  `sufficient:true + missingSlots:[]`, or
+  `sufficient:false + missingSlots:[one standalone retrieval query]`.
+  Provider failure remains `null` internally and is traced as
+  `decision_unavailable`; there is no legacy union or duplicate
+  `followUpQuery` field.
+- A third-hop decision previously saw only the latest hop. Iterative recall now
+  supplies cumulative evidence.
+- `no_new_evidence` previously deduplicated by content, incorrectly collapsing
+  different fact IDs with identical text (a real temporal/provenance case).
+  It now uses fact identity.
+- The Phase 65 resume fingerprint omitted the follow-up arm, so a checkpoint
+  from a non-follow-up run could be reused by a follow-up run. Follow-up-only
+  retrieval runs also did not checkpoint despite paid provider calls. The
+  report/checkpoint contract now records an explicit
+  `off | query_only | structured_sufficiency` mode and enables checkpointing
+  for both provider-backed modes.
+- Each question now records the bounded decision trace: hop queries, fact
+  counts, sufficiency decision, stop reason, and logical decision-call count.
+  This is enough to distinguish early sufficiency, unchanged queries,
+  no-new-evidence stops, and provider failure. Transport retries/tokens are not
+  yet exposed by the provider runtime and are not claimed.
+- The first full-suite replay exposed one runner regression: trace collection
+  assumed every valid/custom recall result had `metadata`, so three packet-mode
+  questions were converted into false recall failures. The collector now
+  treats absent metadata as “no follow-up trace”; the isolated packet and
+  concurrency regression is green.
+
+The generic v2 prompt requires explicit support for every part of the question,
+forbids filling omitted links from outside knowledge, and requires a missing
+slot to differ from the original question and target exactly one unresolved
+entity/value/relation. A source-level regression test forbids benchmark names,
+category labels, and gold fields in the request.
+
+Protocol freeze:
+
+- repository HEAD: `11fb12590d8f70e942934cbfd1b227f09dc46682`;
+- five-file runtime/runner content fingerprint:
+  `ded4ba981c95fe9a015c2cba1c2d126b23fee6950f5d59443edd7ed70df59991`;
+- normalized LoCoMo fingerprint:
+  `87abd829cbb3bd5110f80ae1df6c42338ca338b131fac48919ed171d46cb7692`;
+- `cases.json` SHA-256:
+  `edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d`;
+- retrieval: generalized fusion, no retrieval cues, max two passes, one
+  logical follow-up call per question, concurrency 1–2;
+- non-judge model: `gpt-5.6-terra` through the configured Gurki gateway;
+- all recorded runs had zero execution failures.
+
+The no-cues profile was intentional for the first mechanism isolation. It is
+not comparable to the historical on-top-of-cues R8 numbers and cannot validate
+that deleted artifact.
+
+#### Development slice and one allowed prompt correction
+
+On conv-26 + conv-30 multi-hop (n=43), historical query-only produced evidence
+recall `0.13450` with 603 noise turns. Structured v1 produced `0.08605` with
+495 noise turns: noise improved by 108 turns (`-2.51/question`), but recall
+regressed by **4.85pt**. Its trace exposed five sufficiency stops and eight
+unchanged-query stops. A small conv-30 answer replay was `0/11` query-only
+versus `1/11` structured, but one nondeterministic 11-question replay is not
+confirmatory evidence.
+
+One mechanism-level correction was allowed before freezing the held-out slice:
+the prompt made explicit support the sufficiency criterion and prohibited
+restating the original question. No benchmark result, answer, evidence label,
+or case-specific literal entered the prompt.
+
+#### Held-out result and disposition
+
+Conv-41 multi-hop (n=31) was not inspected before the v2 prompt was frozen:
+
+| Arm | Evidence recall | Fully retrieved | Noise turns | Logical decision calls |
+| --- | ---: | ---: | ---: | ---: |
+| single pass | 0.11398 | 1 | 301 | 0 |
+| historical query-only | 0.20000 | 1 | 455 | 31 |
+| structured sufficiency v2 | 0.16774 | 2 | 438 | 31 |
+
+Structured v2 remained better than single pass (`+5.38pt` recall), confirming
+that a second hop is useful. It was nevertheless worse than query-only by
+**3.23pt**, while removing only 17 noise turns (`-0.55/question`). Its stops
+were 26 max-hop, two no-new-evidence, two sufficient (one without full gold
+evidence), and one unchanged query. Query-only had 29 max-hop, one
+no-new-evidence, and one sufficient stop.
+
+Disposition: **reject structured sufficiency as a default or score
+improvement.** Keep the explicit opt-in experiment contract and telemetry, but
+do not tune the prompt again on LoCoMo, do not expand to the full dataset, and
+do not make a public benchmark claim. The existing query-only R8 arm remains
+the stronger multi-hop treatment under this protocol; its answer conversion,
+on-top-of-cues reproduction, latency, and protection requirements remain open.
+
+#### Verification boundary
+
+- `bun run typecheck`: passed.
+- Seven focused decision/iterative-recall/runner files: 93 passed, 0 failed.
+- Packet context/concurrency regression after the metadata fix: 2 passed,
+  0 failed.
+- The canonical full sweep before that one-line fix completed with 6,075 pass,
+  52 skip, and 16 fail across 6,143 tests. The LoCoMo failure reproduced alone
+  and is the packet regression fixed above. The remaining 15 failures are the
+  same C6 environment/evidence prerequisites outside these paths: six require
+  Bun 1.3.12 while this machine has 1.3.11, eight require the absent frozen
+  reviewer-actor root under `/private/tmp`, and one source-v4 fixture reaches a
+  clean `git commit` with nothing to commit. The 15-minute full sweep was not
+  rerun after the isolated fix, so the repository is still not reported as
+  globally green.
+
+#### Additional paper mechanisms reviewed
+
+- [DynaKRAG](https://arxiv.org/abs/2607.06507) supports separating valid actions
+  from learned utility, but its controller uses dataset-specific gold-support
+  supervision. GoodMemory should keep hard validity rules and not add a learned
+  controller while the simple gate fails held-out.
+- [Don’t Ask the LLM to Track Freshness](https://arxiv.org/abs/2606.01435)
+  supports authoritative version resolution after retrieval, but its own
+  LongMemEval counterexample shows that `max(timestamp)` is not universal.
+  The next experiment must compare LLM, authoritative-order, and
+  hybrid-abstain assembly over the exact same candidates.
+- [NEMORI](https://arxiv.org/abs/2508.03341) makes prediction-error residuals a
+  plausible semantic-memory treatment, but its LongMemEval knowledge-update
+  regression makes KU a mandatory kill-rule protection.
+- [TriMem](https://arxiv.org/abs/2605.19952) supports raw-source + atomic fact +
+  profile layering, but its prompt optimization consumes LoCoMo evaluation
+  outputs. Only the representation factorial transfers; the optimized prompt
+  and headline do not.
+- [Zep/Graphiti](https://arxiv.org/abs/2501.13956) supports bitemporal
+  invalidation with history retention, but its published pipeline changes
+  extraction, graph construction, reranking, and context together. GoodMemory
+  should isolate valid-time filtering on a frozen candidate pool.
+- [Supersede](https://arxiv.org/abs/2606.27472) is useful as an update-pressure
+  probe, not a reason to add RL. First run bounded-context current/history,
+  late-arrival, retraction, and equal-time cases against the existing claim
+  projection.
+
+The next priority is therefore the already-planned current-value/temporal
+assembly isolation, not another R8 prompt iteration.
 
 ## 8. Primary sources
 

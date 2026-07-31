@@ -98,7 +98,7 @@ describe("phase-65 LoCoMo smoke adapter", () => {
       entityPageRank: false,
       episodicIngest: false,
       evidencePack: false,
-      followUpQueries: false,
+      followUpMode: "off",
       fusionMinRelativeStrength: undefined,
       limit: 2,
       live: false,
@@ -3004,14 +3004,28 @@ describe("phase-65 LoCoMo smoke adapter", () => {
     ).toThrow(/--generalized-fusion/);
   });
 
-  it("parses --follow-up-queries and requires --multihop", () => {
+  it("parses distinct follow-up modes and requires --multihop", () => {
     expect(
       parseLocomoSmokeCliOptions(["--multihop", "--follow-up-queries"])
-        .followUpQueries,
-    ).toBe(true);
+        .followUpMode,
+    ).toBe("query_only");
+    expect(
+      parseLocomoSmokeCliOptions(["--multihop", "--follow-up-sufficiency"])
+        .followUpMode,
+    ).toBe("structured_sufficiency");
     expect(() =>
       parseLocomoSmokeCliOptions(["--follow-up-queries"]),
     ).toThrow(/--multihop/);
+    expect(() =>
+      parseLocomoSmokeCliOptions(["--follow-up-sufficiency"]),
+    ).toThrow(/--multihop/);
+    expect(() =>
+      parseLocomoSmokeCliOptions([
+        "--multihop",
+        "--follow-up-queries",
+        "--follow-up-sufficiency",
+      ]),
+    ).toThrow(/mutually exclusive/);
   });
 
   it("records --episodic-ingest in the report", async () => {
@@ -3404,6 +3418,61 @@ describe("phase-65 LoCoMo resume checkpoint + extraction cache", () => {
     );
   });
 
+  it("checkpoints follow-up-query retrieval-only runs", async () => {
+    const followUpRunId = "run-locomo-follow-up-checkpoint";
+    const followUpProgressPath = join(
+      outputDir,
+      followUpRunId,
+      "live-progress.jsonl",
+    );
+    const lines: string[] = [];
+    let progressSeed = "";
+    const report = await runLocomoSmoke(
+      {
+        followUpMode: "structured_sufficiency",
+        multiHop: true,
+        outputDir,
+        runId: followUpRunId,
+      },
+      {
+        appendFile: async (_path, data) => {
+          lines.push(data);
+        },
+        createMemory: () =>
+          createLocomoSmokeMemory({
+            followUpDecisionAdapter: {
+              async generate() {
+                return {
+                  missingSlots: [],
+                  sufficient: true,
+                };
+              },
+            },
+          }),
+        mkdir: async () => undefined,
+        writeFile: (async (path: string, data: string) => {
+          if (path === followUpProgressPath) {
+            progressSeed = data;
+          }
+        }) as never,
+      },
+    );
+
+    expect(report.mode).toBe("retrieval-only");
+    expect(progressSeed).toContain(
+      '"followUpMode":"structured_sufficiency"',
+    );
+    expect(lines).toHaveLength(report.questionCount);
+    expect(
+      report.cases.every(
+        (entry) =>
+          entry.followUpTrace?.logicalDecisionCalls === 1 &&
+          entry.followUpTrace.queryExecutions[0]?.stopReason ===
+            "evidence_sufficient",
+      ),
+    ).toBe(true);
+  });
+
   it("retains failed seed rows in the report without checkpointing them", async () => {
     const failedRunId = "run-locomo-seed-failure-retention";
     const failedProgressPath = join(outputDir, failedRunId, "live-progress.jsonl");
@@ -3647,6 +3716,61 @@ describe("phase-65 LoCoMo resume checkpoint + extraction cache", () => {
           readFile: async (path) => {
             if (path === progressPath) {
               return progress;
+            }
+            throw new Error(`unexpected read: ${path}`);
+          },
+          writeFile: (async () => undefined) as never,
+        },
+      ),
+    ).rejects.toThrow("LoCoMo progress config fingerprint mismatch");
+  });
+
+  it("rejects resume reuse across the follow-up-query experiment boundary", async () => {
+    const followUpRunId = "run-locomo-follow-up-resume-boundary";
+    const followUpProgressPath = join(
+      outputDir,
+      followUpRunId,
+      "live-progress.jsonl",
+    );
+    const lines: string[] = [];
+    let progressSeed = "";
+    await runLocomoSmoke(
+      {
+        multiHop: true,
+        outputDir,
+        runId: followUpRunId,
+      },
+      {
+        answerGenerator,
+        appendFile: async (_path, data) => {
+          lines.push(data);
+        },
+        mkdir: async () => undefined,
+        writeFile: (async (path: string, data: string) => {
+          if (path === followUpProgressPath) {
+            progressSeed = data;
+          }
+        }) as never,
+      },
+    );
+
+    await expect(
+      runLocomoSmoke(
+        {
+          followUpMode: "structured_sufficiency",
+          multiHop: true,
+          outputDir,
+          resume: true,
+          runId: followUpRunId,
+        },
+        {
+          answerGenerator,
+          appendFile: async () => undefined,
+          createMemory: () => createLocomoSmokeMemory(),
+          mkdir: async () => undefined,
+          readFile: async (path) => {
+            if (path === followUpProgressPath) {
+              return `${progressSeed}${lines.join("")}`;
             }
             throw new Error(`unexpected read: ${path}`);
           },

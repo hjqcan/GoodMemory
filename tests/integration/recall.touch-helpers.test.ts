@@ -4,6 +4,7 @@ import {
   createFactMemory,
   createFeedbackMemory,
 } from "../../src/domain/records";
+import type { FactMemory } from "../../src/domain/records";
 import { createGoodMemory } from "../../src";
 import {
   createInMemoryDocumentStore,
@@ -301,6 +302,69 @@ describe("recall touch helpers", () => {
     expect(recallExperience?.metrics.touchedFactCount).toBe(1);
     expect(recallExperience?.metrics.reinforcedFeedbackCount).toBe(1);
     expect(recallExperience?.summary).toContain("touched 1 fact counter");
+  });
+
+  it("does not persist query-time fact classification during a recall touch", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const sessionStore = createInMemorySessionStore();
+    const now = new Date("2026-01-10T00:00:00.000Z");
+    const memory = createGoodMemory({
+      storage: { provider: "memory" },
+      adapters: {
+        documentStore,
+        sessionStore,
+      },
+      testing: {
+        now: () => now,
+      },
+    });
+
+    const canonicalFact = createFactMemory({
+      id: "fact-derived-classification",
+      userId: "u-1",
+      workspaceId: "workspace-a",
+      category: "project",
+      content: "The runtime rollout is blocked by legal signoff.",
+      source: {
+        method: "explicit",
+        extractedAt: "2026-01-01T00:00:00.000Z",
+      },
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    await documentStore.set(
+      "facts",
+      canonicalFact.id,
+      canonicalFact,
+    );
+
+    const result = await memory.recall({
+      scope: { userId: "u-1", workspaceId: "workspace-a" },
+      query: "What is blocking the runtime rollout?",
+      retrievalProfile: "coding_agent",
+    });
+    const recalledFact = result.facts.find(
+      (fact) => fact.id === canonicalFact.id,
+    );
+    const persistedFact = await documentStore.get<FactMemory>(
+      "facts",
+      canonicalFact.id,
+    );
+
+    expect(recalledFact).toMatchObject({
+      accessCount: 1,
+      factKind: "blocker",
+      lastAccessedAt: "2026-01-10T00:00:00.000Z",
+      scopeKind: "project",
+      subject: "unknown",
+    });
+    expect(persistedFact).toMatchObject({
+      accessCount: 1,
+      lastAccessedAt: "2026-01-10T00:00:00.000Z",
+    });
+    expect(persistedFact?.factKind).toBeUndefined();
+    expect(persistedFact?.scopeKind).toBeUndefined();
+    expect(persistedFact?.subject).toBeUndefined();
   });
 
   it("does not reinforce fact access when the same recall raises a verification hint", async () => {

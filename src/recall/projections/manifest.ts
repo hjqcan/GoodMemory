@@ -74,6 +74,7 @@ function isValidManifest(
 }
 
 function dirtyManifest(
+  buildId: string,
   scope: MemoryScope,
   timestamp: string,
 ): RecallProjectionManifest {
@@ -85,6 +86,7 @@ function dirtyManifest(
     ...normalized,
     scopeKey,
     sourceGeneration: randomUUID(),
+    projectionBuildId: buildId,
     updatedAt: timestamp,
   };
 }
@@ -121,7 +123,7 @@ export function createProjectionManifestTracker(input: {
       });
       set.push({
         collection: PROJECTION_MANIFESTS_COLLECTION,
-        document: dirtyManifest(scope, now()),
+        document: dirtyManifest(buildId, scope, now()),
         id,
       });
     }
@@ -156,6 +158,17 @@ export function createProjectionManifestTracker(input: {
     async beginValidation(scope) {
       if (!buildId) {
         return null;
+      }
+      const existing = await documentStore.get<RecallProjectionManifest>(
+        PROJECTION_MANIFESTS_COLLECTION,
+        manifestId(scope),
+      );
+      if (
+        existing?.schemaVersion === 1 &&
+        existing.projectionBuildId === buildId &&
+        existing.validatedGeneration !== existing.sourceGeneration
+      ) {
+        return existing;
       }
       await invalidate(scope);
       return documentStore.get<RecallProjectionManifest>(

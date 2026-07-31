@@ -36,6 +36,7 @@ import type { GoodMemoryPolicyHooks } from "../policy/hooks";
 import type { MemoryPacket } from "../recall/contextBuilder";
 import type { EvidenceLedgerEntry } from "../recall/evidenceLedger";
 import type { GeneralizedFusionChannel } from "../recall/generalizedFusion";
+import type { FollowUpDecision } from "../recall/iterativeRecall";
 import type { RecallPlanAssistant } from "../recall/recallPlan";
 import type {
   RecallCandidateTrace,
@@ -201,15 +202,14 @@ export interface GoodMemoryConfig {
         subject?: string;
       }): Promise<string[]>;
     };
-    // R8 opt-in: evidence-conditioned multi-hop follow-up queries. When
-    // configured, multi-hop recall generates one focused sub-query from
-    // hop-1 evidence (null = stop) instead of lexical bridge expansion.
-    followUpQueryGenerator?: {
+    // R8 opt-in: evidence-conditioned multi-hop sufficiency decisions. A
+    // decision may continue only by naming one focused missing-slot query.
+    followUpDecisionGenerator?: {
       generate(input: {
         evidence: readonly string[];
         hop: number;
         query: string;
-      }): Promise<string | null>;
+      }): Promise<FollowUpDecision>;
     };
     // R9 opt-in synthesizer for the observationSynthesis maintenance job:
     // one compact observation memory per subject with enough active facts,

@@ -194,6 +194,7 @@ export function buildLocomoUnionLiveReport(input: {
     generatedBy: LOCOMO_UNION_LIVE_REPORT_WRITER,
     generalizedFusion: false,
     generalizedFusionConfig: null,
+    followUpMode: "off",
     ingestMode:
       input.withExtraction && !input.noMemory
         ? "conversational-extraction"
@@ -214,6 +215,7 @@ export function buildLocomoUnionLiveReport(input: {
       bm25Ranking: false,
       corefNormalize: false,
       decompose: false,
+      followUpMode: "off",
       generalizedFusion: false,
       labelFreeIngest: true,
       multiHop: false,

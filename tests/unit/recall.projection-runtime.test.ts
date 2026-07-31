@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 
-import { createFactMemory } from "../../src/domain/records";
+import {
+  createFactMemory,
+  createFeedbackMemory,
+} from "../../src/domain/records";
 import { scopeToKey } from "../../src/domain/scope";
 import {
   createEvidenceRecord,
@@ -2087,6 +2090,167 @@ describe("recall projection runtime", () => {
       `scope:${scopeToKey({ ...scope, sessionId: undefined })}`,
     );
     expect(manifest?.validatedGeneration).not.toBe(manifest?.sourceGeneration);
+  });
+
+  it("keeps persistent proof valid for recall-only fact touch metadata", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const runtime = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      now: () => NOW,
+      persistentScopeProof: { buildId: "projection-build-a" },
+    });
+    const fact = buildFact({ id: "fact-recall-touch" });
+    await runtime.documentStore.set("facts", fact.id, fact);
+    await runtime.ensureScopeIndexed(scope);
+    const manifestId = `scope:${scopeToKey({
+      ...scope,
+      sessionId: undefined,
+    })}`;
+    const sealed = await rawStore.get<RecallProjectionManifest>(
+      PROJECTION_MANIFESTS_COLLECTION,
+      manifestId,
+    );
+
+    await runtime.documentStore.set("facts", fact.id, {
+      ...fact,
+      accessCount: fact.accessCount + 1,
+      lastAccessedAt: NOW,
+    });
+
+    expect(
+      await rawStore.get(PROJECTION_MANIFESTS_COLLECTION, manifestId),
+    ).toEqual(sealed);
+    expect(await runtime.ensureScopeIndexed(scope)).toMatchObject({
+      complete: true,
+      indexedSources: 0,
+      skipped: true,
+    });
+    expect(await rawStore.get("facts", fact.id)).toMatchObject({
+      accessCount: fact.accessCount + 1,
+      lastAccessedAt: NOW,
+    });
+  });
+
+  it("keeps persistent proof valid for recall-only feedback usage metadata", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const runtime = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      now: () => NOW,
+      persistentScopeProof: { buildId: "projection-build-a" },
+    });
+    const feedback = createFeedbackMemory({
+      ...scope,
+      id: "feedback-recall-touch",
+      kind: "do",
+      rule: "Keep the rollout summary concise.",
+      source: { extractedAt: NOW, method: "explicit" },
+    });
+    await runtime.documentStore.set("feedback", feedback.id, feedback);
+    await runtime.ensureScopeIndexed(scope);
+    const manifestId = `scope:${scopeToKey({
+      ...scope,
+      sessionId: undefined,
+    })}`;
+    const sealed = await rawStore.get<RecallProjectionManifest>(
+      PROJECTION_MANIFESTS_COLLECTION,
+      manifestId,
+    );
+
+    await runtime.documentStore.set("feedback", feedback.id, {
+      ...feedback,
+      lastUsedAt: NOW,
+    });
+
+    expect(
+      await rawStore.get(PROJECTION_MANIFESTS_COLLECTION, manifestId),
+    ).toEqual(sealed);
+    expect(await runtime.ensureScopeIndexed(scope)).toMatchObject({
+      complete: true,
+      indexedSources: 0,
+      skipped: true,
+    });
+  });
+
+  it("serializes concurrent recall-only touches in deferred projection mode", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const runtime = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      now: () => NOW,
+      persistentScopeProof: { buildId: "projection-build-a" },
+      writeThrough: false,
+    });
+    const fact = buildFact({ id: "fact-concurrent-recall-touch" });
+    await runtime.documentStore.set("facts", fact.id, fact);
+    await runtime.ensureScopeIndexed(scope);
+    const manifestId = `scope:${scopeToKey({
+      ...scope,
+      sessionId: undefined,
+    })}`;
+    const sealed = await rawStore.get<RecallProjectionManifest>(
+      PROJECTION_MANIFESTS_COLLECTION,
+      manifestId,
+    );
+
+    await Promise.all(
+      Array.from({ length: 16 }, (_, index) =>
+        runtime.documentStore.set("facts", fact.id, {
+          ...fact,
+          accessCount: fact.accessCount + 1,
+          lastAccessedAt: `2026-07-09T12:00:${String(index).padStart(2, "0")}.000Z`,
+        })
+      ),
+    );
+
+    expect(
+      await rawStore.get(PROJECTION_MANIFESTS_COLLECTION, manifestId),
+    ).toEqual(sealed);
+    expect(await runtime.ensureScopeIndexed(scope)).toMatchObject({
+      complete: true,
+      indexedSources: 0,
+      skipped: true,
+    });
+  });
+
+  it("reuses an already dirty generation when rebuilding persistent proof", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const runtime = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      now: () => NOW,
+      persistentScopeProof: { buildId: "projection-build-a" },
+    });
+    const fact = buildFact({ id: "fact-dirty-generation" });
+    await runtime.documentStore.set("facts", fact.id, fact);
+    await runtime.ensureScopeIndexed(scope);
+    const manifestId = `scope:${scopeToKey({
+      ...scope,
+      sessionId: undefined,
+    })}`;
+
+    await runtime.documentStore.set("facts", fact.id, {
+      ...fact,
+      content: "Alice moved the Atlas migration to Lisbon.",
+    });
+    const dirty = await rawStore.get<RecallProjectionManifest>(
+      PROJECTION_MANIFESTS_COLLECTION,
+      manifestId,
+    );
+    expect(dirty?.validatedGeneration).not.toBe(dirty?.sourceGeneration);
+
+    expect(await runtime.ensureScopeIndexed(scope)).toMatchObject({
+      complete: true,
+      skipped: false,
+    });
+    const sealed = await rawStore.get<RecallProjectionManifest>(
+      PROJECTION_MANIFESTS_COLLECTION,
+      manifestId,
+    );
+    expect(sealed?.sourceGeneration).toBe(dirty?.sourceGeneration);
+    expect(sealed?.validatedGeneration).toBe(sealed?.sourceGeneration);
+    expect(
+      (await runtime.queryDocuments(scope)).some(({ text }) =>
+        text.includes("Lisbon")
+      ),
+    ).toBe(true);
   });
 
   it("allows deletion-owned manifest invalidation under the scope lock", async () => {

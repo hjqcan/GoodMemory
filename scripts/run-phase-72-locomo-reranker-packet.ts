@@ -768,6 +768,7 @@ async function main(): Promise<void> {
         bm25Ranking: false,
         corefNormalize: false,
         decompose: false,
+        followUpMode: "off",
         generalizedFusion: true,
         labelFreeIngest: true,
         multiHop: false,
