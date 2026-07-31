@@ -844,7 +844,7 @@ cutover, and rollback contracts.
   attestation. The 39223537-byte full closure remains external. An offline
   frozen dev-dependency source build or equivalent independent attestation is
   still required before source-to-archive proof can close.
-  A subsequent v3 run completed two same-host source builds in fresh
+  A historical v3 run completed two same-host source builds in fresh
   pinned-Linux, network-none containers from two independently materialized
   copies of one frozen dev-dependency closure. Both installed 292 dependencies
   and produced the same 1035700-byte package at
@@ -861,21 +861,45 @@ cutover, and rollback contracts.
   deadlines and unconditional closure; its focused suite passes 11/11 with
   141 assertions. This is termination/integrity hardening, not an authenticated
   witness.
-  The receipt remains unauthenticated:
+  That historical receipt remains unauthenticated:
   `sourceBuildReproducible`,
   `c6PackageOfflineClosureProven`, `executionAuthenticated`,
   `externalIndependentAttestation`, and `rawExecutionWitnessIncluded` remain
-  false. Authenticated source-to-archive proof and C6-T003 therefore remain
-  open.
-  The v3 source receipt is also stale against the current worktree: it pins
-  runner-source root
-  `047e3939016d0ba646139354edad44902008183f8e0d3078ed0ab104547f4826`,
-  while current replay yields
-  `39cc7f153b2e532d9d4a2179d20d2dfc8704dee9fb05c3581ddc44c52e9d62bf`.
-  Package bytes still match, but the current source-reproducibility gate is
-  red. A fresh receipt, not an expected-hash edit, is required after source
-  freeze. The C6 package/source/Codex closure implementation and projections
-  are presently worktree-only, not landed or staged evidence.
+  false.
+  On 2026-07-31 the same public dependency acquisition was reconstructed and
+  frozen at
+  `/Users/hjqcan/workspace/GoodMemory-c6-runtime/package-source-dependency-current-v1/dependency-closure`.
+  Its asset-lock, asset-root, cache archive, content-root, and manifest hashes
+  exactly reproduce the historical frozen values:
+  `69529d6d911b28f9ce4b85b001fb568eaa4eec0521298c8d74c141db205d2840`,
+  `b3d7578afb15853626a11069f11ff22e8a3b836bf4097f460cf67f9b28f5f3e9`,
+  `c75e3b005846d33ee95f0efde5d3d088beffca0dbffe9dd3678735de41980d17`,
+  `baf131784dfb3cb9e9d086bf55f8068e463b0b00aa087a3b758057389fa66a80`,
+  and
+  `9e73f357b9e2ef1e618bb1edce42ab2edd9685699a492b19514b331b19f8dd8c`.
+  A fresh current-runner materialization at
+  `/Users/hjqcan/workspace/GoodMemory-c6-runtime/package-source-offline-current-v1`
+  then performed two fresh Linux/amd64, network-none builds. Each installed
+  292 dependencies and produced the same 1035700-byte package at
+  `5f9b98600ff024a80a7a337fa8953e162b7498bf909a67e8b217a9bba5dd2757`.
+  Receipt SHA-256 is
+  `94c1bdb4cb0c7390683dc7692242733a0883856f5be1c2a10e1977f9bdff8066`;
+  current nine-file runner-source root is
+  `5a05bff089c75a3f726c3a0c371e052a25896b13bdcccb9b96b0d2ce5b05b241`,
+  and runner protocol SHA-256 is
+  `94e43195e193f1c591287202ebfb643355496835b7703d32d5b76469b29f3389`.
+  The current external-root Phase-73 gate passes 2/2 with 14 assertions; the
+  dependency-closure, source-reproducibility, and CLI unit slice passes 31/31
+  with 329 assertions. No materializer container or temporary publication root
+  remained after the run.
+  This closes current-runner drift only. The fresh receipt still records
+  `sourceBuildReproducible: false`,
+  `c6PackageOfflineClosureProven: false`,
+  `executionAuthenticated: false`,
+  `externalIndependentAttestation: false`, and
+  `rawExecutionWitnessIncluded: false`. The full evidence roots remain local
+  and external to Git. Authenticated source-to-archive proof and C6-T003
+  therefore remain open.
   The Codex side now has both a static closure and a formal two-run
   materialization for `@openai/codex@0.145.0`. The exact package/lock,
   registry capture, main tarball, Linux x64 optional tarball, optional-
@@ -923,7 +947,7 @@ cutover, and rollback contracts.
   source-v2/package/Codex receipts and validates their internal relationships
   plus ordered hook-event metadata. Its real public path is currently red:
   current source-runner root
-  `39cc7f153b2e532d9d4a2179d20d2dfc8704dee9fb05c3581ddc44c52e9d62bf`
+  `5a05bff089c75a3f726c3a0c371e052a25896b13bdcccb9b96b0d2ce5b05b241`
   differs from retained root
   `e18b9b7ce6c7929deb20c5aa3ca394d3a779f23bfb69055b21907f2bd3d2f84f`.
   The helper explicitly leaves final composition bytes, flat-summary

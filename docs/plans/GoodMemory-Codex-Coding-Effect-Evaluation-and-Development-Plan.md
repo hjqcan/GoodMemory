@@ -2123,7 +2123,7 @@ Codex call can begin:
   `8563c9136864430772e024925811be55402f3372` remains a useful networked
   diagnostic only. It produced the expected package, but correctly retained
   false offline-closure and external-attestation fields;
-- `c6-package-source-reproducibility.ts` has since completed two same-host
+- `c6-package-source-reproducibility.ts` historically completed two same-host
   builds of that exact source in fresh pinned Linux/amd64, network-none
   containers from two independently materialized copies of one frozen
   dev-dependency closure. Both installed 292 dependencies and produced the
@@ -2148,16 +2148,40 @@ Codex call can begin:
   `externalIndependentAttestation: false`, and
   `rawExecutionWitnessIncluded: false`; authenticated source-to-archive proof
   and the final installed-host profile remain open;
-- the retained v3 receipt is not a current-tree gate pass. It pins runner
+- the retained v3 receipt is historical and pins runner
   source root
-  `047e3939016d0ba646139354edad44902008183f8e0d3078ed0ab104547f4826`,
-  while the present nine-file runner closure rebuilds as
-  `39cc7f153b2e532d9d4a2179d20d2dfc8704dee9fb05c3581ddc44c52e9d62bf`.
-  Package bytes remain equal, but the source/verifier proof chain has drifted.
-  The expected root must not be patched in place; a fresh two-run receipt is
-  required after runner-source freeze. In the current Git snapshot the
-  C6-T003 materializers, gates, and projections are worktree-only rather than
-  landed or staged evidence;
+  `047e3939016d0ba646139354edad44902008183f8e0d3078ed0ab104547f4826`.
+  On 2026-07-31 the public dependency acquisition was reconstructed and frozen
+  at
+  `/Users/hjqcan/workspace/GoodMemory-c6-runtime/package-source-dependency-current-v1/dependency-closure`.
+  Its asset-lock, asset-root, cache archive, content-root, and manifest hashes
+  exactly reproduce the prior frozen values:
+  `69529d6d911b28f9ce4b85b001fb568eaa4eec0521298c8d74c141db205d2840`,
+  `b3d7578afb15853626a11069f11ff22e8a3b836bf4097f460cf67f9b28f5f3e9`,
+  `c75e3b005846d33ee95f0efde5d3d088beffca0dbffe9dd3678735de41980d17`,
+  `baf131784dfb3cb9e9d086bf55f8068e463b0b00aa087a3b758057389fa66a80`,
+  and
+  `9e73f357b9e2ef1e618bb1edce42ab2edd9685699a492b19514b331b19f8dd8c`.
+  A fresh current-runner materialization at
+  `/Users/hjqcan/workspace/GoodMemory-c6-runtime/package-source-offline-current-v1`
+  then completed two fresh Linux/amd64, network-none builds. Both installed 292
+  dependencies and produced the same 1035700-byte package at
+  `5f9b98600ff024a80a7a337fa8953e162b7498bf909a67e8b217a9bba5dd2757`.
+  Its receipt SHA-256 is
+  `94c1bdb4cb0c7390683dc7692242733a0883856f5be1c2a10e1977f9bdff8066`;
+  current nine-file runner-source root is
+  `5a05bff089c75a3f726c3a0c371e052a25896b13bdcccb9b96b0d2ce5b05b241`,
+  and runner protocol SHA-256 is
+  `94e43195e193f1c591287202ebfb643355496835b7703d32d5b76469b29f3389`.
+  The current external-root gate passes 2/2 with 14 assertions, and the focused
+  dependency-closure/source-reproducibility/CLI unit slice passes 31/31 with
+  329 assertions. This closes the stale current-runner binding, not the proof
+  boundary: the fresh receipt still keeps
+  `sourceBuildReproducible`,
+  `c6PackageOfflineClosureProven`, `executionAuthenticated`,
+  `externalIndependentAttestation`, and `rawExecutionWitnessIncluded` false.
+  The evidence roots remain local and external to Git, so authenticated
+  source-to-archive proof and the final installed-host profile remain open;
 - `c6-codex-runtime-linux.ts` has now materialized the exact
   `@openai/codex@0.145.0` package closure twice in fresh, read-only,
   network-none Linux/amd64 containers. Both runs reached
@@ -4356,7 +4380,7 @@ source-v2, package-rebuild, and Codex-install receipts plus declared host and
 ordered hook-event metadata. Its public verifier has no caller-supplied
 current-runner override and currently fails closed: the live source-runner
 closure is
-`39cc7f153b2e532d9d4a2179d20d2dfc8704dee9fb05c3581ddc44c52e9d62bf`,
+`5a05bff089c75a3f726c3a0c371e052a25896b13bdcccb9b96b0d2ce5b05b241`,
 while the retained v2 receipt binds
 `e18b9b7ce6c7929deb20c5aa3ca394d3a779f23bfb69055b21907f2bd3d2f84f`.
 The separate structural helper always reports

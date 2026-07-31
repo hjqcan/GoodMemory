@@ -864,7 +864,7 @@ keeps `sourceBuildReproducible: false`, `networkDisabled: false`, offline
 closure false, and external attestation false. The full 39223537-byte closure
 remains external; an offline frozen dev-dependency build or equivalent
 independent attestation is still required for source-to-archive closure.
-[DONE] A subsequent v3 run rebuilt the same exact source twice in fresh
+[DONE/HISTORICAL] A subsequent v3 run rebuilt the same exact source twice in fresh
 pinned-Linux, network-none containers from two independently materialized
 copies of one frozen dev-dependency closure. Both runs installed 292
 dependencies and produced the same 1035700-byte package at
@@ -889,17 +889,37 @@ static replay of the retained closure. The receipt deliberately keeps
 `externalIndependentAttestation: false`, and
 `rawExecutionWitnessIncluded: false`. It does not close authenticated
 source-to-archive proof or C6-T003.
-[CURRENT DRIFT] The v3 receipt remains historical local evidence, but its
-source-replay gate is red against the current worktree. The receipt pins
-runner-source root
-`047e3939016d0ba646139354edad44902008183f8e0d3078ed0ab104547f4826`;
-the current nine-file runner closure is
-`39cc7f153b2e532d9d4a2179d20d2dfc8704dee9fb05c3581ddc44c52e9d62bf`.
-The package bytes still match, but current verifier/source ancestry does not.
-Do not update the expected hash in place: after the C6 runner sources are
-stable, execute a fresh two-run source materialization and issue a new
-receipt. The C6 package/source/Codex materializers, gates, and projections are
-also worktree-only in the present Git snapshot, not landed or staged evidence.
+[DONE/CURRENT-RUNNER LOCAL EVIDENCE] On 2026-07-31 the public dependency
+acquisition was reconstructed and frozen at
+`/Users/hjqcan/workspace/GoodMemory-c6-runtime/package-source-dependency-current-v1/dependency-closure`.
+Its asset-lock, asset-root, cache archive, content-root, and manifest hashes
+exactly reproduce the prior frozen values:
+`69529d6d911b28f9ce4b85b001fb568eaa4eec0521298c8d74c141db205d2840`,
+`b3d7578afb15853626a11069f11ff22e8a3b836bf4097f460cf67f9b28f5f3e9`,
+`c75e3b005846d33ee95f0efde5d3d088beffca0dbffe9dd3678735de41980d17`,
+`baf131784dfb3cb9e9d086bf55f8068e463b0b00aa087a3b758057389fa66a80`,
+and `9e73f357b9e2ef1e618bb1edce42ab2edd9685699a492b19514b331b19f8dd8c`.
+A fresh materialization at
+`/Users/hjqcan/workspace/GoodMemory-c6-runtime/package-source-offline-current-v1`
+then performed two fresh Linux/amd64, network-none builds. Both installed 292
+dependencies and produced the same 1035700-byte package at
+`5f9b98600ff024a80a7a337fa8953e162b7498bf909a67e8b217a9bba5dd2757`.
+Receipt SHA-256 is
+`94c1bdb4cb0c7390683dc7692242733a0883856f5be1c2a10e1977f9bdff8066`;
+current nine-file runner-source root is
+`5a05bff089c75a3f726c3a0c371e052a25896b13bdcccb9b96b0d2ce5b05b241`,
+and runner protocol SHA-256 is
+`94e43195e193f1c591287202ebfb643355496835b7703d32d5b76469b29f3389`.
+The current external-root gate passes 2/2 with 14 assertions. The focused
+dependency-closure/source-reproducibility/CLI units pass 31/31 with 329
+assertions. No materializer container or temporary publication root remained.
+[BOUNDARY] This repairs current-runner drift only. The new receipt still
+records `sourceBuildReproducible: false`,
+`c6PackageOfflineClosureProven: false`,
+`executionAuthenticated: false`,
+`externalIndependentAttestation: false`, and
+`rawExecutionWitnessIncluded: false`. The full roots remain local and external
+to Git. Authenticated source-to-archive proof and C6-T003 remain open.
 [DONE] A separate static Codex runtime validator cross-binds the exact
 `@openai/codex@0.145.0` package/lock, registry metadata capture, main tarball,
 Linux x64 optional tarball, and the complete platform optional-dependency
@@ -1707,7 +1727,7 @@ installed-host parity remain absent. This still does not complete C6-T002.
 cross-checks the retained source-v2/package/Codex receipt relationships and
 ordered hook-event metadata without promoting proof. The public verifier has
 no current-root override and correctly rejects the retained source receipt:
-current runner root `39cc7f153b2e532d9d4a2179d20d2dfc8704dee9fb05c3581ddc44c52e9d62bf`
+current runner root `5a05bff089c75a3f726c3a0c371e052a25896b13bdcccb9b96b0d2ce5b05b241`
 does not equal retained root
 `e18b9b7ce6c7929deb20c5aa3ca394d3a779f23bfb69055b21907f2bd3d2f84f`.
 Its structural-only helper fixes current-runner binding, final-composition
