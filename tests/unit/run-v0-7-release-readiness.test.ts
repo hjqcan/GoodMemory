@@ -243,7 +243,7 @@ describe("v0.7 release readiness", () => {
         id: "typecheck",
       },
       {
-        args: ["test"],
+        args: ["test", "--timeout=300000"],
         command: "bun",
         id: "tests",
       },

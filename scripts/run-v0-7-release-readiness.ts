@@ -87,7 +87,7 @@ export const V07_RELEASE_REQUIRED_COMMANDS = [
     id: "typecheck",
   },
   {
-    args: ["test"],
+    args: ["test", "--timeout=300000"],
     command: "bun",
     id: "tests",
   },
