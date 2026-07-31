@@ -126,6 +126,7 @@ describe("C6 source-v4 bounded review workflow", () => {
         const freezeCommitSha = await commit(
           repositoryRoot,
           "repaired freeze",
+          true,
         );
         const freezeTreeSha = await gitText(
           repositoryRoot,
@@ -287,11 +288,13 @@ function rejectedResponse(
 async function commit(
   root: string,
   message: string,
+  allowEmpty = false,
 ): Promise<string> {
   await git(root, ["add", "."]);
   await git(root, [
     "commit",
     "--quiet",
+    ...(allowEmpty ? ["--allow-empty"] : []),
     "-m",
     message,
   ]);
