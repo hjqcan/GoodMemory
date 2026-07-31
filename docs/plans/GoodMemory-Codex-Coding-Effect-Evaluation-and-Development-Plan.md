@@ -4136,10 +4136,39 @@ cannot delete a fixture until the operation settles. The 720-second budget
 covers the three individually bounded liveness seeds plus the rest of the
 topology/mutation replay. Focused v2 units pass 46/46 with 199 assertions and
 typecheck passes. These results repair the protocol; they do not reverse the
-v1 rejection or constitute fresh independent acceptance. The one-parent
-commit containing this checkpoint is the new clean `F` candidate; the next
-chain must give that exact commit to a new
-`c6_source_v4_bounded_review_v2` reviewer.
+v1 rejection or constitute fresh independent acceptance.
+
+The resulting v2 freeze
+`c345e79856e59d98e806d7e6ff12c554a77315bd`, tree
+`948419c89c5141bf9c3e7eecd779e33e8e9d9cf1`, received a new
+fork-without-history review. Seven of eight required checks passed. The real
+snapshot mutation gate passed 5/5 with 21 assertions in 105.90 seconds,
+three-seed liveness passed 1/1 in 6.11 seconds, historical preflight passed
+1/1 with eight assertions in 5.63 seconds, and the integrated
+topology/mutation gate passed 1/1 with 26 assertions in 427.62 seconds. The
+reviewer nevertheless rejected the freeze because the reviewed unit slice was
+40 pass / 1 fail. The negative-review workflow cloned frozen HEAD, recopied
+identical reviewed sources, then required a non-empty `repaired freeze`
+commit. Git returned `nothing to commit`, so the test never reached its
+activation-rejection assertion.
+
+The schema-valid negative response has SHA-256
+`f00111d63bd3e943380ca441008e0a672b60316eab1782bcdd6877f29274da47`.
+The author-side recorder preserved it in direct child
+`06044f11ddb0eafcb59be913199afa37fcdcb7bd` with provenance SHA-256
+`086dca356590b4c274839bc14c8480e13424efa176584d8000e049444d5527ef`.
+It records `independentReviewAccepted: false`; no `A`, `P`, or capture
+authority follows it. The exact five artifacts are archived at
+`reports/quality-gates/phase-73/c6-source-v4-bounded-review-rejected-c345e798/`.
+
+Commit `a8ca1e3209f6b8beb292348ce7da188a839092fb` repairs the fixture by making
+its synthetic freeze commit explicitly allow an identical tree, then removes
+the canonical review paths after archiving the negative receipt. On that
+committed state, the reviewer's exact unit slice passes 41/41 with 170
+assertions, the broader v4/liveness unit slice passes 46/46 with 199
+assertions, and typecheck passes. These are repair evidence, not independent
+acceptance. The one-parent commit containing this checkpoint is the new clean
+`F` candidate; a different fresh reviewer must review that exact commit.
 
 The published receipt binds one canonical `P` and an absolute host-local
 capture target. Replaying that exact receipt in another checkout fails because
@@ -4163,11 +4192,11 @@ The actual historical commit authorization has moved to the explicit Phase-73
 preflight gate. This preserves shallow/default unit portability without
 weakening the runtime-bound proof.
 
-The first source-freeze candidate was independently rejected, and its negative
-receipt grants no authority. No accepted reviewed `R`, activation `A`,
-publication `P`, live source-v4 capture, offline double replay, or capture
-asset lock exists yet. The repaired freeze candidate is the one-parent commit
-containing this checkpoint; a fresh independent response is the next
+The first two source-freeze candidates were independently rejected, and their
+negative receipts grant no authority. No accepted reviewed `R`, activation
+`A`, publication `P`, live source-v4 capture, offline double replay, or
+capture asset lock exists yet. The repaired freeze candidate is the one-parent
+commit containing this checkpoint; a fresh independent response is the next
 readiness-ladder action. Selection materialization alone still
 leaves accepted episodes at zero and all C6 run/claim flags false.
 

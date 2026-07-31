@@ -121,9 +121,16 @@ cutover, and rollback contracts.
   fork-without-history review and was rejected; no `R`, `A`, or `P` commit was
   created from it. The rejected receipt exposed a long-gate timeout/cleanup
   race and the lack of an explicit schema-valid rejection branch. Those
-  protocol defects are repaired and replayed locally. The one-parent commit
-  containing this checkpoint is the repaired source-freeze candidate, but it
-  still needs a fresh independent review. This establishes only
+  protocol defects were repaired in v2. The next freeze
+  `c345e79856e59d98e806d7e6ff12c554a77315bd` was also independently
+  rejected: seven of eight checks passed, but one reviewed negative-workflow
+  test depended on the working tree being newer than frozen HEAD and failed
+  with `nothing to commit`. Its direct negative-review child is
+  `06044f11ddb0eafcb59be913199afa37fcdcb7bd`; it grants no authority.
+  Commit `a8ca1e3209f6b8beb292348ce7da188a839092fb` repairs the committed-HEAD
+  fixture and archives the exact v2 negative receipt. The one-parent commit
+  containing this checkpoint is the next source-freeze candidate, but it still
+  needs a new fresh independent review. This establishes only
   `selectionMaterialized: true`; accepted review/freeze, live capture,
   episode-edge construction, relationship qualification, and the independent
   power/precision allocation artifact remain open gates.
@@ -1278,9 +1285,34 @@ cutover, and rollback contracts.
   receipt, and activation explicitly rejects it. The comprehensive gate now
   gives each operation one exact temporary root and removes it only after that
   operation settles; no test-hook cleanup can race a live promise. These are
-  protocol-repair results, not an accepted review. The one-parent commit
-  containing this checkpoint is the new clean freeze candidate and still
-  requires a fresh fork-without-history v2 reviewer. The one-shot scope is
+  protocol-repair results, not an accepted review.
+  The v2 freeze `c345e79856e59d98e806d7e6ff12c554a77315bd`, tree
+  `948419c89c5141bf9c3e7eecd779e33e8e9d9cf1`, received a fresh
+  fork-without-history review. The independent reviewer passed the real
+  snapshot mutation gate (5/5, 21 assertions, 105.90s), three-seed liveness
+  gate (1/1, 6.11s), historical preflight (1/1, 8 assertions, 5.63s), and the
+  integrated topology/mutation gate (1/1, 26 assertions, 427.62s). It still
+  rejected the freeze because the reviewed unit slice was 40 pass / 1 fail:
+  the negative-review workflow cloned frozen HEAD, recopied identical sources,
+  and required a non-empty repair commit, so Git stopped at
+  `nothing to commit` before the activation-blocking assertion.
+  The schema-valid response SHA-256 is
+  `f00111d63bd3e943380ca441008e0a672b60316eab1782bcdd6877f29274da47`;
+  provenance SHA-256 is
+  `086dca356590b4c274839bc14c8480e13424efa176584d8000e049444d5527ef`.
+  Direct review child `06044f11ddb0eafcb59be913199afa37fcdcb7bd`
+  records `decision: rejected` and `independentReviewAccepted: false`.
+  Its exact five review artifacts are archived under
+  `reports/quality-gates/phase-73/c6-source-v4-bounded-review-rejected-c345e798/`.
+  Commit `a8ca1e3209f6b8beb292348ce7da188a839092fb` makes the fixture's
+  synthetic freeze commit explicitly allow an identical tree. On that
+  committed state, the reviewer's exact unit slice passes 41/41 with 170
+  assertions, the broader v4/liveness slice passes 46/46 with 199 assertions,
+  and typecheck passes.
+  Those are author-side repair results, not independent acceptance. The
+  one-parent commit containing this checkpoint is the new clean freeze
+  candidate and still requires another fresh fork-without-history reviewer.
+  The one-shot scope is
   the canonical published `P` and its bound host-local target; it is not a
   cryptographic global lock against an author creating a different publication
   fork, so later scientific artifacts must pin the one canonical `P`.

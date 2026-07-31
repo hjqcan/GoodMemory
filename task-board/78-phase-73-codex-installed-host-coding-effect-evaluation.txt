@@ -1592,13 +1592,41 @@ failures were the expected Bun-1.3.11 early runtime guards, one was an existing
 five-second timeout, and eight lacked the external reviewer-identity fixture.
 This is not green repository-regression evidence and does not replace the
 exact pinned C6 gates or isolated typecheck.
-[BOUNDARY] No accepted reviewed `R`, activation `A`, publication `P`, fresh
-v2 independent reviewer response, GitHub capture, or offline double replay
-exists. The one-parent commit containing this checkpoint is the repaired clean
-freeze candidate; it still requires a fresh v2 independent review. The
-one-shot identity is the canonical published `P` plus its host-local target,
-not a cryptographic global lock against another author-created publication
-fork.
+[REJECTED/NO AUTHORITY V2] Freeze
+`c345e79856e59d98e806d7e6ff12c554a77315bd`, tree
+`948419c89c5141bf9c3e7eecd779e33e8e9d9cf1`, received a fresh
+fork-without-history review. Seven of eight checks passed. Snapshot mutation
+passed 5/5 with 21 assertions in 105.90 seconds; three-seed liveness passed
+1/1 in 6.11 seconds; historical preflight passed 1/1 with eight assertions in
+5.63 seconds; and the integrated topology/mutation gate passed 1/1 with 26
+assertions in 427.62 seconds. The reviewed unit slice still failed 40/1
+because its negative-review workflow cloned frozen HEAD, recopied identical
+sources, and required a non-empty commit. Git returned `nothing to commit`
+before the activation-blocking assertion.
+[EVIDENCE/NEGATIVE R] Direct child
+`06044f11ddb0eafcb59be913199afa37fcdcb7bd` adds exactly five review
+artifacts and records `decision: rejected`,
+`independentReviewAccepted: false`. Response SHA-256 is
+`f00111d63bd3e943380ca441008e0a672b60316eab1782bcdd6877f29274da47`;
+provenance SHA-256 is
+`086dca356590b4c274839bc14c8480e13424efa176584d8000e049444d5527ef`.
+The exact negative receipt is archived under
+`reports/quality-gates/phase-73/c6-source-v4-bounded-review-rejected-c345e798/`.
+No `A`, `P`, or capture authority follows it.
+[FIXED/NEW FREEZE CANDIDATE] Commit
+`a8ca1e3209f6b8beb292348ce7da188a839092fb` makes the fixture's synthetic
+freeze explicitly allow an identical tree and removes the canonical review
+paths after archiving the negative receipt. At that committed state, the
+reviewer's exact unit slice passes 41/41 with 170 assertions, the broader
+v4/liveness slice passes 46/46 with 199 assertions, and typecheck passes. The
+one-parent commit containing this checkpoint is the next clean freeze
+candidate; these author-side results are not independent acceptance.
+[BOUNDARY] No accepted reviewed `R`, activation `A`, publication `P`,
+accepting independent response, GitHub capture, or offline double replay
+exists. The next clean freeze candidate still requires a fresh independent
+review. The one-shot identity is the canonical published `P` plus its
+host-local target, not a cryptographic global lock against another
+author-created publication fork.
 Every later capture/dataset/report must pin the single canonical `P`.
 The clean worker closes mutable in-process transport substitution; unsigned
 GitHub API responses still are not cryptographic third-party attestations.
