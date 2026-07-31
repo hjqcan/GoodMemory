@@ -1,0 +1,184 @@
+{
+  "artifactKind": "c6-source-v4-bounded-activation-receipt",
+  "authorTaskName": "/root",
+  "boundary": {
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "independentReviewAccepted": true,
+    "liveCaptureAuthorized": false,
+    "maxLiveCaptureCount": 1,
+    "publicationCommitRequired": true,
+    "sourceSelectionFrozen": true
+  },
+  "captureTarget": {
+    "path": "/Users/hjqcan/workspace/GoodMemory-c6-runtime/source-v4-bounded-live-capture-v1",
+    "scope": "host-local-activated-repository-root"
+  },
+  "bridge": {
+    "byteLength": 687,
+    "gitBlobSha1": "eb9c5cee125a795f3f60e3593de05d32c0255c71",
+    "mode": "100644",
+    "path": "scripts/run-codex-coding-effect-c6-source-v4-bounded-capture.sh",
+    "sha256": "008b3cfe4e855c4218464e2439c317a7a7707d629d1588c23027cc72a0c7797a"
+  },
+  "evaluationId": "goodmemory-c6-codex-coding-effect-source-v4-bounded-v1",
+  "generatedAt": "2026-07-31T04:18:36.385Z",
+  "lineage": {
+    "activation": {
+      "commitSha": "11e619f3c0516f118f5a835dd48a21046082ddf1",
+      "parentCommitSha": "d20675814ca1157b154a9b4c2af79362502d110e",
+      "treeSha": "dc11bde14697a4c2e654b1342a2a6b26a04f5c45"
+    },
+    "freeze": {
+      "commitSha": "476347acc257ec599f19ff86aa5c7f48a896ab03",
+      "parentCommitSha": "a8ca1e3209f6b8beb292348ce7da188a839092fb",
+      "treeSha": "a134a14892be1acc4f5c22813edf1619be771515"
+    },
+    "review": {
+      "commitSha": "d20675814ca1157b154a9b4c2af79362502d110e",
+      "parentCommitSha": "476347acc257ec599f19ff86aa5c7f48a896ab03",
+      "treeSha": "3f6efd80328d43d8d8fc617bcda2596197f2cd7c"
+    },
+    "selectionCheckpoint": {
+      "commitSha": "3b0ba2d13fc53a8a71b034342bf16c78b5e1507a",
+      "treeSha": "4d2c73ba54bd44b21c3fd16b3ae1b1c9869b9865"
+    }
+  },
+  "livenessReport": {
+    "artifactKind": "c6-bun-fs-liveness-stress-report",
+    "clean": true,
+    "completedAt": "2026-07-31T04:18:36.383Z",
+    "configuration": {
+      "concurrency": 8,
+      "fsPromiseOperationsPerSeed": 700000,
+      "seedCount": 3,
+      "timeoutMsPerSeed": 180000,
+      "workItemsPerSeed": 100000
+    },
+    "durationMs": 4580.385041999998,
+    "expected": {
+      "arch": "arm64",
+      "bunExecutableSha256": "39e644cea4e6db24a3af36013695655d6f789b4b98f1f13bacb882ac6e5c3c18",
+      "bunRevision": "700fc117a2fd01ac0201deaa6fa69c5557acb04f",
+      "bunVersion": "1.3.12",
+      "platform": "darwin",
+      "scriptSha256": "019cde93809a7cf052b33a965d562a7b8466726766dbf28ccfa8d1ba66b9ce90"
+    },
+    "observations": [
+      {
+        "completedFsPromiseOperations": 700000,
+        "completedWorkItems": 100000,
+        "durationMs": 1533.5864169999986,
+        "exitCode": 0,
+        "failureReason": null,
+        "protocolErrors": [],
+        "resultSha256": "de6e3f092696ddcbf6275cb2c88a2731bbf4a6e803b5ffd4c10816a119c06049",
+        "runtime": {
+          "arch": "arm64",
+          "bunRevision": "700fc117a2fd01ac0201deaa6fa69c5557acb04f",
+          "bunVersion": "1.3.12",
+          "executable": "/Users/hjqcan/workspace/GoodMemory-c6-runtime/toolchains/bun-v1.3.12-darwin-aarch64/bun-darwin-aarch64/bun",
+          "executableSha256": "39e644cea4e6db24a3af36013695655d6f789b4b98f1f13bacb882ac6e5c3c18",
+          "platform": "darwin",
+          "scriptSha256": "019cde93809a7cf052b33a965d562a7b8466726766dbf28ccfa8d1ba66b9ce90"
+        },
+        "seed": 439041101,
+        "signalCode": null,
+        "startSha256": "5b0015c2c33bff94e3e1369f6c6a6541a3fe420c6362e0bcce37cf0f0aa52a4a",
+        "status": "passed",
+        "stderrTail": "",
+        "terminationSignalRequested": null,
+        "timedOut": false
+      },
+      {
+        "completedFsPromiseOperations": 700000,
+        "completedWorkItems": 100000,
+        "durationMs": 1497.630541999999,
+        "exitCode": 0,
+        "failureReason": null,
+        "protocolErrors": [],
+        "resultSha256": "ab524d65f6fc4444025c665d5c54ef22fd6792164a357320dd4f12c58ead677c",
+        "runtime": {
+          "arch": "arm64",
+          "bunRevision": "700fc117a2fd01ac0201deaa6fa69c5557acb04f",
+          "bunVersion": "1.3.12",
+          "executable": "/Users/hjqcan/workspace/GoodMemory-c6-runtime/toolchains/bun-v1.3.12-darwin-aarch64/bun-darwin-aarch64/bun",
+          "executableSha256": "39e644cea4e6db24a3af36013695655d6f789b4b98f1f13bacb882ac6e5c3c18",
+          "platform": "darwin",
+          "scriptSha256": "019cde93809a7cf052b33a965d562a7b8466726766dbf28ccfa8d1ba66b9ce90"
+        },
+        "seed": 1584363400,
+        "signalCode": null,
+        "startSha256": "b79f8693a8852b4741aaf0e24b0bfd142c17570f7e236354501ad30e87768829",
+        "status": "passed",
+        "stderrTail": "",
+        "terminationSignalRequested": null,
+        "timedOut": false
+      },
+      {
+        "completedFsPromiseOperations": 700000,
+        "completedWorkItems": 100000,
+        "durationMs": 1520.192500000001,
+        "exitCode": 0,
+        "failureReason": null,
+        "protocolErrors": [],
+        "resultSha256": "faa3c9c1af524efcc0352515fbb50dca0da65bae1c21d1b880780b86384660b3",
+        "runtime": {
+          "arch": "arm64",
+          "bunRevision": "700fc117a2fd01ac0201deaa6fa69c5557acb04f",
+          "bunVersion": "1.3.12",
+          "executable": "/Users/hjqcan/workspace/GoodMemory-c6-runtime/toolchains/bun-v1.3.12-darwin-aarch64/bun-darwin-aarch64/bun",
+          "executableSha256": "39e644cea4e6db24a3af36013695655d6f789b4b98f1f13bacb882ac6e5c3c18",
+          "platform": "darwin",
+          "scriptSha256": "019cde93809a7cf052b33a965d562a7b8466726766dbf28ccfa8d1ba66b9ce90"
+        },
+        "seed": 271136839,
+        "signalCode": null,
+        "startSha256": "233b2376a1cab4b5fc0c0171eacdfc2ca34433fc06ef746b7e092465a20266ba",
+        "status": "passed",
+        "stderrTail": "",
+        "terminationSignalRequested": null,
+        "timedOut": false
+      }
+    ],
+    "schemaVersion": 2,
+    "selectedBunExecutable": "/Users/hjqcan/workspace/GoodMemory-c6-runtime/toolchains/bun-v1.3.12-darwin-aarch64/bun-darwin-aarch64/bun",
+    "startedAt": "2026-07-31T04:18:31.803Z"
+  },
+  "reviewEvidence": {
+    "cryptographicReviewIndependence": false,
+    "dispatchSha256": "be17a6af75566728d1ba3548204a740aac1737702c710b0d4d45cdacbb76b579",
+    "inputSha256": "827536a5b34efff9cd9b7c5a7bf53dc340435f05a0b9ef075808aac2107299ef",
+    "provenanceSha256": "6a31d36a1cb37295864a92e6a37404253c8d70b433142b38b10a3cd9224acc53",
+    "requestSha256": "e553fbc472369cdf7f701d3f533c6e775c66c125bd1b7d2cd20a66f2349d4c41",
+    "responseSha256": "49ad96a6c1b50d2532439f99f17220376343d6ad1f1ee158876f6b684f147dfa",
+    "reviewReceiptStructureVerified": true
+  },
+  "reviewerAgentName": "/root/c6_source_v4_bounded_review_v2_f3",
+  "runtime": {
+    "arch": "arm64",
+    "bunExecutableSha256": "39e644cea4e6db24a3af36013695655d6f789b4b98f1f13bacb882ac6e5c3c18",
+    "bunRevision": "700fc117a2fd01ac0201deaa6fa69c5557acb04f",
+    "bunVersion": "1.3.12",
+    "nodeVersion": "24.3.0",
+    "platform": "darwin"
+  },
+  "schemaVersion": 1,
+  "snapshot": {
+    "assetBytes": 269523056,
+    "assetLock": {
+      "byteLength": 2314,
+      "path": "asset-lock.json",
+      "sha256": "73ccd3d157a1ea3e211c72be80f88c4891d08909226e95cf1011e65e37c3c3a9"
+    },
+    "assetRootSha256": "61984ccf34bce0a77882e3fbfe68755a273d43793b6d5001b6bf69b70f51e28a",
+    "manifest": {
+      "byteLength": 2565,
+      "path": "snapshot-manifest.json",
+      "sha256": "f1dc71516bb4a9c03cba480a88d1cebaf04b0df9cf5782f5ea2fee2a837d206c"
+    },
+    "selectedRepositoriesSha256": "a7e858c844b6b79f73ac303fad32e9557c34418bc65619cace234673c7efefaf",
+    "selectedRepositoryCount": 16384
+  },
+  "status": "prepared-publication-commit-required-no-live-or-codex-authority"
+}
