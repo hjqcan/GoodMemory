@@ -44,6 +44,7 @@ import {
   materializeC6SourceV3SimplePriorIdentityPortableEvidence,
   parseC6SourceV3SimplePriorIdentityPortableEvidenceCliOptions,
 } from "../../scripts/materialize-codex-coding-effect-c6-source-v3-simple-prior-identity-portable-evidence";
+import { ciTestTimeout } from "../support/ci-timeout";
 
 const execFileAsync = promisify(execFile);
 const SOURCE_ROOT = join(
@@ -68,7 +69,7 @@ const SOURCE_PATH = join(
 const TOKEN = "github_pat_C6_PORTABLE_TEST_SENTINEL_947301";
 const RESET_AT = "2026-07-25T13:00:00Z";
 const RESET_EPOCH = String(Date.parse(RESET_AT) / 1_000);
-const EVIDENCE_TEST_TIMEOUT_MILLISECONDS = 120_000;
+const EVIDENCE_TEST_TIMEOUT_MILLISECONDS = ciTestTimeout(120_000);
 const temporaryRoots: string[] = [];
 
 afterEach(async () => {
@@ -368,7 +369,7 @@ describe("C6 source-v3-simple prior identity portable evidence", () => {
       `${JSON.stringify(authorityManifest, null, 2)}\n`,
     );
     await expect(verify(authorityRoot)).rejects.toThrow();
-  }, 60_000);
+  }, ciTestTimeout(60_000));
 
   it("parses only the seven required materializer options", () => {
     expect(

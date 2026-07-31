@@ -33,6 +33,7 @@ import {
   parseC6Wave3PriorRepositoryIdentityPlan,
   verifyC6Wave3PriorRepositoryIdentityDraftEvidence,
 } from "../../scripts/codex-coding-effect/c6-wave3-prior-repository-identity-plan";
+import { ciTestTimeout } from "../support/ci-timeout";
 
 const SOURCE_ROOT = join(
   process.cwd(),
@@ -279,7 +280,7 @@ describe("C6 source-v3-simple prior identity draft capture", () => {
         sourceUniversePath: SOURCE_PATH,
       }),
     ).rejects.toThrow("outer asset closure mismatch");
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("records frozen HTTP and transport retries without changing lookup order", async () => {
     const parent = await temporaryParent();
@@ -347,7 +348,7 @@ describe("C6 source-v3-simple prior identity draft capture", () => {
         transient: true,
       },
     });
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("fails closed and retains non-verifiable draft output on invalid retry or GraphQL data", async () => {
     const invalidRetryParent = await temporaryParent();

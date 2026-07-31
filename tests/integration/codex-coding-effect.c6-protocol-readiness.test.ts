@@ -39,6 +39,7 @@ import {
 import type {
   CodexCodingEffectDatasetV3,
 } from "../../scripts/codex-coding-effect/dataset";
+import { ciTestTimeout } from "../support/ci-timeout";
 
 const C5_EVIDENCE_ROOT = resolve(
   "reports/quality-gates/phase-73/c5-native-longitudinal-pilot-v16",
@@ -259,7 +260,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("propagates every visible stage mutation into task, episode, and stage input closures", async () => {
     const baselineFixture = await createFixture();
@@ -299,7 +300,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(baselineFixture.root, { force: true, recursive: true });
     }
-  }, 120_000);
+  }, ciTestTimeout(120_000));
 
   it("rejects legacy dataset, gate, and summary protocols", async () => {
     for (const probe of [
@@ -343,7 +344,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rechecks every external input after the terminal test hook", async () => {
     const fixture = await createFixture();
@@ -386,7 +387,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 120_000);
+  }, ciTestTimeout(120_000));
 
   it("rejects an external evidence root reached through a symlinked parent", async () => {
     const fixture = await createFixture();
@@ -407,7 +408,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects direct external inputs and Codex artifacts under symlinked parents", async () => {
     const fixture = await createFixture();
@@ -446,7 +447,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects a Codex launcher substituted for the native binary", async () => {
     const fixture = await createFixture({
@@ -467,7 +468,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects package metadata substituted for the Codex launcher", async () => {
     const fixture = await createFixture({
@@ -488,7 +489,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects Codex native bytes that drift from the environment manifest", async () => {
     const fixture = await createFixture();
@@ -513,7 +514,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects an ARM64 executable declared as the Linux x64 Codex binary", async () => {
     const fixture = await createFixture({
@@ -534,7 +535,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects a platform package whose bytes do not identify Linux x64 Codex", async () => {
     const fixture = await createFixture({
@@ -555,7 +556,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects a symlinked summary protocol input", async () => {
     const fixture = await createFixture();
@@ -574,7 +575,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects copied task bytes before a candidate manifest can freeze", async () => {
     const fixture = await createFixture({ duplicateTaskContent: true });
@@ -591,7 +592,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects duplicate agent-visible tasks even when hidden gold differs", async () => {
     const fixture = await createFixture({
@@ -610,7 +611,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects reuse of one upstream target unit across distinct candidate tasks", async () => {
     const fixture = await createFixture({
@@ -631,7 +632,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("requires source lineage before the candidate dataset can freeze", async () => {
     const fixture = await createFixture({
@@ -652,7 +653,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects a target source unit that also appears in stage history", async () => {
     const fixture = await createFixture({
@@ -673,7 +674,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects a target locator aliased under another stage-history unit", async () => {
     const fixture = await createFixture({
@@ -694,7 +695,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects lineage detached from a stage history artifact", async () => {
     const fixture = await createFixture({
@@ -715,7 +716,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects a stage-history unit list detached from its materialization receipt", async () => {
     const fixture = await createFixture({
@@ -736,7 +737,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects a frozen source record detached from its stage prompt", async () => {
     const fixture = await createFixture({
@@ -757,7 +758,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects lineage detached from the agent-visible task", async () => {
     const fixture = await createFixture({
@@ -778,7 +779,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects task-origin review for another request at the same locator", async () => {
     const fixture = await createFixture({
@@ -799,7 +800,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects task-origin review for another item revision at the same locator", async () => {
     const fixture = await createFixture({
@@ -820,7 +821,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects a later-stage upstream receipt detached from its source record", async () => {
     const fixture = await createFixture({
@@ -841,7 +842,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects a later-stage upstream locator detached from its source record", async () => {
     const fixture = await createFixture({
@@ -862,7 +863,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects a fully rehashed relationship receipt whose completion is a sibling commit", async () => {
     const fixture = await createFixture({
@@ -875,7 +876,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects a fully rehashed review decision detached from its exact relationship receipt", async () => {
     const fixture = await createFixture({
@@ -888,7 +889,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects non-canonical source-record rows even when hashes agree", async () => {
     const fixture = await createFixture({
@@ -909,7 +910,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects lineage detached from its frozen source population", async () => {
     const fixture = await createFixture({
@@ -930,7 +931,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects task-origin review provenance without reviewer separation", async () => {
     const fixture = await createFixture({
@@ -951,7 +952,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   for (const artifact of [
     "input",
@@ -978,7 +979,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
       } finally {
         await rm(fixture.root, { force: true, recursive: true });
       }
-    }, 30_000);
+    }, ciTestTimeout(30_000));
   }
 
   it("rejects a real-history source record detached from candidate task content", async () => {
@@ -998,7 +999,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 
   it("rejects pricing receipt drift before the cost branch can be used", async () => {
     const fixture = await createFixture();
@@ -1016,7 +1017,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, 30_000);
+  }, ciTestTimeout(30_000));
 });
 
 async function createFixture(input: {

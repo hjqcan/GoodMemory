@@ -51,6 +51,7 @@ import {
   parseC6Wave3PriorRepositoryIdentityPlanCliOptions,
   runC6Wave3PriorRepositoryIdentityPlanSnapshotCommand,
 } from "../../scripts/snapshot-codex-coding-effect-c6-wave3-prior-repository-identity-plan";
+import { ciTestTimeout } from "../support/ci-timeout";
 
 const SOURCE_ROOT = join(
   process.cwd(),
@@ -753,7 +754,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
         plan,
       }),
     ).rejects.toThrow(/external promotion completion capability/u);
-  }, 15_000);
+  }, ciTestTimeout(15_000));
 
   it("rejects a forged structural completion capability before every formal artifact parse or construction", async () => {
     const { plan } =
@@ -824,7 +825,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
         qualificationContext,
       ),
     ).rejects.toThrow(completionUnavailable);
-  }, 15_000);
+  }, ciTestTimeout(15_000));
 
   it("represents body-read failures without inventing a response body", async () => {
     const { plan } =
@@ -877,7 +878,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
         plan,
       }),
     ).rejects.toThrow(/response body|body-read/u);
-  });
+  }, ciTestTimeout(15_000));
 
   it("rejects attempt gaps, retry contradictions, and unsafe refs offline", async () => {
     const { plan } =
@@ -944,7 +945,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
       }),
     ).rejects.toThrow();
 
-  }, 15_000);
+  }, ciTestTimeout(15_000));
 
   it("rejects fake locks, reference drift, and incomplete asset closures", async () => {
     const { plan } =
@@ -1050,7 +1051,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
         plan,
       }),
     ).rejects.toThrow(/extra evidence|asset lock/u);
-  }, 15_000);
+  }, ciTestTimeout(15_000));
 
   it("rejects projection drift despite matching bytes and lock entries", async () => {
     const { plan } =
@@ -1272,7 +1273,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
       }),
     ).rejects.toThrow(/symlink/u);
 
-  }, 15_000);
+  }, ciTestTimeout(15_000));
 
   it("enforces successful GitHub header syntax and rate-limit projection", async () => {
     const { plan } =
@@ -1342,7 +1343,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
       lookup.response.rateLimit.resetAt =
         "2026-02-30T12:00:00Z";
     }, /resetAt|UTC second|validation/u);
-  }, 15_000);
+  }, ciTestTimeout(15_000));
 
   it("detects terminal source mutation before publication", async () => {
     const root = await copySourceUniverse();

@@ -61,7 +61,11 @@ describe("run-coverage script", () => {
   it("builds a post-coverage command from the shared exclusion targets", () => {
     const command = buildCiPostCoverageCommand();
 
-    expect(command.slice(0, 2)).toEqual(["bun", "test"]);
+    expect(command.slice(0, 3)).toEqual([
+      "bun",
+      "test",
+      "--timeout=300000",
+    ]);
     expect(command).toContain(
       "tests/integration/codex-coding-effect.c6-protocol-readiness.test.ts",
     );
