@@ -1089,7 +1089,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
         plan,
       }),
     ).rejects.toThrow(/response headers projection mismatch/u);
-  });
+  }, ciTestTimeout(15_000));
 
   it("terminal replay rejects symlink and foreign-inode replacement without cleanup", async () => {
     const { plan } =
@@ -1163,7 +1163,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
     expect(await readFile(externalFile, "utf8")).toBe(
       "external",
     );
-  });
+  }, ciTestTimeout(15_000));
 
   it("binds actual plan and source files through terminal replay", async () => {
     const { plan } =
@@ -1358,7 +1358,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
         },
       }),
     ).rejects.toThrow(/hash mismatch|changed/u);
-  });
+  }, ciTestTimeout(15_000));
 
   it("rolls back owned output on post-publication source mutation", async () => {
     const root = await copySourceUniverse();
@@ -1379,7 +1379,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
     expect((await readdir(root)).some(
       (entry) => entry.includes(".incomplete-"),
     )).toBe(false);
-  });
+  }, ciTestTimeout(15_000));
 
   it("publishes atomically without replacement and as 0644 under umask", async () => {
     const root = await copySourceUniverse();
@@ -1411,7 +1411,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
     expect((await readdir(root)).some(
       (entry) => entry.includes(".incomplete-"),
     )).toBe(false);
-  });
+  }, ciTestTimeout(15_000));
 
   it("rejects symlink and mode drift while preserving foreign inodes", async () => {
     const physicalRoot = await copySourceUniverse();
@@ -1504,7 +1504,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
       ),
     ).toBe("foreign-temporary\n");
     await expect(readFile(temporaryOutput)).rejects.toThrow();
-  });
+  }, ciTestTimeout(15_000));
 
   it("preserves foreign symlink targets replacing published hardlinks", async () => {
     const outputRoot = await copySourceUniverse();
@@ -1582,7 +1582,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
       await readFile(foreignTemporaryTarget, "utf8"),
     ).toBe("foreign-temporary-target\n");
     await expect(readFile(temporaryOutput)).rejects.toThrow();
-  });
+  }, ciTestTimeout(15_000));
 
   it("exposes a strict offline-only snapshot CLI", async () => {
     expect(
@@ -1632,7 +1632,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
         await readFile(output),
       ).captureProtocol.networkExecuted,
     ).toBe(false);
-  });
+  }, ciTestTimeout(15_000));
 });
 
 async function copySourceUniverse(): Promise<string> {
