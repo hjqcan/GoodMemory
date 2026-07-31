@@ -50,6 +50,7 @@ export interface LanguageQueryAnalysis {
   referenceSeeking: boolean;
   role: boolean;
   temporalInterval?: boolean;
+  temporalOperands?: readonly string[];
   userGroundedEventOrder: boolean;
 }
 

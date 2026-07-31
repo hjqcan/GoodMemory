@@ -54,7 +54,10 @@ import {
 } from "../recall/iterativeRecall";
 import { createRecallProjectionRuntime } from "../recall/projections/runtime";
 import { buildRecallProjectionBuildId } from "../recall/projections/manifest";
-import { decomposedRecall } from "../recall/queryDecomposition";
+import {
+  decomposedRecall,
+  splitQueryIntoSubQueries,
+} from "../recall/queryDecomposition";
 import {
   buildDeterministicRecallPlan,
   buildUnplannedRecallPlan,
@@ -1323,8 +1326,16 @@ class GoodMemoryImpl implements GoodMemory {
       const multiHopEnabled = input.multiHop === undefined
         ? recallPlanExecution && recallPlan.maxHops > 1
         : Boolean(input.multiHop);
+      const decompositionFacets = input.decompose === true && !recallPlanExecution
+        ? splitQueryIntoSubQueries(input.query, {
+            analysis: queryAnalysis,
+            language: this.language,
+            languageContext: resolvedLanguage,
+            locale: resolvedLanguage.locale,
+          })
+        : recallPlan.facets;
       const decompositionEnabled = input.decompose ??
-        (recallPlanExecution && recallPlan.facets.length > 0);
+        (recallPlanExecution && decompositionFacets.length > 0);
       const queryLanguages = new Map([
         [
           input.query,
@@ -1501,9 +1512,9 @@ class GoodMemoryImpl implements GoodMemory {
         const executionsByQuery = new Map<string, RecallQueryExecutionTrace>();
         const decomposed = await decomposedRecall({
           query: input.query,
-          decompose: () => recallPlan.facets,
+          decompose: () => decompositionFacets,
           recall: async (query) => {
-            const subQueryIndex = recallPlan.facets.indexOf(query);
+            const subQueryIndex = decompositionFacets.indexOf(query);
             const recalled = await runQuery({
               query,
               role: subQueryIndex >= 0 ? "subquery" : "primary",

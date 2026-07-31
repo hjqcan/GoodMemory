@@ -91,6 +91,79 @@ describe("splitQueryIntoSubQueries", () => {
     );
   });
 
+  it("derives temporal operands from equivalent ordering and elapsed-time grammar", () => {
+    expect(
+      splitQueryIntoSubQueries(
+        "Which event happened first, the laptop repair or the router replacement?",
+      ),
+    ).toEqual(["the laptop repair", "the router replacement"]);
+    expect(
+      splitQueryIntoSubQueries(
+        "How many weeks passed between the bake sale and the marathon?",
+      ),
+    ).toEqual(["the bake sale", "the marathon"]);
+    expect(
+      splitQueryIntoSubQueries(
+        "How many days ago did I attend a community workshop?",
+      ),
+    ).toEqual(["I attend a community workshop"]);
+    expect(
+      splitQueryIntoSubQueries(
+        "How many days ago did I attend a pottery class when I made the vase?",
+      ),
+    ).toEqual(["I attend a pottery class", "I made the vase"]);
+    expect(
+      splitQueryIntoSubQueries(
+        "Which event, lunch or dinner, happened first?",
+      ),
+    ).toEqual(["lunch", "dinner"]);
+    expect(
+      splitQueryIntoSubQueries(
+        "Did the bake sale happen before the charity marathon?",
+      ),
+    ).toEqual(["the bake sale", "the charity marathon"]);
+    expect(
+      splitQueryIntoSubQueries(
+        "How long ago did I attend a community workshop?",
+      ),
+    ).toEqual(["I attend a community workshop"]);
+    expect(
+      splitQueryIntoSubQueries(
+        "How many days have passed since I attended a community workshop?",
+      ),
+    ).toEqual(["I attended a community workshop"]);
+  });
+
+  it("does not derive temporal operands from advice, ordinary comparison, position, or counts", () => {
+
+    expect(
+      splitQueryIntoSubQueries(
+        "Which database should I use, PostgreSQL or SQLite?",
+      ),
+    ).toEqual([]);
+    expect(
+      splitQueryIntoSubQueries(
+        "Which task should I do first, deploy backend or update docs?",
+      ),
+    ).toEqual([]);
+    expect(
+      splitQueryIntoSubQueries(
+        "What is the difference between relational database and embedded database?",
+      ),
+    ).toEqual([]);
+    expect(
+      splitQueryIntoSubQueries(
+        "How many people stood between Alice Cooper and Bob Dylan?",
+      ),
+    ).toEqual([]);
+    expect(
+      splitQueryIntoSubQueries(
+        "How long is the bridge between Staten Island and Brooklyn?",
+      ),
+    ).toEqual([]);
+    expect(splitQueryIntoSubQueries("How many items are pending?")).toEqual([]);
+  });
+
   it("dedupes and caps to maxSubQueries", () => {
     const result = splitQueryIntoSubQueries(
       "alpha topic and beta topic and alpha topic and gamma topic and delta topic",

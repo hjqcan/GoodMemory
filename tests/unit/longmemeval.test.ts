@@ -5737,6 +5737,197 @@ describe("LongMemEval adapter", () => {
     expect(recallStrategies).toEqual(["hybrid"]);
   });
 
+  it("passes bounded recall experiment overrides to the memory runtime", async () => {
+    const [testCase] = validateLongMemEvalCases([SMOKE_CASES[0]]);
+    const recallInputs: Array<Parameters<GoodMemory["recall"]>[0]> = [];
+    const builder = createLongMemEvalGoodMemoryContextBuilder({
+      createMemory: () => ({
+        buildContext: async () => ({
+          content: "",
+          estimatedTokens: 0,
+          omittedSections: [],
+          output: "markdown",
+        }),
+        recall: async (input: Parameters<GoodMemory["recall"]>[0]) => {
+          recallInputs.push(input);
+          return { facts: [] };
+        },
+        remember: async () => ({ accepted: 0, events: [], rejected: 0 }),
+      }) as unknown as GoodMemory,
+      recallOptions: { decompose: true, multiHop: false },
+    });
+
+    await builder({
+      profile: "goodmemory-recommended",
+      testCase: testCase!,
+    });
+
+    expect(recallInputs).toEqual([
+      expect.objectContaining({ decompose: true, multiHop: false }),
+    ]);
+  });
+
+  it("reports reader-visible sessions and actual recall calls separately", async () => {
+    const [testCase] = validateLongMemEvalCases([SMOKE_CASES[0]]);
+    const visibleContent = testCase!.haystackSessions[1]![0]!.content;
+    const builder = createLongMemEvalGoodMemoryContextBuilder({
+      createMemory: () => ({
+        buildContext: async () => ({
+          content: visibleContent,
+          estimatedTokens: 12,
+          omittedSections: [],
+          output: "markdown",
+        }),
+        recall: async () => ({
+          facts: [],
+          metadata: {
+            retrievalTrace: {
+              plan: {},
+              queryExecutions: [
+                { hops: [{}], query: "original", role: "primary" },
+                { hops: [{}], query: "event one", role: "subquery" },
+                { hops: [{}], query: "event two", role: "subquery" },
+              ],
+              schemaVersion: 2,
+              stopReason: "decomposition_complete",
+              subQueries: ["event one", "event two"],
+            },
+          },
+        }),
+        remember: async () => ({ accepted: 0, events: [], rejected: 0 }),
+      }) as unknown as GoodMemory,
+    });
+
+    const result = await builder({
+      profile: "goodmemory-recommended",
+      testCase: testCase!,
+    });
+
+    expect(result.retrievedSessionIds).toEqual(["s-2"]);
+    expect(result.recallDiagnostics).toEqual({
+      ambiguousReaderVisibleSessionIds: [],
+      queryCalls: 3,
+      readerVisibleSessionIds: ["s-2"],
+      recallRecordCount: 0,
+      subQueries: ["event one", "event two"],
+    });
+  });
+
+  it("reports ambiguous reader-visible session prefixes", async () => {
+    const sharedPrefix =
+      "This deliberately repeated source prefix is longer than twenty four characters ".repeat(3);
+    const [testCase] = validateLongMemEvalCases([{
+      answer: "first",
+      answer_session_ids: ["s-1"],
+      haystack_dates: ["2026-01-01", "2026-01-02"],
+      haystack_session_ids: ["s-1", "s-2"],
+      haystack_sessions: [
+        [{ content: `${sharedPrefix} with first ending.`, role: "user" }],
+        [{ content: `${sharedPrefix} with second ending.`, role: "user" }],
+      ],
+      question: "Which ending was first?",
+      question_date: "2026-01-03",
+      question_id: "q-ambiguous-prefix",
+      question_type: "temporal-reasoning",
+    }]);
+    const builder = createLongMemEvalGoodMemoryContextBuilder({
+      createMemory: () => ({
+        buildContext: async () => ({
+          content: sharedPrefix,
+          estimatedTokens: 12,
+          omittedSections: [],
+          output: "markdown",
+        }),
+        recall: async () => ({
+          facts: [],
+          metadata: {
+            retrievalTrace: {
+              plan: {},
+              queryExecutions: [{
+                hops: [{}],
+                query: "Which ending was first?",
+                role: "primary",
+              }],
+              schemaVersion: 2,
+              stopReason: "single_pass_complete",
+              subQueries: [],
+            },
+          },
+        }),
+        remember: async () => ({ accepted: 0, events: [], rejected: 0 }),
+      }) as unknown as GoodMemory,
+    });
+
+    const result = await builder({
+      profile: "goodmemory-recommended",
+      testCase: testCase!,
+    });
+
+    expect(result.recallDiagnostics?.ambiguousReaderVisibleSessionIds).toEqual([
+      "s-1",
+      "s-2",
+    ]);
+  });
+
+  it("reports a visible prefix embedded inside another session as ambiguous", async () => {
+    const visiblePrefix =
+      "The launch retrospective recorded the same unusually specific delivery sequence for everyone.";
+    const [testCase] = validateLongMemEvalCases([{
+      answer: "first",
+      answer_session_ids: ["s-1"],
+      haystack_dates: ["2026-01-01", "2026-01-02"],
+      haystack_session_ids: ["s-1", "s-2"],
+      haystack_sessions: [
+        [{ content: visiblePrefix, role: "user" }],
+        [{
+          content: `A separate note quoted this sentence: ${visiblePrefix}`,
+          role: "user",
+        }],
+      ],
+      question: "Which record was first?",
+      question_date: "2026-01-03",
+      question_id: "q-embedded-prefix",
+      question_type: "temporal-reasoning",
+    }]);
+    const builder = createLongMemEvalGoodMemoryContextBuilder({
+      createMemory: () => ({
+        buildContext: async () => ({
+          content: visiblePrefix,
+          estimatedTokens: 12,
+          omittedSections: [],
+          output: "markdown",
+        }),
+        recall: async () => ({
+          facts: [],
+          metadata: {
+            retrievalTrace: {
+              plan: {},
+              queryExecutions: [{
+                hops: [{}],
+                query: "Which record was first?",
+                role: "primary",
+              }],
+              schemaVersion: 2,
+              stopReason: "single_pass_complete",
+              subQueries: [],
+            },
+          },
+        }),
+        remember: async () => ({ accepted: 0, events: [], rejected: 0 }),
+      }) as unknown as GoodMemory,
+    });
+
+    const result = await builder({
+      profile: "goodmemory-recommended",
+      testCase: testCase!,
+    });
+
+    expect(result.recallDiagnostics?.ambiguousReaderVisibleSessionIds).toEqual([
+      "s-1",
+      "s-2",
+    ]);
+  });
+
   it("passes an explicitly configured assisted extraction strategy to ingestion", async () => {
     const [testCase] = validateLongMemEvalCases([SMOKE_CASES[0]]);
     const annotationModes: string[] = [];

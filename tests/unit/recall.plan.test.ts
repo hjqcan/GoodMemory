@@ -219,6 +219,44 @@ describe("deterministic recall plan", () => {
     expect(hanInterval.aggregation).not.toBe("count");
   });
 
+  it("plans source-derived temporal operands as focused recall facets", () => {
+    const ordered = plan(
+      "Which event happened first, the laptop repair or the router replacement?",
+    );
+    expect(ordered.facets).toEqual([
+      "the laptop repair",
+      "the router replacement",
+    ]);
+    expect(ordered.evidenceNeeds).toContain("multi_facet");
+
+    const elapsed = plan(
+      "How many days ago did I attend a pottery class when I made the vase?",
+    );
+    expect(elapsed.facets).toEqual([
+      "I attend a pottery class",
+      "I made the vase",
+    ]);
+
+    const singleEvent = plan(
+      "How many days ago did I attend a community workshop?",
+    );
+    expect(singleEvent.facets).toEqual(["I attend a community workshop"]);
+    expect(singleEvent.evidenceNeeds).toContain("temporal");
+
+    const passedSince = plan(
+      "How many days have passed since I attended a community workshop?",
+    );
+    expect(passedSince.facets).toEqual(["I attended a community workshop"]);
+    expect(passedSince.aggregation).not.toBe("count");
+    expect(passedSince.evidenceNeeds).toContain("temporal");
+
+    const oneWordEvents = plan(
+      "Which event, lunch or dinner, happened first?",
+    );
+    expect(oneWordEvents.facets).toEqual(["lunch", "dinner"]);
+    expect(oneWordEvents.evidenceNeeds).toContain("temporal");
+  });
+
   it("lets an optional query-only assistant refine the plan without changing fixed budgets", async () => {
     const result = await resolveRecallPlan({
       input: {

@@ -1,4 +1,9 @@
-import { createLanguageService, type LanguageService } from "../language";
+import type {
+  LanguageQueryAnalysis,
+  LanguageService,
+  ResolvedLanguageContext,
+} from "../language";
+import { createLanguageService } from "../language";
 
 // Query decomposition for multi-part questions.
 //
@@ -26,16 +31,25 @@ function countTerms(
   text: string,
   language: QueryDecompositionOptions["language"],
   locale: string,
+  excludeStopwords = false,
 ): number {
-  return (language ?? DEFAULT_LANGUAGE).tokenize(text, locale).length;
+  return (language ?? DEFAULT_LANGUAGE).tokenize(text, locale, {
+    excludeStopwords,
+  }).length;
 }
 
 export interface QueryDecompositionOptions {
+  analysis?: LanguageQueryAnalysis;
   /** Locale-aware tokenizer/sentence splitter used by the recall planner. */
   language?: Pick<
     LanguageService,
-    "decomposeQuery" | "normalizeForEquality" | "resolveFromText" | "tokenize"
+    | "analyzeQuery"
+    | "decomposeQuery"
+    | "normalizeForEquality"
+    | "resolveFromText"
+    | "tokenize"
   >;
+  languageContext?: ResolvedLanguageContext;
   locale?: string;
   /** Maximum number of sub-queries to keep (excludes the original query). Default 4. */
   maxSubQueries?: number;
@@ -46,8 +60,10 @@ export interface QueryDecompositionOptions {
 /**
  * Deterministically split a compound query into sub-queries by clause and
  * coordinating-conjunction boundaries. Returns `[]` when the query has no
- * genuine multi-part structure (so the caller falls back to a single recall),
- * and only ever returns two or more distinct fragments. Pure and deterministic.
+ * useful focused structure (so the caller falls back to a single recall).
+ * Ordinary clauses require at least two fragments; one explicit temporal
+ * operand is already a useful supplement to the original query. Pure and
+ * deterministic.
  */
 export function splitQueryIntoSubQueries(
   query: string,
@@ -59,13 +75,28 @@ export function splitQueryIntoSubQueries(
     return [];
   }
   const language = options?.language ?? DEFAULT_LANGUAGE;
-  const locale = options?.locale ??
-    language.resolveFromText({ text: normalized }).locale;
+  const languageContext = options?.languageContext ??
+    language.resolveFromText({
+      ...(options?.locale ? { locale: options.locale } : {}),
+      text: normalized,
+    });
+  const locale = languageContext.locale;
   const original = language.normalizeForEquality(
     normalized.replace(/[?.;!。？；！]+$/u, "").trim(),
     locale,
   );
-  const fragments = language.decomposeQuery(normalized, locale);
+  const temporalOperands = (options?.analysis ?? language.analyzeQuery(
+    normalized,
+    languageContext,
+  )).temporalOperands ?? [];
+  const fragments = temporalOperands.length > 0
+    ? temporalOperands.slice(0, 2)
+    : language.decomposeQuery(normalized, languageContext);
+  const temporalKeys = new Set(
+    temporalOperands.map((operand) =>
+      language.normalizeForEquality(operand, locale)
+    ),
+  );
 
   const seen = new Set<string>();
   const subQueries: string[] = [];
@@ -74,16 +105,23 @@ export function splitQueryIntoSubQueries(
     if (
       key === original ||
       seen.has(key) ||
-      countTerms(fragment, language, locale) < minWords
+      countTerms(
+        fragment,
+        language,
+        locale,
+        temporalKeys.has(key),
+      ) < (temporalKeys.has(key) ? 1 : minWords)
     ) {
       continue;
     }
     seen.add(key);
     subQueries.push(fragment);
   }
-  // Only treat it as a decomposition when there are genuinely multiple parts.
-  return subQueries.length >= 2
-    ? subQueries.slice(0, options?.maxSubQueries ?? DEFAULT_MAX_SUB_QUERIES)
+  const maxSubQueries = temporalOperands.length > 0
+    ? Math.min(options?.maxSubQueries ?? DEFAULT_MAX_SUB_QUERIES, 2)
+    : options?.maxSubQueries ?? DEFAULT_MAX_SUB_QUERIES;
+  return subQueries.length >= (temporalOperands.length > 0 ? 1 : 2)
+    ? subQueries.slice(0, maxSubQueries)
     : [];
 }
 

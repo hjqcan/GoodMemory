@@ -164,7 +164,12 @@ export function buildDeterministicRecallPlan(
   const locale = resolvedLanguage.locale;
   const analysis = input.queryAnalysis ??
     language.analyzeQuery(input.query, resolvedLanguage);
-  const facets = splitQueryIntoSubQueries(input.query, { language, locale });
+  const facets = splitQueryIntoSubQueries(input.query, {
+    analysis,
+    language,
+    languageContext: resolvedLanguage,
+    locale,
+  });
   const aggregation = resolveAggregation(analysis);
   const temporalConstraints = buildTemporalConstraints({
     aggregation,
@@ -175,6 +180,7 @@ export function buildDeterministicRecallPlan(
     referenceTime: input.referenceTime,
   });
   const relation = analysis.relation;
+  const temporalOperandQuery = (analysis.temporalOperands?.length ?? 0) > 0;
 
   const evidenceNeeds: RecallEvidenceNeed[] = ["direct"];
   if (aggregation) {
@@ -183,7 +189,8 @@ export function buildDeterministicRecallPlan(
   if (
     temporalConstraints.length > 0 ||
     aggregation === "change" ||
-    analysis.temporalInterval
+    analysis.temporalInterval ||
+    temporalOperandQuery
   ) {
     evidenceNeeds.push("temporal");
   }
@@ -199,6 +206,7 @@ export function buildDeterministicRecallPlan(
     temporalConstraints.length > 0 ||
     aggregation === "change" ||
     analysis.temporalInterval ||
+    temporalOperandQuery ||
     relation ||
     facets.length > 0
   ) {

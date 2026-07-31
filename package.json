@@ -278,6 +278,7 @@
     "eval:phase-72-longmemeval-semantic-recall": "bun run scripts/run-phase-72-longmemeval-semantic-recall.ts",
     "eval:phase-72-longmemeval-semantic-live": "bun run scripts/run-phase-72-longmemeval-semantic-live.ts",
     "eval:phase-72-longmemeval-answer-revision": "bun run scripts/run-phase-72-longmemeval-answer-revision.ts",
+    "eval:phase-72-longmemeval-temporal-operands-development": "bun run scripts/run-phase-72-longmemeval-temporal-operands-development.ts",
     "eval:phase-72-longmemeval-verifier-chain": "bun run scripts/run-phase-72-longmemeval-verifier-chain.ts",
     "eval:phase-72-memgym": "bun run scripts/run-phase-72-memgym.ts",
     "eval:phase-72-minteval-smoke": "bun run scripts/run-phase-72-minteval-smoke.ts",

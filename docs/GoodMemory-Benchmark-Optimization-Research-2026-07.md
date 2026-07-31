@@ -1729,10 +1729,131 @@ Protocol v2 now:
    protection cases, and zero protection losses. Passing one sealed draw is
    still diagnostic evidence, not promotion or a public score.
 
-Disposition: **v1 superseded; v2 development pending; not promoted.** The
-32-question holdout remains sealed. Even a successful holdout cannot restore a
-LongMemEval claim without a clean full-500 baseline, repeated paired runs, and
-cross-family protection.
+#### Clean v2 development result and disposition
+
+The gold-blind v2 development replay ran from clean commit
+`466517c7a022c6c142ed67c9ab02322272cf5553` under Bun 1.3.14. It kept the
+frozen 4,000-token build budget, 6,000-token reader cap, `gpt-5.6-terra`
+answerer, and independently configured `gpt-5.5` judge.
+
+| Arm | Correct | Accuracy | Total estimated context tokens |
+| --- | ---: | ---: | ---: |
+| product default | 12/16 | 0.7500 | 36,721 |
+| compact EvidenceLedger | 12/16 | 0.7500 | 42,541 |
+
+The paired result was **0 wins / 0 losses / 16 ties**. Nine contexts differed
+and four hypotheses differed, but no answer crossed the correctness boundary;
+seven contexts were byte-identical and shared one answer call. Knowledge-update
+was 8/8 in both arms and temporal-reasoning was 4/8 in both arms. The run used
+25 answer calls, eight judge calls, and 16 memory-context builds. Despite its
+name, the compact arm expanded the total rendered context by 5,820 estimated
+tokens on this slice.
+
+Artifact:
+`reports/eval/research/phase-72/longmemeval-current-recall-assembly/run-phase72-current-recall-assembly-development-v2-bun1314-clean/report.json`,
+SHA-256
+`48904b86169e5ff6caf58e3c2638a7826c594f05e839153acff559d5e9762233`.
+The report binds the clean source worktree fingerprint
+`6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d`,
+dataset raw SHA-256
+`d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`,
+and canonical benchmark fingerprint
+`195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203`.
+
+The four development failures do not support another assembly-format edit.
+Three lacked one required event endpoint in the retrieved sessions: the coffee
+maker purchase, the time-management workshop, and the networking event. The
+fourth retrieved both dated endpoints but answered relative to the 2022-04-15
+question date. The source says the baking class was on 2022-03-20 and the
+birthday cake was made on 2022-04-10, so the expected 21-day event-to-event
+interval is correct. This is a temporal-operand/anchor failure, not a benchmark
+label defect.
+
+Disposition: **the compact EvidenceLedger assembly hypothesis is rejected on
+development and is not promoted.** Net wins were not positive, so the explicit
+authorization condition failed and the 32-question candidate holdout remains
+sealed. This run creates no LongMemEval score or public claim.
+
+#### Next development-only retrieval experiment (pre-registered)
+
+The next experiment targets the observed general failure class without adding
+LongMemEval rules or another provider call. It will derive explicit temporal
+operands from question surface grammar: `order(A, B)` for event comparisons and
+`elapsed(A, anchor?)` for elapsed-time questions. Those operands become focused
+facets for the existing decomposed-recall path; the merged result then uses the
+unchanged product-default renderer. The first experiment measures endpoint
+coverage only and does not add deterministic date arithmetic.
+
+Frozen constraints before any new model call:
+
+- operands come only from deterministic English query grammar in this first
+  experiment; other language packs keep their current behavior. Benchmark
+  name, question type, case ID, activity-title lists, gold answer, and gold
+  evidence remain unavailable to runtime code;
+- at most the primary recall plus two focused operand recalls; no follow-up
+  model or learned controller is used;
+- the report run ID is separate from memory identity. Both arms reuse v2's
+  canonical memory namespace, scope run ID, gold-blind question-ID transform,
+  retrieval profile, context caps, and source-identity sanitization;
+- control is single-pass product-default recall; treatment changes only the
+  query-derived operand admission step, not top-k, answer, or context prompts;
+- elapsed-question count classification and deterministic date arithmetic are
+  explicitly out of scope, so they cannot contaminate this operand-only arm;
+- stage A is retrieval-only on all 16 development cases. If treatment does not
+  increase gold-session endpoint coverage without a coverage regression, stop
+  before any answer or judge call; a passing stage A authorizes only the frozen
+  protection replays, not paired answer conversion;
+- stage A reports evidence-session coverage, added facts/tokens, query calls,
+  selected endpoint coverage, and noise separately. Only a later authorized
+  answer stage may report answer net wins;
+- run only on development plus frozen LoCoMo multi-hop and BEAM multi-session
+  protection slices. A non-positive LongMemEval development net win, any
+  protection answer regression, or unbounded cost rejects the mechanism;
+- ordinary non-temporal `A or B` questions, `how many items` counts, and
+  ordinary non-temporal single-fact lookups are negative controls and must not
+  gain supplementary recalls;
+- the existing assembly holdout is not reusable for this new mechanism. A new
+  disjoint holdout may be selected only after positive development and
+  protection evidence.
+
+Before any treatment was run, a non-canonical control-only diagnostic exposed
+one necessary protocol revision. The English analyzer identity correctly moved
+from 12 to 13 for the new query semantics, so the provenance-bearing raw recall
+snapshot cannot equal the clean v2 snapshot. Across all 16 controls, the
+current runtime still matched the clean v2 context hash, token count, and
+recall-union session list exactly, while 0/16 raw snapshots matched. A second
+non-canonical control-only isolation diagnostic using the same current code
+with only the analyzer identity reset to 12 matched all four fields, including
+the raw snapshot, on 16/16. This establishes that the observed snapshot drift
+is the required analyzer migration identity, not a context or retrieval
+change. Neither diagnostic constructed treatment or called an answerer or
+judge; neither is promotion evidence.
+
+The Stage A v2 runner therefore rebuilds all 16 controls in selection order and
+requires exact per-case clean-v2 surface identity: context hash, token count,
+and recall-union session list. It records both current and legacy raw snapshot
+hashes and their match status, but does not misuse a versioned provenance hash
+as a cross-analyzer behavior oracle. Treatment is not constructed if any
+surface field differs. For every question where the grammar emits no temporal
+operand, the rebuilt treatment must also be fully identical to the current
+control, including context, snapshot, recall union, reader-visible attribution,
+query count, and record count; otherwise the entire run fails before a gate can
+pass. This prevents counter drift or an ordinary-query change from being
+credited to temporal decomposition.
+
+The runner reports final reader-visible endpoint coverage separately from the
+broader recall union, plus added/lost gold endpoints, non-gold-visible sessions
+as a noise proxy, record/token deltas, and actual recall passes from runtime
+traces. It has no answer, judge, or holdout entry point. Reader-visible
+attribution uses a source-prefix match only when that prefix cannot also be
+found inside another session's source turn; an ambiguous match fails closed.
+Dependency-injected test runs are marked non-canonical and cannot open the
+retrieval gate. Even a canonical passing Stage A cannot authorize answer
+conversion until the pre-registered protection replays also pass.
+
+This tests the transferable S2G-RAG gap contract and LongMemEval's time-aware
+query-expansion lesson with deterministic slots. It does not import a trained
+controller, gold-support supervision, or benchmark-specific prompt literals.
 
 ## 8. Primary sources
 

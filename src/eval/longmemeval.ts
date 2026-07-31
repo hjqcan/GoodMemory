@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
-import type { GoodMemory, RecallResult } from "../api/contracts";
+import type { GoodMemory, RecallInput, RecallResult } from "../api/contracts";
 import type { EvidenceLedgerFormat } from "../answer/evidenceLedgerContext";
 import type { MemoryScope } from "../domain/scope";
 import type { MessageAnnotation } from "../remember/candidates";
@@ -255,6 +255,13 @@ export interface LongMemEvalAnswerGeneratorInput {
 export interface LongMemEvalMemoryContext {
   content: string;
   evidenceLedgerContexts?: Partial<Record<EvidenceLedgerFormat, string>>;
+  recallDiagnostics?: {
+    ambiguousReaderVisibleSessionIds: string[];
+    queryCalls: number;
+    readerVisibleSessionIds: string[];
+    recallRecordCount: number;
+    subQueries: string[];
+  };
   recallSnapshotSha256?: string;
   retrievedSessionIds: string[];
 }
@@ -310,6 +317,7 @@ export interface LongMemEvalGoodMemoryContextBuilderInput {
     scope: MemoryScope;
     testCase: LongMemEvalCase;
   }) => Promise<void>;
+  recallOptions?: Pick<RecallInput, "decompose" | "multiHop">;
   runId?: string;
   supplementalEvidenceAugmenter?: LongMemEvalSupplementalEvidenceAugmenter;
   supplementalEvidenceLimit?: number;
@@ -3414,11 +3422,28 @@ function normalizeForEvidenceMatch(value: string): string {
   return value.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
-function deriveRetrievedSessionIds(input: {
+function deriveReaderVisibleSessionAttribution(input: {
   content: string;
   testCase: LongMemEvalCase;
-}): string[] {
+}): {
+  ambiguousSessionIds: string[];
+  readerVisibleSessionIds: string[];
+} {
   const normalizedContext = normalizeForEvidenceMatch(input.content);
+  const sourceTurns: Array<{ content: string; sessionId: string }> = [];
+  const sourcePrefixes = new Set<string>();
+  input.testCase.haystackSessions.forEach((session, index) => {
+    const sessionId = input.testCase.haystackSessionIds[index];
+    if (!sessionId) return;
+    for (const turn of session) {
+      const normalizedTurn = normalizeForEvidenceMatch(turn.content);
+      if (normalizedTurn.length < 24) continue;
+      const prefix = normalizedTurn.slice(0, 120);
+      sourcePrefixes.add(prefix);
+      sourceTurns.push({ content: normalizedTurn, sessionId });
+    }
+  });
+
   const retrieved: string[] = [];
 
   input.testCase.haystackSessions.forEach((session, index) => {
@@ -3439,7 +3464,30 @@ function deriveRetrievedSessionIds(input: {
     }
   });
 
-  return retrieved;
+  const ambiguous = new Set<string>();
+  for (const prefix of sourcePrefixes) {
+    if (!normalizedContext.includes(prefix)) continue;
+    const owners = new Set(
+      sourceTurns
+        .filter((turn) => turn.content.includes(prefix))
+        .map((turn) => turn.sessionId),
+    );
+    if (owners.size < 2) continue;
+    for (const sessionId of owners) ambiguous.add(sessionId);
+  }
+  return {
+    ambiguousSessionIds: input.testCase.haystackSessionIds.filter((sessionId) =>
+      ambiguous.has(sessionId)
+    ),
+    readerVisibleSessionIds: retrieved,
+  };
+}
+
+function deriveRetrievedSessionIds(input: {
+  content: string;
+  testCase: LongMemEvalCase;
+}): string[] {
+  return deriveReaderVisibleSessionAttribution(input).readerVisibleSessionIds;
 }
 
 function collectSessionIdsFromRecall(input: {
@@ -4797,6 +4845,7 @@ export function createLongMemEvalGoodMemoryContextBuilder(
     }
 
     const recall = await memory.recall({
+      ...input.recallOptions,
       ...(evidenceLedgerFormats.length > 0 ? { includeEvidence: true } : {}),
       query: testCase.question,
       scope: baseScope,
@@ -4887,8 +4936,40 @@ export function createLongMemEvalGoodMemoryContextBuilder(
           ])),
         ) as Partial<Record<EvidenceLedgerFormat, string>>;
 
+    const content = decorateContext(context.content);
+    const retrievalTrace = recall.metadata?.retrievalTrace;
+    const readerVisibleAttribution = deriveReaderVisibleSessionAttribution({
+      content,
+      testCase,
+    });
+    const recallDiagnostics = retrievalTrace?.schemaVersion === 2
+      ? {
+          ambiguousReaderVisibleSessionIds:
+            readerVisibleAttribution.ambiguousSessionIds,
+          queryCalls: retrievalTrace.queryExecutions.reduce(
+            (total, execution) => total + execution.hops.length,
+            0,
+          ),
+          readerVisibleSessionIds:
+            readerVisibleAttribution.readerVisibleSessionIds,
+          recallRecordCount: [
+            recall.preferences,
+            recall.references,
+            recall.facts,
+            recall.feedback,
+            recall.archives,
+            recall.evidence,
+            recall.episodes,
+          ].reduce(
+            (total, records) =>
+              total + (Array.isArray(records) ? records.length : 0),
+            0,
+          ),
+          subQueries: [...retrievalTrace.subQueries],
+        }
+      : undefined;
     return {
-      content: decorateContext(context.content),
+      content,
       ...(evidenceLedgerContexts
         ? {
             evidenceLedgerContexts,
@@ -4899,6 +4980,7 @@ export function createLongMemEvalGoodMemoryContextBuilder(
             })).digest("hex"),
           }
         : {}),
+      ...(recallDiagnostics ? { recallDiagnostics } : {}),
       retrievedSessionIds,
     };
   };

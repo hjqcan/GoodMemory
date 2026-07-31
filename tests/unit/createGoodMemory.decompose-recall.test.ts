@@ -135,6 +135,78 @@ describe("GoodMemory.recall decompose option", () => {
     });
   });
 
+  it("honors an explicit decomposition override without enabling planned retrieval", async () => {
+    const { documentStore, makeFact, memory } = buildMemory(false);
+    for (const fact of [
+      makeFact("db", "My production database is PostgreSQL."),
+      makeFact("editor", "My preferred code editor is Neovim."),
+    ]) {
+      await documentStore.set("facts", fact.id, fact);
+    }
+
+    const result = await memory.recall({
+      scope,
+      query: "What database do I use and which code editor do I prefer?",
+      strategy: "rules-only",
+      decompose: true,
+    });
+
+    expect(result.metadata.policyApplied).toContain("decomposed_recall");
+    expect(result.metadata.retrievalTrace).toMatchObject({
+      schemaVersion: 2,
+      stopReason: "decomposition_complete",
+      subQueries: ["What database do I use", "which code editor do I prefer"],
+    });
+  });
+
+  it("executes temporal operands but leaves ordinary alternatives single-pass", async () => {
+    const { memory } = buildMemory(false);
+
+    const temporal = await memory.recall({
+      scope,
+      query:
+        "Which event happened first, the laptop repair or the router replacement?",
+      strategy: "rules-only",
+      decompose: true,
+    });
+    expect(temporal.metadata.retrievalTrace).toMatchObject({
+      schemaVersion: 2,
+      stopReason: "decomposition_complete",
+      subQueries: ["the laptop repair", "the router replacement"],
+    });
+    const temporalTrace = temporal.metadata.retrievalTrace;
+    expect(
+      temporalTrace?.schemaVersion === 2
+        ? temporalTrace.queryExecutions
+        : [],
+    ).toHaveLength(3);
+
+    const ordinary = await memory.recall({
+      scope,
+      query: "Which database should I use, PostgreSQL or SQLite?",
+      strategy: "rules-only",
+      decompose: true,
+    });
+    expect(ordinary.metadata.policyApplied).not.toContain("decomposed_recall");
+    expect(ordinary.metadata.retrievalTrace).toMatchObject({
+      schemaVersion: 2,
+      stopReason: "single_pass_complete",
+      subQueries: [],
+    });
+
+    const advice = await memory.recall({
+      scope,
+      query: "Which task should I do first, deploy backend or update docs?",
+      strategy: "rules-only",
+      decompose: true,
+    });
+    expect(advice.metadata.retrievalTrace).toMatchObject({
+      schemaVersion: 2,
+      stopReason: "single_pass_complete",
+      subQueries: [],
+    });
+  });
+
   it("replans each facet so temporal intent does not leak between subqueries", async () => {
     const { memory } = buildMemory(true);
 

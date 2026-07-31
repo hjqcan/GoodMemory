@@ -198,6 +198,42 @@ describe("language service", () => {
     ).toBe(true);
   });
 
+  it("extracts English temporal operands only from factual time relations", () => {
+    const english = createEnglishLanguagePack();
+    const analyze = (query: string) =>
+      english.analyzeQuery(query).temporalOperands ?? [];
+
+    expect(analyze(
+      "Which event happened earlier, the laptop repair or the router replacement?",
+    )).toEqual(["the laptop repair", "the router replacement"]);
+    expect(analyze(
+      "Who became a parent first, Alice Cooper or Bob Dylan?",
+    )).toEqual(["Alice Cooper", "Bob Dylan"]);
+    expect(analyze(
+      "Did the bake sale happen before or after the charity marathon?",
+    )).toEqual(["the bake sale", "the charity marathon"]);
+    expect(analyze(
+      "How many days had passed since the product launch when the first renewal arrived?",
+    )).toEqual(["the product launch", "the first renewal arrived"]);
+
+    for (const query of [
+      "Which task should I do first, deploy backend or update docs?",
+      "What is the relationship between relational database and embedded database?",
+      "How long is the bridge between Staten Island and Brooklyn?",
+      "How far is it between Staten Island and Brooklyn?",
+      "How many chairs stood between Alice Cooper and Bob Dylan?",
+      "How many charity events happened before the marathon?",
+      "How many days are in a leap year?",
+    ]) {
+      expect(analyze(query), query).toEqual([]);
+    }
+    expect(
+      english.analyzeQuery(
+        "How long is the bridge between Staten Island and Brooklyn?",
+      ).temporalInterval,
+    ).toBe(false);
+  });
+
   it("uses the configured default for Han-only ambiguous text", () => {
     const service = createLanguageService({
       defaultLocale: "ja-JP",
@@ -450,7 +486,7 @@ describe("language service", () => {
       "zh-Hant",
     ]);
     expect(manifest.packs.find(({ id }) => id === "en")).toMatchObject({
-      analyzerVersion: "12",
+      analyzerVersion: "13",
       apiVersion: 1,
       compatibilityGroup: "en",
       defaultLocale: "en-US",

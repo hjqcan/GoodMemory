@@ -90,11 +90,88 @@ const CONTENT = {
   validated: /\b(worked well|keep using|effective|successful)\b/i,
 } as const;
 
-export function analyzeEnglishQuery(query: string): LanguageQueryAnalysis {
-  const temporalInterval =
-    /\bhow\s+(?:long|many\s+(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?))\b[\s\S]{0,120}\b(?:between|elapsed|passed|since|until)\b/iu.test(
-      query,
+function cleanTemporalOperand(value: string): string {
+  return value.trim().replace(/[?.!]+$/u, "").trim();
+}
+
+function elapsedTemporalOperands(value: string): string[] {
+  return value
+    .split(/\s+when\s+/iu)
+    .map(cleanTemporalOperand)
+    .filter(Boolean);
+}
+
+function extractEnglishTemporalOperands(query: string): string[] {
+  const normalized = cleanTemporalOperand(query);
+  const advice =
+    /\b(?:can|could|should|would|will|ought|recommend|suggest)\b/iu.test(
+      normalized,
+    ) || /\b(?:do|does)\s+(?:i|we|you)\b/iu.test(normalized);
+  const trailingComparison = !advice && normalized.match(
+    /^(?:which|what)\s+(?:event|activity)\s*[:,]\s*(.+?)\s+or\s+(.+?)\s*,?\s+(?:happened|occurred|came|was)\s+(?:first|earlier|later|more recently|most recently)$/iu,
+  );
+  if (trailingComparison) {
+    return [trailingComparison[1]!, trailingComparison[2]!]
+      .map(cleanTemporalOperand);
+  }
+
+  const leadingComparison = !advice &&
+    /\b(?:event|activity|became|happened|occurred)\b|\bdid\s+(?:i|we)\b/iu.test(
+      normalized,
+    ) && normalized.match(
+      /^(?:which|what|who)\b[\s\S]{0,120}?\b(?:first|earlier|later|more recently|most recently)\b\s*[:,]\s*(.+?)\s+or\s+(.+)$/iu,
     );
+  if (leadingComparison) {
+    return [leadingComparison[1]!, leadingComparison[2]!]
+      .map(cleanTemporalOperand);
+  }
+
+  const beforeAfter = normalized.match(
+    /^(?:did|has|have|had)\s+(.+?)\s+(?:happen(?:ed)?|occur(?:red)?|take(?:n)?\s+place)\s+(?:before|after)(?:\s+or\s+(?:before|after))?\s+(.+)$/iu,
+  );
+  if (beforeAfter) {
+    return [beforeAfter[1]!, beforeAfter[2]!].map(cleanTemporalOperand);
+  }
+
+  const between = normalized.match(
+    /^how\s+(?:many\s+(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?)\b[\s\S]{0,40}?|much\s+time\s+(?:passed|elapsed)\s+|long\s+(?:(?:was|is|has|had)\s+it|passed|elapsed)\s+)between\s+(.+?)\s+and\s+(.+)$/iu,
+  );
+  if (between) {
+    return [between[1]!, between[2]!].map(cleanTemporalOperand);
+  }
+
+  const ago = normalized.match(
+    /^how\s+(?:long|many\s+(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?))\s+ago\s+(?:(?:did|do|does|was|were|is|are)\s+)?(.+)$/iu,
+  );
+  if (ago) {
+    return elapsedTemporalOperands(ago[1]!);
+  }
+
+  const since = normalized.match(
+    /^how\s+(?:long|many\s+(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?)|much\s+time)\s+(?:(?:has|have|had)\s+(?:it\s+)?(?:been\s+)?(?:passed\s+)?|(?:passed|elapsed)\s+)?since\s+(.+)$/iu,
+  );
+  return since
+    ? elapsedTemporalOperands(since[1]!)
+    : [];
+}
+
+function isEnglishTemporalIntervalQuery(query: string): boolean {
+  return (
+    /\bhow\s+(?:many\s+(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?)|much\s+time)\b[\s\S]{0,120}\b(?:between|elapsed|passed|since|until)\b/iu.test(
+      query,
+    ) ||
+    /\bhow\s+long\b[\s\S]{0,120}\b(?:elapsed|passed|since|until)\b/iu.test(
+      query,
+    ) ||
+    /\bhow\s+long\s+(?:(?:was|is)\s+it|(?:has|had)\s+it\s+been)\b[\s\S]{0,80}\bbetween\b/iu.test(
+      query,
+    )
+  );
+}
+
+export function analyzeEnglishQuery(query: string): LanguageQueryAnalysis {
+  const temporalOperands = extractEnglishTemporalOperands(query);
+  const temporalInterval = isEnglishTemporalIntervalQuery(query);
   const role = QUERY.role.test(query) &&
     !/\b(?:application|deadline|submitting|submission)\b/iu.test(query) &&
     !/\b(?:age\s+and\s+role\s+of|role\s+of\s+the\s+mentor)\b/iu.test(query) &&
@@ -147,6 +224,7 @@ export function analyzeEnglishQuery(query: string): LanguageQueryAnalysis {
     referenceSeeking,
     role,
     temporalInterval,
+    ...(temporalOperands.length > 0 ? { temporalOperands } : {}),
     userGroundedEventOrder,
   };
 }
