@@ -1855,6 +1855,59 @@ This tests the transferable S2G-RAG gap contract and LongMemEval's time-aware
 query-expansion lesson with deterministic slots. It does not import a trained
 controller, gold-support supervision, or benchmark-specific prompt literals.
 
+#### Canonical Stage A result and protection freeze
+
+Canonical Stage A ran from clean commit
+`4077d7beb8db1d15ffd73fd10f7d0d9bc55e55d0` under Bun 1.3.14. Reader-visible
+gold-session coverage increased from 24 to 28 endpoints: four endpoints were
+added, none were lost, four of 16 cases improved, and none regressed. Seven
+questions activated temporal operands; all nine non-trigger questions were
+exactly unchanged. This is a positive retrieval mechanism result, not an
+answer result.
+
+The treatment raised query calls from 16 to 26, recall records from 297 to 402,
+and rendered context from 36,721 to 38,314 estimated tokens. On the seven
+triggered questions alone, context rose 16,764 to 18,357 (+9.50%) and records
+rose 126 to 231 (+83.33%). It added four gross non-gold visible endpoints and
+removed seven while adding four gold endpoints. Artifact:
+`reports/eval/research/phase-72/longmemeval-temporal-operands/run-phase72-longmemeval-temporal-operands-development-stage-a-bun1314-v1/report.json`,
+SHA-256
+`57118fae09d53984da90998ab073fc939eb5dd20d922f9673829464d52a14219`.
+The report keeps `answerConversionAuthorized=false`; it made no answer, judge,
+or holdout call.
+
+The next retrieval-only protection population is frozen in
+`scripts/eval-profiles/phase-72/temporal-operands-protection-v1.json`, SHA-256
+`41ea410c7623dfa24315d7853386900deaeb93f3feff95210f8e34fe5fd403e4`.
+It selects complete categories rather than score-picked questions:
+
+- LoCoMo: all 321 `temporal` activation questions plus all 282 `multi_hop`
+  designated negative controls across 10 conversations; seven questions
+  activate operands.
+- BEAM 100K: all 40 `temporal_reasoning` activation questions plus all 40
+  `multi_session_reasoning` designated negative controls across 20
+  conversations; 30 questions activate operands.
+
+The resulting 683-question matrix has 37 treatments and 646 exact no-trigger
+controls, including 322 designated cross-session controls. Every question and
+arm receives a freshly seeded memory, so extra operand recalls cannot warm the
+next question through access telemetry. LoCoMo and BEAM must each independently
+retain every previously covered gold endpoint, keep gross added noise per added
+gold endpoint at or below 1, keep triggered context growth at or below 15%,
+keep triggered recall-record growth at or below 100%, and stay within three
+queries per question. These are development-adaptive ceilings derived from
+Stage A and frozen before protection retrieval; they are not independent SLOs
+or confirmatory guardrails.
+
+At this freeze point no LoCoMo or BEAM protection retrieval has run. The runner
+requires Bun 1.3.14 and a clean commit, executes all controls before treatments,
+uses label-free raw ingest with rules-only in-memory retrieval, and has no
+answer, judge, or holdout entry point. A passing result can establish only a
+cross-benchmark retrieval protection gate and authorize a separately frozen
+paired answer-protection step. It cannot establish score improvement,
+independent generalization, default enablement, holdout readiness, or a public
+benchmark claim.
+
 ## 8. Primary sources
 
 Benchmarks/ablations: LongMemEval arXiv 2410.10813 · LoCoMo audit

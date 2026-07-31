@@ -23,6 +23,8 @@ describe("Phase 72 external benchmark contracts", () => {
       "eval:phase-72-halumem": "bun run scripts/run-phase-72-halumem.ts",
       "eval:phase-72-longmemeval-temporal-operands-development":
         "bun run scripts/run-phase-72-longmemeval-temporal-operands-development.ts",
+      "eval:phase-72-temporal-operands-protection":
+        "bun run scripts/run-phase-72-temporal-operands-protection.ts",
       "eval:phase-72-memgym": "bun run scripts/run-phase-72-memgym.ts",
       "eval:phase-72-minteval-smoke":
         "bun run scripts/run-phase-72-minteval-smoke.ts",

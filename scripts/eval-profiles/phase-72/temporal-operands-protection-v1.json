@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "protocol": "phase72_temporal_operands_cross_benchmark_retrieval_protection_v1",
+  "frozenBeforeRetrievalExecution": true,
+  "selectionMethod": "Complete temporal activation categories plus complete cross-session negative-control categories, frozen after LongMemEval development Stage A and before cross-benchmark retrieval execution; protection only, not preregistered confirmatory evidence.",
+  "budgetProvenance": "Development-adaptive ceilings set before protection retrieval from LongMemEval Stage A triggered costs (context +9.50%, recall records +83.33%, 4 gross added non-gold endpoints per 4 added gold endpoints = 1.00, with 7 removed non-gold endpoints; report SHA-256 57118fae09d53984da90998ab073fc939eb5dd20d922f9673829464d52a14219). They are not independent SLOs or confirmatory guardrails.",
+  "budgets": {
+    "maxQueriesPerCase": 3,
+    "maxAddedNoiseEvidenceIdsPerAddedGoldEndpoint": 1,
+    "maxTriggeredContextTokenIncreaseRatio": 0.15,
+    "maxTriggeredRecallRecordIncreaseRatio": 1
+  },
+  "locomo": {
+    "datasetRawSha256": "edf70af6cb0fdf2eed50e2f7e69730b9ddadfadce2bee3bebdb141796208317d",
+    "benchmarkFingerprint": "87abd829cbb3bd5110f80ae1df6c42338ca338b131fac48919ed171d46cb7692",
+    "activationCategory": "temporal",
+    "negativeControlCategory": "multi_hop",
+    "questionCategoryCounts": {
+      "temporal": 321,
+      "multi_hop": 282
+    },
+    "questionCount": 603,
+    "memoryGroupCount": 10,
+    "temporalTriggerCount": 7,
+    "orderedSelectionSha256": "c9d41e972c40b0783dadda97f1b78d9c3b01a194e218d15a118ac1086964e0b1"
+  },
+  "beam": {
+    "datasetRawSha256": "23a7b6bd1e69f775989df7a82f4f8441ce79e233fe88b858b451c1f23e71c162",
+    "datasetParsedSha256": "7ab6e6f672b12db730f2d55fb65000e1227686224910763216214ef054f41c3f",
+    "scale": "100K",
+    "activationQuestionType": "temporal_reasoning",
+    "negativeControlQuestionType": "multi_session_reasoning",
+    "questionTypeCounts": {
+      "temporal_reasoning": 40,
+      "multi_session_reasoning": 40
+    },
+    "questionCount": 80,
+    "memoryGroupCount": 20,
+    "temporalTriggerCount": 30,
+    "orderedSelectionSha256": "0979b4abe08a388a12ff10f074d7725e7f56e046c02ef9694a8a0d25783a0130"
+  }
+}
