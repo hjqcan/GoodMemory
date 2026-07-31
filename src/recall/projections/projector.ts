@@ -12,6 +12,7 @@ import type {
   LanguageService,
   ResolvedLanguageContext,
 } from "../../language";
+import { isStrongLegacyProjectionLocaleSignal } from "../../language/service";
 import type {
   RecallDocumentGranularity,
   RecallEntityMention,
@@ -287,7 +288,7 @@ export function resolveProjectionLanguageContext(
   }
   const recorded = language.resolveFromText({ locale: source.locale, text });
   const detected = language.resolveFromText({ text });
-  return detected.localeSource === "detected" &&
+  return isStrongLegacyProjectionLocaleSignal(text, detected) &&
       detected.languagePackId !== recorded.languagePackId
     ? detected
     : recorded;

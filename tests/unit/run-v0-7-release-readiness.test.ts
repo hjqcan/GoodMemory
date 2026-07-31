@@ -12,6 +12,7 @@ import {
   evaluateV07PackManifest,
   evaluateV07RequiredChecks,
   parseV07ReleaseReadinessCliOptions,
+  renderV07LanguageConsumerSmoke,
   renderV07ReleaseSummary,
   V07_RELEASE_REQUIRED_COMMANDS,
 } from "../../scripts/run-v0-7-release-readiness";
@@ -23,7 +24,7 @@ function report(
     allRequiredPassed: false,
     checks: [
       {
-        detail: "package is 0.7.0",
+        detail: "package is 0.7.1",
         durationMs: 1,
         id: "version",
         required: true,
@@ -41,7 +42,7 @@ function report(
     ],
     generatedAt: "2026-07-21T00:00:00.000Z",
     generatedBy: "scripts/run-v0-7-release-readiness.ts",
-    packageVersion: "0.7.0",
+    packageVersion: "0.7.1",
     runtime: {
       bunVersion: "1.3.14",
       nodeVersion: "v20.19.0",
@@ -64,7 +65,7 @@ describe("v0.7 release readiness", () => {
     ).resolves.toEqual(expect.objectContaining({ status: "pass" }));
   });
 
-  it("pins package, lockfile, capability, and MCP descriptors to 0.7.0", () => {
+  it("pins package, lockfile, capability, and MCP descriptors to 0.7.1", () => {
     const readJson = (path: string) =>
       JSON.parse(
         readFileSync(new URL(`../../${path}`, import.meta.url), "utf8"),
@@ -78,18 +79,18 @@ describe("v0.7 release readiness", () => {
     const capability = readJson(".well-known/goodmemory.json");
     const server = readJson("server.json");
 
-    expect(packageJson.version).toBe("0.7.0");
-    expect(packageLock.version).toBe("0.7.0");
+    expect(packageJson.version).toBe("0.7.1");
+    expect(packageLock.version).toBe("0.7.1");
     expect((packageLock.packages as Record<string, { version?: string }>)[""]?.version).toBe(
-      "0.7.0",
+      "0.7.1",
     );
-    expect(capability.version).toBe("0.7.0");
+    expect(capability.version).toBe("0.7.1");
     expect(capability.releaseStatus).toEqual(expect.objectContaining({
       npmDistTag: "latest",
       status: "stable",
     }));
-    expect(server.version).toBe("0.7.0");
-    expect((server.packages as Array<{ version?: string }>)[0]?.version).toBe("0.7.0");
+    expect(server.version).toBe("0.7.1");
+    expect((server.packages as Array<{ version?: string }>)[0]?.version).toBe("0.7.1");
   });
 
   it("requires the 0.7 migration guide and a compressed tarball below 4 MiB", () => {
@@ -118,6 +119,22 @@ describe("v0.7 release readiness", () => {
       "tarball missing: dist/index.d.ts, dist/ai-sdk/index.js, dist/ai-sdk/index.d.ts, dist/host/index.js, dist/host/index.d.ts, dist/http/index.js, dist/http/index.d.ts, dist/runtime-kit/index.js, dist/runtime-kit/index.d.ts, docs/GoodMemory-0.6-to-0.7-Migration-Guide.md",
       "compressed tarball 4194304 bytes must be below 4194304 bytes",
     ]);
+  });
+
+  it("executes every built-in LanguagePack factory in the packed consumer", () => {
+    const smoke = renderV07LanguageConsumerSmoke();
+
+    for (const factoryCall of [
+      "createEnglishLanguagePack()",
+      'createChineseLanguagePack("Hans")',
+      'createChineseLanguagePack("Hant")',
+      "createJapaneseLanguagePack()",
+      "createKoreanLanguagePack()",
+      "createFrenchLanguagePack()",
+      "createSpanishLanguagePack()",
+    ]) {
+      expect(smoke).toContain(factoryCall);
+    }
   });
 
   it("binds readiness to one clean commit and tree", () => {

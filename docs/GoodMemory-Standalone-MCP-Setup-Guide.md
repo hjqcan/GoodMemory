@@ -17,12 +17,12 @@ and writeback governance on top of MCP.
 - **Bun 1.3.14+ on PATH.** The `goodmemory-mcp` bin is a launcher that spawns
   `bun`; without Bun it exits with an install hint.
 
-The registry command below applies after `goodmemory@0.7.0` is published.
-Before publication, install the verified local `goodmemory-0.7.0.tgz` produced
+The registry command below applies after `goodmemory@0.7.1` is published.
+Before publication, install the verified local `goodmemory-0.7.1.tgz` produced
 by the release workflow.
 
 ```bash
-npm install -g goodmemory@0.7.0
+npm install -g goodmemory@0.7.1
 ```
 
 ## Start the server

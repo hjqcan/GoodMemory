@@ -21,7 +21,7 @@ import {
 } from "./run-v0-7-release-readiness";
 import { assertV07StableReleaseSource } from "./promote-v0-7-release";
 
-const RELEASE_VERSION = "0.7.0";
+const RELEASE_VERSION = "0.7.1";
 
 export interface V07StableArtifact {
   artifactName: string;

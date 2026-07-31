@@ -17,26 +17,26 @@ import {
 
 const README_RC = `# GoodMemory
 
-> **Release status:** this branch is the \`0.7.0\` release candidate. npm
-> \`latest\` remains \`0.6.0\` until the tagged stable workflow publishes 0.7.0.
+> **Release status:** this branch is the \`0.7.1\` release candidate. npm
+> \`latest\` remains \`0.7.0\` until the tagged stable workflow publishes 0.7.1.
 > The version-pinned registry commands below are the post-publish contract; use
-> the locally packed \`goodmemory-0.7.0.tgz\` for pre-publish verification.
+> the locally packed \`goodmemory-0.7.1.tgz\` for pre-publish verification.
 `;
 
 const README_ZH_RC = `# GoodMemory
 
-> **发布状态：**当前分支是 \`0.7.0\` release candidate；在带 tag 的稳定发布
-> workflow 真正发布 0.7.0 之前，npm \`latest\` 仍是 \`0.6.0\`。下文锁定
-> 0.7.0 的 registry 命令是发布后的契约；发布前请使用本地打包的
-> \`goodmemory-0.7.0.tgz\` 验证。
+> **发布状态：**当前分支是 \`0.7.1\` release candidate；在带 tag 的稳定发布
+> workflow 真正发布 0.7.1 之前，npm \`latest\` 仍是 \`0.7.0\`。下文锁定
+> 0.7.1 的 registry 命令是发布后的契约；发布前请使用本地打包的
+> \`goodmemory-0.7.1.tgz\` 验证。
 `;
 
 const LLMS_RC = `# GoodMemory
 
-Release status: this source tree targets the 0.7.0 release candidate. npm
-latest remains 0.6.0 until the tagged stable workflow publishes 0.7.0. The
+Release status: this source tree targets the 0.7.1 release candidate. npm
+latest remains 0.7.0 until the tagged stable workflow publishes 0.7.1. The
 version-pinned registry commands below apply after publication; pre-publish
-verification uses goodmemory-0.7.0.tgz.
+verification uses goodmemory-0.7.1.tgz.
 `;
 
 async function writeReleaseCandidateFixture(
@@ -56,7 +56,7 @@ async function writeReleaseCandidateFixture(
         status: "release-candidate",
       },
       name: "goodmemory",
-      version: "0.7.0",
+      version: "0.7.1",
     }, null, 2)}\n`,
   );
   await writeFile(
@@ -67,9 +67,9 @@ async function writeReleaseCandidateFixture(
         installCommandsApplyAfterPublish: true,
         npmDistTag: "latest",
         status: "release-candidate",
-        tarball: "goodmemory-0.7.0.tgz",
+        tarball: "goodmemory-0.7.1.tgz",
       },
-      version: "0.7.0",
+      version: "0.7.1",
     }, null, 2)}\n`,
   );
 }
@@ -101,13 +101,13 @@ describe("v0.7 release-source promotion", () => {
         installCommandsApplyAfterPublish: true,
         npmDistTag: "latest",
         status: "stable",
-        tarball: "goodmemory-0.7.0.tgz",
+        tarball: "goodmemory-0.7.1.tgz",
       });
-      expect(readme).toContain("immutable `0.7.0` stable release source");
-      expect(readmeZh).toContain("不可变的 `0.7.0` 稳定发布源码");
-      expect(llms).toContain("immutable GoodMemory 0.7.0 stable release source");
+      expect(readme).toContain("immutable `0.7.1` stable release source");
+      expect(readmeZh).toContain("不可变的 `0.7.1` 稳定发布源码");
+      expect(llms).toContain("immutable GoodMemory 0.7.1 stable release source");
       for (const content of [readme, readmeZh, llms]) {
-        expect(content).not.toContain("latest remains 0.6.0");
+        expect(content).not.toContain("latest remains 0.7.0");
         expect(content).not.toContain("release candidate");
       }
       expect(JSON.stringify(packageJson)).not.toContain("npmLatest");
@@ -131,7 +131,7 @@ describe("v0.7 release-source promotion", () => {
 
       await expect(
         assertV07StableReleaseSource({ repoRoot: root }),
-      ).rejects.toThrow("goodmemory-0.7.0.tgz");
+      ).rejects.toThrow("goodmemory-0.7.1.tgz");
     } finally {
       await rm(root, { force: true, recursive: true });
     }

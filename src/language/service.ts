@@ -14,22 +14,48 @@ import { createJapaneseLanguagePack } from "./japanese";
 import { createKoreanLanguagePack } from "./korean";
 import { createSpanishLanguagePack } from "./spanish";
 
+const ENGLISH_PACK = createEnglishLanguagePack();
+const CHINESE_HANS_PACK = createChineseLanguagePack("Hans");
+const CHINESE_HANT_PACK = createChineseLanguagePack("Hant");
+const JAPANESE_PACK = createJapaneseLanguagePack();
+const KOREAN_PACK = createKoreanLanguagePack();
+const FRENCH_PACK = createFrenchLanguagePack();
+const SPANISH_PACK = createSpanishLanguagePack();
 const NEUTRAL_PACK = createNeutralLanguagePack();
 
 const BUILTIN_PACKS = [
-  createEnglishLanguagePack(),
-  createChineseLanguagePack("Hans"),
-  createChineseLanguagePack("Hant"),
-  createJapaneseLanguagePack(),
-  createKoreanLanguagePack(),
-  createFrenchLanguagePack(),
-  createSpanishLanguagePack(),
+  ENGLISH_PACK,
+  CHINESE_HANS_PACK,
+  CHINESE_HANT_PACK,
+  JAPANESE_PACK,
+  KOREAN_PACK,
+  FRENCH_PACK,
+  SPANISH_PACK,
   NEUTRAL_PACK,
 ] as const;
 
 const LANGUAGE_RESOLVER_VERSION = "3";
 const MAX_SEARCH_TERMS = 128;
 const PURE_NUMERIC_TOKEN = /^\p{N}+$/u;
+
+export function isStrongLegacyProjectionLocaleSignal(
+  text: string,
+  context: ResolvedLanguageContext,
+): boolean {
+  if (context.localeSource !== "detected") {
+    return false;
+  }
+  const input = { texts: [text] };
+  const japaneseSignal = JAPANESE_PACK.detect(input) === "distinctive";
+  const distinctiveChinesePack = [CHINESE_HANS_PACK, CHINESE_HANT_PACK]
+    .filter((pack) => pack.detect(input) === "distinctive");
+  const expectedPackId = japaneseSignal
+    ? JAPANESE_PACK.id
+    : distinctiveChinesePack.length === 1
+      ? distinctiveChinesePack[0]?.id
+      : undefined;
+  return context.languagePackId === expectedPackId;
+}
 
 function stableCompare(left: string, right: string): number {
   const leftKey = left.toLowerCase();

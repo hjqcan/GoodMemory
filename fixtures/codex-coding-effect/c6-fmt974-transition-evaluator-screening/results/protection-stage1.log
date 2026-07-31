@@ -1,0 +1,37 @@
+image=mswebench/fmtlib_m_fmt@sha256:52ce9e68edb03274b4305717e4d0b6a18c778ff784c8cb3c9e3ff4ef3b24d7f8
+platform=linux/amd64
+tree=stage1
+command=ctest --test-dir build-mq --output-on-failure -E ^format-test$
+Internal ctest changing into directory: /work/build-mq
+Test project /work/build-mq
+      Start  1: assert-test
+ 1/13 Test  #1: assert-test ......................   Passed    0.03 sec
+      Start  2: chrono-test
+ 2/13 Test  #2: chrono-test ......................   Passed    0.03 sec
+      Start  3: core-test
+ 3/13 Test  #3: core-test ........................   Passed    0.05 sec
+      Start  4: gtest-extra-test
+ 4/13 Test  #4: gtest-extra-test .................   Passed    0.03 sec
+      Start  5: format-impl-test
+ 5/13 Test  #5: format-impl-test .................   Passed    0.02 sec
+      Start  6: locale-test
+ 6/13 Test  #6: locale-test ......................   Passed    0.02 sec
+      Start  7: ostream-test
+ 7/13 Test  #7: ostream-test .....................   Passed    0.03 sec
+      Start  8: printf-test
+ 8/13 Test  #8: printf-test ......................   Passed    0.05 sec
+      Start  9: time-test
+ 9/13 Test  #9: time-test ........................   Passed    0.02 sec
+      Start 10: custom-formatter-test
+10/13 Test #10: custom-formatter-test ............   Passed    0.02 sec
+      Start 11: ranges-test
+11/13 Test #11: ranges-test ......................   Passed    0.01 sec
+      Start 12: posix-mock-test
+12/13 Test #12: posix-mock-test ..................   Passed    0.03 sec
+      Start 13: posix-test
+13/13 Test #13: posix-test .......................   Passed    0.03 sec
+
+100% tests passed, 0 tests failed out of 13
+
+Total Test time (real) =   0.40 sec
+exit_code=0

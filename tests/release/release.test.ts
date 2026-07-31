@@ -738,7 +738,7 @@ describe("release metadata and docs", () => {
     };
 
     expect(pkg.version).toBe(CURRENT_PACKAGE_VERSION);
-    expect(pkg.version).toBe("0.7.0");
+    expect(pkg.version).toBe("0.7.1");
     expect(pkg.private).toBeUndefined();
     expect(pkg.description).toBe(
       "Memory layer for chat, copilot, and agent applications.",
@@ -1402,7 +1402,7 @@ describe("release metadata and docs", () => {
     );
     expect(historicalEvidence).toContain("**CR 0.959, TTL 0.933**");
     expect(readme).toContain("historical 0.6 evidence");
-    expect(readme).toContain("not 0.7 performance claims");
+    expect(readme).toContain("not current-package performance claims");
     expect(readme).toContain("provider reranking");
     expect(readme).toContain("CC BY-NC 4.0 (non-commercial scope)");
     expect(readme).not.toContain("| LoCoMo | representative conv-1 live run 0.020");
@@ -1496,8 +1496,8 @@ describe("release metadata and docs", () => {
     expect(readme).toContain("examples/fastify-chat-server.ts");
     expect(readme).toContain("docs/GoodMemory-15-Minute-App-Integration.md");
     expect(guide).toContain("15-Minute App Integration");
-    expect(guide).toContain("npm install goodmemory@0.7.0");
-    expect(guide).toContain("verified local `goodmemory-0.7.0.tgz`");
+    expect(guide).toContain("npm install goodmemory@0.7.1");
+    expect(guide).toContain("verified local `goodmemory-0.7.1.tgz`");
     expect(guide).toContain("createGoodMemory");
     expect(guide).toContain("GoodMemoryConfig.observability.traceSink");
     expect(guide).toContain("memory.runtime.startSession");
@@ -1531,8 +1531,8 @@ describe("release metadata and docs", () => {
   });
 
   it("v0.7 package metadata, stable-source docs, and machine-readable descriptors agree", async () => {
-    expect(CURRENT_PACKAGE_VERSION).toBe("0.7.0");
-    expect(CURRENT_TARBALL_NAME).toBe("goodmemory-0.7.0.tgz");
+    expect(CURRENT_PACKAGE_VERSION).toBe("0.7.1");
+    expect(CURRENT_TARBALL_NAME).toBe("goodmemory-0.7.1.tgz");
 
     const releaseDocPaths = [
       "README.md",
@@ -1636,8 +1636,8 @@ describe("release metadata and docs", () => {
     expect(standaloneGuide).toContain("2026-07-28");
     expect(standaloneGuide).toContain("2025-11-25");
     expect(standaloneGuide).toContain("application-level memory scope");
-    expect(standaloneGuide).toContain("npm install -g goodmemory@0.7.0");
-    expect(standaloneGuide).toContain("verified local `goodmemory-0.7.0.tgz`");
+    expect(standaloneGuide).toContain("npm install -g goodmemory@0.7.1");
+    expect(standaloneGuide).toContain("verified local `goodmemory-0.7.1.tgz`");
     // Bun is a hard runtime prerequisite: the goodmemory-mcp bin spawns bun.
     expect(standaloneGuide).toContain("Bun");
 
@@ -2871,7 +2871,7 @@ describe("release metadata and docs", () => {
     expect(currentStatus).toContain("task-board/00-README.txt");
     expect(currentStatus).toContain("docs/archive/quality-gates/README.md");
     expect(currentStatus).toContain(
-      "There are no current `v0.7.0` benchmark claims",
+      "There are no current `v0.7.1` benchmark claims",
     );
     expect(currentStatus).toContain(
       "BEAM 100K (unified 0.7651 / strict 0.620 / recall 0.8276)",

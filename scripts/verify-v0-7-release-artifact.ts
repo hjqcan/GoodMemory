@@ -10,7 +10,7 @@ import {
   verifyV07ArtifactConsumers,
 } from "./run-v0-7-release-readiness";
 
-const RELEASE_VERSION = "0.7.0";
+const RELEASE_VERSION = "0.7.1";
 
 export interface V07PrepublishArtifactEvidence {
   artifactName: string;
@@ -20,7 +20,7 @@ export interface V07PrepublishArtifactEvidence {
   runtime: V07RuntimeIdentity;
   sourceCommit: string;
   sourceTree: string;
-  version: "0.7.0";
+  version: typeof RELEASE_VERSION;
 }
 
 export function buildV07PrepublishEvidence(input: {

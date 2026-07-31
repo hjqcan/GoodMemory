@@ -19,6 +19,7 @@ bun.lockb
 # Logs
 logs/
 *.log
+!fixtures/codex-coding-effect/c6-fmt974-transition-evaluator-screening/results/*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

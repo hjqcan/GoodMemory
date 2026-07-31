@@ -1,0 +1,23 @@
+image=mswebench/fmtlib_m_fmt@sha256:52ce9e68edb03274b4305717e4d0b6a18c778ff784c8cb3c9e3ff4ef3b24d7f8
+platform=linux/amd64
+tree=stage3after
+source=stage-3-format-error-public.cc
+arg=
+extra_compile_flags=-Werror=terminate
+In file included from /evaluator/stage-3-format-error-public.cc:2:
+/work/include/fmt/color.h: In member function ‘fmt::v5::text_style& fmt::v5::text_style::operator|=(const fmt::v5::text_style&)’:
+/work/include/fmt/color.h:275:9: error: ‘throw’ will always call ‘terminate’ [-Werror=terminate]
+  275 |         throw format_error("can't OR a terminal color");
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/work/include/fmt/color.h:286:9: error: ‘throw’ will always call ‘terminate’ [-Werror=terminate]
+  286 |         throw format_error("can't OR a terminal color");
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/work/include/fmt/color.h: In member function ‘fmt::v5::text_style& fmt::v5::text_style::operator&=(const fmt::v5::text_style&)’:
+/work/include/fmt/color.h:308:9: error: ‘throw’ will always call ‘terminate’ [-Werror=terminate]
+  308 |         throw format_error("can't AND a terminal color");
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/work/include/fmt/color.h:319:9: error: ‘throw’ will always call ‘terminate’ [-Werror=terminate]
+  319 |         throw format_error("can't AND a terminal color");
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cc1plus: some warnings being treated as errors
+exit_code=1

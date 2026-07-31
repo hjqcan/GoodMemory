@@ -577,6 +577,14 @@ describe("recall projection runtime", () => {
         },
       },
       {
+        ...buildFact({ id: "legacy-hans", content: "目前项目的发布状态仍待审批。" }),
+        source: {
+          method: "explicit" as const,
+          extractedAt: NOW,
+          locale: "en-US",
+        },
+      },
+      {
         ...buildFact({ id: "legacy-han-ja", content: "田中東京大学" }),
         source: {
           method: "explicit" as const,
@@ -592,6 +600,41 @@ describe("recall projection runtime", () => {
           locale: "zh-CN",
         },
       },
+      {
+        ...buildFact({
+          id: "legacy-common-han",
+          content: "我在北京工作。我是工程主管。",
+        }),
+        source: {
+          method: "explicit" as const,
+          extractedAt: NOW,
+          locale: "ja-JP",
+        },
+      },
+      {
+        ...buildFact({ id: "legacy-korean", content: "현재 장애 요인은 무엇인가요?" }),
+        source: {
+          method: "explicit" as const,
+          extractedAt: NOW,
+          locale: "fr-FR",
+        },
+      },
+      {
+        ...buildFact({ id: "legacy-french", content: "Quel est le blocage actuel ?" }),
+        source: {
+          method: "explicit" as const,
+          extractedAt: NOW,
+          locale: "es-ES",
+        },
+      },
+      {
+        ...buildFact({ id: "legacy-spanish", content: "¿Cuál es el bloqueo actual?" }),
+        source: {
+          method: "explicit" as const,
+          extractedAt: NOW,
+          locale: "ko-KR",
+        },
+      },
     ];
     for (const fact of facts) {
       await runtime.documentStore.set("facts", fact.id, fact);
@@ -604,8 +647,62 @@ describe("recall projection runtime", () => {
       )?.searchLocale;
     expect(localeFor("legacy-kana")).toBe("ja-JP");
     expect(localeFor("legacy-hant")).toBe("zh-Hant");
+    expect(localeFor("legacy-hans")).toBe("zh-CN");
     expect(localeFor("legacy-han-ja")).toBe("ja-JP");
     expect(localeFor("legacy-han-zh")).toBe("zh-CN");
+    expect(localeFor("legacy-common-han")).toBe("ja-JP");
+    expect(localeFor("legacy-korean")).toBe("fr-FR");
+    expect(localeFor("legacy-french")).toBe("es-ES");
+    expect(localeFor("legacy-spanish")).toBe("ko-KR");
+  });
+
+  it("does not use a custom detector to rewrite a legacy projection locale", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const runtime = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      language: createLanguageService({
+        detector: ({ texts }) =>
+          texts.some((text) => text.includes("项目")) ? "zh-CN" : "ja-JP",
+        detectorVersion: "test-detector-v1",
+      }),
+    });
+    const fact = {
+      ...buildFact({
+        id: "legacy-custom-detector",
+        content: "The release remains pending approval.",
+      }),
+      source: {
+        method: "explicit" as const,
+        extractedAt: NOW,
+        locale: "en-US",
+      },
+    };
+    const mixedSignalFact = {
+      ...buildFact({
+        id: "legacy-custom-detector-mixed-signals",
+        content: "現在の项目仍待审批。",
+      }),
+      source: {
+        method: "explicit" as const,
+        extractedAt: NOW,
+        locale: "en-US",
+      },
+    };
+    await runtime.documentStore.set("facts", fact.id, fact);
+    await runtime.documentStore.set(
+      "facts",
+      mixedSignalFact.id,
+      mixedSignalFact,
+    );
+
+    const documents = await runtime.queryDocuments(scope);
+    for (const sourceMemoryId of [fact.id, mixedSignalFact.id]) {
+      expect(
+        documents.find(({ granularity, sourceMemoryId: candidateId }) =>
+          granularity === "memory" && candidateId === sourceMemoryId
+        )?.searchLocale,
+      ).toBe("en-US");
+    }
   });
 
   it("uses the earliest validity boundary when both validUntil and TTL exist", async () => {

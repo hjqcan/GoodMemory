@@ -113,6 +113,6 @@
   },
   "claimBoundary": {
     "publicClaimAllowed": false,
-    "reason": "Versioned v0.6.0 evidence is retained unchanged, but it is not a current v0.7.0 claim until the benchmark is rerun against the new package and LanguagePack semantics."
+    "reason": "Versioned v0.6.0 evidence is retained unchanged, but it is not a current-package claim until the benchmark is rerun against the current package under its disclosed semantics."
   }
 }

@@ -4,14 +4,14 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 
 ## Stable OSS Surface
 
-- Last registry state verified when this release source was prepared: 0.6.0.
-  Tag `v0.6.0` resolves to release commit
-  `6fdd63ec`; workflow run `29522907352` published the GitHub release and npm
-  `latest` resolves to `goodmemory@0.6.0`.
-- This tree is the immutable source intended for the breaking `0.7.0` stable
-  artifact. Source status does not encode mutable registry observations.
-  Publication, the `v0.7.0` tag, and npm `latest` remain separate actions; the
-  workflow must verify the exact npm artifact before it creates a GitHub Release.
+- Current registry state: npm `latest` resolves to `goodmemory@0.7.0`. Tag
+  `v0.7.0` resolves to release commit
+  `5ad83df2e3e5e9763318e74994a335cd681a32f6`; workflow run `29992775196`
+  published the GitHub release and npm artifact.
+- This tree is preparing the `0.7.1` stable artifact. Source preparation does
+  not prove publication: the `v0.7.1` tag and npm release remain pending, and
+  the workflow must verify the exact npm artifact before it creates the GitHub
+  Release.
 - Main has completed Phases 68 through 72 on the generalization-first line.
   The production selector graph contains only
   generalized selection primitives, and the `recommended` preset now has a
@@ -1416,8 +1416,8 @@ cutover, and rollback contracts.
   is wired to the complete attempt loader, frozen report, independent replay,
   and C7 gate.
 - The Phase 72 benchmark gate and versioned release gate are closed evidence for
-  `v0.6.0`. Because `v0.7.0` changes LanguagePack and recall semantics, the
-  current-claim table is empty until fresh `v0.7.0` runs pass the strict gate.
+  `v0.6.0`. Because `v0.7.0` changed LanguagePack and recall semantics, the
+  current-claim table is empty until fresh `v0.7.1` runs pass the strict gate.
   The five prior declarations remain versioned historical/internal rows.
   LoCoMo covers all 1540 non-adversarial questions with zero execution/judge
   failures and scores 0.6298701299 strict, 0.8707792208 under the independent
@@ -1468,7 +1468,7 @@ cutover, and rollback contracts.
 - automatic adapter/event `user_correction` path is proposal-first and records selective evidence plus proposal/promotion receipts instead of writing an intermediate active feedback memory; public `feedback()` remains the explicit durable procedural feedback entrypoint.
 - Provider-backed retrieval is explicit; rules-only remains the default accepted mode, and provider failures surface as `provider_error`.
 - Dashboard, cloud sync, and team workspace remain a Phase 48 no-go decision.
-- There are no current `v0.7.0` benchmark claims. The prior `v0.6.0` LoCoMo,
+- There are no current `v0.7.1` benchmark claims. The prior `v0.6.0` LoCoMo,
   BEAM, and MemoryAgentBench results retain their strict, protocol, license,
   and event-ordering disclosures as versioned historical evidence alongside
   ImplicitMemBench. LongMemEval is a paused boundary pending a clean
@@ -1546,7 +1546,7 @@ cutover, and rollback contracts.
 - Phase 65 embedding-free comparison source/output guard note: `run-phase-65-locomo-embedding-free-comparison.ts` now rejects output directories that resolve to the benchmark root before parsing can hand off to the arm runner, and the runner repeats the same check before any arm can read the benchmark root. This is gateway-free comparison evidence integrity hardening only; it does not change LoCoMo retrieval scores, answer scores, default status, or public-claim boundaries.
 - Phase 65 measurement source-root guard note: `measure-locomo-levers.ts`, `measure-locomo-neural.ts`, `measure-locomo-union-live.ts`, and `run-phase-65-locomo-embedding-free-comparison.ts` now reject empty or whitespace-padded `GOODMEMORY_LOCOMO_ROOT` fallback values before benchmark-root resolution. This is source-root integrity hardening for LoCoMo lever, neural, union-live, and gateway-free comparison evidence only; it does not change LoCoMo retrieval scores, answer scores, default status, or public-claim boundaries.
 - Phase 66 release-readiness CLI guard note: `gate:v0-3-release-readiness` rejects duplicate `--skip-build`, `--skip-tests`, `--strict`, and `--output-dir` flags before running package/release checks. This is release-gate input hardening only; it does not change benchmark scores or public claims.
-- Public-claim gate note: `gate:public-benchmark-claim` validates declaration shape, metric direction and baseline improvement, derived answer/judge separation, full commit identity, tracked historical-projection assertions, and README row provenance/disclosures. It checks internal declaration consistency; it does not independently prove upstream licenses or reconstruct ignored raw reports. Historical source fingerprints can be checked locally with `bun run scripts/project-historical-evidence.ts`. A current claim must have `candidate_public_claim` status and a `run.packageVersion` equal to the current package version. Historical rows live under separate markers and remain consistency-checked without becoming current claims. For `v0.7.0`, strict mode should find zero current claims, four versioned historical rows, and LongMemEval as one paused declaration.
+- Public-claim gate note: `gate:public-benchmark-claim` validates declaration shape, metric direction and baseline improvement, derived answer/judge separation, full commit identity, tracked historical-projection assertions, and README row provenance/disclosures. It checks internal declaration consistency; it does not independently prove upstream licenses or reconstruct ignored raw reports. Historical source fingerprints can be checked locally with `bun run scripts/project-historical-evidence.ts`. A current claim must have `candidate_public_claim` status and a `run.packageVersion` equal to the current package version. Historical rows live under separate markers and remain consistency-checked without becoming current claims. For `v0.7.1`, strict mode should find zero current claims, four versioned historical rows, and LongMemEval as one paused declaration.
 - Phase 67 benchmark-prompt rescore evidence note: `eval:official-rescore` rejects ambiguous selectors, source/output overlap, malformed identities and progress rows, source fingerprint drift, judge-model drift, and incomplete judging. Its `rescore-summary.json` records source fingerprints, judge identity, selected/source scope, and a benchmark-and-model-aware claim boundary. LongMemEval runs with gpt-5.4 or gpt-5.5 are explicitly official-prompt-compatible but not directly comparable to published official scores because those models are outside the pinned evaluator model zoo. Stored answers remain separate from derived artifacts, and no rescore becomes a public claim without the claim gate.
 - Phase 67 official-rescore cache writer / summary validation note: `eval:official-rescore` serializes progress through the same strict shapes accepted by resume parsing and validates final summaries, scope counts, fingerprints, category aggregates, and stored-answer boundaries before write. Existing LoCoMo and BEAM scores remain versioned historical evidence; refreshed LongMemEval artifacts preserve contaminated provenance only.
 - **WITHDRAWN 2026-07-31:** the Phase 72 LongMemEval verifier/rescore chain

@@ -1,0 +1,14 @@
+image=mswebench/fmtlib_m_fmt@sha256:52ce9e68edb03274b4305717e4d0b6a18c778ff784c8cb3c9e3ff4ef3b24d7f8
+platform=linux/amd64
+tree=stage1before-24594
+source=stage-1-terminal-color-public.cc
+arg=
+extra_compile_flags=
+/evaluator/stage-1-terminal-color-public.cc: In function ‘int main()’:
+/evaluator/stage-1-terminal-color-public.cc:8:35: error: ‘fmt::terminal_color’ has not been declared
+    8 |   fmt::print(stream, fmt::fg(fmt::terminal_color::yellow), "Y");
+      |                                   ^~~~~~~~~~~~~~
+/evaluator/stage-1-terminal-color-public.cc:9:35: error: ‘fmt::terminal_color’ has not been declared
+    9 |   fmt::print(stream, fmt::bg(fmt::terminal_color::bright_cyan), "C");
+      |                                   ^~~~~~~~~~~~~~
+exit_code=1

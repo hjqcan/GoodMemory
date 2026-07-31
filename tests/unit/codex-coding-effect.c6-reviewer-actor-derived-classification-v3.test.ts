@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import {
   chmod,
   cp,
@@ -45,6 +46,9 @@ const JOESTUMP_DIRECTORY =
 const FIRST_DIRECTORY =
   "actor-07334386287751ba02a4588c1a0875dbd074a61bd9e6ab7c48d244eacd0c99e0";
 const temporaryRoots: string[] = [];
+const describeIfActorRootExists = existsSync(ACTOR_ROOT)
+  ? describe
+  : describe.skip;
 
 setDefaultTimeout(300_000);
 
@@ -54,7 +58,7 @@ afterAll(async () => {
   ));
 });
 
-describe("Codex coding-effect C6 reviewer actor derived classification v3", () => {
+describeIfActorRootExists("Codex coding-effect C6 reviewer actor derived classification v3", () => {
   it("derives a strict sanitized 507-row v2/v3 decision diff", async () => {
     const result =
       await buildC6ReviewerActorDerivedClassificationV3({

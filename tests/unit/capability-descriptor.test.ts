@@ -92,7 +92,7 @@ describe("GoodMemory capability descriptor", () => {
       "LoCoMo, BEAM, and MemoryAgentBench",
     );
     expect(descriptor.benchmarks.historicalEvidence.note).toContain(
-      "None is a current 0.7.0 production claim",
+      "None is a current 0.7.1 production claim",
     );
     expect(descriptor.canonicalSources.note).toContain(
       "never relabels historical results",

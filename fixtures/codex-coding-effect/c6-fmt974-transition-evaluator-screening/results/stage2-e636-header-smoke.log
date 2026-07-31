@@ -1,0 +1,28 @@
+image=mswebench/fmtlib_m_fmt@sha256:52ce9e68edb03274b4305717e4d0b6a18c778ff784c8cb3c9e3ff4ef3b24d7f8
+platform=linux/amd64
+tree=stage2
+source=color-header-smoke.cc
+arg=
+extra_compile_flags=
+In file included from /work/include/fmt/format.h:60,
+                 from /work/include/fmt/color.h:11,
+                 from /evaluator/color-header-smoke.cc:1:
+/work/include/fmt/core.h:131:32: error: expected unqualified-id before ‘noexcept’
+  131 | # define FMT_DETECTED_NOEXCEPT noexcept
+      |                                ^~~~~~~~
+/work/include/fmt/core.h:140:24: note: in expansion of macro ‘FMT_DETECTED_NOEXCEPT’
+  140 | #  define FMT_NOEXCEPT FMT_DETECTED_NOEXCEPT
+      |                        ^~~~~~~~~~~~~~~~~~~~~
+/work/include/fmt/color.h:367:7: note: in expansion of macro ‘FMT_NOEXCEPT’
+  367 |       FMT_NOEXCEPT;
+      |       ^~~~~~~~~~~~
+/work/include/fmt/core.h:131:32: error: expected unqualified-id before ‘noexcept’
+  131 | # define FMT_DETECTED_NOEXCEPT noexcept
+      |                                ^~~~~~~~
+/work/include/fmt/core.h:140:24: note: in expansion of macro ‘FMT_DETECTED_NOEXCEPT’
+  140 | #  define FMT_NOEXCEPT FMT_DETECTED_NOEXCEPT
+      |                        ^~~~~~~~~~~~~~~~~~~~~
+/work/include/fmt/color.h:369:7: note: in expansion of macro ‘FMT_NOEXCEPT’
+  369 |       FMT_NOEXCEPT;
+      |       ^~~~~~~~~~~~
+exit_code=1

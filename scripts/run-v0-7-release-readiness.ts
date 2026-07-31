@@ -17,7 +17,7 @@ import {
 import { resolveRepoRootFromScriptUrl } from "./script-paths";
 
 const RELEASE_LINE = "0.7";
-const RELEASE_VERSION = "0.7.0";
+const RELEASE_VERSION = "0.7.1";
 const RELEASE_BUN_VERSION = "1.3.14";
 const MAX_TARBALL_BYTES = 4 * 1024 * 1024;
 const REQUIRED_PACKED_FILES = [
@@ -487,7 +487,9 @@ export async function evaluateVersionConsistency(
     packageLock.version !== RELEASE_VERSION ||
     packageLock.packages?.[""]?.version !== RELEASE_VERSION
   ) {
-    issues.push("package-lock.json root versions do not match 0.7.0");
+    issues.push(
+      `package-lock.json root versions do not match ${RELEASE_VERSION}`,
+    );
   }
   if (
     capability.version !== RELEASE_VERSION ||
@@ -495,7 +497,9 @@ export async function evaluateVersionConsistency(
     capability.install.npmPackage !== `npm install goodmemory@${RELEASE_VERSION}` ||
     capability.install.bun !== `bun add goodmemory@${RELEASE_VERSION}`
   ) {
-    issues.push("capability descriptor version/install commands do not match 0.7.0");
+    issues.push(
+      `capability descriptor version/install commands do not match ${RELEASE_VERSION}`,
+    );
   }
   if (
     capabilityRelease?.status !== packageRelease?.status ||
@@ -511,7 +515,7 @@ export async function evaluateVersionConsistency(
     server.packages?.length !== 1 ||
     server.packages?.some((entry) => entry.version !== RELEASE_VERSION)
   ) {
-    issues.push("server.json versions do not match 0.7.0");
+    issues.push(`server.json versions do not match ${RELEASE_VERSION}`);
   }
   if (
     installSurfaces.some(
@@ -526,7 +530,9 @@ export async function evaluateVersionConsistency(
       },
     )
   ) {
-    issues.push("install guides do not consistently target 0.7.0");
+    issues.push(
+      `install guides do not consistently target ${RELEASE_VERSION}`,
+    );
   }
 
   const benchmarkVersions =
@@ -536,13 +542,15 @@ export async function evaluateVersionConsistency(
   if (
     benchmarkVersions.some((version) => version !== RELEASE_VERSION)
   ) {
-    issues.push("current benchmark claims were not measured on 0.7.0");
+    issues.push(
+      `current benchmark claims were not measured on ${RELEASE_VERSION}`,
+    );
   }
 
   return {
     detail:
       issues.length === 0
-        ? "stable 0.7.0 source metadata is aligned; mutable npm state is not encoded; pre-0.7 benchmark evidence is not labeled current"
+        ? `stable ${RELEASE_VERSION} source metadata is aligned; mutable npm state is not encoded; pre-0.7 benchmark evidence is not labeled current`
         : issues.join("; "),
     durationMs: Math.round(performance.now() - startedAt),
     id: "version",
@@ -602,6 +610,69 @@ async function evaluatePack(repoRoot: string): Promise<V07ReleaseReadinessCheck>
   }
 }
 
+export function renderV07LanguageConsumerSmoke(): string {
+  return `
+import {
+  createChineseLanguagePack,
+  createEnglishLanguagePack,
+  createFrenchLanguagePack,
+  createJapaneseLanguagePack,
+  createKoreanLanguagePack,
+  createLanguageService,
+  createSpanishLanguagePack,
+} from "goodmemory";
+
+const language = createLanguageService({
+  defaultLocale: "zh-TW",
+  packs: [
+    createEnglishLanguagePack(),
+    createChineseLanguagePack("Hans"),
+    createChineseLanguagePack("Hant"),
+    createJapaneseLanguagePack(),
+    createKoreanLanguagePack(),
+    createFrenchLanguagePack(),
+    createSpanishLanguagePack(),
+  ],
+});
+const english = language.resolveFromText({ locale: "en-US", text: "release memory" });
+const simplified = language.resolveFromText({ locale: "zh-CN", text: "简体中文记忆" });
+const traditional = language.resolveFromText({ locale: "zh-TW", text: "繁體中文記憶" });
+const japanese = language.resolveFromText({ locale: "ja-JP", text: "日本語の記憶" });
+const korean = language.resolveFromText({ locale: "ko-KR", text: "한국어 기억" });
+const french = language.resolveFromText({ locale: "fr-FR", text: "mémoire française" });
+const spanish = language.resolveFromText({ locale: "es-ES", text: "memoria española" });
+if (english.languagePackId !== "en") throw new Error("English pack unresolved");
+if (!language.buildSearchTerms("release memory", english).includes("release")) {
+  throw new Error("English search terms unavailable");
+}
+if (simplified.languagePackId !== "zh-Hans") throw new Error("zh-Hans pack unresolved");
+if (!language.buildSearchTerms("简体中文记忆", simplified).includes("简体")) {
+  throw new Error("zh-Hans search terms unavailable");
+}
+if (traditional.languagePackId !== "zh-Hant") throw new Error("zh-Hant pack unresolved");
+if (!language.buildSearchTerms("繁體中文記憶", traditional).includes("繁體")) {
+  throw new Error("zh-Hant search terms unavailable");
+}
+if (japanese.languagePackId !== "ja") throw new Error("Japanese pack unresolved");
+if (!language.buildSearchTerms("日本語の記憶", japanese).includes("日本語")) {
+  throw new Error("Japanese search terms unavailable");
+}
+if (korean.languagePackId !== "ko") throw new Error("Korean pack unresolved");
+if (!language.buildSearchTerms("한국어 기억", korean).includes("한국어")) {
+  throw new Error("Korean search terms unavailable");
+}
+if (french.languagePackId !== "fr") throw new Error("French pack unresolved");
+if (!language.buildSearchTerms("mémoire française", french).includes("mémoire")) {
+  throw new Error("French search terms unavailable");
+}
+if (spanish.languagePackId !== "es") throw new Error("Spanish pack unresolved");
+if (!language.buildSearchTerms("memoria española", spanish).includes("memoria")) {
+  throw new Error("Spanish search terms unavailable");
+}
+console.log("LANGUAGE_CONSUMER_OK");
+`;
+}
+
 export async function verifyV07ArtifactConsumers(input: {
   artifactPath?: string;
   repoRoot: string;
@@ -651,53 +722,7 @@ export async function verifyV07ArtifactConsumers(input: {
     const smokePath = join(smokeDirectory, "smoke.mjs");
     await writeFile(
       smokePath,
-      `
-import {
-  createChineseLanguagePack,
-  createFrenchLanguagePack,
-  createJapaneseLanguagePack,
-  createKoreanLanguagePack,
-  createLanguageService,
-  createSpanishLanguagePack,
-} from "goodmemory";
-
-const language = createLanguageService({
-  defaultLocale: "zh-TW",
-  packs: [
-    createChineseLanguagePack("Hant"),
-    createJapaneseLanguagePack(),
-    createKoreanLanguagePack(),
-    createFrenchLanguagePack(),
-    createSpanishLanguagePack(),
-  ],
-});
-const traditional = language.resolveFromText({ locale: "zh-TW", text: "繁體中文記憶" });
-const japanese = language.resolveFromText({ locale: "ja-JP", text: "日本語の記憶" });
-const korean = language.resolveFromText({ locale: "ko-KR", text: "한국어 기억" });
-const french = language.resolveFromText({ locale: "fr-FR", text: "mémoire française" });
-const spanish = language.resolveFromText({ locale: "es-ES", text: "memoria española" });
-if (traditional.languagePackId !== "zh-Hant") throw new Error("zh-Hant pack unresolved");
-if (!language.buildSearchTerms("繁體中文記憶", traditional).includes("繁體")) {
-  throw new Error("zh-Hant search terms unavailable");
-}
-if (japanese.languagePackId !== "ja") throw new Error("Japanese pack unresolved");
-if (!language.buildSearchTerms("日本語の記憶", japanese).includes("日本語")) {
-  throw new Error("Japanese search terms unavailable");
-}
-if (korean.languagePackId !== "ko") throw new Error("Korean pack unresolved");
-if (!language.buildSearchTerms("한국어 기억", korean).includes("한국어")) {
-  throw new Error("Korean search terms unavailable");
-}
-if (french.languagePackId !== "fr") throw new Error("French pack unresolved");
-if (!language.buildSearchTerms("mémoire française", french).includes("mémoire")) {
-  throw new Error("French search terms unavailable");
-}
-if (spanish.languagePackId !== "es") throw new Error("Spanish pack unresolved");
-if (!language.buildSearchTerms("memoria española", spanish).includes("memoria")) {
-  throw new Error("Spanish search terms unavailable");
-}
-console.log("LANGUAGE_CONSUMER_OK");
-`,
+      renderV07LanguageConsumerSmoke(),
       "utf8",
     );
 
