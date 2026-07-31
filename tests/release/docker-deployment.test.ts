@@ -16,7 +16,7 @@ describe("docker deployment artifacts", () => {
   it("pins the Dockerfile runtime and posture invariants", async () => {
     const dockerfile = await readRepoFile("Dockerfile");
 
-    expect(dockerfile).toContain("FROM oven/bun:1.3.0");
+    expect(dockerfile).toContain("FROM oven/bun:1.3.14");
     expect(dockerfile).toContain("GOODMEMORY_HTTP_BRIDGE_HOST=0.0.0.0");
     expect(dockerfile).toContain("GOODMEMORY_SQLITE_VECTOR_MODE=off");
     expect(dockerfile).toContain("EXPOSE 8739");

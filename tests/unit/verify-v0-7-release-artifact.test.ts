@@ -8,7 +8,7 @@ describe("v0.7 prepublish artifact evidence", () => {
       artifactBytes: Buffer.from("stable artifact"),
       artifactPath: "/tmp/goodmemory-0.7.0.tgz",
       runtime: {
-        bunVersion: "1.3.0",
+        bunVersion: "1.3.14",
         nodeVersion: "v20.20.2",
       },
       sourceCommit: "a".repeat(40),
@@ -21,7 +21,7 @@ describe("v0.7 prepublish artifact evidence", () => {
       generatedBy: "scripts/verify-v0-7-release-artifact.ts",
       integrity: expect.stringMatching(/^sha512-/u),
       runtime: {
-        bunVersion: "1.3.0",
+        bunVersion: "1.3.14",
         nodeVersion: "v20.20.2",
       },
       sourceCommit: "a".repeat(40),
@@ -35,7 +35,7 @@ describe("v0.7 prepublish artifact evidence", () => {
       artifactBytes: Buffer.from("stable artifact"),
       artifactPath: "/tmp/goodmemory-0.7.0.tgz",
       runtime: {
-        bunVersion: "1.3.0",
+        bunVersion: "1.3.14",
         nodeVersion: "v20.20.2",
       },
       sourceCommit: "a".repeat(40),
@@ -52,7 +52,7 @@ describe("v0.7 prepublish artifact evidence", () => {
     expect(() => buildV07PrepublishEvidence({
       ...base,
       runtime: { ...base.runtime, bunVersion: "1.3.11" },
-    })).toThrow("Bun 1.3.0");
+    })).toThrow("Bun 1.3.14");
   });
 
   it("requires the packed artifact integrity at the CLI boundary", async () => {

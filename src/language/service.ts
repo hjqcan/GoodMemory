@@ -29,6 +29,7 @@ const BUILTIN_PACKS = [
 
 const LANGUAGE_RESOLVER_VERSION = "3";
 const MAX_SEARCH_TERMS = 128;
+const PURE_NUMERIC_TOKEN = /^\p{N}+$/u;
 
 function stableCompare(left: string, right: string): number {
   const leftKey = left.toLowerCase();
@@ -519,6 +520,20 @@ export function createLanguageService(
       );
       if (leftTokens.size === 0 || rightTokens.size === 0) {
         return 0;
+      }
+      const leftHasNumeric = [...leftTokens].some((token) =>
+        PURE_NUMERIC_TOKEN.test(token)
+      );
+      const rightHasNumeric = [...rightTokens].some((token) =>
+        PURE_NUMERIC_TOKEN.test(token)
+      );
+      if (leftHasNumeric !== rightHasNumeric) {
+        const oneSidedTokens = leftHasNumeric ? leftTokens : rightTokens;
+        for (const token of oneSidedTokens) {
+          if (PURE_NUMERIC_TOKEN.test(token)) {
+            oneSidedTokens.delete(token);
+          }
+        }
       }
       let intersection = 0;
       for (const token of leftTokens) {

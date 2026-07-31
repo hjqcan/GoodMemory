@@ -469,11 +469,11 @@ describe("goodmemory mcp server standalone mode", () => {
       [
         "#!/usr/bin/env node",
         'const { writeFileSync } = require("node:fs");',
-        'writeFileSync(process.env.GOODMEMORY_FAKE_BUN_PID, String(process.pid));',
         'process.once("SIGTERM", () => {',
         '  writeFileSync(process.env.GOODMEMORY_FAKE_BUN_SIGNAL, "SIGTERM");',
         "  process.exit(0);",
         "});",
+        'writeFileSync(process.env.GOODMEMORY_FAKE_BUN_PID, String(process.pid));',
         "setInterval(() => {}, 1_000);",
         "",
       ].join("\n"),
@@ -502,7 +502,11 @@ describe("goodmemory mcp server standalone mode", () => {
       fakeBunPid = Number(await readFile(pidPath, "utf8"));
 
       child.kill("SIGTERM");
-      await child.exited;
+      const exitCode = await Promise.race([
+        child.exited,
+        Bun.sleep(1_500).then(() => null),
+      ]);
+      expect(exitCode).not.toBeNull();
 
       expect(await waitForPath(signalPath, 1_000)).toBe(true);
       expect(await readFile(signalPath, "utf8")).toBe("SIGTERM");

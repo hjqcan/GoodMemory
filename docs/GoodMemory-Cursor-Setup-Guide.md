@@ -5,7 +5,7 @@ server. One config block; no installed-host setup required.
 
 Prerequisites and the full flag/env matrix live in the canonical
 [Standalone MCP Setup Guide](./GoodMemory-Standalone-MCP-Setup-Guide.md)
-(short version: `npm install -g goodmemory`, and Bun 1.3+ on PATH — the
+(short version: `npm install -g goodmemory`, and Bun 1.3.14+ on PATH — the
 `goodmemory-mcp` bin launches Bun).
 
 ## Configure

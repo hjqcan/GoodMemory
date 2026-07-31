@@ -43,7 +43,7 @@ function report(
     generatedBy: "scripts/run-v0-7-release-readiness.ts",
     packageVersion: "0.7.0",
     runtime: {
-      bunVersion: "1.3.0",
+      bunVersion: "1.3.14",
       nodeVersion: "v20.19.0",
     },
     sourceIdentity: {
@@ -185,7 +185,7 @@ describe("v0.7 release readiness", () => {
 
   it("requires the release consumer to execute with Node 20", () => {
     expect(evaluateV07RuntimeVersions({
-      bunVersion: "1.3.0",
+      bunVersion: "1.3.14",
       nodeVersion: "v20.19.4",
     })).toEqual(expect.objectContaining({ status: "pass" }));
     expect(evaluateV07RuntimeVersions({
@@ -199,7 +199,7 @@ describe("v0.7 release readiness", () => {
       bunVersion: "1.3.11",
       nodeVersion: "v20.19.4",
     })).toEqual(expect.objectContaining({
-      detail: expect.stringContaining("Bun 1.3.0"),
+      detail: expect.stringContaining("Bun 1.3.14"),
       status: "fail",
     }));
   });
@@ -333,6 +333,6 @@ describe("v0.7 release readiness", () => {
     expect(markdown).toContain("REQUIRED CHECK(S) FAILED");
     expect(markdown).toContain("too large \\| 4194305 bytes");
     expect(markdown).toContain(`source commit: ${"a".repeat(40)}`);
-    expect(markdown).toContain("runtime: Node v20.19.0 / Bun 1.3.0");
+    expect(markdown).toContain("runtime: Node v20.19.0 / Bun 1.3.14");
   });
 });

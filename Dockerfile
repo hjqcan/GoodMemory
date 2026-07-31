@@ -9,7 +9,7 @@
 # disabled so sqlite-vss native libraries (libgomp/atlas/lapack) are not
 # required; SQLite stays fully durable without it. Provide the bearer token at
 # run time — the bridge refuses to start without one unless --allow-insecure.
-FROM oven/bun:1.3.0-slim
+FROM oven/bun:1.3.14-slim
 
 WORKDIR /app
 ENV NODE_ENV=production \

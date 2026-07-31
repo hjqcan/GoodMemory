@@ -1006,6 +1006,37 @@ describe("language service", () => {
     expect(diluted).toBe(base);
   });
 
+  it("keeps one-sided numeric metadata out of overlap without losing numeric matches", () => {
+    const service = createLanguageService();
+    const options = { excludeStopwords: true };
+    const context = "en-US";
+    const query = "Which Yosemite adventure was a camping trip?";
+    const fact = "I took a solo camping trip to Yosemite National Park.";
+
+    expect(
+      service.tokenOverlap(
+        "On 2023/05/15, I took a solo camping trip to Yosemite National Park.",
+        query,
+        context,
+        options,
+      ),
+    ).toBe(service.tokenOverlap(fact, query, context, options));
+
+    const matchingYear = service.tokenOverlap(
+      "The Yosemite camping trip happened in 2023.",
+      "Which Yosemite trip happened in 2023?",
+      context,
+      options,
+    );
+    const conflictingYear = service.tokenOverlap(
+      "The Yosemite camping trip happened in 2024.",
+      "Which Yosemite trip happened in 2023?",
+      context,
+      options,
+    );
+    expect(matchingYear).toBeGreaterThan(conflictingYear);
+  });
+
   it("supports Chinese query intent and polarity detection", () => {
     const service = createLanguageService();
 

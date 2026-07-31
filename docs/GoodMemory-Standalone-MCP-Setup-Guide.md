@@ -14,7 +14,7 @@ and writeback governance on top of MCP.
 ## Prerequisites
 
 - Node.js 20+ for the npm install.
-- **Bun 1.3+ on PATH.** The `goodmemory-mcp` bin is a launcher that spawns
+- **Bun 1.3.14+ on PATH.** The `goodmemory-mcp` bin is a launcher that spawns
   `bun`; without Bun it exits with an install hint.
 
 The registry command below applies after `goodmemory@0.7.0` is published.

@@ -761,7 +761,7 @@ describe("release metadata and docs", () => {
       "typescript",
     ]);
     expect(pkg.packageManager).toBeUndefined();
-    expect(pkg.engines?.bun).toBe(">=1.3.0");
+    expect(pkg.engines?.bun).toBe(">=1.3.14");
     expect(pkg.engines?.node).toBe(">=20.0.0");
     expect(pkg.publishConfig?.access).toBe("public");
     expect(pkg.files).toEqual([
@@ -3928,7 +3928,7 @@ describe("release metadata and docs", () => {
     };
     const bunVersion = pkg.engines?.bun?.replace(/^[^0-9]*/, "");
 
-    expect(bunVersion).toBe("1.3.0");
+    expect(bunVersion).toBe("1.3.14");
     for (const workflowPath of [
       ".github/workflows/ci.yml",
       ".github/workflows/eval.yml",

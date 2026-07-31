@@ -7,18 +7,28 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const BUN_BINARY = process.env.GOODMEMORY_BUN_BINARY ?? "bun";
 const MCP_ENTRYPOINT = resolve(SCRIPT_DIR, "../dist/bin/goodmemory-mcp.js");
 
-const child = spawn(
-  BUN_BINARY,
-  ["run", MCP_ENTRYPOINT, ...process.argv.slice(2)],
-  { stdio: "inherit" },
-);
 const signalHandlers = new Map();
+let child;
 
 function removeSignalHandlers() {
   for (const [signal, handler] of signalHandlers) {
     process.off(signal, handler);
   }
 }
+
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  const handler = () => {
+    child?.kill(signal);
+  };
+  signalHandlers.set(signal, handler);
+  process.on(signal, handler);
+}
+
+child = spawn(
+  BUN_BINARY,
+  ["run", MCP_ENTRYPOINT, ...process.argv.slice(2)],
+  { stdio: "inherit" },
+);
 
 child.on("error", (error) => {
   removeSignalHandlers();
@@ -44,11 +54,3 @@ child.on("exit", (code, signal) => {
 
   process.exit(code ?? 1);
 });
-
-for (const signal of ["SIGINT", "SIGTERM"]) {
-  const handler = () => {
-    child.kill(signal);
-  };
-  signalHandlers.set(signal, handler);
-  process.on(signal, handler);
-}
