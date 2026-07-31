@@ -97,8 +97,12 @@ function chronologicalEntries(
   return entries
     .map((entry, index) => ({ entry, index }))
     .sort((left, right) => {
-      const leftTime = left.entry.claim?.observedAt ?? "\uffff";
-      const rightTime = right.entry.claim?.observedAt ?? "\uffff";
+      const leftTime = left.entry.claim?.validFrom ??
+        left.entry.claim?.observedAt ??
+        "\uffff";
+      const rightTime = right.entry.claim?.validFrom ??
+        right.entry.claim?.observedAt ??
+        "\uffff";
       return leftTime.localeCompare(rightTime) ||
         left.entry.evidenceId.localeCompare(right.entry.evidenceId) ||
         left.entry.sourceMemoryId.localeCompare(right.entry.sourceMemoryId) ||

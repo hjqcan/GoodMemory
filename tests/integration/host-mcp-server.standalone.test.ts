@@ -1,7 +1,7 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { describe, expect, it } from "bun:test";
-import { mkdir, stat } from "node:fs/promises";
+import { chmod, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
   createFactMemory,
@@ -156,9 +156,18 @@ describe("goodmemory mcp server standalone mode", () => {
       });
       const client = new Client(
         { name: "goodmemory-mcp-standalone-test-client", version: "0.0.0" },
-        { capabilities: {} },
+        {
+          capabilities: {},
+          versionNegotiation: {
+            mode: {
+              pin: "2026-07-28",
+            },
+          },
+        },
       );
       await client.connect(transport);
+      expect(client.getProtocolEra()).toBe("modern");
+      expect(client.getNegotiatedProtocolVersion()).toBe("2026-07-28");
 
       const listedTools = await client.listTools();
       expect(listedTools.tools.map((tool) => tool.name).sort()).toEqual([
@@ -403,6 +412,116 @@ describe("goodmemory mcp server standalone mode", () => {
     }
   }, 30_000);
 
+  it("exits promptly when the host sends SIGTERM", async () => {
+    const home = await createTempWorkspace("goodmemory-mcp-shutdown-home");
+    const workspace = await createTempWorkspace("goodmemory-mcp-shutdown-ws");
+    const mcpScript = join(import.meta.dir, "../../scripts/goodmemory-mcp.ts");
+    const child = Bun.spawn(
+      [
+        "bun",
+        mcpScript,
+        "--standalone",
+        "--user-id",
+        "shutdown-user",
+        "--storage-provider",
+        "memory",
+      ],
+      {
+        cwd: workspace.root,
+        env: createChildEnv({
+          GOODMEMORY_HOME: home.root,
+        }),
+        stderr: "pipe",
+        stdin: "pipe",
+        stdout: "pipe",
+      },
+    );
+
+    try {
+      await Bun.sleep(300);
+      expect(child.exitCode).toBeNull();
+      child.kill("SIGTERM");
+      const exitCode = await Promise.race([
+        child.exited,
+        Bun.sleep(1_500).then(() => null),
+      ]);
+      expect(exitCode).not.toBeNull();
+    } finally {
+      if (child.exitCode === null) {
+        child.kill("SIGKILL");
+        await child.exited;
+      }
+      await workspace.cleanup();
+      await home.cleanup();
+    }
+  }, 5_000);
+
+  it("forwards SIGTERM through the published CLI wrapper", async () => {
+    const temp = await createTempWorkspace("goodmemory-mcp-wrapper-shutdown");
+    const fakeBun = join(temp.root, "fake-bun.cjs");
+    const pidPath = join(temp.root, "fake-bun.pid");
+    const signalPath = join(temp.root, "fake-bun.signal");
+    const wrapper = join(import.meta.dir, "../../scripts/goodmemory-mcp.js");
+    let fakeBunPid: number | null = null;
+
+    await writeFile(
+      fakeBun,
+      [
+        "#!/usr/bin/env node",
+        'const { writeFileSync } = require("node:fs");',
+        'writeFileSync(process.env.GOODMEMORY_FAKE_BUN_PID, String(process.pid));',
+        'process.once("SIGTERM", () => {',
+        '  writeFileSync(process.env.GOODMEMORY_FAKE_BUN_SIGNAL, "SIGTERM");',
+        "  process.exit(0);",
+        "});",
+        "setInterval(() => {}, 1_000);",
+        "",
+      ].join("\n"),
+    );
+    await chmod(fakeBun, 0o755);
+
+    const child = Bun.spawn(["node", wrapper], {
+      env: createChildEnv({
+        GOODMEMORY_BUN_BINARY: fakeBun,
+        GOODMEMORY_FAKE_BUN_PID: pidPath,
+        GOODMEMORY_FAKE_BUN_SIGNAL: signalPath,
+      }),
+      stderr: "pipe",
+      stdin: "ignore",
+      stdout: "pipe",
+    });
+
+    try {
+      const ready = await waitForPath(pidPath, 1_000);
+      if (!ready) {
+        child.kill("SIGKILL");
+        await child.exited;
+        throw new Error(await new Response(child.stderr).text());
+      }
+      expect(ready).toBe(true);
+      fakeBunPid = Number(await readFile(pidPath, "utf8"));
+
+      child.kill("SIGTERM");
+      await child.exited;
+
+      expect(await waitForPath(signalPath, 1_000)).toBe(true);
+      expect(await readFile(signalPath, "utf8")).toBe("SIGTERM");
+    } finally {
+      if (child.exitCode === null) {
+        child.kill("SIGKILL");
+        await child.exited;
+      }
+      if (fakeBunPid !== null) {
+        try {
+          process.kill(fakeBunPid, "SIGKILL");
+        } catch {
+          // The wrapper forwarded SIGTERM and the fake child already exited.
+        }
+      }
+      await temp.cleanup();
+    }
+  }, 5_000);
+
   it("fails fast on a bare invocation, naming both modes on stderr", async () => {
     const mcpScript = join(import.meta.dir, "../../scripts/goodmemory-mcp.ts");
     const child = Bun.spawn(["bun", mcpScript], {
@@ -421,3 +540,16 @@ describe("goodmemory mcp server standalone mode", () => {
     expect(stdout).toBe("");
   });
 });
+
+async function waitForPath(path: string, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      await stat(path);
+      return true;
+    } catch {
+      await Bun.sleep(25);
+    }
+  }
+  return false;
+}

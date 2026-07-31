@@ -599,6 +599,53 @@ describe("answer evidence pack", () => {
     expect(pack).toContain("latest supported value as current");
   });
 
+  it("does not force a knowledge-update history question to the latest value", () => {
+    const question = "Which database did I use before switching to Postgres?";
+    const pack = buildAnswerEvidencePack({
+      question,
+      questionType: "knowledge_update",
+      turns: [
+        {
+          sourceId: 1,
+          orderKey: 1,
+          content: "I used SQLite first.",
+          role: "user",
+          timeAnchor: "Jan",
+        },
+        {
+          sourceId: 2,
+          orderKey: 2,
+          content: "I switched to Postgres.",
+          role: "user",
+          timeAnchor: "Feb",
+        },
+      ],
+    });
+
+    expect(inferAnswerOperation(question, "knowledge_update")).toBe("order");
+    expect(pack).not.toContain("Latest/current candidate:");
+    expect(pack).not.toContain("answer with the latest supported value as current");
+  });
+
+  it("routes a knowledge-update date question away from current-value resolution", () => {
+    const question = "When did I switch the durable database to Postgres?";
+
+    expect(inferAnswerOperation(question, "knowledge_update")).toBe(
+      "extraction",
+    );
+    expect(buildAnswerEvidencePack({
+      question,
+      questionType: "knowledge_update",
+      turns: [{
+        sourceId: 2,
+        orderKey: 1,
+        content: "I switched the durable database to Postgres on February 3.",
+        role: "user",
+        timeAnchor: "Feb 3",
+      }],
+    })).not.toContain("Current-value ledger:");
+  });
+
   it("adds a current-value ledger for update questions", () => {
     const pack = buildAnswerEvidencePack({
       question: "What date is my immigration consultant session scheduled for now?",

@@ -103,6 +103,62 @@ describe("generalized production selection", () => {
       .toBe(true);
   });
 
+  it("keeps rules-only selection aligned with inactive and future visibility", () => {
+    const facts = [
+      createFactMemory({
+        category: "project",
+        content: "Atlas release status is inactive.",
+        id: "legacy-inactive",
+        isActive: false,
+        source: { extractedAt: "2026-07-01T00:00:00.000Z", method: "explicit" },
+        updatedAt: "2026-07-01T00:00:00.000Z",
+        userId: "user-1",
+      }),
+      createFactMemory({
+        category: "project",
+        content: "Atlas release status will become active.",
+        id: "future-status",
+        source: { extractedAt: "2026-07-01T00:00:00.000Z", method: "explicit" },
+        updatedAt: "2026-07-01T00:00:00.000Z",
+        userId: "user-1",
+        validFrom: "2026-07-20T00:00:00.000Z",
+      }),
+      createFactMemory({
+        category: "project",
+        content: "Atlas release status is ready.",
+        id: "visible-status",
+        source: { extractedAt: "2026-07-10T00:00:00.000Z", method: "explicit" },
+        updatedAt: "2026-07-10T00:00:00.000Z",
+        userId: "user-1",
+      }),
+    ];
+
+    const result = selectGeneralizedFactsForInternalUse(
+      facts,
+      "What is Atlas release status?",
+      createLanguageService(),
+      "en",
+      "general_chat",
+      routingDecision(),
+      null,
+      "2026-07-11T00:00:00.000Z",
+      undefined,
+      undefined,
+      undefined,
+      {
+        candidates: [
+          { id: "legacy-inactive", score: 1 },
+          { id: "future-status", score: 0.9 },
+          { id: "visible-status", score: 0.8 },
+        ],
+        maxAdditions: 3,
+        maxTotalFacts: 3,
+      },
+    );
+
+    expect(result.facts.map(({ id }) => id)).toEqual(["visible-status"]);
+  });
+
   it("keeps related facts available for queries that also seek a reference", () => {
     const facts = [
       createFactMemory({
@@ -579,6 +635,70 @@ describe("generalized production selection", () => {
 
     expect(result.facts.map(({ id }) => id)).toContain("current-role");
     expect(result.facts.map(({ id }) => id)).not.toContain("old-role");
+  });
+
+  it("orders mutable values by valid time instead of late ingestion time", () => {
+    const facts = [
+      createFactMemory({
+        category: "personal",
+        content: "Martin worked as an analyst.",
+        factKind: "role_update",
+        id: "older-role-ingested-late",
+        observedAt: "2026-07-01T00:00:00.000Z",
+        validFrom: "2026-07-01T00:00:00.000Z",
+        source: {
+          extractedAt: "2026-07-10T00:00:00.000Z",
+          method: "explicit",
+        },
+        subject: "Martin",
+        updatedAt: "2026-07-10T00:00:00.000Z",
+        userId: "user-1",
+      }),
+      createFactMemory({
+        category: "personal",
+        content: "Martin works as a director.",
+        factKind: "role_update",
+        id: "current-role-ingested-earlier",
+        observedAt: "2026-07-09T00:00:00.000Z",
+        validFrom: "2026-07-09T00:00:00.000Z",
+        source: {
+          extractedAt: "2026-07-09T00:00:00.000Z",
+          method: "explicit",
+        },
+        subject: "Martin",
+        updatedAt: "2026-07-09T00:00:00.000Z",
+        userId: "user-1",
+      }),
+    ];
+
+    const result = selectGeneralizedFactsForInternalUse(
+      facts,
+      "What is Martin's role?",
+      createLanguageService(),
+      "en",
+      "general_chat",
+      routingDecision({ strategy: "hybrid" }),
+      null,
+      "2026-07-11T00:00:00.000Z",
+      undefined,
+      undefined,
+      undefined,
+      {
+        candidates: [
+          { id: "older-role-ingested-late", score: 1 },
+          { id: "current-role-ingested-earlier", score: 0.9 },
+        ],
+        maxAdditions: 2,
+        maxTotalFacts: 2,
+      },
+    );
+
+    expect(result.facts.map(({ id }) => id)).toContain(
+      "current-role-ingested-earlier",
+    );
+    expect(result.facts.map(({ id }) => id)).not.toContain(
+      "older-role-ingested-late",
+    );
   });
 
   it("does not select a mutable subject from an incompatible Chinese script", () => {

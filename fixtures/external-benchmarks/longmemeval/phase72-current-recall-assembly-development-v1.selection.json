@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "protocol": "longmemeval_current_recall_assembly_paired_v2",
+  "split": "development",
+  "benchmarkFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+  "selectionMethod": "ascending sha256(salt + NUL + question_id) within each stratum",
+  "salt": "phase72-temporal-assembly-development-v1",
+  "strata": {
+    "knowledge-update": 8,
+    "temporal-reasoning": 8
+  },
+  "questionIds": [
+    "4d6b87c8",
+    "0ddfec37",
+    "f9e8c073",
+    "e493bb7c",
+    "affe2881",
+    "5831f84d",
+    "db467c8c",
+    "06db6396",
+    "gpt4_0b2f1d21",
+    "gpt4_93159ced_abs",
+    "5e1b23de",
+    "gpt4_2487a7cb",
+    "9a707b81",
+    "gpt4_7ddcf75f",
+    "0bc8ad92",
+    "8077ef71"
+  ]
+}

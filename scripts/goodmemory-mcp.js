@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,12 +7,22 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const BUN_BINARY = process.env.GOODMEMORY_BUN_BINARY ?? "bun";
 const MCP_ENTRYPOINT = resolve(SCRIPT_DIR, "../dist/bin/goodmemory-mcp.js");
 
-const result = spawnSync(BUN_BINARY, ["run", MCP_ENTRYPOINT, ...process.argv.slice(2)], {
-  stdio: "inherit",
-});
+const child = spawn(
+  BUN_BINARY,
+  ["run", MCP_ENTRYPOINT, ...process.argv.slice(2)],
+  { stdio: "inherit" },
+);
+const signalHandlers = new Map();
 
-if (result.error) {
-  if ("code" in result.error && result.error.code === "ENOENT") {
+function removeSignalHandlers() {
+  for (const [signal, handler] of signalHandlers) {
+    process.off(signal, handler);
+  }
+}
+
+child.on("error", (error) => {
+  removeSignalHandlers();
+  if ("code" in error && error.code === "ENOENT") {
     console.error(
       [
         "GoodMemory MCP currently requires Bun.",
@@ -22,11 +32,23 @@ if (result.error) {
     process.exit(1);
   }
 
-  throw result.error;
-}
+  throw error;
+});
 
-if (result.signal) {
-  process.kill(process.pid, result.signal);
-}
+child.on("exit", (code, signal) => {
+  removeSignalHandlers();
+  if (signal) {
+    process.kill(process.pid, signal);
+    return;
+  }
 
-process.exit(result.status ?? 1);
+  process.exit(code ?? 1);
+});
+
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  const handler = () => {
+    child.kill(signal);
+  };
+  signalHandlers.set(signal, handler);
+  process.on(signal, handler);
+}

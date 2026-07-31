@@ -46,9 +46,11 @@ Phase 72 的 benchmark gate 和带版本 release gate 仍是 `v0.6.0` 的有效�
 下面三行保留明确披露 profile 的 0.6 public-opt-in 结果。由于 `v0.7.0` 改变了
 LanguagePack 与召回语义，它们对 0.7 包而言只是历史证据，不是 0.7 性能声明，也不代表
 零 provider 默认路径；在新版本完成同等 fresh run 之前，当前声明表保持为空。
-LongMemEval 的新 verifier 结果与 ImplicitMemBench 的 retry-merged 结果仍属于内部
-证据，因为前者是 eval-only 路径，后者不能替代一次全新的单体 Full-300 运行。
-HaluMem、MemGym 与 MINTEval 继续作为 release evidence，不进入公开 benchmark 声明。
+LongMemEval 已撤下并等待 clean rerun：历史 rules-only 路径使用了 answer annotation，
+后来的 label-free 路径又把原始 `answer_*` session ID 暴露给检索和 reader。
+ImplicitMemBench 的 retry-merged 结果仍属于内部证据，因为它不能替代一次全新的单体
+Full-300 运行。HaluMem、MemGym 与 MINTEval 继续作为 release evidence，不进入公开
+benchmark 声明。
 
 <!-- current-claims-table:start -->
 | 基准 | 主指标 | GoodMemory 结果 | 基线 / 参照 | Claim declaration |
@@ -63,26 +65,18 @@ HaluMem、MemGym 与 MINTEval 继续作为 release evidence，不进入公开 be
 | LoCoMo v0.6.0（完整 10 会话） | 独立官方判官协议；strict 确定性 token-F1 | official **0.8708** · strict **0.6299** · open-domain **0.6146**（59/96） | 历史无记忆 0.0045 | [locomo.json](./benchmark-claims/locomo.json) |
 | BEAM 100K v0.6.0（400 题、1051 条 rubric） | 独立官方 unified rubric；另行披露 strict binary | unified **0.7651** · strict **0.620**（248/400）· 泛化 recall **0.8276** | 公开 full-400 同协议参照 0.49 | [beam.json](./benchmark-claims/beam.json) |
 | MemoryAgentBench v0.6.0 (CR, TTL) | 上游确定性 match-mode，judge-free | **CR 0.959, TTL 0.933** | 两项无记忆均为 0.000 | [memoryagentbench.json](./benchmark-claims/memoryagentbench.json) |
-| LongMemEval full 500 | 严格轨：judge-free 确定性子集 · 诊断轨：LongMemEval 官方 prompt 兼容判官 | 严格 **0.720**（360/500）· prompt-compatible **0.888**（444/500），`goodmemory-rules-only` | 无记忆 0.068；当前 Mem0 harness：94.4 Top200 / 94.8 Top50（模型栈与预算不同） | [longmemeval.json](./benchmark-claims/longmemeval.json) |
 | ImplicitMemBench Full-300 | stored-answer cross-version judge rescore | **0.691**（207.35/300），gpt-5.4 judge over gpt-5.5 answers，sourceAnswersUnchanged | upstream-chat 基线 **0.400**（120/300）；reference line 0.66 | [implicitmembench.json](./benchmark-claims/implicitmembench.json) |
 <!-- historical-evidence-table:end -->
 
 在两条轨都存在时会同时报告它们。**严格轨**是确定性或 judge-free 评分——任何 LLM 判官
 都无法夸大的硬下限。第二条轨把*同一批已存答案*（不重新生成）用基准来源或业界标准
-prompt 重判。只有 evaluator model 与其余冻结配置也匹配时，才主张数值可比。LongMemEval
-的 gpt-5.4/gpt-5.5 诊断不在 pinned evaluator model zoo 中，因此只能称 prompt-compatible，
-不能与 published official score 直接数值比较。每个协议细节都记录在链接的 claim
-declaration 里。
+prompt 重判。只有 evaluator model 与其余冻结配置也匹配时，才主张数值可比。每个协议
+细节都记录在链接的 claim declaration 里。
 
-历史 LongMemEval 严格结果是 judge-free 的，取代了此前一个已作废、不可声明的内部带判官数字（0.908）。
-一个 case 只有被确定性方法（abstention / exact / contains / expected_alternative /
-numeric_count）判对才计入；eval 流水线里的同模型 semantic judge（gpt-5.5 评 gpt-5.5）
-按构造排除在外——算上判官的诊断性整体准确率是 0.896，出于透明予以披露，但不作声明。
-记录的 0.720（360/500，`executionFailures: 0`，v0.3.5）使用无 embedding 的
-`goodmemory-rules-only` profile；360 个判对里弃答只占 28 个，而无记忆基线的 0.068 里
-绝大多数是纯弃答（34 个对里占 30 个），所以 +65.2 个百分点的提升来自记忆系统本身。
-judge-free 指的是评分方式——答案仍由 gpt-5.5 生成。完整溯源见
-[claim declaration](./benchmark-claims/longmemeval.json)。
+LongMemEval declaration 现在是 `paused_boundary`，不再属于历史证据。旧数字只为保留
+审计链而存在；在 opaque-session-id、label-free 的 Full-500 clean rerun 替换它们之前，
+不得引用为 GoodMemory 成绩。见
+[withdrawal declaration](./benchmark-claims/longmemeval.json)。
 历史 v0.6.0 MemoryAgentBench 证据刻意限定范围。答案由 `gpt-5.6-terra` 生成，评分采用
 上游确定性 match-mode，属于 judge-free。Conflict Resolution 得 CR 0.959
 （70/73），Test-Time Learning 得 TTL 0.933（28/30），无记忆 arm 在两项上均为
@@ -120,10 +114,13 @@ upstream-chat 基线 **0.400**（120/300）；baseline 与 GoodMemory 两臂合�
 
 ### 内部诊断（非公开声明）
 
-LongMemEval 的 Phase 72 eval-only verifier chain 达到 judge-free 0.720、独立 gpt-5.5
-官方 prompt 兼容评分 0.924。gpt-5.5 不在 pinned LongMemEval evaluator model zoo 中，
-所以该结果不能与 published official score 直接数值比较；它也不是生产 runtime
-profile。ImplicitMemBench 的显式 retry-merged
+LongMemEval 首个 current-recall assembly development slice 已被取代：虽然
+reader context 不含 raw session ID，但 memory-builder 边界仍收到带 gold
+信息的 session ID 和 turn marker。更严格的 v2 协议会在构建记忆前移除
+answer、question type、answer marker 和 raw session identity。必须先在 clean
+commit 上重跑 development，仍封存的 holdout 才能打开；这不会恢复任何
+LongMemEval claim。
+ImplicitMemBench 的显式 retry-merged
 检查达到 0.6923666667 且零失败，但不能替代一次全新的单体 Full-300 运行，因此两者
 都不进入 current-claims table。底层报告位于 gitignored 的 `reports/` 下，可按记录
 命令复现。

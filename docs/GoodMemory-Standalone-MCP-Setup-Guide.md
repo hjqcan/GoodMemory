@@ -35,6 +35,22 @@ The transport is stdio: your MCP client spawns this command; you do not run it
 in a terminal for normal use. A user id is required — startup fails fast
 without `--user-id` or `GOODMEMORY_USER_ID`.
 
+## MCP protocol compatibility
+
+The stdio server uses the MCP TypeScript SDK v2 and serves both protocol eras:
+
+- `2026-07-28`: modern stateless semantics with `server/discover` and
+  per-request metadata; there is no MCP initialization handshake or
+  protocol-level session.
+- `2025-11-25`: legacy fallback for clients that still open with
+  `initialize`.
+
+`standalone` and `stateless` describe different boundaries. Standalone means
+GoodMemory does not read installed-host config. Stateless means the modern MCP
+protocol has no protocol session. The tools' optional `sessionId` remains an
+application-level memory scope and is not an MCP session id. The transport
+remains stdio; this command does not expose an HTTP MCP endpoint.
+
 ## Flags and environment fallbacks
 
 Precedence: per-call tool argument > CLI flag > environment variable > default.

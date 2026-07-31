@@ -5,7 +5,9 @@ import {
   createFactMemory,
   createReferenceMemory,
 } from "../../src/domain/records";
+import { createMemorySource } from "../../src/domain/provenance";
 import type { EmbeddingAdapter } from "../../src/embedding/contracts";
+import { createEvidenceRecord } from "../../src/evidence/contracts";
 import { createSessionArchive } from "../../src/evolution/contracts";
 import {
   createRecallEngine,
@@ -13,6 +15,7 @@ import {
   resolveGeneralizedFusionBudget,
 } from "../../src/recall/engine";
 import { createRecallProjectionRuntime } from "../../src/recall/projections/runtime";
+import { getRecallRerankPool } from "../../src/recall/rerankPool";
 import {
   createInMemoryDocumentStore,
   createInMemorySessionStore,
@@ -1138,9 +1141,9 @@ describe("generalized fusion through the recall engine", () => {
       updatedAt: "2024-12-01T00:00:00.000Z",
     });
     await repositories.facts.add(fact);
-    for (const [objectText, ingestedAt] of [
-      ["old", "2024-12-01T00:00:00.000Z"],
-      ["new", "2025-02-01T00:00:00.000Z"],
+    for (const [objectText, ingestedAt, evidenceId] of [
+      ["old", "2024-12-01T00:00:00.000Z", "evidence-status-old"],
+      ["new", "2025-02-01T00:00:00.000Z", "evidence-status-new"],
     ] as const) {
       await projectionIndex.appendClaim({
         ...scope,
@@ -1149,11 +1152,33 @@ describe("generalized fusion through the recall engine", () => {
         claim: { predicateKey: "project.status", objectText },
         observedAt: ingestedAt,
         ingestedAt,
-        evidenceIds: [],
+        evidenceIds: [evidenceId],
         sourceMessageIds: [],
         extractorVersion: "claim-test-v1",
       });
     }
+    await repositories.evidence.add(createEvidenceRecord({
+      id: "evidence-status-old",
+      ...scope,
+      kind: "conversation_excerpt",
+      excerpt: "Atlas project status was old before 2025.",
+      source: createMemorySource({
+        method: "explicit",
+        extractedAt: "2024-12-01T00:00:00.000Z",
+      }),
+      linkedMemoryIds: [fact.id],
+    }));
+    await repositories.evidence.add(createEvidenceRecord({
+      id: "evidence-status-new",
+      ...scope,
+      kind: "conversation_excerpt",
+      excerpt: "Atlas project status became new after 2025.",
+      source: createMemorySource({
+        method: "explicit",
+        extractedAt: "2025-02-01T00:00:00.000Z",
+      }),
+      linkedMemoryIds: [fact.id],
+    }));
     const engine = createRecallEngine({
       repositories,
       runtime: sessionStore,
@@ -1166,6 +1191,7 @@ describe("generalized fusion through the recall engine", () => {
     const result = await engine.recall({
       scope,
       query: "What was Atlas project status before 2025?",
+      includeEvidence: true,
       retrievalProfile: "general_chat",
     });
     const temporal = result.metadata.retrievalTrace?.fusionRuns?.[0]?.candidates
@@ -1182,6 +1208,58 @@ describe("generalized fusion through the recall engine", () => {
     expect(result.facts.map(({ content }) => content)).toEqual([
       "Atlas project status was old before 2025.",
     ]);
+    expect(result.evidenceLedger?.find(
+      (entry) => entry.claim?.objectText === "old",
+    )).toMatchObject({
+      relation: "supports",
+      temporalStatus: "current",
+    });
+    expect(result.evidenceLedger?.find(
+      (entry) => entry.claim?.objectText === "new",
+    )).toMatchObject({
+      relation: "context",
+      temporalStatus: "uncertain",
+    });
+    expect(getRecallRerankPool(result)?.referenceTime).toBe(
+      "2025-01-01T00:00:00.000Z",
+    );
+
+    const asOfResult = await engine.recall({
+      scope,
+      query: "What is Atlas current project status?",
+      includeEvidence: true,
+      referenceTime: "2025-01-01T00:00:00.000Z",
+      retrievalProfile: "general_chat",
+    });
+
+    expect(
+      asOfResult.metadata.retrievalTrace?.fusionRuns?.[0]?.candidates.find(
+        ({ sourceMemoryId }) => sourceMemoryId === fact.id,
+      )?.channels.temporal?.evidenceDocumentIds,
+    ).toEqual([oldClaim!.id]);
+    expect(asOfResult.evidenceLedger?.find(
+      (entry) => entry.claim?.objectText === "old",
+    )).toMatchObject({
+      relation: "supports",
+      temporalStatus: "current",
+    });
+
+    const afterResult = await engine.recall({
+      scope,
+      query: "What was Atlas project status after 2025?",
+      includeEvidence: true,
+      retrievalProfile: "general_chat",
+    });
+
+    expect(afterResult.evidenceLedger?.find(
+      (entry) => entry.claim?.objectText === "new",
+    )).toMatchObject({
+      relation: "supports",
+      temporalStatus: "current",
+    });
+    expect(getRecallRerankPool(afterResult)?.referenceTime).toBe(
+      "2026-01-01T00:00:00.000Z",
+    );
   });
 
   it("does not mix a post-boundary current fact into another source's historical answer", async () => {
@@ -1236,5 +1314,53 @@ describe("generalized fusion through the recall engine", () => {
     });
 
     expect(result.facts.map(({ content }) => content)).toEqual(["planned"]);
+  });
+
+  it("keeps a post-boundary document visible for an after query", async () => {
+    const rawStore = createInMemoryDocumentStore();
+    const projectionIndex = createRecallProjectionRuntime({
+      documentStore: rawStore,
+      now: () => "2026-01-01T00:00:00.000Z",
+    });
+    const sessionStore = createInMemorySessionStore();
+    const repositories = createMemoryRepositories({
+      documentStore: projectionIndex.documentStore,
+      sessionStore,
+    });
+    await repositories.facts.add(createFactMemory({
+      id: "fact-post-boundary",
+      ...scope,
+      category: "project",
+      content: "Atlas project status completed after 2025.",
+      observedAt: "2025-02-01T00:00:00.000Z",
+      validFrom: "2025-02-01T00:00:00.000Z",
+      source: {
+        method: "explicit",
+        extractedAt: "2025-02-01T00:00:00.000Z",
+      },
+      createdAt: "2025-02-01T00:00:00.000Z",
+      updatedAt: "2025-02-01T00:00:00.000Z",
+    }));
+    const engine = createRecallEngine({
+      repositories,
+      runtime: sessionStore,
+      autoStrategyBias: "hybrid",
+      generalizedFusion: { maxCandidates: 8, maxTotalFacts: 8 },
+      projectionIndex,
+      referenceTime: () => "2026-01-01T00:00:00.000Z",
+    });
+
+    const result = await engine.recall({
+      scope,
+      query: "What happened to Atlas project status after 2025?",
+      retrievalProfile: "general_chat",
+    });
+
+    expect(result.facts.map(({ id }) => id)).toEqual(["fact-post-boundary"]);
+    expect(
+      result.metadata.retrievalTrace?.fusionRuns?.[0]?.candidates.find(
+        ({ sourceMemoryId }) => sourceMemoryId === "fact-post-boundary",
+      )?.channels.lexical,
+    ).toBeDefined();
   });
 });

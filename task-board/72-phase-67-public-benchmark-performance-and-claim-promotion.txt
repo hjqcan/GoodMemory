@@ -251,13 +251,14 @@ Tasks
   source-vs-selected scope counts, and an explicit stored-answer comparability
   `claimBoundary` in `rescore-summary.json`, with the same published scores.
 
-[DONE 2026-07-02; SUPERSEDED BY PHASE 68] P67-B LongMemEval replay. The v0.3.5
+[WITHDRAWN 2026-07-31] P67-B LongMemEval replay. The v0.3.5
   `goodmemory-rules-only` replay produced a judge-free deterministic-subset
   result: 0.720 (360/500) versus no-memory 0.068 over the full 500
   questions, `executionFailures: 0`, MIT dataset provenance verified, commit
   `6f9152c`, and same-model semantic-judge rescues excluded from the recorded
-  score. It was public at this phase boundary; the current declaration now has
-  `publicClaimAllowed: false` and retains the result as historical evidence.
+  score. It was public at this phase boundary, but a later audit proved that
+  `goodmemory-rules-only` consumed answer annotations. It is contaminated
+  provenance, not historical evidence.
   CLI guard update (2026-07-04): `eval:phase-62-deterministic-subset` rejects
   duplicate `--report-path`, `--run-id`, `--output-dir`, `--claim-profile`, and
   `--baseline-profile` values before resolving the source report, keeping the
@@ -288,17 +289,14 @@ Tasks
   candidate-generation UNION lane (P65-R004/R005, board 70) which broke the
   additive ceiling. See board 70 for the union evidence trail.
 
-[DONE 2026-07-02] P67-E2 LongMemEval HYBRID-profile judge-free measurement.
+[WITHDRAWN 2026-07-31] P67-E2 LongMemEval HYBRID-profile measurement.
   Full 500 rerun of the goodmemory-hybrid profile (provider embedding additive +
   assisted extraction + Postgres; shard-resumable across a machine reboot;
   run-p67e-longmemeval-hybrid-current): judge-free deterministic subset
   0.722 (361/500), executionFailures 0; with-judge diagnostic 0.890.
-  VERDICT: hybrid TIES the embedding-free rules-only public claim (0.720,
-  360/500) at +1 question — the paid stack does not beat rules-only on the
-  judge-free metric (LongMemEval evidence-session recall is already ~0.95, so
-  the remaining gap is answer-side, not retrieval-side). Per the standing
-  decision this does NOT add a second README row; it is banked as internal
-  evidence that the public rules-only row UNDERSTATES nothing. Command:
+  The source path was later found to expose gold-bearing raw session IDs, so the
+  0.722/0.890 values and comparison with 0.720 are contaminated provenance, not
+  evidence. Command retained for historical reconstruction:
   GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER=openai bun run eval:phase-62-full500
   -- --benchmark-root ~/.goodmemory-longmemeval --profile goodmemory-hybrid
   --shard-concurrency 4 --run-id run-p67e-longmemeval-hybrid-current

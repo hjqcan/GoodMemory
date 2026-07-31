@@ -153,9 +153,12 @@ export function buildEvidenceLedger(
       const linkedClaims = sourceClaims.filter((claim) =>
         claim.evidenceIds.includes(evidence.id),
       );
+      const hasExplicitEvidenceLinks = sourceClaims.some(
+        (claim) => claim.evidenceIds.length > 0,
+      );
       const evidenceClaims = linkedClaims.length > 0
         ? linkedClaims
-        : ambiguous.has(sourceMemoryId)
+        : ambiguous.has(sourceMemoryId) || hasExplicitEvidenceLinks
           ? []
           : sourceClaims;
       const actor = evidenceActor(evidence);

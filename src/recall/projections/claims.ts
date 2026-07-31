@@ -655,6 +655,10 @@ export function createClaimProjectionIndex(
     return language.normalizeForEquality(claim.objectText, context);
   }
 
+  function claimEventTime(claim: ClaimProjection): string {
+    return claim.validFrom ?? claim.observedAt;
+  }
+
   async function reconcileStructuredSupersession(
     scope: MemoryScope,
   ): Promise<void> {
@@ -671,7 +675,7 @@ export function createClaimProjectionIndex(
           claim.modality === "asserted"
         )
         .sort((left, right) =>
-          left.observedAt.localeCompare(right.observedAt) ||
+          claimEventTime(left).localeCompare(claimEventTime(right)) ||
           left.id.localeCompare(right.id)
         );
       const openBySlot = new Map<string, ClaimProjection[]>();
@@ -681,16 +685,17 @@ export function createClaimProjectionIndex(
         const open = openBySlot.get(slot) ?? [];
         const nextOpen: ClaimProjection[] = [];
         const value = normalizeClaimObjectText(claim);
+        const eventTime = claimEventTime(claim);
         for (const older of open) {
           if (
             older.sourceMemoryId !== claim.sourceMemoryId &&
-            older.observedAt.localeCompare(claim.observedAt) < 0 &&
+            claimEventTime(older).localeCompare(eventTime) < 0 &&
             normalizeClaimObjectText(older) !== value
           ) {
             const { id: _id, ...projectionWithoutId } = older;
             const closedWithoutId: Omit<ClaimProjection, "id"> = {
               ...projectionWithoutId,
-              validUntil: claim.observedAt,
+              validUntil: eventTime,
               ingestedAt: claim.ingestedAt,
             };
             closures.set(older.id, {
@@ -768,8 +773,8 @@ export function createClaimProjectionIndex(
 
   // Structural bi-temporal supersession: when a newly projected claim occupies
   // the same (subjectEntityId, predicateKey) slot as an older current claim
-  // from a different source with an earlier observation and a different value,
-  // close the older claim's validity window at the newer observation instead
+  // from a different source with an earlier event time and a different value,
+  // close the older claim's validity window at the newer event time instead
   // of leaving two open "current" values. Invalidate, never delete: the closed
   // claim stays queryable for history/change aggregations. The generic
   // deterministic namespace ("fact.*") has unknown cardinality (several
@@ -809,6 +814,7 @@ export function createClaimProjectionIndex(
       },
     );
     const newValue = normalizeClaimObjectText(claim);
+    const eventTime = claimEventTime(claim);
     const set: Array<{
       collection: string;
       document: StorageDocument;
@@ -826,7 +832,7 @@ export function createClaimProjectionIndex(
         closedSources.has(older.sourceMemoryId) ||
         older.validUntil !== undefined ||
         older.polarity !== "positive" ||
-        older.observedAt.localeCompare(claim.observedAt) >= 0 ||
+        claimEventTime(older).localeCompare(eventTime) >= 0 ||
         normalizeClaimObjectText(older) === newValue
       ) {
         continue;
@@ -846,7 +852,7 @@ export function createClaimProjectionIndex(
       const { id: _olderId, ...olderWithoutId } = older;
       const closedWithoutId: Omit<ClaimProjection, "id"> = {
         ...olderWithoutId,
-        validUntil: claim.observedAt,
+        validUntil: eventTime,
         ingestedAt: claim.ingestedAt,
       };
       const closed: ClaimProjection = {
@@ -893,7 +899,7 @@ export function createClaimProjectionIndex(
   // more than one open value — the state out-of-order ingestion leaves behind,
   // since append-time supersession only closes claims older than the arriving
   // one. Each such slot resolves exactly as the write path would have: the
-  // newest observation stays open, stale values close at its observedAt. The
+  // newest event stays open, stale values close at its validity start. The
   // per-slot commit is optimistic-concurrency guarded on the winner claim;
   // contested slots are skipped and repaired on the next run.
   async function sweepSlotSupersession(scope: MemoryScope): Promise<number> {
@@ -930,7 +936,7 @@ export function createClaimProjectionIndex(
       }
       const winner = [...slotClaims].sort(
         (left, right) =>
-          right.observedAt.localeCompare(left.observedAt) ||
+          claimEventTime(right).localeCompare(claimEventTime(left)) ||
           right.ingestedAt.localeCompare(left.ingestedAt) ||
           right.id.localeCompare(left.id),
       )[0]!;

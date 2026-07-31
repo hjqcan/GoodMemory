@@ -7,6 +7,11 @@ Status
 [DONE] Phase 62 completes the LongMemEval leg of the one-benchmark-at-a-time
 external hardening loop.
 
+[WITHDRAWN 2026-07-31] All Phase 62/P67 LongMemEval score evidence below is
+historical-at-the-time only. A later audit found answer annotations in the
+rules-only path and raw `answer_*` IDs in the nominally label-free path. The
+adapter/tooling remains; the numeric claims do not.
+
 This phase is intentionally not the final public proof report. It establishes
 the LongMemEval adapter, smoke gate, and failure-intake shape first, then uses
 full LongMemEval runs to drive GoodMemory quality repairs. The accepted clean

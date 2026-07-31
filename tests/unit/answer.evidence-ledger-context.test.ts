@@ -166,6 +166,39 @@ describe("answer evidence-ledger context", () => {
     ]);
   });
 
+  it("orders chronology by valid time before observation time", () => {
+    const effectiveLater = {
+      ...entries[0]!,
+      evidenceId: "evidence-effective-later",
+      claim: {
+        ...entries[0]!.claim!,
+        observedAt: "2026-07-01T00:00:00.000Z",
+        validFrom: "2026-07-04T00:00:00.000Z",
+      },
+    };
+    const effectiveEarlier = {
+      ...entries[1]!,
+      evidenceId: "evidence-effective-earlier",
+      claim: {
+        ...entries[1]!.claim!,
+        observedAt: "2026-07-03T00:00:00.000Z",
+        validFrom: "2026-07-02T00:00:00.000Z",
+      },
+    };
+
+    expect(
+      renderEvidenceLedgerContext(
+        [effectiveLater, effectiveEarlier],
+        "chronology",
+      ).split("\n").map((line) =>
+        line.match(/evidence-effective-(?:earlier|later)/)?.[0]
+      ),
+    ).toEqual([
+      "evidence-effective-earlier",
+      "evidence-effective-later",
+    ]);
+  });
+
   it("adds only a generic locale note around the same JSON evidence", () => {
     const compact = JSON.parse(
       renderEvidenceLedgerContext(entries, "compact_json"),

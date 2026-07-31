@@ -520,6 +520,96 @@ describe("claim projection runtime", () => {
     ]);
   });
 
+  it("closes an older slot value when the replacement becomes valid", async () => {
+    const store = createInMemoryDocumentStore();
+    const runtime = createRecallProjectionRuntime({ documentStore: store });
+    const oldFact = buildFact();
+    const replacementFact = {
+      ...buildFact(),
+      id: "fact-2",
+      content: "Atlas is completed.",
+    };
+    await store.set("facts", oldFact.id, oldFact);
+    await store.set("facts", replacementFact.id, replacementFact);
+    const oldValidFrom = "2026-07-01T00:00:00.000Z";
+    const replacementObservedAt = "2026-07-10T00:00:00.000Z";
+    const replacementValidFrom = "2026-08-01T00:00:00.000Z";
+    const planned = claimInput("planned", oldValidFrom);
+    const completed = claimInput("completed", replacementObservedAt);
+
+    await runtime.appendClaim({
+      ...planned,
+      claim: {
+        ...planned.claim,
+        validFrom: oldValidFrom,
+      },
+      observedAt: oldValidFrom,
+      sourceMemoryId: oldFact.id,
+    });
+    await runtime.appendClaim({
+      ...completed,
+      claim: {
+        ...completed.claim,
+        validFrom: replacementValidFrom,
+      },
+      observedAt: replacementObservedAt,
+      sourceMemoryId: replacementFact.id,
+    });
+
+    const history = await runtime.queryClaimHistory(scope);
+    expect(history.find(({ objectText }) => objectText === "planned")?.validUntil)
+      .toBe(replacementValidFrom);
+    expect(history.find(({ objectText }) => objectText === "completed")?.validUntil)
+      .toBeUndefined();
+  });
+
+  it("repairs a late-ingested retroactive slot value by valid time", async () => {
+    const store = createInMemoryDocumentStore();
+    const runtime = createRecallProjectionRuntime({ documentStore: store });
+    const currentFact = buildFact();
+    const retroactiveFact = {
+      ...buildFact(),
+      id: "fact-2",
+      content: "Atlas was planned.",
+    };
+    await store.set("facts", currentFact.id, currentFact);
+    await store.set("facts", retroactiveFact.id, retroactiveFact);
+    const retroactiveValidFrom = "2026-07-01T00:00:00.000Z";
+    const currentValidFrom = "2026-07-10T00:00:00.000Z";
+    const lateObservation = "2026-07-20T00:00:00.000Z";
+    const completed = claimInput("completed", currentValidFrom);
+    const planned = claimInput("planned", lateObservation);
+
+    await runtime.appendClaim({
+      ...completed,
+      claim: {
+        ...completed.claim,
+        validFrom: currentValidFrom,
+      },
+      observedAt: currentValidFrom,
+      sourceMemoryId: currentFact.id,
+    });
+    await runtime.appendClaim({
+      ...planned,
+      claim: {
+        ...planned.claim,
+        validFrom: retroactiveValidFrom,
+      },
+      observedAt: lateObservation,
+      sourceMemoryId: retroactiveFact.id,
+    });
+
+    const before = await runtime.queryClaimHistory(scope);
+    expect(before.every(({ validUntil }) => validUntil === undefined)).toBe(true);
+
+    expect(await runtime.sweepClaimSlots(scope)).toBeGreaterThanOrEqual(1);
+    const after = await runtime.queryClaimHistory(scope);
+    expect(after.find(({ objectText }) => objectText === "planned")?.validUntil)
+      .toBe(currentValidFrom);
+    expect(after.find(({ objectText }) => objectText === "completed")?.validUntil)
+      .toBeUndefined();
+  });
+
   it("loads current claims for selected memories without scanning the whole scope", async () => {
     const inner = createInMemoryDocumentStore();
     const projectionGets: Array<{ collection: string; id: string }> = [];

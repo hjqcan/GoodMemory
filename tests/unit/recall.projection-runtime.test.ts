@@ -1855,6 +1855,8 @@ describe("recall projection runtime", () => {
     }
     const firstObservedAt = "2026-07-08T10:00:00.000Z";
     const secondObservedAt = "2026-07-08T11:00:00.000Z";
+    const firstValidFrom = "2026-08-01T00:00:00.000Z";
+    const secondValidFrom = "2026-07-01T00:00:00.000Z";
     const firstFact = {
       ...buildFact({ id: "fact-slot-first" }),
       subject: "Atlas One",
@@ -1875,7 +1877,11 @@ describe("recall projection runtime", () => {
       ...scope,
       sourceMemoryId: firstFact.id,
       subject: firstFact.subject,
-      claim: { predicateKey: "project.status", objectText: "planned" },
+      claim: {
+        predicateKey: "project.status",
+        objectText: "planned",
+        validFrom: firstValidFrom,
+      },
       observedAt: firstObservedAt,
       ingestedAt: firstObservedAt,
       evidenceIds: [],
@@ -1887,7 +1893,11 @@ describe("recall projection runtime", () => {
       ...scope,
       sourceMemoryId: secondFact.id,
       subject: secondFact.subject,
-      claim: { predicateKey: "project.status", objectText: "completed" },
+      claim: {
+        predicateKey: "project.status",
+        objectText: "completed",
+        validFrom: secondValidFrom,
+      },
       observedAt: secondObservedAt,
       ingestedAt: secondObservedAt,
       evidenceIds: [],
@@ -1924,8 +1934,8 @@ describe("recall projection runtime", () => {
       sourceMemoryId === secondFact.id && predicateKey === "project.status"
     );
     expect(first?.subjectEntityId).toBe(second?.subjectEntityId);
-    expect(first?.validUntil).toBe(secondObservedAt);
-    expect(second?.validUntil).toBeUndefined();
+    expect(first?.validUntil).toBeUndefined();
+    expect(second?.validUntil).toBe(firstValidFrom);
   });
 
   it("uses the projection LanguagePack when comparing structured claim values", async () => {

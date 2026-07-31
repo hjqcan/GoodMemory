@@ -12,6 +12,7 @@
 import type { AnswerOperation, EvidenceTurn } from "./evidenceShared";
 import { formatAbstentionEvidenceGuide } from "./operations/abstention";
 import { buildContradictionEvidenceGuide } from "./operations/contradiction";
+import { inferConflictUpdateTemporalOperation } from "./operations/conflictUpdate";
 import { formatCountCandidateLedger } from "./operations/count";
 import { buildCurrentValueEvidenceGuide } from "./operations/currentValue";
 import { formatExtractionCoverageGuide } from "./operations/extraction";
@@ -94,6 +95,13 @@ export function inferAnswerOperation(
   }
   if (normalizedType && EXTRACTION_QUESTION_TYPES.has(normalizedType)) {
     return "extraction";
+  }
+  const temporalOperation = inferConflictUpdateTemporalOperation(
+    question,
+    normalizedType,
+  );
+  if (temporalOperation) {
+    return temporalOperation;
   }
   if (normalizedType && ORDER_QUESTION_TYPES.has(normalizedType)) {
     return "order";

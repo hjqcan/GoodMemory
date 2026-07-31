@@ -1,16 +1,16 @@
 {
   "benchmark": "LongMemEval",
   "comparison": {
-    "asOf": "2026-07-09",
-    "availability": "historical",
+    "asOf": "2026-07-31",
+    "availability": "repo-eval-only",
     "notes": [
-      "The 0.720 value is the deterministic strict lower bound; the official-prompt-compatible stored-answer diagnostic is reported separately and is not directly comparable to published official scores.",
-      "Current external references use different answer models and retrieval budgets, so they are not controlled head-to-head measurements."
+      "Withdrawn on 2026-07-31: the historical rules-only run used answer annotations, while the later label-free path exposed raw answer_* session IDs in indexed and reader-visible content.",
+      "The retained numbers are contaminated historical observations only. No LongMemEval score is claimable until a clean opaque-session-id full rerun replaces them."
     ],
-    "runtimeProfile": "goodmemory-rules-only@0.3.5",
+    "runtimeProfile": "withdrawn-pending-clean-rerun",
     "source": "https://github.com/mem0ai/memory-benchmarks"
   },
-  "status": "internal_evidence",
+  "status": "paused_boundary",
   "dataset": {
     "source": "https://github.com/xiaowu0162/LongMemEval (data: https://huggingface.co/datasets/xiaowu0162/longmemeval-cleaned, split longmemeval_s_cleaned)",
     "license": "MIT",
@@ -26,22 +26,6 @@
     "answerModel": "gpt-5.5",
     "judgeModel": null,
     "sameModelJudge": false
-  },
-  "publicClaim": {
-    "readmeDisclosureFragments": [
-      "semantic",
-      "0.896",
-      "0.908",
-      "gpt-5.5"
-    ],
-    "readmeRequiredFragments": [
-      "0.720",
-      "360/500",
-      "0.888",
-      "444/500",
-      "0.068",
-      "goodmemory-rules-only"
-    ]
   },
   "evidence": {
     "artifacts": [
@@ -206,17 +190,17 @@
     ]
   },
   "metrics": {
-    "primary": "Judge-free deterministic-subset answer accuracy, goodmemory-rules-only profile, full 500 questions: a case counts correct ONLY when scored by a deterministic method (abstention/exact/contains/expected_alternative/numeric_count); semantic_judge is excluded by construction. Strict lower bound on overall accuracy.",
+    "primary": "Withdrawn historical measurement: the recorded deterministic-subset accuracy is retained only for contamination provenance and is not a valid GoodMemory benchmark result.",
     "score": 0.72,
     "baseline": 0.068,
     "metricDirection": "higher-is-better"
   },
   "coverage": {
-    "complete": true,
-    "note": "Full 500 questions, both profiles, executionFailures 0 (run-phase67b-longmemeval-rules-deterministic-current, 2026-07-02). Claim profile goodmemory-rules-only: 360/500 judge-free correct = exact 163 + contains 118 + numeric_count 50 + abstention 28 + expected_alternative 1 (abstention is only 7.8% of the judge-free correct — the claim is overwhelmingly content matches, not I-don't-know credit). Baseline-no-memory: 34/500 = 0.068, composed of abstention 30 + exact 3 + contains 1 — without memory the model can do little but correctly abstain. Memory lift +65.2 points. Diagnostics NOT claimed as the primary: same-model semantic_judge rescued 88 further mismatches (overall 0.896); evidence-session recall 0.9543. PROMPT-COMPATIBLE TRACK 2026-07-05 (rescore of the SAME stored hypotheses, no regeneration; scripts/rescore-official-protocols.ts, run rescore-longmemeval-official-judge): under the official LongMemEval evaluate_qa.py anscheck prompts (temperature 0), judged by gpt-5.4 (cross-version, same family as the gpt-5.5 answerer - the primary gateway serves no other family), accuracy 0.888 (444/500, judgeFailures 0); per type: single-session-user 1.000, knowledge-update 0.936, multi-session 0.880, single-session-assistant 0.857, temporal-reasoning 0.842, preference 0.800. The pinned evaluator model zoo accepts gpt-4o, gpt-4o-mini, and llama-3.1-70b-instruct, not gpt-5.4; therefore this diagnostic is not directly comparable to published official scores such as Zep's gpt-4o-judged 90.2. The judge-free 0.720 remains the strict lower bound."
+    "complete": false,
+    "note": "The historical artifacts cover 500 questions with zero execution failures, but their reader inputs are invalid for claim purposes: goodmemory-rules-only used answer-aware annotations and the later label-free path exposed raw answer_* session IDs. A clean full rerun is required."
   },
   "claimBoundary": {
     "publicClaimAllowed": false,
-    "reason": "Historical evidence only for its recorded package version and runtime profile; it is not a current-production claim. The recorded judge-free metric excludes semantic_judge rescues, reports executionFailures 0 on all 500x2 cases, and binds the tracked projection to the full source commit and source-artifact fingerprints. Current-package status, profile availability, and historical classification intentionally block promotion. Required disclosures if reconsidered: the profile is embedding-free goodmemory-rules-only; the optional same-model gpt-5.5 semantic_judge contributes zero to the claimed 0.72; answers are generated by gpt-5.5, so judge-free refers only to scoring; and the historical 0.908 with-judge result is superseded."
+    "reason": "Paused after a 2026-07-31 protocol audit. Historical rules-only ingestion consumed answer annotations, and the later label-free ingestion embedded raw answer_* session IDs into retrieval and reader content. These are gold-label side channels. All retained LongMemEval scores are withdrawn until an opaque-session-id, label-free, clean full rerun passes the claim gate."
   }
 }

@@ -234,4 +234,28 @@ describe("evidence ledger", () => {
     ]);
     expect(entries[0]).not.toHaveProperty("claim");
   });
+
+  it("does not attach an evidence-linked claim to a different evidence record", () => {
+    const linkedClaim = claim({
+      id: "claim-project",
+      sourceMemoryId: "project",
+      predicateKey: "project.status",
+      objectText: "approved",
+      observedAt: "2026-07-01T00:00:00.000Z",
+    });
+    linkedClaim.evidenceIds = ["evidence-from-another-message"];
+
+    expect(buildEvidenceLedger({
+      claims: [linkedClaim],
+      evidence: [evidence("project")],
+      referenceTime,
+      selectedMemoryIds: ["project"],
+    })).toEqual([
+      expect.objectContaining({
+        evidenceId: "evidence-project",
+        relation: "context",
+        temporalStatus: "uncertain",
+      }),
+    ]);
+  });
 });

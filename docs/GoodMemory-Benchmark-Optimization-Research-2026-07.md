@@ -23,7 +23,7 @@ and its overfitting guardrail.
 | Benchmark | Current | Weakest axes | Loss taxonomy |
 |---|---|---|---|
 | LoCoMo (v0.6.0 claim) | official 0.8708 / strict-F1 0.6299 | open_domain 0.6146; historical rules-only category floor: multi_hop 0.305, open_domain 0.229 | Phase 65 full-root: 1003 wrong = **647 missing-evidence + 356 noisy-full-recall + 0 clean-full-recall**; named bottleneck = candidate-pool **admission**, then noise |
-| LongMemEval (internal) | strict 0.720 / gpt-5.5 rescore 0.924 | temporal-reasoning (recall 0.767 after Phase 69; acc 0.842), preference 0.800, multi-session | Of 119 wrong at 0.720-era analysis, **64 had full recall** → residual is **answer-side**; largest bucket `missedRecall|multi-session|noAnswer` |
+| LongMemEval (paused) | no valid current score; 0.720/0.888 and 0.762/0.924 withdrawn | historical contaminated diagnostics suggested temporal, preference, and multi-session gaps | The former 119-error taxonomy is hypothesis input only because its source path was answer-aware |
 | BEAM 100K (v0.6.0 claim) | unified 0.7651 / strict 0.620 / recall 0.8276 | event_ordering 0.371 (partly label artifact), knowledge_update 0.594, multi_session_reasoning 0.647 | Binary-track answer gap: 122 wrong = **58 full-recall-clean + 37 full-recall-noisy + 15 missing-evidence + 7 abstention**; top families conflict_update 29, instruction_following 27 (KILL), temporal_order 23, aggregate_count 15 |
 | MemoryAgentBench (claim) | CR 0.959, TTL 0.933 | AR/LRU excluded (no measurable memory lift); TTL was semantic/label-transfer-limited before hybrid | CR is answer-time conflict resolution over deliberately-retained stale facts |
 | ImplicitMemBench (internal) | 0.691 | priming 0.5435 (blocking 0.765) | Priming shows material judge variance on identical stored answers |
@@ -139,9 +139,9 @@ by §2.2.
 - **LongMemEval-S**: full-context GPT-4o 60.2, oracle-retrieval 82.4 (paper);
   Zep 71.2 (paper); Mastra Observational Memory 94.87 [vendor, methodology
   published]; Mem0 94.4 [vendor, harness undisclosed]; MemMachine 93.0 (paper);
-  Hindsight 91.4 (paper). GoodMemory's 0.924 diagnostic sits in the honest
-  competitive band; the 0.720 judge-free floor has no published analogue (most
-  systems report judged-only).
+  Hindsight 91.4 (paper). GoodMemory currently has no comparable LongMemEval
+  score: its former 0.720/0.888 and 0.762/0.924 artifacts are contaminated by
+  answer annotations or gold-bearing session IDs.
 - **LoCoMo**: ~6.4% label errors → ceiling ≈93.6; default judge accepts ~63%
   of wrong-but-topical answers (Penfield audit); Letta grep-agent null
   hypothesis 74.0; honest cluster 75–92; several >93 claims are
@@ -590,8 +590,8 @@ is rejected by the existing rule.
 | E | R7/R8 (graph + iterative) + R9 (consolidation) + R10 (rerank) | D | LoCoMo multi_hop/open_domain, BEAM msr/summarization |
 | F | R11 (abstention calibration) + R12 (methodology) | continuous | claim integrity |
 
-Honest expected ranges if A–E land (not commitments): LongMemEval judged
-0.924 → 0.93–0.95, strict 0.720 → 0.75–0.78; LoCoMo official 0.8708 →
+Honest expected ranges if A–E land (not commitments): LongMemEval needs a clean
+baseline before any numeric target is meaningful; LoCoMo official 0.8708 →
 0.89–0.92 (label ceiling ≈0.936); BEAM unified 0.7651 → 0.79–0.82 (stretch
 diagnostic band); MAB unchanged-to-slightly-up with CR guarded; ImplicitMemBench
 mostly judge-variance-bound. The strict tracks move less than judged tracks by
@@ -1576,6 +1576,163 @@ on-top-of-cues reproduction, latency, and protection requirements remain open.
 
 The next priority is therefore the already-planned current-value/temporal
 assembly isolation, not another R8 prompt iteration.
+
+### R3 current-value / temporal assembly isolation (2026-07-31)
+
+This pass found a benchmark-integrity defect before it found a score lever. The
+integrity defect takes precedence over every LongMemEval number previously
+listed in this document.
+
+#### Official source and frozen inputs
+
+- official LongMemEval source:
+  `xiaowu0162/LongMemEval@9e0b455f4ef0e2ab8f2e582289761153549043fc`;
+- cleaned Full-500 raw SHA-256:
+  `d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442`;
+- canonical parsed-data fingerprint:
+  `195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203`;
+- the official dataset contains 500 cases, including 78 knowledge-update and
+  133 temporal-reasoning cases.
+
+Every one of the dataset's 948 gold session references begins with
+`answer_`; every one of the 500 cases contains at least one such marker. The
+official generation path uses session IDs only for lookup and presents ordinal
+`Session N` labels to the reader.
+
+#### Claims withdrawn and defects fixed first
+
+GoodMemory did not preserve that boundary:
+
+1. The historical `goodmemory-rules-only` path used
+   `historical-annotated` ingestion, including `answer_session_ids` /
+   `has_answer` information. Its 0.720 / 0.888 artifacts are answer-aware and
+   are withdrawn.
+2. The later `label-free-raw` path removed explicit answer annotations but
+   wrote `[LongMemEval session ${sessionId}]` into canonical memory content.
+   Since gold IDs use `answer_*`, this marker entered indexing, retrieval, and
+   reader context. Its 0.762 source and derived 0.924 rescore are also
+   withdrawn. Re-scoring stored answers cannot repair source-input leakage.
+3. Full-context and label-free reader-visible session labels now use ordinal
+   IDs. Raw IDs remain only in internal scope/provenance fields. Tests use a
+   real-style `answer_secret` ID and assert that it never reaches either
+   reader context.
+
+The same defect-first pass fixed the general temporal path rather than adding
+benchmark rules:
+
+- before/current document visibility now uses the query boundary; after uses
+  current visibility so post-boundary evidence is not filtered out;
+- current-as-of queries load claim history, and the evidence ledger retains
+  selected historical peers through rerank-pool reconstruction;
+- an explicit evidence ID mismatch no longer falls back to attaching the wrong
+  claim;
+- rules-only selection excludes inactive, expired, and future-valid facts and
+  orders mutable values by `validFrom ?? observedAt ?? updatedAt ?? extractedAt
+  ?? createdAt`;
+- evidence chronology uses valid time before observation time;
+- write-side structured supersession now uses `validFrom ?? observedAt` in
+  append, rebuild/reconcile, and maintenance sweep paths, covering future
+  effective changes and retroactive late ingestion;
+- knowledge-update questions that explicitly ask for a historical value or
+  date no longer receive a forced “latest value” guide;
+- the LoCoMo live answer path now passes the already-computed retrieval-channel
+  provenance into EvidencePack, activating its existing corroboration and
+  coverage signals.
+
+#### Rejected first protocol
+
+The first frozen-session prototype was adversarially audited before live use
+and then deleted. It expanded the contaminated historical report's selected
+sessions into 18k–30k-token raw contexts even though the source run had a
+4,000-token context budget, exposed raw session IDs, and bypassed the current
+recall runtime. It could only have measured a newly invented raw-reader format,
+not replayed 0.762 or isolated a GoodMemory mechanism. No live model call was
+made under that protocol.
+
+#### Current-recall paired protocol
+
+The v1 replacement ran the actual current `goodmemory-recommended`,
+`label-free-raw` path:
+
+1. seed and recall once per question;
+2. freeze the resulting recall packet, candidate traces, and EvidenceLedger
+   under one SHA-256 snapshot;
+3. render the default product context and `compact_json` EvidenceLedger from
+   that exact recall object;
+4. enforce a 4,000-token build budget and a 6,000-token pre-answer hard cap;
+5. remove gold answer, answer-session IDs, haystack, and question type from the
+   answer-generator input;
+6. alternate arm order; if the two contexts are byte-identical, answer once
+   and reuse the result so model sampling cannot create a fake delta;
+7. write output exclusively, bind dataset/selection/source fingerprints, and
+   require source state to remain unchanged through the run.
+
+The development and candidate-holdout IDs were selected before any new answer
+result by ascending `SHA-256(salt + NUL + question_id)` within strata. The
+development slice has eight knowledge-update and eight temporal-reasoning
+questions. The 32-question holdout is disjoint and adds sixteen non-target
+protection questions; it remains hard-sealed in the runner.
+
+A real-data no-model dry run completed 16/16 current recalls. Maximum default
+and compact contexts were approximately 3,230 and 3,262 estimated tokens;
+10/16 contexts changed, while six identical contexts correctly share one
+answer.
+
+Superseded v1 development live result:
+
+| Arm | Correct | Accuracy |
+| --- | ---: | ---: |
+| product default | 13/16 | 0.8125 |
+| compact EvidenceLedger | 14/16 | 0.8750 |
+
+Paired result: **1 win / 0 losses / 15 ties**, 26 answer calls, eight judge
+calls, and 16 memory-context builds. The sole flip was temporal-reasoning:
+default answered a 21-day interval as 26 days, while compact EvidenceLedger
+answered 21 days; its context was also smaller (2,996 → 2,900 estimated
+tokens). Knowledge-update had five changed contexts but zero flips.
+
+Artifact:
+`reports/eval/research/phase-72/longmemeval-current-recall-assembly/run-phase72-current-recall-assembly-development-v1/report.json`,
+SHA-256
+`4ad2e1b070d287e4572fc6b94e92c6bf6e72823bdbd8cd54f502cd61358426ff`.
+The run used `gpt-5.6-terra` answers and an independent `gpt-5.5` judge through
+the configured Gurki gateway. Its source tree was dirty and only partially
+identity-bound: the status and tracked diff were hashed, but the then-untracked
+runner bytes were not. This already disqualified it from holdout evidence.
+
+A post-run adversarial review found a stricter boundary defect: v1 removed gold
+fields only from the answer generator. The memory builder still received the
+raw `answer_*` session IDs, `has_answer` turn markers, answer, and question type.
+The built-in label-free branch did not intentionally select on those fields,
+but the protocol could not prove a gold-blind memory build. Therefore the v1
+result is superseded and cannot authorize holdout opening.
+
+Protocol v2 now:
+
+1. passes the memory builder an answer-free, type-free case;
+2. removes `has_answer` from every source turn;
+3. replaces every source identity with an ordinal `session-N` before memory
+   storage, projection, recall, and context rendering;
+4. requires an explicit `--open-candidate-holdout` flag plus a clean 40-character
+   Git commit before a candidate holdout can start;
+5. pins the development selection to SHA-256
+   `3df24634d8f661ad2a6a054ec628114fcbab038d5b130e41800ab1b64a11e29e`
+   and the disjoint candidate holdout to
+   `7f776aad5ee6c531b7443a060d9323dde53c137f1d849ba87f31313c21f62993`;
+6. authorizes holdout opening only from a clean v2 development report on the
+   same commit, dataset, answer/judge identities, token budgets, and retrieval
+   profile, with 16 unique cases and positive net wins;
+7. rejects injected dependencies and non-canonical output paths for holdout,
+   reserves the run directory before any model call, and consumes a
+   protocol/dataset/selection-keyed one-shot reservation before recall;
+8. predeclares the candidate gate as at least two overall net wins, exactly 16
+   protection cases, and zero protection losses. Passing one sealed draw is
+   still diagnostic evidence, not promotion or a public score.
+
+Disposition: **v1 superseded; v2 development pending; not promoted.** The
+32-question holdout remains sealed. Even a successful holdout cannot restore a
+LongMemEval claim without a clean full-500 baseline, repeated paired runs, and
+cross-family protection.
 
 ## 8. Primary sources
 

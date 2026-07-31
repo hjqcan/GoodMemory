@@ -65,5 +65,10 @@
       "path": "reports/eval/research/official-rescore/rescore-longmemeval-official-judge/run-identity.json",
       "sha256": "4edc00b8eb4635222b2e11627a14d79b9bf28c0a7df301629f87af39f8bed33c"
     }
-  ]
+  ],
+  "withdrawal": {
+    "date": "2026-07-31",
+    "reason": "Historical rules-only ingestion used answer annotations; later label-free ingestion exposed raw answer_* session IDs in indexed and reader-visible content.",
+    "replacementRequired": "Opaque-session-id label-free full rerun with zero failures and fresh scoring."
+  }
 }

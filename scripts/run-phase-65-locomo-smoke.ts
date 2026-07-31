@@ -4166,10 +4166,11 @@ export async function runLocomoSmoke(
         const retrievedTurnIds = options.answerFromPacket
           ? collectLocomoPacketTurnIds(recall)
           : collectLocomoRetrievedTurnIds(recall);
+        const retrievedTurnChannels = collectLocomoTurnChannels(recall);
         const scoredRetrieval = scoreLocomoRetrieval({
           question,
           retrievedTurnIds,
-          retrievedTurnChannels: collectLocomoTurnChannels(recall),
+          retrievedTurnChannels,
           testCase,
         });
         const followUpTrace = collectLocomoFollowUpTrace(recall);
@@ -4186,6 +4187,7 @@ export async function runLocomoSmoke(
                     question,
                     retrievedTurnIds,
                     testCase,
+                    turnChannels: retrievedTurnChannels,
                   })
                 : buildLocomoAnswerContext({
                     retrievedTurnIds,

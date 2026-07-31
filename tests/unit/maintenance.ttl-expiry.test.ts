@@ -7,11 +7,9 @@ import {
 } from "../../src";
 import { createFactMemory, type FactMemory } from "../../src/domain/records";
 
-// The ttlExpiry maintenance job demotes facts whose validity window closed or TTL
-// elapsed to "inactive", so recall (which only surfaces active facts) stops
-// returning them. It runs in the default maintenance job set — recall does not
-// check expiry at read time, so a default run must honor an explicitly set
-// validUntil/expiresAt — and it is a no-op for facts without those fields.
+// Recall hides facts as soon as their validity window closes or TTL elapses.
+// The ttlExpiry maintenance job persists that state as "inactive". It runs in
+// the default maintenance job set and is a no-op without validUntil/expiresAt.
 describe("ttlExpiry maintenance job", () => {
   const scope = { userId: "u-1", workspaceId: "workspace-a" };
 
@@ -44,7 +42,7 @@ describe("ttlExpiry maintenance job", () => {
     return { documentStore, makeFact, memory };
   }
 
-  it("demotes expired facts so recall no longer returns them", async () => {
+  it("hides expired facts immediately and persists their demotion", async () => {
     const { documentStore, makeFact, memory } = buildMemory();
     // A far-past expiresAt is expired under any plausible maintenance clock.
     await documentStore.set(
@@ -65,7 +63,9 @@ describe("ttlExpiry maintenance job", () => {
       query: "alpha topic",
       strategy: "rules-only",
     });
-    expect(before.facts.map((fact) => fact.id)).toContain("expired");
+    const beforeIds = before.facts.map((fact) => fact.id);
+    expect(beforeIds).not.toContain("expired");
+    expect(beforeIds).toContain("fresh");
 
     await memory.runMaintenance({ scope, jobs: ["ttlExpiry"] });
 

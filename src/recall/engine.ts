@@ -980,6 +980,9 @@ export function createRecallEngine(config: RecallEngineConfig) {
             },
           });
       const recallPlan = planResolution.plan;
+      const evidenceReferenceTime = recallPlan.temporalConstraints.find(
+        ({ kind }) => kind === "before" || kind === "current",
+      )?.referenceTime ?? currentReferenceTime;
       const retrievalProfile = resolveRetrievalProfile(input.retrievalProfile);
       const policyApplied = new Set<string>();
       if (planResolution.assistantApplied) {
@@ -1551,9 +1554,13 @@ export function createRecallEngine(config: RecallEngineConfig) {
             } else {
             const needsClaimHistory =
               recallPlan.aggregation === "change" ||
+              recallPlan.aggregation === "current" ||
               recallPlan.aggregation === "history" ||
               recallPlan.temporalConstraints.some(({ kind }) =>
-                kind === "after" || kind === "before" || kind === "history"
+                kind === "after" ||
+                kind === "before" ||
+                kind === "current" ||
+                kind === "history"
               );
             const needsClaimMaterialization =
               needsClaimHistory ||
@@ -1562,9 +1569,6 @@ export function createRecallEngine(config: RecallEngineConfig) {
               recallPlan.temporalConstraints.some(({ kind }) =>
                 kind === "current"
               );
-            const temporalReferenceTime = recallPlan.temporalConstraints.find(
-              ({ kind }) => kind === "after" || kind === "before" || kind === "current",
-            )?.referenceTime ?? currentReferenceTime;
             const [documents, entities, claims] = await Promise.all([
               config.projectionIndex.searchDocuments(
                 input.scope,
@@ -1686,7 +1690,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
               entityPageRank: generalizedFusionConfig.entityPageRank,
               matchesEntityAlias: (query, alias) =>
                 language.matchesEntityAlias(query, alias, resolvedLanguage),
-              referenceTime: temporalReferenceTime,
+              referenceTime: evidenceReferenceTime,
               rrfK: generalizedFusionConfig.rrfK,
               tokenize: (text) =>
                 language.tokenize(text, resolvedLanguage.locale, {
@@ -2274,10 +2278,17 @@ export function createRecallEngine(config: RecallEngineConfig) {
         config.projectionIndex
       ) {
         try {
-          ledgerClaims = await config.projectionIndex.queryClaimsForSourceMemoryGroups(
-            input.scope,
-            rerankPoolMemoryIds,
-          );
+          const groupClaims =
+            await config.projectionIndex.queryClaimsForSourceMemoryGroups(
+              input.scope,
+              rerankPoolMemoryIds,
+            );
+          ledgerClaims = [...new Map(
+            [...groupClaims, ...rerankProjectionClaims].map((claim) => [
+              claim.id,
+              claim,
+            ]),
+          ).values()];
         } catch (error) {
           console.error(
             "[goodmemory:evidence-ledger] claim lookup failed; returning raw evidence ledger",
@@ -2291,7 +2302,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
             ambiguousSourceMemoryIds: [...ambiguousSourceMemoryIds],
             claims: ledgerClaims,
             evidence,
-            referenceTime: currentReferenceTime,
+            referenceTime: evidenceReferenceTime,
             selectedMemoryIds,
           })
         : undefined;
@@ -2439,7 +2450,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
           session_archives:
             generalizedFusionConfig?.contentLaneRecords?.sessionArchives ?? 1,
         },
-        referenceTime: currentReferenceTime,
+        referenceTime: evidenceReferenceTime,
       });
     },
   };

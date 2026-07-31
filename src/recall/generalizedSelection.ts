@@ -1,4 +1,8 @@
-import type { FactMemory, UserProfile } from "../domain/records";
+import {
+  isFactExpired,
+  type FactMemory,
+  type UserProfile,
+} from "../domain/records";
 import type { LanguageQueryAnalysis, LanguageService } from "../language";
 import type { RecallCandidateTrace } from "./engine";
 import type { RecallSlot, RetrievalProfile, RoutingDecision } from "./router";
@@ -25,6 +29,21 @@ import {
 
 const GENERAL_FACT_RECALL_LIMIT = 6;
 const AGGREGATE_OPEN_LOOP_LIMIT = 6;
+
+function isFactVisibleAt(fact: FactMemory, referenceTime: string): boolean {
+  if (
+    fact.lifecycle !== "active" ||
+    fact.isActive === false ||
+    isFactExpired(fact, referenceTime)
+  ) {
+    return false;
+  }
+  const reference = Date.parse(referenceTime);
+  const validFrom = fact.validFrom ? Date.parse(fact.validFrom) : Number.NaN;
+  return !Number.isFinite(reference) ||
+    !Number.isFinite(validFrom) ||
+    validFrom <= reference;
+}
 
 export type FactSelector = (
   facts: FactMemory[],
@@ -79,7 +98,7 @@ export function selectGeneralizedFactsForInternalUse(
     returned: false,
     whySuppressed: !language.localesCompatible(queryLocale, entry.locale)
       ? "locale mismatch"
-      : entry.fact.lifecycle !== "active"
+      : !isFactVisibleAt(entry.fact, referenceTime)
         ? "inactive lifecycle"
         : "not selected",
     intentScore: entry.intentScore,
@@ -100,7 +119,7 @@ export function selectGeneralizedFactsForInternalUse(
   );
   const compatible = ranked.filter(
     (entry) =>
-      entry.fact.lifecycle === "active" &&
+      isFactVisibleAt(entry.fact, referenceTime) &&
       language.localesCompatible(queryLocale, entry.locale),
   );
   let selectionPool = compatible;
@@ -394,6 +413,8 @@ function factTimestamp(
   candidate: ReturnType<typeof buildFactCandidates>[number],
 ): number {
   const timestamp =
+    candidate.fact.validFrom ??
+    candidate.fact.observedAt ??
     candidate.fact.updatedAt ??
     candidate.fact.source.extractedAt ??
     candidate.fact.createdAt;

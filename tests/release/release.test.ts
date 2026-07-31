@@ -1,5 +1,5 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { describe, expect, it } from "bun:test";
 import {
   access,
@@ -1633,6 +1633,9 @@ describe("release metadata and docs", () => {
     expect(standaloneGuide).toContain("GOODMEMORY_USER_ID");
     expect(standaloneGuide).toContain("GOODMEMORY_MCP_ALLOW_WRITE");
     expect(standaloneGuide).toContain("--agent-id");
+    expect(standaloneGuide).toContain("2026-07-28");
+    expect(standaloneGuide).toContain("2025-11-25");
+    expect(standaloneGuide).toContain("application-level memory scope");
     expect(standaloneGuide).toContain("npm install -g goodmemory@0.7.0");
     expect(standaloneGuide).toContain("verified local `goodmemory-0.7.0.tgz`");
     // Bun is a hard runtime prerequisite: the goodmemory-mcp bin spawns bun.
@@ -2874,7 +2877,7 @@ describe("release metadata and docs", () => {
       "BEAM 100K (unified 0.7651 / strict 0.620 / recall 0.8276)",
     );
     expect(currentStatus).toContain(
-      "LongMemEval and ImplicitMemBench remain versioned internal evidence",
+      "LongMemEval is paused, not versioned internal evidence",
     );
     expect(currentStatus).toContain(
       "README current-claim tables are empty",
@@ -3284,9 +3287,12 @@ describe("release metadata and docs", () => {
     expect(taskBoard).toContain("LongMemEval -> BEAM -> MemoryAgentBench -> LoCoMo");
     expect(taskBoard).toContain("Phase 72 is complete");
     expect(taskBoard).toContain(
-      "Current public-opt-in claims are LoCoMo, BEAM, and MemoryAgentBench",
+      "LongMemEval is now `paused_boundary`, not versioned evidence",
     );
     expect(taskBoard).toContain(
+      "ImplicitMemBench remains versioned internal evidence",
+    );
+    expect(taskBoard).not.toContain(
       "LongMemEval and ImplicitMemBench remain versioned internal evidence",
     );
     expect(taskBoard).toContain("Phase 69 owns generalized candidate admission and noise control");
@@ -3376,7 +3382,8 @@ describe("release metadata and docs", () => {
     expect(taskBoard).toContain(
       "Phase 68 is complete",
     );
-    expect(taskBoard).toContain("454/500");
+    expect(taskBoard).toContain("Withdrawn LongMemEval checkpoint:");
+    expect(taskBoard).toContain("retained as contaminated provenance only");
     expect(taskBoard).toContain("run-phase63-beam-smoke-current");
     expect(taskBoard).toContain("run-20260518003000");
     expect(taskBoard).toContain("run-phase62-provider-probe-hybrid-20260518T-provider-restored");

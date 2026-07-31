@@ -1,5 +1,5 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { McpServer } from "@modelcontextprotocol/server";
+import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { readFileSync } from "node:fs";
 import * as z from "zod/v4";
 import type {
@@ -30,6 +30,7 @@ import {
   createInstalledHostProgressiveRecallService,
   readInstalledHostProgressiveRecordCache,
   resolveInstalledHostProgressiveScopeDigest,
+  writeInstalledHostProgressiveRecordCache,
 } from "./hostProgressiveRecall";
 import { recordRememberToolWriteback } from "./hostWritebackRuntime";
 import {
@@ -98,10 +99,12 @@ export type GoodMemoryMcpServerInput =
 export async function serveGoodMemoryMcp(
   input: GoodMemoryMcpServerInput,
 ): Promise<void> {
-  const server = createGoodMemoryMcpServer(input);
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  await waitForTransportShutdown();
+  const handle = serveStdio(() => createGoodMemoryMcpServer(input));
+  try {
+    await waitForTransportShutdown();
+  } finally {
+    await handle.close();
+  }
 }
 
 export function createGoodMemoryMcpServer(
@@ -139,7 +142,7 @@ export function createGoodMemoryMcpServer(
     {
       description:
         "Fetch a compact memory context fragment for a specific question about this workspace. Call it when hook-injected context is missing or insufficient, or when you need memory for a different question than the current prompt.",
-      inputSchema: {
+      inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
         maxTokens: z.number().int().positive().optional(),
         output: z
@@ -147,7 +150,7 @@ export function createGoodMemoryMcpServer(
           .optional(),
         query: z.string().min(1),
         retrievalProfile: z.enum(["coding_agent", "general_chat"]).optional(),
-      },
+      }),
     },
     async (args) => {
       const context = await loadContext({
@@ -190,10 +193,10 @@ export function createGoodMemoryMcpServer(
     {
       description:
         "Diagnostic (beyond the primary goodmemory_get_context / goodmemory_remember tools). Use this when you need a read-only snapshot of durable and runtime GoodMemory state for the current workspace.",
-      inputSchema: {
+      inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
         includeRuntime: z.boolean().optional(),
-      },
+      }),
     },
     async (args) => {
       const context = await loadContext({
@@ -222,12 +225,12 @@ export function createGoodMemoryMcpServer(
     {
       description:
         "Diagnostic. Explain a recall: routing, hits, per-candidate scores, and suppression reasons. Call it when a memory that should exist did not surface, or when a surfaced memory looks wrong.",
-      inputSchema: {
+      inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
         query: z.string().min(1),
         retrievalProfile: z.enum(["coding_agent", "general_chat"]).optional(),
         strategy: z.enum(["auto", "rules-only", "hybrid", "llm-assisted"]).optional(),
-      },
+      }),
     },
     async (args) => {
       const context = await loadContext({
@@ -260,13 +263,13 @@ export function createGoodMemoryMcpServer(
     {
       description:
         "Advanced recall (past goodmemory_get_context). Progressive GoodMemory recall step 1: fetch a compact recordRef index for a query, then call goodmemory_get_records for detail. Prefer this over goodmemory_get_context when you need specific records rather than a rendered summary.",
-      inputSchema: {
+      inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
         includeRuntime: z.boolean().optional(),
         limit: z.number().int().positive().max(50).optional(),
         query: z.string().min(1),
         retrievalProfile: z.enum(["coding_agent", "general_chat"]).optional(),
-      },
+      }),
     },
     async (args) => {
       const context = await loadContext({
@@ -290,6 +293,14 @@ export function createGoodMemoryMcpServer(
         retrievalProfile: context.retrievalProfile,
         scope: context.scope,
       });
+      await persistProgressiveRecordCache({
+        ...(dependencies.homeRoot ? { homeRoot: dependencies.homeRoot } : {}),
+        host: hostLabel,
+        recordRefs: index.records.map((record) => record.recordRef),
+        scope: context.scope,
+        scopeDigest: index.scopeDigest,
+        service,
+      });
       return buildMcpStructuredResult({ ...index });
     },
   );
@@ -299,14 +310,14 @@ export function createGoodMemoryMcpServer(
     {
       description:
         "Advanced recall. Use this for progressive GoodMemory recall when you need compact chronological context before drilling into recordRefs.",
-      inputSchema: {
+      inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
         includeRuntime: z.boolean().optional(),
         limit: z.number().int().positive().max(50).optional(),
         query: z.string().min(1),
         recordsPerBucket: z.number().int().positive().max(20).optional(),
         retrievalProfile: z.enum(["coding_agent", "general_chat"]).optional(),
-      },
+      }),
     },
     async (args) => {
       const context = await loadContext({
@@ -331,6 +342,16 @@ export function createGoodMemoryMcpServer(
         retrievalProfile: context.retrievalProfile,
         scope: context.scope,
       });
+      await persistProgressiveRecordCache({
+        ...(dependencies.homeRoot ? { homeRoot: dependencies.homeRoot } : {}),
+        host: hostLabel,
+        recordRefs: timeline.buckets.flatMap((bucket) =>
+          bucket.records.map((record) => record.recordRef)
+        ),
+        scope: context.scope,
+        scopeDigest: timeline.scopeDigest,
+        service,
+      });
       return buildMcpStructuredResult({ ...timeline });
     },
   );
@@ -340,10 +361,10 @@ export function createGoodMemoryMcpServer(
     {
       description:
         "Advanced recall. Use this for progressive GoodMemory recall after search_index or timeline returns recordRefs that need detail.",
-      inputSchema: {
+      inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
         recordRefs: z.array(z.string().min(1)).min(1).max(20),
-      },
+      }),
     },
     async (args) => {
       const context = await loadContext({
@@ -372,16 +393,26 @@ export function createGoodMemoryMcpServer(
           recordRefs: args.recordRefs,
         });
         if (fallbackScopeDigest) {
-          const cachedRecords = await readInstalledHostProgressiveRecordCache({
-            host: hostLabel,
-            recordRefs: args.recordRefs,
-            scopeDigest: fallbackScopeDigest,
-          }).catch(() => []);
-          if (cachedRecords.length === args.recordRefs.length) {
-            return buildMcpStructuredResult({
-              records: cachedRecords,
+          try {
+            const cachedRecords = await readInstalledHostProgressiveRecordCache({
+              ...(dependencies.homeRoot
+                ? { homeRoot: dependencies.homeRoot }
+                : {}),
+              host: hostLabel,
+              recordRefs: args.recordRefs,
               scopeDigest: fallbackScopeDigest,
             });
+            if (cachedRecords.length === args.recordRefs.length) {
+              return buildMcpStructuredResult({
+                records: cachedRecords,
+                scopeDigest: fallbackScopeDigest,
+              });
+            }
+          } catch (cacheError) {
+            console.error(
+              `[goodmemory-mcp] Failed to read progressive recall cache for ${hostLabel}/${fallbackScopeDigest}:`,
+              cacheError,
+            );
           }
         }
         return buildMcpErrorResult(
@@ -396,10 +427,10 @@ export function createGoodMemoryMcpServer(
     {
       description:
         "Diagnostic. Use this when you need the accepted host-adapter artifact projection for the current workspace.",
-      inputSchema: {
+      inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
         includeRuntime: z.boolean().optional(),
-      },
+      }),
     },
     async (args) => {
       const context = await loadContext({
@@ -433,10 +464,10 @@ export function createGoodMemoryMcpServer(
     {
       description:
         "Diagnostic. Record counts and runtime metadata (embedding/retrieval status via the `retrieval` field) for the current GoodMemory scope. Call it to check whether memory exists here before assuming an empty store.",
-      inputSchema: {
+      inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
         includeRuntime: z.boolean().optional(),
-      },
+      }),
     },
     async (args) => {
       const context = await loadContext({
@@ -493,7 +524,7 @@ export function createGoodMemoryMcpServer(
         },
         description:
           "Use this to persist a memory-worthy statement as durable GoodMemory. The write is governed: classification and dedupe may reject or merge it (see accepted/rejected and per-event outcomes in the result). If accepted is 0, the explanation field says why. Accepted installed-mode writes are also recorded in the writeback audit ledger; the result's auditEventId works with `goodmemory <host> writeback inspect` and `goodmemory <host> writeback forget --event-id <id>`.",
-        inputSchema: {
+        inputSchema: z.object({
           ...TOOL_SCOPE_SCHEMA,
           content: z.string().min(1).describe("The memory-worthy statement to persist."),
           extractionStrategy: z.enum(["auto", "rules-only", "llm-assisted"]).optional(),
@@ -506,7 +537,7 @@ export function createGoodMemoryMcpServer(
             .enum(["user", "assistant"])
             .optional()
             .describe("Message role for governance provenance. Defaults to assistant (the caller); pass user only for user-originated content."),
-        },
+        }),
       },
       async (args) => {
         const context = await loadContext({
@@ -604,6 +635,30 @@ export function createGoodMemoryMcpServer(
   }
 
   return server;
+}
+
+async function persistProgressiveRecordCache(input: {
+  homeRoot?: string;
+  host: HostKind;
+  recordRefs: string[];
+  scope: MemoryScope;
+  scopeDigest: string;
+  service: ProgressiveRecallService;
+}): Promise<void> {
+  if (input.recordRefs.length === 0) {
+    return;
+  }
+
+  const records = await input.service.getProgressiveRecords({
+    recordRefs: input.recordRefs,
+    scope: input.scope,
+  });
+  await writeInstalledHostProgressiveRecordCache({
+    ...(input.homeRoot ? { homeRoot: input.homeRoot } : {}),
+    host: input.host,
+    records: records.records,
+    scopeDigest: input.scopeDigest,
+  });
 }
 
 async function getProgressiveRecallService(
@@ -826,6 +881,10 @@ function waitForTransportShutdown(): Promise<void> {
         return;
       }
       settled = true;
+      process.stdin.off("close", finish);
+      process.stdin.off("end", finish);
+      process.off("SIGINT", finish);
+      process.off("SIGTERM", finish);
       resolve();
     };
 

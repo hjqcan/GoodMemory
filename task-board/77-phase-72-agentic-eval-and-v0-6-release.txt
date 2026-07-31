@@ -64,13 +64,11 @@ zero execution failures and scores 0.7451075904 recall over the 629
 evidence-bearing questions. The frozen set was not inspected case-by-case.
 [DONE] ImplicitMemBench retry-merged evidence reaches 0.6923666667 with zero
 failures, but is not a monolithic fresh Full-300 run.
-[DONE] LongMemEval provider-embedding source was retry-merged to zero failures:
-381/500 = 0.762 under an independent pinned-prompt-compatible judge diagnostic,
-297/500 = 0.594 judge-free, and
-0.9234666667 evidence-session recall. Sixty-four of its 119 wrong answers had
-full recall, so the remaining gap was not retrieval-only. The 0.762 diagnostic
-is not directly comparable to published official scores because its evaluator
-identity does not match a pinned upstream evaluator identity.
+[WITHDRAWN 2026-07-31] LongMemEval provider-embedding source recorded
+381/500 = 0.762, 297/500 = 0.594 judge-free, and 0.9234666667
+evidence-session recall, but the nominally label-free payload exposed raw
+`answer_*` session IDs to retrieval and the reader. These values are retained
+only as contaminated provenance and no longer support score or recall claims.
 [DONE] LongMemEval negative arms were stopped at their declared gates. A
 sentence-projection dense arm moved the frozen target recall 0.63125 -> 0.646875
 (+1.5625pt) while protection regressed 0.90625 -> 0.875 (-3.125pt), so its
@@ -85,15 +83,11 @@ improved independent pinned-prompt-compatible diagnostic accuracy 32/64 ->
 target moved 0/32 -> 12/32, protection held 32/32, and execution failures stayed
 zero. Its first full run stopped at 70/500; that partial aggregate is invalid
 and the arm was not promoted.
-[DONE] The label-free answer/verifier chain completed all 500 cases with zero
-failures and reached 360/500 = 0.720 judge-free. An independent `gpt-5.5`
-official-prompt-compatible rescore of the same stored answers reaches 462/500 =
-0.924 with zero judge failures. Because gpt-5.5 is outside the pinned evaluator
-model zoo, this is not directly comparable to published official scores. Both
-LongMemEval internal gates are closed. The verifier CLI
-requires an explicit source report. Checkpoint resume truncates a torn final
-JSONL write and rejects duplicate completed rows, malformed nested state, and
-internally inconsistent outcomes.
+[WITHDRAWN 2026-07-31] The former answer/verifier chain recorded 360/500 =
+0.720 judge-free and a `gpt-5.5` rescore of 462/500 = 0.924, but its source
+inputs were answer-aware or exposed raw `answer_*` IDs. The numbers and former
+internal-gate closure are invalid. The verifier/checkpoint tooling remains, but
+rescore integrity cannot repair contaminated source inputs.
 [DONE] LoCoMo's generalized production full-1540 run scores 0.6298701299
 strict and 0.8707792208 under the independent `gpt-5.5` official protocol,
 with open-domain at 59/96 = 0.6145833333 and zero execution/judge failures.

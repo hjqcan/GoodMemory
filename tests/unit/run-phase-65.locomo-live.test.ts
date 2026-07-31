@@ -1,4 +1,6 @@
 import { describe, expect, it } from "bun:test";
+
+import type { GoodMemory } from "../../src/api/contracts";
 import {
   buildLocomoEvidencePackContext,
   buildLocomoSystemPrompt,
@@ -171,6 +173,78 @@ describe("LoCoMo live answer evidence-pack wiring", () => {
         context.includes("Evidence for absence check:"),
       ),
     ).toBe(true);
+  });
+
+  it("threads retrieved fusion-channel provenance into the live evidence pack", async () => {
+    const testCase = buildLocomoSmokeCases()[0];
+    const question = testCase.questions[0];
+    const turn = testCase.turns[0];
+    const sourceMemoryId = "locomo-provenance-memory";
+    const memory = {
+      async recall() {
+        return {
+          archives: [],
+          episodes: [],
+          evidence: [],
+          facts: [
+            {
+              content:
+                `[LOCOMO dia_id=${turn.diaId} speaker=${turn.speaker}] ${turn.content}`,
+              id: sourceMemoryId,
+            },
+          ],
+          feedback: [],
+          metadata: {
+            retrievalTrace: {
+              fusionRuns: [
+                {
+                  candidates: [
+                    {
+                      channels: { lexical: { rank: 1 } },
+                      selected: true,
+                      sourceMemoryId,
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+          packet: { factSummary: "" },
+          preferences: [],
+          references: [],
+        } as never;
+      },
+      async remember() {
+        return {} as never;
+      },
+    } as unknown as GoodMemory;
+    let capturedContext = "";
+
+    const report = await runLocomoSmoke(
+      {
+        caseIds: [testCase.caseId],
+        evidencePack: true,
+        generalizedFusion: true,
+        questionIds: [question.questionId],
+      },
+      {
+        answerGenerator: async (input) => {
+          capturedContext = input.memoryContext;
+          return "stub answer";
+        },
+        createMemory: () => memory,
+        mkdir: async () => undefined,
+        writeFile: async () => undefined,
+      },
+    );
+
+    expect(report.cases[0]?.retrievedTurnChannels).toEqual({
+      [turn.diaId]: ["lexical"],
+    });
+    expect(capturedContext).toContain(`via lexical`);
+    expect(capturedContext).toContain(
+      "Evidence coverage: 1 entries; 0 corroborated by more than one retrieval channel; 1 single-channel.",
+    );
   });
 
   it("uses the plain dialog context when evidencePack is not set", async () => {

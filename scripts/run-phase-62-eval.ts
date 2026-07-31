@@ -244,7 +244,7 @@ export function buildLongMemEvalPrompt(input: {
     .join("\n\n");
 }
 
-function createLongMemEvalAnswerGenerator(
+export function createLongMemEvalAnswerGenerator(
   requestTimeoutMs = resolvePhase62LiveRequestTimeoutMs(),
 ): LongMemEvalAnswerGenerator {
   const model = resolveLiveModelConfig("GOODMEMORY_EVAL");

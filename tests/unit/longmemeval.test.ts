@@ -17,6 +17,8 @@ import {
   selectLongMemEvalUserSourceEvidence,
   validateLongMemEvalCases,
 } from "../../src/eval/longmemeval";
+import { createLanguageService } from "../../src/language";
+import { buildRecallIndexDocuments } from "../../src/recall/projections/projector";
 import type {
   LongMemEvalCase,
   LongMemEvalIO,
@@ -1865,12 +1867,12 @@ describe("LongMemEval adapter", () => {
     const labeled = buildLabelFreeLongMemEvalRememberPayload({
       date: "2026-01-02",
       session,
-      sessionId: "session-2",
+      sessionOrdinal: 2,
     });
     const labelsRemoved = buildLabelFreeLongMemEvalRememberPayload({
       date: "2026-01-02",
       session: session.map(({ hasAnswer: _hasAnswer, ...turn }) => turn),
-      sessionId: "session-2",
+      sessionOrdinal: 2,
     });
 
     expect(labeled).toEqual(labelsRemoved);
@@ -1883,6 +1885,26 @@ describe("LongMemEval adapter", () => {
           !annotation.metadataPatch?.tags?.includes("longmemeval"),
       ),
     ).toBe(true);
+    expect(labeled.messages.every(({ content }) =>
+      !content.includes("answer_secret")
+    )).toBe(true);
+    expect(labeled.messages[0]?.content).toContain("session 2");
+    const documents = buildRecallIndexDocuments({
+      collection: "facts",
+      document: {
+        attributes: labeled.annotations[0]?.metadataPatch?.attributes,
+        content: labeled.messages[0]?.content,
+        lifecycle: "active",
+        userId: "user-1",
+      },
+      indexedAt: "2026-01-03T00:00:00.000Z",
+      language: createLanguageService(),
+      sourceMemoryId: "fact-1",
+    });
+    expect(JSON.stringify({
+      annotations: labeled.annotations,
+      documents,
+    })).not.toContain("answer_secret");
   });
 
   it("preserves raw source turns alongside assisted extraction", () => {
@@ -1892,7 +1914,7 @@ describe("LongMemEval adapter", () => {
         { content: "Alice visited Paris.", role: "user" },
         { content: "The trip sounded useful.", role: "assistant" },
       ],
-      sessionId: "session-2",
+      sessionOrdinal: 2,
     });
 
     expect(payload.annotations).toEqual([
@@ -1900,7 +1922,6 @@ describe("LongMemEval adapter", () => {
         metadataPatch: {
           attributes: {
             sourceDate: "2026-01-02",
-            sourceSessionId: "session-2",
           },
         },
         remember: "always",
@@ -1929,9 +1950,9 @@ describe("LongMemEval adapter", () => {
     const [testCase] = validateLongMemEvalCases([
       {
         answer: "Paris",
-        answer_session_ids: ["session-1"],
+        answer_session_ids: ["answer_secret"],
         haystack_dates: ["2026-01-02"],
-        haystack_session_ids: ["session-1"],
+        haystack_session_ids: ["answer_secret"],
         haystack_sessions: [[
           { content: "Alice visited Paris.", has_answer: true, role: "user" },
           { content: "The trip sounded useful.", role: "assistant" },
@@ -1948,6 +1969,7 @@ describe("LongMemEval adapter", () => {
           retrieval: { preset: "recommended" },
           storage: { provider: "memory" },
         }),
+      evidenceLedgerFormats: ["compact_json"],
       runId: "run-label-free-recommended",
     });
 
@@ -1959,6 +1981,15 @@ describe("LongMemEval adapter", () => {
     expect(context.content).toContain("Alice visited Paris");
     expect(context.content).not.toContain("verified compact user evidence");
     expect(context.content).not.toContain("answer_session");
+    expect(context.content).not.toContain("answer_secret");
+    expect(context.evidenceLedgerContexts?.compact_json).toBeString();
+    expect(context.evidenceLedgerContexts?.compact_json).not.toBe(
+      context.content,
+    );
+    expect(context.evidenceLedgerContexts?.compact_json).not.toContain(
+      "answer_secret",
+    );
+    expect(context.recallSnapshotSha256).toMatch(/^[0-9a-f]{64}$/u);
   });
 
   it("supplements label-free recommended context with monetary evidence across sessions", async () => {
@@ -2454,6 +2485,49 @@ describe("LongMemEval adapter", () => {
       report.profiles["goodmemory-rules-only"]?.summary.evidenceSessionRecall,
     ).toBe(1);
     expect(writes.has("/tmp/out/run-longmemeval/report.json")).toBe(true);
+  });
+
+  it("does not expose raw session IDs to the full-context reader", async () => {
+    let transcript = "";
+    await runLongMemEvalSuite(
+      {
+        benchmarkRoot: "/tmp/longmemeval",
+        generatedBy: "tests",
+        mode: "full",
+        outputDir: "/tmp/out",
+        profiles: ["baseline-full-context"],
+        runId: "run-longmemeval-opaque-session-ids",
+      },
+      {
+        answerGenerator: async (input) => {
+          transcript = input.transcript;
+          return "Paris";
+        },
+        memoryContextBuilder: async () => ({
+          content: "",
+          retrievedSessionIds: [],
+        }),
+        mkdir: async () => {},
+        readFile: async () =>
+          JSON.stringify([{
+            answer: "Paris",
+            answer_session_ids: ["answer_secret"],
+            haystack_dates: ["2026-01-02"],
+            haystack_session_ids: ["answer_secret"],
+            haystack_sessions: [[
+              { content: "Alice visited Paris.", role: "user" },
+            ]],
+            question: "Where did Alice visit?",
+            question_date: "2026-01-03",
+            question_id: "q-opaque-session-id",
+            question_type: "single-session-user",
+          }]),
+        writeFile: async () => {},
+      },
+    );
+
+    expect(transcript).toContain("Session 1 (2026-01-02)");
+    expect(transcript).not.toContain("answer_secret");
   });
 
   it("selects full data by question type before applying offset and limit", async () => {

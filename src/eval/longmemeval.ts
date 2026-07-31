@@ -3,6 +3,7 @@ import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import type { GoodMemory, RecallResult } from "../api/contracts";
+import type { EvidenceLedgerFormat } from "../answer/evidenceLedgerContext";
 import type { MemoryScope } from "../domain/scope";
 import type { MessageAnnotation } from "../remember/candidates";
 import { NUMBER_TOKEN_PATTERN, NUMBER_WORD_VALUES } from "./longmemeval-data";
@@ -253,6 +254,8 @@ export interface LongMemEvalAnswerGeneratorInput {
 
 export interface LongMemEvalMemoryContext {
   content: string;
+  evidenceLedgerContexts?: Partial<Record<EvidenceLedgerFormat, string>>;
+  recallSnapshotSha256?: string;
   retrievedSessionIds: string[];
 }
 
@@ -295,6 +298,7 @@ export type LongMemEvalSupplementalEvidenceAugmenter = (input: {
 
 export interface LongMemEvalGoodMemoryContextBuilderInput {
   createMemory: (profile: LongMemEvalRecallDiagnosticProfile) => GoodMemory;
+  evidenceLedgerFormats?: readonly EvidenceLedgerFormat[];
   extractionStrategy?: LongMemEvalExtractionStrategy;
   ingestMode?: LongMemEvalIngestMode;
   maxTokens?: number;
@@ -635,7 +639,7 @@ export function scoreLongMemEvalAnswer(
   };
 }
 
-async function scoreLongMemEvalAnswerWithOptionalJudge(input: {
+export async function scoreLongMemEvalAnswerWithOptionalJudge(input: {
   answerJudge?: LongMemEvalAnswerJudge;
   hypothesis: string;
   testCase: LongMemEvalCase;
@@ -700,12 +704,11 @@ function buildHypothesis(input: {
 function formatLongMemEvalTranscript(testCase: LongMemEvalCase): string {
   return testCase.haystackSessions
     .map((session, index) => {
-      const sessionId = testCase.haystackSessionIds[index] ?? `session-${index + 1}`;
       const date = testCase.haystackDates[index] ?? "unknown-date";
       const turns = session
         .map((turn) => `${turn.role}: ${turn.content}`)
         .join("\n");
-      return `Session ${sessionId} (${date})\n${turns}`;
+      return `Session ${index + 1} (${date})\n${turns}`;
     })
     .join("\n\n");
 }
@@ -725,11 +728,11 @@ function buildLongMemEvalScope(
 
 function formatRememberTurn(input: {
   date: string;
-  sessionId: string;
+  sessionOrdinal: number;
   turn: LongMemEvalTurn;
 }): { content: string; role: string } {
   return {
-    content: `[LongMemEval session ${input.sessionId} on ${input.date}] ${input.turn.content}`,
+    content: `[LongMemEval session ${input.sessionOrdinal} on ${input.date}] ${input.turn.content}`,
     role: input.turn.role,
   };
 }
@@ -3185,6 +3188,7 @@ function buildLongMemEvalRememberPayload(input: {
   isAnswerSession?: boolean;
   session: readonly LongMemEvalTurn[];
   sessionId: string;
+  sessionOrdinal: number;
 }): {
   annotations?: MessageAnnotation[];
   messages: Array<{ content: string; role: string }>;
@@ -3199,7 +3203,7 @@ function buildLongMemEvalRememberPayload(input: {
     messages.push(
       formatRememberTurn({
         date: input.date,
-        sessionId: input.sessionId,
+        sessionOrdinal: input.sessionOrdinal,
         turn,
       }),
     );
@@ -3369,7 +3373,7 @@ function buildLongMemEvalRememberPayload(input: {
 export function buildLabelFreeLongMemEvalRememberPayload(input: {
   date: string;
   session: readonly LongMemEvalTurn[];
-  sessionId: string;
+  sessionOrdinal: number;
 }): {
   annotations: MessageAnnotation[];
   messages: Array<{ content: string; role: string }>;
@@ -3377,7 +3381,7 @@ export function buildLabelFreeLongMemEvalRememberPayload(input: {
   const messages = input.session.map((turn) =>
     formatRememberTurn({
       date: input.date,
-      sessionId: input.sessionId,
+      sessionOrdinal: input.sessionOrdinal,
       turn,
     }),
   );
@@ -3389,7 +3393,6 @@ export function buildLabelFreeLongMemEvalRememberPayload(input: {
       metadataPatch: {
         attributes: {
           sourceDate: input.date,
-          sourceSessionId: input.sessionId,
         },
       },
       reason: "Preserve the raw source turn for retrieval evaluation.",
@@ -4734,6 +4737,13 @@ function mergeSessionIds(...groups: readonly string[][]): string[] {
 export function createLongMemEvalGoodMemoryContextBuilder(
   input: LongMemEvalGoodMemoryContextBuilderInput,
 ): LongMemEvalMemoryContextBuilder {
+  const evidenceLedgerFormats = input.evidenceLedgerFormats ?? [];
+  if (
+    new Set(evidenceLedgerFormats).size !== evidenceLedgerFormats.length
+  ) {
+    throw new Error("LongMemEval evidence-ledger formats must be unique.");
+  }
+
   return async ({ profile, testCase }) => {
     const ingestMode = resolveLongMemEvalIngestMode(profile, input.ingestMode);
     const memory = input.createMemory(profile);
@@ -4754,13 +4764,14 @@ export function createLongMemEvalGoodMemoryContextBuilder(
         ? buildLabelFreeLongMemEvalRememberPayload({
             date,
             session,
-            sessionId,
+            sessionOrdinal: index + 1,
           })
         : buildLongMemEvalRememberPayload({
             date,
             isAnswerSession: testCase.answerSessionIds.includes(sessionId),
             session,
             sessionId,
+            sessionOrdinal: index + 1,
           });
       evidenceBySessionId.set(
         sessionId,
@@ -4786,6 +4797,7 @@ export function createLongMemEvalGoodMemoryContextBuilder(
     }
 
     const recall = await memory.recall({
+      ...(evidenceLedgerFormats.length > 0 ? { includeEvidence: true } : {}),
       query: testCase.question,
       scope: baseScope,
       strategy: recallStrategy,
@@ -4849,18 +4861,44 @@ export function createLongMemEvalGoodMemoryContextBuilder(
             selectedSessionIds: retrievedSessionIds,
           })
         : [];
-
-    return {
-      content: appendLongMemEvalSynthesisHints({
+    const decorateContext = (content: string): string =>
+      appendLongMemEvalSynthesisHints({
         content: appendLongMemEvalUserSourceEvidence({
           content: appendLongMemEvalSupplementalEvidence({
-            content: context.content,
+            content,
             evidenceLines: supplementalEvidenceLines,
           }),
           evidenceLines: userSourceEvidenceLines,
         }),
         synthesisHints,
-      }),
+      });
+    const evidenceLedgerContexts = evidenceLedgerFormats.length === 0
+      ? undefined
+      : Object.fromEntries(
+          await Promise.all(evidenceLedgerFormats.map(async (format) => [
+            format,
+            decorateContext((await memory.buildContext({
+              evidenceLedgerFormat: format,
+              maxTokens:
+                input.maxTokens ?? LONGMEMEVAL_DEFAULT_CONTEXT_MAX_TOKENS,
+              output: "markdown",
+              recall,
+            })).content),
+          ])),
+        ) as Partial<Record<EvidenceLedgerFormat, string>>;
+
+    return {
+      content: decorateContext(context.content),
+      ...(evidenceLedgerContexts
+        ? {
+            evidenceLedgerContexts,
+            recallSnapshotSha256: createHash("sha256").update(JSON.stringify({
+              candidateTraces: recall.metadata.candidateTraces,
+              evidenceLedger: recall.evidenceLedger,
+              packet: recall.packet,
+            })).digest("hex"),
+          }
+        : {}),
       retrievedSessionIds,
     };
   };

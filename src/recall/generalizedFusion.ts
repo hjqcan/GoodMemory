@@ -554,8 +554,8 @@ function isClaimCurrent(
   if (!Number.isFinite(reference)) {
     return !claim.validUntil;
   }
-  const validFrom = claim.validFrom ? Date.parse(claim.validFrom) : Number.NaN;
-  if (Number.isFinite(validFrom) && validFrom > reference) {
+  const startsAt = Date.parse(claim.validFrom ?? claim.observedAt);
+  if (Number.isFinite(startsAt) && startsAt > reference) {
     return false;
   }
   const validUntil = claim.validUntil

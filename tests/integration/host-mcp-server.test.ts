@@ -1,5 +1,5 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
 import { chmod, mkdir, readFile, stat, writeFile } from "node:fs/promises";
@@ -17,7 +17,6 @@ import { createHostAdapter } from "../../src/host";
 import { createMemorySource } from "../../src/domain/provenance";
 import {
   readInstalledHostProgressiveRecordCache,
-  writeInstalledHostProgressiveRecordCache,
 } from "../../src/install/hostProgressiveRecall";
 import type { ProgressiveRecordDetail } from "../../src/progressive/recall";
 import { buildProgressiveScopeDigest } from "../../src/progressive/recall";
@@ -223,9 +222,14 @@ describe("goodmemory mcp server", () => {
         },
         {
           capabilities: {},
+          versionNegotiation: {
+            mode: "legacy",
+          },
         },
       );
       await client.connect(transport);
+      expect(client.getProtocolEra()).toBe("legacy");
+      expect(client.getNegotiatedProtocolVersion()).toBe("2025-11-25");
       const packageJson = JSON.parse(
         await readFile(join(import.meta.dir, "../../package.json"), "utf8"),
       ) as { version?: string };
@@ -362,6 +366,14 @@ describe("goodmemory mcp server", () => {
       if (!factRecordRef) {
         throw new Error("Expected progressive search index to include a fact recordRef.");
       }
+      await expect(
+        readInstalledHostProgressiveRecordCache({
+          homeRoot: home.root,
+          host: "codex",
+          recordRefs: [factRecordRef],
+          scopeDigest: searchIndex.scopeDigest,
+        }),
+      ).resolves.toHaveLength(1);
 
       const progressiveRecordsResult = await client.callTool({
         arguments: {
@@ -444,12 +456,6 @@ describe("goodmemory mcp server", () => {
       expect(statsResult.structuredContent).toHaveProperty("counts.references", 1);
 
       const cachedDetail = progressiveRecords;
-      await writeInstalledHostProgressiveRecordCache({
-        homeRoot: home.root,
-        host: "codex",
-        records: cachedDetail.records,
-        scopeDigest: cachedDetail.scopeDigest,
-      });
       await expect(
         readInstalledHostProgressiveRecordCache({
           homeRoot: home.root,
