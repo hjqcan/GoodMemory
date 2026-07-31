@@ -55,9 +55,6 @@ import type {
   C6SourceV3SimpleSplit,
 } from "../../scripts/codex-coding-effect/c6-source-v3-simple-census-core";
 import {
-  loadC6SourceV3SimpleCensusPreflight,
-} from "../../scripts/codex-coding-effect/c6-source-v3-simple-census-preflight";
-import {
   buildC6SourceV3SimpleDurableGraphqlRequest,
 } from "../../scripts/codex-coding-effect/c6-source-v3-simple-census-transport";
 import type {
@@ -66,6 +63,9 @@ import type {
 import type {
   C6SourceV4BoundedV3CommittedRequest,
 } from "../../scripts/codex-coding-effect/c6-source-v4-bounded-v3-runtime";
+import {
+  loadExactC6SourceV3SimpleFrameFixture,
+} from "./codex-coding-effect.c6-source-v3-simple-frame-fixture";
 
 const TEST_TIMEOUT_MILLISECONDS = 60_000;
 
@@ -84,11 +84,11 @@ let selectionReceipt:
   ParsedC6SourceV4BoundedSelectionReceipt;
 
 beforeAll(async () => {
-  const preflight =
-    await loadC6SourceV3SimpleCensusPreflight({
-      repositoryRoot: process.cwd(),
-    });
-  frame = preflight.frame;
+  frame =
+    await loadExactC6SourceV3SimpleFrameFixture();
+  expect(hashJson(frame)).toBe(
+    C6_SOURCE_V4_BOUNDED_V3_FRAME_SHA256,
+  );
   normalizedRepositoryRows =
     buildRepositoryRows(191_612);
   frameRepositoryRows =

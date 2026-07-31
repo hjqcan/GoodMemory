@@ -103,6 +103,13 @@ describe("C6 source-v4 bounded v3 durable observation scan", () => {
 
       expect(result.requests).toHaveLength(2);
       expect(
+        result.projectedRequests,
+      ).toHaveLength(1);
+      expect(
+        result
+          .finalLogicalRequestCompletionSha256,
+      ).toBe(first.sha256);
+      expect(
         result.committedRequestClosureSha256,
       ).toMatch(/^[a-f0-9]{64}$/u);
       expect(result.structureSha256).toMatch(
@@ -128,6 +135,59 @@ describe("C6 source-v4 bounded v3 durable observation scan", () => {
             "C6SourceV3SimplePullRequestPage",
         },
       ]);
+      await expect(
+        scanC6SourceV4BoundedV3CommittedRequests({
+          evaluationId: EVALUATION_ID,
+          executionContractSha256:
+            EXECUTION_CONTRACT_SHA256,
+          frozenInputClosureSha256:
+            FROZEN_INPUT_CLOSURE_SHA256,
+          passRoot,
+          requireCompletePass: true,
+          runtimeAuthorizationSha256:
+            RUNTIME_AUTHORIZATION_SHA256,
+        }),
+      ).rejects.toThrow(
+        "complete durable ledger",
+      );
+    });
+  });
+
+  it("strict success mode rejects an unknown pass-root entry", async () => {
+    await withPassRoot(async (passRoot) => {
+      await completeSuccessfulRequest({
+        ordinal: 1,
+        passRoot,
+        priorLogicalRequestCompletionSha256:
+          ZERO_SHA256,
+        request:
+          buildC6SourceV3SimpleDurableGraphqlRequest({
+            operation: "repositoryCount",
+            variables: {
+              query: "language:TypeScript",
+            },
+          }),
+      });
+      await writeFile(
+        join(passRoot, "unexpected.json"),
+        "{}\n",
+      );
+
+      await expect(
+        scanC6SourceV4BoundedV3CommittedRequests({
+          evaluationId: EVALUATION_ID,
+          executionContractSha256:
+            EXECUTION_CONTRACT_SHA256,
+          frozenInputClosureSha256:
+            FROZEN_INPUT_CLOSURE_SHA256,
+          passRoot,
+          requireCompletePass: true,
+          runtimeAuthorizationSha256:
+            RUNTIME_AUTHORIZATION_SHA256,
+        }),
+      ).rejects.toThrow(
+        "exact pass-root entry set",
+      );
     });
   });
 

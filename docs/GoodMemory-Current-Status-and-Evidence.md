@@ -1196,9 +1196,67 @@ cutover, and rollback contracts.
   child output streams, preserves partial operation counts in a failed result,
   and imposes a bounded post-kill reap. It passes 1/1
   with 18 assertions across three seeds, 100,000 work items and 700,000
-  filesystem promise operations per seed. This proves
-  `selectionMaterialized: true` only. Independent review, freeze, and live
-  capture authority remain false. No frozen
+  filesystem promise operations per seed.
+  The source-side review and activation protocol is now implemented, but it
+  has not been exercised as an actual review or capture. It requires an exact
+  one-parent freeze `F`, a direct child `R` that adds only five canonical
+  review artifacts, a direct child `A` that adds only the capture bridge, and a
+  direct child `P` that adds only the activation receipt. The receipt itself
+  retains `liveCaptureAuthorized: false`; only exact `P` publication
+  verification, a fresh pinned Bun liveness run, clean-worktree and frozen-path
+  rechecks, and an unused host-local target derive one opaque in-process
+  capture capability. Git observations use the exact `/usr/bin/git` binary
+  with SHA-256
+  `7588ceab299393618d6f8861502ac0588d1594025f301d9a61a898215b5571d3`,
+  reject replacement/graft/alternate object views, and repeat lineage,
+  worktree, target, and closure checks immediately before the create-only
+  claim.
+  The fixed bridge is a shell launcher that replaces the environment through
+  `/usr/bin/env -i` and starts the exact pinned Bun with `/dev/null` config,
+  env-file loading, auto-install, and native addons disabled. The direct worker
+  accepts only that exact argument vector, its own exact entrypoint, and an
+  empty or token-only environment. Live execution and its CLI are
+  module-private, and every GraphQL request explicitly uses the pinned
+  runtime's non-writable, non-configurable native `Bun.fetch`; the capture path
+  never resolves mutable `globalThis.fetch`.
+  A claimed capture cannot be retried or topped up. Pre-completion errors write
+  a strict failure terminal and asset lock; if only evidence finalization
+  fails after logical requests finish, `--finalize-only` can seal the existing
+  success or failure terminal without reading a token or issuing another live
+  request. Historical verification requires exactly one strict terminal,
+  strict-parses and binds `capture-claim.json`, binds the terminal receipt SHA
+  and failure publication commit, and for success also binds the
+  normalized-capture bytes, selected repository/identity closure,
+  per-repository page counts, logical request count, and recomputed projection
+  hash. A success terminal is insufficient by itself: the verifier scans the
+  exact `pass-A` durable request/attempt/completion chain, rejects an
+  incomplete trailing request or any pass-root entry outside the exact
+  directory/completion/result triplet for every contiguous ordinal, binds the
+  final completion tip, replays every projected result through the frozen
+  capture plan, and requires deep equality with the normalized artifact.
+  Default unit tests now construct the exact v3 frame from tracked bytes
+  without Git history; the real historical commit authorization remains an
+  explicit Phase-73 gate. The current v4 plus shallow-preflight unit slice
+  passes 36/36 with 152 assertions.
+  The F/R/A/P mutation gate creates its accepted response in-process, so it
+  proves schema, topology, snapshot/liveness, one-shot claim, failure sealing,
+  finalize-only recovery, and mutation rejection only. It is not independent
+  review evidence. The current pinned-Bun replay passes 1/1 with 26 assertions
+  in 351.10 seconds. The review bundle binds 72 source/gate/test paths, eight
+  required checks, and the complete runtime value-import closure from every
+  reviewed TypeScript root. Only the source-freeze candidate is being
+  materialized; no
+  reviewed `R`, activation `A`, publication `P`, fresh independent reviewer
+  response, or live GitHub capture exists yet. The one-shot scope is
+  the canonical published `P` and its bound host-local target; it is not a
+  cryptographic global lock against an author creating a different publication
+  fork, so later scientific artifacts must pin the one canonical `P`.
+  The clean worker closes the concrete in-process transport-substitution path,
+  but GitHub API responses are not third-party-signed attestations; provenance
+  still depends on the reviewed canonical worker, pinned host/runtime, raw
+  ledger, and reproducible replay.
+  This proves `selectionMaterialized: true` only. Independent review, freeze,
+  and live capture authority remain false. No frozen
   391-episode dataset, authenticated summary corpus, 10,557-call execution,
   frozen statistical report, C7 gate, or Codex run exists.
   After synchronizing the frozen controlled-mutation asset reader and

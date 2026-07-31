@@ -19,6 +19,9 @@ import {
   computeC6SourceV3SimpleLogicalRequestIdentitySha256,
   readC6SourceV3SimpleLogicalRequestEvidence,
 } from "./c6-source-v3-simple-census-ledger";
+import type {
+  C6SourceV3SimpleProjectedLogicalRequest,
+} from "./c6-source-v3-simple-census-replay";
 import {
   verifyC6SourceV3SimpleDurableGraphqlRequest,
 } from "./c6-source-v3-simple-census-transport";
@@ -127,11 +130,15 @@ export async function scanC6SourceV4BoundedV3CommittedRequests(
     executionContractSha256: string;
     frozenInputClosureSha256: string;
     passRoot: string;
+    requireCompletePass?: boolean;
     runtimeAuthorizationSha256: string;
   },
 ): Promise<{
   committedRequestClosureSha256: string;
   entries: C6SourceV4BoundedV3CommittedRequest[];
+  finalLogicalRequestCompletionSha256: string;
+  projectedRequests:
+    C6SourceV3SimpleProjectedLogicalRequest[];
   requests: C6SourceV3SimpleDurableGraphqlRequest[];
   structureSha256: string;
 }> {
@@ -153,6 +160,27 @@ export async function scanC6SourceV4BoundedV3CommittedRequests(
   const passEntryNames = new Set(
     passEntries.map((entry) => entry.name),
   );
+  if (input.requireCompletePass === true) {
+    for (const entry of passEntries) {
+      const validDirectory =
+        entry.isDirectory() &&
+        /^logical-request-\d{8}$/u.test(
+          entry.name,
+        );
+      const validFile =
+        entry.isFile() &&
+        /^logical-request-(complete|result)-\d{8}\.json$/u
+          .test(entry.name);
+      if (
+        entry.isSymbolicLink() ||
+        (!validDirectory && !validFile)
+      ) {
+        throw new Error(
+          "C6 source-v4 bounded success durable ledger exact pass-root entry set mismatch",
+        );
+      }
+    }
+  }
   const logicalDirectories =
     passEntries.filter((entry) => {
     if (entry.isSymbolicLink()) {
@@ -178,6 +206,9 @@ export async function scanC6SourceV4BoundedV3CommittedRequests(
   );
   const entries:
     C6SourceV4BoundedV3CommittedRequest[] = [];
+  const projectedRequests:
+    C6SourceV3SimpleProjectedLogicalRequest[] =
+      [];
   const revalidation: Array<{
     bytes: number;
     path: string;
@@ -522,9 +553,14 @@ export async function scanC6SourceV4BoundedV3CommittedRequests(
         String(ordinal).padStart(8, "0")
       }.json`;
     if (!passEntryNames.has(completionName)) {
-      if (ordinal < logicalDirectories.length) {
+      if (
+        input.requireCompletePass === true ||
+        ordinal < logicalDirectories.length
+      ) {
         throw new Error(
-          "C6 source-v4 bounded prior logical request completion is missing",
+          input.requireCompletePass === true
+            ? "C6 source-v4 bounded complete durable ledger has an unfinished logical request"
+            : "C6 source-v4 bounded prior logical request completion is missing",
         );
       }
       continue;
@@ -606,16 +642,23 @@ export async function scanC6SourceV4BoundedV3CommittedRequests(
       );
     }
     try {
-      await readC6SourceV3SimpleLogicalRequestEvidence(
-        dirname(passRoot),
-        {
-          bytes: completionBytes.bytes.length,
-          path: relative(
-            dirname(passRoot),
-            completionPath,
-          ).split("\\").join("/"),
-          sha256: sha256(completionBytes.bytes),
-        },
+      const evidence =
+        await readC6SourceV3SimpleLogicalRequestEvidence(
+          dirname(passRoot),
+          {
+            bytes:
+              completionBytes.bytes.length,
+            path: relative(
+              dirname(passRoot),
+              completionPath,
+            ).split("\\").join("/"),
+            sha256: sha256(
+              completionBytes.bytes,
+            ),
+          },
+        );
+      projectedRequests.push(
+        evidence.projectedRequest,
       );
     } catch (cause) {
       throw new Error(
@@ -631,6 +674,40 @@ export async function scanC6SourceV4BoundedV3CommittedRequests(
         completionBytes.bytes,
       ),
     );
+  }
+  if (input.requireCompletePass === true) {
+    const expectedPassEntries =
+      new Set<string>();
+    for (
+      let ordinal = 1;
+      ordinal <= logicalDirectories.length;
+      ordinal += 1
+    ) {
+      const suffix =
+        String(ordinal).padStart(8, "0");
+      expectedPassEntries.add(
+        `logical-request-${suffix}`,
+      );
+      expectedPassEntries.add(
+        `logical-request-complete-${suffix}.json`,
+      );
+      expectedPassEntries.add(
+        `logical-request-result-${suffix}.json`,
+      );
+    }
+    if (
+      expectedPassEntries.size !==
+        passEntryNames.size ||
+      [...expectedPassEntries].some(
+        (name) => !passEntryNames.has(name),
+      ) ||
+      projectedRequests.length !==
+        logicalDirectories.length
+    ) {
+      throw new Error(
+        "C6 source-v4 bounded success durable ledger exact pass-root entry set mismatch",
+      );
+    }
   }
   for (const expected of revalidation) {
     const bytes = await readC6StableRegularFile(
@@ -662,6 +739,9 @@ export async function scanC6SourceV4BoundedV3CommittedRequests(
     committedRequestClosureSha256:
       hashCommittedRequestClosure(entries),
     entries,
+    finalLogicalRequestCompletionSha256:
+      priorLogicalRequestCompletionSha256,
+    projectedRequests,
     requests: entries.map((entry) => entry.request),
     structureSha256: terminalStructureSha256,
   };

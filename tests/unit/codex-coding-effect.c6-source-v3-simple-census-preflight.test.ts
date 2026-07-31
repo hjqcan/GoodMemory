@@ -9,45 +9,42 @@ import { join } from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import {
-  parseC6SourceV3SimpleFrameDefinition,
-} from "../../scripts/codex-coding-effect/c6-source-v3-simple-census-core";
+  buildC6SourceV3SimpleCensusExecutionContract,
+} from "../../scripts/codex-coding-effect/c6-source-v3-simple-census-contract";
 import {
   loadC6SourceV3SimpleCensusPreflight,
 } from "../../scripts/codex-coding-effect/c6-source-v3-simple-census-preflight";
+import {
+  loadExactC6SourceV3SimpleFrameFixture,
+} from "./codex-coding-effect.c6-source-v3-simple-frame-fixture";
 
 const PREFLIGHT_TEST_TIMEOUT_MILLISECONDS = 30_000;
 
 describe("C6 source-v3-simple census preflight", () => {
-  it("constructs the only permitted frame from exact frozen assets", async () => {
-    const preflight =
-      await loadC6SourceV3SimpleCensusPreflight({
-        repositoryRoot: process.cwd(),
-      });
+  it("constructs the exact frozen frame without Git-history authority", async () => {
+    const contract =
+      buildC6SourceV3SimpleCensusExecutionContract();
+    const frame =
+      await loadExactC6SourceV3SimpleFrameFixture();
 
-    expect(preflight.contract.boundary).toMatchObject({
+    expect(contract.boundary).toMatchObject({
       acceptedEpisodeCount: 0,
       codexRunReady: false,
       liveCensusRequestCount: 0,
     });
-    expect(preflight.frame.rootShards).toHaveLength(1_536);
+    expect(frame.rootShards).toHaveLength(1_536);
     expect(
-      preflight.frame.frozenPreWave3AnchorExclusions,
+      frame.frozenPreWave3AnchorExclusions,
     ).toHaveLength(1_447);
     expect(
-      preflight.frame.frozenPreWave3RepositoryExclusions,
+      frame.frozenPreWave3RepositoryExclusions,
     ).toHaveLength(178);
     expect(
-      preflight.frame.priorRepositoryAliases,
+      frame.priorRepositoryAliases,
     ).toHaveLength(178);
     expect(
-      preflight.frame.priorRepositoryNodeIds,
+      frame.priorRepositoryNodeIds,
     ).toHaveLength(178);
-    expect(preflight.frozenInputs).toHaveLength(7);
-    expect(
-      parseC6SourceV3SimpleFrameDefinition(
-        preflight.frame,
-      ),
-    ).toEqual(preflight.frame);
   }, PREFLIGHT_TEST_TIMEOUT_MILLISECONDS);
 
   it("rejects a repository root whose frozen path traverses a symlink", async () => {

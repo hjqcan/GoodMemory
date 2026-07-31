@@ -1523,6 +1523,50 @@ reap. It passes 1/1 with 18 assertions over three seeds, 100000 work items and
 `candidateManifestFrozen: false`, and `codexRunReady: false`. A distinct
 request/input/dispatch/response review receipt and freeze must authorize the
 single v4 live capture. Historical v3 activation authority cannot be reused.
+[DONE/PROTOCOL ONLY] The source-v4-bounded review/activation implementation
+requires exact direct-child `F -> R -> A -> P`: a one-parent source freeze,
+five review artifacts only, the fixed bridge only, then the activation receipt
+only. The receipt keeps live authority false. Exact publication plus fresh
+pinned Bun liveness, pinned `/usr/bin/git` identity/raw-object checks,
+clean/frozen closure, and an unused host-local target derive one opaque
+in-process capture capability. Claim repeats repository/target checks and is
+create-only. The fixed shell bridge replaces the environment with
+`/usr/bin/env -i` and starts only the exact pinned Bun with config/env-file,
+auto-install, and native-addons disabled. The worker accepts only the exact
+argument vector, exact entrypoint, and empty or token-only environment. Its
+live runner/CLI are private and every request uses immutable native
+`Bun.fetch`, never mutable `globalThis.fetch`. Failure terminals are strict and
+lineage-bound; interrupted
+success/failure asset finalization can run only through `--finalize-only`,
+which reads no token and issues no live request. Historical verification binds
+the strict capture claim and exact receipt/publication. Success additionally
+requires a complete `pass-A` durable request/attempt/completion scan, rejects
+an incomplete trailing request and every pass-root entry outside the exact
+directory/completion/result triplet for each contiguous ordinal, binds the
+exact final tip, replays the frozen plan, and requires deep equality with
+normalized bytes; a self-consistent 16384-row projection without a ledger is
+rejected.
+[VERIFIED/PROTOCOL ONLY] Default v4 receipt and v3 frame units reconstruct the
+exact frozen frame without Git history; the real historical v3 commit
+authorization is now an explicit Phase-73 gate and passes 1/1 with 8
+assertions. The current v4 plus shallow-preflight unit slice passes 36/36 with
+152 assertions and typecheck. The F/R/A/P mutation gate uses a synthetic
+accepted response and
+therefore proves structure, liveness/snapshot wiring, one-shot claim, failure
+sealing/finalize-only recovery, and mutation rejection only—not independent
+review or live capture.
+[VERIFIED/PROTOCOL ONLY] The current pinned-Bun mutation replay passes 1/1
+with 26 assertions in 351.10 seconds. The review bundle binds 72
+source/gate/test paths, eight required checks, and the complete runtime
+value-import closure from every reviewed TypeScript root.
+[BOUNDARY] Only the source-freeze candidate is being materialized. No reviewed
+`R`, activation `A`, publication `P`, fresh independent reviewer response,
+GitHub capture, or offline double replay exists. The one-shot
+identity is the canonical published `P` plus its host-local target, not a
+cryptographic global lock against another author-created publication fork.
+Every later capture/dataset/report must pin the single canonical `P`.
+The clean worker closes mutable in-process transport substitution; unsigned
+GitHub API responses still are not cryptographic third-party attestations.
 [BOUNDARY] Accepted and qualified episode counts remain zero;
 `candidateSelectionPermitted: false`, `candidateManifestFrozen: false`, and
 `codexRunReady: false`. No completed v4 PR capture, frozen 391-episode dataset,

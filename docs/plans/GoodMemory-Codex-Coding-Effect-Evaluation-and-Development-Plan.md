@@ -4037,6 +4037,100 @@ Its manifest deliberately keeps `independentReviewAccepted: false`,
 freeze must authorize the one live capture. The historical v3 activation
 authority remains unusable.
 
+##### Source-v4-bounded review and one-shot activation protocol checkpoint
+
+The next source-side protocol is implemented but is not yet an executed review
+or a live capture. It uses an exact four-commit topology:
+
+1. `F` is a one-parent code/source freeze and contains none of the review,
+   bridge, or activation-receipt paths;
+2. direct child `R` adds exactly the canonical input, request, dispatch,
+   response, and provenance review artifacts;
+3. direct child `A` adds only the fixed capture bridge;
+4. direct child `P` adds only the canonical activation receipt.
+
+The receipt at `P` is deliberately non-authorizing:
+`liveCaptureAuthorized: false`, `candidateManifestFrozen: false`, and
+`codexRunReady: false`. The live capability exists only as a private branded
+and deeply frozen in-process value derived after exact `P` publication,
+selection-snapshot, review-bundle, clean-worktree, frozen-path, pinned Git, and
+fresh Bun-liveness verification. The claim path repeats the Git lineage,
+worktree, frozen closure, and exact target checks before atomically creating
+the host-local capture directory and create-only claim. `/usr/bin/git` is
+exact-bound to version `2.50.1 (Apple Git-155)` and SHA-256
+`7588ceab299393618d6f8861502ac0588d1594025f301d9a61a898215b5571d3`;
+replacement refs, grafts, alternates, and caller `GIT_*` state are rejected.
+The fixed activation bridge is a shell launcher, not an importable live
+runner. It replaces the environment through `/usr/bin/env -i` and starts the
+exact pinned Bun with `/dev/null` config, automatic env-file loading,
+auto-install, and native addons disabled. The direct worker accepts only that
+exact argument vector, its own exact entrypoint, and an empty or
+`GOODMEMORY_C6_GITHUB_TOKEN`-only environment. The live runner and CLI remain
+module-private, and every request explicitly uses Bun 1.3.12's non-writable,
+non-configurable native `Bun.fetch`; mutable `globalThis.fetch` is never
+resolved by the capture path.
+
+The protocol permits one live request sequence and no redraw, retry, or top-up.
+An error before logical completion writes a strict failure terminal and asset
+lock. If asset finalization alone is interrupted after a success or failure
+terminal exists, `--finalize-only` can complete the asset lock without reading
+`GOODMEMORY_C6_GITHUB_TOKEN` or issuing any network request. The read-only
+historical verifier accepts only one exact success/failure terminal, binds the
+strict canonical capture claim, receipt SHA, and failure publication commit.
+On success it also verifies the normalized-capture reference, canonical
+selected-repository and identity closure, repository page-count sum, logical
+request count, and projection hash. It then scans the exact `pass-A` durable
+request/attempt/completion chain, rejects an incomplete trailing request or
+any pass-root entry outside the exact directory/completion/result triplet for
+each contiguous ordinal, binds the terminal final-completion tip, replays every
+verified projected result through the frozen capture plan, and requires deep
+equality with the normalized artifact. A terminal containing an otherwise
+self-consistent 16,384-row projection but no durable ledger is rejected. A
+sealed failure remains a failure and can never become a success.
+
+The explicit mutation gate synthesizes its own accepted review response. Its
+scope is therefore limited to protocol structure: `F -> R -> A -> P`,
+snapshot and liveness checks, exact publication, opaque one-shot consumption,
+failure sealing/finalize-only recovery, and fail-closed mutations. It does not
+prove reviewer independence, GitHub provenance, or a completed source
+capture. The review schema honestly records
+`cryptographicReviewIndependence: false`; an actual run still requires a fresh
+`fork-turns-none` reviewer to write only `response.json`, followed by the
+author-side provenance recorder and exact commits.
+The current pinned-Bun mutation replay passes 1/1 with 26 assertions in
+351.10 seconds. The independent review bundle binds 72 source/gate/test paths
+and eight required checks; its closure test starts from every reviewed
+TypeScript root and follows static runtime imports, including literal dynamic
+imports.
+
+The published receipt binds one canonical `P` and an absolute host-local
+capture target. Replaying that exact receipt in another checkout fails because
+the target/closure changes, and reachable sibling publications are rejected.
+This is not a cryptographic global mutex: an author can create a different `P`
+on another fork. Consequently, every later capture, dataset, report, and C7
+artifact must identify the single canonical publication commit; the protocol
+must not claim a globally unforgeable one-shot ledger.
+
+The clean worker and native transport close the concrete in-process
+`globalThis.fetch` substitution path. They still do not turn unsigned GitHub
+API responses into cryptographic third-party attestations: source authenticity
+continues to depend on the independently reviewed canonical worker, pinned
+host/runtime, raw request/response ledger, and later reproducible replay.
+
+Default v4 receipt and v3 frame unit tests no longer depend on historical Git
+objects: they reconstruct the exact frame from three tracked frozen inputs and
+still match frame SHA-256
+`2fed192a34344b1cd83cf2e79cd70b25a7de827d347b4e17a88e1cd5e721fce2`.
+The actual historical commit authorization has moved to the explicit Phase-73
+preflight gate. This preserves shallow/default unit portability without
+weakening the runtime-bound proof.
+
+Only the source-freeze candidate is being materialized. No reviewed `R`,
+activation `A`, publication `P`, independently authored response, live
+source-v4 capture, offline double replay, or capture asset lock exists yet.
+Those are the next readiness-ladder actions; selection materialization alone
+still leaves accepted episodes at zero and all C6 run/claim flags false.
+
 None of those rows is a three-stage memory episode by itself. Before an
 upstream row can enter C6, intake must pin dataset revision/path/file hash/row
 ID, original issue or PR response, repository commit/tree, evaluator-only
