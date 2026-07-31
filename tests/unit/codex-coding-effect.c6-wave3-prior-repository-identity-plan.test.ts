@@ -6,6 +6,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   readdir,
   rename,
   rm,
@@ -13,6 +14,7 @@ import {
   symlink,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 import { afterAll, describe, expect, it } from "bun:test";
@@ -676,7 +678,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
     ).rejects.toThrow("source universe hash mismatch");
 
     const wrongBasenameRoot = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave3-prior-wrong-name-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave3-prior-wrong-name-"),
     );
     temporaryRoots.push(wrongBasenameRoot);
     const wrongBasename = join(wrongBasenameRoot, "source.json");
@@ -1099,7 +1101,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
     const foreignRoot =
       await materializeSyntheticRawEvidence(foreignLookups);
     const foreignDirectory = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave3-prior-foreign-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave3-prior-foreign-"),
     );
     temporaryRoots.push(foreignDirectory);
     const foreignFile = join(foreignDirectory, "foreign.raw");
@@ -1175,7 +1177,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
     const planMutationInputs =
       await materializeFrozenArtifactInputs(plan);
     const foreignDirectory = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave3-prior-input-foreign-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave3-prior-input-foreign-"),
     );
     temporaryRoots.push(foreignDirectory);
     const foreignPlan = join(foreignDirectory, PLAN_BASENAME);
@@ -1413,7 +1415,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
   it("rejects symlink and mode drift while preserving foreign inodes", async () => {
     const physicalRoot = await copySourceUniverse();
     const aliasParent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave3-prior-alias-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave3-prior-alias-"),
     );
     temporaryRoots.push(aliasParent);
     const alias = join(aliasParent, "source");
@@ -1634,7 +1636,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
 
 async function copySourceUniverse(): Promise<string> {
   const root = await mkdtemp(
-    "/private/tmp/goodmemory-c6-wave3-prior-",
+    join(await realpath(tmpdir()), "goodmemory-c6-wave3-prior-"),
   );
   temporaryRoots.push(root);
   await copyFile(SOURCE_PATH, join(root, SOURCE_BASENAME));
@@ -1648,7 +1650,7 @@ async function materializeFrozenArtifactInputs(
   sourceUniversePath: string;
 }> {
   const root = await mkdtemp(
-    "/private/tmp/goodmemory-c6-wave3-prior-inputs-",
+    join(await realpath(tmpdir()), "goodmemory-c6-wave3-prior-inputs-"),
   );
   temporaryRoots.push(root);
   const planPath = join(root, PLAN_BASENAME);
@@ -1673,7 +1675,7 @@ async function materializeSyntheticRawEvidence(
   lookups: C6Wave3PriorRepositoryIdentityCaptureLookup[],
 ): Promise<string> {
   const root = await mkdtemp(
-    "/private/tmp/goodmemory-c6-wave3-prior-evidence-",
+    join(await realpath(tmpdir()), "goodmemory-c6-wave3-prior-evidence-"),
   );
   temporaryRoots.push(root);
   for (const lookup of lookups) {

@@ -4,12 +4,14 @@ import {
   copyFile,
   mkdtemp,
   readFile,
+  realpath,
   readdir,
   rm,
   stat,
   symlink,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterAll, describe, expect, it } from "bun:test";
@@ -531,7 +533,7 @@ describe("Codex coding-effect C6 Wave3 source universe v2", () => {
   it("rejects symlink/mode drift and preserves foreign inodes", async () => {
     const physicalRoot = await copyInputs();
     const aliasParent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave3-v2-alias-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave3-v2-alias-"),
     );
     temporaryRoots.push(aliasParent);
     const alias = join(aliasParent, "root");
@@ -664,7 +666,7 @@ function inputPaths(root = SOURCE_POOL_ROOT): {
 
 async function copyInputs(): Promise<string> {
   const root = await mkdtemp(
-    "/private/tmp/goodmemory-c6-wave3-source-v2-",
+    join(await realpath(tmpdir()), "goodmemory-c6-wave3-source-v2-"),
   );
   temporaryRoots.push(root);
   await Promise.all(

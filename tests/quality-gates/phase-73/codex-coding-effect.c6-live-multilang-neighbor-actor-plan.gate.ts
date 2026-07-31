@@ -3,9 +3,11 @@ import {
   cp,
   mkdtemp,
   readFile,
+  realpath,
   rm,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import {
   basename,
   join,
@@ -194,7 +196,7 @@ describe(
 
     it("rejects terminal structural-artifact drift", async () => {
       const parent = await mkdtemp(
-        "/private/tmp/goodmemory-c6-actor-plan-gate-drift-",
+        join(await realpath(tmpdir()), "goodmemory-c6-actor-plan-gate-drift-"),
       );
       temporaryRoots.push(parent);
       const structuralPath = join(

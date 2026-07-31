@@ -2,12 +2,14 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   readdir,
   rename,
   rm,
   stat,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "bun:test";
@@ -67,7 +69,7 @@ afterEach(async () => {
 describe("C6 source-v3-simple prior identity draft capture", () => {
   it("captures the exact 356-lookups in two complete passes without authorizing census", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-source-v3-prior-draft-parent-",
+      join(await realpath(tmpdir()), "goodmemory-c6-source-v3-prior-draft-parent-"),
     );
     temporaryRoots.push(parent);
     const outputRoot = join(parent, "draft-evidence");
@@ -468,7 +470,7 @@ describe("C6 source-v3-simple prior identity draft capture", () => {
 
 async function temporaryParent(): Promise<string> {
   const parent = await mkdtemp(
-    "/private/tmp/goodmemory-c6-source-v3-prior-draft-parent-",
+    join(await realpath(tmpdir()), "goodmemory-c6-source-v3-prior-draft-parent-"),
   );
   temporaryRoots.push(parent);
   return parent;

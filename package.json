@@ -114,7 +114,7 @@
     "test:scenarios": "bun test tests/scenarios",
     "test:eval": "bun test tests/eval",
     "test:coverage": "bun run scripts/run-coverage.ts && bun run scripts/check-coverage.ts",
-    "test:ci": "bun run typecheck && bun run test:coverage && bun test tests/integration/python-http-bridge.test.ts tests/cli tests/release",
+    "test:ci": "bun run typecheck && bun run test:coverage && bun test tests/integration/codex-coding-effect.c6-protocol-readiness.test.ts tests/integration/python-http-bridge.test.ts tests/cli tests/release",
     "test:watch": "bun test --watch",
     "typecheck": "bunx tsc --noEmit",
     "goodmemory": "bun run scripts/goodmemory-cli.ts",

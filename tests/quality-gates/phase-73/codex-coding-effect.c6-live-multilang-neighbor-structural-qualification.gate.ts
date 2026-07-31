@@ -5,9 +5,11 @@ import {
   cp,
   mkdtemp,
   readFile,
+  realpath,
   rm,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import {
   basename,
   join,
@@ -214,7 +216,7 @@ describe(
 
     it("rejects terminal frozen-plan drift after the first full replay", async () => {
       const parent = await mkdtemp(
-        "/private/tmp/goodmemory-c6-structural-gate-plan-",
+        join(await realpath(tmpdir()), "goodmemory-c6-structural-gate-plan-"),
       );
       temporaryRoots.push(parent);
       const planPath = join(parent, basename(PLAN_PATH));
@@ -239,7 +241,7 @@ describe(
 
     it("rejects terminal external-root drift after the first full replay", async () => {
       const parent = await mkdtemp(
-        "/private/tmp/goodmemory-c6-structural-gate-root-",
+        join(await realpath(tmpdir()), "goodmemory-c6-structural-gate-root-"),
       );
       temporaryRoots.push(parent);
       const root = join(parent, "capture");

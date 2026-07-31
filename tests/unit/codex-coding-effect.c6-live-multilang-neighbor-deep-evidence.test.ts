@@ -1,17 +1,19 @@
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import {
   chmod,
   cp,
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   rename,
   rm,
   symlink,
   unlink,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 
 import { afterAll, describe, expect, it } from "bun:test";
@@ -25,7 +27,7 @@ import {
 } from "../../scripts/codex-coding-effect/c6-live-multilang-neighbor-deep-evidence";
 
 const DEEP_ROOT =
-  "/private/tmp/goodmemory-c6-live-multilang-neighbor-deep-v1";
+  join(realpathSync(tmpdir()), "goodmemory-c6-live-multilang-neighbor-deep-v1");
 const PLAN_PATH = join(
   process.cwd(),
   "fixtures/codex-coding-effect/c6-source-pool/" +
@@ -593,7 +595,7 @@ interface MutableRequestReceipt {
 
 async function cloneDeepRoot(): Promise<string> {
   const parent = await mkdtemp(
-    "/private/tmp/goodmemory-c6-deep-evidence-",
+    join(await realpath(tmpdir()), "goodmemory-c6-deep-evidence-"),
   );
   temporaryRoots.push(parent);
   const root = join(parent, "capture");
@@ -633,7 +635,7 @@ async function buildPlanQualificationVariant(input: {
   root: string;
 }> {
   const planParent = await mkdtemp(
-    "/private/tmp/goodmemory-c6-deep-evidence-plan-",
+    join(await realpath(tmpdir()), "goodmemory-c6-deep-evidence-plan-"),
   );
   temporaryRoots.push(planParent);
   const planPath = join(planParent, basename(PLAN_PATH));

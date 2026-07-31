@@ -4,11 +4,13 @@ import {
   copyFile,
   mkdtemp,
   readFile,
+  realpath,
   readdir,
   rm,
   stat,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
 import { afterAll, describe, expect, it } from "bun:test";
@@ -397,7 +399,7 @@ async function readQualification(path: string) {
 
 async function temporaryRoot(label: string): Promise<string> {
   const root = await mkdtemp(
-    `/private/tmp/goodmemory-c6-structural-union-${label}-`,
+    join(await realpath(tmpdir()), `goodmemory-c6-structural-union-${label}-`),
   );
   temporaryRoots.push(root);
   return root;

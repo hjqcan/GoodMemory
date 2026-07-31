@@ -870,7 +870,7 @@ describe("release metadata and docs", () => {
     expect(pkg.scripts?.["test:coverage:integration:rest"]).toBeUndefined();
     expect(pkg.scripts?.["test:coverage:integration:postgres"]).toBeUndefined();
     expect(pkg.scripts?.["test:ci"]).toBe(
-      "bun run typecheck && bun run test:coverage && bun test tests/integration/python-http-bridge.test.ts tests/cli tests/release",
+      "bun run typecheck && bun run test:coverage && bun test tests/integration/codex-coding-effect.c6-protocol-readiness.test.ts tests/integration/python-http-bridge.test.ts tests/cli tests/release",
     );
     expect(pkg.scripts?.["eval:smoke"]).toBe("bun run scripts/run-eval.ts --mode=smoke");
     expect(pkg.scripts?.["eval:fallback"]).toBe("bun run scripts/run-eval.ts --mode=fallback");

@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 const INTEGRATION_TEST_DIR = "tests/integration";
 const EXCLUDED_INTEGRATION_COVERAGE_FILES = new Set([
+  "codex-coding-effect.c6-protocol-readiness.test.ts",
   "python-http-bridge.test.ts",
 ]);
 const EXCLUDED_COVERAGE_TEST_NAMES = [

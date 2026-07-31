@@ -5,9 +5,11 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   rm,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { gzipSync } from "node:zlib";
@@ -409,7 +411,7 @@ describe("C6 source-v3-simple prior identity portable evidence", () => {
 
 async function temporaryRoot(label: string): Promise<string> {
   const root = await mkdtemp(
-    `/private/tmp/goodmemory-c6-source-v3-${label}-`,
+    join(await realpath(tmpdir()), `goodmemory-c6-source-v3-${label}-`),
   );
   temporaryRoots.push(root);
   return root;

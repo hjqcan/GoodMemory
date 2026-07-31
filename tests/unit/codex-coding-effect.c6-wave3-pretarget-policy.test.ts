@@ -3,11 +3,13 @@ import {
   copyFile,
   mkdtemp,
   readFile,
+  realpath,
   readdir,
   rm,
   stat,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
 import { afterAll, describe, expect, it } from "bun:test";
@@ -614,7 +616,7 @@ async function copyEvidenceFixture() {
 
 async function temporaryRoot(): Promise<string> {
   const root = await mkdtemp(
-    "/private/tmp/goodmemory-c6-wave3-policy-",
+    join(await realpath(tmpdir()), "goodmemory-c6-wave3-policy-"),
   );
   temporaryRoots.push(root);
   return root;

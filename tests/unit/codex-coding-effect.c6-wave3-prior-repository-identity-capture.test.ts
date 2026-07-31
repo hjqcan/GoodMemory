@@ -1,9 +1,11 @@
 import {
   copyFile,
   mkdtemp,
+  realpath,
   rm,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterAll, describe, expect, it } from "bun:test";
@@ -41,7 +43,7 @@ afterAll(async () => {
 describe("Codex coding-effect C6 Wave3 prior identity capture", () => {
   it("fails the formal source-v2 entry before any transport request", async () => {
     const root = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave3-prior-runner-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave3-prior-runner-"),
     );
     temporaryRoots.push(root);
     const sourceUniversePath = join(root, SOURCE_BASENAME);
@@ -77,7 +79,7 @@ describe("Codex coding-effect C6 Wave3 prior identity capture", () => {
 
   it("redacts the exact token from pre-authorization failures", async () => {
     const root = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave3-prior-redaction-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave3-prior-redaction-"),
     );
     temporaryRoots.push(root);
     let requestCount = 0;

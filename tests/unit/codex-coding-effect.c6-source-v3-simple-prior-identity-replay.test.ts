@@ -2,9 +2,11 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   rm,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "bun:test";
@@ -71,7 +73,7 @@ afterEach(async () => {
 describe("C6 source-v3-simple prior identity observation replay receipt", () => {
   it("compares two distinct complete observation sets without authorizing census", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-source-v3-prior-replay-",
+      join(await realpath(tmpdir()), "goodmemory-c6-source-v3-prior-replay-"),
     );
     temporaryRoots.push(parent);
     const [captureA, captureB] = await Promise.all([
@@ -235,7 +237,7 @@ describe("C6 source-v3-simple prior identity observation replay receipt", () => 
 
   it("derives alias-deduplicated node counts from both captures", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-source-v3-prior-replay-alias-",
+      join(await realpath(tmpdir()), "goodmemory-c6-source-v3-prior-replay-alias-"),
     );
     temporaryRoots.push(parent);
     const [captureA, captureB] = await Promise.all([

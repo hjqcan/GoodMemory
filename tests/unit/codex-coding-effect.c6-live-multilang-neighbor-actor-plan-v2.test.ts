@@ -2,11 +2,13 @@ import {
   chmod,
   mkdtemp,
   readFile,
+  realpath,
   readdir,
   rm,
   stat,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
 import { afterAll, describe, expect, it } from "bun:test";
@@ -386,7 +388,7 @@ async function writeUnionFixture(): Promise<{
   path: string;
 }> {
   const parent = await mkdtemp(
-    "/private/tmp/goodmemory-c6-actor-plan-v2-",
+    join(await realpath(tmpdir()), "goodmemory-c6-actor-plan-v2-"),
   );
   temporaryRoots.push(parent);
   const path = join(parent, UNION_BASENAME);

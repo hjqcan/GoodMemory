@@ -1,15 +1,17 @@
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import {
   chmod,
   cp,
   mkdtemp,
   readFile,
+  realpath,
   readdir,
   rm,
   stat,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
 import { afterAll, describe, expect, it } from "bun:test";
@@ -30,7 +32,7 @@ import {
 } from "../../scripts/snapshot-codex-coding-effect-c6-live-multilang-neighbor-structural-qualification";
 
 const DEEP_ROOT =
-  "/private/tmp/goodmemory-c6-live-multilang-neighbor-deep-v1";
+  join(realpathSync(tmpdir()), "goodmemory-c6-live-multilang-neighbor-deep-v1");
 const PLAN_PATH = join(
   process.cwd(),
   "fixtures/codex-coding-effect/c6-source-pool/" +
@@ -226,7 +228,7 @@ describe("C6 live multilingual neighbor structural qualification", () => {
 
   realEvidenceIt("rejects terminal plan drift", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave1-structural-plan-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave1-structural-plan-"),
     );
     temporaryRoots.push(parent);
     const planPath = join(parent, basename(PLAN_PATH));
@@ -251,7 +253,7 @@ describe("C6 live multilingual neighbor structural qualification", () => {
 
   realEvidenceIt("rejects terminal root drift", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave1-structural-root-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave1-structural-root-"),
     );
     temporaryRoots.push(parent);
     const root = join(parent, "capture");
@@ -284,7 +286,7 @@ describe("C6 live multilingual neighbor structural qualification", () => {
 
   realEvidenceIt("rolls back when post-publication replay detects input drift", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave1-structural-output-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave1-structural-output-"),
     );
     temporaryRoots.push(parent);
     const planPath = join(parent, basename(PLAN_PATH));
@@ -313,7 +315,7 @@ describe("C6 live multilingual neighbor structural qualification", () => {
 
   realEvidenceIt("does not delete a foreign replacement during rollback", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave1-structural-foreign-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave1-structural-foreign-"),
     );
     temporaryRoots.push(parent);
     const outputPath = join(parent, "qualification.json");
@@ -346,7 +348,7 @@ describe("C6 live multilingual neighbor structural qualification", () => {
 
   realEvidenceIt("uses the recorded inode when the temporary link is replaced", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave1-structural-temp-foreign-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave1-structural-temp-foreign-"),
     );
     temporaryRoots.push(parent);
     const planPath = join(parent, basename(PLAN_PATH));
@@ -396,7 +398,7 @@ describe("C6 live multilingual neighbor structural qualification", () => {
 
   realEvidenceIt("rejects and removes an owned output with terminal mode drift", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave1-structural-mode-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave1-structural-mode-"),
     );
     temporaryRoots.push(parent);
     const outputPath = join(parent, "qualification.json");
@@ -422,7 +424,7 @@ describe("C6 live multilingual neighbor structural qualification", () => {
 
   realEvidenceIt("publishes canonically without replacing an existing output", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave1-structural-publish-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave1-structural-publish-"),
     );
     temporaryRoots.push(parent);
     const outputPath = join(parent, "qualification.json");

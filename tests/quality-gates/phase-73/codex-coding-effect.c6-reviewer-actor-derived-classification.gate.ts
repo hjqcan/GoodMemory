@@ -3,9 +3,11 @@ import {
   cp,
   mkdtemp,
   readFile,
+  realpath,
   rm,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterAll, describe, expect, it } from "bun:test";
@@ -225,7 +227,7 @@ describe("Codex coding-effect C6 reviewer actor derived classification", () => {
     }
 
     const copiedRoot = await mkdtemp(
-      "/private/tmp/goodmemory-c6-actor-v2-root-drift-",
+      join(await realpath(tmpdir()), "goodmemory-c6-actor-v2-root-drift-"),
     );
     temporaryRoots.push(copiedRoot);
     await cp(ACTOR_ROOT, copiedRoot, { recursive: true });
@@ -240,7 +242,7 @@ describe("Codex coding-effect C6 reviewer actor derived classification", () => {
 
   it("detects terminal raw closure drift and never publishes a stale freeze", async () => {
     const copiedRoot = await mkdtemp(
-      "/private/tmp/goodmemory-c6-actor-v2-terminal-",
+      join(await realpath(tmpdir()), "goodmemory-c6-actor-v2-terminal-"),
     );
     temporaryRoots.push(copiedRoot);
     await cp(ACTOR_ROOT, copiedRoot, { recursive: true });
@@ -264,7 +266,7 @@ describe("Codex coding-effect C6 reviewer actor derived classification", () => {
 
   it("materializes through the CLI and replays exact canonical bytes", async () => {
     const outputRoot = await mkdtemp(
-      "/private/tmp/goodmemory-c6-actor-v2-output-",
+      join(await realpath(tmpdir()), "goodmemory-c6-actor-v2-output-"),
     );
     temporaryRoots.push(outputRoot);
     const outputPath = join(outputRoot, "classification.json");

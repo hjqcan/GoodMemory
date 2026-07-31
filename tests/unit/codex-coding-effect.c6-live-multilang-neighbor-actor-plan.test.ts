@@ -5,12 +5,14 @@ import {
   cp,
   mkdtemp,
   readFile,
+  realpath,
   readdir,
   rm,
   stat,
   symlink,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
 import { afterAll, describe, expect, it } from "bun:test";
@@ -212,7 +214,7 @@ describe("C6 live multilingual neighbor Wave1 actor plan", () => {
     expect(result.outputSha256).toBe(ACTOR_PLAN_SHA256);
 
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave1-actor-plan-drift-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave1-actor-plan-drift-"),
     );
     temporaryRoots.push(parent);
     const structuralPath = join(parent, basename(STRUCTURAL_PATH));
@@ -234,7 +236,7 @@ describe("C6 live multilingual neighbor Wave1 actor plan", () => {
 
   it("rejects a symlinked structural input", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave1-actor-plan-symlink-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave1-actor-plan-symlink-"),
     );
     temporaryRoots.push(parent);
     const structuralPath = join(parent, basename(STRUCTURAL_PATH));
@@ -249,7 +251,7 @@ describe("C6 live multilingual neighbor Wave1 actor plan", () => {
 
   it("rolls back its owned output when post-publication replay sees input drift", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave1-actor-plan-output-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave1-actor-plan-output-"),
     );
     temporaryRoots.push(parent);
     const structuralPath = join(parent, basename(STRUCTURAL_PATH));
@@ -276,7 +278,7 @@ describe("C6 live multilingual neighbor Wave1 actor plan", () => {
 
   it("does not delete a foreign output replacement during rollback", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave1-actor-plan-foreign-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave1-actor-plan-foreign-"),
     );
     temporaryRoots.push(parent);
     const outputPath = join(parent, "actor-plan.json");
@@ -307,7 +309,7 @@ describe("C6 live multilingual neighbor Wave1 actor plan", () => {
 
   it("uses its recorded inode if the temporary hard link is replaced", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave1-actor-plan-temp-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave1-actor-plan-temp-"),
     );
     temporaryRoots.push(parent);
     const structuralPath = join(parent, basename(STRUCTURAL_PATH));
@@ -348,7 +350,7 @@ describe("C6 live multilingual neighbor Wave1 actor plan", () => {
 
   it("rejects terminal mode drift and removes only its owned links", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave1-actor-plan-mode-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave1-actor-plan-mode-"),
     );
     temporaryRoots.push(parent);
     const outputPath = join(parent, "actor-plan.json");
@@ -369,7 +371,7 @@ describe("C6 live multilingual neighbor Wave1 actor plan", () => {
 
   it("publishes mode 0644 and refuses to replace an existing output", async () => {
     const parent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave1-actor-plan-publish-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave1-actor-plan-publish-"),
     );
     temporaryRoots.push(parent);
     const outputPath = join(parent, "actor-plan.json");

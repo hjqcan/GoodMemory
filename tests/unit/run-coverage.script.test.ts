@@ -6,9 +6,10 @@ import {
 } from "../../scripts/run-coverage";
 
 describe("run-coverage script", () => {
-  it("discovers integration coverage files while excluding the Python bridge", () => {
+  it("discovers integration coverage files while excluding child-process and slow evidence tests", () => {
     expect(
       selectIntegrationCoverageFiles([
+        "codex-coding-effect.c6-protocol-readiness.test.ts",
         "python-http-bridge.test.ts",
         "storage.postgres.test.ts",
         "api.auto-storage.test.ts",

@@ -4,12 +4,14 @@ import {
   copyFile,
   mkdtemp,
   readFile,
+  realpath,
   readdir,
   rm,
   stat,
   symlink,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterAll, describe, expect, it } from "bun:test";
@@ -624,7 +626,7 @@ describe("Codex coding-effect C6 Wave3 source universe", () => {
   it("rejects output path symlinks and publication mode drift", async () => {
     const physicalRoot = await copyInputs();
     const aliasParent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave3-alias-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave3-alias-"),
     );
     temporaryRoots.push(aliasParent);
     const alias = join(aliasParent, "root");
@@ -667,7 +669,7 @@ describe("Codex coding-effect C6 Wave3 source universe", () => {
       .toBe(0o644);
 
     const deniedParent = await mkdtemp(
-      "/private/tmp/goodmemory-c6-wave3-eacces-",
+      join(await realpath(tmpdir()), "goodmemory-c6-wave3-eacces-"),
     );
     temporaryRoots.push(deniedParent);
     const deniedOutput = join(deniedParent, "output.json");
@@ -763,7 +765,7 @@ function inputPaths(root = SOURCE_POOL_ROOT): {
 
 async function copyInputs(): Promise<string> {
   const root = await mkdtemp(
-    "/private/tmp/goodmemory-c6-wave3-source-",
+    join(await realpath(tmpdir()), "goodmemory-c6-wave3-source-"),
   );
   temporaryRoots.push(root);
   await Promise.all(

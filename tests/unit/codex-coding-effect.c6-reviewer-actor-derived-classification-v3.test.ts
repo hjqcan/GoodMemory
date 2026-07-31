@@ -5,12 +5,14 @@ import {
   cp,
   mkdtemp,
   readFile,
+  realpath,
   readdir,
   rm,
   stat,
   symlink,
   writeFile,
 } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
@@ -551,7 +553,7 @@ async function copyActorRoot(label: string): Promise<string> {
 
 async function temporaryRoot(label: string): Promise<string> {
   const root = await mkdtemp(
-    `/private/tmp/goodmemory-c6-actor-v3-${label}-`,
+    join(await realpath(tmpdir()), `goodmemory-c6-actor-v3-${label}-`),
   );
   temporaryRoots.push(root);
   return root;
