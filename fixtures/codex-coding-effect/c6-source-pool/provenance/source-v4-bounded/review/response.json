@@ -1,0 +1,28 @@
+{
+  "acceptedChecks": [
+    "freeze-candidate-commit-tree-and-source-closure",
+    "external-snapshot-asset-lock-root-and-manifest-closure",
+    "outcome-blind-selection-and-complete-pilot-exclusion",
+    "historical-v3-terminal-non-promotion-preserved",
+    "pinned-bun-liveness-and-snapshot-mutation-gates",
+    "clean-shell-worker-and-native-bun-fetch",
+    "one-shot-live-capture-budget-with-no-redraw-or-top-up",
+    "direct-review-child-and-strict-activation-still-required"
+  ],
+  "artifactKind": "c6-source-v4-bounded-review-response",
+  "blockingFindings": [],
+  "boundary": {
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "liveCaptureAuthorized": false,
+    "sourceSelectionFrozen": false,
+    "status": "review-accepted-freeze-and-activation-required"
+  },
+  "decision": "accepted-for-freeze",
+  "dispatchSha256": "be17a6af75566728d1ba3548204a740aac1737702c710b0d4d45cdacbb76b579",
+  "inputSha256": "827536a5b34efff9cd9b7c5a7bf53dc340435f05a0b9ef075808aac2107299ef",
+  "requestSha256": "e553fbc472369cdf7f701d3f533c6e775c66c125bd1b7d2cd20a66f2349d4c41",
+  "reviewedAt": "2026-07-31T04:15:41.000Z",
+  "reviewerAgentName": "/root/c6_source_v4_bounded_review_v2_f3",
+  "schemaVersion": 2
+}
