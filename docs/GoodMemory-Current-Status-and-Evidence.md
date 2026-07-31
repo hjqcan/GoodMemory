@@ -1010,6 +1010,29 @@ cutover, and rollback contracts.
   asset-lock, external witness, canonical corpus, stage-artifact binding, and
   installed-host placement parity remain absent, so this is still not
   C6-T002 completion.
+  A subsequent publication/finalization checkpoint adds a direct exact-mode
+  CLI, durable claim-before-provider ordering, append-only raw/decision/
+  accepted/terminal evidence, receipt-last publication, and zero-network
+  `--finalize-only` recovery. The verifier re-derives frozen request bytes,
+  attempt reachability, status/decision classification, raw-to-normalized
+  output and usage, provider artifacts, corpus/index bindings, and canonical
+  paths before terminally replaying the receipt, root, and strict feature-local
+  asset closure. Crash recovery retains partial provider bytes as
+  process-interruption evidence and never redispatches. Live transport freezes
+  one 300-second deadline and a streamed 4 MiB cap; token validation plus raw
+  and decoded secret scans run before sensitive publication.
+  Two independent read-only reviews found no remaining P0/P1 in this offline
+  boundary. Pinned-Bun focused replay passes 46/46 with 237 assertions, the
+  legacy/frozen-source regression slice passes 9/9 with 67 assertions, and
+  typecheck/diff checks pass. The full Phase 73 gate was attempted but is not
+  green: historical C3 replay also fails on unmodified `main`, while several
+  explicit external capture roots are unavailable. A convenience
+  `package.json` alias that initially drifted frozen source-v3 evidence was
+  removed and both affected source-v3 gates then passed targeted rerun. No live
+  request, authenticated provider identity, canonical 391-summary corpus, or
+  installed-host placement proof exists. Provider authenticity,
+  candidate-manifest freeze, and Codex-run readiness therefore remain false;
+  this still is not C6-T002 completion.
   Reusing C5's all-stage correlation would produce an unaccepted mechanical
   131-episode estimate. A tracked schema-v2 eligible-position recalculation now
   binds the exact frozen C5 v16 report, plan, pairs, attempts, stage

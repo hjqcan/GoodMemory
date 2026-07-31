@@ -4357,6 +4357,42 @@ external-witness, canonical-corpus, stage-artifact, and installed-host
 placement evidence are still absent, so this checkpoint does not complete
 C6-T002.
 
+Publication/finalization checkpoint (2026-07-31): the structural capture now
+has a direct `--execute` / `--finalize-only` CLI and a receipt-last,
+create-only publication protocol. The claim is durable before provider work;
+redacted request, every raw attempt, classification decision, accepted
+generation, corpus or failure terminal, strict asset lock, and receipt are
+append-only and hash-bound. `--finalize-only` reads no API token and cannot
+dispatch a provider call. It can seal retained raw-only, partially normalized,
+uncommitted-corpus, terminal-only, lock-only, and hash-named pending states
+without converting them into success. Partial provider bytes remain retained
+as `rejected-process-interruption` evidence.
+
+The verifier independently reconstructs the frozen request, attempt
+chronology, HTTP decision/status mapping, raw-to-normalized output and usage,
+provider artifact, generation index, corpus, and canonical paths. It then
+replays the receipt/root and complete asset closure as the terminal check.
+The live transport freezes one 300-second total deadline and a streamed
+4 MiB response cap; an oversized response observed after HTTP headers retains
+its status without persisting an incomplete body. API-token validation and
+raw/decoded secret scans run before claim or raw publication. A feature-local
+flat-summary asset-lock implementation provides code-unit ordering and rejects
+hard links without changing the already frozen generic C6 asset-lock source.
+
+Two independent read-only reviews found no remaining P0/P1 in this offline
+engineering boundary. With the pinned Bun 1.3.12 runtime, the focused
+publication/CLI/asset-lock replay passes 46/46 with 237 assertions; the
+legacy-asset/frozen-controlled-mutation/Wave3 regression slice passes 9/9
+with 67 assertions; typecheck and diff checks pass. The complete Phase 73 gate
+was also attempted and is not green: historical C3 bundle replay still fails
+identically on unmodified `main`, and several explicit external capture roots
+are absent. A nonessential `package.json` command alias that initially drifted
+the frozen source-v3 closure was removed; both affected source-v3 gates pass
+on targeted rerun. No live provider request, authenticated provider identity,
+canonical 391-summary corpus, or installed-host placement proof was produced.
+All authenticity, candidate-freeze, and run-readiness fields remain false, so
+this checkpoint still does not complete C6-T002.
+
 #### C6-T003: package-isolated reproducibility
 
 - build package/tarball once;

@@ -1723,6 +1723,32 @@ passed 105/105 with 2391 assertions and typecheck. No live request or corpus
 materialization occurred, and provider/TLS identity, pricing, leakage,
 asset-lock, external witness, canonical corpus, stage binding, and
 installed-host parity remain absent. This still does not complete C6-T002.
+[DONE/PREFLIGHT ONLY] Flat-summary capture now has a direct exact-mode CLI,
+receipt-last create-only publication, and zero-network `--finalize-only`
+recovery. Claim, redacted request, every raw attempt and decision, accepted
+generation, corpus/failure terminal, strict asset lock, and receipt are
+append-only and hash-bound. Interrupted raw, normalized output, corpus,
+terminal, lock, and hash-named pending states are sealed without redispatch;
+partial provider bytes remain failure evidence rather than being discarded or
+promoted. The verifier re-derives request, chronology, status/decision,
+raw-to-normalized output/usage, provider artifact, index, corpus, and canonical
+paths, then terminally replays the receipt, root, and complete closure. Live
+transport is fixed to one 300-second deadline and a streamed 4 MiB cap, and
+preserves an already observed status on oversize rejection. Token validation
+and raw/decoded secret scans precede claim/raw persistence. The strict
+code-unit/no-hardlink asset closure is feature-local, leaving the frozen
+generic C6 asset-lock source byte-identical.
+Two independent read-only reviews found no remaining P0/P1 in this offline
+boundary. Pinned-Bun focused replay is 46/46 with 237 assertions; the
+legacy/frozen-source regression slice is 9/9 with 67 assertions; typecheck and
+diff checks pass. The full Phase 73 gate was attempted but is not green:
+historical C3 replay also fails on unmodified main and required external
+capture roots are absent. A nonessential package command alias that drifted
+source-v3 evidence was removed, after which both affected source-v3 gates
+passed targeted rerun. No live provider request, authenticated identity,
+canonical 391-summary corpus, or installed-host parity was produced;
+`providerAuthenticityVerified`, `candidateManifestFrozen`, and
+`codexRunReady` remain false. This still does not complete C6-T002.
 [DONE/PREFLIGHT ONLY] A minimal installed-host structural aggregator now
 cross-checks the retained source-v2/package/Codex receipt relationships and
 ordered hook-event metadata without promoting proof. The public verifier has

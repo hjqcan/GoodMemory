@@ -35,6 +35,9 @@ import {
 } from "./frozen-prehistory";
 
 export const C6_FLAT_SUMMARY_REQUEST_SEED = 6_002;
+export const C6_FLAT_SUMMARY_MAX_RESPONSE_BYTES =
+  4 * 1_024 * 1_024;
+export const C6_FLAT_SUMMARY_TRANSPORT_TIMEOUT_MS = 300_000;
 export const C6_GURKIAI_FLAT_SUMMARY_ENDPOINT =
   "https://ai.gurkiai.com/v1/chat/completions";
 export const C6_FLAT_SUMMARY_TRANSIENT_HTTP_STATUSES = [
@@ -105,6 +108,8 @@ export interface C6FlatSummaryAttemptManifestEntry {
     type:
       | "authorization-material-detected"
       | "invalid-response"
+      | "request-timeout"
+      | "response-byte-limit-exceeded"
       | "retry-delay-threw"
       | "transport-threw";
   };
@@ -202,6 +207,40 @@ export interface C6FlatSummaryGenerationCapture {
   requestSha256: string;
 }
 
+export interface C6FlatSummaryPreparedGenerationEvidence {
+  generationKey: string;
+  historyBytes: Uint8Array;
+  historySourceSha256: string;
+  redactedRequestBytes: Uint8Array;
+  requestSha256: string;
+}
+
+export interface C6FlatSummaryRawAttemptEvidence {
+  attempt: number;
+  completedAt: string;
+  rawResponseBytes: Uint8Array;
+  rawResponseSha256: string;
+  startedAt: string;
+  status: number;
+}
+
+export interface C6FlatSummaryCaptureEvidenceSink {
+  onAttemptDecision(input: {
+    attempt: C6FlatSummaryAttemptManifestEntry;
+    generationKey: string;
+  }): Promise<void>;
+  onGenerationAccepted(input: {
+    generation: C6FlatSummaryGenerationCapture;
+  }): Promise<void>;
+  onGenerationPrepared(
+    input: C6FlatSummaryPreparedGenerationEvidence,
+  ): Promise<void>;
+  onRawAttempt(input: {
+    attempt: C6FlatSummaryRawAttemptEvidence;
+    generationKey: string;
+  }): Promise<void>;
+}
+
 export interface C6FlatSummaryGenerationMaterialization {
   codexRunReady: false;
   corpus: C6FlatSummaryCorpus;
@@ -269,7 +308,24 @@ interface ParsedSummaryProtocol {
   };
 }
 
-interface NormalizedProviderResponse {
+export interface C6FlatSummaryValidatedGenerationInputs {
+  endpoint: typeof C6_GURKIAI_FLAT_SUMMARY_ENDPOINT;
+  expectation: C6FlatSummaryCorpusExpectation;
+  generationBindings: C6FlatSummaryCorpusExpectation[
+    "generationBindings"
+  ];
+  historyByGenerationKey: Map<string, Uint8Array>;
+  maxInjectedTokens: number;
+  model: string;
+  planSha256: string;
+  prompt: string;
+  provider: string;
+  providerEndpointSha256: string;
+  summaryPromptSha256: string;
+  summaryProtocolSha256: string;
+}
+
+export interface C6FlatSummaryNormalizedProviderResponse {
   cachedInputTokensPath:
     | "$.usage.prompt_tokens_details.cached_tokens"
     | null;
@@ -279,12 +335,22 @@ interface NormalizedProviderResponse {
   usage: NormalizedCodexUsage;
 }
 
-type C6FlatSummaryPostTransportRejection =
+export type C6FlatSummaryPostTransportRejection =
   | "rejected-invalid-json"
   | "rejected-invalid-response-shape"
   | "rejected-invalid-usage"
   | "rejected-model-mismatch"
   | "rejected-output-over-budget";
+
+export type C6FlatSummaryProviderResponseEvaluation =
+  | {
+    decision: "accepted-success";
+    normalized: C6FlatSummaryNormalizedProviderResponse;
+  }
+  | {
+    decision: C6FlatSummaryPostTransportRejection;
+    message: string;
+  };
 
 class C6FlatSummaryResponseValidationError extends Error {
   readonly decision: C6FlatSummaryPostTransportRejection;
@@ -298,9 +364,77 @@ class C6FlatSummaryResponseValidationError extends Error {
   }
 }
 
+export class C6FlatSummaryTransportBoundaryError extends Error {
+  readonly observedStatus?: number;
+  readonly type:
+    | "request-timeout"
+    | "response-byte-limit-exceeded";
+
+  constructor(
+    message: string,
+    type:
+      | "request-timeout"
+      | "response-byte-limit-exceeded",
+    observedStatus?: number,
+  ) {
+    super(message);
+    this.observedStatus = observedStatus;
+    this.type = type;
+  }
+}
+
+export function evaluateC6FlatSummaryProviderResponse(input: {
+  expectedModel: string;
+  historySourceSha256: string;
+  maxInjectedTokens: number;
+  responseBytes: Uint8Array;
+}): C6FlatSummaryProviderResponseEvaluation {
+  let normalized: C6FlatSummaryNormalizedProviderResponse;
+  try {
+    normalized = normalizeC6FlatSummaryProviderResponse(
+      input.responseBytes,
+      input.expectedModel,
+    );
+  } catch (error) {
+    const rejection =
+      error instanceof C6FlatSummaryResponseValidationError
+        ? error
+        : new C6FlatSummaryResponseValidationError(
+          "C6 flat-summary provider response is invalid",
+          "rejected-invalid-response-shape",
+        );
+    return {
+      decision: rejection.decision,
+      message: rejection.message,
+    };
+  }
+  try {
+    buildC6InjectionBudgetReceipt({
+      arm: "flat-summary",
+      compositionSha256:
+        C6_FLAT_SUMMARY_INJECTION_COMPOSITION_SHA256,
+      historySourceSha256: input.historySourceSha256,
+      injectedText: normalized.output,
+      injectionMode: "content-injection",
+      maxInjectedTokens: input.maxInjectedTokens,
+    });
+  } catch {
+    return {
+      decision: "rejected-output-over-budget",
+      message:
+        "C6 flat-summary normalized output exceeds its token budget",
+    };
+  }
+  return {
+    decision: "accepted-success",
+    normalized,
+  };
+}
+
 export async function materializeC6FlatSummaryGenerationCapture(input: {
   apiToken: string;
   endpoint: string;
+  evidenceSink?: C6FlatSummaryCaptureEvidenceSink;
   histories: ReadonlyArray<{
     bytes: Uint8Array;
     generationKey: string;
@@ -314,51 +448,24 @@ export async function materializeC6FlatSummaryGenerationCapture(input: {
   summaryProtocolBytes: Uint8Array;
   transport: C6FlatSummaryTransport;
 }): Promise<C6FlatSummaryGenerationMaterialization> {
-  const planSha256 = validateFrozenPlan(
-    input.plan,
-    input.planBytes,
-    input.planSha256,
-  );
-  const summaryProtocolSha256 = sha256(
-    input.summaryProtocolBytes,
-  );
-  const protocol = parseSummaryProtocol(
-    input.summaryProtocolBytes,
-  );
-  const summaryPromptSha256 = sha256(input.summaryPromptBytes);
-  const prompt = decodeUtf8(
-    input.summaryPromptBytes,
-    "C6 flat-summary prompt is not UTF-8",
-  );
-  if (prompt.trim().length === 0) {
-    throw new Error("C6 flat-summary prompt is empty");
-  }
-  validatePlanProtocolBindings({
-    plan: input.plan,
-    protocol,
+  const validated = validateC6FlatSummaryGenerationInputs(input);
+  const {
+    endpoint,
+    expectation,
+    generationBindings,
+    historyByGenerationKey,
+    maxInjectedTokens,
+    model,
+    planSha256,
+    prompt,
+    provider,
+    providerEndpointSha256,
     summaryPromptSha256,
     summaryProtocolSha256,
-  });
-  const endpoint = validateProviderEndpoint(
-    input.endpoint,
-    protocol.provider,
-  );
-  const providerEndpointSha256 = sha256(endpoint);
-  const expectation = buildC6FlatSummaryCorpusExpectation(
-    input.plan,
-  );
-  validateExpectation(input.plan, expectation);
-  const historyByGenerationKey = validateHistories(
-    input.histories,
-    expectation,
-  );
-  const generationBindings = [...expectation.generationBindings]
-    .sort((left, right) =>
-      compareCodeUnits(left.generationKey, right.generationKey)
-    );
+  } = validated;
   const apiToken = generationBindings.length === 0
     ? input.apiToken
-    : validateApiToken(input.apiToken);
+    : validateC6FlatSummaryApiToken(input.apiToken);
   const now = input.now ?? (() => new Date());
   const sleep = input.sleep ?? sleepMilliseconds;
   const generations: C6FlatSummaryGenerationCapture[] = [];
@@ -372,7 +479,7 @@ export async function materializeC6FlatSummaryGenerationCapture(input: {
       "C6 flat-summary history is not UTF-8",
     );
     const requestBody = {
-      max_tokens: protocol.maxInjectedTokens,
+      max_tokens: maxInjectedTokens,
       messages: [
         {
           content: prompt,
@@ -383,7 +490,7 @@ export async function materializeC6FlatSummaryGenerationCapture(input: {
           role: "user",
         },
       ],
-      model: protocol.model,
+      model,
       n: 1,
       seed: C6_FLAT_SUMMARY_REQUEST_SEED,
       stream: false,
@@ -412,6 +519,13 @@ export async function materializeC6FlatSummaryGenerationCapture(input: {
       "C6 flat-summary request contains authorization material",
     );
     const requestSha256 = sha256(redactedRequestBytes);
+    await input.evidenceSink?.onGenerationPrepared({
+      generationKey: binding.generationKey,
+      historyBytes: Buffer.from(historyBytes),
+      historySourceSha256: binding.historySourceSha256,
+      redactedRequestBytes: Buffer.from(redactedRequestBytes),
+      requestSha256,
+    });
     const {
       attempts: pendingAttempts,
       attemptCount,
@@ -427,53 +541,34 @@ export async function materializeC6FlatSummaryGenerationCapture(input: {
       requestSha256,
       sleep,
       transport: input.transport,
+      evidenceSink: input.evidenceSink,
     });
     const rawResponseSha256 = sha256(responseBytes);
-    let normalized: NormalizedProviderResponse;
-    try {
-      normalized = normalizeProviderResponse(
-        responseBytes,
-        protocol.model,
-      );
-    } catch (error) {
-      const rejection =
-        error instanceof C6FlatSummaryResponseValidationError
-          ? error
-          : new C6FlatSummaryResponseValidationError(
-            "C6 flat-summary provider response is invalid",
-            "rejected-invalid-response-shape",
-          );
-      throwPostTransportRejection({
+    const evaluation = evaluateC6FlatSummaryProviderResponse({
+      expectedModel: model,
+      historySourceSha256: binding.historySourceSha256,
+      maxInjectedTokens,
+      responseBytes,
+    });
+    if (evaluation.decision !== "accepted-success") {
+      return await throwPostTransportRejection({
         attempts: pendingAttempts,
-        decision: rejection.decision,
+        decision: evaluation.decision,
+        evidenceSink: input.evidenceSink,
         generationKey: binding.generationKey,
-        message: rejection.message,
+        message: evaluation.message,
         requestSha256,
       });
     }
-    try {
-      buildC6InjectionBudgetReceipt({
-        arm: "flat-summary",
-        compositionSha256:
-          C6_FLAT_SUMMARY_INJECTION_COMPOSITION_SHA256,
-        historySourceSha256: binding.historySourceSha256,
-        injectedText: normalized.output,
-        injectionMode: "content-injection",
-        maxInjectedTokens: protocol.maxInjectedTokens,
-      });
-    } catch {
-      throwPostTransportRejection({
-        attempts: pendingAttempts,
-        decision: "rejected-output-over-budget",
-        generationKey: binding.generationKey,
-        message:
-          "C6 flat-summary normalized output exceeds its token budget",
-        requestSha256,
-      });
-    }
+    const normalized = evaluation.normalized;
     const attempts = finalizeHttp200Attempt(
       pendingAttempts,
       "accepted-success",
+    );
+    await emitAttemptDecision(
+      input.evidenceSink,
+      binding.generationKey,
+      attempts.at(-1)!,
     );
     const {
       attemptManifest,
@@ -527,7 +622,7 @@ export async function materializeC6FlatSummaryGenerationCapture(input: {
       model: normalized.model,
       outputSha256,
       planSha256,
-      provider: protocol.provider,
+      provider,
       providerAuthenticityVerified: false,
       providerEndpoint: endpoint,
       providerEndpointSha256,
@@ -547,7 +642,7 @@ export async function materializeC6FlatSummaryGenerationCapture(input: {
       apiToken,
       "C6 flat-summary artifact contains authorization material",
     );
-    generations.push({
+    const generation: C6FlatSummaryGenerationCapture = {
       artifact,
       artifactBytes: Buffer.from(artifactBytes),
       artifactSha256: sha256(artifactBytes),
@@ -571,7 +666,11 @@ export async function materializeC6FlatSummaryGenerationCapture(input: {
       rawToNormalizedIndexSha256,
       redactedRequestBytes: Buffer.from(redactedRequestBytes),
       requestSha256,
+    };
+    await input.evidenceSink?.onGenerationAccepted({
+      generation,
     });
+    generations.push(generation);
   }
 
   const outputByGenerationKey = new Map(
@@ -617,6 +716,76 @@ export async function materializeC6FlatSummaryGenerationCapture(input: {
     providerEndpointSha256,
     schemaVersion: 1,
     status: "local-transport-structural-capture-only",
+    summaryPromptSha256,
+    summaryProtocolSha256,
+  };
+}
+
+export function validateC6FlatSummaryGenerationInputs(input: {
+  endpoint: string;
+  histories: ReadonlyArray<{
+    bytes: Uint8Array;
+    generationKey: string;
+  }>;
+  plan: C6CandidatePlan;
+  planBytes: Uint8Array;
+  planSha256: string;
+  summaryPromptBytes: Uint8Array;
+  summaryProtocolBytes: Uint8Array;
+}): C6FlatSummaryValidatedGenerationInputs {
+  const planSha256 = validateFrozenPlan(
+    input.plan,
+    input.planBytes,
+    input.planSha256,
+  );
+  const summaryProtocolSha256 = sha256(
+    input.summaryProtocolBytes,
+  );
+  const protocol = parseSummaryProtocol(
+    input.summaryProtocolBytes,
+  );
+  const summaryPromptSha256 = sha256(input.summaryPromptBytes);
+  const prompt = decodeUtf8(
+    input.summaryPromptBytes,
+    "C6 flat-summary prompt is not UTF-8",
+  );
+  if (prompt.trim().length === 0) {
+    throw new Error("C6 flat-summary prompt is empty");
+  }
+  validatePlanProtocolBindings({
+    plan: input.plan,
+    protocol,
+    summaryPromptSha256,
+    summaryProtocolSha256,
+  });
+  const endpoint = validateProviderEndpoint(
+    input.endpoint,
+    protocol.provider,
+  );
+  const providerEndpointSha256 = sha256(endpoint);
+  const expectation = buildC6FlatSummaryCorpusExpectation(
+    input.plan,
+  );
+  validateExpectation(input.plan, expectation);
+  const historyByGenerationKey = validateHistories(
+    input.histories,
+    expectation,
+  );
+  const generationBindings = [...expectation.generationBindings]
+    .sort((left, right) =>
+      compareCodeUnits(left.generationKey, right.generationKey)
+    );
+  return {
+    endpoint,
+    expectation,
+    generationBindings,
+    historyByGenerationKey,
+    maxInjectedTokens: protocol.maxInjectedTokens,
+    model: protocol.model,
+    planSha256,
+    prompt,
+    provider: protocol.provider,
+    providerEndpointSha256,
     summaryPromptSha256,
     summaryProtocolSha256,
   };
@@ -938,6 +1107,7 @@ function validateHistories(
 async function callTransport(input: {
   apiToken: string;
   endpoint: string;
+  evidenceSink?: C6FlatSummaryCaptureEvidenceSink;
   generationKey: string;
   now: () => Date;
   requestBodyBytes: Uint8Array;
@@ -956,29 +1126,48 @@ async function callTransport(input: {
     const startedAt = timestamp(input.now);
     let response: C6FlatSummaryTransportResponse;
     try {
-      response = await input.transport({
-        body: Buffer.from(input.requestBodyBytes),
-        headers: {
-          accept: "application/json",
-          authorization: `Bearer ${input.apiToken}`,
-          "content-type": "application/json",
-        },
-        method: "POST",
-        url: input.endpoint,
-      });
-    } catch {
+      response = await withTransportDeadline(
+        input.transport({
+          body: Buffer.from(input.requestBodyBytes),
+          headers: {
+            accept: "application/json",
+            authorization: `Bearer ${input.apiToken}`,
+            "content-type": "application/json",
+          },
+          method: "POST",
+          url: input.endpoint,
+        }),
+      );
+    } catch (error) {
       const completedAt = timestamp(input.now);
       assertAttemptChronology(attempts, startedAt, completedAt);
-      attempts.push({
+      const boundaryType =
+        error instanceof C6FlatSummaryTransportBoundaryError
+          ? error.type
+          : "transport-threw";
+      const observedStatus =
+        error instanceof C6FlatSummaryTransportBoundaryError
+          ? error.observedStatus
+          : undefined;
+      const rejectedAttempt: C6FlatSummaryAttemptCapture = {
         attempt,
         completedAt,
         decision: "rejected-transport-error",
+        ...(observedStatus === undefined
+          ? {}
+          : { status: observedStatus }),
         startedAt,
         transportError: {
           sanitized: true,
-          type: "transport-threw",
+          type: boundaryType,
         },
-      });
+      };
+      attempts.push(rejectedAttempt);
+      await emitAttemptDecision(
+        input.evidenceSink,
+        input.generationKey,
+        rejectedAttempt,
+      );
       throw captureError(
         "C6 flat-summary transport failed",
         input,
@@ -993,7 +1182,7 @@ async function callTransport(input: {
       response.status > 599 ||
       !(response.body instanceof Uint8Array)
     ) {
-      attempts.push({
+      const rejectedAttempt: C6FlatSummaryAttemptCapture = {
         attempt,
         completedAt,
         decision: "rejected-transport-error",
@@ -1002,9 +1191,42 @@ async function callTransport(input: {
           sanitized: true,
           type: "invalid-response",
         },
-      });
+      };
+      attempts.push(rejectedAttempt);
+      await emitAttemptDecision(
+        input.evidenceSink,
+        input.generationKey,
+        rejectedAttempt,
+      );
       throw captureError(
         "C6 flat-summary transport response is invalid",
+        input,
+        attempts,
+      );
+    }
+    if (
+      response.body.byteLength >
+        C6_FLAT_SUMMARY_MAX_RESPONSE_BYTES
+    ) {
+      const rejectedAttempt: C6FlatSummaryAttemptCapture = {
+        attempt,
+        completedAt,
+        decision: "rejected-transport-error",
+        startedAt,
+        status: response.status,
+        transportError: {
+          sanitized: true,
+          type: "response-byte-limit-exceeded",
+        },
+      };
+      attempts.push(rejectedAttempt);
+      await emitAttemptDecision(
+        input.evidenceSink,
+        input.generationKey,
+        rejectedAttempt,
+      );
+      throw captureError(
+        "C6 flat-summary response exceeds its frozen byte limit",
         input,
         attempts,
       );
@@ -1014,7 +1236,7 @@ async function callTransport(input: {
       responseBytes,
       input.apiToken,
     )) {
-      attempts.push({
+      const rejectedAttempt: C6FlatSummaryAttemptCapture = {
         attempt,
         completedAt,
         decision: "rejected-transport-error",
@@ -1024,7 +1246,13 @@ async function callTransport(input: {
           sanitized: true,
           type: "authorization-material-detected",
         },
-      });
+      };
+      attempts.push(rejectedAttempt);
+      await emitAttemptDecision(
+        input.evidenceSink,
+        input.generationKey,
+        rejectedAttempt,
+      );
       throw captureError(
         "C6 flat-summary response contains authorization material",
         input,
@@ -1032,6 +1260,21 @@ async function callTransport(input: {
       );
     }
     const rawResponseSha256 = sha256(responseBytes);
+    const rawAttempt: C6FlatSummaryRawAttemptEvidence = {
+      attempt,
+      completedAt,
+      rawResponseBytes: Buffer.from(responseBytes),
+      rawResponseSha256,
+      startedAt,
+      status: response.status,
+    };
+    await input.evidenceSink?.onRawAttempt({
+      attempt: {
+        ...rawAttempt,
+        rawResponseBytes: Buffer.from(rawAttempt.rawResponseBytes),
+      },
+      generationKey: input.generationKey,
+    });
     if (response.status === 200) {
       attempts.push({
         attempt,
@@ -1051,7 +1294,7 @@ async function callTransport(input: {
       };
     }
     if (!TRANSIENT_HTTP_STATUSES.has(response.status)) {
-      attempts.push({
+      const rejectedAttempt: C6FlatSummaryAttemptCapture = {
         attempt,
         completedAt,
         decision: "rejected-non-retryable-status",
@@ -1059,7 +1302,13 @@ async function callTransport(input: {
         rawResponseSha256,
         startedAt,
         status: response.status,
-      });
+      };
+      attempts.push(rejectedAttempt);
+      await emitAttemptDecision(
+        input.evidenceSink,
+        input.generationKey,
+        rejectedAttempt,
+      );
       throw captureError(
         `C6 flat-summary provider returned non-retryable status ${response.status}`,
         input,
@@ -1067,7 +1316,7 @@ async function callTransport(input: {
       );
     }
     if (attempt === MAX_ATTEMPTS) {
-      attempts.push({
+      const rejectedAttempt: C6FlatSummaryAttemptCapture = {
         attempt,
         completedAt,
         decision: "rejected-transient-status-exhausted",
@@ -1075,14 +1324,20 @@ async function callTransport(input: {
         rawResponseSha256,
         startedAt,
         status: response.status,
-      });
+      };
+      attempts.push(rejectedAttempt);
+      await emitAttemptDecision(
+        input.evidenceSink,
+        input.generationKey,
+        rejectedAttempt,
+      );
       throw captureError(
         `C6 flat-summary provider exhausted transient status ${response.status}`,
         input,
         attempts,
       );
     }
-    attempts.push({
+    const retryAttempt: C6FlatSummaryAttemptCapture = {
       attempt,
       completedAt,
       decision: "retry-transient-status",
@@ -1090,36 +1345,53 @@ async function callTransport(input: {
       rawResponseSha256,
       startedAt,
       status: response.status,
-    });
+    };
     try {
       await input.sleep(attempt * 1_000);
     } catch {
-      const latestAttempt = attempts.at(-1)!;
-      latestAttempt.decision = "rejected-retry-delay-error";
-      latestAttempt.transportError = {
+      retryAttempt.decision = "rejected-retry-delay-error";
+      retryAttempt.transportError = {
         sanitized: true,
         type: "retry-delay-threw",
       };
+      attempts.push(retryAttempt);
+      await emitAttemptDecision(
+        input.evidenceSink,
+        input.generationKey,
+        retryAttempt,
+      );
       throw captureError(
         "C6 flat-summary retry delay failed",
         input,
         attempts,
       );
     }
+    attempts.push(retryAttempt);
+    await emitAttemptDecision(
+      input.evidenceSink,
+      input.generationKey,
+      retryAttempt,
+    );
   }
   throw new Error("C6 flat-summary transport failed");
 }
 
-function throwPostTransportRejection(input: {
+async function throwPostTransportRejection(input: {
   attempts: readonly C6FlatSummaryAttemptCapture[];
   decision: C6FlatSummaryPostTransportRejection;
+  evidenceSink?: C6FlatSummaryCaptureEvidenceSink;
   generationKey: string;
   message: string;
   requestSha256: string;
-}): never {
+}): Promise<never> {
   const attempts = finalizeHttp200Attempt(
     input.attempts,
     input.decision,
+  );
+  await emitAttemptDecision(
+    input.evidenceSink,
+    input.generationKey,
+    attempts.at(-1)!,
   );
   throw new C6FlatSummaryCaptureError(
     input.message,
@@ -1129,6 +1401,17 @@ function throwPostTransportRejection(input: {
       attempts,
     ),
   );
+}
+
+async function emitAttemptDecision(
+  evidenceSink: C6FlatSummaryCaptureEvidenceSink | undefined,
+  generationKey: string,
+  attempt: C6FlatSummaryAttemptCapture,
+): Promise<void> {
+  await evidenceSink?.onAttemptDecision({
+    attempt: attemptManifestEntry(attempt),
+    generationKey,
+  });
 }
 
 function finalizeHttp200Attempt(
@@ -1245,10 +1528,10 @@ function assertAttemptChronology(
   }
 }
 
-function normalizeProviderResponse(
+export function normalizeC6FlatSummaryProviderResponse(
   bytes: Uint8Array,
   expectedModel: string,
-): NormalizedProviderResponse {
+): C6FlatSummaryNormalizedProviderResponse {
   let raw: unknown;
   try {
     raw = JSON.parse(decodeUtf8(
@@ -1354,11 +1637,13 @@ function validateProviderEndpoint(
   return C6_GURKIAI_FLAT_SUMMARY_ENDPOINT;
 }
 
-function validateApiToken(value: string): string {
+export function validateC6FlatSummaryApiToken(
+  value: string,
+): string {
   if (
     value.length === 0 ||
     value.trim() !== value ||
-    value.includes("\0")
+    !/^[A-Za-z0-9._~+/=-]+$/u.test(value)
   ) {
     throw new Error(
       "C6 flat-summary authorization token is invalid",
@@ -1381,8 +1666,43 @@ function containsAuthorizationMaterial(
   bytes: Uint8Array,
   apiToken: string,
 ): boolean {
-  return apiToken.length > 0 &&
-    Buffer.from(bytes).includes(Buffer.from(apiToken));
+  if (apiToken.length === 0) {
+    return false;
+  }
+  if (Buffer.from(bytes).includes(Buffer.from(apiToken))) {
+    return true;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+    ) as unknown;
+  } catch {
+    return false;
+  }
+  const pending = [parsed];
+  while (pending.length > 0) {
+    const value = pending.pop();
+    if (
+      typeof value === "string" &&
+      value.includes(apiToken)
+    ) {
+      return true;
+    }
+    if (Array.isArray(value)) {
+      pending.push(...value);
+      continue;
+    }
+    if (isRecord(value)) {
+      for (const [key, entry] of Object.entries(value)) {
+        if (key.includes(apiToken)) {
+          return true;
+        }
+        pending.push(entry);
+      }
+    }
+  }
+  return false;
 }
 
 function timestamp(now: () => Date): string {
@@ -1436,6 +1756,12 @@ function hasExactKeys(
 
 function canonicalBytes(value: unknown): Buffer {
   return Buffer.from(`${canonicalJson(value)}\n`);
+}
+
+export function serializeC6FlatSummaryCanonicalJson(
+  value: unknown,
+): Buffer {
+  return canonicalBytes(value);
 }
 
 function canonicalJson(value: unknown): string {
@@ -1501,6 +1827,27 @@ async function sleepMilliseconds(
   await new Promise<void>((resolvePromise) => {
     setTimeout(resolvePromise, milliseconds);
   });
+}
+
+async function withTransportDeadline<T>(
+  operation: Promise<T>,
+): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timeout = setTimeout(() => {
+      reject(new C6FlatSummaryTransportBoundaryError(
+        "C6 flat-summary transport exceeded its frozen deadline",
+        "request-timeout",
+      ));
+    }, C6_FLAT_SUMMARY_TRANSPORT_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([operation, deadline]);
+  } finally {
+    if (timeout !== undefined) {
+      clearTimeout(timeout);
+    }
+  }
 }
 
 function sha256(value: string | Uint8Array): string {
