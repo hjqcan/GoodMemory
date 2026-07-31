@@ -2,8 +2,12 @@ import { describe, expect, it } from "bun:test";
 
 import {
   buildCoverageCommand,
+  POST_COVERAGE_TEST_TARGETS,
   selectIntegrationCoverageFiles,
 } from "../../scripts/run-coverage";
+import {
+  buildCiPostCoverageCommand,
+} from "../../scripts/run-ci-post-coverage-tests";
 
 describe("run-coverage script", () => {
   it("discovers integration coverage files while excluding child-process and slow evidence tests", () => {
@@ -40,5 +44,31 @@ describe("run-coverage script", () => {
     expect(command.at(-1)).toContain(
       "keeps bm25 hybrid recall over 5k sqlite facts within the hook budget",
     );
+    expect(command.at(-1)).toContain(
+      "captures the exact 356-lookups in two complete passes without authorizing census",
+    );
+    expect(command.at(-1)).toContain(
+      "forwards SIGTERM through the published CLI wrapper",
+    );
+    expect(POST_COVERAGE_TEST_TARGETS).toContain(
+      "tests/unit/codex-coding-effect.c6-source-v3-simple-prior-identity-portable-evidence.test.ts",
+    );
+    expect(POST_COVERAGE_TEST_TARGETS).toContain(
+      "tests/integration/host-mcp-server.standalone.test.ts",
+    );
+  });
+
+  it("builds a post-coverage command from the shared exclusion targets", () => {
+    const command = buildCiPostCoverageCommand();
+
+    expect(command.slice(0, 2)).toEqual(["bun", "test"]);
+    expect(command).toContain(
+      "tests/integration/codex-coding-effect.c6-protocol-readiness.test.ts",
+    );
+    expect(command).toContain("tests/integration/host-mcp-server.standalone.test.ts");
+    expect(command).toContain(
+      "tests/unit/codex-coding-effect.c6-source-v3-simple-prior-identity-draft.test.ts",
+    );
+    expect(command).toContain("tests/release");
   });
 });

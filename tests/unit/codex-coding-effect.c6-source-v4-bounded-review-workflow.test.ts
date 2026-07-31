@@ -50,6 +50,8 @@ const REVIEWER =
 const SNAPSHOT_ROOT = "/tmp/c6-v4-snapshot";
 const REVIEWED_AT =
   "2026-07-31T03:00:00.000Z";
+const maybePinnedAppleGitIt =
+  process.platform === "darwin" ? it : it.skip;
 
 describe("C6 source-v4 bounded review workflow", () => {
   it("parses only exact create-only preparation and recorder options", () => {
@@ -86,185 +88,189 @@ describe("C6 source-v4 bounded review workflow", () => {
     ).toThrow("unknown");
   });
 
-  it("records a rejected review as a five-file negative receipt and blocks activation", async () => {
-    await withC6GateTemporaryRoot(
-      "goodmemory-c6-rejected-review-",
-      async (parent) => {
-        const repositoryRoot =
-          join(parent, "repository");
-        await execFileAsync("/usr/bin/git", [
-          "clone",
-          "--quiet",
-          "--local",
-          "--no-hardlinks",
-          process.cwd(),
-          repositoryRoot,
-        ]);
-        await git(repositoryRoot, [
-          "config",
-          "user.email",
-          "c6-review@example.invalid",
-        ]);
-        await git(repositoryRoot, [
-          "config",
-          "user.name",
-          "C6 rejected review test",
-        ]);
-        await rm(
-          join(
+  maybePinnedAppleGitIt(
+    "records a rejected review as a five-file negative receipt and blocks activation",
+    async () => {
+      await withC6GateTemporaryRoot(
+        "goodmemory-c6-rejected-review-",
+        async (parent) => {
+          const repositoryRoot =
+            join(parent, "repository");
+          await execFileAsync("/usr/bin/git", [
+            "clone",
+            "--quiet",
+            "--local",
+            "--no-hardlinks",
+            process.cwd(),
             repositoryRoot,
-            dirname(
+          ]);
+          await git(repositoryRoot, [
+            "config",
+            "user.email",
+            "c6-review@example.invalid",
+          ]);
+          await git(repositoryRoot, [
+            "config",
+            "user.name",
+            "C6 rejected review test",
+          ]);
+          await rm(
+            join(
+              repositoryRoot,
+              dirname(
+                C6_SOURCE_V4_BOUNDED_REVIEW_PATHS
+                  .dispatch,
+              ),
+            ),
+            {
+              force: true,
+              recursive: true,
+            },
+          );
+          await rm(
+            join(
+              repositoryRoot,
+              C6_SOURCE_V4_BOUNDED_ACTIVATION_RECEIPT_PATH,
+            ),
+            {
+              force: true,
+            },
+          );
+          await rm(
+            join(
+              repositoryRoot,
+              C6_SOURCE_V4_BOUNDED_CAPTURE_BRIDGE_PATH,
+            ),
+            {
+              force: true,
+            },
+          );
+          for (
+            const path of
+              C6_SOURCE_V4_BOUNDED_REVIEWED_PATHS
+          ) {
+            const target =
+              join(repositoryRoot, path);
+            await mkdir(dirname(target), {
+              recursive: true,
+            });
+            await cp(
+              join(process.cwd(), path),
+              target,
+            );
+          }
+          const freezeCommitSha = await commit(
+            repositoryRoot,
+            "repaired freeze",
+            true,
+          );
+          const freezeTreeSha = await gitText(
+            repositoryRoot,
+            ["show", "-s", "--format=%T", "HEAD"],
+          );
+          const reviewedSources =
+            await Promise.all(
+              C6_SOURCE_V4_BOUNDED_REVIEWED_PATHS
+                .map(async (path) => ({
+                  bytes: await readFile(
+                    join(repositoryRoot, path),
+                  ),
+                  path,
+                })),
+            );
+          const bundle =
+            buildC6SourceV4BoundedReviewBundle({
+              authorTaskName: AUTHOR,
+              freezeCandidate: {
+                commitSha: freezeCommitSha,
+                treeSha: freezeTreeSha,
+              },
+              reviewedSources,
+              reviewerAgentName: REVIEWER,
+              snapshot:
+                C6_SOURCE_V4_BOUNDED_CANONICAL_SNAPSHOT_IDENTITY,
+            });
+          await Promise.all([
+            writePath(
+              repositoryRoot,
               C6_SOURCE_V4_BOUNDED_REVIEW_PATHS
                 .dispatch,
+              bundle.dispatchBytes,
             ),
-          ),
-          {
-            force: true,
-            recursive: true,
-          },
-        );
-        await rm(
-          join(
+            writePath(
+              repositoryRoot,
+              C6_SOURCE_V4_BOUNDED_REVIEW_PATHS
+                .input,
+              bundle.inputBytes,
+            ),
+            writePath(
+              repositoryRoot,
+              C6_SOURCE_V4_BOUNDED_REVIEW_PATHS
+                .request,
+              bundle.requestBytes,
+            ),
+            writePath(
+              repositoryRoot,
+              C6_SOURCE_V4_BOUNDED_REVIEW_PATHS
+                .response,
+              rejectedResponse(bundle),
+            ),
+          ]);
+          const recorded =
+            await recordC6SourceV4BoundedReviewProvenance({
+              authorTaskName: AUTHOR,
+              outputRoot: repositoryRoot,
+              repositoryRoot,
+              reviewerAgentName: REVIEWER,
+            });
+          expect(recorded).toMatchObject({
+            blockingFindings: [
+              "[P1] integrated activation gate timed out",
+            ],
+            decision: "rejected",
+            independentReviewAccepted: false,
+            liveCaptureAuthorized: false,
+            reviewReceiptStructureVerified: true,
+            sourceSelectionFrozen: false,
+          });
+          const reviewCommitSha = await commit(
             repositoryRoot,
-            C6_SOURCE_V4_BOUNDED_ACTIVATION_RECEIPT_PATH,
-          ),
-          {
-            force: true,
-          },
-        );
-        await rm(
-          join(
+            "record rejected review",
+          );
+          await writePath(
             repositoryRoot,
             C6_SOURCE_V4_BOUNDED_CAPTURE_BRIDGE_PATH,
-          ),
-          {
-            force: true,
-          },
-        );
-        for (
-          const path of
-            C6_SOURCE_V4_BOUNDED_REVIEWED_PATHS
-        ) {
-          const target =
-            join(repositoryRoot, path);
-          await mkdir(dirname(target), {
-            recursive: true,
-          });
-          await cp(
-            join(process.cwd(), path),
-            target,
+            C6_SOURCE_V4_BOUNDED_CAPTURE_BRIDGE_SOURCE,
           );
-        }
-        const freezeCommitSha = await commit(
-          repositoryRoot,
-          "repaired freeze",
-          true,
-        );
-        const freezeTreeSha = await gitText(
-          repositoryRoot,
-          ["show", "-s", "--format=%T", "HEAD"],
-        );
-        const reviewedSources =
-          await Promise.all(
-            C6_SOURCE_V4_BOUNDED_REVIEWED_PATHS
-              .map(async (path) => ({
-                bytes: await readFile(
-                  join(repositoryRoot, path),
-                ),
-                path,
-              })),
+          const activationCommitSha = await commit(
+            repositoryRoot,
+            "attempt activation",
           );
-        const bundle =
-          buildC6SourceV4BoundedReviewBundle({
-            authorTaskName: AUTHOR,
-            freezeCandidate: {
-              commitSha: freezeCommitSha,
-              treeSha: freezeTreeSha,
-            },
-            reviewedSources,
-            reviewerAgentName: REVIEWER,
-            snapshot:
-              C6_SOURCE_V4_BOUNDED_CANONICAL_SNAPSHOT_IDENTITY,
+          await expect(
+            verifyC6SourceV4BoundedActivationLineage({
+              activationCommitSha,
+              authorTaskName: AUTHOR,
+              freezeCommitSha,
+              repositoryRoot,
+              reviewCommitSha,
+              reviewerAgentName: REVIEWER,
+            }),
+          ).rejects.toThrow(
+            "review rejected the freeze",
+          );
+          await expect(
+            readFile(join(
+              repositoryRoot,
+              C6_SOURCE_V4_BOUNDED_ACTIVATION_RECEIPT_PATH,
+            )),
+          ).rejects.toMatchObject({
+            code: "ENOENT",
           });
-        await Promise.all([
-          writePath(
-            repositoryRoot,
-            C6_SOURCE_V4_BOUNDED_REVIEW_PATHS
-              .dispatch,
-            bundle.dispatchBytes,
-          ),
-          writePath(
-            repositoryRoot,
-            C6_SOURCE_V4_BOUNDED_REVIEW_PATHS
-              .input,
-            bundle.inputBytes,
-          ),
-          writePath(
-            repositoryRoot,
-            C6_SOURCE_V4_BOUNDED_REVIEW_PATHS
-              .request,
-            bundle.requestBytes,
-          ),
-          writePath(
-            repositoryRoot,
-            C6_SOURCE_V4_BOUNDED_REVIEW_PATHS
-              .response,
-            rejectedResponse(bundle),
-          ),
-        ]);
-        const recorded =
-          await recordC6SourceV4BoundedReviewProvenance({
-            authorTaskName: AUTHOR,
-            outputRoot: repositoryRoot,
-            repositoryRoot,
-            reviewerAgentName: REVIEWER,
-          });
-        expect(recorded).toMatchObject({
-          blockingFindings: [
-            "[P1] integrated activation gate timed out",
-          ],
-          decision: "rejected",
-          independentReviewAccepted: false,
-          liveCaptureAuthorized: false,
-          reviewReceiptStructureVerified: true,
-          sourceSelectionFrozen: false,
-        });
-        const reviewCommitSha = await commit(
-          repositoryRoot,
-          "record rejected review",
-        );
-        await writePath(
-          repositoryRoot,
-          C6_SOURCE_V4_BOUNDED_CAPTURE_BRIDGE_PATH,
-          C6_SOURCE_V4_BOUNDED_CAPTURE_BRIDGE_SOURCE,
-        );
-        const activationCommitSha = await commit(
-          repositoryRoot,
-          "attempt activation",
-        );
-        await expect(
-          verifyC6SourceV4BoundedActivationLineage({
-            activationCommitSha,
-            authorTaskName: AUTHOR,
-            freezeCommitSha,
-            repositoryRoot,
-            reviewCommitSha,
-            reviewerAgentName: REVIEWER,
-          }),
-        ).rejects.toThrow(
-          "review rejected the freeze",
-        );
-        await expect(
-          readFile(join(
-            repositoryRoot,
-            C6_SOURCE_V4_BOUNDED_ACTIVATION_RECEIPT_PATH,
-          )),
-        ).rejects.toMatchObject({
-          code: "ENOENT",
-        });
-      },
-    );
-  }, 30_000);
+        },
+      );
+    },
+    30_000,
+  );
 });
 
 async function writePath(

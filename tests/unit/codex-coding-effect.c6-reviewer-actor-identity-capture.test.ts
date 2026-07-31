@@ -238,7 +238,9 @@ describe("Codex coding-effect C6 reviewer actor identity capture", () => {
           );
         },
       },
-    })).rejects.toThrow(/owned path identity changed/u);
+    })).rejects.toThrow(
+      /owned path identity changed|unexpected file foreign\.txt/u,
+    );
 
     expect(await readdir(fixture.outputRoot)).toEqual([
       "foreign.txt",

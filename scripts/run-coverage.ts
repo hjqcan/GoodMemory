@@ -6,11 +6,31 @@ const EXCLUDED_INTEGRATION_COVERAGE_FILES = new Set([
   "codex-coding-effect.c6-protocol-readiness.test.ts",
   "python-http-bridge.test.ts",
 ]);
+export const POST_COVERAGE_TEST_TARGETS = [
+  "tests/integration/codex-coding-effect.c6-protocol-readiness.test.ts",
+  "tests/integration/host-mcp-server.standalone.test.ts",
+  "tests/integration/python-http-bridge.test.ts",
+  "tests/unit/codex-coding-effect.c6-source-v3-simple-prior-identity-draft.test.ts",
+  "tests/unit/codex-coding-effect.c6-source-v3-simple-prior-identity-portable-evidence.test.ts",
+  "tests/unit/codex-coding-effect.c6-source-v3-simple-prior-identity-replay.test.ts",
+  "tests/unit/codex-coding-effect.c6-wave3-prior-repository-identity-plan.test.ts",
+  "tests/unit/prepare-phase74-protection-plan.test.ts",
+  "tests/cli",
+  "tests/release",
+] as const;
 const EXCLUDED_COVERAGE_TEST_NAMES = [
   "anchors generated Codex exports",
   "generated Codex pre-tool-use hook",
   "generated Codex action gate",
   "keeps bm25 hybrid recall over 5k sqlite facts within the hook budget",
+  "captures the exact 356-lookups in two complete passes without authorizing census",
+  "derives alias-deduplicated node counts from both captures",
+  "enforces successful GitHub header syntax and rate-limit projection",
+  "forwards SIGTERM through the published CLI wrapper",
+  "materializes create-only reproducible archives and replays without source roots",
+  "rejects archive drift, extra assets, escape paths, links, receipt mutation, and authority claims",
+  "rejects fake locks, reference drift, and incomplete asset closures",
+  "writes and reloads one manifest-bound schema-v4 five-suite matrix",
 ] as const;
 
 export function selectIntegrationCoverageFiles(fileNames: string[]): string[] {

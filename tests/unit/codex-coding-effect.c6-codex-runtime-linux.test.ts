@@ -214,7 +214,7 @@ describe("Codex coding-effect C6 Codex Linux runtime materializer", () => {
           "frozen-runner-receipt-structure-only",
         runCount: 2,
       });
-      expect(await readdir(fixture.input.outputRoot)).toEqual([
+      expect((await readdir(fixture.input.outputRoot)).sort()).toEqual([
         "artifacts",
         "receipt.json",
       ]);

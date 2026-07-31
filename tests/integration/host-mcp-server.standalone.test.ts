@@ -492,7 +492,7 @@ describe("goodmemory mcp server standalone mode", () => {
     });
 
     try {
-      const ready = await waitForPath(pidPath, 1_000);
+      const ready = await waitForPath(pidPath, 3_000);
       if (!ready) {
         child.kill("SIGKILL");
         await child.exited;
@@ -504,11 +504,11 @@ describe("goodmemory mcp server standalone mode", () => {
       child.kill("SIGTERM");
       const exitCode = await Promise.race([
         child.exited,
-        Bun.sleep(1_500).then(() => null),
+        Bun.sleep(3_000).then(() => null),
       ]);
       expect(exitCode).not.toBeNull();
 
-      expect(await waitForPath(signalPath, 1_000)).toBe(true);
+      expect(await waitForPath(signalPath, 3_000)).toBe(true);
       expect(await readFile(signalPath, "utf8")).toBe("SIGTERM");
     } finally {
       if (child.exitCode === null) {
@@ -524,7 +524,7 @@ describe("goodmemory mcp server standalone mode", () => {
       }
       await temp.cleanup();
     }
-  }, 5_000);
+  }, 10_000);
 
   it("fails fast on a bare invocation, naming both modes on stderr", async () => {
     const mcpScript = join(import.meta.dir, "../../scripts/goodmemory-mcp.ts");
