@@ -128,11 +128,16 @@ cutover, and rollback contracts.
   with `nothing to commit`. Its direct negative-review child is
   `06044f11ddb0eafcb59be913199afa37fcdcb7bd`; it grants no authority.
   Commit `a8ca1e3209f6b8beb292348ce7da188a839092fb` repairs the committed-HEAD
-  fixture and archives the exact v2 negative receipt. The one-parent commit
-  containing this checkpoint is the next source-freeze candidate, but it still
-  needs a new fresh independent review. This establishes only
-  `selectionMaterialized: true`; accepted review/freeze, live capture,
-  episode-edge construction, relationship qualification, and the independent
+  fixture and archives the exact v2 negative receipt. The resulting freeze
+  `476347acc257ec599f19ff86aa5c7f48a896ab03` received a new
+  fork-without-history review and passed all eight checks. Its direct accepted
+  review, bridge-only activation, and receipt-only publication commits are
+  `d20675814ca1157b154a9b4c2af79362502d110e`,
+  `11e619f3c0516f118f5a835dd48a21046082ddf1`, and
+  `9cadc426c28ab1f883434078e8c0870affe61df1`. Publication verification now
+  records `sourceSelectionFrozen: true` with an unconsumed capture target.
+  This closes source review/publication only; live capture, episode-edge
+  construction, relationship qualification, and the independent
   power/precision allocation artifact remain open gates.
   The adjacent-edge preflight is now executable: source-record v5 binds two
   chronology/ancestry receipts per three-stage episode, task-origin review v5
@@ -1309,9 +1314,31 @@ cutover, and rollback contracts.
   committed state, the reviewer's exact unit slice passes 41/41 with 170
   assertions, the broader v4/liveness slice passes 46/46 with 199 assertions,
   and typecheck passes.
-  Those are author-side repair results, not independent acceptance. The
-  one-parent commit containing this checkpoint is the new clean freeze
-  candidate and still requires another fresh fork-without-history reviewer.
+  A different fresh reviewer then accepted freeze
+  `476347acc257ec599f19ff86aa5c7f48a896ab03`, tree
+  `a134a14892be1acc4f5c22813edf1619be771515`, after independently matching
+  all 74 reviewed paths and the complete snapshot/selection closure. Its
+  reviewed unit slice passed 41/41 with 170 assertions, real snapshot mutation
+  passed 5/5 with 21 assertions in 83.61 seconds, integrated topology/mutation
+  passed 1/1 with 26 assertions in 303.29 seconds, liveness and historical
+  preflight passed, and pinned-Bun typecheck passed. The accepted response
+  SHA-256 is
+  `49ad96a6c1b50d2532439f99f17220376343d6ad1f1ee158876f6b684f147dfa`;
+  provenance SHA-256 is
+  `6a31d36a1cb37295864a92e6a37404253c8d70b433142b38b10a3cd9224acc53`.
+  Direct child `d20675814ca1157b154a9b4c2af79362502d110e` adds exactly the
+  five accepted review artifacts. Direct child
+  `11e619f3c0516f118f5a835dd48a21046082ddf1` adds only the exact
+  687-byte bridge, and direct child
+  `9cadc426c28ab1f883434078e8c0870affe61df1` adds only the activation
+  receipt. Receipt SHA-256 is
+  `9a33926467e01d351d84196a7aeecf23a20ae2ca5930b7cb77c9980afc788455`.
+  Read-only publication verification reports
+  `independentReviewAccepted: true`, `sourceSelectionFrozen: true`, and
+  capture state `unconsumed`; the durable receipt deliberately retains
+  `liveCaptureAuthorized: false`, `candidateManifestFrozen: false`, and
+  `codexRunReady: false`. The dedicated GitHub token is not present in the
+  current host environment, so the one irreversible capture has not started.
   The one-shot scope is
   the canonical published `P` and its bound host-local target; it is not a
   cryptographic global lock against an author creating a different publication
@@ -1327,10 +1354,11 @@ cutover, and rollback contracts.
   neither a successful repository regression gate nor evidence that the v2
   source protocol failed; the frozen review uses its exact pinned gates and
   isolated typecheck instead.
-  This proves `selectionMaterialized: true` only. Accepted independent review,
-  source-selection freeze, and live capture authority remain false. No frozen
-  391-episode dataset, authenticated summary corpus, 10,557-call execution,
-  frozen statistical report, C7 gate, or Codex run exists.
+  This proves materialized selection plus accepted review/publication and
+  `sourceSelectionFrozen: true`. The capture is still unconsumed, and no
+  durable artifact claims live authority. No frozen 391-episode dataset,
+  authenticated summary corpus, 10,557-call execution, frozen statistical
+  report, C7 gate, or Codex run exists.
   After synchronizing the frozen controlled-mutation asset reader and
   rematerializing its receipt in the exact pinned Linux/amd64 image, the
   canonical repository suite passes 5938 tests with 17 skips, 0 failures,

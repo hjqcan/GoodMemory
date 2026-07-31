@@ -1618,15 +1618,35 @@ No `A`, `P`, or capture authority follows it.
 freeze explicitly allow an identical tree and removes the canonical review
 paths after archiving the negative receipt. At that committed state, the
 reviewer's exact unit slice passes 41/41 with 170 assertions, the broader
-v4/liveness slice passes 46/46 with 199 assertions, and typecheck passes. The
-one-parent commit containing this checkpoint is the next clean freeze
-candidate; these author-side results are not independent acceptance.
-[BOUNDARY] No accepted reviewed `R`, activation `A`, publication `P`,
-accepting independent response, GitHub capture, or offline double replay
-exists. The next clean freeze candidate still requires a fresh independent
-review. The one-shot identity is the canonical published `P` plus its
-host-local target, not a cryptographic global lock against another
-author-created publication fork.
+v4/liveness slice passes 46/46 with 199 assertions, and typecheck passes.
+Those author-side results were not independent acceptance; the following
+fresh review supplies the separate decision.
+[ACCEPTED/SOURCE FREEZE] Fresh reviewer
+`/root/c6_source_v4_bounded_review_v2_f3` accepted freeze
+`476347acc257ec599f19ff86aa5c7f48a896ab03`, tree
+`a134a14892be1acc4f5c22813edf1619be771515`, after matching all 74 paths.
+Reviewed units pass 41/41 with 170 assertions; snapshot mutation passes 5/5
+with 21 assertions in 83.61 seconds; integrated topology/mutation passes 1/1
+with 26 assertions in 303.29 seconds; liveness, historical preflight, and
+typecheck pass. Accepted response SHA-256 is
+`49ad96a6c1b50d2532439f99f17220376343d6ad1f1ee158876f6b684f147dfa`.
+[ACCEPTED/F-R-A-P] Direct child
+`d20675814ca1157b154a9b4c2af79362502d110e` adds exactly five accepted
+review artifacts; provenance SHA-256 is
+`6a31d36a1cb37295864a92e6a37404253c8d70b433142b38b10a3cd9224acc53`.
+Direct child `11e619f3c0516f118f5a835dd48a21046082ddf1` adds only the exact
+687-byte bridge. Direct child
+`9cadc426c28ab1f883434078e8c0870affe61df1` adds only the activation
+receipt, SHA-256
+`9a33926467e01d351d84196a7aeecf23a20ae2ca5930b7cb77c9980afc788455`.
+Read-only publication verification records `independentReviewAccepted: true`,
+`sourceSelectionFrozen: true`, and `captureState.status: unconsumed`.
+[BOUNDARY] The durable receipt still records `liveCaptureAuthorized: false`,
+`candidateManifestFrozen: false`, and `codexRunReady: false`. The dedicated
+GitHub token is absent from the current host environment, so no claim, live
+request, capture asset lock, or offline double replay exists. The one-shot
+identity is the canonical published `P` plus its host-local target, not a
+cryptographic global lock against another author-created publication fork.
 Every later capture/dataset/report must pin the single canonical `P`.
 The clean worker closes mutable in-process transport substitution; unsigned
 GitHub API responses still are not cryptographic third-party attestations.

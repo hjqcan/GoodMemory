@@ -4167,8 +4167,38 @@ the canonical review paths after archiving the negative receipt. On that
 committed state, the reviewer's exact unit slice passes 41/41 with 170
 assertions, the broader v4/liveness unit slice passes 46/46 with 199
 assertions, and typecheck passes. These are repair evidence, not independent
-acceptance. The one-parent commit containing this checkpoint is the new clean
-`F` candidate; a different fresh reviewer must review that exact commit.
+acceptance.
+
+A different fresh reviewer then accepted freeze
+`476347acc257ec599f19ff86aa5c7f48a896ab03`, tree
+`a134a14892be1acc4f5c22813edf1619be771515`, after matching all 74 source
+paths, the complete selection/snapshot closure, and every required check. Its
+reviewed unit slice passed 41/41 with 170 assertions; snapshot mutation passed
+5/5 with 21 assertions in 83.61 seconds; integrated topology/mutation passed
+1/1 with 26 assertions in 303.29 seconds; liveness, historical preflight, and
+pinned-Bun typecheck passed. The accepted response SHA-256 is
+`49ad96a6c1b50d2532439f99f17220376343d6ad1f1ee158876f6b684f147dfa`.
+
+The exact accepted chain is:
+
+1. `F = 476347acc257ec599f19ff86aa5c7f48a896ab03`;
+2. direct child `R = d20675814ca1157b154a9b4c2af79362502d110e` adds exactly five
+   review artifacts, with provenance SHA-256
+   `6a31d36a1cb37295864a92e6a37404253c8d70b433142b38b10a3cd9224acc53`;
+3. direct child `A = 11e619f3c0516f118f5a835dd48a21046082ddf1` adds only the exact
+   687-byte bridge;
+4. direct child `P = 9cadc426c28ab1f883434078e8c0870affe61df1` adds only the
+   activation receipt, SHA-256
+   `9a33926467e01d351d84196a7aeecf23a20ae2ca5930b7cb77c9980afc788455`.
+
+Read-only publication verification reports
+`independentReviewAccepted: true`, `sourceSelectionFrozen: true`, and
+`captureState.status: unconsumed`. The durable receipt still records
+`liveCaptureAuthorized: false`, `candidateManifestFrozen: false`, and
+`codexRunReady: false`; one opaque in-process capability is derived only after
+fresh publication/runtime checks. The dedicated GitHub token is absent from
+the current host environment, so no capture claim, request, network call, or
+offline replay has started.
 
 The published receipt binds one canonical `P` and an absolute host-local
 capture target. Replaying that exact receipt in another checkout fails because
@@ -4193,12 +4223,10 @@ preflight gate. This preserves shallow/default unit portability without
 weakening the runtime-bound proof.
 
 The first two source-freeze candidates were independently rejected, and their
-negative receipts grant no authority. No accepted reviewed `R`, activation
-`A`, publication `P`, live source-v4 capture, offline double replay, or
-capture asset lock exists yet. The repaired freeze candidate is the one-parent
-commit containing this checkpoint; a fresh independent response is the next
-readiness-ladder action. Selection materialization alone still
-leaves accepted episodes at zero and all C6 run/claim flags false.
+negative receipts grant no authority. The third freeze has an accepted
+`F -> R -> A -> P` chain, but the live source-v4 capture, offline double
+replay, and capture asset lock do not exist yet. Accepted episodes remain zero;
+`candidateManifestFrozen` and `codexRunReady` remain false.
 
 None of those rows is a three-stage memory episode by itself. Before an
 upstream row can enter C6, intake must pin dataset revision/path/file hash/row
