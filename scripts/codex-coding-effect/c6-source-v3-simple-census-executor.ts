@@ -51,6 +51,8 @@ const SELECTED_RESPONSE_HEADERS = new Set<string>(
   CENSUS_EXECUTION_CONTRACT
     .transport.selectedResponseHeaders,
 );
+const DEFAULT_MAXIMUM_RESPONSE_BODY_BYTES =
+  64 * 1_024 * 1_024;
 
 export type C6SourceV3SimpleFetch = (
   input: string | URL | Request,
@@ -103,9 +105,13 @@ export async function executeC6SourceV3SimpleLogicalRequest(
     fetchImpl?: C6SourceV3SimpleFetch;
     localOnly?: boolean;
     logicalRequestOrdinal: number;
+    maximumResponseBodyBytes?: number;
     now?: () => number;
     pass: "A" | "B";
     passRoot: string;
+    prepareDispatch?: () => Promise<{
+      maximumResponseBodyBytes: number;
+    }>;
     priorLogicalRequestCompletionSha256: string;
     request: C6SourceV3SimpleDurableGraphqlRequest;
     requestTimeoutMilliseconds?: number;
@@ -126,6 +132,11 @@ export async function executeC6SourceV3SimpleLogicalRequest(
   replayedExistingResult: boolean;
 }> {
   assertPassRoot(input.assetRoot, input.passRoot);
+  const maximumResponseBodyBytes =
+    assertMaximumResponseBodyBytes(
+      input.maximumResponseBodyBytes ??
+        DEFAULT_MAXIMUM_RESPONSE_BODY_BYTES,
+    );
   const now = input.now ?? Date.now;
   const waitUntil = input.waitUntil ??
     defaultWaitUntil;
@@ -258,6 +269,14 @@ export async function executeC6SourceV3SimpleLogicalRequest(
       context,
     );
     if (state.kind === "not-started") {
+      const dispatchMaximumResponseBodyBytes =
+        input.prepareDispatch === undefined
+          ? maximumResponseBodyBytes
+          : assertMaximumResponseBodyBytes(
+              (
+                await input.prepareDispatch()
+              ).maximumResponseBodyBytes,
+            );
       const prepared =
         await prepareC6SourceV3SimpleAttempt({
           context,
@@ -269,6 +288,8 @@ export async function executeC6SourceV3SimpleLogicalRequest(
           authorizationToken: token,
           context,
           fetchImpl: input.fetchImpl ?? fetch,
+          maximumResponseBodyBytes:
+            dispatchMaximumResponseBodyBytes,
           now,
           request: input.request,
           requestCommitted:
@@ -407,6 +428,20 @@ export async function executeC6SourceV3SimpleLogicalRequest(
   );
 }
 
+function assertMaximumResponseBodyBytes(
+  value: number,
+): number {
+  if (
+    !Number.isSafeInteger(value) ||
+    value <= 0
+  ) {
+    throw new Error(
+      "C6 source-v3-simple maximum response body bytes must be a positive safe integer",
+    );
+  }
+  return value;
+}
+
 function assertPassRoot(
   assetRootInput: string,
   passRootInput: string,
@@ -431,6 +466,7 @@ async function dispatchAttempt(
     authorizationToken: Uint8Array;
     context: C6SourceV3SimpleAttemptContext;
     fetchImpl: C6SourceV3SimpleFetch;
+    maximumResponseBodyBytes: number;
     now: () => number;
     request: C6SourceV3SimpleDurableGraphqlRequest;
     requestCommitted:
@@ -438,92 +474,158 @@ async function dispatchAttempt(
     requestTimeoutMilliseconds: number;
   },
 ): Promise<void> {
-  const token = decodeToken(input.authorizationToken);
+  const dispatchToken = Uint8Array.from(
+    input.authorizationToken,
+  );
+  const token = decodeToken(dispatchToken);
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(),
     input.requestTimeoutMilliseconds,
   );
   timeout.unref?.();
-  let response: Response;
   try {
-    response = await input.fetchImpl(
-      input.request.persistedRequest.endpoint,
-      {
-        body: Uint8Array.from(
-          input.request.body,
-        ).buffer,
-        headers: {
-          ...input.request.persistedRequest.headers,
-          authorization: `Bearer ${token}`,
-        },
-        method: "POST",
-        redirect: "error",
-        signal: controller.signal,
-      },
-    );
-  } catch (error) {
-    clearTimeout(timeout);
-    await recordC6SourceV3SimpleTransportError({
-      code: controller.signal.aborted
-        ? "C6_REQUEST_TIMEOUT"
-        : errorCode(error),
-      context: input.context,
-      message: controller.signal.aborted
-        ? "request timeout"
-        : "network dispatch failed",
-      name: errorName(error),
-      occurredAt: timestamp(input.now()),
-      phase: controller.signal.aborted
-        ? "timeout"
-        : "fetch",
-      requestCommitted: input.requestCommitted,
-      secret: input.authorizationToken,
-    });
-    return;
-  }
-  const headers: Record<string, string> = {};
-  response.headers.forEach((value, name) => {
-    if (SELECTED_RESPONSE_HEADERS.has(name)) {
-      headers[name] = value;
-    }
-  });
-  let responseStarted:
-    Awaited<
-      ReturnType<
-        typeof recordC6SourceV3SimpleResponseStarted
-      >
-    >;
-  let body: Uint8Array;
-  try {
-    responseStarted =
-      await recordC6SourceV3SimpleResponseStarted({
-      context: input.context,
-      headers,
-      httpStatus: response.status,
-      receivedAt: timestamp(input.now()),
-      requestCommitted: input.requestCommitted,
-      secret: input.authorizationToken,
-    });
+    let response: Response;
     try {
-      body = new Uint8Array(
-        await response.arrayBuffer(),
+      response = await input.fetchImpl(
+        input.request.persistedRequest.endpoint,
+        {
+          body: Uint8Array.from(
+            input.request.body,
+          ).buffer,
+          headers: {
+            ...input.request.persistedRequest.headers,
+            authorization: `Bearer ${token}`,
+          },
+          method: "POST",
+          redirect: "error",
+          signal: controller.signal,
+        },
       );
+    } catch (error) {
+      await recordC6SourceV3SimpleTransportError({
+        code: controller.signal.aborted
+          ? "C6_REQUEST_TIMEOUT"
+          : errorCode(error),
+        context: input.context,
+        message: controller.signal.aborted
+          ? "request timeout"
+          : "network dispatch failed",
+        name: errorName(error),
+        occurredAt: timestamp(input.now()),
+        phase: controller.signal.aborted
+          ? "timeout"
+          : "fetch",
+        requestCommitted:
+          input.requestCommitted,
+        secret: dispatchToken,
+      });
+      return;
+    }
+    const headers: Record<string, string> = {};
+    response.headers.forEach((value, name) => {
+      if (SELECTED_RESPONSE_HEADERS.has(name)) {
+        headers[name] = value;
+      }
+    });
+    const responseStarted =
+      await recordC6SourceV3SimpleResponseStarted({
+        context: input.context,
+        headers,
+        httpStatus: response.status,
+        receivedAt: timestamp(input.now()),
+        requestCommitted:
+          input.requestCommitted,
+        secret: dispatchToken,
+      });
+    let body: Uint8Array;
+    try {
+      body = await readBoundedResponseBody({
+        maximumBytes:
+          input.maximumResponseBodyBytes,
+        response,
+      });
     } catch {
       throw new C6SourceV3SimplePartialResponseError(
         responseStarted.responseStarted,
       );
     }
+    await recordC6SourceV3SimpleResponseComplete({
+      body,
+      context: input.context,
+      responseStarted:
+        responseStarted.responseStarted,
+      secret: dispatchToken,
+    });
   } finally {
     clearTimeout(timeout);
+    dispatchToken.fill(0);
   }
-  await recordC6SourceV3SimpleResponseComplete({
-    body,
-    context: input.context,
-    responseStarted:
-      responseStarted.responseStarted,
-    secret: input.authorizationToken,
-  });
+}
+
+async function readBoundedResponseBody(
+  input: {
+    maximumBytes: number;
+    response: Response;
+  },
+): Promise<Uint8Array> {
+  const declaredLength =
+    input.response.headers.get(
+      "content-length",
+    );
+  if (
+    declaredLength !== null &&
+    /^\d+$/u.test(declaredLength) &&
+    Number(declaredLength) >
+      input.maximumBytes
+  ) {
+    void input.response.body
+      ?.cancel()
+      .catch(() => undefined);
+    throw new Error(
+      "C6 source-v3-simple response body exceeds byte limit",
+    );
+  }
+  if (input.response.body === null) {
+    return new Uint8Array();
+  }
+  const reader =
+    input.response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } =
+        await reader.read();
+      if (done) {
+        break;
+      }
+      totalBytes += value.byteLength;
+      if (
+        totalBytes >
+          input.maximumBytes
+      ) {
+        void reader
+          .cancel(
+            "C6 source-v3-simple response body exceeds byte limit",
+          )
+          .catch(() => undefined);
+        throw new Error(
+          "C6 source-v3-simple response body exceeds byte limit",
+        );
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const body = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return body;
 }
 
 async function existingProjectedResultExists(

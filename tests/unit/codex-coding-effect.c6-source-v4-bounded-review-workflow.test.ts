@@ -4,6 +4,7 @@ import {
   cp,
   mkdir,
   readFile,
+  rm,
   writeFile,
 } from "node:fs/promises";
 import {
@@ -109,6 +110,37 @@ describe("C6 source-v4 bounded review workflow", () => {
           "user.name",
           "C6 rejected review test",
         ]);
+        await rm(
+          join(
+            repositoryRoot,
+            dirname(
+              C6_SOURCE_V4_BOUNDED_REVIEW_PATHS
+                .dispatch,
+            ),
+          ),
+          {
+            force: true,
+            recursive: true,
+          },
+        );
+        await rm(
+          join(
+            repositoryRoot,
+            C6_SOURCE_V4_BOUNDED_ACTIVATION_RECEIPT_PATH,
+          ),
+          {
+            force: true,
+          },
+        );
+        await rm(
+          join(
+            repositoryRoot,
+            C6_SOURCE_V4_BOUNDED_CAPTURE_BRIDGE_PATH,
+          ),
+          {
+            force: true,
+          },
+        );
         for (
           const path of
             C6_SOURCE_V4_BOUNDED_REVIEWED_PATHS

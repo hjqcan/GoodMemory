@@ -29,6 +29,7 @@ import {
   verifyC6SourceV4BoundedActivationLineage,
   verifyC6SourceV4BoundedActivationEvidence,
   verifyC6SourceV4BoundedActivationReceipt,
+  verifyC6SourceV4BoundedResumeAuthorization,
 } from "../../../scripts/codex-coding-effect/c6-source-v4-bounded-activation";
 import {
   buildC6AssetLock,
@@ -62,6 +63,7 @@ const REVIEWER =
   "/root/c6_source_v4_bounded_review_v2";
 const REVIEWED_AT =
   "2026-07-27T23:00:00.000Z";
+const GATE_STARTED_AT = Date.now();
 const SNAPSHOT_ROOT =
   process.env
     .GOODMEMORY_TEST_C6_SOURCE_V4_BOUNDED_SNAPSHOT_ROOT
@@ -78,6 +80,7 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
       async (parent) => {
     const fixture =
       await createFreezeFixture(parent);
+    gateProgress("freeze-fixture-created");
     const prepared =
       await prepareC6SourceV4BoundedReview({
         authorTaskName: AUTHOR,
@@ -203,6 +206,7 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
           fixture.repositoryRoot,
         snapshotRoot: SNAPSHOT_ROOT,
       });
+    gateProgress("one-shot-authority-verified");
 
     expect(authorization.boundary).toEqual({
       candidateManifestFrozen: false,
@@ -368,6 +372,31 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
         authorization,
         captureRoot,
       });
+    const claimBytesBeforeResume =
+      await readFile(
+        join(captureRoot, "capture-claim.json"),
+      );
+    const resumeAuthorization =
+      await verifyC6SourceV4BoundedResumeAuthorization({
+        publicationCommitSha,
+        repositoryRoot:
+          fixture.repositoryRoot,
+        snapshotRoot: SNAPSHOT_ROOT,
+      });
+    await expect(
+      claimC6SourceV4BoundedCapture({
+        authorization:
+          resumeAuthorization,
+        captureRoot,
+      }),
+    ).rejects.toThrow(
+      "resume authority cannot create a capture claim",
+    );
+    expect(
+      await readFile(
+        join(captureRoot, "capture-claim.json"),
+      ),
+    ).toEqual(claimBytesBeforeResume);
     await sealC6SourceV4BoundedFailedCapture({
       captureRoot: failedClaim.captureRoot,
       errorIdentity: {
@@ -376,14 +405,14 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
         ),
         name: "Error",
       },
-      finalLogicalRequestCompletionSha256:
-        "0".repeat(64),
-      logicalRequestCount: 0,
+      failureStage:
+        "before-next-dispatch",
       publicationCommitSha,
       receiptSha256:
         authorization.receiptSha256,
       snapshot: authorization.snapshot,
     });
+    gateProgress("failure-capture-sealed");
     expect(
       JSON.parse(
         await readFile(
@@ -420,7 +449,21 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
         ),
       ),
     ).toMatchObject({
-      logicalRequestCount: 0,
+      durableLedger: {
+        committedRequestAttemptCount: 0,
+        completedLogicalRequestCount: 0,
+        finalLogicalRequestCompletion:
+          null,
+        inProgressChainTip: null,
+        inProgressLogicalRequestOrdinal:
+          null,
+        logicalRequestDirectoryCount: 0,
+        passAssetRootSha256: null,
+        passStructureSha256: null,
+      },
+      failureStage:
+        "before-next-dispatch",
+      schemaVersion: 2,
       status:
         "permanently-abandoned-no-retry-redraw-or-top-up",
     });
@@ -439,6 +482,16 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
           fixture.repositoryRoot,
         snapshotRoot: SNAPSHOT_ROOT,
       });
+    await expect(
+      verifyC6SourceV4BoundedResumeAuthorization({
+        publicationCommitSha,
+        repositoryRoot:
+          fixture.repositoryRoot,
+        snapshotRoot: SNAPSHOT_ROOT,
+      }),
+    ).rejects.toThrow(
+      "resume requires a claimed capture without terminal or asset lock",
+    );
     expect(
       historicalEvidence.captureState,
     ).toEqual({
@@ -596,6 +649,39 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
     ).rejects.toThrow(
       "capture terminal lineage mismatch",
     );
+    const originalDurableLedger =
+      originalFailureTerminal
+        .durableLedger as Record<
+          string,
+          unknown
+        >;
+    await writeFile(
+      failureTerminalPath,
+      canonicalJson({
+        ...originalFailureTerminal,
+        durableLedger: {
+          ...originalDurableLedger,
+          committedRequestClosureSha256:
+            "0".repeat(64),
+        },
+      }),
+    );
+    await writeFile(
+      assetLockPath,
+      serializeC6AssetLock(
+        await buildC6AssetLock(captureRoot),
+      ),
+    );
+    await expect(
+      verifyC6SourceV4BoundedActivationEvidence({
+        publicationCommitSha,
+        repositoryRoot:
+          fixture.repositoryRoot,
+        snapshotRoot: SNAPSHOT_ROOT,
+      }),
+    ).rejects.toThrow(
+      "failure durable ledger closure mismatch",
+    );
     await Promise.all([
       writeFile(
         failureTerminalPath,
@@ -606,6 +692,7 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
         originalAssetLockBytes,
       ),
     ]);
+    gateProgress("failure-mutations-complete");
 
     const capturePlan =
       buildC6SourceV4BoundedCapturePlan(
@@ -647,6 +734,57 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
     };
     const forgedProjectionBytes =
       canonicalJson(forgedProjection);
+    const forgedNormalizedReference = {
+      bytes: Buffer.byteLength(
+        forgedProjectionBytes,
+      ),
+      path: "normalized-capture.json",
+      sha256: sha256(
+        forgedProjectionBytes,
+      ),
+    };
+    const forgedReplayReceiptValues =
+      [1, 2].map((replayOrdinal) => ({
+        artifactKind:
+          "c6-source-v4-bounded-local-replay-receipt",
+        committedRequestClosureSha256:
+          "e".repeat(64),
+        finalLogicalRequestCompletionSha256:
+          "f".repeat(64),
+        logicalRequestCount:
+          forgedClosures.length,
+        networkPermitted: false,
+        normalizedCapture:
+          forgedNormalizedReference,
+        passStructureSha256:
+          "d".repeat(64),
+        projectionSha256:
+          forgedProjection.projectionSha256,
+        receiptSha256:
+          authorization.receiptSha256,
+        replayOrdinal,
+        schemaVersion: 1,
+      }));
+    const forgedReplayReceiptBytes =
+      forgedReplayReceiptValues.map(
+        canonicalJson,
+      );
+    const forgedReplayReceiptPaths = [
+      "local-replay-receipt-01.json",
+      "local-replay-receipt-02.json",
+    ];
+    const forgedReplayReceiptReferences =
+      forgedReplayReceiptPaths.map(
+        (path, index) => ({
+          bytes: Buffer.byteLength(
+            forgedReplayReceiptBytes[index]!,
+          ),
+          path,
+          sha256: sha256(
+            forgedReplayReceiptBytes[index]!,
+          ),
+        }),
+      );
     await Promise.all([
       rm(assetLockPath),
       rm(failureTerminalPath),
@@ -657,6 +795,15 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
         "normalized-capture.json",
       ),
       forgedProjectionBytes,
+    );
+    await Promise.all(
+      forgedReplayReceiptPaths.map(
+        async (path, index) =>
+          await writeFile(
+            join(captureRoot, path),
+            forgedReplayReceiptBytes[index]!,
+          ),
+      ),
     );
     await writeFile(
       join(
@@ -671,15 +818,10 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
           "f".repeat(64),
         logicalRequestCount:
           forgedClosures.length,
-        normalizedCapture: {
-          bytes: Buffer.byteLength(
-            forgedProjectionBytes,
-          ),
-          path: "normalized-capture.json",
-          sha256: sha256(
-            forgedProjectionBytes,
-          ),
-        },
+        localReplayReceipts:
+          forgedReplayReceiptReferences,
+        normalizedCapture:
+          forgedNormalizedReference,
         projectionSha256:
           forgedProjection.projectionSha256,
         receiptSha256:
@@ -700,6 +842,7 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
     ).rejects.toThrow(
       "durable ledger",
     );
+    gateProgress("forged-success-rejected");
     await Promise.all([
       rm(
         join(
@@ -712,6 +855,10 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
           captureRoot,
           "normalized-capture.json",
         ),
+      ),
+      ...forgedReplayReceiptPaths.map(
+        (path) =>
+          rm(join(captureRoot, path)),
       ),
     ]);
     await Promise.all([
@@ -748,6 +895,7 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
         snapshotRoot: SNAPSHOT_ROOT,
       }),
     ).rejects.toThrow("capture claim");
+    gateProgress("claim-mutation-rejected");
     await Promise.all([
       writeFile(
         join(captureRoot, "capture-claim.json"),
@@ -868,9 +1016,10 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
     ).rejects.toThrow(
       "review commit must add exactly five review artifacts",
     );
+    gateProgress("lineage-mutations-complete");
       },
     );
-  }, 720_000);
+  }, 1_800_000);
 });
 
 async function createFreezeFixture(
@@ -1053,4 +1202,15 @@ function sha256(
   return createHash("sha256")
     .update(value)
     .digest("hex");
+}
+
+function gateProgress(stage: string): void {
+  process.stderr.write(
+    `${JSON.stringify({
+      elapsedMs: Date.now() - GATE_STARTED_AT,
+      gate:
+        "c6-source-v4-bounded-review-activation",
+      stage,
+    })}\n`,
+  );
 }

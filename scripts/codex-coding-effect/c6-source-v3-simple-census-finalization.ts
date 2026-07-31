@@ -773,9 +773,12 @@ async function buildAssetFiles(
     const relativePath = relative(root, path)
       .split("\\")
       .join("/");
-    if (relativePath.endsWith(".pending")) {
+    if (
+      relativePath.endsWith(".pending") ||
+      relativePath.endsWith(".ready")
+    ) {
       throw new Error(
-        "C6 source-v3-simple census asset contains pending artifact",
+        "C6 source-v3-simple census asset contains staged artifact",
       );
     }
     if (

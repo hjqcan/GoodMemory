@@ -1,4 +1,5 @@
 import {
+  lstat,
   mkdtemp,
   readFile,
   rm,
@@ -20,10 +21,14 @@ import {
   computeC6SourceV3SimpleLogicalRequestIdentitySha256,
   prepareC6SourceV3SimpleAttempt,
   readC6SourceV3SimpleLogicalRequestEvidence,
+  runC6SourceV3SimpleWithArtifactCommitGuard,
 } from "../../scripts/codex-coding-effect/c6-source-v3-simple-census-ledger";
 import {
   buildC6SourceV3SimpleDurableGraphqlRequest,
 } from "../../scripts/codex-coding-effect/c6-source-v3-simple-census-transport";
+import {
+  buildC6SourceV4BoundedFailureLedgerClosure,
+} from "../../scripts/codex-coding-effect/c6-source-v4-bounded-v3-runtime";
 
 const EVALUATION_ID =
   "goodmemory-c6-codex-coding-effect-source-v3-simple-v1";
@@ -48,6 +53,194 @@ const HEADERS = {
 };
 
 describe("C6 source-v3-simple logical request executor", () => {
+  it("prepares only an actual dispatch and skips the hook during local completion replay", async () => {
+    await withRoot(async (root) => {
+      const passRoot = join(root, "pass-a");
+      let prepareDispatchCount = 0;
+      let fetchCount = 0;
+      const input = {
+        assetRoot: root,
+        authorizationTokenProvider: async () =>
+          Buffer.from("github-token"),
+        evaluationId: EVALUATION_ID,
+        executionContractSha256: CONTRACT_SHA,
+        ...RUNTIME_BINDINGS,
+        fetchImpl: async () => {
+          fetchCount += 1;
+          return new Response(
+            repositoryCountBody(0),
+            {
+              headers: HEADERS,
+              status: 200,
+            },
+          );
+        },
+        logicalRequestOrdinal: 1,
+        pass: "A" as const,
+        passRoot,
+        prepareDispatch: async () => {
+          prepareDispatchCount += 1;
+          await expect(
+            lstat(
+              join(
+                passRoot,
+                "logical-request-00000001",
+              ),
+            ),
+          ).rejects.toMatchObject({
+            code: "ENOENT",
+          });
+          return {
+            maximumResponseBodyBytes: 1_024,
+          };
+        },
+        priorLogicalRequestCompletionSha256:
+          ZERO_SHA,
+        request: repositoryCountRequest(),
+      };
+
+      await executeC6SourceV3SimpleLogicalRequest(
+        input,
+      );
+      await executeC6SourceV3SimpleLogicalRequest(
+        input,
+      );
+
+      expect(prepareDispatchCount).toBe(1);
+      expect(fetchCount).toBe(1);
+    });
+  });
+
+  it("leaves a zero-prefix failure closure when pre-dispatch preparation fails", async () => {
+    await withRoot(async (root) => {
+      const passRoot = join(root, "pass-a");
+      let fetchCount = 0;
+
+      await expect(
+        executeC6SourceV3SimpleLogicalRequest({
+          assetRoot: root,
+          authorizationTokenProvider:
+            async () =>
+              Buffer.from("github-token"),
+          evaluationId: EVALUATION_ID,
+          executionContractSha256:
+            CONTRACT_SHA,
+          ...RUNTIME_BINDINGS,
+          fetchImpl: async () => {
+            fetchCount += 1;
+            return new Response(
+              repositoryCountBody(0),
+              {
+                headers: HEADERS,
+                status: 200,
+              },
+            );
+          },
+          logicalRequestOrdinal: 1,
+          pass: "A",
+          passRoot,
+          prepareDispatch: async () => {
+            throw new Error(
+              "synthetic pre-dispatch failure",
+            );
+          },
+          priorLogicalRequestCompletionSha256:
+            ZERO_SHA,
+          request: repositoryCountRequest(),
+        }),
+      ).rejects.toThrow(
+        "synthetic pre-dispatch failure",
+      );
+      expect(fetchCount).toBe(0);
+      await expect(
+        lstat(passRoot),
+      ).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+      expect(
+        await buildC6SourceV4BoundedFailureLedgerClosure({
+          evaluationId: EVALUATION_ID,
+          executionContractSha256:
+            CONTRACT_SHA,
+          ...RUNTIME_BINDINGS,
+          passRoot,
+        }),
+      ).toMatchObject({
+        committedRequestAttemptCount: 0,
+        completedLogicalRequestCount: 0,
+        inProgressChainTip: null,
+        logicalRequestDirectoryCount: 0,
+      });
+    });
+  });
+
+  it("checks the artifact budget before a local completion repair writes", async () => {
+    await withRoot(async (root) => {
+      const passRoot = join(root, "pass-a");
+      let fetchCount = 0;
+      const input = {
+        assetRoot: root,
+        authorizationTokenProvider: async () =>
+          Buffer.from("github-token"),
+        evaluationId: EVALUATION_ID,
+        executionContractSha256: CONTRACT_SHA,
+        ...RUNTIME_BINDINGS,
+        fetchImpl: async () => {
+          fetchCount += 1;
+          return new Response(
+            repositoryCountBody(0),
+            {
+              headers: HEADERS,
+              status: 200,
+            },
+          );
+        },
+        logicalRequestOrdinal: 1,
+        pass: "A" as const,
+        passRoot,
+        priorLogicalRequestCompletionSha256:
+          ZERO_SHA,
+        request: repositoryCountRequest(),
+      };
+      await executeC6SourceV3SimpleLogicalRequest(
+        input,
+      );
+      const completionPath = join(
+        passRoot,
+        "logical-request-complete-00000001.json",
+      );
+      await rm(completionPath);
+      let guardedCommitCount = 0;
+
+      await expect(
+        runC6SourceV3SimpleWithArtifactCommitGuard(
+          {
+            afterCommit() {},
+            async beforeCommit() {
+              guardedCommitCount += 1;
+              throw new Error(
+                "synthetic canonical budget rejection",
+              );
+            },
+          },
+          async () =>
+            await executeC6SourceV3SimpleLogicalRequest(
+              input,
+            ),
+        ),
+      ).rejects.toThrow(
+        "existing projected result is not locally finalizable",
+      );
+      expect(guardedCommitCount).toBe(1);
+      expect(fetchCount).toBe(1);
+      await expect(
+        readFile(completionPath),
+      ).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+    });
+  });
+
   it("replays a fully verified proactive-pause overflow before authorization or dispatch", async () => {
     await withRoot(async (root) => {
       const passRoot = join(root, "pass-a");
@@ -568,6 +761,85 @@ describe("C6 source-v3-simple logical request executor", () => {
         C6SourceV3SimplePartialResponseError,
       );
       expect(fetchCount).toBe(1);
+    });
+  });
+
+  it("stops an oversized streamed response at the frozen body limit and never redispatches it", async () => {
+    await withRoot(async (root) => {
+      const input = {
+        assetRoot: root,
+        authorizationTokenProvider: async () =>
+          Buffer.from("github-token"),
+        evaluationId: EVALUATION_ID,
+        executionContractSha256: CONTRACT_SHA,
+        ...RUNTIME_BINDINGS,
+        logicalRequestOrdinal: 1,
+        maximumResponseBodyBytes: 4,
+        now: () =>
+          Date.parse(
+            "2026-07-26T12:00:01.000Z",
+          ),
+        pass: "A" as const,
+        passRoot: join(root, "pass-a"),
+        priorLogicalRequestCompletionSha256:
+          ZERO_SHA,
+        request: repositoryCountRequest(),
+        waitUntil: async () => undefined,
+      };
+      let fetchCount = 0;
+      let cancelled = false;
+      const fetchImpl = async () => {
+        fetchCount += 1;
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            cancel() {
+              cancelled = true;
+            },
+            start(controller) {
+              controller.enqueue(
+                Buffer.from("1234"),
+              );
+              controller.enqueue(
+                Buffer.from("5"),
+              );
+            },
+          }),
+          {
+            headers: HEADERS,
+            status: 200,
+          },
+        );
+      };
+
+      await expect(
+        executeC6SourceV3SimpleLogicalRequest({
+          ...input,
+          fetchImpl,
+        }),
+      ).rejects.toBeInstanceOf(
+        C6SourceV3SimplePartialResponseError,
+      );
+      await expect(
+        executeC6SourceV3SimpleLogicalRequest({
+          ...input,
+          fetchImpl,
+        }),
+      ).rejects.toBeInstanceOf(
+        C6SourceV3SimplePartialResponseError,
+      );
+      expect(fetchCount).toBe(1);
+      expect(cancelled).toBe(true);
+      expect(
+        await readFile(
+          join(
+            root,
+            "pass-a",
+            "logical-request-00000001",
+            "attempt-01",
+            "response-body.raw",
+          ),
+        ).catch(() => null),
+      ).toBeNull();
     });
   });
 

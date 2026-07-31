@@ -199,7 +199,7 @@ describe("C6 source-v3-simple finalization closure", () => {
           expectedFrozenInputs: expected,
           frozenInputClosureSha256: frozen.sha256,
         }),
-      ).rejects.toThrow("pending");
+      ).rejects.toThrow("staged artifact");
     });
   });
 

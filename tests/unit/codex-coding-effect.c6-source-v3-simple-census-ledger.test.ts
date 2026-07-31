@@ -136,7 +136,8 @@ describe("C6 source-v3-simple crash-safe attempt ledger", () => {
       });
       expect(
         (await readdir(attemptRoot)).some((name) =>
-          name.endsWith(".pending")
+          name.endsWith(".pending") ||
+          name.endsWith(".ready")
         ),
       ).toBe(false);
     });
@@ -291,7 +292,7 @@ describe("C6 source-v3-simple crash-safe attempt ledger", () => {
         join(attemptRoot, "retry-decision.json"),
         join(
           attemptRoot,
-          ".retry-decision.json.pending",
+          ".retry-decision.json.ready",
         ),
       );
 
@@ -399,7 +400,7 @@ describe("C6 source-v3-simple crash-safe attempt ledger", () => {
     });
   });
 
-  it("recovers pending-only and linked pending files without weakening create-only commits", async () => {
+  it("deletes uncommitted pending bytes and recovers only ready or final artifacts", async () => {
     await withAttemptRoot(async (attemptRoot) => {
       const request =
         buildC6SourceV3SimpleDurableGraphqlRequest({
@@ -414,11 +415,7 @@ describe("C6 source-v3-simple crash-safe attempt ledger", () => {
       });
       await writeFile(
         join(attemptRoot, ".request.json.pending"),
-        `${JSON.stringify(
-          request.persistedRequest,
-          null,
-          2,
-        )}\n`,
+        "{",
       );
       expect(
         await inspectC6SourceV3SimpleAttempt(context),
@@ -427,9 +424,7 @@ describe("C6 source-v3-simple crash-safe attempt ledger", () => {
       });
       expect(
         (await readdir(attemptRoot)).sort(),
-      ).toEqual([
-        "request.json",
-      ]);
+      ).toEqual([]);
 
       await commitC6SourceV3SimpleCreateOnlyBytes(
         attemptRoot,
@@ -452,20 +447,26 @@ describe("C6 source-v3-simple crash-safe attempt ledger", () => {
         (await readdir(attemptRoot)).sort(),
       ).toEqual([
         "request-body.raw",
-        "request.json",
       ]);
     });
   });
 
-  it("recovers every root publication pending artifact before state classification", async () => {
+  it("deletes pending-only root publications and promotes ready publications", async () => {
     await withAttemptRoot(async (root) => {
       await mkdir(root, {
         recursive: true,
       });
       const names = [
+        "activation-receipt.json",
         "asset-lock.json",
+        "capture-claim.json",
+        "capture-failure-terminal.json",
+        "capture-terminal.json",
         "failure-evidence.json",
         "input-mutation-evidence.json",
+        "local-replay-receipt-01.json",
+        "local-replay-receipt-02.json",
+        "normalized-capture.json",
         "terminal.json",
       ];
       for (const name of names) {
@@ -475,6 +476,17 @@ describe("C6 source-v3-simple crash-safe attempt ledger", () => {
         );
       }
 
+      await recoverC6SourceV3SimplePendingArtifacts(
+        root,
+      );
+
+      expect(await readdir(root)).toEqual([]);
+      for (const name of names) {
+        await writeFile(
+          join(root, `.${name}.ready`),
+          `${name}\n`,
+        );
+      }
       await recoverC6SourceV3SimplePendingArtifacts(
         root,
       );
@@ -500,12 +512,12 @@ describe("C6 source-v3-simple crash-safe attempt ledger", () => {
         nested,
         "response-started.json",
       );
-      const pendingPath = join(
+      const readyPath = join(
         nested,
-        ".response-started.json.pending",
+        ".response-started.json.ready",
       );
       await writeFile(finalPath, "{}\n");
-      await link(finalPath, pendingPath);
+      await link(finalPath, readyPath);
 
       await recoverC6SourceV3SimplePendingArtifactTree(
         root,
@@ -515,7 +527,7 @@ describe("C6 source-v3-simple crash-safe attempt ledger", () => {
         await readFile(finalPath, "utf8"),
       ).toBe("{}\n");
       expect(
-        await readFile(pendingPath).catch(() => null),
+        await readFile(readyPath).catch(() => null),
       ).toBeNull();
 
       const unknownPending = join(
@@ -534,7 +546,7 @@ describe("C6 source-v3-simple crash-safe attempt ledger", () => {
     });
   });
 
-  it("rejects a known artifact name in the wrong nested pending path", async () => {
+  it("rejects a known artifact name in the wrong nested ready path", async () => {
     await withAttemptRoot(async (root) => {
       const attemptRoot = join(
         root,
@@ -545,24 +557,24 @@ describe("C6 source-v3-simple crash-safe attempt ledger", () => {
       await mkdir(attemptRoot, {
         recursive: true,
       });
-      const pendingPath = join(
+      const readyPath = join(
         attemptRoot,
-        ".terminal.json.pending",
+        ".terminal.json.ready",
       );
-      await writeFile(pendingPath, "{}\n");
+      await writeFile(readyPath, "{}\n");
 
       await expect(
         recoverC6SourceV3SimplePendingArtifactTree(
           root,
         ),
-      ).rejects.toThrow("unknown pending");
+      ).rejects.toThrow("unknown ready");
       expect(
-        await readFile(pendingPath, "utf8"),
+        await readFile(readyPath, "utf8"),
       ).toBe("{}\n");
     });
   });
 
-  it("rejects a pending/final pair that is not the same hard-linked inode", async () => {
+  it("rejects a ready/final pair with different bytes", async () => {
     await withAttemptRoot(async (attemptRoot) => {
       const request =
         buildC6SourceV3SimpleDurableGraphqlRequest({
@@ -582,14 +594,14 @@ describe("C6 source-v3-simple crash-safe attempt ledger", () => {
       await writeFile(
         join(
           attemptRoot,
-          ".request-body.raw.pending",
+          ".request-body.raw.ready",
         ),
-        request.body,
+        Buffer.from("different"),
       );
 
       await expect(
         inspectC6SourceV3SimpleAttempt(context),
-      ).rejects.toThrow("pending");
+      ).rejects.toThrow("ready");
     });
   });
 
@@ -661,7 +673,7 @@ describe("C6 source-v3-simple crash-safe attempt ledger", () => {
     });
   });
 
-  it("promotes a pending-only response-started marker and prohibits redispatch", async () => {
+  it("promotes a ready-only response-started marker and prohibits redispatch", async () => {
     await withAttemptRoot(async (attemptRoot) => {
       const request =
         buildC6SourceV3SimpleDurableGraphqlRequest({
@@ -690,7 +702,7 @@ describe("C6 source-v3-simple crash-safe attempt ledger", () => {
         join(attemptRoot, "response-started.json"),
         join(
           attemptRoot,
-          ".response-started.json.pending",
+          ".response-started.json.ready",
         ),
       );
 

@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
 import {
   constants,
@@ -225,6 +226,34 @@ export interface C6SourceV3SimpleArtifactReference {
   sha256: string;
 }
 
+export interface C6SourceV3SimpleArtifactCommitGuard {
+  afterCommit(input: {
+    bytes: number;
+    path: string;
+    root: string;
+  }): void;
+  beforeCommit(input: {
+    bytes: number;
+    path: string;
+    root: string;
+  }): Promise<void>;
+}
+
+const ARTIFACT_COMMIT_GUARD =
+  new AsyncLocalStorage<
+    C6SourceV3SimpleArtifactCommitGuard
+  >();
+
+export async function runC6SourceV3SimpleWithArtifactCommitGuard<T>(
+  guard: C6SourceV3SimpleArtifactCommitGuard,
+  run: () => Promise<T>,
+): Promise<T> {
+  return await ARTIFACT_COMMIT_GUARD.run(
+    guard,
+    run,
+  );
+}
+
 export interface C6SourceV3SimpleAttemptContext {
   attemptNumber: number;
   attemptRoot: string;
@@ -312,7 +341,7 @@ async function recoverPendingArtifactTree(
   await recoverPendingFiles(
     root,
     (name) =>
-      isKnownPendingArtifactAtPath(
+      isKnownStagedArtifactAtPath(
         relativeRoot,
         name,
       ),
@@ -929,6 +958,15 @@ export async function inspectC6SourceV3SimpleAttempt(
   context: C6SourceV3SimpleAttemptContext,
 ): Promise<C6SourceV3SimpleAttemptResumeState> {
   assertContext(context);
+  if (
+    !(await c6SourceV3SimpleAttemptRootExists(
+      context.attemptRoot,
+    ))
+  ) {
+    return {
+      kind: "not-started",
+    };
+  }
   await prepareAttemptRoot(context.attemptRoot);
   try {
     const requestCommittedExists =
@@ -1034,6 +1072,12 @@ export async function inspectC6SourceV3SimpleAttempt(
           return await inspectFinalizeAttempt(
             context,
             transportError.ref.sha256,
+            classifyC6SourceV3SimpleTransportError({
+              attemptNumber:
+                context.attemptNumber,
+              transportError:
+                transportError.value,
+            }),
           );
         }
         return {
@@ -1100,7 +1144,8 @@ export async function inspectC6SourceV3SimpleAttempt(
     ) {
       throw new Error("response-complete chain mismatch");
     }
-    await verifyReference(
+    const responseBody =
+      await verifyReference(
       context.attemptRoot,
       responseComplete.value.responseBody,
       "response-body.raw",
@@ -1110,6 +1155,14 @@ export async function inspectC6SourceV3SimpleAttempt(
         return await inspectFinalizeAttempt(
           context,
           responseComplete.ref.sha256,
+          classifyC6SourceV3SimpleHttpResponse({
+            attemptNumber:
+              context.attemptNumber,
+            durableRequest,
+            responseBody,
+            responseStarted:
+              responseStarted.value,
+          }),
         );
       }
       return {
@@ -1953,27 +2006,15 @@ async function validateLogicalRequestComplete(
       ),
     ),
   );
+  assertProjectedResultMatchesAttempt(
+    projectedResult,
+    projection,
+    successfulAttempt,
+  );
   if (
     value.operationName !== projection.operationName ||
-    projectedResult.evaluationId !==
-      value.evaluationId ||
-    projectedResult.executionContractSha256 !==
-      value.executionContractSha256 ||
-    projectedResult.frozenInputClosureSha256 !==
-      value.frozenInputClosureSha256 ||
-    projectedResult.logicalRequestIdentitySha256 !==
-      value.logicalRequestIdentitySha256 ||
-    projectedResult.logicalRequestOrdinal !==
-      value.logicalRequestOrdinal ||
     projectedResult.operationName !==
-      value.operationName ||
-    projectedResult.pass !== value.pass ||
-    projectedResult.runtimeAuthorizationSha256 !==
-      value.runtimeAuthorizationSha256 ||
-    !isDeepStrictEqual(
-      projectedResult.result,
-      projection.result,
-    )
+      value.operationName
   ) {
     throw new Error(
       "C6 source-v3-simple projected result mismatch",
@@ -2001,6 +2042,106 @@ async function validateLogicalRequestComplete(
     projection,
     successfulAttempt,
   );
+}
+
+export async function replayC6SourceV3SimpleCommittedAttempt(
+  assetRoot: string,
+  reference: C6SourceV3SimpleArtifactReference,
+): Promise<void> {
+  await verifyCommittedAttempt(
+    assetRoot,
+    reference,
+  );
+}
+
+export async function verifyC6SourceV3SimpleProjectedResultForAttempt(
+  input: {
+    assetRoot: string;
+    attempt: C6SourceV3SimpleArtifactReference;
+    projectedResult:
+      C6SourceV3SimpleArtifactReference;
+  },
+): Promise<void> {
+  const verified =
+    await verifyCommittedAttempt(
+      input.assetRoot,
+      input.attempt,
+    );
+  if (
+    verified.attempt.outcome !==
+      "stop-success"
+  ) {
+    throw new Error(
+      "C6 source-v3-simple projected result requires stop-success",
+    );
+  }
+  const projection =
+    await projectSuccessfulAttempt(verified);
+  let projectedResult:
+    z.infer<typeof projectedResultSchema>;
+  try {
+    projectedResult =
+      projectedResultSchema.parse(
+        parseCanonicalJson(
+          await readRootReference(
+            input.assetRoot,
+            input.projectedResult,
+          ),
+        ),
+      );
+  } catch (cause) {
+    throw new Error(
+      "C6 source-v3-simple projected result is invalid",
+      { cause },
+    );
+  }
+  assertProjectedResultMatchesAttempt(
+    projectedResult,
+    projection,
+    verified,
+  );
+}
+
+function assertProjectedResultMatchesAttempt(
+  projectedResult:
+    z.infer<typeof projectedResultSchema>,
+  projection: C6SourceV3SimpleProjection,
+  verified: Awaited<
+    ReturnType<typeof verifyCommittedAttempt>
+  >,
+): void {
+  const expected = projectedResultSchema.parse({
+    artifactKind:
+      "c6-source-v3-simple-projected-result",
+    evaluationId:
+      verified.attempt.evaluationId,
+    executionContractSha256:
+      verified.attempt.executionContractSha256,
+    frozenInputClosureSha256:
+      verified.attempt.frozenInputClosureSha256,
+    logicalRequestIdentitySha256:
+      verified.attempt
+        .logicalRequestIdentitySha256,
+    logicalRequestOrdinal:
+      verified.attempt.logicalRequestOrdinal,
+    operationName: projection.operationName,
+    pass: verified.attempt.pass,
+    result: projection.result,
+    runtimeAuthorizationSha256:
+      verified.attempt
+        .runtimeAuthorizationSha256,
+    schemaVersion: 1,
+  });
+  if (
+    !isDeepStrictEqual(
+      projectedResult,
+      expected,
+    )
+  ) {
+    throw new Error(
+      "C6 source-v3-simple projected result mismatch",
+    );
+  }
 }
 
 async function verifyCommittedAttempt(
@@ -2697,6 +2838,8 @@ function projectC6SourceV3SimpleSuccessfulResponse(
 async function inspectFinalizeAttempt(
   context: C6SourceV3SimpleAttemptContext,
   basisArtifactSha256: string,
+  expectedClassification:
+    C6SourceV3SimpleAttemptClassification,
 ): Promise<C6SourceV3SimpleAttemptResumeState> {
   const retryDecision = await readMarker(
     context.attemptRoot,
@@ -2710,6 +2853,10 @@ async function inspectFinalizeAttempt(
   ) {
     throw new Error("retry-decision chain mismatch");
   }
+  assertCallerClassification(
+    expectedClassification,
+    retryDecision.value,
+  );
   return {
     kind: "finalize-attempt",
     outcome: retryDecision.value.decision,
@@ -2797,10 +2944,23 @@ async function commitCreateOnlyBytes(
   bytes: Uint8Array,
 ): Promise<C6SourceV3SimpleArtifactReference> {
   assertLocalArtifactName(path);
+  const guard = ARTIFACT_COMMIT_GUARD.getStore();
+  const guardedArtifact = {
+    bytes: bytes.byteLength,
+    path,
+    root,
+  };
+  await guard?.beforeCommit(
+    guardedArtifact,
+  );
   const finalPath = join(root, path);
   const pendingPath = join(
     dirname(finalPath),
     `.${basename(finalPath)}.pending`,
+  );
+  const readyPath = join(
+    dirname(finalPath),
+    `.${basename(finalPath)}.ready`,
   );
   await assertC6NoSymlinkPathComponents(
     dirname(finalPath),
@@ -2815,20 +2975,38 @@ async function commitCreateOnlyBytes(
     FILE_MODE,
   );
   let linked = false;
+  let ready = false;
   try {
     await handle.writeFile(bytes);
     await handle.chmod(FILE_MODE);
     await handle.sync();
     await handle.close();
-    await link(pendingPath, finalPath);
-    linked = true;
+    await link(pendingPath, readyPath);
+    ready = true;
     await syncDirectory(dirname(finalPath));
     await unlink(pendingPath);
     await syncDirectory(dirname(finalPath));
+    await link(readyPath, finalPath);
+    linked = true;
+    guard?.afterCommit(guardedArtifact);
+    await syncDirectory(dirname(finalPath));
+    await unlink(readyPath);
+    ready = false;
+    await syncDirectory(dirname(finalPath));
   } catch (error) {
     await handle.close().catch(() => undefined);
-    if (!linked) {
+    if (!ready && !linked) {
       await unlink(pendingPath).catch(() => undefined);
+    }
+    if (
+      ready &&
+      !linked &&
+      hasErrorCode(error, "EEXIST")
+    ) {
+      await recoverPendingFiles(
+        root,
+        (name) => name === path,
+      );
     }
     throw error;
   }
@@ -2845,7 +3023,8 @@ function assertLocalArtifactName(
   if (
     basename(path) !== path ||
     !/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(path) ||
-    path.endsWith(".pending")
+    path.endsWith(".pending") ||
+    path.endsWith(".ready")
   ) {
     throw new Error(
       "C6 source-v3-simple invalid artifact name",
@@ -3295,6 +3474,54 @@ async function prepareAttemptRoot(
   root: string,
   recoverPending = true,
 ): Promise<void> {
+  await assertC6SourceV3SimpleAttemptRootParent(
+    root,
+  );
+  await mkdir(root, {
+    mode: DIRECTORY_MODE,
+    recursive: true,
+  });
+  await assertC6NoSymlinkPathComponents(
+    root,
+    "C6 source-v3-simple attempt root",
+  );
+  if (recoverPending) {
+    await recoverPendingFiles(root);
+  }
+}
+
+async function c6SourceV3SimpleAttemptRootExists(
+  root: string,
+): Promise<boolean> {
+  try {
+    const stats = await lstat(root);
+    if (
+      stats.isSymbolicLink() ||
+      !stats.isDirectory()
+    ) {
+      throw new Error(
+        "C6 source-v3-simple attempt root is not a directory",
+      );
+    }
+    await assertC6NoSymlinkPathComponents(
+      root,
+      "C6 source-v3-simple attempt root",
+    );
+    return true;
+  } catch (error) {
+    if (!hasErrorCode(error, "ENOENT")) {
+      throw error;
+    }
+    await assertC6SourceV3SimpleAttemptRootParent(
+      root,
+    );
+    return false;
+  }
+}
+
+async function assertC6SourceV3SimpleAttemptRootParent(
+  root: string,
+): Promise<void> {
   let existing = resolve(root);
   while (!(await pathExistsOrDirectory(existing))) {
     const parent = dirname(existing);
@@ -3309,17 +3536,6 @@ async function prepareAttemptRoot(
     existing,
     "C6 source-v3-simple attempt root parent",
   );
-  await mkdir(root, {
-    mode: DIRECTORY_MODE,
-    recursive: true,
-  });
-  await assertC6NoSymlinkPathComponents(
-    root,
-    "C6 source-v3-simple attempt root",
-  );
-  if (recoverPending) {
-    await recoverPendingFiles(root);
-  }
 }
 
 async function pathExistsOrDirectory(
@@ -3349,33 +3565,70 @@ async function pathExistsOrDirectory(
 async function recoverPendingFiles(
   root: string,
   isKnown: (name: string) => boolean =
-    isKnownPendingArtifactName,
+    isKnownStagedArtifactName,
 ): Promise<void> {
   const entries = (await readdir(root))
-    .filter((entry) => entry.endsWith(".pending"))
+    .filter(
+      (entry) =>
+        entry.endsWith(".pending") ||
+        entry.endsWith(".ready"),
+    )
     .sort();
   for (const entry of entries) {
-    const match = /^\.([^/]+)\.pending$/u.exec(entry);
+    const match =
+      /^\.([^/]+)\.(pending|ready)$/u.exec(
+        entry,
+      );
     if (match === null) {
       throw new Error(
-        "C6 source-v3-simple invalid pending artifact",
+        "C6 source-v3-simple invalid staged artifact",
       );
     }
     if (!isKnown(match[1]!)) {
       throw new Error(
-        "C6 source-v3-simple unknown pending artifact",
+        `C6 source-v3-simple unknown ${match[2]} artifact`,
       );
     }
-    const pendingPath = join(root, entry);
+    const stagedPath = join(root, entry);
     const finalPath = join(root, match[1]!);
-    const pendingStats = await lstat(pendingPath);
+    const stagedStats = await lstat(stagedPath);
     if (
-      pendingStats.isSymbolicLink() ||
-      !pendingStats.isFile()
+      stagedStats.isSymbolicLink() ||
+      !stagedStats.isFile()
     ) {
       throw new Error(
-        "C6 source-v3-simple pending artifact is not a regular file",
+        "C6 source-v3-simple staged artifact is not a regular file",
       );
+    }
+    if (match[2] === "pending") {
+      const readyPath = join(
+        root,
+        `.${match[1]!}.ready`,
+      );
+      const readyStats = await lstat(
+        readyPath,
+      ).catch((error: unknown) => {
+        if (hasErrorCode(error, "ENOENT")) {
+          return null;
+        }
+        throw error;
+      });
+      if (
+        readyStats !== null &&
+        (
+          readyStats.isSymbolicLink() ||
+          !readyStats.isFile() ||
+          readyStats.dev !== stagedStats.dev ||
+          readyStats.ino !== stagedStats.ino
+        )
+      ) {
+        throw new Error(
+          "C6 source-v3-simple pending/ready artifact mismatch",
+        );
+      }
+      await unlink(stagedPath);
+      await syncDirectory(root);
+      continue;
     }
     const finalStats = await lstat(finalPath).catch(
       (error: unknown) => {
@@ -3389,35 +3642,60 @@ async function recoverPendingFiles(
       finalStats !== null &&
       (
         finalStats.isSymbolicLink() ||
-        !finalStats.isFile() ||
-        finalStats.dev !== pendingStats.dev ||
-        finalStats.ino !== pendingStats.ino
+        !finalStats.isFile()
       )
     ) {
       throw new Error(
-        "C6 source-v3-simple pending/final inode mismatch",
+        "C6 source-v3-simple ready/final artifact mismatch",
       );
     }
     if (finalStats === null) {
-      await link(pendingPath, finalPath);
+      await link(stagedPath, finalPath);
       await syncDirectory(root);
+    } else if (
+      (
+        finalStats.dev !== stagedStats.dev ||
+        finalStats.ino !== stagedStats.ino
+      ) &&
+      !(
+        await readC6StableRegularFile(
+          finalPath,
+          "source-v3-simple final artifact",
+        )
+      ).equals(
+        await readC6StableRegularFile(
+          stagedPath,
+          "source-v3-simple ready artifact",
+        ),
+      )
+    ) {
+      throw new Error(
+        "C6 source-v3-simple ready/final artifact mismatch",
+      );
     }
-    await unlink(pendingPath);
+    await unlink(stagedPath);
     await syncDirectory(root);
   }
 }
 
-function isKnownPendingArtifactName(
+function isKnownStagedArtifactName(
   name: string,
 ): boolean {
   return new Set([
+    "activation-receipt.json",
     "asset-lock.json",
     "attempt.json",
+    "capture-claim.json",
+    "capture-failure-terminal.json",
+    "capture-terminal.json",
     "census-receipt.json",
     "count-tree-closure.json",
     "failure-evidence.json",
     "frozen-input-closure.json",
     "input-mutation-evidence.json",
+    "local-replay-receipt-01.json",
+    "local-replay-receipt-02.json",
+    "normalized-capture.json",
     "normalized-pass.json",
     "normalized-projection.json",
     "pass-complete.json",
@@ -3442,17 +3720,24 @@ function isKnownPendingArtifactName(
     );
 }
 
-function isKnownPendingArtifactAtPath(
+function isKnownStagedArtifactAtPath(
   relativeRoot: string,
   name: string,
 ): boolean {
   if (relativeRoot.length === 0) {
     return new Set([
+      "activation-receipt.json",
       "asset-lock.json",
+      "capture-claim.json",
+      "capture-failure-terminal.json",
+      "capture-terminal.json",
       "census-receipt.json",
       "failure-evidence.json",
       "frozen-input-closure.json",
       "input-mutation-evidence.json",
+      "local-replay-receipt-01.json",
+      "local-replay-receipt-02.json",
+      "normalized-capture.json",
       "terminal.json",
       "two-pass-equality.json",
     ]).has(name);

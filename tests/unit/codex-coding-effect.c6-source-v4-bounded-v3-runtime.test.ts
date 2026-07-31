@@ -3,6 +3,7 @@ import {
 } from "node:crypto";
 import {
   link,
+  lstat,
   mkdtemp,
   mkdir,
   readFile,
@@ -36,6 +37,8 @@ import type {
   C6SourceV3SimpleDurableGraphqlRequest,
 } from "../../scripts/codex-coding-effect/c6-source-v3-simple-census-transport";
 import {
+  buildC6SourceV4BoundedFailureLedgerClosure,
+  removeC6SourceV4BoundedEmptyPrecommitTailDirectories,
   scanC6SourceV4BoundedV3CommittedRequests,
 } from "../../scripts/codex-coding-effect/c6-source-v4-bounded-v3-runtime";
 
@@ -106,6 +109,15 @@ describe("C6 source-v4 bounded v3 durable observation scan", () => {
         result.projectedRequests,
       ).toHaveLength(1);
       expect(
+        result.completedLogicalRequestCount,
+      ).toBe(1);
+      expect(
+        result.logicalRequestDirectoryCount,
+      ).toBe(2);
+      expect(
+        result.inProgressLogicalRequestOrdinal,
+      ).toBe(2);
+      expect(
         result
           .finalLogicalRequestCompletionSha256,
       ).toBe(first.sha256);
@@ -135,6 +147,61 @@ describe("C6 source-v4 bounded v3 durable observation scan", () => {
             "C6SourceV3SimplePullRequestPage",
         },
       ]);
+      const failureClosure =
+        await buildC6SourceV4BoundedFailureLedgerClosure({
+          evaluationId: EVALUATION_ID,
+          executionContractSha256:
+            EXECUTION_CONTRACT_SHA256,
+          frozenInputClosureSha256:
+            FROZEN_INPUT_CLOSURE_SHA256,
+          passRoot,
+          runtimeAuthorizationSha256:
+            RUNTIME_AUTHORIZATION_SHA256,
+        });
+      expect(failureClosure).toMatchObject({
+        committedRequestAttemptCount: 2,
+        committedRequestClosureSha256:
+          result.committedRequestClosureSha256,
+        completedLogicalRequestCount: 1,
+        finalLogicalRequestCompletion: {
+          path:
+            "pass-a/logical-request-complete-00000001.json",
+          sha256: first.sha256,
+        },
+        inProgressChainTip: {
+          path:
+            "pass-a/logical-request-00000002/attempt-01/request-committed.json",
+          state: "request-committed",
+        },
+        inProgressLogicalRequestOrdinal: 2,
+        logicalRequestDirectoryCount: 2,
+        passAssetRootSha256:
+          expect.stringMatching(
+            /^[a-f0-9]{64}$/u,
+          ),
+        passStructureSha256:
+          result.structureSha256,
+      });
+      const hiddenPath = join(
+        passRoot,
+        "hidden-tail.json",
+      );
+      await writeFile(hiddenPath, "{}");
+      await expect(
+        buildC6SourceV4BoundedFailureLedgerClosure({
+          evaluationId: EVALUATION_ID,
+          executionContractSha256:
+            EXECUTION_CONTRACT_SHA256,
+          frozenInputClosureSha256:
+            FROZEN_INPUT_CLOSURE_SHA256,
+          passRoot,
+          runtimeAuthorizationSha256:
+            RUNTIME_AUTHORIZATION_SHA256,
+        }),
+      ).rejects.toThrow(
+        "failure durable ledger exact pass-root entry set mismatch",
+      );
+      await rm(hiddenPath);
       await expect(
         scanC6SourceV4BoundedV3CommittedRequests({
           evaluationId: EVALUATION_ID,
@@ -151,6 +218,216 @@ describe("C6 source-v4 bounded v3 durable observation scan", () => {
         "complete durable ledger",
       );
     });
+  });
+
+  it("binds a partial response as the exact failure chain tip", async () => {
+    await withPassRoot(async (passRoot) => {
+      const request =
+        buildC6SourceV3SimpleDurableGraphqlRequest({
+          operation: "pullRequestPage",
+          variables: {
+            after: null,
+            repositoryNodeId:
+              "R_partial_response",
+          },
+        });
+      const context = requestContext({
+        ordinal: 1,
+        passRoot,
+        priorLogicalRequestCompletionSha256:
+          ZERO_SHA256,
+        request,
+      });
+      const prepared =
+        await prepareC6SourceV3SimpleAttempt({
+          context,
+          request,
+        });
+      const started =
+        await recordC6SourceV3SimpleResponseStarted({
+          context,
+          headers: SUCCESS_HEADERS,
+          httpStatus: 200,
+          receivedAt:
+            "2026-07-27T13:00:01.000Z",
+          requestCommitted:
+            prepared.requestCommitted,
+          secret: Buffer.from("secret-token"),
+        });
+
+      const closure =
+        await buildC6SourceV4BoundedFailureLedgerClosure({
+          evaluationId: EVALUATION_ID,
+          executionContractSha256:
+            EXECUTION_CONTRACT_SHA256,
+          frozenInputClosureSha256:
+            FROZEN_INPUT_CLOSURE_SHA256,
+          passRoot,
+          runtimeAuthorizationSha256:
+            RUNTIME_AUTHORIZATION_SHA256,
+        });
+
+      expect(closure).toMatchObject({
+        committedRequestAttemptCount: 1,
+        completedLogicalRequestCount: 0,
+        inProgressChainTip: {
+          ...started.responseStarted,
+          path:
+            "pass-a/logical-request-00000001/attempt-01/response-started.json",
+          state: "response-started",
+        },
+        inProgressLogicalRequestOrdinal: 1,
+        logicalRequestDirectoryCount: 1,
+      });
+    });
+  });
+
+  it("seals every exact precommit tail without claiming a committed request", async () => {
+    for (
+      const depth of [
+        "pass",
+        "logical",
+        "attempt",
+      ] as const
+    ) {
+      await withPassRoot(async (passRoot) => {
+        if (depth !== "pass") {
+          const logicalRoot = join(
+            passRoot,
+            "logical-request-00000001",
+          );
+          await mkdir(logicalRoot);
+          if (depth === "attempt") {
+            await mkdir(
+              join(logicalRoot, "attempt-01"),
+            );
+          }
+        }
+        await removeC6SourceV4BoundedEmptyPrecommitTailDirectories(
+          passRoot,
+        );
+        await expect(
+          lstat(passRoot),
+        ).rejects.toMatchObject({
+          code: "ENOENT",
+        });
+        expect(
+          await buildC6SourceV4BoundedFailureLedgerClosure({
+            evaluationId: EVALUATION_ID,
+            executionContractSha256:
+              EXECUTION_CONTRACT_SHA256,
+            frozenInputClosureSha256:
+              FROZEN_INPUT_CLOSURE_SHA256,
+            passRoot,
+            runtimeAuthorizationSha256:
+              RUNTIME_AUTHORIZATION_SHA256,
+          }),
+        ).toMatchObject({
+          committedRequestAttemptCount: 0,
+          inProgressChainTip: null,
+          logicalRequestDirectoryCount: 0,
+        });
+      });
+    }
+    const cases = [
+      {
+        files: ["request-body.raw"] as const,
+        path:
+          "pass-a/logical-request-00000001/attempt-01/request-body.raw",
+        state: "precommit-request-body",
+      },
+      {
+        files: [
+          "request-body.raw",
+          "request.json",
+        ] as const,
+        path:
+          "pass-a/logical-request-00000001/attempt-01/request.json",
+        state: "precommit-request",
+      },
+    ] as const;
+
+    for (const value of cases) {
+      await withPassRoot(async (passRoot) => {
+        const request =
+          buildC6SourceV3SimpleDurableGraphqlRequest({
+            operation: "repositoryCount",
+            variables: {
+              query: "language:TypeScript",
+            },
+          });
+        const attemptRoot = join(
+          passRoot,
+          "logical-request-00000001",
+          "attempt-01",
+        );
+        await mkdir(attemptRoot, {
+          recursive: true,
+        });
+        if (
+          value.files.some(
+            (file) =>
+              file === "request-body.raw",
+          )
+        ) {
+          await writeFile(
+            join(
+              attemptRoot,
+              "request-body.raw",
+            ),
+            request.body,
+          );
+        }
+        if (
+          value.files.some(
+            (file) => file === "request.json",
+          )
+        ) {
+          await writeFile(
+            join(attemptRoot, "request.json"),
+            canonicalJson(
+              request.persistedRequest,
+            ),
+          );
+        }
+
+        const closure =
+          await buildC6SourceV4BoundedFailureLedgerClosure({
+            evaluationId: EVALUATION_ID,
+            executionContractSha256:
+              EXECUTION_CONTRACT_SHA256,
+            frozenInputClosureSha256:
+              FROZEN_INPUT_CLOSURE_SHA256,
+            passRoot,
+            runtimeAuthorizationSha256:
+              RUNTIME_AUTHORIZATION_SHA256,
+          });
+
+        expect(closure).toMatchObject({
+          committedRequestAttemptCount: 0,
+          completedLogicalRequestCount: 0,
+          inProgressChainTip: {
+            bytes: expect.any(Number),
+            path: value.path,
+            sha256:
+              expect.stringMatching(
+                /^[a-f0-9]{64}$/u,
+              ),
+            state: value.state,
+          },
+          inProgressLogicalRequestOrdinal: 1,
+          logicalRequestDirectoryCount: 1,
+          passAssetRootSha256:
+            expect.stringMatching(
+              /^[a-f0-9]{64}$/u,
+            ),
+          passStructureSha256:
+            expect.stringMatching(
+              /^[a-f0-9]{64}$/u,
+            ),
+        });
+      });
+    }
   });
 
   it("strict success mode rejects an unknown pass-root entry", async () => {
@@ -425,7 +702,7 @@ describe("C6 source-v4 bounded v3 durable observation scan", () => {
             RUNTIME_AUTHORIZATION_SHA256,
         }),
       ).rejects.toThrow(
-        "logical request completion evidence is invalid",
+        "attempt ledger is corrupt",
       );
     });
   });
@@ -508,6 +785,416 @@ describe("C6 source-v4 bounded v3 durable observation scan", () => {
             RUNTIME_AUTHORIZATION_SHA256,
         }),
       ).rejects.toThrow("attempt chain mismatch");
+    });
+  });
+
+  it("accepts an incomplete result only for an exact stop-success projection", async () => {
+    await withPassRoot(async (passRoot) => {
+      await prepareRequest({
+        ordinal: 1,
+        passRoot,
+        priorLogicalRequestCompletionSha256:
+          ZERO_SHA256,
+        request:
+          buildC6SourceV3SimpleDurableGraphqlRequest({
+            operation: "repositoryCount",
+            variables: {
+              query: "language:TypeScript",
+            },
+          }),
+      });
+      await writeFile(
+        join(
+          passRoot,
+          "logical-request-result-00000001.json",
+        ),
+        "{}\n",
+      );
+
+      await expect(
+        buildC6SourceV4BoundedFailureLedgerClosure({
+          evaluationId: EVALUATION_ID,
+          executionContractSha256:
+            EXECUTION_CONTRACT_SHA256,
+          frozenInputClosureSha256:
+            FROZEN_INPUT_CLOSURE_SHA256,
+          passRoot,
+          runtimeAuthorizationSha256:
+            RUNTIME_AUTHORIZATION_SHA256,
+        }),
+      ).rejects.toThrow("stop-success");
+    });
+
+    await withPassRoot(async (passRoot) => {
+      await completeTerminalAttempt({
+        ordinal: 1,
+        passRoot,
+        priorLogicalRequestCompletionSha256:
+          ZERO_SHA256,
+        request:
+          buildC6SourceV3SimpleDurableGraphqlRequest({
+            operation: "repositoryCount",
+            variables: {
+              query: "language:TypeScript",
+            },
+          }),
+      });
+      await writeFile(
+        join(
+          passRoot,
+          "logical-request-result-00000001.json",
+        ),
+        "{}\n",
+      );
+
+      await expect(
+        buildC6SourceV4BoundedFailureLedgerClosure({
+          evaluationId: EVALUATION_ID,
+          executionContractSha256:
+            EXECUTION_CONTRACT_SHA256,
+          frozenInputClosureSha256:
+            FROZEN_INPUT_CLOSURE_SHA256,
+          passRoot,
+          runtimeAuthorizationSha256:
+            RUNTIME_AUTHORIZATION_SHA256,
+        }),
+      ).rejects.toThrow("stop-success");
+    });
+
+    await withPassRoot(async (passRoot) => {
+      await completeSuccessfulRequest({
+        ordinal: 1,
+        passRoot,
+        priorLogicalRequestCompletionSha256:
+          ZERO_SHA256,
+        request:
+          buildC6SourceV3SimpleDurableGraphqlRequest({
+            operation: "repositoryCount",
+            variables: {
+              query: "language:TypeScript",
+            },
+          }),
+      });
+      await rm(join(
+        passRoot,
+        "logical-request-complete-00000001.json",
+      ));
+
+      expect(
+        await buildC6SourceV4BoundedFailureLedgerClosure({
+          evaluationId: EVALUATION_ID,
+          executionContractSha256:
+            EXECUTION_CONTRACT_SHA256,
+          frozenInputClosureSha256:
+            FROZEN_INPUT_CLOSURE_SHA256,
+          passRoot,
+          runtimeAuthorizationSha256:
+            RUNTIME_AUTHORIZATION_SHA256,
+        }),
+      ).toMatchObject({
+        inProgressChainTip: {
+          path:
+            "pass-a/logical-request-result-00000001.json",
+          sha256:
+            expect.stringMatching(
+              /^[a-f0-9]{64}$/u,
+            ),
+          state: "projected-result",
+        },
+      });
+      await writeFile(
+        join(
+          passRoot,
+          "logical-request-result-00000001.json",
+        ),
+        "{}\n",
+      );
+      await expect(
+        buildC6SourceV4BoundedFailureLedgerClosure({
+          evaluationId: EVALUATION_ID,
+          executionContractSha256:
+            EXECUTION_CONTRACT_SHA256,
+          frozenInputClosureSha256:
+            FROZEN_INPUT_CLOSURE_SHA256,
+          passRoot,
+          runtimeAuthorizationSha256:
+            RUNTIME_AUTHORIZATION_SHA256,
+        }),
+      ).rejects.toThrow("projected result");
+    });
+
+    await withPassRoot(async (passRoot) => {
+      await completeSuccessfulRequest({
+        ordinal: 1,
+        passRoot,
+        priorLogicalRequestCompletionSha256:
+          ZERO_SHA256,
+        request:
+          buildC6SourceV3SimpleDurableGraphqlRequest({
+            operation: "repositoryCount",
+            variables: {
+              query: "language:TypeScript",
+            },
+          }),
+      });
+      await Promise.all([
+        rm(join(
+          passRoot,
+          "logical-request-complete-00000001.json",
+        )),
+        rm(join(
+          passRoot,
+          "logical-request-result-00000001.json",
+        )),
+      ]);
+
+      expect(
+        await buildC6SourceV4BoundedFailureLedgerClosure({
+          evaluationId: EVALUATION_ID,
+          executionContractSha256:
+            EXECUTION_CONTRACT_SHA256,
+          frozenInputClosureSha256:
+            FROZEN_INPUT_CLOSURE_SHA256,
+          passRoot,
+          runtimeAuthorizationSha256:
+            RUNTIME_AUTHORIZATION_SHA256,
+        }),
+      ).toMatchObject({
+        inProgressChainTip: {
+          state: "attempt-stop-success",
+        },
+      });
+    });
+  });
+
+  it("replays prior retry classification before sealing an incomplete tail", async () => {
+    await withPassRoot(async (passRoot) => {
+      const request =
+        buildC6SourceV3SimpleDurableGraphqlRequest({
+          operation: "repositoryCount",
+          variables: {
+            query: "language:TypeScript",
+          },
+        });
+      const firstContext = attemptContext({
+        attemptNumber: 1,
+        passRoot,
+        priorAttemptCommitSha256: null,
+        request,
+      });
+      const first =
+        await prepareC6SourceV3SimpleAttempt({
+          context: firstContext,
+          request,
+        });
+      const interrupted =
+        await recordC6SourceV3SimpleProcessInterruption({
+          context: firstContext,
+          occurredAt:
+            "2026-07-27T13:00:00.000Z",
+          requestCommitted:
+            first.requestCommitted,
+        });
+      const completed =
+        await completeC6SourceV3SimpleAttempt({
+          context: firstContext,
+          decision: "retry",
+          notBefore:
+            "2026-07-27T13:00:01.000Z",
+          reason:
+            "process-interruption-before-response",
+          requestCommitted:
+            first.requestCommitted,
+          responseComplete: null,
+          responseStarted: null,
+          transportError:
+            interrupted.transportError,
+        });
+      const transportPath = join(
+        firstContext.attemptRoot,
+        "transport-error.json",
+      );
+      const transport = JSON.parse(
+        await readFile(transportPath, "utf8"),
+      ) as Record<string, unknown>;
+      transport.code = "EACCES";
+      transport.name = "Error";
+      transport.phase = "fetch";
+      const transportBytes =
+        Buffer.from(canonicalJson(transport));
+      await writeFile(
+        transportPath,
+        transportBytes,
+      );
+      const decisionPath = join(
+        firstContext.attemptRoot,
+        "retry-decision.json",
+      );
+      const decision = JSON.parse(
+        await readFile(decisionPath, "utf8"),
+      ) as Record<string, unknown>;
+      decision.basisArtifactSha256 =
+        sha256(transportBytes);
+      const decisionBytes =
+        Buffer.from(canonicalJson(decision));
+      await writeFile(
+        decisionPath,
+        decisionBytes,
+      );
+      const attemptPath = join(
+        firstContext.attemptRoot,
+        completed.attempt.path,
+      );
+      const attempt = JSON.parse(
+        await readFile(attemptPath, "utf8"),
+      ) as Record<string, unknown>;
+      attempt.retryDecision =
+        artifactReference(
+          "retry-decision.json",
+          decisionBytes,
+        );
+      attempt.transportError =
+        artifactReference(
+          "transport-error.json",
+          transportBytes,
+        );
+      const attemptBytes =
+        Buffer.from(canonicalJson(attempt));
+      await writeFile(attemptPath, attemptBytes);
+      const secondContext = attemptContext({
+        attemptNumber: 2,
+        passRoot,
+        priorAttemptCommitSha256:
+          sha256(attemptBytes),
+        request,
+      });
+      await prepareC6SourceV3SimpleAttempt({
+        context: secondContext,
+        request,
+      });
+
+      await expect(
+        buildC6SourceV4BoundedFailureLedgerClosure({
+          evaluationId: EVALUATION_ID,
+          executionContractSha256:
+            EXECUTION_CONTRACT_SHA256,
+          frozenInputClosureSha256:
+            FROZEN_INPUT_CLOSURE_SHA256,
+          passRoot,
+          runtimeAuthorizationSha256:
+            RUNTIME_AUTHORIZATION_SHA256,
+        }),
+      ).rejects.toThrow(
+        "attempt classification mismatch",
+      );
+    });
+  });
+
+  it("replays a durable retry decision before sealing its pre-attempt crash state", async () => {
+    await withPassRoot(async (passRoot) => {
+      const request =
+        buildC6SourceV3SimpleDurableGraphqlRequest({
+          operation: "repositoryCount",
+          variables: {
+            query: "language:TypeScript",
+          },
+        });
+      const context = requestContext({
+        ordinal: 1,
+        passRoot,
+        priorLogicalRequestCompletionSha256:
+          ZERO_SHA256,
+        request,
+      });
+      const prepared =
+        await prepareC6SourceV3SimpleAttempt({
+          context,
+          request,
+        });
+      const started =
+        await recordC6SourceV3SimpleResponseStarted({
+          context,
+          headers: SUCCESS_HEADERS,
+          httpStatus: 200,
+          receivedAt:
+            "2026-07-27T13:00:01.000Z",
+          requestCommitted:
+            prepared.requestCommitted,
+          secret: Buffer.from("secret-token"),
+        });
+      const response =
+        await recordC6SourceV3SimpleResponseComplete({
+          body: repositoryCountResponse(0),
+          context,
+          responseStarted:
+            started.responseStarted,
+          secret: Buffer.from("secret-token"),
+        });
+      const completed =
+        await completeC6SourceV3SimpleAttempt({
+          context,
+          decision: "stop-success",
+          notBefore: null,
+          reason: "graphql-success",
+          requestCommitted:
+            prepared.requestCommitted,
+          responseComplete:
+            response.responseComplete,
+          responseStarted:
+            started.responseStarted,
+          transportError: null,
+        });
+      await rm(join(
+        context.attemptRoot,
+        completed.attempt.path,
+      ));
+
+      expect(
+        await buildC6SourceV4BoundedFailureLedgerClosure({
+          evaluationId: EVALUATION_ID,
+          executionContractSha256:
+            EXECUTION_CONTRACT_SHA256,
+          frozenInputClosureSha256:
+            FROZEN_INPUT_CLOSURE_SHA256,
+          passRoot,
+          runtimeAuthorizationSha256:
+            RUNTIME_AUTHORIZATION_SHA256,
+        }),
+      ).toMatchObject({
+        inProgressChainTip: {
+          path:
+            "pass-a/logical-request-00000001/attempt-01/retry-decision.json",
+          state: "retry-decision",
+        },
+      });
+
+      const decisionPath = join(
+        context.attemptRoot,
+        completed.retryDecision.path,
+      );
+      const decision = JSON.parse(
+        await readFile(decisionPath, "utf8"),
+      ) as Record<string, unknown>;
+      decision.decision = "stop-terminal";
+      decision.reason = "terminal-http-status";
+      await writeFile(
+        decisionPath,
+        canonicalJson(decision),
+      );
+      await expect(
+        buildC6SourceV4BoundedFailureLedgerClosure({
+          evaluationId: EVALUATION_ID,
+          executionContractSha256:
+            EXECUTION_CONTRACT_SHA256,
+          frozenInputClosureSha256:
+            FROZEN_INPUT_CLOSURE_SHA256,
+          passRoot,
+          runtimeAuthorizationSha256:
+            RUNTIME_AUTHORIZATION_SHA256,
+        }),
+      ).rejects.toThrow(
+        "attempt ledger is corrupt",
+      );
     });
   });
 
@@ -707,6 +1394,51 @@ async function completeSuccessfulRequest(input: {
       context.priorLogicalRequestCompletionSha256,
     runtimeAuthorizationSha256:
       context.runtimeAuthorizationSha256,
+  });
+}
+
+async function completeTerminalAttempt(input: {
+  ordinal: number;
+  passRoot: string;
+  priorLogicalRequestCompletionSha256: string;
+  request: C6SourceV3SimpleDurableGraphqlRequest;
+}): Promise<void> {
+  const context = requestContext(input);
+  const prepared =
+    await prepareC6SourceV3SimpleAttempt({
+      context,
+      request: input.request,
+    });
+  const started =
+    await recordC6SourceV3SimpleResponseStarted({
+      context,
+      headers: SUCCESS_HEADERS,
+      httpStatus: 400,
+      receivedAt: "2026-07-27T13:00:01.000Z",
+      requestCommitted:
+        prepared.requestCommitted,
+      secret: Buffer.from("secret-token"),
+    });
+  const response =
+    await recordC6SourceV3SimpleResponseComplete({
+      body: Buffer.from("{}"),
+      context,
+      responseStarted:
+        started.responseStarted,
+      secret: Buffer.from("secret-token"),
+    });
+  await completeC6SourceV3SimpleAttempt({
+    context,
+    decision: "stop-terminal",
+    notBefore: null,
+    reason: "terminal-http-status",
+    requestCommitted:
+      prepared.requestCommitted,
+    responseComplete:
+      response.responseComplete,
+    responseStarted:
+      started.responseStarted,
+    transportError: null,
   });
 }
 

@@ -73,7 +73,26 @@ describe("C6 source-v4 bounded independent review", () => {
       "clean-shell-worker-and-native-bun-fetch",
     );
     for (
+      const check of [
+        "resumable-single-writer-crash-recovery",
+        "every-durable-write-exact-canonical-cap",
+        "disk-derived-failure-prefix-and-tail",
+        "failure-tail-semantic-attempt-and-result-replay",
+        "two-network-off-independent-replay-receipts",
+        "token-preclaim-zeroization-and-recursive-secret-scan",
+        "separate-canonical-lock-and-total-byte-caps",
+      ] as const
+    ) {
+      expect(
+        C6_SOURCE_V4_BOUNDED_REVIEW_REQUIRED_CHECKS,
+      ).toContain(check);
+    }
+    for (
       const path of [
+        "scripts/codex-coding-effect/c6-source-v4-bounded-live-contract.ts",
+        "tests/unit/codex-coding-effect.c6-source-v3-simple-census-executor.test.ts",
+        "tests/unit/codex-coding-effect.c6-source-v3-simple-census-ledger.test.ts",
+        "tests/unit/codex-coding-effect.c6-source-v4-bounded-live-contract.test.ts",
         "tests/unit/codex-coding-effect.c6-source-v4-bounded-contract.test.ts",
         "tests/unit/codex-coding-effect.c6-source-v4-bounded-frame.test.ts",
         "tests/unit/codex-coding-effect.c6-source-v4-bounded-snapshot.test.ts",
@@ -288,7 +307,7 @@ describe("C6 source-v4 bounded independent review", () => {
     });
   });
 
-  it("binds timeout-safe comprehensive gate cleanup and a twelve-minute budget", () => {
+  it("binds timeout-safe comprehensive gate cleanup, progress logs, and a thirty-minute budget", () => {
     const gateSource = readFileSync(
       join(
         process.cwd(),
@@ -311,7 +330,13 @@ describe("C6 source-v4 bounded independent review", () => {
       "withC6GateTemporaryRoot",
     );
     expect(gateSource).toContain(
-      "}, 720_000);",
+      "}, 1_800_000);",
+    );
+    expect(gateSource).toContain(
+      '"failure-mutations-complete"',
+    );
+    expect(gateSource).toContain(
+      '"claim-mutation-rejected"',
     );
     expect(activationSource).toContain(
       "if (!reviewEvidence.independentReviewAccepted)",
