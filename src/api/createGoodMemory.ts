@@ -134,6 +134,7 @@ import {
 import { recordHostActionAssessment } from "./hostActionAssessmentOps";
 import { createGoodMemoryJobsFacade } from "./jobs";
 import {
+  applyDurableSelectionToResult,
   applyDurableRerankingToResult,
   buildSkippedRerankerTrace,
   getDurableRerankerCandidateCount,
@@ -418,15 +419,16 @@ function withRecallPlanTrace(input: {
   };
 }
 
-// Union the retrieved records across the primary recall and each sub-query
-// recall (primary first, deduped by id), then re-render the packet over the
-// union so the merged RecallResult stays internally consistent. Session-scoped
-// singletons (profile, working memory, journal) come from the primary recall.
+// Fuse candidates across the primary recall and each sub-query, then apply the
+// RecallPlan's final global durable-evidence limit before returning context.
+// Session-scoped singletons (profile, working memory, journal) come from the
+// primary recall.
 function mergeRecallResults(
   primary: RecallResult,
   supplementary: RecallResult[],
   plan: Pick<RecallPlan, "preRankLimit" | "selectedLimit">,
   language: LanguageService,
+  query: string,
   policyMarker = "decomposed_recall",
 ): RecallResult {
   if (supplementary.length === 0) {
@@ -507,11 +509,19 @@ function mergeRecallResults(
       ...(retrievalTrace ? { retrievalTrace } : {}),
     },
   };
-  return mergeRecallRerankPools({
+  const pooled = mergeRecallRerankPools({
     preRankLimit: plan.preRankLimit,
     primaryReserveLimit: plan.selectedLimit,
     results,
     target: merged,
+  });
+  return applyDurableSelectionToResult({
+    language,
+    preRankLimit: plan.preRankLimit,
+    preserveResult: primary,
+    query,
+    result: pooled,
+    selectedLimit: plan.selectedLimit,
   });
 }
 
@@ -1421,6 +1431,7 @@ class GoodMemoryImpl implements GoodMemory {
                 supplementary,
                 queryPlan,
                 this.language,
+                context.query,
                 "iterative_recall",
             ),
             options: {
@@ -1529,6 +1540,7 @@ class GoodMemoryImpl implements GoodMemory {
               supplementary,
               recallPlan,
               this.language,
+              input.query,
               "decomposed_recall",
             ),
           options: {
@@ -1546,6 +1558,14 @@ class GoodMemoryImpl implements GoodMemory {
         result = recalled.result;
         executions = [recalled.execution];
       }
+      result = applyDurableSelectionToResult({
+        language: this.language,
+        preRankLimit: recallPlan.preRankLimit,
+        preserveResult: result,
+        query: input.query,
+        result,
+        selectedLimit: recallPlan.selectedLimit,
+      });
       if (this.reranker && this.rerankerTarget) {
         result = input.rerank === false
           ? withRerankerTrace(

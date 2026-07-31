@@ -1908,6 +1908,91 @@ paired answer-protection step. It cannot establish score improvement,
 independent generalization, default enablement, holdout readiness, or a public
 benchmark claim.
 
+#### Canonical cross-benchmark protection result
+
+The frozen protection replay ran from clean commit
+`722bc87f04ea54fd56bbb79fc83a99ae705f2b19` under Bun 1.3.14. The first
+main-worktree attempt was rejected by the source-state guard after unrelated
+files changed during execution; it produced no report. The canonical result
+came from an isolated detached worktree with fingerprint
+`6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d`.
+
+| Population | Questions / triggers | Added / lost gold endpoints | Added noise | Triggered context delta | Triggered record delta | Gate |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| LoCoMo temporal + multi-hop | 603 / 7 | +0 / 0 | +20 | +33.52% | +44.90% | fail |
+| BEAM temporal + multi-session | 80 / 30 | +5 / 0 | +172 | +105.37% | +92.92% | fail |
+| Combined | 683 / 37 | +5 / 0 | +192 | +104.17% | +83.91% | fail |
+
+All 646 no-trigger controls remained exact, including all 322 designated
+cross-session negatives, and no previously covered gold endpoint was lost.
+Those protections are insufficient: gross added noise per added gold endpoint
+was 38.4 against the frozen ceiling of 1, and both benchmarks exceeded the 15%
+triggered-context ceiling. The mechanism therefore **fails protection and is
+not promoted**. It made zero answer, judge, or holdout calls and keeps
+`answerConversionAuthorized=false`.
+
+Artifact:
+`reports/eval/research/phase-72/temporal-operands-protection/run-phase72-temporal-operands-protection-bun1314-v1/report.json`,
+SHA-256
+`8ff3d72c4464b2573a36fe080405538ea68b212824f3a1d6d91ce144c85847ae`.
+
+#### Budget-contract bug exposed by the failed run
+
+Twenty of the 37 triggered treatments returned more than the RecallPlan's
+global `selectedLimit=12`, with a maximum of 22 durable records. The old
+primary-first merge union was valid before the later global-selection contract
+arrived, but the merge path was never migrated to re-project the fused pool
+through that final contract. The same gap affected a single pass when a
+configured reranker was disabled or failed. This was an implementation bug,
+not evidence that the frozen thresholds should be relaxed.
+
+The repair keeps the hidden pre-rank pool bounded at 32 for a configured
+reranker, then deterministically projects all four durable lanes through the
+existing lane caps and global limit before packet, evidence, ledger, hits,
+verification hints, and traces are returned. It preserves primary selected
+evidence before admitting supplementary records, gives deterministic selection
+its own trace reason, and retains hydrated episode source spans when a packet is
+rebuilt. The 6,000-token renderer already had a hard output cap; the defect was
+the unbounded record membership and pre-render packet growth, not a renderer
+limit violation.
+
+This structural repair is justified by the pre-existing RecallPlan contract and
+unit red tests, without tuning against benchmark labels or outcomes. The failed
+LoCoMo/BEAM population is now consumed for diagnosis and must not be rerun as
+fresh confirmatory evidence after the repair.
+
+#### Next generalizable experiment: diverse heads inside the fixed budget
+
+The next retrieval hypothesis must use a new development population. It keeps
+the same query count, 32-candidate pre-rank window, 12-record final limit, and
+renderer budget: preserve one distinct eligible head from each activated
+operand/pass, then fill remaining capacity by the existing RRF order. This is a
+set-coverage experiment, not another top-k increase.
+
+The rationale is external and benchmark-independent:
+
+- Hindsight's pinned fusion source documents the failure mode where RRF rewards
+  repeated candidates across arms while a unique arm head falls below the
+  cutoff, and provides [per-arm caps](https://github.com/vectorize-io/hindsight/blob/a90f9223765af3c8ad5692ce2b9fa22efbb656ba/hindsight-api-slim/hindsight_api/engine/search/fusion.py#L8-L26)
+  plus [round-robin interleaving](https://github.com/vectorize-io/hindsight/blob/a90f9223765af3c8ad5692ce2b9fa22efbb656ba/hindsight-api-slim/hindsight_api/engine/search/fusion.py#L112-L176)
+  as diversity controls.
+- [SetR (ACL 2025)](https://aclanthology.org/2025.acl-long.861/) treats complex
+  retrieval as selecting a collectively sufficient set rather than scoring
+  every passage independently. GoodMemory should test only the deterministic
+  coverage invariant, not import its chain-of-thought selector.
+- LongMemEval's pinned time-aware retrieval code applies temporal processing as
+  a retrieval/ranking signal rather than permission for an unbounded union:
+  [temp_query_search_pruning.py](https://github.com/xiaowu0162/longmemeval/blob/9e0b455f4ef0e2ab8f2e582289761153549043fc/src/index_expansion/temp_query_search_pruning.py#L39-L84).
+- [MRAG (Findings of EMNLP 2025)](https://aclanthology.org/2025.findings-emnlp.167/)
+  supports separating semantic content from temporal constraints, but its
+  benchmark-oriented parsing details are not a reason to add dataset literals
+  or a new model call.
+
+No graph database, learned KEEP/DROP controller, benchmark question-type
+switch, or wider context is authorized by this result. If the fixed-budget
+head-preservation arm cannot improve fresh endpoint coverage with zero gold
+loss and bounded noise, reject it before answer conversion.
+
 ## 8. Primary sources
 
 Benchmarks/ablations: LongMemEval arXiv 2410.10813 · LoCoMo audit
@@ -1921,6 +2006,7 @@ IRCoT ACL 2023 · docTTTTTquery (castorini) · sleep-time compute arXiv
 2504.13171 · LightMem arXiv 2510.18866 · RMM arXiv 2503.08026 · Memory-R1
 arXiv 2508.19828 · SAGE arXiv 2605.30711 · Supersede arXiv 2606.27472 ·
 MemReranker arXiv 2605.06132 · MemDelta arXiv 2606.29914 · Mastra OM
-(mastra.ai/research/observational-memory) · vendor claims individually marked.
+(mastra.ai/research/observational-memory) · SetR ACL 2025 · MRAG Findings of
+EMNLP 2025 · vendor claims individually marked.
 Claude Code patterns: `third-party/claude-code-main/src/memdir/`,
 `src/services/{extractMemories,autoDream,compact,SessionMemory}/`.

@@ -144,6 +144,11 @@ export interface MemoryPacketInput {
   routingDecision?: RoutingDecision;
 }
 
+const episodeSpansByPacket = new WeakMap<
+  MemoryPacket,
+  NonNullable<MemoryPacketInput["episodeSpans"]>
+>();
+
 function resolvePacketLanguage(input: MemoryPacketInput): {
   labels: MemoryPacketRenderLabels;
   language: LanguageService;
@@ -623,6 +628,10 @@ export function buildMemoryPacket(input: MemoryPacketInput): MemoryPacket {
     estimatedTokens: estimateTextTokens(JSON.stringify(packet)),
   };
 
+  if (input.episodeSpans !== undefined) {
+    episodeSpansByPacket.set(packet, input.episodeSpans);
+  }
+
   return packet;
 }
 
@@ -632,8 +641,10 @@ export function rebuildMemoryPacket(
     language: LanguageService;
   },
 ): MemoryPacket {
+  const episodeSpans = episodeSpansByPacket.get(source);
   return buildMemoryPacket({
     ...input,
+    ...(episodeSpans ? { episodeSpans } : {}),
     languagePackId: source.languagePackId,
     maxRenderedTokens: source.renderBudget?.maxTokens,
     renderLabels: source.renderLabels,

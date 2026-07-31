@@ -19,6 +19,7 @@ import {
   findAmbiguousRecallRerankMemoryIds,
   getRecallRerankPool,
   recallRerankCandidateKey,
+  setRecallRerankPool,
   type RecallRerankCandidate,
   type RecallRerankCollection,
   type RecallRerankPool,
@@ -165,9 +166,10 @@ function collectionForTrace(
     "facts";
 }
 
-function selectRerankedCandidates(input: {
+function selectDurableCandidates(input: {
   candidates: readonly RecallRerankCandidate[];
   pool: RecallRerankPool;
+  requiredKeys?: ReadonlySet<string>;
   selectedLimit: number;
 }): RecallRerankCandidate[] {
   const caps = {
@@ -188,16 +190,23 @@ function selectRerankedCandidates(input: {
     selectedKeys.add(candidate.key);
     selectedCounts.set(candidate.collection, count + 1);
   };
+  const requiredKeys = input.requiredKeys;
+  const requiredCandidates = requiredKeys
+    ? input.candidates.filter(({ key }) => requiredKeys.has(key))
+    : input.candidates.filter(({ firstStageSelected }) => firstStageSelected);
   const requiredCollections = new Set(
-    input.candidates
-      .filter(({ firstStageSelected }) => firstStageSelected)
-      .map(({ collection }) => collection),
+    requiredCandidates.map(({ collection }) => collection),
   );
   for (const collection of requiredCollections) {
-    const candidate = input.candidates.find(
+    const candidate = requiredCandidates.find(
       (item) => item.collection === collection,
     );
     if (candidate) {
+      add(candidate);
+    }
+  }
+  for (const candidate of input.candidates) {
+    if (input.requiredKeys?.has(candidate.key)) {
       add(candidate);
     }
   }
@@ -293,12 +302,13 @@ function buildSelectedResultPool(result: RecallResult): RecallRerankPool {
   };
 }
 
-function rebuildDurablyRerankedResult(input: {
+function rebuildDurablySelectedResult(input: {
   candidates: readonly RecallRerankCandidate[];
   language: LanguageService;
   pool: RecallRerankPool;
   query: string;
   result: RecallResult;
+  selectionStage?: "recall_plan" | "reranker";
 }): RecallResult {
   const selectedKeys = new Set(input.candidates.map(({ key }) => key));
   const poolKeys = new Set(input.pool.candidates.map(({ key }) => key));
@@ -418,11 +428,19 @@ function rebuildDurablyRerankedResult(input: {
         const selected = selectedKeys.has(key);
         const { whyReturned: _whyReturned, whySuppressed: _whySuppressed, ...base } = trace;
         return selected
-          ? { ...base, returned: true, whyReturned: "selected after reranking" }
+          ? {
+              ...base,
+              returned: true,
+              whyReturned: input.selectionStage === "recall_plan"
+                ? "selected by recall plan final selection"
+                : "selected after reranking",
+            }
           : {
               ...base,
               returned: false,
-              whySuppressed: "reranker_final_selection",
+              whySuppressed: input.selectionStage === "recall_plan"
+                ? "recall_plan_final_selection"
+                : "reranker_final_selection",
             };
       }),
       verificationHints: evaluateVerificationHints({
@@ -518,6 +536,62 @@ function rebuildDurablyRerankedResult(input: {
   };
 }
 
+export function applyDurableSelectionToResult(input: {
+  language: LanguageService;
+  preRankLimit: number;
+  preserveResult: RecallResult;
+  query: string;
+  result: RecallResult;
+  selectedLimit: number;
+}): RecallResult {
+  const sourcePool = getRecallRerankPool(input.result) ??
+    buildSelectedResultPool(input.result);
+  const boundedCandidates = buildPreRankPool(
+    sourcePool.candidates,
+    input.preRankLimit,
+  );
+  const pool = boundedCandidates.length === sourcePool.candidates.length
+    ? sourcePool
+    : { ...sourcePool, candidates: boundedCandidates };
+  const currentCandidates = buildSelectedResultPool(input.result).candidates;
+  const currentCounts = new Map<RecallRerankCollection, number>();
+  for (const candidate of currentCandidates) {
+    currentCounts.set(
+      candidate.collection,
+      (currentCounts.get(candidate.collection) ?? 0) + 1,
+    );
+  }
+  if (
+    currentCandidates.length <= input.selectedLimit &&
+    Object.entries(pool.laneCaps).every(([collection, limit]) =>
+      (currentCounts.get(collection as RecallRerankCollection) ?? 0) <= limit
+    )
+  ) {
+    return setRecallRerankPool(input.result, pool);
+  }
+  const candidates = selectDurableCandidates({
+    candidates: pool.candidates,
+    pool,
+    requiredKeys: new Set(
+      buildSelectedResultPool(input.preserveResult).candidates.map(
+        ({ key }) => key,
+      ),
+    ),
+    selectedLimit: input.selectedLimit,
+  });
+  return setRecallRerankPool(
+    rebuildDurablySelectedResult({
+      candidates,
+      language: input.language,
+      pool,
+      query: input.query,
+      result: input.result,
+      selectionStage: "recall_plan",
+    }),
+    pool,
+  );
+}
+
 export function getDurableRerankerCandidateCount(result: RecallResult): number {
   return (getRecallRerankPool(result) ?? buildSelectedResultPool(result))
     .candidates.length;
@@ -566,7 +640,7 @@ export async function applyDurableRerankingToResult(input: {
       getText: ({ candidate }) => durableCandidateText(candidate),
     });
     const rankedCandidates = outcome.items.map(({ candidate }) => candidate);
-    const selectedCandidates = selectRerankedCandidates({
+    const selectedCandidates = selectDurableCandidates({
       candidates: rankedCandidates,
       pool,
       selectedLimit,
@@ -580,7 +654,7 @@ export async function applyDurableRerankingToResult(input: {
     const candidateByRerankerId = new Map(
       items.map(({ candidate, id }) => [id, candidate] as const),
     );
-    const selectedResult = rebuildDurablyRerankedResult({
+    const selectedResult = rebuildDurablySelectedResult({
       candidates: selectedCandidates,
       language: input.language,
       pool,

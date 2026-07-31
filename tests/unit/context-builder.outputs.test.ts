@@ -1047,6 +1047,12 @@ describe("context builder output modes", () => {
     expect(withSpans.episodeSummary).not.toContain(
       "- Covered the follow-up review.\n  >",
     );
+    expect(
+      rebuildMemoryPacket(withSpans, {
+        ...baseInput,
+        language: createLanguageService(),
+      }).episodeSummary,
+    ).toBe(withSpans.episodeSummary);
 
     // Without spans the render stays byte-identical to the historical format.
     const without = buildMemoryPacket(baseInput);

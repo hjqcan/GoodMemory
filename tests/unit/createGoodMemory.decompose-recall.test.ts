@@ -6,8 +6,14 @@ import {
   createInMemorySessionStore,
   createInMemoryVectorStore,
 } from "../../src";
-import { createFactMemory } from "../../src/domain/records";
+import {
+  createEpisodeMemory,
+  createFactMemory,
+  createReferenceMemory,
+} from "../../src/domain/records";
 import { createEvidenceRecord } from "../../src/evidence/contracts";
+import { createSessionArchive } from "../../src/evolution/contracts";
+import { createRecallProjectionRuntime } from "../../src/recall/projections/runtime";
 
 // Planned decomposition remains an experimental opt-in until its promotion
 // gate is accepted. The public default stays on the unplanned single pass.
@@ -110,6 +116,261 @@ describe("GoodMemory.recall decompose option", () => {
     // The packet is re-rendered over the union, so it reflects the merged facts.
     expect(decomposed.packet).toBeDefined();
     expect(decomposed.packet.renderBudget).toEqual({ maxTokens: 6_000 });
+  });
+
+  it("keeps decomposed durable evidence within the final global selection limit", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+        recallPlanner: {
+          async plan() {
+            return {
+              entities: ["Needle"],
+              facets: ["needle first facet", "needle second facet"],
+            };
+          },
+        },
+      },
+      retrieval: { recallPlanExecution: true },
+      storage: { provider: "memory" },
+    });
+    for (const [prefix, count, content] of [
+      ["primary", 8, "overview alpha"],
+      ["facet-one", 12, "needle first facet"],
+      ["facet-two", 12, "needle second facet"],
+    ] as const) {
+      for (let index = 1; index <= count; index += 1) {
+        const id = `${prefix}-${String(index).padStart(2, "0")}`;
+        await documentStore.set("facts", id, createFactMemory({
+          id,
+          userId: scope.userId,
+          workspaceId: scope.workspaceId,
+          category: "project",
+          content: `${content} record ${index}`,
+          source: {
+            method: "explicit",
+            extractedAt: "2026-01-01T00:00:00.000Z",
+          },
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        }));
+        await documentStore.set("evidence", `evidence-${id}`, createEvidenceRecord({
+          id: `evidence-${id}`,
+          userId: scope.userId,
+          workspaceId: scope.workspaceId,
+          kind: "conversation_excerpt",
+          excerpt: `${content} evidence ${index}`,
+          source: {
+            method: "explicit",
+            extractedAt: "2026-01-01T00:00:00.000Z",
+          },
+          linkedMemoryIds: [id],
+        }));
+      }
+    }
+
+    const result = await memory.recall({
+      scope,
+      query: "current overview alpha",
+      strategy: "rules-only",
+      includeEvidence: true,
+    });
+    const trace = result.metadata.retrievalTrace;
+    const plan = trace?.schemaVersion === 2 ? trace.plan : undefined;
+    const selectedIds = new Set(result.facts.map(({ id }) => id));
+
+    expect(plan?.selectedLimit).toBe(12);
+    expect(result.metadata.policyApplied).toContain("decomposed_recall");
+    expect(result.facts).toHaveLength(12);
+    for (let index = 1; index <= 6; index += 1) {
+      expect(selectedIds).toContain(
+        `primary-${String(index).padStart(2, "0")}`,
+      );
+    }
+    expect(result.facts.some(({ id }) => id.startsWith("facet-"))).toBe(true);
+    expect(result.metadata.candidateTraces).toContainEqual(
+      expect.objectContaining({
+        returned: false,
+        whySuppressed: "recall_plan_final_selection",
+      }),
+    );
+    expect(
+      result.metadata.candidateTraces.some(
+        ({ whySuppressed }) => whySuppressed === "reranker_final_selection",
+      ),
+    ).toBe(false);
+    expect(
+      result.evidence.every(({ linkedMemoryIds }) =>
+        linkedMemoryIds.some((id) => selectedIds.has(id))
+      ),
+    ).toBe(true);
+    expect(result.evidence).toHaveLength(result.facts.length);
+  });
+
+  it("does not displace a full primary selection with a supplementary lane", async () => {
+    const documentStore = createRecallProjectionRuntime({
+      documentStore: createInMemoryDocumentStore(),
+    }).documentStore;
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        recallPlanner: {
+          async plan() {
+            return {
+              entities: ["Needle"],
+              facets: ["Needle reference"],
+            };
+          },
+        },
+        reranker: {
+          async rerank() {
+            throw new Error("expected reranker failure");
+          },
+        },
+        sessionStore: createInMemorySessionStore(),
+      },
+      retrieval: {
+        preset: "recommended",
+        recallPlanExecution: true,
+      },
+      storage: { provider: "memory" },
+    });
+    for (let index = 1; index <= 12; index += 1) {
+      const id = `primary-full-${String(index).padStart(2, "0")}`;
+      await documentStore.set("facts", id, createFactMemory({
+        id,
+        ...scope,
+        category: "project",
+        content: `primary anchor record ${index}`,
+        source: {
+          method: "explicit",
+          extractedAt: "2026-01-01T00:00:00.000Z",
+        },
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      }));
+    }
+    await documentStore.set("references", "supplementary-reference", createReferenceMemory({
+      id: "supplementary-reference",
+      ...scope,
+      title: "Needle reference guide",
+      pointer: "docs/needle.md",
+      source: {
+        method: "explicit",
+        extractedAt: "2026-01-01T00:00:00.000Z",
+      },
+    }));
+
+    const result = await memory.recall({
+      scope,
+      query: "current primary anchor",
+      strategy: "hybrid",
+    });
+    const selectedIds = new Set(result.facts.map(({ id }) => id));
+
+    expect(result.facts).toHaveLength(12);
+    for (let index = 1; index <= 12; index += 1) {
+      expect(selectedIds).toContain(
+        `primary-full-${String(index).padStart(2, "0")}`,
+      );
+    }
+    expect(result.references).toHaveLength(0);
+  });
+
+  it("applies the final global selection limit to a single recall pass", async () => {
+    const documentStore = createRecallProjectionRuntime({
+      documentStore: createInMemoryDocumentStore(),
+    }).documentStore;
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        reranker: {
+          async rerank() {
+            throw new Error("expected reranker failure");
+          },
+        },
+        sessionStore: createInMemorySessionStore(),
+      },
+      retrieval: { preset: "recommended" },
+      storage: { provider: "memory" },
+    });
+    for (let index = 1; index <= 12; index += 1) {
+      const id = `single-fact-${String(index).padStart(2, "0")}`;
+      await documentStore.set("facts", id, createFactMemory({
+        id,
+        ...scope,
+        category: "project",
+        content: `alpha project beta project durable fact ${index}`,
+        source: {
+          method: "explicit",
+          extractedAt: "2026-01-01T00:00:00.000Z",
+        },
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      }));
+    }
+    for (let index = 1; index <= 2; index += 1) {
+      const id = `single-reference-${index}`;
+      await documentStore.set("references", id, createReferenceMemory({
+        id,
+        ...scope,
+        title: `Alpha project beta project reference ${index}`,
+        pointer: `docs/alpha-${index}.md`,
+        source: {
+          method: "explicit",
+          extractedAt: "2026-01-01T00:00:00.000Z",
+        },
+      }));
+    }
+    for (let index = 1; index <= 3; index += 1) {
+      const id = `single-episode-${index}`;
+      await documentStore.set("episodes", id, createEpisodeMemory({
+        id,
+        ...scope,
+        summary: `Alpha project beta project episode ${index}`,
+        topics: ["alpha", "beta", "project"],
+      }));
+    }
+    for (let index = 1; index <= 2; index += 1) {
+      const id = `single-archive-${index}`;
+      await documentStore.set("archives", id, createSessionArchive({
+        id,
+        ...scope,
+        sessionId: `session-${index}`,
+        summary: `Alpha project beta project archive ${index}`,
+        archivedAt: "2026-01-01T00:00:00.000Z",
+      }));
+    }
+
+    const result = await memory.recall({
+      scope,
+      query: "How did alpha project change before and after beta project?",
+      strategy: "hybrid",
+      decompose: false,
+      multiHop: false,
+    });
+    const durableCount = result.facts.length + result.references.length +
+      result.episodes.length + result.archives.length;
+
+    expect(durableCount).toBe(12);
+    expect(result.references.length).toBeLessThanOrEqual(1);
+    expect(result.episodes.length).toBeLessThanOrEqual(2);
+    expect(result.archives.length).toBeLessThanOrEqual(1);
+    expect(result.references.length).toBeGreaterThan(0);
+    expect(result.episodes.length).toBeGreaterThan(0);
+    expect(result.metadata.policyApplied).toContain("reranker_fallback");
+    expect(result.metadata.retrievalTrace?.reranker).toMatchObject({
+      candidateCount: 17,
+      status: "fallback",
+    });
+    expect(result.metadata.candidateTraces).toContainEqual(
+      expect.objectContaining({
+        returned: false,
+        whySuppressed: "recall_plan_final_selection",
+      }),
+    );
   });
 
   it("keeps query-plan execution behind the experimental retrieval option", async () => {
