@@ -116,8 +116,15 @@ cutover, and rollback contracts.
   materialization holds the historical v3 writer lock from before source scan
   through a terminal exact source reread and atomic publication; it is
   byte-identical to the earlier snapshot. Positive replay and controlled
-  disk/in-memory mutations pass. This establishes only
-  `selectionMaterialized: true`; independent review, freeze, live capture,
+  disk/in-memory mutations pass. The first exact source freeze
+  `ebe98af07fa747f55eedfa6b312d17f9265dae33` received a real
+  fork-without-history review and was rejected; no `R`, `A`, or `P` commit was
+  created from it. The rejected receipt exposed a long-gate timeout/cleanup
+  race and the lack of an explicit schema-valid rejection branch. Those
+  protocol defects are repaired and replayed locally. The one-parent commit
+  containing this checkpoint is the repaired source-freeze candidate, but it
+  still needs a fresh independent review. This establishes only
+  `selectionMaterialized: true`; accepted review/freeze, live capture,
   episode-edge construction, relationship qualification, and the independent
   power/precision allocation artifact remain open gates.
   The adjacent-edge preflight is now executable: source-record v5 binds two
@@ -1197,8 +1204,9 @@ cutover, and rollback contracts.
   and imposes a bounded post-kill reap. It passes 1/1
   with 18 assertions across three seeds, 100,000 work items and 700,000
   filesystem promise operations per seed.
-  The source-side review and activation protocol is now implemented, but it
-  has not been exercised as an actual review or capture. It requires an exact
+  The source-side review and activation protocol is now implemented and has
+  been exercised once as an actual rejected review, but never as an accepted
+  review or capture. It requires an exact
   one-parent freeze `F`, a direct child `R` that adds only five canonical
   review artifacts, a direct child `A` that adds only the capture bridge, and a
   direct child `P` that adds only the activation receipt. The receipt itself
@@ -1236,18 +1244,43 @@ cutover, and rollback contracts.
   capture plan, and requires deep equality with the normalized artifact.
   Default unit tests now construct the exact v3 frame from tracked bytes
   without Git history; the real historical commit authorization remains an
-  explicit Phase-73 gate. The current v4 plus shallow-preflight unit slice
-  passes 36/36 with 152 assertions.
+  explicit Phase-73 gate. The current focused v4/liveness unit slice passes
+  46/46 with 199 assertions.
   The F/R/A/P mutation gate creates its accepted response in-process, so it
   proves schema, topology, snapshot/liveness, one-shot claim, failure sealing,
   finalize-only recovery, and mutation rejection only. It is not independent
-  review evidence. The current pinned-Bun replay passes 1/1 with 26 assertions
-  in 351.10 seconds. The review bundle binds 72 source/gate/test paths, eight
-  required checks, and the complete runtime value-import closure from every
-  reviewed TypeScript root. Only the source-freeze candidate is being
-  materialized; no
-  reviewed `R`, activation `A`, publication `P`, fresh independent reviewer
-  response, or live GitHub capture exists yet. The one-shot scope is
+  review evidence. The repaired pinned-Bun replay passes 1/1 with 26 assertions
+  in 376.50 seconds under its 720-second budget. The separate real snapshot
+  mutation gate passes 5/5 with 21 assertions in 104.89 seconds, and the
+  three-seed liveness gate passes 1/1 with 18 assertions in 9.04 seconds. The
+  review bundle binds 74 source/gate/test paths, eight
+  required checks, and the complete relative TypeScript import closure from
+  every reviewed TypeScript root.
+  The first real freeze was commit
+  `ebe98af07fa747f55eedfa6b312d17f9265dae33`, tree
+  `092bc045f335287fb894be5996565fe301aff313`, with direct parent
+  `3b0ba2d13fc53a8a71b034342bf16c78b5e1507a`. Fresh reviewer task
+  `/root/c6_source_v4_bounded_review_v1` independently verified the 72-path
+  v1 closure, snapshot selection, liveness, focused units, and typecheck, but
+  rejected the freeze after the integrated gate exceeded 420 seconds and its
+  framework cleanup raced the still-running operation. It also correctly
+  identified that v1 could express rejection only by becoming
+  schema-invalid. The exact dispatch/input/request/response bytes are retained
+  under
+  `reports/quality-gates/phase-73/c6-source-v4-bounded-review-rejected-ebe98af/`;
+  response SHA-256 is
+  `ed0705f32f0aa7e0328476b64d49bb82b0219864275002c4cb8e9f9ee3a7bfe0`.
+  No provenance, reviewed `R`, activation `A`, or publication `P` was created
+  from that freeze.
+  Review protocol v2 is a clean break: accepted and rejected responses are a
+  discriminated union, a valid rejection has at least one blocking finding
+  and grants no authority, the provenance recorder can preserve that negative
+  receipt, and activation explicitly rejects it. The comprehensive gate now
+  gives each operation one exact temporary root and removes it only after that
+  operation settles; no test-hook cleanup can race a live promise. These are
+  protocol-repair results, not an accepted review. The one-parent commit
+  containing this checkpoint is the new clean freeze candidate and still
+  requires a fresh fork-without-history v2 reviewer. The one-shot scope is
   the canonical published `P` and its bound host-local target; it is not a
   cryptographic global lock against an author creating a different publication
   fork, so later scientific artifacts must pin the one canonical `P`.
@@ -1255,8 +1288,15 @@ cutover, and rollback contracts.
   but GitHub API responses are not third-party-signed attestations; provenance
   still depends on the reviewed canonical worker, pinned host/runtime, raw
   ledger, and reproducible replay.
-  This proves `selectionMaterialized: true` only. Independent review, freeze,
-  and live capture authority remain false. No frozen
+  A separate unpinned default-suite diagnostic on the shared checkout is not
+  green: 6,060 passed, 52 skipped, and 15 failed across 710 files. The failures
+  were six expected Bun-1.3.11 early guards, one existing five-second timeout,
+  and eight tests whose external reviewer-identity fixture was absent. This is
+  neither a successful repository regression gate nor evidence that the v2
+  source protocol failed; the frozen review uses its exact pinned gates and
+  isolated typecheck instead.
+  This proves `selectionMaterialized: true` only. Accepted independent review,
+  source-selection freeze, and live capture authority remain false. No frozen
   391-episode dataset, authenticated summary corpus, 10,557-call execution,
   frozen statistical report, C7 gate, or Codex run exists.
   After synchronizing the frozen controlled-mutation asset reader and

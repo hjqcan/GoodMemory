@@ -4039,8 +4039,9 @@ authority remains unusable.
 
 ##### Source-v4-bounded review and one-shot activation protocol checkpoint
 
-The next source-side protocol is implemented but is not yet an executed review
-or a live capture. It uses an exact four-commit topology:
+The next source-side protocol is implemented and has now been exercised once
+as a rejected review, but not as an accepted review or a live capture. It uses
+an exact four-commit topology:
 
 1. `F` is a one-parent code/source freeze and contains none of the review,
    bridge, or activation-receipt paths;
@@ -4097,11 +4098,48 @@ capture. The review schema honestly records
 `cryptographicReviewIndependence: false`; an actual run still requires a fresh
 `fork-turns-none` reviewer to write only `response.json`, followed by the
 author-side provenance recorder and exact commits.
-The current pinned-Bun mutation replay passes 1/1 with 26 assertions in
-351.10 seconds. The independent review bundle binds 72 source/gate/test paths
-and eight required checks; its closure test starts from every reviewed
-TypeScript root and follows static runtime imports, including literal dynamic
+The repaired pinned-Bun mutation replay passes 1/1 with 26 assertions in
+376.50 seconds under a 720-second budget. The separate real snapshot mutation
+gate passes 5/5 with 21 assertions in 104.89 seconds, and the three-seed
+liveness gate passes 1/1 with 18 assertions in 9.04 seconds. The independent
+review bundle binds 74 source/gate/test paths and eight required checks; its
+closure test starts from every reviewed TypeScript root and follows all
+relative TypeScript imports, including type-only edges and literal dynamic
 imports.
+
+The first concrete `F` was
+`ebe98af07fa747f55eedfa6b312d17f9265dae33`, tree
+`092bc045f335287fb894be5996565fe301aff313`, with direct parent
+`3b0ba2d13fc53a8a71b034342bf16c78b5e1507a`. Fresh
+fork-without-history reviewer `/root/c6_source_v4_bounded_review_v1`
+independently reconstructed the selection and verified the 72-path v1 source
+closure, real snapshot, liveness, focused units, and typecheck. It rejected
+the freeze because the integrated gate exceeded its 420-second framework
+timeout and test-hook cleanup deleted a fixture while the underlying promise
+was still running. The reviewer also found that v1 had no schema-valid
+rejection branch. Exact negative-review dispatch/input/request/response bytes
+are retained under
+`reports/quality-gates/phase-73/c6-source-v4-bounded-review-rejected-ebe98af/`;
+the response SHA-256 is
+`ed0705f32f0aa7e0328476b64d49bb82b0219864275002c4cb8e9f9ee3a7bfe0`.
+That rejected `F` has no provenance commit, `R`, `A`, `P`, or capture
+authority.
+
+Review protocol v2 is a clean break. Its response is an explicit
+accepted/rejected discriminated union. A valid rejection carries a canonical
+accepted-check subset and at least one blocking finding; the recorder
+preserves it as a five-file negative receipt, and activation refuses that
+lineage before producing a receipt. The comprehensive gate no longer has
+global temporary roots or framework-hook cleanup. Each operation owns one
+exact root through `try/finally`, so an earlier deadline can report first but
+cannot delete a fixture until the operation settles. The 720-second budget
+covers the three individually bounded liveness seeds plus the rest of the
+topology/mutation replay. Focused v2 units pass 46/46 with 199 assertions and
+typecheck passes. These results repair the protocol; they do not reverse the
+v1 rejection or constitute fresh independent acceptance. The one-parent
+commit containing this checkpoint is the new clean `F` candidate; the next
+chain must give that exact commit to a new
+`c6_source_v4_bounded_review_v2` reviewer.
 
 The published receipt binds one canonical `P` and an absolute host-local
 capture target. Replaying that exact receipt in another checkout fails because
@@ -4125,11 +4163,13 @@ The actual historical commit authorization has moved to the explicit Phase-73
 preflight gate. This preserves shallow/default unit portability without
 weakening the runtime-bound proof.
 
-Only the source-freeze candidate is being materialized. No reviewed `R`,
-activation `A`, publication `P`, independently authored response, live
-source-v4 capture, offline double replay, or capture asset lock exists yet.
-Those are the next readiness-ladder actions; selection materialization alone
-still leaves accepted episodes at zero and all C6 run/claim flags false.
+The first source-freeze candidate was independently rejected, and its negative
+receipt grants no authority. No accepted reviewed `R`, activation `A`,
+publication `P`, live source-v4 capture, offline double replay, or capture
+asset lock exists yet. The repaired freeze candidate is the one-parent commit
+containing this checkpoint; a fresh independent response is the next
+readiness-ladder action. Selection materialization alone still
+leaves accepted episodes at zero and all C6 run/claim flags false.
 
 None of those rows is a three-stage memory episode by itself. Before an
 upstream row can enter C6, intake must pin dataset revision/path/file hash/row

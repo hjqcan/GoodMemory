@@ -1,0 +1,19 @@
+{
+  "artifactKind": "c6-source-v4-bounded-review-dispatch",
+  "authorTaskName": "/root",
+  "contextPolicy": "fork-turns-none",
+  "input": {
+    "byteLength": 22292,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v4-bounded/review/input.json",
+    "sha256": "38ba6cabb81a14c15d4fc6c204153e23f1639e0ae3af9b932f9dfbc4464dc69f"
+  },
+  "request": {
+    "byteLength": 1103,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v4-bounded/review/request.json",
+    "sha256": "7ac0b113ca721ed8940054334efecf224428a73b67526f6276b942398bae688c"
+  },
+  "requestedTaskName": "c6_source_v4_bounded_review_v1",
+  "responsePath": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v4-bounded/review/response.json",
+  "reviewerAgentName": "/root/c6_source_v4_bounded_review_v1",
+  "schemaVersion": 1
+}

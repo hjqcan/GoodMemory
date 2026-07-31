@@ -1990,6 +1990,11 @@ export async function verifyC6SourceV4BoundedActivationLineage(
       snapshot:
         C6_SOURCE_V4_BOUNDED_CANONICAL_SNAPSHOT_IDENTITY,
     });
+  if (!reviewEvidence.independentReviewAccepted) {
+    throw new Error(
+      "C6 source-v4 bounded review rejected the freeze",
+    );
+  }
   if (
     requiredBytes(
       reviewArtifacts,

@@ -1,0 +1,31 @@
+{
+  "acceptedChecks": [
+    "freeze-candidate-commit-tree-and-source-closure",
+    "external-snapshot-asset-lock-root-and-manifest-closure",
+    "outcome-blind-selection-and-complete-pilot-exclusion",
+    "historical-v3-terminal-non-promotion-preserved",
+    "pinned-bun-liveness-and-snapshot-mutation-gates",
+    "clean-shell-worker-and-native-bun-fetch",
+    "one-shot-live-capture-budget-with-no-redraw-or-top-up",
+    "direct-review-child-and-strict-activation-still-required"
+  ],
+  "artifactKind": "c6-source-v4-bounded-review-response",
+  "blockingFindings": [
+    "[P1] The frozen pinned-Bun review-activation mutation gate did not pass: codex-coding-effect.c6-source-v4-bounded-review-activation.gate.ts timed out at its 420000ms limit and ended with 0 pass, 1 fail, and 1 error after about 438.76s. Its post-timeout forged capture-claim assertion raced temporary-fixture cleanup and resolved instead of rejecting, so the required F-to-R-to-A-to-P and one-shot mutation evidence is not closed.",
+    "[P2] The frozen review response contract has no semantically explicit rejection branch: acceptedChecks is fixed to the full tuple, decision is fixed to accepted-for-freeze, and the boundary status is fixed to review-accepted-freeze-and-activation-required, while validation rejects every nonempty blockingFindings array. This response therefore uses blockingFindings to fail closed, but the protocol cannot encode and record an explicit schema-valid rejected decision."
+  ],
+  "boundary": {
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "liveCaptureAuthorized": false,
+    "sourceSelectionFrozen": false,
+    "status": "review-accepted-freeze-and-activation-required"
+  },
+  "decision": "accepted-for-freeze",
+  "dispatchSha256": "c25c19e1b42ecc54216aa7f6e6ad0f63e3fe68bd169aca8440a62fcd632e3fc2",
+  "inputSha256": "38ba6cabb81a14c15d4fc6c204153e23f1639e0ae3af9b932f9dfbc4464dc69f",
+  "requestSha256": "7ac0b113ca721ed8940054334efecf224428a73b67526f6276b942398bae688c",
+  "reviewedAt": "2026-07-31T02:40:15.000Z",
+  "reviewerAgentName": "/root/c6_source_v4_bounded_review_v1",
+  "schemaVersion": 1
+}

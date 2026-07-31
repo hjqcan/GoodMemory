@@ -31,7 +31,7 @@ import {
 
 const AUTHOR = "/root";
 const REVIEWER =
-  "/root/c6_source_v4_bounded_review_v1";
+  "/root/c6_source_v4_bounded_review_v2";
 const SNAPSHOT_ROOT = "/tmp/c6-v4-snapshot";
 const REPOSITORY_ROOT = resolve(
   import.meta.dir,

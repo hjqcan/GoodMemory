@@ -1549,21 +1549,56 @@ rejected.
 [VERIFIED/PROTOCOL ONLY] Default v4 receipt and v3 frame units reconstruct the
 exact frozen frame without Git history; the real historical v3 commit
 authorization is now an explicit Phase-73 gate and passes 1/1 with 8
-assertions. The current v4 plus shallow-preflight unit slice passes 36/36 with
-152 assertions and typecheck. The F/R/A/P mutation gate uses a synthetic
+assertions. Before the first real review, the v1 v4-plus-shallow-preflight
+unit slice passed 36/36 with 152 assertions and typecheck. The F/R/A/P mutation
+gate uses a synthetic
 accepted response and
 therefore proves structure, liveness/snapshot wiring, one-shot claim, failure
 sealing/finalize-only recovery, and mutation rejection only—not independent
 review or live capture.
-[VERIFIED/PROTOCOL ONLY] The current pinned-Bun mutation replay passes 1/1
-with 26 assertions in 351.10 seconds. The review bundle binds 72
-source/gate/test paths, eight required checks, and the complete runtime
-value-import closure from every reviewed TypeScript root.
-[BOUNDARY] Only the source-freeze candidate is being materialized. No reviewed
-`R`, activation `A`, publication `P`, fresh independent reviewer response,
-GitHub capture, or offline double replay exists. The one-shot
-identity is the canonical published `P` plus its host-local target, not a
-cryptographic global lock against another author-created publication fork.
+[REJECTED/NO AUTHORITY] The first exact freeze was
+`ebe98af07fa747f55eedfa6b312d17f9265dae33`, tree
+`092bc045f335287fb894be5996565fe301aff313`, direct parent
+`3b0ba2d13fc53a8a71b034342bf16c78b5e1507a`. Fresh fork-without-history
+reviewer `/root/c6_source_v4_bounded_review_v1` independently verified the
+72-path v1 source closure, reconstructed selection, and ran the real snapshot,
+liveness, focused-unit, and typecheck checks. It rejected the freeze because
+the integrated gate exceeded its 420-second timeout and framework cleanup
+raced its still-running operation. It also found that v1 had no schema-valid
+rejection branch. Exact dispatch/input/request/response bytes are retained at
+`reports/quality-gates/phase-73/c6-source-v4-bounded-review-rejected-ebe98af/`;
+response SHA-256 is
+`ed0705f32f0aa7e0328476b64d49bb82b0219864275002c4cb8e9f9ee3a7bfe0`.
+No provenance, reviewed `R`, activation `A`, publication `P`, or capture
+authority was created from this freeze.
+[DONE/PROTOCOL REPAIR ONLY] Review protocol v2 has an explicit
+accepted/rejected response union. A valid rejection has at least one blocking
+finding, is preserved by the recorder as a five-file negative receipt, and is
+explicitly refused by activation. The integrated gate no longer uses global
+temporary roots or framework-hook cleanup: each operation removes only its
+own exact root after settling. The timeout budget is 720 seconds. Focused v2
+units pass 46/46 with 199 assertions and isolated typecheck passes.
+[VERIFIED/PROTOCOL ONLY] The repaired pinned-Bun mutation replay passes 1/1
+with 26 assertions in 376.50 seconds. The separate real snapshot mutation gate
+passes 5/5 with 21 assertions in 104.89 seconds; three-seed liveness passes
+1/1 with 18 assertions in 9.04 seconds. The v2 review bundle binds 74
+source/gate/test paths, eight required checks, and the complete relative
+TypeScript import closure from every reviewed TypeScript root, including
+type-only edges. This repairs the
+protocol but is not independent acceptance.
+[DIAGNOSTIC/NOT A GATE] A separate unpinned default `bun test` sweep on the
+shared checkout reported 6060 pass, 52 skip, and 15 fail across 710 files. Six
+failures were the expected Bun-1.3.11 early runtime guards, one was an existing
+five-second timeout, and eight lacked the external reviewer-identity fixture.
+This is not green repository-regression evidence and does not replace the
+exact pinned C6 gates or isolated typecheck.
+[BOUNDARY] No accepted reviewed `R`, activation `A`, publication `P`, fresh
+v2 independent reviewer response, GitHub capture, or offline double replay
+exists. The one-parent commit containing this checkpoint is the repaired clean
+freeze candidate; it still requires a fresh v2 independent review. The
+one-shot identity is the canonical published `P` plus its host-local target,
+not a cryptographic global lock against another author-created publication
+fork.
 Every later capture/dataset/report must pin the single canonical `P`.
 The clean worker closes mutable in-process transport substitution; unsigned
 GitHub API responses still are not cryptographic third-party attestations.

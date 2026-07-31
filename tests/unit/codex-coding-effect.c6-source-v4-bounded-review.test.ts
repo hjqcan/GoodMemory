@@ -3,12 +3,14 @@ import { createHash } from "node:crypto";
 import {
   existsSync,
   readFileSync,
+  writeFileSync,
 } from "node:fs";
 import {
   dirname,
   extname,
   join,
   normalize,
+  relative,
 } from "node:path";
 
 import { describe, expect, it } from "bun:test";
@@ -25,9 +27,12 @@ import {
 import type {
   C6SourceV4BoundedReviewSourceInput,
 } from "../../scripts/codex-coding-effect/c6-source-v4-bounded-review";
+import {
+  withC6GateTemporaryRoot,
+} from "../support/c6-gate-lifecycle";
 
 const AUTHOR = "/root";
-const REVIEWER = "/root/c6_source_v4_bounded_review_v1";
+const REVIEWER = "/root/c6_source_v4_bounded_review_v2";
 const FREEZE_COMMIT = "a".repeat(40);
 const FREEZE_TREE = "b".repeat(40);
 const REVIEWED_AT = "2026-07-27T22:00:00.000Z";
@@ -81,7 +86,7 @@ describe("C6 source-v4 bounded independent review", () => {
     }
   });
 
-  it("binds the complete transitive value-import closure", () => {
+  it("binds the complete transitive relative TypeScript import closure", () => {
     const reviewedPaths = new Set<string>(
       C6_SOURCE_V4_BOUNDED_REVIEWED_PATHS,
     );
@@ -102,7 +107,7 @@ describe("C6 source-v4 bounded independent review", () => {
       visited.add(path);
       for (
         const specifier of
-          runtimeRelativeImports(path)
+          relativeTypeScriptImports(path)
       ) {
         const dependency =
           resolveTypeScriptDependency(
@@ -119,6 +124,25 @@ describe("C6 source-v4 bounded independent review", () => {
     }
 
     expect([...missing].sort()).toEqual([]);
+  });
+
+  it("discovers relative import type nodes in the reviewed source closure", async () => {
+    await withC6GateTemporaryRoot(
+      "goodmemory-c6-import-type-node-",
+      async (root) => {
+        const sourcePath = join(root, "fixture.ts");
+        writeFileSync(
+          sourcePath,
+          'type Imported = import("./dependency").Imported;\n',
+        );
+
+        expect(
+          relativeTypeScriptImports(
+            relative(process.cwd(), sourcePath),
+          ),
+        ).toEqual(["./dependency"]);
+      },
+    );
   });
 
   it("binds the exact checkpoint, snapshot, source closure, and non-live review boundary", () => {
@@ -161,6 +185,177 @@ describe("C6 source-v4 bounded independent review", () => {
       liveCaptureAuthorized: false,
       sourceSelectionFrozen: false,
     });
+
+    const validateResponse = (
+      response: Record<string, unknown>,
+    ) => {
+      const bytes = canonicalJson(response);
+      return validateC6SourceV4BoundedReview({
+        ...input,
+        ...bundle,
+        provenanceBytes: provenance(
+          bundle,
+          bytes,
+        ),
+        responseBytes: bytes,
+      });
+    };
+    const acceptedWithFinding = JSON.parse(
+      acceptedResponse(bundle),
+    ) as Record<string, unknown>;
+    acceptedWithFinding.blockingFindings = [
+      "[P1] cannot be accepted",
+    ];
+    expect(() =>
+      validateResponse(acceptedWithFinding)
+    ).toThrow();
+
+    const rejected = JSON.parse(
+      rejectedResponse(bundle),
+    ) as Record<string, unknown>;
+    expect(() =>
+      validateResponse({
+        ...rejected,
+        blockingFindings: [],
+      })
+    ).toThrow();
+    expect(() =>
+      validateResponse({
+        ...rejected,
+        boundary: {
+          ...(rejected.boundary as object),
+          status:
+            "review-accepted-freeze-and-activation-required",
+        },
+      })
+    ).toThrow();
+    expect(() =>
+      validateResponse({
+        ...rejected,
+        acceptedChecks: [
+          C6_SOURCE_V4_BOUNDED_REVIEW_REQUIRED_CHECKS[0],
+          C6_SOURCE_V4_BOUNDED_REVIEW_REQUIRED_CHECKS[0],
+        ],
+      })
+    ).toThrow(
+      "unique canonical subset",
+    );
+    expect(() =>
+      validateResponse({
+        ...rejected,
+        acceptedChecks: [
+          "unknown-required-check",
+        ],
+      })
+    ).toThrow(
+      "unique canonical subset",
+    );
+    expect(() =>
+      validateResponse({
+        ...rejected,
+        dispatchSha256: "0".repeat(64),
+      })
+    ).toThrow("bind the exact request");
+  });
+
+  it("records an explicit rejected decision without granting freeze or activation authority", () => {
+    const input = reviewInput();
+    const bundle =
+      buildC6SourceV4BoundedReviewBundle(input);
+    const responseBytes = rejectedResponse(bundle);
+    const evidence =
+      validateC6SourceV4BoundedReview({
+        ...input,
+        ...bundle,
+        provenanceBytes: provenance(
+          bundle,
+          responseBytes,
+        ),
+        responseBytes,
+      });
+
+    expect(evidence).toMatchObject({
+      blockingFindings: [
+        "[P1] integrated activation gate timed out",
+      ],
+      candidateManifestFrozen: false,
+      codexRunReady: false,
+      decision: "rejected",
+      independentReviewAccepted: false,
+      liveCaptureAuthorized: false,
+      reviewReceiptStructureVerified: true,
+      sourceSelectionFrozen: false,
+    });
+  });
+
+  it("binds timeout-safe comprehensive gate cleanup and a twelve-minute budget", () => {
+    const gateSource = readFileSync(
+      join(
+        process.cwd(),
+        "tests/quality-gates/phase-73/codex-coding-effect.c6-source-v4-bounded-review-activation.gate.ts",
+      ),
+      "utf8",
+    );
+    const activationSource = readFileSync(
+      join(
+        process.cwd(),
+        "scripts/codex-coding-effect/c6-source-v4-bounded-activation.ts",
+      ),
+      "utf8",
+    );
+
+    expect(gateSource).not.toContain(
+      "afterEach",
+    );
+    expect(gateSource).toContain(
+      "withC6GateTemporaryRoot",
+    );
+    expect(gateSource).toContain(
+      "}, 720_000);",
+    );
+    expect(activationSource).toContain(
+      "if (!reviewEvidence.independentReviewAccepted)",
+    );
+  });
+
+  it("keeps one gate-owned root until its active operation settles after an earlier deadline", async () => {
+    let release!: () => void;
+    let markRootReady!: () => void;
+    const blocked = new Promise<void>(
+      (resolve) => {
+        release = resolve;
+      },
+    );
+    const rootReady = new Promise<void>(
+      (resolve) => {
+        markRootReady = resolve;
+      },
+    );
+    let ownedRoot = "";
+    const operation = withC6GateTemporaryRoot(
+      "owned-root-",
+      async (root) => {
+        ownedRoot = root;
+        markRootReady();
+        await blocked;
+      },
+    );
+    await rootReady;
+    const deadline = await Promise.race([
+      operation.then(() => "operation" as const),
+      new Promise<"deadline">((resolve) => {
+        setTimeout(
+          () => resolve("deadline"),
+          5,
+        );
+      }),
+    ]);
+
+    expect(deadline).toBe("deadline");
+    expect(existsSync(ownedRoot)).toBeTrue();
+    release();
+    await operation;
+    expect(existsSync(ownedRoot)).toBeFalse();
   });
 
   it("rejects another snapshot, incomplete source closure, and a same-task reviewer", () => {
@@ -232,7 +427,7 @@ describe("C6 source-v4 bounded independent review", () => {
   });
 });
 
-function runtimeRelativeImports(
+function relativeTypeScriptImports(
   path: string,
 ): string[] {
   const source = ts.createSourceFile(
@@ -246,8 +441,7 @@ function runtimeRelativeImports(
     if (
       ts.isImportDeclaration(statement) &&
       ts.isStringLiteral(statement.moduleSpecifier) &&
-      statement.moduleSpecifier.text.startsWith(".") &&
-      importDeclarationHasRuntimeValue(statement)
+      statement.moduleSpecifier.text.startsWith(".")
     ) {
       imports.push(statement.moduleSpecifier.text);
     }
@@ -255,13 +449,20 @@ function runtimeRelativeImports(
       ts.isExportDeclaration(statement) &&
       statement.moduleSpecifier !== undefined &&
       ts.isStringLiteral(statement.moduleSpecifier) &&
-      statement.moduleSpecifier.text.startsWith(".") &&
-      exportDeclarationHasRuntimeValue(statement)
+      statement.moduleSpecifier.text.startsWith(".")
     ) {
       imports.push(statement.moduleSpecifier.text);
     }
   }
   const visit = (node: ts.Node): void => {
+    if (
+      ts.isImportTypeNode(node) &&
+      ts.isLiteralTypeNode(node.argument) &&
+      ts.isStringLiteral(node.argument.literal) &&
+      node.argument.literal.text.startsWith(".")
+    ) {
+      imports.push(node.argument.literal.text);
+    }
     if (
       ts.isCallExpression(node) &&
       node.expression.kind ===
@@ -276,47 +477,6 @@ function runtimeRelativeImports(
   };
   visit(source);
   return imports;
-}
-
-function importDeclarationHasRuntimeValue(
-  declaration: ts.ImportDeclaration,
-): boolean {
-  const clause = declaration.importClause;
-  if (clause === undefined) {
-    return true;
-  }
-  if (clause.isTypeOnly) {
-    return false;
-  }
-  if (clause.name !== undefined) {
-    return true;
-  }
-  const bindings = clause.namedBindings;
-  return (
-    bindings !== undefined &&
-    (
-      ts.isNamespaceImport(bindings) ||
-      bindings.elements.some(
-        (element) => !element.isTypeOnly,
-      )
-    )
-  );
-}
-
-function exportDeclarationHasRuntimeValue(
-  declaration: ts.ExportDeclaration,
-): boolean {
-  if (declaration.isTypeOnly) {
-    return false;
-  }
-  const clause = declaration.exportClause;
-  return (
-    clause === undefined ||
-    ts.isNamespaceExport(clause) ||
-    clause.elements.some(
-      (element) => !element.isTypeOnly,
-    )
-  );
 }
 
 function resolveTypeScriptDependency(
@@ -338,7 +498,7 @@ function resolveTypeScriptDependency(
   );
   if (dependency === undefined) {
     throw new Error(
-      `unresolved reviewed runtime import ${specifier} from ${importer}`,
+      `unresolved reviewed relative TypeScript import ${specifier} from ${importer}`,
     );
   }
   return dependency;
@@ -393,7 +553,43 @@ function acceptedResponse(
     requestSha256: sha256(bundle.requestBytes),
     reviewedAt: REVIEWED_AT,
     reviewerAgentName: REVIEWER,
-    schemaVersion: 1,
+    schemaVersion: 2,
+  });
+}
+
+function rejectedResponse(
+  bundle: {
+    dispatchBytes: string;
+    inputBytes: string;
+    requestBytes: string;
+  },
+): string {
+  return canonicalJson({
+    acceptedChecks:
+      C6_SOURCE_V4_BOUNDED_REVIEW_REQUIRED_CHECKS.slice(
+        0,
+        6,
+      ),
+    artifactKind:
+      "c6-source-v4-bounded-review-response",
+    blockingFindings: [
+      "[P1] integrated activation gate timed out",
+    ],
+    boundary: {
+      candidateManifestFrozen: false,
+      codexRunReady: false,
+      liveCaptureAuthorized: false,
+      sourceSelectionFrozen: false,
+      status:
+        "review-rejected-new-freeze-required",
+    },
+    decision: "rejected",
+    dispatchSha256: sha256(bundle.dispatchBytes),
+    inputSha256: sha256(bundle.inputBytes),
+    requestSha256: sha256(bundle.requestBytes),
+    reviewedAt: REVIEWED_AT,
+    reviewerAgentName: REVIEWER,
+    schemaVersion: 2,
   });
 }
 
@@ -436,10 +632,10 @@ function provenance(
         cryptographicReceipt: false,
       },
       requestedTaskName:
-        "c6_source_v4_bounded_review_v1",
+        "c6_source_v4_bounded_review_v2",
       type: "independent-ai-agent",
     },
-    schemaVersion: 1,
+    schemaVersion: 2,
   });
 }
 

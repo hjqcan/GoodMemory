@@ -181,10 +181,10 @@ export async function recordC6SourceV4BoundedReviewProvenance(
         cryptographicReceipt: false,
       },
       requestedTaskName:
-        "c6_source_v4_bounded_review_v1",
+        "c6_source_v4_bounded_review_v2",
       type: "independent-ai-agent",
     },
-    schemaVersion: 1,
+    schemaVersion: 2,
   });
   const validationInput = {
     authorTaskName: input.authorTaskName,
@@ -242,8 +242,13 @@ export async function recordC6SourceV4BoundedReviewProvenance(
     );
   }
   return {
+    blockingFindings:
+      publishedEvidence.blockingFindings,
     cryptographicReviewIndependence: false,
-    independentReviewAccepted: true,
+    decision: publishedEvidence.decision,
+    independentReviewAccepted:
+      publishedEvidence
+        .independentReviewAccepted,
     liveCaptureAuthorized: false,
     outputRoot,
     provenanceSha256:

@@ -104,6 +104,7 @@ export const C6_SOURCE_V4_BOUNDED_REVIEWED_PATHS = [
   "scripts/codex-coding-effect/c6-source-v3-simple-census-ledger.ts",
   "scripts/codex-coding-effect/c6-source-v3-simple-census-lock.ts",
   "scripts/codex-coding-effect/c6-source-v3-simple-census-preflight.ts",
+  "scripts/codex-coding-effect/c6-source-v3-simple-census-replay.ts",
   "scripts/codex-coding-effect/c6-source-v3-simple-census-runtime-source.ts",
   "scripts/codex-coding-effect/c6-source-v3-simple-census-transport.ts",
   "scripts/codex-coding-effect/c6-source-v3-simple-census.ts",
@@ -138,6 +139,7 @@ export const C6_SOURCE_V4_BOUNDED_REVIEWED_PATHS = [
   "tests/quality-gates/phase-73/codex-coding-effect.c6-source-v3-simple-census-preflight.gate.ts",
   "tests/quality-gates/phase-73/codex-coding-effect.c6-source-v4-bounded-review-activation.gate.ts",
   "tests/quality-gates/phase-73/codex-coding-effect.c6-source-v4-bounded-snapshot.gate.ts",
+  "tests/support/c6-gate-lifecycle.ts",
   "tests/support/test-env.ts",
   "tests/support/test-env-isolation.ts",
   "tests/unit/codex-coding-effect.c6-source-v3-simple-census-preflight.test.ts",
@@ -242,6 +244,17 @@ const requiredChecksSchema = z.tuple([
   z.literal(C6_SOURCE_V4_BOUNDED_REVIEW_REQUIRED_CHECKS[6]),
   z.literal(C6_SOURCE_V4_BOUNDED_REVIEW_REQUIRED_CHECKS[7]),
 ]);
+const acceptedCheckSubsetSchema = z.array(
+  trimmedStringSchema,
+).refine(
+  (checks) =>
+    JSON.stringify(checks) ===
+      JSON.stringify(
+        C6_SOURCE_V4_BOUNDED_REVIEW_REQUIRED_CHECKS
+          .filter((check) => checks.includes(check)),
+      ),
+  "accepted checks must be a unique canonical subset",
+);
 const inputReferenceSchema = artifactReferenceSchema.extend({
   path: z.literal(
     C6_SOURCE_V4_BOUNDED_REVIEW_PATHS.input,
@@ -275,7 +288,7 @@ const reviewInputSchema = z.object({
   ).length(
     C6_SOURCE_V4_BOUNDED_REVIEWED_PATHS.length,
   ),
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   selectionCheckpoint: z.object({
     commitSha: z.literal(
       C6_SOURCE_V4_BOUNDED_SELECTION_CHECKPOINT
@@ -301,12 +314,13 @@ const reviewRequestSchema = z.object({
   ),
   input: inputReferenceSchema,
   requiredChecks: requiredChecksSchema,
-  schemaVersion: z.literal(1),
+  responseSchemaVersion: z.literal(2),
+  schemaVersion: z.literal(2),
   scope: z.literal(
     "selection-review-only-no-live-capture-or-codex-run-authority",
   ),
   task: z.literal(
-    "independent-c6-source-v4-bounded-review-v1",
+    "independent-c6-source-v4-bounded-review-v2",
   ),
 }).strict();
 const reviewDispatchSchema = z.object({
@@ -318,20 +332,20 @@ const reviewDispatchSchema = z.object({
   input: inputReferenceSchema,
   request: requestReferenceSchema,
   requestedTaskName: z.literal(
-    "c6_source_v4_bounded_review_v1",
+    "c6_source_v4_bounded_review_v2",
   ),
   responsePath: z.literal(
     C6_SOURCE_V4_BOUNDED_REVIEW_PATHS.response,
   ),
   reviewerAgentName: trimmedStringSchema,
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
 }).strict();
-const reviewResponseSchema = z.object({
+const acceptedReviewResponseSchema = z.object({
   acceptedChecks: requiredChecksSchema,
   artifactKind: z.literal(
     "c6-source-v4-bounded-review-response",
   ),
-  blockingFindings: z.array(trimmedStringSchema),
+  blockingFindings: z.array(z.never()).length(0),
   boundary: z.object({
     candidateManifestFrozen: z.literal(false),
     codexRunReady: z.literal(false),
@@ -347,8 +361,37 @@ const reviewResponseSchema = z.object({
   requestSha256: sha256Schema,
   reviewedAt: z.iso.datetime(),
   reviewerAgentName: trimmedStringSchema,
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
 }).strict();
+const rejectedReviewResponseSchema = z.object({
+  acceptedChecks: acceptedCheckSubsetSchema,
+  artifactKind: z.literal(
+    "c6-source-v4-bounded-review-response",
+  ),
+  blockingFindings:
+    z.array(trimmedStringSchema).min(1),
+  boundary: z.object({
+    candidateManifestFrozen: z.literal(false),
+    codexRunReady: z.literal(false),
+    liveCaptureAuthorized: z.literal(false),
+    sourceSelectionFrozen: z.literal(false),
+    status: z.literal(
+      "review-rejected-new-freeze-required",
+    ),
+  }).strict(),
+  decision: z.literal("rejected"),
+  dispatchSha256: sha256Schema,
+  inputSha256: sha256Schema,
+  requestSha256: sha256Schema,
+  reviewedAt: z.iso.datetime(),
+  reviewerAgentName: trimmedStringSchema,
+  schemaVersion: z.literal(2),
+}).strict();
+const reviewResponseSchema =
+  z.discriminatedUnion("decision", [
+    acceptedReviewResponseSchema,
+    rejectedReviewResponseSchema,
+  ]);
 const reviewProvenanceSchema = z.object({
   artifactKind: z.literal(
     "c6-source-v4-bounded-review-provenance",
@@ -370,11 +413,11 @@ const reviewProvenanceSchema = z.object({
       cryptographicReceipt: z.literal(false),
     }).strict(),
     requestedTaskName: z.literal(
-      "c6_source_v4_bounded_review_v1",
+      "c6_source_v4_bounded_review_v2",
     ),
     type: z.literal("independent-ai-agent"),
   }).strict(),
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
 }).strict();
 
 export interface C6SourceV4BoundedReviewArtifact {
@@ -401,7 +444,7 @@ export interface C6SourceV4BoundedReviewBundle {
   requestBytes: string;
 }
 
-export interface C6SourceV4BoundedReviewEvidence {
+interface C6SourceV4BoundedReviewEvidenceBase {
   candidateManifestFrozen: false;
   claimedReviewedAt: string;
   claimedReviewerAgentName: string;
@@ -409,7 +452,6 @@ export interface C6SourceV4BoundedReviewEvidence {
   cryptographicReviewIndependence: false;
   dispatchSha256: string;
   freezeAncestryVerified: false;
-  independentReviewAccepted: true;
   inputSha256: string;
   liveCaptureAuthorized: false;
   provenanceSha256: string;
@@ -418,6 +460,22 @@ export interface C6SourceV4BoundedReviewEvidence {
   reviewReceiptStructureVerified: true;
   sourceSelectionFrozen: false;
 }
+
+export type C6SourceV4BoundedReviewEvidence =
+  C6SourceV4BoundedReviewEvidenceBase &
+    (
+      | {
+          blockingFindings: readonly [];
+          decision: "accepted-for-freeze";
+          independentReviewAccepted: true;
+        }
+      | {
+          blockingFindings:
+            readonly [string, ...string[]];
+          decision: "rejected";
+          independentReviewAccepted: false;
+        }
+    );
 
 export function buildC6SourceV4BoundedReviewBundle(
   input: C6SourceV4BoundedReviewSourceInput,
@@ -491,7 +549,7 @@ export function buildC6SourceV4BoundedReviewBundle(
         C6_SOURCE_V4_BOUNDED_EVALUATION_ID,
       freezeCandidate,
       reviewedSources,
-      schemaVersion: 1,
+      schemaVersion: 2,
       selectionCheckpoint:
         C6_SOURCE_V4_BOUNDED_SELECTION_CHECKPOINT,
       snapshot,
@@ -513,11 +571,12 @@ export function buildC6SourceV4BoundedReviewBundle(
       ),
       requiredChecks:
         C6_SOURCE_V4_BOUNDED_REVIEW_REQUIRED_CHECKS,
-      schemaVersion: 1,
+      responseSchemaVersion: 2,
+      schemaVersion: 2,
       scope:
         "selection-review-only-no-live-capture-or-codex-run-authority",
       task:
-        "independent-c6-source-v4-bounded-review-v1",
+        "independent-c6-source-v4-bounded-review-v2",
     }),
   );
   const dispatchBytes = canonicalJson(
@@ -535,11 +594,11 @@ export function buildC6SourceV4BoundedReviewBundle(
         requestBytes,
       ),
       requestedTaskName:
-        "c6_source_v4_bounded_review_v1",
+        "c6_source_v4_bounded_review_v2",
       responsePath:
         C6_SOURCE_V4_BOUNDED_REVIEW_PATHS.response,
       reviewerAgentName,
-      schemaVersion: 1,
+      schemaVersion: 2,
     }),
   );
   return {
@@ -603,8 +662,7 @@ export function validateC6SourceV4BoundedReview(
     response.requestSha256 !==
       sha256(requestArtifact.bytes) ||
     response.dispatchSha256 !==
-      sha256(dispatchArtifact.bytes) ||
-    response.blockingFindings.length !== 0
+      sha256(dispatchArtifact.bytes)
   ) {
     throw new Error(
       "C6 source-v4 bounded review response does not bind the exact request",
@@ -651,7 +709,7 @@ export function validateC6SourceV4BoundedReview(
     responseArtifact.bytes,
     "provenance response",
   );
-  return {
+  const commonEvidence = {
     candidateManifestFrozen: false,
     claimedReviewedAt: response.reviewedAt,
     claimedReviewerAgentName:
@@ -661,7 +719,6 @@ export function validateC6SourceV4BoundedReview(
     dispatchSha256:
       sha256(dispatchArtifact.bytes),
     freezeAncestryVerified: false,
-    independentReviewAccepted: true,
     inputSha256: sha256(inputArtifact.bytes),
     liveCaptureAuthorized: false,
     provenanceSha256:
@@ -672,7 +729,24 @@ export function validateC6SourceV4BoundedReview(
       sha256(responseArtifact.bytes),
     reviewReceiptStructureVerified: true,
     sourceSelectionFrozen: false,
-  };
+  } as const;
+  return response.decision ===
+    "accepted-for-freeze"
+    ? {
+        ...commonEvidence,
+        blockingFindings: [],
+        decision: "accepted-for-freeze",
+        independentReviewAccepted: true,
+      }
+    : {
+        ...commonEvidence,
+        blockingFindings: [
+          response.blockingFindings[0]!,
+          ...response.blockingFindings.slice(1),
+        ],
+        decision: "rejected",
+        independentReviewAccepted: false,
+      };
 }
 
 function exactArtifactBytes(

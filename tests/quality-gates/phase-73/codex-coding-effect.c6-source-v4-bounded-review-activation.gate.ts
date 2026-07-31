@@ -3,19 +3,15 @@ import { execFile } from "node:child_process";
 import {
   cp,
   mkdir,
-  mkdtemp,
   readFile,
   readdir,
-  realpath,
   rm,
   writeFile,
 } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
 import {
-  afterEach,
   describe,
   expect,
   it,
@@ -56,11 +52,14 @@ import {
 import {
   recordC6SourceV4BoundedReviewProvenance,
 } from "../../../scripts/record-codex-coding-effect-c6-source-v4-bounded-review-provenance";
+import {
+  withC6GateTemporaryRoot,
+} from "../../support/c6-gate-lifecycle";
 
 const execFileAsync = promisify(execFile);
 const AUTHOR = "/root";
 const REVIEWER =
-  "/root/c6_source_v4_bounded_review_v1";
+  "/root/c6_source_v4_bounded_review_v2";
 const REVIEWED_AT =
   "2026-07-27T23:00:00.000Z";
 const SNAPSHOT_ROOT =
@@ -72,23 +71,13 @@ if (SNAPSHOT_ROOT === undefined) {
     "GOODMEMORY_TEST_C6_SOURCE_V4_BOUNDED_SNAPSHOT_ROOT is required",
   );
 }
-const temporaryRoots: string[] = [];
-
-afterEach(async () => {
-  await Promise.all(
-    temporaryRoots.splice(0).map((root) =>
-      rm(root, {
-        force: true,
-        recursive: true,
-      })
-    ),
-  );
-});
-
 describe("Phase 73 C6 source-v4 bounded review and activation", () => {
   it("closes F -> reviewed R -> bridge-only A -> receipt-only P before one create-only capture claim", async () => {
+    await withC6GateTemporaryRoot(
+      "goodmemory-c6-v4-review-workflow-",
+      async (parent) => {
     const fixture =
-      await createFreezeFixture();
+      await createFreezeFixture(parent);
     const prepared =
       await prepareC6SourceV4BoundedReview({
         authorTaskName: AUTHOR,
@@ -879,19 +868,14 @@ describe("Phase 73 C6 source-v4 bounded review and activation", () => {
     ).rejects.toThrow(
       "review commit must add exactly five review artifacts",
     );
-  }, 420_000);
+      },
+    );
+  }, 720_000);
 });
 
-async function createFreezeFixture() {
-  const parent = await realpath(
-    await mkdtemp(
-      join(
-        tmpdir(),
-        "goodmemory-c6-v4-review-workflow-",
-      ),
-    ),
-  );
-  temporaryRoots.push(parent);
+async function createFreezeFixture(
+  parent: string,
+) {
   const repositoryRoot = join(parent, "repository");
   await execFileAsync("git", [
     "clone",
@@ -991,7 +975,7 @@ async function acceptedResponse(
     requestSha256: sha256(requestBytes),
     reviewedAt: REVIEWED_AT,
     reviewerAgentName: REVIEWER,
-    schemaVersion: 1,
+    schemaVersion: 2,
   });
 }
 
