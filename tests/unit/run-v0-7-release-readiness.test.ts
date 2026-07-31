@@ -14,6 +14,7 @@ import {
   parseV07ReleaseReadinessCliOptions,
   renderV07LanguageConsumerSmoke,
   renderV07ReleaseSummary,
+  summarizeCommandFailureOutput,
   V07_RELEASE_REQUIRED_COMMANDS,
 } from "../../scripts/run-v0-7-release-readiness";
 
@@ -349,7 +350,27 @@ describe("v0.7 release readiness", () => {
     expect(markdown).toContain("# v0.7 Release Readiness");
     expect(markdown).toContain("REQUIRED CHECK(S) FAILED");
     expect(markdown).toContain("too large \\| 4194305 bytes");
+    expect(markdown).toContain("## Failure Details");
+    expect(markdown).toContain("tarball is too large | 4194305 bytes");
     expect(markdown).toContain(`source commit: ${"a".repeat(40)}`);
     expect(markdown).toContain("runtime: Node v20.19.0 / Bun 1.3.14");
+  });
+
+  it("summarizes command failures from signal lines before skipped-test tails", () => {
+    const summarized = summarizeCommandFailureOutput([
+      "bun test v1.3.14",
+      "(pass) unrelated > succeeds [1.00ms]",
+      "tests/unit/example.test.ts:",
+      "(fail) important suite > exposes the real failure [5010.00ms]",
+      "^ this test timed out",
+      "error: expect(received).toBe(expected)",
+      "(skip) noisy tail > skipped real evidence one",
+      "(skip) noisy tail > skipped real evidence two",
+      "(skip) noisy tail > skipped real evidence three",
+    ].join("\n"));
+
+    expect(summarized).toContain("(fail) important suite");
+    expect(summarized).toContain("^ this test timed out");
+    expect(summarized.trimStart().startsWith("(skip)")).toBe(false);
   });
 });

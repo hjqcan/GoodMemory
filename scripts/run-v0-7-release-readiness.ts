@@ -20,6 +20,8 @@ const RELEASE_LINE = "0.7";
 const RELEASE_VERSION = "0.7.1";
 const RELEASE_BUN_VERSION = "1.3.14";
 const MAX_TARBALL_BYTES = 4 * 1024 * 1024;
+const FAILURE_CONTEXT_LINES = 4;
+const FAILURE_DETAIL_LINE_LIMIT = 80;
 const REQUIRED_PACKED_FILES = [
   "dist/index.js",
   "dist/index.d.ts",
@@ -425,6 +427,39 @@ function tail(value: string, lineCount = 12): string {
   return value.trimEnd().split("\n").slice(-lineCount).join("\n");
 }
 
+export function summarizeCommandFailureOutput(output: string): string {
+  const lines = output.trimEnd().split("\n");
+  const selected = new Set<number>();
+  const signalPatterns = [
+    /^\(fail\)/u,
+    /\^ this test timed out/u,
+    /^error:/iu,
+    /^FAIL\b/u,
+    /Process completed with exit code/u,
+  ];
+
+  for (const [index, line] of lines.entries()) {
+    if (!signalPatterns.some((pattern) => pattern.test(line.trim()))) {
+      continue;
+    }
+    const start = Math.max(0, index - FAILURE_CONTEXT_LINES);
+    const end = Math.min(lines.length, index + FAILURE_CONTEXT_LINES + 1);
+    for (let selectedIndex = start; selectedIndex < end; selectedIndex += 1) {
+      selected.add(selectedIndex);
+    }
+  }
+
+  if (selected.size === 0) {
+    return tail(output, FAILURE_DETAIL_LINE_LIMIT);
+  }
+
+  return [...selected]
+    .sort((a, b) => a - b)
+    .map((index) => lines[index])
+    .slice(0, FAILURE_DETAIL_LINE_LIMIT)
+    .join("\n");
+}
+
 function commandCheck(input: {
   id: string;
   outcome: CommandOutcome;
@@ -435,7 +470,9 @@ function commandCheck(input: {
     detail:
       input.outcome.code === 0
         ? input.successDetail
-        : tail([input.outcome.stdout, input.outcome.stderr].filter(Boolean).join("\n")),
+        : summarizeCommandFailureOutput(
+            [input.outcome.stdout, input.outcome.stderr].filter(Boolean).join("\n"),
+          ),
     durationMs: input.outcome.durationMs,
     id: input.id,
     required: true,
@@ -937,6 +974,14 @@ export function renderV07ReleaseSummary(
     lines.push(
       `| ${check.title} | ${check.required ? "yes" : "no"} | ${check.status.toUpperCase()} | ${detail} |`,
     );
+  }
+
+  const failedChecks = report.checks.filter((check) => check.status === "fail");
+  if (failedChecks.length > 0) {
+    lines.push("", "## Failure Details", "");
+    for (const check of failedChecks) {
+      lines.push(`### ${check.title}`, "", "```text", check.detail, "```", "");
+    }
   }
 
   return `${lines.join("\n")}\n`;
