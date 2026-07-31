@@ -1,0 +1,37 @@
+{
+  "artifactKind": "c6-source-v4-bounded-review-provenance",
+  "authorTaskName": "/root",
+  "dispatch": {
+    "byteLength": 848,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v4-bounded/review/dispatch.json",
+    "sha256": "68082aed0f6b284e738e5f25c569471010816485fa25101434b91361a6a76d2a"
+  },
+  "input": {
+    "byteLength": 22847,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v4-bounded/review/input.json",
+    "sha256": "6cc5bea234a851274480af5b9a8d476a724ef899b6c85c67770994dbf6efdde0"
+  },
+  "recordedAt": "2026-07-31T03:50:49.000Z",
+  "request": {
+    "byteLength": 1133,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v4-bounded/review/request.json",
+    "sha256": "c5a398e3cc94416705be5d6cfc31c90dea41c5de2ef6cacfbdb48f534881a954"
+  },
+  "response": {
+    "byteLength": 1538,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v4-bounded/review/response.json",
+    "sha256": "f00111d63bd3e943380ca441008e0a672b60316eab1782bcdd6877f29274da47"
+  },
+  "reviewer": {
+    "agentName": "/root/c6_source_v4_bounded_review_v2",
+    "contextPolicy": "fork-turns-none",
+    "orchestratorAttestation": {
+      "attestedByTaskName": "/root",
+      "basis": "orchestrator-observed-dispatch-no-cryptographic-receipt",
+      "cryptographicReceipt": false
+    },
+    "requestedTaskName": "c6_source_v4_bounded_review_v2",
+    "type": "independent-ai-agent"
+  },
+  "schemaVersion": 2
+}

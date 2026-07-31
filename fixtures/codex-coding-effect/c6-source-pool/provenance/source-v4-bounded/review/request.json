@@ -1,0 +1,28 @@
+{
+  "accessBoundary": {
+    "codexOutcomeAccess": false,
+    "episodeQualificationOutcomeAccess": false,
+    "rawGoldAccess": false,
+    "sourceCaptureOutcomeAccess": false
+  },
+  "artifactKind": "c6-source-v4-bounded-review-request",
+  "input": {
+    "byteLength": 22847,
+    "path": "fixtures/codex-coding-effect/c6-source-pool/provenance/source-v4-bounded/review/input.json",
+    "sha256": "6cc5bea234a851274480af5b9a8d476a724ef899b6c85c67770994dbf6efdde0"
+  },
+  "requiredChecks": [
+    "freeze-candidate-commit-tree-and-source-closure",
+    "external-snapshot-asset-lock-root-and-manifest-closure",
+    "outcome-blind-selection-and-complete-pilot-exclusion",
+    "historical-v3-terminal-non-promotion-preserved",
+    "pinned-bun-liveness-and-snapshot-mutation-gates",
+    "clean-shell-worker-and-native-bun-fetch",
+    "one-shot-live-capture-budget-with-no-redraw-or-top-up",
+    "direct-review-child-and-strict-activation-still-required"
+  ],
+  "responseSchemaVersion": 2,
+  "schemaVersion": 2,
+  "scope": "selection-review-only-no-live-capture-or-codex-run-authority",
+  "task": "independent-c6-source-v4-bounded-review-v2"
+}

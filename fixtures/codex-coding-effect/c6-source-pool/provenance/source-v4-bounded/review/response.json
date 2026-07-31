@@ -1,0 +1,29 @@
+{
+  "acceptedChecks": [
+    "freeze-candidate-commit-tree-and-source-closure",
+    "external-snapshot-asset-lock-root-and-manifest-closure",
+    "outcome-blind-selection-and-complete-pilot-exclusion",
+    "historical-v3-terminal-non-promotion-preserved",
+    "pinned-bun-liveness-and-snapshot-mutation-gates",
+    "clean-shell-worker-and-native-bun-fetch",
+    "one-shot-live-capture-budget-with-no-redraw-or-top-up"
+  ],
+  "artifactKind": "c6-source-v4-bounded-review-response",
+  "blockingFindings": [
+    "[P1] The frozen rejected-review workflow test is not executable at c345e79856e59d98e806d7e6ff12c554a77315bd: it clones the frozen HEAD, recopies the identical reviewed sources, then requires a repaired-freeze commit, so pinned Bun deterministically fails with git exit 1 and nothing to commit before proving that a rejected response blocks activation. Repair the fixture and create a new freeze."
+  ],
+  "boundary": {
+    "candidateManifestFrozen": false,
+    "codexRunReady": false,
+    "liveCaptureAuthorized": false,
+    "sourceSelectionFrozen": false,
+    "status": "review-rejected-new-freeze-required"
+  },
+  "decision": "rejected",
+  "dispatchSha256": "68082aed0f6b284e738e5f25c569471010816485fa25101434b91361a6a76d2a",
+  "inputSha256": "6cc5bea234a851274480af5b9a8d476a724ef899b6c85c67770994dbf6efdde0",
+  "requestSha256": "c5a398e3cc94416705be5d6cfc31c90dea41c5de2ef6cacfbdb48f534881a954",
+  "reviewedAt": "2026-07-31T03:50:49.000Z",
+  "reviewerAgentName": "/root/c6_source_v4_bounded_review_v2",
+  "schemaVersion": 2
+}
