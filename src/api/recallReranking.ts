@@ -573,9 +573,10 @@ export function applyDurableSelectionToResult(input: {
     candidates: pool.candidates,
     pool,
     requiredKeys: new Set(
-      buildSelectedResultPool(input.preserveResult).candidates.map(
-        ({ key }) => key,
-      ),
+      pool.protectedPassHeadKeys ??
+        buildSelectedResultPool(input.preserveResult).candidates.map(
+          ({ key }) => key,
+        ),
     ),
     selectedLimit: input.selectedLimit,
   });
@@ -643,6 +644,9 @@ export async function applyDurableRerankingToResult(input: {
     const selectedCandidates = selectDurableCandidates({
       candidates: rankedCandidates,
       pool,
+      ...(pool.protectedPassHeadKeys
+        ? { requiredKeys: new Set(pool.protectedPassHeadKeys) }
+        : {}),
       selectedLimit,
     });
     const rankBefore = new Map(

@@ -6,6 +6,7 @@ import {
   createInMemorySessionStore,
   createInMemoryVectorStore,
 } from "../../src";
+import { createInternalGoodMemory } from "../../src/api/createGoodMemory";
 import {
   createEpisodeMemory,
   createFactMemory,
@@ -277,6 +278,78 @@ describe("GoodMemory.recall decompose option", () => {
       );
     }
     expect(result.references).toHaveLength(0);
+  });
+
+  it("optionally preserves a distinct supplementary head inside the same final limit", async () => {
+    const documentStore = createRecallProjectionRuntime({
+      documentStore: createInMemoryDocumentStore(),
+    }).documentStore;
+    const memory = createInternalGoodMemory({
+      adapters: {
+        documentStore,
+        recallPlanner: {
+          async plan() {
+            return {
+              entities: ["Needle"],
+              facets: ["Needle reference"],
+            };
+          },
+        },
+        reranker: {
+          async rerank() {
+            throw new Error("expected reranker failure");
+          },
+        },
+        sessionStore: createInMemorySessionStore(),
+      },
+      retrieval: {
+        preset: "recommended",
+        recallPlanExecution: true,
+      },
+      storage: { provider: "memory" },
+    }, {
+      distinctRecallPassHeadProtection: true,
+    });
+    for (let index = 1; index <= 12; index += 1) {
+      const id = `primary-protected-${String(index).padStart(2, "0")}`;
+      await documentStore.set("facts", id, createFactMemory({
+        id,
+        ...scope,
+        category: "project",
+        content: `primary anchor record ${index}`,
+        source: {
+          method: "explicit",
+          extractedAt: "2026-01-01T00:00:00.000Z",
+        },
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      }));
+    }
+    await documentStore.set("references", "supplementary-protected", createReferenceMemory({
+      id: "supplementary-protected",
+      ...scope,
+      title: "Needle reference guide",
+      pointer: "docs/needle.md",
+      source: {
+        method: "explicit",
+        extractedAt: "2026-01-01T00:00:00.000Z",
+      },
+    }));
+
+    const result = await memory.recall({
+      scope,
+      query: "current primary anchor",
+      strategy: "hybrid",
+    });
+
+    expect(result.facts).toHaveLength(11);
+    expect(result.references.map(({ id }) => id)).toEqual([
+      "supplementary-protected",
+    ]);
+    expect(
+      result.facts.length + result.references.length +
+        result.episodes.length + result.archives.length,
+    ).toBe(12);
   });
 
   it("applies the final global selection limit to a single recall pass", async () => {

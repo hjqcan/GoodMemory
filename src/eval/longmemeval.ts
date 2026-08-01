@@ -257,9 +257,11 @@ export interface LongMemEvalMemoryContext {
   evidenceLedgerContexts?: Partial<Record<EvidenceLedgerFormat, string>>;
   recallDiagnostics?: {
     ambiguousReaderVisibleSessionIds: string[];
+    preRankLimit?: number;
     queryCalls: number;
     readerVisibleSessionIds: string[];
     recallRecordCount: number;
+    selectedLimit?: number;
     subQueries: string[];
   };
   recallSnapshotSha256?: string;
@@ -4946,6 +4948,7 @@ export function createLongMemEvalGoodMemoryContextBuilder(
       ? {
           ambiguousReaderVisibleSessionIds:
             readerVisibleAttribution.ambiguousSessionIds,
+          preRankLimit: retrievalTrace.plan.preRankLimit,
           queryCalls: retrievalTrace.queryExecutions.reduce(
             (total, execution) => total + execution.hops.length,
             0,
@@ -4965,6 +4968,7 @@ export function createLongMemEvalGoodMemoryContextBuilder(
               total + (Array.isArray(records) ? records.length : 0),
             0,
           ),
+          selectedLimit: retrievalTrace.plan.selectedLimit,
           subQueries: [...retrievalTrace.subQueries],
         }
       : undefined;

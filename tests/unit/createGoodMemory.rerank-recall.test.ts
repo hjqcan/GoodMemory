@@ -7,6 +7,7 @@ import {
   createInMemoryVectorStore,
   type Reranker,
 } from "../../src";
+import { createInternalGoodMemory } from "../../src/api/createGoodMemory";
 import {
   createFactMemory,
   createReferenceMemory,
@@ -578,6 +579,85 @@ describe("GoodMemory.recall reranker adapter", () => {
       }),
     );
     expect(result.facts[0]?.id).toBe("supplementary-target");
+  });
+
+  it("keeps protected pass heads when a successful reranker ranks them last", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createInternalGoodMemory({
+      adapters: {
+        documentStore,
+        recallPlanner: {
+          async plan() {
+            return {
+              entities: ["Needle"],
+              facets: ["Needle reference"],
+            };
+          },
+        },
+        reranker: {
+          async rerank({ documents }) {
+            return documents.map(({ id }) => ({
+              id,
+              score: id === "supplementary-head" ? -1 : 1,
+            }));
+          },
+        },
+        sessionStore: createInMemorySessionStore(),
+      },
+      retrieval: {
+        preset: "recommended",
+        recallPlanExecution: true,
+      },
+      storage: { provider: "memory" },
+    }, {
+      distinctRecallPassHeadProtection: true,
+    });
+    for (let index = 1; index <= 12; index += 1) {
+      const id = `primary-reranked-${String(index).padStart(2, "0")}`;
+      await documentStore.set("facts", id, createFactMemory({
+        id,
+        ...scope,
+        category: "project",
+        content: `primary anchor record ${index}`,
+        source: {
+          method: "explicit",
+          extractedAt: "2026-01-01T00:00:00.000Z",
+        },
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      }));
+    }
+    await documentStore.set("references", "supplementary-head", createReferenceMemory({
+      id: "supplementary-head",
+      ...scope,
+      title: "Needle reference guide",
+      pointer: "docs/needle.md",
+      source: {
+        method: "explicit",
+        extractedAt: "2026-01-01T00:00:00.000Z",
+      },
+    }));
+
+    const result = await memory.recall({
+      scope,
+      query: "current primary anchor",
+      strategy: "hybrid",
+    });
+
+    expect(result.facts).toHaveLength(11);
+    expect(result.references.map(({ id }) => id)).toEqual([
+      "supplementary-head",
+    ]);
+    expect(result.metadata.retrievalTrace?.reranker).toMatchObject({
+      candidateCount: 13,
+      status: "applied",
+    });
+    expect(result.metadata.retrievalTrace?.reranker?.scores).toContainEqual(
+      expect.objectContaining({
+        memoryId: "supplementary-head",
+        rankAfter: 13,
+      }),
+    );
   });
 
   it("keeps primary top evidence in the global reranker pool when facets repeat distractors", async () => {

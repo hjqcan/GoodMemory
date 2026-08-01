@@ -198,6 +198,8 @@ export interface InternalGoodMemoryOptions {
   assistedRecallRouter?: RecallRouterAssistant;
   assistedReviewer?: boolean;
   behavioralOutcomeRecorder?: boolean;
+  /** Repo-only fixed-budget recall-pass coverage experiment. */
+  distinctRecallPassHeadProtection?: boolean;
   environment?: Record<string, string | undefined>;
   /** Repo-only instance selector override for historical evaluation profiles. */
   factSelector?: FactSelector;
@@ -430,6 +432,7 @@ function mergeRecallResults(
   language: LanguageService,
   query: string,
   policyMarker = "decomposed_recall",
+  distinctPassHeadProtection = false,
 ): RecallResult {
   if (supplementary.length === 0) {
     return primary;
@@ -510,6 +513,7 @@ function mergeRecallResults(
     },
   };
   const pooled = mergeRecallRerankPools({
+    distinctPassHeadProtection,
     preRankLimit: plan.preRankLimit,
     primaryReserveLimit: plan.selectedLimit,
     results,
@@ -933,6 +937,7 @@ class GoodMemoryImpl implements GoodMemory {
   readonly runtime: GoodMemoryRuntimeFacade;
 
   private readonly documentStore;
+  private readonly distinctRecallPassHeadProtection: boolean;
   private readonly sessionStore;
   private readonly scopeDeletion?: ScopeDeletionCoordinator;
   private readonly terminalDeletionReady: boolean;
@@ -962,6 +967,8 @@ class GoodMemoryImpl implements GoodMemory {
     private readonly config: GoodMemoryConfig,
     internal?: InternalGoodMemoryOptions,
   ) {
+    this.distinctRecallPassHeadProtection =
+      internal?.distinctRecallPassHeadProtection === true;
     const resolvedRuntime = resolveGoodMemoryRuntimeResolution({
       config,
       env: internal?.environment,
@@ -1542,6 +1549,7 @@ class GoodMemoryImpl implements GoodMemory {
               this.language,
               input.query,
               "decomposed_recall",
+              this.distinctRecallPassHeadProtection,
             ),
           options: {
             language: this.language,

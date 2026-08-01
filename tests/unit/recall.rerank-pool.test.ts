@@ -104,4 +104,51 @@ describe("recall rerank pool", () => {
       getRecallRerankPool(target)?.candidates.map(({ key }) => key),
     ).toContain("references:primary-reference");
   });
+
+  it("optionally reserves one distinct selected head from every recall pass", () => {
+    const shared = Array.from(
+      { length: 40 },
+      (_, index) => `shared-${String(index + 1).padStart(2, "0")}`,
+    );
+    const primary = setRecallRerankPool({}, pool(
+      shared.map((id, index) => factCandidate(id, index < 12)),
+    ));
+    const supplementary = ["operand-one", "operand-two"].map((uniqueId) => {
+      const candidates = shared.map(
+        (id, index) => factCandidate(id, index < 11),
+      );
+      candidates.splice(11, 0, factCandidate(uniqueId, true));
+      return setRecallRerankPool({}, pool(candidates));
+    });
+
+    const baseline = mergeRecallRerankPools({
+      preRankLimit: 32,
+      primaryReserveLimit: 12,
+      results: [primary, ...supplementary],
+      target: {},
+    });
+    const treatment = mergeRecallRerankPools({
+      distinctPassHeadProtection: true,
+      preRankLimit: 32,
+      primaryReserveLimit: 12,
+      results: [primary, ...supplementary],
+      target: {},
+    });
+    const baselineKeys = getRecallRerankPool(baseline)!.candidates.map(
+      ({ key }) => key,
+    );
+    const treatmentPool = getRecallRerankPool(treatment)!;
+    const treatmentKeys = treatmentPool.candidates.map(({ key }) => key);
+
+    expect(baselineKeys).not.toContain("facts:operand-one");
+    expect(baselineKeys).not.toContain("facts:operand-two");
+    expect(treatmentKeys).toHaveLength(32);
+    expect(treatmentKeys).toContain("facts:operand-one");
+    expect(treatmentKeys).toContain("facts:operand-two");
+    expect(treatmentPool.protectedPassHeadKeys).toEqual([
+      "facts:shared-01",
+      "facts:operand-one",
+      "facts:operand-two",
+    ]);
+  });
 });

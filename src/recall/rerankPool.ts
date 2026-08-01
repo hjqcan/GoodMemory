@@ -38,6 +38,7 @@ export interface RecallRerankPool {
   explicitEvidenceIds: string[];
   includeEvidence: boolean;
   laneCaps: Record<RecallRerankCollection, number>;
+  protectedPassHeadKeys?: string[];
   referenceTime: string;
 }
 
@@ -120,6 +121,7 @@ export function normalizeRecallRerankText(
 }
 
 export function mergeRecallRerankPools<T extends object>(input: {
+  distinctPassHeadProtection?: boolean;
   preRankLimit: number;
   primaryReserveLimit: number;
   results: readonly object[];
@@ -170,6 +172,14 @@ export function mergeRecallRerankPools<T extends object>(input: {
         right.score - left.score || left.firstSeen - right.firstSeen,
     )
     .map(({ candidate }) => candidate);
+  const laneCaps = {
+    episodes: Math.max(...pools.map(({ laneCaps }) => laneCaps.episodes)),
+    facts: Math.max(...pools.map(({ laneCaps }) => laneCaps.facts)),
+    references: Math.max(...pools.map(({ laneCaps }) => laneCaps.references)),
+    session_archives: Math.max(
+      ...pools.map(({ laneCaps }) => laneCaps.session_archives),
+    ),
+  };
   const primarySelected = pools[0]!.candidates.filter(
     ({ firstStageSelected }) => firstStageSelected,
   );
@@ -181,19 +191,41 @@ export function mergeRecallRerankPools<T extends object>(input: {
     input.preRankLimit,
     Math.max(input.primaryReserveLimit, collectionHeads.length),
   );
-  const requiredPrimaryKeys = new Set(
-    [
-      ...collectionHeads,
-      ...primarySelected.filter(({ key }) => !headKeys.has(key)),
-    ]
-      .slice(0, reserveLimit)
-      .map(({ key }) => key),
-  );
+  const protectedPassHeads: RecallRerankCandidate[] = [];
+  const protectedCounts = new Map<RecallRerankCollection, number>();
+  const seenPassKeys = new Set<string>();
+  if (input.distinctPassHeadProtection) {
+    for (const pool of pools) {
+      const candidate = pool.candidates.find(({ collection, firstStageSelected, key }) =>
+        firstStageSelected &&
+        !seenPassKeys.has(key) &&
+        (protectedCounts.get(collection) ?? 0) < laneCaps[collection]
+      );
+      for (const { key } of pool.candidates) {
+        seenPassKeys.add(key);
+      }
+      if (!candidate || protectedPassHeads.length >= reserveLimit) {
+        continue;
+      }
+      protectedPassHeads.push(candidate);
+      protectedCounts.set(
+        candidate.collection,
+        (protectedCounts.get(candidate.collection) ?? 0) + 1,
+      );
+    }
+  }
+  const requiredCandidates = input.distinctPassHeadProtection
+    ? protectedPassHeads
+    : [
+        ...collectionHeads,
+        ...primarySelected.filter(({ key }) => !headKeys.has(key)),
+      ].slice(0, reserveLimit);
+  const requiredKeys = new Set(requiredCandidates.map(({ key }) => key));
   const admittedKeys = new Set([
-    ...requiredPrimaryKeys,
+    ...requiredKeys,
     ...rankedCandidates
-      .filter(({ key }) => !requiredPrimaryKeys.has(key))
-      .slice(0, input.preRankLimit - requiredPrimaryKeys.size)
+      .filter(({ key }) => !requiredKeys.has(key))
+      .slice(0, input.preRankLimit - requiredKeys.size)
       .map(({ key }) => key),
   ]);
   const candidates = rankedCandidates.filter(({ key }) => admittedKeys.has(key));
@@ -211,14 +243,10 @@ export function mergeRecallRerankPools<T extends object>(input: {
       pools.flatMap(({ explicitEvidenceIds }) => explicitEvidenceIds),
     )],
     includeEvidence: pools.some(({ includeEvidence }) => includeEvidence),
-    laneCaps: {
-      episodes: Math.max(...pools.map(({ laneCaps }) => laneCaps.episodes)),
-      facts: Math.max(...pools.map(({ laneCaps }) => laneCaps.facts)),
-      references: Math.max(...pools.map(({ laneCaps }) => laneCaps.references)),
-      session_archives: Math.max(
-        ...pools.map(({ laneCaps }) => laneCaps.session_archives),
-      ),
-    },
+    laneCaps,
+    ...(input.distinctPassHeadProtection
+      ? { protectedPassHeadKeys: protectedPassHeads.map(({ key }) => key) }
+      : {}),
     referenceTime: first.referenceTime,
   });
 }
