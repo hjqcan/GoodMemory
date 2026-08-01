@@ -1969,16 +1969,25 @@ renderer budget: preserve one distinct eligible head from each activated
 operand/pass, then fill remaining capacity by the existing RRF order. This is a
 set-coverage experiment, not another top-k increase.
 
-The development population is frozen before treatment implementation in
+The exploratory development population is frozen before treatment
+implementation in
 `fixtures/external-benchmarks/longmemeval/phase72-operand-head-preservation-development-v1.selection.json`.
-It excludes all 16 questions in the consumed development slice and all 32 IDs
-in the unopened candidate holdout. Selection uses only question text and the
-English analyzer v13: within the one-operand and two-operand strata, sort by
+An audit before treatment implementation found that LongMemEval has already
+been exercised by historical full-500 runs, so no case is globally pristine.
+The profile therefore makes no confirmatory or unseen-data claim. It excludes
+the union of all 16 questions in the consumed development slice, all 32 IDs in
+the unopened candidate holdout, and all IDs in the three tracked Phase 72
+partial-recall, session-dense, and semantic-recall target/protection profiles:
+234 unique IDs in total. Selection then uses only question text and the English
+analyzer v13: within the one-operand and two-operand strata, sort by
 `SHA-256(salt + NUL + question_id)` and take 4 plus 12 questions. The 16-case
-development population leaves 44 eligible temporal-trigger questions
-unconsumed. Answers, answer-session IDs, benchmark question type, and prior
-outcomes are not selection inputs. The old candidate holdout remains sealed and
-cannot authorize this mechanism.
+population leaves 19 of the 35 remaining eligible temporal-trigger questions
+unused by this mechanism-development step. Answers, answer-session IDs,
+benchmark question type, and prior outcomes are not selection inputs. The old
+candidate holdout remains unopened by its runner, but 13 of its 32 IDs overlap
+historical targeted profiles whose construction used retrieval or answer
+outcomes. It is therefore repository-wide contaminated, is no longer eligible
+as confirmatory evidence, and cannot authorize this mechanism.
 
 The treatment is repo-internal and opt-in. Production defaults remain
 primary-preserving. For the treatment only, the primary pass and each
