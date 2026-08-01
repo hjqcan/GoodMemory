@@ -556,6 +556,14 @@ export async function runPhase72LongMemEvalTemporalAssemblyPaired(
   validateSelectedStrata(selected, selection.strata);
   if (
     selection.split === "candidate_holdout" &&
+    options.openCandidateHoldout === true
+  ) {
+    throw new Error(
+      "The candidate holdout was invalidated by overlap with historical targeted profiles.",
+    );
+  }
+  if (
+    selection.split === "candidate_holdout" &&
     options.openCandidateHoldout !== true
   ) {
     throw new Error(

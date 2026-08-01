@@ -1987,7 +1987,10 @@ benchmark question type, and prior outcomes are not selection inputs. The old
 candidate holdout remains unopened by its runner, but 13 of its 32 IDs overlap
 historical targeted profiles whose construction used retrieval or answer
 outcomes. It is therefore repository-wide contaminated, is no longer eligible
-as confirmatory evidence, and cannot authorize this mechanism.
+as confirmatory evidence, and cannot authorize this mechanism. The runner now
+rejects `--open-candidate-holdout` before any context, answer, or judge call;
+the earlier positive-development authorization protocol is retained only as
+historical provenance.
 
 The treatment is repo-internal and opt-in. Production defaults remain
 primary-preserving. For the treatment only, the primary pass and each

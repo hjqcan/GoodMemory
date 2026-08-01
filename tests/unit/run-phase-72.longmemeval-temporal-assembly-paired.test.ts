@@ -188,8 +188,9 @@ describe("Phase 72 LongMemEval temporal assembly paired replay", () => {
     ).not.toThrow();
   });
 
-  it("rejects injected dependencies for an explicitly opened candidate holdout", async () => {
+  it("invalidates the contaminated candidate holdout before any model call", async () => {
     const inputs = fixtureInputs("candidate_holdout");
+    let answerCalls = 0;
     await expect(runPhase72LongMemEvalTemporalAssemblyPaired({
       benchmarkRoot: "/bench",
       contextMaxTokens: 4_000,
@@ -201,6 +202,7 @@ describe("Phase 72 LongMemEval temporal assembly paired replay", () => {
       selectionFile: selectionPath,
     }, {
       async answerGenerator() {
+        answerCalls += 1;
         return "unused";
       },
       async readFile(path) {
@@ -209,7 +211,8 @@ describe("Phase 72 LongMemEval temporal assembly paired replay", () => {
         throw new Error(`unexpected read: ${path}`);
       },
       sourceState: { ...sourceState, dirty: false },
-    })).rejects.toThrow("canonical dependencies");
+    })).rejects.toThrow("candidate holdout was invalidated");
+    expect(answerCalls).toBe(0);
   });
 
   it("reserves a unique run directory before building contexts or answers", async () => {
