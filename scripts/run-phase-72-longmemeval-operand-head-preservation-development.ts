@@ -161,6 +161,7 @@ export interface Phase72OperandHeadPreservationReport {
     controlRecallRecordCount: number;
     developmentRetrievalCriteriaPassed: boolean;
     developmentRetrievalGatePassed: boolean;
+    goldEndpointCount: number;
     improvedCaseCount: number;
     lostGoldEndpointCount: number;
     queryCountMismatchCount: number;
@@ -505,6 +506,9 @@ function summarize(
   const addedGoldEndpointCount = sum(
     ({ addedGoldSessionIds }) => addedGoldSessionIds.length,
   );
+  const goldEndpointCount = sum(
+    ({ goldSessionIds }) => goldSessionIds.length,
+  );
   const lostGoldEndpointCount = sum(
     ({ lostGoldSessionIds }) => lostGoldSessionIds.length,
   );
@@ -530,6 +534,7 @@ function summarize(
     developmentRetrievalCriteriaPassed,
     developmentRetrievalGatePassed:
       canonicalRun && developmentRetrievalCriteriaPassed,
+    goldEndpointCount,
     improvedCaseCount: cases.filter(
       ({ addedGoldSessionIds }) => addedGoldSessionIds.length > 0,
     ).length,

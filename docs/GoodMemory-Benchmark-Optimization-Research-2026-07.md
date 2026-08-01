@@ -1326,6 +1326,8 @@ judge, prompt, retrieved-context budget, and scoring contract match.
 | Hindsight | Core [`a90f922`](https://github.com/vectorize-io/hindsight/tree/a90f9223765af3c8ad5692ce2b9fa22efbb656ba), AMB [`aa9273a`](https://github.com/vectorize-io/agent-memory-benchmark/tree/aa9273ab9e34bbeaff3c6ef2f694142a552d5b22): LongMemEval 473/500 (0.946), LoCoMo 1417/1540 (0.9201) | The published artifacts use Gemini 3.1 Pro for answers, Gemini 2.5 Flash Lite for judging/extraction, and average retrieved contexts of about 43.6K / 36.2K tokens. The source permits up to 32,768 fact tokens plus 16,384 raw-chunk tokens. This is not GoodMemory's frozen model/judge/budget protocol. | Four independently admitting semantic, BM25, graph, and temporal arms; true union by RRF; time-bucket coverage; bounded reranking; structured facts retaining raw-source fallback. |
 | Mem0 Platform v3 | Core [`760dca6`](https://github.com/mem0ai/mem0/tree/760dca6f391277d79c3c7d2096c1bf1d037526c3), benchmark [`4b61c5d`](https://github.com/mem0ai/memory-benchmarks/tree/4b61c5d31b9c668a12b4f5e78064248a02c82d2b): README says LongMemEval 0.944/0.948 and LoCoMo 0.925/0.918 at top-200/top-50 | The claims are for the managed v3 platform. The pinned per-question artifacts are older and lower (LongMemEval 0.934/0.904; LoCoMo 0.9156/0.8266), the latest change does not include matching new outputs, managed temporal APIs are not implemented in the OSS path, and the benchmark answer/judge prompts contain benchmark-specific answer rules and a deliberately permissive judge. | Completeness-biased additive extraction and entity linking are plausible write-side ablations. Do not copy the prompt literals or call its semantic-candidate reranking a true hybrid admission union. |
 | LazyMem | Source [`af41099`](https://github.com/allacnobug/LazyMem/tree/af4109960aacb90d6dba994e9103a36a165cc380), paper [arXiv:2607.22690](https://arxiv.org/abs/2607.22690): 0.85 on a LongMemEval 100-question test split and 0.68 on a 314-question LoCoMo subset | It does not score the official full LongMemEval-500 or LoCoMo-1540 protocols. Its 360/40/100 LongMemEval split trains and selects a query-conditioned 4B policy with gold-support supervision; datasets, weights, annotations, checkpoints, and result artifacts are not released. | Broad dense+BM25 RRF union, neighbor-window restoration, then query-time KEEP/compress/deduplicate/chronological assembly over raw history. Test the inference contract before considering any trained controller. |
+| Mnemis | Source [`4552fed`](https://github.com/microsoft/Mnemis/tree/4552fed19bc0cde7b990a6ceb0365cd75b1b3453), paper [arXiv:2602.15313](https://arxiv.org/abs/2602.15313): LoCoMo 0.939 excluding category 5 and LongMemEval-S 0.916 | The checked-in graph, answer, and grader configurations all use GPT-4.1-mini. LoCoMo retrieves up to 30 RAG results plus 60 graph/global results; checked-in result contexts average about 35.4K characters and reach 61.8K. The repository publishes its global selector and outputs, but not a complete reproducible Graphiti construction and evaluation stack. This is not GoodMemory's 32-candidate / 12-record, independently judged protocol. | The transferable part is an independently admitted coarse/global route before fusion, not a new graph database. Reuse existing episode, relation, and cluster records, under the current candidate, record, and token ceilings. |
+| opsem lexical-dense fusion | Source [`68186a4`](https://github.com/Chrislysen/opsem/tree/68186a45882dd85ea66fcc70ee38ba28f6de9a90), paper [arXiv:2606.04194](https://arxiv.org/abs/2606.04194): LoCoMo Hit@1 0.7518 for normalized BM25 + turn-max dense fusion | This is retrieval-only rather than end-to-end memory QA. Its LongMemEval-S challenge result improves Recall@1 from 0.5889 to 0.5944 on 150 cases, but the reported confidence interval crosses zero; the LoCoMo fusion weight is selected leave-one-conversation-out. | A fixed-budget ablation of current rank-only RRF against query-local normalized lexical+dense scores and turn-max aggregation is cheap and plausible. Freeze the weight outside the target evaluation and do not turn retrieval Hit@1 into an answer-score claim. |
 | swafra | Source [`669e7bd`](https://github.com/kunal12203/swafra/tree/669e7bdbcbcd421deb172a05f8fe52b741c0e915), advertised 94.7% | The number is session-retrieval recall, skips abstention, and is not end-to-end answer QA. | No score-driven change. Its result is useful only as another reminder to keep retrieval, answer conversion, and abstention metrics separate. |
 
 The most important negative finding is that there is no missing universal
@@ -1346,6 +1348,12 @@ The most useful competitor delta is narrower:
 3. Mem0's high managed score is a protocol/configuration lead, not evidence
    that its OSS retrieval architecture is stronger. Its completeness-oriented
    extraction is testable; its benchmark-specific answer literals are not.
+4. Mnemis supports a separately admitted global/coarse route, but not another
+   database. A GoodMemory experiment must reuse existing episode, relation,
+   and cluster truth while preserving the current 32/12/token budgets.
+5. opsem makes score normalization and turn-max aggregation the cheapest next
+   ranking ablation on a new frozen cohort with real misses. Its weight must be
+   preregistered, and its LongMemEval result is a null rather than a win.
 
 #### What the newer papers change
 
@@ -2022,10 +2030,86 @@ The rationale is external and benchmark-independent:
   benchmark-oriented parsing details are not a reason to add dataset literals
   or a new model call.
 
+#### Canonical fixed-budget head-preservation result
+
+The frozen retrieval-only replay ran from clean commit
+`5fe3e8f3362060753ad46a76eb21c2b1910d9593` under Bun 1.3.14. The report
+binds the exact 16-question selection, dataset, analyzer v13, runner bytes,
+clean source fingerprint, and runtime 32-candidate / 12-record plan. It ran
+all 16 controls before any treatment and made zero answer, judge, or holdout
+calls.
+
+| Metric | Control | Head preservation | Delta |
+| --- | ---: | ---: | ---: |
+| Covered official gold endpoints | 28/29 | 28/29 | 0 |
+| Non-gold reader-visible endpoints | 36 | 32 | -4 |
+| Estimated context tokens | 43,910 | 44,209 | +299 |
+| Selected recall records | 354 | 350 | -4 |
+| Recall queries | 44 | 44 | 0 |
+
+The treatment changed the recall snapshot on 12/16 cases and the rendered
+reader context on 8/16, but produced **0 improved cases, 0 regressed cases,
+0 added gold endpoints, and 0 lost gold endpoints**. The strict development
+gate therefore failed. Control already covered all 28 gold endpoints in this
+question-only-selected cohort that correspond to the 4 one-operand plus 12
+two-operand query decomposition. The sole remaining official gold endpoint is
+a third annotated session in one two-operand case; neither arm retrieved it.
+Thus official recall was 28/29, not 28/28, while this one-head-per-pass
+mechanism had no missing operand endpoint to recover. That boundary is not
+permission to loosen the preregistered gate or select another LongMemEval
+subset from observed outcomes. The result is inconclusive about populations
+with operand-retrieval misses, but it rejects promotion from this experiment:
+production defaults remain unchanged and no answer conversion or public score
+is authorized.
+
+Artifact:
+`reports/eval/research/phase-72/operand-head-preservation/run-phase72-operand-head-preservation-development-bun1314-v1/report.json`,
+SHA-256
+`e2538d99cb82c4fb5dad88afe5fd5f407dd71172949bc188dbda6490c355859a`.
+The immutable artifact's summary records the two covered counts but originally
+omitted their denominator; 29 is the sum of its per-case `goldSessionIds`.
+The runner now reports `goldEndpointCount` explicitly for future executions.
+The completed cohort was not rerun or rewritten after this reporting fix.
+
 No graph database, learned KEEP/DROP controller, benchmark question-type
-switch, or wider context is authorized by this result. If the fixed-budget
-head-preservation arm cannot improve fresh endpoint coverage with zero gold
-loss and bounded noise, reject it before answer conversion.
+switch, wider context, or post-result threshold change is authorized by this
+failed gate. Any next test must use a newly frozen source with real baseline
+headroom and must not recycle these 16 cases as fresh evidence.
+
+#### New generalization boundary: LongMemEval-V2
+
+The official [LongMemEval-V2 source at
+`6f020ac`](https://github.com/xiaowu0162/LongMemEval-V2/tree/6f020ac2fc3275e46c706d3406e02c3ed79b7be2)
+and [paper](https://arxiv.org/abs/2605.12493) define a materially different
+451-question benchmark: web and enterprise trajectories, five abilities, and
+small/medium histories reaching 500 trajectories and about 115M tokens. The
+dataset revision inspected here is
+`f152293e235517d504809563c833d7190b8c713b`; its seven files total about
+7.12 GB, so source and metadata were pinned but the dataset was not downloaded.
+
+The official fixed leaderboard snapshot reports Small accuracy/latency of
+51.0/0.2 s for RAG+notes, 69.9/177.2 s for Codex, 58.6/26.9 s for
+AgentRunbook-R, and 74.9/108.3 s for AgentRunbook-C. Medium reports
+45.9/0.3 s, 68.7/185.8 s, 57.0/25.8 s, and 70.1/139.9 s respectively. These
+figures establish both quality and operating-cost baselines; they are not
+GoodMemory comparisons until the official reader, embedding, dataset, and
+trajectory protocol are reproduced.
+
+AgentRunbook-R provides one useful architecture clue: it independently queries
+raw state, state-transition events, and procedure/hint notes, caps and merges
+each route, then answers from their union. Its official controller also receives
+question ID, question type, and original task goals, and its fallback branches
+on question type. A GoodMemory adapter must deliberately ignore those fields
+and admit only the visible question text/image plus normal trajectory evidence.
+Otherwise an apparent gain would weaken, not strengthen, the generalization
+claim.
+
+The next authorized step is therefore a pinned official-harness adapter and a
+Small baseline before any core tuning. It must report answer accuracy, latency,
+model/query calls, retrieved records, and token budget; keep GoodMemory's
+question-only boundary; and freeze the sample or full split before observing
+outcomes. Downloading the 7.12 GB corpus needs a separate disk preflight. No
+LongMemEval-V2 score or compatibility claim exists yet.
 
 ## 8. Primary sources
 
@@ -2041,6 +2125,7 @@ IRCoT ACL 2023 · docTTTTTquery (castorini) · sleep-time compute arXiv
 arXiv 2508.19828 · SAGE arXiv 2605.30711 · Supersede arXiv 2606.27472 ·
 MemReranker arXiv 2605.06132 · MemDelta arXiv 2606.29914 · Mastra OM
 (mastra.ai/research/observational-memory) · SetR ACL 2025 · MRAG Findings of
-EMNLP 2025 · vendor claims individually marked.
+EMNLP 2025 · Mnemis arXiv 2602.15313 · opsem arXiv 2606.04194 · LongMemEval-V2
+arXiv 2605.12493 · vendor claims individually marked.
 Claude Code patterns: `third-party/claude-code-main/src/memdir/`,
 `src/services/{extractMemories,autoDream,compact,SessionMemory}/`.

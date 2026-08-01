@@ -1491,11 +1491,20 @@ cutover, and rollback contracts.
   and label-free ingestion exposed raw `answer_*` session IDs. A first paired
   development slice reported 13/16 versus 14/16, but is now superseded because
   its memory-builder boundary still received gold-bearing IDs and turn markers.
-  Protocol v2 removes answer/type/answer-marker fields, replaces every source
-  identity with ordinal `session-N` before memory construction, requires an
-  explicit holdout-open flag plus a clean commit, and reserves output before
-  model calls. V2 development is pending; the 32-question holdout remains
-  sealed and no claim is restored.
+  Gold-blind protocol v2 removes answer/type/answer-marker fields and replaces
+  every source identity with ordinal `session-N` before memory construction.
+  Its clean development replay tied at 12/16, so compact assembly was rejected.
+  The nominal 32-question candidate holdout was never opened by its runner, but
+  a repository-wide audit found 13 IDs overlapping historical targeted profiles
+  built from retrieval or answer outcomes; the runner now rejects opening it
+  and it is not confirmatory evidence. Subsequent retrieval-only work also
+  failed promotion: the temporal-operand protection replay exceeded its noise
+  and context ceilings, and the fixed-budget pass-head replay kept gold
+  coverage at 28/29 with zero gains or losses on a 16-case development cohort.
+  All 28 query-derived operand endpoints were already covered; the one remaining
+  official gold endpoint was a third annotated session outside that mechanism's
+  one-head-per-pass target. No answer/judge/holdout call was made for the latter,
+  production defaults remain unchanged, and no LongMemEval claim is restored.
 
 - Phase 69 is complete. Its LoCoMo provider-free result remains accepted; its
   LongMemEval rows are withdrawn after the 2026-07-31 source-input audit. The

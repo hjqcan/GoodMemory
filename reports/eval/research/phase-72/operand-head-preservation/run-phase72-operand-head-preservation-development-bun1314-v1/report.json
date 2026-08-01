@@ -1,0 +1,1155 @@
+{
+  "cases": [
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [],
+      "contextTokenDelta": 0,
+      "control": {
+        "contextSha256": "75a83d7c1f1a056a51a4503056e4e1432404430e41b4e6ee65eae9dfdfb1be5c",
+        "contextTokens": 3235,
+        "coveredGoldSessionIds": [
+          "session-38"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-23",
+          "session-28",
+          "session-39"
+        ],
+        "queryCalls": 2,
+        "readerVisibleSessionIds": [
+          "session-23",
+          "session-28",
+          "session-38",
+          "session-39"
+        ],
+        "recallRecordCount": 19,
+        "recallSnapshotSha256": "20bee649fab5cb9cf4ffeaa543486f7c7fdee62a730b37d480a5408f25c12a83",
+        "subQueries": [
+          "I participate in the 5K charity run"
+        ]
+      },
+      "goldSessionIds": [
+        "session-38"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [],
+      "nonGoldVisibleSessionDelta": 0,
+      "questionId": "gpt4_b0863698",
+      "recallRecordCountDelta": 0,
+      "temporalOperands": [
+        "I participate in the 5K charity run"
+      ],
+      "treatment": {
+        "contextSha256": "75a83d7c1f1a056a51a4503056e4e1432404430e41b4e6ee65eae9dfdfb1be5c",
+        "contextTokens": 3235,
+        "coveredGoldSessionIds": [
+          "session-38"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-23",
+          "session-28",
+          "session-39"
+        ],
+        "queryCalls": 2,
+        "readerVisibleSessionIds": [
+          "session-23",
+          "session-28",
+          "session-38",
+          "session-39"
+        ],
+        "recallRecordCount": 19,
+        "recallSnapshotSha256": "20bee649fab5cb9cf4ffeaa543486f7c7fdee62a730b37d480a5408f25c12a83",
+        "subQueries": [
+          "I participate in the 5K charity run"
+        ]
+      }
+    },
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [],
+      "contextTokenDelta": 0,
+      "control": {
+        "contextSha256": "573875fb203e3002e54b9b41c030f7aaf7fb722e0c536978513bf27f42704b4e",
+        "contextTokens": 2906,
+        "coveredGoldSessionIds": [
+          "session-45"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-29",
+          "session-39",
+          "session-46"
+        ],
+        "queryCalls": 2,
+        "readerVisibleSessionIds": [
+          "session-29",
+          "session-39",
+          "session-45",
+          "session-46"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "052f1370309ce68cd34e44dbed2f2ad56eebb4bbd77aae32b2a15278e238d27e",
+        "subQueries": [
+          "I meet up with my aunt and receive the crystal chandelier"
+        ]
+      },
+      "goldSessionIds": [
+        "session-45"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [],
+      "nonGoldVisibleSessionDelta": 0,
+      "questionId": "71017276",
+      "recallRecordCountDelta": 0,
+      "temporalOperands": [
+        "I meet up with my aunt and receive the crystal chandelier"
+      ],
+      "treatment": {
+        "contextSha256": "573875fb203e3002e54b9b41c030f7aaf7fb722e0c536978513bf27f42704b4e",
+        "contextTokens": 2906,
+        "coveredGoldSessionIds": [
+          "session-45"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-29",
+          "session-39",
+          "session-46"
+        ],
+        "queryCalls": 2,
+        "readerVisibleSessionIds": [
+          "session-29",
+          "session-39",
+          "session-45",
+          "session-46"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "052f1370309ce68cd34e44dbed2f2ad56eebb4bbd77aae32b2a15278e238d27e",
+        "subQueries": [
+          "I meet up with my aunt and receive the crystal chandelier"
+        ]
+      }
+    },
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [],
+      "contextTokenDelta": 0,
+      "control": {
+        "contextSha256": "d9fddd0dca90f30e1c2a6dc51adab6b0396e20c7c0122f0c756f29f0a52f02e2",
+        "contextTokens": 3097,
+        "coveredGoldSessionIds": [
+          "session-42"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-18",
+          "session-22",
+          "session-24",
+          "session-31",
+          "session-38"
+        ],
+        "queryCalls": 2,
+        "readerVisibleSessionIds": [
+          "session-18",
+          "session-22",
+          "session-24",
+          "session-31",
+          "session-38",
+          "session-42"
+        ],
+        "recallRecordCount": 24,
+        "recallSnapshotSha256": "603b2bdd9a0df905fb0995b3eb66996665da7755d1367c9eb64d6a6121c289e6",
+        "subQueries": [
+          "I attend the Seattle International Film Festival"
+        ]
+      },
+      "goldSessionIds": [
+        "session-42"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [],
+      "nonGoldVisibleSessionDelta": 0,
+      "questionId": "gpt4_6dc9b45b",
+      "recallRecordCountDelta": 0,
+      "temporalOperands": [
+        "I attend the Seattle International Film Festival"
+      ],
+      "treatment": {
+        "contextSha256": "d9fddd0dca90f30e1c2a6dc51adab6b0396e20c7c0122f0c756f29f0a52f02e2",
+        "contextTokens": 3097,
+        "coveredGoldSessionIds": [
+          "session-42"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-18",
+          "session-22",
+          "session-24",
+          "session-31",
+          "session-38"
+        ],
+        "queryCalls": 2,
+        "readerVisibleSessionIds": [
+          "session-18",
+          "session-22",
+          "session-24",
+          "session-31",
+          "session-38",
+          "session-42"
+        ],
+        "recallRecordCount": 24,
+        "recallSnapshotSha256": "603b2bdd9a0df905fb0995b3eb66996665da7755d1367c9eb64d6a6121c289e6",
+        "subQueries": [
+          "I attend the Seattle International Film Festival"
+        ]
+      }
+    },
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [
+        "session-34"
+      ],
+      "contextTokenDelta": 403,
+      "control": {
+        "contextSha256": "c32fd5d18e07ef62ed95717215742e63cdf2753233db45c7f4d0f5e6b9f6c128",
+        "contextTokens": 2338,
+        "coveredGoldSessionIds": [
+          "session-21"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-19",
+          "session-43"
+        ],
+        "queryCalls": 2,
+        "readerVisibleSessionIds": [
+          "session-19",
+          "session-21",
+          "session-43"
+        ],
+        "recallRecordCount": 16,
+        "recallSnapshotSha256": "2d4cba2d3842e925e4112ce29152cfeb7f9db66222cc048c3c366d8592ce0025",
+        "subQueries": [
+          "I attend a bird watching workshop at the local Audubon society"
+        ]
+      },
+      "goldSessionIds": [
+        "session-21"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [],
+      "nonGoldVisibleSessionDelta": 1,
+      "questionId": "bcbe585f",
+      "recallRecordCountDelta": 0,
+      "temporalOperands": [
+        "I attend a bird watching workshop at the local Audubon society"
+      ],
+      "treatment": {
+        "contextSha256": "335f746a0c4dc14eb363b9f4fd066a415837d7d0ecd5a28cf4e089dcd8bb4ed3",
+        "contextTokens": 2741,
+        "coveredGoldSessionIds": [
+          "session-21"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-19",
+          "session-34",
+          "session-43"
+        ],
+        "queryCalls": 2,
+        "readerVisibleSessionIds": [
+          "session-19",
+          "session-21",
+          "session-34",
+          "session-43"
+        ],
+        "recallRecordCount": 16,
+        "recallSnapshotSha256": "e48a0e6aeb25d3d7161d5936f17b9492a86f51930ff6f8bd4d6649883c89884b",
+        "subQueries": [
+          "I attend a bird watching workshop at the local Audubon society"
+        ]
+      }
+    },
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [],
+      "contextTokenDelta": -73,
+      "control": {
+        "contextSha256": "8480edec09f844a4eb3865a091c12d216a3e4375f6bdb5cfbd3d39252347e1db",
+        "contextTokens": 2233,
+        "coveredGoldSessionIds": [
+          "session-8",
+          "session-20"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-2"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-2",
+          "session-8",
+          "session-20"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "a2c733887af2f23a0afac2b0161e65dc32a91c0af0aa1205f24cc37fb76e2d26",
+        "subQueries": [
+          "the Samsung Galaxy S22",
+          "the Dell XPS 13"
+        ]
+      },
+      "goldSessionIds": [
+        "session-8",
+        "session-20"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [
+        "session-2"
+      ],
+      "nonGoldVisibleSessionDelta": -1,
+      "questionId": "gpt4_2312f94c",
+      "recallRecordCountDelta": 0,
+      "temporalOperands": [
+        "the Samsung Galaxy S22",
+        "the Dell XPS 13"
+      ],
+      "treatment": {
+        "contextSha256": "501799d2b9f41ca492ad3398c9d226d21f736f6d7829414f8ff72bfaa879fbb2",
+        "contextTokens": 2160,
+        "coveredGoldSessionIds": [
+          "session-8",
+          "session-20"
+        ],
+        "nonGoldVisibleSessionIds": [],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-8",
+          "session-20"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "f5b57dad5cbb41ce1aebb4695c5b0fafc096e1ab6dc8466b77277269ddb41f88",
+        "subQueries": [
+          "the Samsung Galaxy S22",
+          "the Dell XPS 13"
+        ]
+      }
+    },
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [
+        "session-48"
+      ],
+      "contextTokenDelta": 66,
+      "control": {
+        "contextSha256": "a8e585b034811e2782e7f82a5dfd8aee95f739294cfd19a2ecdb8f74d86dbfef",
+        "contextTokens": 2469,
+        "coveredGoldSessionIds": [
+          "session-6",
+          "session-20"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-38"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-6",
+          "session-20",
+          "session-38"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "9714077e87913138b781bb47f9461f5de46dd219b24b108b3631dfcf80452415",
+        "subQueries": [
+          "the one to Europe with family",
+          "the solo trip to Thailand"
+        ]
+      },
+      "goldSessionIds": [
+        "session-6",
+        "session-20"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [
+        "session-38"
+      ],
+      "nonGoldVisibleSessionDelta": 0,
+      "questionId": "gpt4_8c8961ae",
+      "recallRecordCountDelta": 0,
+      "temporalOperands": [
+        "the one to Europe with family",
+        "the solo trip to Thailand"
+      ],
+      "treatment": {
+        "contextSha256": "b801b7c292c6c454562f87296c3ead16aeadf9820fb397a91b4adf69af5f29fc",
+        "contextTokens": 2535,
+        "coveredGoldSessionIds": [
+          "session-6",
+          "session-20"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-48"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-6",
+          "session-20",
+          "session-48"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "a75835ea7b1e1899b5e63a85427c24be5e2997ff0326c3196c3b60aa765ef73a",
+        "subQueries": [
+          "the one to Europe with family",
+          "the solo trip to Thailand"
+        ]
+      }
+    },
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [],
+      "contextTokenDelta": -39,
+      "control": {
+        "contextSha256": "8b033fd6097de70ef0006467cf20d90e81c461043f017cdb4965f46771639de9",
+        "contextTokens": 2450,
+        "coveredGoldSessionIds": [
+          "session-20",
+          "session-37"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-8",
+          "session-24"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-8",
+          "session-20",
+          "session-24",
+          "session-37"
+        ],
+        "recallRecordCount": 24,
+        "recallSnapshotSha256": "541282f5f7cdc9f966a72ed4774f2919441fe4b80df5be16ab81f24d4a2b6ae0",
+        "subQueries": [
+          "the smart thermostat",
+          "the mesh network system"
+        ]
+      },
+      "goldSessionIds": [
+        "session-20",
+        "session-37"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [
+        "session-8"
+      ],
+      "nonGoldVisibleSessionDelta": -1,
+      "questionId": "gpt4_65aabe59",
+      "recallRecordCountDelta": -1,
+      "temporalOperands": [
+        "the smart thermostat",
+        "the mesh network system"
+      ],
+      "treatment": {
+        "contextSha256": "d7d686ff2d3285bdae166239523a0dc78e345c56243479fe291634718c9ee0e3",
+        "contextTokens": 2411,
+        "coveredGoldSessionIds": [
+          "session-20",
+          "session-37"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-24"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-20",
+          "session-24",
+          "session-37"
+        ],
+        "recallRecordCount": 23,
+        "recallSnapshotSha256": "f3f9c5f7d98a98ef5b3fe046f6f1be0d740e40e20ad41fea06e7a1216aedb2f0",
+        "subQueries": [
+          "the smart thermostat",
+          "the mesh network system"
+        ]
+      }
+    },
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [],
+      "contextTokenDelta": -20,
+      "control": {
+        "contextSha256": "5fbf7cbb226089aa23cbf62833d2e5f74e58ee8f0a9045a4c15d3044b3e6cc56",
+        "contextTokens": 2451,
+        "coveredGoldSessionIds": [
+          "session-11",
+          "session-27"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-1",
+          "session-31"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-1",
+          "session-11",
+          "session-27",
+          "session-31"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "df88f616c16862d04d3e139c5c0b69c330d63109ffe87a0a33393ca4cc5ccb38",
+        "subQueries": [
+          "a bus",
+          "a train"
+        ]
+      },
+      "goldSessionIds": [
+        "session-11",
+        "session-27"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [
+        "session-31"
+      ],
+      "nonGoldVisibleSessionDelta": -1,
+      "questionId": "gpt4_ec93e27f",
+      "recallRecordCountDelta": 0,
+      "temporalOperands": [
+        "a bus",
+        "a train"
+      ],
+      "treatment": {
+        "contextSha256": "490ec60aabb699b36acd8c63e065bbf50fafe325de40f644e4994cc35b1a8827",
+        "contextTokens": 2431,
+        "coveredGoldSessionIds": [
+          "session-11",
+          "session-27"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-1"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-1",
+          "session-11",
+          "session-27"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "26544d00ac1e615e4628458fc186be18a179f0928599f388db11541db1397147",
+        "subQueries": [
+          "a bus",
+          "a train"
+        ]
+      }
+    },
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [
+        "session-8"
+      ],
+      "contextTokenDelta": 68,
+      "control": {
+        "contextSha256": "8634e259714f798a33be7c5f780a3f2d3a2409987f596a0c8089f0a4f569943c",
+        "contextTokens": 2434,
+        "coveredGoldSessionIds": [
+          "session-1",
+          "session-39"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-12",
+          "session-33"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-1",
+          "session-12",
+          "session-33",
+          "session-39"
+        ],
+        "recallRecordCount": 23,
+        "recallSnapshotSha256": "cd16f20a96443270be89791d30a465a3246ba228e03803fbb3401bef424c5825",
+        "subQueries": [
+          "the Ferrari model",
+          "the Porsche 991 Turbo S model"
+        ]
+      },
+      "goldSessionIds": [
+        "session-1",
+        "session-39"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [
+        "session-12",
+        "session-33"
+      ],
+      "nonGoldVisibleSessionDelta": -1,
+      "questionId": "gpt4_c27434e8_abs",
+      "recallRecordCountDelta": 0,
+      "temporalOperands": [
+        "the Ferrari model",
+        "the Porsche 991 Turbo S model"
+      ],
+      "treatment": {
+        "contextSha256": "5133833e4312f9a1f98e332dd57bfcf0a6aa25745750ac9f9b84db3a413e7d16",
+        "contextTokens": 2502,
+        "coveredGoldSessionIds": [
+          "session-1",
+          "session-39"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-8"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-1",
+          "session-8",
+          "session-39"
+        ],
+        "recallRecordCount": 23,
+        "recallSnapshotSha256": "2eac5a0289d75e71562999f159a91742f9e12334150d275378b13572a3461bfe",
+        "subQueries": [
+          "the Ferrari model",
+          "the Porsche 991 Turbo S model"
+        ]
+      }
+    },
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [],
+      "contextTokenDelta": 0,
+      "control": {
+        "contextSha256": "8fd8dfdcf5a8dda8b9187df134b99380226ceb067d450effc2ac390b8352c14f",
+        "contextTokens": 2407,
+        "coveredGoldSessionIds": [
+          "session-4",
+          "session-37"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-19",
+          "session-35"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-4",
+          "session-19",
+          "session-35",
+          "session-37"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "4755fa6d16af269ec15fa6d000e943aec674a23a56ee9abce0c5ba6a013893e1",
+        "subQueries": [
+          "'Page Turners'",
+          "'Marketing Professionals'"
+        ]
+      },
+      "goldSessionIds": [
+        "session-4",
+        "session-15",
+        "session-37"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [],
+      "nonGoldVisibleSessionDelta": 0,
+      "questionId": "gpt4_93f6379c",
+      "recallRecordCountDelta": 0,
+      "temporalOperands": [
+        "'Page Turners'",
+        "'Marketing Professionals'"
+      ],
+      "treatment": {
+        "contextSha256": "8fd8dfdcf5a8dda8b9187df134b99380226ceb067d450effc2ac390b8352c14f",
+        "contextTokens": 2407,
+        "coveredGoldSessionIds": [
+          "session-4",
+          "session-37"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-19",
+          "session-35"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-4",
+          "session-19",
+          "session-35",
+          "session-37"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "4755fa6d16af269ec15fa6d000e943aec674a23a56ee9abce0c5ba6a013893e1",
+        "subQueries": [
+          "'Page Turners'",
+          "'Marketing Professionals'"
+        ]
+      }
+    },
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [],
+      "contextTokenDelta": 0,
+      "control": {
+        "contextSha256": "c31c450b2d89a8873d5e8257dc8e7519195c7bb4ee0d7d0c16436b40aae00d3d",
+        "contextTokens": 2491,
+        "coveredGoldSessionIds": [
+          "session-7",
+          "session-14"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-2"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-2",
+          "session-7",
+          "session-14"
+        ],
+        "recallRecordCount": 24,
+        "recallSnapshotSha256": "4b94416fef14a99f4c1fd3151275e1a54650f81f11ba558bf435bc293f78b637",
+        "subQueries": [
+          "the charity gala",
+          "the charity bake sale"
+        ]
+      },
+      "goldSessionIds": [
+        "session-7",
+        "session-14"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [],
+      "nonGoldVisibleSessionDelta": 0,
+      "questionId": "gpt4_98f46fc6",
+      "recallRecordCountDelta": -2,
+      "temporalOperands": [
+        "the charity gala",
+        "the charity bake sale"
+      ],
+      "treatment": {
+        "contextSha256": "c31c450b2d89a8873d5e8257dc8e7519195c7bb4ee0d7d0c16436b40aae00d3d",
+        "contextTokens": 2491,
+        "coveredGoldSessionIds": [
+          "session-7",
+          "session-14"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-2"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-2",
+          "session-7",
+          "session-14"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "dcc98e1e5f067cce15a887aedfd578fc72fd3ec2f2e450aa8f263cd9cc9cc2c9",
+        "subQueries": [
+          "the charity gala",
+          "the charity bake sale"
+        ]
+      }
+    },
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [],
+      "contextTokenDelta": 0,
+      "control": {
+        "contextSha256": "9b2294531197a8a559e5cf25d590d2b7e2cfc9e01a74909295b9afd1ba5cb798",
+        "contextTokens": 3272,
+        "coveredGoldSessionIds": [
+          "session-19",
+          "session-23"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-21",
+          "session-38"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-19",
+          "session-21",
+          "session-23",
+          "session-38"
+        ],
+        "recallRecordCount": 23,
+        "recallSnapshotSha256": "a844a561544e020891cfed61e1306fae014e7ca0e04f9daa838e0a05e9d0b554",
+        "subQueries": [
+          "the 'Walk for Hunger' event",
+          "the 'Coastal Cleanup' event"
+        ]
+      },
+      "goldSessionIds": [
+        "session-19",
+        "session-23"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [],
+      "nonGoldVisibleSessionDelta": 0,
+      "questionId": "f0853d11",
+      "recallRecordCountDelta": -1,
+      "temporalOperands": [
+        "the 'Walk for Hunger' event",
+        "the 'Coastal Cleanup' event"
+      ],
+      "treatment": {
+        "contextSha256": "9b2294531197a8a559e5cf25d590d2b7e2cfc9e01a74909295b9afd1ba5cb798",
+        "contextTokens": 3272,
+        "coveredGoldSessionIds": [
+          "session-19",
+          "session-23"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-21",
+          "session-38"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-19",
+          "session-21",
+          "session-23",
+          "session-38"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "4654f71b8e1e79658ee7ca54bbea2401f68b0b29dc9bb6084927b95386850516",
+        "subQueries": [
+          "the 'Walk for Hunger' event",
+          "the 'Coastal Cleanup' event"
+        ]
+      }
+    },
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [],
+      "contextTokenDelta": 0,
+      "control": {
+        "contextSha256": "69c4366a93a311c56b3a88e7c8cf1427218fb8c1f1743c1af36439706d09b515",
+        "contextTokens": 2446,
+        "coveredGoldSessionIds": [
+          "session-5",
+          "session-44"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-27",
+          "session-32"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-5",
+          "session-27",
+          "session-32",
+          "session-44"
+        ],
+        "recallRecordCount": 24,
+        "recallSnapshotSha256": "e5fd9746920be303cea30815e7126826054404bb64b0a999cc584f32d38ffc77",
+        "subQueries": [
+          "'The Hate U Give'",
+          "'The Nightingale'"
+        ]
+      },
+      "goldSessionIds": [
+        "session-5",
+        "session-44"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [],
+      "nonGoldVisibleSessionDelta": 0,
+      "questionId": "gpt4_2d58bcd6",
+      "recallRecordCountDelta": 0,
+      "temporalOperands": [
+        "'The Hate U Give'",
+        "'The Nightingale'"
+      ],
+      "treatment": {
+        "contextSha256": "69c4366a93a311c56b3a88e7c8cf1427218fb8c1f1743c1af36439706d09b515",
+        "contextTokens": 2446,
+        "coveredGoldSessionIds": [
+          "session-5",
+          "session-44"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-27",
+          "session-32"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-5",
+          "session-27",
+          "session-32",
+          "session-44"
+        ],
+        "recallRecordCount": 24,
+        "recallSnapshotSha256": "dd7d8a84f52d203f788885c65b6dd56436fade06411f7163ed09e47fd2f3b8ef",
+        "subQueries": [
+          "'The Hate U Give'",
+          "'The Nightingale'"
+        ]
+      }
+    },
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [],
+      "contextTokenDelta": 0,
+      "control": {
+        "contextSha256": "7f966789ec8ec38562ad0a162ca44cb213e0d3605d93b9ae9c99644ea5bfb9e7",
+        "contextTokens": 3148,
+        "coveredGoldSessionIds": [
+          "session-5",
+          "session-28"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-16",
+          "session-30"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-5",
+          "session-16",
+          "session-28",
+          "session-30"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "1d9a13ca2eeaac6c937ce4fad3bb7cb91e143978d0dc416593adb13d8035d797",
+        "subQueries": [
+          "my visit to the Museum of Modern Art (MoMA)",
+          "the 'Ancient Civilizations' exhibit at the Metropolitan Museum of Art"
+        ]
+      },
+      "goldSessionIds": [
+        "session-5",
+        "session-28"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [],
+      "nonGoldVisibleSessionDelta": 0,
+      "questionId": "gpt4_59149c77",
+      "recallRecordCountDelta": 0,
+      "temporalOperands": [
+        "my visit to the Museum of Modern Art (MoMA)",
+        "the 'Ancient Civilizations' exhibit at the Metropolitan Museum of Art"
+      ],
+      "treatment": {
+        "contextSha256": "7f966789ec8ec38562ad0a162ca44cb213e0d3605d93b9ae9c99644ea5bfb9e7",
+        "contextTokens": 3148,
+        "coveredGoldSessionIds": [
+          "session-5",
+          "session-28"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-16",
+          "session-30"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-5",
+          "session-16",
+          "session-28",
+          "session-30"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "5f58194f977044feaa94b607532946adbbc692f27f6b383f9a4c1f9aec68d041",
+        "subQueries": [
+          "my visit to the Museum of Modern Art (MoMA)",
+          "the 'Ancient Civilizations' exhibit at the Metropolitan Museum of Art"
+        ]
+      }
+    },
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [],
+      "contextTokenDelta": -144,
+      "control": {
+        "contextSha256": "c1f3caf12359711dc9d5550dbf039491a7593045b31b96a27bc46a8916fa021d",
+        "contextTokens": 3235,
+        "coveredGoldSessionIds": [
+          "session-24",
+          "session-28"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-4",
+          "session-9",
+          "session-21"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-4",
+          "session-9",
+          "session-21",
+          "session-24",
+          "session-28"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "fff50c2e4ee83a79078d675442447ae988692eff79b04f68a356808689e423fd",
+        "subQueries": [
+          "the Sunday mass at St. Mary's Church",
+          "the Ash Wednesday service at the cathedral"
+        ]
+      },
+      "goldSessionIds": [
+        "session-24",
+        "session-28"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [
+        "session-9"
+      ],
+      "nonGoldVisibleSessionDelta": -1,
+      "questionId": "08f4fc43",
+      "recallRecordCountDelta": 0,
+      "temporalOperands": [
+        "the Sunday mass at St. Mary's Church",
+        "the Ash Wednesday service at the cathedral"
+      ],
+      "treatment": {
+        "contextSha256": "3c752f7de60b8564e8989b403fa54c2a2c96591a3c8b243f22857da0a57568b0",
+        "contextTokens": 3091,
+        "coveredGoldSessionIds": [
+          "session-24",
+          "session-28"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-4",
+          "session-21"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-4",
+          "session-21",
+          "session-24",
+          "session-28"
+        ],
+        "recallRecordCount": 22,
+        "recallSnapshotSha256": "fba54555924541ace9b873cd13ec188b04e0baffe1dfd9a153e85df7dfdf78dd",
+        "subQueries": [
+          "the Sunday mass at St. Mary's Church",
+          "the Ash Wednesday service at the cathedral"
+        ]
+      }
+    },
+    {
+      "addedGoldSessionIds": [],
+      "addedVisibleSessionIds": [
+        "session-38"
+      ],
+      "contextTokenDelta": 38,
+      "control": {
+        "contextSha256": "b589e1c4410ccaede7deb3b127a7e074fdb45780ef3c9f3976ba07ebab6e77ff",
+        "contextTokens": 3298,
+        "coveredGoldSessionIds": [
+          "session-30",
+          "session-40"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-4",
+          "session-6",
+          "session-37"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-4",
+          "session-6",
+          "session-30",
+          "session-37",
+          "session-40"
+        ],
+        "recallRecordCount": 23,
+        "recallSnapshotSha256": "0d204e82d1768c0df9f2ad6707b186e5f2c77213b20b39f2c89a190288016bb2",
+        "subQueries": [
+          "I finished reading 'The Seven Husbands of Evelyn Hugo'",
+          "I attended the book reading event at the local library, where the author of 'The Silent Patient' is discussing her latest thriller novel"
+        ]
+      },
+      "goldSessionIds": [
+        "session-30",
+        "session-40"
+      ],
+      "lostGoldSessionIds": [],
+      "lostVisibleSessionIds": [
+        "session-6"
+      ],
+      "nonGoldVisibleSessionDelta": 0,
+      "questionId": "0db4c65d",
+      "recallRecordCountDelta": 0,
+      "temporalOperands": [
+        "I finished reading 'The Seven Husbands of Evelyn Hugo'",
+        "I attended the book reading event at the local library, where the author of 'The Silent Patient' is discussing her latest thriller novel"
+      ],
+      "treatment": {
+        "contextSha256": "b997b7dddadf7dc6ca112017ac5c8902b7de82d01638cd5ae893ecd7dd95a0d9",
+        "contextTokens": 3336,
+        "coveredGoldSessionIds": [
+          "session-30",
+          "session-40"
+        ],
+        "nonGoldVisibleSessionIds": [
+          "session-4",
+          "session-37",
+          "session-38"
+        ],
+        "queryCalls": 3,
+        "readerVisibleSessionIds": [
+          "session-4",
+          "session-30",
+          "session-37",
+          "session-38",
+          "session-40"
+        ],
+        "recallRecordCount": 23,
+        "recallSnapshotSha256": "95c967fc2a71fe2ba04aa94e1b96c679f39214598170ae1a2d2c753d78e47c36",
+        "subQueries": [
+          "I finished reading 'The Seven Husbands of Evelyn Hugo'",
+          "I attended the book reading event at the local library, where the author of 'The Silent Patient' is discussing her latest thriller novel"
+        ]
+      }
+    }
+  ],
+  "configuration": {
+    "contextMaxTokens": 4000,
+    "control": "primary_preserving_rrf",
+    "preRankLimit": 32,
+    "profile": "goodmemory-recommended",
+    "readerContextTokenCap": 6000,
+    "selectedLimit": 12,
+    "treatment": "distinct_recall_pass_head_preservation"
+  },
+  "execution": {
+    "answerCalls": 0,
+    "holdoutCalls": 0,
+    "judgeCalls": 0,
+    "memoryContextBuilds": 32
+  },
+  "generatedAt": "2026-08-01T02:19:52.097Z",
+  "generatedBy": "scripts/run-phase-72-longmemeval-operand-head-preservation-development.ts",
+  "protocol": "phase72_longmemeval_operand_head_preservation_development_v1",
+  "runId": "run-phase72-operand-head-preservation-development-bun1314-v1",
+  "selection": {
+    "fileSha256": "b25fb4d099da5d7b6fc68d9c08808ff69643b2c1cb5bcbe6aa671ddbaf631c47",
+    "questionCount": 16,
+    "salt": "phase72-operand-head-preservation-development-v1",
+    "selectionMethod": "Exclude every question ID in the pinned prior development, unopened candidate holdout, and three tracked Phase 72 targeted LongMemEval profiles. From question text only, derive deterministic English temporal operands, stratify by one or two operands, sort each stratum by ascending sha256(salt + NUL + question_id), and take the first 4 and 12 respectively. Answers, answer-session IDs, question type, and prior outcomes are not selection inputs. Historical full-500 runs mean this is exploratory mechanism-development data, not pristine or confirmatory evidence.",
+    "split": "development",
+    "strata": {
+      "temporal_operands_1": 4,
+      "temporal_operands_2": 12
+    }
+  },
+  "source": {
+    "benchmarkFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+    "bunVersion": "1.3.14",
+    "canonicalDependencies": true,
+    "datasetRawSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+    "englishAnalyzerVersion": "13",
+    "scriptSha256": "06cc47b7a7cd4d34f5399272e51bf633ccb7b5fb37834f95e42492e30b8318cd",
+    "sourceState": {
+      "commit": "5fe3e8f3362060753ad46a76eb21c2b1910d9593",
+      "dirty": false,
+      "worktreeFingerprint": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d"
+    }
+  },
+  "summary": {
+    "addedGoldEndpointCount": 0,
+    "answerConversionAuthorized": false,
+    "canonicalRun": true,
+    "controlContextTokens": 43910,
+    "controlCoveredGoldEndpointCount": 28,
+    "controlNonGoldVisibleEndpointCount": 36,
+    "controlQueryCalls": 44,
+    "controlRecallRecordCount": 354,
+    "developmentRetrievalCriteriaPassed": false,
+    "developmentRetrievalGatePassed": false,
+    "improvedCaseCount": 0,
+    "lostGoldEndpointCount": 0,
+    "queryCountMismatchCount": 0,
+    "regressedCaseCount": 0,
+    "treatmentContextTokens": 44209,
+    "treatmentCoveredGoldEndpointCount": 28,
+    "treatmentNonGoldVisibleEndpointCount": 32,
+    "treatmentQueryCalls": 44,
+    "treatmentRecallRecordCount": 350
+  }
+}

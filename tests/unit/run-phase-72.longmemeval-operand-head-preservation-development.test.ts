@@ -164,6 +164,7 @@ describe("Phase 72 LongMemEval operand-head preservation development", () => {
       controlCoveredGoldEndpointCount: 1,
       developmentRetrievalCriteriaPassed: true,
       developmentRetrievalGatePassed: false,
+      goldEndpointCount: 2,
       lostGoldEndpointCount: 0,
       queryCountMismatchCount: 0,
       treatmentCoveredGoldEndpointCount: 2,
