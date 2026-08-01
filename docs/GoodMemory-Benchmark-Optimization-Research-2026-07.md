@@ -1969,6 +1969,28 @@ renderer budget: preserve one distinct eligible head from each activated
 operand/pass, then fill remaining capacity by the existing RRF order. This is a
 set-coverage experiment, not another top-k increase.
 
+The development population is frozen before treatment implementation in
+`fixtures/external-benchmarks/longmemeval/phase72-operand-head-preservation-development-v1.selection.json`.
+It excludes all 16 questions in the consumed development slice and all 32 IDs
+in the unopened candidate holdout. Selection uses only question text and the
+English analyzer v13: within the one-operand and two-operand strata, sort by
+`SHA-256(salt + NUL + question_id)` and take 4 plus 12 questions. The 16-case
+development population leaves 44 eligible temporal-trigger questions
+unconsumed. Answers, answer-session IDs, benchmark question type, and prior
+outcomes are not selection inputs. The old candidate holdout remains sealed and
+cannot authorize this mechanism.
+
+The treatment is repo-internal and opt-in. Production defaults remain
+primary-preserving. For the treatment only, the primary pass and each
+supplementary operand pass may reserve its first distinct eligible selected
+candidate; duplicate heads consume no extra slot, and a pass with no distinct
+candidate gets no reservation. All reservations must fit inside the existing
+32/12 limits and lane caps. Remaining slots keep the current RRF order. The
+retrieval-only development gate requires zero lost gold endpoints and a strict
+increase in covered gold endpoints; cost and non-gold reader-visible evidence
+are reported, not hidden by a wider budget. No answer, judge, or holdout call is
+authorized by this development run.
+
 The rationale is external and benchmark-independent:
 
 - Hindsight's pinned fusion source documents the failure mode where RRF rewards

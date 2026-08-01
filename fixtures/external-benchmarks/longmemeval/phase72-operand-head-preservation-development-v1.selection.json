@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "protocol": "phase72_longmemeval_operand_head_preservation_development_v1",
+  "split": "development",
+  "frozenBeforeTreatmentImplementation": true,
+  "benchmarkFingerprint": "195fa256c468ff68079f5a05de2572deb47fa2c06b5d48e1d3ad4f3e044a5203",
+  "datasetRawSha256": "d6f21ea9d60a0d56f34a05b609c79c88a451d2ae03597821ea3d5a9678c3a442",
+  "languagePackId": "en",
+  "analyzerVersion": "13",
+  "selectionMethod": "Exclude every question ID in the pinned prior development and unopened candidate-holdout selections. From question text only, derive deterministic English temporal operands, stratify by one or two operands, sort each stratum by ascending sha256(salt + NUL + question_id), and take the first 4 and 12 respectively. Answers, answer-session IDs, question type, and prior outcomes are not selection inputs.",
+  "salt": "phase72-operand-head-preservation-development-v1",
+  "exclusions": {
+    "priorDevelopmentSelectionSha256": "3df24634d8f661ad2a6a054ec628114fcbab038d5b130e41800ab1b64a11e29e",
+    "candidateHoldoutSelectionSha256": "7f776aad5ee6c531b7443a060d9323dde53c137f1d849ba87f31313c21f62993",
+    "excludedQuestionCount": 48,
+    "excludedQuestionIdsSha256": "98ef92677c652246754d77d99785939ec75bfd65b4eb04684ae353dc0690853a"
+  },
+  "eligibleCounts": {
+    "temporal_operands_1": 15,
+    "temporal_operands_2": 45
+  },
+  "strata": {
+    "temporal_operands_1": 4,
+    "temporal_operands_2": 12
+  },
+  "questionIds": [
+    "gpt4_b0863698",
+    "71017276",
+    "gpt4_6dc9b45b",
+    "bcbe585f",
+    "gpt4_fe651585_abs",
+    "4dfccbf7",
+    "gpt4_2312f94c",
+    "gpt4_5438fa52",
+    "gpt4_8c8961ae",
+    "gpt4_65aabe59",
+    "gpt4_fe651585",
+    "gpt4_4fc4f797",
+    "2a1811e2",
+    "gpt4_ec93e27f",
+    "gpt4_c27434e8_abs",
+    "gpt4_93f6379c"
+  ]
+}
