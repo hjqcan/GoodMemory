@@ -4,15 +4,19 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 
 ## Stable OSS Surface
 
-- Current registry state at 0.7.2 source preparation: npm `latest` resolves to
-  `goodmemory@0.7.1`. Tag `v0.7.1` resolves to release commit
-  `486245d5ac38ec8596d0ab69b90644bfae43a385`; workflow run `30675388117`
-  published the GitHub release and npm artifact.
-- This tree adds the Kimi Code plugin and prepares the `0.7.2` stable artifact.
-  Source preparation does not prove publication: the `v0.7.2` tag and npm
-  release remain pending, and
-  the workflow must verify the exact npm artifact before it creates the GitHub
-  Release.
+- Current registry state: npm `latest` resolves to `goodmemory@0.7.2`. The
+  peeled `v0.7.2` tag resolves to commit
+  `456edd106f29118b3455bf21c43d7b3107b48213`; release workflow run
+  `30733828784` verified the exact npm artifact before publishing the non-draft
+  GitHub Release.
+- The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
+  Kimi Code 0.31.1 installed the bare GitHub URL as
+  `hjqcan/GoodMemory@tag:v0.7.2`; `/reload` connected one stdio MCP server with
+  nine tools. The exact registry command then passed write, new-process recall,
+  trace-to-memory-id, and different-`cwd` isolation. A model-driven Kimi write
+  approval capture, a second independent clean-machine install, and Windows
+  smoke remain unverified; they are adoption/Marketplace gates, not claims of
+  completed support.
 - Main has completed Phases 68 through 72 on the generalization-first line.
   The production selector graph contains only
   generalized selection primitives, and the `recommended` preset now has a
