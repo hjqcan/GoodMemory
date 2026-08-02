@@ -62,7 +62,10 @@ function readPackageMetadata(): GoodMemoryCapabilityPackageMetadata {
 export interface GoodMemoryCapabilityOnboardingPath {
   readonly audience: string;
   readonly when: string;
-  readonly method: "cli" | "mcp" | "http";
+  readonly method: "cli" | "mcp" | "http" | "plugin";
+  readonly install?: string;
+  readonly runtimeRequirements?: readonly string[];
+  readonly writeBoundary?: string;
   readonly steps?: readonly string[];
   readonly mcpServer?: {
     readonly command: string;
@@ -224,6 +227,16 @@ export function buildGoodMemoryCapabilityDescriptor(
         ],
         autoDetect: "goodmemory adopt",
         docs: `${REPO}#quickstart-codex-or-claude-code-memory`,
+      },
+      {
+        audience: "kimi-code-plugin",
+        when: "You run Kimi Code and want local, scoped cross-session project memory.",
+        method: "plugin",
+        install: `/plugins install ${REPO}`,
+        runtimeRequirements: ["Node.js >=20", "Bun >=1.3.14", "npx"],
+        writeBoundary:
+          "goodmemory_remember is exposed at install; Kimi Code approval still governs each unapproved MCP call",
+        docs: `${REPO}/blob/main/docs/GoodMemory-Kimi-Code-Setup-Guide.md`,
       },
       {
         audience: "mcp-client",

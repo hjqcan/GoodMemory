@@ -1,0 +1,56 @@
+{
+  "name": "goodmemory",
+  "version": "0.7.2",
+  "description": "Local-first, auditable cross-session project memory for Kimi Code.",
+  "keywords": [
+    "memory",
+    "mcp",
+    "coding-agent"
+  ],
+  "author": "hjqcan",
+  "homepage": "https://github.com/hjqcan/GoodMemory",
+  "license": "MIT",
+  "interface": {
+    "displayName": "GoodMemory",
+    "shortDescription": "Durable project memory for Kimi Code",
+    "longDescription": "Recall project decisions across Kimi Code sessions, inspect why memories surfaced, and persist selected facts through an approval-gated MCP write tool.",
+    "developerName": "hjqcan",
+    "websiteURL": "https://github.com/hjqcan/GoodMemory"
+  },
+  "skills": "./integrations/kimi-code/skills/",
+  "sessionStart": {
+    "skill": "using-goodmemory"
+  },
+  "commands": "./integrations/kimi-code/commands/",
+  "mcpServers": {
+    "goodmemory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "goodmemory@0.7.2",
+        "mcp",
+        "serve",
+        "--standalone",
+        "--retrieval-profile",
+        "coding_agent",
+        "--allow-write"
+      ],
+      "env": {
+        "GOODMEMORY_USER_ID": "kimi-code"
+      },
+      "startupTimeoutMs": 120000,
+      "toolTimeoutMs": 60000,
+      "enabledTools": [
+        "goodmemory_get_context",
+        "goodmemory_inspect_memory",
+        "goodmemory_trace_recall",
+        "goodmemory_search_index",
+        "goodmemory_timeline",
+        "goodmemory_get_records",
+        "goodmemory_read_artifacts",
+        "goodmemory_stats",
+        "goodmemory_remember"
+      ]
+    }
+  }
+}

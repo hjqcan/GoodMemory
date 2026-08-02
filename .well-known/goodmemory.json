@@ -1,7 +1,7 @@
 {
   "schemaVersion": "goodmemory.capability/v2",
   "name": "goodmemory",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "kind": "memory-layer",
   "summary": "Durable user/project memory layer for chat apps, copilots, and coding agents.",
   "description": "GoodMemory is the product memory layer between an app or installed agent host and the model runtime: write selected facts, recall the right context, inject it into the next turn, audit what happened, and delete it when it is wrong.",
@@ -21,15 +21,15 @@
     "quickstart": "https://github.com/hjqcan/GoodMemory#quickstart-codex-or-claude-code-memory"
   },
   "install": {
-    "npmGlobal": "npm install -g goodmemory@0.7.1",
-    "npmPackage": "npm install goodmemory@0.7.1",
-    "bun": "bun add goodmemory@0.7.1"
+    "npmGlobal": "npm install -g goodmemory@0.7.2",
+    "npmPackage": "npm install goodmemory@0.7.2",
+    "bun": "bun add goodmemory@0.7.2"
   },
   "releaseStatus": {
     "installCommandsApplyAfterPublish": true,
     "npmDistTag": "latest",
     "status": "stable",
-    "tarball": "goodmemory-0.7.1.tgz"
+    "tarball": "goodmemory-0.7.2.tgz"
   },
   "memoryApi": [
     "remember",
@@ -46,12 +46,25 @@
       "when": "You are, or run inside, Claude Code or Codex.",
       "method": "cli",
       "steps": [
-        "npm install -g goodmemory@0.7.1",
+        "npm install -g goodmemory@0.7.2",
         "goodmemory setup",
         "goodmemory status"
       ],
       "autoDetect": "goodmemory adopt",
       "docs": "https://github.com/hjqcan/GoodMemory#quickstart-codex-or-claude-code-memory"
+    },
+    {
+      "audience": "kimi-code-plugin",
+      "when": "You run Kimi Code and want local, scoped cross-session project memory.",
+      "method": "plugin",
+      "install": "/plugins install https://github.com/hjqcan/GoodMemory",
+      "runtimeRequirements": [
+        "Node.js >=20",
+        "Bun >=1.3.14",
+        "npx"
+      ],
+      "writeBoundary": "goodmemory_remember is exposed at install; Kimi Code approval still governs each unapproved MCP call",
+      "docs": "https://github.com/hjqcan/GoodMemory/blob/main/docs/GoodMemory-Kimi-Code-Setup-Guide.md"
     },
     {
       "audience": "mcp-client",
@@ -115,7 +128,7 @@
     "currentClaims": [],
     "historicalEvidence": {
       "url": "https://github.com/hjqcan/GoodMemory/tree/main/benchmark-claims",
-      "note": "The v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus older LongMemEval and ImplicitMemBench runs, remain reproducible versioned evidence. None is a current 0.7.1 production claim until rerun against this package line. LongMemEval and ImplicitMemBench remain internal evidence."
+      "note": "The v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus older LongMemEval and ImplicitMemBench runs, remain reproducible versioned evidence. None is a current 0.7.2 production claim until rerun against this package line. LongMemEval and ImplicitMemBench remain internal evidence."
     }
   },
   "capabilities": {

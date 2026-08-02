@@ -1,6 +1,6 @@
 {
   "name": "goodmemory",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "goodmemoryRelease": {
     "installCommandsApplyAfterPublish": true,
     "npmDistTag": "latest",
@@ -53,6 +53,7 @@
     "docs/GoodMemory-First-Principles-and-Reference-Architecture.md",
     "docs/GoodMemory-Gemini-CLI-Setup-Guide.md",
     "docs/GoodMemory-Inspector-and-Admin-API.md",
+    "docs/GoodMemory-Kimi-Code-Setup-Guide.md",
     "docs/GoodMemory-LanguagePack-Extension-Guide.md",
     "docs/GoodMemory-MCP-Registry-Publishing.md",
     "docs/GoodMemory-OpenCode-Setup-Guide.md",

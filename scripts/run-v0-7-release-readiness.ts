@@ -17,7 +17,7 @@ import {
 import { resolveRepoRootFromScriptUrl } from "./script-paths";
 
 const RELEASE_LINE = "0.7";
-const RELEASE_VERSION = "0.7.1";
+const RELEASE_VERSION = "0.7.2";
 const RELEASE_BUN_VERSION = "1.3.14";
 const MAX_TARBALL_BYTES = 4 * 1024 * 1024;
 const FAILURE_CONTEXT_LINES = 4;

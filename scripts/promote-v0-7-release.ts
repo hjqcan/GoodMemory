@@ -1,8 +1,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
-const RELEASE_VERSION = "0.7.1";
-const PREVIOUS_STABLE_VERSION = "0.7.0";
+const RELEASE_VERSION = "0.7.2";
+const PREVIOUS_STABLE_VERSION = "0.7.1";
 const RELEASE_TARBALL = `goodmemory-${RELEASE_VERSION}.tgz`;
 const RC_README = `> **Release status:** this branch is the \`${RELEASE_VERSION}\` release candidate. npm
 > \`latest\` remains \`${PREVIOUS_STABLE_VERSION}\` until the tagged stable workflow publishes ${RELEASE_VERSION}.

@@ -25,7 +25,7 @@ function report(
     allRequiredPassed: false,
     checks: [
       {
-        detail: "package is 0.7.1",
+        detail: "package is 0.7.2",
         durationMs: 1,
         id: "version",
         required: true,
@@ -43,7 +43,7 @@ function report(
     ],
     generatedAt: "2026-07-21T00:00:00.000Z",
     generatedBy: "scripts/run-v0-7-release-readiness.ts",
-    packageVersion: "0.7.1",
+    packageVersion: "0.7.2",
     runtime: {
       bunVersion: "1.3.14",
       nodeVersion: "v20.19.0",
@@ -66,7 +66,7 @@ describe("v0.7 release readiness", () => {
     ).resolves.toEqual(expect.objectContaining({ status: "pass" }));
   });
 
-  it("pins package, lockfile, capability, and MCP descriptors to 0.7.1", () => {
+  it("pins package, lockfile, capability, and MCP descriptors to 0.7.2", () => {
     const readJson = (path: string) =>
       JSON.parse(
         readFileSync(new URL(`../../${path}`, import.meta.url), "utf8"),
@@ -80,18 +80,18 @@ describe("v0.7 release readiness", () => {
     const capability = readJson(".well-known/goodmemory.json");
     const server = readJson("server.json");
 
-    expect(packageJson.version).toBe("0.7.1");
-    expect(packageLock.version).toBe("0.7.1");
+    expect(packageJson.version).toBe("0.7.2");
+    expect(packageLock.version).toBe("0.7.2");
     expect((packageLock.packages as Record<string, { version?: string }>)[""]?.version).toBe(
-      "0.7.1",
+      "0.7.2",
     );
-    expect(capability.version).toBe("0.7.1");
+    expect(capability.version).toBe("0.7.2");
     expect(capability.releaseStatus).toEqual(expect.objectContaining({
       npmDistTag: "latest",
       status: "stable",
     }));
-    expect(server.version).toBe("0.7.1");
-    expect((server.packages as Array<{ version?: string }>)[0]?.version).toBe("0.7.1");
+    expect(server.version).toBe("0.7.2");
+    expect((server.packages as Array<{ version?: string }>)[0]?.version).toBe("0.7.2");
   });
 
   it("requires the 0.7 migration guide and a compressed tarball below 4 MiB", () => {

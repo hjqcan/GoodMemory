@@ -67,6 +67,7 @@ describe("goodmemory adopt", () => {
         expect(plan.recommended.command).toContain("goodmemory-mcp");
         expect(plan.paths.map((path) => path.method)).toEqual([
           "cli",
+          "plugin",
           "mcp",
           "http",
         ]);

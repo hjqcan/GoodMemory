@@ -42,7 +42,7 @@ describe("http bridge capability discovery", () => {
     expect(body).toEqual(buildGoodMemoryCapabilityDescriptor());
     expect(body.name).toBe("goodmemory");
     expect(body.kind).toBe("memory-layer");
-    expect(body.onboarding).toHaveLength(3);
+    expect(body.onboarding).toHaveLength(4);
     expect(body.mcp.command).toBe("goodmemory-mcp");
     expect(body.http.endpoints.recall).toBe("POST /memory/recall-context");
   });

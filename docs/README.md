@@ -50,6 +50,8 @@ bulk-load. Start here, then open only the file that matches the question.
   server.
 - `GoodMemory-OpenCode-Setup-Guide.md` - OpenCode recipe on the standalone
   server.
+- `GoodMemory-Kimi-Code-Setup-Guide.md` - Kimi Code plugin install, MCP
+  permission boundary, scoped recall/write commands, and lifecycle operations.
 - `GoodMemory-Python-HTTP-Integration-Bridge.md` - Python/FastAPI bridge.
 - `cookbooks/langgraph.md` - LangGraph store adapter (TypeScript).
 - `cookbooks/openai-agents-sdk.md` - OpenAI Agents SDK via the Python client.

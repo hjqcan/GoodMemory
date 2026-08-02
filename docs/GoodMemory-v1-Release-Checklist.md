@@ -2,21 +2,21 @@
 
 > **Historical baseline.** This checklist was authored for the v0.2 → v1 release,
 > so its gate/eval sections point at the accepted **Phase 40** release-candidate
-> gate. The current tree is preparing the **0.7.1** stable artifact; npm
-> `latest` remains `goodmemory@0.7.0` until publication. The
+> gate. The current tree is preparing the **0.7.2** stable artifact; npm
+> `latest` remains `goodmemory@0.7.1` until publication. The
 > release workflow must publish and verify the exact npm artifact before it
-> creates the `v0.7.1` GitHub Release. Current releases follow the documented 0.7.x
+> creates the `v0.7.2` GitHub Release. Current releases follow the documented 0.7.x
 > version-bump recipe plus
 > `gate:public-benchmark-claim` and the
 > release-readiness gate rather than the Phase 40 gate. Treat the Phase 40
 > references below as the historical release baseline, and note that later
 > capabilities (host-memory experience, standalone MCP, agent onboarding, the
 > `goodmemory/runtime-kit` subpath) shipped after the original checklist slice
-> and are noted where the current 0.7.1 package boundary requires them.
+> and are noted where the current 0.7.2 package boundary requires them.
 
 ## Package Boundary
 
-- `0.7.1` packages `goodmemory`, `goodmemory/ai-sdk`, `goodmemory/host`, `goodmemory/http`, and `goodmemory/runtime-kit` through compiled `dist/` outputs plus declarations
+- `0.7.2` packages `goodmemory`, `goodmemory/ai-sdk`, `goodmemory/host`, `goodmemory/http`, and `goodmemory/runtime-kit` through compiled `dist/` outputs plus declarations
 - registry publish is handled by the tagged stable release workflow when `NPM_TOKEN` is configured
 - `bun pm pack` tarball remains a canonical installable release artifact
 - public package surface includes:
@@ -114,7 +114,7 @@
 ## Packaging
 
 - `package.json` exposes `bin`, `exports`, and example scripts
-- `package.json` is not private and uses version `0.7.1`
+- `package.json` is not private and uses version `0.7.2`
 - `package.json` declares Node and Bun runtime support for the packaged boundary
 - `LICENSE` exists and matches package metadata
 - CLI wrapper exists at `scripts/goodmemory-cli.js`

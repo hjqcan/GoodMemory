@@ -92,20 +92,26 @@ describe("GoodMemory capability descriptor", () => {
       "LoCoMo, BEAM, and MemoryAgentBench",
     );
     expect(descriptor.benchmarks.historicalEvidence.note).toContain(
-      "None is a current 0.7.1 production claim",
+      "None is a current 0.7.2 production claim",
     );
     expect(descriptor.canonicalSources.note).toContain(
       "never relabels historical results",
     );
   });
 
-  it("names three onboarding paths with distinct delivery methods", () => {
+  it("names four onboarding paths including the Kimi Code plugin", () => {
     const descriptor = buildGoodMemoryCapabilityDescriptor();
     expect(descriptor.onboarding.map((path) => path.method)).toEqual([
       "cli",
+      "plugin",
       "mcp",
       "http",
     ]);
+    expect(descriptor.onboarding[1]).toMatchObject({
+      audience: "kimi-code-plugin",
+      install: "/plugins install https://github.com/hjqcan/GoodMemory",
+      runtimeRequirements: ["Node.js >=20", "Bun >=1.3.14", "npx"],
+    });
     expect(descriptor.kind).toBe("memory-layer");
     expect(descriptor.notA).toContain("agent-framework");
   });
