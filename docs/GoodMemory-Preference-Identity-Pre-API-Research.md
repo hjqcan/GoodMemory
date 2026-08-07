@@ -79,6 +79,36 @@ provider-visible canonical output contract and adds targeted rejection of
 candidate-level `preferenceValue` or experimental-key fields; manifest,
 protection cohort, model, retry policy, thresholds, and scoring stay frozen.
 
+### Completed v2 result
+
+The v2 run completed all 720 planned provider attempts at clean commit
+`793d18bee37bc203e631c89cdec12fac4b9bd014`. It used the pinned
+`gpt-5.6-terra` Gurki endpoint, temperature 0, concurrency 4, and no retries.
+The tracked aggregate report and raw-output fingerprints are under
+`reports/eval/research/preference-identity/preference-independent-arms-v2/`;
+the 720 per-call raw payloads remain local and ignored.
+
+| Protection metric | Open key | Closed key | Gate |
+| --- | ---: | ---: | ---: |
+| Execution failures | 0 | 22 | 0 |
+| Preference capture | 0.9889 | 0.0056 | >= 0.95 |
+| Atomicization precision / recall | 0 / 0 | 0 / 0 | >= 0.95 / >= 0.95 |
+| Compound precision / recall | 0 / 0 | 1 / 0 | >= 0.95 / >= 0.95 |
+| Exact key-set agreement | 0.0556 | 0.0056 | >= 0.95 |
+| Repeat consistency | 0.2222 | 0.8667 | >= 0.99 |
+| Context agreement | 0.9277 | 1.0000 | >= 0.95 |
+| Parse or missing-key count | 2 | 196 | 0 |
+| Cross-dimension collisions | 0 | 0 | 0 |
+
+Both arms are blocked. The closed-key compound precision of 1 has zero recall
+and does not rescue an arm that captured almost no usable keyed preferences.
+The final preregistered recommendation is `no-api`: neither open keys nor the
+closed vocabulary may enter a v0.8 product contract. The rules-only baseline
+also captured only one third of inputs and emitted no identity slots, so there
+is no LanguagePack parity evidence. A later protocol would need a measured
+extraction-routing change and a new version; this result cannot be tuned or
+pooled into it.
+
 Atom correctness is not inferred from candidate count. In each key mode, every
 candidate is matched one-to-one against the frozen expected slot, registered
 canonical value, and expected context. The open key must equal the frozen slot;
@@ -267,6 +297,37 @@ conflicts are absent and explicitly disallows a new `resolvePreferenceConflict`
 API. A first-class adjudication design is considered only after at least 20
 natural changes exist and either recency is appropriate in less than 90% of
 them or ambiguous conflicts affect more than 5% of preference-bearing scopes.
+
+### Completed conflict result
+
+The tracked fixture report covers 46 eval scenarios plus six behavior
+scenarios. The current rules-only records expose 44 eval preference candidates
+and one behavior preference candidate, but no identity slots and no observed
+legacy-category value-change sequence. The result is therefore
+`underpowered_no_adjudication`; all same-slot, ambiguity, and recency-incidence
+metrics remain `null` rather than being invented from legacy categories.
+
+On the separate 30-case synthetic challenge, recency-with-lineage matched the
+expected active instructions in 30/30 cases with zero silent loss, full general
+fallback, and full lineage recoverability. Destructive replacement and freeze
+each matched only 10/30; destructive replacement lost lineage in every case,
+while freeze introduced a 0.5 false-conflict/freeze rate and reduced fallback
+availability to one third. This synthetic result supports recency-with-lineage
+as the default *if* identity becomes viable later. It does not estimate
+production incidence and does not authorize an adjudication API or review UI.
+
+## Track 2 exit decision
+
+- Reject open keys for v0.8.
+- Reject the current closed vocabulary for v0.8; `other` remains conceptually
+  store-and-flag, but this run produced no usable `other` evidence.
+- Do not add identity fields, conflict outcomes, freeze behavior,
+  `resolvePreferenceConflict`, concurrency contracts, HTTP/CLI endpoints, or
+  Inspector review queues.
+- Keep legacy preferences active. Keep the v0.7.3 recency-with-lineage bug fix
+  and existing `reviseMemory` / `forget` recovery surface.
+- Any renewed identity work requires a new preregistered routing experiment;
+  it is not part of the unpublished v0.8 implementation plan.
 
 ## Verification
 

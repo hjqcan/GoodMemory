@@ -1,0 +1,3608 @@
+{
+  "aggregateSha256": "e06a93b87af83b4e3e5379191427ea5a3d5e30c8543e477d53cd4bd3a59e8d49",
+  "count": 720,
+  "inputAggregateSha256": "a182e3102fcb8388fa7cac8ff16e6f9ef89e18b3bab0ec4ef5a45fbf772ca791",
+  "inputCount": 720,
+  "rows": [
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-concise-en-general:r1",
+      "rawFingerprint": "fddba7211bdae2b50a634e359ead4387138797226f5b46bf1f7d5758acb34a01"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-concise-en-general:r2",
+      "rawFingerprint": "c6df5dbde87560302fffd3c1e1e6623aec273546d890e4251020e3f7a8108082"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-concise-en-work:r1",
+      "rawFingerprint": "df5e36440516315b9db089b9c755fefe38f793294ffdb913f4749f2fd239573a"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-concise-en-work:r2",
+      "rawFingerprint": "df5e36440516315b9db089b9c755fefe38f793294ffdb913f4749f2fd239573a"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-concise-en-personal-study:r1",
+      "rawFingerprint": "0ed5e372e02875b4728e37e1ef7a498a9debef6bc3d0e5f1af9da75fe3abf52c"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-concise-en-personal-study:r2",
+      "rawFingerprint": "fc72982e3db3cc173fd5746a2d543d030359f3dbcd94b73090b2a3e6366098a0"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-concise-zh-general:r1",
+      "rawFingerprint": "610515eee0dd9ede61feb80e63c8eb23af5c12eba57f6c7d76e6b270b7945713"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-concise-zh-general:r2",
+      "rawFingerprint": "da4c384144eed5162038fc8011f22a7947b1e70e2bcf40554cef6cdee8b35886"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-concise-zh-work:r1",
+      "rawFingerprint": "cf7eab5b031437fbbf169bdf25ace13a79212a134407f1adeb3d7dfdad120e72"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-concise-zh-work:r2",
+      "rawFingerprint": "cf7eab5b031437fbbf169bdf25ace13a79212a134407f1adeb3d7dfdad120e72"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-concise-zh-personal-study:r1",
+      "rawFingerprint": "0e53aab8dc157e54d88fd512c2badd8ca28c95d827432d2283f9d4849663a7dd"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-concise-zh-personal-study:r2",
+      "rawFingerprint": "152767b4c9b18efaf4ff56127c0356e2f9981ed176716b8947826a8cdb9d2038"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-detailed-en-general:r1",
+      "rawFingerprint": "39036ca8f53f55739c6a306de34f0961e5dbe10746466573e44c6fe0a1266c63"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-detailed-en-general:r2",
+      "rawFingerprint": "39036ca8f53f55739c6a306de34f0961e5dbe10746466573e44c6fe0a1266c63"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-detailed-en-work:r1",
+      "rawFingerprint": "addb2f207f10f6b47a4d7b917f3efee2de5e5a84fbeffb028baa71d3f6a20abd"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-detailed-en-work:r2",
+      "rawFingerprint": "0e075654e0ba1b2d1e847a58ebbc42eb4e7521c25491f1bc09f19ee0b059dc9e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-detailed-en-personal-study:r1",
+      "rawFingerprint": "fd91c854af6e82037ff7bd2cfd4db010bafbb151d5c8fb4c8808363d3348fd30"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-detailed-en-personal-study:r2",
+      "rawFingerprint": "b4a543265f66291ef1efb038852be8fae190bda05c8401b357596f8086240d37"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-detailed-zh-general:r1",
+      "rawFingerprint": "9760cebac324ab6999f06ecba5222636fad67827c7c041b3be4cbe7bf9413a13"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-detailed-zh-general:r2",
+      "rawFingerprint": "4285bf8d2eb7711dc309e84e9eb2e4e8ec57337ec1e6f41ce2f0972252568eb3"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-detailed-zh-work:r1",
+      "rawFingerprint": "e03a38aa4f517d9b54e2ff55608d11220f440b6a5d3dba9f397b097772cebe70"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-detailed-zh-work:r2",
+      "rawFingerprint": "7c0f4174e1cb758e33853d2d696987885808d9b66bc7a3df8b915bc424236ccd"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-detailed-zh-personal-study:r1",
+      "rawFingerprint": "dead32d65c560ac81ce0af26d41bf94b1bf318a7cf8f89cb86c4ec196eaa8a68"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-verbosity-detailed-zh-personal-study:r2",
+      "rawFingerprint": "1bc06295fd6e9652324e5102d801a3859505b1ac09a8e511600b3976b0d5bf24"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-bullets-en-general:r1",
+      "rawFingerprint": "1dde9677cc868908cef179d7f5e5f2b0e6afc01afd9ba6181818cb9e03ee37c2"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-bullets-en-general:r2",
+      "rawFingerprint": "31ce37129093b9568a7d1e266b73164202578d6fd881e535b40ce9c7d349a4f5"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-bullets-en-work:r1",
+      "rawFingerprint": "a0a976d952e650b856f913c2028bb1ae9247855c801e731bfdf6aed6d66bb3d8"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-bullets-en-work:r2",
+      "rawFingerprint": "ba3f9f72e3ef5ad06ce7ff232dc720d4d492b13bf43d4118d5881cb7c80f4add"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-bullets-en-personal-study:r1",
+      "rawFingerprint": "bf069be75ce9157f360fc1357f591708c5d551eda828b1f5cdd457033b85eca2"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-bullets-en-personal-study:r2",
+      "rawFingerprint": "ed24c2e9a67aab2a6ecb61974aca26963a67c9f3cb16a1c60eb8a8e79a9892ed"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-bullets-zh-general:r1",
+      "rawFingerprint": "9edf8a1eb8e0d3fac109d61ad80557e11d5fe2da00350fb5c6f320d7abc3baa9"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-bullets-zh-general:r2",
+      "rawFingerprint": "9c221472fa6d0abcefdc03e9c0f3ff430dea35739b15d33a6e28826a36c110e1"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-bullets-zh-work:r1",
+      "rawFingerprint": "441b9e962287715d198ec157b5ecc76f8ac84ca741cdb22bf6b49f1f73e75296"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-bullets-zh-work:r2",
+      "rawFingerprint": "b0dbecba5ed6a3f056f4cacb029c4fc1d61aedc05e0a1bc55c280ac5cea05392"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-bullets-zh-personal-study:r1",
+      "rawFingerprint": "e58fb25027062ba9ae588a36c70729a890e8255d832b97936ccc005cc39af1ca"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-bullets-zh-personal-study:r2",
+      "rawFingerprint": "3f9489820df502f7d9d532ffb4039085bf0ccbd5e8630ecae6b0ed1d3f804655"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-prose-en-general:r1",
+      "rawFingerprint": "7bd208e818e33b2fbc2af56f07c9f0924c359771a91eb88d41bc458f977902bb"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-prose-en-general:r2",
+      "rawFingerprint": "cba897382a533fb79587c234d8c0ef5e9cefb77b2871430c745906dcbeaa448f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-prose-en-work:r1",
+      "rawFingerprint": "3449a5e005a5e349374db9d230680259a89e2eec47e5e79f89f6db8745cfff4e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-prose-en-work:r2",
+      "rawFingerprint": "621ad6f6b6f29ffdb6fc744d1c8829ae1e98654e781c472859ef5e51e4f22202"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-prose-en-personal-study:r1",
+      "rawFingerprint": "28725ad6a08933d18c53dff81801dc9ac9a68908911a9abdd91f8aacdd2a2ebd"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-prose-en-personal-study:r2",
+      "rawFingerprint": "7a01057d18a623b77e43a2941767bbd0b90f5c4795e67723cb0ec96d4d42d8fa"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-prose-zh-general:r1",
+      "rawFingerprint": "a2ca88360b6b2be4ba3ef0f1772b52a710d98ce78bc5fcaf5511b0245996a3b7"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-prose-zh-general:r2",
+      "rawFingerprint": "dc74ef3ce46773538b62a1569e73ed4fc4388007a692e50fff1f190d44841095"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-prose-zh-work:r1",
+      "rawFingerprint": "a8e812bdc91f57d84ec4d077b5cb08bdab6c9cdb3122cefb9a5cc37142043913"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-prose-zh-work:r2",
+      "rawFingerprint": "170358fac7a27b47b60753b6fe707980878936b71ead133fc45c2f5d0d02817c"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-prose-zh-personal-study:r1",
+      "rawFingerprint": "1befe00834d6a92ffcae2f89889c2d6041289166a9ccb78ce4274e8fde979ef4"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-layout-prose-zh-personal-study:r2",
+      "rawFingerprint": "6bb12241914130ee306db2cf4ca4aa8d1a0d1e3878c65141e1fae27682192556"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-summary-first-en-general:r1",
+      "rawFingerprint": "954590986787dedf41829193001fdc74e2e89b2e7efb50204503f5b0a4c6cce1"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-summary-first-en-general:r2",
+      "rawFingerprint": "b31f8f451050f0cb6d8617f4e9ada33164b7a7d0b5081b25a90e3fba0448e8f4"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-summary-first-en-work:r1",
+      "rawFingerprint": "6570ba6495a74ba15eebe6bf429e0eb6ad3828fcebfe16de70cca09a39b1f26c"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-summary-first-en-work:r2",
+      "rawFingerprint": "69451f51d7310b7651ace949c39def292ab3847da2e3fd04cc3bb41f625b6dac"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-summary-first-en-personal-study:r1",
+      "rawFingerprint": "e878b516b4672c2a8fe572e6b5c8bfe40a740142b1a3752fe018349cc28468b4"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-summary-first-en-personal-study:r2",
+      "rawFingerprint": "e878b516b4672c2a8fe572e6b5c8bfe40a740142b1a3752fe018349cc28468b4"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-summary-first-zh-general:r1",
+      "rawFingerprint": "e845a347d9ae7b98b27ca31962a1e981e1cf4d036cd864293aef5cdde4aa5ffc"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-summary-first-zh-general:r2",
+      "rawFingerprint": "02f3579ffb9701d465778bf4706f18cbe6ed498da119eadbfca836f297e080d4"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-summary-first-zh-work:r1",
+      "rawFingerprint": "69b1038a5211ae52daf82f583aedb5d5c379ff298036dfd65e8099769a0b516a"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-summary-first-zh-work:r2",
+      "rawFingerprint": "6e825342314a272692c01def9aa21b984a504d3036c367cc9962b0b919cefddd"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-summary-first-zh-personal-study:r1",
+      "rawFingerprint": "1fa6076bb967278b9c480f05cfb0b4c4644437b5bb1839dd801431467cf1f4e0"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-summary-first-zh-personal-study:r2",
+      "rawFingerprint": "6a0a150b4aae500e11e9d8832a78de1a8e8f6622dac05d1badb895ecb689be71"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-steps-first-en-general:r1",
+      "rawFingerprint": "ec5bdfa35076c8dd073f7bf0f9f0d5c401105bf76df2d6c9be984c5b628b5ace"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-steps-first-en-general:r2",
+      "rawFingerprint": "2dc36be180133eb7a67250f96abc7e882110e9bb120cbb7a956ada5b7035f238"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-steps-first-en-work:r1",
+      "rawFingerprint": "21b18c72b575c87884effaaa081e36a4d2e5481c48f698ef1740f689418fb197"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-steps-first-en-work:r2",
+      "rawFingerprint": "a940711b5b4e6294763eae8724353d4195e522d980ed6cb05f14bf8f9a363371"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-steps-first-en-personal-study:r1",
+      "rawFingerprint": "076f10f79262e2752fc58a4ff6803badfaf2b617f79160ba0d80866bfbf63d50"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-steps-first-en-personal-study:r2",
+      "rawFingerprint": "8c25b3869c28abfa98e8dc4eec184b36a8f36ea482c64186d6b1067f8ed243b4"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-steps-first-zh-general:r1",
+      "rawFingerprint": "f9cfca23f073a0294aa478915e9179cddbd4bac92b2338d95bdf80ad212f4436"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-steps-first-zh-general:r2",
+      "rawFingerprint": "1f56e6f2a633dc8b22ac3bcfe0ef3a8f0bb2f4af35d60158fe7c0a301403a046"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-steps-first-zh-work:r1",
+      "rawFingerprint": "3d74520667ed609fe7d6cf0d12e0fe578699d0dfc7ffbad6c6682f96a4df08df"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-steps-first-zh-work:r2",
+      "rawFingerprint": "459b7d490393cca5397112dfd252f2988698187d99586c22b156ff1df0849bd4"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-steps-first-zh-personal-study:r1",
+      "rawFingerprint": "4ca66ecad04a0c848b24c58deb965f2c776a47be9acce0e985e527ffec4f94fd"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-structure-steps-first-zh-personal-study:r2",
+      "rawFingerprint": "768556d857b4b1c1df9dac1612960ef6f5e202a9a83e72e21c44985c0c59e445"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-plain-en-general:r1",
+      "rawFingerprint": "d3f93cf91e935db48b84f2cc0520c659ea43e33c28ea09bbe3e2521a71782a23"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-plain-en-general:r2",
+      "rawFingerprint": "d3eaae71f96b045d9a7f75b5690868925d799aa4d16ca027631057022f2fcd1c"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-plain-en-work:r1",
+      "rawFingerprint": "9f33ffa16312960d4b7157d1a4f76d042984b262e3492d2a49112d71b24fe15c"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-plain-en-work:r2",
+      "rawFingerprint": "45188b2913f992a55d01ff52e89b3787b6853b1d7959c4f519e43bc159c5d9c7"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-plain-en-personal-study:r1",
+      "rawFingerprint": "af69c1a1f7c88f752409225de07ddba3faf65c84127a73779f1ca3d2a8486353"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-plain-en-personal-study:r2",
+      "rawFingerprint": "9cbd1b6527f0fcb41ab11fcdcfdf1723c550ebccfe7d398e4f4ab81ac8fbf3a6"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-plain-zh-general:r1",
+      "rawFingerprint": "af1cc6be48ca686525917152964db22c36380e96cb951b31a5902f6359a9c135"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-plain-zh-general:r2",
+      "rawFingerprint": "35e018c6fcc8b9e172e1e2224087ed3ab789a25eaf1213a225736ca070ae3970"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-plain-zh-work:r1",
+      "rawFingerprint": "c9afcd8c9e7d67ac0a8ee1b0eb824023972d5000b29c696d71b35d4ed3254153"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-plain-zh-work:r2",
+      "rawFingerprint": "5c67baac007a638f827ed00436c536dacfc297b90256156c6a73124d79e65731"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-plain-zh-personal-study:r1",
+      "rawFingerprint": "603682badb523e881fa514ab2395b5a2726eca3d27ae5c5d60a45a4930f6e00c"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-plain-zh-personal-study:r2",
+      "rawFingerprint": "c4162e287fbf5550d7621d2afe0b9c3fbc8d7db2fe7382f226fb128ee4f9b56b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-technical-en-general:r1",
+      "rawFingerprint": "d3a1d61a3c9eff0576969aa11d8724f762a182a5003448dd065fd8b2ca6a8b0e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-technical-en-general:r2",
+      "rawFingerprint": "66989c87dff27e829d8ca14407c366e963f72505258d4f7336a0c5446cd28523"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-technical-en-work:r1",
+      "rawFingerprint": "594f12d7334ba6f594ba776bb791438ba9f91c24e485847ebb37e70d4e3176e4"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-technical-en-work:r2",
+      "rawFingerprint": "6ede8fc7da86e4bebe30fd987053f210a7d1fda24b6a1038ab68836f42965d71"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-technical-en-personal-study:r1",
+      "rawFingerprint": "73f2e9bc4fd1601ce1dc7184ff9849988f4209c1f8b84aad7443fb744fd400c9"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-technical-en-personal-study:r2",
+      "rawFingerprint": "7650140299cb5fed7f8ba1a814dc711fe87ec52815297cfdbb17bcd0fe97a705"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-technical-zh-general:r1",
+      "rawFingerprint": "a52056ce5e40ab2f6df33f1d25c6477a584d2e1e45ec0646584caa504cfe78ab"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-technical-zh-general:r2",
+      "rawFingerprint": "66989c87dff27e829d8ca14407c366e963f72505258d4f7336a0c5446cd28523"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-technical-zh-work:r1",
+      "rawFingerprint": "736fb1ef57efb371b76b597411b9f463b7920854944fe45a87b5778987eed7ef"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-technical-zh-work:r2",
+      "rawFingerprint": "8ca3d207739d5f1dd543c72ab31c1c4ec72447488f78f41033286ea5e30c8308"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-technical-zh-personal-study:r1",
+      "rawFingerprint": "217faa7ba793a0fcc51127e3f63ec37ec1b2a3711346405f670a52ec730085e1"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-register-technical-zh-personal-study:r2",
+      "rawFingerprint": "037a3c13af0404b0a77ce527692d88b0d135339f055784f200942592d54f80e5"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-grounded-en-general:r1",
+      "rawFingerprint": "7e58b10063af477271b191571eed3955bb7996655927784cd8d5216dcfc021a3"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-grounded-en-general:r2",
+      "rawFingerprint": "7e58b10063af477271b191571eed3955bb7996655927784cd8d5216dcfc021a3"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-grounded-en-work:r1",
+      "rawFingerprint": "f6136329f0bcc47001f354b7b706241e23742fbbf45a11634f4fa877941072a0"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-grounded-en-work:r2",
+      "rawFingerprint": "522a962ea355bd2d0d9eb891dd1b818b35fb8d8d44e7cf366e295f30b031358b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-grounded-en-personal-study:r1",
+      "rawFingerprint": "56cc55a82f4aab8cb0712be0be57bff56890d0ab8dae10dddbf575b8f5d110c0"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-grounded-en-personal-study:r2",
+      "rawFingerprint": "7bc539f519f68a51488292272c2f6c589c8c96cf4e9b6454de3cf8fd18d0f00d"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-grounded-zh-general:r1",
+      "rawFingerprint": "50f9ca872be593e0b9608955667ee4df9d8b244a66ddff869ba6cd4dca35c310"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-grounded-zh-general:r2",
+      "rawFingerprint": "00982c10637ade295193f280b78cc3ab12ac436258d242bd05c47a5d01d58b52"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-grounded-zh-work:r1",
+      "rawFingerprint": "c44c2baec2a47b7272fb59f48eb0802f83e8b5d7db3773430320fe3876076755"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-grounded-zh-work:r2",
+      "rawFingerprint": "14bd362235c8573e284b8ddce51eed91069c66aa1d3a33799f7830ccb66eb143"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-grounded-zh-personal-study:r1",
+      "rawFingerprint": "74926379a40758e51898d1cad0b8a3d2c4af311b33fecfca6ec83b891cec5fb9"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-grounded-zh-personal-study:r2",
+      "rawFingerprint": "68e717c4b9e1e2e4da41898e1ee10b619935ef41d0aaabb18814567545819196"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-intuition-en-general:r1",
+      "rawFingerprint": "78ef19c020be1347a6f0af905e2ac7ba206b1ddcd9fa0b112f5087cd274fa1e0"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-intuition-en-general:r2",
+      "rawFingerprint": "9206345692b16ba4c9f9a54f150c8c6860b7373899424798a8941558e7d977e1"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-intuition-en-work:r1",
+      "rawFingerprint": "a547d12d8a0a739cda3e649f4f3a9abef85aa463995346086589ed3c0fa158af"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-intuition-en-work:r2",
+      "rawFingerprint": "447270585704bc4030cc18693d16f4606647683fa2150a97c59080f96c350a11"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-intuition-en-personal-study:r1",
+      "rawFingerprint": "0263da80b2d256816a6d14830ca2a2f5cabc6a7cb342b3c2df4a20973f3d52be"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-intuition-en-personal-study:r2",
+      "rawFingerprint": "c41829ad6ce530740a7dc15b449c28781ee37291002141845f28153e3d1ad5e3"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-intuition-zh-general:r1",
+      "rawFingerprint": "36723f033bcde3f8660f075a82ce36b95999dcb8de6eee1d7bca23ef6b388605"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-intuition-zh-general:r2",
+      "rawFingerprint": "5537872a606c309e404182742e740eb302bdca601b12dbb0d51192de4d9cfc4e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-intuition-zh-work:r1",
+      "rawFingerprint": "c6b1a03c47b7829fd17fcf23b817ada47a79b5176f4ec902f8c1de8dfba7f9b4"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-intuition-zh-work:r2",
+      "rawFingerprint": "22a4ede6768db677b2130d3135fa21dd817fc7bbe1e53b64a076b4866ed8b2bd"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-intuition-zh-personal-study:r1",
+      "rawFingerprint": "5189bf5412b8a03c34e6348a4ee4fed2597e018e8c90ef8b424723657947d558"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-evidence-intuition-zh-personal-study:r2",
+      "rawFingerprint": "6a5833dd3cdf1902a595f23217d167a69e76127b412bb81d1564cf8d57df39a5"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-first-en-general:r1",
+      "rawFingerprint": "6bff708fce3fd499f082df0c65d5336d485a2a0df2aa00c386b5099a276c701f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-first-en-general:r2",
+      "rawFingerprint": "6f3bfc4b4c03fe29a47270a00062218901cec52c96ce87fe93ef31b5b16fbb47"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-first-en-work:r1",
+      "rawFingerprint": "276c73f5d2d09e9e0d9463db707b6703882393561de8123673537d4940b4d9c5"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-first-en-work:r2",
+      "rawFingerprint": "f22d98fd96e0e7e0cfefc1e7cb6f6dc371fadb02e6d04e859d64c40b46309ccf"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-first-en-personal-study:r1",
+      "rawFingerprint": "450aa6d8a6dba9b37b2a78a3c879058cd5fbc1163df2092efbca9e09bd09e3fa"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-first-en-personal-study:r2",
+      "rawFingerprint": "fe552e66afc4aa3987165501f33e10b3581232359c24779589c2b7277232426d"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-first-zh-general:r1",
+      "rawFingerprint": "66784e0381807c5d2ffb525aee720e2c27b0a0f814f3dcda507c83d5a7a43c3d"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-first-zh-general:r2",
+      "rawFingerprint": "185a5c3b113fb6a14ffe29f2804d11525992356d68a1f88d4a6810fee5c15162"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-first-zh-work:r1",
+      "rawFingerprint": "b8ba5411147f5e07738b71fb88748f20bee17c1ff4b8f60eebcc5622abeaaad5"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-first-zh-work:r2",
+      "rawFingerprint": "91358919fe921100c64ce9127e5c7b522c64aed39179b0e1ef1f9cb89f80f96f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-first-zh-personal-study:r1",
+      "rawFingerprint": "55da3e5e7699e7c26e106851f8746c58427d379afc8c2d02fb26d69ea8200cb4"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-first-zh-personal-study:r2",
+      "rawFingerprint": "e08228617583731afaeac693c47ab84499ef40f1e4384f0c5fe7874ce4d0bd96"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-recommendation-en-general:r1",
+      "rawFingerprint": "fe2282360086e1e83a45778b2aa8ecd8eabc638feaf1cb1ae2ecb9034f0d7267"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-recommendation-en-general:r2",
+      "rawFingerprint": "7be4780a06ad41d6247c16ed5729426e802132b669914248b52a9fd4d749d003"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-recommendation-en-work:r1",
+      "rawFingerprint": "65472249e75d0e98d30dca0d27df38688bb9f7e1be1e5daf6c721737b1dbbe95"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-recommendation-en-work:r2",
+      "rawFingerprint": "2b087933531242fdaf12aca904cfd5a441b31d39ee77ef52ce4c6041fba7988a"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-recommendation-en-personal-study:r1",
+      "rawFingerprint": "28529d28214ef223c96b185e26958c64350d9100dbc7b5a9a159c14739c35b10"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-recommendation-en-personal-study:r2",
+      "rawFingerprint": "83a1ed1a6981c997df339f59e5de7c2d1b5ece1b45433e8c6a18015284187bdd"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-recommendation-zh-general:r1",
+      "rawFingerprint": "acc7bba94afd9c333ac194a2307d9e5058acab5392c4394644d00035501a888f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-recommendation-zh-general:r2",
+      "rawFingerprint": "5f6817db976a23ef3a97b75b3abb0af804809effde690c88182e44c616a8a483"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-recommendation-zh-work:r1",
+      "rawFingerprint": "81450a18d5ecbe498c0a74269f7ff082058e87655aea8df2b07b7f2c76b9ef5e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-recommendation-zh-work:r2",
+      "rawFingerprint": "8989af59eeea07c875c3c8de40c45ae70221033e39479a9f8c9f4c5903c8723b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-recommendation-zh-personal-study:r1",
+      "rawFingerprint": "33e1be37d685296642f6197e0c48aca7bf09b6732d5157b041d7ec8f0386f4c7"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-risk-order-recommendation-zh-personal-study:r2",
+      "rawFingerprint": "24dba75b81548156214d4ea9b372bd77f9b6336a8c84988de485c52fa4599480"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-incremental-en-general:r1",
+      "rawFingerprint": "9d78a4d8c89ba044e56d474dc686f459448f9964f55ee4e06dfab95be84e711d"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-incremental-en-general:r2",
+      "rawFingerprint": "4c81f9077b148ada130b5c5122cd63230fbff90112618a1fb62c980ea920db5b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-incremental-en-work:r1",
+      "rawFingerprint": "2dc903c6e0bdc39b9eb4196a99427418eb354b6c87bfd7751ab48a8f53d3c65a"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-incremental-en-work:r2",
+      "rawFingerprint": "845442d500604237e10c6bfd701eb8821463a7f4a1693d80fa1dceaa6c27bb54"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-incremental-en-personal-study:r1",
+      "rawFingerprint": "76a0974e48c63a8428e20f83d2a613fef411cddce82c972d789f5ebd8b1422f7"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-incremental-en-personal-study:r2",
+      "rawFingerprint": "d04138bc8a3050997b449fdbe5bf9bf6e918a31f7e90c23954426d02c830acb9"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-incremental-zh-general:r1",
+      "rawFingerprint": "141a022ecb15474d595085c1fe7b593ea2a42a35556fc3eed37aad7db5352be6"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-incremental-zh-general:r2",
+      "rawFingerprint": "c7861982ff3b0075bcdbafe0275944805e1673398ce90940e226cef53d71a60a"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-incremental-zh-work:r1",
+      "rawFingerprint": "71f8b64a5c22ccdcf3f1797ca087e6edc218b7b3fc0ed58eeb3a43a6c315eeac"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-incremental-zh-work:r2",
+      "rawFingerprint": "e7dcd746938a3e480ace3b17e157ca3e085fa9aa3d702ffd9c3dd5fa7f7339aa"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-incremental-zh-personal-study:r1",
+      "rawFingerprint": "93dfa9f1b87f3a7b4537a0b5eaa4cb64280a0da38b39344057f046f971bf0a6b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-incremental-zh-personal-study:r2",
+      "rawFingerprint": "d9e609f0366d35f517092ea7ae195e1fa23fe0d3a011f2e48733a9463d71a99f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-big-bang-en-general:r1",
+      "rawFingerprint": "a2e3571f06faa3d7582320cda118f82d6e0341c84424dfb1ce1b4879487cfc9a"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-big-bang-en-general:r2",
+      "rawFingerprint": "8432b430da3ff29f4796bd56ed39e8c51ca919b780fa90bc7727616a5598bcb3"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-big-bang-en-work:r1",
+      "rawFingerprint": "2a6e085244b5b3f736a2915bba3718b00318cdc258c131b27be4901e502c21a4"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-big-bang-en-work:r2",
+      "rawFingerprint": "9a5fafd4fd90bab3d3bc6b8fbabbbeb8f4db96f3dfe05ea86f5cf4963bb3242b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-big-bang-en-personal-study:r1",
+      "rawFingerprint": "2d8fa76447f39777878e304371a8ff9d1d5171a0203d447f94325811bdc47840"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-big-bang-en-personal-study:r2",
+      "rawFingerprint": "5e0bd2967c09d94c1d91edc60ebd2cc520f9dbb613b3a83991a0d07a7d67a8c0"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-big-bang-zh-general:r1",
+      "rawFingerprint": "62c57906f3221b351915f664d87eb1b9af054720a8d39a9d1b4c32fd937716fc"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-big-bang-zh-general:r2",
+      "rawFingerprint": "f190dcfb760b7c745d65e4e43423cf5882595d3fb78d28f5ac3d279990b1c6b1"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-big-bang-zh-work:r1",
+      "rawFingerprint": "a0bdfb385a8625a5ea027b0b6ba612b96bd67e90e0ab1fea2a8185894180e70a"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-big-bang-zh-work:r2",
+      "rawFingerprint": "e65c2560b2323cd2d1aa2322a9291397236cab6d2f0d47b1c9cbd53ad03e90a9"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-big-bang-zh-personal-study:r1",
+      "rawFingerprint": "9a63a566cfd285103ce56360779b51c5f559d5b9c5aab476f210186c833d01f3"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-delivery-big-bang-zh-personal-study:r2",
+      "rawFingerprint": "2dfabf3d1cc6aecf473d34dc6b354384f9e113882c0a62205dacd03a577d29ed"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-deep-work-en-general:r1",
+      "rawFingerprint": "52245e259ea55c698094118914d1a7472c8dca687ac5fe8bef703ce0e214f4ee"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-deep-work-en-general:r2",
+      "rawFingerprint": "ca95088f4717a84b6b36b7e1e4c13508fc55b6752b9e53adb70211f6ae53a679"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-deep-work-en-work:r1",
+      "rawFingerprint": "6d2361263dd0ce01875aa6010ac3f2283f8a7c8edcaa10d7e3cb19ee60541781"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-deep-work-en-work:r2",
+      "rawFingerprint": "31a014f8349e0c736f236ed014802bdb848b06254f4f82b356c0b9f56eaa456d"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-deep-work-en-personal-study:r1",
+      "rawFingerprint": "1db0711c04a41e5df9ec9996d258591c73b54de1a46659f4fedb9078f2efd9db"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-deep-work-en-personal-study:r2",
+      "rawFingerprint": "55a21787fc1ead33401ce738a3a7dcd0bf0c02a736328963d051d35d402ac60c"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-deep-work-zh-general:r1",
+      "rawFingerprint": "449726ac454e2fb1938a806cfb4bc043d880015ce58d06a4f57887442e985988"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-deep-work-zh-general:r2",
+      "rawFingerprint": "3345f0973e4a85685ef994914306a7670eef2dce1da6944c172eb84039136a80"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-deep-work-zh-work:r1",
+      "rawFingerprint": "c0603037a321b67d730e51425d2eb0436d1a1ad9a11290d330fa160893cfd80e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-deep-work-zh-work:r2",
+      "rawFingerprint": "c0603037a321b67d730e51425d2eb0436d1a1ad9a11290d330fa160893cfd80e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-deep-work-zh-personal-study:r1",
+      "rawFingerprint": "60408f3554276049f5eccb45205b598787f85aa972cb7793e29c223862f047e1"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-deep-work-zh-personal-study:r2",
+      "rawFingerprint": "2c094e29319b8b9d80c6d88a5ad3610a87982db0ab44d13884d63394227f05a3"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-frequent-checkins-en-general:r1",
+      "rawFingerprint": "47a7e1f39aab91f4336841c7f9102c8815daf46fe654ee7f41b871083fa6e6d1"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-frequent-checkins-en-general:r2",
+      "rawFingerprint": "907244112e7166a256d1c1e827b0edae5f3fddb41651da031ce3d60c384a80e7"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-frequent-checkins-en-work:r1",
+      "rawFingerprint": "3f25858e3aa7fae32ad1c76fea234396c62792f71678d88954b5656d6b0ae107"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-frequent-checkins-en-work:r2",
+      "rawFingerprint": "3f25858e3aa7fae32ad1c76fea234396c62792f71678d88954b5656d6b0ae107"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-frequent-checkins-en-personal-study:r1",
+      "rawFingerprint": "01a40e7f68eca1f893549ba4b82b66a16e35f3ec5bdd4a84a3db13e1fce4dcc1"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-frequent-checkins-en-personal-study:r2",
+      "rawFingerprint": "718193f28ff7a4fd921e3d7d68c240689b4fe28636d0ec694c678862075cbed9"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-frequent-checkins-zh-general:r1",
+      "rawFingerprint": "9ddcb26e18ba5faa1c4568cbc83bbd095471495e7ca8179baecf64ac4abad897"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-frequent-checkins-zh-general:r2",
+      "rawFingerprint": "79409a34057acd232aedf2efce8d08f350d66a398190199f966b16ea9cf98e2d"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-frequent-checkins-zh-work:r1",
+      "rawFingerprint": "7251ac603deac743c666945eff2ce3dcb12b210c7a20a62633bdb1d7d8997bdb"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-frequent-checkins-zh-work:r2",
+      "rawFingerprint": "074caa4ab18b90705dd307b91ef0707927df67dd2c1fb1babcbd92d443274dc3"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-frequent-checkins-zh-personal-study:r1",
+      "rawFingerprint": "0a5a78d8de3d461ba4e4c703b17e9d0f719f6cd33942e79818444d93b0c817bd"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-focus-frequent-checkins-zh-personal-study:r2",
+      "rawFingerprint": "24b42b5d51d78ffaf4c63daf8b5dbfa332ce8f2f78630c0d90ca3229d94cf3b9"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-tight-en-general:r1",
+      "rawFingerprint": "b5ecda82e5c4470ab0ab4516e2d0a77f8848d8dd2c95fe8370cb4ee512e9a5a5"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-tight-en-general:r2",
+      "rawFingerprint": "607e82f552d40b2ac28a6b108005d416596e6ffeb491606285f540384891da38"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-tight-en-work:r1",
+      "rawFingerprint": "888eb90e0603c4e33b3b450e7eeebf27e5aefc893fc48a3802128f53cf0e6820"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-tight-en-work:r2",
+      "rawFingerprint": "f8a294178018e4c278e1851d3c7ab9d1ab529064757d08896e4edbad1ee1b44f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-tight-en-personal-study:r1",
+      "rawFingerprint": "c31aaa5301c189b19b6b063a75421f8f34c410efd57b210beb31c76ed9bf7134"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-tight-en-personal-study:r2",
+      "rawFingerprint": "ce79a5de920d7b4fb8dc142da53b218a5125c6b0caa6b50585315a6373bf4992"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-tight-zh-general:r1",
+      "rawFingerprint": "932dad0b2b0cd6b26e0d350ffc35563cb94c6a2a93efe45f29a36cdfb36f3283"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-tight-zh-general:r2",
+      "rawFingerprint": "3c21e9533c0877db5a31db15c0c540327f944b809e7d9eed76f0d18165486c0c"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-tight-zh-work:r1",
+      "rawFingerprint": "f9b566df480c9dfade9fa5cd14dec4dad950a67a9ba1fee9f6fe4537b205c41f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-tight-zh-work:r2",
+      "rawFingerprint": "24ae58f342044ebf977cbe43e507a811aa25ee3adaea66eb4ec455b2868eb839"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-tight-zh-personal-study:r1",
+      "rawFingerprint": "ef6c1125b4efcfe8d7e2ea99b5c484712759702ce43fd4c681637158ef2d9d53"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-tight-zh-personal-study:r2",
+      "rawFingerprint": "2d82ae4b6f5f5a959ce11c6607e687989a308c5363a6ab790a13f8ed8883271a"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-milestone-en-general:r1",
+      "rawFingerprint": "1b2a90f972add704bbefb2eccf0aabaa791135bf3927066e9dc079e741597452"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-milestone-en-general:r2",
+      "rawFingerprint": "643930c8403cb4d9e8ab5dd9b2680d750b352513a3234977db485f9cbde13e5e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-milestone-en-work:r1",
+      "rawFingerprint": "b8753301b81a017b755a4cb6b4679da09cf74544aa76af96ad99d853d27c5e36"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-milestone-en-work:r2",
+      "rawFingerprint": "4c6bacbf05e50ccc5358ec6e0d392a765d5bc7228263d8aefb6a64c0d4f76fcb"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-milestone-en-personal-study:r1",
+      "rawFingerprint": "9c84fbbf4e6165059fee7f3dad28f4d58bb5cdc995fc1bcc8749ceddf57b0297"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-milestone-en-personal-study:r2",
+      "rawFingerprint": "9dd878fc04e976318e468854f423653dce6ad0738ce67ac79c62cfd2184bd363"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-milestone-zh-general:r1",
+      "rawFingerprint": "7d2d1914be6d3280aa77097eb93aa86a5712c0188794dd022de7b42f648d07ac"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-milestone-zh-general:r2",
+      "rawFingerprint": "2671733cca9b55a1a2a29b0ce327aa18fe2e303e02845716c141b2ae1a7bae96"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-milestone-zh-work:r1",
+      "rawFingerprint": "114e4b9f9369ab40f629c2f30f1b7ea68827b9e43c43293bc155ec4b443c1862"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-milestone-zh-work:r2",
+      "rawFingerprint": "5ca58c7c8857521125bb9f9368fb8fbba0b4d862113aa7122e7102b4ec86f01d"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-milestone-zh-personal-study:r1",
+      "rawFingerprint": "76bc1d5f0bbb75a8496cdb9aa4cdb008dce2b596485851881d236e8a3e64fb84"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-feedback-milestone-zh-personal-study:r2",
+      "rawFingerprint": "57c408bbbde9278ad86ba0dcb2a9e27a3ca2d9e651d07fbb200de7effd52babb"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-written-en-general:r1",
+      "rawFingerprint": "dc4bf39126b29778178d82a5f92b5ac1614d4f1e0bf4f1d57f55662fb20c90b3"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-written-en-general:r2",
+      "rawFingerprint": "f02e069a2a545f3e5491323ef83be7cf85f7c0410b26515e40825d50da9fe6c6"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-written-en-work:r1",
+      "rawFingerprint": "be14d2188df850062a1ccd6cf6dcd72b209265df00d1b97aef7eaeef7d56602a"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-written-en-work:r2",
+      "rawFingerprint": "25492d66b445a31ee2b858cb59abeeed82e705dfb2ea8fb03f327f31f88a6f9d"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-written-en-personal-study:r1",
+      "rawFingerprint": "51f5af8905855b1e5274072bbb3a634375dba1488e1d4000f9898dacdd78a166"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-written-en-personal-study:r2",
+      "rawFingerprint": "6d9089b836b85531dc6d6809cc40ee1dce1e8a03b8a91df5b5bf025e33618867"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-written-zh-general:r1",
+      "rawFingerprint": "ba81209f7325d1d4b4cf8e9c9161b60b2111976d25d45b7a5aad67609b50fc9a"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-written-zh-general:r2",
+      "rawFingerprint": "0eec36df7d40718fced999a76c1ba483dd1801e6e5a1206e0337a90231579ebc"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-written-zh-work:r1",
+      "rawFingerprint": "e0d8e06570d3653e1112a654bdbe59ebccf3b030a4dc62429206c102b29e7f9e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-written-zh-work:r2",
+      "rawFingerprint": "5f71b1038aede78e152777e6f4f1fcca3b41e7109dc1934238a1abc55a0c8d62"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-written-zh-personal-study:r1",
+      "rawFingerprint": "87c9e349acb1fe3cb52a89126b2f5d82ffe6f9890b82c5acccbfa1644c98bf88"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-written-zh-personal-study:r2",
+      "rawFingerprint": "362306a2edb9a9cd757dc6866ca6215bc40b7b2d767068dd4c1ccaa303fea3aa"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-verbal-en-general:r1",
+      "rawFingerprint": "1b39237508e2635a9341ba88bfc5df71fcb99912ff8c9901ac18a1c0339090f8"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-verbal-en-general:r2",
+      "rawFingerprint": "f809e60d45a376010b84677b721991d0c669ccbf144ba0df037d72ff5c572a3f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-verbal-en-work:r1",
+      "rawFingerprint": "f7a689a0a7b68777990fcc2c3c85f3b25800b4a9cbdf70fd893c61864a96e805"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-verbal-en-work:r2",
+      "rawFingerprint": "3ab948ca1536b07c8f339dc3bf7c8c7afad9f6588b5600be5f8b0d5d75a88225"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-verbal-en-personal-study:r1",
+      "rawFingerprint": "f58b38fbd94f29cf9d9a450f69326d1a545a665810385a7f93d61099a79d20a3"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-verbal-en-personal-study:r2",
+      "rawFingerprint": "fe85cbee6e5533850eba7ea6b8583277baaa1f8621486ab59f3a81182d02bdd2"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-verbal-zh-general:r1",
+      "rawFingerprint": "783eaac663e370ebcdcb682db56938160f979bef8bb2663a8502183f82ee1a3d"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-verbal-zh-general:r2",
+      "rawFingerprint": "1fdc3c50d451bc389f80c62bc4674bcc8078af76cf3c2875d814aaf031f609c8"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-verbal-zh-work:r1",
+      "rawFingerprint": "c87ae17ce12e252fe20ca4858ae96e184bd778f286daea47f2bde9cadde04669"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-verbal-zh-work:r2",
+      "rawFingerprint": "1cb360f554a2ecd067b7c245c0639ca06bca4add80d795d294032868507a25e0"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-verbal-zh-personal-study:r1",
+      "rawFingerprint": "cd889bea710c25efb7617c6f789dcd88fa51a6aff6de1e82aea55e4f7c84f2be"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:atomic-decision-verbal-zh-personal-study:r2",
+      "rawFingerprint": "c4a19cbe0093c98ddc6447c364f161265f28154bd174499f0671bc84c2256d82"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-concise-bullets-en-general:r1",
+      "rawFingerprint": "e0c09b610fe7a56f3f06a2ab9ca709fe82d2502a4fc2a58a48dc0eba1d98754f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-concise-bullets-en-general:r2",
+      "rawFingerprint": "7697caf1eb05c386a4f2ab9bc68eb50b02bbc721d3fd39933a397e7ff1438873"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-concise-bullets-en-work:r1",
+      "rawFingerprint": "4840332240a03c4d760bd2e8a2f9e8299f780a1dded3459cfbf98c45afcf9f7e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-concise-bullets-en-work:r2",
+      "rawFingerprint": "bee2df525a91346dff74192e6d3b6011f947bb1d8dacd2fa9b54f834669b7f65"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-concise-bullets-en-personal-study:r1",
+      "rawFingerprint": "be014a203727edd709bd61a4f2c8a66d24227ea37308e9dc8792d40204c3df47"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-concise-bullets-en-personal-study:r2",
+      "rawFingerprint": "322c9d6cc948c9068161bb3e5872132999abebb565955b2d6861c35792603ac7"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-concise-bullets-zh-general:r1",
+      "rawFingerprint": "3a1ee147e0b4d990b7be5704b92a46272193bca134007c11c119201278dcfdc7"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-concise-bullets-zh-general:r2",
+      "rawFingerprint": "1e8204a9f7ec34f3d32d96f3b1624100462042d644d560580a63962862b49075"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-concise-bullets-zh-work:r1",
+      "rawFingerprint": "7b7ea1d74a96b0a82a4b82606f7ce4b0875d7980812f84df09950354a026b947"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-concise-bullets-zh-work:r2",
+      "rawFingerprint": "7ca63512afeb3023a7afbe131531736d0f2a36a55e15970ff43c70d8d696672e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-concise-bullets-zh-personal-study:r1",
+      "rawFingerprint": "121d156900ea3bb779e48527bc8e2d185d9e7bf7c3664255318df4638dd88818"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-concise-bullets-zh-personal-study:r2",
+      "rawFingerprint": "e5e2463407b01d88c708b25bd2355a345a656d2c1ed4d61b46498b3290d8df1b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-detailed-prose-en-general:r1",
+      "rawFingerprint": "91df9bf6a243257c08420170cd72dcf1336689d2718d0eed071079299a671b3b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-detailed-prose-en-general:r2",
+      "rawFingerprint": "f5488a8b49d4856252ecbcb22a1b45787dde30744e06268e14cfcaf23dce2bfc"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-detailed-prose-en-work:r1",
+      "rawFingerprint": "f6016862d0b43bcf7634469ca1d468b70a6602412931281a33c4f64ad84730f8"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-detailed-prose-en-work:r2",
+      "rawFingerprint": "d06260e31c297e1de815188acc3e4440ac44d61d6472cf881da9105a5615f48f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-detailed-prose-en-personal-study:r1",
+      "rawFingerprint": "3c73299324b88f22e4b4ffc9b8c149d8c687f6b8960caa5377a02a0a68e3aa3e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-detailed-prose-en-personal-study:r2",
+      "rawFingerprint": "1de23b9c5845666b87778660711a08f8aa0a4baa48a463ca618a6a3821053e6c"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-detailed-prose-zh-general:r1",
+      "rawFingerprint": "970bdafbb859a2974e79207cf65992bcc23355ee9b06edbb61f9f9769d1eac76"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-detailed-prose-zh-general:r2",
+      "rawFingerprint": "525890579c7cd3e069d4fa8b9dc28f36d90db944cb9e52a0a159d0c2a7eb0fd5"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-detailed-prose-zh-work:r1",
+      "rawFingerprint": "96144ff73f483de2834cba73ef18015264c23f992ef430a33f5829696031350f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-detailed-prose-zh-work:r2",
+      "rawFingerprint": "f1f692c4e49523a71aea1740e8a74fc8a441c8efe6e5fa27eec45d0a2c1de4d0"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-detailed-prose-zh-personal-study:r1",
+      "rawFingerprint": "f42c435dcde2191fa79fe16e330cc03b932bc6b28629e7750a5eb6dfd18319c5"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-detailed-prose-zh-personal-study:r2",
+      "rawFingerprint": "82444a5b40ee9479724f3e3f474450d615046a0745abc2b5c354e07cd8ae71aa"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-summary-evidence-en-general:r1",
+      "rawFingerprint": "1c5e07fb87a39ea8409274041bf2165f811840060e9f91a20960f0faf5c7954e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-summary-evidence-en-general:r2",
+      "rawFingerprint": "c0e879dfaa10078e1b1ef2963c9d4fb60c689bbfabf592586dd3daec3abe779e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-summary-evidence-en-work:r1",
+      "rawFingerprint": "579588af9dca3bdf31ec9dc1914fb41e6e5b1cda7549d47415e51800a5c2e623"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-summary-evidence-en-work:r2",
+      "rawFingerprint": "d7850af107cecfc8dcd83c22ea0cff55c872aff4f6d9952c5349a01cef682794"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-summary-evidence-en-personal-study:r1",
+      "rawFingerprint": "721069aed1ed64daaa3bc2885ac29e521089587e2a3502f7e74f06e2e8228909"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-summary-evidence-en-personal-study:r2",
+      "rawFingerprint": "09212abd5543dde3d0238b3bf553cc0905fe1c0d58c6f11c9c4609d551643605"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-summary-evidence-zh-general:r1",
+      "rawFingerprint": "a5b74c133a09d42246e35e388f162b44e818ba92f7444aca9a758a88133a8e9a"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-summary-evidence-zh-general:r2",
+      "rawFingerprint": "5b5df4e5399d00e147404b79a4a93ac44aa2183f708ae5ef7aeaaa331db8bd7b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-summary-evidence-zh-work:r1",
+      "rawFingerprint": "1c81bb98fe6ddc6d3473911919ca4e7d5fee0fb474a0feb2f57d47dc440ae945"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-summary-evidence-zh-work:r2",
+      "rawFingerprint": "3d650289fe831c71df977ec0d074d9ba65b5ac28c5970542b1cf70ef464cc07b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-summary-evidence-zh-personal-study:r1",
+      "rawFingerprint": "4dab0a086b33aa8b1d568050a5b961204ee8705e61b2bf893e5e67cf70e7b80f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-summary-evidence-zh-personal-study:r2",
+      "rawFingerprint": "4bd928044d512c038dedad8664f7041ecf339e6d2446dbeb0912ea7c72c4ff2e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-steps-risk-en-general:r1",
+      "rawFingerprint": "5282d8228806e7cb5591a2ad0ea0a7e6a84eacea2b9678c71a86a7ae7794e367"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-steps-risk-en-general:r2",
+      "rawFingerprint": "0390768344b53d1ffca57f6513dfc0673c0c0a16e34acc24be454d1830ed93e2"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-steps-risk-en-work:r1",
+      "rawFingerprint": "9ad6a55d704a899452d9c6439604b71808cd3d09c4250e949b9928b22ffedf75"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-steps-risk-en-work:r2",
+      "rawFingerprint": "9f0a4621373db7d32895cdc31c159897e6d1e19f607c33418226c4c3526c0484"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-steps-risk-en-personal-study:r1",
+      "rawFingerprint": "84951d6ed12fec667c3c7a38ceb70942a4e44df1206fe5a167132e27e92b2573"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-steps-risk-en-personal-study:r2",
+      "rawFingerprint": "3f1938bc2482c3368b1a7d271bad089d4ed70beb87c2df7f3a585934c37400c7"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-steps-risk-zh-general:r1",
+      "rawFingerprint": "6c416dddf7d02fcbdceec1668d8318e8d4fe019d97f85915fb8bfd2eee22e7be"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-steps-risk-zh-general:r2",
+      "rawFingerprint": "07eb8e19c9e5b60e698d52432e6959ec68c9c39e0dbc775fc0d70d87e50febe4"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-steps-risk-zh-work:r1",
+      "rawFingerprint": "1b96a87204025c0d4568bd94d3cf0f232c2b9d1defeca2b52b2885ed28366ce8"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-steps-risk-zh-work:r2",
+      "rawFingerprint": "46069c7add4b4551f59c54c16bce2e15db265f030a4a2faa402c5667f373b921"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-steps-risk-zh-personal-study:r1",
+      "rawFingerprint": "d414a3842a76bfee9aa2ac4cf1723971b7967ffd93f36c86055ecd67565096c7"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-steps-risk-zh-personal-study:r2",
+      "rawFingerprint": "578c47dc71c00a4c9a5a004a6fb7dff8a0de7b87e0cff4d4f54ba45edc8eea73"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-plain-concise-en-general:r1",
+      "rawFingerprint": "c64de53944294819582b72f6345ff21eb2231891d8cd149bcda4b5d2689bfb53"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-plain-concise-en-general:r2",
+      "rawFingerprint": "ada35887a67167255b17c5324c412d33155cce34ee55dcf158e8a5840f316ff8"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-plain-concise-en-work:r1",
+      "rawFingerprint": "925c3b0017685d163be2624e219d3aaf9b223c365685f28f0da72cbcd9c34601"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-plain-concise-en-work:r2",
+      "rawFingerprint": "3cb97ec8eef895422b649c6fa0f9446b1c28c63e41c1bc33de09758356d06991"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-plain-concise-en-personal-study:r1",
+      "rawFingerprint": "d44801588a61ada6833384733dbab64dd2f3faff7a9ff44c56423598e5cf3fc4"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-plain-concise-en-personal-study:r2",
+      "rawFingerprint": "fe7903c3cdf01e392b9600caeed3f662147fbfdf14be55b59e099a11cf292727"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-plain-concise-zh-general:r1",
+      "rawFingerprint": "7587e9040ca2121146a7f0ea4a084f714ba21a6d43026ffb140282b5b06e800b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-plain-concise-zh-general:r2",
+      "rawFingerprint": "ca03817df4eb467cf3aca308837e3a5f3acaabc01b4a1be9e8a076334480b186"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-plain-concise-zh-work:r1",
+      "rawFingerprint": "0c3e3784a09375fb9b06f147329e34ee7454b6ec548411eb2db4d78bd21742ee"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-plain-concise-zh-work:r2",
+      "rawFingerprint": "d40db00d2efee527c294a52bef95fa81f3209e6898678ce6bb47aa31d84e530e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-plain-concise-zh-personal-study:r1",
+      "rawFingerprint": "3d117c553ca2317638180ba8526647eb9d0eb6bfdeb9e12e493597c7de9f2680"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-plain-concise-zh-personal-study:r2",
+      "rawFingerprint": "fad81ae117bd442c889c786d44eed02011b6b0ec4139ff2fc4754ee3a1810e59"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-technical-detailed-en-general:r1",
+      "rawFingerprint": "777ab749ba97af31637958c4e8a9607fc8d2d63f4cd25064c8f3edab38982ad9"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-technical-detailed-en-general:r2",
+      "rawFingerprint": "46a2cefd8ecaadfce0b829a0943c19ba4d337f4a1c78324c5f0eda57b850f97b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-technical-detailed-en-work:r1",
+      "rawFingerprint": "56161d40dcd24bec7acafb69331b00937283797abe402475c2dfc2c43e60f827"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-technical-detailed-en-work:r2",
+      "rawFingerprint": "46bdd4c86f760ef675d2bc1441b15efd3afa9484def656ec71a81f3059227d60"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-technical-detailed-en-personal-study:r1",
+      "rawFingerprint": "41b5f72ae5a1a1a26a06897450db815f41666bcdce29fa747e187561f33c5ef5"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-technical-detailed-en-personal-study:r2",
+      "rawFingerprint": "4e1aeb278a09114f60b85b73b5073b46d8d16148457a272f91176ff0d4af9948"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-technical-detailed-zh-general:r1",
+      "rawFingerprint": "cb15347d5064ce574b935e35302d254c01679c6a227aaa41fb871f0ac01e8e0d"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-technical-detailed-zh-general:r2",
+      "rawFingerprint": "75cfa5a6c510da1855232c62e2a4b6a1f41ac72366e112ac030b6345b38480de"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-technical-detailed-zh-work:r1",
+      "rawFingerprint": "d45ddbd4cb2fee5422dd1fc350b6f415271198b79fc831d63edd6d449b655422"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-technical-detailed-zh-work:r2",
+      "rawFingerprint": "64e4dfacae99e4ee17793773c1f3c53c093c2b88640184345e792ffdcdf79152"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-technical-detailed-zh-personal-study:r1",
+      "rawFingerprint": "db3634da07362f11c7683c8ed0f5fbd579cb5dce77520d4fbbfb56ff7d324a5d"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-technical-detailed-zh-personal-study:r2",
+      "rawFingerprint": "cf4e5dc03ed1a7690d54b50edabaaccd15be11a091f73b2d9d9bee57e4b8a61b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-incremental-feedback-en-general:r1",
+      "rawFingerprint": "317bba4e7ad296323cc11b14a25fad578e30153384c687b5a7e23eff39765845"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-incremental-feedback-en-general:r2",
+      "rawFingerprint": "bfc833ce073ad4fdeb91fafe9c92be16c954f7744d7599ff93f71f1f0ac1e243"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-incremental-feedback-en-work:r1",
+      "rawFingerprint": "aea4c3fac0dcf2c1012289d1710871ae6077d3676ef75d019603467d4e2f892f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-incremental-feedback-en-work:r2",
+      "rawFingerprint": "fa4a95d73ff06baac5700c48775bf29d15e75a563b5a47a202248fe6a13f96a7"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-incremental-feedback-en-personal-study:r1",
+      "rawFingerprint": "16328761b85ccb1b009dfa61467d1cfa2676258a6d9c71770397ecc2f51bab31"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-incremental-feedback-en-personal-study:r2",
+      "rawFingerprint": "833c38b92185dd7951b3c525099f1373ec2aabe997242c042d88fe3bf83e4d6b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-incremental-feedback-zh-general:r1",
+      "rawFingerprint": "2e588ba6dec45aa1402fcfc75a26c8242f3e6319a10673e46092ea73825cb36b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-incremental-feedback-zh-general:r2",
+      "rawFingerprint": "67df3c5e1d9416e9aa8321bc457fe272a3532f579e0ba492a3a9ed48a6fdcec1"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-incremental-feedback-zh-work:r1",
+      "rawFingerprint": "426189f69f585f8d153dff892d0009f4f8ce3bd1e32307cd01eee566a6d8f887"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-incremental-feedback-zh-work:r2",
+      "rawFingerprint": "b57cd54607726b24b2765b748fd5338f522b6fe9c5dc5afb6cc23eb769276ebb"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-incremental-feedback-zh-personal-study:r1",
+      "rawFingerprint": "31f33411611e848b3c55cf60ae7bd4f7b5d95ece9a33093979ffb2bcc396eff0"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-incremental-feedback-zh-personal-study:r2",
+      "rawFingerprint": "8036a2a41e8d7af268ac64b4f6d4dd26c3a4a8a09e49ce7d0633300d988d439a"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-bigbang-milestone-en-general:r1",
+      "rawFingerprint": "de6c47498349a0641f1c5369f2b8490cb80227f0dddb3e3733dd8879bc7b4c4f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-bigbang-milestone-en-general:r2",
+      "rawFingerprint": "1f5f4fe436670247d437aedeeb9cb845770d268a1a774984f7a443147db778a4"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-bigbang-milestone-en-work:r1",
+      "rawFingerprint": "61cacdbcd04cffe26e319edc8429deb5d843e4a6bed4a99b6405123cae7c0ee6"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-bigbang-milestone-en-work:r2",
+      "rawFingerprint": "20ef73bf1334c44b1ef910dd1e3039e847687322cb1a9e91f35b63ed6029233c"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-bigbang-milestone-en-personal-study:r1",
+      "rawFingerprint": "ba939194a3208fcc9b7307267b796ecb8b84e6552773cf88b4ffc60b4b62c020"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-bigbang-milestone-en-personal-study:r2",
+      "rawFingerprint": "d6abeb3b24baf9164338de86b7d9eb6b3ba5966d1f0d83adb78ade80969c5643"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-bigbang-milestone-zh-general:r1",
+      "rawFingerprint": "0a1e3a87317958faa459597a648c925af9b5b77988a53b4a06c43ff59a42a514"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-bigbang-milestone-zh-general:r2",
+      "rawFingerprint": "264576756ab404cf1ea5f8b2a524ca6c32251497e4043b7dc396b32484d42844"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-bigbang-milestone-zh-work:r1",
+      "rawFingerprint": "c89fa67eb5e731502d0fd25858776eb2c139d29414f5e0825952e037d8245fd7"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-bigbang-milestone-zh-work:r2",
+      "rawFingerprint": "84d0ef02016347f6c0740399d9e57a6a83b2b69119f10e7fa1054bb92a56dd0e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-bigbang-milestone-zh-personal-study:r1",
+      "rawFingerprint": "ec66fce15b91f7a15a8f27f720b58c4b650a5c777678a9d12a2cb5e06ab9c81d"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-bigbang-milestone-zh-personal-study:r2",
+      "rawFingerprint": "2053545eb771d51b3a9282b2877f36b3b6785baabcfe9450b088d6badd2a8d02"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-deep-written-en-general:r1",
+      "rawFingerprint": "e6f1a4a3fb9a3946b79964fb537ac47d4a6b1a5bccd33bca90076130ca9471d0"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-deep-written-en-general:r2",
+      "rawFingerprint": "9b1aab6b4df4771a1c5d6b0b200245c8ee5c647551300dc2bd2070960df24977"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-deep-written-en-work:r1",
+      "rawFingerprint": "de570ca310f907617faa2a1cccf0bc1e03329194baf43562fafb7c55a16c4644"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-deep-written-en-work:r2",
+      "rawFingerprint": "5a112e16b446473fc57afdab78d823f03f198abab42e65e0bc1c4f3ce79b963f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-deep-written-en-personal-study:r1",
+      "rawFingerprint": "f55b182ebeb1cfc50de3a31c79c04da9f07ee6796d01e04911d3f4ca71e2cb97"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-deep-written-en-personal-study:r2",
+      "rawFingerprint": "803d008029d524f8b9fd82c9e28915f69ad39eb8d36b2e54437ab44a43346be0"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-deep-written-zh-general:r1",
+      "rawFingerprint": "f78419d92a4cce4209b5e79b34ddb9811113960fc22f8688a88ff95780472e20"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-deep-written-zh-general:r2",
+      "rawFingerprint": "1d114a005d5807720afbbac7fdc903dc2d1789ea9bfa332d461f3b5109c97b0e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-deep-written-zh-work:r1",
+      "rawFingerprint": "a811583a9bf59d5b732897837bef1a17820ad4ea73e0124031bd290d255c1ee0"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-deep-written-zh-work:r2",
+      "rawFingerprint": "99f346ca25c12ca4d252403783d47329f85e07c29567c5b71fc14d7c129426cd"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-deep-written-zh-personal-study:r1",
+      "rawFingerprint": "e55f6495539cee7a4637824d4393a4bd9079cb590e80e0d585c90393f890dc0b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-deep-written-zh-personal-study:r2",
+      "rawFingerprint": "514846dcf8c3b7dfdad08a90db077c207c279606765e7947e1515ced39cdbe7c"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-checkins-verbal-en-general:r1",
+      "rawFingerprint": "83a2efb59e8a0e86d4266d994d4d259a1e971a462f92f49becaac49b040d104f"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-checkins-verbal-en-general:r2",
+      "rawFingerprint": "09f7d73289a1ac44705f6aa6ba527aff4a538f1a21d31b0e3d8bfebc97c3b90b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-checkins-verbal-en-work:r1",
+      "rawFingerprint": "eecf1d2cbba209546c4022b89039a2da31d7c3eeb24db4beec94f482332bd7ca"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-checkins-verbal-en-work:r2",
+      "rawFingerprint": "08de6430841824d1f7c3d8aec2cfa867514e17dff4eab42e0220042c150fbfaa"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-checkins-verbal-en-personal-study:r1",
+      "rawFingerprint": "18ecfa5fbf9b6d4a1ffaae6f2be3f9193b5b7b95af0a885974e6f33a1aa0a8aa"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-checkins-verbal-en-personal-study:r2",
+      "rawFingerprint": "fd212f271c3ebeeffe0f02791347595762fca1be01123bf1a89f4db983bf86e5"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-checkins-verbal-zh-general:r1",
+      "rawFingerprint": "fff54290fbabe83cdf1917bd550e73081ef0f2304170eba19cc1456513f5bc5c"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-checkins-verbal-zh-general:r2",
+      "rawFingerprint": "2fe9d003f36a19b379f19b7f6cc0895f252497eab1bed29d17f00838654793de"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-checkins-verbal-zh-work:r1",
+      "rawFingerprint": "8e3af3744fcadab8cf778db6ad1ebf54905516e7adc3ce97eb006ce2c2ca108b"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-checkins-verbal-zh-work:r2",
+      "rawFingerprint": "a21ab4e9befc69c22a29135395ef3b3f88a600823566950d5216a4003b8d9ad8"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-checkins-verbal-zh-personal-study:r1",
+      "rawFingerprint": "ce21743106be26dc4b39278582dc01d7afba24b4e92bbecd67b8995a3ebe722e"
+    },
+    {
+      "arm": "open-key",
+      "callId": "open-key:compound-checkins-verbal-zh-personal-study:r2",
+      "rawFingerprint": "60d758d6b9668003ed520c5961773ea06bab11b6d609437f9cc0ea1e5a3f39cf"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-concise-en-general:r1",
+      "rawFingerprint": "febf2849f7e190c3b65e462d07a53c0c9ca1f862c039500346a3012b7a23058d"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-concise-en-general:r2",
+      "rawFingerprint": "8e7de7992dbe18990b11e4389f8ae140576cde2383154713b7be6a9a2890c34b"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-concise-en-work:r1",
+      "rawFingerprint": "c3d99c01965a399fab186ab8614dcac2ee78c0dd814a96559c8cee99398102f1"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-concise-en-work:r2",
+      "rawFingerprint": "1dd276767c7f27961435f976e45498e5075c1f77836abd9159288b3fdbf22e63"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-concise-en-personal-study:r1",
+      "rawFingerprint": "5a467ffe91dc4b86a0c8ff4c3d833cc5c7f58ce75784ea0464a319e898c2df15"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-concise-en-personal-study:r2",
+      "rawFingerprint": "a74f8a679b55c96f18708f328054c0380d756a40aac24f746ef7dddf36d8bb02"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-concise-zh-general:r1",
+      "rawFingerprint": "1f8060cbbf04b7eb09333cb926df29b2df2932d2dc70436a59763777dca5a207"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-concise-zh-general:r2",
+      "rawFingerprint": "7de4bc19da8683441b497e29ded1665cd7fb67763bec5a7f79b703d8128c831e"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-concise-zh-work:r1",
+      "rawFingerprint": "ccd0953e1da495f4ba5d79d8aa5887dd01795becc5b9f59370e686d9962d9326"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-concise-zh-work:r2",
+      "rawFingerprint": "578d3a7c051cb407d690151f3d2747ddc0511082f41ab5322a924f2e100a89ed"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-concise-zh-personal-study:r1",
+      "rawFingerprint": "7ff04260e3974fbc84f4e7be831b70dafe67c1d914362f8f172175464318c871"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-concise-zh-personal-study:r2",
+      "rawFingerprint": "749221f4b629052636ea2f42214a5a947477a23706dbf278e5bab182c74707ce"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-detailed-en-general:r1",
+      "rawFingerprint": "682dfa91dc2352e25057f7dc735fa21883c22df942ff42821c4b990ee2ef534a"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-detailed-en-general:r2",
+      "rawFingerprint": "0f578dcdae1108babf9c9c95e7cd67db9f9c3eddcc4be0cbf1b0be8fa0c616e2"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-detailed-en-work:r1",
+      "rawFingerprint": "039a9e462e27e62bcc97fbba6af59137f0dd7b99681f8a89a768d528710f8b6d"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-detailed-en-work:r2",
+      "rawFingerprint": "9311a654e40fc49e6a8f7fde5848048ffbe42f7d2087f5015282ba89517e0815"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-detailed-en-personal-study:r1",
+      "rawFingerprint": "72afc7622a619f7fe9d89444441f6008f6eef7bc4f7dd0b301eda7d9d7450614"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-detailed-en-personal-study:r2",
+      "rawFingerprint": "253ed4011721784ccdf6272462e179c440d2fe468e3d26ff5a6b1620d2e11fed"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-detailed-zh-general:r1",
+      "rawFingerprint": "afe6e872100584abcc4647908b460005e13efb0f7f9be4c5b1a77215ffe3c03d"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-detailed-zh-general:r2",
+      "rawFingerprint": "4717f2163744c7c22e739222b15073cd6abe57ece534a6a50a8a2c746be7035c"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-detailed-zh-work:r1",
+      "rawFingerprint": "dc073f0ca77776828b3d2bd047cac9954848e899bdf7ffa5614cf10a80bd6caf"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-detailed-zh-work:r2",
+      "rawFingerprint": "74f0031c01f8f6f50495e8ac38425512b1f56da02d2956c0a0d26ae0e837cd7d"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-detailed-zh-personal-study:r1",
+      "rawFingerprint": "2f06d7f15198a6255c1fc54c48eddfa308aaac87e42e0ce4c9f0e8d693bbbd32"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-verbosity-detailed-zh-personal-study:r2",
+      "rawFingerprint": "6f6a1b9709b334ca561e91276072d5c7ed98b49d86f465f9ef5075b7d6b10c9a"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-bullets-en-general:r1",
+      "rawFingerprint": "06bfd64c02f6e2f4bf09b87fbf3917ab151edb30298aa84ddb34e0747c74e5a4"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-bullets-en-general:r2",
+      "rawFingerprint": "7cd6448019eca5951abcf4ca0693cc2901e09bfa024bf4e95830758611a31ccd"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-bullets-en-work:r1",
+      "rawFingerprint": "10a7a1172a077a416f966f6bdae14a026ea24fa3c4d9c3691d6d9492afd3d5eb"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-bullets-en-work:r2",
+      "rawFingerprint": "1f8c332e22f010dd38f28ec6801e9f0039540c66a380fa6d213f9e96971a168f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-bullets-en-personal-study:r1",
+      "rawFingerprint": "9f9a14510bc1a7690f6e8ed8fd5b54011e131c46011bd08735c2fb029292cfd2"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-bullets-en-personal-study:r2",
+      "rawFingerprint": "9f9a14510bc1a7690f6e8ed8fd5b54011e131c46011bd08735c2fb029292cfd2"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-bullets-zh-general:r1",
+      "rawFingerprint": "cc24c70f68ed9cdbb4280e937bdeb4b09910428f097044372e7d26cd07556527"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-bullets-zh-general:r2",
+      "rawFingerprint": "b9e402d00440d4aba50a774fa21b9bdcb1b6a1622139560264fb73646cc04271"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-bullets-zh-work:r1",
+      "rawFingerprint": "849a1c1543e0fe608a18e32abdb9f83bdee899ca930f572dcf38cc6b52a195cd"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-bullets-zh-work:r2",
+      "rawFingerprint": "0c6a0a37a812794bc60b070c6090a7657a2894924c0c74a03a6fda7ec25e89a3"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-bullets-zh-personal-study:r1",
+      "rawFingerprint": "35b0702eb55c164da29a2186037c4df841fda10e90d77de33b8032d03e1bd5b8"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-bullets-zh-personal-study:r2",
+      "rawFingerprint": "1a55b986f7b8755049dfaff1ca65759dada24e38b81569866f5157d7885deeae"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-prose-en-general:r1",
+      "rawFingerprint": "a1e17c220826423e2ba90cab548fcd75e59a97db9602db9b1203faa64e9d2cb7"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-prose-en-general:r2",
+      "rawFingerprint": "a1e17c220826423e2ba90cab548fcd75e59a97db9602db9b1203faa64e9d2cb7"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-prose-en-work:r1",
+      "rawFingerprint": "dbb9cb390ca3e6718550392b2057a3c90374151a44d0208abaebfa3afca83a3f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-prose-en-work:r2",
+      "rawFingerprint": "a0204974b464ae6b344da46877e9741c1fe2de2bfa676441c9c9dd754db553e2"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-prose-en-personal-study:r1",
+      "rawFingerprint": "b3a8a29e9bca040bf13e4c1c240b9aacf9f51e89cc8a1e4ed12b83ebbb9d6132"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-prose-en-personal-study:r2",
+      "rawFingerprint": "d29319362f6e80a15d8019527a766900c6ca35d72770872d1a373f48fe968205"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-prose-zh-general:r1",
+      "rawFingerprint": "ba5a63ea3c26d0c6ad39dec583dd5c1c30c5cdd289c2dacfd91c2cae6175b100"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-prose-zh-general:r2",
+      "rawFingerprint": "65cfda7e26260391dcfdc1eca6f47e3da38e941d8b328752462d8e32168e783e"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-prose-zh-work:r1",
+      "rawFingerprint": "c0273ee575a6e0caae936156c03a64ca71705689af4907f3234fd84408db46a4"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-prose-zh-work:r2",
+      "rawFingerprint": "37ede238040d193751692af00338b6738ef895d341f9e2ea2729ced17ee1ab77"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-prose-zh-personal-study:r1",
+      "rawFingerprint": "978f7252c91f6ed97426866102ef62a80368b5a88e4fd035954d9854364b5103"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-layout-prose-zh-personal-study:r2",
+      "rawFingerprint": "48ca75e008c3afeecc72aee14cc2c56b00ca3c144a61bda5ae04ddf12b5a13a1"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-summary-first-en-general:r1",
+      "rawFingerprint": "97f88ab4ebd4fc4731768a8cc3c3609bbcd1d1e93c961caf1508a5adfe553a2c"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-summary-first-en-general:r2",
+      "rawFingerprint": "320b04e51afc4a2d3f53418f41fe8493001c215598ede1dda005037d7c257087"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-summary-first-en-work:r1",
+      "rawFingerprint": "2c9add4f4e76050cd918d4d8fb25c477ff6509a89549e4bdca6cc0a5a0cdef72"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-summary-first-en-work:r2",
+      "rawFingerprint": "55cb3b176dd72d42e1d3aeccb94281e5d6e86f34938eaa61856a01d7821980a3"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-summary-first-en-personal-study:r1",
+      "rawFingerprint": "675314c1a6c2c0b20319410f28995025906fef1ac3edddef6a5bdd964d09808f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-summary-first-en-personal-study:r2",
+      "rawFingerprint": "133494a29125796252588a6d873bb035e0c0bfc51707a1aaad12b2e2d3bee034"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-summary-first-zh-general:r1",
+      "rawFingerprint": "ae84384320cd1dfc86af2ea917bb544c1c0b130e02443980c5a546d0c30ac6b2"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-summary-first-zh-general:r2",
+      "rawFingerprint": "bf4446b2048de5409293ab6b1af434970063f08e973321d705ff2896a304e487"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-summary-first-zh-work:r1",
+      "rawFingerprint": "ba4509effc9864dd805652a559e54909cfa807463352234ba8da6f711744aab4"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-summary-first-zh-work:r2",
+      "rawFingerprint": "3eae160fb5ee6add514487943ad871d74098df33e474941d1edb2fb20d0e3d14"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-summary-first-zh-personal-study:r1",
+      "rawFingerprint": "d59c64ec7550be016ec637acaa9bd058b88e096ed12c1bd8d5653af4eae88208"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-summary-first-zh-personal-study:r2",
+      "rawFingerprint": "1f71102c4a7e3002418b6a49c028dff238dad660f0e392a903d5cf4244e4e06c"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-steps-first-en-general:r1",
+      "rawFingerprint": "fc617521b5b67a1a5684ecc604db7af66f03c80020b274cb6629af0459e6bd9c"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-steps-first-en-general:r2",
+      "rawFingerprint": "616e15117bd84bcb3b33c62f922a8ec1de6b55e9f21f9dfd9c361cbbaa43a1cb"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-steps-first-en-work:r1",
+      "rawFingerprint": "12d4b990deab139b4273997e5f819e27226f7e23d35c74f7008041a70ed37c68"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-steps-first-en-work:r2",
+      "rawFingerprint": "0c46420330709e87f207e6fd97a89f6acf2579dc75956b950fe4e2fdc0e6b389"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-steps-first-en-personal-study:r1",
+      "rawFingerprint": "75850fb7172f6b1febbb9422c6d12891a15fee6cc27036fb2f6cfc77a762f510"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-steps-first-en-personal-study:r2",
+      "rawFingerprint": "edb190176567804980d1606c91220dc70c599ea5ddf2232477a81e6bc108aa9b"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-steps-first-zh-general:r1",
+      "rawFingerprint": "fd4ce6d14cb0883ac61d75bc0de3a1a6f1a5e5c839e89b9967d784abf91e461d"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-steps-first-zh-general:r2",
+      "rawFingerprint": "5200d713529ade1097456b6f2598d6949baaeff8804728b68ca93573dcbcb2af"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-steps-first-zh-work:r1",
+      "rawFingerprint": "aa67513c1738ff206dd62d3cadc656b475ad46825d77d4f4f259e86f4193c521"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-steps-first-zh-work:r2",
+      "rawFingerprint": "1346e0384cc59a26b812b476a5cec111a3c276fba350d8e663c4752eaa72fb85"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-steps-first-zh-personal-study:r1",
+      "rawFingerprint": "c877ed55ed091a972e8e52102b011aaecc2716e5d910806d03b10c1bbafadaa9"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-structure-steps-first-zh-personal-study:r2",
+      "rawFingerprint": "2685b604c7b05981b53405eda2d5d9979933a00471362e19fa50896a137eb554"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-plain-en-general:r1",
+      "rawFingerprint": "ff7110dd8feaeb9150ca15462702b40ea877617beb219cfb5b71fabf62e6e13f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-plain-en-general:r2",
+      "rawFingerprint": "a51a35035c39ef72347b4c9fba22f575f8c8e66f235856979aa0ab90e7b2a828"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-plain-en-work:r1",
+      "rawFingerprint": "840bc39875df26ad11a59d8e01f6af0108fe711573b8a3298d189937c84a0109"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-plain-en-work:r2",
+      "rawFingerprint": "8d76b8754928b8c6db3e8a4e8bdcd246bc883fc3fe808a51d140508797a96f7e"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-plain-en-personal-study:r1",
+      "rawFingerprint": "6812ff347b3a068b08c995c45ddf84306465ec84018c72cdddeabce7035426d8"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-plain-en-personal-study:r2",
+      "rawFingerprint": "b993f7bd77bab4f9e47f50f1b37d0cb4b97757e877a7f723414ab27efde39818"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-plain-zh-general:r1",
+      "rawFingerprint": "7149f12dc7e63ededed4fe9848a81e5516e64a35da054fe42d0f2c2a75d79017"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-plain-zh-general:r2",
+      "rawFingerprint": "f62dca95076254ca34de14055200873a977847eef6a819d10e13b77a37297cfd"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-plain-zh-work:r1",
+      "rawFingerprint": "b12189183d2aadeed46290c24debfdd9537415868e00b062a17ea100a4fd080a"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-plain-zh-work:r2",
+      "rawFingerprint": "88006f757c53c805d3f541249a15464a94cbcbb750a999ef5f43e6b76d5eecd9"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-plain-zh-personal-study:r1",
+      "rawFingerprint": "c07268148a17beeaf0b51600f4a67c810014f24f955e8f24000c804d477d0a5f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-plain-zh-personal-study:r2",
+      "rawFingerprint": "0c7ff309b37b44ee967a041fb78a9df5a0fbb6bdbf9d9b09633b1e61d7a6a2be"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-technical-en-general:r1",
+      "rawFingerprint": "a5cf9d4aecbd80b1e19cf6cc6b0440e43744e94f7bd7751f3f7f2d6a449af625"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-technical-en-general:r2",
+      "rawFingerprint": "a5cf9d4aecbd80b1e19cf6cc6b0440e43744e94f7bd7751f3f7f2d6a449af625"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-technical-en-work:r1",
+      "rawFingerprint": "766bfd81d87cd3bde4b3783cd2b20bbfc91f6848faaf6d1b1603bd024ef88b10"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-technical-en-work:r2",
+      "rawFingerprint": "ce85238fb42969c4d967adcc7904d12f6ae01d811150775f60732d109e5905e9"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-technical-en-personal-study:r1",
+      "rawFingerprint": "f9e1b78723c5110bbcb350d4f92d5cf672b998a49b014015c5b7bb6d8f0ebf9f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-technical-en-personal-study:r2",
+      "rawFingerprint": "b4a029d67f76ab4a2905c67e4cd0f947ad216fbd1d8eaeb562c023b17add33ca"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-technical-zh-general:r1",
+      "rawFingerprint": "eac5765257579c3c65efa179d219ac21c21a3b9f38eb2f928731e3907845de9d"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-technical-zh-general:r2",
+      "rawFingerprint": "50c52fe70a34cdfad3495365c045c8669a1587e2f621e878ef9416154dceb4fc"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-technical-zh-work:r1",
+      "rawFingerprint": "e0ce0a127cfce48acdaf81f3abe51f0a2f839f7899fd1b0b32ce3e22c06454b7"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-technical-zh-work:r2",
+      "rawFingerprint": "f1fab56346619a4445b98d997ac6e3148116de5bf19b9fd9c7c5226593ca80f5"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-technical-zh-personal-study:r1",
+      "rawFingerprint": "6f9bc6b3ebba261d2bde557831f2c9404d04a8955420375d461c3002a2f79e38"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-register-technical-zh-personal-study:r2",
+      "rawFingerprint": "3d7f7d7f9669ed4af6b1de2def48d329ce37333e20f4a1304eb3df5c109638c0"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-grounded-en-general:r1",
+      "rawFingerprint": "bbeb4e7aa4fa251c1baaadd59e3263651f0de905c83287114b7575cab55df624"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-grounded-en-general:r2",
+      "rawFingerprint": "1c97209e7c718df4dd8cfa00631d1f2e19919e4b5dfdbbf6e0df33914b76dbd4"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-grounded-en-work:r1",
+      "rawFingerprint": "268a402f1d97e27f4134fa0fc75725e82aaf6b0214af1b57b43336b0a6e8612f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-grounded-en-work:r2",
+      "rawFingerprint": "f5d0544adfef3c3aa1337fcd8a848f94c409eaffcf590cf7afbf7f97ddac701a"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-grounded-en-personal-study:r1",
+      "rawFingerprint": "01d8852dc2ebac714dd71c46ee9c15bfb5201e6cfd27b5f755dae4b30459ba43"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-grounded-en-personal-study:r2",
+      "rawFingerprint": "d7bad4f286935b6ec09a7dd18b1e62ce7523a82aa2f16a431b368217878cca3a"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-grounded-zh-general:r1",
+      "rawFingerprint": "9b90d0ffb3bab2239fb43262060678fac440c3b1989ff14eeb8dbda290e1147e"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-grounded-zh-general:r2",
+      "rawFingerprint": "8c51d5dd62f951bac9c6f9f820775bda06f803f76a7ad91708eacfd665003699"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-grounded-zh-work:r1",
+      "rawFingerprint": "4a0d14560fb0014931f9e5483135e64f0f2ed25ce429692b0b60eb3af3e85537"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-grounded-zh-work:r2",
+      "rawFingerprint": "dcfd3ec72ba19963cb04a4401917afce921ce2b6cc4fefe273df64bde22e6aa4"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-grounded-zh-personal-study:r1",
+      "rawFingerprint": "29677071723730d80799b8c76e56f0757344fafbea17a06a2dfc40f99ebcfdf1"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-grounded-zh-personal-study:r2",
+      "rawFingerprint": "2ccb978c6b29f819e1cf3f25289cb41eee654b78b50b222aca29a797bb0947ab"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-intuition-en-general:r1",
+      "rawFingerprint": "5a3f7482bfeb32bdff1492a222d99b660d7475d8de2ff84d0568afc22a803e25"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-intuition-en-general:r2",
+      "rawFingerprint": "9724d19192ad9c08b6e479d940baa04f093a45bf9a3e79d6be87fc533fb18ea3"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-intuition-en-work:r1",
+      "rawFingerprint": "0a9baf25bac69ab537d96968c41b9290ad1554a69068172b831867c3ef03523f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-intuition-en-work:r2",
+      "rawFingerprint": "9a0a60e665e2003e14ab13be0d0e25b8813902dc47ca83413fa4a9209ff73945"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-intuition-en-personal-study:r1",
+      "rawFingerprint": "444e558b902d1f5d45a57e24e894b61b291be13a7c3ab401db75cd80fb37c65c"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-intuition-en-personal-study:r2",
+      "rawFingerprint": "404243ab46b26e05a8556f55682bb31430ca904480517124db82d007a5f1ab8b"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-intuition-zh-general:r1",
+      "rawFingerprint": "a22b19d97db4f5dd2ffbdadecb3456ed21c001a7dd2260d8807eed35e575a907"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-intuition-zh-general:r2",
+      "rawFingerprint": "3182144843e23c0381515d29ba0abea45cbc50dda6abba3364a59c3d7793ebeb"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-intuition-zh-work:r1",
+      "rawFingerprint": "af02c50914b2aa94fb34643c3c00b7a592dbfec6398c568a5fee832f028df1d4"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-intuition-zh-work:r2",
+      "rawFingerprint": "bf5d8933e6f4cde7ab061bd11b6e6f6ae520ac1188e0a5f190b15e89dab0f6ee"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-intuition-zh-personal-study:r1",
+      "rawFingerprint": "6a68ed0f107899f5cdc86783527381d255a43a55e4ed061749dffce712994092"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-evidence-intuition-zh-personal-study:r2",
+      "rawFingerprint": "3e5bcf7479e88535eba8acc971c848cb021a07c9e5b723ec6ff948387d16fd13"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-first-en-general:r1",
+      "rawFingerprint": "9571f3aec8e9d83ba0df3d6dbce9093ac22c658bc99a0f74f4fae7a3f4837364"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-first-en-general:r2",
+      "rawFingerprint": "5d6b5b87432a9122626ed67aaf5f6dc5258752972c0cdf73620cc8617a0dd804"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-first-en-work:r1",
+      "rawFingerprint": "3542b43b974dd56a68db8faeab81bb38bff75ce4916ea2923ee8ade946d1c5c7"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-first-en-work:r2",
+      "rawFingerprint": "3f83fc32084b72672c640a6d66c1617e8ac92de5f5337c6c3c8a0a3f2aa8cafe"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-first-en-personal-study:r1",
+      "rawFingerprint": "1a4f7196b277d9dd18fa3af2ed730d6415a5f9f429c05b33551b388b37f813f2"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-first-en-personal-study:r2",
+      "rawFingerprint": "6e60eb01096b79ba4058b24a9cfb61666a605c22b4557ac9b88e9428531f142d"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-first-zh-general:r1",
+      "rawFingerprint": "5f0bca05c970277647327db76509a9ee8c11c388e53be047055361fab627a080"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-first-zh-general:r2",
+      "rawFingerprint": "628fd7ef9626d25a1ca0b2d51039a79985413b1d80464850dff876285907b662"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-first-zh-work:r1",
+      "rawFingerprint": "61af89439f940314f30e4962aff0d95baefdb25215eb31f5fd3824e70b8ceaaa"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-first-zh-work:r2",
+      "rawFingerprint": "ffae73a502f1548fe3243f7928aa0220c97e9ed1aad9feadfcf0d77237f2ebb4"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-first-zh-personal-study:r1",
+      "rawFingerprint": "9e7fae56cc2d6e699ec7ce31ca6f4e11f9ad6662f7358edefbb01d8c9d11b174"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-first-zh-personal-study:r2",
+      "rawFingerprint": "e9d48bdb5b1da00e57bf46157b27fbd8917e7feba10d3ebe4dbfa81820d93458"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-recommendation-en-general:r1",
+      "rawFingerprint": "8c8080f8644b2cc59fe2423ca2cc36d082ab99da82cdd8eaed703d80d30dc7dd"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-recommendation-en-general:r2",
+      "rawFingerprint": "c7de5d4108ea122d2af196fd37f6d0bcc3e199c66d8f3c6f18c8eb42d817dd8a"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-recommendation-en-work:r1",
+      "rawFingerprint": "b8546cb1e7c3fd8866b89ce6e5de7c57b90a2b7201be4fc3bf84544499b07e6f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-recommendation-en-work:r2",
+      "rawFingerprint": "2f1873ff23aa74f72910f11e6c473d3951cbbafafac371f0a964c6a607177af2"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-recommendation-en-personal-study:r1",
+      "rawFingerprint": "1f8bcded085e1536acdb21cb8c2b5c4954948c66b40a79bb4d57f919d96e479e"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-recommendation-en-personal-study:r2",
+      "rawFingerprint": "538277861c2accf9298ed1992be8a474dba3e78e43e1f9f620472d1bb1b7a344"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-recommendation-zh-general:r1",
+      "rawFingerprint": "6395ef045136cc130523ea2ff3b1840fbe7fb7c929bb640c7b8038474542b654"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-recommendation-zh-general:r2",
+      "rawFingerprint": "af4f1e659ccc8ff48fbbeb67d6381622a2ce6f196368c789bae04deda3e56e40"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-recommendation-zh-work:r1",
+      "rawFingerprint": "5a7e615072a7b6910f8871f78c4cd3fb91d151c73f6f247042b430b5fcb49586"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-recommendation-zh-work:r2",
+      "rawFingerprint": "ad36a3a6d9e6fdd8b6684e5e4623a2491b39f5dfcb6b437072ae52b35c2963d7"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-recommendation-zh-personal-study:r1",
+      "rawFingerprint": "e318472020fe3794ad1dc2a9ce64fdb7262615741c5a09ec4e33a98ff793d207"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-risk-order-recommendation-zh-personal-study:r2",
+      "rawFingerprint": "b4a704c482cf9d5b6da3d1714c265fdd4960bac257893a4f67ab255633aae109"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-incremental-en-general:r1",
+      "rawFingerprint": "3cef02d5ed5166c39b89a61cba57fe5f1e5939c74458f0f8da6d735b9bb7d65f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-incremental-en-general:r2",
+      "rawFingerprint": "3cef02d5ed5166c39b89a61cba57fe5f1e5939c74458f0f8da6d735b9bb7d65f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-incremental-en-work:r1",
+      "rawFingerprint": "91ac3b66178f9a2a19d6f1f868136cf7c253e73cab90452aace00bc23e244b16"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-incremental-en-work:r2",
+      "rawFingerprint": "f7baba16efbd1d9c1b44034ecc1f74e0f4b815fbdfffdd4baf24f8b4813f9b7d"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-incremental-en-personal-study:r1",
+      "rawFingerprint": "9370e3037adf4e7627e94ee53a3625ed8905259382a8747913611e869355d4c9"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-incremental-en-personal-study:r2",
+      "rawFingerprint": "6a3dfe1b11bbef5a74e6a81ac6e6ce414bf20d2f96b9a48c22d5c9df1e01dd47"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-incremental-zh-general:r1",
+      "rawFingerprint": "37479745fa6fb1f216ff43dec92bc6a333a819c85996bdcf5ddd9734a9a7a1c2"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-incremental-zh-general:r2",
+      "rawFingerprint": "7a1cbb0400a0fd571a1a10abbf1bd56e89166032da0e1fe97f63b5cf014f5982"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-incremental-zh-work:r1",
+      "rawFingerprint": "4ce0cc17e551cad4bd26d91b181a43c97778e242373f1326c284b8db6fde61bc"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-incremental-zh-work:r2",
+      "rawFingerprint": "2e8ec55960f63d5ddde601fdda6ec2c5bc74aeb42f3038ab64223f1558015bbf"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-incremental-zh-personal-study:r1",
+      "rawFingerprint": "60c451b9e22a7db64e69b865075498a619be1156f90583194d0de752637284d9"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-incremental-zh-personal-study:r2",
+      "rawFingerprint": "3f040f18f3940e62a2dd5528732f676b2fc7c8b3805f3168406544f0e36c3c26"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-big-bang-en-general:r1",
+      "rawFingerprint": "6c165e89cc272bea68f6f0a2007b6a1d7e8e276dd50d3a4654d386b8ec05c440"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-big-bang-en-general:r2",
+      "rawFingerprint": "50504ae0990bb45e7c24550dab89ab28dd4805d975e7d72dba6c81600c3c61aa"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-big-bang-en-work:r1",
+      "rawFingerprint": "8bc47a908cd5578555af7ffcd8d1272db53e4bfe0607838b8153329741f5ecef"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-big-bang-en-work:r2",
+      "rawFingerprint": "3756ec58c168bce03277a292bb53838477f74b32bbd3d13bb068239caadbef63"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-big-bang-en-personal-study:r1",
+      "rawFingerprint": "1df130539ed5d8265edaf76f350d8e13651c1a9df3d3daac1e5187643c180e67"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-big-bang-en-personal-study:r2",
+      "rawFingerprint": "1df130539ed5d8265edaf76f350d8e13651c1a9df3d3daac1e5187643c180e67"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-big-bang-zh-general:r1",
+      "rawFingerprint": "5d5f8c2904df915976b288284c6f49a0c720031fe9f8bd35b41081429b8d3971"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-big-bang-zh-general:r2",
+      "rawFingerprint": "76be919a6e26efa1d1814fcc545b13212ccd9b5f4d6d21b7e02d3894db9c7c44"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-big-bang-zh-work:r1",
+      "rawFingerprint": "3ab8817a110d3d38654d30ccb691a08fa70f3cda5c45656b6e467e021c81ac1a"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-big-bang-zh-work:r2",
+      "rawFingerprint": "16321f7a0337bd7ca99f5d379270c222054eb44d34310b836ba0c5ebd45e72ef"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-big-bang-zh-personal-study:r1",
+      "rawFingerprint": "64a1d849ddb60e03b38a63d1d860e62e56794604afbc2a813127a75801e6d329"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-delivery-big-bang-zh-personal-study:r2",
+      "rawFingerprint": "3b59be3b2b1887ad2b612c90a7c76ad8ebda9cc92b710420b09f36966143da6c"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-deep-work-en-general:r1",
+      "rawFingerprint": "597f7375d0669807a354e6cd2003b16c3bc6d6534a42e7fd1bbd84c63c17f1e4"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-deep-work-en-general:r2",
+      "rawFingerprint": "e06e326387d08ac335c655e53acb109768033869ea556111dd181bc6b34f4dd9"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-deep-work-en-work:r1",
+      "rawFingerprint": "86d78ca03c3c0ddabe6a42f156619d9dbca1b524281eaf25fe01b41efec2fb05"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-deep-work-en-work:r2",
+      "rawFingerprint": "7cdf4d156ef2a0b8a07c09b260e7c1312c28a1d0ddb844f30a578f07addadc17"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-deep-work-en-personal-study:r1",
+      "rawFingerprint": "8ef7f8e74dadb32205d8229b7ca30c37574b8c0a14937cfb031ed0f470529436"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-deep-work-en-personal-study:r2",
+      "rawFingerprint": "2f207298e6aea2129ab5a9abd7154099d35db5905656fdfd4225f07495010a85"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-deep-work-zh-general:r1",
+      "rawFingerprint": "b5eba361d47e4dec5ae3d350f04d3441e0d6b8af0b3b1bb105f4a218ce374217"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-deep-work-zh-general:r2",
+      "rawFingerprint": "1593d3b758b14e801dc44d006f909268cd9c682602a3438c58424e5c7796ce7a"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-deep-work-zh-work:r1",
+      "rawFingerprint": "b362b22bad590f34661cabff678df1d4f6eb2a137aff01062c47aa5ee33bfd07"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-deep-work-zh-work:r2",
+      "rawFingerprint": "02e6509d9b109866493d67ac6fb548458aee40502aad4b7fed3b3bbfd9d1010c"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-deep-work-zh-personal-study:r1",
+      "rawFingerprint": "4cb4c5a43ae6ba4f0baeb2ea115cce2bce711b03046b9ef05aac3077004ec9fb"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-deep-work-zh-personal-study:r2",
+      "rawFingerprint": "78ba0c0636af8ee29908252e6190713eeea268817b1196490ada249336bfb60f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-frequent-checkins-en-general:r1",
+      "rawFingerprint": "7b33e4ba547553372bb5a3599f4e049dc34e15c6bfc2a158b2f3e75c6bfa3e09"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-frequent-checkins-en-general:r2",
+      "rawFingerprint": "47283d76e3df1f55eb06205e026b3781cf1fedf9f19344db386c7e36b577efcf"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-frequent-checkins-en-work:r1",
+      "rawFingerprint": "423af2081b4c56e1cee4b7023bcd4fed3952dd7e5de3d90dd65c32cd91987f52"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-frequent-checkins-en-work:r2",
+      "rawFingerprint": "7b33e4ba547553372bb5a3599f4e049dc34e15c6bfc2a158b2f3e75c6bfa3e09"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-frequent-checkins-en-personal-study:r1",
+      "rawFingerprint": "1cc32e163e8bd7e1a63bbd1a1f0f0d717c094559df2684f5136d119e0f4097af"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-frequent-checkins-en-personal-study:r2",
+      "rawFingerprint": "1a80277b323a9be54e1f175677952e8337dba64da1b2f697a519c74cc6ab9ba2"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-frequent-checkins-zh-general:r1",
+      "rawFingerprint": "9f9f4fc1981eebdb3d19df9a527b169e897a2c480ce6025dad08a5855a2ccd14"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-frequent-checkins-zh-general:r2",
+      "rawFingerprint": "c04dfc3f3cb1719b7fc2afd10d4de00a9a0fd4d876c239bcd4e5c76222f8f3b5"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-frequent-checkins-zh-work:r1",
+      "rawFingerprint": "43a7ec446544a0fb373ec8175f21dce68b401d7c211249a3adbf8436c76b374e"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-frequent-checkins-zh-work:r2",
+      "rawFingerprint": "0f1ebbebb8052cab5154e2f4b2c9be06dbdd52350a155101c55a7f6a53b33452"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-frequent-checkins-zh-personal-study:r1",
+      "rawFingerprint": "60d9e9463ac58e3249b813c7ad4074d87c0a61297f24b2b82081d457188ed1f6"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-focus-frequent-checkins-zh-personal-study:r2",
+      "rawFingerprint": "76565c1077b2bec02ff8c6bb611cb6cb1777ad1533fcaa180f36e58bd7f8434c"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-tight-en-general:r1",
+      "rawFingerprint": "2ded674798a4a2fd3687d1b5128f65bd150dae72b31b5dff32314640df04b85c"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-tight-en-general:r2",
+      "rawFingerprint": "2997d9648eaa2498955334d54540ba2e10d92a1920d661dae4aec9bb4da2f5fa"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-tight-en-work:r1",
+      "rawFingerprint": "9033cd43a3b6383a4384cfb9f3d9ba0bb7a018f9e828d34f2b406b2f635897e4"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-tight-en-work:r2",
+      "rawFingerprint": "c83dd7d3c0d26ffc87074644d2d6074c48603d6a1d9b1ffc3e5e8abc060179f0"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-tight-en-personal-study:r1",
+      "rawFingerprint": "4e55aeb8f906cdbf58e451910f6ab287ddd6106a8848e7e391490ae189e8cc8c"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-tight-en-personal-study:r2",
+      "rawFingerprint": "c65b58d85153f76a38db3c98a21ddeafb2c3001d3ebe2eb787c5ff00abb3ed11"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-tight-zh-general:r1",
+      "rawFingerprint": "1212de589a259803b0209fb0206d8c113ed7de1aef2bb3d18c59c6933e08f4dc"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-tight-zh-general:r2",
+      "rawFingerprint": "8b648e8dc78b2e03bad9401128f8a4bd95da78b0386167441602b198fd1c3361"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-tight-zh-work:r1",
+      "rawFingerprint": "6a4e013a2c0e50c12f62380cfeb25e6038895e039b39e6a27c7abd0af4b14fd0"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-tight-zh-work:r2",
+      "rawFingerprint": "60afeb771a23470e6973042d3ee9e9d453546ba74e8aa5689cac064d3ce381d9"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-tight-zh-personal-study:r1",
+      "rawFingerprint": "005f4dc9f227548776a5d700347d94a6f866402b3e232a12b1dddc770d1805cb"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-tight-zh-personal-study:r2",
+      "rawFingerprint": "af201c32e259f6d34b8d12eb1d6d712d14373051d52dd9942eb93244ee09e0dc"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-milestone-en-general:r1",
+      "rawFingerprint": "fbe70ff28ca83ed95e19e6cb620ea136b805bfb98861192836c80fc3ae539670"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-milestone-en-general:r2",
+      "rawFingerprint": "511fcfe36b1cecdc913460d66990ef56489cd11cbe9ce0a2601906cbabb35caa"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-milestone-en-work:r1",
+      "rawFingerprint": "28c6fb5c37f4d02654e83dea014e3854739a041152ac0b1cc24df42d545ac802"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-milestone-en-work:r2",
+      "rawFingerprint": "88da24dd793389a5c0a459826c490d33ee0599fe80b3b605567183e1fece9936"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-milestone-en-personal-study:r1",
+      "rawFingerprint": "df4c1fd7466b35e1c90a4d16ada19eb71e6f7132a7945a645f3bea8e65d06398"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-milestone-en-personal-study:r2",
+      "rawFingerprint": "2babf86a3b615ee872d7701d946dffa56a470a4396ab0195baf43ef0135534bf"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-milestone-zh-general:r1",
+      "rawFingerprint": "ad002bac30e15f7cd8f99fe4a056b0b7ea74f89acf15108dd6d8c5a16f5096d7"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-milestone-zh-general:r2",
+      "rawFingerprint": "695a421bd4baa5e1a77bacad15f4b5498d40f8b824ad17cba39494b6934d2d72"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-milestone-zh-work:r1",
+      "rawFingerprint": "dfa61fc0dda7d713d91dc8646df8ff06a0c6d82b94f02b74fad342b79770c128"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-milestone-zh-work:r2",
+      "rawFingerprint": "c1bf36f07c76b1b915332a6e9e1aa2da308d3cc1e0c192d284593c5d2d86fa29"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-milestone-zh-personal-study:r1",
+      "rawFingerprint": "63ceb20e1eac34f2fe757f012517845d4f39246b2e80b2a05d084e660045e9c7"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-feedback-milestone-zh-personal-study:r2",
+      "rawFingerprint": "72246979d38faa1379f04623f2bd822158dead704e646debbdf74679eb2d735a"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-written-en-general:r1",
+      "rawFingerprint": "c490f90b6b502365496b0bcab13605faf81ef35419c883f5956f6a671cf3e4c4"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-written-en-general:r2",
+      "rawFingerprint": "7caffb1f15dbf1f2f2ed1797e7cff80978c77e35c0c887a37ca8b7702f288c69"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-written-en-work:r1",
+      "rawFingerprint": "5691f3322eda46fff26a5d809d085ce65af9d4f350e9ae1e281c9782d436368a"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-written-en-work:r2",
+      "rawFingerprint": "99e37e4cf3f7dc28b4ca78805b3231808684f0ce1447fc38a8d7d92a1b6362c6"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-written-en-personal-study:r1",
+      "rawFingerprint": "575dc7fe6dd81235416c4b2dbb9bce29925d9cbe9f25a70206457ea122952d26"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-written-en-personal-study:r2",
+      "rawFingerprint": "d1304addfdedafd6d887bdc06f8c786a0dd061cfdfd2258ff3f3dc97738993da"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-written-zh-general:r1",
+      "rawFingerprint": "0f07dc96d840842f12e3436ff697b4bcc40346f721f7bc51898b9ff2ca63468b"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-written-zh-general:r2",
+      "rawFingerprint": "a6a2acf652be35b5abcae893ee88bca4f74fecbac6edbb2a2765987018489703"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-written-zh-work:r1",
+      "rawFingerprint": "30447671905a343370c1a9f95d9098e242f0df0151a779d2e0bb5a0bea40b52f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-written-zh-work:r2",
+      "rawFingerprint": "3c77d28c2da521624b76338e561b8dfa810ac579e6d483e4d775a097f9139517"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-written-zh-personal-study:r1",
+      "rawFingerprint": "db7ebf55a2c51c7f88686d9afd34920767979ac4df32b08d6b11620d1273dabb"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-written-zh-personal-study:r2",
+      "rawFingerprint": "648e02474f0df311159d9ec8d62f8f0646f171b13b0ad92d700da9ad22c0e913"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-verbal-en-general:r1",
+      "rawFingerprint": "592f0f11398e93054029b8e05569ddb6193f2a9cb06d6846d5306cf90d2ed86b"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-verbal-en-general:r2",
+      "rawFingerprint": "dea3c635c30cf387c21f8909dacff929f7d643d9bad3a6b00f832cbb13641b99"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-verbal-en-work:r1",
+      "rawFingerprint": "d4d1325ceb84b42af05885b228f0d1267fbeae10f2f5437a5736f9a06e82f374"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-verbal-en-work:r2",
+      "rawFingerprint": "a503d9a5db0fd467fe0800db97f26b81672aeebd9ce49fca68ec736474d9ae73"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-verbal-en-personal-study:r1",
+      "rawFingerprint": "f97629caaa3533f69a2c2e3c218783a5ad97187468043af3a940d3a47674d23e"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-verbal-en-personal-study:r2",
+      "rawFingerprint": "f612bcfff139f158b9681ed4dfcd93fc2b77dfbe1654951b7a206aea00e34db2"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-verbal-zh-general:r1",
+      "rawFingerprint": "6879002a27a787ea0c39c7c9fefdb094a5fba3756946945f38511a71b91f8f3a"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-verbal-zh-general:r2",
+      "rawFingerprint": "928cd83d8aa3aa0feb168a24c38b920f1df3d61542b712243004cc89d0d43237"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-verbal-zh-work:r1",
+      "rawFingerprint": "fb5fca335b8b97e4eaab9324f1a57bc1e027e06c86b2f4d0bb460cb7f978d940"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-verbal-zh-work:r2",
+      "rawFingerprint": "947d96eaa75aa73ab405e6c144e759f0a45d03795857cf5f2fe9158e05f9ad4c"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-verbal-zh-personal-study:r1",
+      "rawFingerprint": "6e53c1ea20054300c1f275c7762a87539dfc8189e02065da104eeae54b8f90ab"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:atomic-decision-verbal-zh-personal-study:r2",
+      "rawFingerprint": "2f273c6c709a71d3e7421e4fb324b224b173e9bbf80a0f76994e83b94ed7dafc"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-concise-bullets-en-general:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-concise-bullets-en-general:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-concise-bullets-en-work:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-concise-bullets-en-work:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-concise-bullets-en-personal-study:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-concise-bullets-en-personal-study:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-concise-bullets-zh-general:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-concise-bullets-zh-general:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-concise-bullets-zh-work:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-concise-bullets-zh-work:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-concise-bullets-zh-personal-study:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-concise-bullets-zh-personal-study:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-detailed-prose-en-general:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-detailed-prose-en-general:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-detailed-prose-en-work:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-detailed-prose-en-work:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-detailed-prose-en-personal-study:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-detailed-prose-en-personal-study:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-detailed-prose-zh-general:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-detailed-prose-zh-general:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-detailed-prose-zh-work:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-detailed-prose-zh-work:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-detailed-prose-zh-personal-study:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-detailed-prose-zh-personal-study:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-summary-evidence-en-general:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-summary-evidence-en-general:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-summary-evidence-en-work:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-summary-evidence-en-work:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-summary-evidence-en-personal-study:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-summary-evidence-en-personal-study:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-summary-evidence-zh-general:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-summary-evidence-zh-general:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-summary-evidence-zh-work:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-summary-evidence-zh-work:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-summary-evidence-zh-personal-study:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-summary-evidence-zh-personal-study:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-steps-risk-en-general:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-steps-risk-en-general:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-steps-risk-en-work:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-steps-risk-en-work:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-steps-risk-en-personal-study:r1",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-steps-risk-en-personal-study:r2",
+      "rawFingerprint": "3adc4e9ed52caa138a554f2721f6ad08d3f38d2a8b37603fe9bc907cd7775b42"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-steps-risk-zh-general:r1",
+      "rawFingerprint": "99d451b4eb04f7698e9f4b3762f848ff1d06f2efff1d4c5ca0c7dd3d9961bd00"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-steps-risk-zh-general:r2",
+      "rawFingerprint": "0f4340df679c8b8665cd359096e062af0dd9690202933ddeab244f105eaaddf0"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-steps-risk-zh-work:r1",
+      "rawFingerprint": "fb819c08b1c17ab802847d42bdc5e8aa57e2e863b0f0536b73b1e8cd7883e921"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-steps-risk-zh-work:r2",
+      "rawFingerprint": "8bfbc052655260407afefe8d48513eb6d54638d8de2b8e4476a65568da348bd1"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-steps-risk-zh-personal-study:r1",
+      "rawFingerprint": "11f58ea406d356110a9d16da0d461a7688103d27e7ffe1fcd7b19fda17a24ea1"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-steps-risk-zh-personal-study:r2",
+      "rawFingerprint": "2b9894c13ae00536dcfa02d8f1f3e35cae5d70a2e4db8b692e780c8a8c23b617"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-plain-concise-en-general:r1",
+      "rawFingerprint": "b88d3bba0ed229b869da063a2d32b049524164e4ee7f580cf4582b031325046b"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-plain-concise-en-general:r2",
+      "rawFingerprint": "f662a5d1fb1f4bfd6356cdfd58ab0d14723024cede7dcdf608ec86586cbe5118"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-plain-concise-en-work:r1",
+      "rawFingerprint": "256cb4b30fa4c34f4d5d17e66a9f85adaf39baeb12e79b34912d6dbdd92bc7e6"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-plain-concise-en-work:r2",
+      "rawFingerprint": "a8bd22258ab33338c6e5acd45650a759483b9bf6ae9f029471eae3b445387bbe"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-plain-concise-en-personal-study:r1",
+      "rawFingerprint": "05400826c9901fe2bcc90f2e91d660d369c45f92c7409a1980446354971c5621"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-plain-concise-en-personal-study:r2",
+      "rawFingerprint": "a54596ca9723379bc8b9694b00c552a1845fe9edd8503f7755d0f1f4912e333f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-plain-concise-zh-general:r1",
+      "rawFingerprint": "6b9581a36828220db99a132b9a3e5c71d17340a2dbc87c8be855396166bbf505"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-plain-concise-zh-general:r2",
+      "rawFingerprint": "11ed4cfa1ca6a48aa12ffd4bdf68f43741135cb2c31d4c70a59891f6cbe19981"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-plain-concise-zh-work:r1",
+      "rawFingerprint": "903c512f4e6486297d20613307cf2a98605125ff09463116b005d73dd27dcbe6"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-plain-concise-zh-work:r2",
+      "rawFingerprint": "e6e64de9020c458503506df83ae063662ab1435f8e58c071b1f832512befb9be"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-plain-concise-zh-personal-study:r1",
+      "rawFingerprint": "532218e69b6d51e25bf36b12770ec1faa23e59c297b215958d71749178fc0cfa"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-plain-concise-zh-personal-study:r2",
+      "rawFingerprint": "a2ad7c843f33505109c14f5460102ac6ee4577124216b5b2cb906bb9521a1efc"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-technical-detailed-en-general:r1",
+      "rawFingerprint": "44a1a1b606e412ac876a32617b79de4c2cdf5dcac3b9421d05ca78659cf921dc"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-technical-detailed-en-general:r2",
+      "rawFingerprint": "b7bf8b812be8ce27aeeaec213f44ae1ad89a40158066251df0aa8b528e5c4166"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-technical-detailed-en-work:r1",
+      "rawFingerprint": "5c8858bcb984a86ef7464291705a0607e73c00d187f47bd4f4ca9f18adc34383"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-technical-detailed-en-work:r2",
+      "rawFingerprint": "a08d9d55b674a94d652de3a3aa7efe2aef1b8eb587b349e41086916b55acd55c"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-technical-detailed-en-personal-study:r1",
+      "rawFingerprint": "c96164d3ba79ea13e5d5079f83b07caf2bebe8a1a337aebfd14a6343a2ac69d3"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-technical-detailed-en-personal-study:r2",
+      "rawFingerprint": "93a6425ca421c4b023067814f1159e1ed16dc2937e1483433be4b3f9d1bb710b"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-technical-detailed-zh-general:r1",
+      "rawFingerprint": "b5049154e45da0c8ed7723486b0a05a23901bb51a81e171c6f59686326ce9390"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-technical-detailed-zh-general:r2",
+      "rawFingerprint": "484adfd7b6f3e6555cce7645db7ecb4602a43414a714720f0ce8ff4a4c051261"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-technical-detailed-zh-work:r1",
+      "rawFingerprint": "a5800168762352e22fab4038d4fc9fbaa1f3ae936d0f2dcde5a65df5da0fa397"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-technical-detailed-zh-work:r2",
+      "rawFingerprint": "9c144e6418773f78acfd17b9b494e15aa667a8730682b4bd16b7b8a9fb6fb977"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-technical-detailed-zh-personal-study:r1",
+      "rawFingerprint": "b499d8af851a6274025d32c7f4b0cc8f5389527381910ad6befb0450c35f32ea"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-technical-detailed-zh-personal-study:r2",
+      "rawFingerprint": "3ad1a0a272937b40073f1e4e0c74b2631ef11634e64e9686a306d6bce8c916b8"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-incremental-feedback-en-general:r1",
+      "rawFingerprint": "b0bebc72f37b18dd364c761b1ee5114a4a92ac2b82977b79c7e7adc8880e275d"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-incremental-feedback-en-general:r2",
+      "rawFingerprint": "e4a2b3717d114ad39fea7d9f5bdcc18a7e06c81156bcc1b3c53b8b5bda1785fe"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-incremental-feedback-en-work:r1",
+      "rawFingerprint": "90568f91d81810128b2d02ed982060f04923c6caf11dce3ef4441ba972d57722"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-incremental-feedback-en-work:r2",
+      "rawFingerprint": "1138dd37cfe614d2cf4213d518b634664d9f6d3a81987f01676c9d1c206dad0c"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-incremental-feedback-en-personal-study:r1",
+      "rawFingerprint": "32e7bfa75b480c78d1ce1a0e48a5a35f33fc8ed04cb7f60434997aedb23c9da7"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-incremental-feedback-en-personal-study:r2",
+      "rawFingerprint": "c6fff395aca3feef5383d407ff70cc699ecd18c51a9f741683abe8bfd6207117"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-incremental-feedback-zh-general:r1",
+      "rawFingerprint": "5897768575a6252996aa822cdc15550f9a45cedec7f49cd9a80fd305cd571f9d"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-incremental-feedback-zh-general:r2",
+      "rawFingerprint": "308a9e4e0163dc69dab61a5987ca3a8298ce55944c924df9138e660b5d731bd3"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-incremental-feedback-zh-work:r1",
+      "rawFingerprint": "7fbac1a4b63436ca3e392a4364103616909cd7681b0ee43a22fcf230482313a5"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-incremental-feedback-zh-work:r2",
+      "rawFingerprint": "49455358cb1196c4780090c2378d990a67ad9bee6cacaefc95653db187ac35f5"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-incremental-feedback-zh-personal-study:r1",
+      "rawFingerprint": "c178ae72c7cb41512e0df628e762ab3882f800ac3bf04a0d8d2b498bfa1ed8fd"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-incremental-feedback-zh-personal-study:r2",
+      "rawFingerprint": "9a2ed4b12d0d6538eaa67e39190825fbca75e702ffe42ccb196f2b52fa035464"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-bigbang-milestone-en-general:r1",
+      "rawFingerprint": "e507985def331bcd6f74286b69c9422301271b572f0312fde61173ecb5c29966"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-bigbang-milestone-en-general:r2",
+      "rawFingerprint": "198e207b895f200be4ce42df35b5c0298fa02a782a52e18b8251e2cd2100c6ae"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-bigbang-milestone-en-work:r1",
+      "rawFingerprint": "3284100369a55d4d1e39115b2417ac8079d555beb41aa0d83849209460f2e563"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-bigbang-milestone-en-work:r2",
+      "rawFingerprint": "c0905576ec26174358a9ba90c17b36d583c5827326ccfb54182193a614447d4a"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-bigbang-milestone-en-personal-study:r1",
+      "rawFingerprint": "18f995ee4d5e7e8a1254b157e8a797179db1dfffbbeb94fc19c44d2e7b7e3a91"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-bigbang-milestone-en-personal-study:r2",
+      "rawFingerprint": "9d3585e30f72384109969472591a72d60c32302c0aed34693d54cd4668e76d82"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-bigbang-milestone-zh-general:r1",
+      "rawFingerprint": "cfe4d59588fc73ce3348c95a9a414db99707c2291cd7045537d4e1fb33a04e08"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-bigbang-milestone-zh-general:r2",
+      "rawFingerprint": "51f3be82332eadee922526fcce661e51233da8277a3eda409dbd3e1c574d8fa0"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-bigbang-milestone-zh-work:r1",
+      "rawFingerprint": "a4105ff623c1f6ec56333ae38bf7b1cb98eeb4144b37eb9fcaf6e452561fde76"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-bigbang-milestone-zh-work:r2",
+      "rawFingerprint": "75a7fc14fb4f90144a3de9658656ab8f6deedd5d15a93dd546277b8830e4b73a"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-bigbang-milestone-zh-personal-study:r1",
+      "rawFingerprint": "73fe1bb9667bb70039cfaedeb2aee19b0a30243702ccba267d7554eb0ae5d192"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-bigbang-milestone-zh-personal-study:r2",
+      "rawFingerprint": "84d3f4686f03a0b646d237cf9378d7467cf95c345aea160181789f6ed77e72a9"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-deep-written-en-general:r1",
+      "rawFingerprint": "fff724b72847b6d1d226f1e728b99cfe36c9e6070569f805b43ca2fa783ac90c"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-deep-written-en-general:r2",
+      "rawFingerprint": "ac67f9f4568472ea033853b89b21af04b1b4e24c325d780acc385bef5234e78b"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-deep-written-en-work:r1",
+      "rawFingerprint": "a964098fd288e53f1a12f7b07b2b053f5766f88f2bb401f46d6bca2a9176caf0"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-deep-written-en-work:r2",
+      "rawFingerprint": "825a54cfe017ae48f91a30eed803159a7857e9abb232ced647961bc35c190265"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-deep-written-en-personal-study:r1",
+      "rawFingerprint": "3466566a9ea447c3779b76ffa767dd6d172420c62d8acafe29be8a7212f72171"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-deep-written-en-personal-study:r2",
+      "rawFingerprint": "efb61c148d4248297df576834d68150ae2577fcb395031750195b7e7ae6a708f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-deep-written-zh-general:r1",
+      "rawFingerprint": "f40c4c99647fb9dcc950fcdb117af30a67bb52ffec32fa5d03e712e5a0036f5f"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-deep-written-zh-general:r2",
+      "rawFingerprint": "fcfc0490e84e8b75b203d4b9c535bcbd2e2b8c9cac77a028839c23367ac92118"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-deep-written-zh-work:r1",
+      "rawFingerprint": "cee344abde7d9237eda8ad99cb322d8abe90f8f429e8119100e96dafe02fad06"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-deep-written-zh-work:r2",
+      "rawFingerprint": "1d133e69018b904ef0b440208bf2bd884ead3491df8212c3864227379d0a8e20"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-deep-written-zh-personal-study:r1",
+      "rawFingerprint": "b2eed66600fc29f94d4d0e2e1282faea268edcb6c24fcfa8a7a714897331a893"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-deep-written-zh-personal-study:r2",
+      "rawFingerprint": "371385b3a059e3c907813eecbf71599548ef4041288f4dbafe9d583dc5929b4e"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-checkins-verbal-en-general:r1",
+      "rawFingerprint": "2a8056dd972e12c4fb12d7940cf48737cdae08e38a88aff4037d3c280717d6d2"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-checkins-verbal-en-general:r2",
+      "rawFingerprint": "aee6453c1f3468d8d336335e2a86efc143ef549cea33c3103d9ad8b367910722"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-checkins-verbal-en-work:r1",
+      "rawFingerprint": "dd177bbb4ccde579e58974e22a847bada17e4bd528c1e400b05336bec70e9cee"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-checkins-verbal-en-work:r2",
+      "rawFingerprint": "51b1fff5401a4f291a8d27d3bd62cdbf1a36f8b480bf31e7c9e69e0980232358"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-checkins-verbal-en-personal-study:r1",
+      "rawFingerprint": "fbedb3a2271ec48b6fcc0b7f75119e9539374d60f2fec15359c69b0693ee4df9"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-checkins-verbal-en-personal-study:r2",
+      "rawFingerprint": "2faab3ce66ef36c653ca9fe4e468fb21ad98647e6cba578230a4d7e980c3d85d"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-checkins-verbal-zh-general:r1",
+      "rawFingerprint": "157062f3e2ccf142a28ad0a40d55454b888d23064707fa590752a2d6e14c6fd8"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-checkins-verbal-zh-general:r2",
+      "rawFingerprint": "f883af0d915bfeef75ba303ca94e27bd80d0e712f4a4dcf621e62bc12b2acf9d"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-checkins-verbal-zh-work:r1",
+      "rawFingerprint": "d0a36d4bf6239364e7bdcac3dff0e96c888a79b5f2446fc0cd15c5d8c372f742"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-checkins-verbal-zh-work:r2",
+      "rawFingerprint": "9b320cbbe378c5e63287b4a36a3279b622fbd1205fd45d1bc551cafec21471ba"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-checkins-verbal-zh-personal-study:r1",
+      "rawFingerprint": "b3be52571a2f11f90a9d726aed32473e02da92a1980bd757a1ef2e7622f870cd"
+    },
+    {
+      "arm": "closed-key",
+      "callId": "closed-key:compound-checkins-verbal-zh-personal-study:r2",
+      "rawFingerprint": "66ea98caebf425f9dffc9d5cb98a871d54ca681a0e52dd0824af7ccdcd25ef4c"
+    }
+  ]
+}

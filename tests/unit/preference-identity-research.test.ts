@@ -1125,6 +1125,81 @@ describe("preference identity pre-API research protocol", () => {
     ).toHaveLength(6);
     expect(baseline.summary.rowFingerprint).toMatch(/^[a-f0-9]{64}$/u);
   });
+
+  it("records the completed v2 protection decision without admitting an identity API", async () => {
+    const runDirectory = join(
+      REPO_ROOT,
+      "reports/eval/research/preference-identity/preference-independent-arms-v2",
+    );
+    const report = JSON.parse(
+      await readFile(join(runDirectory, "report.json"), "utf8"),
+    );
+    const rawFingerprints = JSON.parse(
+      await readFile(join(runDirectory, "raw-fingerprints.json"), "utf8"),
+    );
+    const preregistrationRaw = await readFile(
+      join(
+        REPO_ROOT,
+        "fixtures/research/preference-identity-v2/preregistration.json",
+      ),
+      "utf8",
+    );
+
+    expect(report).toMatchObject({
+      calls: {
+        executed: 720,
+        failed: 42,
+        planned: 720,
+        providerAttempts: 720,
+        succeeded: 678,
+      },
+      git: {
+        commit: "793d18bee37bc203e631c89cdec12fac4b9bd014",
+        dirty: false,
+      },
+      protocolId: "preference-identity-independent-arms-v2",
+      summaries: {
+        protection: {
+          closedKey: { decision: "blocked" },
+          openKey: { decision: "blocked" },
+        },
+        recommendation: "no-api",
+      },
+    });
+    expect(report.summaries.protection.openKey.metrics).toMatchObject({
+      atomicizationPrecision: 0,
+      atomicizationRecall: 0,
+      contextAgreement: 0.9276595744680851,
+      executionFailureCount: 0,
+      paraphraseExactKeySetAgreement: 0.05555555555555555,
+      parseOrMissingKeyCount: 2,
+      preferenceCaptureRate: 0.9888888888888889,
+      repeatConsistency: 0.2222222222222222,
+      unintendedCrossDimensionCollisionCount: 0,
+    });
+    expect(report.summaries.protection.closedKey.metrics).toMatchObject({
+      atomicizationPrecision: 0,
+      atomicizationRecall: 0,
+      executionFailureCount: 22,
+      paraphraseExactKeySetAgreement: 0.005555555555555556,
+      parseOrMissingKeyCount: 196,
+      preferenceCaptureRate: 0.005555555555555556,
+      repeatConsistency: 0.8666666666666667,
+      unintendedCrossDimensionCollisionCount: 0,
+    });
+    expect(report.preregistrationSha256).toBe(
+      createHash("sha256").update(preregistrationRaw).digest("hex"),
+    );
+    expect(rawFingerprints).toMatchObject({
+      aggregateSha256:
+        "e06a93b87af83b4e3e5379191427ea5a3d5e30c8543e477d53cd4bd3a59e8d49",
+      count: 720,
+      inputAggregateSha256:
+        "a182e3102fcb8388fa7cac8ff16e6f9ef89e18b3bab0ec4ef5a45fbf772ca791",
+      inputCount: 720,
+    });
+    expect(rawFingerprints.rows).toHaveLength(720);
+  });
 });
 
 describe("preference conflict fixture census and policy simulation", () => {

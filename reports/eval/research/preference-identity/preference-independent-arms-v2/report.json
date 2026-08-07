@@ -1,0 +1,350 @@
+{
+  "calls": {
+    "executed": 720,
+    "failed": 42,
+    "planned": 720,
+    "providerAttempts": 720,
+    "succeeded": 678
+  },
+  "comparisonMode": "independent-prompt-arms",
+  "cost": {
+    "estimatedUsd": null,
+    "providerBilledUsd": null,
+    "reason": "No frozen verifiable gpt-5.6-terra/Gurki tariff is registered; token usage is reported without inventing a price."
+  },
+  "generatedAt": "2026-08-07T08:20:35.973Z",
+  "git": {
+    "commit": "793d18bee37bc203e631c89cdec12fac4b9bd014",
+    "dirty": false
+  },
+  "effectivePromptSha256": "721a7fa52484313cbd6ea601efb7633f52ea6f2eda32f06e471b1cd033a8074c",
+  "inputFingerprints": {
+    "aggregateSha256": "a182e3102fcb8388fa7cac8ff16e6f9ef89e18b3bab0ec4ef5a45fbf772ca791",
+    "count": 720
+  },
+  "manifestSha256": "c8bffd981ba067b6cf1f21f306e814b9684c9525fb87f0c74abb960023f9f5df",
+  "model": {
+    "gateway": "https://ai.gurkiai.com/v1",
+    "model": "gpt-5.6-terra",
+    "provider": "openai",
+    "retryLimit": 0,
+    "role": "non-judge-assisted-extractor",
+    "temperature": 0
+  },
+  "preregistrationSha256": "89d4a4f688ff37c949d896d035519484a2e24014c5806cd03fc0fd3a43adff9f",
+  "promptSha256": "96976e52750c062ae3e6934436d69e62fbd37c6375a0d91b057a8dedc29fd2ea",
+  "protectionCohortSha256": "74b2513659b71fdecd0775b35d97e4e396fed4ce88386731675d7fb48a6117cf",
+  "protocolId": "preference-identity-independent-arms-v2",
+  "rawFingerprints": {
+    "aggregateSha256": "e06a93b87af83b4e3e5379191427ea5a3d5e30c8543e477d53cd4bd3a59e8d49",
+    "count": 720,
+    "inputAggregateSha256": "a182e3102fcb8388fa7cac8ff16e6f9ef89e18b3bab0ec4ef5a45fbf772ca791",
+    "inputCount": 720
+  },
+  "rawPersistence": {
+    "finalJsonl": "raw-results.jsonl",
+    "perCallDirectory": "raw-calls",
+    "perCallFileCount": 720,
+    "perCallWriteMode": "immediate-wx"
+  },
+  "rulesOnlyBaseline": {
+    "analyzerManifest": {
+      "defaultLocale": "en-US",
+      "detection": "auto",
+      "packs": [
+        {
+          "analyzerVersion": "13",
+          "apiVersion": 1,
+          "compatibilityGroup": "en",
+          "defaultLocale": "en-US",
+          "id": "en",
+          "locales": [
+            "en"
+          ]
+        },
+        {
+          "analyzerVersion": "4",
+          "apiVersion": 1,
+          "compatibilityGroup": "es",
+          "defaultLocale": "es-ES",
+          "id": "es",
+          "locales": [
+            "es"
+          ]
+        },
+        {
+          "analyzerVersion": "5",
+          "apiVersion": 1,
+          "compatibilityGroup": "fr",
+          "defaultLocale": "fr-FR",
+          "id": "fr",
+          "locales": [
+            "fr"
+          ]
+        },
+        {
+          "analyzerVersion": "7",
+          "apiVersion": 1,
+          "compatibilityGroup": "ja",
+          "defaultLocale": "ja-JP",
+          "id": "ja",
+          "locales": [
+            "ja"
+          ]
+        },
+        {
+          "analyzerVersion": "3",
+          "apiVersion": 1,
+          "compatibilityGroup": "ko",
+          "defaultLocale": "ko-KR",
+          "id": "ko",
+          "locales": [
+            "ko"
+          ]
+        },
+        {
+          "analyzerVersion": "3",
+          "apiVersion": 1,
+          "compatibilityGroup": "neutral",
+          "defaultLocale": "und",
+          "id": "neutral",
+          "locales": []
+        },
+        {
+          "analyzerVersion": "12-directive-pointer-boundary",
+          "apiVersion": 1,
+          "compatibilityGroup": "zh-Hans",
+          "defaultLocale": "zh-CN",
+          "id": "zh-Hans",
+          "locales": [
+            "zh-CN",
+            "zh-Hans",
+            "zh-SG"
+          ]
+        },
+        {
+          "analyzerVersion": "12-directive-pointer-boundary",
+          "apiVersion": 1,
+          "compatibilityGroup": "zh-Hant",
+          "defaultLocale": "zh-Hant",
+          "id": "zh-Hant",
+          "locales": [
+            "zh-Hant",
+            "zh-HK",
+            "zh-MO",
+            "zh-TW"
+          ]
+        }
+      ],
+      "persistable": true,
+      "resolutionOrder": [
+        "en",
+        "zh-Hans",
+        "zh-Hant",
+        "ja",
+        "ko",
+        "fr",
+        "es",
+        "neutral"
+      ],
+      "resolverVersion": "3",
+      "schemaVersion": 1
+    },
+    "categoryDistribution": {
+      "response_style": 60
+    },
+    "development": {
+      "atomicizationPrecision": 0,
+      "atomicizationRecall": 0,
+      "compoundAtomicizationPrecision": 0,
+      "compoundAtomicizationRecall": 0,
+      "preferenceCandidateCount": 30,
+      "preferenceCaptureRate": 0.3333333333333333,
+      "variantCount": 90
+    },
+    "overall": {
+      "atomicizationPrecision": 0,
+      "atomicizationRecall": 0,
+      "compoundAtomicizationPrecision": 0,
+      "compoundAtomicizationRecall": 0,
+      "preferenceCandidateCount": 60,
+      "preferenceCaptureRate": 0.3333333333333333,
+      "variantCount": 180
+    },
+    "protection": {
+      "atomicizationPrecision": 0,
+      "atomicizationRecall": 0,
+      "compoundAtomicizationPrecision": 0,
+      "compoundAtomicizationRecall": 0,
+      "preferenceCandidateCount": 30,
+      "preferenceCaptureRate": 0.3333333333333333,
+      "variantCount": 90
+    },
+    "rowFingerprint": "cc597e52fda620f5401865a34dc09804e75ad8cca1d2200cd42d238f66bfdc20"
+  },
+  "runId": "preference-independent-arms-v2",
+  "summaries": {
+    "decisionBasis": "protection",
+    "development": {
+      "closedKey": {
+        "metrics": {
+          "atomicizationPrecision": 0,
+          "atomicizationRecall": 0,
+          "compoundAtomicizationPrecision": 0,
+          "compoundAtomicizationRecall": 0,
+          "contextAgreement": 1,
+          "executionFailureCount": 20,
+          "paraphraseExactKeySetAgreement": 0.005555555555555556,
+          "parseOrMissingKeyCount": 195,
+          "preferenceCaptureRate": 0.005555555555555556,
+          "repeatConsistency": 0.8777777777777778,
+          "unintendedCrossDimensionCollisionCount": 0
+        },
+        "otherDistribution": {
+          "candidateCount": 0,
+          "contexts": {},
+          "groupIds": [],
+          "rate": 0
+        }
+      },
+      "openKey": {
+        "metrics": {
+          "atomicizationPrecision": 0.008888888888888889,
+          "atomicizationRecall": 0.008130081300813009,
+          "compoundAtomicizationPrecision": 0.018691588785046728,
+          "compoundAtomicizationRecall": 0.015873015873015872,
+          "contextAgreement": 0.9422222222222222,
+          "executionFailureCount": 0,
+          "paraphraseExactKeySetAgreement": 0.016666666666666666,
+          "parseOrMissingKeyCount": 8,
+          "preferenceCaptureRate": 0.9666666666666667,
+          "repeatConsistency": 0.16666666666666666,
+          "unintendedCrossDimensionCollisionCount": 0
+        },
+        "otherDistribution": {
+          "candidateCount": 0,
+          "contexts": {},
+          "groupIds": [],
+          "rate": 0
+        }
+      }
+    },
+    "overall": {
+      "closedKey": {
+        "metrics": {
+          "atomicizationPrecision": 0,
+          "atomicizationRecall": 0,
+          "compoundAtomicizationPrecision": 0,
+          "compoundAtomicizationRecall": 0,
+          "contextAgreement": 1,
+          "executionFailureCount": 42,
+          "paraphraseExactKeySetAgreement": 0.005555555555555556,
+          "parseOrMissingKeyCount": 391,
+          "preferenceCaptureRate": 0.005555555555555556,
+          "repeatConsistency": 0.8722222222222222,
+          "unintendedCrossDimensionCollisionCount": 0
+        },
+        "otherDistribution": {
+          "candidateCount": 0,
+          "contexts": {},
+          "groupIds": [],
+          "rate": 0
+        }
+      },
+      "openKey": {
+        "metrics": {
+          "atomicizationPrecision": 0.004347826086956522,
+          "atomicizationRecall": 0.0040650406504065045,
+          "compoundAtomicizationPrecision": 0.009009009009009009,
+          "compoundAtomicizationRecall": 0.007936507936507936,
+          "contextAgreement": 0.9347826086956522,
+          "executionFailureCount": 0,
+          "paraphraseExactKeySetAgreement": 0.03611111111111111,
+          "parseOrMissingKeyCount": 10,
+          "preferenceCaptureRate": 0.9777777777777777,
+          "repeatConsistency": 0.19444444444444445,
+          "unintendedCrossDimensionCollisionCount": 0
+        },
+        "otherDistribution": {
+          "candidateCount": 0,
+          "contexts": {},
+          "groupIds": [],
+          "rate": 0
+        }
+      }
+    },
+    "protection": {
+      "closedKey": {
+        "metrics": {
+          "atomicizationPrecision": 0,
+          "atomicizationRecall": 0,
+          "compoundAtomicizationPrecision": 1,
+          "compoundAtomicizationRecall": 0,
+          "contextAgreement": 1,
+          "executionFailureCount": 22,
+          "paraphraseExactKeySetAgreement": 0.005555555555555556,
+          "parseOrMissingKeyCount": 196,
+          "preferenceCaptureRate": 0.005555555555555556,
+          "repeatConsistency": 0.8666666666666667,
+          "unintendedCrossDimensionCollisionCount": 0
+        },
+        "otherDistribution": {
+          "candidateCount": 0,
+          "contexts": {},
+          "groupIds": [],
+          "rate": 0
+        },
+        "decision": "blocked",
+        "failedGates": [
+          "atomicizationPrecision",
+          "atomicizationRecall",
+          "compoundAtomicizationRecall",
+          "executionFailureCount",
+          "paraphraseExactKeySetAgreement",
+          "parseOrMissingKeyCount",
+          "preferenceCaptureRate",
+          "repeatConsistency"
+        ]
+      },
+      "openKey": {
+        "metrics": {
+          "atomicizationPrecision": 0,
+          "atomicizationRecall": 0,
+          "compoundAtomicizationPrecision": 0,
+          "compoundAtomicizationRecall": 0,
+          "contextAgreement": 0.9276595744680851,
+          "executionFailureCount": 0,
+          "paraphraseExactKeySetAgreement": 0.05555555555555555,
+          "parseOrMissingKeyCount": 2,
+          "preferenceCaptureRate": 0.9888888888888889,
+          "repeatConsistency": 0.2222222222222222,
+          "unintendedCrossDimensionCollisionCount": 0
+        },
+        "otherDistribution": {
+          "candidateCount": 0,
+          "contexts": {},
+          "groupIds": [],
+          "rate": 0
+        },
+        "decision": "blocked",
+        "failedGates": [
+          "atomicizationPrecision",
+          "atomicizationRecall",
+          "compoundAtomicizationPrecision",
+          "compoundAtomicizationRecall",
+          "contextAgreement",
+          "paraphraseExactKeySetAgreement",
+          "parseOrMissingKeyCount",
+          "repeatConsistency"
+        ]
+      }
+    },
+    "recommendation": "no-api"
+  },
+  "tokenUsage": {
+    "attemptCount": 720,
+    "completeAttemptCount": 678,
+    "inputTokens": null,
+    "outputTokens": null
+  }
+}
