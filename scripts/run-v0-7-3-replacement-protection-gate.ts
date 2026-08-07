@@ -553,6 +553,22 @@ function questionSelectionSha256(
   }))));
 }
 
+export function assertV073SeedStageReport(raw: string): void {
+  const report = JSON.parse(raw) as Pick<
+    FormalSmokeReport,
+    "cases" | "executionFailures" | "questionCount"
+  >;
+  if (
+    report.questionCount !== EXPECTED_QUESTION_COUNT ||
+    !Array.isArray(report.cases) ||
+    report.cases.length !== EXPECTED_QUESTION_COUNT ||
+    report.executionFailures !== 0 ||
+    questionSelectionSha256(report.cases) !== QUESTION_SELECTION_SHA256
+  ) {
+    throw new Error("provider seed report is incomplete");
+  }
+}
+
 export function parseV073FormalSmokeReport(raw: string): FormalSmokeReport {
   const report = JSON.parse(raw) as FormalSmokeReport;
   if (
@@ -738,6 +754,7 @@ async function runProviderStage(input: {
     name: input.stage,
   });
   const processes: Array<{ result: CapturedProcess; step: string }> = [];
+  let validationFailure: string | undefined;
   let session: ProviderTapeSessionStats;
   try {
     for (const step of V073_PROVIDER_STAGE_ORDER) {
@@ -751,6 +768,18 @@ async function runProviderStage(input: {
       processes.push({ result, step });
       if (result.exitCode !== 0) {
         break;
+      }
+      if (step === "seedSmoke") {
+        try {
+          assertV073SeedStageReport(
+            await readFile(input.arm.seedReportPath, "utf8"),
+          );
+        } catch (error) {
+          validationFailure = error instanceof Error
+            ? error.message
+            : String(error);
+          break;
+        }
       }
     }
   } finally {
@@ -790,7 +819,12 @@ async function runProviderStage(input: {
       step,
     })),
     stdout: artifactIdentity(stdoutPath, stdout),
+    ...(validationFailure === undefined ? {} : { validationFailure }),
   };
+  if (validationFailure !== undefined) {
+    await writeJson(input.arm.executionReceiptPath, receiptBase);
+    throw new Error(`${input.stage} ${validationFailure}`);
+  }
   if (failed !== undefined) {
     await writeJson(input.arm.executionReceiptPath, receiptBase);
     throw new Error(

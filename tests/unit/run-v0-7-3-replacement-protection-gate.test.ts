@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "bun:test";
 
 import {
+  assertV073SeedStageReport,
   assertV073ScenarioOutcome,
   buildV073ProviderFreeArgs,
   officialQuestionTransitions,
@@ -35,6 +36,18 @@ function commandChain(): V073PairedCommandChain {
 }
 
 describe("v0.7.3 replacement protection gate runner", () => {
+  it("rejects seed execution failures before downstream provider stages", () => {
+    const raw = readFileSync(
+      "reports/release/v0.7/blocked-6eb0f87d/attribution-controls/provider-free-c1-baseline.json",
+      "utf8",
+    );
+    expect(() => assertV073SeedStageReport(raw)).not.toThrow();
+    expect(() => assertV073SeedStageReport(JSON.stringify({
+      ...JSON.parse(raw) as Record<string, unknown>,
+      executionFailures: 1,
+    }))).toThrow("provider seed report is incomplete");
+  });
+
   it("derives the provider-free population from the four claim categories", () => {
     expect(buildV073ProviderFreeArgs({
       benchmarkRoot: "/tmp/locomo",
