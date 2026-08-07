@@ -113,6 +113,10 @@ reports/eval/research/**
 !reports/eval/research/preference-identity/preference-independent-arms-v1/
 !reports/eval/research/preference-identity/preference-independent-arms-v1/report.json
 !reports/eval/research/preference-identity/preference-independent-arms-v1/raw-fingerprints.json
+!reports/eval/research/preference-identity/preference-independent-arms-v1/invalid-pilot.json
+!reports/eval/research/preference-identity/preference-independent-arms-v2/
+!reports/eval/research/preference-identity/preference-independent-arms-v2/report.json
+!reports/eval/research/preference-identity/preference-independent-arms-v2/raw-fingerprints.json
 !reports/eval/research/preference-identity/fixture-census/
 !reports/eval/research/preference-identity/fixture-census/current/
 !reports/eval/research/preference-identity/fixture-census/current/report.json

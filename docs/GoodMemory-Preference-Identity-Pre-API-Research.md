@@ -42,19 +42,42 @@ repeated calls per arm, 360 protection calls total, balanced within each arm to
 its own protection rows; development, overall, and opposite-arm metrics remain
 visible diagnostics and never alter that decision.
 
-The preregistration, manifest SHA-256, and protection-cohort SHA-256 live in
-`fixtures/research/preference-identity-v1/preregistration.json`. A live report
-must retain the manifest, preregistration, prompt, input, and raw-result
-fingerprints, while never persisting provider credentials.
+The v2 preregistration lives in
+`fixtures/research/preference-identity-v2/preregistration.json` and binds the
+unchanged v1 manifest and protection-cohort bytes by SHA-256. The original v1
+preregistration remains at
+`fixtures/research/preference-identity-v1/preregistration.json` for audit. A
+live report must retain the manifest, preregistration, prompt, input, and
+raw-result fingerprints, while never persisting provider credentials.
 
 The protocol also freezes the complete effective extractor contract: the
-provider memory-extractor system prompt, an arm-specific canonical-v1 schema
-identity, `json_object` response mode, and all 360 rendered custom prompts in
-each arm. Per-arm component hashes and one aggregate SHA-256 are preregistered
-and recomputed before dry or live execution. The 720-call input plan binds the
-arm into both `callId` and `inputFingerprint`; provider-input fingerprints
-exclude `expectedAtoms`, whose separate manifest hash binds the offline gold
-oracle. Stale per-call fingerprints or any aggregate drift abort the protocol.
+provider memory-extractor system prompt, an arm-specific canonical-v1 parser
+schema identity, `json_object` response mode, and all 360 rendered custom
+prompts in each arm. The provider-visible prompt explicitly names every
+required canonical candidate field and the nested preference metadata paths.
+Per-arm component hashes and one aggregate SHA-256 are preregistered and
+recomputed before dry or live execution. The 720-call input plan binds the arm
+into both `callId` and `inputFingerprint`; provider-input fingerprints exclude
+`expectedAtoms`, whose separate manifest hash binds the offline gold oracle.
+Stale per-call fingerprints or any aggregate drift abort the protocol.
+
+### Invalidated v1 pilot
+
+The first v1 live attempt was stopped after 173 of 720 open-key calls because
+all 173 responses failed the canonical parser for the same tooling reason. All
+173 responses contained decodable JSON, but all 176 returned candidates lacked
+the required `content` field and placed `preferenceValue` at the candidate top
+level instead of `metadata.preferenceValue`. The parser schema had been bound
+by hash but the provider-visible prompt had not named those required paths.
+
+This is not an open-key quality result and contributes no row to the v2
+experiment. The ignored per-call raw evidence remains in the exclusive v1 run
+directory; the tracked fingerprint and diagnosis are recorded in
+`reports/eval/research/preference-identity/preference-independent-arms-v1/invalid-pilot.json`.
+The successor is a new v2 protocol and run directory. It changes the
+provider-visible canonical output contract and adds targeted rejection of
+candidate-level `preferenceValue` or experimental-key fields; manifest,
+protection cohort, model, retry policy, thresholds, and scoring stay frozen.
 
 Atom correctness is not inferred from candidate count. In each key mode, every
 candidate is matched one-to-one against the frozen expected slot, registered
@@ -132,12 +155,12 @@ available, from a clean independent research commit:
 bun run scripts/run-preference-identity-stability.ts \
   --live \
   --max-concurrency 4 \
-  --run-id preference-independent-arms-v1
+  --run-id preference-independent-arms-v2
 ```
 
 The live command refuses a dirty tree, a different run ID, or an alternate
 output directory. Its fixed path is
-`reports/eval/research/preference-identity/preference-independent-arms-v1/`.
+`reports/eval/research/preference-identity/preference-independent-arms-v2/`.
 The directory is created exclusively before any provider request; an existing
 directory aborts the run, and every artifact write uses create-new semantics.
 After every provider attempt finishes, its raw evidence is immediately written

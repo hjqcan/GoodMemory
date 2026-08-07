@@ -1,0 +1,42 @@
+{
+  "completedCalls": 173,
+  "decisionUse": "none",
+  "diagnosis": {
+    "candidateCount": 176,
+    "candidateTopLevelPreferenceValueCount": 176,
+    "candidateMetadataPreferenceValueCount": 0,
+    "candidateMissingContentCount": 176,
+    "candidateMissingIdCount": 176,
+    "jsonDecodedCallCount": 173,
+    "keyPlacement": {
+      "metadataOnly": 117,
+      "metadataAndTopLevel": 59,
+      "topLevelOnly": 0
+    }
+  },
+  "execution": {
+    "armCounts": {
+      "closed-key": 0,
+      "open-key": 173
+    },
+    "executionFailureCount": 173,
+    "exitCode": 130,
+    "parseFailureCount": 173,
+    "plannedCalls": 720,
+    "rawCallsLocalPath": "reports/eval/research/preference-identity/preference-independent-arms-v1/raw-calls",
+    "rawCallsTracked": false,
+    "rawFingerprintAggregateConstruction": "sha256(JSON.stringify([{arm,callId,rawFingerprint}, ...] sorted by callId))",
+    "rawFingerprintAggregateSha256": "4cdc21eb807993fba9538e81b998754d7541048caf1627f7e2e94773a7df227e"
+  },
+  "protocolId": "preference-identity-independent-arms-v1",
+  "protocolFingerprints": {
+    "effectivePromptAggregateSha256": "a7afac44ab19b9616c8258e2dc8af9e58ea78556f77d10b1848ad4002f940719",
+    "inputPlanAggregateSha256": "a182e3102fcb8388fa7cac8ff16e6f9ef89e18b3bab0ec4ef5a45fbf772ca791",
+    "preregistrationSha256": "4fb6077c036f6a557b4baa3f5236533076ea86566d22b5c92f03faf557f8302e"
+  },
+  "recordedAt": "2026-08-07T08:00:21Z",
+  "rootCause": "The registered parser schema was fingerprinted but not exposed in the provider-visible prompt. That prompt omitted required canonical candidate fields and did not qualify preferenceValue as metadata.preferenceValue, causing systematic schema failures before key quality could be measured.",
+  "sourceCommit": "c6d23988b2a830287e22367b390f8659b2ced616",
+  "status": "invalidated_tooling_failure",
+  "successorProtocolId": "preference-identity-independent-arms-v2"
+}

@@ -1,0 +1,202 @@
+{
+  "comparisonMode": "independent-prompt-arms",
+  "closedVocabulary": [
+    "response.verbosity",
+    "response.layout",
+    "response.structure",
+    "response.register",
+    "response.evidence",
+    "response.risk_order",
+    "work.delivery",
+    "work.focus_mode",
+    "work.feedback_cadence",
+    "other"
+  ],
+  "contextVocabulary": [
+    "general",
+    "work",
+    "personal_study"
+  ],
+  "decisionRules": {
+    "closedKey": "Score only the isolated closed-key arm on its frozen 180-call protection cohort. Accept only when every registered protection gate passes. Development, overall, and open-key-arm metrics are diagnostic only. If blocked, do not add a closed-key preference identity API.",
+    "keyScoring": "Compare every emitted key byte-for-byte. Do not trim, lowercase, collapse dots, or alias spaces, slashes, or hyphens for exact matching, repeat consistency, closed-vocabulary membership, or collision grouping.",
+    "openKey": "Score only the isolated open-key arm against the frozen expected slots on its frozen 180-call protection cohort. Accept only when every registered protection gate passes. Development, overall, and closed-key-arm metrics are diagnostic only. A pass licenses a design prototype for this pinned model and prompt; it does not license a public API or prove rules-only parity.",
+    "rerun": "Any extractor system prompt, extractor schema, custom prompt, input plan, retry policy, model, threshold, manifest, normalization, or exclusion change creates a new protocol version. Never pool versions.",
+    "selection": "Advance open keys only if the open summary passes. Otherwise advance closed keys only if the closed summary passes. If neither passes, add no preference identity API."
+  },
+  "gates": {
+    "atomicizationPrecision": {
+      "min": 0.95
+    },
+    "atomicizationRecall": {
+      "min": 0.95
+    },
+    "compoundAtomicizationPrecision": {
+      "min": 0.95
+    },
+    "compoundAtomicizationRecall": {
+      "min": 0.95
+    },
+    "contextAgreement": {
+      "min": 0.95
+    },
+    "executionFailureCount": {
+      "max": 0
+    },
+    "paraphraseExactKeySetAgreement": {
+      "min": 0.95
+    },
+    "parseOrMissingKeyCount": {
+      "max": 0
+    },
+    "preferenceCaptureRate": {
+      "min": 0.95
+    },
+    "repeatConsistency": {
+      "min": 0.99
+    },
+    "unintendedCrossDimensionCollisionCount": {
+      "max": 0
+    }
+  },
+  "goldUsage": {
+    "expectedAtoms": "offline-scoring-only",
+    "promptValueVocabularyExposed": false,
+    "providerInputFingerprintsExcludeExpectedAtoms": true
+  },
+  "effectivePrompt": {
+    "aggregateSha256": "721a7fa52484313cbd6ea601efb7633f52ea6f2eda32f06e471b1cd033a8074c",
+    "arms": {
+      "closedKey": {
+        "customPromptSource": "buildPreferenceIdentityPrompt:closed-key:360-call-plan",
+        "customPromptsSha256": "ee9d5a6e9350fe08a4b4595e70473703e5c083a7ac9f63808bdc2f495d155885",
+        "outputProtocol": "canonical-v1",
+        "responseFormat": "json_object",
+        "schemaSha256": "29cb9d218fc0f25d0ea7775150048968df9dcaa2d67b4d46fe8440dfa3873666",
+        "schemaSource": "memoryExtractionResultSchema+closed-key-attribute",
+        "system": "You extract durable memory candidates from a conversation. Prefer profile updates, preferences, references, durable facts, and reusable feedback. Return an empty candidate list when nothing should be remembered.",
+        "systemSha256": "67a5a16c759704a514ee7e25c4f738799c9e5e8778a830d79d6c616678351719"
+      },
+      "openKey": {
+        "customPromptSource": "buildPreferenceIdentityPrompt:open-key:360-call-plan",
+        "customPromptsSha256": "334e6ff465d6491ece5ce7e6f6db9e95fe4058b7593e28704613166a40842875",
+        "outputProtocol": "canonical-v1",
+        "responseFormat": "json_object",
+        "schemaSha256": "b4e3a8f48fa9c3249c725bf3ea1873182ae00479d56bcb6737753d4f6ce5bd99",
+        "schemaSource": "memoryExtractionResultSchema+open-key-attribute",
+        "system": "You extract durable memory candidates from a conversation. Prefer profile updates, preferences, references, durable facts, and reusable feedback. Return an empty candidate list when nothing should be remembered.",
+        "systemSha256": "67a5a16c759704a514ee7e25c4f738799c9e5e8778a830d79d6c616678351719"
+      }
+    },
+    "customPromptsSha256": "96976e52750c062ae3e6934436d69e62fbd37c6375a0d91b057a8dedc29fd2ea"
+  },
+  "inputPlan": {
+    "aggregateSha256": "a182e3102fcb8388fa7cac8ff16e6f9ef89e18b3bab0ec4ef5a45fbf772ca791",
+    "callCount": 720,
+    "goldExpectedAtomsIncluded": false
+  },
+  "manifest": {
+    "compoundAtomCountRange": [
+      2,
+      3
+    ],
+    "groupCount": 30,
+    "sha256": "c8bffd981ba067b6cf1f21f306e814b9684c9525fb87f0c74abb960023f9f5df",
+    "variantCount": 180
+  },
+  "model": {
+    "environmentPrefix": "GOODMEMORY_ASSISTED_EXTRACTOR",
+    "expectedModel": "gpt-5.6-terra",
+    "expectedProvider": "openai",
+    "requiresBaseUrl": true,
+    "role": "non-judge-assisted-extractor",
+    "retryLimit": 0,
+    "temperature": 0
+  },
+  "normalization": {
+    "context": "trim-lowercase-underscores",
+    "key": "byte-exact-no-normalization",
+    "value": "trim-collapse-whitespace"
+  },
+  "otherConflictMatchable": false,
+  "otherStorageSemantics": {
+    "conflictMatchable": false,
+    "rejectWrite": false,
+    "storedAndFlagged": true
+  },
+  "outputEvidence": {
+    "fixedRunId": "preference-independent-arms-v2",
+    "fixedRunPath": "reports/eval/research/preference-identity/preference-independent-arms-v2",
+    "liveRequiresCleanGit": true,
+    "report": "report.json",
+    "trackableArtifacts": [
+      "report.json",
+      "raw-fingerprints.json"
+    ],
+    "perCallRawPersistence": "immediate-wx",
+    "untrackedPerCallRawDirectory": "raw-calls",
+    "untrackedRawPayload": "raw-results.jsonl",
+    "untrackedRawPayloadPersisted": true,
+    "rulesOnlyRowsPersisted": false,
+    "requiredFingerprints": [
+      "manifestSha256",
+      "preregistrationSha256",
+      "effectivePromptSha256",
+      "promptSha256",
+      "inputPlanAggregateSha256",
+      "inputFingerprint",
+      "rawFingerprint"
+    ],
+    "requiredProvenance": [
+      "gitCommitAndDirtyState",
+      "model",
+      "gateway",
+      "temperature",
+      "providerRetryLimitAndExactAttemptCount",
+      "armAndCallIdBoundRawFingerprints",
+      "immediatePerCallRawWxEvidence",
+      "effectivePromptComponentHashes",
+      "inputPlanAggregate",
+      "plannedExecutedSucceededFailedCalls",
+      "tokenUsage",
+      "providerBilledUsdAndEstimatedUsdNullWithReason",
+      "rulesOnlySameInputBaseline"
+    ],
+    "secretsPersisted": false
+  },
+  "plannedTotalCalls": 720,
+  "plannedProviderAttempts": 720,
+  "protectionCohort": {
+    "decisionBasis": "protection-only",
+    "path": "fixtures/research/preference-identity-v1/protection-cohort.json",
+    "plannedCallsPerArm": 180,
+    "plannedTotalCalls": 360,
+    "sha256": "74b2513659b71fdecd0775b35d97e4e396fed4ce88386731675d7fb48a6117cf",
+    "variantCount": 90
+  },
+  "protocolId": "preference-identity-independent-arms-v2",
+  "repetitions": 2,
+  "schemaVersion": 2,
+  "valueVocabulary": [
+    "concise",
+    "detailed",
+    "bullets",
+    "prose",
+    "summary_first",
+    "steps_first",
+    "plain_language",
+    "technical_language",
+    "evidence_backed",
+    "intuition_first",
+    "risk_first",
+    "recommendation_first",
+    "incremental",
+    "big_bang",
+    "deep_work",
+    "frequent_checkins",
+    "tight_loops",
+    "milestone_only",
+    "written",
+    "verbal"
+  ]
+}

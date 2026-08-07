@@ -37,7 +37,7 @@ import { resolveRepoRootFromScriptUrl } from "./script-paths";
 
 const MANIFEST_PATH = "fixtures/research/preference-identity-v1/manifest.json";
 const PREREGISTRATION_PATH =
-  "fixtures/research/preference-identity-v1/preregistration.json";
+  "fixtures/research/preference-identity-v2/preregistration.json";
 const PROTECTION_COHORT_PATH =
   "fixtures/research/preference-identity-v1/protection-cohort.json";
 const RAW_CALLS_DIRECTORY = "raw-calls";
@@ -128,9 +128,9 @@ const preregistrationSchema = z.object({
     storedAndFlagged: z.literal(true),
   }),
   outputEvidence: z.object({
-    fixedRunId: z.literal("preference-independent-arms-v1"),
+    fixedRunId: z.literal("preference-independent-arms-v2"),
     fixedRunPath: z.literal(
-      "reports/eval/research/preference-identity/preference-independent-arms-v1",
+      "reports/eval/research/preference-identity/preference-independent-arms-v2",
     ),
     liveRequiresCleanGit: z.literal(true),
     trackableArtifacts: z.tuple([
@@ -175,7 +175,7 @@ const preregistrationSchema = z.object({
     sha256: z.string().regex(/^[a-f0-9]{64}$/u),
     variantCount: z.literal(90),
   }),
-  protocolId: z.literal("preference-identity-independent-arms-v1"),
+  protocolId: z.literal("preference-identity-independent-arms-v2"),
   repetitions: z.literal(2),
   schemaVersion: z.literal(2),
   valueVocabulary: z.array(z.string().min(1)).length(20),
@@ -585,9 +585,15 @@ export function buildPreferenceIdentityEffectivePromptIdentity(input: {
   ): PreferenceIdentityEffectivePromptArmIdentity => {
     const schema = stableValue({
       canonicalExtractionSchema: baseSchema,
+      forbiddenCandidateTopLevelFields: [
+        "experimentalClosedPreferenceKey",
+        "experimentalOpenPreferenceKey",
+        "preferenceValue",
+      ],
       requiredExperimentalAttribute: arm === "open-key"
         ? "experimentalOpenPreferenceKey"
         : "experimentalClosedPreferenceKey",
+      requiredPreferenceMetadataField: "metadata.preferenceValue",
     });
     const customPrompts = input.calls
       .filter(({ arm: callArm }) => callArm === arm)
@@ -1253,18 +1259,16 @@ export function buildPreferenceIdentityPrompt(input:
   | { arm: "open-key"; text: string }
 ): string {
   const keyInstruction = input.arm === "open-key"
-    ? "For every candidate, emit experimentalOpenPreferenceKey as a stable lowercase dot-separated conflict-slot key. It names the dimension, never its value or context; paraphrases and opposite values in one dimension must use the same key."
-    : `For every candidate, emit experimentalClosedPreferenceKey as exactly one of: ${input.closedVocabulary.join(", ")}. Use other only when no named key fits.`;
-  const attributeInstruction = input.arm === "open-key"
-    ? "Put experimentalOpenPreferenceKey in metadata.attributes."
-    : "Put experimentalClosedPreferenceKey in metadata.attributes.";
+    ? "Set metadata.attributes.experimentalOpenPreferenceKey to a stable lowercase dot-separated conflict-slot key. It names the dimension, never its value or context; paraphrases and opposite values in one dimension must use the same key."
+    : `Set metadata.attributes.experimentalClosedPreferenceKey to exactly one of: ${input.closedVocabulary.join(", ")}. Use other only when no named key fits.`;
   return [
     "Extract only explicit durable user preferences from the single user message.",
     "Split compound preferences into one candidate per independent preference atom.",
     keyInstruction,
-    "Set preferenceValue to the explicit preference value stated by the user without inventing a value.",
-    "Set kindHint=preference, explicitness=explicit, sourceMessageIndex=0, sourceRole=user.",
-    `Set metadata.appliesTo to exactly general, work, or personal_study. ${attributeInstruction}`,
+    "Every candidate must contain id, kindHint, explicitness, content, sourceMessageIndex, sourceRole, and metadata.",
+    "Use a non-empty unique id. Set kindHint=preference, explicitness=explicit, sourceMessageIndex=0, and sourceRole=user. Set content to the canonical atomic preference statement.",
+    "Set metadata.preferenceValue to the explicit preference value stated by the user without inventing a value.",
+    "Set metadata.appliesTo to exactly general, work, or personal_study.",
     "Return the canonical extraction JSON object with candidates and ignoredMessageCount. Do not add commentary.",
     `User message: ${JSON.stringify(input.text)}`,
   ].join("\n");
@@ -1302,6 +1306,28 @@ export function parsePreferenceIdentityRawCompletion(input: {
       }`,
     );
   }
+  const rawCandidates = payload && typeof payload === "object" &&
+      Array.isArray((payload as { candidates?: unknown }).candidates)
+    ? (payload as { candidates: unknown[] }).candidates
+    : [];
+  for (const candidate of rawCandidates) {
+    if (!candidate || typeof candidate !== "object") {
+      continue;
+    }
+    if (Object.hasOwn(candidate, "preferenceValue")) {
+      throw new Error(
+        "Preference identity raw completion must use metadata.preferenceValue, not candidate.preferenceValue.",
+      );
+    }
+    if (
+      Object.hasOwn(candidate, "experimentalOpenPreferenceKey") ||
+      Object.hasOwn(candidate, "experimentalClosedPreferenceKey")
+    ) {
+      throw new Error(
+        "Preference identity raw completion exposed a top-level experimental key.",
+      );
+    }
+  }
   const parsed = memoryExtractionResultSchema.safeParse(
     normalizeMemoryExtractionPayload(payload),
   );
@@ -1310,6 +1336,16 @@ export function parsePreferenceIdentityRawCompletion(input: {
       `Preference identity raw completion schema validation failed: ${
         parsed.error.issues[0]?.message ?? "invalid value"
       }`,
+    );
+  }
+  if (
+    parsed.data.candidates.some((candidate) =>
+      candidate.kindHint === "preference" &&
+      !candidate.metadata?.preferenceValue?.trim()
+    )
+  ) {
+    throw new Error(
+      "Preference identity raw completion is missing metadata.preferenceValue.",
     );
   }
   const oppositeAttribute = input.arm === "open-key"

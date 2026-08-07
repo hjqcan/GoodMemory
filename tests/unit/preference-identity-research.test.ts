@@ -66,6 +66,24 @@ describe("preference identity pre-API research protocol", () => {
       REPO_ROOT,
     );
     const preregistration = await loadPreferenceIdentityPreregistration(REPO_ROOT);
+    const v1PreregistrationRaw = await readFile(
+      join(
+        REPO_ROOT,
+        "fixtures/research/preference-identity-v1/preregistration.json",
+      ),
+      "utf8",
+    );
+    const v1Preregistration = JSON.parse(v1PreregistrationRaw);
+
+    expect(v1Preregistration.protocolId).toBe(
+      "preference-identity-independent-arms-v1",
+    );
+    expect(v1Preregistration.outputEvidence.fixedRunId).toBe(
+      "preference-independent-arms-v1",
+    );
+    expect(
+      createHash("sha256").update(v1PreregistrationRaw).digest("hex"),
+    ).toBe("4fb6077c036f6a557b4baa3f5236533076ea86566d22b5c92f03faf557f8302e");
 
     expect(manifest.groups).toHaveLength(30);
     const atomicGroups = manifest.groups.filter(({ kind }) => kind === "atomic");
@@ -172,11 +190,14 @@ describe("preference identity pre-API research protocol", () => {
     );
     expect(preregistration.outputEvidence.rulesOnlyRowsPersisted).toBe(false);
     expect(preregistration.outputEvidence).toMatchObject({
-      fixedRunId: "preference-independent-arms-v1",
+      fixedRunId: "preference-independent-arms-v2",
       fixedRunPath:
-        "reports/eval/research/preference-identity/preference-independent-arms-v1",
+        "reports/eval/research/preference-identity/preference-independent-arms-v2",
       liveRequiresCleanGit: true,
     });
+    expect(preregistration.protocolId).toBe(
+      "preference-identity-independent-arms-v2",
+    );
     expect(preregistration.goldUsage).toEqual({
       expectedAtoms: "offline-scoring-only",
       promptValueVocabularyExposed: false,
@@ -305,15 +326,30 @@ describe("preference identity pre-API research protocol", () => {
       text: calls[0]!.text,
     });
     expect(openPrompt).toContain("experimentalOpenPreferenceKey");
+    expect(openPrompt).toContain(
+      "metadata.attributes.experimentalOpenPreferenceKey",
+    );
+    expect(openPrompt.match(/experimentalOpenPreferenceKey/gu)).toHaveLength(1);
     expect(openPrompt).not.toContain("experimentalClosedPreferenceKey");
     expect(openPrompt).not.toContain("response.verbosity");
     expect(openPrompt).not.toContain("Use other");
+    expect(openPrompt).toContain(
+      "id, kindHint, explicitness, content, sourceMessageIndex, sourceRole, and metadata",
+    );
+    expect(openPrompt).toContain("metadata.preferenceValue");
+    expect(openPrompt).toContain("metadata.appliesTo");
+    expect(openPrompt).toContain("metadata.attributes");
+    expect(openPrompt).toContain("ignoredMessageCount");
     const closedPrompt = buildPreferenceIdentityPrompt({
       arm: "closed-key",
       closedVocabulary: preregistration.closedVocabulary,
       text: calls[0]!.text,
     });
     expect(closedPrompt).toContain("experimentalClosedPreferenceKey");
+    expect(closedPrompt).toContain(
+      "metadata.attributes.experimentalClosedPreferenceKey",
+    );
+    expect(closedPrompt.match(/experimentalClosedPreferenceKey/gu)).toHaveLength(1);
     expect(closedPrompt).not.toContain("experimentalOpenPreferenceKey");
     expect(closedPrompt).toContain("response.verbosity");
     expect(openPrompt).not.toContain("milestone_only");
@@ -854,16 +890,16 @@ describe("preference identity pre-API research protocol", () => {
 
     const gitignore = await readFile(join(REPO_ROOT, ".gitignore"), "utf8");
     expect(gitignore).toContain(
-      "!reports/eval/research/preference-identity/preference-independent-arms-v1/report.json",
+      "!reports/eval/research/preference-identity/preference-independent-arms-v2/report.json",
     );
     expect(gitignore).toContain(
-      "!reports/eval/research/preference-identity/preference-independent-arms-v1/raw-fingerprints.json",
+      "!reports/eval/research/preference-identity/preference-independent-arms-v2/raw-fingerprints.json",
     );
     expect(gitignore).not.toContain(
-      "!reports/eval/research/preference-identity/preference-independent-arms-v1/raw-results.jsonl",
+      "!reports/eval/research/preference-identity/preference-independent-arms-v2/raw-results.jsonl",
     );
     expect(gitignore).not.toContain(
-      "!reports/eval/research/preference-identity/preference-independent-arms-v1/raw-calls",
+      "!reports/eval/research/preference-identity/preference-independent-arms-v2/raw-calls",
     );
   });
 
@@ -925,6 +961,74 @@ describe("preference identity pre-API research protocol", () => {
         text: "not-json-but-must-remain-persistable",
       })
     ).toThrow("did not contain a JSON object");
+    expect(() =>
+      parsePreferenceIdentityRawCompletion({
+        arm: "open-key",
+        text: JSON.stringify({
+          candidates: [{
+            explicitness: "explicit",
+            kindHint: "preference",
+            metadata: {
+              appliesTo: "general",
+              attributes: {
+                experimentalOpenPreferenceKey: "response.verbosity",
+              },
+              preferenceValue: "concise",
+            },
+            sourceMessageIndex: 0,
+            sourceRole: "user",
+          }],
+          ignoredMessageCount: 0,
+        }),
+      })
+    ).toThrow("schema validation failed");
+    expect(() =>
+      parsePreferenceIdentityRawCompletion({
+        arm: "open-key",
+        text: JSON.stringify({
+          candidates: [{
+            content: "The user prefers concise answers.",
+            explicitness: "explicit",
+            id: "p1",
+            kindHint: "preference",
+            metadata: {
+              appliesTo: "general",
+              attributes: {
+                experimentalOpenPreferenceKey: "response.verbosity",
+              },
+            },
+            preferenceValue: "concise",
+            sourceMessageIndex: 0,
+            sourceRole: "user",
+          }],
+          ignoredMessageCount: 0,
+        }),
+      })
+    ).toThrow("metadata.preferenceValue");
+    expect(() =>
+      parsePreferenceIdentityRawCompletion({
+        arm: "open-key",
+        text: JSON.stringify({
+          candidates: [{
+            content: "The user prefers concise answers.",
+            explicitness: "explicit",
+            experimentalOpenPreferenceKey: "response.verbosity",
+            id: "p1",
+            kindHint: "preference",
+            metadata: {
+              appliesTo: "general",
+              attributes: {
+                experimentalOpenPreferenceKey: "response.verbosity",
+              },
+              preferenceValue: "concise",
+            },
+            sourceMessageIndex: 0,
+            sourceRole: "user",
+          }],
+          ignoredMessageCount: 0,
+        }),
+      })
+    ).toThrow("top-level experimental key");
   });
 
   it("reserves the fixed run directory once and discloses unpriced token usage honestly", async () => {
