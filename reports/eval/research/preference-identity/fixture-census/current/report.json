@@ -1,0 +1,108 @@
+{
+  "census": {
+    "corpus": {
+      "behaviorScenarioCount": 6,
+      "behaviorUserTurnCount": 16,
+      "fingerprint": "fbc03150035f81732b013da59b036b4846120ee79f7647609d256ed1055e91a6",
+      "scenarioFileCount": 46,
+      "userTurnCount": 335
+    },
+    "decision": {
+      "adjudicationApiAllowed": false,
+      "minimumNaturalSameSlotChanges": 20,
+      "observedLegacyCategoryValueChanges": 0,
+      "reason": "Same-slot, recency-appropriateness, and ambiguity metrics are unavailable; the fixture corpus cannot admit an adjudication API.",
+      "status": "underpowered_no_adjudication"
+    },
+    "generatedAt": "2026-08-07T07:54:22.802Z",
+    "identityMetrics": {
+      "ambiguousConflictCount": null,
+      "ambiguousConflictRate": null,
+      "recencyAppropriateCount": null,
+      "recencyAppropriateRate": null,
+      "sameSlotChangeCount": null,
+      "unavailableReason": "Current rules-only records expose legacy categories, not frozen identity slots."
+    },
+    "preregistrationSha256": "5d98fb59af206c444abfa2e337839fd26ea9657e80ea3108fa847f3402b52795",
+    "productionIncidenceClaimed": false,
+    "rulesOnly": {
+      "behaviorPreferenceCandidateCount": 1,
+      "preferenceBearingScopeCount": 45,
+      "preferenceCandidateCount": 44,
+      "legacyCategoryValueChangeCount": 0
+    },
+    "scope": "repository_fixture_census_only"
+  },
+  "generatedAt": "2026-08-07T07:54:22.811Z",
+  "git": {
+    "commit": "c6d23988b2a830287e22367b390f8659b2ced616",
+    "dirty": false
+  },
+  "note": "The fixture census and synthetic policy challenge have separate denominators. Neither is a production incidence estimate.",
+  "synthetic": {
+    "cohortCounts": {
+      "compound_partial_update": 5,
+      "contextual_coexistence": 5,
+      "explicit_update": 5,
+      "legacy_unkeyed": 5,
+      "same_category_different_dimension": 5,
+      "synonymous_repeat": 5
+    },
+    "cohortFingerprint": "62243b21f76040f1fcc258173a2b404fc3d00bab655bf5073add43fca759129c",
+    "policies": {
+      "current_destructive": {
+        "acceptanceCount": 0,
+        "amnesiaCount": 0,
+        "caseCount": 30,
+        "expectedActiveInstructionAccuracy": 0.3333333333333333,
+        "expectedActiveInstructionExactMatchCount": 10,
+        "falseConflictOrFreezeCount": 0,
+        "falseConflictOrFreezeRate": 0,
+        "generalFallbackAvailabilityRate": 1,
+        "generalFallbackAvailableCount": 30,
+        "lineageRecoverabilityRate": 0,
+        "lineageRecoverableCount": 0,
+        "silentDataLossCount": 30,
+        "silentDataLossRate": 1,
+        "unrecoverableWithExistingReviseOrForgetCount": 30,
+        "unrecoverableWithExistingReviseOrForgetRate": 1
+      },
+      "recency_lineage": {
+        "acceptanceCount": 30,
+        "amnesiaCount": 0,
+        "caseCount": 30,
+        "expectedActiveInstructionAccuracy": 1,
+        "expectedActiveInstructionExactMatchCount": 30,
+        "falseConflictOrFreezeCount": 0,
+        "falseConflictOrFreezeRate": 0,
+        "generalFallbackAvailabilityRate": 1,
+        "generalFallbackAvailableCount": 30,
+        "lineageRecoverabilityRate": 1,
+        "lineageRecoverableCount": 30,
+        "silentDataLossCount": 0,
+        "silentDataLossRate": 0,
+        "unrecoverableWithExistingReviseOrForgetCount": 0,
+        "unrecoverableWithExistingReviseOrForgetRate": 0
+      },
+      "freeze": {
+        "acceptanceCount": 10,
+        "amnesiaCount": 10,
+        "caseCount": 30,
+        "expectedActiveInstructionAccuracy": 0.3333333333333333,
+        "expectedActiveInstructionExactMatchCount": 10,
+        "falseConflictOrFreezeCount": 15,
+        "falseConflictOrFreezeRate": 0.5,
+        "generalFallbackAvailabilityRate": 0.3333333333333333,
+        "generalFallbackAvailableCount": 10,
+        "lineageRecoverabilityRate": 1,
+        "lineageRecoverableCount": 30,
+        "silentDataLossCount": 0,
+        "silentDataLossRate": 0,
+        "unrecoverableWithExistingReviseOrForgetCount": 0,
+        "unrecoverableWithExistingReviseOrForgetRate": 0
+      }
+    },
+    "productionIncidenceClaimed": false,
+    "syntheticOnly": true
+  }
+}
