@@ -1852,6 +1852,9 @@ describe("release metadata and docs", () => {
       const install = await runCommand({
         cmd: ["bun", "install"],
         cwd: workspaceRoot,
+        env: {
+          BUN_INSTALL_CACHE_DIR: join(workspaceRoot, ".bun-install-cache"),
+        },
       });
       expect(install.exitCode).toBe(0);
 
@@ -1934,7 +1937,10 @@ describe("release metadata and docs", () => {
       const install = await runCommand({
         cmd: ["bun", "install"],
         cwd: workspaceRoot,
-        env: { ...RELEASE_TEST_ENV },
+        env: {
+          ...RELEASE_TEST_ENV,
+          BUN_INSTALL_CACHE_DIR: join(workspaceRoot, ".bun-install-cache"),
+        },
       });
       expect(install.exitCode).toBe(0);
 
@@ -2194,6 +2200,9 @@ describe("release metadata and docs", () => {
       const install = await runCommand({
         cmd: ["bun", "install"],
         cwd: workspaceRoot,
+        env: {
+          BUN_INSTALL_CACHE_DIR: join(workspaceRoot, ".bun-install-cache"),
+        },
       });
       expect(install.exitCode).toBe(0);
       const smoke = await runCommand({
@@ -2334,6 +2343,9 @@ describe("release metadata and docs", () => {
       const install = await runCommand({
         cmd: ["bun", "install"],
         cwd: workspaceRoot,
+        env: {
+          BUN_INSTALL_CACHE_DIR: join(workspaceRoot, ".bun-install-cache"),
+        },
       });
       expect(install.exitCode).toBe(0);
 
@@ -2575,7 +2587,10 @@ describe("release metadata and docs", () => {
       const install = await runCommand({
         cmd: ["bun", "install"],
         cwd: workspaceRoot,
-        env: { ...RELEASE_TEST_ENV },
+        env: {
+          ...RELEASE_TEST_ENV,
+          BUN_INSTALL_CACHE_DIR: join(workspaceRoot, ".bun-install-cache"),
+        },
       });
       expect(install.exitCode).toBe(0);
 
