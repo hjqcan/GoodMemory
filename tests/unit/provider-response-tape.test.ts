@@ -168,6 +168,12 @@ describe("provider response tape", () => {
 
       expect(response.status).toBe(502);
       expect(upstreamRequests).toBe(0);
+      expect(proxy.sessionStats()).toMatchObject({
+        hits: 0,
+        liveRequests: 0,
+        misses: 1,
+        requests: 1,
+      });
       expect(proxy.endSession()).toMatchObject({
         hits: 0,
         liveRequests: 0,

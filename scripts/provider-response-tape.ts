@@ -59,6 +59,7 @@ export interface ProviderResponseTapeProxy {
   baseUrl(targetId: string): string;
   beginSession(config: ProviderTapeSessionConfig): void;
   endSession(): ProviderTapeSessionStats;
+  sessionStats(): ProviderTapeSessionStats;
   snapshot(): ProviderResponseTape;
   stop(): void;
 }
@@ -372,6 +373,35 @@ export function createProviderResponseTapeProxy(input: {
     schemaVersion: 2,
   });
 
+  const sessionStats = (): ProviderTapeSessionStats => {
+    if (activeSession === null) {
+      throw new Error("provider tape session is not active");
+    }
+    if (inFlight.size !== 0) {
+      throw new Error("provider tape session still has live requests");
+    }
+    return {
+      coalesced: activeSession.coalesced,
+      hits: activeSession.hits,
+      liveRequests: activeSession.liveRequests,
+      misses: activeSession.misses,
+      mode: activeSession.mode,
+      name: activeSession.name,
+      requestFingerprintMultisetSha256: sha256(JSON.stringify(
+        [...activeSession.requestFingerprintCounts.entries()].sort(
+          ([left], [right]) => left.localeCompare(right),
+        ),
+      )),
+      requests: activeSession.requests,
+      targetCounts: Object.fromEntries(
+        [...activeSession.targetCounts.entries()].sort(
+          ([left], [right]) => left.localeCompare(right),
+        ),
+      ),
+      tapeSha256: sha256(serializeProviderResponseTape(snapshot())),
+    };
+  };
+
   return {
     baseUrl(targetId) {
       if (!targets.has(targetId)) {
@@ -398,35 +428,11 @@ export function createProviderResponseTapeProxy(input: {
       };
     },
     endSession() {
-      if (activeSession === null) {
-        throw new Error("provider tape session is not active");
-      }
-      if (inFlight.size !== 0) {
-        throw new Error("provider tape session still has live requests");
-      }
-      const stats: ProviderTapeSessionStats = {
-        coalesced: activeSession.coalesced,
-        hits: activeSession.hits,
-        liveRequests: activeSession.liveRequests,
-        misses: activeSession.misses,
-        mode: activeSession.mode,
-        name: activeSession.name,
-        requestFingerprintMultisetSha256: sha256(JSON.stringify(
-          [...activeSession.requestFingerprintCounts.entries()].sort(
-            ([left], [right]) => left.localeCompare(right),
-          ),
-        )),
-        requests: activeSession.requests,
-        targetCounts: Object.fromEntries(
-          [...activeSession.targetCounts.entries()].sort(
-            ([left], [right]) => left.localeCompare(right),
-          ),
-        ),
-        tapeSha256: sha256(serializeProviderResponseTape(snapshot())),
-      };
+      const stats = sessionStats();
       activeSession = null;
       return stats;
     },
+    sessionStats,
     snapshot,
     stop() {
       server.stop(true);

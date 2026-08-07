@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "bun:test";
 
 import {
+  assertV073ProviderStageCanContinue,
   assertV073SeedStageReport,
   assertV073ScenarioOutcome,
   buildV073ProviderFreeArgs,
@@ -36,6 +37,21 @@ function commandChain(): V073PairedCommandChain {
 }
 
 describe("v0.7.3 replacement protection gate runner", () => {
+  it("stops a formal stage after the first command that has tape misses", () => {
+    expect(() => assertV073ProviderStageCanContinue("replay", {
+      coalesced: 0,
+      hits: 10,
+      liveRequests: 0,
+      misses: 1,
+      mode: "replay",
+      name: "baseline-formal",
+      requestFingerprintMultisetSha256: "a".repeat(64),
+      requests: 11,
+      tapeSha256: "b".repeat(64),
+      targetCounts: { eval: 11 },
+    })).toThrow("formal provider replay observed 1 tape miss");
+  });
+
   it("rejects seed execution failures before downstream provider stages", () => {
     const raw = readFileSync(
       "reports/release/v0.7/blocked-6eb0f87d/attribution-controls/provider-free-c1-baseline.json",

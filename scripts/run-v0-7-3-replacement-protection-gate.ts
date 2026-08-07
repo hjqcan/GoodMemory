@@ -569,6 +569,17 @@ export function assertV073SeedStageReport(raw: string): void {
   }
 }
 
+export function assertV073ProviderStageCanContinue(
+  mode: "prefetch" | "replay",
+  session: ProviderTapeSessionStats,
+): void {
+  if (mode === "replay" && session.misses !== 0) {
+    throw new Error(
+      `formal provider replay observed ${session.misses} tape miss(es)`,
+    );
+  }
+}
+
 export function parseV073FormalSmokeReport(raw: string): FormalSmokeReport {
   const report = JSON.parse(raw) as FormalSmokeReport;
   if (
@@ -780,6 +791,17 @@ async function runProviderStage(input: {
             : String(error);
           break;
         }
+      }
+      try {
+        assertV073ProviderStageCanContinue(
+          input.mode,
+          input.proxy.sessionStats(),
+        );
+      } catch (error) {
+        validationFailure = error instanceof Error
+          ? error.message
+          : String(error);
+        break;
       }
     }
   } finally {
