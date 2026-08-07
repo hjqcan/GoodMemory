@@ -1,0 +1,188 @@
+{
+  "commandChain": {
+    "officialRescore": {
+      "args": [
+        "run",
+        "eval:official-rescore",
+        "--",
+        "--benchmark",
+        "locomo",
+        "--report",
+        "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/v073-baseline-discovery-final-54c69a32/smoke-report.json",
+        "--root",
+        "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1/cases.json",
+        "--concurrency",
+        "40",
+        "--run-id",
+        "v073-baseline-discovery-official-54c69a32"
+      ],
+      "command": "bun",
+      "cwd": "/private/tmp/goodmemory-v072.XFpp3U",
+      "environment": {
+        "GOODMEMORY_JUDGE_MODEL": "gpt-5.5",
+        "GOODMEMORY_JUDGE_BASE_URL": "http://127.0.0.1:59974/judge",
+        "GOODMEMORY_JUDGE_PROVIDER": "openai",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL": "http://127.0.0.1:59974/assisted",
+        "GOODMEMORY_EMBEDDING_BASE_URL": "http://127.0.0.1:59974/embedding",
+        "GOODMEMORY_EVAL_BASE_URL": "http://127.0.0.1:59974/eval",
+        "GOODMEMORY_RERANKING_BASE_URL": "http://127.0.0.1:59974/reranking"
+      }
+    },
+    "reanswer": {
+      "args": [
+        "run",
+        "scripts/reanswer-phase-65-locomo-report.ts",
+        "--",
+        "--source-report",
+        "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/v073-baseline-discovery-seed-54c69a32/smoke-report.json",
+        "--concurrency",
+        "40",
+        "--output-dir",
+        "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery",
+        "--run-id",
+        "v073-baseline-discovery-final-54c69a32"
+      ],
+      "command": "bun",
+      "cwd": "/private/tmp/goodmemory-v072.XFpp3U",
+      "environment": {
+        "GOODMEMORY_EVAL_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_EVAL_BASE_URL": "http://127.0.0.1:59974/eval",
+        "GOODMEMORY_EVAL_PROVIDER": "openai",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL": "http://127.0.0.1:59974/assisted",
+        "GOODMEMORY_EMBEDDING_BASE_URL": "http://127.0.0.1:59974/embedding",
+        "GOODMEMORY_JUDGE_BASE_URL": "http://127.0.0.1:59974/judge",
+        "GOODMEMORY_RERANKING_BASE_URL": "http://127.0.0.1:59974/reranking"
+      }
+    },
+    "seedSmoke": {
+      "args": [
+        "run",
+        "scripts/run-phase-65-locomo-smoke.ts",
+        "--",
+        "--benchmark-root",
+        "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1",
+        "--category",
+        "single_hop",
+        "--category",
+        "multi_hop",
+        "--category",
+        "temporal",
+        "--category",
+        "open_domain",
+        "--generalized-fusion",
+        "--provider-embedding",
+        "--provider-reranking",
+        "--provider-reranking-timeout-ms",
+        "120000",
+        "--conversational-extraction",
+        "--label-free-ingest",
+        "--concurrency",
+        "40",
+        "--case-id",
+        "locomo-conv-26",
+        "--case-id",
+        "locomo-conv-30",
+        "--output-dir",
+        "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery",
+        "--resume",
+        "--run-id",
+        "v073-baseline-discovery-seed-54c69a32"
+      ],
+      "command": "bun",
+      "cwd": "/private/tmp/goodmemory-v072.XFpp3U",
+      "environment": {
+        "GOODMEMORY_EVAL_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_EVAL_BASE_URL": "http://127.0.0.1:59974/eval",
+        "GOODMEMORY_EVAL_PROVIDER": "openai",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL": "http://127.0.0.1:59974/assisted",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER": "openai",
+        "GOODMEMORY_EMBEDDING_BASE_URL": "http://127.0.0.1:59974/embedding",
+        "GOODMEMORY_EMBEDDING_MODEL": "text-embedding-3-small",
+        "GOODMEMORY_EMBEDDING_PROVIDER": "openai",
+        "GOODMEMORY_RERANKING_BASE_URL": "http://127.0.0.1:59974/reranking",
+        "GOODMEMORY_RERANKING_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_RERANKING_PROVIDER": "openai",
+        "GOODMEMORY_JUDGE_BASE_URL": "http://127.0.0.1:59974/judge"
+      }
+    }
+  },
+  "commit": "456edd106f29118b3455bf21c43d7b3107b48213",
+  "executionOrder": [
+    "seedSmoke",
+    "reanswer",
+    "officialRescore"
+  ],
+  "generatedBy": "scripts/run-v0-7-3-replacement-protection-gate.ts",
+  "session": {
+    "coalesced": 0,
+    "hits": 0,
+    "liveRequests": 1015,
+    "misses": 1015,
+    "mode": "prefetch",
+    "name": "baseline-discovery",
+    "requestFingerprintMultisetSha256": "b6b6acdc8a99d0369a76ec057fa6353ebd13d2719d80023f7b5f80fe125e8e8e",
+    "requests": 1015,
+    "targetCounts": {
+      "embedding": 275,
+      "eval": 507,
+      "judge": 233
+    },
+    "tapeSha256": "5ce97ac2629e80969ab1064f625082add37480c5b1d8747bf05d7423921262d8"
+  },
+  "sourceIdentity": {
+    "claimCommandTemplateSha256": "7e9a8693964ef29a2fa19d02b30e15e29528cbc396b7c9a41e082cf408a8f969",
+    "claimSourceSha256": "9ef00e9e1532a264a97cacf3a1807345acce68194ad65e2b016ed6a48602b6d3",
+    "officialSourceSha256": "cfa618e1929d56dc256962f471768a3855a8989b92c22cce4f09bd8112ebe24f",
+    "promptSha256": "e039c2aa17d9a2253acb6f7742095cc4a0a3b6c5830a117f1b5c4d701db6e07b",
+    "reanswerSourceSha256": "dc13f16cb77621e82ef6fa79df280ee8db4f45694c27ac826bcc477c053f5133",
+    "seedSourceSha256": "0cffb3ec917601c2c7c34a6664d58b528f67b632aa31e6f79447b8b7ebae937a"
+  },
+  "stage": "baseline-discovery",
+  "stderr": {
+    "bytes": 676,
+    "path": "reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/stderr.log",
+    "sha256": "6894752397f4fb3f7a2f31bacc74e9d8d7e13fc06977f5958412bc5e24d63d43"
+  },
+  "steps": [
+    {
+      "exitCode": 0,
+      "step": "seedSmoke"
+    },
+    {
+      "exitCode": 0,
+      "step": "reanswer"
+    },
+    {
+      "exitCode": 0,
+      "step": "officialRescore"
+    }
+  ],
+  "stdout": {
+    "bytes": 6782,
+    "path": "reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/stdout.log",
+    "sha256": "7b14d4ffdaaa20ae796948cf901c89b14366147004697e422b2aa221ee6278fb"
+  },
+  "outputs": {
+    "finalReport": {
+      "bytes": 271813,
+      "path": "reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/v073-baseline-discovery-final-54c69a32/smoke-report.json",
+      "sha256": "c81d77c9634daa99af6aa85c5a77514a6d15dcbdbba0172f69925f6cb13e9157"
+    },
+    "officialProgress": {
+      "bytes": 10304,
+      "path": "reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/official-progress.jsonl",
+      "sha256": "a9884a180d5c198c561683429022fc7141334ad45235cb348f870683f1d7a6d9"
+    },
+    "officialSummary": {
+      "bytes": 2109,
+      "path": "reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/official-summary.json",
+      "sha256": "f611d8ed248cac80250be8783ac168df1dab3f70fdaab6e3bc352649a7283572"
+    },
+    "seedReport": {
+      "bytes": 261308,
+      "path": "reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/v073-baseline-discovery-seed-54c69a32/smoke-report.json",
+      "sha256": "4deee4122933792b474e53b8c8bd6179c0731adecd1aa98a3017f172bee10509"
+    }
+  }
+}

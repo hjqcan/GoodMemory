@@ -16,7 +16,12 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   provider variance exceeded the original 1pt threshold. A schema-2 rerun must
   pass the provider-free C1/C40 hard gate, scenario replay, and zero-live
   formal replay on all registered provider routes before the full 1540-question
-  claim may run.
+  claim may run. The first schema-2 attempt at candidate `1b3efe83` passed the
+  deterministic arms and provider discovery but is also blocked: baseline
+  formal replay changed 40 of its first 214 retrieved sets and missed the exact
+  tape request census. Its incomplete evidence and attribution are archived at
+  `reports/release/v0.7/blocked-1b3efe83-replay-miss/`; no full claim rerun,
+  tag, npm publish, or GitHub Release followed.
   See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as

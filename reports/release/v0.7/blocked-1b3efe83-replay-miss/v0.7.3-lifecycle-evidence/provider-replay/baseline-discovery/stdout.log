@@ -1,0 +1,218 @@
+[seedSmoke]
+{
+  "benchmarkSource": "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1/cases.json",
+  "caseIds": [
+    "locomo-conv-26",
+    "locomo-conv-30"
+  ],
+  "categories": [
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0.793859649122807,
+      "category": "single_hop",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 90,
+      "noiseTurnTotal": 763,
+      "questionCount": 114
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0.6286821705426356,
+      "category": "multi_hop",
+      "crossSessionChainReady": false,
+      "fullyRetrievedCount": 18,
+      "noiseTurnTotal": 312,
+      "questionCount": 43
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0.9523809523809523,
+      "category": "temporal",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 60,
+      "noiseTurnTotal": 411,
+      "questionCount": 63
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0.7307692307692307,
+      "category": "open_domain",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 8,
+      "noiseTurnTotal": 101,
+      "questionCount": 13
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0,
+      "category": "adversarial",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 0,
+      "noiseTurnTotal": 0,
+      "questionCount": 0
+    }
+  ],
+  "executionFailures": 0,
+  "providerEmbeddingRunTimeoutMs": null,
+  "providerEmbeddingTimeoutMs": null,
+  "questionCount": 233,
+  "questionCategories": [
+    "single_hop",
+    "multi_hop",
+    "temporal",
+    "open_domain"
+  ],
+  "reportPath": "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/v073-baseline-discovery-seed-54c69a32/smoke-report.json",
+  "runId": "v073-baseline-discovery-seed-54c69a32",
+  "semanticCandidateEmbeddingSource": "provider",
+  "semanticCandidates": {
+    "enabled": false,
+    "maxAdditions": null,
+    "minRelativeScore": null,
+    "minSimilarity": null,
+    "topK": null
+  }
+}
+
+[reanswer]
+{
+  "allowCommonsenseResolution": false,
+  "strictNoEvidenceAbstention": false,
+  "answerContextMode": "evidence-pack",
+  "categories": [
+    {
+      "answerAccuracy": 0.5789473684210527,
+      "answeredCount": 114,
+      "averageEvidenceRecall": 0.793859649122807,
+      "category": "single_hop",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 90,
+      "noiseTurnTotal": 763,
+      "questionCount": 114
+    },
+    {
+      "answerAccuracy": 0.4186046511627907,
+      "answeredCount": 43,
+      "averageEvidenceRecall": 0.6286821705426356,
+      "category": "multi_hop",
+      "crossSessionChainReady": false,
+      "fullyRetrievedCount": 18,
+      "noiseTurnTotal": 312,
+      "questionCount": 43
+    },
+    {
+      "answerAccuracy": 0.8253968253968254,
+      "answeredCount": 63,
+      "averageEvidenceRecall": 0.9523809523809523,
+      "category": "temporal",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 60,
+      "noiseTurnTotal": 411,
+      "questionCount": 63
+    },
+    {
+      "answerAccuracy": 0.15384615384615385,
+      "answeredCount": 13,
+      "averageEvidenceRecall": 0.7307692307692307,
+      "category": "open_domain",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 8,
+      "noiseTurnTotal": 101,
+      "questionCount": 13
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0,
+      "category": "adversarial",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 0,
+      "noiseTurnTotal": 0,
+      "questionCount": 0
+    }
+  ],
+  "executionFailures": 0,
+  "questionCount": 233,
+  "questionIds": null,
+  "reanswerSelection": {
+    "explicitQuestionIds": null,
+    "questionIdFile": null,
+    "reanswerJobBuckets": null,
+    "reanswerJobCategories": null
+  },
+  "retainUnselected": false,
+  "reportPath": "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/v073-baseline-discovery-final-54c69a32/smoke-report.json",
+  "runId": "v073-baseline-discovery-final-54c69a32",
+  "sourceReportPath": "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/v073-baseline-discovery-seed-54c69a32/smoke-report.json"
+}
+
+[officialRescore]
+locomo: 233 cases, 0 cached, 233 to judge (model gpt-5.5)
+50/233 judged
+100/233 judged
+150/233 judged
+200/233 judged
+{
+  "benchmark": "locomo",
+  "claimBoundary": "Official/industry-prompt-compatible stored-answer rescore; numeric comparability is benchmark-specific and requires a matching pinned evaluator configuration; not answer regeneration or a public benchmark claim.",
+  "generatedAt": "2026-08-07T10:45:47.530Z",
+  "generatedBy": "scripts/rescore-official-protocols.ts",
+  "judgeGateway": "http://127.0.0.1:59974/judge",
+  "judgeModel": "gpt-5.5",
+  "judgeProvider": "openai",
+  "limit": null,
+  "limitUnit": "cases",
+  "outputPath": "/private/tmp/goodmemory-v072.XFpp3U/reports/eval/research/official-rescore/v073-baseline-discovery-official-54c69a32/rescore-summary.json",
+  "runId": "v073-baseline-discovery-official-54c69a32",
+  "scorerSource": null,
+  "sourceAnswersUnchanged": true,
+  "sourceInputFingerprints": {
+    "reportPath": {
+      "bytes": 271813,
+      "sha256": "c81d77c9634daa99af6aa85c5a77514a6d15dcbdbba0172f69925f6cb13e9157"
+    },
+    "rootPath": {
+      "bytes": 2490457,
+      "sha256": "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28"
+    }
+  },
+  "sourceInputs": {
+    "reportPath": "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/v073-baseline-discovery-final-54c69a32/smoke-report.json",
+    "rootPath": "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1/cases.json"
+  },
+  "selectedCases": 233,
+  "sourceCases": 233,
+  "categories": {
+    "temporal": {
+      "accuracy": 0.9523809523809523,
+      "correct": 60,
+      "total": 63
+    },
+    "open_domain": {
+      "accuracy": 0.6923076923076923,
+      "correct": 9,
+      "total": 13
+    },
+    "multi_hop": {
+      "accuracy": 0.9534883720930233,
+      "correct": 41,
+      "total": 43
+    },
+    "single_hop": {
+      "accuracy": 0.9035087719298246,
+      "correct": 103,
+      "total": 114
+    }
+  },
+  "judgeFailures": 0,
+  "judgedCases": 233,
+  "overallAccuracy": 0.9141630901287554,
+  "overallCorrect": 213,
+  "protocol": "mem0ai/memory-benchmarks LoCoMo judge (no-evidence variant, categories 1-4)",
+  "totalCases": 233
+}
