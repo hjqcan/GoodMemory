@@ -107,6 +107,13 @@ reports/eval/dogfood/**
 reports/eval/adoption/**
 reports/eval/product/**
 reports/eval/research/**
+!reports/eval/research/preference-identity/
+!reports/eval/research/preference-identity/preference-independent-arms-v1/
+!reports/eval/research/preference-identity/preference-independent-arms-v1/report.json
+!reports/eval/research/preference-identity/preference-independent-arms-v1/raw-fingerprints.json
+!reports/eval/research/preference-identity/fixture-census/
+!reports/eval/research/preference-identity/fixture-census/current/
+!reports/eval/research/preference-identity/fixture-census/current/report.json
 !reports/eval/research/codex-coding-effect/
 !reports/eval/research/codex-coding-effect/*/
 !reports/eval/research/codex-coding-effect/*/audit-evidence.sanitized.json
