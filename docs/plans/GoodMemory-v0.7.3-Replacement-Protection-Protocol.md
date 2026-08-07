@@ -1,7 +1,7 @@
 # GoodMemory v0.7.3 Replacement Protection Protocol
 
-Status: schema-3 pre-registration executed once and blocked during baseline
-provider discovery; no passing run and no release yet
+Status: schema-4 revision pre-registered but not yet executed; schema-3 remains
+blocked and there is still no passing run or release
 Date: 2026-08-07
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
@@ -60,6 +60,35 @@ The incomplete evidence and attribution are archived under
 authorize another attempt. Persisting a failure tape snapshot or adding an
 assisted-extraction timeout changes the evidence protocol and requires a new
 preregistration first.
+
+## Schema-4 revision
+
+Schema 4 changes evidence capture, not either measured arm:
+
+- the existing LoCoMo harness remains byte-identical in baseline and candidate;
+- assisted extraction keeps its existing per-attempt timeout of `120000ms` and
+  its existing maximum of four attempts. Both values are now explicit in the
+  manifest and independently checked. This is a per-attempt bound, not a new
+  whole-run deadline;
+- if a discovery stage is going to fail because a command exited non-zero, a
+  seed report is incomplete, an intermediate provider check fails, or final
+  output validation fails, the runner first waits for any accepted in-flight
+  proxy request to settle under the existing request timeout, serializes the
+  current successful-response snapshot, atomically writes
+  `failure-tape.json`, binds its byte count and SHA-256 in the stage receipt,
+  and only then throws;
+- the failure tape uses the strict schema-2 tape parser. It contains exact 2xx
+  response bytes and hash-only request identities for credential-free entries,
+  never raw request bodies or credential-bearing headers. An entry whose path,
+  response metadata, or response body contains a configured provider
+  credential is excluded before persistence; the exclusion count is recorded
+  in the secret-free receipt. The tape is attribution evidence only and can
+  never make an incomplete stage pass.
+
+No schema-4 attempt may begin until the implementation, focused regressions,
+full tests, typecheck, coverage, and readiness verifier are green on one frozen
+`main` commit. A failed attempt is archived once; it is not retried until the
+cause is attributed and a new protocol revision is pre-registered.
 
 ## Release decision
 
@@ -147,6 +176,11 @@ process-wide egress isolation. A transport or judge execution failure
 invalidates the evidence. Provider point deltas do not use a raw 1pt release
 threshold and cannot override the deterministic gate.
 
+Before either discovery stage can abort, schema 4 also writes the current
+successful-response snapshot described above. This closes the schema-3
+attribution gap without treating malformed output, non-2xx responses, or
+execution failures as acceptable evidence.
+
 Execution receipts and readiness recomputation establish repository-local
 integrity and command provenance; they are not cryptographically signed CI
 attestations. Release authority still depends on running the gate from the
@@ -167,7 +201,7 @@ direction, never a replacement for the deterministic hard gate.
 
 ## Claim boundary
 
-The full 1540-question claim must run only after this schema-2 evidence passes
+The full 1540-question claim must run only after this schema-4 evidence passes
 and is bound to the release candidate commit. The existing 0.8799 number is not
 copied forward. The observed 233-question same-commit wobble, scaled only as a
 heuristic by `sqrt(233/1540)`, suggests roughly 0.4-0.7pt full-set run-to-run
@@ -192,11 +226,11 @@ bun run gate:v0.7.3-lifecycle-protection -- \
   --output-dir reports/release/v0.7/v0.7.3-lifecycle-evidence
 ```
 
-The only accepted compact result is schema 3 at
+The only accepted compact result is schema 4 at
 `reports/release/v0.7/v0.7.3-lifecycle-protection.json`. `gate:v0.7 --strict`
 re-reads every bound artifact, re-parses the tape, re-hashes the frozen input
 sequences, recomputes deterministic metrics and the sign test, and rejects
-schema-1 and schema-2 evidence.
+schema-1 through schema-3 evidence.
 
 The measurement runner validates the external `cases.json` against the frozen
 byte count and SHA-256. The tracked manifest retains that identity and the

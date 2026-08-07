@@ -28,8 +28,10 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   evidence and attribution are archived at
   `reports/release/v0.7/blocked-113477d3-provider-json/`. The malformed response
   bytes were not persisted because the failure preceded the union-tape write;
-  a new preregistered protocol is required before another attempt. No full
-  1540-question claim may run yet.
+  schema 4 is now pre-registered to atomically persist a failure tape before a
+  discovery abort and to bind the existing 120s/four-attempt assisted
+  extraction policy. It has not been executed yet. No full 1540-question claim
+  may run yet.
   See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as

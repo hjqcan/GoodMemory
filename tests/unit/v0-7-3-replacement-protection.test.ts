@@ -139,7 +139,7 @@ describe("v0.7.3 replacement protection protocol", () => {
     expect(report.providerReplay.discovery.candidate.misses).toBe(3);
     expect(report.providerReplay.formal.candidate.liveRequests).toBe(0);
     expect(report.liveDiagnostic.signTest.pValue).toBeCloseTo(0.5571970939636236, 14);
-    expect(report.schemaVersion).toBe(3);
+    expect(report.schemaVersion).toBe(4);
   });
 
   it("blocks a deterministic regression beyond one point", () => {

@@ -9,6 +9,7 @@ import {
 } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 
+import { DEFAULT_AISDK_RETRY_LIMIT } from "../src/provider/ai-sdk-runtime";
 import { resolveCliFlagValueStrict } from "./cli-options";
 import {
   createProviderResponseTapeProxy,
@@ -16,6 +17,7 @@ import {
   serializeProviderResponseTape,
 } from "./provider-response-tape";
 import type {
+  ProviderResponseTape,
   ProviderResponseTapeProxy,
   ProviderTapeRequestIdentity,
   ProviderTapeSessionStats,
@@ -36,6 +38,7 @@ import type {
   V073ReplacementProtectionInput,
   V073ReplacementProtectionReport,
 } from "./v0-7-3-replacement-protection";
+import { LOCOMO_LIVE_REQUEST_TIMEOUT_MS } from "./run-phase-65-locomo-smoke";
 
 const BASELINE_COMMIT = "456edd106f29118b3455bf21c43d7b3107b48213";
 const REQUIRED_BUN_VERSION = "1.3.14";
@@ -52,6 +55,13 @@ const QUESTION_CATEGORIES = [
   "multi_hop",
   "temporal",
   "open_domain",
+] as const;
+const PROVIDER_CREDENTIAL_ENV_NAMES = [
+  "GOODMEMORY_ASSISTED_EXTRACTOR_API_KEY",
+  "GOODMEMORY_EMBEDDING_API_KEY",
+  "GOODMEMORY_EVAL_API_KEY",
+  "GOODMEMORY_JUDGE_API_KEY",
+  "GOODMEMORY_RERANKING_API_KEY",
 ] as const;
 const EXPECTED_QUESTION_COUNT = 233;
 const EXPECTED_CASE_COUNTS = {
@@ -77,6 +87,11 @@ export const V073_PROVIDER_STAGE_ORDER = [
   "reanswer",
   "officialRescore",
 ] as const;
+
+export const V073_ASSISTED_EXTRACTION_POLICY = {
+  maxAttempts: DEFAULT_AISDK_RETRY_LIMIT,
+  requestTimeoutMs: LOCOMO_LIVE_REQUEST_TIMEOUT_MS,
+} as const;
 
 interface V073ReplacementGateCliOptions {
   baselineWorktree: string;
@@ -340,6 +355,16 @@ function requiredProvider(prefix: string): ProviderIdentity {
   return { gateway, model, provider };
 }
 
+function requiredProviderCredentials(): string[] {
+  return [...new Set(PROVIDER_CREDENTIAL_ENV_NAMES.map((name) => {
+    const value = process.env[name]?.trim();
+    if (!value) {
+      throw new Error(`${name} is required`);
+    }
+    return value;
+  }))];
+}
+
 function assertProviderIdentities(input: {
   assisted: ProviderIdentity;
   embedding: ProviderIdentity;
@@ -409,6 +434,93 @@ async function writeAtomic(path: string, raw: string): Promise<void> {
   const partial = `${resolved}.partial`;
   await writeFile(partial, raw, { flag: "wx" });
   await rename(partial, resolved);
+}
+
+async function persistDiscoveryFailureTape(input: {
+  mode: "prefetch" | "replay";
+  proxy: ProviderResponseTapeProxy;
+  sensitiveValues: readonly string[];
+  stageRoot: string;
+}): Promise<{
+  artifact: ArtifactIdentity;
+  excludedCredentialEntries: number;
+} | undefined> {
+  if (input.mode !== "prefetch") {
+    return undefined;
+  }
+  const snapshot = input.proxy.snapshot();
+  const entries = snapshot.entries.filter((entry) =>
+    !providerTapeEntryContainsSensitiveValue(entry, input.sensitiveValues)
+  );
+  const raw = serializeProviderResponseTape({ entries, schemaVersion: 2 });
+  parseProviderResponseTape(raw);
+  const path = join(input.stageRoot, "failure-tape.json");
+  await writeAtomic(path, raw);
+  return {
+    artifact: artifactIdentity(path, raw),
+    excludedCredentialEntries: snapshot.entries.length - entries.length,
+  };
+}
+
+function providerTapeEntryContainsSensitiveValue(
+  entry: ProviderResponseTape["entries"][number],
+  sensitiveValues: readonly string[],
+): boolean {
+  const metadata = JSON.stringify({
+    request: {
+      method: entry.request.method,
+      path: entry.request.path,
+      targetId: entry.request.targetId,
+    },
+    response: {
+      contentType: entry.response.contentType,
+      statusText: entry.response.statusText,
+    },
+  });
+  const body = Buffer.from(entry.response.bodyBase64, "base64");
+  return sensitiveValues.some((value) => {
+    if (value.length === 0) {
+      return false;
+    }
+    const candidates = [
+      value,
+      encodeURIComponent(value),
+      JSON.stringify(value).slice(1, -1),
+    ];
+    return candidates.some((candidate) =>
+      metadata.includes(candidate) ||
+      body.includes(Buffer.from(candidate, "utf8"))
+    );
+  });
+}
+
+function assertProviderTapeCredentialSafe(
+  proxy: ProviderResponseTapeProxy,
+  sensitiveValues: readonly string[],
+): void {
+  if (proxy.snapshot().entries.some((entry) =>
+    providerTapeEntryContainsSensitiveValue(entry, sensitiveValues)
+  )) {
+    throw new Error("provider response tape contains configured credential material");
+  }
+}
+
+function redactSensitiveSessionValues(
+  session: ProviderTapeSessionStats,
+  sensitiveValues: readonly string[],
+): ProviderTapeSessionStats {
+  return JSON.parse(JSON.stringify(session, (_key, value: unknown) => {
+    if (typeof value !== "string") {
+      return value;
+    }
+    return sensitiveValues.reduce((redacted, sensitiveValue) => {
+      if (sensitiveValue.length === 0) {
+        return redacted;
+      }
+      return [sensitiveValue, encodeURIComponent(sensitiveValue)]
+        .reduce((text, candidate) => text.split(candidate).join("[redacted]"), redacted);
+    }, value);
+  })) as ProviderTapeSessionStats;
 }
 
 function stageRunId(stage: string, suffix: string, outputDir: string): string {
@@ -761,6 +873,7 @@ export async function runV073ProviderStage(input: {
   liveOnMiss: boolean;
   mode: "prefetch" | "replay";
   proxy: ProviderResponseTapeProxy;
+  sensitiveValues: readonly string[];
   stage: string;
 }, dependencies: {
   runProcess(input: CapturedProcessInput): Promise<CapturedProcess>;
@@ -823,7 +936,10 @@ export async function runV073ProviderStage(input: {
         break;
       }
     }
+  } catch (error) {
+    validationFailure = error instanceof Error ? error.message : String(error);
   } finally {
+    await input.proxy.waitForIdle();
     session = input.proxy.endSession();
   }
   const stageRoot = dirname(input.arm.executionReceiptPath);
@@ -843,7 +959,7 @@ export async function runV073ProviderStage(input: {
     commit: input.arm.commit,
     executionOrder: V073_PROVIDER_STAGE_ORDER,
     generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
-    session,
+    session: redactSensitiveSessionValues(session, input.sensitiveValues),
     sourceIdentity: {
       claimCommandTemplateSha256:
         input.arm.execution.claimCommandTemplateSha256,
@@ -860,69 +976,96 @@ export async function runV073ProviderStage(input: {
       step,
     })),
     stdout: artifactIdentity(stdoutPath, stdout),
-    ...(validationFailure === undefined ? {} : { validationFailure }),
+  };
+  const writeFailureReceipt = async (
+    failure: string | undefined,
+  ): Promise<void> => {
+    const failureTape = await persistDiscoveryFailureTape({
+      mode: input.mode,
+      proxy: input.proxy,
+      sensitiveValues: input.sensitiveValues,
+      stageRoot,
+    });
+    await writeJson(input.arm.executionReceiptPath, {
+      ...receiptBase,
+      ...(failureTape === undefined
+        ? {}
+        : {
+            failureTape: failureTape.artifact,
+            failureTapeExcludedCredentialEntries:
+              failureTape.excludedCredentialEntries,
+          }),
+      ...(failure === undefined ? {} : { validationFailure: failure }),
+    });
   };
   if (validationFailure !== undefined) {
-    await writeJson(input.arm.executionReceiptPath, receiptBase);
+    await writeFailureReceipt(validationFailure);
     throw new Error(`${input.stage} ${validationFailure}`);
   }
   if (failed !== undefined) {
-    await writeJson(input.arm.executionReceiptPath, receiptBase);
+    await writeFailureReceipt(undefined);
     throw new Error(
       `${input.stage} ${failed.step} exited with ${String(failed.result.exitCode)}`,
     );
   }
-  const officialProgressPath = join(
-    dirname(input.arm.officialSummaryPath),
-    "progress.jsonl",
-  );
-  const [seedRaw, finalRaw, officialRaw, officialProgressRaw] = await Promise.all([
-    readFile(input.arm.seedReportPath, "utf8"),
-    readFile(input.arm.reportPath, "utf8"),
-    readFile(input.arm.officialSummaryPath, "utf8"),
-    readFile(officialProgressPath, "utf8"),
-  ]);
-  const copiedOfficialPath = join(stageRoot, "official-summary.json");
-  const copiedProgressPath = join(stageRoot, "official-progress.jsonl");
-  await Promise.all([
-    writeFile(copiedOfficialPath, officialRaw),
-    writeFile(copiedProgressPath, officialProgressRaw),
-  ]);
-  await writeJson(input.arm.executionReceiptPath, {
-    ...receiptBase,
-    outputs: {
-      finalReport: artifactIdentity(input.arm.reportPath, finalRaw),
-      officialProgress: artifactIdentity(copiedProgressPath, officialProgressRaw),
-      officialSummary: artifactIdentity(copiedOfficialPath, officialRaw),
-      seedReport: artifactIdentity(input.arm.seedReportPath, seedRaw),
-    },
-  });
-  const finalReport = parseV073FormalSmokeReport(finalRaw);
-  const officialSummary = parseV073OfficialSummary(officialRaw);
-  const officialProgress = parseV073OfficialProgress(officialProgressRaw);
-  const reportQuestionIds = new Set(
-    finalReport.cases.map((row) => row.questionId),
-  );
-  if (
-    officialProgress.some((row) => !reportQuestionIds.has(row.questionId)) ||
-    Math.abs(
-      mean(officialProgress.map((row) => Number(row.correct))) -
-        officialSummary.overallAccuracy,
-    ) > 1e-12
-  ) {
-    throw new Error("formal provider replay official outputs disagree");
+  try {
+    assertProviderTapeCredentialSafe(input.proxy, input.sensitiveValues);
+    const officialProgressPath = join(
+      dirname(input.arm.officialSummaryPath),
+      "progress.jsonl",
+    );
+    const [seedRaw, finalRaw, officialRaw, officialProgressRaw] = await Promise.all([
+      readFile(input.arm.seedReportPath, "utf8"),
+      readFile(input.arm.reportPath, "utf8"),
+      readFile(input.arm.officialSummaryPath, "utf8"),
+      readFile(officialProgressPath, "utf8"),
+    ]);
+    const finalReport = parseV073FormalSmokeReport(finalRaw);
+    const officialSummary = parseV073OfficialSummary(officialRaw);
+    const officialProgress = parseV073OfficialProgress(officialProgressRaw);
+    const reportQuestionIds = new Set(
+      finalReport.cases.map((row) => row.questionId),
+    );
+    if (
+      officialProgress.some((row) => !reportQuestionIds.has(row.questionId)) ||
+      Math.abs(
+        mean(officialProgress.map((row) => Number(row.correct))) -
+          officialSummary.overallAccuracy,
+      ) > 1e-12
+    ) {
+      throw new Error("formal provider replay official outputs disagree");
+    }
+    const copiedOfficialPath = join(stageRoot, "official-summary.json");
+    const copiedProgressPath = join(stageRoot, "official-progress.jsonl");
+    await Promise.all([
+      writeFile(copiedOfficialPath, officialRaw),
+      writeFile(copiedProgressPath, officialProgressRaw),
+    ]);
+    await writeJson(input.arm.executionReceiptPath, {
+      ...receiptBase,
+      outputs: {
+        finalReport: artifactIdentity(input.arm.reportPath, finalRaw),
+        officialProgress: artifactIdentity(copiedProgressPath, officialProgressRaw),
+        officialSummary: artifactIdentity(copiedOfficialPath, officialRaw),
+        seedReport: artifactIdentity(input.arm.seedReportPath, seedRaw),
+      },
+    });
+    return {
+      finalReport,
+      finalReportPath: input.arm.reportPath,
+      officialProgress,
+      officialProgressPath: copiedProgressPath,
+      officialSummary,
+      officialSummaryPath: copiedOfficialPath,
+      receiptPath: input.arm.executionReceiptPath,
+      seedReportPath: input.arm.seedReportPath,
+      session,
+    };
+  } catch (error) {
+    const failure = error instanceof Error ? error.message : String(error);
+    await writeFailureReceipt(failure);
+    throw new Error(`${input.stage} ${failure}`);
   }
-  return {
-    finalReport,
-    finalReportPath: input.arm.reportPath,
-    officialProgress,
-    officialProgressPath: copiedProgressPath,
-    officialSummary,
-    officialSummaryPath: copiedOfficialPath,
-    receiptPath: input.arm.executionReceiptPath,
-    seedReportPath: input.arm.seedReportPath,
-    session,
-  };
 }
 
 export function buildV073ProviderFreeArgs(input: {
@@ -1208,6 +1351,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
     judge: requiredProvider("GOODMEMORY_JUDGE"),
     reranking: requiredProvider("GOODMEMORY_RERANKING"),
   };
+  const sensitiveValues = requiredProviderCredentials();
   assertProviderIdentities(providers);
   await mkdir(outputDir, { recursive: true });
   const manifestPath = join(outputDir, "manifest.json");
@@ -1223,10 +1367,16 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
     generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
     measurementHarness: baselineHarness,
     protocol: {
+      assistedExtractionMaxAttempts:
+        V073_ASSISTED_EXTRACTION_POLICY.maxAttempts,
+      assistedExtractionRequestTimeoutMs:
+        V073_ASSISTED_EXTRACTION_POLICY.requestTimeoutMs,
       claimCommandTemplateSha256:
         deriveV073ClaimCommandTemplateSha256(
           await readFile(join(candidateWorktree, CLAIM_RECIPE_PATH), "utf8"),
         ),
+      failureTapeCredentialMaterial: "excluded-before-persistence",
+      failedDiscoveryTape: "atomic-before-stage-error",
       formalNetworkOnMiss: false,
       hardRegressionLimit: 0.01,
       promptSha256: deriveV073PromptSha256(),
@@ -1239,7 +1389,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
         "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)",
     },
     providers,
-    schemaVersion: 3,
+    schemaVersion: 4,
   });
 
   const [providerFreeC1Baseline, providerFreeC1Candidate] = await Promise.all([
@@ -1309,6 +1459,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       liveOnMiss: true,
       mode: "prefetch",
       proxy: discoveryProxy,
+      sensitiveValues,
       stage: "baseline-discovery",
     });
     const candidateDiscoveryArm = await buildStageArm({
@@ -1324,6 +1475,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       liveOnMiss: true,
       mode: "prefetch",
       proxy: discoveryProxy,
+      sensitiveValues,
       stage: "candidate-discovery",
     });
     const tapeRaw = serializeProviderResponseTape(discoveryProxy.snapshot());
@@ -1357,6 +1509,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       liveOnMiss: false,
       mode: "replay",
       proxy: replayProxy,
+      sensitiveValues,
       stage: "baseline-formal",
     });
     const candidateFormalArm = await buildStageArm({
@@ -1373,6 +1526,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       liveOnMiss: false,
       mode: "replay",
       proxy: replayProxy,
+      sensitiveValues,
       stage: "candidate-formal",
     });
   } finally {

@@ -1125,7 +1125,7 @@ describe("v0.7 release readiness", () => {
       },
       releaseAllowed: true,
       researchRecordRequired: false,
-      schemaVersion: 3,
+      schemaVersion: 4,
     };
 
     expect(evaluateV073LifecycleProtectionArtifact({
@@ -1137,10 +1137,10 @@ describe("v0.7 release readiness", () => {
     }));
 
     expect(evaluateV073LifecycleProtectionArtifact({
-      artifact: { ...artifact, schemaVersion: 2 },
+      artifact: { ...artifact, schemaVersion: 3 },
       artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
     })).toEqual(expect.objectContaining({
-      detail: expect.stringContaining("schemaVersion must be 3"),
+      detail: expect.stringContaining("schemaVersion must be 4"),
       status: "fail",
     }));
 
@@ -1216,7 +1216,7 @@ describe("v0.7 release readiness", () => {
     }));
   });
 
-  it("recomputes schema 3 lifecycle evidence from bound deterministic and frozen-replay bytes", async () => {
+  it("recomputes schema 4 lifecycle evidence from bound deterministic and frozen-replay bytes", async () => {
     const repoRoot = await mkdtemp(join(tmpdir(), "goodmemory-v073-replacement-bundle-"));
     const evidencePrefix = "reports/release/v0.7/v0.7.3-lifecycle-evidence";
     const candidateCommit = "a".repeat(40);
@@ -1515,7 +1515,11 @@ describe("v0.7 release readiness", () => {
         generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
         measurementHarness,
         protocol: {
+          assistedExtractionMaxAttempts: 4,
+          assistedExtractionRequestTimeoutMs: 120_000,
           claimCommandTemplateSha256: sourceIdentity.claimCommandTemplateSha256,
+          failureTapeCredentialMaterial: "excluded-before-persistence",
+          failedDiscoveryTape: "atomic-before-stage-error",
           formalNetworkOnMiss: false,
           hardRegressionLimit: 0.01,
           promptSha256: sourceIdentity.promptSha256,
@@ -1528,7 +1532,7 @@ describe("v0.7 release readiness", () => {
             "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)",
         },
         providers,
-        schemaVersion: 3,
+        schemaVersion: 4,
       };
       const sharedStdout = await writeEvidence("logs/stdout.log", "8 pass\n0 fail\n");
       const sharedStderr = await writeEvidence("logs/stderr.log", "");
@@ -1753,6 +1757,10 @@ describe("v0.7 release readiness", () => {
       })).toEqual(expect.objectContaining({ status: "pass" }));
 
       for (const protocolDrift of [
+        { assistedExtractionMaxAttempts: 3 },
+        { assistedExtractionRequestTimeoutMs: 60_000 },
+        { failureTapeCredentialMaterial: "persist-raw" },
+        { failedDiscoveryTape: "after-stage-error" },
         { formalNetworkOnMiss: true },
         { hardRegressionLimit: 0.02 },
         { providerFreeConcurrency: [1] },

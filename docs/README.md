@@ -61,10 +61,10 @@ bulk-load. Start here, then open only the file that matches the question.
 ## Research And Evidence
 
 - `plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md` - pre-registered
-  schema-3 deterministic hard gate, ordered provider-input and response replay,
-  paired sign-test diagnostic, and full-claim provider-variance boundary; the
-  schema-2 and first schema-3 attempts remain blocked and no passing run or
-  release is implied.
+  schema-4 deterministic hard gate, ordered provider-input and response replay,
+  failure-tape capture, paired sign-test diagnostic, and full-claim
+  provider-variance boundary; schema-2 and schema-3 attempts remain blocked,
+  schema 4 has not run, and no passing run or release is implied.
 - `GoodMemory-Preference-Identity-Pre-API-Research.md` - frozen pre-API
   preference atomization/key-stability protocol, completed no-API decision,
   fixture-only conflict census, and synthetic policy comparison; not a

@@ -42,6 +42,7 @@ import {
   parseV073OfficialSummary,
   parseV073ProviderFreeReport,
   routeV073CommandChainThroughTape,
+  V073_ASSISTED_EXTRACTION_POLICY,
   V073_PROVIDER_STAGE_ORDER,
 } from "./run-v0-7-3-replacement-protection-gate";
 import { resolveRepoRootFromScriptUrl } from "./script-paths";
@@ -1572,8 +1573,8 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
     const hardGate = input.artifact.hardGate;
     const providerReplay = input.artifact.providerReplay;
     const liveDiagnostic = input.artifact.liveDiagnostic;
-    if (input.artifact.schemaVersion !== 3) {
-      issues.push("schemaVersion must be 3");
+    if (input.artifact.schemaVersion !== 4) {
+      issues.push("schemaVersion must be 4");
     }
     if (
       input.artifact.generatedBy !==
@@ -1863,14 +1864,21 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd" ||
       manifest.benchmark.sha256 !==
         "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28" ||
-      manifest.schemaVersion !== 3 ||
+      manifest.schemaVersion !== 4 ||
       manifest.generatedBy !==
         "scripts/run-v0-7-3-replacement-protection-gate.ts" ||
       !sameJson(manifest.providers, expectedProviders) ||
       !validHarness ||
       !isRecord(protocol) ||
+      protocol.assistedExtractionMaxAttempts !==
+        V073_ASSISTED_EXTRACTION_POLICY.maxAttempts ||
+      protocol.assistedExtractionRequestTimeoutMs !==
+        V073_ASSISTED_EXTRACTION_POLICY.requestTimeoutMs ||
       protocol.claimCommandTemplateSha256 !==
         deriveV073ClaimCommandTemplateSha256(currentClaimRecipeRaw) ||
+      protocol.failureTapeCredentialMaterial !==
+        "excluded-before-persistence" ||
+      protocol.failedDiscoveryTape !== "atomic-before-stage-error" ||
       protocol.formalNetworkOnMiss !== false ||
       protocol.hardRegressionLimit !== 0.01 ||
       protocol.promptSha256 !== deriveV073PromptSha256() ||

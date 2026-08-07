@@ -119,7 +119,7 @@ export interface V073ReplacementProtectionReport {
   providerReplay: V073ReplacementProtectionInput["providerReplay"];
   releaseAllowed: boolean;
   researchRecordRequired: boolean;
-  schemaVersion: 3;
+  schemaVersion: 4;
 }
 
 function logAdd(left: number, right: number): number {
@@ -486,6 +486,6 @@ export function evaluateV073ReplacementProtection(
     providerReplay: input.providerReplay,
     releaseAllowed: blockers.length === 0,
     researchRecordRequired: deterministicMoved || providerMoved,
-    schemaVersion: 3,
+    schemaVersion: 4,
   };
 }

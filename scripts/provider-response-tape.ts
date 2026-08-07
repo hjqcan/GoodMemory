@@ -87,6 +87,7 @@ export interface ProviderResponseTapeProxy {
   sessionStats(): ProviderTapeSessionStats;
   snapshot(): ProviderResponseTape;
   stop(): void;
+  waitForIdle(): Promise<void>;
 }
 
 function sha256(value: string | Uint8Array): string {
@@ -553,6 +554,11 @@ export function createProviderResponseTapeProxy(input: {
     snapshot,
     stop() {
       server.stop(true);
+    },
+    async waitForIdle() {
+      while (inFlight.size !== 0) {
+        await Promise.allSettled([...inFlight.values()]);
+      }
     },
   };
 }

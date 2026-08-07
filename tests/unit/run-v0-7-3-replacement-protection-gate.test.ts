@@ -1,11 +1,15 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { describe, expect, it } from "bun:test";
 
-import { createProviderResponseTapeProxy } from "../../scripts/provider-response-tape";
+import {
+  createProviderResponseTapeProxy,
+  parseProviderResponseTape,
+} from "../../scripts/provider-response-tape";
 import {
   assertV073ProviderStageCanContinue,
   assertV073SeedStageReport,
@@ -17,6 +21,7 @@ import {
   parseV073ReplacementGateCliOptions,
   routeV073CommandChainThroughTape,
   runV073ProviderStage,
+  V073_ASSISTED_EXTRACTION_POLICY,
   V073_PROVIDER_STAGE_ORDER,
 } from "../../scripts/run-v0-7-3-replacement-protection-gate";
 import { buildV073PairedCommandChain } from "../../scripts/run-v0-7-3-lifecycle-protection-gate";
@@ -152,6 +157,13 @@ describe("v0.7.3 replacement protection gate runner", () => {
       "reanswer",
       "officialRescore",
     ]);
+  });
+
+  it("binds the existing assisted extraction timeout and attempt limit", () => {
+    expect(V073_ASSISTED_EXTRACTION_POLICY).toEqual({
+      maxAttempts: 4,
+      requestTimeoutMs: 120_000,
+    });
   });
 
   it("pins every provider diagnostic stage to deterministic concurrency one", () => {
@@ -301,6 +313,7 @@ describe("v0.7.3 replacement protection gate runner", () => {
         liveOnMiss: false,
         mode: "replay",
         proxy: replay,
+        sensitiveValues: [],
         stage: "baseline-formal",
       }, {
         runProcess: async ({ environment }) => {
@@ -355,6 +368,173 @@ describe("v0.7.3 replacement protection gate runner", () => {
       }
       replay?.stop();
       discovery.stop();
+      upstream.stop(true);
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("atomically persists successful discovery responses before an incomplete seed aborts", async () => {
+    const root = await mkdtemp(join(process.cwd(), ".goodmemory-v073-failure-tape-"));
+    const malformedResponse = '{"choices":[{"message":{"content":"[truncated"}}]}';
+    const requestMarker = "private-request-marker";
+    const credentialMarker = "private-credential-marker";
+    let releaseSlowResponse!: () => void;
+    let markSlowRequestStarted!: () => void;
+    const slowRequestStarted = new Promise<void>((resolve) => {
+      markSlowRequestStarted = resolve;
+    });
+    const slowResponseGate = new Promise<void>((resolve) => {
+      releaseSlowResponse = resolve;
+    });
+    const upstream = Bun.serve({
+      hostname: "127.0.0.1",
+      port: 0,
+      fetch: async (request) => {
+        const url = new URL(request.url);
+        if (url.searchParams.has("slow")) {
+          markSlowRequestStarted();
+          await slowResponseGate;
+          return new Response("slow-success", { status: 200 });
+        }
+        if (url.searchParams.has("api_key")) {
+          return new Response(`reflected:${credentialMarker}`, { status: 200 });
+        }
+        return new Response(malformedResponse, {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        });
+      },
+    });
+    const targets = Object.fromEntries(
+      ["assisted", "embedding", "eval", "judge", "reranking"].map(
+        (target) => [target, `http://127.0.0.1:${upstream.port}/v1`],
+      ),
+    );
+    const proxy = createProviderResponseTapeProxy({ targets });
+    try {
+      const claimRecipeRaw = readFileSync("benchmark-claims/locomo.json", "utf8");
+      const { arm } = buildV073StageArm({
+        benchmarkRoot: join(
+          homedir(),
+          ".cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1",
+        ),
+        claimRecipeRaw,
+        commit: "a".repeat(40),
+        outputDir: join(root, "evidence"),
+        providers: {
+          assisted: {
+            gateway: "https://ai.gurkiai.com/v1",
+            model: "gpt-5.6-terra",
+            provider: "openai",
+          },
+          embedding: {
+            gateway: "https://openrouter.ai/api/v1",
+            model: "text-embedding-3-small",
+            provider: "openai",
+          },
+          eval: {
+            gateway: "https://ai.gurkiai.com/v1",
+            model: "gpt-5.6-terra",
+            provider: "openai",
+          },
+          judge: {
+            gateway: "https://ai.gurkiai.com/v1",
+            model: "gpt-5.5",
+            provider: "openai",
+          },
+          reranking: {
+            gateway: "https://ai.gurkiai.com/v1",
+            model: "gpt-5.6-terra",
+            provider: "openai",
+          },
+        },
+        sourceIdentity: {
+          officialSourceSha256: "b".repeat(64),
+          reanswerSourceSha256: "c".repeat(64),
+          seedSourceSha256: "d".repeat(64),
+        },
+        stage: "baseline-discovery",
+        worktreePath: root,
+      });
+
+      await expect(runV073ProviderStage({
+        arm,
+        claimRecipeRaw,
+        liveOnMiss: true,
+        mode: "prefetch",
+        proxy,
+        sensitiveValues: [credentialMarker],
+        stage: "baseline-discovery",
+      }, {
+        runProcess: async ({ environment }) => {
+          const response = await fetch(
+            `${environment!.GOODMEMORY_EVAL_BASE_URL}/chat/completions`,
+            {
+              body: JSON.stringify({ model: "m", prompt: requestMarker }),
+              headers: {
+                authorization: `Bearer ${credentialMarker}`,
+                "content-type": "application/json",
+              },
+              method: "POST",
+            },
+          );
+          expect(response.status).toBe(200);
+          expect(await response.text()).toBe(malformedResponse);
+          const reflected = await fetch(
+            `${environment!.GOODMEMORY_EVAL_BASE_URL}/chat/completions?api_key=${credentialMarker}`,
+            { method: "POST" },
+          );
+          expect(await reflected.text()).toContain(credentialMarker);
+          void fetch(
+            `${environment!.GOODMEMORY_EVAL_BASE_URL}/chat/completions?slow=1`,
+            { method: "POST" },
+          ).catch(() => undefined);
+          await slowRequestStarted;
+          setTimeout(releaseSlowResponse, 20);
+          await mkdir(join(arm.seedReportPath, ".."), { recursive: true });
+          await writeFile(arm.seedReportPath, JSON.stringify({
+            cases: [],
+            executionFailures: 152,
+            questionCount: 233,
+          }));
+          return { exitCode: 0, stderr: "", stdout: "" };
+        },
+      })).rejects.toThrow("baseline-discovery provider seed report is incomplete");
+
+      const failureTapePath = join(
+        arm.executionReceiptPath,
+        "..",
+        "failure-tape.json",
+      );
+      const failureTapeRaw = await readFile(failureTapePath, "utf8");
+      const failureTape = parseProviderResponseTape(failureTapeRaw);
+      expect(failureTape.entries).toHaveLength(2);
+      expect(failureTape.entries.map((entry) => Buffer.from(
+        entry.response.bodyBase64,
+        "base64",
+      ).toString("utf8"))).toEqual(expect.arrayContaining([
+        malformedResponse,
+        "slow-success",
+      ]));
+      expect(failureTapeRaw).not.toContain(requestMarker);
+      expect(failureTapeRaw).not.toContain(credentialMarker);
+
+      const receiptRaw = await readFile(arm.executionReceiptPath, "utf8");
+      const receipt = JSON.parse(receiptRaw) as {
+        failureTape: { bytes: number; path: string; sha256: string };
+        failureTapeExcludedCredentialEntries: number;
+      };
+      expect(receipt.failureTape).toEqual({
+        bytes: Buffer.byteLength(failureTapeRaw, "utf8"),
+        path: receipt.failureTape.path,
+        sha256: createHash("sha256").update(failureTapeRaw).digest("hex"),
+      });
+      expect(receipt.failureTapeExcludedCredentialEntries).toBe(1);
+      expect(receipt.failureTape.path.endsWith("/failure-tape.json")).toBe(true);
+      expect(receiptRaw).not.toContain(requestMarker);
+      expect(receiptRaw).not.toContain(credentialMarker);
+    } finally {
+      proxy.stop();
       upstream.stop(true);
       await rm(root, { force: true, recursive: true });
     }
