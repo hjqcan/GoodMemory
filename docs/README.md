@@ -60,6 +60,9 @@ bulk-load. Start here, then open only the file that matches the question.
 
 ## Research And Evidence
 
+- `GoodMemory-Preference-Identity-Pre-API-Research.md` - frozen pre-API
+  preference atomization/key-stability protocol, fixture-only conflict census,
+  and synthetic policy comparison; not a production-incidence claim.
 - `GoodMemory-ImplicitMemBench-Full-300-Research-Summary.md` - internal
   ImplicitMemBench research summary. Do not treat it as a release gate.
 - `Sequential Benchmark Hardening Plan.md` - external benchmark sequence.

@@ -1,0 +1,67 @@
+{
+  "corpus": {
+    "behaviorScenarios": {
+      "expectedScenarioCount": 6,
+      "expectedUserTurnCount": 16,
+      "module": "tests/scenarios/behavior-fixtures.ts"
+    },
+    "evalScenarios": {
+      "expectedFileCount": 46,
+      "expectedUserTurnCount": 335,
+      "glob": "fixtures/scenarios/eval/*.json"
+    },
+    "exclusions": [
+      "Persona preference lists have no chronology and are vocabulary sources only.",
+      "ImplicitMemBench procedural and feedback memories are not PreferenceMemory conflict events.",
+      "Synthetic policy cases are reported separately and never enter incidence denominators."
+    ]
+  },
+  "decisionRules": {
+    "adjudicationApiTrigger": "Do not design a first-class adjudication API unless at least 20 same-slot changes exist and either recency-appropriate rate is below 0.90 or ambiguous conflicts affect more than 0.05 of preference-bearing scopes.",
+    "minimumNaturalSameSlotChanges": 20,
+    "underpowered": "Fewer than 20 natural same-slot changes, or a corpus without frozen identity slots, is underpowered. Report underpowered_no_adjudication and do not use it to claim that conflicts are absent in production.",
+    "unavailableIdentityMetrics": "When the current extractor exposes only legacy categories, report same-slot, recency-appropriateness, and ambiguity metrics as null. Never substitute same-category changes for same-slot changes."
+  },
+  "detector": {
+    "identitySlotsAvailable": false,
+    "mode": "current-rules-only",
+    "note": "The census reports what the checked-in deterministic extractor recognizes. It is not a high-recall production incidence estimator."
+  },
+  "metrics": [
+    "scenarioFileCount",
+    "userTurnCount",
+    "preferenceCandidateCount",
+    "preferenceBearingScopeCount",
+    "legacyCategoryValueChangeCount",
+    "sameSlotChangeCount|null",
+    "recencyAppropriateCount|null",
+    "recencyAppropriateRate|null",
+    "ambiguousConflictCount|null",
+    "ambiguousConflictRate|null"
+  ],
+  "outputEvidence": {
+    "aggregateReportPath": "reports/eval/research/preference-identity/fixture-census/current/report.json",
+    "gitProvenanceRequired": true,
+    "rawCorpusTrackable": false
+  },
+  "productionIncidenceClaimed": false,
+  "protocolId": "preference-conflict-fixture-census-v1",
+  "schemaVersion": 1,
+  "syntheticCohort": "fixtures/research/preference-conflict-v1/synthetic-cohort.json",
+  "syntheticMetrics": [
+    "expectedActiveInstructionAccuracy",
+    "silentDataLossRate",
+    "falseConflictOrFreezeRate",
+    "generalFallbackAvailabilityRate",
+    "lineageRecoverabilityRate",
+    "unrecoverableWithExistingReviseOrForgetRate"
+  ],
+  "syntheticRelations": [
+    "explicit_update",
+    "contextual_coexistence",
+    "same_category_different_dimension",
+    "legacy_unkeyed",
+    "synonymous_repeat",
+    "compound_partial_update"
+  ]
+}

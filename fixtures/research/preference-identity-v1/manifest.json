@@ -1,0 +1,1490 @@
+{
+  "groups": [
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.verbosity",
+          "value": "concise"
+        }
+      ],
+      "groupId": "atomic-verbosity-concise",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is concise answers.",
+          "variantId": "atomic-verbosity-concise-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer concise answers.",
+          "variantId": "atomic-verbosity-concise-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have concise answers.",
+          "variantId": "atomic-verbosity-concise-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好简洁回答。",
+          "variantId": "atomic-verbosity-concise-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好简洁回答。",
+          "variantId": "atomic-verbosity-concise-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望简洁回答。",
+          "variantId": "atomic-verbosity-concise-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.verbosity",
+          "value": "detailed"
+        }
+      ],
+      "groupId": "atomic-verbosity-detailed",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is detailed explanations.",
+          "variantId": "atomic-verbosity-detailed-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer detailed explanations.",
+          "variantId": "atomic-verbosity-detailed-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have detailed explanations.",
+          "variantId": "atomic-verbosity-detailed-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好详细解释。",
+          "variantId": "atomic-verbosity-detailed-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好详细解释。",
+          "variantId": "atomic-verbosity-detailed-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望详细解释。",
+          "variantId": "atomic-verbosity-detailed-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.layout",
+          "value": "bullets"
+        }
+      ],
+      "groupId": "atomic-layout-bullets",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is bullet-point formatting.",
+          "variantId": "atomic-layout-bullets-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer bullet-point formatting.",
+          "variantId": "atomic-layout-bullets-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have bullet-point formatting.",
+          "variantId": "atomic-layout-bullets-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好项目符号格式。",
+          "variantId": "atomic-layout-bullets-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好项目符号格式。",
+          "variantId": "atomic-layout-bullets-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望项目符号格式。",
+          "variantId": "atomic-layout-bullets-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.layout",
+          "value": "prose"
+        }
+      ],
+      "groupId": "atomic-layout-prose",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is continuous prose instead of lists.",
+          "variantId": "atomic-layout-prose-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer continuous prose instead of lists.",
+          "variantId": "atomic-layout-prose-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have continuous prose instead of lists.",
+          "variantId": "atomic-layout-prose-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好连续的段落而不是列表。",
+          "variantId": "atomic-layout-prose-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好连续的段落而不是列表。",
+          "variantId": "atomic-layout-prose-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望连续的段落而不是列表。",
+          "variantId": "atomic-layout-prose-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.structure",
+          "value": "summary_first"
+        }
+      ],
+      "groupId": "atomic-structure-summary-first",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is the conclusion before the supporting detail.",
+          "variantId": "atomic-structure-summary-first-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer the conclusion before the supporting detail.",
+          "variantId": "atomic-structure-summary-first-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have the conclusion before the supporting detail.",
+          "variantId": "atomic-structure-summary-first-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好先给结论再给支撑细节。",
+          "variantId": "atomic-structure-summary-first-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好先给结论再给支撑细节。",
+          "variantId": "atomic-structure-summary-first-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望先给结论再给支撑细节。",
+          "variantId": "atomic-structure-summary-first-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.structure",
+          "value": "steps_first"
+        }
+      ],
+      "groupId": "atomic-structure-steps-first",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is actionable steps before background.",
+          "variantId": "atomic-structure-steps-first-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer actionable steps before background.",
+          "variantId": "atomic-structure-steps-first-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have actionable steps before background.",
+          "variantId": "atomic-structure-steps-first-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好先给可执行步骤再讲背景。",
+          "variantId": "atomic-structure-steps-first-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好先给可执行步骤再讲背景。",
+          "variantId": "atomic-structure-steps-first-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望先给可执行步骤再讲背景。",
+          "variantId": "atomic-structure-steps-first-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.register",
+          "value": "plain_language"
+        }
+      ],
+      "groupId": "atomic-register-plain",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is plain language without unnecessary jargon.",
+          "variantId": "atomic-register-plain-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer plain language without unnecessary jargon.",
+          "variantId": "atomic-register-plain-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have plain language without unnecessary jargon.",
+          "variantId": "atomic-register-plain-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好不用多余术语的通俗语言。",
+          "variantId": "atomic-register-plain-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好不用多余术语的通俗语言。",
+          "variantId": "atomic-register-plain-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望不用多余术语的通俗语言。",
+          "variantId": "atomic-register-plain-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.register",
+          "value": "technical_language"
+        }
+      ],
+      "groupId": "atomic-register-technical",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is precise technical terminology.",
+          "variantId": "atomic-register-technical-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer precise technical terminology.",
+          "variantId": "atomic-register-technical-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have precise technical terminology.",
+          "variantId": "atomic-register-technical-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好精确的技术术语。",
+          "variantId": "atomic-register-technical-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好精确的技术术语。",
+          "variantId": "atomic-register-technical-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望精确的技术术语。",
+          "variantId": "atomic-register-technical-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.evidence",
+          "value": "evidence_backed"
+        }
+      ],
+      "groupId": "atomic-evidence-grounded",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is evidence-backed recommendations.",
+          "variantId": "atomic-evidence-grounded-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer evidence-backed recommendations.",
+          "variantId": "atomic-evidence-grounded-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have evidence-backed recommendations.",
+          "variantId": "atomic-evidence-grounded-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好有证据支撑的建议。",
+          "variantId": "atomic-evidence-grounded-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好有证据支撑的建议。",
+          "variantId": "atomic-evidence-grounded-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望有证据支撑的建议。",
+          "variantId": "atomic-evidence-grounded-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.evidence",
+          "value": "intuition_first"
+        }
+      ],
+      "groupId": "atomic-evidence-intuition",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is an intuitive recommendation before citations.",
+          "variantId": "atomic-evidence-intuition-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer an intuitive recommendation before citations.",
+          "variantId": "atomic-evidence-intuition-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have an intuitive recommendation before citations.",
+          "variantId": "atomic-evidence-intuition-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好先给直觉性建议再给引用。",
+          "variantId": "atomic-evidence-intuition-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好先给直觉性建议再给引用。",
+          "variantId": "atomic-evidence-intuition-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望先给直觉性建议再给引用。",
+          "variantId": "atomic-evidence-intuition-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.risk_order",
+          "value": "risk_first"
+        }
+      ],
+      "groupId": "atomic-risk-order-first",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is risks before recommendations.",
+          "variantId": "atomic-risk-order-first-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer risks before recommendations.",
+          "variantId": "atomic-risk-order-first-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have risks before recommendations.",
+          "variantId": "atomic-risk-order-first-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好先讲风险再讲建议。",
+          "variantId": "atomic-risk-order-first-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好先讲风险再讲建议。",
+          "variantId": "atomic-risk-order-first-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望先讲风险再讲建议。",
+          "variantId": "atomic-risk-order-first-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.risk_order",
+          "value": "recommendation_first"
+        }
+      ],
+      "groupId": "atomic-risk-order-recommendation",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is the recommendation before the risk discussion.",
+          "variantId": "atomic-risk-order-recommendation-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer the recommendation before the risk discussion.",
+          "variantId": "atomic-risk-order-recommendation-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have the recommendation before the risk discussion.",
+          "variantId": "atomic-risk-order-recommendation-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好先给建议再讨论风险。",
+          "variantId": "atomic-risk-order-recommendation-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好先给建议再讨论风险。",
+          "variantId": "atomic-risk-order-recommendation-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望先给建议再讨论风险。",
+          "variantId": "atomic-risk-order-recommendation-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "work.delivery",
+          "value": "incremental"
+        }
+      ],
+      "groupId": "atomic-delivery-incremental",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is incremental delivery in small slices.",
+          "variantId": "atomic-delivery-incremental-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer incremental delivery in small slices.",
+          "variantId": "atomic-delivery-incremental-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have incremental delivery in small slices.",
+          "variantId": "atomic-delivery-incremental-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好小步增量交付。",
+          "variantId": "atomic-delivery-incremental-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好小步增量交付。",
+          "variantId": "atomic-delivery-incremental-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望小步增量交付。",
+          "variantId": "atomic-delivery-incremental-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "work.delivery",
+          "value": "big_bang"
+        }
+      ],
+      "groupId": "atomic-delivery-big-bang",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is one complete delivery after everything is ready.",
+          "variantId": "atomic-delivery-big-bang-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer one complete delivery after everything is ready.",
+          "variantId": "atomic-delivery-big-bang-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have one complete delivery after everything is ready.",
+          "variantId": "atomic-delivery-big-bang-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好全部准备好后一次性交付。",
+          "variantId": "atomic-delivery-big-bang-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好全部准备好后一次性交付。",
+          "variantId": "atomic-delivery-big-bang-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望全部准备好后一次性交付。",
+          "variantId": "atomic-delivery-big-bang-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "work.focus_mode",
+          "value": "deep_work"
+        }
+      ],
+      "groupId": "atomic-focus-deep-work",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is uninterrupted deep-work blocks.",
+          "variantId": "atomic-focus-deep-work-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer uninterrupted deep-work blocks.",
+          "variantId": "atomic-focus-deep-work-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have uninterrupted deep-work blocks.",
+          "variantId": "atomic-focus-deep-work-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好不被打断的深度工作时段。",
+          "variantId": "atomic-focus-deep-work-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好不被打断的深度工作时段。",
+          "variantId": "atomic-focus-deep-work-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望不被打断的深度工作时段。",
+          "variantId": "atomic-focus-deep-work-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "work.focus_mode",
+          "value": "frequent_checkins"
+        }
+      ],
+      "groupId": "atomic-focus-frequent-checkins",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is frequent check-ins while work is in progress.",
+          "variantId": "atomic-focus-frequent-checkins-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer frequent check-ins while work is in progress.",
+          "variantId": "atomic-focus-frequent-checkins-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have frequent check-ins while work is in progress.",
+          "variantId": "atomic-focus-frequent-checkins-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好工作进行中的频繁同步。",
+          "variantId": "atomic-focus-frequent-checkins-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好工作进行中的频繁同步。",
+          "variantId": "atomic-focus-frequent-checkins-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望工作进行中的频繁同步。",
+          "variantId": "atomic-focus-frequent-checkins-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "work.feedback_cadence",
+          "value": "tight_loops"
+        }
+      ],
+      "groupId": "atomic-feedback-tight",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is tight feedback loops.",
+          "variantId": "atomic-feedback-tight-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer tight feedback loops.",
+          "variantId": "atomic-feedback-tight-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have tight feedback loops.",
+          "variantId": "atomic-feedback-tight-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好紧密的反馈循环。",
+          "variantId": "atomic-feedback-tight-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好紧密的反馈循环。",
+          "variantId": "atomic-feedback-tight-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望紧密的反馈循环。",
+          "variantId": "atomic-feedback-tight-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "work.feedback_cadence",
+          "value": "milestone_only"
+        }
+      ],
+      "groupId": "atomic-feedback-milestone",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is feedback only at major milestones.",
+          "variantId": "atomic-feedback-milestone-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer feedback only at major milestones.",
+          "variantId": "atomic-feedback-milestone-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have feedback only at major milestones.",
+          "variantId": "atomic-feedback-milestone-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好只在重要里程碑时反馈。",
+          "variantId": "atomic-feedback-milestone-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好只在重要里程碑时反馈。",
+          "variantId": "atomic-feedback-milestone-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望只在重要里程碑时反馈。",
+          "variantId": "atomic-feedback-milestone-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "work.decision_recording",
+          "value": "written"
+        }
+      ],
+      "groupId": "atomic-decision-written",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is decisions recorded in writing.",
+          "variantId": "atomic-decision-written-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer decisions recorded in writing.",
+          "variantId": "atomic-decision-written-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have decisions recorded in writing.",
+          "variantId": "atomic-decision-written-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好用书面形式记录决定。",
+          "variantId": "atomic-decision-written-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好用书面形式记录决定。",
+          "variantId": "atomic-decision-written-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望用书面形式记录决定。",
+          "variantId": "atomic-decision-written-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "work.decision_recording",
+          "value": "verbal"
+        }
+      ],
+      "groupId": "atomic-decision-verbal",
+      "kind": "atomic",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is decisions handled verbally without a written record.",
+          "variantId": "atomic-decision-verbal-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer decisions handled verbally without a written record.",
+          "variantId": "atomic-decision-verbal-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have decisions handled verbally without a written record.",
+          "variantId": "atomic-decision-verbal-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好用口头方式处理决定而不留书面记录。",
+          "variantId": "atomic-decision-verbal-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好用口头方式处理决定而不留书面记录。",
+          "variantId": "atomic-decision-verbal-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望用口头方式处理决定而不留书面记录。",
+          "variantId": "atomic-decision-verbal-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.verbosity",
+          "value": "concise"
+        },
+        {
+          "slot": "response.layout",
+          "value": "bullets"
+        },
+        {
+          "slot": "response.structure",
+          "value": "summary_first"
+        }
+      ],
+      "groupId": "compound-concise-bullets",
+      "kind": "compound",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is concise answers that start with a summary and use bullet points.",
+          "variantId": "compound-concise-bullets-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer concise answers that start with a summary and use bullet points.",
+          "variantId": "compound-concise-bullets-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have concise answers that start with a summary and use bullet points.",
+          "variantId": "compound-concise-bullets-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好先给总结，再用项目符号给出简洁回答。",
+          "variantId": "compound-concise-bullets-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好先给总结，再用项目符号给出简洁回答。",
+          "variantId": "compound-concise-bullets-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望先给总结，再用项目符号给出简洁回答。",
+          "variantId": "compound-concise-bullets-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.verbosity",
+          "value": "detailed"
+        },
+        {
+          "slot": "response.layout",
+          "value": "prose"
+        }
+      ],
+      "groupId": "compound-detailed-prose",
+      "kind": "compound",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is detailed explanations written as continuous prose.",
+          "variantId": "compound-detailed-prose-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer detailed explanations written as continuous prose.",
+          "variantId": "compound-detailed-prose-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have detailed explanations written as continuous prose.",
+          "variantId": "compound-detailed-prose-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好用连续段落给出详细解释。",
+          "variantId": "compound-detailed-prose-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好用连续段落给出详细解释。",
+          "variantId": "compound-detailed-prose-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望用连续段落给出详细解释。",
+          "variantId": "compound-detailed-prose-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.structure",
+          "value": "summary_first"
+        },
+        {
+          "slot": "response.evidence",
+          "value": "evidence_backed"
+        }
+      ],
+      "groupId": "compound-summary-evidence",
+      "kind": "compound",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is the conclusion first and evidence-backed support afterward.",
+          "variantId": "compound-summary-evidence-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer the conclusion first and evidence-backed support afterward.",
+          "variantId": "compound-summary-evidence-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have the conclusion first and evidence-backed support afterward.",
+          "variantId": "compound-summary-evidence-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好先给结论再给有证据支撑的说明。",
+          "variantId": "compound-summary-evidence-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好先给结论再给有证据支撑的说明。",
+          "variantId": "compound-summary-evidence-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望先给结论再给有证据支撑的说明。",
+          "variantId": "compound-summary-evidence-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.structure",
+          "value": "steps_first"
+        },
+        {
+          "slot": "response.risk_order",
+          "value": "risk_first"
+        }
+      ],
+      "groupId": "compound-steps-risk",
+      "kind": "compound",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is risks followed immediately by actionable steps.",
+          "variantId": "compound-steps-risk-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer risks followed immediately by actionable steps.",
+          "variantId": "compound-steps-risk-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have risks followed immediately by actionable steps.",
+          "variantId": "compound-steps-risk-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好先说明风险再给可执行步骤。",
+          "variantId": "compound-steps-risk-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好先说明风险再给可执行步骤。",
+          "variantId": "compound-steps-risk-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望先说明风险再给可执行步骤。",
+          "variantId": "compound-steps-risk-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.register",
+          "value": "plain_language"
+        },
+        {
+          "slot": "response.verbosity",
+          "value": "concise"
+        }
+      ],
+      "groupId": "compound-plain-concise",
+      "kind": "compound",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is concise answers in plain language.",
+          "variantId": "compound-plain-concise-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer concise answers in plain language.",
+          "variantId": "compound-plain-concise-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have concise answers in plain language.",
+          "variantId": "compound-plain-concise-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好用通俗语言给出简洁回答。",
+          "variantId": "compound-plain-concise-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好用通俗语言给出简洁回答。",
+          "variantId": "compound-plain-concise-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望用通俗语言给出简洁回答。",
+          "variantId": "compound-plain-concise-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "response.register",
+          "value": "technical_language"
+        },
+        {
+          "slot": "response.verbosity",
+          "value": "detailed"
+        }
+      ],
+      "groupId": "compound-technical-detailed",
+      "kind": "compound",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is detailed explanations using precise technical terminology.",
+          "variantId": "compound-technical-detailed-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer detailed explanations using precise technical terminology.",
+          "variantId": "compound-technical-detailed-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have detailed explanations using precise technical terminology.",
+          "variantId": "compound-technical-detailed-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好使用精确技术术语给出详细解释。",
+          "variantId": "compound-technical-detailed-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好使用精确技术术语给出详细解释。",
+          "variantId": "compound-technical-detailed-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望使用精确技术术语给出详细解释。",
+          "variantId": "compound-technical-detailed-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "work.delivery",
+          "value": "incremental"
+        },
+        {
+          "slot": "work.feedback_cadence",
+          "value": "tight_loops"
+        }
+      ],
+      "groupId": "compound-incremental-feedback",
+      "kind": "compound",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is incremental delivery with tight feedback loops.",
+          "variantId": "compound-incremental-feedback-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer incremental delivery with tight feedback loops.",
+          "variantId": "compound-incremental-feedback-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have incremental delivery with tight feedback loops.",
+          "variantId": "compound-incremental-feedback-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好采用小步增量交付并保持紧密反馈。",
+          "variantId": "compound-incremental-feedback-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好采用小步增量交付并保持紧密反馈。",
+          "variantId": "compound-incremental-feedback-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望采用小步增量交付并保持紧密反馈。",
+          "variantId": "compound-incremental-feedback-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "work.delivery",
+          "value": "big_bang"
+        },
+        {
+          "slot": "work.feedback_cadence",
+          "value": "milestone_only"
+        }
+      ],
+      "groupId": "compound-bigbang-milestone",
+      "kind": "compound",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is one complete delivery with feedback only at major milestones.",
+          "variantId": "compound-bigbang-milestone-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer one complete delivery with feedback only at major milestones.",
+          "variantId": "compound-bigbang-milestone-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have one complete delivery with feedback only at major milestones.",
+          "variantId": "compound-bigbang-milestone-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好采用一次性交付并只在重要里程碑时反馈。",
+          "variantId": "compound-bigbang-milestone-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好采用一次性交付并只在重要里程碑时反馈。",
+          "variantId": "compound-bigbang-milestone-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望采用一次性交付并只在重要里程碑时反馈。",
+          "variantId": "compound-bigbang-milestone-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "work.focus_mode",
+          "value": "deep_work"
+        },
+        {
+          "slot": "work.decision_recording",
+          "value": "written"
+        }
+      ],
+      "groupId": "compound-deep-written",
+      "kind": "compound",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is uninterrupted deep-work blocks and written decision records.",
+          "variantId": "compound-deep-written-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer uninterrupted deep-work blocks and written decision records.",
+          "variantId": "compound-deep-written-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have uninterrupted deep-work blocks and written decision records.",
+          "variantId": "compound-deep-written-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好安排不被打断的深度工作并用书面记录决定。",
+          "variantId": "compound-deep-written-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好安排不被打断的深度工作并用书面记录决定。",
+          "variantId": "compound-deep-written-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望安排不被打断的深度工作并用书面记录决定。",
+          "variantId": "compound-deep-written-zh-personal-study"
+        }
+      ]
+    },
+    {
+      "expectedAtoms": [
+        {
+          "slot": "work.focus_mode",
+          "value": "frequent_checkins"
+        },
+        {
+          "slot": "work.decision_recording",
+          "value": "verbal"
+        }
+      ],
+      "groupId": "compound-checkins-verbal",
+      "kind": "compound",
+      "variants": [
+        {
+          "context": "general",
+          "locale": "en-US",
+          "text": "My default preference is frequent check-ins and verbally handled decisions.",
+          "variantId": "compound-checkins-verbal-en-general"
+        },
+        {
+          "context": "work",
+          "locale": "en-US",
+          "text": "When I am working, I prefer frequent check-ins and verbally handled decisions.",
+          "variantId": "compound-checkins-verbal-en-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "en-US",
+          "text": "For personal study, I would rather have frequent check-ins and verbally handled decisions.",
+          "variantId": "compound-checkins-verbal-en-personal-study"
+        },
+        {
+          "context": "general",
+          "locale": "zh-CN",
+          "text": "我通常偏好频繁同步并用口头方式处理决定。",
+          "variantId": "compound-checkins-verbal-zh-general"
+        },
+        {
+          "context": "work",
+          "locale": "zh-CN",
+          "text": "工作时，我偏好频繁同步并用口头方式处理决定。",
+          "variantId": "compound-checkins-verbal-zh-work"
+        },
+        {
+          "context": "personal_study",
+          "locale": "zh-CN",
+          "text": "个人学习时，我更希望频繁同步并用口头方式处理决定。",
+          "variantId": "compound-checkins-verbal-zh-personal-study"
+        }
+      ]
+    }
+  ],
+  "protocolId": "preference-identity-independent-arms-v1",
+  "schemaVersion": 2
+}

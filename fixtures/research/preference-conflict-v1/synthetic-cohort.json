@@ -1,0 +1,813 @@
+{
+  "cases": [
+    {
+      "caseId": "explicit_update-01",
+      "expected": {
+        "active": [
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-explicit_update-1",
+        "legacyCategory": "response_style",
+        "slot": "response.verbosity",
+        "context": "general",
+        "value": "detailed"
+      },
+      "prior": {
+        "id": "old-explicit_update-1",
+        "legacyCategory": "response_style",
+        "slot": "response.verbosity",
+        "context": "general",
+        "value": "concise"
+      },
+      "relation": "explicit_update"
+    },
+    {
+      "caseId": "explicit_update-02",
+      "expected": {
+        "active": [
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-explicit_update-2",
+        "legacyCategory": "response_style",
+        "slot": "response.layout",
+        "context": "work",
+        "value": "prose"
+      },
+      "prior": {
+        "id": "old-explicit_update-2",
+        "legacyCategory": "response_style",
+        "slot": "response.layout",
+        "context": "work",
+        "value": "bullets"
+      },
+      "relation": "explicit_update"
+    },
+    {
+      "caseId": "explicit_update-03",
+      "expected": {
+        "active": [
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-explicit_update-3",
+        "legacyCategory": "response_style",
+        "slot": "response.structure",
+        "context": "personal_study",
+        "value": "steps_first"
+      },
+      "prior": {
+        "id": "old-explicit_update-3",
+        "legacyCategory": "response_style",
+        "slot": "response.structure",
+        "context": "personal_study",
+        "value": "summary_first"
+      },
+      "relation": "explicit_update"
+    },
+    {
+      "caseId": "explicit_update-04",
+      "expected": {
+        "active": [
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-explicit_update-4",
+        "legacyCategory": "response_style",
+        "slot": "work.delivery",
+        "context": "work",
+        "value": "big_bang"
+      },
+      "prior": {
+        "id": "old-explicit_update-4",
+        "legacyCategory": "response_style",
+        "slot": "work.delivery",
+        "context": "work",
+        "value": "incremental"
+      },
+      "relation": "explicit_update"
+    },
+    {
+      "caseId": "explicit_update-05",
+      "expected": {
+        "active": [
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-explicit_update-5",
+        "legacyCategory": "response_style",
+        "slot": "work.feedback_cadence",
+        "context": "general",
+        "value": "milestone_only"
+      },
+      "prior": {
+        "id": "old-explicit_update-5",
+        "legacyCategory": "response_style",
+        "slot": "work.feedback_cadence",
+        "context": "general",
+        "value": "tight_loops"
+      },
+      "relation": "explicit_update"
+    },
+    {
+      "caseId": "contextual_coexistence-01",
+      "expected": {
+        "active": [
+          "prior",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-contextual_coexistence-1",
+        "legacyCategory": "response_style",
+        "slot": "response.verbosity",
+        "context": "personal_study",
+        "value": "detailed"
+      },
+      "prior": {
+        "id": "old-contextual_coexistence-1",
+        "legacyCategory": "response_style",
+        "slot": "response.verbosity",
+        "context": "work",
+        "value": "concise"
+      },
+      "relation": "contextual_coexistence"
+    },
+    {
+      "caseId": "contextual_coexistence-02",
+      "expected": {
+        "active": [
+          "prior",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-contextual_coexistence-2",
+        "legacyCategory": "response_style",
+        "slot": "response.layout",
+        "context": "personal_study",
+        "value": "prose"
+      },
+      "prior": {
+        "id": "old-contextual_coexistence-2",
+        "legacyCategory": "response_style",
+        "slot": "response.layout",
+        "context": "work",
+        "value": "bullets"
+      },
+      "relation": "contextual_coexistence"
+    },
+    {
+      "caseId": "contextual_coexistence-03",
+      "expected": {
+        "active": [
+          "prior",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-contextual_coexistence-3",
+        "legacyCategory": "response_style",
+        "slot": "response.register",
+        "context": "general",
+        "value": "plain_language"
+      },
+      "prior": {
+        "id": "old-contextual_coexistence-3",
+        "legacyCategory": "response_style",
+        "slot": "response.register",
+        "context": "work",
+        "value": "technical_language"
+      },
+      "relation": "contextual_coexistence"
+    },
+    {
+      "caseId": "contextual_coexistence-04",
+      "expected": {
+        "active": [
+          "prior",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-contextual_coexistence-4",
+        "legacyCategory": "response_style",
+        "slot": "response.evidence",
+        "context": "personal_study",
+        "value": "intuition_first"
+      },
+      "prior": {
+        "id": "old-contextual_coexistence-4",
+        "legacyCategory": "response_style",
+        "slot": "response.evidence",
+        "context": "work",
+        "value": "evidence_backed"
+      },
+      "relation": "contextual_coexistence"
+    },
+    {
+      "caseId": "contextual_coexistence-05",
+      "expected": {
+        "active": [
+          "prior",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-contextual_coexistence-5",
+        "legacyCategory": "response_style",
+        "slot": "work.focus_mode",
+        "context": "personal_study",
+        "value": "frequent_checkins"
+      },
+      "prior": {
+        "id": "old-contextual_coexistence-5",
+        "legacyCategory": "response_style",
+        "slot": "work.focus_mode",
+        "context": "work",
+        "value": "deep_work"
+      },
+      "relation": "contextual_coexistence"
+    },
+    {
+      "caseId": "same_category_different_dimension-01",
+      "expected": {
+        "active": [
+          "prior",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-same_category_different_dimension-1",
+        "legacyCategory": "response_style",
+        "slot": "response.layout",
+        "context": "general",
+        "value": "bullets"
+      },
+      "prior": {
+        "id": "old-same_category_different_dimension-1",
+        "legacyCategory": "response_style",
+        "slot": "response.verbosity",
+        "context": "general",
+        "value": "concise"
+      },
+      "relation": "same_category_different_dimension"
+    },
+    {
+      "caseId": "same_category_different_dimension-02",
+      "expected": {
+        "active": [
+          "prior",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-same_category_different_dimension-2",
+        "legacyCategory": "response_style",
+        "slot": "response.evidence",
+        "context": "work",
+        "value": "evidence_backed"
+      },
+      "prior": {
+        "id": "old-same_category_different_dimension-2",
+        "legacyCategory": "response_style",
+        "slot": "response.structure",
+        "context": "work",
+        "value": "summary_first"
+      },
+      "relation": "same_category_different_dimension"
+    },
+    {
+      "caseId": "same_category_different_dimension-03",
+      "expected": {
+        "active": [
+          "prior",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-same_category_different_dimension-3",
+        "legacyCategory": "response_style",
+        "slot": "response.risk_order",
+        "context": "general",
+        "value": "risk_first"
+      },
+      "prior": {
+        "id": "old-same_category_different_dimension-3",
+        "legacyCategory": "response_style",
+        "slot": "response.register",
+        "context": "general",
+        "value": "plain_language"
+      },
+      "relation": "same_category_different_dimension"
+    },
+    {
+      "caseId": "same_category_different_dimension-04",
+      "expected": {
+        "active": [
+          "prior",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-same_category_different_dimension-4",
+        "legacyCategory": "response_style",
+        "slot": "work.feedback_cadence",
+        "context": "work",
+        "value": "tight_loops"
+      },
+      "prior": {
+        "id": "old-same_category_different_dimension-4",
+        "legacyCategory": "response_style",
+        "slot": "work.delivery",
+        "context": "work",
+        "value": "incremental"
+      },
+      "relation": "same_category_different_dimension"
+    },
+    {
+      "caseId": "same_category_different_dimension-05",
+      "expected": {
+        "active": [
+          "prior",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-same_category_different_dimension-5",
+        "legacyCategory": "response_style",
+        "slot": "work.decision_recording",
+        "context": "personal_study",
+        "value": "written"
+      },
+      "prior": {
+        "id": "old-same_category_different_dimension-5",
+        "legacyCategory": "response_style",
+        "slot": "work.focus_mode",
+        "context": "personal_study",
+        "value": "deep_work"
+      },
+      "relation": "same_category_different_dimension"
+    },
+    {
+      "caseId": "legacy_unkeyed-01",
+      "expected": {
+        "active": [
+          "prior",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": true
+      },
+      "incoming": {
+        "id": "new-legacy_unkeyed-1",
+        "legacyCategory": "response_style",
+        "slot": "response.layout",
+        "context": "general",
+        "value": "bullets"
+      },
+      "prior": {
+        "id": "old-legacy_unkeyed-1",
+        "legacyCategory": "response_style",
+        "slot": null,
+        "context": "general",
+        "value": "concise"
+      },
+      "relation": "legacy_unkeyed"
+    },
+    {
+      "caseId": "legacy_unkeyed-02",
+      "expected": {
+        "active": [
+          "prior",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": true
+      },
+      "incoming": {
+        "id": "new-legacy_unkeyed-2",
+        "legacyCategory": "response_style",
+        "slot": "response.verbosity",
+        "context": "work",
+        "value": "detailed"
+      },
+      "prior": {
+        "id": "old-legacy_unkeyed-2",
+        "legacyCategory": "response_style",
+        "slot": null,
+        "context": "work",
+        "value": "prose"
+      },
+      "relation": "legacy_unkeyed"
+    },
+    {
+      "caseId": "legacy_unkeyed-03",
+      "expected": {
+        "active": [
+          "prior",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": true
+      },
+      "incoming": {
+        "id": "new-legacy_unkeyed-3",
+        "legacyCategory": "response_style",
+        "slot": "response.evidence",
+        "context": "general",
+        "value": "evidence_backed"
+      },
+      "prior": {
+        "id": "old-legacy_unkeyed-3",
+        "legacyCategory": "response_style",
+        "slot": null,
+        "context": "general",
+        "value": "risk_first"
+      },
+      "relation": "legacy_unkeyed"
+    },
+    {
+      "caseId": "legacy_unkeyed-04",
+      "expected": {
+        "active": [
+          "prior",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": true
+      },
+      "incoming": {
+        "id": "new-legacy_unkeyed-4",
+        "legacyCategory": "response_style",
+        "slot": "work.feedback_cadence",
+        "context": "work",
+        "value": "tight_loops"
+      },
+      "prior": {
+        "id": "old-legacy_unkeyed-4",
+        "legacyCategory": "response_style",
+        "slot": null,
+        "context": "work",
+        "value": "incremental"
+      },
+      "relation": "legacy_unkeyed"
+    },
+    {
+      "caseId": "legacy_unkeyed-05",
+      "expected": {
+        "active": [
+          "prior",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": true
+      },
+      "incoming": {
+        "id": "new-legacy_unkeyed-5",
+        "legacyCategory": "response_style",
+        "slot": "work.focus_mode",
+        "context": "personal_study",
+        "value": "deep_work"
+      },
+      "prior": {
+        "id": "old-legacy_unkeyed-5",
+        "legacyCategory": "response_style",
+        "slot": null,
+        "context": "personal_study",
+        "value": "written"
+      },
+      "relation": "legacy_unkeyed"
+    },
+    {
+      "caseId": "synonymous_repeat-01",
+      "expected": {
+        "active": [
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-synonymous_repeat-1",
+        "legacyCategory": "response_style",
+        "slot": "response.verbosity",
+        "context": "general",
+        "value": "brief"
+      },
+      "prior": {
+        "id": "old-synonymous_repeat-1",
+        "legacyCategory": "response_style",
+        "slot": "response.verbosity",
+        "context": "general",
+        "value": "concise"
+      },
+      "relation": "synonymous_repeat"
+    },
+    {
+      "caseId": "synonymous_repeat-02",
+      "expected": {
+        "active": [
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-synonymous_repeat-2",
+        "legacyCategory": "response_style",
+        "slot": "response.layout",
+        "context": "work",
+        "value": "bullet_points"
+      },
+      "prior": {
+        "id": "old-synonymous_repeat-2",
+        "legacyCategory": "response_style",
+        "slot": "response.layout",
+        "context": "work",
+        "value": "bullets"
+      },
+      "relation": "synonymous_repeat"
+    },
+    {
+      "caseId": "synonymous_repeat-03",
+      "expected": {
+        "active": [
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-synonymous_repeat-3",
+        "legacyCategory": "response_style",
+        "slot": "response.register",
+        "context": "personal_study",
+        "value": "everyday_words"
+      },
+      "prior": {
+        "id": "old-synonymous_repeat-3",
+        "legacyCategory": "response_style",
+        "slot": "response.register",
+        "context": "personal_study",
+        "value": "plain_language"
+      },
+      "relation": "synonymous_repeat"
+    },
+    {
+      "caseId": "synonymous_repeat-04",
+      "expected": {
+        "active": [
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-synonymous_repeat-4",
+        "legacyCategory": "response_style",
+        "slot": "work.focus_mode",
+        "context": "work",
+        "value": "uninterrupted_focus"
+      },
+      "prior": {
+        "id": "old-synonymous_repeat-4",
+        "legacyCategory": "response_style",
+        "slot": "work.focus_mode",
+        "context": "work",
+        "value": "deep_work"
+      },
+      "relation": "synonymous_repeat"
+    },
+    {
+      "caseId": "synonymous_repeat-05",
+      "expected": {
+        "active": [
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-synonymous_repeat-5",
+        "legacyCategory": "response_style",
+        "slot": "work.feedback_cadence",
+        "context": "general",
+        "value": "frequent_feedback"
+      },
+      "prior": {
+        "id": "old-synonymous_repeat-5",
+        "legacyCategory": "response_style",
+        "slot": "work.feedback_cadence",
+        "context": "general",
+        "value": "tight_loops"
+      },
+      "relation": "synonymous_repeat"
+    },
+    {
+      "caseId": "compound_partial_update-01",
+      "expected": {
+        "active": [
+          "prior_companion",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-compound_partial_update-1",
+        "legacyCategory": "response_style",
+        "slot": "response.verbosity",
+        "context": "general",
+        "value": "detailed"
+      },
+      "prior": {
+        "id": "old-compound_partial_update-1",
+        "legacyCategory": "response_style",
+        "slot": "response.verbosity",
+        "context": "general",
+        "value": "concise"
+      },
+      "priorCompanion": {
+        "id": "companion-compound_partial_update-1",
+        "legacyCategory": "response_style",
+        "slot": "response.layout",
+        "context": "general",
+        "value": "bullets"
+      },
+      "relation": "compound_partial_update"
+    },
+    {
+      "caseId": "compound_partial_update-02",
+      "expected": {
+        "active": [
+          "prior_companion",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-compound_partial_update-2",
+        "legacyCategory": "response_style",
+        "slot": "response.layout",
+        "context": "work",
+        "value": "bullets"
+      },
+      "prior": {
+        "id": "old-compound_partial_update-2",
+        "legacyCategory": "response_style",
+        "slot": "response.layout",
+        "context": "work",
+        "value": "prose"
+      },
+      "priorCompanion": {
+        "id": "companion-compound_partial_update-2",
+        "legacyCategory": "response_style",
+        "slot": "response.evidence",
+        "context": "work",
+        "value": "evidence_backed"
+      },
+      "relation": "compound_partial_update"
+    },
+    {
+      "caseId": "compound_partial_update-03",
+      "expected": {
+        "active": [
+          "prior_companion",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-compound_partial_update-3",
+        "legacyCategory": "response_style",
+        "slot": "work.delivery",
+        "context": "work",
+        "value": "big_bang"
+      },
+      "prior": {
+        "id": "old-compound_partial_update-3",
+        "legacyCategory": "response_style",
+        "slot": "work.delivery",
+        "context": "work",
+        "value": "incremental"
+      },
+      "priorCompanion": {
+        "id": "companion-compound_partial_update-3",
+        "legacyCategory": "response_style",
+        "slot": "work.feedback_cadence",
+        "context": "work",
+        "value": "tight_loops"
+      },
+      "relation": "compound_partial_update"
+    },
+    {
+      "caseId": "compound_partial_update-04",
+      "expected": {
+        "active": [
+          "prior_companion",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-compound_partial_update-4",
+        "legacyCategory": "response_style",
+        "slot": "response.structure",
+        "context": "general",
+        "value": "steps_first"
+      },
+      "prior": {
+        "id": "old-compound_partial_update-4",
+        "legacyCategory": "response_style",
+        "slot": "response.structure",
+        "context": "general",
+        "value": "summary_first"
+      },
+      "priorCompanion": {
+        "id": "companion-compound_partial_update-4",
+        "legacyCategory": "response_style",
+        "slot": "response.risk_order",
+        "context": "general",
+        "value": "risk_first"
+      },
+      "relation": "compound_partial_update"
+    },
+    {
+      "caseId": "compound_partial_update-05",
+      "expected": {
+        "active": [
+          "prior_companion",
+          "incoming"
+        ],
+        "retainLineage": true,
+        "warning": false
+      },
+      "incoming": {
+        "id": "new-compound_partial_update-5",
+        "legacyCategory": "response_style",
+        "slot": "work.focus_mode",
+        "context": "personal_study",
+        "value": "frequent_checkins"
+      },
+      "prior": {
+        "id": "old-compound_partial_update-5",
+        "legacyCategory": "response_style",
+        "slot": "work.focus_mode",
+        "context": "personal_study",
+        "value": "deep_work"
+      },
+      "priorCompanion": {
+        "id": "companion-compound_partial_update-5",
+        "legacyCategory": "response_style",
+        "slot": "work.decision_recording",
+        "context": "personal_study",
+        "value": "written"
+      },
+      "relation": "compound_partial_update"
+    }
+  ],
+  "incidenceUse": "excluded",
+  "note": "Synthetic policy challenge only. Never combine with the repository fixture census or claim production incidence.",
+  "protocolId": "preference-conflict-policy-synthetic-v1",
+  "schemaVersion": 1
+}
