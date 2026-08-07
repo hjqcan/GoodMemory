@@ -1,9 +1,13 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
-const RELEASE_VERSION = "0.7.2";
-const PREVIOUS_STABLE_VERSION = "0.7.1";
+const RELEASE_VERSION = "0.7.3";
+const PREVIOUS_STABLE_VERSION = "0.7.2";
 const RELEASE_TARBALL = `goodmemory-${RELEASE_VERSION}.tgz`;
+const CURRENT_LOCOMO_PROJECTION =
+  "benchmark-claims/evidence/locomo-v0.7.3-current.json";
+const STABLE_BENCHMARK_NOTE =
+  "The v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus older LongMemEval and ImplicitMemBench runs, remain reproducible versioned evidence. The current LoCoMo claim is loaded only from the tracked v0.7.3 projection. LongMemEval and ImplicitMemBench remain internal evidence.";
 const RC_README = `> **Release status:** this branch is the \`${RELEASE_VERSION}\` release candidate. npm
 > \`latest\` remains \`${PREVIOUS_STABLE_VERSION}\` until the tagged stable workflow publishes ${RELEASE_VERSION}.
 > The version-pinned registry commands below are the post-publish contract; use
@@ -82,7 +86,11 @@ export async function assertV07StableReleaseSource(input: {
 
   const descriptor = JSON.parse(
     await readFile(join(repoRoot, ".well-known/goodmemory.json"), "utf8"),
-  ) as { releaseStatus?: unknown; version?: unknown };
+  ) as {
+    benchmarks?: { currentClaims?: Array<{ measuredPackageVersion?: unknown; name?: unknown }> };
+    releaseStatus?: unknown;
+    version?: unknown;
+  };
   if (descriptor.version !== RELEASE_VERSION) {
     throw new Error(
       `Stable capability descriptor version must be ${RELEASE_VERSION}.`,
@@ -97,6 +105,15 @@ export async function assertV07StableReleaseSource(input: {
   );
   if (releaseStatus?.tarball !== RELEASE_TARBALL) {
     throw new Error(`Stable capability descriptor must name ${RELEASE_TARBALL}.`);
+  }
+  if (
+    !descriptor.benchmarks?.currentClaims?.some(
+      (claim) =>
+        claim.name === "LoCoMo" &&
+        claim.measuredPackageVersion === RELEASE_VERSION,
+    )
+  ) {
+    throw new Error("Stable capability descriptor must advertise the tracked current LoCoMo claim.");
   }
 
   const proseMarkers = {
@@ -135,10 +152,39 @@ export async function promoteV07ReleaseSource(input: {
       `Release promotion capability descriptor must be ${RELEASE_VERSION}.`,
     );
   }
+  const projection = JSON.parse(
+    await readFile(join(repoRoot, CURRENT_LOCOMO_PROJECTION), "utf8"),
+  ) as { descriptorClaim?: unknown };
+  if (
+    typeof projection.descriptorClaim !== "object" ||
+    projection.descriptorClaim === null ||
+    (projection.descriptorClaim as { name?: unknown }).name !== "LoCoMo" ||
+    (projection.descriptorClaim as { measuredPackageVersion?: unknown })
+      .measuredPackageVersion !== RELEASE_VERSION
+  ) {
+    throw new Error(
+      `${CURRENT_LOCOMO_PROJECTION} does not contain the current ${RELEASE_VERSION} LoCoMo descriptor claim.`,
+    );
+  }
   descriptor.releaseStatus = {
     ...V07_STABLE_RELEASE_METADATA,
     tarball: RELEASE_TARBALL,
   };
+  const benchmarks = descriptor.benchmarks;
+  if (typeof benchmarks !== "object" || benchmarks === null) {
+    throw new Error("Release promotion capability descriptor is missing benchmarks.");
+  }
+  (benchmarks as Record<string, unknown>).currentClaims = [
+    projection.descriptorClaim,
+  ];
+  const historicalEvidence = (benchmarks as Record<string, unknown>)
+    .historicalEvidence;
+  if (typeof historicalEvidence !== "object" || historicalEvidence === null) {
+    throw new Error(
+      "Release promotion capability descriptor is missing historical benchmark evidence metadata.",
+    );
+  }
+  (historicalEvidence as Record<string, unknown>).note = STABLE_BENCHMARK_NOTE;
   const descriptorOutput = `${JSON.stringify(descriptor, null, 2)}\n`;
 
   const prose = [

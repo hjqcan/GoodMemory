@@ -11,6 +11,14 @@ Status Note
 - Phase 16 is now implemented and accepted.
 - A dedicated fallback quality gate is archived in `docs/archive/quality-gates/GoodMemory-Phase-16-Quality-Gate.md` and `reports/eval/fallback/phase-16/run-1776441180237`.
 
+v0.7.3 Correction (2026-08-06)
+--------------------------------
+The access/last-used touch and ranking loop below accurately records what Phase
+16 shipped, but it is no longer current behavior. v0.7.3 freezes those legacy
+fields, removes retrieval-exposure ranking and the recent-access repair shield,
+and retains only evidence support plus negative verification pressure. See
+ADR-004; archived Phase 16 evidence remains unchanged.
+
 
 Dependencies
 ------------

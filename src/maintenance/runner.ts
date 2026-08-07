@@ -196,7 +196,6 @@ function factMaintenanceStrength(fact: FactMemory): number {
 }
 
 const STALE_ACTION_REPAIR_MIN_AGE_DAYS = 90;
-const STALE_ACTION_REPAIR_RECENT_ACCESS_SHIELD_DAYS = 30;
 const STALE_ACTION_REPAIR_MIN_VERIFICATION_PRESSURE = 2;
 const STALE_ACTION_REPAIR_MAX_CONFIDENCE = 0.7;
 const STALE_ACTION_REPAIR_MAX_IMPORTANCE = 0.55;
@@ -260,13 +259,8 @@ function shouldDemoteStaleActionFact(input: {
   timestamp: string;
 }): boolean {
   const verificationPressure = input.fact.verificationPressureCount ?? 0;
-  const recentlyUsed =
-    input.fact.lastAccessedAt !== undefined &&
-    daysBefore(input.timestamp, input.fact.lastAccessedAt) <=
-      STALE_ACTION_REPAIR_RECENT_ACCESS_SHIELD_DAYS;
 
   return (
-    !recentlyUsed &&
     input.fact.source.method === "inferred" &&
     input.fact.confidence <= STALE_ACTION_REPAIR_MAX_CONFIDENCE &&
     input.fact.importance <= STALE_ACTION_REPAIR_MAX_IMPORTANCE &&

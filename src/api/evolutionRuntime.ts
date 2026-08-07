@@ -1,9 +1,5 @@
 import { createMemorySource } from "../domain/provenance";
-import type {
-  FactMemory,
-  FeedbackKind,
-  FeedbackMemory,
-} from "../domain/records";
+import type { FactMemory, FeedbackKind } from "../domain/records";
 import { scopeToKey } from "../domain/scope";
 import type { MemoryScope } from "../domain/scope";
 import {
@@ -46,9 +42,7 @@ import type {
 import type { ProposalGateDecision } from "../evolution/gates";
 import type { LanguageService } from "../language";
 
-interface RecallTouchSummary {
-  reinforcedFeedbackCount: number;
-  touchedFactCount: number;
+interface RecallVerificationSummary {
   verificationPressureFactCount: number;
 }
 
@@ -90,7 +84,6 @@ export interface EvolutionRuntimeConfig {
   reviewer: ReviewerRuntime;
 }
 
-const LOW_RISK_RECALL_TOUCH_WINDOW_MS = 5 * 60 * 1000;
 const MAX_VERIFICATION_PRESSURE_COUNT = 4;
 
 function encodeExperienceIdSegment(value: string): string {
@@ -108,39 +101,24 @@ function createAgentCorrectionExperienceId(input: {
   ].join("|");
 }
 
-function shouldApplyLowRiskTouch(
-  previousTimestamp: string | undefined,
-  nextTimestamp: string,
-): boolean {
-  if (!previousTimestamp) {
-    return true;
-  }
-
-  const previousMs = new Date(previousTimestamp).getTime();
-  const nextMs = new Date(nextTimestamp).getTime();
-
-  if (!Number.isFinite(previousMs) || !Number.isFinite(nextMs)) {
-    return true;
-  }
-
-  return nextMs - previousMs >= LOW_RISK_RECALL_TOUCH_WINDOW_MS;
-}
-
-async function applyRecallTouchHelpers(
+async function applyRecallVerificationPressure(
   repositories: GovernanceRepositoryPort,
   result: RecallResult,
   timestamp: string,
-): Promise<RecallTouchSummary> {
-  const touchedFacts = new Map<string, FactMemory>();
+): Promise<RecallVerificationSummary> {
+  const pressuredFacts = new Map<string, FactMemory>();
   const verificationHintFactIds = new Set(
     result.metadata.verificationHints
       .filter((hint) => hint.memoryType === "fact")
       .map((hint) => hint.memoryId),
   );
-  let touchedFactCount = 0;
   let verificationPressureFactCount = 0;
 
   for (const recalledFact of result.facts) {
+    if (!verificationHintFactIds.has(recalledFact.id)) {
+      continue;
+    }
+
     const canonicalFact = repositories.facts.get
       ? await repositories.facts.get(recalledFact.id)
       : recalledFact;
@@ -148,78 +126,30 @@ async function applyRecallTouchHelpers(
       continue;
     }
 
-    if (verificationHintFactIds.has(recalledFact.id)) {
-      const verificationPressureCount = Math.min(
-        (canonicalFact.verificationPressureCount ?? 0) + 1,
-        MAX_VERIFICATION_PRESSURE_COUNT,
-      );
-      await repositories.facts.add({
-        ...canonicalFact,
-        verificationPressureCount,
-        lastVerificationHintAt: timestamp,
-      });
-      touchedFacts.set(recalledFact.id, {
-        ...recalledFact,
-        verificationPressureCount,
-        lastVerificationHintAt: timestamp,
-      });
-      verificationPressureFactCount += 1;
-      continue;
-    }
-
-    if (!shouldApplyLowRiskTouch(canonicalFact.lastAccessedAt, timestamp)) {
-      continue;
-    }
-
-    const accessCount = canonicalFact.accessCount + 1;
+    const verificationPressureCount = Math.min(
+      (canonicalFact.verificationPressureCount ?? 0) + 1,
+      MAX_VERIFICATION_PRESSURE_COUNT,
+    );
     await repositories.facts.add({
       ...canonicalFact,
-      accessCount,
-      lastAccessedAt: timestamp,
+      verificationPressureCount,
+      lastVerificationHintAt: timestamp,
     });
-    touchedFacts.set(recalledFact.id, {
+    pressuredFacts.set(recalledFact.id, {
       ...recalledFact,
-      accessCount,
-      lastAccessedAt: timestamp,
+      verificationPressureCount,
+      lastVerificationHintAt: timestamp,
     });
-    touchedFactCount += 1;
-  }
-  const nextFeedback = result.feedback
-    .filter(
-      (feedback) =>
-        feedback.lifecycle === "active" &&
-        shouldApplyLowRiskTouch(feedback.lastUsedAt, timestamp),
-    )
-    .map((feedback) => {
-      const reinforcedFeedback: FeedbackMemory = {
-        ...feedback,
-        lastUsedAt: timestamp,
-      };
-
-      return reinforcedFeedback;
-    });
-
-  const reinforcedFeedback = new Map(
-    nextFeedback.map((feedback) => [feedback.id, feedback] as const),
-  );
-
-  await Promise.all(
-    nextFeedback.map((feedback) => repositories.feedback.upsert(feedback)),
-  );
-
-  if (touchedFacts.size > 0) {
-    result.facts = result.facts.map((fact) => touchedFacts.get(fact.id) ?? fact);
+    verificationPressureFactCount += 1;
   }
 
-  if (reinforcedFeedback.size > 0) {
-    result.feedback = result.feedback.map(
-      (feedback) => reinforcedFeedback.get(feedback.id) ?? feedback,
+  if (pressuredFacts.size > 0) {
+    result.facts = result.facts.map(
+      (fact) => pressuredFacts.get(fact.id) ?? fact,
     );
   }
 
   return {
-    reinforcedFeedbackCount: nextFeedback.length,
-    touchedFactCount,
     verificationPressureFactCount,
   };
 }
@@ -244,7 +174,7 @@ function toRememberObservationResult(
 
 function toRecallObservationResult(
   result: RecallResult,
-  touchSummary?: RecallTouchSummary,
+  verificationSummary?: RecallVerificationSummary,
 ): RecallObservationResult {
   return {
     preferences: result.preferences.map((record) => ({ id: record.id })),
@@ -265,10 +195,8 @@ function toRecallObservationResult(
     })),
     latencyMs: result.metadata.latencyMs,
     tokenCount: result.metadata.tokenCount,
-    touchedFactCount: touchSummary?.touchedFactCount ?? 0,
     verificationPressureFactCount:
-      touchSummary?.verificationPressureFactCount ?? 0,
-    reinforcedFeedbackCount: touchSummary?.reinforcedFeedbackCount ?? 0,
+      verificationSummary?.verificationPressureFactCount ?? 0,
     policyApplied: result.metadata.policyApplied,
     modelInfluence:
       result.metadata.routingDecision.strategy === "llm-assisted"
@@ -407,7 +335,7 @@ export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
     }): Promise<void> {
       const timestamp = now();
       const traceId = crypto.randomUUID();
-      const touchSummary = await applyRecallTouchHelpers(
+      const verificationSummary = await applyRecallVerificationPressure(
         config.governanceRepositories,
         input.result,
         timestamp,
@@ -416,7 +344,7 @@ export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
       await persistExperienceRecords(
         buildRecallExperienceRecords({
           scope: input.scope,
-          result: toRecallObservationResult(input.result, touchSummary),
+          result: toRecallObservationResult(input.result, verificationSummary),
           traceId,
           createdAt: timestamp,
           createId: () => crypto.randomUUID(),

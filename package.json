@@ -1,10 +1,10 @@
 {
   "name": "goodmemory",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "goodmemoryRelease": {
     "installCommandsApplyAfterPublish": true,
     "npmDistTag": "latest",
-    "status": "stable"
+    "status": "release-candidate"
   },
   "mcpName": "io.github.hjqcan/goodmemory",
   "description": "Memory layer for chat, copilot, and agent applications.",
@@ -40,6 +40,7 @@
   },
   "files": [
     ".well-known/goodmemory.json",
+    "benchmark-claims/evidence/locomo-v0.7.3-current.json",
     "LICENSE",
     "README.md",
     "README.zh-CN.md",
@@ -351,6 +352,7 @@
     "gate:phase-63-beam-closure": "bun run scripts/run-phase-63-beam-closure-gate.ts",
     "gate:v0-3-release-readiness": "bun run scripts/run-v0-3-release-readiness.ts",
     "gate:v0.7": "bun run scripts/run-v0-7-release-readiness.ts",
+    "gate:v0.7.3-lifecycle-protection": "bun run scripts/run-v0-7-3-lifecycle-protection-gate.ts",
     "gate:public-benchmark-claim": "bun run scripts/run-public-benchmark-claim-gate.ts",
     "gate:phase-68": "bun run scripts/run-phase-68-generalization-gate.ts",
     "gate:phase-69": "bun run scripts/run-phase-69-gate.ts",
@@ -363,6 +365,7 @@
     "eval:live-auto-memory": "bun run scripts/run-eval.ts --mode=live-auto-memory",
     "eval:live-provider-memory": "bun run scripts/run-eval.ts --mode=live-provider-memory",
     "eval:summary": "bun run scripts/summarize-eval.ts",
+    "eval:v0.7.3-locomo-current": "bun run scripts/run-v0-7-3-full-locomo-claim.ts",
     "prepack": "bun run build"
   },
   "devDependencies": {

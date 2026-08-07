@@ -1,27 +1,61 @@
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   mkdir,
   mkdtemp,
+  readdir,
   readFile,
   rm,
   stat,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import {
   hasCliFlagStrict,
   resolveCliFlagValueStrict,
 } from "./cli-options";
 import { resolveRepoRootFromScriptUrl } from "./script-paths";
+import {
+  buildV073FullClaimCommandChain,
+  deriveV073ClaimCommandTemplateSha256,
+  deriveV073PromptSha256,
+  evaluateV073LifecycleProtection,
+  type V073LifecycleProtectionEvaluationInput,
+} from "./run-v0-7-3-lifecycle-protection-gate";
+import {
+  renderV073FullClaimCommand,
+  V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
+  V073_FULL_LOCOMO_QUESTION_SELECTION_SHA256,
+} from "./run-v0-7-3-full-locomo-claim";
 
 const RELEASE_LINE = "0.7";
-const RELEASE_VERSION = "0.7.2";
+const RELEASE_VERSION = "0.7.3";
 const RELEASE_BUN_VERSION = "1.3.14";
 const MAX_TARBALL_BYTES = 4 * 1024 * 1024;
 const FAILURE_CONTEXT_LINES = 4;
 const FAILURE_DETAIL_LINE_LIMIT = 80;
+const V073_LIFECYCLE_PROTECTION_ARTIFACT =
+  "reports/release/v0.7/v0.7.3-lifecycle-protection.json";
+const V073_LIFECYCLE_EVIDENCE_PREFIX =
+  "reports/release/v0.7/v0.7.3-lifecycle-evidence/";
+const V073_LOCOMO_CURRENT_PROJECTION =
+  "benchmark-claims/evidence/locomo-v0.7.3-current.json";
+const V073_LOCOMO_CLAIM_EVIDENCE_PREFIX =
+  "reports/release/v0.7/v0.7.3-locomo-claim-evidence/";
+const V073_LOCOMO_SOURCE_ARTIFACT_PATHS = {
+  "claim-recipe-source": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}claim-recipe-source.json`,
+  "execution-receipt": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}execution-receipt.json`,
+  "final-report": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}final-smoke-report.json`,
+  "official-summary": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}official-rescore-summary.json`,
+  "official-progress": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}official-progress.jsonl`,
+  "official-runner-source": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}official-runner-source.ts`,
+  "seed-report": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}seed-smoke-report.json`,
+} as const;
+const V072_BASELINE_COMMIT = "456edd106f29118b3455bf21c43d7b3107b48213";
+const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
+const COMMIT_PATTERN = /^[0-9a-f]{40}$/u;
 const REQUIRED_PACKED_FILES = [
   "dist/index.js",
   "dist/index.d.ts",
@@ -75,6 +109,7 @@ export interface V07SourceIdentity {
 }
 
 export interface V07ReleaseReadinessOptions {
+  lifecycleProtectionArtifact?: string;
   outputDir?: string;
   skipBuild?: boolean;
   skipCoverage?: boolean;
@@ -255,6 +290,7 @@ export function evaluateV07RuntimeVersions(
 }
 
 interface PackageJson {
+  files?: string[];
   goodmemoryRelease?: {
     installCommandsApplyAfterPublish?: boolean;
     npmDistTag?: string;
@@ -270,7 +306,16 @@ interface PackageLock {
 
 interface CapabilityDescriptor {
   benchmarks?: {
-    currentClaims?: Array<{ measuredPackageVersion?: string }>;
+    currentClaims?: Array<{
+      claimDeclaration?: string;
+      config?: string;
+      measuredPackageVersion?: string;
+      metric?: string;
+      name?: string;
+      reference?: string;
+      result?: string;
+      runtimeProfile?: string;
+    }>;
   };
   install?: {
     bun?: string;
@@ -291,10 +336,992 @@ interface ServerDescriptor {
   version?: string;
 }
 
+export function stableLocomoClaimIssues(input: {
+  claims: Array<{ measuredPackageVersion?: string; name?: string }>;
+  projection: unknown;
+  releaseStatus: string | undefined;
+}): string[] {
+  if (input.releaseStatus !== "stable") {
+    return [];
+  }
+  const issues: string[] = [];
+  if (
+    !input.claims.some(
+      (claim) =>
+        claim.name === "LoCoMo" &&
+        claim.measuredPackageVersion === RELEASE_VERSION,
+    )
+  ) {
+    issues.push(`stable release requires a current LoCoMo ${RELEASE_VERSION} declaration`);
+  }
+  if (
+    !isRecord(input.projection) ||
+    input.projection.artifactKind !== "tracked-current-claim-projection" ||
+    input.projection.benchmark !== "LoCoMo" ||
+    input.projection.schemaVersion !== 1 ||
+    !isRecord(input.projection.claim) ||
+    input.projection.claim.packageVersion !== RELEASE_VERSION ||
+    !isValidStableLocomoClaimProjection(input.projection)
+  ) {
+    issues.push(
+      `stable release requires ${V073_LOCOMO_CURRENT_PROJECTION} to satisfy the full 1540-question evidence contract`,
+    );
+  }
+  return issues;
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isFiniteUnitInterval(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+function isValidStableLocomoClaimProjection(
+  projection: Record<string, unknown>,
+): boolean {
+  if (
+    projection.generatedBy !== "scripts/run-v0-7-3-full-locomo-claim.ts" ||
+    !isRecord(projection.claim) ||
+    !isRecord(projection.descriptorClaim) ||
+    !isRecord(projection.evidenceRepositoryBefore) ||
+    !isRecord(projection.execution) ||
+    !isRecord(projection.runIdentity) ||
+    !Array.isArray(projection.sourceArtifacts)
+  ) {
+    return false;
+  }
+  const claim = projection.claim;
+  const descriptor = projection.descriptorClaim;
+  const evidenceRepositoryBefore = projection.evidenceRepositoryBefore;
+  const execution = projection.execution;
+  const runIdentity = projection.runIdentity;
+  if (
+    claim.packageVersion !== RELEASE_VERSION ||
+    claim.questionCount !== 1540 ||
+    claim.conversationCount !== 10 ||
+    claim.executionFailures !== 0 ||
+    claim.judgeFailures !== 0 ||
+    claim.answerSystem !== "locomo-live-category-aware-v1" ||
+    !isFiniteUnitInterval(claim.strictScore) ||
+    !isFiniteUnitInterval(claim.officialScore) ||
+    !isFiniteUnitInterval(claim.openDomainScore) ||
+    !Number.isSafeInteger(claim.openDomainCorrect) ||
+    (claim.openDomainCorrect as number) < 0 ||
+    claim.openDomainTotal !== 96 ||
+    (claim.openDomainCorrect as number) > 96 ||
+    claim.openDomainScore !== (claim.openDomainCorrect as number) / 96
+  ) {
+    return false;
+  }
+  if (
+    !COMMIT_PATTERN.test(String(evidenceRepositoryBefore.headCommit)) ||
+    evidenceRepositoryBefore.statusPorcelain !== ""
+  ) {
+    return false;
+  }
+  const descriptorFields = [
+    "claimDeclaration",
+    "config",
+    "measuredPackageVersion",
+    "metric",
+    "name",
+    "reference",
+    "result",
+    "runtimeProfile",
+  ] as const;
+  if (
+    descriptorFields.some((field) => !isNonEmptyString(descriptor[field])) ||
+    descriptor.name !== "LoCoMo" ||
+    descriptor.measuredPackageVersion !== RELEASE_VERSION ||
+    descriptor.claimDeclaration !== "benchmark-claims/locomo.json" ||
+    descriptor.reference !== V073_LOCOMO_CURRENT_PROJECTION
+  ) {
+    return false;
+  }
+  const executionFields = [
+    "answerGateway",
+    "answerModel",
+    "answerProvider",
+    "assistedExtractorGateway",
+    "assistedExtractorModel",
+    "assistedExtractorProvider",
+    "benchmarkFingerprint",
+    "benchmarkRootSha256",
+    "bunVersion",
+    "claimCommandSha256",
+    "claimCommandTemplateSha256",
+    "embeddingGateway",
+    "embeddingModel",
+    "embeddingProvider",
+    "judgeGateway",
+    "judgeModel",
+    "judgeProvider",
+    "officialSourceSha256",
+    "promptSha256",
+    "questionSelectionSha256",
+    "rerankingGateway",
+    "rerankingModel",
+    "rerankingProvider",
+  ] as const;
+  if (
+    executionFields.some((field) => !isNonEmptyString(execution[field])) ||
+    execution.answerGateway !== "https://ai.gurkiai.com/v1" ||
+    execution.answerModel !== "gpt-5.6-terra" ||
+    execution.answerProvider !== "openai" ||
+    execution.assistedExtractorGateway !== "https://ai.gurkiai.com/v1" ||
+    execution.assistedExtractorModel !== "gpt-5.6-terra" ||
+    execution.assistedExtractorProvider !== "openai" ||
+    execution.embeddingGateway !== "https://openrouter.ai/api/v1" ||
+    execution.embeddingModel !== "text-embedding-3-small" ||
+    execution.embeddingProvider !== "openai" ||
+    execution.rerankingGateway !== "https://ai.gurkiai.com/v1" ||
+    execution.rerankingModel !== "gpt-5.6-terra" ||
+    execution.rerankingProvider !== "openai" ||
+    execution.judgeGateway !== "https://ai.gurkiai.com/v1" ||
+    execution.judgeModel !== "gpt-5.5" ||
+    execution.judgeProvider !== "openai" ||
+    execution.promptSha256 !== deriveV073PromptSha256() ||
+    execution.questionSelectionSha256 !==
+      V073_FULL_LOCOMO_QUESTION_SELECTION_SHA256 ||
+    !sameJson(
+      execution.caseQuestionCounts,
+      V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
+    ) ||
+    execution.bunVersion !== RELEASE_BUN_VERSION ||
+    execution.concurrency !== 40 ||
+    execution.benchmarkRootBytes !== 2_490_457 ||
+    !SHA256_PATTERN.test(String(execution.benchmarkFingerprint)) ||
+    !SHA256_PATTERN.test(String(execution.benchmarkRootSha256)) ||
+    !SHA256_PATTERN.test(String(execution.claimCommandSha256)) ||
+    !SHA256_PATTERN.test(String(execution.claimCommandTemplateSha256)) ||
+    !SHA256_PATTERN.test(String(execution.officialSourceSha256))
+  ) {
+    return false;
+  }
+  const runIds = [
+    runIdentity.seedRunId,
+    runIdentity.finalRunId,
+    runIdentity.officialRunId,
+  ];
+  if (
+    !isNonEmptyString(runIdentity.commit) ||
+    !COMMIT_PATTERN.test(runIdentity.commit) ||
+    evidenceRepositoryBefore.headCommit !== runIdentity.commit ||
+    runIds.some((value) => !isNonEmptyString(value)) ||
+    new Set(runIds).size !== runIds.length
+  ) {
+    return false;
+  }
+  if (projection.sourceArtifacts.length !== 7) {
+    return false;
+  }
+  const sources = new Map<string, ArtifactIdentityShape>();
+  for (const source of projection.sourceArtifacts) {
+    if (
+      !isRecord(source) ||
+      !isNonEmptyString(source.kind) ||
+      !isArtifactIdentity(source) ||
+      sources.has(source.kind)
+    ) {
+      return false;
+    }
+    sources.set(source.kind, source);
+  }
+  return Object.entries(V073_LOCOMO_SOURCE_ARTIFACT_PATHS).every(
+    ([kind, path]) => sources.get(kind)?.path === path,
+  );
+}
+
+const V073_LOCOMO_CASE_IDS = [
+  "locomo-conv-26",
+  "locomo-conv-30",
+  "locomo-conv-41",
+  "locomo-conv-42",
+  "locomo-conv-43",
+  "locomo-conv-44",
+  "locomo-conv-47",
+  "locomo-conv-48",
+  "locomo-conv-49",
+  "locomo-conv-50",
+] as const;
+const V073_LOCOMO_CATEGORY_COUNTS = {
+  multi_hop: 282,
+  open_domain: 96,
+  single_hop: 841,
+  temporal: 321,
+} as const;
+const V073_LOCOMO_BENCHMARK_FINGERPRINT =
+  "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd";
+const V073_LOCOMO_ROOT_SHA256 =
+  "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28";
+
+function sameJson(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function sourceArtifactMap(
+  projection: Record<string, unknown>,
+): Map<string, ArtifactIdentityShape> {
+  const result = new Map<string, ArtifactIdentityShape>();
+  for (const source of projection.sourceArtifacts as Array<Record<string, unknown>>) {
+    result.set(source.kind as string, source as unknown as ArtifactIdentityShape);
+  }
+  return result;
+}
+
+function parseEvidenceJson(raw: string, label: string, issues: string[]): unknown {
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    issues.push(`${label} is not valid JSON`);
+    return undefined;
+  }
+}
+
+function validateFullLocomoReport(input: {
+  expectedGeneratedBy: string;
+  expectedResume: boolean;
+  label: string;
+  report: unknown;
+  requireAnswerSystem: boolean;
+  issues: string[];
+}): Record<string, unknown>[] | undefined {
+  if (!isRecord(input.report)) {
+    input.issues.push(`${input.label} must be an object`);
+    return undefined;
+  }
+  const report = input.report;
+  const rows = report.cases;
+  if (
+    report.benchmark !== "locomo" ||
+    report.benchmarkFingerprint !== V073_LOCOMO_BENCHMARK_FINGERPRINT ||
+    report.mode !== "live-answer" ||
+    report.answerEvaluation !== "scored" ||
+    report.generatedBy !== input.expectedGeneratedBy ||
+    report.resume !== input.expectedResume ||
+    report.executionFailures !== 0 ||
+    report.questionCount !== 1540 ||
+    report.caseCount !== 10 ||
+    !sameJson(report.caseIds, V073_LOCOMO_CASE_IDS) ||
+    !Array.isArray(rows) ||
+    rows.length !== 1540
+  ) {
+    input.issues.push(`${input.label} is not a complete failure-free full-1540 LoCoMo report`);
+    return undefined;
+  }
+  if (
+    input.requireAnswerSystem &&
+    report.answerSystem !== "locomo-live-category-aware-v1"
+  ) {
+    input.issues.push(`${input.label} answerSystem does not match the current claim protocol`);
+  }
+  const categoryCounts = new Map<string, number>();
+  const caseCounts = new Map<string, number>();
+  const questionKeys = new Set<string>();
+  const typedRows: Record<string, unknown>[] = [];
+  for (const [index, row] of rows.entries()) {
+    if (!isRecord(row)) {
+      input.issues.push(`${input.label} row ${index} is not an object`);
+      continue;
+    }
+    typedRows.push(row);
+    const key = `${String(row.caseId)}\u0000${String(row.questionId)}`;
+    questionKeys.add(key);
+    if (
+      !V073_LOCOMO_CASE_IDS.includes(row.caseId as typeof V073_LOCOMO_CASE_IDS[number]) ||
+      typeof row.category !== "string" ||
+      !Object.prototype.hasOwnProperty.call(V073_LOCOMO_CATEGORY_COUNTS, row.category) ||
+      !isNonEmptyString(row.questionId) ||
+      typeof row.answerCorrect !== "boolean" ||
+      typeof row.answerTokenF1 !== "number" ||
+      !Number.isFinite(row.answerTokenF1) ||
+      row.answerTokenF1 < 0 ||
+      row.answerTokenF1 > 1 ||
+      !isNonEmptyString(row.generatedAnswer) ||
+      row.executionFailureMessage != null
+    ) {
+      input.issues.push(`${input.label} row ${index} is incomplete or failed`);
+    }
+    categoryCounts.set(
+      String(row.category),
+      (categoryCounts.get(String(row.category)) ?? 0) + 1,
+    );
+    caseCounts.set(
+      String(row.caseId),
+      (caseCounts.get(String(row.caseId)) ?? 0) + 1,
+    );
+  }
+  if (questionKeys.size !== 1540) {
+    input.issues.push(`${input.label} question identities are not unique`);
+  }
+  for (const [category, count] of Object.entries(V073_LOCOMO_CATEGORY_COUNTS)) {
+    if (categoryCounts.get(category) !== count) {
+      input.issues.push(`${input.label} category ${category} does not contain ${count} questions`);
+    }
+  }
+  for (const [caseId, count] of Object.entries(
+    V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
+  )) {
+    if (caseCounts.get(caseId) !== count) {
+      input.issues.push(`${input.label} case ${caseId} does not contain ${count} questions`);
+    }
+  }
+  const selection = typedRows.map((row) => ({
+    caseId: row.caseId,
+    category: row.category,
+    questionId: row.questionId,
+  }));
+  if (
+    createHash("sha256").update(JSON.stringify(selection)).digest("hex") !==
+    V073_FULL_LOCOMO_QUESTION_SELECTION_SHA256
+  ) {
+    input.issues.push(`${input.label} does not contain the frozen full-10 question selection`);
+  }
+  return typedRows;
+}
+
+function retrievalIdentity(row: Record<string, unknown>): unknown {
+  return {
+    caseId: row.caseId,
+    category: row.category,
+    evidenceRecall: row.evidenceRecall,
+    evidenceTurnIds: row.evidenceTurnIds,
+    goldEvidenceFullyRetrieved: row.goldEvidenceFullyRetrieved,
+    missingEvidenceTurnIds: row.missingEvidenceTurnIds,
+    noiseTurnCount: row.noiseTurnCount,
+    noiseTurnIds: row.noiseTurnIds,
+    questionId: row.questionId,
+    retrievedTurnChannels: row.retrievedTurnChannels,
+    retrievedTurnIds: row.retrievedTurnIds,
+  };
+}
+
+function validateStableLocomoEvidenceValues(input: {
+  claimRecipeRaw: string;
+  claimDeclaration: unknown;
+  executionReceipt: unknown;
+  finalRaw: string;
+  finalReport: unknown;
+  officialSummary: unknown;
+  officialProgressRaw: string;
+  projection: Record<string, unknown>;
+  seedRaw: string;
+  seedReport: unknown;
+  sources: Map<string, ArtifactIdentityShape>;
+}): string[] {
+  const issues: string[] = [];
+  const claim = input.projection.claim as Record<string, unknown>;
+  const descriptor = input.projection.descriptorClaim as Record<string, unknown>;
+  const execution = input.projection.execution as Record<string, unknown>;
+  const runIdentity = input.projection.runIdentity as Record<string, unknown>;
+  if (
+    execution.benchmarkFingerprint !== V073_LOCOMO_BENCHMARK_FINGERPRINT ||
+    execution.benchmarkRootSha256 !== V073_LOCOMO_ROOT_SHA256
+  ) {
+    issues.push("current LoCoMo execution does not use the frozen full-10 benchmark bytes");
+  }
+  const seedRows = validateFullLocomoReport({
+    expectedGeneratedBy: "scripts/run-phase-65-locomo-smoke.ts",
+    expectedResume: true,
+    issues,
+    label: "seed report",
+    report: input.seedReport,
+    requireAnswerSystem: false,
+  });
+  const finalRows = validateFullLocomoReport({
+    expectedGeneratedBy: "scripts/reanswer-phase-65-locomo-report.ts",
+    expectedResume: false,
+    issues,
+    label: "final report",
+    report: input.finalReport,
+    requireAnswerSystem: true,
+  });
+  if (isRecord(input.seedReport) && isRecord(input.finalReport)) {
+    const sourceReport = input.finalReport.sourceReport;
+    if (
+      !isRecord(sourceReport) ||
+      sourceReport.runId !== input.seedReport.runId ||
+      resolve(String(sourceReport.path)) !==
+        resolve(String(input.seedReport.runDirectory), "smoke-report.json") ||
+      input.seedReport.runId !== runIdentity.seedRunId ||
+      input.finalReport.runId !== runIdentity.finalRunId
+    ) {
+      issues.push("final report does not descend from the bound seed report");
+    }
+    if (
+      Date.parse(String(input.finalReport.generatedAt)) <=
+      Date.parse(String(input.seedReport.generatedAt))
+    ) {
+      issues.push("final report timestamp must follow the seed report timestamp");
+    }
+  }
+  if (seedRows && finalRows) {
+    for (const [index, seed] of seedRows.entries()) {
+      if (!sameJson(retrievalIdentity(seed), retrievalIdentity(finalRows[index]!))) {
+        issues.push(`final report changed seed retrieval evidence at row ${index}`);
+        break;
+      }
+    }
+    const strictCorrect = finalRows.filter((row) => row.answerCorrect === true).length;
+    const strictScore = strictCorrect / 1540;
+    if (
+      !isRecord(input.finalReport) ||
+      input.finalReport.answerAccuracyOverall !== strictScore ||
+      claim.strictScore !== strictScore
+    ) {
+      issues.push("strict score does not match the 1540 final answer outcomes");
+    }
+  }
+  if (!isRecord(input.officialSummary)) {
+    issues.push("official summary must be an object");
+  } else {
+    const official = input.officialSummary;
+    const categories = official.categories;
+    const reportFingerprint = isRecord(official.sourceInputFingerprints)
+      ? official.sourceInputFingerprints.reportPath
+      : undefined;
+    const rootFingerprint = isRecord(official.sourceInputFingerprints)
+      ? official.sourceInputFingerprints.rootPath
+      : undefined;
+    const sourceInputs = official.sourceInputs;
+    if (
+      official.generatedBy !== "scripts/rescore-official-protocols.ts" ||
+      official.benchmark !== "locomo" ||
+      official.runId !== runIdentity.officialRunId ||
+      official.judgeFailures !== 0 ||
+      official.sourceCases !== 1540 ||
+      official.selectedCases !== 1540 ||
+      official.judgedCases !== 1540 ||
+      official.totalCases !== 1540 ||
+      official.sourceAnswersUnchanged !== true ||
+      official.judgeGateway !== execution.judgeGateway ||
+      official.judgeModel !== execution.judgeModel ||
+      official.judgeProvider !== execution.judgeProvider ||
+      !isNonEmptyString(official.protocol) ||
+      !official.protocol.includes("mem0ai/memory-benchmarks LoCoMo judge") ||
+      !isRecord(reportFingerprint) ||
+      reportFingerprint.bytes !== Buffer.byteLength(input.finalRaw, "utf8") ||
+      reportFingerprint.sha256 !== createHash("sha256").update(input.finalRaw).digest("hex") ||
+      !isRecord(rootFingerprint) ||
+      rootFingerprint.bytes !== 2_490_457 ||
+      rootFingerprint.sha256 !== V073_LOCOMO_ROOT_SHA256 ||
+      !isRecord(sourceInputs) ||
+      !isRecord(input.finalReport) ||
+      resolve(String(sourceInputs.reportPath)) !==
+        resolve(String(input.finalReport.runDirectory), "smoke-report.json") ||
+      !isFiniteUnitInterval(official.overallAccuracy) ||
+      claim.officialScore !== official.overallAccuracy
+    ) {
+      issues.push("official summary is not bound to the complete final report and judge protocol");
+    }
+    if (!isRecord(categories)) {
+      issues.push("official summary categories are missing");
+    } else {
+      let correctTotal = 0;
+      for (const [category, total] of Object.entries(V073_LOCOMO_CATEGORY_COUNTS)) {
+        const result = categories[category];
+        if (
+          !isRecord(result) ||
+          result.total !== total ||
+          !Number.isSafeInteger(result.correct) ||
+          (result.correct as number) < 0 ||
+          (result.correct as number) > total ||
+          result.accuracy !== (result.correct as number) / total
+        ) {
+          issues.push(`official summary category ${category} is inconsistent`);
+          continue;
+        }
+        correctTotal += result.correct as number;
+      }
+      if (
+        official.overallCorrect !== correctTotal ||
+        official.overallAccuracy !== correctTotal / 1540 ||
+        !isRecord(categories.open_domain) ||
+        claim.openDomainCorrect !== categories.open_domain.correct ||
+        claim.openDomainTotal !== categories.open_domain.total ||
+        claim.openDomainScore !== categories.open_domain.accuracy
+      ) {
+        issues.push("official overall or open-domain score is inconsistent");
+      }
+      if (finalRows) {
+        let progressRows: unknown[] = [];
+        try {
+          progressRows = input.officialProgressRaw
+            .split("\n")
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .map((line) => JSON.parse(line) as unknown);
+        } catch {
+          issues.push("official progress is not valid JSONL");
+        }
+        const progress = new Map<string, boolean>();
+        for (const row of progressRows) {
+          if (
+            !isRecord(row) ||
+            !isNonEmptyString(row.questionId) ||
+            typeof row.correct !== "boolean" ||
+            progress.has(row.questionId)
+          ) {
+            issues.push("official progress rows are invalid or duplicated");
+            continue;
+          }
+          progress.set(row.questionId, row.correct);
+        }
+        if (
+          progress.size !== 1540 ||
+          finalRows.some((row) => !progress.has(String(row.questionId)))
+        ) {
+          issues.push("official progress does not cover all 1540 final questions");
+        } else {
+          for (const [category, total] of Object.entries(V073_LOCOMO_CATEGORY_COUNTS)) {
+            const correct = finalRows.filter(
+              (row) =>
+                row.category === category &&
+                progress.get(String(row.questionId)) === true,
+            ).length;
+            const summaryCategory = categories[category];
+            if (
+              !isRecord(summaryCategory) ||
+              summaryCategory.correct !== correct ||
+              summaryCategory.accuracy !== correct / total
+            ) {
+              issues.push(`official progress disagrees with category ${category}`);
+            }
+          }
+        }
+      }
+    }
+  }
+  if (!isRecord(input.executionReceipt)) {
+    issues.push("full-claim execution receipt must be an object");
+  } else {
+    const receipt = input.executionReceipt;
+    const evidenceRepositoryBefore = receipt.evidenceRepositoryBefore;
+    const provenance = receipt.worktreeProvenance;
+    const outputs = receipt.outputs;
+    const receiptSources = receipt.sources;
+    const commandChain = receipt.commandChain;
+    const freshOutputEvidence = receipt.freshOutputEvidence;
+    if (
+      receipt.schemaVersion !== 1 ||
+      receipt.generatedBy !== "v0.7.3-full-locomo-claim-launch" ||
+      receipt.commit !== runIdentity.commit ||
+      !isNonEmptyString(receipt.command) ||
+      !sameJson(receipt.execution, execution) ||
+      !isRecord(evidenceRepositoryBefore) ||
+      evidenceRepositoryBefore.headCommit !== runIdentity.commit ||
+      evidenceRepositoryBefore.statusPorcelain !== "" ||
+      !sameJson(
+        evidenceRepositoryBefore,
+        input.projection.evidenceRepositoryBefore,
+      ) ||
+      !isRecord(provenance) ||
+      provenance.headCommit !== runIdentity.commit ||
+      provenance.statusPorcelain !== "" ||
+      !isRecord(outputs) ||
+      !isRecord(receiptSources) ||
+      !isRecord(commandChain) ||
+      !isRecord(freshOutputEvidence) ||
+      freshOutputEvidence.seedOutputPathAbsentBeforeRun !== true ||
+      freshOutputEvidence.finalOutputPathAbsentBeforeRun !== true ||
+      freshOutputEvidence.officialOutputPathAbsentBeforeRun !== true
+    ) {
+      issues.push("full-claim execution receipt does not bind a clean exact execution");
+    } else {
+      for (const [kind, outputName] of [
+        ["seed-report", "seedReport"],
+        ["final-report", "finalReport"],
+        ["official-summary", "officialSummary"],
+        ["official-progress", "officialProgress"],
+      ] as const) {
+        const output = outputs[outputName];
+        const source = input.sources.get(kind)!;
+        if (
+          !isArtifactIdentity(output) ||
+          output.bytes !== source.bytes ||
+          output.sha256 !== source.sha256
+        ) {
+          issues.push(`execution receipt ${outputName} fingerprint is inconsistent`);
+        }
+      }
+      const officialSource = input.sources.get("official-runner-source")!;
+      if (
+        !isArtifactIdentity(receiptSources.officialRunner) ||
+        receiptSources.officialRunner.bytes !== officialSource.bytes ||
+        receiptSources.officialRunner.sha256 !== officialSource.sha256 ||
+        officialSource.sha256 !== execution.officialSourceSha256
+      ) {
+        issues.push("execution receipt official runner source is inconsistent");
+      }
+      const claimRecipeSource = input.sources.get("claim-recipe-source")!;
+      let claimRecipeTemplateSha256: string | undefined;
+      try {
+        claimRecipeTemplateSha256 =
+          deriveV073ClaimCommandTemplateSha256(input.claimRecipeRaw);
+      } catch {
+        claimRecipeTemplateSha256 = undefined;
+      }
+      if (
+        !isArtifactIdentity(receiptSources.claimRecipe) ||
+        receiptSources.claimRecipe.bytes !== claimRecipeSource.bytes ||
+        receiptSources.claimRecipe.sha256 !== claimRecipeSource.sha256 ||
+        claimRecipeSource.sha256 !==
+          createHash("sha256").update(input.claimRecipeRaw).digest("hex") ||
+        execution.claimCommandTemplateSha256 !==
+          claimRecipeTemplateSha256
+      ) {
+        issues.push("execution receipt claim recipe source is inconsistent");
+      }
+      const seedOutput = outputs.seedReport;
+      const finalOutput = outputs.finalReport;
+      const sourceInputs = isRecord(input.officialSummary)
+        ? input.officialSummary.sourceInputs
+        : undefined;
+      const seedInvocation = commandChain.seedSmoke;
+      if (
+        !isArtifactIdentity(seedOutput) ||
+        !isArtifactIdentity(finalOutput) ||
+        !isRecord(sourceInputs) ||
+        !isNonEmptyString(sourceInputs.rootPath) ||
+        !isRecord(seedInvocation) ||
+        !isNonEmptyString(seedInvocation.cwd) ||
+        !isRecord(input.claimDeclaration)
+      ) {
+        issues.push("execution receipt command chain cannot be reconstructed");
+      } else {
+        const claimRecipeRaw = input.claimRecipeRaw;
+        try {
+          const expectedChain = buildV073FullClaimCommandChain({
+            answerGateway: String(execution.answerGateway),
+            answerModel: String(execution.answerModel),
+            answerProvider: String(execution.answerProvider),
+            assistedExtractorGateway: String(execution.assistedExtractorGateway),
+            assistedExtractorModel: String(execution.assistedExtractorModel),
+            assistedExtractorProvider: String(execution.assistedExtractorProvider),
+            benchmarkRoot: dirname(sourceInputs.rootPath),
+            embeddingGateway: String(execution.embeddingGateway),
+            embeddingModel: String(execution.embeddingModel),
+            embeddingProvider: String(execution.embeddingProvider),
+            finalOutputPath: dirname(finalOutput.path),
+            finalRunId: String(runIdentity.finalRunId),
+            judgeGateway: String(execution.judgeGateway),
+            judgeModel: String(execution.judgeModel),
+            judgeProvider: String(execution.judgeProvider),
+            officialRunId: String(runIdentity.officialRunId),
+            rerankingGateway: String(execution.rerankingGateway),
+            rerankingModel: String(execution.rerankingModel),
+            rerankingProvider: String(execution.rerankingProvider),
+            seedOutputPath: dirname(seedOutput.path),
+            seedRunId: String(runIdentity.seedRunId),
+            worktreePath: seedInvocation.cwd,
+          }, claimRecipeRaw);
+          const expectedCommand = renderV073FullClaimCommand(
+            expectedChain,
+            seedInvocation.cwd,
+          );
+          if (
+            !sameJson(commandChain, expectedChain) ||
+            receipt.command !== expectedCommand ||
+            execution.claimCommandSha256 !==
+              createHash("sha256").update(expectedCommand).digest("hex") ||
+            execution.claimCommandTemplateSha256 !==
+              deriveV073ClaimCommandTemplateSha256(claimRecipeRaw)
+          ) {
+            issues.push("execution receipt command chain does not match the claim recipe");
+          }
+        } catch {
+          issues.push("execution receipt command chain does not match the claim recipe");
+        }
+      }
+    }
+  }
+  if (!isRecord(input.claimDeclaration)) {
+    issues.push("benchmark-claims/locomo.json must be an object");
+  } else {
+    const declaration = input.claimDeclaration;
+    const run = declaration.run;
+    const model = declaration.model;
+    const metrics = declaration.metrics;
+    const boundary = declaration.claimBoundary;
+    const coverage = declaration.coverage;
+    const comparison = declaration.comparison;
+    const evidence = declaration.evidence;
+    const command = isRecord(run) ? run.command : undefined;
+    const projectionListed = isRecord(evidence) && Array.isArray(evidence.artifacts) &&
+      evidence.artifacts.some(
+        (artifact) => isRecord(artifact) && artifact.path === V073_LOCOMO_CURRENT_PROJECTION,
+      );
+    if (
+      declaration.benchmark !== "LoCoMo" ||
+      declaration.status !== "candidate_public_claim" ||
+      !isRecord(run) ||
+      run.commit !== runIdentity.commit ||
+      run.packageVersion !== RELEASE_VERSION ||
+      run.executionFailures !== 0 ||
+      !isNonEmptyString(command) ||
+      command !== (isRecord(input.executionReceipt)
+        ? input.executionReceipt.command
+        : undefined) ||
+      createHash("sha256").update(String(command)).digest("hex") !==
+        execution.claimCommandSha256 ||
+      !isRecord(model) ||
+      model.answerGateway !== execution.answerGateway ||
+      model.answerModel !== execution.answerModel ||
+      model.answerProvider !== execution.answerProvider ||
+      model.judgeGateway !== execution.judgeGateway ||
+      model.judgeModel !== execution.judgeModel ||
+      model.judgeProvider !== execution.judgeProvider ||
+      model.sameModelJudge !== false ||
+      !isRecord(metrics) ||
+      metrics.score !== claim.officialScore ||
+      !isRecord(boundary) ||
+      boundary.publicClaimAllowed !== true ||
+      !isRecord(coverage) ||
+      coverage.complete !== true ||
+      !isRecord(comparison) ||
+      comparison.runtimeProfile !== descriptor.runtimeProfile ||
+      (comparison.availability !== "production-default" &&
+        comparison.availability !== "public-opt-in") ||
+      !projectionListed
+    ) {
+      issues.push("benchmark-claims/locomo.json is not a current public 0.7.3 declaration bound to the projection");
+    }
+  }
+  if (
+    !String(descriptor.result).includes(Number(claim.officialScore).toFixed(4)) ||
+    !String(descriptor.result).includes(Number(claim.strictScore).toFixed(4)) ||
+    !String(descriptor.result).includes(
+      `${String(claim.openDomainCorrect)}/${String(claim.openDomainTotal)}`,
+    ) ||
+    !String(descriptor.result).includes(Number(claim.openDomainScore).toFixed(4))
+  ) {
+    issues.push("descriptor result does not disclose official, strict, and open-domain evidence");
+  }
+  return issues;
+}
+
+export async function validateStableLocomoClaimEvidence(input: {
+  claimDeclaration: unknown;
+  projection: unknown;
+  repoRoot: string;
+}): Promise<string[]> {
+  if (
+    !isRecord(input.projection) ||
+    input.projection.artifactKind !== "tracked-current-claim-projection" ||
+    input.projection.benchmark !== "LoCoMo" ||
+    input.projection.schemaVersion !== 1 ||
+    !isValidStableLocomoClaimProjection(input.projection)
+  ) {
+    return [
+      "current LoCoMo projection does not satisfy the full 1540-question evidence contract",
+    ];
+  }
+  const issues: string[] = [];
+  const sources = sourceArtifactMap(input.projection);
+  const rawByKind = new Map<string, string>();
+  for (const [kind, expectedPath] of Object.entries(
+    V073_LOCOMO_SOURCE_ARTIFACT_PATHS,
+  )) {
+    const source = sources.get(kind)!;
+    if (source.path !== expectedPath) {
+      issues.push(`${kind} must use tracked path ${expectedPath}`);
+      continue;
+    }
+    try {
+      const raw = await readFile(join(input.repoRoot, source.path), "utf8");
+      const digest = createHash("sha256").update(raw).digest("hex");
+      if (
+        Buffer.byteLength(raw, "utf8") !== source.bytes ||
+        digest !== source.sha256
+      ) {
+        issues.push(`${kind} bytes do not match the tracked projection fingerprint`);
+      } else {
+        rawByKind.set(kind, raw);
+      }
+    } catch (error) {
+      issues.push(`${kind} cannot be read from ${source.path}: ${String(error)}`);
+    }
+  }
+  if (issues.length > 0) {
+    return issues;
+  }
+  const seedRaw = rawByKind.get("seed-report")!;
+  const claimRecipeRaw = rawByKind.get("claim-recipe-source")!;
+  const finalRaw = rawByKind.get("final-report")!;
+  const officialRaw = rawByKind.get("official-summary")!;
+  const officialProgressRaw = rawByKind.get("official-progress")!;
+  const receiptRaw = rawByKind.get("execution-receipt")!;
+  const seedReport = parseEvidenceJson(seedRaw, "seed report", issues);
+  const finalReport = parseEvidenceJson(finalRaw, "final report", issues);
+  const officialSummary = parseEvidenceJson(officialRaw, "official summary", issues);
+  const executionReceipt = parseEvidenceJson(receiptRaw, "execution receipt", issues);
+  if (issues.length > 0) {
+    return issues;
+  }
+  return validateStableLocomoEvidenceValues({
+    claimRecipeRaw,
+    claimDeclaration: input.claimDeclaration,
+    executionReceipt,
+    finalRaw,
+    finalReport,
+    officialSummary,
+    officialProgressRaw,
+    projection: input.projection,
+    seedRaw,
+    seedReport,
+    sources,
+  });
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await stat(path);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return false;
+    }
+    throw error;
+  }
+}
+
+export async function evaluateV073CurrentLocomoClaimState(input: {
+  claims: Array<{ measuredPackageVersion?: string; name?: string }>;
+  releaseStatus: string | undefined;
+  repoRoot: string;
+}): Promise<string[]> {
+  const projectionPath = join(input.repoRoot, V073_LOCOMO_CURRENT_PROJECTION);
+  const evidenceRoot = join(
+    input.repoRoot,
+    V073_LOCOMO_CLAIM_EVIDENCE_PREFIX.slice(0, -1),
+  );
+  const artifactPaths = Object.values(V073_LOCOMO_SOURCE_ARTIFACT_PATHS).map(
+    (path) => join(input.repoRoot, path),
+  );
+  const listDirectory = async (path: string): Promise<string[]> => {
+    try {
+      return await readdir(path);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return [];
+      }
+      throw error;
+    }
+  };
+  const [
+    projectionExists,
+    evidenceRootExists,
+    artifactPresence,
+    releaseEntries,
+    projectionEntries,
+  ] = await Promise.all([
+    pathExists(projectionPath),
+    pathExists(evidenceRoot),
+    Promise.all(artifactPaths.map(pathExists)),
+    listDirectory(join(input.repoRoot, "reports/release/v0.7")),
+    listDirectory(join(input.repoRoot, "benchmark-claims/evidence")),
+  ]);
+  const partialPublication =
+    releaseEntries.some((name) =>
+      name.startsWith(".v0.7.3-locomo-claim-evidence.partial-") ||
+      name === ".v0.7.3-locomo-claim-publication.lock") ||
+    projectionEntries.some((name) =>
+      name.startsWith(".locomo-v0.7.3-current.json.partial-"));
+  const anyEvidence =
+    evidenceRootExists || artifactPresence.some(Boolean) || partialPublication;
+  const completeEvidence = artifactPresence.every(Boolean);
+  if (!projectionExists && !anyEvidence) {
+    return stableLocomoClaimIssues({
+      claims: input.claims,
+      projection: undefined,
+      releaseStatus: input.releaseStatus,
+    });
+  }
+  const issues: string[] = [];
+  let projection: unknown = undefined;
+  if (projectionExists) {
+    try {
+      projection = JSON.parse(await readFile(projectionPath, "utf8")) as unknown;
+    } catch {
+      issues.push(`${V073_LOCOMO_CURRENT_PROJECTION} is not valid JSON`);
+    }
+  }
+  if (!projectionExists || !completeEvidence || partialPublication) {
+    issues.push(
+      "current LoCoMo evidence is partial: projection and all seven tracked source artifacts must appear together",
+    );
+  }
+  issues.push(...stableLocomoClaimIssues({
+    claims: input.claims,
+    projection,
+    releaseStatus: input.releaseStatus,
+  }));
+  if (projectionExists && completeEvidence && isRecord(projection)) {
+    let declaration: unknown = undefined;
+    try {
+      declaration = JSON.parse(
+        await readFile(join(input.repoRoot, "benchmark-claims/locomo.json"), "utf8"),
+      ) as unknown;
+    } catch {
+      declaration = undefined;
+    }
+    issues.push(...await validateStableLocomoClaimEvidence({
+      claimDeclaration: declaration,
+      projection,
+      repoRoot: input.repoRoot,
+    }));
+    if (input.releaseStatus === "stable") {
+      const advertisedClaim = input.claims.find((claim) => claim.name === "LoCoMo");
+      if (
+        !isRecord(projection.descriptorClaim) ||
+        !sameJson(advertisedClaim, projection.descriptorClaim)
+      ) {
+        issues.push(
+          "stable capability descriptor LoCoMo claim does not match the tracked projection",
+        );
+      }
+    }
+  }
+  return issues;
+}
+
+export function evaluateStableLocomoCandidateLink(input: {
+  candidateCommit: string;
+  candidatePromptSha256: string;
+  projection: unknown;
+}): V07ReleaseReadinessCheck {
+  const measuredCommit = isRecord(input.projection) &&
+    isRecord(input.projection.runIdentity)
+    ? input.projection.runIdentity.commit
+    : undefined;
+  const measuredPromptSha256 = isRecord(input.projection) &&
+    isRecord(input.projection.execution)
+    ? input.projection.execution.promptSha256
+    : undefined;
+  const matches = measuredCommit === input.candidateCommit &&
+    measuredPromptSha256 === input.candidatePromptSha256;
+  return {
+    detail: matches
+      ? `full-1540 LoCoMo claim was measured on lifecycle candidate ${input.candidateCommit} with prompt ${input.candidatePromptSha256}`
+      : `full-1540 LoCoMo claim commit/prompt ${String(measuredCommit ?? "<missing>")}/${String(measuredPromptSha256 ?? "<missing>")} does not match lifecycle candidate ${input.candidateCommit}/${input.candidatePromptSha256}`,
+    durationMs: 0,
+    id: "v0.7.3-current-claim-candidate",
+    required: true,
+    status: matches ? "pass" : "fail",
+    title: "Current LoCoMo claim candidate identity",
+  };
+}
+
 export function parseV07ReleaseReadinessCliOptions(
   argv: readonly string[],
 ): V07ReleaseReadinessOptions {
   const options = {
+    lifecycleProtectionArtifact: resolveCliFlagValueStrict(
+      argv,
+      "--lifecycle-protection-artifact",
+    ),
     outputDir: resolveCliFlagValueStrict(argv, "--output-dir"),
     skipBuild: hasCliFlagStrict(argv, "--skip-build"),
     skipCoverage: hasCliFlagStrict(argv, "--skip-coverage"),
@@ -324,6 +1351,655 @@ export function evaluateV07RequiredChecks(
   return checks.every(
     (check) => !check.required || check.status === "pass",
   );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+interface ArtifactIdentityShape {
+  bytes: number;
+  path: string;
+  sha256: string;
+}
+
+function isArtifactIdentity(value: unknown): value is ArtifactIdentityShape {
+  return (
+    isRecord(value) &&
+    typeof value.bytes === "number" &&
+    Number.isSafeInteger(value.bytes) &&
+    value.bytes >= 0 &&
+    typeof value.path === "string" &&
+    value.path.trim().length > 0 &&
+    typeof value.sha256 === "string" &&
+    SHA256_PATTERN.test(value.sha256)
+  );
+}
+
+function hasLifecycleArtifactIdentities(value: unknown): boolean {
+  if (!isRecord(value) || !isRecord(value.baseline) || !isRecord(value.candidate)) {
+    return false;
+  }
+  return [
+    value.baseline.claimRecipeSource,
+    value.baseline.executionReceipt,
+    value.baseline.officialSummary,
+    value.baseline.officialProgress,
+    value.baseline.officialRunnerSource,
+    value.baseline.reanswerRunnerSource,
+    value.baseline.report,
+    value.baseline.seedReport,
+    value.baseline.seedRunnerSource,
+    value.candidate.claimRecipeSource,
+    value.candidate.executionReceipt,
+    value.candidate.officialSummary,
+    value.candidate.officialProgress,
+    value.candidate.officialRunnerSource,
+    value.candidate.reanswerRunnerSource,
+    value.candidate.report,
+    value.candidate.seedReport,
+    value.candidate.seedRunnerSource,
+    value.liveDelta,
+    value.liveDeltaAnalyzerSource,
+    value.liveDeltaExecutionReceipt,
+    value.liveDeltaStderr,
+    value.liveDeltaStdout,
+    value.manifest,
+    value.scenarioExecutionReceipt,
+    value.scenarioReplay,
+    value.scenarioStderr,
+    value.scenarioStdout,
+  ].every(isArtifactIdentity);
+}
+
+function lifecycleArtifactIdentities(value: unknown): ArtifactIdentityShape[] {
+  if (!isRecord(value) || !isRecord(value.baseline) || !isRecord(value.candidate)) {
+    return [];
+  }
+  return [
+    value.baseline.claimRecipeSource,
+    value.baseline.executionReceipt,
+    value.baseline.officialSummary,
+    value.baseline.officialProgress,
+    value.baseline.officialRunnerSource,
+    value.baseline.reanswerRunnerSource,
+    value.baseline.report,
+    value.baseline.seedReport,
+    value.baseline.seedRunnerSource,
+    value.candidate.claimRecipeSource,
+    value.candidate.executionReceipt,
+    value.candidate.officialSummary,
+    value.candidate.officialProgress,
+    value.candidate.officialRunnerSource,
+    value.candidate.reanswerRunnerSource,
+    value.candidate.report,
+    value.candidate.seedReport,
+    value.candidate.seedRunnerSource,
+    value.liveDelta,
+    value.liveDeltaAnalyzerSource,
+    value.liveDeltaExecutionReceipt,
+    value.liveDeltaStderr,
+    value.liveDeltaStdout,
+    value.manifest,
+    value.scenarioExecutionReceipt,
+    value.scenarioReplay,
+    value.scenarioStderr,
+    value.scenarioStdout,
+  ].filter(isArtifactIdentity);
+}
+
+export function evaluateV073LifecycleProtectionArtifact(input: {
+  artifact: unknown;
+  artifactPath: string;
+}): V07ReleaseReadinessCheck {
+  const issues: string[] = [];
+  if (!isRecord(input.artifact)) {
+    issues.push("artifact must be a JSON object");
+  } else {
+    const scenario = input.artifact.scenarioReplay;
+    const artifacts = input.artifact.artifacts;
+    if (input.artifact.schemaVersion !== 1) {
+      issues.push("schemaVersion must be 1");
+    }
+    if (
+      input.artifact.generatedBy !==
+        "scripts/run-v0-7-3-lifecycle-protection-gate.ts"
+    ) {
+      issues.push("generatedBy must identify the lifecycle protection gate");
+    }
+    if (input.artifact.baselineCommit !== V072_BASELINE_COMMIT) {
+      issues.push("baseline commit must match v0.7.2");
+    }
+    if (
+      typeof input.artifact.candidateCommit !== "string" ||
+      !COMMIT_PATTERN.test(input.artifact.candidateCommit)
+    ) {
+      issues.push("artifact candidate commit must be a full SHA");
+    }
+    if (input.artifact.candidatePromptSha256 !== deriveV073PromptSha256()) {
+      issues.push("artifact candidate prompt must match the frozen default prompt");
+    }
+    if (
+      input.artifact.releaseAllowed !== true ||
+      !Array.isArray(input.artifact.blockers) ||
+      input.artifact.blockers.length !== 0
+    ) {
+      issues.push("lifecycle protection gate did not pass without blockers");
+    }
+    if (input.artifact.fullClaimRerunRequired !== true) {
+      issues.push("artifact must retain the full-claim rerun boundary");
+    }
+    if (
+      typeof input.artifact.claimBoundary !== "string" ||
+      !input.artifact.claimBoundary.includes("omits --answer-profile") ||
+      !input.artifact.claimBoundary.includes("0.8799")
+    ) {
+      issues.push("artifact must retain the current-recipe and historical-claim boundary");
+    }
+    if (!hasLifecycleArtifactIdentities(artifacts)) {
+      issues.push("source artifact identities must contain paths and hashes");
+    } else if (
+      lifecycleArtifactIdentities(artifacts).some(
+        ({ path }) => !path.startsWith(V073_LIFECYCLE_EVIDENCE_PREFIX),
+      )
+    ) {
+      issues.push("all source artifacts must live in the tracked lifecycle evidence bundle");
+    }
+    if (
+      !isRecord(scenario) ||
+      scenario.candidateCommit !== input.artifact.candidateCommit ||
+      scenario.command !== "bun test tests/scenarios" ||
+      scenario.failures !== 0 ||
+      typeof scenario.passed !== "number" ||
+      !Number.isSafeInteger(scenario.passed) ||
+      scenario.passed < 1 ||
+      typeof scenario.reportPath !== "string" ||
+      typeof scenario.reportSha256 !== "string" ||
+      !SHA256_PATTERN.test(scenario.reportSha256) ||
+      typeof scenario.executionReceiptPath !== "string" ||
+      typeof scenario.executionReceiptSha256 !== "string" ||
+      !SHA256_PATTERN.test(scenario.executionReceiptSha256) ||
+      typeof scenario.stdoutPath !== "string" ||
+      typeof scenario.stdoutSha256 !== "string" ||
+      !SHA256_PATTERN.test(scenario.stdoutSha256) ||
+      typeof scenario.stderrPath !== "string" ||
+      typeof scenario.stderrSha256 !== "string" ||
+      !SHA256_PATTERN.test(scenario.stderrSha256)
+    ) {
+      issues.push(
+        "scenario replay candidate commit and report bytes are not bound to the artifact",
+      );
+    } else if (isRecord(artifacts)) {
+      const scenarioIdentities = [
+        [artifacts.scenarioReplay, scenario.reportPath, scenario.reportSha256],
+        [
+          artifacts.scenarioExecutionReceipt,
+          scenario.executionReceiptPath,
+          scenario.executionReceiptSha256,
+        ],
+        [artifacts.scenarioStdout, scenario.stdoutPath, scenario.stdoutSha256],
+        [artifacts.scenarioStderr, scenario.stderrPath, scenario.stderrSha256],
+      ] as const;
+      if (
+        scenarioIdentities.some(
+          ([identity, path, fingerprint]) =>
+            !isArtifactIdentity(identity) ||
+            identity.path !== path ||
+            identity.sha256 !== fingerprint,
+        )
+      ) {
+        issues.push("scenario replay identity does not match the source artifact map");
+      }
+    }
+  }
+
+  return {
+    detail: issues.length === 0
+      ? `completed paired protection evidence at ${input.artifactPath} is bound to candidate commit ${
+        isRecord(input.artifact) ? String(input.artifact.candidateCommit) : "<invalid>"
+      }`
+      : issues.join("; "),
+    durationMs: 0,
+    id: "v0.7.3-lifecycle-protection",
+    required: true,
+    status: issues.length === 0 ? "pass" : "fail",
+    title: "v0.7.3 paired lifecycle protection evidence",
+  };
+}
+
+function lifecycleIdentity(
+  artifacts: Record<string, unknown>,
+  arm: "baseline" | "candidate" | null,
+  name: string,
+): ArtifactIdentityShape {
+  const parent = arm === null ? artifacts : artifacts[arm];
+  if (!isRecord(parent) || !isArtifactIdentity(parent[name])) {
+    throw new Error(`lifecycle evidence identity ${arm ?? "root"}.${name} is missing`);
+  }
+  return parent[name];
+}
+
+async function readBoundLifecycleArtifact(input: {
+  identity: ArtifactIdentityShape;
+  repoRoot: string;
+}): Promise<string> {
+  if (!input.identity.path.startsWith(V073_LIFECYCLE_EVIDENCE_PREFIX)) {
+    throw new Error(`lifecycle evidence path is outside the tracked bundle: ${input.identity.path}`);
+  }
+  const absolutePath = resolve(input.repoRoot, input.identity.path);
+  const bundleRoot = resolve(input.repoRoot, V073_LIFECYCLE_EVIDENCE_PREFIX);
+  if (!absolutePath.startsWith(`${bundleRoot}/`)) {
+    throw new Error(`lifecycle evidence path escapes its bundle: ${input.identity.path}`);
+  }
+  const raw = await readFile(absolutePath, "utf8");
+  const fingerprint = createHash("sha256").update(raw).digest("hex");
+  if (
+    Buffer.byteLength(raw, "utf8") !== input.identity.bytes ||
+    fingerprint !== input.identity.sha256
+  ) {
+    throw new Error(`lifecycle evidence bytes do not match ${input.identity.path}`);
+  }
+  return raw;
+}
+
+async function evaluateV073LifecycleProtectionBundle(input: {
+  artifact: Record<string, unknown>;
+  artifactPath: string;
+  repoRoot: string;
+}): Promise<V07ReleaseReadinessCheck> {
+  const startedAt = performance.now();
+  try {
+    if (!isRecord(input.artifact.artifacts)) {
+      throw new Error("lifecycle artifact source map is missing");
+    }
+    const artifacts = input.artifact.artifacts;
+    const read = (arm: "baseline" | "candidate" | null, name: string) =>
+      readBoundLifecycleArtifact({
+        identity: lifecycleIdentity(artifacts, arm, name),
+        repoRoot: input.repoRoot,
+      });
+    const [
+      baselineExecutionReceiptRaw,
+      baselineOfficialRaw,
+      baselineOfficialProgressRaw,
+      baselineReportRaw,
+      baselineSeedReportRaw,
+      baselineClaimRecipeRaw,
+      baselineOfficialRunnerRaw,
+      baselineReanswerRunnerRaw,
+      baselineSeedRunnerRaw,
+      candidateExecutionReceiptRaw,
+      candidateOfficialRaw,
+      candidateOfficialProgressRaw,
+      candidateReportRaw,
+      candidateSeedReportRaw,
+      candidateClaimRecipeRaw,
+      candidateOfficialRunnerRaw,
+      candidateReanswerRunnerRaw,
+      candidateSeedRunnerRaw,
+      liveDeltaRaw,
+      liveDeltaAnalyzerSourceRaw,
+      liveDeltaExecutionReceiptRaw,
+      liveDeltaStderrRaw,
+      liveDeltaStdoutRaw,
+      manifestRaw,
+      scenarioExecutionReceiptRaw,
+      scenarioReplayRaw,
+      scenarioStderrRaw,
+      scenarioStdoutRaw,
+    ] = await Promise.all([
+      read("baseline", "executionReceipt"),
+      read("baseline", "officialSummary"),
+      read("baseline", "officialProgress"),
+      read("baseline", "report"),
+      read("baseline", "seedReport"),
+      read("baseline", "claimRecipeSource"),
+      read("baseline", "officialRunnerSource"),
+      read("baseline", "reanswerRunnerSource"),
+      read("baseline", "seedRunnerSource"),
+      read("candidate", "executionReceipt"),
+      read("candidate", "officialSummary"),
+      read("candidate", "officialProgress"),
+      read("candidate", "report"),
+      read("candidate", "seedReport"),
+      read("candidate", "claimRecipeSource"),
+      read("candidate", "officialRunnerSource"),
+      read("candidate", "reanswerRunnerSource"),
+      read("candidate", "seedRunnerSource"),
+      read(null, "liveDelta"),
+      read(null, "liveDeltaAnalyzerSource"),
+      read(null, "liveDeltaExecutionReceipt"),
+      read(null, "liveDeltaStderr"),
+      read(null, "liveDeltaStdout"),
+      read(null, "manifest"),
+      read(null, "scenarioExecutionReceipt"),
+      read(null, "scenarioReplay"),
+      read(null, "scenarioStderr"),
+      read(null, "scenarioStdout"),
+    ]);
+    const baselineExecutionReceipt = JSON.parse(baselineExecutionReceiptRaw) as Record<string, unknown>;
+    const candidateExecutionReceipt = JSON.parse(candidateExecutionReceiptRaw) as Record<string, unknown>;
+    const evaluationInput = {
+      baselineExecutionReceipt,
+      baselineExecutionReceiptRaw,
+      baselineOfficial: JSON.parse(baselineOfficialRaw),
+      baselineOfficialProgressRaw,
+      baselineOfficialRaw,
+      baselineReport: JSON.parse(baselineReportRaw),
+      baselineReportRaw,
+      baselineSeedReport: JSON.parse(baselineSeedReportRaw),
+      baselineSeedReportRaw,
+      baselineSources: {
+        claimRecipeRaw: baselineClaimRecipeRaw,
+        officialRunnerRaw: baselineOfficialRunnerRaw,
+        reanswerRunnerRaw: baselineReanswerRunnerRaw,
+        seedRunnerRaw: baselineSeedRunnerRaw,
+      },
+      baselineWorktreeProvenance: baselineExecutionReceipt.worktreeProvenance,
+      candidateExecutionReceipt,
+      candidateExecutionReceiptRaw,
+      candidateOfficial: JSON.parse(candidateOfficialRaw),
+      candidateOfficialProgressRaw,
+      candidateOfficialRaw,
+      candidateReport: JSON.parse(candidateReportRaw),
+      candidateReportRaw,
+      candidateSeedReport: JSON.parse(candidateSeedReportRaw),
+      candidateSeedReportRaw,
+      candidateSources: {
+        claimRecipeRaw: candidateClaimRecipeRaw,
+        officialRunnerRaw: candidateOfficialRunnerRaw,
+        reanswerRunnerRaw: candidateReanswerRunnerRaw,
+        seedRunnerRaw: candidateSeedRunnerRaw,
+      },
+      candidateWorktreeProvenance: candidateExecutionReceipt.worktreeProvenance,
+      liveDelta: JSON.parse(liveDeltaRaw),
+      liveDeltaAnalyzerSourceRaw,
+      liveDeltaExecutionReceipt: JSON.parse(liveDeltaExecutionReceiptRaw),
+      liveDeltaExecutionReceiptRaw,
+      liveDeltaRaw,
+      liveDeltaStderrRaw,
+      liveDeltaStdoutRaw,
+      manifest: JSON.parse(manifestRaw),
+      manifestPath: lifecycleIdentity(artifacts, null, "manifest").path,
+      manifestRaw,
+      scenarioExecutionReceipt: JSON.parse(scenarioExecutionReceiptRaw),
+      scenarioExecutionReceiptRaw,
+      scenarioReplay: JSON.parse(scenarioReplayRaw),
+      scenarioReplayRaw,
+      scenarioStderrRaw,
+      scenarioStdoutRaw,
+    } as unknown as V073LifecycleProtectionEvaluationInput;
+    const recomputed = evaluateV073LifecycleProtection(evaluationInput);
+    const comparable = (value: Record<string, unknown>) => ({
+      baselineCommit: value.baselineCommit,
+      blockers: value.blockers,
+      candidateCommit: value.candidateCommit,
+      candidatePromptSha256: value.candidatePromptSha256,
+      claimBoundary: value.claimBoundary,
+      fullClaimRerunRequired: value.fullClaimRerunRequired,
+      metrics: value.metrics,
+      questionTransitions: value.questionTransitions,
+      releaseAllowed: value.releaseAllowed,
+      researchRecordRequired: value.researchRecordRequired,
+      scenarioReplay: isRecord(value.scenarioReplay)
+        ? {
+            candidateCommit: value.scenarioReplay.candidateCommit,
+            failures: value.scenarioReplay.failures,
+            passed: value.scenarioReplay.passed,
+          }
+        : value.scenarioReplay,
+      schemaVersion: value.schemaVersion,
+    });
+    if (
+      JSON.stringify(comparable(input.artifact)) !==
+        JSON.stringify(comparable(recomputed as unknown as Record<string, unknown>))
+    ) {
+      throw new Error("compact lifecycle artifact does not match recomputed bundle evidence");
+    }
+    return {
+      detail: `tracked lifecycle evidence bundle recomputed successfully for ${input.artifactPath}`,
+      durationMs: Math.round(performance.now() - startedAt),
+      id: "v0.7.3-lifecycle-protection",
+      required: true,
+      status: "pass",
+      title: "v0.7.3 paired lifecycle protection evidence",
+    };
+  } catch (error) {
+    return {
+      detail: error instanceof Error ? error.message : String(error),
+      durationMs: Math.round(performance.now() - startedAt),
+      id: "v0.7.3-lifecycle-protection",
+      required: true,
+      status: "fail",
+      title: "v0.7.3 paired lifecycle protection evidence",
+    };
+  }
+}
+
+const ALLOWED_POST_CANDIDATE_DESCRIPTOR_PATHS = new Set([
+  ".well-known/goodmemory.json",
+  "kimi.plugin.json",
+  "llms.txt",
+  "server.json",
+]);
+
+function isAllowedPostCandidatePath(path: string): boolean {
+  return (
+    path === "package.json" ||
+    path === "README.md" ||
+    path.startsWith("README.") ||
+    path.startsWith("benchmark-claims/") ||
+    path.startsWith("docs/") ||
+    path.startsWith("reports/") ||
+    ALLOWED_POST_CANDIDATE_DESCRIPTOR_PATHS.has(path)
+  );
+}
+
+function releaseStatus(value: unknown): unknown {
+  if (!isRecord(value) || !isRecord(value.goodmemoryRelease)) {
+    return undefined;
+  }
+  return value.goodmemoryRelease.status;
+}
+
+function packageWithoutReleaseStatus(value: unknown): unknown {
+  const copy = JSON.parse(JSON.stringify(value)) as unknown;
+  if (isRecord(copy) && isRecord(copy.goodmemoryRelease)) {
+    copy.goodmemoryRelease = {
+      ...copy.goodmemoryRelease,
+      status: "<release-status>",
+    };
+  }
+  return copy;
+}
+
+function packageStatusOnlyChangeAllowed(
+  candidatePackage: unknown,
+  currentPackage: unknown,
+): boolean {
+  if (!isRecord(candidatePackage) || !isRecord(currentPackage)) {
+    return false;
+  }
+  const candidateStatus = releaseStatus(candidatePackage);
+  const currentStatus = releaseStatus(currentPackage);
+  const statusAllowed =
+    candidateStatus === currentStatus ||
+    (candidateStatus === "release-candidate" && currentStatus === "stable");
+  return statusAllowed &&
+    JSON.stringify(packageWithoutReleaseStatus(candidatePackage)) ===
+      JSON.stringify(packageWithoutReleaseStatus(currentPackage));
+}
+
+export function evaluateV073LifecycleProtectionSourceDrift(input: {
+  candidateCommit: string;
+  candidatePackage: unknown;
+  changedPaths: readonly string[];
+  currentCommit: string;
+  currentPackage: unknown;
+  isAncestor: boolean;
+}): V07ReleaseReadinessCheck {
+  const issues: string[] = [];
+  if (!input.isAncestor) {
+    issues.push(
+      `measured candidate ${input.candidateCommit} is not an ancestor of ${input.currentCommit}`,
+    );
+  }
+  const forbiddenPaths = input.changedPaths.filter(
+    (path) => !isAllowedPostCandidatePath(path),
+  );
+  if (forbiddenPaths.length > 0) {
+    issues.push(`execution surface changed after measurement: ${forbiddenPaths.join(", ")}`);
+  }
+  if (
+    input.changedPaths.includes("package.json") &&
+    !packageStatusOnlyChangeAllowed(input.candidatePackage, input.currentPackage)
+  ) {
+    issues.push(
+      "package.json changed beyond goodmemoryRelease.status release-candidate -> stable",
+    );
+  }
+
+  return {
+    detail: issues.length === 0
+      ? input.candidateCommit === input.currentCommit
+        ? `release source is the measured candidate ${input.candidateCommit}`
+        : `release source is an evidence-only descendant of measured candidate ${input.candidateCommit}`
+      : issues.join("; "),
+    durationMs: 0,
+    id: "v0.7.3-lifecycle-source",
+    required: true,
+    status: issues.length === 0 ? "pass" : "fail",
+    title: "v0.7.3 measured-candidate source stability",
+  };
+}
+
+export async function evaluateV073LifecycleProtectionArtifactFile(input: {
+  artifactPath: string;
+  currentCommit: string;
+  repoRoot: string;
+}): Promise<V07ReleaseReadinessCheck[]> {
+  const startedAt = performance.now();
+  try {
+    const artifact = JSON.parse(await readFile(input.artifactPath, "utf8")) as unknown;
+    const artifactCheck = evaluateV073LifecycleProtectionArtifact({
+      artifact,
+      artifactPath: input.artifactPath,
+    });
+    const measuredCheck = {
+      ...artifactCheck,
+      durationMs: Math.round(performance.now() - startedAt),
+    };
+    if (artifactCheck.status !== "pass" || !isRecord(artifact)) {
+      return [measuredCheck];
+    }
+    const bundleCheck = await evaluateV073LifecycleProtectionBundle({
+      artifact,
+      artifactPath: input.artifactPath,
+      repoRoot: input.repoRoot,
+    });
+    if (bundleCheck.status !== "pass") {
+      return [bundleCheck];
+    }
+    const candidateCommit = String(artifact.candidateCommit);
+    const packageJson = JSON.parse(
+      await readFile(join(input.repoRoot, "package.json"), "utf8"),
+    ) as PackageJson;
+    const claimCandidateChecks: V07ReleaseReadinessCheck[] = [];
+    const currentProjectionExists = await pathExists(
+      join(input.repoRoot, V073_LOCOMO_CURRENT_PROJECTION),
+    );
+    if (
+      packageJson.goodmemoryRelease?.status === "stable" ||
+      currentProjectionExists
+    ) {
+      let projection: unknown = undefined;
+      try {
+        projection = JSON.parse(
+          await readFile(join(input.repoRoot, V073_LOCOMO_CURRENT_PROJECTION), "utf8"),
+        ) as unknown;
+      } catch {
+        projection = undefined;
+      }
+      claimCandidateChecks.push(evaluateStableLocomoCandidateLink({
+        candidateCommit,
+        candidatePromptSha256: String(artifact.candidatePromptSha256),
+        projection,
+      }));
+    }
+    const [ancestor, changed] = await Promise.all([
+      runCommand(
+        "git",
+        ["merge-base", "--is-ancestor", candidateCommit, input.currentCommit],
+        input.repoRoot,
+      ),
+      runCommand(
+        "git",
+        ["diff", "--name-only", `${candidateCommit}..${input.currentCommit}`, "--"],
+        input.repoRoot,
+      ),
+    ]);
+    if ((ancestor.code !== 0 && ancestor.code !== 1) || changed.code !== 0) {
+      return [
+        bundleCheck,
+        ...claimCandidateChecks,
+        {
+          detail: "cannot compare the measured candidate with the release source",
+          durationMs: Math.round(performance.now() - startedAt),
+          id: "v0.7.3-lifecycle-source",
+          required: true,
+          status: "fail",
+          title: "v0.7.3 measured-candidate source stability",
+        },
+      ];
+    }
+    const changedPaths = changed.stdout
+      .split(/\r?\n/u)
+      .map((path) => path.trim())
+      .filter(Boolean);
+    let candidatePackage: unknown = undefined;
+    let currentPackage: unknown = undefined;
+    if (changedPaths.includes("package.json")) {
+      const candidatePackageOutcome = await runCommand(
+        "git",
+        ["show", `${candidateCommit}:package.json`],
+        input.repoRoot,
+      );
+      if (candidatePackageOutcome.code !== 0) {
+        throw new Error("cannot read candidate package.json");
+      }
+      candidatePackage = JSON.parse(candidatePackageOutcome.stdout) as unknown;
+      currentPackage = JSON.parse(
+        await readFile(join(input.repoRoot, "package.json"), "utf8"),
+      ) as unknown;
+    }
+    const sourceCheck = evaluateV073LifecycleProtectionSourceDrift({
+      candidateCommit,
+      candidatePackage,
+      changedPaths,
+      currentCommit: input.currentCommit,
+      currentPackage,
+      isAncestor: ancestor.code === 0,
+    });
+    return [
+      bundleCheck,
+      ...claimCandidateChecks,
+      {
+        ...sourceCheck,
+        durationMs: Math.round(performance.now() - startedAt),
+      },
+    ];
+  } catch (error) {
+    return [{
+      detail: `cannot read lifecycle protection artifact ${input.artifactPath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      durationMs: Math.round(performance.now() - startedAt),
+      id: "v0.7.3-lifecycle-protection",
+      required: true,
+      status: "fail",
+      title: "v0.7.3 paired lifecycle protection evidence",
+    }];
+  }
 }
 
 export function evaluateV07PackManifest(
@@ -536,11 +2212,12 @@ export async function evaluateVersionConsistency(
     issues.push(`package.json version is ${packageJson.version}, expected ${RELEASE_VERSION}`);
   }
   if (
-    packageRelease?.status !== "stable" ||
+    (packageRelease?.status !== "release-candidate" &&
+      packageRelease?.status !== "stable") ||
     packageRelease?.npmDistTag !== "latest" ||
     packageRelease?.installCommandsApplyAfterPublish !== true
   ) {
-    issues.push("package.json must describe the immutable stable 0.7 release source");
+    issues.push("package.json must describe the 0.7 release candidate or stable source");
   }
   if (
     packageLock.version !== RELEASE_VERSION ||
@@ -548,6 +2225,11 @@ export async function evaluateVersionConsistency(
   ) {
     issues.push(
       `package-lock.json root versions do not match ${RELEASE_VERSION}`,
+    );
+  }
+  if (!packageJson.files?.includes(V073_LOCOMO_CURRENT_PROJECTION)) {
+    issues.push(
+      `package.json files must include ${V073_LOCOMO_CURRENT_PROJECTION}`,
     );
   }
   if (
@@ -605,11 +2287,16 @@ export async function evaluateVersionConsistency(
       `current benchmark claims were not measured on ${RELEASE_VERSION}`,
     );
   }
+  issues.push(...await evaluateV073CurrentLocomoClaimState({
+    claims: capability.benchmarks?.currentClaims ?? [],
+    releaseStatus: packageRelease?.status,
+    repoRoot,
+  }));
 
   return {
     detail:
       issues.length === 0
-        ? `stable ${RELEASE_VERSION} source metadata is aligned; mutable npm state is not encoded; pre-0.7 benchmark evidence is not labeled current`
+        ? `${packageRelease?.status} ${RELEASE_VERSION} source metadata is aligned; mutable npm state is not encoded; pre-0.7 benchmark evidence is not labeled current`
         : issues.join("; "),
     durationMs: Math.round(performance.now() - startedAt),
     id: "version",
@@ -896,6 +2583,14 @@ export async function runV07ReleaseReadiness(
 
   checks.push(source.check, runtime.check);
   checks.push(await evaluateVersionConsistency(repoRoot));
+  checks.push(...(await evaluateV073LifecycleProtectionArtifactFile({
+    artifactPath: resolve(
+      repoRoot,
+      options.lifecycleProtectionArtifact ?? V073_LIFECYCLE_PROTECTION_ARTIFACT,
+    ),
+    currentCommit: source.sourceIdentity.commitSha,
+    repoRoot,
+  })));
 
   for (const command of V07_RELEASE_REQUIRED_COMMANDS) {
     const details = REQUIRED_COMMAND_DETAILS[command.id];

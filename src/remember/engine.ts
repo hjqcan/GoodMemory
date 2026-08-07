@@ -856,6 +856,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
       const sourceMessagesByIndex = new Map<number, SourceMessageRecord>();
       const setDocumentWithRollback = writeCoordinator.setDocument;
       const deleteDocumentWithRollback = writeCoordinator.deleteDocument;
+      const writeDocumentBatchWithRollback =
+        writeCoordinator.writeDocumentBatchWithRollback;
 
       try {
         const blockedSourceIndexes = getNeverAnnotatedMessageIndexes(input);
@@ -1033,6 +1035,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
               sourceMessagesByIndex,
               setDocumentWithRollback,
               deleteDocumentWithRollback,
+              writeDocumentBatchWithRollback,
             },
             state,
           });

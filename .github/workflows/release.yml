@@ -55,7 +55,7 @@ jobs:
           GOODMEMORY_ASSISTED_EXTRACTOR_MODEL: ${{ secrets.GOODMEMORY_ASSISTED_EXTRACTOR_MODEL }}
           GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER: ${{ secrets.GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER }}
           GOODMEMORY_TEST_POSTGRES_URL: ${{ secrets.GOODMEMORY_TEST_POSTGRES_URL || 'postgres://postgres:postgres@localhost:5432/postgres' }}
-        run: bun run gate:v0.7 --strict
+        run: bun run gate:v0.7 --strict --lifecycle-protection-artifact reports/release/v0.7/v0.7.3-lifecycle-protection.json
 
       - name: Pack release tarball
         id: pack
@@ -129,6 +129,10 @@ jobs:
           path: |
             ${{ steps.pack.outputs.artifact_path }}
             ${{ steps.prepublish.outputs.evidence_path }}
+            reports/release/v0.7/v0.7.3-lifecycle-protection.json
+            reports/release/v0.7/v0.7.3-lifecycle-evidence/**
+            benchmark-claims/evidence/locomo-v0.7.3-current.json
+            reports/release/v0.7/v0.7.3-locomo-claim-evidence/**
             reports/release/v0.7/phase-74-storage-scale-gate.json
             reports/release/v0.7/readiness-report.json
             reports/release/v0.7/summary.md
@@ -212,6 +216,10 @@ jobs:
           files: |
             ${{ steps.pack.outputs.artifact_path }}
             ${{ steps.prepublish.outputs.evidence_path }}
+            reports/release/v0.7/v0.7.3-lifecycle-protection.json
+            reports/release/v0.7/v0.7.3-lifecycle-evidence/**
+            benchmark-claims/evidence/locomo-v0.7.3-current.json
+            reports/release/v0.7/v0.7.3-locomo-claim-evidence/**
             reports/release/v0.7/phase-74-storage-scale-gate.json
             reports/release/v0.7/readiness-report.json
             reports/release/v0.7/summary.md

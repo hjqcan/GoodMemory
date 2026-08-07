@@ -36,7 +36,8 @@ Consequences
   boundaries (salvage) without the core memory API taking on session-lifecycle
   responsibilities.
 + Runtime-plane churn stays isolated from durable memory, matching the taxonomy
-  planes and keeping maintenance/decay policy (ADR-004) simple.
+  planes and keeping recall-time soft decay and TTL maintenance policy
+  (ADR-004) simple.
 - Two more moving parts a host integrator can choose to adopt; they earn their
   keep only when the host has a session/compaction lifecycle, and are off by
   default for the plain library path.

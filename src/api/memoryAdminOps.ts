@@ -23,6 +23,11 @@ import { buildMarkdownArtifacts } from "../governance/markdownArtifacts";
 import type { LanguageService } from "../language";
 import type { GoodMemoryTracer } from "../observability/tracer";
 import {
+  PREFERENCE_CATEGORY_FENCE_KIND,
+  REMEMBER_WRITE_OWNERS_COLLECTION,
+} from "../remember/writeOwnership";
+import type { PreferenceCategoryFenceRecord } from "../remember/writeOwnership";
+import {
   CLAIM_PROJECTIONS_COLLECTION,
   CLAIM_PROJECTION_STATUS_COLLECTION,
   ENTITIES_COLLECTION,
@@ -406,6 +411,7 @@ export async function deleteAllMemoryOperation(
       allProposals,
       allPromotions,
       allRecallDocuments,
+      allPreferenceCategoryFences,
     ] = await Promise.all([
       deps.governanceRepositories.profiles.get(input.scope.userId),
       deps.governanceRepositories.preferences.listByScope(input.scope),
@@ -425,6 +431,13 @@ export async function deleteAllMemoryOperation(
       deps.documentStore.query<RecallIndexDocument>(
         RECALL_DOCUMENTS_COLLECTION,
         scopeFilter(input.scope),
+      ),
+      deps.documentStore.query<PreferenceCategoryFenceRecord>(
+        REMEMBER_WRITE_OWNERS_COLLECTION,
+        {
+          ...scopeFilter(input.scope),
+          kind: PREFERENCE_CATEGORY_FENCE_KIND,
+        },
       ),
     ]);
 
@@ -462,6 +475,10 @@ export async function deleteAllMemoryOperation(
     const recallDocuments = allRecallDocuments.filter((record) =>
       recordMatchesScope(record, input.scope)
     );
+    const preferenceCategoryFences = allPreferenceCategoryFences.filter((record) =>
+      record.kind === PREFERENCE_CATEGORY_FENCE_KIND &&
+      recordMatchesScope(record, input.scope)
+    );
     const projectedMemoryIds = new Set(recallDocuments.map((document) =>
       `${document.sourceCollection}:${document.sourceMemoryId}`
     ));
@@ -475,6 +492,11 @@ export async function deleteAllMemoryOperation(
       await deps.documentStore.delete("preferences", preference.id);
       deleted.preferences += 1;
     }
+    await deleteDocuments(
+      deps.documentStore,
+      REMEMBER_WRITE_OWNERS_COLLECTION,
+      preferenceCategoryFences,
+    );
     for (const reference of references) {
       await deleteVectorForCollection(deps.governanceVectors, "references", reference.id);
       await deps.documentStore.delete("references", reference.id);

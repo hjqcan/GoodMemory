@@ -9,6 +9,47 @@ import {
 } from "../../src/storage/memory";
 
 describe("recall outcome scoring", () => {
+  it("keeps year-old explicit facts eligible after the freshness bonus reaches zero", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      storage: { provider: "memory" },
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      testing: {
+        now: () => new Date("2026-01-10T00:00:00.000Z"),
+      },
+    });
+
+    await documentStore.set(
+      "facts",
+      "fact-old-explicit",
+      createFactMemory({
+        id: "fact-old-explicit",
+        userId: "u-old",
+        workspaceId: "workspace-a",
+        category: "personal",
+        content: "The user's preferred deployment region is eu-west-1.",
+        source: { method: "explicit", extractedAt: "2025-01-10T00:00:00.000Z" },
+        createdAt: "2025-01-10T00:00:00.000Z",
+        updatedAt: "2025-01-10T00:00:00.000Z",
+      }),
+    );
+
+    const result = await memory.recall({
+      scope: { userId: "u-old", workspaceId: "workspace-a" },
+      query: "What is the preferred deployment region?",
+      retrievalProfile: "general_chat",
+    });
+    const trace = result.metadata.candidateTraces.find(
+      (entry) => entry.memoryId === "fact-old-explicit",
+    );
+
+    expect(result.facts.map((fact) => fact.id)).toContain("fact-old-explicit");
+    expect(trace?.freshnessScore).toBe(0);
+  });
+
   it("boosts evidence-backed fact candidates and exposes outcome attribution in traces", async () => {
     const documentStore = createInMemoryDocumentStore();
     const memory = createGoodMemory({
@@ -94,7 +135,8 @@ describe("recall outcome scoring", () => {
     expect(result.facts[0]?.id).toBe("fact-strong");
     const trace = result.metadata.candidateTraces.find((entry) => entry.memoryId === "fact-strong");
     expect(trace?.evidenceScore).toBeGreaterThan(0);
-    expect(trace?.usageScore).toBeGreaterThan(0);
+    expect(trace?.usageScore).toBe(0);
+    expect(trace?.outcomeScore).toBe(trace?.evidenceScore);
     expect(trace?.whyReturned).toContain("outcomeScore=");
   });
 

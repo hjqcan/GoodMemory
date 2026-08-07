@@ -60,3 +60,16 @@ export function scopeToPrefix(scope: MemoryScope): string {
 export function isSameScope(left: MemoryScope, right: MemoryScope): boolean {
   return scopeToKey(left) === scopeToKey(right);
 }
+
+export function isSameDurableScope(
+  left: MemoryScope,
+  right: MemoryScope,
+): boolean {
+  const normalizedLeft = normalizeScope(left);
+  const normalizedRight = normalizeScope(right);
+
+  return normalizedLeft.userId === normalizedRight.userId &&
+    normalizedLeft.tenantId === normalizedRight.tenantId &&
+    normalizedLeft.workspaceId === normalizedRight.workspaceId &&
+    normalizedLeft.agentId === normalizedRight.agentId;
+}

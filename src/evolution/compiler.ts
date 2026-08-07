@@ -162,7 +162,6 @@ export function createProceduralPatternCompiler(
             sessionId: proposal.sessionId,
             ...resolveFeedbackLanguageSource(feedbackSeed, config.language),
           }),
-          lastUsedAt: sourceFeedback?.lastUsedAt,
           updatedAt: timestamp,
         });
         if (sourceFeedback) {

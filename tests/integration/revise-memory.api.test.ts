@@ -6,9 +6,19 @@ import {
   createInMemorySessionStore,
   createInMemoryVectorStore,
 } from "../../src/storage/memory";
-import type { DocumentStore, VectorStore } from "../../src/storage/contracts";
+import type {
+  DocumentStore,
+  StorageFilter,
+  VectorStore,
+} from "../../src/storage/contracts";
 import { createMemoryRepositories } from "../../src/storage/repositories";
 import { createFakeEmbeddingAdapter } from "../../src/testing/fakes";
+import {
+  createFactMemory,
+  createFeedbackMemory,
+  type FactMemory,
+  type FeedbackMemory,
+} from "../../src/domain/records";
 
 function builtinAnalyzerVersion(packId: string): string {
   const pack = createLanguageService()
@@ -356,6 +366,91 @@ describe("public reviseMemory API", () => {
     );
     expect(JSON.stringify(spans)).not.toContain("Actually I use Cursor now.");
     expect(JSON.stringify(spans)).not.toContain("revision-user");
+  });
+
+  it("atomically supersedes every active category sibling with monotonic timestamps", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      storage: { provider: "memory" },
+      testing: {
+        now: () => new Date("2026-01-01T00:00:00.000Z"),
+      },
+    });
+    const scope = {
+      userId: "revision-preference-siblings-user",
+      workspaceId: "workspace-a",
+    };
+    const first = {
+      ...scope,
+      category: "response_style",
+      confidence: 1,
+      evidenceCount: 1,
+      id: "preference-revision-sibling-a",
+      lifecycle: "active" as const,
+      source: {
+        extractedAt: "2026-01-02T00:00:00.000Z",
+        method: "explicit" as const,
+      },
+      supersededBy: null,
+      updatedAt: "2026-01-03T00:00:00.000Z",
+      value: "bullet points",
+    };
+    const second = {
+      ...scope,
+      category: "response_style",
+      confidence: 1,
+      evidenceCount: 1,
+      id: "preference-revision-sibling-b",
+      lifecycle: "active" as const,
+      source: {
+        extractedAt: "2026-01-04T00:00:00.000Z",
+        method: "explicit" as const,
+      },
+      supersededBy: null,
+      updatedAt: "2026-01-02T00:00:00.000Z",
+      value: "numbered lists",
+    };
+    await documentStore.set("preferences", first.id, first);
+    await documentStore.set("preferences", second.id, second);
+
+    const result = await memory.reviseMemory({
+      idempotencyKey: "revision-all-preference-siblings",
+      reason: "user_correction",
+      revision: { content: "short paragraphs" },
+      scope,
+      target: { memoryId: first.id },
+    });
+    const preferences = await documentStore.query<{
+      id: string;
+      lifecycle: string;
+      source: { extractedAt: string };
+      supersededBy: string | null;
+      updatedAt: string;
+    }>("preferences", scope);
+    const active = preferences.filter(({ lifecycle }) => lifecycle === "active");
+    const superseded = preferences.filter(
+      ({ lifecycle }) => lifecycle === "superseded",
+    );
+
+    expect(result.accepted).toBe(true);
+    expect(active).toEqual([expect.objectContaining({
+      id: result.newMemoryId,
+      supersededBy: null,
+    })]);
+    expect(superseded).toHaveLength(2);
+    expect(
+      superseded.every(({ supersededBy }) => supersededBy === result.newMemoryId),
+    ).toBe(true);
+    expect(
+      preferences.every(
+        (preference) => preference.updatedAt >= preference.source.extractedAt,
+      ),
+    ).toBe(true);
+    expect(active[0]?.updatedAt).toBe("2026-01-04T00:00:00.000Z");
   });
 
   it("persists revision reason and evidence source in the durable audit record", async () => {
@@ -958,6 +1053,109 @@ describe("public reviseMemory API", () => {
     expect(exported.durable.evidence).toHaveLength(1);
   });
 
+  it("serializes remember and preference revision through one category fence", async () => {
+    const backingStore = createInMemoryDocumentStore();
+    let preferenceSnapshotRead = (): void => {};
+    const preferenceSnapshotReady = new Promise<void>((resolve) => {
+      preferenceSnapshotRead = resolve;
+    });
+    let releasePreferenceSnapshot = (): void => {};
+    const preferenceSnapshotBlocked = new Promise<void>((resolve) => {
+      releasePreferenceSnapshot = resolve;
+    });
+    let blocked = false;
+    const delayedDocumentStore: DocumentStore = {
+      ...backingStore,
+      async query<TDocument extends object>(
+        collection: string,
+        filter?: StorageFilter,
+      ): Promise<TDocument[]> {
+        const records = await backingStore.query<TDocument>(collection, filter);
+        if (collection === "preferences" && !blocked) {
+          blocked = true;
+          preferenceSnapshotRead();
+          await preferenceSnapshotBlocked;
+        }
+        return records;
+      },
+    };
+    const scope = {
+      userId: "revision-remember-fence-user",
+      workspaceId: "workspace-a",
+    };
+    const baseline = createGoodMemory({
+      adapters: {
+        documentStore: backingStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      storage: { provider: "memory" },
+    });
+    const remembering = createGoodMemory({
+      adapters: {
+        documentStore: delayedDocumentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      storage: { provider: "memory" },
+    });
+    const revising = createGoodMemory({
+      adapters: {
+        documentStore: backingStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      storage: { provider: "memory" },
+    });
+    const remembered = await baseline.remember({
+      messages: [{
+        role: "user",
+        content: "I prefer bullet points in project summaries.",
+      }],
+      scope: { ...scope, sessionId: "baseline" },
+    });
+    const originalId = remembered.events[0]?.memoryId;
+    if (!originalId) {
+      throw new Error("Expected the baseline preference to be stored.");
+    }
+
+    const pendingRemember = remembering.remember({
+      messages: [{
+        role: "user",
+        content: "I prefer short paragraphs in project summaries.",
+      }],
+      scope: { ...scope, sessionId: "remember" },
+    });
+    await preferenceSnapshotReady;
+    const revision = await revising.reviseMemory({
+      idempotencyKey: "revision-during-remember",
+      reason: "user_correction",
+      revision: { content: "I prefer numbered lists in project summaries." },
+      scope,
+      target: { memoryId: originalId },
+    });
+    releasePreferenceSnapshot();
+    const replacement = await pendingRemember;
+    const preferences = await backingStore.query<{
+      id: string;
+      lifecycle: string;
+      supersededBy: string | null;
+    }>("preferences", scope);
+    const active = preferences.filter(({ lifecycle }) => lifecycle === "active");
+    const revisionId = revision.newMemoryId;
+    const replacementId = replacement.events[0]?.memoryId;
+
+    expect(blocked).toBe(true);
+    expect(revision.accepted).toBe(true);
+    expect(replacement.events[0]?.outcome).toBe("superseded");
+    expect(active).toEqual([expect.objectContaining({ id: replacementId })]);
+    expect(preferences.find(({ id }) => id === originalId)).toMatchObject({
+      lifecycle: "superseded",
+      supersededBy: revisionId,
+    });
+    expect(preferences.find(({ id }) => id === revisionId)).toMatchObject({
+      lifecycle: "superseded",
+      supersededBy: replacementId,
+    });
+  });
+
   it("serializes concurrent targeted revisions so one active memory has one successor", async () => {
     const documentStore = createRevisionRaceDocumentStore(createInMemoryDocumentStore());
     const memory = createGoodMemory({
@@ -1115,6 +1313,50 @@ describe("public reviseMemory API", () => {
     })).toBeDefined();
   });
 
+  it("keeps targeted revision unsupported on legacy custom document stores", async () => {
+    const documentStore = createLegacyDocumentStore(createInMemoryDocumentStore());
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      storage: { provider: "memory" },
+    });
+    const scope = {
+      userId: "revision-legacy-store-user",
+      workspaceId: "workspace-a",
+    };
+    const remembered = await memory.remember({
+      messages: [{
+        role: "user",
+        content: "I prefer bullet points in project summaries.",
+      }],
+      scope,
+    });
+    const targetMemoryId = remembered.events.find(
+      ({ memoryType }) => memoryType === "preference",
+    )?.memoryId;
+    if (!targetMemoryId) {
+      throw new Error("Expected a preference from the legacy store remember path.");
+    }
+
+    const result = await memory.reviseMemory({
+      idempotencyKey: "legacy-store-preference-revision",
+      reason: "user_correction",
+      revision: { content: "I prefer short paragraphs." },
+      scope,
+      target: { memoryId: targetMemoryId },
+    });
+
+    expect(result).toMatchObject({
+      accepted: false,
+      memoryType: "preference",
+      outcome: "unsupported",
+      previousMemoryId: targetMemoryId,
+      reason: "document_store_batch_unsupported",
+    });
+  });
+
   it("requires the explicit projection capability only when generalized fusion is enabled", () => {
     const documentStore = createLegacyDocumentStore(createInMemoryDocumentStore());
 
@@ -1265,6 +1507,79 @@ describe("public reviseMemory API", () => {
         referenceRevision.newMemoryId!,
       ),
     ).not.toBeNull();
+  });
+
+  it("does not copy frozen retrieval-exposure telemetry into revised records", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      storage: { provider: "memory" },
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      testing: { now: () => new Date("2026-04-20T00:00:00.000Z") },
+    });
+    const scope = {
+      userId: "revision-frozen-telemetry-user",
+      workspaceId: "workspace-a",
+    } as const;
+    const fact = createFactMemory({
+      id: "fact-frozen-telemetry",
+      ...scope,
+      category: "project",
+      content: "The rollout owner is Nora.",
+      source: { method: "explicit", extractedAt: "2026-04-01T00:00:00.000Z" },
+      accessCount: 12,
+      lastAccessedAt: "2026-04-10T00:00:00.000Z",
+      createdAt: "2026-04-01T00:00:00.000Z",
+      updatedAt: "2026-04-01T00:00:00.000Z",
+    });
+    const feedback = createFeedbackMemory({
+      id: "feedback-frozen-telemetry",
+      ...scope,
+      rule: "Use bullet points for rollout summaries.",
+      kind: "validated_pattern",
+      source: { method: "explicit", extractedAt: "2026-04-01T00:00:00.000Z" },
+      lastUsedAt: "2026-04-11T00:00:00.000Z",
+      updatedAt: "2026-04-01T00:00:00.000Z",
+    });
+    await documentStore.set("facts", fact.id, fact);
+    await documentStore.set("feedback", feedback.id, feedback);
+
+    const factRevision = await memory.reviseMemory({
+      scope,
+      target: { memoryId: fact.id },
+      revision: { content: "The rollout owner is Mina." },
+      reason: "user_correction",
+      idempotencyKey: "revision-frozen-fact-telemetry",
+    });
+    const feedbackRevision = await memory.reviseMemory({
+      scope,
+      target: { memoryId: feedback.id },
+      revision: { content: "Use short paragraphs for rollout summaries." },
+      reason: "user_correction",
+      idempotencyKey: "revision-frozen-feedback-telemetry",
+    });
+    const oldFact = await documentStore.get<FactMemory>("facts", fact.id);
+    const newFact = await documentStore.get<FactMemory>(
+      "facts",
+      factRevision.newMemoryId!,
+    );
+    const oldFeedback = await documentStore.get<FeedbackMemory>(
+      "feedback",
+      feedback.id,
+    );
+    const newFeedback = await documentStore.get<FeedbackMemory>(
+      "feedback",
+      feedbackRevision.newMemoryId!,
+    );
+
+    expect(oldFact?.accessCount).toBe(12);
+    expect(oldFact?.lastAccessedAt).toBe("2026-04-10T00:00:00.000Z");
+    expect(newFact?.accessCount).toBe(0);
+    expect(newFact?.lastAccessedAt).toBeUndefined();
+    expect(oldFeedback?.lastUsedAt).toBe("2026-04-11T00:00:00.000Z");
+    expect(newFeedback?.lastUsedAt).toBeUndefined();
   });
 
   it("deletes stale fact and reference vectors during revision when embeddings are not configured", async () => {

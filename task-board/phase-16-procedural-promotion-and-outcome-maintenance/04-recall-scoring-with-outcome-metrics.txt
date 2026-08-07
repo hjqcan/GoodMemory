@@ -1,6 +1,11 @@
 Phase 16.4: Recall Scoring with Outcome Metrics
 ===============================================
 
+v0.7.3 correction (2026-08-06): the implemented notes below remain historical
+Phase 16 provenance. v0.7.3 removes accessCount, lastAccessedAt, and lastUsedAt
+from ranking; evidence support is still scored once and verification pressure
+remains an advisory negative signal. See ADR-004.
+
 [DONE] P16.4-T001 Integrate accessCount and lastUsedAt into scoring
 [DONE] P16.4-T002 Integrate evidenceCount and correction/demotion signals into scoring
 [DONE] P16.4-T003 Keep scoring attribution visible in recall traces

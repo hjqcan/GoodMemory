@@ -5,12 +5,30 @@ Status
 ------
 Accepted (backfilled 2026-07-07 to document the shipped decision)
 
+v0.7.3 correction (2026-08-06)
+--------------------------------
+The original text below records the through-v0.7.2 interpretation. A repository
+audit found that src/maintenance/decay.ts had no production caller, so describing
+it as a shipped maintenance job was false. From v0.7.3 onward:
+
+- soft decay is recall policy: freshness affects query-time ranking only;
+- TTL/validity is maintenance: recall hides expired facts immediately, while
+  ttlExpiry persists inactive lifecycle and removes vectors;
+- retrieval exposure is not reinforcement and does not mutate access/last-used
+  fields or increase future rank;
+- ordinary retrieval exposure never increases confidence or lifecycle;
+  verification hints may add negative verification pressure, and maintenance may
+  act on that pressure under its existing safety conditions.
+
+The dead decay calculator and its isolated test are removed. Historical quality
+gate artifacts remain unchanged as evidence of what those gates ran at the time.
+
 Context
 -------
 GoodMemory requires background maintenance capabilities such as decay, consolidation, contradiction repair, and future dream-style jobs.
 
-Decision
---------
+Historical decision through v0.7.2
+----------------------------------
 1. Maintenance is a set of named, individually-reportable jobs behind a single
    runner (src/maintenance/runner.ts: MaintenanceJobName, MaintenanceRunnerConfig,
    MaintenanceJobReport). Running maintenance is opt-in. Callers can pass an
@@ -46,6 +64,7 @@ Consequences
 
 Related
 -------
-- src/maintenance/runner.ts, decay.ts, dream.ts, qualityRepairSignals.ts
+- src/maintenance/runner.ts, dream.ts, qualityRepairSignals.ts
+- src/recall/scoring.ts (query-time soft decay)
 - src/domain/records.ts (lifecycle/expiry helpers)
 - ADR-001 (planes/kinds decay treats differently), ADR-005 (recall boundary)

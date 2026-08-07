@@ -38,9 +38,11 @@ export interface RecallObservationResult {
   modelInfluence: ExperienceModelInfluence;
   policyApplied: string[];
   preferences: ObservationLinkedRecord[];
+  /** @deprecated since 0.7.3. Accepted for compatibility and ignored. */
   reinforcedFeedbackCount?: number;
   references: ObservationLinkedRecord[];
   strategy: "auto" | "hybrid" | "llm-assisted" | "rules-only";
+  /** @deprecated since 0.7.3. Accepted for compatibility and ignored. */
   touchedFactCount?: number;
   tokenCount: number;
   verificationPressureFactCount?: number;

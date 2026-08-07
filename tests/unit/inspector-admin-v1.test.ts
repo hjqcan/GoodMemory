@@ -302,6 +302,57 @@ describe("Inspector Admin API v1", () => {
     });
   });
 
+  it("keeps superseded preference lineage visible in the Inspector", async () => {
+    await store.set("preferences", "preference-old", {
+      ...SCOPE,
+      category: "general_preference",
+      id: "preference-old",
+      lifecycle: "superseded",
+      supersededBy: "preference-new",
+      updatedAt: "2026-07-01T00:00:00.000Z",
+      value: "I prefer jasmine tea.",
+    });
+    await store.set("preferences", "preference-new", {
+      ...SCOPE,
+      category: "general_preference",
+      id: "preference-new",
+      lifecycle: "active",
+      supersededBy: null,
+      updatedAt: "2026-07-02T00:00:00.000Z",
+      value: "I prefer dark editor themes.",
+    });
+
+    const response = await adminRequest(
+      `/admin/v1/scopes/${encodeURIComponent(SCOPE_KEY)}/memories?collection=preferences`,
+    );
+    const body = (await response.json()) as {
+      data: {
+        items: Array<{
+          id: string;
+          lifecycle: string;
+          revisable: boolean;
+          supersededBy?: string | null;
+        }>;
+      };
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.data.items).toEqual([
+      expect.objectContaining({
+        id: "preference-new",
+        lifecycle: "active",
+        revisable: true,
+        supersededBy: null,
+      }),
+      expect.objectContaining({
+        id: "preference-old",
+        lifecycle: "superseded",
+        revisable: false,
+        supersededBy: "preference-new",
+      }),
+    ]);
+  });
+
   it("rejects malformed memory cursors as client errors", async () => {
     const response = await adminRequest(
       `/admin/v1/scopes/${encodeURIComponent(SCOPE_KEY)}/memories?cursor=not-a-cursor`,

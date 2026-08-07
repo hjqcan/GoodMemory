@@ -30,8 +30,10 @@ export interface ExperienceMetrics {
   verificationHintCount?: number;
   latencyMs?: number;
   tokenCount?: number;
+  /** @deprecated since 0.7.3. New recall experiences omit this metric. */
   touchedFactCount?: number;
   verificationPressureFactCount?: number;
+  /** @deprecated since 0.7.3. New recall experiences omit this metric. */
   reinforcedFeedbackCount?: number;
 }
 

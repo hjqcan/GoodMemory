@@ -1,6 +1,11 @@
 Phase 16 Subtasks
 =================
 
+v0.7.3 correction (2026-08-06): this folder is historical execution
+provenance. The shipped touch/reinforce ranking loop was removed in v0.7.3;
+retrieval exposure no longer mutates or ranks memory. See ADR-004. Existing
+Phase 16 status and evidence remain unchanged below.
+
 Purpose
 -------
 This folder decomposes procedural promotion and outcome-aware maintenance into concrete execution slices.

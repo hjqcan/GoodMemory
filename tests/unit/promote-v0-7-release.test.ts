@@ -17,26 +17,26 @@ import {
 
 const README_RC = `# GoodMemory
 
-> **Release status:** this branch is the \`0.7.2\` release candidate. npm
-> \`latest\` remains \`0.7.1\` until the tagged stable workflow publishes 0.7.2.
+> **Release status:** this branch is the \`0.7.3\` release candidate. npm
+> \`latest\` remains \`0.7.2\` until the tagged stable workflow publishes 0.7.3.
 > The version-pinned registry commands below are the post-publish contract; use
-> the locally packed \`goodmemory-0.7.2.tgz\` for pre-publish verification.
+> the locally packed \`goodmemory-0.7.3.tgz\` for pre-publish verification.
 `;
 
 const README_ZH_RC = `# GoodMemory
 
-> **发布状态：**当前分支是 \`0.7.2\` release candidate；在带 tag 的稳定发布
-> workflow 真正发布 0.7.2 之前，npm \`latest\` 仍是 \`0.7.1\`。下文锁定
-> 0.7.2 的 registry 命令是发布后的契约；发布前请使用本地打包的
-> \`goodmemory-0.7.2.tgz\` 验证。
+> **发布状态：**当前分支是 \`0.7.3\` release candidate；在带 tag 的稳定发布
+> workflow 真正发布 0.7.3 之前，npm \`latest\` 仍是 \`0.7.2\`。下文锁定
+> 0.7.3 的 registry 命令是发布后的契约；发布前请使用本地打包的
+> \`goodmemory-0.7.3.tgz\` 验证。
 `;
 
 const LLMS_RC = `# GoodMemory
 
-Release status: this source tree targets the 0.7.2 release candidate. npm
-latest remains 0.7.1 until the tagged stable workflow publishes 0.7.2. The
+Release status: this source tree targets the 0.7.3 release candidate. npm
+latest remains 0.7.2 until the tagged stable workflow publishes 0.7.3. The
 version-pinned registry commands below apply after publication; pre-publish
-verification uses goodmemory-0.7.2.tgz.
+verification uses goodmemory-0.7.3.tgz.
 `;
 
 async function writeReleaseCandidateFixture(
@@ -44,6 +44,7 @@ async function writeReleaseCandidateFixture(
   llms = LLMS_RC,
 ): Promise<void> {
   await mkdir(join(root, ".well-known"), { recursive: true });
+  await mkdir(join(root, "benchmark-claims/evidence"), { recursive: true });
   await writeFile(join(root, "README.md"), README_RC);
   await writeFile(join(root, "README.zh-CN.md"), README_ZH_RC);
   await writeFile(join(root, "llms.txt"), llms);
@@ -56,20 +57,39 @@ async function writeReleaseCandidateFixture(
         status: "release-candidate",
       },
       name: "goodmemory",
-      version: "0.7.2",
+      version: "0.7.3",
+    }, null, 2)}\n`,
+  );
+  await writeFile(
+    join(root, "benchmark-claims/evidence/locomo-v0.7.3-current.json"),
+    `${JSON.stringify({
+      descriptorClaim: {
+        claimDeclaration: "benchmark-claims/locomo.json",
+        config: "full 10 conversations / 1540 questions",
+        measuredPackageVersion: "0.7.3",
+        metric: "independent official judge accuracy",
+        name: "LoCoMo",
+        reference: "benchmark-claims/evidence/locomo-v0.7.3-current.json",
+        result: "official 0.8000; strict 0.6000",
+        runtimeProfile: "recommended-current",
+      },
     }, null, 2)}\n`,
   );
   await writeFile(
     join(root, ".well-known/goodmemory.json"),
     `${JSON.stringify({
+      benchmarks: {
+        currentClaims: [],
+        historicalEvidence: { note: "RC historical note", url: "benchmark-claims" },
+      },
       name: "goodmemory",
       releaseStatus: {
         installCommandsApplyAfterPublish: true,
         npmDistTag: "latest",
         status: "release-candidate",
-        tarball: "goodmemory-0.7.2.tgz",
+        tarball: "goodmemory-0.7.3.tgz",
       },
-      version: "0.7.2",
+      version: "0.7.3",
     }, null, 2)}\n`,
   );
 }
@@ -87,7 +107,10 @@ describe("v0.7 release-source promotion", () => {
       ) as Record<string, unknown>;
       const descriptor = JSON.parse(
         await readFile(join(root, ".well-known/goodmemory.json"), "utf8"),
-      ) as { releaseStatus?: Record<string, unknown> };
+      ) as {
+        benchmarks?: { currentClaims?: Array<Record<string, unknown>> };
+        releaseStatus?: Record<string, unknown>;
+      };
       const readme = await readFile(join(root, "README.md"), "utf8");
       const readmeZh = await readFile(join(root, "README.zh-CN.md"), "utf8");
       const llms = await readFile(join(root, "llms.txt"), "utf8");
@@ -101,13 +124,19 @@ describe("v0.7 release-source promotion", () => {
         installCommandsApplyAfterPublish: true,
         npmDistTag: "latest",
         status: "stable",
-        tarball: "goodmemory-0.7.2.tgz",
+        tarball: "goodmemory-0.7.3.tgz",
       });
-      expect(readme).toContain("immutable `0.7.2` stable release source");
-      expect(readmeZh).toContain("不可变的 `0.7.2` 稳定发布源码");
-      expect(llms).toContain("immutable GoodMemory 0.7.2 stable release source");
+      expect(descriptor.benchmarks?.currentClaims).toEqual([
+        expect.objectContaining({
+          measuredPackageVersion: "0.7.3",
+          name: "LoCoMo",
+        }),
+      ]);
+      expect(readme).toContain("immutable `0.7.3` stable release source");
+      expect(readmeZh).toContain("不可变的 `0.7.3` 稳定发布源码");
+      expect(llms).toContain("immutable GoodMemory 0.7.3 stable release source");
       for (const content of [readme, readmeZh, llms]) {
-        expect(content).not.toContain("latest remains 0.7.1");
+        expect(content).not.toContain("latest remains 0.7.2");
         expect(content).not.toContain("release candidate");
       }
       expect(JSON.stringify(packageJson)).not.toContain("npmLatest");
@@ -131,7 +160,7 @@ describe("v0.7 release-source promotion", () => {
 
       await expect(
         assertV07StableReleaseSource({ repoRoot: root }),
-      ).rejects.toThrow("goodmemory-0.7.2.tgz");
+      ).rejects.toThrow("goodmemory-0.7.3.tgz");
     } finally {
       await rm(root, { force: true, recursive: true });
     }

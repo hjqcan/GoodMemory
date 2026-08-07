@@ -1027,7 +1027,7 @@ describe("maintenance runner", () => {
     });
   });
 
-  it("preserves recently used inferred action facts to avoid missed recall", async () => {
+  it("does not shield stale inferred action facts because they were recently accessed", async () => {
     const { repositories, runner } = createFixture();
     const scope = { userId: "u-phase46-recent", workspaceId: "workspace-a" };
     const replacementFact = createFactMemory({
@@ -1073,11 +1073,12 @@ describe("maintenance runner", () => {
 
     const report = await runner.run(scope, ["qualityRepair"]);
 
-    expect(report.jobs).toEqual([{ name: "qualityRepair", applied: 0 }]);
+    expect(report.jobs).toEqual([{ name: "qualityRepair", applied: 1 }]);
     const facts = await repositories.facts.listByScope(scope);
     expect(facts.find((fact) => fact.id === "fact-recently-used-blocker")).toMatchObject({
-      isActive: true,
-      lifecycle: "active",
+      demotionReason: "stale_action_quality_repair",
+      isActive: false,
+      lifecycle: "inactive",
     });
   });
 

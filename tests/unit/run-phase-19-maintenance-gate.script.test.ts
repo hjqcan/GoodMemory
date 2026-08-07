@@ -29,7 +29,6 @@ describe("run-phase-19-maintenance-gate script", () => {
           "tests/eval/runners.test.ts",
           "tests/eval/suite.test.ts",
           "tests/eval/reporting.test.ts",
-          "tests/unit/maintenance.decay.test.ts",
           "tests/unit/maintenance.dream.test.ts",
           "tests/integration/maintenance.api.test.ts",
         ],

@@ -7,6 +7,10 @@ still controls each unapproved MCP call.
 
 ## Requirements
 
+The repository descriptors target the `0.7.3` release candidate. The verified
+Kimi Code acceptance boundary remains `v0.7.2` until `0.7.3` is published and a
+fresh clean-machine acceptance is recorded.
+
 - Kimi Code with plugin support.
 - Node.js 20 or newer, with `npx` on `PATH`.
 - Bun 1.3.14 or newer on `PATH`.

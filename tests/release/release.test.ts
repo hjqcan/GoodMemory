@@ -738,7 +738,7 @@ describe("release metadata and docs", () => {
     };
 
     expect(pkg.version).toBe(CURRENT_PACKAGE_VERSION);
-    expect(pkg.version).toBe("0.7.2");
+    expect(pkg.version).toBe("0.7.3");
     expect(pkg.private).toBeUndefined();
     expect(pkg.description).toBe(
       "Memory layer for chat, copilot, and agent applications.",
@@ -766,6 +766,7 @@ describe("release metadata and docs", () => {
     expect(pkg.publishConfig?.access).toBe("public");
     expect(pkg.files).toEqual([
       ".well-known/goodmemory.json",
+      "benchmark-claims/evidence/locomo-v0.7.3-current.json",
       "LICENSE",
       "README.md",
       "README.zh-CN.md",
@@ -1333,6 +1334,9 @@ describe("release metadata and docs", () => {
 
   it("readme links the canonical docs, examples, cli, and eval flow", async () => {
     const readme = await readFile(join(import.meta.dir, "../../README.md"), "utf8");
+    const packageJson = JSON.parse(
+      await readFile(join(import.meta.dir, "../../package.json"), "utf8"),
+    ) as { goodmemoryRelease: { status: "release-candidate" | "stable" } };
     const currentClaims = extractMarkedSection(readme, "current-claims-table");
     const historicalEvidence = extractMarkedSection(
       readme,
@@ -1384,7 +1388,11 @@ describe("release metadata and docs", () => {
     expect(readme).toContain("goodmemory inspect");
     expect(readme).toContain("goodmemory setup");
     expect(readme).toContain("goodmemory status");
-    expect(currentClaims).not.toContain("LoCoMo");
+    if (packageJson.goodmemoryRelease.status === "stable") {
+      expect(currentClaims).toContain("LoCoMo");
+    } else {
+      expect(currentClaims).not.toContain("LoCoMo");
+    }
     expect(currentClaims).not.toContain("BEAM");
     expect(currentClaims).not.toContain("MemoryAgentBench");
     expect(historicalEvidence).toContain(
@@ -1497,8 +1505,8 @@ describe("release metadata and docs", () => {
     expect(readme).toContain("examples/fastify-chat-server.ts");
     expect(readme).toContain("docs/GoodMemory-15-Minute-App-Integration.md");
     expect(guide).toContain("15-Minute App Integration");
-    expect(guide).toContain("npm install goodmemory@0.7.2");
-    expect(guide).toContain("verified local `goodmemory-0.7.2.tgz`");
+    expect(guide).toContain("npm install goodmemory@0.7.3");
+    expect(guide).toContain("verified local `goodmemory-0.7.3.tgz`");
     expect(guide).toContain("createGoodMemory");
     expect(guide).toContain("GoodMemoryConfig.observability.traceSink");
     expect(guide).toContain("memory.runtime.startSession");
@@ -1531,9 +1539,9 @@ describe("release metadata and docs", () => {
     expect(guide).not.toContain("query-resolved");
   });
 
-  it("v0.7 package metadata, stable-source docs, and machine-readable descriptors agree", async () => {
-    expect(CURRENT_PACKAGE_VERSION).toBe("0.7.2");
-    expect(CURRENT_TARBALL_NAME).toBe("goodmemory-0.7.2.tgz");
+  it("v0.7 package metadata, current-source docs, and machine-readable descriptors agree", async () => {
+    expect(CURRENT_PACKAGE_VERSION).toBe("0.7.3");
+    expect(CURRENT_TARBALL_NAME).toBe("goodmemory-0.7.3.tgz");
 
     const releaseDocPaths = [
       "README.md",
@@ -1582,7 +1590,7 @@ describe("release metadata and docs", () => {
     expect(capability.releaseStatus).toMatchObject({
       installCommandsApplyAfterPublish: true,
       npmDistTag: "latest",
-      status: "stable",
+      status: "release-candidate",
     });
     expect(migrationGuide).toContain("GoodMemory 0.6 to 0.7 Migration Guide");
     expect(migrationGuide).toContain("historical 0.6 evidence");
@@ -1637,8 +1645,8 @@ describe("release metadata and docs", () => {
     expect(standaloneGuide).toContain("2026-07-28");
     expect(standaloneGuide).toContain("2025-11-25");
     expect(standaloneGuide).toContain("application-level memory scope");
-    expect(standaloneGuide).toContain("npm install -g goodmemory@0.7.2");
-    expect(standaloneGuide).toContain("verified local `goodmemory-0.7.2.tgz`");
+    expect(standaloneGuide).toContain("npm install -g goodmemory@0.7.3");
+    expect(standaloneGuide).toContain("verified local `goodmemory-0.7.3.tgz`");
     // Bun is a hard runtime prerequisite: the goodmemory-mcp bin spawns bun.
     expect(standaloneGuide).toContain("Bun");
 
@@ -1689,6 +1697,9 @@ describe("release metadata and docs", () => {
       join(import.meta.dir, "../../README.zh-CN.md"),
       "utf8",
     );
+    const packageJson = JSON.parse(
+      await readFile(join(import.meta.dir, "../../package.json"), "utf8"),
+    ) as { goodmemoryRelease: { status: "release-candidate" | "stable" } };
     const currentClaims = extractMarkedSection(zhReadme, "current-claims-table");
     const historicalEvidence = extractMarkedSection(
       zhReadme,
@@ -1710,7 +1721,11 @@ describe("release metadata and docs", () => {
     expect(zhReadme).toContain(`npm install ./${CURRENT_TARBALL_NAME}`);
     expect(zhReadme).toContain("goodmemory setup");
     expect(zhReadme).toContain("goodmemory status");
-    expect(currentClaims).not.toContain("LoCoMo");
+    if (packageJson.goodmemoryRelease.status === "stable") {
+      expect(currentClaims).toContain("LoCoMo");
+    } else {
+      expect(currentClaims).not.toContain("LoCoMo");
+    }
     expect(currentClaims).not.toContain("BEAM");
     expect(currentClaims).not.toContain("MemoryAgentBench");
     expect(historicalEvidence).toContain("| LoCoMo v0.6.0（完整 10 会话） |");
@@ -2853,6 +2868,15 @@ describe("release metadata and docs", () => {
 
     expect(currentStatus).toContain(
       "docs/archive/quality-gates/GoodMemory-Phase-20-Quality-Gate.md",
+    );
+    expect(currentStatus).toContain(
+      "npm `latest` resolves to `goodmemory@0.7.2`",
+    );
+    expect(currentStatus).toContain(
+      "peeled `v0.7.2` tag resolves to commit",
+    );
+    expect(currentStatus).toContain(
+      "The Kimi Code plugin is published in `v0.7.2`",
     );
     expect(currentStatus).toContain(
       "reports/quality-gates/phase-20/run-20260420023503/phase-20-quality-gate.json",

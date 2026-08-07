@@ -6,7 +6,7 @@ describe("v0.7 prepublish artifact evidence", () => {
   it("binds exact artifact bytes, source identity, and release runtimes", () => {
     const evidence = buildV07PrepublishEvidence({
       artifactBytes: Buffer.from("stable artifact"),
-      artifactPath: "/tmp/goodmemory-0.7.2.tgz",
+      artifactPath: "/tmp/goodmemory-0.7.3.tgz",
       runtime: {
         bunVersion: "1.3.14",
         nodeVersion: "v20.20.2",
@@ -16,8 +16,8 @@ describe("v0.7 prepublish artifact evidence", () => {
     });
 
     expect(evidence).toEqual({
-      artifactName: "goodmemory-0.7.2.tgz",
-      artifactPath: "/tmp/goodmemory-0.7.2.tgz",
+      artifactName: "goodmemory-0.7.3.tgz",
+      artifactPath: "/tmp/goodmemory-0.7.3.tgz",
       generatedBy: "scripts/verify-v0-7-release-artifact.ts",
       integrity: expect.stringMatching(/^sha512-/u),
       runtime: {
@@ -26,14 +26,14 @@ describe("v0.7 prepublish artifact evidence", () => {
       },
       sourceCommit: "a".repeat(40),
       sourceTree: "b".repeat(40),
-      version: "0.7.2",
+      version: "0.7.3",
     });
   });
 
   it("rejects an unbound source or wrong release runtime", () => {
     const base = {
       artifactBytes: Buffer.from("stable artifact"),
-      artifactPath: "/tmp/goodmemory-0.7.2.tgz",
+      artifactPath: "/tmp/goodmemory-0.7.3.tgz",
       runtime: {
         bunVersion: "1.3.14",
         nodeVersion: "v20.20.2",
@@ -64,7 +64,7 @@ describe("v0.7 prepublish artifact evidence", () => {
           import.meta.url,
         ).pathname,
         "--artifact",
-        "/tmp/goodmemory-0.7.2.tgz",
+        "/tmp/goodmemory-0.7.3.tgz",
         "--source-commit",
         "a".repeat(40),
         "--source-tree",

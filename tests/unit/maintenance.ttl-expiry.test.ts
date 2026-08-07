@@ -15,11 +15,12 @@ describe("ttlExpiry maintenance job", () => {
 
   function buildMemory() {
     const documentStore = createInMemoryDocumentStore();
+    const vectorStore = createInMemoryVectorStore();
     const memory = createGoodMemory({
       adapters: {
         documentStore,
         sessionStore: createInMemorySessionStore(),
-        vectorStore: createInMemoryVectorStore(),
+        vectorStore,
       },
       storage: { provider: "memory" },
     });
@@ -39,11 +40,11 @@ describe("ttlExpiry maintenance job", () => {
         updatedAt: "2026-01-01T00:00:00.000Z",
         ...extra,
       });
-    return { documentStore, makeFact, memory };
+    return { documentStore, makeFact, memory, vectorStore };
   }
 
   it("hides expired facts immediately and persists their demotion", async () => {
-    const { documentStore, makeFact, memory } = buildMemory();
+    const { documentStore, makeFact, memory, vectorStore } = buildMemory();
     // A far-past expiresAt is expired under any plausible maintenance clock.
     await documentStore.set(
       "facts",
@@ -57,6 +58,12 @@ describe("ttlExpiry maintenance job", () => {
       "fresh",
       makeFact("fresh", "alpha topic current plan"),
     );
+    await vectorStore.upsert("facts", [{
+      content: "alpha topic old deadline",
+      embedding: [1, 0],
+      id: "expired",
+      metadata: { userId: scope.userId, workspaceId: scope.workspaceId },
+    }]);
 
     const before = await memory.recall({
       scope,
@@ -66,6 +73,7 @@ describe("ttlExpiry maintenance job", () => {
     const beforeIds = before.facts.map((fact) => fact.id);
     expect(beforeIds).not.toContain("expired");
     expect(beforeIds).toContain("fresh");
+    expect(await vectorStore.get("facts", "expired")).not.toBeNull();
 
     await memory.runMaintenance({ scope, jobs: ["ttlExpiry"] });
 
@@ -83,6 +91,7 @@ describe("ttlExpiry maintenance job", () => {
       | undefined;
     expect(persisted?.lifecycle).toBe("inactive");
     expect(persisted?.demotionReason).toBe("ttl_expired");
+    expect(await vectorStore.get("facts", "expired")).toBeNull();
   });
 
   it("demotes expired facts in the default maintenance job set", async () => {

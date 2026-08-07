@@ -30,6 +30,11 @@ import type {
 import { createFakeEmbeddingAdapter } from "../../src/testing/fakes";
 import { createArtifactSpilloverService } from "../../src/runtime/spillover";
 import {
+  PREFERENCE_CATEGORY_FENCE_KIND,
+  REMEMBER_WRITE_OWNERS_COLLECTION,
+  type PreferenceCategoryFenceRecord,
+} from "../../src/remember/writeOwnership";
+import {
   CLAIM_PROJECTIONS_COLLECTION,
   CLAIM_PROJECTION_STATUS_COLLECTION,
   ENTITIES_COLLECTION,
@@ -58,6 +63,50 @@ function terminalDeletionAdapters(input: {
 }
 
 describe("public governance API", () => {
+  it("terminally deletes typed preference category fences for the durable scope", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      adapters: terminalDeletionAdapters({ documentStore }),
+      storage: { provider: "memory" },
+    });
+    const durableScope = {
+      userId: "u-delete-preference-fence",
+      workspaceId: "workspace-a",
+    };
+
+    await memory.remember({
+      scope: { ...durableScope, sessionId: "session-a" },
+      messages: [{
+        role: "user",
+        content: "I prefer bullet points in project summaries.",
+      }],
+    });
+    const before = await documentStore.query<PreferenceCategoryFenceRecord>(
+      REMEMBER_WRITE_OWNERS_COLLECTION,
+      {
+        kind: PREFERENCE_CATEGORY_FENCE_KIND,
+        ...durableScope,
+      },
+    );
+
+    expect(before).toEqual([expect.objectContaining({
+      agentId: undefined,
+      category: "response_style",
+      id: expect.any(String),
+      kind: PREFERENCE_CATEGORY_FENCE_KIND,
+      tenantId: undefined,
+      ...durableScope,
+    })]);
+
+    await memory.deleteAllMemory({ scope: durableScope });
+
+    expect(await documentStore.query("preferences", durableScope)).toEqual([]);
+    expect(await documentStore.query(
+      REMEMBER_WRITE_OWNERS_COLLECTION,
+      { kind: PREFERENCE_CATEGORY_FENCE_KIND, ...durableScope },
+    )).toEqual([]);
+  });
+
   it("renders exported artifact labels with the explicitly requested locale", async () => {
     const memory = createGoodMemory({ storage: { provider: "memory" } });
     const exported = await memory.exportMemory({

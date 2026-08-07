@@ -10,10 +10,15 @@ const STATIC_DESCRIPTOR_URL = new URL(
 );
 const PACKAGE_JSON_URL = new URL("../../package.json", import.meta.url);
 
-function readPackageJson(): { version: string; bin: Record<string, string> } {
+function readPackageJson(): {
+  version: string;
+  bin: Record<string, string>;
+  goodmemoryRelease: { status: "release-candidate" | "stable" };
+} {
   return JSON.parse(readFileSync(PACKAGE_JSON_URL, "utf8")) as {
     version: string;
     bin: Record<string, string>;
+    goodmemoryRelease: { status: "release-candidate" | "stable" };
   };
 }
 
@@ -36,7 +41,7 @@ describe("GoodMemory capability descriptor", () => {
     expect(descriptor.releaseStatus).toEqual({
       installCommandsApplyAfterPublish: true,
       npmDistTag: "latest",
-      status: "stable",
+      status: "release-candidate",
       tarball: `goodmemory-${version}.tgz`,
     });
     expect(descriptor.install.npmGlobal).toBe(
@@ -79,9 +84,19 @@ describe("GoodMemory capability descriptor", () => {
     ]);
   });
 
-  it("does not promote v0.6 benchmark evidence as a current v0.7 claim", () => {
+  it("loads a current LoCoMo claim only for stable from the fixed tracked projection", () => {
     const descriptor = buildGoodMemoryCapabilityDescriptor();
-    expect(descriptor.benchmarks.currentClaims).toEqual([]);
+    const { goodmemoryRelease, version } = readPackageJson();
+    if (goodmemoryRelease.status === "release-candidate") {
+      expect(descriptor.benchmarks.currentClaims).toEqual([]);
+    } else {
+      expect(descriptor.benchmarks.currentClaims).toEqual([
+        expect.objectContaining({
+          measuredPackageVersion: version,
+          name: "LoCoMo",
+        }),
+      ]);
+    }
     expect(descriptor.benchmarks.historicalEvidence.url).toBe(
       "https://github.com/hjqcan/GoodMemory/tree/main/benchmark-claims",
     );
@@ -92,11 +107,34 @@ describe("GoodMemory capability descriptor", () => {
       "LoCoMo, BEAM, and MemoryAgentBench",
     );
     expect(descriptor.benchmarks.historicalEvidence.note).toContain(
-      "None is a current 0.7.2 production claim",
+      goodmemoryRelease.status === "release-candidate"
+        ? "None is a current 0.7.3 production claim"
+        : "The current LoCoMo claim is loaded only from",
     );
     expect(descriptor.canonicalSources.note).toContain(
       "never relabels historical results",
     );
+  });
+
+  it("fails closed when 0.7.3 is marked stable without its tracked claim projection", () => {
+    const projection = new URL(
+      "../../benchmark-claims/evidence/locomo-v0.7.3-current.json",
+      import.meta.url,
+    );
+    if (readFileSync(PACKAGE_JSON_URL, "utf8").includes('"status": "stable"')) {
+      expect(() => buildGoodMemoryCapabilityDescriptor()).not.toThrow();
+      return;
+    }
+    expect(() => buildGoodMemoryCapabilityDescriptor({
+      packageMetadata: {
+        goodmemoryRelease: {
+          installCommandsApplyAfterPublish: true,
+          npmDistTag: "latest",
+          status: "stable",
+        },
+        version: "0.7.3",
+      },
+    })).toThrow(projection.pathname);
   });
 
   it("names four onboarding paths including the Kimi Code plugin", () => {

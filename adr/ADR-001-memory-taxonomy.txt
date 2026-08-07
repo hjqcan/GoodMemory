@@ -37,8 +37,8 @@ Consequences
   it belongs to; storage, recall, remember, and maintenance all key off it.
 + Runtime-plane kinds (session_* / working_memory / artifact_spill) are cleanly
   separable from durable semantic/episodic memory, which is what lets the runtime
-  context controls (ADR-003) and maintenance decay (ADR-004) treat them
-  differently.
+  context controls (ADR-003), recall-time soft decay, and TTL maintenance
+  policy (ADR-004) treat them differently.
 - The union is intentionally finite: a genuinely new memory type is a taxonomy
   change (union + plane map + review), not an ad-hoc string. This friction is
   intended.

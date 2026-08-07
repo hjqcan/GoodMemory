@@ -128,7 +128,9 @@ export interface FactMemory {
   factKind?: FactKind;
   scopeKind?: MemoryScopeKind;
   subject?: string;
+  /** @deprecated since 0.7.3. Preserved for compatibility; retrieval exposure is no longer recorded or ranked. */
   accessCount: number;
+  /** @deprecated since 0.7.3. Preserved for compatibility; retrieval exposure is no longer recorded or ranked. */
   lastAccessedAt?: string;
   verificationPressureCount?: number;
   lastVerificationHintAt?: string;
@@ -231,6 +233,7 @@ export interface FeedbackMemory {
   source: MemorySource;
   supersededBy?: string | null;
   lifecycle: MemoryLifecycleState;
+  /** @deprecated since 0.7.3. Preserved for compatibility; retrieval exposure is no longer recorded or ranked. */
   lastUsedAt?: string;
   updatedAt: string;
 }

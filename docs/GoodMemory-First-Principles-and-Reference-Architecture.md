@@ -193,13 +193,20 @@ Every real memory system needs:
 
 - dedupe
 - supersession
-- decay
+- query-time soft decay
 - contradiction repair
 - stale verification
 - consolidation
-- deletion
+- hard expiry and deletion
 
 The only question is whether these happen explicitly and safely, or implicitly and badly.
+
+Soft decay is recall policy: relevance and freshness affect the current query's
+ranking without rewriting a memory's confidence or lifecycle. Hard TTL expiry is
+maintenance: recall hides expired facts immediately, and maintenance later
+persists the inactive lifecycle and removes their vectors. Retrieval exposure is
+not evidence that a memory is true or useful, so merely recalling a record must
+not reinforce its future rank.
 
 ### P10. Explainability and user control are mandatory
 

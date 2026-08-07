@@ -5,6 +5,7 @@ import {
   SOURCE_MESSAGES_COLLECTION,
   type SourceMessageRecord,
 } from "../../src/evidence/contracts";
+import type { DocumentStore, StorageFilter } from "../../src/storage/contracts";
 import {
   createInMemoryDocumentStore,
   createInMemorySessionStore,
@@ -895,7 +896,7 @@ describe("public remember API", () => {
       },
     });
 
-    await memory.remember({
+    const first = await memory.remember({
       scope: { userId: "u-1", workspaceId: "workspace-a", sessionId: "s-1" },
       messages: [
         {
@@ -914,12 +915,13 @@ describe("public remember API", () => {
       ],
     });
 
-    const preferences = await documentStore.query<{ value: unknown }>("preferences", {
+    const preferences = await documentStore.query<{ id: string; value: unknown }>("preferences", {
       userId: "u-1",
       workspaceId: "workspace-a",
     });
 
     expect(preferences).toHaveLength(1);
+    expect(second.events[0]?.memoryId).toBe(first.events[0]?.memoryId);
     expect(second.events.some((event) => event.reason === "duplicate_preference")).toBe(
       true,
     );
@@ -936,7 +938,7 @@ describe("public remember API", () => {
       },
     });
 
-    await memory.remember({
+    const first = await memory.remember({
       scope: { userId: "u-1", workspaceId: "workspace-a", sessionId: "s-1" },
       messages: [
         {
@@ -963,13 +965,32 @@ describe("public remember API", () => {
       output: "markdown",
     });
 
-    const preferences = await documentStore.query<{ value: unknown }>("preferences", {
+    const preferences = await documentStore.query<{
+      id: string;
+      category: string;
+      lifecycle?: string;
+      supersededBy?: string | null;
+      value: unknown;
+    }>("preferences", {
       userId: "u-1",
       workspaceId: "workspace-a",
     });
+    const previousMemoryId = first.events[0]?.memoryId;
+    const newMemoryId = second.events[0]?.memoryId;
+    const previous = preferences.find((preference) => preference.id === previousMemoryId);
+    const active = preferences.find((preference) => preference.id === newMemoryId);
 
-    expect(preferences).toHaveLength(1);
-    expect(String(preferences[0]?.value)).toContain("short paragraphs");
+    expect(newMemoryId).not.toBe(previousMemoryId);
+    expect(preferences).toHaveLength(2);
+    expect(previous).toMatchObject({
+      lifecycle: "superseded",
+      supersededBy: newMemoryId,
+    });
+    expect(active).toMatchObject({
+      lifecycle: "active",
+      supersededBy: null,
+    });
+    expect(String(active?.value)).toContain("short paragraphs");
     expect(second.events.some((event) => event.reason === "superseded_preference")).toBe(
       true,
     );
@@ -977,6 +998,557 @@ describe("public remember API", () => {
     expect(String(recall.preferences[0]?.value)).toContain("short paragraphs");
     expect(context.content).toContain("short paragraphs");
     expect(context.content).not.toContain("bullet points");
+  });
+
+  it("serializes concurrent preference replacements into one active lineage", async () => {
+    const backingStore = createInMemoryDocumentStore();
+    let preferenceSnapshotRead = (): void => {};
+    const preferenceSnapshotReady = new Promise<void>((resolve) => {
+      preferenceSnapshotRead = resolve;
+    });
+    let releaseStaleSnapshot = (): void => {};
+    const staleSnapshotBlocked = new Promise<void>((resolve) => {
+      releaseStaleSnapshot = resolve;
+    });
+    let blockedPreferenceQuery = false;
+    const delayedDocumentStore: DocumentStore = {
+      ...backingStore,
+      async query<TDocument extends object>(
+        collection: string,
+        filter?: StorageFilter,
+      ): Promise<TDocument[]> {
+        const documents = await backingStore.query<TDocument>(collection, filter);
+        if (collection === "preferences" && !blockedPreferenceQuery) {
+          blockedPreferenceQuery = true;
+          preferenceSnapshotRead();
+          await staleSnapshotBlocked;
+        }
+        return documents;
+      },
+    };
+    const scope = {
+      userId: "u-concurrent-preference-lineage",
+      workspaceId: "workspace-a",
+    } as const;
+    const firstRuntime = createGoodMemory({
+      storage: { provider: "memory" },
+      adapters: {
+        documentStore: backingStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      testing: {
+        now: () => new Date("2026-01-02T00:00:00.000Z"),
+      },
+    });
+    const secondRuntime = createGoodMemory({
+      storage: { provider: "memory" },
+      adapters: {
+        documentStore: delayedDocumentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      testing: {
+        now: () => new Date("2026-01-01T00:00:00.000Z"),
+      },
+    });
+
+    const secondPending = secondRuntime.remember({
+      scope: { ...scope, sessionId: "s-2" },
+      messages: [{
+        role: "user",
+        content: "I prefer numbered lists in project summaries.",
+      }],
+    });
+    await preferenceSnapshotReady;
+    const first = await firstRuntime.remember({
+      scope: { ...scope, sessionId: "s-1" },
+      messages: [{
+        role: "user",
+        content: "I prefer short paragraphs in project summaries.",
+      }],
+    });
+    releaseStaleSnapshot();
+    const second = await secondPending;
+
+    const replacements = [first, second];
+    const replacementIds = replacements.map((result) => result.events[0]?.memoryId);
+    const preferences = await backingStore.query<{
+      id: string;
+      lifecycle?: string;
+      source: { extractedAt: string };
+      supersededBy?: string | null;
+      updatedAt: string;
+    }>("preferences", scope);
+    const active = preferences.filter(
+      (preference) => (preference.lifecycle ?? "active") === "active",
+    );
+    const superseded = preferences.filter(
+      (preference) => preference.lifecycle === "superseded",
+    );
+
+    expect(blockedPreferenceQuery).toBe(true);
+    expect(new Set(replacementIds).size).toBe(2);
+    expect(preferences).toHaveLength(2);
+    expect(active).toHaveLength(1);
+    expect(superseded).toHaveLength(1);
+    expect(superseded[0]?.supersededBy).toBe(active[0]?.id);
+    expect(
+      preferences.every(
+        (preference) => preference.updatedAt >= preference.source.extractedAt,
+      ),
+    ).toBe(true);
+    expect(active[0]!.updatedAt >= superseded[0]!.updatedAt).toBe(true);
+    expect(first.events[0]?.outcome).toBe("written");
+    expect(second.events[0]?.outcome).toBe("superseded");
+  });
+
+  it("provides only local best-effort rollback without conditional batch support", async () => {
+    const backingStore = createInMemoryDocumentStore();
+    const scope = {
+      userId: "u-fallback-preference-rollback",
+      workspaceId: "workspace-a",
+    } as const;
+    const original = {
+      id: "preference-fallback-original",
+      ...scope,
+      category: "response_style",
+      value: "bullet points in project summaries",
+      confidence: 1,
+      evidenceCount: 1,
+      lifecycle: "active",
+      source: {
+        method: "explicit" as const,
+        extractedAt: "2026-01-01T00:00:00.000Z",
+      },
+      supersededBy: null,
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+    await backingStore.set("preferences", original.id, original);
+    const documentStore: DocumentStore = {
+      async set<TDocument extends object>(
+        collection: string,
+        id: string,
+        document: TDocument,
+      ): Promise<void> {
+        if (
+          collection === "preferences" &&
+          id === original.id &&
+          (document as { lifecycle?: string }).lifecycle === "superseded"
+        ) {
+          throw new Error("fallback preference replacement failed");
+        }
+        await backingStore.set(collection, id, document);
+      },
+      async get<TDocument extends object>(collection: string, id: string) {
+        return backingStore.get<TDocument>(collection, id);
+      },
+      async update<TDocument extends object>(
+        collection: string,
+        id: string,
+        patch: Partial<TDocument>,
+      ): Promise<void> {
+        await backingStore.update(collection, id, patch);
+      },
+      async query<TDocument extends object>(
+        collection: string,
+        filter?: StorageFilter,
+      ): Promise<TDocument[]> {
+        return backingStore.query<TDocument>(collection, filter);
+      },
+      async delete(collection: string, id: string): Promise<void> {
+        await backingStore.delete(collection, id);
+      },
+    };
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      storage: { provider: "memory" },
+    });
+
+    await expect(memory.remember({
+      scope: { ...scope, sessionId: "s-1" },
+      messages: [{
+        role: "user",
+        content: "I prefer short paragraphs in project summaries.",
+      }],
+    })).rejects.toThrow("fallback preference replacement failed");
+
+    expect(await backingStore.query("preferences", scope)).toEqual([original]);
+    expect(await backingStore.query(SOURCE_MESSAGES_COLLECTION, scope)).toHaveLength(1);
+  });
+
+  it("retains every active preference sibling as superseded when writing the replacement", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      storage: { provider: "memory" },
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+    });
+    const scope = {
+      userId: "u-preference-lineage",
+      workspaceId: "workspace-a",
+    } as const;
+
+    await documentStore.set("preferences", "preference-old-1", {
+      id: "preference-old-1",
+      ...scope,
+      category: "response_style",
+      value: "bullet points in project summaries",
+      confidence: 1,
+      evidenceCount: 1,
+      lifecycle: "active",
+      source: {
+        method: "explicit",
+        extractedAt: "2026-01-01T00:00:00.000Z",
+      },
+      supersededBy: null,
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+    await documentStore.set("preferences", "preference-old-2", {
+      id: "preference-old-2",
+      ...scope,
+      category: "response_style",
+      value: "numbered lists in project summaries",
+      confidence: 1,
+      evidenceCount: 1,
+      lifecycle: "active",
+      source: {
+        method: "explicit",
+        extractedAt: "2026-01-02T00:00:00.000Z",
+      },
+      supersededBy: null,
+      updatedAt: "2026-01-02T00:00:00.000Z",
+    });
+
+    const result = await memory.remember({
+      scope: { ...scope, sessionId: "s-1" },
+      messages: [{
+        role: "user",
+        content: "I prefer short paragraphs in project summaries.",
+      }],
+    });
+    const newMemoryId = result.events[0]?.memoryId;
+    const preferences = await documentStore.query<{
+      id: string;
+      lifecycle?: string;
+      supersededBy?: string | null;
+    }>("preferences", scope);
+
+    expect(preferences).toHaveLength(3);
+    expect(
+      preferences.filter((preference) => preference.lifecycle === "active"),
+    ).toEqual([expect.objectContaining({ id: newMemoryId, supersededBy: null })]);
+    expect(
+      preferences
+        .filter((preference) => preference.lifecycle === "superseded")
+        .map((preference) => ({
+          id: preference.id,
+          supersededBy: preference.supersededBy,
+        }))
+        .sort((left, right) => left.id.localeCompare(right.id)),
+    ).toEqual([
+      { id: "preference-old-1", supersededBy: newMemoryId },
+      { id: "preference-old-2", supersededBy: newMemoryId },
+    ]);
+  });
+
+  it("keeps general-preference history exportable and auditable through later revision", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      storage: { provider: "memory" },
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      testing: {
+        extractor: {
+          async extract(input) {
+            const content = input.messages[0]?.content ?? "";
+            return {
+              candidates: [{
+                content,
+                explicitness: "explicit" as const,
+                id: `candidate-${content}`,
+                kindHint: "preference" as const,
+                metadata: { preferenceValue: content },
+                sourceMessageIndex: 0,
+                sourceRole: "user" as const,
+              }],
+              ignoredMessageCount: 0,
+            };
+          },
+        },
+        now: () => new Date("2026-04-25T00:00:00.000Z"),
+      },
+    });
+    const durableScope = {
+      userId: "u-general-preference-lineage",
+      workspaceId: "workspace-a",
+    } as const;
+
+    const first = await memory.remember({
+      scope: { ...durableScope, sessionId: "s-1" },
+      messages: [{ role: "user", content: "I prefer jasmine tea." }],
+    });
+    const second = await memory.remember({
+      scope: { ...durableScope, sessionId: "s-2" },
+      messages: [{ role: "user", content: "I prefer dark editor themes." }],
+    });
+    const firstId = first.events[0]?.memoryId;
+    const secondId = second.events[0]?.memoryId;
+    if (!firstId || !secondId) {
+      throw new Error("Expected both general preferences to be stored.");
+    }
+
+    const revised = await memory.reviseMemory({
+      evidence: {
+        message: "Use a dim dark theme instead.",
+        source: "user_message",
+      },
+      idempotencyKey: "general-preference-theme-revision",
+      reason: "user_correction",
+      revision: { content: "I prefer dim dark editor themes." },
+      scope: durableScope,
+      target: { memoryId: secondId },
+    });
+    const revisedId = revised.newMemoryId;
+    if (!revisedId) {
+      throw new Error("Expected preference revision to create a replacement.");
+    }
+
+    const exported = await memory.exportMemory({ scope: durableScope });
+    const preferenceById = new Map(
+      exported.durable.preferences.map((preference) => [preference.id, preference]),
+    );
+    const revisionEvidence = exported.durable.evidence.find(
+      (record) => record.id === revised.evidenceIds?.[0],
+    );
+    const recalled = await memory.recall({
+      query: "What are the user's preferences?",
+      scope: durableScope,
+    });
+
+    expect(exported.durable.preferences).toHaveLength(3);
+    expect(preferenceById.get(firstId)).toMatchObject({
+      category: "general_preference",
+      lifecycle: "superseded",
+      supersededBy: secondId,
+      value: "I prefer jasmine tea.",
+    });
+    expect(preferenceById.get(secondId)).toMatchObject({
+      lifecycle: "superseded",
+      supersededBy: revisedId,
+      value: "I prefer dark editor themes.",
+    });
+    expect(preferenceById.get(revisedId)).toMatchObject({
+      lifecycle: "active",
+      value: "I prefer dim dark editor themes.",
+    });
+    expect(revisionEvidence?.linkedMemoryIds).toEqual([secondId, revisedId]);
+    expect(recalled.preferences.map((preference) => preference.id)).toEqual([
+      revisedId,
+    ]);
+  });
+
+  it("keeps preference supersession isolated to the requested workspace", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      storage: { provider: "memory" },
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+    });
+
+    const workspaceA = await memory.remember({
+      scope: {
+        userId: "u-preference-scopes",
+        workspaceId: "workspace-a",
+        sessionId: "s-1",
+      },
+      messages: [{
+        role: "user",
+        content: "I prefer bullet points in project summaries.",
+      }],
+    });
+    const workspaceB = await memory.remember({
+      scope: {
+        userId: "u-preference-scopes",
+        workspaceId: "workspace-b",
+        sessionId: "s-2",
+      },
+      messages: [{
+        role: "user",
+        content: "I prefer short paragraphs in project summaries.",
+      }],
+    });
+
+    const preferences = await documentStore.query<{
+      id: string;
+      lifecycle?: string;
+      supersededBy?: string | null;
+      workspaceId?: string;
+    }>("preferences", { userId: "u-preference-scopes" });
+
+    expect(workspaceB.events[0]?.outcome).toBe("written");
+    expect(preferences).toHaveLength(2);
+    expect(preferences).toContainEqual(expect.objectContaining({
+      id: workspaceA.events[0]?.memoryId,
+      lifecycle: "active",
+      supersededBy: null,
+      workspaceId: "workspace-a",
+    }));
+    expect(preferences).toContainEqual(expect.objectContaining({
+      id: workspaceB.events[0]?.memoryId,
+      lifecycle: "active",
+      supersededBy: null,
+      workspaceId: "workspace-b",
+    }));
+  });
+
+  it("treats omitted tenant workspace and agent dimensions as exact durable scope", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      storage: { provider: "memory" },
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      testing: {
+        extractor: {
+          async extract(input) {
+            const content = input.messages[0]?.content ?? "";
+            return {
+              candidates: [{
+                content,
+                explicitness: "explicit" as const,
+                id: `exact-scope-${input.scope.sessionId}`,
+                kindHint: "preference" as const,
+                metadata: {
+                  preferenceCategory: "response_style",
+                  preferenceValue: content,
+                },
+                sourceMessageIndex: 0,
+                sourceRole: "user" as const,
+              }],
+              ignoredMessageCount: 0,
+            };
+          },
+        },
+      },
+    });
+    const scopes = [
+      { userId: "u-preference-exact-scope", tenantId: "tenant-a" },
+      { userId: "u-preference-exact-scope", workspaceId: "workspace-a" },
+      { userId: "u-preference-exact-scope", agentId: "agent-a" },
+      { userId: "u-preference-exact-scope" },
+    ];
+    const contents = [
+      "I prefer bullet points in project summaries.",
+      "I prefer short paragraphs in project summaries.",
+      "I prefer numbered lists in project summaries.",
+      "I prefer concise headings in project summaries.",
+    ];
+
+    const results = [];
+    for (const [index, scope] of scopes.entries()) {
+      results.push(await memory.remember({
+        scope: { ...scope, sessionId: `session-${index}` },
+        messages: [{ role: "user", content: contents[index]! }],
+      }));
+    }
+    const preferences = await documentStore.query<{
+      category: string;
+      id: string;
+      lifecycle?: string;
+      supersededBy?: string | null;
+    }>("preferences", { userId: "u-preference-exact-scope" });
+
+    expect(results.map((result) => result.events[0]?.outcome)).toEqual([
+      "written",
+      "written",
+      "written",
+      "written",
+    ]);
+    expect(preferences).toHaveLength(4);
+    expect(new Set(preferences.map(({ category }) => category))).toEqual(
+      new Set(["response_style"]),
+    );
+    expect(
+      preferences.every(
+        (preference) =>
+          preference.lifecycle === "active" && preference.supersededBy === null,
+      ),
+    ).toBe(true);
+  });
+
+  it("restores the active preference when a later remember write fails", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const sessionStore = createInMemorySessionStore();
+    const scope = {
+      userId: "u-preference-rollback",
+      workspaceId: "workspace-a",
+    } as const;
+    const baseline = createGoodMemory({
+      storage: { provider: "memory" },
+      adapters: {
+        documentStore,
+        sessionStore,
+      },
+    });
+    const original = await baseline.remember({
+      scope: { ...scope, sessionId: "s-1" },
+      messages: [{
+        role: "user",
+        content: "I prefer bullet points in project summaries.",
+      }],
+    });
+    const failing = createGoodMemory({
+      storage: { provider: "memory" },
+      adapters: {
+        documentStore,
+        sessionStore,
+        vectorStore: createInMemoryVectorStore(),
+        embeddingAdapter: {
+          async embed() {
+            throw new Error("preference lineage rollback");
+          },
+        },
+      },
+    });
+
+    await expect(failing.remember({
+      scope: { ...scope, sessionId: "s-2" },
+      messages: [
+        {
+          role: "user",
+          content: "I prefer short paragraphs in project summaries.",
+        },
+        {
+          role: "user",
+          content: "Remember that the rollout is blocked on legal review.",
+        },
+      ],
+    })).rejects.toThrow("preference lineage rollback");
+
+    const preferences = await documentStore.query<{
+      id: string;
+      lifecycle?: string;
+      supersededBy?: string | null;
+      value: unknown;
+    }>("preferences", scope);
+
+    expect(preferences).toEqual([
+      expect.objectContaining({
+        id: original.events[0]?.memoryId,
+        lifecycle: "active",
+        supersededBy: null,
+      }),
+    ]);
+    expect(String(preferences[0]?.value)).toContain("bullet points");
   });
 
   it("suppresses unrelated preference and feedback lanes for direct factual recall", async () => {

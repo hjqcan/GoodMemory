@@ -7,7 +7,10 @@ import type {
 import type { SourceMessageRecord } from "../evidence/contracts";
 import type { LanguageService, ResolvedLanguageContext } from "../language";
 import type { GoodMemoryPolicyHooks, PolicyContext } from "../policy/hooks";
-import type { DocumentStore } from "../storage/contracts";
+import type {
+  ConditionalDocumentWriteBatch,
+  DocumentStore,
+} from "../storage/contracts";
 import type {
   RememberRepositoryPort,
   RememberVectorPort,
@@ -23,6 +26,7 @@ import type {
   MemoryExtractor,
 } from "./candidates";
 import type { RememberConfig } from "./profiles";
+import type { PreferenceCategoryFence } from "./writeOwnership";
 
 export type ScopedIdentity = {
   userId: string;
@@ -126,6 +130,11 @@ export interface RememberWriteState {
   pendingVectorDeletes: PendingVectorDelete[];
 }
 
+export interface PreparedRememberDocumentBatch<TResult> {
+  batch: ConditionalDocumentWriteBatch;
+  result: TResult;
+}
+
 export interface RememberWriteContext {
   input: MemoryExtractionInput;
   candidateLanguage: ResolvedLanguageContext;
@@ -147,4 +156,8 @@ export interface RememberWriteContext {
     collection: string,
     id: string,
   ) => Promise<void>;
+  writeDocumentBatchWithRollback: <TResult>(
+    fence: PreferenceCategoryFence,
+    prepare: () => Promise<PreparedRememberDocumentBatch<TResult>>,
+  ) => Promise<TResult>;
 }

@@ -186,8 +186,10 @@ export interface RecallCandidateTrace {
   lexicalScore: number;
   freshnessScore: number;
   explicitnessScore: number;
+  /** @deprecated since 0.7.3. Always zero; retrieval exposure is not reinforcement. */
   usageScore?: number;
   evidenceScore?: number;
+  /** @deprecated since 0.7.3. Use evidenceScore. */
   outcomeScore?: number;
   verificationPenaltyScore?: number;
   // Normalized semantic similarity of this candidate. Emitted ONLY when the

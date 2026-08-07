@@ -4,9 +4,10 @@
 
 GoodMemory 是面向 AI 产品和 coding agent 的记忆层。
 
-> **发布源码：**这是不可变的 `0.7.2` 稳定发布源码。Registry 命令要求
-> `goodmemory@0.7.2` 已发布；release workflow 会先校验 npm `latest`
-> 与制品完整性，再创建 GitHub Release。
+> **发布状态：**当前分支是 `0.7.3` release candidate；在带 tag 的稳定发布
+> workflow 真正发布 0.7.3 之前，npm `latest` 仍是 `0.7.2`。下文锁定
+> 0.7.3 的 registry 命令是发布后的契约；发布前请使用本地打包的
+> `goodmemory-0.7.3.tgz` 验证。
 
 它为 chat app、copilot 和 agent host 提供一条可审计的用户/项目记忆闭环：
 选择性写入事实，检索正确上下文，注入下一轮对话，记录发生过什么，并在记忆错误时删除。
@@ -25,7 +26,7 @@ GoodMemory 不是 LLM、agent framework、向量数据库，也不是通用 RAG 
 ## 从这里开始：Codex 或 Claude Code
 
 ```bash
-npm install -g goodmemory@0.7.2
+npm install -g goodmemory@0.7.3
 goodmemory setup
 ```
 
@@ -45,7 +46,7 @@ GoodMemory 把「当前生产声明」「带版本的历史证据」和「内部
 Phase 72 的 benchmark gate 和带版本 release gate 仍是 `v0.6.0` 的有效历史证据。
 下面三行保留明确披露 profile 的 0.6 public-opt-in 结果。由于 `v0.7.0` 改变了
 LanguagePack 与召回语义，它们对当前包而言只是历史证据，不是当前版本性能声明，也不代表
-零 provider 默认路径；在 `v0.7.2` 完成同等 fresh run 之前，当前声明表保持为空。
+零 provider 默认路径；在 `v0.7.3` 完成同等 fresh run 之前，当前声明表保持为空。
 LongMemEval 已撤下并等待 clean rerun：历史 rules-only 路径使用了 answer annotation，
 后来的 label-free 路径又把原始 `answer_*` session ID 暴露给检索和 reader。
 ImplicitMemBench 的 retry-merged 结果仍属于内部证据，因为它不能替代一次全新的单体
@@ -142,7 +143,7 @@ GoodMemory 有三类主要产品入口。它不是只有这些 API：`goodmemory
 也会在 `/.well-known/goodmemory.json` 提供该 descriptor）。
 
 - **你是、或运行在 Claude Code / Codex 里** →
-  `npm install -g goodmemory@0.7.2 && goodmemory setup`。不确定环境里已经装了
+  `npm install -g goodmemory@0.7.3 && goodmemory setup`。不确定环境里已经装了
   什么？运行 `goodmemory adopt`（加 `--json` 得到机器可读方案）：它会检测
   `.claude/`、`.codex/` 和已有的 MCP 配置，并打印出针对你环境的确切下一条命令。
 - **你支持 MCP**（Cursor、Windsurf、Cline、Claude Desktop、Gemini CLI、
@@ -237,12 +238,12 @@ GoodMemory 负责 memory loop 和存储边界。
 
 ## 安装
 
-GoodMemory `0.7.2` 发布后有两条常用 registry 安装路径。发布前请使用下方 tarball 验证路径。
+GoodMemory `0.7.3` 发布后有两条常用 registry 安装路径。发布前请使用下方 tarball 验证路径。
 
 如果你想给已安装的 coding agent 增加记忆能力，使用全局 CLI：
 
 ```bash
-npm install -g goodmemory@0.7.2
+npm install -g goodmemory@0.7.3
 goodmemory setup
 goodmemory status
 ```
@@ -250,11 +251,11 @@ goodmemory status
 如果你是在应用里集成 GoodMemory，作为项目依赖安装：
 
 ```bash
-npm install goodmemory@0.7.2
+npm install goodmemory@0.7.3
 ```
 
 如果你想直接输入 `goodmemory`，必须安装全局 CLI。
-项目内 `npm install goodmemory@0.7.2` 不会把 `goodmemory` 放进 shell 的 `PATH`。
+项目内 `npm install goodmemory@0.7.3` 不会把 `goodmemory` 放进 shell 的 `PATH`。
 这种本地依赖安装只能从该项目里用 `npx goodmemory`、
 `npm exec -- goodmemory` 或 `./node_modules/.bin/goodmemory` 调用。
 
@@ -265,13 +266,13 @@ npx goodmemory -V
 Bun 项目可以直接安装：
 
 ```bash
-bun add goodmemory@0.7.2
+bun add goodmemory@0.7.3
 ```
 
 发布前 tarball 验证：
 
 ```bash
-npm install ./goodmemory-0.7.2.tgz
+npm install ./goodmemory-0.7.3.tgz
 ```
 
 已安装 CLI 的非版本命令由 Bun 支撑。package bin 对 `goodmemory -V` 和 `goodmemory --version` 是 Node-safe 的；其他命令会委托给 Bun。
@@ -281,7 +282,7 @@ npm install ./goodmemory-0.7.2.tgz
 大多数用户最先需要的是 installed-host memory。
 
 ```bash
-npm install -g goodmemory@0.7.2
+npm install -g goodmemory@0.7.3
 goodmemory setup
 goodmemory status
 ```
@@ -967,7 +968,7 @@ const result = await adapter.readArtifacts({
 ## CLI Reference
 
 shell `PATH` 上的裸 `goodmemory` 命令来自
-`npm install -g goodmemory@0.7.2` 安装的全局 CLI。本地 dependency install
+`npm install -g goodmemory@0.7.3` 安装的全局 CLI。本地 dependency install
 里，用 `npx goodmemory`、`npm exec -- goodmemory` 或
 `./node_modules/.bin/goodmemory` 调用 package bin。repo-local
 `bun run goodmemory` 只用于开发。

@@ -11,6 +11,7 @@ import {
   type ReferenceMemory,
 } from "../domain/records";
 import { createMemorySource } from "../domain/provenance";
+import { isSameDurableScope } from "../domain/scope";
 import type { MemoryScope } from "../domain/scope";
 import type { EmbeddingAdapter } from "../embedding/contracts";
 import {
@@ -34,6 +35,10 @@ import {
   type PolicyContext,
 } from "../policy/hooks";
 import type { MemoryCandidate } from "../remember/candidates";
+import {
+  createPreferenceCategoryFence,
+  writePreferenceCategoryBatch,
+} from "../remember/writeOwnership";
 import type { DocumentStore } from "../storage/contracts";
 import type { RememberVectorPort } from "../storage/ports";
 import type {
@@ -388,6 +393,7 @@ function buildRevisedRecords(input: {
         source,
         evidence: [...new Set([...(record.evidence ?? []), input.evidenceId])],
         lifecycle: "active",
+        lastUsedAt: undefined,
         supersededBy: null,
         updatedAt: input.timestamp,
       }),
@@ -409,6 +415,7 @@ function buildRevisedRecords(input: {
       content: input.content,
       source,
       accessCount: 0,
+      lastAccessedAt: undefined,
       lifecycle: "active",
       isActive: true,
       supersededBy: null,
@@ -610,6 +617,42 @@ function buildAcceptedPolicyApplied(
   ].filter((entry): entry is string => Boolean(entry));
 }
 
+type PreferenceRevisionConflictReason =
+  | "idempotent"
+  | "target_changed"
+  | "target_not_active"
+  | "target_not_found_or_out_of_scope";
+
+class PreferenceRevisionConflict extends Error {
+  constructor(readonly reason: PreferenceRevisionConflictReason) {
+    super(reason);
+  }
+}
+
+function preferenceRevisionTimestamp(
+  requestedTimestamp: string,
+  preferences: readonly PreferenceMemory[],
+): string {
+  return new Date(Math.max(
+    Date.parse(requestedTimestamp),
+    ...preferences.flatMap((preference) => [
+      Date.parse(preference.source.extractedAt),
+      Date.parse(preference.updatedAt),
+    ]),
+  )).toISOString();
+}
+
+function durablePreferenceFilter(scope: MemoryScope): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries({
+      agentId: scope.agentId,
+      tenantId: scope.tenantId,
+      userId: scope.userId,
+      workspaceId: scope.workspaceId,
+    }).filter((entry): entry is [string, string] => entry[1] !== undefined),
+  );
+}
+
 export async function reviseMemory(input: {
   config: ReviseMemoryServiceConfig;
   input: ReviseMemoryInput;
@@ -759,6 +802,199 @@ export async function reviseMemory(input: {
       policyApplied,
       reason: "target_not_active",
     };
+  }
+
+  if (target.memoryType === "preference") {
+    const initialPreference = target.record as PreferenceMemory;
+    let committedNext: PreferenceMemory;
+    try {
+      committedNext = await writePreferenceCategoryBatch({
+        documentStore: input.config.documentStore,
+        fence: createPreferenceCategoryFence(
+          initialPreference,
+          initialPreference.category,
+        ),
+        prepare: async () => {
+          const [
+            currentTarget,
+            currentNew,
+            currentEvidence,
+            scopedPreferences,
+          ] = await Promise.all([
+            input.config.documentStore.get<PreferenceMemory>(
+              target.collection,
+              target.record.id,
+            ),
+            input.config.documentStore.get<PreferenceMemory>(
+              target.collection,
+              newMemoryId,
+            ),
+            input.config.documentStore.get<EvidenceRecord>(
+              EVIDENCE_COLLECTION,
+              evidenceId,
+            ),
+            input.config.documentStore.query<PreferenceMemory>(
+              "preferences",
+              durablePreferenceFilter(initialPreference),
+            ),
+          ]);
+          if (currentNew) {
+            throw new PreferenceRevisionConflict("idempotent");
+          }
+          if (
+            !currentTarget ||
+            !isSameDurableScope(currentTarget, initialPreference)
+          ) {
+            throw new PreferenceRevisionConflict(
+              "target_not_found_or_out_of_scope",
+            );
+          }
+          if (currentTarget.category !== initialPreference.category) {
+            throw new PreferenceRevisionConflict("target_changed");
+          }
+          if (!isActiveMemoryLifecycle(currentTarget)) {
+            throw new PreferenceRevisionConflict("target_not_active");
+          }
+
+          const activePreferences = scopedPreferences.filter((preference) =>
+            isSameDurableScope(preference, initialPreference) &&
+            preference.category === initialPreference.category &&
+            isActiveMemoryLifecycle(preference)
+          );
+          const siblings = activePreferences.filter(
+            (preference) => preference.id !== currentTarget.id,
+          );
+          const commitTimestamp = preferenceRevisionTimestamp(
+            timestamp,
+            [currentTarget, ...siblings],
+          );
+          const revised = buildRevisedRecords({
+            content: candidate.content,
+            evidenceId,
+            language: resolvedLanguage,
+            memoryType: "preference",
+            newMemoryId,
+            record: currentTarget,
+            scope: input.input.scope,
+            timestamp: commitTimestamp,
+          });
+          const next = revised.next as PreferenceMemory;
+          const evidence = buildEvidence({
+            evidenceId,
+            excerpt: evidenceExcerpt,
+            input: input.input,
+            language: resolvedLanguage,
+            languageService: input.config.language,
+            newMemoryId,
+            previousMemoryId: currentTarget.id,
+            requestDigest,
+            timestamp: commitTimestamp,
+          });
+
+          return {
+            batch: {
+              expected: {
+                collection: target.collection,
+                document: currentTarget,
+                id: currentTarget.id,
+              },
+              unchanged: [
+                {
+                  collection: target.collection,
+                  document: currentNew,
+                  id: newMemoryId,
+                },
+                {
+                  collection: EVIDENCE_COLLECTION,
+                  document: currentEvidence,
+                  id: evidenceId,
+                },
+                ...siblings.map((preference) => ({
+                  collection: target.collection,
+                  document: preference,
+                  id: preference.id,
+                })),
+              ],
+              set: [
+                {
+                  collection: EVIDENCE_COLLECTION,
+                  document: evidence,
+                  id: evidenceId,
+                },
+                {
+                  collection: target.collection,
+                  document: revised.previous,
+                  id: revised.previous.id,
+                },
+                {
+                  collection: target.collection,
+                  document: next,
+                  id: next.id,
+                },
+                ...siblings.map((preference) => ({
+                  collection: target.collection,
+                  document: createPreferenceMemory({
+                    ...preference,
+                    lifecycle: "superseded",
+                    supersededBy: next.id,
+                    updatedAt: commitTimestamp,
+                  }),
+                  id: preference.id,
+                })),
+              ],
+            },
+            result: next,
+          };
+        },
+      });
+    } catch (error) {
+      if (!(error instanceof PreferenceRevisionConflict)) {
+        throw error;
+      }
+      if (error.reason === "idempotent") {
+        return buildIdempotentResult({
+          documentStore: input.config.documentStore,
+          evidenceId,
+          memoryType: target.memoryType,
+          newMemoryId,
+          previousMemoryId: target.record.id,
+          requestDigest,
+          policyApplied: buildAcceptedPolicyApplied(input.config.policy),
+        });
+      }
+      return {
+        accepted: false,
+        outcome: error.reason === "target_not_found_or_out_of_scope"
+          ? "not_found"
+          : "blocked",
+        memoryType: target.memoryType,
+        previousMemoryId: target.record.id,
+        policyApplied,
+        reason: error.reason,
+      };
+    }
+
+    const warnings: string[] = [];
+    try {
+      await writeRevisionVector({
+        embedding: input.config.embedding,
+        memoryType: target.memoryType,
+        next: committedNext,
+        previousMemoryId: target.record.id,
+        vectorIndex: input.config.vectorIndex,
+      });
+    } catch {
+      warnings.push("vector_write_failed");
+    }
+
+    return buildSuccessResult({
+      evidenceId,
+      memoryType: target.memoryType,
+      newMemoryId,
+      previousMemoryId: target.record.id,
+      policyApplied,
+      warnings,
+    });
   }
 
   const { previous, next } = buildRevisedRecords({

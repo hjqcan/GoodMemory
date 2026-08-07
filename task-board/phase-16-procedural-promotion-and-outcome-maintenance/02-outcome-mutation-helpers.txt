@@ -1,6 +1,11 @@
 Phase 16.2: Outcome Mutation Helpers
 ====================================
 
+v0.7.3 correction (2026-08-06): the implemented notes below remain historical
+Phase 16 provenance. v0.7.3 no longer updates accessCount, lastAccessedAt, or
+lastUsedAt on recall and no longer records positive touch/reinforcement metrics.
+Verification pressure remains a separate negative signal. See ADR-004.
+
 [DONE] P16.2-T001 Add low-risk touch/reinforce helpers
 [DONE] P16.2-T002 Record outcome counters such as access and reinforcement safely
 [DONE] P16.2-T003 Keep mutation semantics explainable and bounded

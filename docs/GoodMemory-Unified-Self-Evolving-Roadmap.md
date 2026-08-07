@@ -449,6 +449,12 @@ flowchart LR
 - 系统能稳定产出 proposal，而不是直接改 durable state
 - replay / trace 能解释 proposal 的来源、依据、门禁结果
 
+> **v0.7.3 correction (2026-08-06):** Wave 5 below is a historical roadmap and
+> correctly records what Phase 16 shipped. Retrieval exposure is no longer
+> reinforcement: v0.7.3 freezes access/last-used telemetry and removes it from
+> recall ranking and maintenance shielding. Evidence support and negative
+> verification pressure remain. See ADR-004; historical evidence is unchanged.
+
 ### Wave 5: Procedural Pattern Promotion + Outcome-Driven Maintenance
 
 目标：

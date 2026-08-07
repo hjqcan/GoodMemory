@@ -117,6 +117,42 @@ describe("evolution observation normalization", () => {
     expect(verifyRecord?.linkedEvidenceIds).toEqual(["evidence-1"]);
   });
 
+  it("ignores deprecated positive-exposure counters when building new recall experiences", () => {
+    const [recallRecord] = buildRecallExperienceRecords({
+      scope,
+      traceId: "trace-recall-deprecated-exposure",
+      createdAt: "2026-04-13T00:00:00.000Z",
+      createId: () => "xp-recall-deprecated-exposure",
+      result: {
+        preferences: [],
+        references: [],
+        facts: [{ id: "fact-1" }],
+        feedback: [{ id: "feedback-1" }],
+        archives: [],
+        evidence: [],
+        episodes: [],
+        strategy: "hybrid",
+        hitCount: 2,
+        hits: [{}, {}],
+        verificationHints: [],
+        latencyMs: 8,
+        tokenCount: 16,
+        policyApplied: [],
+        modelInfluence: "rules-only",
+        touchedFactCount: 1,
+        reinforcedFeedbackCount: 1,
+      } satisfies RecallObservationResult,
+    });
+
+    expect(recallRecord.metrics).toEqual({
+      hitCount: 2,
+      verificationHintCount: 0,
+      latencyMs: 8,
+      tokenCount: 16,
+    });
+    expect(recallRecord.summary).toBe("Recall hybrid returned 2 hit(s).");
+  });
+
   it("marks empty-hit recalls as failure instead of conflating them with skips", () => {
     const [recallRecord] = buildRecallExperienceRecords({
       scope,

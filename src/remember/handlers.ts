@@ -2,11 +2,13 @@ import {
   buildFeedbackIdentityKey,
   createFactMemory,
   createFeedbackMemory,
+  createPreferenceMemory,
   createReferenceMemory,
   isActiveMemoryLifecycle,
   normalizeFeedbackAppliesTo,
 } from "../domain/records";
 import type { MemorySource } from "../domain/provenance";
+import { isSameDurableScope } from "../domain/scope";
 import {
   buildFactEmbeddingWrite,
   buildReferenceEmbeddingWrite,
@@ -38,6 +40,23 @@ import type {
 } from "./contracts";
 import { storedTextLanguageKey } from "./languageAnalysis";
 import { extractCanonicalReferencePointer } from "./normalization";
+import { createPreferenceCategoryFence } from "./writeOwnership";
+
+function preferenceWriteTimestamp(
+  requestedTimestamp: string,
+  preferences: readonly {
+    source: MemorySource;
+    updatedAt: string;
+  }[],
+): string {
+  return new Date(Math.max(
+    Date.parse(requestedTimestamp),
+    ...preferences.flatMap((preference) => [
+      Date.parse(preference.source.extractedAt),
+      Date.parse(preference.updatedAt),
+    ]),
+  )).toISOString();
+}
 
 function languageMetadata(
   resolved: ReturnType<RememberWriteContext["language"]["resolveFromText"]>,
@@ -218,9 +237,6 @@ export async function writeRememberCandidate(input: {
   }
 
   if (candidate.memoryType === "preference") {
-    const scopedPreferences = (
-      await context.repositories.preferences.listByScope(context.input.scope)
-    ).filter((preference) => (preference.lifecycle ?? "active") === "active");
     const category =
       candidate.metadata?.preferenceCategory ?? "general_preference";
     const value = String(
@@ -230,101 +246,160 @@ export async function writeRememberCandidate(input: {
       value,
       candidateLanguage,
     );
-    const duplicate = scopedPreferences.find(
-      (preference) => {
-        const preferenceValue = String(preference.value).trim();
-        const preferenceLanguage = resolveStoredTextLanguage(
-          context,
-          preferenceValue,
-          preference.source,
+    const preferenceWrite = await context.writeDocumentBatchWithRollback<{
+      memoryId: string;
+      outcome: "merged" | "superseded" | "written";
+      reason: string;
+    }>(
+      createPreferenceCategoryFence(context.input.scope, category),
+      async () => {
+        const categoryPreferences = (
+          await context.repositories.preferences.listByScope(context.input.scope)
+        )
+          .filter(
+            (preference) =>
+              isSameDurableScope(preference, context.input.scope) &&
+              (preference.lifecycle ?? "active") === "active" &&
+              preference.category === category,
+          )
+          .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+        const updatedAt = preferenceWriteTimestamp(
+          timestamp,
+          categoryPreferences,
         );
-        return (
-          preference.category === category &&
-          context.language.normalizeForEquality(
+        const duplicate = categoryPreferences.find((preference) => {
+          const preferenceValue = String(preference.value).trim();
+          const preferenceLanguage = resolveStoredTextLanguage(
+            context,
+            preferenceValue,
+            preference.source,
+          );
+          return context.language.normalizeForEquality(
             preferenceValue,
             preferenceLanguage,
-          ) === normalizedValue
-        );
+          ) === normalizedValue;
+        });
+
+        if (duplicate) {
+          const enrichedDuplicate = enrichDuplicatePreference(
+            duplicate,
+            candidate,
+            timestamp,
+            storedSourceLanguage(
+              context,
+              String(duplicate.value),
+              duplicate.source,
+            ),
+          );
+          const updatedDuplicate = enrichedDuplicate
+            ? createPreferenceMemory({
+                ...enrichedDuplicate,
+                updatedAt,
+              })
+            : null;
+          const stalePreferences = categoryPreferences.filter(
+            (preference) => preference.id !== duplicate.id,
+          );
+          return {
+            batch: {
+              expected: {
+                collection: "preferences",
+                document: duplicate,
+                id: duplicate.id,
+              },
+              unchanged: stalePreferences.map((preference) => ({
+                collection: "preferences",
+                document: preference,
+                id: preference.id,
+              })),
+              set: [
+                ...(updatedDuplicate
+                  ? [{
+                      collection: "preferences",
+                      document: updatedDuplicate,
+                      id: duplicate.id,
+                    }]
+                  : []),
+                ...stalePreferences.map((preference) => ({
+                  collection: "preferences",
+                  document: createPreferenceMemory({
+                    ...preference,
+                    lifecycle: "superseded",
+                    supersededBy: duplicate.id,
+                    updatedAt,
+                  }),
+                  id: preference.id,
+                })),
+              ],
+            },
+            result: {
+              memoryId: duplicate.id,
+              outcome: "merged" as const,
+              reason: "duplicate_preference",
+            },
+          };
+        }
+
+        const preference = createPreferenceMemory({
+          ...buildPreference(
+            context.input.scope,
+            candidate,
+            context.createId(),
+            timestamp,
+            candidateSourceLanguage,
+          ),
+          updatedAt,
+        });
+        return {
+          batch: {
+            expected: {
+              collection: "preferences",
+              document: null,
+              id: preference.id,
+            },
+            unchanged: categoryPreferences.map((existing) => ({
+              collection: "preferences",
+              document: existing,
+              id: existing.id,
+            })),
+            set: [
+              {
+                collection: "preferences",
+                document: preference,
+                id: preference.id,
+              },
+              ...categoryPreferences.map((existing) => ({
+                collection: "preferences",
+                document: createPreferenceMemory({
+                  ...existing,
+                  lifecycle: "superseded",
+                  supersededBy: preference.id,
+                  updatedAt,
+                }),
+                id: existing.id,
+              })),
+            ],
+          },
+          result: categoryPreferences.length > 0
+            ? {
+                memoryId: preference.id,
+                outcome: "superseded" as const,
+                reason: "superseded_preference",
+              }
+            : {
+                memoryId: preference.id,
+                outcome: "written" as const,
+                reason: "explicit_preference",
+              },
+        };
       },
     );
-
-    if (duplicate) {
-      const enrichedDuplicate = enrichDuplicatePreference(
-        duplicate,
-        candidate,
-        timestamp,
-        storedSourceLanguage(
-          context,
-          String(duplicate.value),
-          duplicate.source,
-        ),
-      );
-      if (enrichedDuplicate) {
-        await context.setDocumentWithRollback(
-          "preferences",
-          duplicate.id,
-          enrichedDuplicate,
-        );
-      }
-      pushAcceptedEvent(state, {
-        candidateId,
-        outcome: "merged",
-        memoryType: "preference",
-        memoryId: duplicate.id,
-        reason: "duplicate_preference",
-        ...buildRememberEventTrace(candidate),
-      });
-      return;
-    }
-
-    const conflictingPreferences = scopedPreferences
-      .filter((preference) => preference.category === category)
-      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
-
-    if (conflictingPreferences.length > 0) {
-      const current = conflictingPreferences[0]!;
-      const updatedPreference = buildPreference(
-        context.input.scope,
-        candidate,
-        current.id,
-        timestamp,
-        candidateSourceLanguage,
-      );
-
-      await context.setDocumentWithRollback(
-        "preferences",
-        updatedPreference.id,
-        updatedPreference,
-      );
-      for (const stale of conflictingPreferences.slice(1)) {
-        await context.deleteDocumentWithRollback("preferences", stale.id);
-      }
-
-      pushAcceptedEvent(state, {
-        candidateId,
-        outcome: "superseded",
-        memoryType: "preference",
-        memoryId: updatedPreference.id,
-        reason: "superseded_preference",
-        ...buildRememberEventTrace(candidate),
-      });
-      return;
-    }
-
-    const preference = buildPreference(
-      context.input.scope,
-      candidate,
-      context.createId(),
-      timestamp,
-      candidateSourceLanguage,
-    );
-    await context.setDocumentWithRollback("preferences", preference.id, preference);
     pushAcceptedEvent(state, {
       candidateId,
-      outcome: "written",
+      outcome: preferenceWrite.outcome,
       memoryType: "preference",
-      memoryId: preference.id,
-      reason: "explicit_preference",
+      memoryId: preferenceWrite.memoryId,
+      reason: preferenceWrite.reason,
       ...buildRememberEventTrace(candidate),
     });
     return;

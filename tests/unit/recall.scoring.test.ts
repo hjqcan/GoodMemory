@@ -7,11 +7,12 @@ import {
 import { createLanguageService } from "../../src/language";
 import {
   buildFactCandidates,
-  sortFeedback,
+  buildReferenceCandidates,
+  freshnessScore,
   normalizeSemanticScores,
   rankFactCandidates,
   rankReferenceCandidates,
-  buildReferenceCandidates,
+  sortFeedback,
 } from "../../src/recall/scoring";
 
 const TIMESTAMP = "2026-01-10T00:00:00.000Z";
@@ -55,7 +56,7 @@ describe("recall scoring", () => {
     expect(candidate?.explicitnessScore).toBeGreaterThan(0);
   });
 
-  it("adds bounded outcome support signals to fact candidates", () => {
+  it("uses evidence support without retrieval-usage reinforcement", () => {
     const language = createLanguageService();
     const fact = createFactMemory({
       id: "fact-1",
@@ -78,9 +79,51 @@ describe("recall scoring", () => {
       new Map([["fact-1", 3]]),
     );
 
-    expect(candidate?.usageScore).toBeGreaterThan(0);
+    expect(candidate?.usageScore).toBe(0);
     expect(candidate?.evidenceScore).toBeGreaterThan(0);
-    expect(candidate?.outcomeScore).toBeGreaterThan(0);
+    expect(candidate?.outcomeScore).toBe(candidate?.evidenceScore);
+  });
+
+  it("ignores historical access telemetry when scoring otherwise equal facts", () => {
+    const language = createLanguageService();
+    const facts = [
+      createFactMemory({
+        id: "fact-never-accessed",
+        userId: "user-1",
+        category: "project",
+        content: "The runtime rollout is blocked by legal signoff.",
+        source: SOURCE,
+        updatedAt: TIMESTAMP,
+      }),
+      createFactMemory({
+        id: "fact-frequently-accessed",
+        userId: "user-1",
+        category: "project",
+        content: "The runtime rollout is blocked by legal signoff.",
+        source: SOURCE,
+        accessCount: 99,
+        lastAccessedAt: TIMESTAMP,
+        updatedAt: TIMESTAMP,
+      }),
+    ];
+
+    const candidates = buildFactCandidates(
+      facts,
+      "What is the blocker right now?",
+      language,
+      "en",
+      TIMESTAMP,
+    );
+    const neverAccessed = candidates.find(
+      (candidate) => candidate.fact.id === "fact-never-accessed",
+    );
+    const frequentlyAccessed = candidates.find(
+      (candidate) => candidate.fact.id === "fact-frequently-accessed",
+    );
+
+    expect(neverAccessed?.usageScore).toBe(0);
+    expect(frequentlyAccessed?.usageScore).toBe(0);
+    expect(frequentlyAccessed?.score).toBe(neverAccessed?.score);
   });
 
   it("applies an advisory verification penalty to stale action-driving facts", () => {
@@ -104,8 +147,24 @@ describe("recall scoring", () => {
       TIMESTAMP,
     );
 
-    expect(candidate?.usageScore).toBeGreaterThan(0);
+    expect(candidate?.usageScore).toBe(0);
     expect(candidate?.verificationPenaltyScore).toBeGreaterThan(candidate?.usageScore ?? 0);
+  });
+
+  it("treats future timestamps as age zero instead of making them stale", () => {
+    expect(freshnessScore("2027-01-10T00:00:00.000Z", TIMESTAMP)).toBe(
+      freshnessScore(TIMESTAMP, TIMESTAMP),
+    );
+    expect(freshnessScore("2025-01-10T00:00:00.000Z", TIMESTAMP)).toBe(0);
+  });
+
+  it("keeps the documented 7, 30, and 90 day freshness boundaries", () => {
+    expect(freshnessScore("2026-01-03T00:00:00.000Z", TIMESTAMP)).toBe(0.25);
+    expect(freshnessScore("2026-01-02T23:59:59.999Z", TIMESTAMP)).toBe(0.15);
+    expect(freshnessScore("2025-12-11T00:00:00.000Z", TIMESTAMP)).toBe(0.15);
+    expect(freshnessScore("2025-12-10T23:59:59.999Z", TIMESTAMP)).toBe(0.05);
+    expect(freshnessScore("2025-10-12T00:00:00.000Z", TIMESTAMP)).toBe(0.05);
+    expect(freshnessScore("2025-10-11T23:59:59.999Z", TIMESTAMP)).toBe(0);
   });
 
   it("prefers higher lexical reference matches when ranking", () => {
@@ -221,10 +280,10 @@ describe("recall scoring", () => {
     expect(hybrid[0]?.fact.id).toBe("fact-a");
   });
 
-  it("prefers recently used feedback when sorting active guidance", () => {
+  it("ignores last-used telemetry when sorting active guidance", () => {
     const feedback = sortFeedback([
       createFeedbackMemory({
-        id: "feedback-stale",
+        id: "feedback-newer",
         userId: "user-1",
         rule: "Keep summaries concise.",
         kind: "prefer",
@@ -232,16 +291,16 @@ describe("recall scoring", () => {
         updatedAt: "2026-01-09T00:00:00.000Z",
       }),
       createFeedbackMemory({
-        id: "feedback-used",
+        id: "feedback-older-but-used",
         userId: "user-1",
         rule: "Use bullet points in summaries.",
-        kind: "validated_pattern",
+        kind: "prefer",
         source: SOURCE,
         updatedAt: "2026-01-05T00:00:00.000Z",
         lastUsedAt: "2026-01-10T00:00:00.000Z",
       }),
     ]);
 
-    expect(feedback[0]?.id).toBe("feedback-used");
+    expect(feedback[0]?.id).toBe("feedback-newer");
   });
 });

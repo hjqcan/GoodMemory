@@ -34,16 +34,10 @@ function buildRecallSummary(result: RecallObservationResult): string {
   }
 
   const touchSegments: string[] = [];
-  if ((result.touchedFactCount ?? 0) > 0) {
-    touchSegments.push(`touched ${result.touchedFactCount} fact counter(s)`);
-  }
   if ((result.verificationPressureFactCount ?? 0) > 0) {
     touchSegments.push(
       `recorded ${result.verificationPressureFactCount} verification pressure signal(s)`,
     );
-  }
-  if ((result.reinforcedFeedbackCount ?? 0) > 0) {
-    touchSegments.push(`reinforced ${result.reinforcedFeedbackCount} feedback item(s)`);
   }
 
   return touchSegments.length > 0
@@ -155,15 +149,9 @@ export function buildRecallExperienceRecords(
     verificationHintCount: input.result.verificationHints.length,
     latencyMs: input.result.latencyMs,
     tokenCount: input.result.tokenCount,
-    ...(input.result.touchedFactCount && input.result.touchedFactCount > 0
-      ? { touchedFactCount: input.result.touchedFactCount }
-      : {}),
     ...(input.result.verificationPressureFactCount &&
     input.result.verificationPressureFactCount > 0
       ? { verificationPressureFactCount: input.result.verificationPressureFactCount }
-      : {}),
-    ...(input.result.reinforcedFeedbackCount && input.result.reinforcedFeedbackCount > 0
-      ? { reinforcedFeedbackCount: input.result.reinforcedFeedbackCount }
       : {}),
   };
 

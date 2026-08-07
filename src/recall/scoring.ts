@@ -300,7 +300,10 @@ export async function searchSemanticScores(input: {
 }
 
 function daysBetween(left: string, right: string): number {
-  const ms = Math.abs(new Date(left).getTime() - new Date(right).getTime());
+  const ms = Math.max(
+    0,
+    new Date(left).getTime() - new Date(right).getTime(),
+  );
   return ms / (1000 * 60 * 60 * 24);
 }
 
@@ -325,36 +328,6 @@ export function explicitnessScore(method: MemorySourceMethod): number {
   }
   if (method === "import") {
     return 0.05;
-  }
-
-  return 0;
-}
-
-function accessCountScore(accessCount: number): number {
-  if (accessCount <= 0) {
-    return 0;
-  }
-
-  return Math.min(accessCount, 5) * 0.02;
-}
-
-function lastAccessedScore(
-  timestamp: string | undefined,
-  referenceTime: string,
-): number {
-  if (!timestamp) {
-    return 0;
-  }
-
-  const ageDays = daysBetween(referenceTime, timestamp);
-  if (ageDays <= 7) {
-    return 0.08;
-  }
-  if (ageDays <= 30) {
-    return 0.04;
-  }
-  if (ageDays <= 90) {
-    return 0.015;
   }
 
   return 0;
@@ -507,13 +480,11 @@ export function buildFactCandidates(
     const intentScore = factIntentPriority(factAnalysis, queryAnalysis);
     const freshness = freshnessScore(fact.updatedAt, referenceTime);
     const explicitness = explicitnessScore(fact.source.method);
-    const usageScore =
-      accessCountScore(fact.accessCount) +
-      lastAccessedScore(fact.lastAccessedAt, referenceTime);
+    const usageScore = 0;
     const evidenceScore = evidenceSupportScore(
       evidenceCountsByMemoryId?.get(fact.id) ?? 0,
     );
-    const outcomeScore = usageScore + evidenceScore;
+    const outcomeScore = evidenceScore;
     const verificationPenaltyScore =
       factVerificationAdvisoryPenalty({
         fact,
@@ -872,12 +843,6 @@ export function sortFeedback(feedback: FeedbackMemory[]): FeedbackMemory[] {
       if (right.kind === "validated_pattern") {
         return 1;
       }
-    }
-
-    const rightUsageTimestamp = right.lastUsedAt ?? right.updatedAt;
-    const leftUsageTimestamp = left.lastUsedAt ?? left.updatedAt;
-    if (rightUsageTimestamp !== leftUsageTimestamp) {
-      return rightUsageTimestamp.localeCompare(leftUsageTimestamp);
     }
 
     return right.updatedAt.localeCompare(left.updatedAt);

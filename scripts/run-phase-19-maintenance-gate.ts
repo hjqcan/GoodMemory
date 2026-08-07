@@ -98,7 +98,6 @@ export function buildPhase19MaintenanceGateCommands(
         "tests/eval/runners.test.ts",
         "tests/eval/suite.test.ts",
         "tests/eval/reporting.test.ts",
-        "tests/unit/maintenance.decay.test.ts",
         "tests/unit/maintenance.dream.test.ts",
         "tests/integration/maintenance.api.test.ts",
       ],

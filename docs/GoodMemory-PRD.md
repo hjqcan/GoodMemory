@@ -416,8 +416,10 @@ v1 支持，但不是主设计中心。
 
 产品要求：
 
-- decay、dedupe cleanup、consolidation、stale verification、dream-style consolidation
+- TTL expiry、dedupe cleanup、consolidation、stale verification、dream-style consolidation
   作为 maintenance 层能力存在
+- soft decay 是 recall-time ranking policy，不是 maintenance mutation job
+- retrieval exposure 不是 reinforcement，不得因 recall 次数提高未来排序、confidence 或 lifecycle
 - 这些能力不要求纳入最小集成闭环
 - 没有 maintenance，系统仍能运行；有 maintenance，质量明显提升
 
@@ -476,6 +478,7 @@ v1 支持，但不是主设计中心。
 
 - 能识别不同 memory 类型
 - 支持 merge / supersede / reject
+- supersede 必须保留旧记录与 `supersededBy` lineage，不得复用旧 ID 或静默删除历史值
 - 支持 explicit vs inferred 区分
 - 支持 conservative write policy
 
@@ -516,12 +519,16 @@ v1 支持，但不是主设计中心。
 要求：
 
 - dedupe cleanup
-- decay
+- TTL expiry
 - consolidation
 - stale verification
 - contradiction repair
 
 这些能力不要求都在热路径中完成。
+
+Soft decay 仅在 recall 时计算；它不得修改 durable record。TTL/validity 是
+hard expiry：到期记录在 maintenance 持久化前也必须立即不可召回，maintenance
+再负责写入 inactive lifecycle 并删除对应向量。
 
 ### 12.9 FR-9 Explainability
 

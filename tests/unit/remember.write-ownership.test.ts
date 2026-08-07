@@ -1,8 +1,13 @@
 import { describe, expect, it } from "bun:test";
 
-import { createRememberWriteCoordinator } from "../../src/remember/writeOwnership";
+import {
+  createPreferenceCategoryFence,
+  createRememberWriteCoordinator,
+  REMEMBER_WRITE_OWNERS_COLLECTION,
+} from "../../src/remember/writeOwnership";
 import type {
   ConditionalDocumentWriteBatch,
+  DocumentStore,
   ProjectionCapableDocumentStore,
   StorageDocument,
 } from "../../src/storage/contracts";
@@ -43,5 +48,45 @@ describe("remember write ownership", () => {
     expect(observedIds.length).toBeGreaterThan(0);
     expect(observedIds.every((id) => !id.includes("\u0000"))).toBe(true);
     expect(await inner.get("facts", "fact:1")).toEqual({ content: "safe" });
+  });
+
+  it("does not claim cross-runtime serialization for fallback preference writes", async () => {
+    const inner = createInMemoryDocumentStore();
+    const store: DocumentStore = {
+      delete: inner.delete,
+      get: inner.get,
+      query: inner.query,
+      set: inner.set,
+      update: inner.update,
+    };
+    const coordinator = createRememberWriteCoordinator(store);
+
+    await coordinator.writeDocumentBatchWithRollback(
+      createPreferenceCategoryFence(
+        { userId: "fallback-owner", workspaceId: "workspace-a" },
+        "response_style",
+      ),
+      async () => ({
+        batch: {
+          expected: {
+            collection: "preferences",
+            document: null,
+            id: "fallback-preference",
+          },
+          set: [{
+            collection: "preferences",
+            document: { id: "fallback-preference", value: "concise" },
+            id: "fallback-preference",
+          }],
+        },
+        result: undefined,
+      }),
+    );
+
+    expect(await inner.get("preferences", "fallback-preference")).toEqual({
+      id: "fallback-preference",
+      value: "concise",
+    });
+    expect(await inner.query(REMEMBER_WRITE_OWNERS_COLLECTION)).toEqual([]);
   });
 });
