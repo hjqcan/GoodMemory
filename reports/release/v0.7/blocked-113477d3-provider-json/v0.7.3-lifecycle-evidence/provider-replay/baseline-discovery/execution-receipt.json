@@ -1,0 +1,1988 @@
+{
+  "commandChain": {
+    "officialRescore": {
+      "args": [
+        "run",
+        "eval:official-rescore",
+        "--",
+        "--benchmark",
+        "locomo",
+        "--report",
+        "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/v073-baseline-discovery-final-54c69a32/smoke-report.json",
+        "--root",
+        "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1/cases.json",
+        "--concurrency",
+        "1",
+        "--run-id",
+        "v073-baseline-discovery-official-54c69a32"
+      ],
+      "command": "bun",
+      "cwd": "/private/tmp/goodmemory-v073-schema3.kdpZ2O/baseline",
+      "environment": {
+        "GOODMEMORY_JUDGE_MODEL": "gpt-5.5",
+        "GOODMEMORY_JUDGE_BASE_URL": "http://127.0.0.1:52483/judge",
+        "GOODMEMORY_JUDGE_PROVIDER": "openai",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL": "http://127.0.0.1:52483/assisted",
+        "GOODMEMORY_EMBEDDING_BASE_URL": "http://127.0.0.1:52483/embedding",
+        "GOODMEMORY_EVAL_BASE_URL": "http://127.0.0.1:52483/eval",
+        "GOODMEMORY_RERANKING_BASE_URL": "http://127.0.0.1:52483/reranking"
+      }
+    },
+    "reanswer": {
+      "args": [
+        "run",
+        "scripts/reanswer-phase-65-locomo-report.ts",
+        "--",
+        "--source-report",
+        "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/v073-baseline-discovery-seed-54c69a32/smoke-report.json",
+        "--concurrency",
+        "1",
+        "--output-dir",
+        "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery",
+        "--run-id",
+        "v073-baseline-discovery-final-54c69a32"
+      ],
+      "command": "bun",
+      "cwd": "/private/tmp/goodmemory-v073-schema3.kdpZ2O/baseline",
+      "environment": {
+        "GOODMEMORY_EVAL_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_EVAL_BASE_URL": "http://127.0.0.1:52483/eval",
+        "GOODMEMORY_EVAL_PROVIDER": "openai",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL": "http://127.0.0.1:52483/assisted",
+        "GOODMEMORY_EMBEDDING_BASE_URL": "http://127.0.0.1:52483/embedding",
+        "GOODMEMORY_JUDGE_BASE_URL": "http://127.0.0.1:52483/judge",
+        "GOODMEMORY_RERANKING_BASE_URL": "http://127.0.0.1:52483/reranking"
+      }
+    },
+    "seedSmoke": {
+      "args": [
+        "run",
+        "scripts/run-phase-65-locomo-smoke.ts",
+        "--",
+        "--benchmark-root",
+        "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1",
+        "--category",
+        "single_hop",
+        "--category",
+        "multi_hop",
+        "--category",
+        "temporal",
+        "--category",
+        "open_domain",
+        "--generalized-fusion",
+        "--provider-embedding",
+        "--provider-reranking",
+        "--provider-reranking-timeout-ms",
+        "120000",
+        "--conversational-extraction",
+        "--label-free-ingest",
+        "--concurrency",
+        "1",
+        "--case-id",
+        "locomo-conv-26",
+        "--case-id",
+        "locomo-conv-30",
+        "--output-dir",
+        "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery",
+        "--resume",
+        "--run-id",
+        "v073-baseline-discovery-seed-54c69a32"
+      ],
+      "command": "bun",
+      "cwd": "/private/tmp/goodmemory-v073-schema3.kdpZ2O/baseline",
+      "environment": {
+        "GOODMEMORY_EVAL_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_EVAL_BASE_URL": "http://127.0.0.1:52483/eval",
+        "GOODMEMORY_EVAL_PROVIDER": "openai",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL": "http://127.0.0.1:52483/assisted",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER": "openai",
+        "GOODMEMORY_EMBEDDING_BASE_URL": "http://127.0.0.1:52483/embedding",
+        "GOODMEMORY_EMBEDDING_MODEL": "text-embedding-3-small",
+        "GOODMEMORY_EMBEDDING_PROVIDER": "openai",
+        "GOODMEMORY_RERANKING_BASE_URL": "http://127.0.0.1:52483/reranking",
+        "GOODMEMORY_RERANKING_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_RERANKING_PROVIDER": "openai",
+        "GOODMEMORY_JUDGE_BASE_URL": "http://127.0.0.1:52483/judge"
+      }
+    }
+  },
+  "commit": "456edd106f29118b3455bf21c43d7b3107b48213",
+  "executionOrder": [
+    "seedSmoke",
+    "reanswer",
+    "officialRescore"
+  ],
+  "generatedBy": "scripts/run-v0-7-3-replacement-protection-gate.ts",
+  "session": {
+    "coalesced": 0,
+    "hits": 3,
+    "liveRequests": 225,
+    "misses": 225,
+    "mode": "prefetch",
+    "name": "baseline-discovery",
+    "non2xxResponses": 0,
+    "requestFingerprintMultisetSha256": "a8519845898ce0ef95cc49dd655cd1d10b1be852293fccb4fbd789d9c0c6e86a",
+    "requestSequence": [
+      {
+        "canonicalBodySha256": "9ff1ed52a90206d5d26aa065c79dd75e8e12db0649b176fcd09a09f25e3dd882",
+        "fingerprint": "ae35ae82f4e15b68872e846c14b6fe612f40a05d6d2308ba5b6a6ab207cfa9ba",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "aeefc5353277d0dee995848787faafe8b21e67371be308bd02322c8543da3ed2",
+        "fingerprint": "085c2d3ac9a05b45c3c6b5842cde91a969c24cb94c32ce3613c41cfef0d01051",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "e805d8546040672ab3ae5aaad1d1bb968d9b1fd2ee487868b695707593261b6e",
+        "fingerprint": "ea4ab13f30ae14e18cba901c797977699e54515c44c5b2b8e24d397bf3362f53",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "51ec8981ee7aec020efd61e0c4cb320d04cd82c8cef0aa2c6e952443a33b10d0",
+        "fingerprint": "3f879f07d0a8aa2f5fc2cc59f41f713ceb0f1eb38fb4dac2429fee464602be8e",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "914903b7e136d8ed0ff4de5b953e48e4684d14e676186b62d7b7a4d1499cd817",
+        "fingerprint": "f0889dacfeb718bc33b4f934c84963604e29c1dc750f52060da27239adeafc13",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "36529f51eeff7f48bf951cfd1dcc813539440f031fefe38b390e080386600397",
+        "fingerprint": "b6d96dc87509cea5ee88bec5ba964888fedd0da2a99a8465f942b12a6ef12f3b",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "f5feebbd2a2c068319e28935e1cf95b85451b7ada746d87d9c5498e972868c45",
+        "fingerprint": "4e26f655efda1b5299b1e7f74c91a1eeded0e75369e3adfa9760d1fbf0fe1db8",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "90ea3d28feca6c893ad8e86d510e0b8cafbbb13a1f417d16443ed5acc162c56c",
+        "fingerprint": "19a17b77d286646365e835480765918a394616598012eb60557877756ca7ce56",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "828f08803496d005d46eed07d70bef7856d2d9edb651fabeef5304880b850fa1",
+        "fingerprint": "f8c88f5f2dc7d06a2d61c56281b7de114ce0755ed0d0cf7325ba02556666d5fc",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "b59fa6fa1b702314ba8652275dd3076d96f786b9b78af00522712d7807d77ec2",
+        "fingerprint": "60b22ee0bd88548c9de44730594b0671dcc11e828dde6e3a90e1ae166ff0761f",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "b59fa6fa1b702314ba8652275dd3076d96f786b9b78af00522712d7807d77ec2",
+        "fingerprint": "60b22ee0bd88548c9de44730594b0671dcc11e828dde6e3a90e1ae166ff0761f",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "643b423a28a83869c0b1df4f9e1ada8f537ca57e20d40f9d113d03ad24e427a5",
+        "fingerprint": "c6713310fad706d99badfe122034609923d6826491745e4644e40397e54f8fe7",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "c5340cca0369c6bf3ec4711af0ec8e92717d3c2fd558ec8367556352e090b32f",
+        "fingerprint": "6fd039928bd2dbe3e584dbd99a697baeed48af0d2f063f9b573991dafcff21fb",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "e683206be581590ac84d4885f08a8682a26c2e845340d9ef08fb70321155411f",
+        "fingerprint": "86ceff6c0c73bba65d41818a7fe2c3089e8457f2a61be5e44fb74fe81f26a11a",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "770a7e9d560ddd5e7850e7b23c53599d52335a6a362b118adf9e6d270451c8cd",
+        "fingerprint": "84ba7249ea67a6a40ac532327cecf044661fb8ef1263c273d988f97bd3580adf",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "843c56239e303d2625a85babb8f057122368bee770fd92f8fd40a2a1e8410804",
+        "fingerprint": "3c7c4e34f957077174635851a388d8102947ef4a03b38355914d2662bf2c88ac",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "d71d87e683983eedc1ead5cec74fc66791609b3b386772679cfafb15b12b2ff3",
+        "fingerprint": "edaa438555980c0c6fe0c8e975d96aebac2a4c0771507c3d3a07fc5ab6a0f465",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "d71d87e683983eedc1ead5cec74fc66791609b3b386772679cfafb15b12b2ff3",
+        "fingerprint": "edaa438555980c0c6fe0c8e975d96aebac2a4c0771507c3d3a07fc5ab6a0f465",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "d29780abab07bee32227e4bcf537cac38723037de308cc08412351112f9d523f",
+        "fingerprint": "7c9b096f1c1655bec0ad2549240412c257c8d9396df521e23becf9e22b6b772f",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "fd35798a45abd4438dfba32bfc11f6ce590529e9ed936a09221cba2110c70198",
+        "fingerprint": "d75deb48ff7c35fc41aacb86ce55cf42b28c0fee0ca2085d48ccf5c298ae23a9",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "2b42e0f557a9f9e00ad7e2201dc302aac7515eb38195a0356af449bf4507fcd9",
+        "fingerprint": "63e405675d158aab131d2894436e9287fb5b07ddce5b499f4e0366b28fcf58a0",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "2b42e0f557a9f9e00ad7e2201dc302aac7515eb38195a0356af449bf4507fcd9",
+        "fingerprint": "63e405675d158aab131d2894436e9287fb5b07ddce5b499f4e0366b28fcf58a0",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "48a67d249a117dfcb3287b418c38c60104f06554b7ee4f5f94e1326d25b64ba5",
+        "fingerprint": "bed65291c0ce709442bc58b4e9f152c03b1e5c3b156ca84c3eae13e80fd0f806",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "48a67d249a117dfcb3287b418c38c60104f06554b7ee4f5f94e1326d25b64ba5",
+        "fingerprint": "bed65291c0ce709442bc58b4e9f152c03b1e5c3b156ca84c3eae13e80fd0f806",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "48a67d249a117dfcb3287b418c38c60104f06554b7ee4f5f94e1326d25b64ba5",
+        "fingerprint": "bed65291c0ce709442bc58b4e9f152c03b1e5c3b156ca84c3eae13e80fd0f806",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "48a67d249a117dfcb3287b418c38c60104f06554b7ee4f5f94e1326d25b64ba5",
+        "fingerprint": "bed65291c0ce709442bc58b4e9f152c03b1e5c3b156ca84c3eae13e80fd0f806",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "f1947a714e6f3c3cbe8e58b90146d2be3028a6a34fe3313445dcf367c9e0a37b",
+        "fingerprint": "d1a20f8d718258824c6330b2ceb3ea114822fe636db870713e2f6bcf38608387",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "590b047f7528a6391613385e5b732b63cfa196502207b184cd5a6b1dc79bfb08",
+        "fingerprint": "f3cf760149c306b5c42c0ee2ae3dd7e2728cf52ce2810ac4e6bdb13130c49525",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "574c23ddd2942f34c79755c1d59d08fd35b8484e89e61c469891a38ebf1235c3",
+        "fingerprint": "c6c70f67bcaecf665794671b29902ba2a9e30d680e14b826071cc166b4d94a48",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "6008c4e17e422276ab3539159105405ec145b939ce718fb028a1d25fa0585dc7",
+        "fingerprint": "d997882bb2d5f9bdb198eb0c2b30493befdda728668ee4596d619b824eb66409",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "16de51c2982367bedf7a0cd239f5d90977cce3c77f8d06552ffcd5c51f7686fa",
+        "fingerprint": "9037ec2052e39051dbee6603751315fb8e96200b4374cd5de8e24a8da4760a60",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "21894ccf9e0aefb84080e6452ab5e5658a6c5bd6adf588d323a3771ea7a85c8d",
+        "fingerprint": "dd2d7c7aff8d07ca5bbc6d5609f9a9c4d0584d54fd5510b1926e9fcfb81baee6",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "6129bfcb27cbe493adc8152e08379a7c15e4f739412b4cef8d86c91afe01b6fa",
+        "fingerprint": "d5fc9344f51fcb03d0f6ac27e8f6d2f9a150a93c619e53009ed558a74061fb6d",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "8d68d7bc66bd8c00a85e7817d378737c27ef6bdb4585a80c11b835a7efda5b2d",
+        "fingerprint": "0697bec304671d85049ecdca4a316a4d39a724dd7c588615c60cd90f035818f8",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "b58a7c25f7031a4b3d5667774b4d0b43c60ce5712b29233d518ae08e1288a323",
+        "fingerprint": "2101055110a48fa416538786a1e3a5df09db958659d57d11c2b8230760c38561",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "098ff4972e321564b9c011c60b0bdb1416c5a7661949bf60a6f6b882f12710cb",
+        "fingerprint": "51f5faffa05220000b7a02b0a5235614efd26a829aa18f9fec1b17c3c9e32ecd",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "67007cdd947ee2c49ada256b302978884fe56f6e1759272c75a2b577cd2e8322",
+        "fingerprint": "b9b77c1b8327b0ca18f66bfdf838fb37c02a85d5209303491e34be7fe7dd418c",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "89e54e7ee442a48cef9e9d2fc2002ac5bf32c4f2f18311a76615fc6c9531aa0e",
+        "fingerprint": "4e6dfdfddd2c5d56132db392f7935c096715837ab50eb7fcec83d1267fcbf743",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "3d403a1ac201273bd2e4312818fc58b7942761fea9b4f4c7c57bcc59f1a3a0cd",
+        "fingerprint": "38570fd58b22145ab8392c9d478fd14578003cda9606e694888a8ae272da6e2d",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "7bdab03c52076060d846e68b25f1cfb6a6ea42ede749280668ef0904cfe068a9",
+        "fingerprint": "99d5aefa9c3e0c16b40319799a5fcbd2a1767a6aa48755ef671b3b36a76a95ef",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "be5ae2dfb7eb152121e778e95ed6c3e522038b9572a8c80e3a3f9ed36e1b56d2",
+        "fingerprint": "c21f1ca103b1f9ce9bcb3d9a117da4d6aa70a54d8a6006aa081e325e67eeb918",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "6753ff9d180b24e13a1b4a55a50c1124862d88369d36c854027e6840172abff2",
+        "fingerprint": "7c75afb72a6f1f8ef0c1f85f336645b5f9f98e4bf5f9f4cad45f187bfb313fdc",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "6863b3318cc4ad55c7fdf7c261c6fb25edcde9294d1b1e197f71073f508dc12f",
+        "fingerprint": "42c669844e6a0ad1fbc2af1d2340ce6e3220cf9c452eb3a1c91b55cdc00549c1",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "4d5bfd38e7ba2be877f55188143a453959c7a2accc65e98742ea9c0b740d5596",
+        "fingerprint": "bde7481d4c2ecad88cfe0fcc3a9e9b5067f278ec4b621c6bd30a7fe818cb6046",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "94038a7f7d985ed0b74b825b8961f67c13a5306e7474529162f8ce30ee0e82a8",
+        "fingerprint": "2a42eb3759f51997a03e1531cdf7c52bb37b349ea221fd2dd0b1f2e6f95af3db",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "9218509f4a06d1a7095bdb705ecd8c18b12d948f79385a8a6aaa07bd4a37a453",
+        "fingerprint": "8145b72f3e4a63b5146d17939c59a57432569c82134114fdcf69964c68b3b682",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "bec78dce5ba9347d6ef35ec91b0f210cf3dd0d1b436f0c518d80866e919c45a6",
+        "fingerprint": "08520a41e3f3d265c09fbf5b5c2e4d928715ec21428219d3291f3bcc4c8e0a6c",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "89c75fcd9475ae4a3eebc9c570b191eff0506a50ba0a9483808d5a8016acfb08",
+        "fingerprint": "dea51d7d1bab2aeea874a27455b529923db3d570ed4137e6a018ca3751c51a5d",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "60ee64dafb02d0731acb9341d30f0f1557b9f1ab68ed6a009ea16e7f78a8f686",
+        "fingerprint": "582bf0c1cc1e40d83748cebcfd49ff4f881b559b4b8a2a9e1845316e631d15ab",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "a1ecb5e8c751d4077de4784d0aaf3be0b6a9bca0597193902413910316a02fdd",
+        "fingerprint": "0af7d4456b9c1e0459a37913babe12416905c2e430b0d1c673925741ce128ad9",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "4ccb4564a8b57fd4a6bd0410f8cf5e993f905d7c2bb64efdf54625bb7dfd53ab",
+        "fingerprint": "a75deedbfbce778cadf2a20681c7a0c99cb47d3cb2b6224c13693d5f1afc86c9",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "6ba6dce5950a9e7438bbd8f8e296569fcbae53fd4ff3240c9d74daec13a0944c",
+        "fingerprint": "49fe25863a9d39ce399cb4d367ca44bb938c57306bb6ffdd64a32f68f9564382",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "9f52a48db481f2c8c7dc6afd8001e147d371c528076f6a446377b2f7ec40c762",
+        "fingerprint": "220f4c35e95146f976faf22a977c77c42f07dbbcb8cccd58aff50d60a4e1313d",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "bd8188c984e160d3d978ced2778bca5b194f22334a3a005531261608be5dd423",
+        "fingerprint": "94e6654a17158dbf0dc752737ca4fe3eb7889861f5c11664a4eb927c50459d86",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "5fe521634f089b3a8cf9b11f8cb25e2e50ebff820db65c81449f555baf81819a",
+        "fingerprint": "2361f0e661b0020094cafa8b926748aef1e1ba6ed08efaf3be064683c5858e9f",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "d438f3887222999f2f4a85060cc225307454aab71fc36f2889c0c8f42fb14e91",
+        "fingerprint": "ec4f9ff03a20deebada5a587d465475b1a395ce0e7394b462df917c54cb198dc",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "2661b304651277e35b9403e02e39b14974f43e6a8db9bebc1d28532c5faeb943",
+        "fingerprint": "7d33d7017bffbee7dc431f6af6b154d3a89798d409c094b54b1d23f397957d06",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "00edf609afbb0f75a66a171dafef41f2d5d30baa74ddc87d6418881cd7cad2a2",
+        "fingerprint": "d9ee0e33535f651560767f9efe182edbf4e50837e9befc40f949e3b0704831e5",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "fdccec770688f0857e6abf68d58e3f3ff5a813ea45c1006a467f1a261eb11250",
+        "fingerprint": "c14577ba51d5db972d073e765037af6f82cc03ed8ea61cd4cda743976a592549",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "fe95f6078217bdc1c30af9a7c26bb69939537655307601a606c51200fa006fd5",
+        "fingerprint": "bb3050e33d3e1df896acba7446c3224e11e74ea8f0e46afbd772cc553596240a",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "f7083f181876ea9651b98a78ab5302de2aaf71260b77fea8e78448524610ad1e",
+        "fingerprint": "d752356ca4b977a970016dbc57377979441a2018b0cb706f63c613bad5b79609",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "d08ae1f3a408a681e3c2f8febd1206e6243278c074b51065428615951e149bda",
+        "fingerprint": "4e7430de7d9d8c525108ac8e112e006ac4ccb9c5957bc4c96b255f0c69cc95b8",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "4d9800377a0e3f77bced04fc7fc95d86c8f72aa2ebdb38b488bebfb15dcac86b",
+        "fingerprint": "8f33d28091a26190fc15f459962cdfce2b92b51305cd36410bad2b674cfb9088",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "849dd14cc3e97276bf97e2bcc0cce812518a7ea7b0226a5ad10fa6cfa0f5aeaa",
+        "fingerprint": "e7656bcb2c88f08028f84973c6ab104a27667d81193b5e6b6c9f256755ab0a20",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "3ea4582e7dd7e4d8bb3bc85e18e30fb5467b7fa8456f87c9f3c1e49ecc371e5b",
+        "fingerprint": "f8c042bbbd3ab93aa2d3147bea369ea59bf282518051d0fb8bcc61f1e1d6fe53",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "0fac9224297ef384ae7490da8ad771238b4fdcde3736fb325b5a03ce7ed12f1f",
+        "fingerprint": "25416912732fc402f5ce9067276e753850cc3201d58972bf990e9d0f74ca642e",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "827951b8baada33e25dd9a28b0b3d9ec5ffcb1f495dc7b8f00d885f332d2fc94",
+        "fingerprint": "e1d7ad114d86eb4d00ba965e510764e34e20b7e854a3793ef05d106bd7adf855",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "a961387a3b045f2cfac5fa9ec359c297b00b5048a4af0283e090ad612b72d2f4",
+        "fingerprint": "fe38908178eea1389839ea37aa7742e85972b18bb834ea818f5cfa4b10357e79",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "d4bba0e4c4f38bf10481c8e0f4079996e624156b501adb3690bd78740555a53a",
+        "fingerprint": "133cc5e49048acf49d7126a7f02b40e504c9603e974106b8c912a9922dbad40f",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "3f2184460c8a2646ebd3325ff62355d621b19e35dce979dd32270465403787aa",
+        "fingerprint": "1e27398cb750e3a3265e97d9f333d1479939b493cf0192a5fbca0eb0ae458c29",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "a45efb1417b1f0634d78167cc234aef3769014ea20e0852b5d069e3c5006ee21",
+        "fingerprint": "46c01e116fcb1cbf4856a67aa4bd03d653db693d8958507b07d53a802fb2f5c4",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "f5b8a69120308be417ae5009cfa60a3364e83429c6b39d2c949f5e79da45964d",
+        "fingerprint": "60cda6f5cd889e2d2f7cdd72a400b5ef5bd994a3f4a081078b8b9d1263e29035",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "f8a34ec937569b386b8165f1a6a8e7267f56ef060921fcb5b1b16e161d3f602f",
+        "fingerprint": "7bd17c98bec19c9adfefee2d94b088f277736ff3320f430ad3261364e03d9591",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "c1aa8c49287280fa146c8e23556bdcf3f4c9495f47e70584847f706fa6fa444e",
+        "fingerprint": "d0b94a4b8d69c09cc1d0878bebe9f4f1c7311854f5888fd0b932480f75e4d7e0",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "b75ca98b8a921d353a502a009dcfa87a763537e3a9e3d864d9ccb6930d30a53a",
+        "fingerprint": "3bb64ad625a9ea3a3444cb5cff3ff7b3e4ec411bf37db3aae1660cba42d49ba4",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "90a15b931ee18817a749babd82b55694b7f5734262d9e0085242cf3a8eaaf1fb",
+        "fingerprint": "5f4bd9ab7b3b1055c7f3273dca0c9d1e1bb4def8a36806585d53ac821d38d518",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "8b50dab18b7b2ffb1c546321ebd0770e3797dbfdc76999477752dbd04f86e310",
+        "fingerprint": "433e10fb1cf72ae9ebc830cb2fd26fa93d4e6c0c9cb16f33ef05d5284818346f",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "34329ca724ecd06d35238fb5562b82f30c78db13e902f09fd37425c6772ef192",
+        "fingerprint": "ef8ebe91b4488d339e4a82646a3830c2ca433704ea71313905398da6ca95d22d",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "f2e4eeef86404c5b3220cc63a39ca86f8e551e0a87b0930ce490b846ec918ae8",
+        "fingerprint": "7e92270da49c49d40ac8a7abd47966c9d0093b93385d40d66ac59232a17bdf0f",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "13c0e38dafdbb206e307769a7a23e86cda5eaa12628daf51502f587ba9a7fe09",
+        "fingerprint": "cae94c3e9e2ca2a1131f2200e2f826ff78bb3e20f967c971b1d6f0a703d93bc0",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "8d6386123e5e880cd1c0d353fa980e9d38576fd7570c452de1bdbed68ab05be2",
+        "fingerprint": "1e3bb1208b29215772ceba33000022536c20d2c407c2b3eb7021dfa4f58a25c2",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "beaa94c3113b566a445698d887b24996822c06769ab6de6e59c47082f06dba9e",
+        "fingerprint": "39d905bffccce6b7d647f89cd6a5f87ba275f2b5ffaf94d3949871bb6f46db40",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "12ffecaf610c638afe7de23631c403cd19e7074f163499f5dfdf19e9639641e6",
+        "fingerprint": "ad2152f2e2bd42c1313677fb07a923bbdb0245f8ab9ea74345d92bba6aa65ae4",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "537fd3c6ce93e27e5ad149bafa21409a3414a91ef8806f606c3b10ed437cbf62",
+        "fingerprint": "70f00448941f40f8332175a9f2ae73b9f490f9e6f780b43b037773e7457676a3",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "f2da5fc9679a14bb2dcc2001893c4e91ad5ebdb10966e2f5941544c4d5fc889f",
+        "fingerprint": "d1d9401e6a914c40dbd6ccedd6f8eee1b7cb4c873d5cdd3789b659508120631a",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "bdcc487fd1965cf66317fe623975609a644b74b8680f1aed5628f50cc1f46b0a",
+        "fingerprint": "573f9ab7f0eba8508a050887563736c96d93b4139871f47471c6eaf7cacf592d",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "2d06a521a3e6d473eb769b5bdec1a7fde21c865499434ef9abbcba73c96fb2dc",
+        "fingerprint": "c3b53735f09e4eddcdc946510e6014d0e59207e22166e1dc1a740fcc0b47d11a",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "274f14be611c4c4a9b9198ea01147b8707401c23f952dae2cb2392508ce05ead",
+        "fingerprint": "86606e2d8d63ae93b061cf4ba723cb571f79ee8b79c30fbe5fdca93173478152",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "b3b3d87a42244d1b4b9964b0154577c6ea595096b200be088e185e6725dba9c6",
+        "fingerprint": "fe480076bdd2ceeeac85f35b73042a565569b701fc4c6dff5758b46220744051",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "8437b99ba202303c7b69cd6c6d01aec1a091e1d7d7930516ae3820be33d54b11",
+        "fingerprint": "e8c28f1b6eb780c3313b645bf9fad0c62f0a862f78f99ea577f8bafe6c7b33b5",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "62c6d830f8556548e76f0e8424d43f6c5c178f630735649f32164919bc361701",
+        "fingerprint": "2f283f0dfc5485db70941e3e687fb589f88d9580bca4792b48ac40a3d987b2e7",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "56d3bafb6b5d50ffd6f0ac880de6cf0225c78051469859399c01d45bc18ef585",
+        "fingerprint": "90281dd97726bb5c9246ca286fb0dea905928e0200b02652bb9d4346ea8d5482",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "09c5719ab4093f1af8c58378fe7196a8919074ac5a8858af02d9f87b09de8755",
+        "fingerprint": "e59e2e421b61f8b6d4e94cc58c24bf308994a91cb23dc243a05ff9f67d47e2a8",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "23374074cbc6d6227ef3c5af4e006b6b4e5508215404b26eb47c9355b231f554",
+        "fingerprint": "a4c893b526217e22887bab47473e48996e81ea22dd4b1186bbc8660d2ef1cf85",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "cea6fcb0e96346e853c697030b59e759b46af4a7b8ebf763e30cce008250eb69",
+        "fingerprint": "2b30e5cf0717c390b8d7d23036ebd73459250fcfce92634b5b06c9c02b8402a1",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "635a7e237acde1db843709393676e922ba104d872d2313c4af3c99fc196115cd",
+        "fingerprint": "35e47c56ba152f5b3fc00495a1605de2e46bcb369a1f8622857e08a1e3d25afc",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "3ae16a03772bc653fa80908b5dc7729c7b858d73537f2b279a8c6a315f129817",
+        "fingerprint": "b4c5080305e20e23d7e770f7708fc79749a8aabffd39b599c6a711ee699b92c0",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "fa459b35a307704f1afa79711fb9ea6f9bf40d088222d0a3dc5e1d8bbc1e7738",
+        "fingerprint": "6cc972753b53131ac3431d084a479768068801a0800459301fdc9c04bfe6aefc",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "340ee21f898ee9ed6f19fd7ee3cf614a29b659e04ae661f7833e2ee1e5bd7fae",
+        "fingerprint": "647937b21683377831c5aa54d6010f90235b611538bc17590c83d51e3c82fe3f",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "777e2951b3036ab3866dc425fd84f4435e803bbebfcaedfec39df2fc02af5ef8",
+        "fingerprint": "57505c21e216e3f7335dae95d6819113c32f4605028d0ab3c4d01506197ab8e9",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "6bd47bd13cf616cc26fe73da2e6a76f16a003a987a61bf7cccf728c42e2b2f77",
+        "fingerprint": "8255d294b9b31b9a985e98c922c835f2267fc2f10ac2af284fb349ab63b1e387",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "2b16161c1accd70c072feb2bb6e65feefd9c6447b2627e682663aaf7d81dc0d8",
+        "fingerprint": "fece85e60ea0253a1f7331a344caaa0298fe7decbe97a675704e572b001bcad9",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "12de8022e39f3e70c21f06bf8f1b712b0f40acae1e086160927255b356cc30f0",
+        "fingerprint": "3799686f02c1a21ae66b82f7af54a0d4fe253c9452c349e13ee67fef28439d40",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "046195c93051307bfa3ebb7eed8ac5c2f6028763fe35ac0844ed7a2eb3bcb9ae",
+        "fingerprint": "b6482b2104f2559b6a71bef605dcd1098cba7d44b14a72e04cbace936427acef",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "954e65ae88e715b3384c1be3040b98a69cbcc1350c83dad455818afe9ccef521",
+        "fingerprint": "46aaa107152dee2fb9d24f1ff64f42dd27c6870d22bfc07b0244f983a4852fe6",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "5cfbb7f459d5f2eb9b1f0db1af26b85182dac989ccd4a66c2a045ae28f879cfb",
+        "fingerprint": "13d5e10e3fa8d18868c43d0c9d5dcdb38830b18f92214a21da75040a79bc2534",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "74156dcb5a65ea464b5e1d6048abd9ac7129f47b0ec064845918f8ef3d7265a0",
+        "fingerprint": "9ff4d9459531b419ba0f6590c72b48729c67823b294e9081ffc792bf36e5fff7",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "37dd3921d5b0f3d40cb8c3412e0b028609632286a6b786b61a435953ceaed4c2",
+        "fingerprint": "b37f2743a60d2df6e59e66687ff14f823a8cb2b794971501009188b024ed0f2d",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "b1660b444bb3ea9cc91b62f8974e829630dcb44c0fee4c159d42435411f20174",
+        "fingerprint": "447c049449a10e34079a8e694ff3e45001e9edb79e09afd2799d5371d2ec880f",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "dc0764ad38badcba7b2cd9efbeaed3409b66c0deef0feea497a7dae563b231a2",
+        "fingerprint": "4cc690b0aca53eb42b012ba31cd7fb686290fee84cfc1d7b31c3819e5c53c290",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "31775dabb48de2d02cea15d1a1428883cceb80afb8d92c010b8411280d7bbf08",
+        "fingerprint": "5bc3e2397c012dacd0e0f3e06af3aca96c662df9b4cc80161245c6327c73b4e2",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "10ca6be841a1f07bc166ccb3704acaaaa1a8615ed3f766c1b3804952a5eb2a0b",
+        "fingerprint": "1f922e06809fcbb6772402e36cae74c9a2a607adcc05173ff38b353dd8f909d2",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "68e86b0ffe4bc133cdfa7ee3f311092fc31eafdbbad8cd4d673d991bf642d9ca",
+        "fingerprint": "fe8767aecde0d85295934121964fe391bb8b8fb56f0e30b11af12cd013dbed31",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "21af76689a90c0f683e90226ca439bfeffda02c719371e681c7c674f63ddcce0",
+        "fingerprint": "fd9b30ce0dd4072847f0237bffa508121105d10fba683d3bef13a8a0b460a6b2",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "49cd2fb4f637e05610267d8794c57d3a4d58ca5e2f5c7515a81d7d3063318c05",
+        "fingerprint": "d1c2c560a37aead2e65014ecc2ab71602e6c66c8e1b6d26045ae107e5b05dfd1",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "b7aaa7b5fc7dc9fdbfbe687050019244846b0673441dc55e61e95584d86fc2dc",
+        "fingerprint": "7c16be1a0cbd17628e6e3e866a5592136736d5a081c3ba29f940253fb82fe7bd",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "cbf31b25556d7c24cff7ba834b496e964c7d76eb0c4b8eb11e7cf1c68e5f9451",
+        "fingerprint": "1542c6a9d914087de3d435806a607989525fc91b941338901606ac6b8b4e5913",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "012fbe561573dd9b8b8373279a5cfe2cdca7fa0e7dd0c90eda9d4d6546edade0",
+        "fingerprint": "6de968f68f9c7a5bb27ef2c0fb88a0f8e141cd0f95f243e00c6de2d10dd664b0",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "88daa2bff9ce15fd4edda91759c79b7f1bf41ec8811daa6acd95f633e4bfce01",
+        "fingerprint": "835591910c1e1d1e246dda2969b7ec14de5376922e2fe98484e0a42e65935915",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "d4d672630234d2443c6d32cfdf405b1fcd6bc4f34751316cb49644ab9305c3a1",
+        "fingerprint": "2fec5e0e6db4c9f6838ee4229b666859797bba91fe31686b90998f091321d96b",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "a0afb00224b25276c95cfac8ed817255cb715dc2f398d25ac90a8451ee0cebc2",
+        "fingerprint": "69679dcc484d491a9cc1ec3e9deebd540d21e322789600e9a347044303171832",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "a6a1040480ed52ac8674226d71989facf645313fc07d2b53db6f053b4ff91aeb",
+        "fingerprint": "7dbb9c11541f1c4f12bd5f68828bcec60e419736d3e2fd7789ed4e7950e96ec0",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "c680f2276d707296a85a645621c0215877428a660f14cdbf26843acc38ef2843",
+        "fingerprint": "b4a5b20109c4948cf1a981b954702896be1828d19a84c5985848ca58f0445d48",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "387450589a29114c8f0b1d099147df0d9b7b96647cb8c4c940f0c98bf8622632",
+        "fingerprint": "56caeea984bcfec83ebcf3baed9d9d543cdbfe6e8fd1fdfa9820a68ed9ec34b4",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "d69b421ca9ffb266dc40d7f02b9b5e517e4595223aa140e8bbe1edda35b72801",
+        "fingerprint": "518e087c1714ef7383ae6d7482dfdbe073ec1790a95cbc711dfc400753763d10",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "19b8171b36f7e5140e68026ea23bb018fc9cb106c3dae564baa5df3f469ec3e5",
+        "fingerprint": "3e98259b363574c4e5626b6188fbdd363195d27dbdd4204ab65d7b29ed6e0e38",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "fbfe1db7865f6ee2b9ea3f8e8a8d93941b1a35ee28b775420189c57e34bfb85d",
+        "fingerprint": "7d5539a84dadf160b6b2cf85f5d90c5ee89300941bccb414e6f83f675b48cd1c",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "a52197f18e83e481b7e3ec040cd4f6275f789584084c0b9913ae325a700a2e23",
+        "fingerprint": "bb70e34356a61dc35f88eb1dba9dd2962a5e7c1d87fff94c4552f6c56adaefe0",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "b8c4eebdf45582713fffa0a4b913ac49247f954739186dac32951f51dd46c244",
+        "fingerprint": "993f16e526e377803968815e2143b68472fa509edb3cca11807aa86878f44902",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "37f0110ab2bb0bbc4801d0450cac1216867268bb146a4863fd9ec9d010eb39e2",
+        "fingerprint": "da2a71d8a29ded8c915159205a78f103d8c445f951968fec7003e1912bfa8729",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "8487941985c0b593e1c4fb1b642166e1eb3212553718f0fcb19408826b646fa7",
+        "fingerprint": "08c63e55ce02f972d6b7a14a5b5ec19d6ae734cae08f6a8b7fbcf26fc42ea309",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "5ab9010273fc204391a62bb1d630b80afa54d4abb83d9e8136f838ddc67c1aba",
+        "fingerprint": "e72831cc9177d8326d3d5332a72045d38fdb64478988746699eb618c48b65fb2",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "6c5bcb07a62f2043a921be4fb4230acd426b85361dcef20e71e1296cdbeb6044",
+        "fingerprint": "abf13ced36474b91d14b7519b25160cee153599363384693eb927cf37b21ba63",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "b91283a3d97531465ab93f8c11c535c580a34f8a7a1385325b234764638cde8c",
+        "fingerprint": "b989009dd163379cf601da75fa4b3a148378d6b0073aa3265684ad61007cef1b",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "a464d80a63d66a2841c1dc888f3ddc0baccd30508d76d28b1688993ba3c4fc45",
+        "fingerprint": "3e89bc1e6b762fd980bc5dadc6aa4f7e9af28119d285b35e10a1b892356a50e9",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "db3e021be00721c4627b2dfaef1517ed2207cd5bd275378c532cb04f51b47e69",
+        "fingerprint": "2e01cf00c25d5342986b2ecdb6a087947b43a7c9b7ee53c6ec5e928365143699",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "aba091ce30cd446e91a96b1c8b668c12e0ebd5839ba8aefc8a13923a6fe98415",
+        "fingerprint": "5269c680f41d50eb832f50de395040a8151b2e2505e431354bc1e9e9ce513721",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "59fea032a059fa24d1a6a98d939185489b6761b3c3542c5c55189e9d827d973c",
+        "fingerprint": "5c9381a37cad17714e406cd0902e256f17de62ef055f62c7ce0743c07d94d695",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "37248e3a13a45d71e64996f40b2e1e2022b3cc00c61283007a7c185acb5bb13e",
+        "fingerprint": "6fe17ecdbb4672458e156683c1a843dc0674db32b69a006ec411cc7174a06173",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "309c0dc2759ce8596159e182b4619b51ae066183b6feba6e850e7885661765ac",
+        "fingerprint": "39d435f1a640582ba98047624c91f5610edc7ce13fe6a99854d26eb4d66cd528",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "89a8745667d4f192e62b4264568f7f11304c8a99d3cc41eb8a5a9ed2bcc1c43d",
+        "fingerprint": "dbdd71092eb9169c5da269be5880478a254a76cd5b31bc001d961e7b31139894",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "705ce274cd0d107e1f6acf4cbfaabeeae8a470f449bfc1579f3a249e6e01328e",
+        "fingerprint": "33d1b7b8247e5efa0b73d11cc72ac4777b33b859fd46d2be3fa2f23092f6d924",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "01553479a31f3c20c4ba7f6b8ed2e33ce7c435e9844b853a794969a6b21764ea",
+        "fingerprint": "992ae4745b37f9864dc4ca7a19c61c5fca996f925f4061c4eff945b206beb6ec",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "ba1a4e78717cde0c316b692d52f6f9a095bc28b28e6b2189deba07a9b6ecb7d5",
+        "fingerprint": "6c94ee6b9c16d51b696c673b1f3f955a2c1e72b7bff1fd6c8a0b4cfa58726fbb",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "18be18b36f469d15d40a4e39ec2d4ac2e481d8b3888f06b1d492183256963a7b",
+        "fingerprint": "c0e4c6201c668fa011df0d8ffe64c00f6d7e997fc3384212f3a7f4c818b669c0",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "6690e18cf3fbb636fdca8bfacc9da3f02aeec1139297ed772ada7421bd5c58c6",
+        "fingerprint": "c1416c8c32044ea8980d3b241575c23eaf9a16511da76e5725b2cf40685fd98a",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "77d5f34b582296764758f4daea31d29fdbbe342c0c7b83d03f66f3b4b62f12c3",
+        "fingerprint": "915e5430e99007ebb5a2c2f1f08aa04f75d6678b7752b0172bef3367e6b5b9e6",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "4deab6d5e9cc3aca6d413f6aeaf30e3d61be6ecf0f5de998418d9201e9376c94",
+        "fingerprint": "8db4070606bab52f5177ce4ce364f02ecdff39c8c8aa70a93e193746c6ec5326",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "89129e88f575f705901a5379b3f7a81cddbb29ae8d9bdbff3cd448c8d1f612e2",
+        "fingerprint": "56e9611da7f5a63631e15f5fa53b99737f466004a37173ddbcd6afc3518d4e5b",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "626271e7ed4d11ba2c4560a11ad766f118c92b67fc72fcbcf8f154bdd37a69f9",
+        "fingerprint": "3d76260960a72d090be243ae25f37e07da55d66a84a564e3e9390f4b7c65d601",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "dc9517f8d4adca7dba25de5b6b993cf3819d050c43c8714a8228bc940cc87f1e",
+        "fingerprint": "ca330d09f7beddb493db26e68d26e9e27adb74cddc2d314badef1fb206e60c48",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "b62c7ea30bbdfb9992021c1a87670270990b9f7be7deb280e8bae9f925d4d027",
+        "fingerprint": "9abfcb702421db0ab04d0f865e3408882d2a8f5a418098c33b49945d6b0be905",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "655e2fb7fd5e6f37d203637ca2e290671efdb628a2c74fbceffc605b4c665393",
+        "fingerprint": "415b111963668aae85468ca480979a2ce5d120b8dc4d26ae576f888902573ee4",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "608c75536e59acd11f66b3d10cfc16e0f7f2a37a1ef0e3c5a81898e370c73975",
+        "fingerprint": "1052f63ede49fde0eaa22c7ed0f29d4cb0ec332577280ccac152bffc2741ee1f",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "d5bb20ca6302ba5151d9e63e40255e35fa331d33f377293d5786895ff5333fdb",
+        "fingerprint": "665a62e4de6f1f4cd2af5353054d32df674de6dfc4f2bd832a3f69340a089515",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "032fb5afa6f73c841313c5cf3f06c8c3b6b48a5b47d7d33d4858519005530d68",
+        "fingerprint": "d82cdca2794a77311d5ac413e1dd403524144bff5cb9aa47efa0b317a22d5a19",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "3f431c1eaa345084c2e8351872f276e853b2b4298e816206a6708695526be805",
+        "fingerprint": "8433959f1de868f84b8f67de8d71169d47aa564a9ef1f0cdf01d1feed6757496",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "f8e6872e04b0d83bd18e4694c0580380acc8f80e8727a7509eb85b40d2f419d2",
+        "fingerprint": "b2e6044d553cfdc92cc51f150b7bf28191f2ddcc7bb7c06f26a138d8aa5340f0",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "3774e62f488744a98567fb62c26250498b5c95ebe3c9abc2c2d016bf51f30ffc",
+        "fingerprint": "26478613f149d693ce884a5dd11ccd9dd02c7930f2ffc158f0d002b3e54dc7dd",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "45f3cf5d074d00e73bc9620f9e3ea111ee1df5b3b79b2d8985906040b6877521",
+        "fingerprint": "9ac297757f041fee9e7f007c190c2ac20da06480ad1c204a4517b62e5f67b91d",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "c1fe51865cc13d288f53cda8e729a23122f1687040a7cce5b9b0155e9d03f11d",
+        "fingerprint": "bce1f7105c6f036999803d02a7bd478b58a545d1250c292c395983b6fb5785b1",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "a8d6d2bea9dfa0987debe17e59ca1639d268be69828fc8a3ce9b9f7b71f3cb92",
+        "fingerprint": "5906999060f7671e35cdcc7db6989a82bc63702af29d402da0b7a674570d19c3",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "8e2c2b28cfbb5d3a5778e475e925a45cfb91b765f28239d252ce3bc6a6d9c1eb",
+        "fingerprint": "d1d00ce5334046c59db22e43ce9e0a66010b99d5f95421be2d45c34e757b5ffd",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "e874aa87553593728cf1bc67f328286122eb7aa9382e8ffad68fbd030f059387",
+        "fingerprint": "460b9d1528128c38060090c80243d36ee80d02a5c0b83621fce2156cd4726eab",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "210f6ff8e0262db057f94301e7ffb8edf03dc68169633a96bd8693c21210434b",
+        "fingerprint": "80e474f4f72c83578192194e2c6633040ad51c8f492a562048460f89d599ec31",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "991f7d6147800260528f8946808664038e493ad69c3cd29eeca9ced9210b3ef5",
+        "fingerprint": "19aabcf22dc49404fc14c7b9dc8ee891ebb426752ca036807f758af67869b8da",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "478e3b74e598001fd676dbe40fb1a0bba6d63d67cc8e1054d4aaf4762ac1c0e9",
+        "fingerprint": "593a7a827228af7b41a39d67e99f11b9e5b384a0bf7db42469f97c6c8c1c0bf8",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "62ffa649ca6e086a0dc2383892a9c389ef8555a559278c5c1c7ada1b811c3c4d",
+        "fingerprint": "3b32f6903943a9003f47f84d8f4649d52df3e3f0feed503162b1d57326f0a298",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "8a7692007db701fa1477622213d1384abee5797024f5dfa1200a4becfc04a060",
+        "fingerprint": "140261d570f1c157fff1f579070c676afeb35cfb13af5f4228f5657af7d47b4c",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "d831116fc7e35efc28db08d77edec1bd6b4bb3fa24d14471f13fe4982f409530",
+        "fingerprint": "d0553a7889b77fe92f3c8884b80ed012195893bc3b096776b8b9a3e9495766b0",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "64fa6c7544cdec69c2b2c1f0ecce870fa02535997d3bf02a49aa6daeb2ed62c4",
+        "fingerprint": "6f0a89d65e42bcaf669cd4f16ca76d9192b2e5bee8f4df38c1928c3ab29f9cc5",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "4429883ec0300b3ce4391ec9151927552a30e4482c37b65b0f1a9a14b6a88b86",
+        "fingerprint": "1f8e4c304086630201356e0177a1a701dd66db8f53801a1181249523c3c30fc1",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "afc614737d8ffdb6bdff8e0800918764966d683e47329d4d08bf63c6da793bf5",
+        "fingerprint": "2d607f4915f2cd6d861a6134853d6f29226f16841cfd9bb9ba0c21b5a95cec69",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "f0df9b7a5161ce70a4667e9697c7e179ee76eb3b4cae9bc21c3969210ac57b65",
+        "fingerprint": "67f206f81c5b67797d0de7986a5a31b8a4f909b71e97c54fdae945ac2513b19b",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "c3ade65b6506200bac83e54e4d3c342dc68b88ca83e3501ae013dd269476d590",
+        "fingerprint": "a28125ecd271edae0d2a16e8b19da84c4c66312a6f179a351e7c96bf538f4ba2",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "5d3d31a1e92c4fc87697e443f77c95811c42b7bc84c86f4071aff52df5533ad9",
+        "fingerprint": "470945c8f389b9727e3c91ebec652b0dae23c779c9a745e2507c5ce26a776d2c",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "4fe39676849f9d68608a9c1959c551e7dc8b12a5e3903dad536572785264086d",
+        "fingerprint": "69e4a5ea7eb210ed2c60b7074b450a128d721cc05332d955bf07e70ecfa373be",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "6f1862c7ab8b3990093befb789d0ba001d4d586a06200c66275d6acee136cacc",
+        "fingerprint": "4a616751fe8904854f1feafa69acae7a87a9ccc71424e52356b38c6a16a0ea98",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "af21d2d76aa7d870cd0270aaa6ce27f15a8eecf002f77ae3b96587cdc44c92b8",
+        "fingerprint": "33d38b74e3370c0998e7be8b52c7c389f6c8e3171ec358fc27152426f7b598e1",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "02f12df48e4f3991840a755ed8fe4372bcf625ed5711766e91d002c9806649f4",
+        "fingerprint": "96348eeede62cdf557e5187f775607ad9fba3ba34fd0b916e9bf385175b21295",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "e67e2dbb21f91f7aee87b7d4afea8c6e5b6f99d119e21fb7f09c6c0d05de5765",
+        "fingerprint": "4ca2a37832e9beacd2fa51331b51b6344375b16a4bd8436ba0ddd71962c2cc32",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "64acdf3e0bcc4244dd662dde53e4aa480860c43f6668f853c7b13809a1b46aa7",
+        "fingerprint": "35fb398ff2953c25be57f9ec6817444e412ba0f09810f1ecbf27ef515f8a93cd",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "fd8c6edf5a2487d5d8bce1882344d6b9dd0b5dce894359ac024ca3ae20e6ca5d",
+        "fingerprint": "96542860b481c5d723b5974d9a4a12e816a090233c61bb08fcbd43d79ede77c8",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "cda6d0e38cb0234cfab54ec1f8f30c4148a3acb5000e8f0689ec85f97da89756",
+        "fingerprint": "c31f161a9c5b58a4dcbc8a58d20b6219f17c7f329e8719117bd5ebe10e62e796",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "23df7afa2384d1ea0aa04e8eb67407b24a34b05f5b4299c548c13b1fa6e31b91",
+        "fingerprint": "e68afd139aa7743b5b61b367424367273743b1251b5527a524f5af3b4623ede0",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "f230210507cb22c724482c9a6be28db129de266f4af7cad6c10e96c643c5704e",
+        "fingerprint": "9ba26ae02016ec25443b0780fac9bd8051beed52df0400af39cbace747b0584d",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "0a479a697e8d6cb23cc8cda64f80c324d4a35ba631f06e9f9d302513e28c0d59",
+        "fingerprint": "39ee79c01c17bbe670f1b68761894ff38ac727c45c42169db86426bad8a3974b",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "da35c2860f558ed9af531cc088649d664a0d13f01bb6880a1b94924fb4429814",
+        "fingerprint": "9df458956409a16a3ab53de19374794995e6c5f89aba47e39c585f915084c75d",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "23f6483225d2b0723b6d23ff4f8a98522ca33cb4e72e4454d79c967dca83611d",
+        "fingerprint": "fa808020aaba5b7257a49a744f9621de4a9378818767dff68c524b19c940cfee",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "4c46443ffca224c179eaa91c4065302b93a1092a2391f32351c8d9093ade6624",
+        "fingerprint": "4b473c7e27bba15f11e09c0fc5a67b8eaa4b2675b11a5bcc3d0d6a6d5c04111b",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "8dfe5187ad4621bbdb4e56afbc053af540afb3d1c7abd7c6f2accdef515e70e1",
+        "fingerprint": "0a0ab5a498854cc62b17829677ef131884aad1e2e909222816daf5961c745b8a",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "c27bd1659098713c9201153f1b75140c26d61697aae136ab3c1191f740573b62",
+        "fingerprint": "8f160e0dcfe640c3a80ccf22ae5eca76e736f57a35001534645b9aaa0e03358a",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "b1456aa7f10993abef06d770972b9e034d799ba29638b12457e1da2eae394846",
+        "fingerprint": "51470f2d721b0bf8a12e4f74a31e466477b26d888e6d652be4472b361d0d10f7",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "41b8c1f54f613d7aeecc61bdf2933eec13eb4fc0a3e49f6590ded904b8075024",
+        "fingerprint": "ecd1840c2b29071d147fdfd661ef83baa55a9bb36fd81a2fb21ce612b11dbf90",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "9a9b520e27aac58534a99460a02225482074c450caa835d68c7386e99a38e8e1",
+        "fingerprint": "08e1e80b4e5fb9c351f7ea9ef42aaf54cbfe30c3a5c1c50c138587d0a9c4d37a",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "90de5048ef6aa509f0a8ecddd288cfb4a53d138ec70cef8d0c816d4c94198e23",
+        "fingerprint": "693155a5ae619ac17a75e4ab76c1d628f20e7754f617b6e2b9c22efee96cd42e",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "570672a656fede7f27cee839c3593360a42fe9e00870303e44d35c84e831937e",
+        "fingerprint": "4de1f0e77804bb4de5fa25a46dcd0203c0ed57ec0670966935435508ba246f49",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "1a8060515b954293afb70a4444c8f68c85b11c93519cb51677aab33a698f2d78",
+        "fingerprint": "f7ef40294000d3a3c5fddef54eb24a1f13be65dbf1cf50d5c5486baaa19b3769",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "7cbc267b79a168d0cbe23a6a4efaaa4df6c96c9ef8996056dabf16f0b6b9aeba",
+        "fingerprint": "833eb405a1a88136473a76d66ad994ca3fdbfdede6f8b2bd972939a44b9f0dcf",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "700bb25bec54d412017a908ec73bed6c2be898d80be738b504663b1e5efa37e6",
+        "fingerprint": "71a3343f90839d3e772d45d32e09d4a6aa5b34cdd3c46585c96453974a3bf6e5",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "352785efd2ef218e38639d9f7dc513da4039589e4056ecf285665449414a7fad",
+        "fingerprint": "54410dbf0b6f308aaa2ed68af138df62ae2c1636354af36082195b0f4107c956",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "6b1345264786c4a7d39ec0b6a5c29f50b75cb254c1a7e320ca597ab681cb6b41",
+        "fingerprint": "872d6bd354684eb1cbd584e37cbded42c5ad4f500dd81420048389df6d5f9d3c",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "0cf1574448d30b77ba3cc1eb967b606245a8e8796375520db40eba9f545a30c7",
+        "fingerprint": "820037fba02c1ffdddc88301d298b62e7911254a0e62b35b5eae3949137856c7",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "b6c7a14cfc80d3e440c0c24d270c03828cdda9f47508cb33ca0077a29a58dc8c",
+        "fingerprint": "83131fc7b707a85e93a10fc67c998bb85bc392594311a8ef2d23a695c8688150",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "72e629e086f9fda342b708529e80cb8c1c86799f93534d4615ae8843b32fe396",
+        "fingerprint": "6cdce460695950838a9e3976cdc6ff3c71424111c67ab8abceb1974d06846bc3",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "01bfbb5a124ac5ce79a40e811000c0df84f950a3e8f137fc405838422b42a81d",
+        "fingerprint": "22134ece164525690685b2de2bd6ae703814f80bb087128207870f6938729c72",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "2f38f8bdb0c36eba70da91729de6baf036279498a257345e61b1d3f3e19aae4a",
+        "fingerprint": "bb9230208714890142e342496d640209acb501fcde15ab656544339c5fe1532f",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "a8e20f7a6fa3b8d2c430767dee9744e3aa1347f4adc8c301fd4dad0712a57890",
+        "fingerprint": "14a989ba7b22cbb1b8f6e8f386b6bc871cacc1dfbb87d0d2f06b58a4f7a6d446",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "612b5618764e4e43be58f30c610e6fd7410881e75e50239cbfb1d846c429718f",
+        "fingerprint": "9c8b5b246f9d13aecdcb8b10a971a28b8837855405fff0462b9d96eaaabba34b",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "fe03f3956465a0b5bdfe3f6f040f63e4f6ec4a610f5b8b76920a645a3160f9b2",
+        "fingerprint": "260e383757297f3f3eb61d1d749e9761244cafd69603f3915f4a9b98a660fec6",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "54399950fd20716403c65e470f78120d140fa6525b6fd3e94a71ec0b27c7cb06",
+        "fingerprint": "2cc0b760fa14425af51c9b91db4946051e9d74fa8cf152ea9dd742e0c18e9a80",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "d1754280153a1eac3d6f1bc4c09675451f9b0b9a1e7b635bfbbb7811dda90112",
+        "fingerprint": "aa27e5e397137ffb2381c04254ced9dc51a15f6f57e03837a9854a187bef5d21",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "1e86f816a29fdb27576dbd20025d32a75d95eb5bfe62270809d55309b6e661ab",
+        "fingerprint": "2a5d50ff81c3839a50a55ec5e8165e917bb84edadc5be13e4f4512c4aebdf7f3",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "ab74125a21c5eca62b5d70b231f8a4f53da8232e3cd8d66603c54b41772ad277",
+        "fingerprint": "169b74c55dfeedb1ea477b819d3e06cf66fc41f147cf415acbb27c3f3af6142a",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "6a928fef7b4a48864db09b5edb8dfb44c044e83c304762a694fb5aa078a1a301",
+        "fingerprint": "d989abd8d51c8d55fc3041a9ea927ded9d532d17d08bfe1e90f2525d979f8006",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "f7e255beed07f3893a5ee3227ee761a9190d5ee45d2617c904e035622eab26a0",
+        "fingerprint": "defb8a0f04d7335012e8bef623970041a322a92289ac8763614804bac1c52e82",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "2b5af2873e7ac6ba7a0828d08766c979f6b1757480909abd1720225e03ebfded",
+        "fingerprint": "974ee5297b1f5e71a9173f5b8dff999b86f010a08a3c6790deb4c77010b32d2b",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "2a00cbe3ced68016c64ccd524181316e19320dd3f48170632d2291210a6b54f5",
+        "fingerprint": "214504ee5a100c88c4bf560084b22eb99dd730e5892447866af13488dc2cd222",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "d6945ede0f1f7cff10f6cb919881caf6830e265881b65f4d1f87e4ddf1596d57",
+        "fingerprint": "84f0fd61b220a753c54c494882beac5b7ba738b3843135340e73f6c93a86eb00",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "b6ddf5aaaa0e9f64002f4344d68f80f9d33a3636642dc67c0b6f761d2fb95d1b",
+        "fingerprint": "b7978285921d9934a42f1b1b99b65e8a1551e23f92f4d01a8b2e416a29171334",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "7d0f74f7a2ce69f898cda376ec48ecd9bf429caff92cb9c7838ab7a3bafcc36e",
+        "fingerprint": "720fd0af46124b55b7195d2c7741f0e64b239b24af4974872a8a8c3e935a24f4",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "029d4f55ec43e4631d02b2d69bd6136e77eeae3e30df9f949ceb47b76fbd0b5d",
+        "fingerprint": "57d7e5f4543fcb76a11b4caaa706620cdbae15153e8f96a87451ad75ebdc679a",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "b0fcc29ce1e79f761419cd58405d7c7dd20130778bcd15b2e4070ee2c027db14",
+        "fingerprint": "d81304258d2188e07b86574c55860dd9f691cdba2d49eb42fc583329960eb4a9",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "d92946cbe4c877cde330e6ca0a2429110a5b9a4c2b7c05590e4b46943d120268",
+        "fingerprint": "a5b8b5a031a906841880dc12ef732c54c5884b28dd2946b6aee79b0cfd947936",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "adf3a307eb75fed100da66c1601b85919c97b09b78db9bfcea677b8ba2f3028b",
+        "fingerprint": "4e43487f85599018cacf7c2b463f0edbfaa5c4d6870e04bd2903ad5707225d12",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "2839a5eb3a6c7543cf26fa45792734843924b4725756cd89a30264b1f9dc0ef2",
+        "fingerprint": "8dd1d207af8d63a604bc1c1d1b0b46f96aed7ca2e58d698127950e09b55c34b6",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "84e4e3c3a407b7f7888318f5a84c24562379b35dfdc11512348f9ef8b663a3eb",
+        "fingerprint": "0551c8152887a73b033457fafb0ef59b7f5ed60ed45ff3b36870923f69e5050b",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "ee989b05b6becf54239a2b1cc753550c04bc0dcfc2d8c2a53246f4d18449212e",
+        "fingerprint": "baacec19953dbf440c11dcf9a4ed1e697f50be764ac24322f9e6843d54dc5e88",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      }
+    ],
+    "requestSequenceSha256": "946ecc447d5cedacb150008d95714104e3d66a69cc026632743c7f42bb9d785e",
+    "requests": 228,
+    "sequenceMismatchDetails": [],
+    "sequenceMismatches": 0,
+    "targetCounts": {
+      "embedding": 104,
+      "eval": 124
+    },
+    "tapeSha256": "d7e617069d02c9d27381580de3c004bc392b0171fb7d60c12d14ae1d89eaed66"
+  },
+  "sourceIdentity": {
+    "claimCommandTemplateSha256": "7e9a8693964ef29a2fa19d02b30e15e29528cbc396b7c9a41e082cf408a8f969",
+    "claimSourceSha256": "9ef00e9e1532a264a97cacf3a1807345acce68194ad65e2b016ed6a48602b6d3",
+    "officialSourceSha256": "cfa618e1929d56dc256962f471768a3855a8989b92c22cce4f09bd8112ebe24f",
+    "promptSha256": "e039c2aa17d9a2253acb6f7742095cc4a0a3b6c5830a117f1b5c4d701db6e07b",
+    "reanswerSourceSha256": "dc13f16cb77621e82ef6fa79df280ee8db4f45694c27ac826bcc477c053f5133",
+    "seedSourceSha256": "0cffb3ec917601c2c7c34a6664d58b528f67b632aa31e6f79447b8b7ebae937a"
+  },
+  "stage": "baseline-discovery",
+  "stderr": {
+    "bytes": 12,
+    "path": "reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/stderr.log",
+    "sha256": "583e8f535e842237bb0c4f185d2f27caf94ca5e21b49f84f2742e8baecb3bbc2"
+  },
+  "steps": [
+    {
+      "exitCode": 0,
+      "step": "seedSmoke"
+    }
+  ],
+  "stdout": {
+    "bytes": 2251,
+    "path": "reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/stdout.log",
+    "sha256": "49a034f0f165d3bb5cb32b7db1691879d86a89c3c402c42a709360bb35ed4b70"
+  },
+  "validationFailure": "provider seed report is incomplete"
+}

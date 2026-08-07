@@ -1,0 +1,80 @@
+[seedSmoke]
+{
+  "benchmarkSource": "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1/cases.json",
+  "caseIds": [
+    "locomo-conv-26",
+    "locomo-conv-30"
+  ],
+  "categories": [
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0.2982456140350877,
+      "category": "single_hop",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 33,
+      "noiseTurnTotal": 315,
+      "questionCount": 114
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0.14612403100775193,
+      "category": "multi_hop",
+      "crossSessionChainReady": false,
+      "fullyRetrievedCount": 4,
+      "noiseTurnTotal": 84,
+      "questionCount": 43
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0.36507936507936506,
+      "category": "temporal",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 23,
+      "noiseTurnTotal": 169,
+      "questionCount": 63
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0.15384615384615385,
+      "category": "open_domain",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 2,
+      "noiseTurnTotal": 0,
+      "questionCount": 13
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0,
+      "category": "adversarial",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 0,
+      "noiseTurnTotal": 0,
+      "questionCount": 0
+    }
+  ],
+  "executionFailures": 152,
+  "providerEmbeddingRunTimeoutMs": null,
+  "providerEmbeddingTimeoutMs": null,
+  "questionCount": 233,
+  "questionCategories": [
+    "single_hop",
+    "multi_hop",
+    "temporal",
+    "open_domain"
+  ],
+  "reportPath": "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/v073-baseline-discovery-seed-54c69a32/smoke-report.json",
+  "runId": "v073-baseline-discovery-seed-54c69a32",
+  "semanticCandidateEmbeddingSource": "provider",
+  "semanticCandidates": {
+    "enabled": false,
+    "maxAdditions": null,
+    "minRelativeScore": null,
+    "minSimilarity": null,
+    "topK": null
+  }
+}

@@ -1,7 +1,7 @@
 # GoodMemory v0.7.3 Replacement Protection Protocol
 
-Status: schema-3 pre-registration; schema-2 replay attempt blocked; no passing
-run and no release yet
+Status: schema-3 pre-registration executed once and blocked during baseline
+provider discovery; no passing run and no release yet
 Date: 2026-08-07
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
@@ -38,6 +38,28 @@ baseline's shared-state semantics would require either reproducing the relevant
 completion schedule or introducing a more invasive deterministic observation
 barrier. Neither is necessary for this protection decision. Schema 2 is not
 accepted as release evidence even if a later run happens to avoid misses.
+
+## First schema-3 execution remains blocked
+
+The single clean schema-3 attempt at candidate `113477d3` passed the
+deterministic boundary: provider-free C1 moved overall evidence recall by
+`+0.858369pt`, C40 moved it by `+0.429185pt`, no category or conversation
+regressed, and scenario replay passed 8/8. These results do not substitute for
+the provider diagnostic.
+
+Baseline discovery then produced one successful HTTP response that was invalid
+structured JSON. The seed report contained 152 execution failures and the
+runner stopped before candidate discovery or either formal arm. The receipt
+recorded zero non-2xx responses and zero sequence mismatches, so the evidence
+supports a structured-output parse failure, not a transport failure. The raw
+malformed response was not persisted because the run stopped before the union
+tape write; its exact upstream cause is therefore not uniquely attributable.
+
+The incomplete evidence and attribution are archived under
+`reports/release/v0.7/blocked-113477d3-provider-json/`. This execution does not
+authorize another attempt. Persisting a failure tape snapshot or adding an
+assisted-extraction timeout changes the evidence protocol and requires a new
+preregistration first.
 
 ## Release decision
 

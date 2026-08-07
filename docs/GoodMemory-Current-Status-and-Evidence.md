@@ -20,12 +20,16 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   and two order-only differences), and baseline formal replay missed the exact
   request census. Its incomplete evidence and attribution are archived at
   `reports/release/v0.7/blocked-1b3efe83-replay-miss/`; no full claim rerun,
-  tag, npm publish, or GitHub Release followed. The schema-3 replacement is
-  pre-registered and implemented but has not run: provider-free C1/C40 and
-  scenario replay remain the hard gate, while the concurrency-1 provider
-  diagnostic freezes ordered provider inputs and responses and requires
-  zero-live exact replay. It must pass one new clean attempt before the full
-  1540-question claim may run.
+  tag, npm publish, or GitHub Release followed. The first schema-3 attempt at
+  candidate `113477d3` is now also blocked. Its provider-free C1/C40 arms were
+  neutral-to-positive and scenario replay passed 8/8, but baseline provider
+  discovery produced invalid structured JSON and 152/233 seed execution
+  failures. The run stopped before candidate discovery or formal replay. Its
+  evidence and attribution are archived at
+  `reports/release/v0.7/blocked-113477d3-provider-json/`. The malformed response
+  bytes were not persisted because the failure preceded the union-tape write;
+  a new preregistered protocol is required before another attempt. No full
+  1540-question claim may run yet.
   See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as
