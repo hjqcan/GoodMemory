@@ -1,0 +1,9 @@
+{
+  "candidateCommit": "6eb0f87db23957b7910e50f50618b07d3533b45e",
+  "command": "bun test tests/scenarios",
+  "executionReceiptPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/scenario-execution-receipt.json",
+  "failures": 0,
+  "generatedBy": "v0.7.3-scenario-process-capture",
+  "passed": 8,
+  "schemaVersion": 1
+}

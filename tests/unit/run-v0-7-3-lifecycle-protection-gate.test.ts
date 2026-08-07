@@ -215,19 +215,22 @@ function cases(input?: { openDomainF1?: number; openDomainRecall?: number }) {
 function seedReport(arm: "baseline" | "candidate") {
   const prefix = arm === "baseline" ? "v073-baseline" : "v073-candidate";
   return {
-    answerSystem: ANSWER_SYSTEM,
-    answerEvaluation: "scored",
+    answerEvaluation: "deferred-to-live-mode",
     benchmark: "locomo",
     benchmarkFingerprint: BENCHMARK_FINGERPRINT,
     benchmarkSource: `${BENCHMARK_ROOT}/cases.json`,
     caseIds: ["locomo-conv-26", "locomo-conv-30"],
-    cases: cases(),
+    cases: cases().map((row) => ({
+      ...row,
+      answerCorrect: null,
+      answerTokenF1: null,
+    })),
     concurrency: 40,
     executionFailures: 0,
     externalRoot: BENCHMARK_ROOT,
     generatedAt: "2026-08-06T12:00:00.000Z",
     generatedBy: "scripts/run-phase-65-locomo-smoke.ts",
-    mode: "live-answer",
+    mode: "retrieval-only",
     questionCount: QUESTION_SELECTION.length,
     resume: true,
     runDirectory: `/reports/${prefix}-seed`,

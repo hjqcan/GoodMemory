@@ -1,0 +1,59 @@
+{
+  "benchmark": "locomo",
+  "claimBoundary": "Official/industry-prompt-compatible stored-answer rescore; numeric comparability is benchmark-specific and requires a matching pinned evaluator configuration; not answer regeneration or a public benchmark claim.",
+  "generatedAt": "2026-08-07T07:23:10.217Z",
+  "generatedBy": "scripts/rescore-official-protocols.ts",
+  "judgeGateway": "https://ai.gurkiai.com/v1",
+  "judgeModel": "gpt-5.5",
+  "judgeProvider": "openai",
+  "limit": null,
+  "limitUnit": "cases",
+  "outputPath": "/private/tmp/goodmemory-v073-candidate-6eb0f87d/reports/eval/research/official-rescore/v073-lifecycle-candidate-official-6eb0f87d/rescore-summary.json",
+  "runId": "v073-lifecycle-candidate-official-6eb0f87d",
+  "scorerSource": null,
+  "sourceAnswersUnchanged": true,
+  "sourceInputFingerprints": {
+    "reportPath": {
+      "bytes": 271627,
+      "sha256": "37a58cb0e3380d7fe7ce9a9141373ba4c187b5103edd2370b21f5640e520ad49"
+    },
+    "rootPath": {
+      "bytes": 2490457,
+      "sha256": "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28"
+    }
+  },
+  "sourceInputs": {
+    "reportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+    "rootPath": "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1/cases.json"
+  },
+  "selectedCases": 233,
+  "sourceCases": 233,
+  "categories": {
+    "temporal": {
+      "accuracy": 0.9682539682539683,
+      "correct": 61,
+      "total": 63
+    },
+    "open_domain": {
+      "accuracy": 0.6923076923076923,
+      "correct": 9,
+      "total": 13
+    },
+    "multi_hop": {
+      "accuracy": 0.9069767441860465,
+      "correct": 39,
+      "total": 43
+    },
+    "single_hop": {
+      "accuracy": 0.9385964912280702,
+      "correct": 107,
+      "total": 114
+    }
+  },
+  "judgeFailures": 0,
+  "judgedCases": 233,
+  "overallAccuracy": 0.927038626609442,
+  "overallCorrect": 216,
+  "protocol": "mem0ai/memory-benchmarks LoCoMo judge (no-evidence variant, categories 1-4)",
+  "totalCases": 233
+}

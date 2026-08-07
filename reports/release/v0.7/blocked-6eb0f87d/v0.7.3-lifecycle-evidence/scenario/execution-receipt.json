@@ -1,0 +1,22 @@
+{
+  "bunVersion": "1.3.14",
+  "candidateCommit": "6eb0f87db23957b7910e50f50618b07d3533b45e",
+  "command": "bun test tests/scenarios",
+  "exitCode": 0,
+  "generatedBy": "v0.7.3-scenario-process-capture",
+  "schemaVersion": 1,
+  "stderr": {
+    "bytes": 1293,
+    "path": "/private/tmp/goodmemory-v073-paired.k0lE5a/scenario-stderr.log",
+    "sha256": "aa5d3bdb571f68eadc4b1ebb4e66e65dedf0e12403b3496d477b2d0194253621"
+  },
+  "stdout": {
+    "bytes": 28,
+    "path": "/private/tmp/goodmemory-v073-paired.k0lE5a/scenario-stdout.log",
+    "sha256": "d6684989b8dd63b37d2f1954270826fbe1bd89a8debd12bcacf03ed1c6140ef6"
+  },
+  "worktreeProvenance": {
+    "headCommit": "6eb0f87db23957b7910e50f50618b07d3533b45e",
+    "statusPorcelain": ""
+  }
+}

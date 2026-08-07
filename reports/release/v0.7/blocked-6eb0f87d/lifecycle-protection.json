@@ -1,0 +1,320 @@
+{
+  "artifacts": {
+    "baseline": {
+      "claimRecipeSource": {
+        "bytes": 5370,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/baseline/sources/locomo.json",
+        "sha256": "9ef00e9e1532a264a97cacf3a1807345acce68194ad65e2b016ed6a48602b6d3"
+      },
+      "executionReceipt": {
+        "bytes": 7554,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/baseline/execution-receipt.json",
+        "sha256": "fc10b3c5fc26668b64ad5735da72f21d4220d600e2dc949be5c346341c05b3df"
+      },
+      "officialSummary": {
+        "bytes": 2047,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/baseline/official-summary.json",
+        "sha256": "1d277b2b3de75d934abd6f6dbf9c3da77c64dd97837c9d538fa9b0fda4ebe4b6"
+      },
+      "officialProgress": {
+        "bytes": 10296,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/baseline/official-progress.jsonl",
+        "sha256": "85d96578111931d64efb37e5252db165245b69acd314ea484c404c1b06ccfdfe"
+      },
+      "officialRunnerSource": {
+        "bytes": 75985,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/baseline/sources/rescore-official-protocols.ts",
+        "sha256": "cfa618e1929d56dc256962f471768a3855a8989b92c22cce4f09bd8112ebe24f"
+      },
+      "reanswerRunnerSource": {
+        "bytes": 54560,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/baseline/sources/reanswer-phase-65-locomo-report.ts",
+        "sha256": "dc13f16cb77621e82ef6fa79df280ee8db4f45694c27ac826bcc477c053f5133"
+      },
+      "report": {
+        "bytes": 270848,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/baseline/final-report.json",
+        "sha256": "4d3a43e5929cbfe81eddd5e25e6607c0273eb665ae51c740dd5daa11e4466c02"
+      },
+      "seedReport": {
+        "bytes": 260346,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/baseline/seed-report.json",
+        "sha256": "25196a4b599a4a01fa31e02fbd6a63db44862d99127353ca36d25caad174dac0"
+      },
+      "seedRunnerSource": {
+        "bytes": 151340,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/baseline/sources/run-phase-65-locomo-smoke.ts",
+        "sha256": "0cffb3ec917601c2c7c34a6664d58b528f67b632aa31e6f79447b8b7ebae937a"
+      }
+    },
+    "candidate": {
+      "claimRecipeSource": {
+        "bytes": 5370,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/candidate/sources/locomo.json",
+        "sha256": "9ef00e9e1532a264a97cacf3a1807345acce68194ad65e2b016ed6a48602b6d3"
+      },
+      "executionReceipt": {
+        "bytes": 7652,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/candidate/execution-receipt.json",
+        "sha256": "f6ea76f02d15846b5fdfa2343eb25553e994c96dfffe0953e0099dd810d78063"
+      },
+      "officialSummary": {
+        "bytes": 2062,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/candidate/official-summary.json",
+        "sha256": "8d12da6cbeae1eeff219a7e2606fe5ac69c1a73011f3288c923a7c2f2868f7a7"
+      },
+      "officialProgress": {
+        "bytes": 10301,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/candidate/official-progress.jsonl",
+        "sha256": "93dc2def3047f94c0abdd105f4b85794327d68d03a5d643513e13c9211e7dbca"
+      },
+      "officialRunnerSource": {
+        "bytes": 75985,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/candidate/sources/rescore-official-protocols.ts",
+        "sha256": "cfa618e1929d56dc256962f471768a3855a8989b92c22cce4f09bd8112ebe24f"
+      },
+      "reanswerRunnerSource": {
+        "bytes": 54560,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/candidate/sources/reanswer-phase-65-locomo-report.ts",
+        "sha256": "dc13f16cb77621e82ef6fa79df280ee8db4f45694c27ac826bcc477c053f5133"
+      },
+      "report": {
+        "bytes": 271627,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/candidate/final-report.json",
+        "sha256": "37a58cb0e3380d7fe7ce9a9141373ba4c187b5103edd2370b21f5640e520ad49"
+      },
+      "seedReport": {
+        "bytes": 260896,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/candidate/seed-report.json",
+        "sha256": "1c47e06e96e7df08c86f9bc99e07159dd359e8e8f8257a00b5e4cea792e6c64a"
+      },
+      "seedRunnerSource": {
+        "bytes": 151340,
+        "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/candidate/sources/run-phase-65-locomo-smoke.ts",
+        "sha256": "0cffb3ec917601c2c7c34a6664d58b528f67b632aa31e6f79447b8b7ebae937a"
+      }
+    },
+    "liveDelta": {
+      "bytes": 93435,
+      "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/live-delta.json",
+      "sha256": "dcb1e6448b64461a60b2034074780236715aa337f61fe08a38d18177808fa870"
+    },
+    "liveDeltaAnalyzerSource": {
+      "bytes": 46944,
+      "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/live-delta/analyzer-source.ts",
+      "sha256": "2cf4edee6a2faa9340f9ec6afd9d992a45fe56916062f07699f0dab2b00fe41c"
+    },
+    "liveDeltaExecutionReceipt": {
+      "bytes": 2405,
+      "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/live-delta/execution-receipt.json",
+      "sha256": "4f4d569c2c3a632a0288cd08deee66bb62afd8a3fa8533243853937a71f2740f"
+    },
+    "liveDeltaStderr": {
+      "bytes": 0,
+      "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/live-delta/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "liveDeltaStdout": {
+      "bytes": 1974,
+      "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/live-delta/stdout.log",
+      "sha256": "61fe981123530e5c035d2613f1748a7f2ae4182137d4111130ec5397253c04c8"
+    },
+    "manifest": {
+      "bytes": 8228,
+      "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/manifest.json",
+      "sha256": "9fc33ca07af75657b1e8f7a1011468c6293561eb7ee3a4390235fb8c6eb37c47"
+    },
+    "scenarioExecutionReceipt": {
+      "bytes": 737,
+      "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/scenario/execution-receipt.json",
+      "sha256": "7004cb5c3d01fe9f20b326093d091ca42508b4c8c7d081399c26db93ee461887"
+    },
+    "scenarioReplay": {
+      "bytes": 319,
+      "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/scenario/report.json",
+      "sha256": "9014e6641b51b4f28eaaedccf3ca3e34d3e6d14536028c7a54546ce7242f7131"
+    },
+    "scenarioStderr": {
+      "bytes": 1293,
+      "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/scenario/stderr.log",
+      "sha256": "aa5d3bdb571f68eadc4b1ebb4e66e65dedf0e12403b3496d477b2d0194253621"
+    },
+    "scenarioStdout": {
+      "bytes": 28,
+      "path": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/scenario/stdout.log",
+      "sha256": "d6684989b8dd63b37d2f1954270826fbe1bd89a8debd12bcacf03ed1c6140ef6"
+    }
+  },
+  "baselineCommit": "456edd106f29118b3455bf21c43d7b3107b48213",
+  "blockers": [
+    "overall evidenceRecall regressed by more than 1.00pt",
+    "overall strictAnswerScore regressed by more than 1.00pt",
+    "overall officialScore regressed by more than 1.00pt",
+    "category temporal strictAnswerScore regressed by more than 1.00pt",
+    "category open_domain evidenceRecall regressed by more than 1.00pt",
+    "category open_domain strictAnswerScore regressed by more than 1.00pt",
+    "category open_domain officialScore regressed by more than 1.00pt",
+    "category multi_hop strictAnswerScore regressed by more than 1.00pt",
+    "category multi_hop officialScore regressed by more than 1.00pt",
+    "category single_hop evidenceRecall regressed by more than 1.00pt",
+    "category single_hop strictAnswerScore regressed by more than 1.00pt",
+    "category single_hop officialScore regressed by more than 1.00pt",
+    "conversation locomo-conv-26 strictAnswerScore regressed by more than 1.00pt",
+    "conversation locomo-conv-26 officialScore regressed by more than 1.00pt",
+    "conversation locomo-conv-30 evidenceRecall regressed by more than 1.00pt",
+    "conversation locomo-conv-30 strictAnswerScore regressed by more than 1.00pt",
+    "conversation locomo-conv-30 officialScore regressed by more than 1.00pt"
+  ],
+  "candidateCommit": "6eb0f87db23957b7910e50f50618b07d3533b45e",
+  "candidatePromptSha256": "e039c2aa17d9a2253acb6f7742095cc4a0a3b6c5830a117f1b5c4d701db6e07b",
+  "claimBoundary": "This paired gate mechanically follows the current benchmark-claims/locomo.json recipe, whose reanswer command omits --answer-profile and therefore measures locomo-live-category-aware-v1. The historical 0.8799 temporal-bounded-v3 artifact cannot be reused. Official progress bytes are joined to final question identities, so the 1pt protection bar covers overall, category, and conversation metrics. Rerun the full 1540-question claim at the frozen release commit, then update the recipe to the command actually reproduced.",
+  "fullClaimRerunRequired": true,
+  "generatedAt": "2026-08-07T07:47:10.873Z",
+  "generatedBy": "scripts/run-v0-7-3-lifecycle-protection-gate.ts",
+  "metrics": {
+    "categories": {
+      "temporal": {
+        "evidenceRecall": {
+          "baseline": 0.9523809523809523,
+          "candidate": 0.9682539682539683,
+          "delta": 0.015873015873015928
+        },
+        "strictAnswerScore": {
+          "baseline": 0.770622323003275,
+          "candidate": 0.7459469983279504,
+          "delta": -0.024675324675324628
+        },
+        "officialScore": {
+          "baseline": 0.9682539682539683,
+          "candidate": 0.9682539682539683,
+          "delta": 0
+        }
+      },
+      "open_domain": {
+        "evidenceRecall": {
+          "baseline": 0.7692307692307693,
+          "candidate": 0.7307692307692307,
+          "delta": -0.03846153846153855
+        },
+        "strictAnswerScore": {
+          "baseline": 0.25834107413054785,
+          "candidate": 0.20370959449906817,
+          "delta": -0.054631479631479685
+        },
+        "officialScore": {
+          "baseline": 0.7692307692307693,
+          "candidate": 0.6923076923076923,
+          "delta": -0.07692307692307698
+        }
+      },
+      "multi_hop": {
+        "evidenceRecall": {
+          "baseline": 0.6042635658914729,
+          "candidate": 0.5965116279069768,
+          "delta": -0.007751937984496138
+        },
+        "strictAnswerScore": {
+          "baseline": 0.45777007607136866,
+          "candidate": 0.42502678384432274,
+          "delta": -0.03274329222704592
+        },
+        "officialScore": {
+          "baseline": 0.9534883720930233,
+          "candidate": 0.9069767441860465,
+          "delta": -0.04651162790697683
+        }
+      },
+      "single_hop": {
+        "evidenceRecall": {
+          "baseline": 0.8421052631578947,
+          "candidate": 0.8114035087719298,
+          "delta": -0.030701754385964897
+        },
+        "strictAnswerScore": {
+          "baseline": 0.6040076852585665,
+          "candidate": 0.5851769807310742,
+          "delta": -0.01883070452749236
+        },
+        "officialScore": {
+          "baseline": 0.956140350877193,
+          "candidate": 0.9385964912280702,
+          "delta": -0.01754385964912275
+        }
+      }
+    },
+    "conversations": {
+      "locomo-conv-26": {
+        "evidenceRecall": {
+          "baseline": 0.8289473684210527,
+          "candidate": 0.8267543859649122,
+          "delta": -0.002192982456140413
+        },
+        "strictAnswerScore": {
+          "baseline": 0.6009761893566875,
+          "candidate": 0.5736369714604406,
+          "delta": -0.027339217896246937
+        },
+        "officialScore": {
+          "baseline": 0.9407894736842105,
+          "candidate": 0.9276315789473685,
+          "delta": -0.013157894736842035
+        }
+      },
+      "locomo-conv-30": {
+        "evidenceRecall": {
+          "baseline": 0.8146090534979424,
+          "candidate": 0.7775720164609053,
+          "delta": -0.03703703703703709
+        },
+        "strictAnswerScore": {
+          "baseline": 0.6061759126078075,
+          "candidate": 0.5856344872816065,
+          "delta": -0.020541425326200957
+        },
+        "officialScore": {
+          "baseline": 0.9629629629629629,
+          "candidate": 0.9259259259259259,
+          "delta": -0.03703703703703698
+        }
+      }
+    },
+    "overall": {
+      "evidenceRecall": {
+        "baseline": 0.8239628040057224,
+        "candidate": 0.8096566523605149,
+        "delta": -0.014306151645207543
+      },
+      "strictAnswerScore": {
+        "baseline": 0.6027838184697377,
+        "candidate": 0.5778077816815326,
+        "delta": -0.024976036788205147
+      },
+      "officialScore": {
+        "baseline": 0.9484978540772532,
+        "candidate": 0.927038626609442,
+        "delta": -0.02145922746781115
+      }
+    }
+  },
+  "questionTransitions": {
+    "improved": 11,
+    "regressed": 15
+  },
+  "releaseAllowed": false,
+  "researchRecordRequired": true,
+  "scenarioReplay": {
+    "command": "bun test tests/scenarios",
+    "executionReceiptPath": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/scenario/execution-receipt.json",
+    "executionReceiptSha256": "7004cb5c3d01fe9f20b326093d091ca42508b4c8c7d081399c26db93ee461887",
+    "reportPath": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/scenario/report.json",
+    "reportSha256": "9014e6641b51b4f28eaaedccf3ca3e34d3e6d14536028c7a54546ce7242f7131",
+    "stderrPath": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/scenario/stderr.log",
+    "stderrSha256": "aa5d3bdb571f68eadc4b1ebb4e66e65dedf0e12403b3496d477b2d0194253621",
+    "stdoutPath": "reports/release/v0.7/blocked-6eb0f87d/v0.7.3-lifecycle-evidence/scenario/stdout.log",
+    "stdoutSha256": "d6684989b8dd63b37d2f1954270826fbe1bd89a8debd12bcacf03ed1c6140ef6",
+    "candidateCommit": "6eb0f87db23957b7910e50f50618b07d3533b45e",
+    "failures": 0,
+    "passed": 8
+  },
+  "schemaVersion": 1
+}

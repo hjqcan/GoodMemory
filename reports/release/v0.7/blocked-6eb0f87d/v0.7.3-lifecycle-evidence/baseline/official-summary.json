@@ -1,0 +1,59 @@
+{
+  "benchmark": "locomo",
+  "claimBoundary": "Official/industry-prompt-compatible stored-answer rescore; numeric comparability is benchmark-specific and requires a matching pinned evaluator configuration; not answer regeneration or a public benchmark claim.",
+  "generatedAt": "2026-08-07T07:09:38.650Z",
+  "generatedBy": "scripts/rescore-official-protocols.ts",
+  "judgeGateway": "https://ai.gurkiai.com/v1",
+  "judgeModel": "gpt-5.5",
+  "judgeProvider": "openai",
+  "limit": null,
+  "limitUnit": "cases",
+  "outputPath": "/private/tmp/goodmemory-v072.XFpp3U/reports/eval/research/official-rescore/v073-lifecycle-baseline-official-6eb0f87d/rescore-summary.json",
+  "runId": "v073-lifecycle-baseline-official-6eb0f87d",
+  "scorerSource": null,
+  "sourceAnswersUnchanged": true,
+  "sourceInputFingerprints": {
+    "reportPath": {
+      "bytes": 270848,
+      "sha256": "4d3a43e5929cbfe81eddd5e25e6607c0273eb665ae51c740dd5daa11e4466c02"
+    },
+    "rootPath": {
+      "bytes": 2490457,
+      "sha256": "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28"
+    }
+  },
+  "sourceInputs": {
+    "reportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/baseline-final/v073-lifecycle-baseline-final-6eb0f87d/smoke-report.json",
+    "rootPath": "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1/cases.json"
+  },
+  "selectedCases": 233,
+  "sourceCases": 233,
+  "categories": {
+    "temporal": {
+      "accuracy": 0.9682539682539683,
+      "correct": 61,
+      "total": 63
+    },
+    "open_domain": {
+      "accuracy": 0.7692307692307693,
+      "correct": 10,
+      "total": 13
+    },
+    "multi_hop": {
+      "accuracy": 0.9534883720930233,
+      "correct": 41,
+      "total": 43
+    },
+    "single_hop": {
+      "accuracy": 0.956140350877193,
+      "correct": 109,
+      "total": 114
+    }
+  },
+  "judgeFailures": 0,
+  "judgedCases": 233,
+  "overallAccuracy": 0.9484978540772532,
+  "overallCorrect": 221,
+  "protocol": "mem0ai/memory-benchmarks LoCoMo judge (no-evidence variant, categories 1-4)",
+  "totalCases": 233
+}

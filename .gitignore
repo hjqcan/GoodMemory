@@ -87,6 +87,8 @@ reports/release/v0.7/*
 !reports/release/v0.7/v0.7.3-lifecycle-evidence/**
 !reports/release/v0.7/v0.7.3-locomo-claim-evidence/
 !reports/release/v0.7/v0.7.3-locomo-claim-evidence/**
+!reports/release/v0.7/blocked-6eb0f87d/
+!reports/release/v0.7/blocked-6eb0f87d/**
 !reports/eval/
 !reports/quality-gates/
 # Commit only non-fallback canonical eval report summaries cited by docs and the task board.

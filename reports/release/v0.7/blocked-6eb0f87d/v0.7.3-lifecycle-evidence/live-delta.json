@@ -1,0 +1,2703 @@
+{
+  "answerImprovements": [
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "improved",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.43478260869565216,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Creating a special experience makes customers feel welcome and want to come back.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 4
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": true,
+        "answerTokenF1": 0.5217391304347826,
+        "evidenceRecall": 1,
+        "generatedAnswer": "He said it makes customers feel welcome and want to come back.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 9
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 5,
+      "questionId": "conv-30:q52",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "improved",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 1,
+        "generatedAnswer": "A nature-inspired painting.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 5
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": true,
+        "answerTokenF1": 0.8,
+        "evidenceRecall": 1,
+        "generatedAnswer": "A nature-inspired sunset with a palm tree.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 7
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 2,
+      "questionId": "conv-26:q112",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "improved",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.28571428571428575,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Strength to keep going.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 7
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": true,
+        "answerTokenF1": 0.5,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Strength to keep going, love, joy, motivation, and support.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 9
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 2,
+      "questionId": "conv-26:q149",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "improved",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.19047619047619044,
+        "evidenceRecall": 1,
+        "generatedAnswer": "She wanted to create a special, cozy shopping experience that would make customers want to return.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 5
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": true,
+        "answerTokenF1": 0.5555555555555556,
+        "evidenceRecall": 1,
+        "generatedAnswer": "She wanted a cool oasis that would make them want to come back.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 7
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 2,
+      "questionId": "conv-30:q53",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "improved",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4,
+        "evidenceRecall": 0,
+        "generatedAnswer": "A proud trans woman.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 10
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": true,
+        "answerTokenF1": 1,
+        "evidenceRecall": 0,
+        "generatedAnswer": "A transgender woman",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 11
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 1,
+      "questionId": "conv-26:q4",
+      "retrievalTransition": "zero->zero"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": true,
+        "retrievalMetricsChanged": false
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "improved",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4444444444444445,
+        "evidenceRecall": 1,
+        "generatedAnswer": "June 2–8, 2023",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 4
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": true,
+        "answerTokenF1": 0.5,
+        "evidenceRecall": 1,
+        "generatedAnswer": "2 June 2023",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 4
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 0,
+      "questionId": "conv-26:q9",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": true,
+        "retrievalMetricsChanged": false
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "improved",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 0.4,
+        "generatedAnswer": "Gina did; Jon’s participation is not stated.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 3,
+        "noiseTurnCount": 8
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": true,
+        "answerTokenF1": 1,
+        "evidenceRecall": 0.4,
+        "generatedAnswer": "Yes.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 3,
+        "noiseTurnCount": 8
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-30",
+      "category": "multi_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 0,
+      "questionId": "conv-30:q27",
+      "retrievalTransition": "partial->partial"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": true,
+        "retrievalMetricsChanged": false
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "improved",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 1,
+        "generatedAnswer": "I do not know.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 5
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": true,
+        "answerTokenF1": 0.6666666666666666,
+        "evidenceRecall": 1,
+        "generatedAnswer": "A part-time fashion internship.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 5
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 0,
+      "questionId": "conv-30:q63",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "improved",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4210526315789474,
+        "evidenceRecall": 1,
+        "generatedAnswer": "When her team won first place at regionals when she was fifteen.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 6
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": true,
+        "answerTokenF1": 0.5555555555555556,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Her team winning first place at regionals when she was fifteen.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 5
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": -1,
+      "questionId": "conv-30:q41",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "improved",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 1,
+        "generatedAnswer": "I do not know.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 10
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": true,
+        "answerTokenF1": 0.6666666666666666,
+        "evidenceRecall": 1,
+        "generatedAnswer": "In 2022.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 8
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": -2,
+      "questionId": "conv-26:q26",
+      "retrievalTransition": "full->full"
+    }
+  ],
+  "answerRegressions": [
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "regressed",
+      "baseline": {
+        "answerCorrect": true,
+        "answerTokenF1": 1,
+        "evidenceRecall": 0.5,
+        "generatedAnswer": "3",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 9
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Three children",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 7
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0.5,
+      "noiseTurnDelta": -2,
+      "questionId": "conv-26:q75",
+      "retrievalTransition": "partial->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "regressed",
+      "baseline": {
+        "answerCorrect": true,
+        "answerTokenF1": 0.6,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Last weekend (16 July, 2023)",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 3
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4444444444444445,
+        "evidenceRecall": 1,
+        "generatedAnswer": "15–16 July 2023",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 6
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 3,
+      "questionId": "conv-26:q36",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "regressed",
+      "baseline": {
+        "answerCorrect": true,
+        "answerTokenF1": 1,
+        "evidenceRecall": 1,
+        "generatedAnswer": "2022",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 6
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Last year",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 8
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 2,
+      "questionId": "conv-26:q49",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "regressed",
+      "baseline": {
+        "answerCorrect": true,
+        "answerTokenF1": 1,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Her mental health.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 4
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Her headspace.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 5
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 1,
+      "questionId": "conv-26:q108",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "regressed",
+      "baseline": {
+        "answerCorrect": true,
+        "answerTokenF1": 0.7499999999999999,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Two weekends before July 17, 2023 (around July 1–2).",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 5
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4,
+        "evidenceRecall": 1,
+        "generatedAnswer": "1–2 July 2023",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 6
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 1,
+      "questionId": "conv-26:q35",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "regressed",
+      "baseline": {
+        "answerCorrect": true,
+        "answerTokenF1": 0.5833333333333334,
+        "evidenceRecall": 1,
+        "generatedAnswer": "To stay organized and motivated, set goals, track achievements, and identify areas to improve.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 4
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4,
+        "evidenceRecall": 1,
+        "generatedAnswer": "To stay organized and motivated by setting goals, tracking achievements, and finding areas to improve.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 5
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 1,
+      "questionId": "conv-30:q67",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": true,
+        "retrievalMetricsChanged": false
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "regressed",
+      "baseline": {
+        "answerCorrect": true,
+        "answerTokenF1": 1,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Sweden",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 6
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Her home country.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 6
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 0,
+      "questionId": "conv-26:q11",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": true,
+        "retrievalMetricsChanged": false
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "regressed",
+      "baseline": {
+        "answerCorrect": true,
+        "answerTokenF1": 0.6666666666666666,
+        "evidenceRecall": 1,
+        "generatedAnswer": "An abstract painting with a blue background.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 8
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 1,
+        "generatedAnswer": "I do not know.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 8
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 0,
+      "questionId": "conv-26:q138",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "regressed",
+      "baseline": {
+        "answerCorrect": true,
+        "answerTokenF1": 1,
+        "evidenceRecall": 1,
+        "generatedAnswer": "27 May, 2023",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 5
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 1,
+        "generatedAnswer": "I do not know.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 4
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": -1,
+      "questionId": "conv-30:q20",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "regressed",
+      "baseline": {
+        "answerCorrect": true,
+        "answerTokenF1": 0.7272727272727273,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Yes, she is supportive of the transgender community.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 12
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Yes.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 10
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": -2,
+      "questionId": "conv-26:q46",
+      "retrievalTransition": "full->full"
+    }
+  ],
+  "answerTokenF1NearMisses": [
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": false
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Counseling for trans people, focused on self-acceptance and mental health support.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 6
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4761904761904762,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Counseling and mental health support for trans people.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 6
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 0,
+      "questionId": "conv-26:q96",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "regressed",
+      "baseline": {
+        "answerCorrect": true,
+        "answerTokenF1": 0.6,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Last weekend (16 July, 2023)",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 3
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4444444444444445,
+        "evidenceRecall": 1,
+        "generatedAnswer": "15–16 July 2023",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 6
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 3,
+      "questionId": "conv-26:q36",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4444444444444445,
+        "evidenceRecall": 1,
+        "generatedAnswer": "14–15 October 2023",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 5
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4444444444444445,
+        "evidenceRecall": 1,
+        "generatedAnswer": "October 14–15, 2023",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 6
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 1,
+      "questionId": "conv-26:q74",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4444444444444445,
+        "evidenceRecall": 1,
+        "generatedAnswer": "September 9–10, 2023",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 7
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4444444444444445,
+        "evidenceRecall": 1,
+        "generatedAnswer": "9–10 September 2023",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 8
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 1,
+      "questionId": "conv-26:q67",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4444444444444445,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Adoption agencies and counseling/mental health careers.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 7
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4444444444444445,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Adoption agencies and counseling/mental-health careers.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 9
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 2,
+      "questionId": "conv-26:q3",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4444444444444444,
+        "evidenceRecall": 1,
+        "generatedAnswer": "A few years before February 8, 2023.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 7
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4444444444444444,
+        "evidenceRecall": 1,
+        "generatedAnswer": "A few years before 8 February 2023.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 5
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": -2,
+      "questionId": "conv-30:q11",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": false
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.43478260869565216,
+        "evidenceRecall": 1,
+        "generatedAnswer": "They explored nature, hiked, roasted marshmallows, told stories around the campfire, and watched the Perseid meteor shower.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 4
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.43478260869565216,
+        "evidenceRecall": 1,
+        "generatedAnswer": "They explored nature, hiked, roasted marshmallows, told stories around the campfire, and watched the Perseid meteor shower.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 4
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 0,
+      "questionId": "conv-26:q95",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4,
+        "evidenceRecall": 0,
+        "generatedAnswer": "She’s supportive and thinks it’s amazing.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 10
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.43478260869565216,
+        "evidenceRecall": 0,
+        "generatedAnswer": "She thinks it’s amazing and supports Caroline’s adoption journey.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 9
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": -1,
+      "questionId": "conv-26:q89",
+      "retrievalTransition": "zero->zero"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4615384615384615,
+        "evidenceRecall": 0.5,
+        "generatedAnswer": "“Charlotte’s Web” and a book Caroline recommended.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 9
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.42857142857142855,
+        "evidenceRecall": 1,
+        "generatedAnswer": "“Charlotte’s Web” and an unspecified book Caroline recommended.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 9
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0.5,
+      "noiseTurnDelta": 0,
+      "questionId": "conv-26:q23",
+      "retrievalTransition": "partial->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.3,
+        "evidenceRecall": 0,
+        "generatedAnswer": "As a shared trip of learning and exploring, supporting each other through life’s challenges.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 11
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.42857142857142855,
+        "evidenceRecall": 0,
+        "generatedAnswer": "As a supportive trip of learning and exploring together.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 10
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": -1,
+      "questionId": "conv-26:q142",
+      "retrievalTransition": "zero->zero"
+    }
+  ],
+  "baselineReport": {
+    "path": "/private/tmp/goodmemory-v073-paired.k0lE5a/baseline-final/v073-lifecycle-baseline-final-6eb0f87d/smoke-report.json",
+    "runId": "v073-lifecycle-baseline-final-6eb0f87d"
+  },
+  "benchmark": "locomo",
+  "candidateReport": {
+    "path": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+    "runId": "v073-lifecycle-candidate-final-6eb0f87d"
+  },
+  "categories": {
+    "single_hop": {
+      "answerContextModeChangedAnswerChangeCount": 0,
+      "answerContextModeChangedCount": 0,
+      "answerContextModeChangedRegressionCount": 0,
+      "answerContextModeUnchangedAnswerChangeCount": 13,
+      "answerContextModeUnchangedCount": 114,
+      "answerContextModeUnchangedRegressionCount": 7,
+      "answerCorrectDelta": -1,
+      "answerTransitions": {
+        "baselineOnlyAnswered": 0,
+        "bothUnanswered": 0,
+        "candidateOnlyAnswered": 0,
+        "improved": 6,
+        "regressed": 7,
+        "sameCorrect": 65,
+        "sameWrong": 36
+      },
+      "averageEvidenceRecallDelta": -0.030701754385964897,
+      "baselineCorrectCount": 72,
+      "baselineFullyRetrievedCount": 95,
+      "candidateCorrectCount": 71,
+      "candidateFullyRetrievedCount": 91,
+      "convertedRetrievalGainCount": 0,
+      "effectiveAnswerPolicyChangedAnswerChangeCount": 0,
+      "effectiveAnswerPolicyChangedCount": 0,
+      "effectiveAnswerPolicyChangedRegressionCount": 0,
+      "effectiveAnswerPolicyUnchangedAnswerChangeCount": 13,
+      "effectiveAnswerPolicyUnchangedCount": 114,
+      "effectiveAnswerPolicyUnchangedRegressionCount": 7,
+      "fullyRetrievedDelta": -4,
+      "fullRecallWrongNoisyDelta": -3,
+      "missingEvidenceWrongDelta": 4,
+      "noiseTurnDelta": 15,
+      "noisyFullRecallRegressionCount": 4,
+      "questionCount": 114,
+      "residualLiveAnswerChangeCount": 2,
+      "retrievalMetricChangedAnswerChangeCount": 11,
+      "retrievalTransitions": {
+        "full->full": 88,
+        "full->partial": 1,
+        "full->zero": 6,
+        "partial->full": 0,
+        "partial->partial": 2,
+        "partial->zero": 0,
+        "zero->full": 3,
+        "zero->partial": 0,
+        "zero->zero": 14
+      },
+      "unconvertedRetrievalGainCount": 2
+    },
+    "multi_hop": {
+      "answerContextModeChangedAnswerChangeCount": 0,
+      "answerContextModeChangedCount": 0,
+      "answerContextModeChangedRegressionCount": 0,
+      "answerContextModeUnchangedAnswerChangeCount": 5,
+      "answerContextModeUnchangedCount": 43,
+      "answerContextModeUnchangedRegressionCount": 3,
+      "answerCorrectDelta": -1,
+      "answerTransitions": {
+        "baselineOnlyAnswered": 0,
+        "bothUnanswered": 0,
+        "candidateOnlyAnswered": 0,
+        "improved": 2,
+        "regressed": 3,
+        "sameCorrect": 14,
+        "sameWrong": 24
+      },
+      "averageEvidenceRecallDelta": -0.007751937984496138,
+      "baselineCorrectCount": 17,
+      "baselineFullyRetrievedCount": 16,
+      "candidateCorrectCount": 16,
+      "candidateFullyRetrievedCount": 16,
+      "convertedRetrievalGainCount": 0,
+      "effectiveAnswerPolicyChangedAnswerChangeCount": 0,
+      "effectiveAnswerPolicyChangedCount": 0,
+      "effectiveAnswerPolicyChangedRegressionCount": 0,
+      "effectiveAnswerPolicyUnchangedAnswerChangeCount": 5,
+      "effectiveAnswerPolicyUnchangedCount": 43,
+      "effectiveAnswerPolicyUnchangedRegressionCount": 3,
+      "fullyRetrievedDelta": 0,
+      "fullRecallWrongNoisyDelta": 0,
+      "missingEvidenceWrongDelta": 1,
+      "noiseTurnDelta": -8,
+      "noisyFullRecallRegressionCount": 2,
+      "questionCount": 43,
+      "residualLiveAnswerChangeCount": 2,
+      "retrievalMetricChangedAnswerChangeCount": 3,
+      "retrievalTransitions": {
+        "full->full": 13,
+        "full->partial": 3,
+        "full->zero": 0,
+        "partial->full": 3,
+        "partial->partial": 16,
+        "partial->zero": 2,
+        "zero->full": 0,
+        "zero->partial": 0,
+        "zero->zero": 6
+      },
+      "unconvertedRetrievalGainCount": 4
+    },
+    "temporal": {
+      "answerContextModeChangedAnswerChangeCount": 0,
+      "answerContextModeChangedCount": 0,
+      "answerContextModeChangedRegressionCount": 0,
+      "answerContextModeUnchangedAnswerChangeCount": 7,
+      "answerContextModeUnchangedCount": 63,
+      "answerContextModeUnchangedRegressionCount": 4,
+      "answerCorrectDelta": -1,
+      "answerTransitions": {
+        "baselineOnlyAnswered": 0,
+        "bothUnanswered": 0,
+        "candidateOnlyAnswered": 0,
+        "improved": 3,
+        "regressed": 4,
+        "sameCorrect": 50,
+        "sameWrong": 6
+      },
+      "averageEvidenceRecallDelta": 0.015873015873015928,
+      "baselineCorrectCount": 54,
+      "baselineFullyRetrievedCount": 60,
+      "candidateCorrectCount": 53,
+      "candidateFullyRetrievedCount": 61,
+      "convertedRetrievalGainCount": 0,
+      "effectiveAnswerPolicyChangedAnswerChangeCount": 0,
+      "effectiveAnswerPolicyChangedCount": 0,
+      "effectiveAnswerPolicyChangedRegressionCount": 0,
+      "effectiveAnswerPolicyUnchangedAnswerChangeCount": 7,
+      "effectiveAnswerPolicyUnchangedCount": 63,
+      "effectiveAnswerPolicyUnchangedRegressionCount": 4,
+      "fullyRetrievedDelta": 1,
+      "fullRecallWrongNoisyDelta": 1,
+      "missingEvidenceWrongDelta": 0,
+      "noiseTurnDelta": 17,
+      "noisyFullRecallRegressionCount": 4,
+      "questionCount": 63,
+      "residualLiveAnswerChangeCount": 1,
+      "retrievalMetricChangedAnswerChangeCount": 6,
+      "retrievalTransitions": {
+        "full->full": 60,
+        "full->partial": 0,
+        "full->zero": 0,
+        "partial->full": 0,
+        "partial->partial": 0,
+        "partial->zero": 0,
+        "zero->full": 1,
+        "zero->partial": 0,
+        "zero->zero": 2
+      },
+      "unconvertedRetrievalGainCount": 0
+    },
+    "open_domain": {
+      "answerContextModeChangedAnswerChangeCount": 0,
+      "answerContextModeChangedCount": 0,
+      "answerContextModeChangedRegressionCount": 0,
+      "answerContextModeUnchangedAnswerChangeCount": 1,
+      "answerContextModeUnchangedCount": 13,
+      "answerContextModeUnchangedRegressionCount": 1,
+      "answerCorrectDelta": -1,
+      "answerTransitions": {
+        "baselineOnlyAnswered": 0,
+        "bothUnanswered": 0,
+        "candidateOnlyAnswered": 0,
+        "improved": 0,
+        "regressed": 1,
+        "sameCorrect": 2,
+        "sameWrong": 10
+      },
+      "averageEvidenceRecallDelta": -0.03846153846153855,
+      "baselineCorrectCount": 3,
+      "baselineFullyRetrievedCount": 8,
+      "candidateCorrectCount": 2,
+      "candidateFullyRetrievedCount": 9,
+      "convertedRetrievalGainCount": 0,
+      "effectiveAnswerPolicyChangedAnswerChangeCount": 0,
+      "effectiveAnswerPolicyChangedCount": 0,
+      "effectiveAnswerPolicyChangedRegressionCount": 0,
+      "effectiveAnswerPolicyUnchangedAnswerChangeCount": 1,
+      "effectiveAnswerPolicyUnchangedCount": 13,
+      "effectiveAnswerPolicyUnchangedRegressionCount": 1,
+      "fullyRetrievedDelta": 1,
+      "fullRecallWrongNoisyDelta": 2,
+      "missingEvidenceWrongDelta": -1,
+      "noiseTurnDelta": -3,
+      "noisyFullRecallRegressionCount": 1,
+      "questionCount": 13,
+      "residualLiveAnswerChangeCount": 0,
+      "retrievalMetricChangedAnswerChangeCount": 1,
+      "retrievalTransitions": {
+        "full->full": 7,
+        "full->partial": 0,
+        "full->zero": 1,
+        "partial->full": 2,
+        "partial->partial": 1,
+        "partial->zero": 1,
+        "zero->full": 0,
+        "zero->partial": 0,
+        "zero->zero": 1
+      },
+      "unconvertedRetrievalGainCount": 2
+    }
+  },
+  "claimBoundary": "Research diagnostic only; not a public release or benchmark claim.",
+  "generatedAt": "2026-08-07T07:24:40.161Z",
+  "generatedBy": "scripts/analyze-phase-65-locomo-live-delta.ts",
+  "mode": "live-answer",
+  "outputPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/live-delta.json",
+  "overall": {
+    "answerContextModeChangedAnswerChangeCount": 0,
+    "answerContextModeChangedCount": 0,
+    "answerContextModeChangedRegressionCount": 0,
+    "answerContextModeUnchangedAnswerChangeCount": 26,
+    "answerContextModeUnchangedCount": 233,
+    "answerContextModeUnchangedRegressionCount": 15,
+    "answerCorrectDelta": -4,
+    "answerTransitions": {
+      "baselineOnlyAnswered": 0,
+      "bothUnanswered": 0,
+      "candidateOnlyAnswered": 0,
+      "improved": 11,
+      "regressed": 15,
+      "sameCorrect": 131,
+      "sameWrong": 76
+    },
+    "averageEvidenceRecallDelta": -0.014306151645207321,
+    "baselineCorrectCount": 146,
+    "baselineFullyRetrievedCount": 179,
+    "candidateCorrectCount": 142,
+    "candidateFullyRetrievedCount": 177,
+    "convertedRetrievalGainCount": 0,
+    "effectiveAnswerPolicyChangedAnswerChangeCount": 0,
+    "effectiveAnswerPolicyChangedCount": 0,
+    "effectiveAnswerPolicyChangedRegressionCount": 0,
+    "effectiveAnswerPolicyUnchangedAnswerChangeCount": 26,
+    "effectiveAnswerPolicyUnchangedCount": 233,
+    "effectiveAnswerPolicyUnchangedRegressionCount": 15,
+    "fullyRetrievedDelta": -2,
+    "fullRecallWrongNoisyDelta": 0,
+    "missingEvidenceWrongDelta": 4,
+    "noiseTurnDelta": 21,
+    "noisyFullRecallRegressionCount": 11,
+    "questionCount": 233,
+    "residualLiveAnswerChangeCount": 5,
+    "retrievalMetricChangedAnswerChangeCount": 21,
+    "retrievalTransitions": {
+      "full->full": 168,
+      "full->partial": 4,
+      "full->zero": 7,
+      "partial->full": 5,
+      "partial->partial": 19,
+      "partial->zero": 3,
+      "zero->full": 4,
+      "zero->partial": 0,
+      "zero->zero": 23
+    },
+    "unconvertedRetrievalGainCount": 8
+  },
+  "phase": "phase-65",
+  "reanswerJobs": [
+    {
+      "bucket": "noisyFullRecallWrong",
+      "categories": [
+        "single_hop"
+      ],
+      "category": "single_hop",
+      "questionCount": 2,
+      "questionIds": [
+        "conv-30:q45",
+        "conv-26:q150"
+      ],
+      "sourceReportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "sourceRunId": "v073-lifecycle-candidate-final-6eb0f87d"
+    },
+    {
+      "bucket": "noisyFullRecallWrong",
+      "categories": [
+        "multi_hop"
+      ],
+      "category": "multi_hop",
+      "questionCount": 3,
+      "questionIds": [
+        "conv-26:q3",
+        "conv-26:q23",
+        "conv-26:q37"
+      ],
+      "sourceReportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "sourceRunId": "v073-lifecycle-candidate-final-6eb0f87d"
+    },
+    {
+      "bucket": "noisyFullRecallWrong",
+      "categories": [
+        "temporal"
+      ],
+      "category": "temporal",
+      "questionCount": 3,
+      "questionIds": [
+        "conv-26:q21",
+        "conv-26:q49",
+        "conv-26:q67"
+      ],
+      "sourceReportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "sourceRunId": "v073-lifecycle-candidate-final-6eb0f87d"
+    },
+    {
+      "bucket": "noisyFullRecallWrong",
+      "categories": [
+        "open_domain"
+      ],
+      "category": "open_domain",
+      "questionCount": 2,
+      "questionIds": [
+        "conv-26:q30",
+        "conv-26:q46"
+      ],
+      "sourceReportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "sourceRunId": "v073-lifecycle-candidate-final-6eb0f87d"
+    },
+    {
+      "bucket": "answerTokenF1NearMiss",
+      "categories": [
+        "single_hop"
+      ],
+      "category": "single_hop",
+      "questionCount": 4,
+      "questionIds": [
+        "conv-26:q96",
+        "conv-26:q95",
+        "conv-26:q89",
+        "conv-26:q142"
+      ],
+      "sourceReportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "sourceRunId": "v073-lifecycle-candidate-final-6eb0f87d"
+    },
+    {
+      "bucket": "answerTokenF1NearMiss",
+      "categories": [
+        "temporal"
+      ],
+      "category": "temporal",
+      "questionCount": 3,
+      "questionIds": [
+        "conv-26:q36",
+        "conv-26:q74",
+        "conv-30:q11"
+      ],
+      "sourceReportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "sourceRunId": "v073-lifecycle-candidate-final-6eb0f87d"
+    },
+    {
+      "bucket": "answerRegressions",
+      "categories": [
+        "single_hop"
+      ],
+      "category": "single_hop",
+      "questionCount": 3,
+      "questionIds": [
+        "conv-26:q108",
+        "conv-30:q67",
+        "conv-26:q138"
+      ],
+      "sourceReportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "sourceRunId": "v073-lifecycle-candidate-final-6eb0f87d"
+    },
+    {
+      "bucket": "answerRegressions",
+      "categories": [
+        "multi_hop"
+      ],
+      "category": "multi_hop",
+      "questionCount": 2,
+      "questionIds": [
+        "conv-26:q75",
+        "conv-26:q11"
+      ],
+      "sourceReportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "sourceRunId": "v073-lifecycle-candidate-final-6eb0f87d"
+    },
+    {
+      "bucket": "answerRegressions",
+      "categories": [
+        "temporal"
+      ],
+      "category": "temporal",
+      "questionCount": 2,
+      "questionIds": [
+        "conv-26:q35",
+        "conv-30:q20"
+      ],
+      "sourceReportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "sourceRunId": "v073-lifecycle-candidate-final-6eb0f87d"
+    },
+    {
+      "bucket": "answerImprovements",
+      "categories": [
+        "single_hop"
+      ],
+      "category": "single_hop",
+      "questionCount": 6,
+      "questionIds": [
+        "conv-30:q52",
+        "conv-26:q112",
+        "conv-26:q149",
+        "conv-30:q53",
+        "conv-30:q63",
+        "conv-30:q41"
+      ],
+      "sourceReportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "sourceRunId": "v073-lifecycle-candidate-final-6eb0f87d"
+    },
+    {
+      "bucket": "answerImprovements",
+      "categories": [
+        "multi_hop"
+      ],
+      "category": "multi_hop",
+      "questionCount": 2,
+      "questionIds": [
+        "conv-26:q4",
+        "conv-30:q27"
+      ],
+      "sourceReportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "sourceRunId": "v073-lifecycle-candidate-final-6eb0f87d"
+    },
+    {
+      "bucket": "answerImprovements",
+      "categories": [
+        "temporal"
+      ],
+      "category": "temporal",
+      "questionCount": 2,
+      "questionIds": [
+        "conv-26:q9",
+        "conv-26:q26"
+      ],
+      "sourceReportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "sourceRunId": "v073-lifecycle-candidate-final-6eb0f87d"
+    },
+    {
+      "bucket": "topUnconvertedRetrievalGains",
+      "categories": [
+        "multi_hop"
+      ],
+      "category": "multi_hop",
+      "questionCount": 2,
+      "questionIds": [
+        "conv-26:q32",
+        "conv-26:q39"
+      ],
+      "sourceReportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "sourceRunId": "v073-lifecycle-candidate-final-6eb0f87d"
+    },
+    {
+      "bucket": "topUnconvertedRetrievalGains",
+      "categories": [
+        "open_domain"
+      ],
+      "category": "open_domain",
+      "questionCount": 2,
+      "questionIds": [
+        "conv-26:q59",
+        "conv-26:q77"
+      ],
+      "sourceReportPath": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "sourceRunId": "v073-lifecycle-candidate-final-6eb0f87d"
+    }
+  ],
+  "runId": "v0.7.3-lifecycle-paired-final-delta",
+  "sourceReports": [
+    {
+      "path": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "questionCount": 233,
+      "runId": "v073-lifecycle-candidate-final-6eb0f87d"
+    }
+  ],
+  "topNoisyFullRecallWrong": [
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 1,
+        "generatedAnswer": "I don't know.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 12
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.125,
+        "evidenceRecall": 1,
+        "generatedAnswer": "I do not know.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 11
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": -1,
+      "questionId": "conv-26:q30",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "regressed",
+      "baseline": {
+        "answerCorrect": true,
+        "answerTokenF1": 0.7272727272727273,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Yes, she is supportive of the transgender community.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 12
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Yes.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 10
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": -2,
+      "questionId": "conv-26:q46",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4444444444444445,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Adoption agencies and counseling/mental health careers.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 7
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4444444444444445,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Adoption agencies and counseling/mental-health careers.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 9
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 2,
+      "questionId": "conv-26:q3",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4615384615384615,
+        "evidenceRecall": 0.5,
+        "generatedAnswer": "“Charlotte’s Web” and a book Caroline recommended.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 9
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.42857142857142855,
+        "evidenceRecall": 1,
+        "generatedAnswer": "“Charlotte’s Web” and an unspecified book Caroline recommended.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 9
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0.5,
+      "noiseTurnDelta": 0,
+      "questionId": "conv-26:q23",
+      "retrievalTransition": "partial->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": false
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 1,
+        "generatedAnswer": "An abstract painting with a blue background.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 9
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4,
+        "evidenceRecall": 1,
+        "generatedAnswer": "A sunset and an abstract painting.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 9
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 0,
+      "questionId": "conv-26:q37",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 0,
+        "generatedAnswer": "He’s excited and eager to perform.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 10
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.18181818181818182,
+        "evidenceRecall": 1,
+        "generatedAnswer": "He’s enthusiastic and glad to be part of it.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 9
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 1,
+      "noiseTurnDelta": -1,
+      "questionId": "conv-30:q45",
+      "retrievalTransition": "zero->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.3333333333333333,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Between June 29 and July 5, 2023",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 10
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.25,
+        "evidenceRecall": 1,
+        "generatedAnswer": "29 June 2023",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 9
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": -1,
+      "questionId": "conv-26:q21",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "regressed",
+      "baseline": {
+        "answerCorrect": true,
+        "answerTokenF1": 1,
+        "evidenceRecall": 1,
+        "generatedAnswer": "2022",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 6
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Last year",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 8
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 2,
+      "questionId": "conv-26:q49",
+      "retrievalTransition": "full->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.22222222222222224,
+        "evidenceRecall": 0,
+        "generatedAnswer": "She felt thankful and supported.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 7
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.14285714285714288,
+        "evidenceRecall": 1,
+        "generatedAnswer": "She was thankful and appreciative of their love and support.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 8
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 1,
+      "noiseTurnDelta": 1,
+      "questionId": "conv-26:q150",
+      "retrievalTransition": "zero->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4444444444444445,
+        "evidenceRecall": 1,
+        "generatedAnswer": "September 9–10, 2023",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 7
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4444444444444445,
+        "evidenceRecall": 1,
+        "generatedAnswer": "9–10 September 2023",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 8
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0,
+      "noiseTurnDelta": 1,
+      "questionId": "conv-26:q67",
+      "retrievalTransition": "full->full"
+    }
+  ],
+  "topUnconvertedRetrievalGains": [
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.22222222222222224,
+        "evidenceRecall": 0,
+        "generatedAnswer": "She felt thankful and supported.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 7
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.14285714285714288,
+        "evidenceRecall": 1,
+        "generatedAnswer": "She was thankful and appreciative of their love and support.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 8
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 1,
+      "noiseTurnDelta": 1,
+      "questionId": "conv-26:q150",
+      "retrievalTransition": "zero->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 0,
+        "generatedAnswer": "He’s excited and eager to perform.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 10
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.18181818181818182,
+        "evidenceRecall": 1,
+        "generatedAnswer": "He’s enthusiastic and glad to be part of it.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 9
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 1,
+      "noiseTurnDelta": -1,
+      "questionId": "conv-30:q45",
+      "retrievalTransition": "zero->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.4615384615384615,
+        "evidenceRecall": 0.5,
+        "generatedAnswer": "“Charlotte’s Web” and a book Caroline recommended.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 9
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.42857142857142855,
+        "evidenceRecall": 1,
+        "generatedAnswer": "“Charlotte’s Web” and an unspecified book Caroline recommended.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 9
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0.5,
+      "noiseTurnDelta": 0,
+      "questionId": "conv-26:q23",
+      "retrievalTransition": "partial->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.22222222222222224,
+        "evidenceRecall": 0.5,
+        "generatedAnswer": "I do not know.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 7
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Yes.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 6
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0.5,
+      "noiseTurnDelta": -1,
+      "questionId": "conv-26:q59",
+      "retrievalTransition": "partial->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": true,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "regressed",
+      "baseline": {
+        "answerCorrect": true,
+        "answerTokenF1": 1,
+        "evidenceRecall": 0.5,
+        "generatedAnswer": "3",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 9
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 1,
+        "generatedAnswer": "Three children",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 7
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0.5,
+      "noiseTurnDelta": -2,
+      "questionId": "conv-26:q75",
+      "retrievalTransition": "partial->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 0.5,
+        "generatedAnswer": "I do not know.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 9
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0,
+        "evidenceRecall": 1,
+        "generatedAnswer": "I do not know.",
+        "goldEvidenceFullyRetrieved": true,
+        "missingEvidenceTurnCount": 0,
+        "noiseTurnCount": 6
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0.5,
+      "noiseTurnDelta": -3,
+      "questionId": "conv-26:q77",
+      "retrievalTransition": "partial->full"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.32,
+        "evidenceRecall": 0.5,
+        "generatedAnswer": "Support group, counseling workshop, Pride parade/event, LGBTQ conference, activist group meetings/events, and volunteering at an LGBTQ+ youth center.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 2,
+        "noiseTurnCount": 6
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.3846153846153846,
+        "evidenceRecall": 0.75,
+        "generatedAnswer": "An LGBTQ support group, a school event, an LGBTQ+ counseling workshop, a pride parade/event, an LGBTQ/transgender conference, and LGBTQ activist-group meetings/events.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 8
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0.25,
+      "noiseTurnDelta": 2,
+      "questionId": "conv-26:q32",
+      "retrievalTransition": "partial->partial"
+    },
+    {
+      "answerChangeAttribution": {
+        "answerContextModeChanged": false,
+        "answerOutcomeChanged": false,
+        "effectiveAnswerPolicyChanged": false,
+        "residualLiveAnswerChange": false,
+        "retrievalMetricsChanged": true
+      },
+      "answerContextModeChanged": false,
+      "answerTransition": "sameWrong",
+      "baseline": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.23809523809523808,
+        "evidenceRecall": 0.5,
+        "generatedAnswer": "She attends Pride events and conferences, joined an LGBTQ activist group, volunteers at an LGBTQ+ youth center, advocates for trans/LGBTQ rights, and uses her art to promote inclusivity and acceptance.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 2,
+        "noiseTurnCount": 8
+      },
+      "baselineAnswerContextMode": "evidence-pack",
+      "baselineEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "candidate": {
+        "answerCorrect": false,
+        "answerTokenF1": 0.21276595744680854,
+        "evidenceRecall": 0.75,
+        "generatedAnswer": "She attends support groups and Pride events, shares her transgender story at schools, mentors and volunteers with LGBTQ youth, belongs to an activist group, advocates through art, and plans to pursue counseling/mental-health support.",
+        "goldEvidenceFullyRetrieved": false,
+        "missingEvidenceTurnCount": 1,
+        "noiseTurnCount": 7
+      },
+      "candidateAnswerContextMode": "evidence-pack",
+      "candidateEffectiveAnswerPolicy": {
+        "commonsenseResolution": false,
+        "strictNoEvidenceAbstention": false
+      },
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "effectiveAnswerPolicyChanged": false,
+      "evidenceRecallDelta": 0.25,
+      "noiseTurnDelta": -1,
+      "questionId": "conv-26:q39",
+      "retrievalTransition": "partial->partial"
+    }
+  ]
+}

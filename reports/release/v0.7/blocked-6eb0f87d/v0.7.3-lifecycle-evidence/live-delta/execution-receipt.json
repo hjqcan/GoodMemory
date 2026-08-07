@@ -1,0 +1,60 @@
+{
+  "analyzerSource": {
+    "bytes": 46944,
+    "path": "/private/tmp/goodmemory-v073-candidate-6eb0f87d/scripts/analyze-phase-65-locomo-live-delta.ts",
+    "sha256": "2cf4edee6a2faa9340f9ec6afd9d992a45fe56916062f07699f0dab2b00fe41c"
+  },
+  "baselineCommit": "456edd106f29118b3455bf21c43d7b3107b48213",
+  "baselineReport": {
+    "bytes": 270848,
+    "path": "/private/tmp/goodmemory-v073-paired.k0lE5a/baseline-final/v073-lifecycle-baseline-final-6eb0f87d/smoke-report.json",
+    "sha256": "4d3a43e5929cbfe81eddd5e25e6607c0273eb665ae51c740dd5daa11e4466c02"
+  },
+  "bunVersion": "1.3.14",
+  "candidateCommit": "6eb0f87db23957b7910e50f50618b07d3533b45e",
+  "candidateReport": {
+    "bytes": 271627,
+    "path": "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+    "sha256": "37a58cb0e3380d7fe7ce9a9141373ba4c187b5103edd2370b21f5640e520ad49"
+  },
+  "exitCode": 0,
+  "generatedBy": "v0.7.3-live-delta-process-capture",
+  "invocation": {
+    "args": [
+      "run",
+      "scripts/analyze-phase-65-locomo-live-delta.ts",
+      "--",
+      "--baseline-report",
+      "/private/tmp/goodmemory-v073-paired.k0lE5a/baseline-final/v073-lifecycle-baseline-final-6eb0f87d/smoke-report.json",
+      "--candidate-report",
+      "/private/tmp/goodmemory-v073-paired.k0lE5a/candidate-final/v073-lifecycle-candidate-final-6eb0f87d/smoke-report.json",
+      "--output-path",
+      "/private/tmp/goodmemory-v073-paired.k0lE5a/live-delta.json",
+      "--run-id",
+      "v0.7.3-lifecycle-paired-final-delta"
+    ],
+    "command": "bun",
+    "cwd": "/private/tmp/goodmemory-v073-candidate-6eb0f87d",
+    "environment": {}
+  },
+  "report": {
+    "bytes": 93435,
+    "path": "/private/tmp/goodmemory-v073-paired.k0lE5a/live-delta.json",
+    "sha256": "dcb1e6448b64461a60b2034074780236715aa337f61fe08a38d18177808fa870"
+  },
+  "schemaVersion": 1,
+  "stderr": {
+    "bytes": 0,
+    "path": "/private/tmp/goodmemory-v073-paired.k0lE5a/live-delta-stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 1974,
+    "path": "/private/tmp/goodmemory-v073-paired.k0lE5a/live-delta-stdout.log",
+    "sha256": "61fe981123530e5c035d2613f1748a7f2ae4182137d4111130ec5397253c04c8"
+  },
+  "worktreeProvenance": {
+    "headCommit": "6eb0f87db23957b7910e50f50618b07d3533b45e",
+    "statusPorcelain": ""
+  }
+}

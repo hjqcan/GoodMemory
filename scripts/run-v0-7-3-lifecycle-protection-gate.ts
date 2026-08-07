@@ -171,7 +171,7 @@ export interface V073FullClaimPlanInput {
 
 interface SmokeCase {
   answerCorrect: boolean | null;
-  answerTokenF1: number;
+  answerTokenF1: number | null;
   caseId: string;
   category: string;
   evidenceRecall: number;
@@ -1231,12 +1231,8 @@ function assertExecutionReceipt(input: {
 }
 
 function assertReportPopulation(report: SmokeReport, label: string): void {
-  if (
-    report.benchmark !== "locomo" ||
-    report.mode !== "live-answer" ||
-    report.answerEvaluation !== "scored"
-  ) {
-    throw new Error(`${label} must be a scored LoCoMo live-answer report`);
+  if (report.benchmark !== "locomo") {
+    throw new Error(`${label} must be a LoCoMo report`);
   }
   if (report.generatedAt.trim().length === 0) {
     throw new Error(`${label} generatedAt is required`);
@@ -1255,7 +1251,9 @@ function assertReportPopulation(report: SmokeReport, label: string): void {
   }
   for (const row of report.cases) {
     assertUnitInterval(row.evidenceRecall, `${label} ${row.questionId} evidenceRecall`);
-    assertUnitInterval(row.answerTokenF1, `${label} ${row.questionId} answerTokenF1`);
+    if (row.answerTokenF1 !== null) {
+      assertUnitInterval(row.answerTokenF1, `${label} ${row.questionId} answerTokenF1`);
+    }
     if (row.executionFailureMessage) {
       throw new Error(`${label} contains a per-question execution failure`);
     }
@@ -1317,6 +1315,12 @@ function assertSeedReport(
   assertCommonReportMetadata({ arm, label, report });
   const execution = arm.execution;
   if (
+    report.mode !== "retrieval-only" ||
+    report.answerEvaluation !== "deferred-to-live-mode" ||
+    report.answerSystem != null ||
+    report.cases.some(
+      (row) => row.answerCorrect !== null || row.answerTokenF1 !== null,
+    ) ||
     report.generatedBy !== execution.seedGeneratedBy ||
     report.resume !== execution.seedResume ||
     report.runId !== execution.seedRunId ||
@@ -1325,9 +1329,6 @@ function assertSeedReport(
       resolve(execution.seedOutputPath, "smoke-report.json")
   ) {
     throw new Error(`${label} must match its seed execution identity`);
-  }
-  if (report.answerSystem !== execution.answerSystem) {
-    throw new Error(`${label} answerSystem must match the default smoke profile`);
   }
 }
 
@@ -1341,6 +1342,9 @@ function assertFinalReport(
   assertCommonReportMetadata({ arm, label, report });
   const execution = arm.execution;
   if (
+    report.mode !== "live-answer" ||
+    report.answerEvaluation !== "scored" ||
+    report.cases.some((row) => row.answerTokenF1 === null) ||
     report.generatedBy !== execution.generatedBy ||
     report.resume !== execution.resume ||
     report.runId !== execution.runId ||
@@ -1748,8 +1752,8 @@ function retrievalAndAnswerMetrics(
       mean(candidateRows.map((row) => row.evidenceRecall)),
     ),
     strictAnswerScore: metricDelta(
-      mean(baselineRows.map((row) => row.answerTokenF1)),
-      mean(candidateRows.map((row) => row.answerTokenF1)),
+      mean(baselineRows.map((row) => row.answerTokenF1!)),
+      mean(candidateRows.map((row) => row.answerTokenF1!)),
     ),
   };
 }
