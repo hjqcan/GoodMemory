@@ -46,6 +46,12 @@ const BENCHMARK_ROOT_BYTES = 2_490_457;
 const QUESTION_SELECTION_SHA256 =
   "43ed915ce851ba4f1501ed0fd995c29611195f8ff71d2c6af57ae9dc118a5c6c";
 const CASE_IDS = ["locomo-conv-26", "locomo-conv-30"] as const;
+const QUESTION_CATEGORIES = [
+  "single_hop",
+  "multi_hop",
+  "temporal",
+  "open_domain",
+] as const;
 const EXPECTED_QUESTION_COUNT = 233;
 const EXPECTED_CASE_COUNTS = {
   "locomo-conv-26": 152,
@@ -619,6 +625,7 @@ export function parseV073ProviderFreeReport(input: {
     mode: string;
     profilesCompared: string[];
     providerReranking: boolean;
+    questionCategories: string[];
     resume: boolean;
     semanticCandidateEmbeddingSource: string;
   };
@@ -636,6 +643,8 @@ export function parseV073ProviderFreeReport(input: {
     JSON.stringify(report.profilesCompared) !==
       JSON.stringify(["goodmemory-recommended"]) ||
     report.providerReranking !== false ||
+    JSON.stringify(report.questionCategories) !==
+      JSON.stringify(QUESTION_CATEGORIES) ||
     report.resume !== false ||
     report.semanticCandidateEmbeddingSource !== "none" ||
     report.questionCount !== EXPECTED_QUESTION_COUNT ||
@@ -857,6 +866,7 @@ export function buildV073ProviderFreeArgs(input: {
     CASE_IDS[0],
     "--case-id",
     CASE_IDS[1],
+    ...QUESTION_CATEGORIES.flatMap((category) => ["--category", category]),
     "--label-free-ingest",
     "--generalized-fusion",
     "--concurrency",

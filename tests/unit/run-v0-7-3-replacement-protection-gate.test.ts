@@ -4,6 +4,7 @@ import { describe, expect, it } from "bun:test";
 
 import {
   assertV073ScenarioOutcome,
+  buildV073ProviderFreeArgs,
   officialQuestionTransitions,
   parseV073ProviderFreeReport,
   parseV073ReplacementGateCliOptions,
@@ -34,6 +35,41 @@ function commandChain(): V073PairedCommandChain {
 }
 
 describe("v0.7.3 replacement protection gate runner", () => {
+  it("derives the provider-free population from the four claim categories", () => {
+    expect(buildV073ProviderFreeArgs({
+      benchmarkRoot: "/tmp/locomo",
+      concurrency: 1,
+      outputDir: "/tmp/evidence",
+      runId: "provider-free-c1",
+    })).toEqual([
+      "run",
+      "scripts/run-phase-65-locomo-smoke.ts",
+      "--",
+      "--benchmark-root",
+      "/tmp/locomo",
+      "--case-id",
+      "locomo-conv-26",
+      "--case-id",
+      "locomo-conv-30",
+      "--category",
+      "single_hop",
+      "--category",
+      "multi_hop",
+      "--category",
+      "temporal",
+      "--category",
+      "open_domain",
+      "--label-free-ingest",
+      "--generalized-fusion",
+      "--concurrency",
+      "1",
+      "--output-dir",
+      "/tmp/evidence",
+      "--run-id",
+      "provider-free-c1",
+    ]);
+  });
+
   it("computes paired transitions from official rows by question identity", () => {
     expect(officialQuestionTransitions(
       [

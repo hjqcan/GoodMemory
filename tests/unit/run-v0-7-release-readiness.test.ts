@@ -1240,6 +1240,12 @@ describe("v0.7 release readiness", () => {
       mode: "retrieval-only",
       profilesCompared: ["goodmemory-recommended"],
       providerReranking: false,
+      questionCategories: [
+        "single_hop",
+        "multi_hop",
+        "temporal",
+        "open_domain",
+      ],
       questionCount: frozenRows.length,
       resume: false,
       semanticCandidateEmbeddingSource: "none",
