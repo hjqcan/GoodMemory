@@ -94,3 +94,24 @@ pass.
   direction is a frozen provider-input manifest plus deterministic ingest and
   retrieval ordering. Do not obtain hits by stripping semantically meaningful
   request fields from the fingerprint.
+
+## Follow-up correction and schema-3 boundary
+
+Later read-only comparison refined the 40 retrieval differences above: all 40
+ordered `retrievedTurnIds` arrays differed, but 38 had different sets and two
+had the same set in a different order. In addition, 210 of the 214 completed
+rows occupied a different completion-order position from discovery.
+
+The best-supported mechanism is v0.7.2 recall reinforcement interacting with
+concurrency-40 completion order, then changing later candidate membership or
+order and listwise reranker request fingerprints. The archived schema-2 tape
+did not retain request bodies or a mismatch ledger, so this is not claimed as
+the uniquely proven cause.
+
+The replacement protocol is now schema 3: provider-free C1/C40 and scenario
+replay remain the deterministic hard gate; the provider diagnostic runs at
+concurrency 1, freezes each discovery arm's ordered provider-input identities,
+and rejects any formal sequence mismatch before returning a cached response.
+This is a new pre-registered diagnostic, not a provider-stack concurrency-40
+measurement. It has not yet produced a passing run and does not change this
+directory's blocked status.

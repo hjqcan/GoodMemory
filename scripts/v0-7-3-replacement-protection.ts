@@ -22,8 +22,11 @@ export interface V073ProviderReplaySession {
   liveRequests: number;
   misses: number;
   mode: "prefetch" | "replay";
+  non2xxResponses: number;
   requestFingerprintMultisetSha256: string;
+  requestSequenceSha256: string;
   requests: number;
+  sequenceMismatches: number;
   targetCounts: Record<string, number>;
   tapeSha256: string;
 }
@@ -42,6 +45,7 @@ export interface V073ReplacementProtectionInput {
     baselineJudgeFailures: number;
     candidateExecutionFailures: number;
     candidateJudgeFailures: number;
+    concurrency: 1;
     discovery: {
       baseline: V073ProviderReplaySession;
       candidate: V073ProviderReplaySession;
@@ -115,7 +119,7 @@ export interface V073ReplacementProtectionReport {
   providerReplay: V073ReplacementProtectionInput["providerReplay"];
   releaseAllowed: boolean;
   researchRecordRequired: boolean;
-  schemaVersion: 2;
+  schemaVersion: 3;
 }
 
 function logAdd(left: number, right: number): number {
@@ -279,7 +283,9 @@ function assertReplaySession(
     session.hits,
     session.liveRequests,
     session.misses,
+    session.non2xxResponses,
     session.requests,
+    session.sequenceMismatches,
   ]) {
     if (!Number.isSafeInteger(value) || value < 0) {
       throw new Error("provider replay counts must be non-negative integers");
@@ -291,9 +297,13 @@ function assertReplaySession(
   if (!SHA256_PATTERN.test(session.requestFingerprintMultisetSha256)) {
     throw new Error("provider replay request multiset must be SHA-256");
   }
+  if (!SHA256_PATTERN.test(session.requestSequenceSha256)) {
+    throw new Error("provider replay request sequence must be SHA-256");
+  }
   if (
     session.requests <= 0 ||
-    session.hits + session.misses + session.coalesced !== session.requests ||
+    session.hits + session.misses + session.coalesced +
+        session.sequenceMismatches !== session.requests ||
     JSON.stringify(Object.keys(session.targetCounts).sort()) !==
       JSON.stringify(["embedding", "eval", "judge"]) ||
     Object.values(session.targetCounts).some(
@@ -306,6 +316,12 @@ function assertReplaySession(
   }
   if (expectedMode === "prefetch" && session.liveRequests !== session.misses) {
     throw new Error("provider prefetch misses must equal live requests");
+  }
+  if (expectedMode === "prefetch" && session.non2xxResponses !== 0) {
+    throw new Error("provider discovery must contain only successful responses");
+  }
+  if (expectedMode === "prefetch" && session.sequenceMismatches !== 0) {
+    throw new Error("provider discovery cannot have input sequence mismatches");
   }
 }
 
@@ -336,6 +352,9 @@ export function evaluateV073ReplacementProtection(
       assertSmokePair(arm);
       return { concurrency: arm.concurrency, ...evidenceMetrics(arm) };
     });
+  if (input.providerReplay.concurrency !== 1) {
+    throw new Error("provider replay diagnostic must use concurrency 1");
+  }
   for (const session of [
     input.providerReplay.discovery.baseline,
     input.providerReplay.discovery.candidate,
@@ -357,12 +376,14 @@ export function evaluateV073ReplacementProtection(
     const discovery = input.providerReplay.discovery[side];
     const formal = input.providerReplay.formal[side];
     if (
+      formal.sequenceMismatches !== 0 ||
+      discovery.requestSequenceSha256 !== formal.requestSequenceSha256 ||
       discovery.requestFingerprintMultisetSha256 !==
         formal.requestFingerprintMultisetSha256 ||
       JSON.stringify(discovery.targetCounts) !== JSON.stringify(formal.targetCounts)
     ) {
       throw new Error(
-        `${side} formal provider replay request census must match discovery`,
+        `${side} formal provider replay input sequence must match discovery`,
       );
     }
   }
@@ -418,7 +439,9 @@ export function evaluateV073ReplacementProtection(
       session.hits !== session.requests ||
       session.misses !== 0 ||
       session.liveRequests !== 0 ||
-      session.coalesced !== 0
+      session.non2xxResponses !== 0 ||
+      session.coalesced !== 0 ||
+      session.sequenceMismatches !== 0
     ) {
       blockers.push(
         `${label} formal provider replay must be non-empty and fully tape-backed`,
@@ -448,7 +471,7 @@ export function evaluateV073ReplacementProtection(
     candidateCommit: input.candidateCommit,
     candidatePromptSha256: input.candidatePromptSha256,
     claimBoundary:
-      "The hard 1.00pt protection decision is carried by provider-free paired retrieval and deterministic scenario replay. Provider-stack responses are prefetched into a SHA-256-bound tape and both formal arms run with network-on-miss disabled. Provider point deltas and the exact paired sign test are diagnostic only; they cannot override the deterministic hard gate. The full 1540-question claim must be rerun at the release commit with frozen replay evidence or an explicit provider-variance spread.",
+      "The hard 1.00pt protection decision is carried by provider-free paired retrieval at concurrency 1 and 40 plus deterministic scenario replay. The provider diagnostic runs at concurrency 1: ordered provider inputs and responses are frozen during discovery, and both formal arms require exact input-sequence replay with network-on-miss disabled. Provider point deltas and the exact paired sign test are diagnostic only; they cannot override the deterministic hard gate. The full 1540-question claim must be rerun at the release commit with frozen replay evidence or an explicit provider-variance spread.",
     fullClaimRerunRequired: true,
     generatedAt: new Date().toISOString(),
     generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
@@ -463,6 +486,6 @@ export function evaluateV073ReplacementProtection(
     providerReplay: input.providerReplay,
     releaseAllowed: blockers.length === 0,
     researchRecordRequired: deterministicMoved || providerMoved,
-    schemaVersion: 2,
+    schemaVersion: 3,
   };
 }

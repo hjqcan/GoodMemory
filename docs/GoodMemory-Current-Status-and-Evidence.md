@@ -13,15 +13,19 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   replacement protection runner, but v0.7.3 is not published. The first
   provider-backed 233-question gate remains archived as blocked; its 11/15
   paired split has exact two-sided `p=0.5571970939636236`, while same-commit
-  provider variance exceeded the original 1pt threshold. A schema-2 rerun must
-  pass the provider-free C1/C40 hard gate, scenario replay, and zero-live
-  formal replay on all registered provider routes before the full 1540-question
-  claim may run. The first schema-2 attempt at candidate `1b3efe83` passed the
-  deterministic arms and provider discovery but is also blocked: baseline
-  formal replay changed 40 of its first 214 retrieved sets and missed the exact
-  tape request census. Its incomplete evidence and attribution are archived at
+  provider variance exceeded the original 1pt threshold. The first schema-2
+  attempt at candidate `1b3efe83` passed the deterministic arms and provider
+  discovery but is also permanently blocked: of its first 214 formal rows, 40
+  ordered retrieved-turn arrays differed from discovery (38 set differences
+  and two order-only differences), and baseline formal replay missed the exact
+  request census. Its incomplete evidence and attribution are archived at
   `reports/release/v0.7/blocked-1b3efe83-replay-miss/`; no full claim rerun,
-  tag, npm publish, or GitHub Release followed.
+  tag, npm publish, or GitHub Release followed. The schema-3 replacement is
+  pre-registered and implemented but has not run: provider-free C1/C40 and
+  scenario replay remain the hard gate, while the concurrency-1 provider
+  diagnostic freezes ordered provider inputs and responses and requires
+  zero-live exact replay. It must pass one new clean attempt before the full
+  1540-question claim may run.
   See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as

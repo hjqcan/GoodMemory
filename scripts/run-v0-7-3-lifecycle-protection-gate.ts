@@ -627,6 +627,11 @@ export function buildV073PairedCommandChain(
     dirname(execution.seedOutputPath),
   );
   seedArgs = replaceFlagValue(seedArgs, "--run-id", execution.seedRunId);
+  seedArgs = replaceFlagValue(
+    seedArgs,
+    "--concurrency",
+    String(execution.concurrency),
+  );
   if (seedArgs.includes("--case-id")) {
     throw new Error("claim recipe seed command must not preselect case ids");
   }
@@ -650,6 +655,11 @@ export function buildV073PairedCommandChain(
     dirname(execution.outputPath),
   );
   reanswerArgs = replaceFlagValue(reanswerArgs, "--run-id", execution.runId);
+  reanswerArgs = replaceFlagValue(
+    reanswerArgs,
+    "--concurrency",
+    String(execution.concurrency),
+  );
   let officialArgs = replaceFlagValue(
     recipe.officialRescore.args,
     "--report",
@@ -664,6 +674,11 @@ export function buildV073PairedCommandChain(
     officialArgs,
     "--run-id",
     execution.officialRunId,
+  );
+  officialArgs = replaceFlagValue(
+    officialArgs,
+    "--concurrency",
+    String(execution.concurrency),
   );
   return {
     seedSmoke: {

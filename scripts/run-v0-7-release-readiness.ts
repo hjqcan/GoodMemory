@@ -16,7 +16,12 @@ import {
   hasCliFlagStrict,
   resolveCliFlagValueStrict,
 } from "./cli-options";
-import { parseProviderResponseTape } from "./provider-response-tape";
+import {
+  fingerprintProviderRequestIdentity,
+  fingerprintProviderRequestSequence,
+  parseProviderResponseTape,
+} from "./provider-response-tape";
+import type { ProviderTapeRequestIdentity } from "./provider-response-tape";
 import {
   renderV073FullClaimCommand,
   V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
@@ -1459,6 +1464,40 @@ function lifecycleArtifactIdentities(value: unknown): ArtifactIdentityShape[] {
   ].filter(isArtifactIdentity);
 }
 
+function providerRequestSequence(
+  value: unknown,
+): ProviderTapeRequestIdentity[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const sequence: ProviderTapeRequestIdentity[] = [];
+  for (const item of value) {
+    if (
+      !isRecord(item) ||
+      typeof item.canonicalBodySha256 !== "string" ||
+      !SHA256_PATTERN.test(item.canonicalBodySha256) ||
+      typeof item.fingerprint !== "string" ||
+      !SHA256_PATTERN.test(item.fingerprint) ||
+      typeof item.method !== "string" ||
+      item.method !== item.method.toUpperCase() ||
+      typeof item.path !== "string" ||
+      item.path.length === 0 ||
+      typeof item.semanticHeadersSha256 !== "string" ||
+      !SHA256_PATTERN.test(item.semanticHeadersSha256) ||
+      typeof item.targetId !== "string" ||
+      item.targetId.length === 0
+    ) {
+      return null;
+    }
+    const identity = item as unknown as ProviderTapeRequestIdentity;
+    if (fingerprintProviderRequestIdentity(identity) !== identity.fingerprint) {
+      return null;
+    }
+    sequence.push({ ...identity });
+  }
+  return sequence;
+}
+
 function isProviderReplaySession(value: unknown, mode: "prefetch" | "replay"): boolean {
   if (
     !isRecord(value) ||
@@ -1478,8 +1517,16 @@ function isProviderReplaySession(value: unknown, mode: "prefetch" | "replay"): b
     typeof value.coalesced !== "number" ||
     !Number.isSafeInteger(value.coalesced) ||
     value.coalesced < 0 ||
+    typeof value.non2xxResponses !== "number" ||
+    !Number.isSafeInteger(value.non2xxResponses) ||
+    value.non2xxResponses < 0 ||
     typeof value.requestFingerprintMultisetSha256 !== "string" ||
     !SHA256_PATTERN.test(value.requestFingerprintMultisetSha256) ||
+    typeof value.requestSequenceSha256 !== "string" ||
+    !SHA256_PATTERN.test(value.requestSequenceSha256) ||
+    typeof value.sequenceMismatches !== "number" ||
+    !Number.isSafeInteger(value.sequenceMismatches) ||
+    value.sequenceMismatches < 0 ||
     typeof value.tapeSha256 !== "string" ||
     !SHA256_PATTERN.test(value.tapeSha256) ||
     !isRecord(value.targetCounts)
@@ -1498,15 +1545,18 @@ function isProviderReplaySession(value: unknown, mode: "prefetch" | "replay"): b
       0,
     ) ===
       value.requests &&
-    value.hits + value.misses + value.coalesced === value.requests;
+    value.hits + value.misses + value.coalesced + value.sequenceMismatches ===
+      value.requests;
   return Boolean(
     validCensus &&
+    value.non2xxResponses === 0 &&
     (mode === "prefetch"
-      ? value.liveRequests === value.misses
+      ? value.liveRequests === value.misses && value.sequenceMismatches === 0
       : value.hits === value.requests &&
         value.misses === 0 &&
         value.liveRequests === 0 &&
-        value.coalesced === 0)
+        value.coalesced === 0 &&
+        value.sequenceMismatches === 0)
   );
 }
 
@@ -1522,8 +1572,8 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
     const hardGate = input.artifact.hardGate;
     const providerReplay = input.artifact.providerReplay;
     const liveDiagnostic = input.artifact.liveDiagnostic;
-    if (input.artifact.schemaVersion !== 2) {
-      issues.push("schemaVersion must be 2");
+    if (input.artifact.schemaVersion !== 3) {
+      issues.push("schemaVersion must be 3");
     }
     if (
       input.artifact.generatedBy !==
@@ -1586,6 +1636,7 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
     }
     if (
       !isRecord(providerReplay) ||
+      providerReplay.concurrency !== 1 ||
       !isRecord(providerReplay.discovery) ||
       !isRecord(providerReplay.formal) ||
       !isProviderReplaySession(providerReplay.discovery.baseline, "prefetch") ||
@@ -1598,11 +1649,19 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
       providerReplay.formal.baseline.liveRequests !== 0 ||
       providerReplay.formal.candidate.misses !== 0 ||
       providerReplay.formal.candidate.liveRequests !== 0 ||
+      providerReplay.formal.baseline.sequenceMismatches !== 0 ||
+      providerReplay.formal.candidate.sequenceMismatches !== 0 ||
       providerReplay.formal.baseline.tapeSha256 !== providerReplay.tapeSha256 ||
-      providerReplay.formal.candidate.tapeSha256 !== providerReplay.tapeSha256
+      providerReplay.formal.candidate.tapeSha256 !== providerReplay.tapeSha256 ||
+      !isRecord(providerReplay.discovery.baseline) ||
+      !isRecord(providerReplay.discovery.candidate) ||
+      providerReplay.formal.baseline.requestSequenceSha256 !==
+        providerReplay.discovery.baseline.requestSequenceSha256 ||
+      providerReplay.formal.candidate.requestSequenceSha256 !==
+        providerReplay.discovery.candidate.requestSequenceSha256
     ) {
       issues.push(
-        "formal provider replay must be fully tape-backed on registered provider routes and bound to one frozen tape",
+        "formal provider replay must use deterministic concurrency, exactly replay frozen inputs, and remain fully tape-backed",
       );
     }
     if (
@@ -1804,7 +1863,7 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd" ||
       manifest.benchmark.sha256 !==
         "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28" ||
-      manifest.schemaVersion !== 2 ||
+      manifest.schemaVersion !== 3 ||
       manifest.generatedBy !==
         "scripts/run-v0-7-3-replacement-protection-gate.ts" ||
       !sameJson(manifest.providers, expectedProviders) ||
@@ -1816,7 +1875,11 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
       protocol.hardRegressionLimit !== 0.01 ||
       protocol.promptSha256 !== deriveV073PromptSha256() ||
       !sameJson(protocol.providerFreeConcurrency, [1, 40]) ||
+      protocol.providerReplayConcurrency !== 1 ||
+      protocolInput.providerReplay.concurrency !== 1 ||
       protocol.signTestAlpha !== 0.05 ||
+      protocol.tapeInputIdentity !==
+        "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest" ||
       protocol.tapeRequestIdentity !==
         "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)" ||
       manifest.baseline.commit !== protocolInput.baselineCommit ||
@@ -1994,24 +2057,47 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
       liveRequests: value.liveRequests,
       misses: value.misses,
       mode: value.mode,
+      non2xxResponses: value.non2xxResponses,
       requestFingerprintMultisetSha256:
         value.requestFingerprintMultisetSha256,
+      requestSequenceSha256: value.requestSequenceSha256,
       requests: value.requests,
+      sequenceMismatches: value.sequenceMismatches,
       targetCounts: value.targetCounts,
       tapeSha256: value.tapeSha256,
     });
+    const observedSequences: ProviderTapeRequestIdentity[][] = [];
     for (const [raw, expected] of [
       [baselineDiscoveryReceiptRaw, protocolInput.providerReplay.discovery.baseline],
       [candidateDiscoveryReceiptRaw, protocolInput.providerReplay.discovery.candidate],
       [baselineFormalReceiptRaw, protocolInput.providerReplay.formal.baseline],
       [candidateFormalReceiptRaw, protocolInput.providerReplay.formal.candidate],
     ] as const) {
+      const session = receiptSession(raw);
+      const sequence = providerRequestSequence(session.requestSequence);
       if (
-        JSON.stringify(comparableSession(receiptSession(raw))) !==
+        sequence === null ||
+        sequence.length !== session.requests ||
+        !Array.isArray(session.sequenceMismatchDetails) ||
+        session.sequenceMismatchDetails.length !== session.sequenceMismatches ||
+        fingerprintProviderRequestSequence(sequence) !==
+          session.requestSequenceSha256
+      ) {
+        throw new Error("provider replay receipt input sequence is invalid");
+      }
+      observedSequences.push(sequence);
+      if (
+        JSON.stringify(comparableSession(session)) !==
           JSON.stringify(expected)
       ) {
         throw new Error("provider replay receipt session does not match protocol input");
       }
+    }
+    if (
+      !sameJson(observedSequences[0], observedSequences[2]) ||
+      !sameJson(observedSequences[1], observedSequences[3])
+    ) {
+      throw new Error("formal provider input sequence does not match discovery");
     }
     const receiptBindings = [
       [
@@ -2164,6 +2250,17 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
           !isRecord(invocation.environment)
         ) {
           throw new Error("provider replay command chain is invalid");
+        }
+        const concurrencyIndexes = invocation.args.flatMap(
+          (value, index) => value === "--concurrency" ? [index] : [],
+        );
+        if (
+          concurrencyIndexes.length !== 1 ||
+          invocation.args[concurrencyIndexes[0]! + 1] !== "1"
+        ) {
+          throw new Error(
+            "provider replay command chain must use concurrency 1",
+          );
         }
         const activeProviders = step === "seedSmoke"
           ? ["assisted", "embedding", "eval", "reranking"] as const

@@ -8,6 +8,7 @@ import { describe, expect, it } from "bun:test";
 
 import {
   fingerprintProviderRequest,
+  fingerprintProviderRequestSequence,
   serializeProviderResponseTape,
 } from "../../scripts/provider-response-tape";
 import {
@@ -1046,8 +1047,11 @@ describe("v0.7 release readiness", () => {
       liveRequests: 0,
       misses: 0,
       mode: "replay",
+      non2xxResponses: 0,
       requestFingerprintMultisetSha256: "e".repeat(64),
+      requestSequenceSha256: "d".repeat(64),
       requests: 10,
+      sequenceMismatches: 0,
       targetCounts: { embedding: 2, eval: 7, judge: 1 },
       tapeSha256,
     };
@@ -1109,6 +1113,7 @@ describe("v0.7 release readiness", () => {
         baselineJudgeFailures: 0,
         candidateExecutionFailures: 0,
         candidateJudgeFailures: 0,
+        concurrency: 1 as const,
         discovery: {
           baseline: { ...providerSession, mode: "prefetch" },
           candidate: { ...providerSession, mode: "prefetch" },
@@ -1120,7 +1125,7 @@ describe("v0.7 release readiness", () => {
       },
       releaseAllowed: true,
       researchRecordRequired: false,
-      schemaVersion: 2,
+      schemaVersion: 3,
     };
 
     expect(evaluateV073LifecycleProtectionArtifact({
@@ -1129,6 +1134,14 @@ describe("v0.7 release readiness", () => {
     })).toEqual(expect.objectContaining({
       id: "v0.7.3-lifecycle-protection",
       status: "pass",
+    }));
+
+    expect(evaluateV073LifecycleProtectionArtifact({
+      artifact: { ...artifact, schemaVersion: 2 },
+      artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+    })).toEqual(expect.objectContaining({
+      detail: expect.stringContaining("schemaVersion must be 3"),
+      status: "fail",
     }));
 
     expect(evaluateV073LifecycleProtectionArtifact({
@@ -1144,6 +1157,23 @@ describe("v0.7 release readiness", () => {
 
     expect(evaluateV073LifecycleProtectionArtifact({
       artifact: { ...artifact, releaseAllowed: false },
+      artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+    })).toEqual(expect.objectContaining({ status: "fail" }));
+
+    expect(evaluateV073LifecycleProtectionArtifact({
+      artifact: {
+        ...artifact,
+        providerReplay: {
+          ...artifact.providerReplay,
+          discovery: {
+            ...artifact.providerReplay.discovery,
+            baseline: {
+              ...artifact.providerReplay.discovery.baseline,
+              non2xxResponses: 1,
+            },
+          },
+        },
+      },
       artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
     })).toEqual(expect.objectContaining({ status: "fail" }));
 
@@ -1186,7 +1216,7 @@ describe("v0.7 release readiness", () => {
     }));
   });
 
-  it("recomputes schema 2 lifecycle evidence from bound deterministic and frozen-replay bytes", async () => {
+  it("recomputes schema 3 lifecycle evidence from bound deterministic and frozen-replay bytes", async () => {
     const repoRoot = await mkdtemp(join(tmpdir(), "goodmemory-v073-replacement-bundle-"));
     const evidencePrefix = "reports/release/v0.7/v0.7.3-lifecycle-evidence";
     const candidateCommit = "a".repeat(40);
@@ -1309,14 +1339,24 @@ describe("v0.7 release readiness", () => {
           .sort(([left], [right]) => left.localeCompare(right)),
       ))
       .digest("hex");
+    const requestSequence = tapeEntries.map((entry) => ({
+      fingerprint: entry.fingerprint,
+      ...entry.request,
+    }));
+    const requestSequenceSha256 = fingerprintProviderRequestSequence(
+      requestSequence,
+    );
     const replaySession = {
       coalesced: 0,
       hits: 3,
       liveRequests: 0,
       misses: 0,
       mode: "replay" as const,
+      non2xxResponses: 0,
       requestFingerprintMultisetSha256,
+      requestSequenceSha256,
       requests: 3,
+      sequenceMismatches: 0,
       targetCounts: { embedding: 1, eval: 1, judge: 1 },
       tapeSha256,
     };
@@ -1326,10 +1366,23 @@ describe("v0.7 release readiness", () => {
       liveRequests: 3,
       misses: 3,
       mode: "prefetch" as const,
+      non2xxResponses: 0,
       requestFingerprintMultisetSha256,
+      requestSequenceSha256,
       requests: 3,
+      sequenceMismatches: 0,
       targetCounts: { embedding: 1, eval: 1, judge: 1 },
       tapeSha256,
+    };
+    const replayReceiptSession = {
+      ...replaySession,
+      requestSequence,
+      sequenceMismatchDetails: [],
+    };
+    const discoveryReceiptSession = {
+      ...discoverySession,
+      requestSequence,
+      sequenceMismatchDetails: [],
     };
     const protocolInput = {
       baselineCommit: "456edd106f29118b3455bf21c43d7b3107b48213",
@@ -1352,6 +1405,7 @@ describe("v0.7 release readiness", () => {
         baselineJudgeFailures: 0,
         candidateExecutionFailures: 0,
         candidateJudgeFailures: 0,
+        concurrency: 1 as const,
         discovery: {
           baseline: discoverySession,
           candidate: discoverySession,
@@ -1466,12 +1520,15 @@ describe("v0.7 release readiness", () => {
           hardRegressionLimit: 0.01,
           promptSha256: sourceIdentity.promptSha256,
           providerFreeConcurrency: [1, 40],
+          providerReplayConcurrency: 1,
           signTestAlpha: 0.05,
+          tapeInputIdentity:
+            "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest",
           tapeRequestIdentity:
             "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)",
         },
         providers,
-        schemaVersion: 2,
+        schemaVersion: 3,
       };
       const sharedStdout = await writeEvidence("logs/stdout.log", "8 pass\n0 fail\n");
       const sharedStderr = await writeEvidence("logs/stderr.log", "");
@@ -1561,7 +1618,7 @@ describe("v0.7 release readiness", () => {
         commit: string;
         formalStage: boolean;
         name: string;
-        session: typeof replaySession | typeof discoverySession;
+        session: typeof replayReceiptSession | typeof discoveryReceiptSession;
         stage: string;
         worktreePath: string;
       }) => {
@@ -1627,7 +1684,7 @@ describe("v0.7 release readiness", () => {
           commit: protocolInput.baselineCommit,
           formalStage: false,
           name: "provider-replay/baseline-discovery.json",
-          session: discoverySession,
+          session: discoveryReceiptSession,
           stage: "baseline-discovery",
           worktreePath: baselineWorktree,
         }),
@@ -1635,7 +1692,7 @@ describe("v0.7 release readiness", () => {
           commit: candidateCommit,
           formalStage: false,
           name: "provider-replay/candidate-discovery.json",
-          session: discoverySession,
+          session: discoveryReceiptSession,
           stage: "candidate-discovery",
           worktreePath: candidateWorktree,
         }),
@@ -1643,7 +1700,7 @@ describe("v0.7 release readiness", () => {
           commit: protocolInput.baselineCommit,
           formalStage: true,
           name: "provider-replay/baseline-formal.json",
-          session: replaySession,
+          session: replayReceiptSession,
           stage: "baseline-formal",
           worktreePath: baselineWorktree,
         }),
@@ -1651,7 +1708,7 @@ describe("v0.7 release readiness", () => {
           commit: candidateCommit,
           formalStage: true,
           name: "provider-replay/candidate-formal.json",
-          session: replaySession,
+          session: replayReceiptSession,
           stage: "candidate-formal",
           worktreePath: candidateWorktree,
         }),
@@ -1699,7 +1756,9 @@ describe("v0.7 release readiness", () => {
         { formalNetworkOnMiss: true },
         { hardRegressionLimit: 0.02 },
         { providerFreeConcurrency: [1] },
+        { providerReplayConcurrency: 40 },
         { signTestAlpha: 0.1 },
+        { tapeInputIdentity: "unordered" },
         { tapeRequestIdentity: "body-only" },
       ]) {
         const driftedManifestRaw = json({
@@ -1790,6 +1849,62 @@ describe("v0.7 release readiness", () => {
         repoRoot,
       })).toEqual(expect.objectContaining({
         detail: expect.stringContaining("drifted from the recipe"),
+        status: "fail",
+      }));
+      await writeFile(join(repoRoot, candidateFormalReceipt.path), formalReceiptRaw);
+      Object.assign(
+        artifact.artifacts.providerReplay.candidateFormalReceipt,
+        evidenceIdentity(candidateFormalReceipt.path, formalReceiptRaw),
+      );
+
+      const reorderedFormalReceipt = JSON.parse(formalReceiptRaw) as {
+        session: { requestSequence: unknown[] };
+      };
+      reorderedFormalReceipt.session.requestSequence.reverse();
+      const reorderedFormalRaw = json(reorderedFormalReceipt);
+      await writeFile(
+        join(repoRoot, candidateFormalReceipt.path),
+        reorderedFormalRaw,
+      );
+      Object.assign(
+        artifact.artifacts.providerReplay.candidateFormalReceipt,
+        evidenceIdentity(candidateFormalReceipt.path, reorderedFormalRaw),
+      );
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath:
+          "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining("input sequence is invalid"),
+        status: "fail",
+      }));
+      await writeFile(join(repoRoot, candidateFormalReceipt.path), formalReceiptRaw);
+      Object.assign(
+        artifact.artifacts.providerReplay.candidateFormalReceipt,
+        evidenceIdentity(candidateFormalReceipt.path, formalReceiptRaw),
+      );
+
+      const missingMismatchLedgerReceipt = JSON.parse(formalReceiptRaw) as {
+        session: { sequenceMismatchDetails?: unknown[] };
+      };
+      delete missingMismatchLedgerReceipt.session.sequenceMismatchDetails;
+      const missingMismatchLedgerRaw = json(missingMismatchLedgerReceipt);
+      await writeFile(
+        join(repoRoot, candidateFormalReceipt.path),
+        missingMismatchLedgerRaw,
+      );
+      Object.assign(
+        artifact.artifacts.providerReplay.candidateFormalReceipt,
+        evidenceIdentity(candidateFormalReceipt.path, missingMismatchLedgerRaw),
+      );
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath:
+          "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining("input sequence is invalid"),
         status: "fail",
       }));
       await writeFile(join(repoRoot, candidateFormalReceipt.path), formalReceiptRaw);

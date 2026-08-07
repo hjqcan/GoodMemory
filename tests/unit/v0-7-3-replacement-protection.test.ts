@@ -29,8 +29,11 @@ function replaySession(input: {
   liveRequests?: number;
   misses?: number;
   mode?: "prefetch" | "replay";
+  non2xxResponses?: number;
   requestFingerprintMultisetSha256?: string;
+  requestSequenceSha256?: string;
   requests?: number;
+  sequenceMismatches?: number;
   targetCounts?: Record<string, number>;
   tapeSha256?: string;
 } = {}) {
@@ -42,9 +45,12 @@ function replaySession(input: {
     liveRequests: input.liveRequests ?? misses,
     misses,
     mode: input.mode ?? "replay",
+    non2xxResponses: input.non2xxResponses ?? 0,
     requestFingerprintMultisetSha256:
       input.requestFingerprintMultisetSha256 ?? "c".repeat(64),
+    requestSequenceSha256: input.requestSequenceSha256 ?? "d".repeat(64),
     requests,
+    sequenceMismatches: input.sequenceMismatches ?? 0,
     targetCounts: input.targetCounts ?? { embedding: 3, eval: 8, judge: 1 },
     tapeSha256: input.tapeSha256 ?? TAPE_SHA256,
   };
@@ -72,6 +78,7 @@ function protectionInput(): V073ReplacementProtectionInput {
       baselineJudgeFailures: 0,
       candidateExecutionFailures: 0,
       candidateJudgeFailures: 0,
+      concurrency: 1,
       discovery: {
         baseline: replaySession({
           hits: 2,
@@ -132,6 +139,7 @@ describe("v0.7.3 replacement protection protocol", () => {
     expect(report.providerReplay.discovery.candidate.misses).toBe(3);
     expect(report.providerReplay.formal.candidate.liveRequests).toBe(0);
     expect(report.liveDiagnostic.signTest.pValue).toBeCloseTo(0.5571970939636236, 14);
+    expect(report.schemaVersion).toBe(3);
   });
 
   it("blocks a deterministic regression beyond one point", () => {
@@ -211,6 +219,34 @@ describe("v0.7.3 replacement protection protocol", () => {
 
     expect(() => evaluateV073ReplacementProtection(input)).toThrow(
       "formal provider replay sessions must use the frozen tape fingerprint",
+    );
+  });
+
+  it("rejects discovery attempts that observed a non-2xx response", () => {
+    const input = protectionInput();
+    input.providerReplay.discovery.baseline = replaySession({
+      hits: 1,
+      liveRequests: 11,
+      misses: 11,
+      mode: "prefetch",
+      non2xxResponses: 1,
+    });
+
+    expect(() => evaluateV073ReplacementProtection(input)).toThrow(
+      "provider discovery must contain only successful responses",
+    );
+  });
+
+  it("rejects any formal provider input sequence drift", () => {
+    const input = protectionInput();
+    input.providerReplay.formal.baseline = replaySession({
+      hits: 11,
+      requestSequenceSha256: "e".repeat(64),
+      sequenceMismatches: 1,
+    });
+
+    expect(() => evaluateV073ReplacementProtection(input)).toThrow(
+      "baseline formal provider replay input sequence must match discovery",
     );
   });
 

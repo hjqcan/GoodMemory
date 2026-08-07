@@ -5,6 +5,7 @@ import { describe, expect, it } from "bun:test";
 import {
   createProviderResponseTapeProxy,
   fingerprintProviderRequest,
+  fingerprintProviderRequestSequence,
   parseProviderResponseTape,
   serializeProviderResponseTape,
 } from "../../scripts/provider-response-tape";
@@ -186,6 +187,90 @@ describe("provider response tape", () => {
     }
   });
 
+  it("freezes provider inputs in order and rejects an out-of-order cached response", async () => {
+    let upstreamRequests = 0;
+    const upstream = Bun.serve({
+      hostname: "127.0.0.1",
+      port: 0,
+      fetch: async (request) => {
+        upstreamRequests += 1;
+        return new Response(await request.text());
+      },
+    });
+    const discovery = createProviderResponseTapeProxy({
+      targets: { eval: `http://127.0.0.1:${upstream.port}/v1` },
+    });
+    try {
+      discovery.beginSession({
+        liveOnMiss: true,
+        mode: "prefetch",
+        name: "discovery",
+      });
+      for (const content of ["first", "second"]) {
+        const response = await fetch(
+          `${discovery.baseUrl("eval")}/chat/completions`,
+          {
+            body: JSON.stringify({ content, model: "m" }),
+            headers: { "content-type": "application/json" },
+            method: "POST",
+          },
+        );
+        expect(response.status).toBe(200);
+      }
+      const discovered = discovery.endSession();
+      expect(discovered.requestSequence).toHaveLength(2);
+      expect(discovered.requestSequenceSha256).toBe(
+        fingerprintProviderRequestSequence(discovered.requestSequence),
+      );
+      expect(JSON.stringify(discovered.requestSequence)).not.toContain("first");
+
+      const replay = createProviderResponseTapeProxy({
+        initialTape: discovery.snapshot(),
+        targets: { eval: `http://127.0.0.1:${upstream.port}/v1` },
+      });
+      try {
+        replay.beginSession({
+          expectedRequestSequence: discovered.requestSequence,
+          liveOnMiss: false,
+          mode: "replay",
+          name: "formal",
+        });
+        const response = await fetch(
+          `${replay.baseUrl("eval")}/chat/completions`,
+          {
+            body: JSON.stringify({ content: "second", model: "m" }),
+            headers: { "content-type": "application/json" },
+            method: "POST",
+          },
+        );
+
+        expect(response.status).toBe(409);
+        const replayStats = replay.endSession();
+        expect(replayStats).toMatchObject({
+          hits: 0,
+          liveRequests: 0,
+          misses: 0,
+          requests: 1,
+          sequenceMismatchDetails: [{
+            actual: discovered.requestSequence[1],
+            expected: discovered.requestSequence[0],
+            index: 0,
+          }],
+          sequenceMismatches: 1,
+        });
+        expect(JSON.stringify(replayStats.sequenceMismatchDetails)).not.toContain(
+          "second",
+        );
+        expect(upstreamRequests).toBe(2);
+      } finally {
+        replay.stop();
+      }
+    } finally {
+      discovery.stop();
+      upstream.stop(true);
+    }
+  });
+
   it("single-flights concurrent misses for the same fingerprint", async () => {
     let upstreamRequests = 0;
     const upstream = Bun.serve({
@@ -334,7 +419,11 @@ describe("provider response tape", () => {
       expect((await request()).status).toBe(503);
       expect(upstreamRequests).toBe(2);
       expect(proxy.snapshot().entries).toEqual([]);
-      expect(proxy.endSession()).toMatchObject({ liveRequests: 2, misses: 2 });
+      expect(proxy.endSession()).toMatchObject({
+        liveRequests: 2,
+        misses: 2,
+        non2xxResponses: 2,
+      });
     } finally {
       proxy.stop();
       upstream.stop(true);

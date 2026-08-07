@@ -17,6 +17,7 @@ import {
 } from "./provider-response-tape";
 import type {
   ProviderResponseTapeProxy,
+  ProviderTapeRequestIdentity,
   ProviderTapeSessionStats,
 } from "./provider-response-tape";
 import {
@@ -107,6 +108,13 @@ interface CapturedProcess {
   exitCode: number | null;
   stderr: string;
   stdout: string;
+}
+
+interface CapturedProcessInput {
+  args: readonly string[];
+  command: string;
+  cwd: string;
+  environment?: Record<string, string>;
 }
 
 interface ArtifactIdentity {
@@ -254,12 +262,7 @@ export function routeV073CommandChainThroughTape(
   };
 }
 
-function runCapturedProcess(input: {
-  args: readonly string[];
-  command: string;
-  cwd: string;
-  environment?: Record<string, string>;
-}): Promise<CapturedProcess> {
+function runCapturedProcess(input: CapturedProcessInput): Promise<CapturedProcess> {
   return new Promise((resolveProcess, reject) => {
     const child = spawn(input.command, input.args, {
       cwd: input.cwd,
@@ -450,7 +453,7 @@ export function buildV073StageArm(input: {
     claimCommandTemplateSha256:
       deriveV073ClaimCommandTemplateSha256(input.claimRecipeRaw),
     claimSourceSha256: sha256(input.claimRecipeRaw),
-    concurrency: 40,
+    concurrency: 1,
     embeddingGateway: input.providers.embedding.gateway,
     embeddingModel: input.providers.embedding.model,
     embeddingProvider: input.providers.embedding.provider,
@@ -573,6 +576,16 @@ export function assertV073ProviderStageCanContinue(
   mode: "prefetch" | "replay",
   session: ProviderTapeSessionStats,
 ): void {
+  if (mode === "prefetch" && session.non2xxResponses !== 0) {
+    throw new Error(
+      `provider discovery observed ${session.non2xxResponses} non-2xx response(s)`,
+    );
+  }
+  if (mode === "replay" && session.sequenceMismatches !== 0) {
+    throw new Error(
+      `formal provider replay observed ${session.sequenceMismatches} input sequence mismatch(es)`,
+    );
+  }
   if (mode === "replay" && session.misses !== 0) {
     throw new Error(
       `formal provider replay observed ${session.misses} tape miss(es)`,
@@ -741,14 +754,17 @@ export function parseV073ProviderFreeReport(input: {
   return report;
 }
 
-async function runProviderStage(input: {
+export async function runV073ProviderStage(input: {
   arm: V073ProtectionArmManifest;
   claimRecipeRaw: string;
+  expectedRequestSequence?: readonly ProviderTapeRequestIdentity[];
   liveOnMiss: boolean;
   mode: "prefetch" | "replay";
   proxy: ProviderResponseTapeProxy;
   stage: string;
-}): Promise<ProviderStageResult> {
+}, dependencies: {
+  runProcess(input: CapturedProcessInput): Promise<CapturedProcess>;
+} = { runProcess: runCapturedProcess }): Promise<ProviderStageResult> {
   await Promise.all([
     assertPathAbsent(input.arm.execution.seedOutputPath, `${input.stage} seed output`),
     assertPathAbsent(input.arm.execution.outputPath, `${input.stage} final output`),
@@ -760,6 +776,9 @@ async function runProviderStage(input: {
     { replayCredentials: input.mode === "replay" },
   );
   input.proxy.beginSession({
+    ...(input.expectedRequestSequence === undefined
+      ? {}
+      : { expectedRequestSequence: input.expectedRequestSequence }),
     liveOnMiss: input.liveOnMiss,
     mode: input.mode,
     name: input.stage,
@@ -770,7 +789,7 @@ async function runProviderStage(input: {
   try {
     for (const step of V073_PROVIDER_STAGE_ORDER) {
       const invocation = chain[step];
-      const result = await runCapturedProcess({
+      const result = await dependencies.runProcess({
         args: invocation.args,
         command: invocation.command,
         cwd: invocation.cwd,
@@ -1119,8 +1138,11 @@ function replaySession(stats: ProviderTapeSessionStats): V073ProviderReplaySessi
     liveRequests: stats.liveRequests,
     misses: stats.misses,
     mode: stats.mode,
+    non2xxResponses: stats.non2xxResponses,
     requestFingerprintMultisetSha256: stats.requestFingerprintMultisetSha256,
+    requestSequenceSha256: stats.requestSequenceSha256,
     requests: stats.requests,
+    sequenceMismatches: stats.sequenceMismatches,
     targetCounts: stats.targetCounts,
     tapeSha256: stats.tapeSha256,
   };
@@ -1209,12 +1231,15 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       hardRegressionLimit: 0.01,
       promptSha256: deriveV073PromptSha256(),
       providerFreeConcurrency: [1, 40],
+      providerReplayConcurrency: 1,
       signTestAlpha: 0.05,
+      tapeInputIdentity:
+        "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest",
       tapeRequestIdentity:
         "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)",
     },
     providers,
-    schemaVersion: 2,
+    schemaVersion: 3,
   });
 
   const [providerFreeC1Baseline, providerFreeC1Candidate] = await Promise.all([
@@ -1279,7 +1304,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       stage: "baseline-discovery",
       worktreePath: baselineWorktree,
     });
-    baselineDiscovery = await runProviderStage({
+    baselineDiscovery = await runV073ProviderStage({
       ...baselineDiscoveryArm,
       liveOnMiss: true,
       mode: "prefetch",
@@ -1294,7 +1319,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       stage: "candidate-discovery",
       worktreePath: candidateWorktree,
     });
-    candidateDiscovery = await runProviderStage({
+    candidateDiscovery = await runV073ProviderStage({
       ...candidateDiscoveryArm,
       liveOnMiss: true,
       mode: "prefetch",
@@ -1326,8 +1351,9 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       stage: "baseline-formal",
       worktreePath: baselineWorktree,
     });
-    baselineFormal = await runProviderStage({
+    baselineFormal = await runV073ProviderStage({
       ...baselineFormalArm,
+      expectedRequestSequence: baselineDiscovery.session.requestSequence,
       liveOnMiss: false,
       mode: "replay",
       proxy: replayProxy,
@@ -1341,8 +1367,9 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       stage: "candidate-formal",
       worktreePath: candidateWorktree,
     });
-    candidateFormal = await runProviderStage({
+    candidateFormal = await runV073ProviderStage({
       ...candidateFormalArm,
+      expectedRequestSequence: candidateDiscovery.session.requestSequence,
       liveOnMiss: false,
       mode: "replay",
       proxy: replayProxy,
@@ -1374,6 +1401,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       baselineJudgeFailures: baselineFormal.officialSummary.judgeFailures,
       candidateExecutionFailures: candidateFormal.finalReport.executionFailures,
       candidateJudgeFailures: candidateFormal.officialSummary.judgeFailures,
+      concurrency: 1,
       discovery: {
         baseline: replaySession(baselineDiscovery.session),
         candidate: replaySession(candidateDiscovery.session),

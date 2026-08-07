@@ -1,18 +1,25 @@
 import { readFileSync } from "node:fs";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 import { describe, expect, it } from "bun:test";
 
+import { createProviderResponseTapeProxy } from "../../scripts/provider-response-tape";
 import {
   assertV073ProviderStageCanContinue,
   assertV073SeedStageReport,
   assertV073ScenarioOutcome,
   buildV073ProviderFreeArgs,
+  buildV073StageArm,
   officialQuestionTransitions,
   parseV073ProviderFreeReport,
   parseV073ReplacementGateCliOptions,
   routeV073CommandChainThroughTape,
+  runV073ProviderStage,
   V073_PROVIDER_STAGE_ORDER,
 } from "../../scripts/run-v0-7-3-replacement-protection-gate";
+import { buildV073PairedCommandChain } from "../../scripts/run-v0-7-3-lifecycle-protection-gate";
 import type { V073PairedCommandChain } from "../../scripts/run-v0-7-3-lifecycle-protection-gate";
 
 function commandChain(): V073PairedCommandChain {
@@ -45,11 +52,36 @@ describe("v0.7.3 replacement protection gate runner", () => {
       misses: 1,
       mode: "replay",
       name: "baseline-formal",
+      non2xxResponses: 0,
       requestFingerprintMultisetSha256: "a".repeat(64),
+      requestSequence: [],
+      requestSequenceSha256: "c".repeat(64),
       requests: 11,
+      sequenceMismatchDetails: [],
+      sequenceMismatches: 0,
       tapeSha256: "b".repeat(64),
       targetCounts: { eval: 11 },
     })).toThrow("formal provider replay observed 1 tape miss");
+  });
+
+  it("invalidates discovery after any non-2xx provider response", () => {
+    expect(() => assertV073ProviderStageCanContinue("prefetch", {
+      coalesced: 0,
+      hits: 0,
+      liveRequests: 1,
+      misses: 1,
+      mode: "prefetch",
+      name: "baseline-discovery",
+      non2xxResponses: 1,
+      requestFingerprintMultisetSha256: "a".repeat(64),
+      requestSequence: [],
+      requestSequenceSha256: "c".repeat(64),
+      requests: 1,
+      sequenceMismatchDetails: [],
+      sequenceMismatches: 0,
+      tapeSha256: "b".repeat(64),
+      targetCounts: { eval: 1 },
+    })).toThrow("provider discovery observed 1 non-2xx response(s)");
   });
 
   it("rejects seed execution failures before downstream provider stages", () => {
@@ -120,6 +152,212 @@ describe("v0.7.3 replacement protection gate runner", () => {
       "reanswer",
       "officialRescore",
     ]);
+  });
+
+  it("pins every provider diagnostic stage to deterministic concurrency one", () => {
+    const claimRecipeRaw = readFileSync("benchmark-claims/locomo.json", "utf8");
+    const { arm } = buildV073StageArm({
+      benchmarkRoot: join(
+        homedir(),
+        ".cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1",
+      ),
+      claimRecipeRaw,
+      commit: "a".repeat(40),
+      outputDir: "/tmp/v073-provider-c1",
+      providers: {
+        assisted: {
+          gateway: "https://ai.gurkiai.com/v1",
+          model: "gpt-5.6-terra",
+          provider: "openai",
+        },
+        embedding: {
+          gateway: "https://openrouter.ai/api/v1",
+          model: "text-embedding-3-small",
+          provider: "openai",
+        },
+        eval: {
+          gateway: "https://ai.gurkiai.com/v1",
+          model: "gpt-5.6-terra",
+          provider: "openai",
+        },
+        judge: {
+          gateway: "https://ai.gurkiai.com/v1",
+          model: "gpt-5.5",
+          provider: "openai",
+        },
+        reranking: {
+          gateway: "https://ai.gurkiai.com/v1",
+          model: "gpt-5.6-terra",
+          provider: "openai",
+        },
+      },
+      sourceIdentity: {
+        officialSourceSha256: "b".repeat(64),
+        reanswerSourceSha256: "c".repeat(64),
+        seedSourceSha256: "d".repeat(64),
+      },
+      stage: "baseline-discovery",
+      worktreePath: process.cwd(),
+    });
+    const chain = buildV073PairedCommandChain(arm, claimRecipeRaw);
+    const concurrency = (args: readonly string[]): string => {
+      const index = args.indexOf("--concurrency");
+      return args[index + 1]!;
+    };
+
+    expect(arm.execution.concurrency).toBe(1);
+    expect(concurrency(chain.seedSmoke.args)).toBe("1");
+    expect(concurrency(chain.reanswer.args)).toBe("1");
+    expect(concurrency(chain.officialRescore.args)).toBe("1");
+  });
+
+  it("persists a hash-only receipt before a formal sequence mismatch aborts", async () => {
+    const root = await mkdtemp(join(process.cwd(), ".goodmemory-v073-stage-"));
+    const rawRequestMarker = "raw-sequence-mismatch-content";
+    const liveKeyMarker = "live-provider-key-marker";
+    const upstream = Bun.serve({
+      hostname: "127.0.0.1",
+      port: 0,
+      fetch: () => Response.json({ choices: [{ message: { content: "ok" } }] }),
+    });
+    const targets = Object.fromEntries(
+      ["assisted", "embedding", "eval", "judge", "reranking"].map(
+        (target) => [target, `http://127.0.0.1:${upstream.port}/v1`],
+      ),
+    );
+    const discovery = createProviderResponseTapeProxy({ targets });
+    let replay: ReturnType<typeof createProviderResponseTapeProxy> | undefined;
+    const previousKey = process.env.GOODMEMORY_EVAL_API_KEY;
+    process.env.GOODMEMORY_EVAL_API_KEY = liveKeyMarker;
+    try {
+      discovery.beginSession({
+        liveOnMiss: true,
+        mode: "prefetch",
+        name: "discovery",
+      });
+      const expectedResponse = await fetch(
+        `${discovery.baseUrl("eval")}/chat/completions`,
+        {
+          body: JSON.stringify({ content: "expected", model: "m" }),
+          headers: { "content-type": "application/json" },
+          method: "POST",
+        },
+      );
+      expect(expectedResponse.status).toBe(200);
+      const expectedSequence = discovery.endSession().requestSequence;
+      replay = createProviderResponseTapeProxy({
+        initialTape: discovery.snapshot(),
+        targets,
+      });
+      const claimRecipeRaw = readFileSync("benchmark-claims/locomo.json", "utf8");
+      const { arm } = buildV073StageArm({
+        benchmarkRoot: join(
+          homedir(),
+          ".cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1",
+        ),
+        claimRecipeRaw,
+        commit: "a".repeat(40),
+        outputDir: join(root, "evidence"),
+        providers: {
+          assisted: {
+            gateway: "https://ai.gurkiai.com/v1",
+            model: "gpt-5.6-terra",
+            provider: "openai",
+          },
+          embedding: {
+            gateway: "https://openrouter.ai/api/v1",
+            model: "text-embedding-3-small",
+            provider: "openai",
+          },
+          eval: {
+            gateway: "https://ai.gurkiai.com/v1",
+            model: "gpt-5.6-terra",
+            provider: "openai",
+          },
+          judge: {
+            gateway: "https://ai.gurkiai.com/v1",
+            model: "gpt-5.5",
+            provider: "openai",
+          },
+          reranking: {
+            gateway: "https://ai.gurkiai.com/v1",
+            model: "gpt-5.6-terra",
+            provider: "openai",
+          },
+        },
+        sourceIdentity: {
+          officialSourceSha256: "b".repeat(64),
+          reanswerSourceSha256: "c".repeat(64),
+          seedSourceSha256: "d".repeat(64),
+        },
+        stage: "baseline-formal",
+        worktreePath: root,
+      });
+
+      await expect(runV073ProviderStage({
+        arm,
+        claimRecipeRaw,
+        expectedRequestSequence: expectedSequence,
+        liveOnMiss: false,
+        mode: "replay",
+        proxy: replay,
+        stage: "baseline-formal",
+      }, {
+        runProcess: async ({ environment }) => {
+          const response = await fetch(
+            `${environment!.GOODMEMORY_EVAL_BASE_URL}/chat/completions`,
+            {
+              body: JSON.stringify({
+                content: rawRequestMarker,
+                model: "m",
+              }),
+              headers: { "content-type": "application/json" },
+              method: "POST",
+            },
+          );
+          expect(response.status).toBe(409);
+          return { exitCode: 1, stderr: "", stdout: "" };
+        },
+      })).rejects.toThrow("baseline-formal seedSmoke exited with 1");
+
+      const receiptRaw = await readFile(arm.executionReceiptPath, "utf8");
+      const receipt = JSON.parse(receiptRaw) as {
+        session: {
+          sequenceMismatchDetails: Array<{
+            actual: { path: string; targetId: string };
+            expected: { path: string; targetId: string } | null;
+            index: number;
+          }>;
+          sequenceMismatches: number;
+        };
+      };
+      expect(receipt.session.sequenceMismatches).toBe(1);
+      expect(receipt.session.sequenceMismatchDetails).toEqual([
+        expect.objectContaining({
+          actual: expect.objectContaining({
+            path: "/chat/completions",
+            targetId: "eval",
+          }),
+          expected: expect.objectContaining({
+            path: "/chat/completions",
+            targetId: "eval",
+          }),
+          index: 0,
+        }),
+      ]);
+      expect(receiptRaw).not.toContain(rawRequestMarker);
+      expect(receiptRaw).not.toContain(liveKeyMarker);
+    } finally {
+      if (previousKey === undefined) {
+        delete process.env.GOODMEMORY_EVAL_API_KEY;
+      } else {
+        process.env.GOODMEMORY_EVAL_API_KEY = previousKey;
+      }
+      replay?.stop();
+      discovery.stop();
+      upstream.stop(true);
+      await rm(root, { force: true, recursive: true });
+    }
   });
 
   it("routes only provider base URLs through their logical tape lanes", () => {

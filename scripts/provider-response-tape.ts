@@ -26,6 +26,21 @@ export interface ProviderResponseTape {
   schemaVersion: 2;
 }
 
+export interface ProviderTapeRequestIdentity {
+  canonicalBodySha256: string;
+  fingerprint: string;
+  method: string;
+  path: string;
+  semanticHeadersSha256: string;
+  targetId: string;
+}
+
+export interface ProviderTapeSequenceMismatch {
+  actual: ProviderTapeRequestIdentity;
+  expected: ProviderTapeRequestIdentity | null;
+  index: number;
+}
+
 export interface ProviderTapeSessionStats {
   coalesced: number;
   hits: number;
@@ -33,13 +48,19 @@ export interface ProviderTapeSessionStats {
   misses: number;
   mode: ProviderTapeMode;
   name: string;
+  non2xxResponses: number;
   requestFingerprintMultisetSha256: string;
+  requestSequence: ProviderTapeRequestIdentity[];
+  requestSequenceSha256: string;
   requests: number;
+  sequenceMismatchDetails: ProviderTapeSequenceMismatch[];
+  sequenceMismatches: number;
   targetCounts: Record<string, number>;
   tapeSha256: string;
 }
 
 interface ProviderTapeSessionConfig {
+  expectedRequestSequence?: readonly ProviderTapeRequestIdentity[];
   liveOnMiss: boolean;
   mode: ProviderTapeMode;
   name: string;
@@ -50,8 +71,12 @@ interface ActiveProviderTapeSession extends ProviderTapeSessionConfig {
   hits: number;
   liveRequests: number;
   misses: number;
+  non2xxResponses: number;
   requestFingerprintCounts: Map<string, number>;
+  requestSequence: ProviderTapeRequestIdentity[];
   requests: number;
+  sequenceMismatchDetails: ProviderTapeSequenceMismatch[];
+  sequenceMismatches: number;
   targetCounts: Map<string, number>;
 }
 
@@ -117,7 +142,7 @@ function semanticHeadersSha256(headers?: HeadersInit): string {
   return sha256(JSON.stringify(entries));
 }
 
-function fingerprintProviderRequestIdentity(input: {
+export function fingerprintProviderRequestIdentity(input: {
   canonicalBodySha256: string;
   method: string;
   path: string;
@@ -132,6 +157,28 @@ function fingerprintProviderRequestIdentity(input: {
     semanticHeadersSha256: input.semanticHeadersSha256,
     targetId: input.targetId,
   }));
+}
+
+function isProviderTapeRequestIdentity(
+  value: ProviderTapeRequestIdentity,
+): boolean {
+  return /^[0-9a-f]{64}$/u.test(value.canonicalBodySha256) &&
+    /^[0-9a-f]{64}$/u.test(value.fingerprint) &&
+    value.method.length > 0 &&
+    value.method === value.method.toUpperCase() &&
+    value.path.length > 0 &&
+    /^[0-9a-f]{64}$/u.test(value.semanticHeadersSha256) &&
+    value.targetId.length > 0 &&
+    fingerprintProviderRequestIdentity(value) === value.fingerprint;
+}
+
+export function fingerprintProviderRequestSequence(
+  sequence: readonly ProviderTapeRequestIdentity[],
+): string {
+  if (sequence.some((identity) => !isProviderTapeRequestIdentity(identity))) {
+    throw new Error("provider input sequence contains an invalid request identity");
+  }
+  return sha256(JSON.stringify(sequence));
 }
 
 export function fingerprintProviderRequest(input: {
@@ -285,22 +332,55 @@ export function createProviderResponseTapeProxy(input: {
       const path = `/${pathParts.join("/")}${url.search}`;
       const bodyBytes = new Uint8Array(await request.arrayBuffer());
       const body = new TextDecoder().decode(bodyBytes);
-      const fingerprint = fingerprintProviderRequest({
-        body,
-        headers: request.headers,
-        method: request.method,
+      const requestIdentity: ProviderTapeRequestIdentity = {
+        canonicalBodySha256: sha256(canonicalRequestBody(body)),
+        fingerprint: fingerprintProviderRequest({
+          body,
+          headers: request.headers,
+          method: request.method,
+          path,
+          targetId,
+        }),
+        method: request.method.toUpperCase(),
         path,
+        semanticHeadersSha256: semanticHeadersSha256(request.headers),
         targetId,
-      });
+      };
+      const { fingerprint } = requestIdentity;
       session.requests += 1;
       session.requestFingerprintCounts.set(
         fingerprint,
         (session.requestFingerprintCounts.get(fingerprint) ?? 0) + 1,
       );
+      session.requestSequence.push(requestIdentity);
       session.targetCounts.set(
         targetId,
         (session.targetCounts.get(targetId) ?? 0) + 1,
       );
+
+      const expected = session.expectedRequestSequence?.[
+        session.requestSequence.length - 1
+      ];
+      if (
+        session.expectedRequestSequence !== undefined &&
+        expected?.fingerprint !== fingerprint
+      ) {
+        session.sequenceMismatches += 1;
+        session.sequenceMismatchDetails.push({
+          actual: { ...requestIdentity },
+          expected: expected === undefined ? null : { ...expected },
+          index: session.requestSequence.length - 1,
+        });
+        return Response.json(
+          {
+            actual: fingerprint,
+            error: "provider input sequence mismatch",
+            expected: expected?.fingerprint ?? null,
+            index: session.requestSequence.length - 1,
+          },
+          { status: 409 },
+        );
+      }
 
       const recorded = entries.get(fingerprint);
       if (recorded !== undefined) {
@@ -334,6 +414,9 @@ export function createProviderResponseTapeProxy(input: {
           signal: request.signal,
         });
         const responseBody = new Uint8Array(await response.arrayBuffer());
+        if (!response.ok) {
+          session.non2xxResponses += 1;
+        }
         const entry: ProviderResponseTapeEntry = {
           fingerprint,
           request: {
@@ -387,12 +470,27 @@ export function createProviderResponseTapeProxy(input: {
       misses: activeSession.misses,
       mode: activeSession.mode,
       name: activeSession.name,
+      non2xxResponses: activeSession.non2xxResponses,
       requestFingerprintMultisetSha256: sha256(JSON.stringify(
         [...activeSession.requestFingerprintCounts.entries()].sort(
           ([left], [right]) => left.localeCompare(right),
         ),
       )),
+      requestSequence: activeSession.requestSequence.map((identity) => ({
+        ...identity,
+      })),
+      requestSequenceSha256: fingerprintProviderRequestSequence(
+        activeSession.requestSequence,
+      ),
       requests: activeSession.requests,
+      sequenceMismatchDetails: activeSession.sequenceMismatchDetails.map(
+        ({ actual, expected, index }) => ({
+          actual: { ...actual },
+          expected: expected === null ? null : { ...expected },
+          index,
+        }),
+      ),
+      sequenceMismatches: activeSession.sequenceMismatches,
       targetCounts: Object.fromEntries(
         [...activeSession.targetCounts.entries()].sort(
           ([left], [right]) => left.localeCompare(right),
@@ -416,14 +514,33 @@ export function createProviderResponseTapeProxy(input: {
       if (inFlight.size !== 0) {
         throw new Error("provider tape proxy still has live requests");
       }
+      if (
+        config.expectedRequestSequence !== undefined &&
+        (config.mode !== "replay" || config.liveOnMiss)
+      ) {
+        throw new Error("expected provider inputs require offline replay mode");
+      }
+      const expectedRequestSequence = config.expectedRequestSequence?.map(
+        (identity) => ({ ...identity }),
+      );
+      if (expectedRequestSequence !== undefined) {
+        fingerprintProviderRequestSequence(expectedRequestSequence);
+      }
       activeSession = {
         ...config,
+        ...(expectedRequestSequence === undefined
+          ? {}
+          : { expectedRequestSequence }),
         coalesced: 0,
         hits: 0,
         liveRequests: 0,
         misses: 0,
+        non2xxResponses: 0,
         requestFingerprintCounts: new Map(),
+        requestSequence: [],
         requests: 0,
+        sequenceMismatchDetails: [],
+        sequenceMismatches: 0,
         targetCounts: new Map(),
       };
     },

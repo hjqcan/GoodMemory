@@ -1,6 +1,7 @@
 # GoodMemory v0.7.3 Replacement Protection Protocol
 
-Status: pre-registered implementation; no passing run and no release yet
+Status: schema-3 pre-registration; schema-2 replay attempt blocked; no passing
+run and no release yet
 Date: 2026-08-07
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
@@ -18,6 +19,25 @@ statistically significant at the pre-registered `alpha=0.05`. This does not
 retroactively pass the old gate: the original point-threshold rule correctly
 blocked, and its evidence under
 `reports/release/v0.7/blocked-6eb0f87d/` remains byte-for-byte historical.
+
+The first schema-2 response-tape attempt is also permanently blocked. Its
+provider-free c1/c40 and scenario layers passed, but the formal baseline replay
+missed request fingerprints. Of the 214 formal rows written before the stop,
+210 occupied a different completion-order position than discovery. Forty
+ordered retrieved-turn arrays differed: 38 had different sets and two differed
+only in order. The assisted-extraction candidates were byte-equivalent after
+canonical ordering.
+
+The best-supported mechanism is that v0.7.2 writes access state after recall
+while 40 questions run concurrently, so live completion order can decide which
+recalls first reinforce shared facts. A different completion order can then
+change later rankings and reranker request bodies. The archived schema-2 tape
+did not retain request bodies or a mismatch ledger, so this is not claimed as
+the uniquely proven cause. Replaying concurrency 40 while preserving the
+baseline's shared-state semantics would require either reproducing the relevant
+completion schedule or introducing a more invasive deterministic observation
+barrier. Neither is necessary for this protection decision. Schema 2 is not
+accepted as release evidence even if a later run happens to avoid misses.
 
 ## Release decision
 
@@ -47,7 +67,7 @@ noise list/count to match before evaluating the hard comparison.
 The candidate also runs `bun test tests/scenarios`; it must exit successfully,
 report zero failures, and report at least one passing scenario.
 
-### 2. Frozen provider-response replay
+### 2. Frozen provider-input and provider-response replay
 
 A runner-local OpenAI-compatible loopback proxy overrides all five registered
 provider routes. This LoCoMo chain must actually produce non-empty `eval`,
@@ -56,15 +76,28 @@ routed so they cannot silently escape if invoked, but their expected zero count
 is not presented as wire evidence. The proxy does not modify `src/`, either
 detached checkout, public APIs, or stored data.
 
+All seed, reanswer, and official-rescore commands in this provider diagnostic
+run at concurrency 1. The command chain is still mechanically derived from the
+claim recipe; the diagnostic changes only the protected case selection,
+run/output identities, and concurrency. Concurrency 40 remains covered by the
+provider-free hard gate above. Provider point results are diagnostic and are
+not presented as a throughput or production-concurrency measurement.
+
 The discovery sequence is:
 
 1. Run the baseline with live-on-miss enabled and record successful provider
    responses.
 2. Run the candidate with the baseline tape; go live only for candidate misses
    and extend the union tape. Neither discovery output is scored.
-3. Atomically write the union tape, read it back through the strict parser, and
+3. Freeze each discovery arm's ordered provider-input manifest. Every entry
+   contains the request fingerprint plus logical target, method, path/query,
+   canonical-body digest, and semantic-header digest; it contains no raw prompt
+   or credential.
+4. Atomically write the union tape, read it back through the strict parser, and
    start a new proxy from those bytes.
-4. Run fresh baseline and candidate formal arms with live-on-miss disabled.
+5. Run fresh baseline and candidate formal arms with live-on-miss disabled and
+   the corresponding discovery input manifest installed as the expected
+   sequence. A sequence mismatch fails before a tape response is returned.
 
 Every schema-2 request fingerprint is SHA-256 over logical target, HTTP method,
 path/query, canonical JSON-body digest, and a digest of response-semantic
@@ -72,18 +105,23 @@ headers. The body binds the actual model, prompt/messages, response format,
 reasoning effort, token limit, and temperature. Credentials, hop-by-hop fields,
 and trace IDs are excluded from the header digest; Authorization is forwarded
 during discovery but never persisted. Redirects are not followed. The tape
-stores only successful 2xx status, content type, and exact response bytes.
-Concurrent identical misses are single-flighted; duplicate fingerprints,
-corrupt bytes, non-matching request/response hashes, and last-write-wins
-evidence are rejected.
+stores only successful 2xx status, content type, and exact response bytes; any
+live non-2xx response invalidates the discovery attempt. Concurrent identical
+misses are single-flighted; duplicate fingerprints, corrupt bytes, non-matching
+request/response hashes, and last-write-wins evidence are rejected.
 
 The report records discovery hits/misses/live calls, formal hits/misses/live
-calls, tape SHA-256, entry count, per-target distribution, and request-multiset
-fingerprints. Each formal arm must be non-empty, satisfy `hits=requests`, have
-`misses=liveRequests=coalesced=0`, and reproduce its discovery arm's request
-multiset and target census against the same tape. These conditions prove zero
-live calls on the registered GoodMemory provider routes; they are not a claim
-of process-wide egress isolation. A transport or judge execution failure
+calls, tape SHA-256, entry count, per-target distribution, request-multiset
+fingerprints, ordered request-sequence fingerprints, and zero/non-zero sequence
+mismatch counts. Each formal arm must be non-empty, satisfy `hits=requests`,
+have `misses=liveRequests=coalesced=sequenceMismatches=0`, and reproduce its
+discovery arm's exact ordered input sequence and target census against the same
+tape. On the first mismatch, the receipt retains the index and expected/actual
+request identities (hashes and route metadata only, with no raw prompt). The
+independent verifier re-hashes the ordered identities from each receipt instead
+of trusting the stored sequence digest. These conditions prove zero live calls
+on the registered GoodMemory provider routes; they are not a claim of
+process-wide egress isolation. A transport or judge execution failure
 invalidates the evidence. Provider point deltas do not use a raw 1pt release
 threshold and cannot override the deterministic gate.
 
@@ -132,10 +170,11 @@ bun run gate:v0.7.3-lifecycle-protection -- \
   --output-dir reports/release/v0.7/v0.7.3-lifecycle-evidence
 ```
 
-The only accepted compact result is
+The only accepted compact result is schema 3 at
 `reports/release/v0.7/v0.7.3-lifecycle-protection.json`. `gate:v0.7 --strict`
-re-reads every bound artifact, re-parses the tape, recomputes deterministic
-metrics and the sign test, and rejects schema-1 evidence.
+re-reads every bound artifact, re-parses the tape, re-hashes the frozen input
+sequences, recomputes deterministic metrics and the sign test, and rejects
+schema-1 and schema-2 evidence.
 
 The measurement runner validates the external `cases.json` against the frozen
 byte count and SHA-256. The tracked manifest retains that identity and the
