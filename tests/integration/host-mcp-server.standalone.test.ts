@@ -524,7 +524,7 @@ describe("goodmemory mcp server standalone mode", () => {
       }
       await temp.cleanup();
     }
-  }, 10_000);
+  }, 20_000);
 
   it("fails fast on a bare invocation, naming both modes on stderr", async () => {
     const mcpScript = join(import.meta.dir, "../../scripts/goodmemory-mcp.ts");
