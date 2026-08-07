@@ -111,7 +111,11 @@ the disclosed provider-backed or evidence-pack profiles. Because `v0.7.0`
 changed LanguagePack and recall semantics, they remain historical 0.6 evidence,
 not current-package performance claims or claims about the zero-provider
 default; no row is promoted as a current `v0.7.3` claim until a fresh run passes
-the same gate.
+the same gate. The v0.7.3 rerun must bind frozen provider-response evidence; if
+a published score instead uses a fresh live provider draw, the claim must state
+an observed or explicitly heuristic run-to-run spread. Sub-point movements may
+not be presented as meaningful uplift without evidence that separates them
+from provider variance.
 LongMemEval is withdrawn pending a clean rerun: the historical rules-only path
 used answer annotations, and the later label-free path exposed raw
 `answer_*` session IDs to retrieval and the reader. ImplicitMemBench's

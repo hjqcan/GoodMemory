@@ -16,19 +16,32 @@ import {
   hasCliFlagStrict,
   resolveCliFlagValueStrict,
 } from "./cli-options";
-import { resolveRepoRootFromScriptUrl } from "./script-paths";
-import {
-  buildV073FullClaimCommandChain,
-  deriveV073ClaimCommandTemplateSha256,
-  deriveV073PromptSha256,
-  evaluateV073LifecycleProtection,
-  type V073LifecycleProtectionEvaluationInput,
-} from "./run-v0-7-3-lifecycle-protection-gate";
+import { parseProviderResponseTape } from "./provider-response-tape";
 import {
   renderV073FullClaimCommand,
   V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
   V073_FULL_LOCOMO_QUESTION_SELECTION_SHA256,
 } from "./run-v0-7-3-full-locomo-claim";
+import {
+  buildV073FullClaimCommandChain,
+  buildV073PairedCommandChain,
+  deriveV073ClaimCommandTemplateSha256,
+  deriveV073PromptSha256,
+} from "./run-v0-7-3-lifecycle-protection-gate";
+import {
+  buildV073ProviderFreeArgs,
+  buildV073StageArm,
+  officialQuestionTransitions,
+  parseV073FormalSmokeReport,
+  parseV073OfficialProgress,
+  parseV073OfficialSummary,
+  parseV073ProviderFreeReport,
+  routeV073CommandChainThroughTape,
+  V073_PROVIDER_STAGE_ORDER,
+} from "./run-v0-7-3-replacement-protection-gate";
+import { resolveRepoRootFromScriptUrl } from "./script-paths";
+import { evaluateV073ReplacementProtection } from "./v0-7-3-replacement-protection";
+import type { V073ReplacementProtectionInput } from "./v0-7-3-replacement-protection";
 
 const RELEASE_LINE = "0.7";
 const RELEASE_VERSION = "0.7.3";
@@ -1357,6 +1370,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function sha256(value: string | Uint8Array): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
 interface ArtifactIdentityShape {
   bytes: number;
   path: string;
@@ -1377,75 +1394,120 @@ function isArtifactIdentity(value: unknown): value is ArtifactIdentityShape {
 }
 
 function hasLifecycleArtifactIdentities(value: unknown): boolean {
-  if (!isRecord(value) || !isRecord(value.baseline) || !isRecord(value.candidate)) {
+  if (
+    !isRecord(value) ||
+    !isRecord(value.providerFree) ||
+    !isRecord(value.providerReplay)
+  ) {
     return false;
   }
   return [
-    value.baseline.claimRecipeSource,
-    value.baseline.executionReceipt,
-    value.baseline.officialSummary,
-    value.baseline.officialProgress,
-    value.baseline.officialRunnerSource,
-    value.baseline.reanswerRunnerSource,
-    value.baseline.report,
-    value.baseline.seedReport,
-    value.baseline.seedRunnerSource,
-    value.candidate.claimRecipeSource,
-    value.candidate.executionReceipt,
-    value.candidate.officialSummary,
-    value.candidate.officialProgress,
-    value.candidate.officialRunnerSource,
-    value.candidate.reanswerRunnerSource,
-    value.candidate.report,
-    value.candidate.seedReport,
-    value.candidate.seedRunnerSource,
-    value.liveDelta,
-    value.liveDeltaAnalyzerSource,
-    value.liveDeltaExecutionReceipt,
-    value.liveDeltaStderr,
-    value.liveDeltaStdout,
     value.manifest,
-    value.scenarioExecutionReceipt,
-    value.scenarioReplay,
-    value.scenarioStderr,
-    value.scenarioStdout,
+    value.protocolInput,
+    value.providerFree.c1Baseline,
+    value.providerFree.c1BaselineReceipt,
+    value.providerFree.c1Candidate,
+    value.providerFree.c1CandidateReceipt,
+    value.providerFree.c40Baseline,
+    value.providerFree.c40BaselineReceipt,
+    value.providerFree.c40Candidate,
+    value.providerFree.c40CandidateReceipt,
+    value.providerReplay.baselineDiscoveryReceipt,
+    value.providerReplay.baselineFormalOfficial,
+    value.providerReplay.baselineFormalProgress,
+    value.providerReplay.baselineFormalReport,
+    value.providerReplay.baselineFormalReceipt,
+    value.providerReplay.candidateDiscoveryReceipt,
+    value.providerReplay.candidateFormalOfficial,
+    value.providerReplay.candidateFormalProgress,
+    value.providerReplay.candidateFormalReport,
+    value.providerReplay.candidateFormalReceipt,
+    value.providerReplay.tape,
+    value.scenarioReceipt,
   ].every(isArtifactIdentity);
 }
 
 function lifecycleArtifactIdentities(value: unknown): ArtifactIdentityShape[] {
-  if (!isRecord(value) || !isRecord(value.baseline) || !isRecord(value.candidate)) {
+  if (!hasLifecycleArtifactIdentities(value) || !isRecord(value)) {
     return [];
   }
+  const providerFree = value.providerFree as Record<string, unknown>;
+  const providerReplay = value.providerReplay as Record<string, unknown>;
   return [
-    value.baseline.claimRecipeSource,
-    value.baseline.executionReceipt,
-    value.baseline.officialSummary,
-    value.baseline.officialProgress,
-    value.baseline.officialRunnerSource,
-    value.baseline.reanswerRunnerSource,
-    value.baseline.report,
-    value.baseline.seedReport,
-    value.baseline.seedRunnerSource,
-    value.candidate.claimRecipeSource,
-    value.candidate.executionReceipt,
-    value.candidate.officialSummary,
-    value.candidate.officialProgress,
-    value.candidate.officialRunnerSource,
-    value.candidate.reanswerRunnerSource,
-    value.candidate.report,
-    value.candidate.seedReport,
-    value.candidate.seedRunnerSource,
-    value.liveDelta,
-    value.liveDeltaAnalyzerSource,
-    value.liveDeltaExecutionReceipt,
-    value.liveDeltaStderr,
-    value.liveDeltaStdout,
     value.manifest,
-    value.scenarioExecutionReceipt,
-    value.scenarioReplay,
-    value.scenarioStderr,
-    value.scenarioStdout,
+    value.protocolInput,
+    providerFree.c1Baseline,
+    providerFree.c1BaselineReceipt,
+    providerFree.c1Candidate,
+    providerFree.c1CandidateReceipt,
+    providerFree.c40Baseline,
+    providerFree.c40BaselineReceipt,
+    providerFree.c40Candidate,
+    providerFree.c40CandidateReceipt,
+    providerReplay.baselineDiscoveryReceipt,
+    providerReplay.baselineFormalOfficial,
+    providerReplay.baselineFormalProgress,
+    providerReplay.baselineFormalReport,
+    providerReplay.baselineFormalReceipt,
+    providerReplay.candidateDiscoveryReceipt,
+    providerReplay.candidateFormalOfficial,
+    providerReplay.candidateFormalProgress,
+    providerReplay.candidateFormalReport,
+    providerReplay.candidateFormalReceipt,
+    providerReplay.tape,
+    value.scenarioReceipt,
   ].filter(isArtifactIdentity);
+}
+
+function isProviderReplaySession(value: unknown, mode: "prefetch" | "replay"): boolean {
+  if (
+    !isRecord(value) ||
+    value.mode !== mode ||
+    typeof value.requests !== "number" ||
+    !Number.isSafeInteger(value.requests) ||
+    value.requests <= 0 ||
+    typeof value.hits !== "number" ||
+    !Number.isSafeInteger(value.hits) ||
+    value.hits < 0 ||
+    typeof value.misses !== "number" ||
+    !Number.isSafeInteger(value.misses) ||
+    value.misses < 0 ||
+    typeof value.liveRequests !== "number" ||
+    !Number.isSafeInteger(value.liveRequests) ||
+    value.liveRequests < 0 ||
+    typeof value.coalesced !== "number" ||
+    !Number.isSafeInteger(value.coalesced) ||
+    value.coalesced < 0 ||
+    typeof value.requestFingerprintMultisetSha256 !== "string" ||
+    !SHA256_PATTERN.test(value.requestFingerprintMultisetSha256) ||
+    typeof value.tapeSha256 !== "string" ||
+    !SHA256_PATTERN.test(value.tapeSha256) ||
+    !isRecord(value.targetCounts)
+  ) {
+    return false;
+  }
+  const targetCounts = value.targetCounts;
+  const validCensus =
+    JSON.stringify(Object.keys(targetCounts).sort()) ===
+      JSON.stringify(["embedding", "eval", "judge"]) &&
+    Object.values(targetCounts).every(
+      (count) => typeof count === "number" && Number.isSafeInteger(count) && count > 0,
+    ) &&
+    Object.values(targetCounts).reduce<number>(
+      (sum, count) => sum + Number(count),
+      0,
+    ) ===
+      value.requests &&
+    value.hits + value.misses + value.coalesced === value.requests;
+  return Boolean(
+    validCensus &&
+    (mode === "prefetch"
+      ? value.liveRequests === value.misses
+      : value.hits === value.requests &&
+        value.misses === 0 &&
+        value.liveRequests === 0 &&
+        value.coalesced === 0)
+  );
 }
 
 export function evaluateV073LifecycleProtectionArtifact(input: {
@@ -1456,14 +1518,16 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
   if (!isRecord(input.artifact)) {
     issues.push("artifact must be a JSON object");
   } else {
-    const scenario = input.artifact.scenarioReplay;
     const artifacts = input.artifact.artifacts;
-    if (input.artifact.schemaVersion !== 1) {
-      issues.push("schemaVersion must be 1");
+    const hardGate = input.artifact.hardGate;
+    const providerReplay = input.artifact.providerReplay;
+    const liveDiagnostic = input.artifact.liveDiagnostic;
+    if (input.artifact.schemaVersion !== 2) {
+      issues.push("schemaVersion must be 2");
     }
     if (
       input.artifact.generatedBy !==
-        "scripts/run-v0-7-3-lifecycle-protection-gate.ts"
+        "scripts/run-v0-7-3-replacement-protection-gate.ts"
     ) {
       issues.push("generatedBy must identify the lifecycle protection gate");
     }
@@ -1491,10 +1555,9 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
     }
     if (
       typeof input.artifact.claimBoundary !== "string" ||
-      !input.artifact.claimBoundary.includes("omits --answer-profile") ||
-      !input.artifact.claimBoundary.includes("0.8799")
+      !input.artifact.claimBoundary.includes("provider-variance")
     ) {
-      issues.push("artifact must retain the current-recipe and historical-claim boundary");
+      issues.push("artifact must retain the provider-variance claim boundary");
     }
     if (!hasLifecycleArtifactIdentities(artifacts)) {
       issues.push("source artifact identities must contain paths and hashes");
@@ -1506,50 +1569,54 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
       issues.push("all source artifacts must live in the tracked lifecycle evidence bundle");
     }
     if (
-      !isRecord(scenario) ||
-      scenario.candidateCommit !== input.artifact.candidateCommit ||
-      scenario.command !== "bun test tests/scenarios" ||
-      scenario.failures !== 0 ||
-      typeof scenario.passed !== "number" ||
-      !Number.isSafeInteger(scenario.passed) ||
-      scenario.passed < 1 ||
-      typeof scenario.reportPath !== "string" ||
-      typeof scenario.reportSha256 !== "string" ||
-      !SHA256_PATTERN.test(scenario.reportSha256) ||
-      typeof scenario.executionReceiptPath !== "string" ||
-      typeof scenario.executionReceiptSha256 !== "string" ||
-      !SHA256_PATTERN.test(scenario.executionReceiptSha256) ||
-      typeof scenario.stdoutPath !== "string" ||
-      typeof scenario.stdoutSha256 !== "string" ||
-      !SHA256_PATTERN.test(scenario.stdoutSha256) ||
-      typeof scenario.stderrPath !== "string" ||
-      typeof scenario.stderrSha256 !== "string" ||
-      !SHA256_PATTERN.test(scenario.stderrSha256)
+      !isRecord(hardGate) ||
+      !Array.isArray(hardGate.providerFree) ||
+      JSON.stringify(
+        hardGate.providerFree.map((arm) =>
+          isRecord(arm) ? arm.concurrency : null
+        ),
+      ) !== JSON.stringify([1, 40]) ||
+      !isRecord(hardGate.scenarioReplay) ||
+      hardGate.scenarioReplay.failures !== 0 ||
+      typeof hardGate.scenarioReplay.passed !== "number" ||
+      !Number.isSafeInteger(hardGate.scenarioReplay.passed) ||
+      hardGate.scenarioReplay.passed < 1
+    ) {
+      issues.push("deterministic hard gates must contain C1, C40, and a clean scenario replay");
+    }
+    if (
+      !isRecord(providerReplay) ||
+      !isRecord(providerReplay.discovery) ||
+      !isRecord(providerReplay.formal) ||
+      !isProviderReplaySession(providerReplay.discovery.baseline, "prefetch") ||
+      !isProviderReplaySession(providerReplay.discovery.candidate, "prefetch") ||
+      !isProviderReplaySession(providerReplay.formal.baseline, "replay") ||
+      !isProviderReplaySession(providerReplay.formal.candidate, "replay") ||
+      !isRecord(providerReplay.formal.baseline) ||
+      !isRecord(providerReplay.formal.candidate) ||
+      providerReplay.formal.baseline.misses !== 0 ||
+      providerReplay.formal.baseline.liveRequests !== 0 ||
+      providerReplay.formal.candidate.misses !== 0 ||
+      providerReplay.formal.candidate.liveRequests !== 0 ||
+      providerReplay.formal.baseline.tapeSha256 !== providerReplay.tapeSha256 ||
+      providerReplay.formal.candidate.tapeSha256 !== providerReplay.tapeSha256
     ) {
       issues.push(
-        "scenario replay candidate commit and report bytes are not bound to the artifact",
+        "formal provider replay must be fully tape-backed on registered provider routes and bound to one frozen tape",
       );
-    } else if (isRecord(artifacts)) {
-      const scenarioIdentities = [
-        [artifacts.scenarioReplay, scenario.reportPath, scenario.reportSha256],
-        [
-          artifacts.scenarioExecutionReceipt,
-          scenario.executionReceiptPath,
-          scenario.executionReceiptSha256,
-        ],
-        [artifacts.scenarioStdout, scenario.stdoutPath, scenario.stdoutSha256],
-        [artifacts.scenarioStderr, scenario.stderrPath, scenario.stderrSha256],
-      ] as const;
-      if (
-        scenarioIdentities.some(
-          ([identity, path, fingerprint]) =>
-            !isArtifactIdentity(identity) ||
-            identity.path !== path ||
-            identity.sha256 !== fingerprint,
-        )
-      ) {
-        issues.push("scenario replay identity does not match the source artifact map");
-      }
+    }
+    if (
+      !isRecord(liveDiagnostic) ||
+      !isRecord(liveDiagnostic.signTest) ||
+      liveDiagnostic.signTest.test !== "exact_two_sided_sign_test" ||
+      liveDiagnostic.signTest.alpha !== 0.05 ||
+      typeof liveDiagnostic.signTest.pValue !== "number" ||
+      liveDiagnostic.signTest.pValue < 0 ||
+      liveDiagnostic.signTest.pValue > 1 ||
+      liveDiagnostic.signTest.significant !==
+        (liveDiagnostic.signTest.pValue < 0.05)
+    ) {
+      issues.push("live diagnostic must contain the preregistered paired sign test");
     }
   }
 
@@ -1569,12 +1636,12 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
 
 function lifecycleIdentity(
   artifacts: Record<string, unknown>,
-  arm: "baseline" | "candidate" | null,
+  group: "providerFree" | "providerReplay" | null,
   name: string,
 ): ArtifactIdentityShape {
-  const parent = arm === null ? artifacts : artifacts[arm];
+  const parent = group === null ? artifacts : artifacts[group];
   if (!isRecord(parent) || !isArtifactIdentity(parent[name])) {
-    throw new Error(`lifecycle evidence identity ${arm ?? "root"}.${name} is missing`);
+    throw new Error(`lifecycle evidence identity ${group ?? "root"}.${name} is missing`);
   }
   return parent[name];
 }
@@ -1602,7 +1669,7 @@ async function readBoundLifecycleArtifact(input: {
   return raw;
 }
 
-async function evaluateV073LifecycleProtectionBundle(input: {
+export async function evaluateV073LifecycleProtectionBundle(input: {
   artifact: Record<string, unknown>;
   artifactPath: string;
   repoRoot: string;
@@ -1613,123 +1680,668 @@ async function evaluateV073LifecycleProtectionBundle(input: {
       throw new Error("lifecycle artifact source map is missing");
     }
     const artifacts = input.artifact.artifacts;
-    const read = (arm: "baseline" | "candidate" | null, name: string) =>
+    const read = (
+      group: "providerFree" | "providerReplay" | null,
+      name: string,
+    ) =>
       readBoundLifecycleArtifact({
-        identity: lifecycleIdentity(artifacts, arm, name),
+        identity: lifecycleIdentity(artifacts, group, name),
         repoRoot: input.repoRoot,
       });
     const [
-      baselineExecutionReceiptRaw,
-      baselineOfficialRaw,
-      baselineOfficialProgressRaw,
-      baselineReportRaw,
-      baselineSeedReportRaw,
-      baselineClaimRecipeRaw,
-      baselineOfficialRunnerRaw,
-      baselineReanswerRunnerRaw,
-      baselineSeedRunnerRaw,
-      candidateExecutionReceiptRaw,
-      candidateOfficialRaw,
-      candidateOfficialProgressRaw,
-      candidateReportRaw,
-      candidateSeedReportRaw,
-      candidateClaimRecipeRaw,
-      candidateOfficialRunnerRaw,
-      candidateReanswerRunnerRaw,
-      candidateSeedRunnerRaw,
-      liveDeltaRaw,
-      liveDeltaAnalyzerSourceRaw,
-      liveDeltaExecutionReceiptRaw,
-      liveDeltaStderrRaw,
-      liveDeltaStdoutRaw,
       manifestRaw,
-      scenarioExecutionReceiptRaw,
-      scenarioReplayRaw,
-      scenarioStderrRaw,
-      scenarioStdoutRaw,
+      protocolInputRaw,
+      c1BaselineRaw,
+      c1BaselineReceiptRaw,
+      c1CandidateRaw,
+      c1CandidateReceiptRaw,
+      c40BaselineRaw,
+      c40BaselineReceiptRaw,
+      c40CandidateRaw,
+      c40CandidateReceiptRaw,
+      baselineDiscoveryReceiptRaw,
+      baselineFormalOfficialRaw,
+      baselineFormalProgressRaw,
+      baselineFormalReportRaw,
+      baselineFormalReceiptRaw,
+      candidateDiscoveryReceiptRaw,
+      candidateFormalOfficialRaw,
+      candidateFormalProgressRaw,
+      candidateFormalReportRaw,
+      candidateFormalReceiptRaw,
+      tapeRaw,
+      scenarioReceiptRaw,
     ] = await Promise.all([
-      read("baseline", "executionReceipt"),
-      read("baseline", "officialSummary"),
-      read("baseline", "officialProgress"),
-      read("baseline", "report"),
-      read("baseline", "seedReport"),
-      read("baseline", "claimRecipeSource"),
-      read("baseline", "officialRunnerSource"),
-      read("baseline", "reanswerRunnerSource"),
-      read("baseline", "seedRunnerSource"),
-      read("candidate", "executionReceipt"),
-      read("candidate", "officialSummary"),
-      read("candidate", "officialProgress"),
-      read("candidate", "report"),
-      read("candidate", "seedReport"),
-      read("candidate", "claimRecipeSource"),
-      read("candidate", "officialRunnerSource"),
-      read("candidate", "reanswerRunnerSource"),
-      read("candidate", "seedRunnerSource"),
-      read(null, "liveDelta"),
-      read(null, "liveDeltaAnalyzerSource"),
-      read(null, "liveDeltaExecutionReceipt"),
-      read(null, "liveDeltaStderr"),
-      read(null, "liveDeltaStdout"),
       read(null, "manifest"),
-      read(null, "scenarioExecutionReceipt"),
-      read(null, "scenarioReplay"),
-      read(null, "scenarioStderr"),
-      read(null, "scenarioStdout"),
+      read(null, "protocolInput"),
+      read("providerFree", "c1Baseline"),
+      read("providerFree", "c1BaselineReceipt"),
+      read("providerFree", "c1Candidate"),
+      read("providerFree", "c1CandidateReceipt"),
+      read("providerFree", "c40Baseline"),
+      read("providerFree", "c40BaselineReceipt"),
+      read("providerFree", "c40Candidate"),
+      read("providerFree", "c40CandidateReceipt"),
+      read("providerReplay", "baselineDiscoveryReceipt"),
+      read("providerReplay", "baselineFormalOfficial"),
+      read("providerReplay", "baselineFormalProgress"),
+      read("providerReplay", "baselineFormalReport"),
+      read("providerReplay", "baselineFormalReceipt"),
+      read("providerReplay", "candidateDiscoveryReceipt"),
+      read("providerReplay", "candidateFormalOfficial"),
+      read("providerReplay", "candidateFormalProgress"),
+      read("providerReplay", "candidateFormalReport"),
+      read("providerReplay", "candidateFormalReceipt"),
+      read("providerReplay", "tape"),
+      read(null, "scenarioReceipt"),
     ]);
-    const baselineExecutionReceipt = JSON.parse(baselineExecutionReceiptRaw) as Record<string, unknown>;
-    const candidateExecutionReceipt = JSON.parse(candidateExecutionReceiptRaw) as Record<string, unknown>;
-    const evaluationInput = {
-      baselineExecutionReceipt,
-      baselineExecutionReceiptRaw,
-      baselineOfficial: JSON.parse(baselineOfficialRaw),
-      baselineOfficialProgressRaw,
-      baselineOfficialRaw,
-      baselineReport: JSON.parse(baselineReportRaw),
-      baselineReportRaw,
-      baselineSeedReport: JSON.parse(baselineSeedReportRaw),
-      baselineSeedReportRaw,
-      baselineSources: {
-        claimRecipeRaw: baselineClaimRecipeRaw,
-        officialRunnerRaw: baselineOfficialRunnerRaw,
-        reanswerRunnerRaw: baselineReanswerRunnerRaw,
-        seedRunnerRaw: baselineSeedRunnerRaw,
+    const protocolInput = JSON.parse(
+      protocolInputRaw,
+    ) as V073ReplacementProtectionInput;
+    const manifest = JSON.parse(manifestRaw) as Record<string, unknown>;
+    const scenarioReceipt = JSON.parse(
+      scenarioReceiptRaw,
+    ) as Record<string, unknown>;
+    const expectedProviders = {
+      assisted: {
+        gateway: "https://ai.gurkiai.com/v1",
+        model: "gpt-5.6-terra",
+        provider: "openai",
       },
-      baselineWorktreeProvenance: baselineExecutionReceipt.worktreeProvenance,
-      candidateExecutionReceipt,
-      candidateExecutionReceiptRaw,
-      candidateOfficial: JSON.parse(candidateOfficialRaw),
-      candidateOfficialProgressRaw,
-      candidateOfficialRaw,
-      candidateReport: JSON.parse(candidateReportRaw),
-      candidateReportRaw,
-      candidateSeedReport: JSON.parse(candidateSeedReportRaw),
-      candidateSeedReportRaw,
-      candidateSources: {
-        claimRecipeRaw: candidateClaimRecipeRaw,
-        officialRunnerRaw: candidateOfficialRunnerRaw,
-        reanswerRunnerRaw: candidateReanswerRunnerRaw,
-        seedRunnerRaw: candidateSeedRunnerRaw,
+      embedding: {
+        gateway: "https://openrouter.ai/api/v1",
+        model: "text-embedding-3-small",
+        provider: "openai",
       },
-      candidateWorktreeProvenance: candidateExecutionReceipt.worktreeProvenance,
-      liveDelta: JSON.parse(liveDeltaRaw),
-      liveDeltaAnalyzerSourceRaw,
-      liveDeltaExecutionReceipt: JSON.parse(liveDeltaExecutionReceiptRaw),
-      liveDeltaExecutionReceiptRaw,
-      liveDeltaRaw,
-      liveDeltaStderrRaw,
-      liveDeltaStdoutRaw,
-      manifest: JSON.parse(manifestRaw),
-      manifestPath: lifecycleIdentity(artifacts, null, "manifest").path,
-      manifestRaw,
-      scenarioExecutionReceipt: JSON.parse(scenarioExecutionReceiptRaw),
-      scenarioExecutionReceiptRaw,
-      scenarioReplay: JSON.parse(scenarioReplayRaw),
-      scenarioReplayRaw,
-      scenarioStderrRaw,
-      scenarioStdoutRaw,
-    } as unknown as V073LifecycleProtectionEvaluationInput;
-    const recomputed = evaluateV073LifecycleProtection(evaluationInput);
+      eval: {
+        gateway: "https://ai.gurkiai.com/v1",
+        model: "gpt-5.6-terra",
+        provider: "openai",
+      },
+      judge: {
+        gateway: "https://ai.gurkiai.com/v1",
+        model: "gpt-5.5",
+        provider: "openai",
+      },
+      reranking: {
+        gateway: "https://ai.gurkiai.com/v1",
+        model: "gpt-5.6-terra",
+        provider: "openai",
+      },
+    };
+    const harness = manifest.measurementHarness;
+    const protocol = manifest.protocol;
+    const currentClaimRecipeRaw = await readFile(
+      resolve(input.repoRoot, "benchmark-claims/locomo.json"),
+      "utf8",
+    );
+    const validHarness = isRecord(harness) &&
+      isRecord(harness.claimRecipe) &&
+      isRecord(harness.officialRunner) &&
+      isRecord(harness.reanswerRunner) &&
+      isRecord(harness.seedRunner) &&
+      [
+        [harness.claimRecipe, "benchmark-claims/locomo.json"],
+        [harness.officialRunner, "scripts/rescore-official-protocols.ts"],
+        [harness.reanswerRunner, "scripts/reanswer-phase-65-locomo-report.ts"],
+        [harness.seedRunner, "scripts/run-phase-65-locomo-smoke.ts"],
+      ].every(([identity, path]) =>
+        isRecord(identity) &&
+        identity.path === path &&
+        typeof identity.bytes === "number" &&
+        Number.isSafeInteger(identity.bytes) &&
+        identity.bytes > 0 &&
+        typeof identity.sha256 === "string" &&
+        SHA256_PATTERN.test(identity.sha256)
+      );
+    if (
+      !isRecord(manifest.baseline) ||
+      !isRecord(manifest.candidate) ||
+      !isRecord(manifest.benchmark) ||
+      typeof manifest.benchmark.root !== "string" ||
+      manifest.benchmark.bytes !== 2_490_457 ||
+      manifest.benchmark.fingerprint !==
+        "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd" ||
+      manifest.benchmark.sha256 !==
+        "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28" ||
+      manifest.schemaVersion !== 2 ||
+      manifest.generatedBy !==
+        "scripts/run-v0-7-3-replacement-protection-gate.ts" ||
+      !sameJson(manifest.providers, expectedProviders) ||
+      !validHarness ||
+      !isRecord(protocol) ||
+      protocol.claimCommandTemplateSha256 !==
+        deriveV073ClaimCommandTemplateSha256(currentClaimRecipeRaw) ||
+      protocol.formalNetworkOnMiss !== false ||
+      protocol.hardRegressionLimit !== 0.01 ||
+      protocol.promptSha256 !== deriveV073PromptSha256() ||
+      !sameJson(protocol.providerFreeConcurrency, [1, 40]) ||
+      protocol.signTestAlpha !== 0.05 ||
+      protocol.tapeRequestIdentity !==
+        "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)" ||
+      manifest.baseline.commit !== protocolInput.baselineCommit ||
+      manifest.candidate.commit !== protocolInput.candidateCommit ||
+      manifest.baseline.branch !== null ||
+      manifest.candidate.branch !== null ||
+      manifest.baseline.statusPorcelain !== "" ||
+      manifest.candidate.statusPorcelain !== "" ||
+      typeof manifest.baseline.worktreePath !== "string" ||
+      typeof manifest.candidate.worktreePath !== "string" ||
+      scenarioReceipt.candidateCommit !== protocolInput.candidateCommit ||
+      scenarioReceipt.generatedBy !==
+        "scripts/run-v0-7-3-replacement-protection-gate.ts" ||
+      scenarioReceipt.command !== "bun" ||
+      !sameJson(scenarioReceipt.args, ["test", "tests/scenarios"]) ||
+      scenarioReceipt.cwd !== manifest.candidate.worktreePath ||
+      scenarioReceipt.exitCode !== 0 ||
+      scenarioReceipt.failures !== protocolInput.scenarioReplay.failures ||
+      scenarioReceipt.passed !== protocolInput.scenarioReplay.passed
+    ) {
+      throw new Error("manifest or scenario receipt does not match protocol input");
+    }
+    const boundHarness = harness as Record<
+      "claimRecipe" | "officialRunner" | "reanswerRunner" | "seedRunner",
+      { bytes: number; path: string; sha256: string }
+    >;
+    const boundProtocol = protocol as {
+      claimCommandTemplateSha256: string;
+      promptSha256: string;
+    };
+    for (const identity of Object.values(boundHarness)) {
+      const raw = await readFile(resolve(input.repoRoot, identity.path), "utf8");
+      if (
+        Buffer.byteLength(raw, "utf8") !== identity.bytes ||
+        sha256(raw) !== identity.sha256
+      ) {
+        throw new Error(`measurement harness bytes drifted at ${identity.path}`);
+      }
+    }
+    const gitProbe = await runCommand(
+      "git",
+      ["rev-parse", "--git-dir"],
+      input.repoRoot,
+    );
+    if (gitProbe.code === 0) {
+      for (const commit of [
+        protocolInput.baselineCommit,
+        protocolInput.candidateCommit,
+      ]) {
+        for (const identity of Object.values(boundHarness)) {
+          const source = await runCommand(
+            "git",
+            ["show", `${commit}:${identity.path}`],
+            input.repoRoot,
+          );
+          if (
+            source.code !== 0 ||
+            Buffer.byteLength(source.stdout, "utf8") !== identity.bytes ||
+            sha256(source.stdout) !== identity.sha256
+          ) {
+            throw new Error(
+              `measurement harness does not match ${commit}:${identity.path}`,
+            );
+          }
+        }
+      }
+    }
+    const scenarioLogs: Record<"stderr" | "stdout", string> = {
+      stderr: "",
+      stdout: "",
+    };
+    for (const name of ["stdout", "stderr"] as const) {
+      if (!isArtifactIdentity(scenarioReceipt[name])) {
+        throw new Error(`scenario receipt ${name} identity is missing`);
+      }
+      scenarioLogs[name] = await readBoundLifecycleArtifact({
+        identity: scenarioReceipt[name],
+        repoRoot: input.repoRoot,
+      });
+    }
+    const scenarioOutput = `${scenarioLogs.stdout}\n${scenarioLogs.stderr}`;
+    const scenarioPassed = Number(
+      scenarioOutput.match(/\b(\d+)\s+pass\b/u)?.[1] ?? -1,
+    );
+    const scenarioFailures = Number(
+      scenarioOutput.match(/\b(\d+)\s+fail\b/u)?.[1] ?? -1,
+    );
+    if (
+      scenarioPassed !== scenarioReceipt.passed ||
+      scenarioFailures !== scenarioReceipt.failures
+    ) {
+      throw new Error("scenario receipt counts do not match its bound logs");
+    }
+
+    const providerFreeByConcurrency = new Map(
+      protocolInput.deterministicArms.map((arm) => [arm.concurrency, arm]),
+    );
+    const providerFreeRaws = [
+      [1, "baseline", c1BaselineRaw, c1BaselineReceiptRaw, "c1Baseline"],
+      [1, "candidate", c1CandidateRaw, c1CandidateReceiptRaw, "c1Candidate"],
+      [40, "baseline", c40BaselineRaw, c40BaselineReceiptRaw, "c40Baseline"],
+      [40, "candidate", c40CandidateRaw, c40CandidateReceiptRaw, "c40Candidate"],
+    ] as const;
+    for (const [concurrency, side, raw, receiptRaw, artifactName] of providerFreeRaws) {
+      const arm = providerFreeByConcurrency.get(concurrency);
+      const parsedReport = parseV073ProviderFreeReport({
+        benchmarkRoot: manifest.benchmark.root,
+        concurrency,
+        raw,
+      });
+      if (
+        arm === undefined ||
+        !sameJson(arm[side], parsedReport)
+      ) {
+        throw new Error(
+          `provider-free concurrency ${concurrency} ${side} report is not bound`,
+        );
+      }
+      const receipt = JSON.parse(receiptRaw) as Record<string, unknown>;
+      const expectedCommit = side === "baseline"
+        ? protocolInput.baselineCommit
+        : protocolInput.candidateCommit;
+      const expectedWorktree = side === "baseline"
+        ? manifest.baseline.worktreePath
+        : manifest.candidate.worktreePath;
+      const runId = `v073-provider-free-c${concurrency}-${side}`;
+      const reportIdentity = lifecycleIdentity(
+        artifacts,
+        "providerFree",
+        artifactName,
+      );
+      if (
+        receipt.generatedBy !==
+          "scripts/run-v0-7-3-replacement-protection-gate.ts" ||
+        receipt.command !== "bun" ||
+        receipt.commit !== expectedCommit ||
+        receipt.cwd !== expectedWorktree ||
+        receipt.concurrency !== concurrency ||
+        receipt.label !== side ||
+        receipt.exitCode !== 0 ||
+        !sameJson(receipt.args, buildV073ProviderFreeArgs({
+          benchmarkRoot: manifest.benchmark.root,
+          concurrency,
+          outputDir: resolve(input.repoRoot, V073_LIFECYCLE_EVIDENCE_PREFIX, "provider-free"),
+          runId,
+        })) ||
+        !isArtifactIdentity(receipt.report) ||
+        !sameJson(receipt.report, reportIdentity)
+      ) {
+        throw new Error(
+          `provider-free concurrency ${concurrency} ${side} receipt is invalid`,
+        );
+      }
+      for (const name of ["stdout", "stderr"] as const) {
+        if (!isArtifactIdentity(receipt[name])) {
+          throw new Error(`provider-free receipt ${name} identity is missing`);
+        }
+        await readBoundLifecycleArtifact({
+          identity: receipt[name],
+          repoRoot: input.repoRoot,
+        });
+      }
+    }
+
+    const receiptSession = (raw: string): Record<string, unknown> => {
+      const receipt = JSON.parse(raw) as Record<string, unknown>;
+      if (!isRecord(receipt.session)) {
+        throw new Error("provider replay receipt session is missing");
+      }
+      return receipt.session;
+    };
+    const comparableSession = (value: Record<string, unknown>) => ({
+      coalesced: value.coalesced,
+      hits: value.hits,
+      liveRequests: value.liveRequests,
+      misses: value.misses,
+      mode: value.mode,
+      requestFingerprintMultisetSha256:
+        value.requestFingerprintMultisetSha256,
+      requests: value.requests,
+      targetCounts: value.targetCounts,
+      tapeSha256: value.tapeSha256,
+    });
+    for (const [raw, expected] of [
+      [baselineDiscoveryReceiptRaw, protocolInput.providerReplay.discovery.baseline],
+      [candidateDiscoveryReceiptRaw, protocolInput.providerReplay.discovery.candidate],
+      [baselineFormalReceiptRaw, protocolInput.providerReplay.formal.baseline],
+      [candidateFormalReceiptRaw, protocolInput.providerReplay.formal.candidate],
+    ] as const) {
+      if (
+        JSON.stringify(comparableSession(receiptSession(raw))) !==
+          JSON.stringify(expected)
+      ) {
+        throw new Error("provider replay receipt session does not match protocol input");
+      }
+    }
+    const receiptBindings = [
+      [
+        JSON.parse(baselineDiscoveryReceiptRaw) as Record<string, unknown>,
+        protocolInput.baselineCommit,
+        "baseline-discovery",
+        manifest.baseline.worktreePath,
+        null,
+      ],
+      [
+        JSON.parse(candidateDiscoveryReceiptRaw) as Record<string, unknown>,
+        protocolInput.candidateCommit,
+        "candidate-discovery",
+        manifest.candidate.worktreePath,
+        null,
+      ],
+      [
+        JSON.parse(baselineFormalReceiptRaw) as Record<string, unknown>,
+        protocolInput.baselineCommit,
+        "baseline-formal",
+        manifest.baseline.worktreePath,
+        {
+          officialSummary: lifecycleIdentity(
+            artifacts,
+            "providerReplay",
+            "baselineFormalOfficial",
+          ),
+          finalReport: lifecycleIdentity(
+            artifacts,
+            "providerReplay",
+            "baselineFormalReport",
+          ),
+          officialProgress: lifecycleIdentity(
+            artifacts,
+            "providerReplay",
+            "baselineFormalProgress",
+          ),
+        },
+      ],
+      [
+        JSON.parse(candidateFormalReceiptRaw) as Record<string, unknown>,
+        protocolInput.candidateCommit,
+        "candidate-formal",
+        manifest.candidate.worktreePath,
+        {
+          officialSummary: lifecycleIdentity(
+            artifacts,
+            "providerReplay",
+            "candidateFormalOfficial",
+          ),
+          finalReport: lifecycleIdentity(
+            artifacts,
+            "providerReplay",
+            "candidateFormalReport",
+          ),
+          officialProgress: lifecycleIdentity(
+            artifacts,
+            "providerReplay",
+            "candidateFormalProgress",
+          ),
+        },
+      ],
+    ] as const;
+    const providerLanes = {
+      assisted: "GOODMEMORY_ASSISTED_EXTRACTOR",
+      embedding: "GOODMEMORY_EMBEDDING",
+      eval: "GOODMEMORY_EVAL",
+      judge: "GOODMEMORY_JUDGE",
+      reranking: "GOODMEMORY_RERANKING",
+    } as const;
+    for (const [receipt, commit, stage, worktreePath, outputs] of receiptBindings) {
+      if (
+        receipt.commit !== commit ||
+        receipt.stage !== stage ||
+        receipt.generatedBy !==
+          "scripts/run-v0-7-3-replacement-protection-gate.ts" ||
+        !sameJson(receipt.executionOrder, V073_PROVIDER_STAGE_ORDER) ||
+        !sameJson(
+          receipt.steps,
+          V073_PROVIDER_STAGE_ORDER.map((step) => ({ exitCode: 0, step })),
+        ) ||
+        !sameJson(receipt.sourceIdentity, {
+          claimCommandTemplateSha256: boundProtocol.claimCommandTemplateSha256,
+          claimSourceSha256: boundHarness.claimRecipe.sha256,
+          officialSourceSha256: boundHarness.officialRunner.sha256,
+          promptSha256: boundProtocol.promptSha256,
+          reanswerSourceSha256: boundHarness.reanswerRunner.sha256,
+          seedSourceSha256: boundHarness.seedRunner.sha256,
+        }) ||
+        !isRecord(receipt.commandChain)
+      ) {
+        throw new Error("provider replay receipt execution identity is invalid");
+      }
+      const seedInvocation = receipt.commandChain.seedSmoke;
+      if (!isRecord(seedInvocation) || !isRecord(seedInvocation.environment)) {
+        throw new Error("provider replay seed command identity is invalid");
+      }
+      const baseUrls = {
+        assisted: seedInvocation.environment.GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL,
+        embedding: seedInvocation.environment.GOODMEMORY_EMBEDDING_BASE_URL,
+        eval: seedInvocation.environment.GOODMEMORY_EVAL_BASE_URL,
+        judge: seedInvocation.environment.GOODMEMORY_JUDGE_BASE_URL,
+        reranking: seedInvocation.environment.GOODMEMORY_RERANKING_BASE_URL,
+      };
+      if (Object.values(baseUrls).some((value) => typeof value !== "string")) {
+        throw new Error("provider replay base URL identity is missing");
+      }
+      const expectedArm = buildV073StageArm({
+        benchmarkRoot: manifest.benchmark.root,
+        claimRecipeRaw: currentClaimRecipeRaw,
+        commit,
+        outputDir: resolve(input.repoRoot, V073_LIFECYCLE_EVIDENCE_PREFIX),
+        providers: expectedProviders,
+        sourceIdentity: {
+          officialSourceSha256: boundHarness.officialRunner.sha256,
+          reanswerSourceSha256: boundHarness.reanswerRunner.sha256,
+          seedSourceSha256: boundHarness.seedRunner.sha256,
+        },
+        stage,
+        worktreePath,
+      });
+      const expectedChain = routeV073CommandChainThroughTape(
+        buildV073PairedCommandChain(expectedArm.arm, currentClaimRecipeRaw),
+        baseUrls as {
+          assisted: string;
+          embedding: string;
+          eval: string;
+          judge: string;
+          reranking: string;
+        },
+        { replayCredentials: stage.endsWith("-formal") },
+      );
+      if (!sameJson(receipt.commandChain, expectedChain)) {
+        throw new Error("provider replay command chain drifted from the recipe");
+      }
+      let receiptLoopbackOrigin: string | undefined;
+      for (const [step, expectedScript] of [
+        ["seedSmoke", "scripts/run-phase-65-locomo-smoke.ts"],
+        ["reanswer", "scripts/reanswer-phase-65-locomo-report.ts"],
+        ["officialRescore", "eval:official-rescore"],
+      ] as const) {
+        const invocation = receipt.commandChain[step];
+        if (
+          !isRecord(invocation) ||
+          invocation.command !== "bun" ||
+          invocation.cwd !== worktreePath ||
+          !Array.isArray(invocation.args) ||
+          invocation.args[0] !== "run" ||
+          invocation.args[1] !== expectedScript ||
+          !isRecord(invocation.environment)
+        ) {
+          throw new Error("provider replay command chain is invalid");
+        }
+        const activeProviders = step === "seedSmoke"
+          ? ["assisted", "embedding", "eval", "reranking"] as const
+          : step === "reanswer"
+            ? ["eval"] as const
+            : ["judge"] as const;
+        for (const name of activeProviders) {
+          const prefix = providerLanes[name];
+          const identity = expectedProviders[name];
+          if (
+            invocation.environment[`${prefix}_MODEL`] !== identity.model ||
+            invocation.environment[`${prefix}_PROVIDER`] !== identity.provider
+          ) {
+            throw new Error("provider replay model identity is invalid");
+          }
+        }
+        for (const [lane, prefix] of Object.entries(providerLanes)) {
+          const baseUrl = invocation.environment[`${prefix}_BASE_URL`];
+          if (typeof baseUrl !== "string") {
+            throw new Error("provider replay command chain is not fully routed");
+          }
+          const parsed = new URL(baseUrl);
+          if (
+            parsed.protocol !== "http:" ||
+            parsed.hostname !== "127.0.0.1" ||
+            parsed.port.length === 0 ||
+            parsed.pathname !== `/${lane}` ||
+            parsed.search !== ""
+          ) {
+            throw new Error("provider replay command chain must use loopback tape lanes");
+          }
+          receiptLoopbackOrigin ??= parsed.origin;
+          if (parsed.origin !== receiptLoopbackOrigin) {
+            throw new Error("provider replay tape lanes must share one loopback proxy");
+          }
+          const apiKey = invocation.environment[`${prefix}_API_KEY`];
+          if (
+            stage.endsWith("-formal")
+              ? apiKey !== "provider-response-tape-replay"
+              : apiKey !== undefined
+          ) {
+            throw new Error("provider replay credential routing is invalid");
+          }
+        }
+      }
+      for (const name of ["stdout", "stderr"] as const) {
+        if (!isArtifactIdentity(receipt[name])) {
+          throw new Error(`provider replay receipt ${name} identity is missing`);
+        }
+        await readBoundLifecycleArtifact({
+          identity: receipt[name],
+          repoRoot: input.repoRoot,
+        });
+      }
+      if (!isRecord(receipt.outputs)) {
+        throw new Error("provider replay receipt outputs are missing");
+      }
+      for (const identity of Object.values(receipt.outputs)) {
+        if (!isArtifactIdentity(identity)) {
+          throw new Error("provider replay receipt output identity is invalid");
+        }
+        await readBoundLifecycleArtifact({ identity, repoRoot: input.repoRoot });
+      }
+      if (outputs !== null) {
+        for (const [name, identity] of Object.entries(outputs)) {
+          const receiptIdentity = receipt.outputs[name];
+          if (
+            !isArtifactIdentity(receiptIdentity) ||
+            receiptIdentity.bytes !== identity.bytes ||
+            receiptIdentity.sha256 !== identity.sha256
+          ) {
+            throw new Error("formal provider replay receipt output is not bound");
+          }
+        }
+      }
+    }
+
+    const tape = parseProviderResponseTape(tapeRaw);
+    const tapeTargetCounts = Object.fromEntries(
+      [...new Set(tape.entries.map((entry) => entry.request.targetId))]
+        .sort()
+        .map((targetId) => [
+          targetId,
+          tape.entries.filter((entry) => entry.request.targetId === targetId).length,
+        ]),
+    );
+    if (
+      sha256(tapeRaw) !== protocolInput.providerReplay.tapeSha256 ||
+      tape.entries.length !== protocolInput.providerReplay.tapeEntryCount ||
+      JSON.stringify(tapeTargetCounts) !==
+        JSON.stringify(protocolInput.providerReplay.tapeTargetCounts)
+    ) {
+      throw new Error("frozen provider tape does not match protocol input");
+    }
+
+    const baselineFormalReport = parseV073FormalSmokeReport(
+      baselineFormalReportRaw,
+    );
+    const candidateFormalReport = parseV073FormalSmokeReport(
+      candidateFormalReportRaw,
+    );
+    const baselineOfficial = parseV073OfficialSummary(
+      baselineFormalOfficialRaw,
+    );
+    const candidateOfficial = parseV073OfficialSummary(
+      candidateFormalOfficialRaw,
+    );
+    const baselineProgress = parseV073OfficialProgress(
+      baselineFormalProgressRaw,
+    );
+    const candidateProgress = parseV073OfficialProgress(
+      candidateFormalProgressRaw,
+    );
+    const questionIds = (rows: ReadonlyArray<{ questionId: string }>) =>
+      rows.map((row) => row.questionId).sort();
+    if (
+      !sameJson(
+        questionIds(baselineProgress),
+        questionIds(baselineFormalReport.cases),
+      ) ||
+      !sameJson(
+        questionIds(candidateProgress),
+        questionIds(candidateFormalReport.cases),
+      )
+    ) {
+      throw new Error("official progress population does not match formal reports");
+    }
+    const numericMean = <Row>(
+      rows: readonly Row[],
+      select: (row: Row) => number,
+    ): number => {
+      const values = rows.map(select);
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    };
+    const transitions = officialQuestionTransitions(
+      baselineProgress,
+      candidateProgress,
+    );
+    if (
+      Math.abs(
+        numericMean(baselineProgress, (row) => Number(row.correct)) -
+          baselineOfficial.overallAccuracy,
+      ) > 1e-12 ||
+      Math.abs(
+        numericMean(candidateProgress, (row) => Number(row.correct)) -
+          candidateOfficial.overallAccuracy,
+      ) > 1e-12
+    ) {
+      throw new Error("formal provider official progress and summary disagree");
+    }
+    const pointDeltas = {
+      evidenceRecall:
+        numericMean(candidateFormalReport.cases, (row) => row.evidenceRecall) -
+        numericMean(baselineFormalReport.cases, (row) => row.evidenceRecall),
+      officialScore:
+        candidateOfficial.overallAccuracy - baselineOfficial.overallAccuracy,
+      strictAnswerScore:
+        numericMean(candidateFormalReport.cases, (row) => row.answerTokenF1) -
+        numericMean(baselineFormalReport.cases, (row) => row.answerTokenF1),
+    };
+    if (
+      JSON.stringify(protocolInput.providerReplay.pointDeltas) !==
+        JSON.stringify(pointDeltas) ||
+      protocolInput.providerReplay.baselineExecutionFailures !==
+        baselineFormalReport.executionFailures ||
+      protocolInput.providerReplay.candidateExecutionFailures !==
+        candidateFormalReport.executionFailures ||
+      protocolInput.providerReplay.baselineJudgeFailures !==
+        baselineOfficial.judgeFailures ||
+      protocolInput.providerReplay.candidateJudgeFailures !==
+        candidateOfficial.judgeFailures ||
+      JSON.stringify(protocolInput.questionTransitions) !==
+        JSON.stringify(transitions)
+    ) {
+      throw new Error("formal provider metrics do not match bound report bytes");
+    }
+
+    const recomputed = evaluateV073ReplacementProtection(protocolInput);
     const comparable = (value: Record<string, unknown>) => ({
       baselineCommit: value.baselineCommit,
       blockers: value.blockers,
@@ -1737,17 +2349,11 @@ async function evaluateV073LifecycleProtectionBundle(input: {
       candidatePromptSha256: value.candidatePromptSha256,
       claimBoundary: value.claimBoundary,
       fullClaimRerunRequired: value.fullClaimRerunRequired,
-      metrics: value.metrics,
-      questionTransitions: value.questionTransitions,
+      hardGate: value.hardGate,
+      liveDiagnostic: value.liveDiagnostic,
+      providerReplay: value.providerReplay,
       releaseAllowed: value.releaseAllowed,
       researchRecordRequired: value.researchRecordRequired,
-      scenarioReplay: isRecord(value.scenarioReplay)
-        ? {
-            candidateCommit: value.scenarioReplay.candidateCommit,
-            failures: value.scenarioReplay.failures,
-            passed: value.scenarioReplay.passed,
-          }
-        : value.scenarioReplay,
       schemaVersion: value.schemaVersion,
     });
     if (

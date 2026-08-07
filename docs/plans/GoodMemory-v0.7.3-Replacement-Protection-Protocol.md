@@ -1,0 +1,146 @@
+# GoodMemory v0.7.3 Replacement Protection Protocol
+
+Status: pre-registered implementation; no passing run and no release yet
+Date: 2026-08-07
+Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
+
+## Why the first gate remains blocked
+
+The first 233-question provider-backed pair remains a valid blocked observation,
+not release evidence. Its overall movements were -1.4306pt evidence recall,
+-2.4976pt strict answer score, and -2.1459pt official score. Attribution then
+showed a -1.8026pt same-commit provider retrieval replicate, 227/233 changed
+retrieved sets, and 105/233 changed answer strings from fixed retrieval.
+
+The old 11-improved / 15-regressed official-correctness split has an exact
+two-sided paired sign-test result of `p=0.5571970939636236`. It is not
+statistically significant at the pre-registered `alpha=0.05`. This does not
+retroactively pass the old gate: the original point-threshold rule correctly
+blocked, and its evidence under
+`reports/release/v0.7/blocked-6eb0f87d/` remains byte-for-byte historical.
+
+## Release decision
+
+The replacement has three layers. Only deterministic metrics use the 1.00pt
+performance threshold.
+
+### 1. Deterministic hard protection
+
+Both commits run fresh provider-free LoCoMo conv-26/30 arms with:
+
+- raw-turn, label-free ingest;
+- generalized fusion;
+- no extraction, embedding, reranking, answer, or judge provider;
+- concurrency 1 and 40 as separate pairs;
+- exactly 233 questions, the frozen two-conversation and four-category
+  population, and zero execution failures.
+
+For each concurrency pair, overall, category, and conversation evidence recall
+must not regress by more than 1.00pt. Any absolute movement above 1.00pt is
+recorded for research, but positive movement is not a failure.
+
+The gate does not trust the report's aggregate or per-row recall scalar. It
+recomputes every row from `evidenceTurnIds` and `retrievedTurnIds`, then requires
+the stored recall, missing-evidence list, full-retrieval flag, and de-duplicated
+noise list/count to match before evaluating the hard comparison.
+
+The candidate also runs `bun test tests/scenarios`; it must exit successfully,
+report zero failures, and report at least one passing scenario.
+
+### 2. Frozen provider-response replay
+
+A runner-local OpenAI-compatible loopback proxy overrides all five registered
+provider routes. This LoCoMo chain must actually produce non-empty `eval`,
+`embedding`, and `judge` tape lanes only. `assisted` and `reranking` remain
+routed so they cannot silently escape if invoked, but their expected zero count
+is not presented as wire evidence. The proxy does not modify `src/`, either
+detached checkout, public APIs, or stored data.
+
+The discovery sequence is:
+
+1. Run the baseline with live-on-miss enabled and record successful provider
+   responses.
+2. Run the candidate with the baseline tape; go live only for candidate misses
+   and extend the union tape. Neither discovery output is scored.
+3. Atomically write the union tape, read it back through the strict parser, and
+   start a new proxy from those bytes.
+4. Run fresh baseline and candidate formal arms with live-on-miss disabled.
+
+Every schema-2 request fingerprint is SHA-256 over logical target, HTTP method,
+path/query, canonical JSON-body digest, and a digest of response-semantic
+headers. The body binds the actual model, prompt/messages, response format,
+reasoning effort, token limit, and temperature. Credentials, hop-by-hop fields,
+and trace IDs are excluded from the header digest; Authorization is forwarded
+during discovery but never persisted. Redirects are not followed. The tape
+stores only successful 2xx status, content type, and exact response bytes.
+Concurrent identical misses are single-flighted; duplicate fingerprints,
+corrupt bytes, non-matching request/response hashes, and last-write-wins
+evidence are rejected.
+
+The report records discovery hits/misses/live calls, formal hits/misses/live
+calls, tape SHA-256, entry count, per-target distribution, and request-multiset
+fingerprints. Each formal arm must be non-empty, satisfy `hits=requests`, have
+`misses=liveRequests=coalesced=0`, and reproduce its discovery arm's request
+multiset and target census against the same tape. These conditions prove zero
+live calls on the registered GoodMemory provider routes; they are not a claim
+of process-wide egress isolation. A transport or judge execution failure
+invalidates the evidence. Provider point deltas do not use a raw 1pt release
+threshold and cannot override the deterministic gate.
+
+Execution receipts and readiness recomputation establish repository-local
+integrity and command provenance; they are not cryptographically signed CI
+attestations. Release authority still depends on running the gate from the
+declared clean detached checkouts and retaining the exact generated bundle.
+
+### 3. Paired provider diagnostic
+
+Official per-question correctness produces one exact two-sided sign test:
+
+```text
+n = improved + regressed
+p = min(1, 2 * sum(k=0..min(improved,regressed)) C(n,k) / 2^n)
+```
+
+`n=0` yields `p=1`; `alpha=0.05`. Evidence-recall, strict-answer, and official
+point deltas remain descriptive. Significance is diagnostic in either
+direction, never a replacement for the deterministic hard gate.
+
+## Claim boundary
+
+The full 1540-question claim must run only after this schema-2 evidence passes
+and is bound to the release candidate commit. The existing 0.8799 number is not
+copied forward. The observed 233-question same-commit wobble, scaled only as a
+heuristic by `sqrt(233/1540)`, suggests roughly 0.4-0.7pt full-set run-to-run
+spread; this is not a confidence interval.
+
+The preferred claim artifact records and replays provider responses so the
+published run is byte-reproducible. If any published score instead comes from a
+fresh live draw, the claim must state an observed or explicitly heuristic
+provider-variance spread. Movements on the scale of 0.8805 versus 0.8799 must
+not be attributed to retrieval cues or described as meaningful uplift without
+independent evidence.
+
+## Commands and evidence locations
+
+The implementation is runner-only:
+
+```bash
+bun run gate:v0.7.3-lifecycle-protection -- \
+  --baseline-worktree <clean-detached-v0.7.2-path> \
+  --candidate-worktree <clean-detached-candidate-path> \
+  --benchmark-root ~/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1 \
+  --output-dir reports/release/v0.7/v0.7.3-lifecycle-evidence
+```
+
+The only accepted compact result is
+`reports/release/v0.7/v0.7.3-lifecycle-protection.json`. `gate:v0.7 --strict`
+re-reads every bound artifact, re-parses the tape, recomputes deterministic
+metrics and the sign test, and rejects schema-1 evidence.
+
+The measurement runner validates the external `cases.json` against the frozen
+byte count and SHA-256. The tracked manifest retains that identity and the
+original root as provenance; release CI validates the commitment without
+requiring the measurement machine's absolute dataset path to exist on Linux.
+
+No branch is created by this protocol. Measurement uses clean detached
+checkouts; `main` remains the repository's only branch.

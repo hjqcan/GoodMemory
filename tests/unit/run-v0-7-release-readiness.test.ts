@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
@@ -7,15 +7,27 @@ import { join } from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import {
-  buildV073FullClaimCommandChain,
-  deriveV073ClaimCommandTemplateSha256,
-  deriveV073PromptSha256,
-} from "../../scripts/run-v0-7-3-lifecycle-protection-gate";
+  fingerprintProviderRequest,
+  serializeProviderResponseTape,
+} from "../../scripts/provider-response-tape";
 import {
   renderV073FullClaimCommand,
   V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
   V073_FULL_LOCOMO_QUESTION_SELECTION_SHA256,
 } from "../../scripts/run-v0-7-3-full-locomo-claim";
+import {
+  buildV073FullClaimCommandChain,
+  buildV073PairedCommandChain,
+  deriveV073ClaimCommandTemplateSha256,
+  deriveV073PromptSha256,
+} from "../../scripts/run-v0-7-3-lifecycle-protection-gate";
+import {
+  buildV073ProviderFreeArgs,
+  buildV073StageArm,
+  routeV073CommandChainThroughTape,
+  V073_PROVIDER_STAGE_ORDER,
+} from "../../scripts/run-v0-7-3-replacement-protection-gate";
+import { evaluateV073ReplacementProtection } from "../../scripts/v0-7-3-replacement-protection";
 import { frozenV073LocomoQuestionSelection } from "../fixtures/v0-7-3-locomo-question-selection";
 
 import type { V07ReleaseReadinessReport } from "../../scripts/run-v0-7-release-readiness";
@@ -25,6 +37,7 @@ import {
   evaluateV07SourceStability,
   evaluateV073LifecycleProtectionArtifact,
   evaluateV073LifecycleProtectionArtifactFile,
+  evaluateV073LifecycleProtectionBundle,
   evaluateV073LifecycleProtectionSourceDrift,
   evaluateV073CurrentLocomoClaimState,
   evaluateStableLocomoCandidateLink,
@@ -1026,88 +1039,88 @@ describe("v0.7 release readiness", () => {
       path: bundlePath(path),
       sha256: fill.repeat(64),
     });
-    const scenarioReceiptPath = bundlePath("scenario/execution-receipt.json");
-    const scenarioReportPath = bundlePath("scenario/report.json");
-    const scenarioStderrPath = bundlePath("scenario/stderr.log");
-    const scenarioStdoutPath = bundlePath("scenario/stdout.log");
+    const tapeSha256 = "f".repeat(64);
+    const providerSession = {
+      coalesced: 0,
+      hits: 10,
+      liveRequests: 0,
+      misses: 0,
+      mode: "replay",
+      requestFingerprintMultisetSha256: "e".repeat(64),
+      requests: 10,
+      targetCounts: { embedding: 2, eval: 7, judge: 1 },
+      tapeSha256,
+    };
     const artifact = {
       artifacts: {
-        baseline: {
-          claimRecipeSource: artifactIdentity("/worktrees/baseline/benchmark-claims/locomo.json", "0"),
-          executionReceipt: artifactIdentity("/reports/baseline/receipt.json", "1"),
-          officialSummary: artifactIdentity("/reports/baseline/official.json", "2"),
-          officialProgress: artifactIdentity("/reports/baseline/progress.jsonl", "7"),
-          officialRunnerSource: artifactIdentity("/worktrees/baseline/scripts/rescore-official-protocols.ts", "8"),
-          reanswerRunnerSource: artifactIdentity("/worktrees/baseline/scripts/reanswer-phase-65-locomo-report.ts", "9"),
-          report: artifactIdentity("/reports/baseline/smoke-report.json", "3"),
-          seedReport: artifactIdentity("/reports/baseline-seed/smoke-report.json", "a"),
-          seedRunnerSource: artifactIdentity("/worktrees/baseline/scripts/run-phase-65-locomo-smoke.ts", "b"),
+        manifest: artifactIdentity("manifest.json", "0"),
+        protocolInput: artifactIdentity("protocol-input.json", "1"),
+        providerFree: {
+          c1Baseline: artifactIdentity("provider-free/c1-baseline.json", "2"),
+          c1BaselineReceipt: artifactIdentity("provider-free/c1-baseline-receipt.json", "2"),
+          c1Candidate: artifactIdentity("provider-free/c1-candidate.json", "3"),
+          c1CandidateReceipt: artifactIdentity("provider-free/c1-candidate-receipt.json", "3"),
+          c40Baseline: artifactIdentity("provider-free/c40-baseline.json", "4"),
+          c40BaselineReceipt: artifactIdentity("provider-free/c40-baseline-receipt.json", "4"),
+          c40Candidate: artifactIdentity("provider-free/c40-candidate.json", "5"),
+          c40CandidateReceipt: artifactIdentity("provider-free/c40-candidate-receipt.json", "5"),
         },
-        candidate: {
-          claimRecipeSource: artifactIdentity("/worktrees/candidate/benchmark-claims/locomo.json", "c"),
-          executionReceipt: artifactIdentity("/reports/candidate/receipt.json", "4"),
-          officialSummary: artifactIdentity("/reports/candidate/official.json", "5"),
-          officialProgress: artifactIdentity("/reports/candidate/progress.jsonl", "9"),
-          officialRunnerSource: artifactIdentity("/worktrees/candidate/scripts/rescore-official-protocols.ts", "a"),
-          reanswerRunnerSource: artifactIdentity("/worktrees/candidate/scripts/reanswer-phase-65-locomo-report.ts", "d"),
-          report: artifactIdentity("/reports/candidate/smoke-report.json", "6"),
-          seedReport: artifactIdentity("/reports/candidate-seed/smoke-report.json", "e"),
-          seedRunnerSource: artifactIdentity("/worktrees/candidate/scripts/run-phase-65-locomo-smoke.ts", "f"),
+        providerReplay: {
+          baselineDiscoveryReceipt: artifactIdentity("provider-replay/baseline-discovery.json", "6"),
+          baselineFormalOfficial: artifactIdentity("provider-replay/baseline-official.json", "7"),
+          baselineFormalProgress: artifactIdentity("provider-replay/baseline-progress.jsonl", "7"),
+          baselineFormalReport: artifactIdentity("provider-replay/baseline-report.json", "8"),
+          baselineFormalReceipt: artifactIdentity("provider-replay/baseline-formal.json", "9"),
+          candidateDiscoveryReceipt: artifactIdentity("provider-replay/candidate-discovery.json", "a"),
+          candidateFormalOfficial: artifactIdentity("provider-replay/candidate-official.json", "b"),
+          candidateFormalProgress: artifactIdentity("provider-replay/candidate-progress.jsonl", "b"),
+          candidateFormalReport: artifactIdentity("provider-replay/candidate-report.json", "c"),
+          candidateFormalReceipt: artifactIdentity("provider-replay/candidate-formal.json", "d"),
+          tape: artifactIdentity("provider-response-tape.json", "e"),
         },
-        liveDelta: artifactIdentity("/reports/live-delta.json", "7"),
-        liveDeltaAnalyzerSource: artifactIdentity(
-          "/worktrees/candidate/scripts/analyze-phase-65-locomo-live-delta.ts",
-          "5",
-        ),
-        liveDeltaExecutionReceipt: artifactIdentity(
-          "/reports/live-delta-execution-receipt.json",
-          "6",
-        ),
-        liveDeltaStderr: artifactIdentity("/reports/live-delta-stderr.log", "7"),
-        liveDeltaStdout: artifactIdentity("/reports/live-delta-stdout.log", "8"),
-        manifest: artifactIdentity("/reports/manifest.json", "8"),
-        scenarioExecutionReceipt: artifactIdentity(
-          "scenario/execution-receipt.json",
-          "1",
-        ),
-        scenarioReplay: artifactIdentity(
-          "scenario/report.json",
-          "2",
-        ),
-        scenarioStderr: {
-          bytes: 0,
-          path: scenarioStderrPath,
-          sha256: "3".repeat(64),
-        },
-        scenarioStdout: artifactIdentity(
-          "scenario/stdout.log",
-          "4",
-        ),
+        scenarioReceipt: artifactIdentity("scenario/execution-receipt.json", "f"),
       },
       baselineCommit: "456edd106f29118b3455bf21c43d7b3107b48213",
       blockers: [],
       candidateCommit,
       candidatePromptSha256: deriveV073PromptSha256(),
       claimBoundary:
-        "Current recipe omits --answer-profile; historical 0.8799 evidence cannot be reused.",
+        "Provider-free hard gate, frozen provider replay, and explicit provider-variance spread.",
       fullClaimRerunRequired: true,
-      generatedBy: "scripts/run-v0-7-3-lifecycle-protection-gate.ts",
-      releaseAllowed: true,
-      scenarioReplay: {
-        candidateCommit,
-        command: "bun test tests/scenarios",
-        executionReceiptPath: scenarioReceiptPath,
-        executionReceiptSha256: "1".repeat(64),
-        failures: 0,
-        passed: 8,
-        reportPath: scenarioReportPath,
-        reportSha256: "2".repeat(64),
-        stderrPath: scenarioStderrPath,
-        stderrSha256: "3".repeat(64),
-        stdoutPath: scenarioStdoutPath,
-        stdoutSha256: "4".repeat(64),
+      generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
+      hardGate: {
+        providerFree: [{ concurrency: 1 }, { concurrency: 40 }],
+        scenarioReplay: { failures: 0, passed: 8 },
       },
-      schemaVersion: 1,
+      liveDiagnostic: {
+        signTest: {
+          alpha: 0.05,
+          discordant: 26,
+          improved: 11,
+          pValue: 0.5571970939636236,
+          regressed: 15,
+          significant: false,
+          test: "exact_two_sided_sign_test",
+        },
+        totalQuestions: 233,
+      },
+      providerReplay: {
+        baselineExecutionFailures: 0,
+        baselineJudgeFailures: 0,
+        candidateExecutionFailures: 0,
+        candidateJudgeFailures: 0,
+        discovery: {
+          baseline: { ...providerSession, mode: "prefetch" },
+          candidate: { ...providerSession, mode: "prefetch" },
+        },
+        formal: { baseline: providerSession, candidate: providerSession },
+        tapeEntryCount: 10,
+        tapeSha256,
+        tapeTargetCounts: { embedding: 2, eval: 7, judge: 1 },
+      },
+      releaseAllowed: true,
+      researchRecordRequired: false,
+      schemaVersion: 2,
     };
 
     expect(evaluateV073LifecycleProtectionArtifact({
@@ -1121,14 +1134,11 @@ describe("v0.7 release readiness", () => {
     expect(evaluateV073LifecycleProtectionArtifact({
       artifact: {
         ...artifact,
-        scenarioReplay: {
-          ...artifact.scenarioReplay,
-          candidateCommit: "c".repeat(40),
-        },
+        candidateCommit: "c",
       },
       artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
     })).toEqual(expect.objectContaining({
-      detail: expect.stringContaining("candidate commit"),
+      detail: expect.stringContaining("candidate"),
       status: "fail",
     }));
 
@@ -1150,7 +1160,10 @@ describe("v0.7 release readiness", () => {
         ...artifact,
         artifacts: {
           ...artifact.artifacts,
-          scenarioExecutionReceipt: undefined,
+          providerReplay: {
+            ...artifact.artifacts.providerReplay,
+            tape: undefined,
+          },
         },
       },
       artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
@@ -1171,6 +1184,626 @@ describe("v0.7 release readiness", () => {
       detail: expect.stringContaining("ENOENT"),
       status: "fail",
     }));
+  });
+
+  it("recomputes schema 2 lifecycle evidence from bound deterministic and frozen-replay bytes", async () => {
+    const repoRoot = await mkdtemp(join(tmpdir(), "goodmemory-v073-replacement-bundle-"));
+    const evidencePrefix = "reports/release/v0.7/v0.7.3-lifecycle-evidence";
+    const candidateCommit = "a".repeat(40);
+    const writeEvidence = async (name: string, raw: string) => {
+      const path = `${evidencePrefix}/${name}`;
+      const absolutePath = join(repoRoot, path);
+      await mkdir(join(absolutePath, ".."), { recursive: true });
+      await writeFile(absolutePath, raw);
+      return {
+        bytes: Buffer.byteLength(raw, "utf8"),
+        path,
+        sha256: createHash("sha256").update(raw).digest("hex"),
+      };
+    };
+    const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
+    const benchmarkRoot = join(
+      homedir(),
+      ".cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1",
+    );
+    const frozenRows = frozenV073LocomoQuestionSelection()
+      .filter((row) =>
+        row.caseId === "locomo-conv-26" || row.caseId === "locomo-conv-30"
+      )
+      .map((row, index) => {
+        const evidenceTurnId = `evidence-${index}`;
+        const retrieved = index % 2 === 1;
+        return {
+          ...row,
+          evidenceRecall: retrieved ? 1 : 0,
+          evidenceTurnIds: [evidenceTurnId],
+          goldEvidenceFullyRetrieved: retrieved,
+          missingEvidenceTurnIds: retrieved ? [] : [evidenceTurnId],
+          noiseTurnCount: 0,
+          noiseTurnIds: [],
+          retrievedTurnIds: retrieved ? [evidenceTurnId] : [],
+        };
+      });
+    const providerFreeReport = (concurrency: number) => ({
+      answerEvaluation: "deferred-to-live-mode",
+      benchmarkFingerprint:
+        "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd",
+      caseIds: ["locomo-conv-26", "locomo-conv-30"],
+      cases: frozenRows,
+      concurrency,
+      executionFailures: 0,
+      externalRoot: benchmarkRoot,
+      generalizedFusion: true,
+      generatedBy: "scripts/run-phase-65-locomo-smoke.ts",
+      ingestMode: "raw-turns",
+      labelFreeIngest: true,
+      mode: "retrieval-only",
+      profilesCompared: ["goodmemory-recommended"],
+      providerReranking: false,
+      questionCount: frozenRows.length,
+      resume: false,
+      semanticCandidateEmbeddingSource: "none",
+    });
+    const formal = {
+      cases: frozenRows.map((row) => ({
+        ...row,
+        answerCorrect: true,
+        answerTokenF1: 1,
+      })),
+      executionFailures: 0,
+      questionCount: frozenRows.length,
+    };
+    const official = { judgeFailures: 0, overallAccuracy: 1 };
+    const officialProgressRaw = frozenRows
+      .map((row) => JSON.stringify({ correct: true, questionId: row.questionId }))
+      .join("\n") + "\n";
+    const semanticHeadersSha256 = createHash("sha256")
+      .update(JSON.stringify([]))
+      .digest("hex");
+    const tapeEntries = [
+      ["embedding", "/embeddings"],
+      ["eval", "/chat/completions"],
+      ["judge", "/chat/completions"],
+    ].map(([targetId, path]) => {
+      const body = JSON.stringify({ targetId });
+      const responseBytes = Buffer.from(`ok-${targetId}`);
+      return {
+        fingerprint: fingerprintProviderRequest({
+          body,
+          method: "POST",
+          path: path!,
+          targetId: targetId!,
+        }),
+        request: {
+          canonicalBodySha256: createHash("sha256").update(body).digest("hex"),
+          method: "POST",
+          path: path!,
+          semanticHeadersSha256,
+          targetId: targetId!,
+        },
+        response: {
+          bodyBase64: responseBytes.toString("base64"),
+          bytes: responseBytes.byteLength,
+          contentType: "text/plain",
+          sha256: createHash("sha256").update(responseBytes).digest("hex"),
+          status: 200,
+          statusText: "OK",
+        },
+      };
+    });
+    const tapeRaw = serializeProviderResponseTape({
+      entries: tapeEntries,
+      schemaVersion: 2,
+    });
+    const tapeSha256 = createHash("sha256").update(tapeRaw).digest("hex");
+    const requestFingerprintMultisetSha256 = createHash("sha256")
+      .update(JSON.stringify(
+        tapeEntries
+          .map((entry): [string, number] => [entry.fingerprint, 1])
+          .sort(([left], [right]) => left.localeCompare(right)),
+      ))
+      .digest("hex");
+    const replaySession = {
+      coalesced: 0,
+      hits: 3,
+      liveRequests: 0,
+      misses: 0,
+      mode: "replay" as const,
+      requestFingerprintMultisetSha256,
+      requests: 3,
+      targetCounts: { embedding: 1, eval: 1, judge: 1 },
+      tapeSha256,
+    };
+    const discoverySession = {
+      coalesced: 0,
+      hits: 0,
+      liveRequests: 3,
+      misses: 3,
+      mode: "prefetch" as const,
+      requestFingerprintMultisetSha256,
+      requests: 3,
+      targetCounts: { embedding: 1, eval: 1, judge: 1 },
+      tapeSha256,
+    };
+    const protocolInput = {
+      baselineCommit: "456edd106f29118b3455bf21c43d7b3107b48213",
+      candidateCommit,
+      candidatePromptSha256: deriveV073PromptSha256(),
+      deterministicArms: [
+        {
+          baseline: providerFreeReport(1),
+          candidate: providerFreeReport(1),
+          concurrency: 1,
+        },
+        {
+          baseline: providerFreeReport(40),
+          candidate: providerFreeReport(40),
+          concurrency: 40,
+        },
+      ],
+      providerReplay: {
+        baselineExecutionFailures: 0,
+        baselineJudgeFailures: 0,
+        candidateExecutionFailures: 0,
+        candidateJudgeFailures: 0,
+        discovery: {
+          baseline: discoverySession,
+          candidate: discoverySession,
+        },
+        formal: { baseline: replaySession, candidate: replaySession },
+        pointDeltas: {
+          evidenceRecall: 0,
+          officialScore: 0,
+          strictAnswerScore: 0,
+        },
+        tapeEntryCount: 3,
+        tapeSha256,
+        tapeTargetCounts: { embedding: 1, eval: 1, judge: 1 },
+      },
+      questionTransitions: { improved: 0, regressed: 0, total: 233 },
+      scenarioReplay: { failures: 0, passed: 8 },
+    };
+
+    try {
+      await mkdir(join(repoRoot, "benchmark-claims"), { recursive: true });
+      await writeFile(join(repoRoot, "benchmark-claims/locomo.json"), CLAIM_RECIPE_RAW);
+      const harnessSources = {
+        claimRecipe: ["benchmark-claims/locomo.json", CLAIM_RECIPE_RAW],
+        officialRunner: [
+          "scripts/rescore-official-protocols.ts",
+          readFileSync("scripts/rescore-official-protocols.ts", "utf8"),
+        ],
+        reanswerRunner: [
+          "scripts/reanswer-phase-65-locomo-report.ts",
+          readFileSync("scripts/reanswer-phase-65-locomo-report.ts", "utf8"),
+        ],
+        seedRunner: [
+          "scripts/run-phase-65-locomo-smoke.ts",
+          readFileSync("scripts/run-phase-65-locomo-smoke.ts", "utf8"),
+        ],
+      } as const;
+      for (const [path, raw] of Object.values(harnessSources)) {
+        await mkdir(join(repoRoot, path, ".."), { recursive: true });
+        await writeFile(join(repoRoot, path), raw);
+      }
+      const measurementHarness = Object.fromEntries(
+        Object.entries(harnessSources).map(([name, [path, raw]]) => [name, {
+          bytes: Buffer.byteLength(raw, "utf8"),
+          path,
+          sha256: createHash("sha256").update(raw).digest("hex"),
+        }]),
+      ) as Record<string, { bytes: number; path: string; sha256: string }>;
+      const sourceIdentity = {
+        claimCommandTemplateSha256:
+          deriveV073ClaimCommandTemplateSha256(CLAIM_RECIPE_RAW),
+        claimSourceSha256: measurementHarness.claimRecipe!.sha256,
+        officialSourceSha256: measurementHarness.officialRunner!.sha256,
+        promptSha256: deriveV073PromptSha256(),
+        reanswerSourceSha256: measurementHarness.reanswerRunner!.sha256,
+        seedSourceSha256: measurementHarness.seedRunner!.sha256,
+      };
+      const providers = {
+        assisted: {
+          gateway: "https://ai.gurkiai.com/v1",
+          model: "gpt-5.6-terra",
+          provider: "openai",
+        },
+        embedding: {
+          gateway: "https://openrouter.ai/api/v1",
+          model: "text-embedding-3-small",
+          provider: "openai",
+        },
+        eval: {
+          gateway: "https://ai.gurkiai.com/v1",
+          model: "gpt-5.6-terra",
+          provider: "openai",
+        },
+        judge: {
+          gateway: "https://ai.gurkiai.com/v1",
+          model: "gpt-5.5",
+          provider: "openai",
+        },
+        reranking: {
+          gateway: "https://ai.gurkiai.com/v1",
+          model: "gpt-5.6-terra",
+          provider: "openai",
+        },
+      };
+      const baselineWorktree = "/tmp/baseline-v073";
+      const candidateWorktree = "/tmp/candidate-v073";
+      const manifestValue = {
+        baseline: {
+          branch: null,
+          commit: protocolInput.baselineCommit,
+          statusPorcelain: "",
+          worktreePath: baselineWorktree,
+        },
+        benchmark: {
+          bytes: 2_490_457,
+          fingerprint:
+            "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd",
+          root: benchmarkRoot,
+          sha256:
+            "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28",
+        },
+        candidate: {
+          branch: null,
+          commit: candidateCommit,
+          statusPorcelain: "",
+          worktreePath: candidateWorktree,
+        },
+        generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
+        measurementHarness,
+        protocol: {
+          claimCommandTemplateSha256: sourceIdentity.claimCommandTemplateSha256,
+          formalNetworkOnMiss: false,
+          hardRegressionLimit: 0.01,
+          promptSha256: sourceIdentity.promptSha256,
+          providerFreeConcurrency: [1, 40],
+          signTestAlpha: 0.05,
+          tapeRequestIdentity:
+            "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)",
+        },
+        providers,
+        schemaVersion: 2,
+      };
+      const sharedStdout = await writeEvidence("logs/stdout.log", "8 pass\n0 fail\n");
+      const sharedStderr = await writeEvidence("logs/stderr.log", "");
+      const [
+        manifest,
+        protocolInputIdentity,
+        c1Baseline,
+        c1Candidate,
+        c40Baseline,
+        c40Candidate,
+        baselineFormalReport,
+        candidateFormalReport,
+        baselineFormalOfficial,
+        candidateFormalOfficial,
+        baselineFormalProgress,
+        candidateFormalProgress,
+        tape,
+      ] = await Promise.all([
+        writeEvidence("manifest.json", json(manifestValue)),
+        writeEvidence("protocol-input.json", json(protocolInput)),
+        writeEvidence("provider-free/c1-baseline.json", json(providerFreeReport(1))),
+        writeEvidence("provider-free/c1-candidate.json", json(providerFreeReport(1))),
+        writeEvidence("provider-free/c40-baseline.json", json(providerFreeReport(40))),
+        writeEvidence("provider-free/c40-candidate.json", json(providerFreeReport(40))),
+        writeEvidence("provider-replay/baseline-report.json", json(formal)),
+        writeEvidence("provider-replay/candidate-report.json", json(formal)),
+        writeEvidence("provider-replay/baseline-official.json", json(official)),
+        writeEvidence("provider-replay/candidate-official.json", json(official)),
+        writeEvidence("provider-replay/baseline-progress.jsonl", officialProgressRaw),
+        writeEvidence("provider-replay/candidate-progress.jsonl", officialProgressRaw),
+        writeEvidence("provider-response-tape.json", tapeRaw),
+      ]);
+      const providerFreeReceipt = async (input: {
+        concurrency: 1 | 40;
+        label: "baseline" | "candidate";
+        report: typeof c1Baseline;
+      }) => {
+        const runId = `v073-provider-free-c${input.concurrency}-${input.label}`;
+        return writeEvidence(
+          `provider-free/${runId}-receipt.json`,
+          json({
+            args: buildV073ProviderFreeArgs({
+              benchmarkRoot,
+              concurrency: input.concurrency,
+              outputDir: join(repoRoot, evidencePrefix, "provider-free"),
+              runId,
+            }),
+            command: "bun",
+            commit: input.label === "baseline"
+              ? protocolInput.baselineCommit
+              : candidateCommit,
+            concurrency: input.concurrency,
+            cwd: input.label === "baseline" ? baselineWorktree : candidateWorktree,
+            exitCode: 0,
+            generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
+            label: input.label,
+            report: input.report,
+            stderr: sharedStderr,
+            stdout: sharedStdout,
+          }),
+        );
+      };
+      const [
+        c1BaselineReceipt,
+        c1CandidateReceipt,
+        c40BaselineReceipt,
+        c40CandidateReceipt,
+      ] = await Promise.all([
+        providerFreeReceipt({ concurrency: 1, label: "baseline", report: c1Baseline }),
+        providerFreeReceipt({ concurrency: 1, label: "candidate", report: c1Candidate }),
+        providerFreeReceipt({ concurrency: 40, label: "baseline", report: c40Baseline }),
+        providerFreeReceipt({ concurrency: 40, label: "candidate", report: c40Candidate }),
+      ]);
+      const scenarioReceipt = await writeEvidence("scenario/receipt.json", json({
+        args: ["test", "tests/scenarios"],
+        candidateCommit,
+        command: "bun",
+        cwd: candidateWorktree,
+        exitCode: 0,
+        failures: 0,
+        generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
+        passed: 8,
+        stderr: sharedStderr,
+        stdout: sharedStdout,
+      }));
+      const providerReceipt = async (input: {
+        commit: string;
+        formalStage: boolean;
+        name: string;
+        session: typeof replaySession | typeof discoverySession;
+        stage: string;
+        worktreePath: string;
+      }) => {
+        const expectedArm = buildV073StageArm({
+          benchmarkRoot,
+          claimRecipeRaw: CLAIM_RECIPE_RAW,
+          commit: input.commit,
+          outputDir: join(repoRoot, evidencePrefix),
+          providers,
+          sourceIdentity: {
+            officialSourceSha256: sourceIdentity.officialSourceSha256,
+            reanswerSourceSha256: sourceIdentity.reanswerSourceSha256,
+            seedSourceSha256: sourceIdentity.seedSourceSha256,
+          },
+          stage: input.stage,
+          worktreePath: input.worktreePath,
+        });
+        const commandChain = routeV073CommandChainThroughTape(
+          buildV073PairedCommandChain(expectedArm.arm, CLAIM_RECIPE_RAW),
+          {
+            assisted: "http://127.0.0.1:4567/assisted",
+            embedding: "http://127.0.0.1:4567/embedding",
+            eval: "http://127.0.0.1:4567/eval",
+            judge: "http://127.0.0.1:4567/judge",
+            reranking: "http://127.0.0.1:4567/reranking",
+          },
+          { replayCredentials: input.formalStage },
+        );
+        return writeEvidence(input.name, json({
+        commandChain,
+        commit: input.commit,
+        executionOrder: V073_PROVIDER_STAGE_ORDER,
+        generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
+        outputs: {
+          finalReport: input.commit === protocolInput.baselineCommit
+            ? baselineFormalReport
+            : candidateFormalReport,
+          officialProgress: input.commit === protocolInput.baselineCommit
+            ? baselineFormalProgress
+            : candidateFormalProgress,
+          officialSummary: input.commit === protocolInput.baselineCommit
+            ? baselineFormalOfficial
+            : candidateFormalOfficial,
+          seedReport: input.commit === protocolInput.baselineCommit
+            ? baselineFormalReport
+            : candidateFormalReport,
+        },
+        session: input.session,
+        sourceIdentity,
+        stage: input.stage,
+        stderr: sharedStderr,
+        steps: V073_PROVIDER_STAGE_ORDER.map((step) => ({ exitCode: 0, step })),
+        stdout: sharedStdout,
+        }));
+      };
+      const [
+        baselineDiscoveryReceipt,
+        candidateDiscoveryReceipt,
+        baselineFormalReceipt,
+        candidateFormalReceipt,
+      ] = await Promise.all([
+        providerReceipt({
+          commit: protocolInput.baselineCommit,
+          formalStage: false,
+          name: "provider-replay/baseline-discovery.json",
+          session: discoverySession,
+          stage: "baseline-discovery",
+          worktreePath: baselineWorktree,
+        }),
+        providerReceipt({
+          commit: candidateCommit,
+          formalStage: false,
+          name: "provider-replay/candidate-discovery.json",
+          session: discoverySession,
+          stage: "candidate-discovery",
+          worktreePath: candidateWorktree,
+        }),
+        providerReceipt({
+          commit: protocolInput.baselineCommit,
+          formalStage: true,
+          name: "provider-replay/baseline-formal.json",
+          session: replaySession,
+          stage: "baseline-formal",
+          worktreePath: baselineWorktree,
+        }),
+        providerReceipt({
+          commit: candidateCommit,
+          formalStage: true,
+          name: "provider-replay/candidate-formal.json",
+          session: replaySession,
+          stage: "candidate-formal",
+          worktreePath: candidateWorktree,
+        }),
+      ]);
+      const artifacts = {
+        manifest,
+        protocolInput: protocolInputIdentity,
+        providerFree: {
+          c1Baseline,
+          c1BaselineReceipt,
+          c1Candidate,
+          c1CandidateReceipt,
+          c40Baseline,
+          c40BaselineReceipt,
+          c40Candidate,
+          c40CandidateReceipt,
+        },
+        providerReplay: {
+          baselineDiscoveryReceipt,
+          baselineFormalOfficial,
+          baselineFormalProgress,
+          baselineFormalReport,
+          baselineFormalReceipt,
+          candidateDiscoveryReceipt,
+          candidateFormalOfficial,
+          candidateFormalProgress,
+          candidateFormalReport,
+          candidateFormalReceipt,
+          tape,
+        },
+        scenarioReceipt,
+      };
+      const artifact = {
+        ...evaluateV073ReplacementProtection(protocolInput),
+        artifacts,
+      };
+
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({ status: "pass" }));
+
+      for (const protocolDrift of [
+        { formalNetworkOnMiss: true },
+        { hardRegressionLimit: 0.02 },
+        { providerFreeConcurrency: [1] },
+        { signTestAlpha: 0.1 },
+        { tapeRequestIdentity: "body-only" },
+      ]) {
+        const driftedManifestRaw = json({
+          ...manifestValue,
+          protocol: { ...manifestValue.protocol, ...protocolDrift },
+        });
+        await writeFile(join(repoRoot, manifest.path), driftedManifestRaw);
+        Object.assign(
+          artifact.artifacts.manifest,
+          evidenceIdentity(manifest.path, driftedManifestRaw),
+        );
+        expect(await evaluateV073LifecycleProtectionBundle({
+          artifact,
+          artifactPath:
+            "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+          repoRoot,
+        })).toEqual(expect.objectContaining({
+          detail: expect.stringContaining("manifest"),
+          status: "fail",
+        }));
+      }
+      const manifestRaw = json(manifestValue);
+      await writeFile(join(repoRoot, manifest.path), manifestRaw);
+      Object.assign(
+        artifact.artifacts.manifest,
+        evidenceIdentity(manifest.path, manifestRaw),
+      );
+
+      const scenarioReceiptRaw = await readFile(
+        join(repoRoot, scenarioReceipt.path),
+        "utf8",
+      );
+      const alteredScenarioReceipt = JSON.parse(scenarioReceiptRaw) as {
+        stdout: { path: string };
+      };
+      const scenarioStdoutPath = alteredScenarioReceipt.stdout.path;
+      const scenarioStdoutRaw = await readFile(
+        join(repoRoot, scenarioStdoutPath),
+        "utf8",
+      );
+      const alteredScenarioStdoutRaw = "9 pass\n0 fail\n";
+      await writeFile(
+        join(repoRoot, scenarioStdoutPath),
+        alteredScenarioStdoutRaw,
+      );
+      alteredScenarioReceipt.stdout = evidenceIdentity(
+        scenarioStdoutPath,
+        alteredScenarioStdoutRaw,
+      );
+      const alteredScenarioRaw = json(alteredScenarioReceipt);
+      await writeFile(join(repoRoot, scenarioReceipt.path), alteredScenarioRaw);
+      Object.assign(
+        artifact.artifacts.scenarioReceipt,
+        evidenceIdentity(scenarioReceipt.path, alteredScenarioRaw),
+      );
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining("bound logs"),
+        status: "fail",
+      }));
+      await writeFile(join(repoRoot, scenarioReceipt.path), scenarioReceiptRaw);
+      await writeFile(join(repoRoot, scenarioStdoutPath), scenarioStdoutRaw);
+      Object.assign(
+        artifact.artifacts.scenarioReceipt,
+        evidenceIdentity(scenarioReceipt.path, scenarioReceiptRaw),
+      );
+
+      const formalReceiptRaw = await readFile(
+        join(repoRoot, candidateFormalReceipt.path),
+        "utf8",
+      );
+      const alteredFormalReceipt = JSON.parse(formalReceiptRaw) as {
+        commandChain: { seedSmoke: { args: string[] } };
+      };
+      alteredFormalReceipt.commandChain.seedSmoke.args.push("--drifted");
+      const alteredFormalRaw = json(alteredFormalReceipt);
+      await writeFile(join(repoRoot, candidateFormalReceipt.path), alteredFormalRaw);
+      Object.assign(
+        artifact.artifacts.providerReplay.candidateFormalReceipt,
+        evidenceIdentity(candidateFormalReceipt.path, alteredFormalRaw),
+      );
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining("drifted from the recipe"),
+        status: "fail",
+      }));
+      await writeFile(join(repoRoot, candidateFormalReceipt.path), formalReceiptRaw);
+      Object.assign(
+        artifact.artifacts.providerReplay.candidateFormalReceipt,
+        evidenceIdentity(candidateFormalReceipt.path, formalReceiptRaw),
+      );
+
+      await writeFile(join(repoRoot, c1Baseline.path), "{}\n");
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining("bytes do not match"),
+        status: "fail",
+      }));
+    } finally {
+      await rm(repoRoot, { force: true, recursive: true });
+    }
   });
 
   it("allows a later tracked attestation commit without requiring an impossible self-reference", () => {

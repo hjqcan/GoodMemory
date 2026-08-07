@@ -9,6 +9,15 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   `456edd106f29118b3455bf21c43d7b3107b48213`; release workflow run
   `30733828784` verified the exact npm artifact before publishing the non-draft
   GitHub Release.
+- `main` contains the v0.7.3 lifecycle-truthfulness candidate and the
+  replacement protection runner, but v0.7.3 is not published. The first
+  provider-backed 233-question gate remains archived as blocked; its 11/15
+  paired split has exact two-sided `p=0.5571970939636236`, while same-commit
+  provider variance exceeded the original 1pt threshold. A schema-2 rerun must
+  pass the provider-free C1/C40 hard gate, scenario replay, and zero-live
+  formal replay on all registered provider routes before the full 1540-question
+  claim may run.
+  See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as
   `hjqcan/GoodMemory@tag:v0.7.2`; `/reload` connected one stdio MCP server with
