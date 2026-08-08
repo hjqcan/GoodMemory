@@ -17,6 +17,8 @@ import {
   resolveCliFlagValueStrict,
 } from "./cli-options";
 import {
+  assertProviderResponseFailuresRecovered,
+  assertProviderResponseTapeCoversSequences,
   fingerprintProviderRequestIdentity,
   fingerprintProviderRequestSequence,
   fingerprintProviderTransportAttemptLedger,
@@ -1565,16 +1567,19 @@ function isProviderReplaySession(value: unknown, mode: "prefetch" | "replay"): b
       value.requests;
   return Boolean(
     validCensus &&
-    value.non2xxResponses === 0 &&
     (mode === "prefetch"
-      ? value.liveRequests === value.misses &&
+      ? value.coalesced === 0 &&
+        value.liveRequests === value.misses &&
         value.sequenceMismatches === 0 &&
         value.transportAttempts === value.liveRequests &&
-        value.transportErrors === 0
+        value.transportErrors <= value.transportAttempts &&
+        value.non2xxResponses <=
+          value.transportAttempts - value.transportErrors
       : value.hits === value.requests &&
         value.misses === 0 &&
         value.liveRequests === 0 &&
         value.coalesced === 0 &&
+        value.non2xxResponses === 0 &&
         value.sequenceMismatches === 0 &&
         value.transportAttempts === 0 &&
         value.transportErrors === 0 &&
@@ -1595,8 +1600,8 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
     const hardGate = input.artifact.hardGate;
     const providerReplay = input.artifact.providerReplay;
     const liveDiagnostic = input.artifact.liveDiagnostic;
-    if (input.artifact.schemaVersion !== 5) {
-      issues.push("schemaVersion must be 5");
+    if (input.artifact.schemaVersion !== 6) {
+      issues.push("schemaVersion must be 6");
     }
     if (
       input.artifact.generatedBy !==
@@ -1820,6 +1825,7 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
     const protocolInput = JSON.parse(
       protocolInputRaw,
     ) as V073ReplacementProtectionInput;
+    const tape = parseProviderResponseTape(tapeRaw);
     const manifest = JSON.parse(manifestRaw) as Record<string, unknown>;
     const scenarioReceipt = JSON.parse(
       scenarioReceiptRaw,
@@ -1886,7 +1892,7 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd" ||
       manifest.benchmark.sha256 !==
         "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28" ||
-      manifest.schemaVersion !== 5 ||
+      manifest.schemaVersion !== 6 ||
       manifest.generatedBy !==
         "scripts/run-v0-7-3-replacement-protection-gate.ts" ||
       !sameJson(manifest.providers, expectedProviders) ||
@@ -1904,7 +1910,11 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
       protocol.formalNetworkOnMiss !== false ||
       protocol.hardRegressionLimit !== 0.01 ||
       protocol.promptSha256 !== deriveV073PromptSha256() ||
+      protocol.providerFailureRecovery !==
+        "immediate-same-fingerprint-retry-to-2xx" ||
       !sameJson(protocol.providerFreeConcurrency, [1, 40]) ||
+      protocol.providerLogCredentialMaterial !==
+        "redacted-before-output-hash-and-persistence" ||
       protocol.providerReplayConcurrency !== 1 ||
       protocolInput.providerReplay.concurrency !== 1 ||
       protocol.signTestAlpha !== 0.05 ||
@@ -1912,6 +1922,9 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest" ||
       protocol.tapeRequestIdentity !==
         "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)" ||
+      protocol.tapeResponseVariants !== "ordered-per-fingerprint" ||
+      protocol.tapeSequenceCoverage !==
+        "exact-discovery-occurrence-union" ||
       protocol.transportAttemptLedger !== "hash-only-session-receipt" ||
       protocol.transportErrorResponseStatus !==
         V073_PROVIDER_TRANSPORT_POLICY.errorResponseStatus ||
@@ -2139,6 +2152,10 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         transportLedger.length !== session.transportAttempts ||
         transportLedger.filter((entry) => entry.outcome === "error").length !==
           session.transportErrors ||
+        transportLedger.filter((entry) =>
+          entry.outcome === "response" &&
+          (entry.responseStatus < 200 || entry.responseStatus > 299)
+        ).length !== session.non2xxResponses ||
         transportLedgerSha256 !== session.transportAttemptLedgerSha256 ||
         new Set(transportLedger.map((entry) => entry.requestIndex)).size !==
           transportLedger.length ||
@@ -2147,7 +2164,7 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
           entry.fingerprint !== sequence[entry.requestIndex]!.fingerprint ||
           entry.targetId !== sequence[entry.requestIndex]!.targetId ||
           entry.outcome === "response" &&
-            (entry.responseStatus < 200 || entry.responseStatus > 299)
+            (entry.responseStatus < 200 || entry.responseStatus > 599)
         )
       ) {
         throw new Error("provider replay receipt input or transport ledger is invalid");
@@ -2166,6 +2183,9 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
     ) {
       throw new Error("formal provider input sequence does not match discovery");
     }
+    assertProviderResponseTapeCoversSequences(tape, observedSequences.slice(0, 2));
+    assertProviderResponseFailuresRecovered(tape, observedSequences[0]!);
+    assertProviderResponseFailuresRecovered(tape, observedSequences[1]!);
     const receiptBindings = [
       [
         JSON.parse(baselineDiscoveryReceiptRaw) as Record<string, unknown>,
@@ -2405,7 +2425,6 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
       }
     }
 
-    const tape = parseProviderResponseTape(tapeRaw);
     const tapeTargetCounts = Object.fromEntries(
       [...new Set(tape.entries.map((entry) => entry.request.targetId))]
         .sort()

@@ -18,6 +18,7 @@ const SAFE_TRANSPORT_ERROR_NAMES = new Set([
 
 export interface ProviderResponseTapeEntry {
   fingerprint: string;
+  occurrence: number;
   request: {
     canonicalBodySha256: string;
     method: string;
@@ -37,7 +38,7 @@ export interface ProviderResponseTapeEntry {
 
 export interface ProviderResponseTape {
   entries: ProviderResponseTapeEntry[];
-  schemaVersion: 2;
+  schemaVersion: 3;
 }
 
 export interface ProviderTapeRequestIdentity {
@@ -111,6 +112,8 @@ interface ActiveProviderTapeSession extends ProviderTapeSessionConfig {
   misses: number;
   non2xxResponses: number;
   requestFingerprintCounts: Map<string, number>;
+  replayEntries: Map<string, ProviderResponseTapeEntry[]>;
+  replayOffsets: Map<string, number>;
   requestSequence: ProviderTapeRequestIdentity[];
   requests: number;
   sequenceMismatchDetails: ProviderTapeSequenceMismatch[];
@@ -132,6 +135,17 @@ export interface ProviderResponseTapeProxy {
 
 function sha256(value: string | Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function hasExactKeys(
+  value: unknown,
+  expected: readonly string[],
+): value is Record<string, unknown> {
+  return value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    JSON.stringify(Object.keys(value).sort()) ===
+      JSON.stringify([...expected].sort());
 }
 
 function canonicalizeJson(value: unknown): unknown {
@@ -248,7 +262,7 @@ export function fingerprintProviderTransportAttemptLedger(
       entry.targetId.length === 0 ||
       (entry.outcome === "response"
         ? !Number.isSafeInteger(entry.responseStatus) ||
-          entry.responseStatus < 100 ||
+          entry.responseStatus < 200 ||
           entry.responseStatus > 599
         : !/^[0-9a-f]{64}$/u.test(entry.errorMessageSha256) ||
           ![
@@ -287,38 +301,60 @@ export function fingerprintProviderRequest(input: {
 export function serializeProviderResponseTape(
   tape: ProviderResponseTape,
 ): string {
-  const sorted: ProviderResponseTape = {
+  const ordered: ProviderResponseTape = {
     entries: [...tape.entries].sort((left, right) =>
-      left.fingerprint.localeCompare(right.fingerprint)
+      left.fingerprint.localeCompare(right.fingerprint) ||
+      left.occurrence - right.occurrence
     ),
-    schemaVersion: 2,
+    schemaVersion: 3,
   };
-  return `${JSON.stringify(sorted, null, 2)}\n`;
+  return `${JSON.stringify(ordered, null, 2)}\n`;
 }
 
 export function parseProviderResponseTape(raw: string): ProviderResponseTape {
   const parsed = JSON.parse(raw) as unknown;
   if (
-    parsed === null ||
-    typeof parsed !== "object" ||
-    Array.isArray(parsed) ||
-    !("schemaVersion" in parsed) ||
-    parsed.schemaVersion !== 2 ||
-    !("entries" in parsed) ||
+    !hasExactKeys(parsed, ["entries", "schemaVersion"]) ||
+    parsed.schemaVersion !== 3 ||
     !Array.isArray(parsed.entries)
   ) {
-    throw new Error("provider response tape must use schemaVersion 2");
+    throw new Error("provider response tape must use schemaVersion 3");
   }
-  const fingerprints = new Set<string>();
+  const nextOccurrence = new Map<string, number>();
   const entries = parsed.entries.map((value): ProviderResponseTapeEntry => {
-    const entry = value as ProviderResponseTapeEntry;
+    if (
+      !hasExactKeys(value, ["fingerprint", "occurrence", "request", "response"])
+    ) {
+      throw new Error("provider response tape schema is invalid");
+    }
+    const entry = value as unknown as ProviderResponseTapeEntry;
+    if (
+      !hasExactKeys(entry.request, [
+        "canonicalBodySha256",
+        "method",
+        "path",
+        "semanticHeadersSha256",
+        "targetId",
+      ]) ||
+      !hasExactKeys(entry.response, [
+        "bodyBase64",
+        "bytes",
+        "contentType",
+        "sha256",
+        "status",
+        "statusText",
+      ])
+    ) {
+      throw new Error("provider response tape schema is invalid");
+    }
     if (!/^[0-9a-f]{64}$/u.test(entry.fingerprint)) {
       throw new Error("provider response tape request fingerprint is invalid");
     }
-    if (fingerprints.has(entry.fingerprint)) {
-      throw new Error("duplicate provider response tape fingerprint");
+    const expectedOccurrence = nextOccurrence.get(entry.fingerprint) ?? 0;
+    if (entry.occurrence !== expectedOccurrence) {
+      throw new Error("provider response tape occurrence sequence is invalid");
     }
-    fingerprints.add(entry.fingerprint);
+    nextOccurrence.set(entry.fingerprint, expectedOccurrence + 1);
     if (
       !/^[0-9a-f]{64}$/u.test(entry.request?.canonicalBodySha256) ||
       typeof entry.request.method !== "string" ||
@@ -339,7 +375,7 @@ export function parseProviderResponseTape(raw: string): ProviderResponseTape {
       sha256(responseBytes) !== entry.response?.sha256 ||
       !Number.isSafeInteger(entry.response?.status) ||
       entry.response.status < 200 ||
-      entry.response.status > 299 ||
+      entry.response.status > 599 ||
       typeof entry.response.statusText !== "string" ||
       (entry.response.contentType !== null &&
         typeof entry.response.contentType !== "string")
@@ -348,12 +384,93 @@ export function parseProviderResponseTape(raw: string): ProviderResponseTape {
     }
     return entry;
   });
+  const canonicalOrder = [...entries].sort((left, right) =>
+    left.fingerprint.localeCompare(right.fingerprint) ||
+    left.occurrence - right.occurrence
+  );
+  if (entries.some((entry, index) => entry !== canonicalOrder[index])) {
+    throw new Error("provider response tape occurrence order is invalid");
+  }
   return {
-    entries: entries.sort((left, right) =>
-      left.fingerprint.localeCompare(right.fingerprint)
-    ),
-    schemaVersion: 2,
+    entries,
+    schemaVersion: 3,
   };
+}
+
+function responseEntriesForSequence(
+  tape: ProviderResponseTape,
+  sequence: readonly ProviderTapeRequestIdentity[],
+): ProviderResponseTapeEntry[] {
+  const entriesByFingerprint = new Map<string, ProviderResponseTapeEntry[]>();
+  for (const entry of tape.entries) {
+    const entries = entriesByFingerprint.get(entry.fingerprint) ?? [];
+    entries.push(entry);
+    entriesByFingerprint.set(entry.fingerprint, entries);
+  }
+  const offsets = new Map<string, number>();
+  return sequence.map((identity) => {
+    const occurrence = offsets.get(identity.fingerprint) ?? 0;
+    offsets.set(identity.fingerprint, occurrence + 1);
+    const entry = entriesByFingerprint.get(identity.fingerprint)?.[occurrence];
+    if (
+      entry === undefined ||
+      entry.request.targetId !== identity.targetId
+    ) {
+      throw new Error("provider response tape does not cover request sequence");
+    }
+    return entry;
+  });
+}
+
+export function assertProviderResponseFailuresRecovered(
+  tape: ProviderResponseTape,
+  sequence: readonly ProviderTapeRequestIdentity[],
+): void {
+  const entries = responseEntriesForSequence(tape, sequence);
+  entries.forEach((entry, index) => {
+    if (entry.response.status >= 200 && entry.response.status <= 299) {
+      return;
+    }
+    if (sequence[index + 1]?.fingerprint !== sequence[index]!.fingerprint) {
+      throw new Error(
+        "provider failure was not recovered by an immediate same-request retry",
+      );
+    }
+  });
+}
+
+export function assertProviderResponseTapeCoversSequences(
+  tape: ProviderResponseTape,
+  sequences: readonly (readonly ProviderTapeRequestIdentity[])[],
+): void {
+  const expectedCounts = new Map<string, number>();
+  for (const sequence of sequences) {
+    const counts = new Map<string, number>();
+    for (const identity of sequence) {
+      counts.set(identity.fingerprint, (counts.get(identity.fingerprint) ?? 0) + 1);
+    }
+    for (const [fingerprint, count] of counts) {
+      expectedCounts.set(
+        fingerprint,
+        Math.max(expectedCounts.get(fingerprint) ?? 0, count),
+      );
+    }
+  }
+  const actualCounts = new Map<string, number>();
+  for (const entry of tape.entries) {
+    actualCounts.set(entry.fingerprint, (actualCounts.get(entry.fingerprint) ?? 0) + 1);
+  }
+  const canonical = (counts: Map<string, number>) => JSON.stringify(
+    [...counts.entries()].sort(([left], [right]) => left.localeCompare(right)),
+  );
+  if (canonical(actualCounts) !== canonical(expectedCounts)) {
+    throw new Error(
+      "provider response tape does not exactly cover discovery sequences",
+    );
+  }
+  for (const sequence of sequences) {
+    responseEntriesForSequence(tape, sequence);
+  }
 }
 
 function responseFromTape(entry: ProviderResponseTapeEntry): Response {
@@ -462,9 +579,14 @@ export function createProviderResponseTapeProxy(input: {
       upstreamBaseUrl.replace(/\/+$/u, ""),
     ]),
   );
-  const entries = new Map(
-    (input.initialTape?.entries ?? []).map((entry) => [entry.fingerprint, entry]),
-  );
+  const entries = [...(input.initialTape?.entries ?? [])];
+  const nextOccurrences = entries.reduce((counts, entry) => {
+    counts.set(
+      entry.fingerprint,
+      Math.max(counts.get(entry.fingerprint) ?? 0, entry.occurrence + 1),
+    );
+    return counts;
+  }, new Map<string, number>());
   const inFlight = new Map<string, Promise<ProviderResponseTapeEntry>>();
   let activeSession: ActiveProviderTapeSession | null = null;
 
@@ -538,8 +660,11 @@ export function createProviderResponseTapeProxy(input: {
         );
       }
 
-      const recorded = entries.get(fingerprint);
+      const replayEntries = session.replayEntries.get(fingerprint) ?? [];
+      const replayOffset = session.replayOffsets.get(fingerprint) ?? 0;
+      const recorded = replayEntries[replayOffset];
       if (recorded !== undefined) {
+        session.replayOffsets.set(fingerprint, replayOffset + 1);
         session.hits += 1;
         return responseFromTape(recorded);
       }
@@ -567,6 +692,7 @@ export function createProviderResponseTapeProxy(input: {
       const liveRequest = (async (): Promise<ProviderResponseTapeEntry> => {
         let response: Response;
         let responseBody: Uint8Array;
+        let transportFailed = false;
         try {
           response = await upstreamFetch(`${upstreamBaseUrl}${path}`, {
             body: request.method === "GET" || request.method === "HEAD"
@@ -586,6 +712,7 @@ export function createProviderResponseTapeProxy(input: {
             targetId,
           });
         } catch (error) {
+          transportFailed = true;
           session.transportErrors += 1;
           session.transportAttemptLedger.push(transportErrorAttempt({
             error,
@@ -593,13 +720,15 @@ export function createProviderResponseTapeProxy(input: {
             requestIndex,
             targetId,
           }));
-          throw error;
+          response = transportFailureResponse();
+          responseBody = new Uint8Array(await response.arrayBuffer());
         }
-        if (!response.ok) {
+        if (!response.ok && !transportFailed) {
           session.non2xxResponses += 1;
         }
         const entry: ProviderResponseTapeEntry = {
           fingerprint,
+          occurrence: nextOccurrences.get(fingerprint) ?? 0,
           request: {
             canonicalBodySha256: sha256(canonicalRequestBody(body)),
             method: request.method.toUpperCase(),
@@ -616,9 +745,8 @@ export function createProviderResponseTapeProxy(input: {
             statusText: response.statusText,
           },
         };
-        if (response.ok) {
-          entries.set(fingerprint, entry);
-        }
+        nextOccurrences.set(fingerprint, entry.occurrence + 1);
+        entries.push(entry);
         return entry;
       })();
       inFlight.set(fingerprint, liveRequest);
@@ -633,10 +761,11 @@ export function createProviderResponseTapeProxy(input: {
   });
 
   const snapshot = (): ProviderResponseTape => ({
-    entries: [...entries.values()].sort((left, right) =>
-      left.fingerprint.localeCompare(right.fingerprint)
+    entries: [...entries].sort((left, right) =>
+      left.fingerprint.localeCompare(right.fingerprint) ||
+      left.occurrence - right.occurrence
     ),
-    schemaVersion: 2,
+    schemaVersion: 3,
   });
 
   const sessionStats = (): ProviderTapeSessionStats => {
@@ -729,6 +858,13 @@ export function createProviderResponseTapeProxy(input: {
         misses: 0,
         non2xxResponses: 0,
         requestFingerprintCounts: new Map(),
+        replayEntries: entries.reduce((grouped, entry) => {
+          const variants = grouped.get(entry.fingerprint) ?? [];
+          variants.push(entry);
+          grouped.set(entry.fingerprint, variants);
+          return grouped;
+        }, new Map<string, ProviderResponseTapeEntry[]>()),
+        replayOffsets: new Map(),
         requestSequence: [],
         requests: 0,
         sequenceMismatchDetails: [],

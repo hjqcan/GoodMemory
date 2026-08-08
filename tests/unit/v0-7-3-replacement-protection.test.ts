@@ -151,7 +151,7 @@ describe("v0.7.3 replacement protection protocol", () => {
     expect(report.providerReplay.discovery.candidate.misses).toBe(3);
     expect(report.providerReplay.formal.candidate.liveRequests).toBe(0);
     expect(report.liveDiagnostic.signTest.pValue).toBeCloseTo(0.5571970939636236, 14);
-    expect(report.schemaVersion).toBe(5);
+    expect(report.schemaVersion).toBe(6);
   });
 
   it("blocks a deterministic regression beyond one point", () => {
@@ -234,7 +234,7 @@ describe("v0.7.3 replacement protection protocol", () => {
     );
   });
 
-  it("rejects discovery attempts that observed a non-2xx response", () => {
+  it("accepts recovered discovery non-2xx responses when formal replay is exact", () => {
     const input = protectionInput();
     input.providerReplay.discovery.baseline = replaySession({
       hits: 1,
@@ -244,12 +244,10 @@ describe("v0.7.3 replacement protection protocol", () => {
       non2xxResponses: 1,
     });
 
-    expect(() => evaluateV073ReplacementProtection(input)).toThrow(
-      "provider discovery must contain only successful responses",
-    );
+    expect(evaluateV073ReplacementProtection(input).releaseAllowed).toBe(true);
   });
 
-  it("rejects discovery attempts that observed a transport error", () => {
+  it("accepts recovered discovery transport errors when formal replay is exact", () => {
     const input = protectionInput();
     input.providerReplay.discovery.baseline = replaySession({
       hits: 2,
@@ -260,9 +258,7 @@ describe("v0.7.3 replacement protection protocol", () => {
       transportErrors: 1,
     });
 
-    expect(() => evaluateV073ReplacementProtection(input)).toThrow(
-      "provider discovery must have one successful transport attempt per live request",
-    );
+    expect(evaluateV073ReplacementProtection(input).releaseAllowed).toBe(true);
   });
 
   it("rejects any formal provider input sequence drift", () => {

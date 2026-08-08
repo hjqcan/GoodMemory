@@ -2,7 +2,9 @@ import { createHash } from "node:crypto";
 
 import { describe, expect, it } from "bun:test";
 
+import { createLLMMemoryExtractor as createAISDKMemoryExtractor } from "../../src/provider/memory-extractor";
 import {
+  assertProviderResponseTapeCoversSequences,
   createProviderResponseTapeProxy,
   fingerprintProviderRequest,
   fingerprintProviderRequestSequence,
@@ -78,7 +80,7 @@ describe("provider response tape", () => {
     }));
   });
 
-  it("records once and returns byte-identical responses for canonical hits", async () => {
+  it("reuses canonical responses across sessions without collapsing retries inside one session", async () => {
     let upstreamRequests = 0;
     const upstream = Bun.serve({
       hostname: "127.0.0.1",
@@ -111,6 +113,15 @@ describe("provider response tape", () => {
         },
         method: "POST",
       });
+      expect(await first.text()).toContain("hello");
+      expect(proxy.endSession()).toMatchObject({
+        hits: 0,
+        liveRequests: 1,
+        misses: 1,
+        requests: 1,
+      });
+
+      proxy.beginSession({ liveOnMiss: true, mode: "prefetch", name: "reuse" });
       const second = await fetch(`${proxy.baseUrl("answer")}/chat/completions`, {
         body: '{"messages":[{"content":"hi","role":"user"}],"model":"m"}',
         headers: {
@@ -120,13 +131,13 @@ describe("provider response tape", () => {
         method: "POST",
       });
 
-      expect(await first.text()).toBe(await second.text());
+      expect(await second.text()).toContain("hello");
       expect(upstreamRequests).toBe(1);
       expect(proxy.endSession()).toMatchObject({
         hits: 1,
-        liveRequests: 1,
-        misses: 1,
-        requests: 2,
+        liveRequests: 0,
+        misses: 0,
+        requests: 1,
       });
       const raw = serializeProviderResponseTape(proxy.snapshot());
       expect(raw).not.toContain("secret");
@@ -141,6 +152,132 @@ describe("provider response tape", () => {
     } finally {
       proxy.stop();
       upstream.stop(true);
+    }
+  });
+
+  it("records and replays ordered response variants for one repeated fingerprint", async () => {
+    let upstreamRequests = 0;
+    const proxy = createProviderResponseTapeProxy({
+      targets: { eval: "https://eval.example/v1" },
+      upstreamFetch: async () => {
+        upstreamRequests += 1;
+        return Response.json({ attempt: upstreamRequests });
+      },
+    });
+
+    try {
+      const request = () => fetch(`${proxy.baseUrl("eval")}/chat/completions`, {
+        body: '{"model":"m","messages":[]}',
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
+      proxy.beginSession({ liveOnMiss: true, mode: "prefetch", name: "discovery" });
+      expect(await (await request()).json()).toEqual({ attempt: 1 });
+      expect(await (await request()).json()).toEqual({ attempt: 2 });
+      const discovery = proxy.endSession();
+      expect(discovery).toMatchObject({
+        hits: 0,
+        liveRequests: 2,
+        misses: 2,
+        requests: 2,
+      });
+      expect(proxy.snapshot().entries).toHaveLength(2);
+      expect(proxy.snapshot().entries[0]!.fingerprint).toBe(
+        proxy.snapshot().entries[1]!.fingerprint,
+      );
+      expect(proxy.snapshot().entries.map(({ occurrence }) => occurrence)).toEqual([
+        0,
+        1,
+      ]);
+
+      proxy.beginSession({
+        expectedRequestSequence: discovery.requestSequence,
+        liveOnMiss: false,
+        mode: "replay",
+        name: "formal",
+      });
+      expect(await (await request()).json()).toEqual({ attempt: 1 });
+      expect(await (await request()).json()).toEqual({ attempt: 2 });
+      expect(proxy.endSession()).toMatchObject({
+        hits: 2,
+        liveRequests: 0,
+        misses: 0,
+        requests: 2,
+      });
+      expect(upstreamRequests).toBe(2);
+    } finally {
+      proxy.stop();
+    }
+  });
+
+  it("preserves structured-output retry semantics in discovery and formal replay", async () => {
+    let upstreamRequests = 0;
+    const proxy = createProviderResponseTapeProxy({
+      targets: { eval: "https://eval.example/v1" },
+      upstreamFetch: async () => {
+        upstreamRequests += 1;
+        const content = upstreamRequests === 1
+          ? '{"candidates":[]'
+          : '{"candidates":[],"ignoredMessageCount":1}';
+        return new Response([
+          `data: ${JSON.stringify({ choices: [{ delta: { content }, index: 0 }] })}`,
+          "data: [DONE]",
+          "",
+        ].join("\n\n"), {
+          headers: { "content-type": "text/event-stream" },
+          status: 200,
+        });
+      },
+    });
+    const extractor = () => createAISDKMemoryExtractor({
+      model: {
+        apiKey: "provider-tape-test",
+        baseURL: proxy.baseUrl("eval"),
+        model: "gpt-5.6-terra",
+        provider: "openai",
+      },
+      dependencies: {
+        retryOptions: { retryLimit: 2, sleep: async () => {} },
+      },
+      responseFormat: "json_schema",
+    });
+    const input = {
+      messages: [{ content: "remember this", role: "user" as const }],
+      scope: { userId: "u-1" },
+    };
+
+    try {
+      proxy.beginSession({ liveOnMiss: true, mode: "prefetch", name: "discovery" });
+      await expect(extractor().extract(input)).resolves.toEqual({
+        candidates: [],
+        ignoredMessageCount: 1,
+      });
+      const discovery = proxy.endSession();
+      expect(upstreamRequests).toBe(2);
+      expect(proxy.snapshot().entries.map(({ occurrence }) => occurrence)).toEqual([
+        0,
+        1,
+      ]);
+
+      proxy.beginSession({
+        expectedRequestSequence: discovery.requestSequence,
+        liveOnMiss: false,
+        mode: "replay",
+        name: "formal",
+      });
+      await expect(extractor().extract(input)).resolves.toEqual({
+        candidates: [],
+        ignoredMessageCount: 1,
+      });
+      expect(proxy.endSession()).toMatchObject({
+        hits: 2,
+        liveRequests: 0,
+        misses: 0,
+        requests: 2,
+      });
+      expect(upstreamRequests).toBe(2);
+    } finally {
+      proxy.stop();
     }
   });
 
@@ -385,6 +522,40 @@ describe("provider response tape", () => {
       expect(JSON.stringify(discovery.transportAttemptLedger)).not.toContain(
         secretMarker,
       );
+      expect(proxy.snapshot().entries).toHaveLength(2);
+
+      proxy.beginSession({
+        expectedRequestSequence: discovery.requestSequence,
+        liveOnMiss: false,
+        mode: "replay",
+        name: "formal",
+      });
+      const replayedFailure = await fetch(
+        `${proxy.baseUrl("embedding")}/embeddings`,
+        {
+          body: '{"input":["x"],"model":"e"}',
+          headers: { "content-type": "application/json" },
+          method: "POST",
+        },
+      );
+      expect(replayedFailure.status).toBe(502);
+      const replayedSuccess = await fetch(
+        `${proxy.baseUrl("embedding")}/embeddings`,
+        {
+          body: '{"input":["x"],"model":"e"}',
+          headers: { "content-type": "application/json" },
+          method: "POST",
+        },
+      );
+      expect(replayedSuccess.status).toBe(200);
+      expect(proxy.endSession()).toMatchObject({
+        hits: 2,
+        liveRequests: 0,
+        misses: 0,
+        transportAttempts: 0,
+        transportErrors: 0,
+      });
+      expect(upstreamAttempts).toBe(2);
     } finally {
       proxy.stop();
     }
@@ -501,7 +672,7 @@ describe("provider response tape", () => {
     }
   });
 
-  it("rejects corrupt bytes and duplicate fingerprints instead of accepting last-write-wins evidence", () => {
+  it("preserves duplicate-fingerprint response order and rejects corrupt bytes", () => {
     const body = "{}";
     const fingerprint = fingerprintProviderRequest({
       body,
@@ -511,6 +682,7 @@ describe("provider response tape", () => {
     });
     const entry = {
       fingerprint,
+      occurrence: 0,
       request: {
         canonicalBodySha256: createHash("sha256").update(body).digest("hex"),
         method: "POST",
@@ -530,16 +702,51 @@ describe("provider response tape", () => {
       },
     };
 
+    const parsed = parseProviderResponseTape(JSON.stringify({
+      entries: [entry, {
+        ...entry,
+        occurrence: 1,
+        response: {
+          ...entry.response,
+          bodyBase64: Buffer.from("second").toString("base64"),
+          bytes: 6,
+          sha256: createHash("sha256").update("second").digest("hex"),
+          status: 201,
+        },
+      }],
+      schemaVersion: 3,
+    }));
+    expect(parsed.entries.map(({ response }) => response.status)).toEqual([200, 201]);
+    const requestIdentity = { fingerprint, ...entry.request };
+    expect(() => assertProviderResponseTapeCoversSequences(
+      parsed,
+      [[requestIdentity, requestIdentity]],
+    )).not.toThrow();
+    expect(() => assertProviderResponseTapeCoversSequences(
+      parsed,
+      [[requestIdentity]],
+    )).toThrow("provider response tape does not exactly cover discovery sequences");
     expect(() => parseProviderResponseTape(JSON.stringify({
-      entries: [entry, { ...entry, response: { ...entry.response, status: 201 } }],
-      schemaVersion: 2,
-    }))).toThrow("duplicate provider response tape fingerprint");
+      entries: [entry, { ...entry, occurrence: 2 }],
+      schemaVersion: 3,
+    }))).toThrow("provider response tape occurrence sequence is invalid");
     expect(() => parseProviderResponseTape(JSON.stringify({
       entries: [{
         ...entry,
         response: { ...entry.response, bodyBase64: Buffer.from("no").toString("base64") },
       }],
-      schemaVersion: 2,
+      schemaVersion: 3,
+    }))).toThrow("provider response tape response fingerprint is invalid");
+    expect(() => parseProviderResponseTape(JSON.stringify({
+      entries: [{ ...entry, hiddenCredential: "must-not-survive" }],
+      schemaVersion: 3,
+    }))).toThrow("provider response tape schema is invalid");
+    expect(() => parseProviderResponseTape(JSON.stringify({
+      entries: [{
+        ...entry,
+        response: { ...entry.response, status: 101 },
+      }],
+      schemaVersion: 3,
     }))).toThrow("provider response tape response fingerprint is invalid");
 
     const invalidLedger = [{
@@ -558,7 +765,7 @@ describe("provider response tape", () => {
       .toThrow("provider transport attempt ledger is invalid");
   });
 
-  it("does not freeze transient non-2xx responses", async () => {
+  it("freezes transient non-2xx responses so formal replay preserves application retries", async () => {
     let upstreamRequests = 0;
     const upstream = Bun.serve({
       hostname: "127.0.0.1",
@@ -581,14 +788,25 @@ describe("provider response tape", () => {
       expect((await request()).status).toBe(503);
       expect((await request()).status).toBe(503);
       expect(upstreamRequests).toBe(2);
-      expect(proxy.snapshot().entries).toEqual([]);
-      expect(proxy.endSession()).toMatchObject({
+      expect(proxy.snapshot().entries).toHaveLength(2);
+      const discovery = proxy.endSession();
+      expect(discovery).toMatchObject({
         liveRequests: 2,
         misses: 2,
         non2xxResponses: 2,
         transportAttempts: 2,
         transportErrors: 0,
       });
+      proxy.beginSession({
+        expectedRequestSequence: discovery.requestSequence,
+        liveOnMiss: false,
+        mode: "replay",
+        name: "formal",
+      });
+      expect((await request()).status).toBe(503);
+      expect((await request()).status).toBe(503);
+      expect(proxy.endSession()).toMatchObject({ hits: 2, misses: 0 });
+      expect(upstreamRequests).toBe(2);
     } finally {
       proxy.stop();
       upstream.stop(true);
@@ -627,7 +845,7 @@ describe("provider response tape", () => {
       });
       expect(response.status).toBe(307);
       expect(redirectedRequests).toBe(0);
-      expect(proxy.snapshot().entries).toEqual([]);
+      expect(proxy.snapshot().entries).toHaveLength(1);
       proxy.endSession();
     } finally {
       proxy.stop();

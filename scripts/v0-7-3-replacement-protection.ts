@@ -124,7 +124,7 @@ export interface V073ReplacementProtectionReport {
   providerReplay: V073ReplacementProtectionInput["providerReplay"];
   releaseAllowed: boolean;
   researchRecordRequired: boolean;
-  schemaVersion: 5;
+  schemaVersion: 6;
 }
 
 function logAdd(left: number, right: number): number {
@@ -327,19 +327,19 @@ function assertReplaySession(
   if (expectedMode === "prefetch" && session.liveRequests !== session.misses) {
     throw new Error("provider prefetch misses must equal live requests");
   }
-  if (expectedMode === "prefetch" && session.non2xxResponses !== 0) {
-    throw new Error("provider discovery must contain only successful responses");
-  }
   if (expectedMode === "prefetch" && session.sequenceMismatches !== 0) {
     throw new Error("provider discovery cannot have input sequence mismatches");
   }
   if (
     expectedMode === "prefetch" &&
-    (session.transportAttempts !== session.liveRequests ||
-      session.transportErrors !== 0)
+    (session.coalesced !== 0 ||
+      session.transportAttempts !== session.liveRequests ||
+      session.transportErrors > session.transportAttempts ||
+      session.non2xxResponses >
+        session.transportAttempts - session.transportErrors)
   ) {
     throw new Error(
-      "provider discovery must have one successful transport attempt per live request",
+      "provider discovery transport census is invalid",
     );
   }
   if (
@@ -513,6 +513,6 @@ export function evaluateV073ReplacementProtection(
     providerReplay: input.providerReplay,
     releaseAllowed: blockers.length === 0,
     researchRecordRequired: deterministicMoved || providerMoved,
-    schemaVersion: 5,
+    schemaVersion: 6,
   };
 }

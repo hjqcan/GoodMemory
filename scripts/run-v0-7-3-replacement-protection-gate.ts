@@ -12,6 +12,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { DEFAULT_AISDK_RETRY_LIMIT } from "../src/provider/ai-sdk-runtime";
 import { resolveCliFlagValueStrict } from "./cli-options";
 import {
+  assertProviderResponseFailuresRecovered,
   createProviderResponseTapeProxy,
   parseProviderResponseTape,
   PROVIDER_TAPE_TRANSPORT_ERROR_STATUS,
@@ -97,7 +98,7 @@ export const V073_ASSISTED_EXTRACTION_POLICY = {
 export const V073_PROVIDER_TRANSPORT_POLICY = {
   errorResponseStatus: PROVIDER_TAPE_TRANSPORT_ERROR_STATUS,
   proxyRetries: 0,
-  transportErrors: "invalidate-discovery",
+  transportErrors: "record-and-replay",
 } as const;
 
 interface V073ReplacementGateCliOptions {
@@ -137,6 +138,7 @@ interface CapturedProcessInput {
   command: string;
   cwd: string;
   environment?: Record<string, string>;
+  sensitiveValues?: readonly string[];
 }
 
 interface ArtifactIdentity {
@@ -295,18 +297,35 @@ function runCapturedProcess(input: CapturedProcessInput): Promise<CapturedProces
     const stderr: Buffer[] = [];
     child.stdout.on("data", (chunk: Buffer) => {
       stdout.push(chunk);
-      process.stdout.write(chunk);
+      if (input.sensitiveValues === undefined) {
+        process.stdout.write(chunk);
+      }
     });
     child.stderr.on("data", (chunk: Buffer) => {
       stderr.push(chunk);
-      process.stderr.write(chunk);
+      if (input.sensitiveValues === undefined) {
+        process.stderr.write(chunk);
+      }
     });
     child.on("error", reject);
     child.on("close", (exitCode) => {
+      const captured = {
+        stderr: redactSensitiveText(
+          Buffer.concat(stderr).toString("utf8"),
+          input.sensitiveValues ?? [],
+        ),
+        stdout: redactSensitiveText(
+          Buffer.concat(stdout).toString("utf8"),
+          input.sensitiveValues ?? [],
+        ),
+      };
+      if (input.sensitiveValues !== undefined) {
+        process.stdout.write(captured.stdout);
+        process.stderr.write(captured.stderr);
+      }
       resolveProcess({
         exitCode,
-        stderr: Buffer.concat(stderr).toString("utf8"),
-        stdout: Buffer.concat(stdout).toString("utf8"),
+        ...captured,
       });
     });
   });
@@ -456,10 +475,17 @@ async function persistDiscoveryFailureTape(input: {
     return undefined;
   }
   const snapshot = input.proxy.snapshot();
-  const entries = snapshot.entries.filter((entry) =>
-    !providerTapeEntryContainsSensitiveValue(entry, input.sensitiveValues)
+  const credentialFingerprints = new Set(
+    snapshot.entries
+      .filter((entry) =>
+        providerTapeEntryContainsSensitiveValue(entry, input.sensitiveValues)
+      )
+      .map((entry) => entry.fingerprint),
   );
-  const raw = serializeProviderResponseTape({ entries, schemaVersion: 2 });
+  const entries = snapshot.entries.filter(
+    (entry) => !credentialFingerprints.has(entry.fingerprint),
+  );
+  const raw = serializeProviderResponseTape({ entries, schemaVersion: 3 });
   parseProviderResponseTape(raw);
   const path = join(input.stageRoot, "failure-tape.json");
   await writeAtomic(path, raw);
@@ -486,15 +512,7 @@ function providerTapeEntryContainsSensitiveValue(
   });
   const body = Buffer.from(entry.response.bodyBase64, "base64");
   return sensitiveValues.some((value) => {
-    if (value.length === 0) {
-      return false;
-    }
-    const candidates = [
-      value,
-      encodeURIComponent(value),
-      JSON.stringify(value).slice(1, -1),
-    ];
-    return candidates.some((candidate) =>
+    return sensitiveRepresentations(value).some((candidate) =>
       metadata.includes(candidate) ||
       body.includes(Buffer.from(candidate, "utf8"))
     );
@@ -512,6 +530,31 @@ function assertProviderTapeCredentialSafe(
   }
 }
 
+function sensitiveRepresentations(value: string): string[] {
+  if (value.length === 0) {
+    return [];
+  }
+  return [...new Set([
+    value,
+    encodeURIComponent(value),
+    JSON.stringify(value).slice(1, -1),
+  ])];
+}
+
+function redactSensitiveText(
+  text: string,
+  sensitiveValues: readonly string[],
+): string {
+  return sensitiveValues.reduce(
+    (redacted, value) => sensitiveRepresentations(value).reduce(
+      (current, representation) =>
+        current.split(representation).join("[redacted]"),
+      redacted,
+    ),
+    text,
+  );
+}
+
 function redactSensitiveSessionValues(
   session: ProviderTapeSessionStats,
   sensitiveValues: readonly string[],
@@ -520,13 +563,7 @@ function redactSensitiveSessionValues(
     if (typeof value !== "string") {
       return value;
     }
-    return sensitiveValues.reduce((redacted, sensitiveValue) => {
-      if (sensitiveValue.length === 0) {
-        return redacted;
-      }
-      return [sensitiveValue, encodeURIComponent(sensitiveValue)]
-        .reduce((text, candidate) => text.split(candidate).join("[redacted]"), redacted);
-    }, value);
+    return redactSensitiveText(value, sensitiveValues);
   })) as ProviderTapeSessionStats;
 }
 
@@ -694,16 +731,18 @@ export function assertV073SeedStageReport(raw: string): void {
 export function assertV073ProviderStageCanContinue(
   mode: "prefetch" | "replay",
   session: ProviderTapeSessionStats,
+  tape?: ProviderResponseTape,
 ): void {
-  if (mode === "prefetch" && session.non2xxResponses !== 0) {
+  if (mode === "prefetch" && session.coalesced !== 0) {
     throw new Error(
-      `provider discovery observed ${session.non2xxResponses} non-2xx response(s)`,
+      `provider discovery observed ${session.coalesced} coalesced request(s)`,
     );
   }
-  if (mode === "prefetch" && session.transportErrors !== 0) {
-    throw new Error(
-      `provider discovery observed ${session.transportErrors} transport error(s)`,
-    );
+  if (mode === "prefetch") {
+    if (tape === undefined) {
+      throw new Error("provider discovery response tape is required");
+    }
+    assertProviderResponseFailuresRecovered(tape, session.requestSequence);
   }
   if (mode === "replay" && session.sequenceMismatches !== 0) {
     throw new Error(
@@ -919,8 +958,16 @@ export async function runV073ProviderStage(input: {
         command: invocation.command,
         cwd: invocation.cwd,
         environment: invocation.environment,
+        sensitiveValues: input.sensitiveValues,
       });
-      processes.push({ result, step });
+      processes.push({
+        result: {
+          ...result,
+          stderr: redactSensitiveText(result.stderr, input.sensitiveValues),
+          stdout: redactSensitiveText(result.stdout, input.sensitiveValues),
+        },
+        step,
+      });
       if (result.exitCode !== 0) {
         break;
       }
@@ -940,6 +987,7 @@ export async function runV073ProviderStage(input: {
         assertV073ProviderStageCanContinue(
           input.mode,
           input.proxy.sessionStats(),
+          input.proxy.snapshot(),
         );
       } catch (error) {
         validationFailure = error instanceof Error
@@ -955,11 +1003,14 @@ export async function runV073ProviderStage(input: {
     session = input.proxy.endSession();
   }
   try {
-    assertV073ProviderStageCanContinue(input.mode, session);
+    assertV073ProviderStageCanContinue(input.mode, session, input.proxy.snapshot());
   } catch (error) {
     validationFailure = error instanceof Error ? error.message : String(error);
   }
   const stageRoot = dirname(input.arm.executionReceiptPath);
+  validationFailure = validationFailure === undefined
+    ? undefined
+    : redactSensitiveText(validationFailure, input.sensitiveValues);
   const stdout = processes
     .map(({ result, step }) => `[${step}]\n${result.stdout}`)
     .join("\n");
@@ -1400,13 +1451,19 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       formalNetworkOnMiss: false,
       hardRegressionLimit: 0.01,
       promptSha256: deriveV073PromptSha256(),
+      providerFailureRecovery:
+        "immediate-same-fingerprint-retry-to-2xx",
       providerFreeConcurrency: [1, 40],
+      providerLogCredentialMaterial:
+        "redacted-before-output-hash-and-persistence",
       providerReplayConcurrency: 1,
       signTestAlpha: 0.05,
       tapeInputIdentity:
         "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest",
       tapeRequestIdentity:
         "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)",
+      tapeResponseVariants: "ordered-per-fingerprint",
+      tapeSequenceCoverage: "exact-discovery-occurrence-union",
       transportAttemptLedger: "hash-only-session-receipt",
       transportErrorResponseStatus:
         V073_PROVIDER_TRANSPORT_POLICY.errorResponseStatus,
@@ -1414,7 +1471,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       transportProxyRetries: V073_PROVIDER_TRANSPORT_POLICY.proxyRetries,
     },
     providers,
-    schemaVersion: 5,
+    schemaVersion: 6,
   });
 
   const [providerFreeC1Baseline, providerFreeC1Candidate] = await Promise.all([

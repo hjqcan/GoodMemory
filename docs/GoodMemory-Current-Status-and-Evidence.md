@@ -45,8 +45,12 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   separate structured-JSON seed failure affecting 81 rows. It stopped before
   candidate discovery or formal replay and is archived at
   `reports/release/v0.7/blocked-a84855f2-schema5-transport-and-parse/`. Schema 5
-  will not be rerun. No full 1540-question claim or v0.7.3 release is
-  authorized; another live attempt requires a new preregistration.
+  will not be rerun. The root cause was the schema-5 tape collapsing four
+  extractor attempts with the same request fingerprint into one malformed
+  response. Schema 6 restores ordered per-fingerprint response occurrences,
+  records recovered transport/non-2xx outcomes for exact replay, and remains
+  limited to one pre-registered attempt. It has not run. No full 1540-question
+  claim or v0.7.3 release is authorized unless that gate passes.
   See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as

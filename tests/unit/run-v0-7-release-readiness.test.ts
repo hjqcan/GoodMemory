@@ -1130,7 +1130,7 @@ describe("v0.7 release readiness", () => {
       },
       releaseAllowed: true,
       researchRecordRequired: false,
-      schemaVersion: 5,
+      schemaVersion: 6,
     };
 
     expect(evaluateV073LifecycleProtectionArtifact({
@@ -1145,7 +1145,7 @@ describe("v0.7 release readiness", () => {
       artifact: { ...artifact, schemaVersion: 3 },
       artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
     })).toEqual(expect.objectContaining({
-      detail: expect.stringContaining("schemaVersion must be 5"),
+      detail: expect.stringContaining("schemaVersion must be 6"),
       status: "fail",
     }));
 
@@ -1221,7 +1221,7 @@ describe("v0.7 release readiness", () => {
     }));
   });
 
-  it("recomputes schema 5 lifecycle evidence from bound deterministic and frozen-replay bytes", async () => {
+  it("recomputes schema 6 lifecycle evidence from bound deterministic and frozen-replay bytes", async () => {
     const repoRoot = await mkdtemp(join(tmpdir(), "goodmemory-v073-replacement-bundle-"));
     const evidencePrefix = "reports/release/v0.7/v0.7.3-lifecycle-evidence";
     const candidateCommit = "a".repeat(40);
@@ -1315,6 +1315,7 @@ describe("v0.7 release readiness", () => {
           path: path!,
           targetId: targetId!,
         }),
+        occurrence: 0,
         request: {
           canonicalBodySha256: createHash("sha256").update(body).digest("hex"),
           method: "POST",
@@ -1334,7 +1335,7 @@ describe("v0.7 release readiness", () => {
     });
     const tapeRaw = serializeProviderResponseTape({
       entries: tapeEntries,
-      schemaVersion: 2,
+      schemaVersion: 3,
     });
     const tapeSha256 = createHash("sha256").update(tapeRaw).digest("hex");
     const requestFingerprintMultisetSha256 = createHash("sha256")
@@ -1549,20 +1550,26 @@ describe("v0.7 release readiness", () => {
           formalNetworkOnMiss: false,
           hardRegressionLimit: 0.01,
           promptSha256: sourceIdentity.promptSha256,
+          providerFailureRecovery:
+            "immediate-same-fingerprint-retry-to-2xx",
           providerFreeConcurrency: [1, 40],
+          providerLogCredentialMaterial:
+            "redacted-before-output-hash-and-persistence",
           providerReplayConcurrency: 1,
           signTestAlpha: 0.05,
           tapeInputIdentity:
             "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest",
           tapeRequestIdentity:
             "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)",
+          tapeResponseVariants: "ordered-per-fingerprint",
+          tapeSequenceCoverage: "exact-discovery-occurrence-union",
           transportAttemptLedger: "hash-only-session-receipt",
           transportErrorResponseStatus: 502,
-          transportErrors: "invalidate-discovery",
+          transportErrors: "record-and-replay",
           transportProxyRetries: 0,
         },
         providers,
-        schemaVersion: 5,
+        schemaVersion: 6,
       };
       const sharedStdout = await writeEvidence("logs/stdout.log", "8 pass\n0 fail\n");
       const sharedStderr = await writeEvidence("logs/stderr.log", "");
@@ -1793,14 +1800,18 @@ describe("v0.7 release readiness", () => {
         { failedDiscoveryTape: "after-stage-error" },
         { formalNetworkOnMiss: true },
         { hardRegressionLimit: 0.02 },
+        { providerFailureRecovery: "allow-terminal-fallback" },
         { providerFreeConcurrency: [1] },
+        { providerLogCredentialMaterial: "persist-before-redaction" },
         { providerReplayConcurrency: 40 },
         { signTestAlpha: 0.1 },
         { tapeInputIdentity: "unordered" },
         { tapeRequestIdentity: "body-only" },
+        { tapeResponseVariants: "last-write-wins" },
+        { tapeSequenceCoverage: "entry-count-only" },
         { transportAttemptLedger: "raw-error-receipt" },
         { transportErrorResponseStatus: 500 },
-        { transportErrors: "allow-recovered" },
+        { transportErrors: "invalidate-discovery" },
         { transportProxyRetries: 1 },
       ]) {
         const driftedManifestRaw = json({
@@ -1993,6 +2004,112 @@ describe("v0.7 release readiness", () => {
         artifact.artifacts.providerReplay.candidateDiscoveryReceipt,
         evidenceIdentity(candidateDiscoveryReceipt.path, discoveryReceiptRaw),
       );
+
+      const alternateBody = JSON.stringify({ targetId: "eval-alternate" });
+      const alternateResponse = Buffer.from("ok-eval-alternate");
+      const alternateTapeRaw = serializeProviderResponseTape({
+        entries: tapeEntries.map((entry) => entry.request.targetId === "eval"
+          ? {
+              fingerprint: fingerprintProviderRequest({
+                body: alternateBody,
+                method: "POST",
+                path: "/chat/completions",
+                targetId: "eval",
+              }),
+              occurrence: 0,
+              request: {
+                canonicalBodySha256: createHash("sha256")
+                  .update(alternateBody)
+                  .digest("hex"),
+                method: "POST",
+                path: "/chat/completions",
+                semanticHeadersSha256,
+                targetId: "eval",
+              },
+              response: {
+                bodyBase64: alternateResponse.toString("base64"),
+                bytes: alternateResponse.byteLength,
+                contentType: "text/plain",
+                sha256: createHash("sha256").update(alternateResponse).digest("hex"),
+                status: 200,
+                statusText: "OK",
+              },
+            }
+          : entry),
+        schemaVersion: 3,
+      });
+      const alternateTapeSha256 = createHash("sha256")
+        .update(alternateTapeRaw)
+        .digest("hex");
+      const alteredProtocolInput = structuredClone(protocolInput);
+      alteredProtocolInput.providerReplay.tapeSha256 = alternateTapeSha256;
+      for (const session of [
+        alteredProtocolInput.providerReplay.discovery.baseline,
+        alteredProtocolInput.providerReplay.discovery.candidate,
+        alteredProtocolInput.providerReplay.formal.baseline,
+        alteredProtocolInput.providerReplay.formal.candidate,
+      ]) {
+        session.tapeSha256 = alternateTapeSha256;
+      }
+      const alteredProtocolInputRaw = json(alteredProtocolInput);
+      await writeFile(join(repoRoot, tape.path), alternateTapeRaw);
+      Object.assign(tape, evidenceIdentity(tape.path, alternateTapeRaw));
+      await writeFile(
+        join(repoRoot, protocolInputIdentity.path),
+        alteredProtocolInputRaw,
+      );
+      Object.assign(
+        protocolInputIdentity,
+        evidenceIdentity(protocolInputIdentity.path, alteredProtocolInputRaw),
+      );
+      const receiptIdentities = [
+        baselineDiscoveryReceipt,
+        candidateDiscoveryReceipt,
+        baselineFormalReceipt,
+        candidateFormalReceipt,
+      ];
+      const receiptRaws = await Promise.all(receiptIdentities.map((identity) =>
+        readFile(join(repoRoot, identity.path), "utf8")
+      ));
+      for (const [index, identity] of receiptIdentities.entries()) {
+        const receipt = JSON.parse(receiptRaws[index]!) as {
+          session: { tapeSha256: string };
+        };
+        receipt.session.tapeSha256 = alternateTapeSha256;
+        const raw = json(receipt);
+        await writeFile(join(repoRoot, identity.path), raw);
+        Object.assign(identity, evidenceIdentity(identity.path, raw));
+      }
+      Object.assign(artifact, evaluateV073ReplacementProtection(alteredProtocolInput), {
+        artifacts: artifact.artifacts,
+      });
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath:
+          "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining(
+          "does not exactly cover discovery sequences",
+        ),
+        status: "fail",
+      }));
+      const protocolInputRaw = json(protocolInput);
+      await writeFile(join(repoRoot, tape.path), tapeRaw);
+      Object.assign(tape, evidenceIdentity(tape.path, tapeRaw));
+      await writeFile(join(repoRoot, protocolInputIdentity.path), protocolInputRaw);
+      Object.assign(
+        protocolInputIdentity,
+        evidenceIdentity(protocolInputIdentity.path, protocolInputRaw),
+      );
+      for (const [index, identity] of receiptIdentities.entries()) {
+        const raw = receiptRaws[index]!;
+        await writeFile(join(repoRoot, identity.path), raw);
+        Object.assign(identity, evidenceIdentity(identity.path, raw));
+      }
+      Object.assign(artifact, evaluateV073ReplacementProtection(protocolInput), {
+        artifacts: artifact.artifacts,
+      });
 
       await writeFile(join(repoRoot, c1Baseline.path), "{}\n");
       expect(await evaluateV073LifecycleProtectionBundle({

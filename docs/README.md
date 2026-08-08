@@ -60,13 +60,12 @@ bulk-load. Start here, then open only the file that matches the question.
 
 ## Research And Evidence
 
-- `plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md` - schema-5
-  deterministic hard gate, ordered provider-input and response replay,
-  failure-tape plus transport-ledger capture, fail-closed transport handling,
-  paired sign-test diagnostic, and full-claim provider-variance boundary;
-  schema-2 through the single schema-5 attempt remain blocked. Schema 5
-  persisted two recovered transport errors and stopped on an independently
-  incomplete seed report; no passing run or release is implied.
+- `plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md` - schema-6
+  deterministic hard gate, ordered per-fingerprint response-occurrence replay,
+  failure-tape plus transport-ledger capture, paired sign-test diagnostic, and
+  full-claim provider-variance boundary. Schema 2 through the single schema-5
+  attempt remain blocked; schema 6 is pre-registered but has not run, so no
+  passing protection result or release is implied.
 - `GoodMemory-Preference-Identity-Pre-API-Research.md` - frozen pre-API
   preference atomization/key-stability protocol, completed no-API decision,
   fixture-only conflict census, and synthetic policy comparison; not a

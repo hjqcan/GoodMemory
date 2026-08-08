@@ -1,7 +1,8 @@
 # GoodMemory v0.7.3 Replacement Protection Protocol
 
-Status: the single schema-5 attempt is blocked and archived; it will not be
-rerun. There is still no passing run or release
+Status: schema 6 is pre-registered but has not run. The single schema-5 attempt
+remains blocked and archived; it will not be rerun. There is still no passing
+run or release
 Date: 2026-08-08
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
@@ -196,6 +197,76 @@ archived under
 is not rerun. A later live attempt requires another preregistration and a
 matching readiness-verifier revision.
 
+## Schema-6 revision: ordered response occurrences
+
+Schema 5 proved that the response tape changed the retry behavior it was meant
+to observe. The malformed extraction request fingerprint
+`dd2d7c7aff8d07ca5bbc6d5609f9a9c4d0584d54fd5510b1926e9fcfb81baee6`
+appears four times at the end of the baseline request sequence, matching the
+extractor's frozen four-attempt limit. Only its first occurrence reached the
+provider; the next three were tape hits that returned the first malformed HTTP
+200 response again. The 81 failed rows were one conversation-level extraction
+failure propagated to all of that conversation's questions, not 81 independent
+provider failures.
+
+Schema 6 replaces last-write-wins response storage with response occurrences:
+
+- tape schema 3 identifies an entry by request fingerprint plus a contiguous
+  zero-based `occurrence`; duplicate fingerprints are required when one logical
+  request is attempted more than once;
+- entries are serialized canonically by fingerprint and occurrence. The strict
+  parser rejects a non-zero start, duplicate occurrence, gap, out-of-order
+  occurrence, unknown field, request-identity drift, unreplayable status, or
+  response-byte/hash drift;
+- every session resets a per-fingerprint cursor. A request consumes the next
+  already-frozen occurrence when present; after the session's initial
+  occurrences are exhausted, discovery performs exactly one upstream attempt
+  and appends the next occurrence;
+- a malformed HTTP 200 is therefore occurrence 0. The existing extractor retry
+  requests the same fingerprint again and receives a new provider draw as
+  occurrence 1. The proxy adds no retry and never parses model output;
+- candidate discovery starts from occurrence 0 and reuses the baseline sequence
+  byte-for-byte, extending the union tape only when its actual input sequence
+  requires an occurrence that baseline did not record;
+- each formal arm again starts from occurrence 0 with network-on-miss disabled.
+  It must reproduce its discovery request sequence and response-occurrence
+  sequence with `hits=requests` and zero misses, live requests, coalescing, or
+  sequence mismatches;
+- an upstream non-2xx response is stored exactly. A thrown transport operation
+  is represented by the existing sanitized fixed 502 response and is also
+  stored as its occurrence. Existing client retry owners may recover from
+  either; the transport ledger remains bound in the receipt and the formal arm
+  must reproduce the same application-visible retry chain without network;
+- every failed occurrence must be followed immediately by the same request
+  fingerprint, and that retry chain must terminate in a 2xx response. A
+  terminal provider failure hidden by an application fallback blocks the run;
+- the strict verifier derives occurrence counts from both discovery request
+  sequences and requires their exact union to equal the tape. It also recomputes
+  non-2xx counts from the transport ledgers rather than trusting compact fields;
+- subprocess stdout and stderr are redacted for raw, URL-encoded, and
+  JSON-escaped configured credentials before terminal output, hashing, or
+  persistence. Credential-bearing failure-tape fingerprints are excluded as a
+  complete occurrence group;
+- recovered transport/non-2xx occurrences are diagnostics, not a second noisy
+  hard gate. They cannot make an incomplete seed, execution failure, judge
+  failure, tape miss, or sequence mismatch pass. The hard 1pt release decision
+  remains the provider-free C1/C40 pairs plus scenario replay.
+
+This revision changes only the measurement proxy, compact evidence schema from
+5 to 6, response tape schema from 2 to 3, and the independent verifier. It does
+not change either measured checkout, provider identity, model, prompt, request
+fingerprint, response format, temperature, token/reasoning settings, dataset,
+question order, concurrency, four-attempt extraction budget, timeout, scoring,
+or release threshold.
+
+No schema-6 live attempt may begin until the red/green occurrence tests,
+extractor-plus-tape retry regression, runner/verifier mutation tests, full suite,
+typecheck, coverage, and an independent read-only review are green on one clean
+`main` commit. The baseline remains
+`456edd106f29118b3455bf21c43d7b3107b48213`. The candidate is that frozen
+implementation commit. Schema 6 authorizes one clean attempt; if it fails, its
+artifacts are archived and it is not rerun without another preregistration.
+
 ## Release decision
 
 The replacement has three layers. Only deterministic metrics use the 1.00pt
@@ -242,8 +313,8 @@ not presented as a throughput or production-concurrency measurement.
 
 The discovery sequence is:
 
-1. Run the baseline with live-on-miss enabled and record successful provider
-   responses.
+1. Run the baseline with live-on-miss enabled and record ordered provider
+   response occurrences.
 2. Run the candidate with the baseline tape; go live only for candidate misses
    and extend the union tape. Neither discovery output is scored.
 3. Freeze each discovery arm's ordered provider-input manifest. Every entry
@@ -262,10 +333,13 @@ headers. The body binds the actual model, prompt/messages, response format,
 reasoning effort, token limit, and temperature. Credentials, hop-by-hop fields,
 and trace IDs are excluded from the header digest; Authorization is forwarded
 during discovery but never persisted. Redirects are not followed. The tape
-stores only successful 2xx status, content type, and exact response bytes; any
-live non-2xx response invalidates the discovery attempt. Concurrent identical
-misses are single-flighted; duplicate fingerprints, corrupt bytes, non-matching
-request/response hashes, and last-write-wins evidence are rejected.
+stores ordered response occurrences, including exact upstream HTTP responses
+and the sanitized fixed response for a thrown transport operation. Repeated
+fingerprints are valid only with contiguous zero-based occurrence numbers.
+Concurrent identical misses remain single-flighted for the generic proxy, but a
+passing concurrency-1 release run requires `coalesced=0`; corrupt bytes,
+occurrence gaps/reordering, non-matching request/response hashes, and
+last-write-wins evidence are rejected.
 
 The report records discovery hits/misses/live calls, formal hits/misses/live
 calls, tape SHA-256, entry count, per-target distribution, request-multiset
@@ -278,14 +352,16 @@ request identities (hashes and route metadata only, with no raw prompt). The
 independent verifier re-hashes the ordered identities from each receipt instead
 of trusting the stored sequence digest. These conditions prove zero live calls
 on the registered GoodMemory provider routes; they are not a claim of
-process-wide egress isolation. A transport or judge execution failure
-invalidates the evidence. Provider point deltas do not use a raw 1pt release
-threshold and cannot override the deterministic gate.
+process-wide egress isolation. Recovered discovery transport/non-2xx
+occurrences remain visible diagnostics. Any final execution failure, judge
+failure, tape miss, or input-sequence mismatch invalidates the evidence.
+Provider point deltas do not use a raw 1pt release threshold and cannot override
+the deterministic gate.
 
-Before either discovery stage can abort, schema 4 also writes the current
-successful-response snapshot described above. This closes the schema-3
-attribution gap without treating malformed output, non-2xx responses, or
-execution failures as acceptable evidence.
+Before either discovery stage can abort, the runner also writes the current
+response-occurrence snapshot described above. This preserves malformed,
+non-2xx, and sanitized transport responses for attribution without treating an
+incomplete stage or execution failure as acceptable evidence.
 
 Execution receipts and readiness recomputation establish repository-local
 integrity and command provenance; they are not cryptographically signed CI
@@ -307,9 +383,9 @@ direction, never a replacement for the deterministic hard gate.
 
 ## Claim boundary
 
-The full 1540-question claim must run only after a later pre-registered
-replacement protection protocol passes and is bound to the release candidate
-commit. Schema 5 did not pass and cannot authorize that claim. The existing
+The full 1540-question claim must run only after schema 6 passes and is bound to
+the release candidate commit. Schema 5 did not pass and cannot authorize that
+claim. The existing
 0.8799 number is not copied forward. The observed 233-question same-commit
 wobble, scaled only as a heuristic by `sqrt(233/1540)`, suggests roughly
 0.4-0.7pt full-set run-to-run spread; this is not a confidence interval.
@@ -333,14 +409,13 @@ bun run gate:v0.7.3-lifecycle-protection -- \
   --output-dir reports/release/v0.7/v0.7.3-lifecycle-evidence
 ```
 
-The attempted schema-5 compact result would have been
+The schema-6 compact result, if the single attempt passes, is
 `reports/release/v0.7/v0.7.3-lifecycle-protection.json`, but no such passing
 artifact was produced. `gate:v0.7 --strict` re-reads every bound artifact,
 re-parses the tape, re-hashes the frozen input sequences, recomputes
 deterministic metrics and the sign test, and currently rejects schema-1 through
-schema-4 evidence. It can verify a valid schema-5 bundle, but the only schema-5
-attempt is blocked and archived. A future protocol revision must update this
-verifier before it can authorize release.
+schema-5 evidence. The verifier now requires the schema-6 compact result and
+recomputes the schema-3 occurrence tape before it can authorize release.
 
 The measurement runner validates the external `cases.json` against the frozen
 byte count and SHA-256. The tracked manifest retains that identity and the

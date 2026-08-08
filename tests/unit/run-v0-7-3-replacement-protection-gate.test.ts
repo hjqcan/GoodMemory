@@ -76,52 +76,74 @@ describe("v0.7.3 replacement protection gate runner", () => {
     })).toThrow("formal provider replay observed 1 tape miss");
   });
 
-  it("invalidates discovery after any non-2xx provider response", () => {
-    expect(() => assertV073ProviderStageCanContinue("prefetch", {
-      coalesced: 0,
-      hits: 0,
-      liveRequests: 1,
-      misses: 1,
-      mode: "prefetch",
-      name: "baseline-discovery",
-      non2xxResponses: 1,
-      requestFingerprintMultisetSha256: "a".repeat(64),
-      requestSequence: [],
-      requestSequenceSha256: "c".repeat(64),
-      requests: 1,
-      sequenceMismatchDetails: [],
-      sequenceMismatches: 0,
-      tapeSha256: "b".repeat(64),
-      targetCounts: { eval: 1 },
-      transportAttemptLedger: [],
-      transportAttemptLedgerSha256: "d".repeat(64),
-      transportAttempts: 1,
-      transportErrors: 0,
-    })).toThrow("provider discovery observed 1 non-2xx response(s)");
+  it("accepts only non-2xx and transport failures recovered by the same request", async () => {
+    for (const firstAttempt of ["non2xx", "transport"] as const) {
+      let attempts = 0;
+      const proxy = createProviderResponseTapeProxy({
+        targets: { eval: "https://eval.example/v1" },
+        upstreamFetch: async () => {
+          attempts += 1;
+          if (attempts === 1 && firstAttempt === "transport") {
+            throw new TypeError("connection reset");
+          }
+          return new Response(attempts === 1 ? "retry" : "ok", {
+            status: attempts === 1 ? 503 : 200,
+          });
+        },
+      });
+      try {
+        proxy.beginSession({
+          liveOnMiss: true,
+          mode: "prefetch",
+          name: `${firstAttempt}-recovery`,
+        });
+        const request = () => fetch(`${proxy.baseUrl("eval")}/chat/completions`, {
+          body: '{"model":"m"}',
+          headers: { "content-type": "application/json" },
+          method: "POST",
+        });
+        expect((await request()).status).toBe(firstAttempt === "transport" ? 502 : 503);
+        expect((await request()).status).toBe(200);
+        expect(() => assertV073ProviderStageCanContinue(
+          "prefetch",
+          proxy.endSession(),
+          proxy.snapshot(),
+        )).not.toThrow();
+      } finally {
+        proxy.stop();
+      }
+    }
   });
 
-  it("invalidates discovery after any upstream transport error", () => {
-    expect(() => assertV073ProviderStageCanContinue("prefetch", {
-      coalesced: 0,
-      hits: 0,
-      liveRequests: 1,
-      misses: 1,
-      mode: "prefetch",
-      name: "baseline-discovery",
-      non2xxResponses: 0,
-      requestFingerprintMultisetSha256: "a".repeat(64),
-      requestSequence: [],
-      requestSequenceSha256: "c".repeat(64),
-      requests: 1,
-      sequenceMismatchDetails: [],
-      sequenceMismatches: 0,
-      tapeSha256: "b".repeat(64),
-      targetCounts: { embedding: 1 },
-      transportAttemptLedger: [],
-      transportAttemptLedgerSha256: "d".repeat(64),
-      transportAttempts: 1,
-      transportErrors: 1,
-    })).toThrow("provider discovery observed 1 transport error(s)");
+  it("blocks a terminal provider failure hidden by application fallback", async () => {
+    const proxy = createProviderResponseTapeProxy({
+      targets: { reranking: "https://reranking.example/v1" },
+      upstreamFetch: async () => new Response("retry", { status: 503 }),
+    });
+    try {
+      proxy.beginSession({
+        liveOnMiss: true,
+        mode: "prefetch",
+        name: "terminal-failure",
+      });
+      const request = () => fetch(
+        `${proxy.baseUrl("reranking")}/chat/completions`,
+        {
+          body: '{"model":"m"}',
+          headers: { "content-type": "application/json" },
+          method: "POST",
+        },
+      );
+      expect((await request()).status).toBe(503);
+      expect((await request()).status).toBe(503);
+      expect(() => assertV073ProviderStageCanContinue(
+        "prefetch",
+        proxy.endSession(),
+        proxy.snapshot(),
+      )).toThrow("provider failure was not recovered by an immediate same-request retry");
+    } finally {
+      proxy.stop();
+    }
   });
 
   it("rejects seed execution failures before downstream provider stages", () => {
@@ -201,11 +223,11 @@ describe("v0.7.3 replacement protection gate runner", () => {
     });
   });
 
-  it("binds fail-closed proxy transport handling without a new retry owner", () => {
+  it("binds ordered transport replay without adding a proxy retry owner", () => {
     expect(V073_PROVIDER_TRANSPORT_POLICY).toEqual({
       errorResponseStatus: 502,
       proxyRetries: 0,
-      transportErrors: "invalidate-discovery",
+      transportErrors: "record-and-replay",
     });
   });
 
@@ -424,6 +446,8 @@ describe("v0.7.3 replacement protection gate runner", () => {
     const requestMarker = "private-request-marker";
     const credentialMarker = "private-credential-marker";
     const transportErrorMarker = "private-transport-error-marker";
+    let credentialRequestCount = 0;
+    let transportRequestCount = 0;
     let releaseSlowResponse!: () => void;
     let markSlowRequestStarted!: () => void;
     const slowRequestStarted = new Promise<void>((resolve) => {
@@ -442,8 +466,14 @@ describe("v0.7.3 replacement protection gate runner", () => {
           await slowResponseGate;
           return new Response("slow-success", { status: 200 });
         }
-        if (url.searchParams.has("api_key")) {
-          return new Response(`reflected:${credentialMarker}`, { status: 200 });
+        if (url.searchParams.has("credential_reflection")) {
+          credentialRequestCount += 1;
+          return new Response(
+            credentialRequestCount === 1
+              ? `reflected:${credentialMarker}`
+              : "credential-free-retry",
+            { status: 200 },
+          );
         }
         return new Response(malformedResponse, {
           headers: { "content-type": "application/json" },
@@ -467,10 +497,13 @@ describe("v0.7.3 replacement protection gate runner", () => {
               : request.url,
         );
         if (url.searchParams.has("transport")) {
-          throw Object.assign(
-            new TypeError(`unknown certificate verification error ${transportErrorMarker}`),
-            { cause: { code: "UNKNOWN_CERTIFICATE_VERIFICATION_ERROR" } },
-          );
+          transportRequestCount += 1;
+          if (transportRequestCount === 1) {
+            throw Object.assign(
+              new TypeError(`unknown certificate verification error ${transportErrorMarker}`),
+              { cause: { code: "UNKNOWN_CERTIFICATE_VERIFICATION_ERROR" } },
+            );
+          }
         }
         return fetch(request, init);
       },
@@ -545,10 +578,21 @@ describe("v0.7.3 replacement protection gate runner", () => {
           expect(response.status).toBe(200);
           expect(await response.text()).toBe(malformedResponse);
           const reflected = await fetch(
-            `${environment!.GOODMEMORY_EVAL_BASE_URL}/chat/completions?api_key=${credentialMarker}`,
-            { method: "POST" },
+            `${environment!.GOODMEMORY_EVAL_BASE_URL}/chat/completions?credential_reflection=1`,
+            {
+              headers: { authorization: `Bearer ${credentialMarker}` },
+              method: "POST",
+            },
           );
           expect(await reflected.text()).toContain(credentialMarker);
+          const cleanRetry = await fetch(
+            `${environment!.GOODMEMORY_EVAL_BASE_URL}/chat/completions?credential_reflection=1`,
+            {
+              headers: { authorization: `Bearer ${credentialMarker}` },
+              method: "POST",
+            },
+          );
+          expect(await cleanRetry.text()).toBe("credential-free-retry");
           void fetch(
             `${environment!.GOODMEMORY_EVAL_BASE_URL}/chat/completions?slow=1`,
             { method: "POST" },
@@ -559,6 +603,11 @@ describe("v0.7.3 replacement protection gate runner", () => {
             { method: "POST" },
           );
           expect(transportFailure.status).toBe(502);
+          const transportRecovery = await fetch(
+            `${environment!.GOODMEMORY_EVAL_BASE_URL}/chat/completions?transport=1`,
+            { method: "POST" },
+          );
+          expect(transportRecovery.status).toBe(200);
           setTimeout(releaseSlowResponse, 20);
           await mkdir(join(arm.seedReportPath, ".."), { recursive: true });
           await writeFile(arm.seedReportPath, JSON.stringify({
@@ -566,10 +615,14 @@ describe("v0.7.3 replacement protection gate runner", () => {
             executionFailures: 152,
             questionCount: 233,
           }));
-          return { exitCode: 0, stderr: "", stdout: "" };
+          return {
+            exitCode: 0,
+            stderr: `provider error: ${JSON.stringify(credentialMarker)}`,
+            stdout: `provider url: ${encodeURIComponent(credentialMarker)}`,
+          };
         },
       })).rejects.toThrow(
-        "baseline-discovery provider discovery observed 1 transport error(s)",
+        "baseline-discovery provider seed report is incomplete",
       );
 
       const failureTapePath = join(
@@ -579,7 +632,7 @@ describe("v0.7.3 replacement protection gate runner", () => {
       );
       const failureTapeRaw = await readFile(failureTapePath, "utf8");
       const failureTape = parseProviderResponseTape(failureTapeRaw);
-      expect(failureTape.entries).toHaveLength(2);
+      expect(failureTape.entries).toHaveLength(4);
       expect(failureTape.entries.map((entry) => Buffer.from(
         entry.response.bodyBase64,
         "base64",
@@ -606,13 +659,13 @@ describe("v0.7.3 replacement protection gate runner", () => {
         path: receipt.failureTape.path,
         sha256: createHash("sha256").update(failureTapeRaw).digest("hex"),
       });
-      expect(receipt.failureTapeExcludedCredentialEntries).toBe(1);
+      expect(receipt.failureTapeExcludedCredentialEntries).toBe(2);
       expect(receipt.failureTape.path.endsWith("/failure-tape.json")).toBe(true);
-      expect(receipt.session.transportAttempts).toBe(4);
+      expect(receipt.session.transportAttempts).toBe(6);
       expect(receipt.session.transportErrors).toBe(1);
       expect(receipt.session.transportAttemptLedger.map(
         ({ requestIndex }) => requestIndex,
-      )).toEqual([0, 1, 2, 3]);
+      )).toEqual([0, 1, 2, 3, 4, 5]);
       expect(receipt.session.transportAttemptLedger).toContainEqual(
         expect.objectContaining({
           errorCategory: "certificate",
@@ -628,6 +681,10 @@ describe("v0.7.3 replacement protection gate runner", () => {
       expect(receiptRaw).not.toContain(requestMarker);
       expect(receiptRaw).not.toContain(credentialMarker);
       expect(receiptRaw).not.toContain(transportErrorMarker);
+      expect(await readFile(join(arm.executionReceiptPath, "..", "stdout.log"), "utf8"))
+        .not.toContain(credentialMarker);
+      expect(await readFile(join(arm.executionReceiptPath, "..", "stderr.log"), "utf8"))
+        .not.toContain(credentialMarker);
     } finally {
       proxy.stop();
       upstream.stop(true);
