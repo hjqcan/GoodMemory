@@ -1,7 +1,8 @@
 # GoodMemory v0.7.3 Replacement Protection Protocol
 
-Status: schema-4 revision pre-registered but not yet executed; schema-3 remains
-blocked and there is still no passing run or release
+Status: the single schema-4 attempt is blocked during baseline provider
+discovery; it is archived and will not be rerun under this protocol. There is
+still no passing run or release
 Date: 2026-08-07
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
@@ -89,6 +90,32 @@ No schema-4 attempt may begin until the implementation, focused regressions,
 full tests, typecheck, coverage, and readiness verifier are green on one frozen
 `main` commit. A failed attempt is archived once; it is not retried until the
 cause is attributed and a new protocol revision is pre-registered.
+
+## First schema-4 execution is blocked
+
+The single clean schema-4 attempt at candidate `68d5d7f1` again passed the
+deterministic boundary: provider-free C1 moved overall evidence recall by
+`+0.858369pt`, C40 moved it by `+0.429185pt`, and scenario replay passed 8/8.
+Baseline provider discovery then materialized a 233-question seed report with
+233 execution failures, so the runner stopped before candidate discovery or
+formal replay.
+
+The parent gate terminal observed an OpenRouter embedding fetch fail with
+`UNKNOWN_CERTIFICATE_VERIFICATION_ERROR`. The failure occurred after 29 exact
+successful 2xx responses had been recorded. Schema 4 atomically persisted
+those responses in a strict failure tape before aborting, so its intended
+response-preservation fix worked. However, the transport exception itself did
+not enter the stage receipt or child logs. It is therefore the best-supported
+operational explanation, not a uniquely proven root cause for every downstream
+failure.
+
+The incomplete evidence, compressed lossless failure tape, and attribution are
+archived under
+`reports/release/v0.7/blocked-68d5d7f1-openrouter-tls/`. A later Bun and curl
+probe both returned HTTP 200, which is consistent with a transient failure but
+does not validate this attempt. Schema 4 is not rerun. Any later attempt needs
+a new preregistration that binds transport-attempt/error capture and an
+explicit retry policy before execution.
 
 ## Release decision
 
@@ -201,11 +228,12 @@ direction, never a replacement for the deterministic hard gate.
 
 ## Claim boundary
 
-The full 1540-question claim must run only after this schema-4 evidence passes
-and is bound to the release candidate commit. The existing 0.8799 number is not
-copied forward. The observed 233-question same-commit wobble, scaled only as a
-heuristic by `sqrt(233/1540)`, suggests roughly 0.4-0.7pt full-set run-to-run
-spread; this is not a confidence interval.
+The full 1540-question claim must run only after a later pre-registered
+replacement protection protocol passes and is bound to the release candidate
+commit. This schema-4 attempt did not pass and cannot authorize that run. The
+existing 0.8799 number is not copied forward. The observed 233-question
+same-commit wobble, scaled only as a heuristic by `sqrt(233/1540)`, suggests
+roughly 0.4-0.7pt full-set run-to-run spread; this is not a confidence interval.
 
 The preferred claim artifact records and replays provider responses so the
 published run is byte-reproducible. If any published score instead comes from a
@@ -226,11 +254,13 @@ bun run gate:v0.7.3-lifecycle-protection -- \
   --output-dir reports/release/v0.7/v0.7.3-lifecycle-evidence
 ```
 
-The only accepted compact result is schema 4 at
-`reports/release/v0.7/v0.7.3-lifecycle-protection.json`. `gate:v0.7 --strict`
-re-reads every bound artifact, re-parses the tape, re-hashes the frozen input
-sequences, recomputes deterministic metrics and the sign test, and rejects
-schema-1 through schema-3 evidence.
+The attempted schema-4 compact result would have been
+`reports/release/v0.7/v0.7.3-lifecycle-protection.json`, but no such passing
+artifact was produced. `gate:v0.7 --strict` re-reads every bound artifact,
+re-parses the tape, re-hashes the frozen input sequences, recomputes
+deterministic metrics and the sign test, and rejects schema-1 through schema-3
+evidence. A future protocol revision must update that verifier before it can
+authorize release.
 
 The measurement runner validates the external `cases.json` against the frozen
 byte count and SHA-256. The tracked manifest retains that identity and the

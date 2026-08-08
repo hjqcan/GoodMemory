@@ -28,10 +28,18 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   evidence and attribution are archived at
   `reports/release/v0.7/blocked-113477d3-provider-json/`. The malformed response
   bytes were not persisted because the failure preceded the union-tape write;
-  schema 4 is now pre-registered to atomically persist a failure tape before a
-  discovery abort and to bind the existing 120s/four-attempt assisted
-  extraction policy. It has not been executed yet. No full 1540-question claim
-  may run yet.
+  schema 4 then ran once at candidate `68d5d7f1` and is also blocked. Its
+  deterministic C1/C40 arms were neutral-to-positive and scenario replay
+  passed 8/8, but baseline provider discovery produced 233 execution failures
+  after an OpenRouter embedding fetch exposed a certificate-verification
+  error. The runner preserved 29 exact successful 2xx responses in its
+  failure tape before aborting; the transport exception itself was visible in
+  the parent terminal but was not persisted in the stage receipt, so it is not
+  claimed as the uniquely proven cause of every downstream failure. The
+  evidence and attribution are archived at
+  `reports/release/v0.7/blocked-68d5d7f1-openrouter-tls/`. Schema 4 will not be
+  rerun. No full 1540-question claim may run until a new pre-registered
+  protection revision passes.
   See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as

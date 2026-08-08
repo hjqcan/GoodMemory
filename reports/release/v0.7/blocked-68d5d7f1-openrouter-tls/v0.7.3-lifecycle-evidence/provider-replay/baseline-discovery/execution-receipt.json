@@ -1,0 +1,434 @@
+{
+  "commandChain": {
+    "officialRescore": {
+      "args": [
+        "run",
+        "eval:official-rescore",
+        "--",
+        "--benchmark",
+        "locomo",
+        "--report",
+        "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/v073-baseline-discovery-final-54c69a32/smoke-report.json",
+        "--root",
+        "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1/cases.json",
+        "--concurrency",
+        "1",
+        "--run-id",
+        "v073-baseline-discovery-official-54c69a32"
+      ],
+      "command": "bun",
+      "cwd": "/private/tmp/goodmemory-v073-schema4.dJfd1w/baseline",
+      "environment": {
+        "GOODMEMORY_JUDGE_MODEL": "gpt-5.5",
+        "GOODMEMORY_JUDGE_BASE_URL": "http://127.0.0.1:63722/judge",
+        "GOODMEMORY_JUDGE_PROVIDER": "openai",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL": "http://127.0.0.1:63722/assisted",
+        "GOODMEMORY_EMBEDDING_BASE_URL": "http://127.0.0.1:63722/embedding",
+        "GOODMEMORY_EVAL_BASE_URL": "http://127.0.0.1:63722/eval",
+        "GOODMEMORY_RERANKING_BASE_URL": "http://127.0.0.1:63722/reranking"
+      }
+    },
+    "reanswer": {
+      "args": [
+        "run",
+        "scripts/reanswer-phase-65-locomo-report.ts",
+        "--",
+        "--source-report",
+        "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/v073-baseline-discovery-seed-54c69a32/smoke-report.json",
+        "--concurrency",
+        "1",
+        "--output-dir",
+        "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery",
+        "--run-id",
+        "v073-baseline-discovery-final-54c69a32"
+      ],
+      "command": "bun",
+      "cwd": "/private/tmp/goodmemory-v073-schema4.dJfd1w/baseline",
+      "environment": {
+        "GOODMEMORY_EVAL_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_EVAL_BASE_URL": "http://127.0.0.1:63722/eval",
+        "GOODMEMORY_EVAL_PROVIDER": "openai",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL": "http://127.0.0.1:63722/assisted",
+        "GOODMEMORY_EMBEDDING_BASE_URL": "http://127.0.0.1:63722/embedding",
+        "GOODMEMORY_JUDGE_BASE_URL": "http://127.0.0.1:63722/judge",
+        "GOODMEMORY_RERANKING_BASE_URL": "http://127.0.0.1:63722/reranking"
+      }
+    },
+    "seedSmoke": {
+      "args": [
+        "run",
+        "scripts/run-phase-65-locomo-smoke.ts",
+        "--",
+        "--benchmark-root",
+        "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1",
+        "--category",
+        "single_hop",
+        "--category",
+        "multi_hop",
+        "--category",
+        "temporal",
+        "--category",
+        "open_domain",
+        "--generalized-fusion",
+        "--provider-embedding",
+        "--provider-reranking",
+        "--provider-reranking-timeout-ms",
+        "120000",
+        "--conversational-extraction",
+        "--label-free-ingest",
+        "--concurrency",
+        "1",
+        "--case-id",
+        "locomo-conv-26",
+        "--case-id",
+        "locomo-conv-30",
+        "--output-dir",
+        "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery",
+        "--resume",
+        "--run-id",
+        "v073-baseline-discovery-seed-54c69a32"
+      ],
+      "command": "bun",
+      "cwd": "/private/tmp/goodmemory-v073-schema4.dJfd1w/baseline",
+      "environment": {
+        "GOODMEMORY_EVAL_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_EVAL_BASE_URL": "http://127.0.0.1:63722/eval",
+        "GOODMEMORY_EVAL_PROVIDER": "openai",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL": "http://127.0.0.1:63722/assisted",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER": "openai",
+        "GOODMEMORY_EMBEDDING_BASE_URL": "http://127.0.0.1:63722/embedding",
+        "GOODMEMORY_EMBEDDING_MODEL": "text-embedding-3-small",
+        "GOODMEMORY_EMBEDDING_PROVIDER": "openai",
+        "GOODMEMORY_RERANKING_BASE_URL": "http://127.0.0.1:63722/reranking",
+        "GOODMEMORY_RERANKING_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_RERANKING_PROVIDER": "openai",
+        "GOODMEMORY_JUDGE_BASE_URL": "http://127.0.0.1:63722/judge"
+      }
+    }
+  },
+  "commit": "456edd106f29118b3455bf21c43d7b3107b48213",
+  "executionOrder": [
+    "seedSmoke",
+    "reanswer",
+    "officialRescore"
+  ],
+  "generatedBy": "scripts/run-v0-7-3-replacement-protection-gate.ts",
+  "session": {
+    "coalesced": 0,
+    "hits": 3,
+    "liveRequests": 30,
+    "misses": 30,
+    "mode": "prefetch",
+    "name": "baseline-discovery",
+    "non2xxResponses": 0,
+    "requestFingerprintMultisetSha256": "7f082052129d6c3bbe7504a406b1ca804b1d5095948467b75b984cb50cbd0c58",
+    "requestSequence": [
+      {
+        "canonicalBodySha256": "9ff1ed52a90206d5d26aa065c79dd75e8e12db0649b176fcd09a09f25e3dd882",
+        "fingerprint": "ae35ae82f4e15b68872e846c14b6fe612f40a05d6d2308ba5b6a6ab207cfa9ba",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "aeefc5353277d0dee995848787faafe8b21e67371be308bd02322c8543da3ed2",
+        "fingerprint": "085c2d3ac9a05b45c3c6b5842cde91a969c24cb94c32ce3613c41cfef0d01051",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "e805d8546040672ab3ae5aaad1d1bb968d9b1fd2ee487868b695707593261b6e",
+        "fingerprint": "ea4ab13f30ae14e18cba901c797977699e54515c44c5b2b8e24d397bf3362f53",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "51ec8981ee7aec020efd61e0c4cb320d04cd82c8cef0aa2c6e952443a33b10d0",
+        "fingerprint": "3f879f07d0a8aa2f5fc2cc59f41f713ceb0f1eb38fb4dac2429fee464602be8e",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "914903b7e136d8ed0ff4de5b953e48e4684d14e676186b62d7b7a4d1499cd817",
+        "fingerprint": "f0889dacfeb718bc33b4f934c84963604e29c1dc750f52060da27239adeafc13",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "36529f51eeff7f48bf951cfd1dcc813539440f031fefe38b390e080386600397",
+        "fingerprint": "b6d96dc87509cea5ee88bec5ba964888fedd0da2a99a8465f942b12a6ef12f3b",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "f5feebbd2a2c068319e28935e1cf95b85451b7ada746d87d9c5498e972868c45",
+        "fingerprint": "4e26f655efda1b5299b1e7f74c91a1eeded0e75369e3adfa9760d1fbf0fe1db8",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "90ea3d28feca6c893ad8e86d510e0b8cafbbb13a1f417d16443ed5acc162c56c",
+        "fingerprint": "19a17b77d286646365e835480765918a394616598012eb60557877756ca7ce56",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "90ea3d28feca6c893ad8e86d510e0b8cafbbb13a1f417d16443ed5acc162c56c",
+        "fingerprint": "19a17b77d286646365e835480765918a394616598012eb60557877756ca7ce56",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "90ea3d28feca6c893ad8e86d510e0b8cafbbb13a1f417d16443ed5acc162c56c",
+        "fingerprint": "19a17b77d286646365e835480765918a394616598012eb60557877756ca7ce56",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "90ea3d28feca6c893ad8e86d510e0b8cafbbb13a1f417d16443ed5acc162c56c",
+        "fingerprint": "19a17b77d286646365e835480765918a394616598012eb60557877756ca7ce56",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "f1947a714e6f3c3cbe8e58b90146d2be3028a6a34fe3313445dcf367c9e0a37b",
+        "fingerprint": "d1a20f8d718258824c6330b2ceb3ea114822fe636db870713e2f6bcf38608387",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "590b047f7528a6391613385e5b732b63cfa196502207b184cd5a6b1dc79bfb08",
+        "fingerprint": "f3cf760149c306b5c42c0ee2ae3dd7e2728cf52ce2810ac4e6bdb13130c49525",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "574c23ddd2942f34c79755c1d59d08fd35b8484e89e61c469891a38ebf1235c3",
+        "fingerprint": "c6c70f67bcaecf665794671b29902ba2a9e30d680e14b826071cc166b4d94a48",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "6008c4e17e422276ab3539159105405ec145b939ce718fb028a1d25fa0585dc7",
+        "fingerprint": "d997882bb2d5f9bdb198eb0c2b30493befdda728668ee4596d619b824eb66409",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "16de51c2982367bedf7a0cd239f5d90977cce3c77f8d06552ffcd5c51f7686fa",
+        "fingerprint": "9037ec2052e39051dbee6603751315fb8e96200b4374cd5de8e24a8da4760a60",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "21894ccf9e0aefb84080e6452ab5e5658a6c5bd6adf588d323a3771ea7a85c8d",
+        "fingerprint": "dd2d7c7aff8d07ca5bbc6d5609f9a9c4d0584d54fd5510b1926e9fcfb81baee6",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "6129bfcb27cbe493adc8152e08379a7c15e4f739412b4cef8d86c91afe01b6fa",
+        "fingerprint": "d5fc9344f51fcb03d0f6ac27e8f6d2f9a150a93c619e53009ed558a74061fb6d",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "8d68d7bc66bd8c00a85e7817d378737c27ef6bdb4585a80c11b835a7efda5b2d",
+        "fingerprint": "0697bec304671d85049ecdca4a316a4d39a724dd7c588615c60cd90f035818f8",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "b58a7c25f7031a4b3d5667774b4d0b43c60ce5712b29233d518ae08e1288a323",
+        "fingerprint": "2101055110a48fa416538786a1e3a5df09db958659d57d11c2b8230760c38561",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "098ff4972e321564b9c011c60b0bdb1416c5a7661949bf60a6f6b882f12710cb",
+        "fingerprint": "51f5faffa05220000b7a02b0a5235614efd26a829aa18f9fec1b17c3c9e32ecd",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "67007cdd947ee2c49ada256b302978884fe56f6e1759272c75a2b577cd2e8322",
+        "fingerprint": "b9b77c1b8327b0ca18f66bfdf838fb37c02a85d5209303491e34be7fe7dd418c",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "89e54e7ee442a48cef9e9d2fc2002ac5bf32c4f2f18311a76615fc6c9531aa0e",
+        "fingerprint": "4e6dfdfddd2c5d56132db392f7935c096715837ab50eb7fcec83d1267fcbf743",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "3d403a1ac201273bd2e4312818fc58b7942761fea9b4f4c7c57bcc59f1a3a0cd",
+        "fingerprint": "38570fd58b22145ab8392c9d478fd14578003cda9606e694888a8ae272da6e2d",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "7bdab03c52076060d846e68b25f1cfb6a6ea42ede749280668ef0904cfe068a9",
+        "fingerprint": "99d5aefa9c3e0c16b40319799a5fcbd2a1767a6aa48755ef671b3b36a76a95ef",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "be5ae2dfb7eb152121e778e95ed6c3e522038b9572a8c80e3a3f9ed36e1b56d2",
+        "fingerprint": "c21f1ca103b1f9ce9bcb3d9a117da4d6aa70a54d8a6006aa081e325e67eeb918",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "6753ff9d180b24e13a1b4a55a50c1124862d88369d36c854027e6840172abff2",
+        "fingerprint": "7c75afb72a6f1f8ef0c1f85f336645b5f9f98e4bf5f9f4cad45f187bfb313fdc",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "6863b3318cc4ad55c7fdf7c261c6fb25edcde9294d1b1e197f71073f508dc12f",
+        "fingerprint": "42c669844e6a0ad1fbc2af1d2340ce6e3220cf9c452eb3a1c91b55cdc00549c1",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "4d5bfd38e7ba2be877f55188143a453959c7a2accc65e98742ea9c0b740d5596",
+        "fingerprint": "bde7481d4c2ecad88cfe0fcc3a9e9b5067f278ec4b621c6bd30a7fe818cb6046",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "94038a7f7d985ed0b74b825b8961f67c13a5306e7474529162f8ce30ee0e82a8",
+        "fingerprint": "2a42eb3759f51997a03e1531cdf7c52bb37b349ea221fd2dd0b1f2e6f95af3db",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "9218509f4a06d1a7095bdb705ecd8c18b12d948f79385a8a6aaa07bd4a37a453",
+        "fingerprint": "8145b72f3e4a63b5146d17939c59a57432569c82134114fdcf69964c68b3b682",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "bec78dce5ba9347d6ef35ec91b0f210cf3dd0d1b436f0c518d80866e919c45a6",
+        "fingerprint": "08520a41e3f3d265c09fbf5b5c2e4d928715ec21428219d3291f3bcc4c8e0a6c",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "b09c6fdc0fda2148951597532c841ffd964623ddc63085837a6481158347355b",
+        "fingerprint": "71f3b841d9691df4103d8376d1482db50d4206ed18514a9209dc9e314ae2a5a0",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "5d8950e7561ee9d3c9495f3d7c596614907c0b6f53ca253a3c1972c9648099a1",
+        "targetId": "embedding"
+      }
+    ],
+    "requestSequenceSha256": "ba854678dc410a95097cadc8979a81601445d69c9649a01fccd6118cfaa572ef",
+    "requests": 33,
+    "sequenceMismatchDetails": [],
+    "sequenceMismatches": 0,
+    "targetCounts": {
+      "embedding": 5,
+      "eval": 28
+    },
+    "tapeSha256": "f4c47e4aa458a1068412d19e201452e66a1e10c2aecc161c27fd72084d878372"
+  },
+  "sourceIdentity": {
+    "claimCommandTemplateSha256": "7e9a8693964ef29a2fa19d02b30e15e29528cbc396b7c9a41e082cf408a8f969",
+    "claimSourceSha256": "9ef00e9e1532a264a97cacf3a1807345acce68194ad65e2b016ed6a48602b6d3",
+    "officialSourceSha256": "cfa618e1929d56dc256962f471768a3855a8989b92c22cce4f09bd8112ebe24f",
+    "promptSha256": "e039c2aa17d9a2253acb6f7742095cc4a0a3b6c5830a117f1b5c4d701db6e07b",
+    "reanswerSourceSha256": "dc13f16cb77621e82ef6fa79df280ee8db4f45694c27ac826bcc477c053f5133",
+    "seedSourceSha256": "0cffb3ec917601c2c7c34a6664d58b528f67b632aa31e6f79447b8b7ebae937a"
+  },
+  "stage": "baseline-discovery",
+  "stderr": {
+    "bytes": 12,
+    "path": "reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/stderr.log",
+    "sha256": "583e8f535e842237bb0c4f185d2f27caf94ca5e21b49f84f2742e8baecb3bbc2"
+  },
+  "steps": [
+    {
+      "exitCode": 0,
+      "step": "seedSmoke"
+    }
+  ],
+  "stdout": {
+    "bytes": 2210,
+    "path": "reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/stdout.log",
+    "sha256": "00209e97f4d9807fd0d9cb2f3d8c2dc5c1859741a796f8952600e7777b39bd28"
+  },
+  "failureTape": {
+    "bytes": 59751522,
+    "path": "reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/failure-tape.json",
+    "sha256": "f4c47e4aa458a1068412d19e201452e66a1e10c2aecc161c27fd72084d878372"
+  },
+  "failureTapeExcludedCredentialEntries": 0,
+  "validationFailure": "provider seed report is incomplete"
+}

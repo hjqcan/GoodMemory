@@ -1,0 +1,5173 @@
+{
+  "allowCommonsenseResolution": false,
+  "strictNoEvidenceAbstention": false,
+  "answerContextMode": "raw-turns",
+  "answerEvaluation": "deferred-to-live-mode",
+  "benchmark": "locomo",
+  "benchmarkFingerprint": "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd",
+  "benchmarkSource": "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1/cases.json",
+  "bm25Ranking": false,
+  "generalizedFusion": true,
+  "generalizedFusionConfig": {
+    "maxCandidates": 8,
+    "maxTotalFacts": 10,
+    "minRelativeStrength": 0,
+    "rrfK": 60
+  },
+  "caseIds": [
+    "locomo-conv-26",
+    "locomo-conv-30"
+  ],
+  "caseCount": 2,
+  "cases": [
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q0",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:12"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:12"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q1",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:9",
+        "D1:11"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:9",
+        "D1:11"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q2",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q3",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:5"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:5"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q4",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q5",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:7"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:7"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q6",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D3:13",
+        "D2:14"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D3:13",
+        "D2:14"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q7",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D3:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D3:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q8",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D3:11"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D3:11"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q9",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D3:13"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D3:13"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q10",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D3:13",
+        "D4:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D3:13",
+        "D4:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q11",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D4:5"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D4:5"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q12",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D4:13",
+        "D1:11"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D4:13",
+        "D1:11"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q13",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D4:15",
+        "D3:5"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D4:15",
+        "D3:5"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q14",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D5:4",
+        "D9:1",
+        "D1:12",
+        "D1:18"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D5:4",
+        "D9:1",
+        "D1:12",
+        "D1:18"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q15",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D5:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D5:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q16",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D5:13"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D5:13"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q17",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D6:16",
+        "D4:6",
+        "D8:32"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D6:16",
+        "D4:6",
+        "D8:32"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q18",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D6:6",
+        "D4:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D6:6",
+        "D4:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q19",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D6:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D6:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q20",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D6:11"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D6:11"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q21",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D6:9"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D6:9"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q22",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D7:8",
+        "D6:10"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D7:8",
+        "D6:10"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q23",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D7:22",
+        "D5:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D7:22",
+        "D5:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q24",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D7:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D7:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q25",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D7:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D7:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q26",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D7:5",
+        "D7:9"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D7:5",
+        "D7:9"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q27",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D8:9"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D8:9"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q28",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D8:2"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D8:2"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q29",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "evidenceRecall": 1,
+      "evidenceTurnIds": [],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": true,
+      "missingEvidenceTurnIds": [],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q30",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D4:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D4:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q31",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D5:1",
+        "D8:17",
+        "D3:1",
+        "D1:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D5:1",
+        "D8:17",
+        "D3:1",
+        "D1:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q32",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D5:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D5:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q33",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D9:2",
+        "D3:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D9:2",
+        "D3:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q34",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D9:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D9:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q35",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D9:2"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D9:2"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q36",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 1,
+      "evidenceTurnIds": [],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": true,
+      "missingEvidenceTurnIds": [],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q37",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D8:4",
+        "D8:6",
+        "D9:1",
+        "D6:4",
+        "D1:18",
+        "D3:14"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D8:4",
+        "D8:6",
+        "D9:1",
+        "D6:4",
+        "D1:18",
+        "D3:14"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q38",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D10:3",
+        "D5:1",
+        "D9:12",
+        "D9:2"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D10:3",
+        "D5:1",
+        "D9:12",
+        "D9:2"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q39",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D10:8",
+        "D6:16"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D10:8",
+        "D6:16"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q40",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D10:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D10:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q41",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D10:12",
+        "D10:14"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D10:12",
+        "D10:14"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q42",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D11:12",
+        "D11:8",
+        "D9:14"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D11:12",
+        "D11:8",
+        "D9:14"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q43",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D11:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D11:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q44",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D11:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D11:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q45",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "evidenceRecall": 1,
+      "evidenceTurnIds": [],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": true,
+      "missingEvidenceTurnIds": [],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q46",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D12:1",
+        "D3:11"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D12:1",
+        "D3:11"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q47",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D12:14",
+        "D8:4",
+        "D5:6"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D12:14",
+        "D8:4",
+        "D5:6"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q48",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D12:15"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D12:15"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q49",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D12:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D12:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q50",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D13:8",
+        "D8:6",
+        "D1:12"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D13:8",
+        "D8:6",
+        "D1:12"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q51",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D13:4",
+        "D7:18"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D13:4",
+        "D7:18"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q52",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D13:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D13:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q53",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D13:11"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D13:11"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q54",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D14:5",
+        "D8:6"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D14:5",
+        "D8:6"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q55",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D14:15",
+        "D4:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D14:15",
+        "D4:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q56",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D14:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D14:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q57",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D14:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D14:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q58",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D14:19",
+        "D12:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D14:19",
+        "D12:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q59",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:26",
+        "D2:5"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:26",
+        "D2:5"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q60",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:16",
+        "D11:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:16",
+        "D11:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q61",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:2"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:2"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q62",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:11"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:11"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q63",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:28"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:28"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q64",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D16:15",
+        "D11:14"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D16:15",
+        "D11:14"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q65",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D16:4",
+        "D10:12"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D16:4",
+        "D10:12"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q66",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D16:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D16:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q67",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D16:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D16:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q68",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D16:18",
+        "D13:16",
+        "D7:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D16:18",
+        "D13:16",
+        "D7:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q69",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D17:19",
+        "D15:13"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D17:19",
+        "D15:13"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q70",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D7:11",
+        "D17:10"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D7:11",
+        "D17:10"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q71",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D17:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D17:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q72",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D17:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D17:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q73",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q74",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:1",
+        "D18:7"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:1",
+        "D18:7"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q75",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:17"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:17"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q76",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:3",
+        "D18:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:3",
+        "D18:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q77",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D19:2",
+        "D7:18"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D19:2",
+        "D7:18"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q78",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D19:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D19:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q79",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D19:2"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D19:2"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q80",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "open_domain",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D19:1",
+        "D19:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D19:1",
+        "D19:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q81",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:2"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:2"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q82",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q83",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:5"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:5"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q84",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q85",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:12"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:12"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q86",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:12"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:12"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q87",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:14"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:14"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q88",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:15"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:15"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q89",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D3:16"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D3:16"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q90",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D4:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D4:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q91",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D4:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D4:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q92",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D4:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D4:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q93",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D4:5"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D4:5"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q94",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D4:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D4:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q95",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D4:13"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D4:13"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q96",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D4:13"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D4:13"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q97",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D4:13"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D4:13"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q98",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D4:15"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D4:15"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q99",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D4:15"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D4:15"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q100",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D5:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D5:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q101",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D6:9"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D6:9"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q102",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D6:10"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D6:10"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q103",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D7:11"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D7:11"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q104",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D7:13"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D7:13"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q105",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D7:19"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D7:19"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q106",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D7:21"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D7:21"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q107",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D7:24"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D7:24"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q108",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D8:2"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D8:2"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q109",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D8:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D8:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q110",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D8:5"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D8:5"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q111",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D8:6"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D8:6"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q112",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D8:9"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D8:9"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q113",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D8:11"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D8:11"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q114",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D8:12"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D8:12"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q115",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D9:16"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D9:16"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q116",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D10:10"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D10:10"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q117",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D10:14"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D10:14"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q118",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D10:18"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D10:18"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q119",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D11:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D11:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q120",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D11:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D11:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q121",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D12:6"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D12:6"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q122",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D13:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D13:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q123",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D13:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D13:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q124",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D13:6"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D13:6"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q125",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D13:7"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D13:7"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q126",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D14:17"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D14:17"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q127",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D14:23"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D14:23"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q128",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:23"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:23"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q129",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:28"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:28"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q130",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:28"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:28"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q131",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D16:7"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D16:7"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q132",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D16:16"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D16:16"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q133",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D17:7"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D17:7"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q134",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D17:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D17:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q135",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D17:10"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D17:10"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q136",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D17:12"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D17:12"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q137",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D17:14"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D17:14"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q138",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D17:18"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D17:18"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q139",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D17:19"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D17:19"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q140",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D17:23"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D17:23"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q141",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D17:25"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D17:25"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q142",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q143",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:6",
+        "D18:7"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:6",
+        "D18:7"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q144",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:5"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:5"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q145",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:7"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:7"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q146",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:5"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:5"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q147",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:5"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:5"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q148",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:9"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:9"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q149",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:13"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:13"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q150",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-26",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:17"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:17"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-26:q151",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Malformed openai-compatible gateway response: expected choices array or error object.",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:2"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:2"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q0",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q1",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:7",
+        "D1:6"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:7",
+        "D1:6"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q2",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:2",
+        "D1:3",
+        "D1:4",
+        "D2:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:2",
+        "D1:3",
+        "D1:4",
+        "D2:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q3",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:2",
+        "D1:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:2",
+        "D1:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q4",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:20",
+        "D2:4",
+        "D2:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:20",
+        "D2:4",
+        "D2:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q5",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:24"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:24"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q6",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q7",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q8",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:5",
+        "D15:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:5",
+        "D15:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q9",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D5:5"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D5:5"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q10",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D5:15"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D5:15"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q11",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D6:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D6:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q12",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D6:6"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D6:6"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q13",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D8:13"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D8:13"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q14",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D8:13"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D8:13"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q15",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D10:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D10:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q16",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D6:8",
+        "D1:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D6:8",
+        "D1:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q17",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:4",
+        "D6:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:4",
+        "D6:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q18",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D11:14"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D11:14"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q19",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D12:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D12:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q20",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D12:6"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D12:6"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q21",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D13:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D13:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q22",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D5:5",
+        "D16:3",
+        "D8:4",
+        "D13:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D5:5",
+        "D16:3",
+        "D8:4",
+        "D13:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q23",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D10:1",
+        "D16:6",
+        "D8:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D10:1",
+        "D16:6",
+        "D8:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q24",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D13:7",
+        "D8:13"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D13:7",
+        "D8:13"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q25",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D14:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D14:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q26",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:14",
+        "D14:14",
+        "D1:16",
+        "D1:17",
+        "D9:10"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:14",
+        "D14:14",
+        "D1:16",
+        "D1:17",
+        "D9:10"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q27",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q28",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:4",
+        "D15:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:4",
+        "D15:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q29",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:5"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:5"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q30",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "multi_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:2",
+        "D15:13"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:2",
+        "D15:13"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q31",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D16:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D16:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q32",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D16:6"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D16:6"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q33",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D17:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D17:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q34",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D17:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D17:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q35",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:18"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:18"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q36",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D19:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D19:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q37",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "temporal",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D19:6"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D19:6"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q38",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:9"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:9"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q39",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q40",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:17"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:17"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q41",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:19"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:19"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q42",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:25"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:25"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q43",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:26"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:26"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q44",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D1:28"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D1:28"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q45",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D2:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D2:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q46",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D3:2"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D3:2"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q47",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D3:4"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D3:4"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q48",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D3:6",
+        "D3:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D3:6",
+        "D3:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q49",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D3:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D3:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q50",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D3:6"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D3:6"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q51",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D3:9"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D3:9"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q52",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D3:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D3:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q53",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D4:2"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D4:2"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q54",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D5:15"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D5:15"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q55",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D6:15",
+        "D6:16"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D6:15",
+        "D6:16"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q56",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D7:5"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D7:5"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q57",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D8:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D8:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q58",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D8:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D8:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q59",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D9:5"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D9:5"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q60",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D9:10"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D9:10"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q61",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D10:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D10:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q62",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D12:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D12:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q63",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D12:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D12:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q64",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D12:6"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D12:6"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q65",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D13:7"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D13:7"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q66",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D13:11"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D13:11"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q67",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D14:17"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D14:17"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q68",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:1"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:1"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q69",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q70",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:6"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:6"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q71",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:7"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:7"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q72",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:8"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:8"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q73",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:9"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:9"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q74",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:12"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:12"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q75",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D15:18",
+        "D15:19"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D15:18",
+        "D15:19"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q76",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D16:3"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D16:3"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q77",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D17:7"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D17:7"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q78",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:10"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:10"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q80",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    },
+    {
+      "answerCorrect": null,
+      "answerTokenF1": null,
+      "caseId": "locomo-conv-30",
+      "category": "single_hop",
+      "evidenceRecall": 0,
+      "evidenceTurnIds": [
+        "D18:13"
+      ],
+      "generatedAnswer": null,
+      "goldEvidenceFullyRetrieved": false,
+      "missingEvidenceTurnIds": [
+        "D18:13"
+      ],
+      "noiseTurnCount": 0,
+      "noiseTurnIds": [],
+      "questionId": "conv-30:q81",
+      "retrievedTurnIds": [],
+      "executionFailureMessage": "Internal Server Error",
+      "executionFailureStage": "seed"
+    }
+  ],
+  "categories": [
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0,
+      "category": "single_hop",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 0,
+      "noiseTurnTotal": 0,
+      "questionCount": 114
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0.023255813953488372,
+      "category": "multi_hop",
+      "crossSessionChainReady": false,
+      "fullyRetrievedCount": 1,
+      "noiseTurnTotal": 0,
+      "questionCount": 43
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0,
+      "category": "temporal",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 0,
+      "noiseTurnTotal": 0,
+      "questionCount": 63
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0.15384615384615385,
+      "category": "open_domain",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 2,
+      "noiseTurnTotal": 0,
+      "questionCount": 13
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0,
+      "category": "adversarial",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 0,
+      "noiseTurnTotal": 0,
+      "questionCount": 0
+    }
+  ],
+  "concurrency": 1,
+  "executionFailures": 233,
+  "externalRoot": "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1",
+  "generatedAt": "2026-08-07T17:12:52.273Z",
+  "generatedBy": "scripts/run-phase-65-locomo-smoke.ts",
+  "ingestMode": "conversational-extraction",
+  "labelFreeIngest": true,
+  "episodicIngest": false,
+  "followUpMode": "off",
+  "license": "CC BY-NC 4.0",
+  "mode": "retrieval-only",
+  "phase": "phase-65",
+  "profilesCompared": [
+    "goodmemory-recommended"
+  ],
+  "providerEmbeddingRunTimeoutMs": null,
+  "providerEmbeddingTimeoutMs": null,
+  "providerReranking": true,
+  "providerRerankingTimeoutMs": 120000,
+  "questionCount": 233,
+  "questionCategories": [
+    "single_hop",
+    "multi_hop",
+    "temporal",
+    "open_domain"
+  ],
+  "questionIds": null,
+  "resume": true,
+  "retrievalConfig": {
+    "bm25Ranking": false,
+    "corefNormalize": false,
+    "decompose": false,
+    "generalizedFusion": true,
+    "labelFreeIngest": true,
+    "multiHop": false,
+    "followUpMode": "off",
+    "providerEmbedding": true,
+    "providerReranking": true,
+    "rerank": false,
+    "smartFusion": false
+  },
+  "rerankGeneralizedFusionConfig": {
+    "maxCandidates": 32,
+    "maxTotalFacts": 32
+  },
+  "runDirectory": "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-replay/baseline-discovery/v073-baseline-discovery-seed-54c69a32",
+  "runId": "v073-baseline-discovery-seed-54c69a32",
+  "semanticCandidateEmbeddingSource": "provider",
+  "semanticCandidates": {
+    "enabled": false,
+    "maxAdditions": null,
+    "minRelativeScore": null,
+    "minSimilarity": null,
+    "topK": null
+  },
+  "upstreamAnswerMetricByCategory": {
+    "temporal": "f1_token_overlap",
+    "open_domain": "f1_token_overlap",
+    "multi_hop": "f1_token_overlap",
+    "single_hop": "f1_token_overlap"
+  },
+  "upstreamSource": "https://github.com/snap-research/locomo"
+}

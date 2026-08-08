@@ -1,0 +1,23 @@
+{
+  "args": [
+    "test",
+    "tests/scenarios"
+  ],
+  "candidateCommit": "68d5d7f1705b410d3220e1782a446baa11fb80d5",
+  "command": "bun",
+  "cwd": "/private/tmp/goodmemory-v073-schema4.dJfd1w/candidate",
+  "exitCode": 0,
+  "failures": 0,
+  "generatedBy": "scripts/run-v0-7-3-replacement-protection-gate.ts",
+  "passed": 8,
+  "stderr": {
+    "bytes": 1293,
+    "path": "reports/release/v0.7/v0.7.3-lifecycle-evidence/scenario/stderr.log",
+    "sha256": "2ac9354638066ea7951ac7fc5adf10aacbbbd2bdfc38f0abb29ecf8b0ba61243"
+  },
+  "stdout": {
+    "bytes": 28,
+    "path": "reports/release/v0.7/v0.7.3-lifecycle-evidence/scenario/stdout.log",
+    "sha256": "d6684989b8dd63b37d2f1954270826fbe1bd89a8debd12bcacf03ed1c6140ef6"
+  }
+}

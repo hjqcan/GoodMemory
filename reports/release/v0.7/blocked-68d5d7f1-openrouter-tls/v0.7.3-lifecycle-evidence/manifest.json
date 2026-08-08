@@ -1,0 +1,89 @@
+{
+  "baseline": {
+    "branch": null,
+    "commit": "456edd106f29118b3455bf21c43d7b3107b48213",
+    "statusPorcelain": "",
+    "worktreePath": "/private/tmp/goodmemory-v073-schema4.dJfd1w/baseline"
+  },
+  "benchmark": {
+    "bytes": 2490457,
+    "fingerprint": "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd",
+    "root": "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1",
+    "sha256": "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28"
+  },
+  "candidate": {
+    "branch": null,
+    "commit": "68d5d7f1705b410d3220e1782a446baa11fb80d5",
+    "statusPorcelain": "",
+    "worktreePath": "/private/tmp/goodmemory-v073-schema4.dJfd1w/candidate"
+  },
+  "generatedBy": "scripts/run-v0-7-3-replacement-protection-gate.ts",
+  "measurementHarness": {
+    "claimRecipe": {
+      "bytes": 5370,
+      "path": "benchmark-claims/locomo.json",
+      "sha256": "9ef00e9e1532a264a97cacf3a1807345acce68194ad65e2b016ed6a48602b6d3"
+    },
+    "officialRunner": {
+      "bytes": 75985,
+      "path": "scripts/rescore-official-protocols.ts",
+      "sha256": "cfa618e1929d56dc256962f471768a3855a8989b92c22cce4f09bd8112ebe24f"
+    },
+    "reanswerRunner": {
+      "bytes": 54560,
+      "path": "scripts/reanswer-phase-65-locomo-report.ts",
+      "sha256": "dc13f16cb77621e82ef6fa79df280ee8db4f45694c27ac826bcc477c053f5133"
+    },
+    "seedRunner": {
+      "bytes": 151340,
+      "path": "scripts/run-phase-65-locomo-smoke.ts",
+      "sha256": "0cffb3ec917601c2c7c34a6664d58b528f67b632aa31e6f79447b8b7ebae937a"
+    }
+  },
+  "protocol": {
+    "assistedExtractionMaxAttempts": 4,
+    "assistedExtractionRequestTimeoutMs": 120000,
+    "claimCommandTemplateSha256": "7e9a8693964ef29a2fa19d02b30e15e29528cbc396b7c9a41e082cf408a8f969",
+    "failureTapeCredentialMaterial": "excluded-before-persistence",
+    "failedDiscoveryTape": "atomic-before-stage-error",
+    "formalNetworkOnMiss": false,
+    "hardRegressionLimit": 0.01,
+    "promptSha256": "e039c2aa17d9a2253acb6f7742095cc4a0a3b6c5830a117f1b5c4d701db6e07b",
+    "providerFreeConcurrency": [
+      1,
+      40
+    ],
+    "providerReplayConcurrency": 1,
+    "signTestAlpha": 0.05,
+    "tapeInputIdentity": "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest",
+    "tapeRequestIdentity": "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)"
+  },
+  "providers": {
+    "assisted": {
+      "gateway": "https://ai.gurkiai.com/v1",
+      "model": "gpt-5.6-terra",
+      "provider": "openai"
+    },
+    "embedding": {
+      "gateway": "https://openrouter.ai/api/v1",
+      "model": "text-embedding-3-small",
+      "provider": "openai"
+    },
+    "eval": {
+      "gateway": "https://ai.gurkiai.com/v1",
+      "model": "gpt-5.6-terra",
+      "provider": "openai"
+    },
+    "judge": {
+      "gateway": "https://ai.gurkiai.com/v1",
+      "model": "gpt-5.5",
+      "provider": "openai"
+    },
+    "reranking": {
+      "gateway": "https://ai.gurkiai.com/v1",
+      "model": "gpt-5.6-terra",
+      "provider": "openai"
+    }
+  },
+  "schemaVersion": 4
+}
