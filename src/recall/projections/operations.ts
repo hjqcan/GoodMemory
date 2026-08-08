@@ -423,7 +423,12 @@ export function createRecallProjectionOperations(input: {
       if (!sameIds(edges, expectedEdges)) {
         issues.push("entity_adjacency_set_mismatch");
       }
-      const factIds = new Set(
+      const canonicalFactIds = new Set(
+        sources
+          .filter(({ collection }) => collection === "facts")
+          .map(({ id }) => id),
+      );
+      const activeFactIds = new Set(
         sources
           .filter(({ collection, document }) =>
             collection === "facts" &&
@@ -436,14 +441,14 @@ export function createRecallProjectionOperations(input: {
         status.sourceMemoryId,
         status,
       ]));
-      for (const sourceMemoryId of factIds) {
+      for (const sourceMemoryId of activeFactIds) {
         if (!statusBySource.has(sourceMemoryId)) {
           issues.push(`missing_claim_status:${sourceMemoryId}`);
         }
       }
       const claimsById = new Map(claims.map((claim) => [claim.id, claim]));
       for (const status of statuses) {
-        if (!factIds.has(status.sourceMemoryId)) {
+        if (!canonicalFactIds.has(status.sourceMemoryId)) {
           issues.push(`orphan_claim_status:${status.id}`);
         }
         if (status.scopeKey !== canonicalScopeKey) {
@@ -478,7 +483,7 @@ export function createRecallProjectionOperations(input: {
         }
       }
       for (const claim of claims) {
-        if (!factIds.has(claim.sourceMemoryId)) {
+        if (!canonicalFactIds.has(claim.sourceMemoryId)) {
           issues.push(`orphan_claim:${claim.id}`);
         }
         if (claim.scopeKey !== canonicalScopeKey) {
