@@ -500,6 +500,38 @@ describe("claim projection revision visibility", () => {
     );
   });
 
+  it("accepts retained claim history for a superseded canonical fact", async () => {
+    const store = createInMemoryDocumentStore();
+    const fact = buildFact();
+    const runtime = createRecallProjectionRuntime({
+      documentStore: store,
+      now: () => observedAt,
+    });
+    await runtime.documentStore.set("facts", fact.id, fact);
+    await runtime.appendClaim(claimInput("active", fact.updatedAt));
+    const supersededFact = {
+      ...fact,
+      isActive: false,
+      lifecycle: "superseded" as const,
+      updatedAt: "2026-07-21T10:00:00.000Z",
+    };
+    await runtime.documentStore.set("facts", fact.id, supersededFact);
+    const operations = createRecallProjectionOperations({
+      analyzerFingerprint: null,
+      documentStore: store,
+      language: createLanguageService(),
+      now: () => observedAt,
+    });
+
+    expect(
+      await operations.validateScopeUnsafe(
+        scope,
+        [{ collection: "facts", document: supersededFact, id: fact.id }],
+        new Set(),
+      ),
+    ).toEqual({ complete: true, issues: [] });
+  });
+
   it("rejects noncanonical claim and status scope keys", async () => {
     const store = createInMemoryDocumentStore();
     const fact = buildFact("fact-forged-scope-key");
