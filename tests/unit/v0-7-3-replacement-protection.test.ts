@@ -36,15 +36,20 @@ function replaySession(input: {
   sequenceMismatches?: number;
   targetCounts?: Record<string, number>;
   tapeSha256?: string;
+  transportAttemptLedgerSha256?: string;
+  transportAttempts?: number;
+  transportErrors?: number;
 } = {}) {
   const requests = input.requests ?? 12;
   const misses = input.misses ?? 0;
+  const mode = input.mode ?? "replay";
+  const liveRequests = input.liveRequests ?? misses;
   return {
     coalesced: input.coalesced ?? 0,
     hits: input.hits ?? requests - misses,
-    liveRequests: input.liveRequests ?? misses,
+    liveRequests,
     misses,
-    mode: input.mode ?? "replay",
+    mode,
     non2xxResponses: input.non2xxResponses ?? 0,
     requestFingerprintMultisetSha256:
       input.requestFingerprintMultisetSha256 ?? "c".repeat(64),
@@ -53,6 +58,13 @@ function replaySession(input: {
     sequenceMismatches: input.sequenceMismatches ?? 0,
     targetCounts: input.targetCounts ?? { embedding: 3, eval: 8, judge: 1 },
     tapeSha256: input.tapeSha256 ?? TAPE_SHA256,
+    transportAttemptLedgerSha256:
+      input.transportAttemptLedgerSha256 ?? (mode === "replay"
+        ? "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        : "e".repeat(64)),
+    transportAttempts: input.transportAttempts ??
+      (mode === "prefetch" ? liveRequests : 0),
+    transportErrors: input.transportErrors ?? 0,
   };
 }
 
@@ -139,7 +151,7 @@ describe("v0.7.3 replacement protection protocol", () => {
     expect(report.providerReplay.discovery.candidate.misses).toBe(3);
     expect(report.providerReplay.formal.candidate.liveRequests).toBe(0);
     expect(report.liveDiagnostic.signTest.pValue).toBeCloseTo(0.5571970939636236, 14);
-    expect(report.schemaVersion).toBe(4);
+    expect(report.schemaVersion).toBe(5);
   });
 
   it("blocks a deterministic regression beyond one point", () => {
@@ -234,6 +246,22 @@ describe("v0.7.3 replacement protection protocol", () => {
 
     expect(() => evaluateV073ReplacementProtection(input)).toThrow(
       "provider discovery must contain only successful responses",
+    );
+  });
+
+  it("rejects discovery attempts that observed a transport error", () => {
+    const input = protectionInput();
+    input.providerReplay.discovery.baseline = replaySession({
+      hits: 2,
+      liveRequests: 10,
+      misses: 10,
+      mode: "prefetch",
+      transportAttempts: 10,
+      transportErrors: 1,
+    });
+
+    expect(() => evaluateV073ReplacementProtection(input)).toThrow(
+      "provider discovery must have one successful transport attempt per live request",
     );
   });
 

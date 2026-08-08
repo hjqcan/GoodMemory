@@ -38,8 +38,10 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   claimed as the uniquely proven cause of every downstream failure. The
   evidence and attribution are archived at
   `reports/release/v0.7/blocked-68d5d7f1-openrouter-tls/`. Schema 4 will not be
-  rerun. No full 1540-question claim may run until a new pre-registered
-  protection revision passes.
+  rerun. Schema 5 is now pre-registered to add a hash-only transport-attempt
+  ledger and fail-closed proxy transport handling with zero new retries; it has
+  been implemented and independently reviewed but has not been executed. No
+  full 1540-question claim may run until schema 5 passes.
   See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as

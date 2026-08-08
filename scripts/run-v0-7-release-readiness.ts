@@ -19,9 +19,13 @@ import {
 import {
   fingerprintProviderRequestIdentity,
   fingerprintProviderRequestSequence,
+  fingerprintProviderTransportAttemptLedger,
   parseProviderResponseTape,
 } from "./provider-response-tape";
-import type { ProviderTapeRequestIdentity } from "./provider-response-tape";
+import type {
+  ProviderTapeRequestIdentity,
+  ProviderTapeTransportAttempt,
+} from "./provider-response-tape";
 import {
   renderV073FullClaimCommand,
   V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
@@ -44,6 +48,7 @@ import {
   routeV073CommandChainThroughTape,
   V073_ASSISTED_EXTRACTION_POLICY,
   V073_PROVIDER_STAGE_ORDER,
+  V073_PROVIDER_TRANSPORT_POLICY,
 } from "./run-v0-7-3-replacement-protection-gate";
 import { resolveRepoRootFromScriptUrl } from "./script-paths";
 import { evaluateV073ReplacementProtection } from "./v0-7-3-replacement-protection";
@@ -75,6 +80,8 @@ const V073_LOCOMO_SOURCE_ARTIFACT_PATHS = {
 const V072_BASELINE_COMMIT = "456edd106f29118b3455bf21c43d7b3107b48213";
 const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
 const COMMIT_PATTERN = /^[0-9a-f]{40}$/u;
+const EMPTY_TRANSPORT_LEDGER_SHA256 =
+  "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945";
 const REQUIRED_PACKED_FILES = [
   "dist/index.js",
   "dist/index.d.ts",
@@ -1530,6 +1537,14 @@ function isProviderReplaySession(value: unknown, mode: "prefetch" | "replay"): b
     value.sequenceMismatches < 0 ||
     typeof value.tapeSha256 !== "string" ||
     !SHA256_PATTERN.test(value.tapeSha256) ||
+    typeof value.transportAttemptLedgerSha256 !== "string" ||
+    !SHA256_PATTERN.test(value.transportAttemptLedgerSha256) ||
+    typeof value.transportAttempts !== "number" ||
+    !Number.isSafeInteger(value.transportAttempts) ||
+    value.transportAttempts < 0 ||
+    typeof value.transportErrors !== "number" ||
+    !Number.isSafeInteger(value.transportErrors) ||
+    value.transportErrors < 0 ||
     !isRecord(value.targetCounts)
   ) {
     return false;
@@ -1552,12 +1567,19 @@ function isProviderReplaySession(value: unknown, mode: "prefetch" | "replay"): b
     validCensus &&
     value.non2xxResponses === 0 &&
     (mode === "prefetch"
-      ? value.liveRequests === value.misses && value.sequenceMismatches === 0
+      ? value.liveRequests === value.misses &&
+        value.sequenceMismatches === 0 &&
+        value.transportAttempts === value.liveRequests &&
+        value.transportErrors === 0
       : value.hits === value.requests &&
         value.misses === 0 &&
         value.liveRequests === 0 &&
         value.coalesced === 0 &&
-        value.sequenceMismatches === 0)
+        value.sequenceMismatches === 0 &&
+        value.transportAttempts === 0 &&
+        value.transportErrors === 0 &&
+        value.transportAttemptLedgerSha256 ===
+          EMPTY_TRANSPORT_LEDGER_SHA256)
   );
 }
 
@@ -1573,8 +1595,8 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
     const hardGate = input.artifact.hardGate;
     const providerReplay = input.artifact.providerReplay;
     const liveDiagnostic = input.artifact.liveDiagnostic;
-    if (input.artifact.schemaVersion !== 4) {
-      issues.push("schemaVersion must be 4");
+    if (input.artifact.schemaVersion !== 5) {
+      issues.push("schemaVersion must be 5");
     }
     if (
       input.artifact.generatedBy !==
@@ -1864,7 +1886,7 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd" ||
       manifest.benchmark.sha256 !==
         "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28" ||
-      manifest.schemaVersion !== 4 ||
+      manifest.schemaVersion !== 5 ||
       manifest.generatedBy !==
         "scripts/run-v0-7-3-replacement-protection-gate.ts" ||
       !sameJson(manifest.providers, expectedProviders) ||
@@ -1890,6 +1912,13 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest" ||
       protocol.tapeRequestIdentity !==
         "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)" ||
+      protocol.transportAttemptLedger !== "hash-only-session-receipt" ||
+      protocol.transportErrorResponseStatus !==
+        V073_PROVIDER_TRANSPORT_POLICY.errorResponseStatus ||
+      protocol.transportErrors !==
+        V073_PROVIDER_TRANSPORT_POLICY.transportErrors ||
+      protocol.transportProxyRetries !==
+        V073_PROVIDER_TRANSPORT_POLICY.proxyRetries ||
       manifest.baseline.commit !== protocolInput.baselineCommit ||
       manifest.candidate.commit !== protocolInput.candidateCommit ||
       manifest.baseline.branch !== null ||
@@ -2073,6 +2102,9 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
       sequenceMismatches: value.sequenceMismatches,
       targetCounts: value.targetCounts,
       tapeSha256: value.tapeSha256,
+      transportAttemptLedgerSha256: value.transportAttemptLedgerSha256,
+      transportAttempts: value.transportAttempts,
+      transportErrors: value.transportErrors,
     });
     const observedSequences: ProviderTapeRequestIdentity[][] = [];
     for (const [raw, expected] of [
@@ -2083,15 +2115,42 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
     ] as const) {
       const session = receiptSession(raw);
       const sequence = providerRequestSequence(session.requestSequence);
+      const transportLedger = Array.isArray(session.transportAttemptLedger)
+        ? session.transportAttemptLedger as ProviderTapeTransportAttempt[]
+        : null;
+      let transportLedgerSha256: string | null = null;
+      if (transportLedger !== null) {
+        try {
+          transportLedgerSha256 = fingerprintProviderTransportAttemptLedger(
+            transportLedger,
+          );
+        } catch {
+          transportLedgerSha256 = null;
+        }
+      }
       if (
         sequence === null ||
         sequence.length !== session.requests ||
         !Array.isArray(session.sequenceMismatchDetails) ||
         session.sequenceMismatchDetails.length !== session.sequenceMismatches ||
         fingerprintProviderRequestSequence(sequence) !==
-          session.requestSequenceSha256
+          session.requestSequenceSha256 ||
+        transportLedger === null ||
+        transportLedger.length !== session.transportAttempts ||
+        transportLedger.filter((entry) => entry.outcome === "error").length !==
+          session.transportErrors ||
+        transportLedgerSha256 !== session.transportAttemptLedgerSha256 ||
+        new Set(transportLedger.map((entry) => entry.requestIndex)).size !==
+          transportLedger.length ||
+        transportLedger.some((entry) =>
+          entry.requestIndex >= sequence.length ||
+          entry.fingerprint !== sequence[entry.requestIndex]!.fingerprint ||
+          entry.targetId !== sequence[entry.requestIndex]!.targetId ||
+          entry.outcome === "response" &&
+            (entry.responseStatus < 200 || entry.responseStatus > 299)
+        )
       ) {
-        throw new Error("provider replay receipt input sequence is invalid");
+        throw new Error("provider replay receipt input or transport ledger is invalid");
       }
       observedSequences.push(sequence);
       if (

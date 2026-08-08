@@ -6,6 +6,7 @@ import {
   createProviderResponseTapeProxy,
   fingerprintProviderRequest,
   fingerprintProviderRequestSequence,
+  fingerprintProviderTransportAttemptLedger,
   parseProviderResponseTape,
   serializeProviderResponseTape,
 } from "../../scripts/provider-response-tape";
@@ -311,6 +312,153 @@ describe("provider response tape", () => {
     }
   });
 
+  it("records thrown upstream transport errors without proxy retry or raw error text", async () => {
+    const secretMarker = "transport-error-secret-marker";
+    let upstreamAttempts = 0;
+    const proxy = createProviderResponseTapeProxy({
+      targets: { embedding: "https://embedding.example/v1" },
+      upstreamFetch: async () => {
+        upstreamAttempts += 1;
+        if (upstreamAttempts === 1) {
+          throw Object.assign(
+            new TypeError(`unknown certificate verification error ${secretMarker}`),
+            { cause: { code: "UNKNOWN_CERTIFICATE_VERIFICATION_ERROR" } },
+          );
+        }
+        return Response.json({ data: [{ embedding: [0.1, 0.2] }] });
+      },
+    });
+
+    try {
+      proxy.beginSession({ liveOnMiss: true, mode: "prefetch", name: "record" });
+      const response = await fetch(`${proxy.baseUrl("embedding")}/embeddings`, {
+        body: '{"input":["x"],"model":"e"}',
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
+      expect(response.status).toBe(502);
+      expect(await response.json()).toEqual({
+        error: {
+          code: "provider_transport_error",
+          message: "upstream provider transport failed",
+          type: "provider_transport_error",
+        },
+      });
+      expect(upstreamAttempts).toBe(1);
+
+      const recovered = await fetch(
+        `${proxy.baseUrl("embedding")}/embeddings`,
+        {
+          body: '{"input":["x"],"model":"e"}',
+          headers: { "content-type": "application/json" },
+          method: "POST",
+        },
+      );
+      expect(recovered.status).toBe(200);
+      expect(upstreamAttempts).toBe(2);
+
+      const discovery = proxy.endSession();
+      expect(discovery.requests).toBe(2);
+      expect(discovery.transportAttempts).toBe(2);
+      expect(discovery.transportErrors).toBe(1);
+      expect(discovery.transportAttemptLedger).toEqual([
+        expect.objectContaining({
+          errorCategory: "certificate",
+          errorCode: "UNKNOWN_CERTIFICATE_VERIFICATION_ERROR",
+          errorName: "TypeError",
+          outcome: "error",
+          requestIndex: 0,
+          targetId: "embedding",
+        }),
+        expect.objectContaining({
+          outcome: "response",
+          requestIndex: 1,
+          responseStatus: 200,
+          targetId: "embedding",
+        }),
+      ]);
+      expect(discovery.transportAttemptLedgerSha256).toBe(
+        fingerprintProviderTransportAttemptLedger(
+          discovery.transportAttemptLedger,
+        ),
+      );
+      expect(JSON.stringify(discovery.transportAttemptLedger)).not.toContain(
+        secretMarker,
+      );
+    } finally {
+      proxy.stop();
+    }
+  });
+
+  it("treats response-body failures as transport errors and allowlists error identity", async () => {
+    const secretCode = "TOKENABC123";
+    const secretMessage = "response-body-secret-marker";
+    const secretName = "TransportSecretName";
+    let upstreamAttempts = 0;
+    const proxy = createProviderResponseTapeProxy({
+      targets: { eval: "https://eval.example/v1" },
+      upstreamFetch: async () => {
+        upstreamAttempts += 1;
+        if (upstreamAttempts === 1) {
+          const failure = Object.assign(
+            new TypeError(`socket closed ${secretMessage}`),
+            { cause: { code: secretCode } },
+          );
+          failure.name = secretName;
+          const response = new Response("unreadable", { status: 200 });
+          Object.defineProperty(response, "arrayBuffer", {
+            value: async () => {
+              throw failure;
+            },
+          });
+          return response;
+        }
+        return Response.json({ choices: [] });
+      },
+    });
+
+    try {
+      proxy.beginSession({ liveOnMiss: true, mode: "prefetch", name: "record" });
+      const first = await fetch(`${proxy.baseUrl("eval")}/chat/completions`, {
+        body: '{"model":"m"}',
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
+      expect(first.status).toBe(502);
+
+      const second = await fetch(`${proxy.baseUrl("eval")}/chat/completions`, {
+        body: '{"model":"m"}',
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
+      expect(second.status).toBe(200);
+      expect(upstreamAttempts).toBe(2);
+
+      const discovery = proxy.endSession();
+      expect(discovery.transportErrors).toBe(1);
+      expect(discovery.transportAttemptLedger).toEqual([
+        expect.objectContaining({
+          errorCategory: "connection",
+          errorCode: null,
+          errorName: "Error",
+          outcome: "error",
+          requestIndex: 0,
+        }),
+        expect.objectContaining({
+          outcome: "response",
+          requestIndex: 1,
+          responseStatus: 200,
+        }),
+      ]);
+      const ledgerRaw = JSON.stringify(discovery.transportAttemptLedger);
+      expect(ledgerRaw).not.toContain(secretCode);
+      expect(ledgerRaw).not.toContain(secretMessage);
+      expect(ledgerRaw).not.toContain(secretName);
+    } finally {
+      proxy.stop();
+    }
+  });
+
   it("does not close a session while a live request can cross its boundary", async () => {
     let releaseUpstream: (() => void) | undefined;
     let markStarted: (() => void) | undefined;
@@ -393,6 +541,21 @@ describe("provider response tape", () => {
       }],
       schemaVersion: 2,
     }))).toThrow("provider response tape response fingerprint is invalid");
+
+    const invalidLedger = [{
+      errorCategory: "transport",
+      errorCode: null,
+      errorMessageSha256: "a".repeat(64),
+      errorName: "Error",
+      fingerprint,
+      outcome: "unknown",
+      requestIndex: 0,
+      targetId: "answer",
+    }] as unknown as Parameters<
+      typeof fingerprintProviderTransportAttemptLedger
+    >[0];
+    expect(() => fingerprintProviderTransportAttemptLedger(invalidLedger))
+      .toThrow("provider transport attempt ledger is invalid");
   });
 
   it("does not freeze transient non-2xx responses", async () => {
@@ -423,6 +586,8 @@ describe("provider response tape", () => {
         liveRequests: 2,
         misses: 2,
         non2xxResponses: 2,
+        transportAttempts: 2,
+        transportErrors: 0,
       });
     } finally {
       proxy.stop();

@@ -8,8 +8,10 @@ import { describe, expect, it } from "bun:test";
 
 import {
   createProviderResponseTapeProxy,
+  fingerprintProviderTransportAttemptLedger,
   parseProviderResponseTape,
 } from "../../scripts/provider-response-tape";
+import type { ProviderTapeTransportAttempt } from "../../scripts/provider-response-tape";
 import {
   assertV073ProviderStageCanContinue,
   assertV073SeedStageReport,
@@ -23,6 +25,7 @@ import {
   runV073ProviderStage,
   V073_ASSISTED_EXTRACTION_POLICY,
   V073_PROVIDER_STAGE_ORDER,
+  V073_PROVIDER_TRANSPORT_POLICY,
 } from "../../scripts/run-v0-7-3-replacement-protection-gate";
 import { buildV073PairedCommandChain } from "../../scripts/run-v0-7-3-lifecycle-protection-gate";
 import type { V073PairedCommandChain } from "../../scripts/run-v0-7-3-lifecycle-protection-gate";
@@ -66,6 +69,10 @@ describe("v0.7.3 replacement protection gate runner", () => {
       sequenceMismatches: 0,
       tapeSha256: "b".repeat(64),
       targetCounts: { eval: 11 },
+      transportAttemptLedger: [],
+      transportAttemptLedgerSha256: "d".repeat(64),
+      transportAttempts: 0,
+      transportErrors: 0,
     })).toThrow("formal provider replay observed 1 tape miss");
   });
 
@@ -86,7 +93,35 @@ describe("v0.7.3 replacement protection gate runner", () => {
       sequenceMismatches: 0,
       tapeSha256: "b".repeat(64),
       targetCounts: { eval: 1 },
+      transportAttemptLedger: [],
+      transportAttemptLedgerSha256: "d".repeat(64),
+      transportAttempts: 1,
+      transportErrors: 0,
     })).toThrow("provider discovery observed 1 non-2xx response(s)");
+  });
+
+  it("invalidates discovery after any upstream transport error", () => {
+    expect(() => assertV073ProviderStageCanContinue("prefetch", {
+      coalesced: 0,
+      hits: 0,
+      liveRequests: 1,
+      misses: 1,
+      mode: "prefetch",
+      name: "baseline-discovery",
+      non2xxResponses: 0,
+      requestFingerprintMultisetSha256: "a".repeat(64),
+      requestSequence: [],
+      requestSequenceSha256: "c".repeat(64),
+      requests: 1,
+      sequenceMismatchDetails: [],
+      sequenceMismatches: 0,
+      tapeSha256: "b".repeat(64),
+      targetCounts: { embedding: 1 },
+      transportAttemptLedger: [],
+      transportAttemptLedgerSha256: "d".repeat(64),
+      transportAttempts: 1,
+      transportErrors: 1,
+    })).toThrow("provider discovery observed 1 transport error(s)");
   });
 
   it("rejects seed execution failures before downstream provider stages", () => {
@@ -163,6 +198,14 @@ describe("v0.7.3 replacement protection gate runner", () => {
     expect(V073_ASSISTED_EXTRACTION_POLICY).toEqual({
       maxAttempts: 4,
       requestTimeoutMs: 120_000,
+    });
+  });
+
+  it("binds fail-closed proxy transport handling without a new retry owner", () => {
+    expect(V073_PROVIDER_TRANSPORT_POLICY).toEqual({
+      errorResponseStatus: 502,
+      proxyRetries: 0,
+      transportErrors: "invalidate-discovery",
     });
   });
 
@@ -331,7 +374,9 @@ describe("v0.7.3 replacement protection gate runner", () => {
           expect(response.status).toBe(409);
           return { exitCode: 1, stderr: "", stdout: "" };
         },
-      })).rejects.toThrow("baseline-formal seedSmoke exited with 1");
+      })).rejects.toThrow(
+        "baseline-formal formal provider replay observed 1 input sequence mismatch(es)",
+      );
 
       const receiptRaw = await readFile(arm.executionReceiptPath, "utf8");
       const receipt = JSON.parse(receiptRaw) as {
@@ -378,6 +423,7 @@ describe("v0.7.3 replacement protection gate runner", () => {
     const malformedResponse = '{"choices":[{"message":{"content":"[truncated"}}]}';
     const requestMarker = "private-request-marker";
     const credentialMarker = "private-credential-marker";
+    const transportErrorMarker = "private-transport-error-marker";
     let releaseSlowResponse!: () => void;
     let markSlowRequestStarted!: () => void;
     const slowRequestStarted = new Promise<void>((resolve) => {
@@ -410,7 +456,25 @@ describe("v0.7.3 replacement protection gate runner", () => {
         (target) => [target, `http://127.0.0.1:${upstream.port}/v1`],
       ),
     );
-    const proxy = createProviderResponseTapeProxy({ targets });
+    const proxy = createProviderResponseTapeProxy({
+      targets,
+      upstreamFetch: async (request, init) => {
+        const url = new URL(
+          typeof request === "string"
+            ? request
+            : request instanceof URL
+              ? request
+              : request.url,
+        );
+        if (url.searchParams.has("transport")) {
+          throw Object.assign(
+            new TypeError(`unknown certificate verification error ${transportErrorMarker}`),
+            { cause: { code: "UNKNOWN_CERTIFICATE_VERIFICATION_ERROR" } },
+          );
+        }
+        return fetch(request, init);
+      },
+    });
     try {
       const claimRecipeRaw = readFileSync("benchmark-claims/locomo.json", "utf8");
       const { arm } = buildV073StageArm({
@@ -490,6 +554,11 @@ describe("v0.7.3 replacement protection gate runner", () => {
             { method: "POST" },
           ).catch(() => undefined);
           await slowRequestStarted;
+          const transportFailure = await fetch(
+            `${environment!.GOODMEMORY_EVAL_BASE_URL}/chat/completions?transport=1`,
+            { method: "POST" },
+          );
+          expect(transportFailure.status).toBe(502);
           setTimeout(releaseSlowResponse, 20);
           await mkdir(join(arm.seedReportPath, ".."), { recursive: true });
           await writeFile(arm.seedReportPath, JSON.stringify({
@@ -499,7 +568,9 @@ describe("v0.7.3 replacement protection gate runner", () => {
           }));
           return { exitCode: 0, stderr: "", stdout: "" };
         },
-      })).rejects.toThrow("baseline-discovery provider seed report is incomplete");
+      })).rejects.toThrow(
+        "baseline-discovery provider discovery observed 1 transport error(s)",
+      );
 
       const failureTapePath = join(
         arm.executionReceiptPath,
@@ -523,6 +594,12 @@ describe("v0.7.3 replacement protection gate runner", () => {
       const receipt = JSON.parse(receiptRaw) as {
         failureTape: { bytes: number; path: string; sha256: string };
         failureTapeExcludedCredentialEntries: number;
+        session: {
+          transportAttemptLedger: ProviderTapeTransportAttempt[];
+          transportAttemptLedgerSha256: string;
+          transportAttempts: number;
+          transportErrors: number;
+        };
       };
       expect(receipt.failureTape).toEqual({
         bytes: Buffer.byteLength(failureTapeRaw, "utf8"),
@@ -531,8 +608,26 @@ describe("v0.7.3 replacement protection gate runner", () => {
       });
       expect(receipt.failureTapeExcludedCredentialEntries).toBe(1);
       expect(receipt.failureTape.path.endsWith("/failure-tape.json")).toBe(true);
+      expect(receipt.session.transportAttempts).toBe(4);
+      expect(receipt.session.transportErrors).toBe(1);
+      expect(receipt.session.transportAttemptLedger.map(
+        ({ requestIndex }) => requestIndex,
+      )).toEqual([0, 1, 2, 3]);
+      expect(receipt.session.transportAttemptLedger).toContainEqual(
+        expect.objectContaining({
+          errorCategory: "certificate",
+          errorCode: "UNKNOWN_CERTIFICATE_VERIFICATION_ERROR",
+          outcome: "error",
+        }),
+      );
+      expect(receipt.session.transportAttemptLedgerSha256).toBe(
+        fingerprintProviderTransportAttemptLedger(
+          receipt.session.transportAttemptLedger,
+        ),
+      );
       expect(receiptRaw).not.toContain(requestMarker);
       expect(receiptRaw).not.toContain(credentialMarker);
+      expect(receiptRaw).not.toContain(transportErrorMarker);
     } finally {
       proxy.stop();
       upstream.stop(true);

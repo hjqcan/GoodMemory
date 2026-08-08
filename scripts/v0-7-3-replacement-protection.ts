@@ -2,6 +2,8 @@ const BASELINE_COMMIT = "456edd106f29118b3455bf21c43d7b3107b48213";
 const MAX_REGRESSION = 0.01;
 const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
 const COMMIT_PATTERN = /^[0-9a-f]{40}$/u;
+const EMPTY_TRANSPORT_LEDGER_SHA256 =
+  "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945";
 
 export interface V073ProtectionSmokeCase {
   caseId: string;
@@ -29,6 +31,9 @@ export interface V073ProviderReplaySession {
   sequenceMismatches: number;
   targetCounts: Record<string, number>;
   tapeSha256: string;
+  transportAttemptLedgerSha256: string;
+  transportAttempts: number;
+  transportErrors: number;
 }
 
 export interface V073ReplacementProtectionInput {
@@ -119,7 +124,7 @@ export interface V073ReplacementProtectionReport {
   providerReplay: V073ReplacementProtectionInput["providerReplay"];
   releaseAllowed: boolean;
   researchRecordRequired: boolean;
-  schemaVersion: 4;
+  schemaVersion: 5;
 }
 
 function logAdd(left: number, right: number): number {
@@ -286,6 +291,8 @@ function assertReplaySession(
     session.non2xxResponses,
     session.requests,
     session.sequenceMismatches,
+    session.transportAttempts,
+    session.transportErrors,
   ]) {
     if (!Number.isSafeInteger(value) || value < 0) {
       throw new Error("provider replay counts must be non-negative integers");
@@ -299,6 +306,9 @@ function assertReplaySession(
   }
   if (!SHA256_PATTERN.test(session.requestSequenceSha256)) {
     throw new Error("provider replay request sequence must be SHA-256");
+  }
+  if (!SHA256_PATTERN.test(session.transportAttemptLedgerSha256)) {
+    throw new Error("provider transport ledger fingerprint must be SHA-256");
   }
   if (
     session.requests <= 0 ||
@@ -322,6 +332,23 @@ function assertReplaySession(
   }
   if (expectedMode === "prefetch" && session.sequenceMismatches !== 0) {
     throw new Error("provider discovery cannot have input sequence mismatches");
+  }
+  if (
+    expectedMode === "prefetch" &&
+    (session.transportAttempts !== session.liveRequests ||
+      session.transportErrors !== 0)
+  ) {
+    throw new Error(
+      "provider discovery must have one successful transport attempt per live request",
+    );
+  }
+  if (
+    expectedMode === "replay" &&
+    (session.transportAttempts !== 0 ||
+      session.transportErrors !== 0 ||
+      session.transportAttemptLedgerSha256 !== EMPTY_TRANSPORT_LEDGER_SHA256)
+  ) {
+    throw new Error("formal replay must make zero upstream transport attempts");
   }
 }
 
@@ -486,6 +513,6 @@ export function evaluateV073ReplacementProtection(
     providerReplay: input.providerReplay,
     releaseAllowed: blockers.length === 0,
     researchRecordRequired: deterministicMoved || providerMoved,
-    schemaVersion: 4,
+    schemaVersion: 5,
   };
 }

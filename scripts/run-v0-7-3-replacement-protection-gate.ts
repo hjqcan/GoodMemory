@@ -14,6 +14,7 @@ import { resolveCliFlagValueStrict } from "./cli-options";
 import {
   createProviderResponseTapeProxy,
   parseProviderResponseTape,
+  PROVIDER_TAPE_TRANSPORT_ERROR_STATUS,
   serializeProviderResponseTape,
 } from "./provider-response-tape";
 import type {
@@ -91,6 +92,12 @@ export const V073_PROVIDER_STAGE_ORDER = [
 export const V073_ASSISTED_EXTRACTION_POLICY = {
   maxAttempts: DEFAULT_AISDK_RETRY_LIMIT,
   requestTimeoutMs: LOCOMO_LIVE_REQUEST_TIMEOUT_MS,
+} as const;
+
+export const V073_PROVIDER_TRANSPORT_POLICY = {
+  errorResponseStatus: PROVIDER_TAPE_TRANSPORT_ERROR_STATUS,
+  proxyRetries: 0,
+  transportErrors: "invalidate-discovery",
 } as const;
 
 interface V073ReplacementGateCliOptions {
@@ -693,6 +700,11 @@ export function assertV073ProviderStageCanContinue(
       `provider discovery observed ${session.non2xxResponses} non-2xx response(s)`,
     );
   }
+  if (mode === "prefetch" && session.transportErrors !== 0) {
+    throw new Error(
+      `provider discovery observed ${session.transportErrors} transport error(s)`,
+    );
+  }
   if (mode === "replay" && session.sequenceMismatches !== 0) {
     throw new Error(
       `formal provider replay observed ${session.sequenceMismatches} input sequence mismatch(es)`,
@@ -941,6 +953,11 @@ export async function runV073ProviderStage(input: {
   } finally {
     await input.proxy.waitForIdle();
     session = input.proxy.endSession();
+  }
+  try {
+    assertV073ProviderStageCanContinue(input.mode, session);
+  } catch (error) {
+    validationFailure = error instanceof Error ? error.message : String(error);
   }
   const stageRoot = dirname(input.arm.executionReceiptPath);
   const stdout = processes
@@ -1288,6 +1305,9 @@ function replaySession(stats: ProviderTapeSessionStats): V073ProviderReplaySessi
     sequenceMismatches: stats.sequenceMismatches,
     targetCounts: stats.targetCounts,
     tapeSha256: stats.tapeSha256,
+    transportAttemptLedgerSha256: stats.transportAttemptLedgerSha256,
+    transportAttempts: stats.transportAttempts,
+    transportErrors: stats.transportErrors,
   };
 }
 
@@ -1387,9 +1407,14 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
         "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest",
       tapeRequestIdentity:
         "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)",
+      transportAttemptLedger: "hash-only-session-receipt",
+      transportErrorResponseStatus:
+        V073_PROVIDER_TRANSPORT_POLICY.errorResponseStatus,
+      transportErrors: V073_PROVIDER_TRANSPORT_POLICY.transportErrors,
+      transportProxyRetries: V073_PROVIDER_TRANSPORT_POLICY.proxyRetries,
     },
     providers,
-    schemaVersion: 4,
+    schemaVersion: 5,
   });
 
   const [providerFreeC1Baseline, providerFreeC1Candidate] = await Promise.all([

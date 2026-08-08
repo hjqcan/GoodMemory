@@ -1,6 +1,20 @@
 import { createHash } from "node:crypto";
 
 export type ProviderTapeMode = "prefetch" | "replay";
+export const PROVIDER_TAPE_TRANSPORT_ERROR_STATUS = 502;
+const SAFE_TRANSPORT_ERROR_CODES = new Set([
+  "ABORT_ERR",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "UNKNOWN_CERTIFICATE_VERIFICATION_ERROR",
+]);
+const SAFE_TRANSPORT_ERROR_NAMES = new Set([
+  "AbortError",
+  "Error",
+  "TimeoutError",
+  "TypeError",
+]);
 
 export interface ProviderResponseTapeEntry {
   fingerprint: string;
@@ -57,7 +71,31 @@ export interface ProviderTapeSessionStats {
   sequenceMismatches: number;
   targetCounts: Record<string, number>;
   tapeSha256: string;
+  transportAttemptLedger: ProviderTapeTransportAttempt[];
+  transportAttemptLedgerSha256: string;
+  transportAttempts: number;
+  transportErrors: number;
 }
+
+interface ProviderTapeTransportAttemptBase {
+  fingerprint: string;
+  requestIndex: number;
+  targetId: string;
+}
+
+export type ProviderTapeTransportAttempt = ProviderTapeTransportAttemptBase & (
+  | {
+    errorCategory: "aborted" | "certificate" | "connection" | "timeout" | "transport";
+    errorCode: string | null;
+    errorMessageSha256: string;
+    errorName: string;
+    outcome: "error";
+  }
+  | {
+    outcome: "response";
+    responseStatus: number;
+  }
+);
 
 interface ProviderTapeSessionConfig {
   expectedRequestSequence?: readonly ProviderTapeRequestIdentity[];
@@ -78,6 +116,8 @@ interface ActiveProviderTapeSession extends ProviderTapeSessionConfig {
   sequenceMismatchDetails: ProviderTapeSequenceMismatch[];
   sequenceMismatches: number;
   targetCounts: Map<string, number>;
+  transportAttemptLedger: ProviderTapeTransportAttempt[];
+  transportErrors: number;
 }
 
 export interface ProviderResponseTapeProxy {
@@ -180,6 +220,52 @@ export function fingerprintProviderRequestSequence(
     throw new Error("provider input sequence contains an invalid request identity");
   }
   return sha256(JSON.stringify(sequence));
+}
+
+export function fingerprintProviderTransportAttemptLedger(
+  ledger: readonly ProviderTapeTransportAttempt[],
+): string {
+  for (const entry of ledger) {
+    const keys = Object.keys(entry).sort();
+    const expectedKeys = entry.outcome === "response"
+      ? ["fingerprint", "outcome", "requestIndex", "responseStatus", "targetId"]
+      : [
+        "errorCategory",
+        "errorCode",
+        "errorMessageSha256",
+        "errorName",
+        "fingerprint",
+        "outcome",
+        "requestIndex",
+        "targetId",
+      ];
+    if (
+      JSON.stringify(keys) !== JSON.stringify(expectedKeys) ||
+      (entry.outcome !== "error" && entry.outcome !== "response") ||
+      !/^[0-9a-f]{64}$/u.test(entry.fingerprint) ||
+      !Number.isSafeInteger(entry.requestIndex) ||
+      entry.requestIndex < 0 ||
+      entry.targetId.length === 0 ||
+      (entry.outcome === "response"
+        ? !Number.isSafeInteger(entry.responseStatus) ||
+          entry.responseStatus < 100 ||
+          entry.responseStatus > 599
+        : !/^[0-9a-f]{64}$/u.test(entry.errorMessageSha256) ||
+          ![
+            "aborted",
+            "certificate",
+            "connection",
+            "timeout",
+            "transport",
+          ].includes(entry.errorCategory) ||
+          (entry.errorCode !== null &&
+            !SAFE_TRANSPORT_ERROR_CODES.has(entry.errorCode)) ||
+          !SAFE_TRANSPORT_ERROR_NAMES.has(entry.errorName))
+    ) {
+      throw new Error("provider transport attempt ledger is invalid");
+    }
+  }
+  return sha256(JSON.stringify(ledger));
 }
 
 export function fingerprintProviderRequest(input: {
@@ -297,10 +383,79 @@ function forwardedHeaders(request: Request): Headers {
   return headers;
 }
 
+function rawTransportErrorCode(error: unknown): string | null {
+  const values = [
+    error instanceof Error ? (error as Error & { code?: unknown }).code : null,
+    error instanceof Error && error.cause !== null &&
+        typeof error.cause === "object" && "code" in error.cause
+      ? error.cause.code
+      : null,
+  ];
+  return values.find((value): value is string => typeof value === "string") ?? null;
+}
+
+function transportErrorCode(error: unknown): string | null {
+  const code = rawTransportErrorCode(error);
+  return code !== null && SAFE_TRANSPORT_ERROR_CODES.has(code) ? code : null;
+}
+
+function transportErrorAttempt(input: {
+  error: unknown;
+  fingerprint: string;
+  requestIndex: number;
+  targetId: string;
+}): ProviderTapeTransportAttempt {
+  const message = input.error instanceof Error
+    ? input.error.message
+    : String(input.error);
+  const normalized = `${rawTransportErrorCode(input.error) ?? ""} ${message}`
+    .toLowerCase();
+  const errorCategory = normalized.includes("certificate") ||
+      normalized.includes("tls_cert")
+    ? "certificate"
+    : normalized.includes("abort")
+      ? "aborted"
+      : normalized.includes("timeout") || normalized.includes("timed out")
+        ? "timeout"
+        : normalized.includes("connection") ||
+            normalized.includes("econnreset") ||
+            normalized.includes("socket")
+          ? "connection"
+          : "transport";
+  return {
+    errorCategory,
+    errorCode: transportErrorCode(input.error),
+    errorMessageSha256: sha256(message),
+    errorName: input.error instanceof Error &&
+        SAFE_TRANSPORT_ERROR_NAMES.has(input.error.name)
+      ? input.error.name
+      : "Error",
+    fingerprint: input.fingerprint,
+    outcome: "error",
+    requestIndex: input.requestIndex,
+    targetId: input.targetId,
+  };
+}
+
+function transportFailureResponse(): Response {
+  return Response.json({
+    error: {
+      code: "provider_transport_error",
+      message: "upstream provider transport failed",
+      type: "provider_transport_error",
+    },
+  }, { status: PROVIDER_TAPE_TRANSPORT_ERROR_STATUS });
+}
+
 export function createProviderResponseTapeProxy(input: {
   initialTape?: ProviderResponseTape;
   targets: Readonly<Record<string, string>>;
+  upstreamFetch?: (
+    request: RequestInfo | URL,
+    init?: RequestInit,
+  ) => Promise<Response>;
 }): ProviderResponseTapeProxy {
+  const upstreamFetch = input.upstreamFetch ?? globalThis.fetch.bind(globalThis);
   const targets = new Map(
     Object.entries(input.targets).map(([targetId, upstreamBaseUrl]) => [
       targetId,
@@ -399,22 +554,47 @@ export function createProviderResponseTapeProxy(input: {
       const pending = inFlight.get(fingerprint);
       if (pending !== undefined) {
         session.coalesced += 1;
-        return responseFromTape(await pending);
+        try {
+          return responseFromTape(await pending);
+        } catch {
+          return transportFailureResponse();
+        }
       }
 
       session.misses += 1;
       session.liveRequests += 1;
+      const requestIndex = session.requestSequence.length - 1;
       const liveRequest = (async (): Promise<ProviderResponseTapeEntry> => {
-        const response = await fetch(`${upstreamBaseUrl}${path}`, {
-          body: request.method === "GET" || request.method === "HEAD"
-            ? undefined
-            : bodyBytes,
-          headers: forwardedHeaders(request),
-          method: request.method,
-          redirect: "manual",
-          signal: request.signal,
-        });
-        const responseBody = new Uint8Array(await response.arrayBuffer());
+        let response: Response;
+        let responseBody: Uint8Array;
+        try {
+          response = await upstreamFetch(`${upstreamBaseUrl}${path}`, {
+            body: request.method === "GET" || request.method === "HEAD"
+              ? undefined
+              : bodyBytes,
+            headers: forwardedHeaders(request),
+            method: request.method,
+            redirect: "manual",
+            signal: request.signal,
+          });
+          responseBody = new Uint8Array(await response.arrayBuffer());
+          session.transportAttemptLedger.push({
+            fingerprint,
+            outcome: "response",
+            requestIndex,
+            responseStatus: response.status,
+            targetId,
+          });
+        } catch (error) {
+          session.transportErrors += 1;
+          session.transportAttemptLedger.push(transportErrorAttempt({
+            error,
+            fingerprint,
+            requestIndex,
+            targetId,
+          }));
+          throw error;
+        }
         if (!response.ok) {
           session.non2xxResponses += 1;
         }
@@ -444,6 +624,8 @@ export function createProviderResponseTapeProxy(input: {
       inFlight.set(fingerprint, liveRequest);
       try {
         return responseFromTape(await liveRequest);
+      } catch {
+        return transportFailureResponse();
       } finally {
         inFlight.delete(fingerprint);
       }
@@ -464,6 +646,9 @@ export function createProviderResponseTapeProxy(input: {
     if (inFlight.size !== 0) {
       throw new Error("provider tape session still has live requests");
     }
+    const transportAttemptLedger = activeSession.transportAttemptLedger
+      .map((entry) => ({ ...entry }))
+      .sort((left, right) => left.requestIndex - right.requestIndex);
     return {
       coalesced: activeSession.coalesced,
       hits: activeSession.hits,
@@ -498,6 +683,12 @@ export function createProviderResponseTapeProxy(input: {
         ),
       ),
       tapeSha256: sha256(serializeProviderResponseTape(snapshot())),
+      transportAttemptLedger,
+      transportAttemptLedgerSha256: fingerprintProviderTransportAttemptLedger(
+        transportAttemptLedger,
+      ),
+      transportAttempts: transportAttemptLedger.length,
+      transportErrors: activeSession.transportErrors,
     };
   };
 
@@ -543,6 +734,8 @@ export function createProviderResponseTapeProxy(input: {
         sequenceMismatchDetails: [],
         sequenceMismatches: 0,
         targetCounts: new Map(),
+        transportAttemptLedger: [],
+        transportErrors: 0,
       };
     },
     endSession() {

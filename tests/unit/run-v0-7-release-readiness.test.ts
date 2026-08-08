@@ -9,6 +9,7 @@ import { describe, expect, it } from "bun:test";
 import {
   fingerprintProviderRequest,
   fingerprintProviderRequestSequence,
+  fingerprintProviderTransportAttemptLedger,
   serializeProviderResponseTape,
 } from "../../scripts/provider-response-tape";
 import {
@@ -1054,6 +1055,10 @@ describe("v0.7 release readiness", () => {
       sequenceMismatches: 0,
       targetCounts: { embedding: 2, eval: 7, judge: 1 },
       tapeSha256,
+      transportAttemptLedgerSha256:
+        "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      transportAttempts: 0,
+      transportErrors: 0,
     };
     const artifact = {
       artifacts: {
@@ -1125,7 +1130,7 @@ describe("v0.7 release readiness", () => {
       },
       releaseAllowed: true,
       researchRecordRequired: false,
-      schemaVersion: 4,
+      schemaVersion: 5,
     };
 
     expect(evaluateV073LifecycleProtectionArtifact({
@@ -1140,7 +1145,7 @@ describe("v0.7 release readiness", () => {
       artifact: { ...artifact, schemaVersion: 3 },
       artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
     })).toEqual(expect.objectContaining({
-      detail: expect.stringContaining("schemaVersion must be 4"),
+      detail: expect.stringContaining("schemaVersion must be 5"),
       status: "fail",
     }));
 
@@ -1216,7 +1221,7 @@ describe("v0.7 release readiness", () => {
     }));
   });
 
-  it("recomputes schema 4 lifecycle evidence from bound deterministic and frozen-replay bytes", async () => {
+  it("recomputes schema 5 lifecycle evidence from bound deterministic and frozen-replay bytes", async () => {
     const repoRoot = await mkdtemp(join(tmpdir(), "goodmemory-v073-replacement-bundle-"));
     const evidencePrefix = "reports/release/v0.7/v0.7.3-lifecycle-evidence";
     const candidateCommit = "a".repeat(40);
@@ -1346,6 +1351,19 @@ describe("v0.7 release readiness", () => {
     const requestSequenceSha256 = fingerprintProviderRequestSequence(
       requestSequence,
     );
+    const transportAttemptLedger = requestSequence.map(
+      ({ fingerprint, targetId }, requestIndex) => ({
+        fingerprint,
+        outcome: "response" as const,
+        requestIndex,
+        responseStatus: 200,
+        targetId,
+      }),
+    );
+    const transportAttemptLedgerSha256 =
+      fingerprintProviderTransportAttemptLedger(transportAttemptLedger);
+    const emptyTransportAttemptLedgerSha256 =
+      fingerprintProviderTransportAttemptLedger([]);
     const replaySession = {
       coalesced: 0,
       hits: 3,
@@ -1359,6 +1377,9 @@ describe("v0.7 release readiness", () => {
       sequenceMismatches: 0,
       targetCounts: { embedding: 1, eval: 1, judge: 1 },
       tapeSha256,
+      transportAttemptLedgerSha256: emptyTransportAttemptLedgerSha256,
+      transportAttempts: 0,
+      transportErrors: 0,
     };
     const discoverySession = {
       coalesced: 0,
@@ -1373,16 +1394,21 @@ describe("v0.7 release readiness", () => {
       sequenceMismatches: 0,
       targetCounts: { embedding: 1, eval: 1, judge: 1 },
       tapeSha256,
+      transportAttemptLedgerSha256,
+      transportAttempts: 3,
+      transportErrors: 0,
     };
     const replayReceiptSession = {
       ...replaySession,
       requestSequence,
       sequenceMismatchDetails: [],
+      transportAttemptLedger: [],
     };
     const discoveryReceiptSession = {
       ...discoverySession,
       requestSequence,
       sequenceMismatchDetails: [],
+      transportAttemptLedger,
     };
     const protocolInput = {
       baselineCommit: "456edd106f29118b3455bf21c43d7b3107b48213",
@@ -1530,9 +1556,13 @@ describe("v0.7 release readiness", () => {
             "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest",
           tapeRequestIdentity:
             "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)",
+          transportAttemptLedger: "hash-only-session-receipt",
+          transportErrorResponseStatus: 502,
+          transportErrors: "invalidate-discovery",
+          transportProxyRetries: 0,
         },
         providers,
-        schemaVersion: 4,
+        schemaVersion: 5,
       };
       const sharedStdout = await writeEvidence("logs/stdout.log", "8 pass\n0 fail\n");
       const sharedStderr = await writeEvidence("logs/stderr.log", "");
@@ -1768,6 +1798,10 @@ describe("v0.7 release readiness", () => {
         { signTestAlpha: 0.1 },
         { tapeInputIdentity: "unordered" },
         { tapeRequestIdentity: "body-only" },
+        { transportAttemptLedger: "raw-error-receipt" },
+        { transportErrorResponseStatus: 500 },
+        { transportErrors: "allow-recovered" },
+        { transportProxyRetries: 1 },
       ]) {
         const driftedManifestRaw = json({
           ...manifestValue,
@@ -1884,7 +1918,7 @@ describe("v0.7 release readiness", () => {
           "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
         repoRoot,
       })).toEqual(expect.objectContaining({
-        detail: expect.stringContaining("input sequence is invalid"),
+        detail: expect.stringContaining("input or transport ledger is invalid"),
         status: "fail",
       }));
       await writeFile(join(repoRoot, candidateFormalReceipt.path), formalReceiptRaw);
@@ -1912,13 +1946,52 @@ describe("v0.7 release readiness", () => {
           "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
         repoRoot,
       })).toEqual(expect.objectContaining({
-        detail: expect.stringContaining("input sequence is invalid"),
+        detail: expect.stringContaining("input or transport ledger is invalid"),
         status: "fail",
       }));
       await writeFile(join(repoRoot, candidateFormalReceipt.path), formalReceiptRaw);
       Object.assign(
         artifact.artifacts.providerReplay.candidateFormalReceipt,
         evidenceIdentity(candidateFormalReceipt.path, formalReceiptRaw),
+      );
+
+      const discoveryReceiptRaw = await readFile(
+        join(repoRoot, candidateDiscoveryReceipt.path),
+        "utf8",
+      );
+      const rawTransportErrorReceipt = JSON.parse(discoveryReceiptRaw) as {
+        session: { transportAttemptLedger: Array<Record<string, unknown>> };
+      };
+      rawTransportErrorReceipt.session.transportAttemptLedger[0]!.rawMessage =
+        "must-not-persist";
+      const rawTransportErrorReceiptRaw = json(rawTransportErrorReceipt);
+      await writeFile(
+        join(repoRoot, candidateDiscoveryReceipt.path),
+        rawTransportErrorReceiptRaw,
+      );
+      Object.assign(
+        artifact.artifacts.providerReplay.candidateDiscoveryReceipt,
+        evidenceIdentity(
+          candidateDiscoveryReceipt.path,
+          rawTransportErrorReceiptRaw,
+        ),
+      );
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath:
+          "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining("transport ledger is invalid"),
+        status: "fail",
+      }));
+      await writeFile(
+        join(repoRoot, candidateDiscoveryReceipt.path),
+        discoveryReceiptRaw,
+      );
+      Object.assign(
+        artifact.artifacts.providerReplay.candidateDiscoveryReceipt,
+        evidenceIdentity(candidateDiscoveryReceipt.path, discoveryReceiptRaw),
       );
 
       await writeFile(join(repoRoot, c1Baseline.path), "{}\n");
