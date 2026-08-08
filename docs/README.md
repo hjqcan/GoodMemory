@@ -64,8 +64,9 @@ bulk-load. Start here, then open only the file that matches the question.
   deterministic hard gate, ordered provider-input and response replay,
   failure-tape plus transport-ledger capture, fail-closed transport handling,
   paired sign-test diagnostic, and full-claim provider-variance boundary;
-  schema-2, schema-3, and the single schema-4 attempt remain blocked, schema 5
-  has not run, and no passing run or release is implied.
+  schema-2 through the single schema-5 attempt remain blocked. Schema 5
+  persisted two recovered transport errors and stopped on an independently
+  incomplete seed report; no passing run or release is implied.
 - `GoodMemory-Preference-Identity-Pre-API-Research.md` - frozen pre-API
   preference atomization/key-stability protocol, completed no-API decision,
   fixture-only conflict census, and synthetic policy comparison; not a

@@ -1,9 +1,8 @@
 # GoodMemory v0.7.3 Replacement Protection Protocol
 
-Status: the single schema-4 attempt is blocked and archived; schema 5 is
-implemented and independently reviewed but has not been executed. There is
-still no passing run or release
-Date: 2026-08-07
+Status: the single schema-5 attempt is blocked and archived; it will not be
+rerun. There is still no passing run or release
+Date: 2026-08-08
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
 ## Why the first gate remains blocked
@@ -168,6 +167,35 @@ coverage are green, an independent review has no unresolved findings, and one
 clean `main` commit is frozen. As before, one failed attempt is archived and is
 not rerun under the same schema.
 
+## First schema-5 execution is blocked
+
+The single clean schema-5 attempt at candidate `a84855f2` passed the
+deterministic boundary: provider-free C1 moved overall evidence recall by
+`+0.858369pt`, C40 moved it by `+0.429185pt`, and scenario replay passed 8/8.
+These results do not substitute for the provider diagnostic.
+
+Baseline discovery then recorded 352 upstream attempts. Two eval attempts
+ended as sanitized `connection` / `AbortError` entries; in each case the
+existing downstream retry repeated the same request fingerprint and received
+HTTP 200. The proxy added no retry. Schema 5 therefore captured exactly the
+recovered transport instability that schema 4 lost, and correctly invalidated
+the stage despite recovery.
+
+The 233-row seed report also contained 81 execution-failure rows from the
+second conversation, all reporting a separate invalid structured JSON failure.
+The transport errors are not claimed to have caused that parse failure. Either
+condition independently blocks the stage. The runner stopped before candidate
+discovery, union-tape freeze, formal replay, reanswer, official rescore, or the
+paired sign test.
+
+The receipt's 352-entry transport ledger re-hashes to its bound SHA-256, and
+the strict failure tape retains 350 exact successful HTTP 200 responses. The
+complete blocked evidence, losslessly compressed tape, and attribution are
+archived under
+`reports/release/v0.7/blocked-a84855f2-schema5-transport-and-parse/`. Schema 5
+is not rerun. A later live attempt requires another preregistration and a
+matching readiness-verifier revision.
+
 ## Release decision
 
 The replacement has three layers. Only deterministic metrics use the 1.00pt
@@ -279,9 +307,9 @@ direction, never a replacement for the deterministic hard gate.
 
 ## Claim boundary
 
-The full 1540-question claim must run only after schema-5 replacement
-protection passes and is bound to the release candidate commit. Schema 5 has
-not run, and the schema-4 attempt cannot authorize that claim. The existing
+The full 1540-question claim must run only after a later pre-registered
+replacement protection protocol passes and is bound to the release candidate
+commit. Schema 5 did not pass and cannot authorize that claim. The existing
 0.8799 number is not copied forward. The observed 233-question same-commit
 wobble, scaled only as a heuristic by `sqrt(233/1540)`, suggests roughly
 0.4-0.7pt full-set run-to-run spread; this is not a confidence interval.
@@ -305,13 +333,14 @@ bun run gate:v0.7.3-lifecycle-protection -- \
   --output-dir reports/release/v0.7/v0.7.3-lifecycle-evidence
 ```
 
-The attempted schema-4 compact result would have been
+The attempted schema-5 compact result would have been
 `reports/release/v0.7/v0.7.3-lifecycle-protection.json`, but no such passing
 artifact was produced. `gate:v0.7 --strict` re-reads every bound artifact,
 re-parses the tape, re-hashes the frozen input sequences, recomputes
 deterministic metrics and the sign test, and currently rejects schema-1 through
-schema-4 evidence. Only a valid schema-5 bundle can reach the remaining release
-checks.
+schema-4 evidence. It can verify a valid schema-5 bundle, but the only schema-5
+attempt is blocked and archived. A future protocol revision must update this
+verifier before it can authorize release.
 
 The measurement runner validates the external `cases.json` against the frozen
 byte count and SHA-256. The tracked manifest retains that identity and the
