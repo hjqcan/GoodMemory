@@ -47,10 +47,19 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   `reports/release/v0.7/blocked-a84855f2-schema5-transport-and-parse/`. Schema 5
   will not be rerun. The root cause was the schema-5 tape collapsing four
   extractor attempts with the same request fingerprint into one malformed
-  response. Schema 6 restores ordered per-fingerprint response occurrences,
-  records recovered transport/non-2xx outcomes for exact replay, and remains
-  limited to one pre-registered attempt. It has not run. No full 1540-question
-  claim or v0.7.3 release is authorized unless that gate passes.
+  response. Schema 6 restored ordered per-fingerprint response occurrences and
+  recorded recovered transport/non-2xx outcomes for exact replay. Its single
+  attempt at candidate `4d5e2989` again passed deterministic C1/C40 and 8/8
+  scenarios. Baseline provider discovery completed all 233 seed rows with zero
+  seed execution failures, but the ordered ledger retained nine unrecovered
+  HTTP 503 occurrences across three reranker fingerprints. GurkiAI classified
+  the server-side condition as `auth_unavailable` for provider `codex` and
+  model `gpt-5.6-terra`; production fallback did not make the provider stage
+  valid. The run stopped before candidate discovery or formal replay and is
+  archived at
+  `reports/release/v0.7/blocked-4d5e2989-schema6-provider-auth-unavailable/`.
+  Schema 6 will not be rerun. No full 1540-question claim or v0.7.3 release is
+  authorized.
   See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as

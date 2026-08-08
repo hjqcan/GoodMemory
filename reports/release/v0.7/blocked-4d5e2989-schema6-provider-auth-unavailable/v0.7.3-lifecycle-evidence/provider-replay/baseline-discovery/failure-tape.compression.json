@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "algorithm": "gzip",
+  "arguments": [
+    "-n",
+    "-9"
+  ],
+  "original": {
+    "path": "failure-tape.json",
+    "bytes": 150815462,
+    "sha256": "2e983b0dafba3ca474e31718abd3c797a9624016785407b11bf261179410877a"
+  },
+  "compressed": {
+    "path": "failure-tape.json.gz",
+    "bytes": 24709076,
+    "sha256": "5f13e678b67ba9a01da6e26f4c2a6a8b4893f71c561611b352e95d379c53c941"
+  },
+  "verification": "gzip -cd reproduced the original byte count and sha256"
+}

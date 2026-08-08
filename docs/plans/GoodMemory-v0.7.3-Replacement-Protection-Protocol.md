@@ -1,8 +1,7 @@
 # GoodMemory v0.7.3 Replacement Protection Protocol
 
-Status: schema 6 is pre-registered but has not run. The single schema-5 attempt
-remains blocked and archived; it will not be rerun. There is still no passing
-run or release
+Status: the single schema-6 attempt is blocked and archived; it will not be
+rerun. There is still no passing run or release
 Date: 2026-08-08
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
@@ -267,6 +266,31 @@ typecheck, coverage, and an independent read-only review are green on one clean
 implementation commit. Schema 6 authorizes one clean attempt; if it fails, its
 artifacts are archived and it is not rerun without another preregistration.
 
+## First schema-6 execution is blocked
+
+The single clean schema-6 attempt at candidate `4d5e2989` passed the
+deterministic boundary: provider-free C1 moved overall evidence recall by
+`+0.858369pt`, C40 moved it by `+0.429185pt`, and scenario replay passed 8/8.
+These results do not substitute for the provider diagnostic.
+
+Baseline provider discovery completed all 233 seed rows with zero seed
+execution failures. The schema-3 occurrence tape retained 555 upstream
+attempts: 543 HTTP 200 responses, ten HTTP 503 responses, and two sanitized
+transport failures represented as synthetic HTTP 502. Both 502 occurrences
+and one 503 occurrence were recovered by an immediate same-fingerprint retry.
+Nine 503 occurrences across three fingerprints formed terminal three-attempt
+chains. GurkiAI described the server-side condition as `auth_unavailable` for
+provider `codex` and model `gpt-5.6-terra` on the reranking path.
+
+The seed runner's deterministic reranking fallback kept its question rows
+complete, but schema 6 correctly rejected that hidden provider failure. No
+candidate discovery, union-tape freeze, formal replay, reanswer, official
+rescore, provider comparison, or paired sign test ran. The lossless compressed
+tape, redacted logs, complete seed report, receipt, and attribution are
+archived under
+`reports/release/v0.7/blocked-4d5e2989-schema6-provider-auth-unavailable/`.
+This execution does not authorize another schema-6 attempt.
+
 ## Release decision
 
 The replacement has three layers. Only deterministic metrics use the 1.00pt
@@ -410,12 +434,15 @@ bun run gate:v0.7.3-lifecycle-protection -- \
 ```
 
 The schema-6 compact result, if the single attempt passes, is
-`reports/release/v0.7/v0.7.3-lifecycle-protection.json`, but no such passing
-artifact was produced. `gate:v0.7 --strict` re-reads every bound artifact,
+`reports/release/v0.7/v0.7.3-lifecycle-protection.json`; no such passing
+artifact was produced. The terminal blocked attempt is archived under
+`reports/release/v0.7/blocked-4d5e2989-schema6-provider-auth-unavailable/`.
+`gate:v0.7 --strict` re-reads every bound artifact,
 re-parses the tape, re-hashes the frozen input sequences, recomputes
-deterministic metrics and the sign test, and currently rejects schema-1 through
-schema-5 evidence. The verifier now requires the schema-6 compact result and
-recomputes the schema-3 occurrence tape before it can authorize release.
+deterministic metrics and the sign test, and rejects schema-1 through schema-5
+evidence as well as the blocked schema-6 archive. The verifier requires a
+passing schema-6 compact result and recomputes the schema-3 occurrence tape
+before it can authorize release.
 
 The measurement runner validates the external `cases.json` against the frozen
 byte count and SHA-256. The tracked manifest retains that identity and the

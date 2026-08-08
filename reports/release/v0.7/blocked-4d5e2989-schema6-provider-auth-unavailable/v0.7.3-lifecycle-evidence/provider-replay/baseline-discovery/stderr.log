@@ -1,0 +1,61 @@
+[seedSmoke]
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 677 |     };
+678 |   }
+679 | 
+680 |   if (!response.ok) {
+681 |     const body = await runWithinRequestDeadline(() => response.text());
+682 |     throw new Error(
+                    ^
+error: OpenAI-compatible gateway error 503: {"error":{"message":"auth_unavailable: no auth available (providers=codex, model=gpt-5.6-terra)","type":"server_error","param":"","code":"internal_server_error"}}
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/.goodmemory-worktrees/v073-schema6.moxiYl/baseline/src/provider/ai-sdk-runtime.ts:682:15)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/.goodmemory-worktrees/v073-schema6.moxiYl/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/.goodmemory-worktrees/v073-schema6.moxiYl/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/.goodmemory-worktrees/v073-schema6.moxiYl/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/.goodmemory-worktrees/v073-schema6.moxiYl/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 677 |     };
+678 |   }
+679 | 
+680 |   if (!response.ok) {
+681 |     const body = await runWithinRequestDeadline(() => response.text());
+682 |     throw new Error(
+                    ^
+error: OpenAI-compatible gateway error 503: {"error":{"message":"auth_unavailable: no auth available (providers=codex, model=gpt-5.6-terra)","type":"server_error","param":"","code":"internal_server_error"}}
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/.goodmemory-worktrees/v073-schema6.moxiYl/baseline/src/provider/ai-sdk-runtime.ts:682:15)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/.goodmemory-worktrees/v073-schema6.moxiYl/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/.goodmemory-worktrees/v073-schema6.moxiYl/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/.goodmemory-worktrees/v073-schema6.moxiYl/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/.goodmemory-worktrees/v073-schema6.moxiYl/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 677 |     };
+678 |   }
+679 | 
+680 |   if (!response.ok) {
+681 |     const body = await runWithinRequestDeadline(() => response.text());
+682 |     throw new Error(
+                    ^
+error: OpenAI-compatible gateway error 503: {"error":{"message":"auth_unavailable: no auth available (providers=codex, model=gpt-5.6-terra)","type":"server_error","param":"","code":"internal_server_error"}}
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/.goodmemory-worktrees/v073-schema6.moxiYl/baseline/src/provider/ai-sdk-runtime.ts:682:15)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/.goodmemory-worktrees/v073-schema6.moxiYl/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/.goodmemory-worktrees/v073-schema6.moxiYl/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/.goodmemory-worktrees/v073-schema6.moxiYl/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/.goodmemory-worktrees/v073-schema6.moxiYl/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
