@@ -5,6 +5,90 @@ const COMMIT_PATTERN = /^[0-9a-f]{40}$/u;
 const EMPTY_TRANSPORT_LEDGER_SHA256 =
   "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945";
 
+export const V073_PROVIDER_PREFLIGHT_POLICY = {
+  expectedRequestSequence: [
+    {
+      canonicalBodySha256:
+        "903cbb2ba9a60400e23282902628b631a01712d59f886e5ab158d418dd24fac3",
+      fingerprint:
+        "9f8bf28802032472aa7f3bbbb91ef514655c7700fae5cdf4c6f902fde5b9fc2c",
+      method: "POST",
+      path: "/chat/completions",
+      semanticHeadersSha256:
+        "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+      targetId: "eval",
+    },
+    {
+      canonicalBodySha256:
+        "903cbb2ba9a60400e23282902628b631a01712d59f886e5ab158d418dd24fac3",
+      fingerprint:
+        "9f8bf28802032472aa7f3bbbb91ef514655c7700fae5cdf4c6f902fde5b9fc2c",
+      method: "POST",
+      path: "/chat/completions",
+      semanticHeadersSha256:
+        "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+      targetId: "eval",
+    },
+    {
+      canonicalBodySha256:
+        "903cbb2ba9a60400e23282902628b631a01712d59f886e5ab158d418dd24fac3",
+      fingerprint:
+        "9f8bf28802032472aa7f3bbbb91ef514655c7700fae5cdf4c6f902fde5b9fc2c",
+      method: "POST",
+      path: "/chat/completions",
+      semanticHeadersSha256:
+        "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+      targetId: "eval",
+    },
+    {
+      canonicalBodySha256:
+        "b3231b2832d5fc3019b2b25b7be17dcce1cd52ce2af5cbf13aa8096593560174",
+      fingerprint:
+        "01133e40ae6a6cc93cf7e3aea2f75dc4d7ea55a6afaf717431993c0ad67f356b",
+      method: "POST",
+      path: "/embeddings",
+      semanticHeadersSha256:
+        "b56fb4937180a622a63acacf9a5b97d35cc57ef1f3fec531a0883a29be401c84",
+      targetId: "embedding",
+    },
+    {
+      canonicalBodySha256:
+        "72b1d4bc6b44f5942d52901272ba8986d3cb63216c65ffebbd0a84730c75ea23",
+      fingerprint:
+        "5eb60034cdd2b92af980038b4e94fde41d3131bd36c53ab1790a0c5d14ae4c3e",
+      method: "POST",
+      path: "/chat/completions",
+      semanticHeadersSha256:
+        "b56fb4937180a622a63acacf9a5b97d35cc57ef1f3fec531a0883a29be401c84",
+      targetId: "judge",
+    },
+  ],
+  expectedRequestSequenceSha256:
+    "e06454041f939d133629b33f4036addef90d8961a2c985848a7482ebac5e30af",
+  probeOrder: [
+    "eval-listwise",
+    "eval-listwise",
+    "eval-listwise",
+    "embedding",
+    "judge",
+  ],
+  requestTimeoutMs: 45_000,
+} as const;
+
+export type V073ProviderPreflightTarget =
+  (typeof V073_PROVIDER_PREFLIGHT_POLICY.probeOrder)[number];
+
+export interface V073ProviderPreflightReceipt {
+  probeOrder: V073ProviderPreflightTarget[];
+  probes: Array<{
+    attempt: number;
+    responseKind: "chat-json" | "embedding" | "stream-object";
+    status: number;
+    target: V073ProviderPreflightTarget;
+  }>;
+  totalRequests: number;
+}
+
 export interface V073ProtectionSmokeCase {
   caseId: string;
   category: string;
@@ -45,6 +129,7 @@ export interface V073ReplacementProtectionInput {
     candidate: V073ProtectionSmokeReport;
     concurrency: number;
   }>;
+  providerPreflight: V073ProviderPreflightReceipt;
   providerReplay: {
     baselineExecutionFailures: number;
     baselineJudgeFailures: number;
@@ -121,10 +206,49 @@ export interface V073ReplacementProtectionReport {
     signTest: ExactSignTestResult;
     totalQuestions: number;
   };
+  providerPreflight: V073ProviderPreflightReceipt;
   providerReplay: V073ReplacementProtectionInput["providerReplay"];
   releaseAllowed: boolean;
   researchRecordRequired: boolean;
-  schemaVersion: 6;
+  schemaVersion: 7;
+}
+
+export function assertV073ProviderPreflightReceipt(
+  value: unknown,
+): void {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(
+      "provider availability preflight must contain the five successful probes",
+    );
+  }
+  const receipt = value as Record<string, unknown>;
+  const attempts = new Map<V073ProviderPreflightTarget, number>();
+  const expectedProbes = V073_PROVIDER_PREFLIGHT_POLICY.probeOrder.map(
+    (target) => {
+      const attempt = (attempts.get(target) ?? 0) + 1;
+      attempts.set(target, attempt);
+      return {
+        attempt,
+        responseKind: target === "embedding"
+          ? "embedding"
+          : target === "eval-listwise"
+            ? "stream-object"
+            : "chat-json",
+        status: 200,
+        target,
+      };
+    },
+  );
+  if (
+    JSON.stringify(receipt.probeOrder) !==
+      JSON.stringify(V073_PROVIDER_PREFLIGHT_POLICY.probeOrder) ||
+    receipt.totalRequests !== expectedProbes.length ||
+    JSON.stringify(receipt.probes) !== JSON.stringify(expectedProbes)
+  ) {
+    throw new Error(
+      "provider availability preflight must contain the five successful probes",
+    );
+  }
 }
 
 function logAdd(left: number, right: number): number {
@@ -367,6 +491,7 @@ export function evaluateV073ReplacementProtection(
   if (!SHA256_PATTERN.test(input.candidatePromptSha256)) {
     throw new Error("candidate prompt fingerprint must be SHA-256");
   }
+  assertV073ProviderPreflightReceipt(input.providerPreflight);
   const concurrency = input.deterministicArms
     .map((arm) => arm.concurrency)
     .sort((left, right) => left - right);
@@ -498,7 +623,7 @@ export function evaluateV073ReplacementProtection(
     candidateCommit: input.candidateCommit,
     candidatePromptSha256: input.candidatePromptSha256,
     claimBoundary:
-      "The hard 1.00pt protection decision is carried by provider-free paired retrieval at concurrency 1 and 40 plus deterministic scenario replay. The provider diagnostic runs at concurrency 1: ordered provider inputs and responses are frozen during discovery, and both formal arms require exact input-sequence replay with network-on-miss disabled. Provider point deltas and the exact paired sign test are diagnostic only; they cannot override the deterministic hard gate. The full 1540-question claim must be rerun at the release commit with frozen replay evidence or an explicit provider-variance spread.",
+      "Provider availability preflight is unscored and precedes the formal-attempt boundary. The hard 1.00pt protection decision is carried by provider-free paired retrieval at concurrency 1 and 40 plus deterministic scenario replay. The provider diagnostic runs at concurrency 1: ordered provider inputs and responses are frozen during discovery, and both formal arms require exact input-sequence replay with network-on-miss disabled. Provider point deltas and the exact paired sign test are diagnostic only; they cannot override the deterministic hard gate. The full 1540-question claim must be rerun at the release commit with frozen replay evidence or an explicit provider-variance spread.",
     fullClaimRerunRequired: true,
     generatedAt: new Date().toISOString(),
     generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
@@ -510,9 +635,10 @@ export function evaluateV073ReplacementProtection(
       signTest,
       totalQuestions: input.questionTransitions.total,
     },
+    providerPreflight: input.providerPreflight,
     providerReplay: input.providerReplay,
     releaseAllowed: blockers.length === 0,
     researchRecordRequired: deterministicMoved || providerMoved,
-    schemaVersion: 6,
+    schemaVersion: 7,
   };
 }

@@ -12,6 +12,7 @@ import {
   fingerprintProviderTransportAttemptLedger,
   serializeProviderResponseTape,
 } from "../../scripts/provider-response-tape";
+import type { ProviderTapeTransportAttempt } from "../../scripts/provider-response-tape";
 import {
   renderV073FullClaimCommand,
   V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
@@ -29,7 +30,10 @@ import {
   routeV073CommandChainThroughTape,
   V073_PROVIDER_STAGE_ORDER,
 } from "../../scripts/run-v0-7-3-replacement-protection-gate";
-import { evaluateV073ReplacementProtection } from "../../scripts/v0-7-3-replacement-protection";
+import {
+  evaluateV073ReplacementProtection,
+  V073_PROVIDER_PREFLIGHT_POLICY,
+} from "../../scripts/v0-7-3-replacement-protection";
 import { frozenV073LocomoQuestionSelection } from "../fixtures/v0-7-3-locomo-question-selection";
 
 import type { V07ReleaseReadinessReport } from "../../scripts/run-v0-7-release-readiness";
@@ -63,6 +67,20 @@ const CLAIM_RECIPE_RAW = readFileSync(
 const CLAIM_RECIPE_COMMAND = (
   JSON.parse(CLAIM_RECIPE_RAW) as { run: { command: string } }
 ).run.command;
+
+function providerPreflightPlan() {
+  return {
+    probeOrder: [...V073_PROVIDER_PREFLIGHT_POLICY.probeOrder],
+    probes: [
+      { attempt: 1, responseKind: "stream-object" as const, status: 200, target: "eval-listwise" as const },
+      { attempt: 2, responseKind: "stream-object" as const, status: 200, target: "eval-listwise" as const },
+      { attempt: 3, responseKind: "stream-object" as const, status: 200, target: "eval-listwise" as const },
+      { attempt: 1, responseKind: "embedding" as const, status: 200, target: "embedding" as const },
+      { attempt: 1, responseKind: "chat-json" as const, status: 200, target: "judge" as const },
+    ],
+    totalRequests: 5,
+  };
+}
 
 function report(
   overrides: Partial<V07ReleaseReadinessReport> = {},
@@ -1062,8 +1080,18 @@ describe("v0.7 release readiness", () => {
     };
     const artifact = {
       artifacts: {
+        attemptSentinel: {
+          bytes: 100,
+          path:
+            "reports/release/v0.7/v0.7.3-lifecycle-schema7-attempt-consumed.json",
+          sha256: "0".repeat(64),
+        },
         manifest: artifactIdentity("manifest.json", "0"),
         protocolInput: artifactIdentity("protocol-input.json", "1"),
+        providerPreflight: {
+          receipt: artifactIdentity("provider-preflight/execution-receipt.json", "1"),
+          tape: artifactIdentity("provider-preflight/tape.json", "1"),
+        },
         providerFree: {
           c1Baseline: artifactIdentity("provider-free/c1-baseline.json", "2"),
           c1BaselineReceipt: artifactIdentity("provider-free/c1-baseline-receipt.json", "2"),
@@ -1128,9 +1156,10 @@ describe("v0.7 release readiness", () => {
         tapeSha256,
         tapeTargetCounts: { embedding: 2, eval: 7, judge: 1 },
       },
+      providerPreflight: providerPreflightPlan(),
       releaseAllowed: true,
       researchRecordRequired: false,
-      schemaVersion: 6,
+      schemaVersion: 7,
     };
 
     expect(evaluateV073LifecycleProtectionArtifact({
@@ -1145,7 +1174,7 @@ describe("v0.7 release readiness", () => {
       artifact: { ...artifact, schemaVersion: 3 },
       artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
     })).toEqual(expect.objectContaining({
-      detail: expect.stringContaining("schemaVersion must be 6"),
+      detail: expect.stringContaining("schemaVersion must be 7"),
       status: "fail",
     }));
 
@@ -1164,6 +1193,14 @@ describe("v0.7 release readiness", () => {
       artifact: { ...artifact, releaseAllowed: false },
       artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
     })).toEqual(expect.objectContaining({ status: "fail" }));
+
+    expect(evaluateV073LifecycleProtectionArtifact({
+      artifact: { ...artifact, providerPreflight: undefined },
+      artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+    })).toEqual(expect.objectContaining({
+      detail: expect.stringContaining("five successful probes"),
+      status: "fail",
+    }));
 
     expect(evaluateV073LifecycleProtectionArtifact({
       artifact: {
@@ -1221,7 +1258,7 @@ describe("v0.7 release readiness", () => {
     }));
   });
 
-  it("recomputes schema 6 lifecycle evidence from bound deterministic and frozen-replay bytes", async () => {
+  it("recomputes schema 7 lifecycle evidence from bound preflight, deterministic, and frozen-replay bytes", async () => {
     const repoRoot = await mkdtemp(join(tmpdir(), "goodmemory-v073-replacement-bundle-"));
     const evidencePrefix = "reports/release/v0.7/v0.7.3-lifecycle-evidence";
     const candidateCommit = "a".repeat(40);
@@ -1411,6 +1448,105 @@ describe("v0.7 release readiness", () => {
       sequenceMismatchDetails: [],
       transportAttemptLedger,
     };
+    const preflightOccurrences = new Map<string, number>();
+    const preflightTapeEntries =
+      V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequence.map((identity) => {
+        const occurrence = preflightOccurrences.get(identity.fingerprint) ?? 0;
+        preflightOccurrences.set(identity.fingerprint, occurrence + 1);
+        const responseBody = identity.targetId === "embedding"
+          ? JSON.stringify({ data: [{ embedding: [0.5, -0.5] }] })
+          : identity.targetId === "eval"
+            ? `data: ${JSON.stringify({
+                choices: [{
+                  delta: {
+                    content: `<think>fixture</think>${JSON.stringify({
+                      orderedCandidateIds: ["candidate-1"],
+                    })}`,
+                  },
+                }],
+              })}\n\ndata: [DONE]\n\n`
+            : JSON.stringify({
+                choices: [{ message: { content: "YES" } }],
+              });
+        const responseBytes = Buffer.from(responseBody);
+        const {
+          fingerprint,
+          ...request
+        } = identity;
+        return {
+          fingerprint,
+          occurrence,
+          request,
+          response: {
+            bodyBase64: responseBytes.toString("base64"),
+            bytes: responseBytes.byteLength,
+            contentType: identity.targetId === "eval"
+              ? "text/event-stream"
+              : "application/json",
+            sha256: createHash("sha256").update(responseBytes).digest("hex"),
+            status: 200,
+            statusText: "OK",
+          },
+        };
+      });
+    const preflightTapeRaw = serializeProviderResponseTape({
+      entries: preflightTapeEntries,
+      schemaVersion: 3,
+    });
+    const preflightTapeSha256 = createHash("sha256")
+      .update(preflightTapeRaw)
+      .digest("hex");
+    const preflightFingerprintCounts = new Map<string, number>();
+    for (const { fingerprint } of
+      V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequence) {
+      preflightFingerprintCounts.set(
+        fingerprint,
+        (preflightFingerprintCounts.get(fingerprint) ?? 0) + 1,
+      );
+    }
+    const preflightRequestFingerprintMultisetSha256 = createHash("sha256")
+      .update(JSON.stringify(
+        [...preflightFingerprintCounts.entries()].sort(([left], [right]) =>
+          left.localeCompare(right)
+        ),
+      ))
+      .digest("hex");
+    const preflightTransportAttemptLedger =
+      V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequence.map(
+        ({ fingerprint, targetId }, requestIndex) => ({
+          fingerprint,
+          outcome: "response" as const,
+          requestIndex,
+          responseStatus: 200,
+          targetId,
+        }),
+      );
+    const preflightSession = {
+      coalesced: 0,
+      hits: 0,
+      liveRequests: 5,
+      misses: 5,
+      mode: "prefetch" as const,
+      name: "provider-availability-preflight",
+      non2xxResponses: 0,
+      requestFingerprintMultisetSha256:
+        preflightRequestFingerprintMultisetSha256,
+      requestSequence: V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequence,
+      requestSequenceSha256:
+        V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequenceSha256,
+      requests: 5,
+      sequenceMismatchDetails: [],
+      sequenceMismatches: 0,
+      tapeSha256: preflightTapeSha256,
+      targetCounts: { embedding: 1, eval: 3, judge: 1 },
+      transportAttemptLedger: preflightTransportAttemptLedger,
+      transportAttemptLedgerSha256:
+        fingerprintProviderTransportAttemptLedger(
+          preflightTransportAttemptLedger,
+        ),
+      transportAttempts: 5,
+      transportErrors: 0,
+    };
     const protocolInput = {
       baselineCommit: "456edd106f29118b3455bf21c43d7b3107b48213",
       candidateCommit,
@@ -1427,6 +1563,7 @@ describe("v0.7 release readiness", () => {
           concurrency: 40,
         },
       ],
+      providerPreflight: providerPreflightPlan(),
       providerReplay: {
         baselineExecutionFailures: 0,
         baselineJudgeFailures: 0,
@@ -1450,8 +1587,28 @@ describe("v0.7 release readiness", () => {
       questionTransitions: { improved: 0, regressed: 0, total: 233 },
       scenarioReplay: { failures: 0, passed: 8 },
     };
+    const attemptSentinelPath =
+      "reports/release/v0.7/v0.7.3-lifecycle-schema7-attempt-consumed.json";
+    const attemptSentinelRaw = json({
+      baselineCommit: protocolInput.baselineCommit,
+      candidateCommit: protocolInput.candidateCommit,
+      generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
+      providerPreflight: protocolInput.providerPreflight,
+      requestSequenceSha256:
+        V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequenceSha256,
+      schemaVersion: 7,
+      state: "consumed",
+    });
 
     try {
+      await mkdir(join(repoRoot, "reports/release/v0.7"), {
+        recursive: true,
+      });
+      await writeFile(join(repoRoot, attemptSentinelPath), attemptSentinelRaw);
+      const attemptSentinel = evidenceIdentity(
+        attemptSentinelPath,
+        attemptSentinelRaw,
+      );
       await mkdir(join(repoRoot, "benchmark-claims"), { recursive: true });
       await writeFile(join(repoRoot, "benchmark-claims/locomo.json"), CLAIM_RECIPE_RAW);
       const harnessSources = {
@@ -1518,6 +1675,20 @@ describe("v0.7 release readiness", () => {
       };
       const baselineWorktree = "/tmp/baseline-v073";
       const candidateWorktree = "/tmp/candidate-v073";
+      const preflightTape = await writeEvidence(
+        "provider-preflight/tape.json",
+        preflightTapeRaw,
+      );
+      const preflightReceipt = await writeEvidence(
+        "provider-preflight/execution-receipt.json",
+        json({
+          generatedBy:
+            "scripts/run-v0-7-3-replacement-protection-gate.ts",
+          probePlan: providerPreflightPlan(),
+          session: preflightSession,
+          tape: preflightTape,
+        }),
+      );
       const manifestValue = {
         baseline: {
           branch: null,
@@ -1539,8 +1710,14 @@ describe("v0.7 release readiness", () => {
           statusPorcelain: "",
           worktreePath: candidateWorktree,
         },
+        formalAttempt: { sentinel: attemptSentinel },
         generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
         measurementHarness,
+        providerPreflight: {
+          receipt: preflightReceipt,
+          summary: providerPreflightPlan(),
+          tape: preflightTape,
+        },
         protocol: {
           assistedExtractionMaxAttempts: 4,
           assistedExtractionRequestTimeoutMs: 120_000,
@@ -1552,6 +1729,15 @@ describe("v0.7 release readiness", () => {
           promptSha256: sourceIdentity.promptSha256,
           providerFailureRecovery:
             "immediate-same-fingerprint-retry-to-2xx",
+          providerPreflightFormalAttemptBoundary:
+            "schema7-consumed-sentinel-created-only-after-success",
+          providerPreflightProbeOrder:
+            V073_PROVIDER_PREFLIGHT_POLICY.probeOrder,
+          providerPreflightRequestSequenceSha256:
+            V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequenceSha256,
+          providerPreflightRequestTimeoutMs:
+            V073_PROVIDER_PREFLIGHT_POLICY.requestTimeoutMs,
+          providerPreflightRetries: 0,
           providerFreeConcurrency: [1, 40],
           providerLogCredentialMaterial:
             "redacted-before-output-hash-and-persistence",
@@ -1569,7 +1755,7 @@ describe("v0.7 release readiness", () => {
           transportProxyRetries: 0,
         },
         providers,
-        schemaVersion: 6,
+        schemaVersion: 7,
       };
       const sharedStdout = await writeEvidence("logs/stdout.log", "8 pass\n0 fail\n");
       const sharedStderr = await writeEvidence("logs/stderr.log", "");
@@ -1755,8 +1941,13 @@ describe("v0.7 release readiness", () => {
         }),
       ]);
       const artifacts = {
+        attemptSentinel,
         manifest,
         protocolInput: protocolInputIdentity,
+        providerPreflight: {
+          receipt: preflightReceipt,
+          tape: preflightTape,
+        },
         providerFree: {
           c1Baseline,
           c1BaselineReceipt,
@@ -1801,6 +1992,11 @@ describe("v0.7 release readiness", () => {
         { formalNetworkOnMiss: true },
         { hardRegressionLimit: 0.02 },
         { providerFailureRecovery: "allow-terminal-fallback" },
+        { providerPreflightFormalAttemptBoundary: "root-before-preflight" },
+        { providerPreflightProbeOrder: ["judge"] },
+        { providerPreflightRequestSequenceSha256: "0".repeat(64) },
+        { providerPreflightRequestTimeoutMs: 1 },
+        { providerPreflightRetries: 1 },
         { providerFreeConcurrency: [1] },
         { providerLogCredentialMaterial: "persist-before-redaction" },
         { providerReplayConcurrency: 40 },
@@ -1834,6 +2030,68 @@ describe("v0.7 release readiness", () => {
         }));
       }
       const manifestRaw = json(manifestValue);
+      await writeFile(join(repoRoot, manifest.path), manifestRaw);
+      Object.assign(
+        artifact.artifacts.manifest,
+        evidenceIdentity(manifest.path, manifestRaw),
+      );
+
+      const preflightReceiptRaw = await readFile(
+        join(repoRoot, preflightReceipt.path),
+        "utf8",
+      );
+      const alteredPreflightReceipt = JSON.parse(preflightReceiptRaw) as {
+        session: {
+          transportAttemptLedger: ProviderTapeTransportAttempt[];
+          transportAttemptLedgerSha256: string;
+        };
+      };
+      const firstPreflightAttempt =
+        alteredPreflightReceipt.session.transportAttemptLedger[0];
+      if (firstPreflightAttempt?.outcome !== "response") {
+        throw new Error("preflight fixture must start with a response attempt");
+      }
+      firstPreflightAttempt.responseStatus = 201;
+      alteredPreflightReceipt.session.transportAttemptLedgerSha256 =
+        fingerprintProviderTransportAttemptLedger(
+          alteredPreflightReceipt.session.transportAttemptLedger,
+        );
+      const alteredPreflightReceiptRaw = json(alteredPreflightReceipt);
+      const alteredPreflightReceiptIdentity = evidenceIdentity(
+        preflightReceipt.path,
+        alteredPreflightReceiptRaw,
+      );
+      await writeFile(
+        join(repoRoot, preflightReceipt.path),
+        alteredPreflightReceiptRaw,
+      );
+      Object.assign(preflightReceipt, alteredPreflightReceiptIdentity);
+      const alteredPreflightManifestRaw = json({
+        ...manifestValue,
+        providerPreflight: {
+          ...manifestValue.providerPreflight,
+          receipt: alteredPreflightReceiptIdentity,
+        },
+      });
+      await writeFile(join(repoRoot, manifest.path), alteredPreflightManifestRaw);
+      Object.assign(
+        artifact.artifacts.manifest,
+        evidenceIdentity(manifest.path, alteredPreflightManifestRaw),
+      );
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath:
+          "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining("request or transport evidence"),
+        status: "fail",
+      }));
+      await writeFile(join(repoRoot, preflightReceipt.path), preflightReceiptRaw);
+      Object.assign(
+        preflightReceipt,
+        evidenceIdentity(preflightReceipt.path, preflightReceiptRaw),
+      );
       await writeFile(join(repoRoot, manifest.path), manifestRaw);
       Object.assign(
         artifact.artifacts.manifest,

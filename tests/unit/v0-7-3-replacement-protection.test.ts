@@ -85,6 +85,23 @@ function protectionInput(): V073ReplacementProtectionInput {
         concurrency: 40,
       },
     ],
+    providerPreflight: {
+      probeOrder: [
+        "eval-listwise",
+        "eval-listwise",
+        "eval-listwise",
+        "embedding",
+        "judge",
+      ],
+      probes: [
+        { attempt: 1, responseKind: "stream-object", status: 200, target: "eval-listwise" },
+        { attempt: 2, responseKind: "stream-object", status: 200, target: "eval-listwise" },
+        { attempt: 3, responseKind: "stream-object", status: 200, target: "eval-listwise" },
+        { attempt: 1, responseKind: "embedding", status: 200, target: "embedding" },
+        { attempt: 1, responseKind: "chat-json", status: 200, target: "judge" },
+      ],
+      totalRequests: 5,
+    },
     providerReplay: {
       baselineExecutionFailures: 0,
       baselineJudgeFailures: 0,
@@ -151,7 +168,18 @@ describe("v0.7.3 replacement protection protocol", () => {
     expect(report.providerReplay.discovery.candidate.misses).toBe(3);
     expect(report.providerReplay.formal.candidate.liveRequests).toBe(0);
     expect(report.liveDiagnostic.signTest.pValue).toBeCloseTo(0.5571970939636236, 14);
-    expect(report.schemaVersion).toBe(6);
+    expect(report.providerPreflight.totalRequests).toBe(5);
+    expect(report.schemaVersion).toBe(7);
+  });
+
+  it("rejects a provider preflight with incomplete role coverage", () => {
+    const input = protectionInput();
+    input.providerPreflight.probes.pop();
+    input.providerPreflight.totalRequests -= 1;
+
+    expect(() => evaluateV073ReplacementProtection(input)).toThrow(
+      "provider availability preflight must contain the five successful probes",
+    );
   });
 
   it("blocks a deterministic regression beyond one point", () => {

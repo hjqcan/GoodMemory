@@ -1,8 +1,9 @@
 # GoodMemory v0.7.3 Replacement Protection Protocol
 
-Status: the single schema-6 attempt is blocked and archived; it will not be
-rerun. There is still no passing run or release
-Date: 2026-08-08
+Status: the single schema-6 attempt is blocked and archived; schema 7 is
+pre-registered but has not begun a live attempt. There is still no passing run
+or release
+Date: 2026-08-09
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
 ## Why the first gate remains blocked
@@ -291,6 +292,70 @@ archived under
 `reports/release/v0.7/blocked-4d5e2989-schema6-provider-auth-unavailable/`.
 This execution does not authorize another schema-6 attempt.
 
+## Schema-7 revision: provider availability before the formal attempt
+
+Schema 6 established that a complete benchmark seed can conceal a terminal
+provider failure behind production fallback. Schema 7 therefore qualifies the
+three provider lanes that the protected claim chain actually exercises before
+consuming the sole formal attempt. It does not change either measured checkout,
+the LoCoMo harness, the schema-3 response tape, the deterministic thresholds,
+the provider diagnostic, or any file under `src/`.
+
+The runner performs five fixed, sequential, synthetic requests in the same
+process before creating formal evidence:
+
+1. three production `createProviderListwiseReranker` requests through the
+   `GOODMEMORY_EVAL` identity (`gpt-5.6-terra` at GurkiAI), each with the same
+   two-candidate fixture;
+2. one embedding request through `GOODMEMORY_EMBEDDING`
+   (`text-embedding-3-small` at OpenRouter);
+3. one minimal official-judge-compatible chat request through
+   `GOODMEMORY_JUDGE` (`gpt-5.5` at GurkiAI).
+
+The assisted-extractor and reranking identities and credentials remain
+mandatory static inputs, but the formal claim chain expects zero requests on
+those two logical lanes, so schema 7 does not misrepresent a synthetic probe as
+observed claim traffic. In particular, LoCoMo listwise reranking is sourced
+from `GOODMEMORY_EVAL`; probing only `GOODMEMORY_RERANKING` would not qualify
+the path that failed schema 6.
+
+The five requests have a 45-second per-request timeout, one application attempt
+each, no proxy retry, and the frozen ordered request-sequence SHA-256
+`e06454041f939d133629b33f4036addef90d8961a2c985848a7482ebac5e30af`.
+Every upstream attempt must return HTTP 200 on its first attempt and produce a
+parse-valid response. Any transport error, non-200 response, malformed wire
+response, missing probe, extra request, request-fingerprint drift, or target
+census drift fails the preflight. Failure output contains only the logical
+lane, probe number, and a coarse transport/status/invalid-response category;
+raw bodies, errors, URLs, prompts, and credentials are not persisted.
+
+Preflight uses its own proxy session and schema-3 tape. Its responses are never
+used as discovery or formal measurement responses. A passing preflight is
+persisted only after the formal attempt is claimed, then independently checked
+against its receipt, exact request sequence, transport ledger, response tape,
+manifest, compact protocol input, and artifact map.
+
+The attempt boundary is irreversible:
+
+- a failed preflight creates neither the schema-7 consumed sentinel nor the
+  canonical evidence root and therefore does not consume the formal attempt;
+- after all five probes pass, the runner atomically creates
+  `reports/release/v0.7/v0.7.3-lifecycle-schema7-attempt-consumed.json` with
+  exclusive `wx` semantics, then creates the canonical evidence root;
+- the sentinel lives outside the movable evidence root. It remains after any
+  crash, block, or archive operation, so moving a failed evidence directory
+  cannot authorize another schema-7 attempt;
+- any failure after sentinel creation consumes schema 7 permanently. A later
+  attempt requires a new pre-registration, schema number, sentinel path, and
+  verifier revision.
+
+No schema-7 live attempt may begin until the preflight, exclusive-attempt,
+runner, compact evaluator, and independent readiness mutation tests are green,
+followed by the full suite, typecheck, coverage, and a read-only review on one
+clean frozen `main` commit. The driver repository must still be clean at that
+exact candidate commit before preflight begins. Measurement uses separate clean
+detached baseline and candidate checkouts; no branch is created.
+
 ## Release decision
 
 The replacement has three layers. Only deterministic metrics use the 1.00pt
@@ -407,9 +472,9 @@ direction, never a replacement for the deterministic hard gate.
 
 ## Claim boundary
 
-The full 1540-question claim must run only after schema 6 passes and is bound to
-the release candidate commit. Schema 5 did not pass and cannot authorize that
-claim. The existing
+The full 1540-question claim must run only after schema 7 passes and is bound to
+the release candidate commit. Schemas 2 through 6 are terminal blocked evidence
+and cannot authorize that claim. The existing
 0.8799 number is not copied forward. The observed 233-question same-commit
 wobble, scaled only as a heuristic by `sqrt(233/1540)`, suggests roughly
 0.4-0.7pt full-set run-to-run spread; this is not a confidence interval.
@@ -433,16 +498,17 @@ bun run gate:v0.7.3-lifecycle-protection -- \
   --output-dir reports/release/v0.7/v0.7.3-lifecycle-evidence
 ```
 
-The schema-6 compact result, if the single attempt passes, is
+The schema-7 compact result, if the single attempt passes, is
 `reports/release/v0.7/v0.7.3-lifecycle-protection.json`; no such passing
 artifact was produced. The terminal blocked attempt is archived under
 `reports/release/v0.7/blocked-4d5e2989-schema6-provider-auth-unavailable/`.
 `gate:v0.7 --strict` re-reads every bound artifact,
 re-parses the tape, re-hashes the frozen input sequences, recomputes
-deterministic metrics and the sign test, and rejects schema-1 through schema-5
-evidence as well as the blocked schema-6 archive. The verifier requires a
-passing schema-6 compact result and recomputes the schema-3 occurrence tape
-before it can authorize release.
+deterministic metrics and the sign test, and rejects schema-1 through schema-6
+evidence. The verifier requires the external schema-7 consumed sentinel, the
+independent five-request preflight receipt and tape, a passing schema-7 compact
+result, and the recomputed schema-3 occurrence tape before it can authorize
+release.
 
 The measurement runner validates the external `cases.json` against the frozen
 byte count and SHA-256. The tracked manifest retains that identity and the

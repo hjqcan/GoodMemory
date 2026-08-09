@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { describe, expect, it } from "bun:test";
@@ -13,15 +13,18 @@ import {
 } from "../../scripts/provider-response-tape";
 import type { ProviderTapeTransportAttempt } from "../../scripts/provider-response-tape";
 import {
+  assertV073DriverMatchesCandidate,
   assertV073ProviderStageCanContinue,
   assertV073SeedStageReport,
   assertV073ScenarioOutcome,
   buildV073ProviderFreeArgs,
   buildV073StageArm,
+  claimV073Schema7FormalAttempt,
   officialQuestionTransitions,
   parseV073ProviderFreeReport,
   parseV073ReplacementGateCliOptions,
   routeV073CommandChainThroughTape,
+  runV073ProviderAvailabilityPreflight,
   runV073ProviderStage,
   V073_ASSISTED_EXTRACTION_POLICY,
   V073_PROVIDER_STAGE_ORDER,
@@ -51,7 +54,186 @@ function commandChain(): V073PairedCommandChain {
   };
 }
 
+function preflightInput() {
+  return {
+    credentials: {
+      assisted: "assisted-secret",
+      embedding: "embedding-secret",
+      eval: "eval-secret",
+      judge: "judge-secret",
+      reranking: "reranking-secret",
+    },
+    providers: {
+      assisted: {
+        gateway: "https://ai.gurkiai.com/v1",
+        model: "gpt-5.6-terra",
+        provider: "openai" as const,
+      },
+      embedding: {
+        gateway: "https://openrouter.ai/api/v1",
+        model: "text-embedding-3-small",
+        provider: "openai" as const,
+      },
+      eval: {
+        gateway: "https://ai.gurkiai.com/v1",
+        model: "gpt-5.6-terra",
+        provider: "openai" as const,
+      },
+      judge: {
+        gateway: "https://ai.gurkiai.com/v1",
+        model: "gpt-5.5",
+        provider: "openai" as const,
+      },
+      reranking: {
+        gateway: "https://ai.gurkiai.com/v1",
+        model: "gpt-5.6-terra",
+        provider: "openai" as const,
+      },
+    },
+  };
+}
+
 describe("v0.7.3 replacement protection gate runner", () => {
+  it("requires the driver checkout to be clean at the candidate commit", () => {
+    const candidate = {
+      branch: null,
+      commit: "candidate-commit",
+      statusPorcelain: "",
+    };
+
+    expect(() => assertV073DriverMatchesCandidate({
+      branch: "main",
+      commit: candidate.commit,
+      statusPorcelain: " M scripts/gate.ts\n",
+    }, candidate)).toThrow("driver repository must be clean");
+    expect(() => assertV073DriverMatchesCandidate({
+      branch: "main",
+      commit: "different-commit",
+      statusPorcelain: "",
+    }, candidate)).toThrow("driver repository must match the candidate commit");
+    expect(() => assertV073DriverMatchesCandidate({
+      branch: "main",
+      commit: candidate.commit,
+      statusPorcelain: "",
+    }, candidate)).not.toThrow();
+  });
+
+  it("requires three real listwise probes plus embedding and judge", async () => {
+    const authorizations: string[] = [];
+    const result = await runV073ProviderAvailabilityPreflight(
+      preflightInput(),
+      {
+        fetch: async (url, init) => {
+          authorizations.push(String(new Headers(init?.headers).get("authorization")));
+          if (String(url).endsWith("/embeddings")) {
+            return Response.json({ data: [{ embedding: [0.5, -0.5] }] });
+          }
+          const body = JSON.parse(await new Response(init?.body).text()) as {
+            response_format?: unknown;
+          };
+          return Response.json({
+            choices: [{ message: { content: body.response_format
+              ? JSON.stringify({
+                  orderedCandidateIds: ["candidate-1", "candidate-2"],
+                })
+              : "OK" } }],
+          });
+        },
+      },
+    );
+
+    expect(result.receipt).toEqual({
+      probeOrder: [
+        "eval-listwise",
+        "eval-listwise",
+        "eval-listwise",
+        "embedding",
+        "judge",
+      ],
+      probes: [
+        { attempt: 1, responseKind: "stream-object", status: 200, target: "eval-listwise" },
+        { attempt: 2, responseKind: "stream-object", status: 200, target: "eval-listwise" },
+        { attempt: 3, responseKind: "stream-object", status: 200, target: "eval-listwise" },
+        { attempt: 1, responseKind: "embedding", status: 200, target: "embedding" },
+        { attempt: 1, responseKind: "chat-json", status: 200, target: "judge" },
+      ],
+      totalRequests: 5,
+    });
+    expect(result.session).toEqual(expect.objectContaining({
+      coalesced: 0,
+      hits: 0,
+      liveRequests: 5,
+      misses: 5,
+      non2xxResponses: 0,
+      requests: 5,
+      targetCounts: { embedding: 1, eval: 3, judge: 1 },
+      transportAttempts: 5,
+      transportErrors: 0,
+    }));
+    expect(result.tape.entries).toHaveLength(5);
+    expect(authorizations).toEqual([
+      "Bearer eval-secret",
+      "Bearer eval-secret",
+      "Bearer eval-secret",
+      "Bearer embedding-secret",
+      "Bearer judge-secret",
+    ]);
+    expect(JSON.stringify(result)).not.toContain("secret");
+  });
+
+  it("fails preflight on a provider-side 503 without retaining its body", async () => {
+    const input = preflightInput();
+    await expect(runV073ProviderAvailabilityPreflight(input, {
+      fetch: async (_url, init) => {
+        const authorization = new Headers(init?.headers).get("authorization");
+        const body = await new Response(init?.body).text();
+        if (authorization === "Bearer eval-secret" && body.includes("response_format")) {
+          return Response.json({
+            error: {
+              message: "credential and upstream details must not escape",
+            },
+          }, { status: 503 });
+        }
+        if (authorization === "Bearer embedding-secret") {
+          return Response.json({ data: [{ embedding: [1] }] });
+        }
+        return Response.json({ choices: [{ message: { content: "OK" } }] });
+      },
+    })).rejects.toThrow(
+      "provider preflight eval-listwise probe 1 failed: http-503",
+    );
+  });
+
+  it("requires exact HTTP 200 rather than accepting another successful status", async () => {
+    await expect(runV073ProviderAvailabilityPreflight(preflightInput(), {
+      fetch: async () => Response.json({
+        choices: [{
+          message: {
+            content: JSON.stringify({
+              orderedCandidateIds: ["candidate-1", "candidate-2"],
+            }),
+          },
+        }],
+      }, { status: 201 }),
+    })).rejects.toThrow(
+      "provider preflight eval-listwise probe 1 failed: http-201",
+    );
+  });
+
+  it("claims the schema 7 formal attempt exactly once outside the movable evidence root", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-v073-attempt-"));
+    const path = join(root, "schema7-consumed.json");
+    try {
+      await claimV073Schema7FormalAttempt(path, "first\n");
+      await expect(
+        claimV073Schema7FormalAttempt(path, "second\n"),
+      ).rejects.toMatchObject({ code: "EEXIST" });
+      expect(await readFile(path, "utf8")).toBe("first\n");
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("stops a formal stage after the first command that has tape misses", () => {
     expect(() => assertV073ProviderStageCanContinue("replay", {
       coalesced: 0,

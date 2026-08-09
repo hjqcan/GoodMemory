@@ -58,8 +58,13 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   valid. The run stopped before candidate discovery or formal replay and is
   archived at
   `reports/release/v0.7/blocked-4d5e2989-schema6-provider-auth-unavailable/`.
-  Schema 6 will not be rerun. No full 1540-question claim or v0.7.3 release is
-  authorized.
+  Schema 6 will not be rerun. Schema 7 is pre-registered but has not begun a
+  live attempt: five independent synthetic provider probes must pass before an
+  external schema-specific consumed sentinel atomically claims the sole formal
+  attempt. The preflight tape is never reused by measurement, and readiness
+  independently binds its exact request sequence, transport ledger, response
+  bytes, sentinel, manifest, and compact result. No full 1540-question claim or
+  v0.7.3 release is yet authorized.
   See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as

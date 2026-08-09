@@ -12,6 +12,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
+import { stripThinkingBlocks } from "../src/provider/ai-sdk-runtime";
 import {
   hasCliFlagStrict,
   resolveCliFlagValueStrict,
@@ -53,7 +54,11 @@ import {
   V073_PROVIDER_TRANSPORT_POLICY,
 } from "./run-v0-7-3-replacement-protection-gate";
 import { resolveRepoRootFromScriptUrl } from "./script-paths";
-import { evaluateV073ReplacementProtection } from "./v0-7-3-replacement-protection";
+import {
+  assertV073ProviderPreflightReceipt,
+  evaluateV073ReplacementProtection,
+  V073_PROVIDER_PREFLIGHT_POLICY,
+} from "./v0-7-3-replacement-protection";
 import type { V073ReplacementProtectionInput } from "./v0-7-3-replacement-protection";
 
 const RELEASE_LINE = "0.7";
@@ -66,6 +71,8 @@ const V073_LIFECYCLE_PROTECTION_ARTIFACT =
   "reports/release/v0.7/v0.7.3-lifecycle-protection.json";
 const V073_LIFECYCLE_EVIDENCE_PREFIX =
   "reports/release/v0.7/v0.7.3-lifecycle-evidence/";
+const V073_LIFECYCLE_ATTEMPT_SENTINEL =
+  "reports/release/v0.7/v0.7.3-lifecycle-schema7-attempt-consumed.json";
 const V073_LOCOMO_CURRENT_PROJECTION =
   "benchmark-claims/evidence/locomo-v0.7.3-current.json";
 const V073_LOCOMO_CLAIM_EVIDENCE_PREFIX =
@@ -1411,14 +1418,18 @@ function isArtifactIdentity(value: unknown): value is ArtifactIdentityShape {
 function hasLifecycleArtifactIdentities(value: unknown): boolean {
   if (
     !isRecord(value) ||
+    !isRecord(value.providerPreflight) ||
     !isRecord(value.providerFree) ||
     !isRecord(value.providerReplay)
   ) {
     return false;
   }
   return [
+    value.attemptSentinel,
     value.manifest,
     value.protocolInput,
+    value.providerPreflight.receipt,
+    value.providerPreflight.tape,
     value.providerFree.c1Baseline,
     value.providerFree.c1BaselineReceipt,
     value.providerFree.c1Candidate,
@@ -1446,11 +1457,15 @@ function lifecycleArtifactIdentities(value: unknown): ArtifactIdentityShape[] {
   if (!hasLifecycleArtifactIdentities(value) || !isRecord(value)) {
     return [];
   }
+  const providerPreflight = value.providerPreflight as Record<string, unknown>;
   const providerFree = value.providerFree as Record<string, unknown>;
   const providerReplay = value.providerReplay as Record<string, unknown>;
   return [
+    value.attemptSentinel,
     value.manifest,
     value.protocolInput,
+    providerPreflight.receipt,
+    providerPreflight.tape,
     providerFree.c1Baseline,
     providerFree.c1BaselineReceipt,
     providerFree.c1Candidate,
@@ -1600,8 +1615,8 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
     const hardGate = input.artifact.hardGate;
     const providerReplay = input.artifact.providerReplay;
     const liveDiagnostic = input.artifact.liveDiagnostic;
-    if (input.artifact.schemaVersion !== 6) {
-      issues.push("schemaVersion must be 6");
+    if (input.artifact.schemaVersion !== 7) {
+      issues.push("schemaVersion must be 7");
     }
     if (
       input.artifact.generatedBy !==
@@ -1631,6 +1646,15 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
     if (input.artifact.fullClaimRerunRequired !== true) {
       issues.push("artifact must retain the full-claim rerun boundary");
     }
+    try {
+      assertV073ProviderPreflightReceipt(input.artifact.providerPreflight);
+    } catch (error) {
+      issues.push(
+        error instanceof Error
+          ? error.message
+          : "provider availability preflight is invalid",
+      );
+    }
     if (
       typeof input.artifact.claimBoundary !== "string" ||
       !input.artifact.claimBoundary.includes("provider-variance")
@@ -1641,7 +1665,9 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
       issues.push("source artifact identities must contain paths and hashes");
     } else if (
       lifecycleArtifactIdentities(artifacts).some(
-        ({ path }) => !path.startsWith(V073_LIFECYCLE_EVIDENCE_PREFIX),
+        ({ path }) =>
+          !path.startsWith(V073_LIFECYCLE_EVIDENCE_PREFIX) &&
+          path !== V073_LIFECYCLE_ATTEMPT_SENTINEL,
       )
     ) {
       issues.push("all source artifacts must live in the tracked lifecycle evidence bundle");
@@ -1723,7 +1749,7 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
 
 function lifecycleIdentity(
   artifacts: Record<string, unknown>,
-  group: "providerFree" | "providerReplay" | null,
+  group: "providerFree" | "providerPreflight" | "providerReplay" | null,
   name: string,
 ): ArtifactIdentityShape {
   const parent = group === null ? artifacts : artifacts[group];
@@ -1737,12 +1763,17 @@ async function readBoundLifecycleArtifact(input: {
   identity: ArtifactIdentityShape;
   repoRoot: string;
 }): Promise<string> {
-  if (!input.identity.path.startsWith(V073_LIFECYCLE_EVIDENCE_PREFIX)) {
+  const isAttemptSentinel =
+    input.identity.path === V073_LIFECYCLE_ATTEMPT_SENTINEL;
+  if (
+    !isAttemptSentinel &&
+    !input.identity.path.startsWith(V073_LIFECYCLE_EVIDENCE_PREFIX)
+  ) {
     throw new Error(`lifecycle evidence path is outside the tracked bundle: ${input.identity.path}`);
   }
   const absolutePath = resolve(input.repoRoot, input.identity.path);
   const bundleRoot = resolve(input.repoRoot, V073_LIFECYCLE_EVIDENCE_PREFIX);
-  if (!absolutePath.startsWith(`${bundleRoot}/`)) {
+  if (!isAttemptSentinel && !absolutePath.startsWith(`${bundleRoot}/`)) {
     throw new Error(`lifecycle evidence path escapes its bundle: ${input.identity.path}`);
   }
   const raw = await readFile(absolutePath, "utf8");
@@ -1754,6 +1785,254 @@ async function readBoundLifecycleArtifact(input: {
     throw new Error(`lifecycle evidence bytes do not match ${input.identity.path}`);
   }
   return raw;
+}
+
+function fingerprintProviderRequestMultiset(
+  sequence: readonly ProviderTapeRequestIdentity[],
+): string {
+  const counts = new Map<string, number>();
+  for (const { fingerprint } of sequence) {
+    counts.set(fingerprint, (counts.get(fingerprint) ?? 0) + 1);
+  }
+  return sha256(JSON.stringify([...counts.entries()].sort(([left], [right]) =>
+    left.localeCompare(right)
+  )));
+}
+
+function providerPreflightChoiceText(payload: unknown): string {
+  if (!isRecord(payload) || !Array.isArray(payload.choices)) {
+    return "";
+  }
+  return payload.choices.map((choice) => {
+    if (!isRecord(choice)) {
+      return "";
+    }
+    const source = isRecord(choice.delta)
+      ? choice.delta
+      : isRecord(choice.message)
+        ? choice.message
+        : choice;
+    const content = source.content ?? source.text;
+    if (typeof content === "string") {
+      return content;
+    }
+    return Array.isArray(content)
+      ? content.map((part) =>
+        isRecord(part) && typeof part.text === "string" ? part.text : ""
+      ).join("")
+      : "";
+  }).join("");
+}
+
+function providerPreflightMessageContent(
+  bodyBase64: string,
+  contentType: string | null,
+): string {
+  const body = Buffer.from(bodyBase64, "base64").toString("utf8");
+  let content = "";
+  if (contentType?.toLowerCase().includes("text/event-stream")) {
+    let sawDone = false;
+    for (const event of body.replace(/\r\n/gu, "\n").split("\n\n")) {
+      const data = event
+        .split("\n")
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).trimStart())
+        .join("\n")
+        .trim();
+      if (!data) {
+        continue;
+      }
+      if (data === "[DONE]") {
+        sawDone = true;
+        break;
+      }
+      content += providerPreflightChoiceText(JSON.parse(data) as unknown);
+    }
+    if (!sawDone) {
+      throw new Error("provider preflight chat stream is incomplete");
+    }
+  } else {
+    content = providerPreflightChoiceText(JSON.parse(body) as unknown);
+  }
+  if (content.trim().length === 0) {
+    throw new Error("provider preflight chat response is invalid");
+  }
+  return content;
+}
+
+function assertProviderPreflightTapeResponses(
+  tape: ReturnType<typeof parseProviderResponseTape>,
+): void {
+  assertProviderResponseTapeCoversSequences(tape, [
+    V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequence,
+  ]);
+  if (
+    tape.entries.length !== 5 ||
+    tape.entries.some((entry) => entry.response.status !== 200)
+  ) {
+    throw new Error("provider preflight tape does not match the frozen request plan");
+  }
+  for (const entry of tape.entries) {
+    if (entry.request.targetId === "embedding") {
+      const payload = JSON.parse(
+        Buffer.from(entry.response.bodyBase64, "base64").toString("utf8"),
+      ) as unknown;
+      const data = isRecord(payload) ? payload.data : undefined;
+      const first = Array.isArray(data) ? data[0] : undefined;
+      const embedding = isRecord(first) ? first.embedding : undefined;
+      if (
+        !Array.isArray(embedding) ||
+        embedding.length === 0 ||
+        embedding.some((value) =>
+          typeof value !== "number" || !Number.isFinite(value)
+        )
+      ) {
+        throw new Error("provider preflight embedding response is invalid");
+      }
+      continue;
+    }
+    const content = providerPreflightMessageContent(
+      entry.response.bodyBase64,
+      entry.response.contentType,
+    );
+    if (entry.request.targetId === "eval") {
+      const normalizedContent = stripThinkingBlocks(content);
+      const start = normalizedContent.indexOf("{");
+      const end = normalizedContent.lastIndexOf("}");
+      const structured = start >= 0 && end >= start
+        ? JSON.parse(normalizedContent.slice(start, end + 1)) as unknown
+        : null;
+      const orderedCandidateIds = isRecord(structured)
+        ? structured.orderedCandidateIds
+        : undefined;
+      const normalizedCandidateIds = Array.isArray(orderedCandidateIds) &&
+          orderedCandidateIds.every((value) => typeof value === "string")
+        ? [...new Set(
+            orderedCandidateIds
+              .map((value) => value.trim())
+              .filter(Boolean),
+          )]
+        : [];
+      if (
+        normalizedCandidateIds.length === 0 ||
+        normalizedCandidateIds.some((candidateId) =>
+          candidateId !== "candidate-1" && candidateId !== "candidate-2"
+        )
+      ) {
+        throw new Error("provider preflight listwise response is invalid");
+      }
+    }
+  }
+}
+
+function assertProviderPreflightEvidence(input: {
+  artifacts: Record<string, unknown>;
+  attemptSentinelRaw: string;
+  manifest: Record<string, unknown>;
+  protocolInput: V073ReplacementProtectionInput;
+  receiptRaw: string;
+  tapeRaw: string;
+}): void {
+  const receipt = JSON.parse(input.receiptRaw) as unknown;
+  const attemptSentinel = JSON.parse(input.attemptSentinelRaw) as unknown;
+  if (!isRecord(receipt) || !isRecord(receipt.session)) {
+    throw new Error("provider preflight receipt is invalid");
+  }
+  assertV073ProviderPreflightReceipt(receipt.probePlan);
+  if (
+    !sameJson(receipt.probePlan, input.protocolInput.providerPreflight) ||
+    receipt.generatedBy !==
+      "scripts/run-v0-7-3-replacement-protection-gate.ts"
+  ) {
+    throw new Error("provider preflight receipt does not match protocol input");
+  }
+  const session = receipt.session;
+  const sequence = providerRequestSequence(session.requestSequence);
+  const ledger = Array.isArray(session.transportAttemptLedger)
+    ? session.transportAttemptLedger as ProviderTapeTransportAttempt[]
+    : null;
+  const expectedLedger = V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequence.map(
+    ({ fingerprint, targetId }, requestIndex) => ({
+      fingerprint,
+      outcome: "response" as const,
+      requestIndex,
+      responseStatus: 200,
+      targetId,
+    }),
+  );
+  if (
+    sequence === null ||
+    ledger === null ||
+    !isProviderReplaySession(session, "prefetch") ||
+    session.requests !== 5 ||
+    session.hits !== 0 ||
+    session.misses !== 5 ||
+    session.liveRequests !== 5 ||
+    session.coalesced !== 0 ||
+    session.non2xxResponses !== 0 ||
+    session.sequenceMismatches !== 0 ||
+    session.transportAttempts !== 5 ||
+    session.transportErrors !== 0 ||
+    !sameJson(session.targetCounts, { embedding: 1, eval: 3, judge: 1 }) ||
+    !sameJson(sequence, V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequence) ||
+    fingerprintProviderRequestSequence(sequence) !==
+      V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequenceSha256 ||
+    session.requestSequenceSha256 !==
+      V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequenceSha256 ||
+    session.requestFingerprintMultisetSha256 !==
+      fingerprintProviderRequestMultiset(sequence) ||
+    !sameJson(ledger, expectedLedger) ||
+    session.transportAttemptLedgerSha256 !==
+      fingerprintProviderTransportAttemptLedger(ledger)
+  ) {
+    throw new Error("provider preflight request or transport evidence is invalid");
+  }
+  const tape = parseProviderResponseTape(input.tapeRaw);
+  assertProviderPreflightTapeResponses(tape);
+  const tapeSha256 = sha256(input.tapeRaw);
+  const receiptIdentity = lifecycleIdentity(
+    input.artifacts,
+    "providerPreflight",
+    "receipt",
+  );
+  const tapeIdentity = lifecycleIdentity(
+    input.artifacts,
+    "providerPreflight",
+    "tape",
+  );
+  const manifestPreflight = input.manifest.providerPreflight;
+  const manifestFormalAttempt = input.manifest.formalAttempt;
+  const attemptSentinelIdentity = lifecycleIdentity(
+    input.artifacts,
+    null,
+    "attemptSentinel",
+  );
+  if (
+    session.tapeSha256 !== tapeSha256 ||
+    !isArtifactIdentity(receipt.tape) ||
+    !sameJson(receipt.tape, tapeIdentity) ||
+    !isRecord(manifestPreflight) ||
+    !sameJson(manifestPreflight.receipt, receiptIdentity) ||
+    !sameJson(manifestPreflight.tape, tapeIdentity) ||
+    !sameJson(manifestPreflight.summary, input.protocolInput.providerPreflight) ||
+    !isRecord(manifestFormalAttempt) ||
+    !sameJson(manifestFormalAttempt.sentinel, attemptSentinelIdentity) ||
+    !isRecord(attemptSentinel) ||
+    attemptSentinel.generatedBy !==
+      "scripts/run-v0-7-3-replacement-protection-gate.ts" ||
+    attemptSentinel.schemaVersion !== 7 ||
+    attemptSentinel.state !== "consumed" ||
+    attemptSentinel.baselineCommit !== input.protocolInput.baselineCommit ||
+    attemptSentinel.candidateCommit !== input.protocolInput.candidateCommit ||
+    attemptSentinel.requestSequenceSha256 !==
+      V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequenceSha256 ||
+    !sameJson(
+      attemptSentinel.providerPreflight,
+      input.protocolInput.providerPreflight,
+    )
+  ) {
+    throw new Error("provider preflight artifacts are not independently bound");
+  }
 }
 
 export async function evaluateV073LifecycleProtectionBundle(input: {
@@ -1768,7 +2047,7 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
     }
     const artifacts = input.artifact.artifacts;
     const read = (
-      group: "providerFree" | "providerReplay" | null,
+      group: "providerFree" | "providerPreflight" | "providerReplay" | null,
       name: string,
     ) =>
       readBoundLifecycleArtifact({
@@ -1776,8 +2055,11 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         repoRoot: input.repoRoot,
       });
     const [
+      attemptSentinelRaw,
       manifestRaw,
       protocolInputRaw,
+      providerPreflightReceiptRaw,
+      providerPreflightTapeRaw,
       c1BaselineRaw,
       c1BaselineReceiptRaw,
       c1CandidateRaw,
@@ -1799,8 +2081,11 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
       tapeRaw,
       scenarioReceiptRaw,
     ] = await Promise.all([
+      read(null, "attemptSentinel"),
       read(null, "manifest"),
       read(null, "protocolInput"),
+      read("providerPreflight", "receipt"),
+      read("providerPreflight", "tape"),
       read("providerFree", "c1Baseline"),
       read("providerFree", "c1BaselineReceipt"),
       read("providerFree", "c1Candidate"),
@@ -1830,6 +2115,14 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
     const scenarioReceipt = JSON.parse(
       scenarioReceiptRaw,
     ) as Record<string, unknown>;
+    assertProviderPreflightEvidence({
+      artifacts,
+      attemptSentinelRaw,
+      manifest,
+      protocolInput,
+      receiptRaw: providerPreflightReceiptRaw,
+      tapeRaw: providerPreflightTapeRaw,
+    });
     const expectedProviders = {
       assisted: {
         gateway: "https://ai.gurkiai.com/v1",
@@ -1892,7 +2185,7 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd" ||
       manifest.benchmark.sha256 !==
         "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28" ||
-      manifest.schemaVersion !== 6 ||
+      manifest.schemaVersion !== 7 ||
       manifest.generatedBy !==
         "scripts/run-v0-7-3-replacement-protection-gate.ts" ||
       !sameJson(manifest.providers, expectedProviders) ||
@@ -1912,6 +2205,17 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
       protocol.promptSha256 !== deriveV073PromptSha256() ||
       protocol.providerFailureRecovery !==
         "immediate-same-fingerprint-retry-to-2xx" ||
+      protocol.providerPreflightFormalAttemptBoundary !==
+        "schema7-consumed-sentinel-created-only-after-success" ||
+      !sameJson(
+        protocol.providerPreflightProbeOrder,
+        V073_PROVIDER_PREFLIGHT_POLICY.probeOrder,
+      ) ||
+      protocol.providerPreflightRequestTimeoutMs !==
+        V073_PROVIDER_PREFLIGHT_POLICY.requestTimeoutMs ||
+      protocol.providerPreflightRequestSequenceSha256 !==
+        V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequenceSha256 ||
+      protocol.providerPreflightRetries !== 0 ||
       !sameJson(protocol.providerFreeConcurrency, [1, 40]) ||
       protocol.providerLogCredentialMaterial !==
         "redacted-before-output-hash-and-persistence" ||
@@ -2535,6 +2839,7 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
       hardGate: value.hardGate,
       liveDiagnostic: value.liveDiagnostic,
       providerReplay: value.providerReplay,
+      providerPreflight: value.providerPreflight,
       releaseAllowed: value.releaseAllowed,
       researchRecordRequired: value.researchRecordRequired,
       schemaVersion: value.schemaVersion,

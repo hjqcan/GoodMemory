@@ -10,6 +10,8 @@ import {
 import { dirname, join, relative, resolve } from "node:path";
 
 import { DEFAULT_AISDK_RETRY_LIMIT } from "../src/provider/ai-sdk-runtime";
+import type { FetchLike } from "../src/provider/ai-sdk-runtime";
+import { createProviderListwiseReranker } from "../src/provider/layer";
 import { resolveCliFlagValueStrict } from "./cli-options";
 import {
   assertProviderResponseFailuresRecovered,
@@ -33,9 +35,15 @@ import type {
   V073PairedCommandChain,
   V073ProtectionArmManifest,
 } from "./run-v0-7-3-lifecycle-protection-gate";
-import { evaluateV073ReplacementProtection } from "./v0-7-3-replacement-protection";
+import {
+  assertV073ProviderPreflightReceipt,
+  evaluateV073ReplacementProtection,
+  V073_PROVIDER_PREFLIGHT_POLICY,
+} from "./v0-7-3-replacement-protection";
 import type {
   V073ProtectionSmokeReport,
+  V073ProviderPreflightReceipt,
+  V073ProviderPreflightTarget,
   V073ProviderReplaySession,
   V073ReplacementProtectionInput,
   V073ReplacementProtectionReport,
@@ -58,13 +66,13 @@ const QUESTION_CATEGORIES = [
   "temporal",
   "open_domain",
 ] as const;
-const PROVIDER_CREDENTIAL_ENV_NAMES = [
-  "GOODMEMORY_ASSISTED_EXTRACTOR_API_KEY",
-  "GOODMEMORY_EMBEDDING_API_KEY",
-  "GOODMEMORY_EVAL_API_KEY",
-  "GOODMEMORY_JUDGE_API_KEY",
-  "GOODMEMORY_RERANKING_API_KEY",
-] as const;
+const PROVIDER_CREDENTIAL_ENV_BY_ROLE = {
+  assisted: "GOODMEMORY_ASSISTED_EXTRACTOR_API_KEY",
+  embedding: "GOODMEMORY_EMBEDDING_API_KEY",
+  eval: "GOODMEMORY_EVAL_API_KEY",
+  judge: "GOODMEMORY_JUDGE_API_KEY",
+  reranking: "GOODMEMORY_RERANKING_API_KEY",
+} as const;
 const EXPECTED_QUESTION_COUNT = 233;
 const EXPECTED_CASE_COUNTS = {
   "locomo-conv-26": 152,
@@ -81,6 +89,8 @@ const SEED_RUNNER_PATH = "scripts/run-phase-65-locomo-smoke.ts";
 const REANSWER_RUNNER_PATH = "scripts/reanswer-phase-65-locomo-report.ts";
 const OFFICIAL_RUNNER_PATH = "scripts/rescore-official-protocols.ts";
 const EVIDENCE_ROOT = "reports/release/v0.7/v0.7.3-lifecycle-evidence";
+const FORMAL_ATTEMPT_SENTINEL =
+  "reports/release/v0.7/v0.7.3-lifecycle-schema7-attempt-consumed.json";
 const PROTECTION_ARTIFACT =
   "reports/release/v0.7/v0.7.3-lifecycle-protection.json";
 
@@ -114,6 +124,10 @@ export interface ProviderIdentity {
   provider: string;
 }
 
+type ProviderRole = keyof typeof PROVIDER_CREDENTIAL_ENV_BY_ROLE;
+type ProviderCredentials = Record<ProviderRole, string>;
+type ProviderIdentities = Record<ProviderRole, ProviderIdentity>;
+
 export interface V073StageSourceIdentity {
   claimRecipeRaw: string;
   officialSourceSha256: string;
@@ -121,7 +135,7 @@ export interface V073StageSourceIdentity {
   seedSourceSha256: string;
 }
 
-interface WorktreeProvenance {
+export interface WorktreeProvenance {
   branch: string | null;
   commit: string;
   statusPorcelain: string;
@@ -371,6 +385,20 @@ function assertCleanDetached(
   }
 }
 
+export function assertV073DriverMatchesCandidate(
+  driver: WorktreeProvenance,
+  candidate: WorktreeProvenance,
+): void {
+  if (driver.statusPorcelain !== "") {
+    throw new Error("replacement protection driver repository must be clean");
+  }
+  if (driver.commit !== candidate.commit) {
+    throw new Error(
+      "replacement protection driver repository must match the candidate commit",
+    );
+  }
+}
+
 function requiredProvider(prefix: string): ProviderIdentity {
   const gateway = process.env[`${prefix}_BASE_URL`]?.trim();
   const model = process.env[`${prefix}_MODEL`]?.trim();
@@ -381,14 +409,23 @@ function requiredProvider(prefix: string): ProviderIdentity {
   return { gateway, model, provider };
 }
 
-function requiredProviderCredentials(): string[] {
-  return [...new Set(PROVIDER_CREDENTIAL_ENV_NAMES.map((name) => {
-    const value = process.env[name]?.trim();
-    if (!value) {
-      throw new Error(`${name} is required`);
-    }
-    return value;
-  }))];
+function requiredProviderCredentials(): {
+  credentials: ProviderCredentials;
+  sensitiveValues: string[];
+} {
+  const credentials = Object.fromEntries(
+    Object.entries(PROVIDER_CREDENTIAL_ENV_BY_ROLE).map(([role, name]) => {
+      const value = process.env[name]?.trim();
+      if (!value) {
+        throw new Error(`${name} is required`);
+      }
+      return [role, value];
+    }),
+  ) as ProviderCredentials;
+  return {
+    credentials,
+    sensitiveValues: [...new Set(Object.values(credentials))],
+  };
 }
 
 function assertProviderIdentities(input: {
@@ -412,6 +449,246 @@ function assertProviderIdentities(input: {
     ) {
       throw new Error(`${label} provider identity does not match the preregistration`);
     }
+  }
+}
+
+function preflightFailureReason(
+  error: unknown,
+  session: ProviderTapeSessionStats,
+): string {
+  const attempt = session.transportAttemptLedger.at(-1);
+  if (attempt?.outcome === "error") {
+    return `transport-${attempt.errorCategory}`;
+  }
+  if (attempt?.outcome === "response" && attempt.responseStatus !== 200) {
+    return `http-${attempt.responseStatus}`;
+  }
+  if (
+    error instanceof Error &&
+    ["AbortError", "TimeoutError", "TypeError"].includes(error.name)
+  ) {
+    return `transport-${error.name}`;
+  }
+  return "invalid-response";
+}
+
+function assertProviderPreflightSession(session: ProviderTapeSessionStats): void {
+  if (
+    session.mode !== "prefetch" ||
+    session.requests !== V073_PROVIDER_PREFLIGHT_POLICY.probeOrder.length ||
+    session.hits !== 0 ||
+    session.misses !== session.requests ||
+    session.liveRequests !== session.requests ||
+    session.coalesced !== 0 ||
+    session.non2xxResponses !== 0 ||
+    session.sequenceMismatches !== 0 ||
+    session.transportAttempts !== session.requests ||
+    session.transportErrors !== 0 ||
+    session.requestSequenceSha256 !==
+      V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequenceSha256 ||
+    JSON.stringify(session.requestSequence) !==
+      JSON.stringify(V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequence) ||
+    JSON.stringify(session.transportAttemptLedger) !== JSON.stringify(
+      V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequence.map(
+        ({ fingerprint, targetId }, requestIndex) => ({
+          fingerprint,
+          outcome: "response",
+          requestIndex,
+          responseStatus: 200,
+          targetId,
+        }),
+      ),
+    ) ||
+    JSON.stringify(session.targetCounts) !==
+      JSON.stringify({ embedding: 1, eval: 3, judge: 1 })
+  ) {
+    throw new Error("provider availability preflight transport census is invalid");
+  }
+}
+
+async function runRawPreflightRequest(input: {
+  apiKey: string;
+  body: Record<string, unknown>;
+  proxy: ProviderResponseTapeProxy;
+  target: "embedding" | "judge";
+}): Promise<void> {
+  const response = await fetch(
+    `${input.proxy.baseUrl(input.target)}/${
+      input.target === "embedding" ? "embeddings" : "chat/completions"
+    }`,
+    {
+      body: JSON.stringify(input.body),
+      headers: {
+        authorization: `Bearer ${input.apiKey}`,
+        "content-type": "application/json",
+      },
+      method: "POST",
+      redirect: "error",
+      signal: AbortSignal.timeout(V073_PROVIDER_PREFLIGHT_POLICY.requestTimeoutMs),
+    },
+  );
+  if (response.status !== 200) {
+    await response.body?.cancel();
+    throw new Error("provider availability preflight received non-200 response");
+  }
+  const payload = await response.json() as Record<string, unknown>;
+  if (input.target === "embedding") {
+    const data = payload.data;
+    const first = Array.isArray(data) ? data[0] : undefined;
+    const embedding = first !== null && typeof first === "object"
+      ? (first as Record<string, unknown>).embedding
+      : undefined;
+    if (
+      !Array.isArray(embedding) ||
+      embedding.length === 0 ||
+      embedding.some((value) =>
+        typeof value !== "number" || !Number.isFinite(value)
+      )
+    ) {
+      throw new Error("provider availability preflight embedding is invalid");
+    }
+    return;
+  }
+  const choices = payload.choices;
+  const first = Array.isArray(choices) ? choices[0] : undefined;
+  const message = first !== null && typeof first === "object"
+    ? (first as Record<string, unknown>).message
+    : undefined;
+  const content = message !== null && typeof message === "object"
+    ? (message as Record<string, unknown>).content
+    : undefined;
+  if (typeof content !== "string" || content.trim().length === 0) {
+    throw new Error("provider availability preflight judge response is invalid");
+  }
+}
+
+export async function runV073ProviderAvailabilityPreflight(
+  input: {
+    credentials: ProviderCredentials;
+    providers: ProviderIdentities;
+  },
+  dependencies: {
+    fetch: FetchLike;
+  } = { fetch: globalThis.fetch.bind(globalThis) as FetchLike },
+): Promise<{
+  receipt: V073ProviderPreflightReceipt;
+  session: ProviderTapeSessionStats;
+  tape: ProviderResponseTape;
+}> {
+  const proxy = createProviderResponseTapeProxy({
+    targets: {
+      embedding: input.providers.embedding.gateway,
+      eval: input.providers.eval.gateway,
+      judge: input.providers.judge.gateway,
+    },
+    upstreamFetch: dependencies.fetch,
+  });
+  const probes: V073ProviderPreflightReceipt["probes"] = [];
+  const attempts = new Map<V073ProviderPreflightTarget, number>();
+  proxy.beginSession({
+    liveOnMiss: true,
+    mode: "prefetch",
+    name: "provider-availability-preflight",
+  });
+  try {
+    for (const target of V073_PROVIDER_PREFLIGHT_POLICY.probeOrder) {
+      const attempt = (attempts.get(target) ?? 0) + 1;
+      attempts.set(target, attempt);
+      try {
+        if (target === "eval-listwise") {
+          const scores = await createProviderListwiseReranker({
+            model: {
+              apiKey: input.credentials.eval,
+              baseURL: proxy.baseUrl("eval"),
+              model: input.providers.eval.model,
+              provider: "openai",
+            },
+            requestTimeoutMs: V073_PROVIDER_PREFLIGHT_POLICY.requestTimeoutMs,
+            retryLimit: 1,
+            temperature: 0,
+          }).rerank({
+            documents: [
+              { id: "candidate-a", text: "The release is blocked." },
+              { id: "candidate-b", text: "The release gate passed." },
+            ],
+            query: "Which candidate says the release gate passed?",
+          });
+          if (
+            scores.length !== 2 ||
+            new Set(scores.map(({ id }) => id)).size !== 2
+          ) {
+            throw new Error("provider availability preflight rerank is invalid");
+          }
+        } else if (target === "embedding") {
+          await runRawPreflightRequest({
+            apiKey: input.credentials.embedding,
+            body: {
+              input: ["GoodMemory provider availability preflight"],
+              model: input.providers.embedding.model,
+            },
+            proxy,
+            target,
+          });
+        } else {
+          await runRawPreflightRequest({
+            apiKey: input.credentials.judge,
+            body: {
+              max_tokens: 8,
+              messages: [{
+                content: "Reply only YES.",
+                role: "user",
+              }],
+              model: input.providers.judge.model,
+              temperature: 0,
+            },
+            proxy,
+            target,
+          });
+        }
+        await proxy.waitForIdle();
+        const transportAttempt =
+          proxy.sessionStats().transportAttemptLedger.at(-1);
+        if (
+          transportAttempt?.outcome !== "response" ||
+          transportAttempt.responseStatus !== 200
+        ) {
+          throw new Error("provider availability preflight requires HTTP 200");
+        }
+      } catch (error) {
+        await proxy.waitForIdle();
+        throw new Error(
+          `provider preflight ${target} probe ${attempt} failed: ${
+            preflightFailureReason(error, proxy.sessionStats())
+          }`,
+        );
+      }
+      probes.push({
+        attempt,
+        responseKind: target === "eval-listwise"
+          ? "stream-object"
+          : target === "embedding"
+            ? "embedding"
+            : "chat-json",
+        status: 200,
+        target,
+      });
+    }
+    await proxy.waitForIdle();
+    const session = proxy.endSession();
+    const receipt: V073ProviderPreflightReceipt = {
+      probeOrder: [...V073_PROVIDER_PREFLIGHT_POLICY.probeOrder],
+      probes,
+      totalRequests: probes.length,
+    };
+    assertV073ProviderPreflightReceipt(receipt);
+    assertProviderPreflightSession(session);
+    assertProviderTapeCredentialSafe(proxy, Object.values(input.credentials));
+    const tape = parseProviderResponseTape(
+      serializeProviderResponseTape(proxy.snapshot()),
+    );
+    return { receipt, session, tape };
+  } finally {
+    proxy.stop();
   }
 }
 
@@ -460,6 +737,13 @@ async function writeAtomic(path: string, raw: string): Promise<void> {
   const partial = `${resolved}.partial`;
   await writeFile(partial, raw, { flag: "wx" });
   await rename(partial, resolved);
+}
+
+export async function claimV073Schema7FormalAttempt(
+  path: string,
+  raw: string,
+): Promise<void> {
+  await writeFile(resolve(path), raw, { flag: "wx" });
 }
 
 async function persistDiscoveryFailureTape(input: {
@@ -1379,6 +1663,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
   const candidateWorktree = resolve(options.candidateWorktree);
   const benchmarkRoot = resolve(options.benchmarkRoot);
   const outputDir = resolve(options.outputDir);
+  const formalAttemptSentinelPath = resolve(FORMAL_ATTEMPT_SENTINEL);
   const reportPath = resolve(PROTECTION_ARTIFACT);
   if (baselineWorktree === candidateWorktree) {
     throw new Error("baseline and candidate detached checkouts must differ");
@@ -1388,9 +1673,14 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
   }
   await Promise.all([
     assertPathAbsent(outputDir, "replacement protection evidence root"),
+    assertPathAbsent(
+      formalAttemptSentinelPath,
+      "replacement protection schema 7 attempt sentinel",
+    ),
     assertPathAbsent(reportPath, "replacement protection artifact"),
   ]);
   const [
+    driverProvenance,
     baselineProvenance,
     candidateProvenance,
     benchmarkBytes,
@@ -1398,6 +1688,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
     candidateHarness,
   ] =
     await Promise.all([
+      worktreeProvenance(process.cwd()),
       worktreeProvenance(baselineWorktree),
       worktreeProvenance(candidateWorktree),
       readFile(join(benchmarkRoot, "cases.json")),
@@ -1406,6 +1697,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
     ]);
   assertCleanDetached(baselineProvenance, BASELINE_COMMIT, "baseline");
   assertCleanDetached(candidateProvenance, null, "candidate");
+  assertV073DriverMatchesCandidate(driverProvenance, candidateProvenance);
   if (JSON.stringify(baselineHarness) !== JSON.stringify(candidateHarness)) {
     throw new Error("baseline and candidate measurement harness bytes must match");
   }
@@ -1421,10 +1713,54 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
     eval: requiredProvider("GOODMEMORY_EVAL"),
     judge: requiredProvider("GOODMEMORY_JUDGE"),
     reranking: requiredProvider("GOODMEMORY_RERANKING"),
-  };
-  const sensitiveValues = requiredProviderCredentials();
+  } satisfies ProviderIdentities;
+  const { credentials, sensitiveValues } = requiredProviderCredentials();
   assertProviderIdentities(providers);
-  await mkdir(outputDir, { recursive: true });
+  const providerPreflight = await runV073ProviderAvailabilityPreflight({
+    credentials,
+    providers,
+  });
+  const formalAttemptSentinelRaw = `${JSON.stringify({
+    baselineCommit: baselineProvenance.commit,
+    candidateCommit: candidateProvenance.commit,
+    generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
+    providerPreflight: providerPreflight.receipt,
+    requestSequenceSha256:
+      V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequenceSha256,
+    schemaVersion: 7,
+    state: "consumed",
+  }, null, 2)}\n`;
+  await claimV073Schema7FormalAttempt(
+    formalAttemptSentinelPath,
+    formalAttemptSentinelRaw,
+  );
+  await mkdir(outputDir);
+  const providerPreflightRoot = join(outputDir, "provider-preflight");
+  await mkdir(providerPreflightRoot);
+  const providerPreflightTapePath = join(providerPreflightRoot, "tape.json");
+  const providerPreflightTapeRaw = serializeProviderResponseTape(
+    providerPreflight.tape,
+  );
+  await writeAtomic(providerPreflightTapePath, providerPreflightTapeRaw);
+  const providerPreflightReceiptPath = join(
+    providerPreflightRoot,
+    "execution-receipt.json",
+  );
+  const providerPreflightReceiptRaw = await writeJson(
+    providerPreflightReceiptPath,
+    {
+      generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
+      probePlan: providerPreflight.receipt,
+      session: redactSensitiveSessionValues(
+        providerPreflight.session,
+        sensitiveValues,
+      ),
+      tape: artifactIdentity(
+        providerPreflightTapePath,
+        providerPreflightTapeRaw,
+      ),
+    },
+  );
   const manifestPath = join(outputDir, "manifest.json");
   await writeJson(manifestPath, {
     baseline: { ...baselineProvenance, worktreePath: baselineWorktree },
@@ -1435,8 +1771,25 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       sha256: sha256(benchmarkBytes),
     },
     candidate: { ...candidateProvenance, worktreePath: candidateWorktree },
+    formalAttempt: {
+      sentinel: artifactIdentity(
+        formalAttemptSentinelPath,
+        formalAttemptSentinelRaw,
+      ),
+    },
     generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
     measurementHarness: baselineHarness,
+    providerPreflight: {
+      receipt: artifactIdentity(
+        providerPreflightReceiptPath,
+        providerPreflightReceiptRaw,
+      ),
+      summary: providerPreflight.receipt,
+      tape: artifactIdentity(
+        providerPreflightTapePath,
+        providerPreflightTapeRaw,
+      ),
+    },
     protocol: {
       assistedExtractionMaxAttempts:
         V073_ASSISTED_EXTRACTION_POLICY.maxAttempts,
@@ -1453,6 +1806,15 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       promptSha256: deriveV073PromptSha256(),
       providerFailureRecovery:
         "immediate-same-fingerprint-retry-to-2xx",
+      providerPreflightFormalAttemptBoundary:
+        "schema7-consumed-sentinel-created-only-after-success",
+      providerPreflightProbeOrder:
+        V073_PROVIDER_PREFLIGHT_POLICY.probeOrder,
+      providerPreflightRequestTimeoutMs:
+        V073_PROVIDER_PREFLIGHT_POLICY.requestTimeoutMs,
+      providerPreflightRequestSequenceSha256:
+        V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequenceSha256,
+      providerPreflightRetries: 0,
       providerFreeConcurrency: [1, 40],
       providerLogCredentialMaterial:
         "redacted-before-output-hash-and-persistence",
@@ -1471,7 +1833,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       transportProxyRetries: V073_PROVIDER_TRANSPORT_POLICY.proxyRetries,
     },
     providers,
-    schemaVersion: 6,
+    schemaVersion: 7,
   });
 
   const [providerFreeC1Baseline, providerFreeC1Candidate] = await Promise.all([
@@ -1632,6 +1994,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
         concurrency: 40,
       },
     ],
+    providerPreflight: providerPreflight.receipt,
     providerReplay: {
       baselineExecutionFailures: baselineFormal.finalReport.executionFailures,
       baselineJudgeFailures: baselineFormal.officialSummary.judgeFailures,
@@ -1677,8 +2040,13 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
   assertCleanDetached(baselineAfter, baselineProvenance.commit, "baseline");
   assertCleanDetached(candidateAfter, candidateProvenance.commit, "candidate");
   const artifacts = {
+    attemptSentinel: await trackedArtifact(formalAttemptSentinelPath),
     manifest: await trackedArtifact(manifestPath),
     protocolInput: await trackedArtifact(protocolInputPath),
+    providerPreflight: {
+      receipt: await trackedArtifact(providerPreflightReceiptPath),
+      tape: await trackedArtifact(providerPreflightTapePath),
+    },
     providerFree: {
       c1Baseline: await trackedArtifact(providerFreeC1Baseline.path),
       c1BaselineReceipt: await trackedArtifact(providerFreeC1Baseline.receiptPath),
