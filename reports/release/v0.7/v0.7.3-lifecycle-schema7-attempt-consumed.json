@@ -1,0 +1,50 @@
+{
+  "baselineCommit": "456edd106f29118b3455bf21c43d7b3107b48213",
+  "candidateCommit": "c5665458f79adbc7d35eccb2155dc40b2a443ae2",
+  "generatedBy": "scripts/run-v0-7-3-replacement-protection-gate.ts",
+  "providerPreflight": {
+    "probeOrder": [
+      "eval-listwise",
+      "eval-listwise",
+      "eval-listwise",
+      "embedding",
+      "judge"
+    ],
+    "probes": [
+      {
+        "attempt": 1,
+        "responseKind": "stream-object",
+        "status": 200,
+        "target": "eval-listwise"
+      },
+      {
+        "attempt": 2,
+        "responseKind": "stream-object",
+        "status": 200,
+        "target": "eval-listwise"
+      },
+      {
+        "attempt": 3,
+        "responseKind": "stream-object",
+        "status": 200,
+        "target": "eval-listwise"
+      },
+      {
+        "attempt": 1,
+        "responseKind": "embedding",
+        "status": 200,
+        "target": "embedding"
+      },
+      {
+        "attempt": 1,
+        "responseKind": "chat-json",
+        "status": 200,
+        "target": "judge"
+      }
+    ],
+    "totalRequests": 5
+  },
+  "requestSequenceSha256": "e06454041f939d133629b33f4036addef90d8961a2c985848a7482ebac5e30af",
+  "schemaVersion": 7,
+  "state": "consumed"
+}

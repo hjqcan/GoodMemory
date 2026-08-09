@@ -1,0 +1,152 @@
+{
+  "generatedBy": "scripts/run-v0-7-3-replacement-protection-gate.ts",
+  "probePlan": {
+    "probeOrder": [
+      "eval-listwise",
+      "eval-listwise",
+      "eval-listwise",
+      "embedding",
+      "judge"
+    ],
+    "probes": [
+      {
+        "attempt": 1,
+        "responseKind": "stream-object",
+        "status": 200,
+        "target": "eval-listwise"
+      },
+      {
+        "attempt": 2,
+        "responseKind": "stream-object",
+        "status": 200,
+        "target": "eval-listwise"
+      },
+      {
+        "attempt": 3,
+        "responseKind": "stream-object",
+        "status": 200,
+        "target": "eval-listwise"
+      },
+      {
+        "attempt": 1,
+        "responseKind": "embedding",
+        "status": 200,
+        "target": "embedding"
+      },
+      {
+        "attempt": 1,
+        "responseKind": "chat-json",
+        "status": 200,
+        "target": "judge"
+      }
+    ],
+    "totalRequests": 5
+  },
+  "session": {
+    "coalesced": 0,
+    "hits": 0,
+    "liveRequests": 5,
+    "misses": 5,
+    "mode": "prefetch",
+    "name": "provider-availability-preflight",
+    "non2xxResponses": 0,
+    "requestFingerprintMultisetSha256": "0021dcf2d4194db49fca6091ad5f5b70b52d1c93599dc35f09e3fa2e7bcd946c",
+    "requestSequence": [
+      {
+        "canonicalBodySha256": "903cbb2ba9a60400e23282902628b631a01712d59f886e5ab158d418dd24fac3",
+        "fingerprint": "9f8bf28802032472aa7f3bbbb91ef514655c7700fae5cdf4c6f902fde5b9fc2c",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "903cbb2ba9a60400e23282902628b631a01712d59f886e5ab158d418dd24fac3",
+        "fingerprint": "9f8bf28802032472aa7f3bbbb91ef514655c7700fae5cdf4c6f902fde5b9fc2c",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "903cbb2ba9a60400e23282902628b631a01712d59f886e5ab158d418dd24fac3",
+        "fingerprint": "9f8bf28802032472aa7f3bbbb91ef514655c7700fae5cdf4c6f902fde5b9fc2c",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "e08fd272ec95b294d4ef01a4e243d1d2905accfb4a499d8df7c8d3350bd827c5",
+        "targetId": "eval"
+      },
+      {
+        "canonicalBodySha256": "b3231b2832d5fc3019b2b25b7be17dcce1cd52ce2af5cbf13aa8096593560174",
+        "fingerprint": "01133e40ae6a6cc93cf7e3aea2f75dc4d7ea55a6afaf717431993c0ad67f356b",
+        "method": "POST",
+        "path": "/embeddings",
+        "semanticHeadersSha256": "b56fb4937180a622a63acacf9a5b97d35cc57ef1f3fec531a0883a29be401c84",
+        "targetId": "embedding"
+      },
+      {
+        "canonicalBodySha256": "72b1d4bc6b44f5942d52901272ba8986d3cb63216c65ffebbd0a84730c75ea23",
+        "fingerprint": "5eb60034cdd2b92af980038b4e94fde41d3131bd36c53ab1790a0c5d14ae4c3e",
+        "method": "POST",
+        "path": "/chat/completions",
+        "semanticHeadersSha256": "b56fb4937180a622a63acacf9a5b97d35cc57ef1f3fec531a0883a29be401c84",
+        "targetId": "judge"
+      }
+    ],
+    "requestSequenceSha256": "e06454041f939d133629b33f4036addef90d8961a2c985848a7482ebac5e30af",
+    "requests": 5,
+    "sequenceMismatchDetails": [],
+    "sequenceMismatches": 0,
+    "targetCounts": {
+      "embedding": 1,
+      "eval": 3,
+      "judge": 1
+    },
+    "tapeSha256": "d5727a64e7ed4675df33e2d1e87e286b3f3a1f162ed865060982a87870a1e7a3",
+    "transportAttemptLedger": [
+      {
+        "fingerprint": "9f8bf28802032472aa7f3bbbb91ef514655c7700fae5cdf4c6f902fde5b9fc2c",
+        "outcome": "response",
+        "requestIndex": 0,
+        "responseStatus": 200,
+        "targetId": "eval"
+      },
+      {
+        "fingerprint": "9f8bf28802032472aa7f3bbbb91ef514655c7700fae5cdf4c6f902fde5b9fc2c",
+        "outcome": "response",
+        "requestIndex": 1,
+        "responseStatus": 200,
+        "targetId": "eval"
+      },
+      {
+        "fingerprint": "9f8bf28802032472aa7f3bbbb91ef514655c7700fae5cdf4c6f902fde5b9fc2c",
+        "outcome": "response",
+        "requestIndex": 2,
+        "responseStatus": 200,
+        "targetId": "eval"
+      },
+      {
+        "fingerprint": "01133e40ae6a6cc93cf7e3aea2f75dc4d7ea55a6afaf717431993c0ad67f356b",
+        "outcome": "response",
+        "requestIndex": 3,
+        "responseStatus": 200,
+        "targetId": "embedding"
+      },
+      {
+        "fingerprint": "5eb60034cdd2b92af980038b4e94fde41d3131bd36c53ab1790a0c5d14ae4c3e",
+        "outcome": "response",
+        "requestIndex": 4,
+        "responseStatus": 200,
+        "targetId": "judge"
+      }
+    ],
+    "transportAttemptLedgerSha256": "d49a44541b082124b258f523a66fd31a77f4aa0218be13e36022405cb40ccdd8",
+    "transportAttempts": 5,
+    "transportErrors": 0
+  },
+  "tape": {
+    "bytes": 63402,
+    "path": "reports/release/v0.7/v0.7.3-lifecycle-evidence/provider-preflight/tape.json",
+    "sha256": "d5727a64e7ed4675df33e2d1e87e286b3f3a1f162ed865060982a87870a1e7a3"
+  }
+}

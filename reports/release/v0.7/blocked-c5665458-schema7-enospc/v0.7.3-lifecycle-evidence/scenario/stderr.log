@@ -1,0 +1,29 @@
+
+tests/scenarios/open-loop.continuation.test.ts:
+(pass) scenario open-loop continuation > carries unresolved work forward into the next session [24.25ms]
+
+tests/scenarios/scope-isolation.test.ts:
+(pass) scenario scope isolation > does not leak workspace-specific memory into another workspace recall [5.23ms]
+
+tests/scenarios/identity-background.continuity.test.ts:
+(pass) scenario identity continuity > preserves identity, role, and response style across sessions [4.48ms]
+
+tests/scenarios/dataset.smoke.test.ts:
+(pass) scenario dataset smoke > replays every eval scenario deterministically [286.60ms]
+
+tests/scenarios/long-lifecycle.change.test.ts:
+(pass) scenario long lifecycle change > prefers the user's current role and focus after multiple lifecycle updates [4.73ms]
+
+tests/scenarios/replay.smoke.test.ts:
+(pass) scenario replay harness smoke > replays a minimal multi-turn conversation [1.65ms]
+
+tests/scenarios/confirmation.feedback.test.ts:
+(pass) scenario confirmation feedback > applies confirmed procedural feedback to later responses [2.47ms]
+
+tests/scenarios/stale-reference.correction.test.ts:
+(pass) scenario stale reference correction > supersedes stale references after a user correction [3.97ms]
+
+ 8 pass
+ 0 fail
+ 273 expect() calls
+Ran 8 tests across 8 files. [431.00ms]
