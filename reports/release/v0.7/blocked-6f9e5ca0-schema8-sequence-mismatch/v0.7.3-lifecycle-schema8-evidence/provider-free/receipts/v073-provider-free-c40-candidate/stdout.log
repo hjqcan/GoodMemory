@@ -1,0 +1,79 @@
+{
+  "benchmarkSource": "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1/cases.json",
+  "caseIds": [
+    "locomo-conv-26",
+    "locomo-conv-30"
+  ],
+  "categories": [
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0.3333333333333333,
+      "category": "single_hop",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 37,
+      "noiseTurnTotal": 1054,
+      "questionCount": 114
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0.05620155038759691,
+      "category": "multi_hop",
+      "crossSessionChainReady": false,
+      "fullyRetrievedCount": 1,
+      "noiseTurnTotal": 414,
+      "questionCount": 43
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0.4444444444444444,
+      "category": "temporal",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 28,
+      "noiseTurnTotal": 566,
+      "questionCount": 63
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0.23076923076923078,
+      "category": "open_domain",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 2,
+      "noiseTurnTotal": 127,
+      "questionCount": 13
+    },
+    {
+      "answerAccuracy": null,
+      "answeredCount": 0,
+      "averageEvidenceRecall": 0,
+      "category": "adversarial",
+      "crossSessionChainReady": null,
+      "fullyRetrievedCount": 0,
+      "noiseTurnTotal": 0,
+      "questionCount": 0
+    }
+  ],
+  "executionFailures": 0,
+  "providerEmbeddingRunTimeoutMs": null,
+  "providerEmbeddingTimeoutMs": null,
+  "questionCount": 233,
+  "questionCategories": [
+    "single_hop",
+    "multi_hop",
+    "temporal",
+    "open_domain"
+  ],
+  "reportPath": "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence/provider-free/v073-provider-free-c40-candidate/smoke-report.json",
+  "runId": "v073-provider-free-c40-candidate",
+  "semanticCandidateEmbeddingSource": "none",
+  "semanticCandidates": {
+    "enabled": false,
+    "maxAdditions": null,
+    "minRelativeScore": null,
+    "minSimilarity": null,
+    "topK": null
+  }
+}

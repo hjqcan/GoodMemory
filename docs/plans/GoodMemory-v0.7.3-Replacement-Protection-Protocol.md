@@ -1,8 +1,8 @@
 # GoodMemory v0.7.3 Replacement Protection Protocol
 
-Status: schemas 6 and 7 are terminal blocked evidence and are archived;
-schema 8 is pre-registered but has not begun a live attempt. There is still no
-passing run or release
+Status: schemas 6 through 8 are terminal blocked evidence and are archived;
+no successor formal attempt is authorized until a new preregistration lands.
+There is still no passing run or release
 Date: 2026-08-09
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
@@ -422,6 +422,41 @@ and read-only review are green on one clean frozen `main` commit. Measurement
 uses separate clean detached baseline and candidate checkouts; no branch is
 created.
 
+## First schema-8 execution is blocked
+
+The single schema-8 attempt passed its 4 GiB storage qualification, all five
+provider probes, deterministic C1 and C40 protection, and the 8/8 scenario
+replay. Both discovery arms completed 233 questions with zero execution or
+judge failures, and the union response tape was persisted as ten bounded gzip
+parts containing 1,147 entries and 155,540,308 raw JSON bytes.
+
+Baseline formal replay then observed 76 exact input-sequence mismatches. All
+were eval `POST /chat/completions` requests whose canonical body hashes were
+absent from the complete discovery multiset. The replay proxy returned its
+deliberate 409 mismatch response; the product reranker fell back to
+deterministic recall; and the runner correctly failed closed before reanswer,
+official rescore, candidate formal replay, or the paired analyzer. The formal
+session recorded 556 requests, 480 exact hits, zero misses, zero live requests,
+and 76 mismatches.
+
+The retained evidence also exposes a stage-identity leak that a successor must
+reproduce and close locally: stage-specific seed run IDs become LoCoMo
+`workspaceId` values, and recall projection IDs hash that scope identity. The
+discovery and formal extraction caches are byte-identical, while the two stage
+run IDs produce different scope and entity projection IDs for identical
+content. Because the retained request evidence binds hashes rather than raw
+bodies, a successor is not authorized until a provider-free request-capture
+regression proves the stable construction. Exact fingerprint matching remains
+required; changing the comparison to a multiset or fuzzy match is not an
+accepted remedy.
+
+Schema 8 is permanently consumed. Its evidence and attribution are archived
+under
+`reports/release/v0.7/blocked-6f9e5ca0-schema8-sequence-mismatch/`; the external
+sentinel remains tracked at
+`reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json`. No
+passing compact artifact exists.
+
 ## Release decision
 
 The replacement has three layers. Only deterministic metrics use the 1.00pt
@@ -542,9 +577,9 @@ direction, never a replacement for the deterministic hard gate.
 
 ## Claim boundary
 
-The full 1540-question claim must run only after schema 8 passes and is bound to
-the release candidate commit. Schemas 2 through 7 are terminal blocked evidence
-and cannot authorize that claim. The existing
+The full 1540-question claim cannot run until a newly preregistered successor
+schema passes and is bound to its release candidate commit. Schemas 2 through
+8 are terminal blocked evidence and cannot authorize that claim. The existing
 0.8799 number is not copied forward. The observed 233-question same-commit
 wobble, scaled only as a heuristic by `sqrt(233/1540)`, suggests roughly
 0.4-0.7pt full-set run-to-run spread; this is not a confidence interval.
@@ -558,7 +593,7 @@ independent evidence.
 
 ## Commands and evidence locations
 
-The live measurement command is:
+The consumed schema-8 measurement command was:
 
 ```bash
 bun run gate:v0.7.3-lifecycle-protection -- \
@@ -568,17 +603,15 @@ bun run gate:v0.7.3-lifecycle-protection -- \
   --output-dir reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence
 ```
 
-The schema-8 compact result, if the single attempt passes, is
+The schema-8 compact result would have been
 `reports/release/v0.7/v0.7.3-lifecycle-protection.json`; no such passing
-artifact was produced. The terminal blocked attempt is archived under
-`reports/release/v0.7/blocked-c5665458-schema7-enospc/`.
-`gate:v0.7 --strict` re-reads every bound artifact,
-re-parses the tape, re-hashes the frozen input sequences, recomputes
-deterministic metrics and the sign test, and rejects schema-1 through schema-7
-evidence. The verifier requires the external schema-8 consumed sentinel, the
-independent five-request preflight receipt and tape, a passing schema-8 compact
-result, and the recomputed schema-3 occurrence tape before it can authorize
-release.
+artifact was produced. The terminal schema-8 attempt is archived under
+`reports/release/v0.7/blocked-6f9e5ca0-schema8-sequence-mismatch/`. The current
+strict verifier therefore cannot authorize release: it requires a passing
+compact artifact and complete formal pair, neither of which exists. A
+successor must revise the runner and independent verifier under a new schema;
+the archived schema-8 discovery metrics and tape cannot be promoted into that
+successor's release decision.
 
 The measurement runner validates the external `cases.json` against the frozen
 byte count and SHA-256. The tracked manifest retains that identity and the

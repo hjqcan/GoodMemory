@@ -1,0 +1,51 @@
+{
+  "args": [
+    "run",
+    "scripts/run-phase-65-locomo-smoke.ts",
+    "--",
+    "--benchmark-root",
+    "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1",
+    "--case-id",
+    "locomo-conv-26",
+    "--case-id",
+    "locomo-conv-30",
+    "--category",
+    "single_hop",
+    "--category",
+    "multi_hop",
+    "--category",
+    "temporal",
+    "--category",
+    "open_domain",
+    "--label-free-ingest",
+    "--generalized-fusion",
+    "--concurrency",
+    "40",
+    "--output-dir",
+    "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence/provider-free",
+    "--run-id",
+    "v073-provider-free-c40-candidate"
+  ],
+  "command": "bun",
+  "commit": "6f9e5ca03112143fb06cd58049ceb4910367b282",
+  "concurrency": 40,
+  "cwd": "/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/candidate",
+  "exitCode": 0,
+  "generatedBy": "scripts/run-v0-7-3-replacement-protection-gate.ts",
+  "label": "candidate",
+  "stderr": {
+    "bytes": 0,
+    "path": "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence/provider-free/receipts/v073-provider-free-c40-candidate/stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "bytes": 2213,
+    "path": "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence/provider-free/receipts/v073-provider-free-c40-candidate/stdout.log",
+    "sha256": "828b1d54bec7e0f69a949c5046e5d2afc6e7cfb5fdd00dec39cc7ac34da775aa"
+  },
+  "report": {
+    "bytes": 268401,
+    "path": "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence/provider-free/v073-provider-free-c40-candidate/smoke-report.json",
+    "sha256": "25a118fb140559cbac9cd8088c5f67e3e11e9548734af5b1bb21cf14785edf6e"
+  }
+}

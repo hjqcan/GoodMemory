@@ -1,0 +1,1521 @@
+[seedSmoke]
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}
+[goodmemory:reranker] reranking failed; preserving deterministic recall {
+  adapter: "provider",
+  candidateCount: 32,
+  error: 664 |       }
+665 |     }
+666 | 
+667 |     const gatewayError = extractOpenAICompatibleErrorMessage(payload);
+668 |     if (!response.ok) {
+669 |       throw new Error(
+                      ^
+error: OpenAI-compatible gateway error 409: Conflict
+      at requestOpenAICompatibleTextInternal (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:669:17)
+      at async requestOpenAICompatibleText (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:761:17)
+      at async requestOpenAICompatibleObject (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/ai-sdk-runtime.ts:825:11)
+      at async <anonymous> (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/reranker.ts:345:27)
+      at async runWithModelUsageAttempt (/Users/hjqcan/workspace/goodmemory-v073-schema8.vjSuq1/baseline/src/provider/model-usage.ts:336:26)
+,
+  model: "gpt-5.6-terra",
+  provider: "openai",
+}

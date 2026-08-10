@@ -1,0 +1,11 @@
+[seedSmoke]
+
+[reanswer]
+LoCoMo reanswer: 50/233 answers completed.
+LoCoMo reanswer: 100/233 answers completed.
+LoCoMo reanswer: 150/233 answers completed.
+LoCoMo reanswer: 200/233 answers completed.
+LoCoMo reanswer: 233/233 answers completed.
+
+[officialRescore]
+$ bun run scripts/rescore-official-protocols.ts --benchmark locomo --report "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence/provider-replay/candidate-discovery/v073-candidate-discovery-final-0c0cf29b/smoke-report.json" --root "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1/cases.json" --concurrency "1" --run-id "v073-candidate-discovery-official-0c0cf29b"
