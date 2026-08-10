@@ -1,0 +1,59 @@
+{
+  "benchmark": "locomo",
+  "claimBoundary": "Official/industry-prompt-compatible stored-answer rescore; numeric comparability is benchmark-specific and requires a matching pinned evaluator configuration; not answer regeneration or a public benchmark claim.",
+  "generatedAt": "2026-08-10T12:46:24.105Z",
+  "generatedBy": "scripts/rescore-official-protocols.ts",
+  "judgeGateway": "http://127.0.0.1:63787/judge",
+  "judgeModel": "gpt-5.5",
+  "judgeProvider": "openai",
+  "limit": null,
+  "limitUnit": "cases",
+  "outputPath": "/private/tmp/goodmemory-v073-schema9.cB1OcA/candidate/reports/eval/research/official-rescore/v073-candidate-discovery-official-ecacf305/rescore-summary.json",
+  "runId": "v073-candidate-discovery-official-ecacf305",
+  "scorerSource": null,
+  "sourceAnswersUnchanged": true,
+  "sourceInputFingerprints": {
+    "reportPath": {
+      "bytes": 271185,
+      "sha256": "5a0d3cf97f11a6ba3c47d4fe65c7b16a516729e88ad54ca034fedaae3a98cf02"
+    },
+    "rootPath": {
+      "bytes": 2490457,
+      "sha256": "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28"
+    }
+  },
+  "sourceInputs": {
+    "reportPath": "/Users/hjqcan/workspace/GoodMemory/reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/provider-replay/candidate-discovery/v073-candidate-discovery-final-ecacf305/smoke-report.json",
+    "rootPath": "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1/cases.json"
+  },
+  "selectedCases": 233,
+  "sourceCases": 233,
+  "categories": {
+    "temporal": {
+      "accuracy": 0.9682539682539683,
+      "correct": 61,
+      "total": 63
+    },
+    "open_domain": {
+      "accuracy": 0.6923076923076923,
+      "correct": 9,
+      "total": 13
+    },
+    "multi_hop": {
+      "accuracy": 0.9534883720930233,
+      "correct": 41,
+      "total": 43
+    },
+    "single_hop": {
+      "accuracy": 0.9122807017543859,
+      "correct": 104,
+      "total": 114
+    }
+  },
+  "judgeFailures": 0,
+  "judgedCases": 233,
+  "overallAccuracy": 0.9227467811158798,
+  "overallCorrect": 215,
+  "protocol": "mem0ai/memory-benchmarks LoCoMo judge (no-evidence variant, categories 1-4)",
+  "totalCases": 233
+}

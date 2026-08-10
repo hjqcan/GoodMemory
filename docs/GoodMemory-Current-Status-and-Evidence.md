@@ -71,14 +71,22 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   `reports/release/v0.7/blocked-6f9e5ca0-schema8-sequence-mismatch/`. A local
   provider-free capture reproduced a deterministic mechanism capable of the
   same class of drift: stage-specific seed run IDs entered LoCoMo scope and
-  changed candidate selection and/or ordering. Schema 9 is pre-registered with
-  one shared semantic seed ID across all four provider stages while keeping
-  their artifact roots, final IDs, and official IDs separate. This removes a
-  known confound; fresh exact replay still decides whether it fully explains
-  the historical mismatch. Schema 9 retains the schema-8
-  storage, tape, exact-replay, readiness, and release-workflow boundaries under
-  a new sentinel and evidence root. No full 1540-question claim or v0.7.3
-  release is yet authorized.
+  changed candidate selection and/or ordering. Schema 9 removed that confound
+  with one shared semantic seed ID across all four provider stages while
+  keeping their artifact roots, final IDs, and official IDs separate. Its
+  single formal attempt at candidate `21dcac8d` passed the 4 GiB storage check,
+  all five provider probes, deterministic C1/C40 protection, and 8/8 scenario
+  replay. C1 moved overall evidence recall by `+0.858369pt`, including the
+  preregistered research-record movement of `+1.587302pt` for the temporal
+  category; C40 moved overall recall by `+0.429185pt`. The provider union tape
+  contains 1,023 entries. Each formal arm then reproduced all 1,018 requests
+  with 1,018 exact hits, zero misses, zero live requests, zero sequence
+  mismatches, and zero execution or judge failures. Provider evidence recall
+  and official score deltas were both zero; strict answer score moved by
+  `+0.071531pt`. The passing compact artifact now authorizes the fresh full
+  1,540-question claim rerun. It does not itself publish v0.7.3: the full claim,
+  final strict readiness, tag, npm publish, and GitHub Release are still
+  pending.
   See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as

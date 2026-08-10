@@ -1,9 +1,10 @@
 # GoodMemory v0.7.3 Replacement Protection Protocol
 
 Status: schemas 6 through 8 are terminal blocked evidence and are archived;
-schema 9 is preregistered but its live attempt has not begun. There is still no
-passing run or release authorization
-Date: 2026-08-09
+schema 9 completed its single formal attempt and passed. The lifecycle gate
+authorizes the full claim rerun, but v0.7.3 remains unpublished pending that
+claim, final readiness, and release verification
+Date: 2026-08-10
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
 ## Why the first gate remains blocked
@@ -503,6 +504,38 @@ with network-on-miss disabled. The attempt may begin only from one clean frozen
 read-only review pass. Five successful provider probes precede the exclusive
 schema-9 sentinel; any later failure consumes schema 9 permanently.
 
+## First schema-9 execution passes
+
+Schema 9 ran once from clean `main` candidate
+`21dcac8d10b0b6714d09cf14eacd83e32e0c9513` against fixed baseline
+`456edd106f29118b3455bf21c43d7b3107b48213`. The storage qualification observed
+8,531,546,112 available bytes against the fixed 4 GiB minimum, and all five
+provider probes returned parse-valid HTTP 200 responses before the exclusive
+sentinel was created.
+
+The deterministic hard layer passed. Provider-free C1 moved overall evidence
+recall from `0.3022174535` to `0.3108011445` (`+0.858369pt`), and C40 moved it
+to `0.3065092990` (`+0.429185pt`). No protected slice regressed by more than
+1.00pt, and scenario replay passed 8/8. The C1 temporal slice moved from
+`0.4444444444` to `0.4603174603` (`+1.587302pt`); this positive movement is the
+required research record and is not treated as a failure.
+
+Baseline discovery recorded 1,018 requests. Candidate discovery reused 1,013
+of them and added five exact response occurrences. The frozen union tape
+contains 1,023 entries: 275 embedding, 514 eval, and 234 judge responses. Both
+formal arms then made 1,018 requests and obtained 1,018 exact tape hits with
+zero misses, zero live requests, zero coalescing, zero sequence mismatches,
+zero transport attempts, zero execution failures, and zero judge failures.
+This closes the schema-8 request-replay failure without weakening exact body or
+sequence comparison.
+
+The paired provider diagnostic was neutral on evidence recall and official
+score. Strict answer score moved by `+0.0007153076` (`+0.071531pt`); official
+correctness had zero discordant questions and therefore exact sign-test
+`p=1`. These provider metrics are diagnostic, not the hard release gate. The
+passing compact artifact has `releaseAllowed=true` and no blockers, while also
+requiring a fresh full 1,540-question claim rerun before publication.
+
 ## Release decision
 
 The replacement has three layers. Only deterministic metrics use the 1.00pt
@@ -623,12 +656,12 @@ direction, never a replacement for the deterministic hard gate.
 
 ## Claim boundary
 
-The full 1540-question claim cannot run until a newly preregistered successor
-schema passes and is bound to its release candidate commit. Schemas 2 through
-8 are terminal blocked evidence and cannot authorize that claim. The existing
-0.8799 number is not copied forward. The observed 233-question same-commit
-wobble, scaled only as a heuristic by `sqrt(233/1540)`, suggests roughly
-0.4-0.7pt full-set run-to-run spread; this is not a confidence interval.
+The full 1540-question claim is now authorized by the passing schema-9 artifact
+bound to candidate `21dcac8d10b0b6714d09cf14eacd83e32e0c9513`. Schemas 2
+through 8 remain terminal blocked evidence and cannot authorize that claim.
+The existing 0.8799 number is not copied forward. The observed 233-question
+same-commit wobble, scaled only as a heuristic by `sqrt(233/1540)`, suggests
+roughly 0.4-0.7pt full-set run-to-run spread; this is not a confidence interval.
 
 The preferred claim artifact records and replays provider responses so the
 published run is byte-reproducible. If any published score instead comes from a
@@ -649,14 +682,14 @@ bun run gate:v0.7.3-lifecycle-protection -- \
   --output-dir reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence
 ```
 
-The passing schema-9 compact result, if authorized, is written to
+The passing schema-9 compact result is written to
 `reports/release/v0.7/v0.7.3-lifecycle-protection.json`. The terminal schema-8
 attempt remains archived under
 `reports/release/v0.7/blocked-6f9e5ca0-schema8-sequence-mismatch/`. The current
-strict verifier therefore cannot authorize release: it requires a passing
-schema-9 compact artifact and complete formal pair, neither of which exists
-before the registered attempt. The archived schema-8 discovery metrics and
-tape cannot be promoted into the schema-9 release decision.
+strict verifier can now recompute the lifecycle layer from the complete
+schema-9 bundle. Release still requires the fresh full claim, stable promotion,
+and final strict verification. The archived schema-8 discovery metrics and tape
+were not promoted into the schema-9 release decision.
 
 The measurement runner validates the external `cases.json` against the frozen
 byte count and SHA-256. The tracked manifest retains that identity and the
