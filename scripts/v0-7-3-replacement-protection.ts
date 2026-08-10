@@ -210,7 +210,7 @@ export interface V073ReplacementProtectionReport {
   providerReplay: V073ReplacementProtectionInput["providerReplay"];
   releaseAllowed: boolean;
   researchRecordRequired: boolean;
-  schemaVersion: 7;
+  schemaVersion: 8;
 }
 
 export function assertV073ProviderPreflightReceipt(
@@ -623,7 +623,7 @@ export function evaluateV073ReplacementProtection(
     candidateCommit: input.candidateCommit,
     candidatePromptSha256: input.candidatePromptSha256,
     claimBoundary:
-      "Provider availability preflight is unscored and precedes the formal-attempt boundary. The hard 1.00pt protection decision is carried by provider-free paired retrieval at concurrency 1 and 40 plus deterministic scenario replay. The provider diagnostic runs at concurrency 1: ordered provider inputs and responses are frozen during discovery, and both formal arms require exact input-sequence replay with network-on-miss disabled. Provider point deltas and the exact paired sign test are diagnostic only; they cannot override the deterministic hard gate. The full 1540-question claim must be rerun at the release commit with frozen replay evidence or an explicit provider-variance spread.",
+      "Storage and provider availability preflights are unscored and precede the formal-attempt boundary. The hard 1.00pt protection decision is carried by provider-free paired retrieval at concurrency 1 and 40 plus deterministic scenario replay. The provider diagnostic runs at concurrency 1: ordered provider inputs and responses are frozen during discovery into bounded deterministic gzip parts, and both formal arms require exact input-sequence replay with network-on-miss disabled. Provider point deltas and the exact paired sign test are diagnostic only; they cannot override the deterministic hard gate. The full 1540-question claim must be rerun at the release commit with frozen replay evidence or an explicit provider-variance spread.",
     fullClaimRerunRequired: true,
     generatedAt: new Date().toISOString(),
     generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
@@ -639,6 +639,6 @@ export function evaluateV073ReplacementProtection(
     providerReplay: input.providerReplay,
     releaseAllowed: blockers.length === 0,
     researchRecordRequired: deterministicMoved || providerMoved,
-    schemaVersion: 7,
+    schemaVersion: 8,
   };
 }

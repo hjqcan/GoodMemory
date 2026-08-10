@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   mkdir,
+  lstat,
   mkdtemp,
   readdir,
   readFile,
@@ -10,7 +11,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 
 import { stripThinkingBlocks } from "../src/provider/ai-sdk-runtime";
 import {
@@ -29,6 +30,11 @@ import type {
   ProviderTapeRequestIdentity,
   ProviderTapeTransportAttempt,
 } from "./provider-response-tape";
+import {
+  decodeProviderResponseTapeBundle,
+  parseProviderResponseTapeBundleManifest,
+  PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY,
+} from "./provider-response-tape-bundle";
 import {
   renderV073FullClaimCommand,
   V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
@@ -52,6 +58,7 @@ import {
   V073_ASSISTED_EXTRACTION_POLICY,
   V073_PROVIDER_STAGE_ORDER,
   V073_PROVIDER_TRANSPORT_POLICY,
+  V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY,
 } from "./run-v0-7-3-replacement-protection-gate";
 import { resolveRepoRootFromScriptUrl } from "./script-paths";
 import {
@@ -70,9 +77,9 @@ const FAILURE_DETAIL_LINE_LIMIT = 80;
 const V073_LIFECYCLE_PROTECTION_ARTIFACT =
   "reports/release/v0.7/v0.7.3-lifecycle-protection.json";
 const V073_LIFECYCLE_EVIDENCE_PREFIX =
-  "reports/release/v0.7/v0.7.3-lifecycle-evidence/";
+  "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence/";
 const V073_LIFECYCLE_ATTEMPT_SENTINEL =
-  "reports/release/v0.7/v0.7.3-lifecycle-schema7-attempt-consumed.json";
+  "reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json";
 const V073_LOCOMO_CURRENT_PROJECTION =
   "benchmark-claims/evidence/locomo-v0.7.3-current.json";
 const V073_LOCOMO_CLAIM_EVIDENCE_PREFIX =
@@ -1402,6 +1409,24 @@ interface ArtifactIdentityShape {
   sha256: string;
 }
 
+export function resolveV073MeasuredClaimRecipeRaw(input: {
+  candidateGitObjectRaw?: string;
+  currentClaimRecipeRaw: string;
+  identity: ArtifactIdentityShape;
+}): string {
+  const raw = input.candidateGitObjectRaw ?? input.currentClaimRecipeRaw;
+  if (
+    input.identity.path !== "benchmark-claims/locomo.json" ||
+    Buffer.byteLength(raw, "utf8") !== input.identity.bytes ||
+    sha256(raw) !== input.identity.sha256
+  ) {
+    throw new Error(
+      "measured candidate claim recipe does not match its harness identity",
+    );
+  }
+  return raw;
+}
+
 function isArtifactIdentity(value: unknown): value is ArtifactIdentityShape {
   return (
     isRecord(value) &&
@@ -1615,8 +1640,8 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
     const hardGate = input.artifact.hardGate;
     const providerReplay = input.artifact.providerReplay;
     const liveDiagnostic = input.artifact.liveDiagnostic;
-    if (input.artifact.schemaVersion !== 7) {
-      issues.push("schemaVersion must be 7");
+    if (input.artifact.schemaVersion !== 8) {
+      issues.push("schemaVersion must be 8");
     }
     if (
       input.artifact.generatedBy !==
@@ -1759,10 +1784,10 @@ function lifecycleIdentity(
   return parent[name];
 }
 
-async function readBoundLifecycleArtifact(input: {
+async function readBoundLifecycleArtifactBytes(input: {
   identity: ArtifactIdentityShape;
   repoRoot: string;
-}): Promise<string> {
+}): Promise<Buffer> {
   const isAttemptSentinel =
     input.identity.path === V073_LIFECYCLE_ATTEMPT_SENTINEL;
   if (
@@ -1776,15 +1801,70 @@ async function readBoundLifecycleArtifact(input: {
   if (!isAttemptSentinel && !absolutePath.startsWith(`${bundleRoot}/`)) {
     throw new Error(`lifecycle evidence path escapes its bundle: ${input.identity.path}`);
   }
-  const raw = await readFile(absolutePath, "utf8");
+  if (!(await lstat(absolutePath)).isFile()) {
+    throw new Error(`lifecycle evidence path must be a regular file: ${input.identity.path}`);
+  }
+  const raw = await readFile(absolutePath);
   const fingerprint = createHash("sha256").update(raw).digest("hex");
   if (
-    Buffer.byteLength(raw, "utf8") !== input.identity.bytes ||
+    raw.byteLength !== input.identity.bytes ||
     fingerprint !== input.identity.sha256
   ) {
     throw new Error(`lifecycle evidence bytes do not match ${input.identity.path}`);
   }
   return raw;
+}
+
+async function readBoundLifecycleArtifact(input: {
+  identity: ArtifactIdentityShape;
+  repoRoot: string;
+}): Promise<string> {
+  return (await readBoundLifecycleArtifactBytes(input)).toString("utf8");
+}
+
+async function readProviderResponseTapeBundleArtifact(input: {
+  identity: ArtifactIdentityShape;
+  manifestRaw: string;
+  repoRoot: string;
+}): Promise<ReturnType<typeof decodeProviderResponseTapeBundle>> {
+  const expectedManifestPath =
+    `${V073_LIFECYCLE_EVIDENCE_PREFIX}provider-response-tape/manifest.json`;
+  if (input.identity.path !== expectedManifestPath) {
+    throw new Error("provider response tape bundle manifest path is invalid");
+  }
+  const manifest = parseProviderResponseTapeBundleManifest(input.manifestRaw);
+  const root = dirname(input.identity.path);
+  const absoluteRoot = resolve(input.repoRoot, root);
+  if (!(await lstat(absoluteRoot)).isDirectory()) {
+    throw new Error("provider response tape bundle root must be a directory");
+  }
+  const entries = await readdir(absoluteRoot, { withFileTypes: true });
+  const expectedNames = ["manifest.json", ...manifest.parts.map(({ path }) => path)]
+    .sort();
+  if (
+    JSON.stringify(entries.map(({ name }) => name).sort()) !==
+      JSON.stringify(expectedNames)
+  ) {
+    throw new Error("provider response tape bundle directory closure is invalid");
+  }
+  if (entries.some((entry) => !entry.isFile())) {
+    throw new Error("provider response tape bundle entries must be regular files");
+  }
+  const parts = new Map<string, Uint8Array>();
+  for (const part of manifest.parts) {
+    parts.set(part.path, await readBoundLifecycleArtifactBytes({
+      identity: {
+        bytes: part.bytes,
+        path: join(root, part.path),
+        sha256: part.sha256,
+      },
+      repoRoot: input.repoRoot,
+    }));
+  }
+  return decodeProviderResponseTapeBundle({
+    manifestRaw: input.manifestRaw,
+    parts,
+  });
 }
 
 function fingerprintProviderRequestMultiset(
@@ -2002,6 +2082,7 @@ function assertProviderPreflightEvidence(input: {
   );
   const manifestPreflight = input.manifest.providerPreflight;
   const manifestFormalAttempt = input.manifest.formalAttempt;
+  const manifestStoragePreflight = input.manifest.storagePreflight;
   const attemptSentinelIdentity = lifecycleIdentity(
     input.artifacts,
     null,
@@ -2017,15 +2098,25 @@ function assertProviderPreflightEvidence(input: {
     !sameJson(manifestPreflight.summary, input.protocolInput.providerPreflight) ||
     !isRecord(manifestFormalAttempt) ||
     !sameJson(manifestFormalAttempt.sentinel, attemptSentinelIdentity) ||
+    !isRecord(manifestStoragePreflight) ||
     !isRecord(attemptSentinel) ||
     attemptSentinel.generatedBy !==
       "scripts/run-v0-7-3-replacement-protection-gate.ts" ||
-    attemptSentinel.schemaVersion !== 7 ||
+    attemptSentinel.schemaVersion !== 8 ||
     attemptSentinel.state !== "consumed" ||
     attemptSentinel.baselineCommit !== input.protocolInput.baselineCommit ||
     attemptSentinel.candidateCommit !== input.protocolInput.candidateCommit ||
     attemptSentinel.requestSequenceSha256 !==
       V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequenceSha256 ||
+    !isRecord(attemptSentinel.storagePreflight) ||
+    !sameJson(attemptSentinel.storagePreflight, manifestStoragePreflight) ||
+    manifestStoragePreflight.minimumAvailableBytes !==
+      V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes ||
+    typeof manifestStoragePreflight.availableBytes !== "number" ||
+    !Number.isSafeInteger(manifestStoragePreflight.availableBytes) ||
+    manifestStoragePreflight.availableBytes <
+      V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes ||
+    manifestStoragePreflight.path !== "reports/release/v0.7" ||
     !sameJson(
       attemptSentinel.providerPreflight,
       input.protocolInput.providerPreflight,
@@ -2078,7 +2169,7 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
       candidateFormalProgressRaw,
       candidateFormalReportRaw,
       candidateFormalReceiptRaw,
-      tapeRaw,
+      tapeManifestRaw,
       scenarioReceiptRaw,
     ] = await Promise.all([
       read(null, "attemptSentinel"),
@@ -2110,8 +2201,15 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
     const protocolInput = JSON.parse(
       protocolInputRaw,
     ) as V073ReplacementProtectionInput;
-    const tape = parseProviderResponseTape(tapeRaw);
+    const tapeBundle = await readProviderResponseTapeBundleArtifact({
+      identity: lifecycleIdentity(artifacts, "providerReplay", "tape"),
+      manifestRaw: tapeManifestRaw,
+      repoRoot: input.repoRoot,
+    });
+    const tapeRaw = tapeBundle.raw;
+    const tape = tapeBundle.tape;
     const manifest = JSON.parse(manifestRaw) as Record<string, unknown>;
+    const measurementEvidenceRoot = manifest.measurementEvidenceRoot;
     const scenarioReceipt = JSON.parse(
       scenarioReceiptRaw,
     ) as Record<string, unknown>;
@@ -2185,9 +2283,12 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd" ||
       manifest.benchmark.sha256 !==
         "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28" ||
-      manifest.schemaVersion !== 7 ||
+      manifest.schemaVersion !== 8 ||
       manifest.generatedBy !==
         "scripts/run-v0-7-3-replacement-protection-gate.ts" ||
+      typeof measurementEvidenceRoot !== "string" ||
+      !isAbsolute(measurementEvidenceRoot) ||
+      resolve(measurementEvidenceRoot) !== measurementEvidenceRoot ||
       !sameJson(manifest.providers, expectedProviders) ||
       !validHarness ||
       !isRecord(protocol) ||
@@ -2195,8 +2296,6 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         V073_ASSISTED_EXTRACTION_POLICY.maxAttempts ||
       protocol.assistedExtractionRequestTimeoutMs !==
         V073_ASSISTED_EXTRACTION_POLICY.requestTimeoutMs ||
-      protocol.claimCommandTemplateSha256 !==
-        deriveV073ClaimCommandTemplateSha256(currentClaimRecipeRaw) ||
       protocol.failureTapeCredentialMaterial !==
         "excluded-before-persistence" ||
       protocol.failedDiscoveryTape !== "atomic-before-stage-error" ||
@@ -2206,7 +2305,7 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
       protocol.providerFailureRecovery !==
         "immediate-same-fingerprint-retry-to-2xx" ||
       protocol.providerPreflightFormalAttemptBoundary !==
-        "schema7-consumed-sentinel-created-only-after-success" ||
+        "schema8-consumed-sentinel-created-only-after-success" ||
       !sameJson(
         protocol.providerPreflightProbeOrder,
         V073_PROVIDER_PREFLIGHT_POLICY.probeOrder,
@@ -2222,8 +2321,21 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
       protocol.providerReplayConcurrency !== 1 ||
       protocolInput.providerReplay.concurrency !== 1 ||
       protocol.signTestAlpha !== 0.05 ||
+      protocol.storagePreflightMinimumAvailableBytes !==
+        V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes ||
       protocol.tapeInputIdentity !==
         "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest" ||
+      protocol.tapeArtifactEncoding !== "canonical-json-sharded-gzip" ||
+      protocol.tapeMaxPartBytes !==
+        PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.maxPartBytes ||
+      protocol.tapeMaxParts !==
+        PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.maxParts ||
+      protocol.tapeMaxRawBytes !==
+        PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.maxRawBytes ||
+      protocol.tapeMaxTotalBytes !==
+        PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.maxTotalBytes ||
+      protocol.tapePartUncompressedBytes !==
+        PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.partUncompressedBytes ||
       protocol.tapeRequestIdentity !==
         "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)" ||
       protocol.tapeResponseVariants !== "ordered-per-fingerprint" ||
@@ -2264,7 +2376,43 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
       claimCommandTemplateSha256: string;
       promptSha256: string;
     };
-    for (const identity of Object.values(boundHarness)) {
+    const gitProbe = await runCommand(
+      "git",
+      ["rev-parse", "--git-dir"],
+      input.repoRoot,
+    );
+    let candidateGitObjectRaw: string | undefined;
+    if (gitProbe.code === 0) {
+      const candidateClaimRecipe = await runCommand(
+        "git",
+        [
+          "show",
+          `${protocolInput.candidateCommit}:${boundHarness.claimRecipe.path}`,
+        ],
+        input.repoRoot,
+      );
+      if (candidateClaimRecipe.code !== 0) {
+        throw new Error(
+          `cannot read measured candidate claim recipe from ${protocolInput.candidateCommit}`,
+        );
+      }
+      candidateGitObjectRaw = candidateClaimRecipe.stdout;
+    }
+    const measuredClaimRecipeRaw = resolveV073MeasuredClaimRecipeRaw({
+      candidateGitObjectRaw,
+      currentClaimRecipeRaw,
+      identity: boundHarness.claimRecipe,
+    });
+    if (
+      boundProtocol.claimCommandTemplateSha256 !==
+        deriveV073ClaimCommandTemplateSha256(measuredClaimRecipeRaw)
+    ) {
+      throw new Error("measured claim recipe command template drifted");
+    }
+    for (const [name, identity] of Object.entries(boundHarness)) {
+      if (name === "claimRecipe" && candidateGitObjectRaw !== undefined) {
+        continue;
+      }
       const raw = await readFile(resolve(input.repoRoot, identity.path), "utf8");
       if (
         Buffer.byteLength(raw, "utf8") !== identity.bytes ||
@@ -2273,11 +2421,6 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         throw new Error(`measurement harness bytes drifted at ${identity.path}`);
       }
     }
-    const gitProbe = await runCommand(
-      "git",
-      ["rev-parse", "--git-dir"],
-      input.repoRoot,
-    );
     if (gitProbe.code === 0) {
       for (const commit of [
         protocolInput.baselineCommit,
@@ -2377,7 +2520,7 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         !sameJson(receipt.args, buildV073ProviderFreeArgs({
           benchmarkRoot: manifest.benchmark.root,
           concurrency,
-          outputDir: resolve(input.repoRoot, V073_LIFECYCLE_EVIDENCE_PREFIX, "provider-free"),
+          outputDir: join(measurementEvidenceRoot, "provider-free"),
           runId,
         })) ||
         !isArtifactIdentity(receipt.report) ||
@@ -2598,9 +2741,9 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
       }
       const expectedArm = buildV073StageArm({
         benchmarkRoot: manifest.benchmark.root,
-        claimRecipeRaw: currentClaimRecipeRaw,
+        claimRecipeRaw: measuredClaimRecipeRaw,
         commit,
-        outputDir: resolve(input.repoRoot, V073_LIFECYCLE_EVIDENCE_PREFIX),
+        outputDir: measurementEvidenceRoot,
         providers: expectedProviders,
         sourceIdentity: {
           officialSourceSha256: boundHarness.officialRunner.sha256,
@@ -2611,7 +2754,7 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         worktreePath,
       });
       const expectedChain = routeV073CommandChainThroughTape(
-        buildV073PairedCommandChain(expectedArm.arm, currentClaimRecipeRaw),
+        buildV073PairedCommandChain(expectedArm.arm, measuredClaimRecipeRaw),
         baseUrls as {
           assisted: string;
           embedding: string;

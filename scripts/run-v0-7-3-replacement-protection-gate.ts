@@ -5,6 +5,7 @@ import {
   readFile,
   rename,
   stat,
+  statfs,
   writeFile,
 } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
@@ -26,6 +27,13 @@ import type {
   ProviderTapeRequestIdentity,
   ProviderTapeSessionStats,
 } from "./provider-response-tape";
+import {
+  decodeProviderResponseTapeBundle,
+  encodeProviderResponseTapeBundle,
+  parseProviderResponseTapeBundleManifest,
+  PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY,
+} from "./provider-response-tape-bundle";
+import type { EncodedProviderResponseTapeBundle } from "./provider-response-tape-bundle";
 import {
   buildV073PairedCommandChain,
   deriveV073ClaimCommandTemplateSha256,
@@ -88,9 +96,10 @@ const CLAIM_RECIPE_PATH = "benchmark-claims/locomo.json";
 const SEED_RUNNER_PATH = "scripts/run-phase-65-locomo-smoke.ts";
 const REANSWER_RUNNER_PATH = "scripts/reanswer-phase-65-locomo-report.ts";
 const OFFICIAL_RUNNER_PATH = "scripts/rescore-official-protocols.ts";
-const EVIDENCE_ROOT = "reports/release/v0.7/v0.7.3-lifecycle-evidence";
+const EVIDENCE_ROOT =
+  "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence";
 const FORMAL_ATTEMPT_SENTINEL =
-  "reports/release/v0.7/v0.7.3-lifecycle-schema7-attempt-consumed.json";
+  "reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json";
 const PROTECTION_ARTIFACT =
   "reports/release/v0.7/v0.7.3-lifecycle-protection.json";
 
@@ -109,6 +118,10 @@ export const V073_PROVIDER_TRANSPORT_POLICY = {
   errorResponseStatus: PROVIDER_TAPE_TRANSPORT_ERROR_STATUS,
   proxyRetries: 0,
   transportErrors: "record-and-replay",
+} as const;
+
+export const V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY = {
+  minimumAvailableBytes: 4 * 1024 * 1024 * 1024,
 } as const;
 
 interface V073ReplacementGateCliOptions {
@@ -739,11 +752,68 @@ async function writeAtomic(path: string, raw: string): Promise<void> {
   await rename(partial, resolved);
 }
 
-export async function claimV073Schema7FormalAttempt(
+async function writeProviderResponseTapeBundle(
+  root: string,
+  bundle: EncodedProviderResponseTapeBundle,
+): Promise<void> {
+  const resolved = resolve(root);
+  const partial = `${resolved}.partial`;
+  await mkdir(partial);
+  await Promise.all(bundle.parts.map((part) =>
+    writeFile(join(partial, part.path), part.bytes, { flag: "wx" })
+  ));
+  await writeFile(
+    join(partial, "manifest.json"),
+    bundle.manifestRaw,
+    { flag: "wx" },
+  );
+  await rename(partial, resolved);
+}
+
+async function readProviderResponseTapeBundle(
+  manifestPath: string,
+): Promise<{ raw: string; tape: ProviderResponseTape }> {
+  const manifestRaw = await readFile(manifestPath, "utf8");
+  const manifest = parseProviderResponseTapeBundleManifest(manifestRaw);
+  const root = dirname(manifestPath);
+  const parts = new Map<string, Uint8Array>();
+  for (const part of manifest.parts) {
+    parts.set(part.path, await readFile(join(root, part.path)));
+  }
+  return decodeProviderResponseTapeBundle({ manifestRaw, parts });
+}
+
+export async function claimV073Schema8FormalAttempt(
   path: string,
   raw: string,
 ): Promise<void> {
   await writeFile(resolve(path), raw, { flag: "wx" });
+}
+
+export function assertV073Schema8StoragePreflight(input: {
+  availableBlocks: number;
+  blockSize: number;
+  path: string;
+}): {
+  availableBytes: number;
+  minimumAvailableBytes: number;
+  path: string;
+} {
+  const availableBytes = input.availableBlocks * input.blockSize;
+  if (
+    !Number.isSafeInteger(availableBytes) ||
+    availableBytes < V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes
+  ) {
+    throw new Error(
+      `replacement protection schema 8 requires at least ${V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes} available bytes; got ${availableBytes}`,
+    );
+  }
+  return {
+    availableBytes,
+    minimumAvailableBytes:
+      V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes,
+    path: input.path,
+  };
 }
 
 async function persistDiscoveryFailureTape(input: {
@@ -769,12 +839,15 @@ async function persistDiscoveryFailureTape(input: {
   const entries = snapshot.entries.filter(
     (entry) => !credentialFingerprints.has(entry.fingerprint),
   );
-  const raw = serializeProviderResponseTape({ entries, schemaVersion: 3 });
-  parseProviderResponseTape(raw);
-  const path = join(input.stageRoot, "failure-tape.json");
-  await writeAtomic(path, raw);
+  const bundle = encodeProviderResponseTapeBundle({
+    entries,
+    schemaVersion: 3,
+  });
+  const root = join(input.stageRoot, "failure-tape");
+  await writeProviderResponseTapeBundle(root, bundle);
+  const path = join(root, "manifest.json");
   return {
-    artifact: artifactIdentity(path, raw),
+    artifact: artifactIdentity(path, bundle.manifestRaw),
     excludedCredentialEntries: snapshot.entries.length - entries.length,
   };
 }
@@ -1675,7 +1748,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
     assertPathAbsent(outputDir, "replacement protection evidence root"),
     assertPathAbsent(
       formalAttemptSentinelPath,
-      "replacement protection schema 7 attempt sentinel",
+      "replacement protection schema 8 attempt sentinel",
     ),
     assertPathAbsent(reportPath, "replacement protection artifact"),
   ]);
@@ -1716,6 +1789,12 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
   } satisfies ProviderIdentities;
   const { credentials, sensitiveValues } = requiredProviderCredentials();
   assertProviderIdentities(providers);
+  const filesystem = await statfs(dirname(outputDir));
+  const storagePreflight = assertV073Schema8StoragePreflight({
+    availableBlocks: filesystem.bavail,
+    blockSize: filesystem.bsize,
+    path: relative(process.cwd(), dirname(outputDir)),
+  });
   const providerPreflight = await runV073ProviderAvailabilityPreflight({
     credentials,
     providers,
@@ -1727,10 +1806,11 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
     providerPreflight: providerPreflight.receipt,
     requestSequenceSha256:
       V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequenceSha256,
-    schemaVersion: 7,
+    schemaVersion: 8,
     state: "consumed",
+    storagePreflight,
   }, null, 2)}\n`;
-  await claimV073Schema7FormalAttempt(
+  await claimV073Schema8FormalAttempt(
     formalAttemptSentinelPath,
     formalAttemptSentinelRaw,
   );
@@ -1778,6 +1858,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       ),
     },
     generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
+    measurementEvidenceRoot: outputDir,
     measurementHarness: baselineHarness,
     providerPreflight: {
       receipt: artifactIdentity(
@@ -1790,6 +1871,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
         providerPreflightTapeRaw,
       ),
     },
+    storagePreflight,
     protocol: {
       assistedExtractionMaxAttempts:
         V073_ASSISTED_EXTRACTION_POLICY.maxAttempts,
@@ -1807,7 +1889,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       providerFailureRecovery:
         "immediate-same-fingerprint-retry-to-2xx",
       providerPreflightFormalAttemptBoundary:
-        "schema7-consumed-sentinel-created-only-after-success",
+        "schema8-consumed-sentinel-created-only-after-success",
       providerPreflightProbeOrder:
         V073_PROVIDER_PREFLIGHT_POLICY.probeOrder,
       providerPreflightRequestTimeoutMs:
@@ -1820,8 +1902,17 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
         "redacted-before-output-hash-and-persistence",
       providerReplayConcurrency: 1,
       signTestAlpha: 0.05,
+      storagePreflightMinimumAvailableBytes:
+        V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes,
       tapeInputIdentity:
         "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest",
+      tapeArtifactEncoding: "canonical-json-sharded-gzip",
+      tapeMaxPartBytes: PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.maxPartBytes,
+      tapeMaxParts: PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.maxParts,
+      tapeMaxRawBytes: PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.maxRawBytes,
+      tapeMaxTotalBytes: PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.maxTotalBytes,
+      tapePartUncompressedBytes:
+        PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.partUncompressedBytes,
       tapeRequestIdentity:
         "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)",
       tapeResponseVariants: "ordered-per-fingerprint",
@@ -1833,7 +1924,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       transportProxyRetries: V073_PROVIDER_TRANSPORT_POLICY.proxyRetries,
     },
     providers,
-    schemaVersion: 7,
+    schemaVersion: 8,
   });
 
   const [providerFreeC1Baseline, providerFreeC1Candidate] = await Promise.all([
@@ -1887,6 +1978,11 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
     reranking: providers.reranking.gateway,
   };
   const discoveryProxy = createProviderResponseTapeProxy({ targets: tapeTargets });
+  const tapeManifestPath = join(
+    outputDir,
+    "provider-response-tape",
+    "manifest.json",
+  );
   let baselineDiscovery: ProviderStageResult;
   let candidateDiscovery: ProviderStageResult;
   try {
@@ -1922,16 +2018,14 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       sensitiveValues,
       stage: "candidate-discovery",
     });
-    const tapeRaw = serializeProviderResponseTape(discoveryProxy.snapshot());
-    const tapePath = join(outputDir, "provider-response-tape.json");
-    await writeAtomic(tapePath, tapeRaw);
+    const tapeBundle = encodeProviderResponseTapeBundle(discoveryProxy.snapshot());
+    await writeProviderResponseTapeBundle(dirname(tapeManifestPath), tapeBundle);
   } finally {
     discoveryProxy.stop();
   }
 
-  const tapePath = join(outputDir, "provider-response-tape.json");
-  const tapeRaw = await readFile(tapePath, "utf8");
-  const frozenTape = parseProviderResponseTape(tapeRaw);
+  const { raw: tapeRaw, tape: frozenTape } =
+    await readProviderResponseTapeBundle(tapeManifestPath);
   const replayProxy = createProviderResponseTapeProxy({
     initialTape: frozenTape,
     targets: tapeTargets,
@@ -2068,7 +2162,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       candidateFormalProgress: await trackedArtifact(candidateFormal.officialProgressPath),
       candidateFormalReport: await trackedArtifact(candidateFormal.finalReportPath),
       candidateFormalReceipt: await trackedArtifact(candidateFormal.receiptPath),
-      tape: await trackedArtifact(tapePath),
+      tape: await trackedArtifact(tapeManifestPath),
     },
     scenarioReceipt: await trackedArtifact(scenario.receiptPath),
   };

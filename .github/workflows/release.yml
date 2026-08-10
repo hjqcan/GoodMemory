@@ -30,6 +30,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -130,12 +132,35 @@ jobs:
             ${{ steps.pack.outputs.artifact_path }}
             ${{ steps.prepublish.outputs.evidence_path }}
             reports/release/v0.7/v0.7.3-lifecycle-protection.json
-            reports/release/v0.7/v0.7.3-lifecycle-evidence/**
+            reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json
+            reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence/**
             benchmark-claims/evidence/locomo-v0.7.3-current.json
             reports/release/v0.7/v0.7.3-locomo-claim-evidence/**
             reports/release/v0.7/phase-74-storage-scale-gate.json
             reports/release/v0.7/readiness-report.json
             reports/release/v0.7/summary.md
+
+      - name: Pack tracked release evidence
+        id: evidence-archive
+        run: |
+          set -euo pipefail
+          VERSION="$(bun -e 'import { readFileSync } from "node:fs"; const pkg = JSON.parse(readFileSync("package.json", "utf8")); console.log(pkg.version);')"
+          PREPUBLISH_EVIDENCE="${{ steps.prepublish.outputs.evidence_path }}"
+          EVIDENCE_ARCHIVE="$(dirname "${{ steps.pack.outputs.artifact_path }}")/goodmemory-${VERSION}-release-evidence.tar.gz"
+          tar --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner -czf "$EVIDENCE_ARCHIVE" \
+            -C "$(dirname "$PREPUBLISH_EVIDENCE")" "$(basename "$PREPUBLISH_EVIDENCE")" \
+            -C "$GITHUB_WORKSPACE" \
+            reports/release/v0.7/v0.7.3-lifecycle-protection.json \
+            reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json \
+            reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence \
+            benchmark-claims/evidence/locomo-v0.7.3-current.json \
+            reports/release/v0.7/v0.7.3-locomo-claim-evidence \
+            reports/release/v0.7/phase-74-storage-scale-gate.json \
+            reports/release/v0.7/readiness-report.json \
+            reports/release/v0.7/summary.md
+          test -s "$EVIDENCE_ARCHIVE"
+          tar -tzf "$EVIDENCE_ARCHIVE" > /dev/null
+          echo "archive_path=$EVIDENCE_ARCHIVE" >> "$GITHUB_OUTPUT"
 
       - name: Validate npm publishing credentials
         if: startsWith(github.ref, 'refs/tags/')
@@ -213,15 +238,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          fail_on_unmatched_files: true
           files: |
             ${{ steps.pack.outputs.artifact_path }}
-            ${{ steps.prepublish.outputs.evidence_path }}
-            reports/release/v0.7/v0.7.3-lifecycle-protection.json
-            reports/release/v0.7/v0.7.3-lifecycle-evidence/**
-            benchmark-claims/evidence/locomo-v0.7.3-current.json
-            reports/release/v0.7/v0.7.3-locomo-claim-evidence/**
-            reports/release/v0.7/phase-74-storage-scale-gate.json
-            reports/release/v0.7/readiness-report.json
-            reports/release/v0.7/summary.md
+            ${{ steps.evidence-archive.outputs.archive_path }}
           prerelease: false
           make_latest: true

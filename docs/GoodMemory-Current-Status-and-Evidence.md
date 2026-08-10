@@ -58,13 +58,24 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   valid. The run stopped before candidate discovery or formal replay and is
   archived at
   `reports/release/v0.7/blocked-4d5e2989-schema6-provider-auth-unavailable/`.
-  Schema 6 will not be rerun. Schema 7 is pre-registered but has not begun a
-  live attempt: five independent synthetic provider probes must pass before an
-  external schema-specific consumed sentinel atomically claims the sole formal
-  attempt. The preflight tape is never reused by measurement, and readiness
-  independently binds its exact request sequence, transport ledger, response
-  bytes, sentinel, manifest, and compact result. No full 1540-question claim or
-  v0.7.3 release is yet authorized.
+  Schema 6 will not be rerun. Schema 7 passed its five provider probes,
+  deterministic C1/C40 gates, 8/8 scenarios, and both 233-question discovery
+  arms, but disk exhaustion blocked the atomic union-tape write before formal
+  replay. It is terminal and archived at
+  `reports/release/v0.7/blocked-c5665458-schema7-enospc/`. Schema 8 is
+  pre-registered with a distinct evidence root, a fixed 4 GiB storage
+  qualification before any provider traffic or attempt claim, the same five
+  provider probes, a manifest plus bounded deterministic gzip parts for the
+  canonical provider tape, and a full-history tagged release checkout. Each
+  tape part is capped at 20 MiB stored; 24 parts, 384 MiB canonical JSON, and
+  512 MiB stored are the complete-bundle limits. Discovery failures use the
+  same bounded bundle instead of a raw tape file. Readiness rejects symlinked,
+  extra, or legacy tape files and binds the capacity record, exact request
+  sequence, transport ledger, compressed and canonical response bytes,
+  sentinel, manifest, and compact result. The tagged workflow also packages
+  the complete evidence into one uniquely named GitHub Release archive, so
+  repeated receipt basenames cannot overwrite one another. No full
+  1540-question claim or v0.7.3 release is yet authorized.
   See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as

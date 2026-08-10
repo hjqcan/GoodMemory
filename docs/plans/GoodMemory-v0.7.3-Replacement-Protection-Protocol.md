@@ -1,8 +1,8 @@
 # GoodMemory v0.7.3 Replacement Protection Protocol
 
-Status: the single schema-6 attempt is blocked and archived; schema 7 is
-pre-registered but has not begun a live attempt. There is still no passing run
-or release
+Status: schemas 6 and 7 are terminal blocked evidence and are archived;
+schema 8 is pre-registered but has not begun a live attempt. There is still no
+passing run or release
 Date: 2026-08-09
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
@@ -349,12 +349,78 @@ The attempt boundary is irreversible:
   attempt requires a new pre-registration, schema number, sentinel path, and
   verifier revision.
 
-No schema-7 live attempt may begin until the preflight, exclusive-attempt,
-runner, compact evaluator, and independent readiness mutation tests are green,
-followed by the full suite, typecheck, coverage, and a read-only review on one
-clean frozen `main` commit. The driver repository must still be clean at that
-exact candidate commit before preflight begins. Measurement uses separate clean
-detached baseline and candidate checkouts; no branch is created.
+The single schema-7 attempt passed all five provider probes, deterministic C1
+and C40 protection, and the 8/8 scenario replay. Both discovery arms then
+completed all 233 questions with zero execution or judge failures. Before the
+runner could persist the union response tape, the Data volume ran out of space;
+the atomic write failed with `ENOSPC` and left a zero-byte partial. No frozen
+tape, formal replay, sign test, or compact passing artifact exists. The attempt
+is terminal and archived under
+`reports/release/v0.7/blocked-c5665458-schema7-enospc/`; its external consumed
+sentinel remains tracked at
+`reports/release/v0.7/v0.7.3-lifecycle-schema7-attempt-consumed.json`.
+
+## Schema-8 revision: storage qualification and release-history checkout
+
+Schema 8 keeps the schema-7 provider preflight, deterministic thresholds,
+schema-3 logical response tape, and paired provider diagnostic unchanged. It
+addresses the process failures found during schema 7 without changing `src/`
+or the LoCoMo measurement harness:
+
+- evidence moves to the new canonical root
+  `reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence/`;
+- the manifest records the normalized absolute measurement evidence root used
+  to derive run IDs and command paths. Readiness uses that provenance only to
+  reconstruct receipts; tracked artifact bytes are still read by relative path
+  from the current checkout, so a tag checkout may relocate the repository
+  without rewriting measured command identity;
+- after path, source, benchmark, harness, and provider-identity validation, but
+  before any live provider request, sentinel creation, or evidence-root write,
+  the runner uses `statfs` on `reports/release/v0.7` and requires at least
+  `4,294,967,296` available bytes;
+- the observed available bytes and fixed minimum are written into the external
+  sentinel and manifest, while the manifest protocol binds the same minimum;
+  readiness requires all three values to agree and rejects a value below the
+  threshold;
+- the canonical tape JSON is persisted as deterministic gzip parts under
+  `provider-response-tape/`, with at most 16 MiB uncompressed per part, a hard
+  20 MiB stored-part limit, at most 24 parts, a 384 MiB canonical-JSON limit,
+  and a 512 MiB stored-bundle limit. Its manifest binds every compressed and
+  uncompressed part hash plus the full canonical JSON hash. These limits keep
+  every tracked Git object below GitHub's 100 MiB file rejection boundary,
+  bound verifier memory, and leave headroom below GitHub's 2 GiB push limit
+  while retaining byte-exact replay;
+- a discovery failure snapshot uses the same manifest-plus-gzip-parts format
+  under `failure-tape/`; its receipt binds `failure-tape/manifest.json`, so a
+  terminal failure remains pushable rather than creating a raw JSON object
+  above GitHub's file limit;
+- readiness requires the response-tape directory to contain exactly its
+  manifest and declared regular-file parts. Symlinks, extra parts, and legacy
+  raw tape files fail closed;
+- the new irreversible sentinel is
+  `reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json`;
+- the tagged release workflow checks out full history with `fetch-depth: 0`,
+  because strict readiness reads the baseline and measured-candidate objects
+  and verifies candidate-to-release ancestry. The previous depth-1 checkout
+  could not satisfy that contract;
+- the workflow retains the raw evidence tree as an Actions artifact and packs
+  the complete prepublish, lifecycle, LoCoMo, readiness, and storage evidence
+  into one uniquely named release archive. GitHub Release receives that archive
+  plus the npm tarball, avoiding basename collisions between repeated receipt
+  and report names.
+
+If storage qualification fails, there is no provider traffic, sentinel, or
+canonical evidence root, so the formal attempt is not consumed. After all five
+provider probes pass, the runner claims the schema-8 sentinel with exclusive
+`wx` semantics and any later failure permanently consumes schema 8. There is
+no automatic cleanup, retry, or fallback from a post-sentinel storage failure.
+
+No schema-8 live attempt may begin until the storage qualification, provider
+preflight, exclusive-attempt runner, compact evaluator, independent readiness
+mutation tests, release-workflow regression, full suite, typecheck, coverage,
+and read-only review are green on one clean frozen `main` commit. Measurement
+uses separate clean detached baseline and candidate checkouts; no branch is
+created.
 
 ## Release decision
 
@@ -410,8 +476,9 @@ The discovery sequence is:
    contains the request fingerprint plus logical target, method, path/query,
    canonical-body digest, and semantic-header digest; it contains no raw prompt
    or credential.
-4. Atomically write the union tape, read it back through the strict parser, and
-   start a new proxy from those bytes.
+4. Atomically write the union tape as a manifest plus bounded deterministic
+   gzip parts, read and hash every part back, reconstruct the canonical JSON
+   through the strict parser, and start a new proxy from those bytes.
 5. Run fresh baseline and candidate formal arms with live-on-miss disabled and
    the corresponding discovery input manifest installed as the expected
    sequence. A sequence mismatch fails before a tape response is returned.
@@ -431,9 +498,11 @@ occurrence gaps/reordering, non-matching request/response hashes, and
 last-write-wins evidence are rejected.
 
 The report records discovery hits/misses/live calls, formal hits/misses/live
-calls, tape SHA-256, entry count, per-target distribution, request-multiset
-fingerprints, ordered request-sequence fingerprints, and zero/non-zero sequence
-mismatch counts. Each formal arm must be non-empty, satisfy `hits=requests`,
+calls, the decompressed canonical tape SHA-256, entry count, per-target
+distribution, request-multiset fingerprints, ordered request-sequence
+fingerprints, and zero/non-zero sequence mismatch counts. The tracked artifact
+identity separately binds the gzip manifest, which transitively binds every
+part. Each formal arm must be non-empty, satisfy `hits=requests`,
 have `misses=liveRequests=coalesced=sequenceMismatches=0`, and reproduce its
 discovery arm's exact ordered input sequence and target census against the same
 tape. On the first mismatch, the receipt retains the index and expected/actual
@@ -448,9 +517,10 @@ Provider point deltas do not use a raw 1pt release threshold and cannot override
 the deterministic gate.
 
 Before either discovery stage can abort, the runner also writes the current
-response-occurrence snapshot described above. This preserves malformed,
-non-2xx, and sanitized transport responses for attribution without treating an
-incomplete stage or execution failure as acceptable evidence.
+response-occurrence snapshot described above as bounded deterministic gzip
+parts. This preserves malformed, non-2xx, and sanitized transport responses for
+attribution without treating an incomplete stage or execution failure as
+acceptable evidence.
 
 Execution receipts and readiness recomputation establish repository-local
 integrity and command provenance; they are not cryptographically signed CI
@@ -472,8 +542,8 @@ direction, never a replacement for the deterministic hard gate.
 
 ## Claim boundary
 
-The full 1540-question claim must run only after schema 7 passes and is bound to
-the release candidate commit. Schemas 2 through 6 are terminal blocked evidence
+The full 1540-question claim must run only after schema 8 passes and is bound to
+the release candidate commit. Schemas 2 through 7 are terminal blocked evidence
 and cannot authorize that claim. The existing
 0.8799 number is not copied forward. The observed 233-question same-commit
 wobble, scaled only as a heuristic by `sqrt(233/1540)`, suggests roughly
@@ -488,25 +558,25 @@ independent evidence.
 
 ## Commands and evidence locations
 
-The implementation is runner-only:
+The live measurement command is:
 
 ```bash
 bun run gate:v0.7.3-lifecycle-protection -- \
   --baseline-worktree <clean-detached-v0.7.2-path> \
   --candidate-worktree <clean-detached-candidate-path> \
   --benchmark-root ~/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1 \
-  --output-dir reports/release/v0.7/v0.7.3-lifecycle-evidence
+  --output-dir reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence
 ```
 
-The schema-7 compact result, if the single attempt passes, is
+The schema-8 compact result, if the single attempt passes, is
 `reports/release/v0.7/v0.7.3-lifecycle-protection.json`; no such passing
 artifact was produced. The terminal blocked attempt is archived under
-`reports/release/v0.7/blocked-4d5e2989-schema6-provider-auth-unavailable/`.
+`reports/release/v0.7/blocked-c5665458-schema7-enospc/`.
 `gate:v0.7 --strict` re-reads every bound artifact,
 re-parses the tape, re-hashes the frozen input sequences, recomputes
-deterministic metrics and the sign test, and rejects schema-1 through schema-6
-evidence. The verifier requires the external schema-7 consumed sentinel, the
-independent five-request preflight receipt and tape, a passing schema-7 compact
+deterministic metrics and the sign test, and rejects schema-1 through schema-7
+evidence. The verifier requires the external schema-8 consumed sentinel, the
+independent five-request preflight receipt and tape, a passing schema-8 compact
 result, and the recomputed schema-3 occurrence tape before it can authorize
 release.
 

@@ -169,7 +169,7 @@ describe("v0.7.3 replacement protection protocol", () => {
     expect(report.providerReplay.formal.candidate.liveRequests).toBe(0);
     expect(report.liveDiagnostic.signTest.pValue).toBeCloseTo(0.5571970939636236, 14);
     expect(report.providerPreflight.totalRequests).toBe(5);
-    expect(report.schemaVersion).toBe(7);
+    expect(report.schemaVersion).toBe(8);
   });
 
   it("rejects a provider preflight with incomplete role coverage", () => {

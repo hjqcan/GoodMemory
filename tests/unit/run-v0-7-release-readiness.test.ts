@@ -1,6 +1,13 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -13,6 +20,10 @@ import {
   serializeProviderResponseTape,
 } from "../../scripts/provider-response-tape";
 import type { ProviderTapeTransportAttempt } from "../../scripts/provider-response-tape";
+import {
+  encodeProviderResponseTapeBundle,
+  PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY,
+} from "../../scripts/provider-response-tape-bundle";
 import {
   renderV073FullClaimCommand,
   V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
@@ -29,6 +40,7 @@ import {
   buildV073StageArm,
   routeV073CommandChainThroughTape,
   V073_PROVIDER_STAGE_ORDER,
+  V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY,
 } from "../../scripts/run-v0-7-3-replacement-protection-gate";
 import {
   evaluateV073ReplacementProtection,
@@ -46,6 +58,7 @@ import {
   evaluateV073LifecycleProtectionBundle,
   evaluateV073LifecycleProtectionSourceDrift,
   evaluateV073CurrentLocomoClaimState,
+  resolveV073MeasuredClaimRecipeRaw,
   evaluateStableLocomoCandidateLink,
   evaluateVersionConsistency,
   evaluateV07RequiredEnvironment,
@@ -1051,7 +1064,7 @@ describe("v0.7 release readiness", () => {
   it("accepts only a completed lifecycle artifact bound to the candidate commit", async () => {
     const candidateCommit = "a".repeat(40);
     const bundlePrefix =
-      "reports/release/v0.7/v0.7.3-lifecycle-evidence/";
+      "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence/";
     const bundlePath = (path: string) =>
       `${bundlePrefix}${path.replace(/^\/+|\//gu, "-")}`;
     const artifactIdentity = (path: string, fill: string) => ({
@@ -1083,7 +1096,7 @@ describe("v0.7 release readiness", () => {
         attemptSentinel: {
           bytes: 100,
           path:
-            "reports/release/v0.7/v0.7.3-lifecycle-schema7-attempt-consumed.json",
+            "reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json",
           sha256: "0".repeat(64),
         },
         manifest: artifactIdentity("manifest.json", "0"),
@@ -1113,7 +1126,10 @@ describe("v0.7 release readiness", () => {
           candidateFormalProgress: artifactIdentity("provider-replay/candidate-progress.jsonl", "b"),
           candidateFormalReport: artifactIdentity("provider-replay/candidate-report.json", "c"),
           candidateFormalReceipt: artifactIdentity("provider-replay/candidate-formal.json", "d"),
-          tape: artifactIdentity("provider-response-tape.json", "e"),
+          tape: artifactIdentity(
+            "provider-response-tape/manifest.json",
+            "e",
+          ),
         },
         scenarioReceipt: artifactIdentity("scenario/execution-receipt.json", "f"),
       },
@@ -1159,7 +1175,7 @@ describe("v0.7 release readiness", () => {
       providerPreflight: providerPreflightPlan(),
       releaseAllowed: true,
       researchRecordRequired: false,
-      schemaVersion: 7,
+      schemaVersion: 8,
     };
 
     expect(evaluateV073LifecycleProtectionArtifact({
@@ -1174,7 +1190,7 @@ describe("v0.7 release readiness", () => {
       artifact: { ...artifact, schemaVersion: 3 },
       artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
     })).toEqual(expect.objectContaining({
-      detail: expect.stringContaining("schemaVersion must be 7"),
+      detail: expect.stringContaining("schemaVersion must be 8"),
       status: "fail",
     }));
 
@@ -1258,10 +1274,12 @@ describe("v0.7 release readiness", () => {
     }));
   });
 
-  it("recomputes schema 7 lifecycle evidence from bound preflight, deterministic, and frozen-replay bytes", async () => {
+  it("recomputes schema 8 lifecycle evidence from bound preflight, deterministic, and frozen-replay bytes", async () => {
     const repoRoot = await mkdtemp(join(tmpdir(), "goodmemory-v073-replacement-bundle-"));
-    const evidencePrefix = "reports/release/v0.7/v0.7.3-lifecycle-evidence";
-    const candidateCommit = "a".repeat(40);
+    const evidencePrefix =
+      "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence";
+    const measurementEvidenceRoot = `${repoRoot}-measurement-evidence`;
+    const candidateCommit = "c5665458f79adbc7d35eccb2155dc40b2a443ae2";
     const writeEvidence = async (name: string, raw: string) => {
       const path = `${evidencePrefix}/${name}`;
       const absolutePath = join(repoRoot, path);
@@ -1272,6 +1290,21 @@ describe("v0.7 release readiness", () => {
         path,
         sha256: createHash("sha256").update(raw).digest("hex"),
       };
+    };
+    const writeTapeBundle = async (tape: Parameters<
+      typeof encodeProviderResponseTapeBundle
+    >[0]) => {
+      const encoded = encodeProviderResponseTapeBundle(tape);
+      const root = join(repoRoot, evidencePrefix, "provider-response-tape");
+      await rm(root, { force: true, recursive: true });
+      await mkdir(root, { recursive: true });
+      await Promise.all(encoded.parts.map((part) =>
+        writeFile(join(root, part.path), part.bytes)
+      ));
+      return writeEvidence(
+        "provider-response-tape/manifest.json",
+        encoded.manifestRaw,
+      );
     };
     const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
     const benchmarkRoot = join(
@@ -1588,7 +1621,14 @@ describe("v0.7 release readiness", () => {
       scenarioReplay: { failures: 0, passed: 8 },
     };
     const attemptSentinelPath =
-      "reports/release/v0.7/v0.7.3-lifecycle-schema7-attempt-consumed.json";
+      "reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json";
+    const storagePreflight = {
+      availableBytes:
+        V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes,
+      minimumAvailableBytes:
+        V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes,
+      path: "reports/release/v0.7",
+    };
     const attemptSentinelRaw = json({
       baselineCommit: protocolInput.baselineCommit,
       candidateCommit: protocolInput.candidateCommit,
@@ -1596,8 +1636,9 @@ describe("v0.7 release readiness", () => {
       providerPreflight: protocolInput.providerPreflight,
       requestSequenceSha256:
         V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequenceSha256,
-      schemaVersion: 7,
+      schemaVersion: 8,
       state: "consumed",
+      storagePreflight,
     });
 
     try {
@@ -1712,12 +1753,14 @@ describe("v0.7 release readiness", () => {
         },
         formalAttempt: { sentinel: attemptSentinel },
         generatedBy: "scripts/run-v0-7-3-replacement-protection-gate.ts",
+        measurementEvidenceRoot,
         measurementHarness,
         providerPreflight: {
           receipt: preflightReceipt,
           summary: providerPreflightPlan(),
           tape: preflightTape,
         },
+        storagePreflight,
         protocol: {
           assistedExtractionMaxAttempts: 4,
           assistedExtractionRequestTimeoutMs: 120_000,
@@ -1730,7 +1773,7 @@ describe("v0.7 release readiness", () => {
           providerFailureRecovery:
             "immediate-same-fingerprint-retry-to-2xx",
           providerPreflightFormalAttemptBoundary:
-            "schema7-consumed-sentinel-created-only-after-success",
+            "schema8-consumed-sentinel-created-only-after-success",
           providerPreflightProbeOrder:
             V073_PROVIDER_PREFLIGHT_POLICY.probeOrder,
           providerPreflightRequestSequenceSha256:
@@ -1743,8 +1786,17 @@ describe("v0.7 release readiness", () => {
             "redacted-before-output-hash-and-persistence",
           providerReplayConcurrency: 1,
           signTestAlpha: 0.05,
+          storagePreflightMinimumAvailableBytes:
+            V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes,
           tapeInputIdentity:
             "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest",
+          tapeArtifactEncoding: "canonical-json-sharded-gzip",
+          tapeMaxPartBytes: PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.maxPartBytes,
+          tapeMaxParts: PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.maxParts,
+          tapeMaxRawBytes: PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.maxRawBytes,
+          tapeMaxTotalBytes: PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.maxTotalBytes,
+          tapePartUncompressedBytes:
+            PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.partUncompressedBytes,
           tapeRequestIdentity:
             "sha256(logical-target + method + path/query + canonical-json-body + semantic-headers)",
           tapeResponseVariants: "ordered-per-fingerprint",
@@ -1755,7 +1807,7 @@ describe("v0.7 release readiness", () => {
           transportProxyRetries: 0,
         },
         providers,
-        schemaVersion: 7,
+        schemaVersion: 8,
       };
       const sharedStdout = await writeEvidence("logs/stdout.log", "8 pass\n0 fail\n");
       const sharedStderr = await writeEvidence("logs/stderr.log", "");
@@ -1786,7 +1838,7 @@ describe("v0.7 release readiness", () => {
         writeEvidence("provider-replay/candidate-official.json", json(official)),
         writeEvidence("provider-replay/baseline-progress.jsonl", officialProgressRaw),
         writeEvidence("provider-replay/candidate-progress.jsonl", officialProgressRaw),
-        writeEvidence("provider-response-tape.json", tapeRaw),
+        writeTapeBundle({ entries: tapeEntries, schemaVersion: 3 }),
       ]);
       const providerFreeReceipt = async (input: {
         concurrency: 1 | 40;
@@ -1800,7 +1852,7 @@ describe("v0.7 release readiness", () => {
             args: buildV073ProviderFreeArgs({
               benchmarkRoot,
               concurrency: input.concurrency,
-              outputDir: join(repoRoot, evidencePrefix, "provider-free"),
+              outputDir: join(measurementEvidenceRoot, "provider-free"),
               runId,
             }),
             command: "bun",
@@ -1853,7 +1905,7 @@ describe("v0.7 release readiness", () => {
           benchmarkRoot,
           claimRecipeRaw: CLAIM_RECIPE_RAW,
           commit: input.commit,
-          outputDir: join(repoRoot, evidencePrefix),
+          outputDir: measurementEvidenceRoot,
           providers,
           sourceIdentity: {
             officialSourceSha256: sourceIdentity.officialSourceSha256,
@@ -1984,6 +2036,142 @@ describe("v0.7 release readiness", () => {
         repoRoot,
       })).toEqual(expect.objectContaining({ status: "pass" }));
 
+      const gitDirectory = new TextDecoder().decode(Bun.spawnSync([
+        "git",
+        "rev-parse",
+        "--absolute-git-dir",
+      ]).stdout).trim();
+      await writeFile(join(repoRoot, ".git"), `gitdir: ${gitDirectory}\n`);
+      await writeFile(
+        join(repoRoot, "benchmark-claims/locomo.json"),
+        json({ claim: "fresh v0.7.3 publication", schemaVersion: 1 }),
+      );
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({ status: "pass" }));
+      await writeFile(
+        join(repoRoot, "benchmark-claims/locomo.json"),
+        CLAIM_RECIPE_RAW,
+      );
+      await rm(join(repoRoot, ".git"));
+
+      for (const driftedEvidenceRoot of [
+        "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence",
+        `${measurementEvidenceRoot}-drifted`,
+      ]) {
+        const driftedManifestRaw = json({
+          ...manifestValue,
+          measurementEvidenceRoot: driftedEvidenceRoot,
+        });
+        await writeFile(join(repoRoot, manifest.path), driftedManifestRaw);
+        Object.assign(
+          artifact.artifacts.manifest,
+          evidenceIdentity(manifest.path, driftedManifestRaw),
+        );
+        expect(await evaluateV073LifecycleProtectionBundle({
+          artifact,
+          artifactPath:
+            "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+          repoRoot,
+        })).toEqual(expect.objectContaining({ status: "fail" }));
+      }
+      const restoredManifestRaw = json(manifestValue);
+      await writeFile(join(repoRoot, manifest.path), restoredManifestRaw);
+      Object.assign(
+        artifact.artifacts.manifest,
+        evidenceIdentity(manifest.path, restoredManifestRaw),
+      );
+
+      const tapeManifest = JSON.parse(
+        await readFile(join(repoRoot, tape.path), "utf8"),
+      ) as { parts: Array<{ path: string }> };
+      const firstTapePartPath = join(
+        repoRoot,
+        evidencePrefix,
+        "provider-response-tape",
+        tapeManifest.parts[0]!.path,
+      );
+      const firstTapePart = await readFile(firstTapePartPath);
+      const mutatedTapePart = Uint8Array.from(firstTapePart);
+      mutatedTapePart[mutatedTapePart.length - 1] ^= 1;
+      await writeFile(firstTapePartPath, mutatedTapePart);
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining("bytes do not match"),
+        status: "fail",
+      }));
+      await writeFile(firstTapePartPath, firstTapePart);
+
+      const externalTapePartPath = join(repoRoot, "external-tape-part.json.gz");
+      await writeFile(externalTapePartPath, firstTapePart);
+      await rm(firstTapePartPath);
+      await symlink(externalTapePartPath, firstTapePartPath);
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining("regular file"),
+        status: "fail",
+      }));
+      await rm(firstTapePartPath);
+      await writeFile(firstTapePartPath, firstTapePart);
+
+      const extraTapePath = join(
+        repoRoot,
+        evidencePrefix,
+        "provider-response-tape",
+        "extra.json.gz",
+      );
+      await writeFile(extraTapePath, firstTapePart);
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining("directory closure"),
+        status: "fail",
+      }));
+      await rm(extraTapePath);
+
+      const legacyTapePath = join(
+        repoRoot,
+        evidencePrefix,
+        "provider-response-tape",
+        "provider-response-tape.json",
+      );
+      await writeFile(legacyTapePath, "{}\n");
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining("directory closure"),
+        status: "fail",
+      }));
+      await rm(legacyTapePath);
+
+      const canonicalC1BaselinePath = c1Baseline.path;
+      c1Baseline.path = canonicalC1BaselinePath.replace(
+        "v0.7.3-lifecycle-schema8-evidence",
+        "v0.7.3-lifecycle-evidence",
+      );
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath:
+          "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining("outside the tracked bundle"),
+        status: "fail",
+      }));
+      c1Baseline.path = canonicalC1BaselinePath;
+
       for (const protocolDrift of [
         { assistedExtractionMaxAttempts: 3 },
         { assistedExtractionRequestTimeoutMs: 60_000 },
@@ -2001,7 +2189,14 @@ describe("v0.7 release readiness", () => {
         { providerLogCredentialMaterial: "persist-before-redaction" },
         { providerReplayConcurrency: 40 },
         { signTestAlpha: 0.1 },
+        { storagePreflightMinimumAvailableBytes: 1 },
         { tapeInputIdentity: "unordered" },
+        { tapeArtifactEncoding: "raw-json" },
+        { tapeMaxPartBytes: 100 * 1024 * 1024 },
+        { tapeMaxParts: 25 },
+        { tapeMaxRawBytes: 2 * 1024 * 1024 * 1024 },
+        { tapeMaxTotalBytes: 2 * 1024 * 1024 * 1024 },
+        { tapePartUncompressedBytes: 64 * 1024 * 1024 },
         { tapeRequestIdentity: "body-only" },
         { tapeResponseVariants: "last-write-wins" },
         { tapeSequenceCoverage: "entry-count-only" },
@@ -2030,6 +2225,59 @@ describe("v0.7 release readiness", () => {
         }));
       }
       const manifestRaw = json(manifestValue);
+      await writeFile(join(repoRoot, manifest.path), manifestRaw);
+      Object.assign(
+        artifact.artifacts.manifest,
+        evidenceIdentity(manifest.path, manifestRaw),
+      );
+
+      const insufficientStorage = {
+        ...storagePreflight,
+        availableBytes:
+          V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes - 1,
+      };
+      const insufficientSentinelRaw = json({
+        ...(JSON.parse(attemptSentinelRaw) as Record<string, unknown>),
+        storagePreflight: insufficientStorage,
+      });
+      const insufficientSentinel = evidenceIdentity(
+        attemptSentinelPath,
+        insufficientSentinelRaw,
+      );
+      await writeFile(
+        join(repoRoot, attemptSentinelPath),
+        insufficientSentinelRaw,
+      );
+      Object.assign(attemptSentinel, insufficientSentinel);
+      const insufficientStorageManifestRaw = json({
+        ...manifestValue,
+        formalAttempt: { sentinel: insufficientSentinel },
+        storagePreflight: insufficientStorage,
+      });
+      await writeFile(
+        join(repoRoot, manifest.path),
+        insufficientStorageManifestRaw,
+      );
+      Object.assign(
+        artifact.artifacts.manifest,
+        evidenceIdentity(manifest.path, insufficientStorageManifestRaw),
+      );
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath:
+          "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining(
+          "provider preflight artifacts are not independently bound",
+        ),
+        status: "fail",
+      }));
+      await writeFile(join(repoRoot, attemptSentinelPath), attemptSentinelRaw);
+      Object.assign(
+        attemptSentinel,
+        evidenceIdentity(attemptSentinelPath, attemptSentinelRaw),
+      );
       await writeFile(join(repoRoot, manifest.path), manifestRaw);
       Object.assign(
         artifact.artifacts.manifest,
@@ -2265,7 +2513,7 @@ describe("v0.7 release readiness", () => {
 
       const alternateBody = JSON.stringify({ targetId: "eval-alternate" });
       const alternateResponse = Buffer.from("ok-eval-alternate");
-      const alternateTapeRaw = serializeProviderResponseTape({
+      const alternateTape = {
         entries: tapeEntries.map((entry) => entry.request.targetId === "eval"
           ? {
               fingerprint: fingerprintProviderRequest({
@@ -2294,8 +2542,9 @@ describe("v0.7 release readiness", () => {
               },
             }
           : entry),
-        schemaVersion: 3,
-      });
+        schemaVersion: 3 as const,
+      };
+      const alternateTapeRaw = serializeProviderResponseTape(alternateTape);
       const alternateTapeSha256 = createHash("sha256")
         .update(alternateTapeRaw)
         .digest("hex");
@@ -2310,8 +2559,7 @@ describe("v0.7 release readiness", () => {
         session.tapeSha256 = alternateTapeSha256;
       }
       const alteredProtocolInputRaw = json(alteredProtocolInput);
-      await writeFile(join(repoRoot, tape.path), alternateTapeRaw);
-      Object.assign(tape, evidenceIdentity(tape.path, alternateTapeRaw));
+      Object.assign(tape, await writeTapeBundle(alternateTape));
       await writeFile(
         join(repoRoot, protocolInputIdentity.path),
         alteredProtocolInputRaw,
@@ -2353,8 +2601,10 @@ describe("v0.7 release readiness", () => {
         status: "fail",
       }));
       const protocolInputRaw = json(protocolInput);
-      await writeFile(join(repoRoot, tape.path), tapeRaw);
-      Object.assign(tape, evidenceIdentity(tape.path, tapeRaw));
+      Object.assign(
+        tape,
+        await writeTapeBundle({ entries: tapeEntries, schemaVersion: 3 }),
+      );
       await writeFile(join(repoRoot, protocolInputIdentity.path), protocolInputRaw);
       Object.assign(
         protocolInputIdentity,
@@ -2421,6 +2671,29 @@ describe("v0.7 release readiness", () => {
     }));
   });
 
+  it("uses the measured candidate recipe after current claim publication changes locomo.json", () => {
+    const identity = {
+      bytes: Buffer.byteLength(CLAIM_RECIPE_RAW, "utf8"),
+      path: "benchmark-claims/locomo.json",
+      sha256: createHash("sha256").update(CLAIM_RECIPE_RAW).digest("hex"),
+    };
+    const publishedClaimRaw = `${JSON.stringify({
+      claim: "fresh v0.7.3 publication",
+      schemaVersion: 1,
+    }, null, 2)}\n`;
+
+    expect(resolveV073MeasuredClaimRecipeRaw({
+      candidateGitObjectRaw: CLAIM_RECIPE_RAW,
+      currentClaimRecipeRaw: publishedClaimRaw,
+      identity,
+    })).toBe(CLAIM_RECIPE_RAW);
+    expect(() => resolveV073MeasuredClaimRecipeRaw({
+      candidateGitObjectRaw: `${CLAIM_RECIPE_RAW} `,
+      currentClaimRecipeRaw: publishedClaimRaw,
+      identity,
+    })).toThrow("measured candidate claim recipe");
+  });
+
   it("rejects post-measurement execution drift and non-status package changes", () => {
     const packageJson = {
       goodmemoryRelease: { status: "release-candidate" },
@@ -2435,6 +2708,7 @@ describe("v0.7 release readiness", () => {
         "scripts/run-phase-65-locomo-smoke.ts",
         "tests/unit/recall.scoring.test.ts",
         ".github/workflows/release.yml",
+        ".gitignore",
       ],
       currentCommit: "b".repeat(40),
       currentPackage: packageJson,
@@ -2443,6 +2717,7 @@ describe("v0.7 release readiness", () => {
     expect(drift.status).toBe("fail");
     expect(drift.detail).toContain("src/recall/scoring.ts");
     expect(drift.detail).toContain(".github/workflows/release.yml");
+    expect(drift.detail).toContain(".gitignore");
 
     expect(evaluateV073LifecycleProtectionSourceDrift({
       candidateCommit: "a".repeat(40),

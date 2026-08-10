@@ -3837,7 +3837,23 @@ describe("release metadata and docs", () => {
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).toContain("tags:");
     expect(workflow).toContain("v*.*.*");
+    expect(workflow).toContain([
+      "- uses: actions/checkout@v4",
+      "        with:",
+      "          fetch-depth: 0",
+    ].join("\n"));
     expect(workflow).toContain("bun run gate:v0.7 --strict");
+    expect(
+      workflow.match(
+        /reports\/release\/v0\.7\/v0\.7\.3-lifecycle-schema8-attempt-consumed\.json/gu,
+      )?.length,
+    ).toBe(2);
+    expect(
+      workflow.match(
+        /reports\/release\/v0\.7\/v0\.7\.3-lifecycle-schema8-evidence\/\*\*/gu,
+      )?.length,
+    ).toBe(1);
+    expect(workflow).not.toContain("v0.7.3-lifecycle-evidence/**");
     expect(workflow).not.toContain("bun run gate:phase-40");
     expect(workflow).toContain("GOODMEMORY_ASSISTED_EXTRACTOR_API_KEY");
     expect(workflow).toContain("secrets.GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER");
@@ -3939,6 +3955,79 @@ describe("release metadata and docs", () => {
     }
     expect(workflow).not.toContain("npm publish --tag rc --access public");
     expect(workflow).not.toContain("npm view goodmemory@rc version");
+  });
+
+  it("archives the complete release evidence before publishing without duplicate GitHub release basenames", async () => {
+    const workflow = await readFile(
+      join(import.meta.dir, "../../.github/workflows/release.yml"),
+      "utf8",
+    );
+
+    expect(workflow).toContain("- name: Pack tracked release evidence");
+    expect(workflow).toContain("tar --sort=name --mtime='@0'");
+    expect(workflow).toContain("tar -tzf \"$EVIDENCE_ARCHIVE\"");
+    expect(workflow).toContain(
+      "goodmemory-${VERSION}-release-evidence.tar.gz",
+    );
+    const evidencePaths = [
+      "${{ steps.prepublish.outputs.evidence_path }}",
+      "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+      "reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json",
+      "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence",
+      "benchmark-claims/evidence/locomo-v0.7.3-current.json",
+      "reports/release/v0.7/v0.7.3-locomo-claim-evidence",
+      "reports/release/v0.7/phase-74-storage-scale-gate.json",
+      "reports/release/v0.7/readiness-report.json",
+      "reports/release/v0.7/summary.md",
+    ];
+
+    const uploadIndex = workflow.indexOf("- name: Upload tarball artifact");
+    const archiveIndex = workflow.indexOf("- name: Pack tracked release evidence");
+    const authIndex = workflow.indexOf(
+      "- name: Validate npm publishing credentials",
+    );
+    const publishIndex = workflow.indexOf("- name: Publish package to npm");
+    expect(uploadIndex).toBeGreaterThan(-1);
+    expect(archiveIndex).toBeGreaterThan(-1);
+    expect(authIndex).toBeGreaterThan(archiveIndex);
+    expect(publishIndex).toBeGreaterThan(archiveIndex);
+
+    const uploadBlock = workflow.slice(uploadIndex, archiveIndex);
+    const archiveBlock = workflow.slice(archiveIndex, authIndex);
+    for (const evidencePath of evidencePaths) {
+      expect(uploadBlock).toContain(evidencePath);
+      expect(archiveBlock).toContain(evidencePath);
+    }
+
+    const githubReleaseStart = workflow.indexOf("- name: Create GitHub release");
+    const githubReleaseBlock = workflow.slice(githubReleaseStart);
+    expect(githubReleaseBlock).toContain(
+      "${{ steps.evidence-archive.outputs.archive_path }}",
+    );
+    expect(githubReleaseBlock).toContain(
+      "${{ steps.pack.outputs.artifact_path }}",
+    );
+    expect(githubReleaseBlock).toContain("fail_on_unmatched_files: true");
+    expect(githubReleaseBlock).not.toContain("prepublish-evidence.json");
+    expect(githubReleaseBlock).not.toContain("reports/release/v0.7/");
+    expect(githubReleaseBlock).not.toContain("benchmark-claims/evidence/");
+  });
+
+  it("keeps schema-8 evidence addable without force", async () => {
+    for (const path of [
+      "reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json",
+      "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence/manifest.json",
+    ]) {
+      const ignored = await runGitCommand([
+        "check-ignore",
+        "-v",
+        "--no-index",
+        path,
+      ]);
+      expect(ignored.exitCode).toBe(0);
+      expect(ignored.stdout).toContain(`\t${path}`);
+      expect(ignored.stdout).toContain("!");
+    }
   });
 
   it("scheduled eval workflow skips successfully when live eval secrets are absent", async () => {

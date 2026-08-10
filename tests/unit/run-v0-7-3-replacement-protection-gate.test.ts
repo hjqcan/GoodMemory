@@ -9,17 +9,22 @@ import { describe, expect, it } from "bun:test";
 import {
   createProviderResponseTapeProxy,
   fingerprintProviderTransportAttemptLedger,
-  parseProviderResponseTape,
 } from "../../scripts/provider-response-tape";
 import type { ProviderTapeTransportAttempt } from "../../scripts/provider-response-tape";
 import {
+  decodeProviderResponseTapeBundle,
+  parseProviderResponseTapeBundleManifest,
+  PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY,
+} from "../../scripts/provider-response-tape-bundle";
+import {
   assertV073DriverMatchesCandidate,
   assertV073ProviderStageCanContinue,
+  assertV073Schema8StoragePreflight,
   assertV073SeedStageReport,
   assertV073ScenarioOutcome,
   buildV073ProviderFreeArgs,
   buildV073StageArm,
-  claimV073Schema7FormalAttempt,
+  claimV073Schema8FormalAttempt,
   officialQuestionTransitions,
   parseV073ProviderFreeReport,
   parseV073ReplacementGateCliOptions,
@@ -29,6 +34,7 @@ import {
   V073_ASSISTED_EXTRACTION_POLICY,
   V073_PROVIDER_STAGE_ORDER,
   V073_PROVIDER_TRANSPORT_POLICY,
+  V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY,
 } from "../../scripts/run-v0-7-3-replacement-protection-gate";
 import { buildV073PairedCommandChain } from "../../scripts/run-v0-7-3-lifecycle-protection-gate";
 import type { V073PairedCommandChain } from "../../scripts/run-v0-7-3-lifecycle-protection-gate";
@@ -220,18 +226,77 @@ describe("v0.7.3 replacement protection gate runner", () => {
     );
   });
 
-  it("claims the schema 7 formal attempt exactly once outside the movable evidence root", async () => {
+  it("claims the schema 8 formal attempt exactly once outside the movable evidence root", async () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-v073-attempt-"));
-    const path = join(root, "schema7-consumed.json");
+    const path = join(root, "schema8-consumed.json");
     try {
-      await claimV073Schema7FormalAttempt(path, "first\n");
+      await claimV073Schema8FormalAttempt(path, "first\n");
       await expect(
-        claimV073Schema7FormalAttempt(path, "second\n"),
+        claimV073Schema8FormalAttempt(path, "second\n"),
       ).rejects.toMatchObject({ code: "EEXIST" });
       expect(await readFile(path, "utf8")).toBe("first\n");
     } finally {
       await rm(root, { force: true, recursive: true });
     }
+  });
+
+  it("requires 4 GiB of free space before the schema 8 live preflight", () => {
+    const minimum = V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes;
+    expect(assertV073Schema8StoragePreflight({
+      availableBlocks: minimum / 4096,
+      blockSize: 4096,
+      path: "reports/release/v0.7",
+    })).toEqual({
+      availableBytes: minimum,
+      minimumAvailableBytes: minimum,
+      path: "reports/release/v0.7",
+    });
+    expect(() => assertV073Schema8StoragePreflight({
+      availableBlocks: minimum / 4096 - 1,
+      blockSize: 4096,
+      path: "reports/release/v0.7",
+    })).toThrow("schema 8 requires at least");
+  });
+
+  it("qualifies storage before provider traffic and claims the attempt before creating evidence", () => {
+    const source = readFileSync(
+      new URL(
+        "../../scripts/run-v0-7-3-replacement-protection-gate.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const storageIndex = source.indexOf("const filesystem = await statfs");
+    const preflightIndex = source.indexOf(
+      "const providerPreflight = await runV073ProviderAvailabilityPreflight",
+    );
+    const claimIndex = source.indexOf(
+      "await claimV073Schema8FormalAttempt",
+    );
+    const evidenceRootIndex = source.indexOf("await mkdir(outputDir);");
+    expect(storageIndex).toBeGreaterThan(-1);
+    expect(storageIndex).toBeLessThan(preflightIndex);
+    expect(preflightIndex).toBeLessThan(claimIndex);
+    expect(claimIndex).toBeLessThan(evidenceRootIndex);
+    expect(source).toContain("measurementEvidenceRoot: outputDir");
+  });
+
+  it("persists the formal response tape as bounded gzip parts instead of one GitHub-blocked blob", () => {
+    const source = readFileSync(
+      new URL(
+        "../../scripts/run-v0-7-3-replacement-protection-gate.ts",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    expect(source).toContain("encodeProviderResponseTapeBundle");
+    expect(source).toContain("decodeProviderResponseTapeBundle");
+    expect(source).toContain('"provider-response-tape",');
+    expect(source).toContain('"manifest.json",');
+    expect(source).toContain(
+      "tapeMaxParts: PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.maxParts",
+    );
+    expect(source).not.toContain('"provider-response-tape.json"');
   });
 
   it("stops a formal stage after the first command that has tape misses", () => {
@@ -807,13 +872,27 @@ describe("v0.7.3 replacement protection gate runner", () => {
         "baseline-discovery provider seed report is incomplete",
       );
 
-      const failureTapePath = join(
+      const failureTapeRoot = join(
         arm.executionReceiptPath,
         "..",
-        "failure-tape.json",
+        "failure-tape",
       );
-      const failureTapeRaw = await readFile(failureTapePath, "utf8");
-      const failureTape = parseProviderResponseTape(failureTapeRaw);
+      const failureTapeManifestRaw = await readFile(
+        join(failureTapeRoot, "manifest.json"),
+        "utf8",
+      );
+      const failureTapeManifest = parseProviderResponseTapeBundleManifest(
+        failureTapeManifestRaw,
+      );
+      const failureTape = decodeProviderResponseTapeBundle({
+        manifestRaw: failureTapeManifestRaw,
+        parts: new Map(await Promise.all(failureTapeManifest.parts.map(
+          async (part) => [
+            part.path,
+            await readFile(join(failureTapeRoot, part.path)),
+          ] as const,
+        ))),
+      }).tape;
       expect(failureTape.entries).toHaveLength(4);
       expect(failureTape.entries.map((entry) => Buffer.from(
         entry.response.bodyBase64,
@@ -822,8 +901,11 @@ describe("v0.7.3 replacement protection gate runner", () => {
         malformedResponse,
         "slow-success",
       ]));
-      expect(failureTapeRaw).not.toContain(requestMarker);
-      expect(failureTapeRaw).not.toContain(credentialMarker);
+      expect(failureTapeManifest.parts.every((part) =>
+        part.bytes <= PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY.maxPartBytes
+      )).toBe(true);
+      expect(JSON.stringify(failureTape)).not.toContain(requestMarker);
+      expect(JSON.stringify(failureTape)).not.toContain(credentialMarker);
 
       const receiptRaw = await readFile(arm.executionReceiptPath, "utf8");
       const receipt = JSON.parse(receiptRaw) as {
@@ -837,12 +919,13 @@ describe("v0.7.3 replacement protection gate runner", () => {
         };
       };
       expect(receipt.failureTape).toEqual({
-        bytes: Buffer.byteLength(failureTapeRaw, "utf8"),
+        bytes: Buffer.byteLength(failureTapeManifestRaw, "utf8"),
         path: receipt.failureTape.path,
-        sha256: createHash("sha256").update(failureTapeRaw).digest("hex"),
+        sha256: createHash("sha256").update(failureTapeManifestRaw).digest("hex"),
       });
       expect(receipt.failureTapeExcludedCredentialEntries).toBe(2);
-      expect(receipt.failureTape.path.endsWith("/failure-tape.json")).toBe(true);
+      expect(receipt.failureTape.path.endsWith("/failure-tape/manifest.json"))
+        .toBe(true);
       expect(receipt.session.transportAttempts).toBe(6);
       expect(receipt.session.transportErrors).toBe(1);
       expect(receipt.session.transportAttemptLedger.map(
