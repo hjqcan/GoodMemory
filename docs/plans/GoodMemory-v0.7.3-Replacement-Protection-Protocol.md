@@ -1,9 +1,11 @@
 # GoodMemory v0.7.3 Replacement Protection Protocol
 
 Status: schemas 6 through 8 are terminal blocked evidence and are archived;
-schema 9 completed its single formal attempt and passed. The lifecycle gate
-authorizes the full claim rerun, but v0.7.3 remains unpublished pending that
-claim, final readiness, and release verification
+schema 9 completed its single formal attempt and passed. The first authorized
+full-claim draw is terminal invalid after one conversational-extraction timeout
+was amplified to 191 seed failures. One fresh same-configuration replacement
+draw is preregistered; v0.7.3 remains unpublished pending that claim, final
+readiness, and release verification
 Date: 2026-08-10
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
@@ -662,6 +664,25 @@ through 8 remain terminal blocked evidence and cannot authorize that claim.
 The existing 0.8799 number is not copied forward. The observed 233-question
 same-commit wobble, scaled only as a heuristic by `sqrt(233/1540)`, suggests
 roughly 0.4-0.7pt full-set run-to-run spread; this is not a confidence interval.
+
+The first full-claim draw completed a 1,540-row seed report with 191 execution
+failures, all in `locomo-conv-48` and all carrying the same 120-second
+conversational-extraction timeout. The cache proves 271/272 session extractions
+completed; only `locomo-conv-48/D15` is missing. The case-level seed failure
+boundary then marked all 191 questions in that conversation failed. Re-answer,
+official judging, and claim publication did not start. That output namespace is
+terminal and retained under
+`reports/release/v0.7/v0.7.3-locomo-claim-attempt-1-failed/`.
+
+Exactly one replacement draw is authorized with the fixed identities and rules
+in that directory's `attribution.md`: two new clean detached worktrees at the
+same measured candidate, the same benchmark bytes, Bun version, provider
+identities, prompts, concurrency, timeouts, retry policy, question order, and
+canonical launcher, but a new output namespace and three new run IDs. It must
+not reuse the failed draw's checkpoint, extraction cache, reports, or responses.
+Any execution or judge failure blocks release and does not authorize a third
+draw. No code, model, configuration, or acceptance threshold changes are part
+of this replacement.
 
 The preferred claim artifact records and replays provider responses so the
 published run is byte-reproducible. If any published score instead comes from a

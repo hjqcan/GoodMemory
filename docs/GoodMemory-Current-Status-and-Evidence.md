@@ -83,10 +83,20 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   with 1,018 exact hits, zero misses, zero live requests, zero sequence
   mismatches, and zero execution or judge failures. Provider evidence recall
   and official score deltas were both zero; strict answer score moved by
-  `+0.071531pt`. The passing compact artifact now authorizes the fresh full
-  1,540-question claim rerun. It does not itself publish v0.7.3: the full claim,
-  final strict readiness, tag, npm publish, and GitHub Release are still
-  pending.
+  `+0.071531pt`. The passing compact artifact authorized the fresh full
+  1,540-question claim rerun. Its first draw at the same measured candidate is
+  terminal invalid: one `GOODMEMORY_EVAL` conversational-extraction request for
+  `locomo-conv-48/D15` exhausted four 120-second attempts, and the case-level
+  seed boundary expanded that single failure to all 191 questions in
+  `locomo-conv-48`. The other 1,349 questions completed, but the launcher
+  correctly stopped before re-answer, official judging, projection, or claim
+  evidence. The raw failure report, checkpoint, cache, attribution, and a
+  one-draw replacement preregistration are retained at
+  `reports/release/v0.7/v0.7.3-locomo-claim-attempt-1-failed/`. The replacement
+  must be fresh, use the same candidate and frozen configuration, and pass with
+  zero execution and judge failures; it does not authorize a third draw if it
+  fails. v0.7.3 remains unpublished, and final strict readiness, tag, npm
+  publish, and GitHub Release are still pending.
   See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as
