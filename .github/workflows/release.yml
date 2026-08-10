@@ -132,8 +132,8 @@ jobs:
             ${{ steps.pack.outputs.artifact_path }}
             ${{ steps.prepublish.outputs.evidence_path }}
             reports/release/v0.7/v0.7.3-lifecycle-protection.json
-            reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json
-            reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence/**
+            reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json
+            reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/**
             benchmark-claims/evidence/locomo-v0.7.3-current.json
             reports/release/v0.7/v0.7.3-locomo-claim-evidence/**
             reports/release/v0.7/phase-74-storage-scale-gate.json
@@ -151,8 +151,8 @@ jobs:
             -C "$(dirname "$PREPUBLISH_EVIDENCE")" "$(basename "$PREPUBLISH_EVIDENCE")" \
             -C "$GITHUB_WORKSPACE" \
             reports/release/v0.7/v0.7.3-lifecycle-protection.json \
-            reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json \
-            reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence \
+            reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json \
+            reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence \
             benchmark-claims/evidence/locomo-v0.7.3-current.json \
             reports/release/v0.7/v0.7.3-locomo-claim-evidence \
             reports/release/v0.7/phase-74-storage-scale-gate.json \

@@ -369,7 +369,7 @@ describe("C6 source-v3-simple prior identity portable evidence", () => {
       `${JSON.stringify(authorityManifest, null, 2)}\n`,
     );
     await expect(verify(authorityRoot)).rejects.toThrow();
-  }, ciTestTimeout(60_000));
+  }, EVIDENCE_TEST_TIMEOUT_MILLISECONDS);
 
   it("parses only the seven required materializer options", () => {
     expect(

@@ -210,7 +210,7 @@ export interface V073ReplacementProtectionReport {
   providerReplay: V073ReplacementProtectionInput["providerReplay"];
   releaseAllowed: boolean;
   researchRecordRequired: boolean;
-  schemaVersion: 8;
+  schemaVersion: 9;
 }
 
 export function assertV073ProviderPreflightReceipt(
@@ -639,6 +639,6 @@ export function evaluateV073ReplacementProtection(
     providerReplay: input.providerReplay,
     releaseAllowed: blockers.length === 0,
     researchRecordRequired: deterministicMoved || providerMoved,
-    schemaVersion: 8,
+    schemaVersion: 9,
   };
 }

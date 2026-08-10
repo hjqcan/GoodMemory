@@ -97,9 +97,9 @@ const SEED_RUNNER_PATH = "scripts/run-phase-65-locomo-smoke.ts";
 const REANSWER_RUNNER_PATH = "scripts/reanswer-phase-65-locomo-report.ts";
 const OFFICIAL_RUNNER_PATH = "scripts/rescore-official-protocols.ts";
 const EVIDENCE_ROOT =
-  "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence";
+  "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence";
 const FORMAL_ATTEMPT_SENTINEL =
-  "reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json";
+  "reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json";
 const PROTECTION_ARTIFACT =
   "reports/release/v0.7/v0.7.3-lifecycle-protection.json";
 
@@ -120,7 +120,7 @@ export const V073_PROVIDER_TRANSPORT_POLICY = {
   transportErrors: "record-and-replay",
 } as const;
 
-export const V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY = {
+export const V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY = {
   minimumAvailableBytes: 4 * 1024 * 1024 * 1024,
 } as const;
 
@@ -783,14 +783,14 @@ async function readProviderResponseTapeBundle(
   return decodeProviderResponseTapeBundle({ manifestRaw, parts });
 }
 
-export async function claimV073Schema8FormalAttempt(
+export async function claimV073Schema9FormalAttempt(
   path: string,
   raw: string,
 ): Promise<void> {
   await writeFile(resolve(path), raw, { flag: "wx" });
 }
 
-export function assertV073Schema8StoragePreflight(input: {
+export function assertV073Schema9StoragePreflight(input: {
   availableBlocks: number;
   blockSize: number;
   path: string;
@@ -802,16 +802,16 @@ export function assertV073Schema8StoragePreflight(input: {
   const availableBytes = input.availableBlocks * input.blockSize;
   if (
     !Number.isSafeInteger(availableBytes) ||
-    availableBytes < V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes
+    availableBytes < V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes
   ) {
     throw new Error(
-      `replacement protection schema 8 requires at least ${V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes} available bytes; got ${availableBytes}`,
+      `replacement protection schema 9 requires at least ${V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes} available bytes; got ${availableBytes}`,
     );
   }
   return {
     availableBytes,
     minimumAvailableBytes:
-      V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes,
+      V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes,
     path: input.path,
   };
 }
@@ -928,6 +928,8 @@ function stageRunId(stage: string, suffix: string, outputDir: string): string {
   return `v073-${stage}-${suffix}-${sha256(resolve(outputDir)).slice(0, 8)}`;
 }
 
+export const V073_SEMANTIC_SEED_RUN_ID = "v073-lifecycle-protection-seed";
+
 export function buildV073StageArm(input: {
   benchmarkRoot: string;
   claimRecipeRaw: string;
@@ -945,7 +947,7 @@ export function buildV073StageArm(input: {
   worktreePath: string;
 }): { arm: V073ProtectionArmManifest; claimRecipeRaw: string } {
   const stageRoot = join(input.outputDir, "provider-replay", input.stage);
-  const seedRunId = stageRunId(input.stage, "seed", input.outputDir);
+  const seedRunId = V073_SEMANTIC_SEED_RUN_ID;
   const runId = stageRunId(input.stage, "final", input.outputDir);
   const officialRunId = stageRunId(input.stage, "official", input.outputDir);
   const seedOutputPath = join(stageRoot, seedRunId);
@@ -1748,7 +1750,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
     assertPathAbsent(outputDir, "replacement protection evidence root"),
     assertPathAbsent(
       formalAttemptSentinelPath,
-      "replacement protection schema 8 attempt sentinel",
+      "replacement protection schema 9 attempt sentinel",
     ),
     assertPathAbsent(reportPath, "replacement protection artifact"),
   ]);
@@ -1790,7 +1792,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
   const { credentials, sensitiveValues } = requiredProviderCredentials();
   assertProviderIdentities(providers);
   const filesystem = await statfs(dirname(outputDir));
-  const storagePreflight = assertV073Schema8StoragePreflight({
+  const storagePreflight = assertV073Schema9StoragePreflight({
     availableBlocks: filesystem.bavail,
     blockSize: filesystem.bsize,
     path: relative(process.cwd(), dirname(outputDir)),
@@ -1806,11 +1808,11 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
     providerPreflight: providerPreflight.receipt,
     requestSequenceSha256:
       V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequenceSha256,
-    schemaVersion: 8,
+    schemaVersion: 9,
     state: "consumed",
     storagePreflight,
   }, null, 2)}\n`;
-  await claimV073Schema8FormalAttempt(
+  await claimV073Schema9FormalAttempt(
     formalAttemptSentinelPath,
     formalAttemptSentinelRaw,
   );
@@ -1889,7 +1891,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       providerFailureRecovery:
         "immediate-same-fingerprint-retry-to-2xx",
       providerPreflightFormalAttemptBoundary:
-        "schema8-consumed-sentinel-created-only-after-success",
+        "schema9-consumed-sentinel-created-only-after-success",
       providerPreflightProbeOrder:
         V073_PROVIDER_PREFLIGHT_POLICY.probeOrder,
       providerPreflightRequestTimeoutMs:
@@ -1901,9 +1903,10 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       providerLogCredentialMaterial:
         "redacted-before-output-hash-and-persistence",
       providerReplayConcurrency: 1,
+      semanticSeedRunId: V073_SEMANTIC_SEED_RUN_ID,
       signTestAlpha: 0.05,
       storagePreflightMinimumAvailableBytes:
-        V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes,
+        V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes,
       tapeInputIdentity:
         "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest",
       tapeArtifactEncoding: "canonical-json-sharded-gzip",
@@ -1924,7 +1927,7 @@ async function runGate(options: V073ReplacementGateCliOptions): Promise<void> {
       transportProxyRetries: V073_PROVIDER_TRANSPORT_POLICY.proxyRetries,
     },
     providers,
-    schemaVersion: 8,
+    schemaVersion: 9,
   });
 
   const [providerFreeC1Baseline, providerFreeC1Candidate] = await Promise.all([

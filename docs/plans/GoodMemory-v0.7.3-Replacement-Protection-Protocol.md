@@ -1,8 +1,8 @@
 # GoodMemory v0.7.3 Replacement Protection Protocol
 
 Status: schemas 6 through 8 are terminal blocked evidence and are archived;
-no successor formal attempt is authorized until a new preregistration lands.
-There is still no passing run or release
+schema 9 is preregistered but its live attempt has not begun. There is still no
+passing run or release authorization
 Date: 2026-08-09
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
@@ -439,16 +439,15 @@ official rescore, candidate formal replay, or the paired analyzer. The formal
 session recorded 556 requests, 480 exact hits, zero misses, zero live requests,
 and 76 mismatches.
 
-The retained evidence also exposes a stage-identity leak that a successor must
-reproduce and close locally: stage-specific seed run IDs become LoCoMo
-`workspaceId` values, and recall projection IDs hash that scope identity. The
-discovery and formal extraction caches are byte-identical, while the two stage
-run IDs produce different scope and entity projection IDs for identical
-content. Because the retained request evidence binds hashes rather than raw
-bodies, a successor is not authorized until a provider-free request-capture
-regression proves the stable construction. Exact fingerprint matching remains
-required; changing the comparison to a multiset or fuzzy match is not an
-accepted remedy.
+The retained evidence also exposes a stage-identity leak: stage-specific seed
+run IDs become LoCoMo `workspaceId` values, and recall projection IDs hash that
+scope identity. The discovery and formal extraction caches are byte-identical,
+while the two stage run IDs produce different scope and entity projection IDs
+for identical content. The retained hash-only requests could not by themselves
+prove which prompt component moved, so this remained a leading causal
+hypothesis until the local reproduction described below. Exact fingerprint
+matching remains required; changing the comparison to a multiset or fuzzy
+match is not an accepted remedy.
 
 Schema 8 is permanently consumed. Its evidence and attribution are archived
 under
@@ -456,6 +455,53 @@ under
 sentinel remains tracked at
 `reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json`. No
 passing compact artifact exists.
+
+## Schema-9 revision: stable semantic seed identity
+
+Schema 9 retains every schema-8 storage, availability, tape, deterministic,
+and release-workflow boundary. Its only measurement change is to separate the
+semantic seed identity from artifact identity:
+
+- evidence moves to the new canonical root
+  `reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/`;
+- the new irreversible sentinel is
+  `reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json`;
+- the compact and manifest schema version is 9, and readiness rejects schema 8
+  as release authorization;
+- baseline discovery, baseline formal, candidate discovery, and candidate
+  formal all seed with the exact run ID
+  `v073-lifecycle-protection-seed`;
+- every stage still has a distinct artifact root, execution receipt, final run
+  ID, and official run ID. Only the seed ID used by `buildLocomoScope` is
+  shared, so there is no discovery/formal output reuse;
+- the LoCoMo harness remains byte-identical between the fixed v0.7.2 baseline
+  and candidate. In particular, its historical listwise reranker continues to
+  use the eval route in both arms; changing only the candidate to the separate
+  reranking route would mix a harness change and new live responses into the
+  lifecycle comparison.
+
+Before preregistration, a provider-free request-capture regression reproduced a
+deterministic scope-identity mechanism capable of causing the same class of
+listwise body drift. With fresh in-memory stores, deterministic extraction,
+fixed embedding responses, and the real generalized-fusion plus listwise
+serialization path, changing only the semantic seed run ID changed candidate
+selection and/or ordering and the canonical request body. Repeated fresh stores
+using one shared semantic seed produced the same canonical body. The regression
+also proves that discovery and formal construct identical seed commands except
+for their distinct artifact output directories. It removes a known confound;
+fresh discovery-to-formal exact replay remains the test of whether that
+confound fully explains the historical schema-8 mismatch. The regression is
+part of the schema-9 candidate and the manifest independently binds the shared
+seed ID.
+
+Schema 9 does not strip IDs, sort candidates after retrieval, weaken exact
+request fingerprints, accept reranker fallback, or reuse any schema-8 response
+as release evidence. Its provider discovery records a fresh union tape, and
+both formal arms must reproduce their own discovery request sequence exactly
+with network-on-miss disabled. The attempt may begin only from one clean frozen
+`main` candidate after focused tests, the full suite, typecheck, coverage, and
+read-only review pass. Five successful provider probes precede the exclusive
+schema-9 sentinel; any later failure consumes schema 9 permanently.
 
 ## Release decision
 
@@ -593,25 +639,24 @@ independent evidence.
 
 ## Commands and evidence locations
 
-The consumed schema-8 measurement command was:
+The schema-9 measurement command is:
 
 ```bash
 bun run gate:v0.7.3-lifecycle-protection -- \
   --baseline-worktree <clean-detached-v0.7.2-path> \
   --candidate-worktree <clean-detached-candidate-path> \
   --benchmark-root ~/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1 \
-  --output-dir reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence
+  --output-dir reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence
 ```
 
-The schema-8 compact result would have been
-`reports/release/v0.7/v0.7.3-lifecycle-protection.json`; no such passing
-artifact was produced. The terminal schema-8 attempt is archived under
+The passing schema-9 compact result, if authorized, is written to
+`reports/release/v0.7/v0.7.3-lifecycle-protection.json`. The terminal schema-8
+attempt remains archived under
 `reports/release/v0.7/blocked-6f9e5ca0-schema8-sequence-mismatch/`. The current
 strict verifier therefore cannot authorize release: it requires a passing
-compact artifact and complete formal pair, neither of which exists. A
-successor must revise the runner and independent verifier under a new schema;
-the archived schema-8 discovery metrics and tape cannot be promoted into that
-successor's release decision.
+schema-9 compact artifact and complete formal pair, neither of which exists
+before the registered attempt. The archived schema-8 discovery metrics and
+tape cannot be promoted into the schema-9 release decision.
 
 The measurement runner validates the external `cases.json` against the frozen
 byte count and SHA-256. The tracked manifest retains that identity and the

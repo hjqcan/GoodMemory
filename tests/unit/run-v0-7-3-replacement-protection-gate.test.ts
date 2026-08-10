@@ -6,6 +6,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "bun:test";
 
+import type { LocomoCase } from "../../src/eval/locomo";
 import {
   createProviderResponseTapeProxy,
   fingerprintProviderTransportAttemptLedger,
@@ -19,12 +20,12 @@ import {
 import {
   assertV073DriverMatchesCandidate,
   assertV073ProviderStageCanContinue,
-  assertV073Schema8StoragePreflight,
+  assertV073Schema9StoragePreflight,
   assertV073SeedStageReport,
   assertV073ScenarioOutcome,
   buildV073ProviderFreeArgs,
   buildV073StageArm,
-  claimV073Schema8FormalAttempt,
+  claimV073Schema9FormalAttempt,
   officialQuestionTransitions,
   parseV073ProviderFreeReport,
   parseV073ReplacementGateCliOptions,
@@ -34,10 +35,16 @@ import {
   V073_ASSISTED_EXTRACTION_POLICY,
   V073_PROVIDER_STAGE_ORDER,
   V073_PROVIDER_TRANSPORT_POLICY,
-  V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY,
+  V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY,
 } from "../../scripts/run-v0-7-3-replacement-protection-gate";
 import { buildV073PairedCommandChain } from "../../scripts/run-v0-7-3-lifecycle-protection-gate";
 import type { V073PairedCommandChain } from "../../scripts/run-v0-7-3-lifecycle-protection-gate";
+import {
+  buildLocomoScope,
+  createLocomoSmokeMemory,
+  seedLocomoCase,
+  seedLocomoCaseConversational,
+} from "../../scripts/run-phase-65-locomo-smoke";
 
 function commandChain(): V073PairedCommandChain {
   const invocation = {
@@ -226,13 +233,13 @@ describe("v0.7.3 replacement protection gate runner", () => {
     );
   });
 
-  it("claims the schema 8 formal attempt exactly once outside the movable evidence root", async () => {
+  it("claims the schema 9 formal attempt exactly once outside the movable evidence root", async () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-v073-attempt-"));
-    const path = join(root, "schema8-consumed.json");
+    const path = join(root, "schema9-consumed.json");
     try {
-      await claimV073Schema8FormalAttempt(path, "first\n");
+      await claimV073Schema9FormalAttempt(path, "first\n");
       await expect(
-        claimV073Schema8FormalAttempt(path, "second\n"),
+        claimV073Schema9FormalAttempt(path, "second\n"),
       ).rejects.toMatchObject({ code: "EEXIST" });
       expect(await readFile(path, "utf8")).toBe("first\n");
     } finally {
@@ -240,9 +247,9 @@ describe("v0.7.3 replacement protection gate runner", () => {
     }
   });
 
-  it("requires 4 GiB of free space before the schema 8 live preflight", () => {
-    const minimum = V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes;
-    expect(assertV073Schema8StoragePreflight({
+  it("requires 4 GiB of free space before the schema 9 live preflight", () => {
+    const minimum = V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes;
+    expect(assertV073Schema9StoragePreflight({
       availableBlocks: minimum / 4096,
       blockSize: 4096,
       path: "reports/release/v0.7",
@@ -251,11 +258,11 @@ describe("v0.7.3 replacement protection gate runner", () => {
       minimumAvailableBytes: minimum,
       path: "reports/release/v0.7",
     });
-    expect(() => assertV073Schema8StoragePreflight({
+    expect(() => assertV073Schema9StoragePreflight({
       availableBlocks: minimum / 4096 - 1,
       blockSize: 4096,
       path: "reports/release/v0.7",
-    })).toThrow("schema 8 requires at least");
+    })).toThrow("schema 9 requires at least");
   });
 
   it("qualifies storage before provider traffic and claims the attempt before creating evidence", () => {
@@ -271,7 +278,7 @@ describe("v0.7.3 replacement protection gate runner", () => {
       "const providerPreflight = await runV073ProviderAvailabilityPreflight",
     );
     const claimIndex = source.indexOf(
-      "await claimV073Schema8FormalAttempt",
+      "await claimV073Schema9FormalAttempt",
     );
     const evidenceRootIndex = source.indexOf("await mkdir(outputDir);");
     expect(storageIndex).toBeGreaterThan(-1);
@@ -533,6 +540,190 @@ describe("v0.7.3 replacement protection gate runner", () => {
     expect(concurrency(chain.seedSmoke.args)).toBe("1");
     expect(concurrency(chain.reanswer.args)).toBe("1");
     expect(concurrency(chain.officialRescore.args)).toBe("1");
+  });
+
+  it("keeps canonical listwise bodies stable with one shared semantic seed", async () => {
+    const claimRecipeRaw = readFileSync("benchmark-claims/locomo.json", "utf8");
+    const buildArm = (stage: string) => buildV073StageArm({
+      benchmarkRoot: join(
+        homedir(),
+        ".cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1",
+      ),
+      claimRecipeRaw,
+      commit: "a".repeat(40),
+      outputDir: "/tmp/v073-semantic-seed",
+      providers: preflightInput().providers,
+      sourceIdentity: {
+        officialSourceSha256: "b".repeat(64),
+        reanswerSourceSha256: "c".repeat(64),
+        seedSourceSha256: "d".repeat(64),
+      },
+      stage,
+      worktreePath: "/tmp/v073-baseline",
+    }).arm;
+    const discovery = buildArm("baseline-discovery");
+    const formal = buildArm("baseline-formal");
+    expect(discovery.execution.seedOutputPath).not.toBe(
+      formal.execution.seedOutputPath,
+    );
+    const discoverySeedCommand = buildV073PairedCommandChain(
+      discovery,
+      claimRecipeRaw,
+    ).seedSmoke;
+    const formalSeedCommand = buildV073PairedCommandChain(
+      formal,
+      claimRecipeRaw,
+    ).seedSmoke;
+    const normalizeOutputDir = (args: readonly string[]): string[] => {
+      const normalized = [...args];
+      const outputDirIndex = normalized.indexOf("--output-dir");
+      if (outputDirIndex < 0) {
+        throw new Error("seed command must include --output-dir");
+      }
+      normalized[outputDirIndex + 1] = "<artifact-output-dir>";
+      return normalized;
+    };
+    expect(discoverySeedCommand.command).toBe(formalSeedCommand.command);
+    expect(discoverySeedCommand.cwd).toBe(formalSeedCommand.cwd);
+    expect(discoverySeedCommand.environment).toEqual(
+      formalSeedCommand.environment,
+    );
+    expect(normalizeOutputDir(discoverySeedCommand.args)).toEqual(
+      normalizeOutputDir(formalSeedCommand.args),
+    );
+
+    const requestBodies: string[] = [];
+    const provider = Bun.serve({
+      hostname: "127.0.0.1",
+      port: 0,
+      async fetch(request) {
+        const url = new URL(request.url);
+        const body = await request.json() as Record<string, unknown>;
+        if (url.pathname.endsWith("/embeddings")) {
+          const rawInput = body.input;
+          const inputs = Array.isArray(rawInput) ? rawInput : [rawInput];
+          return Response.json({
+            data: inputs.map((_value, index) => ({
+              embedding: [1, 0, 0],
+              index,
+              object: "embedding",
+            })),
+            model: "embed",
+            object: "list",
+            usage: { prompt_tokens: 1, total_tokens: 1 },
+          });
+        }
+        requestBodies.push(JSON.stringify(body));
+        const messages = body.messages as
+          | Array<{ content?: string }>
+          | undefined;
+        const prompt = messages
+          ?.map((message) => message.content ?? "")
+          .join("\n") ?? "";
+        const orderedCandidateIds = prompt
+          .split("\n")
+          .filter((line) => line.startsWith('{"id":"candidate-'))
+          .map((line) => (JSON.parse(line) as { id: string }).id);
+        return Response.json({
+          choices: [{
+            message: {
+              content: JSON.stringify({ orderedCandidateIds }),
+            },
+          }],
+          usage: { completion_tokens: 1, prompt_tokens: 1, total_tokens: 2 },
+        });
+      },
+    });
+    const baseURL = `http://127.0.0.1:${provider.port}/v1`;
+    const turns = Array.from({ length: 40 }, (_, index) => ({
+      content:
+        `${["Alice", "Bob", "Caroline", "Derek"][index % 4]} discussed ` +
+        `Project ${String.fromCharCode(65 + (index % 20))} with ` +
+        `${["Erin", "Farah", "George", "Hana"][index % 4]} at Place ${index % 9}.`,
+      diaId: `D${Math.floor(index / 2) + 1}:${index + 1}`,
+      speaker: index % 2 === 0 ? "Alice" : "Bob",
+    }));
+    const testCase: LocomoCase = {
+      caseId: "semantic-seed-capture",
+      questions: [{
+        adversarialAnswer: null,
+        category: "single_hop",
+        evidenceTurnIds: ["D1:1"],
+        goldAnswer: "Project A",
+        matchMode: "f1_token_overlap",
+        question:
+          "Which projects did Alice and Bob discuss with their friends?",
+        questionId: "q1",
+      }],
+      sourceConversation: "semantic-seed-capture",
+      speakers: ["Alice", "Bob"],
+      turns,
+    };
+    const capture = async (runId: string): Promise<string> => {
+      const bodyOffset = requestBodies.length;
+      const memory = createLocomoSmokeMemory({
+        generalizedFusion: true,
+        providerEmbedding: true,
+        providerEmbeddingConfig: {
+          apiKey: "test",
+          baseURL,
+          model: "embed",
+          provider: "openai",
+        },
+        providerRerankingConfig: {
+          apiKey: "test",
+          baseURL,
+          model: "rerank",
+          provider: "openai",
+        },
+        providerRerankingStrategy: "listwise",
+      });
+      await seedLocomoCase({
+        labelFreeIngest: true,
+        memory,
+        runId,
+        testCase,
+      });
+      await seedLocomoCaseConversational({
+        extractor: {
+          async extract(input) {
+            return {
+              candidates: input.messages.map((message, index) => ({
+                content:
+                  `${message.content} This is an explicit relationship about ` +
+                  `Project ${String.fromCharCode(65 + (index % 20))}.`,
+                explicitness: "explicit" as const,
+                id: `candidate-${index}`,
+                kindHint: "fact" as const,
+                sourceMessageIndex: index,
+                sourceRole: "user" as const,
+              })),
+              ignoredMessageCount: 0,
+            };
+          },
+        },
+        memory,
+        runId,
+        testCase,
+      });
+      await memory.recall({
+        query: testCase.questions[0]!.question,
+        scope: buildLocomoScope({ caseId: testCase.caseId, runId }),
+        strategy: "hybrid",
+      });
+      return requestBodies[bodyOffset]!;
+    };
+
+    try {
+      const discoveryBody = await capture(discovery.execution.seedRunId);
+      const formalBody = await capture(formal.execution.seedRunId);
+      const changedSemanticScopeBody = await capture("different-semantic-seed");
+      expect(discovery.execution.seedRunId).toBe(formal.execution.seedRunId);
+      expect(discoveryBody).toBe(formalBody);
+      expect(changedSemanticScopeBody).not.toBe(discoveryBody);
+    } finally {
+      provider.stop(true);
+    }
   });
 
   it("persists a hash-only receipt before a formal sequence mismatch aborts", async () => {

@@ -3845,12 +3845,12 @@ describe("release metadata and docs", () => {
     expect(workflow).toContain("bun run gate:v0.7 --strict");
     expect(
       workflow.match(
-        /reports\/release\/v0\.7\/v0\.7\.3-lifecycle-schema8-attempt-consumed\.json/gu,
+        /reports\/release\/v0\.7\/v0\.7\.3-lifecycle-schema9-attempt-consumed\.json/gu,
       )?.length,
     ).toBe(2);
     expect(
       workflow.match(
-        /reports\/release\/v0\.7\/v0\.7\.3-lifecycle-schema8-evidence\/\*\*/gu,
+        /reports\/release\/v0\.7\/v0\.7\.3-lifecycle-schema9-evidence\/\*\*/gu,
       )?.length,
     ).toBe(1);
     expect(workflow).not.toContain("v0.7.3-lifecycle-evidence/**");
@@ -3972,8 +3972,8 @@ describe("release metadata and docs", () => {
     const evidencePaths = [
       "${{ steps.prepublish.outputs.evidence_path }}",
       "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
-      "reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json",
-      "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence",
+      "reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json",
+      "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence",
       "benchmark-claims/evidence/locomo-v0.7.3-current.json",
       "reports/release/v0.7/v0.7.3-locomo-claim-evidence",
       "reports/release/v0.7/phase-74-storage-scale-gate.json",
@@ -4013,10 +4013,10 @@ describe("release metadata and docs", () => {
     expect(githubReleaseBlock).not.toContain("benchmark-claims/evidence/");
   });
 
-  it("keeps schema-8 evidence addable without force", async () => {
+  it("keeps schema-9 evidence addable without force", async () => {
     for (const path of [
-      "reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json",
-      "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence/manifest.json",
+      "reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json",
+      "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/manifest.json",
     ]) {
       const ignored = await runGitCommand([
         "check-ignore",

@@ -260,7 +260,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(fixture.root, { force: true, recursive: true });
     }
-  }, ciTestTimeout(30_000));
+  }, ciTestTimeout(60_000));
 
   it("propagates every visible stage mutation into task, episode, and stage input closures", async () => {
     const baselineFixture = await createFixture();

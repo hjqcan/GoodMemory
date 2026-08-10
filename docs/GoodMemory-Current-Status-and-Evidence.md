@@ -62,20 +62,23 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   deterministic C1/C40 gates, 8/8 scenarios, and both 233-question discovery
   arms, but disk exhaustion blocked the atomic union-tape write before formal
   replay. It is terminal and archived at
-  `reports/release/v0.7/blocked-c5665458-schema7-enospc/`. Schema 8 is
-  pre-registered with a distinct evidence root, a fixed 4 GiB storage
-  qualification before any provider traffic or attempt claim, the same five
-  provider probes, a manifest plus bounded deterministic gzip parts for the
-  canonical provider tape, and a full-history tagged release checkout. Each
-  tape part is capped at 20 MiB stored; 24 parts, 384 MiB canonical JSON, and
-  512 MiB stored are the complete-bundle limits. Discovery failures use the
-  same bounded bundle instead of a raw tape file. Readiness rejects symlinked,
-  extra, or legacy tape files and binds the capacity record, exact request
-  sequence, transport ledger, compressed and canonical response bytes,
-  sentinel, manifest, and compact result. The tagged workflow also packages
-  the complete evidence into one uniquely named GitHub Release archive, so
-  repeated receipt basenames cannot overwrite one another. No full
-  1540-question claim or v0.7.3 release is yet authorized.
+  `reports/release/v0.7/blocked-c5665458-schema7-enospc/`. Schema 8 added the
+  4 GiB storage qualification, bounded gzip tape bundle, full-history release
+  checkout, and single evidence archive. Its one attempt passed storage,
+  provider availability, deterministic C1/C40, 8/8 scenarios, and both
+  discovery arms, but baseline formal replay correctly stopped on 76 listwise
+  request-body mismatches. It is terminal and archived at
+  `reports/release/v0.7/blocked-6f9e5ca0-schema8-sequence-mismatch/`. A local
+  provider-free capture reproduced a deterministic mechanism capable of the
+  same class of drift: stage-specific seed run IDs entered LoCoMo scope and
+  changed candidate selection and/or ordering. Schema 9 is pre-registered with
+  one shared semantic seed ID across all four provider stages while keeping
+  their artifact roots, final IDs, and official IDs separate. This removes a
+  known confound; fresh exact replay still decides whether it fully explains
+  the historical mismatch. Schema 9 retains the schema-8
+  storage, tape, exact-replay, readiness, and release-workflow boundaries under
+  a new sentinel and evidence root. No full 1540-question claim or v0.7.3
+  release is yet authorized.
   See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as

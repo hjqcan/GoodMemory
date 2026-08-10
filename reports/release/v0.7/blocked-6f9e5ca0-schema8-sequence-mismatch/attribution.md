@@ -56,9 +56,10 @@ zero live requests, zero upstream transport attempts, and 76 sequence
 mismatches. Every mismatch retained the expected target, method, path, and
 semantic headers (`eval`, `POST`, `/chat/completions`); only the canonical body
 hash and full request fingerprint changed. None of the 76 actual fingerprints
-exists anywhere in the complete discovery multiset, so this is not an ordering
-or occurrence-counter problem and cannot be repaired by weakening the verifier
-to compare multisets.
+exists anywhere in the complete discovery multiset, so this is not a top-level
+request-sequence or occurrence-counter problem and cannot be repaired by
+weakening the verifier to compare multisets. This does not exclude a change in
+the candidate order inside a listwise request body.
 
 The proxy returned deliberate HTTP 409 responses for those mismatches. The
 product reranker then followed its normal provider-error fallback and preserved
@@ -72,8 +73,8 @@ the paired analyzer did not run. No passing compact artifact exists.
 
 The retained request evidence binds hashes rather than raw request bodies, so
 it proves request-body drift but cannot by itself name the exact drifting JSON
-field. It does expose one concrete deterministic identity leak that a successor
-protocol must close and reproduce locally before another live attempt:
+field. It exposes one concrete deterministic identity leak that was the leading
+causal hypothesis and had to be reproduced locally before another live attempt:
 
 - `buildV073StageArm` derives the seed run ID from the stage name, so discovery
   and formal replay use different seed run IDs;
@@ -89,12 +90,17 @@ protocol must close and reproduce locally before another live attempt:
 The discovery and formal extraction caches are byte-identical: 38 rows,
 392,464 bytes, SHA-256
 `8eb064b493d10abe0db391300fa07c33cd742a3baf1afbfc53de70ac6af49206`.
-A pure local check also confirms that the two retained seed run IDs produce
-different recall scope keys and different entity projection IDs for the same
-canonical entity. This is a measurement-harness identity problem, not evidence
-that the lifecycle patch regressed retrieval. A successor schema must add a
-provider-free request-capture regression proving that a shared semantic seed
-identity makes discovery and formal request sequences byte-identical. Exact
+A provider-free request-capture reproduction identifies a deterministic
+scope-identity mechanism capable of causing the same class of listwise body
+drift. With fresh in-memory stores, fixed extraction and embedding responses,
+and identical memory content, changing only the seed run ID changes candidate
+selection and/or ordering and therefore the canonical listwise request body.
+Repeated fresh stores using one shared seed reproduce the same canonical body.
+The successor regression also requires discovery and formal to construct the
+same seed command except for distinct artifact output directories. This removes
+a known measurement-harness confound; fresh discovery-to-formal exact replay
+must still test whether it fully explains the historical schema-8 mismatches.
+The result is not evidence that the lifecycle patch regressed retrieval. Exact
 fingerprint matching remains the gate; no fuzzy canonicalization is authorized
 by this attribution.
 

@@ -4,6 +4,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  rename,
   rm,
   symlink,
   writeFile,
@@ -40,7 +41,8 @@ import {
   buildV073StageArm,
   routeV073CommandChainThroughTape,
   V073_PROVIDER_STAGE_ORDER,
-  V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY,
+  V073_SEMANTIC_SEED_RUN_ID,
+  V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY,
 } from "../../scripts/run-v0-7-3-replacement-protection-gate";
 import {
   evaluateV073ReplacementProtection,
@@ -50,6 +52,7 @@ import { frozenV073LocomoQuestionSelection } from "../fixtures/v0-7-3-locomo-que
 
 import type { V07ReleaseReadinessReport } from "../../scripts/run-v0-7-release-readiness";
 import {
+  assertV073MeasurementEvidenceRoot,
   evaluateV07RuntimeVersions,
   evaluateV07SourceIdentity,
   evaluateV07SourceStability,
@@ -1061,10 +1064,31 @@ describe("v0.7 release readiness", () => {
     });
   });
 
+  it("accepts only a canonical schema 9 measurement evidence root", () => {
+    expect(() => assertV073MeasurementEvidenceRoot(
+      "/tmp/driver/reports/release/v0.7/" +
+        "v0.7.3-lifecycle-schema9-evidence",
+    )).not.toThrow();
+    for (const root of [
+      "/tmp/measurement-evidence",
+      "/tmp/driver/reports/release/v0.7/" +
+        "v0.7.3-lifecycle-schema8-evidence",
+      "/tmp/driver/reports/release/v0.7/" +
+        "v0.7.3-lifecycle-schema9-evidence-drifted",
+      "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence",
+      "/tmp/driver/reports/release/v0.7/../v0.7/" +
+        "v0.7.3-lifecycle-schema9-evidence",
+    ]) {
+      expect(() => assertV073MeasurementEvidenceRoot(root)).toThrow(
+        "canonical schema 9 evidence root",
+      );
+    }
+  });
+
   it("accepts only a completed lifecycle artifact bound to the candidate commit", async () => {
     const candidateCommit = "a".repeat(40);
     const bundlePrefix =
-      "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence/";
+      "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/";
     const bundlePath = (path: string) =>
       `${bundlePrefix}${path.replace(/^\/+|\//gu, "-")}`;
     const artifactIdentity = (path: string, fill: string) => ({
@@ -1096,7 +1120,7 @@ describe("v0.7 release readiness", () => {
         attemptSentinel: {
           bytes: 100,
           path:
-            "reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json",
+            "reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json",
           sha256: "0".repeat(64),
         },
         manifest: artifactIdentity("manifest.json", "0"),
@@ -1175,7 +1199,7 @@ describe("v0.7 release readiness", () => {
       providerPreflight: providerPreflightPlan(),
       releaseAllowed: true,
       researchRecordRequired: false,
-      schemaVersion: 8,
+      schemaVersion: 9,
     };
 
     expect(evaluateV073LifecycleProtectionArtifact({
@@ -1190,7 +1214,7 @@ describe("v0.7 release readiness", () => {
       artifact: { ...artifact, schemaVersion: 3 },
       artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
     })).toEqual(expect.objectContaining({
-      detail: expect.stringContaining("schemaVersion must be 8"),
+      detail: expect.stringContaining("schemaVersion must be 9"),
       status: "fail",
     }));
 
@@ -1274,11 +1298,11 @@ describe("v0.7 release readiness", () => {
     }));
   });
 
-  it("recomputes schema 8 lifecycle evidence from bound preflight, deterministic, and frozen-replay bytes", async () => {
+  it("recomputes schema 9 lifecycle evidence from bound preflight, deterministic, and frozen-replay bytes", async () => {
     const repoRoot = await mkdtemp(join(tmpdir(), "goodmemory-v073-replacement-bundle-"));
     const evidencePrefix =
-      "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence";
-    const measurementEvidenceRoot = `${repoRoot}-measurement-evidence`;
+      "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence";
+    const measurementEvidenceRoot = join(repoRoot, evidencePrefix);
     const candidateCommit = "c5665458f79adbc7d35eccb2155dc40b2a443ae2";
     const writeEvidence = async (name: string, raw: string) => {
       const path = `${evidencePrefix}/${name}`;
@@ -1621,12 +1645,12 @@ describe("v0.7 release readiness", () => {
       scenarioReplay: { failures: 0, passed: 8 },
     };
     const attemptSentinelPath =
-      "reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json";
+      "reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json";
     const storagePreflight = {
       availableBytes:
-        V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes,
+        V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes,
       minimumAvailableBytes:
-        V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes,
+        V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes,
       path: "reports/release/v0.7",
     };
     const attemptSentinelRaw = json({
@@ -1636,7 +1660,7 @@ describe("v0.7 release readiness", () => {
       providerPreflight: protocolInput.providerPreflight,
       requestSequenceSha256:
         V073_PROVIDER_PREFLIGHT_POLICY.expectedRequestSequenceSha256,
-      schemaVersion: 8,
+      schemaVersion: 9,
       state: "consumed",
       storagePreflight,
     });
@@ -1773,7 +1797,7 @@ describe("v0.7 release readiness", () => {
           providerFailureRecovery:
             "immediate-same-fingerprint-retry-to-2xx",
           providerPreflightFormalAttemptBoundary:
-            "schema8-consumed-sentinel-created-only-after-success",
+            "schema9-consumed-sentinel-created-only-after-success",
           providerPreflightProbeOrder:
             V073_PROVIDER_PREFLIGHT_POLICY.probeOrder,
           providerPreflightRequestSequenceSha256:
@@ -1785,9 +1809,10 @@ describe("v0.7 release readiness", () => {
           providerLogCredentialMaterial:
             "redacted-before-output-hash-and-persistence",
           providerReplayConcurrency: 1,
+          semanticSeedRunId: V073_SEMANTIC_SEED_RUN_ID,
           signTestAlpha: 0.05,
           storagePreflightMinimumAvailableBytes:
-            V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes,
+            V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes,
           tapeInputIdentity:
             "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest",
           tapeArtifactEncoding: "canonical-json-sharded-gzip",
@@ -1807,7 +1832,7 @@ describe("v0.7 release readiness", () => {
           transportProxyRetries: 0,
         },
         providers,
-        schemaVersion: 8,
+        schemaVersion: 9,
       };
       const sharedStdout = await writeEvidence("logs/stdout.log", "8 pass\n0 fail\n");
       const sharedStderr = await writeEvidence("logs/stderr.log", "");
@@ -2057,9 +2082,31 @@ describe("v0.7 release readiness", () => {
       );
       await rm(join(repoRoot, ".git"));
 
+      const trackedEvidenceRoot = join(repoRoot, evidencePrefix);
+      const externalEvidenceRoot = `${trackedEvidenceRoot}-external`;
+      await rename(trackedEvidenceRoot, externalEvidenceRoot);
+      await symlink(externalEvidenceRoot, trackedEvidenceRoot);
+      expect(await evaluateV073LifecycleProtectionBundle({
+        artifact,
+        artifactPath: "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining("real path"),
+        status: "fail",
+      }));
+      await rm(trackedEvidenceRoot);
+      await rename(externalEvidenceRoot, trackedEvidenceRoot);
+
       for (const driftedEvidenceRoot of [
-        "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence",
+        "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence",
+        join(repoRoot, "measurement-evidence"),
+        join(
+          repoRoot,
+          "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence",
+        ),
         `${measurementEvidenceRoot}-drifted`,
+        `${repoRoot}/reports/release/v0.7/../v0.7/` +
+          "v0.7.3-lifecycle-schema9-evidence",
       ]) {
         const driftedManifestRaw = json({
           ...manifestValue,
@@ -2158,7 +2205,7 @@ describe("v0.7 release readiness", () => {
 
       const canonicalC1BaselinePath = c1Baseline.path;
       c1Baseline.path = canonicalC1BaselinePath.replace(
-        "v0.7.3-lifecycle-schema8-evidence",
+        "v0.7.3-lifecycle-schema9-evidence",
         "v0.7.3-lifecycle-evidence",
       );
       expect(await evaluateV073LifecycleProtectionBundle({
@@ -2188,6 +2235,7 @@ describe("v0.7 release readiness", () => {
         { providerFreeConcurrency: [1] },
         { providerLogCredentialMaterial: "persist-before-redaction" },
         { providerReplayConcurrency: 40 },
+        { semanticSeedRunId: "stage-specific-seed" },
         { signTestAlpha: 0.1 },
         { storagePreflightMinimumAvailableBytes: 1 },
         { tapeInputIdentity: "unordered" },
@@ -2234,7 +2282,7 @@ describe("v0.7 release readiness", () => {
       const insufficientStorage = {
         ...storagePreflight,
         availableBytes:
-          V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes - 1,
+          V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes - 1,
       };
       const insufficientSentinelRaw = json({
         ...(JSON.parse(attemptSentinelRaw) as Record<string, unknown>),

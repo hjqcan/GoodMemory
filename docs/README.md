@@ -60,15 +60,15 @@ bulk-load. Start here, then open only the file that matches the question.
 
 ## Research And Evidence
 
-- `plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md` - schema-8
-  storage and provider-availability qualification, irreversible attempt
-  sentinel, deterministic hard gate, ordered per-fingerprint
-  response-occurrence replay and failure capture through bounded deterministic
-  gzip parts, exact bundle closure, collision-free release evidence archive,
-  paired sign-test diagnostic, and full-claim provider-variance boundary.
-  Schemas 2 through 7 are terminal blocked evidence; schema 8 is pre-registered
-  but has not begun a live attempt, so no passing protection result or release
-  is implied.
+- `plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md` - schema-9
+  shared semantic seed identity, storage and provider-availability
+  qualification, irreversible attempt sentinel, deterministic hard gate,
+  ordered per-fingerprint response-occurrence replay and failure capture
+  through bounded deterministic gzip parts, exact bundle closure,
+  collision-free release evidence archive, paired sign-test diagnostic, and
+  full-claim provider-variance boundary. Schemas 2 through 8 are terminal
+  blocked evidence; schema 9 is pre-registered but has not begun a live
+  attempt, so no passing protection result or release is implied.
 - `GoodMemory-Preference-Identity-Pre-API-Research.md` - frozen pre-API
   preference atomization/key-stability protocol, completed no-API decision,
   fixture-only conflict census, and synthetic policy comparison; not a

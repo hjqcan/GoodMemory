@@ -6,6 +6,7 @@ import {
   mkdtemp,
   readdir,
   readFile,
+  realpath,
   rm,
   stat,
   writeFile,
@@ -58,7 +59,8 @@ import {
   V073_ASSISTED_EXTRACTION_POLICY,
   V073_PROVIDER_STAGE_ORDER,
   V073_PROVIDER_TRANSPORT_POLICY,
-  V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY,
+  V073_SEMANTIC_SEED_RUN_ID,
+  V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY,
 } from "./run-v0-7-3-replacement-protection-gate";
 import { resolveRepoRootFromScriptUrl } from "./script-paths";
 import {
@@ -77,9 +79,9 @@ const FAILURE_DETAIL_LINE_LIMIT = 80;
 const V073_LIFECYCLE_PROTECTION_ARTIFACT =
   "reports/release/v0.7/v0.7.3-lifecycle-protection.json";
 const V073_LIFECYCLE_EVIDENCE_PREFIX =
-  "reports/release/v0.7/v0.7.3-lifecycle-schema8-evidence/";
+  "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/";
 const V073_LIFECYCLE_ATTEMPT_SENTINEL =
-  "reports/release/v0.7/v0.7.3-lifecycle-schema8-attempt-consumed.json";
+  "reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json";
 const V073_LOCOMO_CURRENT_PROJECTION =
   "benchmark-claims/evidence/locomo-v0.7.3-current.json";
 const V073_LOCOMO_CLAIM_EVIDENCE_PREFIX =
@@ -114,6 +116,20 @@ const REQUIRED_PACKED_FILES = [
 ] as const;
 
 type CheckStatus = "pass" | "fail" | "skip";
+
+export function assertV073MeasurementEvidenceRoot(
+  value: unknown,
+): asserts value is string {
+  const suffix = V073_LIFECYCLE_EVIDENCE_PREFIX.slice(0, -1);
+  if (
+    typeof value !== "string" ||
+    !isAbsolute(value) ||
+    resolve(value) !== value ||
+    !value.endsWith(`/${suffix}`)
+  ) {
+    throw new Error("measurement evidence root must be the canonical schema 9 evidence root");
+  }
+}
 
 export interface V07ReleaseReadinessCheck {
   detail: string;
@@ -1640,8 +1656,8 @@ export function evaluateV073LifecycleProtectionArtifact(input: {
     const hardGate = input.artifact.hardGate;
     const providerReplay = input.artifact.providerReplay;
     const liveDiagnostic = input.artifact.liveDiagnostic;
-    if (input.artifact.schemaVersion !== 8) {
-      issues.push("schemaVersion must be 8");
+    if (input.artifact.schemaVersion !== 9) {
+      issues.push("schemaVersion must be 9");
     }
     if (
       input.artifact.generatedBy !==
@@ -1804,6 +1820,10 @@ async function readBoundLifecycleArtifactBytes(input: {
   if (!(await lstat(absolutePath)).isFile()) {
     throw new Error(`lifecycle evidence path must be a regular file: ${input.identity.path}`);
   }
+  const expectedRealPath = resolve(await realpath(input.repoRoot), input.identity.path);
+  if (await realpath(absolutePath) !== expectedRealPath) {
+    throw new Error(`lifecycle evidence real path is outside the tracked bundle: ${input.identity.path}`);
+  }
   const raw = await readFile(absolutePath);
   const fingerprint = createHash("sha256").update(raw).digest("hex");
   if (
@@ -1837,6 +1857,10 @@ async function readProviderResponseTapeBundleArtifact(input: {
   const absoluteRoot = resolve(input.repoRoot, root);
   if (!(await lstat(absoluteRoot)).isDirectory()) {
     throw new Error("provider response tape bundle root must be a directory");
+  }
+  const expectedRealRoot = resolve(await realpath(input.repoRoot), root);
+  if (await realpath(absoluteRoot) !== expectedRealRoot) {
+    throw new Error("provider response tape bundle real path is outside the tracked bundle");
   }
   const entries = await readdir(absoluteRoot, { withFileTypes: true });
   const expectedNames = ["manifest.json", ...manifest.parts.map(({ path }) => path)]
@@ -2102,7 +2126,7 @@ function assertProviderPreflightEvidence(input: {
     !isRecord(attemptSentinel) ||
     attemptSentinel.generatedBy !==
       "scripts/run-v0-7-3-replacement-protection-gate.ts" ||
-    attemptSentinel.schemaVersion !== 8 ||
+    attemptSentinel.schemaVersion !== 9 ||
     attemptSentinel.state !== "consumed" ||
     attemptSentinel.baselineCommit !== input.protocolInput.baselineCommit ||
     attemptSentinel.candidateCommit !== input.protocolInput.candidateCommit ||
@@ -2111,11 +2135,11 @@ function assertProviderPreflightEvidence(input: {
     !isRecord(attemptSentinel.storagePreflight) ||
     !sameJson(attemptSentinel.storagePreflight, manifestStoragePreflight) ||
     manifestStoragePreflight.minimumAvailableBytes !==
-      V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes ||
+      V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes ||
     typeof manifestStoragePreflight.availableBytes !== "number" ||
     !Number.isSafeInteger(manifestStoragePreflight.availableBytes) ||
     manifestStoragePreflight.availableBytes <
-      V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes ||
+      V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes ||
     manifestStoragePreflight.path !== "reports/release/v0.7" ||
     !sameJson(
       attemptSentinel.providerPreflight,
@@ -2210,6 +2234,7 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
     const tape = tapeBundle.tape;
     const manifest = JSON.parse(manifestRaw) as Record<string, unknown>;
     const measurementEvidenceRoot = manifest.measurementEvidenceRoot;
+    assertV073MeasurementEvidenceRoot(measurementEvidenceRoot);
     const scenarioReceipt = JSON.parse(
       scenarioReceiptRaw,
     ) as Record<string, unknown>;
@@ -2283,12 +2308,9 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd" ||
       manifest.benchmark.sha256 !==
         "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28" ||
-      manifest.schemaVersion !== 8 ||
+      manifest.schemaVersion !== 9 ||
       manifest.generatedBy !==
         "scripts/run-v0-7-3-replacement-protection-gate.ts" ||
-      typeof measurementEvidenceRoot !== "string" ||
-      !isAbsolute(measurementEvidenceRoot) ||
-      resolve(measurementEvidenceRoot) !== measurementEvidenceRoot ||
       !sameJson(manifest.providers, expectedProviders) ||
       !validHarness ||
       !isRecord(protocol) ||
@@ -2305,7 +2327,7 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
       protocol.providerFailureRecovery !==
         "immediate-same-fingerprint-retry-to-2xx" ||
       protocol.providerPreflightFormalAttemptBoundary !==
-        "schema8-consumed-sentinel-created-only-after-success" ||
+        "schema9-consumed-sentinel-created-only-after-success" ||
       !sameJson(
         protocol.providerPreflightProbeOrder,
         V073_PROVIDER_PREFLIGHT_POLICY.probeOrder,
@@ -2320,9 +2342,10 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         "redacted-before-output-hash-and-persistence" ||
       protocol.providerReplayConcurrency !== 1 ||
       protocolInput.providerReplay.concurrency !== 1 ||
+      protocol.semanticSeedRunId !== V073_SEMANTIC_SEED_RUN_ID ||
       protocol.signTestAlpha !== 0.05 ||
       protocol.storagePreflightMinimumAvailableBytes !==
-        V073_SCHEMA8_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes ||
+        V073_SCHEMA9_STORAGE_PREFLIGHT_POLICY.minimumAvailableBytes ||
       protocol.tapeInputIdentity !==
         "ordered request fingerprint + logical target + method + path/query + canonical-body digest + semantic-header digest" ||
       protocol.tapeArtifactEncoding !== "canonical-json-sharded-gzip" ||
