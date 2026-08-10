@@ -93,10 +93,19 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   evidence. The raw failure report, checkpoint, cache, attribution, and a
   one-draw replacement preregistration are retained at
   `reports/release/v0.7/v0.7.3-locomo-claim-attempt-1-failed/`. The replacement
-  must be fresh, use the same candidate and frozen configuration, and pass with
-  zero execution and judge failures; it does not authorize a third draw if it
-  fails. v0.7.3 remains unpublished, and final strict readiness, tag, npm
-  publish, and GitHub Release are still pending.
+  was fresh and used the same candidate and frozen configuration, but it is
+  also terminal invalid: one `GOODMEMORY_EVAL` conversational-extraction
+  request for `locomo-conv-43/D27` ended with the same 120-second gateway
+  timeout, and the case-level seed boundary expanded that failure to all 178
+  questions in `locomo-conv-43`. The other nine cases completed with zero
+  execution failures, including 191/191 successful rows for `locomo-conv-48`.
+  The replacement cache contains 271/272 sessions and identifies D27 as the
+  sole missing extraction. The launcher again stopped before re-answer,
+  official judging, projection, or claim-evidence publication. The raw
+  replacement artifacts and attribution are retained at
+  `reports/release/v0.7/v0.7.3-locomo-claim-attempt-2-failed/`. The two
+  authorized draws are exhausted, no third draw is authorized, and v0.7.3 is
+  blocked and unpublished; no tag, npm publish, or GitHub Release followed.
   See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as

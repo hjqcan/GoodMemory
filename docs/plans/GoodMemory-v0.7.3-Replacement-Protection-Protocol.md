@@ -3,9 +3,10 @@
 Status: schemas 6 through 8 are terminal blocked evidence and are archived;
 schema 9 completed its single formal attempt and passed. The first authorized
 full-claim draw is terminal invalid after one conversational-extraction timeout
-was amplified to 191 seed failures. One fresh same-configuration replacement
-draw is preregistered; v0.7.3 remains unpublished pending that claim, final
-readiness, and release verification
+was amplified to 191 seed failures. Its single preregistered replacement is
+also terminal invalid after a different conversational-extraction timeout was
+amplified to 178 seed failures. No third draw is authorized; v0.7.3 remains
+unpublished and the release is blocked
 Date: 2026-08-10
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
@@ -658,12 +659,13 @@ direction, never a replacement for the deterministic hard gate.
 
 ## Claim boundary
 
-The full 1540-question claim is now authorized by the passing schema-9 artifact
-bound to candidate `21dcac8d10b0b6714d09cf14eacd83e32e0c9513`. Schemas 2
-through 8 remain terminal blocked evidence and cannot authorize that claim.
-The existing 0.8799 number is not copied forward. The observed 233-question
-same-commit wobble, scaled only as a heuristic by `sqrt(233/1540)`, suggests
-roughly 0.4-0.7pt full-set run-to-run spread; this is not a confidence interval.
+The passing schema-9 artifact bound to candidate
+`21dcac8d10b0b6714d09cf14eacd83e32e0c9513` authorized a fresh full
+1,540-question claim draw. Schemas 2 through 8 remain terminal blocked evidence
+and cannot authorize that claim. The existing 0.8799 number was not copied
+forward. The observed 233-question same-commit wobble, scaled only as a
+heuristic by `sqrt(233/1540)`, suggests roughly 0.4-0.7pt full-set run-to-run
+spread; this is not a confidence interval.
 
 The first full-claim draw completed a 1,540-row seed report with 191 execution
 failures, all in `locomo-conv-48` and all carrying the same 120-second
@@ -674,15 +676,37 @@ official judging, and claim publication did not start. That output namespace is
 terminal and retained under
 `reports/release/v0.7/v0.7.3-locomo-claim-attempt-1-failed/`.
 
-Exactly one replacement draw is authorized with the fixed identities and rules
-in that directory's `attribution.md`: two new clean detached worktrees at the
-same measured candidate, the same benchmark bytes, Bun version, provider
+Exactly one replacement draw was preregistered with the fixed identities and
+rules in that directory's `attribution.md`: two new clean detached worktrees at
+the same measured candidate, the same benchmark bytes, Bun version, provider
 identities, prompts, concurrency, timeouts, retry policy, question order, and
-canonical launcher, but a new output namespace and three new run IDs. It must
-not reuse the failed draw's checkpoint, extraction cache, reports, or responses.
-Any execution or judge failure blocks release and does not authorize a third
-draw. No code, model, configuration, or acceptance threshold changes are part
-of this replacement.
+canonical launcher, but a new output namespace and three new run IDs. It did
+not reuse the failed draw's checkpoint, extraction cache, reports, or
+responses.
+
+That replacement completed its 1,540-row seed report with 178 execution
+failures, all in `locomo-conv-43` and all carrying the same 120-second
+conversational-extraction timeout. Its cache again contains 271/272 sessions;
+the missing entry is `locomo-conv-43/D27`, a 40-turn input that is the second
+largest frozen extraction session. `locomo-conv-48` completed 191/191 rows with
+zero failures, so the first request failure did not repeat, but the same class
+of long-input tail occurred in a different case. The two caches share 270 exact
+keys, and each draw successfully cached the session that failed in the other;
+the artifacts therefore reject an always-failing session key but cannot isolate
+the provider or transport cause. The launcher stopped before re-answer,
+official judging, projection, or claim-evidence publication. The raw replacement
+artifacts and attribution are retained at
+`reports/release/v0.7/v0.7.3-locomo-claim-attempt-2-failed/`.
+
+The replacement was consumed when the canonical launcher started its
+provider-capable seed process. Its execution failures therefore block v0.7.3
+and do not authorize a third draw. Manual seed resume, direct re-answer or
+rescore, a new output namespace, or new run IDs are not valid continuations.
+The current full-claim launcher does not mechanically persist a consumed-draw
+sentinel; that implementation gap does not relax the preregistered boundary and
+must be closed by any successor release protocol before another live attempt is
+considered. No code, model, configuration, or acceptance-threshold change is
+authorized inside this v0.7.3 release chain.
 
 The preferred claim artifact records and replays provider responses so the
 published run is byte-reproducible. If any published score instead comes from a
