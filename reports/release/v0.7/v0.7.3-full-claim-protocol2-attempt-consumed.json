@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-08-11T08:01:30.284Z",
+  "generatedBy": "scripts/run-v0-7-3-full-locomo-claim.ts",
+  "lifecycleCandidateCommit": "21dcac8d10b0b6714d09cf14eacd83e32e0c9513",
+  "maxSeedLaunches": 2,
+  "namespace": "v073-996c181e-full1540-protocol2",
+  "protocolCandidateCommit": "996c181e97e2d0a56bbd78957e79026af328b03b",
+  "protocolVersion": 2,
+  "releaseCommit": "3f84011ba091f295e2d1f175a9e7ba5d2faebc76",
+  "state": "consumed"
+}
