@@ -54,6 +54,11 @@ export interface BenchmarkClaimComparison {
   source: string;
 }
 
+export interface BenchmarkClaimPresentation {
+  readmeDisclosureFragments: string[];
+  readmeRequiredFragments: string[];
+}
+
 export interface BenchmarkClaimReport {
   benchmark: string;
   claimBoundary: { publicClaimAllowed: boolean; reason: string };
@@ -64,6 +69,7 @@ export interface BenchmarkClaimReport {
   coverage?: { complete: boolean; note?: string };
   dataset: { license: string | null; source: string | null; vendored: boolean };
   evidence: { artifacts: ClaimEvidenceArtifact[] };
+  historicalPresentation?: BenchmarkClaimPresentation;
   metrics: {
     baseline: number | null;
     metricDirection: MetricDirection;
@@ -79,10 +85,7 @@ export interface BenchmarkClaimReport {
     judgeProvider?: string;
     sameModelJudge: boolean;
   };
-  publicClaim?: {
-    readmeDisclosureFragments: string[];
-    readmeRequiredFragments: string[];
-  };
+  publicClaim?: BenchmarkClaimPresentation;
   run: {
     command: string | null;
     commit: string | null;
@@ -543,18 +546,33 @@ function hasHistoricalAssertionContract(
   );
 }
 
+function isDeclaredHistoricalProjection(
+  artifact: unknown,
+  benchmark: string,
+): artifact is ClaimEvidenceArtifact {
+  return isRecord(artifact) &&
+    isStrictNonEmpty(artifact.path) &&
+    artifact.path.endsWith(".json") &&
+    artifact.path.startsWith("benchmark-claims/evidence/") &&
+    hasHistoricalAssertionContract(artifact, benchmark);
+}
+
 function benchmarkDeclarationFileName(benchmark: string): string {
   return `${benchmark.toLowerCase().replace(/[^a-z0-9]+/gu, "")}.json`;
 }
 
-function validatePublicClaimFragments(input: {
+function validatePresentationFragments(input: {
   errors: string[];
   field: "readmeDisclosureFragments" | "readmeRequiredFragments";
+  presentation: "historicalPresentation" | "publicClaim";
   value: unknown;
 }): void {
   if (!Array.isArray(input.value) || input.value.length === 0) {
+    const suffix = input.presentation === "publicClaim"
+      ? " for public claim declarations"
+      : "";
     input.errors.push(
-      `publicClaim.${input.field} must be a non-empty array for public claim declarations`,
+      `${input.presentation}.${input.field} must be a non-empty array${suffix}`,
     );
     return;
   }
@@ -562,13 +580,13 @@ function validatePublicClaimFragments(input: {
   input.value.forEach((fragment, index) => {
     if (!isStrictNonEmpty(fragment)) {
       input.errors.push(
-        `publicClaim.${input.field}[${index}] must be a non-empty unpadded string`,
+        `${input.presentation}.${input.field}[${index}] must be a non-empty unpadded string`,
       );
       return;
     }
     if (seenFragments.has(fragment)) {
       input.errors.push(
-        `publicClaim.${input.field}[${index}] duplicates fragment ${fragment}`,
+        `${input.presentation}.${input.field}[${index}] duplicates fragment ${fragment}`,
       );
     }
     seenFragments.add(fragment);
@@ -912,16 +930,50 @@ export function validateClaimReport(value: unknown): { errors: string[]; valid: 
     if (!isRecord(value.publicClaim)) {
       errors.push("publicClaim must be an object for public claim declarations");
     } else {
-      validatePublicClaimFragments({
+      validatePresentationFragments({
         errors,
         field: "readmeRequiredFragments",
+        presentation: "publicClaim",
         value: value.publicClaim.readmeRequiredFragments,
       });
-      validatePublicClaimFragments({
+      validatePresentationFragments({
         errors,
         field: "readmeDisclosureFragments",
+        presentation: "publicClaim",
         value: value.publicClaim.readmeDisclosureFragments,
       });
+    }
+  }
+  if (value.historicalPresentation !== undefined) {
+    const benchmark = isNonEmpty(value.benchmark) ? value.benchmark : undefined;
+    if (!isRecord(value.historicalPresentation)) {
+      errors.push("historicalPresentation must be an object when present");
+    } else {
+      validatePresentationFragments({
+        errors,
+        field: "readmeRequiredFragments",
+        presentation: "historicalPresentation",
+        value: value.historicalPresentation.readmeRequiredFragments,
+      });
+      validatePresentationFragments({
+        errors,
+        field: "readmeDisclosureFragments",
+        presentation: "historicalPresentation",
+        value: value.historicalPresentation.readmeDisclosureFragments,
+      });
+    }
+    if (
+      value.status === "candidate_public_claim" &&
+      benchmark !== undefined &&
+      isRecord(value.evidence) &&
+      Array.isArray(value.evidence.artifacts) &&
+      !value.evidence.artifacts.some((artifact) =>
+        isDeclaredHistoricalProjection(artifact, benchmark)
+      )
+    ) {
+      errors.push(
+        "historicalPresentation requires a tracked historical projection with the complete assertion contract",
+      );
     }
   }
   return { errors, valid: errors.length === 0 };
@@ -934,6 +986,9 @@ export interface ClaimGateEntry {
   consistent: boolean;
   declaredPublicClaimAllowed: boolean;
   file: string;
+  historicalEvidenceEligible: boolean;
+  historicalReadmeDisclosureFragments: string[];
+  historicalReadmeRequiredFragments: string[];
   notes: string[];
   readmeDisclosureFragments: string[];
   readmeRequiredFragments: string[];
@@ -974,10 +1029,14 @@ export async function checkClaimEvidenceArtifacts(input: {
         errors.push(`evidence artifact ${artifact.path} is not valid JSON: ${String(error)}`);
         continue;
       }
-      if (
+      const isInternalHistoricalProjection =
         input.report.status === "internal_evidence" &&
-        input.report.comparison.availability === "historical"
-      ) {
+        input.report.comparison.availability === "historical";
+      const isCandidateHistoricalProjection =
+        input.report.status === "candidate_public_claim" &&
+        input.report.historicalPresentation !== undefined &&
+        isDeclaredHistoricalProjection(artifact, input.report.benchmark);
+      if (isInternalHistoricalProjection || isCandidateHistoricalProjection) {
         const projectionErrors = validateHistoricalProjection({
           artifact,
           benchmark: input.report.benchmark,
@@ -991,7 +1050,9 @@ export async function checkClaimEvidenceArtifacts(input: {
         if (projectionErrors.length === 0 && isRecord(parsed)) {
           try {
             const declaredFragments = new Set(
-              input.report.publicClaim?.readmeRequiredFragments ?? [],
+              isCandidateHistoricalProjection
+                ? input.report.historicalPresentation?.readmeRequiredFragments ?? []
+                : input.report.publicClaim?.readmeRequiredFragments ?? [],
             );
             for (const fragment of sourceDerivedReadmeFragments(
               parsed,
@@ -1000,7 +1061,9 @@ export async function checkClaimEvidenceArtifacts(input: {
               if (!declaredFragments.has(fragment)) {
                 errors.push(
                   `evidence artifact ${artifact.path}: source-derived README fragment ` +
-                    `${fragment} is missing from publicClaim.readmeRequiredFragments`,
+                    `${fragment} is missing from ` +
+                    `${isCandidateHistoricalProjection ? "historicalPresentation" : "publicClaim"}` +
+                    ".readmeRequiredFragments",
                 );
               }
             }
@@ -1253,14 +1316,19 @@ export function checkReadmeHistoricalEvidenceTables(
   const historical = entries
     .filter(
       (entry) =>
-        entry.status === "internal_evidence" &&
+        entry.historicalEvidenceEligible &&
         entry.consistent &&
         entry.schemaErrors.length === 0,
     )
     .map((entry) => entry.benchmark);
+  const historicalEntries = entries.map((entry) => ({
+    ...entry,
+    readmeDisclosureFragments: entry.historicalReadmeDisclosureFragments,
+    readmeRequiredFragments: entry.historicalReadmeRequiredFragments,
+  }));
   return checkReadmeBenchmarkTables(
     readmes,
-    entries,
+    historicalEntries,
     historical,
     extractHistoricalEvidenceTableRows,
   );
@@ -1320,6 +1388,9 @@ export function buildClaimGateReport(
         consistent: false,
         declaredPublicClaimAllowed: false,
         file,
+        historicalEvidenceEligible: false,
+        historicalReadmeDisclosureFragments: [],
+        historicalReadmeRequiredFragments: [],
         notes: [],
         readmeDisclosureFragments: [],
         readmeRequiredFragments: [],
@@ -1339,6 +1410,9 @@ export function buildClaimGateReport(
         consistent: false,
         declaredPublicClaimAllowed: report.claimBoundary.publicClaimAllowed,
         file,
+        historicalEvidenceEligible: false,
+        historicalReadmeDisclosureFragments: [],
+        historicalReadmeRequiredFragments: [],
         notes: collectClaimNotes(report),
         readmeDisclosureFragments: [],
         readmeRequiredFragments: [],
@@ -1353,6 +1427,17 @@ export function buildClaimGateReport(
     const evidenceErrors = evidenceErrorsByFile.get(file) ?? [];
     const blockers = [...verdict.blockers, ...evidenceErrors];
     const computedPublicClaimAllowed = verdict.publicClaimAllowed && evidenceErrors.length === 0;
+    const candidateHistoricalEvidence =
+      report.status === "candidate_public_claim" &&
+      report.historicalPresentation !== undefined &&
+      report.evidence.artifacts.some((artifact) =>
+        isDeclaredHistoricalProjection(artifact, report.benchmark)
+      );
+    const historicalPresentation = candidateHistoricalEvidence
+      ? report.historicalPresentation
+      : report.status === "internal_evidence"
+        ? report.publicClaim
+        : undefined;
     entries.push({
       benchmark: report.benchmark,
       blockers,
@@ -1362,6 +1447,12 @@ export function buildClaimGateReport(
         evidenceErrors.length === 0,
       declaredPublicClaimAllowed: report.claimBoundary.publicClaimAllowed,
       file,
+      historicalEvidenceEligible:
+        report.status === "internal_evidence" || candidateHistoricalEvidence,
+      historicalReadmeDisclosureFragments:
+        historicalPresentation?.readmeDisclosureFragments ?? [],
+      historicalReadmeRequiredFragments:
+        historicalPresentation?.readmeRequiredFragments ?? [],
       notes: collectClaimNotes(report),
       readmeDisclosureFragments: report.publicClaim?.readmeDisclosureFragments ?? [],
       readmeRequiredFragments: report.publicClaim?.readmeRequiredFragments ?? [],
@@ -1382,7 +1473,7 @@ export function buildClaimGateReport(
   const historicalEvidence = entries
     .filter(
       (entry) =>
-        entry.status === "internal_evidence" &&
+        entry.historicalEvidenceEligible &&
         entry.consistent &&
         entry.schemaErrors.length === 0,
     )

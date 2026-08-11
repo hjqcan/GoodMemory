@@ -91,6 +91,12 @@ const V073_LOCOMO_CURRENT_PROJECTION =
   "benchmark-claims/evidence/locomo-v0.7.3-current.json";
 const V073_LOCOMO_CLAIM_EVIDENCE_PREFIX =
   "reports/release/v0.7/v0.7.3-locomo-claim-evidence/";
+const V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION =
+  "reports/release/v0.7/" +
+  "v0.7.3-public-claim-governance-correction-preregistration.json";
+const V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION =
+  "reports/release/v0.7/" +
+  "v0.7.3-public-claim-governance-correction-attestation.json";
 const V073_LOCOMO_SOURCE_ARTIFACT_PATHS = {
   "claim-recipe-source": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}claim-recipe-source.json`,
   "execution-receipt": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}execution-receipt.json`,
@@ -3770,9 +3776,65 @@ const ALLOWED_POST_CANDIDATE_DESCRIPTOR_PATHS = new Set([
   "server.json",
 ]);
 
+const V073_PUBLIC_CLAIM_GOVERNANCE_BASELINE_COMMITS = {
+  fullClaimAttemptSentinel: "078ca74ac45fe4bd268e52921528e1e15a0ec52f",
+  fullClaimProtocolPreregistration: "3f84011ba091f295e2d1f175a9e7ba5d2faebc76",
+  protocolCandidate: "996c181e97e2d0a56bbd78957e79026af328b03b",
+} as const;
+const V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_BYTES = 4_438;
+const V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_SHA256 =
+  "fdf3535a32ed8ba5dccdfa444b18d9cd15c320d429ebbe4c987057935cdecd15";
+const V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_PATHS = [
+  V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION,
+  "tests/release/release.test.ts",
+  "tests/unit/run-public-benchmark-claim-gate.test.ts",
+  "tests/unit/run-v0-7-release-readiness.test.ts",
+] as const;
+const V073_PUBLIC_CLAIM_GOVERNANCE_IMPLEMENTATION_PATHS = [
+  ".github/workflows/release.yml",
+  "scripts/run-public-benchmark-claim-gate.ts",
+  "scripts/run-v0-7-release-readiness.ts",
+] as const;
+const V073_PUBLIC_CLAIM_GOVERNANCE_SOURCE_PATHS = [
+  ".github/workflows/release.yml",
+  "scripts/run-public-benchmark-claim-gate.ts",
+  "scripts/run-v0-7-release-readiness.ts",
+  "tests/release/release.test.ts",
+  "tests/unit/run-public-benchmark-claim-gate.test.ts",
+  "tests/unit/run-v0-7-release-readiness.test.ts",
+] as const;
+const V073_PUBLIC_CLAIM_GOVERNANCE_CHANGE_PATHS = new Set([
+  ...V073_PUBLIC_CLAIM_GOVERNANCE_IMPLEMENTATION_PATHS,
+  ...V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_PATHS,
+  V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION,
+]);
+const V073_POST_ATTESTATION_RELEASE_PATHS = new Set([
+  ...Object.entries(V073_LOCOMO_SOURCE_ARTIFACT_PATHS)
+    .filter(([kind]) =>
+      kind !== "protocol-attempt-sentinel" &&
+      kind !== "protocol-preregistration"
+    )
+    .map(([, path]) => path),
+  ...ALLOWED_POST_CANDIDATE_DESCRIPTOR_PATHS,
+  V073_LOCOMO_CURRENT_PROJECTION,
+  "benchmark-claims/locomo.json",
+  "docs/GoodMemory-Current-Status-and-Evidence.md",
+  "docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md",
+  "docs/README.md",
+  "package.json",
+  "README.md",
+  "README.zh-CN.md",
+  "reports/release/v0.7/phase-74-storage-scale-gate.json",
+  "reports/release/v0.7/readiness-report.json",
+  "reports/release/v0.7/summary.md",
+]);
+
 const ALLOWED_POST_CANDIDATE_PATHS = new Set([
   ...Object.values(V073_LOCOMO_SOURCE_ARTIFACT_PATHS),
   ...ALLOWED_POST_CANDIDATE_DESCRIPTOR_PATHS,
+  ...V073_PUBLIC_CLAIM_GOVERNANCE_IMPLEMENTATION_PATHS,
+  ...V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_PATHS,
+  V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION,
   V073_LOCOMO_CURRENT_PROJECTION,
   "benchmark-claims/locomo.json",
   "docs/GoodMemory-Current-Status-and-Evidence.md",
@@ -4016,6 +4078,448 @@ export function evaluateV073LifecycleToProtocolSourceDrift(input: {
     status: issues.length === 0 ? "pass" : "fail",
     title: "v0.7.3 lifecycle-to-protocol source stability",
   };
+}
+
+interface V073PublicClaimGovernanceCorrectionInput {
+  attestation: unknown;
+  attestationChangedPaths: readonly string[];
+  attestationCommit: string;
+  attestationIsAncestor: boolean;
+  attestationParentCommit: string;
+  attestationRawAtCommit: string;
+  attestationRawCurrent: string;
+  currentCommit: string;
+  currentSourceRaws: Readonly<Record<string, string>>;
+  implementationChangedPaths: readonly string[];
+  implementationCommit: string;
+  implementationParentCommit: string;
+  implementationSourceRaws: Readonly<Record<string, string>>;
+  postAttestationChangedPaths: readonly string[];
+  preregistration: unknown;
+  preregistrationChangedPaths: readonly string[];
+  preregistrationCommit: string;
+  preregistrationParentCommit: string;
+  preregistrationRawAtCommit: string;
+  preregistrationRawCurrent: string;
+}
+
+function samePathSet(
+  actual: readonly string[],
+  expected: readonly string[],
+): boolean {
+  return actual.length === expected.length &&
+    [...actual].sort().every((path, index) => path === [...expected].sort()[index]);
+}
+
+function isCorrectionVerification(
+  value: unknown,
+  command: string,
+  exitCode: number,
+  failed: number,
+  passed: number,
+): boolean {
+  return isRecord(value) &&
+    value.command === command &&
+    value.exitCode === exitCode &&
+    value.failed === failed &&
+    value.passed === passed &&
+    typeof value.outputSha256 === "string" &&
+    SHA256_PATTERN.test(value.outputSha256);
+}
+
+export function evaluateV073PublicClaimGovernanceCorrection(
+  input: V073PublicClaimGovernanceCorrectionInput,
+): V07ReleaseReadinessCheck {
+  const issues: string[] = [];
+  const commitValues = [
+    input.attestationCommit,
+    input.attestationParentCommit,
+    input.currentCommit,
+    input.implementationCommit,
+    input.implementationParentCommit,
+    input.preregistrationCommit,
+    input.preregistrationParentCommit,
+  ];
+  let parsedPreregistration: unknown;
+  try {
+    parsedPreregistration = JSON.parse(input.preregistrationRawAtCommit) as unknown;
+  } catch {
+    parsedPreregistration = undefined;
+  }
+  if (
+    commitValues.some((commit) => !COMMIT_PATTERN.test(commit)) ||
+    Buffer.byteLength(input.preregistrationRawAtCommit, "utf8") !==
+      V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_BYTES ||
+    sha256(input.preregistrationRawAtCommit) !==
+      V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_SHA256 ||
+    input.preregistrationRawCurrent !== input.preregistrationRawAtCommit ||
+    !isDeepStrictEqual(input.preregistration, parsedPreregistration)
+  ) {
+    issues.push("governance correction preregistration artifact is inconsistent");
+  }
+  if (
+    input.preregistrationParentCommit !==
+      V073_PUBLIC_CLAIM_GOVERNANCE_BASELINE_COMMITS.fullClaimAttemptSentinel ||
+    !samePathSet(
+      input.preregistrationChangedPaths,
+      V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_PATHS,
+    )
+  ) {
+    issues.push("governance correction preregistration commit paths are inconsistent");
+  }
+  if (
+    input.implementationParentCommit !== input.preregistrationCommit ||
+    !samePathSet(
+      input.implementationChangedPaths,
+      V073_PUBLIC_CLAIM_GOVERNANCE_IMPLEMENTATION_PATHS,
+    )
+  ) {
+    issues.push("governance correction implementation commit paths are inconsistent");
+  }
+  if (
+    input.attestationParentCommit !== input.implementationCommit ||
+    !samePathSet(
+      input.attestationChangedPaths,
+      [V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION],
+    ) ||
+    !input.attestationIsAncestor ||
+    input.attestationRawAtCommit !== input.attestationRawCurrent
+  ) {
+    issues.push("governance correction attestation commit paths are inconsistent");
+  }
+  const forbiddenReleasePaths = input.postAttestationChangedPaths.filter(
+    (path) => !V073_POST_ATTESTATION_RELEASE_PATHS.has(path),
+  );
+  if (forbiddenReleasePaths.length > 0) {
+    issues.push(
+      `governance correction post-attestation release paths are inconsistent: ${
+        forbiddenReleasePaths.join(", ")
+      }`,
+    );
+  }
+
+  const attestation = input.attestation;
+  let parsedAttestation: unknown;
+  try {
+    parsedAttestation = JSON.parse(input.attestationRawAtCommit) as unknown;
+  } catch {
+    parsedAttestation = undefined;
+  }
+  const sourceArtifacts = isRecord(attestation) &&
+      Array.isArray(attestation.sourceArtifacts)
+    ? attestation.sourceArtifacts
+    : [];
+  const sourceArtifactsByPath = new Map<string, ArtifactIdentityShape>();
+  for (const artifact of sourceArtifacts) {
+    if (
+      !isArtifactIdentity(artifact) ||
+      sourceArtifactsByPath.has(artifact.path)
+    ) {
+      continue;
+    }
+    sourceArtifactsByPath.set(artifact.path, artifact);
+  }
+  const frozenSourcesValid =
+    sourceArtifacts.length === V073_PUBLIC_CLAIM_GOVERNANCE_SOURCE_PATHS.length &&
+    sourceArtifactsByPath.size === V073_PUBLIC_CLAIM_GOVERNANCE_SOURCE_PATHS.length &&
+    V073_PUBLIC_CLAIM_GOVERNANCE_SOURCE_PATHS.every((path) => {
+      const implementationRaw = input.implementationSourceRaws[path];
+      const currentRaw = input.currentSourceRaws[path];
+      const identity = sourceArtifactsByPath.get(path);
+      return implementationRaw !== undefined &&
+        currentRaw === implementationRaw &&
+        identity?.bytes === Buffer.byteLength(implementationRaw, "utf8") &&
+        identity.sha256 === sha256(implementationRaw);
+    });
+  if (!frozenSourcesValid) {
+    issues.push("governance correction frozen governance sources are inconsistent");
+  }
+
+  const verification = isRecord(attestation) && isRecord(attestation.verification)
+    ? attestation.verification
+    : undefined;
+  const redVerification = verification && isRecord(verification.red)
+    ? verification.red
+    : undefined;
+  const greenVerification = verification && isRecord(verification.green)
+    ? verification.green
+    : undefined;
+  const attestationValid =
+    isRecord(attestation) &&
+    isDeepStrictEqual(attestation, parsedAttestation) &&
+    attestation.artifactKind ===
+      "v0.7.3-public-claim-governance-correction-attestation" &&
+    attestation.schemaVersion === 1 &&
+    attestation.generatedBy ===
+      "v0.7.3-public-claim-governance-correction-attestation" &&
+    Number.isFinite(Date.parse(String(attestation.generatedAt))) &&
+    isDeepStrictEqual(
+      attestation.baselineCommits,
+      V073_PUBLIC_CLAIM_GOVERNANCE_BASELINE_COMMITS,
+    ) &&
+    isRecord(attestation.correctionCommits) &&
+    attestation.correctionCommits.preregistration ===
+      input.preregistrationCommit &&
+    attestation.correctionCommits.implementation === input.implementationCommit &&
+    Array.isArray(attestation.implementationDiffPaths) &&
+    attestation.implementationDiffPaths.every(
+      (path): path is string => typeof path === "string",
+    ) &&
+    samePathSet(
+      attestation.implementationDiffPaths,
+      V073_PUBLIC_CLAIM_GOVERNANCE_IMPLEMENTATION_PATHS,
+    ) &&
+    attestation.providerCalls === 0 &&
+    redVerification !== undefined &&
+    greenVerification !== undefined &&
+    isCorrectionVerification(
+      redVerification.publicClaimGate,
+      "bun test tests/unit/run-public-benchmark-claim-gate.test.ts",
+      1,
+      2,
+      39,
+    ) &&
+    isCorrectionVerification(
+      redVerification.releaseReadiness,
+      "bun test tests/unit/run-v0-7-release-readiness.test.ts " +
+        "-t governance-correction-lineage",
+      1,
+      1,
+      0,
+    ) &&
+    isCorrectionVerification(
+      redVerification.releaseWorkflowEvidence,
+      "bun test tests/release/release.test.ts --test-name-pattern " +
+        '"ships the public-claim governance correction evidence"',
+      1,
+      1,
+      0,
+    ) &&
+    isCorrectionVerification(
+      greenVerification.publicClaimGate,
+      "bun test tests/unit/run-public-benchmark-claim-gate.test.ts",
+      0,
+      0,
+      41,
+    ) &&
+    isCorrectionVerification(
+      greenVerification.releaseReadiness,
+      "bun test tests/unit/run-v0-7-release-readiness.test.ts " +
+        "-t governance-correction-lineage",
+      0,
+      0,
+      2,
+    ) &&
+    isCorrectionVerification(
+      greenVerification.releaseWorkflowEvidence,
+      "bun test tests/release/release.test.ts --test-name-pattern " +
+        '"ships the public-claim governance correction evidence"',
+      0,
+      0,
+      1,
+    ) &&
+    isCorrectionVerification(
+      greenVerification.typecheck,
+      "bun run typecheck",
+      0,
+      0,
+      1,
+    );
+  if (!attestationValid) {
+    issues.push("governance correction attestation verification results are inconsistent");
+  }
+
+  return {
+    detail: issues.length === 0
+      ? `preregistered S-D-G-A-release governance correction is frozen at ${input.implementationCommit}`
+      : issues.join("; "),
+    durationMs: 0,
+    id: "v0.7.3-public-claim-governance-correction",
+    required: true,
+    status: issues.length === 0 ? "pass" : "fail",
+    title: "v0.7.3 public-claim governance correction lineage",
+  };
+}
+
+function changedPaths(raw: string): string[] {
+  return raw
+    .split(/\r?\n/u)
+    .map((path) => path.trim())
+    .filter(Boolean);
+}
+
+export async function evaluateV073PublicClaimGovernanceCorrectionFile(input: {
+  currentCommit: string;
+  repoRoot: string;
+}): Promise<V07ReleaseReadinessCheck> {
+  const startedAt = performance.now();
+  try {
+    const preregistrationRawCurrent = await readFile(
+      join(input.repoRoot, V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION),
+      "utf8",
+    );
+    const attestationRawCurrent = await readFile(
+      join(input.repoRoot, V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION),
+      "utf8",
+    );
+    const preregistration = JSON.parse(preregistrationRawCurrent) as unknown;
+    const attestation = JSON.parse(attestationRawCurrent) as unknown;
+    if (
+      !COMMIT_PATTERN.test(input.currentCommit) ||
+      !isRecord(attestation) ||
+      !isRecord(attestation.correctionCommits) ||
+      !COMMIT_PATTERN.test(String(attestation.correctionCommits.preregistration)) ||
+      !COMMIT_PATTERN.test(String(attestation.correctionCommits.implementation))
+    ) {
+      throw new Error("correction commit identities are inconsistent");
+    }
+    const preregistrationCommit = String(
+      attestation.correctionCommits.preregistration,
+    );
+    const implementationCommit = String(
+      attestation.correctionCommits.implementation,
+    );
+    const attestationCommitOutcome = await runCommand(
+      "git",
+      [
+        "log",
+        "-1",
+        "--format=%H",
+        "--diff-filter=A",
+        "--",
+        V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION,
+      ],
+      input.repoRoot,
+    );
+    const attestationCommit = attestationCommitOutcome.stdout.trim();
+    if (
+      attestationCommitOutcome.code !== 0 ||
+      !COMMIT_PATTERN.test(attestationCommit)
+    ) {
+      throw new Error("cannot resolve the correction attestation commit");
+    }
+
+    const git = async (args: string[]): Promise<string> => {
+      const outcome = await runCommand("git", args, input.repoRoot);
+      if (outcome.code !== 0) {
+        throw new Error(`git ${args.join(" ")} failed`);
+      }
+      return outcome.stdout;
+    };
+    const [
+      preregistrationParentCommit,
+      implementationParentCommit,
+      attestationParentCommit,
+      preregistrationChangedRaw,
+      implementationChangedRaw,
+      attestationChangedRaw,
+      postAttestationChangedRaw,
+      preregistrationRawAtCommit,
+      attestationRawAtCommit,
+      attestationAncestor,
+    ] = await Promise.all([
+      git(["rev-parse", `${preregistrationCommit}^`]),
+      git(["rev-parse", `${implementationCommit}^`]),
+      git(["rev-parse", `${attestationCommit}^`]),
+      git([
+        "diff",
+        "--name-only",
+        `${preregistrationCommit}^`,
+        preregistrationCommit,
+        "--",
+      ]),
+      git([
+        "diff",
+        "--name-only",
+        `${implementationCommit}^`,
+        implementationCommit,
+        "--",
+      ]),
+      git([
+        "diff",
+        "--name-only",
+        `${attestationCommit}^`,
+        attestationCommit,
+        "--",
+      ]),
+      git([
+        "diff",
+        "--name-only",
+        `${attestationCommit}..${input.currentCommit}`,
+        "--",
+      ]),
+      git([
+        "show",
+        `${preregistrationCommit}:${V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION}`,
+      ]),
+      git([
+        "show",
+        `${attestationCommit}:${V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION}`,
+      ]),
+      runCommand(
+        "git",
+        [
+          "merge-base",
+          "--is-ancestor",
+          attestationCommit,
+          input.currentCommit,
+        ],
+        input.repoRoot,
+      ),
+    ]);
+    if (attestationAncestor.code !== 0 && attestationAncestor.code !== 1) {
+      throw new Error("cannot compare the attestation and release commits");
+    }
+    const implementationSourceRaws: Record<string, string> = {};
+    const currentSourceRaws: Record<string, string> = {};
+    const sourceOutcomes = await Promise.all(
+      V073_PUBLIC_CLAIM_GOVERNANCE_SOURCE_PATHS.flatMap((path) => [
+        git(["show", `${implementationCommit}:${path}`]),
+        git(["show", `${input.currentCommit}:${path}`]),
+      ]),
+    );
+    V073_PUBLIC_CLAIM_GOVERNANCE_SOURCE_PATHS.forEach((path, index) => {
+      implementationSourceRaws[path] = sourceOutcomes[index * 2]!;
+      currentSourceRaws[path] = sourceOutcomes[index * 2 + 1]!;
+    });
+    const check = evaluateV073PublicClaimGovernanceCorrection({
+      attestation,
+      attestationChangedPaths: changedPaths(attestationChangedRaw),
+      attestationCommit,
+      attestationIsAncestor: attestationAncestor.code === 0,
+      attestationParentCommit: attestationParentCommit.trim(),
+      attestationRawAtCommit,
+      attestationRawCurrent,
+      currentCommit: input.currentCommit,
+      currentSourceRaws,
+      implementationChangedPaths: changedPaths(implementationChangedRaw),
+      implementationCommit,
+      implementationParentCommit: implementationParentCommit.trim(),
+      implementationSourceRaws,
+      postAttestationChangedPaths: changedPaths(postAttestationChangedRaw),
+      preregistration,
+      preregistrationChangedPaths: changedPaths(preregistrationChangedRaw),
+      preregistrationCommit,
+      preregistrationParentCommit: preregistrationParentCommit.trim(),
+      preregistrationRawAtCommit,
+      preregistrationRawCurrent,
+    });
+    return {
+      ...check,
+      durationMs: Math.round(performance.now() - startedAt),
+    };
+  } catch (error) {
+    return {
+      detail: `cannot verify public-claim governance correction: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      durationMs: Math.round(performance.now() - startedAt),
+      id: "v0.7.3-public-claim-governance-correction",
+      required: true,
+      status: "fail",
+      title: "v0.7.3 public-claim governance correction lineage",
+    };
+  }
 }
 
 function isAllowedPostCandidatePath(path: string): boolean {
@@ -4318,6 +4822,14 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
       currentPackage,
       isAncestor: releaseAncestor.code === 0,
     });
+    const governanceCorrectionCheck = releaseChangedPaths.some((path) =>
+        V073_PUBLIC_CLAIM_GOVERNANCE_CHANGE_PATHS.has(path)
+      )
+      ? await evaluateV073PublicClaimGovernanceCorrectionFile({
+        currentCommit: input.currentCommit,
+        repoRoot: input.repoRoot,
+      })
+      : undefined;
     return [
       bundleCheck,
       ...claimCandidateChecks,
@@ -4329,6 +4841,7 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
         ...sourceCheck,
         durationMs: Math.round(performance.now() - startedAt),
       },
+      ...(governanceCorrectionCheck ? [governanceCorrectionCheck] : []),
     ];
   } catch (error) {
     return [{
