@@ -1,0 +1,108 @@
+{
+  "artifactKind": "v0.7.3-public-claim-governance-correction-attestation",
+  "baselineCommits": {
+    "fullClaimAttemptSentinel": "078ca74ac45fe4bd268e52921528e1e15a0ec52f",
+    "fullClaimProtocolPreregistration": "3f84011ba091f295e2d1f175a9e7ba5d2faebc76",
+    "protocolCandidate": "996c181e97e2d0a56bbd78957e79026af328b03b"
+  },
+  "correctionCommits": {
+    "implementation": "39aa1d91ec4749dec6e784635b3f465642a99fad",
+    "preregistration": "dfb780e647848ff2495619da9b3dd02347154a49"
+  },
+  "generatedAt": "2026-08-11T09:02:39.000Z",
+  "generatedBy": "v0.7.3-public-claim-governance-correction-attestation",
+  "implementationDiffPaths": [
+    ".github/workflows/release.yml",
+    "scripts/run-public-benchmark-claim-gate.ts",
+    "scripts/run-v0-7-release-readiness.ts"
+  ],
+  "providerCalls": 0,
+  "schemaVersion": 1,
+  "sourceArtifacts": [
+    {
+      "bytes": 13080,
+      "path": ".github/workflows/release.yml",
+      "sha256": "dfbd4e8ebf07a560dbd0e712fd6940d12a27b60bcea8f64a8f54c130cee88884"
+    },
+    {
+      "bytes": 60193,
+      "path": "scripts/run-public-benchmark-claim-gate.ts",
+      "sha256": "888190fcad24e1b0dbf055d805b80e426caae963c447d398a97776af4962a459"
+    },
+    {
+      "bytes": 201819,
+      "path": "scripts/run-v0-7-release-readiness.ts",
+      "sha256": "dfcff9b6ac19aca024a994f44a3c9812610746bf5b2e38b271b5790fa364eff8"
+    },
+    {
+      "bytes": 221996,
+      "path": "tests/release/release.test.ts",
+      "sha256": "4e8cff07375ef61cee854fad6fef91612a22ccd4770f09d2460253eaa74f462c"
+    },
+    {
+      "bytes": 45315,
+      "path": "tests/unit/run-public-benchmark-claim-gate.test.ts",
+      "sha256": "5f3fa4b61c65679b2f60099469ee48b9c6d4447cdf7284f922a097616eafe745"
+    },
+    {
+      "bytes": 169583,
+      "path": "tests/unit/run-v0-7-release-readiness.test.ts",
+      "sha256": "463fa6505873410d3bc29bc2f91d1d372a5163150f501d7b54295137cb0086f5"
+    }
+  ],
+  "verification": {
+    "green": {
+      "publicClaimGate": {
+        "command": "bun test tests/unit/run-public-benchmark-claim-gate.test.ts",
+        "exitCode": 0,
+        "failed": 0,
+        "outputSha256": "4ecc613b90f74164cb4b144021f6262d755f5e26a5c5724925337d966f7b349a",
+        "passed": 41
+      },
+      "releaseReadiness": {
+        "command": "bun test tests/unit/run-v0-7-release-readiness.test.ts -t governance-correction-lineage",
+        "exitCode": 0,
+        "failed": 0,
+        "outputSha256": "bc8e838cba2ad991a255b083ea458570482ae5c30de8c3fb03e25f406f7d55e9",
+        "passed": 2
+      },
+      "releaseWorkflowEvidence": {
+        "command": "bun test tests/release/release.test.ts --test-name-pattern \"ships the public-claim governance correction evidence\"",
+        "exitCode": 0,
+        "failed": 0,
+        "outputSha256": "3055c06d05199e603b299279e13aa121d9f8efe9b34b31c2d757e9c83f1fa9a0",
+        "passed": 1
+      },
+      "typecheck": {
+        "command": "bun run typecheck",
+        "exitCode": 0,
+        "failed": 0,
+        "outputSha256": "0a7cbec9e31e5ab1dc3f62bf0e9994201b491a121c31235f27316f5151281817",
+        "passed": 1
+      }
+    },
+    "red": {
+      "publicClaimGate": {
+        "command": "bun test tests/unit/run-public-benchmark-claim-gate.test.ts",
+        "exitCode": 1,
+        "failed": 2,
+        "outputSha256": "5959f81a738804842b4e962223012d58655358754b3a6ddcf622ce22d768f5a8",
+        "passed": 39
+      },
+      "releaseReadiness": {
+        "command": "bun test tests/unit/run-v0-7-release-readiness.test.ts -t governance-correction-lineage",
+        "exitCode": 1,
+        "failed": 1,
+        "outputSha256": "29baa11cd690c76c7c51ea9b52b670fb1308b20432039a09d473b460e14fd15f",
+        "passed": 0
+      },
+      "releaseWorkflowEvidence": {
+        "command": "bun test tests/release/release.test.ts --test-name-pattern \"ships the public-claim governance correction evidence\"",
+        "exitCode": 1,
+        "failed": 1,
+        "outputSha256": "9751e55ff29fa4ef1c7fc23cc29c0d4c5e5d17833ced759e7a60f3d7de7ecdf6",
+        "passed": 0
+      }
+    }
+  }
+}
