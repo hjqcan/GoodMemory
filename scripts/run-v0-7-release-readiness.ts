@@ -103,6 +103,12 @@ const V073_STABLE_SOURCE_TEST_CORRECTION_PREREGISTRATION =
 const V073_STABLE_SOURCE_TEST_CORRECTION_ATTESTATION =
   "reports/release/v0.7/" +
   "v0.7.3-stable-source-test-correction-attestation.json";
+const V073_CROSS_HOST_LIFECYCLE_VERIFIER_CORRECTION_PREREGISTRATION =
+  "reports/release/v0.7/" +
+  "v0.7.3-cross-host-lifecycle-verifier-correction-preregistration.json";
+const V073_CROSS_HOST_LIFECYCLE_VERIFIER_CORRECTION_ATTESTATION =
+  "reports/release/v0.7/" +
+  "v0.7.3-cross-host-lifecycle-verifier-correction-attestation.json";
 const V073_LOCOMO_SOURCE_ARTIFACT_PATHS = {
   "claim-recipe-source": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}claim-recipe-source.json`,
   "execution-receipt": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}execution-receipt.json`,
@@ -876,6 +882,38 @@ function canonicalProtocol2ClaimRecipe(raw: string): string {
   recipe.run.command = recipe.run.command.replace(
     matches[0]![0],
     `--benchmark-root ${V073_PROTOCOL2_CANONICAL_BENCHMARK_ROOT}`,
+  );
+  return JSON.stringify(recipe);
+}
+
+function bindHomeRelativeClaimRecipeBenchmarkRoot(
+  raw: string,
+  benchmarkRoot: string,
+): string {
+  const recipe = JSON.parse(raw) as unknown;
+  if (
+    !isRecord(recipe) ||
+    !isRecord(recipe.run) ||
+    !isNonEmptyString(recipe.run.command)
+  ) {
+    throw new Error("claim recipe does not contain run.command");
+  }
+  const matches = [
+    ...recipe.run.command.matchAll(/--benchmark-root\s+(\S+)/gu),
+  ];
+  if (matches.length !== 1) {
+    throw new Error("claim recipe must contain one benchmark root");
+  }
+  const recipeRoot = matches[0]![1]!;
+  if (!recipeRoot.startsWith("~/")) {
+    return raw;
+  }
+  if (!isAbsolute(benchmarkRoot)) {
+    throw new Error("recorded benchmark root must be absolute");
+  }
+  recipe.run.command = recipe.run.command.replace(
+    matches[0]![0],
+    `--benchmark-root ${benchmarkRoot}`,
   );
   return JSON.stringify(recipe);
 }
@@ -3516,7 +3554,13 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
         worktreePath,
       });
       const expectedChain = routeV073CommandChainThroughTape(
-        buildV073PairedCommandChain(expectedArm.arm, measuredClaimRecipeRaw),
+        buildV073PairedCommandChain(
+          expectedArm.arm,
+          bindHomeRelativeClaimRecipeBenchmarkRoot(
+            measuredClaimRecipeRaw,
+            manifest.benchmark.root,
+          ),
+        ),
         baseUrls as {
           assisted: string;
           embedding: string;
@@ -3861,6 +3905,34 @@ const V073_STABLE_SOURCE_SOURCE_PATHS = [
   ...V073_STABLE_SOURCE_IMPLEMENTATION_PATHS,
   ...V073_STABLE_SOURCE_TEST_PATHS,
 ] as const;
+const V073_CROSS_HOST_LIFECYCLE_VERIFIER_BASELINE_COMMIT =
+  "a7f78e2b3f324febb227f548c299f57ea487044e";
+const V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_COMMIT =
+  "8e5b2773d2d88d5f8edd6123113dd9d69dabcbfc";
+const V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_BYTES = 4_930;
+const V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_SHA256 =
+  "e35b009a381d4ed9178aefbdc9bba33e75c1d4266db6cac017c61cbf0c3439d4";
+const V073_CROSS_HOST_LIFECYCLE_VERIFIER_TEST_PATHS = [
+  "tests/release/release.test.ts",
+  "tests/unit/run-v0-7-release-readiness.test.ts",
+] as const;
+const V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_PATHS = [
+  V073_CROSS_HOST_LIFECYCLE_VERIFIER_CORRECTION_PREREGISTRATION,
+  ...V073_CROSS_HOST_LIFECYCLE_VERIFIER_TEST_PATHS,
+] as const;
+const V073_CROSS_HOST_LIFECYCLE_VERIFIER_IMPLEMENTATION_PATHS = [
+  ".github/workflows/release.yml",
+  "scripts/run-v0-7-release-readiness.ts",
+] as const;
+const V073_CROSS_HOST_LIFECYCLE_VERIFIER_SOURCE_PATHS = [
+  ...V073_CROSS_HOST_LIFECYCLE_VERIFIER_IMPLEMENTATION_PATHS,
+  ...V073_CROSS_HOST_LIFECYCLE_VERIFIER_TEST_PATHS,
+] as const;
+const V073_CROSS_HOST_LIFECYCLE_VERIFIER_CHANGE_PATHS = new Set([
+  ...V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_PATHS,
+  ...V073_CROSS_HOST_LIFECYCLE_VERIFIER_IMPLEMENTATION_PATHS,
+  V073_CROSS_HOST_LIFECYCLE_VERIFIER_CORRECTION_ATTESTATION,
+]);
 const V073_STABLE_SOURCE_CHANGE_PATHS = new Set([
   ...V073_STABLE_SOURCE_PREREGISTRATION_PATHS,
   ...V073_STABLE_SOURCE_IMPLEMENTATION_PATHS,
@@ -4160,6 +4232,7 @@ interface V073PublicClaimGovernanceCorrectionInput {
   preregistrationParentCommit: string;
   preregistrationRawAtCommit: string;
   preregistrationRawCurrent: string;
+  crossHostLifecycleVerifierCorrectionValid?: boolean;
   stableSourceCorrectionValid?: boolean;
 }
 
@@ -4251,7 +4324,9 @@ export function evaluateV073PublicClaimGovernanceCorrection(
     (path) =>
       !V073_POST_ATTESTATION_RELEASE_PATHS.has(path) &&
       !(input.stableSourceCorrectionValid === true &&
-        V073_STABLE_SOURCE_CHANGE_PATHS.has(path)),
+        V073_STABLE_SOURCE_CHANGE_PATHS.has(path)) &&
+      !(input.crossHostLifecycleVerifierCorrectionValid === true &&
+        V073_CROSS_HOST_LIFECYCLE_VERIFIER_CHANGE_PATHS.has(path)),
   );
   if (forbiddenReleasePaths.length > 0) {
     issues.push(
@@ -4417,6 +4492,7 @@ function changedPaths(raw: string): string[] {
 }
 
 export async function evaluateV073PublicClaimGovernanceCorrectionFile(input: {
+  crossHostLifecycleVerifierCorrectionValid?: boolean;
   currentCommit: string;
   repoRoot: string;
   stableSourceCorrectionValid?: boolean;
@@ -4561,6 +4637,8 @@ export async function evaluateV073PublicClaimGovernanceCorrectionFile(input: {
       attestationRawCurrent,
       currentCommit: input.currentCommit,
       currentSourceRaws,
+      crossHostLifecycleVerifierCorrectionValid:
+        input.crossHostLifecycleVerifierCorrectionValid,
       implementationChangedPaths: changedPaths(implementationChangedRaw),
       implementationCommit,
       implementationParentCommit: implementationParentCommit.trim(),
@@ -4592,6 +4670,388 @@ export async function evaluateV073PublicClaimGovernanceCorrectionFile(input: {
   }
 }
 
+interface V073CrossHostLifecycleVerifierCorrectionInput {
+  attestation: unknown;
+  attestationChangedPaths: readonly string[];
+  attestationCommit: string;
+  attestationIsAncestor: boolean;
+  attestationParentCommit: string;
+  attestationRawAtCommit: string;
+  attestationRawCurrent: string;
+  currentCommit: string;
+  currentSourceRaws: Readonly<Record<string, string>>;
+  implementationChangedPaths: readonly string[];
+  implementationCommit: string;
+  implementationParentCommit: string;
+  implementationSourceRaws: Readonly<Record<string, string>>;
+  preregistration: unknown;
+  preregistrationChangedPaths: readonly string[];
+  preregistrationCommit: string;
+  preregistrationParentCommit: string;
+  preregistrationRawAtCommit: string;
+  preregistrationRawCurrent: string;
+  preregistrationSourceRaws: Readonly<Record<string, string>>;
+}
+
+function crossHostLifecycleVerifierCorrectionCheck(
+  issues: readonly string[],
+): V07ReleaseReadinessCheck {
+  return {
+    detail: issues.length === 0
+      ? `exact A2-D3-G3-A3 cross-host lifecycle verifier correction is frozen at ${
+        V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_COMMIT
+      }`
+      : issues.join("; "),
+    durationMs: 0,
+    id: "v0.7.3-cross-host-lifecycle-verifier-correction",
+    required: true,
+    status: issues.length === 0 ? "pass" : "fail",
+    title: "v0.7.3 cross-host lifecycle verifier correction lineage",
+  };
+}
+
+export function evaluateV073CrossHostLifecycleVerifierCorrection(
+  input: unknown,
+): V07ReleaseReadinessCheck {
+  if (!isRecord(input)) {
+    return crossHostLifecycleVerifierCorrectionCheck([
+      "cross-host lifecycle verifier correction input is malformed",
+    ]);
+  }
+  const value = input as unknown as V073CrossHostLifecycleVerifierCorrectionInput;
+  if (
+    !Array.isArray(value.attestationChangedPaths) ||
+    !Array.isArray(value.implementationChangedPaths) ||
+    !Array.isArray(value.preregistrationChangedPaths) ||
+    !isRecord(value.currentSourceRaws) ||
+    !isRecord(value.implementationSourceRaws) ||
+    !isRecord(value.preregistrationSourceRaws)
+  ) {
+    return crossHostLifecycleVerifierCorrectionCheck([
+      "cross-host lifecycle verifier correction input is incomplete",
+    ]);
+  }
+
+  const issues: string[] = [];
+  const commits = [
+    value.attestationCommit,
+    value.attestationParentCommit,
+    value.currentCommit,
+    value.implementationCommit,
+    value.implementationParentCommit,
+    value.preregistrationCommit,
+    value.preregistrationParentCommit,
+  ];
+  if (commits.some((commit) => !COMMIT_PATTERN.test(commit))) {
+    issues.push("cross-host lifecycle verifier correction commit identities are malformed");
+  }
+  if (
+    value.preregistrationCommit !==
+      V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_COMMIT ||
+    value.preregistrationParentCommit !==
+      V073_CROSS_HOST_LIFECYCLE_VERIFIER_BASELINE_COMMIT ||
+    !samePathSet(
+      value.preregistrationChangedPaths,
+      V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_PATHS,
+    )
+  ) {
+    issues.push("cross-host lifecycle verifier preregistration commit is inconsistent");
+  }
+  if (
+    value.implementationParentCommit !== value.preregistrationCommit ||
+    !samePathSet(
+      value.implementationChangedPaths,
+      V073_CROSS_HOST_LIFECYCLE_VERIFIER_IMPLEMENTATION_PATHS,
+    )
+  ) {
+    issues.push("cross-host lifecycle verifier implementation commit is inconsistent");
+  }
+  if (
+    value.attestationParentCommit !== value.implementationCommit ||
+    value.currentCommit !== value.attestationCommit ||
+    !value.attestationIsAncestor ||
+    !samePathSet(
+      value.attestationChangedPaths,
+      [V073_CROSS_HOST_LIFECYCLE_VERIFIER_CORRECTION_ATTESTATION],
+    ) ||
+    value.attestationRawAtCommit !== value.attestationRawCurrent
+  ) {
+    issues.push("cross-host lifecycle verifier attestation commit is inconsistent");
+  }
+
+  let preregistrationAtCommit: unknown;
+  let attestationAtCommit: unknown;
+  try {
+    preregistrationAtCommit = JSON.parse(value.preregistrationRawAtCommit) as unknown;
+    attestationAtCommit = JSON.parse(value.attestationRawAtCommit) as unknown;
+  } catch {
+    preregistrationAtCommit = undefined;
+    attestationAtCommit = undefined;
+  }
+  if (
+    Buffer.byteLength(value.preregistrationRawAtCommit, "utf8") !==
+      V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_BYTES ||
+    sha256(value.preregistrationRawAtCommit) !==
+      V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_SHA256 ||
+    value.preregistrationRawCurrent !== value.preregistrationRawAtCommit ||
+    !isDeepStrictEqual(value.preregistration, preregistrationAtCommit)
+  ) {
+    issues.push("cross-host lifecycle verifier preregistration artifact is inconsistent");
+  }
+
+  const attestation = value.attestation;
+  const sourceArtifacts = isRecord(attestation) &&
+      Array.isArray(attestation.sourceArtifacts)
+    ? attestation.sourceArtifacts
+    : [];
+  const sourceArtifactsByPath = new Map<string, ArtifactIdentityShape>();
+  for (const artifact of sourceArtifacts) {
+    if (isArtifactIdentity(artifact) && !sourceArtifactsByPath.has(artifact.path)) {
+      sourceArtifactsByPath.set(artifact.path, artifact);
+    }
+  }
+  const frozenSourcesValid =
+    sourceArtifacts.length === V073_CROSS_HOST_LIFECYCLE_VERIFIER_SOURCE_PATHS.length &&
+    sourceArtifactsByPath.size === V073_CROSS_HOST_LIFECYCLE_VERIFIER_SOURCE_PATHS.length &&
+    V073_CROSS_HOST_LIFECYCLE_VERIFIER_SOURCE_PATHS.every((path) => {
+      const frozenRaw = V073_CROSS_HOST_LIFECYCLE_VERIFIER_IMPLEMENTATION_PATHS.includes(
+          path as (typeof V073_CROSS_HOST_LIFECYCLE_VERIFIER_IMPLEMENTATION_PATHS)[number],
+        )
+        ? value.implementationSourceRaws[path]
+        : value.preregistrationSourceRaws[path];
+      const identity = sourceArtifactsByPath.get(path);
+      return frozenRaw !== undefined &&
+        value.currentSourceRaws[path] === frozenRaw &&
+        identity?.bytes === Buffer.byteLength(frozenRaw, "utf8") &&
+        identity.sha256 === sha256(frozenRaw);
+    });
+  if (!frozenSourcesValid) {
+    issues.push("cross-host lifecycle verifier frozen source identities are inconsistent");
+  }
+
+  const verification = isRecord(attestation) && isRecord(attestation.verification)
+    ? attestation.verification
+    : undefined;
+  const red = verification && isRecord(verification.red)
+    ? verification.red
+    : undefined;
+  const green = verification && isRecord(verification.green)
+    ? verification.green
+    : undefined;
+  const affectedCommand =
+    "bun test tests/unit/run-v0-7-release-readiness.test.ts tests/release/release.test.ts";
+  const attestationValid =
+    isRecord(attestation) &&
+    isDeepStrictEqual(attestation, attestationAtCommit) &&
+    attestation.artifactKind ===
+      "v0.7.3-cross-host-lifecycle-verifier-correction-attestation" &&
+    attestation.schemaVersion === 1 &&
+    attestation.generatedBy ===
+      "v0.7.3-cross-host-lifecycle-verifier-correction-attestation" &&
+    Number.isFinite(Date.parse(String(attestation.generatedAt))) &&
+    attestation.baselineCommit ===
+      V073_CROSS_HOST_LIFECYCLE_VERIFIER_BASELINE_COMMIT &&
+    isRecord(attestation.correctionCommits) &&
+    attestation.correctionCommits.preregistration === value.preregistrationCommit &&
+    attestation.correctionCommits.implementation === value.implementationCommit &&
+    Array.isArray(attestation.implementationDiffPaths) &&
+    attestation.implementationDiffPaths.every(
+      (path): path is string => typeof path === "string",
+    ) &&
+    samePathSet(
+      attestation.implementationDiffPaths,
+      V073_CROSS_HOST_LIFECYCLE_VERIFIER_IMPLEMENTATION_PATHS,
+    ) &&
+    attestation.providerCalls === 0 &&
+    red !== undefined &&
+    green !== undefined &&
+    isCorrectionVerification(
+      red.crossHostLifecycleBundle,
+      "bun test tests/unit/run-v0-7-release-readiness.test.ts -t \"recomputes the tracked lifecycle bundle under a different verifier home\"",
+      1,
+      1,
+      0,
+    ) &&
+    isCorrectionVerification(
+      red.lineage,
+      "bun test tests/unit/run-v0-7-release-readiness.test.ts -t cross-host-lifecycle-verifier-correction-lineage",
+      1,
+      1,
+      0,
+    ) &&
+    isCorrectionVerification(
+      red.releaseWorkflowEvidence,
+      "bun test tests/release/release.test.ts -t \"ships the cross-host lifecycle verifier correction evidence\"",
+      1,
+      1,
+      0,
+    ) &&
+    isCorrectionVerification(green.affectedTests, affectedCommand, 0, 0, 141) &&
+    isCorrectionVerification(green.typecheck, "bun run typecheck", 0, 0, 1);
+  if (!attestationValid) {
+    issues.push("cross-host lifecycle verifier attestation is inconsistent");
+  }
+
+  return crossHostLifecycleVerifierCorrectionCheck(issues);
+}
+
+export async function evaluateV073CrossHostLifecycleVerifierCorrectionFile(input: {
+  currentCommit: string;
+  repoRoot: string;
+}): Promise<V07ReleaseReadinessCheck> {
+  const startedAt = performance.now();
+  try {
+    const preregistrationRawCurrent = await readFile(
+      join(
+        input.repoRoot,
+        V073_CROSS_HOST_LIFECYCLE_VERIFIER_CORRECTION_PREREGISTRATION,
+      ),
+      "utf8",
+    );
+    const attestationRawCurrent = await readFile(
+      join(
+        input.repoRoot,
+        V073_CROSS_HOST_LIFECYCLE_VERIFIER_CORRECTION_ATTESTATION,
+      ),
+      "utf8",
+    );
+    const preregistration = JSON.parse(preregistrationRawCurrent) as unknown;
+    const attestation = JSON.parse(attestationRawCurrent) as unknown;
+    if (
+      !COMMIT_PATTERN.test(input.currentCommit) ||
+      !isRecord(attestation) ||
+      !isRecord(attestation.correctionCommits) ||
+      !COMMIT_PATTERN.test(String(attestation.correctionCommits.implementation)) ||
+      attestation.correctionCommits.preregistration !==
+        V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_COMMIT
+    ) {
+      throw new Error("cross-host lifecycle verifier commit identities are inconsistent");
+    }
+    const implementationCommit = String(attestation.correctionCommits.implementation);
+    const git = async (args: string[]): Promise<string> => {
+      const outcome = await runCommand("git", args, input.repoRoot);
+      if (outcome.code !== 0) {
+        throw new Error(`git ${args.join(" ")} failed`);
+      }
+      return outcome.stdout;
+    };
+    const attestationCommit = (
+      await git([
+        "log",
+        "-1",
+        "--format=%H",
+        "--diff-filter=A",
+        "--",
+        V073_CROSS_HOST_LIFECYCLE_VERIFIER_CORRECTION_ATTESTATION,
+      ])
+    ).trim();
+    const [
+      preregistrationParentCommit,
+      implementationParentCommit,
+      attestationParentCommit,
+      preregistrationChangedRaw,
+      implementationChangedRaw,
+      attestationChangedRaw,
+      preregistrationRawAtCommit,
+      attestationRawAtCommit,
+      attestationAncestor,
+    ] = await Promise.all([
+      git(["rev-parse", `${V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_COMMIT}^`]),
+      git(["rev-parse", `${implementationCommit}^`]),
+      git(["rev-parse", `${attestationCommit}^`]),
+      git([
+        "diff",
+        "--name-only",
+        `${V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_COMMIT}^`,
+        V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_COMMIT,
+        "--",
+      ]),
+      git(["diff", "--name-only", `${implementationCommit}^`, implementationCommit, "--"]),
+      git(["diff", "--name-only", `${attestationCommit}^`, attestationCommit, "--"]),
+      git([
+        "show",
+        `${V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_COMMIT}:${V073_CROSS_HOST_LIFECYCLE_VERIFIER_CORRECTION_PREREGISTRATION}`,
+      ]),
+      git([
+        "show",
+        `${attestationCommit}:${V073_CROSS_HOST_LIFECYCLE_VERIFIER_CORRECTION_ATTESTATION}`,
+      ]),
+      runCommand(
+        "git",
+        ["merge-base", "--is-ancestor", attestationCommit, input.currentCommit],
+        input.repoRoot,
+      ),
+    ]);
+    if (attestationAncestor.code !== 0 && attestationAncestor.code !== 1) {
+      throw new Error("cannot compare cross-host attestation and current commits");
+    }
+
+    const preregistrationSourceRaws: Record<string, string> = {};
+    const implementationSourceRaws: Record<string, string> = {};
+    const currentSourceRaws: Record<string, string> = {};
+    const sourceOutcomes = await Promise.all(
+      V073_CROSS_HOST_LIFECYCLE_VERIFIER_SOURCE_PATHS.flatMap((path) => {
+        const sourceCommit = V073_CROSS_HOST_LIFECYCLE_VERIFIER_IMPLEMENTATION_PATHS.includes(
+            path as (typeof V073_CROSS_HOST_LIFECYCLE_VERIFIER_IMPLEMENTATION_PATHS)[number],
+          )
+          ? implementationCommit
+          : V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_COMMIT;
+        return [
+          git(["show", `${sourceCommit}:${path}`]),
+          git(["show", `${input.currentCommit}:${path}`]),
+        ];
+      }),
+    );
+    V073_CROSS_HOST_LIFECYCLE_VERIFIER_SOURCE_PATHS.forEach((path, index) => {
+      const sourceRaw = sourceOutcomes[index * 2]!;
+      if (V073_CROSS_HOST_LIFECYCLE_VERIFIER_IMPLEMENTATION_PATHS.includes(
+        path as (typeof V073_CROSS_HOST_LIFECYCLE_VERIFIER_IMPLEMENTATION_PATHS)[number]
+      )) {
+        implementationSourceRaws[path] = sourceRaw;
+      } else {
+        preregistrationSourceRaws[path] = sourceRaw;
+      }
+      currentSourceRaws[path] = sourceOutcomes[index * 2 + 1]!;
+    });
+
+    const check = evaluateV073CrossHostLifecycleVerifierCorrection({
+      attestation,
+      attestationChangedPaths: changedPaths(attestationChangedRaw),
+      attestationCommit,
+      attestationIsAncestor: attestationAncestor.code === 0,
+      attestationParentCommit: attestationParentCommit.trim(),
+      attestationRawAtCommit,
+      attestationRawCurrent,
+      currentCommit: input.currentCommit,
+      currentSourceRaws,
+      implementationChangedPaths: changedPaths(implementationChangedRaw),
+      implementationCommit,
+      implementationParentCommit: implementationParentCommit.trim(),
+      implementationSourceRaws,
+      preregistration,
+      preregistrationChangedPaths: changedPaths(preregistrationChangedRaw),
+      preregistrationCommit:
+        V073_CROSS_HOST_LIFECYCLE_VERIFIER_PREREGISTRATION_COMMIT,
+      preregistrationParentCommit: preregistrationParentCommit.trim(),
+      preregistrationRawAtCommit,
+      preregistrationRawCurrent,
+      preregistrationSourceRaws,
+    });
+    return { ...check, durationMs: Math.round(performance.now() - startedAt) };
+  } catch (error) {
+    return {
+      detail: `cannot verify cross-host lifecycle verifier correction: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      durationMs: Math.round(performance.now() - startedAt),
+      id: "v0.7.3-cross-host-lifecycle-verifier-correction",
+      required: true,
+      status: "fail",
+      title: "v0.7.3 cross-host lifecycle verifier correction lineage",
+    };
+  }
+}
+
 interface V073StableSourceTestCorrectionInput {
   attestation: unknown;
   attestationChangedPaths: readonly string[];
@@ -4616,6 +5076,7 @@ interface V073StableSourceTestCorrectionInput {
   releaseChangedPaths: readonly string[];
   releaseCommit: string;
   releaseParentCommit: string;
+  crossHostLifecycleVerifierCorrectionValid?: boolean;
 }
 
 function stableSourceCorrectionCheck(
@@ -4698,7 +5159,8 @@ export function evaluateV073StableSourceTestCorrection(
   }
   if (
     value.attestationParentCommit !== value.implementationCommit ||
-    value.currentCommit !== value.attestationCommit ||
+    (value.currentCommit !== value.attestationCommit &&
+      value.crossHostLifecycleVerifierCorrectionValid !== true) ||
     !value.attestationIsAncestor ||
     !samePathSet(
       value.attestationChangedPaths,
@@ -4752,7 +5214,11 @@ export function evaluateV073StableSourceTestCorrection(
       const currentRaw = value.currentSourceRaws[path];
       const identity = sourceArtifactsByPath.get(path);
       return frozenRaw !== undefined &&
-        currentRaw === frozenRaw &&
+        (currentRaw === frozenRaw ||
+          (value.crossHostLifecycleVerifierCorrectionValid === true &&
+            V073_CROSS_HOST_LIFECYCLE_VERIFIER_SOURCE_PATHS.includes(
+              path as (typeof V073_CROSS_HOST_LIFECYCLE_VERIFIER_SOURCE_PATHS)[number],
+            ))) &&
         identity?.bytes === Buffer.byteLength(frozenRaw, "utf8") &&
         identity.sha256 === sha256(frozenRaw);
     });
@@ -4845,6 +5311,7 @@ export function evaluateV073StableSourceTestCorrection(
 }
 
 export async function evaluateV073StableSourceTestCorrectionFile(input: {
+  crossHostLifecycleVerifierCorrectionValid?: boolean;
   currentCommit: string;
   repoRoot: string;
 }): Promise<V07ReleaseReadinessCheck> {
@@ -4991,6 +5458,8 @@ export async function evaluateV073StableSourceTestCorrectionFile(input: {
       attestationRawCurrent,
       currentCommit: input.currentCommit,
       currentSourceRaws,
+      crossHostLifecycleVerifierCorrectionValid:
+        input.crossHostLifecycleVerifierCorrectionValid,
       implementationChangedPaths: changedPaths(implementationChangedRaw),
       implementationCommit,
       implementationParentCommit: implementationParentCommit.trim(),
@@ -5064,6 +5533,7 @@ function packageStatusOnlyChangeAllowed(
 }
 
 export function evaluateV073LifecycleProtectionSourceDrift(input: {
+  crossHostLifecycleVerifierCorrectionValid?: boolean;
   candidateCommit: string;
   candidatePackage: unknown;
   changedPaths: readonly string[];
@@ -5078,7 +5548,10 @@ export function evaluateV073LifecycleProtectionSourceDrift(input: {
     );
   }
   const forbiddenPaths = input.changedPaths.filter(
-    (path) => !isAllowedPostCandidatePath(path),
+    (path) =>
+      !isAllowedPostCandidatePath(path) &&
+      !(input.crossHostLifecycleVerifierCorrectionValid === true &&
+        V073_CROSS_HOST_LIFECYCLE_VERIFIER_CHANGE_PATHS.has(path)),
   );
   if (forbiddenPaths.length > 0) {
     issues.push(`execution surface changed after measurement: ${forbiddenPaths.join(", ")}`);
@@ -5316,26 +5789,40 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
       lifecycleCandidateCommit,
       protocolCandidateCommit,
     });
-    const sourceCheck = evaluateV073LifecycleProtectionSourceDrift({
-      candidateCommit: protocolCandidateCommit,
-      candidatePackage,
-      changedPaths: releaseChangedPaths,
-      currentCommit: input.currentCommit,
-      currentPackage,
-      isAncestor: releaseAncestor.code === 0,
-    });
+    const crossHostLifecycleVerifierCorrectionCheck =
+      releaseChangedPaths.some((path) =>
+          V073_CROSS_HOST_LIFECYCLE_VERIFIER_CHANGE_PATHS.has(path)
+        )
+        ? await evaluateV073CrossHostLifecycleVerifierCorrectionFile({
+          currentCommit: input.currentCommit,
+          repoRoot: input.repoRoot,
+        })
+        : undefined;
+    const crossHostLifecycleVerifierCorrectionValid =
+      crossHostLifecycleVerifierCorrectionCheck?.status === "pass";
     const stableSourceCorrectionCheck = releaseChangedPaths.some((path) =>
         V073_STABLE_SOURCE_CHANGE_PATHS.has(path)
       )
       ? await evaluateV073StableSourceTestCorrectionFile({
+        crossHostLifecycleVerifierCorrectionValid,
         currentCommit: input.currentCommit,
         repoRoot: input.repoRoot,
       })
       : undefined;
+    const sourceCheck = evaluateV073LifecycleProtectionSourceDrift({
+      candidateCommit: protocolCandidateCommit,
+      candidatePackage,
+      changedPaths: releaseChangedPaths,
+      crossHostLifecycleVerifierCorrectionValid,
+      currentCommit: input.currentCommit,
+      currentPackage,
+      isAncestor: releaseAncestor.code === 0,
+    });
     const governanceCorrectionCheck = releaseChangedPaths.some((path) =>
         V073_PUBLIC_CLAIM_GOVERNANCE_CHANGE_PATHS.has(path)
       )
       ? await evaluateV073PublicClaimGovernanceCorrectionFile({
+        crossHostLifecycleVerifierCorrectionValid,
         currentCommit: input.currentCommit,
         repoRoot: input.repoRoot,
         stableSourceCorrectionValid:
@@ -5354,6 +5841,9 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
         durationMs: Math.round(performance.now() - startedAt),
       },
       ...(stableSourceCorrectionCheck ? [stableSourceCorrectionCheck] : []),
+      ...(crossHostLifecycleVerifierCorrectionCheck
+        ? [crossHostLifecycleVerifierCorrectionCheck]
+        : []),
       ...(governanceCorrectionCheck ? [governanceCorrectionCheck] : []),
     ];
   } catch (error) {
