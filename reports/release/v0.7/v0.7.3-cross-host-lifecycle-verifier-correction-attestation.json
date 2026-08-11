@@ -1,0 +1,79 @@
+{
+  "artifactKind": "v0.7.3-cross-host-lifecycle-verifier-correction-attestation",
+  "baselineCommit": "a7f78e2b3f324febb227f548c299f57ea487044e",
+  "correctionCommits": {
+    "implementation": "228f7821b3261064c0e2b1adea0054854da76ff5",
+    "preregistration": "8e5b2773d2d88d5f8edd6123113dd9d69dabcbfc"
+  },
+  "generatedAt": "2026-08-11T11:21:26Z",
+  "generatedBy": "v0.7.3-cross-host-lifecycle-verifier-correction-attestation",
+  "implementationDiffPaths": [
+    ".github/workflows/release.yml",
+    "scripts/run-v0-7-release-readiness.ts"
+  ],
+  "providerCalls": 0,
+  "schemaVersion": 1,
+  "sourceArtifacts": [
+    {
+      "bytes": 14246,
+      "path": ".github/workflows/release.yml",
+      "sha256": "1b9ddb07e8711b55bfe1e6d5d0ca972436f55da08fd93a140c4ef356c3710c49"
+    },
+    {
+      "bytes": 239847,
+      "path": "scripts/run-v0-7-release-readiness.ts",
+      "sha256": "8e4ae98a00fea3918dc6ef1ce0a288d62613188309c4160b34abaee408c79f2f"
+    },
+    {
+      "bytes": 225076,
+      "path": "tests/release/release.test.ts",
+      "sha256": "f5be9a973af5d4451171ea26b759ea4d9cf14fe4aec4d85b331aaf063f7eb66d"
+    },
+    {
+      "bytes": 172582,
+      "path": "tests/unit/run-v0-7-release-readiness.test.ts",
+      "sha256": "1006ea6d7ef17df51c27924481c509e4960100dff063dbacdc88297ea5641966"
+    }
+  ],
+  "verification": {
+    "green": {
+      "affectedTests": {
+        "command": "bun test tests/unit/run-v0-7-release-readiness.test.ts tests/release/release.test.ts",
+        "exitCode": 0,
+        "failed": 0,
+        "outputSha256": "579409040671b68b427d67a94165ee5807397d201a41c96bf7b38978ce0e9ce6",
+        "passed": 141
+      },
+      "typecheck": {
+        "command": "bun run typecheck",
+        "exitCode": 0,
+        "failed": 0,
+        "outputSha256": "0a7cbec9e31e5ab1dc3f62bf0e9994201b491a121c31235f27316f5151281817",
+        "passed": 1
+      }
+    },
+    "red": {
+      "crossHostLifecycleBundle": {
+        "command": "bun test tests/unit/run-v0-7-release-readiness.test.ts -t \"recomputes the tracked lifecycle bundle under a different verifier home\"",
+        "exitCode": 1,
+        "failed": 1,
+        "outputSha256": "4629543e75b0f1b27e41960611649dd2d3549f07e2fe179bdc3cc7246f6c1e20",
+        "passed": 0
+      },
+      "lineage": {
+        "command": "bun test tests/unit/run-v0-7-release-readiness.test.ts -t cross-host-lifecycle-verifier-correction-lineage",
+        "exitCode": 1,
+        "failed": 1,
+        "outputSha256": "5cf03404f81e78b35055c03ceb17b8a2c73a2d5840f5aa255c877c8a0ffae029",
+        "passed": 0
+      },
+      "releaseWorkflowEvidence": {
+        "command": "bun test tests/release/release.test.ts -t \"ships the cross-host lifecycle verifier correction evidence\"",
+        "exitCode": 1,
+        "failed": 1,
+        "outputSha256": "3993272c8dafea296faac377d0c670c4d3373e2ef6210ab66e5b6d67aabf1f1f",
+        "passed": 0
+      }
+    }
+  }
+}
