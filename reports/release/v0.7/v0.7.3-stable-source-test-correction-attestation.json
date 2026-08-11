@@ -1,0 +1,102 @@
+{
+  "artifactKind": "v0.7.3-stable-source-test-correction-attestation",
+  "baselineCommits": {
+    "governanceAttestation": "b9c9b796803b9a7a39a491abe95d4c9f802a2520",
+    "stableSource": "6928ffdd7545a609495ed483bc8878894980301f"
+  },
+  "correctionCommits": {
+    "implementation": "47e6324389005fbb812e34f70b3a234b1aa82383",
+    "preregistration": "76556d010c4b132f1f6e5c7a60e4fa2534a54b70"
+  },
+  "generatedAt": "2026-08-11T09:49:23Z",
+  "generatedBy": "v0.7.3-stable-source-test-correction-attestation",
+  "implementationDiffPaths": [
+    ".github/workflows/release.yml",
+    "scripts/run-v0-7-release-readiness.ts"
+  ],
+  "providerCalls": 0,
+  "schemaVersion": 1,
+  "sourceArtifacts": [
+    {
+      "bytes": 13630,
+      "path": ".github/workflows/release.yml",
+      "sha256": "963684e2d0cdc0b7dc841d280c6547a561f53cf62d5b66cf2f870e7738536f97"
+    },
+    {
+      "bytes": 220451,
+      "path": "scripts/run-v0-7-release-readiness.ts",
+      "sha256": "cd705e4879d8ff35bc659c98e1799ea36b9f19ff968f7caef4cf48a787764518"
+    },
+    {
+      "bytes": 223670,
+      "path": "tests/release/release.test.ts",
+      "sha256": "da8009ee5763108b486a3e8cee4d74f90cac8c2d40afd833ca4ba2930134236b"
+    },
+    {
+      "bytes": 6097,
+      "path": "tests/unit/capability-descriptor.test.ts",
+      "sha256": "c0981baa53b25dfeb57b12ab2cbce62fb60eb1a69b75bff4fe9c4816395eba4d"
+    },
+    {
+      "bytes": 67640,
+      "path": "tests/unit/run-v0-7-3-full-locomo-claim.test.ts",
+      "sha256": "e6bc3987437925fa7a015eb215e3ed12e44046b5be271c07e1742bab6d7f1059"
+    },
+    {
+      "bytes": 38530,
+      "path": "tests/unit/run-v0-7-3-lifecycle-protection-gate.test.ts",
+      "sha256": "581c88e85c2e0a6e91db388e14cef4a2960199093ac2daf3818360c5dc1310d3"
+    },
+    {
+      "bytes": 45689,
+      "path": "tests/unit/run-v0-7-3-replacement-protection-gate.test.ts",
+      "sha256": "cd390ccf6af64c8487b93e4f1b923391f124b4dcad06f17e112c1e3fb4bcbeff"
+    },
+    {
+      "bytes": 170755,
+      "path": "tests/unit/run-v0-7-release-readiness.test.ts",
+      "sha256": "2cbb3bad3f2f4021993edc88b20998c0980f91ed375478618949c4e993c9f53f"
+    }
+  ],
+  "verification": {
+    "green": {
+      "affectedTests": {
+        "command": "bun test tests/unit/run-v0-7-release-readiness.test.ts tests/unit/run-v0-7-3-lifecycle-protection-gate.test.ts tests/unit/run-v0-7-3-replacement-protection-gate.test.ts tests/unit/run-v0-7-3-full-locomo-claim.test.ts tests/unit/capability-descriptor.test.ts tests/release/release.test.ts",
+        "exitCode": 0,
+        "failed": 0,
+        "outputSha256": "6806dba54ea74bb7c507c71ad1e1b5c40e4b6c88e8ded3142e1bf10792c2f392",
+        "passed": 213
+      },
+      "typecheck": {
+        "command": "bun run typecheck",
+        "exitCode": 0,
+        "failed": 0,
+        "outputSha256": "0a7cbec9e31e5ab1dc3f62bf0e9994201b491a121c31235f27316f5151281817",
+        "passed": 1
+      }
+    },
+    "red": {
+      "affectedTests": {
+        "command": "bun test tests/unit/run-v0-7-release-readiness.test.ts tests/unit/run-v0-7-3-lifecycle-protection-gate.test.ts tests/unit/run-v0-7-3-replacement-protection-gate.test.ts tests/unit/run-v0-7-3-full-locomo-claim.test.ts tests/unit/capability-descriptor.test.ts tests/release/release.test.ts",
+        "exitCode": 1,
+        "failed": 46,
+        "outputSha256": "a647664b7f829a3ad04d172f43873dd5ea360b610a8dc3b0448066c052ceffd3",
+        "passed": 165
+      },
+      "releaseReadiness": {
+        "command": "bun test tests/unit/run-v0-7-release-readiness.test.ts -t stable-source-correction-lineage",
+        "exitCode": 1,
+        "failed": 1,
+        "outputSha256": "c1521725aa918a2c87b82535dd1bcede8f469ea052a63db9c4625eeb5cdf888b",
+        "passed": 0
+      },
+      "releaseWorkflowEvidence": {
+        "command": "bun test tests/release/release.test.ts -t \"ships the stable-source test correction evidence\"",
+        "exitCode": 1,
+        "failed": 1,
+        "outputSha256": "3e9de76741fdbe49aa18293a023936267c33ecff6a6c0865bc7307a333de7d8c",
+        "passed": 0
+      }
+    }
+  }
+}
