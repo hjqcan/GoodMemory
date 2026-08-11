@@ -4,7 +4,7 @@
   "goodmemoryRelease": {
     "installCommandsApplyAfterPublish": true,
     "npmDistTag": "latest",
-    "status": "release-candidate"
+    "status": "stable"
   },
   "mcpName": "io.github.hjqcan/goodmemory",
   "description": "Memory layer for chat, copilot, and agent applications.",

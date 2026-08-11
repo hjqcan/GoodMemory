@@ -28,7 +28,7 @@
   "releaseStatus": {
     "installCommandsApplyAfterPublish": true,
     "npmDistTag": "latest",
-    "status": "release-candidate",
+    "status": "stable",
     "tarball": "goodmemory-0.7.3.tgz"
   },
   "memoryApi": [
@@ -125,10 +125,21 @@
     "docs": "https://github.com/hjqcan/GoodMemory#pythonfastapi-http-bridge"
   },
   "benchmarks": {
-    "currentClaims": [],
+    "currentClaims": [
+      {
+        "claimDeclaration": "benchmark-claims/locomo.json",
+        "config": "full 10 conversations / 1540 non-adversarial questions",
+        "measuredPackageVersion": "0.7.3",
+        "metric": "independent LoCoMo judge-protocol accuracy",
+        "name": "LoCoMo",
+        "reference": "benchmark-claims/evidence/locomo-v0.7.3-current.json",
+        "result": "official 0.8805; strict 0.6266; open-domain 58/96 (0.6042)",
+        "runtimeProfile": "recommended+provider-embedding+provider-reranking@0.7.3"
+      }
+    ],
     "historicalEvidence": {
       "url": "https://github.com/hjqcan/GoodMemory/tree/main/benchmark-claims",
-      "note": "The v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus older LongMemEval and ImplicitMemBench runs, remain reproducible versioned evidence. None is a current 0.7.3 production claim until rerun against this package line. LongMemEval and ImplicitMemBench remain internal evidence."
+      "note": "The v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus older LongMemEval and ImplicitMemBench runs, remain reproducible versioned evidence. The current LoCoMo claim is loaded only from the tracked v0.7.3 projection. LongMemEval and ImplicitMemBench remain internal evidence."
     }
   },
   "capabilities": {

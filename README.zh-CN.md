@@ -4,10 +4,9 @@
 
 GoodMemory 是面向 AI 产品和 coding agent 的记忆层。
 
-> **发布状态：**当前分支是 `0.7.3` release candidate；在带 tag 的稳定发布
-> workflow 真正发布 0.7.3 之前，npm `latest` 仍是 `0.7.2`。下文锁定
-> 0.7.3 的 registry 命令是发布后的契约；发布前请使用本地打包的
-> `goodmemory-0.7.3.tgz` 验证。
+> **发布源码：**这是不可变的 `0.7.3` 稳定发布源码。Registry 命令要求
+> `goodmemory@0.7.3` 已发布；release workflow 会先校验 npm `latest`
+> 与制品完整性，再创建 GitHub Release。
 
 它为 chat app、copilot 和 agent host 提供一条可审计的用户/项目记忆闭环：
 选择性写入事实，检索正确上下文，注入下一轮对话，记录发生过什么，并在记忆错误时删除。
@@ -43,10 +42,12 @@ GoodMemory 把「当前生产声明」「带版本的历史证据」和「内部
 投影断言与 README 一致性；它不是对上游 license 或被忽略原始报告的独立复现。历史行使用
 独立 marker 和源文件指纹，复现仍需要取得对应原始 artifact，且不能满足当前版本 gate。
 
-Phase 72 的 benchmark gate 和带版本 release gate 仍是 `v0.6.0` 的有效历史证据。
-下面三行保留明确披露 profile 的 0.6 public-opt-in 结果。由于 `v0.7.0` 改变了
-LanguagePack 与召回语义，它们对当前包而言只是历史证据，不是当前版本性能声明，也不代表
-零 provider 默认路径；在 `v0.7.3` 完成同等 fresh run 之前，当前声明表保持为空。
+全新的 v0.7.3 protocol-v2 运行已经生成下方当前 LoCoMo 声明。Phase 72 的
+benchmark gate 和带版本 release gate 继续作为 `v0.6.0` 历史证据单独保留；由于
+`v0.7.0` 改变了 LanguagePack 与召回语义，不能把旧行当作当前包的性能。v0.7.3
+结果是一次 live-provider draw，因此 0.4-0.7 个百分点的 run-to-run 波动仅是启发式
+估计，不能把分数变化归因于 R6 retrieval change。它也是 public-opt-in 的 provider
+profile，不代表零 provider 默认路径。
 LongMemEval 已撤下并等待 clean rerun：历史 rules-only 路径使用了 answer annotation，
 后来的 label-free 路径又把原始 `answer_*` session ID 暴露给检索和 reader。
 ImplicitMemBench 的 retry-merged 结果仍属于内部证据，因为它不能替代一次全新的单体
@@ -56,6 +57,7 @@ benchmark 声明。
 <!-- current-claims-table:start -->
 | 基准 | 主指标 | GoodMemory 结果 | 基线 / 参照 | Claim declaration |
 |---|---|---:|---:|---|
+| LoCoMo v0.7.3（完整 10 会话） | 独立官方判官协议；strict 确定性 token-F1 | official **0.8805** · strict **0.6266** · open-domain **0.6042**（58/96） | 历史无记忆 0.0045 | [locomo.json](./benchmark-claims/locomo.json) |
 <!-- current-claims-table:end -->
 
 ### 带版本的内部证据
@@ -68,6 +70,12 @@ benchmark 声明。
 | MemoryAgentBench v0.6.0 (CR, TTL) | 上游确定性 match-mode，judge-free | **CR 0.959, TTL 0.933** | 两项无记忆均为 0.000 | [memoryagentbench.json](./benchmark-claims/memoryagentbench.json) |
 | ImplicitMemBench Full-300 | stored-answer cross-version judge rescore | **0.691**（207.35/300），gpt-5.4 judge over gpt-5.5 answers，sourceAnswersUnchanged | upstream-chat 基线 **0.400**（120/300）；reference line 0.66 | [implicitmembench.json](./benchmark-claims/implicitmembench.json) |
 <!-- historical-evidence-table:end -->
+
+当前 v0.7.3 LoCoMo 运行覆盖全部 1540 道非对抗题，执行失败和判官失败均为零。
+答案、对话式萃取与 provider reranking 使用 `gpt-5.6-terra`，官方协议轨由独立
+`gpt-5.5` 判官评分。数据集采用 CC BY-NC 4.0，因此仅限非商用评估。这是一次
+live-provider draw，0.4-0.7 个百分点的 run-to-run 波动仅为启发式估计；它不能证明
+相对 v0.6 的小幅变化由 R6 retrieval cues 导致。
 
 在两条轨都存在时会同时报告它们。**严格轨**是确定性或 judge-free 评分——任何 LLM 判官
 都无法夸大的硬下限。第二条轨把*同一批已存答案*（不重新生成）用基准来源或业界标准

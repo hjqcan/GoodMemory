@@ -1,0 +1,118 @@
+{
+  "benchmark": "LoCoMo",
+  "comparison": {
+    "asOf": "2026-07-16",
+    "availability": "historical",
+    "notes": [
+      "The strict token-F1 and independent official judge-protocol numbers are reported separately.",
+      "The result uses the recommended provider-backed retrieval and first-party reranking path.",
+      "External headline scores use different model stacks and retrieval budgets and are references, not controlled head-to-head measurements."
+    ],
+    "runtimeProfile": "recommended+provider-embedding+provider-reranking@0.6.0",
+    "source": "https://github.com/mem0ai/memory-benchmarks"
+  },
+  "status": "internal_evidence",
+  "dataset": {
+    "source": "https://github.com/snap-research/locomo",
+    "license": "CC BY-NC 4.0",
+    "vendored": false
+  },
+  "run": {
+    "commit": "d639fbd1996d61136e89137d378e4948c10b326f",
+    "packageVersion": "0.6.0",
+    "command": "GOODMEMORY_EVAL_MODEL=gpt-5.6-terra bun run scripts/run-phase-65-locomo-smoke.ts -- --benchmark-root ~/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1 --category single_hop --category multi_hop --category temporal --category open_domain --generalized-fusion --provider-embedding --provider-reranking --provider-reranking-timeout-ms 120000 --conversational-extraction --label-free-ingest --concurrency 40 --output-dir reports/eval/research/phase-72/locomo --resume --run-id run-phase72-locomo-production-listwise-full1540-terra-v1; GOODMEMORY_EVAL_MODEL=gpt-5.6-terra bun run scripts/reanswer-phase-65-locomo-report.ts -- --source-report reports/eval/research/phase-72/locomo/run-phase72-locomo-production-listwise-full1540-terra-v1/smoke-report.json --concurrency 40 --output-dir reports/eval/research/phase-72/locomo --run-id run-phase72-locomo-production-listwise-temporal-bounded-full1540-terra-v2; GOODMEMORY_JUDGE_MODEL=gpt-5.5 bun run eval:official-rescore -- --benchmark locomo --report reports/eval/research/phase-72/locomo/run-phase72-locomo-production-listwise-temporal-bounded-full1540-terra-v2/smoke-report.json --root ~/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1/cases.json --concurrency 40 --run-id phase72-locomo-production-listwise-temporal-bounded-full1540-terra-v2-gpt55; bun run scripts/run-phase-72-release-gate.ts",
+    "executionFailures": 0
+  },
+  "model": {
+    "answerModel": "gpt-5.6-terra",
+    "judgeModel": "gpt-5.5",
+    "sameModelJudge": false
+  },
+  "publicClaim": {
+    "readmeDisclosureFragments": [
+      "gpt-5.6-terra",
+      "gpt-5.5",
+      "CC BY-NC 4.0",
+      "provider reranking"
+    ],
+    "readmeRequiredFragments": [
+      "0.6299",
+      "0.8708",
+      "0.6146",
+      "59/96",
+      "0.0045"
+    ]
+  },
+  "evidence": {
+    "artifacts": [
+      {
+        "assertions": [
+          {
+            "path": ["artifactKind"],
+            "equals": "tracked-historical-evidence-projection"
+          },
+          {
+            "path": ["benchmark"],
+            "equals": "LoCoMo"
+          },
+          {
+            "path": ["generatedBy"],
+            "equals": "scripts/project-historical-evidence.ts"
+          },
+          {
+            "path": ["schemaVersion"],
+            "equals": 1
+          },
+          {
+            "path": ["runIdentity", "commit"],
+            "equals": "d639fbd1996d61136e89137d378e4948c10b326f"
+          },
+          {
+            "path": ["runIdentity", "runId"],
+            "equals": "run-20260716-final"
+          },
+          {
+            "path": ["sourceArtifacts", 0, "path"],
+            "equals": "reports/quality-gates/phase-72/run-20260716-final/phase-72-release-gate.json"
+          },
+          {
+            "path": ["sourceArtifacts", 0, "bytes"],
+            "equals": 11423
+          },
+          {
+            "path": ["sourceArtifacts", 0, "sha256"],
+            "equals": "2773421619867e6659fc12df62be980e7c2c74bf19299e17158a9a94dc240ea6"
+          },
+          {
+            "path": ["claim", "packageVersion"],
+            "equals": "0.6.0"
+          },
+          {
+            "path": ["claim", "officialScore"],
+            "equals": 0.8707792207792208
+          },
+          {
+            "path": ["claim", "strictScore"],
+            "equals": 0.6298701298701299
+          }
+        ],
+        "description": "Tracked compact projection of the historical v0.6.0 LoCoMo release evidence",
+        "path": "benchmark-claims/evidence/locomo-v0.6.0-historical.json"
+      }
+    ]
+  },
+  "metrics": {
+    "primary": "Independent industry-comparable LoCoMo judge-protocol accuracy over the full 1540-question non-adversarial convention.",
+    "score": 0.8707792207792208,
+    "baseline": 0.0045,
+    "metricDirection": "higher-is-better"
+  },
+  "coverage": {
+    "complete": true,
+    "note": "Full 10 conversations and 1540 non-adversarial questions, executionFailures 0 and judgeFailures 0. Independent gpt-5.5 official-protocol score is 0.8707792208; strict deterministic token-F1 is 0.6298701299. Open-domain is 59/96 = 0.6145833333. The same scorer's historical no-memory non-adversarial baseline is 0.0045. The dataset is CC BY-NC 4.0, so the non-commercial scope is mandatory disclosure."
+  },
+  "claimBoundary": {
+    "publicClaimAllowed": false,
+    "reason": "Versioned v0.6.0 evidence is retained unchanged, but it is not a current-package claim until the benchmark is rerun against the current package under its disclosed semantics."
+  }
+}

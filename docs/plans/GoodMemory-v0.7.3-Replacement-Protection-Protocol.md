@@ -6,16 +6,18 @@ full-claim draw is terminal invalid after one conversational-extraction timeout
 was amplified to 191 seed failures. Its single preregistered replacement is
 also terminal invalid after a different conversational-extraction timeout was
 amplified to 178 seed failures. Those two attempts remain terminal and the
-exhausted protocol authorizes no third draw. Full-claim protocol v2 is defined
-below, and its commit-bound preregistration now binds protocol candidate
-`996c181e97e2d0a56bbd78957e79026af328b03b`. No provider-capable v2 process
-has started; the one attempt remains unconsumed until strict readiness passes
-and the launcher commits and pushes its sentinel. v0.7.3 remains unpublished
-and the release is blocked.
+exhausted protocol authorizes no third draw. Full-claim protocol v2, bound to
+protocol candidate `996c181e97e2d0a56bbd78957e79026af328b03b`, consumed its
+one fixed attempt and passed. Seed pass 1 completed all 272 extraction sessions
+and 1,540 questions with zero failures, so no resume was used. Re-answering and
+independent official judging each completed all 1,540 questions with zero
+failures. The tracked claim is official `0.8805194805`, strict
+`0.6266233766`, and open-domain `58/96 = 0.6041666667`. The release proceeds
+through the final strict gate and tagged publication.
 Date: 2026-08-11
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
-## Full-claim protocol v2 (commit-bound preregistration tracked)
+## Full-claim protocol v2 (completed)
 
 Full-claim `protocolVersion: 2` does not resume, reopen, replace, or reinterpret
 either terminal full-claim attempt above. Their output namespaces remain
@@ -116,12 +118,11 @@ resume still leaves any seed execution failure, the protocol-v2 attempt is
 terminal blocked; no third seed invocation, new namespace, new run IDs,
 manual re-answer, or direct judge invocation is authorized.
 
-No provider-capable protocol-v2 process has started. The tracked commit-bound
-preregistration is not passing claim evidence and does not consume the attempt.
-Provider execution remains forbidden until strict readiness passes and the
-launcher commits and pushes the canonical sentinel. The pass-1 snapshots, final
-evidence bundle, projection, and release gates become evidence only through the
-fixed execution above.
+The protocol-v2 process started only after strict readiness passed and the
+launcher committed and pushed the canonical sentinel. Pass 1 was failure-free,
+so the authorized second seed invocation was not used. The create-only pass-1
+snapshots, final seed state, re-answer report, official progress and summary,
+execution receipt, and projection now form the fixed tracked evidence closure.
 
 Provider-capable children receive an explicit environment: the five frozen
 provider identities and credentials, the command's recorded semantic
@@ -824,21 +825,36 @@ artifacts and attribution are retained at
 `reports/release/v0.7/v0.7.3-locomo-claim-attempt-2-failed/`.
 
 The replacement was consumed when the canonical launcher started its
-provider-capable seed process. Its execution failures therefore block v0.7.3
-and do not authorize a third draw under that exhausted protocol. Manual seed
-resume, direct re-answer or rescore, a new output namespace, or new run IDs are
-not valid continuations of either terminal attempt. Full-claim protocol v2
-above defines a separate successor with a narrow implementation diff and its
-own fixed identity. Its commit-bound JSON is now tracked, but the attempt is not
-consumed until the launcher creates, commits, and pushes its sentinel after
-strict readiness. It does not make either old attempt resumable or valid.
+provider-capable seed process. Its execution failures did not authorize a
+third draw under that exhausted protocol. Manual seed resume, direct re-answer
+or rescore, a new output namespace, or new run IDs remain invalid continuations
+of either terminal attempt. Full-claim protocol v2 was a separate successor
+with a narrow implementation diff and its own fixed identity. After strict
+readiness, its canonical sentinel commit `078ca74a` became visible on
+`origin/main` before any provider child started. Its one seed invocation then
+completed all 1,540 questions without failure; no exact resume was needed.
+The final live-answer report and independent official judge also completed all
+1,540 questions with zero execution or judge failures. This passing successor
+does not make either old attempt resumable or valid.
 
-The preferred claim artifact records and replays provider responses so the
-published run is byte-reproducible. If any published score instead comes from a
-fresh live draw, the claim must state an observed or explicitly heuristic
-provider-variance spread. Movements on the scale of 0.8805 versus 0.8799 must
-not be attributed to retrieval cues or described as meaningful uplift without
-independent evidence.
+The complete tracked projection at
+`benchmark-claims/evidence/locomo-v0.7.3-current.json` reports official
+accuracy `0.8805194805` (1,356/1,540), strict deterministic token-F1
+`0.6266233766`, and open-domain `58/96 = 0.6041666667`. Its 14 source artifacts
+include the protocol preregistration and sentinel plus the exact 12-file claim
+evidence root. A governance-only correction was preregistered after the run
+because the public-claim gate previously could not retain a verified historical
+LoCoMo row once the same declaration became current. Commit `dfb780e6` froze
+the red tests, `39aa1d91` implemented the current-versus-historical
+presentation split and release packaging, and `b9c9b796` attested the exact
+red/green evidence. That chain made no provider call and changed no prompt,
+recipe, seed/re-answer/official runner, package runtime, or measurement bytes.
+
+The lifecycle-protection artifact records and replays provider responses, but
+the full 1,540-question claim itself is a fresh live draw. Its public
+declaration therefore states the heuristic 0.4-0.7 percentage-point
+provider-variance spread. The movement on the scale of 0.8805 versus historical
+scores is not attributed to retrieval cues or described as meaningful uplift.
 
 ## Commands and evidence locations
 
@@ -857,9 +873,11 @@ The passing schema-9 compact result is written to
 attempt remains archived under
 `reports/release/v0.7/blocked-6f9e5ca0-schema8-sequence-mismatch/`. The current
 strict verifier can now recompute the lifecycle layer from the complete
-schema-9 bundle. Release still requires the fresh full claim, stable promotion,
-and final strict verification. The archived schema-8 discovery metrics and tape
-were not promoted into the schema-9 release decision.
+schema-9 bundle. The fresh protocol-v2 full claim has completed and its tracked
+projection/evidence closure is now part of the release source. Stable promotion
+is applied; final strict verification and tagged publication remain. The
+archived schema-8 discovery metrics and tape were not promoted into the
+schema-9 release decision.
 
 The measurement runner validates the external `cases.json` against the frozen
 byte count and SHA-256. The tracked manifest retains that identity and the

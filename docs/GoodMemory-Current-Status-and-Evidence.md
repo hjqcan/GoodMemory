@@ -4,13 +4,14 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 
 ## Stable OSS Surface
 
-- Current registry state: npm `latest` resolves to `goodmemory@0.7.2`. The
-  peeled `v0.7.2` tag resolves to commit
+- Registry baseline before the v0.7.3 tagged publication: npm `latest`
+  resolved to `goodmemory@0.7.2`. The peeled `v0.7.2` tag resolves to commit
   `456edd106f29118b3455bf21c43d7b3107b48213`; release workflow run
   `30733828784` verified the exact npm artifact before publishing the non-draft
   GitHub Release.
-- `main` contains the v0.7.3 lifecycle-truthfulness candidate and the
-  replacement protection runner, but v0.7.3 is not published. The first
+- `main` contains the v0.7.3 stable release source, complete lifecycle and
+  full-claim evidence, and the release workflow that independently verifies
+  registry publication from the tag. The first
   provider-backed 233-question gate remains archived as blocked; its 11/15
   paired split has exact two-sided `p=0.5571970939636236`, while same-commit
   provider variance exceeded the original 1pt threshold. The first schema-2
@@ -105,39 +106,33 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   replacement artifacts and attribution are retained at
   `reports/release/v0.7/v0.7.3-locomo-claim-attempt-2-failed/`. The two
   authorized draws are exhausted and remain terminal; their protocol
-  authorizes no third draw. A separate full-claim protocol v2 is now defined as
-  one fixed successor attempt. Its tracked commit-bound preregistration binds
-  protocol candidate `996c181e97e2d0a56bbd78957e79026af328b03b`, but no
-  provider-capable v2 process has started and the attempt remains unconsumed
-  until strict readiness passes and the launcher commits and pushes its
-  sentinel. It keeps the seed retrieval-only and
-  permits at most two invocations of the same frozen seed command: pass 1, then
-  one exact `--resume` only when pass 1 has eligible seed execution failures.
-  Both invocations must keep identical arguments, environment, run ID, checkpoint,
-  extraction cache, and output namespace; re-answering and official judging
-  remain forbidden until the final seed report covers all 1,540 questions with
-  zero execution failures. Eligibility requires exactly 271 of the 272 frozen
-  session cache keys, with the sole missing key belonging to the one timed-out
-  conversation. Pass-1 report, progress, and extraction-cache snapshots are
-  create-only before classification after every pass 1, whether or not resume
-  is needed; final seed report/progress/cache and any validated re-answer
-  report are tracked separately before the next stage, and any later terminal
-  stage leaves a credential-free receipt with its child exit code, seed-attempt
-  index, and available artifact identities. The
-  required preregistration and irreversible sentinel paths are
+  authorizes no third draw. The separate commit-bound full-claim protocol v2
+  then consumed its one fixed successor attempt for protocol candidate
+  `996c181e97e2d0a56bbd78957e79026af328b03b`. The required preregistration and
+  irreversible sentinel paths are
   `reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json` and
-  `reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json`;
-  the sentinel must be the sole commit after the preregistered `main` state and
-  `origin/main` must equal or descend from it before any provider child starts,
-  even if the push client lost its success response. Provider children
-  use an explicit frozen environment rather than inheriting ambient
-  `GOODMEMORY_*` timeout or storage overrides. All seed snapshots are retained
-  under
-  `reports/release/v0.7/v0.7.3-locomo-claim-evidence/`. Protocol v2 is a narrow
-  evidence-protocol descendant of the measured lifecycle candidate: it does
-  not change `src/`, the public package surface, the Phase 65 seed runner, or
-  the passing schema-9 lifecycle evidence. v0.7.3 remains blocked and
-  unpublished; no tag, npm publish, or GitHub Release has followed. See
+  `reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json`.
+  Its first retrieval-only seed invocation completed all 272 extraction
+  sessions and all 1,540 questions with zero failures, so the bounded resume
+  was not used. Re-answering then completed 1,540/1,540 rows with zero
+  execution failures, and the independent `gpt-5.5` official judge completed
+  1,540/1,540 decisions with zero judge failures. The tracked projection reports
+  official accuracy `0.8805194805` (1,356/1,540), strict token-F1
+  `0.6266233766`, and open-domain `58/96 = 0.6041666667`; the complete 14-source
+  closure is rooted at `benchmark-claims/evidence/locomo-v0.7.3-current.json`
+  and `reports/release/v0.7/v0.7.3-locomo-claim-evidence/`. A later
+  governance-only correction separates the current v0.7.3 README presentation
+  from the independently bound historical v0.6 projection. Its preregistration,
+  red/green tests, implementation, and attestation form the exact
+  `dfb780e6` -> `39aa1d91` -> `b9c9b796` chain; it changed no provider inputs,
+  prompt, benchmark recipe, answer/judge runner, package runtime, or measured
+  evidence. Protocol v2 remains a narrow evidence-protocol descendant of the
+  measured lifecycle candidate and does not change `src/`, the public package
+  surface, the Phase 65 seed runner, or schema-9 lifecycle evidence. The fresh
+  result is one live-provider draw; the heuristic 0.4-0.7 percentage-point
+  spread is disclosed and the small movement is not attributed to R6. This
+  source line now carries passing claim evidence and proceeds to the final
+  strict release gate and tagged publication. See
   `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as
@@ -1562,13 +1557,15 @@ cutover, and rollback contracts.
   `c6-repository-statistics.ts` is only a tested primitive until it
   is wired to the complete attempt loader, frozen report, independent replay,
   and C7 gate.
-- The Phase 72 benchmark gate and versioned release gate are closed evidence for
-  `v0.6.0`. Because `v0.7.0` changed LanguagePack and recall semantics, the
-  current-claim table is empty until fresh `v0.7.2` runs pass the strict gate.
-  The five prior declarations remain versioned historical/internal rows.
-  LoCoMo covers all 1540 non-adversarial questions with zero execution/judge
-  failures and scores 0.6298701299 strict, 0.8707792208 under the independent
-  `gpt-5.5` official protocol, and 59/96 = 0.6145833333 on open-domain.
+- The Phase 72 benchmark gate and versioned release gate remain closed
+  historical evidence for `v0.6.0`. The current-claim table now contains one
+  fresh v0.7.3 LoCoMo row: all 1,540 non-adversarial questions completed with
+  zero execution/judge failures and scored `0.6266233766` strict,
+  `0.8805194805` under the independent `gpt-5.5` official protocol, and
+  `58/96 = 0.6041666667` on open-domain. The prior LoCoMo row remains separately
+  bound to its v0.6 historical projection and reports `0.6298701299` strict,
+  `0.8707792208` official, and `59/96 = 0.6145833333` open-domain.
+  The other prior declarations remain versioned historical/internal rows.
   MemoryAgentBench uses deterministic judge-free scoring and reports CR
   0.9589041096 and TTL 0.9333333333 versus no-memory 0.000; AR/LRU remain
   excluded.
@@ -1615,14 +1612,16 @@ cutover, and rollback contracts.
 - automatic adapter/event `user_correction` path is proposal-first and records selective evidence plus proposal/promotion receipts instead of writing an intermediate active feedback memory; public `feedback()` remains the explicit durable procedural feedback entrypoint.
 - Provider-backed retrieval is explicit; rules-only remains the default accepted mode, and provider failures surface as `provider_error`.
 - Dashboard, cloud sync, and team workspace remain a Phase 48 no-go decision.
-- There are no current `v0.7.2` benchmark claims. The prior `v0.6.0` LoCoMo,
-  BEAM, and MemoryAgentBench results retain their strict, protocol, license,
-  and event-ordering disclosures as versioned historical evidence alongside
+- The current v0.7.3 benchmark surface contains one public-opt-in LoCoMo claim
+  bound to the protocol-v2 projection. The prior `v0.6.0` LoCoMo, BEAM, and
+  MemoryAgentBench results retain their strict, protocol, license, and
+  event-ordering disclosures as versioned historical evidence alongside
   ImplicitMemBench. LongMemEval is a paused boundary pending a clean
-  opaque-session-id rerun. The runtime capability descriptor and both
-  README current-claim tables are empty. The strict gate enforces declaration status,
-  package-version equality, evidence assertions, README row provenance, and
-  disclosure fragments.
+  opaque-session-id rerun. The runtime capability descriptor and both README
+  current-claim tables carry only the v0.7.3 LoCoMo projection. The strict gate
+  enforces declaration status, package-version equality, evidence assertions,
+  README row provenance, current-versus-historical presentation separation,
+  and disclosure fragments.
 - ImplicitMemBench Full-300 rerun evidence guard note: `eval:phase-61-full300` rejects ambiguous source/output/run/budget selectors before launching live shards. The 2026-07-06 full-root run `run-phase61-full300-rerun-20260706-codex-current` completed 300 cases with zero failures and measured same-model diagnostic GoodMemory 0.7081666667 versus baseline 0.41. That number remains diagnostic; the later gpt-5.4 stored-answer rescore is versioned historical evidence, not a current-production score.
 - ImplicitMemBench postchanges rerun note: `run-phase61-full300-rerun-20260706-postchanges-current` completed the same `/tmp/ImplicitMemBench` full-root 300-case run after recent local changes, but had 2 GoodMemory distilled execution failures (`text_answer_generation timed out after 180000ms`) and therefore should not replace the 0-failure canonical internal rerun above. Its best same-model diagnostic GoodMemory score was 209.05/300 = 0.6968333333, raw was 175.05/300 = 0.5835, distilled blocking was 153/200 = 0.765, and baseline was 131/300 = 0.4366666667. Treat this as drift evidence, not a public-claim artifact.
 - ImplicitMemBench latest rerun note: `run-phase61-full300-rerun-20260706-latest-current` completed the same `/tmp/ImplicitMemBench` full-root 300-case run after the current benchmark-hardening work. It measured best same-model diagnostic GoodMemory score 211.06/300 = 0.7035333333, raw 179.06/300 = 0.5968666667, distilled blocking 155/200 = 0.775, and baseline 130/300 = 0.4333333333. It improved over the failed postchanges rerun but still had 1 GoodMemory distilled execution failure, so it does not replace the 0-failure `codex-current` source-answer run or the stored-answer gpt-5.4 comparability artifact.
@@ -1702,7 +1701,7 @@ cutover, and rollback contracts.
 - Phase 65 embedding-free comparison source/output guard note: `run-phase-65-locomo-embedding-free-comparison.ts` now rejects output directories that resolve to the benchmark root before parsing can hand off to the arm runner, and the runner repeats the same check before any arm can read the benchmark root. This is gateway-free comparison evidence integrity hardening only; it does not change LoCoMo retrieval scores, answer scores, default status, or public-claim boundaries.
 - Phase 65 measurement source-root guard note: `measure-locomo-levers.ts`, `measure-locomo-neural.ts`, `measure-locomo-union-live.ts`, and `run-phase-65-locomo-embedding-free-comparison.ts` now reject empty or whitespace-padded `GOODMEMORY_LOCOMO_ROOT` fallback values before benchmark-root resolution. This is source-root integrity hardening for LoCoMo lever, neural, union-live, and gateway-free comparison evidence only; it does not change LoCoMo retrieval scores, answer scores, default status, or public-claim boundaries.
 - Phase 66 release-readiness CLI guard note: `gate:v0-3-release-readiness` rejects duplicate `--skip-build`, `--skip-tests`, `--strict`, and `--output-dir` flags before running package/release checks. This is release-gate input hardening only; it does not change benchmark scores or public claims.
-- Public-claim gate note: `gate:public-benchmark-claim` validates declaration shape, metric direction and baseline improvement, derived answer/judge separation, full commit identity, tracked historical-projection assertions, and README row provenance/disclosures. It checks internal declaration consistency; it does not independently prove upstream licenses or reconstruct ignored raw reports. Historical source fingerprints can be checked locally with `bun run scripts/project-historical-evidence.ts`. A current claim must have `candidate_public_claim` status and a `run.packageVersion` equal to the current package version. Historical rows live under separate markers and remain consistency-checked without becoming current claims. For `v0.7.2`, strict mode should find zero current claims, four versioned historical rows, and LongMemEval as one paused declaration.
+- Public-claim gate note: `gate:public-benchmark-claim` validates declaration shape, metric direction and baseline improvement, derived answer/judge separation, full commit identity, tracked current/historical projection assertions, and README row provenance/disclosures. It checks internal declaration consistency; it does not independently prove upstream licenses or reconstruct ignored raw reports. Historical source fingerprints can be checked locally with `bun run scripts/project-historical-evidence.ts`. A current claim must have `candidate_public_claim` status and a `run.packageVersion` equal to the current package version. Historical rows live under separate markers and remain consistency-checked without becoming current claims. For `v0.7.3`, strict mode finds one current LoCoMo claim, four versioned historical rows including the independently bound v0.6 LoCoMo presentation, and LongMemEval as one paused declaration.
 - Phase 67 benchmark-prompt rescore evidence note: `eval:official-rescore` rejects ambiguous selectors, source/output overlap, malformed identities and progress rows, source fingerprint drift, judge-model drift, and incomplete judging. Its `rescore-summary.json` records source fingerprints, judge identity, selected/source scope, and a benchmark-and-model-aware claim boundary. LongMemEval runs with gpt-5.4 or gpt-5.5 are explicitly official-prompt-compatible but not directly comparable to published official scores because those models are outside the pinned evaluator model zoo. Stored answers remain separate from derived artifacts, and no rescore becomes a public claim without the claim gate.
 - Phase 67 official-rescore cache writer / summary validation note: `eval:official-rescore` serializes progress through the same strict shapes accepted by resume parsing and validates final summaries, scope counts, fingerprints, category aggregates, and stored-answer boundaries before write. Existing LoCoMo and BEAM scores remain versioned historical evidence; refreshed LongMemEval artifacts preserve contaminated provenance only.
 - **WITHDRAWN 2026-07-31:** the Phase 72 LongMemEval verifier/rescore chain

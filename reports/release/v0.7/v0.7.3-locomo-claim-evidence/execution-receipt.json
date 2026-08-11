@@ -1,0 +1,303 @@
+{
+  "command": "GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL=https://ai.gurkiai.com/v1 GOODMEMORY_ASSISTED_EXTRACTOR_MODEL=gpt-5.6-terra GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER=openai GOODMEMORY_EMBEDDING_BASE_URL=https://openrouter.ai/api/v1 GOODMEMORY_EMBEDDING_MODEL=text-embedding-3-small GOODMEMORY_EMBEDDING_PROVIDER=openai GOODMEMORY_EVAL_BASE_URL=https://ai.gurkiai.com/v1 GOODMEMORY_EVAL_MODEL=gpt-5.6-terra GOODMEMORY_EVAL_PROVIDER=openai GOODMEMORY_RERANKING_BASE_URL=https://ai.gurkiai.com/v1 GOODMEMORY_RERANKING_MODEL=gpt-5.6-terra GOODMEMORY_RERANKING_PROVIDER=openai bun --no-env-file run scripts/run-phase-65-locomo-smoke.ts -- --benchmark-root @locomo-full10-root --category single_hop --category multi_hop --category temporal --category open_domain --generalized-fusion --provider-embedding --provider-reranking --provider-reranking-timeout-ms 120000 --conversational-extraction --label-free-ingest --concurrency 40 --output-dir reports/eval/research/v073-996c181e-full1540-protocol2 --resume --run-id v073-996c181e-full1540-protocol2-seed; GOODMEMORY_EVAL_BASE_URL=https://ai.gurkiai.com/v1 GOODMEMORY_EVAL_MODEL=gpt-5.6-terra GOODMEMORY_EVAL_PROVIDER=openai bun --no-env-file run scripts/reanswer-phase-65-locomo-report.ts -- --source-report reports/eval/research/v073-996c181e-full1540-protocol2/v073-996c181e-full1540-protocol2-seed/smoke-report.json --concurrency 40 --output-dir reports/eval/research/v073-996c181e-full1540-protocol2 --run-id v073-996c181e-full1540-protocol2-final; GOODMEMORY_JUDGE_BASE_URL=https://ai.gurkiai.com/v1 GOODMEMORY_JUDGE_MODEL=gpt-5.5 GOODMEMORY_JUDGE_PROVIDER=openai bun --no-env-file run scripts/rescore-official-protocols.ts -- --benchmark locomo --report reports/eval/research/v073-996c181e-full1540-protocol2/v073-996c181e-full1540-protocol2-final/smoke-report.json --root @locomo-full10-root/cases.json --concurrency 40 --run-id v073-996c181e-full1540-protocol2-official-gpt55",
+  "commandChain": {
+    "seedSmoke": {
+      "args": [
+        "--no-env-file",
+        "run",
+        "scripts/run-phase-65-locomo-smoke.ts",
+        "--",
+        "--benchmark-root",
+        "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1",
+        "--category",
+        "single_hop",
+        "--category",
+        "multi_hop",
+        "--category",
+        "temporal",
+        "--category",
+        "open_domain",
+        "--generalized-fusion",
+        "--provider-embedding",
+        "--provider-reranking",
+        "--provider-reranking-timeout-ms",
+        "120000",
+        "--conversational-extraction",
+        "--label-free-ingest",
+        "--concurrency",
+        "40",
+        "--output-dir",
+        "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate/reports/eval/research/v073-996c181e-full1540-protocol2",
+        "--resume",
+        "--run-id",
+        "v073-996c181e-full1540-protocol2-seed"
+      ],
+      "command": "bun",
+      "cwd": "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate",
+      "environment": {
+        "GOODMEMORY_EVAL_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_EVAL_BASE_URL": "https://ai.gurkiai.com/v1",
+        "GOODMEMORY_EVAL_PROVIDER": "openai",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL": "https://ai.gurkiai.com/v1",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER": "openai",
+        "GOODMEMORY_EMBEDDING_BASE_URL": "https://openrouter.ai/api/v1",
+        "GOODMEMORY_EMBEDDING_MODEL": "text-embedding-3-small",
+        "GOODMEMORY_EMBEDDING_PROVIDER": "openai",
+        "GOODMEMORY_RERANKING_BASE_URL": "https://ai.gurkiai.com/v1",
+        "GOODMEMORY_RERANKING_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_RERANKING_PROVIDER": "openai"
+      }
+    },
+    "reanswer": {
+      "args": [
+        "--no-env-file",
+        "run",
+        "scripts/reanswer-phase-65-locomo-report.ts",
+        "--",
+        "--source-report",
+        "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate/reports/eval/research/v073-996c181e-full1540-protocol2/v073-996c181e-full1540-protocol2-seed/smoke-report.json",
+        "--concurrency",
+        "40",
+        "--output-dir",
+        "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate/reports/eval/research/v073-996c181e-full1540-protocol2",
+        "--run-id",
+        "v073-996c181e-full1540-protocol2-final"
+      ],
+      "command": "bun",
+      "cwd": "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate",
+      "environment": {
+        "GOODMEMORY_EVAL_MODEL": "gpt-5.6-terra",
+        "GOODMEMORY_EVAL_BASE_URL": "https://ai.gurkiai.com/v1",
+        "GOODMEMORY_EVAL_PROVIDER": "openai"
+      }
+    },
+    "officialRescore": {
+      "args": [
+        "--no-env-file",
+        "run",
+        "scripts/rescore-official-protocols.ts",
+        "--",
+        "--benchmark",
+        "locomo",
+        "--report",
+        "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate/reports/eval/research/v073-996c181e-full1540-protocol2/v073-996c181e-full1540-protocol2-final/smoke-report.json",
+        "--root",
+        "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1/cases.json",
+        "--concurrency",
+        "40",
+        "--run-id",
+        "v073-996c181e-full1540-protocol2-official-gpt55"
+      ],
+      "command": "bun",
+      "cwd": "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate",
+      "environment": {
+        "GOODMEMORY_JUDGE_MODEL": "gpt-5.5",
+        "GOODMEMORY_JUDGE_BASE_URL": "https://ai.gurkiai.com/v1",
+        "GOODMEMORY_JUDGE_PROVIDER": "openai"
+      }
+    }
+  },
+  "commit": "996c181e97e2d0a56bbd78957e79026af328b03b",
+  "evidenceRepositoryBefore": {
+    "headCommit": "996c181e97e2d0a56bbd78957e79026af328b03b",
+    "statusPorcelain": ""
+  },
+  "execution": {
+    "answerGateway": "https://ai.gurkiai.com/v1",
+    "answerModel": "gpt-5.6-terra",
+    "answerProvider": "openai",
+    "assistedExtractorGateway": "https://ai.gurkiai.com/v1",
+    "assistedExtractorModel": "gpt-5.6-terra",
+    "assistedExtractorProvider": "openai",
+    "benchmarkFingerprint": "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd",
+    "benchmarkRootBytes": 2490457,
+    "benchmarkRootSha256": "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28",
+    "bunVersion": "1.3.14",
+    "claimCommandSha256": "649c3069b3859a80b79428798bd600c5ad195285cc86f6e8a296a82d4ea5b164",
+    "claimCommandTemplateSha256": "7e9a8693964ef29a2fa19d02b30e15e29528cbc396b7c9a41e082cf408a8f969",
+    "concurrency": 40,
+    "expectedExtractionCacheKeyCaseMapSha256": "24732a6040c70d52999a18b9d95d72e663a883aa7c5524fc5ee8b4187611e03b",
+    "expectedExtractionCacheKeySetSha256": "30fde28c5e2450365d8cc3d90a80f72aa900691151f4d1127e0a4f3c8a520f4f",
+    "embeddingGateway": "https://openrouter.ai/api/v1",
+    "embeddingModel": "text-embedding-3-small",
+    "embeddingProvider": "openai",
+    "judgeGateway": "https://ai.gurkiai.com/v1",
+    "judgeModel": "gpt-5.5",
+    "judgeProvider": "openai",
+    "officialSourceSha256": "cfa618e1929d56dc256962f471768a3855a8989b92c22cce4f09bd8112ebe24f",
+    "officialRescoreRequestTimeoutMs": 180000,
+    "promptSha256": "e039c2aa17d9a2253acb6f7742095cc4a0a3b6c5830a117f1b5c4d701db6e07b",
+    "questionSelectionSha256": "81dbd4ea08eb6ffffc854500522983977984788662ed17e71e7caee9ec726b7b",
+    "caseQuestionCounts": {
+      "locomo-conv-26": 152,
+      "locomo-conv-30": 81,
+      "locomo-conv-41": 152,
+      "locomo-conv-42": 199,
+      "locomo-conv-43": 178,
+      "locomo-conv-44": 123,
+      "locomo-conv-47": 150,
+      "locomo-conv-48": 191,
+      "locomo-conv-49": 156,
+      "locomo-conv-50": 158
+    },
+    "rerankingGateway": "https://ai.gurkiai.com/v1",
+    "rerankingModel": "gpt-5.6-terra",
+    "rerankingProvider": "openai",
+    "providerEmbeddingRunTimeoutMs": null,
+    "providerEmbeddingTimeoutMs": null,
+    "providerRerankingTimeoutMs": 120000
+  },
+  "freshOutputEvidence": {
+    "finalOutputPathAbsentBeforeRun": true,
+    "officialOutputPathAbsentBeforeRun": true,
+    "seedAttemptOneSnapshotPathAbsentBeforeRun": true,
+    "seedOutputPathAbsentBeforeRun": true
+  },
+  "generatedBy": "v0.7.3-full-locomo-claim-launch",
+  "lifecycleCandidateCommit": "21dcac8d10b0b6714d09cf14eacd83e32e0c9513",
+  "maxSeedLaunches": 2,
+  "outputs": {
+    "finalReport": {
+      "bytes": 1748581,
+      "path": "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate/reports/eval/research/v073-996c181e-full1540-protocol2/v073-996c181e-full1540-protocol2-final/smoke-report.json",
+      "sha256": "b100e9c737b51e8de53be1cdb04d3c27d7ecf0507fde383cd9b61708061c3948"
+    },
+    "officialSummary": {
+      "bytes": 2143,
+      "path": "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate/reports/eval/research/official-rescore/v073-996c181e-full1540-protocol2-official-gpt55/rescore-summary.json",
+      "sha256": "6c8aa3e72c7a15765c18375e0586d14651b4ef7e07ecc75abd22be1d384f7e10"
+    },
+    "officialProgress": {
+      "bytes": 68403,
+      "path": "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate/reports/eval/research/official-rescore/v073-996c181e-full1540-protocol2-official-gpt55/progress.jsonl",
+      "sha256": "ac847f3ce5a8c9c92773465351454622236303365906bce54ffe58db8cf8be31"
+    },
+    "seedExtractionCache": {
+      "bytes": 2620181,
+      "path": "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate/reports/eval/research/v073-996c181e-full1540-protocol2/v073-996c181e-full1540-protocol2-seed/extraction-cache.jsonl",
+      "sha256": "839b2d202e71b56c41862b36beeae937ca986180f2371693a63267e4eccbb398"
+    },
+    "seedProgress": {
+      "bytes": 1037246,
+      "path": "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate/reports/eval/research/v073-996c181e-full1540-protocol2/v073-996c181e-full1540-protocol2-seed/live-progress.jsonl",
+      "sha256": "4c57ac5533093fc8b0c075f967602ccf04813c36a55e4e65f92e9541143f6085"
+    },
+    "seedReport": {
+      "bytes": 1692740,
+      "path": "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate/reports/eval/research/v073-996c181e-full1540-protocol2/v073-996c181e-full1540-protocol2-seed/smoke-report.json",
+      "sha256": "d93902f6fe6f5906cbbe115ee4b0ae224c323e4f6636a0a0abd4795ce728aede"
+    }
+  },
+  "preregistration": {
+    "bytes": 1129,
+    "path": "reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json",
+    "sha256": "a1b029d11e3f79991d6dc1959df1c6641092a19f290a3a5b1a4e65f4c4d54644"
+  },
+  "protocolCandidateCommit": "996c181e97e2d0a56bbd78957e79026af328b03b",
+  "protocolVersion": 2,
+  "seedAttempts": [
+    {
+      "attempt": 1,
+      "command": {
+        "args": [
+          "--no-env-file",
+          "run",
+          "scripts/run-phase-65-locomo-smoke.ts",
+          "--",
+          "--benchmark-root",
+          "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1",
+          "--category",
+          "single_hop",
+          "--category",
+          "multi_hop",
+          "--category",
+          "temporal",
+          "--category",
+          "open_domain",
+          "--generalized-fusion",
+          "--provider-embedding",
+          "--provider-reranking",
+          "--provider-reranking-timeout-ms",
+          "120000",
+          "--conversational-extraction",
+          "--label-free-ingest",
+          "--concurrency",
+          "40",
+          "--output-dir",
+          "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate/reports/eval/research/v073-996c181e-full1540-protocol2",
+          "--resume",
+          "--run-id",
+          "v073-996c181e-full1540-protocol2-seed"
+        ],
+        "command": "bun",
+        "cwd": "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate",
+        "environment": {
+          "GOODMEMORY_EVAL_MODEL": "gpt-5.6-terra",
+          "GOODMEMORY_EVAL_BASE_URL": "https://ai.gurkiai.com/v1",
+          "GOODMEMORY_EVAL_PROVIDER": "openai",
+          "GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL": "https://ai.gurkiai.com/v1",
+          "GOODMEMORY_ASSISTED_EXTRACTOR_MODEL": "gpt-5.6-terra",
+          "GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER": "openai",
+          "GOODMEMORY_EMBEDDING_BASE_URL": "https://openrouter.ai/api/v1",
+          "GOODMEMORY_EMBEDDING_MODEL": "text-embedding-3-small",
+          "GOODMEMORY_EMBEDDING_PROVIDER": "openai",
+          "GOODMEMORY_RERANKING_BASE_URL": "https://ai.gurkiai.com/v1",
+          "GOODMEMORY_RERANKING_MODEL": "gpt-5.6-terra",
+          "GOODMEMORY_RERANKING_PROVIDER": "openai"
+        }
+      },
+      "exitCode": 0,
+      "extractionCache": {
+        "bytes": 2620181,
+        "path": "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-extraction-cache.jsonl",
+        "sha256": "839b2d202e71b56c41862b36beeae937ca986180f2371693a63267e4eccbb398"
+      },
+      "failedCaseId": null,
+      "progress": {
+        "bytes": 1037246,
+        "path": "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-live-progress.jsonl",
+        "sha256": "4c57ac5533093fc8b0c075f967602ccf04813c36a55e4e65f92e9541143f6085"
+      },
+      "recoveryClassification": "failure-free",
+      "report": {
+        "bytes": 1692740,
+        "path": "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-smoke-report.json",
+        "sha256": "d93902f6fe6f5906cbbe115ee4b0ae224c323e4f6636a0a0abd4795ce728aede"
+      }
+    }
+  ],
+  "sentinel": {
+    "bytes": 440,
+    "path": "reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json",
+    "sha256": "6e7ec637ae189aa7a51bd70696789e768a15e73c66e27251db111644aea898b8"
+  },
+  "sentinelCommit": "078ca74ac45fe4bd268e52921528e1e15a0ec52f",
+  "sources": {
+    "claimRecipe": {
+      "bytes": 5370,
+      "path": "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate/benchmark-claims/locomo.json",
+      "sha256": "9ef00e9e1532a264a97cacf3a1807345acce68194ad65e2b016ed6a48602b6d3"
+    },
+    "officialRunner": {
+      "bytes": 75985,
+      "path": "/private/tmp/goodmemory-v073-protocol2.5LJB8L/candidate/scripts/rescore-official-protocols.ts",
+      "sha256": "cfa618e1929d56dc256962f471768a3855a8989b92c22cce4f09bd8112ebe24f"
+    },
+    "preregistration": {
+      "bytes": 1129,
+      "path": "reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json",
+      "sha256": "a1b029d11e3f79991d6dc1959df1c6641092a19f290a3a5b1a4e65f4c4d54644"
+    },
+    "sentinel": {
+      "bytes": 440,
+      "path": "reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json",
+      "sha256": "6e7ec637ae189aa7a51bd70696789e768a15e73c66e27251db111644aea898b8"
+    }
+  },
+  "schemaVersion": 1,
+  "worktreeProvenance": {
+    "headCommit": "996c181e97e2d0a56bbd78957e79026af328b03b",
+    "statusPorcelain": ""
+  }
+}

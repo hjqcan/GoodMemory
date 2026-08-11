@@ -61,17 +61,15 @@ bulk-load. Start here, then open only the file that matches the question.
 ## Research And Evidence
 
 - `plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md` - passing
-  lifecycle schema-9 evidence, the two terminal full-claim attempts, and the
-  not-yet-started full-claim protocol-v2 definition with a tracked
-  commit-bound preregistration for candidate `996c181e`. Only after strict
-  readiness verifies it and the launcher pushes its sentinel may the one fixed
-  successor attempt run a retrieval-only seed once plus at
-  most one exact same-identity `--resume`; pass-1 evidence is preserved even
-  when resume is unnecessary, final seed and validated re-answer artifacts are
-  persisted before the next stage, and a clean 1,540-row seed is required
-  before re-answer or judging. It is only a narrow evidence-protocol descendant of the
-  measured lifecycle candidate. No live attempt, passing claim result, or
-  v0.7.3 release is implied.
+  lifecycle schema-9 evidence, two retained terminal full-claim attempts, and
+  the completed commit-bound protocol-v2 successor for candidate `996c181e`.
+  Its first retrieval-only seed pass completed 1,540/1,540 questions, so no
+  resume was used; re-answering and independent judging also completed with
+  zero failures. The tracked projection reports official `0.8805`, strict
+  `0.6266`, and open-domain `58/96`. The document also records the
+  governance-only preregistration and attestation that keep the current claim
+  presentation separate from the historical v0.6 row without changing the
+  measured runtime or evidence.
 - `GoodMemory-Preference-Identity-Pre-API-Research.md` - frozen pre-API
   preference atomization/key-stability protocol, completed no-API decision,
   fixture-only conflict census, and synthetic policy comparison; not a

@@ -4,10 +4,10 @@ Language: English | [简体中文](./README.zh-CN.md)
 
 GoodMemory is a memory layer for AI products and coding agents.
 
-> **Release status:** this branch is the `0.7.3` release candidate. npm
-> `latest` remains `0.7.2` until the tagged stable workflow publishes 0.7.3.
-> The version-pinned registry commands below are the post-publish contract; use
-> the locally packed `goodmemory-0.7.3.tgz` for pre-publish verification.
+> **Release source:** this is the immutable `0.7.3` stable release source.
+> Registry commands require `goodmemory@0.7.3` to be published. The release
+> workflow verifies npm `latest` and artifact integrity before creating the
+> GitHub Release.
 
 It gives chat apps, copilots, and agent hosts a durable user/project memory loop:
 write selected facts, retrieve the right context, inject it into the next turn,
@@ -105,17 +105,14 @@ dataset source and license, and a reproducible run (commit + command + package
 version). Historical rows remain under separate markers and cannot satisfy the
 current-version gate.
 
-The Phase 72 benchmark and versioned release gates remain closed evidence for
-`v0.6.0`. The rows below preserve those version-pinned public-opt-in results for
-the disclosed provider-backed or evidence-pack profiles. Because `v0.7.0`
-changed LanguagePack and recall semantics, they remain historical 0.6 evidence,
-not current-package performance claims or claims about the zero-provider
-default; no row is promoted as a current `v0.7.3` claim until a fresh run passes
-the same gate. The v0.7.3 rerun must bind frozen provider-response evidence; if
-a published score instead uses a fresh live provider draw, the claim must state
-an observed or explicitly heuristic run-to-run spread. Sub-point movements may
-not be presented as meaningful uplift without evidence that separates them
-from provider variance.
+The fresh v0.7.3 protocol-v2 run now supplies the current LoCoMo claim below.
+The Phase 72 benchmark and versioned release gates remain closed historical
+0.6 evidence; those rows stay separate because `v0.7.0` changed
+LanguagePack and recall semantics. The v0.7.3 result is a single live-provider
+draw, so its 0.4-0.7 percentage-point run-to-run spread is explicitly heuristic
+and the score is not attributed to the R6 retrieval change. It is also a
+public-opt-in provider-backed profile, not a claim about the zero-provider
+default.
 LongMemEval is withdrawn pending a clean rerun: the historical rules-only path
 used answer annotations, and the later label-free path exposed raw
 `answer_*` session IDs to retrieval and the reader. ImplicitMemBench's
@@ -126,6 +123,7 @@ rather than public benchmark claims.
 <!-- current-claims-table:start -->
 | Benchmark | Primary metric | GoodMemory result | Baseline / reference | Claim declaration |
 |---|---|---:|---:|---|
+| LoCoMo v0.7.3 (full 10 conversations) | independent official judge protocol; strict deterministic token-F1 | official **0.8805** · strict **0.6266** · open-domain **0.6042** (58/96) | historical no-memory 0.0045 | [locomo.json](./benchmark-claims/locomo.json) |
 <!-- current-claims-table:end -->
 
 ### Versioned internal evidence
@@ -143,6 +141,14 @@ not current-production claims for `v0.7.3`.
 | MemoryAgentBench v0.6.0 (CR, TTL) | deterministic upstream match-mode scoring, judge-free | **CR 0.959, TTL 0.933** | no-memory 0.000 for both | [memoryagentbench.json](./benchmark-claims/memoryagentbench.json) |
 | ImplicitMemBench Full-300 | stored-answer cross-version judge rescore | **0.691** (207.35/300), gpt-5.4 judge over gpt-5.5 answers, sourceAnswersUnchanged | upstream-chat baseline **0.400** (120/300); reference line 0.66 | [implicitmembench.json](./benchmark-claims/implicitmembench.json) |
 <!-- historical-evidence-table:end -->
+
+The current v0.7.3 LoCoMo run covers all 1540 non-adversarial questions with
+zero execution and judge failures. Answers, conversational extraction, and
+provider reranking use `gpt-5.6-terra`; the official-protocol track uses an
+independent `gpt-5.5` judge. The dataset is CC BY-NC 4.0 and therefore limited
+to non-commercial evaluation. This is a single live-provider draw with a
+heuristic 0.4-0.7 percentage-point run-to-run spread, not evidence that the
+small difference from v0.6 was caused by R6 retrieval cues.
 
 Where both are available, a row reports two tracks. The
 **strict** track is deterministic or judge-free — a hard lower bound no LLM
