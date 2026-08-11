@@ -46,6 +46,12 @@ import {
   seedLocomoCaseConversational,
 } from "../../scripts/run-phase-65-locomo-smoke";
 
+const CLAIM_RECIPE_RAW = readFileSync(
+  "reports/release/v0.7/" +
+    "v0.7.3-locomo-claim-evidence/claim-recipe-source.json",
+  "utf8",
+);
+
 function commandChain(): V073PairedCommandChain {
   const invocation = {
     args: ["run", "script.ts"],
@@ -486,7 +492,7 @@ describe("v0.7.3 replacement protection gate runner", () => {
   });
 
   it("pins every provider diagnostic stage to deterministic concurrency one", () => {
-    const claimRecipeRaw = readFileSync("benchmark-claims/locomo.json", "utf8");
+    const claimRecipeRaw = CLAIM_RECIPE_RAW;
     const { arm } = buildV073StageArm({
       benchmarkRoot: join(
         homedir(),
@@ -543,7 +549,7 @@ describe("v0.7.3 replacement protection gate runner", () => {
   });
 
   it("keeps canonical listwise bodies stable with one shared semantic seed", async () => {
-    const claimRecipeRaw = readFileSync("benchmark-claims/locomo.json", "utf8");
+    const claimRecipeRaw = CLAIM_RECIPE_RAW;
     const buildArm = (stage: string) => buildV073StageArm({
       benchmarkRoot: join(
         homedir(),
@@ -764,7 +770,7 @@ describe("v0.7.3 replacement protection gate runner", () => {
         initialTape: discovery.snapshot(),
         targets,
       });
-      const claimRecipeRaw = readFileSync("benchmark-claims/locomo.json", "utf8");
+      const claimRecipeRaw = CLAIM_RECIPE_RAW;
       const { arm } = buildV073StageArm({
         benchmarkRoot: join(
           homedir(),
@@ -947,7 +953,7 @@ describe("v0.7.3 replacement protection gate runner", () => {
       },
     });
     try {
-      const claimRecipeRaw = readFileSync("benchmark-claims/locomo.json", "utf8");
+      const claimRecipeRaw = CLAIM_RECIPE_RAW;
       const { arm } = buildV073StageArm({
         benchmarkRoot: join(
           homedir(),

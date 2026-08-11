@@ -1448,8 +1448,8 @@ describe("release metadata and docs", () => {
       "| MemoryAgentBench v0.6.0 (CR, TTL) |",
     );
     expect(historicalEvidence).toContain("**CR 0.959, TTL 0.933**");
-    expect(readme).toContain("historical 0.6 evidence");
-    expect(readme).toContain("not current-package performance claims");
+    expect(readme).toContain("### Versioned internal evidence");
+    expect(readme).toContain("not current-production claims for `v0.7.3`");
     expect(readme).toContain("provider reranking");
     expect(readme).toContain("CC BY-NC 4.0 (non-commercial scope)");
     expect(readme).not.toContain("| LoCoMo | representative conv-1 live run 0.020");
@@ -1605,6 +1605,15 @@ describe("release metadata and docs", () => {
       };
       version?: string;
     };
+    const packageJson = JSON.parse(
+      await readFile(join(import.meta.dir, "../../package.json"), "utf8"),
+    ) as {
+      goodmemoryRelease?: {
+        installCommandsApplyAfterPublish?: boolean;
+        npmDistTag?: string;
+        status?: string;
+      };
+    };
     const server = JSON.parse(
       await readFile(join(import.meta.dir, "../../server.json"), "utf8"),
     ) as { packages?: Array<{ version?: string }>; version?: string };
@@ -1625,11 +1634,9 @@ describe("release metadata and docs", () => {
     }
 
     expect(capability.version).toBe(CURRENT_PACKAGE_VERSION);
-    expect(capability.releaseStatus).toMatchObject({
-      installCommandsApplyAfterPublish: true,
-      npmDistTag: "latest",
-      status: "release-candidate",
-    });
+    expect(capability.releaseStatus).toMatchObject(
+      packageJson.goodmemoryRelease ?? {},
+    );
     expect(migrationGuide).toContain("GoodMemory 0.6 to 0.7 Migration Guide");
     expect(migrationGuide).toContain("historical 0.6 evidence");
     expect(server.version).toBe(CURRENT_PACKAGE_VERSION);
@@ -2923,8 +2930,9 @@ describe("release metadata and docs", () => {
       "docs/archive/quality-gates/GoodMemory-Phase-20-Quality-Gate.md",
     );
     expect(currentStatus).toContain(
-      "npm `latest` resolves to `goodmemory@0.7.2`",
+      "Registry baseline before the v0.7.3 tagged publication",
     );
+    expect(currentStatus).toContain("resolved to `goodmemory@0.7.2`");
     expect(currentStatus).toContain(
       "peeled `v0.7.2` tag resolves to commit",
     );
@@ -2949,7 +2957,7 @@ describe("release metadata and docs", () => {
     expect(currentStatus).toContain("task-board/00-README.txt");
     expect(currentStatus).toContain("docs/archive/quality-gates/README.md");
     expect(currentStatus).toContain(
-      "There are no current `v0.7.2` benchmark claims",
+      "fresh v0.7.3 LoCoMo row",
     );
     expect(currentStatus).toContain(
       "BEAM 100K (unified 0.7651 / strict 0.620 / recall 0.8276)",
@@ -2958,7 +2966,7 @@ describe("release metadata and docs", () => {
       "LongMemEval is paused, not versioned internal evidence",
     );
     expect(currentStatus).toContain(
-      "README current-claim tables are empty",
+      "current-claim tables carry only the v0.7.3 LoCoMo projection",
     );
     expect(currentStatus).not.toContain(
       "Full ImplicitMemBench and BEAM reports are internal research evidence until explicitly promoted.",
@@ -2970,7 +2978,7 @@ describe("release metadata and docs", () => {
       "Phase 65 case-level hardening is paused; Phase 69 owns generalized candidate admission and noise control.",
     );
     expect(currentStatus).toContain(
-      "The Phase 72 benchmark gate and versioned release gate are closed",
+      "The Phase 72 benchmark gate and versioned release gate remain closed",
     );
     expect(currentStatus).not.toContain("it is not yet promoted to README");
     expect(currentStatus).toContain(
@@ -4091,6 +4099,35 @@ describe("release metadata and docs", () => {
     expect(authIndex).toBeGreaterThan(archiveIndex);
     expect(tarIndex).toBeGreaterThan(-1);
     for (const path of governancePaths) {
+      expect(uploadBlock).toContain(path);
+      expect(archiveBlock).toContain(path);
+      const sizeCheckIndex = archiveBlock.indexOf(`test -s ${path}`);
+      expect(sizeCheckIndex).toBeGreaterThan(-1);
+      expect(sizeCheckIndex).toBeLessThan(tarIndex);
+    }
+  });
+
+  it("ships the stable-source test correction evidence", async () => {
+    const workflow = await readFile(
+      join(import.meta.dir, "../../.github/workflows/release.yml"),
+      "utf8",
+    );
+    const correctionPaths = [
+      "reports/release/v0.7/v0.7.3-stable-source-test-correction-preregistration.json",
+      "reports/release/v0.7/v0.7.3-stable-source-test-correction-attestation.json",
+    ];
+    const uploadIndex = workflow.indexOf("- name: Upload tarball artifact");
+    const archiveIndex = workflow.indexOf("- name: Pack tracked release evidence");
+    const authIndex = workflow.indexOf("- name: Validate npm publishing credentials");
+    const uploadBlock = workflow.slice(uploadIndex, archiveIndex);
+    const archiveBlock = workflow.slice(archiveIndex, authIndex);
+    const tarIndex = archiveBlock.indexOf("tar --sort=name --mtime='@0'");
+
+    expect(uploadIndex).toBeGreaterThan(-1);
+    expect(archiveIndex).toBeGreaterThan(uploadIndex);
+    expect(authIndex).toBeGreaterThan(archiveIndex);
+    expect(tarIndex).toBeGreaterThan(-1);
+    for (const path of correctionPaths) {
       expect(uploadBlock).toContain(path);
       expect(archiveBlock).toContain(path);
       const sizeCheckIndex = archiveBlock.indexOf(`test -s ${path}`);

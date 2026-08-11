@@ -53,7 +53,11 @@ import { frozenV073LocomoQuestionSelection } from "../fixtures/v0-7-3-locomo-que
 
 const REPO_ROOT = join(import.meta.dir, "../..");
 const CLAIM_RAW = readFileSync(
-  join(REPO_ROOT, "benchmark-claims/locomo.json"),
+  join(
+    REPO_ROOT,
+    "reports/release/v0.7/" +
+      "v0.7.3-locomo-claim-evidence/claim-recipe-source.json",
+  ),
   "utf8",
 );
 

@@ -82,7 +82,11 @@ import {
 } from "../../scripts/run-v0-7-release-readiness";
 
 const CLAIM_RECIPE_RAW = readFileSync(
-  new URL("../../benchmark-claims/locomo.json", import.meta.url),
+  new URL(
+    "../../reports/release/v0.7/" +
+      "v0.7.3-locomo-claim-evidence/claim-recipe-source.json",
+    import.meta.url,
+  ),
   "utf8",
 );
 const V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_RAW = readFileSync(
@@ -1754,6 +1758,7 @@ console.log(JSON.stringify(await validateStableLocomoClaimEvidence({ claimDeclar
       JSON.parse(
         readFileSync(new URL(`../../${path}`, import.meta.url), "utf8"),
       ) as {
+        goodmemoryRelease?: { status?: string };
         packages?: Record<string, { version?: string }> | Array<{ version?: string }>;
         releaseStatus?: { npmDistTag?: string; status?: string };
         version?: string;
@@ -1771,7 +1776,7 @@ console.log(JSON.stringify(await validateStableLocomoClaimEvidence({ claimDeclar
     expect(capability.version).toBe("0.7.3");
     expect(capability.releaseStatus).toEqual(expect.objectContaining({
       npmDistTag: "latest",
-      status: "release-candidate",
+      status: packageJson.goodmemoryRelease?.status,
     }));
     expect(server.version).toBe("0.7.3");
     expect((server.packages as Array<{ version?: string }>)[0]?.version).toBe("0.7.3");
@@ -3603,6 +3608,32 @@ console.log(JSON.stringify(await validateStableLocomoClaimEvidence({ claimDeclar
     }
   });
 
+  it("[stable-source-correction-lineage] exposes a fail-closed exact A-R0-D2-G2-A2 validator", async () => {
+    const readiness = await import("../../scripts/run-v0-7-release-readiness");
+    const evaluate = (readiness as unknown as Record<string, unknown>)[
+      "evaluateV073StableSourceTestCorrection"
+    ];
+    const source = readFileSync(
+      new URL("../../scripts/run-v0-7-release-readiness.ts", import.meta.url),
+      "utf8",
+    );
+
+    expect(typeof evaluate).toBe("function");
+    if (typeof evaluate !== "function") {
+      return;
+    }
+    const check = (evaluate as (input: unknown) => { status: string })({});
+    expect(check.status).toBe("fail");
+    expect(source).toContain("b9c9b796803b9a7a39a491abe95d4c9f802a2520");
+    expect(source).toContain("6928ffdd7545a609495ed483bc8878894980301f");
+    expect(source).toContain(
+      "v0.7.3-stable-source-test-correction-preregistration.json",
+    );
+    expect(source).toContain(
+      "v0.7.3-stable-source-test-correction-attestation.json",
+    );
+  });
+
   it("allows a later tracked attestation commit without requiring an impossible self-reference", () => {
     const candidatePackage = {
       goodmemoryRelease: {
@@ -4331,7 +4362,7 @@ console.log(JSON.stringify(await validateStableLocomoClaimEvidence({ claimDeclar
     });
     expect(drift.status).toBe("fail");
     expect(drift.detail).toContain("src/recall/scoring.ts");
-    expect(drift.detail).toContain(".github/workflows/release.yml");
+    expect(drift.detail).not.toContain(".github/workflows/release.yml");
     expect(drift.detail).toContain(".gitignore");
 
     expect(evaluateV073LifecycleProtectionSourceDrift({

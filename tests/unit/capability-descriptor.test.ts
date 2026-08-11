@@ -35,13 +35,13 @@ describe("GoodMemory capability descriptor", () => {
   });
 
   it("reports the package version and derives version-pinned install commands", () => {
-    const { version } = readPackageJson();
+    const { goodmemoryRelease, version } = readPackageJson();
     const descriptor = buildGoodMemoryCapabilityDescriptor();
     expect(descriptor.version).toBe(version);
     expect(descriptor.releaseStatus).toEqual({
       installCommandsApplyAfterPublish: true,
       npmDistTag: "latest",
-      status: "release-candidate",
+      status: goodmemoryRelease.status,
       tarball: `goodmemory-${version}.tgz`,
     });
     expect(descriptor.install.npmGlobal).toBe(

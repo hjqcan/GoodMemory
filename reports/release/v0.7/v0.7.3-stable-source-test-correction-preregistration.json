@@ -1,0 +1,100 @@
+{
+  "artifactKind": "v0.7.3-stable-source-test-correction-preregistration",
+  "baselineCommit": "6928ffdd7545a609495ed483bc8878894980301f",
+  "commitBoundary": {
+    "preregistrationCommit": {
+      "allowedPaths": [
+        "reports/release/v0.7/v0.7.3-stable-source-test-correction-preregistration.json",
+        "tests/release/release.test.ts",
+        "tests/unit/capability-descriptor.test.ts",
+        "tests/unit/run-v0-7-3-full-locomo-claim.test.ts",
+        "tests/unit/run-v0-7-3-lifecycle-protection-gate.test.ts",
+        "tests/unit/run-v0-7-3-replacement-protection-gate.test.ts",
+        "tests/unit/run-v0-7-release-readiness.test.ts"
+      ],
+      "mustBeDirectChildOf": "6928ffdd7545a609495ed483bc8878894980301f"
+    },
+    "implementationCommit": {
+      "allowedPaths": [
+        ".github/workflows/release.yml",
+        "scripts/run-v0-7-release-readiness.ts"
+      ],
+      "mustBeDirectChildOf": "this-preregistration-commit"
+    },
+    "attestationCommit": {
+      "allowedPaths": [
+        "reports/release/v0.7/v0.7.3-stable-source-test-correction-attestation.json"
+      ],
+      "mustBeDirectChildOf": "implementation-commit"
+    }
+  },
+  "exactCodeAndTestScope": [
+    ".github/workflows/release.yml",
+    "scripts/run-v0-7-release-readiness.ts",
+    "tests/release/release.test.ts",
+    "tests/unit/capability-descriptor.test.ts",
+    "tests/unit/run-v0-7-3-full-locomo-claim.test.ts",
+    "tests/unit/run-v0-7-3-lifecycle-protection-gate.test.ts",
+    "tests/unit/run-v0-7-3-replacement-protection-gate.test.ts",
+    "tests/unit/run-v0-7-release-readiness.test.ts"
+  ],
+  "expectedBehavior": [
+    "Release-readiness fixtures use the tracked protocol-candidate claim-recipe source instead of the promoted current public declaration as their measured recipe.",
+    "All lifecycle, replacement-protection, full-claim, and readiness test helpers read the tracked 5370-byte protocol-candidate recipe at reports/release/v0.7/v0.7.3-locomo-claim-evidence/claim-recipe-source.json with SHA-256 9ef00e9e1532a264a97cacf3a1807345acce68194ad65e2b016ed6a48602b6d3.",
+    "Release and readiness metadata tests compare the capability descriptor release status with package.json instead of hardcoding release-candidate after stable promotion.",
+    "README and current-status release assertions describe the committed v0.7.3 stable claim while retaining the historical v0.6 evidence boundary.",
+    "The source-drift test treats the already-authorized release workflow path as governance evidence while continuing to reject runtime, measurement-runner, test, and unrelated gitignore drift.",
+    "The preregistration and attestation are non-empty inputs to the Actions artifact and aggregate GitHub Release evidence archive.",
+    "No product runtime, dependency, benchmark declaration, provider evidence, or measurement runner changes are permitted."
+  ],
+  "forbiddenChanges": {
+    "benchmarkDeclaration": "benchmark-claims/locomo.json",
+    "dependencyLocks": [
+      "bun.lock",
+      "package-lock.json",
+      "package.json"
+    ],
+    "measurementRunners": [
+      "scripts/run-v0-7-3-full-locomo-claim.ts",
+      "scripts/run-v0-7-3-lifecycle-protection-gate.ts",
+      "scripts/run-v0-7-3-replacement-protection-gate.ts",
+      "scripts/run-phase-65-locomo-smoke.ts",
+      "scripts/reanswer-phase-65-locomo-report.ts",
+      "scripts/rescore-official-protocols.ts"
+    ],
+    "providerCallsAllowed": false,
+    "publicSource": "src/"
+  },
+  "generatedAt": "2026-08-11T00:00:00.000Z",
+  "generatedBy": "v0.7.3-stable-source-test-correction-preregistration",
+  "observedRed": {
+    "canonicalAffectedFiles": {
+      "command": "bun test tests/unit/run-v0-7-release-readiness.test.ts tests/unit/run-v0-7-3-lifecycle-protection-gate.test.ts tests/unit/run-v0-7-3-replacement-protection-gate.test.ts tests/unit/run-v0-7-3-full-locomo-claim.test.ts tests/unit/capability-descriptor.test.ts tests/release/release.test.ts",
+      "failed": 46,
+      "passed": 165,
+      "failureClasses": [
+        "promoted claim declaration loaded as measured recipe",
+        "release-candidate capability status hardcoded",
+        "release workflow expected as forbidden source drift",
+        "historical-only README assertion stale after current claim publication",
+        "v0.7.2 and empty-current-claim status assertions stale after stable promotion"
+      ]
+    }
+  },
+  "schemaVersion": 1,
+  "verificationBoundary": {
+    "attestationMustBind": [
+      "baseline commit",
+      "preregistration commit",
+      "implementation commit",
+      "exact implementation diff paths",
+      "focused release-readiness result",
+      "focused release metadata and workflow result",
+      "typecheck result"
+    ],
+    "commands": {
+      "affectedTests": "bun test tests/unit/run-v0-7-release-readiness.test.ts tests/unit/run-v0-7-3-lifecycle-protection-gate.test.ts tests/unit/run-v0-7-3-replacement-protection-gate.test.ts tests/unit/run-v0-7-3-full-locomo-claim.test.ts tests/unit/capability-descriptor.test.ts tests/release/release.test.ts",
+      "typecheck": "bun run typecheck"
+    }
+  }
+}

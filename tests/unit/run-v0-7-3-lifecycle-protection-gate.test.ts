@@ -41,7 +41,13 @@ const OFFICIAL_SOURCE_RAW = readFileSync(
   resolve("scripts/rescore-official-protocols.ts"),
   "utf8",
 );
-const CLAIM_SOURCE_RAW = readFileSync(resolve("benchmark-claims/locomo.json"), "utf8");
+const CLAIM_SOURCE_RAW = readFileSync(
+  resolve(
+    "reports/release/v0.7/" +
+      "v0.7.3-locomo-claim-evidence/claim-recipe-source.json",
+  ),
+  "utf8",
+);
 const LIVE_DELTA_SOURCE_RAW = readFileSync(
   resolve("scripts/analyze-phase-65-locomo-live-delta.ts"),
   "utf8",
