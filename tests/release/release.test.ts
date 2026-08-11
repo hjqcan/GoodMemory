@@ -710,6 +710,44 @@ async function expectCanonicalAcceptedQualityGate(input: {
 }
 
 describe("release metadata and docs", () => {
+  it("pins the measured AI SDK 6 closure without the vulnerable undici 5 dependency", async () => {
+    const [packageRaw, packageLockRaw, bunLockRaw, readinessSource] = await Promise.all([
+      readFile(join(ROOT_PACKAGE_PATH, "package.json"), "utf8"),
+      readFile(join(ROOT_PACKAGE_PATH, "package-lock.json"), "utf8"),
+      readFile(join(ROOT_PACKAGE_PATH, "bun.lock"), "utf8"),
+      readFile(
+        join(ROOT_PACKAGE_PATH, "scripts/run-v0-7-release-readiness.ts"),
+        "utf8",
+      ),
+    ]);
+    const pkg = JSON.parse(packageRaw) as {
+      dependencies?: Record<string, string>;
+    };
+    const packageLock = JSON.parse(packageLockRaw) as {
+      packages?: Record<string, { dependencies?: Record<string, string> }>;
+    };
+    const expected = {
+      "@ai-sdk/anthropic": "3.0.64",
+      "@ai-sdk/openai": "3.0.49",
+      "@ai-sdk/openai-compatible": "2.0.40",
+      "@ai-sdk/provider-utils": "4.0.23",
+      ai: "6.0.143",
+    };
+
+    expect(pkg.dependencies).toEqual(expect.objectContaining(expected));
+    expect(packageLock.packages?.[""]?.dependencies).toEqual(
+      expect.objectContaining(expected),
+    );
+    for (const [name, version] of Object.entries(expected)) {
+      expect(bunLockRaw).toContain(`"${name}": "${version}"`);
+    }
+    expect(packageLock.packages?.["node_modules/undici"]).toBeUndefined();
+    expect(bunLockRaw).not.toMatch(/^\s*"undici": \[/mu);
+    expect(readinessSource).toContain(
+      '["install", "--ignore-scripts", "--engine-strict", "--no-audit", "--no-fund"]',
+    );
+  });
+
   it("package metadata exposes bin, exports, and key scripts", async () => {
     const pkg = JSON.parse(
       await readFile(join(import.meta.dir, "../../package.json"), "utf8"),
@@ -3853,6 +3891,23 @@ describe("release metadata and docs", () => {
         /reports\/release\/v0\.7\/v0\.7\.3-lifecycle-schema9-evidence\/\*\*/gu,
       )?.length,
     ).toBe(1);
+    expect(
+      workflow.match(
+        /reports\/release\/v0\.7\/v0\.7\.3-full-claim-protocol2-preregistration\.json/gu,
+      )?.length,
+    ).toBe(2);
+    expect(
+      workflow.match(
+        /reports\/release\/v0\.7\/v0\.7\.3-full-claim-protocol2-attempt-consumed\.json/gu,
+      )?.length,
+    ).toBe(2);
+    for (const passOneEvidencePath of [
+      "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-smoke-report.json",
+      "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-live-progress.jsonl",
+      "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-extraction-cache.jsonl",
+    ]) {
+      expect(workflow).toContain(passOneEvidencePath);
+    }
     expect(workflow).not.toContain("v0.7.3-lifecycle-evidence/**");
     expect(workflow).not.toContain("bun run gate:phase-40");
     expect(workflow).toContain("GOODMEMORY_ASSISTED_EXTRACTOR_API_KEY");
@@ -3974,6 +4029,8 @@ describe("release metadata and docs", () => {
       "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
       "reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json",
       "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence",
+      "reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json",
+      "reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json",
       "benchmark-claims/evidence/locomo-v0.7.3-current.json",
       "reports/release/v0.7/v0.7.3-locomo-claim-evidence",
       "reports/release/v0.7/phase-74-storage-scale-gate.json",
@@ -4013,10 +4070,15 @@ describe("release metadata and docs", () => {
     expect(githubReleaseBlock).not.toContain("benchmark-claims/evidence/");
   });
 
-  it("keeps schema-9 evidence addable without force", async () => {
+  it("keeps schema-9 and full-claim protocol-v2 evidence addable without force", async () => {
     for (const path of [
       "reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json",
       "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/manifest.json",
+      "reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json",
+      "reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json",
+      "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-smoke-report.json",
+      "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-live-progress.jsonl",
+      "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-extraction-cache.jsonl",
     ]) {
       const ignored = await runGitCommand([
         "check-ignore",
@@ -5453,6 +5515,14 @@ describe("release metadata and docs", () => {
       import.meta.dir,
       "../quality-gates/phase-73/codex-coding-effect.c3-source-reproducibility.gate.ts",
     );
+    const oldC6ProtocolReadinessPath = join(
+      import.meta.dir,
+      "../integration/codex-coding-effect.c6-protocol-readiness.test.ts",
+    );
+    const c6ProtocolReadinessGatePath = join(
+      import.meta.dir,
+      "../quality-gates/phase-73/codex-coding-effect.c6-protocol-readiness.gate.ts",
+    );
 
     expect(bunfig).toContain(
       'pathIgnorePatterns = ["tests/quality-gates/**"]',
@@ -5468,5 +5538,7 @@ describe("release metadata and docs", () => {
     expect(await Bun.file(oldReadinessPath).exists()).toBe(false);
     expect(await Bun.file(gateReadinessPath).exists()).toBe(true);
     expect(await Bun.file(c3ReplayPath).exists()).toBe(true);
+    expect(await Bun.file(oldC6ProtocolReadinessPath).exists()).toBe(false);
+    expect(await Bun.file(c6ProtocolReadinessGatePath).exists()).toBe(true);
   });
 });

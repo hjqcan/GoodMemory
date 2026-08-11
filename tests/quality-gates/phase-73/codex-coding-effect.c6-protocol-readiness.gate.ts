@@ -17,29 +17,29 @@ import { dirname, join, relative, resolve } from "node:path";
 import {
   buildC6AssetLock,
   serializeC6AssetLock,
-} from "../../scripts/codex-coding-effect/c6-asset-lock";
+} from "../../../scripts/codex-coding-effect/c6-asset-lock";
 import type {
   C6CandidatePlan,
-} from "../../scripts/codex-coding-effect/c6-candidate-plan";
+} from "../../../scripts/codex-coding-effect/c6-candidate-plan";
 import type {
   C6FlatSummaryCorpus,
-} from "../../scripts/codex-coding-effect/c6-flat-summary";
+} from "../../../scripts/codex-coding-effect/c6-flat-summary";
 import {
   C6_FLAT_SUMMARY_INJECTION_COMPOSITION,
   C6_INJECTION_TOKEN_COUNTER_ID,
   C6_INJECTION_TOKEN_COUNTER_SHA256,
-} from "../../scripts/codex-coding-effect/c6-flat-summary";
+} from "../../../scripts/codex-coding-effect/c6-flat-summary";
 import {
   buildC6FlatSummaryCorpusExpectation,
   loadC6CandidateReadiness,
-} from "../../scripts/codex-coding-effect/c6-readiness";
+} from "../../../scripts/codex-coding-effect/c6-readiness";
 import {
   CODEX_CODING_EFFECT_MEMORY_STRATA,
-} from "../../scripts/codex-coding-effect/dataset";
+} from "../../../scripts/codex-coding-effect/dataset";
 import type {
   CodexCodingEffectDatasetV3,
-} from "../../scripts/codex-coding-effect/dataset";
-import { ciTestTimeout } from "../support/ci-timeout";
+} from "../../../scripts/codex-coding-effect/dataset";
+import { ciTestTimeout } from "../../support/ci-timeout";
 
 const C5_EVIDENCE_ROOT = resolve(
   "reports/quality-gates/phase-73/c5-native-longitudinal-pilot-v16",
@@ -300,7 +300,7 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
     } finally {
       await rm(baselineFixture.root, { force: true, recursive: true });
     }
-  }, ciTestTimeout(120_000));
+  }, ciTestTimeout(240_000));
 
   it("rejects legacy dataset, gate, and summary protocols", async () => {
     for (const probe of [

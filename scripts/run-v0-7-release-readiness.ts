@@ -13,6 +13,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 
 import { stripThinkingBlocks } from "../src/provider/ai-sdk-runtime";
 import {
@@ -37,7 +38,11 @@ import {
   PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY,
 } from "./provider-response-tape-bundle";
 import {
-  renderV073FullClaimCommand,
+  classifyV073SeedAttemptRecovery,
+  deriveV073FullClaimProtocol2Identity,
+  renderV073FullClaimProtocol2Command,
+  V073_FULL_CLAIM_PROTOCOL2_PREREGISTRATION_PATH,
+  V073_FULL_CLAIM_PROTOCOL2_SENTINEL_PATH,
   V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
   V073_FULL_LOCOMO_QUESTION_SELECTION_SHA256,
 } from "./run-v0-7-3-full-locomo-claim";
@@ -93,6 +98,13 @@ const V073_LOCOMO_SOURCE_ARTIFACT_PATHS = {
   "official-summary": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}official-rescore-summary.json`,
   "official-progress": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}official-progress.jsonl`,
   "official-runner-source": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}official-runner-source.ts`,
+  "protocol-attempt-sentinel": V073_FULL_CLAIM_PROTOCOL2_SENTINEL_PATH,
+  "protocol-preregistration": V073_FULL_CLAIM_PROTOCOL2_PREREGISTRATION_PATH,
+  "seed-attempt-1-extraction-cache": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}seed-attempt-1-extraction-cache.jsonl`,
+  "seed-attempt-1-progress": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}seed-attempt-1-live-progress.jsonl`,
+  "seed-attempt-1-report": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}seed-attempt-1-smoke-report.json`,
+  "seed-extraction-cache": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}seed-extraction-cache.jsonl`,
+  "seed-progress": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}seed-live-progress.jsonl`,
   "seed-report": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}seed-smoke-report.json`,
 } as const;
 const V072_BASELINE_COMMIT = "456edd106f29118b3455bf21c43d7b3107b48213";
@@ -100,6 +112,11 @@ const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
 const COMMIT_PATTERN = /^[0-9a-f]{40}$/u;
 const EMPTY_TRANSPORT_LEDGER_SHA256 =
   "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945";
+const EXPECTED_EXTRACTION_CACHE_KEY_SET_SHA256 =
+  "30fde28c5e2450365d8cc3d90a80f72aa900691151f4d1127e0a4f3c8a520f4f";
+const EXPECTED_EXTRACTION_CACHE_KEY_CASE_MAP_SHA256 =
+  "24732a6040c70d52999a18b9d95d72e663a883aa7c5524fc5ee8b4187611e03b";
+const V073_PROTOCOL2_CANONICAL_BENCHMARK_ROOT = "/@locomo-full10-root";
 const REQUIRED_PACKED_FILES = [
   "dist/index.js",
   "dist/index.d.ts",
@@ -441,6 +458,12 @@ function isValidStableLocomoClaimProjection(
 ): boolean {
   if (
     projection.generatedBy !== "scripts/run-v0-7-3-full-locomo-claim.ts" ||
+    projection.protocolVersion !== 2 ||
+    projection.maxSeedLaunches !== 2 ||
+    !COMMIT_PATTERN.test(String(projection.sentinelCommit)) ||
+    !Array.isArray(projection.seedAttempts) ||
+    (projection.seedAttempts.length !== 1 &&
+      projection.seedAttempts.length !== 2) ||
     !isRecord(projection.claim) ||
     !isRecord(projection.descriptorClaim) ||
     !isRecord(projection.evidenceRepositoryBefore) ||
@@ -513,6 +536,8 @@ function isValidStableLocomoClaimProjection(
     "embeddingGateway",
     "embeddingModel",
     "embeddingProvider",
+    "expectedExtractionCacheKeyCaseMapSha256",
+    "expectedExtractionCacheKeySetSha256",
     "judgeGateway",
     "judgeModel",
     "judgeProvider",
@@ -537,6 +562,14 @@ function isValidStableLocomoClaimProjection(
     execution.rerankingGateway !== "https://ai.gurkiai.com/v1" ||
     execution.rerankingModel !== "gpt-5.6-terra" ||
     execution.rerankingProvider !== "openai" ||
+    execution.expectedExtractionCacheKeyCaseMapSha256 !==
+      EXPECTED_EXTRACTION_CACHE_KEY_CASE_MAP_SHA256 ||
+    execution.expectedExtractionCacheKeySetSha256 !==
+      EXPECTED_EXTRACTION_CACHE_KEY_SET_SHA256 ||
+    execution.providerEmbeddingTimeoutMs !== null ||
+    execution.providerEmbeddingRunTimeoutMs !== null ||
+    execution.providerRerankingTimeoutMs !== 120_000 ||
+    execution.officialRescoreRequestTimeoutMs !== 180_000 ||
     execution.judgeGateway !== "https://ai.gurkiai.com/v1" ||
     execution.judgeModel !== "gpt-5.5" ||
     execution.judgeProvider !== "openai" ||
@@ -566,13 +599,18 @@ function isValidStableLocomoClaimProjection(
   if (
     !isNonEmptyString(runIdentity.commit) ||
     !COMMIT_PATTERN.test(runIdentity.commit) ||
+    projection.protocolCandidateCommit !== runIdentity.commit ||
+    !COMMIT_PATTERN.test(String(projection.lifecycleCandidateCommit)) ||
     evidenceRepositoryBefore.headCommit !== runIdentity.commit ||
     runIds.some((value) => !isNonEmptyString(value)) ||
     new Set(runIds).size !== runIds.length
   ) {
     return false;
   }
-  if (projection.sourceArtifacts.length !== 7) {
+  if (
+    projection.sourceArtifacts.length !==
+      Object.keys(V073_LOCOMO_SOURCE_ARTIFACT_PATHS).length
+  ) {
     return false;
   }
   const sources = new Map<string, ArtifactIdentityShape>();
@@ -639,11 +677,11 @@ function parseEvidenceJson(raw: string, label: string, issues: string[]): unknow
 }
 
 function validateFullLocomoReport(input: {
+  expectedMode: "live-answer" | "retrieval-only";
   expectedGeneratedBy: string;
   expectedResume: boolean;
   label: string;
   report: unknown;
-  requireAnswerSystem: boolean;
   issues: string[];
 }): Record<string, unknown>[] | undefined {
   if (!isRecord(input.report)) {
@@ -652,11 +690,14 @@ function validateFullLocomoReport(input: {
   }
   const report = input.report;
   const rows = report.cases;
+  const expectedAnswerEvaluation = input.expectedMode === "live-answer"
+    ? "scored"
+    : "deferred-to-live-mode";
   if (
     report.benchmark !== "locomo" ||
     report.benchmarkFingerprint !== V073_LOCOMO_BENCHMARK_FINGERPRINT ||
-    report.mode !== "live-answer" ||
-    report.answerEvaluation !== "scored" ||
+    report.mode !== input.expectedMode ||
+    report.answerEvaluation !== expectedAnswerEvaluation ||
     report.generatedBy !== input.expectedGeneratedBy ||
     report.resume !== input.expectedResume ||
     report.executionFailures !== 0 ||
@@ -666,11 +707,13 @@ function validateFullLocomoReport(input: {
     !Array.isArray(rows) ||
     rows.length !== 1540
   ) {
-    input.issues.push(`${input.label} is not a complete failure-free full-1540 LoCoMo report`);
+    input.issues.push(
+      `${input.label} is not a complete failure-free ${input.expectedMode} full-1540 LoCoMo report`,
+    );
     return undefined;
   }
   if (
-    input.requireAnswerSystem &&
+    input.expectedMode === "live-answer" &&
     report.answerSystem !== "locomo-live-category-aware-v1"
   ) {
     input.issues.push(`${input.label} answerSystem does not match the current claim protocol`);
@@ -687,17 +730,22 @@ function validateFullLocomoReport(input: {
     typedRows.push(row);
     const key = `${String(row.caseId)}\u0000${String(row.questionId)}`;
     questionKeys.add(key);
+    const answerFieldsValid = input.expectedMode === "retrieval-only"
+      ? row.answerCorrect === null &&
+        row.answerTokenF1 === null &&
+        row.generatedAnswer === null
+      : typeof row.answerCorrect === "boolean" &&
+        typeof row.answerTokenF1 === "number" &&
+        Number.isFinite(row.answerTokenF1) &&
+        row.answerTokenF1 >= 0 &&
+        row.answerTokenF1 <= 1 &&
+        isNonEmptyString(row.generatedAnswer);
     if (
       !V073_LOCOMO_CASE_IDS.includes(row.caseId as typeof V073_LOCOMO_CASE_IDS[number]) ||
       typeof row.category !== "string" ||
       !Object.prototype.hasOwnProperty.call(V073_LOCOMO_CATEGORY_COUNTS, row.category) ||
       !isNonEmptyString(row.questionId) ||
-      typeof row.answerCorrect !== "boolean" ||
-      typeof row.answerTokenF1 !== "number" ||
-      !Number.isFinite(row.answerTokenF1) ||
-      row.answerTokenF1 < 0 ||
-      row.answerTokenF1 > 1 ||
-      !isNonEmptyString(row.generatedAnswer) ||
+      !answerFieldsValid ||
       row.executionFailureMessage != null
     ) {
       input.issues.push(`${input.label} row ${index} is incomplete or failed`);
@@ -756,6 +804,553 @@ function retrievalIdentity(row: Record<string, unknown>): unknown {
   };
 }
 
+function sameArtifactIdentity(
+  value: unknown,
+  expected: ArtifactIdentityShape,
+): boolean {
+  return isArtifactIdentity(value) &&
+    value.bytes === expected.bytes &&
+    value.path === expected.path &&
+    value.sha256 === expected.sha256;
+}
+
+function sameArtifactContent(
+  left: ArtifactIdentityShape,
+  right: ArtifactIdentityShape,
+): boolean {
+  return left.bytes === right.bytes && left.sha256 === right.sha256;
+}
+
+function parseExtractionCacheKeys(raw: string): string[] | undefined {
+  const keys: string[] = [];
+  const seen = new Set<string>();
+  for (const line of raw.split("\n")) {
+    if (line.trim() === "") {
+      continue;
+    }
+    let value: unknown;
+    try {
+      value = JSON.parse(line) as unknown;
+    } catch {
+      return undefined;
+    }
+    if (
+      !isRecord(value) ||
+      !isNonEmptyString(value.key) ||
+      !Array.isArray(value.candidates) ||
+      seen.has(value.key)
+    ) {
+      return undefined;
+    }
+    seen.add(value.key);
+    keys.push(value.key);
+  }
+  return keys;
+}
+
+function canonicalProtocol2ClaimRecipe(raw: string): string {
+  const recipe = JSON.parse(raw) as unknown;
+  if (
+    !isRecord(recipe) ||
+    !isRecord(recipe.run) ||
+    !isNonEmptyString(recipe.run.command)
+  ) {
+    throw new Error("claim recipe does not contain run.command");
+  }
+  const matches = [...recipe.run.command.matchAll(/--benchmark-root\s+\S+/gu)];
+  if (matches.length !== 1) {
+    throw new Error("claim recipe must contain one benchmark root");
+  }
+  recipe.run.command = recipe.run.command.replace(
+    matches[0]![0],
+    `--benchmark-root ${V073_PROTOCOL2_CANONICAL_BENCHMARK_ROOT}`,
+  );
+  return JSON.stringify(recipe);
+}
+
+function canonicalProtocol2CommandChain(
+  commandChain: Record<string, unknown>,
+  recordedBenchmarkRoot: string,
+): Record<string, unknown> {
+  const result = structuredClone(commandChain);
+  const replaceFlag = (
+    invocationName: "officialRescore" | "seedSmoke",
+    flag: "--benchmark-root" | "--root",
+    expected: string,
+    replacement: string,
+  ) => {
+    const invocation = result[invocationName];
+    if (!isRecord(invocation) || !Array.isArray(invocation.args)) {
+      throw new Error("command chain invocation is invalid");
+    }
+    const indexes = invocation.args.flatMap((value, index) =>
+      value === flag ? [index] : []);
+    if (indexes.length !== 1 || invocation.args[indexes[0]! + 1] !== expected) {
+      throw new Error("command chain benchmark root is inconsistent");
+    }
+    invocation.args[indexes[0]! + 1] = replacement;
+  };
+  replaceFlag(
+    "seedSmoke",
+    "--benchmark-root",
+    recordedBenchmarkRoot,
+    V073_PROTOCOL2_CANONICAL_BENCHMARK_ROOT,
+  );
+  replaceFlag(
+    "officialRescore",
+    "--root",
+    resolve(recordedBenchmarkRoot, "cases.json"),
+    resolve(V073_PROTOCOL2_CANONICAL_BENCHMARK_ROOT, "cases.json"),
+  );
+  return result;
+}
+
+function validateV073FullClaimProtocol2(input: {
+  executionReceipt: unknown;
+  lifecycleProtectionRaw: string;
+  projection: Record<string, unknown>;
+  seedRaw: string;
+  sourceRaws: Map<string, string>;
+  sources: Map<string, ArtifactIdentityShape>;
+}): string[] {
+  const issues: string[] = [];
+  const receipt = input.executionReceipt;
+  const runIdentity = input.projection.runIdentity;
+  if (!isRecord(receipt) || !isRecord(runIdentity)) {
+    return ["full-claim protocol-v2 execution receipt is inconsistent"];
+  }
+  const preregistration = parseEvidenceJson(
+    input.sourceRaws.get("protocol-preregistration")!,
+    "full-claim protocol-v2 preregistration",
+    issues,
+  );
+  const sentinel = parseEvidenceJson(
+    input.sourceRaws.get("protocol-attempt-sentinel")!,
+    "full-claim protocol-v2 sentinel",
+    issues,
+  );
+  if (!isRecord(preregistration)) {
+    issues.push("full-claim protocol-v2 preregistration is inconsistent");
+    return issues;
+  }
+  const protocolCandidateCommit = String(runIdentity.commit);
+  const protocolIdentity = deriveV073FullClaimProtocol2Identity(
+    protocolCandidateCommit,
+  );
+  const lifecycleProtection = preregistration.lifecycleProtection;
+  const lifecycleArtifact = parseEvidenceJson(
+    input.lifecycleProtectionRaw,
+    "v0.7.3 lifecycle protection compact",
+    issues,
+  );
+  const preregistrationValid =
+    preregistration.protocolVersion === 2 &&
+    preregistration.generatedBy ===
+      "v0.7.3-full-locomo-claim-protocol2-preregistration" &&
+    Number.isFinite(Date.parse(String(preregistration.generatedAt))) &&
+    preregistration.maxSeedLaunches === 2 &&
+    COMMIT_PATTERN.test(String(preregistration.lifecycleCandidateCommit)) &&
+    isRecord(lifecycleArtifact) &&
+    lifecycleArtifact.schemaVersion === 9 &&
+    lifecycleArtifact.candidateCommit ===
+      preregistration.lifecycleCandidateCommit &&
+    lifecycleArtifact.fullClaimRerunRequired === true &&
+    lifecycleArtifact.releaseAllowed === true &&
+    Array.isArray(lifecycleArtifact.blockers) &&
+    lifecycleArtifact.blockers.length === 0 &&
+    preregistration.protocolCandidateCommit === protocolCandidateCommit &&
+    preregistration.namespace === protocolIdentity.namespace &&
+    preregistration.seedRunId === protocolIdentity.seedRunId &&
+    preregistration.finalRunId === protocolIdentity.finalRunId &&
+    preregistration.officialRunId === protocolIdentity.officialRunId &&
+    preregistration.outputRoot === protocolIdentity.outputRoot &&
+    preregistration.sentinelPath ===
+      V073_FULL_CLAIM_PROTOCOL2_SENTINEL_PATH &&
+    isRecord(preregistration.benchmark) &&
+    preregistration.benchmark.bytes === 2_490_457 &&
+    preregistration.benchmark.fingerprint ===
+      V073_LOCOMO_BENCHMARK_FINGERPRINT &&
+    preregistration.benchmark.sha256 === V073_LOCOMO_ROOT_SHA256 &&
+    isArtifactIdentity(lifecycleProtection) &&
+    lifecycleProtection.path === V073_LIFECYCLE_PROTECTION_ARTIFACT &&
+    lifecycleProtection.bytes ===
+      Buffer.byteLength(input.lifecycleProtectionRaw, "utf8") &&
+    lifecycleProtection.sha256 ===
+      createHash("sha256").update(input.lifecycleProtectionRaw).digest("hex");
+  if (!preregistrationValid) {
+    issues.push("full-claim protocol-v2 preregistration is inconsistent");
+  }
+
+  const receiptHeaderValid =
+    receipt.protocolVersion === 2 &&
+    receipt.maxSeedLaunches === 2 &&
+    receipt.lifecycleCandidateCommit === preregistration.lifecycleCandidateCommit &&
+    receipt.protocolCandidateCommit === protocolCandidateCommit &&
+    COMMIT_PATTERN.test(String(receipt.sentinelCommit)) &&
+    receipt.sentinelCommit === input.projection.sentinelCommit &&
+    input.projection.lifecycleCandidateCommit ===
+      preregistration.lifecycleCandidateCommit &&
+    input.projection.protocolCandidateCommit === protocolCandidateCommit &&
+    input.projection.maxSeedLaunches === 2 &&
+    sameJson(input.projection.seedAttempts, receipt.seedAttempts) &&
+    sameArtifactIdentity(
+      receipt.preregistration,
+      input.sources.get("protocol-preregistration")!,
+    ) &&
+    sameArtifactIdentity(
+      receipt.sentinel,
+      input.sources.get("protocol-attempt-sentinel")!,
+    ) &&
+    isRecord(receipt.sources) &&
+    sameArtifactIdentity(
+      receipt.sources.preregistration,
+      input.sources.get("protocol-preregistration")!,
+    ) &&
+    sameArtifactIdentity(
+      receipt.sources.sentinel,
+      input.sources.get("protocol-attempt-sentinel")!,
+    );
+  if (!receiptHeaderValid) {
+    issues.push("full-claim protocol-v2 execution receipt is inconsistent");
+  }
+
+  if (
+    !isRecord(sentinel) ||
+    sentinel.protocolVersion !== 2 ||
+    sentinel.generatedBy !== "scripts/run-v0-7-3-full-locomo-claim.ts" ||
+    !Number.isFinite(Date.parse(String(sentinel.generatedAt))) ||
+    sentinel.state !== "consumed" ||
+    sentinel.maxSeedLaunches !== 2 ||
+    sentinel.lifecycleCandidateCommit !== preregistration.lifecycleCandidateCommit ||
+    sentinel.protocolCandidateCommit !== protocolCandidateCommit ||
+    sentinel.namespace !== protocolIdentity.namespace ||
+    !COMMIT_PATTERN.test(String(sentinel.releaseCommit))
+  ) {
+    issues.push("full-claim protocol-v2 sentinel is inconsistent");
+  }
+
+  const seedAttempts = receipt.seedAttempts;
+  const commandChain = receipt.commandChain;
+  const typedSeedAttempts = Array.isArray(seedAttempts) ? seedAttempts : [];
+  const finalCacheKeys = parseExtractionCacheKeys(
+    input.sourceRaws.get("seed-extraction-cache")!,
+  );
+  const expectedCacheCaseByKey = new Map(
+    (finalCacheKeys ?? []).map((key) => [key, "unknown"]),
+  );
+  if (typedSeedAttempts.length === 2 && isRecord(typedSeedAttempts[0])) {
+    const passOneKeys = parseExtractionCacheKeys(
+      input.sourceRaws.get("seed-attempt-1-extraction-cache")!,
+    );
+    const passOneKeySet = new Set(passOneKeys ?? []);
+    const missingKeys = (finalCacheKeys ?? []).filter(
+      (key) => !passOneKeySet.has(key),
+    );
+    if (missingKeys.length === 1) {
+      expectedCacheCaseByKey.set(
+        missingKeys[0]!,
+        String(typedSeedAttempts[0].failedCaseId),
+      );
+    }
+  }
+  const extractionCacheContractValid =
+    finalCacheKeys?.length === 272 &&
+    createHash("sha256")
+      .update(JSON.stringify([...finalCacheKeys].sort()))
+      .digest("hex") === EXPECTED_EXTRACTION_CACHE_KEY_SET_SHA256;
+  const seedInvocation = isRecord(commandChain) &&
+      isRecord(commandChain.seedSmoke)
+    ? commandChain.seedSmoke
+    : undefined;
+  let attemptHistoryValid = Array.isArray(seedAttempts) &&
+    (seedAttempts.length === 1 || seedAttempts.length === 2) &&
+    seedInvocation !== undefined &&
+    extractionCacheContractValid;
+  const passOneReport = input.sources.get("seed-attempt-1-report")!;
+  const passOneProgress = input.sources.get("seed-attempt-1-progress")!;
+  const passOneCache = input.sources.get("seed-attempt-1-extraction-cache")!;
+  const finalReport = input.sources.get("seed-report")!;
+  const finalProgress = input.sources.get("seed-progress")!;
+  const finalCache = input.sources.get("seed-extraction-cache")!;
+  const outputs = receipt.outputs;
+  const finalOutput = isRecord(outputs) ? outputs.finalReport : undefined;
+  const officialOutput = isRecord(outputs) ? outputs.officialSummary : undefined;
+  const seedReportOutput = isRecord(outputs) ? outputs.seedReport : undefined;
+  const seedProgressOutput = isRecord(outputs) ? outputs.seedProgress : undefined;
+  const seedCacheOutput = isRecord(outputs)
+    ? outputs.seedExtractionCache
+    : undefined;
+  const fixedOutputsValid =
+    isRecord(seedInvocation) &&
+    isNonEmptyString(seedInvocation.cwd) &&
+    isArtifactIdentity(seedReportOutput) &&
+    resolve(seedReportOutput.path) === resolve(
+      seedInvocation.cwd,
+      protocolIdentity.outputRoot,
+      protocolIdentity.seedRunId,
+      "smoke-report.json",
+    ) &&
+    isArtifactIdentity(finalOutput) &&
+    resolve(finalOutput.path) === resolve(
+      seedInvocation.cwd,
+      protocolIdentity.outputRoot,
+      protocolIdentity.finalRunId,
+      "smoke-report.json",
+    ) &&
+    isArtifactIdentity(officialOutput) &&
+    resolve(officialOutput.path) === resolve(
+      seedInvocation.cwd,
+      "reports/eval/research/official-rescore",
+      protocolIdentity.officialRunId,
+      "rescore-summary.json",
+    ) &&
+    isArtifactIdentity(seedProgressOutput) &&
+    seedProgressOutput.bytes === finalProgress.bytes &&
+    seedProgressOutput.sha256 === finalProgress.sha256 &&
+    resolve(seedProgressOutput.path) === resolve(
+      seedInvocation.cwd,
+      protocolIdentity.outputRoot,
+      protocolIdentity.seedRunId,
+      "live-progress.jsonl",
+    ) &&
+    isArtifactIdentity(seedCacheOutput) &&
+    seedCacheOutput.bytes === finalCache.bytes &&
+    seedCacheOutput.sha256 === finalCache.sha256 &&
+    resolve(seedCacheOutput.path) === resolve(
+      seedInvocation.cwd,
+      protocolIdentity.outputRoot,
+      protocolIdentity.seedRunId,
+      "extraction-cache.jsonl",
+    );
+  if (!fixedOutputsValid) {
+    issues.push("full-claim protocol-v2 execution receipt is inconsistent");
+  }
+  if (attemptHistoryValid) {
+    for (const [index, value] of typedSeedAttempts.entries()) {
+      const attempt = isRecord(value) ? value : undefined;
+      const first = index === 0;
+      const expectedReport = first ? passOneReport : finalReport;
+      const expectedProgress = first ? passOneProgress : finalProgress;
+      const expectedCache = first ? passOneCache : finalCache;
+      if (
+        !attempt ||
+        attempt.attempt !== index + 1 ||
+        attempt.exitCode !== 0 ||
+        !sameJson(attempt.command, seedInvocation) ||
+        !sameArtifactIdentity(attempt.report, expectedReport) ||
+        !sameArtifactIdentity(attempt.progress, expectedProgress) ||
+        !sameArtifactIdentity(attempt.extractionCache, expectedCache)
+      ) {
+        attemptHistoryValid = false;
+        break;
+      }
+    }
+  }
+  if (attemptHistoryValid) {
+    try {
+      const first = typedSeedAttempts[0] as Record<string, unknown>;
+      const passOneReportValue = JSON.parse(
+        input.sourceRaws.get("seed-attempt-1-report")!,
+      ) as unknown;
+      if (!isRecord(passOneReportValue)) {
+        throw new Error("seed attempt-one report must be an object");
+      }
+      const firstClassification = classifyV073SeedAttemptRecovery({
+        expectedCacheCaseByKey,
+        extractionCacheRaw: input.sourceRaws.get(
+          "seed-attempt-1-extraction-cache",
+        )!,
+        progressRaw: input.sourceRaws.get("seed-attempt-1-progress")!,
+        report: passOneReportValue,
+        runId: String(runIdentity.seedRunId),
+      });
+      if (typedSeedAttempts.length === 1) {
+        attemptHistoryValid =
+          first.failedCaseId === null &&
+          first.recoveryClassification === "failure-free" &&
+          sameJson(firstClassification, {
+            failedCaseId: null,
+            recoveryClassification: "failure-free",
+          }) &&
+          sameArtifactContent(passOneReport, finalReport) &&
+          sameArtifactContent(passOneProgress, finalProgress) &&
+          sameArtifactContent(passOneCache, finalCache) &&
+          input.sourceRaws.get("seed-attempt-1-report") === input.seedRaw &&
+          input.sourceRaws.get("seed-attempt-1-progress") ===
+            input.sourceRaws.get("seed-progress") &&
+          input.sourceRaws.get("seed-attempt-1-extraction-cache") ===
+            input.sourceRaws.get("seed-extraction-cache");
+      } else {
+        const second = typedSeedAttempts[1] as Record<string, unknown>;
+        const finalReportValue = JSON.parse(input.seedRaw) as unknown;
+        if (!isRecord(finalReportValue)) {
+          throw new Error("final seed report must be an object");
+        }
+        const finalClassification = classifyV073SeedAttemptRecovery({
+          expectedCacheCaseByKey,
+          extractionCacheRaw: input.sourceRaws.get("seed-extraction-cache")!,
+          progressRaw: input.sourceRaws.get("seed-progress")!,
+          report: finalReportValue,
+          runId: String(runIdentity.seedRunId),
+        });
+        const passOneRows = Array.isArray(passOneReportValue.cases)
+          ? passOneReportValue.cases.filter(isRecord)
+          : [];
+        const finalRows = Array.isArray(finalReportValue.cases)
+          ? finalReportValue.cases.filter(isRecord)
+          : [];
+        const finalRowsByQuestion = new Map(
+          finalRows.map((row) => [
+            `${String(row.caseId)}\u0000${String(row.questionId)}`,
+            row,
+          ]),
+        );
+        const successfulPassOneRetrievalStable = passOneRows
+          .filter((row) => row.executionFailureMessage == null)
+          .every((row) => {
+            const finalRow = finalRowsByQuestion.get(
+              `${String(row.caseId)}\u0000${String(row.questionId)}`,
+            );
+            return finalRow !== undefined &&
+              sameJson(retrievalIdentity(row), retrievalIdentity(finalRow));
+          });
+        attemptHistoryValid =
+          first.recoveryClassification ===
+            "eligible-single-case-seed-timeout" &&
+          first.failedCaseId === firstClassification.failedCaseId &&
+          firstClassification.recoveryClassification ===
+            "eligible-single-case-seed-timeout" &&
+          second.recoveryClassification ===
+            "failure-free-after-single-resume" &&
+          second.failedCaseId === null &&
+          sameJson(finalClassification, {
+            failedCaseId: null,
+            recoveryClassification: "failure-free",
+          }) &&
+          successfulPassOneRetrievalStable &&
+          input.sourceRaws.get("seed-progress")!.startsWith(
+            input.sourceRaws.get("seed-attempt-1-progress")!,
+          ) &&
+          input.sourceRaws.get("seed-extraction-cache")!.startsWith(
+            input.sourceRaws.get("seed-attempt-1-extraction-cache")!,
+          );
+      }
+    } catch {
+      attemptHistoryValid = false;
+    }
+  }
+  if (!attemptHistoryValid) {
+    issues.push("full-claim protocol-v2 seed attempt history is inconsistent");
+  }
+  return issues;
+}
+
+async function validateV073FullClaimProtocol2GitBoundary(input: {
+  claimRecipeRaw: string;
+  officialRunnerRaw: string;
+  preregistrationRaw: string;
+  protocolCandidateCommit: string;
+  repoRoot: string;
+  sentinel: unknown;
+  sentinelCommit: unknown;
+  sentinelRaw: string;
+}): Promise<string[]> {
+  if (
+    !COMMIT_PATTERN.test(input.protocolCandidateCommit) ||
+    !isRecord(input.sentinel) ||
+    !COMMIT_PATTERN.test(String(input.sentinel.releaseCommit)) ||
+    !COMMIT_PATTERN.test(String(input.sentinelCommit))
+  ) {
+    return ["full-claim protocol-v2 git boundary is inconsistent"];
+  }
+  const releaseCommit = String(input.sentinel.releaseCommit);
+  const sentinelCommit = String(input.sentinelCommit);
+  const [
+    currentCommit,
+    protocolToRelease,
+    sentinelToCurrent,
+    sentinelParent,
+    sentinelDiff,
+    preregistrationAtRelease,
+    sentinelAtRelease,
+    sentinelAtCommit,
+    claimRecipeAtProtocolCandidate,
+    officialRunnerAtProtocolCandidate,
+  ] = await Promise.all([
+    runCommand("git", ["rev-parse", "HEAD"], input.repoRoot),
+    runCommand(
+      "git",
+      [
+        "merge-base",
+        "--is-ancestor",
+        input.protocolCandidateCommit,
+        releaseCommit,
+      ],
+      input.repoRoot,
+    ),
+    runCommand(
+      "git",
+      ["merge-base", "--is-ancestor", sentinelCommit, "HEAD"],
+      input.repoRoot,
+    ),
+    runCommand("git", ["rev-parse", `${sentinelCommit}^`], input.repoRoot),
+    runCommand(
+      "git",
+      ["diff", "--name-only", releaseCommit, sentinelCommit],
+      input.repoRoot,
+    ),
+    runCommand(
+      "git",
+      ["show", `${releaseCommit}:${V073_FULL_CLAIM_PROTOCOL2_PREREGISTRATION_PATH}`],
+      input.repoRoot,
+    ),
+    runCommand(
+      "git",
+      ["show", `${releaseCommit}:${V073_FULL_CLAIM_PROTOCOL2_SENTINEL_PATH}`],
+      input.repoRoot,
+    ),
+    runCommand(
+      "git",
+      ["show", `${sentinelCommit}:${V073_FULL_CLAIM_PROTOCOL2_SENTINEL_PATH}`],
+      input.repoRoot,
+    ),
+    runCommand(
+      "git",
+      ["show", `${input.protocolCandidateCommit}:benchmark-claims/locomo.json`],
+      input.repoRoot,
+    ),
+    runCommand(
+      "git",
+      [
+        "show",
+        `${input.protocolCandidateCommit}:scripts/rescore-official-protocols.ts`,
+      ],
+      input.repoRoot,
+    ),
+  ]);
+  const valid =
+    currentCommit.code === 0 &&
+    COMMIT_PATTERN.test(currentCommit.stdout.trim()) &&
+    protocolToRelease.code === 0 &&
+    sentinelToCurrent.code === 0 &&
+    sentinelParent.code === 0 &&
+    sentinelParent.stdout.trim() === releaseCommit &&
+    sentinelDiff.code === 0 &&
+    sentinelDiff.stdout === `${V073_FULL_CLAIM_PROTOCOL2_SENTINEL_PATH}\n` &&
+    preregistrationAtRelease.code === 0 &&
+    preregistrationAtRelease.stdout === input.preregistrationRaw &&
+    sentinelAtRelease.code !== 0 &&
+    sentinelAtCommit.code === 0 &&
+    sentinelAtCommit.stdout === input.sentinelRaw &&
+    claimRecipeAtProtocolCandidate.code === 0 &&
+    claimRecipeAtProtocolCandidate.stdout === input.claimRecipeRaw &&
+    officialRunnerAtProtocolCandidate.code === 0 &&
+    officialRunnerAtProtocolCandidate.stdout === input.officialRunnerRaw;
+  return valid
+    ? []
+    : ["full-claim protocol-v2 git boundary is inconsistent"];
+}
+
 function validateStableLocomoEvidenceValues(input: {
   claimRecipeRaw: string;
   claimDeclaration: unknown;
@@ -765,8 +1360,10 @@ function validateStableLocomoEvidenceValues(input: {
   officialSummary: unknown;
   officialProgressRaw: string;
   projection: Record<string, unknown>;
+  lifecycleProtectionRaw: string;
   seedRaw: string;
   seedReport: unknown;
+  sourceRaws: Map<string, string>;
   sources: Map<string, ArtifactIdentityShape>;
 }): string[] {
   const issues: string[] = [];
@@ -774,6 +1371,14 @@ function validateStableLocomoEvidenceValues(input: {
   const descriptor = input.projection.descriptorClaim as Record<string, unknown>;
   const execution = input.projection.execution as Record<string, unknown>;
   const runIdentity = input.projection.runIdentity as Record<string, unknown>;
+  issues.push(...validateV073FullClaimProtocol2({
+    executionReceipt: input.executionReceipt,
+    lifecycleProtectionRaw: input.lifecycleProtectionRaw,
+    projection: input.projection,
+    seedRaw: input.seedRaw,
+    sourceRaws: input.sourceRaws,
+    sources: input.sources,
+  }));
   if (
     execution.benchmarkFingerprint !== V073_LOCOMO_BENCHMARK_FINGERPRINT ||
     execution.benchmarkRootSha256 !== V073_LOCOMO_ROOT_SHA256
@@ -781,20 +1386,20 @@ function validateStableLocomoEvidenceValues(input: {
     issues.push("current LoCoMo execution does not use the frozen full-10 benchmark bytes");
   }
   const seedRows = validateFullLocomoReport({
+    expectedMode: "retrieval-only",
     expectedGeneratedBy: "scripts/run-phase-65-locomo-smoke.ts",
     expectedResume: true,
     issues,
     label: "seed report",
     report: input.seedReport,
-    requireAnswerSystem: false,
   });
   const finalRows = validateFullLocomoReport({
+    expectedMode: "live-answer",
     expectedGeneratedBy: "scripts/reanswer-phase-65-locomo-report.ts",
     expectedResume: false,
     issues,
     label: "final report",
     report: input.finalReport,
-    requireAnswerSystem: true,
   });
   if (isRecord(input.seedReport) && isRecord(input.finalReport)) {
     const sourceReport = input.finalReport.sourceReport;
@@ -983,6 +1588,7 @@ function validateStableLocomoEvidenceValues(input: {
       !isRecord(commandChain) ||
       !isRecord(freshOutputEvidence) ||
       freshOutputEvidence.seedOutputPathAbsentBeforeRun !== true ||
+      freshOutputEvidence.seedAttemptOneSnapshotPathAbsentBeforeRun !== true ||
       freshOutputEvidence.finalOutputPathAbsentBeforeRun !== true ||
       freshOutputEvidence.officialOutputPathAbsentBeforeRun !== true
     ) {
@@ -1051,6 +1657,7 @@ function validateStableLocomoEvidenceValues(input: {
       } else {
         const claimRecipeRaw = input.claimRecipeRaw;
         try {
+          const recordedBenchmarkRoot = dirname(sourceInputs.rootPath);
           const expectedChain = buildV073FullClaimCommandChain({
             answerGateway: String(execution.answerGateway),
             answerModel: String(execution.answerModel),
@@ -1058,7 +1665,7 @@ function validateStableLocomoEvidenceValues(input: {
             assistedExtractorGateway: String(execution.assistedExtractorGateway),
             assistedExtractorModel: String(execution.assistedExtractorModel),
             assistedExtractorProvider: String(execution.assistedExtractorProvider),
-            benchmarkRoot: dirname(sourceInputs.rootPath),
+            benchmarkRoot: V073_PROTOCOL2_CANONICAL_BENCHMARK_ROOT,
             embeddingGateway: String(execution.embeddingGateway),
             embeddingModel: String(execution.embeddingModel),
             embeddingProvider: String(execution.embeddingProvider),
@@ -1074,13 +1681,27 @@ function validateStableLocomoEvidenceValues(input: {
             seedOutputPath: dirname(seedOutput.path),
             seedRunId: String(runIdentity.seedRunId),
             worktreePath: seedInvocation.cwd,
-          }, claimRecipeRaw);
-          const expectedCommand = renderV073FullClaimCommand(
+          }, canonicalProtocol2ClaimRecipe(claimRecipeRaw));
+          if (
+            !Array.isArray(receipt.seedAttempts) ||
+            (receipt.seedAttempts.length !== 1 &&
+              receipt.seedAttempts.length !== 2)
+          ) {
+            throw new Error("full claim protocol-v2 seed attempt count is invalid");
+          }
+          const expectedCommand = renderV073FullClaimProtocol2Command(
             expectedChain,
             seedInvocation.cwd,
+            receipt.seedAttempts.length,
           );
           if (
-            !sameJson(commandChain, expectedChain) ||
+            !sameJson(
+              canonicalProtocol2CommandChain(
+                commandChain,
+                recordedBenchmarkRoot,
+              ),
+              expectedChain,
+            ) ||
             receipt.command !== expectedCommand ||
             execution.claimCommandSha256 !==
               createHash("sha256").update(expectedCommand).digest("hex") ||
@@ -1160,6 +1781,27 @@ function validateStableLocomoEvidenceValues(input: {
   return issues;
 }
 
+async function readTrackedRegularText(input: {
+  label: string;
+  path: string;
+  repoRoot: string;
+}): Promise<string> {
+  const repoRoot = resolve(input.repoRoot);
+  const absolutePath = resolve(repoRoot, input.path);
+  if (!absolutePath.startsWith(`${repoRoot}/`)) {
+    throw new Error(`${input.label} escapes the tracked repository`);
+  }
+  const fileInfo = await lstat(absolutePath);
+  if (!fileInfo.isFile()) {
+    throw new Error(`${input.label} must be a regular tracked file`);
+  }
+  const expectedRealPath = resolve(await realpath(repoRoot), input.path);
+  if (await realpath(absolutePath) !== expectedRealPath) {
+    throw new Error(`${input.label} must be a regular tracked file`);
+  }
+  return readFile(absolutePath, "utf8");
+}
+
 export async function validateStableLocomoClaimEvidence(input: {
   claimDeclaration: unknown;
   projection: unknown;
@@ -1188,7 +1830,11 @@ export async function validateStableLocomoClaimEvidence(input: {
       continue;
     }
     try {
-      const raw = await readFile(join(input.repoRoot, source.path), "utf8");
+      const raw = await readTrackedRegularText({
+        label: kind,
+        path: source.path,
+        repoRoot: input.repoRoot,
+      });
       const digest = createHash("sha256").update(raw).digest("hex");
       if (
         Buffer.byteLength(raw, "utf8") !== source.bytes ||
@@ -1199,11 +1845,26 @@ export async function validateStableLocomoClaimEvidence(input: {
         rawByKind.set(kind, raw);
       }
     } catch (error) {
-      issues.push(`${kind} cannot be read from ${source.path}: ${String(error)}`);
+      issues.push(
+        error instanceof Error
+          ? error.message
+          : `${kind} cannot be read from ${source.path}: ${String(error)}`,
+      );
     }
   }
   if (issues.length > 0) {
     return issues;
+  }
+  let lifecycleProtectionRaw: string;
+  try {
+    lifecycleProtectionRaw = await readFile(
+      join(input.repoRoot, V073_LIFECYCLE_PROTECTION_ARTIFACT),
+      "utf8",
+    );
+  } catch (error) {
+    return [
+      `lifecycle protection artifact cannot be read from ${V073_LIFECYCLE_PROTECTION_ARTIFACT}: ${String(error)}`,
+    ];
   }
   const seedRaw = rawByKind.get("seed-report")!;
   const claimRecipeRaw = rawByKind.get("claim-recipe-source")!;
@@ -1215,10 +1876,15 @@ export async function validateStableLocomoClaimEvidence(input: {
   const finalReport = parseEvidenceJson(finalRaw, "final report", issues);
   const officialSummary = parseEvidenceJson(officialRaw, "official summary", issues);
   const executionReceipt = parseEvidenceJson(receiptRaw, "execution receipt", issues);
+  const sentinel = parseEvidenceJson(
+    rawByKind.get("protocol-attempt-sentinel")!,
+    "full-claim protocol-v2 sentinel",
+    issues,
+  );
   if (issues.length > 0) {
     return issues;
   }
-  return validateStableLocomoEvidenceValues({
+  const evidenceIssues = validateStableLocomoEvidenceValues({
     claimRecipeRaw,
     claimDeclaration: input.claimDeclaration,
     executionReceipt,
@@ -1227,10 +1893,27 @@ export async function validateStableLocomoClaimEvidence(input: {
     officialSummary,
     officialProgressRaw,
     projection: input.projection,
+    lifecycleProtectionRaw,
     seedRaw,
     seedReport,
+    sourceRaws: rawByKind,
     sources,
   });
+  const gitBoundaryIssues = await validateV073FullClaimProtocol2GitBoundary({
+    claimRecipeRaw,
+    officialRunnerRaw: rawByKind.get("official-runner-source")!,
+    preregistrationRaw: rawByKind.get("protocol-preregistration")!,
+    protocolCandidateCommit: isRecord(input.projection.runIdentity)
+      ? String(input.projection.runIdentity.commit)
+      : "",
+    repoRoot: input.repoRoot,
+    sentinel,
+    sentinelCommit: isRecord(executionReceipt)
+      ? executionReceipt.sentinelCommit
+      : undefined,
+    sentinelRaw: rawByKind.get("protocol-attempt-sentinel")!,
+  });
+  return [...evidenceIssues, ...gitBoundaryIssues];
 }
 
 async function pathExists(path: string): Promise<boolean> {
@@ -1258,6 +1941,9 @@ export async function evaluateV073CurrentLocomoClaimState(input: {
   const artifactPaths = Object.values(V073_LOCOMO_SOURCE_ARTIFACT_PATHS).map(
     (path) => join(input.repoRoot, path),
   );
+  const preregistrationArtifactIndex = Object.values(
+    V073_LOCOMO_SOURCE_ARTIFACT_PATHS,
+  ).indexOf(V073_FULL_CLAIM_PROTOCOL2_PREREGISTRATION_PATH);
   const listDirectory = async (path: string): Promise<string[]> => {
     try {
       return await readdir(path);
@@ -1288,7 +1974,11 @@ export async function evaluateV073CurrentLocomoClaimState(input: {
     projectionEntries.some((name) =>
       name.startsWith(".locomo-v0.7.3-current.json.partial-"));
   const anyEvidence =
-    evidenceRootExists || artifactPresence.some(Boolean) || partialPublication;
+    evidenceRootExists ||
+    artifactPresence.some(
+      (present, index) => present && index !== preregistrationArtifactIndex,
+    ) ||
+    partialPublication;
   const completeEvidence = artifactPresence.every(Boolean);
   if (!projectionExists && !anyEvidence) {
     return stableLocomoClaimIssues({
@@ -1298,17 +1988,54 @@ export async function evaluateV073CurrentLocomoClaimState(input: {
     });
   }
   const issues: string[] = [];
+  if (evidenceRootExists) {
+    const expectedEntries = Object.values(V073_LOCOMO_SOURCE_ARTIFACT_PATHS)
+      .filter((path) => path.startsWith(V073_LOCOMO_CLAIM_EVIDENCE_PREFIX))
+      .map((path) => path.slice(V073_LOCOMO_CLAIM_EVIDENCE_PREFIX.length))
+      .sort();
+    try {
+      const rootInfo = await lstat(evidenceRoot);
+      const expectedRealRoot = resolve(
+        await realpath(input.repoRoot),
+        V073_LOCOMO_CLAIM_EVIDENCE_PREFIX.slice(0, -1),
+      );
+      if (
+        !rootInfo.isDirectory() ||
+        await realpath(evidenceRoot) !== expectedRealRoot
+      ) {
+        issues.push("current LoCoMo evidence root must be a real directory");
+      } else {
+        const entries = await readdir(evidenceRoot, { withFileTypes: true });
+        if (
+          entries.some((entry) => !entry.isFile()) ||
+          !sameJson(entries.map((entry) => entry.name).sort(), expectedEntries)
+        ) {
+          issues.push(
+            `current LoCoMo evidence directory must contain exactly the ${expectedEntries.length} tracked bundle files`,
+          );
+        }
+      }
+    } catch {
+      issues.push("current LoCoMo evidence root must be a real directory");
+    }
+  }
   let projection: unknown = undefined;
   if (projectionExists) {
     try {
-      projection = JSON.parse(await readFile(projectionPath, "utf8")) as unknown;
+      projection = JSON.parse(await readTrackedRegularText({
+        label: "current LoCoMo projection",
+        path: V073_LOCOMO_CURRENT_PROJECTION,
+        repoRoot: input.repoRoot,
+      })) as unknown;
     } catch {
-      issues.push(`${V073_LOCOMO_CURRENT_PROJECTION} is not valid JSON`);
+      issues.push(
+        `${V073_LOCOMO_CURRENT_PROJECTION} is not a regular tracked JSON file`,
+      );
     }
   }
   if (!projectionExists || !completeEvidence || partialPublication) {
     issues.push(
-      "current LoCoMo evidence is partial: projection and all seven tracked source artifacts must appear together",
+      `current LoCoMo evidence is partial: projection and all ${Object.keys(V073_LOCOMO_SOURCE_ARTIFACT_PATHS).length} tracked source artifacts must appear together`,
     );
   }
   issues.push(...stableLocomoClaimIssues({
@@ -1346,7 +2073,7 @@ export async function evaluateV073CurrentLocomoClaimState(input: {
 }
 
 export function evaluateStableLocomoCandidateLink(input: {
-  candidateCommit: string;
+  protocolCandidateCommit: string;
   candidatePromptSha256: string;
   projection: unknown;
 }): V07ReleaseReadinessCheck {
@@ -1358,12 +2085,12 @@ export function evaluateStableLocomoCandidateLink(input: {
     isRecord(input.projection.execution)
     ? input.projection.execution.promptSha256
     : undefined;
-  const matches = measuredCommit === input.candidateCommit &&
+  const matches = measuredCommit === input.protocolCandidateCommit &&
     measuredPromptSha256 === input.candidatePromptSha256;
   return {
     detail: matches
-      ? `full-1540 LoCoMo claim was measured on lifecycle candidate ${input.candidateCommit} with prompt ${input.candidatePromptSha256}`
-      : `full-1540 LoCoMo claim commit/prompt ${String(measuredCommit ?? "<missing>")}/${String(measuredPromptSha256 ?? "<missing>")} does not match lifecycle candidate ${input.candidateCommit}/${input.candidatePromptSha256}`,
+      ? `full-1540 LoCoMo claim was measured on protocol candidate ${input.protocolCandidateCommit} with prompt ${input.candidatePromptSha256}`
+      : `full-1540 LoCoMo claim commit/prompt ${String(measuredCommit ?? "<missing>")}/${String(measuredPromptSha256 ?? "<missing>")} does not match protocol candidate ${input.protocolCandidateCommit}/${input.candidatePromptSha256}`,
     durationMs: 0,
     id: "v0.7.3-current-claim-candidate",
     required: true,
@@ -3043,16 +3770,256 @@ const ALLOWED_POST_CANDIDATE_DESCRIPTOR_PATHS = new Set([
   "server.json",
 ]);
 
-function isAllowedPostCandidatePath(path: string): boolean {
-  return (
-    path === "package.json" ||
-    path === "README.md" ||
-    path.startsWith("README.") ||
-    path.startsWith("benchmark-claims/") ||
-    path.startsWith("docs/") ||
-    path.startsWith("reports/") ||
-    ALLOWED_POST_CANDIDATE_DESCRIPTOR_PATHS.has(path)
+const ALLOWED_POST_CANDIDATE_PATHS = new Set([
+  ...Object.values(V073_LOCOMO_SOURCE_ARTIFACT_PATHS),
+  ...ALLOWED_POST_CANDIDATE_DESCRIPTOR_PATHS,
+  V073_LOCOMO_CURRENT_PROJECTION,
+  "benchmark-claims/locomo.json",
+  "docs/GoodMemory-Current-Status-and-Evidence.md",
+  "docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md",
+  "docs/README.md",
+  "package.json",
+  "README.md",
+  "README.zh-CN.md",
+  "reports/release/v0.7/phase-74-storage-scale-gate.json",
+  "reports/release/v0.7/readiness-report.json",
+  "reports/release/v0.7/summary.md",
+]);
+
+const V073_LIFECYCLE_TO_PROTOCOL_EXACT_PATHS = new Set([
+  ".github/workflows/release.yml",
+  ".gitignore",
+  "bun.lock",
+  "docs/README.md",
+  "docs/GoodMemory-Current-Status-and-Evidence.md",
+  "docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md",
+  "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+  "reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json",
+  "package-lock.json",
+  "package.json",
+  "scripts/run-v0-7-3-full-locomo-claim.ts",
+  "scripts/run-coverage.ts",
+  "scripts/run-v0-7-release-readiness.ts",
+  "tests/quality-gates/phase-73/codex-coding-effect.c6-protocol-readiness.gate.ts",
+  "tests/release/release.test.ts",
+  "tests/release/v0-7-stable-artifact.test.ts",
+  "tests/integration/codex-coding-effect.c6-protocol-readiness.test.ts",
+  "tests/unit/run-coverage.script.test.ts",
+  "tests/unit/run-v0-7-3-lifecycle-protection-gate.test.ts",
+  "tests/unit/run-v0-7-3-full-locomo-claim.test.ts",
+  "tests/unit/run-v0-7-release-readiness.test.ts",
+]);
+
+const V073_LIFECYCLE_TO_PROTOCOL_PREFIXES = [
+  "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/",
+  "reports/release/v0.7/v0.7.3-locomo-claim-attempt-1-failed/",
+  "reports/release/v0.7/v0.7.3-locomo-claim-attempt-2-failed/",
+] as const;
+
+const V073_PROTOCOL_DEPENDENCY_PIN_PATHS = [
+  "bun.lock",
+  "package-lock.json",
+  "package.json",
+] as const;
+
+const V073_PROTOCOL_DEPENDENCY_PINS = {
+  "@ai-sdk/anthropic": ["^3.0.64", "3.0.64"],
+  "@ai-sdk/openai": ["^3.0.49", "3.0.49"],
+  "@ai-sdk/openai-compatible": ["^2.0.40", "2.0.40"],
+  "@ai-sdk/provider-utils": ["^4.0.21", "4.0.23"],
+  ai: ["^6.0.143", "6.0.143"],
+} as const;
+
+const V073_PROVIDER_UTILS_REGISTRY_IDENTITIES = {
+  "4.0.21": {
+    integrity:
+      "sha512-MtFUYI1/8mgDvRmaBDjbLJPFFrMG777AvSgyIFQtZHIMzm88R/12vYBBpnk7pfiWLFE1DSZzY4WDYzGbKAcmiw==",
+    resolved:
+      "https://registry.npmjs.org/@ai-sdk/provider-utils/-/provider-utils-4.0.21.tgz",
+  },
+  "4.0.23": {
+    integrity:
+      "sha512-z8GlDaCmRSDlqkMF2f4/RFgWxdarvIbyuk+m6WXT1LYgsnGiXRJGTD2Z1+SDl3LqtFuRtGX1aghYvQLoHL/9pg==",
+    resolved:
+      "https://registry.npmjs.org/@ai-sdk/provider-utils/-/provider-utils-4.0.23.tgz",
+  },
+} as const;
+
+export function isV073ProtocolDependencyPinningExact(input: {
+  lifecycleRaws: Record<typeof V073_PROTOCOL_DEPENDENCY_PIN_PATHS[number], string>;
+  protocolRaws: Record<typeof V073_PROTOCOL_DEPENDENCY_PIN_PATHS[number], string>;
+}): boolean {
+  try {
+    const normalizeDependencies = (
+      dependencies: Record<string, string> | undefined,
+    ) => {
+      if (!dependencies) {
+        return false;
+      }
+      for (const [name, [before, after]] of Object.entries(
+        V073_PROTOCOL_DEPENDENCY_PINS,
+      )) {
+        if (dependencies[name] !== after) {
+          return false;
+        }
+        dependencies[name] = before;
+      }
+      return true;
+    };
+
+    const lifecyclePackage = JSON.parse(
+      input.lifecycleRaws["package.json"],
+    ) as Record<string, unknown>;
+    const protocolPackage = JSON.parse(
+      input.protocolRaws["package.json"],
+    ) as Record<string, unknown>;
+    if (
+      !normalizeDependencies(
+        protocolPackage.dependencies as Record<string, string> | undefined,
+      ) ||
+      !isDeepStrictEqual(protocolPackage, lifecyclePackage)
+    ) {
+      return false;
+    }
+
+    const lifecyclePackageLock = JSON.parse(
+      input.lifecycleRaws["package-lock.json"],
+    ) as Record<string, unknown>;
+    const protocolPackageLock = JSON.parse(
+      input.protocolRaws["package-lock.json"],
+    ) as Record<string, unknown>;
+    const packages = protocolPackageLock.packages as
+      | Record<string, Record<string, unknown>>
+      | undefined;
+    if (
+      !packages ||
+      !normalizeDependencies(
+        packages[""]?.dependencies as Record<string, string> | undefined,
+      )
+    ) {
+      return false;
+    }
+    const rootProviderUtils = packages["node_modules/@ai-sdk/provider-utils"];
+    const nestedProviderUtilsPaths = [
+      "node_modules/@ai-sdk/anthropic/node_modules/@ai-sdk/provider-utils",
+      "node_modules/@ai-sdk/gateway/node_modules/@ai-sdk/provider-utils",
+      "node_modules/@ai-sdk/openai/node_modules/@ai-sdk/provider-utils",
+      "node_modules/ai/node_modules/@ai-sdk/provider-utils",
+    ] as const;
+    const nestedProviderUtils = packages[nestedProviderUtilsPaths[0]];
+    const providerUtilsPaths = Object.keys(packages).filter((path) =>
+      path.endsWith("node_modules/@ai-sdk/provider-utils")
+    );
+    const hasRegistryIdentity = (
+      value: Record<string, unknown> | undefined,
+      version: keyof typeof V073_PROVIDER_UTILS_REGISTRY_IDENTITIES,
+    ) => {
+      const identity = V073_PROVIDER_UTILS_REGISTRY_IDENTITIES[version];
+      return value?.resolved === identity.resolved &&
+        value.integrity === identity.integrity;
+    };
+    if (
+      !rootProviderUtils ||
+      rootProviderUtils.version !== "4.0.23" ||
+      !hasRegistryIdentity(rootProviderUtils, "4.0.23") ||
+      !nestedProviderUtils ||
+      nestedProviderUtils.version !== "4.0.21" ||
+      !hasRegistryIdentity(nestedProviderUtils, "4.0.21") ||
+      providerUtilsPaths.length !== nestedProviderUtilsPaths.length + 1 ||
+      nestedProviderUtilsPaths.some((path) =>
+        !hasRegistryIdentity(packages[path], "4.0.21") ||
+        !isDeepStrictEqual(packages[path], nestedProviderUtils))
+    ) {
+      return false;
+    }
+    const withoutRegistryIdentity = (value: Record<string, unknown>) => {
+      const normalized = { ...value };
+      delete normalized.resolved;
+      delete normalized.integrity;
+      return normalized;
+    };
+    for (const path of nestedProviderUtilsPaths) {
+      delete packages[path];
+    }
+    packages["node_modules/@ai-sdk/provider-utils"] =
+      withoutRegistryIdentity(nestedProviderUtils);
+    packages[
+      "node_modules/@ai-sdk/openai-compatible/node_modules/@ai-sdk/provider-utils"
+    ] = withoutRegistryIdentity(rootProviderUtils);
+    if (
+      !isDeepStrictEqual(protocolPackageLock, lifecyclePackageLock)
+    ) {
+      return false;
+    }
+
+    let normalizedBunLock = input.protocolRaws["bun.lock"];
+    for (const [name, [before, after]] of Object.entries(
+      V073_PROTOCOL_DEPENDENCY_PINS,
+    )) {
+      const current = `"${name}": "${after}"`;
+      const prior = `"${name}": "${before}"`;
+      if (!normalizedBunLock.includes(current)) {
+        return false;
+      }
+      normalizedBunLock = normalizedBunLock.replace(current, prior);
+    }
+    return normalizedBunLock === input.lifecycleRaws["bun.lock"];
+  } catch {
+    return false;
+  }
+}
+
+function isAllowedLifecycleToProtocolPath(path: string): boolean {
+  return V073_LIFECYCLE_TO_PROTOCOL_EXACT_PATHS.has(path) ||
+    V073_LIFECYCLE_TO_PROTOCOL_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
+export function evaluateV073LifecycleToProtocolSourceDrift(input: {
+  changedPaths: readonly string[];
+  dependencyPinningValid?: boolean;
+  isAncestor: boolean;
+  lifecycleCandidateCommit: string;
+  protocolCandidateCommit: string;
+}): V07ReleaseReadinessCheck {
+  const issues: string[] = [];
+  if (!input.isAncestor) {
+    issues.push(
+      `lifecycle candidate ${input.lifecycleCandidateCommit} is not an ancestor of protocol candidate ${input.protocolCandidateCommit}`,
+    );
+  }
+  const forbiddenPaths = input.changedPaths.filter(
+    (path) => !isAllowedLifecycleToProtocolPath(path),
   );
+  if (forbiddenPaths.length > 0) {
+    issues.push(
+      `non-protocol surface changed after lifecycle measurement: ${forbiddenPaths.join(", ")}`,
+    );
+  }
+  const dependencyPinPathsChanged = V073_PROTOCOL_DEPENDENCY_PIN_PATHS.filter(
+    (path) => input.changedPaths.includes(path),
+  );
+  if (
+    dependencyPinPathsChanged.length > 0 &&
+    (dependencyPinPathsChanged.length !==
+        V073_PROTOCOL_DEPENDENCY_PIN_PATHS.length ||
+      input.dependencyPinningValid !== true)
+  ) {
+    issues.push("AI SDK dependency pinning differs from the exact measured closure");
+  }
+  return {
+    detail: issues.length === 0
+      ? `protocol candidate ${input.protocolCandidateCommit} is a narrowly-scoped descendant of lifecycle candidate ${input.lifecycleCandidateCommit}`
+      : issues.join("; "),
+    durationMs: 0,
+    id: "v0.7.3-protocol-source",
+    required: true,
+    status: issues.length === 0 ? "pass" : "fail",
+    title: "v0.7.3 lifecycle-to-protocol source stability",
+  };
+}
+
+function isAllowedPostCandidatePath(path: string): boolean {
+  return ALLOWED_POST_CANDIDATE_PATHS.has(path);
 }
 
 function releaseStatus(value: unknown): unknown {
@@ -3160,7 +4127,7 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
     if (bundleCheck.status !== "pass") {
       return [bundleCheck];
     }
-    const candidateCommit = String(artifact.candidateCommit);
+    const lifecycleCandidateCommit = String(artifact.candidateCommit);
     const packageJson = JSON.parse(
       await readFile(join(input.repoRoot, "package.json"), "utf8"),
     ) as PackageJson;
@@ -3168,11 +4135,11 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
     const currentProjectionExists = await pathExists(
       join(input.repoRoot, V073_LOCOMO_CURRENT_PROJECTION),
     );
+    let projection: unknown = undefined;
     if (
       packageJson.goodmemoryRelease?.status === "stable" ||
       currentProjectionExists
     ) {
-      let projection: unknown = undefined;
       try {
         projection = JSON.parse(
           await readFile(join(input.repoRoot, V073_LOCOMO_CURRENT_PROJECTION), "utf8"),
@@ -3180,25 +4147,85 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
       } catch {
         projection = undefined;
       }
+    }
+    let preregistration: unknown = undefined;
+    const preregistrationPath = join(
+      input.repoRoot,
+      V073_FULL_CLAIM_PROTOCOL2_PREREGISTRATION_PATH,
+    );
+    if (await pathExists(preregistrationPath)) {
+      try {
+        preregistration = JSON.parse(
+          await readFile(preregistrationPath, "utf8"),
+        ) as unknown;
+      } catch {
+        preregistration = undefined;
+      }
+    }
+    const projectionCommit = isRecord(projection) &&
+        isRecord(projection.runIdentity) &&
+        COMMIT_PATTERN.test(String(projection.runIdentity.commit))
+      ? String(projection.runIdentity.commit)
+      : undefined;
+    const preregisteredCommit = isRecord(preregistration) &&
+        COMMIT_PATTERN.test(String(preregistration.protocolCandidateCommit))
+      ? String(preregistration.protocolCandidateCommit)
+      : undefined;
+    const protocolCandidateCommit = projectionCommit ??
+      preregisteredCommit ?? input.currentCommit;
+    if (
+      packageJson.goodmemoryRelease?.status === "stable" ||
+      currentProjectionExists
+    ) {
       claimCandidateChecks.push(evaluateStableLocomoCandidateLink({
-        candidateCommit,
+        protocolCandidateCommit,
         candidatePromptSha256: String(artifact.candidatePromptSha256),
         projection,
       }));
     }
-    const [ancestor, changed] = await Promise.all([
+    const [
+      lifecycleAncestor,
+      lifecycleChanged,
+      releaseAncestor,
+      releaseChanged,
+    ] = await Promise.all([
       runCommand(
         "git",
-        ["merge-base", "--is-ancestor", candidateCommit, input.currentCommit],
+        [
+          "merge-base",
+          "--is-ancestor",
+          lifecycleCandidateCommit,
+          protocolCandidateCommit,
+        ],
         input.repoRoot,
       ),
       runCommand(
         "git",
-        ["diff", "--name-only", `${candidateCommit}..${input.currentCommit}`, "--"],
+        [
+          "diff",
+          "--name-only",
+          `${lifecycleCandidateCommit}..${protocolCandidateCommit}`,
+          "--",
+        ],
+        input.repoRoot,
+      ),
+      runCommand(
+        "git",
+        ["merge-base", "--is-ancestor", protocolCandidateCommit, input.currentCommit],
+        input.repoRoot,
+      ),
+      runCommand(
+        "git",
+        ["diff", "--name-only", `${protocolCandidateCommit}..${input.currentCommit}`, "--"],
         input.repoRoot,
       ),
     ]);
-    if ((ancestor.code !== 0 && ancestor.code !== 1) || changed.code !== 0) {
+    if (
+      (lifecycleAncestor.code !== 0 && lifecycleAncestor.code !== 1) ||
+      lifecycleChanged.code !== 0 ||
+      (releaseAncestor.code !== 0 && releaseAncestor.code !== 1) ||
+      releaseChanged.code !== 0
+    ) {
       return [
         bundleCheck,
         ...claimCandidateChecks,
@@ -3212,16 +4239,60 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
         },
       ];
     }
-    const changedPaths = changed.stdout
+    const lifecycleChangedPaths = lifecycleChanged.stdout
       .split(/\r?\n/u)
       .map((path) => path.trim())
       .filter(Boolean);
+    const releaseChangedPaths = releaseChanged.stdout
+      .split(/\r?\n/u)
+      .map((path) => path.trim())
+      .filter(Boolean);
+    let dependencyPinningValid: boolean | undefined;
+    if (
+      V073_PROTOCOL_DEPENDENCY_PIN_PATHS.some((path) =>
+        lifecycleChangedPaths.includes(path))
+    ) {
+      const outcomes = await Promise.all(
+        V073_PROTOCOL_DEPENDENCY_PIN_PATHS.flatMap((path) => [
+          runCommand(
+            "git",
+            ["show", `${lifecycleCandidateCommit}:${path}`],
+            input.repoRoot,
+          ),
+          runCommand(
+            "git",
+            ["show", `${protocolCandidateCommit}:${path}`],
+            input.repoRoot,
+          ),
+        ]),
+      );
+      if (outcomes.every((outcome) => outcome.code === 0)) {
+        const lifecycleRaws = {} as Record<
+          (typeof V073_PROTOCOL_DEPENDENCY_PIN_PATHS)[number],
+          string
+        >;
+        const protocolRaws = {} as Record<
+          (typeof V073_PROTOCOL_DEPENDENCY_PIN_PATHS)[number],
+          string
+        >;
+        V073_PROTOCOL_DEPENDENCY_PIN_PATHS.forEach((path, index) => {
+          lifecycleRaws[path] = outcomes[index * 2]!.stdout;
+          protocolRaws[path] = outcomes[index * 2 + 1]!.stdout;
+        });
+        dependencyPinningValid = isV073ProtocolDependencyPinningExact({
+          lifecycleRaws,
+          protocolRaws,
+        });
+      } else {
+        dependencyPinningValid = false;
+      }
+    }
     let candidatePackage: unknown = undefined;
     let currentPackage: unknown = undefined;
-    if (changedPaths.includes("package.json")) {
+    if (releaseChangedPaths.includes("package.json")) {
       const candidatePackageOutcome = await runCommand(
         "git",
-        ["show", `${candidateCommit}:package.json`],
+        ["show", `${protocolCandidateCommit}:package.json`],
         input.repoRoot,
       );
       if (candidatePackageOutcome.code !== 0) {
@@ -3232,17 +4303,28 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
         await readFile(join(input.repoRoot, "package.json"), "utf8"),
       ) as unknown;
     }
+    const protocolSourceCheck = evaluateV073LifecycleToProtocolSourceDrift({
+      changedPaths: lifecycleChangedPaths,
+      dependencyPinningValid,
+      isAncestor: lifecycleAncestor.code === 0,
+      lifecycleCandidateCommit,
+      protocolCandidateCommit,
+    });
     const sourceCheck = evaluateV073LifecycleProtectionSourceDrift({
-      candidateCommit,
+      candidateCommit: protocolCandidateCommit,
       candidatePackage,
-      changedPaths,
+      changedPaths: releaseChangedPaths,
       currentCommit: input.currentCommit,
       currentPackage,
-      isAncestor: ancestor.code === 0,
+      isAncestor: releaseAncestor.code === 0,
     });
     return [
       bundleCheck,
       ...claimCandidateChecks,
+      {
+        ...protocolSourceCheck,
+        durationMs: Math.round(performance.now() - startedAt),
+      },
       {
         ...sourceCheck,
         durationMs: Math.round(performance.now() - startedAt),
@@ -3616,6 +4698,48 @@ async function evaluatePack(repoRoot: string): Promise<V07ReleaseReadinessCheck>
   }
 }
 
+export function evaluateV07PackedProductionDependencyClosure(input: {
+  auditExitCode: number;
+  auditRaw: string;
+  packageLockRaw: string;
+}): string[] {
+  const issues: string[] = [];
+  let packageLock: unknown;
+  let audit: unknown;
+  try {
+    packageLock = JSON.parse(input.packageLockRaw) as unknown;
+    audit = JSON.parse(input.auditRaw) as unknown;
+  } catch {
+    return ["packed production dependency evidence is not valid JSON"];
+  }
+  const packages = isRecord(packageLock) && isRecord(packageLock.packages)
+    ? packageLock.packages
+    : {};
+  const undiciVersions = Object.entries(packages)
+    .filter(([path]) => /(?:^|\/)node_modules\/undici$/u.test(path))
+    .map(([, value]) => isRecord(value) ? value.version : undefined)
+    .filter((version): version is string => typeof version === "string");
+  if (undiciVersions.some((version) => /^5\./u.test(version))) {
+    issues.push("packed production dependency closure must not install undici 5.x");
+  }
+  const vulnerabilities = isRecord(audit) && isRecord(audit.metadata) &&
+      isRecord(audit.metadata.vulnerabilities)
+    ? audit.metadata.vulnerabilities
+    : undefined;
+  const high = vulnerabilities?.high;
+  const critical = vulnerabilities?.critical;
+  if (typeof high !== "number" || typeof critical !== "number") {
+    issues.push("packed production dependency audit summary is missing");
+  } else if (high > 0 || critical > 0) {
+    issues.push(
+      `packed production dependency audit reported ${high} high and ${critical} critical vulnerabilities`,
+    );
+  } else if (input.auditExitCode !== 0) {
+    issues.push("packed production dependency audit command failed");
+  }
+  return issues;
+}
+
 export function renderV07LanguageConsumerSmoke(): string {
   return `
 import {
@@ -3719,11 +4843,27 @@ export async function verifyV07ArtifactConsumers(input: {
     );
     const installed = await runCommand(
       "npm",
-      ["install", "--ignore-scripts", "--no-audit", "--no-fund"],
+      ["install", "--ignore-scripts", "--engine-strict", "--no-audit", "--no-fund"],
       smokeDirectory,
     );
     if (installed.code !== 0) {
       throw new Error(tail(installed.stderr || installed.stdout));
+    }
+    const audit = await runCommand(
+      "npm",
+      ["audit", "--omit=dev", "--audit-level=high", "--json"],
+      smokeDirectory,
+    );
+    const dependencyIssues = evaluateV07PackedProductionDependencyClosure({
+      auditExitCode: audit.code ?? -1,
+      auditRaw: audit.stdout,
+      packageLockRaw: await readFile(
+        join(smokeDirectory, "package-lock.json"),
+        "utf8",
+      ),
+    });
+    if (dependencyIssues.length > 0) {
+      throw new Error(dependencyIssues.join("; "));
     }
     const smokePath = join(smokeDirectory, "smoke.mjs");
     await writeFile(
@@ -3764,7 +4904,7 @@ async function evaluateLanguageConsumers(
     const runtime = await verifyV07ArtifactConsumers({ repoRoot });
     return {
       detail:
-        `installed tarball passed all seven public LanguagePack APIs under Node ${runtime.nodeVersion} and Bun ${runtime.bunVersion}`,
+        `installed tarball passed a clean production dependency audit and all seven public LanguagePack APIs under Node ${runtime.nodeVersion} and Bun ${runtime.bunVersion}`,
       durationMs: Math.round(performance.now() - startedAt),
       id: "language-consumers",
       required: true,

@@ -26,7 +26,7 @@ import {
   PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY,
 } from "../../scripts/provider-response-tape-bundle";
 import {
-  renderV073FullClaimCommand,
+  renderV073FullClaimProtocol2Command,
   V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
   V073_FULL_LOCOMO_QUESTION_SELECTION_SHA256,
 } from "../../scripts/run-v0-7-3-full-locomo-claim";
@@ -59,6 +59,7 @@ import {
   evaluateV073LifecycleProtectionArtifact,
   evaluateV073LifecycleProtectionArtifactFile,
   evaluateV073LifecycleProtectionBundle,
+  evaluateV073LifecycleToProtocolSourceDrift,
   evaluateV073LifecycleProtectionSourceDrift,
   evaluateV073CurrentLocomoClaimState,
   resolveV073MeasuredClaimRecipeRaw,
@@ -66,7 +67,9 @@ import {
   evaluateVersionConsistency,
   evaluateV07RequiredEnvironment,
   evaluateV07PackManifest,
+  evaluateV07PackedProductionDependencyClosure,
   evaluateV07RequiredChecks,
+  isV073ProtocolDependencyPinningExact,
   parseV07ReleaseReadinessCliOptions,
   renderV07LanguageConsumerSmoke,
   renderV07ReleaseSummary,
@@ -80,6 +83,13 @@ const CLAIM_RECIPE_RAW = readFileSync(
   new URL("../../benchmark-claims/locomo.json", import.meta.url),
   "utf8",
 );
+const FROZEN_EXTRACTION_CACHE_KEYS = `1026011752,1043075633,1048640987,1064385496,1074118592,1082572768,1085614012,1100013451,1106738478,1107927765,1149940053,1174402540,1179366734,119627208,1210345783,1214355198,1233087856,1235470133,1235797445,1262789243,1274083946,1282170511,1283329829,1286918907,1295601743,1297782189,1307988077,1319705907,1328173301,1328689511,1349955765,1350941805,1379854271,1413391623,1435136569,1442320489,1456333297,1462198132,1462209140,1468470661,1504783545,1512102553,1514661872,1540321149,158635861,1605258038,1605375082,1608409831,1624202483,1626462396,1637799839,1640645819,1657807838,1662822657,1683467400,1695447940,17478626,1759105343,1765845080,1783812631,1794648524,1818642755,1830021848,1831804471,1851107591,1867438061,1899024238,190435261,190514398,1908455853,1921862501,1932501489,1950914891,1954375170,197078112,1973152628,1974647250,2023388394,2028687634,2029739893,2082863547,2104432904,2110024156,2127925618,2169031043,2170519568,2208365546,2213123762,2241677242,2252021607,2257662354,2269934223,2271878572,2289891018,2296526698,2313786091,2345910704,2365345403,2374437865,2374691122,2377254015,2409284101,2467338410,2470288298,2499175648,2520178360,2537119988,2556547485,2580518300,2613174370,2628407233,2628720039,2638044662,2660362212,2667468039,268223945,2682876890,2690261994,2697045242,2704211094,2720575096,2728504571,272962455,2739697176,2756416341,2778393052,2788849373,2808754637,2847703965,2854501767,2881632957,2883901230,2885592754,291345923,2941581325,2946553860,2956805899,2956828830,2964053549,3019328255,3048976956,3065890162,3082216776,3091806564,3094338424,3097614024,3117857382,3122434169,3124136818,3157804431,3171500229,3173281100,3191763993,3207441003,3212366713,3253399891,3262206268,3278473437,330521969,3317603065,334965310,3353188566,3355255159,3357769836,3366081265,3372475236,3383102199,3399309972,3404659494,3409194407,3433338164,3475091123,347589968,3477136000,348451955,3515465047,3528477104,3534871376,3548914855,3550718725,3601917062,3603537566,3603678876,365614635,3656327079,3658789493,3718654866,3725668826,3735345225,3776053402,3782774512,3793646152,3807215703,3822027981,3827649987,383922720,3858417783,3858893291,3865864865,3884181463,388633262,3909652640,3913271655,3916739008,3918147773,3953785847,3987803998,3998055624,4020401383,4041516452,4048306217,4050607731,4054623380,405704242,4064958010,4087715158,408816433,4101383531,4135370547,4185930273,4191367251,4202314565,422010356,4225549544,4242304435,4249433875,4269397799,4288617617,439644231,439839894,444360337,445998733,446964711,457524894,461882634,466502363,485635095,498500745,504799247,5232106,523648874,53669181,551705100,557935800,601233020,603562177,611308681,621666406,667563176,670731536,716508937,753832901,756375679,757596036,759425599,764744235,770665424,792488089,798097702,804639734,819411587,821135895,8652893,87803361,884269538,888563539,890823627,895915931,917508735,918610777,946157475,990812899`
+  .split(",")
+  .map((value) => `gpt-5.6-terra:${value}`);
+const EXPECTED_EXTRACTION_CACHE_KEY_SET_SHA256 =
+  "30fde28c5e2450365d8cc3d90a80f72aa900691151f4d1127e0a4f3c8a520f4f";
+const EXPECTED_EXTRACTION_CACHE_KEY_CASE_MAP_SHA256 =
+  "24732a6040c70d52999a18b9d95d72e663a883aa7c5524fc5ee8b4187611e03b";
 const CLAIM_RECIPE_COMMAND = (
   JSON.parse(CLAIM_RECIPE_RAW) as { run: { command: string } }
 ).run.command;
@@ -145,6 +155,14 @@ function evidenceIdentity(path: string, raw: string) {
   };
 }
 
+function runFixtureGit(repoRoot: string, ...args: string[]): string {
+  const result = Bun.spawnSync(["git", ...args], { cwd: repoRoot });
+  if (result.exitCode !== 0) {
+    throw new Error(result.stderr.toString());
+  }
+  return result.stdout.toString().trim();
+}
+
 async function rewriteTrackedEvidence(input: {
   kind: string;
   projection: { sourceArtifacts: Array<Record<string, unknown>> };
@@ -163,9 +181,45 @@ async function rewriteTrackedEvidence(input: {
 
 async function writeValidCurrentLocomoEvidence(
   repoRoot: string,
-  options: { officialProgressRaw?: string } = {},
+  options: {
+    benchmarkRoot?: string;
+    officialProgressRaw?: string;
+    protocolCandidateClaimRecipeRaw?: string;
+    protocolCandidateOfficialRunnerRaw?: string;
+    recoveredSeedCaseId?: "locomo-conv-43";
+  } = {},
 ) {
   const prefix = "reports/release/v0.7/v0.7.3-locomo-claim-evidence";
+  const officialRunnerRaw = "export const officialPrompt = 'current';\n";
+  runFixtureGit(repoRoot, "init", "--quiet");
+  runFixtureGit(repoRoot, "config", "user.email", "test@example.com");
+  runFixtureGit(repoRoot, "config", "user.name", "Test");
+  await Promise.all([
+    mkdir(join(repoRoot, "benchmark-claims"), { recursive: true }),
+    mkdir(join(repoRoot, "scripts"), { recursive: true }),
+  ]);
+  await writeFile(join(repoRoot, "protocol-candidate.txt"), "protocol v2\n");
+  await Promise.all([
+    writeFile(
+      join(repoRoot, "benchmark-claims/locomo.json"),
+      options.protocolCandidateClaimRecipeRaw ?? CLAIM_RECIPE_RAW,
+      "utf8",
+    ),
+    writeFile(
+      join(repoRoot, "scripts/rescore-official-protocols.ts"),
+      options.protocolCandidateOfficialRunnerRaw ?? officialRunnerRaw,
+      "utf8",
+    ),
+  ]);
+  runFixtureGit(
+    repoRoot,
+    "add",
+    "benchmark-claims/locomo.json",
+    "protocol-candidate.txt",
+    "scripts/rescore-official-protocols.ts",
+  );
+  runFixtureGit(repoRoot, "commit", "--quiet", "-m", "protocol candidate");
+  const protocolCandidateCommit = runFixtureGit(repoRoot, "rev-parse", "HEAD");
   const caseIds = [
     "locomo-conv-26",
     "locomo-conv-30",
@@ -178,7 +232,7 @@ async function writeValidCurrentLocomoEvidence(
     "locomo-conv-49",
     "locomo-conv-50",
   ];
-  const rows = frozenV073LocomoQuestionSelection().map((identity, index) => ({
+  const finalRows = frozenV073LocomoQuestionSelection().map((identity, index) => ({
     answerCorrect: index < 924,
     answerTokenF1: 0.7,
     ...identity,
@@ -192,44 +246,65 @@ async function writeValidCurrentLocomoEvidence(
     noiseTurnIds: [],
     retrievedTurnIds: [`turn-${index}`],
   }));
-  const seedDirectory = join(repoRoot, "raw-runs/seed");
-  const finalDirectory = join(repoRoot, "raw-runs/final");
-  const benchmarkRoot = join(
+  const seedRows = finalRows.map((row) => ({
+    ...row,
+    answerCorrect: null,
+    answerTokenF1: null,
+    generatedAnswer: null,
+  }));
+  const lifecycleCandidateCommit = "d".repeat(40);
+  const namespace =
+    `v073-${protocolCandidateCommit.slice(0, 8)}-full1540-protocol2`;
+  const seedRunId = `${namespace}-seed`;
+  const finalRunId = `${namespace}-final`;
+  const officialRunId = `${namespace}-official-gpt55`;
+  const outputRoot = `reports/eval/research/${namespace}`;
+  const seedDirectory = join(repoRoot, outputRoot, seedRunId);
+  const finalDirectory = join(repoRoot, outputRoot, finalRunId);
+  const officialDirectory = join(
+    repoRoot,
+    "reports/eval/research/official-rescore",
+    officialRunId,
+  );
+  const benchmarkRoot = options.benchmarkRoot ?? join(
     homedir(),
     ".cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1",
   );
   const common = {
-    answerEvaluation: "scored",
     benchmark: "locomo",
     benchmarkFingerprint:
       "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd",
     caseCount: 10,
     caseIds,
-    cases: rows,
     executionFailures: 0,
-    mode: "live-answer",
     questionCount: 1540,
   };
   const seedReport = {
     ...common,
+    answerEvaluation: "deferred-to-live-mode",
+    cases: seedRows,
     generatedAt: "2026-08-06T10:00:00.000Z",
     generatedBy: "scripts/run-phase-65-locomo-smoke.ts",
+    mode: "retrieval-only",
     resume: true,
     runDirectory: seedDirectory,
-    runId: "current-seed",
+    runId: seedRunId,
   };
   const finalReport = {
     ...common,
     answerAccuracyOverall: 0.6,
+    answerEvaluation: "scored",
     answerSystem: "locomo-live-category-aware-v1",
+    cases: finalRows,
     generatedAt: "2026-08-06T11:00:00.000Z",
     generatedBy: "scripts/reanswer-phase-65-locomo-report.ts",
+    mode: "live-answer",
     resume: false,
     runDirectory: finalDirectory,
-    runId: "current-final",
+    runId: finalRunId,
     sourceReport: {
       path: join(seedDirectory, "smoke-report.json"),
-      runId: "current-seed",
+      runId: seedRunId,
     },
   };
   const seedRaw = JSON.stringify(seedReport);
@@ -260,9 +335,9 @@ async function writeValidCurrentLocomoEvidence(
     judgedCases: 1540,
     overallAccuracy: officialCorrectTotal / 1540,
     overallCorrect: officialCorrectTotal,
-    outputPath: join(repoRoot, "raw-runs/official/rescore-summary.json"),
+    outputPath: join(officialDirectory, "rescore-summary.json"),
     protocol: "mem0ai/memory-benchmarks LoCoMo judge (no-evidence variant, categories 1-4)",
-    runId: "current-official",
+    runId: officialRunId,
     selectedCases: 1540,
     sourceAnswersUnchanged: true,
     sourceCases: 1540,
@@ -281,7 +356,7 @@ async function writeValidCurrentLocomoEvidence(
   };
   const officialRaw = JSON.stringify(officialSummary);
   const officialSeen = new Map<string, number>();
-  const officialProgressRaw = options.officialProgressRaw ?? `${rows.map((row) => {
+  const officialProgressRaw = options.officialProgressRaw ?? `${finalRows.map((row) => {
     const index = officialSeen.get(row.category) ?? 0;
     officialSeen.set(row.category, index + 1);
     return JSON.stringify({
@@ -302,20 +377,23 @@ async function writeValidCurrentLocomoEvidence(
     embeddingModel: "text-embedding-3-small",
     embeddingProvider: "openai",
     finalOutputPath: finalDirectory,
-    finalRunId: "current-final",
+    finalRunId,
     judgeGateway: "https://ai.gurkiai.com/v1",
     judgeModel: "gpt-5.5",
     judgeProvider: "openai",
-    officialRunId: "current-official",
+    officialRunId,
     rerankingGateway: "https://ai.gurkiai.com/v1",
     rerankingModel: "gpt-5.6-terra",
     rerankingProvider: "openai",
     seedOutputPath: seedDirectory,
-    seedRunId: "current-seed",
+    seedRunId,
     worktreePath: repoRoot,
   }, CLAIM_RECIPE_RAW);
-  const command = renderV073FullClaimCommand(commandChain, repoRoot);
-  const officialRunnerRaw = "export const officialPrompt = 'current';\n";
+  const command = renderV073FullClaimProtocol2Command(
+    commandChain,
+    repoRoot,
+    options.recoveredSeedCaseId ? 2 : 1,
+  );
   const execution = {
     answerGateway: "https://ai.gurkiai.com/v1",
     answerModel: "gpt-5.6-terra",
@@ -333,6 +411,10 @@ async function writeValidCurrentLocomoEvidence(
     claimCommandTemplateSha256:
       deriveV073ClaimCommandTemplateSha256(CLAIM_RECIPE_RAW),
     concurrency: 40,
+    expectedExtractionCacheKeyCaseMapSha256:
+      EXPECTED_EXTRACTION_CACHE_KEY_CASE_MAP_SHA256,
+    expectedExtractionCacheKeySetSha256:
+      EXPECTED_EXTRACTION_CACHE_KEY_SET_SHA256,
     embeddingGateway: "https://openrouter.ai/api/v1",
     embeddingModel: "text-embedding-3-small",
     embeddingProvider: "openai",
@@ -340,29 +422,178 @@ async function writeValidCurrentLocomoEvidence(
     judgeModel: "gpt-5.5",
     judgeProvider: "openai",
     officialSourceSha256: createHash("sha256").update(officialRunnerRaw).digest("hex"),
+    officialRescoreRequestTimeoutMs: 180_000,
     promptSha256: deriveV073PromptSha256(),
     questionSelectionSha256: V073_FULL_LOCOMO_QUESTION_SELECTION_SHA256,
     caseQuestionCounts: V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
     rerankingGateway: "https://ai.gurkiai.com/v1",
     rerankingModel: "gpt-5.6-terra",
     rerankingProvider: "openai",
+    providerEmbeddingRunTimeoutMs: null,
+    providerEmbeddingTimeoutMs: null,
+    providerRerankingTimeoutMs: 120_000,
   };
-  const commit = "e".repeat(40);
+  const progressConfig = {};
+  const progressConfigFingerprint = createHash("sha256")
+    .update(JSON.stringify(progressConfig))
+    .digest("hex");
+  const seedProgressRaw = `${[
+    JSON.stringify({
+      config: progressConfig,
+      configFingerprint: progressConfigFingerprint,
+      kind: "locomo-progress-config",
+      version: 2,
+    }),
+    ...finalRows.map((row) => JSON.stringify({
+      caseId: row.caseId,
+      executionFailureMessage: null,
+      questionId: row.questionId,
+    })),
+  ].join("\n")}\n`;
+  const seedExtractionCacheRaw = `${FROZEN_EXTRACTION_CACHE_KEYS.map(
+    (key) => JSON.stringify({
+      candidates: [],
+      key,
+    }),
+  ).join("\n")}\n`;
+  const recoveredSeedRows = options.recoveredSeedCaseId
+    ? seedRows.map((row) => row.caseId === options.recoveredSeedCaseId
+      ? {
+          ...row,
+          executionFailureMessage:
+            "OpenAI-compatible gateway timeout after 120000ms.",
+          executionFailureStage: "seed",
+        }
+      : row)
+    : seedRows;
+  const attemptOneSeedRaw = options.recoveredSeedCaseId
+    ? JSON.stringify({
+        ...seedReport,
+        cases: recoveredSeedRows,
+        executionFailures: recoveredSeedRows.filter(
+          (row) => row.executionFailureMessage != null,
+        ).length,
+      })
+    : seedRaw;
+  const successfulAttemptOneRows = recoveredSeedRows.filter(
+    (row) => row.executionFailureMessage == null,
+  );
+  const failedAttemptOneRows = recoveredSeedRows.filter(
+    (row) => row.executionFailureMessage != null,
+  );
+  const attemptOneProgressRaw = options.recoveredSeedCaseId
+    ? `${[
+        JSON.stringify({
+          config: progressConfig,
+          configFingerprint: progressConfigFingerprint,
+          kind: "locomo-progress-config",
+          version: 2,
+        }),
+        ...successfulAttemptOneRows.map((row) => JSON.stringify({
+          caseId: row.caseId,
+          executionFailureMessage: null,
+          questionId: row.questionId,
+        })),
+      ].join("\n")}\n`
+    : seedProgressRaw;
+  const finalSeedProgressRaw = options.recoveredSeedCaseId
+    ? `${attemptOneProgressRaw}${failedAttemptOneRows.map((row) => JSON.stringify({
+        caseId: row.caseId,
+        executionFailureMessage: null,
+        questionId: row.questionId,
+      })).join("\n")}\n`
+    : seedProgressRaw;
+  const attemptOneExtractionCacheRaw = options.recoveredSeedCaseId
+      ? `${FROZEN_EXTRACTION_CACHE_KEYS.slice(0, -1).map(
+        (key) => JSON.stringify({
+          candidates: [],
+          key,
+        }),
+      ).join("\n")}\n`
+    : seedExtractionCacheRaw;
+  const lifecycleProtectionPath =
+    "reports/release/v0.7/v0.7.3-lifecycle-protection.json";
+  const lifecycleProtectionRaw = `${JSON.stringify({
+    blockers: [],
+    candidateCommit: lifecycleCandidateCommit,
+    fullClaimRerunRequired: true,
+    releaseAllowed: true,
+    schemaVersion: 9,
+  })}\n`;
+  const preregistrationPath =
+    "reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json";
+  const sentinelPath =
+    "reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json";
+  const preregistrationRaw = `${JSON.stringify({
+    benchmark: {
+      bytes: 2_490_457,
+      fingerprint:
+        "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd",
+      sha256:
+        "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28",
+    },
+    finalRunId,
+    generatedAt: "2026-08-10T09:00:00.000Z",
+    generatedBy: "v0.7.3-full-locomo-claim-protocol2-preregistration",
+    lifecycleCandidateCommit,
+    lifecycleProtection: evidenceIdentity(
+      lifecycleProtectionPath,
+      lifecycleProtectionRaw,
+    ),
+    maxSeedLaunches: 2,
+    namespace,
+    officialRunId,
+    outputRoot,
+    protocolCandidateCommit,
+    protocolVersion: 2,
+    seedRunId,
+    sentinelPath,
+  })}\n`;
+  await mkdir(join(repoRoot, "reports/release/v0.7"), { recursive: true });
+  await Promise.all([
+    writeFile(
+      join(repoRoot, lifecycleProtectionPath),
+      lifecycleProtectionRaw,
+      "utf8",
+    ),
+    writeFile(join(repoRoot, preregistrationPath), preregistrationRaw, "utf8"),
+  ]);
+  runFixtureGit(repoRoot, "add", lifecycleProtectionPath, preregistrationPath);
+  runFixtureGit(repoRoot, "commit", "--quiet", "-m", "preregister protocol v2");
+  const releaseCommit = runFixtureGit(repoRoot, "rev-parse", "HEAD");
+  const sentinelRaw = `${JSON.stringify({
+    generatedAt: "2026-08-10T10:00:00.000Z",
+    generatedBy: "scripts/run-v0-7-3-full-locomo-claim.ts",
+    lifecycleCandidateCommit,
+    maxSeedLaunches: 2,
+    namespace,
+    protocolCandidateCommit,
+    protocolVersion: 2,
+    releaseCommit,
+    state: "consumed",
+  })}\n`;
+  await writeFile(join(repoRoot, sentinelPath), sentinelRaw, "utf8");
+  runFixtureGit(repoRoot, "add", sentinelPath);
+  runFixtureGit(repoRoot, "commit", "--quiet", "-m", "consume protocol v2");
+  const sentinelCommit = runFixtureGit(repoRoot, "rev-parse", "HEAD");
   const receipt = {
     command,
     commandChain,
-    commit,
+    commit: protocolCandidateCommit,
     evidenceRepositoryBefore: {
-      headCommit: commit,
+      headCommit: protocolCandidateCommit,
       statusPorcelain: "",
     },
     execution,
     freshOutputEvidence: {
       finalOutputPathAbsentBeforeRun: true,
       officialOutputPathAbsentBeforeRun: true,
+      seedAttemptOneSnapshotPathAbsentBeforeRun: true,
       seedOutputPathAbsentBeforeRun: true,
     },
     generatedBy: "v0.7.3-full-locomo-claim-launch",
+    lifecycleCandidateCommit,
+    maxSeedLaunches: 2,
     outputs: {
       finalReport: evidenceIdentity(
         join(finalDirectory, "smoke-report.json"),
@@ -370,14 +601,65 @@ async function writeValidCurrentLocomoEvidence(
       ),
       officialSummary: evidenceIdentity(officialSummary.outputPath, officialRaw),
       officialProgress: evidenceIdentity(
-        join(repoRoot, "raw-runs/official/progress.jsonl"),
+        join(officialDirectory, "progress.jsonl"),
         officialProgressRaw,
+      ),
+      seedExtractionCache: evidenceIdentity(
+        join(seedDirectory, "extraction-cache.jsonl"),
+        seedExtractionCacheRaw,
+      ),
+      seedProgress: evidenceIdentity(
+        join(seedDirectory, "live-progress.jsonl"),
+        finalSeedProgressRaw,
       ),
       seedReport: evidenceIdentity(
         join(seedDirectory, "smoke-report.json"),
         seedRaw,
       ),
     },
+    preregistration: evidenceIdentity(preregistrationPath, preregistrationRaw),
+    protocolCandidateCommit,
+    protocolVersion: 2,
+    seedAttempts: [{
+      attempt: 1,
+      command: commandChain.seedSmoke,
+      exitCode: 0,
+      extractionCache: evidenceIdentity(
+        `${prefix}/seed-attempt-1-extraction-cache.jsonl`,
+        attemptOneExtractionCacheRaw,
+      ),
+      failedCaseId: options.recoveredSeedCaseId ?? null,
+      progress: evidenceIdentity(
+        `${prefix}/seed-attempt-1-live-progress.jsonl`,
+        attemptOneProgressRaw,
+      ),
+      recoveryClassification: options.recoveredSeedCaseId
+        ? "eligible-single-case-seed-timeout"
+        : "failure-free",
+      report: evidenceIdentity(
+        `${prefix}/seed-attempt-1-smoke-report.json`,
+        attemptOneSeedRaw,
+      ),
+    }, ...(options.recoveredSeedCaseId
+      ? [{
+          attempt: 2,
+          command: commandChain.seedSmoke,
+          exitCode: 0,
+          extractionCache: evidenceIdentity(
+            `${prefix}/seed-extraction-cache.jsonl`,
+            seedExtractionCacheRaw,
+          ),
+          failedCaseId: null,
+          progress: evidenceIdentity(
+            `${prefix}/seed-live-progress.jsonl`,
+            finalSeedProgressRaw,
+          ),
+          recoveryClassification: "failure-free-after-single-resume",
+          report: evidenceIdentity(`${prefix}/seed-smoke-report.json`, seedRaw),
+        }]
+      : [])],
+    sentinel: evidenceIdentity(sentinelPath, sentinelRaw),
+    sentinelCommit,
     sources: {
       claimRecipe: evidenceIdentity(
         join(repoRoot, "benchmark-claims/locomo.json"),
@@ -387,9 +669,14 @@ async function writeValidCurrentLocomoEvidence(
         join(repoRoot, "scripts/rescore-official-protocols.ts"),
         officialRunnerRaw,
       ),
+      preregistration: evidenceIdentity(preregistrationPath, preregistrationRaw),
+      sentinel: evidenceIdentity(sentinelPath, sentinelRaw),
     },
     schemaVersion: 1,
-    worktreeProvenance: { headCommit: commit, statusPorcelain: "" },
+    worktreeProvenance: {
+      headCommit: protocolCandidateCommit,
+      statusPorcelain: "",
+    },
   };
   const receiptRaw = JSON.stringify(receipt);
   const rawByKind = {
@@ -399,25 +686,50 @@ async function writeValidCurrentLocomoEvidence(
     "official-summary": officialRaw,
     "official-progress": officialProgressRaw,
     "official-runner-source": officialRunnerRaw,
+    "protocol-attempt-sentinel": sentinelRaw,
+    "protocol-preregistration": preregistrationRaw,
+    "seed-attempt-1-extraction-cache": attemptOneExtractionCacheRaw,
+    "seed-attempt-1-progress": attemptOneProgressRaw,
+    "seed-attempt-1-report": attemptOneSeedRaw,
+    "seed-extraction-cache": seedExtractionCacheRaw,
+    "seed-progress": finalSeedProgressRaw,
     "seed-report": seedRaw,
   };
-  const fileNames = {
-    "claim-recipe-source": "claim-recipe-source.json",
-    "execution-receipt": "execution-receipt.json",
-    "final-report": "final-smoke-report.json",
-    "official-summary": "official-rescore-summary.json",
-    "official-progress": "official-progress.jsonl",
-    "official-runner-source": "official-runner-source.ts",
-    "seed-report": "seed-smoke-report.json",
+  const pathsByKind = {
+    "claim-recipe-source": `${prefix}/claim-recipe-source.json`,
+    "execution-receipt": `${prefix}/execution-receipt.json`,
+    "final-report": `${prefix}/final-smoke-report.json`,
+    "official-summary": `${prefix}/official-rescore-summary.json`,
+    "official-progress": `${prefix}/official-progress.jsonl`,
+    "official-runner-source": `${prefix}/official-runner-source.ts`,
+    "protocol-attempt-sentinel": sentinelPath,
+    "protocol-preregistration": preregistrationPath,
+    "seed-attempt-1-extraction-cache":
+      `${prefix}/seed-attempt-1-extraction-cache.jsonl`,
+    "seed-attempt-1-progress": `${prefix}/seed-attempt-1-live-progress.jsonl`,
+    "seed-attempt-1-report": `${prefix}/seed-attempt-1-smoke-report.json`,
+    "seed-extraction-cache": `${prefix}/seed-extraction-cache.jsonl`,
+    "seed-progress": `${prefix}/seed-live-progress.jsonl`,
+    "seed-report": `${prefix}/seed-smoke-report.json`,
   } as const;
-  await mkdir(join(repoRoot, prefix), { recursive: true });
+  await Promise.all([
+    mkdir(join(repoRoot, prefix), { recursive: true }),
+    mkdir(join(repoRoot, "reports/release/v0.7"), { recursive: true }),
+  ]);
+  await writeFile(
+    join(repoRoot, lifecycleProtectionPath),
+    lifecycleProtectionRaw,
+    "utf8",
+  );
   const sourceArtifacts = await Promise.all(
     Object.entries(rawByKind).map(async ([kind, raw]) => {
-      const path = `${prefix}/${fileNames[kind as keyof typeof fileNames]}`;
+      const path = pathsByKind[kind as keyof typeof pathsByKind];
       await writeFile(join(repoRoot, path), raw, "utf8");
       return { ...evidenceIdentity(path, raw), kind };
     }),
   );
+  runFixtureGit(repoRoot, "add", "reports/release/v0.7");
+  runFixtureGit(repoRoot, "commit", "--quiet", "-m", "publish protocol evidence");
   const officialScore = officialCorrectTotal / 1540;
   const descriptorClaim = {
     claimDeclaration: "benchmark-claims/locomo.json",
@@ -449,12 +761,18 @@ async function writeValidCurrentLocomoEvidence(
     evidenceRepositoryBefore: receipt.evidenceRepositoryBefore,
     execution,
     generatedBy: "scripts/run-v0-7-3-full-locomo-claim.ts",
+    lifecycleCandidateCommit,
+    maxSeedLaunches: 2,
+    protocolCandidateCommit,
+    protocolVersion: 2,
     runIdentity: {
-      commit,
-      finalRunId: "current-final",
-      officialRunId: "current-official",
-      seedRunId: "current-seed",
+      commit: protocolCandidateCommit,
+      finalRunId,
+      officialRunId,
+      seedRunId,
     },
+    seedAttempts: receipt.seedAttempts,
+    sentinelCommit,
     schemaVersion: 1,
     sourceArtifacts,
   };
@@ -483,13 +801,13 @@ async function writeValidCurrentLocomoEvidence(
     },
     run: {
       command,
-      commit,
+      commit: protocolCandidateCommit,
       executionFailures: 0,
       packageVersion: "0.7.3",
     },
     status: "candidate_public_claim",
   };
-  return { claimDeclaration, projection };
+  return { claimDeclaration, projection, sentinelCommit };
 }
 
 describe("v0.7 release readiness", () => {
@@ -509,6 +827,35 @@ describe("v0.7 release readiness", () => {
         releaseStatus: "release-candidate",
         repoRoot,
       })).resolves.toEqual([]);
+
+      await mkdir(join(repoRoot, "reports/release/v0.7"), { recursive: true });
+      await writeFile(
+        join(
+          repoRoot,
+          "reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json",
+        ),
+        "{\"protocolVersion\":2}\n",
+      );
+      await expect(evaluateV073CurrentLocomoClaimState({
+        claims: [],
+        releaseStatus: "release-candidate",
+        repoRoot,
+      })).resolves.toEqual([]);
+
+      await writeFile(
+        join(
+          repoRoot,
+          "reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json",
+        ),
+        "{\"protocolVersion\":2,\"state\":\"consumed\"}\n",
+      );
+      await expect(evaluateV073CurrentLocomoClaimState({
+        claims: [],
+        releaseStatus: "release-candidate",
+        repoRoot,
+      })).resolves.toContain(
+        "current LoCoMo evidence is partial: projection and all 14 tracked source artifacts must appear together",
+      );
     } finally {
       await rm(repoRoot, { force: true, recursive: true });
     }
@@ -534,6 +881,54 @@ describe("v0.7 release readiness", () => {
         releaseStatus: "release-candidate",
         repoRoot,
       })).resolves.toEqual([]);
+
+      await writeFile(
+        join(
+          repoRoot,
+          "reports/release/v0.7/v0.7.3-locomo-claim-evidence/unbound-extra.json",
+        ),
+        "{}\n",
+        "utf8",
+      );
+      await expect(evaluateV073CurrentLocomoClaimState({
+        claims: [],
+        releaseStatus: "release-candidate",
+        repoRoot,
+      })).resolves.toContain(
+        "current LoCoMo evidence directory must contain exactly the 12 tracked bundle files",
+      );
+
+      const evidenceRoot = join(
+        repoRoot,
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence",
+      );
+      await rm(join(evidenceRoot, "unbound-extra.json"));
+      const claimRecipePath = join(evidenceRoot, "claim-recipe-source.json");
+      const claimRecipeRaw = await readFile(claimRecipePath, "utf8");
+      const externalClaimRecipePath = join(repoRoot, "external-claim-recipe.json");
+      await writeFile(externalClaimRecipePath, claimRecipeRaw, "utf8");
+      await rm(claimRecipePath);
+      await symlink(externalClaimRecipePath, claimRecipePath);
+      await expect(evaluateV073CurrentLocomoClaimState({
+        claims: [],
+        releaseStatus: "release-candidate",
+        repoRoot,
+      })).resolves.toContain(
+        "claim-recipe-source must be a regular tracked file",
+      );
+
+      await rm(claimRecipePath);
+      await writeFile(claimRecipePath, claimRecipeRaw, "utf8");
+      const externalEvidenceRoot = join(repoRoot, "external-claim-evidence");
+      await rename(evidenceRoot, externalEvidenceRoot);
+      await symlink(externalEvidenceRoot, evidenceRoot);
+      await expect(evaluateV073CurrentLocomoClaimState({
+        claims: [],
+        releaseStatus: "release-candidate",
+        repoRoot,
+      })).resolves.toContain(
+        "current LoCoMo evidence root must be a real directory",
+      );
     } finally {
       await rm(repoRoot, { force: true, recursive: true });
     }
@@ -553,7 +948,7 @@ describe("v0.7 release readiness", () => {
         releaseStatus: "release-candidate",
         repoRoot,
       })).resolves.toContain(
-        "current LoCoMo evidence is partial: projection and all seven tracked source artifacts must appear together",
+        "current LoCoMo evidence is partial: projection and all 14 tracked source artifacts must appear together",
       );
 
       await rm(join(repoRoot, "benchmark-claims"), { force: true, recursive: true });
@@ -569,7 +964,7 @@ describe("v0.7 release readiness", () => {
         releaseStatus: "release-candidate",
         repoRoot,
       })).resolves.toContain(
-        "current LoCoMo evidence is partial: projection and all seven tracked source artifacts must appear together",
+        "current LoCoMo evidence is partial: projection and all 14 tracked source artifacts must appear together",
       );
 
       await rm(join(repoRoot, "reports"), { force: true, recursive: true });
@@ -582,7 +977,7 @@ describe("v0.7 release readiness", () => {
         releaseStatus: "release-candidate",
         repoRoot,
       })).resolves.toContain(
-        "current LoCoMo evidence is partial: projection and all seven tracked source artifacts must appear together",
+        "current LoCoMo evidence is partial: projection and all 14 tracked source artifacts must appear together",
       );
     } finally {
       await rm(repoRoot, { force: true, recursive: true });
@@ -605,16 +1000,31 @@ describe("v0.7 release readiness", () => {
     ]);
     const sourceArtifacts = [
       ["claim-recipe-source", "claim-recipe-source.json"],
-      ["seed-report", "seed-smoke-report.json"],
+      ["execution-receipt", "execution-receipt.json"],
       ["final-report", "final-smoke-report.json"],
       ["official-summary", "official-rescore-summary.json"],
       ["official-progress", "official-progress.jsonl"],
       ["official-runner-source", "official-runner-source.ts"],
-      ["execution-receipt", "execution-receipt.json"],
+      [
+        "protocol-attempt-sentinel",
+        "../v0.7.3-full-claim-protocol2-attempt-consumed.json",
+      ],
+      [
+        "protocol-preregistration",
+        "../v0.7.3-full-claim-protocol2-preregistration.json",
+      ],
+      ["seed-attempt-1-extraction-cache", "seed-attempt-1-extraction-cache.jsonl"],
+      ["seed-attempt-1-progress", "seed-attempt-1-live-progress.jsonl"],
+      ["seed-attempt-1-report", "seed-attempt-1-smoke-report.json"],
+      ["seed-extraction-cache", "seed-extraction-cache.jsonl"],
+      ["seed-progress", "seed-live-progress.jsonl"],
+      ["seed-report", "seed-smoke-report.json"],
     ].map(([kind, name]) => ({
       bytes: 100,
       kind,
-      path: `reports/release/v0.7/v0.7.3-locomo-claim-evidence/${name}`,
+      path: name.startsWith("../")
+        ? `reports/release/v0.7/${name.slice(3)}`
+        : `reports/release/v0.7/v0.7.3-locomo-claim-evidence/${name}`,
       sha256: "a".repeat(64),
     }));
     const projection = {
@@ -661,6 +1071,10 @@ describe("v0.7 release readiness", () => {
         claimCommandSha256: "d".repeat(64),
         claimCommandTemplateSha256: "1".repeat(64),
         concurrency: 40,
+        expectedExtractionCacheKeyCaseMapSha256:
+          EXPECTED_EXTRACTION_CACHE_KEY_CASE_MAP_SHA256,
+        expectedExtractionCacheKeySetSha256:
+          EXPECTED_EXTRACTION_CACHE_KEY_SET_SHA256,
         embeddingGateway: "https://openrouter.ai/api/v1",
         embeddingModel: "text-embedding-3-small",
         embeddingProvider: "openai",
@@ -668,20 +1082,30 @@ describe("v0.7 release readiness", () => {
         judgeModel: "gpt-5.5",
         judgeProvider: "openai",
         officialSourceSha256: "f".repeat(64),
+        officialRescoreRequestTimeoutMs: 180_000,
         promptSha256: deriveV073PromptSha256(),
         questionSelectionSha256: V073_FULL_LOCOMO_QUESTION_SELECTION_SHA256,
         caseQuestionCounts: V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
         rerankingGateway: "https://ai.gurkiai.com/v1",
         rerankingModel: "gpt-5.6-terra",
         rerankingProvider: "openai",
+        providerEmbeddingRunTimeoutMs: null,
+        providerEmbeddingTimeoutMs: null,
+        providerRerankingTimeoutMs: 120_000,
       },
       generatedBy: "scripts/run-v0-7-3-full-locomo-claim.ts",
+      lifecycleCandidateCommit: "d".repeat(40),
+      maxSeedLaunches: 2,
+      protocolCandidateCommit: "e".repeat(40),
+      protocolVersion: 2,
       runIdentity: {
         commit: "e".repeat(40),
         finalRunId: "final",
         officialRunId: "official",
         seedRunId: "seed",
       },
+      seedAttempts: [{}],
+      sentinelCommit: "f".repeat(40),
       schemaVersion: 1,
       sourceArtifacts,
     };
@@ -734,33 +1158,33 @@ describe("v0.7 release readiness", () => {
     );
   });
 
-  it("binds the full current claim to the paired lifecycle candidate commit", () => {
-    const candidateCommit = "a".repeat(40);
+  it("binds the full current claim to the protocol candidate commit", () => {
+    const protocolCandidateCommit = "a".repeat(40);
     expect(evaluateStableLocomoCandidateLink({
-      candidateCommit,
+      protocolCandidateCommit,
       candidatePromptSha256: deriveV073PromptSha256(),
       projection: {
         execution: { promptSha256: deriveV073PromptSha256() },
-        runIdentity: { commit: candidateCommit },
+        runIdentity: { commit: protocolCandidateCommit },
       },
     }).status).toBe("pass");
     expect(evaluateStableLocomoCandidateLink({
-      candidateCommit,
+      protocolCandidateCommit,
       candidatePromptSha256: deriveV073PromptSha256(),
       projection: {
         execution: { promptSha256: deriveV073PromptSha256() },
         runIdentity: { commit: "b".repeat(40) },
       },
     })).toEqual(expect.objectContaining({
-      detail: expect.stringContaining("does not match lifecycle candidate"),
+      detail: expect.stringContaining("does not match protocol candidate"),
       status: "fail",
     }));
     expect(evaluateStableLocomoCandidateLink({
-      candidateCommit,
+      protocolCandidateCommit,
       candidatePromptSha256: deriveV073PromptSha256(),
       projection: {
         execution: { promptSha256: "0".repeat(64) },
-        runIdentity: { commit: candidateCommit },
+        runIdentity: { commit: protocolCandidateCommit },
       },
     })).toEqual(expect.objectContaining({ status: "fail" }));
   });
@@ -787,6 +1211,283 @@ describe("v0.7 release readiness", () => {
         repoRoot,
       })).resolves.toContain(
         "final-report bytes do not match the tracked projection fingerprint",
+      );
+    } finally {
+      await rm(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("requires retrieval-only seed rows and scored final answer rows", async () => {
+    const repoRoot = await mkdtemp(join(tmpdir(), "goodmemory-locomo-stage-contract-"));
+    try {
+      const evidence = await writeValidCurrentLocomoEvidence(repoRoot);
+      await expect(validateStableLocomoClaimEvidence({
+        ...evidence,
+        repoRoot,
+      })).resolves.toEqual([]);
+
+      const seedPath = join(
+        repoRoot,
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-smoke-report.json",
+      );
+      const seed = JSON.parse(await readFile(seedPath, "utf8")) as {
+        answerEvaluation: string;
+        cases: Array<{
+          answerCorrect: boolean | null;
+          answerTokenF1: number | null;
+          generatedAnswer: string | null;
+        }>;
+        mode: string;
+      };
+      seed.mode = "live-answer";
+      seed.answerEvaluation = "scored";
+      seed.cases[0] = {
+        ...seed.cases[0]!,
+        answerCorrect: true,
+        answerTokenF1: 1,
+        generatedAnswer: "stale answer from seed",
+      };
+      await rewriteTrackedEvidence({
+        kind: "seed-report",
+        projection: evidence.projection,
+        raw: JSON.stringify(seed),
+        repoRoot,
+      });
+
+      await expect(validateStableLocomoClaimEvidence({
+        ...evidence,
+        repoRoot,
+      })).resolves.toContain(
+        "seed report is not a complete failure-free retrieval-only full-1540 LoCoMo report",
+      );
+    } finally {
+      await rm(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("accepts one fully-bound seed-timeout resume with its pass-one snapshot", async () => {
+    const repoRoot = await mkdtemp(
+      join(tmpdir(), "goodmemory-locomo-protocol2-recovered-seed-"),
+    );
+    try {
+      const evidence = await writeValidCurrentLocomoEvidence(repoRoot, {
+        recoveredSeedCaseId: "locomo-conv-43",
+      });
+      await expect(validateStableLocomoClaimEvidence({
+        ...evidence,
+        repoRoot,
+      })).resolves.toEqual([]);
+    } finally {
+      await rm(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("binds the exact sentinel-only commit between preregistration and publication", async () => {
+    const repoRoot = await mkdtemp(
+      join(tmpdir(), "goodmemory-locomo-protocol2-sentinel-commit-"),
+    );
+    try {
+      const evidence = await writeValidCurrentLocomoEvidence(repoRoot);
+      const receiptPath = join(
+        repoRoot,
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/execution-receipt.json",
+      );
+      const receipt = JSON.parse(await readFile(receiptPath, "utf8")) as {
+        sentinelCommit: string;
+      };
+      const publicationCommit = runFixtureGit(repoRoot, "rev-parse", "HEAD");
+      receipt.sentinelCommit = publicationCommit;
+      evidence.projection.sentinelCommit = publicationCommit;
+      await rewriteTrackedEvidence({
+        kind: "execution-receipt",
+        projection: evidence.projection,
+        raw: JSON.stringify(receipt),
+        repoRoot,
+      });
+
+      await expect(validateStableLocomoClaimEvidence({
+        ...evidence,
+        repoRoot,
+      })).resolves.toContain(
+        "full-claim protocol-v2 git boundary is inconsistent",
+      );
+    } finally {
+      await rm(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("pins portable commands, provider timeouts, and the real 272-key cache", async () => {
+    const repoRoot = await mkdtemp(
+      join(tmpdir(), "goodmemory-locomo-protocol2-frozen-contract-"),
+    );
+    try {
+      const evidence = await writeValidCurrentLocomoEvidence(repoRoot, {
+        recoveredSeedCaseId: "locomo-conv-43",
+      });
+      expect(evidence.claimDeclaration.run.command).toContain(
+        "--benchmark-root @locomo-full10-root",
+      );
+      expect(evidence.claimDeclaration.run.command).not.toContain(
+        ".cache/goodmemory-benchmarks",
+      );
+
+      const receiptPath = join(
+        repoRoot,
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/execution-receipt.json",
+      );
+      const receipt = JSON.parse(await readFile(receiptPath, "utf8")) as {
+        execution: Record<string, unknown>;
+        outputs: { seedExtractionCache: ReturnType<typeof evidenceIdentity> };
+        seedAttempts: typeof evidence.projection.seedAttempts;
+      };
+      receipt.execution.providerRerankingTimeoutMs = 1;
+      evidence.projection.execution.providerRerankingTimeoutMs = 1;
+      await rewriteTrackedEvidence({
+        kind: "execution-receipt",
+        projection: evidence.projection,
+        raw: JSON.stringify(receipt),
+        repoRoot,
+      });
+      await expect(validateStableLocomoClaimEvidence({
+        ...evidence,
+        repoRoot,
+      })).resolves.toContain(
+        "current LoCoMo projection does not satisfy the full 1540-question evidence contract",
+      );
+
+      receipt.execution.providerRerankingTimeoutMs = 120_000;
+      evidence.projection.execution.providerRerankingTimeoutMs = 120_000;
+      const cacheKind = "seed-extraction-cache";
+      const cacheArtifact = evidence.projection.sourceArtifacts.find(
+        (artifact) => artifact.kind === cacheKind,
+      )!;
+      const cachePath = join(repoRoot, cacheArtifact.path);
+      const cacheLines = (await readFile(cachePath, "utf8")).trimEnd().split("\n");
+      cacheLines[cacheLines.length - 1] = JSON.stringify({
+        candidates: [],
+        key: "gpt-5.6-terra:post-hoc-cache-key",
+      });
+      const cacheRaw = `${cacheLines.join("\n")}\n`;
+      await rewriteTrackedEvidence({
+        kind: cacheKind,
+        projection: evidence.projection,
+        raw: cacheRaw,
+        repoRoot,
+      });
+      const cacheIdentity = evidenceIdentity(cacheArtifact.path, cacheRaw);
+      receipt.outputs.seedExtractionCache = evidenceIdentity(
+        receipt.outputs.seedExtractionCache.path,
+        cacheRaw,
+      );
+      receipt.seedAttempts[1]!.extractionCache = cacheIdentity;
+      evidence.projection.seedAttempts = receipt.seedAttempts;
+      await rewriteTrackedEvidence({
+        kind: "execution-receipt",
+        projection: evidence.projection,
+        raw: JSON.stringify(receipt),
+        repoRoot,
+      });
+      await expect(validateStableLocomoClaimEvidence({
+        ...evidence,
+        repoRoot,
+      })).resolves.toContain(
+        "full-claim protocol-v2 seed attempt history is inconsistent",
+      );
+    } finally {
+      await rm(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("reconstructs a macOS-recorded protocol command under a different verifier home", async () => {
+    const repoRoot = await mkdtemp(
+      join(tmpdir(), "goodmemory-locomo-protocol2-cross-home-"),
+    );
+    try {
+      const evidence = await writeValidCurrentLocomoEvidence(repoRoot);
+      const projectionPath = join(repoRoot, "cross-home-projection.json");
+      const claimPath = join(repoRoot, "cross-home-claim.json");
+      await Promise.all([
+        writeFile(projectionPath, JSON.stringify(evidence.projection), "utf8"),
+        writeFile(claimPath, JSON.stringify(evidence.claimDeclaration), "utf8"),
+      ]);
+      const child = Bun.spawnSync([
+        process.execPath,
+        "-e",
+        `const { validateStableLocomoClaimEvidence } = await import("./scripts/run-v0-7-release-readiness.ts");
+const projection = await Bun.file(process.env.CROSS_HOME_PROJECTION).json();
+const claimDeclaration = await Bun.file(process.env.CROSS_HOME_CLAIM).json();
+console.log(JSON.stringify(await validateStableLocomoClaimEvidence({ claimDeclaration, projection, repoRoot: process.env.CROSS_HOME_REPO })));`,
+      ], {
+        cwd: new URL("../..", import.meta.url).pathname,
+        env: {
+          ...process.env,
+          CROSS_HOME_CLAIM: claimPath,
+          CROSS_HOME_PROJECTION: projectionPath,
+          CROSS_HOME_REPO: repoRoot,
+          HOME: "/home/linux-verifier",
+        },
+      });
+      expect(child.exitCode).toBe(0);
+      expect(JSON.parse(child.stdout.toString().trim())).toEqual([]);
+    } finally {
+      await rm(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects retrieval drift on a successful pass-one row before seed resume", async () => {
+    const repoRoot = await mkdtemp(
+      join(tmpdir(), "goodmemory-locomo-protocol2-pass1-drift-"),
+    );
+    try {
+      const evidence = await writeValidCurrentLocomoEvidence(repoRoot, {
+        recoveredSeedCaseId: "locomo-conv-43",
+      });
+      const passOnePath = join(
+        repoRoot,
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-smoke-report.json",
+      );
+      const passOne = JSON.parse(await readFile(passOnePath, "utf8")) as {
+        cases: Array<{
+          caseId: string;
+          retrievedTurnIds: string[];
+        }>;
+      };
+      const successful = passOne.cases.find(
+        (row) => row.caseId !== "locomo-conv-43",
+      )!;
+      successful.retrievedTurnIds = ["post-hoc-retrieval-drift"];
+      const passOneRaw = JSON.stringify(passOne);
+      await rewriteTrackedEvidence({
+        kind: "seed-attempt-1-report",
+        projection: evidence.projection,
+        raw: passOneRaw,
+        repoRoot,
+      });
+      const passOneIdentity = evidenceIdentity(
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-smoke-report.json",
+        passOneRaw,
+      );
+      const receiptPath = join(
+        repoRoot,
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/execution-receipt.json",
+      );
+      const receipt = JSON.parse(await readFile(receiptPath, "utf8")) as {
+        seedAttempts: typeof evidence.projection.seedAttempts;
+      };
+      receipt.seedAttempts[0]!.report = passOneIdentity;
+      evidence.projection.seedAttempts = receipt.seedAttempts;
+      await rewriteTrackedEvidence({
+        kind: "execution-receipt",
+        projection: evidence.projection,
+        raw: JSON.stringify(receipt),
+        repoRoot,
+      });
+
+      await expect(validateStableLocomoClaimEvidence({
+        ...evidence,
+        repoRoot,
+      })).resolves.toContain(
+        "full-claim protocol-v2 seed attempt history is inconsistent",
       );
     } finally {
       await rm(repoRoot, { force: true, recursive: true });
@@ -825,6 +1526,164 @@ describe("v0.7 release readiness", () => {
           mutation === "fresh-output"
             ? "full-claim execution receipt does not bind a clean exact execution"
             : "execution receipt command chain does not match the claim recipe",
+        );
+      } finally {
+        await rm(repoRoot, { force: true, recursive: true });
+      }
+    }
+  });
+
+  it("rejects protocol-v2 receipt limits, old caches, and a non-consumed sentinel", async () => {
+    for (const mutation of ["max-launches", "old-cache", "sentinel"] as const) {
+      const repoRoot = await mkdtemp(
+        join(tmpdir(), `goodmemory-locomo-protocol2-${mutation}-`),
+      );
+      try {
+        const evidence = await writeValidCurrentLocomoEvidence(repoRoot);
+        const receiptPath = join(
+          repoRoot,
+          "reports/release/v0.7/v0.7.3-locomo-claim-evidence/execution-receipt.json",
+        );
+        const receipt = JSON.parse(await readFile(receiptPath, "utf8")) as {
+          maxSeedLaunches: number;
+          seedAttempts: Array<{
+            extractionCache: { bytes: number; path: string; sha256: string };
+          }>;
+          sentinel: { bytes: number; path: string; sha256: string };
+        };
+        if (mutation === "max-launches") {
+          receipt.maxSeedLaunches = 3;
+        } else if (mutation === "old-cache") {
+          receipt.seedAttempts[0]!.extractionCache.path =
+            "reports/release/v0.7/v0.7.3-locomo-claim-attempt-2-failed/extraction-cache.jsonl";
+        } else {
+          const sentinelPath = join(repoRoot, receipt.sentinel.path);
+          const sentinel = JSON.parse(await readFile(sentinelPath, "utf8")) as {
+            state: string;
+          };
+          sentinel.state = "ready";
+          const sentinelRaw = JSON.stringify(sentinel);
+          await rewriteTrackedEvidence({
+            kind: "protocol-attempt-sentinel",
+            projection: evidence.projection,
+            raw: sentinelRaw,
+            repoRoot,
+          });
+          receipt.sentinel = evidenceIdentity(
+            "reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json",
+            sentinelRaw,
+          );
+        }
+        await rewriteTrackedEvidence({
+          kind: "execution-receipt",
+          projection: evidence.projection,
+          raw: JSON.stringify(receipt),
+          repoRoot,
+        });
+
+        const issues = await validateStableLocomoClaimEvidence({
+          ...evidence,
+          repoRoot,
+        });
+        expect(issues).toContain(
+          mutation === "sentinel"
+            ? "full-claim protocol-v2 sentinel is inconsistent"
+            : mutation === "old-cache"
+              ? "full-claim protocol-v2 seed attempt history is inconsistent"
+              : "full-claim protocol-v2 execution receipt is inconsistent",
+        );
+      } finally {
+        await rm(repoRoot, { force: true, recursive: true });
+      }
+    }
+  });
+
+  it("rejects post-hoc preregistration or a sentinel claimed to predate itself", async () => {
+    for (const mutation of ["preregistration", "sentinel"] as const) {
+      const repoRoot = await mkdtemp(
+        join(tmpdir(), `goodmemory-locomo-protocol2-git-${mutation}-`),
+      );
+      try {
+        const evidence = await writeValidCurrentLocomoEvidence(repoRoot);
+        const receiptPath = join(
+          repoRoot,
+          "reports/release/v0.7/v0.7.3-locomo-claim-evidence/execution-receipt.json",
+        );
+        const receipt = JSON.parse(await readFile(receiptPath, "utf8")) as {
+          preregistration: { bytes: number; path: string; sha256: string };
+          sentinel: { bytes: number; path: string; sha256: string };
+          sources: {
+            preregistration: { bytes: number; path: string; sha256: string };
+            sentinel: { bytes: number; path: string; sha256: string };
+          };
+        };
+        const kind = mutation === "preregistration"
+          ? "protocol-preregistration"
+          : "protocol-attempt-sentinel";
+        const identity = evidence.projection.sourceArtifacts.find(
+          (artifact) => artifact.kind === kind,
+        )!;
+        const value = JSON.parse(
+          await readFile(join(repoRoot, identity.path), "utf8"),
+        ) as Record<string, unknown>;
+        if (mutation === "preregistration") {
+          value.generatedAt = "2026-08-10T09:30:00.000Z";
+        } else {
+          value.releaseCommit = runFixtureGit(repoRoot, "rev-parse", "HEAD");
+        }
+        const raw = JSON.stringify(value);
+        await rewriteTrackedEvidence({
+          kind,
+          projection: evidence.projection,
+          raw,
+          repoRoot,
+        });
+        const updatedIdentity = evidenceIdentity(identity.path, raw);
+        if (mutation === "preregistration") {
+          receipt.preregistration = updatedIdentity;
+          receipt.sources.preregistration = updatedIdentity;
+        } else {
+          receipt.sentinel = updatedIdentity;
+          receipt.sources.sentinel = updatedIdentity;
+        }
+        await rewriteTrackedEvidence({
+          kind: "execution-receipt",
+          projection: evidence.projection,
+          raw: JSON.stringify(receipt),
+          repoRoot,
+        });
+
+        await expect(validateStableLocomoClaimEvidence({
+          ...evidence,
+          repoRoot,
+        })).resolves.toContain(
+          "full-claim protocol-v2 git boundary is inconsistent",
+        );
+      } finally {
+        await rm(repoRoot, { force: true, recursive: true });
+      }
+    }
+  });
+
+  it("binds tracked claim and official-runner bytes to protocol candidate C", async () => {
+    for (const source of ["claim", "official-runner"] as const) {
+      const repoRoot = await mkdtemp(
+        join(tmpdir(), `goodmemory-locomo-protocol2-source-${source}-`),
+      );
+      try {
+        const evidence = await writeValidCurrentLocomoEvidence(repoRoot, {
+          ...(source === "claim"
+            ? { protocolCandidateClaimRecipeRaw: "{\"stale\":true}\n" }
+            : {
+                protocolCandidateOfficialRunnerRaw:
+                  "export const officialPrompt = 'stale';\n",
+              }),
+        });
+        await expect(validateStableLocomoClaimEvidence({
+          ...evidence,
+          repoRoot,
+        })).resolves.toContain(
+          "full-claim protocol-v2 git boundary is inconsistent",
         );
       } finally {
         await rm(repoRoot, { force: true, recursive: true });
@@ -930,6 +1789,56 @@ describe("v0.7 release readiness", () => {
     ).toEqual([
       "tarball missing: dist/index.d.ts, dist/ai-sdk/index.js, dist/ai-sdk/index.d.ts, dist/host/index.js, dist/host/index.d.ts, dist/http/index.js, dist/http/index.d.ts, dist/runtime-kit/index.js, dist/runtime-kit/index.d.ts, docs/GoodMemory-0.6-to-0.7-Migration-Guide.md",
       "compressed tarball 4194304 bytes must be below 4194304 bytes",
+    ]);
+  });
+
+  it("rejects a packed production closure with undici or a high npm advisory", () => {
+    const cleanLock = JSON.stringify({
+      packages: {
+        "": { dependencies: { goodmemory: "file:goodmemory-0.7.3.tgz" } },
+        "node_modules/goodmemory": { version: "0.7.3" },
+      },
+    });
+    const cleanAudit = JSON.stringify({
+      metadata: {
+        vulnerabilities: { critical: 0, high: 0 },
+      },
+    });
+    expect(evaluateV07PackedProductionDependencyClosure({
+      auditExitCode: 0,
+      auditRaw: cleanAudit,
+      packageLockRaw: cleanLock,
+    })).toEqual([]);
+
+    const cleanModernUndiciLock = JSON.stringify({
+      packages: {
+        "": { dependencies: { goodmemory: "file:goodmemory-0.7.3.tgz" } },
+        "node_modules/undici": { version: "8.9.0" },
+      },
+    });
+    expect(evaluateV07PackedProductionDependencyClosure({
+      auditExitCode: 0,
+      auditRaw: cleanAudit,
+      packageLockRaw: cleanModernUndiciLock,
+    })).toEqual([]);
+
+    const vulnerableLock = JSON.stringify({
+      packages: {
+        "": { dependencies: { goodmemory: "file:goodmemory-0.7.3.tgz" } },
+        "node_modules/undici": { version: "5.29.0" },
+      },
+    });
+    expect(evaluateV07PackedProductionDependencyClosure({
+      auditExitCode: 1,
+      auditRaw: JSON.stringify({
+        metadata: {
+          vulnerabilities: { critical: 0, high: 1 },
+        },
+      }),
+      packageLockRaw: vulnerableLock,
+    })).toEqual([
+      "packed production dependency closure must not install undici 5.x",
+      "packed production dependency audit reported 1 high and 0 critical vulnerabilities",
     ]);
   });
 
@@ -2703,12 +3612,35 @@ describe("v0.7 release readiness", () => {
       candidateCommit: "a".repeat(40),
       candidatePackage,
       changedPaths: [
-        "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
-        "benchmark-claims/locomo.json",
-        "docs/GoodMemory-Current-Status-and-Evidence.md",
-        "README.md",
         ".well-known/goodmemory.json",
+        "benchmark-claims/locomo.json",
+        "benchmark-claims/evidence/locomo-v0.7.3-current.json",
+        "docs/GoodMemory-Current-Status-and-Evidence.md",
+        "docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md",
+        "docs/README.md",
+        "kimi.plugin.json",
+        "llms.txt",
         "package.json",
+        "README.md",
+        "README.zh-CN.md",
+        "reports/release/v0.7/phase-74-storage-scale-gate.json",
+        "reports/release/v0.7/readiness-report.json",
+        "reports/release/v0.7/summary.md",
+        "reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json",
+        "reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json",
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/claim-recipe-source.json",
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/execution-receipt.json",
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/final-smoke-report.json",
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/official-progress.jsonl",
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/official-rescore-summary.json",
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/official-runner-source.ts",
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-extraction-cache.jsonl",
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-live-progress.jsonl",
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-smoke-report.json",
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-extraction-cache.jsonl",
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-live-progress.jsonl",
+        "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-smoke-report.json",
+        "server.json",
       ],
       currentCommit: "b".repeat(40),
       currentPackage: releasePackage,
@@ -2717,6 +3649,214 @@ describe("v0.7 release readiness", () => {
       detail: expect.stringContaining("evidence-only descendant"),
       status: "pass",
     }));
+  });
+
+  it("rejects unrelated documentation, report, and benchmark drift after the protocol candidate", () => {
+    const packageJson = {
+      goodmemoryRelease: { status: "release-candidate" },
+      name: "goodmemory",
+      version: "0.7.3",
+    };
+
+    for (const forbiddenPath of [
+      "docs/unrelated-release-note.md",
+      "reports/release/v0.7/unrelated-attestation.json",
+      "benchmark-claims/unrelated.json",
+    ]) {
+      expect(evaluateV073LifecycleProtectionSourceDrift({
+        candidateCommit: "a".repeat(40),
+        candidatePackage: packageJson,
+        changedPaths: [forbiddenPath],
+        currentCommit: "b".repeat(40),
+        currentPackage: packageJson,
+        isAncestor: true,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining(forbiddenPath),
+        status: "fail",
+      }));
+    }
+  });
+
+  it("allows only the exact protocol-v2 implementation and prior evidence between lifecycle and protocol candidates", () => {
+    const lifecycleCandidateCommit = "a".repeat(40);
+    const protocolCandidateCommit = "b".repeat(40);
+    const allowed = evaluateV073LifecycleToProtocolSourceDrift({
+      changedPaths: [
+        ".github/workflows/release.yml",
+        ".gitignore",
+        "bun.lock",
+        "docs/GoodMemory-Current-Status-and-Evidence.md",
+        "docs/README.md",
+        "docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md",
+        "package-lock.json",
+        "package.json",
+        "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        "reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json",
+        "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/manifest.json",
+        "reports/release/v0.7/v0.7.3-locomo-claim-attempt-1-failed/attribution.md",
+        "reports/release/v0.7/v0.7.3-locomo-claim-attempt-2-failed/attribution.md",
+        "scripts/run-v0-7-3-full-locomo-claim.ts",
+        "scripts/run-coverage.ts",
+        "scripts/run-v0-7-release-readiness.ts",
+        "tests/quality-gates/phase-73/codex-coding-effect.c6-protocol-readiness.gate.ts",
+        "tests/release/release.test.ts",
+        "tests/release/v0-7-stable-artifact.test.ts",
+        "tests/integration/codex-coding-effect.c6-protocol-readiness.test.ts",
+        "tests/unit/run-coverage.script.test.ts",
+        "tests/unit/run-v0-7-3-lifecycle-protection-gate.test.ts",
+        "tests/unit/run-v0-7-3-full-locomo-claim.test.ts",
+        "tests/unit/run-v0-7-release-readiness.test.ts",
+      ],
+      dependencyPinningValid: true,
+      isAncestor: true,
+      lifecycleCandidateCommit,
+      protocolCandidateCommit,
+    });
+    expect(allowed).toEqual(expect.objectContaining({
+      detail: expect.stringContaining(protocolCandidateCommit),
+      status: "pass",
+    }));
+
+    for (const forbiddenPath of [
+      "src/recall/scoring.ts",
+      "benchmark-claims/locomo.json",
+      "scripts/run-phase-65-locomo-smoke.ts",
+      "scripts/reanswer-phase-65-locomo-report.ts",
+      "scripts/rescore-official-protocols.ts",
+      "scripts/run-v0-7-3-lifecycle-protection-gate.ts",
+      "scripts/unrelated-release-helper.ts",
+      "tests/unit/unrelated-release-helper.test.ts",
+    ]) {
+      expect(evaluateV073LifecycleToProtocolSourceDrift({
+        changedPaths: [forbiddenPath],
+        isAncestor: true,
+        lifecycleCandidateCommit,
+        protocolCandidateCommit,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining(forbiddenPath),
+        status: "fail",
+      }));
+    }
+
+    expect(evaluateV073LifecycleToProtocolSourceDrift({
+      changedPaths: ["bun.lock", "package-lock.json", "package.json"],
+      dependencyPinningValid: false,
+      isAncestor: true,
+      lifecycleCandidateCommit,
+      protocolCandidateCommit,
+    })).toEqual(expect.objectContaining({
+      detail: expect.stringContaining("dependency pinning"),
+      status: "fail",
+    }));
+  });
+
+  it("accepts only the exact AI SDK caret-to-measured dependency pinning", () => {
+    const beforeDependencies = {
+      "@ai-sdk/anthropic": "^3.0.64",
+      "@ai-sdk/openai": "^3.0.49",
+      "@ai-sdk/openai-compatible": "^2.0.40",
+      "@ai-sdk/provider-utils": "^4.0.21",
+      ai: "^6.0.143",
+      zod: "^4.3.6",
+    };
+    const afterDependencies = {
+      "@ai-sdk/anthropic": "3.0.64",
+      "@ai-sdk/openai": "3.0.49",
+      "@ai-sdk/openai-compatible": "2.0.40",
+      "@ai-sdk/provider-utils": "4.0.23",
+      ai: "6.0.143",
+      zod: "^4.3.6",
+    };
+    const providerUtils21 = { license: "Apache-2.0", version: "4.0.21" };
+    const providerUtils23 = { license: "Apache-2.0", version: "4.0.23" };
+    const providerUtils21Registry = {
+      integrity:
+        "sha512-MtFUYI1/8mgDvRmaBDjbLJPFFrMG777AvSgyIFQtZHIMzm88R/12vYBBpnk7pfiWLFE1DSZzY4WDYzGbKAcmiw==",
+      resolved:
+        "https://registry.npmjs.org/@ai-sdk/provider-utils/-/provider-utils-4.0.21.tgz",
+    };
+    const providerUtils23Registry = {
+      integrity:
+        "sha512-z8GlDaCmRSDlqkMF2f4/RFgWxdarvIbyuk+m6WXT1LYgsnGiXRJGTD2Z1+SDl3LqtFuRtGX1aghYvQLoHL/9pg==",
+      resolved:
+        "https://registry.npmjs.org/@ai-sdk/provider-utils/-/provider-utils-4.0.23.tgz",
+    };
+    const lifecycleRaws = {
+      "bun.lock": `${JSON.stringify({ dependencies: beforeDependencies }, null, 2)}\n`,
+      "package-lock.json": `${JSON.stringify({
+        packages: {
+          "": { dependencies: beforeDependencies },
+          "node_modules/@ai-sdk/openai-compatible/node_modules/@ai-sdk/provider-utils":
+            providerUtils23,
+          "node_modules/@ai-sdk/provider-utils": providerUtils21,
+        },
+      }, null, 2)}\n`,
+      "package.json": `${JSON.stringify({ dependencies: beforeDependencies }, null, 2)}\n`,
+    };
+    const protocolRaws = {
+      "bun.lock": `${JSON.stringify({ dependencies: afterDependencies }, null, 2)}\n`,
+      "package-lock.json": `${JSON.stringify({
+        packages: {
+          "": { dependencies: afterDependencies },
+          "node_modules/@ai-sdk/anthropic/node_modules/@ai-sdk/provider-utils": {
+            ...providerUtils21,
+            ...providerUtils21Registry,
+          },
+          "node_modules/@ai-sdk/gateway/node_modules/@ai-sdk/provider-utils": {
+            ...providerUtils21,
+            ...providerUtils21Registry,
+          },
+          "node_modules/@ai-sdk/openai/node_modules/@ai-sdk/provider-utils": {
+            ...providerUtils21,
+            ...providerUtils21Registry,
+          },
+          "node_modules/@ai-sdk/provider-utils": {
+            ...providerUtils23,
+            ...providerUtils23Registry,
+          },
+          "node_modules/ai/node_modules/@ai-sdk/provider-utils": {
+            ...providerUtils21,
+            ...providerUtils21Registry,
+          },
+        },
+      }, null, 2)}\n`,
+      "package.json": `${JSON.stringify({ dependencies: afterDependencies }, null, 2)}\n`,
+    };
+
+    expect(isV073ProtocolDependencyPinningExact({
+      lifecycleRaws,
+      protocolRaws,
+    })).toBe(true);
+    expect(isV073ProtocolDependencyPinningExact({
+      lifecycleRaws,
+      protocolRaws: {
+        ...protocolRaws,
+        "package.json": protocolRaws["package.json"].replace(
+          '"zod": "^4.3.6"',
+          '"zod": "4.3.6"',
+        ),
+      },
+    })).toBe(false);
+    expect(isV073ProtocolDependencyPinningExact({
+      lifecycleRaws,
+      protocolRaws: {
+        ...protocolRaws,
+        "package-lock.json": protocolRaws["package-lock.json"].replace(
+          providerUtils21Registry.integrity,
+          "sha512-attacker-controlled-bytes==",
+        ),
+      },
+    })).toBe(false);
+    expect(isV073ProtocolDependencyPinningExact({
+      lifecycleRaws,
+      protocolRaws: {
+        ...protocolRaws,
+        "package-lock.json": protocolRaws["package-lock.json"].replace(
+          providerUtils23Registry.resolved,
+          "https://example.invalid/provider-utils-4.0.23.tgz",
+        ),
+      },
+    })).toBe(false);
   });
 
   it("uses the measured candidate recipe after current claim publication changes locomo.json", () => {

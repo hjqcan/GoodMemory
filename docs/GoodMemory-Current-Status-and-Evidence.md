@@ -104,9 +104,39 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   official judging, projection, or claim-evidence publication. The raw
   replacement artifacts and attribution are retained at
   `reports/release/v0.7/v0.7.3-locomo-claim-attempt-2-failed/`. The two
-  authorized draws are exhausted, no third draw is authorized, and v0.7.3 is
-  blocked and unpublished; no tag, npm publish, or GitHub Release followed.
-  See `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
+  authorized draws are exhausted and remain terminal; their protocol
+  authorizes no third draw. A separate full-claim protocol v2 is now defined as
+  one fixed successor attempt, but no provider-capable v2 process has started
+  and no attempt is authorized until a later evidence-only commit adds the
+  commit-bound preregistration JSON. It keeps the seed retrieval-only and
+  permits at most two invocations of the same frozen seed command: pass 1, then
+  one exact `--resume` only when pass 1 has eligible seed execution failures.
+  Both invocations must keep identical arguments, environment, run ID, checkpoint,
+  extraction cache, and output namespace; re-answering and official judging
+  remain forbidden until the final seed report covers all 1,540 questions with
+  zero execution failures. Eligibility requires exactly 271 of the 272 frozen
+  session cache keys, with the sole missing key belonging to the one timed-out
+  conversation. Pass-1 report, progress, and extraction-cache snapshots are
+  create-only before classification after every pass 1, whether or not resume
+  is needed; final seed report/progress/cache and any validated re-answer
+  report are tracked separately before the next stage, and any later terminal
+  stage leaves a credential-free receipt with its child exit code, seed-attempt
+  index, and available artifact identities. The
+  required preregistration and irreversible sentinel paths are
+  `reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json` and
+  `reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json`;
+  the sentinel must be the sole commit after the preregistered `main` state and
+  `origin/main` must equal or descend from it before any provider child starts,
+  even if the push client lost its success response. Provider children
+  use an explicit frozen environment rather than inheriting ambient
+  `GOODMEMORY_*` timeout or storage overrides. All seed snapshots are retained
+  under
+  `reports/release/v0.7/v0.7.3-locomo-claim-evidence/`. Protocol v2 is a narrow
+  evidence-protocol descendant of the measured lifecycle candidate: it does
+  not change `src/`, the public package surface, the Phase 65 seed runner, or
+  the passing schema-9 lifecycle evidence. v0.7.3 remains blocked and
+  unpublished; no tag, npm publish, or GitHub Release has followed. See
+  `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
 - The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
   Kimi Code 0.31.1 installed the bare GitHub URL as
   `hjqcan/GoodMemory@tag:v0.7.2`; `/reload` connected one stdio MCP server with
@@ -128,6 +158,15 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   scans compiled JavaScript for known fitted benchmark literals.
 - Core public workflow remains centered on `createGoodMemory`, `remember`, `recall`, `buildContext`, `feedback`, `forget`, `exportMemory`, and `deleteAllMemory`; advanced host/operator facades such as runtime, jobs, reviseMemory, and runMaintenance stay explicit.
 - Package subpaths `goodmemory`, `goodmemory/ai-sdk`, `goodmemory/host`, `goodmemory/http`, and `goodmemory/runtime-kit` resolve through compiled `dist/` artifacts and emitted type declarations.
+- The v0.7.3 candidate pins the exact AI SDK 6 dependency versions already
+  present in the measured lock instead of publishing caret ranges that can
+  resolve to `@ai-sdk/provider-utils` versions carrying `undici@5.29.0`. The
+  release gate now performs a fresh production install from the packed tarball,
+  rejects any installed Undici 5.x, and requires zero high or critical npm
+  advisories. This is patch-release containment, not a claim that
+  `runtime-kit` is dependency-isolated: the package still declares the AI SDK
+  6 family as required dependencies, keeps the Node 20 contract, and does not
+  claim an AI SDK 7 migration.
 - Storage resolution is automatic: explicit config wins, configured Postgres can be used when bootstrap succeeds, Bun gets local SQLite, and unsupported Node zero-config local SQLite falls back to in-memory with observable runtime inspection.
 - The official CLI uses the package bin. The global CLI invocation path is `goodmemory ...` after `npm install -g goodmemory`; project-local installs use `npx goodmemory`, `npm exec -- goodmemory`, or `./node_modules/.bin/goodmemory ...`. Non-version command execution remains Bun-backed today.
 - Generic live-memory eval semantics are auto-storage aligned: `eval:live-memory`, `eval:live-auto-memory`, `runLiveMemoryEval()`, `eval:live-provider-memory`, and historical `reports/eval/live-memory/phase-*` paths keep their existing meanings.
@@ -199,7 +238,10 @@ cutover, and rollback contracts.
   C6 has a deterministic preflight/checkpoint implementation, but its candidate
   manifest is not frozen and there is no finalized candidate dataset,
   packaged-Linux host profile, flat-summary corpus, Linux execution, or C6
-  result.
+  result. Its heavy candidate-readiness replay is therefore isolated under
+  `tests/quality-gates/phase-73/` and remains available through
+  `bun run test:phase-73-gates`; it is not part of the v0.7.3 canonical product
+  suite, coverage gate, or release authorization.
   Source-v1, source-v2, the 76,257-byte prior-178 plan, and
   `source-v3-simple` are historical, reproducible, and non-authorizing. The
   source-v3 promotion chain validly granted census-entry authority, but the RF5

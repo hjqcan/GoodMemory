@@ -13,7 +13,6 @@ describe("run-coverage script", () => {
   it("discovers integration coverage files while excluding child-process and slow evidence tests", () => {
     expect(
       selectIntegrationCoverageFiles([
-        "codex-coding-effect.c6-protocol-readiness.test.ts",
         "python-http-bridge.test.ts",
         "storage.postgres.test.ts",
         "api.auto-storage.test.ts",
@@ -66,7 +65,7 @@ describe("run-coverage script", () => {
       "test",
       "--timeout=300000",
     ]);
-    expect(command).toContain(
+    expect(command).not.toContain(
       "tests/integration/codex-coding-effect.c6-protocol-readiness.test.ts",
     );
     expect(command).toContain("tests/integration/host-mcp-server.standalone.test.ts");

@@ -87,6 +87,8 @@ reports/release/v0.7/*
 !reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json
 !reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/
 !reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/**
+!reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json
+!reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json
 !reports/release/v0.7/v0.7.3-locomo-claim-evidence/
 !reports/release/v0.7/v0.7.3-locomo-claim-evidence/**
 !reports/release/v0.7/blocked-6eb0f87d/

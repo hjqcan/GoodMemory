@@ -3,11 +3,9 @@ import { join } from "node:path";
 
 const INTEGRATION_TEST_DIR = "tests/integration";
 const EXCLUDED_INTEGRATION_COVERAGE_FILES = new Set([
-  "codex-coding-effect.c6-protocol-readiness.test.ts",
   "python-http-bridge.test.ts",
 ]);
 export const POST_COVERAGE_TEST_TARGETS = [
-  "tests/integration/codex-coding-effect.c6-protocol-readiness.test.ts",
   "tests/integration/host-mcp-server.standalone.test.ts",
   "tests/integration/python-http-bridge.test.ts",
   "tests/unit/codex-coding-effect.c6-source-v3-simple-prior-identity-draft.test.ts",

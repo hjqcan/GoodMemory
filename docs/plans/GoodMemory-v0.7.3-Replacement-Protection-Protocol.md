@@ -5,10 +5,135 @@ schema 9 completed its single formal attempt and passed. The first authorized
 full-claim draw is terminal invalid after one conversational-extraction timeout
 was amplified to 191 seed failures. Its single preregistered replacement is
 also terminal invalid after a different conversational-extraction timeout was
-amplified to 178 seed failures. No third draw is authorized; v0.7.3 remains
-unpublished and the release is blocked
+amplified to 178 seed failures. Those two attempts remain terminal and the
+exhausted protocol authorizes no third draw. Full-claim protocol v2 is defined
+below, but it has not begun and is not live-authorized until a later
+evidence-only commit adds its commit-bound preregistration JSON; v0.7.3 remains
+unpublished and the release is blocked.
 Date: 2026-08-10
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
+
+## Full-claim protocol v2 definition (awaiting commit-bound preregistration)
+
+Full-claim `protocolVersion: 2` does not resume, reopen, replace, or reinterpret
+either terminal full-claim attempt above. Their output namespaces remain
+immutable historical evidence, and neither cache may be copied into the new
+attempt. Protocol v2 defines exactly one fixed successor attempt. After the
+protocol implementation commit is frozen, a later evidence-only commit must
+add
+`reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json` with
+that exact commit and the fixed identities. No live attempt is authorized until
+the tracked JSON exists and strict readiness verifies it. Before any
+provider-capable process starts, the launcher must exclusively create
+`reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json` from
+that preregistration, commit it as the only `main` change, and successfully
+push that commit to `origin/main` without force. A dry-run push and an exact
+remote-head check happen before the file is created. Provider execution may
+start only after a post-push remote read proves that `origin/main` equals or
+descends from the sentinel commit; the remote fact is authoritative even if
+the push client loses its success response. This prevents another clone from
+consuming the same attempt. Once the remote sentinel commit exists, the attempt is
+irreversible whether it passes or fails.
+
+The commit-bound preregistration and the protocol candidate it binds must
+collectively freeze the lifecycle candidate, benchmark bytes, Bun version,
+model and gateway identities, prompts, question order, concurrency, timeouts,
+retry policy, run IDs, output namespace, and exact command/environment
+fingerprints. The protocol candidate
+may differ from the passing schema-9 lifecycle candidate only in the launcher,
+readiness verification, their focused tests, release evidence packaging, and
+the documents that preregister this correction. It may also replace the five
+AI SDK dependency caret ranges with the exact versions already present in the
+measured Bun lock and add a packed fresh-install production audit. That
+containment may not change package exports, engine requirements, bundled
+runtime bytes, or any other dependency. It may not change `src/`, lifecycle
+scoring, extraction prompts or routing, the Phase 65 seed runner,
+re-answering, official judging, or the schema-9 lifecycle evidence. This is a
+narrow evidence-protocol descendant, not a new product candidate. AI SDK 7
+requires a Node 22 baseline and provider-v4 migration; it is outside this
+patch protocol, and no direct Undici-major override is authorized.
+
+The protocol candidate may also correct test-only release portability and
+routing: the lifecycle-protection fixture derives its benchmark root from the
+current home directory, and the 3,297-line C6 candidate-readiness replay moves
+from the canonical integration suite into the existing Phase 73 quality-gate
+suite. C6 remains independently executable through
+`bun run test:phase-73-gates`; it is open research evidence and is not a
+v0.7.3 product or release gate. The coverage harness changes only to stop
+re-running that moved C6 gate after product coverage.
+
+The seed stage remains retrieval-only. Each of its 1,540 rows must set
+`generatedAnswer`, `answerCorrect`, and `answerTokenF1` to `null` and report
+zero execution failures before re-answering or official judging may start.
+Within the one formal attempt, the launcher may invoke the frozen seed command
+no more than twice:
+
+1. Pass 1 uses the fixed command, environment, run ID, and output namespace.
+2. Only if pass 1 reports eligible seed execution failures may the launcher
+   invoke one exact `--resume`. The second invocation must use byte-identical
+   arguments and the same environment, run ID, checkpoint, extraction cache,
+   and output namespace. It is not a second draw. If pass 1 is already clean,
+   the second invocation is forbidden.
+
+Eligibility is closed and mechanical: the complete 1,540-row pass-1 report
+must contain failures for exactly one entire conversation, every failure must
+have `executionFailureStage: "seed"` and the exact message
+`OpenAI-compatible gateway timeout after 120000ms.`, the extraction cache must
+contain exactly 271 of the 272 session keys recomputed from the frozen benchmark
+and extractor model, the sole missing key must belong to that failed
+conversation, and the progress checkpoint must cover every successful pass-1
+question. Any substituted or unrelated cache key, any second missing key, or
+any other failure shape is terminal and does not authorize a second seed
+invocation.
+
+The frozen seed arguments already include `--resume` on pass 1. “Exact resume”
+therefore means a second byte-identical invocation, not adding or changing a
+flag between launches.
+
+After pass 1 finishes, the launcher must create these canonical snapshots
+inside the eventual release-evidence root whether or not an exact resume is
+needed:
+
+- `reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-smoke-report.json`
+- `reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-live-progress.jsonl`
+- `reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-extraction-cache.jsonl`
+
+The final seed report, progress, and extraction-cache state are tracked
+separately as `seed-smoke-report.json`, `seed-live-progress.jsonl`, and
+`seed-extraction-cache.jsonl` in the same evidence root, and the execution
+receipt records the seed-attempt count and exact fingerprints. The three
+pass-1 files are materialized in that evidence root before their JSON is
+classified. A validated re-answer report is likewise materialized as
+`final-smoke-report.json` before official judging starts. If seed, re-answer,
+or official judging then terminates, a create-only `execution-receipt.json`
+records the terminal stage, child exit code, seed attempt index, available
+artifact identities, and sentinel identity without serializing credentials,
+ambient environment, or provider response bodies. A clean pass 1 or exact resume must
+cover all 1,540 frozen
+questions with zero execution failures before the launcher performs the one
+fixed re-answer stage and the one fixed official-judge stage. If the exact
+resume still leaves any seed execution failure, the protocol-v2 attempt is
+terminal blocked; no third seed invocation, new namespace, new run IDs,
+manual re-answer, or direct judge invocation is authorized.
+
+No provider-capable protocol-v2 process has started. This definition does not
+authorize one until the commit-bound preregistration is tracked and verified,
+and neither implementation/test success nor that future preregistration is
+passing claim evidence. The canonical sentinel, pass-1 snapshots, final
+evidence bundle, projection, and release gates become evidence only through the
+fixed execution above.
+
+Provider-capable children receive an explicit environment: the five frozen
+provider identities and credentials, the command's recorded semantic
+variables, and only the small operating-system environment needed to launch
+the process. Every Bun child starts with `--no-env-file`, so ignored `.env*`
+files in either clean worktree cannot silently add or replace configuration.
+They do not inherit ambient `GOODMEMORY_*` storage, embedding-run,
+embedding-request, or judge-timeout overrides. The evidence records the
+effective default timeout contract and renders the benchmark root with a
+host-independent canonical token, so the same command identity reconstructs
+on macOS and Linux without rewriting the raw absolute provenance retained in
+the reports.
 
 ## Why the first gate remains blocked
 
@@ -700,13 +825,13 @@ artifacts and attribution are retained at
 
 The replacement was consumed when the canonical launcher started its
 provider-capable seed process. Its execution failures therefore block v0.7.3
-and do not authorize a third draw. Manual seed resume, direct re-answer or
-rescore, a new output namespace, or new run IDs are not valid continuations.
-The current full-claim launcher does not mechanically persist a consumed-draw
-sentinel; that implementation gap does not relax the preregistered boundary and
-must be closed by any successor release protocol before another live attempt is
-considered. No code, model, configuration, or acceptance-threshold change is
-authorized inside this v0.7.3 release chain.
+and do not authorize a third draw under that exhausted protocol. Manual seed
+resume, direct re-answer or rescore, a new output namespace, or new run IDs are
+not valid continuations of either terminal attempt. Full-claim protocol v2
+above defines a separate successor with a narrow implementation diff and its
+own fixed identity, but it is neither preregistered nor consumed until the
+later commit-bound JSON exists and the launcher creates its sentinel. It does
+not make either old attempt resumable or valid.
 
 The preferred claim artifact records and replays provider responses so the
 published run is byte-reproducible. If any published score instead comes from a

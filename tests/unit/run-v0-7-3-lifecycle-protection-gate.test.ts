@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "bun:test";
@@ -20,8 +21,10 @@ const BENCHMARK_FINGERPRINT =
   "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd";
 const BENCHMARK_ROOT_SHA256 =
   "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28";
-const BENCHMARK_ROOT =
-  "/Users/hjqcan/.cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1";
+const BENCHMARK_ROOT = resolve(
+  homedir(),
+  ".cache/goodmemory-benchmarks/LoCoMo-captioned-full10-v1",
+);
 const ANSWER_GATEWAY = "https://ai.gurkiai.com/v1";
 const EMBEDDING_GATEWAY = "https://openrouter.ai/api/v1";
 const ANSWER_MODEL = "gpt-5.6-terra";

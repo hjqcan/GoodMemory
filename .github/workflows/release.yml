@@ -124,6 +124,13 @@ jobs:
             echo "- Integrity: $ARTIFACT_INTEGRITY"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Verify full-claim protocol-v2 pass-one evidence
+        run: |
+          set -euo pipefail
+          test -s reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-smoke-report.json
+          test -s reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-live-progress.jsonl
+          test -s reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-extraction-cache.jsonl
+
       - name: Upload tarball artifact
         uses: actions/upload-artifact@v4
         with:
@@ -134,6 +141,8 @@ jobs:
             reports/release/v0.7/v0.7.3-lifecycle-protection.json
             reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json
             reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/**
+            reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json
+            reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json
             benchmark-claims/evidence/locomo-v0.7.3-current.json
             reports/release/v0.7/v0.7.3-locomo-claim-evidence/**
             reports/release/v0.7/phase-74-storage-scale-gate.json
@@ -153,6 +162,8 @@ jobs:
             reports/release/v0.7/v0.7.3-lifecycle-protection.json \
             reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json \
             reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence \
+            reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json \
+            reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json \
             benchmark-claims/evidence/locomo-v0.7.3-current.json \
             reports/release/v0.7/v0.7.3-locomo-claim-evidence \
             reports/release/v0.7/phase-74-storage-scale-gate.json \

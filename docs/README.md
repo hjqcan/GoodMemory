@@ -60,15 +60,17 @@ bulk-load. Start here, then open only the file that matches the question.
 
 ## Research And Evidence
 
-- `plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md` - schema-9
-  shared semantic seed identity, storage and provider-availability
-  qualification, irreversible attempt sentinel, deterministic hard gate,
-  ordered per-fingerprint response-occurrence replay and failure capture
-  through bounded deterministic gzip parts, exact bundle closure,
-  collision-free release evidence archive, paired sign-test diagnostic, and
-  full-claim provider-variance boundary. Schemas 2 through 8 are terminal
-  blocked evidence; schema 9 is pre-registered but has not begun a live
-  attempt, so no passing protection result or release is implied.
+- `plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md` - passing
+  lifecycle schema-9 evidence, the two terminal full-claim attempts, and the
+  not-yet-started full-claim protocol-v2 definition awaiting a later
+  commit-bound preregistration. Only after that JSON is tracked and verified
+  may its one fixed successor attempt run a retrieval-only seed once plus at
+  most one exact same-identity `--resume`; pass-1 evidence is preserved even
+  when resume is unnecessary, final seed and validated re-answer artifacts are
+  persisted before the next stage, and a clean 1,540-row seed is required
+  before re-answer or judging. It is only a narrow evidence-protocol descendant of the
+  measured lifecycle candidate. No live attempt, passing claim result, or
+  v0.7.3 release is implied.
 - `GoodMemory-Preference-Identity-Pre-API-Research.md` - frozen pre-API
   preference atomization/key-stability protocol, completed no-API decision,
   fixture-only conflict census, and synthetic policy comparison; not a
@@ -81,7 +83,9 @@ bulk-load. Start here, then open only the file that matches the question.
 - `Sequential Benchmark Hardening Plan.md` - external benchmark sequence.
 - `plans/GoodMemory-Codex-Coding-Effect-Evaluation-and-Development-Plan.md` -
   Codex-first host-native coding A/B design, hidden-test evidence contract, TDD
-  implementation order, and public-claim gate; Claude Code is deferred.
+  implementation order, and public-claim gate; Claude Code is deferred. Its
+  heavy C6 readiness replay runs only through the separate Phase 73 quality
+  gate and does not block the v0.7.3 product release.
 - `plans/GoodMemory-Phase-74-Generalized-Memory-Core-Implementation.md` -
   experimental generalized-memory implementation record, completed local
   verification, scale evidence, and the still-unmet cross-benchmark promotion
