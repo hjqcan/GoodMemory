@@ -145,6 +145,8 @@ jobs:
             reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json
             reports/release/v0.7/v0.7.3-public-claim-governance-correction-preregistration.json
             reports/release/v0.7/v0.7.3-public-claim-governance-correction-attestation.json
+            reports/release/v0.7/v0.7.3-stable-source-test-correction-preregistration.json
+            reports/release/v0.7/v0.7.3-stable-source-test-correction-attestation.json
             benchmark-claims/evidence/locomo-v0.7.3-current.json
             reports/release/v0.7/v0.7.3-locomo-claim-evidence/**
             reports/release/v0.7/phase-74-storage-scale-gate.json
@@ -160,6 +162,8 @@ jobs:
           EVIDENCE_ARCHIVE="$(dirname "${{ steps.pack.outputs.artifact_path }}")/goodmemory-${VERSION}-release-evidence.tar.gz"
           test -s reports/release/v0.7/v0.7.3-public-claim-governance-correction-preregistration.json
           test -s reports/release/v0.7/v0.7.3-public-claim-governance-correction-attestation.json
+          test -s reports/release/v0.7/v0.7.3-stable-source-test-correction-preregistration.json
+          test -s reports/release/v0.7/v0.7.3-stable-source-test-correction-attestation.json
           tar --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner -czf "$EVIDENCE_ARCHIVE" \
             -C "$(dirname "$PREPUBLISH_EVIDENCE")" "$(basename "$PREPUBLISH_EVIDENCE")" \
             -C "$GITHUB_WORKSPACE" \
@@ -170,6 +174,8 @@ jobs:
             reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json \
             reports/release/v0.7/v0.7.3-public-claim-governance-correction-preregistration.json \
             reports/release/v0.7/v0.7.3-public-claim-governance-correction-attestation.json \
+            reports/release/v0.7/v0.7.3-stable-source-test-correction-preregistration.json \
+            reports/release/v0.7/v0.7.3-stable-source-test-correction-attestation.json \
             benchmark-claims/evidence/locomo-v0.7.3-current.json \
             reports/release/v0.7/v0.7.3-locomo-claim-evidence \
             reports/release/v0.7/phase-74-storage-scale-gate.json \

@@ -97,6 +97,12 @@ const V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION =
 const V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION =
   "reports/release/v0.7/" +
   "v0.7.3-public-claim-governance-correction-attestation.json";
+const V073_STABLE_SOURCE_TEST_CORRECTION_PREREGISTRATION =
+  "reports/release/v0.7/" +
+  "v0.7.3-stable-source-test-correction-preregistration.json";
+const V073_STABLE_SOURCE_TEST_CORRECTION_ATTESTATION =
+  "reports/release/v0.7/" +
+  "v0.7.3-stable-source-test-correction-attestation.json";
 const V073_LOCOMO_SOURCE_ARTIFACT_PATHS = {
   "claim-recipe-source": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}claim-recipe-source.json`,
   "execution-receipt": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}execution-receipt.json`,
@@ -3808,6 +3814,58 @@ const V073_PUBLIC_CLAIM_GOVERNANCE_CHANGE_PATHS = new Set([
   ...V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_PATHS,
   V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION,
 ]);
+const V073_STABLE_SOURCE_BASELINE_COMMITS = {
+  governanceAttestation: "b9c9b796803b9a7a39a491abe95d4c9f802a2520",
+  stableSource: "6928ffdd7545a609495ed483bc8878894980301f",
+} as const;
+const V073_STABLE_SOURCE_PREREGISTRATION_COMMIT =
+  "76556d010c4b132f1f6e5c7a60e4fa2534a54b70";
+const V073_STABLE_SOURCE_PREREGISTRATION_BYTES = 5_103;
+const V073_STABLE_SOURCE_PREREGISTRATION_SHA256 =
+  "38946ad1bf31b1a1e6638cd4ab2cc2f8bbbb718b1eaee902c0a96dc23752cffd";
+const V073_STABLE_SOURCE_RELEASE_PATHS = [
+  ".well-known/goodmemory.json",
+  "README.md",
+  "README.zh-CN.md",
+  V073_LOCOMO_CURRENT_PROJECTION,
+  "benchmark-claims/locomo.json",
+  "docs/GoodMemory-Current-Status-and-Evidence.md",
+  "docs/README.md",
+  "docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md",
+  "llms.txt",
+  "package.json",
+  ...Object.entries(V073_LOCOMO_SOURCE_ARTIFACT_PATHS)
+    .filter(([kind]) =>
+      kind !== "protocol-attempt-sentinel" &&
+      kind !== "protocol-preregistration"
+    )
+    .map(([, path]) => path),
+] as const;
+const V073_STABLE_SOURCE_TEST_PATHS = [
+  "tests/release/release.test.ts",
+  "tests/unit/capability-descriptor.test.ts",
+  "tests/unit/run-v0-7-3-full-locomo-claim.test.ts",
+  "tests/unit/run-v0-7-3-lifecycle-protection-gate.test.ts",
+  "tests/unit/run-v0-7-3-replacement-protection-gate.test.ts",
+  "tests/unit/run-v0-7-release-readiness.test.ts",
+] as const;
+const V073_STABLE_SOURCE_PREREGISTRATION_PATHS = [
+  V073_STABLE_SOURCE_TEST_CORRECTION_PREREGISTRATION,
+  ...V073_STABLE_SOURCE_TEST_PATHS,
+] as const;
+const V073_STABLE_SOURCE_IMPLEMENTATION_PATHS = [
+  ".github/workflows/release.yml",
+  "scripts/run-v0-7-release-readiness.ts",
+] as const;
+const V073_STABLE_SOURCE_SOURCE_PATHS = [
+  ...V073_STABLE_SOURCE_IMPLEMENTATION_PATHS,
+  ...V073_STABLE_SOURCE_TEST_PATHS,
+] as const;
+const V073_STABLE_SOURCE_CHANGE_PATHS = new Set([
+  ...V073_STABLE_SOURCE_PREREGISTRATION_PATHS,
+  ...V073_STABLE_SOURCE_IMPLEMENTATION_PATHS,
+  V073_STABLE_SOURCE_TEST_CORRECTION_ATTESTATION,
+]);
 const V073_POST_ATTESTATION_RELEASE_PATHS = new Set([
   ...Object.entries(V073_LOCOMO_SOURCE_ARTIFACT_PATHS)
     .filter(([kind]) =>
@@ -3835,6 +3893,7 @@ const ALLOWED_POST_CANDIDATE_PATHS = new Set([
   ...V073_PUBLIC_CLAIM_GOVERNANCE_IMPLEMENTATION_PATHS,
   ...V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_PATHS,
   V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION,
+  ...V073_STABLE_SOURCE_CHANGE_PATHS,
   V073_LOCOMO_CURRENT_PROJECTION,
   "benchmark-claims/locomo.json",
   "docs/GoodMemory-Current-Status-and-Evidence.md",
@@ -4101,6 +4160,7 @@ interface V073PublicClaimGovernanceCorrectionInput {
   preregistrationParentCommit: string;
   preregistrationRawAtCommit: string;
   preregistrationRawCurrent: string;
+  stableSourceCorrectionValid?: boolean;
 }
 
 function samePathSet(
@@ -4188,7 +4248,10 @@ export function evaluateV073PublicClaimGovernanceCorrection(
     issues.push("governance correction attestation commit paths are inconsistent");
   }
   const forbiddenReleasePaths = input.postAttestationChangedPaths.filter(
-    (path) => !V073_POST_ATTESTATION_RELEASE_PATHS.has(path),
+    (path) =>
+      !V073_POST_ATTESTATION_RELEASE_PATHS.has(path) &&
+      !(input.stableSourceCorrectionValid === true &&
+        V073_STABLE_SOURCE_CHANGE_PATHS.has(path)),
   );
   if (forbiddenReleasePaths.length > 0) {
     issues.push(
@@ -4227,7 +4290,12 @@ export function evaluateV073PublicClaimGovernanceCorrection(
       const currentRaw = input.currentSourceRaws[path];
       const identity = sourceArtifactsByPath.get(path);
       return implementationRaw !== undefined &&
-        currentRaw === implementationRaw &&
+        currentRaw !== undefined &&
+        (currentRaw === implementationRaw ||
+          (input.stableSourceCorrectionValid === true &&
+            V073_STABLE_SOURCE_SOURCE_PATHS.includes(
+              path as (typeof V073_STABLE_SOURCE_SOURCE_PATHS)[number],
+            ))) &&
         identity?.bytes === Buffer.byteLength(implementationRaw, "utf8") &&
         identity.sha256 === sha256(implementationRaw);
     });
@@ -4351,6 +4419,7 @@ function changedPaths(raw: string): string[] {
 export async function evaluateV073PublicClaimGovernanceCorrectionFile(input: {
   currentCommit: string;
   repoRoot: string;
+  stableSourceCorrectionValid?: boolean;
 }): Promise<V07ReleaseReadinessCheck> {
   const startedAt = performance.now();
   try {
@@ -4503,6 +4572,7 @@ export async function evaluateV073PublicClaimGovernanceCorrectionFile(input: {
       preregistrationParentCommit: preregistrationParentCommit.trim(),
       preregistrationRawAtCommit,
       preregistrationRawCurrent,
+      stableSourceCorrectionValid: input.stableSourceCorrectionValid,
     });
     return {
       ...check,
@@ -4518,6 +4588,438 @@ export async function evaluateV073PublicClaimGovernanceCorrectionFile(input: {
       required: true,
       status: "fail",
       title: "v0.7.3 public-claim governance correction lineage",
+    };
+  }
+}
+
+interface V073StableSourceTestCorrectionInput {
+  attestation: unknown;
+  attestationChangedPaths: readonly string[];
+  attestationCommit: string;
+  attestationIsAncestor: boolean;
+  attestationParentCommit: string;
+  attestationRawAtCommit: string;
+  attestationRawCurrent: string;
+  currentCommit: string;
+  currentSourceRaws: Readonly<Record<string, string>>;
+  implementationChangedPaths: readonly string[];
+  implementationCommit: string;
+  implementationParentCommit: string;
+  implementationSourceRaws: Readonly<Record<string, string>>;
+  preregistration: unknown;
+  preregistrationChangedPaths: readonly string[];
+  preregistrationCommit: string;
+  preregistrationParentCommit: string;
+  preregistrationRawAtCommit: string;
+  preregistrationRawCurrent: string;
+  preregistrationSourceRaws: Readonly<Record<string, string>>;
+  releaseChangedPaths: readonly string[];
+  releaseCommit: string;
+  releaseParentCommit: string;
+}
+
+function stableSourceCorrectionCheck(
+  issues: readonly string[],
+): V07ReleaseReadinessCheck {
+  return {
+    detail: issues.length === 0
+      ? `exact A-R0-D2-G2-A2 stable-source correction is frozen at ${
+        V073_STABLE_SOURCE_PREREGISTRATION_COMMIT
+      }`
+      : issues.join("; "),
+    durationMs: 0,
+    id: "v0.7.3-stable-source-test-correction",
+    required: true,
+    status: issues.length === 0 ? "pass" : "fail",
+    title: "v0.7.3 stable-source test correction lineage",
+  };
+}
+
+export function evaluateV073StableSourceTestCorrection(
+  input: unknown,
+): V07ReleaseReadinessCheck {
+  if (!isRecord(input)) {
+    return stableSourceCorrectionCheck(["stable-source correction input is malformed"]);
+  }
+  const value = input as unknown as V073StableSourceTestCorrectionInput;
+  if (
+    !Array.isArray(value.attestationChangedPaths) ||
+    !Array.isArray(value.implementationChangedPaths) ||
+    !Array.isArray(value.preregistrationChangedPaths) ||
+    !Array.isArray(value.releaseChangedPaths) ||
+    !isRecord(value.currentSourceRaws) ||
+    !isRecord(value.implementationSourceRaws) ||
+    !isRecord(value.preregistrationSourceRaws)
+  ) {
+    return stableSourceCorrectionCheck(["stable-source correction input is incomplete"]);
+  }
+
+  const issues: string[] = [];
+  const commits = [
+    value.attestationCommit,
+    value.attestationParentCommit,
+    value.currentCommit,
+    value.implementationCommit,
+    value.implementationParentCommit,
+    value.preregistrationCommit,
+    value.preregistrationParentCommit,
+    value.releaseCommit,
+    value.releaseParentCommit,
+  ];
+  if (commits.some((commit) => !COMMIT_PATTERN.test(commit))) {
+    issues.push("stable-source correction commit identities are malformed");
+  }
+  if (
+    value.releaseCommit !== V073_STABLE_SOURCE_BASELINE_COMMITS.stableSource ||
+    value.releaseParentCommit !==
+      V073_STABLE_SOURCE_BASELINE_COMMITS.governanceAttestation ||
+    !samePathSet(value.releaseChangedPaths, V073_STABLE_SOURCE_RELEASE_PATHS)
+  ) {
+    issues.push("stable-source release commit is inconsistent");
+  }
+  if (
+    value.preregistrationCommit !== V073_STABLE_SOURCE_PREREGISTRATION_COMMIT ||
+    value.preregistrationParentCommit !== value.releaseCommit ||
+    !samePathSet(
+      value.preregistrationChangedPaths,
+      V073_STABLE_SOURCE_PREREGISTRATION_PATHS,
+    )
+  ) {
+    issues.push("stable-source preregistration commit is inconsistent");
+  }
+  if (
+    value.implementationParentCommit !== value.preregistrationCommit ||
+    !samePathSet(
+      value.implementationChangedPaths,
+      V073_STABLE_SOURCE_IMPLEMENTATION_PATHS,
+    )
+  ) {
+    issues.push("stable-source implementation commit is inconsistent");
+  }
+  if (
+    value.attestationParentCommit !== value.implementationCommit ||
+    value.currentCommit !== value.attestationCommit ||
+    !value.attestationIsAncestor ||
+    !samePathSet(
+      value.attestationChangedPaths,
+      [V073_STABLE_SOURCE_TEST_CORRECTION_ATTESTATION],
+    ) ||
+    value.attestationRawAtCommit !== value.attestationRawCurrent
+  ) {
+    issues.push("stable-source attestation commit is inconsistent");
+  }
+
+  let preregistrationAtCommit: unknown;
+  let attestationAtCommit: unknown;
+  try {
+    preregistrationAtCommit = JSON.parse(value.preregistrationRawAtCommit) as unknown;
+    attestationAtCommit = JSON.parse(value.attestationRawAtCommit) as unknown;
+  } catch {
+    preregistrationAtCommit = undefined;
+    attestationAtCommit = undefined;
+  }
+  if (
+    Buffer.byteLength(value.preregistrationRawAtCommit, "utf8") !==
+      V073_STABLE_SOURCE_PREREGISTRATION_BYTES ||
+    sha256(value.preregistrationRawAtCommit) !==
+      V073_STABLE_SOURCE_PREREGISTRATION_SHA256 ||
+    value.preregistrationRawCurrent !== value.preregistrationRawAtCommit ||
+    !isDeepStrictEqual(value.preregistration, preregistrationAtCommit)
+  ) {
+    issues.push("stable-source preregistration artifact is inconsistent");
+  }
+
+  const attestation = value.attestation;
+  const sourceArtifacts = isRecord(attestation) &&
+      Array.isArray(attestation.sourceArtifacts)
+    ? attestation.sourceArtifacts
+    : [];
+  const sourceArtifactsByPath = new Map<string, ArtifactIdentityShape>();
+  for (const artifact of sourceArtifacts) {
+    if (isArtifactIdentity(artifact) && !sourceArtifactsByPath.has(artifact.path)) {
+      sourceArtifactsByPath.set(artifact.path, artifact);
+    }
+  }
+  const frozenSourcesValid =
+    sourceArtifacts.length === V073_STABLE_SOURCE_SOURCE_PATHS.length &&
+    sourceArtifactsByPath.size === V073_STABLE_SOURCE_SOURCE_PATHS.length &&
+    V073_STABLE_SOURCE_SOURCE_PATHS.every((path) => {
+      const frozenRaw = V073_STABLE_SOURCE_IMPLEMENTATION_PATHS.includes(
+          path as (typeof V073_STABLE_SOURCE_IMPLEMENTATION_PATHS)[number],
+        )
+        ? value.implementationSourceRaws[path]
+        : value.preregistrationSourceRaws[path];
+      const currentRaw = value.currentSourceRaws[path];
+      const identity = sourceArtifactsByPath.get(path);
+      return frozenRaw !== undefined &&
+        currentRaw === frozenRaw &&
+        identity?.bytes === Buffer.byteLength(frozenRaw, "utf8") &&
+        identity.sha256 === sha256(frozenRaw);
+    });
+  if (!frozenSourcesValid) {
+    issues.push("stable-source frozen source identities are inconsistent");
+  }
+
+  const verification = isRecord(attestation) && isRecord(attestation.verification)
+    ? attestation.verification
+    : undefined;
+  const red = verification && isRecord(verification.red)
+    ? verification.red
+    : undefined;
+  const green = verification && isRecord(verification.green)
+    ? verification.green
+    : undefined;
+  const affectedCommand =
+    "bun test tests/unit/run-v0-7-release-readiness.test.ts " +
+    "tests/unit/run-v0-7-3-lifecycle-protection-gate.test.ts " +
+    "tests/unit/run-v0-7-3-replacement-protection-gate.test.ts " +
+    "tests/unit/run-v0-7-3-full-locomo-claim.test.ts " +
+    "tests/unit/capability-descriptor.test.ts tests/release/release.test.ts";
+  const attestationValid =
+    isRecord(attestation) &&
+    isDeepStrictEqual(attestation, attestationAtCommit) &&
+    attestation.artifactKind ===
+      "v0.7.3-stable-source-test-correction-attestation" &&
+    attestation.schemaVersion === 1 &&
+    attestation.generatedBy ===
+      "v0.7.3-stable-source-test-correction-attestation" &&
+    Number.isFinite(Date.parse(String(attestation.generatedAt))) &&
+    isDeepStrictEqual(
+      attestation.baselineCommits,
+      V073_STABLE_SOURCE_BASELINE_COMMITS,
+    ) &&
+    isRecord(attestation.correctionCommits) &&
+    attestation.correctionCommits.preregistration === value.preregistrationCommit &&
+    attestation.correctionCommits.implementation === value.implementationCommit &&
+    Array.isArray(attestation.implementationDiffPaths) &&
+    attestation.implementationDiffPaths.every(
+      (path): path is string => typeof path === "string",
+    ) &&
+    samePathSet(
+      attestation.implementationDiffPaths,
+      V073_STABLE_SOURCE_IMPLEMENTATION_PATHS,
+    ) &&
+    attestation.providerCalls === 0 &&
+    red !== undefined &&
+    green !== undefined &&
+    isCorrectionVerification(
+      red.affectedTests,
+      affectedCommand,
+      1,
+      46,
+      165,
+    ) &&
+    isCorrectionVerification(
+      red.releaseReadiness,
+      "bun test tests/unit/run-v0-7-release-readiness.test.ts -t stable-source-correction-lineage",
+      1,
+      1,
+      0,
+    ) &&
+    isCorrectionVerification(
+      red.releaseWorkflowEvidence,
+      "bun test tests/release/release.test.ts -t \"ships the stable-source test correction evidence\"",
+      1,
+      1,
+      0,
+    ) &&
+    isCorrectionVerification(
+      green.affectedTests,
+      affectedCommand,
+      0,
+      0,
+      213,
+    ) &&
+    isCorrectionVerification(
+      green.typecheck,
+      "bun run typecheck",
+      0,
+      0,
+      1,
+    );
+  if (!attestationValid) {
+    issues.push("stable-source attestation is inconsistent");
+  }
+
+  return stableSourceCorrectionCheck(issues);
+}
+
+export async function evaluateV073StableSourceTestCorrectionFile(input: {
+  currentCommit: string;
+  repoRoot: string;
+}): Promise<V07ReleaseReadinessCheck> {
+  const startedAt = performance.now();
+  try {
+    const preregistrationRawCurrent = await readFile(
+      join(input.repoRoot, V073_STABLE_SOURCE_TEST_CORRECTION_PREREGISTRATION),
+      "utf8",
+    );
+    const attestationRawCurrent = await readFile(
+      join(input.repoRoot, V073_STABLE_SOURCE_TEST_CORRECTION_ATTESTATION),
+      "utf8",
+    );
+    const preregistration = JSON.parse(preregistrationRawCurrent) as unknown;
+    const attestation = JSON.parse(attestationRawCurrent) as unknown;
+    if (
+      !COMMIT_PATTERN.test(input.currentCommit) ||
+      !isRecord(attestation) ||
+      !isRecord(attestation.correctionCommits) ||
+      !COMMIT_PATTERN.test(String(attestation.correctionCommits.implementation)) ||
+      attestation.correctionCommits.preregistration !==
+        V073_STABLE_SOURCE_PREREGISTRATION_COMMIT
+    ) {
+      throw new Error("stable-source correction commit identities are inconsistent");
+    }
+    const implementationCommit = String(
+      attestation.correctionCommits.implementation,
+    );
+    const git = async (args: string[]): Promise<string> => {
+      const outcome = await runCommand("git", args, input.repoRoot);
+      if (outcome.code !== 0) {
+        throw new Error(`git ${args.join(" ")} failed`);
+      }
+      return outcome.stdout;
+    };
+    const attestationCommit = (
+      await git([
+        "log",
+        "-1",
+        "--format=%H",
+        "--diff-filter=A",
+        "--",
+        V073_STABLE_SOURCE_TEST_CORRECTION_ATTESTATION,
+      ])
+    ).trim();
+    const [
+      releaseParentCommit,
+      preregistrationParentCommit,
+      implementationParentCommit,
+      attestationParentCommit,
+      releaseChangedRaw,
+      preregistrationChangedRaw,
+      implementationChangedRaw,
+      attestationChangedRaw,
+      preregistrationRawAtCommit,
+      attestationRawAtCommit,
+      attestationAncestor,
+    ] = await Promise.all([
+      git(["rev-parse", `${V073_STABLE_SOURCE_BASELINE_COMMITS.stableSource}^`]),
+      git(["rev-parse", `${V073_STABLE_SOURCE_PREREGISTRATION_COMMIT}^`]),
+      git(["rev-parse", `${implementationCommit}^`]),
+      git(["rev-parse", `${attestationCommit}^`]),
+      git([
+        "diff",
+        "--name-only",
+        `${V073_STABLE_SOURCE_BASELINE_COMMITS.stableSource}^`,
+        V073_STABLE_SOURCE_BASELINE_COMMITS.stableSource,
+        "--",
+      ]),
+      git([
+        "diff",
+        "--name-only",
+        `${V073_STABLE_SOURCE_PREREGISTRATION_COMMIT}^`,
+        V073_STABLE_SOURCE_PREREGISTRATION_COMMIT,
+        "--",
+      ]),
+      git([
+        "diff",
+        "--name-only",
+        `${implementationCommit}^`,
+        implementationCommit,
+        "--",
+      ]),
+      git([
+        "diff",
+        "--name-only",
+        `${attestationCommit}^`,
+        attestationCommit,
+        "--",
+      ]),
+      git([
+        "show",
+        `${V073_STABLE_SOURCE_PREREGISTRATION_COMMIT}:${V073_STABLE_SOURCE_TEST_CORRECTION_PREREGISTRATION}`,
+      ]),
+      git([
+        "show",
+        `${attestationCommit}:${V073_STABLE_SOURCE_TEST_CORRECTION_ATTESTATION}`,
+      ]),
+      runCommand(
+        "git",
+        ["merge-base", "--is-ancestor", attestationCommit, input.currentCommit],
+        input.repoRoot,
+      ),
+    ]);
+    if (attestationAncestor.code !== 0 && attestationAncestor.code !== 1) {
+      throw new Error("cannot compare stable-source attestation and current commits");
+    }
+
+    const preregistrationSourceRaws: Record<string, string> = {};
+    const implementationSourceRaws: Record<string, string> = {};
+    const currentSourceRaws: Record<string, string> = {};
+    const sourceOutcomes = await Promise.all(
+      V073_STABLE_SOURCE_SOURCE_PATHS.flatMap((path) => {
+        const sourceCommit = V073_STABLE_SOURCE_IMPLEMENTATION_PATHS.includes(
+            path as (typeof V073_STABLE_SOURCE_IMPLEMENTATION_PATHS)[number],
+          )
+          ? implementationCommit
+          : V073_STABLE_SOURCE_PREREGISTRATION_COMMIT;
+        return [
+          git(["show", `${sourceCommit}:${path}`]),
+          git(["show", `${input.currentCommit}:${path}`]),
+        ];
+      }),
+    );
+    V073_STABLE_SOURCE_SOURCE_PATHS.forEach((path, index) => {
+      const sourceRaw = sourceOutcomes[index * 2]!;
+      if (V073_STABLE_SOURCE_IMPLEMENTATION_PATHS.includes(
+        path as (typeof V073_STABLE_SOURCE_IMPLEMENTATION_PATHS)[number]
+      )) {
+        implementationSourceRaws[path] = sourceRaw;
+      } else {
+        preregistrationSourceRaws[path] = sourceRaw;
+      }
+      currentSourceRaws[path] = sourceOutcomes[index * 2 + 1]!;
+    });
+
+    const check = evaluateV073StableSourceTestCorrection({
+      attestation,
+      attestationChangedPaths: changedPaths(attestationChangedRaw),
+      attestationCommit,
+      attestationIsAncestor: attestationAncestor.code === 0,
+      attestationParentCommit: attestationParentCommit.trim(),
+      attestationRawAtCommit,
+      attestationRawCurrent,
+      currentCommit: input.currentCommit,
+      currentSourceRaws,
+      implementationChangedPaths: changedPaths(implementationChangedRaw),
+      implementationCommit,
+      implementationParentCommit: implementationParentCommit.trim(),
+      implementationSourceRaws,
+      preregistration,
+      preregistrationChangedPaths: changedPaths(preregistrationChangedRaw),
+      preregistrationCommit: V073_STABLE_SOURCE_PREREGISTRATION_COMMIT,
+      preregistrationParentCommit: preregistrationParentCommit.trim(),
+      preregistrationRawAtCommit,
+      preregistrationRawCurrent,
+      preregistrationSourceRaws,
+      releaseChangedPaths: changedPaths(releaseChangedRaw),
+      releaseCommit: V073_STABLE_SOURCE_BASELINE_COMMITS.stableSource,
+      releaseParentCommit: releaseParentCommit.trim(),
+    });
+    return {
+      ...check,
+      durationMs: Math.round(performance.now() - startedAt),
+    };
+  } catch (error) {
+    return {
+      detail: `cannot verify stable-source test correction: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      durationMs: Math.round(performance.now() - startedAt),
+      id: "v0.7.3-stable-source-test-correction",
+      required: true,
+      status: "fail",
+      title: "v0.7.3 stable-source test correction lineage",
     };
   }
 }
@@ -4822,12 +5324,22 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
       currentPackage,
       isAncestor: releaseAncestor.code === 0,
     });
+    const stableSourceCorrectionCheck = releaseChangedPaths.some((path) =>
+        V073_STABLE_SOURCE_CHANGE_PATHS.has(path)
+      )
+      ? await evaluateV073StableSourceTestCorrectionFile({
+        currentCommit: input.currentCommit,
+        repoRoot: input.repoRoot,
+      })
+      : undefined;
     const governanceCorrectionCheck = releaseChangedPaths.some((path) =>
         V073_PUBLIC_CLAIM_GOVERNANCE_CHANGE_PATHS.has(path)
       )
       ? await evaluateV073PublicClaimGovernanceCorrectionFile({
         currentCommit: input.currentCommit,
         repoRoot: input.repoRoot,
+        stableSourceCorrectionValid:
+          stableSourceCorrectionCheck?.status === "pass",
       })
       : undefined;
     return [
@@ -4841,6 +5353,7 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
         ...sourceCheck,
         durationMs: Math.round(performance.now() - startedAt),
       },
+      ...(stableSourceCorrectionCheck ? [stableSourceCorrectionCheck] : []),
       ...(governanceCorrectionCheck ? [governanceCorrectionCheck] : []),
     ];
   } catch (error) {
