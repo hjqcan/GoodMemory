@@ -4070,6 +4070,35 @@ describe("release metadata and docs", () => {
     expect(githubReleaseBlock).not.toContain("benchmark-claims/evidence/");
   });
 
+  it("ships the public-claim governance correction evidence", async () => {
+    const workflow = await readFile(
+      join(import.meta.dir, "../../.github/workflows/release.yml"),
+      "utf8",
+    );
+    const governancePaths = [
+      "reports/release/v0.7/v0.7.3-public-claim-governance-correction-preregistration.json",
+      "reports/release/v0.7/v0.7.3-public-claim-governance-correction-attestation.json",
+    ];
+    const uploadIndex = workflow.indexOf("- name: Upload tarball artifact");
+    const archiveIndex = workflow.indexOf("- name: Pack tracked release evidence");
+    const authIndex = workflow.indexOf("- name: Validate npm publishing credentials");
+    const uploadBlock = workflow.slice(uploadIndex, archiveIndex);
+    const archiveBlock = workflow.slice(archiveIndex, authIndex);
+    const tarIndex = archiveBlock.indexOf("tar --sort=name --mtime='@0'");
+
+    expect(uploadIndex).toBeGreaterThan(-1);
+    expect(archiveIndex).toBeGreaterThan(uploadIndex);
+    expect(authIndex).toBeGreaterThan(archiveIndex);
+    expect(tarIndex).toBeGreaterThan(-1);
+    for (const path of governancePaths) {
+      expect(uploadBlock).toContain(path);
+      expect(archiveBlock).toContain(path);
+      const sizeCheckIndex = archiveBlock.indexOf(`test -s ${path}`);
+      expect(sizeCheckIndex).toBeGreaterThan(-1);
+      expect(sizeCheckIndex).toBeLessThan(tarIndex);
+    }
+  });
+
   it("keeps schema-9 and full-claim protocol-v2 evidence addable without force", async () => {
     for (const path of [
       "reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json",

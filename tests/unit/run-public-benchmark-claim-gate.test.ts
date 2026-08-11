@@ -108,6 +108,46 @@ function cleanReport(overrides: Partial<BenchmarkClaimReport> = {}): BenchmarkCl
   };
 }
 
+function candidateWithHistoricalProjection(): BenchmarkClaimReport {
+  return {
+    ...cleanReport({
+      benchmark: "LoCoMo",
+      evidence: {
+        artifacts: [
+          {
+            assertions: [{ equals: true, path: ["ok"] }],
+            description: "current v0.7.3 evidence",
+            path: "reports/current-locomo.json",
+          },
+          {
+            assertions: historicalProjectionAssertions("LoCoMo"),
+            description: "tracked v0.6.0 projection",
+            path: "benchmark-claims/evidence/locomo-v0.6.0-historical.json",
+          },
+        ],
+      },
+      publicClaim: {
+        readmeDisclosureFragments: ["current-disclosure"],
+        readmeRequiredFragments: ["current-0.9000"],
+      },
+    }),
+    historicalPresentation: {
+      readmeDisclosureFragments: ["historical-disclosure"],
+      readmeRequiredFragments: ["0.6300", "0.8700", "0.6100"],
+    },
+  } as BenchmarkClaimReport;
+}
+
+function locomoHistoricalProjection(): Record<string, unknown> {
+  return historicalProjection({
+    claim: {
+      officialScore: 0.87,
+      openDomainScore: 0.61,
+      strictScore: 0.63,
+    },
+  }, "LoCoMo");
+}
+
 describe("claim boundary rule engine", () => {
   it("allows a public claim only when no rule fires", () => {
     const verdict = evaluateClaimBoundary(cleanReport());
@@ -1153,5 +1193,126 @@ describe("README historical-evidence table check", () => {
     )[0];
     expect(check?.consistent).toBe(false);
     expect(check?.forbiddenRows).toEqual(["LongMemEval full 500"]);
+  });
+
+  it("keeps verified candidate history separate from its current public presentation", async () => {
+    const candidate = candidateWithHistoricalProjection();
+    expect(validateClaimReport(candidate).valid).toBe(true);
+    expect(await checkClaimEvidenceArtifacts({
+      file: "locomo.json",
+      readFile: async (path) => path.endsWith("locomo-v0.6.0-historical.json")
+        ? JSON.stringify(locomoHistoricalProjection())
+        : JSON.stringify({ ok: true }),
+      repoRoot: "/repo",
+      report: candidate,
+    })).toEqual([]);
+
+    const report = buildClaimGateReport(
+      [{ file: "locomo.json", value: candidate }],
+      "t",
+    );
+    expect(report.publicClaimable).toEqual(["LoCoMo"]);
+    expect(report.historicalEvidence).toEqual(["LoCoMo"]);
+
+    const current = checkReadmeClaimTables(
+      [{
+        content: `${readmeWithRows([
+          "| LoCoMo current | current-0.9000 | [locomo.json](./benchmark-claims/locomo.json) |",
+        ])}\ncurrent-disclosure`,
+        file: "README.md",
+      }],
+      report.entries,
+    )[0];
+    const historicalCheck = checkReadmeHistoricalEvidenceTables(
+      [{
+        content: `${historicalReadmeWithRows([
+          "| LoCoMo v0.6.0 | 0.6300 / 0.8700 / 0.6100 | [locomo.json](./benchmark-claims/locomo.json) |",
+        ])}\nhistorical-disclosure`,
+        file: "README.md",
+      }],
+      report.entries,
+    )[0];
+    expect(current?.consistent).toBe(true);
+    expect(historicalCheck?.consistent).toBe(true);
+
+    const crossed = checkReadmeHistoricalEvidenceTables(
+      [{
+        content: `${historicalReadmeWithRows([
+          "| LoCoMo v0.6.0 | current-0.9000 | [locomo.json](./benchmark-claims/locomo.json) |",
+        ])}\ncurrent-disclosure`,
+        file: "README.md",
+      }],
+      report.entries,
+    )[0];
+    expect(crossed?.consistent).toBe(false);
+    expect(crossed?.claimContentErrors.join(" ")).toContain("0.6300");
+    expect(crossed?.disclosureErrors.join(" ")).toContain("historical-disclosure");
+  });
+
+  it("forbids candidate history without a verified projection or after tampering", async () => {
+    const fieldOnly = {
+      ...cleanReport({ benchmark: "LoCoMo" }),
+      historicalEvidence: true,
+    } as BenchmarkClaimReport;
+    const fieldOnlyReport = buildClaimGateReport(
+      [{ file: "locomo.json", value: fieldOnly }],
+      "t",
+    );
+    expect(fieldOnlyReport.historicalEvidence).toEqual([]);
+
+    const presentationOnly = {
+      ...cleanReport({ benchmark: "LoCoMo" }),
+      historicalPresentation: {
+        readmeDisclosureFragments: ["historical-disclosure"],
+        readmeRequiredFragments: ["0.6300"],
+      },
+    } as BenchmarkClaimReport;
+    expect(validateClaimReport(presentationOnly).errors.join(" ")).toContain(
+      "historicalPresentation requires a tracked historical projection",
+    );
+
+    const assertionTampered = candidateWithHistoricalProjection();
+    assertionTampered.evidence.artifacts[1]!.assertions =
+      assertionTampered.evidence.artifacts[1]!.assertions!.filter(
+        ({ path }) => path.join(".") !== "sourceArtifacts.0.bytes",
+      );
+    const assertionReport = buildClaimGateReport(
+      [{ file: "locomo.json", value: assertionTampered }],
+      "t",
+    );
+    expect(assertionReport.historicalEvidence).toEqual([]);
+    expect(assertionReport.entries[0]?.schemaErrors.join(" ")).toContain(
+      "historicalPresentation requires a tracked historical projection",
+    );
+
+    const artifactTampered = candidateWithHistoricalProjection();
+    const evidenceErrors = await checkClaimEvidenceArtifacts({
+      file: "locomo.json",
+      readFile: async (path) => path.endsWith("locomo-v0.6.0-historical.json")
+        ? JSON.stringify({ ...locomoHistoricalProjection(), artifactKind: "arbitrary-json" })
+        : JSON.stringify({ ok: true }),
+      repoRoot: "/repo",
+      report: artifactTampered,
+    });
+    expect(evidenceErrors.join(" ")).toContain(
+      "historical projection artifactKind must be tracked-historical-evidence-projection",
+    );
+    const tamperedReport = buildClaimGateReport(
+      [{ file: "locomo.json", value: artifactTampered }],
+      "t",
+      [],
+      new Map([["locomo.json", evidenceErrors]]),
+    );
+    expect(tamperedReport.historicalEvidence).toEqual([]);
+    const forbidden = checkReadmeHistoricalEvidenceTables(
+      [{
+        content: historicalReadmeWithRows([
+          "| LoCoMo v0.6.0 | 0.6300 | [locomo.json](./benchmark-claims/locomo.json) |",
+        ]),
+        file: "README.md",
+      }],
+      tamperedReport.entries,
+    )[0];
+    expect(forbidden?.forbiddenRows).toEqual(["LoCoMo v0.6.0"]);
   });
 });

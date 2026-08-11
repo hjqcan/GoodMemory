@@ -61,6 +61,8 @@ import {
   evaluateV073LifecycleProtectionBundle,
   evaluateV073LifecycleToProtocolSourceDrift,
   evaluateV073LifecycleProtectionSourceDrift,
+  evaluateV073PublicClaimGovernanceCorrection,
+  evaluateV073PublicClaimGovernanceCorrectionFile,
   evaluateV073CurrentLocomoClaimState,
   resolveV073MeasuredClaimRecipeRaw,
   evaluateStableLocomoCandidateLink,
@@ -83,6 +85,17 @@ const CLAIM_RECIPE_RAW = readFileSync(
   new URL("../../benchmark-claims/locomo.json", import.meta.url),
   "utf8",
 );
+const V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_RAW = readFileSync(
+  new URL(
+    "../../reports/release/v0.7/" +
+      "v0.7.3-public-claim-governance-correction-preregistration.json",
+    import.meta.url,
+  ),
+  "utf8",
+);
+const V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION = JSON.parse(
+  V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_RAW,
+) as Record<string, unknown>;
 const FROZEN_EXTRACTION_CACHE_KEYS = `1026011752,1043075633,1048640987,1064385496,1074118592,1082572768,1085614012,1100013451,1106738478,1107927765,1149940053,1174402540,1179366734,119627208,1210345783,1214355198,1233087856,1235470133,1235797445,1262789243,1274083946,1282170511,1283329829,1286918907,1295601743,1297782189,1307988077,1319705907,1328173301,1328689511,1349955765,1350941805,1379854271,1413391623,1435136569,1442320489,1456333297,1462198132,1462209140,1468470661,1504783545,1512102553,1514661872,1540321149,158635861,1605258038,1605375082,1608409831,1624202483,1626462396,1637799839,1640645819,1657807838,1662822657,1683467400,1695447940,17478626,1759105343,1765845080,1783812631,1794648524,1818642755,1830021848,1831804471,1851107591,1867438061,1899024238,190435261,190514398,1908455853,1921862501,1932501489,1950914891,1954375170,197078112,1973152628,1974647250,2023388394,2028687634,2029739893,2082863547,2104432904,2110024156,2127925618,2169031043,2170519568,2208365546,2213123762,2241677242,2252021607,2257662354,2269934223,2271878572,2289891018,2296526698,2313786091,2345910704,2365345403,2374437865,2374691122,2377254015,2409284101,2467338410,2470288298,2499175648,2520178360,2537119988,2556547485,2580518300,2613174370,2628407233,2628720039,2638044662,2660362212,2667468039,268223945,2682876890,2690261994,2697045242,2704211094,2720575096,2728504571,272962455,2739697176,2756416341,2778393052,2788849373,2808754637,2847703965,2854501767,2881632957,2883901230,2885592754,291345923,2941581325,2946553860,2956805899,2956828830,2964053549,3019328255,3048976956,3065890162,3082216776,3091806564,3094338424,3097614024,3117857382,3122434169,3124136818,3157804431,3171500229,3173281100,3191763993,3207441003,3212366713,3253399891,3262206268,3278473437,330521969,3317603065,334965310,3353188566,3355255159,3357769836,3366081265,3372475236,3383102199,3399309972,3404659494,3409194407,3433338164,3475091123,347589968,3477136000,348451955,3515465047,3528477104,3534871376,3548914855,3550718725,3601917062,3603537566,3603678876,365614635,3656327079,3658789493,3718654866,3725668826,3735345225,3776053402,3782774512,3793646152,3807215703,3822027981,3827649987,383922720,3858417783,3858893291,3865864865,3884181463,388633262,3909652640,3913271655,3916739008,3918147773,3953785847,3987803998,3998055624,4020401383,4041516452,4048306217,4050607731,4054623380,405704242,4064958010,4087715158,408816433,4101383531,4135370547,4185930273,4191367251,4202314565,422010356,4225549544,4242304435,4249433875,4269397799,4288617617,439644231,439839894,444360337,445998733,446964711,457524894,461882634,466502363,485635095,498500745,504799247,5232106,523648874,53669181,551705100,557935800,601233020,603562177,611308681,621666406,667563176,670731536,716508937,753832901,756375679,757596036,759425599,764744235,770665424,792488089,798097702,804639734,819411587,821135895,8652893,87803361,884269538,888563539,890823627,895915931,917508735,918610777,946157475,990812899`
   .split(",")
   .map((value) => `gpt-5.6-terra:${value}`);
@@ -3650,6 +3663,420 @@ console.log(JSON.stringify(await validateStableLocomoClaimEvidence({ claimDeclar
       status: "pass",
     }));
   });
+
+  it("[governance-correction-lineage] enforces the preregistered S-D-G-A-release lineage", () => {
+    const preregistrationCommit = "1".repeat(40);
+    const implementationCommit = "2".repeat(40);
+    const attestationCommit = "3".repeat(40);
+    const currentCommit = "4".repeat(40);
+    const preregistrationPaths = [
+      "reports/release/v0.7/" +
+        "v0.7.3-public-claim-governance-correction-preregistration.json",
+      "tests/release/release.test.ts",
+      "tests/unit/run-public-benchmark-claim-gate.test.ts",
+      "tests/unit/run-v0-7-release-readiness.test.ts",
+    ];
+    const implementationPaths = [
+      ".github/workflows/release.yml",
+      "scripts/run-public-benchmark-claim-gate.ts",
+      "scripts/run-v0-7-release-readiness.ts",
+    ];
+    const sourceRaws = {
+      ".github/workflows/release.yml": "name: Release\n",
+      "scripts/run-public-benchmark-claim-gate.ts": "export const publicGate = true;\n",
+      "scripts/run-v0-7-release-readiness.ts": "export const readiness = true;\n",
+      "tests/release/release.test.ts": "test('release evidence');\n",
+      "tests/unit/run-public-benchmark-claim-gate.test.ts": "test('public gate');\n",
+      "tests/unit/run-v0-7-release-readiness.test.ts": "test('readiness');\n",
+    } satisfies Record<string, string>;
+    const attestation = {
+      artifactKind: "v0.7.3-public-claim-governance-correction-attestation",
+      baselineCommits: {
+        fullClaimAttemptSentinel:
+          "078ca74ac45fe4bd268e52921528e1e15a0ec52f",
+        fullClaimProtocolPreregistration:
+          "3f84011ba091f295e2d1f175a9e7ba5d2faebc76",
+        protocolCandidate: "996c181e97e2d0a56bbd78957e79026af328b03b",
+      },
+      correctionCommits: {
+        implementation: implementationCommit,
+        preregistration: preregistrationCommit,
+      },
+      generatedAt: "2026-08-11T02:00:00.000Z",
+      generatedBy: "v0.7.3-public-claim-governance-correction-attestation",
+      implementationDiffPaths: implementationPaths,
+      providerCalls: 0,
+      schemaVersion: 1,
+      sourceArtifacts: Object.entries(sourceRaws).map(([path, raw]) =>
+        evidenceIdentity(path, raw)
+      ),
+      verification: {
+        green: {
+          publicClaimGate: {
+            command:
+              "bun test tests/unit/run-public-benchmark-claim-gate.test.ts",
+            exitCode: 0,
+            failed: 0,
+            outputSha256: "a".repeat(64),
+            passed: 41,
+          },
+          releaseReadiness: {
+            command:
+              "bun test tests/unit/run-v0-7-release-readiness.test.ts " +
+              "-t governance-correction-lineage",
+            exitCode: 0,
+            failed: 0,
+            outputSha256: "b".repeat(64),
+            passed: 2,
+          },
+          releaseWorkflowEvidence: {
+            command:
+              "bun test tests/release/release.test.ts --test-name-pattern " +
+              '"ships the public-claim governance correction evidence"',
+            exitCode: 0,
+            failed: 0,
+            outputSha256: "f".repeat(64),
+            passed: 1,
+          },
+          typecheck: {
+            command: "bun run typecheck",
+            exitCode: 0,
+            failed: 0,
+            outputSha256: "c".repeat(64),
+            passed: 1,
+          },
+        },
+        red: {
+          publicClaimGate: {
+            command:
+              "bun test tests/unit/run-public-benchmark-claim-gate.test.ts",
+            exitCode: 1,
+            failed: 2,
+            outputSha256: "d".repeat(64),
+            passed: 39,
+          },
+          releaseReadiness: {
+            command:
+              "bun test tests/unit/run-v0-7-release-readiness.test.ts " +
+              "-t governance-correction-lineage",
+            exitCode: 1,
+            failed: 1,
+            outputSha256: "e".repeat(64),
+            passed: 0,
+          },
+          releaseWorkflowEvidence: {
+            command:
+              "bun test tests/release/release.test.ts --test-name-pattern " +
+              '"ships the public-claim governance correction evidence"',
+            exitCode: 1,
+            failed: 1,
+            outputSha256: "f".repeat(64),
+            passed: 0,
+          },
+        },
+      },
+    };
+    const attestationRaw = `${JSON.stringify(attestation, null, 2)}\n`;
+    const valid = {
+      attestation,
+      attestationChangedPaths: [
+        "reports/release/v0.7/" +
+          "v0.7.3-public-claim-governance-correction-attestation.json",
+      ],
+      attestationCommit,
+      attestationIsAncestor: true,
+      attestationParentCommit: implementationCommit,
+      attestationRawAtCommit: attestationRaw,
+      attestationRawCurrent: attestationRaw,
+      currentCommit,
+      currentSourceRaws: sourceRaws,
+      implementationChangedPaths: implementationPaths,
+      implementationCommit,
+      implementationParentCommit: preregistrationCommit,
+      implementationSourceRaws: sourceRaws,
+      postAttestationChangedPaths: [
+        "benchmark-claims/evidence/locomo-v0.7.3-current.json",
+        "benchmark-claims/locomo.json",
+        "reports/release/v0.7/" +
+          "v0.7.3-locomo-claim-evidence/execution-receipt.json",
+        "README.md",
+      ],
+      preregistration: V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION,
+      preregistrationChangedPaths: preregistrationPaths,
+      preregistrationCommit,
+      preregistrationParentCommit:
+        "078ca74ac45fe4bd268e52921528e1e15a0ec52f",
+      preregistrationRawAtCommit:
+        V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_RAW,
+      preregistrationRawCurrent:
+        V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_RAW,
+    };
+
+    expect(evaluateV073PublicClaimGovernanceCorrection(valid)).toEqual(
+      expect.objectContaining({
+        detail: expect.stringContaining("S-D-G-A-release"),
+        status: "pass",
+      }),
+    );
+
+    expect(evaluateV073PublicClaimGovernanceCorrection({
+      ...valid,
+      implementationChangedPaths: [
+        ...implementationPaths,
+        "tests/unit/run-v0-7-release-readiness.test.ts",
+      ],
+    })).toEqual(expect.objectContaining({
+      detail: expect.stringContaining("implementation commit paths"),
+      status: "fail",
+    }));
+
+    expect(evaluateV073PublicClaimGovernanceCorrection({
+      ...valid,
+      postAttestationChangedPaths: ["reports/release/v0.7/arbitrary.json"],
+    })).toEqual(expect.objectContaining({
+      detail: expect.stringContaining("post-attestation release paths"),
+      status: "fail",
+    }));
+
+    expect(evaluateV073PublicClaimGovernanceCorrection({
+      ...valid,
+      currentSourceRaws: {
+        ...sourceRaws,
+        "scripts/run-v0-7-release-readiness.ts": "tampered\n",
+      },
+    })).toEqual(expect.objectContaining({
+      detail: expect.stringContaining("frozen governance sources"),
+      status: "fail",
+    }));
+
+    expect(evaluateV073PublicClaimGovernanceCorrection({
+      ...valid,
+      attestation: {
+        ...attestation,
+        verification: {
+          ...attestation.verification,
+          green: {
+            ...attestation.verification.green,
+            typecheck: {
+              ...attestation.verification.green.typecheck,
+              exitCode: 1,
+            },
+          },
+        },
+      },
+    })).toEqual(expect.objectContaining({
+      detail: expect.stringContaining("verification results"),
+      status: "fail",
+    }));
+  });
+
+  it("[governance-correction-lineage] verifies the correction against git objects", async () => {
+    const sourceRoot = join(import.meta.dir, "../..");
+    const fixtureParent = await mkdtemp(
+      join(tmpdir(), "goodmemory-v073-governance-lineage-"),
+    );
+    const repoRoot = join(fixtureParent, "repo");
+    try {
+      const clone = Bun.spawnSync(
+        ["git", "clone", "--quiet", "--no-local", sourceRoot, repoRoot],
+      );
+      if (clone.exitCode !== 0) {
+        throw new Error(clone.stderr.toString());
+      }
+      runFixtureGit(repoRoot, "config", "user.email", "test@example.com");
+      runFixtureGit(repoRoot, "config", "user.name", "Test");
+      runFixtureGit(
+        repoRoot,
+        "checkout",
+        "--quiet",
+        "--detach",
+        "078ca74ac45fe4bd268e52921528e1e15a0ec52f",
+      );
+      expect(runFixtureGit(repoRoot, "rev-parse", "HEAD")).toBe(
+        "078ca74ac45fe4bd268e52921528e1e15a0ec52f",
+      );
+
+      const preregistrationPath =
+        "reports/release/v0.7/" +
+        "v0.7.3-public-claim-governance-correction-preregistration.json";
+      const preregistrationTestPaths = [
+        "tests/release/release.test.ts",
+        "tests/unit/run-public-benchmark-claim-gate.test.ts",
+        "tests/unit/run-v0-7-release-readiness.test.ts",
+      ];
+      await mkdir(join(repoRoot, "reports/release/v0.7"), { recursive: true });
+      await writeFile(
+        join(repoRoot, preregistrationPath),
+        V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_RAW,
+      );
+      for (const path of preregistrationTestPaths) {
+        await writeFile(
+          join(repoRoot, path),
+          await readFile(join(sourceRoot, path), "utf8"),
+        );
+      }
+      runFixtureGit(
+        repoRoot,
+        "add",
+        "-f",
+        preregistrationPath,
+        ...preregistrationTestPaths,
+      );
+      runFixtureGit(repoRoot, "commit", "--quiet", "-m", "preregister correction");
+      const preregistrationCommit = runFixtureGit(repoRoot, "rev-parse", "HEAD");
+
+      const implementationPaths = [
+        ".github/workflows/release.yml",
+        "scripts/run-public-benchmark-claim-gate.ts",
+        "scripts/run-v0-7-release-readiness.ts",
+      ];
+      for (const path of implementationPaths) {
+        await writeFile(
+          join(repoRoot, path),
+          await readFile(join(sourceRoot, path), "utf8"),
+        );
+      }
+      runFixtureGit(repoRoot, "add", ...implementationPaths);
+      runFixtureGit(repoRoot, "commit", "--quiet", "-m", "implement correction");
+      const implementationCommit = runFixtureGit(repoRoot, "rev-parse", "HEAD");
+      const sourcePaths = [
+        ".github/workflows/release.yml",
+        "scripts/run-public-benchmark-claim-gate.ts",
+        "scripts/run-v0-7-release-readiness.ts",
+        "tests/release/release.test.ts",
+        "tests/unit/run-public-benchmark-claim-gate.test.ts",
+        "tests/unit/run-v0-7-release-readiness.test.ts",
+      ];
+      const sourceArtifacts = await Promise.all(sourcePaths.map(async (path) => {
+        const raw = await readFile(join(repoRoot, path), "utf8");
+        return evidenceIdentity(path, raw);
+      }));
+      const attestationPath =
+        "reports/release/v0.7/" +
+        "v0.7.3-public-claim-governance-correction-attestation.json";
+      const attestation = {
+        artifactKind: "v0.7.3-public-claim-governance-correction-attestation",
+        baselineCommits: {
+          fullClaimAttemptSentinel:
+            "078ca74ac45fe4bd268e52921528e1e15a0ec52f",
+          fullClaimProtocolPreregistration:
+            "3f84011ba091f295e2d1f175a9e7ba5d2faebc76",
+          protocolCandidate: "996c181e97e2d0a56bbd78957e79026af328b03b",
+        },
+        correctionCommits: {
+          implementation: implementationCommit,
+          preregistration: preregistrationCommit,
+        },
+        generatedAt: "2026-08-11T02:00:00.000Z",
+        generatedBy: "v0.7.3-public-claim-governance-correction-attestation",
+        implementationDiffPaths: implementationPaths,
+        providerCalls: 0,
+        schemaVersion: 1,
+        sourceArtifacts,
+        verification: {
+          green: {
+            publicClaimGate: {
+              command:
+                "bun test tests/unit/run-public-benchmark-claim-gate.test.ts",
+              exitCode: 0,
+              failed: 0,
+              outputSha256: "a".repeat(64),
+              passed: 41,
+            },
+            releaseReadiness: {
+              command:
+                "bun test tests/unit/run-v0-7-release-readiness.test.ts " +
+                "-t governance-correction-lineage",
+              exitCode: 0,
+              failed: 0,
+              outputSha256: "b".repeat(64),
+              passed: 2,
+            },
+            releaseWorkflowEvidence: {
+              command:
+                "bun test tests/release/release.test.ts --test-name-pattern " +
+                '"ships the public-claim governance correction evidence"',
+              exitCode: 0,
+              failed: 0,
+              outputSha256: "f".repeat(64),
+              passed: 1,
+            },
+            typecheck: {
+              command: "bun run typecheck",
+              exitCode: 0,
+              failed: 0,
+              outputSha256: "c".repeat(64),
+              passed: 1,
+            },
+          },
+          red: {
+            publicClaimGate: {
+              command:
+                "bun test tests/unit/run-public-benchmark-claim-gate.test.ts",
+              exitCode: 1,
+              failed: 2,
+              outputSha256: "d".repeat(64),
+              passed: 39,
+            },
+            releaseReadiness: {
+              command:
+                "bun test tests/unit/run-v0-7-release-readiness.test.ts " +
+                "-t governance-correction-lineage",
+              exitCode: 1,
+              failed: 1,
+              outputSha256: "e".repeat(64),
+              passed: 0,
+            },
+            releaseWorkflowEvidence: {
+              command:
+                "bun test tests/release/release.test.ts --test-name-pattern " +
+                '"ships the public-claim governance correction evidence"',
+              exitCode: 1,
+              failed: 1,
+              outputSha256: "f".repeat(64),
+              passed: 0,
+            },
+          },
+        },
+      };
+      await writeFile(
+        join(repoRoot, attestationPath),
+        `${JSON.stringify(attestation, null, 2)}\n`,
+      );
+      runFixtureGit(repoRoot, "add", "-f", attestationPath);
+      runFixtureGit(repoRoot, "commit", "--quiet", "-m", "attest correction");
+
+      const readmePath = join(repoRoot, "README.md");
+      await writeFile(
+        readmePath,
+        `${await readFile(readmePath, "utf8")}\nrelease projection\n`,
+      );
+      runFixtureGit(repoRoot, "add", "README.md");
+      runFixtureGit(repoRoot, "commit", "--quiet", "-m", "project release");
+      const currentCommit = runFixtureGit(repoRoot, "rev-parse", "HEAD");
+
+      expect(await evaluateV073PublicClaimGovernanceCorrectionFile({
+        currentCommit,
+        repoRoot,
+      })).toEqual(expect.objectContaining({ status: "pass" }));
+
+      await writeFile(
+        join(repoRoot, "reports/release/v0.7/arbitrary.json"),
+        "{}\n",
+      );
+      runFixtureGit(repoRoot, "add", "-f", "reports/release/v0.7/arbitrary.json");
+      runFixtureGit(repoRoot, "commit", "--quiet", "-m", "unrelated report");
+      expect(await evaluateV073PublicClaimGovernanceCorrectionFile({
+        currentCommit: runFixtureGit(repoRoot, "rev-parse", "HEAD"),
+        repoRoot,
+      })).toEqual(expect.objectContaining({
+        detail: expect.stringContaining("arbitrary.json"),
+        status: "fail",
+      }));
+    } finally {
+      await rm(fixtureParent, { force: true, recursive: true });
+    }
+  }, 30_000);
 
   it("rejects unrelated documentation, report, and benchmark drift after the protocol candidate", () => {
     const packageJson = {

@@ -1,0 +1,95 @@
+{
+  "artifactKind": "v0.7.3-public-claim-governance-correction-preregistration",
+  "baselineCommits": {
+    "fullClaimAttemptSentinel": "078ca74ac45fe4bd268e52921528e1e15a0ec52f",
+    "fullClaimProtocolPreregistration": "3f84011ba091f295e2d1f175a9e7ba5d2faebc76",
+    "protocolCandidate": "996c181e97e2d0a56bbd78957e79026af328b03b"
+  },
+  "commitBoundary": {
+    "attestationCommit": {
+      "allowedPaths": [
+        "reports/release/v0.7/v0.7.3-public-claim-governance-correction-attestation.json"
+      ],
+      "mustBeDirectChildOf": "implementation-commit"
+    },
+    "implementationCommit": {
+      "allowedPaths": [
+        ".github/workflows/release.yml",
+        "scripts/run-public-benchmark-claim-gate.ts",
+        "scripts/run-v0-7-release-readiness.ts"
+      ],
+      "mustBeDirectChildOf": "this-preregistration-commit",
+      "testsAtPreregFrozen": true
+    },
+    "preregistrationCommit": {
+      "allowedPaths": [
+        "reports/release/v0.7/v0.7.3-public-claim-governance-correction-preregistration.json",
+        "tests/release/release.test.ts",
+        "tests/unit/run-public-benchmark-claim-gate.test.ts",
+        "tests/unit/run-v0-7-release-readiness.test.ts"
+      ],
+      "mustBeDirectChildOf": "078ca74ac45fe4bd268e52921528e1e15a0ec52f"
+    },
+    "releaseAfterAttestation": {
+      "boundary": "The v0.7 readiness verifier enforces the exact post-attestation release allowlist."
+    }
+  },
+  "exactCodeAndTestScope": [
+    ".github/workflows/release.yml",
+    "scripts/run-public-benchmark-claim-gate.ts",
+    "scripts/run-v0-7-release-readiness.ts",
+    "tests/release/release.test.ts",
+    "tests/unit/run-public-benchmark-claim-gate.test.ts",
+    "tests/unit/run-v0-7-release-readiness.test.ts"
+  ],
+  "expectedBehavior": [
+    "A candidate_public_claim declaration may retain a historical README row only when the same declaration includes a tracked historical projection under benchmark-claims/evidence with the complete historical assertion contract and artifact validation succeeds.",
+    "Candidate current/public README fragments come only from publicClaim; candidate historical README fragments come only from historicalPresentation.",
+    "A boolean or presentation field without a qualifying projection cannot authorize a historical row.",
+    "Missing or changed projection assertions, bytes, hashes, provenance, or artifact contents forbid the historical row.",
+    "Existing internal_evidence historical declarations keep their current validation and README presentation behavior.",
+    "The governance correction preregistration and attestation must be non-empty inputs to both the Actions artifact and the aggregate GitHub release evidence archive."
+  ],
+  "forbiddenChanges": {
+    "dependencyLocks": [
+      "bun.lock",
+      "package-lock.json",
+      "package.json"
+    ],
+    "fullClaimLauncher": "scripts/run-v0-7-3-full-locomo-claim.ts",
+    "officialRunner": "scripts/rescore-official-protocols.ts",
+    "publicSource": "src/",
+    "reanswerRunner": "scripts/reanswer-phase-65-locomo-report.ts",
+    "seedRunner": "scripts/run-phase-65-locomo-smoke.ts",
+    "v0.7.3ClaimRecipe": "benchmark-claims/locomo.json"
+  },
+  "generatedAt": "2026-08-11T00:00:00.000Z",
+  "generatedBy": "v0.7.3-public-claim-governance-correction-preregistration",
+  "schemaVersion": 1,
+  "sourceArtifacts": [
+    ".github/workflows/release.yml",
+    "scripts/run-public-benchmark-claim-gate.ts",
+    "scripts/run-v0-7-release-readiness.ts",
+    "tests/release/release.test.ts",
+    "tests/unit/run-public-benchmark-claim-gate.test.ts",
+    "tests/unit/run-v0-7-release-readiness.test.ts"
+  ],
+  "verificationBoundary": {
+    "attestationMustBind": [
+      "preregistration commit",
+      "implementation commit",
+      "exact implementation diff paths",
+      "focused public-claim gate test result",
+      "focused release workflow evidence test result",
+      "focused v0.7 release-readiness test result",
+      "typecheck result"
+    ],
+    "focusedCommands": {
+      "publicClaimGate": "bun test tests/unit/run-public-benchmark-claim-gate.test.ts",
+      "releaseReadiness": "bun test tests/unit/run-v0-7-release-readiness.test.ts -t governance-correction-lineage",
+      "releaseWorkflowEvidence": "bun test tests/release/release.test.ts --test-name-pattern \"ships the public-claim governance correction evidence\"",
+      "typecheck": "bun run typecheck"
+    },
+    "providerCallsAllowed": false
+  }
+}
