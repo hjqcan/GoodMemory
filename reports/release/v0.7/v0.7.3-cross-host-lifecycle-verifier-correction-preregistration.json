@@ -1,0 +1,101 @@
+{
+  "artifactKind": "v0.7.3-cross-host-lifecycle-verifier-correction-preregistration",
+  "baselineCommit": "a7f78e2b3f324febb227f548c299f57ea487044e",
+  "commitBoundary": {
+    "preregistrationCommit": {
+      "allowedPaths": [
+        "reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-preregistration.json",
+        "tests/release/release.test.ts",
+        "tests/unit/run-v0-7-release-readiness.test.ts"
+      ],
+      "mustBeDirectChildOf": "a7f78e2b3f324febb227f548c299f57ea487044e"
+    },
+    "implementationCommit": {
+      "allowedPaths": [
+        ".github/workflows/release.yml",
+        "scripts/run-v0-7-release-readiness.ts"
+      ],
+      "mustBeDirectChildOf": "this-preregistration-commit"
+    },
+    "attestationCommit": {
+      "allowedPaths": [
+        "reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-attestation.json"
+      ],
+      "mustBeDirectChildOf": "implementation-commit"
+    }
+  },
+  "exactCodeAndTestScope": [
+    ".github/workflows/release.yml",
+    "scripts/run-v0-7-release-readiness.ts",
+    "tests/release/release.test.ts",
+    "tests/unit/run-v0-7-release-readiness.test.ts"
+  ],
+  "expectedBehavior": [
+    "The release-readiness verifier reconstructs a home-relative frozen claim recipe against the benchmark root recorded by the bound lifecycle evidence instead of the verifier host home directory.",
+    "The original measured claim-recipe bytes remain the only source for byte, SHA-256, and command-template identity checks.",
+    "Only verifier-local expected-command reconstruction receives the rebound recipe; measurement runners, provider execution, the public claim declaration, and tracked measurement evidence remain unchanged.",
+    "An absolute claim-recipe benchmark root is not rebound and remains subject to the existing exact-root rejection.",
+    "The preregistration and attestation are non-empty inputs to the Actions artifact and aggregate GitHub Release evidence archive.",
+    "The exact A2-D3-G3-A3 correction lineage is verified before the earlier stable-source and governance corrections may accept these descendant paths."
+  ],
+  "forbiddenChanges": {
+    "benchmarkDeclaration": "benchmark-claims/locomo.json",
+    "dependencyLocks": [
+      "bun.lock",
+      "package-lock.json",
+      "package.json"
+    ],
+    "measurementRunners": [
+      "scripts/run-v0-7-3-full-locomo-claim.ts",
+      "scripts/run-v0-7-3-lifecycle-protection-gate.ts",
+      "scripts/run-v0-7-3-replacement-protection-gate.ts",
+      "scripts/run-phase-65-locomo-smoke.ts",
+      "scripts/reanswer-phase-65-locomo-report.ts",
+      "scripts/rescore-official-protocols.ts"
+    ],
+    "providerCallsAllowed": false,
+    "publicSource": "src/",
+    "trackedMeasurementEvidence": [
+      "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+      "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/",
+      "reports/release/v0.7/v0.7.3-locomo-claim-evidence/"
+    ]
+  },
+  "generatedAt": "2026-08-11T11:08:56Z",
+  "generatedBy": "v0.7.3-cross-host-lifecycle-verifier-correction-preregistration",
+  "observedRed": {
+    "crossHostLifecycleBundle": {
+      "command": "bun test tests/unit/run-v0-7-release-readiness.test.ts -t \"recomputes the tracked lifecycle bundle under a different verifier home\"",
+      "expectedFailure": "claim recipe benchmark root must match the protected root"
+    },
+    "lineage": {
+      "command": "bun test tests/unit/run-v0-7-release-readiness.test.ts -t cross-host-lifecycle-verifier-correction-lineage",
+      "expectedFailure": "evaluateV073CrossHostLifecycleVerifierCorrection is absent"
+    },
+    "releaseWorkflowEvidence": {
+      "command": "bun test tests/release/release.test.ts -t \"ships the cross-host lifecycle verifier correction evidence\"",
+      "expectedFailure": "correction evidence paths are absent from upload and archive blocks"
+    }
+  },
+  "schemaVersion": 1,
+  "verificationBoundary": {
+    "attestationMustBind": [
+      "A2 baseline commit",
+      "D3 preregistration commit and exact diff paths",
+      "G3 implementation commit and exact diff paths",
+      "A3 attestation commit and exact diff path",
+      "all four frozen source artifacts",
+      "three focused red results",
+      "focused green test result",
+      "typecheck result",
+      "zero provider calls"
+    ],
+    "commands": {
+      "affectedTests": "bun test tests/unit/run-v0-7-release-readiness.test.ts tests/release/release.test.ts",
+      "crossHostRed": "bun test tests/unit/run-v0-7-release-readiness.test.ts -t \"recomputes the tracked lifecycle bundle under a different verifier home\"",
+      "lineageRed": "bun test tests/unit/run-v0-7-release-readiness.test.ts -t cross-host-lifecycle-verifier-correction-lineage",
+      "releaseWorkflowRed": "bun test tests/release/release.test.ts -t \"ships the cross-host lifecycle verifier correction evidence\"",
+      "typecheck": "bun run typecheck"
+    }
+  }
+}

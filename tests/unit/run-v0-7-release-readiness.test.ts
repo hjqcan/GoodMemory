@@ -1451,6 +1451,25 @@ console.log(JSON.stringify(await validateStableLocomoClaimEvidence({ claimDeclar
     }
   });
 
+  it("recomputes the tracked lifecycle bundle under a different verifier home", () => {
+    const child = Bun.spawnSync([
+      process.execPath,
+      "-e",
+      `const { evaluateV073LifecycleProtectionBundle } = await import("./scripts/run-v0-7-release-readiness.ts");
+const artifactPath = "reports/release/v0.7/v0.7.3-lifecycle-protection.json";
+const artifact = await Bun.file(artifactPath).json();
+console.log(JSON.stringify(await evaluateV073LifecycleProtectionBundle({ artifact, artifactPath, repoRoot: process.cwd() })));`,
+    ], {
+      cwd: new URL("../..", import.meta.url).pathname,
+      env: { ...process.env, HOME: "/home/runner" },
+    });
+
+    expect(child.exitCode).toBe(0);
+    expect(JSON.parse(child.stdout.toString().trim())).toEqual(
+      expect.objectContaining({ status: "pass" }),
+    );
+  });
+
   it("rejects retrieval drift on a successful pass-one row before seed resume", async () => {
     const repoRoot = await mkdtemp(
       join(tmpdir(), "goodmemory-locomo-protocol2-pass1-drift-"),
@@ -3631,6 +3650,31 @@ console.log(JSON.stringify(await validateStableLocomoClaimEvidence({ claimDeclar
     );
     expect(source).toContain(
       "v0.7.3-stable-source-test-correction-attestation.json",
+    );
+  });
+
+  it("[cross-host-lifecycle-verifier-correction-lineage] exposes a fail-closed exact A2-D3-G3-A3 validator", async () => {
+    const readiness = await import("../../scripts/run-v0-7-release-readiness");
+    const evaluate = (readiness as unknown as Record<string, unknown>)[
+      "evaluateV073CrossHostLifecycleVerifierCorrection"
+    ];
+    const source = readFileSync(
+      new URL("../../scripts/run-v0-7-release-readiness.ts", import.meta.url),
+      "utf8",
+    );
+
+    expect(typeof evaluate).toBe("function");
+    if (typeof evaluate !== "function") {
+      return;
+    }
+    const check = (evaluate as (input: unknown) => { status: string })({});
+    expect(check.status).toBe("fail");
+    expect(source).toContain("a7f78e2b3f324febb227f548c299f57ea487044e");
+    expect(source).toContain(
+      "v0.7.3-cross-host-lifecycle-verifier-correction-preregistration.json",
+    );
+    expect(source).toContain(
+      "v0.7.3-cross-host-lifecycle-verifier-correction-attestation.json",
     );
   });
 
