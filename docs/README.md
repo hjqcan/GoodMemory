@@ -62,9 +62,10 @@ bulk-load. Start here, then open only the file that matches the question.
 
 - `plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md` - passing
   lifecycle schema-9 evidence, the two terminal full-claim attempts, and the
-  not-yet-started full-claim protocol-v2 definition awaiting a later
-  commit-bound preregistration. Only after that JSON is tracked and verified
-  may its one fixed successor attempt run a retrieval-only seed once plus at
+  not-yet-started full-claim protocol-v2 definition with a tracked
+  commit-bound preregistration for candidate `996c181e`. Only after strict
+  readiness verifies it and the launcher pushes its sentinel may the one fixed
+  successor attempt run a retrieval-only seed once plus at
   most one exact same-identity `--resume`; pass-1 evidence is preserved even
   when resume is unnecessary, final seed and validated re-answer artifacts are
   persisted before the next stage, and a clean 1,540-row seed is required

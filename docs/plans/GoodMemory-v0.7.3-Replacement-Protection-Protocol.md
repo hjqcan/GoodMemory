@@ -7,23 +7,23 @@ was amplified to 191 seed failures. Its single preregistered replacement is
 also terminal invalid after a different conversational-extraction timeout was
 amplified to 178 seed failures. Those two attempts remain terminal and the
 exhausted protocol authorizes no third draw. Full-claim protocol v2 is defined
-below, but it has not begun and is not live-authorized until a later
-evidence-only commit adds its commit-bound preregistration JSON; v0.7.3 remains
-unpublished and the release is blocked.
-Date: 2026-08-10
+below, and its commit-bound preregistration now binds protocol candidate
+`996c181e97e2d0a56bbd78957e79026af328b03b`. No provider-capable v2 process
+has started; the one attempt remains unconsumed until strict readiness passes
+and the launcher commits and pushes its sentinel. v0.7.3 remains unpublished
+and the release is blocked.
+Date: 2026-08-11
 Baseline: `456edd106f29118b3455bf21c43d7b3107b48213` (`v0.7.2^{}`)
 
-## Full-claim protocol v2 definition (awaiting commit-bound preregistration)
+## Full-claim protocol v2 (commit-bound preregistration tracked)
 
 Full-claim `protocolVersion: 2` does not resume, reopen, replace, or reinterpret
 either terminal full-claim attempt above. Their output namespaces remain
 immutable historical evidence, and neither cache may be copied into the new
-attempt. Protocol v2 defines exactly one fixed successor attempt. After the
-protocol implementation commit is frozen, a later evidence-only commit must
-add
-`reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json` with
-that exact commit and the fixed identities. No live attempt is authorized until
-the tracked JSON exists and strict readiness verifies it. Before any
+attempt. Protocol v2 defines exactly one fixed successor attempt. The tracked
+`reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json` binds
+the exact protocol implementation commit and fixed identities. No live attempt
+is authorized until strict readiness verifies that tracked JSON. Before any
 provider-capable process starts, the launcher must exclusively create
 `reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json` from
 that preregistration, commit it as the only `main` change, and successfully
@@ -116,10 +116,10 @@ resume still leaves any seed execution failure, the protocol-v2 attempt is
 terminal blocked; no third seed invocation, new namespace, new run IDs,
 manual re-answer, or direct judge invocation is authorized.
 
-No provider-capable protocol-v2 process has started. This definition does not
-authorize one until the commit-bound preregistration is tracked and verified,
-and neither implementation/test success nor that future preregistration is
-passing claim evidence. The canonical sentinel, pass-1 snapshots, final
+No provider-capable protocol-v2 process has started. The tracked commit-bound
+preregistration is not passing claim evidence and does not consume the attempt.
+Provider execution remains forbidden until strict readiness passes and the
+launcher commits and pushes the canonical sentinel. The pass-1 snapshots, final
 evidence bundle, projection, and release gates become evidence only through the
 fixed execution above.
 
@@ -829,9 +829,9 @@ and do not authorize a third draw under that exhausted protocol. Manual seed
 resume, direct re-answer or rescore, a new output namespace, or new run IDs are
 not valid continuations of either terminal attempt. Full-claim protocol v2
 above defines a separate successor with a narrow implementation diff and its
-own fixed identity, but it is neither preregistered nor consumed until the
-later commit-bound JSON exists and the launcher creates its sentinel. It does
-not make either old attempt resumable or valid.
+own fixed identity. Its commit-bound JSON is now tracked, but the attempt is not
+consumed until the launcher creates, commits, and pushes its sentinel after
+strict readiness. It does not make either old attempt resumable or valid.
 
 The preferred claim artifact records and replays provider responses so the
 published run is byte-reproducible. If any published score instead comes from a

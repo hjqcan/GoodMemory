@@ -1,0 +1,24 @@
+{
+  "benchmark": {
+    "bytes": 2490457,
+    "fingerprint": "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd",
+    "sha256": "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28"
+  },
+  "finalRunId": "v073-996c181e-full1540-protocol2-final",
+  "generatedAt": "2026-08-11T07:34:44.000Z",
+  "generatedBy": "v0.7.3-full-locomo-claim-protocol2-preregistration",
+  "lifecycleCandidateCommit": "21dcac8d10b0b6714d09cf14eacd83e32e0c9513",
+  "lifecycleProtection": {
+    "bytes": 15778,
+    "path": "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+    "sha256": "1f09ab04f34e9efe7f3b041337a81321af14a65261cf2f4d7b2f815403d62143"
+  },
+  "maxSeedLaunches": 2,
+  "namespace": "v073-996c181e-full1540-protocol2",
+  "officialRunId": "v073-996c181e-full1540-protocol2-official-gpt55",
+  "outputRoot": "reports/eval/research/v073-996c181e-full1540-protocol2",
+  "protocolCandidateCommit": "996c181e97e2d0a56bbd78957e79026af328b03b",
+  "protocolVersion": 2,
+  "seedRunId": "v073-996c181e-full1540-protocol2-seed",
+  "sentinelPath": "reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json"
+}

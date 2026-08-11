@@ -106,9 +106,11 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   `reports/release/v0.7/v0.7.3-locomo-claim-attempt-2-failed/`. The two
   authorized draws are exhausted and remain terminal; their protocol
   authorizes no third draw. A separate full-claim protocol v2 is now defined as
-  one fixed successor attempt, but no provider-capable v2 process has started
-  and no attempt is authorized until a later evidence-only commit adds the
-  commit-bound preregistration JSON. It keeps the seed retrieval-only and
+  one fixed successor attempt. Its tracked commit-bound preregistration binds
+  protocol candidate `996c181e97e2d0a56bbd78957e79026af328b03b`, but no
+  provider-capable v2 process has started and the attempt remains unconsumed
+  until strict readiness passes and the launcher commits and pushes its
+  sentinel. It keeps the seed retrieval-only and
   permits at most two invocations of the same frozen seed command: pass 1, then
   one exact `--resume` only when pass 1 has eligible seed execution failures.
   Both invocations must keep identical arguments, environment, run ID, checkpoint,
