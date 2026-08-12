@@ -9,6 +9,7 @@ import type {
   LanguageTemporalExpression,
 } from "./contracts";
 import {
+  expandExplicitFactCandidateClauses,
   normalizeUnicodeForEquality,
   splitClausesGeneric,
   tokenizeUnicodeText,
@@ -118,6 +119,49 @@ const CONTENT = {
   unresolved: /(未完了|未解決|残件|保留|ブロッカー|次のステップ|要確認|フォロー)/u,
   validated: /(役に立った|有効だった|うまくいった|このまま続けて)/u,
 } as const;
+
+const JAPANESE_EXPLICIT_FACT_DIRECTIVE_PATTERN =
+  /^(?:これを\s*)?(?:(?:[一二三四五六七八九十\d]+つのことを)?(?:覚えておいて(?:ください)?|覚えて(?:ください)?|記憶して(?:ください)?|忘れないで(?:ください)?))(?=[：:,，、。！？；;\s]|$)/u;
+const JAPANESE_EXPLICIT_FACT_COUNT_PATTERN =
+  /^(?:これを\s*)?([一二三四五六七八九十\d]+)つのことを/u;
+const JAPANESE_EXPLICIT_FACT_OPT_OUT_PATTERN =
+  /(?:覚えておかないで|覚えないで|記憶しないで|保存しないで|忘れて)(?:ください)?[。.!！]?\s*$/u;
+const JAPANESE_EXPLICIT_FACT_QUESTION_PATTERN =
+  /(?:何|なに|誰|どれ|どの|どこ|いつ|なぜ|どう|いくつ|いくら)(?:$|.*(?:ですか|ますか|でしょうか|なのか|か)$)/u;
+const JAPANESE_EXPLICIT_FACT_LITERAL_QUESTION_VALUE_PATTERN =
+  /(?:何|なに|誰|どれ|どの|どこ|いつ|なぜ|どう|いくつ|いくら)/u;
+const JAPANESE_EXPLICIT_FACT_BARE_QUESTION_VALUE_PATTERN =
+  /^(?:何|なに|誰|どれ|どの|どこ|いつ|なぜ|どう|いくつ|いくら)(?:ですか|なのか|か)?$/u;
+const JAPANESE_EXPLICIT_FACT_POSTPOSED_QUESTION_VALUE_PATTERN =
+  /[、，,]\s*(?:何|なに|誰|どれ|どの|どこ|いつ|なぜ|どう|いくつ|いくら)(?:ですか|なのか|か)?$/u;
+const JAPANESE_EXPLICIT_FACT_CONFIRMATION_PATTERN =
+  /(?:正しい|合っている|合っています|間違いない)(?:ですか|ますか|でしょうか|か)?[?？]?\s*$/u;
+const JAPANESE_EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN =
+  /(?:[、，,]\s*|(?:そして|また|でも|しかし)\s*)(?=[^。！？；;\n]{0,240}(?:覚えておかないで|覚えないで|記憶しないで|保存しないで|忘れて))/u;
+
+function japaneseFactCount(content: string): number | undefined {
+  const token = content.match(JAPANESE_EXPLICIT_FACT_COUNT_PATTERN)?.[1];
+  if (!token) {
+    return 1;
+  }
+  const numeric = Number(token);
+  if (Number.isInteger(numeric) && numeric >= 0) {
+    return numeric;
+  }
+  const counts: Readonly<Record<string, number>> = {
+    一: 1,
+    二: 2,
+    三: 3,
+    四: 4,
+    五: 5,
+    六: 6,
+    七: 7,
+    八: 8,
+    九: 9,
+    十: 10,
+  };
+  return counts[token];
+}
 
 function analyzeJapaneseQuery(query: string): LanguageQueryAnalysis {
   const role = QUERY.role.test(query);
@@ -232,6 +276,120 @@ function resolveJapaneseFactKind(
   return "generic_project";
 }
 
+function cleanJapaneseExplicitFact(value: string): string {
+  return value
+    .trim()
+    .replace(/^[：:,，、。！？；;\s]+/u, "")
+    .replace(/[：:,，、。！？；;]+$/u, "")
+    .trim();
+}
+
+function extractJapaneseOptOutTarget(content: string): string {
+  return content
+    .replace(JAPANESE_EXPLICIT_FACT_OPT_OUT_PATTERN, "")
+    .replace(/(?:は|を)\s*$/u, "")
+    .trim();
+}
+
+function splitJapaneseClauses(text: string): string[] {
+  return splitClausesGeneric(text)
+    .flatMap((clause) =>
+      !JAPANESE_EXPLICIT_FACT_DIRECTIVE_PATTERN.test(clause.trim()) &&
+        JAPANESE_EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
+        ? [clause]
+        : clause.split(JAPANESE_EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN)
+    )
+    .map((clause) => clause.trim())
+    .filter(Boolean);
+}
+
+function isJapaneseExplicitFactQuestion(
+  content: string,
+  source: string,
+): boolean {
+  const assignmentIndex = content.search(/[=＝]/u);
+  if (assignmentIndex >= 0) {
+    const left = content.slice(0, assignmentIndex).trim();
+    const right = content.slice(assignmentIndex + 1).trim();
+    if (JAPANESE_EXPLICIT_FACT_QUESTION_PATTERN.test(left)) {
+      return true;
+    }
+    const assignmentConfirmation =
+      JAPANESE_EXPLICIT_FACT_CONFIRMATION_PATTERN.test(right) &&
+      /(?:ですか|ますか|でしょうか|か)\s*$/u.test(right);
+    if (assignmentConfirmation) {
+      return true;
+    }
+    if (JAPANESE_EXPLICIT_FACT_POSTPOSED_QUESTION_VALUE_PATTERN.test(right)) {
+      return true;
+    }
+    if (/[?？]\s*$/u.test(source)) {
+      return !JAPANESE_EXPLICIT_FACT_LITERAL_QUESTION_VALUE_PATTERN.test(right) ||
+        JAPANESE_EXPLICIT_FACT_BARE_QUESTION_VALUE_PATTERN.test(right);
+    }
+    return false;
+  }
+
+  return /[?？]\s*$/u.test(source) ||
+    JAPANESE_EXPLICIT_FACT_QUESTION_PATTERN.test(content);
+}
+
+function extractJapaneseExplicitFacts(content: string) {
+  const source = content.trim();
+  const directive = source.match(JAPANESE_EXPLICIT_FACT_DIRECTIVE_PATTERN);
+  if (!directive) {
+    return JAPANESE_EXPLICIT_FACT_OPT_OUT_PATTERN.test(source)
+      ? {
+        clauses: [{ content: source, disposition: "feedback" as const }],
+        status: "complete" as const,
+      }
+      : undefined;
+  }
+
+  const expectedFactCount = japaneseFactCount(source);
+  if (expectedFactCount === undefined) {
+    return { clauses: [], status: "invalid" as const };
+  }
+  const clauses = splitJapaneseClauses(source.slice(directive[0].length));
+  const cleanedClauses = clauses
+    .map((sourceClause) => ({
+      content: cleanJapaneseExplicitFact(sourceClause),
+      sourceClause,
+    }))
+    .filter(({ content }) => content.length > 0);
+  if (cleanedClauses.length < expectedFactCount) {
+    return JAPANESE_EXPLICIT_FACT_COUNT_PATTERN.test(source)
+      ? {
+        clauses: cleanedClauses.map(({ content: clause, sourceClause }) => ({
+          content: clause,
+          disposition: JAPANESE_EXPLICIT_FACT_OPT_OUT_PATTERN.test(sourceClause)
+            ? "feedback" as const
+            : "fact" as const,
+        })),
+        status: "incomplete-counted-list" as const,
+      }
+      : { clauses: [], status: "invalid" as const };
+  }
+  if (cleanedClauses.some(({ content: clause, sourceClause }) =>
+    !JAPANESE_EXPLICIT_FACT_OPT_OUT_PATTERN.test(sourceClause) &&
+    isJapaneseExplicitFactQuestion(clause, sourceClause)
+  )) {
+    return { clauses: [], status: "invalid" as const };
+  }
+
+  return {
+    clauses: cleanedClauses
+      .slice(0, expectedFactCount)
+      .map(({ content: clause, sourceClause }) => ({
+        content: clause,
+        disposition: JAPANESE_EXPLICIT_FACT_OPT_OUT_PATTERN.test(sourceClause)
+          ? "feedback" as const
+          : "fact" as const,
+      })),
+    status: "complete" as const,
+  };
+}
+
 function extractJapaneseCandidates(
   input: Parameters<LanguagePack["extractCandidates"]>[0],
 ): MemoryCandidate[] {
@@ -241,20 +399,43 @@ function extractJapaneseCandidates(
       continue;
     }
     const sourceMessageIndex = message.sourceMessageIndex ?? index;
-    const clauses = splitClausesGeneric(message.content);
+    const clauses = expandExplicitFactCandidateClauses(
+      message.content,
+      extractJapaneseExplicitFacts,
+      splitJapaneseClauses,
+    );
     const sourceAnalysis = message.analysis ??
       analyzeJapaneseContent(message.content);
-    const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
-      analysis: sourceAnalysis,
-      nextId: input.nextId,
-      sourceMessageIndex,
-    });
-    if (sourceOfTruthReference) {
-      candidates.push(sourceOfTruthReference);
-    }
-    const messageAnalysis = clauses.length === 1 ? sourceAnalysis : undefined;
     for (const clause of clauses) {
-      const text = clause.trim();
+      const clauseIsExplicit = clause.disposition === "fact";
+      const text = clause.content.trim();
+      const clauseAnalysis = clauses.length === 1 && clause.content === message.content
+        ? sourceAnalysis
+        : analyzeJapaneseContent(text);
+      if (clause.disposition === "feedback") {
+        candidates.push({
+          content: text,
+          explicitness: "explicit",
+          id: input.nextId(),
+          kindHint: "feedback",
+          metadata: {
+            appliesTo: "general_response",
+            feedbackKind: "dont",
+            optOutTarget: extractJapaneseOptOutTarget(text),
+          },
+          sourceMessageIndex,
+          sourceRole: "user",
+        });
+        continue;
+      }
+      const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
+        analysis: clauseAnalysis,
+        nextId: input.nextId,
+        sourceMessageIndex,
+      });
+      if (sourceOfTruthReference) {
+        candidates.push(sourceOfTruthReference);
+      }
       const goal = text.match(
         /(?:私の)?(?:現在の)?(?:目標|最優先事項)は\s*([^。！？]+?)(?:です|である)?[。！？]?$/u,
       )?.[1];
@@ -318,9 +499,22 @@ function extractJapaneseCandidates(
         });
       }
 
-      const explicitFact = text.match(/(?:覚えておいて|覚えて|記憶して|忘れないで)[、,\s]*(.+)/u);
-      if (explicitFact?.[1]) {
-        const content = explicitFact[1].trim();
+      const feedback = /^(?:今後|必ず|優先して)|(?:しないで|避けて)/u.test(
+        text,
+      );
+      if (
+        clauseIsExplicit &&
+        !goal &&
+        !name &&
+        !role &&
+        !preference &&
+        !clauseAnalysis.sourceOfTruthDirective &&
+        !feedback
+      ) {
+        const content = cleanJapaneseExplicitFact(text);
+        if (!content) {
+          continue;
+        }
         candidates.push({
           content,
           explicitness: "explicit",
@@ -328,7 +522,7 @@ function extractJapaneseCandidates(
           kindHint: "fact",
           metadata: {
             category: "project",
-            factKind: resolveJapaneseFactKind(content, messageAnalysis),
+            factKind: resolveJapaneseFactKind(content, clauseAnalysis),
             scopeKind: "project",
           },
           sourceMessageIndex,
@@ -348,7 +542,7 @@ function extractJapaneseCandidates(
           kindHint: "fact",
           metadata: {
             category: "project",
-            factKind: resolveJapaneseFactKind(text, messageAnalysis),
+            factKind: resolveJapaneseFactKind(text, clauseAnalysis),
             scopeKind: "project",
           },
           sourceMessageIndex,
@@ -356,7 +550,7 @@ function extractJapaneseCandidates(
         });
       }
 
-      if (/^(?:今後|必ず|優先して)|(?:しないで|避けて)/u.test(text)) {
+      if (feedback) {
         candidates.push({
           content: text,
           explicitness: "explicit",
@@ -364,8 +558,7 @@ function extractJapaneseCandidates(
           kindHint: "feedback",
           metadata: {
             appliesTo: "general_response",
-            feedbackKind: messageAnalysis?.feedbackKind ??
-              analyzeJapaneseContent(text).feedbackKind,
+            feedbackKind: clauseAnalysis.feedbackKind,
           },
           sourceMessageIndex,
           sourceRole: "user",
@@ -543,7 +736,7 @@ function renderJapanese(input: LanguageRenderInput): string {
 
 export function createJapaneseLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "7",
+    analyzerVersion: "8-explicit-fact-list-boundary",
     apiVersion: 1,
     compatibilityGroup: "ja",
     defaultLocale: "ja-JP",
@@ -557,7 +750,7 @@ export function createJapaneseLanguagePack(): LanguagePack {
       return /\p{Script=Han}/u.test(joined) ? "compatible" : "none";
     },
     normalizeForEquality: normalizeUnicodeForEquality,
-    splitClauses: splitClausesGeneric,
+    splitClauses: splitJapaneseClauses,
     splitSentences: splitSentencesGeneric,
     tokenizeForScoring(text, _mode, options) {
       const tokens = tokenizeUnicodeText(text, "ja-JP");

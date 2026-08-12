@@ -2,14 +2,19 @@
 
 This is the compact current-truth entrypoint. Historical narrative has been removed from this file; use `docs/archive/quality-gates/README.md`, generated reports, and git history for phase-by-phase provenance. Product scope remains in `docs/GoodMemory-PRD.md`, and execution order remains in `task-board/00-README.txt`.
 
-## Stable OSS Surface
+## Current OSS Surface
 
-- Registry baseline before the v0.7.3 tagged publication: npm `latest`
-  resolved to `goodmemory@0.7.2`. The peeled `v0.7.2` tag resolves to commit
-  `456edd106f29118b3455bf21c43d7b3107b48213`; release workflow run
-  `30733828784` verified the exact npm artifact before publishing the non-draft
-  GitHub Release.
-- `main` contains the v0.7.3 stable release source, complete lifecycle and
+- The previous stable source boundary is `goodmemory@0.7.3`; its peeled
+  `v0.7.3` tag resolves to
+  `7430dec4e9f7451d8efeb14fbe9e05d7785c0659`. Mutable registry state is
+  deliberately not encoded in this source document; the release workflow
+  verifies the published version, npm dist-tag, and artifact integrity at
+  publication time.
+- The `0.7.4` source line advances the package, lockfile, descriptors, server
+  metadata, and public install surfaces from the published `0.7.3` baseline.
+  A stable `0.7.4` source is valid only from a clean working tree whose
+  HEAD matches the peeled `v0.7.4` tag.
+- The historical v0.7.3 source contains complete lifecycle and
   full-claim evidence, and the release workflow that independently verifies
   registry publication from the tag. The first
   provider-backed 233-question gate remains archived as blocked; its 11/15
@@ -155,8 +160,9 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   scans compiled JavaScript for known fitted benchmark literals.
 - Core public workflow remains centered on `createGoodMemory`, `remember`, `recall`, `buildContext`, `feedback`, `forget`, `exportMemory`, and `deleteAllMemory`; advanced host/operator facades such as runtime, jobs, reviseMemory, and runMaintenance stay explicit.
 - Package subpaths `goodmemory`, `goodmemory/ai-sdk`, `goodmemory/host`, `goodmemory/http`, and `goodmemory/runtime-kit` resolve through compiled `dist/` artifacts and emitted type declarations.
-- The v0.7.3 candidate pins the exact AI SDK 6 dependency versions already
-  present in the measured lock instead of publishing caret ranges that can
+- The v0.7.3 stable baseline pins the exact AI SDK 6 dependency versions already
+  present in the measured lock; the v0.7.4 source line retains those
+  exact pins instead of publishing caret ranges that can
   resolve to `@ai-sdk/provider-utils` versions carrying `undici@5.29.0`. The
   release gate now performs a fresh production install from the packed tarball,
   rejects any installed Undici 5.x, and requires zero high or critical npm
@@ -168,7 +174,7 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 - The official CLI uses the package bin. The global CLI invocation path is `goodmemory ...` after `npm install -g goodmemory`; project-local installs use `npx goodmemory`, `npm exec -- goodmemory`, or `./node_modules/.bin/goodmemory ...`. Non-version command execution remains Bun-backed today.
 - Generic live-memory eval semantics are auto-storage aligned: `eval:live-memory`, `eval:live-auto-memory`, `runLiveMemoryEval()`, `eval:live-provider-memory`, and historical `reports/eval/live-memory/phase-*` paths keep their existing meanings.
 
-## 0.7 LanguagePack Stable Release Source
+## 0.7 LanguagePack Release Boundary
 
 - 0.7 is defined as a clean breaking replacement of the former partial
   language adapter. The target public language surface is one complete
@@ -187,8 +193,8 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   not read a partial new generation; it uses canonical fallback until an
   interruptible, repeatable migration validates and atomically publishes
   complete proof.
-- This section records the accepted architecture and immutable release-source
-  boundary, not proof that an external registry publication occurred. 0.7 must
+- This section records the accepted architecture and release boundary, not
+  proof that `0.7.4` has been published. It must
   not be tagged or published until its fresh full
   suite, typecheck, coverage, storage/migration/scale gates, real PostgreSQL
   `EXPLAIN` run, Node 20 and Bun packed-consumer smokes, type/release tests, and
@@ -1558,8 +1564,9 @@ cutover, and rollback contracts.
   is wired to the complete attempt loader, frozen report, independent replay,
   and C7 gate.
 - The Phase 72 benchmark gate and versioned release gate remain closed
-  historical evidence for `v0.6.0`. The current-claim table now contains one
-  fresh v0.7.3 LoCoMo row: all 1,540 non-adversarial questions completed with
+  historical evidence for `v0.6.0`. The `0.7.4` source line has no
+  current-claim row. The fresh v0.7.3 LoCoMo result remains versioned evidence:
+  all 1,540 non-adversarial questions completed with
   zero execution/judge failures and scored `0.6266233766` strict,
   `0.8805194805` under the independent `gpt-5.5` official protocol, and
   `58/96 = 0.6041666667` on open-domain. The prior LoCoMo row remains separately
@@ -1612,14 +1619,16 @@ cutover, and rollback contracts.
 - automatic adapter/event `user_correction` path is proposal-first and records selective evidence plus proposal/promotion receipts instead of writing an intermediate active feedback memory; public `feedback()` remains the explicit durable procedural feedback entrypoint.
 - Provider-backed retrieval is explicit; rules-only remains the default accepted mode, and provider failures surface as `provider_error`.
 - Dashboard, cloud sync, and team workspace remain a Phase 48 no-go decision.
-- The current v0.7.3 benchmark surface contains one public-opt-in LoCoMo claim
-  bound to the protocol-v2 projection. The prior `v0.6.0` LoCoMo, BEAM, and
+- The current v0.7.4 benchmark surface contains no newly measured claim. The
+  v0.7.3 public-opt-in LoCoMo result remains bound to its protocol-v2
+  projection as versioned evidence. The prior `v0.6.0` LoCoMo, BEAM, and
   MemoryAgentBench results retain their strict, protocol, license, and
   event-ordering disclosures as versioned historical evidence alongside
   ImplicitMemBench. LongMemEval is a paused boundary pending a clean
   opaque-session-id rerun. The runtime capability descriptor and both README
-  current-claim tables carry only the v0.7.3 LoCoMo projection. The strict gate
-  enforces declaration status, package-version equality, evidence assertions,
+  current-claim tables are empty for v0.7.4. The strict gate recognizes the
+  measured v0.7.3 declaration as historical without changing its source bytes,
+  paths, or measured package version, and still enforces evidence assertions,
   README row provenance, current-versus-historical presentation separation,
   and disclosure fragments.
 - ImplicitMemBench Full-300 rerun evidence guard note: `eval:phase-61-full300` rejects ambiguous source/output/run/budget selectors before launching live shards. The 2026-07-06 full-root run `run-phase61-full300-rerun-20260706-codex-current` completed 300 cases with zero failures and measured same-model diagnostic GoodMemory 0.7081666667 versus baseline 0.41. That number remains diagnostic; the later gpt-5.4 stored-answer rescore is versioned historical evidence, not a current-production score.
@@ -1701,7 +1710,7 @@ cutover, and rollback contracts.
 - Phase 65 embedding-free comparison source/output guard note: `run-phase-65-locomo-embedding-free-comparison.ts` now rejects output directories that resolve to the benchmark root before parsing can hand off to the arm runner, and the runner repeats the same check before any arm can read the benchmark root. This is gateway-free comparison evidence integrity hardening only; it does not change LoCoMo retrieval scores, answer scores, default status, or public-claim boundaries.
 - Phase 65 measurement source-root guard note: `measure-locomo-levers.ts`, `measure-locomo-neural.ts`, `measure-locomo-union-live.ts`, and `run-phase-65-locomo-embedding-free-comparison.ts` now reject empty or whitespace-padded `GOODMEMORY_LOCOMO_ROOT` fallback values before benchmark-root resolution. This is source-root integrity hardening for LoCoMo lever, neural, union-live, and gateway-free comparison evidence only; it does not change LoCoMo retrieval scores, answer scores, default status, or public-claim boundaries.
 - Phase 66 release-readiness CLI guard note: `gate:v0-3-release-readiness` rejects duplicate `--skip-build`, `--skip-tests`, `--strict`, and `--output-dir` flags before running package/release checks. This is release-gate input hardening only; it does not change benchmark scores or public claims.
-- Public-claim gate note: `gate:public-benchmark-claim` validates declaration shape, metric direction and baseline improvement, derived answer/judge separation, full commit identity, tracked current/historical projection assertions, and README row provenance/disclosures. It checks internal declaration consistency; it does not independently prove upstream licenses or reconstruct ignored raw reports. Historical source fingerprints can be checked locally with `bun run scripts/project-historical-evidence.ts`. A current claim must have `candidate_public_claim` status and a `run.packageVersion` equal to the current package version. Historical rows live under separate markers and remain consistency-checked without becoming current claims. For `v0.7.3`, strict mode finds one current LoCoMo claim, four versioned historical rows including the independently bound v0.6 LoCoMo presentation, and LongMemEval as one paused declaration.
+- Public-claim gate note: `gate:public-benchmark-claim` validates declaration shape, metric direction and baseline improvement, derived answer/judge separation, full commit identity, tracked current/historical projections, and README row provenance/disclosures. For every projection it reads every `sourceArtifacts` entry and recomputes its byte count and SHA-256. A current claim additionally requires artifact-derived benchmark/package/commit identity, an assertion-bound projection score, and score/baseline values in an identity-bearing source JSON from that verified closure. This proves declaration-to-projection-to-tracked-bytes consistency; it does not independently prove that the benchmark execution occurred or that upstream licenses are valid. A current claim must have `candidate_public_claim` status and a `run.packageVersion` equal to the current package version. Historical rows live under separate markers and remain consistency-checked without becoming current claims. For `v0.7.4`, strict mode finds no current claim, four versioned historical rows including the v0.7.3 LoCoMo evidence, and LongMemEval as one paused declaration.
 - Phase 67 benchmark-prompt rescore evidence note: `eval:official-rescore` rejects ambiguous selectors, source/output overlap, malformed identities and progress rows, source fingerprint drift, judge-model drift, and incomplete judging. Its `rescore-summary.json` records source fingerprints, judge identity, selected/source scope, and a benchmark-and-model-aware claim boundary. LongMemEval runs with gpt-5.4 or gpt-5.5 are explicitly official-prompt-compatible but not directly comparable to published official scores because those models are outside the pinned evaluator model zoo. Stored answers remain separate from derived artifacts, and no rescore becomes a public claim without the claim gate.
 - Phase 67 official-rescore cache writer / summary validation note: `eval:official-rescore` serializes progress through the same strict shapes accepted by resume parsing and validates final summaries, scope counts, fingerprints, category aggregates, and stored-answer boundaries before write. Existing LoCoMo and BEAM scores remain versioned historical evidence; refreshed LongMemEval artifacts preserve contaminated provenance only.
 - **WITHDRAWN 2026-07-31:** the Phase 72 LongMemEval verifier/rescore chain

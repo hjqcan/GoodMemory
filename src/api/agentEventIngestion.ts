@@ -1,4 +1,5 @@
 import type { AgentInputEvent, HostAgentEvent } from "../agentEvents";
+import { hasPersistableSemanticText } from "../domain/semanticText";
 import type { MemoryCandidate } from "../remember/candidates";
 import type { GoodMemoryPolicyHooks, PolicyContext } from "../policy/hooks";
 import type { DocumentStore } from "../storage/contracts";
@@ -293,7 +294,7 @@ async function applyAgentEventPolicy(input: {
     };
   }
 
-  if (candidate.content.length === 0) {
+  if (!hasPersistableSemanticText(candidate.content)) {
     return {
       content: "",
       language: resolvedLanguage,
@@ -463,7 +464,7 @@ export function createAgentEventIngestor(
   return {
     async ingest(event: ExternalAgentEvent): Promise<AgentEventIngestResult> {
       const rawText = resolveAgentEventText(event);
-      if (!rawText) {
+      if (!rawText || !hasPersistableSemanticText(rawText)) {
         return {
           recorded: false,
           skippedReason: "empty_excerpt",
@@ -477,7 +478,7 @@ export function createAgentEventIngestor(
         text: rawText,
       });
 
-      if (policyResult.content.length === 0) {
+      if (!hasPersistableSemanticText(policyResult.content)) {
         return {
           recorded: false,
           skippedReason: "empty_excerpt",

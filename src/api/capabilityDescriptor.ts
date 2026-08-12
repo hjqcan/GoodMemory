@@ -361,11 +361,11 @@ export function buildGoodMemoryCapabilityDescriptor(
       historicalEvidence: {
         url: `${REPO}/tree/main/benchmark-claims`,
         note:
-          `The v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus older LongMemEval and ImplicitMemBench runs, remain reproducible versioned evidence. ${
+          `The v0.7.3 LoCoMo result, the v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus ImplicitMemBench, remain reproducible versioned evidence. ${
             currentClaims.length === 0
-              ? `None is a current ${version} production claim until rerun against this package line.`
+              ? `No benchmark result has been relabeled as measured on v${version}.`
               : "The current LoCoMo claim is loaded only from the tracked v0.7.3 projection."
-          } LongMemEval and ImplicitMemBench remain internal evidence.`,
+          } LongMemEval is withdrawn and paused pending a clean label-free rerun; its old artifacts are retained only as contaminated provenance and are not quotable as GoodMemory results.`,
       },
     },
     capabilities: {

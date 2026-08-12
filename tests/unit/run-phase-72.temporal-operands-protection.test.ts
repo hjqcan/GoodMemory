@@ -258,6 +258,16 @@ async function fixture() {
 }
 
 describe("Phase 72 temporal operand cross-benchmark protection", () => {
+  it("rejects the current English analyzer before file I/O canonically", async () => {
+    await expect(runPhase72TemporalOperandsProtection({
+      beamRoot: "/beam",
+      locomoRoot: "/locomo",
+      outputDir: "/reports",
+      runId: "analyzer-version-fixture",
+      selectionFile: "/selection.json",
+    })).rejects.toThrow("English analyzer 13 is required; found 14");
+  });
+
   it("runs every control before temporal-only treatment and preserves negative controls", async () => {
     const input = await fixture();
     const calls: Array<{ decompose: boolean; query: string }> = [];
@@ -327,6 +337,9 @@ describe("Phase 72 temporal operand cross-benchmark protection", () => {
         JSON.stringify(result.control) === JSON.stringify(result.treatment)
       ));
     expect(report.source.canonicalDependencies).toBe(false);
+    expect(report.source.englishAnalyzerVersion).toBe(
+      "14-explicit-fact-list-boundary",
+    );
     expect(report.configuration.memoryIsolation).toBe(
       "fresh_seeded_memory_per_question_per_arm",
     );

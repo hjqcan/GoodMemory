@@ -1,27 +1,27 @@
 # GoodMemory Reference Integration Guide
 
-This is the canonical packaged `0.7.3` release-candidate reference path for
-chatbox/copilot-style integration. Registry commands apply after publication;
-before publication use the local tarball path below.
+This is the canonical packaged `0.7.4` reference path for chatbox/copilot-style
+integration. Registry commands require publication; source verification uses
+the local tarball path below.
 
 ## Install
 
 Published install:
 
 ```bash
-npm install goodmemory@0.7.3
+npm install goodmemory@0.7.4
 ```
 
 Bun install:
 
 ```bash
-bun add goodmemory@0.7.3
+bun add goodmemory@0.7.4
 ```
 
 Tarball verification of the same release artifact before publish:
 
 ```bash
-npm install ./goodmemory-0.7.3.tgz
+npm install ./goodmemory-0.7.4.tgz
 ```
 
 ## Quick Path
@@ -120,7 +120,7 @@ Next.js mapping:
 - The canonical deterministic path uses the accepted Phase 26 local-first runtime and the accepted Phase 28 supported local acceleration behavior.
 - Bun keeps the local SQLite default runtime path; Node zero-config runtime currently falls back to in-memory when the built-in local SQLite adapter is unavailable.
 - No embedding environment variables means the runtime stays `rules-only`.
-- Tarball and registry installability are both valid package-boundary paths for this stable release.
+- Tarball and registry installability are both valid package-boundary paths for this package line.
 - The reference path should use only:
   - `goodmemory`
   - `goodmemory/ai-sdk`

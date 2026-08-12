@@ -15,10 +15,8 @@ import type {
   LongMemEvalMemoryContext,
   LongMemEvalMemoryContextBuilder,
 } from "../src/eval/longmemeval";
-import {
-  createEnglishLanguagePack,
-  createLanguageService,
-} from "../src/language";
+import { createLanguageService } from "../src/language";
+import type { LanguageService } from "../src/language";
 import { splitQueryIntoSubQueries } from "../src/recall/queryDecomposition";
 import { estimateTextTokens } from "../src/tokenEstimator";
 import {
@@ -270,8 +268,10 @@ function parseSelection(raw: string): Selection {
   };
 }
 
-function temporalOperands(question: string): string[] {
-  const language = createLanguageService();
+function temporalOperands(
+  question: string,
+  language: LanguageService,
+): string[] {
   const context = language.resolveFromText({ text: question });
   const analysis = language.analyzeQuery(question, context);
   if ((analysis.temporalOperands?.length ?? 0) === 0) {
@@ -298,10 +298,11 @@ function indexCases(cases: readonly LongMemEvalCase[]): Map<string, LongMemEvalC
 function validateSelectionStrata(
   cases: readonly LongMemEvalCase[],
   expected: Readonly<Record<string, number>>,
+  language: LanguageService,
 ): void {
   const actual: Record<string, number> = {};
   for (const testCase of cases) {
-    const count = temporalOperands(testCase.question).length;
+    const count = temporalOperands(testCase.question, language).length;
     if (count !== 1 && count !== 2) {
       throw new Error(
         `Selected question has no bounded temporal operands: ${testCase.questionId}`,
@@ -564,14 +565,18 @@ export async function runPhase72LongMemEvalOperandHeadPreservationDevelopment(
   if (bunVersion !== REQUIRED_BUN_VERSION) {
     throw new Error(`Bun ${REQUIRED_BUN_VERSION} is required; found ${bunVersion}.`);
   }
-  const analyzerVersion = createEnglishLanguagePack().analyzerVersion;
-  if (analyzerVersion !== REQUIRED_ENGLISH_ANALYZER_VERSION) {
+  const canonicalDependencies =
+    hasCanonicalOperandHeadPreservationDependencies(dependencies);
+  const language = createLanguageService();
+  const analyzerVersion = language.analyzerVersion("en-US");
+  if (
+    canonicalDependencies &&
+    analyzerVersion !== REQUIRED_ENGLISH_ANALYZER_VERSION
+  ) {
     throw new Error(
       `English analyzer ${REQUIRED_ENGLISH_ANALYZER_VERSION} is required; found ${analyzerVersion}.`,
     );
   }
-  const canonicalDependencies =
-    hasCanonicalOperandHeadPreservationDependencies(dependencies);
   const preseal = dependencies.preseal ?? DEFAULT_PRESEAL;
   const readFileImpl = dependencies.readFile ??
     ((path: string) => readFile(path, "utf8"));
@@ -607,7 +612,7 @@ export async function runPhase72LongMemEvalOperandHeadPreservationDevelopment(
     }
     return testCase;
   });
-  validateSelectionStrata(selected, selection.strata);
+  validateSelectionStrata(selected, selection.strata, language);
 
   const initialSourceState = dependencies.sourceState ?? await resolveSourceState();
   if (initialSourceState.dirty || !/^[0-9a-f]{40}$/u.test(initialSourceState.commit)) {
@@ -621,7 +626,7 @@ export async function runPhase72LongMemEvalOperandHeadPreservationDevelopment(
 
   const controls = new Map<string, RetrievalArmResult>();
   for (const testCase of selected) {
-    const operands = temporalOperands(testCase.question);
+    const operands = temporalOperands(testCase.question, language);
     const control = buildArmResult({
       context: await builders.control({
         profile: PROFILE,
@@ -641,7 +646,7 @@ export async function runPhase72LongMemEvalOperandHeadPreservationDevelopment(
 
   const cases: RetrievalCaseResult[] = [];
   for (const testCase of selected) {
-    const operands = temporalOperands(testCase.question);
+    const operands = temporalOperands(testCase.question, language);
     const gold = goldSessionIds(testCase);
     const treatment = buildArmResult({
       context: await builders.treatment({

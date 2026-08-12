@@ -4,10 +4,10 @@ Language: English | [简体中文](./README.zh-CN.md)
 
 GoodMemory is a memory layer for AI products and coding agents.
 
-> **Release source:** this is the immutable `0.7.3` stable release source.
-> Registry commands require `goodmemory@0.7.3` to be published. The release
-> workflow verifies npm `latest` and artifact integrity before creating the
-> GitHub Release.
+> **Release status:** this branch is the `0.7.4` release candidate. npm
+> `latest` remains `0.7.3`; `0.7.4` has not been published. The version-pinned
+> registry commands below are the post-publish contract; use the locally packed
+> `goodmemory-0.7.4.tgz` for pre-publish verification.
 
 It gives chat apps, copilots, and agent hosts a durable user/project memory loop:
 write selected facts, retrieve the right context, inject it into the next turn,
@@ -62,7 +62,7 @@ independent from the answer model.
 local memory surface; before publication, use the tarball named above:
 
 ```bash
-npm install -g goodmemory@0.7.3
+npm install -g goodmemory@0.7.4
 goodmemory setup --host codex
 goodmemory status codex --workspace-root .
 goodmemory inspector serve
@@ -82,7 +82,7 @@ fail-closed evidence track.
 ## Start Here: Codex Or Claude Code
 
 ```bash
-npm install -g goodmemory@0.7.3
+npm install -g goodmemory@0.7.4
 goodmemory setup
 ```
 
@@ -105,14 +105,14 @@ dataset source and license, and a reproducible run (commit + command + package
 version). Historical rows remain under separate markers and cannot satisfy the
 current-version gate.
 
-The fresh v0.7.3 protocol-v2 run now supplies the current LoCoMo claim below.
-The Phase 72 benchmark and versioned release gates remain closed historical
-0.6 evidence; those rows stay separate because `v0.7.0` changed
-LanguagePack and recall semantics. The v0.7.3 result is a single live-provider
-draw, so its 0.4-0.7 percentage-point run-to-run spread is explicitly heuristic
-and the score is not attributed to the R6 retrieval change. It is also a
-public-opt-in provider-backed profile, not a claim about the zero-provider
-default.
+GoodMemory `0.7.4` has no newly measured current benchmark claim.
+The fresh v0.7.3 protocol-v2 LoCoMo result remains versioned evidence below; it
+is not relabeled as measured on `0.7.4`. The Phase 72 benchmark and versioned
+release gates remain closed historical 0.6 evidence. The v0.7.3 result is a
+single live-provider draw, so its 0.4-0.7 percentage-point run-to-run spread is
+explicitly heuristic and the score is not attributed to the R6 retrieval
+change. It is also a public-opt-in provider-backed profile, not a claim about
+the zero-provider default.
 LongMemEval is withdrawn pending a clean rerun: the historical rules-only path
 used answer annotations, and the later label-free path exposed raw
 `answer_*` session IDs to retrieval and the reader. ImplicitMemBench's
@@ -121,28 +121,26 @@ monolithic fresh run. HaluMem, MemGym, and MINTEval remain release evidence
 rather than public benchmark claims.
 
 <!-- current-claims-table:start -->
-| Benchmark | Primary metric | GoodMemory result | Baseline / reference | Claim declaration |
-|---|---|---:|---:|---|
-| LoCoMo v0.7.3 (full 10 conversations) | independent official judge protocol; strict deterministic token-F1 | official **0.8805** · strict **0.6266** · open-domain **0.6042** (58/96) | historical no-memory 0.0045 | [locomo.json](./benchmark-claims/locomo.json) |
+No benchmark result is currently presented as measured on `0.7.4`.
 <!-- current-claims-table:end -->
 
-### Versioned internal evidence
+### Versioned evidence
 
 These rows are versioned attestations with tracked source fingerprints for the
 disclosed package version and runtime profile. Reproduction also requires the
 referenced raw artifacts, which are not all stored in the Git tree. They are
-not current-production claims for `v0.7.3`.
+not current-production claims for `v0.7.4`.
 
 <!-- historical-evidence-table:start -->
 | Benchmark | Primary metric | GoodMemory result | Baseline / reference | Claim declaration |
 |---|---|---:|---:|---|
-| LoCoMo v0.6.0 (full 10 conversations) | independent official judge protocol; strict deterministic token-F1 | official **0.8708** · strict **0.6299** · open-domain **0.6146** (59/96) | historical no-memory 0.0045 | [locomo.json](./benchmark-claims/locomo.json) |
+| LoCoMo v0.7.3 (full 10 conversations) | independent official judge protocol; strict deterministic token-F1 | official **0.8805** · strict **0.6266** · open-domain **0.6042** (58/96) | historical no-memory 0.0045 | [locomo.json](./benchmark-claims/locomo.json) |
 | BEAM 100K v0.6.0 (400 questions, 1051 rubric items) | independent official unified rubric; strict binary disclosed separately | unified **0.7651** · strict **0.620** (248/400) · generalized recall **0.8276** | public full-400 same-protocol reference 0.49 | [beam.json](./benchmark-claims/beam.json) |
 | MemoryAgentBench v0.6.0 (CR, TTL) | deterministic upstream match-mode scoring, judge-free | **CR 0.959, TTL 0.933** | no-memory 0.000 for both | [memoryagentbench.json](./benchmark-claims/memoryagentbench.json) |
 | ImplicitMemBench Full-300 | stored-answer cross-version judge rescore | **0.691** (207.35/300), gpt-5.4 judge over gpt-5.5 answers, sourceAnswersUnchanged | upstream-chat baseline **0.400** (120/300); reference line 0.66 | [implicitmembench.json](./benchmark-claims/implicitmembench.json) |
 <!-- historical-evidence-table:end -->
 
-The current v0.7.3 LoCoMo run covers all 1540 non-adversarial questions with
+The versioned v0.7.3 LoCoMo run covers all 1540 non-adversarial questions with
 zero execution and judge failures. Answers, conversational extraction, and
 provider reranking use `gpt-5.6-terra`; the official-protocol track uses an
 independent `gpt-5.5` judge. The dataset is CC BY-NC 4.0 and therefore limited
@@ -242,7 +240,7 @@ and run it. Machine-readable versions of this tree live in
 also serves the descriptor at `/.well-known/goodmemory.json`).
 
 - **You are, or run inside, Claude Code or Codex** →
-  `npm install -g goodmemory@0.7.3 && goodmemory setup`. Unsure what is already
+  `npm install -g goodmemory@0.7.4 && goodmemory setup`. Unsure what is already
   wired? Run `goodmemory adopt` (add `--json` for a machine-readable plan): it
   inspects `.claude/`, `.codex/`, and existing MCP config, then prints the exact
   next command for your environment.
@@ -350,14 +348,14 @@ policy. GoodMemory owns the memory loop and storage boundary.
 
 ## Install
 
-After GoodMemory `0.7.3` is published, it has two normal registry install paths.
+After GoodMemory `0.7.4` is published, it has two normal registry install paths.
 Before publication, use the tarball verification path below.
 
 Use the global CLI when you want memory enhancement inside installed coding
 agents:
 
 ```bash
-npm install -g goodmemory@0.7.3
+npm install -g goodmemory@0.7.4
 goodmemory setup
 goodmemory status
 ```
@@ -365,11 +363,11 @@ goodmemory status
 Use the package dependency when you are building an application:
 
 ```bash
-npm install goodmemory@0.7.3
+npm install goodmemory@0.7.4
 ```
 
 If you want to type `goodmemory` directly, install the global CLI.
-A project-local `npm install goodmemory@0.7.3` does not put `goodmemory` on your shell `PATH`.
+A project-local `npm install goodmemory@0.7.4` does not put `goodmemory` on your shell `PATH`.
 Use `npx goodmemory`, `npm exec -- goodmemory`, or `./node_modules/.bin/goodmemory`
 from that project instead.
 
@@ -380,13 +378,13 @@ npx goodmemory -V
 Bun consumers can install it directly:
 
 ```bash
-bun add goodmemory@0.7.3
+bun add goodmemory@0.7.4
 ```
 
 Tarball verification for release rehearsal:
 
 ```bash
-npm install ./goodmemory-0.7.3.tgz
+npm install ./goodmemory-0.7.4.tgz
 ```
 
 The installed CLI is Bun-backed for non-version commands. The package bin is
@@ -398,7 +396,7 @@ delegate to Bun.
 For most users, the first useful path is installed-host memory.
 
 ```bash
-npm install -g goodmemory@0.7.3
+npm install -g goodmemory@0.7.4
 goodmemory setup
 goodmemory status
 ```
@@ -1231,7 +1229,7 @@ Current Claude/Codex examples stay in `file-assisted` mode by default.
 ## CLI Reference
 
 The `goodmemory` command on your shell `PATH` is the global CLI installed with
-`npm install -g goodmemory@0.7.3`. In a local dependency install, invoke the
+`npm install -g goodmemory@0.7.4`. In a local dependency install, invoke the
 package bin as `npx goodmemory`, `npm exec -- goodmemory`, or
 `./node_modules/.bin/goodmemory`. The repo-local `bun run goodmemory` script is
 for development only.

@@ -54,6 +54,7 @@ import type { V07ReleaseReadinessReport } from "../../scripts/run-v0-7-release-r
 import {
   assertV073MeasurementEvidenceRoot,
   evaluateV07RuntimeVersions,
+  evaluateV07ReleaseSourceIdentity,
   evaluateV07SourceIdentity,
   evaluateV07SourceStability,
   evaluateV073LifecycleProtectionArtifact,
@@ -1001,7 +1002,7 @@ describe("v0.7 release readiness", () => {
     }
   });
 
-  it("requires a 0.7.3 LoCoMo declaration and tracked projection for stable", () => {
+  it("keeps the v0.7.3 LoCoMo projection historical for a 0.7.4 stable source", () => {
     expect(stableLocomoClaimIssues({
       claims: [],
       projection: undefined,
@@ -1012,8 +1013,7 @@ describe("v0.7 release readiness", () => {
       projection: undefined,
       releaseStatus: "stable",
     })).toEqual([
-      "stable release requires a current LoCoMo 0.7.3 declaration",
-      expect.stringContaining("locomo-v0.7.3-current.json"),
+      expect.stringContaining("historical v0.7.3 LoCoMo projection"),
     ]);
     const sourceArtifacts = [
       ["claim-recipe-source", "claim-recipe-source.json"],
@@ -1127,12 +1127,19 @@ describe("v0.7 release readiness", () => {
       sourceArtifacts,
     };
     expect(stableLocomoClaimIssues({
-      claims: [{ measuredPackageVersion: "0.7.3", name: "LoCoMo" }],
+      claims: [],
       projection,
       releaseStatus: "stable",
     })).toEqual([]);
     expect(stableLocomoClaimIssues({
       claims: [{ measuredPackageVersion: "0.7.3", name: "LoCoMo" }],
+      projection,
+      releaseStatus: "stable",
+    })).toEqual([
+      expect.stringContaining("must not relabel v0.7.3 benchmark evidence as current"),
+    ]);
+    expect(stableLocomoClaimIssues({
+      claims: [],
       projection: {
         ...projection,
         evidenceRepositoryBefore: {
@@ -1143,7 +1150,7 @@ describe("v0.7 release readiness", () => {
       releaseStatus: "stable",
     })).toEqual([expect.stringContaining("full 1540-question evidence contract")]);
     expect(stableLocomoClaimIssues({
-      claims: [{ measuredPackageVersion: "0.7.3", name: "LoCoMo" }],
+      claims: [],
       projection: {
         artifactKind: "tracked-current-claim-projection",
         benchmark: "LoCoMo",
@@ -1772,7 +1779,7 @@ console.log(JSON.stringify(await evaluateV073LifecycleProtectionBundle({ artifac
     }
   });
 
-  it("pins package, lockfile, capability, and MCP descriptors to 0.7.3", () => {
+  it("pins package, lockfile, capability, and MCP descriptors to the 0.7.4 release candidate", () => {
     const readJson = (path: string) =>
       JSON.parse(
         readFileSync(new URL(`../../${path}`, import.meta.url), "utf8"),
@@ -1787,18 +1794,19 @@ console.log(JSON.stringify(await evaluateV073LifecycleProtectionBundle({ artifac
     const capability = readJson(".well-known/goodmemory.json");
     const server = readJson("server.json");
 
-    expect(packageJson.version).toBe("0.7.3");
-    expect(packageLock.version).toBe("0.7.3");
+    expect(packageJson.version).toBe("0.7.4");
+    expect(packageJson.goodmemoryRelease?.status).toBe("release-candidate");
+    expect(packageLock.version).toBe("0.7.4");
     expect((packageLock.packages as Record<string, { version?: string }>)[""]?.version).toBe(
-      "0.7.3",
+      "0.7.4",
     );
-    expect(capability.version).toBe("0.7.3");
+    expect(capability.version).toBe("0.7.4");
     expect(capability.releaseStatus).toEqual(expect.objectContaining({
       npmDistTag: "latest",
       status: packageJson.goodmemoryRelease?.status,
     }));
-    expect(server.version).toBe("0.7.3");
-    expect((server.packages as Array<{ version?: string }>)[0]?.version).toBe("0.7.3");
+    expect(server.version).toBe("0.7.4");
+    expect((server.packages as Array<{ version?: string }>)[0]?.version).toBe("0.7.4");
   });
 
   it("requires the 0.7 migration guide and a compressed tarball below 4 MiB", () => {
@@ -1956,6 +1964,41 @@ console.log(JSON.stringify(await evaluateV073LifecycleProtectionBundle({ artifac
       detail: expect.stringContaining("changed while release checks ran"),
       status: "fail",
     }));
+  });
+
+  it("requires stable readiness to use the clean peeled release tag identity", async () => {
+    const repoRoot = await mkdtemp(join(tmpdir(), "goodmemory-readiness-identity-"));
+    try {
+      runFixtureGit(repoRoot, "init", "--quiet");
+      runFixtureGit(repoRoot, "config", "user.email", "release-test@example.com");
+      runFixtureGit(repoRoot, "config", "user.name", "Release Test");
+      await writeFile(join(repoRoot, "source.ts"), "export const release = true;\n");
+      runFixtureGit(repoRoot, "add", ".");
+      runFixtureGit(repoRoot, "commit", "--quiet", "-m", "release source");
+
+      await expect(evaluateV07ReleaseSourceIdentity({
+        releaseStatus: "release-candidate",
+        repoRoot,
+        version: "0.7.4",
+      })).resolves.toEqual(expect.objectContaining({ status: "pass" }));
+      await expect(evaluateV07ReleaseSourceIdentity({
+        releaseStatus: "stable",
+        repoRoot,
+        version: "0.7.4",
+      })).resolves.toEqual(expect.objectContaining({
+        detail: expect.stringContaining("peeled v0.7.4 tag"),
+        status: "fail",
+      }));
+
+      runFixtureGit(repoRoot, "tag", "v0.7.4");
+      await expect(evaluateV07ReleaseSourceIdentity({
+        releaseStatus: "stable",
+        repoRoot,
+        version: "0.7.4",
+      })).resolves.toEqual(expect.objectContaining({ status: "pass" }));
+    } finally {
+      await rm(repoRoot, { force: true, recursive: true });
+    }
   });
 
   it("requires the release consumer to execute with Node 20", () => {

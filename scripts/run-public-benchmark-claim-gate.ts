@@ -2,14 +2,15 @@
 // to a public claim (e.g. a non-blank README benchmark row), it must have a claim
 // declaration under benchmark-claims/<benchmark>.json, and that declaration's
 // self-asserted `claimBoundary.publicClaimAllowed` must MATCH the verdict the gate
-// computes from hard methodology rules. This catches over-claiming (declaring a
-// public claim the rules forbid) and keeps every claim honest, reproducible, and
-// provenance-complete.
+// computes from hard methodology rules. This catches over-claiming and binds
+// every accepted projection to its exact tracked source bytes. It does not prove
+// that an external benchmark execution actually occurred.
 //
 // The gate is pure governance tooling: it reads JSON declarations and applies
 // deterministic rules. It runs no benchmarks and touches no benchmark code.
 //
 //   bun run scripts/run-public-benchmark-claim-gate.ts -- [--strict]
+import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { isAbsolute, join, normalize } from "node:path";
 import {
@@ -41,10 +42,18 @@ export type MetricDirection = (typeof METRIC_DIRECTIONS)[number];
 
 const FULL_COMMIT_PATTERN = /^[0-9a-f]{40}$/iu;
 const SHA256_PATTERN = /^[0-9a-f]{64}$/iu;
+const CURRENT_CLAIM_PROJECTION_KIND = "tracked-current-claim-projection";
 const HISTORICAL_PROJECTION_KIND = "tracked-historical-evidence-projection";
 const HISTORICAL_ASSERTION_CONTRACT_ERROR =
   "historical projection assertions must bind artifactKind, benchmark, generatedBy, " +
   "schemaVersion, sourceArtifacts path/bytes/sha256, and runIdentity or scorerIdentity";
+const VERSIONED_CANDIDATE_IDENTITY_ERROR =
+  "versioned candidate history requires a tracked current-claim projection that binds " +
+  "benchmark, measured packageVersion, and run commit to the verified artifact";
+const CURRENT_CLAIM_PROJECTION_REQUIRED_ERROR =
+  "candidate public claim requires a verified current-claim projection";
+const HISTORICAL_PROJECTION_REQUIRED_ERROR =
+  "historical evidence requires a verified historical projection";
 
 export interface BenchmarkClaimComparison {
   asOf: string;
@@ -178,6 +187,216 @@ function validateRepoRelativeArtifactPath(path: string): string | null {
     return "must be a repo-relative path that does not escape the repository";
   }
   return null;
+}
+
+interface ProjectionSourceArtifact {
+  bytes: number;
+  path: string;
+  sha256: string;
+}
+
+interface ProjectionSourceClosure {
+  errors: string[];
+  jsonDocuments: unknown[];
+}
+
+function projectionSourceArtifacts(projection: Record<string, unknown>): {
+  errors: string[];
+  sources: ProjectionSourceArtifact[];
+} {
+  if (!Array.isArray(projection.sourceArtifacts) || projection.sourceArtifacts.length === 0) {
+    return {
+      errors: [
+        "projection sourceArtifacts must be non-empty and each require repo-relative " +
+          "path, positive bytes, and sha256",
+      ],
+      sources: [],
+    };
+  }
+
+  const errors: string[] = [];
+  const sources: ProjectionSourceArtifact[] = [];
+  const seenPaths = new Set<string>();
+  projection.sourceArtifacts.forEach((source, index) => {
+    if (
+      !isRecord(source) ||
+      !isStrictNonEmpty(source.path) ||
+      validateRepoRelativeArtifactPath(source.path) !== null ||
+      typeof source.bytes !== "number" ||
+      !Number.isSafeInteger(source.bytes) ||
+      source.bytes <= 0 ||
+      typeof source.sha256 !== "string" ||
+      !SHA256_PATTERN.test(source.sha256)
+    ) {
+      errors.push(
+        `projection sourceArtifacts[${index}] must define a repo-relative path, ` +
+          "positive bytes, and sha256",
+      );
+      return;
+    }
+    if (seenPaths.has(source.path)) {
+      errors.push(`projection sourceArtifacts contains duplicate path ${source.path}`);
+      return;
+    }
+    seenPaths.add(source.path);
+    sources.push({
+      bytes: source.bytes,
+      path: source.path,
+      sha256: source.sha256,
+    });
+  });
+  return { errors, sources };
+}
+
+async function verifyProjectionSourceClosure(input: {
+  projection: Record<string, unknown>;
+  readFile: (path: string) => Promise<string>;
+  repoRoot: string;
+}): Promise<ProjectionSourceClosure> {
+  const manifest = projectionSourceArtifacts(input.projection);
+  const errors = [...manifest.errors];
+  const jsonDocuments: unknown[] = [];
+  for (const source of manifest.sources) {
+    let content: string;
+    try {
+      content = await input.readFile(join(input.repoRoot, source.path));
+    } catch (error) {
+      errors.push(
+        `projection source artifact ${source.path} cannot be read: ${String(error)}`,
+      );
+      continue;
+    }
+    const actualBytes = new TextEncoder().encode(content).byteLength;
+    if (actualBytes !== source.bytes) {
+      errors.push(
+        `projection source artifact ${source.path} byte count expected ${source.bytes} ` +
+          `but found ${actualBytes}`,
+      );
+    }
+    const actualSha256 = createHash("sha256").update(content).digest("hex");
+    if (actualSha256 !== source.sha256.toLowerCase()) {
+      errors.push(
+        `projection source artifact ${source.path} sha256 expected ${source.sha256} ` +
+          `but found ${actualSha256}`,
+      );
+    }
+    if (source.path.endsWith(".json")) {
+      try {
+        jsonDocuments.push(JSON.parse(content));
+      } catch (error) {
+        errors.push(
+          `projection source artifact ${source.path} is not valid JSON: ${String(error)}`,
+        );
+      }
+    }
+  }
+  return { errors, jsonDocuments };
+}
+
+type ProjectionMetric = "baseline" | "score";
+
+function hasProjectionMetric(
+  documents: readonly unknown[],
+  expected: number,
+  metric: ProjectionMetric,
+): boolean {
+  const visit = (value: unknown, path: string[]): boolean => {
+    if (typeof value === "number" && Object.is(value, expected)) {
+      const renderedPath = path.join(".");
+      if (metric === "baseline") {
+        return /baseline|reference|no.?memory/iu.test(renderedPath);
+      }
+      return /score|accuracy|rate|\bf1\b/iu.test(renderedPath) &&
+        !/baseline|reference|no.?memory/iu.test(renderedPath);
+    }
+    if (Array.isArray(value)) {
+      return value.some((item, index) => visit(item, [...path, String(index)]));
+    }
+    if (isRecord(value)) {
+      return Object.entries(value).some(([key, item]) => visit(item, [...path, key]));
+    }
+    return false;
+  };
+  return documents.some((document) => visit(document, []));
+}
+
+function normalizedBenchmark(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/gu, "");
+}
+
+function sourceDocumentNamesBenchmark(
+  document: Record<string, unknown>,
+  benchmark: string,
+): boolean {
+  const expected = normalizedBenchmark(benchmark);
+  if (
+    typeof document.benchmark === "string" &&
+    normalizedBenchmark(document.benchmark) === expected
+  ) {
+    return true;
+  }
+  const containsNamedKey = (value: unknown): boolean => {
+    if (Array.isArray(value)) {
+      return value.some(containsNamedKey);
+    }
+    if (!isRecord(value)) {
+      return false;
+    }
+    return Object.entries(value).some(
+      ([key, item]) => normalizedBenchmark(key) === expected || containsNamedKey(item),
+    );
+  };
+  return containsNamedKey(document);
+}
+
+function sourceDocumentHasRunIdentity(document: Record<string, unknown>): boolean {
+  if (isValidRunIdentity(document.runIdentity)) {
+    return true;
+  }
+  if (
+    isRecord(document.run) &&
+    typeof document.run.commit === "string" &&
+    FULL_COMMIT_PATTERN.test(document.run.commit)
+  ) {
+    return true;
+  }
+  return isStrictNonEmpty(document.generatedBy) &&
+    (isStrictNonEmpty(document.runId) || isStrictNonEmpty(document.packageVersion));
+}
+
+function hasVerifiedSourceMetric(input: {
+  benchmark: string;
+  documents: readonly unknown[];
+  expected: number;
+  metric: ProjectionMetric;
+}): boolean {
+  return input.documents.some(
+    (document) =>
+      isRecord(document) &&
+      sourceDocumentNamesBenchmark(document, input.benchmark) &&
+      sourceDocumentHasRunIdentity(document) &&
+      hasProjectionMetric([document], input.expected, input.metric),
+  );
+}
+
+function hasBoundProjectionScore(input: {
+  artifact: ClaimEvidenceArtifact;
+  projection: Record<string, unknown>;
+  score: number;
+}): boolean {
+  return (input.artifact.assertions ?? []).some((assertion) => {
+    const lastSegment = assertion.path.at(-1);
+    if (
+      assertion.path[0] !== "claim" ||
+      typeof lastSegment !== "string" ||
+      !/score|accuracy|rate|f1/iu.test(lastSegment) ||
+      !Object.is(assertion.equals, input.score)
+    ) {
+      return false;
+    }
+    const actual = readAssertionValue(input.projection, assertion.path);
+    return actual.found && Object.is(actual.value, input.score);
+  });
 }
 
 function isValidRunIdentity(value: unknown): value is {
@@ -322,6 +541,163 @@ function validateHistoricalProjection(input: {
   if (!runIdentityBound && !scorerIdentityBound) {
     errors.push(
       "historical projection runIdentity or scorerIdentity must be bound by evidence assertions",
+    );
+  }
+  return errors;
+}
+
+function validateVersionedCandidateProjection(input: {
+  artifact: ClaimEvidenceArtifact;
+  parsed: unknown;
+  report: BenchmarkClaimReport;
+  sourceDocuments: readonly unknown[];
+}): string[] {
+  if (!isRecord(input.parsed)) {
+    return ["current-claim projection must be a JSON object"];
+  }
+  const errors: string[] = [];
+  const projection = input.parsed;
+  if (projection.artifactKind !== CURRENT_CLAIM_PROJECTION_KIND) {
+    errors.push(
+      `current-claim projection artifactKind must be ${CURRENT_CLAIM_PROJECTION_KIND}`,
+    );
+  }
+  if (!isStrictNonEmpty(projection.generatedBy)) {
+    errors.push("current-claim projection generatedBy must be a non-empty unpadded string");
+  }
+  if (projection.schemaVersion !== 1) {
+    errors.push("current-claim projection schemaVersion must be 1");
+  }
+  if (projection.benchmark !== input.report.benchmark) {
+    errors.push(
+      `current-claim projection benchmark must equal ${input.report.benchmark}`,
+    );
+  }
+  const claim = projection.claim;
+  if (
+    !isRecord(claim) ||
+    claim.packageVersion !== input.report.run.packageVersion
+  ) {
+    errors.push(
+      `current-claim projection packageVersion must equal ${input.report.run.packageVersion}`,
+    );
+  }
+  const runIdentity = projection.runIdentity;
+  if (
+    !isRecord(runIdentity) ||
+    typeof runIdentity.commit !== "string" ||
+    !FULL_COMMIT_PATTERN.test(runIdentity.commit) ||
+    runIdentity.commit !== input.report.run.commit
+  ) {
+    errors.push(
+      `current-claim projection run commit must equal ${input.report.run.commit}`,
+    );
+  }
+  if (!hasProjectionMetric([projection], input.report.metrics.score, "score")) {
+    errors.push(
+      `current-claim projection score must equal declaration metrics.score ${input.report.metrics.score}`,
+    );
+  }
+  if (!hasBoundProjectionScore({
+      artifact: input.artifact,
+      projection,
+      score: input.report.metrics.score,
+    })) {
+    errors.push(
+      "current-claim projection score must be bound by a declaration assertion",
+    );
+  }
+  if (!hasVerifiedSourceMetric({
+      benchmark: input.report.benchmark,
+      documents: input.sourceDocuments,
+      expected: input.report.metrics.score,
+      metric: "score",
+    })) {
+    errors.push(
+      "current-claim projection verified source closure must contain declaration " +
+        `metrics.score ${input.report.metrics.score}`,
+    );
+  }
+  if (
+    typeof input.report.metrics.baseline !== "number" ||
+    !hasVerifiedSourceMetric({
+      benchmark: input.report.benchmark,
+      documents: input.sourceDocuments,
+      expected: input.report.metrics.baseline,
+      metric: "baseline",
+    })
+  ) {
+    errors.push(
+      "current-claim projection verified source closure must contain declaration " +
+        "metrics.baseline " +
+        String(input.report.metrics.baseline),
+    );
+  }
+  return errors;
+}
+
+function validateHistoricalReportBinding(input: {
+  artifact: ClaimEvidenceArtifact;
+  parsed: Record<string, unknown>;
+  report: BenchmarkClaimReport;
+  sourceDocuments: readonly unknown[];
+}): string[] {
+  const errors: string[] = [];
+  if (isValidRunIdentity(input.parsed.runIdentity)) {
+    if (input.parsed.runIdentity.commit !== input.report.run.commit) {
+      errors.push(
+        `historical projection run commit must equal ${input.report.run.commit}`,
+      );
+    }
+  }
+  const claim = input.parsed.claim;
+  if (
+    isRecord(claim) &&
+    claim.packageVersion !== undefined &&
+    claim.packageVersion !== input.report.run.packageVersion
+  ) {
+    errors.push(
+      `historical projection packageVersion must equal ${input.report.run.packageVersion}`,
+    );
+  }
+  if (!hasProjectionMetric([input.parsed], input.report.metrics.score, "score")) {
+    errors.push(
+      `historical projection score must equal declaration metrics.score ${input.report.metrics.score}`,
+    );
+  }
+  if (!hasBoundProjectionScore({
+      artifact: input.artifact,
+      projection: input.parsed,
+      score: input.report.metrics.score,
+    })) {
+    errors.push(
+      "historical projection score must be bound by a declaration assertion",
+    );
+  }
+  if (!hasVerifiedSourceMetric({
+      benchmark: input.report.benchmark,
+      documents: input.sourceDocuments,
+      expected: input.report.metrics.score,
+      metric: "score",
+    })) {
+    errors.push(
+      "historical projection verified source closure must contain declaration " +
+        `metrics.score ${input.report.metrics.score}`,
+    );
+  }
+  if (
+    typeof input.report.metrics.baseline !== "number" ||
+    !hasVerifiedSourceMetric({
+      benchmark: input.report.benchmark,
+      documents: input.sourceDocuments,
+      expected: input.report.metrics.baseline,
+      metric: "baseline",
+    })
+  ) {
+    errors.push(
+      "historical projection verified source closure must contain declaration " +
+        "metrics.baseline " +
+        String(input.report.metrics.baseline),
     );
   }
   return errors;
@@ -997,12 +1373,22 @@ export interface ClaimGateEntry {
 }
 
 export async function checkClaimEvidenceArtifacts(input: {
+  currentPackageVersion?: string;
   file: string;
   readFile: (path: string) => Promise<string>;
   repoRoot: string;
   report: BenchmarkClaimReport;
 }): Promise<string[]> {
   const errors: string[] = [];
+  const requiresCurrentProjection = input.report.status === "candidate_public_claim";
+  const requiresInternalHistoricalProjection =
+    input.report.status === "internal_evidence" &&
+    input.report.comparison.availability === "historical";
+  const requiresCandidateHistoricalProjection =
+    input.report.status === "candidate_public_claim" &&
+    input.report.historicalPresentation !== undefined;
+  let verifiedCurrentProjection = false;
+  let verifiedHistoricalProjection = false;
   for (const artifact of input.report.evidence.artifacts) {
     const pathError = validateRepoRelativeArtifactPath(artifact.path);
     if (pathError) {
@@ -1029,28 +1415,68 @@ export async function checkClaimEvidenceArtifacts(input: {
         errors.push(`evidence artifact ${artifact.path} is not valid JSON: ${String(error)}`);
         continue;
       }
-      const isInternalHistoricalProjection =
-        input.report.status === "internal_evidence" &&
-        input.report.comparison.availability === "historical";
-      const isCandidateHistoricalProjection =
-        input.report.status === "candidate_public_claim" &&
-        input.report.historicalPresentation !== undefined &&
-        isDeclaredHistoricalProjection(artifact, input.report.benchmark);
-      if (isInternalHistoricalProjection || isCandidateHistoricalProjection) {
+      const projectionKind = isRecord(parsed) ? parsed.artifactKind : undefined;
+      const isCurrentProjection = projectionKind === CURRENT_CLAIM_PROJECTION_KIND;
+      const isHistoricalProjection = projectionKind === HISTORICAL_PROJECTION_KIND;
+      const closure = isRecord(parsed) && (isCurrentProjection || isHistoricalProjection)
+        ? await verifyProjectionSourceClosure({
+            projection: parsed,
+            readFile: input.readFile,
+            repoRoot: input.repoRoot,
+          })
+        : undefined;
+
+      if (isCurrentProjection && isRecord(parsed)) {
+        const projectionErrors = [...(closure?.errors ?? [])];
+        if (!artifact.path.startsWith("benchmark-claims/evidence/")) {
+          projectionErrors.push(
+            "current-claim projection must live under benchmark-claims/evidence",
+          );
+        }
+        if (requiresCurrentProjection) {
+          projectionErrors.push(...validateVersionedCandidateProjection({
+            artifact,
+            parsed,
+            report: input.report,
+            sourceDocuments: closure?.jsonDocuments ?? [],
+          }));
+        }
+        errors.push(...projectionErrors.map(
+          (error) => `evidence artifact ${artifact.path}: ${error}`,
+        ));
+        if (requiresCurrentProjection && projectionErrors.length === 0) {
+          verifiedCurrentProjection = true;
+        }
+      }
+
+      if (isHistoricalProjection && isRecord(parsed)) {
         const projectionErrors = validateHistoricalProjection({
           artifact,
           benchmark: input.report.benchmark,
           parsed,
         });
-        errors.push(
-          ...projectionErrors.map(
-            (error) => `evidence artifact ${artifact.path}: ${error}`,
-          ),
-        );
-        if (projectionErrors.length === 0 && isRecord(parsed)) {
+        projectionErrors.push(...(closure?.errors ?? []));
+        if (!artifact.path.startsWith("benchmark-claims/evidence/")) {
+          projectionErrors.push(
+            "historical projection must live under benchmark-claims/evidence",
+          );
+        }
+        if (requiresInternalHistoricalProjection) {
+          projectionErrors.push(...validateHistoricalReportBinding({
+            artifact,
+            parsed,
+            report: input.report,
+            sourceDocuments: closure?.jsonDocuments ?? [],
+          }));
+        }
+        if (
+          projectionErrors.length === 0 &&
+          (requiresInternalHistoricalProjection || requiresCandidateHistoricalProjection)
+        ) {
+          verifiedHistoricalProjection = true;
           try {
             const declaredFragments = new Set(
-              isCandidateHistoricalProjection
+              requiresCandidateHistoricalProjection
                 ? input.report.historicalPresentation?.readmeRequiredFragments ?? []
                 : input.report.publicClaim?.readmeRequiredFragments ?? [],
             );
@@ -1062,7 +1488,7 @@ export async function checkClaimEvidenceArtifacts(input: {
                 errors.push(
                   `evidence artifact ${artifact.path}: source-derived README fragment ` +
                     `${fragment} is missing from ` +
-                    `${isCandidateHistoricalProjection ? "historicalPresentation" : "publicClaim"}` +
+                    `${requiresCandidateHistoricalProjection ? "historicalPresentation" : "publicClaim"}` +
                     ".readmeRequiredFragments",
                 );
               }
@@ -1074,6 +1500,15 @@ export async function checkClaimEvidenceArtifacts(input: {
             );
           }
         }
+        errors.push(...projectionErrors.map(
+          (error) => `evidence artifact ${artifact.path}: ${error}`,
+        ));
+      } else if (requiresInternalHistoricalProjection && !isCurrentProjection) {
+        errors.push(...validateHistoricalProjection({
+          artifact,
+          benchmark: input.report.benchmark,
+          parsed,
+        }).map((error) => `evidence artifact ${artifact.path}: ${error}`));
       }
       for (const assertion of artifact.assertions ?? []) {
         const actual = readAssertionValue(parsed, assertion.path);
@@ -1090,6 +1525,21 @@ export async function checkClaimEvidenceArtifacts(input: {
         }
       }
     }
+  }
+  if (requiresCurrentProjection && !verifiedCurrentProjection) {
+    errors.push(CURRENT_CLAIM_PROJECTION_REQUIRED_ERROR);
+    if (
+      input.currentPackageVersion !== undefined &&
+      input.report.run.packageVersion !== input.currentPackageVersion
+    ) {
+      errors.push(VERSIONED_CANDIDATE_IDENTITY_ERROR);
+    }
+  }
+  if (
+    (requiresInternalHistoricalProjection || requiresCandidateHistoricalProjection) &&
+    !verifiedHistoricalProjection
+  ) {
+    errors.push(HISTORICAL_PROJECTION_REQUIRED_ERROR);
   }
   return errors;
 }
@@ -1424,17 +1874,50 @@ export function buildClaimGateReport(
       continue;
     }
     const verdict = evaluateClaimBoundary(report, { currentPackageVersion });
-    const evidenceErrors = evidenceErrorsByFile.get(file) ?? [];
+    const versionMismatch = currentPackageVersion !== undefined &&
+      report.run.packageVersion !== currentPackageVersion
+      ? `measured package version ${report.run.packageVersion ?? "(missing)"} does not match ` +
+        `current package version ${currentPackageVersion}`
+      : undefined;
+    const evidenceWasChecked = evidenceErrorsByFile.has(file);
+    const fallbackIdentityErrors =
+      report.status === "candidate_public_claim" &&
+      currentPackageVersion !== undefined &&
+      !evidenceWasChecked
+        ? [
+            CURRENT_CLAIM_PROJECTION_REQUIRED_ERROR,
+            ...(versionMismatch !== undefined ? [VERSIONED_CANDIDATE_IDENTITY_ERROR] : []),
+          ]
+        : [];
+    const evidenceErrors = [
+      ...(evidenceErrorsByFile.get(file) ?? []),
+      ...fallbackIdentityErrors,
+    ];
     const blockers = [...verdict.blockers, ...evidenceErrors];
     const computedPublicClaimAllowed = verdict.publicClaimAllowed && evidenceErrors.length === 0;
-    const candidateHistoricalEvidence =
+    const candidateProjectionHistory =
       report.status === "candidate_public_claim" &&
       report.historicalPresentation !== undefined &&
-      report.evidence.artifacts.some((artifact) =>
-        isDeclaredHistoricalProjection(artifact, report.benchmark)
-      );
-    const historicalPresentation = candidateHistoricalEvidence
-      ? report.historicalPresentation
+      evidenceWasChecked &&
+      evidenceErrors.length === 0;
+    const historicalVerdict = versionMismatch && report.run.packageVersion
+      ? evaluateClaimBoundary(report, {
+          currentPackageVersion: report.run.packageVersion,
+        })
+      : undefined;
+    const versionedCandidateHistory =
+      report.status === "candidate_public_claim" &&
+      versionMismatch !== undefined &&
+      historicalVerdict?.publicClaimAllowed === true &&
+      report.claimBoundary.publicClaimAllowed === true &&
+      evidenceWasChecked &&
+      verdict.blockers.length === 1 &&
+      verdict.blockers[0] === versionMismatch &&
+      evidenceErrors.length === 0;
+    const historicalPresentation = versionedCandidateHistory
+      ? report.publicClaim
+      : candidateProjectionHistory
+        ? report.historicalPresentation
       : report.status === "internal_evidence"
         ? report.publicClaim
         : undefined;
@@ -1443,12 +1926,15 @@ export function buildClaimGateReport(
       blockers,
       computedPublicClaimAllowed,
       consistent:
-        report.claimBoundary.publicClaimAllowed === computedPublicClaimAllowed &&
+        (versionedCandidateHistory ||
+          report.claimBoundary.publicClaimAllowed === computedPublicClaimAllowed) &&
         evidenceErrors.length === 0,
       declaredPublicClaimAllowed: report.claimBoundary.publicClaimAllowed,
       file,
       historicalEvidenceEligible:
-        report.status === "internal_evidence" || candidateHistoricalEvidence,
+        report.status === "internal_evidence" ||
+        candidateProjectionHistory ||
+        versionedCandidateHistory,
       historicalReadmeDisclosureFragments:
         historicalPresentation?.readmeDisclosureFragments ?? [],
       historicalReadmeRequiredFragments:
@@ -1465,7 +1951,10 @@ export function buildClaimGateReport(
   // forbid. (Under-claiming — declaring false when rules allow — is also flagged
   // as inconsistent but is merely overly cautious.)
   const overClaiming = entries.filter(
-    (entry) => entry.declaredPublicClaimAllowed && !entry.computedPublicClaimAllowed,
+    (entry) =>
+      entry.declaredPublicClaimAllowed &&
+      !entry.computedPublicClaimAllowed &&
+      !entry.consistent,
   ).length;
   const publicClaimable = entries
     .filter((entry) => entry.computedPublicClaimAllowed && entry.consistent)
@@ -1557,14 +2046,13 @@ export async function runPublicBenchmarkClaimGate(input: {
       continue;
     }
     const artifactErrors = await checkClaimEvidenceArtifacts({
+      currentPackageVersion,
       file,
       readFile: readFileImpl,
       repoRoot,
       report: value as BenchmarkClaimReport,
     });
-    if (artifactErrors.length > 0) {
-      evidenceErrorsByFile.set(file, artifactErrors);
-    }
+    evidenceErrorsByFile.set(file, artifactErrors);
   }
 
   const report = buildClaimGateReport(

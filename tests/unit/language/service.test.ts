@@ -486,7 +486,7 @@ describe("language service", () => {
       "zh-Hant",
     ]);
     expect(manifest.packs.find(({ id }) => id === "en")).toMatchObject({
-      analyzerVersion: "13",
+      analyzerVersion: "14-explicit-fact-list-boundary",
       apiVersion: 1,
       compatibilityGroup: "en",
       defaultLocale: "en-US",
@@ -494,7 +494,7 @@ describe("language service", () => {
     expect(
       manifest.packs.find(({ id }) => id === "zh-Hant"),
     ).toMatchObject({
-      analyzerVersion: "12-directive-pointer-boundary",
+      analyzerVersion: "13-explicit-fact-list-boundary",
       apiVersion: 1,
       compatibilityGroup: "zh-Hant",
       defaultLocale: "zh-Hant",

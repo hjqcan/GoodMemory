@@ -2312,7 +2312,7 @@ describe("remember engine", () => {
       locale: "ja-JP",
       localeSource: "explicit",
       languagePackId: "ja",
-      languagePackVersion: "7",
+      languagePackVersion: "8-explicit-fact-list-boundary",
     };
     expect(facts[0]?.source).toMatchObject(expectedLanguage);
     expect(evidence[0]?.source).toMatchObject(expectedLanguage);

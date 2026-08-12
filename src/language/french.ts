@@ -384,7 +384,7 @@ const FRENCH_MONTHS = [
 ] as const;
 
 const DEFINITION = {
-  analyzerVersion: "5",
+  analyzerVersion: "6-explicit-fact-list-boundary",
   behavioralRulePatterns: {
     firstAction: [
       /(?:d['’]abord|en\s+premier(?:\s+lieu)?)\s+([A-Za-z_][A-Za-z0-9_@.-]*)/iu,
@@ -454,15 +454,31 @@ const DEFINITION = {
       /\b(?:le\s+)?(\d{1,2})\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+(\d{4})\b/iu,
   },
   candidatePatterns: {
+    assignmentConfirmation:
+      /\b(?:est|semble)\s+(?:correcte?|exacte?|vraie?)\s*$/iu,
+    bareQuestionValue:
+      /^(?:quoi|quel(?:le|les|s)?|qui|où|quand|pourquoi|comment|combien|est-ce|qu['’]est-ce)$/iu,
     explicitFact:
-      /\b(?:souviens-toi|rappelez-vous|mémorise)(?:\s+que)?\s*[:：,]?\s*(.+)$/iu,
+      /^\s*(?:s['’]il\s+(?:te|vous)\s+plaît\s*,?\s*)?(?:souviens-toi|rappelez-vous|mémorise|n['’]oublie\s+pas)(?:\s+(?:de\s+(?:une?|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|\d+)|d['’](?:une?))\s+choses?\s*[:：,]\s*(.+)|\s+que\s+(.+)|\s*[:：,]\s*(.+)|\s+(?!(?:que|(?:de\s+(?:une?|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|\d+)|d['’](?:une?))\s+choses?)\s*[:：,]?\s*$)(.+))$/isu,
+    explicitFactPrefix:
+      /^\s*(?:s['’]il\s+(?:te|vous)\s+plaît\s*,?\s*)?(?:souviens-toi|rappelez-vous|mémorise|n['’]oublie\s+pas)\b/iu,
     feedback: /^(?:ne\b[^.!?]{0,120}\b(?:pas|jamais)|jamais\b|toujours\b|évite\b|privilégie\b)/iu,
+    optOut:
+      /^(?:s['’]il\s+(?:te|vous)\s+plaît\s*,?\s*)?(?:ne\s+(?:mémorise|mémorisez|retiens|retenez|sauvegarde|sauvegardez|enregistre|enregistrez)\s+(?:pas|jamais)|n['’]enregistre\s+pas)\b/iu,
+    optOutClauseBoundary:
+      /(?:,\s*|^(?:et|mais)\s+|\s+(?:et|mais)\s+)(?=(?:s['’]il\s+(?:te|vous)\s+plaît\s*,?\s*)?(?:ne\s+(?:mémorise|mémorisez|retiens|retenez|sauvegarde|sauvegardez|enregistre|enregistrez)\s+(?:pas|jamais)|n['’]enregistre\s+pas)\b)/iu,
+    postposedQuestionValue:
+      /[,，、]\s*(?:quoi|quel(?:le|les|s)?|qui|où|quand|pourquoi|comment|combien|est-ce|qu['’]est-ce)$/iu,
     goal: /\b(?:mon objectif actuel|ma priorité actuelle|mon objectif principal)\s+est\s+([^.!?]+)/iu,
     inferredFact:
       /\b(?:projet|migration|déploiement|publication|blocage|bloqué|validation|prochaine étape|en attente)\b/iu,
+    literalQuestionValue:
+      /(?:quoi|quel(?:le|les|s)?|qui|où|quand|pourquoi|comment|combien|est-ce|qu['’]est-ce)/iu,
     name: /\b(?:je m['’]appelle|mon nom est)\s+([\p{L}\p{M}'’.-]+(?:\s+[\p{L}\p{M}'’.-]+){0,3})/iu,
     preference: /\b(?:je préfère|ma préférence est)\s+([^.!?]+)/iu,
     role: /\b(?:mon rôle actuel est|ma fonction actuelle est|mon poste actuel est)\s+([^.!?]+)/iu,
+    unpunctuatedQuestion:
+      /\b(?:est|sont|était|étaient)\s+(?:quoi|quel(?:le|les|s)?|qui|où|quand|pourquoi|comment|combien)$/iu,
   },
   renderCatalog: FRENCH_RENDER_CATALOG,
 } as const satisfies RomancePackDefinition;

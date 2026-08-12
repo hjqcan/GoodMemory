@@ -1,3 +1,4 @@
+import { hasPersistableSemanticText } from "../domain/semanticText";
 import { buildEpisodeEmbeddingWrite } from "../embedding/vectorWrites";
 import { SOURCE_MESSAGES_COLLECTION } from "../evidence/contracts";
 import type { SourceMessageRecord } from "../evidence/contracts";
@@ -56,6 +57,42 @@ import { commitRememberVectors, rollbackRememberWrites } from "./vectorOps";
 import { createRememberWriteCoordinator } from "./writeOwnership";
 
 type EngineRememberResult = RememberResult & { outcome: ExtractionOutcome };
+
+function candidateSourceMessageIndexes(candidate: MemoryCandidate): number[] {
+  return [...new Set([
+    candidate.sourceMessageIndex,
+    ...(candidate.sourceMessageIndexes ?? []),
+  ])];
+}
+
+function isDontFeedbackCandidate(candidate: MemoryCandidate): boolean {
+  return candidate.kindHint === "feedback" &&
+    candidate.metadata?.feedbackKind === "dont";
+}
+
+function candidateTouchesSourceIndexes(
+  candidate: MemoryCandidate,
+  sourceIndexes: ReadonlySet<number>,
+): boolean {
+  return candidateSourceMessageIndexes(candidate).some((index) =>
+    sourceIndexes.has(index)
+  );
+}
+
+function omitCandidatesFromSourceIndexes(
+  extraction: MemoryExtractionResult,
+  sourceIndexes: ReadonlySet<number>,
+): MemoryExtractionResult {
+  if (sourceIndexes.size === 0) {
+    return extraction;
+  }
+  return {
+    ...extraction,
+    candidates: extraction.candidates.filter((candidate) =>
+      !candidateTouchesSourceIndexes(candidate, sourceIndexes)
+    ),
+  };
+}
 
 function sourceMessageRecordsEquivalent(
   existing: SourceMessageRecord,
@@ -225,6 +262,72 @@ export function createRememberEngine(config: RememberEngineConfig) {
     };
   };
 
+  const explicitOptOutTargetIdentities = (
+    extraction: MemoryExtractionResult,
+    sourceAnalyses: RememberSourceLanguageAnalyses,
+    requestLanguage: RememberSourceLanguageAnalysis,
+  ): ReadonlySet<string> => {
+    const targets = new Set<string>();
+    for (const candidate of extraction.candidates) {
+      if (!isDontFeedbackCandidate(candidate)) {
+        continue;
+      }
+      const context = resolveCandidateLanguage(
+        candidate,
+        sourceAnalyses,
+        requestLanguage,
+      );
+      const identity = language.normalizeForEquality(
+        candidate.metadata?.optOutTarget ?? "",
+        context,
+      );
+      if (hasPersistableSemanticText(identity)) {
+        targets.add(`${context.languagePackId}\u0000${identity}`);
+      }
+    }
+    return targets;
+  };
+
+  const omitFactsTargetedByExplicitOptOut = (
+    extraction: MemoryExtractionResult,
+    targets: ReadonlySet<string>,
+    sourceAnalyses: RememberSourceLanguageAnalyses,
+    requestLanguage: RememberSourceLanguageAnalysis,
+  ): MemoryExtractionResult => {
+    if (targets.size === 0) {
+      return extraction;
+    }
+    return {
+      ...extraction,
+      candidates: extraction.candidates.filter((candidate) =>
+        !isFactTargetedByExplicitOptOut(
+          candidate,
+          targets,
+          sourceAnalyses,
+          requestLanguage,
+        )
+      ),
+    };
+  };
+
+  const isFactTargetedByExplicitOptOut = (
+    candidate: MemoryCandidate,
+    targets: ReadonlySet<string>,
+    sourceAnalyses: RememberSourceLanguageAnalyses,
+    requestLanguage: RememberSourceLanguageAnalysis,
+  ): boolean => {
+    if (candidate.kindHint !== "fact" || targets.size === 0) {
+      return false;
+    }
+    const context = resolveCandidateLanguage(
+      candidate,
+      sourceAnalyses,
+      requestLanguage,
+    );
+    const identity = language.normalizeForEquality(candidate.content, context);
+    return targets.has(`${context.languagePackId}\u0000${identity}`);
+  };
+
   const appendTag = (tags: string[], tag: string): void => {
     if (!tags.includes(tag)) {
       tags.push(tag);
@@ -368,10 +471,19 @@ export function createRememberEngine(config: RememberEngineConfig) {
         .map((annotation) => annotation.messageIndex),
     );
 
-  const maskNeverAnnotatedMessages = (
+  const getNonPersistableMessageIndexes = (
     input: MemoryExtractionInput,
+  ): Set<number> =>
+    new Set(
+      input.messages.flatMap((message, messageIndex) =>
+        hasPersistableSemanticText(message.content) ? [] : [messageIndex]
+      ),
+    );
+
+  const maskMessages = (
+    input: MemoryExtractionInput,
+    blockedIndexes: ReadonlySet<number>,
   ): MemoryExtractionInput => {
-    const blockedIndexes = getNeverAnnotatedMessageIndexes(input);
     if (blockedIndexes.size === 0) {
       return input;
     }
@@ -389,37 +501,97 @@ export function createRememberEngine(config: RememberEngineConfig) {
     };
   };
 
-  const isAssistantWriteAllowed = (
+  const sanitizeExplicitOptOutMessages = (
+    input: MemoryExtractionInput,
+    sourceAnalyses: RememberSourceLanguageAnalyses,
+    explicitOptOutSourceIndexes: ReadonlySet<number>,
+  ): {
+    blockedSourceIndexes: ReadonlySet<number>;
+    input: MemoryExtractionInput;
+  } => {
+    const blockedSourceIndexes = new Set<number>();
+    if (explicitOptOutSourceIndexes.size === 0) {
+      return { blockedSourceIndexes, input };
+    }
+
+    let candidateId = 0;
+    const messages = input.messages.map((message, messageIndex) => {
+      if (!explicitOptOutSourceIndexes.has(messageIndex)) {
+        return message;
+      }
+
+      const context = sourceAnalyses.get(messageIndex)?.context ??
+        language.resolveFromText({ locale: input.locale, text: message.content });
+      let locatedOptOutClause = false;
+      const allowedClauses = language
+        .splitClauses(message.content, context)
+        .filter((clause) => {
+          const candidates = language.extractCandidates(
+            {
+              locale: context.locale,
+              messages: [{
+                content: clause,
+                role: message.role,
+                sourceMessageIndex: messageIndex,
+              }],
+              nextId: () => `producer-sanitizer-${candidateId++}`,
+            },
+            context,
+          );
+          const isOptOutClause = candidates.some(isDontFeedbackCandidate);
+          locatedOptOutClause ||= isOptOutClause;
+          return !isOptOutClause;
+        });
+      const content = locatedOptOutClause ? allowedClauses.join("\n") : "";
+      if (!hasPersistableSemanticText(content)) {
+        blockedSourceIndexes.add(messageIndex);
+      }
+      return { ...message, content };
+    });
+
+    return {
+      blockedSourceIndexes,
+      input: { ...input, messages },
+    };
+  };
+
+  const isCandidateSourceAllowed = (
     candidate: MemoryCandidate,
     profile: ResolvedRememberProfile,
     input: MemoryExtractionInput,
   ): boolean => {
-    if (candidate.sourceRole !== "assistant") {
-      return true;
-    }
+    return candidateSourceMessageIndexes(candidate).every((messageIndex) => {
+      const role = input.messages[messageIndex]?.role;
+      if (role === "user") {
+        return true;
+      }
+      if (role !== "assistant") {
+        return false;
+      }
 
-    const annotation = findAnnotation(input, candidate.sourceMessageIndex);
-    if (!annotation || annotation.remember === "never") {
+      const annotation = findAnnotation(input, messageIndex);
+      if (!annotation || annotation.remember === "never") {
+        return false;
+      }
+
+      if (profile.assistantOutputs.mode === "host_tagged_only") {
+        return annotation.remember === "always";
+      }
+
+      if (profile.assistantOutputs.mode === "confirmed_only") {
+        return annotation.confirmed === true;
+      }
+
+      if (profile.assistantOutputs.mode === "verified_only") {
+        return annotation.verified === true;
+      }
+
+      if (profile.assistantOutputs.mode === "confirmed_or_verified_only") {
+        return annotation.confirmed === true || annotation.verified === true;
+      }
+
       return false;
-    }
-
-    if (profile.assistantOutputs.mode === "host_tagged_only") {
-      return annotation.remember === "always";
-    }
-
-    if (profile.assistantOutputs.mode === "confirmed_only") {
-      return annotation.confirmed === true;
-    }
-
-    if (profile.assistantOutputs.mode === "verified_only") {
-      return annotation.verified === true;
-    }
-
-    if (profile.assistantOutputs.mode === "confirmed_or_verified_only") {
-      return annotation.confirmed === true || annotation.verified === true;
-    }
-
-    return false;
+    });
   };
 
   const applyAnnotations = (
@@ -428,6 +600,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
     extraction: MemoryExtractionResult,
     sourceAnalyses: RememberSourceLanguageAnalyses,
     requestLanguage: RememberSourceLanguageAnalysis,
+    explicitOptOutSourceIndexes: ReadonlySet<number>,
   ): MemoryExtractionResult => {
     const blockedIndexes = getNeverAnnotatedMessageIndexes(input);
     const candidates = extraction.candidates
@@ -444,6 +617,11 @@ export function createRememberEngine(config: RememberEngineConfig) {
         }
 
         const annotationTrace = buildAnnotationTrace(annotation);
+        if (candidateTouchesSourceIndexes(candidate, explicitOptOutSourceIndexes)) {
+          return annotationTrace
+            ? { ...candidate, annotation: annotationTrace }
+            : candidate;
+        }
         if (!annotation?.metadataPatch && !annotation?.kindHint && !annotationTrace) {
           return candidate;
         }
@@ -480,6 +658,10 @@ export function createRememberEngine(config: RememberEngineConfig) {
       }
 
       if (blockedIndexes.has(annotation.messageIndex)) {
+        continue;
+      }
+
+      if (explicitOptOutSourceIndexes.has(annotation.messageIndex)) {
         continue;
       }
 
@@ -606,6 +788,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
 
   const normalizeExtractionResult = (
     request: MemoryExtractionInput,
+    sourceInput: MemoryExtractionInput,
     result: MemoryExtractionResult,
     sourceAnalyses: RememberSourceLanguageAnalyses,
     requestLanguage: RememberSourceLanguageAnalysis,
@@ -613,13 +796,34 @@ export function createRememberEngine(config: RememberEngineConfig) {
     return {
       ...result,
       candidates: result.candidates.map((candidate) => {
+        const sourceMessage = request.messages[candidate.sourceMessageIndex];
+        const normalizedSourceMessage =
+          sourceInput.messages[candidate.sourceMessageIndex];
+        const sourceIndexes = candidateSourceMessageIndexes(candidate);
+        if (
+          !sourceMessage ||
+          !normalizedSourceMessage ||
+          sourceIndexes.some((index) => !request.messages[index])
+        ) {
+          return { ...candidate, kindHint: "noise" as const };
+        }
+        if (!hasPersistableSemanticText(candidate.content)) {
+          return { ...candidate, sourceRole: sourceMessage.role };
+        }
+        const { sourceMessageIndexes: _sourceMessageIndexes, ...candidateWithoutIndexes } =
+          candidate;
+        const sourceBoundCandidate = {
+          ...candidateWithoutIndexes,
+          ...(sourceIndexes.length > 1 ? { sourceMessageIndexes: sourceIndexes } : {}),
+          sourceRole: sourceMessage.role,
+        };
         const sourceLanguage = candidateSourceLanguageAnalysis(
-          candidate,
+          sourceBoundCandidate,
           sourceAnalyses,
         ) ?? requestLanguage;
         return normalizeMemoryCandidate(
-          candidate,
-          request.messages[candidate.sourceMessageIndex]?.content,
+          sourceBoundCandidate,
+          normalizedSourceMessage.content,
           {
             analysis: sourceLanguage.analysis,
             language,
@@ -655,25 +859,99 @@ export function createRememberEngine(config: RememberEngineConfig) {
       config: config.remember,
       scope: input.scope,
     });
-    const extractorInput = maskNeverAnnotatedMessages(input);
+    const extractorInput = maskMessages(
+      input,
+      getNeverAnnotatedMessageIndexes(input),
+    );
+    const nonPersistableSourceIndexes = getNonPersistableMessageIndexes(
+      extractorInput,
+    );
+    const persistableExtractorInput = maskMessages(
+      extractorInput,
+      nonPersistableSourceIndexes,
+    );
+    const producerRoleBlockedSourceIndexes = new Set(
+      persistableExtractorInput.messages.flatMap((message, messageIndex) => {
+        const probeCandidate: MemoryCandidate = {
+          id: `producer-role-${messageIndex}`,
+          kindHint: "noise",
+          explicitness: "inferred",
+          content: message.content,
+          sourceMessageIndex: messageIndex,
+          sourceRole: message.role,
+        };
+        return isCandidateSourceAllowed(probeCandidate, profile, input)
+          ? []
+          : [messageIndex];
+      }),
+    );
+    const roleSafeExtractorInput = maskMessages(
+      persistableExtractorInput,
+      producerRoleBlockedSourceIndexes,
+    );
     const requestedExtractionStrategy = resolveRequestedExtractionStrategy(
       input.extractionStrategy,
     );
-    const baselineResult = extractor
-      ? await extractor.extract(extractorInput)
-      : extractDeterministicMemoryWithLanguage(
-          extractorInput,
-          language,
-          sourceAnalyses,
-        );
+    const canonicalExtraction = extractDeterministicMemoryWithLanguage(
+      persistableExtractorInput,
+      language,
+      sourceAnalyses,
+    );
+    const explicitOptOutSourceIndexes = new Set(
+      canonicalExtraction.candidates
+        .filter(isDontFeedbackCandidate)
+        .map(({ sourceMessageIndex }) => sourceMessageIndex),
+    );
+    const {
+      blockedSourceIndexes: optOutBlockedSourceIndexes,
+      input: producerInput,
+    } = sanitizeExplicitOptOutMessages(
+      roleSafeExtractorInput,
+      sourceAnalyses,
+      explicitOptOutSourceIndexes,
+    );
+    const blockedProducerSourceIndexes = new Set([
+      ...nonPersistableSourceIndexes,
+      ...optOutBlockedSourceIndexes,
+    ]);
+    const producerSourceAnalyses = producerInput === input
+      ? sourceAnalyses
+      : analyzeRememberSourceMessages(producerInput, language);
+    const normalizedCanonicalExtraction = omitCandidatesFromSourceIndexes(
+      normalizeExtractionResult(
+        input,
+        persistableExtractorInput,
+        canonicalExtraction,
+        sourceAnalyses,
+        requestLanguage,
+      ),
+      nonPersistableSourceIndexes,
+    );
+    const optOutTargetIdentities = explicitOptOutTargetIdentities(
+      normalizedCanonicalExtraction,
+      sourceAnalyses,
+      requestLanguage,
+    );
+    const customExtraction = extractor
+      ? normalizeExtractionResult(
+        input,
+        producerInput,
+        omitCandidatesFromSourceIndexes(
+          await extractor.extract(producerInput),
+          blockedProducerSourceIndexes,
+        ),
+        producerSourceAnalyses,
+        requestLanguage,
+      )
+      : undefined;
+    const baselineResult = customExtraction
+      ? explicitOptOutSourceIndexes.size > 0
+        ? mergeExtractionResults(normalizedCanonicalExtraction, customExtraction)
+        : customExtraction
+      : normalizedCanonicalExtraction;
     let baselineExtraction = annotateExtractionResult(
       applyProfileTrace(
-        normalizeExtractionResult(
-          input,
-          baselineResult,
-          sourceAnalyses,
-          requestLanguage,
-        ),
+        baselineResult,
         profile,
       ),
       "rules-only",
@@ -690,8 +968,12 @@ export function createRememberEngine(config: RememberEngineConfig) {
         applyProfileTrace(
           normalizeExtractionResult(
             input,
-            await profileRuleExtractor.extract(extractorInput),
-            sourceAnalyses,
+            producerInput,
+            omitCandidatesFromSourceIndexes(
+              await profileRuleExtractor.extract(producerInput),
+              blockedProducerSourceIndexes,
+            ),
+            producerSourceAnalyses,
             requestLanguage,
           ),
           profile,
@@ -705,8 +987,12 @@ export function createRememberEngine(config: RememberEngineConfig) {
         applyProfileTrace(
           normalizeExtractionResult(
             input,
-            await profileExtractor.extractor.extract(extractorInput),
-            sourceAnalyses,
+            producerInput,
+            omitCandidatesFromSourceIndexes(
+              await profileExtractor.extractor.extract(producerInput),
+              blockedProducerSourceIndexes,
+            ),
+            producerSourceAnalyses,
             requestLanguage,
           ),
           profile,
@@ -733,28 +1019,45 @@ export function createRememberEngine(config: RememberEngineConfig) {
       );
     }
 
-    baselineExtraction = dedupeExtractionResult(
-      applyAnnotations(
-        input,
-        profile,
-        baselineExtraction,
-        sourceAnalyses,
-        requestLanguage,
+    baselineExtraction = omitCandidatesFromSourceIndexes(
+      dedupeExtractionResult(
+        applyAnnotations(
+          input,
+          profile,
+          baselineExtraction,
+          sourceAnalyses,
+          requestLanguage,
+          explicitOptOutSourceIndexes,
+        ),
       ),
+      nonPersistableSourceIndexes,
     );
-
     const shouldRunAssistedExtraction =
       requestedExtractionStrategy === "llm-assisted" ||
       (requestedExtractionStrategy === "auto" &&
         shouldAutoUseAssistedExtraction({
-          request: extractorInput,
+          request: producerInput,
           baselineExtraction,
-          sourceAnalyses,
+          sourceAnalyses: producerSourceAnalyses,
         }));
+    const hasAssistedInput = producerInput.messages.some(({ content }) =>
+      hasPersistableSemanticText(content)
+    );
 
-    if (!shouldRunAssistedExtraction || !assistedExtractor) {
+    if (
+      !shouldRunAssistedExtraction ||
+      !assistedExtractor ||
+      !hasAssistedInput
+    ) {
       return {
-        extraction: baselineExtraction,
+        extraction: omitFactsTargetedByExplicitOptOut(
+          baselineExtraction,
+          optOutTargetIdentities,
+          sourceAnalyses,
+          requestLanguage,
+        ),
+        explicitOptOutSourceIndexes,
+        optOutTargetIdentities,
         profile,
         requestedExtractionStrategy,
         resolvedExtractionStrategy: "rules-only" as const,
@@ -770,14 +1073,18 @@ export function createRememberEngine(config: RememberEngineConfig) {
       const knownUserName = existingProfile?.identity.name?.trim();
       assistedExtraction = annotateExtractionResult(
         applyProfileTrace(
-          normalizeExtractionResult(
-            input,
-            await assistedExtractor.extract({
-              ...extractorInput,
-              extractionStrategy: "llm-assisted",
-            }, knownUserName ? { knownUserName } : undefined),
-            sourceAnalyses,
-            requestLanguage,
+          omitCandidatesFromSourceIndexes(
+            normalizeExtractionResult(
+              input,
+              producerInput,
+              await assistedExtractor.extract({
+                ...producerInput,
+                extractionStrategy: "llm-assisted",
+              }, knownUserName ? { knownUserName } : undefined),
+              producerSourceAnalyses,
+              requestLanguage,
+            ),
+            blockedProducerSourceIndexes,
           ),
           profile,
         ),
@@ -792,8 +1099,15 @@ export function createRememberEngine(config: RememberEngineConfig) {
         },
       );
       return {
-        extraction: baselineExtraction,
+        extraction: omitFactsTargetedByExplicitOptOut(
+          baselineExtraction,
+          optOutTargetIdentities,
+          sourceAnalyses,
+          requestLanguage,
+        ),
         extractionWarning: "assisted_extraction_failed" as const,
+        explicitOptOutSourceIndexes,
+        optOutTargetIdentities,
         profile,
         requestedExtractionStrategy,
         resolvedExtractionStrategy: "rules-only" as const,
@@ -801,15 +1115,26 @@ export function createRememberEngine(config: RememberEngineConfig) {
     }
 
     return {
-      extraction: dedupeExtractionResult(
-        applyAnnotations(
-          input,
-          profile,
-          mergeExtractionResults(baselineExtraction, assistedExtraction),
+      extraction: omitCandidatesFromSourceIndexes(
+        omitFactsTargetedByExplicitOptOut(
+          dedupeExtractionResult(
+            applyAnnotations(
+              input,
+              profile,
+              mergeExtractionResults(baselineExtraction, assistedExtraction),
+              sourceAnalyses,
+              requestLanguage,
+              explicitOptOutSourceIndexes,
+            ),
+          ),
+          optOutTargetIdentities,
           sourceAnalyses,
           requestLanguage,
         ),
+        nonPersistableSourceIndexes,
       ),
+      explicitOptOutSourceIndexes,
+      optOutTargetIdentities,
       profile,
       requestedExtractionStrategy,
       resolvedExtractionStrategy: "llm-assisted" as const,
@@ -837,6 +1162,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
       const {
         extraction,
         extractionWarning,
+        explicitOptOutSourceIndexes,
+        optOutTargetIdentities,
         profile,
         requestedExtractionStrategy,
         resolvedExtractionStrategy,
@@ -858,9 +1185,18 @@ export function createRememberEngine(config: RememberEngineConfig) {
       const deleteDocumentWithRollback = writeCoordinator.deleteDocument;
       const writeDocumentBatchWithRollback =
         writeCoordinator.writeDocumentBatchWithRollback;
+      const nonPersistableSourceIndexes = getNonPersistableMessageIndexes(input);
+      const persistenceSafeInput = maskMessages(
+        input,
+        nonPersistableSourceIndexes,
+      );
 
       try {
-        const blockedSourceIndexes = getNeverAnnotatedMessageIndexes(input);
+        const blockedSourceIndexes = new Set([
+          ...getNeverAnnotatedMessageIndexes(input),
+          ...nonPersistableSourceIndexes,
+        ]);
+        const policyBlockedSourceIndexes = new Set<number>();
         const ingestedAt = now();
         const preparedSourceMessages: Array<{
           messageIndex: number;
@@ -902,6 +1238,10 @@ export function createRememberEngine(config: RememberEngineConfig) {
                 policyContext,
               )).content
             : message.content;
+          if (!hasPersistableSemanticText(redactedContent)) {
+            policyBlockedSourceIndexes.add(messageIndex);
+            continue;
+          }
           const sourceMessage = buildSourceMessageRecord(
             input.scope,
             { ...message, content: redactedContent },
@@ -925,7 +1265,20 @@ export function createRememberEngine(config: RememberEngineConfig) {
         }
 
         for (const candidate of extraction.candidates) {
-          if (!isAssistantWriteAllowed(candidate, profile, input)) {
+          if (candidateTouchesSourceIndexes(candidate, policyBlockedSourceIndexes)) {
+            state.rejected += 1;
+            state.events.push({
+              candidateId: candidate.id,
+              outcome: "rejected",
+              memoryType: toRememberEventMemoryType(
+                classifyCandidate(candidate).memoryType,
+              ),
+              reason: "invalid_after_redaction",
+              ...buildRememberEventTrace(candidate),
+            });
+            continue;
+          }
+          if (!isCandidateSourceAllowed(candidate, profile, input)) {
             state.rejected += 1;
             state.events.push({
               candidateId: candidate.id,
@@ -969,12 +1322,17 @@ export function createRememberEngine(config: RememberEngineConfig) {
 
           if (config.policy?.redact) {
             const redacted = await config.policy.redact(effectiveCandidate, policyContext);
+            const protectedOptOutSource = isDontFeedbackCandidate(candidate);
             const redactedCandidate: MemoryCandidate = {
               ...effectiveCandidate,
-              kindHint: redacted.kindHint,
+              kindHint: protectedOptOutSource
+                ? effectiveCandidate.kindHint
+                : redacted.kindHint,
               content: redacted.content,
               extractionSources: effectiveCandidate.extractionSources,
-              metadata: redacted.metadata,
+              metadata: protectedOptOutSource
+                ? effectiveCandidate.metadata
+                : redacted.metadata,
               explicitness: redacted.explicitness,
             };
             effectiveCandidate = classifyCandidate(redactedCandidate);
@@ -993,6 +1351,27 @@ export function createRememberEngine(config: RememberEngineConfig) {
               });
               continue;
             }
+          }
+
+          if (
+            isFactTargetedByExplicitOptOut(
+              effectiveCandidate,
+              optOutTargetIdentities,
+              sourceAnalyses,
+              requestLanguage,
+            )
+          ) {
+            state.rejected += 1;
+            state.events.push({
+              candidateId: candidate.id,
+              outcome: "rejected",
+              memoryType: toRememberEventMemoryType(
+                effectiveCandidate.memoryType,
+              ),
+              reason: "explicit_opt_out",
+              ...buildRememberEventTrace(effectiveCandidate),
+            });
+            continue;
           }
 
           if (
@@ -1046,7 +1425,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
         }
 
         const episodes = buildEpisodes(
-          input,
+          maskMessages(persistenceSafeInput, policyBlockedSourceIndexes),
           episodeCandidates,
           createId,
           now(),

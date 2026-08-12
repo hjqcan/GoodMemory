@@ -12,6 +12,15 @@ function sha256(value: string): string {
 }
 
 describe("Phase 72 LongMemEval operand-head preservation development", () => {
+  it("rejects the current English analyzer before file I/O canonically", async () => {
+    await expect(runPhase72LongMemEvalOperandHeadPreservationDevelopment({
+      benchmarkRoot: "/bench",
+      outputDir: "/out",
+      runId: "analyzer-version-fixture",
+      selectionFile: "/selection.json",
+    })).rejects.toThrow("English analyzer 13 is required; found 14");
+  });
+
   it("rejects every dependency injection from canonical evidence", () => {
     expect(hasCanonicalOperandHeadPreservationDependencies({})).toBe(true);
     expect(hasCanonicalOperandHeadPreservationDependencies({
@@ -174,6 +183,10 @@ describe("Phase 72 LongMemEval operand-head preservation development", () => {
       holdoutCalls: 0,
       judgeCalls: 0,
       memoryContextBuilds: 2,
+    });
+    expect(report.source).toMatchObject({
+      canonicalDependencies: false,
+      englishAnalyzerVersion: "14-explicit-fact-list-boundary",
     });
     expect(writes.has("/out/fixture-run/report.json")).toBe(true);
   });

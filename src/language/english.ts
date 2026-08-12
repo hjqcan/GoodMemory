@@ -15,8 +15,9 @@ import type {
 } from "../domain/records";
 import { extractReferencePointer } from "../domain/referencePointer";
 import {
-  splitClausesGeneric,
+  expandExplicitFactCandidateClauses,
   normalizeUnicodeForEquality,
+  splitClausesGeneric,
   tokenizeUnicodeText,
 } from "./generic";
 import {
@@ -117,7 +118,28 @@ const RELATION_RELOCATION_DIRECT_PATTERN =
   /\bmy\s+(?:friend|cousin|aunt|uncle|sister|brother|partner|colleague)\s+([A-Z][A-Za-z'-]+)\s+(?:actually\s+)?(?:recently\s+|just\s+)?moved\s+(back\s+)?to\s+([^,.!?]+?)(?=[,.!?]|$)/i;
 const USER_IDENTITY_PATTERN =
   /^as\s+(?:an?\s+)?([^,.!?]+?)\s+user\s*,/i;
-const EXPLICIT_FACT_PATTERN = /remember (?:that|this)\s+(.+)/i;
+const EXPLICIT_FACT_DIRECTIVE_PATTERN =
+  /^(?:please\s*,?\s+)?remember\s+(?:(?:that|this)\b|(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+things?\b)\s*[:：,]?\s*/iu;
+const COUNTED_EXPLICIT_FACT_DIRECTIVE_PATTERN =
+  /^(?:please\s*,?\s+)?remember\s+(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+things?\b/iu;
+const REMEMBER_QUESTION_PATTERN =
+  /^(?:do|did|can|could|would|will)\s+you\s+remember\b.*\?$/iu;
+const EXPLICIT_FACT_QUESTION_CLAUSE_PATTERN =
+  /^(?:(?:what|who|which|where|when|why|how)\b|(?:is|are|am|was|were|do|does|did|can|could|would|will|should)\b)/iu;
+const EXPLICIT_FACT_LITERAL_QUESTION_VALUE_PATTERN =
+  /\b(?:what|who|which|where|when|why|how)\b/iu;
+const EXPLICIT_FACT_BARE_QUESTION_VALUE_PATTERN =
+  /^(?:what|who|which|where|when|why|how)(?:\s+(?:exactly|one|ones))?\s*\?\s*$/iu;
+const EXPLICIT_FACT_POSTPOSED_QUESTION_VALUE_PATTERN =
+  /[,，、]\s*(?:what|who|which|where|when|why|how)(?:\s+(?:exactly|one|ones))?\s*\?\s*$/iu;
+const EXPLICIT_FACT_UNPUNCTUATED_QUESTION_PATTERN =
+  /\b(?:is|are|was|were)\s+(?:what|who|which|where|when|why|how)\s*$/iu;
+const EXPLICIT_FACT_OPT_OUT_PATTERN =
+  /^(?:please\s*,?\s+)?(?:do\s+not|don['’]t|never)\s+(?:remember|save|store|record)\b/iu;
+const EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN =
+  /(?:,\s*|^(?:and|but)\s+|\s+(?:and|but)\s+)(?=(?:please\s*,?\s+)?(?:do\s+not|don['’]t|never)\s+(?:remember|save|store|record)\b)/iu;
+const EXPLICIT_FACT_ASSIGNMENT_CONFIRMATION_PATTERN =
+  /\b(?:correct|right|true|accurate)\s*\?\s*$/iu;
 const EXPLICIT_DECISION_PATTERN =
   /\b(?:we decided|canonical source of truth|must remain)\b/i;
 const FOLLOW_UP_OPEN_LOOP_PATTERN =
@@ -268,8 +290,152 @@ const ENGLISH_SUBJECT_PREDICATE_BOUNDARY_PATTERN =
 function splitEnglishClauses(text: string): string[] {
   return splitClausesGeneric(text)
     .flatMap((clause) => clause.split(/,\s*\bbut\b\s+/iu))
+    .flatMap((clause) =>
+      EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
+        ? [clause]
+        : clause.split(EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN)
+    )
     .map((clause) => clause.trim())
     .filter(Boolean);
+}
+
+function cleanExplicitFactContent(value: string): string {
+  return value
+    .trim()
+    .replace(EXPLICIT_FACT_DIRECTIVE_PATTERN, "")
+    .replace(/^[：:,;；\s]+/u, "")
+    .replace(/[：:,;；]+$/u, "")
+    .trim();
+}
+
+function extractEnglishOptOutTarget(content: string): string {
+  return content
+    .replace(EXPLICIT_FACT_OPT_OUT_PATTERN, "")
+    .replace(/^\s*(?:that\b\s*)?[:：,]?\s*/iu, "")
+    .trim();
+}
+
+function splitEnglishExplicitFactClauses(
+  content: string,
+  countedList: boolean,
+): string[] {
+  const clauses = splitEnglishClauses(content);
+  return countedList
+    ? clauses.flatMap((clause) =>
+      clause.split(
+        /(?<!\b\p{L}\.\p{L})\.\s+(?=[\p{L}\p{N}_ -]{1,80}\s*[=＝])/u,
+      )
+    )
+    : clauses;
+}
+
+function isEnglishExplicitFactQuestion(
+  content: string,
+  source: string,
+): boolean {
+  const assignmentIndex = content.search(/[=＝]/u);
+  if (assignmentIndex >= 0) {
+    const left = content.slice(0, assignmentIndex).trim();
+    const right = content.slice(assignmentIndex + 1).trim();
+    if (EXPLICIT_FACT_QUESTION_CLAUSE_PATTERN.test(left)) {
+      return true;
+    }
+    const assignmentConfirmation =
+      EXPLICIT_FACT_ASSIGNMENT_CONFIRMATION_PATTERN.test(right);
+    if (assignmentConfirmation) {
+      return true;
+    }
+    if (EXPLICIT_FACT_POSTPOSED_QUESTION_VALUE_PATTERN.test(right)) {
+      return true;
+    }
+    if (/\?\s*$/u.test(source)) {
+      return !EXPLICIT_FACT_LITERAL_QUESTION_VALUE_PATTERN.test(right) ||
+        EXPLICIT_FACT_BARE_QUESTION_VALUE_PATTERN.test(right);
+    }
+    return false;
+  }
+
+  return /\?\s*$/u.test(source) ||
+    EXPLICIT_FACT_UNPUNCTUATED_QUESTION_PATTERN.test(content) ||
+    EXPLICIT_FACT_QUESTION_CLAUSE_PATTERN.test(content);
+}
+
+function extractExplicitFactClauses(content: string) {
+  const trimmed = content.trim();
+  if (EXPLICIT_FACT_OPT_OUT_PATTERN.test(trimmed)) {
+    return {
+      clauses: [{ content: trimmed, disposition: "feedback" as const }],
+      status: "complete" as const,
+    };
+  }
+
+  const directive = trimmed.match(EXPLICIT_FACT_DIRECTIVE_PATTERN);
+  if (!directive) {
+    return undefined;
+  }
+
+  const countMatch = trimmed.match(COUNTED_EXPLICIT_FACT_DIRECTIVE_PATTERN);
+  const countToken = countMatch?.[1]?.toLowerCase();
+  const numericCount = Number(countToken);
+  const wordCounts: Readonly<Record<string, number>> = {
+    eight: 8,
+    five: 5,
+    four: 4,
+    nine: 9,
+    one: 1,
+    seven: 7,
+    six: 6,
+    ten: 10,
+    three: 3,
+    two: 2,
+  };
+  const expectedFactCount = countToken
+    ? Number.isInteger(numericCount) && numericCount >= 0
+      ? numericCount
+      : wordCounts[countToken] ?? 1
+    : 1;
+  const clauses = splitEnglishExplicitFactClauses(
+    trimmed.slice(directive[0].length),
+    countMatch !== null,
+  )
+    .map((source) => ({
+      content: cleanExplicitFactContent(source),
+      source,
+    }));
+  const factClauses = clauses.filter(({ content: clause }) =>
+    /[\p{L}\p{N}]/u.test(clause)
+  );
+  if (factClauses.length < expectedFactCount) {
+    return countMatch
+      ? {
+        clauses: factClauses.map(({ content: clause }) => ({
+          content: clause,
+          disposition: EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause)
+            ? "feedback" as const
+            : "fact" as const,
+        })),
+        status: "incomplete-counted-list" as const,
+      }
+      : { clauses: [], status: "invalid" as const };
+  }
+  if (clauses.some(({ content: clause, source }) =>
+    !EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause) &&
+    isEnglishExplicitFactQuestion(clause, source)
+  )) {
+    return { clauses: [], status: "invalid" as const };
+  }
+
+  return {
+    clauses: factClauses
+      .slice(0, expectedFactCount)
+      .map(({ content: clause }) => ({
+        content: clause,
+        disposition: EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause)
+          ? "feedback" as const
+          : "fact" as const,
+      })),
+    status: "complete" as const,
+  };
 }
 
 function analyzeEnglishContent(content: string): LanguageContentAnalysis {
@@ -666,11 +832,32 @@ function maybeExtractCandidatesFromClause(
   nextId: () => string,
   analysis?: LanguageContentAnalysis,
   hasSourceOfTruthReference = false,
+  disposition: "fact" | "feedback" | "ordinary" = "ordinary",
 ): MemoryCandidate[] {
   const trimmed = content.trim();
 
-  if (trimmed.length === 0 || GREETING_PATTERN.test(trimmed)) {
+  if (
+    trimmed.length === 0 ||
+    GREETING_PATTERN.test(trimmed) ||
+    REMEMBER_QUESTION_PATTERN.test(trimmed)
+  ) {
     return [];
+  }
+
+  if (disposition === "feedback") {
+    return [{
+      id: nextId(),
+      kindHint: "feedback",
+      explicitness: "explicit",
+      content: trimmed,
+      sourceMessageIndex: index,
+      sourceRole: "user",
+      metadata: {
+        feedbackKind: "dont",
+        optOutTarget: extractEnglishOptOutTarget(trimmed),
+        appliesTo: "general_response",
+      },
+    }];
   }
 
   const candidates: MemoryCandidate[] = [];
@@ -1202,15 +1389,6 @@ function maybeExtractCandidatesFromClause(
     );
   }
 
-  const explicitFactMatch = trimmed.match(EXPLICIT_FACT_PATTERN);
-  if (explicitFactMatch) {
-    const factContent = explicitFactMatch[1]!.trim();
-
-    if (!shouldSkipExplicitFactForProfileLikeClause(factContent, candidates)) {
-      candidates.push(createFactCandidate(index, nextId, factContent));
-    }
-  }
-
   if (EXPLICIT_DECISION_PATTERN.test(trimmed)) {
     candidates.push(
       createFactCandidate(index, nextId, trimmed, "project", {
@@ -1259,11 +1437,28 @@ function maybeExtractCandidatesFromClause(
     });
   }
 
-  const technicalReferencePointer = TECHNICAL_REFERENCE_DIRECTIVE_PATTERN.test(
+  const explicitFactContent = disposition === "fact"
+    ? cleanExplicitFactContent(trimmed)
+    : undefined;
+  const extractedReferencePointer = TECHNICAL_REFERENCE_DIRECTIVE_PATTERN.test(
       trimmed,
     )
     ? extractReferencePointer(trimmed)
     : undefined;
+  const technicalReferencePointer = extractedReferencePointer &&
+      !/^(?:e\.g|i\.e)$/iu.test(extractedReferencePointer)
+    ? extractedReferencePointer
+    : undefined;
+  if (
+    explicitFactContent &&
+    !preferenceMatch &&
+    !technicalReferencePointer &&
+    !candidates.some(({ kindHint }) => kindHint === "fact") &&
+    !shouldSkipExplicitFactForProfileLikeClause(explicitFactContent, candidates)
+  ) {
+    candidates.push(createFactCandidate(index, nextId, explicitFactContent));
+  }
+
   if (!hasSourceOfTruthReference && technicalReferencePointer) {
     const pointer = technicalReferencePointer;
     candidates.push({
@@ -1320,7 +1515,7 @@ function maybeExtractCandidatesFromClause(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "13",
+    analyzerVersion: "14-explicit-fact-list-boundary",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",
@@ -1389,24 +1584,34 @@ export function createEnglishLanguagePack(): LanguagePack {
         const sourceMessageIndex = message.sourceMessageIndex ?? index;
         const sourceAnalysis = message.analysis ??
           analyzeEnglishContent(message.content);
-        const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
-          analysis: sourceAnalysis,
-          nextId: input.nextId,
-          sourceMessageIndex,
-          subject: extractReferenceSubject(message.content) ?? "unknown",
-        });
-        if (sourceOfTruthReference) {
-          candidates.push(sourceOfTruthReference);
-        }
-        const clauses = splitClausesGeneric(message.content);
+        const clauses = expandExplicitFactCandidateClauses(
+          message.content,
+          extractExplicitFactClauses,
+          splitEnglishClauses,
+        );
         for (const clause of clauses) {
+          const clauseAnalysis = clauses.length === 1 && clause.content === message.content
+            ? sourceAnalysis
+            : analyzeEnglishContent(clause.content);
+          const sourceOfTruthReference = clause.disposition === "feedback"
+            ? undefined
+            : createSourceOfTruthReferenceCandidate({
+              analysis: clauseAnalysis,
+              nextId: input.nextId,
+              sourceMessageIndex,
+              subject: extractReferenceSubject(clause.content) ?? "unknown",
+            });
+          if (sourceOfTruthReference) {
+            candidates.push(sourceOfTruthReference);
+          }
           candidates.push(
             ...maybeExtractCandidatesFromClause(
-              clause,
+              clause.content,
               sourceMessageIndex,
               input.nextId,
-              clauses.length === 1 ? sourceAnalysis : undefined,
+              clauseAnalysis,
               Boolean(sourceOfTruthReference),
+              clause.disposition,
             ),
           );
         }

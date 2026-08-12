@@ -19,9 +19,12 @@ import {
   evaluateV07SourceStability,
   verifyV07ArtifactConsumers,
 } from "./run-v0-7-release-readiness";
-import { assertV07StableReleaseSource } from "./promote-v0-7-release";
+import {
+  assertV07StableReleasePackageMetadata,
+  assertV07StableReleaseSource,
+} from "./promote-v0-7-release";
 
-const RELEASE_VERSION = "0.7.3";
+const RELEASE_VERSION = "0.7.4";
 
 export interface V07StableArtifact {
   artifactName: string;
@@ -101,7 +104,7 @@ async function verifyStableTarball(input: {
   packageRoot: string;
   verifyRuntimeDescriptor: boolean;
 }): Promise<void> {
-  await assertV07StableReleaseSource({ repoRoot: input.packageRoot });
+  await assertV07StableReleasePackageMetadata({ repoRoot: input.packageRoot });
   if (!input.verifyRuntimeDescriptor) {
     return;
   }

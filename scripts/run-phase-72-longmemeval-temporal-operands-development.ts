@@ -12,10 +12,8 @@ import type {
   LongMemEvalMemoryContext,
   LongMemEvalMemoryContextBuilder,
 } from "../src/eval/longmemeval";
-import {
-  createEnglishLanguagePack,
-  createLanguageService,
-} from "../src/language";
+import { createLanguageService } from "../src/language";
+import type { LanguageService } from "../src/language";
 import { splitQueryIntoSubQueries } from "../src/recall/queryDecomposition";
 import { estimateTextTokens } from "../src/tokenEstimator";
 import {
@@ -182,7 +180,7 @@ export interface Phase72LongMemEvalTemporalOperandsReport {
     canonicalControlSourceCommit: typeof CANONICAL_CONTROL_SOURCE_COMMIT;
     canonicalMemoryRunId: typeof CANONICAL_MEMORY_RUN_ID;
     datasetRawSha256: string;
-    englishAnalyzerVersion: typeof REQUIRED_ENGLISH_ANALYZER_VERSION;
+    englishAnalyzerVersion: string;
     legacyControlEnglishAnalyzerVersion:
       typeof LEGACY_CONTROL_ENGLISH_ANALYZER_VERSION;
     scriptSha256: string;
@@ -498,8 +496,10 @@ function assertNegativeControlUnchanged(input: {
   }
 }
 
-function temporalOperands(question: string): string[] {
-  const language = createLanguageService();
+function temporalOperands(
+  question: string,
+  language: LanguageService,
+): string[] {
   const context = language.resolveFromText({ text: question });
   const analysis = language.analyzeQuery(question, context);
   if ((analysis.temporalOperands?.length ?? 0) === 0) {
@@ -642,12 +642,6 @@ export async function runPhase72LongMemEvalTemporalOperandsDevelopment(
   if (bunVersion !== REQUIRED_BUN_VERSION) {
     throw new Error(`Bun ${REQUIRED_BUN_VERSION} is required; found ${bunVersion}.`);
   }
-  const englishAnalyzerVersion = createEnglishLanguagePack().analyzerVersion;
-  if (englishAnalyzerVersion !== REQUIRED_ENGLISH_ANALYZER_VERSION) {
-    throw new Error(
-      `English analyzer ${REQUIRED_ENGLISH_ANALYZER_VERSION} is required; found ${englishAnalyzerVersion}.`,
-    );
-  }
   const preseal = dependencies.preseal ?? DEFAULT_PRESEAL;
   const canonicalDependencies =
     dependencies.bunVersion === undefined &&
@@ -656,6 +650,16 @@ export async function runPhase72LongMemEvalTemporalOperandsDevelopment(
     dependencies.readFile === undefined &&
     dependencies.scriptPath === undefined &&
     dependencies.sourceState === undefined;
+  const language = createLanguageService();
+  const englishAnalyzerVersion = language.analyzerVersion("en-US");
+  if (
+    canonicalDependencies &&
+    englishAnalyzerVersion !== REQUIRED_ENGLISH_ANALYZER_VERSION
+  ) {
+    throw new Error(
+      `English analyzer ${REQUIRED_ENGLISH_ANALYZER_VERSION} is required; found ${englishAnalyzerVersion}.`,
+    );
+  }
   const readFileImpl = dependencies.readFile ??
     ((path: string) => readFile(path, "utf8"));
   const scriptPath = dependencies.scriptPath ?? import.meta.path;
@@ -732,7 +736,7 @@ export async function runPhase72LongMemEvalTemporalOperandsDevelopment(
 
   const cases: RetrievalCaseResult[] = [];
   for (const testCase of selected) {
-    const operands = temporalOperands(testCase.question);
+    const operands = temporalOperands(testCase.question, language);
     const builder = operands.length > 0
       ? builders.treatmentDecomposed
       : builders.treatmentSinglePass;
@@ -839,7 +843,7 @@ export async function runPhase72LongMemEvalTemporalOperandsDevelopment(
       canonicalControlSourceCommit: CANONICAL_CONTROL_SOURCE_COMMIT,
       canonicalMemoryRunId: CANONICAL_MEMORY_RUN_ID,
       datasetRawSha256: sha256(datasetRaw),
-      englishAnalyzerVersion: REQUIRED_ENGLISH_ANALYZER_VERSION,
+      englishAnalyzerVersion,
       legacyControlEnglishAnalyzerVersion:
         LEGACY_CONTROL_ENGLISH_ANALYZER_VERSION,
       scriptSha256: sha256(scriptRaw),

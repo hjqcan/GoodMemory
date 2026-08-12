@@ -111,6 +111,30 @@ describe("profile candidate normalization", () => {
 });
 
 describe("reference candidate normalization", () => {
+  it("does not accept source-of-truth authority without a source directive", () => {
+    const language = createLanguageService();
+    const source = "Hello";
+    const resolved = language.resolveFromText({ locale: "en-US", text: source });
+    const normalized = normalizeMemoryCandidate(
+      {
+        id: "unproven-source-of-truth",
+        kindHint: "reference",
+        explicitness: "explicit",
+        content: "docs/secret.md",
+        sourceMessageIndex: 0,
+        sourceRole: "user",
+        metadata: {
+          referenceKind: "source_of_truth",
+          referencePointer: "docs/secret.md",
+        },
+      },
+      source,
+      { language, resolved },
+    );
+
+    expect(normalized.kindHint).toBe("noise");
+  });
+
   it("does not infer supersession from an unrelated second pointer", () => {
     const language = createLanguageService();
     const source =

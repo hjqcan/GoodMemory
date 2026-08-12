@@ -2215,6 +2215,420 @@ describe("public remember API", () => {
     expect(await documentStore.query("references", { userId: "u-zh" })).toHaveLength(1);
   });
 
+  it("v0.7.4 explicit facts C5 rejects blank facts before storage", async () => {
+    const memory = createGoodMemory({
+      storage: { provider: "memory" },
+      testing: {
+        extractor: {
+          async extract() {
+            return {
+              candidates: [{
+                id: "blank-fact",
+                kindHint: "fact" as const,
+                explicitness: "explicit" as const,
+                content: "  ",
+                sourceMessageIndex: 0,
+                sourceRole: "user" as const,
+              }],
+              ignoredMessageCount: 0,
+            };
+          },
+        },
+      },
+    });
+    const durableScope = {
+      userId: "u-explicit-blank",
+      workspaceId: "workspace-explicit-blank",
+    };
+
+    const remembered = await memory.remember({
+      messages: [{ role: "user", content: "source" }],
+      scope: { ...durableScope, sessionId: "teach" },
+    });
+    const exported = await memory.exportMemory({ scope: durableScope });
+
+    expect(remembered).toMatchObject({
+      accepted: 0,
+      rejected: 1,
+      events: [expect.objectContaining({ reason: "invalid_payload" })],
+    });
+    expect(exported.durable.facts).toEqual([]);
+  });
+
+  it("v0.7.4 explicit facts C6/C7 recalls both facts in separate fresh sessions", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+    const durableScope = {
+      userId: "u-explicit-recall",
+      workspaceId: "workspace-explicit-recall",
+    };
+
+    const remembered = await memory.remember({
+      extractionStrategy: "rules-only",
+      locale: "zh-CN",
+      messages: [
+        {
+          role: "user",
+          content: "两件事：编辑器=Neovim；项目代号=Tachikoma",
+        },
+      ],
+      scope: { ...durableScope, sessionId: "teach" },
+    });
+    const exported = await memory.exportMemory({ scope: durableScope });
+    const recalledEditor = await memory.recall({
+      locale: "zh-CN",
+      query: "我的编辑器",
+      scope: { ...durableScope, sessionId: "recall-editor" },
+      strategy: "rules-only",
+    });
+    const recalledProject = await memory.recall({
+      locale: "zh-CN",
+      query: "我的项目代号",
+      scope: { ...durableScope, sessionId: "recall-project" },
+      strategy: "rules-only",
+    });
+
+    expect(remembered).toMatchObject({ accepted: 2, rejected: 0 });
+    expect(exported.durable.facts.map(({ content }) => content)).toEqual([
+      "编辑器=Neovim",
+      "项目代号=Tachikoma",
+    ]);
+    expect(exported.durable.facts.every(({ content }) => content.trim().length > 0)).toBe(
+      true,
+    );
+    expect(recalledEditor.facts.map(({ content }) => content)).toContain(
+      "编辑器=Neovim",
+    );
+    expect(recalledProject.facts.map(({ content }) => content)).toContain(
+      "项目代号=Tachikoma",
+    );
+  });
+
+  it("recalls every explicit compound fact across the built-in language packs", async () => {
+    const fixtures = [
+      {
+        expected: ["editor=Neovim", "project code=Tachikoma"],
+        locale: "en-US",
+        queries: ["my editor", "my project code"],
+        source: "Remember two things: editor=Neovim; project code=Tachikoma",
+      },
+      {
+        expected: ["éditeur=Neovim", "code projet=Tachikoma"],
+        locale: "fr-FR",
+        queries: ["mon éditeur", "mon code projet"],
+        source: "Souviens-toi de deux choses : éditeur=Neovim ; code projet=Tachikoma",
+      },
+      {
+        expected: ["editor=Neovim", "código de proyecto=Tachikoma"],
+        locale: "es-ES",
+        queries: ["mi editor", "mi código de proyecto"],
+        source: "Recuerda dos cosas: editor=Neovim; código de proyecto=Tachikoma",
+      },
+      {
+        expected: ["エディタ=Neovim", "プロジェクトコード=Tachikoma"],
+        locale: "ja-JP",
+        queries: ["私のエディタ", "私のプロジェクトコード"],
+        source: "二つのことを覚えておいて：エディタ=Neovim；プロジェクトコード=Tachikoma",
+      },
+      {
+        expected: ["편집기=Neovim", "프로젝트 코드=Tachikoma"],
+        locale: "ko-KR",
+        queries: ["내 편집기", "내 프로젝트 코드"],
+        source: "두 가지를 기억해 주세요: 편집기=Neovim; 프로젝트 코드=Tachikoma",
+      },
+    ] as const;
+
+    for (const fixture of fixtures) {
+      const memory = createGoodMemory({ storage: { provider: "memory" } });
+      const durableScope = {
+        userId: `u-explicit-${fixture.locale}`,
+        workspaceId: `workspace-explicit-${fixture.locale}`,
+      };
+      const remembered = await memory.remember({
+        extractionStrategy: "rules-only",
+        locale: fixture.locale,
+        messages: [{ role: "user", content: fixture.source }],
+        scope: { ...durableScope, sessionId: "teach" },
+      });
+      const exported = await memory.exportMemory({ scope: durableScope });
+
+      expect(remembered).toMatchObject({ accepted: 2, rejected: 0 });
+      expect(exported.durable.facts.map(({ content }) => content)).toEqual(
+        [...fixture.expected],
+      );
+      expect(exported.durable.facts.every(({ content }) => content.trim().length > 0)).toBe(
+        true,
+      );
+
+      for (const [index, query] of fixture.queries.entries()) {
+        const recalled = await memory.recall({
+          locale: fixture.locale,
+          query,
+          scope: { ...durableScope, sessionId: `recall-${index + 1}` },
+          strategy: "rules-only",
+        });
+
+        expect(recalled.facts.map(({ content }) => content)).toContain(
+          fixture.expected[index],
+        );
+      }
+    }
+  });
+
+  it("flattens nested explicit lists without persisting opt-outs or questions", async () => {
+    const fixtures = [
+      {
+        expected: ["editor=Neovim", "shell=zsh"],
+        locale: "en-US",
+        nested: "Ordinary context. Remember two things: editor=Neovim; shell=zsh",
+        optOut: "Remember two things: editor=Neovim; do not remember project code=Tachikoma",
+        question: "Remember two things: editor=Neovim; what is my project code",
+      },
+      {
+        expected: ["编辑器=Neovim", "项目代号=Tachikoma"],
+        locale: "zh-CN",
+        nested: "普通上下文。请记住两件事：编辑器=Neovim；项目代号=Tachikoma",
+        optOut: "请记住两件事：编辑器=Neovim；不要记住项目代号=Tachikoma",
+        question: "请记住两件事：编辑器=Neovim；我的项目代号是什么",
+      },
+      {
+        expected: ["éditeur=Neovim", "shell=zsh", "thème=dark"],
+        locale: "fr-FR",
+        nested: "Contexte ordinaire. Souviens-toi de trois choses : éditeur=Neovim ; shell=zsh ; thème=dark",
+        optOut: "Souviens-toi de deux choses : éditeur=Neovim ; ne mémorise pas code projet=Tachikoma",
+        question: "Souviens-toi de deux choses : éditeur=Neovim ; quel est mon code projet",
+      },
+      {
+        expected: ["editor=Neovim", "shell=zsh", "tema=dark"],
+        locale: "es-ES",
+        nested: "Contexto normal. Recuerda tres cosas: editor=Neovim; shell=zsh; tema=dark",
+        optOut: "Recuerda dos cosas: editor=Neovim; no recuerdes código de proyecto=Tachikoma",
+        question: "Recuerda dos cosas: editor=Neovim; cuál es mi código de proyecto",
+      },
+      {
+        expected: ["エディタ=Neovim", "シェル=zsh"],
+        locale: "ja-JP",
+        nested: "通常の文です。二つのことを覚えておいて：エディタ=Neovim；シェル=zsh",
+        optOut: "二つのことを覚えておいて：エディタ=Neovim；プロジェクトコードは覚えないでください",
+        question: "二つのことを覚えておいて：エディタ=Neovim；プロジェクトコードは何ですか",
+      },
+      {
+        expected: ["편집기=Neovim", "셸=zsh"],
+        locale: "ko-KR",
+        nested: "일반 문장입니다. 두 가지를 기억해 주세요: 편집기=Neovim; 셸=zsh",
+        optOut: "두 가지를 기억해 주세요: 편집기=Neovim; 프로젝트 코드는 기억하지 마세요",
+        question: "두 가지를 기억해 주세요: 편집기=Neovim; 프로젝트 코드는 무엇인가요",
+      },
+    ] as const;
+
+    for (const fixture of fixtures) {
+      const rememberFacts = async (suffix: string, content: string) => {
+        const memory = createGoodMemory({ storage: { provider: "memory" } });
+        const scope = {
+          userId: `u-explicit-boundary-${fixture.locale}-${suffix}`,
+          workspaceId: `workspace-explicit-boundary-${fixture.locale}-${suffix}`,
+        };
+        await memory.remember({
+          extractionStrategy: "rules-only",
+          locale: fixture.locale,
+          messages: [{ role: "user", content }],
+          scope: { ...scope, sessionId: "teach" },
+        });
+        return (await memory.exportMemory({ scope })).durable.facts.map(
+          ({ content: fact }) => fact,
+        );
+      };
+
+      expect(await rememberFacts("nested", fixture.nested)).toEqual([
+        ...fixture.expected,
+      ]);
+      expect(await rememberFacts("opt-out", fixture.optOut)).toEqual([
+        fixture.expected[0],
+      ]);
+      expect(await rememberFacts("question", fixture.question)).toEqual([]);
+    }
+  });
+
+  it("fails closed at the public write boundary for typed opt-outs and invalid lists", async () => {
+    const fixtures = [
+      ["en-US", "Do not remember that I am working on Tachikoma"],
+      ["zh-CN", "不要记住我正在做Tachikoma"],
+      ["fr-FR", "Ne mémorise pas mon objectif actuel est Tachikoma"],
+      ["es-ES", "No recuerdes mi objetivo actual es Tachikoma"],
+      ["en-US", "Remember two things: editor=Neovim"],
+      ["zh-CN", "请记住两件事：我的项目代号是什么；编辑器=Neovim"],
+      ["ja-JP", "二つのことを覚えておいて：プロジェクトコードは何ですか；エディタ=Neovim"],
+      ["ko-KR", "두 가지를 기억해 주세요: 프로젝트 코드는 무엇인가요; 편집기=Neovim"],
+      ["en-US", "Remember 0 things: editor=Neovim"],
+      ["zh-CN", "请记住0件事：编辑器=Neovim"],
+      ["fr-FR", "Souviens-toi de 0 choses : éditeur=Neovim"],
+      ["es-ES", "Recuerda 0 cosas: editor=Neovim"],
+      ["ja-JP", "0つのことを覚えておいて：エディタ=Neovim"],
+      ["ko-KR", "0 가지를 기억해 주세요: 편집기=Neovim"],
+      ["es-ES", "Recuerda dos cosas: editor=Neovim; ¿cuál es mi código de proyecto"],
+    ] as const;
+
+    for (const [index, [locale, source]] of fixtures.entries()) {
+      const memory = createGoodMemory({ storage: { provider: "memory" } });
+      const scope = {
+        userId: `u-explicit-invalid-${index}`,
+        workspaceId: `workspace-explicit-invalid-${index}`,
+      };
+      await memory.remember({
+        extractionStrategy: "rules-only",
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { ...scope, sessionId: "teach" },
+      });
+
+      expect((await memory.exportMemory({ scope })).durable.facts).toEqual([]);
+    }
+  });
+
+  it("keeps valid list facts when a later typed clause opts out", async () => {
+    const sources = [
+      "Remember two things: editor=Neovim; do not remember I am working on Tachikoma",
+      "Remember two things: editor=Neovim; don’t remember project code=Tachikoma",
+    ];
+
+    for (const [index, content] of sources.entries()) {
+      const memory = createGoodMemory({ storage: { provider: "memory" } });
+      const scope = {
+        userId: `u-explicit-mixed-opt-out-${index}`,
+        workspaceId: `workspace-explicit-mixed-opt-out-${index}`,
+      };
+
+      await memory.remember({
+        extractionStrategy: "rules-only",
+        locale: "en-US",
+        messages: [{ role: "user", content }],
+        scope: { ...scope, sessionId: "teach" },
+      });
+
+      expect(
+        (await memory.exportMemory({ scope })).durable.facts.map(({ content: fact }) => fact),
+      ).toEqual(["editor=Neovim"]);
+    }
+  });
+
+  it("keeps opt-out clauses out of durable references in every built-in pack", async () => {
+    const fixtures = [
+      ["en-US", "Remember two things: editor=Neovim; do not remember that use docs/secret.md as the source of truth", "editor=Neovim"],
+      ["zh-CN", "请记住两件事：编辑器=Neovim；不要记住以后以 docs/secret.md 为准", "编辑器=Neovim"],
+      ["fr-FR", "Souviens-toi de deux choses : éditeur=Neovim ; ne mémorise pas utilise docs/secret.md comme source de vérité", "éditeur=Neovim"],
+      ["es-ES", "Recuerda dos cosas: editor=Neovim; no recuerdes usa docs/secret.md como fuente de verdad", "editor=Neovim"],
+      ["ja-JP", "二つのことを覚えておいて：エディタ=Neovim；docs/secret.mdを正とするのは覚えないでください", "エディタ=Neovim"],
+      ["ko-KR", "두 가지를 기억해 주세요: 편집기=Neovim; docs/secret.md를 기준 문서로 사용한다고 기억하지 마세요", "편집기=Neovim"],
+    ] as const;
+
+    for (const [index, [locale, source, expectedFact]] of fixtures.entries()) {
+      const memory = createGoodMemory({ storage: { provider: "memory" } });
+      const scope = {
+        userId: `u-reference-opt-out-${index}`,
+        workspaceId: `workspace-reference-opt-out-${index}`,
+      };
+      await memory.remember({
+        extractionStrategy: "rules-only",
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { ...scope, sessionId: "teach" },
+      });
+
+      const exported = await memory.exportMemory({ scope });
+      expect(exported.durable.references).toEqual([]);
+      expect(exported.durable.facts.map(({ content }) => content)).toEqual([expectedFact]);
+    }
+  });
+
+  it("does not persist facts from empty, negated, questioned, or quoted directives", async () => {
+    const fixtures = [
+      {
+        locale: "en-US",
+        sources: [
+          "Remember that;",
+          "Do not remember that project code=Tachikoma",
+          "Do you remember that project code=Tachikoma?",
+          'The manual says "Remember that project code=Tachikoma".',
+        ],
+      },
+      {
+        locale: "fr-FR",
+        sources: [
+          "Souviens-toi ;",
+          "Ne mémorise pas : code projet=Tachikoma",
+          "Vous souvenez-vous que le code projet=Tachikoma ?",
+          "Le manuel dit « Mémorise : code projet=Tachikoma ».",
+        ],
+      },
+      {
+        locale: "es-ES",
+        sources: [
+          "Recuerda;",
+          "No recuerdes: código de proyecto=Tachikoma",
+          "¿Recuerda que el código de proyecto=Tachikoma?",
+          "El manual dice «Recuerda: código de proyecto=Tachikoma».",
+        ],
+      },
+      {
+        locale: "ja-JP",
+        sources: [
+          "覚えておいて；",
+          "これは覚えておかないで：プロジェクトコード=Tachikoma",
+          "何を覚えておいてほしいですか？",
+          "「覚えておいて：プロジェクトコード=Tachikoma」とは言っていません。",
+        ],
+      },
+      {
+        locale: "ko-KR",
+        sources: [
+          "기억해 주세요;",
+          "기억해 주세요가 아니라 삭제해 주세요.",
+          "무엇을 기억해 주세요?",
+          "제가 ‘기억해 주세요: 프로젝트 코드=Tachikoma’라고 말했나요?",
+        ],
+      },
+    ] as const;
+
+    for (const fixture of fixtures) {
+      const memory = createGoodMemory({ storage: { provider: "memory" } });
+      const durableScope = {
+        userId: `u-explicit-negative-${fixture.locale}`,
+        workspaceId: `workspace-explicit-negative-${fixture.locale}`,
+      };
+
+      await memory.remember({
+        extractionStrategy: "rules-only",
+        locale: fixture.locale,
+        messages: fixture.sources.map((content) => ({ role: "user" as const, content })),
+        scope: { ...durableScope, sessionId: "teach" },
+      });
+
+      const exported = await memory.exportMemory({ scope: durableScope });
+      expect(exported.durable.facts).toEqual([]);
+    }
+  });
+
+  it("persists a standalone Spanish negative project-state fact without feedback", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+    const durableScope = {
+      userId: "u-spanish-negative-fact",
+      workspaceId: "workspace-spanish-negative-fact",
+    };
+
+    const result = await memory.remember({
+      extractionStrategy: "rules-only",
+      locale: "es-ES",
+      messages: [{ role: "user", content: "no hay bloqueos" }],
+      scope: { ...durableScope, sessionId: "teach" },
+    });
+    const exported = await memory.exportMemory({ scope: durableScope });
+
+    expect(result.accepted).toBe(1);
+    expect(exported.durable.facts).toEqual([
+      expect.objectContaining({ content: "no hay bloqueos" }),
+    ]);
+    expect(exported.durable.feedback).toEqual([]);
+  });
+
   it("persists Chinese work-location phrasing as location instead of organization", async () => {
     const documentStore = createInMemoryDocumentStore();
     const memory = createGoodMemory({

@@ -126,6 +126,72 @@ export function splitClausesGeneric(content: string): string[] {
   return clauses.length > 0 ? clauses : [content.trim()].filter(Boolean);
 }
 
+export interface ExplicitFactCandidateClause {
+  content: string;
+  disposition: "fact" | "feedback" | "ordinary";
+}
+
+export type ExplicitFactParseResult =
+  | {
+    clauses: ExplicitFactCandidateClause[];
+    status: "complete";
+  }
+  | {
+    clauses: ExplicitFactCandidateClause[];
+    status: "incomplete-counted-list";
+  }
+  | {
+    clauses: ExplicitFactCandidateClause[];
+    status: "invalid";
+  };
+
+export function expandExplicitFactCandidateClauses(
+  content: string,
+  parseExplicitFacts: (
+    value: string,
+  ) => ExplicitFactParseResult | undefined,
+  splitClauses: (value: string) => string[] = splitClausesGeneric,
+): ExplicitFactCandidateClause[] {
+  const expanded: ExplicitFactCandidateClause[] = [];
+  const clauses = splitClauses(content);
+  for (let index = 0; index < clauses.length; index += 1) {
+    let end = index;
+    let parsed = parseExplicitFacts(clauses[index]!);
+    if (parsed === undefined) {
+      expanded.push({ content: clauses[index]!, disposition: "ordinary" });
+      continue;
+    }
+
+    if (parsed.status === "invalid") {
+      continue;
+    }
+
+    while (
+      parsed.status === "incomplete-counted-list" &&
+      end + 1 < clauses.length
+    ) {
+      end += 1;
+      const extended = parseExplicitFacts(
+        clauses.slice(index, end + 1).join("; "),
+      );
+      if (extended === undefined) {
+        break;
+      }
+      parsed = extended;
+    }
+    if (parsed.status === "incomplete-counted-list") {
+      return expanded;
+    }
+    if (parsed.status === "invalid") {
+      index = end;
+      continue;
+    }
+    expanded.push(...parsed.clauses);
+    index = end;
+  }
+  return expanded;
+}
+
 export function createNeutralLanguagePack(): LanguagePack {
   return {
     analyzerVersion: "3",

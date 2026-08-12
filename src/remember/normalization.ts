@@ -1,6 +1,5 @@
 import {
   extractReferencePointer,
-  extractReferencePointers,
   parseReferencePointer,
 } from "../domain/referencePointer";
 import type {
@@ -21,8 +20,113 @@ function basename(pointer: string): string {
   return segments.at(-1) ?? pointer;
 }
 
-function extractCanonicalReferencePointers(value: string | undefined): string[] {
-  return extractReferencePointers(value);
+interface ExplicitOptOutDisposition {
+  canonicalMatch?: MemoryCandidate;
+  optOutFeedback: MemoryCandidate;
+}
+
+function resolveExplicitOptOutDisposition(
+  candidate: MemoryCandidate,
+  sourceMessageContent: string | undefined,
+  languageContext: {
+    language: LanguageService;
+    resolved: ResolvedLanguageContext;
+  } | undefined,
+): ExplicitOptOutDisposition | undefined {
+  if (!sourceMessageContent || !languageContext) {
+    return undefined;
+  }
+
+  let nextId = 0;
+  const extracted = languageContext.language.extractCandidates(
+    {
+      locale: languageContext.resolved.locale,
+      messages: [{
+        content: sourceMessageContent,
+        role: candidate.sourceRole,
+        sourceMessageIndex: 0,
+      }],
+      nextId: () => `opt-out-normalization-${nextId++}`,
+    },
+    languageContext.resolved,
+  );
+  const optOutFeedback = extracted.find((sourceCandidate) =>
+    sourceCandidate.kindHint === "feedback" &&
+    sourceCandidate.metadata?.feedbackKind === "dont"
+  );
+  if (!optOutFeedback) {
+    return undefined;
+  }
+
+  const normalizedCandidateContent = languageContext.language.normalizeForEquality(
+    candidate.content,
+    languageContext.resolved,
+  );
+  const canonicalMatch = extracted.find((sourceCandidate) =>
+    sourceCandidate.kindHint === candidate.kindHint &&
+    languageContext.language.normalizeForEquality(
+      sourceCandidate.content,
+      languageContext.resolved,
+    ) === normalizedCandidateContent
+  );
+  return { canonicalMatch, optOutFeedback };
+}
+
+function normalizeExplicitOptOutCandidate(
+  candidate: MemoryCandidate,
+  sourceMessageContent?: string,
+  languageContext?: {
+    language: LanguageService;
+    resolved: ResolvedLanguageContext;
+  },
+): { candidate: MemoryCandidate; explicitOptOut: boolean } {
+  const disposition = resolveExplicitOptOutDisposition(
+    candidate,
+    sourceMessageContent,
+    languageContext,
+  );
+  if (!disposition) {
+    return { candidate, explicitOptOut: false };
+  }
+
+  if (disposition.canonicalMatch) {
+    return {
+      candidate: disposition.canonicalMatch.kindHint === "feedback" &&
+          disposition.canonicalMatch.metadata?.feedbackKind === "dont"
+        ? {
+          ...candidate,
+          content: disposition.canonicalMatch.content,
+          metadata: {
+            ...candidate.metadata,
+            ...disposition.canonicalMatch.metadata,
+          },
+        }
+        : candidate,
+      explicitOptOut: true,
+    };
+  }
+
+  if (candidate.kindHint === "feedback") {
+    return {
+      candidate: {
+        ...candidate,
+        content: disposition.optOutFeedback.content,
+        metadata: {
+          ...candidate.metadata,
+          ...disposition.optOutFeedback.metadata,
+        },
+      },
+      explicitOptOut: true,
+    };
+  }
+
+  return {
+    candidate: {
+      ...candidate,
+      kindHint: "noise",
+    },
+    explicitOptOut: true,
+  };
 }
 
 interface ProvenSourceOfTruthDirective {
@@ -187,6 +291,12 @@ function normalizeReferenceCandidate(
     sourceMessageContent,
     languageContext,
   );
+  if (
+    candidate.metadata?.referenceKind === "source_of_truth" &&
+    sourceDirective?.currentPointer !== extractCanonicalReferencePointer(rawPointer)
+  ) {
+    return { ...candidate, kindHint: "noise" };
+  }
   const pointer =
     (candidate.metadata?.referenceKind === "source_of_truth"
       ? sourceDirective?.currentPointer
@@ -288,11 +398,21 @@ export function normalizeMemoryCandidate(
     resolved: ResolvedLanguageContext;
   },
 ): MemoryCandidate {
-  const normalizedDirectiveCandidate = normalizeSourceOfTruthDirectiveCandidate(
-    stripUnprovenSupersession(candidate),
+  const optOutNormalization = normalizeExplicitOptOutCandidate(
+    candidate,
     sourceMessageContent,
     languageContext,
   );
+  const strippedCandidate = stripUnprovenSupersession(
+    optOutNormalization.candidate,
+  );
+  const normalizedDirectiveCandidate = optOutNormalization.explicitOptOut
+    ? strippedCandidate
+    : normalizeSourceOfTruthDirectiveCandidate(
+      strippedCandidate,
+      sourceMessageContent,
+      languageContext,
+    );
   const normalizedProfileCandidate = normalizeProfileCandidate(
     normalizedDirectiveCandidate,
     sourceMessageContent,

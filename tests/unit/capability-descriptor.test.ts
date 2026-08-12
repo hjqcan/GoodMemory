@@ -84,10 +84,10 @@ describe("GoodMemory capability descriptor", () => {
     ]);
   });
 
-  it("loads a current LoCoMo claim only for stable from the fixed tracked projection", () => {
+  it("keeps the v0.7.3 LoCoMo claim historical for the v0.7.4 candidate", () => {
     const descriptor = buildGoodMemoryCapabilityDescriptor();
     const { goodmemoryRelease, version } = readPackageJson();
-    if (goodmemoryRelease.status === "release-candidate") {
+    if (goodmemoryRelease.status === "release-candidate" || version !== "0.7.3") {
       expect(descriptor.benchmarks.currentClaims).toEqual([]);
     } else {
       expect(descriptor.benchmarks.currentClaims).toEqual([
@@ -107,8 +107,14 @@ describe("GoodMemory capability descriptor", () => {
       "LoCoMo, BEAM, and MemoryAgentBench",
     );
     expect(descriptor.benchmarks.historicalEvidence.note).toContain(
-      goodmemoryRelease.status === "release-candidate"
-        ? "None is a current 0.7.3 production claim"
+      "LongMemEval is withdrawn and paused",
+    );
+    expect(descriptor.benchmarks.historicalEvidence.note).not.toContain(
+      "LongMemEval and ImplicitMemBench remain internal evidence",
+    );
+    expect(descriptor.benchmarks.historicalEvidence.note).toContain(
+      goodmemoryRelease.status === "release-candidate" || version !== "0.7.3"
+        ? `No benchmark result has been relabeled as measured on v${version}`
         : "The current LoCoMo claim is loaded only from",
     );
     expect(descriptor.canonicalSources.note).toContain(
@@ -116,25 +122,17 @@ describe("GoodMemory capability descriptor", () => {
     );
   });
 
-  it("fails closed when 0.7.3 is marked stable without its tracked claim projection", () => {
-    const projection = new URL(
-      "../../benchmark-claims/evidence/locomo-v0.7.3-current.json",
-      import.meta.url,
-    );
-    if (readFileSync(PACKAGE_JSON_URL, "utf8").includes('"status": "stable"')) {
-      expect(() => buildGoodMemoryCapabilityDescriptor()).not.toThrow();
-      return;
-    }
-    expect(() => buildGoodMemoryCapabilityDescriptor({
+  it("does not relabel the v0.7.3 projection as a current v0.7.4 stable claim", () => {
+    expect(buildGoodMemoryCapabilityDescriptor({
       packageMetadata: {
         goodmemoryRelease: {
           installCommandsApplyAfterPublish: true,
           npmDistTag: "latest",
           status: "stable",
         },
-        version: "0.7.3",
+        version: "0.7.4",
       },
-    })).toThrow(projection.pathname);
+    }).benchmarks.currentClaims).toEqual([]);
   });
 
   it("names four onboarding paths including the Kimi Code plugin", () => {

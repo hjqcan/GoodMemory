@@ -9,6 +9,7 @@ import {
   normalizeFeedbackAppliesTo,
 } from "../domain/records";
 import { createMemorySource } from "../domain/provenance";
+import { hasPersistableSemanticText } from "../domain/semanticText";
 import {
   normalizeScope,
   scopeToKey,
@@ -762,6 +763,16 @@ async function writeFeedbackSignal(input: {
   };
   result: FeedbackResult;
 }> {
+  if (!hasPersistableSemanticText(input.signal)) {
+    return {
+      receipts: {
+        promotionReceipts: [],
+        proposalReceipts: [],
+      },
+      result: { accepted: false },
+    };
+  }
+
   const {
     duplicate,
     kind,

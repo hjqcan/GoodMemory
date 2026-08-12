@@ -350,6 +350,146 @@ describe("agent event ingestion", () => {
     expect(exported.durable.evidence[0]?.excerpt).not.toContain("SECRET");
   });
 
+  it("rejects non-persistable public agent events before policy or persistence", async () => {
+    let policyCalls = 0;
+    const memory = createGoodMemory({
+      storage: { provider: "memory" },
+      policy: {
+        redact(candidate) {
+          policyCalls += 1;
+          return candidate;
+        },
+      },
+    });
+    const scope = {
+      userId: "u-semantic-empty",
+      workspaceId: "workspace-a",
+      sessionId: "s-1",
+    } as const;
+    const invalidTexts = [
+      "\u200B",
+      "\u0000",
+      " \t\n\u2060 ",
+      "visible\u0000text",
+    ];
+
+    for (const [index, text] of invalidTexts.entries()) {
+      const hostResult = await ingestHostAgentEvent(memory, {
+        surface: "host",
+        kind: "tool_result",
+        eventId: `event-empty-host-${index}`,
+        runId: "run-empty",
+        turnId: `turn-host-${index}`,
+        sequence: index,
+        occurredAt: `2026-04-22T00:00:0${index}.000Z`,
+        hostKind: "codex",
+        scope,
+        toolName: "QuickCheck",
+        outcome: "failure",
+        excerpt: text,
+      });
+      const agentResult = await ingestAgentInputEvent(memory, {
+        surface: "ai-sdk",
+        kind: "user_correction",
+        eventId: `event-empty-agent-${index}`,
+        runId: "run-empty",
+        turnId: `turn-agent-${index}`,
+        sequence: index,
+        occurredAt: `2026-04-22T00:00:1${index}.000Z`,
+        hostKind: "generic",
+        scope,
+        correction: text,
+        retrievalProfile: "coding_agent",
+      });
+
+      expect(hostResult).toEqual({
+        recorded: false,
+        skippedReason: "empty_excerpt",
+      });
+      expect(agentResult).toEqual({
+        recorded: false,
+        skippedReason: "empty_excerpt",
+      });
+    }
+
+    const exported = await memory.exportMemory({ scope });
+
+    expect(policyCalls).toBe(0);
+    expect(exported.durable.evidence).toHaveLength(0);
+    expect(exported.durable.experiences).toHaveLength(0);
+    expect(exported.durable.feedback).toHaveLength(0);
+    expect(exported.durable.proposals).toHaveLength(0);
+    expect(exported.durable.promotions).toHaveLength(0);
+  });
+
+  it("rejects public agent events that become semantically empty after redaction", async () => {
+    let shouldRememberCalls = 0;
+    const memory = createGoodMemory({
+      storage: { provider: "memory" },
+      policy: {
+        redact(candidate) {
+          return {
+            ...candidate,
+            content: " \u200B\u0000\u2060 ",
+          };
+        },
+        shouldRemember() {
+          shouldRememberCalls += 1;
+          return true;
+        },
+      },
+    });
+    const scope = {
+      userId: "u-empty-after-redaction",
+      workspaceId: "workspace-a",
+      sessionId: "s-1",
+    } as const;
+
+    const hostResult = await ingestHostAgentEvent(memory, {
+      surface: "host",
+      kind: "tool_result",
+      eventId: "event-redacted-empty-host",
+      runId: "run-empty",
+      turnId: "turn-host",
+      sequence: 0,
+      occurredAt: "2026-04-22T00:00:00.000Z",
+      hostKind: "codex",
+      scope,
+      toolName: "QuickCheck",
+      outcome: "failure",
+      excerpt: "Visible host excerpt",
+    });
+    const agentResult = await ingestAgentInputEvent(memory, {
+      surface: "ai-sdk",
+      kind: "user_correction",
+      eventId: "event-redacted-empty-agent",
+      runId: "run-empty",
+      turnId: "turn-agent",
+      sequence: 1,
+      occurredAt: "2026-04-22T00:00:01.000Z",
+      hostKind: "generic",
+      scope,
+      correction: "Visible correction",
+      retrievalProfile: "coding_agent",
+    });
+    const exported = await memory.exportMemory({ scope });
+
+    expect(hostResult).toEqual({
+      recorded: false,
+      skippedReason: "empty_excerpt",
+    });
+    expect(agentResult).toEqual({
+      recorded: false,
+      skippedReason: "empty_excerpt",
+    });
+    expect(shouldRememberCalls).toBe(0);
+    expect(exported.durable.evidence).toHaveLength(0);
+    expect(exported.durable.experiences).toHaveLength(0);
+    expect(exported.durable.feedback).toHaveLength(0);
+    expect(exported.durable.proposals).toHaveLength(0);
+    expect(exported.durable.promotions).toHaveLength(0);
+  });
+
   it("bounds durable experience summaries so large host payloads do not become transcript dumps", async () => {
     const memory = createGoodMemory({
       storage: { provider: "memory" },

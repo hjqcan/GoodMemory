@@ -11,6 +11,7 @@ import type {
 } from "./contracts";
 import type { BehavioralRulePatterns } from "./packHelpers";
 import {
+  expandExplicitFactCandidateClauses,
   normalizeUnicodeForEquality,
   splitClausesGeneric,
   tokenizeUnicodeText,
@@ -38,13 +39,22 @@ export interface RomanceWordDate {
 }
 
 export interface RomanceCandidatePatterns {
+  assignmentConfirmation: RegExp;
   explicitFact: RegExp;
+  explicitFactPrefix: RegExp;
   feedback: RegExp;
+  optOut: RegExp;
+  optOutClauseBoundary: RegExp;
+  bareQuestionValue: RegExp;
+  postposedQuestionValue: RegExp;
   goal: RegExp;
   inferredFact: RegExp;
+  literalQuestionValue: RegExp;
+  standaloneFact?: RegExp;
   name: RegExp;
   preference: RegExp;
   role: RegExp;
+  unpunctuatedQuestion: RegExp;
 }
 
 export interface RomancePackDefinition {
@@ -77,6 +87,170 @@ function unique(values: readonly string[]): string[] {
 
 function cleanCapturedValue(value: string): string {
   return value.trim().replace(/[.!?。！？…]+$/u, "").trim();
+}
+
+function hasSemanticContent(value: string): boolean {
+  return /[\p{L}\p{N}]/u.test(value);
+}
+
+function extractRomanceOptOutTarget(
+  content: string,
+  optOutPattern: RegExp,
+): string {
+  return content
+    .replace(optOutPattern, "")
+    .replace(/^\s*(?:que\b\s*)?[:：,]?\s*/iu, "")
+    .trim();
+}
+
+const ROMANCE_QUESTION_CLAUSE_PATTERN =
+  /^(?:¿\s*)?(?:quel(?:le|les|s)?|qui|où|quand|pourquoi|comment|combien|est-ce|qu['’]est-ce|qué|cuál(?:es)?|quién(?:es)?|dónde|cuándo|por\s+qué|cómo|cuánto)(?=$|[^\p{L}\p{N}])/iu;
+const ROMANCE_FACT_COUNT_PATTERN =
+  /^\s*(?:s['’]il\s+(?:te|vous)\s+plaît|por\s+favor)?\s*,?\s*(?:souviens-toi|rappelez-vous|mémorise|recuerda|recuérdalo|memoriza)\s+(?:de\s+|d['’])?(un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|\d+)\s+(?:choses?|cosas?)\b/iu;
+
+function romanceFactCount(content: string): number {
+  const token = content.match(ROMANCE_FACT_COUNT_PATTERN)?.[1]?.toLowerCase();
+  if (!token) {
+    return 1;
+  }
+  const numeric = Number(token);
+  if (Number.isInteger(numeric) && numeric >= 0) {
+    return numeric;
+  }
+  const counts: Readonly<Record<string, number>> = {
+    cinq: 5,
+    cinco: 5,
+    cuatro: 4,
+    deux: 2,
+    diez: 10,
+    dix: 10,
+    dos: 2,
+    huit: 8,
+    neuf: 9,
+    nueve: 9,
+    ocho: 8,
+    quatre: 4,
+    seis: 6,
+    sept: 7,
+    siete: 7,
+    six: 6,
+    tres: 3,
+    trois: 3,
+    un: 1,
+    una: 1,
+    une: 1,
+    uno: 1,
+  };
+  return counts[token] ?? 1;
+}
+
+function isRomanceExplicitFactQuestion(
+  content: string,
+  source: string,
+  definition: RomancePackDefinition,
+): boolean {
+  const assignmentIndex = content.search(/[=＝]/u);
+  if (assignmentIndex >= 0) {
+    const left = content.slice(0, assignmentIndex).trim();
+    const right = content.slice(assignmentIndex + 1).trim();
+    if (ROMANCE_QUESTION_CLAUSE_PATTERN.test(left)) {
+      return true;
+    }
+    if (/[?？]\s*$/u.test(source)) {
+      if (definition.candidatePatterns.assignmentConfirmation.test(right)) {
+        return true;
+      }
+      if (definition.candidatePatterns.postposedQuestionValue.test(right)) {
+        return true;
+      }
+      return !definition.candidatePatterns.literalQuestionValue.test(right) ||
+        definition.candidatePatterns.bareQuestionValue.test(right);
+    }
+    return false;
+  }
+
+  return /[?？]\s*$/u.test(source) ||
+    definition.candidatePatterns.unpunctuatedQuestion.test(content) ||
+    ROMANCE_QUESTION_CLAUSE_PATTERN.test(content);
+}
+
+function splitRomanceClauses(
+  text: string,
+  definition: RomancePackDefinition,
+): string[] {
+  return splitClausesGeneric(text)
+    .flatMap((clause) =>
+      definition.candidatePatterns.optOut.test(clause.trim())
+        ? [clause]
+        : clause.split(definition.candidatePatterns.optOutClauseBoundary)
+    )
+    .map((clause) => clause.trim())
+    .filter(Boolean);
+}
+
+function extractExplicitFactClauses(
+  content: string,
+  definition: RomancePackDefinition,
+) {
+  const trimmed = content.trim();
+  if (definition.candidatePatterns.optOut.test(trimmed)) {
+    return {
+      clauses: [{ content: trimmed, disposition: "feedback" as const }],
+      status: "complete" as const,
+    };
+  }
+
+  const match = content.match(definition.candidatePatterns.explicitFact);
+  if (!match) {
+    return definition.candidatePatterns.explicitFactPrefix.test(content)
+      ? { clauses: [], status: "invalid" as const }
+      : undefined;
+  }
+
+  const expectedFactCount = romanceFactCount(content);
+  const payload = match.slice(1).find((value) => value !== undefined) ?? "";
+  if (/^[\s:：,]*[?？]/u.test(payload)) {
+    return { clauses: [], status: "invalid" as const };
+  }
+  const clauses = splitRomanceClauses(payload, definition)
+    .map((source) => ({
+      content: source
+        .trim()
+        .replace(/^[\s:：,，;；.!?。！？…]+/u, "")
+        .replace(/[\s:：,，;；.!?。！？…]+$/u, "")
+        .trim(),
+      source,
+    }))
+    .filter(({ content: clause }) => hasSemanticContent(clause));
+  if (clauses.length < expectedFactCount) {
+    return ROMANCE_FACT_COUNT_PATTERN.test(content)
+      ? {
+        clauses: clauses.map(({ content: clause }) => ({
+          content: clause,
+          disposition: definition.candidatePatterns.optOut.test(clause)
+            ? "feedback" as const
+            : "fact" as const,
+        })),
+        status: "incomplete-counted-list" as const,
+      }
+      : { clauses: [], status: "invalid" as const };
+  }
+  if (clauses.some(({ content: clause, source }) =>
+    !definition.candidatePatterns.optOut.test(clause) &&
+    isRomanceExplicitFactQuestion(clause, source, definition)
+  )) {
+    return { clauses: [], status: "invalid" as const };
+  }
+
+  return {
+    clauses: clauses.slice(0, expectedFactCount).map(({ content: clause }) => ({
+      content: clause,
+      disposition: definition.candidatePatterns.optOut.test(clause)
+        ? "feedback" as const
+        : "fact" as const,
+    })),
+    status: "complete" as const,
+  };
 }
 
 function factKind(analysis: LanguageContentAnalysis): FactKind {
@@ -245,22 +419,61 @@ function extractRomanceCandidates(
   for (const [messageIndex, message] of input.messages.entries()) {
     if (message.role !== "user") continue;
     const sourceMessageIndex = message.sourceMessageIndex ?? messageIndex;
-    const clauses = splitClausesGeneric(message.content);
+    const clauses = expandExplicitFactCandidateClauses(
+      message.content,
+      (content) => extractExplicitFactClauses(content, definition),
+      (content) => splitRomanceClauses(content, definition),
+    );
     const sourceAnalysis = message.analysis ??
       definition.analyzeContent(message.content);
-    const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
-      analysis: sourceAnalysis,
-      nextId: input.nextId,
-      sourceMessageIndex,
-    });
-    if (sourceOfTruthReference) {
-      candidates.push(sourceOfTruthReference);
-    }
-    const messageAnalysis = clauses.length === 1 ? sourceAnalysis : undefined;
     for (const clause of clauses) {
-      const content = clause.trim();
+      const content = clause.content.trim();
+      const clauseAnalysis = clauses.length === 1 && clause.content === message.content
+        ? sourceAnalysis
+        : definition.analyzeContent(content);
+      const isFeedback = clause.disposition === "feedback" ||
+        (clause.disposition === "ordinary" &&
+          definition.candidatePatterns.feedback.test(content));
+      if (isFeedback) {
+        pushCandidate(candidates, {
+          content,
+          explicitness: "explicit",
+          id: input.nextId(),
+          kindHint: "feedback",
+          metadata: {
+            appliesTo: "general_response",
+            feedbackKind: clause.disposition === "feedback"
+              ? "dont"
+              : clauseAnalysis.feedbackKind,
+            ...(clause.disposition === "feedback"
+              ? {
+                optOutTarget: extractRomanceOptOutTarget(
+                  content,
+                  definition.candidatePatterns.optOut,
+                ),
+              }
+              : {}),
+          },
+          sourceMessageIndex,
+          sourceRole: "user",
+        });
+        continue;
+      }
+      const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
+        analysis: clauseAnalysis,
+        nextId: input.nextId,
+        sourceMessageIndex,
+      });
+      if (sourceOfTruthReference) {
+        candidates.push(sourceOfTruthReference);
+      }
+      let hasTypedCandidate = Boolean(
+        sourceOfTruthReference &&
+          clauseAnalysis.sourceOfTruthDirective?.currentPointer,
+      );
       const name = content.match(definition.candidatePatterns.name)?.[1];
       if (name) {
+        hasTypedCandidate = true;
         pushCandidate(candidates, {
           content: cleanCapturedValue(name),
           explicitness: "explicit",
@@ -274,6 +487,7 @@ function extractRomanceCandidates(
 
       const role = content.match(definition.candidatePatterns.role)?.[1];
       if (role) {
+        hasTypedCandidate = true;
         pushCandidate(candidates, {
           content: cleanCapturedValue(role),
           explicitness: "explicit",
@@ -289,6 +503,7 @@ function extractRomanceCandidates(
         definition.candidatePatterns.preference,
       )?.[1];
       if (preference) {
+        hasTypedCandidate = true;
         const preferenceValue = cleanCapturedValue(preference);
         pushCandidate(candidates, {
           content: preferenceValue,
@@ -306,6 +521,7 @@ function extractRomanceCandidates(
 
       const goal = content.match(definition.candidatePatterns.goal)?.[1];
       if (goal) {
+        hasTypedCandidate = true;
         pushCandidate(candidates, {
           content: cleanCapturedValue(goal),
           explicitness: "explicit",
@@ -321,18 +537,20 @@ function extractRomanceCandidates(
         });
       }
 
-      const explicitFact = content.match(
-        definition.candidatePatterns.explicitFact,
-      )?.[1];
+      const standaloneFact =
+        definition.candidatePatterns.standaloneFact?.test(content) === true;
+      const explicitFact = clause.disposition === "fact" || standaloneFact
+        ? content
+        : undefined;
       const inferredFact = !sourceOfTruthReference && !explicitFact &&
+        !isFeedback &&
         content.length >= 16 &&
         definition.candidatePatterns.inferredFact.test(content)
         ? content
         : undefined;
       const fact = explicitFact ?? inferredFact;
-      if (fact) {
+      if (fact && !(explicitFact && hasTypedCandidate)) {
         const factContent = cleanCapturedValue(fact);
-        const analysis = messageAnalysis ?? definition.analyzeContent(factContent);
         pushCandidate(candidates, {
           content: factContent,
           explicitness: explicitFact ? "explicit" : "inferred",
@@ -340,7 +558,7 @@ function extractRomanceCandidates(
           kindHint: "fact",
           metadata: {
             category: "project",
-            factKind: factKind(analysis),
+            factKind: factKind(clauseAnalysis),
             scopeKind: "project",
           },
           sourceMessageIndex,
@@ -348,21 +566,6 @@ function extractRomanceCandidates(
         });
       }
 
-      if (definition.candidatePatterns.feedback.test(content)) {
-        pushCandidate(candidates, {
-          content,
-          explicitness: "explicit",
-          id: input.nextId(),
-          kindHint: "feedback",
-          metadata: {
-            appliesTo: "general_response",
-            feedbackKind: messageAnalysis?.feedbackKind ??
-              definition.analyzeContent(content).feedbackKind,
-          },
-          sourceMessageIndex,
-          sourceRole: "user",
-        });
-      }
     }
   }
   return candidates;
@@ -397,7 +600,9 @@ export function createRomanceLanguagePack(
         ),
       );
     },
-    splitClauses: splitClausesGeneric,
+    splitClauses(text) {
+      return splitRomanceClauses(text, definition);
+    },
     splitSentences: splitSentencesGeneric,
     decomposeQuery(text) {
       return decomposeQueryByPattern(text, definition.decompositionBoundary);

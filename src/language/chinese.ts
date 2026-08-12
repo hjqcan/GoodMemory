@@ -13,6 +13,7 @@ import type {
   MemoryScopeKind,
 } from "../domain/records";
 import {
+  expandExplicitFactCandidateClauses,
   splitClausesGeneric,
 } from "./generic";
 import {
@@ -122,6 +123,32 @@ const PROJECT_ACTIVITY_PATTERN =
 const RELATION_RELOCATION_PATTERN =
   /我的(?:朋友|表亲|堂亲|阿姨|叔叔|姐妹|兄弟|伴侣|同事)\s*([^，。！？；]+?)\s*(?:最近|刚刚|刚)?搬(?:回|到|去)?了?\s*([^，。！？；]+?)(?=，|。|！|？|；|$)/u;
 const USER_IDENTITY_PATTERN = /^作为\s*([^，。！？；]+?)用户(?:，|,)/u;
+const EXPLICIT_FACT_DIRECTIVE_PATTERN =
+  /^(?:(?:(?:请|請)(?:你|帮我|幫我)?|(?:麻烦|麻煩)你)?(?:记住|記住)|有个事实(?:是)?|有個事實(?:是)?)/u;
+const COUNTED_FACT_LIST_PATTERN =
+  /^(?:(?:以下|这|這)\s*)?([一二两兩三四五六七八九十\d]+)件事(?:是)?(?=[：:,，\s]|$)/u;
+const COUNTED_FACT_ASSIGNMENT_PATTERN =
+  /^(?!(?:请|請|不要|别|別))[\p{L}\p{N}_.-]{1,40}\s*[=＝]\s*\S(?:.*\S)?$/u;
+const COUNTED_FACT_QUESTION_PATTERN =
+  /(?:什么|什麼|谁|誰|哪个|哪個|哪些|哪里|哪裡|哪儿|哪兒|多少|几个|幾個|几项|幾項|是否|是不是|有没有|有沒有|怎么|怎麼|为何|為何|为什么|為什麼|能否|可否|(?:吗|嗎|呢)$)/u;
+const COUNTED_FACT_LITERAL_QUESTION_VALUE_PATTERN =
+  /(?:什么|什麼|谁|誰|哪个|哪個|哪些|哪里|哪裡|哪儿|哪兒|多少|几个|幾個|几项|幾項|是否|是不是|有没有|有沒有|怎么|怎麼|为何|為何|为什么|為什麼|能否|可否)/u;
+const COUNTED_FACT_BARE_QUESTION_VALUE_PATTERN =
+  /^(?:什么|什麼|谁|誰|哪个|哪個|哪些|哪里|哪裡|哪儿|哪兒|多少|几个|幾個|几项|幾項|是否|是不是|有没有|有沒有|怎么|怎麼|为何|為何|为什么|為什麼|能否|可否)(?:呢|啊|呀)?$/u;
+const COUNTED_FACT_POSTPOSED_QUESTION_VALUE_PATTERN =
+  /[，,、]\s*(?:什么|什麼|谁|誰|哪个|哪個|哪些|哪里|哪裡|哪儿|哪兒|多少|几个|幾個|几项|幾項|是否|是不是|有没有|有沒有|怎么|怎麼|为何|為何|为什么|為什麼|能否|可否)(?:呢|啊|呀)?$/u;
+const COUNTED_FACT_CONFIRMATION_PATTERN =
+  /(?:正确|正確|对|對|没错|沒錯|可用|能用|能上线|能上線)(?:吗|嗎|么|麼)?\s*$/u;
+const COUNTED_FACT_CONFIRMATION_QUESTION_PATTERN =
+  /(?:是否|是不是|有没有|有沒有|能否|可否)|(?:吗|嗎|么|麼)\s*$/u;
+const COUNTED_FACT_A_NOT_A_QUESTION_PATTERN =
+  /(?:对不对|對不對|正确不正确|正確不正確|能不能(?:用|上线|上線)?|可不可以(?:用|上线|上線)?|可不可(?:用|上线|上線)?)\s*$/u;
+const COUNTED_FIRST_PERSON_ASSERTION_PATTERN =
+  /^我(?:(?:的[^，。！？；]+(?:是|为|為))|(?:最|更)?(?:喜欢|喜歡|偏好)|(?:叫|是))/u;
+const EXPLICIT_FACT_OPT_OUT_PATTERN =
+  /^(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你)?)\s*)?(?:不要|别|別)(?:再)?(?:记住|記住|保存|存储|儲存|记录|記錄)/u;
+const EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN =
+  /(?:[，,]\s*|(?:而且|并且|並且|以及|和|但(?:是)?|不过|不過)\s*)(?=(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你)?)\s*)?(?:不要|别|別)(?:再)?(?:记住|記住|保存|存储|儲存|记录|記錄))/u;
 const ORGANIZATION_SUFFIX_PATTERN =
   /(公司|集团|大学|学院|学校|医院|实验室|研究院|研究所|工作室|事务所|委员会|基金会|机构|平台|团队|部门|银行|媒体|出版社|中心)$/u;
 const LOCATION_SUFFIX_PATTERN =
@@ -156,6 +183,198 @@ const COMMON_LOCATION_NAMES = new Set([
 
 function cleanValue(value: string): string {
   return value.trim().replace(/[，。！？；,.!?;]+$/u, "").trim();
+}
+
+function stripExplicitFactHeaders(value: string): {
+  content: string;
+  expectedFactCount: number | undefined;
+  hasCountedList: boolean;
+  hasDirective: boolean;
+} | undefined {
+  let content = value.trim();
+  let hasCountedList = false;
+  let hasDirective = false;
+  let expectedFactCount: number | undefined = 1;
+
+  while (content.length > 0) {
+    const directive = content.match(EXPLICIT_FACT_DIRECTIVE_PATTERN);
+    const countedList = directive
+      ? null
+      : content.match(COUNTED_FACT_LIST_PATTERN);
+    const header = directive ?? countedList;
+    if (!header) {
+      break;
+    }
+
+    hasDirective ||= directive !== null;
+    hasCountedList ||= countedList !== null;
+    if (countedList?.[1]) {
+      expectedFactCount = parseChineseFactCount(countedList[1]);
+    }
+    content = content.slice(header[0].length).trimStart();
+  }
+
+  return hasDirective || hasCountedList
+    ? {
+      content: content.replace(/^[：:,，\s]+/u, ""),
+      expectedFactCount,
+      hasCountedList,
+      hasDirective,
+    }
+    : undefined;
+}
+
+function parseChineseFactCount(value: string): number | undefined {
+  const numeric = Number(value);
+  if (Number.isInteger(numeric) && numeric >= 0) {
+    return numeric;
+  }
+  const counts: Readonly<Record<string, number>> = {
+    一: 1,
+    二: 2,
+    两: 2,
+    兩: 2,
+    三: 3,
+    四: 4,
+    五: 5,
+    六: 6,
+    七: 7,
+    八: 8,
+    九: 9,
+    十: 10,
+  };
+  return counts[value];
+}
+
+function cleanExplicitFactContent(value: string): string {
+  const withoutLeadingPunctuation = value.replace(/^[：:,，\s]+/u, "");
+  const withoutCountedList = stripExplicitFactHeaders(withoutLeadingPunctuation)?.content ??
+    withoutLeadingPunctuation;
+  return cleanValue(withoutCountedList);
+}
+
+function extractChineseOptOutTarget(content: string): string {
+  return content
+    .replace(EXPLICIT_FACT_OPT_OUT_PATTERN, "")
+    .replace(/^[：:,，\s]+/u, "")
+    .trim();
+}
+
+function splitChineseClauses(text: string): string[] {
+  return splitClausesGeneric(text)
+    .flatMap((clause) =>
+      EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
+        ? [clause]
+        : clause.split(EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN)
+    )
+    .map((clause) => clause.trim())
+    .filter(Boolean);
+}
+
+function looksLikeCountedFactAssertion(content: string): boolean {
+  return COUNTED_FACT_ASSIGNMENT_PATTERN.test(content) ||
+    (!COUNTED_FACT_QUESTION_PATTERN.test(content) &&
+      COUNTED_FIRST_PERSON_ASSERTION_PATTERN.test(content));
+}
+
+function isChineseExplicitFactQuestion(
+  content: string,
+  source: string,
+): boolean {
+  const assignmentIndex = content.search(/[=＝]/u);
+  if (assignmentIndex >= 0) {
+    const left = content.slice(0, assignmentIndex).trim();
+    const right = content.slice(assignmentIndex + 1).trim();
+    if (COUNTED_FACT_QUESTION_PATTERN.test(left)) {
+      return true;
+    }
+    const assignmentConfirmation =
+      COUNTED_FACT_A_NOT_A_QUESTION_PATTERN.test(right) ||
+      (COUNTED_FACT_CONFIRMATION_PATTERN.test(right) &&
+        COUNTED_FACT_CONFIRMATION_QUESTION_PATTERN.test(right));
+    if (assignmentConfirmation) {
+      return true;
+    }
+    if (COUNTED_FACT_POSTPOSED_QUESTION_VALUE_PATTERN.test(right)) {
+      return true;
+    }
+    if (/[?？]\s*$/u.test(source)) {
+      return !COUNTED_FACT_LITERAL_QUESTION_VALUE_PATTERN.test(right) ||
+        COUNTED_FACT_BARE_QUESTION_VALUE_PATTERN.test(right);
+    }
+    return false;
+  }
+
+  return /[?？]\s*$/u.test(source) ||
+    COUNTED_FACT_QUESTION_PATTERN.test(content);
+}
+
+function extractExplicitFactClauses(content: string) {
+  const trimmed = content.trim();
+  if (EXPLICIT_FACT_OPT_OUT_PATTERN.test(trimmed)) {
+    return {
+      clauses: [{ content: trimmed, disposition: "feedback" as const }],
+      status: "complete" as const,
+    };
+  }
+
+  const headers = stripExplicitFactHeaders(content);
+  if (!headers) {
+    return undefined;
+  }
+
+  if (headers.expectedFactCount === undefined) {
+    return { clauses: [], status: "invalid" as const };
+  }
+
+  const clauses = splitChineseClauses(headers.content)
+    .map((source) => ({
+      content: cleanExplicitFactContent(source),
+      source,
+    }))
+    .filter(({ content: clause }) => clause.length > 0);
+
+  if (clauses.length < headers.expectedFactCount) {
+    return headers.hasCountedList
+      ? {
+        clauses: clauses.map(({ content: clause }) => ({
+          content: clause,
+          disposition: EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause)
+            ? "feedback" as const
+            : "fact" as const,
+        })),
+        status: "incomplete-counted-list" as const,
+      }
+      : { clauses: [], status: "invalid" as const };
+  }
+  if (clauses.some(({ content: clause, source }) =>
+    !EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause) &&
+    isChineseExplicitFactQuestion(clause, source)
+  )) {
+    return { clauses: [], status: "invalid" as const };
+  }
+
+  if (
+    !headers.hasDirective &&
+    (
+      !headers.hasCountedList ||
+      clauses.some(({ content: clause }) => !looksLikeCountedFactAssertion(clause))
+    )
+  ) {
+    return { clauses: [], status: "invalid" as const };
+  }
+
+  return {
+    clauses: clauses
+      .slice(0, headers.expectedFactCount)
+      .map(({ content: clause }) => ({
+        content: clause,
+        disposition: EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause)
+          ? "feedback" as const
+          : "fact" as const,
+      })),
+    status: "complete" as const,
+  };
 }
 
 function normalizeChineseUndergradSubject(value: string | undefined): string {
@@ -512,10 +731,26 @@ function maybeExtractCandidatesFromClause(
   index: number,
   nextId: () => string,
   analysis?: LanguageContentAnalysis,
+  explicitFact = false,
 ): MemoryCandidate[] {
   const trimmed = content.trim();
   if (!trimmed) {
     return [];
+  }
+
+  if (EXPLICIT_FACT_OPT_OUT_PATTERN.test(trimmed)) {
+    return [{
+      content: trimmed,
+      explicitness: "explicit",
+      id: nextId(),
+      kindHint: "feedback",
+      metadata: {
+        appliesTo: "general_response",
+        feedbackKind: analysis?.feedbackKind,
+      },
+      sourceMessageIndex: index,
+      sourceRole: "user",
+    }];
   }
 
   const candidates: MemoryCandidate[] = [];
@@ -844,12 +1079,16 @@ function maybeExtractCandidatesFromClause(
     );
   }
 
-  const explicitFactMatch = trimmed.match(
-    /(?:请记住|請記住|记住|記住|有个事实(?:是)?|有個事實(?:是)?)(.+)/u,
-  );
-  if (explicitFactMatch?.[1]) {
-    const factContent = cleanValue(explicitFactMatch[1]);
-    if (!shouldSkipExplicitFactForProfileLikeClause(factContent, candidates)) {
+  const preferenceMatch = trimmed.match(/我(?:更)?(?:喜欢|偏好)\s*([^，。！？；]+)/u);
+  const explicitFactMatch = explicitFact ? trimmed : undefined;
+  if (explicitFactMatch !== undefined) {
+    const factContent = cleanExplicitFactContent(explicitFactMatch);
+    if (
+      factContent.length > 0 &&
+      !preferenceMatch &&
+      !candidates.some(({ kindHint }) => kindHint === "fact") &&
+      !shouldSkipExplicitFactForProfileLikeClause(factContent, candidates)
+    ) {
       candidates.push({
         id: nextId(),
         kindHint: "fact",
@@ -864,7 +1103,6 @@ function maybeExtractCandidatesFromClause(
     }
   }
 
-  const preferenceMatch = trimmed.match(/我(?:更)?(?:喜欢|偏好)\s*([^，。！？；]+)/u);
   if (preferenceMatch?.[1]) {
     const preferenceValue = cleanValue(preferenceMatch[1]);
     candidates.push({
@@ -931,7 +1169,7 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
       return detectChinese(texts, script);
     },
     splitClauses(text: string): string[] {
-      return splitClausesGeneric(text);
+      return splitChineseClauses(text);
     },
     normalizeForEquality(text: string): string {
       return normalizeChineseForEquality(text);
@@ -987,22 +1225,46 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
         const sourceMessageIndex = message.sourceMessageIndex ?? index;
         const sourceAnalysis = message.analysis ??
           analyzeChineseContent(message.content);
-        const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
-          analysis: sourceAnalysis,
-          nextId: input.nextId,
-          sourceMessageIndex,
-          subject: extractReferenceSubject(message.content) ?? "unknown",
-        });
-        if (sourceOfTruthReference) {
-          candidates.push(sourceOfTruthReference);
-        }
-        const clauses = splitClausesGeneric(message.content);
+        const clauses = expandExplicitFactCandidateClauses(
+          message.content,
+          extractExplicitFactClauses,
+          splitChineseClauses,
+        );
         for (const clause of clauses) {
+          const clauseAnalysis = clauses.length === 1 && clause.content === message.content
+            ? sourceAnalysis
+            : analyzeChineseContent(clause.content);
+          if (clause.disposition === "feedback") {
+            candidates.push({
+              id: input.nextId(),
+              kindHint: "feedback",
+              explicitness: "explicit",
+              content: clause.content.trim(),
+              sourceMessageIndex,
+              sourceRole: "user",
+              metadata: {
+                feedbackKind: "dont",
+                optOutTarget: extractChineseOptOutTarget(clause.content),
+                appliesTo: "general_response",
+              },
+            });
+            continue;
+          }
+          const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
+            analysis: clauseAnalysis,
+            nextId: input.nextId,
+            sourceMessageIndex,
+            subject: extractReferenceSubject(clause.content) ?? "unknown",
+          });
+          if (sourceOfTruthReference) {
+            candidates.push(sourceOfTruthReference);
+          }
           const clauseCandidates = maybeExtractCandidatesFromClause(
-            clause,
+            clause.content,
             sourceMessageIndex,
             input.nextId,
-            clauses.length === 1 ? sourceAnalysis : undefined,
+            clauseAnalysis,
+            clause.disposition === "fact",
           );
           candidates.push(...(sourceOfTruthReference
             ? clauseCandidates.filter(

@@ -370,7 +370,7 @@ const SPANISH_MONTHS = [
 ] as const;
 
 const DEFINITION = {
-  analyzerVersion: "4",
+  analyzerVersion: "5-explicit-fact-list-boundary",
   behavioralRulePatterns: {
     firstAction: [
       /(?:primero|en\s+primer\s+lugar)\s+([A-Za-z_][A-Za-z0-9_@.-]*)/iu,
@@ -439,15 +439,32 @@ const DEFINITION = {
       /\b(?:el\s+)?(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+de\s+(\d{4})\b/iu,
   },
   candidatePatterns: {
+    assignmentConfirmation:
+      /\b(?:es|parece)\s+(?:correct[oa]|ciert[oa]|exact[oa])\s*$/iu,
+    bareQuestionValue:
+      /^(?:¿\s*)?(?:qué|cuál(?:es)?|quién(?:es)?|dónde|cuándo|por\s+qué|cómo|cuánto)$/iu,
     explicitFact:
-      /\b(?:recuerda|recuérdalo|memoriza)(?:\s+que)?\s*[:：,]?\s*(.+)$/iu,
-    feedback: /^(?:no\b|nunca\b|siempre\b|evita\b|prioriza\b)/iu,
+      /^\s*(?:por\s+favor\s*,?\s*)?(?:recuerda|recuérdalo|memoriza)(?:\s+(?:una?|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|\d+)\s+cosas?\s*[:：,]\s*(.+)|\s+que\s+(.+)|\s*[:：,]\s*(.+)|\s+(?!(?:que|(?:una?|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|\d+)\s+cosas?)\s*[:：,]?\s*$)(.+))$/isu,
+    explicitFactPrefix:
+      /^\s*(?:por\s+favor\s*,?\s*)?(?:recuerda|recuérdalo|memoriza)\b/iu,
+    feedback: /^(?:nunca\b|siempre\b|evita\b|prioriza\b)/iu,
+    optOut:
+      /^(?:por\s+favor\s*,?\s*)?(?:no\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?)|nunca\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?))\b/iu,
+    optOutClauseBoundary:
+      /(?:,\s*|^(?:y|pero)\s+|\s+(?:y|pero)\s+)(?=(?:por\s+favor\s*,?\s*)?(?:no\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?)|nunca\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?))\b)/iu,
+    postposedQuestionValue:
+      /[,，、]\s*(?:qué|cuál(?:es)?|quién(?:es)?|dónde|cuándo|por\s+qué|cómo|cuánto)$/iu,
     goal: /\b(?:mi objetivo actual|mi prioridad actual|mi objetivo principal)\s+es\s+([^.!?]+)/iu,
     inferredFact:
       /\b(?:proyecto|migración|despliegue|publicación|bloqueo|bloqueado|validación|próximo paso|pendiente)\b/iu,
+    literalQuestionValue:
+      /(?:qué|cuál(?:es)?|quién(?:es)?|dónde|cuándo|por\s+qué|cómo|cuánto)/iu,
+    standaloneFact: /^\s*no\s+hay\s+bloqueos?[.!]?\s*$/iu,
     name: /\b(?:me llamo|mi nombre es)\s+([\p{L}\p{M}'’.-]+(?:\s+[\p{L}\p{M}'’.-]+){0,3})/iu,
     preference: /\b(?:prefiero|mi preferencia es)\s+([^.!?]+)/iu,
     role: /\b(?:mi rol actual es|mi función actual es|mi puesto actual es)\s+([^.!?]+)/iu,
+    unpunctuatedQuestion:
+      /\b(?:es|son|era|eran)\s+(?:qué|cuál(?:es)?|quién(?:es)?|dónde|cuándo|por\s+qué|cómo|cuánto)$/iu,
   },
   renderCatalog: SPANISH_RENDER_CATALOG,
 } as const satisfies RomancePackDefinition;

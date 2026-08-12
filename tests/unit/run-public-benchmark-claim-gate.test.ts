@@ -64,6 +64,40 @@ function historicalProjectionAssertions(benchmark = "LongMemEval") {
   ];
 }
 
+function currentClaimProjection(
+  benchmark = "LoCoMo",
+  packageVersion = "0.3.5",
+): Record<string, unknown> {
+  return {
+    artifactKind: "tracked-current-claim-projection",
+    benchmark,
+    claim: { officialScore: 0.8, packageVersion },
+    generatedBy: "scripts/run-current-claim.ts",
+    runIdentity: { commit: FULL_COMMIT },
+    schemaVersion: 1,
+    sourceArtifacts: [{
+      bytes: 610477,
+      path: "reports/eval/current/report.json",
+      sha256: SOURCE_SHA256,
+    }],
+  };
+}
+
+function currentClaimProjectionAssertions(
+  benchmark = "LoCoMo",
+  packageVersion = "0.3.5",
+) {
+  return [
+    { equals: "tracked-current-claim-projection", path: ["artifactKind"] },
+    { equals: benchmark, path: ["benchmark"] },
+    { equals: "scripts/run-current-claim.ts", path: ["generatedBy"] },
+    { equals: 1, path: ["schemaVersion"] },
+    { equals: FULL_COMMIT, path: ["runIdentity", "commit"] },
+    { equals: packageVersion, path: ["claim", "packageVersion"] },
+    { equals: 0.8, path: ["claim", "officialScore"] },
+  ];
+}
+
 function cleanReport(overrides: Partial<BenchmarkClaimReport> = {}): BenchmarkClaimReport {
   return {
     benchmark: "Example",
@@ -115,9 +149,9 @@ function candidateWithHistoricalProjection(): BenchmarkClaimReport {
       evidence: {
         artifacts: [
           {
-            assertions: [{ equals: true, path: ["ok"] }],
-            description: "current v0.7.3 evidence",
-            path: "reports/current-locomo.json",
+            assertions: currentClaimProjectionAssertions(),
+            description: "tracked current evidence",
+            path: "benchmark-claims/evidence/locomo-current.json",
           },
           {
             assertions: historicalProjectionAssertions("LoCoMo"),
@@ -562,6 +596,151 @@ describe("claim gate report", () => {
     expect(report.publicClaimable).toEqual([]);
   });
 
+  it("keeps an earlier-package claim historical only when its original full verdict passes", () => {
+    const candidate = candidateWithHistoricalProjection();
+    const historical = buildClaimGateReport(
+      [{ file: "locomo.json", value: candidate }],
+      "2026-08-12T00:00:00Z",
+      [],
+      new Map([["locomo.json", []]]),
+      "0.7.4",
+    );
+    expect(historical.entries[0]).toEqual(expect.objectContaining({
+      computedPublicClaimAllowed: false,
+      consistent: true,
+      historicalReadmeRequiredFragments: ["current-0.9000"],
+    }));
+    expect(historical.historicalEvidence).toEqual(["LoCoMo"]);
+    expect(historical.summary.overClaiming).toBe(0);
+
+    const methodologicallyInvalid = {
+      ...candidate,
+      model: {
+        answerModel: "same-model",
+        judgeModel: "same-model",
+        sameModelJudge: true,
+      },
+    };
+    const blocked = buildClaimGateReport(
+      [{ file: "locomo.json", value: methodologicallyInvalid }],
+      "2026-08-12T00:00:00Z",
+      [],
+      new Map(),
+      "0.7.4",
+    );
+    expect(blocked.entries[0]?.consistent).toBe(false);
+    expect(blocked.historicalEvidence).toEqual([]);
+    expect(blocked.summary.overClaiming).toBe(1);
+
+    const tampered = buildClaimGateReport(
+      [{ file: "locomo.json", value: candidate }],
+      "2026-08-12T00:00:00Z",
+      [],
+      new Map([["locomo.json", ["evidence drift"]]]),
+      "0.7.4",
+    );
+    expect(tampered.entries[0]?.consistent).toBe(false);
+    expect(tampered.historicalEvidence).toEqual([]);
+  });
+
+  it("rejects versioned candidate history whose artifact identifies a different benchmark and version", async () => {
+    const forged = cleanReport({
+      benchmark: "ForgedBench",
+      evidence: {
+        artifacts: [{
+          assertions: [
+            { equals: "tracked-current-claim-projection", path: ["artifactKind"] },
+            { equals: "LoCoMo", path: ["benchmark"] },
+            { equals: "scripts/run-current-claim.ts", path: ["generatedBy"] },
+            { equals: 1, path: ["schemaVersion"] },
+            { equals: FULL_COMMIT, path: ["runIdentity", "commit"] },
+            { equals: "0.7.3", path: ["claim", "packageVersion"] },
+          ],
+          description: "LoCoMo v0.7.3 evidence relabeled as ForgedBench",
+          path: "benchmark-claims/evidence/locomo-v0.7.3-current.json",
+        }],
+      },
+      run: {
+        ...cleanReport().run,
+        packageVersion: "0.7.2",
+      },
+    });
+    const underlyingArtifact = currentClaimProjection("LoCoMo", "0.7.3");
+    const evidenceErrors = await checkClaimEvidenceArtifacts({
+      currentPackageVersion: "0.7.4",
+      file: "forgedbench.json",
+      readFile: async () => JSON.stringify(underlyingArtifact),
+      repoRoot: "/repo",
+      report: forged,
+    });
+    const report = buildClaimGateReport(
+      [{ file: "forgedbench.json", value: forged }],
+      "2026-08-12T00:00:00Z",
+      [],
+      new Map([["forgedbench.json", evidenceErrors]]),
+      "0.7.4",
+    );
+
+    expect(evidenceErrors.length).toBeGreaterThan(0);
+    expect(report.allConsistent).toBe(false);
+    expect(report.historicalEvidence).toEqual([]);
+    expect(report.summary.overClaiming).toBe(1);
+
+    const forgedCommit = "f".repeat(40);
+    const fullyRelabeled = {
+      ...forged,
+      evidence: {
+        artifacts: [{
+          ...forged.evidence.artifacts[0]!,
+          assertions: currentClaimProjectionAssertions("ForgedBench", "0.7.2")
+            .map((assertion) =>
+              assertion.path.join(".") === "runIdentity.commit"
+                ? { ...assertion, equals: forgedCommit }
+                : assertion
+            ),
+        }],
+      },
+      run: { ...forged.run, commit: forgedCommit },
+    };
+    const unchecked = buildClaimGateReport(
+      [{ file: "forgedbench.json", value: fullyRelabeled }],
+      "2026-08-12T00:00:00Z",
+      [],
+      new Map(),
+      "0.7.4",
+    );
+    expect(unchecked.allConsistent).toBe(false);
+    expect(unchecked.historicalEvidence).toEqual([]);
+    expect(unchecked.entries[0]?.blockers).toContain(
+      "versioned candidate history requires a tracked current-claim projection that binds " +
+        "benchmark, measured packageVersion, and run commit to the verified artifact",
+    );
+
+    const relabeledErrors = await checkClaimEvidenceArtifacts({
+      currentPackageVersion: "0.7.4",
+      file: "forgedbench.json",
+      readFile: async () => JSON.stringify(underlyingArtifact),
+      repoRoot: "/repo",
+      report: fullyRelabeled,
+    });
+    expect(relabeledErrors.join(" ")).toContain(
+      "current-claim projection benchmark must equal ForgedBench",
+    );
+    expect(relabeledErrors.join(" ")).toContain(
+      "current-claim projection packageVersion must equal 0.7.2",
+    );
+    expect(relabeledErrors.join(" ")).toContain(
+      `current-claim projection run commit must equal ${forgedCommit}`,
+    );
+    expect(buildClaimGateReport(
+      [{ file: "forgedbench.json", value: fullyRelabeled }],
+      "2026-08-12T00:00:00Z",
+      [],
+      new Map([["forgedbench.json", relabeledErrors]]),
+      "0.7.4",
+    ).historicalEvidence).toEqual([]);
+  });
+
   it("treats an honest blocked declaration as consistent and lists a clean one as claimable", () => {
     const blockedHonest = cleanReport({
       benchmark: "HonestBlocked",
@@ -659,7 +838,7 @@ describe("claim gate report", () => {
       file: "clean.json",
       readFile: async () => "{\"ok\":true}",
       repoRoot: "/repo",
-      report: cleanReport(),
+      report: cleanReport({ status: "paused_boundary" }),
     });
     expect(ok).toEqual([]);
 
@@ -736,11 +915,214 @@ describe("claim gate report", () => {
     expect(missingPath.join(" ")).toContain("path summary.executionFailures was not found");
   });
 
+  it("requires every candidate public claim to be backed by a projection artifact", async () => {
+    const report = cleanReport();
+    const errors = await checkClaimEvidenceArtifacts({
+      currentPackageVersion: "0.3.5",
+      file: "example.json",
+      readFile: async () => JSON.stringify({ ok: true }),
+      repoRoot: "/repo",
+      report,
+    });
+
+    expect(errors.join(" ")).toContain(
+      "candidate public claim requires a verified current-claim projection",
+    );
+    expect(buildClaimGateReport(
+      [{ file: "example.json", value: report }],
+      "2026-08-12T00:00:00Z",
+      [],
+      new Map([["example.json", errors]]),
+      "0.3.5",
+    ).publicClaimable).toEqual([]);
+  });
+
+  it("binds current projection score and baseline to its verified source closure", async () => {
+    const sourcePath = "reports/eval/current/report.json";
+    const source = JSON.stringify({
+      artifactKind: "benchmark-run-summary",
+      benchmark: "Example",
+      comparison: { referenceScore: 0.5 },
+      generatedBy: "scripts/run-example-benchmark.ts",
+      results: { overallAccuracy: 0.8 },
+      runId: "example-full-run",
+    });
+    const sourceBytes = new TextEncoder().encode(source).byteLength;
+    const sourceSha256 = createHash("sha256").update(source).digest("hex");
+    const projection = {
+      ...currentClaimProjection("Example"),
+      claim: {
+        officialScore: 0.8,
+        packageVersion: "0.3.5",
+      },
+      sourceArtifacts: [{
+        bytes: sourceBytes,
+        path: sourcePath,
+        sha256: sourceSha256,
+      }],
+    };
+    const report = cleanReport({
+      evidence: {
+        artifacts: [{
+          assertions: currentClaimProjectionAssertions("Example"),
+          description: "tracked current projection",
+          path: "benchmark-claims/evidence/example-current.json",
+        }],
+      },
+    });
+    const readArtifact = async (path: string) =>
+      path.endsWith("example-current.json") ? JSON.stringify(projection) : source;
+
+    expect(await checkClaimEvidenceArtifacts({
+      currentPackageVersion: "0.3.5",
+      file: "example.json",
+      readFile: readArtifact,
+      repoRoot: "/repo",
+      report,
+    })).toEqual([]);
+
+    const unboundScoreReport = {
+      ...report,
+      evidence: {
+        artifacts: report.evidence.artifacts.map((artifact) => ({
+          ...artifact,
+          assertions: artifact.assertions?.filter(
+            ({ path }) => path.join(".") !== "claim.officialScore",
+          ),
+        })),
+      },
+    };
+    const unboundScoreErrors = await checkClaimEvidenceArtifacts({
+      currentPackageVersion: "0.3.5",
+      file: "example.json",
+      readFile: readArtifact,
+      repoRoot: "/repo",
+      report: unboundScoreReport,
+    });
+    expect(unboundScoreErrors.join(" ")).toContain(
+      "current-claim projection score must be bound by a declaration assertion",
+    );
+
+    const scoreForged = {
+      ...projection,
+      claim: { ...projection.claim, officialScore: 0.81 },
+    };
+    const scoreErrors = await checkClaimEvidenceArtifacts({
+      currentPackageVersion: "0.3.5",
+      file: "example.json",
+      readFile: async (path) =>
+        path.endsWith("example-current.json") ? JSON.stringify(scoreForged) : source,
+      repoRoot: "/repo",
+      report,
+    });
+    expect(scoreErrors.join(" ")).toContain(
+      "current-claim projection score must equal declaration metrics.score 0.8",
+    );
+
+    const baselineForged = JSON.stringify({
+      artifactKind: "benchmark-run-summary",
+      benchmark: "Example",
+      comparison: { referenceScore: 0.4 },
+      generatedBy: "scripts/run-example-benchmark.ts",
+      results: { overallAccuracy: 0.8 },
+      runId: "example-full-run",
+    });
+    const baselineProjection = {
+      ...projection,
+      sourceArtifacts: [{
+        bytes: new TextEncoder().encode(baselineForged).byteLength,
+        path: sourcePath,
+        sha256: createHash("sha256").update(baselineForged).digest("hex"),
+      }],
+    };
+    const baselineErrors = await checkClaimEvidenceArtifacts({
+      currentPackageVersion: "0.3.5",
+      file: "example.json",
+      readFile: async (path) =>
+        path.endsWith("example-current.json")
+          ? JSON.stringify(baselineProjection)
+          : baselineForged,
+      repoRoot: "/repo",
+      report,
+    });
+    expect(baselineErrors.join(" ")).toContain(
+      "current-claim projection verified source closure must contain declaration metrics.baseline 0.5",
+    );
+
+    const identityFreeShell = JSON.stringify({
+      metrics: { baseline: 0.5, score: 0.8 },
+    });
+    const shellProjection = {
+      ...projection,
+      sourceArtifacts: [{
+        bytes: new TextEncoder().encode(identityFreeShell).byteLength,
+        path: sourcePath,
+        sha256: createHash("sha256").update(identityFreeShell).digest("hex"),
+      }],
+    };
+    const shellErrors = await checkClaimEvidenceArtifacts({
+      currentPackageVersion: "0.3.5",
+      file: "example.json",
+      readFile: async (path) => path.endsWith("example-current.json")
+        ? JSON.stringify(shellProjection)
+        : identityFreeShell,
+      repoRoot: "/repo",
+      report,
+    });
+    expect(shellErrors.join(" ")).toContain(
+      "current-claim projection verified source closure must contain declaration metrics.score 0.8",
+    );
+  });
+
+  it("verifies every projection source artifact byte count and sha256", async () => {
+    const sourcePath = "reports/eval/longmemeval/report.json";
+    const source = JSON.stringify({ metrics: { score: 0.8 } });
+    const projection = historicalProjection({
+      sourceArtifacts: [{
+        bytes: new TextEncoder().encode(source).byteLength,
+        path: sourcePath,
+        sha256: createHash("sha256").update(source).digest("hex"),
+      }],
+    });
+    const report = cleanReport({
+      benchmark: "LongMemEval",
+      claimBoundary: { publicClaimAllowed: false, reason: "historical only" },
+      comparison: { ...cleanReport().comparison, availability: "historical" },
+      evidence: {
+        artifacts: [{
+          assertions: historicalProjectionAssertions(),
+          description: "tracked projection",
+          path: "benchmark-claims/evidence/longmemeval-historical.json",
+        }],
+      },
+      status: "internal_evidence",
+    });
+    const errors = await checkClaimEvidenceArtifacts({
+      file: "longmemeval.json",
+      readFile: async (path) =>
+        path.endsWith("longmemeval-historical.json")
+          ? JSON.stringify(projection)
+          : `${source}tampered`,
+      repoRoot: "/repo",
+      report,
+    });
+
+    expect(errors.join(" ")).toContain(
+      `projection source artifact ${sourcePath} byte count`,
+    );
+    expect(errors.join(" ")).toContain(
+      `projection source artifact ${sourcePath} sha256`,
+    );
+  });
+
   it("validates historical projections and rejects arbitrary ok JSON", async () => {
     const sourcePath =
       "reports/quality-gates/phase-72/run-20260716-final/phase-72-release-gate.json";
     const source = JSON.stringify({
+      benchmark: "LoCoMo",
+      generatedBy: "scripts/run-locomo.ts",
       metrics: {
+        baseline: 0.5,
         locomo: {
           executionFailures: 0,
           officialJudgeFailures: 0,
@@ -749,6 +1131,7 @@ describe("claim gate report", () => {
           strictScore: 0.63,
         },
       },
+      runId: "locomo-full-run",
       packageVersion: "0.6.0",
     });
     const sourceBytes = new TextEncoder().encode(source).byteLength;
@@ -768,19 +1151,22 @@ describe("claim gate report", () => {
         sha256: sourceSha256,
       }],
     }, "LoCoMo");
-    const assertions = historicalProjectionAssertions("LoCoMo").map((assertion) => {
-      const path = assertion.path.join(".");
-      if (path === "sourceArtifacts.0.bytes") {
-        return { ...assertion, equals: sourceBytes };
-      }
-      if (path === "sourceArtifacts.0.path") {
-        return { ...assertion, equals: sourcePath };
-      }
-      if (path === "sourceArtifacts.0.sha256") {
-        return { ...assertion, equals: sourceSha256 };
-      }
-      return assertion;
-    });
+    const assertions = [
+      ...historicalProjectionAssertions("LoCoMo").map((assertion) => {
+        const path = assertion.path.join(".");
+        if (path === "sourceArtifacts.0.bytes") {
+          return { ...assertion, equals: sourceBytes };
+        }
+        if (path === "sourceArtifacts.0.path") {
+          return { ...assertion, equals: sourcePath };
+        }
+        if (path === "sourceArtifacts.0.sha256") {
+          return { ...assertion, equals: sourceSha256 };
+        }
+        return assertion;
+      }),
+      { equals: 0.87, path: ["claim", "officialScore"] },
+    ];
     const report = cleanReport({
       benchmark: "LoCoMo",
       claimBoundary: { publicClaimAllowed: false, reason: "historical only" },
@@ -796,6 +1182,16 @@ describe("claim gate report", () => {
         readmeDisclosureFragments: ["historical"],
         readmeRequiredFragments: ["0.6300", "0.8700", "0.6100"],
       },
+      metrics: {
+        baseline: 0.5,
+        metricDirection: "higher-is-better",
+        primary: "official score",
+        score: 0.87,
+      },
+      run: {
+        ...cleanReport().run,
+        packageVersion: "0.6.0",
+      },
       status: "internal_evidence",
     });
     const valid = await checkClaimEvidenceArtifacts({
@@ -804,7 +1200,7 @@ describe("claim gate report", () => {
         if (path.endsWith("locomo-v0.6.0-historical.json")) {
           return JSON.stringify(projection);
         }
-        throw new Error("claim gate must not read ignored historical sources");
+        return source;
       },
       repoRoot: "/repo",
       report,
@@ -813,7 +1209,9 @@ describe("claim gate report", () => {
 
     const selfAttested = await checkClaimEvidenceArtifacts({
       file: "locomo.json",
-      readFile: async () => JSON.stringify(projection),
+      readFile: async (path) => path.endsWith("locomo-v0.6.0-historical.json")
+        ? JSON.stringify(projection)
+        : source,
       repoRoot: "/repo",
       report: {
         ...report,
@@ -1197,19 +1595,73 @@ describe("README historical-evidence table check", () => {
 
   it("keeps verified candidate history separate from its current public presentation", async () => {
     const candidate = candidateWithHistoricalProjection();
+    const currentSourcePath = "reports/eval/current/report.json";
+    const currentSource = JSON.stringify({
+      benchmark: "LoCoMo",
+      generatedBy: "scripts/run-locomo.ts",
+      metrics: { baseline: 0.5, score: 0.8 },
+      runId: "locomo-current-run",
+    });
+    const currentProjection = {
+      ...currentClaimProjection(),
+      claim: { officialScore: 0.8, packageVersion: "0.3.5" },
+      sourceArtifacts: [{
+        bytes: new TextEncoder().encode(currentSource).byteLength,
+        path: currentSourcePath,
+        sha256: createHash("sha256").update(currentSource).digest("hex"),
+      }],
+    };
+    const historicalSourcePath = "reports/eval/historical/locomo.json";
+    const historicalSource = JSON.stringify({
+      metrics: {
+        officialScore: 0.87,
+        openDomainScore: 0.61,
+        strictScore: 0.63,
+      },
+    });
+    const historicalSourceArtifact = {
+      bytes: new TextEncoder().encode(historicalSource).byteLength,
+      path: historicalSourcePath,
+      sha256: createHash("sha256").update(historicalSource).digest("hex"),
+    };
+    const historicalProjection = locomoHistoricalProjection();
+    historicalProjection.sourceArtifacts = [historicalSourceArtifact];
+    candidate.evidence.artifacts[1]!.assertions = historicalProjectionAssertions("LoCoMo")
+      .map((assertion) => {
+        const field = assertion.path.join(".");
+        if (field === "sourceArtifacts.0.bytes") {
+          return { ...assertion, equals: historicalSourceArtifact.bytes };
+        }
+        if (field === "sourceArtifacts.0.path") {
+          return { ...assertion, equals: historicalSourceArtifact.path };
+        }
+        if (field === "sourceArtifacts.0.sha256") {
+          return { ...assertion, equals: historicalSourceArtifact.sha256 };
+        }
+        return assertion;
+      });
     expect(validateClaimReport(candidate).valid).toBe(true);
-    expect(await checkClaimEvidenceArtifacts({
+    const evidenceErrors = await checkClaimEvidenceArtifacts({
       file: "locomo.json",
-      readFile: async (path) => path.endsWith("locomo-v0.6.0-historical.json")
-        ? JSON.stringify(locomoHistoricalProjection())
-        : JSON.stringify({ ok: true }),
+      readFile: async (path) => {
+        if (path.endsWith("locomo-v0.6.0-historical.json")) {
+          return JSON.stringify(historicalProjection);
+        }
+        if (path.endsWith("locomo-current.json")) {
+          return JSON.stringify(currentProjection);
+        }
+        return path.endsWith(currentSourcePath) ? currentSource : historicalSource;
+      },
       repoRoot: "/repo",
       report: candidate,
-    })).toEqual([]);
+    });
+    expect(evidenceErrors).toEqual([]);
 
     const report = buildClaimGateReport(
       [{ file: "locomo.json", value: candidate }],
       "t",
+      [],
+      new Map([["locomo.json", evidenceErrors]]),
     );
     expect(report.publicClaimable).toEqual(["LoCoMo"]);
     expect(report.historicalEvidence).toEqual(["LoCoMo"]);
@@ -1290,12 +1742,12 @@ describe("README historical-evidence table check", () => {
       file: "locomo.json",
       readFile: async (path) => path.endsWith("locomo-v0.6.0-historical.json")
         ? JSON.stringify({ ...locomoHistoricalProjection(), artifactKind: "arbitrary-json" })
-        : JSON.stringify({ ok: true }),
+        : JSON.stringify(currentClaimProjection()),
       repoRoot: "/repo",
       report: artifactTampered,
     });
     expect(evidenceErrors.join(" ")).toContain(
-      "historical projection artifactKind must be tracked-historical-evidence-projection",
+      "historical evidence requires a verified historical projection",
     );
     const tamperedReport = buildClaimGateReport(
       [{ file: "locomo.json", value: artifactTampered }],

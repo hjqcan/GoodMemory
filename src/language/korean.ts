@@ -10,7 +10,9 @@ import type {
   LanguageTemporalExpression,
 } from "./contracts";
 import {
+  expandExplicitFactCandidateClauses,
   normalizeUnicodeForEquality,
+  splitClausesGeneric,
   tokenizeUnicodeText,
 } from "./generic";
 import {
@@ -124,9 +126,58 @@ const CONTENT = {
   validated: /(효과적|잘 작동|도움이 되었|성공적|계속 사용)/u,
 } as const;
 
+const KOREAN_EXPLICIT_FACT_DIRECTIVE_PATTERN =
+  /^(?:이것을\s*)?(?:(?:(?:한|두|세|네|다섯|여섯|일곱|여덟|아홉|열|\d+)\s*가지(?:를)?\s*)?(?:기억해\s*(?:주세요|두세요|둬)|잊지\s*마세요))(?=[：:,，.!?。！？；;\s]|$)/u;
+const KOREAN_EXPLICIT_FACT_COUNT_PATTERN =
+  /^(?:이것을\s*)?(한|두|세|네|다섯|여섯|일곱|여덟|아홉|열|\d+)\s*가지(?:를)?/u;
+const KOREAN_EXPLICIT_FACT_OPT_OUT_PATTERN =
+  /(?:기억하지\s*마세요|기억하지\s*말아\s*주세요|저장하지\s*마세요|잊어\s*주세요)[.!。！]?\s*$/u;
+const KOREAN_EXPLICIT_FACT_QUESTION_PATTERN =
+  /(?:무엇|뭐|누구|어디|언제|왜|어째서|어떻게|어느|어떤|몇|얼마)(?:$|.*(?:인가요|인가|나요|까요|습니까|예요|이에요)$)/u;
+const KOREAN_EXPLICIT_FACT_LITERAL_QUESTION_VALUE_PATTERN =
+  /(?:무엇|뭐|누구|어디|언제|왜|어째서|어떻게|어느|어떤|몇|얼마)/u;
+const KOREAN_EXPLICIT_FACT_BARE_QUESTION_VALUE_PATTERN =
+  /^(?:무엇|뭐|누구|어디|언제|왜|어째서|어떻게|어느|어떤|몇|얼마)(?:야|예요|이에요|인가요|인가|나요|까요|입니까)?$/u;
+const KOREAN_EXPLICIT_FACT_POSTPOSED_QUESTION_VALUE_PATTERN =
+  /[,，、]\s*(?:무엇|뭐|누구|어디|언제|왜|어째서|어떻게|어느|어떤|몇|얼마)(?:야|예요|이에요|인가요|인가|나요|까요|입니까)?$/u;
+const KOREAN_EXPLICIT_FACT_CONFIRMATION_PATTERN =
+  /(?:맞|옳|정확하)(?:나요|습니까|습니까요|는지)?[?？]?\s*$/u;
+const KOREAN_EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN =
+  /(?:[,，]\s*|\s*(?:그리고|하지만|그러나)\s*)(?=[^.!?。！？；;\n]{0,240}(?:기억하지\s*마세요|기억하지\s*말아\s*주세요|저장하지\s*마세요|잊어\s*주세요))/u;
+
+function koreanFactCount(content: string): number {
+  const token = content.match(KOREAN_EXPLICIT_FACT_COUNT_PATTERN)?.[1];
+  if (!token) {
+    return 1;
+  }
+  const numeric = Number(token);
+  if (Number.isInteger(numeric) && numeric >= 0) {
+    return numeric;
+  }
+  const counts: Readonly<Record<string, number>> = {
+    다섯: 5,
+    두: 2,
+    세: 3,
+    아홉: 9,
+    여덟: 8,
+    여섯: 6,
+    열: 10,
+    일곱: 7,
+    한: 1,
+    네: 4,
+  };
+  return counts[token] ?? 1;
+}
+
 function splitKoreanClauses(text: string): string[] {
   return text
     .split(/(?:\r?\n+)|(?<=[.!?。！？；;])\s+/u)
+    .flatMap((clause) =>
+      !KOREAN_EXPLICIT_FACT_DIRECTIVE_PATTERN.test(clause.trim()) &&
+        KOREAN_EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
+        ? [clause]
+        : clause.split(KOREAN_EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN)
+    )
     .map((clause) => clause.trim())
     .filter(Boolean);
 }
@@ -274,6 +325,103 @@ function cleanCandidateValue(value: string): string {
     .trim();
 }
 
+function cleanKoreanExplicitFact(value: string): string {
+  return cleanCandidateValue(
+    value.replace(/^[：:,，.!?。！？；;\s]+/u, ""),
+  );
+}
+
+function extractKoreanOptOutTarget(content: string): string {
+  return content
+    .replace(KOREAN_EXPLICIT_FACT_OPT_OUT_PATTERN, "")
+    .replace(/(?:은|는|이|가|을|를)\s*$/u, "")
+    .trim();
+}
+
+function isKoreanExplicitFactQuestion(
+  content: string,
+  source: string,
+): boolean {
+  const assignmentIndex = content.search(/[=＝]/u);
+  if (assignmentIndex >= 0) {
+    const left = content.slice(0, assignmentIndex).trim();
+    const right = content.slice(assignmentIndex + 1).trim();
+    if (KOREAN_EXPLICIT_FACT_QUESTION_PATTERN.test(left)) {
+      return true;
+    }
+    const assignmentConfirmation =
+      KOREAN_EXPLICIT_FACT_CONFIRMATION_PATTERN.test(right) &&
+      /(?:나요|습니까|습니까요|는지)\s*$/u.test(right);
+    if (assignmentConfirmation) {
+      return true;
+    }
+    if (KOREAN_EXPLICIT_FACT_POSTPOSED_QUESTION_VALUE_PATTERN.test(right)) {
+      return true;
+    }
+    if (/[?？]\s*$/u.test(source)) {
+      return !KOREAN_EXPLICIT_FACT_LITERAL_QUESTION_VALUE_PATTERN.test(right) ||
+        KOREAN_EXPLICIT_FACT_BARE_QUESTION_VALUE_PATTERN.test(right);
+    }
+    return false;
+  }
+
+  return /[?？]\s*$/u.test(source) ||
+    KOREAN_EXPLICIT_FACT_QUESTION_PATTERN.test(content);
+}
+
+function extractKoreanExplicitFacts(content: string) {
+  const source = content.trim();
+  const directive = source.match(KOREAN_EXPLICIT_FACT_DIRECTIVE_PATTERN);
+  if (!directive) {
+    return KOREAN_EXPLICIT_FACT_OPT_OUT_PATTERN.test(source)
+      ? {
+        clauses: [{ content: source, disposition: "feedback" as const }],
+        status: "complete" as const,
+      }
+      : undefined;
+  }
+
+  const expectedFactCount = koreanFactCount(source);
+  const clauses = splitKoreanClauses(source.slice(directive[0].length));
+  const cleanedClauses = clauses
+    .map((sourceClause) => ({
+      content: cleanKoreanExplicitFact(sourceClause),
+      sourceClause,
+    }))
+    .filter(({ content }) => content.length > 0);
+  if (cleanedClauses.length < expectedFactCount) {
+    return KOREAN_EXPLICIT_FACT_COUNT_PATTERN.test(source)
+      ? {
+        clauses: cleanedClauses.map(({ content: clause, sourceClause }) => ({
+          content: clause,
+          disposition: KOREAN_EXPLICIT_FACT_OPT_OUT_PATTERN.test(sourceClause)
+            ? "feedback" as const
+            : "fact" as const,
+        })),
+        status: "incomplete-counted-list" as const,
+      }
+      : { clauses: [], status: "invalid" as const };
+  }
+  if (cleanedClauses.some(({ content: clause, sourceClause }) =>
+    !KOREAN_EXPLICIT_FACT_OPT_OUT_PATTERN.test(sourceClause) &&
+    isKoreanExplicitFactQuestion(clause, sourceClause)
+  )) {
+    return { clauses: [], status: "invalid" as const };
+  }
+
+  return {
+    clauses: cleanedClauses
+      .slice(0, expectedFactCount)
+      .map(({ content: clause, sourceClause }) => ({
+        content: clause,
+        disposition: KOREAN_EXPLICIT_FACT_OPT_OUT_PATTERN.test(sourceClause)
+          ? "feedback" as const
+          : "fact" as const,
+      })),
+    status: "complete" as const,
+  };
+}
+
 function extractKoreanCandidates(
   input: Parameters<LanguagePack["extractCandidates"]>[0],
 ): MemoryCandidate[] {
@@ -284,24 +432,44 @@ function extractKoreanCandidates(
       continue;
     }
     const sourceMessageIndex = message.sourceMessageIndex ?? index;
-    const content = message.content.replace(
-      /(기억해\s*주세요)[.!?。！？]\s*/gu,
-      "$1, ",
+    const content = message.content;
+    const clauses = expandExplicitFactCandidateClauses(
+      content,
+      extractKoreanExplicitFacts,
+      splitKoreanClauses,
     );
-    const clauses = splitKoreanClauses(content);
     const sourceAnalysis = message.analysis ?? analyzeKoreanContent(content);
-    const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
-      analysis: sourceAnalysis,
-      nextId: input.nextId,
-      sourceMessageIndex,
-    });
-    if (sourceOfTruthReference) {
-      candidates.push(sourceOfTruthReference);
-    }
-    const messageAnalysis = clauses.length === 1 ? sourceAnalysis : undefined;
-
     for (const clause of clauses) {
-      const goal = clause.match(
+      const clauseIsExplicit = clause.disposition === "fact";
+      const text = clause.content.trim();
+      const clauseAnalysis = clauses.length === 1 && clause.content === content
+        ? sourceAnalysis
+        : analyzeKoreanContent(text);
+      if (clause.disposition === "feedback") {
+        candidates.push({
+          content: cleanCandidateValue(text),
+          explicitness: "explicit",
+          id: input.nextId(),
+          kindHint: "feedback",
+          metadata: {
+            appliesTo: "general_response",
+            feedbackKind: "dont",
+            optOutTarget: extractKoreanOptOutTarget(text),
+          },
+          sourceMessageIndex,
+          sourceRole: "user",
+        });
+        continue;
+      }
+      const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
+        analysis: clauseAnalysis,
+        nextId: input.nextId,
+        sourceMessageIndex,
+      });
+      if (sourceOfTruthReference) {
+        candidates.push(sourceOfTruthReference);
+      }
+      const goal = text.match(
         /(?:제|저의|나의)?\s*(?:현재 )?(?:목표|최우선 과제)는\s*([^.!?。！？]+?)(?:입니다|이에요|예요)?[.!?。！？]?$/u,
       )?.[1];
       if (goal) {
@@ -319,7 +487,7 @@ function extractKoreanCandidates(
           sourceRole: "user",
         });
       }
-      const name = clause.match(
+      const name = text.match(
         /(?:제|저의|나의)\s*(?:이름|성명)은\s*([^.!?。！？,，;；]+?)(?:입니다|이에요|예요)?[.!?。！？]?$/u,
       );
       if (name?.[1]) {
@@ -334,7 +502,7 @@ function extractKoreanCandidates(
         });
       }
 
-      const role = clause.match(
+      const role = text.match(
         /(?:제|저의|나의)?\s*현재 역할은\s*([^.!?。！？,，;；]+?)(?:입니다|이에요|예요)?[.!?。！？]?$/u,
       );
       if (role?.[1]) {
@@ -349,7 +517,7 @@ function extractKoreanCandidates(
         });
       }
 
-      const preference = clause.match(
+      const preference = text.match(
         /(?:저는|나는|제가|내가)\s*([^.!?。！？,，;；]+?)(?:을|를)\s*(?:선호합니다|선호해요|좋아합니다|좋아해요)/u,
       );
       if (preference?.[1]) {
@@ -368,11 +536,19 @@ function extractKoreanCandidates(
         });
       }
 
-      const explicitFact = clause.match(
-        /(?:기억해\s*(?:주세요|두세요|둬)|잊지\s*마세요)[,，\s]*(.+)/u,
-      );
-      if (explicitFact?.[1]) {
-        const fact = cleanCandidateValue(explicitFact[1]);
+      const feedback =
+        /^(?:앞으로|항상|반드시|우선)|(?:하지\s*마|말아\s*주세요|피해\s*주세요)/u
+          .test(text);
+      if (
+        clauseIsExplicit &&
+        !goal &&
+        !name &&
+        !role &&
+        !preference &&
+        !clauseAnalysis.sourceOfTruthDirective &&
+        !feedback
+      ) {
+        const fact = text;
         if (fact) {
           candidates.push({
             content: fact,
@@ -381,7 +557,7 @@ function extractKoreanCandidates(
             kindHint: "fact",
             metadata: {
               category: "project",
-              factKind: koreanFactKind(fact, messageAnalysis),
+              factKind: koreanFactKind(fact, clauseAnalysis),
               scopeKind: "project",
               subject: "unknown",
             },
@@ -394,12 +570,12 @@ function extractKoreanCandidates(
         !role &&
         !preference &&
         !sourceOfTruthReference &&
-        clause.length >= 8 &&
+        text.length >= 8 &&
         /(현재|지금|장애\s*요인|차단|미완료|프로젝트|마이그레이션|출시|배포)/u.test(
-          clause,
+          text,
         )
       ) {
-        const fact = cleanCandidateValue(clause);
+        const fact = cleanCandidateValue(text);
         candidates.push({
           content: fact,
           explicitness: "inferred",
@@ -407,7 +583,7 @@ function extractKoreanCandidates(
           kindHint: "fact",
           metadata: {
             category: "project",
-            factKind: koreanFactKind(fact, messageAnalysis),
+            factKind: koreanFactKind(fact, clauseAnalysis),
             scopeKind: "project",
             subject: "unknown",
           },
@@ -416,20 +592,15 @@ function extractKoreanCandidates(
         });
       }
 
-      if (
-        /^(?:앞으로|항상|반드시|우선)|(?:하지\s*마|말아\s*주세요|피해\s*주세요)/u.test(
-          clause,
-        )
-      ) {
+      if (feedback) {
         candidates.push({
-          content: cleanCandidateValue(clause),
+          content: cleanCandidateValue(text),
           explicitness: "explicit",
           id: input.nextId(),
           kindHint: "feedback",
           metadata: {
             appliesTo: "general_response",
-            feedbackKind: messageAnalysis?.feedbackKind ??
-              analyzeKoreanContent(clause).feedbackKind,
+            feedbackKind: clauseAnalysis.feedbackKind,
           },
           sourceMessageIndex,
           sourceRole: "user",
@@ -703,7 +874,7 @@ function renderKorean(input: LanguageRenderInput): string {
 
 export function createKoreanLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "3",
+    analyzerVersion: "4-explicit-fact-list-boundary",
     apiVersion: 1,
     compatibilityGroup: "ko",
     defaultLocale: "ko-KR",

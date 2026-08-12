@@ -552,8 +552,9 @@ describe("public remember profile customization", () => {
     });
     const exported = await memory.exportMemory({ scope });
 
-    expect(assistedInputs).toEqual([""]);
+    expect(assistedInputs).toEqual([]);
     expect(result.accepted).toBe(0);
+    expect(result.metadata?.resolvedExtractionStrategy).toBe("rules-only");
     expect(exported.durable.facts).toHaveLength(0);
   });
 

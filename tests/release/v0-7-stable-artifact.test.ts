@@ -15,23 +15,23 @@ import { prepareV07StableArtifact } from "../../scripts/prepare-v0-7-stable-arti
 
 const README_STABLE = `# GoodMemory
 
-> **Release source:** this is the immutable \`0.7.3\` stable release source.
-> Registry commands require \`goodmemory@0.7.3\` to be published. The release
+> **Release source:** this is the immutable \`0.7.4\` stable release source.
+> Registry commands require \`goodmemory@0.7.4\` to be published. The release
 > workflow verifies npm \`latest\` and artifact integrity before creating the
 > GitHub Release.
 `;
 
 const README_ZH_STABLE = `# GoodMemory
 
-> **发布源码：**这是不可变的 \`0.7.3\` 稳定发布源码。Registry 命令要求
-> \`goodmemory@0.7.3\` 已发布；release workflow 会先校验 npm \`latest\`
+> **发布源码：**这是不可变的 \`0.7.4\` 稳定发布源码。Registry 命令要求
+> \`goodmemory@0.7.4\` 已发布；release workflow 会先校验 npm \`latest\`
 > 与制品完整性，再创建 GitHub Release。
 `;
 
 const LLMS_STABLE = `# GoodMemory
 
-Release source: this is the immutable GoodMemory 0.7.3 stable release source.
-Registry commands require goodmemory@0.7.3 to be published. The release workflow
+Release source: this is the immutable GoodMemory 0.7.4 stable release source.
+Registry commands require goodmemory@0.7.4 to be published. The release workflow
 verifies npm latest and artifact integrity before creating the GitHub Release.
 `;
 
@@ -47,6 +47,29 @@ const REQUIRED_ARTIFACT_FIXTURE_FILES = [
   "dist/runtime-kit/index.js",
   "dist/runtime-kit/index.d.ts",
   "docs/GoodMemory-0.6-to-0.7-Migration-Guide.md",
+] as const;
+
+const PUBLIC_RELEASE_DOCS = [
+  "docs/README.md",
+  "docs/GoodMemory-15-Minute-App-Integration.md",
+  "docs/GoodMemory-0.6-to-0.7-Migration-Guide.md",
+  "docs/GoodMemory-Claude-Code-Setup-Guide.md",
+  "docs/GoodMemory-Codex-Handoff-Setup-Guide.md",
+  "docs/GoodMemory-Cursor-Setup-Guide.md",
+  "docs/GoodMemory-First-Principles-and-Reference-Architecture.md",
+  "docs/GoodMemory-Gemini-CLI-Setup-Guide.md",
+  "docs/GoodMemory-Inspector-and-Admin-API.md",
+  "docs/GoodMemory-Kimi-Code-Setup-Guide.md",
+  "docs/GoodMemory-LanguagePack-Extension-Guide.md",
+  "docs/GoodMemory-MCP-Registry-Publishing.md",
+  "docs/GoodMemory-OpenCode-Setup-Guide.md",
+  "docs/GoodMemory-PRD.md",
+  "docs/GoodMemory-Product-Comparison.md",
+  "docs/GoodMemory-Python-HTTP-Integration-Bridge.md",
+  "docs/GoodMemory-Reference-Integration-Guide.md",
+  "docs/GoodMemory-Standalone-MCP-Setup-Guide.md",
+  "docs/GoodMemory-Strategy-Rollout-Guide.md",
+  "docs/GoodMemory-记忆数据分层设计.md",
 ] as const;
 
 const LOCOMO_CLAIM = {
@@ -103,7 +126,7 @@ async function initializeStableSource(input: {
         "README.md",
         "README.zh-CN.md",
         "dist",
-        "docs",
+        ...PUBLIC_RELEASE_DOCS,
         "llms.txt",
         ...(input.oversized ? ["oversized.bin"] : []),
       ],
@@ -113,7 +136,7 @@ async function initializeStableSource(input: {
         status: "stable",
       },
       name: "goodmemory",
-      version: "0.7.3",
+      version: "0.7.4",
     }, null, 2)}\n`,
   );
   await writeFile(join(input.root, "README.md"), README_STABLE);
@@ -129,16 +152,16 @@ async function initializeStableSource(input: {
     join(input.root, ".well-known/goodmemory.json"),
     `${JSON.stringify({
       benchmarks: {
-        currentClaims: [LOCOMO_CLAIM],
+        currentClaims: [],
       },
       name: "goodmemory",
       releaseStatus: {
         installCommandsApplyAfterPublish: true,
         npmDistTag: "latest",
         status: "stable",
-        tarball: "goodmemory-0.7.3.tgz",
+        tarball: "goodmemory-0.7.4.tgz",
       },
-      version: "0.7.3",
+      version: "0.7.4",
     }, null, 2)}\n`,
   );
   for (const relativePath of REQUIRED_ARTIFACT_FIXTURE_FILES) {
@@ -148,6 +171,14 @@ async function initializeStableSource(input: {
     const absolutePath = join(input.root, relativePath);
     await mkdir(dirname(absolutePath), { recursive: true });
     await writeFile(absolutePath, `fixture for ${relativePath}\n`);
+  }
+  for (const relativePath of PUBLIC_RELEASE_DOCS) {
+    const absolutePath = join(input.root, relativePath);
+    await mkdir(dirname(absolutePath), { recursive: true });
+    await writeFile(
+      absolutePath,
+      await readFile(new URL(`../../${relativePath}`, import.meta.url), "utf8"),
+    );
   }
   if (input.oversized) {
     await writeFile(
@@ -166,6 +197,7 @@ async function initializeStableSource(input: {
     ["git", "commit", "--quiet", "-m", "stable release source"],
     input.root,
   );
+  await runCommand(["git", "tag", "v0.7.4"], input.root);
   return {
     sourceCommit: await runCommand(["git", "rev-parse", "HEAD"], input.root),
     sourceTree: await runCommand(["git", "rev-parse", "HEAD^{tree}"], input.root),
@@ -173,10 +205,34 @@ async function initializeStableSource(input: {
 }
 
 describe("v0.7 stable release artifact", () => {
+  it("rejects untracked source before packing the tagged stable artifact", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-stable-untracked-test-"));
+    try {
+      const { sourceCommit } = await initializeStableSource({ root });
+      await writeFile(join(root, "untracked-source.ts"), "export const drift = true;\n");
+
+      await expect(prepareV07StableArtifact({
+        outputDir: join(root, "output"),
+        repoRoot: root,
+        sourceCommit,
+        verifyInstalledConsumers: false,
+        verifyRuntimeDescriptor: false,
+      })).rejects.toThrow("clean working tree");
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("packs the verified stable source without projecting different metadata", async () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-stable-artifact-test-"));
     const outputDir = join(root, "output");
     try {
+      const repositoryPackage = JSON.parse(
+        await readFile(new URL("../../package.json", import.meta.url), "utf8"),
+      ) as { files: string[] };
+      expect(repositoryPackage.files.filter((path) => path.startsWith("docs/"))).toEqual(
+        [...PUBLIC_RELEASE_DOCS],
+      );
       const { sourceCommit, sourceTree } = await initializeStableSource({ root });
 
       const sourceBefore = await Promise.all(
@@ -204,21 +260,27 @@ describe("v0.7 stable release artifact", () => {
         await readFile(join(packageRoot, "package.json"), "utf8"),
       ) as { goodmemoryRelease?: Record<string, unknown> };
 
-      expect(readme).toContain("immutable `0.7.3` stable release source");
-      expect(readmeZh).toContain("不可变的 `0.7.3` 稳定发布源码");
-      expect(llms).toContain("immutable GoodMemory 0.7.3 stable release source");
+      expect(readme).toContain("immutable `0.7.4` stable release source");
+      expect(readmeZh).toContain("不可变的 `0.7.4` 稳定发布源码");
+      expect(llms).toContain("immutable GoodMemory 0.7.4 stable release source");
+      for (const path of ["README.md", "README.zh-CN.md", "llms.txt", ...PUBLIC_RELEASE_DOCS]) {
+        const content = await readFile(join(packageRoot, path), "utf8");
+        expect(content).not.toMatch(
+          /unpublished\s+`?0\.7\.4|`?0\.7\.4`?\s+(?:release[- ]candidate|candidate identity|has not been published|尚未发布)/iu,
+        );
+      }
       expect(descriptor.releaseStatus).toEqual({
         installCommandsApplyAfterPublish: true,
         npmDistTag: "latest",
         status: "stable",
-        tarball: "goodmemory-0.7.3.tgz",
+        tarball: "goodmemory-0.7.4.tgz",
       });
       expect(packageJson.goodmemoryRelease).toEqual({
         installCommandsApplyAfterPublish: true,
         npmDistTag: "latest",
         status: "stable",
       });
-      expect(artifact.artifactName).toBe("goodmemory-0.7.3.tgz");
+      expect(artifact.artifactName).toBe("goodmemory-0.7.4.tgz");
       expect(artifact.packedFileCount).toBeGreaterThan(0);
       expect(artifact.sourceCommit).toBe(sourceCommit);
       expect(artifact.sourceTree).toBe(sourceTree);

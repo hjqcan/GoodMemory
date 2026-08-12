@@ -79,6 +79,7 @@ export interface MemoryCandidateMetadata {
   tags?: string[];
   attributes?: Record<string, MemoryAttributeValue>;
   feedbackKind?: FeedbackKind;
+  optOutTarget?: string;
   appliesTo?: string;
   profileField?: ProfileField;
   preferenceCategory?: string;

@@ -776,7 +776,7 @@ describe("release metadata and docs", () => {
     };
 
     expect(pkg.version).toBe(CURRENT_PACKAGE_VERSION);
-    expect(pkg.version).toBe("0.7.3");
+    expect(pkg.version).toBe("0.7.4");
     expect(pkg.private).toBeUndefined();
     expect(pkg.description).toBe(
       "Memory layer for chat, copilot, and agent applications.",
@@ -1372,9 +1372,6 @@ describe("release metadata and docs", () => {
 
   it("readme links the canonical docs, examples, cli, and eval flow", async () => {
     const readme = await readFile(join(import.meta.dir, "../../README.md"), "utf8");
-    const packageJson = JSON.parse(
-      await readFile(join(import.meta.dir, "../../package.json"), "utf8"),
-    ) as { goodmemoryRelease: { status: "release-candidate" | "stable" } };
     const currentClaims = extractMarkedSection(readme, "current-claims-table");
     const historicalEvidence = extractMarkedSection(
       readme,
@@ -1426,19 +1423,15 @@ describe("release metadata and docs", () => {
     expect(readme).toContain("goodmemory inspect");
     expect(readme).toContain("goodmemory setup");
     expect(readme).toContain("goodmemory status");
-    if (packageJson.goodmemoryRelease.status === "stable") {
-      expect(currentClaims).toContain("LoCoMo");
-    } else {
-      expect(currentClaims).not.toContain("LoCoMo");
-    }
+    expect(currentClaims).not.toContain("LoCoMo");
     expect(currentClaims).not.toContain("BEAM");
     expect(currentClaims).not.toContain("MemoryAgentBench");
     expect(historicalEvidence).toContain(
-      "| LoCoMo v0.6.0 (full 10 conversations) |",
+      "| LoCoMo v0.7.3 (full 10 conversations) |",
     );
-    expect(historicalEvidence).toContain("official **0.8708**");
-    expect(historicalEvidence).toContain("strict **0.6299**");
-    expect(historicalEvidence).toContain("open-domain **0.6146** (59/96)");
+    expect(historicalEvidence).toContain("official **0.8805**");
+    expect(historicalEvidence).toContain("strict **0.6266**");
+    expect(historicalEvidence).toContain("open-domain **0.6042** (58/96)");
     expect(historicalEvidence).toContain(
       "| BEAM 100K v0.6.0 (400 questions, 1051 rubric items) |",
     );
@@ -1448,8 +1441,8 @@ describe("release metadata and docs", () => {
       "| MemoryAgentBench v0.6.0 (CR, TTL) |",
     );
     expect(historicalEvidence).toContain("**CR 0.959, TTL 0.933**");
-    expect(readme).toContain("### Versioned internal evidence");
-    expect(readme).toContain("not current-production claims for `v0.7.3`");
+    expect(readme).toContain("### Versioned evidence");
+    expect(readme).toContain("not current-production claims for `v0.7.4`");
     expect(readme).toContain("provider reranking");
     expect(readme).toContain("CC BY-NC 4.0 (non-commercial scope)");
     expect(readme).not.toContain("| LoCoMo | representative conv-1 live run 0.020");
@@ -1543,8 +1536,8 @@ describe("release metadata and docs", () => {
     expect(readme).toContain("examples/fastify-chat-server.ts");
     expect(readme).toContain("docs/GoodMemory-15-Minute-App-Integration.md");
     expect(guide).toContain("15-Minute App Integration");
-    expect(guide).toContain("npm install goodmemory@0.7.3");
-    expect(guide).toContain("verified local `goodmemory-0.7.3.tgz`");
+    expect(guide).toContain("npm install goodmemory@0.7.4");
+    expect(guide).toContain("verified local `goodmemory-0.7.4.tgz`");
     expect(guide).toContain("createGoodMemory");
     expect(guide).toContain("GoodMemoryConfig.observability.traceSink");
     expect(guide).toContain("memory.runtime.startSession");
@@ -1578,8 +1571,8 @@ describe("release metadata and docs", () => {
   });
 
   it("v0.7 package metadata, current-source docs, and machine-readable descriptors agree", async () => {
-    expect(CURRENT_PACKAGE_VERSION).toBe("0.7.3");
-    expect(CURRENT_TARBALL_NAME).toBe("goodmemory-0.7.3.tgz");
+    expect(CURRENT_PACKAGE_VERSION).toBe("0.7.4");
+    expect(CURRENT_TARBALL_NAME).toBe("goodmemory-0.7.4.tgz");
 
     const releaseDocPaths = [
       "README.md",
@@ -1690,8 +1683,8 @@ describe("release metadata and docs", () => {
     expect(standaloneGuide).toContain("2026-07-28");
     expect(standaloneGuide).toContain("2025-11-25");
     expect(standaloneGuide).toContain("application-level memory scope");
-    expect(standaloneGuide).toContain("npm install -g goodmemory@0.7.3");
-    expect(standaloneGuide).toContain("verified local `goodmemory-0.7.3.tgz`");
+    expect(standaloneGuide).toContain("npm install -g goodmemory@0.7.4");
+    expect(standaloneGuide).toContain("verified local `goodmemory-0.7.4.tgz`");
     // Bun is a hard runtime prerequisite: the goodmemory-mcp bin spawns bun.
     expect(standaloneGuide).toContain("Bun");
 
@@ -1742,9 +1735,6 @@ describe("release metadata and docs", () => {
       join(import.meta.dir, "../../README.zh-CN.md"),
       "utf8",
     );
-    const packageJson = JSON.parse(
-      await readFile(join(import.meta.dir, "../../package.json"), "utf8"),
-    ) as { goodmemoryRelease: { status: "release-candidate" | "stable" } };
     const currentClaims = extractMarkedSection(zhReadme, "current-claims-table");
     const historicalEvidence = extractMarkedSection(
       zhReadme,
@@ -1766,17 +1756,13 @@ describe("release metadata and docs", () => {
     expect(zhReadme).toContain(`npm install ./${CURRENT_TARBALL_NAME}`);
     expect(zhReadme).toContain("goodmemory setup");
     expect(zhReadme).toContain("goodmemory status");
-    if (packageJson.goodmemoryRelease.status === "stable") {
-      expect(currentClaims).toContain("LoCoMo");
-    } else {
-      expect(currentClaims).not.toContain("LoCoMo");
-    }
+    expect(currentClaims).not.toContain("LoCoMo");
     expect(currentClaims).not.toContain("BEAM");
     expect(currentClaims).not.toContain("MemoryAgentBench");
-    expect(historicalEvidence).toContain("| LoCoMo v0.6.0（完整 10 会话） |");
-    expect(historicalEvidence).toContain("official **0.8708**");
-    expect(historicalEvidence).toContain("strict **0.6299**");
-    expect(historicalEvidence).toContain("open-domain **0.6146**（59/96）");
+    expect(historicalEvidence).toContain("| LoCoMo v0.7.3（完整 10 会话） |");
+    expect(historicalEvidence).toContain("official **0.8805**");
+    expect(historicalEvidence).toContain("strict **0.6266**");
+    expect(historicalEvidence).toContain("open-domain **0.6042**（58/96）");
     expect(historicalEvidence).toContain(
       "| BEAM 100K v0.6.0（400 题、1051 条 rubric） |",
     );
@@ -2930,11 +2916,18 @@ describe("release metadata and docs", () => {
       "docs/archive/quality-gates/GoodMemory-Phase-20-Quality-Gate.md",
     );
     expect(currentStatus).toContain(
-      "Registry baseline before the v0.7.3 tagged publication",
+      "previous stable source boundary is `goodmemory@0.7.3`",
     );
-    expect(currentStatus).toContain("resolved to `goodmemory@0.7.2`");
+    expect(currentStatus).toMatch(
+      /Mutable registry state is\s+deliberately not encoded in this source document/u,
+    );
+    expect(currentStatus).not.toContain("npm `latest` resolves");
+    expect(currentStatus).toMatch(/peeled\s+`v0\.7\.3` tag resolves to/u);
     expect(currentStatus).toContain(
-      "peeled `v0.7.2` tag resolves to commit",
+      "The `0.7.4` source line advances the package",
+    );
+    expect(currentStatus).toContain(
+      "HEAD matches the peeled `v0.7.4` tag",
     );
     expect(currentStatus).toContain(
       "The Kimi Code plugin is published in `v0.7.2`",
@@ -2957,7 +2950,7 @@ describe("release metadata and docs", () => {
     expect(currentStatus).toContain("task-board/00-README.txt");
     expect(currentStatus).toContain("docs/archive/quality-gates/README.md");
     expect(currentStatus).toContain(
-      "fresh v0.7.3 LoCoMo row",
+      "fresh v0.7.3 LoCoMo result remains versioned evidence",
     );
     expect(currentStatus).toContain(
       "BEAM 100K (unified 0.7651 / strict 0.620 / recall 0.8276)",
@@ -2966,7 +2959,7 @@ describe("release metadata and docs", () => {
       "LongMemEval is paused, not versioned internal evidence",
     );
     expect(currentStatus).toContain(
-      "current-claim tables carry only the v0.7.3 LoCoMo projection",
+      "current-claim tables are empty for v0.7.4",
     );
     expect(currentStatus).not.toContain(
       "Full ImplicitMemBench and BEAM reports are internal research evidence until explicitly promoted.",

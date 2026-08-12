@@ -49,6 +49,86 @@ async function cleanupUserData(url: string, userId: string): Promise<void> {
 
 if (POSTGRES_URL) {
   describe("public postgres API", () => {
+    it("rejects NUL-containing facts before JSONB persistence", async () => {
+      const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const userId = `pg-nul-${unique}`;
+      const scope = {
+        userId,
+        sessionId: `s-${unique}`,
+        workspaceId: "workspace-a",
+      };
+      const memory = createGoodMemory({
+        storage: {
+          provider: "postgres",
+          url: POSTGRES_URL,
+        },
+        testing: {
+          extractor: {
+            async extract() {
+              return {
+                candidates: [{
+                  id: "visible-with-nul",
+                  kindHint: "fact" as const,
+                  explicitness: "explicit" as const,
+                  content: "project\u0000code=Tachikoma",
+                  sourceMessageIndex: 0,
+                  sourceRole: "user" as const,
+                }],
+                ignoredMessageCount: 0,
+              };
+            },
+          },
+        },
+      });
+
+      try {
+        const remembered = await memory.remember({
+          scope,
+          messages: [{ role: "user", content: "source" }],
+        });
+        const exported = await memory.exportMemory({ scope });
+
+        expect(remembered).toMatchObject({
+          accepted: 0,
+          rejected: 1,
+          events: [expect.objectContaining({ reason: "invalid_payload" })],
+        });
+        expect(exported.durable.facts).toEqual([]);
+      } finally {
+        await cleanupUserData(POSTGRES_URL, userId);
+      }
+    }, 15_000);
+
+    it("rejects NUL-containing raw messages before JSONB persistence", async () => {
+      const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const userId = `pg-nul-source-${unique}`;
+      const scope = {
+        userId,
+        sessionId: `s-${unique}`,
+        workspaceId: "workspace-a",
+      };
+      const memory = createGoodMemory({
+        storage: {
+          provider: "postgres",
+          url: POSTGRES_URL,
+        },
+      });
+
+      try {
+        const remembered = await memory.remember({
+          extractionStrategy: "rules-only",
+          scope,
+          messages: [{ role: "user", content: "ordinary\u0000context" }],
+        });
+        const exported = await memory.exportMemory({ scope });
+
+        expect(remembered.accepted).toBe(0);
+        expect(exported.durable.sourceMessages).toEqual([]);
+      } finally {
+        await cleanupUserData(POSTGRES_URL, userId);
+      }
+    }, 15_000);
+
     it("runs remember, recall, feedback, forget, and buildContext against postgres", async () => {
       const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const userId = `pg-e2e-${unique}`;

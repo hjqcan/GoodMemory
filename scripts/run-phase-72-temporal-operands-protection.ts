@@ -18,10 +18,8 @@ import type {
   LocomoCase,
   LocomoQuestion,
 } from "../src/eval/locomo";
-import {
-  createEnglishLanguagePack,
-  createLanguageService,
-} from "../src/language";
+import { createLanguageService } from "../src/language";
+import type { LanguageService } from "../src/language";
 import { splitQueryIntoSubQueries } from "../src/recall/queryDecomposition";
 import { estimateTextTokens } from "../src/tokenEstimator";
 import {
@@ -202,7 +200,7 @@ export interface Phase72TemporalOperandsProtectionReport {
   source: {
     bunVersion: string;
     canonicalDependencies: boolean;
-    englishAnalyzerVersion: typeof REQUIRED_ENGLISH_ANALYZER_VERSION;
+    englishAnalyzerVersion: string;
     scriptSha256: string;
     sourceState: SourceState;
   };
@@ -344,8 +342,10 @@ function difference<T>(left: readonly T[], right: readonly T[]): T[] {
   return left.filter((value) => !excluded.has(value));
 }
 
-function temporalOperands(question: string): string[] {
-  const language = createLanguageService();
+function temporalOperands(
+  question: string,
+  language: LanguageService,
+): string[] {
   const context = language.resolveFromText({ text: question });
   const analysis = language.analyzeQuery(question, context);
   if ((analysis.temporalOperands?.length ?? 0) === 0) {
@@ -578,6 +578,7 @@ async function runArm(input: {
   arm: "control" | "treatment";
   beamMemory: () => GoodMemory;
   groups: readonly RuntimeGroup[];
+  language: LanguageService;
   locomoMemory: () => GoodMemory;
   maxQueriesPerCase: number;
 }): Promise<Map<string, ArmResult>> {
@@ -588,7 +589,7 @@ async function runArm(input: {
         ? input.locomoMemory()
         : input.beamMemory();
       await group.seed(memory);
-      const operands = temporalOperands(testCase.question);
+      const operands = temporalOperands(testCase.question, input.language);
       const decompose = input.arm === "treatment" && operands.length > 0;
       const recall = await testCase.recall(memory, decompose);
       const retrievedEvidenceIds = testCase.benchmark === "locomo"
@@ -875,13 +876,17 @@ export async function runPhase72TemporalOperandsProtection(
       `Bun ${REQUIRED_BUN_VERSION} is required; found ${bunVersion}.`,
     );
   }
-  const englishAnalyzerVersion = createEnglishLanguagePack().analyzerVersion;
-  if (englishAnalyzerVersion !== REQUIRED_ENGLISH_ANALYZER_VERSION) {
+  const canonicalDependencies = Object.keys(dependencies).length === 0;
+  const language = createLanguageService();
+  const englishAnalyzerVersion = language.analyzerVersion("en-US");
+  if (
+    canonicalDependencies &&
+    englishAnalyzerVersion !== REQUIRED_ENGLISH_ANALYZER_VERSION
+  ) {
     throw new Error(
       `English analyzer ${REQUIRED_ENGLISH_ANALYZER_VERSION} is required; found ${englishAnalyzerVersion}.`,
     );
   }
-  const canonicalDependencies = Object.keys(dependencies).length === 0;
   const readFileImpl = dependencies.readFile ??
     ((path: string) => readFile(path, "utf8"));
   const scriptPath = dependencies.scriptPath ?? import.meta.path;
@@ -935,7 +940,7 @@ export async function runPhase72TemporalOperandsProtection(
       )),
       questionCount: locomoQuestions.length,
       temporalTriggerCount: locomoQuestions.filter(({ question }) =>
-        temporalOperands(question.question).length > 0
+        temporalOperands(question.question, language).length > 0
       ).length,
     },
     expected: {
@@ -975,7 +980,7 @@ export async function runPhase72TemporalOperandsProtection(
         beamCases.map((testCase) => testCase.questionType),
       ),
       temporalTriggerCount: beamCases.filter((testCase) =>
-        temporalOperands(testCase.question).length > 0
+        temporalOperands(testCase.question, language).length > 0
       ).length,
     },
     expected: {
@@ -994,7 +999,7 @@ export async function runPhase72TemporalOperandsProtection(
   ];
   for (const group of groups) {
     for (const testCase of group.cases) {
-      const operands = temporalOperands(testCase.question);
+      const operands = temporalOperands(testCase.question, language);
       const negativeCategory = testCase.benchmark === "locomo"
         ? selection.locomo.negativeControlCategory
         : selection.beam.negativeControlQuestionType;
@@ -1021,6 +1026,7 @@ export async function runPhase72TemporalOperandsProtection(
     arm: "control",
     beamMemory,
     groups,
+    language,
     locomoMemory,
     maxQueriesPerCase: selection.budgets.maxQueriesPerCase,
   });
@@ -1028,6 +1034,7 @@ export async function runPhase72TemporalOperandsProtection(
     arm: "treatment",
     beamMemory,
     groups,
+    language,
     locomoMemory,
     maxQueriesPerCase: selection.budgets.maxQueriesPerCase,
   });
@@ -1037,7 +1044,7 @@ export async function runPhase72TemporalOperandsProtection(
       const key = resultKey(testCase);
       const control = controls.get(key)!;
       const treatment = treatments.get(key)!;
-      const operands = temporalOperands(testCase.question);
+      const operands = temporalOperands(testCase.question, language);
       if (operands.length === 0 && !isDeepStrictEqual(treatment, control)) {
         throw new Error(`Non-temporal treatment drift: ${testCase.questionId}`);
       }
@@ -1115,7 +1122,7 @@ export async function runPhase72TemporalOperandsProtection(
     source: {
       bunVersion,
       canonicalDependencies,
-      englishAnalyzerVersion: REQUIRED_ENGLISH_ANALYZER_VERSION,
+      englishAnalyzerVersion,
       scriptSha256: sha256(scriptRaw),
       sourceState: initialSourceState,
     },

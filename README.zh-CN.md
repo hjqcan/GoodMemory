@@ -4,9 +4,9 @@
 
 GoodMemory 是面向 AI 产品和 coding agent 的记忆层。
 
-> **发布源码：**这是不可变的 `0.7.3` 稳定发布源码。Registry 命令要求
-> `goodmemory@0.7.3` 已发布；release workflow 会先校验 npm `latest`
-> 与制品完整性，再创建 GitHub Release。
+> **发布状态：**当前分支是 `0.7.4` release candidate。npm `latest` 仍为
+> `0.7.3`，`0.7.4` 尚未发布。下文锁定版本的 registry 命令是发布后的契约；
+> 发布前请使用本地打包的 `goodmemory-0.7.4.tgz` 验证。
 
 它为 chat app、copilot 和 agent host 提供一条可审计的用户/项目记忆闭环：
 选择性写入事实，检索正确上下文，注入下一轮对话，记录发生过什么，并在记忆错误时删除。
@@ -25,7 +25,7 @@ GoodMemory 不是 LLM、agent framework、向量数据库，也不是通用 RAG 
 ## 从这里开始：Codex 或 Claude Code
 
 ```bash
-npm install -g goodmemory@0.7.3
+npm install -g goodmemory@0.7.4
 goodmemory setup
 ```
 
@@ -42,12 +42,12 @@ GoodMemory 把「当前生产声明」「带版本的历史证据」和「内部
 投影断言与 README 一致性；它不是对上游 license 或被忽略原始报告的独立复现。历史行使用
 独立 marker 和源文件指纹，复现仍需要取得对应原始 artifact，且不能满足当前版本 gate。
 
-全新的 v0.7.3 protocol-v2 运行已经生成下方当前 LoCoMo 声明。Phase 72 的
-benchmark gate 和带版本 release gate 继续作为 `v0.6.0` 历史证据单独保留；由于
-`v0.7.0` 改变了 LanguagePack 与召回语义，不能把旧行当作当前包的性能。v0.7.3
-结果是一次 live-provider draw，因此 0.4-0.7 个百分点的 run-to-run 波动仅是启发式
-估计，不能把分数变化归因于 R6 retrieval change。它也是 public-opt-in 的 provider
-profile，不代表零 provider 默认路径。
+GoodMemory `0.7.4` 没有新测量的当前 benchmark 声明。全新的 v0.7.3
+protocol-v2 LoCoMo 结果作为带版本证据保留在下方，不能重标为在 `0.7.4` 上测量。
+Phase 72 的 benchmark gate 和带版本 release gate 继续作为 `v0.6.0` 历史证据
+单独保留。v0.7.3 结果是一次 live-provider draw，因此 0.4-0.7 个百分点的
+run-to-run 波动仅是启发式估计，不能把分数变化归因于 R6 retrieval change。
+它也是 public-opt-in 的 provider profile，不代表零 provider 默认路径。
 LongMemEval 已撤下并等待 clean rerun：历史 rules-only 路径使用了 answer annotation，
 后来的 label-free 路径又把原始 `answer_*` session ID 暴露给检索和 reader。
 ImplicitMemBench 的 retry-merged 结果仍属于内部证据，因为它不能替代一次全新的单体
@@ -55,23 +55,21 @@ Full-300 运行。HaluMem、MemGym 与 MINTEval 继续作为 release evidence，
 benchmark 声明。
 
 <!-- current-claims-table:start -->
-| 基准 | 主指标 | GoodMemory 结果 | 基线 / 参照 | Claim declaration |
-|---|---|---:|---:|---|
-| LoCoMo v0.7.3（完整 10 会话） | 独立官方判官协议；strict 确定性 token-F1 | official **0.8805** · strict **0.6266** · open-domain **0.6042**（58/96） | 历史无记忆 0.0045 | [locomo.json](./benchmark-claims/locomo.json) |
+当前没有 benchmark 结果被表述为在 `0.7.4` 上测量。
 <!-- current-claims-table:end -->
 
-### 带版本的内部证据
+### 带版本证据
 
 <!-- historical-evidence-table:start -->
 | 基准 | 主指标 | GoodMemory 结果 | 基线 / 参照 | Claim declaration |
 |---|---|---:|---:|---|
-| LoCoMo v0.6.0（完整 10 会话） | 独立官方判官协议；strict 确定性 token-F1 | official **0.8708** · strict **0.6299** · open-domain **0.6146**（59/96） | 历史无记忆 0.0045 | [locomo.json](./benchmark-claims/locomo.json) |
+| LoCoMo v0.7.3（完整 10 会话） | 独立官方判官协议；strict 确定性 token-F1 | official **0.8805** · strict **0.6266** · open-domain **0.6042**（58/96） | 历史无记忆 0.0045 | [locomo.json](./benchmark-claims/locomo.json) |
 | BEAM 100K v0.6.0（400 题、1051 条 rubric） | 独立官方 unified rubric；另行披露 strict binary | unified **0.7651** · strict **0.620**（248/400）· 泛化 recall **0.8276** | 公开 full-400 同协议参照 0.49 | [beam.json](./benchmark-claims/beam.json) |
 | MemoryAgentBench v0.6.0 (CR, TTL) | 上游确定性 match-mode，judge-free | **CR 0.959, TTL 0.933** | 两项无记忆均为 0.000 | [memoryagentbench.json](./benchmark-claims/memoryagentbench.json) |
 | ImplicitMemBench Full-300 | stored-answer cross-version judge rescore | **0.691**（207.35/300），gpt-5.4 judge over gpt-5.5 answers，sourceAnswersUnchanged | upstream-chat 基线 **0.400**（120/300）；reference line 0.66 | [implicitmembench.json](./benchmark-claims/implicitmembench.json) |
 <!-- historical-evidence-table:end -->
 
-当前 v0.7.3 LoCoMo 运行覆盖全部 1540 道非对抗题，执行失败和判官失败均为零。
+带版本的 v0.7.3 LoCoMo 运行覆盖全部 1540 道非对抗题，执行失败和判官失败均为零。
 答案、对话式萃取与 provider reranking 使用 `gpt-5.6-terra`，官方协议轨由独立
 `gpt-5.5` 判官评分。数据集采用 CC BY-NC 4.0，因此仅限非商用评估。这是一次
 live-provider draw，0.4-0.7 个百分点的 run-to-run 波动仅为启发式估计；它不能证明
@@ -151,7 +149,7 @@ GoodMemory 有三类主要产品入口。它不是只有这些 API：`goodmemory
 也会在 `/.well-known/goodmemory.json` 提供该 descriptor）。
 
 - **你是、或运行在 Claude Code / Codex 里** →
-  `npm install -g goodmemory@0.7.3 && goodmemory setup`。不确定环境里已经装了
+  `npm install -g goodmemory@0.7.4 && goodmemory setup`。不确定环境里已经装了
   什么？运行 `goodmemory adopt`（加 `--json` 得到机器可读方案）：它会检测
   `.claude/`、`.codex/` 和已有的 MCP 配置，并打印出针对你环境的确切下一条命令。
 - **你支持 MCP**（Cursor、Windsurf、Cline、Claude Desktop、Gemini CLI、
@@ -246,12 +244,12 @@ GoodMemory 负责 memory loop 和存储边界。
 
 ## 安装
 
-GoodMemory `0.7.3` 发布后有两条常用 registry 安装路径。发布前请使用下方 tarball 验证路径。
+GoodMemory `0.7.4` 发布后有两条常用 registry 安装路径。发布前请使用下方 tarball 验证路径。
 
 如果你想给已安装的 coding agent 增加记忆能力，使用全局 CLI：
 
 ```bash
-npm install -g goodmemory@0.7.3
+npm install -g goodmemory@0.7.4
 goodmemory setup
 goodmemory status
 ```
@@ -259,11 +257,11 @@ goodmemory status
 如果你是在应用里集成 GoodMemory，作为项目依赖安装：
 
 ```bash
-npm install goodmemory@0.7.3
+npm install goodmemory@0.7.4
 ```
 
 如果你想直接输入 `goodmemory`，必须安装全局 CLI。
-项目内 `npm install goodmemory@0.7.3` 不会把 `goodmemory` 放进 shell 的 `PATH`。
+项目内 `npm install goodmemory@0.7.4` 不会把 `goodmemory` 放进 shell 的 `PATH`。
 这种本地依赖安装只能从该项目里用 `npx goodmemory`、
 `npm exec -- goodmemory` 或 `./node_modules/.bin/goodmemory` 调用。
 
@@ -274,13 +272,13 @@ npx goodmemory -V
 Bun 项目可以直接安装：
 
 ```bash
-bun add goodmemory@0.7.3
+bun add goodmemory@0.7.4
 ```
 
 发布前 tarball 验证：
 
 ```bash
-npm install ./goodmemory-0.7.3.tgz
+npm install ./goodmemory-0.7.4.tgz
 ```
 
 已安装 CLI 的非版本命令由 Bun 支撑。package bin 对 `goodmemory -V` 和 `goodmemory --version` 是 Node-safe 的；其他命令会委托给 Bun。
@@ -290,7 +288,7 @@ npm install ./goodmemory-0.7.3.tgz
 大多数用户最先需要的是 installed-host memory。
 
 ```bash
-npm install -g goodmemory@0.7.3
+npm install -g goodmemory@0.7.4
 goodmemory setup
 goodmemory status
 ```
@@ -976,7 +974,7 @@ const result = await adapter.readArtifacts({
 ## CLI Reference
 
 shell `PATH` 上的裸 `goodmemory` 命令来自
-`npm install -g goodmemory@0.7.3` 安装的全局 CLI。本地 dependency install
+`npm install -g goodmemory@0.7.4` 安装的全局 CLI。本地 dependency install
 里，用 `npx goodmemory`、`npm exec -- goodmemory` 或
 `./node_modules/.bin/goodmemory` 调用 package bin。repo-local
 `bun run goodmemory` 只用于开发。

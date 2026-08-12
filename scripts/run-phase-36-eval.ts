@@ -356,8 +356,8 @@ async function runNeverAnnotationMaskingCase(): Promise<Phase36CaseResult> {
 
   return assertCase("never-annotation-masking", "annotation_privacy", [
     {
-      label: "assisted-input-masked",
-      passed: assistedInputs.length === 1 && assistedInputs[0] === "",
+      label: "assisted-extractor-not-invoked",
+      passed: assistedInputs.length === 0,
     },
     {
       label: "no-durable-write",

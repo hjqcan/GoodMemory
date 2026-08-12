@@ -20,6 +20,7 @@ import {
   hasCliFlagStrict,
   resolveCliFlagValueStrict,
 } from "./cli-options";
+import { assertV07ReleaseSourceIdentity } from "./promote-v0-7-release";
 import {
   assertProviderResponseFailuresRecovered,
   assertProviderResponseTapeCoversSequences,
@@ -76,7 +77,8 @@ import {
 import type { V073ReplacementProtectionInput } from "./v0-7-3-replacement-protection";
 
 const RELEASE_LINE = "0.7";
-const RELEASE_VERSION = "0.7.3";
+const RELEASE_VERSION = "0.7.4";
+const HISTORICAL_LOCOMO_VERSION = "0.7.3";
 const RELEASE_BUN_VERSION = "1.3.14";
 const MAX_TARBALL_BYTES = 4 * 1024 * 1024;
 const FAILURE_CONTEXT_LINES = 4;
@@ -438,14 +440,10 @@ export function stableLocomoClaimIssues(input: {
     return [];
   }
   const issues: string[] = [];
-  if (
-    !input.claims.some(
-      (claim) =>
-        claim.name === "LoCoMo" &&
-        claim.measuredPackageVersion === RELEASE_VERSION,
-    )
-  ) {
-    issues.push(`stable release requires a current LoCoMo ${RELEASE_VERSION} declaration`);
+  if (input.claims.length > 0) {
+    issues.push(
+      `stable ${RELEASE_VERSION} release must not relabel v${HISTORICAL_LOCOMO_VERSION} benchmark evidence as current`,
+    );
   }
   if (
     !isRecord(input.projection) ||
@@ -453,11 +451,11 @@ export function stableLocomoClaimIssues(input: {
     input.projection.benchmark !== "LoCoMo" ||
     input.projection.schemaVersion !== 1 ||
     !isRecord(input.projection.claim) ||
-    input.projection.claim.packageVersion !== RELEASE_VERSION ||
+    input.projection.claim.packageVersion !== HISTORICAL_LOCOMO_VERSION ||
     !isValidStableLocomoClaimProjection(input.projection)
   ) {
     issues.push(
-      `stable release requires ${V073_LOCOMO_CURRENT_PROJECTION} to satisfy the full 1540-question evidence contract`,
+      `stable release requires the historical v${HISTORICAL_LOCOMO_VERSION} LoCoMo projection at ${V073_LOCOMO_CURRENT_PROJECTION} to satisfy the full 1540-question evidence contract`,
     );
   }
   return issues;
@@ -497,7 +495,7 @@ function isValidStableLocomoClaimProjection(
   const execution = projection.execution;
   const runIdentity = projection.runIdentity;
   if (
-    claim.packageVersion !== RELEASE_VERSION ||
+    claim.packageVersion !== HISTORICAL_LOCOMO_VERSION ||
     claim.questionCount !== 1540 ||
     claim.conversationCount !== 10 ||
     claim.executionFailures !== 0 ||
@@ -533,7 +531,7 @@ function isValidStableLocomoClaimProjection(
   if (
     descriptorFields.some((field) => !isNonEmptyString(descriptor[field])) ||
     descriptor.name !== "LoCoMo" ||
-    descriptor.measuredPackageVersion !== RELEASE_VERSION ||
+    descriptor.measuredPackageVersion !== HISTORICAL_LOCOMO_VERSION ||
     descriptor.claimDeclaration !== "benchmark-claims/locomo.json" ||
     descriptor.reference !== V073_LOCOMO_CURRENT_PROJECTION
   ) {
@@ -1787,7 +1785,7 @@ function validateStableLocomoEvidenceValues(input: {
       declaration.status !== "candidate_public_claim" ||
       !isRecord(run) ||
       run.commit !== runIdentity.commit ||
-      run.packageVersion !== RELEASE_VERSION ||
+      run.packageVersion !== HISTORICAL_LOCOMO_VERSION ||
       run.executionFailures !== 0 ||
       !isNonEmptyString(command) ||
       command !== (isRecord(input.executionReceipt)
@@ -2107,17 +2105,6 @@ export async function evaluateV073CurrentLocomoClaimState(input: {
       projection,
       repoRoot: input.repoRoot,
     }));
-    if (input.releaseStatus === "stable") {
-      const advertisedClaim = input.claims.find((claim) => claim.name === "LoCoMo");
-      if (
-        !isRecord(projection.descriptorClaim) ||
-        !sameJson(advertisedClaim, projection.descriptorClaim)
-      ) {
-        issues.push(
-          "stable capability descriptor LoCoMo claim does not match the tracked projection",
-        );
-      }
-    }
   }
   return issues;
 }
@@ -5962,6 +5949,53 @@ export async function collectV07SourceIdentity(repoRoot: string): Promise<{
   });
 }
 
+export async function evaluateV07ReleaseSourceIdentity(input: {
+  releaseStatus: string | undefined;
+  repoRoot: string;
+  version: string;
+}): Promise<V07ReleaseReadinessCheck> {
+  const startedAt = performance.now();
+  if (
+    input.releaseStatus !== "release-candidate" &&
+    input.releaseStatus !== "stable"
+  ) {
+    return {
+      detail: "release status must be release-candidate or stable",
+      durationMs: Math.round(performance.now() - startedAt),
+      id: "release-source-identity",
+      required: true,
+      status: "fail",
+      title: "Release source tag identity",
+    };
+  }
+  try {
+    await assertV07ReleaseSourceIdentity({
+      releaseStatus: input.releaseStatus,
+      repoRoot: input.repoRoot,
+      version: input.version,
+    });
+    return {
+      detail: input.releaseStatus === "stable"
+        ? `clean HEAD matches peeled v${input.version} tag`
+        : "release-candidate tag identity is not applicable",
+      durationMs: Math.round(performance.now() - startedAt),
+      id: "release-source-identity",
+      required: true,
+      status: "pass",
+      title: "Release source tag identity",
+    };
+  } catch (error) {
+    return {
+      detail: error instanceof Error ? error.message : String(error),
+      durationMs: Math.round(performance.now() - startedAt),
+      id: "release-source-identity",
+      required: true,
+      status: "fail",
+      title: "Release source tag identity",
+    };
+  }
+}
+
 async function collectV07RuntimeIdentity(repoRoot: string): Promise<{
   check: V07ReleaseReadinessCheck;
   runtime: V07RuntimeIdentity;
@@ -6138,11 +6172,9 @@ export async function evaluateVersionConsistency(
     capability.benchmarks?.currentClaims?.map(
       (claim) => claim.measuredPackageVersion,
     ) ?? [];
-  if (
-    benchmarkVersions.some((version) => version !== RELEASE_VERSION)
-  ) {
+  if (benchmarkVersions.length > 0) {
     issues.push(
-      `current benchmark claims were not measured on ${RELEASE_VERSION}`,
+      `${RELEASE_VERSION} has no newly measured current benchmark claim; v${HISTORICAL_LOCOMO_VERSION} evidence must remain historical`,
     );
   }
   issues.push(...await evaluateV073CurrentLocomoClaimState({
@@ -6154,7 +6186,7 @@ export async function evaluateVersionConsistency(
   return {
     detail:
       issues.length === 0
-        ? `${packageRelease?.status} ${RELEASE_VERSION} source metadata is aligned; mutable npm state is not encoded; pre-0.7 benchmark evidence is not labeled current`
+        ? `${packageRelease?.status} ${RELEASE_VERSION} source metadata is aligned; mutable npm state is not encoded; earlier-version benchmark evidence is not labeled current`
         : issues.join("; "),
     durationMs: Math.round(performance.now() - startedAt),
     id: "version",
@@ -6498,6 +6530,11 @@ export async function runV07ReleaseReadiness(
   const runtime = await collectV07RuntimeIdentity(repoRoot);
 
   checks.push(source.check, runtime.check);
+  checks.push(await evaluateV07ReleaseSourceIdentity({
+    releaseStatus: packageJson.goodmemoryRelease?.status,
+    repoRoot,
+    version: packageJson.version,
+  }));
   checks.push(await evaluateVersionConsistency(repoRoot));
   checks.push(...(await evaluateV073LifecycleProtectionArtifactFile({
     artifactPath: resolve(

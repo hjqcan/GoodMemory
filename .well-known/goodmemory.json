@@ -1,7 +1,7 @@
 {
   "schemaVersion": "goodmemory.capability/v2",
   "name": "goodmemory",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "kind": "memory-layer",
   "summary": "Durable user/project memory layer for chat apps, copilots, and coding agents.",
   "description": "GoodMemory is the product memory layer between an app or installed agent host and the model runtime: write selected facts, recall the right context, inject it into the next turn, audit what happened, and delete it when it is wrong.",
@@ -21,15 +21,15 @@
     "quickstart": "https://github.com/hjqcan/GoodMemory#quickstart-codex-or-claude-code-memory"
   },
   "install": {
-    "npmGlobal": "npm install -g goodmemory@0.7.3",
-    "npmPackage": "npm install goodmemory@0.7.3",
-    "bun": "bun add goodmemory@0.7.3"
+    "npmGlobal": "npm install -g goodmemory@0.7.4",
+    "npmPackage": "npm install goodmemory@0.7.4",
+    "bun": "bun add goodmemory@0.7.4"
   },
   "releaseStatus": {
     "installCommandsApplyAfterPublish": true,
     "npmDistTag": "latest",
-    "status": "stable",
-    "tarball": "goodmemory-0.7.3.tgz"
+    "status": "release-candidate",
+    "tarball": "goodmemory-0.7.4.tgz"
   },
   "memoryApi": [
     "remember",
@@ -46,7 +46,7 @@
       "when": "You are, or run inside, Claude Code or Codex.",
       "method": "cli",
       "steps": [
-        "npm install -g goodmemory@0.7.3",
+        "npm install -g goodmemory@0.7.4",
         "goodmemory setup",
         "goodmemory status"
       ],
@@ -125,21 +125,10 @@
     "docs": "https://github.com/hjqcan/GoodMemory#pythonfastapi-http-bridge"
   },
   "benchmarks": {
-    "currentClaims": [
-      {
-        "claimDeclaration": "benchmark-claims/locomo.json",
-        "config": "full 10 conversations / 1540 non-adversarial questions",
-        "measuredPackageVersion": "0.7.3",
-        "metric": "independent LoCoMo judge-protocol accuracy",
-        "name": "LoCoMo",
-        "reference": "benchmark-claims/evidence/locomo-v0.7.3-current.json",
-        "result": "official 0.8805; strict 0.6266; open-domain 58/96 (0.6042)",
-        "runtimeProfile": "recommended+provider-embedding+provider-reranking@0.7.3"
-      }
-    ],
+    "currentClaims": [],
     "historicalEvidence": {
       "url": "https://github.com/hjqcan/GoodMemory/tree/main/benchmark-claims",
-      "note": "The v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus older LongMemEval and ImplicitMemBench runs, remain reproducible versioned evidence. The current LoCoMo claim is loaded only from the tracked v0.7.3 projection. LongMemEval and ImplicitMemBench remain internal evidence."
+      "note": "The v0.7.3 LoCoMo result, the v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus ImplicitMemBench, remain reproducible versioned evidence. No benchmark result has been relabeled as measured on v0.7.4. LongMemEval is withdrawn and paused pending a clean label-free rerun; its old artifacts are retained only as contaminated provenance and are not quotable as GoodMemory results."
     }
   },
   "capabilities": {

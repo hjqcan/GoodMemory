@@ -1074,6 +1074,1522 @@ describe("deterministic memory extractor", () => {
     expect(result.candidates[8]?.metadata?.feedbackKind).toBe("prefer");
   });
 
+  it("v0.7.4 explicit facts C1 strips a directive colon", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    for (const content of [
+      "请记住：编辑器=Neovim",
+      "请你记住：编辑器=Neovim",
+      "请帮我记住：编辑器=Neovim",
+      "麻烦你记住：编辑器=Neovim",
+    ]) {
+      const result = await extractor.extract({
+        locale: "zh-CN",
+        scope: { userId: "u-explicit-c1", sessionId: "s-explicit-c1" },
+        messages: [{ role: "user", content }],
+      });
+
+      expect(result.candidates.map(({ content }) => content)).toEqual([
+        "编辑器=Neovim",
+      ]);
+    }
+  });
+
+  it("v0.7.4 explicit facts C2 strips a counted-list prefix", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    const result = await extractor.extract({
+      locale: "zh-CN",
+      scope: { userId: "u-explicit-c2", sessionId: "s-explicit-c2" },
+      messages: [{ role: "user", content: "请记住以下一件事：编辑器=Neovim" }],
+    });
+
+    expect(result.candidates.map(({ content }) => content)).toEqual([
+      "编辑器=Neovim",
+    ]);
+  });
+
+  it("v0.7.4 explicit facts C3 extracts every semicolon-delimited counted fact", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    const result = await extractor.extract({
+      locale: "zh-CN",
+      scope: { userId: "u-explicit-c3", sessionId: "s-explicit-c3" },
+      messages: [
+        {
+          role: "user",
+          content: "两件事：编辑器=Neovim；项目代号=Tachikoma",
+        },
+      ],
+    });
+
+    expect(
+      result.candidates.map(({ content, explicitness, kindHint }) => ({
+        content,
+        explicitness,
+        kindHint,
+      })),
+    ).toEqual([
+      {
+        content: "编辑器=Neovim",
+        explicitness: "explicit",
+        kindHint: "fact",
+      },
+      {
+        content: "项目代号=Tachikoma",
+        explicitness: "explicit",
+        kindHint: "fact",
+      },
+    ]);
+  });
+
+  it("v0.7.4 explicit facts C4 extracts every full-stop-delimited counted fact", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    const result = await extractor.extract({
+      locale: "zh-CN",
+      scope: { userId: "u-explicit-c4", sessionId: "s-explicit-c4" },
+      messages: [
+        {
+          role: "user",
+          content: "请记住两件事：我最喜欢的编辑器是 Neovim。项目代号=Tachikoma。",
+        },
+      ],
+    });
+
+    expect(
+      result.candidates
+        .filter(({ kindHint }) => kindHint === "fact")
+        .map(({ content, explicitness }) => ({ content, explicitness })),
+    ).toEqual([
+      {
+        content: "我最喜欢的编辑器是 Neovim",
+        explicitness: "explicit",
+      },
+      {
+        content: "项目代号=Tachikoma",
+        explicitness: "explicit",
+      },
+    ]);
+  });
+
+  it("v0.7.4 explicit facts C5 drops directives whose cleaned fact is empty", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    const result = await extractor.extract({
+      locale: "zh-CN",
+      scope: { userId: "u-explicit-c5", sessionId: "s-explicit-c5" },
+      messages: [
+        { role: "user", content: "请记住；" },
+        { role: "user", content: "请记住。" },
+      ],
+    });
+
+    expect(result.candidates).toEqual([]);
+  });
+
+  it("does not treat a negated or quoted remember directive as an explicit fact", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    for (const content of [
+      "不要记住项目代号=Tachikoma",
+      "他说请记住项目代号=Tachikoma",
+    ]) {
+      const result = await extractor.extract({
+        locale: "zh-CN",
+        scope: { userId: "u-explicit-boundary", sessionId: "s-explicit-boundary" },
+        messages: [{ role: "user", content }],
+      });
+
+      expect(result.candidates.some(
+        ({ explicitness, kindHint }) =>
+          kindHint === "fact" && explicitness === "explicit",
+      )).toBe(false);
+    }
+  });
+
+  it("does not turn a counted task list into explicit facts", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    for (const content of [
+      "两件事：请修改文件；运行测试",
+      "两件事：检查 foo=bar 是否正确；执行 baz=qux",
+      "两件事：请设置编辑器=Neovim；运行模式=test",
+    ]) {
+      const result = await extractor.extract({
+        locale: "zh-CN",
+        scope: { userId: "u-explicit-tasks", sessionId: "s-explicit-tasks" },
+        messages: [{ role: "user", content }],
+      });
+
+      expect(result.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(false);
+    }
+  });
+
+  it("does not turn counted questions into explicit facts", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    const result = await extractor.extract({
+      locale: "zh-CN",
+      scope: { userId: "u-explicit-questions", sessionId: "s-explicit-questions" },
+      messages: [
+        {
+          role: "user",
+          content: "两件事：我的编辑器是什么；我的项目代号是什么",
+        },
+      ],
+    });
+
+    expect(result.candidates.some(
+      ({ explicitness, kindHint }) =>
+        kindHint === "fact" && explicitness === "explicit",
+    )).toBe(false);
+  });
+
+  it("does not extract remember questions as explicit facts", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    for (const content of ["记住了吗？", "請記住了嗎？", "有个事实吗？"]) {
+      const result = await extractor.extract({
+        locale: "zh-CN",
+        scope: { userId: "u-explicit-question", sessionId: "s-explicit-question" },
+        messages: [{ role: "user", content }],
+      });
+
+      expect(result.candidates.some(
+        ({ explicitness, kindHint }) =>
+          kindHint === "fact" && explicitness === "explicit",
+      )).toBe(false);
+    }
+  });
+
+  it("keeps question words as literal values in directive assignments", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    for (const [source, expected] of [
+      ["请记住字段名=是否启用", "字段名=是否启用"],
+      ["请记住FAQ标题=为什么失败", "FAQ标题=为什么失败"],
+    ]) {
+      const result = await extractor.extract({
+        locale: "zh-CN",
+        scope: { userId: "u-explicit-literal", sessionId: "s-explicit-literal" },
+        messages: [{ role: "user", content: source }],
+      });
+
+      expect(result.candidates.map(({ content, kindHint }) => ({ content, kindHint }))).toEqual([
+        { content: expected, kindHint: "fact" },
+      ]);
+    }
+  });
+
+  it("keeps typed preferences out of the generic explicit-fact lane", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    const result = await extractor.extract({
+      locale: "zh-CN",
+      scope: { userId: "u-explicit-preference", sessionId: "s-explicit-preference" },
+      messages: [
+        {
+          role: "user",
+          content: "请记住两件事：我偏好简洁回复；项目代号=Tachikoma",
+        },
+      ],
+    });
+
+    expect(result.candidates.map(({ content, kindHint }) => ({ content, kindHint }))).toEqual([
+      { content: "简洁回复", kindHint: "preference" },
+      { content: "项目代号=Tachikoma", kindHint: "fact" },
+    ]);
+  });
+
+  it("uses generic explicit facts only when no typed fact was extracted", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    const result = await extractor.extract({
+      locale: "zh-CN",
+      scope: { userId: "u-explicit-typed", sessionId: "s-explicit-typed" },
+      messages: [
+        {
+          role: "user",
+          content: "请记住两件事：我在北京生活；我使用 Neovim",
+        },
+      ],
+    });
+
+    expect(result.candidates.filter(({ kindHint }) => kindHint === "profile")).toHaveLength(1);
+    expect(
+      result.candidates
+        .filter(({ kindHint }) => kindHint === "fact")
+        .map(({ content }) => content),
+    ).toEqual(["我使用Neovim。"]);
+  });
+
+  it("does not duplicate an explicit technical reference as a generic fact", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    const result = await extractor.extract({
+      locale: "en-US",
+      messages: [{
+        role: "user",
+        content: "Remember two things: reference=docs/current.md; project code=Tachikoma",
+      }],
+      scope: { sessionId: "typed-reference", userId: "typed-reference" },
+    });
+
+    expect(
+      result.candidates.map(({ content, kindHint }) => ({ content, kindHint })),
+    ).toEqual([
+      { content: "docs/current.md", kindHint: "reference" },
+      { content: "project code=Tachikoma", kindHint: "fact" },
+    ]);
+  });
+
+  it("extracts every fact from explicit compound lists in every built-in language", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      {
+        expected: ["editor=Neovim", "project code=Tachikoma"],
+        locale: "en-US",
+        source: "Remember two things: editor=Neovim; project code=Tachikoma",
+      },
+      {
+        expected: ["éditeur=Neovim", "code projet=Tachikoma"],
+        locale: "fr-FR",
+        source: "Souviens-toi de deux choses : éditeur=Neovim ; code projet=Tachikoma",
+      },
+      {
+        expected: ["editor=Neovim", "código de proyecto=Tachikoma"],
+        locale: "es-ES",
+        source: "Recuerda dos cosas: editor=Neovim; código de proyecto=Tachikoma",
+      },
+      {
+        expected: ["エディタ=Neovim", "プロジェクトコード=Tachikoma"],
+        locale: "ja-JP",
+        source: "二つのことを覚えておいて：エディタ=Neovim；プロジェクトコード=Tachikoma",
+      },
+      {
+        expected: ["편집기=Neovim", "프로젝트 코드=Tachikoma"],
+        locale: "ko-KR",
+        source: "두 가지를 기억해 주세요: 편집기=Neovim; 프로젝트 코드=Tachikoma",
+      },
+    ] as const;
+
+    for (const fixture of fixtures) {
+      const result = await extractor.extract({
+        locale: fixture.locale,
+        messages: [{ role: "user", content: fixture.source }],
+        scope: {
+          sessionId: `compound-${fixture.locale}`,
+          userId: `compound-${fixture.locale}`,
+        },
+      });
+
+      expect(
+        result.candidates
+          .filter(({ explicitness, kindHint }) =>
+            explicitness === "explicit" && kindHint === "fact"
+          )
+          .map(({ content }) => content),
+      ).toEqual([...fixture.expected]);
+    }
+  });
+
+  it("preserves polite leading forms of explicit remember directives", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      {
+        expected: "editor=Neovim",
+        locale: "en-US",
+        source: "Please remember that editor=Neovim",
+      },
+      {
+        expected: "éditeur=Neovim",
+        locale: "fr-FR",
+        source: "S’il te plaît, souviens-toi que éditeur=Neovim",
+      },
+      {
+        expected: "éditeur=Neovim",
+        locale: "fr-FR",
+        source: "S'il vous plaît mémorise que éditeur=Neovim",
+      },
+      {
+        expected: "editor=Neovim",
+        locale: "es-ES",
+        source: "Por favor, recuerda que editor=Neovim",
+      },
+      {
+        expected: "editor=Neovim",
+        locale: "es-ES",
+        source: "Por favor recuerda que editor=Neovim",
+      },
+      {
+        expected: "エディタ=Neovim",
+        locale: "ja-JP",
+        source: "これを覚えておいて、エディタ=Neovim",
+      },
+      {
+        expected: "편집기=Neovim",
+        locale: "ko-KR",
+        source: "이것을 기억해 주세요, 편집기=Neovim",
+      },
+    ] as const;
+
+    for (const fixture of fixtures) {
+      const result = await extractor.extract({
+        locale: fixture.locale,
+        messages: [{ role: "user", content: fixture.source }],
+        scope: {
+          sessionId: `polite-${fixture.locale}`,
+          userId: `polite-${fixture.locale}`,
+        },
+      });
+
+      expect(
+        result.candidates
+          .filter(({ explicitness, kindHint }) =>
+            explicitness === "explicit" && kindHint === "fact"
+          )
+          .map(({ content }) => content),
+      ).toEqual([fixture.expected]);
+    }
+  });
+
+  it("preserves clause-leading remember directives after ordinary context", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const result = await extractor.extract({
+      locale: "en-US",
+      messages: [{
+        role: "user",
+        content:
+          "My name is Lin. Remember that the migration rollout is blocked on prod verification.",
+      }],
+      scope: { sessionId: "clause-leading", userId: "clause-leading" },
+    });
+
+    expect(result.candidates.map(({ content, explicitness, kindHint }) => ({
+      content,
+      explicitness,
+      kindHint,
+    }))).toEqual([
+      { content: "Lin", explicitness: "explicit", kindHint: "profile" },
+      {
+        content: "the migration rollout is blocked on prod verification.",
+        explicitness: "explicit",
+        kindHint: "fact",
+      },
+    ]);
+  });
+
+  it("preserves clause-leading directives after ordinary context in every pack", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["fr-FR", "Contexte ordinaire. Souviens-toi que éditeur=Neovim", "éditeur=Neovim"],
+      ["es-ES", "Contexto normal. Recuerda que editor=Neovim", "editor=Neovim"],
+      ["ja-JP", "通常の文です。覚えておいて、エディタ=Neovim", "エディタ=Neovim"],
+      ["ko-KR", "일반 문장입니다. 기억해 주세요, 편집기=Neovim", "편집기=Neovim"],
+    ] as const;
+
+    for (const [locale, source, expected] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `clause-${locale}`, userId: `clause-${locale}` },
+      });
+
+      expect(
+        result.candidates
+          .filter(({ explicitness, kindHint }) =>
+            explicitness === "explicit" && kindHint === "fact"
+          )
+          .map(({ content }) => content),
+      ).toEqual([expected]);
+    }
+  });
+
+  it("preserves every nested list item after ordinary context in every pack", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      [
+        "en-US",
+        "Ordinary context. Remember two things: editor=Neovim; shell=zsh",
+        ["editor=Neovim", "shell=zsh"],
+      ],
+      [
+        "zh-CN",
+        "普通上下文。请记住两件事：编辑器=Neovim；项目代号=Tachikoma",
+        ["编辑器=Neovim", "项目代号=Tachikoma"],
+      ],
+      [
+        "fr-FR",
+        "Contexte ordinaire. Souviens-toi de deux choses : éditeur=Neovim ; shell=zsh",
+        ["éditeur=Neovim", "shell=zsh"],
+      ],
+      [
+        "es-ES",
+        "Contexto normal. Recuerda dos cosas: editor=Neovim; shell=zsh",
+        ["editor=Neovim", "shell=zsh"],
+      ],
+      [
+        "ja-JP",
+        "通常の文です。二つのことを覚えておいて：エディタ=Neovim；シェル=zsh",
+        ["エディタ=Neovim", "シェル=zsh"],
+      ],
+      [
+        "ko-KR",
+        "일반 문장입니다. 두 가지를 기억해 주세요: 편집기=Neovim; 셸=zsh",
+        ["편집기=Neovim", "셸=zsh"],
+      ],
+    ] as const;
+
+    for (const [locale, source, expected] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `nested-${locale}`, userId: `nested-${locale}` },
+      });
+
+      expect(
+        result.candidates
+          .filter(({ explicitness, kindHint }) =>
+            explicitness === "explicit" && kindHint === "fact"
+          )
+          .map(({ content }) => content),
+      ).toEqual([...expected]);
+    }
+  });
+
+  it("stops explicit propagation after the declared directive payload", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Context. Remember that editor=Neovim. The weather is pleasant.", "editor=Neovim."],
+      ["zh-CN", "普通上下文。请记住编辑器=Neovim。今天天气很好。", "编辑器=Neovim"],
+      ["fr-FR", "Contexte. Souviens-toi que éditeur=Neovim. Il fait beau.", "éditeur=Neovim"],
+      ["es-ES", "Contexto. Recuerda que editor=Neovim. Hace buen tiempo.", "editor=Neovim"],
+      ["ja-JP", "通常の文です。覚えておいて：エディタ=Neovim。今日は晴れです。", "エディタ=Neovim"],
+      ["ko-KR", "일반 문장입니다. 기억해 주세요: 편집기=Neovim. 오늘은 맑습니다.", "편집기=Neovim"],
+    ] as const;
+
+    for (const [locale, source, expected] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `bounded-${locale}`, userId: `bounded-${locale}` },
+      });
+
+      expect(
+        result.candidates
+          .filter(({ explicitness, kindHint }) =>
+            explicitness === "explicit" && kindHint === "fact"
+          )
+          .map(({ content }) => content),
+      ).toEqual([expected]);
+    }
+  });
+
+  it("drops malformed list payloads and rejects questions inside explicit lists", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["fr-FR", "Souviens-toi de deux choses"],
+      ["fr-FR", "Souviens-toi ---"],
+      ["fr-FR", "Souviens-toi ? code projet=Tachikoma"],
+      ["es-ES", "Recuerda dos cosas"],
+      ["es-ES", "Recuerda ()"],
+      ["es-ES", "Recuerda? código de proyecto=Tachikoma"],
+      ["ja-JP", "二つのことを覚えておいて：何が好きですか？；エディタ=Neovim"],
+      ["ko-KR", "두 가지를 기억해 주세요: 무엇을 좋아하나요?; 편집기=Neovim"],
+    ] as const;
+
+    for (const [locale, source] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `malformed-${locale}`, userId: `malformed-${locale}` },
+      });
+
+      expect(result.candidates.some(
+        ({ explicitness, kindHint }) =>
+          explicitness === "explicit" && kindHint === "fact",
+      )).toBe(false);
+    }
+  });
+
+  it("does not propagate explicit intent into an opt-out clause", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      [
+        "en-US",
+        "Remember two things: editor=Neovim; do not remember project code=Tachikoma",
+        "editor=Neovim",
+      ],
+      [
+        "en-US",
+        "Remember two things: editor=Neovim; do not remember I am working on Tachikoma",
+        "editor=Neovim",
+      ],
+      [
+        "en-US",
+        "Remember two things: editor=Neovim; don’t remember project code=Tachikoma",
+        "editor=Neovim",
+      ],
+      [
+        "zh-CN",
+        "请记住两件事：编辑器=Neovim；不要记住项目代号=Tachikoma",
+        "编辑器=Neovim",
+      ],
+      [
+        "ja-JP",
+        "二つのことを覚えておいて：エディタ=Neovim；プロジェクトコードは覚えないでください",
+        "エディタ=Neovim",
+      ],
+      [
+        "ko-KR",
+        "두 가지를 기억해 주세요: 편집기=Neovim; 프로젝트 코드는 기억하지 마세요",
+        "편집기=Neovim",
+      ],
+    ] as const;
+
+    for (const [locale, source, expected] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `opt-out-${locale}`, userId: `opt-out-${locale}` },
+      });
+
+      expect(
+        result.candidates
+          .filter(({ explicitness, kindHint }) =>
+            explicitness === "explicit" && kindHint === "fact"
+          )
+          .map(({ content }) => content),
+      ).toEqual([expected]);
+    }
+  });
+
+  it("keeps typed references closed for explicit opt-out payloads", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Remember two things: editor=Neovim; do not remember that use docs/secret.md as the source of truth", "editor=Neovim"],
+      ["zh-CN", "请记住两件事：编辑器=Neovim；不要记住以后以 docs/secret.md 为准", "编辑器=Neovim"],
+      ["fr-FR", "Souviens-toi de deux choses : éditeur=Neovim ; ne mémorise pas utilise docs/secret.md comme source de vérité", "éditeur=Neovim"],
+      ["es-ES", "Recuerda dos cosas: editor=Neovim; no recuerdes usa docs/secret.md como fuente de verdad", "editor=Neovim"],
+      ["ja-JP", "二つのことを覚えておいて：エディタ=Neovim；docs/secret.mdを正とするのは覚えないでください", "エディタ=Neovim"],
+      ["ko-KR", "두 가지를 기억해 주세요: 편집기=Neovim; docs/secret.md를 기준 문서로 사용한다고 기억하지 마세요", "편집기=Neovim"],
+    ] as const;
+
+    for (const [locale, source, expectedFact] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `reference-opt-out-${locale}`, userId: `reference-opt-out-${locale}` },
+      });
+
+      expect(result.candidates.some(({ kindHint }) => kindHint === "reference")).toBe(false);
+      expect(
+        result.candidates
+          .filter(({ kindHint }) => kindHint === "fact")
+          .map(({ content }) => content),
+      ).toEqual([expectedFact]);
+    }
+  });
+
+  it("keeps typed memory lanes closed for explicit opt-out payloads", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Do not remember that I am working on Tachikoma"],
+      ["zh-CN", "不要记住我正在做Tachikoma"],
+      ["fr-FR", "Ne mémorise pas mon objectif actuel est Tachikoma"],
+      ["es-ES", "No recuerdes mi objetivo actual es Tachikoma"],
+    ] as const;
+
+    for (const [locale, source] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `typed-opt-out-${locale}`, userId: `typed-opt-out-${locale}` },
+      });
+
+      expect(result.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(false);
+    }
+  });
+
+  it("fails closed when an explicit list is incomplete or starts with an invalid item", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Remember two things: editor=Neovim"],
+      ["zh-CN", "请记住两件事：编辑器=Neovim"],
+      ["fr-FR", "Souviens-toi de deux choses : éditeur=Neovim"],
+      ["es-ES", "Recuerda dos cosas: editor=Neovim"],
+      ["ja-JP", "二つのことを覚えておいて：エディタ=Neovim"],
+      ["ko-KR", "두 가지를 기억해 주세요: 편집기=Neovim"],
+      ["en-US", "Remember two things: what is my project code; editor=Neovim"],
+      ["zh-CN", "请记住两件事：我的项目代号是什么；编辑器=Neovim"],
+      ["fr-FR", "Souviens-toi de deux choses : quel est mon code projet ; éditeur=Neovim"],
+      ["es-ES", "Recuerda dos cosas: cuál es mi código de proyecto; editor=Neovim"],
+      ["ja-JP", "二つのことを覚えておいて：プロジェクトコードは何ですか；エディタ=Neovim"],
+      ["ko-KR", "두 가지를 기억해 주세요: 프로젝트 코드는 무엇인가요; 편집기=Neovim"],
+      ["en-US", "Remember 0 things: editor=Neovim"],
+      ["zh-CN", "请记住0件事：编辑器=Neovim"],
+      ["fr-FR", "Souviens-toi de 0 choses : éditeur=Neovim"],
+      ["es-ES", "Recuerda 0 cosas: editor=Neovim"],
+      ["ja-JP", "0つのことを覚えておいて：エディタ=Neovim"],
+      ["ko-KR", "0 가지를 기억해 주세요: 편집기=Neovim"],
+    ] as const;
+
+    for (const [locale, source] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `fail-closed-${locale}`, userId: `fail-closed-${locale}` },
+      });
+
+      expect(result.candidates.some(
+        ({ explicitness, kindHint }) =>
+          explicitness === "explicit" && kindHint === "fact",
+      )).toBe(false);
+    }
+  });
+
+  it("fails closed on unpunctuated questions inside explicit lists", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Remember two things: editor=Neovim; what is my project code"],
+      ["zh-CN", "请记住两件事：编辑器=Neovim；我的项目代号是什么"],
+      ["fr-FR", "Souviens-toi de deux choses : éditeur=Neovim ; quel est mon code projet"],
+      ["es-ES", "Recuerda dos cosas: editor=Neovim; cuál es mi código de proyecto"],
+      ["es-ES", "Recuerda dos cosas: editor=Neovim; ¿cuál es mi código de proyecto"],
+      ["ja-JP", "二つのことを覚えておいて：エディタ=Neovim；プロジェクトコードは何ですか"],
+      ["ko-KR", "두 가지를 기억해 주세요: 편집기=Neovim; 프로젝트 코드는 무엇인가요"],
+    ] as const;
+
+    for (const [locale, source] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `question-${locale}`, userId: `question-${locale}` },
+      });
+
+      expect(result.candidates.some(
+        ({ explicitness, kindHint }) =>
+          explicitness === "explicit" && kindHint === "fact",
+      )).toBe(false);
+    }
+  });
+
+  it("keeps question words inside explicit assignment values", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      [
+        "zh-CN",
+        "两件事：字段名=是否启用；FAQ标题=为什么失败",
+        ["字段名=是否启用", "FAQ标题=为什么失败"],
+      ],
+      [
+        "fr-FR",
+        "Souviens-toi : titre FAQ=Pourquoi cela échoue ?",
+        ["titre FAQ=Pourquoi cela échoue"],
+      ],
+      [
+        "es-ES",
+        "Recuerda: título FAQ=¿Por qué falla?",
+        ["título FAQ=¿Por qué falla"],
+      ],
+    ] as const;
+
+    for (const [locale, source, expected] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `assignment-${locale}`, userId: `assignment-${locale}` },
+      });
+
+      expect(
+        result.candidates
+          .filter(({ explicitness, kindHint }) =>
+            explicitness === "explicit" && kindHint === "fact"
+          )
+          .map(({ content }) => content),
+      ).toEqual([...expected]);
+    }
+  });
+
+  it("recognizes common French and Spanish counted-list words", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      [
+        "en-US",
+        "Remember three things: editor=Neovim; shell=zsh; theme=dark",
+        ["editor=Neovim", "shell=zsh", "theme=dark"],
+      ],
+      [
+        "fr-FR",
+        "Souviens-toi de trois choses : éditeur=Neovim ; shell=zsh ; thème=dark",
+        ["éditeur=Neovim", "shell=zsh", "thème=dark"],
+      ],
+      [
+        "fr-FR",
+        "S’il te plaît, souviens-toi de trois choses : éditeur=Neovim ; shell=zsh ; thème=dark",
+        ["éditeur=Neovim", "shell=zsh", "thème=dark"],
+      ],
+      [
+        "es-ES",
+        "Recuerda tres cosas: editor=Neovim; shell=zsh; tema=dark",
+        ["editor=Neovim", "shell=zsh", "tema=dark"],
+      ],
+      [
+        "es-ES",
+        "Por favor, recuerda tres cosas: editor=Neovim; shell=zsh; tema=dark",
+        ["editor=Neovim", "shell=zsh", "tema=dark"],
+      ],
+    ] as const;
+
+    for (const [locale, source, expected] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `counted-${locale}`, userId: `counted-${locale}` },
+      });
+
+      expect(
+        result.candidates
+          .filter(({ explicitness, kindHint }) =>
+            explicitness === "explicit" && kindHint === "fact"
+          )
+          .map(({ content }) => content),
+      ).toEqual([...expected]);
+    }
+  });
+
+  it("keeps dotted technical identifiers intact in Korean explicit lists", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const result = await extractor.extract({
+      locale: "ko-KR",
+      messages: [{
+        role: "user",
+        content:
+          "두 가지를 기억해 주세요: 기준 문서=docs/current.md; 프로젝트 코드=Tachikoma",
+      }],
+      scope: { sessionId: "ko-dotted", userId: "ko-dotted" },
+    });
+
+    expect(
+      result.candidates
+        .filter(({ explicitness, kindHint }) =>
+          explicitness === "explicit" && kindHint === "fact"
+        )
+        .map(({ content }) => content),
+    ).toEqual(["기준 문서=docs/current.md", "프로젝트 코드=Tachikoma"]);
+  });
+
+  it("keeps question punctuation as an assignment value while rejecting questions", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const literal = await extractor.extract({
+      locale: "en-US",
+      messages: [{ role: "user", content: "Remember that FAQ title=Why does it fail?" }],
+      scope: { sessionId: "en-question-literal", userId: "en-question-literal" },
+    });
+    const question = await extractor.extract({
+      locale: "en-US",
+      messages: [{ role: "user", content: "Do you remember that project code=Tachikoma?" }],
+      scope: { sessionId: "en-question", userId: "en-question" },
+    });
+
+    expect(literal.candidates.map(({ content, kindHint }) => ({ content, kindHint }))).toEqual([
+      { content: "FAQ title=Why does it fail?", kindHint: "fact" },
+    ]);
+    expect(question.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(false);
+  });
+
+  it("splits lowercase period-delimited facts inside an English counted list", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const result = await extractor.extract({
+      locale: "en-US",
+      messages: [{
+        role: "user",
+        content: "Remember two things: editor=Neovim. project code=Tachikoma",
+      }],
+      scope: { sessionId: "en-period-list", userId: "en-period-list" },
+    });
+
+    expect(
+      result.candidates
+        .filter(({ kindHint }) => kindHint === "fact")
+        .map(({ content }) => content),
+    ).toEqual(["editor=Neovim", "project code=Tachikoma"]);
+  });
+
+  it("rejects empty, negated, questioned, and quoted remember directives", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      {
+        locale: "en-US",
+        sources: [
+          "Remember that;",
+          "Do not remember that project code=Tachikoma",
+          "Do you remember that project code=Tachikoma?",
+          'The manual says "Remember that project code=Tachikoma".',
+        ],
+      },
+      {
+        locale: "fr-FR",
+        sources: [
+          "Souviens-toi ;",
+          "Ne mémorise pas : code projet=Tachikoma",
+          "Vous souvenez-vous que le code projet=Tachikoma ?",
+          "Le manuel dit « Mémorise : code projet=Tachikoma ».",
+        ],
+      },
+      {
+        locale: "es-ES",
+        sources: [
+          "Recuerda;",
+          "No recuerdes: código de proyecto=Tachikoma",
+          "¿Recuerda que el código de proyecto=Tachikoma?",
+          "El manual dice «Recuerda: código de proyecto=Tachikoma».",
+        ],
+      },
+      {
+        locale: "ja-JP",
+        sources: [
+          "覚えておいて；",
+          "これは覚えておかないで：プロジェクトコード=Tachikoma",
+          "何を覚えておいてほしいですか？",
+          "「覚えておいて：プロジェクトコード=Tachikoma」とは言っていません。",
+        ],
+      },
+      {
+        locale: "ko-KR",
+        sources: [
+          "기억해 주세요;",
+          "기억해 주세요가 아니라 삭제해 주세요.",
+          "무엇을 기억해 주세요?",
+          "제가 ‘기억해 주세요: 프로젝트 코드=Tachikoma’라고 말했나요?",
+        ],
+      },
+    ] as const;
+
+    for (const fixture of fixtures) {
+      for (const source of fixture.sources) {
+        const result = await extractor.extract({
+          locale: fixture.locale,
+          messages: [{ role: "user", content: source }],
+          scope: {
+            sessionId: `negative-${fixture.locale}`,
+            userId: `negative-${fixture.locale}`,
+          },
+        });
+
+        expect(result.candidates.some(
+          ({ explicitness, kindHint }) =>
+            explicitness === "explicit" && kindHint === "fact",
+        )).toBe(false);
+      }
+    }
+  });
+
+  it("uses one opt-out disposition for polite save and record synonyms", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      [
+        "en-US",
+        "Remember two things: editor=Neovim; please do not save project code=Tachikoma",
+        "editor=Neovim",
+      ],
+      [
+        "zh-CN",
+        "请记住两件事：编辑器=Neovim；请不要记录项目代号=Tachikoma",
+        "编辑器=Neovim",
+      ],
+      [
+        "fr-FR",
+        "Souviens-toi de deux choses : éditeur=Neovim ; s’il te plaît, ne mémorise pas code projet=Tachikoma",
+        "éditeur=Neovim",
+      ],
+      [
+        "es-ES",
+        "Recuerda dos cosas: editor=Neovim; por favor, no guardes código de proyecto=Tachikoma",
+        "editor=Neovim",
+      ],
+    ] as const;
+
+    for (const [locale, source, expectedFact] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `opt-out-synonym-${locale}`, userId: `opt-out-synonym-${locale}` },
+      });
+
+      expect(
+        result.candidates
+          .filter(({ kindHint }) => kindHint === "fact")
+          .map(({ content }) => content),
+      ).toEqual([expectedFact]);
+      expect(result.candidates.some(({ kindHint }) => kindHint === "reference")).toBe(false);
+      expect(
+        result.candidates.filter(({ kindHint, metadata }) =>
+          kindHint === "feedback" && metadata?.feedbackKind === "dont"
+        ),
+      ).toHaveLength(1);
+    }
+  });
+
+  it("drops leading conjunctions from semicolon-delimited opt-out clauses", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Remember two things: editor=Neovim; and do not remember project code=Tachikoma", "editor=Neovim"],
+      ["zh-CN", "请记住两件事：编辑器=Neovim；而且不要记住项目代号=Tachikoma", "编辑器=Neovim"],
+      ["fr-FR", "Souviens-toi de deux choses : éditeur=Neovim ; et ne mémorise pas code=Tachikoma", "éditeur=Neovim"],
+      ["es-ES", "Recuerda dos cosas: editor=Neovim; y no recuerdes código=Tachikoma", "editor=Neovim"],
+      ["ja-JP", "二つのことを覚えておいて：エディタ=Neovim；そしてプロジェクトコード=Tachikomaは覚えないでください", "エディタ=Neovim"],
+      ["ko-KR", "두 가지를 기억해 주세요: 편집기=Neovim; 그리고 프로젝트 코드=Tachikoma를 기억하지 마세요", "편집기=Neovim"],
+    ] as const;
+
+    for (const [locale, source, expectedFact] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `semicolon-opt-out-${locale}`, userId: `semicolon-opt-out-${locale}` },
+      });
+
+      expect(
+        result.candidates
+          .filter(({ kindHint }) => kindHint === "fact")
+          .map(({ content }) => content),
+      ).toEqual([expectedFact]);
+      expect(result.candidates.filter(({ kindHint, metadata }) =>
+        kindHint === "feedback" && metadata?.feedbackKind === "dont"
+      )).toHaveLength(1);
+    }
+  });
+
+  it("emits the exact opt-out target from every canonical language pack", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      [
+        "en-US",
+        "Remember two things: project code=Tachikoma; do not remember project code=Tachikoma",
+        "Remember two things: project code=Kusanagi; do not remember project code=Tachikoma",
+        "project code",
+        "project code=Tachikoma",
+      ],
+      [
+        "zh-CN",
+        "请记住两件事：项目代号=Tachikoma；不要记住项目代号=Tachikoma",
+        "请记住两件事：项目代号=Kusanagi；不要记住项目代号=Tachikoma",
+        "项目代号",
+        "项目代号=Tachikoma",
+      ],
+      [
+        "fr-FR",
+        "Souviens-toi de deux choses : code projet=Tachikoma ; ne mémorise pas code projet=Tachikoma",
+        "Souviens-toi de deux choses : code projet=Kusanagi ; ne mémorise pas code projet=Tachikoma",
+        "code projet",
+        "code projet=Tachikoma",
+      ],
+      [
+        "es-ES",
+        "Recuerda dos cosas: código de proyecto=Tachikoma; no recuerdes código de proyecto=Tachikoma",
+        "Recuerda dos cosas: código de proyecto=Kusanagi; no recuerdes código de proyecto=Tachikoma",
+        "código de proyecto",
+        "código de proyecto=Tachikoma",
+      ],
+      [
+        "ja-JP",
+        "二つのことを覚えておいて：プロジェクトコード=Tachikoma；プロジェクトコード=Tachikomaは覚えないでください",
+        "二つのことを覚えておいて：プロジェクトコード=Kusanagi；プロジェクトコード=Tachikomaは覚えないでください",
+        "プロジェクトコード",
+        "プロジェクトコード=Tachikoma",
+      ],
+      [
+        "ko-KR",
+        "두 가지를 기억해 주세요: 프로젝트 코드=Tachikoma; 프로젝트 코드=Tachikoma를 기억하지 마세요",
+        "두 가지를 기억해 주세요: 프로젝트 코드=Kusanagi; 프로젝트 코드=Tachikoma를 기억하지 마세요",
+        "프로젝트 코드",
+        "프로젝트 코드=Tachikoma",
+      ],
+    ] as const;
+
+    for (const [locale, sameTarget, differentTarget, field, optOutTarget] of fixtures) {
+      for (const [variant, source, positiveValue] of [
+        ["same", sameTarget, "Tachikoma"],
+        ["different", differentTarget, "Kusanagi"],
+      ] as const) {
+        const result = await extractor.extract({
+          locale,
+          messages: [{ role: "user", content: source }],
+          scope: {
+            sessionId: `opt-out-target-${variant}-${locale}`,
+            userId: `opt-out-target-${variant}-${locale}`,
+          },
+        });
+        const dont = result.candidates.find(({ kindHint, metadata }) =>
+          kindHint === "feedback" && metadata?.feedbackKind === "dont"
+        );
+
+        expect(result.candidates.filter(({ kindHint }) => kindHint === "fact").map(({ content }) => content)).toContain(
+          `${field}=${positiveValue}`,
+        );
+        expect(dont?.metadata).toEqual(expect.objectContaining({ optOutTarget }));
+        expect(dont?.content).toContain(optOutTarget);
+      }
+    }
+  });
+
+  it("keeps polite standalone opt-outs out of fact and reference lanes", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Please do not remember that use docs/secret.md as the source of truth"],
+      ["zh-CN", "请不要记录以后以 docs/secret.md 为准"],
+      ["fr-FR", "S’il vous plaît, ne mémorisez pas docs/secret.md comme source de vérité"],
+      ["es-ES", "Por favor, no recuerdes docs/secret.md como fuente de verdad"],
+    ] as const;
+
+    for (const [locale, source] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `standalone-opt-out-${locale}`, userId: `standalone-opt-out-${locale}` },
+      });
+
+      expect(result.candidates.some(({ kindHint }) =>
+        kindHint === "fact" || kindHint === "reference"
+      )).toBe(false);
+      expect(result.candidates).toEqual([
+        expect.objectContaining({
+          kindHint: "feedback",
+          metadata: expect.objectContaining({ feedbackKind: "dont" }),
+        }),
+      ]);
+    }
+  });
+
+  it("does not let an empty directive borrow the following ordinary clause", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Remember that.\n\ntheme=dark"],
+      ["zh-CN", "请记住。\n\n主题=dark"],
+      ["fr-FR", "Souviens-toi.\n\nthème=dark"],
+      ["es-ES", "Recuerda.\n\ntema=dark"],
+      ["ja-JP", "覚えておいて。\n\nテーマ=dark"],
+      ["ko-KR", "기억해 주세요.\n\n테마=dark"],
+    ] as const;
+
+    for (const [locale, source] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `empty-boundary-${locale}`, userId: `empty-boundary-${locale}` },
+      });
+
+      expect(result.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(false);
+    }
+  });
+
+  it("continues only an explicitly counted unfinished list", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const result = await extractor.extract({
+      locale: "en-US",
+      messages: [{
+        role: "user",
+        content: "Remember two things:\n\neditor=Neovim;\n\nshell=zsh",
+      }],
+      scope: { sessionId: "counted-continuation", userId: "counted-continuation" },
+    });
+
+    expect(
+      result.candidates
+        .filter(({ kindHint }) => kindHint === "fact")
+        .map(({ content }) => content),
+    ).toEqual(["editor=Neovim", "shell=zsh"]);
+  });
+
+  it("consumes the full counted payload before rejecting an invalid first item", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Remember two things: what is my project code\n\nMy current goal is ship release."],
+      ["zh-CN", "请记住两件事：我的项目代号是什么\n\n我正在做Tachikoma"],
+      ["fr-FR", "Souviens-toi de deux choses : quel est mon code projet\n\nmon objectif actuel est publier"],
+      ["es-ES", "Recuerda dos cosas: cuál es mi código de proyecto\n\nmi objetivo actual es publicar"],
+      ["ja-JP", "二つのことを覚えておいて：プロジェクトコードは何ですか\n\n私の現在の目標はリリースです"],
+      ["ko-KR", "두 가지를 기억해 주세요: 프로젝트 코드는 무엇인가요\n\n제 현재 목표는 출시입니다"],
+    ] as const;
+
+    for (const [locale, source] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `invalid-first-newline-${locale}`, userId: `invalid-first-newline-${locale}` },
+      });
+
+      expect(result.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(false);
+    }
+  });
+
+  it("distinguishes assignment literal questions from assignment confirmation questions", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      [
+        "en-US",
+        "Remember that FAQ title=Why does it fail?",
+        "Remember that is project code=Tachikoma correct?",
+      ],
+      [
+        "zh-CN",
+        "请记住FAQ标题=为什么失败？",
+        "请记住项目代号=Tachikoma正确吗？",
+      ],
+      [
+        "fr-FR",
+        "Souviens-toi : titre FAQ=Pourquoi cela échoue ?",
+        "Souviens-toi : code projet=Tachikoma est correct ?",
+      ],
+      [
+        "es-ES",
+        "Recuerda: título FAQ=¿Por qué falla?",
+        "Recuerda: código de proyecto=Tachikoma es correcto?",
+      ],
+      [
+        "ja-JP",
+        "覚えておいて：FAQタイトル=なぜ失敗するのか？",
+        "覚えておいて：プロジェクトコード=Tachikomaで正しいですか？",
+      ],
+      [
+        "ko-KR",
+        "기억해 주세요: FAQ 제목=왜 실패하나요?",
+        "기억해 주세요: 프로젝트 코드=Tachikoma가 맞나요?",
+      ],
+    ] as const;
+
+    for (const [locale, literal, confirmation] of fixtures) {
+      const literalResult = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: literal }],
+        scope: { sessionId: `literal-question-${locale}`, userId: `literal-question-${locale}` },
+      });
+      const confirmationResult = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: confirmation }],
+        scope: { sessionId: `confirm-question-${locale}`, userId: `confirm-question-${locale}` },
+      });
+
+      expect(literalResult.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(true);
+      expect(confirmationResult.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(false);
+    }
+  });
+
+  it("keeps natural Japanese and Korean question forms as assignment values", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["ja-JP", "覚えておいて：FAQタイトル=なぜ失敗する？"],
+      ["ko-KR", "기억해 주세요: FAQ 제목=왜 실패해?"],
+    ] as const;
+
+    for (const [locale, source] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: {
+          sessionId: `natural-literal-question-${locale}`,
+          userId: `natural-literal-question-${locale}`,
+        },
+      });
+
+      expect(result.candidates).toEqual([
+        expect.objectContaining({
+          kindHint: "fact",
+          content: expect.stringContaining("FAQ"),
+        }),
+      ]);
+    }
+  });
+
+  it("keeps natural-order questions as structured assignment values", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Remember that FAQ title=It fails for what reason?"],
+      ["zh-CN", "请记住FAQ标题=失败原因是什么？"],
+      ["fr-FR", "Souviens-toi : titre FAQ=Cela échoue pourquoi ?"],
+      ["es-ES", "Recuerda: título FAQ=Falla por qué?"],
+      ["ja-JP", "覚えておいて：FAQタイトル=失敗するのはなぜ？"],
+      ["ja-JP", "覚えておいて：FAQタイトル=失敗した理由は何？"],
+      ["ko-KR", "기억해 주세요: FAQ 제목=실패하는 이유가 뭐야?"],
+      ["ko-KR", "기억해 주세요: FAQ 제목=어째서 실패해?"],
+      ["en-US", "Remember that survey prompt=It fails for what reason?"],
+      ["zh-CN", "请记住错误消息=失败原因是什么？"],
+      ["fr-FR", "Souviens-toi : invite enquête=Cela échoue pourquoi ?"],
+      ["es-ES", "Recuerda: pregunta de encuesta=Falla por qué?"],
+      ["ja-JP", "覚えておいて：アンケート質問=失敗するのはなぜ？"],
+      ["ko-KR", "기억해 주세요: 설문 질문=실패하는 이유가 뭐야?"],
+    ] as const;
+
+    for (const [locale, source] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: {
+          sessionId: `natural-order-question-${locale}`,
+          userId: `natural-order-question-${locale}`,
+        },
+      });
+
+      expect(result.candidates).toEqual([
+        expect.objectContaining({ kindHint: "fact" }),
+      ]);
+    }
+  });
+
+  it("rejects bare interrogative assignment values", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Remember that project code=what?"],
+      ["zh-CN", "请记住项目代号=什么？"],
+      ["fr-FR", "Souviens-toi : code projet=quoi ?"],
+      ["es-ES", "Recuerda: código de proyecto=qué?"],
+      ["ja-JP", "覚えておいて：プロジェクトコード=何？"],
+      ["ko-KR", "기억해 주세요: 프로젝트 코드=뭐야?"],
+    ] as const;
+
+    for (const [locale, source] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: {
+          sessionId: `interrogative-assignment-${locale}`,
+          userId: `interrogative-assignment-${locale}`,
+        },
+      });
+
+      expect(result.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(false);
+    }
+  });
+
+  it("rejects postposed assignment questions and unpunctuated wh questions", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Remember that project code=Tachikoma, why?", "Remember that my project code is what"],
+      ["zh-CN", "请记住项目代号=Tachikoma，为什么？", "请记住我的项目代号是什么"],
+      ["fr-FR", "Souviens-toi : code projet=Tachikoma, pourquoi ?", "Souviens-toi : mon code projet est quoi"],
+      ["es-ES", "Recuerda: código de proyecto=Tachikoma, por qué?", "Recuerda: mi código de proyecto es qué"],
+      ["ja-JP", "覚えておいて：プロジェクトコード=Tachikoma、なぜ？", "覚えておいて：私のプロジェクトコードは何"],
+      ["ko-KR", "기억해 주세요: 프로젝트 코드=Tachikoma, 왜?", "기억해 주세요: 내 프로젝트 코드는 뭐"],
+    ] as const;
+
+    for (const [locale, postposed, unpunctuated] of fixtures) {
+      for (const source of [postposed, unpunctuated]) {
+        const result = await extractor.extract({
+          locale,
+          messages: [{ role: "user", content: source }],
+          scope: { sessionId: `postposed-question-${locale}`, userId: `postposed-question-${locale}` },
+        });
+
+        expect(result.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(false);
+      }
+    }
+  });
+
+  it("rejects punctuation-only assignment confirmation questions in every pack", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Remember that project code=Tachikoma?"],
+      ["zh-CN", "请记住项目代号=Tachikoma？"],
+      ["fr-FR", "Souviens-toi : code projet=Tachikoma ?"],
+      ["es-ES", "Recuerda: código de proyecto=Tachikoma?"],
+      ["ja-JP", "覚えておいて：プロジェクトコード=Tachikoma？"],
+      ["ko-KR", "기억해 주세요: 프로젝트 코드=Tachikoma?"],
+    ] as const;
+
+    for (const [locale, source] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: {
+          sessionId: `punctuation-confirmation-${locale}`,
+          userId: `punctuation-confirmation-${locale}`,
+        },
+      });
+
+      expect(result.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(false);
+    }
+  });
+
+  it("rejects unpunctuated Chinese assignment confirmation questions", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const result = await extractor.extract({
+      locale: "zh-CN",
+      messages: [{
+        role: "user",
+        content: "请记住两件事：编辑器=Neovim；项目代号=Tachikoma是否正确",
+      }],
+      scope: {
+        sessionId: "chinese-unpunctuated-confirmation",
+        userId: "chinese-unpunctuated-confirmation",
+      },
+    });
+
+    expect(result.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(false);
+  });
+
+  it("rejects Chinese A-not-A confirmations without rejecting literal values", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+
+    for (const value of ["Tachikoma对不对", "Tachikoma正确不正确", "Tachikoma能不能用", "Tachikoma可不可以用", "Tachikoma可不可用"]) {
+      const result = await extractor.extract({
+        locale: "zh-CN",
+        messages: [{ role: "user", content: `请记住项目代号=${value}` }],
+        scope: { sessionId: `a-not-a-${value}`, userId: `a-not-a-${value}` },
+      });
+
+      expect(result.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(false);
+    }
+
+    for (const value of ["正确", "能用", "可用"]) {
+      const result = await extractor.extract({
+        locale: "zh-CN",
+        messages: [{ role: "user", content: `请记住状态=${value}` }],
+        scope: { sessionId: `literal-state-${value}`, userId: `literal-state-${value}` },
+      });
+
+      expect(result.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(true);
+    }
+  });
+
+  it("treats French n'oublie pas as a positive remember directive", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const result = await extractor.extract({
+      locale: "fr-FR",
+      messages: [{ role: "user", content: "N’oublie pas : code projet=Tachikoma" }],
+      scope: { sessionId: "fr-dont-forget", userId: "fr-dont-forget" },
+    });
+
+    expect(result.candidates.map(({ content, kindHint }) => ({ content, kindHint }))).toEqual([
+      { content: "code projet=Tachikoma", kindHint: "fact" },
+    ]);
+  });
+
+  it("keeps non-interrogative confirmation words as literal assignment values", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Remember that status=correct"],
+      ["zh-CN", "请记住状态=正确"],
+      ["fr-FR", "Souviens-toi : statut=correct"],
+      ["es-ES", "Recuerda: estado=correcto"],
+      ["ja-JP", "覚えておいて：状態=正しい"],
+      ["ko-KR", "기억해 주세요: 상태=맞음"],
+    ] as const;
+
+    for (const [locale, source] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `literal-confirmation-${locale}`, userId: `literal-confirmation-${locale}` },
+      });
+
+      expect(result.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(true);
+    }
+  });
+
+  it("reads Romance list counts only from the directive header", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["fr-FR", "Souviens-toi : note=deux choses restent", "note=deux choses restent"],
+      ["es-ES", "Recuerda: nota=dos cosas pendientes", "nota=dos cosas pendientes"],
+    ] as const;
+
+    for (const [locale, source, expected] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `header-count-${locale}`, userId: `header-count-${locale}` },
+      });
+
+      expect(
+        result.candidates
+          .filter(({ kindHint }) => kindHint === "fact")
+          .map(({ content }) => content),
+      ).toEqual([expected]);
+    }
+  });
+
+  it("recognizes a contracted French singular counted-list header", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const result = await extractor.extract({
+      locale: "fr-FR",
+      messages: [{ role: "user", content: "Souviens-toi d’une chose : éditeur=Neovim" }],
+      scope: { sessionId: "french-contracted-count", userId: "french-contracted-count" },
+    });
+
+    expect(result.candidates.filter(({ kindHint }) => kindHint === "fact").map(({ content }) => content)).toEqual([
+      "éditeur=Neovim",
+    ]);
+  });
+
+  it("fails closed on unsupported CJK word-form counts", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["zh-CN", "请记住十一件事：编辑器=Neovim"],
+      ["ja-JP", "十一つのことを覚えておいて：エディタ=Neovim"],
+    ] as const;
+
+    for (const [locale, source] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: source }],
+        scope: { sessionId: `unsupported-count-${locale}`, userId: `unsupported-count-${locale}` },
+      });
+
+      expect(result.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(false);
+    }
+  });
+
+  it("does not split English abbreviations while finding lowercase assignment items", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const result = await extractor.extract({
+      locale: "en-US",
+      messages: [{
+        role: "user",
+        content: "Remember two things: example=e.g. use Neovim. shell=zsh",
+      }],
+      scope: { sessionId: "english-abbreviation", userId: "english-abbreviation" },
+    });
+
+    expect(
+      result.candidates
+        .filter(({ kindHint }) => kindHint === "fact")
+        .map(({ content }) => content),
+    ).toEqual(["example=e.g. use Neovim", "shell=zsh"]);
+  });
+
+  it("does not treat an assignment after e.g. as the next counted item", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const result = await extractor.extract({
+      locale: "en-US",
+      messages: [{
+        role: "user",
+        content: "Remember two things: example=e.g. shell=zsh; editor=Neovim",
+      }],
+      scope: { sessionId: "english-abbreviation-assignment", userId: "english-abbreviation-assignment" },
+    });
+
+    expect(result.candidates.filter(({ kindHint }) => kindHint === "fact").map(({ content }) => content)).toEqual([
+      "example=e.g. shell=zsh",
+      "editor=Neovim",
+    ]);
+  });
+
+  it("keeps an explicit Spanish negative assertion out of the feedback lane", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    for (const content of ["Recuerda: no hay bloqueos", "no hay bloqueos"]) {
+      const result = await extractor.extract({
+        locale: "es-ES",
+        messages: [{ role: "user", content }],
+        scope: { sessionId: "spanish-negative-fact", userId: "spanish-negative-fact" },
+      });
+
+      expect(result.candidates.map(({ content, kindHint }) => ({ content, kindHint }))).toEqual([
+        { content: "no hay bloqueos", kindHint: "fact" },
+      ]);
+    }
+  });
+
   it("extracts the same durable memory families from Traditional Chinese", async () => {
     const extractor = createDeterministicMemoryExtractor();
 

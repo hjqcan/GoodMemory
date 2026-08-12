@@ -3,7 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 
 const REPO_ROOT = join(import.meta.dir, "../..");
-const RELEASE_VERSION = "0.7.3";
+const RELEASE_VERSION = "0.7.4";
 const KIMI_TOOLS = [
   "goodmemory_get_context",
   "goodmemory_inspect_memory",
@@ -55,7 +55,7 @@ async function readJson<T>(path: string): Promise<T> {
 }
 
 describe("Kimi Code plugin release contract", () => {
-  it("pins the plugin and MCP runtime to the 0.7.3 release identity", async () => {
+  it("pins the plugin and MCP runtime to the 0.7.4 release-candidate identity", async () => {
     const [manifest, pkg] = await Promise.all([
       readJson<KimiPluginManifest>("kimi.plugin.json"),
       readJson<PackageManifest>("package.json"),

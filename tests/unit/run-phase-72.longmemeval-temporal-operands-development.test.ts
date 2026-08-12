@@ -149,6 +149,16 @@ const sourceState = {
 };
 
 describe("Phase 72 LongMemEval temporal operand retrieval development", () => {
+  it("rejects the current English analyzer before file I/O canonically", async () => {
+    await expect(runPhase72LongMemEvalTemporalOperandsDevelopment({
+      benchmarkRoot: "/bench",
+      controlReportFile: "/control/report.json",
+      outputDir: "/reports",
+      runId: "analyzer-version-fixture",
+      selectionFile: "/selection.json",
+    })).rejects.toThrow("English analyzer 13 is required; found 14");
+  });
+
   it("reproduces every control before measuring bounded treatment coverage", async () => {
     const input = fixture();
     const calls: string[] = [];
@@ -274,7 +284,7 @@ describe("Phase 72 LongMemEval temporal operand retrieval development", () => {
       canonicalDependencies: false,
       canonicalMemoryRunId:
         "run-phase72-current-recall-assembly-development-v2-bun1314-clean",
-      englishAnalyzerVersion: "13",
+      englishAnalyzerVersion: "14-explicit-fact-list-boundary",
       legacyControlEnglishAnalyzerVersion: "12",
       sourceState,
     });

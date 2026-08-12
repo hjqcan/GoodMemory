@@ -487,6 +487,7 @@ describe("remember claim source provenance", () => {
   it("projects fallback fact claims with the evidence written by remember", async () => {
     const rawStore = createInMemoryDocumentStore();
     const candidate = buildCandidate();
+    candidate.sourceMessageIndexes = [0];
     candidate.metadata = {
       category: candidate.metadata?.category,
       subject: candidate.metadata?.subject,
@@ -543,7 +544,10 @@ describe("remember claim source provenance", () => {
         extractor: {
           async extract() {
             return {
-              candidates: [buildCandidate()],
+              candidates: [{
+                ...buildCandidate(),
+                sourceMessageIndexes: [0],
+              }],
               ignoredMessageCount: 0,
             };
           },
@@ -675,6 +679,12 @@ describe("remember claim source provenance", () => {
         },
       },
       now: () => NOW,
+      remember: {
+        profiles: [{
+          assistantOutputs: { mode: "confirmed_only" },
+          id: "claim-source",
+        }],
+      },
       repositories,
     });
 
@@ -694,6 +704,11 @@ describe("remember claim source provenance", () => {
           observedAt: "2026-07-15T09:01:00.000Z",
         },
       ],
+      annotations: [{
+        confirmed: true,
+        messageIndex: 1,
+        remember: "auto",
+      }],
     });
 
     const factEvent = result.events.find((event) => event.memoryType === "fact");

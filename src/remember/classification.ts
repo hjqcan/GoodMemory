@@ -1,3 +1,4 @@
+import { hasPersistableSemanticText } from "../domain/semanticText";
 import type { MemoryCandidate } from "./candidates";
 import type {
   ClassifiedCandidate,
@@ -77,25 +78,29 @@ function scoreCandidate(candidate: MemoryCandidate): number {
 }
 
 function hasValidCandidatePayload(candidate: MemoryCandidate): boolean {
-  const trimmedContent = candidate.content.trim();
+  const hasContent = hasPersistableSemanticText(candidate.content);
 
   if (candidate.kindHint === "profile") {
     return (
-      trimmedContent.length > 0 &&
+      hasContent &&
       typeof candidate.metadata?.profileField === "string"
     );
   }
 
   if (candidate.kindHint === "fact" || candidate.kindHint === "feedback") {
-    return trimmedContent.length > 0;
+    return hasContent;
   }
 
   if (candidate.kindHint === "preference") {
-    return String(candidate.metadata?.preferenceValue ?? candidate.content).trim().length > 0;
+    return hasContent && hasPersistableSemanticText(
+      String(candidate.metadata?.preferenceValue ?? candidate.content),
+    );
   }
 
   if (candidate.kindHint === "reference") {
-    return String(candidate.metadata?.referencePointer ?? candidate.content).trim().length > 0;
+    return hasContent && hasPersistableSemanticText(
+      String(candidate.metadata?.referencePointer ?? candidate.content),
+    );
   }
 
   return true;

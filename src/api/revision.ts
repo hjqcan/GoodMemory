@@ -11,6 +11,7 @@ import {
   type ReferenceMemory,
 } from "../domain/records";
 import { createMemorySource } from "../domain/provenance";
+import { hasPersistableSemanticText } from "../domain/semanticText";
 import { isSameDurableScope } from "../domain/scope";
 import type { MemoryScope } from "../domain/scope";
 import type { EmbeddingAdapter } from "../embedding/contracts";
@@ -692,7 +693,7 @@ export async function reviseMemory(input: {
   }
 
   const content = input.input.revision.content.trim();
-  if (content.length === 0) {
+  if (!hasPersistableSemanticText(content)) {
     return {
       accepted: false,
       outcome: "blocked",
@@ -724,7 +725,7 @@ export async function reviseMemory(input: {
     candidate = await input.config.policy.redact(candidate, policyContext);
     policyApplied.push("policy.redact");
   }
-  if (candidate.content.trim().length === 0) {
+  if (!hasPersistableSemanticText(candidate.content)) {
     return {
       accepted: false,
       outcome: "blocked",
