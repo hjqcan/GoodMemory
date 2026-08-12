@@ -60,6 +60,7 @@ import {
   evaluateV073LifecycleProtectionArtifact,
   evaluateV073LifecycleProtectionArtifactFile,
   evaluateV073LifecycleProtectionBundle,
+  evaluateV073HistoricalSourceLineage,
   evaluateV073LifecycleToProtocolSourceDrift,
   evaluateV073LifecycleProtectionSourceDrift,
   evaluateV073PublicClaimGovernanceCorrection,
@@ -4470,6 +4471,60 @@ console.log(JSON.stringify(await evaluateV073LifecycleProtectionBundle({ artifac
       changedPaths: [],
       currentCommit: "b".repeat(40),
       currentPackage: packageJson,
+      isAncestor: false,
+    })).toEqual(expect.objectContaining({
+      detail: expect.stringContaining("not an ancestor"),
+      status: "fail",
+    }));
+  });
+
+  it("keeps the immutable v0.7.3 lifecycle closure historical on v0.7.4", async () => {
+    const repoRoot = join(import.meta.dir, "../..");
+    const currentCommit = runFixtureGit(repoRoot, "rev-parse", "HEAD");
+    const checks = await evaluateV073LifecycleProtectionArtifactFile({
+      artifactPath: join(
+        repoRoot,
+        "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+      ),
+      currentCommit,
+      repoRoot,
+    });
+
+    expect(checks).toHaveLength(7);
+    expect(checks.filter((check) => check.status === "fail")).toEqual([]);
+    expect(checks).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        detail: expect.stringContaining("historical"),
+        id: "v0.7.3-lifecycle-source",
+        status: "pass",
+      }),
+      expect.objectContaining({
+        id: "v0.7.3-stable-source-test-correction",
+        status: "pass",
+      }),
+      expect.objectContaining({
+        id: "v0.7.3-cross-host-lifecycle-verifier-correction",
+        status: "pass",
+      }),
+      expect.objectContaining({
+        id: "v0.7.3-public-claim-governance-correction",
+        status: "pass",
+      }),
+    ]));
+  }, 30_000);
+
+  it("requires the frozen v0.7.3 measured candidate in later release history", () => {
+    const candidateCommit = "a".repeat(40);
+    const currentCommit = "b".repeat(40);
+
+    expect(evaluateV073HistoricalSourceLineage({
+      candidateCommit,
+      currentCommit,
+      isAncestor: true,
+    })).toEqual(expect.objectContaining({ status: "pass" }));
+    expect(evaluateV073HistoricalSourceLineage({
+      candidateCommit,
+      currentCommit,
       isAncestor: false,
     })).toEqual(expect.objectContaining({
       detail: expect.stringContaining("not an ancestor"),

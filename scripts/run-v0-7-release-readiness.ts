@@ -4481,6 +4481,7 @@ function changedPaths(raw: string): string[] {
 export async function evaluateV073PublicClaimGovernanceCorrectionFile(input: {
   crossHostLifecycleVerifierCorrectionValid?: boolean;
   currentCommit: string;
+  historical?: boolean;
   repoRoot: string;
   stableSourceCorrectionValid?: boolean;
 }): Promise<V07ReleaseReadinessCheck> {
@@ -4612,7 +4613,9 @@ export async function evaluateV073PublicClaimGovernanceCorrectionFile(input: {
     );
     V073_PUBLIC_CLAIM_GOVERNANCE_SOURCE_PATHS.forEach((path, index) => {
       implementationSourceRaws[path] = sourceOutcomes[index * 2]!;
-      currentSourceRaws[path] = sourceOutcomes[index * 2 + 1]!;
+      currentSourceRaws[path] = input.historical
+        ? sourceOutcomes[index * 2]!
+        : sourceOutcomes[index * 2 + 1]!;
     });
     const check = evaluateV073PublicClaimGovernanceCorrection({
       attestation,
@@ -4622,7 +4625,7 @@ export async function evaluateV073PublicClaimGovernanceCorrectionFile(input: {
       attestationParentCommit: attestationParentCommit.trim(),
       attestationRawAtCommit,
       attestationRawCurrent,
-      currentCommit: input.currentCommit,
+      currentCommit: input.historical ? attestationCommit : input.currentCommit,
       currentSourceRaws,
       crossHostLifecycleVerifierCorrectionValid:
         input.crossHostLifecycleVerifierCorrectionValid,
@@ -4630,7 +4633,9 @@ export async function evaluateV073PublicClaimGovernanceCorrectionFile(input: {
       implementationCommit,
       implementationParentCommit: implementationParentCommit.trim(),
       implementationSourceRaws,
-      postAttestationChangedPaths: changedPaths(postAttestationChangedRaw),
+      postAttestationChangedPaths: input.historical
+        ? []
+        : changedPaths(postAttestationChangedRaw),
       preregistration,
       preregistrationChangedPaths: changedPaths(preregistrationChangedRaw),
       preregistrationCommit,
@@ -4884,6 +4889,7 @@ export function evaluateV073CrossHostLifecycleVerifierCorrection(
 
 export async function evaluateV073CrossHostLifecycleVerifierCorrectionFile(input: {
   currentCommit: string;
+  historical?: boolean;
   repoRoot: string;
 }): Promise<V07ReleaseReadinessCheck> {
   const startedAt = performance.now();
@@ -4998,7 +5004,9 @@ export async function evaluateV073CrossHostLifecycleVerifierCorrectionFile(input
       } else {
         preregistrationSourceRaws[path] = sourceRaw;
       }
-      currentSourceRaws[path] = sourceOutcomes[index * 2 + 1]!;
+      currentSourceRaws[path] = input.historical
+        ? sourceRaw
+        : sourceOutcomes[index * 2 + 1]!;
     });
 
     const check = evaluateV073CrossHostLifecycleVerifierCorrection({
@@ -5009,7 +5017,7 @@ export async function evaluateV073CrossHostLifecycleVerifierCorrectionFile(input
       attestationParentCommit: attestationParentCommit.trim(),
       attestationRawAtCommit,
       attestationRawCurrent,
-      currentCommit: input.currentCommit,
+      currentCommit: input.historical ? attestationCommit : input.currentCommit,
       currentSourceRaws,
       implementationChangedPaths: changedPaths(implementationChangedRaw),
       implementationCommit,
@@ -5300,6 +5308,7 @@ export function evaluateV073StableSourceTestCorrection(
 export async function evaluateV073StableSourceTestCorrectionFile(input: {
   crossHostLifecycleVerifierCorrectionValid?: boolean;
   currentCommit: string;
+  historical?: boolean;
   repoRoot: string;
 }): Promise<V07ReleaseReadinessCheck> {
   const startedAt = performance.now();
@@ -5432,7 +5441,9 @@ export async function evaluateV073StableSourceTestCorrectionFile(input: {
       } else {
         preregistrationSourceRaws[path] = sourceRaw;
       }
-      currentSourceRaws[path] = sourceOutcomes[index * 2 + 1]!;
+      currentSourceRaws[path] = input.historical
+        ? sourceRaw
+        : sourceOutcomes[index * 2 + 1]!;
     });
 
     const check = evaluateV073StableSourceTestCorrection({
@@ -5443,7 +5454,7 @@ export async function evaluateV073StableSourceTestCorrectionFile(input: {
       attestationParentCommit: attestationParentCommit.trim(),
       attestationRawAtCommit,
       attestationRawCurrent,
-      currentCommit: input.currentCommit,
+      currentCommit: input.historical ? attestationCommit : input.currentCommit,
       currentSourceRaws,
       crossHostLifecycleVerifierCorrectionValid:
         input.crossHostLifecycleVerifierCorrectionValid,
@@ -5566,6 +5577,25 @@ export function evaluateV073LifecycleProtectionSourceDrift(input: {
   };
 }
 
+export function evaluateV073HistoricalSourceLineage(input: {
+  candidateCommit: string;
+  currentCommit: string;
+  isAncestor: boolean;
+}): V07ReleaseReadinessCheck {
+  const valid = COMMIT_PATTERN.test(input.candidateCommit) &&
+    COMMIT_PATTERN.test(input.currentCommit) && input.isAncestor;
+  return {
+    detail: valid
+      ? `historical v${HISTORICAL_LOCOMO_VERSION} measured candidate ${input.candidateCommit} is retained in the ${RELEASE_VERSION} source lineage`
+      : `historical measured candidate ${input.candidateCommit} is not an ancestor of ${input.currentCommit}`,
+    durationMs: 0,
+    id: "v0.7.3-lifecycle-source",
+    required: true,
+    status: valid ? "pass" : "fail",
+    title: "v0.7.3 measured-candidate historical lineage",
+  };
+}
+
 export async function evaluateV073LifecycleProtectionArtifactFile(input: {
   artifactPath: string;
   currentCommit: string;
@@ -5597,6 +5627,7 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
     const packageJson = JSON.parse(
       await readFile(join(input.repoRoot, "package.json"), "utf8"),
     ) as PackageJson;
+    const historical = packageJson.version === RELEASE_VERSION;
     const claimCandidateChecks: V07ReleaseReadinessCheck[] = [];
     const currentProjectionExists = await pathExists(
       join(input.repoRoot, V073_LOCOMO_CURRENT_PROJECTION),
@@ -5782,6 +5813,7 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
         )
         ? await evaluateV073CrossHostLifecycleVerifierCorrectionFile({
           currentCommit: input.currentCommit,
+          historical,
           repoRoot: input.repoRoot,
         })
         : undefined;
@@ -5793,24 +5825,32 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
       ? await evaluateV073StableSourceTestCorrectionFile({
         crossHostLifecycleVerifierCorrectionValid,
         currentCommit: input.currentCommit,
+        historical,
         repoRoot: input.repoRoot,
       })
       : undefined;
-    const sourceCheck = evaluateV073LifecycleProtectionSourceDrift({
-      candidateCommit: protocolCandidateCommit,
-      candidatePackage,
-      changedPaths: releaseChangedPaths,
-      crossHostLifecycleVerifierCorrectionValid,
-      currentCommit: input.currentCommit,
-      currentPackage,
-      isAncestor: releaseAncestor.code === 0,
-    });
+    const sourceCheck = historical
+      ? evaluateV073HistoricalSourceLineage({
+        candidateCommit: protocolCandidateCommit,
+        currentCommit: input.currentCommit,
+        isAncestor: releaseAncestor.code === 0,
+      })
+      : evaluateV073LifecycleProtectionSourceDrift({
+        candidateCommit: protocolCandidateCommit,
+        candidatePackage,
+        changedPaths: releaseChangedPaths,
+        crossHostLifecycleVerifierCorrectionValid,
+        currentCommit: input.currentCommit,
+        currentPackage,
+        isAncestor: releaseAncestor.code === 0,
+      });
     const governanceCorrectionCheck = releaseChangedPaths.some((path) =>
         V073_PUBLIC_CLAIM_GOVERNANCE_CHANGE_PATHS.has(path)
       )
       ? await evaluateV073PublicClaimGovernanceCorrectionFile({
         crossHostLifecycleVerifierCorrectionValid,
         currentCommit: input.currentCommit,
+        historical,
         repoRoot: input.repoRoot,
         stableSourceCorrectionValid:
           stableSourceCorrectionCheck?.status === "pass",
