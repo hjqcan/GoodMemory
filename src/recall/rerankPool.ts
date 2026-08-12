@@ -5,6 +5,7 @@ import type {
   ReferenceMemory,
 } from "../domain/records";
 import type { EvidenceRecord } from "../evidence/contracts";
+import type { TemporalInterval } from "../domain/temporal";
 import { truncateTextToEstimatedTokens } from "../tokenEstimator";
 import type { ClaimProjection } from "./projections/contracts";
 import type { RecallAggregation } from "./recallPlan";
@@ -40,6 +41,7 @@ export interface RecallRerankPool {
   laneCaps: Record<RecallRerankCollection, number>;
   protectedPassHeadKeys?: string[];
   referenceTime: string;
+  occurrenceInterval?: TemporalInterval;
 }
 
 const recallRerankPools = new WeakMap<object, RecallRerankPool>();

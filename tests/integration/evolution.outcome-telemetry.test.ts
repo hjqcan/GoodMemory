@@ -70,7 +70,7 @@ describe("outcome telemetry promotion chain", () => {
 
     expect(exported.durable.evidence[0]?.source).toMatchObject({
       languagePackId: "ja",
-      languagePackVersion: "8-explicit-fact-list-boundary",
+      languagePackVersion: "9-occurrence-expression",
       locale: "ja-JP",
       localeSource: "detected",
     });

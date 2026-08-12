@@ -74,22 +74,28 @@ async function ensureSessionStarted(scope: MemoryScope): Promise<void> {
 async function handleChatTurn(input: {
   message: string;
   scope: MemoryScope;
+  timezone: string;
   turnId: string;
 }) {
   await ensureSessionStarted(input.scope);
+  const referenceTime = new Date().toISOString();
 
   await memory.runtime.appendMessage({
     scope: input.scope,
     message: {
       role: "user",
       content: input.message,
+      observedAt: referenceTime,
+      timezone: input.timezone,
     },
   });
 
   const recall = await memory.recall({
     scope: input.scope,
     query: input.message,
+    referenceTime,
     retrievalProfile: "general_chat",
+    timezone: input.timezone,
   });
   const context = await memory.buildContext({
     recall,
@@ -106,6 +112,8 @@ async function handleChatTurn(input: {
     message: {
       role: "assistant",
       content: assistantText,
+      observedAt: referenceTime,
+      timezone: input.timezone,
     },
   });
 
@@ -115,12 +123,17 @@ async function handleChatTurn(input: {
       {
         role: "user",
         content: input.message,
+        observedAt: referenceTime,
+        timezone: input.timezone,
       },
       {
         role: "assistant",
         content: assistantText,
+        observedAt: referenceTime,
+        timezone: input.timezone,
       },
     ],
+    timezone: input.timezone,
     idempotencyKey: input.turnId,
     reason: "post_response_memory_write",
   });

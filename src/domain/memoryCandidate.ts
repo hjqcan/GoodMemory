@@ -13,6 +13,7 @@ import type {
   ReferenceKind,
 } from "./records";
 import type { MemoryScope } from "./scope";
+import type { TemporalExpression } from "./temporal";
 
 export type ProfileField =
   | "name"
@@ -90,6 +91,7 @@ export interface MemoryCandidateMetadata {
   supersedesPointer?: string;
   claim?: MemoryCandidateClaimMetadata;
   contextualDescriptor?: string;
+  occurrenceExpression?: TemporalExpression;
 }
 
 export interface MemoryCandidateAnnotationTrace {

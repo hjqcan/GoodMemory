@@ -32,7 +32,7 @@ function createRecallResult(): RecallResult {
         searchLocale: "en-US",
         languagePackId: "en",
         searchAnalyzerVersion: "test-v1",
-        searchSchemaVersion: "gm-search-v2",
+        searchSchemaVersion: "gm-search-v3",
         scopeKey: "user-1::::workspace-1::::",
         sourceMemoryId: "memory-1",
         sourceMessageIds: ["message-1"],

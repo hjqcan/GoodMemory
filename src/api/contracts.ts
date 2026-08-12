@@ -257,11 +257,16 @@ export interface RecallInput {
   includeEvidence?: boolean;
   ignoreMemory?: boolean;
   locale?: string;
-  // Optional per-call temporal anchor (ISO-8601). Anchors plan resolution,
+  // Optional per-call temporal anchor (RFC 3339 instant with an explicit
+  // offset). Anchors plan resolution,
   // temporal claim selection, document visibility, and freshness for this
   // recall instead of the runtime clock — e.g. "answer as of the question
-  // date". Invalid values fall back to the runtime clock.
+  // date". Invalid explicit values are rejected.
   referenceTime?: string;
+  // IANA timezone used to resolve relative calendar expressions. When absent,
+  // GoodMemory may use the persisted user-profile timezone; it never guesses
+  // from the server process timezone.
+  timezone?: string;
 }
 
 export interface RecallResult {
@@ -322,6 +327,8 @@ export interface RememberInput {
   annotations?: MessageAnnotation[];
   extractionStrategy?: MemoryExtractionStrategy;
   locale?: string;
+  // Call-level IANA timezone fallback for messages without their own timezone.
+  timezone?: string;
 }
 
 export interface RememberResult {

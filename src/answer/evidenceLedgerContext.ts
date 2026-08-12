@@ -1,5 +1,7 @@
 import type { EvidenceLedgerEntry } from "../recall/evidenceLedger";
 import type { ClaimProjection } from "../recall/projections/contracts";
+import type { TemporalInterval } from "../domain/temporal";
+import type { OccurrenceMatch } from "../recall/occurrence";
 import {
   createLanguageService,
   type LanguageService,
@@ -30,6 +32,8 @@ interface RenderedEvidenceLedgerEntry {
   evidenceId: string;
   excerpt: string;
   memoryId: string;
+  occurrence?: TemporalInterval;
+  occurrenceMatch?: OccurrenceMatch;
   relation: EvidenceLedgerEntry["relation"];
   status: EvidenceLedgerEntry["temporalStatus"];
 }
@@ -61,6 +65,10 @@ function renderEntry(
     excerpt: entry.excerpt,
     ...(entry.actor ? { actor: entry.actor } : {}),
     ...(entry.claim ? { claim: renderClaim(entry.claim) } : {}),
+    ...(entry.occurrence ? { occurrence: entry.occurrence } : {}),
+    ...(entry.occurrenceMatch
+      ? { occurrenceMatch: entry.occurrenceMatch }
+      : {}),
   };
 }
 
@@ -85,6 +93,12 @@ function renderProseEntry(
     entry.claim
       ? `${language.render({ key: "claim" }, context)}: ${JSON.stringify(entry.claim)}.`
       : undefined,
+    entry.occurrence
+      ? `Occurrence: ${JSON.stringify(entry.occurrence)}.`
+      : undefined,
+    entry.occurrenceMatch
+      ? `Occurrence match: ${entry.occurrenceMatch}.`
+      : undefined,
     `${language.render({ key: "excerpt" }, context)}: ${JSON.stringify(entry.excerpt)}.`,
   ]
     .filter(Boolean)
@@ -97,10 +111,12 @@ function chronologicalEntries(
   return entries
     .map((entry, index) => ({ entry, index }))
     .sort((left, right) => {
-      const leftTime = left.entry.claim?.validFrom ??
+      const leftTime = left.entry.occurrence?.start ??
+        left.entry.claim?.validFrom ??
         left.entry.claim?.observedAt ??
         "\uffff";
-      const rightTime = right.entry.claim?.validFrom ??
+      const rightTime = right.entry.occurrence?.start ??
+        right.entry.claim?.validFrom ??
         right.entry.claim?.observedAt ??
         "\uffff";
       return leftTime.localeCompare(rightTime) ||

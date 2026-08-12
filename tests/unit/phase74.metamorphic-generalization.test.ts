@@ -76,7 +76,7 @@ function document(input: {
   const entityKeys = input.entityKeys ?? [];
   return {
     id: input.id,
-    schemaVersion: 3,
+    schemaVersion: 4,
     ...scope,
     scopeKey,
     sourceCollection: "facts",
@@ -88,7 +88,7 @@ function document(input: {
     searchLocale: "en-US",
     languagePackId: "en",
     searchAnalyzerVersion: "metamorphic-test-v1",
-    searchSchemaVersion: "gm-search-v2",
+    searchSchemaVersion: "gm-search-v3",
     entityIds: entityKeys.map((key) => `entity-${key}`),
     entityMentions: entityKeys.map((key) => ({
       canonicalKey: key,
@@ -141,7 +141,7 @@ function claim(input: {
     searchLocale: "en-US",
     languagePackId: "en",
     searchAnalyzerVersion: "metamorphic-test-v1",
-    searchSchemaVersion: "gm-search-v2",
+    searchSchemaVersion: "gm-search-v3",
     objectEntityId: input.objectEntityId,
     polarity: input.polarity ?? "positive",
     modality: "asserted",

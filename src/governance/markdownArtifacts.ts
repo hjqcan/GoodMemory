@@ -374,8 +374,12 @@ function renderPreferenceLines(preferences: PreferenceMemory[]): string[] {
 
 function renderFactLines(facts: FactMemory[]): string[] {
   return sortFacts(facts).map(
-    (fact) =>
-      `- [${fact.lifecycle}] ${sanitizeMarkdownInline(fact.content)}${renderDomainMetadataSuffix(fact)}`,
+    (fact) => {
+      const occurrence = fact.occurrence
+        ? ` [occurrence: ${fact.occurrence.start}..${fact.occurrence.endExclusive}; precision=${fact.occurrence.precision}; timezone=${fact.occurrence.timezone}]`
+        : "";
+      return `- [${fact.lifecycle}] ${sanitizeMarkdownInline(fact.content)}${occurrence}${renderDomainMetadataSuffix(fact)}`;
+    },
   );
 }
 

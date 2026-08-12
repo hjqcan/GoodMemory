@@ -12,6 +12,8 @@ import {
 } from "../../src/domain/records";
 import { createMemorySource } from "../../src/domain/provenance";
 import { attachBehavioralPolicyAttributes } from "../../src/evolution/behavioralPolicy";
+import { buildBehavioralOutcomePolicyApplied } from "../../src/evolution/behavioralTelemetry";
+import { createExperienceRecord } from "../../src/evolution/contracts";
 import type {
   HostActionAssessmentResult,
   HostActionIntent,
@@ -20,6 +22,7 @@ import type {
 import type {
   ProgressiveRecallIndex,
   ProgressiveRecallService,
+  SearchRecallIndexInput,
 } from "../../src/progressive/recall";
 import { createGoodMemoryRuntimeKit } from "../../src/runtime-kit";
 
@@ -350,6 +353,74 @@ describe("runtime-kit", () => {
     expect(calls).toEqual(["recall:What should I remember?", "build:80"]);
   });
 
+  it("forwards the turn reference time and timezone to fragment recall", async () => {
+    const recallInputs: RecallInput[] = [];
+    const runtimeKit = createGoodMemoryRuntimeKit({
+      memory: createMemoryStub({
+        async recall(input) {
+          recallInputs.push(input);
+          return createRecallResult();
+        },
+      }),
+    });
+
+    const before = await runtimeKit.beforeModelCall({
+      scope,
+      query: "What happened yesterday?",
+      referenceTime: "2026-11-01T05:30:00.000Z",
+      timezone: "America/New_York",
+    });
+
+    expect(before).toMatchObject({
+      referenceTime: "2026-11-01T05:30:00.000Z",
+      timezone: "America/New_York",
+    });
+    expect(recallInputs[0]).toMatchObject({
+      referenceTime: "2026-11-01T05:30:00.000Z",
+      timezone: "America/New_York",
+    });
+  });
+
+  it("does not implicitly associate an after call with a scope-only turn anchor", async () => {
+    const rememberInputs: RememberInput[] = [];
+    const runtimeKit = createGoodMemoryRuntimeKit({
+      memory: createMemoryStub({
+        async remember(input) {
+          rememberInputs.push(input);
+          return { accepted: 1, rejected: 0, events: [] };
+        },
+      }),
+    });
+
+    const before = await runtimeKit.beforeModelCall({
+      scope,
+      query: "Current turn",
+      referenceTime: "2026-11-01T05:30:00.000Z",
+      timezone: "America/New_York",
+    });
+    await runtimeKit.beforeModelCall({
+      scope,
+      query: "Concurrent turn",
+      referenceTime: "2026-11-01T05:31:00.000Z",
+      timezone: "Europe/Paris",
+    });
+    await runtimeKit.afterModelCall({
+      scope,
+      messages: [{ role: "user", content: "Current turn" }],
+      assistantText: "Current answer",
+      writeback: {
+        mode: "selective",
+        annotation: "durable_candidate",
+        policy: "allow",
+      },
+    });
+
+    expect(before.referenceTime).toBe("2026-11-01T05:30:00.000Z");
+    expect(rememberInputs[0]).not.toHaveProperty("timezone");
+    expect(rememberInputs[0]?.messages[0]).not.toHaveProperty("observedAt");
+    expect(rememberInputs[0]?.messages[1]).not.toHaveProperty("observedAt");
+  });
+
   it("opts into typed ledger recall and rendering only for an enabled runtime profile", async () => {
     const recallInputs: RecallInput[] = [];
     const buildInputs: BuildContextInput[] = [];
@@ -571,6 +642,263 @@ describe("runtime-kit", () => {
     expect(result.context.content).not.toContain("Behavioral steering:");
   });
 
+  it("does not reintroduce future behavioral episodes across a historical reference time", async () => {
+    const memory = createMemoryStub({
+      async exportMemory() {
+        return {
+          artifacts: { files: [], rootPath: "" },
+          durable: {
+            archives: [],
+            episodes: [
+              {
+                id: "future-episode-1",
+                userId: scope.userId,
+                workspaceId: scope.workspaceId,
+                summary: "Use https://future.example/dashboard for the dashboard link.",
+                keyDecisions: ["Use https://future.example/dashboard."],
+                unresolvedItems: [],
+                topics: [],
+                importance: 1,
+                confidence: 1,
+                createdAt: "2026-05-03T00:00:00.000Z",
+              },
+              {
+                id: "future-episode-2",
+                userId: scope.userId,
+                workspaceId: scope.workspaceId,
+                summary: "Use https://future.example/dashboard for the dashboard link.",
+                keyDecisions: ["Use https://future.example/dashboard."],
+                unresolvedItems: [],
+                topics: [],
+                importance: 1,
+                confidence: 1,
+                createdAt: "2026-05-03T00:01:00.000Z",
+              },
+            ],
+            evidence: [],
+            experiences: [],
+            facts: [],
+            feedback: [],
+            preferences: [],
+            profile: null,
+            promotions: [],
+            proposals: [],
+            references: [],
+          },
+          exportedAt: "2026-05-03T00:02:00.000Z",
+          scope,
+        };
+      },
+      async buildContext() {
+        return {
+          output: "system_prompt_fragment",
+          content: "Historical fragment.",
+          estimatedTokens: 4,
+          omittedSections: [],
+        };
+      },
+    });
+    const runtimeKit = createGoodMemoryRuntimeKit({ memory });
+
+    const result = await runtimeKit.beforeModelCall({
+      scope,
+      query: "Generate the dashboard URL.",
+      referenceTime: "2026-05-02T00:00:00.000Z",
+    });
+
+    expect(result.context.content).toBe("Historical fragment.");
+    expect(result.context.content).not.toContain("future.example");
+  });
+
+  it("applies the historical boundary to raw archives and experiences", async () => {
+    const futureExperience = createExperienceRecord({
+      id: "future-experience",
+      kind: "maintenance",
+      summary: "Copy correction",
+      traceId: "future-trace",
+      userId: scope.userId,
+      workspaceId: scope.workspaceId,
+      createdAt: "2026-05-03T00:00:00.000Z",
+      policyApplied: buildBehavioralOutcomePolicyApplied({
+        cue: "Copy the report into backup.",
+        failureClass: "arg_order",
+        firstAction: {
+          kind: "tool_call",
+          name: "copy_file",
+          raw: "copy_file(old)",
+        },
+        saferAlternative: {
+          kind: "tool_call",
+          name: "copy_file",
+          raw: "copy_file(future_safe)",
+        },
+        modelInfluence: "rules-only",
+        outcome: "failure",
+      }),
+    });
+    const futureArchive = {
+      id: "future-archive",
+      userId: scope.userId,
+      workspaceId: scope.workspaceId,
+      sessionId: "future-session",
+      sourceSessionIds: ["future-session"],
+      summary: "Generate the dashboard URL.",
+      normalizedTranscript: [
+        "user: Generate the dashboard URL.",
+        "assistant: Use https://future.example/archive-dashboard.",
+      ].join("\n"),
+      keyDecisions: ["Use https://future.example/archive-dashboard."],
+      unresolvedItems: [],
+      referencedArtifacts: [],
+      scopeLineage: [],
+      createdAt: "2026-05-03T00:00:00.000Z",
+      archivedAt: "2026-05-03T00:01:00.000Z",
+    };
+    const baseDurable = {
+      evidence: [],
+      facts: [],
+      feedback: [],
+      preferences: [],
+      profile: null,
+      promotions: [],
+      proposals: [],
+      references: [],
+    };
+    const archiveRuntime = createGoodMemoryRuntimeKit({
+      memory: createMemoryStub({
+        async exportMemory() {
+          return {
+            artifacts: { files: [], rootPath: "" },
+            durable: {
+              ...baseDurable,
+              archives: [futureArchive],
+              episodes: [],
+              experiences: [],
+            },
+            exportedAt: "2026-05-03T00:02:00.000Z",
+            scope,
+          };
+        },
+        async buildContext() {
+          return {
+            output: "system_prompt_fragment",
+            content: "Historical archive fragment.",
+            estimatedTokens: 4,
+            omittedSections: [],
+          };
+        },
+      }),
+    });
+    const experienceRuntime = createGoodMemoryRuntimeKit({
+      memory: createMemoryStub({
+        async exportMemory() {
+          return {
+            artifacts: { files: [], rootPath: "" },
+            durable: {
+              ...baseDurable,
+              archives: [],
+              episodes: [],
+              experiences: [futureExperience],
+            },
+            exportedAt: "2026-05-03T00:02:00.000Z",
+            scope,
+          };
+        },
+        async buildContext() {
+          return {
+            output: "system_prompt_fragment",
+            content: "Historical experience fragment.",
+            estimatedTokens: 4,
+            omittedSections: [],
+          };
+        },
+      }),
+    });
+
+    const currentArchive = await archiveRuntime.beforeModelCall({
+      scope,
+      query: "Generate the dashboard URL.",
+      referenceTime: "2026-05-04T00:00:00.000Z",
+    });
+    const currentExperience = await experienceRuntime.beforeModelCall({
+      scope,
+      query: "Copy the report into backup.",
+      referenceTime: "2026-05-04T00:00:00.000Z",
+      retrievalProfile: "coding_agent",
+    });
+    const archive = await archiveRuntime.beforeModelCall({
+      scope,
+      query: "Generate the dashboard URL.",
+      referenceTime: "2026-05-02T00:00:00.000Z",
+    });
+    const experience = await experienceRuntime.beforeModelCall({
+      scope,
+      query: "Copy the report into backup.",
+      referenceTime: "2026-05-02T00:00:00.000Z",
+      retrievalProfile: "coding_agent",
+    });
+
+    expect(currentArchive.context.content).toContain("archive-dashboard");
+    expect(currentExperience.context.content).toContain("copy_file(future_safe)");
+    expect(archive.context.content).toBe("Historical archive fragment.");
+    expect(archive.context.content).not.toContain("archive-dashboard");
+    expect(experience.context.content).toBe("Historical experience fragment.");
+    expect(experience.context.content).not.toContain("copy_file(future_safe)");
+  });
+
+  it("keeps undated runtime exemplars for a current anchor but not a historical replay", async () => {
+    const runtimeState: GoodMemoryRuntimeStateResult = {
+      ...emptyRuntimeState,
+      state: {
+        ...emptyRuntimeState.state,
+        buffer: {
+          ...emptyRuntimeState.state.buffer,
+          lastActiveAt: "2026-05-03T00:00:00.000Z",
+          messages: [
+            { role: "user", content: "Generate the dashboard URL." },
+            {
+              role: "assistant",
+              content: "Use https://runtime.example/dashboard.",
+            },
+          ],
+        },
+      },
+    };
+    const runtimeKit = createGoodMemoryRuntimeKit({
+      memory: createMemoryStub({
+        runtime: {
+          ...createMemoryStub().runtime,
+          async getState() {
+            return runtimeState;
+          },
+        },
+        async buildContext() {
+          return {
+            output: "system_prompt_fragment",
+            content: "Runtime fragment.",
+            estimatedTokens: 3,
+            omittedSections: [],
+          };
+        },
+      }),
+    });
+
+    const current = await runtimeKit.beforeModelCall({
+      scope,
+      query: "Generate the dashboard URL.",
+      referenceTime: "2026-05-04T00:00:00.000Z",
+    });
+    const historical = await runtimeKit.beforeModelCall({
+      scope,
+      query: "Generate the dashboard URL.",
+      referenceTime: "2026-05-02T00:00:00.000Z",
+    });
+
+    expect(current.context.content).toContain("runtime.example");
+    expect(historical.context.content).toBe("Runtime fragment.");
+    expect(historical.context.content).not.toContain("runtime.example");
+  });
+
   it("uses progressive recall service when progressive context is available", async () => {
     const runtimeKit = createGoodMemoryRuntimeKit({
       memory: createMemoryStub(),
@@ -588,6 +916,34 @@ describe("runtime-kit", () => {
       "gmrec:v1:scope_runtimekit:fact:fact-1",
     ]);
     expect(result.context.content).toContain("Progressive GoodMemory Recall");
+  });
+
+  it("forwards the turn reference time and timezone to progressive recall", async () => {
+    const progressiveInputs: SearchRecallIndexInput[] = [];
+    const progressiveRecall = createProgressiveService();
+    const runtimeKit = createGoodMemoryRuntimeKit({
+      memory: createMemoryStub(),
+      defaultContextMode: "progressive",
+      progressiveRecall: {
+        ...progressiveRecall,
+        async searchRecallIndex(input) {
+          progressiveInputs.push(input);
+          return progressiveRecall.searchRecallIndex(input);
+        },
+      },
+    });
+
+    await runtimeKit.beforeModelCall({
+      scope,
+      query: "What happened yesterday?",
+      referenceTime: "2026-11-01T05:30:00.000Z",
+      timezone: "America/New_York",
+    });
+
+    expect(progressiveInputs[0]).toMatchObject({
+      referenceTime: "2026-11-01T05:30:00.000Z",
+      timezone: "America/New_York",
+    });
   });
 
   it("falls back to fragment context when progressive transport is not configured", async () => {
@@ -646,6 +1002,31 @@ describe("runtime-kit", () => {
     expect(JSON.stringify(observe)).not.toContain(scope.userId);
     expect(JSON.stringify(observe)).not.toContain(scope.workspaceId);
     expect(JSON.stringify(observe)).not.toContain(scope.sessionId);
+  });
+
+  it("rejects invalid temporal context before every skip path", async () => {
+    const runtimeKit = createGoodMemoryRuntimeKit({ memory: createMemoryStub() });
+
+    await expect(runtimeKit.beforeModelCall({
+      ignoreMemory: true,
+      referenceTime: "not-a-time",
+      scope,
+    })).rejects.toThrow("Invalid referenceTime");
+    await expect(runtimeKit.beforeModelCall({
+      query: "",
+      scope,
+      timezone: "Mars/Olympus",
+    })).rejects.toThrow("Invalid timezone");
+    await expect(runtimeKit.afterModelCall({
+      assistantText: "Ignored",
+      messages: [{
+        content: "Bad message time",
+        observedAt: "not-a-time",
+        role: "user",
+      }],
+      scope,
+      writeback: { mode: "off" },
+    })).rejects.toThrow("Invalid messages[0].observedAt");
   });
 
   it("redacts localized credential assignments from bounded previews", async () => {
@@ -739,6 +1120,131 @@ describe("runtime-kit", () => {
       accepted: 1,
       rejected: 0,
     });
+  });
+
+  it("preserves current-turn message provenance during selective writeback", async () => {
+    const rememberInputs: RememberInput[] = [];
+    const runtimeKit = createGoodMemoryRuntimeKit({
+      memory: createMemoryStub({
+        async remember(input) {
+          rememberInputs.push(input);
+          return { accepted: 1, rejected: 0, events: [] };
+        },
+      }),
+    });
+
+    await runtimeKit.afterModelCall({
+      scope,
+      referenceTime: "2026-11-01T05:30:00.000Z",
+      timezone: "America/New_York",
+      assistantObservedAt: "2026-11-01T05:30:03.000Z",
+      messages: [
+        {
+          id: "historical-user",
+          role: "user",
+          content: "Earlier turn",
+        },
+        {
+          id: "current-user",
+          role: "user",
+          content: "Remember my review cadence.",
+          timezone: "Europe/Paris",
+        },
+      ],
+      assistantText: "Weekly review cadence is confirmed.",
+      writeback: {
+        mode: "selective",
+        annotation: "durable_candidate",
+        policy: "allow",
+      },
+    });
+
+    expect(rememberInputs).toEqual([
+      {
+        scope,
+        timezone: "America/New_York",
+        locale: undefined,
+        messages: [
+          {
+            id: "current-user",
+            role: "user",
+            content: "Remember my review cadence.",
+            observedAt: "2026-11-01T05:30:00.000Z",
+            timezone: "Europe/Paris",
+          },
+          {
+            role: "assistant",
+            content: "Weekly review cadence is confirmed.",
+            observedAt: "2026-11-01T05:30:03.000Z",
+            timezone: "America/New_York",
+          },
+        ],
+        annotations: [
+          expect.objectContaining({ messageIndex: 1 }),
+        ],
+      },
+    ]);
+  });
+
+  it("rejects explicit invalid temporal strings before writeback", async () => {
+    const rememberInputs: RememberInput[] = [];
+    const runtimeKit = createGoodMemoryRuntimeKit({
+      memory: createMemoryStub({
+        async remember(input) {
+          rememberInputs.push(input);
+          return { accepted: 0, rejected: 0, events: [] };
+        },
+      }),
+    });
+
+    await expect(runtimeKit.afterModelCall({
+      scope,
+      assistantObservedAt: "",
+      assistantTimezone: "",
+      messages: [{
+        role: "user",
+        content: "Remember this.",
+        observedAt: "",
+        timezone: "",
+      }],
+      assistantText: "Acknowledged.",
+      timezone: "",
+      writeback: {
+        mode: "selective",
+        annotation: "durable_candidate",
+        policy: "allow",
+      },
+    })).rejects.toThrow("Invalid timezone");
+    expect(rememberInputs).toEqual([]);
+  });
+
+  it("does not backfill the turn timestamp onto an earlier text user", async () => {
+    let rememberCalls = 0;
+    const runtimeKit = createGoodMemoryRuntimeKit({
+      memory: createMemoryStub({
+        async remember() {
+          rememberCalls += 1;
+          return { accepted: 1, rejected: 0, events: [] };
+        },
+      }),
+    });
+
+    await runtimeKit.afterModelCall({
+      scope,
+      referenceTime: "2026-11-01T05:30:00.000Z",
+      messages: [
+        { role: "user", content: "Historical text turn" },
+        { role: "user", content: " " },
+      ],
+      assistantText: "Current multimodal answer.",
+      writeback: {
+        mode: "selective",
+        annotation: "durable_candidate",
+        policy: "allow",
+      },
+    });
+
+    expect(rememberCalls).toBe(0);
   });
 
   it("preAction reuses host action assessment and execution-plan contracts", async () => {

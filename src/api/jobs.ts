@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { assertRememberTemporalContext } from "../domain/temporal";
 import type { GoodMemoryTraceLink } from "../observability/contracts";
 import type { GoodMemoryTracer } from "../observability/tracer";
 import type {
@@ -75,6 +76,7 @@ function digestRememberInput(input: EnqueueRememberJobInput): string {
         messages: input.messages,
         operation: "remember",
         scope: input.scope,
+        timezone: input.timezone,
       }),
     )
     .digest("hex")}`;
@@ -112,6 +114,7 @@ function cloneRememberInput(input: EnqueueRememberJobInput): RememberInput {
       : {}),
     ...(input.extractionStrategy ? { extractionStrategy: input.extractionStrategy } : {}),
     ...(input.locale ? { locale: input.locale } : {}),
+    ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
   };
 }
 
@@ -317,6 +320,7 @@ export function createGoodMemoryJobsFacade(
 
   return {
     async enqueueRemember(input: EnqueueRememberJobInput): Promise<MemoryWriteJob> {
+      assertRememberTemporalContext(input);
       const trace = await config.tracer.start({
         name: "writeback.job.enqueue",
         scope: input.scope,

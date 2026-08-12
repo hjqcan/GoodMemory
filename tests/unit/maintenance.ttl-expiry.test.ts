@@ -135,4 +135,26 @@ describe("ttlExpiry maintenance job", () => {
     });
     expect(after.facts.map((fact) => fact.id)).toContain("no-ttl");
   });
+
+  it("does not treat a completed event occurrence as a lifecycle expiry", async () => {
+    const { documentStore, makeFact, memory } = buildMemory();
+    await documentStore.set(
+      "facts",
+      "historical-event",
+      makeFact("historical-event", "I ate tomato and eggs.", {
+        category: "event",
+        occurrence: {
+          start: "2020-01-01T05:00:00.000Z",
+          endExclusive: "2020-01-02T05:00:00.000Z",
+          precision: "day",
+          timezone: "America/New_York",
+        },
+      }),
+    );
+
+    await memory.runMaintenance({ scope, jobs: ["ttlExpiry"] });
+
+    expect(await documentStore.get<FactMemory>("facts", "historical-event"))
+      .toMatchObject({ lifecycle: "active", validUntil: undefined });
+  });
 });

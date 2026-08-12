@@ -18,6 +18,8 @@ import type {
 } from "../domain/records";
 import { createMemorySource } from "../domain/provenance";
 import { scopeToKey } from "../domain/scope";
+import { resolveTemporalInterval } from "../domain/temporal";
+import type { TemporalInterval } from "../domain/temporal";
 import { createEvidenceRecord } from "../evidence/contracts";
 import type {
   EvidenceRecord,
@@ -219,6 +221,24 @@ export function resolveCandidateObservedAt(
   return earliest === undefined ? undefined : new Date(earliest).toISOString();
 }
 
+export function resolveCandidateOccurrence(
+  candidate: ClassifiedCandidate,
+  messages: readonly SessionMessage[],
+  locale: string,
+): TemporalInterval | undefined {
+  const expression = candidate.metadata?.occurrenceExpression;
+  const source = messages[candidate.sourceMessageIndex];
+  if (!expression || !source?.observedAt || !source.timezone) {
+    return undefined;
+  }
+  return resolveTemporalInterval(
+    [expression],
+    source.observedAt,
+    source.timezone,
+    locale,
+  );
+}
+
 export function buildFact(
   scope: ScopedIdentity,
   candidate: ClassifiedCandidate,
@@ -226,6 +246,7 @@ export function buildFact(
   timestamp: string,
   language: SourceLanguageMetadata | string,
   observedAt?: string,
+  occurrence?: TemporalInterval,
 ): FactMemory {
   return createFactMemory({
     id,
@@ -247,6 +268,7 @@ export function buildFact(
     scopeKind: candidate.metadata?.scopeKind,
     subject: candidate.metadata?.subject ?? "unknown",
     observedAt,
+    occurrence,
     validFrom: candidate.metadata?.claim?.validFrom,
     validUntil: candidate.metadata?.claim?.validUntil,
     createdAt: timestamp,
@@ -667,6 +689,7 @@ export function buildSourceMessageRecord(
     message.id ?? `index:${messageIndex}`,
     message.role,
     message.observedAt ?? "",
+    message.timezone ?? "",
     contentSha256,
   ].join("\u0000"))}`;
 
@@ -678,6 +701,7 @@ export function buildSourceMessageRecord(
     role: message.role,
     content: message.content,
     observedAt: message.observedAt,
+    timezone: message.timezone,
     ingestedAt,
     contentSha256,
   };

@@ -1,4 +1,8 @@
+import type { FactMemory } from "../domain/records";
+import type { TemporalInterval } from "../domain/temporal";
 import type { EvidenceRecord } from "../evidence/contracts";
+import { matchOccurrence } from "./occurrence";
+import type { OccurrenceMatch } from "./occurrence";
 import type { ClaimProjection } from "./projections/contracts";
 import type { RecallAggregation } from "./recallPlan";
 
@@ -8,6 +12,8 @@ export interface EvidenceLedgerEntry {
   actor?: string;
   excerpt: string;
   claim?: ClaimProjection;
+  occurrence?: TemporalInterval;
+  occurrenceMatch?: OccurrenceMatch;
   temporalStatus: "current" | "superseded" | "uncertain";
   relation: "supports" | "contradicts" | "context";
 }
@@ -17,6 +23,8 @@ export interface BuildEvidenceLedgerInput {
   ambiguousSourceMemoryIds?: readonly string[];
   claims: readonly ClaimProjection[];
   evidence: readonly EvidenceRecord[];
+  facts?: readonly Pick<FactMemory, "id" | "occurrence">[];
+  occurrenceInterval?: TemporalInterval;
   referenceTime: string;
   selectedMemoryIds: readonly string[];
 }
@@ -124,6 +132,11 @@ export function buildEvidenceLedger(
   input: BuildEvidenceLedgerInput,
 ): EvidenceLedgerEntry[] {
   const selected = new Set(input.selectedMemoryIds);
+  const occurrences = new Map(
+    (input.facts ?? []).flatMap((fact) =>
+      fact.occurrence ? [[fact.id, fact.occurrence] as const] : []
+    ),
+  );
   const ambiguous = new Set(input.ambiguousSourceMemoryIds ?? []);
   const selectedClaims = input.claims.filter((claim) =>
     selected.has(claim.sourceMemoryId),
@@ -143,6 +156,10 @@ export function buildEvidenceLedger(
 
   const entries: EvidenceLedgerEntry[] = [];
   for (const sourceMemoryId of selected) {
+    const occurrence = occurrences.get(sourceMemoryId);
+    const occurrenceMatch = input.occurrenceInterval
+      ? matchOccurrence(occurrence, input.occurrenceInterval)
+      : undefined;
     const linkedEvidence = input.evidence.filter(
       (record) =>
         record.linkedMemoryIds.includes(sourceMemoryId) ||
@@ -169,7 +186,9 @@ export function buildEvidenceLedger(
           ...(actor ? { actor } : {}),
           excerpt: evidence.excerpt,
           temporalStatus: "uncertain",
-          relation: "context",
+          ...(occurrence ? { occurrence } : {}),
+          ...(occurrenceMatch ? { occurrenceMatch } : {}),
+          relation: occurrenceMatch === "matched" ? "supports" : "context",
         });
         continue;
       }
@@ -181,6 +200,8 @@ export function buildEvidenceLedger(
           ...(actor ? { actor } : {}),
           excerpt: evidence.excerpt,
           claim,
+          ...(occurrence ? { occurrence } : {}),
+          ...(occurrenceMatch ? { occurrenceMatch } : {}),
           temporalStatus,
           relation: resolveRelation({
             claim,

@@ -1,5 +1,6 @@
 import type { MemoryScope } from "../../domain/scope";
 import type { MemorySourceMethod } from "../../domain/provenance";
+import type { TemporalInterval } from "../../domain/temporal";
 import type {
   AppendClaimProjectionInput,
   MemoryClaimModality,
@@ -11,7 +12,7 @@ export type {
   ClaimProjectionWritePort,
 } from "../../domain/memoryCandidate";
 
-export const RECALL_DOCUMENTS_COLLECTION = "recall_documents_v3";
+export const RECALL_DOCUMENTS_COLLECTION = "recall_documents_v4";
 export const ENTITIES_COLLECTION = "entities_v2";
 export const SCOPE_CATALOG_COLLECTION = "scope_catalog_v2";
 export const PROJECTION_MANIFESTS_COLLECTION =
@@ -19,10 +20,11 @@ export const PROJECTION_MANIFESTS_COLLECTION =
 export const PROJECTION_REPAIRS_COLLECTION = "recall_projection_repairs_v1";
 export const CLAIM_PROJECTIONS_COLLECTION = "claim_projections_v2";
 export const CLAIM_PROJECTION_STATUS_COLLECTION = "claim_projection_status_v2";
-export const PROJECTION_SEARCH_SCHEMA_VERSION = "gm-search-v2";
-export const RECALL_PROJECTION_PIPELINE_VERSION = "gm-projection-v4";
+export const PROJECTION_SEARCH_SCHEMA_VERSION = "gm-search-v3";
+export const RECALL_PROJECTION_PIPELINE_VERSION = "gm-projection-v5";
 
 export const LEGACY_RECALL_PROJECTION_COLLECTIONS = [
+  "recall_documents_v3",
   "recall_documents_v2",
   "entities_v1",
   "claim_projections_v1",
@@ -53,7 +55,7 @@ export interface RecallEntityMention {
 
 export interface RecallIndexDocument extends MemoryScope {
   id: string;
-  schemaVersion: 3;
+  schemaVersion: 4;
   scopeKey: string;
   sourceCollection: RecallProjectionSourceCollection;
   sourceMemoryId: string;
@@ -70,6 +72,7 @@ export interface RecallIndexDocument extends MemoryScope {
   entityMentions: RecallEntityMention[];
   effectiveFrom?: string;
   effectiveUntil?: string;
+  occurrence?: TemporalInterval;
   provenance: {
     method?: MemorySourceMethod;
     extractedAt?: string;

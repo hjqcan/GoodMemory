@@ -9,6 +9,86 @@ import {
 import { planRecall } from "../../src/recall/router";
 
 describe("context builder output modes", () => {
+  it("renders instant occurrence with the full absolute timestamp", () => {
+    const packet = buildMemoryPacket({
+      profile: null,
+      preferences: [],
+      references: [],
+      facts: [{
+        id: "fact-instant",
+        userId: "u-1",
+        category: "event",
+        content: "I completed deployment.",
+        confidence: 1,
+        importance: 1,
+        occurrence: {
+          start: "2026-08-11T03:04:05.000Z",
+          endExclusive: "2026-08-11T03:04:05.001Z",
+          precision: "instant",
+          timezone: "UTC",
+        },
+        source: { method: "explicit", extractedAt: "2026-08-12T00:00:00.000Z" },
+        accessCount: 0,
+        lifecycle: "active",
+        isActive: true,
+        createdAt: "2026-08-12T00:00:00.000Z",
+        updatedAt: "2026-08-12T00:00:00.000Z",
+      }],
+      feedback: [],
+      archives: [],
+      evidence: [],
+      episodes: [],
+      workingMemory: null,
+      journal: null,
+    });
+
+    const rendered = renderMemoryPacket(packet, "markdown");
+    expect(rendered.content).toContain(
+      "[2026-08-11T03:04:05.000Z, instant, UTC]",
+    );
+    expect(rendered.content).not.toContain("2026-08-11 to 2026-08-11");
+  });
+
+  it("renders event occurrence at its real precision instead of inventing one day", () => {
+    const packet = buildMemoryPacket({
+      profile: null,
+      preferences: [],
+      references: [],
+      facts: [{
+        id: "fact-week",
+        userId: "u-1",
+        category: "event",
+        content: "I submitted the incident report.",
+        confidence: 1,
+        importance: 1,
+        occurrence: {
+          start: "2026-08-02T16:00:00.000Z",
+          endExclusive: "2026-08-09T16:00:00.000Z",
+          precision: "week",
+          timezone: "Asia/Shanghai",
+        },
+        source: { method: "explicit", extractedAt: "2026-08-12T00:00:00.000Z" },
+        accessCount: 0,
+        lifecycle: "active",
+        isActive: true,
+        createdAt: "2026-08-12T00:00:00.000Z",
+        updatedAt: "2026-08-12T00:00:00.000Z",
+      }],
+      feedback: [],
+      archives: [],
+      evidence: [],
+      episodes: [],
+      workingMemory: null,
+      journal: null,
+    });
+
+    const rendered = renderMemoryPacket(packet, "markdown");
+    expect(rendered.content).toContain(
+      "[2026-08-03 to 2026-08-10 (exclusive), week, Asia/Shanghai]",
+    );
+    expect(rendered.content).not.toContain("[2026-08-03, Asia/Shanghai]");
+  });
+
   it("keeps CJK-only sections within per-call token budgets", () => {
     const rendered = renderMemoryPacket(
       { factSummary: "記憶".repeat(20) },

@@ -3,6 +3,7 @@ import type {
   FactMemory,
   ReferenceMemory,
 } from "../domain/records";
+import { filterFactsByOccurrence } from "../recall/occurrence";
 import type { SessionArchive } from "../domain/evolutionRecords";
 import type { LanguageService } from "../language";
 import { rebuildMemoryPacket } from "../recall/contextBuilder";
@@ -29,6 +30,7 @@ import {
   RECALL_PLAN_PRE_RANK_LIMIT,
   RECALL_PLAN_SELECTED_LIMIT,
 } from "../recall/recallPlan";
+import type { TemporalConstraint } from "../recall/recallPlan";
 import { evaluateVerificationHints } from "../verify/policy";
 import { truncateTextToEstimatedTokens } from "../tokenEstimator";
 import type { RecallResult } from "./contracts";
@@ -368,6 +370,8 @@ function rebuildDurablySelectedResult(input: {
         ambiguousSourceMemoryIds: [...ambiguousSourceMemoryIds],
         claims: input.pool.claims,
         evidence,
+        facts,
+        occurrenceInterval: input.pool.occurrenceInterval,
         referenceTime: input.pool.referenceTime,
         selectedMemoryIds,
       })
@@ -591,6 +595,65 @@ export function applyDurableSelectionToResult(input: {
     }),
     pool,
   );
+}
+
+export function applyOccurrenceFenceToResult(input: {
+  constraints: readonly TemporalConstraint[];
+  eventOccurrenceIntervalUnresolved?: boolean;
+  language: LanguageService;
+  query: string;
+  result: RecallResult;
+}): RecallResult {
+  const occurrenceInterval = input.constraints.find(
+    (constraint) => constraint.kind === "during",
+  )?.interval;
+  if (!occurrenceInterval && !input.eventOccurrenceIntervalUnresolved) {
+    return input.result;
+  }
+  const allowedFactIds = new Set(
+    (
+      occurrenceInterval
+        ? filterFactsByOccurrence(input.result.facts, input.constraints)
+        : input.result.facts.filter(({ category }) => category !== "event")
+    ).map(({ id }) => id),
+  );
+  const sourcePool = getRecallRerankPool(input.result) ??
+    buildSelectedResultPool(input.result);
+  const pool = {
+    ...sourcePool,
+    candidates: sourcePool.candidates.filter((candidate) =>
+      candidate.collection !== "facts" || allowedFactIds.has(candidate.record.id)
+    ),
+    ...(occurrenceInterval ? { occurrenceInterval } : {}),
+  };
+  const selected = buildSelectedResultPool(input.result).candidates.filter(
+    (candidate) =>
+      candidate.collection !== "facts" || allowedFactIds.has(candidate.record.id),
+  );
+  const fenced = setRecallRerankPool(
+    rebuildDurablySelectedResult({
+      candidates: selected,
+      language: input.language,
+      pool,
+      query: input.query,
+      result: input.result,
+    }),
+    pool,
+  );
+  return input.eventOccurrenceIntervalUnresolved
+    ? {
+        ...fenced,
+        metadata: {
+          ...fenced.metadata,
+          policyApplied: [
+            ...new Set([
+              ...fenced.metadata.policyApplied,
+              "event_occurrence_interval_unresolved",
+            ]),
+          ],
+        },
+      }
+    : fenced;
 }
 
 export function getDurableRerankerCandidateCount(result: RecallResult): number {

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { isActiveMemoryLifecycle } from "../../domain/records";
 import type { MemorySource } from "../../domain/provenance";
+import type { TemporalInterval } from "../../domain/temporal";
 import {
   normalizeScope,
   scopeToKey,
@@ -330,6 +331,9 @@ function buildIndexDocument(input: {
     "validUntil",
     "expiresAt",
   ]);
+  const occurrence = isRecord(input.record.occurrence)
+    ? input.record.occurrence as unknown as TemporalInterval
+    : undefined;
   const identity = [
     input.collection,
     input.sourceMemoryId,
@@ -340,7 +344,7 @@ function buildIndexDocument(input: {
   ].join("\u0000");
   return {
     id: stableId("recall", identity),
-    schemaVersion: 3,
+    schemaVersion: 4,
     ...input.scope,
     scopeKey,
     sourceCollection: input.collection,
@@ -360,6 +364,7 @@ function buildIndexDocument(input: {
       ? { effectiveFrom: optionalString(input.record, "validFrom") }
       : {}),
     ...(effectiveUntil ? { effectiveUntil } : {}),
+    ...(occurrence ? { occurrence } : {}),
     provenance: resolveProvenance(input.record),
     ...(optionalString(input.record, "createdAt")
       ? { sourceCreatedAt: optionalString(input.record, "createdAt") }

@@ -105,6 +105,7 @@ import {
   serveRuntimeViewer,
 } from "./runtime-viewer/public";
 import type { RecallCandidateTrace } from "./recall/engine";
+import type { RecallRetrievalTrace } from "./recall/retrievalTrace";
 import type { RecallRouterStrategy } from "./recall/router";
 import type { MemoryExtractionStrategy } from "./remember/candidates";
 import { resolveStoragePlan } from "./api/runtimeResolution";
@@ -411,6 +412,8 @@ const TRACE_HELP_TEXT = [
   "  --retrieval-profile <general_chat|coding_agent>",
   "  --strategy <auto|rules-only|hybrid|llm-assisted>",
   "  --locale <locale>",
+  "  --reference-time <rfc3339>",
+  "  --timezone <iana-zone>",
   "  --ignore-memory         Treat recall as an empty set and skip storage lookup",
   "  --json",
   "",
@@ -569,6 +572,8 @@ const REMEMBER_HELP_TEXT = [
   "  --role <user|assistant>",
   "  --extraction-strategy <auto|rules-only|llm-assisted>",
   "  --locale <locale>",
+  "  --observed-at <rfc3339>",
+  "  --timezone <iana-zone>",
   "",
   "Installed Host Flags",
   "  --host <codex|claude>   Reuse installed host storage and derive missing scope defaults",
@@ -1519,6 +1524,7 @@ function buildInspectPayload(input: {
       facts: facts.map((record) => ({
         content: record.content,
         lifecycle: record.lifecycle,
+        occurrence: record.occurrence ?? null,
         subject: record.subject ?? null,
       })),
       feedback: feedback.map((record) => ({
@@ -1596,6 +1602,14 @@ function renderInspectPayload(payload: Record<string, unknown>): string {
             `- ${record.content}${
               record.subject
                 ? ` [subject=${record.subject}]`
+                : ""
+            }${
+              record.occurrence &&
+                typeof record.occurrence === "object" &&
+                "start" in record.occurrence &&
+                "endExclusive" in record.occurrence &&
+                "timezone" in record.occurrence
+                ? ` [occurrence=${String(record.occurrence.start)}..${String(record.occurrence.endExclusive)}, ${String(record.occurrence.timezone)}]`
                 : ""
             }`,
         )
@@ -1766,6 +1780,7 @@ function buildTracePayload(input: {
     hits: input.recall.metadata.hits,
     policyApplied: input.recall.metadata.policyApplied,
     query: input.query,
+    retrievalTrace: input.recall.metadata.retrievalTrace ?? null,
     routingDecision: input.recall.metadata.routingDecision,
     scope: input.scope,
     storage: {
@@ -1802,6 +1817,10 @@ function renderTracePayload(payload: Record<string, unknown>): string {
     .slice(0, TRACE_SUPPRESSED_LIMIT);
   const policyApplied = payload.policyApplied as string[];
   const storage = payload.storage as Record<string, unknown>;
+  const retrievalTrace = payload.retrievalTrace as RecallRetrievalTrace | null;
+  const temporalConstraints = retrievalTrace?.schemaVersion === 2
+    ? retrievalTrace.plan.temporalConstraints
+    : [];
 
   return [
     `Scope: ${formatScope(payload.scope as unknown as MemoryScope)}`,
@@ -1817,6 +1836,11 @@ function renderTracePayload(payload: Record<string, unknown>): string {
     ...(warningMessages.length > 0
       ? warningMessages.map((message) => `- warning: ${message}`)
       : []),
+    "",
+    "Temporal Constraints",
+    ...(temporalConstraints.length > 0
+      ? temporalConstraints.map((constraint) => `- ${JSON.stringify(constraint)}`)
+      : ["- none"]),
     "",
     "Hits",
     ...(hits.length > 0
@@ -3598,9 +3622,11 @@ async function handleTrace(flags: ParsedFlags): Promise<CLICommandOutput> {
     ignoreMemory,
     locale: flags.locale,
     query,
+    referenceTime: flags["reference-time"],
     retrievalProfile,
     scope,
     strategy,
+    timezone: flags.timezone,
   });
   const payload = buildTracePayload({
     query,
@@ -3667,10 +3693,15 @@ async function handleRemember(flags: ParsedFlags): Promise<CLICommandOutput> {
     messages: [
       {
         content: requireFlag(flags, "message"),
+        ...(flags["observed-at"] !== undefined
+          ? { observedAt: flags["observed-at"] }
+          : {}),
         role: parseRememberRole(flags),
+        ...(flags.timezone !== undefined ? { timezone: flags.timezone } : {}),
       },
     ],
     scope,
+    timezone: flags.timezone,
   });
   const payload = {
     accepted: result.accepted,

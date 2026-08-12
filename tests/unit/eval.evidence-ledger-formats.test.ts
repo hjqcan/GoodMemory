@@ -30,7 +30,7 @@ const entries: EvidenceLedgerEntry[] = [
       searchLocale: "en-US",
       languagePackId: "en",
       searchAnalyzerVersion: "test-v1",
-      searchSchemaVersion: "gm-search-v2",
+      searchSchemaVersion: "gm-search-v3",
       scopeKey: "user-1::::",
       sourceMemoryId: "m-2",
       sourceMessageIds: ["message-2"],

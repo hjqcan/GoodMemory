@@ -26,6 +26,11 @@ import {
   resolveSourceOfTruthDirective,
   splitSentencesGeneric,
 } from "./packHelpers";
+import {
+  canResolveOccurrenceExpression,
+  hasOccurrenceResolutionContext,
+  maskQuotedTemporalLiterals,
+} from "./temporal";
 
 const KOREAN_STOPWORDS = new Set([
   "그리고",
@@ -42,6 +47,51 @@ const KOREAN_STOPWORDS = new Set([
   "현재",
   "해주세요",
 ]);
+
+const COMPLETED_FIRST_PERSON_EVENT_PATTERN =
+  /^(?:저는|제가|나는|내가)[^.!?。！？]+(?:했습니다|하였습니다|았습니다|었습니다|였습니다|했어요|았어요|었어요)[.!?。！？]?$/u;
+const KOREAN_FIRST_PERSON_EVENT_PATTERN = /^(?:저는|제가|나는|내가)/u;
+const KOREAN_CONTRACTED_PAST_FORMAL_SUFFIX_PATTERN =
+  /\u11BB\u1109\u1173\u11B8\u1102\u1175\u1103\u1161$/u;
+const FUTURE_FIRST_PERSON_PLAN_PATTERN =
+  /^(?:저는|제가|나는|내가)[^.!?。！？]*(?:할\s+예정입니다|할\s+것입니다|할\s+계획입니다|하려고\s+합니다)[.!?。！？]?$/u;
+
+function isCompletedKoreanFirstPersonEvent(content: string): boolean {
+  if (!KOREAN_FIRST_PERSON_EVENT_PATTERN.test(content)) {
+    return false;
+  }
+  if (COMPLETED_FIRST_PERSON_EVENT_PATTERN.test(content)) {
+    return true;
+  }
+  return KOREAN_CONTRACTED_PAST_FORMAL_SUFFIX_PATTERN.test(
+    content.replace(/[.!?。！？]+$/u, "").normalize("NFD"),
+  );
+}
+const KOREAN_COMPLETED_PREDICATE_PATTERN =
+  /([\p{Script=Hangul}]+?)(?:습니까|습니다|나요|어요|는지)$/u;
+
+function koreanCompletedEventPredicate(text: string): string | undefined {
+  const stem = text
+    .trim()
+    .replace(/[.!?。！？]+$/u, "")
+    .match(KOREAN_COMPLETED_PREDICATE_PATTERN)?.[1];
+  if (!stem || !stem.normalize("NFD").endsWith("\u11BB")) {
+    return undefined;
+  }
+  if (stem.endsWith("했")) {
+    return `${stem.slice(0, -1)}하`;
+  }
+  if (stem.endsWith("하였")) {
+    return `${stem.slice(0, -2)}하`;
+  }
+  return stem;
+}
+
+function matchesKoreanEventPredicate(query: string, candidate: string): boolean {
+  const queryPredicate = koreanCompletedEventPredicate(query);
+  return queryPredicate !== undefined &&
+    queryPredicate === koreanCompletedEventPredicate(candidate);
+}
 
 const BEHAVIORAL_RULE_PATTERNS = {
   firstAction: [
@@ -204,7 +254,37 @@ function analyzeKoreanQuery(query: string): LanguageQueryAnalysis {
   const focus = QUERY.focus.test(query);
   const blocker = QUERY.blocker.test(query);
   const openLoop = QUERY.openLoop.test(query);
-  const before = QUERY.before.test(query);
+  const before = QUERY.before.test(query.replace(/\d{1,3}\s*일\s*전/gu, ""));
+  const occurrenceExpression = parseKoreanTemporalExpressions(query)[0];
+  const eventOccurrenceQueryMode = (():
+    LanguageQueryAnalysis["eventOccurrenceQueryMode"] => {
+    if (!occurrenceExpression) {
+      return undefined;
+    }
+    const expressionIndex = query.indexOf(occurrenceExpression.raw);
+    if (expressionIndex >= 0) {
+      const prefix = query.slice(0, expressionIndex);
+      const suffix = query.slice(expressionIndex + occurrenceExpression.raw.length);
+      if (
+        /(?:이전|전까지|보다\s*앞서|이후|후에)\s*$/u.test(prefix) ||
+        /^\s*(?:이전|전까지|보다\s*앞서|이후|후에|보다\s*앞서)/u.test(suffix) ||
+        /[「『“"]\s*$/u.test(prefix) && /^\s*[」』”"]/u.test(suffix)
+      ) {
+        return undefined;
+      }
+    }
+    if (
+      /무슨\s+일[^.!?。！？]{0,20}(?:있었|발생했)[^.!?。！？]{0,20}(?:나요|습니까|어요)/u.test(
+        query,
+      )
+    ) {
+      return "broad";
+    }
+    return /(?:무엇|뭐|어디|누구|어떤)/u.test(query) &&
+        koreanCompletedEventPredicate(query)
+      ? "predicate"
+      : undefined;
+  })();
   const userGroundedEventOrder =
     /(순서|순차|시간순|처음[\s\S]{0,80}마지막)/u.test(query) &&
     /(?:제가|내가|저는|나는)[\s\S]{0,80}(?:언급|말한|이야기한|다룬)/u.test(
@@ -223,6 +303,8 @@ function analyzeKoreanQuery(query: string): LanguageQueryAnalysis {
     continuation: QUERY.continuation.test(query),
     current: QUERY.current.test(query),
     directFactualLookup: QUERY.directFactualLookup.test(query.trim()),
+    eventOccurrenceQuery: eventOccurrenceQueryMode !== undefined,
+    ...(eventOccurrenceQueryMode ? { eventOccurrenceQueryMode } : {}),
     exhaustiveList: QUERY.exhaustiveList.test(query),
     factConfirmation: role || focus || blocker || openLoop ||
       (QUERY.confirm.test(query) && QUERY.factConfirmationTarget.test(query)),
@@ -461,6 +543,51 @@ function extractKoreanCandidates(
         });
         continue;
       }
+      if (FUTURE_FIRST_PERSON_PLAN_PATTERN.test(text)) {
+        candidates.push({
+          content: cleanCandidateValue(text),
+          explicitness: "explicit",
+          id: input.nextId(),
+          kindHint: "fact",
+          metadata: {
+            category: "personal",
+            factKind: "open_loop",
+            scopeKind: "identity",
+            subject: "unknown",
+          },
+          sourceMessageIndex,
+          sourceRole: "user",
+        });
+        continue;
+      }
+      const occurrenceContext = hasKoreanOccurrenceContext(message);
+      const occurrenceEvent = extractKoreanOccurrenceEvent(
+        text,
+        {
+          locale: input.locale,
+          observedAt: message.observedAt,
+          timezone: message.timezone,
+        },
+      );
+      if (occurrenceEvent) {
+        candidates.push({
+          content: occurrenceEvent.content,
+          explicitness: occurrenceContext || clauseIsExplicit
+            ? "explicit"
+            : "inferred",
+          id: input.nextId(),
+          kindHint: "fact",
+          metadata: {
+            category: "event",
+            occurrenceExpression: occurrenceEvent.occurrenceExpression,
+            scopeKind: "identity",
+            subject: "unknown",
+          },
+          sourceMessageIndex,
+          sourceRole: "user",
+        });
+        continue;
+      }
       const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
         analysis: clauseAnalysis,
         nextId: input.nextId,
@@ -472,6 +599,20 @@ function extractKoreanCandidates(
       const goal = text.match(
         /(?:제|저의|나의)?\s*(?:현재 )?(?:목표|최우선 과제)는\s*([^.!?。！？]+?)(?:입니다|이에요|예요)?[.!?。！？]?$/u,
       )?.[1];
+      const timezone = text.match(
+        /(?:제|저의|나의)?\s*시간대는\s*([A-Za-z0-9_./+-]+)(?:입니다|이에요|예요)?[.!?。！？]?$/u,
+      )?.[1];
+      if (timezone) {
+        candidates.push({
+          content: timezone,
+          explicitness: "explicit",
+          id: input.nextId(),
+          kindHint: "profile",
+          metadata: { profileField: "timezone" },
+          sourceMessageIndex,
+          sourceRole: "user",
+        });
+      }
       if (goal) {
         candidates.push({
           content: cleanCandidateValue(goal),
@@ -542,6 +683,7 @@ function extractKoreanCandidates(
       if (
         clauseIsExplicit &&
         !goal &&
+        !timezone &&
         !name &&
         !role &&
         !preference &&
@@ -624,6 +766,11 @@ function parseKoreanTemporalExpressions(
   text: string,
 ): LanguageTemporalExpression[] {
   const expressions: LanguageTemporalExpression[] = [];
+  const technical = parseTechnicalTemporalExpressions(text);
+  const instant = technical.find((expression) => "iso" in expression);
+  if (instant) {
+    return [instant, ...technical.filter(({ raw }) => raw !== instant.raw)];
+  }
   const koreanDate = text.match(
     /(\d{4})\s*년\s*(\d{1,2})\s*월(?:\s*(\d{1,2})\s*일)?/u,
   );
@@ -709,7 +856,7 @@ function parseKoreanTemporalExpressions(
     }
   }
 
-  expressions.push(...parseTechnicalTemporalExpressions(text));
+  expressions.push(...technical);
   const seen = new Set<string>();
   return expressions.filter((expression) => {
     const key = `${expression.kind}\u0000${expression.raw}`;
@@ -719,6 +866,56 @@ function parseKoreanTemporalExpressions(
     seen.add(key);
     return true;
   });
+}
+
+function extractKoreanOccurrenceEvent(
+  content: string,
+  context: {
+    locale: string;
+    observedAt?: string;
+    timezone?: string;
+  },
+): { content: string; occurrenceExpression: LanguageTemporalExpression } | undefined {
+  if (
+    /[?？]/u.test(content) ||
+    /(?:죠|지요|잖아요|맞죠)[.!。！]?$/u.test(content) ||
+    /(?:무엇|뭐|누구|어디|언제|왜|어떻게)(?:입니까|인가요|예요|이에요)?[.!。！]?$|(?:습니까|나요|까요)[.!。！]?$/u.test(
+      content,
+    ) ||
+    /(?:안|못)\s*\p{L}|않(?:았|었)/u.test(content)
+  ) {
+    return undefined;
+  }
+  const maskedLiterals = maskQuotedTemporalLiterals(content);
+  const occurrenceExpression = parseKoreanTemporalExpressions(maskedLiterals)[0];
+  if (!occurrenceExpression) {
+    return undefined;
+  }
+
+  const expressionIndex = maskedLiterals.indexOf(occurrenceExpression.raw);
+  const before = content.slice(0, expressionIndex);
+  const after = content.slice(expressionIndex + occurrenceExpression.raw.length)
+    .replace(/^(?:에|에는|에서)\s*/u, "");
+  const canonical = `${before}${after}`
+    .replace(/\s{2,}/gu, " ")
+    .trim();
+  const canonicalize = canResolveOccurrenceExpression({
+    ...context,
+    expression: occurrenceExpression,
+  });
+
+  return isCompletedKoreanFirstPersonEvent(canonical)
+    ? {
+      content: canonicalize ? canonical : content,
+      occurrenceExpression,
+    }
+    : undefined;
+}
+
+function hasKoreanOccurrenceContext(
+  message: Parameters<LanguagePack["extractCandidates"]>[0]["messages"][number],
+): boolean {
+  return hasOccurrenceResolutionContext(message);
 }
 
 function extractKoreanEntityMentions(text: string): LanguageEntityMention[] {
@@ -874,7 +1071,7 @@ function renderKorean(input: LanguageRenderInput): string {
 
 export function createKoreanLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "4-explicit-fact-list-boundary",
+    analyzerVersion: "5-occurrence-expression",
     apiVersion: 1,
     compatibilityGroup: "ko",
     defaultLocale: "ko-KR",
@@ -911,6 +1108,7 @@ export function createKoreanLanguagePack(): LanguagePack {
     analyzeQuery: analyzeKoreanQuery,
     analyzeContent: analyzeKoreanContent,
     parseTemporalExpressions: parseKoreanTemporalExpressions,
+    matchesEventPredicate: matchesKoreanEventPredicate,
     extractEntityMentions: extractKoreanEntityMentions,
     matchesEntityAlias(query, alias) {
       if (/\p{Script=Hangul}/u.test(alias)) {

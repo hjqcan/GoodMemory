@@ -59,6 +59,7 @@ export type FactSelector = (
   semanticUnion?: SemanticUnionSelectionInput,
   generalizedFusion?: GeneralizedFusionSelectionInput,
   queryAnalysis?: LanguageQueryAnalysis,
+  occurrenceFactIds?: ReadonlySet<string>,
 ) => { facts: FactMemory[]; traces: RecallCandidateTrace[] };
 
 export function selectGeneralizedFactsForInternalUse(
@@ -75,6 +76,7 @@ export function selectGeneralizedFactsForInternalUse(
   semanticUnion?: SemanticUnionSelectionInput,
   generalizedFusion?: GeneralizedFusionSelectionInput,
   providedQueryAnalysis?: LanguageQueryAnalysis,
+  occurrenceFactIds?: ReadonlySet<string>,
 ): { facts: FactMemory[]; traces: RecallCandidateTrace[] } {
   const queryAnalysis = providedQueryAnalysis ??
     language.analyzeQuery(query, queryLocale);
@@ -125,6 +127,23 @@ export function selectGeneralizedFactsForInternalUse(
   let selectionPool = compatible;
   const draft = createSelectionDraft({ traces });
   const finish = (): { facts: FactMemory[]; traces: RecallCandidateTrace[] } => {
+    for (const candidate of selectionPool) {
+      if (
+        occurrenceFactIds?.has(candidate.fact.id) &&
+        (
+          queryAnalysis.eventOccurrenceQueryMode === "broad" ||
+          hasGenericFactSelectionSignal(candidate) ||
+          language.matchesEventPredicate(
+            query,
+            candidate.fact.content,
+            queryLocale,
+          )
+        ) &&
+        !draft.selectedIds.has(candidate.fact.id)
+      ) {
+        draft.select(candidate, "generic", "temporal_occurrence");
+      }
+    }
     if (generalizedFusion) {
       selectGeneralizedFusionCandidates({
         compatible: selectionPool,
@@ -150,7 +169,11 @@ export function selectGeneralizedFactsForInternalUse(
     routingDecision.requestedSlots.length > 0 &&
     routingDecision.requestedSlots.every((slot) => slot === "reference") &&
     !routingDecision.supportSlots.includes("project_state_support");
-  if (pureReferenceQuery && !isReferencePreActionQuery(queryAnalysis)) {
+  if (
+    pureReferenceQuery &&
+    !queryAnalysis.eventOccurrenceQuery &&
+    !isReferencePreActionQuery(queryAnalysis)
+  ) {
     for (const trace of traces) {
       if (trace.whySuppressed === "not selected") {
         trace.whySuppressed = "reference-only query";

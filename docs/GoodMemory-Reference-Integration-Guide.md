@@ -110,6 +110,43 @@ Next.js mapping:
 - `examples/vercel-ai-chat.ts` remains as the lower-level wrapper-first example.
 - The HTTP boundary should reject malformed `scope` input instead of silently soft-failing memory semantics.
 
+### Runtime Kit temporal handoff
+
+Hosts using `goodmemory/runtime-kit` directly should carry the anchor returned
+by `beforeModelCall` into the matching `afterModelCall`. The runtime kit does
+not associate turns by scope because multiple model calls in one scope can run
+concurrently.
+
+```ts
+import { createGoodMemoryRuntimeKit } from "goodmemory/runtime-kit";
+
+const runtimeKit = createGoodMemoryRuntimeKit({ memory });
+const before = await runtimeKit.beforeModelCall({
+  scope,
+  messages,
+  timezone: "America/New_York",
+});
+
+const answer = await callModel({
+  messages,
+  system: before.context.content,
+});
+
+await runtimeKit.afterModelCall({
+  scope,
+  messages,
+  assistantText: answer,
+  referenceTime: before.referenceTime,
+  timezone: before.timezone,
+  writeback: { mode: "observe" },
+});
+```
+
+Only the latest user message receives the returned `referenceTime` as an
+`observedAt` fallback. Historical messages are never backfilled; callers may
+set message-level `observedAt` and `timezone` when those values are already
+known.
+
 ## Stable Contract
 
 - `goodmemory`, `goodmemory/ai-sdk`, `goodmemory/host`, and `goodmemory/http` now resolve through compiled package artifacts on both Node and Bun.

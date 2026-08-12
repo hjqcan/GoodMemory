@@ -242,6 +242,92 @@ function createDeleteFailingVectorStore(base: VectorStore): VectorStore {
 }
 
 describe("public reviseMemory API", () => {
+  it("clears an event occurrence when revision content changes without trusted temporal context", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+    const scope = { userId: "revision-event-occurrence-user" };
+    await memory.remember({
+      extractionStrategy: "rules-only",
+      locale: "en-US",
+      messages: [{
+        content: "I ate soup yesterday.",
+        observedAt: "2026-08-12T02:00:00.000Z",
+        role: "user",
+        timezone: "Asia/Shanghai",
+      }],
+      scope,
+    });
+    const before = await memory.exportMemory({ scope });
+    const target = before.durable.facts[0];
+    expect(target?.occurrence).toBeDefined();
+
+    const revised = await memory.reviseMemory({
+      idempotencyKey: "revision-event-occurrence",
+      locale: "en-US",
+      reason: "user_correction",
+      revision: { content: "I ate salad today." },
+      scope,
+      target: { memoryId: target!.id },
+    });
+    const after = await memory.exportMemory({ scope });
+    const active = after.durable.facts.find(({ id }) => id === revised.newMemoryId);
+    const yesterday = await memory.recall({
+      locale: "en-US",
+      query: "What did I eat yesterday?",
+      referenceTime: "2026-08-12T03:00:00.000Z",
+      scope,
+      strategy: "rules-only",
+      timezone: "Asia/Shanghai",
+    });
+    const today = await memory.recall({
+      locale: "en-US",
+      query: "What did I eat today?",
+      referenceTime: "2026-08-12T03:00:00.000Z",
+      scope,
+      strategy: "rules-only",
+      timezone: "Asia/Shanghai",
+    });
+
+    expect(revised).toMatchObject({ accepted: true, outcome: "superseded" });
+    expect(active).toMatchObject({
+      content: "I ate salad today.",
+      lifecycle: "active",
+    });
+    expect(active?.occurrence).toBeUndefined();
+    expect(yesterday.facts).toEqual([]);
+    expect(today.facts).toEqual([]);
+  });
+
+  it("preserves an event occurrence when revision content is unchanged", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+    const scope = { userId: "revision-event-occurrence-unchanged-user" };
+    await memory.remember({
+      extractionStrategy: "rules-only",
+      locale: "en-US",
+      messages: [{
+        content: "I ate soup yesterday.",
+        observedAt: "2026-08-12T02:00:00.000Z",
+        role: "user",
+        timezone: "Asia/Shanghai",
+      }],
+      scope,
+    });
+    const before = await memory.exportMemory({ scope });
+    const target = before.durable.facts[0]!;
+
+    const revised = await memory.reviseMemory({
+      idempotencyKey: "revision-event-occurrence-unchanged",
+      locale: "en-US",
+      reason: "manual_review",
+      revision: { content: target.content },
+      scope,
+      target: { memoryId: target.id },
+    });
+    const after = await memory.exportMemory({ scope });
+    const active = after.durable.facts.find(({ id }) => id === revised.newMemoryId);
+
+    expect(active?.occurrence).toEqual(target.occurrence);
+  });
+
   it("revises a targeted preference through governed supersede lineage", async () => {
     const spans: GoodMemoryTraceSpan[] = [];
     const memory = createGoodMemory({

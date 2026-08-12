@@ -332,7 +332,7 @@ describe("recall projection runtime", () => {
     );
 
     expect(first).toBe(second);
-    expect(first).toStartWith("gm-projection-v4:");
+    expect(first).toStartWith("gm-projection-v5:");
     expect(alternateDefault).not.toBe(first);
   });
 
@@ -365,11 +365,11 @@ describe("recall projection runtime", () => {
     expect(
       documents.every(
         (document) =>
-          document.schemaVersion === 3 &&
+          document.schemaVersion === 4 &&
           typeof document.searchText === "string" &&
           document.searchText.length > 0 &&
           document.searchAnalyzerVersion.length > 0 &&
-          document.searchSchemaVersion === "gm-search-v2" &&
+          document.searchSchemaVersion === "gm-search-v3" &&
           document.languagePackId === "en" &&
           document.scopeKey === scopeToKey(scope) &&
           document.sourceMemoryId === fact.id &&
@@ -401,8 +401,8 @@ describe("recall projection runtime", () => {
         ...scope,
         analyzerFingerprint: expect.any(String),
         coverage: "partial",
-        projectionVersion: "gm-projection-v4",
-        searchSchemaVersion: "gm-search-v2",
+        projectionVersion: "gm-projection-v5",
+        searchSchemaVersion: "gm-search-v3",
         firstSeenAt: NOW,
         lastSeenAt: NOW,
         schemaVersion: 2,
@@ -1017,7 +1017,7 @@ describe("recall projection runtime", () => {
   });
 
   it("migrates a scope into the 0.7 projection collections and removes legacy rows", async () => {
-    expect(RECALL_DOCUMENTS_COLLECTION).toBe("recall_documents_v3");
+    expect(RECALL_DOCUMENTS_COLLECTION).toBe("recall_documents_v4");
     expect(ENTITIES_COLLECTION).toBe("entities_v2");
     expect(CLAIM_PROJECTIONS_COLLECTION).toBe("claim_projections_v2");
     expect(CLAIM_PROJECTION_STATUS_COLLECTION).toBe(
@@ -1029,6 +1029,7 @@ describe("recall projection runtime", () => {
     const historical = buildFact({ id: "fact-version-migration" });
     await rawStore.set("facts", historical.id, historical);
     for (const [collection, id] of [
+      ["recall_documents_v3", "legacy-document-v3"],
       ["recall_documents_v2", "legacy-document"],
       ["entities_v1", "legacy-entity"],
       ["claim_projections_v1", "legacy-claim"],
@@ -1053,6 +1054,7 @@ describe("recall projection runtime", () => {
     });
 
     for (const collection of [
+      "recall_documents_v3",
       "recall_documents_v2",
       "entities_v1",
       "claim_projections_v1",
@@ -1070,7 +1072,7 @@ describe("recall projection runtime", () => {
     ).toMatchObject({
       analyzerFingerprint: "language-manifest-fingerprint",
       coverage: "complete",
-      projectionVersion: "gm-projection-v4",
+      projectionVersion: "gm-projection-v5",
       schemaVersion: 2,
     });
   });

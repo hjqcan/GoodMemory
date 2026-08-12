@@ -51,7 +51,10 @@ export interface RuntimeKitEvent {
 
 export interface RuntimeKitMessage {
   content: string;
+  id?: string;
+  observedAt?: string;
   role: "assistant" | "system" | "tool" | "user" | (string & {});
+  timezone?: string;
 }
 
 export interface RuntimeKitMemoryContext {
@@ -71,14 +74,18 @@ export interface RuntimeKitBeforeModelCallInput {
   maxProgressiveRecords?: number;
   messages?: RuntimeKitMessage[];
   query?: string;
+  referenceTime?: RecallInput["referenceTime"];
   retrievalProfile?: RecallInput["retrievalProfile"];
   scope: MemoryScope;
+  timezone?: RecallInput["timezone"];
 }
 
 export interface RuntimeKitBeforeModelCallResult {
   context: RuntimeKitMemoryContext;
   events: RuntimeKitEvent[];
+  referenceTime: NonNullable<RecallInput["referenceTime"]>;
   recall?: Awaited<ReturnType<GoodMemory["recall"]>>;
+  timezone?: RecallInput["timezone"];
 }
 
 export interface RuntimeKitWritebackInput {
@@ -110,10 +117,14 @@ export interface RuntimeKitTraceSummary {
 }
 
 export interface RuntimeKitAfterModelCallInput {
+  assistantObservedAt?: string;
   assistantText?: string;
+  assistantTimezone?: string;
   locale?: string;
   messages: RuntimeKitMessage[];
+  referenceTime?: RecallInput["referenceTime"];
   scope: MemoryScope;
+  timezone?: RecallInput["timezone"];
   writeback?: RuntimeKitWritebackInput;
 }
 

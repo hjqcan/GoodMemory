@@ -164,7 +164,7 @@ describe("French LanguagePack", () => {
 
   it("has stable identity, disambiguated detection, and complete rendering", () => {
     expectPackContract(pack, {
-      analyzerVersion: "6-explicit-fact-list-boundary",
+      analyzerVersion: "7-occurrence-expression",
       defaultLocale: "fr-FR",
       distinctive: "Je préfère répondre en français.",
       id: "fr",
@@ -362,7 +362,7 @@ describe("Spanish LanguagePack", () => {
 
   it("has stable identity, disambiguated detection, and complete rendering", () => {
     expectPackContract(pack, {
-      analyzerVersion: "5-explicit-fact-list-boundary",
+      analyzerVersion: "6-occurrence-expression",
       defaultLocale: "es-ES",
       distinctive: "¿Cuál es el bloqueo actual?",
       id: "es",

@@ -21,6 +21,7 @@ import type {
   GoodMemoryAISDKEvent,
   GoodMemoryAISDKRetrievalProfile,
   GoodMemoryGenerateTextInput,
+  GoodMemoryModelMessage,
   GoodMemoryRememberSkipReason,
   GoodMemoryRecallSkipReason,
   GoodMemoryStreamTextInput,
@@ -31,6 +32,11 @@ import type {
   RuntimeKitBeforeModelCallResult,
   RuntimeKitMessage,
 } from "../runtime-kit/contracts";
+import {
+  assertTemporalMessageContext,
+  isIanaTimezone,
+  isRfc3339Instant,
+} from "../domain/temporal";
 
 const DEFAULT_MEMORY_FRAGMENT_MAX_TOKENS = 160;
 
@@ -39,6 +45,29 @@ type AsyncIterableStreamLike<T> = ReadableStream<T> & AsyncIterable<T>;
 interface PreparedMemoryContext {
   retrievalProfile: GoodMemoryAISDKRetrievalProfile;
   system?: string | SystemModelMessage | Array<SystemModelMessage>;
+}
+
+function assertAISDKTemporalContext(input: Pick<
+  GoodMemoryGenerateTextInput | GoodMemoryStreamTextInput,
+  | "assistantObservedAt"
+  | "assistantTimezone"
+  | "messages"
+  | "referenceTime"
+  | "timezone"
+>): void {
+  if (input.referenceTime !== undefined && !isRfc3339Instant(input.referenceTime)) {
+    throw new TypeError(`Invalid referenceTime: ${input.referenceTime}`);
+  }
+  if (input.timezone !== undefined && !isIanaTimezone(input.timezone)) {
+    throw new TypeError(`Invalid timezone: ${input.timezone}`);
+  }
+  input.messages.forEach((message, index) => {
+    assertTemporalMessageContext(message, `messages[${index}]`);
+  });
+  assertTemporalMessageContext({
+    observedAt: input.assistantObservedAt,
+    timezone: input.assistantTimezone,
+  }, "assistant");
 }
 
 function createSystemMessage(content: string): SystemModelMessage {
@@ -92,17 +121,14 @@ function extractTextFromMessageContent(content: ModelMessage["content"]): string
   return parts.length > 0 ? parts.join("\n") : null;
 }
 
-function deriveRecallQuery(messages: ModelMessage[]): string | null {
+function deriveRecallQuery(messages: GoodMemoryModelMessage[]): string | null {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (!message || message.role !== "user") {
       continue;
     }
 
-    const text = extractTextFromMessageContent(message.content);
-    if (text) {
-      return text;
-    }
+    return extractTextFromMessageContent(message.content);
   }
 
   return null;
@@ -149,17 +175,27 @@ function createRememberSkipEvent(input: {
   };
 }
 
-function toRuntimeKitMessages(messages: ModelMessage[]): RuntimeKitMessage[] {
-  return messages.flatMap((message) => {
-    const text = extractTextFromMessageContent(message.content);
-    if (!text) {
-      return [];
-    }
-
-    return [{
+function toRuntimeKitMessages(messages: GoodMemoryModelMessage[]): RuntimeKitMessage[] {
+  return messages.map((message) => ({
       role: message.role,
-      content: text,
-    }];
+      content: extractTextFromMessageContent(message.content) ?? "",
+      ...(message.id !== undefined ? { id: message.id } : {}),
+      ...(message.observedAt !== undefined
+        ? { observedAt: message.observedAt }
+        : {}),
+      ...(message.timezone !== undefined ? { timezone: message.timezone } : {}),
+  }));
+}
+
+function toProviderMessages(messages: GoodMemoryModelMessage[]): ModelMessage[] {
+  return messages.map((message) => {
+    const {
+      id: _id,
+      observedAt: _observedAt,
+      timezone: _timezone,
+      ...providerMessage
+    } = message;
+    return providerMessage as ModelMessage;
   });
 }
 
@@ -209,9 +245,11 @@ async function prepareMemoryContext(
     | "maxMemoryTokens"
     | "messages"
     | "query"
+    | "referenceTime"
     | "retrievalProfile"
     | "scope"
     | "system"
+    | "timezone"
   >,
 ): Promise<PreparedMemoryContext> {
   const retrievalProfile =
@@ -233,6 +271,8 @@ async function prepareMemoryContext(
         config.defaultMaxMemoryTokens ??
         DEFAULT_MEMORY_FRAGMENT_MAX_TOKENS,
       messages: toRuntimeKitMessages(input.messages),
+      referenceTime: input.referenceTime,
+      timezone: input.timezone,
     });
     await invokeEventCallback(config.onMemoryEvent, mapRuntimeRecallEvent({
       result,
@@ -273,9 +313,17 @@ async function rememberCompletedGeneration(
   runtimeKit: GoodMemoryRuntimeKit,
   input: Pick<
     GoodMemoryGenerateTextInput | GoodMemoryStreamTextInput,
-    "ignoreMemory" | "locale" | "messages" | "scope"
+    | "assistantObservedAt"
+    | "assistantTimezone"
+    | "ignoreMemory"
+    | "locale"
+    | "messages"
+    | "referenceTime"
+    | "scope"
+    | "timezone"
   >,
   assistantText: string,
+  providerObservedAt?: string,
 ): Promise<void> {
   const runtimeMessages = toRuntimeKitMessages(input.messages);
   if (input.ignoreMemory) {
@@ -284,6 +332,10 @@ async function rememberCompletedGeneration(
       locale: input.locale,
       messages: runtimeMessages,
       assistantText,
+      assistantObservedAt: input.assistantObservedAt ?? providerObservedAt,
+      assistantTimezone: input.assistantTimezone,
+      referenceTime: input.referenceTime,
+      timezone: input.timezone,
       writeback: { mode: "off" },
     });
     await invokeEventCallback(config.onMemoryEvent, createRememberSkipEvent({
@@ -300,6 +352,10 @@ async function rememberCompletedGeneration(
       locale: input.locale,
       messages: runtimeMessages,
       assistantText,
+      assistantObservedAt: input.assistantObservedAt ?? providerObservedAt,
+      assistantTimezone: input.assistantTimezone,
+      referenceTime: input.referenceTime,
+      timezone: input.timezone,
       writeback: {
         mode: "selective",
         annotation: "durable_candidate",
@@ -319,11 +375,11 @@ async function rememberCompletedGeneration(
       locale: input.locale,
       messages: runtimeMessages,
       assistantText: normalizedAssistantText,
-      writeback: {
-        mode: "selective",
-        annotation: "durable_candidate",
-        policy: "allow",
-      },
+      assistantObservedAt: input.assistantObservedAt ?? providerObservedAt,
+      assistantTimezone: input.assistantTimezone,
+      referenceTime: input.referenceTime,
+      timezone: input.timezone,
+      writeback: { mode: "off" },
     });
     await invokeEventCallback(config.onMemoryEvent, createRememberSkipEvent({
       reason: "no_text_messages",
@@ -338,6 +394,10 @@ async function rememberCompletedGeneration(
       locale: input.locale,
       messages: runtimeMessages,
       assistantText: normalizedAssistantText,
+      assistantObservedAt: input.assistantObservedAt ?? providerObservedAt,
+      assistantTimezone: input.assistantTimezone,
+      referenceTime: input.referenceTime,
+      timezone: input.timezone,
       writeback: {
         mode: "selective",
         annotation: "durable_candidate",
@@ -658,15 +718,42 @@ export function createGoodMemoryAISDK(
     async generateText<TOOLS extends ToolSet = ToolSet>(
       callInput: GoodMemoryGenerateTextInput<TOOLS>,
     ): Promise<AISDKGenerateTextResult> {
-      const prepared = await prepareMemoryContext(input, runtimeKit, callInput);
+      const turnInput = {
+        ...callInput,
+        referenceTime: callInput.referenceTime ?? new Date().toISOString(),
+      };
+      assertAISDKTemporalContext(turnInput);
+      const prepared = await prepareMemoryContext(input, runtimeKit, turnInput);
       const onFinish = callInput.onFinish;
+      const {
+        assistantObservedAt: _assistantObservedAt,
+        assistantTimezone: _assistantTimezone,
+        ignoreMemory: _ignoreMemory,
+        locale: _locale,
+        maxMemoryTokens: _maxMemoryTokens,
+        messages: _messages,
+        onFinish: _onFinish,
+        query: _query,
+        referenceTime: _referenceTime,
+        retrievalProfile: _retrievalProfile,
+        scope: _scope,
+        system: _system,
+        timezone: _timezone,
+        ...providerInput
+      } = turnInput;
 
       return generateTextDependency({
-        ...callInput,
+        ...providerInput,
         system: prepared.system,
-        messages: callInput.messages,
+        messages: toProviderMessages(callInput.messages),
         onFinish: async (event) => {
-          await rememberCompletedGeneration(input, runtimeKit, callInput, event.text);
+          await rememberCompletedGeneration(
+            input,
+            runtimeKit,
+            turnInput,
+            event.text,
+            event.response?.timestamp?.toISOString(),
+          );
           if (onFinish) {
             await onFinish(event as never);
           }
@@ -677,15 +764,42 @@ export function createGoodMemoryAISDK(
       callInput: GoodMemoryStreamTextInput<TOOLS>,
     ): AISDKStreamTextResult {
       return createDeferredStreamTextResult(async () => {
-        const prepared = await prepareMemoryContext(input, runtimeKit, callInput);
+        const turnInput = {
+          ...callInput,
+          referenceTime: callInput.referenceTime ?? new Date().toISOString(),
+        };
+        assertAISDKTemporalContext(turnInput);
+        const prepared = await prepareMemoryContext(input, runtimeKit, turnInput);
         const onFinish = callInput.onFinish;
+        const {
+          assistantObservedAt: _assistantObservedAt,
+          assistantTimezone: _assistantTimezone,
+          ignoreMemory: _ignoreMemory,
+          locale: _locale,
+          maxMemoryTokens: _maxMemoryTokens,
+          messages: _messages,
+          onFinish: _onFinish,
+          query: _query,
+          referenceTime: _referenceTime,
+          retrievalProfile: _retrievalProfile,
+          scope: _scope,
+          system: _system,
+          timezone: _timezone,
+          ...providerInput
+        } = turnInput;
 
         return streamTextDependency({
-          ...callInput,
+          ...providerInput,
           system: prepared.system,
-          messages: callInput.messages,
+          messages: toProviderMessages(callInput.messages),
           onFinish: async (event) => {
-            await rememberCompletedGeneration(input, runtimeKit, callInput, event.text);
+            await rememberCompletedGeneration(
+              input,
+              runtimeKit,
+              turnInput,
+              event.text,
+              event.response?.timestamp?.toISOString(),
+            );
             if (onFinish) {
               await onFinish(event as never);
             }

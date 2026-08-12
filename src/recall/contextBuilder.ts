@@ -266,6 +266,45 @@ function shouldGroupProjectStateSupport(routingDecision?: RoutingDecision): bool
   );
 }
 
+function summarizeFactLine(fact: FactMemory): string {
+  if (!fact.occurrence) {
+    return `- ${fact.content}`;
+  }
+  const date = new Date(fact.occurrence.start);
+  if (!Number.isFinite(date.getTime())) {
+    return `- ${fact.content}`;
+  }
+  try {
+    const formatter = new Intl.DateTimeFormat("en-CA-u-ca-iso8601-nu-latn", {
+        day: "2-digit",
+        month: "2-digit",
+        timeZone: fact.occurrence.timezone,
+        year: "numeric",
+      });
+    const localDate = (value: Date): string => {
+      const parts = new Map(
+        formatter.formatToParts(value).map(({ type, value: part }) => [type, part]),
+      );
+      return [parts.get("year"), parts.get("month"), parts.get("day")]
+        .join("-");
+    };
+    const start = localDate(date);
+    if (fact.occurrence.precision === "instant") {
+      return `- [${fact.occurrence.start}, instant, ${fact.occurrence.timezone}] ${fact.content}`;
+    }
+    if (fact.occurrence.precision === "day") {
+      return `- [${start}, ${fact.occurrence.timezone}] ${fact.content}`;
+    }
+    const end = new Date(fact.occurrence.endExclusive);
+    if (!Number.isFinite(end.getTime())) {
+      return `- ${fact.content}`;
+    }
+    return `- [${start} to ${localDate(end)} (exclusive), ${fact.occurrence.precision}, ${fact.occurrence.timezone}] ${fact.content}`;
+  } catch {
+    return `- ${fact.content}`;
+  }
+}
+
 function summarizeFacts(
   facts: FactMemory[],
   labels: MemoryPacketRenderLabels,
@@ -281,7 +320,7 @@ function summarizeFacts(
   }
 
   if (!shouldGroupProjectStateSupport(routingDecision)) {
-    return activeFacts.map((fact) => `- ${fact.content}`).join("\n");
+    return activeFacts.map(summarizeFactLine).join("\n");
   }
 
   const immediate: string[] = [];
@@ -291,15 +330,15 @@ function summarizeFacts(
     const factKind = inferFactKindForSummary(fact, language, locale);
 
     if (factKind === "blocker" || factKind === "project_state") {
-      immediate.push(`- ${fact.content}`);
+      immediate.push(summarizeFactLine(fact));
       continue;
     }
     if (factKind === "open_loop") {
-      deferred.push(`- ${fact.content}`);
+      deferred.push(summarizeFactLine(fact));
       continue;
     }
 
-    additional.push(`- ${fact.content}`);
+    additional.push(summarizeFactLine(fact));
   }
 
   const segments: string[] = [];
@@ -487,7 +526,7 @@ function summarizeDurableMemory(input: {
   for (const fact of input.facts.filter((item) => item.lifecycle === "active")) {
     addCandidate(
       `facts:${fact.id}`,
-      `${input.labels.fact_item}: ${fact.content}`,
+      `${input.labels.fact_item}: ${summarizeFactLine(fact).slice(2)}`,
     );
   }
   for (const reference of input.references) {

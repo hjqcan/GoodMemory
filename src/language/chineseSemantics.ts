@@ -117,7 +117,40 @@ export function analyzeChineseQuery(query: string): LanguageQueryAnalysis {
   const focus = QUERY.focus.test(query);
   const openLoop = QUERY.openLoop.test(query);
   const blocker = QUERY.blocker.test(query);
-  const before = QUERY.before.test(query);
+  const before = QUERY.before.test(
+    query.replace(/\d{1,3}\s*(?:天|日)前/gu, ""),
+  );
+  const occurrenceExpression = parseCjkTemporalReference(query);
+  const eventOccurrenceQueryMode = (():
+    LanguageQueryAnalysis["eventOccurrenceQueryMode"] => {
+    if (!occurrenceExpression) {
+      return undefined;
+    }
+    const expressionIndex = query.indexOf(occurrenceExpression.raw);
+    if (expressionIndex >= 0) {
+      const prefix = query.slice(0, expressionIndex);
+      const suffix = query.slice(expressionIndex + occurrenceExpression.raw.length);
+      if (
+        /(?:之前|以前|早于|早於|之后|之後|以后|以後|晚于|晚於)\s*$/u.test(prefix) ||
+        /^\s*(?:之前|以前|早于|早於|之后|之後|以后|以後|晚于|晚於)/u.test(suffix) ||
+        /(?:电影|電影|影片|项目|專案|歌曲|书|書|《|「|『|“|")\s*$/u.test(prefix) &&
+          /^\s*(?:》|」|』|”|")/u.test(suffix)
+      ) {
+        return undefined;
+      }
+    }
+    if (/(?:发生|發生)(?:了)?(?:什么|什麼)/u.test(query)) {
+      return "broad";
+    }
+    return (
+      /(?:我|我们|我們)[^。！？?]{0,100}(?:了|过|過)[^。！？?]{0,40}(?:什么|什麼|哪里|哪裡|哪儿|哪兒|谁|誰|哪件|哪项|哪項|哪份)/u.test(
+        query,
+      ) ||
+      /(?:我|我们|我們)[^。！？?]{0,100}(?:什么|什麼|哪里|哪裡|哪儿|哪兒|谁|誰|哪件|哪项|哪項|哪份)[^。！？?]{0,60}(?:了|过|過)/u.test(
+        query,
+      )
+    ) ? "predicate" : undefined;
+  })();
   const userGroundedEventOrder =
     /(顺序|順序|先后|先後|时间线|時間線|按时间|按時間|最先|最後|最后|第一个|第一個)/u.test(
       query,
@@ -135,6 +168,8 @@ export function analyzeChineseQuery(query: string): LanguageQueryAnalysis {
     continuation: QUERY.continuation.test(query),
     current: QUERY.current.test(query),
     directFactualLookup: QUERY.directFactualLookup.test(query.trim()),
+    eventOccurrenceQuery: eventOccurrenceQueryMode !== undefined,
+    ...(eventOccurrenceQueryMode ? { eventOccurrenceQueryMode } : {}),
     exhaustiveList: QUERY.exhaustiveList.test(query),
     factConfirmation: role || focus || openLoop || blocker ||
       (QUERY.confirm.test(query) && QUERY.factConfirmationTarget.test(query)),
@@ -235,8 +270,12 @@ export function decomposeChineseQuery(query: string): string[] {
 export function parseChineseTemporalExpressions(
   text: string,
 ): LanguageTemporalExpression[] {
-  const primary = parseCjkTemporalReference(text);
   const technical = parseTechnicalTemporalExpressions(text);
+  const instant = technical.find((expression) => "iso" in expression);
+  if (instant) {
+    return [instant, ...technical.filter(({ raw }) => raw !== instant.raw)];
+  }
+  const primary = parseCjkTemporalReference(text);
   return primary
     ? [primary, ...technical.filter(({ raw }) => raw !== primary.raw)]
     : technical;

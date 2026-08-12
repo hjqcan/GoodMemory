@@ -24,7 +24,11 @@ client = GoodMemoryClient(
 client.wait_until_ready()
 
 # Before your model call
-recall = client.recall_context("What should the assistant know before replying?")
+recall = client.recall_context(
+    "What happened yesterday?",
+    reference_time="2026-11-01T05:30:00.000Z",
+    timezone="America/New_York",
+)
 print(recall.context_text)
 # routing shows silent strategy downgrades (e.g. hybrid -> rules-only when no
 # embedding provider is configured on the bridge)
@@ -33,7 +37,7 @@ print(recall.routing.resolved_strategy, recall.routing.fallback_reason)
 # After the response
 client.remember([
     {"role": "user", "content": "Remember that the rollout is blocked on QA signoff."},
-])
+], observed_at="2026-11-01T05:29:00.000Z", timezone="America/New_York")
 
 # Corrections, audit, deletion
 client.feedback("Keep summaries short.", idempotency_key="fb-1")
@@ -53,6 +57,9 @@ Notes:
   and `revise` are sensitive operations the bridge authorizes individually.
 - Idempotency keys mirror the server: always required for `feedback` and
   `revise`, required for `remember(mode="async")` only.
+- `reference_time` anchors recall for a historical turn. `observed_at` applies
+  to the latest message in `remember(...)`; `timezone` is an IANA zone passed
+  through to GoodMemory. Explicit message-level `observedAt` still wins.
 - Bridge errors raise `GoodMemoryBridgeError` with `.code`, `.status`, and
   `.body`; connection failures retry, HTTP-status errors never do (a 409
   `idempotency_conflict` surfaces immediately).

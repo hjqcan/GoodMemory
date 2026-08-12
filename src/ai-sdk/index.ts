@@ -19,6 +19,7 @@ export type {
   GoodMemoryAISDKRecallEvent,
   GoodMemoryAISDKRetrievalProfile,
   GoodMemoryGenerateTextInput,
+  GoodMemoryModelMessage,
   GoodMemoryRememberSkipReason,
   GoodMemoryRecallSkipReason,
   GoodMemoryStreamTextInput,

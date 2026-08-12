@@ -1131,6 +1131,8 @@ describe("goodmemory cli help and routing", () => {
     expect(remember.exitCode).toBe(0);
     expect(remember.stdout).toContain("GoodMemory Remember");
     expect(remember.stdout).toContain("--message <text>");
+    expect(remember.stdout).toContain("--observed-at <rfc3339>");
+    expect(remember.stdout).toContain("--timezone <iana-zone>");
     expect(remember.stdout).toContain("--host <codex|claude>");
     expect(feedback.exitCode).toBe(0);
     expect(feedback.stdout).toContain("GoodMemory Feedback");
@@ -1151,6 +1153,8 @@ describe("goodmemory cli help and routing", () => {
     expect(trace.exitCode).toBe(0);
     expect(trace.stdout).toContain("GoodMemory Trace");
     expect(trace.stdout).toContain("--ignore-memory");
+    expect(trace.stdout).toContain("--reference-time <rfc3339>");
+    expect(trace.stdout).toContain("--timezone <iana-zone>");
     expect(trace.stdout).toContain("--strategy <auto|rules-only|hybrid|llm-assisted>");
     expect(stats.exitCode).toBe(0);
     expect(stats.stdout).toContain("GoodMemory Stats");
@@ -6912,6 +6916,96 @@ describe("goodmemory cli root commands", () => {
     }
   });
 
+  it("inspect preserves event occurrence in JSON and text output", async () => {
+    const workspace = await createTempWorkspace("goodmemory-cli-root-inspect-occurrence");
+
+    try {
+      const sqlitePath = join(workspace.root, "memory.sqlite");
+      const { scope } = await seedSQLiteMemory(sqlitePath);
+      const documentStore = createSQLiteDocumentStore(sqlitePath);
+      await documentStore.set(
+        "facts",
+        "fact-dated-lunch",
+        createFactMemory({
+          category: "event",
+          content: "I ate tomato and eggs.",
+          createdAt: "2026-08-12T02:00:00.000Z",
+          id: "fact-dated-lunch",
+          occurrence: {
+            endExclusive: "2026-08-11T16:00:00.000Z",
+            precision: "day",
+            start: "2026-08-10T16:00:00.000Z",
+            timezone: "Asia/Shanghai",
+          },
+          sessionId: scope.sessionId,
+          source: createMemorySource({
+            extractedAt: "2026-08-12T02:00:00.000Z",
+            method: "explicit",
+            sessionId: scope.sessionId,
+          }),
+          updatedAt: "2026-08-12T02:00:00.000Z",
+          userId: scope.userId,
+          workspaceId: scope.workspaceId,
+        }),
+      );
+
+      const json = await runCLI([
+        "inspect",
+        "--user-id",
+        scope.userId,
+        "--workspace-id",
+        scope.workspaceId!,
+        "--storage-provider",
+        "sqlite",
+        "--storage-url",
+        sqlitePath,
+        "--json",
+      ]);
+      const payload = JSON.parse(json.stdout) as {
+        topRecords: {
+          facts: Array<{
+            content: string;
+            occurrence?: {
+              endExclusive: string;
+              precision: string;
+              start: string;
+              timezone: string;
+            };
+          }>;
+        };
+      };
+      const event = payload.topRecords.facts.find(({ content }) =>
+        content.includes("tomato and eggs")
+      );
+
+      expect(json.exitCode).toBe(0);
+      expect(event?.occurrence).toEqual({
+        endExclusive: "2026-08-11T16:00:00.000Z",
+        precision: "day",
+        start: "2026-08-10T16:00:00.000Z",
+        timezone: "Asia/Shanghai",
+      });
+
+      const text = await runCLI([
+        "inspect",
+        "--user-id",
+        scope.userId,
+        "--workspace-id",
+        scope.workspaceId!,
+        "--storage-provider",
+        "sqlite",
+        "--storage-url",
+        sqlitePath,
+      ]);
+      expect(text.exitCode).toBe(0);
+      expect(text.stdout).toContain(
+        "occurrence=2026-08-10T16:00:00.000Z..2026-08-11T16:00:00.000Z, Asia/Shanghai",
+      );
+    } finally {
+      await workspace.cleanup();
+    }
+  });
+
   it("inspect does not create a vectors table in read-only sqlite mode", async () => {
     const workspace = await createTempWorkspace("goodmemory-cli-root-inspect-read-only");
 
@@ -7008,8 +7102,12 @@ describe("goodmemory cli root commands", () => {
         scope.sessionId!,
         "--query",
         "Which runbook is the source of truth and what is the blocker?",
+        "--reference-time",
+        "2026-11-01T05:30:00.000Z",
         "--strategy",
         "rules-only",
+        "--timezone",
+        "America/New_York",
         "--storage-provider",
         "sqlite",
         "--storage-url",
@@ -7125,6 +7223,130 @@ describe("goodmemory cli root commands", () => {
       expect(payload.candidateTraceCount).toBe(payload.candidateTraces.length);
       expect(payload.verificationHints.length).toBeGreaterThan(0);
       expect(Array.isArray(payload.policyApplied)).toBe(true);
+    } finally {
+      await workspace.cleanup();
+    }
+  });
+
+  it("trace rejects invalid explicit temporal context", async () => {
+    const fixtures = [
+      ["--reference-time", "not-a-time", "Invalid referenceTime"],
+      ["--timezone", "Mars/Olympus", "Invalid timezone"],
+    ] as const;
+
+    for (const [flag, value, message] of fixtures) {
+      const result = await runCLI([
+        "trace",
+        "--user-id",
+        "cli-invalid-temporal",
+        "--query",
+        "What happened yesterday?",
+        flag,
+        value,
+        "--storage-provider",
+        "memory",
+        "--json",
+      ]);
+
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain(message);
+      expect(result.stdout).toBe("");
+    }
+  });
+
+  it("trace uses the profile timezone and preserves the resolved during plan", async () => {
+    const workspace = await createTempWorkspace("goodmemory-cli-root-trace-temporal");
+
+    try {
+      const sqlitePath = join(workspace.root, "memory.sqlite");
+      const { scope } = await seedSQLiteMemory(sqlitePath);
+      const documentStore = createSQLiteDocumentStore(sqlitePath);
+      const profile = await documentStore.get<Record<string, unknown>>(
+        "profiles",
+        scope.userId,
+      );
+      expect(profile).not.toBeNull();
+      await documentStore.set("profiles", scope.userId, {
+        ...profile,
+        identity: {
+          ...(profile?.identity as Record<string, unknown>),
+          timezone: "Asia/Shanghai",
+        },
+      });
+      await documentStore.set(
+        "facts",
+        "fact-yesterday-lunch",
+        createFactMemory({
+          category: "event",
+          content: "I ate tomato and eggs.",
+          createdAt: "2026-08-12T02:00:00.000Z",
+          id: "fact-yesterday-lunch",
+          occurrence: {
+            endExclusive: "2026-08-11T16:00:00.000Z",
+            precision: "day",
+            start: "2026-08-10T16:00:00.000Z",
+            timezone: "Asia/Shanghai",
+          },
+          sessionId: scope.sessionId,
+          source: createMemorySource({
+            extractedAt: "2026-08-12T02:00:00.000Z",
+            method: "explicit",
+            sessionId: scope.sessionId,
+          }),
+          updatedAt: "2026-08-12T02:00:00.000Z",
+          userId: scope.userId,
+          workspaceId: scope.workspaceId,
+        }),
+      );
+
+      const result = await runCLI([
+        "trace",
+        "--user-id",
+        scope.userId,
+        "--workspace-id",
+        scope.workspaceId!,
+        "--session-id",
+        scope.sessionId!,
+        "--query",
+        "What did I eat yesterday?",
+        "--reference-time",
+        "2026-08-12T03:00:00.000Z",
+        "--strategy",
+        "rules-only",
+        "--storage-provider",
+        "sqlite",
+        "--storage-url",
+        sqlitePath,
+        "--json",
+      ]);
+      const payload = JSON.parse(result.stdout) as {
+        retrievalTrace?: {
+          plan: {
+            temporalConstraints: Array<{
+              interval: {
+                endExclusive: string;
+                precision: string;
+                start: string;
+                timezone: string;
+              };
+              kind: string;
+            }>;
+          };
+        };
+      };
+
+      expect(result.exitCode).toBe(0);
+      expect(payload.retrievalTrace?.plan.temporalConstraints).toEqual([
+        {
+          interval: {
+            endExclusive: "2026-08-11T16:00:00.000Z",
+            precision: "day",
+            start: "2026-08-10T16:00:00.000Z",
+            timezone: "Asia/Shanghai",
+          },
+          kind: "during",
+        },
+      ]);
     } finally {
       await workspace.cleanup();
     }
@@ -7272,6 +7494,10 @@ describe("goodmemory cli root commands", () => {
         "write-session",
         "--message",
         "Remember that the deploy is blocked on smoke verification.",
+        "--observed-at",
+        "2026-11-01T05:29:00.000Z",
+        "--timezone",
+        "America/New_York",
         "--json",
       ]);
       const payload = JSON.parse(result.stdout) as {
@@ -7294,6 +7520,24 @@ describe("goodmemory cli root commands", () => {
         workspaceId: "workspace-a",
       });
       expect(payload.storage.provider).toBe("sqlite");
+
+      const stored = createGoodMemory({
+        storage: {
+          provider: "sqlite",
+          url: join(workspace.root, ".goodmemory", "memory.sqlite"),
+        },
+      });
+      const exported = await stored.exportMemory({
+        scope: {
+          sessionId: "write-session",
+          userId: "write-user",
+          workspaceId: "workspace-a",
+        },
+      });
+      expect(exported.durable.sourceMessages?.[0]).toMatchObject({
+        observedAt: "2026-11-01T05:29:00.000Z",
+        timezone: "America/New_York",
+      });
 
       const stats = await runCLI([
         "stats",

@@ -43,7 +43,7 @@ function claim(input: {
     searchLocale: "en-US",
     languagePackId: "en",
     searchAnalyzerVersion: "test-v1",
-    searchSchemaVersion: "gm-search-v2",
+    searchSchemaVersion: "gm-search-v3",
     ...scope,
     scopeKey,
     sourceMemoryId: input.sourceMemoryId,
@@ -190,6 +190,33 @@ describe("evidence ledger", () => {
         evidenceId: "evidence-legacy-fact",
         sourceMemoryId: "legacy-fact",
         relation: "context",
+        temporalStatus: "uncertain",
+      }),
+    ]);
+  });
+
+  it("reports occurrence support separately from claim lifecycle status", () => {
+    const occurrence = {
+      start: "2026-08-10T16:00:00.000Z",
+      endExclusive: "2026-08-11T16:00:00.000Z",
+      precision: "day" as const,
+      timezone: "Asia/Shanghai",
+    };
+
+    expect(buildEvidenceLedger({
+      claims: [],
+      evidence: [evidence("meal-event")],
+      facts: [{ id: "meal-event", occurrence }],
+      occurrenceInterval: occurrence,
+      referenceTime,
+      selectedMemoryIds: ["meal-event"],
+    })).toEqual([
+      expect.objectContaining({
+        evidenceId: "evidence-meal-event",
+        occurrence,
+        occurrenceMatch: "matched",
+        relation: "supports",
+        sourceMemoryId: "meal-event",
         temporalStatus: "uncertain",
       }),
     ]);

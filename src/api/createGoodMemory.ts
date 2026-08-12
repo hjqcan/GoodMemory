@@ -10,6 +10,7 @@ import {
 } from "../domain/records";
 import { createMemorySource } from "../domain/provenance";
 import { hasPersistableSemanticText } from "../domain/semanticText";
+import { isIanaTimezone, isRfc3339Instant } from "../domain/temporal";
 import {
   normalizeScope,
   scopeToKey,
@@ -64,6 +65,7 @@ import {
   buildUnplannedRecallPlan,
   resolveRecallPlan,
   type RecallPlan,
+  type RecallPlanResolution,
 } from "../recall/recallPlan";
 import type { Reranker } from "../recall/reranker";
 import {
@@ -136,6 +138,7 @@ import { recordHostActionAssessment } from "./hostActionAssessmentOps";
 import { createGoodMemoryJobsFacade } from "./jobs";
 import {
   applyDurableSelectionToResult,
+  applyOccurrenceFenceToResult,
   applyDurableRerankingToResult,
   buildSkippedRerankerTrace,
   getDurableRerankerCandidateCount,
@@ -1291,6 +1294,32 @@ class GoodMemoryImpl implements GoodMemory {
     });
   }
 
+  private async resolveRecallTemporalContext(input: RecallInput): Promise<{
+    referenceTime: string;
+    timezone?: string;
+  }> {
+    if (input.referenceTime !== undefined && !isRfc3339Instant(input.referenceTime)) {
+      throw new TypeError(`Invalid referenceTime: ${input.referenceTime}`);
+    }
+    if (input.timezone !== undefined && !isIanaTimezone(input.timezone)) {
+      throw new TypeError(`Invalid timezone: ${input.timezone}`);
+    }
+    const storedTimezone = (await this.governanceRepositories.profiles.get(
+      input.scope.userId,
+    ))?.identity.timezone;
+
+    return {
+      referenceTime: input.referenceTime
+        ? new Date(input.referenceTime).toISOString()
+        : this.now().toISOString(),
+      timezone: input.timezone ?? (
+        storedTimezone && isIanaTimezone(storedTimezone)
+          ? storedTimezone
+          : undefined
+      ),
+    };
+  }
+
   async recall(input: RecallInput): Promise<RecallResult> {
     const trace = await this.tracer.start({
       name: "memory.recall",
@@ -1318,11 +1347,10 @@ class GoodMemoryImpl implements GoodMemory {
         this.language.analyzeQuery(input.query, resolvedLanguage);
       const recallPlanExecution =
         this.config.retrieval?.recallPlanExecution === true;
-      const recallReferenceTime =
-        input.referenceTime !== undefined &&
-          Number.isFinite(Date.parse(input.referenceTime))
-          ? new Date(Date.parse(input.referenceTime)).toISOString()
-          : this.now().toISOString();
+      const {
+        referenceTime: recallReferenceTime,
+        timezone: recallTimezone,
+      } = await this.resolveRecallTemporalContext(input);
       const recallPlanInput = {
         language: this.language,
         languageContext: resolvedLanguage,
@@ -1331,15 +1359,27 @@ class GoodMemoryImpl implements GoodMemory {
         queryAnalysis,
         referenceTime: recallReferenceTime,
         scope: input.scope,
+        timezone: recallTimezone,
       };
-      const planResolution = recallPlanExecution
+      const deterministicPlan = buildDeterministicRecallPlan(recallPlanInput);
+      const requiredOccurrenceConstraints = deterministicPlan.temporalConstraints
+        .filter(({ kind }) => kind === "during");
+      const planResolution: RecallPlanResolution = recallPlanExecution
         ? await resolveRecallPlan({
             assistant: this.config.adapters?.recallPlanner,
             input: recallPlanInput,
           })
         : {
             assistantApplied: false,
-            plan: buildUnplannedRecallPlan(),
+            plan: requiredOccurrenceConstraints.length === 0
+              ? buildUnplannedRecallPlan()
+              : {
+                  ...buildUnplannedRecallPlan(),
+                  temporalConstraints: requiredOccurrenceConstraints,
+                  evidenceNeeds: ["direct", "temporal"],
+                  planes: ["semantic", "episodic"],
+                  uncertainty: "medium" as const,
+                },
           };
       if (planResolution.fallbackReason) {
         console.error(
@@ -1400,6 +1440,7 @@ class GoodMemoryImpl implements GoodMemory {
                 queryAnalysis: plannedQueryLanguage.analysis,
                 referenceTime: recallReferenceTime,
                 scope: input.scope,
+                timezone: recallTimezone,
               }),
               maxRenderedTokens: recallPlan.maxRenderedTokens,
               preRankLimit: recallPlan.preRankLimit,
@@ -1424,6 +1465,8 @@ class GoodMemoryImpl implements GoodMemory {
             query,
             queryAnalysis: queryLanguage.analysis,
             recallPlan: queryPlan,
+            referenceTime: recallReferenceTime,
+            timezone: recallTimezone,
           });
           return annotateRecallPass(result, {
             hop,
@@ -1605,6 +1648,15 @@ class GoodMemoryImpl implements GoodMemory {
               target: this.rerankerTarget,
             });
       }
+      result = applyOccurrenceFenceToResult({
+        constraints: recallPlan.temporalConstraints,
+        eventOccurrenceIntervalUnresolved:
+          queryAnalysis.eventOccurrenceQuery === true &&
+          !recallPlan.temporalConstraints.some(({ kind }) => kind === "during"),
+        language: this.language,
+        query: input.query,
+        result,
+      });
       result = withRecallPlanTrace({
         executions,
         plan: recallPlan,
@@ -1672,7 +1724,68 @@ class GoodMemoryImpl implements GoodMemory {
   }
 
   async diagnoseRecall(input: RecallInput): Promise<RecallResult> {
-    return this.recallEngine.recall(input);
+    const internalLanguageAnalysis = readInternalRecallLanguageAnalysis(input);
+    const activeLanguageAnalysis = internalLanguageAnalysis?.query === input.query
+      ? internalLanguageAnalysis
+      : undefined;
+    const resolvedLanguage = activeLanguageAnalysis?.context ??
+      this.language.resolveFromText({
+        locale: input.locale,
+        text: input.query,
+      });
+    const queryAnalysis = activeLanguageAnalysis?.analysis ??
+      this.language.analyzeQuery(input.query, resolvedLanguage);
+    const { referenceTime, timezone } =
+      await this.resolveRecallTemporalContext(input);
+    const deterministicPlan = buildDeterministicRecallPlan({
+      language: this.language,
+      languageContext: resolvedLanguage,
+      locale: resolvedLanguage.locale,
+      query: input.query,
+      queryAnalysis,
+      referenceTime,
+      scope: input.scope,
+      timezone,
+    });
+    const requiredOccurrenceConstraints = deterministicPlan.temporalConstraints
+      .filter(({ kind }) => kind === "during");
+    const recallPlan: RecallPlan = requiredOccurrenceConstraints.length === 0
+      ? buildUnplannedRecallPlan()
+      : {
+          ...buildUnplannedRecallPlan(),
+          temporalConstraints: requiredOccurrenceConstraints,
+          evidenceNeeds: ["direct", "temporal"],
+          planes: ["semantic", "episodic"],
+          uncertainty: "medium",
+        };
+    const result = await this.recallEngine.recall({
+      ...input,
+      languageContext: resolvedLanguage,
+      locale: resolvedLanguage.locale,
+      queryAnalysis,
+      recallPlan,
+      referenceTime,
+      timezone,
+    });
+
+    return withRecallPlanTrace({
+      executions: [{
+        hops: [{
+          bridgeEntities: [],
+          factCount: result.facts.length,
+          hop: 1,
+          query: input.query,
+        }],
+        plan: recallPlan,
+        query: input.query,
+        role: "primary",
+        stopReason: "single_pass_complete",
+      }],
+      plan: recallPlan,
+      result,
+      stopReason: "single_pass_complete",
+      subQueries: [],
+    });
   }
 
   async buildContext(input: BuildContextInput): Promise<BuildContextResult> {

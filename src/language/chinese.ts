@@ -38,6 +38,10 @@ import {
   matchesNormalizedEntityAlias,
   splitSentencesGeneric,
 } from "./packHelpers";
+import {
+  canResolveOccurrenceExpression,
+  maskQuotedTemporalLiterals,
+} from "./temporal";
 
 const BEHAVIORAL_RULE_PATTERNS = {
   firstAction: [
@@ -107,9 +111,11 @@ const PERSONAL_ATTRIBUTE_PATTERN =
 const OPEN_LOOP_PATTERN =
   /我(?:仍然|还)?(?:需要|要|得)\s*([^，。！？；]+?)(?=，|。|！|？|；|$)/u;
 const PLANNED_OPEN_LOOP_PATTERN =
-  /我(?:会|准备|打算)\s*([^，。！？；]+?)(?=，|。|！|？|；|$)/u;
+  /我(?:明天|后天|後天|下周|下週|下个月|下個月|下月|下季度|明年)?(?:会|會|将|將|准备|準備|打算|计划|計劃)\s*([^，。！？；]+?)(?=，|。|！|？|；|$)/u;
 const RECENT_EVENT_PATTERN =
   /我(?:实际上|刚刚|刚|今天|昨天|上周|最近)\s*([^，。！？；]+?)(?=，|。|！|？|；|$)/u;
+const COMPLETED_FIRST_PERSON_EVENT_PATTERN =
+  /^我(?!\s*(?:会|會|将|將|准备|準備|打算|计划|計劃))(?![^。！？]*(?:没|沒|未|没有|沒有))[^。！？]+了[^。！？]*[。！？]?$/u;
 const PERSONAL_BEST_TIME_PATTERN =
   /(?:我(?:这次|在)?\s*)?([^，。！？；]*?)?的?个人(?:最好|最佳)(?:成绩|时间|纪录)(?:是|为|达到)?\s*([^，。！？；]+?)(?=，|。|！|？|；|$)/u;
 const LEARNING_WITH_TOOL_PATTERN =
@@ -611,6 +617,47 @@ function cleanActivityTarget(value: string): string {
     .trim();
 }
 
+function extractChineseOccurrenceEvent(
+  content: string,
+  context: {
+    locale: string;
+    observedAt?: string;
+    timezone?: string;
+  },
+): { content: string; occurrenceExpression: ReturnType<typeof parseChineseTemporalExpressions>[number] } | undefined {
+  if (
+    /[?？]/u.test(content) ||
+    /[，,]\s*(?:对吧|對吧|是吗|是嗎|对不对|對不對)\s*[。！]?$/u.test(content) ||
+    /(?:什么|什麼|谁|誰|哪里|哪裡|何时|何時|为何|為何|为什么|為什麼|怎么|怎麼)(?:呢|啊|呀)?[。！]?$|(?:吗|嗎|么|麼|呢)[。！]?$/u.test(
+      content,
+    )
+  ) {
+    return undefined;
+  }
+  const maskedLiterals = maskQuotedTemporalLiterals(content);
+  const occurrenceExpression = parseChineseTemporalExpressions(maskedLiterals)[0];
+  if (!occurrenceExpression) {
+    return undefined;
+  }
+
+  const expressionIndex = maskedLiterals.indexOf(occurrenceExpression.raw);
+  const before = content.slice(0, expressionIndex).replace(/(?:在|于|於)\s*$/u, "");
+  const after = content.slice(expressionIndex + occurrenceExpression.raw.length)
+    .replace(/^\s*[，,]\s*/u, "");
+  const canonical = `${before}${after}`.trim();
+  const canonicalize = canResolveOccurrenceExpression({
+    ...context,
+    expression: occurrenceExpression,
+  });
+
+  return COMPLETED_FIRST_PERSON_EVENT_PATTERN.test(canonical)
+    ? {
+      content: canonicalize ? canonical : content,
+      occurrenceExpression,
+    }
+    : undefined;
+}
+
 function cleanProjectTarget(value: string): string {
   return cleanValue(value)
     .replace(/^(一个|一项|这个|该)/u, "")
@@ -732,6 +779,11 @@ function maybeExtractCandidatesFromClause(
   nextId: () => string,
   analysis?: LanguageContentAnalysis,
   explicitFact = false,
+  occurrenceContext?: {
+    locale: string;
+    observedAt?: string;
+    timezone?: string;
+  },
 ): MemoryCandidate[] {
   const trimmed = content.trim();
   if (!trimmed) {
@@ -751,6 +803,20 @@ function maybeExtractCandidatesFromClause(
       sourceMessageIndex: index,
       sourceRole: "user",
     }];
+  }
+
+  const occurrenceEvent = extractChineseOccurrenceEvent(
+    trimmed,
+    occurrenceContext ?? { locale: "zh-CN" },
+  );
+  if (occurrenceEvent) {
+    return [createFactCandidate(
+      index,
+      nextId,
+      occurrenceEvent.content,
+      "event",
+      { occurrenceExpression: occurrenceEvent.occurrenceExpression },
+    )];
   }
 
   const candidates: MemoryCandidate[] = [];
@@ -779,7 +845,9 @@ function maybeExtractCandidatesFromClause(
     candidates.push(createProfileCandidate(index, nextId, "name", cleanValue(nameMatch[1])));
   }
 
-  const timezoneMatch = trimmed.match(/我的?时区是\s*([A-Za-z0-9_./+-]+)/u);
+  const timezoneMatch = trimmed.match(
+    /我(?:的)?(?:时区|時區)是\s*([A-Za-z0-9_./+-]+)/u,
+  );
   if (timezoneMatch?.[1]) {
     candidates.push(
       createProfileCandidate(index, nextId, "timezone", cleanValue(timezoneMatch[1])),
@@ -1265,6 +1333,11 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
             input.nextId,
             clauseAnalysis,
             clause.disposition === "fact",
+            {
+              locale: input.locale,
+              observedAt: message.observedAt,
+              timezone: message.timezone,
+            },
           );
           candidates.push(...(sourceOfTruthReference
             ? clauseCandidates.filter(

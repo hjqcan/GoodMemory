@@ -26,6 +26,11 @@ import {
   renderFromCatalog,
   splitSentencesGeneric,
 } from "./packHelpers";
+import {
+  canResolveOccurrenceExpression,
+  hasOccurrenceResolutionContext,
+  maskQuotedTemporalLiterals,
+} from "./temporal";
 
 export interface RomanceTemporalPattern {
   offset: number;
@@ -40,9 +45,12 @@ export interface RomanceWordDate {
 
 export interface RomanceCandidatePatterns {
   assignmentConfirmation: RegExp;
+  completedEvent: RegExp;
   explicitFact: RegExp;
   explicitFactPrefix: RegExp;
   feedback: RegExp;
+  futurePlan: RegExp;
+  occurrenceConfirmation: RegExp;
   optOut: RegExp;
   optOutClauseBoundary: RegExp;
   bareQuestionValue: RegExp;
@@ -54,6 +62,7 @@ export interface RomanceCandidatePatterns {
   name: RegExp;
   preference: RegExp;
   role: RegExp;
+  timezone: RegExp;
   unpunctuatedQuestion: RegExp;
 }
 
@@ -71,6 +80,7 @@ export interface RomancePackDefinition {
   decompositionBoundary: RegExp;
   analyzeQuery(text: string): LanguageQueryAnalysis;
   analyzeContent(text: string): LanguageContentAnalysis;
+  daysAgoPattern: RegExp;
   temporalPatterns: readonly RomanceTemporalPattern[];
   wordDate: RomanceWordDate;
   candidatePatterns: RomanceCandidatePatterns;
@@ -87,6 +97,70 @@ function unique(values: readonly string[]): string[] {
 
 function cleanCapturedValue(value: string): string {
   return value.trim().replace(/[.!?。！？…]+$/u, "").trim();
+}
+
+function hasRomanceOccurrenceContext(
+  message: Parameters<LanguagePack["extractCandidates"]>[0]["messages"][number],
+): boolean {
+  return hasOccurrenceResolutionContext(message);
+}
+
+function extractRomanceOccurrenceEvent(
+  content: string,
+  definition: RomancePackDefinition,
+  context: {
+    locale: string;
+    observedAt?: string;
+    timezone?: string;
+  },
+): { content: string; occurrenceExpression: LanguageTemporalExpression } | undefined {
+  if (
+    /[?？]/u.test(content) ||
+    definition.candidatePatterns.occurrenceConfirmation.test(content) ||
+    definition.candidatePatterns.futurePlan.test(content) ||
+    /\b(?:quoi|qui|où|quand|pourquoi|comment|combien|qué|cuál|quién|dónde|cuándo|cómo|cuánto)\s*[.!]?$/iu.test(
+      content,
+    ) ||
+    /\b(?:ne|n['’])[^.!?]{0,40}\b(?:pas|jamais)\b/iu.test(content)
+  ) {
+    return undefined;
+  }
+  const maskedLiterals = maskQuotedTemporalLiterals(content);
+  const occurrenceExpression = parseRomanceTemporalExpressions(
+    maskedLiterals,
+    {
+      daysAgoPattern: definition.daysAgoPattern,
+      locale: definition.defaultLocale,
+      patterns: definition.temporalPatterns,
+      wordDate: definition.wordDate,
+    },
+  )[0];
+  if (!occurrenceExpression) {
+    return undefined;
+  }
+
+  const expressionIndex = maskedLiterals.indexOf(occurrenceExpression.raw);
+  const before = content.slice(0, expressionIndex).replace(
+    /\b(?:en|pendant|durante)\s*$/iu,
+    "",
+  );
+  const after = content.slice(expressionIndex + occurrenceExpression.raw.length);
+  const canonical = `${before}${after}`
+    .replace(/^\s*[,;:]\s*/u, "")
+    .replace(/\s+([,.;!?])/gu, "$1")
+    .replace(/\s{2,}/gu, " ")
+    .trim();
+  const canonicalize = canResolveOccurrenceExpression({
+    ...context,
+    expression: occurrenceExpression,
+  });
+
+  return definition.candidatePatterns.completedEvent.test(canonical)
+    ? {
+      content: canonicalize ? canonical : content,
+      occurrenceExpression,
+    }
+    : undefined;
 }
 
 function hasSemanticContent(value: string): boolean {
@@ -299,12 +373,28 @@ export function detectLatinLanguage(
 export function parseRomanceTemporalExpressions(
   text: string,
   input: {
+    daysAgoPattern: RegExp;
     locale: string;
     patterns: readonly RomanceTemporalPattern[];
     wordDate: RomanceWordDate;
   },
 ): LanguageTemporalExpression[] {
+  const technical = parseTechnicalTemporalExpressions(text);
+  const instant = technical.find((expression) => "iso" in expression);
+  if (instant) {
+    return [instant, ...technical.filter(({ raw }) => raw !== instant.raw)];
+  }
   const expressions: LanguageTemporalExpression[] = [];
+
+  const daysAgo = text.match(input.daysAgoPattern);
+  if (daysAgo?.[1]) {
+    expressions.push({
+      kind: "relative",
+      offset: -Number(daysAgo[1]),
+      raw: daysAgo[0],
+      unit: "day",
+    });
+  }
 
   const wordDate = text.match(input.wordDate.pattern);
   if (wordDate?.[1] && wordDate[2] && wordDate[3]) {
@@ -357,7 +447,7 @@ export function parseRomanceTemporalExpressions(
     }
   }
 
-  expressions.push(...parseTechnicalTemporalExpressions(text));
+  expressions.push(...technical);
   const seen = new Set<string>();
   return expressions.filter((expression) => {
     const key = `${expression.kind}\u0000${expression.raw}`;
@@ -459,6 +549,50 @@ function extractRomanceCandidates(
         });
         continue;
       }
+      const occurrenceContext = hasRomanceOccurrenceContext(message);
+      const occurrenceEvent = extractRomanceOccurrenceEvent(
+        content,
+        definition,
+        {
+          locale: input.locale,
+          observedAt: message.observedAt,
+          timezone: message.timezone,
+        },
+      );
+      if (occurrenceEvent) {
+        pushCandidate(candidates, {
+          content: occurrenceEvent.content,
+          explicitness: occurrenceContext || clause.disposition === "fact"
+            ? "explicit"
+            : "inferred",
+          id: input.nextId(),
+          kindHint: "fact",
+          metadata: {
+            category: "event",
+            occurrenceExpression: occurrenceEvent.occurrenceExpression,
+            scopeKind: "identity",
+          },
+          sourceMessageIndex,
+          sourceRole: "user",
+        });
+        continue;
+      }
+      if (definition.candidatePatterns.futurePlan.test(content)) {
+        pushCandidate(candidates, {
+          content: cleanCapturedValue(content),
+          explicitness: "explicit",
+          id: input.nextId(),
+          kindHint: "fact",
+          metadata: {
+            category: "personal",
+            factKind: "open_loop",
+            scopeKind: "identity",
+          },
+          sourceMessageIndex,
+          sourceRole: "user",
+        });
+        continue;
+      }
       const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
         analysis: clauseAnalysis,
         nextId: input.nextId,
@@ -494,6 +628,22 @@ function extractRomanceCandidates(
           id: input.nextId(),
           kindHint: "profile",
           metadata: { profileField: "role" },
+          sourceMessageIndex,
+          sourceRole: "user",
+        });
+      }
+
+      const timezone = content.match(
+        definition.candidatePatterns.timezone,
+      )?.[1];
+      if (timezone) {
+        hasTypedCandidate = true;
+        pushCandidate(candidates, {
+          content: cleanCapturedValue(timezone),
+          explicitness: "explicit",
+          id: input.nextId(),
+          kindHint: "profile",
+          metadata: { profileField: "timezone" },
           sourceMessageIndex,
           sourceRole: "user",
         });
@@ -617,6 +767,7 @@ export function createRomanceLanguagePack(
     analyzeContent: definition.analyzeContent,
     parseTemporalExpressions(text) {
       return parseRomanceTemporalExpressions(text, {
+        daysAgoPattern: definition.daysAgoPattern,
         locale: definition.defaultLocale,
         patterns: definition.temporalPatterns,
         wordDate: definition.wordDate,

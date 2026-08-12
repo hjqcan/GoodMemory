@@ -10,6 +10,7 @@ import type {
   WorkingMemorySnapshot,
 } from "../domain/records";
 import type { MemoryScope } from "../domain/scope";
+import { assertTemporalMessageContext } from "../domain/temporal";
 import { scopeToKey } from "../domain/scope";
 import {
   createLanguageService,
@@ -499,13 +500,19 @@ export function createRuntimeContextService(config: RuntimeContextServiceConfig)
       scope: MemoryScope,
       message: SessionMessage,
     ): Promise<SessionBuffer> {
+      assertTemporalMessageContext(message);
       const sessionScope = requireSessionScope(scope);
       const timestamp = now();
       const nextMessage = {
         id: message.id ?? createMessageId(),
         role: message.role,
         content: message.content,
-        ...(message.observedAt ? { observedAt: message.observedAt } : {}),
+        ...(message.observedAt !== undefined
+          ? { observedAt: message.observedAt }
+          : {}),
+        ...(message.timezone !== undefined
+          ? { timezone: message.timezone }
+          : {}),
       };
       let state = await ensureActiveState(sessionScope);
 

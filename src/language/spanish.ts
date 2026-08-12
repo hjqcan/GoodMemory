@@ -129,6 +129,40 @@ const CONTENT = {
   validated: /\b(?:funcionó bien|eficaz|exitoso|exitosa|sigue así|mantén este método)\b/iu,
 } as const;
 
+const SPANISH_EVENT_TEMPORAL_PATTERN =
+  /\b(?:anteayer|ayer|hoy|hace\s+\d{1,3}\s+d[ií]as?|(?:la\s+)?semana\s+pasada|este\s+mes|(?:el\s+)?mes\s+pasado|(?:el\s+)?trimestre\s+pasado|(?:el\s+)?año\s+pasado)\b|\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b|\b\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+de\s+\d{4}\b/iu;
+
+function spanishEventOccurrenceQueryMode(
+  text: string,
+): LanguageQueryAnalysis["eventOccurrenceQueryMode"] {
+  const temporal = text.match(SPANISH_EVENT_TEMPORAL_PATTERN);
+  if (!temporal) {
+    return undefined;
+  }
+  const temporalIndex = temporal.index ?? -1;
+  if (temporalIndex >= 0) {
+    const prefix = text.slice(0, temporalIndex);
+    const suffix = text.slice(temporalIndex + temporal[0].length);
+    if (
+      /\b(?:antes|después)\s+(?:de(?:l|\s+la|\s+los|\s+las)?)\s*$/iu.test(
+        prefix,
+      ) ||
+      /\b(?:proyecto|película|film|canción|libro|álbum)\s*$/iu.test(prefix) ||
+      /[«“"]\s*$/u.test(prefix) && /^\s*[»”"]/u.test(suffix)
+    ) {
+      return undefined;
+    }
+  }
+  if (/\bqué\s+(?:pasó|ocurrió|sucedió)/iu.test(text)) {
+    return "broad";
+  }
+  return (
+    /(?:qué|cuál(?:es)?|dónde|a\s+quién|con\s+quién)(?=$|[^\p{L}\p{N}])[^?]{0,80}(?:he\s+\p{L}+|\p{L}+(?:é|í)|comí|bebí|hice|fui|tuve|estuve|vi|dije|traje|terminé|completé|entregué|publiqué|visité|conocí)(?=\s|[?.,]|$)/iu.test(
+      text,
+    )
+  ) ? "predicate" : undefined;
+}
+
 function analyzeSpanishQuery(text: string): LanguageQueryAnalysis {
   const base = emptyQueryAnalysis();
   const role = QUERY.role.test(text);
@@ -136,6 +170,7 @@ function analyzeSpanishQuery(text: string): LanguageQueryAnalysis {
   const blocker = QUERY.blocker.test(text);
   const openLoop = QUERY.openLoop.test(text);
   const before = QUERY.before.test(text);
+  const eventOccurrenceQueryMode = spanishEventOccurrenceQueryMode(text);
   return {
     ...base,
     actionDriving: QUERY.actionDriving.test(text),
@@ -149,6 +184,8 @@ function analyzeSpanishQuery(text: string): LanguageQueryAnalysis {
     continuation: QUERY.continuation.test(text),
     current: QUERY.current.test(text),
     directFactualLookup: QUERY.directFactualLookup.test(text.trim()),
+    eventOccurrenceQuery: eventOccurrenceQueryMode !== undefined,
+    ...(eventOccurrenceQueryMode ? { eventOccurrenceQueryMode } : {}),
     exhaustiveList: QUERY.exhaustiveList.test(text),
     factConfirmation: role || focus || blocker || openLoop ||
       (QUERY.confirm.test(text) && QUERY.factConfirmationTarget.test(text)),
@@ -370,7 +407,7 @@ const SPANISH_MONTHS = [
 ] as const;
 
 const DEFINITION = {
-  analyzerVersion: "5-explicit-fact-list-boundary",
+  analyzerVersion: "6-occurrence-expression",
   behavioralRulePatterns: {
     firstAction: [
       /(?:primero|en\s+primer\s+lugar)\s+([A-Za-z_][A-Za-z0-9_@.-]*)/iu,
@@ -414,6 +451,7 @@ const DEFINITION = {
   decompositionBoundary: /\s+(?:y|además de|luego)\s+/iu,
   analyzeQuery: analyzeSpanishQuery,
   analyzeContent: analyzeSpanishContent,
+  daysAgoPattern: /\bhace\s+(\d{1,3})\s+d[ií]as?\b/iu,
   temporalPatterns: [
     { offset: -2, pattern: /\banteayer\b/iu, unit: "day" },
     { offset: 2, pattern: /\bpasado mañana\b/iu, unit: "day" },
@@ -441,6 +479,8 @@ const DEFINITION = {
   candidatePatterns: {
     assignmentConfirmation:
       /\b(?:es|parece)\s+(?:correct[oa]|ciert[oa]|exact[oa])\s*$/iu,
+    completedEvent:
+      /^(?:yo\s+)?(?:he\s+\p{L}+(?:ado|ido)|\p{L}+(?:é|í)|fui|hice|tuve|estuve|puse|vine|dije|traje|vi|di)(?=$|\s|[.,;!?])/iu,
     bareQuestionValue:
       /^(?:¿\s*)?(?:qué|cuál(?:es)?|quién(?:es)?|dónde|cuándo|por\s+qué|cómo|cuánto)$/iu,
     explicitFact:
@@ -448,6 +488,9 @@ const DEFINITION = {
     explicitFactPrefix:
       /^\s*(?:por\s+favor\s*,?\s*)?(?:recuerda|recuérdalo|memoriza)\b/iu,
     feedback: /^(?:nunca\b|siempre\b|evita\b|prioriza\b)/iu,
+    futurePlan:
+      /^(?:(?:mañana\s+)?(?:yo\s+)?(?:voy\s+a|iré|pienso|planeo|tengo\s+previsto)(?=\s|[.!?]|$)|(?:yo\s+)?\p{L}+(?:ré|rás|rá|remos|réis|rán)(?=\s|[.!?]|$)[^.!?]*\b(?:mañana|pasado\s+mañana|la\s+semana\s+próxima|el\s+mes\s+próximo|el\s+trimestre\s+próximo|el\s+año\s+próximo)\b)/iu,
+    occurrenceConfirmation: /,\s*(?:verdad|cierto|no)\s*[.!]*$/iu,
     optOut:
       /^(?:por\s+favor\s*,?\s*)?(?:no\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?)|nunca\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?))\b/iu,
     optOutClauseBoundary:
@@ -463,6 +506,7 @@ const DEFINITION = {
     name: /\b(?:me llamo|mi nombre es)\s+([\p{L}\p{M}'’.-]+(?:\s+[\p{L}\p{M}'’.-]+){0,3})/iu,
     preference: /\b(?:prefiero|mi preferencia es)\s+([^.!?]+)/iu,
     role: /\b(?:mi rol actual es|mi función actual es|mi puesto actual es)\s+([^.!?]+)/iu,
+    timezone: /\bmi\s+zona\s+horaria\s+es\s+([A-Za-z0-9_./+-]+)/iu,
     unpunctuatedQuestion:
       /\b(?:es|son|era|eran)\s+(?:qué|cuál(?:es)?|quién(?:es)?|dónde|cuándo|por\s+qué|cómo|cuánto)$/iu,
   },

@@ -296,6 +296,276 @@ describe("HTTP bridge healthz endpoint", () => {
 });
 
 describe("Phase 39 Python HTTP memory bridge", () => {
+  it("preserves fact occurrence in structured recall items", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+        vectorStore: createInMemoryVectorStore(),
+      },
+      storage: { provider: "memory" },
+    });
+    await documentStore.set(
+      "facts",
+      "http-dated-event",
+      createFactMemory({
+        agentId: "life-coach",
+        category: "event",
+        content: "I ate tomato and eggs.",
+        createdAt: "2026-08-12T02:00:00.000Z",
+        id: "http-dated-event",
+        occurrence: {
+          endExclusive: "2026-08-11T16:00:00.000Z",
+          precision: "day",
+          start: "2026-08-10T16:00:00.000Z",
+          timezone: "Asia/Shanghai",
+        },
+        source: {
+          extractedAt: "2026-08-12T02:00:00.000Z",
+          method: "explicit",
+        },
+        updatedAt: "2026-08-12T02:00:00.000Z",
+        userId: "python-user",
+        workspaceId: "life-workspace",
+      }),
+    );
+
+    const response = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody({
+        query: "tomato and eggs",
+        strategy: "rules-only",
+      }),
+      headers: AUTH_HEADERS,
+      memory,
+      path: "/memory/recall-context",
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.items).toContainEqual(
+      expect.objectContaining({
+        memoryId: "http-dated-event",
+        occurrence: {
+          endExclusive: "2026-08-11T16:00:00.000Z",
+          precision: "day",
+          start: "2026-08-10T16:00:00.000Z",
+          timezone: "Asia/Shanghai",
+        },
+        type: "fact",
+      }),
+    );
+  });
+
+  it("preserves message provenance and forwards recall temporal context", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+    const rememberInputs: Parameters<GoodMemory["remember"]>[0][] = [];
+    const recallInputs: Parameters<GoodMemory["recall"]>[0][] = [];
+    const enqueueInputs: Parameters<GoodMemory["jobs"]["enqueueRemember"]>[0][] = [];
+    const remember = memory.remember.bind(memory);
+    const recall = memory.recall.bind(memory);
+    const enqueueRemember = memory.jobs.enqueueRemember.bind(memory.jobs);
+    memory.remember = async (input) => {
+      rememberInputs.push(input);
+      return remember(input);
+    };
+    memory.recall = async (input) => {
+      recallInputs.push(input);
+      return recall(input);
+    };
+    memory.jobs.enqueueRemember = async (input) => {
+      enqueueInputs.push(input);
+      return enqueueRemember(input);
+    };
+    const temporalMessage = {
+      id: "message-1",
+      content: "Remember that the release review is tomorrow.",
+      observedAt: "2026-11-01T05:29:00.000Z",
+      role: "user",
+      timezone: "Europe/Paris",
+    };
+
+    const sync = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody({
+        messages: [temporalMessage],
+        mode: "sync",
+        timezone: "America/New_York",
+      }),
+      headers: AUTH_HEADERS,
+      memory,
+      path: "/memory/remember",
+    });
+    const asyncWrite = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody({
+        idempotencyKey: "temporal-async-turn",
+        messages: [temporalMessage],
+        mode: "async",
+        timezone: "America/New_York",
+      }),
+      headers: AUTH_HEADERS,
+      memory,
+      path: "/memory/remember",
+    });
+    const recalled = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody({
+        query: "What happened yesterday?",
+        referenceTime: "2026-11-01T05:30:00.000Z",
+        timezone: "America/New_York",
+      }),
+      headers: AUTH_HEADERS,
+      memory,
+      path: "/memory/recall-context",
+    });
+
+    expect(sync.statusCode).toBe(200);
+    expect(asyncWrite.statusCode).toBe(200);
+    expect(recalled.statusCode).toBe(200);
+    expect(rememberInputs[0]).toMatchObject({
+      messages: [temporalMessage],
+      timezone: "America/New_York",
+    });
+    expect(enqueueInputs[0]).toMatchObject({
+      messages: [temporalMessage],
+      timezone: "America/New_York",
+    });
+    expect(recallInputs[0]).toMatchObject({
+      referenceTime: "2026-11-01T05:30:00.000Z",
+      timezone: "America/New_York",
+    });
+  });
+
+  it("rejects non-string temporal wire values instead of dropping them", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+    const cases = [
+      {
+        body: scopedBody({ query: "What happened?", referenceTime: 123 }),
+        code: "invalid_temporal_context",
+        path: "/memory/recall-context",
+      },
+      {
+        body: scopedBody({ query: "What happened?", timezone: {} }),
+        code: "invalid_temporal_context",
+        path: "/memory/recall-context",
+      },
+      {
+        body: scopedBody({
+          messages: [{ role: "user", content: "Remember this.", observedAt: 123 }],
+          mode: "sync",
+        }),
+        code: "invalid_messages",
+        path: "/memory/remember",
+      },
+      {
+        body: scopedBody({
+          messages: [{ role: "user", content: "Remember this." }],
+          mode: "sync",
+          timezone: [],
+        }),
+        code: "invalid_temporal_context",
+        path: "/memory/remember",
+      },
+      {
+        body: scopedBody({
+          idempotencyKey: "invalid-temporal-async",
+          messages: [{ role: "user", content: "Remember this." }],
+          mode: "async",
+          timezone: 123,
+        }),
+        code: "invalid_temporal_context",
+        path: "/memory/remember",
+      },
+    ] as const;
+
+    for (const fixture of cases) {
+      const response = await runGoodMemoryHttpBridgeRequest({
+        body: fixture.body,
+        headers: AUTH_HEADERS,
+        memory,
+        path: fixture.path,
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.body).toMatchObject({
+        error: { code: fixture.code },
+        ok: false,
+      });
+    }
+  });
+
+  it("rejects invalid temporal strings before sync execution or async enqueue", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+    let enqueued = 0;
+    const enqueueRemember = memory.jobs.enqueueRemember.bind(memory.jobs);
+    memory.jobs.enqueueRemember = async (input) => {
+      enqueued += 1;
+      return enqueueRemember(input);
+    };
+
+    const cases = [
+      {
+        body: scopedBody({ query: "What happened?", referenceTime: "not-a-time" }),
+        path: "/memory/recall-context",
+      },
+      {
+        body: scopedBody({ query: "What happened?", timezone: "Mars/Olympus" }),
+        path: "/memory/recall-context",
+      },
+      {
+        body: scopedBody({
+          messages: [
+            {
+              role: "user",
+              content: "Remember this.",
+              observedAt: "not-a-time",
+            },
+          ],
+          mode: "sync",
+        }),
+        path: "/memory/remember",
+      },
+      {
+        body: scopedBody({
+          idempotencyKey: "invalid-observed-at-async",
+          messages: [
+            {
+              role: "user",
+              content: "Remember this.",
+              observedAt: "not-a-time",
+            },
+          ],
+          mode: "async",
+        }),
+        path: "/memory/remember",
+      },
+      {
+        body: scopedBody({
+          messages: [
+            {
+              role: "user",
+              content: "Remember this.",
+              timezone: "Mars/Olympus",
+            },
+          ],
+          mode: "sync",
+        }),
+        path: "/memory/remember",
+      },
+    ] as const;
+
+    for (const fixture of cases) {
+      const response = await runGoodMemoryHttpBridgeRequest({
+        body: fixture.body,
+        headers: AUTH_HEADERS,
+        memory,
+        path: fixture.path,
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.body).toMatchObject({
+        error: { code: "invalid_temporal_context" },
+        ok: false,
+      });
+    }
+    expect(enqueued).toBe(0);
+  });
+
   it("validates scope, caller authorization, and targeted-only revise requests at the HTTP boundary", async () => {
     const memory = createGoodMemory({ storage: { provider: "memory" } });
 

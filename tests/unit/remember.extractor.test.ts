@@ -2893,7 +2893,7 @@ describe("deterministic memory extractor", () => {
       },
       {
         category: "event",
-        content: "我登记了5份土壤样本。",
+        content: "我上周登记了5份土壤样本。",
         factKind: undefined,
         kindHint: "fact",
       },
@@ -3280,5 +3280,761 @@ describe("deterministic memory extractor", () => {
 
     expect(referenceCandidate).toBeDefined();
     expect(referenceCandidate?.metadata?.subject).toBe("unknown");
+  });
+
+  it("extracts completed first-person occurrences across every built-in locale", async () => {
+    const cases = [
+      {
+        content: "I ate tomato and eggs yesterday.",
+        expectedContent: "I ate tomato and eggs.",
+        expectedExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "yesterday",
+          unit: "day",
+        },
+        locale: "en-US",
+      },
+      {
+        content: "I ate rice 3 days ago.",
+        expectedContent: "I ate rice.",
+        expectedExpression: {
+          kind: "relative",
+          offset: -3,
+          raw: "3 days ago",
+          unit: "day",
+        },
+        locale: "en-US",
+      },
+      {
+        content: "I submitted the incident report last week.",
+        expectedContent: "I submitted the incident report.",
+        expectedExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "last week",
+          unit: "week",
+        },
+        locale: "en-US",
+      },
+      {
+        content: "On July 21, 2026, I completed the deployment.",
+        expectedContent: "I completed the deployment.",
+        expectedExpression: {
+          calendar: { day: 21, month: 7, year: 2026 },
+          kind: "absolute",
+          raw: "July 21, 2026",
+        },
+        locale: "en-US",
+      },
+      {
+        content: "我昨天吃了番茄炒蛋。",
+        expectedContent: "我吃了番茄炒蛋。",
+        expectedExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "昨天",
+          unit: "day",
+        },
+        locale: "zh-CN",
+      },
+      {
+        content: "我3天前吃了米饭。",
+        expectedContent: "我吃了米饭。",
+        expectedExpression: {
+          kind: "relative",
+          offset: -3,
+          raw: "3天前",
+          unit: "day",
+        },
+        locale: "zh-CN",
+      },
+      {
+        content: "我上周提交了事故报告。",
+        expectedContent: "我提交了事故报告。",
+        expectedExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "上周",
+          unit: "week",
+        },
+        locale: "zh-CN",
+      },
+      {
+        content: "我在2026年7月21日完成了部署。",
+        expectedContent: "我完成了部署。",
+        expectedExpression: {
+          calendar: { day: 21, month: 7, year: 2026 },
+          kind: "absolute",
+          raw: "2026年7月21日",
+        },
+        locale: "zh-CN",
+      },
+      {
+        content: "我昨天吃了番茄炒蛋。",
+        expectedContent: "我吃了番茄炒蛋。",
+        expectedExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "昨天",
+          unit: "day",
+        },
+        locale: "zh-TW",
+      },
+      {
+        content: "我3天前吃了米飯。",
+        expectedContent: "我吃了米飯。",
+        expectedExpression: {
+          kind: "relative",
+          offset: -3,
+          raw: "3天前",
+          unit: "day",
+        },
+        locale: "zh-TW",
+      },
+      {
+        content: "我上週提交了事故報告。",
+        expectedContent: "我提交了事故報告。",
+        expectedExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "上週",
+          unit: "week",
+        },
+        locale: "zh-TW",
+      },
+      {
+        content: "我在2026年7月21日完成了部署。",
+        expectedContent: "我完成了部署。",
+        expectedExpression: {
+          calendar: { day: 21, month: 7, year: 2026 },
+          kind: "absolute",
+          raw: "2026年7月21日",
+        },
+        locale: "zh-TW",
+      },
+      {
+        content: "J’ai mangé des œufs à la tomate hier.",
+        expectedContent: "J’ai mangé des œufs à la tomate.",
+        expectedExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "hier",
+          unit: "day",
+        },
+        locale: "fr-FR",
+      },
+      {
+        content: "J’ai mangé du riz il y a 3 jours.",
+        expectedContent: "J’ai mangé du riz.",
+        expectedExpression: {
+          kind: "relative",
+          offset: -3,
+          raw: "il y a 3 jours",
+          unit: "day",
+        },
+        locale: "fr-FR",
+      },
+      {
+        content: "J’ai soumis le rapport d’incident la semaine dernière.",
+        expectedContent: "J’ai soumis le rapport d’incident.",
+        expectedExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "la semaine dernière",
+          unit: "week",
+        },
+        locale: "fr-FR",
+      },
+      {
+        content: "Le 21 juillet 2026, j’ai terminé le déploiement.",
+        expectedContent: "j’ai terminé le déploiement.",
+        expectedExpression: {
+          calendar: { day: 21, month: 7, year: 2026 },
+          kind: "absolute",
+          raw: "Le 21 juillet 2026",
+        },
+        locale: "fr-FR",
+      },
+      {
+        content: "Comí huevos con tomate ayer.",
+        expectedContent: "Comí huevos con tomate.",
+        expectedExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "ayer",
+          unit: "day",
+        },
+        locale: "es-ES",
+      },
+      {
+        content: "Comí arroz hace 3 días.",
+        expectedContent: "Comí arroz.",
+        expectedExpression: {
+          kind: "relative",
+          offset: -3,
+          raw: "hace 3 días",
+          unit: "day",
+        },
+        locale: "es-ES",
+      },
+      {
+        content: "Entregué el informe del incidente la semana pasada.",
+        expectedContent: "Entregué el informe del incidente.",
+        expectedExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "la semana pasada",
+          unit: "week",
+        },
+        locale: "es-ES",
+      },
+      {
+        content: "El 21 de julio de 2026, completé el despliegue.",
+        expectedContent: "completé el despliegue.",
+        expectedExpression: {
+          calendar: { day: 21, month: 7, year: 2026 },
+          kind: "absolute",
+          raw: "El 21 de julio de 2026",
+        },
+        locale: "es-ES",
+      },
+      {
+        content: "私は昨日トマトと卵を食べました。",
+        expectedContent: "私はトマトと卵を食べました。",
+        expectedExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "昨日",
+          unit: "day",
+        },
+        locale: "ja-JP",
+      },
+      {
+        content: "私は3日前にご飯を食べました。",
+        expectedContent: "私はご飯を食べました。",
+        expectedExpression: {
+          kind: "relative",
+          offset: -3,
+          raw: "3日前",
+          unit: "day",
+        },
+        locale: "ja-JP",
+      },
+      {
+        content: "私は先週事故報告書を提出しました。",
+        expectedContent: "私は事故報告書を提出しました。",
+        expectedExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "先週",
+          unit: "week",
+        },
+        locale: "ja-JP",
+      },
+      {
+        content: "私は2026年7月21日にデプロイを完了しました。",
+        expectedContent: "私はデプロイを完了しました。",
+        expectedExpression: {
+          calendar: { day: 21, month: 7, year: 2026 },
+          kind: "absolute",
+          raw: "2026年7月21日",
+        },
+        locale: "ja-JP",
+      },
+      {
+        content: "저는 어제 토마토 달걀을 먹었습니다.",
+        expectedContent: "저는 토마토 달걀을 먹었습니다.",
+        expectedExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "어제",
+          unit: "day",
+        },
+        locale: "ko-KR",
+      },
+      {
+        content: "저는 3일 전에 밥을 먹었습니다.",
+        expectedContent: "저는 밥을 먹었습니다.",
+        expectedExpression: {
+          kind: "relative",
+          offset: -3,
+          raw: "3일 전",
+          unit: "day",
+        },
+        locale: "ko-KR",
+      },
+      {
+        content: "저는 지난주에 사고 보고서를 제출했습니다.",
+        expectedContent: "저는 사고 보고서를 제출했습니다.",
+        expectedExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "지난주",
+          unit: "week",
+        },
+        locale: "ko-KR",
+      },
+      {
+        content: "저는 2026년 7월 21일에 배포를 완료했습니다.",
+        expectedContent: "저는 배포를 완료했습니다.",
+        expectedExpression: {
+          calendar: { day: 21, month: 7, year: 2026 },
+          kind: "absolute",
+          raw: "2026년 7월 21일",
+        },
+        locale: "ko-KR",
+      },
+    ] as const;
+
+    for (const testCase of cases) {
+      const result = await createDeterministicMemoryExtractor().extract({
+        locale: testCase.locale,
+        messages: [{
+          content: testCase.content,
+          observedAt: "2026-08-12T15:29:00.000Z",
+          role: "user",
+          timezone: "America/New_York",
+        }],
+        scope: { sessionId: `s-${testCase.locale}`, userId: "u-occurrence" },
+      });
+      const occurrence = result.candidates.find(
+        (candidate) => candidate.metadata?.occurrenceExpression !== undefined,
+      );
+
+      expect(occurrence, testCase.content).toMatchObject({
+        content: testCase.expectedContent,
+        explicitness: "explicit",
+        kindHint: "fact",
+        metadata: {
+          category: "event",
+          occurrenceExpression: testCase.expectedExpression,
+        },
+      });
+    }
+  });
+
+  it("preserves relative occurrence wording without a complete source time context", async () => {
+    const cases = [
+      { content: "I ate tomato and eggs yesterday.", locale: "en-US" },
+      { content: "我昨天吃了番茄炒蛋。", locale: "zh-CN" },
+      { content: "我昨天吃了番茄炒蛋。", locale: "zh-TW" },
+      { content: "J’ai mangé des œufs à la tomate hier.", locale: "fr-FR" },
+      { content: "Comí huevos con tomate ayer.", locale: "es-ES" },
+      { content: "私は昨日トマトと卵を食べました。", locale: "ja-JP" },
+      { content: "저는 어제 토마토 달걀을 먹었습니다.", locale: "ko-KR" },
+    ] as const;
+
+    for (const testCase of cases) {
+      const result = await createDeterministicMemoryExtractor().extract({
+        locale: testCase.locale,
+        messages: [{ content: testCase.content, role: "user" }],
+        scope: { sessionId: `s-${testCase.locale}`, userId: "u-occurrence" },
+      });
+      const occurrence = result.candidates.find(
+        (candidate) => candidate.metadata?.occurrenceExpression !== undefined,
+      );
+
+      expect(occurrence, testCase.content).toMatchObject({
+        content: testCase.content,
+        metadata: { category: "event" },
+      });
+    }
+  });
+
+  it("requires a valid source instant and IANA timezone before stripping occurrence wording", async () => {
+    const contexts = [
+      { observedAt: "2026-08-12T15:29:00.000Z" },
+      { timezone: "America/New_York" },
+      { observedAt: "not-an-instant", timezone: "America/New_York" },
+      {
+        observedAt: "2026-08-12T15:29:00.000Z",
+        timezone: "Mars/Olympus",
+      },
+    ] as const;
+
+    for (const context of contexts) {
+      const result = await createDeterministicMemoryExtractor().extract({
+        locale: "en-US",
+        messages: [{
+          content: "I ate tomato and eggs yesterday.",
+          role: "user",
+          ...context,
+        }],
+        scope: { sessionId: "s-occurrence-context", userId: "u-occurrence" },
+      });
+      const occurrence = result.candidates.find(
+        (candidate) => candidate.metadata?.occurrenceExpression !== undefined,
+      );
+
+      expect(occurrence?.content).toBe("I ate tomato and eggs yesterday.");
+    }
+  });
+
+  it("does not attach occurrence metadata to future, questioned, or negated events", async () => {
+    const cases = [
+      { content: "I will submit the incident report tomorrow.", locale: "en-US" },
+      { content: "I did not submit the incident report yesterday.", locale: "en-US" },
+      { content: "I ate what yesterday?", locale: "en-US" },
+      { content: "我明天会提交事故报告。", locale: "zh-CN" },
+      { content: "我昨天没有提交事故报告。", locale: "zh-CN" },
+      { content: "我昨天吃了什么？", locale: "zh-CN" },
+      { content: "我明天會提交事故報告。", locale: "zh-TW" },
+      { content: "我昨天沒有提交事故報告。", locale: "zh-TW" },
+      { content: "我昨天吃了什麼？", locale: "zh-TW" },
+      { content: "Je vais soumettre le rapport d’incident demain.", locale: "fr-FR" },
+      { content: "Je n’ai pas soumis le rapport d’incident hier.", locale: "fr-FR" },
+      { content: "J’ai mangé quoi hier ?", locale: "fr-FR" },
+      { content: "Voy a entregar el informe del incidente mañana.", locale: "es-ES" },
+      { content: "No entregué el informe del incidente ayer.", locale: "es-ES" },
+      { content: "¿Qué comí ayer?", locale: "es-ES" },
+      { content: "私は明日事故報告書を提出します。", locale: "ja-JP" },
+      { content: "私は昨日事故報告書を提出しませんでした。", locale: "ja-JP" },
+      { content: "私は昨日何を食べましたか？", locale: "ja-JP" },
+      { content: "저는 내일 사고 보고서를 제출할 것입니다.", locale: "ko-KR" },
+      { content: "저는 어제 사고 보고서를 제출하지 않았습니다.", locale: "ko-KR" },
+      { content: "저는 어제 무엇을 먹었습니까?", locale: "ko-KR" },
+    ] as const;
+
+    for (const testCase of cases) {
+      const result = await createDeterministicMemoryExtractor().extract({
+        locale: testCase.locale,
+        messages: [{ content: testCase.content, role: "user" }],
+        scope: { sessionId: `s-${testCase.locale}`, userId: "u-occurrence" },
+      });
+
+      expect(
+        result.candidates.some(
+          (candidate) => candidate.metadata?.occurrenceExpression !== undefined,
+        ),
+        testCase.content,
+      ).toBeFalse();
+    }
+  });
+
+  it("treats temporal words in titles as literals and selects a separate event modifier", async () => {
+    const cases = [
+      { literal: "I watched the movie Yesterday.", locale: "en-US", modified: "I watched Yesterday yesterday.", expected: "I watched Yesterday." },
+      { literal: "我看了电影《昨天》。", locale: "zh-CN", modified: "我昨天看了《昨天》。", expected: "我看了《昨天》。" },
+      { literal: "我看了電影《昨天》。", locale: "zh-TW", modified: "我昨天看了《昨天》。", expected: "我看了《昨天》。" },
+      { literal: "J’ai regardé le film « Hier ».", locale: "fr-FR", modified: "J’ai regardé « Hier » hier.", expected: "J’ai regardé « Hier »." },
+      { literal: "Vi la película « Ayer ».", locale: "es-ES", modified: "Vi « Ayer » ayer.", expected: "Vi « Ayer »." },
+      { literal: "私は映画「昨日」を見ました。", locale: "ja-JP", modified: "私は「昨日」を昨日見ました。", expected: "私は「昨日」を見ました。" },
+      { literal: "저는 영화 「어제」를 시청했습니다.", locale: "ko-KR", modified: "저는 「어제」를 어제 시청했습니다.", expected: "저는 「어제」를 시청했습니다." },
+    ] as const;
+
+    for (const testCase of cases) {
+      const extractor = createDeterministicMemoryExtractor();
+      const context = {
+        observedAt: "2026-08-12T15:29:00.000Z",
+        role: "user" as const,
+        timezone: "America/New_York",
+      };
+      const literal = await extractor.extract({
+        locale: testCase.locale,
+        messages: [{ content: testCase.literal, ...context }],
+        scope: { sessionId: `literal-${testCase.locale}`, userId: "u-title" },
+      });
+      const modified = await extractor.extract({
+        locale: testCase.locale,
+        messages: [{ content: testCase.modified, ...context }],
+        scope: { sessionId: `modified-${testCase.locale}`, userId: "u-title" },
+      });
+
+      expect(literal.candidates.some(({ metadata }) =>
+        metadata?.occurrenceExpression !== undefined
+      ), testCase.literal).toBeFalse();
+      expect(modified.candidates.find(({ metadata }) =>
+        metadata?.occurrenceExpression !== undefined
+      ), testCase.modified).toMatchObject({
+        content: testCase.expected,
+        metadata: { category: "event" },
+      });
+    }
+  });
+
+  it("recognizes completed Chinese verbs without treating lexical 会 as a future modal", async () => {
+    const cases = [
+      ["zh-CN", "我昨天开了会议。", "我开了会议。"],
+      ["zh-CN", "我昨天参加了大会。", "我参加了大会。"],
+      ["zh-CN", "我昨天学会了游泳。", "我学会了游泳。"],
+      ["zh-TW", "我昨天開了會議。", "我開了會議。"],
+      ["zh-TW", "我昨天參加了大會。", "我參加了大會。"],
+      ["zh-TW", "我昨天學會了游泳。", "我學會了游泳。"],
+    ] as const;
+
+    for (const [locale, content, expected] of cases) {
+      const result = await createDeterministicMemoryExtractor().extract({
+        locale,
+        messages: [{ content, observedAt: "2026-08-12T15:29:00.000Z", role: "user", timezone: "America/New_York" }],
+        scope: { sessionId: `completed-${locale}`, userId: "u-completed" },
+      });
+
+      expect(result.candidates.find(({ metadata }) =>
+        metadata?.occurrenceExpression !== undefined
+      ), content).toMatchObject({
+        content: expected,
+        metadata: { category: "event" },
+      });
+    }
+  });
+
+  it("does not date tag-confirmation questions in any built-in locale", async () => {
+    const cases = [
+      ["en-US", "I watched the movie yesterday, right"],
+      ["zh-CN", "我昨天看了电影，对吧"],
+      ["zh-TW", "我昨天看了電影，對吧"],
+      ["fr-FR", "J’ai regardé le film hier, non"],
+      ["es-ES", "Vi la película ayer, verdad"],
+      ["ja-JP", "私は昨日映画を見ましたよね。"],
+      ["ko-KR", "저는 어제 영화를 봤죠."],
+    ] as const;
+
+    for (const [locale, content] of cases) {
+      const result = await createDeterministicMemoryExtractor().extract({
+        locale,
+        messages: [{ content, observedAt: "2026-08-12T15:29:00.000Z", role: "user", timezone: "America/New_York" }],
+        scope: { sessionId: `tag-${locale}`, userId: "u-tag" },
+      });
+
+      expect(result.candidates.some(({ metadata }) =>
+        metadata?.occurrenceExpression !== undefined
+      ), content).toBeFalse();
+    }
+  });
+
+  it("stores explicit future plans as open loops without occurrence metadata", async () => {
+    const cases = [
+      ["en-US", "I will submit the incident report tomorrow."],
+      ["zh-CN", "我明天会提交事故报告。"],
+      ["zh-TW", "我明天會提交事故報告。"],
+      ["fr-FR", "Je vais soumettre le rapport d’incident demain."],
+      ["es-ES", "Iré a Madrid mañana."],
+      ["es-ES", "Presentaré el informe mañana."],
+      ["ja-JP", "私は明日事故報告書を提出する予定です。"],
+      ["ko-KR", "저는 내일 사고 보고서를 제출할 예정입니다."],
+    ] as const;
+
+    for (const [locale, content] of cases) {
+      const result = await createDeterministicMemoryExtractor().extract({
+        locale,
+        messages: [{ content, observedAt: "2026-08-12T15:29:00.000Z", role: "user", timezone: "America/New_York" }],
+        scope: { sessionId: `future-${locale}`, userId: "u-future" },
+      });
+      const future = result.candidates.find(({ kindHint }) => kindHint === "fact");
+
+      expect(future, content).toMatchObject({
+        kindHint: "fact",
+        metadata: { factKind: "open_loop" },
+      });
+      expect(future?.metadata?.occurrenceExpression, content).toBeUndefined();
+    }
+  });
+
+  it("extracts a timezone profile from every built-in locale", async () => {
+    const cases = [
+      ["en-US", "My timezone is America/New_York.", "America/New_York"],
+      ["zh-CN", "我的时区是Asia/Shanghai。", "Asia/Shanghai"],
+      ["zh-TW", "我的時區是Asia/Taipei。", "Asia/Taipei"],
+      ["fr-FR", "Mon fuseau horaire est Europe/Paris.", "Europe/Paris"],
+      ["es-ES", "Mi zona horaria es Europe/Madrid.", "Europe/Madrid"],
+      ["ja-JP", "私のタイムゾーンはAsia/Tokyoです。", "Asia/Tokyo"],
+      ["ko-KR", "제 시간대는 Asia/Seoul입니다.", "Asia/Seoul"],
+    ] as const;
+
+    for (const [locale, content, expected] of cases) {
+      const result = await createDeterministicMemoryExtractor().extract({
+        locale,
+        messages: [{ content, role: "user" }],
+        scope: { sessionId: "timezone-profile", userId: "u-timezone" },
+      });
+
+      expect(result.candidates.find(({ metadata }) =>
+        metadata?.profileField === "timezone"
+      ), content).toMatchObject({
+        content: expected,
+        kindHint: "profile",
+      });
+    }
+  });
+
+  it("supports native Japanese quarter occurrence grammar", async () => {
+    const result = await createDeterministicMemoryExtractor().extract({
+      locale: "ja-JP",
+      messages: [{
+        content: "私は前四半期に監査を完了しました。",
+        observedAt: "2026-08-12T15:29:00.000Z",
+        role: "user",
+        timezone: "Asia/Tokyo",
+      }],
+      scope: { sessionId: "ja-quarter", userId: "u-ja-quarter" },
+    });
+
+    expect(result.candidates.find(({ metadata }) =>
+      metadata?.occurrenceExpression !== undefined
+    )).toMatchObject({
+      content: "私は監査を完了しました。",
+      metadata: {
+        category: "event",
+        occurrenceExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "前四半期",
+          unit: "quarter",
+        },
+      },
+    });
+  });
+
+  it("parses the English day-before-yesterday phrase as one event modifier", async () => {
+    const result = await createDeterministicMemoryExtractor().extract({
+      locale: "en-US",
+      messages: [{
+        content: "I ate tomato and eggs the day before yesterday.",
+        observedAt: "2026-08-12T15:29:00.000Z",
+        role: "user",
+        timezone: "America/New_York",
+      }],
+      scope: { sessionId: "en-day-before-yesterday", userId: "u-en-period" },
+    });
+
+    expect(result.candidates.find(({ metadata }) =>
+      metadata?.occurrenceExpression !== undefined
+    )).toMatchObject({
+      content: "I ate tomato and eggs.",
+      metadata: {
+        occurrenceExpression: {
+          kind: "relative",
+          offset: -2,
+          raw: "the day before yesterday",
+          unit: "day",
+        },
+      },
+    });
+  });
+
+  it("does not treat bare English month names in object position as occurrence", async () => {
+    for (const content of ["I met May.", "I emailed April.", "I read August."]) {
+      const result = await createDeterministicMemoryExtractor().extract({
+        locale: "en-US",
+        messages: [{
+          content,
+          observedAt: "2026-08-12T15:29:00.000Z",
+          role: "user",
+          timezone: "America/New_York",
+        }],
+        scope: { sessionId: "en-month-object", userId: "u-en-month-object" },
+      });
+      expect(result.candidates.some(({ metadata }) =>
+        metadata?.occurrenceExpression !== undefined
+      ), content).toBeFalse();
+    }
+
+    const dated = await createDeterministicMemoryExtractor().extract({
+      locale: "en-US",
+      messages: [{
+        content: "I saw June yesterday.",
+        observedAt: "2026-08-12T15:29:00.000Z",
+        role: "user",
+        timezone: "America/New_York",
+      }],
+      scope: { sessionId: "en-month-and-date", userId: "u-en-month-object" },
+    });
+    expect(dated.candidates.find(({ metadata }) =>
+      metadata?.occurrenceExpression !== undefined
+    )).toMatchObject({
+      content: "I saw June.",
+      metadata: {
+        occurrenceExpression: {
+          kind: "relative",
+          offset: -1,
+          raw: "yesterday",
+          unit: "day",
+        },
+      },
+    });
+  });
+
+  it("prefers an explicit technical instant over its ISO calendar substring", async () => {
+    const result = await createDeterministicMemoryExtractor().extract({
+      locale: "en-US",
+      messages: [{
+        content:
+          "I completed deployment yesterday at time=2026-08-11T03:04:05Z.",
+        observedAt: "2026-08-12T15:29:00.000Z",
+        role: "user",
+        timezone: "UTC",
+      }],
+      scope: { sessionId: "technical-instant", userId: "u-instant" },
+    });
+
+    expect(result.candidates.find(({ metadata }) =>
+      metadata?.occurrenceExpression !== undefined
+    )).toMatchObject({
+      content: "I completed deployment.",
+      metadata: {
+        occurrenceExpression: {
+          iso: "2026-08-11T03:04:05Z",
+          kind: "absolute",
+          raw: "time=2026-08-11T03:04:05Z",
+        },
+      },
+    });
+  });
+
+  it("keeps a completed English event when its temporal-looking title is literal", async () => {
+    const result = await createDeterministicMemoryExtractor().extract({
+      locale: "en-US",
+      messages: [{
+        content: "I watched the movie Yesterday.",
+        observedAt: "2026-08-12T15:29:00.000Z",
+        role: "user",
+        timezone: "America/New_York",
+      }],
+      scope: { sessionId: "literal-title-event", userId: "u-title-event" },
+    });
+
+    const candidate = result.candidates.find(({ kindHint }) => kindHint === "fact");
+    expect(candidate).toMatchObject({
+      content: "I watched the movie Yesterday.",
+      kindHint: "fact",
+      metadata: { category: "event" },
+    });
+    expect(candidate?.metadata?.occurrenceExpression).toBeUndefined();
+  });
+
+  it("recognizes completed-event morphology without business verb fixtures", async () => {
+    const cases = [
+      ["en-US", "I taught a class yesterday.", "I taught a class."],
+      ["en-US", "I slept at the hotel yesterday.", "I slept at the hotel."],
+      ["ko-KR", "저는 어제 동료를 도왔습니다.", "저는 동료를 도왔습니다."],
+    ] as const;
+
+    for (const [locale, content, expected] of cases) {
+      const result = await createDeterministicMemoryExtractor().extract({
+        locale,
+        messages: [{
+          content,
+          observedAt: "2026-08-12T15:29:00.000Z",
+          role: "user",
+          timezone: "America/New_York",
+        }],
+        scope: { sessionId: "completed-morphology", userId: "u-completed-morphology" },
+      });
+
+      expect(result.candidates.find(({ metadata }) =>
+        metadata?.occurrenceExpression !== undefined
+      ), content).toMatchObject({
+        content: expected,
+        metadata: {
+          category: "event",
+          occurrenceExpression: {
+            kind: "relative",
+            offset: -1,
+            unit: "day",
+          },
+        },
+      });
+    }
   });
 });

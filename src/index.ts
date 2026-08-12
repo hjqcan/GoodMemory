@@ -78,6 +78,16 @@ export {
   MEMORY_KIND_TO_PLANE,
 } from "./domain/taxonomy";
 export type {
+  TemporalExpression,
+  TemporalInterval,
+  TemporalPrecision,
+} from "./domain/temporal";
+export {
+  isIanaTimezone,
+  isRfc3339Instant,
+  resolveTemporalInterval,
+} from "./domain/temporal";
+export type {
   ArtifactSpillRecord,
   EpisodeMemory,
   FactKind,

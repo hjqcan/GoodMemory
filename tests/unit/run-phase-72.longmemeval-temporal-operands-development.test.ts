@@ -156,7 +156,9 @@ describe("Phase 72 LongMemEval temporal operand retrieval development", () => {
       outputDir: "/reports",
       runId: "analyzer-version-fixture",
       selectionFile: "/selection.json",
-    })).rejects.toThrow("English analyzer 13 is required; found 14");
+    })).rejects.toThrow(
+      "English analyzer 13 is required; found 15-occurrence-expression",
+    );
   });
 
   it("reproduces every control before measuring bounded treatment coverage", async () => {
@@ -284,7 +286,7 @@ describe("Phase 72 LongMemEval temporal operand retrieval development", () => {
       canonicalDependencies: false,
       canonicalMemoryRunId:
         "run-phase72-current-recall-assembly-development-v2-bun1314-clean",
-      englishAnalyzerVersion: "14-explicit-fact-list-boundary",
+      englishAnalyzerVersion: "15-occurrence-expression",
       legacyControlEnglishAnalyzerVersion: "12",
       sourceState,
     });

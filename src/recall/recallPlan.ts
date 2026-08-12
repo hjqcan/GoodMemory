@@ -1,5 +1,6 @@
 import type { MemoryScope } from "../domain/scope";
 import type { MemoryPlane } from "../domain/taxonomy";
+import type { TemporalInterval } from "../domain/temporal";
 import { createLanguageService } from "../language";
 import type {
   LanguageQueryAnalysis,
@@ -7,7 +8,10 @@ import type {
   ResolvedLanguageContext,
 } from "../language";
 import { splitQueryIntoSubQueries } from "./queryDecomposition";
-import { resolveTemporalReference } from "./temporalReference";
+import {
+  resolveTemporalInterval,
+  resolveTemporalReference,
+} from "./temporalReference";
 
 export const RECALL_PLAN_PRE_RANK_LIMIT = 32;
 export const RECALL_PLAN_SELECTED_LIMIT = 12;
@@ -22,10 +26,17 @@ export type RecallEvidenceNeed =
   | "temporal";
 export type RecallPlanUncertainty = "high" | "low" | "medium";
 
-export interface TemporalConstraint {
+export interface TemporalReferenceConstraint {
   kind: "after" | "before" | "current" | "history";
   referenceTime: string;
 }
+
+export type TemporalConstraint =
+  | TemporalReferenceConstraint
+  | {
+      kind: "during";
+      interval: TemporalInterval;
+    };
 
 export interface RecallPlan {
   entities: string[];
@@ -50,6 +61,7 @@ export interface BuildRecallPlanInput {
   queryAnalysis?: LanguageQueryAnalysis;
   referenceTime: string;
   scope: MemoryScope;
+  timezone?: string;
 }
 
 export interface RecallPlanAssistantInput {
@@ -58,6 +70,7 @@ export interface RecallPlanAssistantInput {
   query: string;
   referenceTime: string;
   scope: MemoryScope;
+  timezone?: string;
 }
 
 export interface RecallPlanAssistant {
@@ -118,8 +131,9 @@ function buildTemporalConstraints(input: {
   languageContext: ResolvedLanguageContext;
   query: string;
   referenceTime: string;
+  timezone?: string;
 }): TemporalConstraint[] {
-  const kinds: TemporalConstraint["kind"][] = [];
+  const kinds: Array<"after" | "before" | "current" | "history"> = [];
   if (input.analysis.current || input.aggregation === "current") {
     kinds.push("current");
   }
@@ -132,20 +146,35 @@ function buildTemporalConstraints(input: {
   if (input.analysis.after) {
     kinds.push("after");
   }
+  const expressions = input.language.parseTemporalExpressions(
+    input.query,
+    input.languageContext,
+  );
   const explicitReferenceTime = resolveTemporalReference(
-    input.language.parseTemporalExpressions(
-      input.query,
-      input.languageContext,
-    ),
+    expressions,
     input.referenceTime,
   );
-  return unique(kinds).map((kind) => ({
+  const constraints: TemporalConstraint[] = unique(kinds).map((kind) => ({
     kind,
     referenceTime:
       (kind === "before" || kind === "after") && explicitReferenceTime
         ? explicitReferenceTime
         : input.referenceTime,
   }));
+  if (input.timezone) {
+    const interval = resolveTemporalInterval(
+      expressions,
+      input.referenceTime,
+      input.timezone,
+      input.languageContext.locale,
+    );
+    if (interval) {
+      if (input.analysis.eventOccurrenceQuery) {
+        return [{ kind: "during", interval }];
+      }
+    }
+  }
+  return constraints;
 }
 
 /**
@@ -178,8 +207,10 @@ export function buildDeterministicRecallPlan(
     languageContext: resolvedLanguage,
     query: input.query,
     referenceTime: input.referenceTime,
+    timezone: input.timezone,
   });
   const relation = analysis.relation;
+  const eventOccurrenceQuery = analysis.eventOccurrenceQuery === true;
   const temporalOperandQuery = (analysis.temporalOperands?.length ?? 0) > 0;
 
   const evidenceNeeds: RecallEvidenceNeed[] = ["direct"];
@@ -189,6 +220,7 @@ export function buildDeterministicRecallPlan(
   if (
     temporalConstraints.length > 0 ||
     aggregation === "change" ||
+    eventOccurrenceQuery ||
     analysis.temporalInterval ||
     temporalOperandQuery
   ) {
@@ -205,6 +237,7 @@ export function buildDeterministicRecallPlan(
   if (
     temporalConstraints.length > 0 ||
     aggregation === "change" ||
+    eventOccurrenceQuery ||
     analysis.temporalInterval ||
     temporalOperandQuery ||
     relation ||
@@ -229,7 +262,7 @@ export function buildDeterministicRecallPlan(
   const uncertainty: RecallPlanUncertainty =
     facets.length > 0 || maxHops > 1 || broadAggregation
       ? "high"
-      : aggregation || temporalConstraints.length > 0
+      : aggregation || temporalConstraints.length > 0 || eventOccurrenceQuery
         ? "medium"
         : "low";
   const entities = unique(
@@ -283,6 +316,9 @@ export async function resolveRecallPlan(input: {
       query: input.input.query,
       referenceTime: input.input.referenceTime,
       scope: input.input.scope,
+      ...(input.input.timezone !== undefined
+        ? { timezone: input.input.timezone }
+        : {}),
     });
     const entities = unique([
       ...deterministicPlan.entities,

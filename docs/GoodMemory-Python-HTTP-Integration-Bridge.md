@@ -143,6 +143,8 @@ Request:
 {
   "scope": { "userId": "user-123", "workspaceId": "workspace-a" },
   "query": "What should the coach remember about this user?",
+  "referenceTime": "2026-11-01T05:30:00.000Z",
+  "timezone": "America/New_York",
   "retrievalProfile": "general_chat",
   "output": "system_prompt_fragment",
   "maxTokens": 1200
@@ -189,8 +191,15 @@ Request:
 {
   "scope": { "userId": "user-123", "workspaceId": "workspace-a", "agentId": "life-coach" },
   "messages": [
-    { "role": "user", "content": "My top priority this quarter is rebuilding sleep." }
+    {
+      "id": "session-1:turn-12:user",
+      "role": "user",
+      "content": "My top priority this quarter is rebuilding sleep.",
+      "observedAt": "2026-11-01T05:29:00.000Z",
+      "timezone": "America/New_York"
+    }
   ],
+  "timezone": "America/New_York",
   "annotations": [],
   "extractionStrategy": "rules-only",
   "mode": "async",

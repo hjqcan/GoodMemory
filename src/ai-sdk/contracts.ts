@@ -2,6 +2,7 @@ import type { ModelMessage, SystemModelMessage } from "@ai-sdk/provider-utils";
 
 import type { GoodMemory } from "../api/contracts";
 import type { AgentEventIngestResult } from "../api/integrationSupport";
+import type { SessionMessage } from "../domain/records";
 import type { MemoryScope } from "../domain/scope";
 import type {
   AgentEventHostKind,
@@ -42,6 +43,9 @@ export type AISDKStreamTextResult = ReturnType<typeof DEFAULT_STREAM_TEXT>;
 
 export type GoodMemoryAISDKRetrievalProfile = "general_chat" | "coding_agent";
 
+export type GoodMemoryModelMessage = ModelMessage &
+  Pick<SessionMessage, "id" | "observedAt" | "timezone">;
+
 export type GoodMemoryRecallSkipReason =
   | "empty_context"
   | "ignore_memory"
@@ -80,13 +84,17 @@ export interface GoodMemoryAISDKErrorEvent {
 }
 
 interface GoodMemoryAISDKBaseCallInput {
+  assistantObservedAt?: string;
+  assistantTimezone?: string;
   ignoreMemory?: boolean;
   locale?: string;
   maxMemoryTokens?: number;
   query?: string;
+  referenceTime?: string;
   retrievalProfile?: GoodMemoryAISDKRetrievalProfile;
   scope: MemoryScope;
   system?: string | SystemModelMessage | Array<SystemModelMessage>;
+  timezone?: string;
 }
 
 export type GoodMemoryGenerateTextInput<
@@ -96,7 +104,7 @@ export type GoodMemoryGenerateTextInput<
   "messages" | "onFinish" | "prompt" | "system"
 > &
   GoodMemoryAISDKBaseCallInput & {
-    messages: ModelMessage[];
+    messages: GoodMemoryModelMessage[];
     onFinish?: GenerateTextOnFinishCallback<TOOLS>;
   };
 
@@ -107,7 +115,7 @@ export type GoodMemoryStreamTextInput<
   "messages" | "onFinish" | "prompt" | "system"
 > &
   GoodMemoryAISDKBaseCallInput & {
-    messages: ModelMessage[];
+    messages: GoodMemoryModelMessage[];
     onFinish?: StreamTextOnFinishCallback<TOOLS>;
   };
 

@@ -25,7 +25,12 @@ import {
   resolveSourceOfTruthDirective,
   splitSentencesGeneric,
 } from "./packHelpers";
-import { parseCjkTemporalReference } from "./temporal";
+import {
+  canResolveOccurrenceExpression,
+  hasOccurrenceResolutionContext,
+  maskQuotedTemporalLiterals,
+  parseCjkTemporalReference,
+} from "./temporal";
 
 const JAPANESE_STOPWORDS = new Set([
   "これ",
@@ -47,6 +52,11 @@ const JAPANESE_STOPWORDS = new Set([
   "と",
   "も",
 ]);
+
+const COMPLETED_FIRST_PERSON_EVENT_PATTERN =
+  /^(?:(?:私|僕|俺)(?:は|が))[^。！？]+(?:ました|だった|でした|した|った|いた|いだ|んだ|えた)[。！？]?$/u;
+const FUTURE_FIRST_PERSON_PLAN_PATTERN =
+  /^(?:(?:私|僕|俺)(?:は|が))[^。！？]*(?:予定です|つもりです|予定だ|つもりだ|する予定)[。！？]?$/u;
 
 const BEHAVIORAL_RULE_PATTERNS = {
   firstAction: [
@@ -168,7 +178,34 @@ function analyzeJapaneseQuery(query: string): LanguageQueryAnalysis {
   const focus = QUERY.focus.test(query);
   const openLoop = QUERY.openLoop.test(query);
   const blocker = QUERY.blocker.test(query);
-  const before = QUERY.before.test(query);
+  const before = QUERY.before.test(query.replace(/\d{1,3}\s*日前/gu, ""));
+  const occurrenceExpression = parseJapaneseTemporalExpressions(query)[0];
+  const eventOccurrenceQueryMode = (():
+    LanguageQueryAnalysis["eventOccurrenceQueryMode"] => {
+    if (!occurrenceExpression) {
+      return undefined;
+    }
+    const expressionIndex = query.indexOf(occurrenceExpression.raw);
+    if (expressionIndex >= 0) {
+      const prefix = query.slice(0, expressionIndex);
+      const suffix = query.slice(expressionIndex + occurrenceExpression.raw.length);
+      if (
+        /(?:以前|より前|前まで|以降|より後)\s*$/u.test(prefix) ||
+        /^\s*(?:以前|より前|前まで|以降|より後)/u.test(suffix) ||
+        /[「『“"]\s*$/u.test(prefix) && /^\s*[」』”"]/u.test(suffix)
+      ) {
+        return undefined;
+      }
+    }
+    if (/何が[^。！？?]{0,20}(?:起きました|ありました)(?:か)?/u.test(query)) {
+      return "broad";
+    }
+    return (
+      /(?:何|なに|どこ|誰|だれ|どの)[^。！？?]{0,60}(?:食べ|飲み|し|やり|完了し|提出し|公開し|行き|見|買い|会い|更新し)[^。！？?]{0,20}(?:ました|た)(?:か)?/u.test(
+        query,
+      )
+    ) ? "predicate" : undefined;
+  })();
   const userGroundedEventOrder =
     /(順番|順序|時系列|最初[\s\S]{0,80}最後)/u.test(query) &&
     /(?:私|僕|自分)[\s\S]{0,80}(?:話した|言及した|取り上げた|話題にした)/u.test(
@@ -186,6 +223,8 @@ function analyzeJapaneseQuery(query: string): LanguageQueryAnalysis {
     continuation: QUERY.continuation.test(query),
     current: QUERY.current.test(query),
     directFactualLookup: QUERY.directFactualLookup.test(query.trim()),
+    eventOccurrenceQuery: eventOccurrenceQueryMode !== undefined,
+    ...(eventOccurrenceQueryMode ? { eventOccurrenceQueryMode } : {}),
     exhaustiveList: QUERY.exhaustiveList.test(query),
     factConfirmation: role || focus || openLoop || blocker ||
       (QUERY.confirm.test(query) && QUERY.factConfirmationTarget.test(query)),
@@ -428,6 +467,49 @@ function extractJapaneseCandidates(
         });
         continue;
       }
+      if (FUTURE_FIRST_PERSON_PLAN_PATTERN.test(text)) {
+        candidates.push({
+          content: cleanJapaneseExplicitFact(text),
+          explicitness: "explicit",
+          id: input.nextId(),
+          kindHint: "fact",
+          metadata: {
+            category: "personal",
+            factKind: "open_loop",
+            scopeKind: "identity",
+          },
+          sourceMessageIndex,
+          sourceRole: "user",
+        });
+        continue;
+      }
+      const occurrenceContext = hasJapaneseOccurrenceContext(message);
+      const occurrenceEvent = extractJapaneseOccurrenceEvent(
+        text,
+        {
+          locale: input.locale,
+          observedAt: message.observedAt,
+          timezone: message.timezone,
+        },
+      );
+      if (occurrenceEvent) {
+        candidates.push({
+          content: occurrenceEvent.content,
+          explicitness: occurrenceContext || clauseIsExplicit
+            ? "explicit"
+            : "inferred",
+          id: input.nextId(),
+          kindHint: "fact",
+          metadata: {
+            category: "event",
+            occurrenceExpression: occurrenceEvent.occurrenceExpression,
+            scopeKind: "identity",
+          },
+          sourceMessageIndex,
+          sourceRole: "user",
+        });
+        continue;
+      }
       const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
         analysis: clauseAnalysis,
         nextId: input.nextId,
@@ -439,6 +521,20 @@ function extractJapaneseCandidates(
       const goal = text.match(
         /(?:私の)?(?:現在の)?(?:目標|最優先事項)は\s*([^。！？]+?)(?:です|である)?[。！？]?$/u,
       )?.[1];
+      const timezone = text.match(
+        /(?:私の)?タイムゾーンは\s*([A-Za-z0-9_./+-]+)(?:です)?[。！？]?$/u,
+      )?.[1];
+      if (timezone) {
+        candidates.push({
+          content: timezone,
+          explicitness: "explicit",
+          id: input.nextId(),
+          kindHint: "profile",
+          metadata: { profileField: "timezone" },
+          sourceMessageIndex,
+          sourceRole: "user",
+        });
+      }
       if (goal) {
         candidates.push({
           content: goal.trim(),
@@ -505,8 +601,10 @@ function extractJapaneseCandidates(
       if (
         clauseIsExplicit &&
         !goal &&
+        !timezone &&
         !name &&
         !role &&
+        !timezone &&
         !preference &&
         !clauseAnalysis.sourceOfTruthDirective &&
         !feedback
@@ -580,11 +678,81 @@ function extractJapaneseCandidates(
 function parseJapaneseTemporalExpressions(
   text: string,
 ): LanguageTemporalExpression[] {
-  const primary = parseCjkTemporalReference(text);
   const technical = parseTechnicalTemporalExpressions(text);
+  const instant = technical.find((expression) => "iso" in expression);
+  if (instant) {
+    return [instant, ...technical.filter(({ raw }) => raw !== instant.raw)];
+  }
+  const nativeQuarter = [
+    [/前四半期/u, -1],
+    [/今四半期/u, 0],
+    [/次の四半期/u, 1],
+  ] as const;
+  const quarter = nativeQuarter
+    .map(([pattern, offset]) => {
+      const match = text.match(pattern);
+      return match
+        ? {
+          kind: "relative" as const,
+          offset,
+          raw: match[0],
+          unit: "quarter" as const,
+        }
+        : undefined;
+    })
+    .find((expression) => expression !== undefined);
+  const primary = quarter ?? parseCjkTemporalReference(text);
   return primary
     ? [primary, ...technical.filter(({ raw }) => raw !== primary.raw)]
     : technical;
+}
+
+function extractJapaneseOccurrenceEvent(
+  content: string,
+  context: {
+    locale: string;
+    observedAt?: string;
+    timezone?: string;
+  },
+): { content: string; occurrenceExpression: LanguageTemporalExpression } | undefined {
+  if (
+    /[?？]/u.test(content) ||
+    /(?:よね|ですよね|でしょう|ではありませんか)[。！]?$/u.test(content) ||
+    /(?:何|誰|どこ|いつ|なぜ|どうして)(?:です|ます)?か?[。！]?$|(?:です|ます)か[。！]?$/u.test(
+      content,
+    ) ||
+    /(?:なかった|ませんでした|ではなかった)/u.test(content)
+  ) {
+    return undefined;
+  }
+  const maskedLiterals = maskQuotedTemporalLiterals(content);
+  const occurrenceExpression = parseJapaneseTemporalExpressions(maskedLiterals)[0];
+  if (!occurrenceExpression) {
+    return undefined;
+  }
+
+  const expressionIndex = maskedLiterals.indexOf(occurrenceExpression.raw);
+  const before = content.slice(0, expressionIndex);
+  const after = content.slice(expressionIndex + occurrenceExpression.raw.length)
+    .replace(/^(?:に|には|で)\s*/u, "");
+  const canonical = `${before}${after}`.trim();
+  const canonicalize = canResolveOccurrenceExpression({
+    ...context,
+    expression: occurrenceExpression,
+  });
+
+  return COMPLETED_FIRST_PERSON_EVENT_PATTERN.test(canonical)
+    ? {
+      content: canonicalize ? canonical : content,
+      occurrenceExpression,
+    }
+    : undefined;
+}
+
+function hasJapaneseOccurrenceContext(
+  message: Parameters<LanguagePack["extractCandidates"]>[0]["messages"][number],
+): boolean {
+  return hasOccurrenceResolutionContext(message);
 }
 
 function extractJapaneseEntityMentions(text: string): LanguageEntityMention[] {
@@ -736,7 +904,7 @@ function renderJapanese(input: LanguageRenderInput): string {
 
 export function createJapaneseLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "8-explicit-fact-list-boundary",
+    analyzerVersion: "9-occurrence-expression",
     apiVersion: 1,
     compatibilityGroup: "ja",
     defaultLocale: "ja-JP",

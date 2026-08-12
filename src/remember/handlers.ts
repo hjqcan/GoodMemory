@@ -9,6 +9,8 @@ import {
 } from "../domain/records";
 import type { MemorySource } from "../domain/provenance";
 import { isSameDurableScope } from "../domain/scope";
+import { isIanaTimezone } from "../domain/temporal";
+import type { TemporalInterval } from "../domain/temporal";
 import {
   buildFactEmbeddingWrite,
   buildReferenceEmbeddingWrite,
@@ -29,6 +31,7 @@ import {
   enrichDuplicateReference,
   getProfileWriteReason,
   resolveCandidateObservedAt,
+  resolveCandidateOccurrence,
   resolveReferenceSubject,
 } from "./builders";
 import type { SourceLanguageMetadata } from "./builders";
@@ -56,6 +59,19 @@ function preferenceWriteTimestamp(
       Date.parse(preference.updatedAt),
     ]),
   )).toISOString();
+}
+
+function sameOccurrence(
+  left: TemporalInterval | undefined,
+  right: TemporalInterval | undefined,
+): boolean {
+  if (!left || !right) {
+    return left === right;
+  }
+  return left.start === right.start &&
+    left.endExclusive === right.endExclusive &&
+    left.precision === right.precision &&
+    left.timezone === right.timezone;
 }
 
 function languageMetadata(
@@ -190,8 +206,19 @@ export async function writeRememberCandidate(input: {
   const candidateSourceLanguage = languageMetadata(candidateLanguage);
 
   if (candidate.memoryType === "profile") {
-    const existing = await context.repositories.profiles.get(context.input.scope.userId);
     const profileField = candidate.metadata?.profileField ?? "name";
+    if (profileField === "timezone" && !isIanaTimezone(candidate.content)) {
+      state.rejected += 1;
+      state.events.push({
+        candidateId,
+        outcome: "rejected",
+        memoryType: "profile",
+        reason: "invalid_payload",
+        ...buildRememberEventTrace(candidate),
+      });
+      return;
+    }
+    const existing = await context.repositories.profiles.get(context.input.scope.userId);
 
     if (profileField === "currentProject") {
       const currentProjects = existing?.activeContext.currentProjects ?? [];
@@ -558,6 +585,11 @@ export async function writeRememberCandidate(input: {
 
   if (candidate.memoryType === "fact") {
     const facts = await context.repositories.facts.listByScope(context.input.scope);
+    const occurrence = resolveCandidateOccurrence(
+      candidate,
+      context.input.messages,
+      candidateLanguage.locale,
+    );
     const normalizedContent = context.language.normalizeForEquality(
       candidate.content,
       candidateLanguage,
@@ -572,7 +604,8 @@ export async function writeRememberCandidate(input: {
         return (
           fact.lifecycle === "active" &&
           context.language.normalizeForEquality(fact.content, factLanguage) ===
-            normalizedContent
+            normalizedContent &&
+          sameOccurrence(fact.occurrence, occurrence)
         );
       },
     );
@@ -618,7 +651,9 @@ export async function writeRememberCandidate(input: {
       return;
     }
 
-    const superseded = facts.find((fact) => {
+    const superseded = candidate.metadata?.category === "event"
+      ? undefined
+      : facts.find((fact) => {
       const factLanguage = resolveStoredTextLanguage(
         context,
         fact.content,
@@ -638,7 +673,7 @@ export async function writeRememberCandidate(input: {
           candidateLanguage,
         ) >= 0.4
       );
-    });
+        });
 
     if (superseded && context.policy?.resolveConflict) {
       const resolution = await context.policy.resolveConflict(
@@ -668,6 +703,7 @@ export async function writeRememberCandidate(input: {
       timestamp,
       candidateSourceLanguage,
       resolveCandidateObservedAt(candidate, context.input.messages),
+      occurrence,
     );
     const factEmbeddingWrite = buildFactEmbeddingWrite(fact);
     const supersededFactVector =

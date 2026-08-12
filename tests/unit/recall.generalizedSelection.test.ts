@@ -67,6 +67,154 @@ function createSentinelLanguage(
 }
 
 describe("generalized production selection", () => {
+  it("uses occurrence only as a fence and still requires event relevance", () => {
+    const runbook = createFactMemory({
+      category: "event",
+      content: "I updated the release runbook.",
+      id: "runbook-update",
+      occurrence: {
+        start: "2026-01-09T00:00:00.000Z",
+        endExclusive: "2026-01-10T00:00:00.000Z",
+        precision: "day",
+        timezone: "UTC",
+      },
+      source: { extractedAt: TIMESTAMP, method: "explicit" },
+      updatedAt: TIMESTAMP,
+      userId: "user-1",
+    });
+    const language = createLanguageService();
+
+    for (const query of [
+      "Where did I eat yesterday?",
+      "Who did I meet yesterday?",
+    ]) {
+      const result = selectGeneralizedFactsForInternalUse(
+        [runbook],
+        query,
+        language,
+        "en-US",
+        "general_chat",
+        routingDecision(),
+        null,
+        TIMESTAMP,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        language.analyzeQuery(query, "en-US"),
+        new Set([runbook.id]),
+      );
+
+      expect(result.facts, query).toEqual([]);
+      expect(result.traces[0]?.fallback, query).toBe("none");
+    }
+  });
+
+  it("keeps a predicate-related dated event even without lexical overlap", () => {
+    const meal = createFactMemory({
+      category: "event",
+      content: "I ate at Blue Lantern.",
+      id: "blue-lantern-meal",
+      occurrence: {
+        start: "2026-01-09T00:00:00.000Z",
+        endExclusive: "2026-01-10T00:00:00.000Z",
+        precision: "day",
+        timezone: "UTC",
+      },
+      source: { extractedAt: TIMESTAMP, method: "explicit" },
+      updatedAt: TIMESTAMP,
+      userId: "user-1",
+    });
+    const query = "Where did I eat yesterday?";
+    const language = createLanguageService();
+    const result = selectGeneralizedFactsForInternalUse(
+      [meal],
+      query,
+      language,
+      "en-US",
+      "general_chat",
+      routingDecision(),
+      null,
+      TIMESTAMP,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      language.analyzeQuery(query, "en-US"),
+      new Set([meal.id]),
+    );
+
+    expect(result.facts.map(({ id }) => id)).toEqual([meal.id]);
+    expect(result.traces[0]?.fallback).toBe("temporal_occurrence");
+  });
+
+  it("admits every in-range event for broad event queries", () => {
+    const runbook = createFactMemory({
+      category: "event",
+      content: "I updated the release runbook.",
+      id: "broad-runbook-update",
+      source: { extractedAt: TIMESTAMP, method: "explicit" },
+      updatedAt: TIMESTAMP,
+      userId: "user-1",
+    });
+    const query = "What happened yesterday?";
+    const language = createLanguageService();
+    const result = selectGeneralizedFactsForInternalUse(
+      [runbook],
+      query,
+      language,
+      "en-US",
+      "general_chat",
+      routingDecision(),
+      null,
+      TIMESTAMP,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      language.analyzeQuery(query, "en-US"),
+      new Set([runbook.id]),
+    );
+
+    expect(result.facts.map(({ id }) => id)).toEqual([runbook.id]);
+  });
+
+  it("matches regular English event predicates without a verb fixture list", () => {
+    const language = createLanguageService();
+    for (const [query, content] of [
+      ["What did I repair yesterday?", "I repaired the garden gate."],
+      ["What did I audit yesterday?", "I audited the release checklist."],
+      ["What did I cook yesterday?", "I cooked lentil soup."],
+    ] as const) {
+      const fact = createFactMemory({
+        category: "event",
+        content,
+        id: query,
+        source: { extractedAt: TIMESTAMP, method: "explicit" },
+        updatedAt: TIMESTAMP,
+        userId: "user-1",
+      });
+      const result = selectGeneralizedFactsForInternalUse(
+        [fact],
+        query,
+        language,
+        "en-US",
+        "general_chat",
+        routingDecision(),
+        null,
+        TIMESTAMP,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        language.analyzeQuery(query, "en-US"),
+        new Set([fact.id]),
+      );
+
+      expect(result.facts.map(({ id }) => id), query).toEqual([fact.id]);
+    }
+  });
+
   it("selects relevant facts without loading the fitted selector graph", () => {
     const facts = [
       createFactMemory({

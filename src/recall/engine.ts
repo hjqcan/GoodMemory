@@ -114,12 +114,14 @@ import {
 import {
   selectGeneralizedFactsForInternalUse,
 } from "./generalizedSelection";
+import { filterFactsByOccurrence } from "./occurrence";
 import type { FactSelector } from "./generalizedSelection";
 import type {
   ClaimProjection,
   RecallIndexDocument,
   RecallProjectionSearchPort,
 } from "./projections/contracts";
+import type { TemporalReferenceConstraint } from "./recallPlan";
 import {
   searchSemanticScores,
   type SemanticSearchScores,
@@ -147,13 +149,10 @@ export interface RecallInput {
   languageContext?: ResolvedLanguageContext;
   /** Internal request-local query analysis; public callers should omit it. */
   queryAnalysis?: LanguageQueryAnalysis;
-  /**
-   * Optional per-call temporal anchor (ISO-8601). When set to a parseable
-   * timestamp it replaces the config clock for this recall: plan resolution,
-   * temporal claim selection, document visibility, and freshness all anchor
-   * to it. Invalid values fall back to the config clock.
-   */
+  /** Request-local RFC 3339 temporal anchor. */
   referenceTime?: string;
+  /** Request-local IANA timezone for relative calendar expressions. */
+  timezone?: string;
 }
 
 export interface RecallHit {
@@ -203,7 +202,8 @@ export interface RecallCandidateTrace {
     | "zero_retrieval_lexical"
     | "cross_session_lexical_bridge"
     | "semantic_union"
-    | "generalized_fusion";
+    | "generalized_fusion"
+    | "temporal_occurrence";
   evidenceIds?: string[];
 }
 
@@ -979,11 +979,13 @@ export function createRecallEngine(config: RecallEngineConfig) {
               queryAnalysis,
               referenceTime: currentReferenceTime,
               scope: input.scope,
+              timezone: input.timezone,
             },
           });
       const recallPlan = planResolution.plan;
       const evidenceReferenceTime = recallPlan.temporalConstraints.find(
-        ({ kind }) => kind === "before" || kind === "current",
+        (constraint): constraint is TemporalReferenceConstraint =>
+          constraint.kind === "before" || constraint.kind === "current",
       )?.referenceTime ?? currentReferenceTime;
       const retrievalProfile = resolveRetrievalProfile(input.retrievalProfile);
       const policyApplied = new Set<string>();
@@ -1855,6 +1857,26 @@ export function createRecallEngine(config: RecallEngineConfig) {
             ...selectedClaimSourceFacts,
           ]
         : factsRaw;
+      const occurrenceFacts = filterFactsByOccurrence(
+        factSelectionPool,
+        recallPlan.temporalConstraints,
+      );
+      const hasOccurrenceFence = recallPlan.temporalConstraints.some(
+        (constraint) => constraint.kind === "during",
+      );
+      const occurrenceFactIds = hasOccurrenceFence
+        ? new Set(occurrenceFacts.map(({ id }) => id))
+        : undefined;
+      const occurrenceSuppressedFactIds = hasOccurrenceFence
+        ? new Set(
+            factSelectionPool
+              .filter(({ id }) => !occurrenceFactIds!.has(id))
+              .map(({ id }) => id),
+          )
+        : new Set<string>();
+      if (hasOccurrenceFence) {
+        policyApplied.add("event_occurrence_fence");
+      }
       const selectedFacts = factSelector(
         factSelectionPool,
         input.query,
@@ -1869,6 +1891,7 @@ export function createRecallEngine(config: RecallEngineConfig) {
         semanticUnion,
         generalizedFusion,
         queryAnalysis,
+        occurrenceFactIds,
       );
       let facts = await applyRecallPolicyToRecords(
         selectedFacts.facts,
@@ -2127,8 +2150,12 @@ export function createRecallEngine(config: RecallEngineConfig) {
           policyContext,
         ),
       ];
+      facts = filterFactsByOccurrence(facts, recallPlan.temporalConstraints);
       const rerankPoolSelection = {
-        facts: [...new Map(poolFacts.map((record) => [record.id, record])).values()],
+        facts: filterFactsByOccurrence(
+          [...new Map(poolFacts.map((record) => [record.id, record])).values()],
+          recallPlan.temporalConstraints,
+        ),
         references: [...new Map(
           poolReferences.map((record) => [record.id, record]),
         ).values()],
@@ -2235,13 +2262,17 @@ export function createRecallEngine(config: RecallEngineConfig) {
       const assistantSuppressionTraceReason = createAssistantSuppressionTraceReason(
         assistantInfluence?.suppressedCandidateIds ?? [],
       );
+      const factSuppressionTraceReason = (trace: RecallCandidateTrace): string =>
+        occurrenceSuppressedFactIds.has(trace.memoryId)
+          ? "event_occurrence_mismatch"
+          : assistantSuppressionTraceReason(trace);
       const candidateTraces = appendAssistantTraceDetails(
         attachEvidenceIdsToCandidateTraces(
           [
             ...reconcileCandidateTraces(
               selectedFacts.traces,
               new Set(facts.map((fact) => fact.id)),
-              assistantSuppressionTraceReason,
+              factSuppressionTraceReason,
             ),
             ...reconcileCandidateTraces(
               selectedReferences.traces,
@@ -2304,6 +2335,10 @@ export function createRecallEngine(config: RecallEngineConfig) {
             ambiguousSourceMemoryIds: [...ambiguousSourceMemoryIds],
             claims: ledgerClaims,
             evidence,
+            facts,
+            occurrenceInterval: recallPlan.temporalConstraints.find(
+              (constraint) => constraint.kind === "during",
+            )?.interval,
             referenceTime: evidenceReferenceTime,
             selectedMemoryIds,
           })
@@ -2453,6 +2488,9 @@ export function createRecallEngine(config: RecallEngineConfig) {
             generalizedFusionConfig?.contentLaneRecords?.sessionArchives ?? 1,
         },
         referenceTime: evidenceReferenceTime,
+        occurrenceInterval: recallPlan.temporalConstraints.find(
+          (constraint) => constraint.kind === "during",
+        )?.interval,
       });
     },
   };

@@ -35,6 +35,10 @@ import {
   splitSentencesGeneric,
 } from "./packHelpers";
 import { analyzeEnglishBehavioralRule } from "./englishBehavioral";
+import {
+  canResolveOccurrenceExpression,
+  maskQuotedTemporalLiterals,
+} from "./temporal";
 
 const BEHAVIORAL_RULE_PATTERNS = {
   firstAction: [
@@ -55,6 +59,51 @@ const BEHAVIORAL_RULE_PATTERNS = {
 } as const;
 
 const GREETING_PATTERN = /^(hi|hello|hey|thanks|thank you|ok|okay)[.!]?$/i;
+const IRREGULAR_EVENT_PREDICATES: Readonly<Record<string, string>> = {
+  ate: "eat",
+  eaten: "eat",
+  met: "meet",
+};
+
+function englishEventPredicate(text: string): string | undefined {
+  return text.match(
+    /\b(?:did|have|has|had)\s+(?:i|we)\s+([a-z]+)\b/iu,
+  )?.[1]?.toLowerCase() ?? text.match(
+    /^\s*(?:i|we)\s+(?:(?:have|had)\s+)?([a-z]+)\b/iu,
+  )?.[1]?.toLowerCase();
+}
+
+function englishPredicateForms(predicate: string): Set<string> {
+  const forms = new Set([predicate]);
+  const irregular = IRREGULAR_EVENT_PREDICATES[predicate];
+  if (irregular) {
+    forms.add(irregular);
+  }
+  if (predicate.endsWith("ied") && predicate.length > 3) {
+    forms.add(`${predicate.slice(0, -3)}y`);
+  }
+  if (predicate.endsWith("ed") && predicate.length > 3) {
+    forms.add(predicate.slice(0, -2));
+    forms.add(predicate.slice(0, -1));
+  }
+  if (predicate.endsWith("ing") && predicate.length > 4) {
+    forms.add(predicate.slice(0, -3));
+    forms.add(`${predicate.slice(0, -3)}e`);
+  }
+  return forms;
+}
+
+function matchesEnglishEventPredicate(query: string, candidate: string): boolean {
+  const queryPredicate = englishEventPredicate(query);
+  const candidatePredicate = englishEventPredicate(candidate);
+  if (!queryPredicate || !candidatePredicate) {
+    return false;
+  }
+  const queryForms = englishPredicateForms(queryPredicate);
+  return [...englishPredicateForms(candidatePredicate)].some((form) =>
+    queryForms.has(form)
+  );
+}
 const PROFILE_NAME_PATTERN =
   /\b[Mm]y\s+[Nn]ame\s+[Ii]s\s+((?:\p{Lu}\.|[\p{Lu}][\p{L}\p{M}'’-]*)(?:\s+(?:\p{Lu}\.|[\p{Lu}][\p{L}\p{M}'’-]*)){0,2})(?=\s*(?:[,.!?]|\band\b|$))/u;
 const PROFILE_ROLE_WITH_ORGANIZATION_AND_LOCATION_PATTERN =
@@ -100,6 +149,8 @@ const PLANNED_OPEN_LOOP_PATTERN =
   /\bi(?:'ll| will)\s+([^.!?]+?)(?=[.!?]|$)/i;
 const RECENT_EVENT_PATTERN =
   /\bi\s+(?:actually|just|recently|today|yesterday|last\s+\w+)\s+([A-Za-z][A-Za-z'’-]*(?:\s+(?:in|off|on|out|up))?)\s+([^,.!?]+?)(?=[,.!?]|$)/i;
+const COMPLETED_FIRST_PERSON_EVENT_PATTERN =
+  /^i(?:'ve| have)?\s+(?:(?:actually|already|just|recently)\s+)*(?:[a-z][a-z'’-]*(?:ed|aught|ought|ept)|ate|became|began|bought|built|came|did|drank|drove|felt|found|gave|got|had|heard|kept|knew|left|lost|made|met|paid|ran|read|said|saw|sent|spoke|spent|took|went|won|wrote)\b/iu;
 const PERSONAL_BEST_TIME_PATTERN =
   /\bpersonal best time(?:\s+in\s+(.+?))?\s+(?:with a time of|of)\s+([0-9]{1,2}:[0-9]{2}|[0-9]+\s+minutes?(?:\s+and\s+[0-9]+\s+seconds?)?)(?=\s|[,.!?]|$)/i;
 const LEARNING_WITH_TOOL_PATTERN =
@@ -737,6 +788,123 @@ function cleanEventObject(value: string): string {
     .trim();
 }
 
+const ENGLISH_MONTH_NAME_PATTERN =
+  /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\b/gu;
+
+function maskEnglishMonthObjects(content: string): string {
+  let masked = content;
+  for (const match of content.matchAll(ENGLISH_MONTH_NAME_PATTERN)) {
+    const start = match.index;
+    const month = match[0];
+    const prefix = content.slice(0, start);
+    const suffix = content.slice(start + month.length);
+    if (
+      /\b(?:in|during|on|last|this|next)\s*$/iu.test(prefix) ||
+      /^\s+(?:\d{1,2}(?:st|nd|rd|th)?(?:,|\s)|\d{4}\b)/u.test(suffix)
+    ) {
+      continue;
+    }
+    masked = masked.slice(0, start) + " ".repeat(month.length) +
+      masked.slice(start + month.length);
+  }
+  return masked;
+}
+
+function maskEnglishTemporalLiterals(content: string): string {
+  return maskEnglishMonthObjects(maskQuotedTemporalLiterals(content))
+    .replace(
+      /\b(?:movie|film|book|song|album|show|play)\s+(?:Yesterday|Today|Tomorrow)\b/gu,
+      (title) => " ".repeat(title.length),
+    )
+    .replace(
+      /\b(?:Yesterday|Today|Tomorrow)\b(?=[^.!?]*\b(?:yesterday|today|tomorrow)\b)/gu,
+      (title) => " ".repeat(title.length),
+    );
+}
+
+function isEnglishCompletedEventAssertion(content: string): boolean {
+  return !(
+    /[?？]/u.test(content) ||
+    /,\s*(?:right|correct|yeah|isn['’]t it)\s*[.!]*$/iu.test(content) ||
+    /\b(?:what|who|where|when|why|how)\s*[.!]?$/iu.test(content) ||
+    /\b(?:did\s+not|didn['’]t|had\s+not|has\s+not|have\s+not|never)\b/iu.test(
+      content,
+    )
+  );
+}
+
+function stripEnglishOccurrenceExpressions(
+  content: string,
+  maskedContent: string,
+  expressions: ReadonlyArray<ReturnType<typeof parseEnglishTemporalExpressions>[number]>,
+): string {
+  const ranges = expressions
+    .map((expression) => {
+      const start = maskedContent.indexOf(expression.raw);
+      return start < 0
+        ? undefined
+        : { end: start + expression.raw.length, start };
+    })
+    .filter((range): range is { end: number; start: number } => range !== undefined)
+    .sort((left, right) => right.start - left.start);
+  let canonical = content;
+  for (const { end, start } of ranges) {
+    const before = canonical.slice(0, start).replace(
+      /\b(?:at|during|in|on)\s*$/iu,
+      "",
+    );
+    canonical = `${before}${canonical.slice(end)}`;
+  }
+  return canonical
+    .replace(/^\s*[,;:]\s*/u, "")
+    .replace(/\s+([,.;!?])/gu, "$1")
+    .replace(/\s{2,}/gu, " ")
+    .trim();
+}
+
+function extractEnglishOccurrenceEvent(
+  content: string,
+  context: {
+    locale: string;
+    observedAt?: string;
+    timezone?: string;
+  },
+): { content: string; occurrenceExpression: ReturnType<typeof parseEnglishTemporalExpressions>[number] } | undefined {
+  if (!isEnglishCompletedEventAssertion(content)) {
+    return undefined;
+  }
+  const maskedTitles = maskEnglishTemporalLiterals(content);
+  const occurrenceExpression = parseEnglishTemporalExpressions(maskedTitles)[0];
+  if (!occurrenceExpression) {
+    return undefined;
+  }
+
+  const supersededExpressions = "iso" in occurrenceExpression
+    ? parseEnglishTemporalExpressions(
+      maskedTitles.replace(
+        occurrenceExpression.raw,
+        " ".repeat(occurrenceExpression.raw.length),
+      ),
+    )
+    : [];
+  const canonical = stripEnglishOccurrenceExpressions(
+    content,
+    maskedTitles,
+    [occurrenceExpression, ...supersededExpressions],
+  );
+  const canonicalize = canResolveOccurrenceExpression({
+    ...context,
+    expression: occurrenceExpression,
+  });
+
+  return COMPLETED_FIRST_PERSON_EVENT_PATTERN.test(canonical)
+    ? {
+      content: canonicalize ? canonical : content,
+      occurrenceExpression,
+    }
+    : undefined;
+}
+
 function cleanPersonalUseTarget(value: string): string {
   return cleanExtractedValue(value)
     .replace(/\s+(?:that|which)\s+i\b.*$/i, "")
@@ -833,6 +1001,11 @@ function maybeExtractCandidatesFromClause(
   analysis?: LanguageContentAnalysis,
   hasSourceOfTruthReference = false,
   disposition: "fact" | "feedback" | "ordinary" = "ordinary",
+  occurrenceContext?: {
+    locale: string;
+    observedAt?: string;
+    timezone?: string;
+  },
 ): MemoryCandidate[] {
   const trimmed = content.trim();
 
@@ -858,6 +1031,31 @@ function maybeExtractCandidatesFromClause(
         appliesTo: "general_response",
       },
     }];
+  }
+
+  const occurrenceEvent = extractEnglishOccurrenceEvent(
+    trimmed,
+    occurrenceContext ?? { locale: "en-US" },
+  );
+  if (occurrenceEvent) {
+    return [
+      createFactCandidate(
+        index,
+        nextId,
+        occurrenceEvent.content,
+        "event",
+        { occurrenceExpression: occurrenceEvent.occurrenceExpression },
+      ),
+    ];
+  }
+  const maskedTemporalLiterals = maskEnglishTemporalLiterals(trimmed);
+  if (
+    isEnglishCompletedEventAssertion(trimmed) &&
+    COMPLETED_FIRST_PERSON_EVENT_PATTERN.test(trimmed) &&
+    parseEnglishTemporalExpressions(trimmed).length > 0 &&
+    parseEnglishTemporalExpressions(maskedTemporalLiterals).length === 0
+  ) {
+    return [createFactCandidate(index, nextId, trimmed, "event")];
   }
 
   const candidates: MemoryCandidate[] = [];
@@ -1515,7 +1713,7 @@ function maybeExtractCandidatesFromClause(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "14-explicit-fact-list-boundary",
+    analyzerVersion: "15-occurrence-expression",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",
@@ -1563,6 +1761,7 @@ export function createEnglishLanguagePack(): LanguagePack {
     analyzeQuery: analyzeEnglishQuery,
     analyzeContent: analyzeEnglishContent,
     parseTemporalExpressions: parseEnglishTemporalExpressions,
+    matchesEventPredicate: matchesEnglishEventPredicate,
     extractEntityMentions: extractEnglishEntityMentions,
     matchesEntityAlias(query, alias) {
       return matchesNormalizedEntityAlias(
@@ -1612,6 +1811,11 @@ export function createEnglishLanguagePack(): LanguagePack {
               clauseAnalysis,
               Boolean(sourceOfTruthReference),
               clause.disposition,
+              {
+                locale: input.locale,
+                observedAt: message.observedAt,
+                timezone: message.timezone,
+              },
             ),
           );
         }

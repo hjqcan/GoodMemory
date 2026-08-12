@@ -143,6 +143,43 @@ const CONTENT = {
     /(?:^|[^\p{L}\p{N}])(?:a bien fonctionné|efficace|réussi|réussie|continue comme ça|garder cette méthode)(?=$|[^\p{L}\p{N}])/iu,
 } as const;
 
+const FRENCH_EVENT_TEMPORAL_PATTERN =
+  /\b(?:avant-hier|hier|aujourd['’]hui|il\s+y\s+a\s+\d{1,3}\s+jours?|(?:la\s+)?semaine\s+dernière|ce\s+mois(?:-ci)?|(?:le\s+)?mois\s+dernier|(?:le\s+)?trimestre\s+dernier|l['’]année\s+dernière)\b|\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b|\b\d{1,2}\s+(?:janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+\d{4}\b/iu;
+
+function frenchEventOccurrenceQueryMode(
+  text: string,
+): LanguageQueryAnalysis["eventOccurrenceQueryMode"] {
+  const temporal = text.match(FRENCH_EVENT_TEMPORAL_PATTERN);
+  if (!temporal) {
+    return undefined;
+  }
+  const temporalIndex = temporal.index ?? -1;
+  if (temporalIndex >= 0) {
+    const prefix = text.slice(0, temporalIndex);
+    const suffix = text.slice(temporalIndex + temporal[0].length);
+    if (
+      /\b(?:avant|après)(?:\s+(?:le|la|les|l['’]))?\s*$/iu.test(prefix) ||
+      /\b(?:projet|film|chanson|livre|album)\s*$/iu.test(prefix) ||
+      /[«“"]\s*$/u.test(prefix) && /^\s*[»”"]/u.test(suffix)
+    ) {
+      return undefined;
+    }
+  }
+  if (
+    /\bque\s+s['’]est-il\s+passé/iu.test(text) ||
+    /\bqu['’]est-il\s+arrivé/iu.test(text)
+  ) {
+    return "broad";
+  }
+  return (
+    /\b(?:qu['’]est-ce\s+que\s+j['’]ai|qu['’]ai-je)\s+\p{L}+/iu.test(text) ||
+    /(?:^|[^\p{L}\p{N}])(?:quel(?:le|s|les)?|où|qui)(?=$|[^\p{L}\p{N}])[^?]{0,80}\b(?:ai-je|avons-nous)\s+\p{L}+/iu.test(
+      text,
+    ) ||
+    /\boù\s+suis-je\s+allé(?:e)?/iu.test(text)
+  ) ? "predicate" : undefined;
+}
+
 function analyzeFrenchQuery(text: string): LanguageQueryAnalysis {
   const base = emptyQueryAnalysis();
   const role = QUERY.role.test(text);
@@ -150,6 +187,7 @@ function analyzeFrenchQuery(text: string): LanguageQueryAnalysis {
   const blocker = QUERY.blocker.test(text);
   const openLoop = QUERY.openLoop.test(text);
   const before = QUERY.before.test(text);
+  const eventOccurrenceQueryMode = frenchEventOccurrenceQueryMode(text);
   return {
     ...base,
     actionDriving: QUERY.actionDriving.test(text),
@@ -163,6 +201,8 @@ function analyzeFrenchQuery(text: string): LanguageQueryAnalysis {
     continuation: QUERY.continuation.test(text),
     current: QUERY.current.test(text),
     directFactualLookup: QUERY.directFactualLookup.test(text.trim()),
+    eventOccurrenceQuery: eventOccurrenceQueryMode !== undefined,
+    ...(eventOccurrenceQueryMode ? { eventOccurrenceQueryMode } : {}),
     exhaustiveList: QUERY.exhaustiveList.test(text),
     factConfirmation: role || focus || blocker || openLoop ||
       (QUERY.confirm.test(text) && QUERY.factConfirmationTarget.test(text)),
@@ -384,7 +424,7 @@ const FRENCH_MONTHS = [
 ] as const;
 
 const DEFINITION = {
-  analyzerVersion: "6-explicit-fact-list-boundary",
+  analyzerVersion: "7-occurrence-expression",
   behavioralRulePatterns: {
     firstAction: [
       /(?:d['’]abord|en\s+premier(?:\s+lieu)?)\s+([A-Za-z_][A-Za-z0-9_@.-]*)/iu,
@@ -429,6 +469,7 @@ const DEFINITION = {
   decompositionBoundary: /\s+(?:et|ainsi que|puis)\s+/iu,
   analyzeQuery: analyzeFrenchQuery,
   analyzeContent: analyzeFrenchContent,
+  daysAgoPattern: /\bil\s+y\s+a\s+(\d{1,3})\s+jours?\b/iu,
   temporalPatterns: [
     { offset: -2, pattern: /\bavant-hier\b/iu, unit: "day" },
     { offset: 2, pattern: /\baprès-demain\b/iu, unit: "day" },
@@ -456,6 +497,7 @@ const DEFINITION = {
   candidatePatterns: {
     assignmentConfirmation:
       /\b(?:est|semble)\s+(?:correcte?|exacte?|vraie?)\s*$/iu,
+    completedEvent: /^(?:j['’]ai|je\s+suis)\s+\p{L}/iu,
     bareQuestionValue:
       /^(?:quoi|quel(?:le|les|s)?|qui|où|quand|pourquoi|comment|combien|est-ce|qu['’]est-ce)$/iu,
     explicitFact:
@@ -463,6 +505,8 @@ const DEFINITION = {
     explicitFactPrefix:
       /^\s*(?:s['’]il\s+(?:te|vous)\s+plaît\s*,?\s*)?(?:souviens-toi|rappelez-vous|mémorise|n['’]oublie\s+pas)\b/iu,
     feedback: /^(?:ne\b[^.!?]{0,120}\b(?:pas|jamais)|jamais\b|toujours\b|évite\b|privilégie\b)/iu,
+    futurePlan: /^(?:demain\s+)?(?:je\s+vais|j['’]irai|je\s+compte|je\s+prévois(?:\s+de)?|nous\s+allons)(?=\s|[.!?]|$)/iu,
+    occurrenceConfirmation: /,\s*(?:non|n['’]est-ce\s+pas|hein)\s*[.!]*$/iu,
     optOut:
       /^(?:s['’]il\s+(?:te|vous)\s+plaît\s*,?\s*)?(?:ne\s+(?:mémorise|mémorisez|retiens|retenez|sauvegarde|sauvegardez|enregistre|enregistrez)\s+(?:pas|jamais)|n['’]enregistre\s+pas)\b/iu,
     optOutClauseBoundary:
@@ -477,6 +521,7 @@ const DEFINITION = {
     name: /\b(?:je m['’]appelle|mon nom est)\s+([\p{L}\p{M}'’.-]+(?:\s+[\p{L}\p{M}'’.-]+){0,3})/iu,
     preference: /\b(?:je préfère|ma préférence est)\s+([^.!?]+)/iu,
     role: /\b(?:mon rôle actuel est|ma fonction actuelle est|mon poste actuel est)\s+([^.!?]+)/iu,
+    timezone: /\bmon\s+fuseau\s+horaire\s+est\s+([A-Za-z0-9_./+-]+)/iu,
     unpunctuatedQuestion:
       /\b(?:est|sont|était|étaient)\s+(?:quoi|quel(?:le|les|s)?|qui|où|quand|pourquoi|comment|combien)$/iu,
   },

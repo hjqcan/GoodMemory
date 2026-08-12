@@ -390,8 +390,16 @@ export function parseTechnicalTemporalExpressions(
 ): LanguageTemporalExpression[] {
   const expressions: LanguageTemporalExpression[] = [];
   for (const match of text.matchAll(
+    /\btime\s*=\s*(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}))/giu,
+  )) {
+    expressions.push({ kind: "absolute", raw: match[0], iso: match[1]! });
+  }
+  for (const match of text.matchAll(
     /\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b/gu,
   )) {
+    if (expressions.some(({ raw }) => raw.includes(match[0]))) {
+      continue;
+    }
     expressions.push({
       kind: "absolute",
       raw: match[0],
@@ -401,11 +409,6 @@ export function parseTechnicalTemporalExpressions(
         year: Number(match[1]),
       },
     });
-  }
-  for (const match of text.matchAll(
-    /\btime\s*=\s*((?!unknown\b)[^\]\s]+)/giu,
-  )) {
-    expressions.push({ kind: "absolute", raw: match[0], iso: match[1]! });
   }
   return expressions;
 }

@@ -7,6 +7,7 @@ import type {
 import { readGoodMemoryIntegrationSupport } from "../api/integrationSupport";
 import type { MemoryScope } from "../domain/scope";
 import { scopeToKey } from "../domain/scope";
+import type { TemporalInterval } from "../domain/temporal";
 import type { LanguageRenderKey, LanguageService } from "../language";
 import {
   estimateTextTokens,
@@ -71,7 +72,9 @@ export interface SearchRecallIndexInput {
   locale?: RecallInput["locale"];
   includeRuntime?: boolean;
   limit?: number;
+  referenceTime?: RecallInput["referenceTime"];
   retrievalProfile?: RecallInput["retrievalProfile"];
+  timezone?: RecallInput["timezone"];
 }
 
 export interface ProgressiveRecallIndexRecord {
@@ -80,6 +83,7 @@ export interface ProgressiveRecallIndexRecord {
   title: string;
   summary: string;
   occurredAt?: string;
+  occurrence?: TemporalInterval;
   score: number;
   estimatedDetailTokens: number;
   estimatedIndexTokens: number;
@@ -159,6 +163,7 @@ export interface ProgressiveRecallService {
 interface CandidateRecord {
   detail: Record<string, unknown>;
   id: string;
+  occurrence?: TemporalInterval;
   occurredAt?: string;
   recordKind: ProgressiveRecordKind;
   required?: boolean;
@@ -272,8 +277,10 @@ export function createProgressiveRecallService(
     includeRuntime?: boolean;
     locale?: RecallInput["locale"];
     query?: string;
+    referenceTime?: RecallInput["referenceTime"];
     retrievalProfile?: RecallInput["retrievalProfile"];
     scope: MemoryScope;
+    timezone?: RecallInput["timezone"];
   }): Promise<{
     candidates: CandidateRecord[];
     generatedAt: string;
@@ -287,7 +294,9 @@ export function createProgressiveRecallService(
       retrievalProfile,
       locale: options.locale,
       query: options.query ?? "",
+      referenceTime: options.referenceTime,
       scope: options.scope,
+      timezone: options.timezone,
     });
     const scopeDigest = buildProgressiveScopeDigest({
       scope: options.scope,
@@ -346,8 +355,10 @@ export function createProgressiveRecallService(
       includeRuntime: options.includeRuntime,
       locale: options.locale,
       query: options.query,
+      referenceTime: options.referenceTime,
       retrievalProfile: options.retrievalProfile,
       scope: options.scope,
+      timezone: options.timezone,
     });
     const ranked = candidates
       .map((candidate) => ({
@@ -389,10 +400,15 @@ export function createProgressiveRecallService(
     const groups = new Map<string, ProgressiveRecallIndexRecord[]>();
 
     for (const record of index.records) {
+      const candidate = visibleCandidatesByScopeDigest
+        .get(index.scopeDigest)
+        ?.get(record.recordRef)
+        ?.candidate;
       const label = buildTimelineLabel(
         record.occurredAt,
         activeLanguage,
         index.locale ?? defaultLanguage.locale,
+        candidate?.occurrence,
       );
       const bucket = groups.get(label) ?? [];
       if (bucket.length < recordsPerBucket) {
@@ -591,11 +607,13 @@ function collectCandidates(input: {
         factKind: fact.factKind,
         importance: fact.importance,
         lifecycle: fact.lifecycle,
+        occurrence: fact.occurrence,
         subject: fact.subject,
         tags: fact.tags,
       },
       id: fact.id,
-      occurredAt: fact.updatedAt,
+      occurrence: fact.occurrence,
+      occurredAt: fact.occurrence?.start ?? fact.updatedAt,
       recordKind: "fact",
       source: "durable",
       summary: fact.content,
@@ -852,6 +870,9 @@ function renderProgressiveRecordLine(input: {
     `${input.language.render({ key: "record_kind" }, input.locale)}: ${input.record.recordKind}`,
     `${input.language.render({ key: "record_ref" }, input.locale)}: ${input.record.recordRef}`,
   ];
+  if (input.record.occurrence) {
+    parts.push(formatProgressiveOccurrence(input.record.occurrence));
+  }
   if (input.summaryMaxChars > 0) {
     parts.push(
       `${input.language.render({ key: "summary" }, input.locale)}: ${clipText(input.record.summary, input.summaryMaxChars)}`,
@@ -919,6 +940,7 @@ function toIndexRecord(input: {
     ),
     estimatedIndexTokens: estimateTextTokens(indexText),
     occurredAt: input.candidate.occurredAt,
+    occurrence: input.candidate.occurrence,
     recordKind: input.candidate.recordKind,
     recordRef,
     score: scoreText(indexText, input.query, input.language, input.locale),
@@ -926,6 +948,35 @@ function toIndexRecord(input: {
     summary,
     title,
   };
+}
+
+function formatProgressiveOccurrence(occurrence: TemporalInterval): string {
+  if (occurrence.precision === "instant") {
+    return `[${occurrence.start}, ${occurrence.timezone}]`;
+  }
+  const start = formatOccurrenceDate(occurrence.start, occurrence.timezone);
+  if (occurrence.precision === "day") {
+    return `[${start}, ${occurrence.timezone}]`;
+  }
+  const endExclusive = formatOccurrenceDate(
+    occurrence.endExclusive,
+    occurrence.timezone,
+  );
+  return `[${start} to ${endExclusive}, ${occurrence.precision}, ${occurrence.timezone}]`;
+}
+
+function formatOccurrenceDate(value: string, timezone: string): string {
+  const parts = new Map(
+    new Intl.DateTimeFormat("en-CA-u-ca-iso8601-nu-latn", {
+      day: "2-digit",
+      month: "2-digit",
+      timeZone: timezone,
+      year: "numeric",
+    }).formatToParts(new Date(value))
+      .filter(({ type }) => type !== "literal")
+      .map(({ type, value: part }) => [type, part]),
+  );
+  return `${parts.get("year")!}-${parts.get("month")!}-${parts.get("day")!}`;
 }
 
 function compareIndexRecords(
@@ -1107,6 +1158,7 @@ function buildTimelineLabel(
   value: string | undefined,
   language: ProgressiveLanguagePort,
   locale: string,
+  occurrence?: TemporalInterval,
 ): string {
   if (!value) {
     return language.render({ key: "undated" }, locale);
@@ -1115,6 +1167,41 @@ function buildTimelineLabel(
   const timestamp = Date.parse(value);
   if (Number.isNaN(timestamp)) {
     return language.render({ key: "undated" }, locale);
+  }
+
+  if (occurrence) {
+    const values = new Map(
+      new Intl.DateTimeFormat("en-CA-u-ca-iso8601-nu-latn", {
+        day: "2-digit",
+        hour: "2-digit",
+        hourCycle: "h23",
+        minute: "2-digit",
+        month: "2-digit",
+        second: "2-digit",
+        timeZone: occurrence.timezone,
+        year: "numeric",
+      }).formatToParts(new Date(timestamp))
+        .filter(({ type }) => type !== "literal")
+        .map(({ type, value: part }) => [type, part]),
+    );
+    const year = values.get("year")!;
+    const month = values.get("month")!;
+    const day = values.get("day")!;
+    if (occurrence.precision === "year") {
+      return year;
+    }
+    if (occurrence.precision === "quarter") {
+      return `${year}-Q${Math.floor((Number(month) - 1) / 3) + 1}`;
+    }
+    if (occurrence.precision === "month") {
+      return `${year}-${month}`;
+    }
+    const date = `${year}-${month}-${day}`;
+    return occurrence.precision === "instant"
+      ? `${date}T${values.get("hour")!}:${values.get("minute")!}:${
+        values.get("second")!
+      }`
+      : date;
   }
 
   return new Date(timestamp).toISOString().slice(0, 10);

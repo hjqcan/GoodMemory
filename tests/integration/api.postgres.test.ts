@@ -49,6 +49,66 @@ async function cleanupUserData(url: string, userId: string): Promise<void> {
 
 if (POSTGRES_URL) {
   describe("public postgres API", () => {
+    it("preserves event occurrence and day-fenced recall across postgres instances", async () => {
+      const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const userId = `pg-temporal-${unique}`;
+      const durableScope = {
+        userId,
+        workspaceId: "workspace-a",
+      };
+      const storage = {
+        provider: "postgres" as const,
+        url: POSTGRES_URL,
+      };
+
+      try {
+        const writer = createGoodMemory({ storage });
+        await writer.remember({
+          extractionStrategy: "rules-only",
+          locale: "zh-CN",
+          messages: [{
+            content: "我昨天吃了番茄炒蛋。",
+            observedAt: "2026-08-12T02:00:00.000Z",
+            role: "user",
+            timezone: "Asia/Shanghai",
+          }],
+          scope: { ...durableScope, sessionId: "write" },
+        });
+
+        const reader = createGoodMemory({ storage });
+        const exported = await reader.exportMemory({ scope: durableScope });
+        const sameDay = await reader.recall({
+          locale: "zh-CN",
+          query: "我昨天吃了什么？",
+          referenceTime: "2026-08-12T03:00:00.000Z",
+          scope: { ...durableScope, sessionId: "read-same-day" },
+          strategy: "rules-only",
+          timezone: "Asia/Shanghai",
+        });
+        const nextDay = await reader.recall({
+          locale: "zh-CN",
+          query: "我昨天吃了什么？",
+          referenceTime: "2026-08-13T03:00:00.000Z",
+          scope: { ...durableScope, sessionId: "read-next-day" },
+          strategy: "rules-only",
+          timezone: "Asia/Shanghai",
+        });
+
+        expect(exported.durable.facts[0]?.occurrence).toEqual({
+          endExclusive: "2026-08-11T16:00:00.000Z",
+          precision: "day",
+          start: "2026-08-10T16:00:00.000Z",
+          timezone: "Asia/Shanghai",
+        });
+        expect(sameDay.facts.map(({ content }) => content)).toEqual([
+          "我吃了番茄炒蛋。",
+        ]);
+        expect(nextDay.facts).toEqual([]);
+      } finally {
+        await cleanupUserData(POSTGRES_URL, userId);
+      }
+    }, 15_000);
+
     it("rejects NUL-containing facts before JSONB persistence", async () => {
       const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const userId = `pg-nul-${unique}`;

@@ -10,6 +10,7 @@ import type {
   RecallProjectionSourceCollection,
 } from "./projections/contracts";
 import type { RecallPlan } from "./recallPlan";
+import type { TemporalReferenceConstraint } from "./recallPlan";
 
 export type GeneralizedFusionChannel =
   | "lexical"
@@ -616,7 +617,8 @@ function selectTemporalClaims(input: {
   const changeRequested = input.plan.aggregation === "change";
   const countRequested = input.plan.aggregation === "count";
   const boundaries = input.plan.temporalConstraints.filter(
-    ({ kind }) => kind === "before" || kind === "after",
+    (constraint): constraint is TemporalReferenceConstraint =>
+      constraint.kind === "before" || constraint.kind === "after",
   );
 
   for (const group of groups.values()) {

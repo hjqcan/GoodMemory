@@ -42,6 +42,7 @@ export interface SourceMessageRecord extends MemoryScope {
   role: string;
   content: string;
   observedAt?: string;
+  timezone?: string;
   ingestedAt: string;
   contentSha256: string;
 }

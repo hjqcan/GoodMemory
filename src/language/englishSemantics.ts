@@ -169,6 +169,46 @@ function isEnglishTemporalIntervalQuery(query: string): boolean {
   );
 }
 
+function isEnglishEventOccurrenceQuery(query: string): boolean {
+  const expression = parseEnglishTemporalReference(query);
+  if (!expression) {
+    return false;
+  }
+  const expressionIndex = query.indexOf(expression.raw);
+  if (expressionIndex >= 0) {
+    const prefix = query.slice(0, expressionIndex);
+    const suffix = query.slice(expressionIndex + expression.raw.length);
+    if (
+      /\b(?:before|after)\s*$/iu.test(prefix) ||
+      /\b(?:project|movie|film|song|book|album)\s*$/iu.test(prefix) ||
+      /["“‘']\s*$/u.test(prefix) && /^\s*["”’']/u.test(suffix)
+    ) {
+      return false;
+    }
+  }
+  return (
+    /\b(?:what|which|where|who)\b[^?]{0,80}\b(?:did|have|has|had)\s+(?:i|we)\s+\p{L}+/iu.test(
+      query,
+    ) ||
+    /\b(?:which|what)\s+(?:completed\s+)?(?:event|activity|task)\b[^?]{0,80}\b(?:did|have|has|had)\s+(?:i|we)\b/iu.test(
+      query,
+    ) ||
+    /\bwhat\s+(?:happened|occurred|took\s+place)\b/iu.test(query) ||
+    /\bwhere\s+did\s+(?:i|we)\s+go\b/iu.test(query)
+  );
+}
+
+function englishEventOccurrenceQueryMode(
+  query: string,
+): LanguageQueryAnalysis["eventOccurrenceQueryMode"] {
+  if (!isEnglishEventOccurrenceQuery(query)) {
+    return undefined;
+  }
+  return /\bwhat\s+(?:happened|occurred|took\s+place)\b/iu.test(query)
+    ? "broad"
+    : "predicate";
+}
+
 export function analyzeEnglishQuery(query: string): LanguageQueryAnalysis {
   const temporalOperands = extractEnglishTemporalOperands(query);
   const temporalInterval = isEnglishTemporalIntervalQuery(query);
@@ -197,18 +237,23 @@ export function analyzeEnglishQuery(query: string): LanguageQueryAnalysis {
         query,
       )
     );
+  const eventOccurrenceQueryMode = englishEventOccurrenceQueryMode(query);
   return {
     actionDriving: QUERY.actionDriving.test(query),
     after: QUERY.after.test(query),
     aggregateCount: QUERY.aggregateCount.test(query) && !temporalInterval,
     answerComposition: QUERY.answer.test(query),
     assistantEvidenceRecall: QUERY.assistantEvidenceRecall.test(query),
-    before: QUERY.before.test(query),
+    before: QUERY.before.test(
+      query.replace(/\b(?:the\s+)?day\s+before\s+yesterday\b/giu, ""),
+    ),
     blocker: QUERY.blocker.test(query),
     change: QUERY.change.test(query),
     continuation: QUERY.continuation.test(query),
     current: QUERY.current.test(query),
     directFactualLookup: QUERY.directFactualLookup.test(query.trim()),
+    eventOccurrenceQuery: eventOccurrenceQueryMode !== undefined,
+    ...(eventOccurrenceQueryMode ? { eventOccurrenceQueryMode } : {}),
     exhaustiveList: QUERY.exhaustiveList.test(query),
     factConfirmation: role || QUERY.focus.test(query) || openLoop ||
       QUERY.blocker.test(query) ||
@@ -323,8 +368,12 @@ export function decomposeEnglishQuery(query: string): string[] {
 export function parseEnglishTemporalExpressions(
   text: string,
 ): LanguageTemporalExpression[] {
-  const primary = parseEnglishTemporalReference(text);
   const technical = parseTechnicalTemporalExpressions(text);
+  const instant = technical.find((expression) => "iso" in expression);
+  if (instant) {
+    return [instant, ...technical.filter(({ raw }) => raw !== instant.raw)];
+  }
+  const primary = parseEnglishTemporalReference(text);
   return primary
     ? [primary, ...technical.filter(({ raw }) => raw !== primary.raw)]
     : technical;

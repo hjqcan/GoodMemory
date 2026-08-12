@@ -48,6 +48,7 @@ export interface MemoryExtractionInput {
   annotations?: MessageAnnotation[];
   extractionStrategy?: MemoryExtractionStrategy;
   locale?: string;
+  timezone?: string;
 }
 
 export interface MemoryExtractionContext {

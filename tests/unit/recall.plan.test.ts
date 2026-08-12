@@ -23,6 +23,107 @@ function plan(query: string, locale = "en") {
 }
 
 describe("deterministic recall plan", () => {
+  it("plans explicit event dates as timezone-aware during intervals in every built-in locale", () => {
+    for (const [query, locale] of [
+      ["What did I eat yesterday?", "en-US"],
+      ["我昨天吃了什么？", "zh-CN"],
+      ["我昨天吃了什麼？", "zh-TW"],
+      ["Qu’est-ce que j’ai mangé hier ?", "fr-FR"],
+      ["¿Qué comí ayer?", "es-ES"],
+      ["昨日何を食べましたか？", "ja-JP"],
+      ["어제 무엇을 먹었나요?", "ko-KR"],
+    ] as const) {
+      const result = buildDeterministicRecallPlan({
+        language: createLanguageService(),
+        locale,
+        query,
+        referenceTime: "2026-08-12T03:00:00.000Z",
+        scope,
+        timezone: "Asia/Shanghai",
+      });
+
+      expect(result.temporalConstraints, `${locale}: ${query}`).toEqual([{
+        kind: "during",
+        interval: {
+          start: "2026-08-10T16:00:00.000Z",
+          endExclusive: "2026-08-11T16:00:00.000Z",
+          precision: "day",
+          timezone: "Asia/Shanghai",
+        },
+      }]);
+      expect(result.evidenceNeeds, `${locale}: ${query}`).toContain("temporal");
+    }
+  });
+
+  it("keeps exact N-days-ago event queries on a during fence in CJK packs", () => {
+    for (const [query, locale] of [
+      ["我3天前吃了什么？", "zh-CN"],
+      ["我3天前吃了什麼？", "zh-TW"],
+      ["3日前に何を食べましたか？", "ja-JP"],
+      ["3일 전에 무엇을 먹었나요?", "ko-KR"],
+    ] as const) {
+      const result = buildDeterministicRecallPlan({
+        language: createLanguageService(),
+        locale,
+        query,
+        referenceTime: "2026-08-12T03:00:00.000Z",
+        scope,
+        timezone: "Asia/Shanghai",
+      });
+
+      expect(result.temporalConstraints, locale).toEqual([{
+        kind: "during",
+        interval: {
+          start: "2026-08-08T16:00:00.000Z",
+          endExclusive: "2026-08-09T16:00:00.000Z",
+          precision: "day",
+          timezone: "Asia/Shanghai",
+        },
+      }]);
+    }
+  });
+
+  it("keeps explicit N-days-ago boundaries and ignores temporal-looking names", () => {
+    for (const [query, locale] of [
+      ["What happened before 3 days ago?", "en-US"],
+      ["3天前之前发生了什么？", "zh-CN"],
+      ["3天前之前發生了什麼？", "zh-TW"],
+      ["Que s’est-il passé avant le 9 août 2026 ?", "fr-FR"],
+      ["¿Qué pasó antes del 9 de agosto de 2026?", "es-ES"],
+      ["3日前より前に何が起きましたか？", "ja-JP"],
+      ["3일 전보다 앞서 무슨 일이 있었나요?", "ko-KR"],
+    ] as const) {
+      const expectedReferenceTime = locale === "fr-FR" || locale === "es-ES"
+        ? "2026-08-09T00:00:00.000Z"
+        : "2026-07-13T00:00:00.000Z";
+      expect(plan(query, locale).temporalConstraints, `${locale}: ${query}`)
+        .toEqual([{
+          kind: "before",
+          referenceTime: expectedReferenceTime,
+        }]);
+    }
+
+    for (const [query, locale] of [
+      ["What is Project Yesterday?", "en-US"],
+      ["电影《昨日》是什么？", "zh-CN"],
+      ["電影《昨日》是什麼？", "zh-TW"],
+      ["Quel film s’appelle Hier ?", "fr-FR"],
+      ["¿Qué película se llama Ayer?", "es-ES"],
+      ["映画「昨日」は何ですか？", "ja-JP"],
+      ["영화 Yesterday는 무엇인가요?", "ko-KR"],
+    ] as const) {
+      const result = buildDeterministicRecallPlan({
+        language: createLanguageService(),
+        locale,
+        query,
+        referenceTime: "2026-08-12T03:00:00.000Z",
+        scope,
+        timezone: "Asia/Shanghai",
+      });
+      expect(result.temporalConstraints, `${locale}: ${query}`).toEqual([]);
+    }
+  });
+
   it("uses fixed global candidate, selection, and rendered-context limits", () => {
     expect(plan("Where do I live?")).toMatchObject({
       maxRenderedTokens: 6_000,

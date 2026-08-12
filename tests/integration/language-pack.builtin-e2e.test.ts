@@ -16,7 +16,7 @@ import {
 
 const CASES = [
   {
-    analyzerVersion: "4-explicit-fact-list-boundary",
+    analyzerVersion: "5-occurrence-expression",
     blocker: "법무 승인",
     contextHeading: "## 사실",
     countQuery: "미완료 항목은 총 몇 건입니까?",
@@ -33,7 +33,7 @@ const CASES = [
     subject: "서울대학교 Atlas 프로젝트",
   },
   {
-    analyzerVersion: "6-explicit-fact-list-boundary",
+    analyzerVersion: "7-occurrence-expression",
     blocker: "l’approbation juridique",
     contextHeading: "## Faits",
     countQuery: "Combien de tâches ouvertes restent au total ?",
@@ -50,7 +50,7 @@ const CASES = [
     subject: "Projet Atlas",
   },
   {
-    analyzerVersion: "5-explicit-fact-list-boundary",
+    analyzerVersion: "6-occurrence-expression",
     blocker: "la aprobación jurídica",
     contextHeading: "## Hechos",
     countQuery: "¿Cuántas tareas pendientes hay en total?",

@@ -32,7 +32,7 @@ const entries: EvidenceLedgerEntry[] = [
       searchLocale: "en-US",
       languagePackId: "en",
       searchAnalyzerVersion: "test-v1",
-      searchSchemaVersion: "gm-search-v2",
+      searchSchemaVersion: "gm-search-v3",
       scopeKey: "user-1::::workspace-1::::agent-1",
       sourceMemoryId: "memory-current",
       sourceMessageIds: ["message-current"],
@@ -64,7 +64,7 @@ const entries: EvidenceLedgerEntry[] = [
       searchLocale: "en-US",
       languagePackId: "en",
       searchAnalyzerVersion: "test-v1",
-      searchSchemaVersion: "gm-search-v2",
+      searchSchemaVersion: "gm-search-v3",
       scopeKey: "user-1::::workspace-1::::",
       sourceMemoryId: "memory-history-b",
       sourceMessageIds: ["message-history-b"],
@@ -96,7 +96,7 @@ const entries: EvidenceLedgerEntry[] = [
       searchLocale: "en-US",
       languagePackId: "en",
       searchAnalyzerVersion: "test-v1",
-      searchSchemaVersion: "gm-search-v2",
+      searchSchemaVersion: "gm-search-v3",
       scopeKey: "user-1::::workspace-1::::",
       sourceMemoryId: "memory-history-a",
       sourceMessageIds: ["message-history-a"],
@@ -215,6 +215,50 @@ describe("answer evidence-ledger context", () => {
     expect(JSON.stringify(localized)).not.toMatch(
       /caseId|expectedAnswer|goldEvidence|questionType|rubric/u,
     );
+  });
+
+  it("renders event occurrence separately from claim lifecycle in every format", () => {
+    const event: EvidenceLedgerEntry = {
+      evidenceId: "evidence-event",
+      excerpt: "I ate tomato and eggs yesterday.",
+      occurrence: {
+        start: "2026-08-10T16:00:00.000Z",
+        endExclusive: "2026-08-11T16:00:00.000Z",
+        precision: "day",
+        timezone: "Asia/Shanghai",
+      },
+      occurrenceMatch: "matched",
+      relation: "supports",
+      sourceMemoryId: "memory-event",
+      temporalStatus: "uncertain",
+    };
+    const compact = JSON.parse(
+      renderEvidenceLedgerContext([event], "compact_json"),
+    );
+    expect(compact[0]).toMatchObject({
+      occurrence: event.occurrence,
+      occurrenceMatch: "matched",
+      status: "uncertain",
+    });
+    expect(renderEvidenceLedgerContext([event], "prose")).toContain(
+      "2026-08-10T16:00:00.000Z",
+    );
+    expect(JSON.parse(
+      renderEvidenceLedgerContext([event], "json_locale_note"),
+    ).evidence[0]).toMatchObject({ occurrenceMatch: "matched" });
+    const laterClaim = {
+      ...entries[0]!,
+      evidenceId: "evidence-later",
+      claim: {
+        ...entries[0]!.claim!,
+        observedAt: "2026-09-01T00:00:00.000Z",
+        validFrom: "2026-09-01T00:00:00.000Z",
+      },
+    };
+    expect(
+      renderEvidenceLedgerContext([laterClaim, event], "chronology")
+        .split("\n")[0],
+    ).toContain("evidence-event");
   });
 
   it("localizes Traditional Chinese and Japanese evidence guidance", () => {

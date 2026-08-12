@@ -7,6 +7,50 @@ import {
 } from "../../src";
 
 describe("public background memory jobs API", () => {
+  it("rejects invalid temporal context before a job is queued", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+    const input = {
+      idempotencyKey: "invalid-temporal-job",
+      messages: [{
+        content: "Remember this.",
+        observedAt: "not-a-time",
+        role: "user",
+      }],
+      scope: { userId: "invalid-temporal-job-user" },
+    };
+
+    await expect(memory.jobs.enqueueRemember(input)).rejects.toThrow(
+      "Invalid messages[0].observedAt",
+    );
+    expect(await memory.jobs.drain()).toMatchObject({
+      jobs: [],
+      processed: 0,
+    });
+  });
+
+  it("keeps the call timezone in queued payload identity and execution", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+    const base = {
+      idempotencyKey: "temporal-job",
+      locale: "zh-CN",
+      messages: [{
+        content: "我昨天吃了番茄炒蛋。",
+        observedAt: "2026-08-12T02:00:00.000Z",
+        role: "user",
+      }],
+      scope: { userId: "job-temporal-user" },
+    };
+    await memory.jobs.enqueueRemember({ ...base, timezone: "Asia/Shanghai" });
+
+    await expect(memory.jobs.enqueueRemember({
+      ...base,
+      timezone: "America/New_York",
+    })).rejects.toThrow(/idempotency/i);
+    await memory.jobs.drain();
+    const exported = await memory.exportMemory({ scope: base.scope });
+    expect(exported.durable.facts[0]?.occurrence?.timezone).toBe("Asia/Shanghai");
+  });
+
   it("queues remember writes and commits them only when drained", async () => {
     const documentStore = createInMemoryDocumentStore();
     const spans: GoodMemoryTraceSpan[] = [];

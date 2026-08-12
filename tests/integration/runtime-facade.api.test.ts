@@ -122,6 +122,46 @@ describe("public memory.runtime facade", () => {
     expect(JSON.stringify(spans)).not.toContain("runtime-facade-user");
   });
 
+  it("retains valid message temporal provenance and rejects invalid values", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+    const scope = {
+      sessionId: "runtime-temporal-session",
+      userId: "runtime-temporal-user",
+    };
+    await memory.runtime.startSession({ scope });
+
+    const buffer = await memory.runtime.appendMessage({
+      message: {
+        content: "I ate tomato and eggs yesterday.",
+        observedAt: "2026-08-12T03:00:00.000Z",
+        role: "user",
+        timezone: "Asia/Shanghai",
+      },
+      scope,
+    });
+
+    expect(buffer.buffer.messages[0]).toMatchObject({
+      observedAt: "2026-08-12T03:00:00.000Z",
+      timezone: "Asia/Shanghai",
+    });
+    await expect(memory.runtime.appendMessage({
+      message: {
+        content: "Bad timestamp.",
+        observedAt: "not-a-time",
+        role: "user",
+      },
+      scope,
+    })).rejects.toThrow("Invalid message.observedAt");
+    await expect(memory.runtime.appendMessage({
+      message: {
+        content: "Bad timezone.",
+        role: "user",
+        timezone: "Mars/Olympus",
+      },
+      scope,
+    })).rejects.toThrow("Invalid message.timezone");
+  });
+
   it("ends sessions without archive persistence by default", async () => {
     const memory = createGoodMemory({
       storage: { provider: "memory" },

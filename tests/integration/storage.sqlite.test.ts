@@ -441,7 +441,7 @@ describe("sqlite document conditional batches", () => {
       const [sealed] = await inspectionStore.query<RecallProjectionManifest>(
         PROJECTION_MANIFESTS_COLLECTION,
       );
-      expect(sealed?.projectionBuildId).toStartWith("gm-projection-v4:");
+      expect(sealed?.projectionBuildId).toStartWith("gm-projection-v5:");
       expect(sealed?.validatedGeneration).toBe(sealed?.sourceGeneration);
 
       const reopened = createGoodMemory({

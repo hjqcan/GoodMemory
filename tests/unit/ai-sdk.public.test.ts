@@ -1,17 +1,20 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, setSystemTime } from "bun:test";
 import { generateText, streamText } from "ai";
 import type { ModelMessage } from "@ai-sdk/provider-utils";
 
 import type {
   BuildContextResult,
   GoodMemory,
+  RecallInput,
   RecallResult,
+  RememberInput,
   RememberResult,
 } from "../../src/api/contracts";
 import { createGoodMemoryAISDK } from "../../src/ai-sdk";
 import type {
   GoodMemoryAISDKErrorEvent,
   GoodMemoryAISDKEvent,
+  GoodMemoryModelMessage,
 } from "../../src/ai-sdk";
 import {
   createNoopGoodMemoryJobsFacade,
@@ -62,26 +65,22 @@ function createRememberResult(): RememberResult {
 
 function createGoodMemoryStub(input?: {
   buildContext?: () => Promise<BuildContextResult>;
-  recall?: (payload: { query: string }) => Promise<RecallResult>;
-  remember?: (payload: {
-    messages: Array<{ content: string; role: string }>;
-  }) => Promise<RememberResult>;
+  recall?: (payload: RecallInput) => Promise<RecallResult>;
+  remember?: (payload: RememberInput) => Promise<RememberResult>;
 }): GoodMemory {
   return {
     jobs: createNoopGoodMemoryJobsFacade(),
     runtime: createNoopGoodMemoryRuntimeFacade(),
     async recall(payload) {
       return (
-        input?.recall?.({ query: payload.query }) ?? createRecallResult()
+        input?.recall?.(payload) ?? createRecallResult()
       );
     },
     async buildContext() {
       return input?.buildContext?.() ?? createBuildContextResult("## Facts\n- blocker");
     },
     async remember(payload) {
-      return input?.remember?.({
-        messages: payload.messages,
-      }) ?? createRememberResult();
+      return input?.remember?.(payload) ?? createRememberResult();
     },
     async forget() {
       return {
@@ -109,11 +108,15 @@ function createGoodMemoryStub(input?: {
 function createGenerateTextDependency(input: {
   finalText?: string;
   onCall?: (payload: Record<string, unknown>) => void;
+  responseTimestamp?: Date;
 } = {}): typeof generateText {
   return (async (payload) => {
     input.onCall?.(payload as Record<string, unknown>);
     await payload.onFinish?.({
       text: input.finalText ?? "Final assistant answer",
+      response: {
+        timestamp: input.responseTimestamp ?? new Date("2026-04-26T00:00:00.000Z"),
+      },
     } as never);
 
     return {
@@ -222,6 +225,257 @@ describe("goodmemory ai-sdk adapter", () => {
     });
 
     expect(recalledQuery).toBe("Latest user ask");
+  });
+
+  it("propagates one turn temporal context without leaking adapter fields to the provider", async () => {
+    const recallInputs: RecallInput[] = [];
+    const rememberInputs: RememberInput[] = [];
+    let providerPayload: Record<string, unknown> = {};
+    const messages: GoodMemoryModelMessage[] = [
+      {
+        role: "user",
+        content: "What happened yesterday?",
+        id: "current-user",
+        observedAt: "2026-11-01T05:29:00.000Z",
+        timezone: "Europe/Paris",
+      },
+    ];
+    const memory = createGoodMemoryStub({
+      recall: async (input) => {
+        recallInputs.push(input);
+        return createRecallResult();
+      },
+      remember: async (input) => {
+        rememberInputs.push(input);
+        return createRememberResult();
+      },
+    });
+    const aiSDK = createGoodMemoryAISDK({
+      memory,
+      dependencies: {
+        generateText: createGenerateTextDependency({
+          onCall: (payload) => {
+            providerPayload = payload;
+          },
+        }),
+      },
+    });
+
+    await aiSDK.generateText({
+      model: {} as never,
+      scope: { userId: "u-1" },
+      messages,
+      query: "What happened yesterday?",
+      locale: "en-US",
+      retrievalProfile: "general_chat",
+      maxMemoryTokens: 64,
+      referenceTime: "2026-11-01T05:30:00.000Z",
+      timezone: "America/New_York",
+      assistantObservedAt: "2026-11-01T05:30:03.000Z",
+      assistantTimezone: "Asia/Tokyo",
+    });
+
+    expect(recallInputs[0]).toMatchObject({
+      referenceTime: "2026-11-01T05:30:00.000Z",
+      timezone: "America/New_York",
+    });
+    expect(rememberInputs[0]).toMatchObject({
+      timezone: "America/New_York",
+      messages: [
+        {
+          id: "current-user",
+          role: "user",
+          content: "What happened yesterday?",
+          observedAt: "2026-11-01T05:29:00.000Z",
+          timezone: "Europe/Paris",
+        },
+        {
+          role: "assistant",
+          content: "Final assistant answer",
+          observedAt: "2026-11-01T05:30:03.000Z",
+          timezone: "Asia/Tokyo",
+        },
+      ],
+    });
+    for (const key of [
+      "assistantObservedAt",
+      "assistantTimezone",
+      "ignoreMemory",
+      "locale",
+      "maxMemoryTokens",
+      "query",
+      "referenceTime",
+      "retrievalProfile",
+      "scope",
+      "timezone",
+    ]) {
+      expect(providerPayload).not.toHaveProperty(key);
+    }
+    expect(providerPayload.messages).toEqual([
+      {
+        role: "user",
+        content: "What happened yesterday?",
+      },
+    ]);
+  });
+
+  it("captures one reference time and prefers the provider response timestamp for the assistant", async () => {
+    const recallInputs: RecallInput[] = [];
+    const rememberInputs: RememberInput[] = [];
+    const responseTimestamp = new Date("2026-11-01T05:30:03.000Z");
+    const aiSDK = createGoodMemoryAISDK({
+      memory: createGoodMemoryStub({
+        recall: async (input) => {
+          recallInputs.push(input);
+          return createRecallResult();
+        },
+        remember: async (input) => {
+          rememberInputs.push(input);
+          return createRememberResult();
+        },
+      }),
+      dependencies: {
+        generateText: createGenerateTextDependency({ responseTimestamp }),
+      },
+    });
+
+    await aiSDK.generateText({
+      model: {} as never,
+      scope: { userId: "u-1" },
+      messages: [{ role: "user", content: "Remember this turn." }],
+      timezone: "America/New_York",
+    });
+
+    const capturedReferenceTime = recallInputs[0]?.referenceTime;
+    expect(capturedReferenceTime).toBeString();
+    expect(rememberInputs[0]?.messages).toEqual([
+      {
+        role: "user",
+        content: "Remember this turn.",
+        observedAt: capturedReferenceTime,
+        timezone: "America/New_York",
+      },
+      {
+        role: "assistant",
+        content: "Final assistant answer",
+        observedAt: responseTimestamp.toISOString(),
+        timezone: "America/New_York",
+      },
+    ]);
+  });
+
+  it("captures an implicit stream reference time when the deferred model call starts", async () => {
+    const recallInputs: RecallInput[] = [];
+    const rememberInputs: RememberInput[] = [];
+    const aiSDK = createGoodMemoryAISDK({
+      memory: createGoodMemoryStub({
+        recall: async (input) => {
+          recallInputs.push(input);
+          return createRecallResult();
+        },
+        remember: async (input) => {
+          rememberInputs.push(input);
+          return createRememberResult();
+        },
+      }),
+      dependencies: {
+        streamText: createStreamTextDependency(),
+      },
+    });
+
+    try {
+      setSystemTime(new Date("2026-11-01T05:30:00.000Z"));
+      const result = aiSDK.streamText({
+        model: {} as never,
+        scope: { userId: "u-1" },
+        messages: [{ role: "user", content: "Stream this turn." }],
+      });
+
+      setSystemTime(new Date("2026-11-01T05:30:05.000Z"));
+      await result.text;
+
+      expect(recallInputs[0]?.referenceTime).toBe("2026-11-01T05:30:05.000Z");
+      expect(rememberInputs[0]?.messages).toEqual([
+        {
+          role: "user",
+          content: "Stream this turn.",
+          observedAt: "2026-11-01T05:30:05.000Z",
+        },
+        {
+          role: "assistant",
+          content: "Streamed assistant answer",
+          observedAt: "2026-11-01T05:30:05.000Z",
+        },
+      ]);
+    } finally {
+      setSystemTime();
+    }
+  });
+
+  it("rejects invalid explicit message temporal strings before model or memory work", async () => {
+    const rememberInputs: RememberInput[] = [];
+    let providerCalls = 0;
+    const aiSDK = createGoodMemoryAISDK({
+      memory: createGoodMemoryStub({
+        remember: async (input) => {
+          rememberInputs.push(input);
+          return createRememberResult();
+        },
+      }),
+      dependencies: {
+        generateText: createGenerateTextDependency({
+          onCall() {
+            providerCalls += 1;
+          },
+        }),
+      },
+    });
+
+    await expect(aiSDK.generateText({
+      model: {} as never,
+      scope: { userId: "u-1" },
+      messages: [{
+        role: "user",
+        content: "Remember this.",
+        observedAt: "",
+        timezone: "",
+      }],
+      referenceTime: "2026-11-01T05:30:00.000Z",
+    })).rejects.toThrow("Invalid messages[0].observedAt");
+    expect(providerCalls).toBe(0);
+    expect(rememberInputs).toEqual([]);
+  });
+
+  it("does not recall or write an earlier user when the current user has no text", async () => {
+    let recallCalls = 0;
+    let rememberCalls = 0;
+    const aiSDK = createGoodMemoryAISDK({
+      memory: createGoodMemoryStub({
+        recall: async () => {
+          recallCalls += 1;
+          return createRecallResult();
+        },
+        remember: async () => {
+          rememberCalls += 1;
+          return createRememberResult();
+        },
+      }),
+      dependencies: {
+        generateText: createGenerateTextDependency(),
+      },
+    });
+
+    await aiSDK.generateText({
+      model: {} as never,
+      scope: { userId: "u-1" },
+      messages: [
+        { role: "user", content: "Historical text turn" },
+        { role: "user", content: [] },
+      ],
+    });
+
+    expect(recallCalls).toBe(0);
+    expect(rememberCalls).toBe(0);
   });
 
   it("skips recall and remember when ignoreMemory is true", async () => {
@@ -553,7 +807,7 @@ describe("goodmemory ai-sdk adapter", () => {
   });
 
   it("remembers only the current text-bearing user turn and generated answer", async () => {
-    let rememberedMessages: Array<{ content: string; role: string }> = [];
+    let rememberedMessages: RememberInput["messages"] = [];
 
     const memory = createGoodMemoryStub({
       remember: async ({ messages }) => {
@@ -637,10 +891,12 @@ describe("goodmemory ai-sdk adapter", () => {
       {
         role: "user",
         content: "Current user text",
+        observedAt: expect.any(String),
       },
       {
         role: "assistant",
         content: "Final answer",
+        observedAt: "2026-04-26T00:00:00.000Z",
       },
     ]);
   });

@@ -209,6 +209,58 @@ class ErrorMappingTests(unittest.TestCase):
 
 
 class RecallRoutingTests(unittest.TestCase):
+    def test_temporal_context_uses_snake_case_public_arguments(self) -> None:
+        payload = {
+            "ok": True,
+            "operation": "recall-context",
+            "contractVersion": "phase-39.http-memory.v1",
+            "contextText": "",
+            "hasContext": False,
+            "itemCount": 0,
+            "items": [],
+            "routing": {},
+        }
+        with mock.patch(
+            "goodmemory_client.client.urlopen",
+            return_value=ok_response(payload),
+        ) as spy:
+            build_client().recall_context(
+                "what happened yesterday?",
+                reference_time="2026-11-01T05:30:00.000Z",
+                timezone="America/New_York",
+            )
+
+        body = json.loads(spy.call_args[0][0].data.decode("utf-8"))
+        self.assertEqual(body["referenceTime"], "2026-11-01T05:30:00.000Z")
+        self.assertEqual(body["timezone"], "America/New_York")
+
+    def test_remember_maps_current_message_observation_and_timezone(self) -> None:
+        with mock.patch(
+            "goodmemory_client.client.urlopen",
+            return_value=ok_response({"ok": True, "operation": "remember"}),
+        ) as spy:
+            build_client().remember(
+                [
+                    {"role": "user", "content": "Earlier turn"},
+                    {
+                        "role": "user",
+                        "content": "Current turn",
+                        "timezone": "Europe/Paris",
+                    },
+                ],
+                observed_at="2026-11-01T05:29:00.000Z",
+                timezone="America/New_York",
+            )
+
+        body = json.loads(spy.call_args[0][0].data.decode("utf-8"))
+        self.assertNotIn("observedAt", body["messages"][0])
+        self.assertEqual(
+            body["messages"][1]["observedAt"],
+            "2026-11-01T05:29:00.000Z",
+        )
+        self.assertEqual(body["messages"][1]["timezone"], "Europe/Paris")
+        self.assertEqual(body["timezone"], "America/New_York")
+
     def test_recall_result_exposes_routing(self) -> None:
         payload = {
             "ok": True,
@@ -217,7 +269,19 @@ class RecallRoutingTests(unittest.TestCase):
             "contextText": "memory context",
             "hasContext": True,
             "itemCount": 1,
-            "items": [{"memoryId": "m-1", "type": "fact", "content": "x"}],
+            "items": [
+                {
+                    "memoryId": "m-1",
+                    "type": "fact",
+                    "content": "x",
+                    "occurrence": {
+                        "start": "2026-08-10T16:00:00.000Z",
+                        "endExclusive": "2026-08-11T16:00:00.000Z",
+                        "precision": "day",
+                        "timezone": "Asia/Shanghai",
+                    },
+                }
+            ],
             "routing": {
                 "requestedStrategy": "hybrid",
                 "resolvedStrategy": "rules-only",
@@ -239,6 +303,15 @@ class RecallRoutingTests(unittest.TestCase):
         self.assertEqual(result.context_text, "memory context")
         self.assertTrue(result.has_context)
         self.assertEqual(result.item_count, 1)
+        self.assertEqual(
+            result.items[0]["occurrence"],
+            {
+                "start": "2026-08-10T16:00:00.000Z",
+                "endExclusive": "2026-08-11T16:00:00.000Z",
+                "precision": "day",
+                "timezone": "Asia/Shanghai",
+            },
+        )
         # The routing block must surface so callers can see hybrid silently
         # downgrading to rules-only.
         self.assertEqual(result.routing.requested_strategy, "hybrid")

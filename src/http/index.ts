@@ -16,6 +16,8 @@ import type {
   ReviseMemoryResult,
 } from "../api/contracts";
 import type { MemoryScope } from "../domain/scope";
+import { isIanaTimezone, isRfc3339Instant } from "../domain/temporal";
+import type { TemporalInterval } from "../domain/temporal";
 import type { RememberConfig } from "../remember/profiles";
 import { isProviderBackedRecallError } from "../recall/errors";
 import { inspectGoodMemoryRuntime } from "../api/runtimeInfo";
@@ -94,6 +96,7 @@ export interface GoodMemoryHttpMemoryItem {
   confidence?: number;
   content: string;
   memoryId: string;
+  occurrence?: TemporalInterval;
   source: "goodmemory";
   tags?: string[];
   type:
@@ -305,7 +308,11 @@ function validateMessages(
     if (
       !isRecord(message) ||
       !isNonEmptyString(message.role) ||
-      !isNonEmptyString(message.content)
+      !isNonEmptyString(message.content) ||
+      (message.id !== undefined && typeof message.id !== "string") ||
+      (message.observedAt !== undefined &&
+        typeof message.observedAt !== "string") ||
+      (message.timezone !== undefined && typeof message.timezone !== "string")
     ) {
       return {
         code: "invalid_messages",
@@ -314,13 +321,62 @@ function validateMessages(
       };
     }
 
+    if (
+      (typeof message.observedAt === "string" &&
+        !isRfc3339Instant(message.observedAt)) ||
+      (typeof message.timezone === "string" &&
+        !isIanaTimezone(message.timezone))
+    ) {
+      return {
+        code: "invalid_temporal_context",
+        message:
+          "Expected observedAt to be an RFC 3339 instant and timezone to be an IANA timezone when provided.",
+        ok: false,
+      };
+    }
+
     messages.push({
       content: message.content,
       role: message.role,
+      ...(typeof message.id === "string" ? { id: message.id } : {}),
+      ...(typeof message.observedAt === "string"
+        ? { observedAt: message.observedAt }
+        : {}),
+      ...(typeof message.timezone === "string"
+        ? { timezone: message.timezone }
+        : {}),
     });
   }
 
   return { ok: true, value: messages };
+}
+
+function validateOptionalTemporalString(
+  body: Record<string, unknown>,
+  field: "referenceTime" | "timezone",
+): ValidationResult<string | undefined> {
+  const value = body[field];
+  if (value === undefined) {
+    return { ok: true, value };
+  }
+
+  if (
+    typeof value === "string" &&
+    (field === "referenceTime"
+      ? isRfc3339Instant(value)
+      : isIanaTimezone(value))
+  ) {
+    return { ok: true, value };
+  }
+
+  return {
+    code: "invalid_temporal_context",
+    message:
+      field === "referenceTime"
+        ? "Expected referenceTime to be an RFC 3339 instant when provided."
+        : "Expected timezone to be an IANA timezone when provided.",
+    ok: false,
+  };
 }
 
 function isValidMemoryAttributeValue(value: unknown): boolean {
@@ -1144,6 +1200,7 @@ export function buildGoodMemoryHttpMemoryItems(
       confidence: fact.confidence,
       content: fact.content,
       memoryId: fact.id,
+      ...(fact.occurrence ? { occurrence: fact.occurrence } : {}),
       source: "goodmemory",
       tags: fact.tags,
       type: "fact",
@@ -1230,6 +1287,15 @@ async function handleRecallContext(
     return errorResult(400, output.code, output.message);
   }
 
+  const referenceTime = validateOptionalTemporalString(body, "referenceTime");
+  const timezone = validateOptionalTemporalString(body, "timezone");
+  if (!referenceTime.ok) {
+    return errorResult(400, referenceTime.code, referenceTime.message);
+  }
+  if (!timezone.ok) {
+    return errorResult(400, timezone.code, timezone.message);
+  }
+
   const maxTokens =
     typeof body.maxTokens === "number" && Number.isFinite(body.maxTokens)
       ? Math.max(1, Math.floor(body.maxTokens))
@@ -1255,6 +1321,10 @@ async function handleRecallContext(
     query: body.query,
     ...(retrievalProfile.value ? { retrievalProfile: retrievalProfile.value } : {}),
     strategy: effectiveRecallStrategy,
+    ...(referenceTime.value !== undefined
+      ? { referenceTime: referenceTime.value }
+      : {}),
+    ...(timezone.value !== undefined ? { timezone: timezone.value } : {}),
   };
   let recall: RecallResult;
   let routing = undefined as GoodMemoryHttpRecallRoutingDiagnostics | undefined;
@@ -1335,6 +1405,11 @@ async function handleRemember(
     return errorResult(400, extractionStrategy.code, extractionStrategy.message);
   }
 
+  const timezone = validateOptionalTemporalString(body, "timezone");
+  if (!timezone.ok) {
+    return errorResult(400, timezone.code, timezone.message);
+  }
+
   const mode = body.mode === undefined ? "sync" : body.mode;
   if (mode !== "sync" && mode !== "async") {
     return errorResult(400, "invalid_mode", "Expected mode to be sync or async.");
@@ -1353,6 +1428,7 @@ async function handleRemember(
       ? { extractionStrategy: extractionStrategy.value }
       : {}),
     ...(isNonEmptyString(body.locale) ? { locale: body.locale } : {}),
+    ...(timezone.value !== undefined ? { timezone: timezone.value } : {}),
   };
 
   if (mode === "async") {

@@ -26,22 +26,28 @@ const beforeModelCallInput: RuntimeKitBeforeModelCallInput = {
   },
   query: "What context is useful?",
   contextMode: "fragment",
+  timezone: "America/New_York",
 };
 
-void runtimeKit.beforeModelCall(beforeModelCallInput);
+async function runModelTurn(): Promise<void> {
+  const before = await runtimeKit.beforeModelCall(beforeModelCallInput);
+  const afterModelCallInput: RuntimeKitAfterModelCallInput = {
+    scope: beforeModelCallInput.scope,
+    messages: [{ role: "user", content: "Remember the review cadence." }],
+    assistantText: "The review cadence is weekly.",
+    referenceTime: before.referenceTime,
+    timezone: before.timezone,
+    writeback: {
+      mode: writebackMode,
+      annotation: "session_only",
+      policy: "deny",
+    },
+  };
 
-const afterModelCallInput: RuntimeKitAfterModelCallInput = {
-  scope: beforeModelCallInput.scope,
-  messages: [{ role: "user", content: "Remember the review cadence." }],
-  assistantText: "The review cadence is weekly.",
-  writeback: {
-    mode: writebackMode,
-    annotation: "session_only",
-    policy: "deny",
-  },
-};
+  await runtimeKit.afterModelCall(afterModelCallInput);
+}
 
-void runtimeKit.afterModelCall(afterModelCallInput);
+void runModelTurn;
 
 void runtimeKit.preAction({
   intent: {

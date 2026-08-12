@@ -84,7 +84,7 @@ function buildStoredClaim(id: string): ClaimProjection {
     searchLocale: "en-US",
     languagePackId: "en",
     searchAnalyzerVersion: "claim-revision-test-v1",
-    searchSchemaVersion: "gm-search-v2",
+    searchSchemaVersion: "gm-search-v3",
     polarity: "positive",
     modality: "asserted",
     observedAt,
@@ -198,8 +198,8 @@ function createRevisionRaceStore(): {
 }
 
 describe("claim projection revision visibility", () => {
-  it("uses the v4 projection pipeline to migrate revision metadata", () => {
-    expect(RECALL_PROJECTION_PIPELINE_VERSION).toBe("gm-projection-v4");
+  it("uses the v5 projection pipeline to migrate revision metadata", () => {
+    expect(RECALL_PROJECTION_PIPELINE_VERSION).toBe("gm-projection-v5");
   });
 
   it("keeps a promoted fallback physically while retiring it from logical history", async () => {

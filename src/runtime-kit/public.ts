@@ -18,6 +18,7 @@ import type {
   RuntimeKitContextMode,
   RuntimeKitEvent,
   RuntimeKitMemoryContext,
+  RuntimeKitMessage,
   RuntimeKitObserveToolResultInput,
   RuntimeKitObserveToolResultResult,
   RuntimeKitPreActionInput,
@@ -32,6 +33,11 @@ import type {
   ProgressiveRecallService,
 } from "../progressive/recall";
 import type { MemoryScope } from "../domain/scope";
+import {
+  assertTemporalMessageContext,
+  isIanaTimezone,
+  isRfc3339Instant,
+} from "../domain/temporal";
 import {
   buildStructuredTextResponseControlLines,
   buildBehavioralSteeringLines,
@@ -52,6 +58,28 @@ import { estimateTextTokens } from "../tokenEstimator";
 import type { LanguageService } from "../language";
 import { redactSensitiveCredentialText } from "../language/sensitive";
 
+function assertRuntimeKitTemporalContext(input: {
+  assistantObservedAt?: string;
+  assistantTimezone?: string;
+  messages?: readonly RuntimeKitMessage[];
+  referenceTime?: string;
+  timezone?: string;
+}): void {
+  if (input.referenceTime !== undefined && !isRfc3339Instant(input.referenceTime)) {
+    throw new TypeError(`Invalid referenceTime: ${input.referenceTime}`);
+  }
+  if (input.timezone !== undefined && !isIanaTimezone(input.timezone)) {
+    throw new TypeError(`Invalid timezone: ${input.timezone}`);
+  }
+  input.messages?.forEach((message, index) => {
+    assertTemporalMessageContext(message, `messages[${index}]`);
+  });
+  assertTemporalMessageContext({
+    observedAt: input.assistantObservedAt,
+    timezone: input.assistantTimezone,
+  }, "assistant");
+}
+
 const DEFAULT_MAX_MEMORY_TOKENS = 160;
 const DEFAULT_PROGRESSIVE_RECORD_LIMIT = 10;
 const MAX_PREVIEW_CHARS = 240;
@@ -61,20 +89,23 @@ function normalizeText(value: string | undefined): string | null {
   return normalized ? normalized : null;
 }
 
-function extractTextFromMessages(messages: readonly { content: string; role: string }[]): string | null {
+function findLatestUserMessage(
+  messages: readonly RuntimeKitMessage[],
+): RuntimeKitMessage | null {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (message?.role !== "user") {
       continue;
     }
 
-    const text = normalizeText(message.content);
-    if (text) {
-      return text;
-    }
+    return message;
   }
 
   return null;
+}
+
+function extractTextFromMessages(messages: readonly RuntimeKitMessage[]): string | null {
+  return normalizeText(findLatestUserMessage(messages)?.content);
 }
 
 function clipText(value: string, maxChars: number): string {
@@ -155,22 +186,40 @@ function shouldDurableWrite(input: RuntimeKitWritebackInput | undefined): boolea
 }
 
 function toRememberInput(input: {
+  assistantObservedAt?: string;
   assistantText: string;
+  assistantTimezone?: string;
   locale?: string;
+  referenceTime?: string;
   scope: RememberInput["scope"];
-  userText: string;
+  timezone?: string;
+  userMessage: RuntimeKitMessage;
 }): RememberInput {
+  const userObservedAt = input.userMessage.observedAt ?? input.referenceTime;
+  const userTimezone = input.userMessage.timezone ?? input.timezone;
+  const assistantObservedAt = input.assistantObservedAt ?? input.referenceTime;
+  const assistantTimezone = input.assistantTimezone ?? input.timezone;
   return {
     scope: input.scope,
     locale: input.locale,
+    ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
     messages: [
       {
         role: "user",
-        content: input.userText,
+        content: input.userMessage.content,
+        ...(input.userMessage.id !== undefined ? { id: input.userMessage.id } : {}),
+        ...(userObservedAt !== undefined ? { observedAt: userObservedAt } : {}),
+        ...(userTimezone !== undefined ? { timezone: userTimezone } : {}),
       },
       {
         role: "assistant",
         content: input.assistantText,
+        ...(assistantObservedAt !== undefined
+          ? { observedAt: assistantObservedAt }
+          : {}),
+        ...(assistantTimezone !== undefined
+          ? { timezone: assistantTimezone }
+          : {}),
       },
     ],
     annotations: [
@@ -379,6 +428,8 @@ export function createGoodMemoryRuntimeKit(
       locale: callInput.locale,
       retrievalProfile: callInput.retrievalProfile,
       ignoreMemory: false,
+      referenceTime: callInput.referenceTime,
+      timezone: callInput.timezone,
       ...(input.evidenceLedgerFormat ? { includeEvidence: true } : {}),
     });
     const builtContext = await input.memory.buildContext({
@@ -407,8 +458,22 @@ export function createGoodMemoryRuntimeKit(
           (callInput.retrievalProfile ?? "general_chat") === "coding_agent"
             ? "host_action"
             : "text_response";
+        const referenceTime = callInput.referenceTime;
+        const isAtOrBeforeReferenceTime = (value: string): boolean =>
+          referenceTime === undefined ||
+          Date.parse(value) <= Date.parse(referenceTime);
+        const runtimeBuffer = runtimeState?.state?.buffer;
+        const historicalRuntimeSnapshot =
+          referenceTime !== undefined &&
+          runtimeBuffer !== undefined &&
+          !isAtOrBeforeReferenceTime(runtimeBuffer.lastActiveAt);
         const runtimeMessages =
-          runtimeState?.state?.buffer?.messages
+          runtimeBuffer?.messages
+            ?.filter((message) =>
+              message.observedAt !== undefined
+                ? isAtOrBeforeReferenceTime(message.observedAt)
+                : !historicalRuntimeSnapshot,
+            )
             ?.map((message) => ({
               content: message.content,
               role: message.role,
@@ -417,9 +482,17 @@ export function createGoodMemoryRuntimeKit(
         const rawIndex = buildRawBehavioralPrototypeIndex({
           memoryExport: {
             durable: {
-              archives: exported.durable.archives,
-              episodes: exported.durable.episodes,
-              experiences: exported.durable.experiences,
+              archives: exported.durable.archives.filter((archive) =>
+                isAtOrBeforeReferenceTime(archive.archivedAt),
+              ),
+              episodes: exported.durable.episodes.filter((episode) =>
+                isAtOrBeforeReferenceTime(
+                  episode.observedAt ?? episode.createdAt,
+                ),
+              ),
+              experiences: exported.durable.experiences.filter((experience) =>
+                isAtOrBeforeReferenceTime(experience.createdAt),
+              ),
             },
             scope: exported.scope,
           },
@@ -477,6 +550,17 @@ export function createGoodMemoryRuntimeKit(
     async beforeModelCall(
       callInput: RuntimeKitBeforeModelCallInput,
     ): Promise<RuntimeKitBeforeModelCallResult> {
+      assertRuntimeKitTemporalContext(callInput);
+      const temporalContext = {
+        referenceTime: callInput.referenceTime ?? new Date().toISOString(),
+        ...(callInput.timezone !== undefined
+          ? { timezone: callInput.timezone }
+          : {}),
+      };
+      const resolvedCallInput = {
+        ...callInput,
+        ...temporalContext,
+      };
       const requestedMode = callInput.contextMode ?? defaultContextMode;
       if (callInput.ignoreMemory) {
         const event = await recordScopedEvent(callInput.scope, {
@@ -488,6 +572,7 @@ export function createGoodMemoryRuntimeKit(
         return {
           context: createEmptyContext(requestedMode),
           events: [event],
+          ...temporalContext,
         };
       }
 
@@ -503,6 +588,7 @@ export function createGoodMemoryRuntimeKit(
         return {
           context: createEmptyContext(requestedMode),
           events: [event],
+          ...temporalContext,
         };
       }
 
@@ -510,8 +596,10 @@ export function createGoodMemoryRuntimeKit(
         const index = await progressiveRecall.searchRecallIndex({
           scope: callInput.scope,
           query,
+          referenceTime: resolvedCallInput.referenceTime,
           includeRuntime: callInput.includeRuntime,
           retrievalProfile: callInput.retrievalProfile,
+          timezone: resolvedCallInput.timezone,
         });
         const rendered = progressiveRecall.renderProgressiveContext({
           index,
@@ -539,10 +627,11 @@ export function createGoodMemoryRuntimeKit(
             recordRefs: index.records.map((record) => record.recordRef),
           },
           events: [event],
+          ...temporalContext,
         };
       }
 
-      const fragment = await buildFragmentContext(callInput, query);
+      const fragment = await buildFragmentContext(resolvedCallInput, query);
       const event = await recordScopedEvent(callInput.scope, {
         phase: "beforeModelCall",
         status: fragment.context.content.trim() ? "applied" : "skipped",
@@ -557,16 +646,24 @@ export function createGoodMemoryRuntimeKit(
         context: fragment.context,
         recall: fragment.recall,
         events: [event],
+        ...temporalContext,
       };
     },
 
     async afterModelCall(
       callInput: RuntimeKitAfterModelCallInput,
     ): Promise<RuntimeKitAfterModelCallResult> {
+      assertRuntimeKitTemporalContext(callInput);
+      const referenceTime = callInput.referenceTime;
+      const timezone = callInput.timezone;
       const writeback = callInput.writeback ?? { mode: "observe" };
       const mode = writeback.mode ?? "observe";
       const assistantText = normalizeText(callInput.assistantText);
-      const userText = extractTextFromMessages(callInput.messages);
+      const latestUserMessage = findLatestUserMessage(callInput.messages);
+      const userText = normalizeText(latestUserMessage?.content);
+      const userMessage = latestUserMessage && userText
+        ? { ...latestUserMessage, content: userText }
+        : null;
       const preview = buildCandidatePreview({ assistantText, language, userText });
       const candidates: RuntimeKitWritebackCandidate[] = [];
       const boundedJobs: RuntimeKitBoundedJob[] = [];
@@ -584,13 +681,17 @@ export function createGoodMemoryRuntimeKit(
       } else if (
         shouldDurableWrite(writeback) &&
         assistantText &&
-        userText
+        userMessage
       ) {
         rememberResult = await input.memory.remember(toRememberInput({
           scope: callInput.scope,
           locale: callInput.locale,
-          userText,
+          referenceTime,
+          timezone,
+          userMessage,
           assistantText,
+          assistantObservedAt: callInput.assistantObservedAt,
+          assistantTimezone: callInput.assistantTimezone,
         }));
       }
 

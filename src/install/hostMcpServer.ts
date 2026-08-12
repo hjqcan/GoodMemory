@@ -77,6 +77,11 @@ const TOOL_SCOPE_SCHEMA = {
   sessionId: z.string().optional().describe("Optional host session id for session-scoped recall."),
 };
 
+const TOOL_TEMPORAL_RECALL_SCHEMA = {
+  referenceTime: z.string().optional(),
+  timezone: z.string().optional(),
+};
+
 // Installed mode reads the managed host config (`goodmemory setup`);
 // standalone mode synthesizes the same runtime context from explicit config,
 // so any MCP client can run the server without an installed host.
@@ -144,6 +149,7 @@ export function createGoodMemoryMcpServer(
         "Fetch a compact memory context fragment for a specific question about this workspace. Call it when hook-injected context is missing or insufficient, or when you need memory for a different question than the current prompt.",
       inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
+        ...TOOL_TEMPORAL_RECALL_SCHEMA,
         maxTokens: z.number().int().positive().optional(),
         output: z
           .enum(["json", "markdown", "system_prompt_fragment", "developer_prompt_fragment"])
@@ -167,6 +173,8 @@ export function createGoodMemoryMcpServer(
         query: args.query,
         retrievalProfile: context.retrievalProfile,
         scope: context.scope,
+        referenceTime: args.referenceTime,
+        timezone: args.timezone,
       });
       const built = await context.memory.buildContext({
         maxTokens: context.maxTokens,
@@ -227,6 +235,7 @@ export function createGoodMemoryMcpServer(
         "Diagnostic. Explain a recall: routing, hits, per-candidate scores, and suppression reasons. Call it when a memory that should exist did not surface, or when a surfaced memory looks wrong.",
       inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
+        ...TOOL_TEMPORAL_RECALL_SCHEMA,
         query: z.string().min(1),
         retrievalProfile: z.enum(["coding_agent", "general_chat"]).optional(),
         strategy: z.enum(["auto", "rules-only", "hybrid", "llm-assisted"]).optional(),
@@ -247,6 +256,8 @@ export function createGoodMemoryMcpServer(
         retrievalProfile: context.retrievalProfile,
         scope: context.scope,
         strategy: args.strategy,
+        referenceTime: args.referenceTime,
+        timezone: args.timezone,
       });
       return buildMcpStructuredResult(
         buildTraceRecallResult({
@@ -265,6 +276,7 @@ export function createGoodMemoryMcpServer(
         "Advanced recall (past goodmemory_get_context). Progressive GoodMemory recall step 1: fetch a compact recordRef index for a query, then call goodmemory_get_records for detail. Prefer this over goodmemory_get_context when you need specific records rather than a rendered summary.",
       inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
+        ...TOOL_TEMPORAL_RECALL_SCHEMA,
         includeRuntime: z.boolean().optional(),
         limit: z.number().int().positive().max(50).optional(),
         query: z.string().min(1),
@@ -291,7 +303,9 @@ export function createGoodMemoryMcpServer(
         limit: args.limit,
         query: args.query,
         retrievalProfile: context.retrievalProfile,
+        referenceTime: args.referenceTime,
         scope: context.scope,
+        timezone: args.timezone,
       });
       await persistProgressiveRecordCache({
         ...(dependencies.homeRoot ? { homeRoot: dependencies.homeRoot } : {}),
@@ -312,6 +326,7 @@ export function createGoodMemoryMcpServer(
         "Advanced recall. Use this for progressive GoodMemory recall when you need compact chronological context before drilling into recordRefs.",
       inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
+        ...TOOL_TEMPORAL_RECALL_SCHEMA,
         includeRuntime: z.boolean().optional(),
         limit: z.number().int().positive().max(50).optional(),
         query: z.string().min(1),
@@ -340,7 +355,9 @@ export function createGoodMemoryMcpServer(
         query: args.query,
         recordsPerBucket: args.recordsPerBucket,
         retrievalProfile: context.retrievalProfile,
+        referenceTime: args.referenceTime,
         scope: context.scope,
+        timezone: args.timezone,
       });
       await persistProgressiveRecordCache({
         ...(dependencies.homeRoot ? { homeRoot: dependencies.homeRoot } : {}),
@@ -533,10 +550,12 @@ export function createGoodMemoryMcpServer(
             .optional()
             .describe("Optional memory kind for the statement; classification infers one otherwise."),
           locale: z.string().optional(),
+          observedAt: z.string().optional(),
           role: z
             .enum(["user", "assistant"])
             .optional()
             .describe("Message role for governance provenance. Defaults to assistant (the caller); pass user only for user-originated content."),
+          timezone: z.string().optional(),
         }),
       },
       async (args) => {
@@ -567,10 +586,17 @@ export function createGoodMemoryMcpServer(
           messages: [
             {
               content: args.content,
+              ...(args.observedAt !== undefined
+                ? { observedAt: args.observedAt }
+                : {}),
               role: args.role ?? "assistant",
+              ...(args.timezone !== undefined
+                ? { timezone: args.timezone }
+                : {}),
             },
           ],
           scope: context.scope,
+          timezone: args.timezone,
         });
         let auditEventId: string | undefined;
         if (input.standalone === undefined && result.accepted > 0) {
@@ -827,6 +853,7 @@ function buildTraceRecallResult(input: {
     hits: input.recall.metadata.hits,
     policyApplied: input.recall.metadata.policyApplied,
     query: input.query,
+    retrievalTrace: input.recall.metadata.retrievalTrace ?? null,
     routingDecision: input.recall.metadata.routingDecision,
     scope: input.scope,
     verificationHints: input.recall.metadata.verificationHints,

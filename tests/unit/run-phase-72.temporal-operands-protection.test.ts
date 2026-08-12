@@ -265,7 +265,9 @@ describe("Phase 72 temporal operand cross-benchmark protection", () => {
       outputDir: "/reports",
       runId: "analyzer-version-fixture",
       selectionFile: "/selection.json",
-    })).rejects.toThrow("English analyzer 13 is required; found 14");
+    })).rejects.toThrow(
+      "English analyzer 13 is required; found 15-occurrence-expression",
+    );
   });
 
   it("runs every control before temporal-only treatment and preserves negative controls", async () => {
@@ -338,7 +340,7 @@ describe("Phase 72 temporal operand cross-benchmark protection", () => {
       ));
     expect(report.source.canonicalDependencies).toBe(false);
     expect(report.source.englishAnalyzerVersion).toBe(
-      "14-explicit-fact-list-boundary",
+      "15-occurrence-expression",
     );
     expect(report.configuration.memoryIsolation).toBe(
       "fresh_seeded_memory_per_question_per_arm",

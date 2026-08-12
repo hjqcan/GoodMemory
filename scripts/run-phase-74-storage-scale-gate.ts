@@ -598,7 +598,7 @@ function createClaim(index: number): ClaimProjection {
     searchLocale: language.locale,
     languagePackId: language.id,
     searchAnalyzerVersion: "scale-v1",
-    searchSchemaVersion: "gm-search-v2",
+    searchSchemaVersion: "gm-search-v3",
     polarity: "positive",
     modality: "asserted",
     observedAt: TIMESTAMP,
@@ -650,7 +650,7 @@ function createEntity(index: number): EntityAdjacencyProjection {
     searchLocale: language.locale,
     languagePackId: language.id,
     searchAnalyzerVersion: "scale-v1",
-    searchSchemaVersion: "gm-search-v2",
+    searchSchemaVersion: "gm-search-v3",
     updatedAt: TIMESTAMP,
   };
 }
@@ -957,7 +957,7 @@ export async function runPhase74PostgresStorageScaleGate(
             'searchLocale', search_locale,
             'languagePackId', language_pack_id,
             'searchAnalyzerVersion', 'postgres-scale-v1',
-            'searchSchemaVersion', 'gm-search-v2',
+            'searchSchemaVersion', 'gm-search-v3',
             'polarity', 'positive',
             'modality', 'asserted',
             'observedAt', $9::text,

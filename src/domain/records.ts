@@ -1,5 +1,6 @@
 import type { MemoryScope } from "./scope";
 import type { MemoryLifecycleState, MemorySource } from "./provenance";
+import type { TemporalInterval } from "./temporal";
 
 export interface UserProfile {
   userId: string;
@@ -30,6 +31,7 @@ export interface SessionMessage {
   role: string;
   content: string;
   observedAt?: string;
+  timezone?: string;
 }
 
 export interface PreferenceMemory {
@@ -139,6 +141,7 @@ export interface FactMemory {
   // (createdAt/updatedAt) and from the validity window below — a fact ingested
   // in bulk months later keeps the session date here.
   observedAt?: string;
+  occurrence?: TemporalInterval;
   // Bi-temporal validity window in event/world time (distinct from createdAt /
   // updatedAt, which are transaction time) plus an optional hard TTL. When
   // validUntil or expiresAt is at/before the reference time, the opt-in
@@ -389,6 +392,7 @@ export function createFactMemory(
     verificationPressureCount: input.verificationPressureCount ?? 0,
     lastVerificationHintAt: input.lastVerificationHintAt,
     observedAt: input.observedAt,
+    occurrence: input.occurrence,
     validFrom: input.validFrom,
     validUntil: input.validUntil,
     expiresAt: input.expiresAt,

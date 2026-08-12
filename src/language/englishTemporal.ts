@@ -114,11 +114,15 @@ export function parseEnglishTemporalReference(
 
   const quarter = text.match(/\bQ([1-4])\s*(\d{4})\b/iu);
   if (quarter) {
-    return absolute(
-      quarter[0],
-      Number(quarter[2]),
-      (Number(quarter[1]) - 1) * 3 + 1,
-    );
+    return {
+      calendar: {
+        month: (Number(quarter[1]) - 1) * 3 + 1,
+        year: Number(quarter[2]),
+      },
+      kind: "absolute",
+      precision: "quarter",
+      raw: quarter[0],
+    };
   }
 
   const seasonYear = text.match(new RegExp(
@@ -142,6 +146,18 @@ export function parseEnglishTemporalReference(
       raw: unitsAgo[0],
       offset: -Number(unitsAgo[1]),
       unit: unitsAgo[2]!.toLowerCase() as "day" | "week" | "month" | "year",
+    };
+  }
+
+  const dayBeforeYesterday = text.match(
+    /\b(?:the\s+)?day\s+before\s+yesterday\b/iu,
+  );
+  if (dayBeforeYesterday) {
+    return {
+      kind: "relative",
+      raw: dayBeforeYesterday[0],
+      offset: -2,
+      unit: "day",
     };
   }
 

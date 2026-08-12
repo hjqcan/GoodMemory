@@ -14,6 +14,16 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   metadata, and public install surfaces from the published `0.7.3` baseline.
   A stable `0.7.4` source is valid only from a clean working tree whose
   HEAD matches the peeled `v0.7.4` tag.
+- The `0.7.4` event-time contract keeps occurrence time separate from source
+  observation time and fact validity. Built-in English, Simplified and
+  Traditional Chinese, French, Spanish, Japanese, and Korean packs recognize
+  completed first-person events and attach a timezone-resolved half-open
+  occurrence interval only when the source turn has both a valid RFC 3339
+  `observedAt` and an explicit or persisted IANA timezone. Explicit event-date
+  queries use a `during` interval fence across all retrieval paths, and answer
+  context renders the matched absolute local date. Missing anchors preserve an
+  undated event and cannot support a definite date answer; server timezone and
+  ingestion time are never used as substitutes.
 - The historical v0.7.3 source contains complete lifecycle and
   full-claim evidence, and the release workflow that independently verifies
   registry publication from the tag. The first

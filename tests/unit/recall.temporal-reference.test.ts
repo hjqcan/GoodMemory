@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { createLanguageService } from "../../src/language";
-import { resolveTemporalReference } from "../../src/recall/temporalReference";
+import {
+  resolveTemporalInterval,
+  resolveTemporalReference,
+} from "../../src/recall/temporalReference";
 
 describe("recall temporal reference resolution", () => {
   const language = createLanguageService();
@@ -42,5 +45,202 @@ describe("recall temporal reference resolution", () => {
     expect(resolve("2026年5月", "zh-TW")).toBe(
       "2026-05-01T00:00:00.000Z",
     );
+  });
+
+  it("preserves explicit quarter precision through core resolution", () => {
+    const context = language.resolveFromText({
+      locale: "en-US",
+      text: "Q2 2026",
+    });
+    const expressions = language.parseTemporalExpressions("Q2 2026", context);
+
+    expect(expressions[0]).toEqual({
+      calendar: { month: 4, year: 2026 },
+      kind: "absolute",
+      precision: "quarter",
+      raw: "Q2 2026",
+    });
+    expect(resolveTemporalInterval(
+      expressions,
+      "2026-08-12T02:00:00.000Z",
+      "Asia/Shanghai",
+      "en-US",
+    )).toEqual({
+      start: "2026-03-31T16:00:00.000Z",
+      endExclusive: "2026-06-30T16:00:00.000Z",
+      precision: "quarter",
+      timezone: "Asia/Shanghai",
+    });
+  });
+
+  it("resolves relative days as timezone-aware half-open intervals", () => {
+    const context = language.resolveFromText({
+      locale: "zh-CN",
+      text: "昨天",
+    });
+
+    expect(resolveTemporalInterval(
+      language.parseTemporalExpressions("昨天", context),
+      "2026-08-12T02:00:00.000Z",
+      "Asia/Shanghai",
+      "zh-CN",
+    )).toEqual({
+      start: "2026-08-10T16:00:00.000Z",
+      endExclusive: "2026-08-11T16:00:00.000Z",
+      precision: "day",
+      timezone: "Asia/Shanghai",
+    });
+  });
+
+  it("uses calendar boundaries across daylight-saving transitions", () => {
+    const expressions = [{
+      kind: "relative",
+      offset: -1,
+      raw: "yesterday",
+      unit: "day",
+    }] as const;
+
+    expect(resolveTemporalInterval(
+      expressions,
+      "2026-03-09T16:00:00.000Z",
+      "America/New_York",
+      "en-US",
+    )).toEqual({
+      start: "2026-03-08T05:00:00.000Z",
+      endExclusive: "2026-03-09T04:00:00.000Z",
+      precision: "day",
+      timezone: "America/New_York",
+    });
+    expect(resolveTemporalInterval(
+      expressions,
+      "2026-11-02T17:00:00.000Z",
+      "America/New_York",
+      "en-US",
+    )).toEqual({
+      start: "2026-11-01T04:00:00.000Z",
+      endExclusive: "2026-11-02T05:00:00.000Z",
+      precision: "day",
+      timezone: "America/New_York",
+    });
+  });
+
+  it("resolves calendar precision and absolute instants", () => {
+    expect(resolveTemporalInterval(
+      [{
+        calendar: { month: 5, year: 2026 },
+        kind: "absolute",
+        raw: "2026年5月",
+      }],
+      referenceTime,
+      "Asia/Shanghai",
+      "zh-CN",
+    )).toEqual({
+      start: "2026-04-30T16:00:00.000Z",
+      endExclusive: "2026-05-31T16:00:00.000Z",
+      precision: "month",
+      timezone: "Asia/Shanghai",
+    });
+    expect(resolveTemporalInterval(
+      [{
+        iso: "2026-08-12T10:00:00+08:00",
+        kind: "absolute",
+        raw: "time=2026-08-12T10:00:00+08:00",
+      }],
+      referenceTime,
+      "Asia/Shanghai",
+      "zh-CN",
+    )).toEqual({
+      start: "2026-08-12T02:00:00.000Z",
+      endExclusive: "2026-08-12T02:00:00.001Z",
+      precision: "instant",
+      timezone: "Asia/Shanghai",
+    });
+  });
+
+  it("prioritizes a technical RFC3339 instant in every built-in language pack", () => {
+    for (const locale of [
+      "en-US",
+      "zh-CN",
+      "zh-TW",
+      "fr-FR",
+      "es-ES",
+      "ja-JP",
+      "ko-KR",
+    ]) {
+      const text = "time=2026-08-11T03:04:05Z";
+      const context = language.resolveFromText({ locale, text });
+      const expressions = language.parseTemporalExpressions(text, context);
+
+      expect(expressions, locale).toEqual([{
+        iso: "2026-08-11T03:04:05Z",
+        kind: "absolute",
+        raw: "time=2026-08-11T03:04:05Z",
+      }]);
+    }
+  });
+
+  it("uses the locale first day when resolving week intervals", () => {
+    const expressions = [{
+      kind: "relative",
+      offset: 0,
+      raw: "this week",
+      unit: "week",
+    }] as const;
+
+    expect(resolveTemporalInterval(
+      expressions,
+      "2026-07-16T15:30:00.000Z",
+      "UTC",
+      "en-US",
+    )?.start).toBe("2026-07-12T00:00:00.000Z");
+    expect(resolveTemporalInterval(
+      expressions,
+      "2026-07-16T15:30:00.000Z",
+      "UTC",
+      "en-GB",
+    )?.start).toBe("2026-07-13T00:00:00.000Z");
+  });
+
+  it("fails closed for invalid temporal anchors and timezones", () => {
+    const expressions = [{
+      kind: "relative",
+      offset: -1,
+      raw: "yesterday",
+      unit: "day",
+    }] as const;
+
+    expect(resolveTemporalInterval(
+      expressions,
+      "2026-08-12",
+      "Asia/Shanghai",
+      "zh-CN",
+    )).toBeUndefined();
+    expect(resolveTemporalInterval(
+      expressions,
+      "2026-08-12T02:00:00.000Z",
+      "+08:00",
+      "zh-CN",
+    )).toBeUndefined();
+    expect(resolveTemporalInterval(
+      [{
+        calendar: { year: Number.NaN },
+        kind: "absolute",
+        raw: "invalid",
+      }],
+      "2026-08-12T02:00:00.000Z",
+      "Asia/Shanghai",
+      "zh-CN",
+    )).toBeUndefined();
+    expect(resolveTemporalInterval(
+      [{
+        kind: "relative",
+        offset: Number.NaN,
+        raw: "invalid",
+        unit: "day",
+      }],
+      "2026-08-12T02:00:00.000Z",
+      "Asia/Shanghai",
+      "zh-CN",
+    )).toBeUndefined();
   });
 });

@@ -76,6 +76,12 @@ function createExportedMemory(): ExportMemoryResult {
           importance: 1,
           isActive: true,
           lifecycle: "active",
+          occurrence: {
+            start: "2025-12-30T16:00:00.000Z",
+            endExclusive: "2025-12-31T16:00:00.000Z",
+            precision: "day",
+            timezone: "Asia/Shanghai",
+          },
           source: {
             extractedAt: "2026-01-01T00:00:00.000Z",
             method: "explicit",
@@ -258,6 +264,119 @@ describe("ProgressiveRecallService", () => {
 
     expect(capturedLocale).toBe("ja-JP");
   });
+
+  it("passes temporal context through search and timeline recall", async () => {
+    const captured: RecallInput[] = [];
+    const base = createMemory(createExportedMemory());
+    const service = createProgressiveRecallService({
+      language,
+      memory: {
+        async recall(input: RecallInput) {
+          captured.push(input);
+          return base.recall(input);
+        },
+      },
+      scopeDigestSecret: "progressive-test-secret",
+    });
+    const temporal = {
+      referenceTime: "2026-11-01T05:30:00.000Z",
+      timezone: "America/New_York",
+    };
+
+    await service.searchRecallIndex({
+      query: "What happened yesterday?",
+      scope,
+      ...temporal,
+    });
+    await service.buildRecallTimeline({
+      query: "What happened yesterday?",
+      scope,
+      ...temporal,
+    });
+
+    expect(captured).toHaveLength(2);
+    for (const input of captured) {
+      expect(input).toMatchObject(temporal);
+    }
+  });
+
+  it("buckets event facts by their occurrence timezone without changing other records", async () => {
+    const exported = createExportedMemory();
+    exported.durable.facts = [{
+      ...exported.durable.facts[0]!,
+      content: "I ate tomato omelet.",
+      occurrence: {
+        start: "2026-08-10T16:00:00.000Z",
+        endExclusive: "2026-08-11T16:00:00.000Z",
+        precision: "day",
+        timezone: "Asia/Shanghai",
+      },
+    }];
+    exported.durable.references = [{
+      ...exported.durable.references[0]!,
+      updatedAt: "2026-08-10T16:00:00.000Z",
+    }];
+    const service = createProgressiveRecallService({
+      language,
+      memory: createMemory(exported),
+      scopeDigestSecret: "progressive-test-secret",
+    });
+
+    const timeline = await service.buildRecallTimeline({
+      query: "tomato release evidence",
+      scope,
+    });
+    const factBucket = timeline.buckets.find(({ records }) =>
+      records.some(({ recordKind }) => recordKind === "fact")
+    );
+    const referenceBucket = timeline.buckets.find(({ records }) =>
+      records.some(({ recordKind }) => recordKind === "reference")
+    );
+
+    expect(factBucket?.label).toBe("2026-08-11");
+    expect(referenceBucket?.label).toBe("2026-08-10");
+  });
+
+  it("uses occurrence precision in non-day event timeline labels", async () => {
+    const exported = createExportedMemory();
+    const base = exported.durable.facts[0]!;
+    exported.durable.facts = ([
+      ["week", "2026-08-10T16:00:00.000Z"],
+      ["month", "2026-07-31T16:00:00.000Z"],
+      ["quarter", "2026-07-31T16:00:00.000Z"],
+      ["year", "2025-12-31T16:00:00.000Z"],
+      ["instant", "2026-08-10T16:04:05.000Z"],
+    ] as const).map(([precision, start]) => ({
+      ...base,
+      content: `${precision} temporal event`,
+      id: `fact-${precision}`,
+      occurrence: {
+        start,
+        endExclusive: new Date(Date.parse(start) + 1).toISOString(),
+        precision,
+        timezone: "Asia/Shanghai",
+      },
+    }));
+    const service = createProgressiveRecallService({
+      language,
+      memory: createMemory(exported),
+      scopeDigestSecret: "progressive-test-secret",
+    });
+    const timeline = await service.buildRecallTimeline({
+      query: "temporal event",
+      scope,
+    });
+    const labelFor = (summary: string) => timeline.buckets.find(({ records }) =>
+      records.some((record) => record.summary === summary)
+    )?.label;
+
+    expect(labelFor("week temporal event")).toBe("2026-08-11");
+    expect(labelFor("month temporal event")).toBe("2026-08");
+    expect(labelFor("quarter temporal event")).toBe("2026-Q3");
+    expect(labelFor("year temporal event")).toBe("2026");
+    expect(labelFor("instant temporal event")).toBe("2026-08-11T00:04:05");
+  });
+
   it("encodes parseable record refs and rejects malformed bare ids", () => {
     const recordRef = encodeGoodMemoryRecordRef({
       id: "fact:with-colon",
@@ -295,6 +414,20 @@ describe("ProgressiveRecallService", () => {
     expect(index.records.map((record) => record.recordKind)).toContain("archive");
     expect(index.records.map((record) => record.recordKind)).toContain("runtime-journal");
     expect(index.records.every((record) => record.recordRef.startsWith("gmrec:v1:"))).toBe(true);
+    const factRecord = index.records.find(({ recordKind }) => recordKind === "fact");
+    expect(factRecord?.occurredAt).toBe("2025-12-30T16:00:00.000Z");
+    const factDetail = await service.getProgressiveRecords({
+      recordRefs: [factRecord!.recordRef],
+      scope,
+    });
+    expect(factDetail.records[0]?.detail).toMatchObject({
+      occurrence: {
+        start: "2025-12-30T16:00:00.000Z",
+        endExclusive: "2025-12-31T16:00:00.000Z",
+        precision: "day",
+        timezone: "Asia/Shanghai",
+      },
+    });
   });
 
   it("uses recall-visible records instead of export-only records", async () => {
@@ -504,8 +637,9 @@ describe("ProgressiveRecallService", () => {
     expect(rendered.content).toContain("Progressive GoodMemory Recall");
     expect(rendered.content).toContain("gmrec:v1:");
     expect(rendered.content).toContain("detail tokens");
+    expect(rendered.content).toContain("[2025-12-31, Asia/Shanghai]");
     expect(rendered.content).not.toContain(scope.userId);
-    expect(rendered.estimatedTokens).toBeLessThan(300);
+    expect(rendered.estimatedTokens).toBeLessThan(320);
 
     const budgeted = service.renderProgressiveContext({
       index,

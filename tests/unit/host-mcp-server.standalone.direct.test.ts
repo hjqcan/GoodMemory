@@ -7,6 +7,7 @@ import type {
   RecallInput,
   RememberInput,
 } from "../../src/api/contracts";
+import { createFactMemory } from "../../src/domain/records";
 import type { GoodMemoryMcpServerDependencies } from "../../src/install/hostMcpServer";
 import { createGoodMemoryMcpServer } from "../../src/install/hostMcpServer";
 import type { StandaloneMcpConfig } from "../../src/install/standaloneMcpContext";
@@ -113,7 +114,28 @@ function createFakeMemory(): { calls: FakeMemoryCalls; memory: GoodMemory } {
     },
     recall: async (input: RecallInput) => {
       calls.recall.push(input);
-      return { facts: [] };
+      return {
+        archives: [],
+        episodes: [],
+        evidence: [],
+        facts: [],
+        feedback: [],
+        journal: null,
+        metadata: {
+          candidateTraces: [],
+          hits: [],
+          latencyMs: 0,
+          policyApplied: [],
+          routingDecision: {},
+          tokenCount: 0,
+          verificationHints: [],
+        },
+        packet: {},
+        preferences: [],
+        profile: null,
+        references: [],
+        workingMemory: null,
+      };
     },
   } as unknown as GoodMemory;
 
@@ -212,6 +234,178 @@ describe("goodmemory mcp server standalone direct handlers", () => {
       userId: "standalone-user",
       workspaceId: basename(resolve("/tmp/standalone-project")),
     });
+  });
+
+  it("forwards temporal context through every recall tool and remember", async () => {
+    const { calls, memory } = createFakeMemory();
+    const server = inspectServer(
+      createGoodMemoryMcpServer({
+        allowWrite: true,
+        dependencies: createConfiglessDependencies(memory),
+        standalone: STANDALONE_CONFIG,
+      }),
+    );
+    const temporal = {
+      referenceTime: "2026-11-01T05:30:00.000Z",
+      timezone: "America/New_York",
+    };
+
+    await server._registeredTools.goodmemory_get_context!.handler({
+      query: "What happened yesterday?",
+      ...temporal,
+    });
+    await server._registeredTools.goodmemory_trace_recall!.handler({
+      query: "What happened yesterday?",
+      ...temporal,
+    });
+    await server._registeredTools.goodmemory_search_index!.handler({
+      query: "What happened yesterday?",
+      ...temporal,
+    });
+    await server._registeredTools.goodmemory_timeline!.handler({
+      query: "What happened yesterday?",
+      ...temporal,
+    });
+    await server._registeredTools.goodmemory_remember!.handler({
+      content: "The release review is tomorrow.",
+      observedAt: "2026-11-01T05:29:00.000Z",
+      timezone: "America/New_York",
+    });
+    await server._registeredTools.goodmemory_remember!.handler({
+      content: "Core validates these temporal values.",
+      observedAt: "",
+      timezone: "",
+    });
+
+    expect(calls.recall).toHaveLength(4);
+    for (const input of calls.recall) {
+      expect(input).toMatchObject(temporal);
+    }
+    expect(calls.remember[0]).toMatchObject({
+      timezone: "America/New_York",
+      messages: [
+        {
+          content: "The release review is tomorrow.",
+          observedAt: "2026-11-01T05:29:00.000Z",
+          role: "assistant",
+          timezone: "America/New_York",
+        },
+      ],
+    });
+    expect(calls.remember[1]).toMatchObject({
+      timezone: "",
+      messages: [{ observedAt: "", timezone: "" }],
+    });
+  });
+
+  it("preserves retrieval trace and resolved during constraints", async () => {
+    const { memory } = createFakeMemory();
+    const recall = memory.recall.bind(memory);
+    memory.recall = async (input) => {
+      const result = await recall(input);
+      return {
+        ...result,
+        metadata: {
+          ...result.metadata,
+          retrievalTrace: {
+            plan: {
+              entities: [],
+              evidenceNeeds: ["direct", "temporal"],
+              facets: [],
+              maxHops: 1,
+              maxRenderedTokens: 6_000,
+              planes: ["semantic", "episodic"],
+              preRankLimit: 32,
+              selectedLimit: 12,
+              temporalConstraints: [{
+                interval: {
+                  endExclusive: "2026-08-11T16:00:00.000Z",
+                  precision: "day",
+                  start: "2026-08-10T16:00:00.000Z",
+                  timezone: "Asia/Shanghai",
+                },
+                kind: "during",
+              }],
+              uncertainty: "medium",
+            },
+            queryExecutions: [],
+            schemaVersion: 2,
+            stopReason: "single_pass_complete",
+            subQueries: [],
+          },
+        },
+      };
+    };
+    const server = inspectServer(
+      createGoodMemoryMcpServer({
+        dependencies: createConfiglessDependencies(memory),
+        standalone: STANDALONE_CONFIG,
+      }),
+    );
+
+    const result = await server._registeredTools.goodmemory_trace_recall!.handler({
+      query: "What did I eat yesterday?",
+      referenceTime: "2026-08-12T03:00:00.000Z",
+      timezone: "Asia/Shanghai",
+    });
+
+    expect(result.structuredContent?.retrievalTrace).toMatchObject({
+      plan: {
+        temporalConstraints: [{
+          interval: {
+            endExclusive: "2026-08-11T16:00:00.000Z",
+            precision: "day",
+            start: "2026-08-10T16:00:00.000Z",
+            timezone: "Asia/Shanghai",
+          },
+          kind: "during",
+        }],
+      },
+      schemaVersion: 2,
+    });
+  });
+
+  it("returns occurrence-local event dates from the standalone timeline", async () => {
+    const { memory } = createFakeMemory();
+    const recall = memory.recall.bind(memory);
+    const temporalMemory = {
+      ...memory,
+      async recall(input: RecallInput) {
+        return {
+          ...await recall(input),
+          facts: [createFactMemory({
+            category: "event",
+            content: "I ate tomato omelet.",
+            id: "shanghai-event",
+            occurrence: {
+              start: "2026-08-10T16:00:00.000Z",
+              endExclusive: "2026-08-11T16:00:00.000Z",
+              precision: "day",
+              timezone: "Asia/Shanghai",
+            },
+            source: {
+              extractedAt: "2026-08-12T00:00:00.000Z",
+              method: "explicit",
+            },
+            updatedAt: "2026-08-12T00:00:00.000Z",
+            userId: "standalone-user",
+          })],
+        };
+      },
+    } as GoodMemory;
+    const server = inspectServer(createGoodMemoryMcpServer({
+      dependencies: createConfiglessDependencies(temporalMemory),
+      standalone: STANDALONE_CONFIG,
+    }));
+
+    const result = await server._registeredTools.goodmemory_timeline!.handler({
+      query: "tomato",
+    });
+    const buckets = result.structuredContent?.buckets as
+      | Array<{ label: string }>
+      | undefined;
+
+    expect(buckets?.[0]?.label).toBe("2026-08-11");
   });
 
   it("derives workspaceId from the per-call cwd", async () => {

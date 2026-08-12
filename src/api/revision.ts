@@ -414,6 +414,9 @@ function buildRevisedRecords(input: {
       ...record,
       id: input.newMemoryId,
       content: input.content,
+      occurrence: input.content === record.content
+        ? record.occurrence
+        : undefined,
       source,
       accessCount: 0,
       lastAccessedAt: undefined,

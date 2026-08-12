@@ -179,6 +179,8 @@ class GoodMemoryClient:
         strategy: Optional[str] = None,
         output: Optional[str] = None,
         max_tokens: Optional[int] = None,
+        reference_time: Optional[str] = None,
+        timezone: Optional[str] = None,
         scope: Optional[Scope] = None,
     ) -> RecallContextResult:
         body: Dict[str, Any] = {"query": query}
@@ -190,6 +192,10 @@ class GoodMemoryClient:
             body["output"] = output
         if max_tokens is not None:
             body["maxTokens"] = max_tokens
+        if reference_time is not None:
+            body["referenceTime"] = reference_time
+        if timezone is not None:
+            body["timezone"] = timezone
         payload = self._post("/memory/recall-context", body, scope=scope)
         return RecallContextResult(
             context_text=str(payload.get("contextText", "")),
@@ -211,6 +217,8 @@ class GoodMemoryClient:
         annotations: Optional[Sequence[Mapping[str, Any]]] = None,
         extraction_strategy: Optional[str] = None,
         locale: Optional[str] = None,
+        observed_at: Optional[str] = None,
+        timezone: Optional[str] = None,
         scope: Optional[Scope] = None,
     ) -> Dict[str, Any]:
         if mode == "async" and idempotency_key is None:
@@ -218,7 +226,10 @@ class GoodMemoryClient:
                 "remember(mode='async') requires idempotency_key — the bridge "
                 "rejects async writes without one."
             )
-        body: Dict[str, Any] = {"messages": list(messages), "mode": mode}
+        normalized_messages = [dict(message) for message in messages]
+        if observed_at is not None and normalized_messages:
+            normalized_messages[-1].setdefault("observedAt", observed_at)
+        body: Dict[str, Any] = {"messages": normalized_messages, "mode": mode}
         if idempotency_key is not None:
             body["idempotencyKey"] = idempotency_key
         if annotations is not None:
@@ -227,6 +238,8 @@ class GoodMemoryClient:
             body["extractionStrategy"] = extraction_strategy
         if locale is not None:
             body["locale"] = locale
+        if timezone is not None:
+            body["timezone"] = timezone
         return self._post("/memory/remember", body, scope=scope)
 
     def feedback(

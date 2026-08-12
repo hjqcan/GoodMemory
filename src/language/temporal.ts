@@ -1,4 +1,69 @@
+import {
+  isIanaTimezone,
+  isRfc3339Instant,
+  resolveTemporalInterval,
+} from "../domain/temporal";
 import type { LanguageTemporalExpression } from "./contracts";
+
+const TEMPORAL_LITERAL_QUOTE_PAIRS = [
+  ["\"", "\""],
+  ["'", "'"],
+  ["‘", "’"],
+  ["“", "”"],
+  ["«", "»"],
+  ["《", "》"],
+  ["「", "」"],
+  ["『", "』"],
+] as const;
+
+function maskRange(value: string, start: number, end: number): string {
+  return `${value.slice(0, start)}${" ".repeat(end - start)}${value.slice(end)}`;
+}
+
+export function maskQuotedTemporalLiterals(text: string): string {
+  let masked = text;
+  for (const [opening, closing] of TEMPORAL_LITERAL_QUOTE_PAIRS) {
+    let searchFrom = 0;
+    while (searchFrom < text.length) {
+      const start = text.indexOf(opening, searchFrom);
+      if (start < 0) break;
+      const end = text.indexOf(closing, start + opening.length);
+      if (end < 0) break;
+      masked = maskRange(masked, start, end + closing.length);
+      searchFrom = end + closing.length;
+    }
+  }
+  return masked;
+}
+
+export function hasOccurrenceResolutionContext(input: {
+  observedAt?: string;
+  timezone?: string;
+}): boolean {
+  return Boolean(
+    input.observedAt &&
+      input.timezone &&
+      isRfc3339Instant(input.observedAt) &&
+      isIanaTimezone(input.timezone),
+  );
+}
+
+export function canResolveOccurrenceExpression(input: {
+  expression: LanguageTemporalExpression;
+  locale: string;
+  observedAt?: string;
+  timezone?: string;
+}): boolean {
+  if (!hasOccurrenceResolutionContext(input)) {
+    return false;
+  }
+  return resolveTemporalInterval(
+    [input.expression],
+    input.observedAt!,
+    input.timezone!,
+    input.locale,
+  ) !== undefined;
+}
 
 function absolute(
   raw: string,
@@ -25,7 +90,7 @@ export function parseCjkTemporalReference(
   );
   if (isoDate) {
     return absolute(
-      isoDate[0].trim(),
+      isoDate[0].match(/\d{4}[-/]\d{1,2}[-/]\d{1,2}/u)![0],
       Number(isoDate[1]),
       Number(isoDate[2]),
       Number(isoDate[3]),
@@ -49,7 +114,7 @@ export function parseCjkTemporalReference(
     return absolute(year[0].trim(), Number(year[1]));
   }
 
-  const daysAgo = text.match(/(\d{1,3})\s*日前/u);
+  const daysAgo = text.match(/(\d{1,3})\s*(?:天|日)前/u);
   if (daysAgo) {
     return {
       kind: "relative",

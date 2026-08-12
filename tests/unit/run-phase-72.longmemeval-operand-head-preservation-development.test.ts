@@ -18,7 +18,9 @@ describe("Phase 72 LongMemEval operand-head preservation development", () => {
       outputDir: "/out",
       runId: "analyzer-version-fixture",
       selectionFile: "/selection.json",
-    })).rejects.toThrow("English analyzer 13 is required; found 14");
+    })).rejects.toThrow(
+      "English analyzer 13 is required; found 15-occurrence-expression",
+    );
   });
 
   it("rejects every dependency injection from canonical evidence", () => {
@@ -186,7 +188,7 @@ describe("Phase 72 LongMemEval operand-head preservation development", () => {
     });
     expect(report.source).toMatchObject({
       canonicalDependencies: false,
-      englishAnalyzerVersion: "14-explicit-fact-list-boundary",
+      englishAnalyzerVersion: "15-occurrence-expression",
     });
     expect(writes.has("/out/fixture-run/report.json")).toBe(true);
   });

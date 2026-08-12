@@ -1,5 +1,8 @@
 import type { MemoryCandidate } from "../domain/memoryCandidate";
 import type { FeedbackKind } from "../domain/records";
+import type { TemporalExpression } from "../domain/temporal";
+
+export type { TemporalExpression } from "../domain/temporal";
 
 export type LocaleResolutionSource = "explicit" | "detected" | "default";
 
@@ -19,7 +22,9 @@ export interface LanguageCandidateExtractionInput {
     analysis?: LanguageContentAnalysis;
     role: string;
     content: string;
+    observedAt?: string;
     sourceMessageIndex?: number;
+    timezone?: string;
   }>;
   locale: string;
   nextId: () => string;
@@ -37,6 +42,8 @@ export interface LanguageQueryAnalysis {
   continuation: boolean;
   current: boolean;
   directFactualLookup: boolean;
+  eventOccurrenceQuery?: boolean;
+  eventOccurrenceQueryMode?: "broad" | "predicate";
   exhaustiveList: boolean;
   factConfirmation: boolean;
   focus: boolean;
@@ -173,40 +180,7 @@ export interface LanguageBehavioralRuleAnalysis {
   warningSignal?: boolean;
 }
 
-export type LanguageTemporalExpression =
-  | {
-      kind: "absolute";
-      raw: string;
-      calendar: {
-        day?: number;
-        month?: number;
-        year: number;
-      };
-    }
-  | {
-      kind: "absolute";
-      raw: string;
-      iso: string;
-    }
-  | {
-      kind: "relative";
-      raw: string;
-      offset: number;
-      unit: "day" | "week" | "month" | "quarter" | "year";
-    }
-  | {
-      kind: "relative";
-      raw: string;
-      month: number;
-      occurrence: "latest" | "strictly_before";
-      unit: "month";
-    }
-  | {
-      kind: "range";
-      raw: string;
-      end?: string;
-      start?: string;
-    };
+export type LanguageTemporalExpression = TemporalExpression;
 
 export interface LanguageEntityMention {
   kind?: "identifier" | "location" | "organization" | "person" | "term";
@@ -361,6 +335,7 @@ export interface LanguagePack {
   analyzeQuery(text: string): LanguageQueryAnalysis;
   analyzeContent(text: string): LanguageContentAnalysis;
   parseTemporalExpressions(text: string): LanguageTemporalExpression[];
+  matchesEventPredicate?(query: string, candidate: string): boolean;
   extractEntityMentions(text: string): LanguageEntityMention[];
   matchesEntityAlias(query: string, alias: string): boolean;
   acceptsEntityCandidate(input: LanguageEntityCandidateInput): boolean;
@@ -469,6 +444,11 @@ export interface LanguageService {
     text: string,
     context: ResolvedLanguageContext | string,
   ): LanguageTemporalExpression[];
+  matchesEventPredicate(
+    query: string,
+    candidate: string,
+    context: ResolvedLanguageContext | string,
+  ): boolean;
   extractEntityMentions(
     text: string,
     context: ResolvedLanguageContext | string,

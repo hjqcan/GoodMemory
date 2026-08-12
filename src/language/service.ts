@@ -171,6 +171,9 @@ function snapshotPack(pack: LanguagePack): LanguagePack {
     id,
     locales: Object.freeze(locales),
     matchesEntityAlias: pack.matchesEntityAlias,
+    ...(pack.matchesEventPredicate
+      ? { matchesEventPredicate: pack.matchesEventPredicate }
+      : {}),
     normalizeForEquality: pack.normalizeForEquality,
     parseTemporalExpressions: pack.parseTemporalExpressions,
     render: pack.render,
@@ -520,6 +523,9 @@ export function createLanguageService(
     },
     parseTemporalExpressions(text, context) {
       return packFor(context).parseTemporalExpressions(text);
+    },
+    matchesEventPredicate(query, candidate, context) {
+      return packFor(context).matchesEventPredicate?.(query, candidate) ?? false;
     },
     extractEntityMentions(text, context) {
       return packFor(context).extractEntityMentions(text);

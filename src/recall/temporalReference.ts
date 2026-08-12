@@ -1,4 +1,5 @@
 import type { LanguageTemporalExpression } from "../language";
+export { resolveTemporalInterval } from "../domain/temporal";
 
 const DAY_MS = 86_400_000;
 

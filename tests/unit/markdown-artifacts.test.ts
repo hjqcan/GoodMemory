@@ -410,6 +410,32 @@ describe("markdown artifact projection", () => {
     );
   });
 
+  it("exports absolute event occurrence in markdown artifacts", () => {
+    const input = buildProjectionInput();
+    const artifacts = buildMarkdownArtifacts({
+      ...input,
+      durable: {
+        ...input.durable,
+        facts: input.durable.facts.map((fact) => createFactMemory({
+          ...fact,
+          occurrence: {
+            start: "2026-04-01T16:00:00.000Z",
+            endExclusive: "2026-04-02T16:00:00.000Z",
+            precision: "day",
+            timezone: "Asia/Shanghai",
+          },
+        })),
+      },
+    });
+    const memory = artifacts.files.find(({ relativePath }) =>
+      relativePath === "MEMORY.md"
+    );
+
+    expect(memory?.content).toContain(
+      "[occurrence: 2026-04-01T16:00:00.000Z..2026-04-02T16:00:00.000Z; precision=day; timezone=Asia/Shanghai]",
+    );
+  });
+
   it("namespaces session-scoped artifact bundles by session id", () => {
     const sessionOne = buildMarkdownArtifacts(buildProjectionInput());
     const sessionNine = buildMarkdownArtifacts({
