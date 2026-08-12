@@ -4513,6 +4513,35 @@ console.log(JSON.stringify(await evaluateV073LifecycleProtectionBundle({ artifac
     ]));
   }, 30_000);
 
+  it("binds historical evidence checks to repoRoot instead of ambient GIT_DIR", () => {
+    const repoRoot = join(import.meta.dir, "../..");
+    const currentCommit = runFixtureGit(repoRoot, "rev-parse", "HEAD");
+    const artifactPath = join(
+      repoRoot,
+      "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+    );
+    const source = `
+      import { evaluateV073LifecycleProtectionArtifactFile } from ${JSON.stringify(
+        join(repoRoot, "scripts/run-v0-7-release-readiness.ts"),
+      )};
+      const checks = await evaluateV073LifecycleProtectionArtifactFile({
+        artifactPath: ${JSON.stringify(artifactPath)},
+        currentCommit: ${JSON.stringify(currentCommit)},
+        repoRoot: ${JSON.stringify(repoRoot)},
+      });
+      process.exit(checks.every((check) => check.status === "pass") ? 0 : 1);
+    `;
+    const result = Bun.spawnSync(["bun", "--no-env-file", "-e", source], {
+      cwd: repoRoot,
+      env: {
+        ...process.env,
+        GIT_DIR: join(tmpdir(), "goodmemory-decoy-git"),
+      },
+    });
+
+    expect(result.exitCode).toBe(0);
+  }, 30_000);
+
   it("requires the frozen v0.7.3 measured candidate in later release history", () => {
     const candidateCommit = "a".repeat(40);
     const currentCommit = "b".repeat(40);

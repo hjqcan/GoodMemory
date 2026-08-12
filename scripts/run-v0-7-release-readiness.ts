@@ -5915,9 +5915,18 @@ function runCommand(
 ): Promise<CommandOutcome> {
   return new Promise((resolve) => {
     const startedAt = performance.now();
+    const env = { ...process.env };
+    if (command === "git") {
+      delete env.GIT_ALTERNATE_OBJECT_DIRECTORIES;
+      delete env.GIT_COMMON_DIR;
+      delete env.GIT_DIR;
+      delete env.GIT_INDEX_FILE;
+      delete env.GIT_OBJECT_DIRECTORY;
+      delete env.GIT_WORK_TREE;
+    }
     const child = spawn(command, args, {
       cwd,
-      env: process.env,
+      env,
     });
     let stdout = "";
     let stderr = "";
