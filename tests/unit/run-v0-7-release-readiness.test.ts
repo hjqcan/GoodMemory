@@ -175,7 +175,14 @@ function evidenceIdentity(path: string, raw: string) {
 }
 
 function runFixtureGit(repoRoot: string, ...args: string[]): string {
-  const result = Bun.spawnSync(["git", ...args], { cwd: repoRoot });
+  const env = { ...process.env };
+  delete env.GIT_ALTERNATE_OBJECT_DIRECTORIES;
+  delete env.GIT_COMMON_DIR;
+  delete env.GIT_DIR;
+  delete env.GIT_INDEX_FILE;
+  delete env.GIT_OBJECT_DIRECTORY;
+  delete env.GIT_WORK_TREE;
+  const result = Bun.spawnSync(["git", ...args], { cwd: repoRoot, env });
   if (result.exitCode !== 0) {
     throw new Error(result.stderr.toString());
   }

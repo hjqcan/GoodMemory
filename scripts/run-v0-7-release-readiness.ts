@@ -4802,23 +4802,50 @@ export function evaluateV073CrossHostLifecycleVerifierCorrection(
       sourceArtifactsByPath.set(artifact.path, artifact);
     }
   }
-  const frozenSourcesValid =
-    sourceArtifacts.length === V073_CROSS_HOST_LIFECYCLE_VERIFIER_SOURCE_PATHS.length &&
-    sourceArtifactsByPath.size === V073_CROSS_HOST_LIFECYCLE_VERIFIER_SOURCE_PATHS.length &&
-    V073_CROSS_HOST_LIFECYCLE_VERIFIER_SOURCE_PATHS.every((path) => {
+  const frozenSourceIssues: string[] = [];
+  if (
+    sourceArtifacts.length !== V073_CROSS_HOST_LIFECYCLE_VERIFIER_SOURCE_PATHS.length ||
+    sourceArtifactsByPath.size !== V073_CROSS_HOST_LIFECYCLE_VERIFIER_SOURCE_PATHS.length
+  ) {
+    frozenSourceIssues.push(
+      `artifact-count=${sourceArtifacts.length}, unique-path-count=${sourceArtifactsByPath.size}`,
+    );
+  }
+  V073_CROSS_HOST_LIFECYCLE_VERIFIER_SOURCE_PATHS.forEach((path) => {
       const frozenRaw = V073_CROSS_HOST_LIFECYCLE_VERIFIER_IMPLEMENTATION_PATHS.includes(
           path as (typeof V073_CROSS_HOST_LIFECYCLE_VERIFIER_IMPLEMENTATION_PATHS)[number],
         )
         ? value.implementationSourceRaws[path]
         : value.preregistrationSourceRaws[path];
       const identity = sourceArtifactsByPath.get(path);
-      return frozenRaw !== undefined &&
-        value.currentSourceRaws[path] === frozenRaw &&
-        identity?.bytes === Buffer.byteLength(frozenRaw, "utf8") &&
-        identity.sha256 === sha256(frozenRaw);
+      if (frozenRaw === undefined) {
+        frozenSourceIssues.push(`${path}: missing frozen source`);
+        return;
+      }
+      if (value.currentSourceRaws[path] !== frozenRaw) {
+        frozenSourceIssues.push(`${path}: current source differs from frozen source`);
+      }
+      if (identity?.bytes !== Buffer.byteLength(frozenRaw, "utf8")) {
+        frozenSourceIssues.push(
+          `${path}: byte count expected ${identity?.bytes ?? "missing"}, got ${Buffer.byteLength(
+            frozenRaw,
+            "utf8",
+          )}`,
+        );
+      }
+      const frozenSha256 = sha256(frozenRaw);
+      if (identity?.sha256 !== frozenSha256) {
+        frozenSourceIssues.push(
+          `${path}: sha256 expected ${identity?.sha256 ?? "missing"}, got ${frozenSha256}`,
+        );
+      }
     });
-  if (!frozenSourcesValid) {
-    issues.push("cross-host lifecycle verifier frozen source identities are inconsistent");
+  if (frozenSourceIssues.length > 0) {
+    issues.push(
+      `cross-host lifecycle verifier frozen source identities are inconsistent: ${frozenSourceIssues.join(
+        "; ",
+      )}`,
+    );
   }
 
   const verification = isRecord(attestation) && isRecord(attestation.verification)
@@ -5928,8 +5955,10 @@ function runCommand(
       cwd,
       env,
     });
-    let stdout = "";
-    let stderr = "";
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+    const stdout = () => Buffer.concat(stdoutChunks).toString("utf8");
+    const stderr = () => Buffer.concat(stderrChunks).toString("utf8");
     let groupClosed = false;
     const closeGroup = () => {
       if (options.logGroupName === undefined || groupClosed) {
@@ -5944,17 +5973,15 @@ function runCommand(
     }
 
     child.stdout?.on("data", (chunk: Buffer) => {
-      const text = chunk.toString();
-      stdout += text;
+      stdoutChunks.push(chunk);
       if (options.logGroupName !== undefined) {
-        process.stdout.write(text);
+        process.stdout.write(chunk);
       }
     });
     child.stderr?.on("data", (chunk: Buffer) => {
-      const text = chunk.toString();
-      stderr += text;
+      stderrChunks.push(chunk);
       if (options.logGroupName !== undefined) {
-        process.stderr.write(text);
+        process.stderr.write(chunk);
       }
     });
     child.on("error", (error: Error) => {
@@ -5963,7 +5990,7 @@ function runCommand(
         code: null,
         durationMs: Math.round(performance.now() - startedAt),
         stderr: String(error),
-        stdout,
+        stdout: stdout(),
       });
     });
     child.on("close", (code: number | null) => {
@@ -5971,8 +5998,8 @@ function runCommand(
       resolve({
         code,
         durationMs: Math.round(performance.now() - startedAt),
-        stderr,
-        stdout,
+        stderr: stderr(),
+        stdout: stdout(),
       });
     });
   });
