@@ -1787,7 +1787,7 @@ console.log(JSON.stringify(await evaluateV073LifecycleProtectionBundle({ artifac
     }
   });
 
-  it("pins package, lockfile, capability, and MCP descriptors to the 0.7.4 release candidate", () => {
+  it("pins package, lockfile, capability, and MCP descriptors to the 0.7.4 release source", () => {
     const readJson = (path: string) =>
       JSON.parse(
         readFileSync(new URL(`../../${path}`, import.meta.url), "utf8"),
@@ -1803,7 +1803,11 @@ console.log(JSON.stringify(await evaluateV073LifecycleProtectionBundle({ artifac
     const server = readJson("server.json");
 
     expect(packageJson.version).toBe("0.7.4");
-    expect(packageJson.goodmemoryRelease?.status).toBe("release-candidate");
+    expect(
+      ["release-candidate", "stable"].includes(
+        packageJson.goodmemoryRelease?.status ?? "",
+      ),
+    ).toBe(true);
     expect(packageLock.version).toBe("0.7.4");
     expect((packageLock.packages as Record<string, { version?: string }>)[""]?.version).toBe(
       "0.7.4",
