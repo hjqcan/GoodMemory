@@ -11,6 +11,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import {
+  RC_LLMS,
+  RC_README,
+  RC_README_ZH,
+  STABLE_LLMS,
+  STABLE_README,
+  STABLE_README_ZH,
   assertV07ReleaseSourceIdentity,
   assertV07StableReleaseSource,
   promoteV07ReleaseSource,
@@ -19,25 +25,17 @@ import { BENCHMARK_EVIDENCE_BOUNDARY_NOTE } from "../../src/api/capabilityDescri
 
 const README_RC = `# GoodMemory
 
-> **Release status:** this branch is the \`0.7.4\` release candidate. npm
-> \`latest\` remains \`0.7.3\`; \`0.7.4\` has not been published. The version-pinned
-> registry commands below are the post-publish contract; use the locally packed
-> \`goodmemory-0.7.4.tgz\` for pre-publish verification.
+${RC_README}
 `;
 
 const README_ZH_RC = `# GoodMemory
 
-> **发布状态：**当前分支是 \`0.7.4\` release candidate。npm \`latest\` 仍为
-> \`0.7.3\`，\`0.7.4\` 尚未发布。下文锁定版本的 registry 命令是发布后的契约；
-> 发布前请使用本地打包的 \`goodmemory-0.7.4.tgz\` 验证。
+${RC_README_ZH}
 `;
 
 const LLMS_RC = `# GoodMemory
 
-Release status: this source tree targets the GoodMemory 0.7.4 release candidate.
-npm latest remains 0.7.3 and 0.7.4 has not been published. Version-pinned
-registry commands apply after publication; pre-publish verification uses
-goodmemory-0.7.4.tgz.
+${RC_LLMS}
 `;
 
 async function runGit(root: string, args: readonly string[]): Promise<string> {
@@ -181,22 +179,38 @@ describe("v0.7 release-source promotion", () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-v07-real-prose-"));
     try {
       await mkdir(join(root, ".well-known"), { recursive: true });
-      for (const path of ["README.md", "README.zh-CN.md", "llms.txt"]) {
+      for (const [path, stable, releaseCandidate] of [
+        ["README.md", STABLE_README, RC_README],
+        ["README.zh-CN.md", STABLE_README_ZH, RC_README_ZH],
+        ["llms.txt", STABLE_LLMS, RC_LLMS],
+      ] as const) {
+        const repositoryContent = await readFile(
+          new URL(`../../${path}`, import.meta.url),
+          "utf8",
+        );
         await writeFile(
           join(root, path),
-          await readFile(new URL(`../../${path}`, import.meta.url), "utf8"),
+          repositoryContent.replace(stable, releaseCandidate),
         );
       }
+      const packageJson = JSON.parse(
+        await readFile(new URL("../../package.json", import.meta.url), "utf8"),
+      ) as { goodmemoryRelease: { status: string } };
+      packageJson.goodmemoryRelease.status = "release-candidate";
       await writeFile(
         join(root, "package.json"),
-        await readFile(new URL("../../package.json", import.meta.url), "utf8"),
+        `${JSON.stringify(packageJson, null, 2)}\n`,
       );
-      await writeFile(
-        join(root, ".well-known/goodmemory.json"),
+      const descriptor = JSON.parse(
         await readFile(
           new URL("../../.well-known/goodmemory.json", import.meta.url),
           "utf8",
         ),
+      ) as { releaseStatus: { status: string } };
+      descriptor.releaseStatus.status = "release-candidate";
+      await writeFile(
+        join(root, ".well-known/goodmemory.json"),
+        `${JSON.stringify(descriptor, null, 2)}\n`,
       );
 
       await expect(promoteV07ReleaseSource({ repoRoot: root })).resolves.toBeUndefined();

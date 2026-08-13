@@ -4,10 +4,10 @@ Language: English | [简体中文](./README.zh-CN.md)
 
 GoodMemory is a memory layer for AI products and coding agents.
 
-> **Release status:** this branch is the `0.7.4` release candidate. npm
-> `latest` remains `0.7.3`; `0.7.4` has not been published. The version-pinned
-> registry commands below are the post-publish contract; use the locally packed
-> `goodmemory-0.7.4.tgz` for pre-publish verification.
+> **Release source:** this is the immutable `0.7.4` stable release source.
+> Registry commands require `goodmemory@0.7.4` to be published. The release
+> workflow verifies npm `latest` and artifact integrity before creating the
+> GitHub Release.
 
 It gives chat apps, copilots, and agent hosts a durable user/project memory loop:
 write selected facts, retrieve the right context, inject it into the next turn,

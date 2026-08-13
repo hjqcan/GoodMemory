@@ -6,25 +6,25 @@ import { BENCHMARK_EVIDENCE_BOUNDARY_NOTE } from "../src/api/capabilityDescripto
 const RELEASE_VERSION = "0.7.4";
 const PREVIOUS_STABLE_VERSION = "0.7.3";
 const RELEASE_TARBALL = `goodmemory-${RELEASE_VERSION}.tgz`;
-const RC_README = `> **Release status:** this branch is the \`${RELEASE_VERSION}\` release candidate. npm
+export const RC_README = `> **Release status:** this branch is the \`${RELEASE_VERSION}\` release candidate. npm
 > \`latest\` remains \`${PREVIOUS_STABLE_VERSION}\`; \`${RELEASE_VERSION}\` has not been published. The version-pinned
 > registry commands below are the post-publish contract; use the locally packed
 > \`${RELEASE_TARBALL}\` for pre-publish verification.`;
-const STABLE_README = `> **Release source:** this is the immutable \`${RELEASE_VERSION}\` stable release source.
+export const STABLE_README = `> **Release source:** this is the immutable \`${RELEASE_VERSION}\` stable release source.
 > Registry commands require \`goodmemory@${RELEASE_VERSION}\` to be published. The release
 > workflow verifies npm \`latest\` and artifact integrity before creating the
 > GitHub Release.`;
-const RC_README_ZH = `> **发布状态：**当前分支是 \`${RELEASE_VERSION}\` release candidate。npm \`latest\` 仍为
+export const RC_README_ZH = `> **发布状态：**当前分支是 \`${RELEASE_VERSION}\` release candidate。npm \`latest\` 仍为
 > \`${PREVIOUS_STABLE_VERSION}\`，\`${RELEASE_VERSION}\` 尚未发布。下文锁定版本的 registry 命令是发布后的契约；
 > 发布前请使用本地打包的 \`${RELEASE_TARBALL}\` 验证。`;
-const STABLE_README_ZH = `> **发布源码：**这是不可变的 \`${RELEASE_VERSION}\` 稳定发布源码。Registry 命令要求
+export const STABLE_README_ZH = `> **发布源码：**这是不可变的 \`${RELEASE_VERSION}\` 稳定发布源码。Registry 命令要求
 > \`goodmemory@${RELEASE_VERSION}\` 已发布；release workflow 会先校验 npm \`latest\`
 > 与制品完整性，再创建 GitHub Release。`;
-const RC_LLMS = `Release status: this source tree targets the GoodMemory ${RELEASE_VERSION} release candidate.
+export const RC_LLMS = `Release status: this source tree targets the GoodMemory ${RELEASE_VERSION} release candidate.
 npm latest remains ${PREVIOUS_STABLE_VERSION} and ${RELEASE_VERSION} has not been published. Version-pinned
 registry commands apply after publication; pre-publish verification uses
 ${RELEASE_TARBALL}.`;
-const STABLE_LLMS = `Release source: this is the immutable GoodMemory ${RELEASE_VERSION} stable release source.
+export const STABLE_LLMS = `Release source: this is the immutable GoodMemory ${RELEASE_VERSION} stable release source.
 Registry commands require goodmemory@${RELEASE_VERSION} to be published. The release workflow
 verifies npm latest and artifact integrity before creating the GitHub Release.`;
 

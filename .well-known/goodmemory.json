@@ -28,7 +28,7 @@
   "releaseStatus": {
     "installCommandsApplyAfterPublish": true,
     "npmDistTag": "latest",
-    "status": "release-candidate",
+    "status": "stable",
     "tarball": "goodmemory-0.7.4.tgz"
   },
   "memoryApi": [

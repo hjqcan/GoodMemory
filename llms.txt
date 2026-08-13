@@ -10,10 +10,9 @@ database, or a generic RAG system. Local-first: Bun gets durable SQLite by
 default and recall runs embedding-free out of the box; embedding providers,
 Postgres, and LLM extraction are opt-in.
 
-Release status: this source tree targets the GoodMemory 0.7.4 release candidate.
-npm latest remains 0.7.3 and 0.7.4 has not been published. Version-pinned
-registry commands apply after publication; pre-publish verification uses
-goodmemory-0.7.4.tgz.
+Release source: this is the immutable GoodMemory 0.7.4 stable release source.
+Registry commands require goodmemory@0.7.4 to be published. The release workflow
+verifies npm latest and artifact integrity before creating the GitHub Release.
 
 If you are an autonomous agent reading this to decide whether to give *yourself*
 memory: yes, that is a supported first-class path. Start with the decision tree
