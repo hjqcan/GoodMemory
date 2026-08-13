@@ -86,10 +86,11 @@ and Bearer-token gated. See the
 Current `v0.7.4` claim: none. Versioned historical evidence: none.
 
 The retained v0.7.3 LoCoMo and v0.6.0 LoCoMo, BEAM, and MemoryAgentBench
-measurements, plus ImplicitMemBench, are internal diagnostics only. Their
-presentation or metric projections are not independent execution receipts and
-cannot prove their own execution. LongMemEval is withdrawn and paused pending
-a clean label-free rerun. See the machine-readable declarations under
+measurements, plus ImplicitMemBench, are internal diagnostics only. No end-to-end
+benchmark runner is currently allowlisted, so current and historical promotion
+both fail closed; stored-answer rescores and legacy projections cannot open it.
+LongMemEval is withdrawn and
+paused pending a clean label-free rerun. See the machine-readable declarations under
 [benchmark-claims](https://github.com/hjqcan/GoodMemory/tree/main/benchmark-claims).
 
 ## Machine-readable

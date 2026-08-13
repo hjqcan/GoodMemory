@@ -186,12 +186,12 @@ const CHINESE_DURABLE_TARGET_ALIASES = {
   語言偏好: "profile:languagePreference",
   组织: "profile:organization",
   組織: "profile:organization",
-  项目代码: "project_code",
-  项目代号: "project_code",
-  項目代碼: "project_code",
-  項目代號: "project_code",
-  專案代碼: "project_code",
-  專案代號: "project_code",
+  项目代码: "assignment:project_code",
+  项目代号: "assignment:project_code",
+  項目代碼: "assignment:project_code",
+  項目代號: "assignment:project_code",
+  專案代碼: "assignment:project_code",
+  專案代號: "assignment:project_code",
 } as const;
 
 const DURABLE_INFERENCE_PATTERNS = [
@@ -276,7 +276,7 @@ const EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN =
 const EXPLICIT_FACT_OPT_OUT_CONNECTOR_BOUNDARY_PATTERN =
   /(?:而且|并且|並且|以及|和|但(?:是)?|不过|不過)\s*(?=(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你)?)\s*)?(?:不要|别|別)(?:再)?(?:记住|記住|保存|存储|儲存|记录|記錄))/u;
 const CHINESE_REPORTED_DIRECTIVE_PREFIX_PATTERN =
-  /(?:^|[。！？.!?]\s*)(?:(?:我|我们|我們|他|她|他们|他們|她们|她們)\s*)?(?:(?:没有|沒有|没|沒|从未|從未|并未|並未)\s*)?(?:说|說|提到|表示|声称|聲稱|要求|请求|請求|写|寫|引用)(?:过|過|了)?(?:\s*(?:这|這|那|这样|這樣|要你|让你|讓你))?\s*[：:,，]?\s*$/u;
+  /(?:^|[。！？.!?]\s*)(?:(?:(?:我|我们|我們|他|她|他们|他們|她们|她們)\s*)?(?:(?:没有|沒有|没|沒|从未|從未|并未|並未)\s*)?(?:说|說|提到|表示|声称|聲稱|要求|请求|請求|写|寫|引用)(?:过|過|了)?(?:\s*(?:这|這|那|这样|這樣|要你|让你|讓你))?|(?:说明|說明|指南|文档|文檔|文件|句子)(?:中|里|裡)?(?:写着|寫著|出现|出現|包含)?)\s*[：:,，]?\s*$/u;
 
 function hasChineseReportedDirectiveScope({
   prefix,

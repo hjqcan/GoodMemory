@@ -53,7 +53,6 @@ const QUOTE_PAIRS = [
   ["『", "』"],
 ] as const;
 const QUOTE_CLOSINGS = new Map<string, string>(QUOTE_PAIRS);
-const QUOTE_CHARACTERS = new Set<string>(QUOTE_PAIRS.flat());
 
 interface QuotedTextScan {
   masked: string;
@@ -213,7 +212,7 @@ export function isolateDirectiveGrammar(
   }
   const rawPrefix = trimmed.slice(0, markerIndex);
   const hasStructuredPrefix = /[=＝]/u.test(rawPrefix) ||
-    [...rawPrefix].some((character) => QUOTE_CHARACTERS.has(character));
+    maskQuotedText(rawPrefix) !== rawPrefix;
   return hasStructuredPrefix ? trimmed : trimmed.slice(markerIndex);
 }
 

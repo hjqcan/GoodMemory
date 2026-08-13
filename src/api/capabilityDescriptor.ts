@@ -14,11 +14,12 @@ import { readFileSync } from "node:fs";
 
 const PACKAGE_JSON_URL = new URL("../../package.json", import.meta.url);
 export const BENCHMARK_EVIDENCE_BOUNDARY_NOTE =
-  "No benchmark result currently meets the independent execution-receipt contract. " +
+  "No end-to-end benchmark runner is currently allowlisted for claim promotion. " +
   "The retained v0.7.3 LoCoMo and v0.6.0 LoCoMo, BEAM, and MemoryAgentBench " +
   "measurements, plus ImplicitMemBench, are internal diagnostics only. LongMemEval " +
-  "is withdrawn and paused pending a clean label-free rerun. None is versioned " +
-  "evidence or a current package claim.";
+  "is withdrawn and paused pending a clean label-free rerun. Current and historical " +
+  "promotion both fail closed; stored-answer rescores and legacy projections cannot " +
+  "open the boundary. None is versioned evidence or a current package claim.";
 
 export interface GoodMemoryPackageReleaseMetadata {
   readonly installCommandsApplyAfterPublish: boolean;

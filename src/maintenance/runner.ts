@@ -30,10 +30,6 @@ import {
   readMemoryQualityRepairSignal,
   readMemoryQualityReplacementMemoryId,
 } from "./qualityRepairSignals";
-import {
-  buildRawBehavioralPrototypeIndex,
-  summarizeRawPrototypeIndex,
-} from "../evolution/rawBehavioralExemplars";
 import type {
   MaintenanceRepositoryPort,
   MaintenanceVectorPort,
@@ -116,7 +112,6 @@ async function persistMaintenanceExperienceRecord(
   scope: MemoryScope,
   reports: MaintenanceJobReport[],
   timestamp: string,
-  metadata?: Record<string, number>,
 ): Promise<void> {
   try {
     await repositories.experiences.add(
@@ -132,47 +127,12 @@ async function persistMaintenanceExperienceRecord(
         trigger: "maintenance",
         summary: buildMaintenanceSummary(reports),
         outcome: reports.some((job) => job.applied > 0) ? "success" : "skipped",
-        ...(metadata ? { metadata } : {}),
         createdAt: timestamp,
       }),
     );
   } catch (error) {
     console.error("Failed to persist maintenance experience record", error);
   }
-}
-
-async function buildRawConsolidationMetadata(
-  repositories: MaintenanceRepositoryPort,
-  scope: MemoryScope,
-): Promise<Record<string, number>> {
-  const [archives, episodes, experiences] = await Promise.all([
-    repositories.archives.listByScope(scope),
-    repositories.episodes.listByScope(scope),
-    repositories.experiences.listByScope(scope),
-  ]);
-  const rawIndex = buildRawBehavioralPrototypeIndex({
-    memoryExport: {
-      durable: {
-        archives,
-        episodes,
-        experiences,
-      },
-      scope: {
-        agentId: scope.agentId,
-        tenantId: scope.tenantId,
-        userId: scope.userId,
-        workspaceId: scope.workspaceId,
-      },
-    },
-  });
-  const summary = summarizeRawPrototypeIndex(rawIndex);
-
-  return {
-    rawExemplarCount: summary.exemplarCount,
-    rawHardNegativeCount: summary.hardNegativeCount,
-    rawInterferenceCount: summary.interferenceCount,
-    rawPrototypeCount: summary.prototypeCount,
-  };
 }
 
 function sortFactsForMaintenance(facts: FactMemory[]): FactMemory[] {
@@ -1195,17 +1155,11 @@ export function createMaintenanceRunner(config: MaintenanceRunnerConfig) {
         ranAt: timestamp,
         jobs: reports,
       };
-      const metadata = await buildRawConsolidationMetadata(
-        config.repositories,
-        scope,
-      );
-
       await persistMaintenanceExperienceRecord(
         config.repositories,
         scope,
         reports,
         timestamp,
-        metadata,
       );
 
       return report;

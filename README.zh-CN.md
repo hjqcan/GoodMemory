@@ -38,13 +38,12 @@ hooks 和只读 MCP 检查能力，并让持久写回保持可选。运行 `good
 
 GoodMemory 把「当前生产声明」「带版本的历史证据」和「内部研究」分开呈现。一个数字只有在
 当前包版本的已提交 declaration 通过 `gate:public-benchmark-claim --strict` 后，才能进入
-当前声明表。该 gate 校验声明结构、相对基线的方向、answer/judge 分离、完整 commit、证据
-投影断言与 README 一致性。展示投影还必须引用独立、已提交的 execution receipt，由该
-receipt 绑定精确 commit、tree、package、run 与源文件 bytes；展示投影不能自证执行。
-历史行使用独立 marker，且不能满足当前版本 gate。
+当前声明表。当前没有端到端 benchmark runner 进入 allowlist，因此 current 与
+historical 晋级都 fail closed。stored-answer rescorer 与旧 presentation projection
+不能打开该边界，也不能通过自由填写 README 分数或披露片段来自证。
 
 GoodMemory `0.7.4` 没有当前或带版本的历史 benchmark 声明。保留的 v0.7.3
-LoCoMo projection 不是独立 execution receipt，不能自证原始运行，因此现已降为内部诊断。
+LoCoMo projection 不是端到端 runner evidence，因此现已降为内部诊断。
 v0.6.0 的 LoCoMo、BEAM、MemoryAgentBench 测量与 ImplicitMemBench 也都属于内部诊断。
 LongMemEval 已撤下并等待 clean rerun：历史 rules-only 路径使用了 answer annotation，
 后来的 label-free 路径又把原始 `answer_*` session ID 暴露给检索和 reader。
@@ -58,15 +57,15 @@ benchmark 声明。
 
 ### 带版本证据
 
-目前没有保留的 benchmark artifact 满足独立 execution-receipt 契约。
+目前没有端到端 benchmark runner 被 allowlist 为带版本历史证据 producer。
 
 <!-- historical-evidence-table:start -->
 当前没有 benchmark 结果符合带版本历史证据要求。
 <!-- historical-evidence-table:end -->
 
-保留的 v0.7.3 LoCoMo artifact 仍可用于审计，但其 tracked-current projection 与
-verified presentation shell 都不是 execution receipt，因此不能授权公开或带版本声明。
-未来只有新运行在执行时产出独立 receipt 才能晋级；不会回填旧 artifact 来维持声明。
+保留的 v0.7.3 LoCoMo projection 仍可在仓库中审计，但不再作为 verified package
+artifact 发布，也不能授权公开或带版本声明。不会回填旧 artifact；未来必须同时实现
+真实端到端 producer 与 verifier 才会开放晋级。
 
 在两条轨都存在时会同时报告它们。**严格轨**是确定性或 judge-free 评分——任何 LLM 判官
 都无法夸大的硬下限。第二条轨把*同一批已存答案*（不重新生成）用基准来源或业界标准
@@ -78,8 +77,7 @@ LongMemEval declaration 现在是 `paused_boundary`，不再属于历史证据�
 不得引用为 GoodMemory 成绩。见
 [withdrawal declaration](./benchmark-claims/longmemeval.json)。
 v0.6.0 的 BEAM、MemoryAgentBench 与 LoCoMo 测量仅保留为内部诊断。它们的 metric
-artifact 没有 execution receipt 将 measured source hash 绑定到声明 commit，因此
-不满足 verified projection 契约，不能列为 versioned historical evidence。
+artifact 不通过空的端到端 runner allowlist，因此不能列为 versioned historical evidence。
 
 ImplicitMemBench Full-300 stored-answer rescore 使用 canonical zero-failure
 `run-phase61-full300-rerun-20260706-codex-current` 的答案，再用 gpt-5.4 对

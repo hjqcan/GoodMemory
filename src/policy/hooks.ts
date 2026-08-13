@@ -52,6 +52,11 @@ export interface ConflictResolution {
   reason?: string;
 }
 
+type PolicyCandidateRedaction = Pick<
+  MemoryCandidate,
+  "content" | "explicitness" | "kindHint" | "metadata"
+>;
+
 export interface GoodMemoryPolicyHooks {
   shouldRemember?(
     candidate: MemoryCandidate,
@@ -90,9 +95,14 @@ export async function redactPolicyCandidate(
   policy: Pick<GoodMemoryPolicyHooks, "redact"> | undefined,
   candidate: MemoryCandidate,
   context: PolicyContext,
-): Promise<MemoryCandidate> {
+): Promise<PolicyCandidateRedaction> {
   if (!policy?.redact) {
-    return candidate;
+    return {
+      content: candidate.content,
+      explicitness: candidate.explicitness,
+      kindHint: candidate.kindHint,
+      metadata: candidate.metadata,
+    };
   }
   return policy.redact(
     structuredClone(candidate),

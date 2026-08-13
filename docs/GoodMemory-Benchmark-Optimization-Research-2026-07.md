@@ -9,6 +9,11 @@ reproducible current evidence. Sources: full repo exploration
 SOTA + memory-system architectures, cited inline). All external effect sizes
 are as-reported by their authors; vendor-only numbers are marked [vendor].
 
+Current claim boundary: zero current claims and zero promotable historical
+evidence. No end-to-end benchmark runner is allowlisted, so every measurement
+in this research document is diagnostic and no release procedure below may
+promote it by rewriting declarations or README fragments.
+
 Goal: raise LongMemEval / LoCoMo / BEAM / MemoryAgentBench / ImplicitMemBench
 scores through **generalized mechanisms only**, inside the existing discipline:
 ADR-005 admission criteria, the ≥3pt target-slice / ≤1pt protection rule, no
@@ -1113,16 +1118,14 @@ board's deliberate wording.
   +0.77pt and exposed a SECOND ISO leak — `EvidenceTurn.timeAnchor` read
   the root date directly into pack entry headers, bypassing the marker
   fix; with both render sites fixed the score matches the claim-era
-  proof (0.8805) within run noise. **New claimable number: 0.8799
-  official (n=1540, gpt-5.5 judge) vs the v0.6.0 claim's 0.8708 —
-  +0.91pt — with normalized ISO storage retained.** Artifacts:
-  `prod/repin-base`, `official-rescore/repin-base-official/`. Claim-file
-  publication is deliberately left to the release process (it rewrites
-  public README fragments, evidence projections, and the claim gate, and
-  pins a release commit): at release time, rerun the recorded claim
-  command chain at the release commit, then update
-  `benchmark-claims/locomo.json` readmeRequiredFragments (0.8708 → the
-  fresh number) and regenerate the historical evidence projection.
+  proof (0.8805) within run noise. **The resulting internal diagnostic is
+  0.8799 official (n=1540, gpt-5.5 judge) versus the historical v0.6.0
+  measurement of 0.8708, a +0.91pt delta with normalized ISO storage
+  retained.** Artifacts: `prod/repin-base`,
+  `official-rescore/repin-base-official/`. This stored-answer result cannot be
+  promoted by rewriting declarations, README fragments, or legacy evidence
+  projections. A future claim requires a new end-to-end runner and verifier
+  implemented together against a release commit.
   Caveat: single arm at n=1540 (~answer-model nondeterminism applies),
   but the comparison is same-tree, same-config, content-identical —
   the date format is the only variable. Artifacts: `prod/oldroot-base`,

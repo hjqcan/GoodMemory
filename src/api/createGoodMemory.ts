@@ -1108,6 +1108,14 @@ class GoodMemoryImpl implements GoodMemory {
         "Generalized fusion requires a projection-capable document store with atomic conditional batches.",
       );
     }
+    if (
+      internal?.behavioralOutcomeRecorder &&
+      !isProjectionCapableDocumentStore(rawDocumentStore)
+    ) {
+      throw new Error(
+        "Behavioral outcome recording requires a projection-capable document store with atomic conditional batches.",
+      );
+    }
     const language = createLanguageService(config.language);
     const projectionBuildId = config.adapters?.documentStore === undefined
       ? buildRecallProjectionBuildId(language)
@@ -2383,8 +2391,9 @@ export function createInternalGoodMemory(
       : {}),
     ...(internal?.behavioralOutcomeRecorder
       ? {
-          recordBehavioralOutcome: (input: BehavioralOutcomeSupportInput) =>
-            implWithInternals.evolutionRuntime.handleBehavioralOutcome({
+          recordBehavioralOutcome: (input: BehavioralOutcomeSupportInput) => {
+            assertStorageSafeExternalValue(input, "input");
+            return implWithInternals.evolutionRuntime.handleBehavioralOutcome({
               scope: input.scope,
               result: {
                 cue: input.cue,
@@ -2397,7 +2406,8 @@ export function createInternalGoodMemory(
                 saferAlternative: input.saferAlternative,
               },
               traceId: input.traceId,
-            }),
+            });
+          },
         }
       : {}),
   };

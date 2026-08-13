@@ -558,6 +558,41 @@ describe("host adapter writeback", () => {
     expect(updated?.appliesTo).toBeUndefined();
   });
 
+  it("rejects a policy lane change that structured host writeback cannot represent", async () => {
+    const { documentStore, memory, playbook, scope } = await createWritableHarness();
+    const adapter = createHostAdapter({
+      id: "codex-policy-lane-change",
+      hostKind: "codex",
+      mode: "file-authoritative",
+      memory,
+      documentStore,
+      readableArtifactTypes: ["playbook"],
+      supportedReadableArtifactTypes: ["playbook"],
+      writableArtifactTypes: ["playbook"],
+      now: () => "2026-04-21T00:00:00.000Z",
+      policy: {
+        redact(candidate) {
+          return { ...candidate, kindHint: "noise" };
+        },
+      },
+    });
+
+    await expect(adapter.writeArtifact({
+      scope,
+      artifactType: "playbook",
+      relativePath: playbook.relativePath,
+      content: playbook.content.replace(
+        "Repeated successful summaries and explicit confirmations.",
+        "The user confirmed this pattern again.",
+      ),
+    })).rejects.toThrow("outside the validated-pattern lane");
+
+    const unchanged = await documentStore.get<FeedbackMemory>("feedback", "pattern-1");
+    expect(unchanged?.why).toBe(
+      "Repeated successful summaries and explicit confirmations.",
+    );
+  });
+
   it("rejects storage-unsafe playbook fields before host writeback", async () => {
     const { documentStore, memory, playbook, scope } = await createWritableHarness();
     const adapter = createHostAdapter({

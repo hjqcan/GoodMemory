@@ -576,7 +576,7 @@ describe("runtime-kit", () => {
     expect(result.context.content).not.toContain("Behavioral steering:");
   });
 
-  it("adds exemplar-first carryover for runtime-backed raw episodes without prose steering", async () => {
+  it("does not derive behavioral carryover from legacy episodes", async () => {
     const memory = createMemoryStub({
       async exportMemory() {
         return {
@@ -639,10 +639,9 @@ describe("runtime-kit", () => {
       query: "Generate the dashboard URL.",
     });
 
-    expect(result.context.content).toContain("Relevant prior examples:");
-    expect(result.context.content).toContain("Successful move:");
-    expect(result.context.content).toContain("Observed stable pattern:");
-    expect(result.context.content).not.toContain("Behavioral steering:");
+    expect(result.context.content).toBe("Fragment recall content.");
+    expect(result.context.content).not.toContain("example.com/dashboard");
+    expect(result.context.recordRefs).toBeUndefined();
   });
 
   it("does not reintroduce future behavioral episodes across a historical reference time", async () => {
@@ -713,7 +712,7 @@ describe("runtime-kit", () => {
     expect(result.context.content).not.toContain("future.example");
   });
 
-  it("applies the historical boundary to raw archives and experiences", async () => {
+  it("applies the historical boundary to typed outcomes and ignores archives", async () => {
     const futureExperience = buildBehavioralOutcomeExperienceRecord({
       createdAt: "2026-05-03T00:00:00.000Z",
       createId: () => "future-experience",
@@ -839,7 +838,8 @@ describe("runtime-kit", () => {
       retrievalProfile: "coding_agent",
     });
 
-    expect(currentArchive.context.content).toContain("archive-dashboard");
+    expect(currentArchive.context.content).toBe("Historical archive fragment.");
+    expect(currentArchive.context.content).not.toContain("archive-dashboard");
     expect(currentExperience.context.content).toContain("copy_file(future_safe)");
     expect(archive.context.content).toBe("Historical archive fragment.");
     expect(archive.context.content).not.toContain("archive-dashboard");
@@ -1017,7 +1017,7 @@ describe("runtime-kit", () => {
     expect(result.context.recordRefs).toBeUndefined();
   });
 
-  it("keeps undated runtime exemplars for a current anchor but not a historical replay", async () => {
+  it("does not derive behavioral carryover from runtime buffers", async () => {
     const runtimeState: GoodMemoryRuntimeStateResult = {
       ...emptyRuntimeState,
       state: {
@@ -1065,7 +1065,8 @@ describe("runtime-kit", () => {
       referenceTime: "2026-05-02T00:00:00.000Z",
     });
 
-    expect(current.context.content).toContain("runtime.example");
+    expect(current.context.content).toBe("Runtime fragment.");
+    expect(current.context.content).not.toContain("runtime.example");
     expect(historical.context.content).toBe("Runtime fragment.");
     expect(historical.context.content).not.toContain("runtime.example");
   });

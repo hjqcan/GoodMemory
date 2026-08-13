@@ -73,11 +73,6 @@ const PUBLIC_RELEASE_DOCS = [
   "docs/GoodMemory-记忆数据分层设计.md",
 ] as const;
 
-const LOCOMO_CLAIM = {
-  measuredPackageVersion: "0.7.3",
-  name: "LoCoMo",
-} as const;
-
 async function extractTarball(tarballPath: string, outputDir: string): Promise<void> {
   await mkdir(outputDir, { recursive: true });
   const process = Bun.spawn({
@@ -123,8 +118,6 @@ async function initializeStableSource(input: {
     `${JSON.stringify({
       files: [
         ".well-known/goodmemory.json",
-        "benchmark-claims/evidence/locomo-v0.7.3-current.json",
-        "benchmark-claims/evidence/locomo-v0.7.3-verified.json",
         "README.md",
         "README.zh-CN.md",
         "dist",
@@ -145,15 +138,6 @@ async function initializeStableSource(input: {
   await writeFile(join(input.root, "README.zh-CN.md"), README_ZH_STABLE);
   await writeFile(join(input.root, "llms.txt"), LLMS_STABLE);
   await writeFile(join(input.root, ".gitignore"), "extracted/\noutput/\n");
-  await mkdir(join(input.root, "benchmark-claims/evidence"), { recursive: true });
-  await writeFile(
-    join(input.root, "benchmark-claims/evidence/locomo-v0.7.3-current.json"),
-    `${JSON.stringify({ descriptorClaim: LOCOMO_CLAIM }, null, 2)}\n`,
-  );
-  await writeFile(
-    join(input.root, "benchmark-claims/evidence/locomo-v0.7.3-verified.json"),
-    `${JSON.stringify({ descriptorClaim: LOCOMO_CLAIM }, null, 2)}\n`,
-  );
   await writeFile(
     join(input.root, ".well-known/goodmemory.json"),
     `${JSON.stringify({
@@ -242,6 +226,9 @@ describe("v0.7 stable release artifact", () => {
       expect(repositoryPackage.files.filter((path) => path.startsWith("docs/"))).toEqual(
         [...PUBLIC_RELEASE_DOCS],
       );
+      expect(
+        repositoryPackage.files.some((path) => path.startsWith("benchmark-claims/")),
+      ).toBe(false);
       const { sourceCommit, sourceTree } = await initializeStableSource({ root });
 
       const sourceBefore = await Promise.all(

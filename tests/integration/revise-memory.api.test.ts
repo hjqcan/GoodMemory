@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { GoodMemoryTraceSpan } from "../../src";
+import type { GoodMemoryTraceSpan, MemoryCandidate } from "../../src";
 import { createGoodMemory, createLanguageService } from "../../src";
 import {
   createInMemoryDocumentStore,
@@ -396,6 +396,62 @@ describe("public reviseMemory API", () => {
     });
     expect(revised?.attributes).toBeUndefined();
     expect(revised?.tags).toBeUndefined();
+  });
+
+  it("ignores runtime redaction fields outside the public redaction contract", async () => {
+    let observedCandidate: MemoryCandidate | undefined;
+    const memory = createGoodMemory({
+      policy: {
+        redact(candidate) {
+          return {
+            ...candidate,
+            content: candidate.content.replace("Mira", "Jules"),
+            durableTarget: { slot: "forged", value: "forged" },
+            disposition: {
+              kind: "durable_opt_out" as const,
+              target: { identities: [], match: "exact" as const, text: "forged" },
+            },
+            id: "forged-policy-candidate",
+            sourceMessageIndex: 999,
+            sourceRole: "assistant",
+          };
+        },
+        shouldRemember(candidate) {
+          observedCandidate = candidate;
+          return true;
+        },
+      },
+      storage: { provider: "memory" },
+    });
+    const scope = { userId: "revision-redaction-authority-user" };
+    const remembered = await memory.remember({
+      messages: [{
+        role: "user",
+        content: "Remember that the deployment owner is Mira.",
+      }],
+      scope,
+    });
+    const targetMemoryId = remembered.events.find(
+      ({ memoryType }) => memoryType === "fact",
+    )?.memoryId;
+
+    const result = await memory.reviseMemory({
+      idempotencyKey: "revision-redaction-authority",
+      reason: "user_correction",
+      revision: { content: "The deployment owner is Mira." },
+      scope,
+      target: { memoryId: targetMemoryId! },
+    });
+
+    expect(result).toMatchObject({ accepted: true, outcome: "superseded" });
+    expect(observedCandidate).toMatchObject({
+      content: "The deployment owner is Jules.",
+      sourceMessageIndex: 0,
+      sourceRole: "user",
+    });
+    expect(observedCandidate?.id).not.toBe("forged-policy-candidate");
+    expect(observedCandidate?.disposition).toBeUndefined();
+    expect(observedCandidate?.durableTarget).toBeUndefined();
   });
 
   it("adopts explicit redacted fact metadata without authorizing occurrence", async () => {

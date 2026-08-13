@@ -40,8 +40,6 @@
   },
   "files": [
     ".well-known/goodmemory.json",
-    "benchmark-claims/evidence/locomo-v0.7.3-current.json",
-    "benchmark-claims/evidence/locomo-v0.7.3-verified.json",
     "LICENSE",
     "README.md",
     "README.zh-CN.md",
@@ -366,7 +364,6 @@
     "eval:live-auto-memory": "bun run scripts/run-eval.ts --mode=live-auto-memory",
     "eval:live-provider-memory": "bun run scripts/run-eval.ts --mode=live-provider-memory",
     "eval:summary": "bun run scripts/summarize-eval.ts",
-    "eval:v0.7.3-locomo-current": "bun run scripts/run-v0-7-3-full-locomo-claim.ts",
     "prepack": "bun run build"
   },
   "devDependencies": {

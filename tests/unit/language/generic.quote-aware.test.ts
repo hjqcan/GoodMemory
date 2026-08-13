@@ -214,6 +214,129 @@ describe("quote-aware generic clause splitting", () => {
     }
   });
 
+  it("requires an English opt-out to begin its own direct clause", () => {
+    for (const reported of [
+      "I deny saying do not remember project code=Tachikoma",
+      "The user disputes the instruction do not remember project code=Tachikoma",
+      "I do not remember project code=Tachikoma",
+      "I explicitly do not remember project code=Tachikoma",
+      "I genuinely do not remember project code=Tachikoma",
+      "The sentence do not remember project code=Tachikoma appears in the guide",
+      "In the guide, do not remember project code=Tachikoma",
+      "In the quoted sentence, do not remember project code=Tachikoma",
+    ]) {
+      const candidates = extract(
+        createEnglishLanguagePack(),
+        `Remember that project code=Tachikoma; ${reported}`,
+      );
+
+      expect(candidates).toContainEqual(expect.objectContaining({
+        content: "project code=Tachikoma",
+        kindHint: "fact",
+      }));
+      expect(candidates.some(({ kindHint }) => kindHint === "feedback")).toBe(
+        false,
+      );
+    }
+  });
+
+  it("keeps semicolons inside English explicit quoted values", () => {
+    for (const input of [
+      'Remember that note="alpha; beta"',
+      'Remember that question="what; exactly?"',
+    ]) {
+      const candidates = extract(createEnglishLanguagePack(), input);
+
+      expect(candidates).toHaveLength(1);
+      expect(candidates[0]).toMatchObject({ kindHint: "fact" });
+      expect(candidates[0]?.content).toContain(";");
+    }
+  });
+
+  it("does not promote embedded multilingual opt-out text into a directive", () => {
+    for (const [pack, content] of [
+      [
+        createChineseLanguagePack("Hans"),
+        "请记住项目代号=Tachikoma；说明中出现不要记住项目代号=Tachikoma这句话",
+      ],
+      [
+        createFrenchLanguagePack(),
+        "Souviens-toi : code projet=Tachikoma; La phrase ne mémorise pas code projet=Tachikoma figure dans le guide",
+      ],
+      [
+        createSpanishLanguagePack(),
+        "Recuerda: código de proyecto=Tachikoma; La frase no recuerdes código de proyecto=Tachikoma aparece en la guía",
+      ],
+    ] as const) {
+      const candidates = extract(pack, content);
+
+      expect(candidates.some(({ kindHint }) => kindHint === "feedback")).toBe(
+        false,
+      );
+    }
+  });
+
+  it("keeps direct English opt-outs active after non-clausal modifiers", () => {
+    for (const direct of [
+      "also do not remember project code=Tachikoma",
+      "for GDPR Article 5, do not remember project code=Tachikoma",
+      "for privacy do not remember project code=Tachikoma",
+      "in this workspace do not remember project code=Tachikoma",
+    ]) {
+      const candidates = extract(createEnglishLanguagePack(), direct);
+
+      expect(candidates.some(({ kindHint }) => kindHint === "feedback")).toBe(
+        true,
+      );
+      expect(candidates.some(({ kindHint }) => kindHint === "fact")).toBe(
+        false,
+      );
+    }
+  });
+
+  it("keeps multilingual opt-outs active after discourse, time, and legal modifiers", () => {
+    for (const [pack, directives] of [
+      [createEnglishLanguagePack(), [
+        "Actually, do not remember project code=Tachikoma",
+        "Now do not remember project code=Tachikoma",
+        "From now on, do not remember project code=Tachikoma",
+        "For legal reasons, do not remember project code=Tachikoma",
+      ]],
+      [createChineseLanguagePack("Hans"), [
+        "其实，不要记住项目代号=Tachikoma",
+        "现在不要记住项目代号=Tachikoma",
+        "从现在起，不要记住项目代号=Tachikoma",
+        "出于法律原因，不要记住项目代号=Tachikoma",
+      ]],
+      [createChineseLanguagePack("Hant"), [
+        "其實，不要記住專案代號=Tachikoma",
+        "現在不要記住專案代號=Tachikoma",
+        "從現在起，不要記住專案代號=Tachikoma",
+        "出於法律原因，不要記住專案代號=Tachikoma",
+      ]],
+      [createFrenchLanguagePack(), [
+        "Finalement, ne mémorise pas code projet=Tachikoma",
+        "Maintenant, ne mémorise pas code projet=Tachikoma",
+        "Pour des raisons légales, ne mémorise pas code projet=Tachikoma",
+      ]],
+      [createSpanishLanguagePack(), [
+        "En realidad, no recuerdes código de proyecto=Tachikoma",
+        "Ahora no recuerdes código de proyecto=Tachikoma",
+        "Por razones legales, no recuerdes código de proyecto=Tachikoma",
+      ]],
+    ] as const) {
+      for (const directive of directives) {
+        const candidates = extract(pack, directive);
+        expect(candidates.some(({ kindHint }) => kindHint === "feedback")).toBe(
+          true,
+        );
+        expect(candidates.some(({ kindHint }) => kindHint === "fact")).toBe(
+          false,
+        );
+      }
+    }
+  });
+
   it("keeps direct opt-outs active and quoted opt-out literals inert", () => {
     for (const fixture of REPORTED_OPT_OUT_FIXTURES) {
       const direct = extract(fixture.pack, fixture.directOptOut);

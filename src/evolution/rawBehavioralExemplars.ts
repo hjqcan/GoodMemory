@@ -1,4 +1,3 @@
-import type { EpisodeMemory } from "../domain/records";
 import type {
   LanguageBehavioralRuleAnalysis,
   LanguageRenderKey,
@@ -8,7 +7,6 @@ import type {
 import { createLanguageService } from "../language";
 import type {
   ExperienceRecord,
-  SessionArchive,
 } from "./contracts";
 import type {
   RecallCandidateTrace,
@@ -45,12 +43,6 @@ export type RawBehavioralRerankerModel = RawCarryoverRerankerModel;
 
 export type RawBehavioralSurfaceFamily = "host_action" | "text_response";
 export type RawBehavioralTransferMode = "episodic_only" | "prototype_bounded";
-export type RawBehavioralExemplarSource =
-  | "archive"
-  | "episode"
-  | "runtime_buffer"
-  | "tool_outcome";
-
 export type RawCarryoverAbstainReason =
   | "ambiguous_top2"
   | "below_threshold"
@@ -139,7 +131,7 @@ export interface RawBehavioralExemplar {
     userId?: string;
     workspaceId?: string;
   };
-  source: RawBehavioralExemplarSource;
+  source: "tool_outcome";
   sourceIds: string[];
   surfaceFamily: RawBehavioralSurfaceFamily;
   transferMode: RawBehavioralTransferMode;
@@ -256,8 +248,6 @@ interface RawPreconditionContract {
 export interface BuildRawBehavioralPrototypeIndexInput {
   memoryExport: {
     durable: {
-      archives: readonly SessionArchive[];
-      episodes: readonly EpisodeMemory[];
       experiences: readonly ExperienceRecord[];
     };
     scope: {
@@ -272,9 +262,7 @@ export interface BuildRawBehavioralPrototypeIndexInput {
     hits?: readonly RecallHit[];
   };
   retrievalProfile?: BehavioralOutcomeRetrievalProfile;
-  runtimeMessages?: readonly { content: string; role: string }[];
   surfaceHint?: RawBehavioralSurfaceFamily;
-  transientMessages?: readonly { content: string; role: string }[];
 }
 
 export interface SelectRawBehavioralExemplarsInput {
@@ -684,19 +672,6 @@ function inferConstraintTypes(value: string): RawCarryoverConstraintType[] {
   return uniqueStrings(constraints) as RawCarryoverConstraintType[];
 }
 
-function inferSurfaceFamily(value: string): RawBehavioralSurfaceFamily {
-  const normalized = normalizeText(value);
-  if (
-    analyzeBehavioralText(normalized)?.hostAction ||
-    extractHostActionCommandName(normalized) ||
-    /\b[a-z_][a-z0-9_]*\([^)]*\)/iu.test(normalized)
-  ) {
-    return "host_action";
-  }
-
-  return "text_response";
-}
-
 function parseExactSlots(
   value: string,
   surfaceFamily: RawBehavioralSurfaceFamily,
@@ -887,10 +862,9 @@ function buildInterferenceTags(query: string, exactSurface?: RawExactSurface): s
 function scoreExemplarConfidence(input: {
   exactSurface?: RawExactSurface;
   hasCorrection?: boolean;
-  source: RawBehavioralExemplarSource;
   successfulMove: string;
 }): number {
-  let score = input.source === "tool_outcome" ? 0.9 : input.source === "runtime_buffer" ? 0.8 : 0.55;
+  let score = 0.9;
   if (input.exactSurface) {
     score += 0.1;
   }
@@ -912,7 +886,6 @@ function createExemplar(input: {
   observedOutcome: string;
   safeCorrectedMove?: string;
   scope: RawBehavioralExemplar["scope"];
-  source: RawBehavioralExemplarSource;
   sourceIds: string[];
   successfulMove: string;
   surfaceFamily: RawBehavioralSurfaceFamily;
@@ -931,7 +904,6 @@ function createExemplar(input: {
     confidence: scoreExemplarConfidence({
       exactSurface: input.exactSurface,
       hasCorrection: Boolean(input.safeCorrectedMove),
-      source: input.source,
       successfulMove: input.successfulMove,
     }),
     createdAt: input.createdAt,
@@ -953,275 +925,11 @@ function createExemplar(input: {
       successfulMove: relevantPriorMove,
     }),
     scope: input.scope,
-    source: input.source,
+    source: "tool_outcome",
     sourceIds: uniqueStrings(input.sourceIds),
     surfaceFamily: input.surfaceFamily,
     transferMode: "episodic_only",
   };
-}
-
-function parseSystemFailure(content: string): string | undefined {
-  const normalized = normalizeText(content);
-  const languageContext = DEFAULT_LANGUAGE.resolveFromText({ text: normalized });
-  const analysis = DEFAULT_LANGUAGE.analyzeContent(normalized, languageContext);
-  return analysis.factPolarity === "negative" || analysis.unresolved
-    ? normalized
-    : undefined;
-}
-
-function parseSystemCorrection(content: string): string | undefined {
-  const normalized = normalizeText(content);
-  const languageContext = DEFAULT_LANGUAGE.resolveFromText({ text: normalized });
-  if (!DEFAULT_LANGUAGE.analyzeContent(normalized, languageContext).correctionCue) {
-    return undefined;
-  }
-  return normalized.match(/^[^:：]+[:：]\s*(.+)$/u)?.[1]?.trim() ?? normalized;
-}
-
-function looksLikeCorrectionPrompt(content: string): boolean {
-  const normalized = normalizeText(content);
-  const languageContext = DEFAULT_LANGUAGE.resolveFromText({ text: normalized });
-  return DEFAULT_LANGUAGE.analyzeContent(normalized, languageContext).correctionCue;
-}
-
-function looksLikeSaferAlternativePrompt(content: string): boolean {
-  const normalized = normalizeText(content);
-  const languageContext = DEFAULT_LANGUAGE.resolveFromText({ text: normalized });
-  const analysis = DEFAULT_LANGUAGE.analyzeContent(normalized, languageContext);
-  return analysis.correctionCue ||
-    analysis.feedbackKind === "dont" ||
-    analysis.feedbackKind === "prefer";
-}
-
-function parseSystemSuccess(content: string): string | undefined {
-  const normalized = normalizeText(content);
-  const languageContext = DEFAULT_LANGUAGE.resolveFromText({ text: normalized });
-  const analysis = DEFAULT_LANGUAGE.analyzeContent(normalized, languageContext);
-  return analysis.factPolarity === "positive" ||
-      analysis.feedbackKind === "validated_pattern"
-    ? normalized
-    : undefined;
-}
-
-function findFollowupCorrectedAssistantMove(input: {
-  failureOutcome?: string;
-  messages: readonly { content: string; role: string }[];
-  startIndex: number;
-}): string | undefined {
-  let sawFailure = Boolean(input.failureOutcome);
-  const searchEnd = Math.min(input.messages.length - 1, input.startIndex + 16);
-
-  for (let index = input.startIndex; index < searchEnd; index += 1) {
-    const current = input.messages[index];
-    const next = input.messages[index + 1];
-    if (current?.role !== "user" || next?.role !== "assistant") {
-      continue;
-    }
-
-    const after = input.messages[index + 2];
-    const afterFailure =
-      after?.role === "system" ? parseSystemFailure(after.content) : undefined;
-    if (afterFailure) {
-      sawFailure = true;
-      continue;
-    }
-
-    const afterSuccess =
-      after?.role === "system" ? parseSystemSuccess(after.content) : undefined;
-    if (
-      sawFailure &&
-      (afterSuccess ||
-        looksLikeCorrectionPrompt(current.content) ||
-        looksLikeSaferAlternativePrompt(current.content))
-    ) {
-      return normalizeText(next.content);
-    }
-  }
-
-  return undefined;
-}
-
-function deriveMessagePairExemplars(input: {
-  messages: readonly { content: string; role: string }[];
-  prefix: string;
-  scope: RawBehavioralExemplar["scope"];
-  surfaceHint?: RawBehavioralSurfaceFamily;
-}): RawBehavioralExemplar[] {
-  const exemplars: RawBehavioralExemplar[] = [];
-
-  for (let index = 0; index < input.messages.length - 1; index += 1) {
-    const current = input.messages[index];
-    const next = input.messages[index + 1];
-    if (current?.role !== "user" || next?.role !== "assistant") {
-      continue;
-    }
-
-    const cue = normalizeText(current.content);
-    const successfulMove = normalizeText(next.content);
-    if (!cue || !successfulMove) {
-      continue;
-    }
-
-    const third = input.messages[index + 2];
-    const fourth = input.messages[index + 3];
-    const fifth = input.messages[index + 4];
-    const failureOutcome =
-      third?.role === "system" ? parseSystemFailure(third.content) : undefined;
-    const inlineCorrection =
-      third?.role === "system" ? parseSystemCorrection(third.content) : undefined;
-    const followupSystemCorrection =
-      !inlineCorrection && fourth?.role === "system"
-        ? parseSystemCorrection(fourth.content)
-        : undefined;
-    const correctionInstruction = inlineCorrection ?? followupSystemCorrection;
-    const followupAssistantMove = findFollowupCorrectedAssistantMove({
-      failureOutcome,
-      messages: input.messages,
-      startIndex: index + 3,
-    });
-    const correctedMove = followupAssistantMove ?? correctionInstruction;
-    if (failureOutcome && !correctedMove) {
-      continue;
-    }
-    const finalMove = correctedMove || successfulMove;
-    const surfaceFamily = input.surfaceHint ?? inferSurfaceFamily(finalMove);
-    const exactSurface = extractTextExactSurface(finalMove);
-    const observedOutcome = correctedMove
-      ? failureOutcome
-        ? `The earlier move failed (${clipText(failureOutcome)}), and a later correction clarified the safer successful move.`
-        : "A later correction clarified the safer successful move for the same kind of request."
-      : "The earlier response established a successful way to handle the same kind of request.";
-
-    exemplars.push(
-      createExemplar({
-        createdAt: undefined,
-        cue,
-        exactSurface,
-        id: `${input.prefix}-${index}`,
-        observedOutcome,
-        safeCorrectedMove: correctedMove,
-        scope: input.scope,
-        source: "runtime_buffer",
-        sourceIds: uniqueStrings([
-          `${input.prefix}:${index}`,
-          third ? `${input.prefix}:${index + 2}` : "",
-          fourth ? `${input.prefix}:${index + 3}` : "",
-          fifth ? `${input.prefix}:${index + 4}` : "",
-        ]),
-        successfulMove: finalMove,
-        surfaceFamily,
-      }),
-    );
-  }
-
-  return exemplars;
-}
-
-function deriveArchiveExemplars(input: {
-  archives: readonly SessionArchive[];
-  scope: RawBehavioralExemplar["scope"];
-  surfaceHint?: RawBehavioralSurfaceFamily;
-}): RawBehavioralExemplar[] {
-  const exemplars: RawBehavioralExemplar[] = [];
-
-  for (const archive of input.archives) {
-    if (archive.normalizedTranscript) {
-      const messages = archive.normalizedTranscript
-        .split(/\n+/u)
-        .map((line) => {
-          const separator = line.indexOf(":");
-          if (separator <= 0) {
-            return null;
-          }
-          return {
-            content: line.slice(separator + 1).trim(),
-            role: line.slice(0, separator).trim().toLowerCase(),
-          };
-        })
-        .filter((entry): entry is { content: string; role: string } => Boolean(entry));
-      exemplars.push(
-        ...deriveMessagePairExemplars({
-          messages,
-          prefix: `archive-${archive.id}`,
-          scope: input.scope,
-          surfaceHint: input.surfaceHint,
-        }),
-      );
-      continue;
-    }
-
-    const keyDecisions = Array.isArray(archive.keyDecisions)
-      ? archive.keyDecisions
-      : [];
-    const unresolvedItems = Array.isArray(archive.unresolvedItems)
-      ? archive.unresolvedItems
-      : [];
-    const cue = normalizeText(archive.summary);
-    const successfulMove = normalizeText(keyDecisions[0] ?? archive.summary);
-    if (!cue || !successfulMove) {
-      continue;
-    }
-
-    exemplars.push(
-      createExemplar({
-        createdAt: archive.archivedAt,
-        cue,
-        exactSurface: extractTextExactSurface(successfulMove),
-        id: `archive-${archive.id}`,
-        observedOutcome: unresolvedItems.length === 0
-          ? "The archived interaction resolved the issue without leaving open loops."
-          : `The archived interaction still left these open loops: ${unresolvedItems.join(", ")}`,
-        scope: input.scope,
-        source: "archive",
-        sourceIds: [archive.id],
-        successfulMove,
-        surfaceFamily: input.surfaceHint ?? inferSurfaceFamily(successfulMove),
-      }),
-    );
-  }
-
-  return exemplars;
-}
-
-function deriveEpisodeExemplars(input: {
-  episodes: readonly EpisodeMemory[];
-  scope: RawBehavioralExemplar["scope"];
-  surfaceHint?: RawBehavioralSurfaceFamily;
-}): RawBehavioralExemplar[] {
-  const exemplars: RawBehavioralExemplar[] = [];
-
-  for (const episode of input.episodes) {
-    const keyDecisions = Array.isArray(episode.keyDecisions)
-      ? episode.keyDecisions
-      : [];
-    const unresolvedItems = Array.isArray(episode.unresolvedItems)
-      ? episode.unresolvedItems
-      : [];
-    const cue = normalizeText(episode.summary);
-    const successfulMove = normalizeText(keyDecisions[0] ?? episode.summary);
-    if (!cue || !successfulMove) {
-      continue;
-    }
-
-    exemplars.push(
-      createExemplar({
-        createdAt: episode.createdAt,
-        cue,
-        exactSurface: extractTextExactSurface(successfulMove),
-        id: `episode-${episode.id}`,
-        observedOutcome: unresolvedItems.length === 0
-          ? "The episode captured a resolved successful response pattern."
-          : `The episode preserved these remaining caveats: ${unresolvedItems.join(", ")}`,
-        scope: input.scope,
-        source: "episode",
-        sourceIds: [episode.id],
-        successfulMove,
-        surfaceFamily: input.surfaceHint ?? inferSurfaceFamily(successfulMove),
-      }),
-    );
-  }
-
-  return exemplars;
 }
 
 function deriveToolOutcomeExemplars(input: {
@@ -1266,7 +974,6 @@ function deriveToolOutcomeExemplars(input: {
           userId: experience.userId,
           workspaceId: experience.workspaceId,
         },
-        source: "tool_outcome",
         sourceIds: [experience.id],
         successfulMove,
         surfaceFamily,
@@ -1280,11 +987,7 @@ function deriveToolOutcomeExemplars(input: {
 function collectSourceExperienceIds(
   exemplars: readonly RawBehavioralExemplar[],
 ): string[] {
-  return uniqueStrings(
-    exemplars
-      .filter((exemplar) => exemplar.source === "tool_outcome")
-      .flatMap((exemplar) => exemplar.sourceIds),
-  );
+  return uniqueStrings(exemplars.flatMap((exemplar) => exemplar.sourceIds));
 }
 
 function uniqueExemplars(
@@ -2057,41 +1760,13 @@ function trainReranker(
 export function buildRawBehavioralPrototypeIndex(
   input: BuildRawBehavioralPrototypeIndexInput,
 ): RawBehavioralPrototypeIndex {
-  const scope = {
-    agentId: input.memoryExport.scope.agentId,
-    tenantId: input.memoryExport.scope.tenantId,
-    userId: input.memoryExport.scope.userId,
-    workspaceId: input.memoryExport.scope.workspaceId,
-  };
-  const exemplars = uniqueExemplars([
-    ...deriveMessagePairExemplars({
-      messages: input.transientMessages ?? [],
-      prefix: "transient",
-      scope,
-      surfaceHint: input.surfaceHint,
-    }),
-    ...deriveMessagePairExemplars({
-      messages: input.runtimeMessages ?? [],
-      prefix: "runtime",
-      scope,
-      surfaceHint: input.surfaceHint,
-    }),
-    ...deriveToolOutcomeExemplars({
+  const exemplars = uniqueExemplars(
+    deriveToolOutcomeExemplars({
       memoryExport: input.memoryExport,
       retrievalProfile: input.retrievalProfile,
       surfaceHint: input.surfaceHint,
     }),
-    ...deriveArchiveExemplars({
-      archives: input.memoryExport.durable.archives,
-      scope,
-      surfaceHint: input.surfaceHint,
-    }),
-    ...deriveEpisodeExemplars({
-      episodes: input.memoryExport.durable.episodes,
-      scope,
-      surfaceHint: input.surfaceHint,
-    }),
-  ]);
+  );
   const prototypes = buildPrototypes(exemplars);
   const hardNegativePairs = buildHardNegativePairs(prototypes);
   const hardNegativesById = new Map<string, string[]>();

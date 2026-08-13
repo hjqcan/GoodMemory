@@ -1231,6 +1231,9 @@ export function assertOfficialRescoreSourceInputsOutsideOutputDir(input: {
 export function parseOfficialRescoreCliOptions(
   argv: readonly string[],
 ): OfficialRescoreCliOptions {
+  if (argv.some((arg) => arg.startsWith("--canonical-"))) {
+    throw new Error("stored-answer rescore cannot emit canonical claim artifacts");
+  }
   const benchmark = parseOfficialRescoreBenchmark(
     resolveCliFlagValueStrict(argv, "--benchmark"),
   );

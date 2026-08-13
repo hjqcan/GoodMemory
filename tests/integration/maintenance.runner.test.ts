@@ -239,6 +239,7 @@ describe("maintenance runner", () => {
     expect(experiences[0]?.trigger).toBe("maintenance");
     expect(experiences[0]?.outcome).toBe("skipped");
     expect(experiences[0]?.summary).toContain("dedupe=0");
+    expect(experiences[0]?.metadata).toBeUndefined();
   });
 
   it("does not fail the run when telemetry persistence fails after maintenance mutations", async () => {

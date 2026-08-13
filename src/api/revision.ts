@@ -795,11 +795,18 @@ export async function reviseMemory(input: {
   };
 
   if (input.config.policy?.redact) {
-    candidate = await redactPolicyCandidate(
+    const redacted = await redactPolicyCandidate(
       input.config.policy,
       candidate,
       policyContext,
     );
+    candidate = {
+      ...candidate,
+      content: redacted.content,
+      explicitness: redacted.explicitness,
+      kindHint: redacted.kindHint,
+      metadata: redacted.metadata,
+    };
     policyApplied.push("policy.redact");
   }
   if (!hasPersistableSemanticText(candidate.content)) {

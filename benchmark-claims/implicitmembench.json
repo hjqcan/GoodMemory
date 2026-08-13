@@ -27,25 +27,6 @@
     "judgeModel": "gpt-5.4 (cross-version, SAME GPT family as the answer model - not a cross-family judge)",
     "sameModelJudge": false
   },
-  "publicClaim": {
-    "readmeDisclosureFragments": [
-      "sourceAnswersUnchanged",
-      "same GPT family",
-      "0.708",
-      "0.6895",
-      "530",
-      "CC BY 4.0"
-    ],
-    "readmeRequiredFragments": [
-      "Full-300",
-      "0.691",
-      "207.35/300",
-      "0.400",
-      "120/300",
-      "gpt-5.4",
-      "gpt-5.5"
-    ]
-  },
   "evidence": {
     "artifacts": []
   },
@@ -61,6 +42,6 @@
   },
   "claimBoundary": {
     "publicClaimAllowed": false,
-    "reason": "Paused at the claim boundary. The frozen projection records the declared run identity, but its underlying measured sources do not independently expose both packageVersion and commit at explicit JSON paths. The score remains an internal diagnostic until a source-bound rerun can satisfy the verified projection contract."
+    "reason": "Paused at the claim boundary. No end-to-end benchmark runner is allowlisted for promotion, and the stored-answer rescore cannot prove the answer run that produced its input. The score remains an internal diagnostic."
   }
 }

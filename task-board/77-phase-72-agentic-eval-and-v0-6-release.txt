@@ -122,8 +122,10 @@ trace, audit, fragment-token clearing, Bearer-only auth, ETag conflict handling,
 idempotent retry, and deprecated read-only viewer mode with clean normal-flow
 consoles. Packed-consumer smoke passes under Node 20.20.2, 22.23.1, and 24.18.0.
 The 219-file tarball excludes `src/` and unpacks to 3,868,829 bytes (3.689603
-MiB). The strict claim gate reports five consistent declarations with zero
-over-claiming: three current claims and two historical/internal declarations.
+MiB). The current strict claim gate reports five consistent paused declarations
+with zero over-claiming, zero current claims, and zero promotable historical
+evidence. The Phase 72 benchmark numbers below are retained as historical
+diagnostics, not current release claims.
 [DONE] The Phase 72 benchmark release gate reads and fingerprints all accepted
 source reports. Every unchanged threshold passes. BEAM passes the revised
 comparable gate with 0.8276290064 generalized recall, complete 400-question /

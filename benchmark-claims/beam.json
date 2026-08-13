@@ -28,24 +28,6 @@
     "judgeModel": "gpt-5.5",
     "sameModelJudge": false
   },
-  "publicClaim": {
-    "readmeDisclosureFragments": [
-      "gpt-5.6-terra",
-      "gpt-5.5",
-      "0.7510",
-      "event_ordering",
-      "7/40",
-      "CC BY-SA 4.0"
-    ],
-    "readmeRequiredFragments": [
-      "0.7651",
-      "0.620",
-      "248/400",
-      "0.8276",
-      "1051",
-      "0.49"
-    ]
-  },
   "evidence": {
     "artifacts": [
       {
@@ -136,6 +118,6 @@
   },
   "claimBoundary": {
     "publicClaimAllowed": false,
-    "reason": "Paused at the claim boundary. The v0.6.0 metric artifact records packageVersion but has no execution receipt that binds its source hash to the declared commit. The score remains an internal diagnostic until a source-bound rerun satisfies the verified projection contract."
+    "reason": "Paused at the claim boundary. No end-to-end benchmark runner is allowlisted for promotion, and this historical stored-answer path cannot prove a complete answer-run identity. The score remains an internal diagnostic."
   }
 }

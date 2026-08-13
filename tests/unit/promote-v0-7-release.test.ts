@@ -72,7 +72,6 @@ async function writeReleaseCandidateFixture(
   llms = LLMS_RC,
 ): Promise<void> {
   await mkdir(join(root, ".well-known"), { recursive: true });
-  await mkdir(join(root, "benchmark-claims/evidence"), { recursive: true });
   await writeFile(join(root, "README.md"), README_RC);
   await writeFile(join(root, "README.zh-CN.md"), README_ZH_RC);
   await writeFile(join(root, "llms.txt"), llms);
@@ -86,21 +85,6 @@ async function writeReleaseCandidateFixture(
       },
       name: "goodmemory",
       version: "0.7.4",
-    }, null, 2)}\n`,
-  );
-  await writeFile(
-    join(root, "benchmark-claims/evidence/locomo-v0.7.3-current.json"),
-    `${JSON.stringify({
-      descriptorClaim: {
-        claimDeclaration: "benchmark-claims/locomo.json",
-        config: "full 10 conversations / 1540 questions",
-        measuredPackageVersion: "0.7.3",
-        metric: "independent official judge accuracy",
-        name: "LoCoMo",
-        reference: "benchmark-claims/evidence/locomo-v0.7.3-current.json",
-        result: "official 0.8000; strict 0.6000",
-        runtimeProfile: "recommended-current",
-      },
     }, null, 2)}\n`,
   );
   await writeFile(

@@ -1,18 +1,14 @@
 import { extractReferencePointer } from "../domain/referencePointer";
+import {
+  durableOptOutTargetIdentities,
+  normalizeDurableTargetValue,
+  sameDurableTargetIdentity,
+} from "../domain/memoryCandidate";
 import type { FeedbackKind } from "../domain/records";
 import type {
   DurableOptOutTargetSelector,
-  DurableTargetIdentity,
   MemoryCandidate,
 } from "./candidates";
-
-function normalizeDurableTarget(value: string): string {
-  return value
-    .normalize("NFKC")
-    .toLowerCase()
-    .replace(/\s+/gu, " ")
-    .trim();
-}
 
 function exactTargetValues(value: string): string[] {
   const values = new Set([value]);
@@ -21,7 +17,7 @@ function exactTargetValues(value: string): string[] {
     values.add(pointer);
   }
   return [...values]
-    .map(normalizeDurableTarget)
+    .map(normalizeDurableTargetValue)
     .filter((target) => target.length > 0);
 }
 
@@ -40,14 +36,6 @@ function candidateTargetValues(candidate: MemoryCandidate): string[] {
   return [...values]
     .flatMap(exactTargetValues)
     .filter((target) => target.length > 0);
-}
-
-function sameDurableTargetIdentity(
-  left: DurableTargetIdentity,
-  right: DurableTargetIdentity,
-): boolean {
-  return normalizeDurableTarget(left.slot) === normalizeDurableTarget(right.slot) &&
-    normalizeDurableTarget(left.value) === normalizeDurableTarget(right.value);
 }
 
 export function isDurableOptOutCandidate(
@@ -75,10 +63,11 @@ export function isTargetedByDurableOptOut(
   }
   const candidateValues = new Set(candidateTargetValues(candidate));
   return selectors.some((selector) => {
-    if (selector.identity && candidate.durableTarget) {
-      return sameDurableTargetIdentity(
-        selector.identity,
-        candidate.durableTarget,
+    const candidateIdentity = candidate.durableTarget;
+    const identities = durableOptOutTargetIdentities(selector);
+    if (candidateIdentity && identities.length > 0) {
+      return identities.some((identity) =>
+        sameDurableTargetIdentity(identity, candidateIdentity)
       );
     }
     return exactTargetValues(selector.text).some((target) =>

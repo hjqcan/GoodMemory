@@ -76,10 +76,10 @@ export interface Phase59GateDependencies {
 }
 
 const GENERATED_BY = "scripts/run-phase-59-gate.ts";
-export const PHASE59_CANONICAL_GATE_RUN_ID = "run-20260504193000";
+export const PHASE59_CANONICAL_GATE_RUN_ID = "run-20260813090000";
 const PHASE59_TARGETED_BLOCKING_CASES = 60;
 const PHASE59_TARGETED_DISTILLED_MIN_BLOCKING_PASSES = 56;
-const PHASE59_TARGETED_RAW_MIN_BLOCKING_PASSES = 48;
+const PHASE59_TRANSCRIPT_ONLY_RAW_PASSES = 0;
 const PHASE59_TARGETED_MAX_RAW_LEAKS = 0;
 
 function tailLines(value: string, count = 20): string[] {
@@ -222,12 +222,21 @@ function validatePhase59Evidence(input: {
   const raw = input.report.profiles["goodmemory-raw-experience"];
   const distilled = input.report.profiles["goodmemory-distilled-feedback"];
   const summary = buildRawInternalizationDiagnosisSummary([input.report]);
+  const rawCasesFailClosed =
+    raw?.cases.length === PHASE59_TARGETED_BLOCKING_CASES &&
+    raw.cases.every(
+      (caseResult) =>
+        caseResult.rawCarryover?.abstainReason === "no_candidates" &&
+        caseResult.rawCarryover.candidatePrototypeIds.length === 0 &&
+        caseResult.rawCarryover.selectedPrototypeIds.length === 0,
+    );
   const accepted =
     input.report.summary.executionFailures === 0 &&
     (raw?.totalBlockingCases ?? 0) === PHASE59_TARGETED_BLOCKING_CASES &&
     (raw?.executionFailures ?? 0) === 0 &&
     (raw?.explicitRecallLeakCount ?? 0) <= PHASE59_TARGETED_MAX_RAW_LEAKS &&
-    (raw?.passedBlockingCases ?? 0) >= PHASE59_TARGETED_RAW_MIN_BLOCKING_PASSES &&
+    (raw?.passedBlockingCases ?? 0) === PHASE59_TRANSCRIPT_ONLY_RAW_PASSES &&
+    rawCasesFailClosed &&
     (distilled?.totalBlockingCases ?? 0) === PHASE59_TARGETED_BLOCKING_CASES &&
     (distilled?.executionFailures ?? 0) === 0 &&
     (distilled?.passedBlockingCases ?? 0) >= PHASE59_TARGETED_DISTILLED_MIN_BLOCKING_PASSES;
@@ -235,8 +244,8 @@ function validatePhase59Evidence(input: {
   return {
     accepted,
     reason: accepted
-      ? "Phase 59 targeted raw-internalization mechanisms passed the deterministic gate."
-      : "Phase 59 deterministic evidence did not meet the targeted raw-internalization bar.",
+      ? "Phase 59 transcript-only raw fixtures failed closed and the distilled profile passed the deterministic gate."
+      : "Phase 59 deterministic evidence violated the transcript-only raw fail-closed boundary or the distilled coverage floor.",
     summary,
   };
 }

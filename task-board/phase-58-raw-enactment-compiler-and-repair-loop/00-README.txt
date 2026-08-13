@@ -34,6 +34,12 @@ Canonical Commands
 
 Accepted Targeted Result
 ------------------------
+The figures below describe the historical accepted transcript/archive
+inference path. Current typed-outcome regeneration fails closed with zero raw
+candidates and selections; its 28 / 50 memory-independent smoke-answer passes
+are not raw carryover evidence. Formal `tool_outcome` carryover is covered by
+the host, storage, RuntimeKit, and exact-record-ref tests.
+
 - raw blocking: `41 / 50`
 - distilled blocking: `48 / 50`
 - execution failures: `0`

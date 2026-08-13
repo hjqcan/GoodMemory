@@ -124,13 +124,6 @@ jobs:
             echo "- Integrity: $ARTIFACT_INTEGRITY"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify full-claim protocol-v2 pass-one evidence
-        run: |
-          set -euo pipefail
-          test -s reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-smoke-report.json
-          test -s reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-live-progress.jsonl
-          test -s reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-extraction-cache.jsonl
-
       - name: Upload tarball artifact
         uses: actions/upload-artifact@v4
         with:
@@ -141,17 +134,10 @@ jobs:
             reports/release/v0.7/v0.7.3-lifecycle-protection.json
             reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json
             reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/**
-            reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json
-            reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json
-            reports/release/v0.7/v0.7.3-public-claim-governance-correction-preregistration.json
-            reports/release/v0.7/v0.7.3-public-claim-governance-correction-attestation.json
             reports/release/v0.7/v0.7.3-stable-source-test-correction-preregistration.json
             reports/release/v0.7/v0.7.3-stable-source-test-correction-attestation.json
             reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-preregistration.json
             reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-attestation.json
-            benchmark-claims/evidence/locomo-v0.7.3-current.json
-            benchmark-claims/evidence/locomo-v0.7.3-verified.json
-            reports/release/v0.7/v0.7.3-locomo-claim-evidence/**
             reports/release/v0.7/phase-74-storage-scale-gate.json
             reports/release/v0.7/readiness-report.json
             reports/release/v0.7/summary.md
@@ -163,8 +149,6 @@ jobs:
           VERSION="$(bun -e 'import { readFileSync } from "node:fs"; const pkg = JSON.parse(readFileSync("package.json", "utf8")); console.log(pkg.version);')"
           PREPUBLISH_EVIDENCE="${{ steps.prepublish.outputs.evidence_path }}"
           EVIDENCE_ARCHIVE="$(dirname "${{ steps.pack.outputs.artifact_path }}")/goodmemory-${VERSION}-release-evidence.tar.gz"
-          test -s reports/release/v0.7/v0.7.3-public-claim-governance-correction-preregistration.json
-          test -s reports/release/v0.7/v0.7.3-public-claim-governance-correction-attestation.json
           test -s reports/release/v0.7/v0.7.3-stable-source-test-correction-preregistration.json
           test -s reports/release/v0.7/v0.7.3-stable-source-test-correction-attestation.json
           test -s reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-preregistration.json
@@ -175,17 +159,10 @@ jobs:
             reports/release/v0.7/v0.7.3-lifecycle-protection.json \
             reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json \
             reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence \
-            reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json \
-            reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json \
-            reports/release/v0.7/v0.7.3-public-claim-governance-correction-preregistration.json \
-            reports/release/v0.7/v0.7.3-public-claim-governance-correction-attestation.json \
             reports/release/v0.7/v0.7.3-stable-source-test-correction-preregistration.json \
             reports/release/v0.7/v0.7.3-stable-source-test-correction-attestation.json \
             reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-preregistration.json \
             reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-attestation.json \
-            benchmark-claims/evidence/locomo-v0.7.3-current.json \
-            benchmark-claims/evidence/locomo-v0.7.3-verified.json \
-            reports/release/v0.7/v0.7.3-locomo-claim-evidence \
             reports/release/v0.7/phase-74-storage-scale-gate.json \
             reports/release/v0.7/readiness-report.json \
             reports/release/v0.7/summary.md

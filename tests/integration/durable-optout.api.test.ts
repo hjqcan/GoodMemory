@@ -28,9 +28,69 @@ describe("durable opt-out admission", () => {
           sourceMessageIndex: 0,
           sourceRole: "user",
         },
-        [{ match: "exact", text: target }],
+        [{ identities: [], match: "exact", text: target }],
       )).toBe(false);
     }
+  });
+
+  it("keeps exact durable target values case-sensitive", () => {
+    for (const [slot, candidateValue, optedOutValue] of [
+      ["assignment:repo", "Foo", "foo"],
+      ["assignment:path", "docs/API.md", "docs/api.md"],
+      ["assignment:token", "AbC-123.X", "abc-123.x"],
+    ] as const) {
+      expect(isTargetedByDurableOptOut(
+        {
+          id: `${slot}-${candidateValue}`,
+          kindHint: "fact",
+          explicitness: "explicit",
+          content: `${slot}=${candidateValue}`,
+          durableTarget: { slot, value: candidateValue },
+          sourceMessageIndex: 0,
+          sourceRole: "user",
+        },
+        [{
+          identities: [{ slot: slot.toUpperCase(), value: optedOutValue }],
+          match: "exact",
+          text: `${slot}=${optedOutValue}`,
+        }],
+      )).toBe(false);
+      expect(isTargetedByDurableOptOut(
+        {
+          id: `${slot}-${candidateValue}`,
+          kindHint: "fact",
+          explicitness: "explicit",
+          content: `${slot}=${candidateValue}`,
+          durableTarget: { slot, value: candidateValue },
+          sourceMessageIndex: 0,
+          sourceRole: "user",
+        },
+        [{
+          identities: [{ slot: slot.toUpperCase(), value: candidateValue }],
+          match: "exact",
+          text: `${slot}=${candidateValue}`,
+        }],
+      )).toBe(true);
+    }
+  });
+
+  it("matches natural-language profile targets without case drift", () => {
+    expect(isTargetedByDurableOptOut(
+      {
+        id: "profile-name-lin",
+        kindHint: "profile",
+        explicitness: "explicit",
+        content: "Lin",
+        durableTarget: { slot: "profile:name", value: "Lin" },
+        sourceMessageIndex: 0,
+        sourceRole: "user",
+      },
+      [{
+        identities: [{ slot: "PROFILE:NAME", value: "lin" }],
+        match: "exact",
+        text: "name=lin",
+      }],
+    )).toBe(true);
   });
 
   it("does not trust an assisted extractor's durable target identity", async () => {
@@ -243,11 +303,15 @@ describe("durable opt-out admission", () => {
                 disposition: {
                   kind: "durable_opt_out" as const,
                   target: {
+                    identities: [],
                     match: "exact" as const,
                     text: "project code=Tachikoma",
                   },
                 },
-                durableTarget: { slot: "project_code", value: "Tachikoma" },
+                durableTarget: {
+                  slot: "assignment:project_code",
+                  value: "Tachikoma",
+                },
                 explicitness: "explicit" as const,
                 kindHint: "feedback" as const,
                 metadata: {
@@ -356,6 +420,32 @@ describe("durable opt-out admission", () => {
         reason: "explicit_opt_out",
       }));
     }
+  });
+
+  it("vetoes every typed target derived from one compound profile opt-out", async () => {
+    const memory = createGoodMemory({
+      adapters: { assistedExtractor: noopAssistedExtractor },
+      storage: { provider: "memory" },
+    });
+    const scope = { userId: "compound-profile-opt-out", sessionId: "write" };
+
+    const result = await memory.remember({
+      extractionStrategy: "rules-only",
+      locale: "en-US",
+      messages: [
+        { role: "user", content: "I am a staff engineer at Acme Labs." },
+        {
+          role: "user",
+          content:
+            "Do not remember I am a staff engineer at Acme Labs",
+        },
+      ],
+      scope,
+    });
+
+    expect((await memory.exportMemory({ scope })).durable.profile).toBeNull();
+    expect(result.events.filter(({ reason }) => reason === "explicit_opt_out"))
+      .toHaveLength(2);
   });
 
   it("unifies localized profile targets in every built-in language pack", async () => {
@@ -626,6 +716,61 @@ describe("durable opt-out admission", () => {
     ).toEqual(["runtime=production"]);
   });
 
+  it("preserves case in exact technical assignment values", async () => {
+    for (const [index, [positive, optOut]] of [
+      ["repo=Foo", "repo=foo"],
+      ["path=docs/API.md", "path=docs/api.md"],
+      ["token=AbC-123.X", "token=abc-123.x"],
+    ].entries()) {
+      const memory = createGoodMemory({
+        adapters: { assistedExtractor: noopAssistedExtractor },
+        storage: { provider: "memory" },
+      });
+      const scope = { userId: `exact-case-${index}`, sessionId: "write" };
+
+      await memory.remember({
+        extractionStrategy: "rules-only",
+        locale: "en-US",
+        messages: [{
+          role: "user",
+          content: `Remember two things: ${positive}; do not remember ${optOut}`,
+        }],
+        scope,
+      });
+
+      expect(
+        (await memory.exportMemory({ scope })).durable.facts.map(({ content }) =>
+          content
+        ),
+      ).toEqual([positive]);
+    }
+  });
+
+  it("preserves case in aliased technical assignment values", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+    const scope = {
+      userId: "aliased-exact-case",
+      sessionId: "write",
+    };
+
+    await memory.remember({
+      extractionStrategy: "rules-only",
+      locale: "en-US",
+      messages: [{
+        role: "user",
+        content:
+          "Remember two things: project code=Foo; do not remember project code=foo",
+      }],
+      scope,
+    });
+
+    expect(
+      (await memory.exportMemory({ scope })).durable.facts.map(({ content }) =>
+        content
+      ),
+    ).toEqual(["project code=Foo"]);
+  });
+
   it("preserves quoted punctuation and parentheses in exact target values", async () => {
     const fixtures = [
       ["regex=\"a?\"", "regex=\"a\""],
@@ -756,6 +901,203 @@ describe("durable opt-out admission", () => {
       }),
     ]);
     expect(serialized).not.toContain("SECRET-PAYLOAD");
+  });
+
+  it("omits a mixed source when whole-source and candidate redactions conflict", async () => {
+    const memory = createGoodMemory({
+      adapters: {
+        assistedExtractor: {
+          async extract() {
+            return {
+              candidates: [
+                {
+                  id: "mixed-fact",
+                  content: "editor=Neovim",
+                  explicitness: "explicit" as const,
+                  kindHint: "fact" as const,
+                  sourceMessageIndex: 0,
+                  sourceRole: "user",
+                },
+                {
+                  id: "mixed-secret-noise",
+                  content: "SECRET-PAYLOAD",
+                  explicitness: "inferred" as const,
+                  kindHint: "noise" as const,
+                  sourceMessageIndex: 0,
+                  sourceRole: "user",
+                },
+              ],
+              ignoredMessageCount: 0,
+            };
+          },
+        },
+      },
+      policy: {
+        redact(candidate) {
+          return candidate.kindHint === "noise"
+            ? { ...candidate, content: "[REDACTED]" }
+            : candidate;
+        },
+      },
+      storage: { provider: "memory" },
+    });
+    const scope = { userId: "mixed-rejected-source-redaction", sessionId: "write" };
+
+    const result = await memory.remember({
+      extractionStrategy: "llm-assisted",
+      messages: [{ role: "user", content: "editor=Neovim SECRET-PAYLOAD" }],
+      scope,
+    });
+    const exported = await memory.exportMemory({ scope });
+    const serialized = JSON.stringify(exported.durable);
+
+    expect(result.accepted).toBe(1);
+    expect(result.rejected).toBe(2);
+    expect(exported.durable.sourceMessages).toEqual([]);
+    expect(serialized).not.toContain("SECRET-PAYLOAD");
+  });
+
+  it("redacts the complete raw source even when extraction leaves text uncovered", async () => {
+    const memory = createGoodMemory({
+      adapters: {
+        assistedExtractor: {
+          async extract() {
+            return {
+              candidates: [{
+                id: "partially-covered-fact",
+                content: "editor=Neovim",
+                explicitness: "explicit" as const,
+                kindHint: "fact" as const,
+                sourceMessageIndex: 0,
+                sourceRole: "user",
+              }],
+              ignoredMessageCount: 0,
+            };
+          },
+        },
+      },
+      policy: {
+        redact(candidate) {
+          return candidate.content.includes("SECRET-PAYLOAD")
+            ? {
+              ...candidate,
+              content: candidate.content.replace("SECRET-PAYLOAD", "[REDACTED]"),
+            }
+            : candidate;
+        },
+      },
+      storage: { provider: "memory" },
+    });
+    const scope = {
+      userId: "partially-covered-source-redaction",
+      sessionId: "write",
+    };
+
+    await memory.remember({
+      extractionStrategy: "llm-assisted",
+      messages: [{ role: "user", content: "editor=Neovim SECRET-PAYLOAD" }],
+      scope,
+    });
+    const exported = await memory.exportMemory({ scope });
+
+    expect(exported.durable.sourceMessages).toEqual([
+      expect.objectContaining({ content: "editor=Neovim [REDACTED]" }),
+    ]);
+    expect(JSON.stringify(exported.durable)).not.toContain("SECRET-PAYLOAD");
+  });
+
+  it("redacts an allowed raw source with a candidate rejected by another source role", async () => {
+    const memory = createGoodMemory({
+      adapters: {
+        assistedExtractor: {
+          async extract() {
+            return {
+              candidates: [{
+                id: "cross-role-secret",
+                content: "SECRET-PAYLOAD",
+                explicitness: "inferred" as const,
+                kindHint: "noise" as const,
+                sourceMessageIndex: 0,
+                sourceMessageIndexes: [0, 1],
+                sourceRole: "user",
+              }],
+              ignoredMessageCount: 0,
+            };
+          },
+        },
+      },
+      policy: {
+        redact(candidate) {
+          return candidate.content === "SECRET-PAYLOAD"
+            ? { ...candidate, content: "[REDACTED]" }
+            : candidate;
+        },
+      },
+      storage: { provider: "memory" },
+    });
+    const scope = { userId: "cross-role-source-redaction", sessionId: "write" };
+
+    await memory.remember({
+      extractionStrategy: "llm-assisted",
+      messages: [
+        { role: "user", content: "editor=Neovim SECRET-PAYLOAD" },
+        { role: "assistant", content: "SECRET-PAYLOAD" },
+      ],
+      scope,
+    });
+    const exported = await memory.exportMemory({ scope });
+
+    expect(JSON.stringify(exported.durable)).not.toContain("SECRET-PAYLOAD");
+    expect(exported.durable.sourceMessages).toContainEqual(
+      expect.objectContaining({
+        role: "user",
+        content: "editor=Neovim [REDACTED]",
+      }),
+    );
+  });
+
+  it("re-derives a durable target after policy changes the writable lane", async () => {
+    const memory = createGoodMemory({
+      policy: {
+        redact(candidate) {
+          return candidate.kindHint === "fact"
+            ? {
+              ...candidate,
+              content: "Tachikoma",
+              kindHint: "profile",
+              metadata: { profileField: "currentProject" },
+            }
+            : candidate;
+        },
+      },
+      storage: { provider: "memory" },
+    });
+    const scope = {
+      userId: "post-redaction-target",
+      sessionId: "write",
+    };
+
+    const result = await memory.remember({
+      extractionStrategy: "rules-only",
+      locale: "en-US",
+      messages: [{
+        role: "user",
+        content:
+          "Remember two things: the build is stable; do not remember current project=Tachikoma",
+      }],
+      scope,
+    });
+    const exported = await memory.exportMemory({ scope });
+
+    expect(result.events).toContainEqual(expect.objectContaining({
+      outcome: "rejected",
+      reason: "explicit_opt_out",
+    }));
+    expect(
+      exported.durable.profile?.activeContext.currentProjects ?? [],
+    ).toEqual([]);
+    expect(exported.durable.facts).toEqual([]);
+    expect(exported.durable.feedback).toHaveLength(1);
   });
 
   it("omits a raw source when a redacted producer rewrite has no trusted source span", async () => {

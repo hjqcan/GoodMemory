@@ -1011,7 +1011,10 @@ v0.1 不做复杂 DSL。
 interface MemoryPolicyHooks {
   shouldRemember?(candidate: MemoryCandidate, ctx: PolicyContext): Promise<boolean>;
   shouldRecall?(memory: MemoryRecord, ctx: PolicyContext): Promise<boolean>;
-  redact?(candidate: MemoryCandidate, ctx: PolicyContext): Promise<MemoryCandidate>;
+  redact?(
+    candidate: MemoryCandidate,
+    ctx: PolicyContext,
+  ): Promise<MemoryCandidate>;
   resolveConflict?(
     existing: MemoryRecord,
     incoming: MemoryCandidate,
@@ -1019,6 +1022,10 @@ interface MemoryPolicyHooks {
   ): Promise<ConflictResolution>;
 }
 ```
+
+`redact` 保持 API-v1 的完整 `MemoryCandidate` 回调签名；运行时只采纳
+`content`、`explicitness`、`kindHint` 和 `metadata`，不会把 hook 返回的
+identity、source、disposition 或 durable-target 信息当作授权。
 
 ### 15.2 v0.1 默认策略
 

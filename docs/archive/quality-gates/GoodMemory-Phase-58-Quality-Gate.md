@@ -2,6 +2,12 @@
 
 Canonical accepted gate run: `run-20260504183000`
 
+Historical note: this document and its tracked artifact describe the retired
+transcript/archive inference path. The regeneration commands below are retained
+as provenance, not as current instructions; current typed-outcome validation
+uses `run-phase58-typed-outcome-current` and gate run
+`run-20260813083000`, without overwriting this artifact.
+
 Phase 58 closes Raw Enactment Compiler and Repair Loop as a targeted internal
 mechanism slice. It keeps the public API/config and durable memory taxonomy
 unchanged while compiling selected raw experience into deterministic
@@ -19,7 +25,9 @@ inhibition, replacement, exact-format, and repair/fallback controls.
     `bun run eval:phase-58-diagnostics -- --report reports/eval/fallback/phase-58/run-phase58-fallback-current/report.json --output reports/eval/fallback/phase-58/run-phase58-fallback-current/raw-diagnostics.json`
 - Quality gate:
   - `reports/quality-gates/phase-58/run-20260504183000/phase-58-quality-gate.json`
-  - Regenerate with `bun run gate:phase-58`
+  - This historical path is reproducible only from its recorded source
+    revision. The current `bun run gate:phase-58` writes the separate
+    `run-20260813083000` typed-outcome validation artifact.
 
 ## Accepted Scope
 

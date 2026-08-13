@@ -413,7 +413,7 @@ export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
             traceId,
           })
         : crypto.randomUUID();
-      let linkedEvidenceIds: string[] = [];
+      let evidence: EvidenceRecord | undefined;
 
       if (input.result.evidenceExcerpt) {
         const evidenceId = input.traceId
@@ -426,45 +426,41 @@ export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
         const languageContext = config.language.resolveFromText({
           text: input.result.evidenceExcerpt,
         });
-        try {
-          await config.governanceRepositories.evidence.add(
-            createEvidenceRecord({
-              id: evidenceId,
-              userId: input.scope.userId,
-              tenantId: input.scope.tenantId,
-              workspaceId: input.scope.workspaceId,
-              agentId: input.scope.agentId,
-              sessionId: input.scope.sessionId,
-              kind: "tool_result_excerpt",
-              excerpt: input.result.evidenceExcerpt,
-              source: createMemorySource({
-                method: "confirmed",
-                extractedAt: timestamp,
-                sessionId: input.scope.sessionId,
-                locale: languageContext.locale,
-                localeSource: languageContext.localeSource,
-                languagePackId: languageContext.languagePackId,
-                languagePackVersion: languageContext.languagePackVersion,
-              }),
-            }),
-          );
-          linkedEvidenceIds = [evidenceId];
-        } catch (error) {
-          console.error("Failed to persist behavioral outcome evidence", error);
-        }
+        evidence = createEvidenceRecord({
+          id: evidenceId,
+          userId: input.scope.userId,
+          tenantId: input.scope.tenantId,
+          workspaceId: input.scope.workspaceId,
+          agentId: input.scope.agentId,
+          sessionId: input.scope.sessionId,
+          kind: "tool_result_excerpt",
+          excerpt: input.result.evidenceExcerpt,
+          source: createMemorySource({
+            method: "confirmed",
+            extractedAt: timestamp,
+            sessionId: input.scope.sessionId,
+            locale: languageContext.locale,
+            localeSource: languageContext.localeSource,
+            languagePackId: languageContext.languagePackId,
+            languagePackVersion: languageContext.languagePackVersion,
+          }),
+        });
       }
 
-      const persisted = await persistExperienceRecords([
-        buildBehavioralOutcomeExperienceRecord({
-          scope: input.scope,
-          result: input.result,
-          traceId,
-          createdAt: timestamp,
-          linkedEvidenceIds,
-          createId: () => experienceId,
-        }),
-      ]);
-      if (persisted.length === 0) {
+      const experience = buildBehavioralOutcomeExperienceRecord({
+        scope: input.scope,
+        result: input.result,
+        traceId,
+        createdAt: timestamp,
+        linkedEvidenceIds: evidence ? [evidence.id] : [],
+        createId: () => experienceId,
+      });
+      const persistence = await config.governanceRepositories.behavioralOutcomes
+        .add({
+          experience,
+          ...(evidence ? { evidence } : {}),
+        });
+      if (persistence === "unchanged") {
         return;
       }
       await runRulesOnlyReview(input.scope);

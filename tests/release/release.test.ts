@@ -804,8 +804,6 @@ describe("release metadata and docs", () => {
     expect(pkg.publishConfig?.access).toBe("public");
     expect(pkg.files).toEqual([
       ".well-known/goodmemory.json",
-      "benchmark-claims/evidence/locomo-v0.7.3-current.json",
-      "benchmark-claims/evidence/locomo-v0.7.3-verified.json",
       "LICENSE",
       "README.md",
       "README.zh-CN.md",
@@ -1443,7 +1441,7 @@ describe("release metadata and docs", () => {
     expect(readme).toContain(
       "internal diagnostics under the same fail-closed boundary",
     );
-    expect(readme).toContain("separate, committed execution receipt");
+    expect(readme).toContain("No end-to-end benchmark runner is allowlisted today");
     expect(readme).not.toContain("| LoCoMo | representative conv-1 live run 0.020");
     expect(readme).toContain("## Choose Your Integration Path");
     expect(readme).toContain("GoodMemory has three primary product entry points");
@@ -1642,7 +1640,7 @@ describe("release metadata and docs", () => {
       "measurements, plus ImplicitMemBench, are internal diagnostics only",
     );
     expect(llms).toContain(
-      "presentation or metric projections are not independent execution receipts",
+      "stored-answer rescores and legacy projections cannot open it",
     );
     expect(server.version).toBe(CURRENT_PACKAGE_VERSION);
     expect(server.packages?.map((entry) => entry.version)).toEqual([
@@ -1781,7 +1779,7 @@ describe("release metadata and docs", () => {
     expect(historicalEvidence).not.toContain("BEAM");
     expect(historicalEvidence).not.toContain("MemoryAgentBench");
     expect(zhReadme).toContain("内部诊断");
-    expect(zhReadme).toContain("独立 execution-receipt 契约");
+    expect(zhReadme).toContain("当前没有端到端 benchmark runner 进入 allowlist");
     expect(zhReadme).not.toContain("| LoCoMo | 代表性 conv-1 live 运行 0.020");
     expect(zhReadme).toContain("## 选择你的接入路径");
     expect(zhReadme).toContain("GoodMemory 有三类主要产品入口");
@@ -2985,7 +2983,7 @@ describe("release metadata and docs", () => {
       "Existing LoCoMo and BEAM scores remain versioned historical evidence",
     );
     expect(currentStatus).toContain(
-      "Presentation projections cannot self-attest",
+      "Declarations cannot provide presentation fragments",
     );
     expect(currentStatus).not.toContain("it is not yet promoted to README");
     expect(currentStatus).toContain(
@@ -3147,7 +3145,7 @@ describe("release metadata and docs", () => {
       "docs/archive/quality-gates/GoodMemory-Phase-52-Quality-Gate.md",
     );
     expect(currentStatus).toContain(
-      "Phase 59 is the Generalized Raw Executor Cleanup slice",
+      "Phase 59 is the historical Generalized Raw Executor Cleanup slice",
     );
     expect(currentStatus).toContain("failed/preferred operations");
     expect(currentStatus).toContain(PHASE59_CANONICAL_FALLBACK_REPORT);
@@ -3386,7 +3384,7 @@ describe("release metadata and docs", () => {
       "ImplicitMemBench are internal diagnostics",
     );
     expect(taskBoard).toContain(
-      "none of its benchmark\n  measurements now qualifies as versioned evidence",
+      "none of its benchmark\n  measurements qualifies as versioned evidence",
     );
     expect(taskBoard).not.toContain(
       "LongMemEval and ImplicitMemBench remain versioned internal evidence",
@@ -3911,23 +3909,9 @@ describe("release metadata and docs", () => {
         /reports\/release\/v0\.7\/v0\.7\.3-lifecycle-schema9-evidence\/\*\*/gu,
       )?.length,
     ).toBe(1);
-    expect(
-      workflow.match(
-        /reports\/release\/v0\.7\/v0\.7\.3-full-claim-protocol2-preregistration\.json/gu,
-      )?.length,
-    ).toBe(2);
-    expect(
-      workflow.match(
-        /reports\/release\/v0\.7\/v0\.7\.3-full-claim-protocol2-attempt-consumed\.json/gu,
-      )?.length,
-    ).toBe(2);
-    for (const passOneEvidencePath of [
-      "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-smoke-report.json",
-      "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-live-progress.jsonl",
-      "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-extraction-cache.jsonl",
-    ]) {
-      expect(workflow).toContain(passOneEvidencePath);
-    }
+    expect(workflow).not.toContain("v0.7.3-full-claim-protocol2");
+    expect(workflow).not.toContain("v0.7.3-locomo-claim-evidence");
+    expect(workflow).not.toContain("locomo-v0.7.3-current.json");
     expect(workflow).not.toContain("v0.7.3-lifecycle-evidence/**");
     expect(workflow).not.toContain("bun run gate:phase-40");
     expect(workflow).toContain("GOODMEMORY_ASSISTED_EXTRACTOR_API_KEY");
@@ -4049,11 +4033,10 @@ describe("release metadata and docs", () => {
       "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
       "reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json",
       "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence",
-      "reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json",
-      "reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json",
-      "benchmark-claims/evidence/locomo-v0.7.3-current.json",
-      "benchmark-claims/evidence/locomo-v0.7.3-verified.json",
-      "reports/release/v0.7/v0.7.3-locomo-claim-evidence",
+      "reports/release/v0.7/v0.7.3-stable-source-test-correction-preregistration.json",
+      "reports/release/v0.7/v0.7.3-stable-source-test-correction-attestation.json",
+      "reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-preregistration.json",
+      "reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-attestation.json",
       "reports/release/v0.7/phase-74-storage-scale-gate.json",
       "reports/release/v0.7/readiness-report.json",
       "reports/release/v0.7/summary.md",
@@ -4089,35 +4072,6 @@ describe("release metadata and docs", () => {
     expect(githubReleaseBlock).not.toContain("prepublish-evidence.json");
     expect(githubReleaseBlock).not.toContain("reports/release/v0.7/");
     expect(githubReleaseBlock).not.toContain("benchmark-claims/evidence/");
-  });
-
-  it("ships the public-claim governance correction evidence", async () => {
-    const workflow = await readFile(
-      join(import.meta.dir, "../../.github/workflows/release.yml"),
-      "utf8",
-    );
-    const governancePaths = [
-      "reports/release/v0.7/v0.7.3-public-claim-governance-correction-preregistration.json",
-      "reports/release/v0.7/v0.7.3-public-claim-governance-correction-attestation.json",
-    ];
-    const uploadIndex = workflow.indexOf("- name: Upload tarball artifact");
-    const archiveIndex = workflow.indexOf("- name: Pack tracked release evidence");
-    const authIndex = workflow.indexOf("- name: Validate npm publishing credentials");
-    const uploadBlock = workflow.slice(uploadIndex, archiveIndex);
-    const archiveBlock = workflow.slice(archiveIndex, authIndex);
-    const tarIndex = archiveBlock.indexOf("tar --sort=name --mtime='@0'");
-
-    expect(uploadIndex).toBeGreaterThan(-1);
-    expect(archiveIndex).toBeGreaterThan(uploadIndex);
-    expect(authIndex).toBeGreaterThan(archiveIndex);
-    expect(tarIndex).toBeGreaterThan(-1);
-    for (const path of governancePaths) {
-      expect(uploadBlock).toContain(path);
-      expect(archiveBlock).toContain(path);
-      const sizeCheckIndex = archiveBlock.indexOf(`test -s ${path}`);
-      expect(sizeCheckIndex).toBeGreaterThan(-1);
-      expect(sizeCheckIndex).toBeLessThan(tarIndex);
-    }
   });
 
   it("ships the stable-source test correction evidence", async () => {
@@ -4178,15 +4132,10 @@ describe("release metadata and docs", () => {
     }
   });
 
-  it("keeps schema-9 and full-claim protocol-v2 evidence addable without force", async () => {
+  it("keeps schema-9 lifecycle evidence addable without force", async () => {
     for (const path of [
       "reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json",
       "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/manifest.json",
-      "reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json",
-      "reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json",
-      "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-smoke-report.json",
-      "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-live-progress.jsonl",
-      "reports/release/v0.7/v0.7.3-locomo-claim-evidence/seed-attempt-1-extraction-cache.jsonl",
     ]) {
       const ignored = await runGitCommand([
         "check-ignore",

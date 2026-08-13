@@ -71,6 +71,17 @@ describe("official protocol rescore CLI", () => {
         "bun",
         "scripts/rescore-official-protocols.ts",
         "--benchmark",
+        "locomo",
+        "--canonical-output",
+        "benchmark-claims/evidence/locomo.json",
+      ]),
+    ).toThrow("stored-answer rescore cannot emit canonical claim artifacts");
+
+    expect(() =>
+      parseOfficialRescoreCliOptions([
+        "bun",
+        "scripts/rescore-official-protocols.ts",
+        "--benchmark",
         "beam",
         "--benchmark",
         "locomo",

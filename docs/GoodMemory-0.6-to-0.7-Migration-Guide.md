@@ -196,6 +196,25 @@ than a warm, pre-cutover rebuild.
   safer alternative and an explicit stored retrieval profile equal to the
   current call. Missing or mismatched profiles fail closed, and an accepted
   carryover reports the exact experience through RuntimeKit `recordRefs`.
+- Treat a behavioral `traceId` as immutable provenance. Retrying the same
+  payload is idempotent; reusing the id for a different payload fails with an
+  identity conflict and does not replace evidence or experience records.
+- Validate every behavioral-outcome field as storage-safe before recording.
+  Evidence and experience are committed as one outcome aggregate; a storage
+  failure rejects the call instead of reporting `recorded: true`. Custom
+  document stores that enable the behavioral-outcome recorder must implement
+  the versioned `ProjectionCapableDocumentStore` atomic batch contract; an
+  unversioned same-named method is rejected before recording.
+- `policy.redact` keeps its existing `MemoryCandidate` callback signature, but
+  the runtime only applies `content`, `explicitness`, `kindHint`, and
+  `metadata`. Candidate identity, source ownership, disposition, and
+  durable-target admission remain owned by the remember pipeline.
+- Custom extractors should construct `DurableOptOutTargetSelector.identities[]`
+  when one opt-out clause targets one or more typed fields. The singular
+  `identity` field remains accepted for API-v1 custom packs but is deprecated;
+  new code should use `identities`, or an empty array for exact-text fallback.
+  Typed technical assignment values keep case, while natural
+  profile/preference slots compare case-insensitively.
 - Treat `LanguageService.getAnalyzerManifest().persistable === false` as a
   prohibition on durable completeness proof, not as permission to trust the
   existing index.

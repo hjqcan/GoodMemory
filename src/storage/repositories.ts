@@ -35,6 +35,7 @@ import type {
   VectorSearchInput,
   VectorStore,
 } from "./contracts";
+import { isProjectionCapableDocumentStore } from "./contracts";
 
 export interface MemoryRepositoriesConfig {
   documentStore: DocumentStore;
@@ -42,13 +43,53 @@ export interface MemoryRepositoriesConfig {
   vectorStore?: VectorStore;
 }
 
-// All `add` methods persist by id with overwrite (upsert) semantics — they are
-// backed by DocumentStore.set, not an append. Maintenance depends on this:
-// dedupe/ttlExpiry demote a record by re-adding its superseded copy under the
-// same id. `upsert` is used where the type is a per-scope singleton or keyed
-// value; `add` where callers usually mint a fresh id — but a reused id always
-// replaces the stored record either way.
+export const IMMUTABLE_RECORD_IDENTITY_CONFLICT_ERROR_CODE =
+  "ERR_GOODMEMORY_IMMUTABLE_RECORD_IDENTITY_CONFLICT";
+
+export class ImmutableRecordIdentityConflictError extends Error {
+  readonly code = IMMUTABLE_RECORD_IDENTITY_CONFLICT_ERROR_CODE;
+
+  constructor(readonly collection: string, readonly id: string) {
+    super(`Immutable ${collection} record identity conflict for id ${id}`);
+    this.name = "ImmutableRecordIdentityConflictError";
+  }
+}
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .filter((key) => record[key] !== undefined)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
+}
+
+function evidenceIdentity(evidence: EvidenceRecord): unknown {
+  const { createdAt: _createdAt, source: _source, ...record } = evidence;
+  return record;
+}
+
+function experienceIdentity(experience: ExperienceRecord): unknown {
+  const { createdAt: _createdAt, ...record } = experience;
+  return record;
+}
+
+// A behavioral outcome is one immutable evidence+experience aggregate keyed
+// by trace identity. Ordinary repositories retain their established upsert
+// behavior for callers that manage their own lifecycle.
 export interface MemoryRepositories {
+  behavioralOutcomes: {
+    add(input: {
+      evidence?: EvidenceRecord;
+      experience: ExperienceRecord;
+    }): Promise<"inserted" | "unchanged">;
+  };
   profiles: {
     upsert(profile: UserProfile): Promise<void>;
     get(userId: string): Promise<UserProfile | null>;
@@ -218,6 +259,88 @@ export function createMemoryRepositories(
   }
 
   return {
+    behavioralOutcomes: {
+      async add(input): Promise<"inserted" | "unchanged"> {
+        if (!isProjectionCapableDocumentStore(config.documentStore)) {
+          throw new Error(
+            "Behavioral outcome persistence requires a projection-capable document store.",
+          );
+        }
+        const documentStore = config.documentStore;
+
+        for (;;) {
+          const [existingEvidence, existingExperience] = await Promise.all([
+            input.evidence
+              ? documentStore.get<EvidenceRecord>(
+                  EVIDENCE_COLLECTION,
+                  input.evidence.id,
+                )
+              : null,
+            documentStore.get<ExperienceRecord>(
+              EXPERIENCES_COLLECTION,
+              input.experience.id,
+            ),
+          ]);
+          if (
+            existingEvidence &&
+            canonicalJson(evidenceIdentity(existingEvidence)) !==
+              canonicalJson(evidenceIdentity(input.evidence!))
+          ) {
+            throw new ImmutableRecordIdentityConflictError(
+              EVIDENCE_COLLECTION,
+              input.evidence!.id,
+            );
+          }
+          if (existingExperience) {
+            if (
+              canonicalJson(experienceIdentity(existingExperience)) !==
+                canonicalJson(experienceIdentity(input.experience)) ||
+              Boolean(existingEvidence) !== Boolean(input.evidence)
+            ) {
+              throw new ImmutableRecordIdentityConflictError(
+                EXPERIENCES_COLLECTION,
+                input.experience.id,
+              );
+            }
+            return "unchanged";
+          }
+
+          const inserted = await documentStore.writeBatchIfUnchanged({
+            expected: {
+              collection: EXPERIENCES_COLLECTION,
+              document: null,
+              id: input.experience.id,
+            },
+            set: [
+              ...(!existingEvidence && input.evidence
+                ? [{
+                    collection: EVIDENCE_COLLECTION,
+                    document: input.evidence,
+                    id: input.evidence.id,
+                  }]
+                : []),
+              {
+                collection: EXPERIENCES_COLLECTION,
+                document: input.experience,
+                id: input.experience.id,
+              },
+            ],
+            ...(input.evidence
+              ? {
+                  unchanged: [{
+                    collection: EVIDENCE_COLLECTION,
+                    document: existingEvidence,
+                    id: input.evidence.id,
+                  }],
+                }
+              : {}),
+          });
+          if (inserted) {
+            return "inserted";
+          }
+        }
+      },
+    },
     profiles: {
       async upsert(profile: UserProfile): Promise<void> {
         await config.documentStore.set("profiles", profile.userId, profile);
@@ -388,7 +511,11 @@ export function createMemoryRepositories(
 
     experiences: {
       async add(experience: ExperienceRecord): Promise<void> {
-        await config.documentStore.set(EXPERIENCES_COLLECTION, experience.id, experience);
+        await config.documentStore.set(
+          EXPERIENCES_COLLECTION,
+          experience.id,
+          experience,
+        );
       },
 
       async get(id: string): Promise<ExperienceRecord | null> {

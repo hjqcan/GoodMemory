@@ -457,12 +457,6 @@ export function createGoodMemoryRuntimeKit(
       RawCarryoverResolution | undefined
     > => {
       try {
-        const runtimeState =
-          callInput.includeRuntime === false
-            ? null
-            : await input.memory.runtime.getState({ scope: callInput.scope }).catch(
-                () => null,
-              );
         const exported = await input.memory.exportMemory({
           includeRuntime: callInput.includeRuntime,
           scope: callInput.scope,
@@ -476,34 +470,9 @@ export function createGoodMemoryRuntimeKit(
           referenceTime === undefined ||
           (isRfc3339Instant(value) &&
             Date.parse(value) <= Date.parse(referenceTime));
-        const runtimeBuffer = runtimeState?.state?.buffer;
-        const historicalRuntimeSnapshot =
-          referenceTime !== undefined &&
-          runtimeBuffer !== undefined &&
-          !isAtOrBeforeReferenceTime(runtimeBuffer.lastActiveAt);
-        const runtimeMessages =
-          runtimeBuffer?.messages
-            ?.filter((message) =>
-              message.observedAt !== undefined
-                ? isAtOrBeforeReferenceTime(message.observedAt)
-                : !historicalRuntimeSnapshot,
-            )
-            ?.map((message) => ({
-              content: message.content,
-              role: message.role,
-            }))
-            .filter((message) => message.content.trim().length > 0) ?? [];
         const rawIndex = buildRawBehavioralPrototypeIndex({
           memoryExport: {
             durable: {
-              archives: exported.durable.archives.filter((archive) =>
-                isAtOrBeforeReferenceTime(archive.archivedAt),
-              ),
-              episodes: exported.durable.episodes.filter((episode) =>
-                isAtOrBeforeReferenceTime(
-                  episode.observedAt ?? episode.createdAt,
-                ),
-              ),
               experiences: exported.durable.experiences.filter((experience) =>
                 isAtOrBeforeReferenceTime(experience.createdAt),
               ),
@@ -515,7 +484,6 @@ export function createGoodMemoryRuntimeKit(
             hits: recall.metadata.hits,
           },
           retrievalProfile: callInput.retrievalProfile ?? "general_chat",
-          runtimeMessages,
           surfaceHint: rawSurfaceFamily,
         });
 

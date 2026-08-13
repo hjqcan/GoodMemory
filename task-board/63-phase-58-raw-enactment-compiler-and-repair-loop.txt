@@ -55,8 +55,8 @@ Workstreams
    - targeted deterministic evidence proves the mechanism
    - full-300 remains a separate research follow-up, not a release gate
 
-Acceptance Criteria
--------------------
+Historical Acceptance Criteria
+------------------------------
 - `bun run typecheck` passes.
 - Phase 58 targeted unit/regression suites pass.
 - `bun run eval:phase-58` produces the canonical deterministic targeted report.
@@ -67,8 +67,26 @@ Acceptance Criteria
 - Targeted execution failures are `0`.
 - Targeted explicit recall leaks are `0`.
 
+Current Typed-Outcome Revalidation
+----------------------------------
+- `bun run gate:phase-58` uses `run-20260813083000`.
+- All 50 transcript-only raw cases have zero candidates and zero selections.
+- The raw smoke-answer baseline is exactly `28 / 50` and is not carryover
+  evidence.
+- Targeted distilled passes at least `48 / 50` with zero execution failures
+  and zero explicit recall leaks.
+
 Accepted Evidence
 -----------------
+The accepted raw score below is historical and used the retired
+transcript/archive inference path. The current typed-outcome boundary does not
+promote transcript examples into behavior. Current deterministic regeneration
+uses `run-phase58-typed-outcome-current` and requires all 50 raw cases to have
+zero candidates and zero selections, while the 28 passing raw answers are only
+the smoke generator's memory-independent baseline. The distilled profile must
+still pass at least 48 / 50. Current gate artifacts use
+`run-20260813083000`; the historical accepted run remains immutable.
+
 - Deterministic targeted eval:
   `reports/eval/fallback/phase-58/run-phase58-fallback-current/report.json`
 - Raw diagnosis report:

@@ -57,6 +57,15 @@ async function expectStoredToolOutcomeBoundary(input: {
   });
   expect(first.recorded).toBe(true);
   expect(retried.recorded).toBe(true);
+  await expect(recordBehavioralTrace({
+    memory: writer,
+    scope: input.scope,
+    trace: {
+      ...trace,
+      cue: "Copy\u0000the report into backup.",
+      traceId: "storage-unsafe-raw-carryover-trace",
+    },
+  })).rejects.toThrow("Storage-unsafe text at input.cue");
 
   const reader = input.createMemory();
   const exported = await reader.exportMemory({ scope: input.scope });

@@ -146,6 +146,13 @@ function bucketRawDiagnosis(
   if (rawCase.executionFailure) {
     return "operator_failure";
   }
+  if (
+    rawCase.rawCarryover?.abstainReason === "no_candidates" &&
+    rawCase.rawCarryover.candidatePrototypeIds.length === 0 &&
+    rawCase.rawCarryover.selectedPrototypeIds.length === 0
+  ) {
+    return "memory_miss";
+  }
   if (rawCase.passed) {
     return "selected_and_passed";
   }
@@ -177,6 +184,13 @@ function bucketCueSufficiency(
 ): RawInternalizationCueSufficiencyBucket {
   if (rawCase.executionFailure) {
     return "operator_failure";
+  }
+  if (
+    rawCase.rawCarryover?.abstainReason === "no_candidates" &&
+    rawCase.rawCarryover.candidatePrototypeIds.length === 0 &&
+    rawCase.rawCarryover.selectedPrototypeIds.length === 0
+  ) {
+    return "no_candidate";
   }
   if (rawCase.passed) {
     return "passed";

@@ -14,7 +14,7 @@ import {
 } from "./run-phase-58-shared";
 
 const GENERATED_BY = "scripts/run-phase-58-eval.ts";
-export const PHASE58_CANONICAL_RUN_ID = "run-phase58-fallback-current";
+export const PHASE58_CANONICAL_RUN_ID = "run-phase58-typed-outcome-current";
 
 export interface Phase58EvalDependencies {
   runEvaluation?: (

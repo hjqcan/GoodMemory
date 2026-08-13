@@ -123,7 +123,7 @@ describe("Korean LanguagePack", () => {
 
   it("has stable identity and only claims Hangul as distinctive", () => {
     expect(pack).toMatchObject({
-      analyzerVersion: "9-reported-directive-scope",
+      analyzerVersion: "10-durable-optout-boundary",
       apiVersion: 1,
       compatibilityGroup: "ko",
       defaultLocale: "ko-KR",

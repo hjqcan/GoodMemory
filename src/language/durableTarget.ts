@@ -82,6 +82,8 @@ export function createLanguageDurableOptOutDisposition(
 ): DurableOptOutDisposition {
   return createDurableOptOutDisposition(
     text,
-    assignmentIdentity(text, aliases),
+    [assignmentIdentity(text, aliases)].filter(
+      (identity): identity is DurableTargetIdentity => identity !== undefined,
+    ),
   );
 }

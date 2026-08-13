@@ -88,8 +88,8 @@ const ENGLISH_DURABLE_TARGET_ALIASES = {
   "preferred language": "profile:languagePreference",
   preference: "preference",
   preferences: "preference",
-  "project code": "project_code",
-  "project codename": "project_code",
+  "project code": "assignment:project_code",
+  "project codename": "assignment:project_code",
   role: "profile:role",
   "time zone": "profile:timezone",
   timezone: "profile:timezone",
@@ -299,8 +299,7 @@ const EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN =
 const EXPLICIT_FACT_OPT_OUT_CONNECTOR_BOUNDARY_PATTERN =
   /(?:^(?:and|but)\s+|\s+(?:and|but)\s+)(?=(?:please\s*,?\s+)?(?:do\s+not|don['’]t|never)\s+(?:remember|save|store|record)\b)/iu;
 const ENGLISH_REPORTED_DIRECTIVE_PREFIX_PATTERN =
-  /(?:^|[.!?]\s*)(?:[\p{L}\p{N}'’.-]+\s+){0,5}(?:(?:do|does|did|am|is|are|was|were|have|has|had|will|would|can|could|should)\s+not\s+|never\s+)?(?:say|said|tell|told|ask|asked|mean|meant|request(?:ed)?|claim(?:ed)?|write|wrote|quote(?:d)?)(?:\s+that)?\s*$/iu;
-
+  /(?:^|[.!?]\s*)(?:(?:[\p{L}\p{N}'’.-]+\s+){0,5}(?:(?:do|does|did|am|is|are|was|were|have|has|had|will|would|can|could|should)\s+not\s+|never\s+)?(?:say|said|tell|told|ask|asked|mean|meant|request(?:ed)?|claim(?:ed)?|write|wrote|quote(?:d)?)(?:\s+that)?|(?:i|we|he|she|they)(?:\s+(?:explicitly|genuinely))?|(?:i|we|he|she|they|the\s+user)\s+(?:den(?:y|ies|ied)\s+saying|disputes?\s+(?:the\s+)?instruction)|the\s+sentence|in\s+(?:the\s+)?(?:guide|documentation|quoted\s+sentence))\s*[,：:]?\s*$/iu;
 function hasEnglishReportedDirectiveScope({
   prefix,
 }: DirectiveGrammarMatch): boolean {
@@ -2028,7 +2027,7 @@ function maybeExtractCandidatesFromClause(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "19-reported-directive-scope",
+    analyzerVersion: "20-durable-optout-boundary",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",

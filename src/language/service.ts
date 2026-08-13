@@ -11,6 +11,10 @@ import type {
   DurableTargetIdentity,
   MemoryCandidate,
 } from "../domain/memoryCandidate";
+import {
+  durableOptOutTargetIdentities,
+  durableTargetIdentityKey,
+} from "../domain/memoryCandidate";
 import { createChineseLanguagePack } from "./chinese";
 import { createEnglishLanguagePack } from "./english";
 import { createFrenchLanguagePack } from "./french";
@@ -60,11 +64,22 @@ function attachPackDerivedDurableTarget(
     : candidateWithoutTarget;
 }
 
-function deriveOptOutTargetIdentity(
+function uniqueDurableTargetIdentities(
+  identities: readonly DurableTargetIdentity[],
+): DurableTargetIdentity[] {
+  return [...new Map(
+    identities.map((identity) => [
+      durableTargetIdentityKey(identity),
+      identity,
+    ]),
+  ).values()];
+}
+
+function deriveOptOutTargetIdentities(
   pack: LanguagePack,
   input: LanguageCandidateExtractionInput,
   text: string,
-): DurableTargetIdentity | undefined {
+): DurableTargetIdentity[] {
   let candidateNumber = 0;
   const identities = pack.extractCandidates({
     locale: input.locale,
@@ -75,13 +90,7 @@ function deriveOptOutTargetIdentity(
       .durableTarget;
     return durableTarget ? [durableTarget] : [];
   });
-  const unique = new Map(
-    identities.map((identity) => [
-      `${identity.slot.normalize("NFKC")}\u0000${identity.value.normalize("NFKC")}`,
-      identity,
-    ]),
-  );
-  return unique.size === 1 ? [...unique.values()][0] : undefined;
+  return uniqueDurableTargetIdentities(identities);
 }
 
 function authorizePackCandidateGovernance(
@@ -89,34 +98,29 @@ function authorizePackCandidateGovernance(
   input: LanguageCandidateExtractionInput,
   candidate: MemoryCandidate,
 ): MemoryCandidate {
-  const { optOutTarget: _legacyOptOutTarget, ...metadata } =
-    candidate.metadata ?? {};
-  const candidateWithoutLegacyTarget: MemoryCandidate = {
-    ...candidate,
-    metadata: candidate.metadata === undefined
-      ? undefined
-      : Object.keys(metadata).length > 0
-        ? metadata
-        : undefined,
-  };
   const derivedCandidate = attachPackDerivedDurableTarget(
     pack,
-    candidateWithoutLegacyTarget,
+    candidate,
   );
   if (candidate.disposition?.kind !== "durable_opt_out") {
     return derivedCandidate;
   }
-  const identity = deriveOptOutTargetIdentity(
-    pack,
-    input,
-    candidate.disposition.target.text,
-  ) ?? candidate.disposition.target.identity;
+  const identities = uniqueDurableTargetIdentities(
+    [
+      ...durableOptOutTargetIdentities(candidate.disposition.target),
+      ...deriveOptOutTargetIdentities(
+        pack,
+        input,
+        candidate.disposition.target.text,
+      ),
+    ],
+  );
   return {
     ...derivedCandidate,
     disposition: {
       kind: "durable_opt_out",
       target: {
-        ...(identity ? { identity } : {}),
+        identities,
         match: "exact",
         text: candidate.disposition.target.text,
       },

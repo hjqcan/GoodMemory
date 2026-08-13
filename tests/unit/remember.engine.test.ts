@@ -2312,7 +2312,7 @@ describe("remember engine", () => {
       locale: "ja-JP",
       localeSource: "explicit",
       languagePackId: "ja",
-      languagePackVersion: "13-reported-directive-scope",
+      languagePackVersion: "14-durable-optout-boundary",
     };
     expect(facts[0]?.source).toMatchObject(expectedLanguage);
     expect(evidence[0]?.source).toMatchObject(expectedLanguage);

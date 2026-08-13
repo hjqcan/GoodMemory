@@ -81,9 +81,21 @@ interface EvidenceRepositoryPort {
   };
 }
 
+type ImmutableRecordWriteResult = "inserted" | "unchanged";
+
+interface BehavioralOutcomeRepositoryPort {
+  behavioralOutcomes: {
+    add(input: {
+      evidence?: EvidenceRecord;
+      experience: ExperienceRecord;
+    }): Promise<ImmutableRecordWriteResult>;
+  };
+}
+
 interface ExperienceRepositoryPort {
   experiences: {
     add(experience: ExperienceRecord): Promise<void>;
+    get(id: string): Promise<ExperienceRecord | null>;
     listByScope(scope: MemoryScope): Promise<ExperienceRecord[]>;
   };
 }
@@ -154,6 +166,7 @@ export interface MaintenanceRepositoryPort extends
   ExperienceRepositoryPort {}
 
 export interface GovernanceRepositoryPort extends
+  BehavioralOutcomeRepositoryPort,
   ProfileRepositoryPort,
   PreferenceRepositoryPort,
   ReferenceRepositoryPort,

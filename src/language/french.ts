@@ -443,7 +443,7 @@ const FRENCH_MONTHS = [
 ] as const;
 
 const DEFINITION = {
-  analyzerVersion: "11-reported-directive-scope",
+  analyzerVersion: "12-durable-optout-boundary",
   behavioralRulePatterns: {
     firstAction: [
       /(?:d['’]abord|en\s+premier(?:\s+lieu)?)\s+([A-Za-z_][A-Za-z0-9_@.-]*)/iu,
@@ -472,8 +472,8 @@ const DEFINITION = {
   compatibilityGroup: "fr",
   defaultLocale: "fr-FR",
   durableTargetAliases: {
-    "code de projet": "project_code",
-    "code projet": "project_code",
+    "code de projet": "assignment:project_code",
+    "code projet": "assignment:project_code",
     "projet actuel": "profile:currentProject",
     fonction: "profile:role",
     "fuseau horaire": "profile:timezone",
@@ -549,7 +549,7 @@ const DEFINITION = {
       /^(?:désormais\b|toujours\b|jamais\b|à\s+partir\s+de\s+maintenant\b|dorénavant\b)|\b(?:toujours|jamais|chaque\s+fois|systématiquement)\b/iu,
     futurePlan: /^(?:demain\s+)?(?:je\s+vais|j['’]irai|je\s+compte|je\s+prévois(?:\s+de)?|nous\s+allons)(?=\s|[.!?]|$)/iu,
     hasReportedDirectiveScope({ prefix }) {
-      return /(?:^|[.!?]\s*)(?:je|nous|il|elle|on|ils|elles)\s+(?:(?:n['’](?:ai|avons|a|ont)|ne\s+(?:l['’])?(?:ai|avons|a|ont))\s+pas\s+)?(?:dit|demandé|écrit|affirmé|cité)\s*(?:que)?\s*[:：,]?\s*$/iu.test(
+      return /(?:^|[.!?]\s*)(?:(?:je|nous|il|elle|on|ils|elles)\s+(?:(?:n['’](?:ai|avons|a|ont)|ne\s+(?:l['’])?(?:ai|avons|a|ont))\s+pas\s+)?(?:dit|demandé|écrit|affirmé|cité)\s*(?:que)?|(?:la\s+phrase|le\s+guide|la\s+documentation))\s*[:：,]?\s*$/iu.test(
         prefix,
       );
     },

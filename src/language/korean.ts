@@ -100,9 +100,9 @@ const KOREAN_DURABLE_TARGET_ALIASES = {
   "현재 프로젝트": "profile:currentProject",
   시간대: "profile:timezone",
   이름: "profile:name",
-  프로젝트코드: "project_code",
-  "프로젝트 코드": "project_code",
-  "프로젝트 암호명": "project_code",
+  프로젝트코드: "assignment:project_code",
+  "프로젝트 코드": "assignment:project_code",
+  "프로젝트 암호명": "assignment:project_code",
 } as const;
 
 const COMPLETED_FIRST_PERSON_EVENT_PATTERN =
@@ -1335,7 +1335,7 @@ function renderKorean(input: LanguageRenderInput): string {
 
 export function createKoreanLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "9-reported-directive-scope",
+    analyzerVersion: "10-durable-optout-boundary",
     apiVersion: 1,
     compatibilityGroup: "ko",
     defaultLocale: "ko-KR",

@@ -16,6 +16,7 @@ import type {
 } from "../../src/api/contracts";
 import { createInternalGoodMemory } from "../../src/api/createGoodMemory";
 import type { MemoryScope } from "../../src/domain/scope";
+import { buildBehavioralOutcomeExperienceRecord } from "../../src/evolution/behavioralTelemetry";
 import {
   createImplicitMemBenchSmokeDependencies,
   detectExplicitRecallLeak,
@@ -2147,7 +2148,7 @@ describe("implicitmembench research eval", () => {
     ).rejects.toThrow("No ImplicitMemBench dataset files found");
   });
 
-  it("keeps GoodMemory generation prompts limited to raw carryover exemplars plus the probe", async () => {
+  it("does not synthesize raw carryover when the replay has no failed typed outcome", async () => {
     const outputDir = await createTempDir("phase49-goodmemory");
     const prompts: string[] = [];
 
@@ -2173,8 +2174,8 @@ describe("implicitmembench research eval", () => {
     });
 
     expect(prompts).toHaveLength(2);
-    expect(prompts[0]!).toContain("Relevant prior examples:");
-    expect(prompts[0]!).toContain("Probe-conditioned execution:");
+    expect(prompts[0]!).not.toContain("Relevant prior examples:");
+    expect(prompts[0]!).not.toContain("Probe-conditioned execution:");
     expect(prompts[0]!).toContain("Current request:");
     expect(prompts[0]!).not.toContain("Memory context:");
     expect(prompts[0]!).not.toContain("How do I download a file from a URL?");
@@ -2247,34 +2248,32 @@ describe("implicitmembench research eval", () => {
                 artifacts: { files: [], rootPath: "" },
                 durable: {
                   archives: [],
-                  episodes: [
-                    {
-                      id: "episode-raw-1",
-                      userId: scope.userId,
-                      workspaceId: scope.workspaceId,
-                      summary: "Generate a secure dashboard URL.",
-                      keyDecisions: ["Use https://example.com/dashboard."],
-                      unresolvedItems: [],
-                      topics: [],
-                      importance: 1,
-                      confidence: 1,
-                      createdAt: "2026-05-03T00:00:00.000Z",
-                    },
-                    {
-                      id: "episode-raw-2",
-                      userId: scope.userId,
-                      workspaceId: scope.workspaceId,
-                      summary: "Generate a secure dashboard URL for internal tools.",
-                      keyDecisions: ["Use https://example.com/dashboard."],
-                      unresolvedItems: [],
-                      topics: [],
-                      importance: 1,
-                      confidence: 1,
-                      createdAt: "2026-05-03T00:01:00.000Z",
-                    },
-                  ],
+                  episodes: [],
                   evidence: [],
-                  experiences: [],
+                  experiences: ["raw-1", "raw-2"].map((id, index) =>
+                    buildBehavioralOutcomeExperienceRecord({
+                      createdAt: `2026-05-03T00:0${index}:00.000Z`,
+                      createId: () => id,
+                      result: {
+                        cue: "Generate a secure dashboard URL.",
+                        failureClass: "insecure protocol",
+                        firstAction: {
+                          kind: "warning",
+                          name: "text_response",
+                          raw: "Use http://example.com/dashboard.",
+                        },
+                        modelInfluence: "rules-only",
+                        retrievalProfile: "general_chat",
+                        saferAlternative: {
+                          kind: "warning",
+                          name: "text_response",
+                          raw: "Use https://example.com/dashboard.",
+                        },
+                      },
+                      scope,
+                      traceId: `trace-${id}`,
+                    }),
+                  ),
                   facts: [],
                   feedback: [],
                   preferences: [],

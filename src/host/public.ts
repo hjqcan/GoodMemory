@@ -1180,6 +1180,19 @@ async function applyPlaybookWrite(input: {
       policyContext,
     );
 
+    if (redacted.kindHint !== candidate.kindHint) {
+      throw createWriteError(
+        "Policy moved structured host writeback outside the validated-pattern lane.",
+        writableDiagnostics({
+          canonicalMemoryId: existing.id,
+          failureReasons: [
+            "Structured playbook writeback cannot change the canonical memory lane.",
+          ],
+          policyApplied: ["custom_redact"],
+        }),
+      );
+    }
+
     if (
       redacted.content !== candidate.content ||
       redacted.metadata?.appliesTo !== candidate.metadata?.appliesTo

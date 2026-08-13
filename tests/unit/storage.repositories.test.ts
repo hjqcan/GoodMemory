@@ -13,13 +13,20 @@ import {
   createUserProfile,
   createWorkingMemorySnapshot,
 } from "../../src/domain/records";
-import { createEvidenceRecord } from "../../src/evidence/contracts";
+import {
+  createEvidenceRecord,
+  EVIDENCE_COLLECTION,
+} from "../../src/evidence/contracts";
 import {
   createExperienceRecord,
   createLearningProposal,
   createPromotionRecord,
   createSessionArchive,
 } from "../../src/evolution/contracts";
+import type {
+  DocumentStore,
+  ProjectionCapableDocumentStore,
+} from "../../src/storage/contracts";
 import {
   createInMemoryDocumentStore,
   createInMemorySessionStore,
@@ -542,6 +549,131 @@ describe("memory repositories", () => {
         workspaceId: "workspace-a",
       }),
     ).toHaveLength(1);
+  });
+
+  it("does not trust an unversioned same-named conditional writer for behavioral outcomes", async () => {
+    const inner = createInMemoryDocumentStore();
+    let conditionalWriteCount = 0;
+    const legacyStore: DocumentStore = {
+      delete: (collection, id) => inner.delete(collection, id),
+      get: (collection, id) => inner.get(collection, id),
+      query: (collection, filter) => inner.query(collection, filter),
+      set: (collection, id, document) => inner.set(collection, id, document),
+      update: (collection, id, patch) => inner.update(collection, id, patch),
+      async writeBatchIfUnchanged() {
+        conditionalWriteCount += 1;
+        return true;
+      },
+    };
+    const repositories = createMemoryRepositories({
+      documentStore: legacyStore,
+      sessionStore: createInMemorySessionStore(),
+    });
+    const experience = createExperienceRecord({
+      id: "xp-unversioned-conditional-writer",
+      kind: "tool_outcome",
+      summary: "This record must not receive a false insertion receipt.",
+      traceId: "trace-unversioned-conditional-writer",
+      userId: "u-1",
+    });
+
+    await expect(repositories.behavioralOutcomes.add({ experience }))
+      .rejects.toThrow("projection-capable document store");
+    expect(conditionalWriteCount).toBe(0);
+    expect(await repositories.experiences.get(experience.id)).toBeNull();
+  });
+
+  it("keeps ordinary evidence and experience writes compatible with legacy stores", async () => {
+    const inner = createInMemoryDocumentStore();
+    const legacyStore: DocumentStore = {
+      delete: (collection, id) => inner.delete(collection, id),
+      get: (collection, id) => inner.get(collection, id),
+      query: (collection, filter) => inner.query(collection, filter),
+      set: (collection, id, document) => inner.set(collection, id, document),
+      update: (collection, id, patch) => inner.update(collection, id, patch),
+    };
+    const repositories = createMemoryRepositories({
+      documentStore: legacyStore,
+      sessionStore: createInMemorySessionStore(),
+    });
+    const evidence = createEvidenceRecord({
+      excerpt: "Legacy adapters retain ordinary evidence writes.",
+      id: "evidence-legacy-store",
+      kind: "conversation_excerpt",
+      source: { extractedAt: "2026-04-21T00:00:00.000Z", method: "confirmed" },
+      userId: "u-1",
+    });
+    const experience = createExperienceRecord({
+      id: "xp-legacy-store",
+      kind: "maintenance",
+      summary: "Legacy adapters retain ordinary experience writes.",
+      traceId: "trace-legacy-store",
+      userId: "u-1",
+    });
+
+    await repositories.evidence.add(evidence);
+    await repositories.experiences.add(experience);
+    const updatedExperience = createExperienceRecord({
+      ...experience,
+      summary: "Legacy adapters retain ordinary experience upserts.",
+    });
+    await repositories.experiences.add(updatedExperience);
+
+    expect(await repositories.evidence.get(evidence.id)).toEqual(evidence);
+    expect(await repositories.experiences.get(experience.id)).toEqual(
+      updatedExperience,
+    );
+  });
+
+  it("does not leave an experience behind when evidence changes during aggregate CAS", async () => {
+    const inner = createInMemoryDocumentStore();
+    const incomingEvidence = createEvidenceRecord({
+      excerpt: "The first observed tool result.",
+      id: "evidence-raced-outcome",
+      kind: "tool_result_excerpt",
+      source: { extractedAt: "2026-04-21T00:00:00.000Z", method: "confirmed" },
+      userId: "u-1",
+    });
+    const competingEvidence = createEvidenceRecord({
+      ...incomingEvidence,
+      excerpt: "A conflicting tool result won the race.",
+    });
+    let injectCompetingEvidence = true;
+    const racedStore: ProjectionCapableDocumentStore = {
+      ...inner,
+      async writeBatchIfUnchanged(input) {
+        if (injectCompetingEvidence) {
+          injectCompetingEvidence = false;
+          await inner.set(
+            EVIDENCE_COLLECTION,
+            competingEvidence.id,
+            competingEvidence,
+          );
+        }
+        return inner.writeBatchIfUnchanged(input);
+      },
+    };
+    const repositories = createMemoryRepositories({
+      documentStore: racedStore,
+      sessionStore: createInMemorySessionStore(),
+    });
+    const experience = createExperienceRecord({
+      id: "xp-raced-outcome",
+      kind: "tool_outcome",
+      linkedEvidenceIds: [incomingEvidence.id],
+      summary: "The aggregate must follow the evidence CAS result.",
+      traceId: "trace-raced-outcome",
+      userId: "u-1",
+    });
+
+    await expect(repositories.behavioralOutcomes.add({
+      evidence: incomingEvidence,
+      experience,
+    })).rejects.toThrow("identity conflict");
+    expect(await repositories.evidence.get(incomingEvidence.id)).toEqual(
+      competingEvidence,
+    );
+    expect(await repositories.experiences.get(experience.id)).toBeNull();
   });
 
   it("persists learning proposals and promotion records through typed accessors", async () => {

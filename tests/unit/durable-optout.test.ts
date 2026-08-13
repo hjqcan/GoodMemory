@@ -26,10 +26,10 @@ describe("durable opt-out disposition", () => {
           disposition: {
             kind: "durable_opt_out",
             target: {
-              identity: {
-                slot: "project_code",
+              identities: [{
+                slot: "assignment:project_code",
                 value: "Tachikoma",
-              },
+              }],
               match: "exact",
               text: expect.any(String),
             },
@@ -38,5 +38,21 @@ describe("durable opt-out disposition", () => {
         }),
       ]);
     }
+  });
+
+  it("emits every typed identity from a compound English target", async () => {
+    const result = await createDeterministicMemoryExtractor().extract({
+      locale: "en-US",
+      messages: [{
+        role: "user",
+        content: "Do not remember I am a staff engineer at Acme Labs",
+      }],
+      scope: { userId: "compound-durable-opt-out" },
+    });
+
+    expect(result.candidates[0]?.disposition?.target.identities).toEqual([
+      { slot: "profile:role", value: "staff engineer" },
+      { slot: "profile:organization", value: "Acme Labs" },
+    ]);
   });
 });

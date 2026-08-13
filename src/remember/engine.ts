@@ -1,4 +1,7 @@
 import {
+  durableOptOutTargetIdentities,
+} from "../domain/memoryCandidate";
+import {
   assertStorageSafeExternalValue,
   hasPersistableSemanticText,
 } from "../domain/semanticText";
@@ -724,26 +727,25 @@ export function createRememberEngine(config: RememberEngineConfig) {
     if (
       !candidate.durableTarget &&
       optOutTargetSelectors.some((selector) => {
-        if (!selector.identity) {
-          return false;
-        }
-        const targetTokens = language.tokenize(
-          selector.identity.value,
-          primaryContext,
-          { excludeStopwords: true },
-        );
-        return targetTokens.length > 0 && [
-          candidate.content,
-          ...collectCandidateMetadataStrings(candidate.metadata),
-        ]
-          .some((value) => {
-            const valueTokens = new Set(
-              language.tokenize(value, primaryContext, {
-                excludeStopwords: true,
-              }),
-            );
-            return targetTokens.every((token) => valueTokens.has(token));
-          });
+        return durableOptOutTargetIdentities(selector).some((identity) => {
+          const targetTokens = language.tokenize(
+            identity.value,
+            primaryContext,
+            { excludeStopwords: true },
+          );
+          return targetTokens.length > 0 && [
+            candidate.content,
+            ...collectCandidateMetadataStrings(candidate.metadata),
+          ]
+            .some((value) => {
+              const valueTokens = new Set(
+                language.tokenize(value, primaryContext, {
+                  excludeStopwords: true,
+                }),
+              );
+              return targetTokens.every((token) => valueTokens.has(token));
+            });
+        });
       })
     ) {
       return false;
@@ -1034,18 +1036,11 @@ export function createRememberEngine(config: RememberEngineConfig) {
             resolved: sourceLanguage.context,
           },
         );
-        const { optOutTarget: _producerOptOutTarget, ...producerMetadata } =
-          normalizedCandidate.metadata ?? {};
         const producerCandidate = authority === "producer"
           ? {
             ...normalizedCandidate,
             disposition: undefined,
             durableTarget: undefined,
-            metadata: normalizedCandidate.metadata === undefined
-              ? undefined
-              : Object.keys(producerMetadata).length > 0
-                ? producerMetadata
-                : undefined,
           }
           : normalizedCandidate;
         const derivedDurableTarget = authority === "language"
@@ -1474,7 +1469,6 @@ export function createRememberEngine(config: RememberEngineConfig) {
           };
           const authorizedOccurrenceExpression =
             candidate.metadata?.occurrenceExpression;
-          const hasAuthorizedDurableTarget = candidate.durableTarget !== undefined;
           const redacted = await redactPolicyCandidate(
             config.policy,
             candidate,
@@ -1482,7 +1476,6 @@ export function createRememberEngine(config: RememberEngineConfig) {
           );
           const {
             occurrenceExpression: _policyOccurrenceExpression,
-            optOutTarget: _policyOptOutTarget,
             ...redactedMetadata
           } = redacted.metadata ?? {};
           const redactedCandidateWithoutTarget: MemoryCandidate = {
@@ -1504,8 +1497,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
                 },
             explicitness: redacted.explicitness,
           };
-          const durableTarget = !isDurableOptOutCandidate(candidate) &&
-              hasAuthorizedDurableTarget
+          const durableTarget = !isDurableOptOutCandidate(candidate)
             ? language.deriveDurableTarget?.(
                 redactedCandidateWithoutTarget,
                 candidateLanguage,
@@ -1537,28 +1529,12 @@ export function createRememberEngine(config: RememberEngineConfig) {
           };
           const sourceCandidates = extraction.candidates
             .filter((candidate) =>
-              candidateSourceMessageIndexes(candidate).includes(messageIndex) &&
-              classifyCandidate(candidate).decision === "write" &&
-              isCandidateSourceAllowed(candidate, profile, input)
+              candidateSourceMessageIndexes(candidate).includes(messageIndex)
             )
             .sort((left, right) => right.content.length - left.content.length);
           let redactedContent = message.content;
           let sourceRedactionUnresolved = false;
-          if (config.policy?.redact && sourceCandidates.length > 0) {
-            for (const sourceCandidate of sourceCandidates) {
-              const redactedCandidate = await redactCandidate(sourceCandidate);
-              if (redactedCandidate.content !== sourceCandidate.content) {
-                if (!message.content.includes(sourceCandidate.content)) {
-                  sourceRedactionUnresolved = true;
-                  break;
-                }
-                redactedContent = redactedContent.replaceAll(
-                  sourceCandidate.content,
-                  redactedCandidate.content,
-                );
-              }
-            }
-          } else if (config.policy?.redact) {
+          if (config.policy?.redact) {
             redactedContent = (await redactPolicyCandidate(
               config.policy,
               {
@@ -1571,6 +1547,19 @@ export function createRememberEngine(config: RememberEngineConfig) {
               },
               policyContext,
             )).content;
+            for (const sourceCandidate of sourceCandidates) {
+              const redactedCandidate = await redactCandidate(sourceCandidate);
+              if (redactedCandidate.content !== sourceCandidate.content) {
+                if (!redactedContent.includes(sourceCandidate.content)) {
+                  sourceRedactionUnresolved = true;
+                  break;
+                }
+                redactedContent = redactedContent.replaceAll(
+                  sourceCandidate.content,
+                  redactedCandidate.content,
+                );
+              }
+            }
           }
           if (sourceRedactionUnresolved) {
             continue;

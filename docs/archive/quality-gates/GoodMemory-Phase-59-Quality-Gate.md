@@ -2,6 +2,12 @@
 
 Canonical accepted gate run: `run-20260504193000`
 
+Historical note: this document and its tracked artifact describe the retired
+transcript/archive inference path. The regeneration commands below are retained
+as provenance, not as current instructions; current typed-outcome validation
+requires raw `0 / 60`, distilled at least `56 / 60`, and gate run
+`run-20260813090000`, without overwriting this artifact.
+
 Phase 59 closes Generalized Raw Executor Cleanup as a targeted internal
 mechanism slice. It keeps the public API/config and durable memory taxonomy
 unchanged while replacing Phase 58 surface-aware hardening with generalized

@@ -102,14 +102,14 @@ and internal research. A number may enter the current-claims table only after
 the current package version: complete coverage, `executionFailures: 0`, a
 no-memory baseline, deterministic scoring or an independent judge, verified
 dataset source and license, and a reproducible run (commit + command + package
-version). The projection must cite a separate, committed execution receipt that
-binds the exact commit, tree, package, run, and source bytes; a presentation
-projection cannot attest its own execution. Historical rows remain under
-separate markers and cannot satisfy the current-version gate.
+version). No end-to-end benchmark runner is allowlisted today, so promotion is
+unavailable for both current and historical rows. Stored-answer rescores and
+legacy presentation projections cannot open that boundary or supply README
+score and disclosure fragments as self-attestation.
 
 GoodMemory `0.7.4` has no current or versioned historical benchmark claim.
-The retained v0.7.3 LoCoMo projection is not an independent execution receipt,
-so it cannot prove its own run and is now an internal diagnostic. The v0.6.0
+The retained v0.7.3 LoCoMo projection is not end-to-end runner evidence, so
+it is an internal diagnostic. The v0.6.0
 LoCoMo, BEAM, and MemoryAgentBench measurements and ImplicitMemBench are also
 internal diagnostics under the same fail-closed boundary.
 LongMemEval is withdrawn pending a clean rerun: the historical rules-only path
@@ -125,18 +125,16 @@ No benchmark result is currently presented as measured on `0.7.4`.
 
 ### Versioned evidence
 
-No retained benchmark artifact currently satisfies the independent execution-
-receipt contract required for versioned evidence.
+No end-to-end benchmark runner is currently allowlisted for versioned evidence.
 
 <!-- historical-evidence-table:start -->
 No benchmark result currently qualifies as versioned historical evidence.
 <!-- historical-evidence-table:end -->
 
-The retained v0.7.3 LoCoMo artifacts remain available for audit, but their
-tracked-current projection and verified presentation shell are not execution
-receipts. They therefore do not authorize a public or versioned claim. A future
-promotion requires a new run that emits the independent receipt at execution
-time; the old artifacts will not be retrofitted.
+The retained v0.7.3 LoCoMo projection remains available in the repository for
+audit, but it is not shipped as a verified package artifact and cannot authorize
+a public or versioned claim. Old artifacts will not be retrofitted; a future
+producer and its verifier must be implemented together before promotion opens.
 
 Where both are available, a row reports two tracks. The
 **strict** track is deterministic or judge-free — a hard lower bound no LLM
@@ -152,9 +150,8 @@ not be quoted as GoodMemory results until an opaque-session-id, label-free full
 rerun replaces them; see the
 [withdrawal declaration](./benchmark-claims/longmemeval.json).
 The v0.6.0 BEAM, MemoryAgentBench, and LoCoMo measurements remain internal
-diagnostics. Their metric artifacts do not have execution receipts binding the
-measured source hashes to the declared commit, so they are not versioned
-historical evidence under the verified projection contract.
+diagnostics. They do not pass the empty end-to-end runner allowlist, so they are
+not versioned historical evidence.
 
 The ImplicitMemBench Full-300 stored-answer rescore uses the canonical zero-failure
 `run-phase61-full300-rerun-20260706-codex-current` answers, then re-scores the
@@ -929,8 +926,9 @@ user's manager?" vs. "yeah my boss Dana signed off").
   unsupported runtimes keep durable non-accelerated fallback behavior.
 
 Custom `DocumentStore` adapters keep the original set/get/update/query/delete
-contract. Projection-backed features such as the `recommended` generalized
-fusion preset additionally require `ProjectionCapableDocumentStore`, whose
+contract. Atomic features such as the `recommended` generalized-fusion preset
+and the opt-in behavioral-outcome recorder additionally require
+`ProjectionCapableDocumentStore`, whose
 `projectionBatchSemantics` must equal the exported
 `PROJECTION_BATCH_SEMANTICS` version and whose
 `writeBatchIfUnchanged()` must atomically validate `expected`/`unchanged` rows

@@ -8,6 +8,13 @@ accepted evidence, and the later `phase59-reopen9` five-shard Postgres-backed
 rerun met the reopened full-300 raw internalization research target. Full-300
 remains internal research evidence only.
 
+The accepted raw scores below are historical: they used the retired
+transcript/archive inference path. The current typed-outcome boundary does not
+promote transcript examples into behavior. Rerunning the targeted fixtures now
+requires raw `0 / 60`, distilled at least `56 / 60`, zero execution failures,
+and zero explicit-recall leaks; formal `tool_outcome` carryover is covered by
+the current host, storage, RuntimeKit, and exact-record-ref tests instead.
+
 Scope
 -----
 Phase 59 cleans up the Phase 58 raw executor so the accepted mechanism is no
@@ -84,8 +91,8 @@ Workstreams
      generalization rather than task-surface routing
    - keep full-300 as a separate research follow-up, not a release gate
 
-Acceptance Criteria
--------------------
+Historical Acceptance Criteria
+------------------------------
 - `bun run typecheck` passes.
 - Phase 59 targeted unit/regression suites pass.
 - `bun run eval:phase-59` produces the canonical deterministic targeted report.
@@ -95,6 +102,14 @@ Acceptance Criteria
 - Targeted distilled passes at least `56 / 60`.
 - Targeted execution failures are `0`.
 - Targeted explicit recall leaks are `0`.
+
+Current Typed-Outcome Revalidation
+----------------------------------
+- `bun run gate:phase-59` uses `run-20260813090000`.
+- All 60 transcript-only raw cases fail closed and raw passes are exactly
+  `0 / 60`.
+- Targeted distilled passes at least `56 / 60` with zero execution failures
+  and zero explicit recall leaks.
 
 Accepted Evidence
 -----------------

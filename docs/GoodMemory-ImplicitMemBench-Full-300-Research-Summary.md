@@ -4,10 +4,11 @@ Initial run date: `2026-04-28`
 
 Latest rerun update: `2026-07-06`
 
-Status: public-claim candidate through the 2026-07-06 stored-answer
-cross-version rescore, with fresh answer-regeneration reruns still treated as
-research/drift evidence. This document does not reopen the accepted Phase 49
-claim, and it does not make full ImplicitMemBench a release gate.
+Status: internal diagnostic only. The 2026-07-06 stored-answer cross-version
+rescore and the fresh answer-regeneration reruns are research/drift evidence;
+neither is eligible for current or historical claim promotion. This document
+does not reopen the accepted Phase 49 research checkpoint, and it does not make
+full ImplicitMemBench a release gate.
 
 The post-Phase-59 full-300 miss reopened Phase 59's internal research
 workstream; the later `phase59-reopen9` follow-up met that reopened research
@@ -1448,8 +1449,8 @@ The current-checkout rerun completed under
 This source-answer refresh is slightly below the May 2026 high-water mark
 (`213.26 / 300 = 71.09%`) but within the same band and cleaner than the earlier
 same-day full-root run that had one distilled execution failure. Its 0.7082
-score remains a same-model diagnostic number, not the public README claim. The
-claimable number comes from the stored-answer gpt-5.4 rescore below.
+score remains a same-model diagnostic number. The stored-answer gpt-5.4
+rescore below is also internal diagnostic evidence, not a claimable number.
 
 ## 2026-07-06 Postchanges Full-Root Rerun
 
@@ -1603,8 +1604,8 @@ It validates:
 That artifact also records the previously loaded judge environment as same-model:
 answer model `gpt-5.5`, judge model `gpt-5.5`, `sameModelJudge: true`.
 Therefore `storedAnswersReady: true`, but
-`readyForIndependentJudgeRescore: false`. This proves the next public-claim
-step does not need answer regeneration, but it still needs an actually
+`readyForIndependentJudgeRescore: false`. This proves the next research
+rescore does not need answer regeneration, but it still needs an actually
 independent judge or a broader deterministic scorer.
 
 A follow-up cross-version readiness probe completed under:
@@ -1620,7 +1621,7 @@ rows.
 ## 2026-07-06 Stored-Answer Independent Rescore
 
 `rescore:phase-61-implicitmembench` is now the pinned no-answer-rerun command
-for the independent judge pass. The completed public-claim artifact used:
+for the independent judge pass. The completed internal rescore artifact used:
 
 - command shape:
   - `GOODMEMORY_JUDGE_MODEL=gpt-5.4 bun run rescore:phase-61-implicitmembench -- --overall-report reports/eval/live/phase-61-full300/run-phase61-full300-rerun-20260706-codex-current/report.json --run-id implicitmembench-independent-rescore-gpt54-current --max-concurrency 4`
@@ -1663,9 +1664,9 @@ run used gpt-5.4 over unchanged gpt-5.5 answers and wrote:
 - execution failures:
   - `0`
 
-The judge is cross-version but still the same GPT family as the answer model,
-so the public claim must disclose that this is not a cross-family judge. The
-older `0.7081666667` same-model score remains diagnostic only.
+The judge is cross-version but still the same GPT family as the answer model.
+Any future claim would have to disclose that limitation; this result and the
+older `0.7081666667` same-model score remain diagnostic only.
 
 `run-identity.json` records the answer model, judge model, source report paths,
 source run id, and source report SHA-256 fingerprints. `progress.jsonl` records

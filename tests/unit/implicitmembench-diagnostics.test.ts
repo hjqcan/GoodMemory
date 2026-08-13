@@ -228,4 +228,31 @@ describe("ImplicitMemBench raw internalization diagnostics", () => {
       topProbability: 0.82,
     });
   });
+
+  it("does not treat a passing answer with no raw candidate as selected carryover", () => {
+    const report = createReport({
+      distilledCases: [],
+      rawCases: [
+        createCase({
+          caseId: "baseline-pass-without-memory",
+          passed: true,
+          rawCarryover: {
+            abstainReason: "no_candidates",
+            candidatePrototypeIds: [],
+            diagnosis: "selected_and_passed",
+            mode: "abstained",
+            selectedExemplarIds: [],
+            selectedPrototypeIds: [],
+          },
+        }),
+      ],
+    });
+
+    const summary = buildRawInternalizationDiagnosisSummary([report]);
+
+    expect(summary.byDiagnosis.memory_miss).toBe(1);
+    expect(summary.byDiagnosis.selected_and_passed).toBe(0);
+    expect(summary.byCueSufficiency.no_candidate).toBe(1);
+    expect(summary.rawPassedBlockingCases).toBe(1);
+  });
 });

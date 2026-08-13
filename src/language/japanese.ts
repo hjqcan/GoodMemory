@@ -106,8 +106,8 @@ const JAPANESE_DURABLE_TARGET_ALIASES = {
   現在の役割: "profile:role",
   組織: "profile:organization",
   言語設定: "profile:languagePreference",
-  プロジェクトコード: "project_code",
-  プロジェクト代号: "project_code",
+  プロジェクトコード: "assignment:project_code",
+  プロジェクト代号: "assignment:project_code",
   名前: "profile:name",
   好み: "preference",
 } as const;
@@ -1137,7 +1137,7 @@ function renderJapanese(input: LanguageRenderInput): string {
 
 export function createJapaneseLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "13-reported-directive-scope",
+    analyzerVersion: "14-durable-optout-boundary",
     apiVersion: 1,
     compatibilityGroup: "ja",
     defaultLocale: "ja-JP",

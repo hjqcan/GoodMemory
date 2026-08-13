@@ -518,7 +518,7 @@ describe("language service", () => {
       "zh-Hant",
     ]);
     expect(manifest.packs.find(({ id }) => id === "en")).toMatchObject({
-      analyzerVersion: "19-reported-directive-scope",
+      analyzerVersion: "20-durable-optout-boundary",
       apiVersion: 1,
       compatibilityGroup: "en",
       defaultLocale: "en-US",
@@ -526,7 +526,7 @@ describe("language service", () => {
     expect(
       manifest.packs.find(({ id }) => id === "zh-Hant"),
     ).toMatchObject({
-      analyzerVersion: "18-reported-directive-scope",
+      analyzerVersion: "19-durable-optout-boundary",
       apiVersion: 1,
       compatibilityGroup: "zh-Hant",
       defaultLocale: "zh-Hant",
@@ -821,6 +821,50 @@ describe("language service", () => {
       "neutral",
       "xx-test",
     ]);
+  });
+
+  it("normalizes the API-v1 singular durable opt-out selector from a custom pack", () => {
+    const pack: LanguagePack = {
+      ...createNeutralLanguagePack(),
+      analyzerVersion: "legacy-opt-out-v1",
+      compatibilityGroup: "eo",
+      defaultLocale: "eo",
+      id: "legacy-opt-out",
+      locales: ["eo"],
+      extractCandidates() {
+        return [{
+          content: "name=Lin",
+          disposition: {
+            kind: "durable_opt_out",
+            target: {
+              identity: { slot: "profile:name", value: "Lin" },
+              match: "exact",
+              text: "name=Lin",
+            },
+          },
+          explicitness: "explicit",
+          id: "legacy-opt-out-candidate",
+          kindHint: "feedback",
+          sourceMessageIndex: 0,
+          sourceRole: "user",
+        }];
+      },
+    };
+    const service = createLanguageService({ packs: [pack] });
+    const context = service.resolveFromText({ locale: "eo", text: "name=Lin" });
+
+    expect(service.extractCandidates(
+      {
+        locale: context.locale,
+        messages: [{ content: "name=Lin", role: "user" }],
+        nextId: () => "unused",
+      },
+      context,
+    )[0]?.disposition?.target).toEqual({
+      identities: [{ slot: "profile:name", value: "Lin" }],
+      match: "exact",
+      text: "name=Lin",
+    });
   });
 
   it("supports custom language packs whose methods live on a prototype", () => {

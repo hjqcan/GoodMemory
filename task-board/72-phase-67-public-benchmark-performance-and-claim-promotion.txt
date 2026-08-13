@@ -4,13 +4,12 @@ Phase 67: Public Benchmark Performance and Claim Promotion
 Status
 ------
 
-[ACTIVE] Phase 67 turns GoodMemory's internal benchmark evidence into honest,
-reproducible, public-claim-ready scores. The discipline: no internal number
-reaches a public README row until it passes the public benchmark claim gate
-(P67-A). This phase opens no LoCoMo retrieval work (owned by board 70) and does
-not own the Phase 63 BEAM answer-pack hardening lane beyond public-claim
-boundary wording; P67-D is now the BEAM public-claim re-anchor, not a request to
-run more BEAM answer-generation work.
+[PAUSED_BOUNDARY] The current claim gate has no allowlisted end-to-end benchmark
+runner and therefore permits no promotion. All five declarations are paused,
+with zero current claims and zero promotable historical evidence. The older
+promotion tasks below are retained only as execution history; they do not define
+the current gate contract. A future promotion must introduce its producer and
+independent verifier together before any README benchmark row can be added.
 
 
 Goal
@@ -143,38 +142,12 @@ Tasks
   duplicate `--strict` and `--claims-dir` flags before reading claim
   declarations, keeping strict-mode and declaration-source selection
   unambiguous. This does not change the claimable benchmark set.
-  Evidence-artifact guard update (2026-07-06): each declaration now carries
-  repo-local `evidence.artifacts`, and `gate:public-benchmark-claim --strict`
-  requires each declaration filename to match its benchmark's canonical slug
-  (`BEAM` -> `beam.json`, `LongMemEval` -> `longmemeval.json`) and
-  schema-validates required declaration field shapes before rule evaluation:
-  non-empty dataset source/license, run command/commit/package version, answer
-  model, scorer text, explicit coverage with boolean `complete`,
-  null-or-non-empty judge model, finite score/baseline, boolean flags, and
-  non-negative integer execution failures. It verifies those artifact paths are
-  readable, non-empty files that cannot escape the
-  repository; `.json` artifacts must also parse as JSON and carry non-empty
-  claim-critical assertions. The current declarations assert persisted
-  run ids, scope counts, execution/judge failures, scores, and
-  no-memory/baseline boundaries. Public declarations must also list
-  `publicClaim.readmeRequiredFragments` for the table row and
-  `publicClaim.readmeDisclosureFragments` for required README prose. README
-  public-claims tables must keep every claimable declaration promoted, and each
-  public row must link back to the matching `benchmark-claims/<name>.json`
-  declaration, include those
-  declaration-controlled score/baseline/scope fragments, and keep the required
-  disclosure fragments somewhere in the same README. Broken declared evidence
-  makes the declaration inconsistent even when the benchmark is already blocked,
-  so public rows cannot rely on stale prose, wrong declaration files, malformed
-  declaration fields, missing or malformed coverage declarations, missing local
-  reports, corrupted JSON artifacts, JSON artifacts without assertions,
-  artifacts whose headline fields drift away from the declaration, missing
-  claimable README rows, README rows that lost their declaration provenance,
-  README rows whose displayed numbers/scope drift from the declaration, or
-  README prose that drops required disclosures.
-  Current declarations pin asserted artifacts for LongMemEval, LoCoMo, BEAM,
-  MemoryAgentBench, and the blocked ImplicitMemBench internal rerun. This does
-  not change the claimable benchmark set.
+  Current boundary update (2026-08-13): the strict gate still validates the
+  declaration schema and canonical filenames, but diagnostic artifacts cannot
+  authorize promotion. Declarations may not supply README presentation
+  fragments, current and historical promotion are both unavailable while the
+  end-to-end runner allowlist is empty, and both README claim tables must remain
+  empty. Internal benchmark reports remain diagnostic inputs only.
 
 [DONE 2026-07-05] P67-A2 Official-protocol rescore CLI guard. The pinned
   package command is `eval:official-rescore`; the underlying comparability
@@ -326,30 +299,19 @@ Tasks
 Acceptance Criteria
 -------------------
 
-- Every claimed benchmark has a claim declaration (benchmark-claims/<name>.json).
-- Every claim declaration filename matches the canonical benchmark slug it
-  declares.
-- Every declaration has dataset source, license, command, commit, package version,
-  explicit coverage, model, scorer, and baseline.
-- Every declaration lists readable, non-empty repo-local evidence artifacts and
-  every structured JSON artifact carries and passes non-empty claim-critical
-  assertions.
-- Every public declaration lists `publicClaim.readmeRequiredFragments` and
-  `publicClaim.readmeDisclosureFragments`.
-- Every README public-claims table row links back to the matching
-  benchmark-claims/<name>.json declaration and includes that declaration's
-  required score/baseline/scope fragments, while the same README includes that
-  declaration's required disclosure fragments.
-- Every claimable declaration appears as a row in each README public-claims table.
-- executionFailures = 0.
-- No same-model judge for public semantic-judge claims.
-- No additional MemoryAgentBench AR/LRU scope, LoCoMo default/category scope, or
-  BEAM binary-track scope is promoted unless an updated declaration passes the
-  claim gate; current public scopes are MemoryAgentBench CR/TTL, LoCoMo P4
-  opt-in full-10, and BEAM official-protocol 100K.
-- BEAM always reports fitted and generalization recall together.
-- The claim gate (gate:public-benchmark-claim --strict) is consistent (no
-  over-claiming) before any README benchmark row changes.
+- All five declarations remain `paused_boundary` with
+  `publicClaimAllowed=false`, and each filename matches its canonical benchmark
+  slug.
+- Current and historical README claim tables contain no benchmark rows.
+- Declaration-supplied README presentation is schema-invalid.
+- Diagnostic artifacts and stored-answer rescoring cannot open the promotion
+  boundary.
+- Any future promotion adds one end-to-end producer and an independent verifier
+  together, with exact source closure, full coverage, zero execution failures,
+  and independent judging where semantic judging is required.
+- `gate:public-benchmark-claim --strict` reports five consistent paused
+  declarations, zero current claims, zero promotable historical evidence, and
+  zero over-claiming.
 
 
 Source And Evidence Pointers

@@ -43,7 +43,9 @@ export interface DurableTargetIdentity {
 }
 
 export interface DurableOptOutTargetSelector {
+  /** @deprecated Use identities for compound durable targets. */
   identity?: DurableTargetIdentity;
+  identities?: readonly DurableTargetIdentity[];
   match: "exact";
   text: string;
 }
@@ -55,12 +57,15 @@ export interface DurableOptOutDisposition {
 
 export function createDurableOptOutDisposition(
   text: string,
-  identity?: DurableTargetIdentity,
+  identities: DurableTargetIdentity | readonly DurableTargetIdentity[] = [],
 ): DurableOptOutDisposition {
+  const normalizedIdentities = Array.isArray(identities)
+    ? identities
+    : [identities];
   return {
     kind: "durable_opt_out",
     target: {
-      ...(identity ? { identity } : {}),
+      identities: normalizedIdentities,
       match: "exact",
       text,
     },
@@ -72,6 +77,47 @@ export function createDurableTargetIdentity(
   value: string,
 ): DurableTargetIdentity {
   return { slot, value };
+}
+
+function normalizeDurableTargetSlot(value: string): string {
+  return value
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
+export function normalizeDurableTargetValue(value: string): string {
+  return value.normalize("NFC").replace(/\s+/gu, " ").trim();
+}
+
+export function durableTargetIdentityKey(
+  identity: DurableTargetIdentity,
+): string {
+  const slot = normalizeDurableTargetSlot(identity.slot);
+  const value = normalizeDurableTargetValue(identity.value);
+  return [
+    slot,
+    slot.startsWith("assignment:") ? value : value.toLowerCase(),
+  ].join("\u0000");
+}
+
+export function durableOptOutTargetIdentities(
+  selector: DurableOptOutTargetSelector,
+): DurableTargetIdentity[] {
+  return [...new Map(
+    [
+      ...(selector.identities ?? []),
+      ...(selector.identity ? [selector.identity] : []),
+    ].map((identity) => [durableTargetIdentityKey(identity), identity]),
+  ).values()];
+}
+
+export function sameDurableTargetIdentity(
+  left: DurableTargetIdentity,
+  right: DurableTargetIdentity,
+): boolean {
+  return durableTargetIdentityKey(left) === durableTargetIdentityKey(right);
 }
 
 export type MemoryClaimPolarity = "positive" | "negative";
@@ -117,8 +163,6 @@ export interface MemoryCandidateMetadata {
   tags?: string[];
   attributes?: Record<string, MemoryAttributeValue>;
   feedbackKind?: FeedbackKind;
-  /** @deprecated Opt-out authority lives only in DurableOptOutDisposition. */
-  optOutTarget?: string;
   appliesTo?: string;
   profileField?: ProfileField;
   preferenceCategory?: string;

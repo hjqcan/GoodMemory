@@ -39,16 +39,6 @@ import {
   PROVIDER_RESPONSE_TAPE_BUNDLE_POLICY,
 } from "./provider-response-tape-bundle";
 import {
-  classifyV073SeedAttemptRecovery,
-  deriveV073FullClaimProtocol2Identity,
-  renderV073FullClaimProtocol2Command,
-  V073_FULL_CLAIM_PROTOCOL2_PREREGISTRATION_PATH,
-  V073_FULL_CLAIM_PROTOCOL2_SENTINEL_PATH,
-  V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
-  V073_FULL_LOCOMO_QUESTION_SELECTION_SHA256,
-} from "./run-v0-7-3-full-locomo-claim";
-import {
-  buildV073FullClaimCommandChain,
   buildV073PairedCommandChain,
   deriveV073ClaimCommandTemplateSha256,
   deriveV073PromptSha256,
@@ -89,16 +79,12 @@ const V073_LIFECYCLE_EVIDENCE_PREFIX =
   "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/";
 const V073_LIFECYCLE_ATTEMPT_SENTINEL =
   "reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json";
-const V073_LOCOMO_CURRENT_PROJECTION =
+const V073_FULL_CLAIM_PROTOCOL2_PREREGISTRATION_PATH =
+  "reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json";
+const V073_LOCOMO_AUDIT_PROJECTION =
   "benchmark-claims/evidence/locomo-v0.7.3-current.json";
-const V073_LOCOMO_CLAIM_EVIDENCE_PREFIX =
+const V073_LOCOMO_AUDIT_EVIDENCE_PREFIX =
   "reports/release/v0.7/v0.7.3-locomo-claim-evidence/";
-const V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION =
-  "reports/release/v0.7/" +
-  "v0.7.3-public-claim-governance-correction-preregistration.json";
-const V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION =
-  "reports/release/v0.7/" +
-  "v0.7.3-public-claim-governance-correction-attestation.json";
 const V073_STABLE_SOURCE_TEST_CORRECTION_PREREGISTRATION =
   "reports/release/v0.7/" +
   "v0.7.3-stable-source-test-correction-preregistration.json";
@@ -111,32 +97,28 @@ const V073_CROSS_HOST_LIFECYCLE_VERIFIER_CORRECTION_PREREGISTRATION =
 const V073_CROSS_HOST_LIFECYCLE_VERIFIER_CORRECTION_ATTESTATION =
   "reports/release/v0.7/" +
   "v0.7.3-cross-host-lifecycle-verifier-correction-attestation.json";
-const V073_LOCOMO_SOURCE_ARTIFACT_PATHS = {
-  "claim-recipe-source": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}claim-recipe-source.json`,
-  "execution-receipt": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}execution-receipt.json`,
-  "final-report": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}final-smoke-report.json`,
-  "official-summary": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}official-rescore-summary.json`,
-  "official-progress": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}official-progress.jsonl`,
-  "official-runner-source": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}official-runner-source.ts`,
-  "protocol-attempt-sentinel": V073_FULL_CLAIM_PROTOCOL2_SENTINEL_PATH,
+const V073_LOCOMO_AUDIT_ARTIFACT_PATHS = {
+  "claim-recipe-source": `${V073_LOCOMO_AUDIT_EVIDENCE_PREFIX}claim-recipe-source.json`,
+  "execution-receipt": `${V073_LOCOMO_AUDIT_EVIDENCE_PREFIX}execution-receipt.json`,
+  "final-report": `${V073_LOCOMO_AUDIT_EVIDENCE_PREFIX}final-smoke-report.json`,
+  "official-summary": `${V073_LOCOMO_AUDIT_EVIDENCE_PREFIX}official-rescore-summary.json`,
+  "official-progress": `${V073_LOCOMO_AUDIT_EVIDENCE_PREFIX}official-progress.jsonl`,
+  "official-runner-source": `${V073_LOCOMO_AUDIT_EVIDENCE_PREFIX}official-runner-source.ts`,
+  "protocol-attempt-sentinel":
+    "reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json",
   "protocol-preregistration": V073_FULL_CLAIM_PROTOCOL2_PREREGISTRATION_PATH,
-  "seed-attempt-1-extraction-cache": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}seed-attempt-1-extraction-cache.jsonl`,
-  "seed-attempt-1-progress": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}seed-attempt-1-live-progress.jsonl`,
-  "seed-attempt-1-report": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}seed-attempt-1-smoke-report.json`,
-  "seed-extraction-cache": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}seed-extraction-cache.jsonl`,
-  "seed-progress": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}seed-live-progress.jsonl`,
-  "seed-report": `${V073_LOCOMO_CLAIM_EVIDENCE_PREFIX}seed-smoke-report.json`,
+  "seed-attempt-1-extraction-cache": `${V073_LOCOMO_AUDIT_EVIDENCE_PREFIX}seed-attempt-1-extraction-cache.jsonl`,
+  "seed-attempt-1-progress": `${V073_LOCOMO_AUDIT_EVIDENCE_PREFIX}seed-attempt-1-live-progress.jsonl`,
+  "seed-attempt-1-report": `${V073_LOCOMO_AUDIT_EVIDENCE_PREFIX}seed-attempt-1-smoke-report.json`,
+  "seed-extraction-cache": `${V073_LOCOMO_AUDIT_EVIDENCE_PREFIX}seed-extraction-cache.jsonl`,
+  "seed-progress": `${V073_LOCOMO_AUDIT_EVIDENCE_PREFIX}seed-live-progress.jsonl`,
+  "seed-report": `${V073_LOCOMO_AUDIT_EVIDENCE_PREFIX}seed-smoke-report.json`,
 } as const;
 const V072_BASELINE_COMMIT = "456edd106f29118b3455bf21c43d7b3107b48213";
 const SHA256_PATTERN = /^[0-9a-f]{64}$/u;
 const COMMIT_PATTERN = /^[0-9a-f]{40}$/u;
 const EMPTY_TRANSPORT_LEDGER_SHA256 =
   "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945";
-const EXPECTED_EXTRACTION_CACHE_KEY_SET_SHA256 =
-  "30fde28c5e2450365d8cc3d90a80f72aa900691151f4d1127e0a4f3c8a520f4f";
-const EXPECTED_EXTRACTION_CACHE_KEY_CASE_MAP_SHA256 =
-  "24732a6040c70d52999a18b9d95d72e663a883aa7c5524fc5ee8b4187611e03b";
-const V073_PROTOCOL2_CANONICAL_BENCHMARK_ROOT = "/@locomo-full10-root";
 const REQUIRED_PACKED_FILES = [
   "dist/index.js",
   "dist/index.d.ts",
@@ -401,16 +383,7 @@ interface PackageLock {
 
 interface CapabilityDescriptor {
   benchmarks?: {
-    currentClaims?: Array<{
-      claimDeclaration?: string;
-      config?: string;
-      measuredPackageVersion?: string;
-      metric?: string;
-      name?: string;
-      reference?: string;
-      result?: string;
-      runtimeProfile?: string;
-    }>;
+    currentClaims?: unknown[];
   };
   install?: {
     bun?: string;
@@ -431,457 +404,8 @@ interface ServerDescriptor {
   version?: string;
 }
 
-export function stableLocomoClaimIssues(input: {
-  claims: Array<{ measuredPackageVersion?: string; name?: string }>;
-  projection: unknown;
-  releaseStatus: string | undefined;
-}): string[] {
-  if (input.releaseStatus !== "stable") {
-    return [];
-  }
-  const issues: string[] = [];
-  if (input.claims.length > 0) {
-    issues.push(
-      `stable ${RELEASE_VERSION} release must not relabel v${HISTORICAL_LOCOMO_VERSION} benchmark evidence as current`,
-    );
-  }
-  if (
-    !isRecord(input.projection) ||
-    input.projection.artifactKind !== "tracked-current-claim-projection" ||
-    input.projection.benchmark !== "LoCoMo" ||
-    input.projection.schemaVersion !== 1 ||
-    !isRecord(input.projection.claim) ||
-    input.projection.claim.packageVersion !== HISTORICAL_LOCOMO_VERSION ||
-    !isValidStableLocomoClaimProjection(input.projection)
-  ) {
-    issues.push(
-      `stable release requires the historical v${HISTORICAL_LOCOMO_VERSION} LoCoMo projection at ${V073_LOCOMO_CURRENT_PROJECTION} to satisfy the full 1540-question evidence contract`,
-    );
-  }
-  return issues;
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
-function isFiniteUnitInterval(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1;
-}
-
-function isValidStableLocomoClaimProjection(
-  projection: Record<string, unknown>,
-): boolean {
-  if (
-    projection.generatedBy !== "scripts/run-v0-7-3-full-locomo-claim.ts" ||
-    projection.protocolVersion !== 2 ||
-    projection.maxSeedLaunches !== 2 ||
-    !COMMIT_PATTERN.test(String(projection.sentinelCommit)) ||
-    !Array.isArray(projection.seedAttempts) ||
-    (projection.seedAttempts.length !== 1 &&
-      projection.seedAttempts.length !== 2) ||
-    !isRecord(projection.claim) ||
-    !isRecord(projection.descriptorClaim) ||
-    !isRecord(projection.evidenceRepositoryBefore) ||
-    !isRecord(projection.execution) ||
-    !isRecord(projection.runIdentity) ||
-    !Array.isArray(projection.sourceArtifacts)
-  ) {
-    return false;
-  }
-  const claim = projection.claim;
-  const descriptor = projection.descriptorClaim;
-  const evidenceRepositoryBefore = projection.evidenceRepositoryBefore;
-  const execution = projection.execution;
-  const runIdentity = projection.runIdentity;
-  if (
-    claim.packageVersion !== HISTORICAL_LOCOMO_VERSION ||
-    claim.questionCount !== 1540 ||
-    claim.conversationCount !== 10 ||
-    claim.executionFailures !== 0 ||
-    claim.judgeFailures !== 0 ||
-    claim.answerSystem !== "locomo-live-category-aware-v1" ||
-    !isFiniteUnitInterval(claim.strictScore) ||
-    !isFiniteUnitInterval(claim.officialScore) ||
-    !isFiniteUnitInterval(claim.openDomainScore) ||
-    !Number.isSafeInteger(claim.openDomainCorrect) ||
-    (claim.openDomainCorrect as number) < 0 ||
-    claim.openDomainTotal !== 96 ||
-    (claim.openDomainCorrect as number) > 96 ||
-    claim.openDomainScore !== (claim.openDomainCorrect as number) / 96
-  ) {
-    return false;
-  }
-  if (
-    !COMMIT_PATTERN.test(String(evidenceRepositoryBefore.headCommit)) ||
-    evidenceRepositoryBefore.statusPorcelain !== ""
-  ) {
-    return false;
-  }
-  const descriptorFields = [
-    "claimDeclaration",
-    "config",
-    "measuredPackageVersion",
-    "metric",
-    "name",
-    "reference",
-    "result",
-    "runtimeProfile",
-  ] as const;
-  if (
-    descriptorFields.some((field) => !isNonEmptyString(descriptor[field])) ||
-    descriptor.name !== "LoCoMo" ||
-    descriptor.measuredPackageVersion !== HISTORICAL_LOCOMO_VERSION ||
-    descriptor.claimDeclaration !== "benchmark-claims/locomo.json" ||
-    descriptor.reference !== V073_LOCOMO_CURRENT_PROJECTION
-  ) {
-    return false;
-  }
-  const executionFields = [
-    "answerGateway",
-    "answerModel",
-    "answerProvider",
-    "assistedExtractorGateway",
-    "assistedExtractorModel",
-    "assistedExtractorProvider",
-    "benchmarkFingerprint",
-    "benchmarkRootSha256",
-    "bunVersion",
-    "claimCommandSha256",
-    "claimCommandTemplateSha256",
-    "embeddingGateway",
-    "embeddingModel",
-    "embeddingProvider",
-    "expectedExtractionCacheKeyCaseMapSha256",
-    "expectedExtractionCacheKeySetSha256",
-    "judgeGateway",
-    "judgeModel",
-    "judgeProvider",
-    "officialSourceSha256",
-    "promptSha256",
-    "questionSelectionSha256",
-    "rerankingGateway",
-    "rerankingModel",
-    "rerankingProvider",
-  ] as const;
-  if (
-    executionFields.some((field) => !isNonEmptyString(execution[field])) ||
-    execution.answerGateway !== "https://ai.gurkiai.com/v1" ||
-    execution.answerModel !== "gpt-5.6-terra" ||
-    execution.answerProvider !== "openai" ||
-    execution.assistedExtractorGateway !== "https://ai.gurkiai.com/v1" ||
-    execution.assistedExtractorModel !== "gpt-5.6-terra" ||
-    execution.assistedExtractorProvider !== "openai" ||
-    execution.embeddingGateway !== "https://openrouter.ai/api/v1" ||
-    execution.embeddingModel !== "text-embedding-3-small" ||
-    execution.embeddingProvider !== "openai" ||
-    execution.rerankingGateway !== "https://ai.gurkiai.com/v1" ||
-    execution.rerankingModel !== "gpt-5.6-terra" ||
-    execution.rerankingProvider !== "openai" ||
-    execution.expectedExtractionCacheKeyCaseMapSha256 !==
-      EXPECTED_EXTRACTION_CACHE_KEY_CASE_MAP_SHA256 ||
-    execution.expectedExtractionCacheKeySetSha256 !==
-      EXPECTED_EXTRACTION_CACHE_KEY_SET_SHA256 ||
-    execution.providerEmbeddingTimeoutMs !== null ||
-    execution.providerEmbeddingRunTimeoutMs !== null ||
-    execution.providerRerankingTimeoutMs !== 120_000 ||
-    execution.officialRescoreRequestTimeoutMs !== 180_000 ||
-    execution.judgeGateway !== "https://ai.gurkiai.com/v1" ||
-    execution.judgeModel !== "gpt-5.5" ||
-    execution.judgeProvider !== "openai" ||
-    execution.promptSha256 !== deriveV073PromptSha256() ||
-    execution.questionSelectionSha256 !==
-      V073_FULL_LOCOMO_QUESTION_SELECTION_SHA256 ||
-    !sameJson(
-      execution.caseQuestionCounts,
-      V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
-    ) ||
-    execution.bunVersion !== RELEASE_BUN_VERSION ||
-    execution.concurrency !== 40 ||
-    execution.benchmarkRootBytes !== 2_490_457 ||
-    !SHA256_PATTERN.test(String(execution.benchmarkFingerprint)) ||
-    !SHA256_PATTERN.test(String(execution.benchmarkRootSha256)) ||
-    !SHA256_PATTERN.test(String(execution.claimCommandSha256)) ||
-    !SHA256_PATTERN.test(String(execution.claimCommandTemplateSha256)) ||
-    !SHA256_PATTERN.test(String(execution.officialSourceSha256))
-  ) {
-    return false;
-  }
-  const runIds = [
-    runIdentity.seedRunId,
-    runIdentity.finalRunId,
-    runIdentity.officialRunId,
-  ];
-  if (
-    !isNonEmptyString(runIdentity.commit) ||
-    !COMMIT_PATTERN.test(runIdentity.commit) ||
-    projection.protocolCandidateCommit !== runIdentity.commit ||
-    !COMMIT_PATTERN.test(String(projection.lifecycleCandidateCommit)) ||
-    evidenceRepositoryBefore.headCommit !== runIdentity.commit ||
-    runIds.some((value) => !isNonEmptyString(value)) ||
-    new Set(runIds).size !== runIds.length
-  ) {
-    return false;
-  }
-  if (
-    projection.sourceArtifacts.length !==
-      Object.keys(V073_LOCOMO_SOURCE_ARTIFACT_PATHS).length
-  ) {
-    return false;
-  }
-  const sources = new Map<string, ArtifactIdentityShape>();
-  for (const source of projection.sourceArtifacts) {
-    if (
-      !isRecord(source) ||
-      !isNonEmptyString(source.kind) ||
-      !isArtifactIdentity(source) ||
-      sources.has(source.kind)
-    ) {
-      return false;
-    }
-    sources.set(source.kind, source);
-  }
-  return Object.entries(V073_LOCOMO_SOURCE_ARTIFACT_PATHS).every(
-    ([kind, path]) => sources.get(kind)?.path === path,
-  );
-}
-
-const V073_LOCOMO_CASE_IDS = [
-  "locomo-conv-26",
-  "locomo-conv-30",
-  "locomo-conv-41",
-  "locomo-conv-42",
-  "locomo-conv-43",
-  "locomo-conv-44",
-  "locomo-conv-47",
-  "locomo-conv-48",
-  "locomo-conv-49",
-  "locomo-conv-50",
-] as const;
-const V073_LOCOMO_CATEGORY_COUNTS = {
-  multi_hop: 282,
-  open_domain: 96,
-  single_hop: 841,
-  temporal: 321,
-} as const;
-const V073_LOCOMO_BENCHMARK_FINGERPRINT =
-  "240ba2526911a5f965a285b88794c4d3b938b59be5aecd846cc472ee733357fd";
-const V073_LOCOMO_ROOT_SHA256 =
-  "e442118810a1c57ee0b5454d12583c27be244936350dcfff1d6102d29cc39c28";
-
 function sameJson(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
-}
-
-function sourceArtifactMap(
-  projection: Record<string, unknown>,
-): Map<string, ArtifactIdentityShape> {
-  const result = new Map<string, ArtifactIdentityShape>();
-  for (const source of projection.sourceArtifacts as Array<Record<string, unknown>>) {
-    result.set(source.kind as string, source as unknown as ArtifactIdentityShape);
-  }
-  return result;
-}
-
-function parseEvidenceJson(raw: string, label: string, issues: string[]): unknown {
-  try {
-    return JSON.parse(raw) as unknown;
-  } catch {
-    issues.push(`${label} is not valid JSON`);
-    return undefined;
-  }
-}
-
-function validateFullLocomoReport(input: {
-  expectedMode: "live-answer" | "retrieval-only";
-  expectedGeneratedBy: string;
-  expectedResume: boolean;
-  label: string;
-  report: unknown;
-  issues: string[];
-}): Record<string, unknown>[] | undefined {
-  if (!isRecord(input.report)) {
-    input.issues.push(`${input.label} must be an object`);
-    return undefined;
-  }
-  const report = input.report;
-  const rows = report.cases;
-  const expectedAnswerEvaluation = input.expectedMode === "live-answer"
-    ? "scored"
-    : "deferred-to-live-mode";
-  if (
-    report.benchmark !== "locomo" ||
-    report.benchmarkFingerprint !== V073_LOCOMO_BENCHMARK_FINGERPRINT ||
-    report.mode !== input.expectedMode ||
-    report.answerEvaluation !== expectedAnswerEvaluation ||
-    report.generatedBy !== input.expectedGeneratedBy ||
-    report.resume !== input.expectedResume ||
-    report.executionFailures !== 0 ||
-    report.questionCount !== 1540 ||
-    report.caseCount !== 10 ||
-    !sameJson(report.caseIds, V073_LOCOMO_CASE_IDS) ||
-    !Array.isArray(rows) ||
-    rows.length !== 1540
-  ) {
-    input.issues.push(
-      `${input.label} is not a complete failure-free ${input.expectedMode} full-1540 LoCoMo report`,
-    );
-    return undefined;
-  }
-  if (
-    input.expectedMode === "live-answer" &&
-    report.answerSystem !== "locomo-live-category-aware-v1"
-  ) {
-    input.issues.push(`${input.label} answerSystem does not match the current claim protocol`);
-  }
-  const categoryCounts = new Map<string, number>();
-  const caseCounts = new Map<string, number>();
-  const questionKeys = new Set<string>();
-  const typedRows: Record<string, unknown>[] = [];
-  for (const [index, row] of rows.entries()) {
-    if (!isRecord(row)) {
-      input.issues.push(`${input.label} row ${index} is not an object`);
-      continue;
-    }
-    typedRows.push(row);
-    const key = `${String(row.caseId)}\u0000${String(row.questionId)}`;
-    questionKeys.add(key);
-    const answerFieldsValid = input.expectedMode === "retrieval-only"
-      ? row.answerCorrect === null &&
-        row.answerTokenF1 === null &&
-        row.generatedAnswer === null
-      : typeof row.answerCorrect === "boolean" &&
-        typeof row.answerTokenF1 === "number" &&
-        Number.isFinite(row.answerTokenF1) &&
-        row.answerTokenF1 >= 0 &&
-        row.answerTokenF1 <= 1 &&
-        isNonEmptyString(row.generatedAnswer);
-    if (
-      !V073_LOCOMO_CASE_IDS.includes(row.caseId as typeof V073_LOCOMO_CASE_IDS[number]) ||
-      typeof row.category !== "string" ||
-      !Object.prototype.hasOwnProperty.call(V073_LOCOMO_CATEGORY_COUNTS, row.category) ||
-      !isNonEmptyString(row.questionId) ||
-      !answerFieldsValid ||
-      row.executionFailureMessage != null
-    ) {
-      input.issues.push(`${input.label} row ${index} is incomplete or failed`);
-    }
-    categoryCounts.set(
-      String(row.category),
-      (categoryCounts.get(String(row.category)) ?? 0) + 1,
-    );
-    caseCounts.set(
-      String(row.caseId),
-      (caseCounts.get(String(row.caseId)) ?? 0) + 1,
-    );
-  }
-  if (questionKeys.size !== 1540) {
-    input.issues.push(`${input.label} question identities are not unique`);
-  }
-  for (const [category, count] of Object.entries(V073_LOCOMO_CATEGORY_COUNTS)) {
-    if (categoryCounts.get(category) !== count) {
-      input.issues.push(`${input.label} category ${category} does not contain ${count} questions`);
-    }
-  }
-  for (const [caseId, count] of Object.entries(
-    V073_FULL_LOCOMO_CASE_QUESTION_COUNTS,
-  )) {
-    if (caseCounts.get(caseId) !== count) {
-      input.issues.push(`${input.label} case ${caseId} does not contain ${count} questions`);
-    }
-  }
-  const selection = typedRows.map((row) => ({
-    caseId: row.caseId,
-    category: row.category,
-    questionId: row.questionId,
-  }));
-  if (
-    createHash("sha256").update(JSON.stringify(selection)).digest("hex") !==
-    V073_FULL_LOCOMO_QUESTION_SELECTION_SHA256
-  ) {
-    input.issues.push(`${input.label} does not contain the frozen full-10 question selection`);
-  }
-  return typedRows;
-}
-
-function retrievalIdentity(row: Record<string, unknown>): unknown {
-  return {
-    caseId: row.caseId,
-    category: row.category,
-    evidenceRecall: row.evidenceRecall,
-    evidenceTurnIds: row.evidenceTurnIds,
-    goldEvidenceFullyRetrieved: row.goldEvidenceFullyRetrieved,
-    missingEvidenceTurnIds: row.missingEvidenceTurnIds,
-    noiseTurnCount: row.noiseTurnCount,
-    noiseTurnIds: row.noiseTurnIds,
-    questionId: row.questionId,
-    retrievedTurnChannels: row.retrievedTurnChannels,
-    retrievedTurnIds: row.retrievedTurnIds,
-  };
-}
-
-function sameArtifactIdentity(
-  value: unknown,
-  expected: ArtifactIdentityShape,
-): boolean {
-  return isArtifactIdentity(value) &&
-    value.bytes === expected.bytes &&
-    value.path === expected.path &&
-    value.sha256 === expected.sha256;
-}
-
-function sameArtifactContent(
-  left: ArtifactIdentityShape,
-  right: ArtifactIdentityShape,
-): boolean {
-  return left.bytes === right.bytes && left.sha256 === right.sha256;
-}
-
-function parseExtractionCacheKeys(raw: string): string[] | undefined {
-  const keys: string[] = [];
-  const seen = new Set<string>();
-  for (const line of raw.split("\n")) {
-    if (line.trim() === "") {
-      continue;
-    }
-    let value: unknown;
-    try {
-      value = JSON.parse(line) as unknown;
-    } catch {
-      return undefined;
-    }
-    if (
-      !isRecord(value) ||
-      !isNonEmptyString(value.key) ||
-      !Array.isArray(value.candidates) ||
-      seen.has(value.key)
-    ) {
-      return undefined;
-    }
-    seen.add(value.key);
-    keys.push(value.key);
-  }
-  return keys;
-}
-
-function canonicalProtocol2ClaimRecipe(raw: string): string {
-  const recipe = JSON.parse(raw) as unknown;
-  if (
-    !isRecord(recipe) ||
-    !isRecord(recipe.run) ||
-    !isNonEmptyString(recipe.run.command)
-  ) {
-    throw new Error("claim recipe does not contain run.command");
-  }
-  const matches = [...recipe.run.command.matchAll(/--benchmark-root\s+\S+/gu)];
-  if (matches.length !== 1) {
-    throw new Error("claim recipe must contain one benchmark root");
-  }
-  recipe.run.command = recipe.run.command.replace(
-    matches[0]![0],
-    `--benchmark-root ${V073_PROTOCOL2_CANONICAL_BENCHMARK_ROOT}`,
-  );
-  return JSON.stringify(recipe);
 }
 
 function bindHomeRelativeClaimRecipeBenchmarkRoot(
@@ -892,7 +416,8 @@ function bindHomeRelativeClaimRecipeBenchmarkRoot(
   if (
     !isRecord(recipe) ||
     !isRecord(recipe.run) ||
-    !isNonEmptyString(recipe.run.command)
+    typeof recipe.run.command !== "string" ||
+    recipe.run.command.trim() === ""
   ) {
     throw new Error("claim recipe does not contain run.command");
   }
@@ -916,1111 +441,28 @@ function bindHomeRelativeClaimRecipeBenchmarkRoot(
   return JSON.stringify(recipe);
 }
 
-function canonicalProtocol2CommandChain(
-  commandChain: Record<string, unknown>,
-  recordedBenchmarkRoot: string,
-): Record<string, unknown> {
-  const result = structuredClone(commandChain);
-  const replaceFlag = (
-    invocationName: "officialRescore" | "seedSmoke",
-    flag: "--benchmark-root" | "--root",
-    expected: string,
-    replacement: string,
-  ) => {
-    const invocation = result[invocationName];
-    if (!isRecord(invocation) || !Array.isArray(invocation.args)) {
-      throw new Error("command chain invocation is invalid");
-    }
-    const indexes = invocation.args.flatMap((value, index) =>
-      value === flag ? [index] : []);
-    if (indexes.length !== 1 || invocation.args[indexes[0]! + 1] !== expected) {
-      throw new Error("command chain benchmark root is inconsistent");
-    }
-    invocation.args[indexes[0]! + 1] = replacement;
-  };
-  replaceFlag(
-    "seedSmoke",
-    "--benchmark-root",
-    recordedBenchmarkRoot,
-    V073_PROTOCOL2_CANONICAL_BENCHMARK_ROOT,
-  );
-  replaceFlag(
-    "officialRescore",
-    "--root",
-    resolve(recordedBenchmarkRoot, "cases.json"),
-    resolve(V073_PROTOCOL2_CANONICAL_BENCHMARK_ROOT, "cases.json"),
-  );
-  return result;
-}
-
-function validateV073FullClaimProtocol2(input: {
-  executionReceipt: unknown;
-  lifecycleProtectionRaw: string;
-  projection: Record<string, unknown>;
-  seedRaw: string;
-  sourceRaws: Map<string, string>;
-  sources: Map<string, ArtifactIdentityShape>;
-}): string[] {
-  const issues: string[] = [];
-  const receipt = input.executionReceipt;
-  const runIdentity = input.projection.runIdentity;
-  if (!isRecord(receipt) || !isRecord(runIdentity)) {
-    return ["full-claim protocol-v2 execution receipt is inconsistent"];
-  }
-  const preregistration = parseEvidenceJson(
-    input.sourceRaws.get("protocol-preregistration")!,
-    "full-claim protocol-v2 preregistration",
-    issues,
-  );
-  const sentinel = parseEvidenceJson(
-    input.sourceRaws.get("protocol-attempt-sentinel")!,
-    "full-claim protocol-v2 sentinel",
-    issues,
-  );
-  if (!isRecord(preregistration)) {
-    issues.push("full-claim protocol-v2 preregistration is inconsistent");
-    return issues;
-  }
-  const protocolCandidateCommit = String(runIdentity.commit);
-  const protocolIdentity = deriveV073FullClaimProtocol2Identity(
-    protocolCandidateCommit,
-  );
-  const lifecycleProtection = preregistration.lifecycleProtection;
-  const lifecycleArtifact = parseEvidenceJson(
-    input.lifecycleProtectionRaw,
-    "v0.7.3 lifecycle protection compact",
-    issues,
-  );
-  const preregistrationValid =
-    preregistration.protocolVersion === 2 &&
-    preregistration.generatedBy ===
-      "v0.7.3-full-locomo-claim-protocol2-preregistration" &&
-    Number.isFinite(Date.parse(String(preregistration.generatedAt))) &&
-    preregistration.maxSeedLaunches === 2 &&
-    COMMIT_PATTERN.test(String(preregistration.lifecycleCandidateCommit)) &&
-    isRecord(lifecycleArtifact) &&
-    lifecycleArtifact.schemaVersion === 9 &&
-    lifecycleArtifact.candidateCommit ===
-      preregistration.lifecycleCandidateCommit &&
-    lifecycleArtifact.fullClaimRerunRequired === true &&
-    lifecycleArtifact.releaseAllowed === true &&
-    Array.isArray(lifecycleArtifact.blockers) &&
-    lifecycleArtifact.blockers.length === 0 &&
-    preregistration.protocolCandidateCommit === protocolCandidateCommit &&
-    preregistration.namespace === protocolIdentity.namespace &&
-    preregistration.seedRunId === protocolIdentity.seedRunId &&
-    preregistration.finalRunId === protocolIdentity.finalRunId &&
-    preregistration.officialRunId === protocolIdentity.officialRunId &&
-    preregistration.outputRoot === protocolIdentity.outputRoot &&
-    preregistration.sentinelPath ===
-      V073_FULL_CLAIM_PROTOCOL2_SENTINEL_PATH &&
-    isRecord(preregistration.benchmark) &&
-    preregistration.benchmark.bytes === 2_490_457 &&
-    preregistration.benchmark.fingerprint ===
-      V073_LOCOMO_BENCHMARK_FINGERPRINT &&
-    preregistration.benchmark.sha256 === V073_LOCOMO_ROOT_SHA256 &&
-    isArtifactIdentity(lifecycleProtection) &&
-    lifecycleProtection.path === V073_LIFECYCLE_PROTECTION_ARTIFACT &&
-    lifecycleProtection.bytes ===
-      Buffer.byteLength(input.lifecycleProtectionRaw, "utf8") &&
-    lifecycleProtection.sha256 ===
-      createHash("sha256").update(input.lifecycleProtectionRaw).digest("hex");
-  if (!preregistrationValid) {
-    issues.push("full-claim protocol-v2 preregistration is inconsistent");
-  }
-
-  const receiptHeaderValid =
-    receipt.protocolVersion === 2 &&
-    receipt.maxSeedLaunches === 2 &&
-    receipt.lifecycleCandidateCommit === preregistration.lifecycleCandidateCommit &&
-    receipt.protocolCandidateCommit === protocolCandidateCommit &&
-    COMMIT_PATTERN.test(String(receipt.sentinelCommit)) &&
-    receipt.sentinelCommit === input.projection.sentinelCommit &&
-    input.projection.lifecycleCandidateCommit ===
-      preregistration.lifecycleCandidateCommit &&
-    input.projection.protocolCandidateCommit === protocolCandidateCommit &&
-    input.projection.maxSeedLaunches === 2 &&
-    sameJson(input.projection.seedAttempts, receipt.seedAttempts) &&
-    sameArtifactIdentity(
-      receipt.preregistration,
-      input.sources.get("protocol-preregistration")!,
-    ) &&
-    sameArtifactIdentity(
-      receipt.sentinel,
-      input.sources.get("protocol-attempt-sentinel")!,
-    ) &&
-    isRecord(receipt.sources) &&
-    sameArtifactIdentity(
-      receipt.sources.preregistration,
-      input.sources.get("protocol-preregistration")!,
-    ) &&
-    sameArtifactIdentity(
-      receipt.sources.sentinel,
-      input.sources.get("protocol-attempt-sentinel")!,
-    );
-  if (!receiptHeaderValid) {
-    issues.push("full-claim protocol-v2 execution receipt is inconsistent");
-  }
-
-  if (
-    !isRecord(sentinel) ||
-    sentinel.protocolVersion !== 2 ||
-    sentinel.generatedBy !== "scripts/run-v0-7-3-full-locomo-claim.ts" ||
-    !Number.isFinite(Date.parse(String(sentinel.generatedAt))) ||
-    sentinel.state !== "consumed" ||
-    sentinel.maxSeedLaunches !== 2 ||
-    sentinel.lifecycleCandidateCommit !== preregistration.lifecycleCandidateCommit ||
-    sentinel.protocolCandidateCommit !== protocolCandidateCommit ||
-    sentinel.namespace !== protocolIdentity.namespace ||
-    !COMMIT_PATTERN.test(String(sentinel.releaseCommit))
-  ) {
-    issues.push("full-claim protocol-v2 sentinel is inconsistent");
-  }
-
-  const seedAttempts = receipt.seedAttempts;
-  const commandChain = receipt.commandChain;
-  const typedSeedAttempts = Array.isArray(seedAttempts) ? seedAttempts : [];
-  const finalCacheKeys = parseExtractionCacheKeys(
-    input.sourceRaws.get("seed-extraction-cache")!,
-  );
-  const expectedCacheCaseByKey = new Map(
-    (finalCacheKeys ?? []).map((key) => [key, "unknown"]),
-  );
-  if (typedSeedAttempts.length === 2 && isRecord(typedSeedAttempts[0])) {
-    const passOneKeys = parseExtractionCacheKeys(
-      input.sourceRaws.get("seed-attempt-1-extraction-cache")!,
-    );
-    const passOneKeySet = new Set(passOneKeys ?? []);
-    const missingKeys = (finalCacheKeys ?? []).filter(
-      (key) => !passOneKeySet.has(key),
-    );
-    if (missingKeys.length === 1) {
-      expectedCacheCaseByKey.set(
-        missingKeys[0]!,
-        String(typedSeedAttempts[0].failedCaseId),
-      );
-    }
-  }
-  const extractionCacheContractValid =
-    finalCacheKeys?.length === 272 &&
-    createHash("sha256")
-      .update(JSON.stringify([...finalCacheKeys].sort()))
-      .digest("hex") === EXPECTED_EXTRACTION_CACHE_KEY_SET_SHA256;
-  const seedInvocation = isRecord(commandChain) &&
-      isRecord(commandChain.seedSmoke)
-    ? commandChain.seedSmoke
-    : undefined;
-  let attemptHistoryValid = Array.isArray(seedAttempts) &&
-    (seedAttempts.length === 1 || seedAttempts.length === 2) &&
-    seedInvocation !== undefined &&
-    extractionCacheContractValid;
-  const passOneReport = input.sources.get("seed-attempt-1-report")!;
-  const passOneProgress = input.sources.get("seed-attempt-1-progress")!;
-  const passOneCache = input.sources.get("seed-attempt-1-extraction-cache")!;
-  const finalReport = input.sources.get("seed-report")!;
-  const finalProgress = input.sources.get("seed-progress")!;
-  const finalCache = input.sources.get("seed-extraction-cache")!;
-  const outputs = receipt.outputs;
-  const finalOutput = isRecord(outputs) ? outputs.finalReport : undefined;
-  const officialOutput = isRecord(outputs) ? outputs.officialSummary : undefined;
-  const seedReportOutput = isRecord(outputs) ? outputs.seedReport : undefined;
-  const seedProgressOutput = isRecord(outputs) ? outputs.seedProgress : undefined;
-  const seedCacheOutput = isRecord(outputs)
-    ? outputs.seedExtractionCache
-    : undefined;
-  const fixedOutputsValid =
-    isRecord(seedInvocation) &&
-    isNonEmptyString(seedInvocation.cwd) &&
-    isArtifactIdentity(seedReportOutput) &&
-    resolve(seedReportOutput.path) === resolve(
-      seedInvocation.cwd,
-      protocolIdentity.outputRoot,
-      protocolIdentity.seedRunId,
-      "smoke-report.json",
-    ) &&
-    isArtifactIdentity(finalOutput) &&
-    resolve(finalOutput.path) === resolve(
-      seedInvocation.cwd,
-      protocolIdentity.outputRoot,
-      protocolIdentity.finalRunId,
-      "smoke-report.json",
-    ) &&
-    isArtifactIdentity(officialOutput) &&
-    resolve(officialOutput.path) === resolve(
-      seedInvocation.cwd,
-      "reports/eval/research/official-rescore",
-      protocolIdentity.officialRunId,
-      "rescore-summary.json",
-    ) &&
-    isArtifactIdentity(seedProgressOutput) &&
-    seedProgressOutput.bytes === finalProgress.bytes &&
-    seedProgressOutput.sha256 === finalProgress.sha256 &&
-    resolve(seedProgressOutput.path) === resolve(
-      seedInvocation.cwd,
-      protocolIdentity.outputRoot,
-      protocolIdentity.seedRunId,
-      "live-progress.jsonl",
-    ) &&
-    isArtifactIdentity(seedCacheOutput) &&
-    seedCacheOutput.bytes === finalCache.bytes &&
-    seedCacheOutput.sha256 === finalCache.sha256 &&
-    resolve(seedCacheOutput.path) === resolve(
-      seedInvocation.cwd,
-      protocolIdentity.outputRoot,
-      protocolIdentity.seedRunId,
-      "extraction-cache.jsonl",
-    );
-  if (!fixedOutputsValid) {
-    issues.push("full-claim protocol-v2 execution receipt is inconsistent");
-  }
-  if (attemptHistoryValid) {
-    for (const [index, value] of typedSeedAttempts.entries()) {
-      const attempt = isRecord(value) ? value : undefined;
-      const first = index === 0;
-      const expectedReport = first ? passOneReport : finalReport;
-      const expectedProgress = first ? passOneProgress : finalProgress;
-      const expectedCache = first ? passOneCache : finalCache;
-      if (
-        !attempt ||
-        attempt.attempt !== index + 1 ||
-        attempt.exitCode !== 0 ||
-        !sameJson(attempt.command, seedInvocation) ||
-        !sameArtifactIdentity(attempt.report, expectedReport) ||
-        !sameArtifactIdentity(attempt.progress, expectedProgress) ||
-        !sameArtifactIdentity(attempt.extractionCache, expectedCache)
-      ) {
-        attemptHistoryValid = false;
-        break;
-      }
-    }
-  }
-  if (attemptHistoryValid) {
-    try {
-      const first = typedSeedAttempts[0] as Record<string, unknown>;
-      const passOneReportValue = JSON.parse(
-        input.sourceRaws.get("seed-attempt-1-report")!,
-      ) as unknown;
-      if (!isRecord(passOneReportValue)) {
-        throw new Error("seed attempt-one report must be an object");
-      }
-      const firstClassification = classifyV073SeedAttemptRecovery({
-        expectedCacheCaseByKey,
-        extractionCacheRaw: input.sourceRaws.get(
-          "seed-attempt-1-extraction-cache",
-        )!,
-        progressRaw: input.sourceRaws.get("seed-attempt-1-progress")!,
-        report: passOneReportValue,
-        runId: String(runIdentity.seedRunId),
-      });
-      if (typedSeedAttempts.length === 1) {
-        attemptHistoryValid =
-          first.failedCaseId === null &&
-          first.recoveryClassification === "failure-free" &&
-          sameJson(firstClassification, {
-            failedCaseId: null,
-            recoveryClassification: "failure-free",
-          }) &&
-          sameArtifactContent(passOneReport, finalReport) &&
-          sameArtifactContent(passOneProgress, finalProgress) &&
-          sameArtifactContent(passOneCache, finalCache) &&
-          input.sourceRaws.get("seed-attempt-1-report") === input.seedRaw &&
-          input.sourceRaws.get("seed-attempt-1-progress") ===
-            input.sourceRaws.get("seed-progress") &&
-          input.sourceRaws.get("seed-attempt-1-extraction-cache") ===
-            input.sourceRaws.get("seed-extraction-cache");
-      } else {
-        const second = typedSeedAttempts[1] as Record<string, unknown>;
-        const finalReportValue = JSON.parse(input.seedRaw) as unknown;
-        if (!isRecord(finalReportValue)) {
-          throw new Error("final seed report must be an object");
-        }
-        const finalClassification = classifyV073SeedAttemptRecovery({
-          expectedCacheCaseByKey,
-          extractionCacheRaw: input.sourceRaws.get("seed-extraction-cache")!,
-          progressRaw: input.sourceRaws.get("seed-progress")!,
-          report: finalReportValue,
-          runId: String(runIdentity.seedRunId),
-        });
-        const passOneRows = Array.isArray(passOneReportValue.cases)
-          ? passOneReportValue.cases.filter(isRecord)
-          : [];
-        const finalRows = Array.isArray(finalReportValue.cases)
-          ? finalReportValue.cases.filter(isRecord)
-          : [];
-        const finalRowsByQuestion = new Map(
-          finalRows.map((row) => [
-            `${String(row.caseId)}\u0000${String(row.questionId)}`,
-            row,
-          ]),
-        );
-        const successfulPassOneRetrievalStable = passOneRows
-          .filter((row) => row.executionFailureMessage == null)
-          .every((row) => {
-            const finalRow = finalRowsByQuestion.get(
-              `${String(row.caseId)}\u0000${String(row.questionId)}`,
-            );
-            return finalRow !== undefined &&
-              sameJson(retrievalIdentity(row), retrievalIdentity(finalRow));
-          });
-        attemptHistoryValid =
-          first.recoveryClassification ===
-            "eligible-single-case-seed-timeout" &&
-          first.failedCaseId === firstClassification.failedCaseId &&
-          firstClassification.recoveryClassification ===
-            "eligible-single-case-seed-timeout" &&
-          second.recoveryClassification ===
-            "failure-free-after-single-resume" &&
-          second.failedCaseId === null &&
-          sameJson(finalClassification, {
-            failedCaseId: null,
-            recoveryClassification: "failure-free",
-          }) &&
-          successfulPassOneRetrievalStable &&
-          input.sourceRaws.get("seed-progress")!.startsWith(
-            input.sourceRaws.get("seed-attempt-1-progress")!,
-          ) &&
-          input.sourceRaws.get("seed-extraction-cache")!.startsWith(
-            input.sourceRaws.get("seed-attempt-1-extraction-cache")!,
-          );
-      }
-    } catch {
-      attemptHistoryValid = false;
-    }
-  }
-  if (!attemptHistoryValid) {
-    issues.push("full-claim protocol-v2 seed attempt history is inconsistent");
-  }
-  return issues;
-}
-
-async function validateV073FullClaimProtocol2GitBoundary(input: {
-  claimRecipeRaw: string;
-  officialRunnerRaw: string;
-  preregistrationRaw: string;
-  protocolCandidateCommit: string;
-  repoRoot: string;
-  sentinel: unknown;
-  sentinelCommit: unknown;
-  sentinelRaw: string;
-}): Promise<string[]> {
-  if (
-    !COMMIT_PATTERN.test(input.protocolCandidateCommit) ||
-    !isRecord(input.sentinel) ||
-    !COMMIT_PATTERN.test(String(input.sentinel.releaseCommit)) ||
-    !COMMIT_PATTERN.test(String(input.sentinelCommit))
-  ) {
-    return ["full-claim protocol-v2 git boundary is inconsistent"];
-  }
-  const releaseCommit = String(input.sentinel.releaseCommit);
-  const sentinelCommit = String(input.sentinelCommit);
-  const [
-    currentCommit,
-    protocolToRelease,
-    sentinelToCurrent,
-    sentinelParent,
-    sentinelDiff,
-    preregistrationAtRelease,
-    sentinelAtRelease,
-    sentinelAtCommit,
-    claimRecipeAtProtocolCandidate,
-    officialRunnerAtProtocolCandidate,
-  ] = await Promise.all([
-    runCommand("git", ["rev-parse", "HEAD"], input.repoRoot),
-    runCommand(
-      "git",
-      [
-        "merge-base",
-        "--is-ancestor",
-        input.protocolCandidateCommit,
-        releaseCommit,
-      ],
-      input.repoRoot,
-    ),
-    runCommand(
-      "git",
-      ["merge-base", "--is-ancestor", sentinelCommit, "HEAD"],
-      input.repoRoot,
-    ),
-    runCommand("git", ["rev-parse", `${sentinelCommit}^`], input.repoRoot),
-    runCommand(
-      "git",
-      ["diff", "--name-only", releaseCommit, sentinelCommit],
-      input.repoRoot,
-    ),
-    runCommand(
-      "git",
-      ["show", `${releaseCommit}:${V073_FULL_CLAIM_PROTOCOL2_PREREGISTRATION_PATH}`],
-      input.repoRoot,
-    ),
-    runCommand(
-      "git",
-      ["show", `${releaseCommit}:${V073_FULL_CLAIM_PROTOCOL2_SENTINEL_PATH}`],
-      input.repoRoot,
-    ),
-    runCommand(
-      "git",
-      ["show", `${sentinelCommit}:${V073_FULL_CLAIM_PROTOCOL2_SENTINEL_PATH}`],
-      input.repoRoot,
-    ),
-    runCommand(
-      "git",
-      ["show", `${input.protocolCandidateCommit}:benchmark-claims/locomo.json`],
-      input.repoRoot,
-    ),
-    runCommand(
-      "git",
-      [
-        "show",
-        `${input.protocolCandidateCommit}:scripts/rescore-official-protocols.ts`,
-      ],
-      input.repoRoot,
-    ),
-  ]);
-  const valid =
-    currentCommit.code === 0 &&
-    COMMIT_PATTERN.test(currentCommit.stdout.trim()) &&
-    protocolToRelease.code === 0 &&
-    sentinelToCurrent.code === 0 &&
-    sentinelParent.code === 0 &&
-    sentinelParent.stdout.trim() === releaseCommit &&
-    sentinelDiff.code === 0 &&
-    sentinelDiff.stdout === `${V073_FULL_CLAIM_PROTOCOL2_SENTINEL_PATH}\n` &&
-    preregistrationAtRelease.code === 0 &&
-    preregistrationAtRelease.stdout === input.preregistrationRaw &&
-    sentinelAtRelease.code !== 0 &&
-    sentinelAtCommit.code === 0 &&
-    sentinelAtCommit.stdout === input.sentinelRaw &&
-    claimRecipeAtProtocolCandidate.code === 0 &&
-    claimRecipeAtProtocolCandidate.stdout === input.claimRecipeRaw &&
-    officialRunnerAtProtocolCandidate.code === 0 &&
-    officialRunnerAtProtocolCandidate.stdout === input.officialRunnerRaw;
-  return valid
-    ? []
-    : ["full-claim protocol-v2 git boundary is inconsistent"];
-}
-
-function validateStableLocomoEvidenceValues(input: {
-  claimRecipeRaw: string;
-  claimDeclaration: unknown;
-  executionReceipt: unknown;
-  finalRaw: string;
-  finalReport: unknown;
-  officialSummary: unknown;
-  officialProgressRaw: string;
-  projection: Record<string, unknown>;
-  lifecycleProtectionRaw: string;
-  seedRaw: string;
-  seedReport: unknown;
-  sourceRaws: Map<string, string>;
-  sources: Map<string, ArtifactIdentityShape>;
-}): string[] {
-  const issues: string[] = [];
-  const claim = input.projection.claim as Record<string, unknown>;
-  const descriptor = input.projection.descriptorClaim as Record<string, unknown>;
-  const execution = input.projection.execution as Record<string, unknown>;
-  const runIdentity = input.projection.runIdentity as Record<string, unknown>;
-  issues.push(...validateV073FullClaimProtocol2({
-    executionReceipt: input.executionReceipt,
-    lifecycleProtectionRaw: input.lifecycleProtectionRaw,
-    projection: input.projection,
-    seedRaw: input.seedRaw,
-    sourceRaws: input.sourceRaws,
-    sources: input.sources,
-  }));
-  if (
-    execution.benchmarkFingerprint !== V073_LOCOMO_BENCHMARK_FINGERPRINT ||
-    execution.benchmarkRootSha256 !== V073_LOCOMO_ROOT_SHA256
-  ) {
-    issues.push("current LoCoMo execution does not use the frozen full-10 benchmark bytes");
-  }
-  const seedRows = validateFullLocomoReport({
-    expectedMode: "retrieval-only",
-    expectedGeneratedBy: "scripts/run-phase-65-locomo-smoke.ts",
-    expectedResume: true,
-    issues,
-    label: "seed report",
-    report: input.seedReport,
-  });
-  const finalRows = validateFullLocomoReport({
-    expectedMode: "live-answer",
-    expectedGeneratedBy: "scripts/reanswer-phase-65-locomo-report.ts",
-    expectedResume: false,
-    issues,
-    label: "final report",
-    report: input.finalReport,
-  });
-  if (isRecord(input.seedReport) && isRecord(input.finalReport)) {
-    const sourceReport = input.finalReport.sourceReport;
-    if (
-      !isRecord(sourceReport) ||
-      sourceReport.runId !== input.seedReport.runId ||
-      resolve(String(sourceReport.path)) !==
-        resolve(String(input.seedReport.runDirectory), "smoke-report.json") ||
-      input.seedReport.runId !== runIdentity.seedRunId ||
-      input.finalReport.runId !== runIdentity.finalRunId
-    ) {
-      issues.push("final report does not descend from the bound seed report");
-    }
-    if (
-      Date.parse(String(input.finalReport.generatedAt)) <=
-      Date.parse(String(input.seedReport.generatedAt))
-    ) {
-      issues.push("final report timestamp must follow the seed report timestamp");
-    }
-  }
-  if (seedRows && finalRows) {
-    for (const [index, seed] of seedRows.entries()) {
-      if (!sameJson(retrievalIdentity(seed), retrievalIdentity(finalRows[index]!))) {
-        issues.push(`final report changed seed retrieval evidence at row ${index}`);
-        break;
-      }
-    }
-    const strictCorrect = finalRows.filter((row) => row.answerCorrect === true).length;
-    const strictScore = strictCorrect / 1540;
-    if (
-      !isRecord(input.finalReport) ||
-      input.finalReport.answerAccuracyOverall !== strictScore ||
-      claim.strictScore !== strictScore
-    ) {
-      issues.push("strict score does not match the 1540 final answer outcomes");
-    }
-  }
-  if (!isRecord(input.officialSummary)) {
-    issues.push("official summary must be an object");
-  } else {
-    const official = input.officialSummary;
-    const categories = official.categories;
-    const reportFingerprint = isRecord(official.sourceInputFingerprints)
-      ? official.sourceInputFingerprints.reportPath
-      : undefined;
-    const rootFingerprint = isRecord(official.sourceInputFingerprints)
-      ? official.sourceInputFingerprints.rootPath
-      : undefined;
-    const sourceInputs = official.sourceInputs;
-    if (
-      official.generatedBy !== "scripts/rescore-official-protocols.ts" ||
-      official.benchmark !== "locomo" ||
-      official.runId !== runIdentity.officialRunId ||
-      official.judgeFailures !== 0 ||
-      official.sourceCases !== 1540 ||
-      official.selectedCases !== 1540 ||
-      official.judgedCases !== 1540 ||
-      official.totalCases !== 1540 ||
-      official.sourceAnswersUnchanged !== true ||
-      official.judgeGateway !== execution.judgeGateway ||
-      official.judgeModel !== execution.judgeModel ||
-      official.judgeProvider !== execution.judgeProvider ||
-      !isNonEmptyString(official.protocol) ||
-      !official.protocol.includes("mem0ai/memory-benchmarks LoCoMo judge") ||
-      !isRecord(reportFingerprint) ||
-      reportFingerprint.bytes !== Buffer.byteLength(input.finalRaw, "utf8") ||
-      reportFingerprint.sha256 !== createHash("sha256").update(input.finalRaw).digest("hex") ||
-      !isRecord(rootFingerprint) ||
-      rootFingerprint.bytes !== 2_490_457 ||
-      rootFingerprint.sha256 !== V073_LOCOMO_ROOT_SHA256 ||
-      !isRecord(sourceInputs) ||
-      !isRecord(input.finalReport) ||
-      resolve(String(sourceInputs.reportPath)) !==
-        resolve(String(input.finalReport.runDirectory), "smoke-report.json") ||
-      !isFiniteUnitInterval(official.overallAccuracy) ||
-      claim.officialScore !== official.overallAccuracy
-    ) {
-      issues.push("official summary is not bound to the complete final report and judge protocol");
-    }
-    if (!isRecord(categories)) {
-      issues.push("official summary categories are missing");
-    } else {
-      let correctTotal = 0;
-      for (const [category, total] of Object.entries(V073_LOCOMO_CATEGORY_COUNTS)) {
-        const result = categories[category];
-        if (
-          !isRecord(result) ||
-          result.total !== total ||
-          !Number.isSafeInteger(result.correct) ||
-          (result.correct as number) < 0 ||
-          (result.correct as number) > total ||
-          result.accuracy !== (result.correct as number) / total
-        ) {
-          issues.push(`official summary category ${category} is inconsistent`);
-          continue;
-        }
-        correctTotal += result.correct as number;
-      }
-      if (
-        official.overallCorrect !== correctTotal ||
-        official.overallAccuracy !== correctTotal / 1540 ||
-        !isRecord(categories.open_domain) ||
-        claim.openDomainCorrect !== categories.open_domain.correct ||
-        claim.openDomainTotal !== categories.open_domain.total ||
-        claim.openDomainScore !== categories.open_domain.accuracy
-      ) {
-        issues.push("official overall or open-domain score is inconsistent");
-      }
-      if (finalRows) {
-        let progressRows: unknown[] = [];
-        try {
-          progressRows = input.officialProgressRaw
-            .split("\n")
-            .map((line) => line.trim())
-            .filter(Boolean)
-            .map((line) => JSON.parse(line) as unknown);
-        } catch {
-          issues.push("official progress is not valid JSONL");
-        }
-        const progress = new Map<string, boolean>();
-        for (const row of progressRows) {
-          if (
-            !isRecord(row) ||
-            !isNonEmptyString(row.questionId) ||
-            typeof row.correct !== "boolean" ||
-            progress.has(row.questionId)
-          ) {
-            issues.push("official progress rows are invalid or duplicated");
-            continue;
-          }
-          progress.set(row.questionId, row.correct);
-        }
-        if (
-          progress.size !== 1540 ||
-          finalRows.some((row) => !progress.has(String(row.questionId)))
-        ) {
-          issues.push("official progress does not cover all 1540 final questions");
-        } else {
-          for (const [category, total] of Object.entries(V073_LOCOMO_CATEGORY_COUNTS)) {
-            const correct = finalRows.filter(
-              (row) =>
-                row.category === category &&
-                progress.get(String(row.questionId)) === true,
-            ).length;
-            const summaryCategory = categories[category];
-            if (
-              !isRecord(summaryCategory) ||
-              summaryCategory.correct !== correct ||
-              summaryCategory.accuracy !== correct / total
-            ) {
-              issues.push(`official progress disagrees with category ${category}`);
-            }
-          }
-        }
-      }
-    }
-  }
-  if (!isRecord(input.executionReceipt)) {
-    issues.push("full-claim execution receipt must be an object");
-  } else {
-    const receipt = input.executionReceipt;
-    const evidenceRepositoryBefore = receipt.evidenceRepositoryBefore;
-    const provenance = receipt.worktreeProvenance;
-    const outputs = receipt.outputs;
-    const receiptSources = receipt.sources;
-    const commandChain = receipt.commandChain;
-    const freshOutputEvidence = receipt.freshOutputEvidence;
-    if (
-      receipt.schemaVersion !== 1 ||
-      receipt.generatedBy !== "v0.7.3-full-locomo-claim-launch" ||
-      receipt.commit !== runIdentity.commit ||
-      !isNonEmptyString(receipt.command) ||
-      !sameJson(receipt.execution, execution) ||
-      !isRecord(evidenceRepositoryBefore) ||
-      evidenceRepositoryBefore.headCommit !== runIdentity.commit ||
-      evidenceRepositoryBefore.statusPorcelain !== "" ||
-      !sameJson(
-        evidenceRepositoryBefore,
-        input.projection.evidenceRepositoryBefore,
-      ) ||
-      !isRecord(provenance) ||
-      provenance.headCommit !== runIdentity.commit ||
-      provenance.statusPorcelain !== "" ||
-      !isRecord(outputs) ||
-      !isRecord(receiptSources) ||
-      !isRecord(commandChain) ||
-      !isRecord(freshOutputEvidence) ||
-      freshOutputEvidence.seedOutputPathAbsentBeforeRun !== true ||
-      freshOutputEvidence.seedAttemptOneSnapshotPathAbsentBeforeRun !== true ||
-      freshOutputEvidence.finalOutputPathAbsentBeforeRun !== true ||
-      freshOutputEvidence.officialOutputPathAbsentBeforeRun !== true
-    ) {
-      issues.push("full-claim execution receipt does not bind a clean exact execution");
-    } else {
-      for (const [kind, outputName] of [
-        ["seed-report", "seedReport"],
-        ["final-report", "finalReport"],
-        ["official-summary", "officialSummary"],
-        ["official-progress", "officialProgress"],
-      ] as const) {
-        const output = outputs[outputName];
-        const source = input.sources.get(kind)!;
-        if (
-          !isArtifactIdentity(output) ||
-          output.bytes !== source.bytes ||
-          output.sha256 !== source.sha256
-        ) {
-          issues.push(`execution receipt ${outputName} fingerprint is inconsistent`);
-        }
-      }
-      const officialSource = input.sources.get("official-runner-source")!;
-      if (
-        !isArtifactIdentity(receiptSources.officialRunner) ||
-        receiptSources.officialRunner.bytes !== officialSource.bytes ||
-        receiptSources.officialRunner.sha256 !== officialSource.sha256 ||
-        officialSource.sha256 !== execution.officialSourceSha256
-      ) {
-        issues.push("execution receipt official runner source is inconsistent");
-      }
-      const claimRecipeSource = input.sources.get("claim-recipe-source")!;
-      let claimRecipeTemplateSha256: string | undefined;
-      try {
-        claimRecipeTemplateSha256 =
-          deriveV073ClaimCommandTemplateSha256(input.claimRecipeRaw);
-      } catch {
-        claimRecipeTemplateSha256 = undefined;
-      }
-      if (
-        !isArtifactIdentity(receiptSources.claimRecipe) ||
-        receiptSources.claimRecipe.bytes !== claimRecipeSource.bytes ||
-        receiptSources.claimRecipe.sha256 !== claimRecipeSource.sha256 ||
-        claimRecipeSource.sha256 !==
-          createHash("sha256").update(input.claimRecipeRaw).digest("hex") ||
-        execution.claimCommandTemplateSha256 !==
-          claimRecipeTemplateSha256
-      ) {
-        issues.push("execution receipt claim recipe source is inconsistent");
-      }
-      const seedOutput = outputs.seedReport;
-      const finalOutput = outputs.finalReport;
-      const sourceInputs = isRecord(input.officialSummary)
-        ? input.officialSummary.sourceInputs
-        : undefined;
-      const seedInvocation = commandChain.seedSmoke;
-      if (
-        !isArtifactIdentity(seedOutput) ||
-        !isArtifactIdentity(finalOutput) ||
-        !isRecord(sourceInputs) ||
-        !isNonEmptyString(sourceInputs.rootPath) ||
-        !isRecord(seedInvocation) ||
-        !isNonEmptyString(seedInvocation.cwd) ||
-        !isRecord(input.claimDeclaration)
-      ) {
-        issues.push("execution receipt command chain cannot be reconstructed");
-      } else {
-        const claimRecipeRaw = input.claimRecipeRaw;
-        try {
-          const recordedBenchmarkRoot = dirname(sourceInputs.rootPath);
-          const expectedChain = buildV073FullClaimCommandChain({
-            answerGateway: String(execution.answerGateway),
-            answerModel: String(execution.answerModel),
-            answerProvider: String(execution.answerProvider),
-            assistedExtractorGateway: String(execution.assistedExtractorGateway),
-            assistedExtractorModel: String(execution.assistedExtractorModel),
-            assistedExtractorProvider: String(execution.assistedExtractorProvider),
-            benchmarkRoot: V073_PROTOCOL2_CANONICAL_BENCHMARK_ROOT,
-            embeddingGateway: String(execution.embeddingGateway),
-            embeddingModel: String(execution.embeddingModel),
-            embeddingProvider: String(execution.embeddingProvider),
-            finalOutputPath: dirname(finalOutput.path),
-            finalRunId: String(runIdentity.finalRunId),
-            judgeGateway: String(execution.judgeGateway),
-            judgeModel: String(execution.judgeModel),
-            judgeProvider: String(execution.judgeProvider),
-            officialRunId: String(runIdentity.officialRunId),
-            rerankingGateway: String(execution.rerankingGateway),
-            rerankingModel: String(execution.rerankingModel),
-            rerankingProvider: String(execution.rerankingProvider),
-            seedOutputPath: dirname(seedOutput.path),
-            seedRunId: String(runIdentity.seedRunId),
-            worktreePath: seedInvocation.cwd,
-          }, canonicalProtocol2ClaimRecipe(claimRecipeRaw));
-          if (
-            !Array.isArray(receipt.seedAttempts) ||
-            (receipt.seedAttempts.length !== 1 &&
-              receipt.seedAttempts.length !== 2)
-          ) {
-            throw new Error("full claim protocol-v2 seed attempt count is invalid");
-          }
-          const expectedCommand = renderV073FullClaimProtocol2Command(
-            expectedChain,
-            seedInvocation.cwd,
-            receipt.seedAttempts.length,
-          );
-          if (
-            !sameJson(
-              canonicalProtocol2CommandChain(
-                commandChain,
-                recordedBenchmarkRoot,
-              ),
-              expectedChain,
-            ) ||
-            receipt.command !== expectedCommand ||
-            execution.claimCommandSha256 !==
-              createHash("sha256").update(expectedCommand).digest("hex") ||
-            execution.claimCommandTemplateSha256 !==
-              deriveV073ClaimCommandTemplateSha256(claimRecipeRaw)
-          ) {
-            issues.push("execution receipt command chain does not match the claim recipe");
-          }
-        } catch {
-          issues.push("execution receipt command chain does not match the claim recipe");
-        }
-      }
-    }
-  }
-  if (!isRecord(input.claimDeclaration)) {
-    issues.push("benchmark-claims/locomo.json must be an object");
-  } else {
-    const declaration = input.claimDeclaration;
-    const run = declaration.run;
-    const model = declaration.model;
-    const metrics = declaration.metrics;
-    const boundary = declaration.claimBoundary;
-    const coverage = declaration.coverage;
-    const comparison = declaration.comparison;
-    const evidence = declaration.evidence;
-    const command = isRecord(run) ? run.command : undefined;
-    const projectionListed = isRecord(evidence) && Array.isArray(evidence.artifacts) &&
-      evidence.artifacts.some(
-        (artifact) => isRecord(artifact) && artifact.path === V073_LOCOMO_CURRENT_PROJECTION,
-      );
-    if (
-      declaration.benchmark !== "LoCoMo" ||
-      declaration.status !== "candidate_public_claim" ||
-      !isRecord(run) ||
-      run.commit !== runIdentity.commit ||
-      run.packageVersion !== HISTORICAL_LOCOMO_VERSION ||
-      run.executionFailures !== 0 ||
-      !isNonEmptyString(command) ||
-      command !== (isRecord(input.executionReceipt)
-        ? input.executionReceipt.command
-        : undefined) ||
-      createHash("sha256").update(String(command)).digest("hex") !==
-        execution.claimCommandSha256 ||
-      !isRecord(model) ||
-      model.answerGateway !== execution.answerGateway ||
-      model.answerModel !== execution.answerModel ||
-      model.answerProvider !== execution.answerProvider ||
-      model.judgeGateway !== execution.judgeGateway ||
-      model.judgeModel !== execution.judgeModel ||
-      model.judgeProvider !== execution.judgeProvider ||
-      model.sameModelJudge !== false ||
-      !isRecord(metrics) ||
-      metrics.score !== claim.officialScore ||
-      !isRecord(boundary) ||
-      boundary.publicClaimAllowed !== true ||
-      !isRecord(coverage) ||
-      coverage.complete !== true ||
-      !isRecord(comparison) ||
-      comparison.runtimeProfile !== descriptor.runtimeProfile ||
-      (comparison.availability !== "production-default" &&
-        comparison.availability !== "public-opt-in") ||
-      !projectionListed
-    ) {
-      issues.push("benchmark-claims/locomo.json is not a current public 0.7.3 declaration bound to the projection");
-    }
-  }
-  if (
-    !String(descriptor.result).includes(Number(claim.officialScore).toFixed(4)) ||
-    !String(descriptor.result).includes(Number(claim.strictScore).toFixed(4)) ||
-    !String(descriptor.result).includes(
-      `${String(claim.openDomainCorrect)}/${String(claim.openDomainTotal)}`,
-    ) ||
-    !String(descriptor.result).includes(Number(claim.openDomainScore).toFixed(4))
-  ) {
-    issues.push("descriptor result does not disclose official, strict, and open-domain evidence");
-  }
-  return issues;
-}
-
-async function readTrackedRegularText(input: {
-  label: string;
-  path: string;
-  repoRoot: string;
-}): Promise<string> {
-  const repoRoot = resolve(input.repoRoot);
-  const absolutePath = resolve(repoRoot, input.path);
-  if (!absolutePath.startsWith(`${repoRoot}/`)) {
-    throw new Error(`${input.label} escapes the tracked repository`);
-  }
-  const fileInfo = await lstat(absolutePath);
-  if (!fileInfo.isFile()) {
-    throw new Error(`${input.label} must be a regular tracked file`);
-  }
-  const expectedRealPath = resolve(await realpath(repoRoot), input.path);
-  if (await realpath(absolutePath) !== expectedRealPath) {
-    throw new Error(`${input.label} must be a regular tracked file`);
-  }
-  return readFile(absolutePath, "utf8");
-}
-
-export async function validateStableLocomoClaimEvidence(input: {
-  claimDeclaration: unknown;
-  projection: unknown;
-  repoRoot: string;
-}): Promise<string[]> {
-  if (
-    !isRecord(input.projection) ||
-    input.projection.artifactKind !== "tracked-current-claim-projection" ||
-    input.projection.benchmark !== "LoCoMo" ||
-    input.projection.schemaVersion !== 1 ||
-    !isValidStableLocomoClaimProjection(input.projection)
-  ) {
-    return [
-      "current LoCoMo projection does not satisfy the full 1540-question evidence contract",
-    ];
-  }
-  const issues: string[] = [];
-  const sources = sourceArtifactMap(input.projection);
-  const rawByKind = new Map<string, string>();
-  for (const [kind, expectedPath] of Object.entries(
-    V073_LOCOMO_SOURCE_ARTIFACT_PATHS,
-  )) {
-    const source = sources.get(kind)!;
-    if (source.path !== expectedPath) {
-      issues.push(`${kind} must use tracked path ${expectedPath}`);
-      continue;
-    }
-    try {
-      const raw = await readTrackedRegularText({
-        label: kind,
-        path: source.path,
-        repoRoot: input.repoRoot,
-      });
-      const digest = createHash("sha256").update(raw).digest("hex");
-      if (
-        Buffer.byteLength(raw, "utf8") !== source.bytes ||
-        digest !== source.sha256
-      ) {
-        issues.push(`${kind} bytes do not match the tracked projection fingerprint`);
-      } else {
-        rawByKind.set(kind, raw);
-      }
-    } catch (error) {
-      issues.push(
-        error instanceof Error
-          ? error.message
-          : `${kind} cannot be read from ${source.path}: ${String(error)}`,
-      );
-    }
-  }
-  if (issues.length > 0) {
-    return issues;
-  }
-  let lifecycleProtectionRaw: string;
+async function listDirectoryIfPresent(path: string): Promise<string[]> {
   try {
-    lifecycleProtectionRaw = await readFile(
-      join(input.repoRoot, V073_LIFECYCLE_PROTECTION_ARTIFACT),
-      "utf8",
-    );
-  } catch (error) {
-    return [
-      `lifecycle protection artifact cannot be read from ${V073_LIFECYCLE_PROTECTION_ARTIFACT}: ${String(error)}`,
-    ];
-  }
-  const seedRaw = rawByKind.get("seed-report")!;
-  const claimRecipeRaw = rawByKind.get("claim-recipe-source")!;
-  const finalRaw = rawByKind.get("final-report")!;
-  const officialRaw = rawByKind.get("official-summary")!;
-  const officialProgressRaw = rawByKind.get("official-progress")!;
-  const receiptRaw = rawByKind.get("execution-receipt")!;
-  const seedReport = parseEvidenceJson(seedRaw, "seed report", issues);
-  const finalReport = parseEvidenceJson(finalRaw, "final report", issues);
-  const officialSummary = parseEvidenceJson(officialRaw, "official summary", issues);
-  const executionReceipt = parseEvidenceJson(receiptRaw, "execution receipt", issues);
-  const sentinel = parseEvidenceJson(
-    rawByKind.get("protocol-attempt-sentinel")!,
-    "full-claim protocol-v2 sentinel",
-    issues,
-  );
-  if (issues.length > 0) {
-    return issues;
-  }
-  const evidenceIssues = validateStableLocomoEvidenceValues({
-    claimRecipeRaw,
-    claimDeclaration: input.claimDeclaration,
-    executionReceipt,
-    finalRaw,
-    finalReport,
-    officialSummary,
-    officialProgressRaw,
-    projection: input.projection,
-    lifecycleProtectionRaw,
-    seedRaw,
-    seedReport,
-    sourceRaws: rawByKind,
-    sources,
-  });
-  const gitBoundaryIssues = await validateV073FullClaimProtocol2GitBoundary({
-    claimRecipeRaw,
-    officialRunnerRaw: rawByKind.get("official-runner-source")!,
-    preregistrationRaw: rawByKind.get("protocol-preregistration")!,
-    protocolCandidateCommit: isRecord(input.projection.runIdentity)
-      ? String(input.projection.runIdentity.commit)
-      : "",
-    repoRoot: input.repoRoot,
-    sentinel,
-    sentinelCommit: isRecord(executionReceipt)
-      ? executionReceipt.sentinelCommit
-      : undefined,
-    sentinelRaw: rawByKind.get("protocol-attempt-sentinel")!,
-  });
-  return [...evidenceIssues, ...gitBoundaryIssues];
-}
-
-async function pathExists(path: string): Promise<boolean> {
-  try {
-    await stat(path);
-    return true;
+    return await readdir(path);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return false;
+      return [];
     }
     throw error;
   }
 }
 
 export async function evaluateV073CurrentLocomoClaimState(input: {
-  claims: Array<{ measuredPackageVersion?: string; name?: string }>;
-  releaseStatus: string | undefined;
+  claims: readonly unknown[];
   repoRoot: string;
 }): Promise<string[]> {
-  const projectionPath = join(input.repoRoot, V073_LOCOMO_CURRENT_PROJECTION);
-  const evidenceRoot = join(
-    input.repoRoot,
-    V073_LOCOMO_CLAIM_EVIDENCE_PREFIX.slice(0, -1),
-  );
-  const artifactPaths = Object.values(V073_LOCOMO_SOURCE_ARTIFACT_PATHS).map(
-    (path) => join(input.repoRoot, path),
-  );
-  const preregistrationArtifactIndex = Object.values(
-    V073_LOCOMO_SOURCE_ARTIFACT_PATHS,
-  ).indexOf(V073_FULL_CLAIM_PROTOCOL2_PREREGISTRATION_PATH);
-  const listDirectory = async (path: string): Promise<string[]> => {
-    try {
-      return await readdir(path);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        return [];
-      }
-      throw error;
-    }
-  };
-  const [
-    projectionExists,
-    evidenceRootExists,
-    artifactPresence,
-    releaseEntries,
-    projectionEntries,
-  ] = await Promise.all([
-    pathExists(projectionPath),
-    pathExists(evidenceRoot),
-    Promise.all(artifactPaths.map(pathExists)),
-    listDirectory(join(input.repoRoot, "reports/release/v0.7")),
-    listDirectory(join(input.repoRoot, "benchmark-claims/evidence")),
-  ]);
-  const partialPublication =
-    releaseEntries.some((name) =>
-      name.startsWith(".v0.7.3-locomo-claim-evidence.partial-") ||
-      name === ".v0.7.3-locomo-claim-publication.lock") ||
-    projectionEntries.some((name) =>
-      name.startsWith(".locomo-v0.7.3-current.json.partial-"));
+  const issues: string[] = [];
+  if (input.claims.length > 0) {
+    issues.push(
+      `${RELEASE_VERSION} has no promotable current benchmark claims`,
+    );
+  }
+
   let declaration: unknown;
   try {
     declaration = JSON.parse(
@@ -2029,121 +471,32 @@ export async function evaluateV073CurrentLocomoClaimState(input: {
   } catch {
     declaration = undefined;
   }
-  const pausedInternalDiagnostics = input.claims.length === 0 &&
-    isRecord(declaration) &&
-    declaration.status === "paused_boundary" &&
-    isRecord(declaration.claimBoundary) &&
-    declaration.claimBoundary.publicClaimAllowed === false;
-  if (pausedInternalDiagnostics) {
-    return partialPublication
-      ? ["current LoCoMo evidence publication is incomplete"]
-      : [];
-  }
-  const anyEvidence =
-    evidenceRootExists ||
-    artifactPresence.some(
-      (present, index) => present && index !== preregistrationArtifactIndex,
-    ) ||
-    partialPublication;
-  const completeEvidence = artifactPresence.every(Boolean);
-  if (!projectionExists && !anyEvidence) {
-    return stableLocomoClaimIssues({
-      claims: input.claims,
-      projection: undefined,
-      releaseStatus: input.releaseStatus,
-    });
-  }
-  const issues: string[] = [];
-  if (evidenceRootExists) {
-    const expectedEntries = Object.values(V073_LOCOMO_SOURCE_ARTIFACT_PATHS)
-      .filter((path) => path.startsWith(V073_LOCOMO_CLAIM_EVIDENCE_PREFIX))
-      .map((path) => path.slice(V073_LOCOMO_CLAIM_EVIDENCE_PREFIX.length))
-      .sort();
-    try {
-      const rootInfo = await lstat(evidenceRoot);
-      const expectedRealRoot = resolve(
-        await realpath(input.repoRoot),
-        V073_LOCOMO_CLAIM_EVIDENCE_PREFIX.slice(0, -1),
-      );
-      if (
-        !rootInfo.isDirectory() ||
-        await realpath(evidenceRoot) !== expectedRealRoot
-      ) {
-        issues.push("current LoCoMo evidence root must be a real directory");
-      } else {
-        const entries = await readdir(evidenceRoot, { withFileTypes: true });
-        if (
-          entries.some((entry) => !entry.isFile()) ||
-          !sameJson(entries.map((entry) => entry.name).sort(), expectedEntries)
-        ) {
-          issues.push(
-            `current LoCoMo evidence directory must contain exactly the ${expectedEntries.length} tracked bundle files`,
-          );
-        }
-      }
-    } catch {
-      issues.push("current LoCoMo evidence root must be a real directory");
-    }
-  }
-  let projection: unknown = undefined;
-  if (projectionExists) {
-    try {
-      projection = JSON.parse(await readTrackedRegularText({
-        label: "current LoCoMo projection",
-        path: V073_LOCOMO_CURRENT_PROJECTION,
-        repoRoot: input.repoRoot,
-      })) as unknown;
-    } catch {
-      issues.push(
-        `${V073_LOCOMO_CURRENT_PROJECTION} is not a regular tracked JSON file`,
-      );
-    }
-  }
-  if (!projectionExists || !completeEvidence || partialPublication) {
+  if (
+    !isRecord(declaration) ||
+    declaration.status !== "paused_boundary" ||
+    !isRecord(declaration.claimBoundary) ||
+    declaration.claimBoundary.publicClaimAllowed !== false
+  ) {
     issues.push(
-      `current LoCoMo evidence is partial: projection and all ${Object.keys(V073_LOCOMO_SOURCE_ARTIFACT_PATHS).length} tracked source artifacts must appear together`,
+      "LoCoMo declaration must remain paused_boundary with publicClaimAllowed false",
     );
   }
-  issues.push(...stableLocomoClaimIssues({
-    claims: input.claims,
-    projection,
-    releaseStatus: input.releaseStatus,
-  }));
-  if (projectionExists && completeEvidence && isRecord(projection)) {
-    issues.push(...await validateStableLocomoClaimEvidence({
-      claimDeclaration: declaration,
-      projection,
-      repoRoot: input.repoRoot,
-    }));
-  }
-  return issues;
-}
 
-export function evaluateStableLocomoCandidateLink(input: {
-  protocolCandidateCommit: string;
-  candidatePromptSha256: string;
-  projection: unknown;
-}): V07ReleaseReadinessCheck {
-  const measuredCommit = isRecord(input.projection) &&
-    isRecord(input.projection.runIdentity)
-    ? input.projection.runIdentity.commit
-    : undefined;
-  const measuredPromptSha256 = isRecord(input.projection) &&
-    isRecord(input.projection.execution)
-    ? input.projection.execution.promptSha256
-    : undefined;
-  const matches = measuredCommit === input.protocolCandidateCommit &&
-    measuredPromptSha256 === input.candidatePromptSha256;
-  return {
-    detail: matches
-      ? `full-1540 LoCoMo claim was measured on protocol candidate ${input.protocolCandidateCommit} with prompt ${input.candidatePromptSha256}`
-      : `full-1540 LoCoMo claim commit/prompt ${String(measuredCommit ?? "<missing>")}/${String(measuredPromptSha256 ?? "<missing>")} does not match protocol candidate ${input.protocolCandidateCommit}/${input.candidatePromptSha256}`,
-    durationMs: 0,
-    id: "v0.7.3-current-claim-candidate",
-    required: true,
-    status: matches ? "pass" : "fail",
-    title: "Current LoCoMo claim candidate identity",
-  };
+  const [releaseEntries, projectionEntries] = await Promise.all([
+    listDirectoryIfPresent(join(input.repoRoot, "reports/release/v0.7")),
+    listDirectoryIfPresent(join(input.repoRoot, "benchmark-claims/evidence")),
+  ]);
+  if (
+    releaseEntries.some((name) =>
+      name.startsWith(".v0.7.3-locomo-claim-evidence.partial-") ||
+      name === ".v0.7.3-locomo-claim-publication.lock") ||
+    projectionEntries.some((name) =>
+      name.startsWith(".locomo-v0.7.3-current.json.partial-"))
+  ) {
+    issues.push("current LoCoMo publication lock is incomplete");
+  }
+
+  return issues;
 }
 
 export function parseV07ReleaseReadinessCliOptions(
@@ -3206,16 +1559,15 @@ export async function evaluateV073LifecycleProtectionBundle(input: {
     ) {
       throw new Error("measured claim recipe command template drifted");
     }
-    for (const [name, identity] of Object.entries(boundHarness)) {
-      if (name === "claimRecipe" && candidateGitObjectRaw !== undefined) {
-        continue;
-      }
-      const raw = await readFile(resolve(input.repoRoot, identity.path), "utf8");
-      if (
-        Buffer.byteLength(raw, "utf8") !== identity.bytes ||
-        sha256(raw) !== identity.sha256
-      ) {
-        throw new Error(`measurement harness bytes drifted at ${identity.path}`);
+    if (gitProbe.code !== 0) {
+      for (const identity of Object.values(boundHarness)) {
+        const raw = await readFile(resolve(input.repoRoot, identity.path), "utf8");
+        if (
+          Buffer.byteLength(raw, "utf8") !== identity.bytes ||
+          sha256(raw) !== identity.sha256
+        ) {
+          throw new Error(`measurement harness bytes drifted at ${identity.path}`);
+        }
       }
     }
     if (gitProbe.code === 0) {
@@ -3823,38 +2175,6 @@ const ALLOWED_POST_CANDIDATE_DESCRIPTOR_PATHS = new Set([
   "server.json",
 ]);
 
-const V073_PUBLIC_CLAIM_GOVERNANCE_BASELINE_COMMITS = {
-  fullClaimAttemptSentinel: "078ca74ac45fe4bd268e52921528e1e15a0ec52f",
-  fullClaimProtocolPreregistration: "3f84011ba091f295e2d1f175a9e7ba5d2faebc76",
-  protocolCandidate: "996c181e97e2d0a56bbd78957e79026af328b03b",
-} as const;
-const V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_BYTES = 4_438;
-const V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_SHA256 =
-  "fdf3535a32ed8ba5dccdfa444b18d9cd15c320d429ebbe4c987057935cdecd15";
-const V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_PATHS = [
-  V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION,
-  "tests/release/release.test.ts",
-  "tests/unit/run-public-benchmark-claim-gate.test.ts",
-  "tests/unit/run-v0-7-release-readiness.test.ts",
-] as const;
-const V073_PUBLIC_CLAIM_GOVERNANCE_IMPLEMENTATION_PATHS = [
-  ".github/workflows/release.yml",
-  "scripts/run-public-benchmark-claim-gate.ts",
-  "scripts/run-v0-7-release-readiness.ts",
-] as const;
-const V073_PUBLIC_CLAIM_GOVERNANCE_SOURCE_PATHS = [
-  ".github/workflows/release.yml",
-  "scripts/run-public-benchmark-claim-gate.ts",
-  "scripts/run-v0-7-release-readiness.ts",
-  "tests/release/release.test.ts",
-  "tests/unit/run-public-benchmark-claim-gate.test.ts",
-  "tests/unit/run-v0-7-release-readiness.test.ts",
-] as const;
-const V073_PUBLIC_CLAIM_GOVERNANCE_CHANGE_PATHS = new Set([
-  ...V073_PUBLIC_CLAIM_GOVERNANCE_IMPLEMENTATION_PATHS,
-  ...V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_PATHS,
-  V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION,
-]);
 const V073_STABLE_SOURCE_BASELINE_COMMITS = {
   governanceAttestation: "b9c9b796803b9a7a39a491abe95d4c9f802a2520",
   stableSource: "6928ffdd7545a609495ed483bc8878894980301f",
@@ -3868,14 +2188,14 @@ const V073_STABLE_SOURCE_RELEASE_PATHS = [
   ".well-known/goodmemory.json",
   "README.md",
   "README.zh-CN.md",
-  V073_LOCOMO_CURRENT_PROJECTION,
+  V073_LOCOMO_AUDIT_PROJECTION,
   "benchmark-claims/locomo.json",
   "docs/GoodMemory-Current-Status-and-Evidence.md",
   "docs/README.md",
   "docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md",
   "llms.txt",
   "package.json",
-  ...Object.entries(V073_LOCOMO_SOURCE_ARTIFACT_PATHS)
+  ...Object.entries(V073_LOCOMO_AUDIT_ARTIFACT_PATHS)
     .filter(([kind]) =>
       kind !== "protocol-attempt-sentinel" &&
       kind !== "protocol-preregistration"
@@ -3935,35 +2255,11 @@ const V073_STABLE_SOURCE_CHANGE_PATHS = new Set([
   ...V073_STABLE_SOURCE_IMPLEMENTATION_PATHS,
   V073_STABLE_SOURCE_TEST_CORRECTION_ATTESTATION,
 ]);
-const V073_POST_ATTESTATION_RELEASE_PATHS = new Set([
-  ...Object.entries(V073_LOCOMO_SOURCE_ARTIFACT_PATHS)
-    .filter(([kind]) =>
-      kind !== "protocol-attempt-sentinel" &&
-      kind !== "protocol-preregistration"
-    )
-    .map(([, path]) => path),
-  ...ALLOWED_POST_CANDIDATE_DESCRIPTOR_PATHS,
-  V073_LOCOMO_CURRENT_PROJECTION,
-  "benchmark-claims/locomo.json",
-  "docs/GoodMemory-Current-Status-and-Evidence.md",
-  "docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md",
-  "docs/README.md",
-  "package.json",
-  "README.md",
-  "README.zh-CN.md",
-  "reports/release/v0.7/phase-74-storage-scale-gate.json",
-  "reports/release/v0.7/readiness-report.json",
-  "reports/release/v0.7/summary.md",
-]);
-
 const ALLOWED_POST_CANDIDATE_PATHS = new Set([
-  ...Object.values(V073_LOCOMO_SOURCE_ARTIFACT_PATHS),
+  ...Object.values(V073_LOCOMO_AUDIT_ARTIFACT_PATHS),
   ...ALLOWED_POST_CANDIDATE_DESCRIPTOR_PATHS,
-  ...V073_PUBLIC_CLAIM_GOVERNANCE_IMPLEMENTATION_PATHS,
-  ...V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_PATHS,
-  V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION,
   ...V073_STABLE_SOURCE_CHANGE_PATHS,
-  V073_LOCOMO_CURRENT_PROJECTION,
+  V073_LOCOMO_AUDIT_PROJECTION,
   "benchmark-claims/locomo.json",
   "docs/GoodMemory-Current-Status-and-Evidence.md",
   "docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md",
@@ -4208,31 +2504,6 @@ export function evaluateV073LifecycleToProtocolSourceDrift(input: {
   };
 }
 
-interface V073PublicClaimGovernanceCorrectionInput {
-  attestation: unknown;
-  attestationChangedPaths: readonly string[];
-  attestationCommit: string;
-  attestationIsAncestor: boolean;
-  attestationParentCommit: string;
-  attestationRawAtCommit: string;
-  attestationRawCurrent: string;
-  currentCommit: string;
-  currentSourceRaws: Readonly<Record<string, string>>;
-  implementationChangedPaths: readonly string[];
-  implementationCommit: string;
-  implementationParentCommit: string;
-  implementationSourceRaws: Readonly<Record<string, string>>;
-  postAttestationChangedPaths: readonly string[];
-  preregistration: unknown;
-  preregistrationChangedPaths: readonly string[];
-  preregistrationCommit: string;
-  preregistrationParentCommit: string;
-  preregistrationRawAtCommit: string;
-  preregistrationRawCurrent: string;
-  crossHostLifecycleVerifierCorrectionValid?: boolean;
-  stableSourceCorrectionValid?: boolean;
-}
-
 function samePathSet(
   actual: readonly string[],
   expected: readonly string[],
@@ -4257,419 +2528,11 @@ function isCorrectionVerification(
     SHA256_PATTERN.test(value.outputSha256);
 }
 
-export function evaluateV073PublicClaimGovernanceCorrection(
-  input: V073PublicClaimGovernanceCorrectionInput,
-): V07ReleaseReadinessCheck {
-  const issues: string[] = [];
-  const commitValues = [
-    input.attestationCommit,
-    input.attestationParentCommit,
-    input.currentCommit,
-    input.implementationCommit,
-    input.implementationParentCommit,
-    input.preregistrationCommit,
-    input.preregistrationParentCommit,
-  ];
-  let parsedPreregistration: unknown;
-  try {
-    parsedPreregistration = JSON.parse(input.preregistrationRawAtCommit) as unknown;
-  } catch {
-    parsedPreregistration = undefined;
-  }
-  if (
-    commitValues.some((commit) => !COMMIT_PATTERN.test(commit)) ||
-    Buffer.byteLength(input.preregistrationRawAtCommit, "utf8") !==
-      V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_BYTES ||
-    sha256(input.preregistrationRawAtCommit) !==
-      V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_SHA256 ||
-    input.preregistrationRawCurrent !== input.preregistrationRawAtCommit ||
-    !isDeepStrictEqual(input.preregistration, parsedPreregistration)
-  ) {
-    issues.push("governance correction preregistration artifact is inconsistent");
-  }
-  if (
-    input.preregistrationParentCommit !==
-      V073_PUBLIC_CLAIM_GOVERNANCE_BASELINE_COMMITS.fullClaimAttemptSentinel ||
-    !samePathSet(
-      input.preregistrationChangedPaths,
-      V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION_PATHS,
-    )
-  ) {
-    issues.push("governance correction preregistration commit paths are inconsistent");
-  }
-  if (
-    input.implementationParentCommit !== input.preregistrationCommit ||
-    !samePathSet(
-      input.implementationChangedPaths,
-      V073_PUBLIC_CLAIM_GOVERNANCE_IMPLEMENTATION_PATHS,
-    )
-  ) {
-    issues.push("governance correction implementation commit paths are inconsistent");
-  }
-  if (
-    input.attestationParentCommit !== input.implementationCommit ||
-    !samePathSet(
-      input.attestationChangedPaths,
-      [V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION],
-    ) ||
-    !input.attestationIsAncestor ||
-    input.attestationRawAtCommit !== input.attestationRawCurrent
-  ) {
-    issues.push("governance correction attestation commit paths are inconsistent");
-  }
-  const forbiddenReleasePaths = input.postAttestationChangedPaths.filter(
-    (path) =>
-      !V073_POST_ATTESTATION_RELEASE_PATHS.has(path) &&
-      !(input.stableSourceCorrectionValid === true &&
-        V073_STABLE_SOURCE_CHANGE_PATHS.has(path)) &&
-      !(input.crossHostLifecycleVerifierCorrectionValid === true &&
-        V073_CROSS_HOST_LIFECYCLE_VERIFIER_CHANGE_PATHS.has(path)),
-  );
-  if (forbiddenReleasePaths.length > 0) {
-    issues.push(
-      `governance correction post-attestation release paths are inconsistent: ${
-        forbiddenReleasePaths.join(", ")
-      }`,
-    );
-  }
-
-  const attestation = input.attestation;
-  let parsedAttestation: unknown;
-  try {
-    parsedAttestation = JSON.parse(input.attestationRawAtCommit) as unknown;
-  } catch {
-    parsedAttestation = undefined;
-  }
-  const sourceArtifacts = isRecord(attestation) &&
-      Array.isArray(attestation.sourceArtifacts)
-    ? attestation.sourceArtifacts
-    : [];
-  const sourceArtifactsByPath = new Map<string, ArtifactIdentityShape>();
-  for (const artifact of sourceArtifacts) {
-    if (
-      !isArtifactIdentity(artifact) ||
-      sourceArtifactsByPath.has(artifact.path)
-    ) {
-      continue;
-    }
-    sourceArtifactsByPath.set(artifact.path, artifact);
-  }
-  const frozenSourcesValid =
-    sourceArtifacts.length === V073_PUBLIC_CLAIM_GOVERNANCE_SOURCE_PATHS.length &&
-    sourceArtifactsByPath.size === V073_PUBLIC_CLAIM_GOVERNANCE_SOURCE_PATHS.length &&
-    V073_PUBLIC_CLAIM_GOVERNANCE_SOURCE_PATHS.every((path) => {
-      const implementationRaw = input.implementationSourceRaws[path];
-      const currentRaw = input.currentSourceRaws[path];
-      const identity = sourceArtifactsByPath.get(path);
-      return implementationRaw !== undefined &&
-        currentRaw !== undefined &&
-        (currentRaw === implementationRaw ||
-          (input.stableSourceCorrectionValid === true &&
-            V073_STABLE_SOURCE_SOURCE_PATHS.includes(
-              path as (typeof V073_STABLE_SOURCE_SOURCE_PATHS)[number],
-            ))) &&
-        identity?.bytes === Buffer.byteLength(implementationRaw, "utf8") &&
-        identity.sha256 === sha256(implementationRaw);
-    });
-  if (!frozenSourcesValid) {
-    issues.push("governance correction frozen governance sources are inconsistent");
-  }
-
-  const verification = isRecord(attestation) && isRecord(attestation.verification)
-    ? attestation.verification
-    : undefined;
-  const redVerification = verification && isRecord(verification.red)
-    ? verification.red
-    : undefined;
-  const greenVerification = verification && isRecord(verification.green)
-    ? verification.green
-    : undefined;
-  const attestationValid =
-    isRecord(attestation) &&
-    isDeepStrictEqual(attestation, parsedAttestation) &&
-    attestation.artifactKind ===
-      "v0.7.3-public-claim-governance-correction-attestation" &&
-    attestation.schemaVersion === 1 &&
-    attestation.generatedBy ===
-      "v0.7.3-public-claim-governance-correction-attestation" &&
-    Number.isFinite(Date.parse(String(attestation.generatedAt))) &&
-    isDeepStrictEqual(
-      attestation.baselineCommits,
-      V073_PUBLIC_CLAIM_GOVERNANCE_BASELINE_COMMITS,
-    ) &&
-    isRecord(attestation.correctionCommits) &&
-    attestation.correctionCommits.preregistration ===
-      input.preregistrationCommit &&
-    attestation.correctionCommits.implementation === input.implementationCommit &&
-    Array.isArray(attestation.implementationDiffPaths) &&
-    attestation.implementationDiffPaths.every(
-      (path): path is string => typeof path === "string",
-    ) &&
-    samePathSet(
-      attestation.implementationDiffPaths,
-      V073_PUBLIC_CLAIM_GOVERNANCE_IMPLEMENTATION_PATHS,
-    ) &&
-    attestation.providerCalls === 0 &&
-    redVerification !== undefined &&
-    greenVerification !== undefined &&
-    isCorrectionVerification(
-      redVerification.publicClaimGate,
-      "bun test tests/unit/run-public-benchmark-claim-gate.test.ts",
-      1,
-      2,
-      39,
-    ) &&
-    isCorrectionVerification(
-      redVerification.releaseReadiness,
-      "bun test tests/unit/run-v0-7-release-readiness.test.ts " +
-        "-t governance-correction-lineage",
-      1,
-      1,
-      0,
-    ) &&
-    isCorrectionVerification(
-      redVerification.releaseWorkflowEvidence,
-      "bun test tests/release/release.test.ts --test-name-pattern " +
-        '"ships the public-claim governance correction evidence"',
-      1,
-      1,
-      0,
-    ) &&
-    isCorrectionVerification(
-      greenVerification.publicClaimGate,
-      "bun test tests/unit/run-public-benchmark-claim-gate.test.ts",
-      0,
-      0,
-      41,
-    ) &&
-    isCorrectionVerification(
-      greenVerification.releaseReadiness,
-      "bun test tests/unit/run-v0-7-release-readiness.test.ts " +
-        "-t governance-correction-lineage",
-      0,
-      0,
-      2,
-    ) &&
-    isCorrectionVerification(
-      greenVerification.releaseWorkflowEvidence,
-      "bun test tests/release/release.test.ts --test-name-pattern " +
-        '"ships the public-claim governance correction evidence"',
-      0,
-      0,
-      1,
-    ) &&
-    isCorrectionVerification(
-      greenVerification.typecheck,
-      "bun run typecheck",
-      0,
-      0,
-      1,
-    );
-  if (!attestationValid) {
-    issues.push("governance correction attestation verification results are inconsistent");
-  }
-
-  return {
-    detail: issues.length === 0
-      ? `preregistered S-D-G-A-release governance correction is frozen at ${input.implementationCommit}`
-      : issues.join("; "),
-    durationMs: 0,
-    id: "v0.7.3-public-claim-governance-correction",
-    required: true,
-    status: issues.length === 0 ? "pass" : "fail",
-    title: "v0.7.3 public-claim governance correction lineage",
-  };
-}
-
 function changedPaths(raw: string): string[] {
   return raw
     .split(/\r?\n/u)
     .map((path) => path.trim())
     .filter(Boolean);
-}
-
-export async function evaluateV073PublicClaimGovernanceCorrectionFile(input: {
-  crossHostLifecycleVerifierCorrectionValid?: boolean;
-  currentCommit: string;
-  historical?: boolean;
-  repoRoot: string;
-  stableSourceCorrectionValid?: boolean;
-}): Promise<V07ReleaseReadinessCheck> {
-  const startedAt = performance.now();
-  try {
-    const preregistrationRawCurrent = await readFile(
-      join(input.repoRoot, V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION),
-      "utf8",
-    );
-    const attestationRawCurrent = await readFile(
-      join(input.repoRoot, V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION),
-      "utf8",
-    );
-    const preregistration = JSON.parse(preregistrationRawCurrent) as unknown;
-    const attestation = JSON.parse(attestationRawCurrent) as unknown;
-    if (
-      !COMMIT_PATTERN.test(input.currentCommit) ||
-      !isRecord(attestation) ||
-      !isRecord(attestation.correctionCommits) ||
-      !COMMIT_PATTERN.test(String(attestation.correctionCommits.preregistration)) ||
-      !COMMIT_PATTERN.test(String(attestation.correctionCommits.implementation))
-    ) {
-      throw new Error("correction commit identities are inconsistent");
-    }
-    const preregistrationCommit = String(
-      attestation.correctionCommits.preregistration,
-    );
-    const implementationCommit = String(
-      attestation.correctionCommits.implementation,
-    );
-    const attestationCommitOutcome = await runCommand(
-      "git",
-      [
-        "log",
-        "-1",
-        "--format=%H",
-        "--diff-filter=A",
-        "--",
-        V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION,
-      ],
-      input.repoRoot,
-    );
-    const attestationCommit = attestationCommitOutcome.stdout.trim();
-    if (
-      attestationCommitOutcome.code !== 0 ||
-      !COMMIT_PATTERN.test(attestationCommit)
-    ) {
-      throw new Error("cannot resolve the correction attestation commit");
-    }
-
-    const git = async (args: string[]): Promise<string> => {
-      const outcome = await runCommand("git", args, input.repoRoot);
-      if (outcome.code !== 0) {
-        throw new Error(`git ${args.join(" ")} failed`);
-      }
-      return outcome.stdout;
-    };
-    const [
-      preregistrationParentCommit,
-      implementationParentCommit,
-      attestationParentCommit,
-      preregistrationChangedRaw,
-      implementationChangedRaw,
-      attestationChangedRaw,
-      postAttestationChangedRaw,
-      preregistrationRawAtCommit,
-      attestationRawAtCommit,
-      attestationAncestor,
-    ] = await Promise.all([
-      git(["rev-parse", `${preregistrationCommit}^`]),
-      git(["rev-parse", `${implementationCommit}^`]),
-      git(["rev-parse", `${attestationCommit}^`]),
-      git([
-        "diff",
-        "--name-only",
-        `${preregistrationCommit}^`,
-        preregistrationCommit,
-        "--",
-      ]),
-      git([
-        "diff",
-        "--name-only",
-        `${implementationCommit}^`,
-        implementationCommit,
-        "--",
-      ]),
-      git([
-        "diff",
-        "--name-only",
-        `${attestationCommit}^`,
-        attestationCommit,
-        "--",
-      ]),
-      git([
-        "diff",
-        "--name-only",
-        `${attestationCommit}..${input.currentCommit}`,
-        "--",
-      ]),
-      git([
-        "show",
-        `${preregistrationCommit}:${V073_PUBLIC_CLAIM_GOVERNANCE_PREREGISTRATION}`,
-      ]),
-      git([
-        "show",
-        `${attestationCommit}:${V073_PUBLIC_CLAIM_GOVERNANCE_ATTESTATION}`,
-      ]),
-      runCommand(
-        "git",
-        [
-          "merge-base",
-          "--is-ancestor",
-          attestationCommit,
-          input.currentCommit,
-        ],
-        input.repoRoot,
-      ),
-    ]);
-    if (attestationAncestor.code !== 0 && attestationAncestor.code !== 1) {
-      throw new Error("cannot compare the attestation and release commits");
-    }
-    const implementationSourceRaws: Record<string, string> = {};
-    const currentSourceRaws: Record<string, string> = {};
-    const sourceOutcomes = await Promise.all(
-      V073_PUBLIC_CLAIM_GOVERNANCE_SOURCE_PATHS.flatMap((path) => [
-        git(["show", `${implementationCommit}:${path}`]),
-        git(["show", `${input.currentCommit}:${path}`]),
-      ]),
-    );
-    V073_PUBLIC_CLAIM_GOVERNANCE_SOURCE_PATHS.forEach((path, index) => {
-      implementationSourceRaws[path] = sourceOutcomes[index * 2]!;
-      currentSourceRaws[path] = input.historical
-        ? sourceOutcomes[index * 2]!
-        : sourceOutcomes[index * 2 + 1]!;
-    });
-    const check = evaluateV073PublicClaimGovernanceCorrection({
-      attestation,
-      attestationChangedPaths: changedPaths(attestationChangedRaw),
-      attestationCommit,
-      attestationIsAncestor: attestationAncestor.code === 0,
-      attestationParentCommit: attestationParentCommit.trim(),
-      attestationRawAtCommit,
-      attestationRawCurrent,
-      currentCommit: input.historical ? attestationCommit : input.currentCommit,
-      currentSourceRaws,
-      crossHostLifecycleVerifierCorrectionValid:
-        input.crossHostLifecycleVerifierCorrectionValid,
-      implementationChangedPaths: changedPaths(implementationChangedRaw),
-      implementationCommit,
-      implementationParentCommit: implementationParentCommit.trim(),
-      implementationSourceRaws,
-      postAttestationChangedPaths: input.historical
-        ? []
-        : changedPaths(postAttestationChangedRaw),
-      preregistration,
-      preregistrationChangedPaths: changedPaths(preregistrationChangedRaw),
-      preregistrationCommit,
-      preregistrationParentCommit: preregistrationParentCommit.trim(),
-      preregistrationRawAtCommit,
-      preregistrationRawCurrent,
-      stableSourceCorrectionValid: input.stableSourceCorrectionValid,
-    });
-    return {
-      ...check,
-      durationMs: Math.round(performance.now() - startedAt),
-    };
-  } catch (error) {
-    return {
-      detail: `cannot verify public-claim governance correction: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-      durationMs: Math.round(performance.now() - startedAt),
-      id: "v0.7.3-public-claim-governance-correction",
-      required: true,
-      status: "fail",
-      title: "v0.7.3 public-claim governance correction lineage",
-    };
-  }
 }
 
 interface V073CrossHostLifecycleVerifierCorrectionInput {
@@ -5457,30 +3320,31 @@ export async function evaluateV073StableSourceTestCorrectionFile(input: {
     const implementationSourceRaws: Record<string, string> = {};
     const currentSourceRaws: Record<string, string> = {};
     const sourceOutcomes = await Promise.all(
-      V073_STABLE_SOURCE_SOURCE_PATHS.flatMap((path) => {
+      V073_STABLE_SOURCE_SOURCE_PATHS.map(async (path) => {
         const sourceCommit = V073_STABLE_SOURCE_IMPLEMENTATION_PATHS.includes(
             path as (typeof V073_STABLE_SOURCE_IMPLEMENTATION_PATHS)[number],
           )
           ? implementationCommit
           : V073_STABLE_SOURCE_PREREGISTRATION_COMMIT;
-        return [
-          git(["show", `${sourceCommit}:${path}`]),
-          git(["show", `${input.currentCommit}:${path}`]),
-        ];
+        const sourceRaw = await git(["show", `${sourceCommit}:${path}`]);
+        return {
+          currentRaw: input.historical
+            ? sourceRaw
+            : await git(["show", `${input.currentCommit}:${path}`]),
+          sourceRaw,
+        };
       }),
     );
     V073_STABLE_SOURCE_SOURCE_PATHS.forEach((path, index) => {
-      const sourceRaw = sourceOutcomes[index * 2]!;
+      const outcome = sourceOutcomes[index]!;
       if (V073_STABLE_SOURCE_IMPLEMENTATION_PATHS.includes(
         path as (typeof V073_STABLE_SOURCE_IMPLEMENTATION_PATHS)[number]
       )) {
-        implementationSourceRaws[path] = sourceRaw;
+        implementationSourceRaws[path] = outcome.sourceRaw;
       } else {
-        preregistrationSourceRaws[path] = sourceRaw;
+        preregistrationSourceRaws[path] = outcome.sourceRaw;
       }
-      currentSourceRaws[path] = input.historical
-        ? sourceRaw
-        : sourceOutcomes[index * 2 + 1]!;
+      currentSourceRaws[path] = outcome.currentRaw;
     });
 
     const check = evaluateV073StableSourceTestCorrection({
@@ -5665,58 +3529,20 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
       await readFile(join(input.repoRoot, "package.json"), "utf8"),
     ) as PackageJson;
     const historical = packageJson.version === RELEASE_VERSION;
-    const claimCandidateChecks: V07ReleaseReadinessCheck[] = [];
-    const currentProjectionExists = await pathExists(
-      join(input.repoRoot, V073_LOCOMO_CURRENT_PROJECTION),
-    );
-    let projection: unknown = undefined;
-    if (
-      packageJson.goodmemoryRelease?.status === "stable" ||
-      currentProjectionExists
-    ) {
-      try {
-        projection = JSON.parse(
-          await readFile(join(input.repoRoot, V073_LOCOMO_CURRENT_PROJECTION), "utf8"),
-        ) as unknown;
-      } catch {
-        projection = undefined;
-      }
-    }
-    let preregistration: unknown = undefined;
-    const preregistrationPath = join(
-      input.repoRoot,
-      V073_FULL_CLAIM_PROTOCOL2_PREREGISTRATION_PATH,
-    );
-    if (await pathExists(preregistrationPath)) {
-      try {
-        preregistration = JSON.parse(
-          await readFile(preregistrationPath, "utf8"),
-        ) as unknown;
-      } catch {
-        preregistration = undefined;
-      }
-    }
-    const projectionCommit = isRecord(projection) &&
-        isRecord(projection.runIdentity) &&
-        COMMIT_PATTERN.test(String(projection.runIdentity.commit))
-      ? String(projection.runIdentity.commit)
-      : undefined;
+    const preregistration = JSON.parse(
+      await readFile(
+        join(input.repoRoot, V073_FULL_CLAIM_PROTOCOL2_PREREGISTRATION_PATH),
+        "utf8",
+      ),
+    ) as unknown;
     const preregisteredCommit = isRecord(preregistration) &&
         COMMIT_PATTERN.test(String(preregistration.protocolCandidateCommit))
       ? String(preregistration.protocolCandidateCommit)
       : undefined;
-    const protocolCandidateCommit = projectionCommit ??
-      preregisteredCommit ?? input.currentCommit;
-    if (
-      packageJson.goodmemoryRelease?.status === "stable" ||
-      currentProjectionExists
-    ) {
-      claimCandidateChecks.push(evaluateStableLocomoCandidateLink({
-        protocolCandidateCommit,
-        candidatePromptSha256: String(artifact.candidatePromptSha256),
-        projection,
-      }));
+    if (!preregisteredCommit) {
+      throw new Error("historical protocol candidate identity is invalid");
     }
+    const protocolCandidateCommit = preregisteredCommit;
     const [
       lifecycleAncestor,
       lifecycleChanged,
@@ -5762,7 +3588,6 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
     ) {
       return [
         bundleCheck,
-        ...claimCandidateChecks,
         {
           detail: "cannot compare the measured candidate with the release source",
           durationMs: Math.round(performance.now() - startedAt),
@@ -5881,25 +3706,14 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
         currentPackage,
         isAncestor: releaseAncestor.code === 0,
       });
-    const governanceCorrectionCheck = releaseChangedPaths.some((path) =>
-        V073_PUBLIC_CLAIM_GOVERNANCE_CHANGE_PATHS.has(path)
-      )
-      ? await evaluateV073PublicClaimGovernanceCorrectionFile({
-        crossHostLifecycleVerifierCorrectionValid,
-        currentCommit: input.currentCommit,
-        historical,
-        repoRoot: input.repoRoot,
-        stableSourceCorrectionValid:
-          stableSourceCorrectionCheck?.status === "pass",
-      })
-      : undefined;
     return [
       bundleCheck,
-      ...claimCandidateChecks,
-      {
-        ...protocolSourceCheck,
-        durationMs: Math.round(performance.now() - startedAt),
-      },
+      ...(protocolSourceCheck
+        ? [{
+          ...protocolSourceCheck,
+          durationMs: Math.round(performance.now() - startedAt),
+        }]
+        : []),
       {
         ...sourceCheck,
         durationMs: Math.round(performance.now() - startedAt),
@@ -5908,7 +3722,6 @@ export async function evaluateV073LifecycleProtectionArtifactFile(input: {
       ...(crossHostLifecycleVerifierCorrectionCheck
         ? [crossHostLifecycleVerifierCorrectionCheck]
         : []),
-      ...(governanceCorrectionCheck ? [governanceCorrectionCheck] : []),
     ];
   } catch (error) {
     return [{
@@ -6205,9 +4018,9 @@ export async function evaluateVersionConsistency(
       `package-lock.json root versions do not match ${RELEASE_VERSION}`,
     );
   }
-  if (!packageJson.files?.includes(V073_LOCOMO_CURRENT_PROJECTION)) {
+  if (packageJson.files?.some((path) => path.startsWith("benchmark-claims/"))) {
     issues.push(
-      `package.json files must include ${V073_LOCOMO_CURRENT_PROJECTION}`,
+      "package.json must not publish audit-only benchmark claim projections",
     );
   }
   if (
@@ -6254,18 +4067,8 @@ export async function evaluateVersionConsistency(
     );
   }
 
-  const benchmarkVersions =
-    capability.benchmarks?.currentClaims?.map(
-      (claim) => claim.measuredPackageVersion,
-    ) ?? [];
-  if (benchmarkVersions.length > 0) {
-    issues.push(
-      `${RELEASE_VERSION} has no newly measured current benchmark claim; v${HISTORICAL_LOCOMO_VERSION} evidence must remain historical`,
-    );
-  }
   issues.push(...await evaluateV073CurrentLocomoClaimState({
     claims: capability.benchmarks?.currentClaims ?? [],
-    releaseStatus: packageRelease?.status,
     repoRoot,
   }));
 

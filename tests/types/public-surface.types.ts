@@ -37,6 +37,27 @@ type RootCreatePromotionRecord = typeof import("../../src").createPromotionRecor
 // @ts-expect-error Root barrel must not expose internal archive constructors.
 type RootCreateSessionArchive = typeof import("../../src").createSessionArchive;
 
+type PublicDurableOptOutTargetSelector =
+  import("../../src").DurableOptOutTargetSelector;
+type PublicGoodMemoryPolicyHooks = import("../../src").GoodMemoryPolicyHooks;
+type PublicPolicyRedactionResult = Awaited<ReturnType<
+  NonNullable<PublicGoodMemoryPolicyHooks["redact"]>
+>>;
+const publicPolicyRedactionResult = null as unknown as PublicPolicyRedactionResult;
+const publicPolicyRedactionCandidateId: string = publicPolicyRedactionResult.id;
+const publicDurableOptOutTargetSelector = {
+  identities: [{ slot: "profile:name", value: "Lin" }],
+  match: "exact",
+  text: "name=Lin",
+} satisfies PublicDurableOptOutTargetSelector;
+const legacyDurableOptOutTargetSelectorShape = {
+  identity: { slot: "profile:name", value: "Lin" },
+  match: "exact" as const,
+  text: "name=Lin",
+};
+const legacyDurableOptOutTargetSelector: PublicDurableOptOutTargetSelector =
+  legacyDurableOptOutTargetSelectorShape;
+
 void (0 as unknown as RootMemoryRepositories);
 void (0 as unknown as RootMemoryRepositoriesConfig);
 void (0 as unknown as RootCreateMemoryRepositories);
@@ -50,3 +71,6 @@ void (0 as unknown as RootSessionArchive);
 void (0 as unknown as RootCreateLearningProposal);
 void (0 as unknown as RootCreatePromotionRecord);
 void (0 as unknown as RootCreateSessionArchive);
+void publicDurableOptOutTargetSelector;
+void legacyDurableOptOutTargetSelector;
+void publicPolicyRedactionCandidateId;

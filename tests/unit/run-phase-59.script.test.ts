@@ -5,6 +5,10 @@ import { join } from "node:path";
 import type { ImplicitMemBenchResearchDependencies } from "../../src/eval/implicitmembench-research";
 import { runPhase59Eval } from "../../scripts/run-phase-59-eval";
 import {
+  PHASE59_CANONICAL_GATE_RUN_ID,
+  runPhase59Gate,
+} from "../../scripts/run-phase-59-gate";
+import {
   PHASE59_CANONICAL_LIVE_RUN_ID,
   runPhase59LiveMemoryEval,
 } from "../../scripts/run-phase-59-live-memory";
@@ -201,7 +205,7 @@ describe("run-phase-59 scripts", () => {
     });
   });
 
-  it("covers every targeted phase-59 case without deterministic execution failures", async () => {
+  it("fails closed for transcript-only raw examples while retaining distilled coverage", async () => {
     const outputDir = await createTempDir("phase59-fallback");
     const report = await runPhase59Eval({
       outputDir,
@@ -211,18 +215,56 @@ describe("run-phase-59 scripts", () => {
     expect(report.mode).toBe("smoke");
     expect(report.summary.executionFailures).toBe(0);
     expect(report.summary.totalBlockingCases).toBe(120);
-    expect(report.summary.passedBlockingCases).toBeGreaterThanOrEqual(104);
+    expect(report.summary.passedBlockingCases).toBe(60);
     expect(
       report.profiles["goodmemory-raw-experience"]?.totalBlockingCases,
     ).toBe(60);
     expect(
       report.profiles["goodmemory-raw-experience"]?.passedBlockingCases,
-    ).toBeGreaterThanOrEqual(48);
+    ).toBe(0);
+    expect(
+      report.profiles["goodmemory-raw-experience"]?.cases.every(
+        (caseResult) =>
+          caseResult.rawCarryover?.abstainReason === "no_candidates" &&
+          caseResult.rawCarryover.candidatePrototypeIds.length === 0 &&
+          caseResult.rawCarryover.selectedPrototypeIds.length === 0,
+      ),
+    ).toBe(true);
     expect(
       report.profiles["goodmemory-distilled-feedback"]?.totalBlockingCases,
     ).toBe(60);
     expect(
       report.profiles["goodmemory-distilled-feedback"]?.passedBlockingCases,
     ).toBeGreaterThanOrEqual(56);
+
+    const gate = await runPhase59Gate(
+      {
+        outputDir,
+      },
+      {
+        ensureDir: async () => undefined,
+        now: () => "2026-08-13T00:00:00.000Z",
+        readTextFile: async () => JSON.stringify(report),
+        runCommand: async () => ({
+          durationMs: 1,
+          exitCode: 0,
+          stderr: "",
+          stdout: "ok",
+        }),
+        writeTextFile: async () => undefined,
+      },
+    );
+
+    expect(gate.acceptance).toEqual({
+      decision: "accepted",
+      reason:
+        "Phase 59 transcript-only raw fixtures failed closed and the distilled profile passed the deterministic gate.",
+    });
+    expect(gate.runId).toBe(PHASE59_CANONICAL_GATE_RUN_ID);
+    expect(gate.runId).not.toBe("run-20260504193000");
+    expect(gate.evidence.rawInternalizationDiagnostics.byDiagnosis.memory_miss).toBe(60);
+    expect(
+      gate.evidence.rawInternalizationDiagnostics.byDiagnosis.selected_and_passed,
+    ).toBe(0);
   });
 });

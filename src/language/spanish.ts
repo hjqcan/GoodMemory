@@ -438,7 +438,7 @@ const SPANISH_MONTHS = [
 ] as const;
 
 const DEFINITION = {
-  analyzerVersion: "10-reported-directive-scope",
+  analyzerVersion: "11-durable-optout-boundary",
   behavioralRulePatterns: {
     firstAction: [
       /(?:primero|en\s+primer\s+lugar)\s+([A-Za-z_][A-Za-z0-9_@.-]*)/iu,
@@ -467,8 +467,8 @@ const DEFINITION = {
   compatibilityGroup: "es",
   defaultLocale: "es-ES",
   durableTargetAliases: {
-    "codigo de proyecto": "project_code",
-    "código de proyecto": "project_code",
+    "codigo de proyecto": "assignment:project_code",
+    "código de proyecto": "assignment:project_code",
     "idioma preferido": "profile:languagePreference",
     "proyecto actual": "profile:currentProject",
     función: "profile:role",
@@ -545,7 +545,7 @@ const DEFINITION = {
     futurePlan:
       /^(?:(?:mañana\s+)?(?:yo\s+)?(?:voy\s+a|iré|pienso|planeo|tengo\s+previsto)(?=\s|[.!?]|$)|(?:yo\s+)?\p{L}+(?:ré|rás|rá|remos|réis|rán)(?=\s|[.!?]|$)[^.!?]*\b(?:mañana|pasado\s+mañana|la\s+semana\s+próxima|el\s+mes\s+próximo|el\s+trimestre\s+próximo|el\s+año\s+próximo)\b)/iu,
     hasReportedDirectiveScope({ prefix }) {
-      return /(?:^|[.!?]\s*)(?:(?:yo|nosotros|nosotras|él|ella|ellos|ellas)\s+)?(?:no\s+)?(?:(?:he|hemos|ha|han)\s+)?(?:dije|dijo|dijimos|dijeron|dicho|pedí|pidió|pedimos|pidieron|escribí|escribió|afirmé|afirmó|cité|citó)\s*(?:que)?\s*[:：,]?\s*$/iu.test(
+      return /(?:^|[.!?]\s*)(?:(?:(?:yo|nosotros|nosotras|él|ella|ellos|ellas)\s+)?(?:no\s+)?(?:(?:he|hemos|ha|han)\s+)?(?:dije|dijo|dijimos|dijeron|dicho|pedí|pidió|pedimos|pidieron|escribí|escribió|afirmé|afirmó|cité|citó)\s*(?:que)?|(?:la\s+frase|la\s+guía|la\s+documentación))\s*[:：,]?\s*$/iu.test(
         prefix,
       );
     },

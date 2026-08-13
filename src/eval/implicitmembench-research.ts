@@ -2603,7 +2603,6 @@ async function buildMemoryContext(
     immediateFeedbackSignal?: string;
     profile?: ImplicitMemBenchResearchProfile;
     scorerFamily?: ImplicitMemBenchScorerFamily;
-    transientMessages?: readonly ImplicitMemBenchMessage[];
   },
 ): Promise<{
   content: string;
@@ -2632,19 +2631,17 @@ async function buildMemoryContext(
   if (options?.profile === "goodmemory-raw-experience") {
     const rawIndex = buildRawBehavioralPrototypeIndex({
       memoryExport: {
-        durable: {
-          archives: exported.durable.archives,
-          episodes: exported.durable.episodes,
-          experiences: exported.durable.experiences,
-        },
+        durable: { experiences: exported.durable.experiences },
         scope: exported.scope,
       },
       recallHints: {
         candidateTraces: recall.metadata.candidateTraces,
         hits: recall.metadata.hits,
       },
+      retrievalProfile: surfaceFamily === "host_action"
+        ? "coding_agent"
+        : "general_chat",
       surfaceHint: surfaceFamily,
-      transientMessages: options.transientMessages,
     });
     const rawCarryover = resolveRawBehavioralCarryover({
       index: rawIndex,
@@ -2822,26 +2819,6 @@ async function buildMemoryContext(
     },
     textResponsePlan,
   };
-}
-
-function flattenImplicitMemBenchMessages(
-  messages: readonly ImplicitMemBenchMessage[],
-): ImplicitMemBenchMessage[] {
-  return messages
-    .map((message) => ({
-      content: message.content,
-      role: message.role,
-    }))
-    .filter((message) => message.content.trim().length > 0);
-}
-
-function collectNonPrimingReplayMessages(
-  instance: NonPrimingDatasetInstance,
-): ImplicitMemBenchMessage[] {
-  return [
-    ...flattenImplicitMemBenchMessages(instance.learning_phase),
-    ...flattenImplicitMemBenchMessages(instance.interference_phase),
-  ];
 }
 
 const IMPLICITMEMBENCH_IMMEDIATE_FEEDBACK_TIMESTAMP =
@@ -4260,9 +4237,6 @@ async function evaluateGoodMemoryCase(input: {
               : {}),
             profile: input.profile,
             scorerFamily: input.caseDefinition.scorerFamily,
-            transientMessages: collectNonPrimingReplayMessages(
-              input.caseDefinition.instance,
-            ),
           },
         );
         const answer = await generateTextAnswer({

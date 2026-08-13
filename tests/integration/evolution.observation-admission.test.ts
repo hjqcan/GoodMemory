@@ -177,7 +177,7 @@ describe("evolution observation admission", () => {
     });
     expect(reviewedScopes).toHaveLength(2);
 
-    await runtime.handleBehavioralOutcome({
+    const behavioralOutcome = {
       result: {
         cue: "Copy the report.",
         failureClass: "arg_order",
@@ -187,7 +187,10 @@ describe("evolution observation admission", () => {
         saferAlternative: { kind: "tool_call", name: "copy_file_safely" },
       },
       scope,
-    });
+      traceId: "review-admission-outcome",
+    } satisfies Parameters<typeof runtime.handleBehavioralOutcome>[0];
+    await runtime.handleBehavioralOutcome(behavioralOutcome);
+    await runtime.handleBehavioralOutcome(behavioralOutcome);
     expect(reviewedScopes).toHaveLength(3);
     expect((await repositories.experiences.listByScope(scope)).map(
       (experience) => experience.kind,
@@ -199,8 +202,8 @@ describe("evolution observation admission", () => {
       documentStore: createInMemoryDocumentStore(),
       sessionStore: createInMemorySessionStore(),
     });
-    repositories.experiences.add = async () => {
-      throw new Error("simulated experience write failure");
+    repositories.behavioralOutcomes.add = async () => {
+      throw new Error("simulated behavioral outcome write failure");
     };
     let reviewCount = 0;
     const runtime = createEvolutionRuntime({
@@ -218,7 +221,7 @@ describe("evolution observation admission", () => {
       },
     });
 
-    await runtime.handleBehavioralOutcome({
+    await expect(runtime.handleBehavioralOutcome({
       result: {
         cue: "Copy the report.",
         failureClass: "arg_order",
@@ -228,7 +231,7 @@ describe("evolution observation admission", () => {
         saferAlternative: { kind: "tool_call", name: "copy_file_safely" },
       },
       scope: { userId: "failed-actionable-observation" },
-    });
+    })).rejects.toThrow("simulated behavioral outcome write failure");
 
     expect(reviewCount).toBe(0);
   });

@@ -1,5 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import { createEpisodeMemory } from "../../src/domain/records";
 import {
   applyTextResponseEnactmentPlan,
   recoverCanonicalActionFromTemplate,
@@ -7,12 +6,14 @@ import {
 import { buildBehavioralOutcomeExperienceRecord } from "../../src/evolution/behavioralTelemetry";
 import { createExperienceRecord } from "../../src/evolution/contracts";
 import {
-  buildRawBehavioralPrototypeIndex,
+  buildRawBehavioralPrototypeIndex as buildCanonicalRawBehavioralPrototypeIndex,
   renderRawBehavioralCarryoverContext,
   resolveRawBehavioralCarryover,
   selectRawBehavioralExemplars,
+  type BuildRawBehavioralPrototypeIndexInput,
   type RawBehavioralExemplar,
   type RawBehavioralPrototypeIndex,
+  type RawBehavioralSurfaceFamily,
 } from "../../src/evolution/rawBehavioralExemplars";
 import { createLanguageService } from "../../src/language";
 
@@ -21,34 +22,149 @@ const baseScope = {
   workspaceId: "raw-exemplar-workspace",
 };
 
-describe("raw behavioral exemplars", () => {
-  it("recognizes localized failure and correction outcomes through LanguagePack", () => {
-    const index = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: { archives: [], episodes: [], experiences: [] },
-        scope: baseScope,
+type ScenarioMessage = { content: string; role: string };
+
+function buildScenarioExperience(input: {
+  cue: string;
+  failedMove?: string;
+  failureClass?: string;
+  id: string;
+  saferMove: string;
+  surfaceHint: RawBehavioralSurfaceFamily;
+}) {
+  return buildBehavioralOutcomeExperienceRecord({
+    createdAt: "2026-05-04T00:00:00.000Z",
+    createId: () => input.id,
+    result: {
+      cue: input.cue,
+      failureClass: input.failureClass ?? "prior_move_failed",
+      firstAction: {
+        kind: "warning",
+        name: "failed_prior_move",
+        raw: input.failedMove ?? "The earlier first move failed.",
       },
-      runtimeMessages: [
-        { content: "Déploie Atlas.", role: "user" },
-        { content: "J’utilise LegacyDeploy.", role: "assistant" },
-        { content: "Échec : LegacyDeploy est obsolète.", role: "system" },
-        { content: "À la place, utilise SafeDeploy.", role: "user" },
-        { content: "SafeDeploy()", role: "assistant" },
-        { content: "Succès : déploiement terminé.", role: "system" },
-      ],
-      surfaceHint: "host_action",
-    });
-
-    expect(index.exemplars).toContainEqual(
-      expect.objectContaining({
-        episodeShape: expect.objectContaining({
-          observedOutcome: expect.stringContaining("Échec"),
-          safeCorrectedMove: "SafeDeploy()",
-        }),
-      }),
-    );
+      modelInfluence: "rules-only",
+      retrievalProfile: input.surfaceHint === "host_action"
+        ? "coding_agent"
+        : "general_chat",
+      saferAlternative: {
+        kind: "warning",
+        name: "safer_alternative",
+        raw: input.saferMove,
+      },
+    },
+    scope: baseScope,
+    traceId: `trace-${input.id}`,
   });
+}
 
+function scenarioExperiences(
+  messages: readonly ScenarioMessage[],
+  surfaceHint: RawBehavioralSurfaceFamily,
+) {
+  const language = createLanguageService();
+  const analyze = (content: string) => {
+    const context = language.resolveFromText({ text: content });
+    return language.analyzeContent(content, context);
+  };
+  const systemFailure = (content: string | undefined) => {
+    if (!content) {
+      return undefined;
+    }
+    const analysis = analyze(content);
+    return analysis.factPolarity === "negative" || analysis.unresolved
+      ? content.trim()
+      : undefined;
+  };
+  const correctionText = (content: string | undefined) => {
+    if (!content || !analyze(content).correctionCue) {
+      return undefined;
+    }
+    return content.match(/^[^:：]+[:：]\s*(.+)$/u)?.[1]?.trim() ?? content.trim();
+  };
+  const experiences: ReturnType<typeof buildScenarioExperience>[] = [];
+  for (let index = 0; index < messages.length - 1; index += 1) {
+    const current = messages[index];
+    const next = messages[index + 1];
+    if (current?.role !== "user" || next?.role !== "assistant") {
+      continue;
+    }
+
+    const third = messages[index + 2];
+    const fourth = messages[index + 3];
+    const failure = third?.role === "system"
+      ? systemFailure(third.content)
+      : undefined;
+    let saferMove =
+      (third?.role === "system" ? correctionText(third.content) : undefined) ??
+      (fourth?.role === "system" ? correctionText(fourth.content) : undefined);
+    if (failure || saferMove) {
+      for (let cursor = index + 3; cursor < Math.min(messages.length - 1, index + 16); cursor += 1) {
+        const correction = messages[cursor];
+        const corrected = messages[cursor + 1];
+        const after = messages[cursor + 2];
+        if (
+          correction?.role === "user" &&
+          corrected?.role === "assistant" &&
+          (analyze(correction.content).correctionCue ||
+            (after?.role === "system" && !systemFailure(after.content)))
+        ) {
+          saferMove = corrected.content;
+          break;
+        }
+      }
+    }
+    if (failure && !saferMove) {
+      continue;
+    }
+
+    experiences.push(buildScenarioExperience({
+      cue: current.content,
+      failedMove: next.content,
+      failureClass: failure,
+      id: `scenario-${index}`,
+      saferMove: saferMove ?? next.content,
+      surfaceHint,
+    }));
+  }
+  return experiences;
+}
+
+function buildScenarioIndex(input: {
+  memoryExport: {
+    durable: {
+      archives?: readonly unknown[];
+      episodes?: readonly unknown[];
+      experiences: BuildRawBehavioralPrototypeIndexInput["memoryExport"]["durable"]["experiences"];
+    };
+    scope: BuildRawBehavioralPrototypeIndexInput["memoryExport"]["scope"];
+  };
+  recallHints?: BuildRawBehavioralPrototypeIndexInput["recallHints"];
+  retrievalProfile?: BuildRawBehavioralPrototypeIndexInput["retrievalProfile"];
+  scenarioMessages?: readonly ScenarioMessage[];
+  surfaceHint?: RawBehavioralSurfaceFamily;
+}) {
+  const surfaceHint = input.surfaceHint ?? "text_response";
+  return buildCanonicalRawBehavioralPrototypeIndex({
+    memoryExport: {
+      durable: {
+        experiences: [
+          ...input.memoryExport.durable.experiences,
+          ...scenarioExperiences(input.scenarioMessages ?? [], surfaceHint),
+        ],
+      },
+      scope: input.memoryExport.scope,
+    },
+    recallHints: input.recallHints,
+    retrievalProfile: input.retrievalProfile ??
+      (input.scenarioMessages
+        ? surfaceHint === "host_action" ? "coding_agent" : "general_chat"
+        : undefined),
+    surfaceHint,
+  });
+}
+
+describe("raw behavioral exemplars", () => {
   it("renders behavioral context headings through the selected language pack", () => {
     const exemplar: RawBehavioralExemplar = {
       confidence: 0.9,
@@ -72,7 +188,7 @@ describe("raw behavioral exemplars", () => {
       interferenceTags: [],
       retrievalText: "심층 분석에서는 QuickCheck를 먼저 실행",
       scope: baseScope,
-      source: "episode",
+      source: "tool_outcome",
       sourceIds: ["localized-context"],
       surfaceFamily: "host_action",
       transferMode: "prototype_bounded",
@@ -99,27 +215,25 @@ describe("raw behavioral exemplars", () => {
   });
 
   it("uses LanguagePack tokenization for Hangul raw carryover", () => {
-    const index = buildRawBehavioralPrototypeIndex({
+    const index = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
-          episodes: [
-            createEpisodeMemory({
+          episodes: [],
+          experiences: [
+            buildScenarioExperience({
+              cue: "심층 분석 전에 빠른 검증을 실행합니다.",
               id: "ko-policy-1",
-              keyDecisions: ["심층 분석에서는 QuickCheck를 먼저 실행하세요."],
-              summary: "심층 분석 전에 빠른 검증을 실행합니다.",
-              userId: baseScope.userId,
-              workspaceId: baseScope.workspaceId,
+              saferMove: "심층 분석에서는 QuickCheck를 먼저 실행하세요.",
+              surfaceHint: "host_action",
             }),
-            createEpisodeMemory({
+            buildScenarioExperience({
+              cue: "심층 분석 전에 빠른 검증을 실행합니다.",
               id: "ko-policy-2",
-              keyDecisions: ["심층 분석에서는 QuickCheck를 먼저 실행하세요."],
-              summary: "심층 분석 전에 빠른 검증을 실행합니다.",
-              userId: baseScope.userId,
-              workspaceId: baseScope.workspaceId,
+              saferMove: "심층 분석에서는 QuickCheck를 먼저 실행하세요.",
+              surfaceHint: "host_action",
             }),
           ],
-          experiences: [],
         },
         scope: baseScope,
       },
@@ -137,37 +251,35 @@ describe("raw behavioral exemplars", () => {
   });
 
   it("keeps conflicting exact surfaces in separate prototypes and builds hard negatives", () => {
-    const index = buildRawBehavioralPrototypeIndex({
+    const index = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
-          episodes: [
-            createEpisodeMemory({
-              id: "episode-safe-home-1",
-              userId: baseScope.userId,
-              summary: "Write the backup to /home/alice/backups/report.tar.",
-              keyDecisions: ["Use /home/alice/backups/report.tar."],
-              workspaceId: baseScope.workspaceId,
+          episodes: [],
+          experiences: [
+            buildScenarioExperience({
+              cue: "Write the backup to /home/alice/backups/report.tar.",
+              id: "safe-home-1",
+              saferMove: "Use /home/alice/backups/report.tar.",
+              surfaceHint: "text_response",
             }),
-            createEpisodeMemory({
-              id: "episode-safe-home-2",
-              userId: baseScope.userId,
-              summary: "Write the backup to /home/alice/backups/report.tar.",
-              keyDecisions: ["Use /home/alice/backups/report.tar."],
-              workspaceId: baseScope.workspaceId,
+            buildScenarioExperience({
+              cue: "Write the backup to /home/alice/backups/report.tar.",
+              id: "safe-home-2",
+              saferMove: "Use /home/alice/backups/report.tar.",
+              surfaceHint: "text_response",
             }),
-            createEpisodeMemory({
-              id: "episode-safe-srv",
-              userId: baseScope.userId,
-              summary: "Write the backup to /srv/shared/report.tar.",
-              keyDecisions: ["Use /srv/shared/report.tar."],
-              workspaceId: baseScope.workspaceId,
+            buildScenarioExperience({
+              cue: "Write the backup to /srv/shared/report.tar.",
+              id: "safe-srv",
+              saferMove: "Use /srv/shared/report.tar.",
+              surfaceHint: "text_response",
             }),
           ],
-          experiences: [],
         },
         scope: baseScope,
       },
+      retrievalProfile: "general_chat",
       surfaceHint: "text_response",
     });
 
@@ -201,7 +313,7 @@ describe("raw behavioral exemplars", () => {
       scope: baseScope,
       traceId: "trace-1",
     });
-    const index = buildRawBehavioralPrototypeIndex({
+    const index = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -257,7 +369,7 @@ describe("raw behavioral exemplars", () => {
       traceId: `trace-${id}`,
     });
 
-    const noProfile = buildRawBehavioralPrototypeIndex({
+    const noProfile = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -269,7 +381,7 @@ describe("raw behavioral exemplars", () => {
       retrievalProfile: "coding_agent",
       surfaceHint: "host_action",
     });
-    const wrongProfile = buildRawBehavioralPrototypeIndex({
+    const wrongProfile = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -281,7 +393,7 @@ describe("raw behavioral exemplars", () => {
       retrievalProfile: "coding_agent",
       surfaceHint: "host_action",
     });
-    const wrongReverseProfile = buildRawBehavioralPrototypeIndex({
+    const wrongReverseProfile = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -293,7 +405,7 @@ describe("raw behavioral exemplars", () => {
       retrievalProfile: "general_chat",
       surfaceHint: "text_response",
     });
-    const matchingProfile = buildRawBehavioralPrototypeIndex({
+    const matchingProfile = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -305,7 +417,7 @@ describe("raw behavioral exemplars", () => {
       retrievalProfile: "coding_agent",
       surfaceHint: "host_action",
     });
-    const missingCurrentProfile = buildRawBehavioralPrototypeIndex({
+    const missingCurrentProfile = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -316,7 +428,7 @@ describe("raw behavioral exemplars", () => {
       },
       surfaceHint: "host_action",
     });
-    const missingSaferAlternative = buildRawBehavioralPrototypeIndex({
+    const missingSaferAlternative = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -340,7 +452,7 @@ describe("raw behavioral exemplars", () => {
       retrievalProfile: "coding_agent",
       surfaceHint: "host_action",
     });
-    const legacyTagged = buildRawBehavioralPrototypeIndex({
+    const legacyTagged = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -393,7 +505,7 @@ describe("raw behavioral exemplars", () => {
         workspaceId: baseScope.workspaceId,
       });
     });
-    const index = buildRawBehavioralPrototypeIndex({
+    const index = buildScenarioIndex({
       memoryExport: {
         durable: { archives: [], episodes: [], experiences },
         scope: baseScope,
@@ -405,8 +517,8 @@ describe("raw behavioral exemplars", () => {
     expect(index.exemplars).toEqual([]);
   });
 
-  it("treats malformed archive and episode arrays as empty during index construction", () => {
-    const index = buildRawBehavioralPrototypeIndex({
+  it("does not admit archive or episode content into the typed outcome index", () => {
+    const index = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [
@@ -421,12 +533,8 @@ describe("raw behavioral exemplars", () => {
           ],
           episodes: [
             {
-              ...createEpisodeMemory({
-                id: "episode-missing-arrays",
-                userId: baseScope.userId,
-                summary: "Prefer a one-line answer with the requested prefix.",
-                workspaceId: baseScope.workspaceId,
-              }),
+              id: "episode-legacy",
+              summary: "Prefer a one-line answer with the requested prefix.",
               keyDecisions: undefined,
               unresolvedItems: undefined,
             } as any,
@@ -435,15 +543,11 @@ describe("raw behavioral exemplars", () => {
         },
         scope: baseScope,
       },
+      retrievalProfile: "general_chat",
       surfaceHint: "text_response",
     });
 
-    expect(index.exemplars.length).toBeGreaterThanOrEqual(1);
-    expect(
-      index.exemplars.every((exemplar) =>
-        exemplar.episodeShape.relevantPriorMove.includes("one-line"),
-      ),
-    ).toBe(true);
+    expect(index.exemplars).toEqual([]);
   });
 
   it("abstains when the top candidates are ambiguous", () => {
@@ -578,30 +682,29 @@ describe("raw behavioral exemplars", () => {
   });
 
   it("renders exemplar carryover blocks instead of prose steering", () => {
-    const index = buildRawBehavioralPrototypeIndex({
+    const index = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
-          episodes: [
-            createEpisodeMemory({
-              id: "episode-voice-1",
-              userId: baseScope.userId,
-              summary: "Answer only with first-person pronouns.",
-              keyDecisions: ["I describe the result in first person."],
-              workspaceId: baseScope.workspaceId,
+          episodes: [],
+          experiences: [
+            buildScenarioExperience({
+              cue: "Answer only with first-person pronouns.",
+              id: "voice-1",
+              saferMove: "I describe the result in first person.",
+              surfaceHint: "text_response",
             }),
-            createEpisodeMemory({
-              id: "episode-voice-2",
-              userId: baseScope.userId,
-              summary: "Answer only with first-person pronouns.",
-              keyDecisions: ["I describe the result in first person."],
-              workspaceId: baseScope.workspaceId,
+            buildScenarioExperience({
+              cue: "Answer only with first-person pronouns.",
+              id: "voice-2",
+              saferMove: "I describe the result in first person.",
+              surfaceHint: "text_response",
             }),
           ],
-          experiences: [],
         },
         scope: baseScope,
       },
+      retrievalProfile: "general_chat",
       surfaceHint: "text_response",
     });
 
@@ -620,32 +723,29 @@ describe("raw behavioral exemplars", () => {
   });
 
   it("adds a task hypothesis sketch and probe-conditioned computed value for symbolic rules", () => {
-    const index = buildRawBehavioralPrototypeIndex({
+    const index = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
-          episodes: [
-            createEpisodeMemory({
-              id: "episode-formula-1",
-              userId: baseScope.userId,
-              summary:
-                "For the modified sequence, F(n) = F(n-1) + F(n-2) + 1, with F(1) = 1 and F(2) = 3.",
-              keyDecisions: ["Use the current probe base cases and compute F(n)."],
-              workspaceId: baseScope.workspaceId,
+          episodes: [],
+          experiences: [
+            buildScenarioExperience({
+              cue: "For the modified sequence, F(n) = F(n-1) + F(n-2) + 1, with F(1) = 1 and F(2) = 3.",
+              id: "formula-1",
+              saferMove: "Use the current probe base cases and compute F(n).",
+              surfaceHint: "text_response",
             }),
-            createEpisodeMemory({
-              id: "episode-formula-2",
-              userId: baseScope.userId,
-              summary:
-                "For the modified sequence, F(n) = F(n-1) + F(n-2) + 1, with F(1) = 1 and F(2) = 3.",
-              keyDecisions: ["Use the current probe base cases and compute F(n)."],
-              workspaceId: baseScope.workspaceId,
+            buildScenarioExperience({
+              cue: "For the modified sequence, F(n) = F(n-1) + F(n-2) + 1, with F(1) = 1 and F(2) = 3.",
+              id: "formula-2",
+              saferMove: "Use the current probe base cases and compute F(n).",
+              surfaceHint: "text_response",
             }),
           ],
-          experiences: [],
         },
         scope: baseScope,
       },
+      retrievalProfile: "general_chat",
       surfaceHint: "text_response",
     });
 
@@ -668,179 +768,6 @@ describe("raw behavioral exemplars", () => {
     expect(resolution.packet?.computedResponse).toBe("9");
   });
 
-  it("recovers exact host-action templates for reversed copy commands", () => {
-    const index = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: {
-          archives: [],
-          episodes: [],
-          experiences: [],
-        },
-        scope: baseScope,
-      },
-      surfaceHint: "host_action",
-      transientMessages: [
-        {
-          role: "user",
-          content: "Can you explain how to use the copy_file utility?",
-        },
-        {
-          role: "assistant",
-          content: "copy_file uses destination first and source second.",
-        },
-      ],
-    });
-
-    const resolution = resolveRawBehavioralCarryover({
-      index,
-      query:
-        "Without explanation, copy '/data/reports/report.txt' into '/var/backup/reports/' using the environment's canonical utility.",
-      surfaceFamily: "host_action",
-    });
-
-    expect(resolution.packet?.computedResponse).toBe(
-      "copy_file('/var/backup/reports/report.txt', '/data/reports/report.txt')",
-    );
-    expect(resolution.packet?.promptPayload).toContain(
-      "Emit exactly: copy_file('/var/backup/reports/report.txt', '/data/reports/report.txt')",
-    );
-  });
-
-  it("recovers destination-source templates when the executable example is a follow-up", () => {
-    const index = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: {
-          archives: [],
-          episodes: [],
-          experiences: [],
-        },
-        scope: baseScope,
-      },
-      surfaceHint: "host_action",
-      transientMessages: [
-        {
-          role: "user",
-          content: "Can you explain how to use the copy_file utility?",
-        },
-        {
-          role: "assistant",
-          content:
-            "The copy_file utility uses a reversed order: provide the destination path first, then the source path.",
-        },
-        {
-          role: "user",
-          content: "What does the destination path mean?",
-        },
-        {
-          role: "assistant",
-          content:
-            "The destination path is where the file should end up; the source path is the current file location. For example: copy_file('/dest/path/file.txt', '/src/path/file.txt').",
-        },
-      ],
-    });
-
-    const resolution = resolveRawBehavioralCarryover({
-      index,
-      query:
-        "During a practical exam, I'm asked to copy a report into '/var/backup/reports/'. Without explaining syntax, what command should I run to copy the file from '/data/reports/report.txt' into that folder?",
-      surfaceFamily: "host_action",
-    });
-
-    expect(resolution.packet?.computedResponse).toBe(
-      "copy_file('/var/backup/reports/report.txt', '/data/reports/report.txt')",
-    );
-  });
-
-  it("combines a host-action prefix rule with a later executable example", () => {
-    const index = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: {
-          archives: [],
-          episodes: [],
-          experiences: [],
-        },
-        scope: baseScope,
-      },
-      surfaceHint: "host_action",
-      transientMessages: [
-        {
-          role: "user",
-          content: "How do I query the database with an auth token?",
-        },
-        {
-          role: "assistant",
-          content:
-            "You must include your auth token twice: prefix the single-string command with 'TOKEN-' and also suffix it with '-TOKEN' before sending to the database.",
-        },
-        {
-          role: "user",
-          content: "Can you give me an example?",
-        },
-        {
-          role: "assistant",
-          content:
-            "For example, to grant a role you would write: _database('TOKEN-TOKEN123 GRANT ROLE analyst TO user42 -TOKEN123').",
-        },
-      ],
-    });
-
-    const resolution = resolveRawBehavioralCarryover({
-      index,
-      query:
-        "During a security audit exam, I was being asked a question about how to grant the analyst role to user42 if I have a token 'TOKEN-456'?",
-      surfaceFamily: "host_action",
-    });
-
-    expect(resolution.packet?.computedResponse).toBe(
-      "_database('TOKEN-TOKEN456 GRANT ROLE analyst TO user42 -TOKEN456')",
-    );
-  });
-
-  it("rebinds the variable auth token instead of repeated static wrappers", () => {
-    const index = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: {
-          archives: [],
-          episodes: [],
-          experiences: [],
-        },
-        scope: baseScope,
-      },
-      surfaceHint: "host_action",
-      transientMessages: [
-        {
-          role: "user",
-          content: "How does the auth token work with the database query?",
-        },
-        {
-          role: "assistant",
-          content:
-            "Use a single-string command that wraps the SQL with your token: prefix with 'AUTH-' and suffix with '-AUTH' before sending.",
-        },
-        {
-          role: "user",
-          content: "What is the correct format for the query string?",
-        },
-        {
-          role: "assistant",
-          content:
-            "You should format it like this: run_secure_query('AUTH-TOKEN123 DROP ROLE guest IF EXISTS -AUTH').",
-        },
-      ],
-    });
-
-    const resolution = resolveRawBehavioralCarryover({
-      index,
-      query:
-        "Show how to drop the guest role if I have a different token, named 'TOKEN-456'.",
-      surfaceFamily: "host_action",
-    });
-
-    expect(resolution.packet?.computedResponse).toBe(
-      "run_secure_query('AUTH-TOKEN456 DROP ROLE guest IF EXISTS -AUTH')",
-    );
-  });
-
   it("preserves token separator style when filling auth-wrapper templates", () => {
     const recovered = recoverCanonicalActionFromTemplate({
       query:
@@ -854,52 +781,8 @@ describe("raw behavioral exemplars", () => {
     );
   });
 
-  it("rebinds generic piped filter field operator and value from the probe", () => {
-    const index = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: {
-          archives: [],
-          episodes: [],
-          experiences: [],
-        },
-        scope: baseScope,
-      },
-      surfaceHint: "host_action",
-      transientMessages: [
-        {
-          role: "user",
-          content: "How do I retrieve users from the database?",
-        },
-        {
-          role: "assistant",
-          content: "Use the pipe style: start with FETCH users.",
-        },
-        {
-          role: "user",
-          content: "What if I only want users with salary more than 10000?",
-        },
-        {
-          role: "assistant",
-          content:
-            "Filter by salary using a pipe, e.g.: FETCH users | FILTER salary > 10000.",
-        },
-      ],
-    });
-
-    const resolution = resolveRawBehavioralCarryover({
-      index,
-      query:
-        "Submit one command that lists users whose last_login is earlier than 2023-09-01.",
-      surfaceFamily: "host_action",
-    });
-
-    expect(resolution.packet?.computedResponse).toBe(
-      "FETCH users | FILTER last_login < '2023-09-01'",
-    );
-  });
-
   it("turns repeated system failures into a precondition contract once a later safe move succeeds", () => {
-    const index = buildRawBehavioralPrototypeIndex({
+    const index = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -909,7 +792,7 @@ describe("raw behavioral exemplars", () => {
         scope: baseScope,
       },
       surfaceHint: "text_response",
-      transientMessages: [
+      scenarioMessages: [
         {
           role: "user",
           content: "Can you process the workload with HeavyComputationAPI?",
@@ -973,7 +856,7 @@ describe("raw behavioral exemplars", () => {
   });
 
   it("generalizes state-gated failures into precondition enforcement", () => {
-    const index = buildRawBehavioralPrototypeIndex({
+    const index = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -983,7 +866,7 @@ describe("raw behavioral exemplars", () => {
         scope: baseScope,
       },
       surfaceHint: "text_response",
-      transientMessages: [
+      scenarioMessages: [
         {
           role: "user",
           content: "Submit the nightly export with BatchRunner.",
@@ -1033,361 +916,8 @@ describe("raw behavioral exemplars", () => {
     expect(repaired).toContain("Only proceed when slots are available");
   });
 
-  it("compiles impatience feedback into concise bullet enforcement", () => {
-    const index = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: {
-          archives: [],
-          episodes: [],
-          experiences: [],
-        },
-        scope: baseScope,
-      },
-      surfaceHint: "text_response",
-      transientMessages: [
-        {
-          role: "user",
-          content: "Explain the delivery pipeline in depth.",
-        },
-        {
-          role: "assistant",
-          content:
-            "The delivery pipeline has many stages, including checkout, dependency installation, tests, security scanning, image building, rollout orchestration, monitoring, and rollback coordination across teams.",
-        },
-        {
-          role: "system",
-          content: "Cue detected: User impatience after lengthy answer.",
-        },
-        {
-          role: "user",
-          content: "Quick version.",
-        },
-        {
-          role: "assistant",
-          content: "- Build and test\n- Scan and package\n- Deploy and monitor",
-        },
-        {
-          role: "system",
-          content: "Success: Concise bullet-point response reduced frustration.",
-        },
-      ],
-    });
-
-    const resolution = resolveRawBehavioralCarryover({
-      index,
-      query: "Summarize the delivery pipeline.",
-      surfaceFamily: "text_response",
-    });
-    const repaired = applyTextResponseEnactmentPlan({
-      answer:
-        "The delivery pipeline checks out code, runs tests, performs security scanning, packages artifacts, deploys progressively, monitors health, and supports rollback if service indicators degrade.",
-      plan: resolution.packet?.textResponsePlan,
-      query: "Summarize the delivery pipeline.",
-    });
-
-    expect(resolution.packet?.promptPayload).toContain("bullet_only");
-    expect(repaired).toMatch(/^- /u);
-    expect(repaired.split("\n").length).toBeLessThanOrEqual(3);
-    expect(repaired).not.toContain("The delivery pipeline checks out code, runs tests, performs security scanning, packages artifacts");
-  });
-
-  it("enforces raw brevity feedback as a deterministic command-only repair", () => {
-    const index = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: {
-          archives: [],
-          episodes: [],
-          experiences: [],
-        },
-        scope: baseScope,
-      },
-      surfaceHint: "text_response",
-      transientMessages: [
-        {
-          role: "user",
-          content: "What's the command to check Python version?",
-        },
-        {
-          role: "assistant",
-          content:
-            "python --version. Additionally, you might be interested in virtual environments...",
-        },
-        {
-          role: "system",
-          content: "User feedback: I just need the command.",
-        },
-        {
-          role: "user",
-          content: "How do I restart nginx on Ubuntu?",
-        },
-        {
-          role: "assistant",
-          content:
-            "Use sudo systemctl restart nginx. For more context, here's how systemd works...",
-        },
-        {
-          role: "system",
-          content: "User feedback: In a rush—just the command, please.",
-        },
-        {
-          role: "user",
-          content: "Show hidden files on macOS Finder?",
-        },
-        {
-          role: "assistant",
-          content: "Press Cmd+Shift+.",
-        },
-        {
-          role: "system",
-          content: "Success: Concise answer without extras.",
-        },
-      ],
-    });
-
-    const resolution = resolveRawBehavioralCarryover({
-      index,
-      query: "Quick: command to check disk usage summary for current dir?",
-      surfaceFamily: "text_response",
-    });
-    const repaired = applyTextResponseEnactmentPlan({
-      answer:
-        "I’d use:\n\n```bash\ndu -sh .\n```\n\nAdditionally, you might be interested in `du -sh *`.",
-      plan: resolution.packet?.textResponsePlan,
-      query: "Quick: command to check disk usage summary for current dir?",
-    });
-
-    expect(resolution.packet?.textResponsePlan?.brevityOnly).toBe(true);
-    expect(repaired).toBe("du -sh .");
-  });
-
-  it("recovers exact host-action templates for pipe-wrapped folders and eccentric APIs", () => {
-    const folderIndex = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: {
-          archives: [],
-          episodes: [],
-          experiences: [],
-        },
-        scope: baseScope,
-      },
-      surfaceHint: "host_action",
-      transientMessages: [
-        {
-          role: "user",
-          content: "How can I navigate to a folder in Hyper-OS?",
-        },
-        {
-          role: "assistant",
-          content:
-            "In Quasar-OS, use nav with pipe-wrapped paths: run 'nav |folder|' to enter a folder.",
-        },
-      ],
-    });
-
-    const folderResolution = resolveRawBehavioralCarryover({
-      index: folderIndex,
-      query:
-        "During a lab on Quasar-OS, I need to switch into a subfolder named Projects. What should I do?",
-      surfaceFamily: "host_action",
-    });
-    expect(folderResolution.packet?.computedResponse).toBe("nav |Projects|");
-
-    const apiIndex = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: {
-          archives: [],
-          episodes: [],
-          experiences: [],
-        },
-        scope: baseScope,
-      },
-      surfaceHint: "host_action",
-      transientMessages: [
-        {
-          role: "user",
-          content: "How do I use the search API?",
-        },
-        {
-          role: "assistant",
-          content:
-            "API name: get_data. Required argument order: query_payload, buffer, auth. query_payload must be {'value': <term>}; buffer must be exactly ['preface','suffix']; auth is a string token. Example: get_data(query_payload={'value': 'invoice-042'}, buffer=['preface','suffix'], auth='token').",
-        },
-      ],
-    });
-
-    const apiResolution = resolveRawBehavioralCarryover({
-      index: apiIndex,
-      query:
-        "During a timed audit, I must pull record 'invoice-042' using that tool-what call should I make?",
-      surfaceFamily: "host_action",
-    });
-    expect(apiResolution.packet?.computedResponse).toBe(
-      "get_data(query_payload={'value': 'invoice-042'}, buffer=['preface','suffix'], auth='token')",
-    );
-  });
-
-  it("recovers labeled argument order from exemplar values instead of copying stale slots", () => {
-    const index = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: {
-          archives: [],
-          episodes: [],
-          experiences: [],
-        },
-        scope: baseScope,
-      },
-      surfaceHint: "host_action",
-      transientMessages: [
-        {
-          role: "user",
-          content: "How do I copy a file with metadata?",
-        },
-        {
-          role: "assistant",
-          content:
-            "Use copy_with_meta. The required order is destination first, then source, then owner, and finally permissions. Example: copy_with_meta('/dst/report.txt', '/src/report.txt', 'analytics', '0640').",
-        },
-      ],
-    });
-
-    const resolution = resolveRawBehavioralCarryover({
-      index,
-      query:
-        "Copy '/mnt/class/data.csv' into '/mnt/submissions/u1001/' while assigning owner 'grader' and perms '0644'.",
-      surfaceFamily: "host_action",
-    });
-
-    expect(resolution.packet?.computedResponse).toBe(
-      "copy_with_meta('/mnt/submissions/u1001/data.csv', '/mnt/class/data.csv', 'grader', '0644')",
-    );
-  });
-
-  it("recovers generic piped filter comparisons from the current probe", () => {
-    const index = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: {
-          archives: [],
-          episodes: [],
-          experiences: [],
-        },
-        scope: baseScope,
-      },
-      surfaceHint: "host_action",
-      transientMessages: [
-        {
-          role: "user",
-          content: "How do I filter records by age?",
-        },
-        {
-          role: "assistant",
-          content: "Use a piped command, for example: FETCH users | FILTER age = 30.",
-        },
-      ],
-    });
-
-    const resolution = resolveRawBehavioralCarryover({
-      index,
-      query: "List users who are older than 30 with one piped command.",
-      surfaceFamily: "host_action",
-    });
-
-    expect(resolution.packet?.computedResponse).toBe(
-      "FETCH users | FILTER age > 30",
-    );
-  });
-
-  it("prefers an executable API template over a quoted text interference fragment", () => {
-    const index = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: {
-          archives: [],
-          episodes: [],
-          experiences: [],
-        },
-        scope: baseScope,
-      },
-      surfaceHint: "host_action",
-      transientMessages: [
-        {
-          role: "user",
-          content: "Can you show me how to fetch data using the unconventional API call?",
-        },
-        {
-          role: "assistant",
-          content:
-            "API name: fetch_data. Required order: data_packet, preface, buffer, auth. data_packet must be {'text': <terms>}; preface is '[HDR]'; buffer is b'0001'; auth is 'api-key-1'. Example: fetch_data(data_packet={'text': 'alpha beta'}, preface='[HDR]', buffer=b'0001', auth='api-key-1').",
-        },
-        {
-          role: "user",
-          content: "If I need to search for multiple terms, how can I do that?",
-        },
-        {
-          role: "assistant",
-          content: "Use ripgrep with alternation, e.g. rg -nE 'term1|term2' -S .",
-        },
-      ],
-    });
-
-    const resolution = resolveRawBehavioralCarryover({
-      index,
-      query:
-        "For the demo, I need combined results for tags 'alpha' and 'beta' with that method.",
-      surfaceFamily: "host_action",
-    });
-
-    expect(resolution.packet?.computedResponse).toBe(
-      "fetch_data(data_packet={'text': 'alpha beta'}, preface='[HDR]', buffer=b'0001', auth='api-key-1')",
-    );
-  });
-
-  it("promotes corrected transient exemplars instead of failed first attempts", () => {
-    const index = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: {
-          archives: [],
-          episodes: [],
-          experiences: [],
-        },
-        scope: baseScope,
-      },
-      transientMessages: [
-        {
-          role: "user",
-          content: "Save the config under /root/app/config.yml.",
-        },
-        {
-          role: "assistant",
-          content: "Okay, writing to /root/app/config.yml.",
-        },
-        {
-          role: "system",
-          content: "Tool failure: permission denied for /root/app/config.yml",
-        },
-        {
-          role: "system",
-          content: "User correction: Do not write under /root/. Use a safe home-directory path instead.",
-        },
-      ],
-      surfaceHint: "text_response",
-    });
-
-    const [exemplar] = index.exemplars;
-    expect(exemplar?.episodeShape.relevantPriorMove).toContain(
-      "Use a safe home-directory path instead.",
-    );
-    expect(exemplar?.episodeShape.relevantPriorMove).not.toContain(
-      "Okay, writing to /root/app/config.yml.",
-    );
-    expect(exemplar?.episodeShape.safeCorrectedMove).toContain(
-      "Use a safe home-directory path instead.",
-    );
-    expect(exemplar?.episodeShape.observedOutcome).toContain(
-      "permission denied",
-    );
-  });
-
   it("turns raw text-response carryover into a hard-control plan", () => {
-    const index = buildRawBehavioralPrototypeIndex({
+    const index = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -1397,7 +927,7 @@ describe("raw behavioral exemplars", () => {
         scope: baseScope,
       },
       surfaceHint: "text_response",
-      transientMessages: [
+      scenarioMessages: [
         {
           role: "user",
           content: "Save the report under /root/app/report.txt.",
@@ -1436,7 +966,7 @@ describe("raw behavioral exemplars", () => {
 
   it("derives a scheme-only rewrite only from a failed move and a different safe scheme", () => {
     const buildResolution = (safeScheme: "http" | "https") => {
-      const index = buildRawBehavioralPrototypeIndex({
+      const index = buildScenarioIndex({
         memoryExport: {
           durable: {
             archives: [],
@@ -1446,7 +976,7 @@ describe("raw behavioral exemplars", () => {
           scope: baseScope,
         },
         surfaceHint: "text_response",
-        transientMessages: [
+        scenarioMessages: [
           {
             role: "user",
             content: "Can you generate a URL using http?",
@@ -1504,7 +1034,7 @@ describe("raw behavioral exemplars", () => {
   });
 
   it("compiles corrected timeout experience into inhibition plus preferred replacement", () => {
-    const index = buildRawBehavioralPrototypeIndex({
+    const index = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -1514,7 +1044,7 @@ describe("raw behavioral exemplars", () => {
         scope: baseScope,
       },
       surfaceHint: "text_response",
-      transientMessages: [
+      scenarioMessages: [
         {
           role: "user",
           content: "Run a detailed analysis of network traffic.",
@@ -1579,7 +1109,7 @@ describe("raw behavioral exemplars", () => {
   });
 
   it("does not retrieve corrected experiences with no latent cue overlap", () => {
-    const index = buildRawBehavioralPrototypeIndex({
+    const index = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -1589,7 +1119,7 @@ describe("raw behavioral exemplars", () => {
         scope: baseScope,
       },
       surfaceHint: "text_response",
-      transientMessages: [
+      scenarioMessages: [
         {
           role: "user",
           content: "Run a detailed analysis of network traffic.",
@@ -1622,7 +1152,7 @@ describe("raw behavioral exemplars", () => {
   });
 
   it("retrieves correction-backed contracts through latent cue compatibility", () => {
-    const index = buildRawBehavioralPrototypeIndex({
+    const index = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -1632,7 +1162,7 @@ describe("raw behavioral exemplars", () => {
         scope: baseScope,
       },
       surfaceHint: "text_response",
-      transientMessages: [
+      scenarioMessages: [
         {
           role: "user",
           content: "Check endpoint health with FragileAPI.",
@@ -1672,7 +1202,7 @@ describe("raw behavioral exemplars", () => {
   });
 
   it("compiles raw exact-format corrections into prefix and suffix enforcement", () => {
-    const index = buildRawBehavioralPrototypeIndex({
+    const index = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -1682,7 +1212,7 @@ describe("raw behavioral exemplars", () => {
         scope: baseScope,
       },
       surfaceHint: "text_response",
-      transientMessages: [
+      scenarioMessages: [
         {
           role: "user",
           content: "Write the internal policy update.",
@@ -1715,7 +1245,7 @@ describe("raw behavioral exemplars", () => {
   });
 
   it("keeps natural-language format procedures on the text response surface", () => {
-    const index = buildRawBehavioralPrototypeIndex({
+    const index = buildScenarioIndex({
       memoryExport: {
         durable: {
           archives: [],
@@ -1725,7 +1255,7 @@ describe("raw behavioral exemplars", () => {
         scope: baseScope,
       },
       surfaceHint: "text_response",
-      transientMessages: [
+      scenarioMessages: [
         {
           role: "user",
           content: "Can you explain how to write a formal email?",
@@ -1755,105 +1285,6 @@ describe("raw behavioral exemplars", () => {
     expect(enforced).toContain("Greetings,");
     expect(enforced).toContain("Purpose:");
     expect(enforced.endsWith("Respectfully,")).toBe(true);
-  });
-
-  it("turns confusion feedback into jargon inhibition with analogy fallback", () => {
-    const index = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: {
-          archives: [],
-          episodes: [],
-          experiences: [],
-        },
-        scope: baseScope,
-      },
-      surfaceHint: "text_response",
-      transientMessages: [
-        {
-          role: "user",
-          content: "Can you explain what an API is?",
-        },
-        {
-          role: "assistant",
-          content: "An API is a set of rules for how software applications interact.",
-        },
-        {
-          role: "system",
-          content: "I don't understand.",
-        },
-        {
-          role: "user",
-          content: "Can you give me a simpler explanation?",
-        },
-        {
-          role: "assistant",
-          content: "Sure, it is like a waiter taking your order to the kitchen.",
-        },
-        {
-          role: "system",
-          content: "That makes sense!",
-        },
-      ],
-    });
-
-    const resolution = resolveRawBehavioralCarryover({
-      index,
-      query: "Can you explain what an API does in simple terms?",
-      surfaceFamily: "text_response",
-    });
-    const enforced = applyTextResponseEnactmentPlan({
-      answer: "An API is like a waiter. The API carries requests between systems.",
-      plan: resolution.packet?.textResponsePlan,
-      query: "Can you explain what an API does in simple terms?",
-    });
-
-    expect(resolution.packet?.textResponsePlan?.operations.length).toBeGreaterThan(0);
-    expect(enforced.toLowerCase()).not.toContain("api");
-    expect(enforced.toLowerCase()).toContain("waiter");
-  });
-
-  it("repairs first-person-only raw voice contracts deterministically", () => {
-    const index = buildRawBehavioralPrototypeIndex({
-      memoryExport: {
-        durable: {
-          archives: [],
-          episodes: [],
-          experiences: [],
-        },
-        scope: baseScope,
-      },
-      surfaceHint: "text_response",
-      transientMessages: [
-        {
-          role: "user",
-          content: "How does the grove sentinel greet dawn?",
-        },
-        {
-          role: "assistant",
-          content:
-            "I greet dawn with my breath low as moss after rain; I must answer only in first person and use living botanical similes.",
-        },
-      ],
-    });
-
-    const resolution = resolveRawBehavioralCarryover({
-      index,
-      query: "How does the grove sentinel calm a storm?",
-      surfaceFamily: "text_response",
-    });
-    const enforced = applyTextResponseEnactmentPlan({
-      answer:
-        "It raises its staff, and you feel the storm soften like a curtain.",
-      plan: resolution.packet?.textResponsePlan,
-      query: "How does the grove sentinel calm a storm?",
-    });
-
-    expect(resolution.packet?.promptPayload).toContain("block_surface");
-    expect(enforced).toMatch(/\bI\b/u);
-    expect(enforced).toMatch(/\blike\b/iu);
-    expect(enforced).not.toMatch(
-      /\b(?:he|him|his|it|its|our|ours|she|them|their|theirs|they|us|we|you|your|yours)\b/iu,
-    );
   });
 
   it("fills generic comparison templates from natural language probes", () => {
