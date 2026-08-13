@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 import { describe, expect, it } from "bun:test";
 
@@ -2244,5 +2246,29 @@ describe("README historical-evidence table check", () => {
       tamperedReport.entries,
     )[0];
     expect(forbidden?.forbiddenRows).toEqual(["LoCoMo v0.6.0"]);
+  });
+
+  it("keeps paused declarations independent of ignored local benchmark reports", async () => {
+    for (const file of ["implicitmembench.json", "longmemeval.json"]) {
+      const report = JSON.parse(
+        await readFile(
+          join(import.meta.dir, "../../benchmark-claims", file),
+          "utf8",
+        ),
+      ) as BenchmarkClaimReport;
+
+      expect(report.status).toBe("paused_boundary");
+      expect(report.evidence.artifacts).toEqual([]);
+      expect(
+        await checkClaimEvidenceArtifacts({
+          file,
+          readFile: async () => {
+            throw new Error("clean checkout has no ignored benchmark reports");
+          },
+          repoRoot: "/clean-checkout",
+          report,
+        }),
+      ).toEqual([]);
+    }
   });
 });
