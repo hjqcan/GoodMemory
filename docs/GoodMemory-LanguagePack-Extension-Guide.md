@@ -84,6 +84,18 @@ field undefined, which means that it does not declare an interrogative
 admission boundary; adding that behavior does not require a new `LanguagePack`
 method or an `apiVersion` change.
 
+`analyzeContent()` may also set
+`behavioralDirective: "none" | "one_off" | "durable"`. Every built-in pack
+classifies each clause; an older or custom pack may leave the optional field
+undefined, meaning that it does not declare this admission boundary. A polite
+or pack-recognized imperative construction alone is `one_off`, not durable
+intent. A standing cue such as “always”, “from now on”, or its pack-owned
+equivalent can upgrade an actual behavioral directive; it does not turn an
+ordinary assertion into feedback. A quoted, reported, or explicitly negated
+mention of directive words is not itself directive scope. The public
+`feedback()` operation and a confirmed `remember: "always"` annotation remain
+explicit host-authority paths.
+
 For packs that declare the signal, ordinary interrogative clauses are not
 durable input. Clause decomposition must preserve assertion prefixes in mixed
 messages while excluding their interrogative tails. Explicit directives,
@@ -93,6 +105,15 @@ lexicon for both clause detection and scoring/search-term noise removal so a
 question word cannot become the sole lexical recall anchor. Do not encode this
 policy in a recall-wide multilingual word list or by changing the global
 lexical threshold.
+
+Ordinary one-off behavioral directives follow the same clause-local producer
+boundary: they are removed before deterministic, custom, profile, or assisted
+producers run, while an assertion prefix in a mixed message remains eligible.
+Each pack must use one private directive classifier for both content analysis
+and candidate admission; do not keep a second feedback-admission regex in the
+candidate extractor. Changing either admission signal requires an
+`analyzerVersion` bump and a rebuild of derived projections. Canonical memories
+are not rewritten or deleted by that rebuild.
 
 Register a custom pack through `GoodMemoryConfig.language.packs`. To replace a
 built-in pack, reuse its id and locale claims; a different id that claims an

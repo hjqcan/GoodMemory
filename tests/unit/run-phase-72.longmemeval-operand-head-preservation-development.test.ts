@@ -6,6 +6,10 @@ import {
   hasCanonicalOperandHeadPreservationDependencies,
   runPhase72LongMemEvalOperandHeadPreservationDevelopment,
 } from "../../scripts/run-phase-72-longmemeval-operand-head-preservation-development";
+import { createLanguageService } from "../../src/language";
+
+const CURRENT_ENGLISH_ANALYZER_VERSION = createLanguageService()
+  .analyzerVersion("en-US");
 
 function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");
@@ -19,7 +23,7 @@ describe("Phase 72 LongMemEval operand-head preservation development", () => {
       runId: "analyzer-version-fixture",
       selectionFile: "/selection.json",
     })).rejects.toThrow(
-      "English analyzer 13 is required; found 17-interrogative-admission",
+      `English analyzer 13 is required; found ${CURRENT_ENGLISH_ANALYZER_VERSION}`,
     );
   });
 
@@ -188,7 +192,7 @@ describe("Phase 72 LongMemEval operand-head preservation development", () => {
     });
     expect(report.source).toMatchObject({
       canonicalDependencies: false,
-      englishAnalyzerVersion: "17-interrogative-admission",
+      englishAnalyzerVersion: CURRENT_ENGLISH_ANALYZER_VERSION,
     });
     expect(writes.has("/out/fixture-run/report.json")).toBe(true);
   });

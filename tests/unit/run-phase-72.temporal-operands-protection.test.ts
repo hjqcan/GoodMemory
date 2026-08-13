@@ -9,6 +9,10 @@ import type {
   GoodMemory,
   RecallInput,
 } from "../../src/api/contracts";
+import { createLanguageService } from "../../src/language";
+
+const CURRENT_ENGLISH_ANALYZER_VERSION = createLanguageService()
+  .analyzerVersion("en-US");
 
 function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");
@@ -266,7 +270,7 @@ describe("Phase 72 temporal operand cross-benchmark protection", () => {
       runId: "analyzer-version-fixture",
       selectionFile: "/selection.json",
     })).rejects.toThrow(
-      "English analyzer 13 is required; found 17-interrogative-admission",
+      `English analyzer 13 is required; found ${CURRENT_ENGLISH_ANALYZER_VERSION}`,
     );
   });
 
@@ -340,7 +344,7 @@ describe("Phase 72 temporal operand cross-benchmark protection", () => {
       ));
     expect(report.source.canonicalDependencies).toBe(false);
     expect(report.source.englishAnalyzerVersion).toBe(
-      "17-interrogative-admission",
+      CURRENT_ENGLISH_ANALYZER_VERSION,
     );
     expect(report.configuration.memoryIsolation).toBe(
       "fresh_seeded_memory_per_question_per_arm",

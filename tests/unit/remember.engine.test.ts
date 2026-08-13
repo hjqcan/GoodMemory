@@ -239,7 +239,7 @@ describe("remember engine", () => {
       messages: [
         {
           role: "user",
-          content: "Please keep answers concise and action-oriented.",
+          content: "Always keep answers concise and action-oriented.",
         },
       ],
     });
@@ -1770,7 +1770,7 @@ describe("remember engine", () => {
     const feedback = await repositories.feedback.listByScope(scope);
 
     expect(references).toHaveLength(0);
-    expect(feedback).toHaveLength(1);
+    expect(feedback).toHaveLength(0);
   });
 
   it("does not convert 'should not use ... as the source of truth' into an active reference", async () => {
@@ -1827,7 +1827,7 @@ describe("remember engine", () => {
     const feedback = await repositories.feedback.listByScope(scope);
 
     expect(references).toHaveLength(0);
-    expect(feedback).toHaveLength(1);
+    expect(feedback).toHaveLength(0);
   });
 
   it("does not convert 'do not treat ... as the source of truth' into an active reference", async () => {
@@ -1884,7 +1884,7 @@ describe("remember engine", () => {
     const feedback = await repositories.feedback.listByScope(scope);
 
     expect(references).toHaveLength(0);
-    expect(feedback).toHaveLength(1);
+    expect(feedback).toHaveLength(0);
   });
 
   it("does not promote unrelated pointers from the same sentence into source-of-truth references", async () => {
@@ -2065,7 +2065,7 @@ describe("remember engine", () => {
       messages: [
         {
           role: "user",
-          content: "Use bullet points.",
+          content: "Always use bullet points.",
         },
       ],
     });
@@ -2312,7 +2312,7 @@ describe("remember engine", () => {
       locale: "ja-JP",
       localeSource: "explicit",
       languagePackId: "ja",
-      languagePackVersion: "11-interrogative-admission",
+      languagePackVersion: "13-reported-directive-scope",
     };
     expect(facts[0]?.source).toMatchObject(expectedLanguage);
     expect(evidence[0]?.source).toMatchObject(expectedLanguage);
@@ -2399,7 +2399,7 @@ describe("remember engine", () => {
       messages: [
         {
           role: "user",
-          content: "Please keep answers concise.",
+          content: "Always keep answers concise.",
         },
       ],
     });
@@ -2412,7 +2412,7 @@ describe("remember engine", () => {
       messages: [
         {
           role: "user",
-          content: "Please use bullet points in every response.",
+          content: "Always use bullet points in every response.",
         },
       ],
     });

@@ -5,10 +5,8 @@ import type {
   LanguageRenderKey,
 } from "./contracts";
 import { emptyQueryAnalysis, resolveSourceOfTruthDirective } from "./packHelpers";
-import {
-  createRomanceLanguagePack,
-  type RomancePackDefinition,
-} from "./romanceCore";
+import type { RomancePackDefinition } from "./romanceCore";
+import { createRomanceLanguagePack } from "./romanceCore";
 
 const FRENCH_INTERROGATIVE_ANCHORS = [
   "qu'est-ce",
@@ -445,7 +443,7 @@ const FRENCH_MONTHS = [
 ] as const;
 
 const DEFINITION = {
-  analyzerVersion: "9-interrogative-admission",
+  analyzerVersion: "11-reported-directive-scope",
   behavioralRulePatterns: {
     firstAction: [
       /(?:d['’]abord|en\s+premier(?:\s+lieu)?)\s+([A-Za-z_][A-Za-z0-9_@.-]*)/iu,
@@ -476,10 +474,16 @@ const DEFINITION = {
   durableTargetAliases: {
     "code de projet": "project_code",
     "code projet": "project_code",
+    "projet actuel": "profile:currentProject",
+    fonction: "profile:role",
     "fuseau horaire": "profile:timezone",
+    "langue préférée": "profile:languagePreference",
     nom: "profile:name",
+    organisation: "profile:organization",
+    poste: "profile:role",
     préférence: "preference",
     préférences: "preference",
+    rôle: "profile:role",
   },
   id: "fr",
   locales: ["fr"],
@@ -529,13 +533,26 @@ const DEFINITION = {
   candidatePatterns: {
     assignmentConfirmation:
       /\b(?:est|semble)\s+(?:correcte?|exacte?|vraie?)\s*$/iu,
+    behavioralPreamble:
+      /^(?:s['’]il\s+(?:te|vous)\s+plaît|veuillez)$/iu,
+    behavioralDirective:
+      /^(?:(?:s['’]il\s+(?:te|vous)\s+plaît\s*,?\s*|veuillez\s+)(?:utiliser|lire|écrire|créer|publier|vérifier|vérifiez|inspecter|contrôler|résumer|dire|montrer|donner|répondre|éviter|privilégier|ouvrir|fermer|supprimer|déplacer|copier|lancer|appeler|corriger|expliquer|ajouter|implémenter|\p{L}+(?:er|ir|re))|ne\b[^.!?]{0,120}\b(?:pas|jamais)|utilise(?:z)?|lis(?:ez)?|écris|écrivez|crée(?:z)?|publie(?:z)?|vérifie(?:z)?|inspecte(?:z)?|contrôle(?:z)?|résume(?:z)?|dis|dites|montre(?:z)?|donne(?:z)?|réponds|répondez|évite(?:z)?|privilégie(?:z)?|ouvre(?:z)?|ferme(?:z)?|supprime(?:z)?|déplace(?:z)?|copie(?:z)?|lance(?:z)?|appelle(?:z)?|corrige(?:z)?|explique(?:z)?|ajoute(?:z)?|implémente(?:z)?|fournis(?:sez)?|emploie|employez|garde(?:z)?|maintiens|maintenez)(?=$|[^\p{L}\p{N}])/iu,
     completedEvent: /^(?:j['’]ai|je\s+suis)\s+\p{L}/iu,
+    correctionPreamble:
+      /^(?:correction|rectification)(?=\s|[：:,.-]|$)\s*(?:[：:,.-]\s*)?/iu,
+    currentProject: /\bmon\s+projet\s+actuel\s+est\s+([^.!?]+)/iu,
     explicitFact:
       /^\s*(?:s['’]il\s+(?:te|vous)\s+plaît\s*,?\s*)?(?:souviens-toi|rappelez-vous|mémorise|n['’]oublie\s+pas)(?:\s+(?:de\s+(?:une?|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|\d+)|d['’](?:une?))\s+choses?\s*[:：,]\s*(.+)|\s+que\s+(.+)|\s*[:：,]\s*(.+)|\s+(?!(?:que|(?:de\s+(?:une?|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|\d+)|d['’](?:une?))\s+choses?)\s*[:：,]?\s*$)(.+))$/isu,
     explicitFactPrefix:
       /^\s*(?:s['’]il\s+(?:te|vous)\s+plaît\s*,?\s*)?(?:souviens-toi|rappelez-vous|mémorise|n['’]oublie\s+pas)\b/iu,
-    feedback: /^(?:ne\b[^.!?]{0,120}\b(?:pas|jamais)|jamais\b|toujours\b|évite\b|privilégie\b)/iu,
+    durableBehavioralScope:
+      /^(?:désormais\b|toujours\b|jamais\b|à\s+partir\s+de\s+maintenant\b|dorénavant\b)|\b(?:toujours|jamais|chaque\s+fois|systématiquement)\b/iu,
     futurePlan: /^(?:demain\s+)?(?:je\s+vais|j['’]irai|je\s+compte|je\s+prévois(?:\s+de)?|nous\s+allons)(?=\s|[.!?]|$)/iu,
+    hasReportedDirectiveScope({ prefix }) {
+      return /(?:^|[.!?]\s*)(?:je|nous|il|elle|on|ils|elles)\s+(?:(?:n['’](?:ai|avons|a|ont)|ne\s+(?:l['’])?(?:ai|avons|a|ont))\s+pas\s+)?(?:dit|demandé|écrit|affirmé|cité)\s*(?:que)?\s*[:：,]?\s*$/iu.test(
+        prefix,
+      );
+    },
     occurrenceConfirmation: /,\s*(?:non|n['’]est-ce\s+pas|hein)\s*[.!]*$/iu,
     optOut:
       /^(?:s['’]il\s+(?:te|vous)\s+plaît\s*,?\s*)?(?:ne\s+(?:mémorise|mémorisez|retiens|retenez|sauvegarde|sauvegardez|enregistre|enregistrez)\s+(?:pas|jamais)|n['’]enregistre\s+pas)\b/iu,

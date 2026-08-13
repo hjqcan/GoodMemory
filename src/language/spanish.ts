@@ -5,10 +5,8 @@ import type {
   LanguageRenderKey,
 } from "./contracts";
 import { emptyQueryAnalysis, resolveSourceOfTruthDirective } from "./packHelpers";
-import {
-  createRomanceLanguagePack,
-  type RomancePackDefinition,
-} from "./romanceCore";
+import type { RomancePackDefinition } from "./romanceCore";
+import { createRomanceLanguagePack } from "./romanceCore";
 
 const SPANISH_INTERROGATIVE_ANCHORS = [
   "adónde",
@@ -440,7 +438,7 @@ const SPANISH_MONTHS = [
 ] as const;
 
 const DEFINITION = {
-  analyzerVersion: "8-interrogative-admission",
+  analyzerVersion: "10-reported-directive-scope",
   behavioralRulePatterns: {
     firstAction: [
       /(?:primero|en\s+primer\s+lugar)\s+([A-Za-z_][A-Za-z0-9_@.-]*)/iu,
@@ -471,9 +469,16 @@ const DEFINITION = {
   durableTargetAliases: {
     "codigo de proyecto": "project_code",
     "código de proyecto": "project_code",
+    "idioma preferido": "profile:languagePreference",
+    "proyecto actual": "profile:currentProject",
+    función: "profile:role",
+    organización: "profile:organization",
     nombre: "profile:name",
+    puesto: "profile:role",
     preferencia: "preference",
     preferencias: "preference",
+    rol: "profile:role",
+    ubicación: "profile:location",
     "zona horaria": "profile:timezone",
   },
   id: "es",
@@ -523,15 +528,27 @@ const DEFINITION = {
   candidatePatterns: {
     assignmentConfirmation:
       /\b(?:es|parece)\s+(?:correct[oa]|ciert[oa]|exact[oa])\s*$/iu,
+    behavioralPreamble: /^(?:por\s+favor)$/iu,
+    behavioralDirective:
+      /^(?!lee\s+(?:es|está|era|fue)\b)(?:por\s+favor\s*,?\s*)?(?:no\s+(?:uses|utilices|leas|escribas|crees|publiques|verifiques|inspecciones|revises|digas|muestres|des|respondas|evites|priorices|abras|cierres|borres|muevas|copies|ejecutes|llames|corrijas|expliques|añadas|agregues|implementes)|usa|use|utiliza|utilice|lee|lea|escribe|escriba|escribas|crea|cree|publica|publique|publiques|verifica|verifique|inspecciona|inspeccione|revisa|revise|resume|resuma|dime|diga|muestra|muestre|da|dé|responde|responda|evita|evite|prioriza|priorice|abre|abra|cierra|cierre|borra|borre|mueve|mueva|copia|copie|ejecuta|ejecute|llama|llame|corrige|corrija|explica|explique|añade|añada|agrega|agregue|implementa|implemente|proporciona|proporcione|mantén|mantenga)(?=$|[^\p{L}\p{N}])/iu,
     completedEvent:
       /^(?:yo\s+)?(?:he\s+\p{L}+(?:ado|ido)|\p{L}+(?:é|í)|fui|hice|tuve|estuve|puse|vine|dije|traje|vi|di)(?=$|\s|[.,;!?])/iu,
+    correctionPreamble:
+      /^(?:corrección|rectificación)(?=\s|[：:,.-]|$)\s*(?:[：:,.-]\s*)?/iu,
+    currentProject: /\bmi\s+proyecto\s+actual\s+es\s+([^.!?]+)/iu,
     explicitFact:
       /^\s*(?:por\s+favor\s*,?\s*)?(?:recuerda|recuérdalo|memoriza)(?:\s+(?:una?|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|\d+)\s+cosas?\s*[:：,]\s*(.+)|\s+que\s+(.+)|\s*[:：,]\s*(.+)|\s+(?!(?:que|(?:una?|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|\d+)\s+cosas?)\s*[:：,]?\s*$)(.+))$/isu,
     explicitFactPrefix:
       /^\s*(?:por\s+favor\s*,?\s*)?(?:recuerda|recuérdalo|memoriza)\b/iu,
-    feedback: /^(?:nunca\b|siempre\b|evita\b|prioriza\b)/iu,
+    durableBehavioralScope:
+      /^(?:a\s+partir\s+de\s+ahora\b|desde\s+ahora\b|siempre\b|nunca\b)|\b(?:siempre|nunca|cada\s+vez)\b/iu,
     futurePlan:
       /^(?:(?:mañana\s+)?(?:yo\s+)?(?:voy\s+a|iré|pienso|planeo|tengo\s+previsto)(?=\s|[.!?]|$)|(?:yo\s+)?\p{L}+(?:ré|rás|rá|remos|réis|rán)(?=\s|[.!?]|$)[^.!?]*\b(?:mañana|pasado\s+mañana|la\s+semana\s+próxima|el\s+mes\s+próximo|el\s+trimestre\s+próximo|el\s+año\s+próximo)\b)/iu,
+    hasReportedDirectiveScope({ prefix }) {
+      return /(?:^|[.!?]\s*)(?:(?:yo|nosotros|nosotras|él|ella|ellos|ellas)\s+)?(?:no\s+)?(?:(?:he|hemos|ha|han)\s+)?(?:dije|dijo|dijimos|dijeron|dicho|pedí|pidió|pedimos|pidieron|escribí|escribió|afirmé|afirmó|cité|citó)\s*(?:que)?\s*[:：,]?\s*$/iu.test(
+        prefix,
+      );
+    },
     occurrenceConfirmation: /,\s*(?:verdad|cierto|no)\s*[.!]*$/iu,
     optOut:
       /^(?:por\s+favor\s*,?\s*)?(?:no\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?)|nunca\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?))\b/iu,

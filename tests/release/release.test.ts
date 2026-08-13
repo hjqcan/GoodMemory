@@ -1428,17 +1428,22 @@ describe("release metadata and docs", () => {
     expect(currentClaims).not.toContain("BEAM");
     expect(currentClaims).not.toContain("MemoryAgentBench");
     expect(historicalEvidence).toContain(
-      "| LoCoMo v0.7.3 (full 10 conversations) |",
+      "No benchmark result currently qualifies as versioned historical evidence.",
     );
-    expect(historicalEvidence).toContain("official **0.8805**");
-    expect(historicalEvidence).toContain("strict **0.6266**");
-    expect(historicalEvidence).toContain("open-domain **0.6042** (58/96)");
+    expect(historicalEvidence).not.toContain("LoCoMo");
+    expect(historicalEvidence).not.toContain("0.8805");
+    expect(historicalEvidence).not.toContain("0.6266");
+    expect(historicalEvidence).not.toContain("0.6042");
     expect(historicalEvidence).not.toContain("BEAM");
     expect(historicalEvidence).not.toContain("MemoryAgentBench");
     expect(readme).toContain("### Versioned evidence");
-    expect(readme).toContain("not current-production claims for `v0.7.4`");
-    expect(readme).toContain("provider reranking");
-    expect(readme).toContain("CC BY-NC 4.0 and therefore limited");
+    expect(readme).toContain(
+      "GoodMemory `0.7.4` has no current or versioned historical benchmark claim.",
+    );
+    expect(readme).toContain(
+      "internal diagnostics under the same fail-closed boundary",
+    );
+    expect(readme).toContain("separate, committed execution receipt");
     expect(readme).not.toContain("| LoCoMo | representative conv-1 live run 0.020");
     expect(readme).toContain("## Choose Your Integration Path");
     expect(readme).toContain("GoodMemory has three primary product entry points");
@@ -1579,6 +1584,10 @@ describe("release metadata and docs", () => {
       ),
       "utf8",
     );
+    const llms = await readFile(
+      join(import.meta.dir, "../../llms.txt"),
+      "utf8",
+    );
     const capability = JSON.parse(
       await readFile(
         join(import.meta.dir, "../../.well-known/goodmemory.json"),
@@ -1626,6 +1635,15 @@ describe("release metadata and docs", () => {
     );
     expect(migrationGuide).toContain("GoodMemory 0.6 to 0.7 Migration Guide");
     expect(migrationGuide).toContain("historical 0.6 evidence");
+    expect(llms).toContain(
+      "Current `v0.7.4` claim: none. Versioned historical evidence: none.",
+    );
+    expect(llms).toContain(
+      "measurements, plus ImplicitMemBench, are internal diagnostics only",
+    );
+    expect(llms).toContain(
+      "presentation or metric projections are not independent execution receipts",
+    );
     expect(server.version).toBe(CURRENT_PACKAGE_VERSION);
     expect(server.packages?.map((entry) => entry.version)).toEqual([
       CURRENT_PACKAGE_VERSION,
@@ -1753,14 +1771,17 @@ describe("release metadata and docs", () => {
     expect(currentClaims).not.toContain("LoCoMo");
     expect(currentClaims).not.toContain("BEAM");
     expect(currentClaims).not.toContain("MemoryAgentBench");
-    expect(historicalEvidence).toContain("| LoCoMo v0.7.3（完整 10 会话） |");
-    expect(historicalEvidence).toContain("official **0.8805**");
-    expect(historicalEvidence).toContain("strict **0.6266**");
-    expect(historicalEvidence).toContain("open-domain **0.6042**（58/96）");
+    expect(historicalEvidence).toContain(
+      "当前没有 benchmark 结果符合带版本历史证据要求。",
+    );
+    expect(historicalEvidence).not.toContain("LoCoMo");
+    expect(historicalEvidence).not.toContain("0.8805");
+    expect(historicalEvidence).not.toContain("0.6266");
+    expect(historicalEvidence).not.toContain("0.6042");
     expect(historicalEvidence).not.toContain("BEAM");
     expect(historicalEvidence).not.toContain("MemoryAgentBench");
-    expect(zhReadme).toContain("provider reranking");
-    expect(zhReadme).toContain("CC BY-NC 4.0，因此仅限非商用评估");
+    expect(zhReadme).toContain("内部诊断");
+    expect(zhReadme).toContain("独立 execution-receipt 契约");
     expect(zhReadme).not.toContain("| LoCoMo | 代表性 conv-1 live 运行 0.020");
     expect(zhReadme).toContain("## 选择你的接入路径");
     expect(zhReadme).toContain("GoodMemory 有三类主要产品入口");
@@ -2937,28 +2958,34 @@ describe("release metadata and docs", () => {
     expect(currentStatus).toContain("task-board/00-README.txt");
     expect(currentStatus).toContain("docs/archive/quality-gates/README.md");
     expect(currentStatus).toContain(
-      "fresh v0.7.3 LoCoMo result remains versioned evidence",
+      "The `0.7.4` source line has no current or versioned historical benchmark",
     );
     expect(currentStatus).toContain(
-      "BEAM 100K (unified 0.7651 / strict 0.620 / recall 0.8276)",
+      "All remain internal diagnostics",
     );
     expect(currentStatus).toContain(
       "LongMemEval is paused, not versioned internal evidence",
     );
     expect(currentStatus).toContain(
-      "current-claim tables are empty for v0.7.4",
+      "capability descriptor and both README tables are empty",
     );
     expect(currentStatus).not.toContain(
       "Full ImplicitMemBench and BEAM reports are internal research evidence until explicitly promoted.",
     );
     expect(currentStatus).toContain(
-      "LoCoMo's historical `v0.6.0` public-opt-in declaration covers all 1540 non-adversarial questions",
+      "LoCoMo's historical v0.6.0 and v0.7.3 measurements are internal diagnostics",
     );
     expect(currentStatus).toContain(
       "Phase 65 case-level hardening is paused; Phase 69 owns generalized candidate admission and noise control.",
     );
     expect(currentStatus).toContain(
-      "The Phase 72 benchmark gate and versioned release gate remain closed",
+      "strict mode finds no current or versioned historical benchmark evidence",
+    );
+    expect(currentStatus).not.toContain(
+      "Existing LoCoMo and BEAM scores remain versioned historical evidence",
+    );
+    expect(currentStatus).toContain(
+      "Presentation projections cannot self-attest",
     );
     expect(currentStatus).not.toContain("it is not yet promoted to README");
     expect(currentStatus).toContain(
@@ -3353,17 +3380,22 @@ describe("release metadata and docs", () => {
     expect(taskBoard).toContain("LongMemEval -> BEAM -> MemoryAgentBench -> LoCoMo");
     expect(taskBoard).toContain("Phase 72 is complete");
     expect(taskBoard).toContain(
-      "LongMemEval is now `paused_boundary`, not versioned evidence",
+      "none of its benchmark",
     );
     expect(taskBoard).toContain(
-      "ImplicitMemBench remains versioned internal evidence",
+      "ImplicitMemBench are internal diagnostics",
+    );
+    expect(taskBoard).toContain(
+      "none of its benchmark\n  measurements now qualifies as versioned evidence",
     );
     expect(taskBoard).not.toContain(
       "LongMemEval and ImplicitMemBench remain versioned internal evidence",
     );
-    expect(taskBoard).toContain("Phase 69 owns generalized candidate admission and noise control");
+    expect(taskBoard).toMatch(
+      /Phase 69 owns generalized\s+candidate admission and noise control/u,
+    );
     expect(taskBoard).toContain(
-      "BEAM 100K closes at 0.7651 unified, 0.620 strict, and 0.8276 recall",
+      "Latest accepted BEAM retained diagnostic",
     );
     expect(taskBoard).toContain(
       "the answer-rule workstream is paused",

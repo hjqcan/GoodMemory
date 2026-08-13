@@ -15,6 +15,7 @@ import {
   assertV07StableReleaseSource,
   promoteV07ReleaseSource,
 } from "../../scripts/promote-v0-7-release";
+import { BENCHMARK_EVIDENCE_BOUNDARY_NOTE } from "../../src/api/capabilityDescriptor";
 
 const README_RC = `# GoodMemory
 
@@ -137,7 +138,10 @@ describe("v0.7 release-source promotion", () => {
       const descriptor = JSON.parse(
         await readFile(join(root, ".well-known/goodmemory.json"), "utf8"),
       ) as {
-        benchmarks?: { currentClaims?: Array<Record<string, unknown>> };
+        benchmarks?: {
+          currentClaims?: Array<Record<string, unknown>>;
+          historicalEvidence?: { note?: string };
+        };
         releaseStatus?: Record<string, unknown>;
       };
       const readme = await readFile(join(root, "README.md"), "utf8");
@@ -156,6 +160,9 @@ describe("v0.7 release-source promotion", () => {
         tarball: "goodmemory-0.7.4.tgz",
       });
       expect(descriptor.benchmarks?.currentClaims).toEqual([]);
+      expect(descriptor.benchmarks?.historicalEvidence?.note).toBe(
+        BENCHMARK_EVIDENCE_BOUNDARY_NOTE,
+      );
       expect(readme).toContain("immutable `0.7.4` stable release source");
       expect(readmeZh).toContain("不可变的 `0.7.4` 稳定发布源码");
       expect(llms).toContain("immutable GoodMemory 0.7.4 stable release source");
@@ -223,6 +230,26 @@ describe("v0.7 release-source promotion", () => {
       await expect(
         assertV07StableReleaseSource({ repoRoot: root }),
       ).rejects.toThrow("goodmemory-0.7.4.tgz");
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects stable source when benchmark evidence metadata drifts", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-v07-benchmark-drift-"));
+    try {
+      await writeReleaseCandidateFixture(root);
+      await promoteV07ReleaseSource({ repoRoot: root });
+      const descriptorPath = join(root, ".well-known/goodmemory.json");
+      const descriptor = JSON.parse(
+        await readFile(descriptorPath, "utf8"),
+      ) as { benchmarks: { historicalEvidence: { note: string } } };
+      descriptor.benchmarks.historicalEvidence.note = "stale public claim";
+      await writeFile(descriptorPath, `${JSON.stringify(descriptor, null, 2)}\n`);
+
+      await expect(
+        assertV07StableReleaseSource({ repoRoot: root }),
+      ).rejects.toThrow("stale benchmark evidence metadata");
     } finally {
       await rm(root, { force: true, recursive: true });
     }

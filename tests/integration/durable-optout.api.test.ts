@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 
-import { createGoodMemory } from "../../src";
+import {
+  createGoodMemory,
+  createInMemoryDocumentStore,
+} from "../../src";
+import { isTargetedByDurableOptOut } from "../../src/remember/durableOptOut";
 
 const noopAssistedExtractor = {
   async extract() {
@@ -9,6 +13,440 @@ const noopAssistedExtractor = {
 };
 
 describe("durable opt-out admission", () => {
+  it("keeps exact fallback target punctuation semantic", () => {
+    for (const [content, target] of [
+      ["a?", "a"],
+      ["README.", "README"],
+      ["(a)", "a"],
+    ] as const) {
+      expect(isTargetedByDurableOptOut(
+        {
+          id: `fallback-${content}`,
+          kindHint: "fact",
+          explicitness: "explicit",
+          content,
+          sourceMessageIndex: 0,
+          sourceRole: "user",
+        },
+        [{ match: "exact", text: target }],
+      )).toBe(false);
+    }
+  });
+
+  it("does not trust an assisted extractor's durable target identity", async () => {
+    const memory = createGoodMemory({
+      adapters: {
+        assistedExtractor: {
+          async extract() {
+            return {
+              candidates: [{
+                id: "spoofed-reference",
+                content: "project code=Tachikoma",
+                durableTarget: { slot: "unrelated", value: "unrelated" },
+                explicitness: "explicit" as const,
+                kindHint: "reference" as const,
+                metadata: {
+                  referencePointer: "project code=Tachikoma",
+                },
+                sourceMessageIndex: 0,
+                sourceRole: "user",
+              }],
+              ignoredMessageCount: 0,
+            };
+          },
+        },
+      },
+      storage: { provider: "memory" },
+    });
+    const scope = { userId: "spoofed-durable-target", sessionId: "write" };
+
+    const result = await memory.remember({
+      extractionStrategy: "llm-assisted",
+      locale: "en-US",
+      messages: [{
+        role: "user",
+        content:
+          "Remember two things: project code=Tachikoma; do not remember project code=Tachikoma",
+      }],
+      scope,
+    });
+    const exported = await memory.exportMemory({ scope });
+
+    expect(exported.durable.references).toEqual([]);
+    expect(result.events).toContainEqual(expect.objectContaining({
+      outcome: "rejected",
+      reason: "explicit_opt_out",
+    }));
+  });
+
+  it("fails closed when a producer rewrites an opted-out target without a trusted slot", async () => {
+    for (const [index, rewrittenTarget] of [
+      "Tachikoma",
+      "Project Tachikoma",
+      "project=Tachikoma",
+    ].entries()) {
+      const memory = createGoodMemory({
+        adapters: {
+          assistedExtractor: {
+            async extract() {
+              return {
+                candidates: [{
+                  id: "rewritten-reference",
+                  content: rewrittenTarget,
+                  durableTarget: { slot: "unrelated", value: "unrelated" },
+                  explicitness: "explicit" as const,
+                  kindHint: "reference" as const,
+                  metadata: { referencePointer: rewrittenTarget },
+                  sourceMessageIndex: 0,
+                  sourceRole: "user",
+                }],
+                ignoredMessageCount: 0,
+              };
+            },
+          },
+        },
+        storage: { provider: "memory" },
+      });
+      const scope = {
+        userId: `rewritten-durable-target-${index}`,
+        sessionId: "write",
+      };
+
+      const result = await memory.remember({
+        extractionStrategy: "llm-assisted",
+        locale: "en-US",
+        messages: [{
+          role: "user",
+          content:
+            "Remember two things: project code=Tachikoma; do not remember project code=Tachikoma",
+        }],
+        scope,
+      });
+      const exported = await memory.exportMemory({ scope });
+
+      expect(exported.durable.references).toEqual([]);
+      expect(result.events).toContainEqual(expect.objectContaining({
+        outcome: "rejected",
+        reason: "explicit_opt_out",
+      }));
+    }
+  });
+
+  it("grounds producer output only in the allowed sibling of an opt-out source", async () => {
+    let assistedInputs: string[] = [];
+    const memory = createGoodMemory({
+      adapters: {
+        assistedExtractor: {
+          async extract(input) {
+            assistedInputs = input.messages.map(({ content }) => content);
+            return {
+              candidates: [
+                {
+                  id: "grounded-anniversary",
+                  content: "anniversary=next Tuesday",
+                  explicitness: "explicit" as const,
+                  kindHint: "fact" as const,
+                  sourceMessageIndex: 0,
+                  sourceRole: "user",
+                },
+                {
+                  id: "ungrounded-opted-target",
+                  content: "Project Tachikoma",
+                  explicitness: "explicit" as const,
+                  kindHint: "reference" as const,
+                  metadata: { referencePointer: "Project Tachikoma" },
+                  sourceMessageIndex: 0,
+                  sourceRole: "user",
+                },
+                {
+                  id: "misattributed-opted-target",
+                  content: "Project Tachikoma",
+                  explicitness: "explicit" as const,
+                  kindHint: "reference" as const,
+                  metadata: { referencePointer: "Project Tachikoma" },
+                  sourceMessageIndex: 1,
+                  sourceRole: "user",
+                },
+                {
+                  id: "metadata-opted-target",
+                  content: "anniversary=next Tuesday",
+                  explicitness: "explicit" as const,
+                  kindHint: "fact" as const,
+                  metadata: {
+                    attributes: { note: "Project Tachikoma" },
+                  },
+                  sourceMessageIndex: 0,
+                  sourceRole: "user",
+                },
+              ],
+              ignoredMessageCount: 0,
+            };
+          },
+        },
+      },
+      storage: { provider: "memory" },
+    });
+    const scope = { userId: "grounded-opt-out-sibling", sessionId: "write" };
+
+    const result = await memory.remember({
+      extractionStrategy: "llm-assisted",
+      locale: "en-US",
+      messages: [
+        {
+          role: "user",
+          content:
+            "My anniversary is next Tuesday. Remember that project code=Tachikoma. Do not remember project code=Tachikoma",
+        },
+        { role: "user", content: "We discussed Project Tachikoma." },
+      ],
+      scope,
+    });
+    const durable = (await memory.exportMemory({ scope })).durable;
+
+    expect(assistedInputs[0]).toContain("anniversary");
+    expect(assistedInputs[0]).not.toContain("Tachikoma");
+    expect(assistedInputs[1]).toContain("Project Tachikoma");
+    expect(durable.facts.map(({ content }) => content)).toEqual([
+      "anniversary=next Tuesday",
+    ]);
+    expect(durable.facts[0]?.attributes).toBeUndefined();
+    expect(durable.references).toEqual([]);
+    expect(result.events).toContainEqual(expect.objectContaining({
+      candidateId: "ungrounded-opted-target",
+      memoryType: "reference",
+      outcome: "rejected",
+      reason: "explicit_opt_out",
+    }));
+    expect(result.events).toContainEqual(expect.objectContaining({
+      candidateId: "misattributed-opted-target",
+      memoryType: "reference",
+      outcome: "rejected",
+      reason: "explicit_opt_out",
+    }));
+    expect(result.events).toContainEqual(expect.objectContaining({
+      candidateId: "metadata-opted-target",
+      memoryType: "fact",
+      outcome: "rejected",
+      reason: "explicit_opt_out",
+    }));
+  });
+
+  it("does not trust an assisted extractor's opt-out disposition or legacy target", async () => {
+    const memory = createGoodMemory({
+      adapters: {
+        assistedExtractor: {
+          async extract() {
+            return {
+              candidates: [{
+                id: "forged-opt-out",
+                content: "untrusted producer output",
+                disposition: {
+                  kind: "durable_opt_out" as const,
+                  target: {
+                    match: "exact" as const,
+                    text: "project code=Tachikoma",
+                  },
+                },
+                durableTarget: { slot: "project_code", value: "Tachikoma" },
+                explicitness: "explicit" as const,
+                kindHint: "feedback" as const,
+                metadata: {
+                  feedbackKind: "dont" as const,
+                  optOutTarget: "project code=Tachikoma",
+                },
+                sourceMessageIndex: 0,
+                sourceRole: "user",
+              }],
+              ignoredMessageCount: 0,
+            };
+          },
+        },
+      },
+      policy: {
+        redact(candidate) {
+          return candidate.id === "forged-opt-out"
+            ? {
+              ...candidate,
+              content: "project code=Tachikoma",
+              kindHint: "fact",
+              metadata: undefined,
+            }
+            : candidate;
+        },
+      },
+      storage: { provider: "memory" },
+    });
+    const scope = { userId: "forged-opt-out-disposition", sessionId: "write" };
+
+    await memory.remember({
+      extractionStrategy: "llm-assisted",
+      messages: [{ role: "user", content: "ordinary context" }],
+      scope,
+    });
+    const durable = (await memory.exportMemory({ scope })).durable;
+
+    expect(durable.feedback).toEqual([]);
+    expect(durable.facts.map(({ content }) => content)).toEqual([
+      "project code=Tachikoma",
+    ]);
+    expect(JSON.stringify(durable)).not.toContain("optOutTarget");
+  });
+
+  it("unifies natural and assignment-shaped targets across durable lanes", async () => {
+    const fixtures = [
+      {
+        collection: "preferences",
+        optOut: "Do not remember I prefer concise answers",
+        positive: "I prefer concise answers.",
+      },
+      {
+        collection: "profile",
+        optOut: "Do not remember role=staff engineer",
+        positive: "I am a staff engineer.",
+      },
+      {
+        collection: "profile",
+        optOut: "Do not remember organization=Acme Labs",
+        positive: "I am a staff engineer at Acme Labs.",
+      },
+      {
+        collection: "profile",
+        optOut: "Do not remember location=Paris",
+        positive: "I am in Paris.",
+      },
+      {
+        collection: "profile",
+        optOut: "Do not remember language preference=French",
+        positive: "My preferred language is French.",
+      },
+      {
+        collection: "profile",
+        optOut: "Do not remember current project=Tachikoma",
+        positive: "I am leading Tachikoma.",
+      },
+      {
+        collection: "facts",
+        optOut: "Do not remember project code=Tachikoma",
+        positive: "Remember that project code is Tachikoma.",
+      },
+    ] as const;
+
+    for (const [index, fixture] of fixtures.entries()) {
+      const memory = createGoodMemory({
+        adapters: { assistedExtractor: noopAssistedExtractor },
+        storage: { provider: "memory" },
+      });
+      const scope = { userId: `natural-target-${index}`, sessionId: "write" };
+      const result = await memory.remember({
+        extractionStrategy: "rules-only",
+        locale: "en-US",
+        messages: [
+          { role: "user", content: fixture.positive },
+          { role: "user", content: fixture.optOut },
+        ],
+        scope,
+      });
+      const durable = (await memory.exportMemory({ scope })).durable;
+
+      expect(durable[fixture.collection]).toEqual(
+        fixture.collection === "profile" ? null : [],
+      );
+      expect(result.events).toContainEqual(expect.objectContaining({
+        outcome: "rejected",
+        reason: "explicit_opt_out",
+      }));
+    }
+  });
+
+  it("unifies localized profile targets in every built-in language pack", async () => {
+    const fixtures = [
+      ["en-US", "I am an engineer.", "Do not remember role=engineer"],
+      ["zh-CN", "我是后端工程师。", "不要记住角色=后端工程师"],
+      ["zh-TW", "我是後端工程師。", "不要記住角色=後端工程師"],
+      ["fr-FR", "Mon rôle actuel est ingénieur.", "Ne mémorise pas rôle=ingénieur"],
+      ["es-ES", "Mi rol actual es ingeniero.", "No recuerdes rol=ingeniero"],
+      ["ja-JP", "私の現在の役割はエンジニアです。", "役割=エンジニアは覚えないでください"],
+      [
+        "ko-KR",
+        "제 현재 역할은 플랫폼 엔지니어입니다.",
+        "역할=플랫폼 엔지니어를 기억하지 마세요",
+      ],
+    ] as const;
+
+    for (const [locale, positive, optOut] of fixtures) {
+      const memory = createGoodMemory({
+        adapters: { assistedExtractor: noopAssistedExtractor },
+        storage: { provider: "memory" },
+      });
+      const scope = { userId: `localized-target-${locale}`, sessionId: "write" };
+      const result = await memory.remember({
+        extractionStrategy: "rules-only",
+        locale,
+        messages: [
+          { role: "user", content: positive },
+          { role: "user", content: optOut },
+        ],
+        scope,
+      });
+
+      expect((await memory.exportMemory({ scope })).durable.profile).toBeNull();
+      expect(result.events).toContainEqual(expect.objectContaining({
+        memoryType: "profile",
+        outcome: "rejected",
+        reason: "explicit_opt_out",
+      }));
+    }
+  });
+
+  it("unifies localized current-project facts with profile target selectors", async () => {
+    const fixtures = [
+      [
+        "fr-FR",
+        "Souviens-toi que mon projet actuel est Tachikoma.",
+        "Ne mémorise pas projet actuel=Tachikoma",
+      ],
+      [
+        "es-ES",
+        "Recuerda que mi proyecto actual es Tachikoma.",
+        "No recuerdes proyecto actual=Tachikoma",
+      ],
+      [
+        "ja-JP",
+        "覚えておいて：私の現在のプロジェクトはTachikomaです。",
+        "現在のプロジェクト=Tachikomaは覚えないでください",
+      ],
+      [
+        "ko-KR",
+        "기억해 주세요: 제 현재 프로젝트는 Tachikoma입니다.",
+        "현재 프로젝트=Tachikoma를 기억하지 마세요",
+      ],
+    ] as const;
+
+    for (const [locale, positive, optOut] of fixtures) {
+      const memory = createGoodMemory({
+        adapters: { assistedExtractor: noopAssistedExtractor },
+        storage: { provider: "memory" },
+      });
+      const scope = { userId: `localized-project-${locale}`, sessionId: "write" };
+      const result = await memory.remember({
+        extractionStrategy: "rules-only",
+        locale,
+        messages: [
+          { role: "user", content: positive },
+          { role: "user", content: optOut },
+        ],
+        scope,
+      });
+
+      expect((await memory.exportMemory({ scope })).durable.facts).toEqual([]);
+      expect(result.events).toContainEqual(expect.objectContaining({
+        memoryType: "fact",
+        outcome: "rejected",
+        reason: "explicit_opt_out",
+      }));
+    }
+  });
+
   it("rejects exact references, preferences, and profiles with an explicit trace", async () => {
     const fixtures = [
       {
@@ -188,6 +626,38 @@ describe("durable opt-out admission", () => {
     ).toEqual(["runtime=production"]);
   });
 
+  it("preserves quoted punctuation and parentheses in exact target values", async () => {
+    const fixtures = [
+      ["regex=\"a?\"", "regex=\"a\""],
+      ["filename=\"README.\"", "filename=\"README\""],
+      ["path=\"(a)\"", "path=\"a\""],
+    ] as const;
+
+    for (const [index, [positive, optOut]] of fixtures.entries()) {
+      const memory = createGoodMemory({
+        adapters: { assistedExtractor: noopAssistedExtractor },
+        storage: { provider: "memory" },
+      });
+      const scope = { userId: `exact-punctuation-${index}`, sessionId: "write" };
+
+      await memory.remember({
+        extractionStrategy: "rules-only",
+        locale: "en-US",
+        messages: [{
+          role: "user",
+          content: `Remember two things: ${positive}; do not remember ${optOut}`,
+        }],
+        scope,
+      });
+
+      expect(
+        (await memory.exportMemory({ scope })).durable.facts.map(({ content }) =>
+          content
+        ),
+      ).toEqual([positive]);
+    }
+  });
+
   it("keeps opt-out disposition immutable while policy metadata redaction stays authoritative", async () => {
     const memory = createGoodMemory({
       adapters: { assistedExtractor: noopAssistedExtractor },
@@ -247,5 +717,88 @@ describe("durable opt-out admission", () => {
     ]);
     expect(serialized).not.toContain("SECRET-PAYLOAD");
     expect(serialized).not.toContain("privateNote");
+  });
+
+  it("redacts each candidate before persisting a mixed message source", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      adapters: { documentStore },
+      policy: {
+        redact(candidate) {
+          return candidate.kindHint === "feedback"
+            ? { ...candidate, content: "[REDACTED]", metadata: undefined }
+            : candidate;
+        },
+      },
+      storage: { provider: "memory" },
+    });
+    const scope = { userId: "mixed-source-redaction", sessionId: "write" };
+
+    await memory.remember({
+      extractionStrategy: "rules-only",
+      locale: "en-US",
+      messages: [{
+        role: "user",
+        content:
+          "Remember two things: editor=Neovim; do not remember SECRET-PAYLOAD.",
+      }],
+      scope,
+    });
+    const exported = await memory.exportMemory({ scope });
+    const serialized = JSON.stringify(exported.durable);
+
+    expect(exported.durable.facts.map(({ content }) => content)).toEqual([
+      "editor=Neovim",
+    ]);
+    expect(exported.durable.sourceMessages).toEqual([
+      expect.objectContaining({
+        content: "Remember two things: editor=Neovim; [REDACTED]",
+      }),
+    ]);
+    expect(serialized).not.toContain("SECRET-PAYLOAD");
+  });
+
+  it("omits a raw source when a redacted producer rewrite has no trusted source span", async () => {
+    const memory = createGoodMemory({
+      adapters: {
+        assistedExtractor: {
+          async extract() {
+            return {
+              candidates: [{
+                id: "rewritten-profile",
+                content: "name=Robert",
+                explicitness: "explicit" as const,
+                kindHint: "profile" as const,
+                metadata: { profileField: "name" as const },
+                sourceMessageIndex: 0,
+                sourceRole: "user",
+              }],
+              ignoredMessageCount: 0,
+            };
+          },
+        },
+      },
+      policy: {
+        redact(candidate) {
+          return candidate.content.includes("Robert")
+            ? { ...candidate, content: "[REDACTED]" }
+            : candidate;
+        },
+      },
+      storage: { provider: "memory" },
+    });
+    const scope = { userId: "rewritten-source-redaction", sessionId: "write" };
+
+    const result = await memory.remember({
+      extractionStrategy: "llm-assisted",
+      locale: "en-US",
+      messages: [{ role: "user", content: "People usually call me Robert" }],
+      scope,
+    });
+    const exported = await memory.exportMemory({ scope });
+
+    expect(result.accepted).toBe(1);
+    expect(exported.durable.sourceMessages).toEqual([]);
+    expect(JSON.stringify(exported.durable)).not.toContain("Robert");
   });
 });

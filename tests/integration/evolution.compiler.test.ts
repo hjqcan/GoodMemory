@@ -91,15 +91,9 @@ describe("procedural pattern compiler", () => {
       }),
     );
 
-    await memory.recall({
+    await memory.runMaintenance({
       scope: { userId: "u-1", workspaceId: "workspace-a", agentId: "agent-a" },
-      query: "Summarize the current situation.",
-      retrievalProfile: "general_chat",
-    });
-    await memory.recall({
-      scope: { userId: "u-1", workspaceId: "workspace-a", agentId: "agent-a" },
-      query: "Summarize the current situation.",
-      retrievalProfile: "general_chat",
+      jobs: [],
     });
 
     const exported = await memory.exportMemory({
@@ -223,10 +217,9 @@ describe("procedural pattern compiler", () => {
       }),
     );
 
-    await memory.recall({
+    await memory.runMaintenance({
       scope: { userId: "u-1", workspaceId: "workspace-a" },
-      query: "Summarize the current situation.",
-      retrievalProfile: "general_chat",
+      jobs: [],
     });
 
     const exported = await memory.exportMemory({
@@ -334,15 +327,14 @@ describe("procedural pattern compiler", () => {
       }),
     );
 
-    await memory.recall({
+    await memory.runMaintenance({
       scope: {
         userId: "u-1",
         workspaceId: "workspace-a",
         agentId: "agent-a",
         sessionId: "s-2",
       },
-      query: "Summarize the current situation.",
-      retrievalProfile: "general_chat",
+      jobs: [],
     });
 
     const exported = await memory.exportMemory({
@@ -491,15 +483,14 @@ describe("procedural pattern compiler", () => {
       }),
     );
 
-    await memory.recall({
+    await memory.runMaintenance({
       scope: {
         userId: "u-1",
         workspaceId: "workspace-a",
         agentId: "agent-a",
         sessionId: "s-2",
       },
-      query: "Summarize the current situation.",
-      retrievalProfile: "general_chat",
+      jobs: [],
     });
 
     const exported = await memory.exportMemory({

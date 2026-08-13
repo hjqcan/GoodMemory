@@ -2021,6 +2021,24 @@ export async function evaluateV073CurrentLocomoClaimState(input: {
       name === ".v0.7.3-locomo-claim-publication.lock") ||
     projectionEntries.some((name) =>
       name.startsWith(".locomo-v0.7.3-current.json.partial-"));
+  let declaration: unknown;
+  try {
+    declaration = JSON.parse(
+      await readFile(join(input.repoRoot, "benchmark-claims/locomo.json"), "utf8"),
+    ) as unknown;
+  } catch {
+    declaration = undefined;
+  }
+  const pausedInternalDiagnostics = input.claims.length === 0 &&
+    isRecord(declaration) &&
+    declaration.status === "paused_boundary" &&
+    isRecord(declaration.claimBoundary) &&
+    declaration.claimBoundary.publicClaimAllowed === false;
+  if (pausedInternalDiagnostics) {
+    return partialPublication
+      ? ["current LoCoMo evidence publication is incomplete"]
+      : [];
+  }
   const anyEvidence =
     evidenceRootExists ||
     artifactPresence.some(
@@ -2092,14 +2110,6 @@ export async function evaluateV073CurrentLocomoClaimState(input: {
     releaseStatus: input.releaseStatus,
   }));
   if (projectionExists && completeEvidence && isRecord(projection)) {
-    let declaration: unknown = undefined;
-    try {
-      declaration = JSON.parse(
-        await readFile(join(input.repoRoot, "benchmark-claims/locomo.json"), "utf8"),
-      ) as unknown;
-    } catch {
-      declaration = undefined;
-    }
     issues.push(...await validateStableLocomoClaimEvidence({
       claimDeclaration: declaration,
       projection,

@@ -1,4 +1,5 @@
 import type { MemoryCandidate } from "../domain/memoryCandidate";
+import { createDurableTargetIdentity } from "../domain/memoryCandidate";
 import {
   attachLanguageDurableTarget,
   createLanguageDurableOptOutDisposition,
@@ -19,15 +20,17 @@ import type { BehavioralRulePatterns } from "./packHelpers";
 import {
   collectProtectedRetrievalTokens,
   expandExplicitFactCandidateClauses,
+  hasUnterminatedQuote,
   isExplicitlyQuotedValue,
   isolateDirectiveGrammar,
   maskQuotedText,
   normalizeUnicodeForEquality,
   replaceUnquotedText,
   splitClausesGeneric,
-  splitTrailingInterrogativeClause,
+  splitTrailingClause,
   tokenizeUnicodeText,
 } from "./generic";
+import type { DirectiveGrammarMatch } from "./generic";
 import {
   analyzeBehavioralRuleWithPatterns,
   createSourceOfTruthReferenceCandidate,
@@ -57,11 +60,16 @@ export interface RomanceWordDate {
 
 export interface RomanceCandidatePatterns {
   assignmentConfirmation: RegExp;
+  behavioralPreamble: RegExp;
+  behavioralDirective: RegExp;
   completedEvent: RegExp;
+  correctionPreamble: RegExp;
+  currentProject: RegExp;
   explicitFact: RegExp;
   explicitFactPrefix: RegExp;
-  feedback: RegExp;
+  durableBehavioralScope: RegExp;
   futurePlan: RegExp;
+  hasReportedDirectiveScope(input: DirectiveGrammarMatch): boolean;
   occurrenceConfirmation: RegExp;
   optOut: RegExp;
   optOutClauseBoundary: RegExp;
@@ -328,6 +336,9 @@ function isRomanceInterrogativeClause(
     if (anchorPattern.test(maskQuotedText(left).trim())) {
       return true;
     }
+    if (hasUnterminatedQuote(right)) {
+      return true;
+    }
     if (isExplicitlyQuotedValue(right)) {
       return false;
     }
@@ -358,8 +369,14 @@ function analyzeRomanceContent(
   content: string,
   definition: RomancePackDefinition,
 ): LanguageContentAnalysis {
+  const analysis = definition.analyzeContent(content);
   return {
-    ...definition.analyzeContent(content),
+    ...analysis,
+    behavioralDirective: classifyRomanceBehavioralDirective(
+      content,
+      definition,
+      analysis,
+    ),
     interrogative: isRomanceInterrogativeClause(
       content,
       content,
@@ -368,16 +385,77 @@ function analyzeRomanceContent(
   };
 }
 
+function classifyRomanceBehavioralDirective(
+  content: string,
+  definition: RomancePackDefinition,
+  analysis = definition.analyzeContent(content),
+): NonNullable<LanguageContentAnalysis["behavioralDirective"]> {
+  const trimmed = content.trim();
+  if (
+    definition.candidatePatterns.explicitFactPrefix.test(trimmed) ||
+    definition.candidatePatterns.optOut.test(trimmed) ||
+    analysis.sourceOfTruthDirective ||
+    definition.candidatePatterns.preference.test(trimmed)
+  ) {
+    return "none";
+  }
+
+  const unquoted = maskQuotedText(trimmed).trim();
+  if (!unquoted) {
+    return "none";
+  }
+  const correctionMatch = unquoted.match(
+    definition.candidatePatterns.correctionPreamble,
+  );
+  const corrected = correctionMatch
+    ? unquoted.slice(correctionMatch[0].length).trim()
+    : unquoted;
+  if (!corrected) {
+    return correctionMatch ? "one_off" : "none";
+  }
+  const directiveBody = corrected
+    .replace(definition.candidatePatterns.durableBehavioralScope, "")
+    .replace(/^[：:,，;；\s]+/u, "");
+  const namedActionAssertion =
+    /^\p{L}+(?:['’-]\p{L}+)*\s+(?:est|sont|était|étaient|es|está|son|era|fue)\b/iu
+      .test(directiveBody);
+  const structuralBehavioralDirective = definition.id === "fr"
+    ? /^\p{L}+ez\s+(?:pourquoi|comment|quoi|le|la|les|un|une|ce|cet|cette|ces)(?=$|[^\p{L}\p{N}])/iu
+      .test(directiveBody)
+    : /^\p{L}+(?:a|e)\s+(?:por\s+qué|cómo|qué|el|la|los|las|un|una|este|esta|estos|estas)(?=$|[^\p{L}\p{N}])/iu
+      .test(directiveBody);
+  const frenchInfinitiveSubjectAssertion =
+    /^\p{L}+(?:er|ir|re)\s+(?!(?:un|une|le|la|les|des|du|de|d['’]|l['’]|en|à|au|aux|pour|sans|avec)\b)\p{L}+(?:e|es|ent|ait|aient)\b/iu
+      .test(directiveBody);
+  const durableInfinitiveDirective = definition.id === "fr" &&
+    definition.candidatePatterns.durableBehavioralScope.test(corrected) &&
+    /^\p{L}+(?:er|ir|re)(?=$|[^\p{L}\p{N}])/iu.test(directiveBody) &&
+    !frenchInfinitiveSubjectAssertion;
+  const explicitBehavioralDirective = !namedActionAssertion &&
+    (definition.candidatePatterns.behavioralDirective.test(corrected) ||
+      definition.candidatePatterns.behavioralDirective.test(directiveBody) ||
+      structuralBehavioralDirective ||
+      durableInfinitiveDirective);
+  if (
+    definition.candidatePatterns.durableBehavioralScope.test(corrected) &&
+    explicitBehavioralDirective
+  ) {
+    return "durable";
+  }
+  return explicitBehavioralDirective ? "one_off" : "none";
+}
+
 function splitRomanceClauses(
   text: string,
   definition: RomancePackDefinition,
 ): string[] {
   return splitClausesGeneric(text)
+    .filter(Boolean)
     .flatMap((clause) =>
       definition.candidatePatterns.explicitFactPrefix.test(clause.trim()) ||
         definition.candidatePatterns.optOut.test(clause.trim())
         ? [clause]
-        : splitTrailingInterrogativeClause(
+        : splitTrailingClause(
           clause,
           (candidate) =>
             isRomanceInterrogativeClause(candidate, candidate, definition),
@@ -389,12 +467,34 @@ function splitRomanceClauses(
         )
     )
     .flatMap((clause) =>
+      definition.candidatePatterns.explicitFactPrefix.test(clause.trim()) ||
+        definition.candidatePatterns.optOut.test(clause.trim())
+        ? [clause]
+        : splitTrailingClause(
+          clause,
+          (candidate) =>
+            classifyRomanceBehavioralDirective(candidate, definition) !==
+              "none" ||
+            definition.candidatePatterns.durableBehavioralScope.test(
+              maskQuotedText(candidate).trim(),
+            ),
+          (candidate) =>
+            classifyRomanceBehavioralDirective(candidate, definition) !==
+              "none",
+          (candidate) =>
+            definition.candidatePatterns.behavioralPreamble.test(
+              candidate.trim(),
+            ),
+        )
+    )
+    .flatMap((clause) =>
       clause.split(definition.candidatePatterns.optOutConnectorBoundary)
     )
     .map((clause) =>
       isolateDirectiveGrammar(
         clause,
         definition.candidatePatterns.optOutGrammar,
+        definition.candidatePatterns.hasReportedDirectiveScope,
       )
     )
     .flatMap((clause) =>
@@ -657,8 +757,15 @@ function extractRomanceCandidates(
       (content) => extractExplicitFactClauses(content, definition),
       (content) => splitRomanceClauses(content, definition),
     );
-    const sourceAnalysis = message.analysis ??
-      analyzeRomanceContent(message.content, definition);
+    const canonicalSourceAnalysis = analyzeRomanceContent(
+      message.content,
+      definition,
+    );
+    const sourceAnalysis = {
+      ...(message.analysis ?? canonicalSourceAnalysis),
+      behavioralDirective: canonicalSourceAnalysis.behavioralDirective,
+      interrogative: canonicalSourceAnalysis.interrogative,
+    };
     for (const clause of clauses) {
       const content = clause.content.trim();
       const clauseAnalysis = clauses.length === 1 && clause.content === message.content
@@ -666,13 +773,14 @@ function extractRomanceCandidates(
         : analyzeRomanceContent(content, definition);
       if (
         clause.disposition === "ordinary" &&
-        isRomanceInterrogativeClause(content, content, definition)
+        (isRomanceInterrogativeClause(content, content, definition) ||
+          clauseAnalysis.behavioralDirective === "one_off")
       ) {
         continue;
       }
       const isFeedback = clause.disposition === "feedback" ||
         (clause.disposition === "ordinary" &&
-          definition.candidatePatterns.feedback.test(content));
+          clauseAnalysis.behavioralDirective === "durable");
       if (isFeedback) {
         const optOutTarget = clause.disposition === "feedback"
           ? extractRomanceOptOutTarget(
@@ -698,11 +806,6 @@ function extractRomanceCandidates(
             feedbackKind: clause.disposition === "feedback"
               ? "dont"
               : clauseAnalysis.feedbackKind,
-            ...(clause.disposition === "feedback"
-              ? {
-                optOutTarget,
-              }
-              : {}),
           },
           sourceMessageIndex,
           sourceRole: "user",
@@ -861,8 +964,19 @@ function extractRomanceCandidates(
       const fact = explicitFact ?? inferredFact;
       if (fact && !(explicitFact && hasTypedCandidate)) {
         const factContent = cleanCapturedValue(fact);
+        const currentProject = content.match(
+          definition.candidatePatterns.currentProject,
+        )?.[1];
         pushCandidate(candidates, {
           content: factContent,
+          ...(currentProject
+            ? {
+              durableTarget: createDurableTargetIdentity(
+                "profile:currentProject",
+                cleanCapturedValue(currentProject),
+              ),
+            }
+            : {}),
           explicitness: explicitFact ? "explicit" : "inferred",
           id: input.nextId(),
           kindHint: "fact",

@@ -128,7 +128,7 @@
     "currentClaims": [],
     "historicalEvidence": {
       "url": "https://github.com/hjqcan/GoodMemory/tree/main/benchmark-claims",
-      "note": "The v0.7.3 LoCoMo result, the v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus ImplicitMemBench, remain reproducible versioned evidence. No benchmark result has been relabeled as measured on v0.7.4. LongMemEval is withdrawn and paused pending a clean label-free rerun; its old artifacts are retained only as contaminated provenance and are not quotable as GoodMemory results."
+      "note": "No benchmark result currently meets the independent execution-receipt contract. The retained v0.7.3 LoCoMo and v0.6.0 LoCoMo, BEAM, and MemoryAgentBench measurements, plus ImplicitMemBench, are internal diagnostics only. LongMemEval is withdrawn and paused pending a clean label-free rerun. None is versioned evidence or a current package claim."
     }
   },
   "capabilities": {

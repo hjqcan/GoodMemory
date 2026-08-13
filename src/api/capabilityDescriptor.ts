@@ -13,11 +13,12 @@ import { readFileSync } from "node:fs";
 // Keeping both on one builder means they cannot drift.
 
 const PACKAGE_JSON_URL = new URL("../../package.json", import.meta.url);
-const CURRENT_LOCOMO_CLAIM_VERSION = "0.7.3";
-const CURRENT_LOCOMO_PROJECTION_URL = new URL(
-  "../../benchmark-claims/evidence/locomo-v0.7.3-current.json",
-  import.meta.url,
-);
+export const BENCHMARK_EVIDENCE_BOUNDARY_NOTE =
+  "No benchmark result currently meets the independent execution-receipt contract. " +
+  "The retained v0.7.3 LoCoMo and v0.6.0 LoCoMo, BEAM, and MemoryAgentBench " +
+  "measurements, plus ImplicitMemBench, are internal diagnostics only. LongMemEval " +
+  "is withdrawn and paused pending a clean label-free rerun. None is versioned " +
+  "evidence or a current package claim.";
 
 export interface GoodMemoryPackageReleaseMetadata {
   readonly installCommandsApplyAfterPublish: boolean;
@@ -92,65 +93,6 @@ export interface GoodMemoryCapabilityBenchmarkClaim {
   readonly claimDeclaration: string;
   readonly runtimeProfile: string;
   readonly measuredPackageVersion: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function currentLocomoClaimFromTrackedProjection(
-  version: string,
-): GoodMemoryCapabilityBenchmarkClaim {
-  let projection: unknown;
-  try {
-    projection = JSON.parse(
-      readFileSync(CURRENT_LOCOMO_PROJECTION_URL, "utf8"),
-    ) as unknown;
-  } catch (error) {
-    throw new Error(
-      `Stable ${version} requires ${CURRENT_LOCOMO_PROJECTION_URL.pathname}: ${String(error)}`,
-    );
-  }
-  if (
-    !isRecord(projection) ||
-    projection.artifactKind !== "tracked-current-claim-projection" ||
-    projection.benchmark !== "LoCoMo" ||
-    projection.schemaVersion !== 1 ||
-    !isRecord(projection.claim) ||
-    projection.claim.packageVersion !== version ||
-    !isRecord(projection.descriptorClaim)
-  ) {
-    throw new Error(
-      `Stable ${version} claim projection is invalid: ${CURRENT_LOCOMO_PROJECTION_URL.pathname}`,
-    );
-  }
-  const claim = projection.descriptorClaim;
-  const fields = [
-    "name",
-    "config",
-    "metric",
-    "result",
-    "reference",
-    "claimDeclaration",
-    "runtimeProfile",
-    "measuredPackageVersion",
-  ] as const;
-  if (
-    fields.some(
-      (field) =>
-        typeof claim[field] !== "string" || claim[field].trim().length === 0,
-    ) ||
-    claim.name !== "LoCoMo" ||
-    claim.measuredPackageVersion !== version ||
-    claim.claimDeclaration !== "benchmark-claims/locomo.json" ||
-    claim.reference !==
-      "benchmark-claims/evidence/locomo-v0.7.3-current.json"
-  ) {
-    throw new Error(
-      `Stable ${version} descriptor claim is invalid: ${CURRENT_LOCOMO_PROJECTION_URL.pathname}`,
-    );
-  }
-  return claim as unknown as GoodMemoryCapabilityBenchmarkClaim;
 }
 
 export interface GoodMemoryCapabilityDescriptor {
@@ -241,11 +183,7 @@ export function buildGoodMemoryCapabilityDescriptor(
 ): GoodMemoryCapabilityDescriptor {
   const packageMetadata = options.packageMetadata ?? readPackageMetadata();
   const version = options.version ?? packageMetadata.version;
-  const currentClaims =
-    packageMetadata.goodmemoryRelease.status === "stable" &&
-    version === CURRENT_LOCOMO_CLAIM_VERSION
-      ? [currentLocomoClaimFromTrackedProjection(version)]
-      : [];
+  const currentClaims: GoodMemoryCapabilityBenchmarkClaim[] = [];
 
   return {
     schemaVersion: "goodmemory.capability/v2",
@@ -360,12 +298,7 @@ export function buildGoodMemoryCapabilityDescriptor(
       currentClaims,
       historicalEvidence: {
         url: `${REPO}/tree/main/benchmark-claims`,
-        note:
-          `The v0.7.3 LoCoMo result, the v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus ImplicitMemBench, remain reproducible versioned evidence. ${
-            currentClaims.length === 0
-              ? `No benchmark result has been relabeled as measured on v${version}.`
-              : "The current LoCoMo claim is loaded only from the tracked v0.7.3 projection."
-          } LongMemEval is withdrawn and paused pending a clean label-free rerun; its old artifacts are retained only as contaminated provenance and are not quotable as GoodMemory results.`,
+        note: BENCHMARK_EVIDENCE_BOUNDARY_NOTE,
       },
     },
     capabilities: {

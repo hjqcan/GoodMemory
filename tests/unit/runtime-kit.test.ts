@@ -12,8 +12,7 @@ import {
 } from "../../src/domain/records";
 import { createMemorySource } from "../../src/domain/provenance";
 import { attachBehavioralPolicyAttributes } from "../../src/evolution/behavioralPolicy";
-import { buildBehavioralOutcomePolicyApplied } from "../../src/evolution/behavioralTelemetry";
-import { createExperienceRecord } from "../../src/evolution/contracts";
+import { buildBehavioralOutcomeExperienceRecord } from "../../src/evolution/behavioralTelemetry";
 import type {
   HostActionAssessmentResult,
   HostActionIntent,
@@ -23,6 +22,10 @@ import type {
   ProgressiveRecallIndex,
   ProgressiveRecallService,
   SearchRecallIndexInput,
+} from "../../src/progressive/recall";
+import {
+  buildProgressiveScopeDigest,
+  encodeGoodMemoryRecordRef,
 } from "../../src/progressive/recall";
 import { createGoodMemoryRuntimeKit } from "../../src/runtime-kit";
 
@@ -711,15 +714,10 @@ describe("runtime-kit", () => {
   });
 
   it("applies the historical boundary to raw archives and experiences", async () => {
-    const futureExperience = createExperienceRecord({
-      id: "future-experience",
-      kind: "maintenance",
-      summary: "Copy correction",
-      traceId: "future-trace",
-      userId: scope.userId,
-      workspaceId: scope.workspaceId,
+    const futureExperience = buildBehavioralOutcomeExperienceRecord({
       createdAt: "2026-05-03T00:00:00.000Z",
-      policyApplied: buildBehavioralOutcomePolicyApplied({
+      createId: () => "future-experience",
+      result: {
         cue: "Copy the report into backup.",
         failureClass: "arg_order",
         firstAction: {
@@ -734,7 +732,10 @@ describe("runtime-kit", () => {
         },
         modelInfluence: "rules-only",
         outcome: "failure",
-      }),
+        retrievalProfile: "coding_agent",
+      },
+      scope,
+      traceId: "future-trace",
     });
     const futureArchive = {
       id: "future-archive",
@@ -844,6 +845,176 @@ describe("runtime-kit", () => {
     expect(archive.context.content).not.toContain("archive-dashboard");
     expect(experience.context.content).toBe("Historical experience fragment.");
     expect(experience.context.content).not.toContain("copy_file(future_safe)");
+  });
+
+  it("returns exact experience record refs when raw carryover independently builds a fragment", async () => {
+    const scopeDigestSecret = "runtime-kit-test-secret";
+    const experience = buildBehavioralOutcomeExperienceRecord({
+      createdAt: "2026-05-04T00:00:00.000Z",
+      createId: () => "tool-outcome-experience",
+      result: {
+        cue: "Copy the report into backup.",
+        failureClass: "arg_order",
+        firstAction: {
+          kind: "tool_call",
+          name: "copy_file",
+          raw: "copy_file(old)",
+        },
+        modelInfluence: "rules-only",
+        retrievalProfile: "coding_agent",
+        saferAlternative: {
+          kind: "tool_call",
+          name: "copy_file",
+          raw: "copy_file(safe)",
+        },
+      },
+      scope,
+      traceId: "tool-outcome-trace",
+    });
+    const unrelatedExperience = buildBehavioralOutcomeExperienceRecord({
+      createdAt: "2026-05-04T00:00:00.000Z",
+      createId: () => "unrelated-tool-outcome-experience",
+      result: {
+        cue: "Deploy the database schema.",
+        failureClass: "precondition",
+        firstAction: {
+          kind: "tool_call",
+          name: "deploy_schema",
+          raw: "deploy_schema(unsafe)",
+        },
+        modelInfluence: "rules-only",
+        retrievalProfile: "coding_agent",
+        saferAlternative: {
+          kind: "tool_call",
+          name: "verify_then_deploy_schema",
+          raw: "verify_then_deploy_schema(safe)",
+        },
+      },
+      scope,
+      traceId: "unrelated-tool-outcome-trace",
+    });
+    const runtimeKit = createGoodMemoryRuntimeKit({
+      memory: createMemoryStub({
+        async exportMemory() {
+          return {
+            artifacts: { files: [], rootPath: "" },
+            durable: {
+              archives: [],
+              episodes: [],
+              evidence: [],
+              experiences: [experience, unrelatedExperience],
+              facts: [],
+              feedback: [],
+              preferences: [],
+              profile: null,
+              promotions: [],
+              proposals: [],
+              references: [],
+            },
+            exportedAt: "2026-05-04T00:00:00.000Z",
+            scope,
+          };
+        },
+        async buildContext() {
+          return {
+            output: "system_prompt_fragment",
+            content: "",
+            estimatedTokens: 0,
+            omittedSections: [],
+          };
+        },
+      }),
+      scopeDigestSecret,
+    });
+
+    const result = await runtimeKit.beforeModelCall({
+      scope,
+      query: "Copy the report into backup.",
+      retrievalProfile: "coding_agent",
+    });
+    const scopeDigest = buildProgressiveScopeDigest({
+      scope,
+      secret: scopeDigestSecret,
+    });
+
+    expect(result.context.content).toContain("copy_file(safe)");
+    expect(result.context.content).not.toContain("verify_then_deploy_schema");
+    expect(result.context.recordRefs).toEqual([
+      encodeGoodMemoryRecordRef({
+        id: experience.id,
+        recordKind: "experience",
+        scopeDigest,
+      }),
+    ]);
+    expect(result.recall?.metadata.hits).toEqual([]);
+  });
+
+  it("fails closed on a malformed persisted experience timestamp during historical replay", async () => {
+    const experience = buildBehavioralOutcomeExperienceRecord({
+      createdAt: "0",
+      createId: () => "malformed-time-tool-outcome",
+      result: {
+        cue: "Copy the report into backup.",
+        failureClass: "arg_order",
+        firstAction: {
+          kind: "tool_call",
+          name: "copy_file",
+          raw: "copy_file(old)",
+        },
+        modelInfluence: "rules-only",
+        retrievalProfile: "coding_agent",
+        saferAlternative: {
+          kind: "tool_call",
+          name: "copy_file",
+          raw: "copy_file(safe)",
+        },
+      },
+      scope,
+      traceId: "malformed-time-trace",
+    });
+    const runtimeKit = createGoodMemoryRuntimeKit({
+      memory: createMemoryStub({
+        async exportMemory() {
+          return {
+            artifacts: { files: [], rootPath: "" },
+            durable: {
+              archives: [],
+              episodes: [],
+              evidence: [],
+              experiences: [experience],
+              facts: [],
+              feedback: [],
+              preferences: [],
+              profile: null,
+              promotions: [],
+              proposals: [],
+              references: [],
+            },
+            exportedAt: "2026-05-04T00:00:00.000Z",
+            scope,
+          };
+        },
+        async buildContext() {
+          return {
+            output: "system_prompt_fragment",
+            content: "Historical fragment.",
+            estimatedTokens: 2,
+            omittedSections: [],
+          };
+        },
+      }),
+    });
+
+    const result = await runtimeKit.beforeModelCall({
+      scope,
+      query: "Copy the report into backup.",
+      referenceTime: "2026-05-04T00:00:00.000Z",
+      retrievalProfile: "coding_agent",
+    });
+
+    expect(result.context.content).toBe("Historical fragment.");
+    expect(result.context.content).not.toContain("copy_file(safe)");
+    expect(result.context.recordRefs).toBeUndefined();
   });
 
   it("keeps undated runtime exemplars for a current anchor but not a historical replay", async () => {

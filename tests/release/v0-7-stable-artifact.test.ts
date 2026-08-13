@@ -12,6 +12,7 @@ import { dirname, join } from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import { prepareV07StableArtifact } from "../../scripts/prepare-v0-7-stable-artifact";
+import { BENCHMARK_EVIDENCE_BOUNDARY_NOTE } from "../../src/api/capabilityDescriptor";
 
 const README_STABLE = `# GoodMemory
 
@@ -158,6 +159,9 @@ async function initializeStableSource(input: {
     `${JSON.stringify({
       benchmarks: {
         currentClaims: [],
+        historicalEvidence: {
+          note: BENCHMARK_EVIDENCE_BOUNDARY_NOTE,
+        },
       },
       name: "goodmemory",
       releaseStatus: {

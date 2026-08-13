@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { createLearningProposal } from "../../src/evolution/contracts";
+import {
+  createExperienceRecord,
+  createLearningProposal,
+} from "../../src/evolution/contracts";
 import {
   attachCompiledGuidance,
   buildBehavioralOutcomeExperienceRecord,
@@ -31,6 +34,7 @@ describe("behavioral telemetry", () => {
           raw: "DeepAnalyzer --detailed",
         },
         modelInfluence: "rules-only",
+        retrievalProfile: "coding_agent",
         saferAlternative: {
           kind: "tool_call",
           name: "QuickCheck",
@@ -42,7 +46,11 @@ describe("behavioral telemetry", () => {
     expect(isToolOutcomeExperience(record)).toBe(true);
     expect(record.kind).toBe("tool_outcome");
     expect(record.summary).toContain("DeepAnalyzer");
-    expect(record.policyApplied).toContain("tool_outcome");
+    expect(record.policyApplied).toEqual([]);
+    expect(record.metadata).toMatchObject({
+      "toolOutcome.schema": "goodmemory.tool_outcome",
+      "toolOutcome.version": 1,
+    });
     expect(record.linkedEvidenceIds).toEqual(["evidence-1"]);
 
     expect(parseToolOutcomeMetadata(record)).toEqual({
@@ -53,12 +61,36 @@ describe("behavioral telemetry", () => {
         name: "DeepAnalyzer",
         raw: "DeepAnalyzer --detailed",
       },
+      retrievalProfile: "coding_agent",
       saferAlternative: {
         kind: "tool_call",
         name: "QuickCheck",
         raw: "QuickCheck --network",
       },
     });
+  });
+
+  it("does not parse legacy policy tags even when the record uses the formal kind", () => {
+    const record = createExperienceRecord({
+      id: "legacy-tool-outcome",
+      kind: "tool_outcome",
+      policyApplied: [
+        "tool_outcome",
+        "tool_outcome.cue=copy%20the%20report",
+        "tool_outcome.failure_class=arg_order",
+        "tool_outcome.first_action.kind=tool_call",
+        "tool_outcome.first_action.name=copy_file",
+        "tool_outcome.retrieval_profile=coding_agent",
+        "tool_outcome.safer_alternative.kind=tool_call",
+        "tool_outcome.safer_alternative.name=copy_file_safely",
+      ],
+      summary: "legacy tagged maintenance row",
+      traceId: "legacy-trace",
+      userId: scope.userId,
+    });
+
+    expect(isToolOutcomeExperience(record)).toBe(true);
+    expect(parseToolOutcomeMetadata(record)).toBeNull();
   });
 
   it("attaches internal compiled guidance without changing the public proposal shape", () => {

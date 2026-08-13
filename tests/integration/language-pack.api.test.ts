@@ -15,7 +15,7 @@ describe("LanguagePack public API integration", () => {
       messages: [{
         role: "user",
         content:
-          "Please reference https://example.com/docs/runbook.md for deployment.",
+          "Use https://example.com/docs/runbook.md as the source of truth for deployment.",
       }],
       scope,
     });
@@ -205,7 +205,7 @@ describe("LanguagePack public API integration", () => {
 
     expect(remembered.metadata).toMatchObject({
       languagePackId: "zh-Hant",
-      languagePackVersion: "16-interrogative-admission",
+      languagePackVersion: "18-reported-directive-scope",
       locale: "zh-TW",
     });
     expect(recalled.facts.some((fact) => fact.content.includes("供應商審批"))).toBe(
@@ -213,7 +213,7 @@ describe("LanguagePack public API integration", () => {
     );
     expect(recalled.metadata).toMatchObject({
       languagePackId: "zh-Hant",
-      languagePackVersion: "16-interrogative-admission",
+      languagePackVersion: "18-reported-directive-scope",
       locale: "zh-TW",
     });
   });

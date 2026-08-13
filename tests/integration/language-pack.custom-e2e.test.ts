@@ -121,6 +121,9 @@ describe("custom LanguagePack horizontal extension", () => {
     ]);
 
     expect(remembered.metadata?.languagePackId).toBe("xx-test");
+    expect(pack.analyzeContent("zor memory ZorGate").behavioralDirective)
+      .toBeUndefined();
+    expect(remembered.accepted).toBe(1);
     expect(recalled.metadata.languagePackId).toBe("xx-test");
     expect(recalled.facts.some(({ content }) => content.includes("zor memory")))
       .toBe(true);

@@ -117,6 +117,7 @@ export interface MemoryCandidateMetadata {
   tags?: string[];
   attributes?: Record<string, MemoryAttributeValue>;
   feedbackKind?: FeedbackKind;
+  /** @deprecated Opt-out authority lives only in DurableOptOutDisposition. */
   optOutTarget?: string;
   appliesTo?: string;
   profileField?: ProfileField;
@@ -151,7 +152,9 @@ export interface MemoryCandidate {
   presetId?: string;
   ruleIds?: string[];
   content: string;
+  /** Re-derived by the owning LanguagePack before admission. */
   durableTarget?: DurableTargetIdentity;
+  /** Only LanguagePack-derived dispositions are authoritative. */
   disposition?: DurableOptOutDisposition;
   sourceMessageIndex: number;
   sourceMessageIndexes?: number[];

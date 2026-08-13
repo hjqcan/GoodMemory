@@ -45,16 +45,17 @@ const SHA256_PATTERN = /^[0-9a-f]{64}$/iu;
 const CURRENT_CLAIM_PROJECTION_KIND = "tracked-current-claim-projection";
 const HISTORICAL_PROJECTION_KIND = "tracked-historical-evidence-projection";
 const VERIFIED_PROJECTION_KIND = "verified-benchmark-claim-projection";
+const EXECUTION_RECEIPT_KIND = "benchmark-execution-receipt";
+const EXECUTION_RESULT_KIND = "benchmark-execution-result";
 const HISTORICAL_ASSERTION_CONTRACT_ERROR =
-  "historical projection assertions must bind artifactKind, benchmark, generatedBy, " +
-  "schemaVersion, sourceArtifacts path/bytes/sha256, and runIdentity or scorerIdentity";
+  "historical evidence requires a schema-3 verified projection assertion contract";
 const VERSIONED_CANDIDATE_IDENTITY_ERROR =
-  "versioned candidate history requires a tracked current-claim projection that binds " +
-  "benchmark, measured packageVersion, and run commit to the verified artifact";
+  "versioned candidate history requires a schema-3 verified projection and independent " +
+  "execution receipt that bind benchmark, commit, tree, package, run, and source closure";
 const CURRENT_CLAIM_PROJECTION_REQUIRED_ERROR =
-  "candidate public claim requires a verified current-claim projection";
+  "candidate public claim requires a schema-3 verified projection and independent execution receipt";
 const HISTORICAL_PROJECTION_REQUIRED_ERROR =
-  "historical evidence requires a verified historical projection";
+  "historical evidence requires a schema-3 verified projection and independent execution receipt";
 
 export interface BenchmarkClaimComparison {
   asOf: string;
@@ -101,6 +102,8 @@ export interface BenchmarkClaimReport {
     commit: string | null;
     executionFailures: number;
     packageVersion: string | null;
+    runId?: string;
+    tree?: string;
   };
   status: ClaimStatus;
 }
@@ -129,6 +132,38 @@ function isStrictNonEmpty(value: unknown): value is string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasExactKeys(
+  value: Record<string, unknown>,
+  expected: readonly string[],
+): boolean {
+  const actual = Object.keys(value).sort();
+  const sortedExpected = [...expected].sort();
+  return actual.length === sortedExpected.length &&
+    actual.every((key, index) => key === sortedExpected[index]);
+}
+
+function jsonValuesEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) {
+    return true;
+  }
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) &&
+      Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((value, index) => jsonValuesEqual(value, right[index]));
+  }
+  if (!isRecord(left) || !isRecord(right)) {
+    return false;
+  }
+  const leftKeys = Object.keys(left).sort();
+  const rightKeys = Object.keys(right).sort();
+  return leftKeys.length === rightKeys.length &&
+    leftKeys.every(
+      (key, index) =>
+        key === rightKeys[index] && jsonValuesEqual(left[key], right[key]),
+    );
 }
 
 function isJsonScalar(value: unknown): value is ClaimEvidenceAssertionValue {
@@ -179,11 +214,14 @@ function validateRepoRelativeArtifactPath(path: string): string | null {
     return "must be a repo-relative path, not an absolute path";
   }
   const normalized = normalize(path);
+  if (normalized !== path || path.includes("\\")) {
+    return "must use canonical forward-slash repo-relative form";
+  }
   if (
     normalized === "." ||
     normalized === ".." ||
     normalized.startsWith(`..${"/"}`) ||
-    normalized.split(/[\\/]+/u).includes("..")
+    path.split(/[\\/]+/u).includes("..")
   ) {
     return "must be a repo-relative path that does not escape the repository";
   }
@@ -199,6 +237,12 @@ interface ProjectionSourceArtifact {
 interface ProjectionSourceClosure {
   errors: string[];
   jsonDocumentsByPath: Map<string, unknown>;
+}
+
+export interface ClaimEvidenceRepositoryVerifier {
+  readCommittedFile(path: string): Promise<string>;
+  readFileAtCommit(commit: string, path: string): Promise<string>;
+  resolveCommitTree(commit: string): Promise<string>;
 }
 
 function projectionSourceArtifacts(projection: Record<string, unknown>): {
@@ -312,50 +356,24 @@ function sourceArtifactEquals(
     value.sha256.toLowerCase() === source.sha256.toLowerCase();
 }
 
-function receiptBindsSourceArtifact(
-  receipt: unknown,
-  source: ProjectionSourceArtifact,
-): boolean {
-  if (!isRecord(receipt)) {
-    return false;
-  }
-  const declaredSources = projectionSourceArtifacts(receipt);
-  if (declaredSources.errors.length > 0) {
-    return false;
-  }
-  return declaredSources.sources.some((declared) => sourceArtifactEquals(source, declared));
-}
-
-function sourceOwnsRunIdentity(input: {
-  document: unknown;
-  projection: Record<string, unknown>;
-}): boolean {
-  if (!isRecord(input.document) || !isRecord(input.document.run)) {
-    return false;
-  }
-  const projectedCommit = readAssertionValue(input.projection, ["run", "commit"]);
-  const projectedPackageVersion = readAssertionValue(
-    input.projection,
-    ["run", "packageVersion"],
-  );
-  return Object.is(input.document.run.commit, projectedCommit.value) &&
-    Object.is(input.document.run.packageVersion, projectedPackageVersion.value);
-}
-
-function isVerifiedExecutionReceipt(input: {
+function isExecutionReceiptIdentity(input: {
   benchmark: string;
   document: unknown;
   projection: Record<string, unknown>;
 }): boolean {
   if (
     !isRecord(input.document) ||
-    input.document.artifactKind !== CURRENT_CLAIM_PROJECTION_KIND ||
+    input.document.artifactKind !== EXECUTION_RECEIPT_KIND ||
+    input.document.schemaVersion !== 1 ||
     input.document.benchmark !== input.benchmark ||
     !isRecord(input.document.runIdentity) ||
-    !isRecord(input.document.claim) ||
+    !hasExactKeys(input.document.runIdentity, ["commit", "packageVersion", "runId", "tree"]) ||
     typeof input.document.runIdentity.commit !== "string" ||
     !FULL_COMMIT_PATTERN.test(input.document.runIdentity.commit) ||
-    !isStrictNonEmpty(input.document.claim.packageVersion) ||
+    typeof input.document.runIdentity.tree !== "string" ||
+    !FULL_COMMIT_PATTERN.test(input.document.runIdentity.tree) ||
+    !isStrictNonEmpty(input.document.runIdentity.packageVersion) ||
+    !isStrictNonEmpty(input.document.runIdentity.runId) ||
     projectionSourceArtifacts(input.document).errors.length > 0
   ) {
     return false;
@@ -364,9 +382,426 @@ function isVerifiedExecutionReceipt(input: {
     input.document.runIdentity.commit,
     readAssertionValue(input.projection, ["run", "commit"]).value,
   ) && Object.is(
-    input.document.claim.packageVersion,
+    input.document.runIdentity.tree,
+    readAssertionValue(input.projection, ["run", "tree"]).value,
+  ) && Object.is(
+    input.document.runIdentity.packageVersion,
     readAssertionValue(input.projection, ["run", "packageVersion"]).value,
+  ) && Object.is(
+    input.document.runIdentity.runId,
+    readAssertionValue(input.projection, ["run", "runId"]).value,
   );
+}
+
+function validateExecutionResult(
+  value: unknown,
+  label: string,
+): string[] {
+  const errors: string[] = [];
+  const result = isRecord(value) ? value : undefined;
+  const failures = result && isRecord(result.failures) ? result.failures : undefined;
+  const coverage = result && isRecord(result.coverage) ? result.coverage : undefined;
+  const metrics = result && isRecord(result.metrics) ? result.metrics : undefined;
+  const counts = failures?.counts;
+  const segments = coverage?.segments;
+  if (
+    !result ||
+    !hasExactKeys(result, ["coverage", "failures", "metrics"]) ||
+    !failures ||
+    !hasExactKeys(failures, ["counts", "total"]) ||
+    typeof failures.total !== "number" ||
+    !Number.isSafeInteger(failures.total) ||
+    failures.total < 0 ||
+    !Array.isArray(counts) ||
+    counts.length === 0 ||
+    !counts.every(
+      (count) => typeof count === "number" && Number.isSafeInteger(count) && count >= 0,
+    ) ||
+    !coverage ||
+    !hasExactKeys(coverage, ["complete", "segments"]) ||
+    typeof coverage.complete !== "boolean" ||
+    !Array.isArray(segments) ||
+    segments.length === 0 ||
+    !segments.every(
+      (segment) =>
+        isRecord(segment) &&
+        hasExactKeys(segment, ["actual", "expected", "name"]) &&
+        isStrictNonEmpty(segment.name) &&
+        typeof segment.actual === "number" &&
+        Number.isSafeInteger(segment.actual) &&
+        segment.actual >= 0 &&
+        typeof segment.expected === "number" &&
+        Number.isSafeInteger(segment.expected) &&
+        segment.expected > 0,
+    ) ||
+    !metrics ||
+    typeof metrics.score !== "number" ||
+    !Number.isFinite(metrics.score) ||
+    typeof metrics.baseline !== "number" ||
+    !Number.isFinite(metrics.baseline) ||
+    !Object.values(metrics).every(
+      (metric) => typeof metric === "number" && Number.isFinite(metric),
+    )
+  ) {
+    return [
+      `${label} must define failures, coverage, and metrics using only canonical fields`,
+    ];
+  }
+  const total = counts.reduce<number>((sum, count) => sum + count, 0);
+  if (failures.total !== total) {
+    errors.push(
+      `${label} failures.total ${failures.total} must equal count total ${total}`,
+    );
+  }
+  const complete = segments.every(
+    (segment) => isRecord(segment) && segment.actual === segment.expected,
+  );
+  if (coverage.complete !== complete) {
+    errors.push(
+      `${label} coverage.complete ${coverage.complete} must equal ${complete}`,
+    );
+  }
+  return errors;
+}
+
+function validateExecutionReceiptResult(document: Record<string, unknown>): string[] {
+  return validateExecutionResult(document.result, "execution receipt result");
+}
+
+function validateCanonicalExecutionResult(input: {
+  benchmark: string;
+  document: unknown;
+  receipt: Record<string, unknown>;
+}): string[] {
+  if (!isRecord(input.document)) {
+    return ["canonical execution result must be a JSON object"];
+  }
+  const errors: string[] = [];
+  if (
+    !hasExactKeys(input.document, [
+      "artifactKind",
+      "benchmark",
+      "result",
+      "runIdentity",
+      "schemaVersion",
+    ])
+  ) {
+    errors.push(
+      "canonical execution result must contain only artifactKind, benchmark, result, " +
+        "runIdentity, and schemaVersion",
+    );
+  }
+  if (
+    input.document.artifactKind !== EXECUTION_RESULT_KIND ||
+    input.document.schemaVersion !== 1 ||
+    input.document.benchmark !== input.benchmark
+  ) {
+    errors.push(
+      `canonical execution result must use ${EXECUTION_RESULT_KIND} schema 1 and ` +
+        `benchmark ${input.benchmark}`,
+    );
+  }
+  if (
+    !isRecord(input.document.runIdentity) ||
+    !hasExactKeys(input.document.runIdentity, ["commit", "packageVersion", "runId", "tree"]) ||
+    !jsonValuesEqual(input.document.runIdentity, input.receipt.runIdentity)
+  ) {
+    errors.push(
+      "canonical execution result runIdentity must exactly equal the execution receipt",
+    );
+  }
+  errors.push(...validateExecutionResult(
+    input.document.result,
+    "canonical execution result result",
+  ));
+  if (!jsonValuesEqual(input.document.result, input.receipt.result)) {
+    errors.push(
+      "canonical execution result result must exactly equal the execution receipt result",
+    );
+  }
+  return errors;
+}
+
+function executionReceiptBindingPath(
+  projectionPath: ClaimEvidenceAssertionPath,
+): ClaimEvidenceAssertionPath | undefined {
+  if (
+    projectionPath.length === 2 &&
+    projectionPath[0] === "run" &&
+    ["commit", "packageVersion", "runId", "tree"].includes(String(projectionPath[1]))
+  ) {
+    return ["runIdentity", projectionPath[1]!];
+  }
+  if (assertionPathEquals(projectionPath, ["run", "executionFailures"])) {
+    return ["result", "failures", "total"];
+  }
+  if (
+    projectionPath.length === 3 &&
+    projectionPath[0] === "run" &&
+    projectionPath[1] === "executionFailureCounts" &&
+    typeof projectionPath[2] === "number"
+  ) {
+    return ["result", "failures", "counts", projectionPath[2]];
+  }
+  if (assertionPathEquals(projectionPath, ["coverage", "complete"])) {
+    return ["result", "coverage", "complete"];
+  }
+  if (
+    projectionPath.length === 4 &&
+    projectionPath[0] === "coverage" &&
+    projectionPath[1] === "segments" &&
+    typeof projectionPath[2] === "number" &&
+    ["actual", "expected", "name"].includes(String(projectionPath[3]))
+  ) {
+    return [
+      "result",
+      "coverage",
+      "segments",
+      projectionPath[2],
+      projectionPath[3]!,
+    ];
+  }
+  if (
+    projectionPath.length === 2 &&
+    projectionPath[0] === "metrics" &&
+    typeof projectionPath[1] === "string"
+  ) {
+    return ["result", "metrics", projectionPath[1]];
+  }
+  return undefined;
+}
+
+async function verifyCommittedArtifact(input: {
+  readFile: (path: string) => Promise<string>;
+  repoRoot: string;
+  repository: ClaimEvidenceRepositoryVerifier;
+  source: ProjectionSourceArtifact;
+}): Promise<{ content?: string; errors: string[] }> {
+  const errors: string[] = [];
+  let content: string;
+  try {
+    content = await input.readFile(join(input.repoRoot, input.source.path));
+  } catch (error) {
+    return {
+      errors: [
+        `execution source artifact ${input.source.path} cannot be read: ${String(error)}`,
+      ],
+    };
+  }
+  const bytes = new TextEncoder().encode(content).byteLength;
+  const sha256 = createHash("sha256").update(content).digest("hex");
+  if (bytes !== input.source.bytes || sha256 !== input.source.sha256.toLowerCase()) {
+    errors.push(
+      `execution source artifact ${input.source.path} does not match its declared bytes/sha256`,
+    );
+  }
+  try {
+    const committed = await input.repository.readCommittedFile(input.source.path);
+    if (committed !== content) {
+      errors.push(
+        `execution source artifact ${input.source.path} does not match committed Git bytes`,
+      );
+    }
+  } catch (error) {
+    errors.push(
+      `execution source artifact ${input.source.path} is not tracked and committed: ` +
+        String(error),
+    );
+  }
+  return { content, errors };
+}
+
+async function verifyExecutionReceipt(input: {
+  benchmark: string;
+  document: Record<string, unknown>;
+  path: string;
+  projection: Record<string, unknown>;
+  readFile: (path: string) => Promise<string>;
+  repoRoot: string;
+  repository?: ClaimEvidenceRepositoryVerifier;
+}): Promise<string[]> {
+  const errors: string[] = [];
+  if (!isExecutionReceiptIdentity({
+    benchmark: input.benchmark,
+    document: input.document,
+    projection: input.projection,
+  })) {
+    return [
+      `execution receipt ${input.path} must use ${EXECUTION_RECEIPT_KIND} schema 1 ` +
+      "and match projection commit, tree, packageVersion, and runId",
+    ];
+  }
+  if (
+    !hasExactKeys(input.document, [
+      "artifactKind",
+      "benchmark",
+      "result",
+      "resultEvidence",
+      "runEvidence",
+      "runIdentity",
+      "schemaVersion",
+      "sourceArtifacts",
+    ])
+  ) {
+    errors.push(
+      `execution receipt ${input.path} must contain only the canonical receipt fields`,
+    );
+  }
+  errors.push(...validateExecutionReceiptResult(input.document));
+  if (!input.repository) {
+    errors.push(
+      `execution receipt ${input.path} cannot be verified without Git repository access`,
+    );
+    return errors;
+  }
+
+  const projectionManifest = projectionSourceArtifacts(input.projection);
+  const receiptManifest = projectionSourceArtifacts(input.document);
+  const receiptSourceByPath = new Map(
+    receiptManifest.sources.map((source) => [source.path, source]),
+  );
+  const projectionExecutionSources = projectionManifest.sources.filter(
+    (source) => source.path !== input.path,
+  );
+  for (const source of projectionExecutionSources) {
+    const declared = receiptSourceByPath.get(source.path);
+    if (!declared || !sourceArtifactEquals(source, declared)) {
+      errors.push(
+        `execution receipt ${input.path} does not bind exact projection source ${source.path}`,
+      );
+    }
+  }
+  for (const source of receiptManifest.sources) {
+    const projected = projectionExecutionSources.find(
+      (candidate) => candidate.path === source.path,
+    );
+    if (!projected || !sourceArtifactEquals(source, projected)) {
+      errors.push(
+        `execution receipt ${input.path} declares source ${source.path} outside the exact ` +
+          "projection source closure",
+      );
+    }
+  }
+
+  const receiptSourceDocuments = new Map<string, unknown>();
+  for (const source of receiptManifest.sources) {
+    const verified = await verifyCommittedArtifact({
+      readFile: input.readFile,
+      repoRoot: input.repoRoot,
+      repository: input.repository,
+      source,
+    });
+    errors.push(...verified.errors);
+    if (verified.content !== undefined && source.path.endsWith(".json")) {
+      try {
+        receiptSourceDocuments.set(source.path, JSON.parse(verified.content));
+      } catch (error) {
+        errors.push(
+          `execution source artifact ${source.path} is not valid JSON: ${String(error)}`,
+        );
+      }
+    }
+  }
+
+  const canonicalResults = receiptManifest.sources.flatMap((source) => {
+    const document = receiptSourceDocuments.get(source.path);
+    return isRecord(document) && document.artifactKind === EXECUTION_RESULT_KIND
+      ? [{ document, source }]
+      : [];
+  });
+  const resultEvidence = input.document.resultEvidence;
+  const resultEvidencePath = isRecord(resultEvidence) &&
+      hasExactKeys(resultEvidence, ["sourceArtifactPath"]) &&
+      isStrictNonEmpty(resultEvidence.sourceArtifactPath) &&
+      validateRepoRelativeArtifactPath(resultEvidence.sourceArtifactPath) === null &&
+      resultEvidence.sourceArtifactPath.startsWith("benchmark-claims/evidence/")
+    ? resultEvidence.sourceArtifactPath
+    : undefined;
+  if (
+    resultEvidencePath === undefined ||
+    canonicalResults.length !== 1 ||
+    canonicalResults[0]?.source.path !== resultEvidencePath
+  ) {
+    errors.push(
+      `execution receipt ${input.path} resultEvidence must bind exactly one canonical ` +
+        "execution result under benchmark-claims/evidence",
+    );
+  }
+  const canonicalResult = canonicalResults[0];
+  if (canonicalResult) {
+    errors.push(...validateCanonicalExecutionResult({
+      benchmark: input.benchmark,
+      document: canonicalResult.document,
+      receipt: input.document,
+    }));
+  }
+  const receiptResult = isRecord(input.document.result) ? input.document.result : undefined;
+  if (
+    receiptResult &&
+    isRecord(receiptResult.metrics) &&
+    !jsonValuesEqual(receiptResult.metrics, input.projection.metrics)
+  ) {
+    errors.push(
+      `execution receipt ${input.path} result.metrics must exactly equal projection metrics`,
+    );
+  }
+
+  const runIdentity = input.document.runIdentity as Record<string, unknown>;
+  const commit = runIdentity.commit as string;
+  const tree = runIdentity.tree as string;
+  const packageVersion = runIdentity.packageVersion as string;
+  try {
+    const actualTree = await input.repository.resolveCommitTree(commit);
+    if (actualTree !== tree) {
+      errors.push(
+        `execution receipt ${input.path} tree ${tree} does not match commit ${commit} tree ` +
+          actualTree,
+      );
+    }
+  } catch (error) {
+    errors.push(`execution receipt ${input.path} commit ${commit} cannot be resolved: ${String(error)}`);
+  }
+  try {
+    const packageJson = JSON.parse(
+      await input.repository.readFileAtCommit(commit, "package.json"),
+    ) as unknown;
+    if (!isRecord(packageJson) || packageJson.version !== packageVersion) {
+      errors.push(
+        `execution receipt ${input.path} packageVersion ${packageVersion} does not match ` +
+          `package.json at commit ${commit}`,
+      );
+    }
+  } catch (error) {
+    errors.push(
+      `execution receipt ${input.path} cannot read package.json at commit ${commit}: ` +
+        String(error),
+    );
+  }
+
+  const runEvidence = input.document.runEvidence;
+  if (
+    !isRecord(runEvidence) ||
+    !hasExactKeys(runEvidence, ["runIdPath", "sourceArtifactPath"]) ||
+    !isStrictNonEmpty(runEvidence.sourceArtifactPath) ||
+    validateRepoRelativeArtifactPath(runEvidence.sourceArtifactPath) !== null ||
+    !Array.isArray(runEvidence.runIdPath) ||
+    runEvidence.runIdPath.length === 0 ||
+    !runEvidence.runIdPath.every(isValidAssertionPathSegment)
+  ) {
+    errors.push(
+      `execution receipt ${input.path} runEvidence must bind runIdentity.runId to a JSON source`,
+    );
+  } else {
+    const runDocument = receiptSourceDocuments.get(runEvidence.sourceArtifactPath);
+    const sourceRunId = readAssertionValue(runDocument, runEvidence.runIdPath);
+    if (!sourceRunId.found || sourceRunId.value !== runIdentity.runId) {
+      errors.push(
+        `execution receipt ${input.path} runIdentity.runId is not bound by ` +
+          `${runEvidence.sourceArtifactPath}:${renderAssertionPath(runEvidence.runIdPath)}`,
+      );
+    }
+  }
+  return errors;
 }
 
 function parseVerifiedProjectionBinding(
@@ -439,21 +874,25 @@ function requireProjectionAssertion(input: {
   }
 }
 
-function validateVerifiedProjection(input: {
+async function validateVerifiedProjection(input: {
   artifact: ClaimEvidenceArtifact;
   bindToReport: boolean;
   parsed: Record<string, unknown>;
   presentation: "current" | "historical";
+  readFile: (path: string) => Promise<string>;
   report: BenchmarkClaimReport;
+  repoRoot: string;
+  repository?: ClaimEvidenceRepositoryVerifier;
   sourceDocumentsByPath: ReadonlyMap<string, unknown>;
-}): string[] {
+}): Promise<string[]> {
   const errors: string[] = [];
   const projection = input.parsed;
   if (projection.artifactKind !== VERIFIED_PROJECTION_KIND) {
     errors.push(`verified projection artifactKind must be ${VERIFIED_PROJECTION_KIND}`);
   }
-  if (projection.schemaVersion !== 2) {
-    errors.push("verified projection schemaVersion must be 2");
+  const expectedSchemaVersion = 3;
+  if (projection.schemaVersion !== expectedSchemaVersion) {
+    errors.push(`verified projection schemaVersion must be ${expectedSchemaVersion}`);
   }
   if (projection.presentation !== input.presentation) {
     errors.push(`verified projection presentation must be ${input.presentation}`);
@@ -475,6 +914,9 @@ function validateVerifiedProjection(input: {
     typeof run.commit !== "string" ||
     !FULL_COMMIT_PATTERN.test(run.commit) ||
     !isStrictNonEmpty(run.packageVersion) ||
+    typeof run.tree !== "string" ||
+    !FULL_COMMIT_PATTERN.test(run.tree) ||
+    !isStrictNonEmpty(run.runId) ||
     typeof run.executionFailures !== "number" ||
     !Number.isSafeInteger(run.executionFailures) ||
     run.executionFailures < 0 ||
@@ -485,8 +927,8 @@ function validateVerifiedProjection(input: {
     )
   ) {
     errors.push(
-      "verified projection run must define commit, packageVersion, executionFailures, " +
-        "and non-empty executionFailureCounts",
+      "verified projection run must define commit, tree, packageVersion, runId, " +
+        "executionFailures, and non-empty executionFailureCounts",
     );
   } else {
     const total = executionFailureCounts.reduce<number>((sum, count) => sum + count, 0);
@@ -507,6 +949,12 @@ function validateVerifiedProjection(input: {
         errors.push(
           `verified projection packageVersion must equal ${input.report.run.packageVersion}`,
         );
+      }
+      if (run.tree !== input.report.run.tree) {
+        errors.push(`verified projection run tree must equal ${input.report.run.tree}`);
+      }
+      if (run.runId !== input.report.run.runId) {
+        errors.push(`verified projection runId must equal ${input.report.run.runId}`);
       }
       if (run.executionFailures !== input.report.run.executionFailures) {
         errors.push(
@@ -582,7 +1030,7 @@ function validateVerifiedProjection(input: {
     }
   }
 
-  for (const path of [
+  const requiredAssertions: ClaimEvidenceAssertionPath[] = [
     ["artifactKind"],
     ["benchmark"],
     ["schemaVersion"],
@@ -593,7 +1041,9 @@ function validateVerifiedProjection(input: {
     ["coverage", "complete"],
     ["metrics", "score"],
     ["metrics", "baseline"],
-  ] satisfies ClaimEvidenceAssertionPath[]) {
+  ];
+  requiredAssertions.push(["run", "tree"], ["run", "runId"]);
+  for (const path of requiredAssertions) {
     requireProjectionAssertion({
       artifact: input.artifact,
       errors,
@@ -605,7 +1055,10 @@ function validateVerifiedProjection(input: {
   const requiredBindingPaths: ClaimEvidenceAssertionPath[] = [
     ["run", "commit"],
     ["run", "packageVersion"],
+    ["run", "executionFailures"],
+    ["coverage", "complete"],
   ];
+  requiredBindingPaths.push(["run", "tree"], ["run", "runId"]);
   if (metrics) {
     for (const metric of Object.keys(metrics)) {
       requiredBindingPaths.push(["metrics", metric]);
@@ -618,6 +1071,7 @@ function validateVerifiedProjection(input: {
   }
   if (Array.isArray(coverageSegments)) {
     coverageSegments.forEach((_, index) => {
+      requiredBindingPaths.push(["coverage", "segments", index, "name"]);
       requiredBindingPaths.push(["coverage", "segments", index, "actual"]);
       requiredBindingPaths.push(["coverage", "segments", index, "expected"]);
     });
@@ -633,21 +1087,57 @@ function validateVerifiedProjection(input: {
   });
   const seenProjectionPaths = new Set<string>();
   const sourceManifest = projectionSourceArtifacts(projection);
-  const sourceByPath = new Map(
-    sourceManifest.sources.map((source) => [source.path, source]),
-  );
   const receiptDocuments = sourceManifest.sources.flatMap((source) => {
     const document = input.sourceDocumentsByPath.get(source.path);
     return source.path.startsWith("benchmark-claims/evidence/") &&
-      isVerifiedExecutionReceipt({
-        benchmark: input.report.benchmark,
-        document,
-        projection,
-      }) &&
-      isRecord(document)
+      isRecord(document) &&
+      document.artifactKind === EXECUTION_RECEIPT_KIND
       ? [document]
       : [];
   });
+  const receiptDocument = receiptDocuments[0];
+  const receiptSource = receiptDocument
+    ? sourceManifest.sources.find(
+        (source) => input.sourceDocumentsByPath.get(source.path) === receiptDocument,
+      )
+    : undefined;
+  {
+    for (const source of sourceManifest.sources) {
+      const document = input.sourceDocumentsByPath.get(source.path);
+      if (isRecord(document) && document.artifactKind === CURRENT_CLAIM_PROJECTION_KIND) {
+        const nestedClosure = await verifyProjectionSourceClosure({
+          projection: document,
+          readFile: input.readFile,
+          repoRoot: input.repoRoot,
+        });
+        errors.push(...nestedClosure.errors.map(
+          (error) => `legacy current projection ${source.path}: ${error}`,
+        ));
+      }
+    }
+    if (receiptDocuments.length !== 1) {
+      errors.push("verified projection requires exactly one independent execution receipt");
+    } else if (receiptDocument && receiptSource) {
+      if (input.repository) {
+        const committedReceipt = await verifyCommittedArtifact({
+          readFile: input.readFile,
+          repoRoot: input.repoRoot,
+          repository: input.repository,
+          source: receiptSource,
+        });
+        errors.push(...committedReceipt.errors);
+      }
+      errors.push(...await verifyExecutionReceipt({
+        benchmark: input.report.benchmark,
+        document: receiptDocument,
+        path: receiptSource.path,
+        projection,
+        readFile: input.readFile,
+        repoRoot: input.repoRoot,
+        repository: input.repository,
+      }));
+    }
+  }
   for (const binding of bindings) {
     const renderedProjectionPath = renderAssertionPath(binding.projectionPath);
     if (seenProjectionPaths.has(renderedProjectionPath)) {
@@ -656,22 +1146,22 @@ function validateVerifiedProjection(input: {
     }
     seenProjectionPaths.add(renderedProjectionPath);
     const projected = readAssertionValue(projection, binding.projectionPath);
-    const boundSource = sourceByPath.get(binding.sourceArtifactPath);
     const sourceDocument = input.sourceDocumentsByPath.get(binding.sourceArtifactPath);
     const sourced = readAssertionValue(sourceDocument, binding.sourceJsonPath);
     if (!projected.found) {
       errors.push(`source binding ${renderedProjectionPath} projection path was not found`);
       continue;
     }
+    const canonicalReceiptPath = executionReceiptBindingPath(binding.projectionPath);
     if (
-      boundSource &&
-      !binding.sourceArtifactPath.startsWith("benchmark-claims/evidence/") &&
-      !sourceOwnsRunIdentity({ document: sourceDocument, projection }) &&
-      !receiptDocuments.some((receipt) => receiptBindsSourceArtifact(receipt, boundSource))
+      !receiptSource ||
+      binding.sourceArtifactPath !== receiptSource.path ||
+      !canonicalReceiptPath ||
+      !assertionPathEquals(binding.sourceJsonPath, canonicalReceiptPath)
     ) {
       errors.push(
-        `source binding ${renderedProjectionPath} artifact ` +
-          `${binding.sourceArtifactPath} is not bound by a verified execution receipt`,
+        `source binding ${renderedProjectionPath} must use the canonical execution ` +
+          "receipt result path",
       );
     }
     if (!sourced.found) {
@@ -681,17 +1171,6 @@ function validateVerifiedProjection(input: {
           binding.sourceArtifactPath,
       );
       continue;
-    }
-    if (
-      binding.sourceArtifactPath.startsWith("benchmark-claims/evidence/") &&
-      (renderedProjectionPath === "run.commit" ||
-        renderedProjectionPath === "run.packageVersion") &&
-      !receiptDocuments.includes(sourceDocument as Record<string, unknown>)
-    ) {
-      errors.push(
-        `source binding ${renderedProjectionPath} must come from a verified ` +
-          "execution receipt",
-      );
     }
     if (!Object.is(projected.value, sourced.value)) {
       errors.push(
@@ -1114,61 +1593,6 @@ function hasExactAssertion(
   );
 }
 
-function assertionEqualsAt(
-  assertions: unknown,
-  path: ClaimEvidenceAssertionPath,
-): unknown {
-  if (!Array.isArray(assertions)) {
-    return undefined;
-  }
-  const assertion = assertions.find(
-    (candidate) => isRecord(candidate) && assertionPathEquals(candidate.path, path),
-  );
-  return isRecord(assertion) ? assertion.equals : undefined;
-}
-
-function hasHistoricalAssertionContract(
-  artifact: Record<string, unknown>,
-  benchmark: string,
-): boolean {
-  const assertions = artifact.assertions;
-  const sourcePath = assertionEqualsAt(assertions, ["sourceArtifacts", 0, "path"]);
-  const sourceBytes = assertionEqualsAt(assertions, ["sourceArtifacts", 0, "bytes"]);
-  const sourceSha256 = assertionEqualsAt(assertions, ["sourceArtifacts", 0, "sha256"]);
-  const runCommit = assertionEqualsAt(assertions, ["runIdentity", "commit"]);
-  const runBound =
-    isStrictNonEmpty(assertionEqualsAt(assertions, ["runIdentity", "runId"])) &&
-    typeof runCommit === "string" &&
-    FULL_COMMIT_PATTERN.test(runCommit);
-  const scorerCommit = assertionEqualsAt(assertions, ["scorerIdentity", "commit"]);
-  const scorerSha256 = assertionEqualsAt(
-    assertions,
-    ["scorerIdentity", "fileSha256"],
-  );
-  const scorerBound =
-    isStrictNonEmpty(
-      assertionEqualsAt(assertions, ["scorerIdentity", "repository"]),
-    ) &&
-    typeof scorerCommit === "string" &&
-    FULL_COMMIT_PATTERN.test(scorerCommit) &&
-    isStrictNonEmpty(assertionEqualsAt(assertions, ["scorerIdentity", "path"])) &&
-    typeof scorerSha256 === "string" &&
-    SHA256_PATTERN.test(scorerSha256);
-  return (
-    hasExactAssertion(assertions, ["artifactKind"], HISTORICAL_PROJECTION_KIND) &&
-    hasExactAssertion(assertions, ["benchmark"], benchmark) &&
-    isStrictNonEmpty(assertionEqualsAt(assertions, ["generatedBy"])) &&
-    hasExactAssertion(assertions, ["schemaVersion"], 1) &&
-    isStrictNonEmpty(sourcePath) &&
-    typeof sourceBytes === "number" &&
-    Number.isSafeInteger(sourceBytes) &&
-    sourceBytes > 0 &&
-    typeof sourceSha256 === "string" &&
-    SHA256_PATTERN.test(sourceSha256) &&
-    (runBound || scorerBound)
-  );
-}
-
 function hasVerifiedProjectionAssertionContract(
   artifact: Record<string, unknown>,
   benchmark: string,
@@ -1180,22 +1604,32 @@ function hasVerifiedProjectionAssertionContract(
     VERIFIED_PROJECTION_KIND,
   ) &&
     hasExactAssertion(artifact.assertions, ["benchmark"], benchmark) &&
-    hasExactAssertion(artifact.assertions, ["schemaVersion"], 2) &&
+    hasExactAssertion(
+      artifact.assertions,
+      ["schemaVersion"],
+      3,
+    ) &&
     hasExactAssertion(artifact.assertions, ["presentation"], presentation);
+}
+
+function isDeclaredVerifiedProjection(
+  artifact: unknown,
+  benchmark: string,
+  presentation: "current" | "historical",
+): artifact is ClaimEvidenceArtifact {
+  return isRecord(artifact) &&
+    isStrictNonEmpty(artifact.path) &&
+    validateRepoRelativeArtifactPath(artifact.path) === null &&
+    artifact.path.endsWith(".json") &&
+    artifact.path.startsWith("benchmark-claims/evidence/") &&
+    hasVerifiedProjectionAssertionContract(artifact, benchmark, presentation);
 }
 
 function isDeclaredHistoricalProjection(
   artifact: unknown,
   benchmark: string,
 ): artifact is ClaimEvidenceArtifact {
-  return isRecord(artifact) &&
-    isStrictNonEmpty(artifact.path) &&
-    artifact.path.endsWith(".json") &&
-    artifact.path.startsWith("benchmark-claims/evidence/") &&
-    (
-      hasHistoricalAssertionContract(artifact, benchmark) ||
-      hasVerifiedProjectionAssertionContract(artifact, benchmark, "historical")
-    );
+  return isDeclaredVerifiedProjection(artifact, benchmark, "historical");
 }
 
 function benchmarkDeclarationFileName(benchmark: string): string {
@@ -1297,6 +1731,14 @@ export function evaluateClaimBoundary(
   }
   if (!isNonEmpty(report.run.packageVersion)) {
     blockers.push("run.packageVersion missing (not reproducible)");
+  }
+  if (!isNonEmpty(report.run.tree) || !FULL_COMMIT_PATTERN.test(report.run.tree)) {
+    blockers.push(
+      "run.tree must be a complete 40-character hexadecimal tree (not reproducible)",
+    );
+  }
+  if (!isNonEmpty(report.run.runId)) {
+    blockers.push("run.runId missing (not reproducible)");
   }
   if (!isNonEmpty(report.dataset.source)) {
     blockers.push("dataset.source missing");
@@ -1494,7 +1936,6 @@ export function validateClaimReport(value: unknown): { errors: string[]; valid: 
         if (
           isRecord(artifact) &&
           isNonEmpty(value.benchmark) &&
-          !hasHistoricalAssertionContract(artifact, value.benchmark) &&
           !hasVerifiedProjectionAssertionContract(
             artifact,
             value.benchmark,
@@ -1526,6 +1967,23 @@ export function validateClaimReport(value: unknown): { errors: string[]; valid: 
     }
     if (!isStrictNonEmpty(value.run.packageVersion)) {
       errors.push("run.packageVersion must be a non-empty unpadded string");
+    }
+    const requiresExecutionIdentity =
+      value.status === "candidate_public_claim" ||
+      (
+        value.status === "internal_evidence" &&
+        isRecord(value.comparison) &&
+        value.comparison.availability === "historical"
+      );
+    if (requiresExecutionIdentity) {
+      if (!isStrictNonEmpty(value.run.tree) || !FULL_COMMIT_PATTERN.test(value.run.tree)) {
+        errors.push(
+          "verified-evidence run.tree must be a complete 40-character hexadecimal tree",
+        );
+      }
+      if (!isStrictNonEmpty(value.run.runId)) {
+        errors.push("verified-evidence run.runId must be a non-empty unpadded string");
+      }
     }
   }
   if (!isRecord(value.model)) {
@@ -1647,6 +2105,7 @@ export async function checkClaimEvidenceArtifacts(input: {
   file: string;
   readFile: (path: string) => Promise<string>;
   repoRoot: string;
+  repository?: ClaimEvidenceRepositoryVerifier;
   report: BenchmarkClaimReport;
 }): Promise<string[]> {
   const errors: string[] = [];
@@ -1710,13 +2169,16 @@ export async function checkClaimEvidenceArtifacts(input: {
           projectionErrors.push(
             "verified projection presentation must be current or historical",
           );
-        } else {
-          projectionErrors.push(...validateVerifiedProjection({
+        } else if (presentation === "historical" || requiresCurrentProjection) {
+          projectionErrors.push(...await validateVerifiedProjection({
             artifact,
             bindToReport: presentation === "current" || requiresInternalHistoricalProjection,
             parsed,
             presentation,
+            readFile: input.readFile,
             report: input.report,
+            repoRoot: input.repoRoot,
+            repository: input.repository,
             sourceDocumentsByPath: closure?.jsonDocumentsByPath ?? new Map(),
           }));
         }
@@ -1815,36 +2277,6 @@ export async function checkClaimEvidenceArtifacts(input: {
           projectionErrors.push(
             "historical projection must live under benchmark-claims/evidence",
           );
-        }
-        if (
-          projectionErrors.length === 0 &&
-          (requiresInternalHistoricalProjection || requiresCandidateHistoricalProjection)
-        ) {
-          try {
-            const declaredFragments = new Set(
-              requiresCandidateHistoricalProjection
-                ? input.report.historicalPresentation?.readmeRequiredFragments ?? []
-                : input.report.publicClaim?.readmeRequiredFragments ?? [],
-            );
-            for (const fragment of sourceDerivedReadmeFragments(
-              parsed,
-              input.report.benchmark,
-            )) {
-              if (!declaredFragments.has(fragment)) {
-                errors.push(
-                  `evidence artifact ${artifact.path}: source-derived README fragment ` +
-                    `${fragment} is missing from ` +
-                    `${requiresCandidateHistoricalProjection ? "historicalPresentation" : "publicClaim"}` +
-                    ".readmeRequiredFragments",
-                );
-              }
-            }
-          } catch (error) {
-            errors.push(
-              `evidence artifact ${artifact.path}: cannot derive README fragments: ` +
-                String(error),
-            );
-          }
         }
         errors.push(...projectionErrors.map(
           (error) => `evidence artifact ${artifact.path}: ${error}`,
@@ -2161,6 +2593,39 @@ export interface PublicBenchmarkClaimGateCliOptions {
   strict: boolean;
 }
 
+async function readGitObject(
+  repoRoot: string,
+  args: readonly string[],
+): Promise<string> {
+  const child = Bun.spawn({
+    cmd: ["git", ...args],
+    cwd: repoRoot,
+    stderr: "pipe",
+    stdout: "pipe",
+  });
+  const [exitCode, stderr, stdout] = await Promise.all([
+    child.exited,
+    new Response(child.stderr).text(),
+    new Response(child.stdout).text(),
+  ]);
+  if (exitCode !== 0) {
+    throw new Error(stderr.trim() || `git ${args.join(" ")} failed`);
+  }
+  return stdout;
+}
+
+function createClaimEvidenceRepositoryVerifier(
+  repoRoot: string,
+): ClaimEvidenceRepositoryVerifier {
+  return {
+    readCommittedFile: (path) => readGitObject(repoRoot, ["show", `HEAD:${path}`]),
+    readFileAtCommit: (commit, path) =>
+      readGitObject(repoRoot, ["show", `${commit}:${path}`]),
+    resolveCommitTree: async (commit) =>
+      (await readGitObject(repoRoot, ["rev-parse", `${commit}^{tree}`])).trim(),
+  };
+}
+
 export function parsePublicBenchmarkClaimGateCliOptions(
   argv: readonly string[],
 ): PublicBenchmarkClaimGateCliOptions {
@@ -2230,24 +2695,33 @@ export function buildClaimGateReport(
         `current package version ${currentPackageVersion}`
       : undefined;
     const evidenceWasChecked = evidenceErrorsByFile.has(file);
-    const fallbackIdentityErrors =
-      report.status === "candidate_public_claim" &&
-      currentPackageVersion !== undefined &&
-      !evidenceWasChecked
+    const fallbackIdentityErrors = !evidenceWasChecked
+      ? report.status === "candidate_public_claim" && currentPackageVersion !== undefined
         ? [
             CURRENT_CLAIM_PROJECTION_REQUIRED_ERROR,
             ...(versionMismatch !== undefined ? [VERSIONED_CANDIDATE_IDENTITY_ERROR] : []),
           ]
-        : [];
+        : report.status === "internal_evidence" &&
+            report.comparison.availability === "historical"
+          ? [HISTORICAL_PROJECTION_REQUIRED_ERROR]
+          : []
+      : [];
     const evidenceErrors = [
       ...(evidenceErrorsByFile.get(file) ?? []),
       ...fallbackIdentityErrors,
     ];
+    const hasVerifiedCurrentProjection = report.evidence.artifacts.some((artifact) =>
+      isDeclaredVerifiedProjection(artifact, report.benchmark, "current")
+    );
+    const hasVerifiedHistoricalProjection = report.evidence.artifacts.some((artifact) =>
+      isDeclaredVerifiedProjection(artifact, report.benchmark, "historical")
+    );
     const blockers = [...verdict.blockers, ...evidenceErrors];
     const computedPublicClaimAllowed = verdict.publicClaimAllowed && evidenceErrors.length === 0;
     const candidateProjectionHistory =
       report.status === "candidate_public_claim" &&
       report.historicalPresentation !== undefined &&
+      hasVerifiedHistoricalProjection &&
       evidenceWasChecked &&
       evidenceErrors.length === 0;
     const historicalVerdict = versionMismatch && report.run.packageVersion
@@ -2260,6 +2734,7 @@ export function buildClaimGateReport(
       versionMismatch !== undefined &&
       historicalVerdict?.publicClaimAllowed === true &&
       report.claimBoundary.publicClaimAllowed === true &&
+      hasVerifiedCurrentProjection &&
       evidenceWasChecked &&
       verdict.blockers.length === 1 &&
       verdict.blockers[0] === versionMismatch &&
@@ -2282,7 +2757,13 @@ export function buildClaimGateReport(
       declaredPublicClaimAllowed: report.claimBoundary.publicClaimAllowed,
       file,
       historicalEvidenceEligible:
-        report.status === "internal_evidence" ||
+        (
+          report.status === "internal_evidence" &&
+          report.comparison.availability === "historical" &&
+          hasVerifiedHistoricalProjection &&
+          evidenceWasChecked &&
+          evidenceErrors.length === 0
+        ) ||
         candidateProjectionHistory ||
         versionedCandidateHistory,
       historicalReadmeDisclosureFragments:
@@ -2350,11 +2831,13 @@ export async function runPublicBenchmarkClaimGate(input: {
   outputDir?: string;
   readDir?: (path: string) => Promise<string[]>;
   readFile?: (path: string) => Promise<string>;
+  repository?: ClaimEvidenceRepositoryVerifier;
 }): Promise<ClaimGateReport> {
   const repoRoot = resolveRepoRootFromScriptUrl(import.meta.url);
   const claimsDir = input.claimsDir ?? join(repoRoot, "benchmark-claims");
   const readDirImpl = input.readDir ?? ((path: string) => readdir(path));
   const readFileImpl = input.readFile ?? ((path: string) => readFile(path, "utf8"));
+  const repository = input.repository ?? createClaimEvidenceRepositoryVerifier(repoRoot);
   const now = (input.now ?? (() => new Date().toISOString()))();
   const packageMetadata = JSON.parse(
     await readFile(join(repoRoot, "package.json"), "utf8"),
@@ -2400,6 +2883,7 @@ export async function runPublicBenchmarkClaimGate(input: {
       file,
       readFile: readFileImpl,
       repoRoot,
+      repository,
       report: value as BenchmarkClaimReport,
     });
     evidenceErrorsByFile.set(file, artifactErrors);

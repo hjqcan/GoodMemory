@@ -30,6 +30,7 @@ import {
   C6_REVIEWER_ACTOR_POLICY_V1,
   serializeC6ReviewerActorPolicy,
 } from "../../scripts/codex-coding-effect/c6-reviewer-actor-policy";
+import { ciTestTimeout } from "../support/ci-timeout";
 
 const cleanup: string[] = [];
 const V2_STRUCTURAL_UNION_PATH = join(
@@ -428,7 +429,7 @@ describe("Codex coding-effect C6 reviewer actor identity capture", () => {
     expect("policy" in manifest).toBe(false);
     expect(await readTreeUtf8(fixture.outputRoot))
       .not.toContain("secret-token");
-  });
+  }, ciTestTimeout(10_000));
 
   it("strictly rejects v2 policy injection and plan dispatch drift before transport", async () => {
     const planBytes = await v2PlanBytes();

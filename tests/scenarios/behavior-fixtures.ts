@@ -314,7 +314,7 @@ export const behaviorScenarios: Record<string, BehaviorScenarioFixture> = {
         turns: [
           {
             role: "user",
-            content: "Please keep answers concise and action-oriented.",
+            content: "Always keep answers concise and action-oriented.",
           },
           { role: "assistant", content: "Understood." },
         ],
@@ -342,7 +342,7 @@ export const behaviorScenarios: Record<string, BehaviorScenarioFixture> = {
         collection: "feedback",
         scope: { workspaceId: "workspace-feedback" },
         fields: [
-          { path: "rule", equals: "Please keep answers concise and action-oriented." },
+          { path: "rule", equals: "Always keep answers concise and action-oriented." },
           { path: "workspaceId", equals: "workspace-feedback" },
           { path: "lifecycle", equals: "superseded" },
         ],

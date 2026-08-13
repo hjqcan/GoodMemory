@@ -19,13 +19,15 @@ import type {
 } from "../domain/records";
 import {
   expandExplicitFactCandidateClauses,
+  hasUnterminatedQuote,
   isExplicitlyQuotedValue,
   isolateDirectiveGrammar,
   maskQuotedText,
   replaceUnquotedText,
   splitClausesGeneric,
-  splitTrailingInterrogativeClause,
+  splitTrailingClause,
 } from "./generic";
+import type { DirectiveGrammarMatch } from "./generic";
 import {
   buildChineseSearchTerms,
   CHINESE_ANALYZER_VERSION,
@@ -154,6 +156,23 @@ const CHINESE_REFERENCE_SUBJECT_HINT_PATTERN =
   /(项目|流程|迁移|发布|上线|系统|服务|模块|计划|工作|工作流|平台|接口|看板|质量|程序|任务|手册|剧本|审批|验收|签收|交接|可靠性|支付|订单|运行时)/u;
 const CHINESE_DURABLE_TARGET_ALIASES = {
   偏好: "preference",
+  位置: "profile:location",
+  公司: "profile:organization",
+  当前项目: "profile:currentProject",
+  當前專案: "profile:currentProject",
+  當前項目: "profile:currentProject",
+  常用语言: "profile:languagePreference",
+  常用語言: "profile:languagePreference",
+  当前位置: "profile:location",
+  當前位置: "profile:location",
+  我的公司: "profile:organization",
+  我的当前位置: "profile:location",
+  我的當前位置: "profile:location",
+  我的角色: "profile:role",
+  我的语言偏好: "profile:languagePreference",
+  我的語言偏好: "profile:languagePreference",
+  我的组织: "profile:organization",
+  我的組織: "profile:organization",
   名字: "profile:name",
   姓名: "profile:name",
   我的名字: "profile:name",
@@ -162,6 +181,11 @@ const CHINESE_DURABLE_TARGET_ALIASES = {
   我的時區: "profile:timezone",
   时区: "profile:timezone",
   時區: "profile:timezone",
+  角色: "profile:role",
+  语言偏好: "profile:languagePreference",
+  語言偏好: "profile:languagePreference",
+  组织: "profile:organization",
+  組織: "profile:organization",
   项目代码: "project_code",
   项目代号: "project_code",
   項目代碼: "project_code",
@@ -251,6 +275,28 @@ const EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN =
   /(?:[，,]\s*|(?:而且|并且|並且|以及|和|但(?:是)?|不过|不過)\s*)(?=(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你)?)\s*)?(?:不要|别|別)(?:再)?(?:记住|記住|保存|存储|儲存|记录|記錄))/u;
 const EXPLICIT_FACT_OPT_OUT_CONNECTOR_BOUNDARY_PATTERN =
   /(?:而且|并且|並且|以及|和|但(?:是)?|不过|不過)\s*(?=(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你)?)\s*)?(?:不要|别|別)(?:再)?(?:记住|記住|保存|存储|儲存|记录|記錄))/u;
+const CHINESE_REPORTED_DIRECTIVE_PREFIX_PATTERN =
+  /(?:^|[。！？.!?]\s*)(?:(?:我|我们|我們|他|她|他们|他們|她们|她們)\s*)?(?:(?:没有|沒有|没|沒|从未|從未|并未|並未)\s*)?(?:说|說|提到|表示|声称|聲稱|要求|请求|請求|写|寫|引用)(?:过|過|了)?(?:\s*(?:这|這|那|这样|這樣|要你|让你|讓你))?\s*[：:,，]?\s*$/u;
+
+function hasChineseReportedDirectiveScope({
+  prefix,
+}: DirectiveGrammarMatch): boolean {
+  return CHINESE_REPORTED_DIRECTIVE_PREFIX_PATTERN.test(prefix);
+}
+const CHINESE_BEHAVIORAL_DIRECTIVE_PATTERN =
+  /^(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你|您)?)[，,]?\s*)?(?:不要|别|別|避免|优先|優先|保持|用|使用|改用|读取|讀取|写入|寫入|创建|創建|建立|告诉|告訴|回复|回覆|回答|给|給|运行|運行|执行|執行|调用|調用|打开|打開|关闭|關閉|删除|刪除|移动|移動|复制|複製|汇报|彙報|检查|檢查|查看|确认|確認|验证|驗證|总结|總結|概括|修复|修復|实现|實現|解释|解釋|添加|新增|更新|部署|重构|重構)/u;
+const CHINESE_DURABLE_BEHAVIORAL_SCOPE_PATTERN =
+  /^(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你|您)?)\s*)?(?:以后|以後|今后|今後|始终|始終|总是|總是|每次|每当|每當|永远|永遠|绝不|絕不)/u;
+const CHINESE_CORRECTION_PREAMBLE_PATTERN =
+  /^(?:纠正|糾正|更正|修正)(?:一下)?(?=\s|[：:,，。]|$)\s*(?:[：:,，。]\s*)?/u;
+const CHINESE_OBJECT_FRONTED_BEHAVIORAL_DIRECTIVE_PATTERN =
+  /^(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你|您)?)[，,]?\s*)?(?:把|将|將)[^。！？\n]{1,120}?(?:用|使用|读取|讀取|写入|寫入|创建|創建|建立|告诉|告訴|回复|回覆|回答|运行|運行|执行|執行|调用|調用|打开|打開|关闭|關閉|删除|刪除|移动|移動|复制|複製|检查|檢查|查看|确认|確認|验证|驗證)/u;
+const CHINESE_ACTION_NOMINAL_ASSERTION_PATTERN =
+  /^(?:[^，。！？\s]{1,12}(?:说明|說明|率|状态|狀態|情况|情況|方式|方法|方案|结果|結果|报告|報告|记录|記錄|计划|計畫|进度|進度))(?:是|为|為|在|已|会|會|保持|处于|處於)/u;
+const CHINESE_STRUCTURAL_BEHAVIORAL_DIRECTIVE_PATTERN =
+  /^[\p{Script=Han}]{1,4}(?:为什么|為什麼|如何|怎么|怎麼)/u;
+const CHINESE_CLEAR_BEHAVIORAL_BOUNDARY_PATTERN =
+  /^(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你|您)?|不要|别|別|避免|优先|優先|以后|以後|今后|今後|始终|始終|总是|總是|每次|每当|每當|永远|永遠|绝不|絕不|纠正|糾正|更正|修正)/u;
 const ORGANIZATION_SUFFIX_PATTERN =
   /(公司|集团|大学|学院|学校|医院|实验室|研究院|研究所|工作室|事务所|委员会|基金会|机构|平台|团队|部门|银行|媒体|出版社|中心)$/u;
 const LOCATION_SUFFIX_PATTERN =
@@ -364,11 +410,12 @@ function extractChineseOptOutTarget(content: string): string {
 
 function splitChineseClauses(text: string): string[] {
   return splitClausesGeneric(text)
+    .filter(Boolean)
     .flatMap((clause) =>
       EXPLICIT_FACT_DIRECTIVE_PATTERN.test(clause.trim()) ||
         EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
         ? [clause]
-        : splitTrailingInterrogativeClause(
+        : splitTrailingClause(
           clause,
           (candidate) => isChineseInterrogativeClause(candidate, candidate),
           (candidate) =>
@@ -379,10 +426,33 @@ function splitChineseClauses(text: string): string[] {
         )
     )
     .flatMap((clause) =>
+      EXPLICIT_FACT_DIRECTIVE_PATTERN.test(clause.trim()) ||
+        EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
+        ? [clause]
+        : splitTrailingClause(
+          clause,
+          (candidate) =>
+            classifyChineseBehavioralDirective(candidate) !== "none" ||
+            CHINESE_DURABLE_BEHAVIORAL_SCOPE_PATTERN.test(
+              maskQuotedText(candidate).trim(),
+            ),
+          (candidate) =>
+            CHINESE_CLEAR_BEHAVIORAL_BOUNDARY_PATTERN.test(
+              maskQuotedText(candidate).trim(),
+            ),
+          (candidate) =>
+            /^(?:请|請|(?:麻烦|麻煩)(?:你|您)?)$/u.test(candidate.trim()),
+        )
+    )
+    .flatMap((clause) =>
       clause.split(EXPLICIT_FACT_OPT_OUT_CONNECTOR_BOUNDARY_PATTERN)
     )
     .map((clause) =>
-      isolateDirectiveGrammar(clause, EXPLICIT_FACT_OPT_OUT_GRAMMAR_PATTERN)
+      isolateDirectiveGrammar(
+        clause,
+        EXPLICIT_FACT_OPT_OUT_GRAMMAR_PATTERN,
+        hasChineseReportedDirectiveScope,
+      )
     )
     .flatMap((clause) =>
       EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
@@ -433,6 +503,9 @@ function isChineseInterrogativeClause(
     if (assignmentConfirmation) {
       return true;
     }
+    if (hasUnterminatedQuote(right)) {
+      return true;
+    }
     if (isExplicitlyQuotedValue(right)) {
       return false;
     }
@@ -470,10 +543,60 @@ function isChineseInterrogativeClause(
 }
 
 function analyzeChineseContent(content: string): LanguageContentAnalysis {
+  const analysis = analyzeChineseContentBase(content);
   return {
-    ...analyzeChineseContentBase(content),
+    ...analysis,
+    behavioralDirective: classifyChineseBehavioralDirective(
+      content,
+      analysis,
+    ),
     interrogative: isChineseInterrogativeClause(content, content),
   };
+}
+
+function classifyChineseBehavioralDirective(
+  content: string,
+  analysis = analyzeChineseContentBase(content),
+): NonNullable<LanguageContentAnalysis["behavioralDirective"]> {
+  const trimmed = content.trim();
+  if (
+    EXPLICIT_FACT_DIRECTIVE_PATTERN.test(trimmed) ||
+    EXPLICIT_FACT_OPT_OUT_PATTERN.test(trimmed) ||
+    analysis.sourceOfTruthDirective ||
+    /^我(?:更)?(?:喜欢|喜歡|偏好)/u.test(trimmed)
+  ) {
+    return "none";
+  }
+
+  const unquoted = maskQuotedText(trimmed).trim();
+  if (!unquoted) {
+    return "none";
+  }
+  const correctionMatch = unquoted.match(CHINESE_CORRECTION_PREAMBLE_PATTERN);
+  const corrected = correctionMatch
+    ? unquoted.slice(correctionMatch[0].length).trim()
+    : unquoted;
+  if (!corrected) {
+    return correctionMatch ? "one_off" : "none";
+  }
+  const directiveBody = corrected
+    .replace(CHINESE_DURABLE_BEHAVIORAL_SCOPE_PATTERN, "")
+    .replace(/^[：:,，;；\s]+/u, "");
+  const nominalAction = CHINESE_ACTION_NOMINAL_ASSERTION_PATTERN.test(directiveBody);
+  const isBehavioralDirective =
+    !nominalAction &&
+    (CHINESE_BEHAVIORAL_DIRECTIVE_PATTERN.test(corrected) ||
+      CHINESE_BEHAVIORAL_DIRECTIVE_PATTERN.test(directiveBody) ||
+      CHINESE_OBJECT_FRONTED_BEHAVIORAL_DIRECTIVE_PATTERN.test(corrected) ||
+      CHINESE_OBJECT_FRONTED_BEHAVIORAL_DIRECTIVE_PATTERN.test(directiveBody) ||
+      CHINESE_STRUCTURAL_BEHAVIORAL_DIRECTIVE_PATTERN.test(directiveBody));
+  if (
+    CHINESE_DURABLE_BEHAVIORAL_SCOPE_PATTERN.test(corrected) &&
+    isBehavioralDirective
+  ) {
+    return "durable";
+  }
+  return isBehavioralDirective ? "one_off" : "none";
 }
 
 function extractExplicitFactClauses(content: string) {
@@ -966,6 +1089,24 @@ function maybeExtractCandidatesFromClause(
     }];
   }
 
+  if (!explicitFact && analysis?.behavioralDirective === "one_off") {
+    return [];
+  }
+  if (!explicitFact && analysis?.behavioralDirective === "durable") {
+    return [{
+      id: nextId(),
+      kindHint: "feedback",
+      explicitness: "explicit",
+      content: trimmed,
+      sourceMessageIndex: index,
+      sourceRole: "user",
+      metadata: {
+        feedbackKind: deriveFeedbackKind(trimmed, analysis),
+        appliesTo: "general_response",
+      },
+    }];
+  }
+
   const occurrenceEvent = extractChineseOccurrenceEvent(
     trimmed,
     occurrenceContext ?? { locale: "zh-CN" },
@@ -1348,24 +1489,6 @@ function maybeExtractCandidatesFromClause(
     });
   }
 
-  if (
-    trimmed.length >= 4 &&
-    /^(?:请(?!记住)|請(?!記住)|不要|以后|以後|始终|始終|优先|優先)/u.test(trimmed)
-  ) {
-    candidates.push({
-      id: nextId(),
-      kindHint: "feedback",
-      explicitness: "explicit",
-      content: trimmed,
-      sourceMessageIndex: index,
-      sourceRole: "user",
-      metadata: {
-        feedbackKind: deriveFeedbackKind(trimmed, analysis),
-        appliesTo: "general_response",
-      },
-    });
-  }
-
   if (candidates.length === 0 && trimmed.length >= 8 && looksLikeDurableInferredFact(trimmed)) {
     candidates.push({
       id: nextId(),
@@ -1466,8 +1589,12 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
         }
 
         const sourceMessageIndex = message.sourceMessageIndex ?? index;
-        const sourceAnalysis = message.analysis ??
-          analyzeChineseContent(message.content);
+        const canonicalSourceAnalysis = analyzeChineseContent(message.content);
+        const sourceAnalysis = {
+          ...(message.analysis ?? canonicalSourceAnalysis),
+          behavioralDirective: canonicalSourceAnalysis.behavioralDirective,
+          interrogative: canonicalSourceAnalysis.interrogative,
+        };
         const clauses = expandExplicitFactCandidateClauses(
           message.content,
           extractExplicitFactClauses,
@@ -1492,7 +1619,6 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
               sourceRole: "user",
               metadata: {
                 feedbackKind: "dont",
-                optOutTarget,
                 appliesTo: "general_response",
               },
             });
@@ -1500,7 +1626,8 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
           }
           if (
             clause.disposition === "ordinary" &&
-            isChineseInterrogativeClause(clause.content, clause.content)
+            (isChineseInterrogativeClause(clause.content, clause.content) ||
+              clauseAnalysis.behavioralDirective === "one_off")
           ) {
             continue;
           }

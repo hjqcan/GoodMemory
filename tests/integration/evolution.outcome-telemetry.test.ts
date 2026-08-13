@@ -8,6 +8,7 @@ import { EVIDENCE_COLLECTION } from "../../src/evidence/contracts";
 import { readBehavioralPolicyFromFeedbackMemory } from "../../src/evolution/behavioralPolicy";
 import { recordBehavioralTrace } from "../../src/host/behavioralTraceBridge";
 import { validateBehavioralTrace } from "../../src/host/behavioralTrace";
+import { createGoodMemoryRuntimeKit } from "../../src/runtime-kit";
 import {
   createInMemoryDocumentStore,
 } from "../../src/storage/memory";
@@ -70,7 +71,7 @@ describe("outcome telemetry promotion chain", () => {
 
     expect(exported.durable.evidence[0]?.source).toMatchObject({
       languagePackId: "ja",
-      languagePackVersion: "11-interrogative-admission",
+      languagePackVersion: "13-reported-directive-scope",
       locale: "ja-JP",
       localeSource: "detected",
     });
@@ -106,12 +107,14 @@ describe("outcome telemetry promotion chain", () => {
         name: "DeepAnalyzer",
         raw: "DeepAnalyzer --detailed",
       },
+      retrievalProfile: "coding_agent",
       saferAlternative: {
         args: ["--network", "/tmp/worktree-a"],
         kind: "tool_call",
         name: "QuickCheck",
         raw: "QuickCheck --network /tmp/worktree-a",
       },
+      traceId: "direct-outcome-trace-1",
     });
     await support!.recordBehavioralOutcome!({
       scope: { userId: "u-1", workspaceId: "workspace-a" },
@@ -123,19 +126,21 @@ describe("outcome telemetry promotion chain", () => {
         name: "DeepAnalyzer",
         raw: "DeepAnalyzer --detailed",
       },
+      retrievalProfile: "coding_agent",
       saferAlternative: {
         args: ["--network", "/tmp/worktree-a"],
         kind: "tool_call",
         name: "QuickCheck",
         raw: "QuickCheck --network /tmp/worktree-a",
       },
+      traceId: "direct-outcome-trace-2",
     });
 
     const exported = await memory.exportMemory({
       scope: { userId: "u-1", workspaceId: "workspace-a" },
     });
     const toolOutcomeExperiences = exported.durable.experiences.filter(
-      (experience) => (experience.kind as string) === "tool_outcome",
+      (experience) => experience.kind === "tool_outcome",
     );
     const proposals = exported.durable.proposals.filter(
       (proposal) => proposal.proposalType === "procedural_pattern",
@@ -161,7 +166,7 @@ describe("outcome telemetry promotion chain", () => {
       enactmentSurface: "host_action",
       applicability: {
         actionSummaryContains: ["detailed analysis"],
-        appliesTo: "general_response",
+        appliesTo: "coding_agent",
         canonicalFirstAction: {
           args: ["--network"],
           kind: "tool_call",
@@ -227,7 +232,7 @@ describe("outcome telemetry promotion chain", () => {
       scope: { userId: "u-1", workspaceId: "workspace-a" },
     });
     const toolOutcomeExperiences = exported.durable.experiences.filter(
-      (experience) => (experience.kind as string) === "tool_outcome",
+      (experience) => experience.kind === "tool_outcome",
     );
 
     expect(exported.durable.evidence).toHaveLength(0);
@@ -323,6 +328,57 @@ describe("outcome telemetry promotion chain", () => {
     });
   });
 
+  it("keeps a retried host trace as one tool-outcome lineage", async () => {
+    const memory = createInternalGoodMemory(
+      {
+        storage: { provider: "memory" },
+        testing: {
+          now: () => new Date("2026-04-21T00:00:00.000Z"),
+        },
+      },
+      { behavioralOutcomeRecorder: true },
+    );
+    const scope = { userId: "u-retry", workspaceId: "workspace-a" };
+    const trace = validateBehavioralTrace({
+      cue: "detailed analysis",
+      hostKind: "codex",
+      traceId: "trace-codex-retry",
+      events: [
+        {
+          stepIndex: 0,
+          actionKind: "tool_call",
+          actionName: "DeepAnalyzer",
+          raw: "DeepAnalyzer --detailed",
+          evidenceExcerpt: "DeepAnalyzer timed out.",
+          outcome: "timeout",
+        },
+        {
+          stepIndex: 1,
+          actionKind: "tool_call",
+          actionName: "QuickCheck",
+          raw: "QuickCheck --network",
+          correctionOfStepIndex: 0,
+          outcome: "success",
+        },
+      ],
+    });
+
+    await recordBehavioralTrace({ memory, scope, trace });
+    await recordBehavioralTrace({ memory, scope, trace });
+
+    const exported = await memory.exportMemory({ scope });
+    const toolOutcomes = exported.durable.experiences.filter(
+      (experience) => experience.kind === "tool_outcome",
+    );
+
+    expect(toolOutcomes).toHaveLength(1);
+    expect(toolOutcomes[0]?.traceId).toBe(trace.traceId);
+    expect(toolOutcomes[0]?.sourceTraceIds).toEqual([trace.traceId]);
+    expect(exported.durable.evidence).toHaveLength(1);
+    expect(exported.durable.proposals).toEqual([]);
+    expect(exported.durable.promotions).toEqual([]);
+  });
+
   it("does not compile a failed targeted correction into durable guidance when a later safer action succeeds", async () => {
     const memory = createInternalGoodMemory(
       {
@@ -413,9 +469,22 @@ describe("outcome telemetry promotion chain", () => {
         feedback.kind === "validated_pattern" && feedback.lifecycle === "active",
     );
 
-    expect(validatedPatterns).toHaveLength(1);
-    expect(validatedPatterns[0]?.rule).toContain("avoid DeepAnalyzer");
-    expect(validatedPatterns[0]?.rule).toContain("SafeCheck");
-    expect(validatedPatterns[0]?.rule).not.toContain("QuickCheck");
+    const toolOutcomes = exported.durable.experiences.filter(
+      (experience) => experience.kind === "tool_outcome",
+    );
+    const runtimeKit = createGoodMemoryRuntimeKit({ memory });
+    const beforeModelCall = await runtimeKit.beforeModelCall({
+      query: "detailed analysis",
+      retrievalProfile: "coding_agent",
+      scope: { userId: "u-1", workspaceId: "workspace-a" },
+    });
+
+    expect(toolOutcomes).toHaveLength(2);
+    expect(toolOutcomes.every(
+      (experience) => experience.metadata?.["toolOutcome.saferAlternative"] === undefined,
+    )).toBe(true);
+    expect(validatedPatterns).toEqual([]);
+    expect(beforeModelCall.context.content).not.toContain("SafeCheck");
+    expect(beforeModelCall.context.recordRefs).toBeUndefined();
   });
 });

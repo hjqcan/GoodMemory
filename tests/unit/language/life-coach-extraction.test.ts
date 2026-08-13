@@ -4,15 +4,13 @@ import { createLanguageService } from "../../../src/language";
 describe("LanguagePack life-coach candidate extraction", () => {
   it("keeps the English HTTP product phrases on the default pack path", () => {
     const language = createLanguageService();
-    const phrases = [
+    const durableFacts = [
       "My top priority this quarter is rebuilding my sleep routine.",
       "My current goal is shipping Atlas.",
       "My habit is journaling before bed.",
-      "Please coach me with short prompts.",
-      "Keep doing weekly reviews.",
     ];
 
-    for (const [index, text] of phrases.entries()) {
+    for (const [index, text] of durableFacts.entries()) {
       const context = language.resolveFromText({ locale: "en-US", text });
       const candidates = language.extractCandidates({
         locale: context.locale,
@@ -21,6 +19,32 @@ describe("LanguagePack life-coach candidate extraction", () => {
       }, context);
 
       expect(candidates.length, text).toBeGreaterThan(0);
+    }
+
+    for (const [index, text] of [
+      "Please coach me with short prompts.",
+      "Keep doing weekly reviews.",
+    ].entries()) {
+      const context = language.resolveFromText({ locale: "en-US", text });
+      expect(language.extractCandidates({
+        locale: context.locale,
+        messages: [{ content: text, role: "user" }],
+        nextId: () => `one-off-${index}`,
+      }, context)).toEqual([]);
+    }
+
+    for (const [index, text] of [
+      "Always coach me with short prompts.",
+      "Always keep doing weekly reviews.",
+    ].entries()) {
+      const context = language.resolveFromText({ locale: "en-US", text });
+      expect(language.extractCandidates({
+        locale: context.locale,
+        messages: [{ content: text, role: "user" }],
+        nextId: () => `durable-guidance-${index}`,
+      }, context)).toEqual([
+        expect.objectContaining({ kindHint: "feedback" }),
+      ]);
     }
   });
 

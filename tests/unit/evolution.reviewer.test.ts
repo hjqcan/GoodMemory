@@ -9,7 +9,6 @@ import {
 import {
   buildBehavioralOutcomeExperienceRecord,
   readCompiledGuidance,
-  toStoredExperienceRecord,
 } from "../../src/evolution/behavioralTelemetry";
 import { createRulesOnlyReviewer } from "../../src/evolution/reviewer";
 import {
@@ -523,7 +522,7 @@ describe("rules-only reviewer", () => {
     const scope = { userId: "u-1", workspaceId: "workspace-a" };
 
     await repositories.experiences.add(
-      toStoredExperienceRecord(buildBehavioralOutcomeExperienceRecord({
+      buildBehavioralOutcomeExperienceRecord({
         scope,
         traceId: "trace-tool-outcome-1",
         createdAt: "2026-04-19T00:00:00.000Z",
@@ -542,11 +541,12 @@ describe("rules-only reviewer", () => {
             raw: "QuickCheck --network",
           },
           modelInfluence: "rules-only",
+          retrievalProfile: "coding_agent",
         },
-      })),
+      }),
     );
     await repositories.experiences.add(
-      toStoredExperienceRecord(buildBehavioralOutcomeExperienceRecord({
+      buildBehavioralOutcomeExperienceRecord({
         scope,
         traceId: "trace-tool-outcome-2",
         createdAt: "2026-04-20T00:00:00.000Z",
@@ -565,8 +565,9 @@ describe("rules-only reviewer", () => {
             raw: "QuickCheck --network",
           },
           modelInfluence: "rules-only",
+          retrievalProfile: "coding_agent",
         },
-      })),
+      }),
     );
 
     const proposals = await reviewer.review({ scope });
@@ -584,7 +585,7 @@ describe("rules-only reviewer", () => {
         rule:
           "When detailed analysis previously caused DeepAnalyzer timeouts, avoid DeepAnalyzer on the first action and use QuickCheck before proceeding.",
         kind: "dont",
-        appliesTo: "general_response",
+        appliesTo: "coding_agent",
         confidence: 0.9,
         why: "Repeated tool-outcome failures show the original first action is unsafe for this cue.",
       }),
@@ -606,7 +607,7 @@ describe("rules-only reviewer", () => {
 
     for (const [index, traceId] of ["trace-tool-outcome-1", "trace-tool-outcome-2"].entries()) {
       await repositories.experiences.add(
-        toStoredExperienceRecord(buildBehavioralOutcomeExperienceRecord({
+        buildBehavioralOutcomeExperienceRecord({
           scope,
           traceId,
           createdAt: `2026-04-20T00:00:0${index}.000Z`,
@@ -627,7 +628,7 @@ describe("rules-only reviewer", () => {
               raw: "QuickCheck --network",
             },
           },
-        })),
+        }),
       );
     }
 
@@ -635,6 +636,81 @@ describe("rules-only reviewer", () => {
 
     expect(proposals).toHaveLength(1);
     expect(readCompiledGuidance(proposals[0]!)?.appliesTo).toBe("coding_agent");
+  });
+
+  it("does not treat retried records from one source trace as repeated lineage", async () => {
+    const repositories = createMemoryRepositories({
+      documentStore: createInMemoryDocumentStore(),
+      sessionStore: createInMemorySessionStore(),
+    });
+    const reviewer = createRulesOnlyReviewer({
+      repositories,
+      now: () => "2026-04-20T00:00:00.000Z",
+      createId: () => "unexpected-tool-outcome-proposal",
+      createTraceId: () => "unexpected-tool-outcome-review",
+    });
+    const scope = { userId: "retried-tool-outcome", workspaceId: "workspace-a" };
+
+    for (const index of [1, 2]) {
+      await repositories.experiences.add(
+        buildBehavioralOutcomeExperienceRecord({
+          scope,
+          traceId: "same-host-trace",
+          createdAt: `2026-04-20T00:00:0${index}.000Z`,
+          createId: () => `retried-tool-outcome-${index}`,
+          result: {
+            cue: "detailed analysis",
+            failureClass: "timeout",
+            firstAction: { kind: "tool_call", name: "DeepAnalyzer" },
+            modelInfluence: "rules-only",
+            retrievalProfile: "coding_agent",
+            saferAlternative: { kind: "tool_call", name: "QuickCheck" },
+          },
+        }),
+      );
+    }
+
+    expect(await reviewer.review({ scope })).toEqual([]);
+  });
+
+  it("ignores tool outcomes without an explicit profile and safer alternative", async () => {
+    const repositories = createMemoryRepositories({
+      documentStore: createInMemoryDocumentStore(),
+      sessionStore: createInMemorySessionStore(),
+    });
+    const reviewer = createRulesOnlyReviewer({
+      repositories,
+      now: () => "2026-04-20T00:00:00.000Z",
+      createId: () => "unexpected-tool-outcome-proposal",
+      createTraceId: () => "unexpected-tool-outcome-review",
+    });
+    const scope = { userId: "incomplete-tool-outcomes" };
+
+    for (const [group, retrievalProfile, saferAlternative] of [
+      ["missing-profile", undefined, { kind: "tool_call" as const, name: "safe" }],
+      ["missing-safer", "coding_agent" as const, undefined],
+    ] as const) {
+      for (const index of [1, 2]) {
+        await repositories.experiences.add(
+          buildBehavioralOutcomeExperienceRecord({
+            scope,
+            traceId: `${group}-trace-${index}`,
+            createdAt: `2026-04-20T00:00:0${index}.000Z`,
+            createId: () => `${group}-experience-${index}`,
+            result: {
+              cue: group,
+              failureClass: "unsafe_first_action",
+              firstAction: { kind: "tool_call", name: "unsafe" },
+              modelInfluence: "rules-only",
+              ...(retrievalProfile ? { retrievalProfile } : {}),
+              ...(saferAlternative ? { saferAlternative } : {}),
+            },
+          }),
+        );
+      }
+    }
+
+    expect(await reviewer.review({ scope })).toEqual([]);
   });
 
   it("does not merge tool outcome experiences that only share the action name", async () => {
@@ -651,7 +727,7 @@ describe("rules-only reviewer", () => {
     const scope = { userId: "u-1", workspaceId: "workspace-a" };
 
     await repositories.experiences.add(
-      toStoredExperienceRecord(buildBehavioralOutcomeExperienceRecord({
+      buildBehavioralOutcomeExperienceRecord({
         scope,
         traceId: "trace-tool-outcome-1",
         createdAt: "2026-04-19T00:00:00.000Z",
@@ -673,10 +749,10 @@ describe("rules-only reviewer", () => {
           },
           modelInfluence: "rules-only",
         },
-      })),
+      }),
     );
     await repositories.experiences.add(
-      toStoredExperienceRecord(buildBehavioralOutcomeExperienceRecord({
+      buildBehavioralOutcomeExperienceRecord({
         scope,
         traceId: "trace-tool-outcome-2",
         createdAt: "2026-04-20T00:00:00.000Z",
@@ -698,7 +774,7 @@ describe("rules-only reviewer", () => {
           },
           modelInfluence: "rules-only",
         },
-      })),
+      }),
     );
 
     const proposals = await reviewer.review({ scope });
@@ -735,25 +811,26 @@ describe("rules-only reviewer", () => {
         raw: "copy_file('/src/report.txt', '/backup/report.txt')",
       },
       modelInfluence: "rules-only" as const,
+      retrievalProfile: "coding_agent" as const,
     };
 
     await repositories.experiences.add(
-      toStoredExperienceRecord(buildBehavioralOutcomeExperienceRecord({
+      buildBehavioralOutcomeExperienceRecord({
         scope,
         traceId: "trace-tool-outcome-1",
         createdAt: "2026-04-19T00:00:00.000Z",
         createId: () => "xp-tool-outcome-1",
         result: repeatedOutcome,
-      })),
+      }),
     );
     await repositories.experiences.add(
-      toStoredExperienceRecord(buildBehavioralOutcomeExperienceRecord({
+      buildBehavioralOutcomeExperienceRecord({
         scope,
         traceId: "trace-tool-outcome-2",
         createdAt: "2026-04-20T00:00:00.000Z",
         createId: () => "xp-tool-outcome-2",
         result: repeatedOutcome,
-      })),
+      }),
     );
 
     const proposals = await reviewer.review({ scope });

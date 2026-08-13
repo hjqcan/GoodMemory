@@ -15,7 +15,7 @@ function createMemoryFixture() {
 }
 
 describe("public recall storage-safe admission", () => {
-  it("records a recall experience for storage-safe input with the memory provider", async () => {
+  it("accepts storage-safe recall input without creating an unverified observation", async () => {
     const { documentStore, memory } = createMemoryFixture();
     const scope = {
       sessionId: "session-safe",
@@ -32,14 +32,7 @@ describe("public recall storage-safe admission", () => {
     const experiences = await documentStore.query<ExperienceRecord>(
       EXPERIENCES_COLLECTION,
     );
-    expect(experiences).toEqual([
-      expect.objectContaining({
-        kind: "recall",
-        sessionId: scope.sessionId,
-        userId: scope.userId,
-        workspaceId: scope.workspaceId,
-      }),
-    ]);
+    expect(experiences).toEqual([]);
   });
 
   it("rejects a NUL-containing userId before writing the recall experience", async () => {

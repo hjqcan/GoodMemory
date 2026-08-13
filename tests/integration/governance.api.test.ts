@@ -345,7 +345,7 @@ describe("public governance API", () => {
     expect(durableOnly.durable.sourceMessages?.some(({ content }) =>
       content === "Remember that the migration rollout is blocked on prod verification."
     )).toBe(true);
-    expect(durableOnly.durable.experiences).toHaveLength(2);
+    expect(durableOnly.durable.experiences).toHaveLength(1);
     expect(
       durableOnly.durable.facts.every((fact) => fact.sessionId === "s-1"),
     ).toBe(true);
@@ -356,16 +356,14 @@ describe("public governance API", () => {
     expect(
       durableOnly.durable.experiences.some((record) => record.id === "experience-export-s1"),
     ).toBe(true);
-    expect(
-      durableOnly.durable.experiences.some((record) => record.kind === "remember"),
-    ).toBe(true);
+    expect(durableOnly.durable.experiences[0]?.kind).toBe("session_end");
     expect(durableOnly.durable.proposals[0]?.id).toBe("proposal-export-s1");
     expect(durableOnly.durable.promotions[0]?.id).toBe("promotion-export-s1");
     expect(durableOnly.runtime).toBeUndefined();
     expect(globalExport.durable.profile?.identity.name).toBe("Lin");
     expect(globalExport.durable.archives).toHaveLength(2);
     expect(globalExport.durable.evidence).toHaveLength(4);
-    expect(globalExport.durable.experiences).toHaveLength(4);
+    expect(globalExport.durable.experiences).toHaveLength(2);
     expect(globalExport.durable.proposals).toHaveLength(1);
     expect(globalExport.durable.promotions).toHaveLength(1);
     expect(durableOnly.artifacts.rootPath).toBe(
@@ -603,7 +601,7 @@ describe("public governance API", () => {
     expect(result.deleted.facts).toBe(1);
     expect(result.deleted.archives).toBe(1);
     expect(result.deleted.evidence).toBe(2);
-    expect(result.deleted.experiences).toBe(2);
+    expect(result.deleted.experiences).toBe(1);
     expect(result.deleted.proposals).toBe(1);
     expect(result.deleted.promotions).toBe(1);
     expect(result.deleted.journal).toBe(1);

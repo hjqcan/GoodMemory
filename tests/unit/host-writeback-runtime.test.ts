@@ -692,19 +692,19 @@ describe("installed host writeback runtime", () => {
           source: "user",
         },
         {
-          confidence: 0.9,
+          confidence: 0.88,
           content: messages[1],
           durable: true,
-          kind: "feedback",
-          reason: "procedural_feedback",
+          kind: "preference",
+          reason: "explicit_preference",
           source: "user",
         },
         {
-          confidence: 0.9,
+          confidence: 0.88,
           content: messages[2],
           durable: true,
-          kind: "feedback",
-          reason: "procedural_feedback",
+          kind: "preference",
+          reason: "explicit_preference",
           source: "user",
         },
         {
@@ -722,7 +722,7 @@ describe("installed host writeback runtime", () => {
     }
   });
 
-  it("preserves concise explicit English directives as durable candidates", async () => {
+  it("distinguishes concise one-off and durable English directives", async () => {
     const homeRoot = await createWorkspace(
       "goodmemory-writeback-concise-english-home-",
     );
@@ -751,7 +751,7 @@ describe("installed host writeback runtime", () => {
 
       expect(result.reason).toBe("observed");
       expect(result.candidates).toEqual(
-        messages.map((content) => ({
+        [messages[0], messages[3]].map((content) => ({
           confidence: 0.88,
           content,
           durable: true,

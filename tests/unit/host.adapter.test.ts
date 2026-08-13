@@ -642,7 +642,7 @@ describe("host adapter contract", () => {
     });
     expect(
       exported.durable.experiences.some(
-        (experience) => (experience.kind as string) === "tool_outcome",
+        (experience) => experience.kind === "tool_outcome",
       ),
     ).toBeTrue();
   });
@@ -710,7 +710,7 @@ describe("host adapter contract", () => {
     });
     expect(
       exported.durable.experiences.some(
-        (experience) => (experience.kind as string) === "tool_outcome",
+        (experience) => experience.kind === "tool_outcome",
       ),
     ).toBeTrue();
   });

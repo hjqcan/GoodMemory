@@ -1,11 +1,11 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
+import { BENCHMARK_EVIDENCE_BOUNDARY_NOTE } from "../src/api/capabilityDescriptor";
+
 const RELEASE_VERSION = "0.7.4";
 const PREVIOUS_STABLE_VERSION = "0.7.3";
 const RELEASE_TARBALL = `goodmemory-${RELEASE_VERSION}.tgz`;
-const STABLE_BENCHMARK_NOTE =
-  "The v0.7.3 LoCoMo result, the v0.6.0 LoCoMo, BEAM, and MemoryAgentBench results, plus ImplicitMemBench, remain reproducible versioned evidence. No benchmark result has been relabeled as measured on v0.7.4. LongMemEval is withdrawn and paused pending a clean label-free rerun; its old artifacts are retained only as contaminated provenance and are not quotable as GoodMemory results.";
 const RC_README = `> **Release status:** this branch is the \`${RELEASE_VERSION}\` release candidate. npm
 > \`latest\` remains \`${PREVIOUS_STABLE_VERSION}\`; \`${RELEASE_VERSION}\` has not been published. The version-pinned
 > registry commands below are the post-publish contract; use the locally packed
@@ -102,7 +102,10 @@ async function assertV07StableReleaseMetadata(input: {
   const descriptor = JSON.parse(
     await readFile(join(repoRoot, ".well-known/goodmemory.json"), "utf8"),
   ) as {
-    benchmarks?: { currentClaims?: unknown[] };
+    benchmarks?: {
+      currentClaims?: unknown[];
+      historicalEvidence?: { note?: unknown };
+    };
     releaseStatus?: unknown;
     version?: unknown;
   };
@@ -125,6 +128,14 @@ async function assertV07StableReleaseMetadata(input: {
     descriptor.benchmarks.currentClaims.length !== 0) {
     throw new Error(
       `Stable ${RELEASE_VERSION} capability descriptor must not relabel historical benchmark evidence as current.`,
+    );
+  }
+  if (
+    descriptor.benchmarks?.historicalEvidence?.note !==
+      BENCHMARK_EVIDENCE_BOUNDARY_NOTE
+  ) {
+    throw new Error(
+      `Stable ${RELEASE_VERSION} capability descriptor has stale benchmark evidence metadata.`,
     );
   }
 
@@ -244,7 +255,8 @@ export async function promoteV07ReleaseSource(input: {
       "Release promotion capability descriptor is missing historical benchmark evidence metadata.",
     );
   }
-  (historicalEvidence as Record<string, unknown>).note = STABLE_BENCHMARK_NOTE;
+  (historicalEvidence as Record<string, unknown>).note =
+    BENCHMARK_EVIDENCE_BOUNDARY_NOTE;
   const descriptorOutput = `${JSON.stringify(descriptor, null, 2)}\n`;
 
   const prose = [

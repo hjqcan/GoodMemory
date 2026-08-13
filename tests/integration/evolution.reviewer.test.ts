@@ -238,8 +238,7 @@ describe("reflective reviewer integration", () => {
       scope: { userId: "u-1", workspaceId: "workspace-a" },
     });
 
-    expect(exported.durable.experiences.map((experience) => experience.kind).sort()).toEqual([
-      "recall",
+    expect(exported.durable.experiences.map((experience) => experience.kind)).toEqual([
       "verify",
     ]);
     expect(

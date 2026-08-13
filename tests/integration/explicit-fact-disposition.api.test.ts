@@ -7,6 +7,68 @@ import {
 } from "../../src/storage/memory";
 
 describe("public explicit-fact clause disposition", () => {
+  it("does not promote a localized reported opt-out into an opt-out", async () => {
+    const fixtures = [
+      [
+        "en-US",
+        "Remember that project code=Tachikoma; I did not say do not remember project code=Tachikoma",
+        "project code=Tachikoma",
+      ],
+      [
+        "zh-CN",
+        "请记住项目代号=Tachikoma；我没有说不要记住项目代号=Tachikoma",
+        "项目代号=Tachikoma",
+      ],
+      [
+        "zh-TW",
+        "請記住專案代號=Tachikoma；我沒有說不要記住專案代號=Tachikoma",
+        "專案代號=Tachikoma",
+      ],
+      [
+        "fr-FR",
+        "Souviens-toi : code projet=Tachikoma; Je n’ai pas dit : ne mémorise pas code projet=Tachikoma",
+        "code projet=Tachikoma",
+      ],
+      [
+        "es-ES",
+        "Recuerda: código de proyecto=Tachikoma; No dije: no recuerdes código de proyecto=Tachikoma",
+        "código de proyecto=Tachikoma",
+      ],
+      [
+        "ja-JP",
+        "覚えておいて：プロジェクトコード=Tachikoma；私は言っていません、プロジェクトコード=Tachikomaを覚えないでください",
+        "プロジェクトコード=Tachikoma",
+      ],
+      [
+        "ko-KR",
+        "기억해 주세요: 프로젝트 코드=Tachikoma; 저는 말하지 않았습니다, 프로젝트 코드=Tachikoma를 기억하지 마세요",
+        "프로젝트 코드=Tachikoma",
+      ],
+    ] as const;
+
+    for (const [locale, content, expectedFact] of fixtures) {
+      const memory = createGoodMemory({ storage: { provider: "memory" } });
+      const scope = {
+        userId: `reported-opt-out-${locale}`,
+        workspaceId: "explicit-disposition",
+      };
+
+      const result = await memory.remember({
+        extractionStrategy: "rules-only",
+        locale,
+        messages: [{ role: "user", content }],
+        scope: { ...scope, sessionId: "teach" },
+      });
+      const exported = await memory.exportMemory({ scope });
+
+      expect(result.accepted).toBe(1);
+      expect(exported.durable.facts).toEqual([
+        expect.objectContaining({ content: expectedFact }),
+      ]);
+      expect(exported.durable.feedback).toEqual([]);
+    }
+  });
+
   it("keeps modified opt-out clauses out of durable facts", async () => {
     const fixtures = [
       ["en-US", "Remember two things: editor=Neovim; also do not remember project code=Tachikoma"],

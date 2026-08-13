@@ -102,17 +102,16 @@ and internal research. A number may enter the current-claims table only after
 the current package version: complete coverage, `executionFailures: 0`, a
 no-memory baseline, deterministic scoring or an independent judge, verified
 dataset source and license, and a reproducible run (commit + command + package
-version). Historical rows remain under separate markers and cannot satisfy the
-current-version gate.
+version). The projection must cite a separate, committed execution receipt that
+binds the exact commit, tree, package, run, and source bytes; a presentation
+projection cannot attest its own execution. Historical rows remain under
+separate markers and cannot satisfy the current-version gate.
 
-GoodMemory `0.7.4` has no newly measured current benchmark claim.
-The fresh v0.7.3 protocol-v2 LoCoMo result remains versioned evidence below; it
-is not relabeled as measured on `0.7.4`. The Phase 72 benchmark and versioned
-release gates remain closed historical 0.6 evidence. The v0.7.3 result is a
-single live-provider draw, so its 0.4-0.7 percentage-point run-to-run spread is
-explicitly heuristic and the score is not attributed to the R6 retrieval
-change. It is also a public-opt-in provider-backed profile, not a claim about
-the zero-provider default.
+GoodMemory `0.7.4` has no current or versioned historical benchmark claim.
+The retained v0.7.3 LoCoMo projection is not an independent execution receipt,
+so it cannot prove its own run and is now an internal diagnostic. The v0.6.0
+LoCoMo, BEAM, and MemoryAgentBench measurements and ImplicitMemBench are also
+internal diagnostics under the same fail-closed boundary.
 LongMemEval is withdrawn pending a clean rerun: the historical rules-only path
 used answer annotations, and the later label-free path exposed raw
 `answer_*` session IDs to retrieval and the reader. ImplicitMemBench's
@@ -126,24 +125,18 @@ No benchmark result is currently presented as measured on `0.7.4`.
 
 ### Versioned evidence
 
-These rows are versioned attestations with tracked source fingerprints for the
-disclosed package version and runtime profile. Reproduction also requires the
-referenced raw artifacts, which are not all stored in the Git tree. They are
-not current-production claims for `v0.7.4`.
+No retained benchmark artifact currently satisfies the independent execution-
+receipt contract required for versioned evidence.
 
 <!-- historical-evidence-table:start -->
-| Benchmark | Primary metric | GoodMemory result | Baseline / reference | Claim declaration |
-|---|---|---:|---:|---|
-| LoCoMo v0.7.3 (full 10 conversations) | independent official judge protocol; strict deterministic token-F1 | official **0.8805** · strict **0.6266** · open-domain **0.6042** (58/96) | historical no-memory 0.0045 | [locomo.json](./benchmark-claims/locomo.json) |
+No benchmark result currently qualifies as versioned historical evidence.
 <!-- historical-evidence-table:end -->
 
-The versioned v0.7.3 LoCoMo run covers all 1540 non-adversarial questions with
-zero execution and judge failures. Answers, conversational extraction, and
-provider reranking use `gpt-5.6-terra`; the official-protocol track uses an
-independent `gpt-5.5` judge. The dataset is CC BY-NC 4.0 and therefore limited
-to non-commercial evaluation. This is a single live-provider draw with a
-heuristic 0.4-0.7 percentage-point run-to-run spread, not evidence that the
-small difference from v0.6 was caused by R6 retrieval cues.
+The retained v0.7.3 LoCoMo artifacts remain available for audit, but their
+tracked-current projection and verified presentation shell are not execution
+receipts. They therefore do not authorize a public or versioned claim. A future
+promotion requires a new run that emits the independent receipt at execution
+time; the old artifacts will not be retrofitted.
 
 Where both are available, a row reports two tracks. The
 **strict** track is deterministic or judge-free — a hard lower bound no LLM

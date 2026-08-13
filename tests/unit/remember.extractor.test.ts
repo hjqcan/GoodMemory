@@ -17,7 +17,7 @@ describe("deterministic memory extractor", () => {
         },
         {
           role: "user",
-          content: "Please keep answers concise and action-oriented.",
+          content: "Always keep answers concise and action-oriented.",
         },
         { role: "user", content: "Hi" },
       ],
@@ -2135,7 +2135,14 @@ describe("deterministic memory extractor", () => {
         expect(result.candidates.filter(({ kindHint }) => kindHint === "fact").map(({ content }) => content)).toContain(
           `${field}=${positiveValue}`,
         );
-        expect(dont?.metadata).toEqual(expect.objectContaining({ optOutTarget }));
+        expect(dont?.disposition).toEqual({
+          kind: "durable_opt_out",
+          target: expect.objectContaining({
+            match: "exact",
+            text: optOutTarget,
+          }),
+        });
+        expect(dont?.metadata).not.toHaveProperty("optOutTarget");
         expect(dont?.content).toContain(optOutTarget);
       }
     }
@@ -2678,7 +2685,7 @@ describe("deterministic memory extractor", () => {
         { role: "user", content: "請記住目前專案的阻塞是審批。" },
         { role: "user", content: "我偏好使用繁體中文回覆。" },
         { role: "user", content: "現在以 docs/runtime.md 為準。" },
-        { role: "user", content: "請以條列式回答。" },
+        { role: "user", content: "以後請使用條列式回答。" },
       ],
     });
 

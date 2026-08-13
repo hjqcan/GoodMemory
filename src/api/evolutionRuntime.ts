@@ -10,17 +10,14 @@ import type { ExperienceRecord, LearningProposal } from "../evolution/contracts"
 import {
   buildBehavioralOutcomeExperienceRecord,
   type BehavioralOutcomeObservationResult,
-  toStoredExperienceRecord,
 } from "../evolution/behavioralTelemetry";
 import {
   buildFeedbackExperienceRecord,
-  buildRecallExperienceRecords,
-  buildRememberExperienceRecord,
+  buildRecallVerificationExperienceRecords,
 } from "../evolution/observations";
 import type {
   FeedbackObservationResult,
-  RecallObservationResult,
-  RememberObservationResult,
+  RecallVerificationObservationResult,
 } from "../evolution/observation-results";
 import type {
   GovernanceRepositoryPort,
@@ -30,8 +27,6 @@ import type {
   FeedbackResult,
   RecallInput,
   RecallResult,
-  RememberInput,
-  RememberResult,
   RunMaintenanceInput,
   RunMaintenanceResult,
 } from "./contracts";
@@ -41,10 +36,6 @@ import type {
 } from "./integrationSupport";
 import type { ProposalGateDecision } from "../evolution/gates";
 import type { LanguageService } from "../language";
-
-interface RecallVerificationSummary {
-  verificationPressureFactCount: number;
-}
 
 interface ReviewerRuntime {
   review(input: { scope: MemoryScope }): Promise<LearningProposal[]>;
@@ -101,19 +92,29 @@ function createAgentCorrectionExperienceId(input: {
   ].join("|");
 }
 
+function createBehavioralOutcomeRecordId(input: {
+  kind: "evidence" | "experience";
+  scope: MemoryScope;
+  traceId: string;
+}): string {
+  return [
+    `behavioral_outcome.${input.kind}`,
+    `scope=${encodeExperienceIdSegment(scopeToKey(input.scope))}`,
+    `trace=${encodeExperienceIdSegment(input.traceId)}`,
+  ].join("|");
+}
+
 async function applyRecallVerificationPressure(
   repositories: GovernanceRepositoryPort,
   result: RecallResult,
   timestamp: string,
-): Promise<RecallVerificationSummary> {
+): Promise<void> {
   const pressuredFacts = new Map<string, FactMemory>();
   const verificationHintFactIds = new Set(
     result.metadata.verificationHints
       .filter((hint) => hint.memoryType === "fact")
       .map((hint) => hint.memoryId),
   );
-  let verificationPressureFactCount = 0;
-
   for (const recalledFact of result.facts) {
     if (!verificationHintFactIds.has(recalledFact.id)) {
       continue;
@@ -140,7 +141,6 @@ async function applyRecallVerificationPressure(
       verificationPressureCount,
       lastVerificationHintAt: timestamp,
     });
-    verificationPressureFactCount += 1;
   }
 
   if (pressuredFacts.size > 0) {
@@ -148,55 +148,16 @@ async function applyRecallVerificationPressure(
       (fact) => pressuredFacts.get(fact.id) ?? fact,
     );
   }
-
-  return {
-    verificationPressureFactCount,
-  };
 }
 
-function toRememberObservationResult(
-  result: RememberResult,
-): RememberObservationResult {
-  return {
-    accepted: result.accepted,
-    rejected: result.rejected,
-    events: result.events.map((event) => ({
-      evidenceIds: event.evidenceIds,
-      memoryId: event.memoryId,
-      reason: event.reason,
-    })),
-    modelInfluence:
-      result.metadata?.resolvedExtractionStrategy === "llm-assisted"
-        ? "llm-assisted"
-        : "rules-only",
-  };
-}
-
-function toRecallObservationResult(
+function toRecallVerificationObservationResult(
   result: RecallResult,
-  verificationSummary?: RecallVerificationSummary,
-): RecallObservationResult {
+): RecallVerificationObservationResult {
   return {
-    preferences: result.preferences.map((record) => ({ id: record.id })),
-    references: result.references.map((record) => ({ id: record.id })),
-    facts: result.facts.map((record) => ({ id: record.id })),
-    feedback: result.feedback.map((record) => ({ id: record.id })),
-    archives: result.archives.map((record) => ({ id: record.id })),
-    evidence: result.evidence.map((record) => ({ id: record.id })),
-    episodes: result.episodes.map((record) => ({ id: record.id })),
-    strategy: result.metadata.routingDecision.strategy,
-    hitCount: result.metadata.hits.length,
-    hits: result.metadata.hits.map((hit) => ({
-      evidenceIds: hit.evidenceIds,
-    })),
     verificationHints: result.metadata.verificationHints.map((hint) => ({
       evidenceIds: hint.evidenceIds,
       memoryId: hint.memoryId,
     })),
-    latencyMs: result.metadata.latencyMs,
-    tokenCount: result.metadata.tokenCount,
-    verificationPressureFactCount:
-      verificationSummary?.verificationPressureFactCount ?? 0,
     policyApplied: result.metadata.policyApplied,
     modelInfluence:
       result.metadata.routingDecision.strategy === "llm-assisted"
@@ -252,14 +213,19 @@ export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
     };
   }
 
-  async function persistExperienceRecords(records: ExperienceRecord[]): Promise<void> {
+  async function persistExperienceRecords(
+    records: ExperienceRecord[],
+  ): Promise<ExperienceRecord[]> {
+    const persisted: ExperienceRecord[] = [];
     for (const record of records) {
       try {
         await config.governanceRepositories.experiences.add(record);
+        persisted.push(record);
       } catch (error) {
         console.error("Failed to persist experience record", error);
       }
     }
+    return persisted;
   }
 
   async function persistExperienceRecordsStrict(
@@ -333,41 +299,31 @@ export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
       result: RecallResult;
       scope: RecallInput["scope"];
     }): Promise<void> {
+      if (input.result.metadata.verificationHints.length === 0) {
+        return;
+      }
       const timestamp = now();
       const traceId = crypto.randomUUID();
-      const verificationSummary = await applyRecallVerificationPressure(
+      await applyRecallVerificationPressure(
         config.governanceRepositories,
         input.result,
         timestamp,
       );
+      const records = buildRecallVerificationExperienceRecords({
+        scope: input.scope,
+        result: toRecallVerificationObservationResult(input.result),
+        traceId,
+        createdAt: timestamp,
+        createId: () => crypto.randomUUID(),
+      });
+      if (records.length === 0) {
+        return;
+      }
 
-      await persistExperienceRecords(
-        buildRecallExperienceRecords({
-          scope: input.scope,
-          result: toRecallObservationResult(input.result, verificationSummary),
-          traceId,
-          createdAt: timestamp,
-          createId: () => crypto.randomUUID(),
-        }),
-      );
-      await runRulesOnlyReview(input.scope);
-    },
-
-    async handleRemember(input: {
-      result: RememberResult;
-      scope: RememberInput["scope"];
-    }): Promise<void> {
-      const timestamp = now();
-
-      await persistExperienceRecords([
-        buildRememberExperienceRecord({
-          scope: input.scope,
-          result: toRememberObservationResult(input.result),
-          traceId: crypto.randomUUID(),
-          createdAt: timestamp,
-          createId: () => crypto.randomUUID(),
-        }),
-      ]);
+      const persisted = await persistExperienceRecords(records);
+      if (persisted.length === 0) {
+        return;
+      }
       await runRulesOnlyReview(input.scope);
     },
 
@@ -390,7 +346,10 @@ export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
       if (input.strict) {
         await persistExperienceRecordsStrict([feedbackExperience]);
       } else {
-        await persistExperienceRecords([feedbackExperience]);
+        const persisted = await persistExperienceRecords([feedbackExperience]);
+        if (persisted.length === 0) {
+          return createEmptyAgentEventReceipts();
+        }
       }
       return runRulesOnlyReview(input.scope, [feedbackExperience.id]);
     },
@@ -432,7 +391,10 @@ export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
       if (input.strict) {
         await persistExperienceRecordsStrict([feedbackExperience]);
       } else {
-        await persistExperienceRecords([feedbackExperience]);
+        const persisted = await persistExperienceRecords([feedbackExperience]);
+        if (persisted.length === 0) {
+          return createEmptyAgentEventReceipts();
+        }
       }
       return runRulesOnlyReview(input.scope, [feedbackExperience.id]);
     },
@@ -440,13 +402,27 @@ export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
     async handleBehavioralOutcome(input: {
       result: BehavioralOutcomeObservationResult;
       scope: MemoryScope;
+      traceId?: string;
     }): Promise<void> {
       const timestamp = now();
-      const traceId = crypto.randomUUID();
+      const traceId = input.traceId ?? crypto.randomUUID();
+      const experienceId = input.traceId
+        ? createBehavioralOutcomeRecordId({
+            kind: "experience",
+            scope: input.scope,
+            traceId,
+          })
+        : crypto.randomUUID();
       let linkedEvidenceIds: string[] = [];
 
       if (input.result.evidenceExcerpt) {
-        const evidenceId = crypto.randomUUID();
+        const evidenceId = input.traceId
+          ? createBehavioralOutcomeRecordId({
+              kind: "evidence",
+              scope: input.scope,
+              traceId,
+            })
+          : crypto.randomUUID();
         const languageContext = config.language.resolveFromText({
           text: input.result.evidenceExcerpt,
         });
@@ -478,18 +454,19 @@ export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
         }
       }
 
-      await persistExperienceRecords([
-        toStoredExperienceRecord(
-          buildBehavioralOutcomeExperienceRecord({
-            scope: input.scope,
-            result: input.result,
-            traceId,
-            createdAt: timestamp,
-            linkedEvidenceIds,
-            createId: () => crypto.randomUUID(),
-          }),
-        ),
+      const persisted = await persistExperienceRecords([
+        buildBehavioralOutcomeExperienceRecord({
+          scope: input.scope,
+          result: input.result,
+          traceId,
+          createdAt: timestamp,
+          linkedEvidenceIds,
+          createId: () => experienceId,
+        }),
       ]);
+      if (persisted.length === 0) {
+        return;
+      }
       await runRulesOnlyReview(input.scope);
     },
 
@@ -506,7 +483,7 @@ export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
         await persistExperienceRecordsStrict([input.experience]);
       }
 
-      if (input.evidence || input.experience) {
+      if (input.experience) {
         await runRulesOnlyReview(input.scope);
       }
     },

@@ -6,15 +6,11 @@ import type {
   MemoryCandidate,
 } from "./candidates";
 
-const OUTER_SYNTAX =
-  /^[\s"'`([{<]+|[\s"'`)\]}>.,!?;:，。！？；]+$/gu;
-
 function normalizeDurableTarget(value: string): string {
   return value
     .normalize("NFKC")
     .toLowerCase()
     .replace(/\s+/gu, " ")
-    .replace(OUTER_SYNTAX, "")
     .trim();
 }
 
@@ -30,12 +26,7 @@ function exactTargetValues(value: string): string[] {
 }
 
 function candidateTargetValues(candidate: MemoryCandidate): string[] {
-  if (
-    candidate.kindHint !== "fact" &&
-    candidate.kindHint !== "preference" &&
-    candidate.kindHint !== "profile" &&
-    candidate.kindHint !== "reference"
-  ) {
+  if (!isDurableTargetCandidate(candidate)) {
     return [];
   }
 
@@ -66,16 +57,20 @@ export function isDurableOptOutCandidate(
     candidate.disposition?.kind === "durable_opt_out";
 }
 
+export function isDurableTargetCandidate(
+  candidate: MemoryCandidate,
+): boolean {
+  return candidate.kindHint === "fact" ||
+    candidate.kindHint === "preference" ||
+    candidate.kindHint === "profile" ||
+    candidate.kindHint === "reference";
+}
+
 export function isTargetedByDurableOptOut(
   candidate: MemoryCandidate,
   selectors: readonly DurableOptOutTargetSelector[],
 ): boolean {
-  if (
-    candidate.kindHint !== "fact" &&
-    candidate.kindHint !== "preference" &&
-    candidate.kindHint !== "profile" &&
-    candidate.kindHint !== "reference"
-  ) {
+  if (!isDurableTargetCandidate(candidate)) {
     return false;
   }
   const candidateValues = new Set(candidateTargetValues(candidate));

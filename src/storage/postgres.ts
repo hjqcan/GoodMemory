@@ -188,6 +188,7 @@ const DOCUMENT_INDEX_DEFINITIONS = [
 ] as const;
 
 const runtimeCache = new Map<string, PostgresRuntime>();
+const sqlCache = new Map<string, SQL>();
 
 function normalizeUrl(url: string): string {
   const trimmed = url.trim();
@@ -291,6 +292,26 @@ function createInitializer(action: () => Promise<void>): () => Promise<void> {
   };
 }
 
+async function ensurePostgresSchema(sql: SQL, quotedSchema: string): Promise<void> {
+  await sql.unsafe(`CREATE SCHEMA IF NOT EXISTS ${quotedSchema}`);
+}
+
+async function ensurePostgresDocumentTable(
+  sql: SQL,
+  documentTable: string,
+): Promise<void> {
+  await sql.unsafe(`
+    CREATE TABLE IF NOT EXISTS ${documentTable} (
+      collection TEXT NOT NULL,
+      id TEXT NOT NULL,
+      document JSONB NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (collection, id)
+    )
+  `);
+}
+
 function createReadOnlyMutationError(store: string): Error {
   return new Error(`Postgres ${store} store is read-only in this context.`);
 }
@@ -323,7 +344,11 @@ function createRuntime(config: PostgresStorageConfig): PostgresRuntime {
     return cached;
   }
 
-  const sql = new SQL(url, { prepare: false });
+  let sql = sqlCache.get(url);
+  if (!sql) {
+    sql = new SQL(url, { prepare: false });
+    sqlCache.set(url, sql);
+  }
   const quotedSchema = quoteIdentifier(schema);
   const documentTable = qualifyTable(schema, DOCUMENT_TABLE_NAME);
   const sessionStateTable = qualifyTable(schema, SESSION_STATE_TABLE_NAME);
@@ -332,9 +357,9 @@ function createRuntime(config: PostgresStorageConfig): PostgresRuntime {
   const sessionStateRelationName = `${schema}.${SESSION_STATE_TABLE_NAME}`;
   const vectorRelationName = `${schema}.${vectorTableName}`;
 
-  const ensureSchema = createInitializer(async () => {
-    await sql.unsafe(`CREATE SCHEMA IF NOT EXISTS ${quotedSchema}`);
-  });
+  const ensureSchema = createInitializer(() =>
+    ensurePostgresSchema(sql, quotedSchema)
+  );
 
   const runtime: PostgresRuntime = {
     sql,
@@ -347,16 +372,7 @@ function createRuntime(config: PostgresStorageConfig): PostgresRuntime {
     hasVectorStore: () => relationExists(sql, vectorRelationName),
     ensureDocumentStore: createInitializer(async () => {
       await ensureSchema();
-      await sql.unsafe(`
-        CREATE TABLE IF NOT EXISTS ${documentTable} (
-          collection TEXT NOT NULL,
-          id TEXT NOT NULL,
-          document JSONB NOT NULL,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          PRIMARY KEY (collection, id)
-        )
-      `);
+      await ensurePostgresDocumentTable(sql, documentTable);
     }),
     ensureSessionStore: createInitializer(async () => {
       await ensureSchema();
@@ -1180,6 +1196,9 @@ function createPostgresStorageMigrationPort(
   runtime: PostgresRuntime,
 ): PostgresStorageMigrationPort {
   const versionTable = qualifyTable(runtime.schema, STORAGE_SCHEMA_TABLE_NAME);
+  const quotedSchema = quoteIdentifier(runtime.schema);
+  let exclusiveSql: SQL | null = null;
+  const sql = (): SQL => exclusiveSql ?? runtime.sql;
 
   return {
     async runExclusive(operation) {
@@ -1194,8 +1213,10 @@ function createPostgresStorageMigrationPort(
           "SELECT pg_advisory_lock(hashtextextended($1, 0))",
           [lockKey],
         );
+        exclusiveSql = connection;
         return await operation();
       } finally {
+        exclusiveSql = null;
         try {
           await connection.unsafe(
             "SELECT pg_advisory_unlock(hashtextextended($1, 0))",
@@ -1207,11 +1228,14 @@ function createPostgresStorageMigrationPort(
       }
     },
     async createDocumentIndex(statement) {
-      await runtime.sql.unsafe(statement);
+      await sql().unsafe(statement);
     },
-    ensureDocumentStore: runtime.ensureDocumentStore,
+    async ensureDocumentStore() {
+      await ensurePostgresSchema(sql(), quotedSchema);
+      await ensurePostgresDocumentTable(sql(), runtime.documentTable);
+    },
     async ensureVersionStore() {
-      await runtime.sql.unsafe(`
+      await sql().unsafe(`
         CREATE TABLE IF NOT EXISTS ${versionTable} (
           component TEXT PRIMARY KEY,
           version INTEGER NOT NULL,
@@ -1220,7 +1244,7 @@ function createPostgresStorageMigrationPort(
       `);
     },
     async getDocumentIndex(indexName) {
-      const rows = await runtime.sql.unsafe<DocumentIndexRow[]>(
+      const rows = await sql().unsafe<DocumentIndexRow[]>(
         `
           SELECT
             pg_get_indexdef(index_relation.oid) AS definition,
@@ -1262,7 +1286,7 @@ function createPostgresStorageMigrationPort(
         : null;
     },
     async getVersion() {
-      const rows = await runtime.sql.unsafe<StorageMigrationVersionRow[]>(
+      const rows = await sql().unsafe<StorageMigrationVersionRow[]>(
         `
           SELECT version
           FROM ${versionTable}
@@ -1273,7 +1297,7 @@ function createPostgresStorageMigrationPort(
       return rows[0]?.version ?? null;
     },
     async setVersion(version) {
-      await runtime.sql.unsafe(
+      await sql().unsafe(
         `
           INSERT INTO ${versionTable} AS storage_schema (
             component,

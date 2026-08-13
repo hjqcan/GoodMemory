@@ -578,6 +578,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
     input: MemoryExtractionInput,
     sourceAnalyses: RememberSourceLanguageAnalyses,
     explicitOptOutSourceIndexes: ReadonlySet<number>,
+    optOutTargetSelectors: readonly DurableOptOutTargetSelector[],
+    canonicalCandidates: readonly MemoryCandidate[],
   ): {
     blockedSourceIndexes: ReadonlySet<number>;
     input: MemoryExtractionInput;
@@ -595,6 +597,14 @@ export function createRememberEngine(config: RememberEngineConfig) {
       const allowedClauses = clauses
         .filter((clause) => {
           if (hasExplicitOptOut) {
+            if (canonicalCandidates.some((candidate) =>
+              candidate.sourceMessageIndex === messageIndex &&
+              clause.includes(candidate.content) &&
+              isTargetedByDurableOptOut(candidate, optOutTargetSelectors)
+            )) {
+              removedClause = true;
+              return false;
+            }
             const candidates = language.extractCandidates(
               {
                 locale: context.locale,
@@ -612,11 +622,20 @@ export function createRememberEngine(config: RememberEngineConfig) {
               removedClause = true;
               return false;
             }
+            if (candidates.some((candidate) =>
+              isTargetedByDurableOptOut(candidate, optOutTargetSelectors)
+            )) {
+              removedClause = true;
+              return false;
+            }
           }
           const analysis = clauses.length === 1 && clause === message.content
             ? sourceAnalyses.get(messageIndex)?.analysis
             : language.analyzeContent(clause, context);
-          if (analysis?.interrogative === true) {
+          if (
+            analysis?.interrogative === true ||
+            analysis?.behavioralDirective === "one_off"
+          ) {
             removedClause = true;
             return false;
           }
@@ -643,6 +662,99 @@ export function createRememberEngine(config: RememberEngineConfig) {
       blockedSourceIndexes,
       input: changed ? { ...input, messages } : input,
     };
+  };
+
+  const producerCandidateTargetValues = (
+    candidate: MemoryCandidate,
+  ): string[] => {
+    const values = new Set([candidate.content]);
+    if (candidate.kindHint === "preference") {
+      values.add(String(candidate.metadata?.preferenceValue ?? ""));
+    }
+    if (candidate.kindHint === "reference") {
+      values.add(String(candidate.metadata?.referencePointer ?? ""));
+    }
+    return [...values].filter(Boolean);
+  };
+
+  const collectCandidateMetadataStrings = (value: unknown): string[] => {
+    if (typeof value === "string") {
+      return [value];
+    }
+    if (Array.isArray(value)) {
+      return value.flatMap(collectCandidateMetadataStrings);
+    }
+    return value && typeof value === "object"
+      ? Object.values(value).flatMap(collectCandidateMetadataStrings)
+      : [];
+  };
+
+  const isProducerCandidateGrounded = (
+    candidate: MemoryCandidate,
+    sourceContent: string,
+    context: RememberSourceLanguageAnalysis["context"],
+  ): boolean => {
+    const sourceTokens = new Set(
+      language.tokenize(sourceContent, context, { excludeStopwords: true }),
+    );
+
+    return producerCandidateTargetValues(candidate).every((value) => {
+      const tokens = language.tokenize(value, context, {
+        excludeStopwords: true,
+      });
+      return tokens.length > 0 && tokens.every((token) =>
+        sourceTokens.has(token)
+      );
+    });
+  };
+
+  const isGroundedForExplicitOptOutSources = (
+    candidate: MemoryCandidate,
+    sourceInput: MemoryExtractionInput,
+    explicitOptOutSourceIndexes: ReadonlySet<number>,
+    optOutTargetSelectors: readonly DurableOptOutTargetSelector[],
+    sourceAnalyses: RememberSourceLanguageAnalyses,
+    requestLanguage: RememberSourceLanguageAnalysis,
+  ): boolean => {
+    if (explicitOptOutSourceIndexes.size === 0) {
+      return true;
+    }
+    const primaryContext = sourceAnalyses.get(candidate.sourceMessageIndex)
+      ?.context ?? requestLanguage.context;
+    if (
+      !candidate.durableTarget &&
+      optOutTargetSelectors.some((selector) => {
+        if (!selector.identity) {
+          return false;
+        }
+        const targetTokens = language.tokenize(
+          selector.identity.value,
+          primaryContext,
+          { excludeStopwords: true },
+        );
+        return targetTokens.length > 0 && [
+          candidate.content,
+          ...collectCandidateMetadataStrings(candidate.metadata),
+        ]
+          .some((value) => {
+            const valueTokens = new Set(
+              language.tokenize(value, primaryContext, {
+                excludeStopwords: true,
+              }),
+            );
+            return targetTokens.every((token) => valueTokens.has(token));
+          });
+      })
+    ) {
+      return false;
+    }
+    return candidateSourceMessageIndexes(candidate).some((index) =>
+      isProducerCandidateGrounded(
+        candidate,
+        sourceInput.messages[index]?.content ?? "",
+        sourceAnalyses.get(index)?.context ?? requestLanguage.context,
+      )
+    );
   };
 
   const isCandidateSourceAllowed = (
@@ -882,6 +994,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
     result: MemoryExtractionResult,
     sourceAnalyses: RememberSourceLanguageAnalyses,
     requestLanguage: RememberSourceLanguageAnalysis,
+    authority: "language" | "producer",
     occurrenceAuthorities?: readonly MemoryCandidate[],
   ): MemoryExtractionResult => {
     return {
@@ -921,13 +1034,29 @@ export function createRememberEngine(config: RememberEngineConfig) {
             resolved: sourceLanguage.context,
           },
         );
-        const derivedDurableTarget = language.deriveDurableTarget?.(
-          normalizedCandidate,
-          sourceLanguage.context,
-        );
-        const normalizedCandidateWithTarget = derivedDurableTarget
-          ? { ...normalizedCandidate, durableTarget: derivedDurableTarget }
+        const { optOutTarget: _producerOptOutTarget, ...producerMetadata } =
+          normalizedCandidate.metadata ?? {};
+        const producerCandidate = authority === "producer"
+          ? {
+            ...normalizedCandidate,
+            disposition: undefined,
+            durableTarget: undefined,
+            metadata: normalizedCandidate.metadata === undefined
+              ? undefined
+              : Object.keys(producerMetadata).length > 0
+                ? producerMetadata
+                : undefined,
+          }
           : normalizedCandidate;
+        const derivedDurableTarget = authority === "language"
+          ? language.deriveDurableTarget?.(
+              producerCandidate,
+              sourceLanguage.context,
+            )
+          : undefined;
+        const normalizedCandidateWithTarget = derivedDurableTarget
+          ? { ...producerCandidate, durableTarget: derivedDurableTarget }
+          : producerCandidate;
         return occurrenceAuthorities
           ? authorizeCandidateOccurrence(
               normalizedCandidateWithTarget,
@@ -1008,6 +1137,20 @@ export function createRememberEngine(config: RememberEngineConfig) {
         .filter(isDurableOptOutCandidate)
         .map(({ sourceMessageIndex }) => sourceMessageIndex),
     );
+    const normalizedCanonicalExtraction = omitCandidatesFromSourceIndexes(
+      normalizeExtractionResult(
+        input,
+        persistableExtractorInput,
+        canonicalExtraction,
+        sourceAnalyses,
+        requestLanguage,
+        "language",
+      ),
+      nonPersistableSourceIndexes,
+    );
+    const optOutTargetSelectors = explicitDurableOptOutSelectors(
+      normalizedCanonicalExtraction,
+    );
     const {
       blockedSourceIndexes: sanitizedProducerSourceIndexes,
       input: producerInput,
@@ -1015,6 +1158,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
       roleSafeExtractorInput,
       sourceAnalyses,
       explicitOptOutSourceIndexes,
+      optOutTargetSelectors,
+      normalizedCanonicalExtraction.candidates,
     );
     const blockedProducerSourceIndexes = new Set([
       ...nonPersistableSourceIndexes,
@@ -1023,19 +1168,6 @@ export function createRememberEngine(config: RememberEngineConfig) {
     const producerSourceAnalyses = producerInput === input
       ? sourceAnalyses
       : analyzeRememberSourceMessages(producerInput, language);
-    const normalizedCanonicalExtraction = omitCandidatesFromSourceIndexes(
-      normalizeExtractionResult(
-        input,
-        persistableExtractorInput,
-        canonicalExtraction,
-        sourceAnalyses,
-        requestLanguage,
-      ),
-      nonPersistableSourceIndexes,
-    );
-    const optOutTargetSelectors = explicitDurableOptOutSelectors(
-      normalizedCanonicalExtraction,
-    );
     const customExtraction = extractor
       ? normalizeExtractionResult(
         input,
@@ -1046,6 +1178,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
         ),
         producerSourceAnalyses,
         requestLanguage,
+        "producer",
         normalizedCanonicalExtraction.candidates,
       )
       : undefined;
@@ -1080,6 +1213,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
             ),
             producerSourceAnalyses,
             requestLanguage,
+            "producer",
             normalizedCanonicalExtraction.candidates,
           ),
           profile,
@@ -1100,6 +1234,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
             ),
             producerSourceAnalyses,
             requestLanguage,
+            "producer",
             normalizedCanonicalExtraction.candidates,
           ),
           profile,
@@ -1164,8 +1299,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
       return {
         extraction: baselineExtraction,
         explicitOptOutSourceIndexes,
-        occurrenceAuthorities: normalizedCanonicalExtraction.candidates,
         optOutTargetSelectors,
+        producerInput,
         profile,
         requestedExtractionStrategy,
         resolvedExtractionStrategy: "rules-only" as const,
@@ -1191,6 +1326,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
               }, knownUserName ? { knownUserName } : undefined),
               producerSourceAnalyses,
               requestLanguage,
+              "producer",
               normalizedCanonicalExtraction.candidates,
             ),
             blockedProducerSourceIndexes,
@@ -1211,8 +1347,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
         extraction: baselineExtraction,
         extractionWarning: "assisted_extraction_failed" as const,
         explicitOptOutSourceIndexes,
-        occurrenceAuthorities: normalizedCanonicalExtraction.candidates,
         optOutTargetSelectors,
+        producerInput,
         profile,
         requestedExtractionStrategy,
         resolvedExtractionStrategy: "rules-only" as const,
@@ -1239,8 +1375,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
         requestLanguage,
       ),
       explicitOptOutSourceIndexes,
-      occurrenceAuthorities: normalizedCanonicalExtraction.candidates,
       optOutTargetSelectors,
+      producerInput,
       profile,
       requestedExtractionStrategy,
       resolvedExtractionStrategy: "llm-assisted" as const,
@@ -1271,8 +1407,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
         extraction,
         extractionWarning,
         explicitOptOutSourceIndexes,
-        occurrenceAuthorities,
         optOutTargetSelectors,
+        producerInput,
         profile,
         requestedExtractionStrategy,
         resolvedExtractionStrategy,
@@ -1314,6 +1450,74 @@ export function createRememberEngine(config: RememberEngineConfig) {
           ...storageUnsafeOnlySourceIndexes,
         ]);
         const policyBlockedSourceIndexes = new Set<number>();
+        const policyRedactedCandidates = new Map<string, MemoryCandidate>();
+        const redactCandidate = async (
+          candidate: MemoryCandidate,
+        ): Promise<MemoryCandidate> => {
+          if (!config.policy?.redact) {
+            return candidate;
+          }
+          const cached = policyRedactedCandidates.get(candidate.id);
+          if (cached) {
+            return cached;
+          }
+          const candidateLanguage = resolveCandidateLanguage(
+            candidate,
+            sourceAnalyses,
+            requestLanguage,
+          );
+          const policyContext: PolicyContext = {
+            scope: input.scope,
+            phase: "remember",
+            locale: candidateLanguage.locale,
+            localeSource: candidateLanguage.localeSource,
+          };
+          const authorizedOccurrenceExpression =
+            candidate.metadata?.occurrenceExpression;
+          const hasAuthorizedDurableTarget = candidate.durableTarget !== undefined;
+          const redacted = await redactPolicyCandidate(
+            config.policy,
+            candidate,
+            policyContext,
+          );
+          const {
+            occurrenceExpression: _policyOccurrenceExpression,
+            optOutTarget: _policyOptOutTarget,
+            ...redactedMetadata
+          } = redacted.metadata ?? {};
+          const redactedCandidateWithoutTarget: MemoryCandidate = {
+            ...candidate,
+            disposition: candidate.disposition,
+            durableTarget: undefined,
+            kindHint: isDurableOptOutCandidate(candidate)
+              ? candidate.kindHint
+              : redacted.kindHint,
+            content: redacted.content,
+            extractionSources: candidate.extractionSources,
+            metadata: redacted.metadata === undefined
+              ? undefined
+              : {
+                  ...redactedMetadata,
+                  ...(authorizedOccurrenceExpression
+                    ? { occurrenceExpression: authorizedOccurrenceExpression }
+                    : {}),
+                },
+            explicitness: redacted.explicitness,
+          };
+          const durableTarget = !isDurableOptOutCandidate(candidate) &&
+              hasAuthorizedDurableTarget
+            ? language.deriveDurableTarget?.(
+                redactedCandidateWithoutTarget,
+                candidateLanguage,
+              )
+            : undefined;
+          const policyRedactedCandidate = {
+            ...redactedCandidateWithoutTarget,
+            ...(durableTarget ? { durableTarget } : {}),
+          };
+          policyRedactedCandidates.set(candidate.id, policyRedactedCandidate);
+          return policyRedactedCandidate;
+        };
         const ingestedAt = now();
         const preparedSourceMessages: Array<{
           messageIndex: number;
@@ -1331,31 +1535,46 @@ export function createRememberEngine(config: RememberEngineConfig) {
             locale: sourceLanguage.context.locale,
             localeSource: sourceLanguage.context.localeSource,
           };
-          const sourceCandidate = extraction.candidates.find((candidate) =>
-            [
-              candidate.sourceMessageIndex,
-              ...(candidate.sourceMessageIndexes ?? []),
-            ].includes(messageIndex)
-          ) ?? {
-            id: `raw-source-${messageIndex + 1}`,
-            kindHint: "noise" as const,
-            explicitness: "inferred" as const,
-            content: message.content,
-            sourceMessageIndex: messageIndex,
-            sourceRole: message.role,
-          };
-          const redactedContent = config.policy?.redact
-            ? (await redactPolicyCandidate(
-                config.policy,
-                {
-                  ...sourceCandidate,
-                  content: message.content,
-                  sourceMessageIndex: messageIndex,
-                  sourceRole: message.role,
-                },
-                policyContext,
-              )).content
-            : message.content;
+          const sourceCandidates = extraction.candidates
+            .filter((candidate) =>
+              candidateSourceMessageIndexes(candidate).includes(messageIndex) &&
+              classifyCandidate(candidate).decision === "write" &&
+              isCandidateSourceAllowed(candidate, profile, input)
+            )
+            .sort((left, right) => right.content.length - left.content.length);
+          let redactedContent = message.content;
+          let sourceRedactionUnresolved = false;
+          if (config.policy?.redact && sourceCandidates.length > 0) {
+            for (const sourceCandidate of sourceCandidates) {
+              const redactedCandidate = await redactCandidate(sourceCandidate);
+              if (redactedCandidate.content !== sourceCandidate.content) {
+                if (!message.content.includes(sourceCandidate.content)) {
+                  sourceRedactionUnresolved = true;
+                  break;
+                }
+                redactedContent = redactedContent.replaceAll(
+                  sourceCandidate.content,
+                  redactedCandidate.content,
+                );
+              }
+            }
+          } else if (config.policy?.redact) {
+            redactedContent = (await redactPolicyCandidate(
+              config.policy,
+              {
+                id: `raw-source-${messageIndex + 1}`,
+                kindHint: "noise",
+                explicitness: "inferred",
+                content: message.content,
+                sourceMessageIndex: messageIndex,
+                sourceRole: message.role,
+              },
+              policyContext,
+            )).content;
+          }
+          if (sourceRedactionUnresolved) {
+            continue;
+          }
           if (!hasPersistableSemanticText(redactedContent)) {
             policyBlockedSourceIndexes.add(messageIndex);
             continue;
@@ -1374,8 +1593,42 @@ export function createRememberEngine(config: RememberEngineConfig) {
         for (const { messageIndex, record } of preparedSourceMessages) {
           sourceMessagesByIndex.set(messageIndex, record);
         }
+        const policySafeInput: MemoryExtractionInput = {
+          ...persistenceSafeInput,
+          messages: persistenceSafeInput.messages.map((message, messageIndex) => ({
+            ...message,
+            content: sourceMessagesByIndex.get(messageIndex)?.content ?? "",
+          })),
+        };
 
         const storageUnsafeCandidateIds = new Set<string>();
+        const rejectUngroundedOptOutSourceCandidate = (
+          candidate: MemoryCandidate,
+        ): boolean => {
+          if (
+            isDurableOptOutCandidate(candidate) ||
+            isGroundedForExplicitOptOutSources(
+              candidate,
+              producerInput,
+              explicitOptOutSourceIndexes,
+              optOutTargetSelectors,
+              sourceAnalyses,
+              requestLanguage,
+            )
+          ) {
+            return false;
+          }
+          const classified = classifyCandidate(candidate);
+          state.rejected += 1;
+          state.events.push({
+            candidateId: candidate.id,
+            outcome: "rejected",
+            memoryType: toRememberEventMemoryType(classified.memoryType),
+            reason: "explicit_opt_out",
+            ...buildRememberEventTrace(candidate),
+          });
+          return true;
+        };
         const rejectDurableOptOutTarget = (
           candidateId: string,
           candidate: ReturnType<typeof classifyCandidate>,
@@ -1408,6 +1661,9 @@ export function createRememberEngine(config: RememberEngineConfig) {
               reason: "invalid_after_redaction",
               ...buildRememberEventTrace(candidate),
             });
+            continue;
+          }
+          if (rejectUngroundedOptOutSourceCandidate(candidate)) {
             continue;
           }
           if (!isCandidateSourceAllowed(candidate, profile, input)) {
@@ -1460,46 +1716,9 @@ export function createRememberEngine(config: RememberEngineConfig) {
           }
 
           if (config.policy?.redact) {
-            const authorizedOccurrenceExpression =
-              effectiveCandidate.metadata?.occurrenceExpression;
-            const redacted = await redactPolicyCandidate(
-              config.policy,
-              effectiveCandidate,
-              policyContext,
+            effectiveCandidate = classifyCandidate(
+              await redactCandidate(effectiveCandidate),
             );
-            const {
-              occurrenceExpression: _policyOccurrenceExpression,
-              ...redactedMetadata
-            } = redacted.metadata ?? {};
-            const redactedCandidateWithoutTarget: MemoryCandidate = {
-              ...effectiveCandidate,
-              durableTarget: undefined,
-              kindHint: isDurableOptOutCandidate(candidate)
-                ? effectiveCandidate.kindHint
-                : redacted.kindHint,
-              content: redacted.content,
-              extractionSources: effectiveCandidate.extractionSources,
-              metadata: redacted.metadata === undefined
-                ? undefined
-                : {
-                    ...redactedMetadata,
-                    ...(authorizedOccurrenceExpression
-                      ? { occurrenceExpression: authorizedOccurrenceExpression }
-                      : {}),
-                  },
-              explicitness: redacted.explicitness,
-            };
-            const durableTarget = isDurableOptOutCandidate(candidate)
-              ? effectiveCandidate.durableTarget
-              : language.deriveDurableTarget?.(
-                  redactedCandidateWithoutTarget,
-                  candidateLanguage,
-                );
-            const redactedCandidate: MemoryCandidate = {
-              ...redactedCandidateWithoutTarget,
-              ...(durableTarget ? { durableTarget } : {}),
-            };
-            effectiveCandidate = classifyCandidate(redactedCandidate);
 
             if (effectiveCandidate.decision === "reject") {
               if (effectiveCandidate.reason === "storage_unsafe") {
@@ -1596,7 +1815,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
         }
 
         const episodes = buildEpisodes(
-          maskMessages(persistenceSafeInput, policyBlockedSourceIndexes),
+          maskMessages(policySafeInput, policyBlockedSourceIndexes),
           episodeCandidates,
           createId,
           now(),

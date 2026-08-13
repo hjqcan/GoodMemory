@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type {
   BuildContextResult,
   GoodMemory,
@@ -30,6 +30,7 @@ import type {
   RuntimeKitWritebackInput,
 } from "./contracts";
 import type {
+  GoodMemoryRecordRef,
   ProgressiveRecallService,
 } from "../progressive/recall";
 import type { MemoryScope } from "../domain/scope";
@@ -53,7 +54,11 @@ import {
 import { createHostAdapter } from "../host/public";
 import { resolveHostActionExecutionPlan } from "../host/actionExecution";
 import { createGoodMemoryTracer } from "../observability/tracer";
-import { createProgressiveRecallService } from "../progressive/recall";
+import {
+  buildProgressiveScopeDigest,
+  createProgressiveRecallService,
+  encodeGoodMemoryRecordRef,
+} from "../progressive/recall";
 import { estimateTextTokens } from "../tokenEstimator";
 import type { LanguageService } from "../language";
 import { redactSensitiveCredentialText } from "../language/sensitive";
@@ -258,6 +263,7 @@ function applyBehavioralSteeringToFragment(input: {
   feedback: RecallResult["feedback"];
   query: string;
   rawCarryover?: RawCarryoverResolution;
+  rawRecordRefs: GoodMemoryRecordRef[];
   retrievalProfile: NonNullable<RuntimeKitBeforeModelCallInput["retrievalProfile"]>;
 }): RuntimeKitMemoryContext {
   const selections = selectBehavioralPolicies({
@@ -305,6 +311,9 @@ function applyBehavioralSteeringToFragment(input: {
         input.rawCarryover.packet.promptPayload,
       ),
       omittedSections: [],
+      ...(input.rawRecordRefs.length > 0
+        ? { recordRefs: input.rawRecordRefs }
+        : {}),
     };
   }
 
@@ -337,6 +346,9 @@ function applyBehavioralSteeringToFragment(input: {
     content,
     estimatedTokens: estimateTextTokens(content),
     omittedSections: [...input.builtContext.omittedSections],
+    ...(input.rawRecordRefs.length > 0
+      ? { recordRefs: input.rawRecordRefs }
+      : {}),
   };
 }
 
@@ -392,10 +404,11 @@ export function createGoodMemoryRuntimeKit(
   const defaultContextMode = input.defaultContextMode ?? "fragment";
   const defaultMaxMemoryTokens =
     input.defaultMaxMemoryTokens ?? DEFAULT_MAX_MEMORY_TOKENS;
+  const scopeDigestSecret =
+    input.scopeDigestSecret ?? input.progressive?.scopeDigestSecret ?? randomUUID();
   const runtimeTracer = createGoodMemoryTracer(
     {
-      scopeDigestSecret:
-        input.scopeDigestSecret ?? input.progressive?.scopeDigestSecret,
+      scopeDigestSecret,
     },
     () => new Date(),
   );
@@ -461,7 +474,8 @@ export function createGoodMemoryRuntimeKit(
         const referenceTime = callInput.referenceTime;
         const isAtOrBeforeReferenceTime = (value: string): boolean =>
           referenceTime === undefined ||
-          Date.parse(value) <= Date.parse(referenceTime);
+          (isRfc3339Instant(value) &&
+            Date.parse(value) <= Date.parse(referenceTime));
         const runtimeBuffer = runtimeState?.state?.buffer;
         const historicalRuntimeSnapshot =
           referenceTime !== undefined &&
@@ -500,6 +514,7 @@ export function createGoodMemoryRuntimeKit(
             candidateTraces: recall.metadata.candidateTraces,
             hits: recall.metadata.hits,
           },
+          retrievalProfile: callInput.retrievalProfile ?? "general_chat",
           runtimeMessages,
           surfaceHint: rawSurfaceFamily,
         });
@@ -514,6 +529,17 @@ export function createGoodMemoryRuntimeKit(
         return undefined;
       }
     })();
+    const rawScopeDigest = buildProgressiveScopeDigest({
+      scope: callInput.scope,
+      secret: scopeDigestSecret,
+    });
+    const rawRecordRefs = [
+      ...new Set(rawCarryover?.packet?.sourceExperienceIds ?? []),
+    ].map((experienceId) => encodeGoodMemoryRecordRef({
+      id: experienceId,
+      recordKind: "experience",
+      scopeDigest: rawScopeDigest,
+    }));
 
     return {
       context: applyBehavioralSteeringToFragment({
@@ -521,6 +547,7 @@ export function createGoodMemoryRuntimeKit(
         feedback: recall.feedback,
         query,
         rawCarryover,
+        rawRecordRefs,
         retrievalProfile: callInput.retrievalProfile ?? "general_chat",
       }),
       recall,

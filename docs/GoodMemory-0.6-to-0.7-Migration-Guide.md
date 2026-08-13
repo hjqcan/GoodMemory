@@ -95,8 +95,11 @@ Registration rules are strict:
   analyzer manifest is non-persistable and cannot prove a complete projection.
 
 Any change to normalization, tokenization, search terms, detection, sentence
-boundaries, temporal interpretation, or entity canonicalization requires an
-`analyzerVersion` bump and projection rebuild.
+boundaries, interrogative or behavioral-directive admission, temporal
+interpretation, or entity canonicalization requires an `analyzerVersion` bump
+and projection rebuild. `LanguageContentAnalysis.behavioralDirective` is an
+optional `"none" | "one_off" | "durable"` signal: all built-ins declare it,
+while an older custom pack may leave it undefined without an API-version shim.
 
 The `xx-Test` conformance/integration pack is the reference acceptance shape:
 registering the pack alone must drive remember, projection, recall, and
@@ -119,6 +122,13 @@ The built-ins are `en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`, `fr`, and `es`.
 - ambiguous Han-only text uses the configured default instead of guessing.
 - an unsupported explicit locale uses the neutral Unicode pack and does not
   inherit English query/content semantics.
+- ordinary questions and one-off behavioral directives abstain before every
+  automatic producer; politeness or a pack-recognized imperative construction
+  is not a durable cue;
+- automatic feedback requires both a behavioral directive and a pack-owned
+  standing cue. Public `feedback()`,
+  explicit memory directives, quoted/structured literals, and confirmed
+  `remember: "always"` input retain their authority semantics.
 
 The 0.7 guarantee is script-local: Simplified query to Simplified source and
 Traditional query to Traditional source. Simplified-to-Traditional and
@@ -178,6 +188,14 @@ than a warm, pre-cutover rebuild.
   around its exact token form. It is a versioned derived index value.
 - Do not copy language rules into recall, storage, policy, or host modules.
   Extend the pack and bump its analyzer identity.
+- Do not use routine remember/recall experiences as operation telemetry in
+  0.7.4. Read operation counts from the operation result or the optional
+  redacted trace sink. Existing routine records are retained as audit history
+  but are not raw behavioral exemplars.
+- Treat raw behavioral carryover as a typed `tool_outcome` path: it requires a
+  safer alternative and an explicit stored retrieval profile equal to the
+  current call. Missing or mismatched profiles fail closed, and an accepted
+  carryover reports the exact experience through RuntimeKit `recordRefs`.
 - Treat `LanguageService.getAnalyzerManifest().persistable === false` as a
   prohibition on durable completeness proof, not as permission to trust the
   existing index.

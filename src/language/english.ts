@@ -1,10 +1,11 @@
 import type {
+  DurableTargetIdentity,
   MemoryCandidate,
   MemoryCandidateMetadata,
   ProfileField,
 } from "../domain/memoryCandidate";
 import {
-  attachLanguageDurableTarget,
+  createAliasedDurableTargetIdentity,
   createLanguageDurableOptOutDisposition,
   deriveLanguageDurableTarget,
 } from "./durableTarget";
@@ -22,14 +23,16 @@ import { extractReferencePointer } from "../domain/referencePointer";
 import {
   collectProtectedRetrievalTokens,
   expandExplicitFactCandidateClauses,
+  hasUnterminatedQuote,
   isExplicitlyQuotedValue,
   isolateDirectiveGrammar,
   maskQuotedText,
   normalizeUnicodeForEquality,
   splitClausesGeneric,
-  splitTrailingInterrogativeClause,
+  splitTrailingClause,
   tokenizeUnicodeText,
 } from "./generic";
+import type { DirectiveGrammarMatch } from "./generic";
 import {
   acceptsEnglishEntityCandidate,
   analyzeEnglishContent as analyzeEnglishContentBase,
@@ -70,16 +73,54 @@ const BEHAVIORAL_RULE_PATTERNS = {
 
 const GREETING_PATTERN = /^(hi|hello|hey|thanks|thank you|ok|okay)[.!]?$/i;
 const ENGLISH_DURABLE_TARGET_ALIASES = {
+  "current project": "profile:currentProject",
+  location: "profile:location",
+  "language preference": "profile:languagePreference",
+  "my current project": "profile:currentProject",
+  "my location": "profile:location",
   "my name": "profile:name",
+  "my organization": "profile:organization",
+  "my preferred language": "profile:languagePreference",
+  "my role": "profile:role",
   "my timezone": "profile:timezone",
   name: "profile:name",
+  organization: "profile:organization",
+  "preferred language": "profile:languagePreference",
   preference: "preference",
   preferences: "preference",
   "project code": "project_code",
   "project codename": "project_code",
+  role: "profile:role",
   "time zone": "profile:timezone",
   timezone: "profile:timezone",
 } as const;
+
+function deriveEnglishDurableTarget(
+  candidate: MemoryCandidate,
+): DurableTargetIdentity | undefined {
+  const structured = deriveLanguageDurableTarget(
+    candidate,
+    ENGLISH_DURABLE_TARGET_ALIASES,
+  );
+  if (structured || candidate.kindHint !== "fact") {
+    return structured;
+  }
+  const copula = candidate.content.match(
+    /^\s*(.+?)\s+is\s+(\S(?:.*?\S)?)\s*[.]?\s*$/iu,
+  );
+  return copula?.[1] && copula[2]
+    ? createAliasedDurableTargetIdentity(
+      copula[1],
+      copula[2],
+      ENGLISH_DURABLE_TARGET_ALIASES,
+    )
+    : undefined;
+}
+
+function attachEnglishDurableTarget(candidate: MemoryCandidate): MemoryCandidate {
+  const durableTarget = deriveEnglishDurableTarget(candidate);
+  return durableTarget ? { ...candidate, durableTarget } : candidate;
+}
 const IRREGULAR_EVENT_PREDICATES: Readonly<Record<string, string>> = {
   ate: "eat",
   eaten: "eat",
@@ -257,6 +298,14 @@ const EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN =
   /(?:,\s*|^(?:and|but)\s+|\s+(?:and|but)\s+)(?=(?:please\s*,?\s+)?(?:do\s+not|don['’]t|never)\s+(?:remember|save|store|record)\b)/iu;
 const EXPLICIT_FACT_OPT_OUT_CONNECTOR_BOUNDARY_PATTERN =
   /(?:^(?:and|but)\s+|\s+(?:and|but)\s+)(?=(?:please\s*,?\s+)?(?:do\s+not|don['’]t|never)\s+(?:remember|save|store|record)\b)/iu;
+const ENGLISH_REPORTED_DIRECTIVE_PREFIX_PATTERN =
+  /(?:^|[.!?]\s*)(?:[\p{L}\p{N}'’.-]+\s+){0,5}(?:(?:do|does|did|am|is|are|was|were|have|has|had|will|would|can|could|should)\s+not\s+|never\s+)?(?:say|said|tell|told|ask|asked|mean|meant|request(?:ed)?|claim(?:ed)?|write|wrote|quote(?:d)?)(?:\s+that)?\s*$/iu;
+
+function hasEnglishReportedDirectiveScope({
+  prefix,
+}: DirectiveGrammarMatch): boolean {
+  return ENGLISH_REPORTED_DIRECTIVE_PREFIX_PATTERN.test(prefix);
+}
 const EXPLICIT_FACT_ASSIGNMENT_CONFIRMATION_PATTERN =
   /\b(?:correct|right|true|accurate)\s*\?\s*$/iu;
 const EXPLICIT_DECISION_PATTERN =
@@ -264,15 +313,23 @@ const EXPLICIT_DECISION_PATTERN =
 const FOLLOW_UP_OPEN_LOOP_PATTERN =
   /\bstill\s+have\s+an?\s+open\s+loop\s+on\s+(.+?)(?=\.|$)/i;
 const PREFERENCE_PATTERN = /i prefer\s+(.+?)(?:\.|$)/i;
-const CORRECTIVE_FEEDBACK_PATTERN =
-  /\b(?:correction|wrong|not right|instead|next time|from now on|that approach was wrong)\b/i;
-const PROCEDURAL_FEEDBACK_PATTERN =
-  /^(?:always|never|don't|do not|prefer|remember to)\b|^please\s+(?:keep|make|give|use|avoid|prioritize|format|structure|focus|be|continue|answer|reply)\b/i;
+const ENGLISH_CORRECTION_PREAMBLE_PATTERN =
+  /^(?:correction|that approach was wrong|wrong|not right)\b\s*(?:[:;,.-]\s*)?/iu;
+const ENGLISH_SELF_CONTAINED_CORRECTION_PATTERN =
+  /^(?:that approach was wrong|wrong|not right)\b/iu;
 const NEVER_MIND_PATTERN = /^never mind\b/i;
-const ONE_OFF_POLITE_REQUEST_PATTERN =
-  /^(?:could|can|would)\s+you\s+please\b/i;
-const ROLEPLAY_RESPONSE_REQUEST_PATTERN =
-  /^please\s+respond\s+as\s+(?:the\s+)?user\b/i;
+const ENGLISH_BEHAVIORAL_PREAMBLE_PATTERN =
+  /^(?:please|(?:could|can|would)\s+you\s+please)$/iu;
+const ENGLISH_BEHAVIORAL_DIRECTIVE_PATTERN =
+  /^(?:(?:could|can|would)\s+you\s+please\s*,?\s+|please\s*,?\s+|you\s+should\s+(?:not\s+)?)?(?:do\s+not|don['’]t|keep|provide|make|give|use|avoid|prioritize|format|structure|focus|be|continue|answer|reply|respond|read|write|create|tell|show|send|open|close|delete|move|copy|run|call|publish|coach|check|inspect|verify|fix|summarize|implement|explain|discuss|analyze|add|update|review|debug|refactor|deploy)\b/iu;
+const ENGLISH_POLITE_BEHAVIORAL_DIRECTIVE_PATTERN =
+  /^(?:(?:could|can|would)\s+you\s+please|please)\s*,?\s+\p{L}+\b/iu;
+const ENGLISH_STRUCTURAL_BEHAVIORAL_DIRECTIVE_PATTERN =
+  /^(?!(?:i|we|you|he|she|it|they)(?:['’][a-z]+)?\s)\p{L}+(?:['’-]\p{L}+)*\s+(?:why|how|what|where|when|whether)\b/iu;
+const ENGLISH_DURABLE_BEHAVIORAL_SCOPE_PATTERN =
+  /^(?:always|never|remember\s+to)\b|\b(?:always|from\s+now\s+on|going\s+forward|next\s+time|every\s+time|in\s+every\s+(?:answer|reply|response)|whenever)\b/iu;
+const ENGLISH_LEADING_DURABLE_BEHAVIORAL_SCOPE_PATTERN =
+  /^(?:(?:from\s+now\s+on|going\s+forward|next\s+time|every\s+time|always|never)\b[,;:]?\s*)+/iu;
 const PROJECT_POLICY_ACTION_PATTERN =
   /\b(?:must|shall|uses?|forbids?|allows?|defaults?|represents?|wraps?|leaves?|keeps?|routes?|rejects?|stores?|retains?|removes?|runs?|writes?|reads?|treats?|maps?|converts?|passes?\s+through)\b/iu;
 const PROJECT_POLICY_DECLARATION_PATTERN =
@@ -426,12 +483,13 @@ const ENGLISH_SUBJECT_PREDICATE_BOUNDARY_PATTERN =
 
 function splitEnglishClauses(text: string): string[] {
   return splitClausesGeneric(text)
+    .filter(Boolean)
     .flatMap((clause) => clause.split(/,\s*\bbut\b\s+/iu))
     .flatMap((clause) =>
       EXPLICIT_FACT_DIRECTIVE_PATTERN.test(clause.trim()) ||
         EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
         ? [clause]
-        : splitTrailingInterrogativeClause(
+        : splitTrailingClause(
           clause,
           (candidate) => isEnglishInterrogativeClause(candidate, candidate),
           (candidate) =>
@@ -442,10 +500,31 @@ function splitEnglishClauses(text: string): string[] {
         )
     )
     .flatMap((clause) =>
+      EXPLICIT_FACT_DIRECTIVE_PATTERN.test(clause.trim()) ||
+        EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
+        ? [clause]
+        : splitTrailingClause(
+          clause,
+          (candidate) =>
+            classifyEnglishBehavioralDirective(candidate) !== "none" ||
+            ENGLISH_DURABLE_BEHAVIORAL_SCOPE_PATTERN.test(
+              maskQuotedText(candidate).trim(),
+            ),
+          (candidate) =>
+            classifyEnglishBehavioralDirective(candidate) !== "none",
+          (candidate) =>
+            ENGLISH_BEHAVIORAL_PREAMBLE_PATTERN.test(candidate.trim()),
+        )
+    )
+    .flatMap((clause) =>
       clause.split(EXPLICIT_FACT_OPT_OUT_CONNECTOR_BOUNDARY_PATTERN)
     )
     .map((clause) =>
-      isolateDirectiveGrammar(clause, EXPLICIT_FACT_OPT_OUT_GRAMMAR_PATTERN)
+      isolateDirectiveGrammar(
+        clause,
+        EXPLICIT_FACT_OPT_OUT_GRAMMAR_PATTERN,
+        hasEnglishReportedDirectiveScope,
+      )
     )
     .flatMap((clause) =>
       EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
@@ -515,6 +594,9 @@ function isEnglishInterrogativeClause(
     const assignmentConfirmation =
       EXPLICIT_FACT_ASSIGNMENT_CONFIRMATION_PATTERN.test(right);
     if (assignmentConfirmation) {
+      return true;
+    }
+    if (hasUnterminatedQuote(right)) {
       return true;
     }
     if (isExplicitlyQuotedValue(right)) {
@@ -637,8 +719,77 @@ function analyzeEnglishContent(content: string): LanguageContentAnalysis {
     ...( /^\s*(?:warning|caution)\s*:/iu.test(content)
       ? { factPolarity: "negative" as const }
       : {}),
+    behavioralDirective: classifyEnglishBehavioralDirective(
+      content,
+      analysis,
+    ),
     interrogative: isEnglishInterrogativeClause(content, content),
   };
+}
+
+function classifyEnglishBehavioralDirective(
+  content: string,
+  analysis = analyzeEnglishContentBase(content),
+): NonNullable<LanguageContentAnalysis["behavioralDirective"]> {
+  const trimmed = content.trim();
+  if (
+    EXPLICIT_FACT_DIRECTIVE_PATTERN.test(trimmed) ||
+    EXPLICIT_FACT_OPT_OUT_PATTERN.test(trimmed) ||
+    analysis.sourceOfTruthDirective ||
+    isEnglishTechnicalReferenceDirective(trimmed) ||
+    NEVER_MIND_PATTERN.test(trimmed) ||
+    PREFERENCE_PATTERN.test(trimmed)
+  ) {
+    return "none";
+  }
+
+  const unquoted = maskQuotedText(trimmed).trim();
+  if (!unquoted) {
+    return "none";
+  }
+  const correctionMatch = unquoted.match(ENGLISH_CORRECTION_PREAMBLE_PATTERN);
+  const corrected = correctionMatch
+    ? unquoted.slice(correctionMatch[0].length).trim()
+    : unquoted;
+  if (!corrected) {
+    return ENGLISH_SELF_CONTAINED_CORRECTION_PATTERN.test(unquoted)
+      ? "durable"
+      : correctionMatch
+      ? "one_off"
+      : "none";
+  }
+  if (
+    correctionMatch &&
+    ENGLISH_SELF_CONTAINED_CORRECTION_PATTERN.test(corrected)
+  ) {
+    return "durable";
+  }
+  const directiveBody = corrected.replace(
+    ENGLISH_LEADING_DURABLE_BEHAVIORAL_SCOPE_PATTERN,
+    "",
+  );
+  const namedActionAssertion =
+    /^(?:\p{L}+(?:['’-]\p{L}+)*\s+){1,2}(?:is|are|was|were|means|refers|remains?|has|have)\b/iu
+      .test(directiveBody);
+  const isBehavioralDirective = !namedActionAssertion &&
+    (ENGLISH_POLITE_BEHAVIORAL_DIRECTIVE_PATTERN.test(corrected) ||
+      ENGLISH_BEHAVIORAL_DIRECTIVE_PATTERN.test(corrected) ||
+      ENGLISH_BEHAVIORAL_DIRECTIVE_PATTERN.test(directiveBody) ||
+      ENGLISH_STRUCTURAL_BEHAVIORAL_DIRECTIVE_PATTERN.test(directiveBody) ||
+      /^remember\s+to\b/iu.test(corrected));
+  if (
+    ENGLISH_DURABLE_BEHAVIORAL_SCOPE_PATTERN.test(corrected) &&
+    isBehavioralDirective
+  ) {
+    return "durable";
+  }
+  return isBehavioralDirective ? "one_off" : "none";
+}
+
+function isEnglishTechnicalReferenceDirective(content: string): boolean {
+  return TECHNICAL_REFERENCE_DIRECTIVE_PATTERN.test(content) &&
+    extractReferencePointer(content) !== undefined &&
+    extractReferenceSubject(content) !== undefined;
 }
 
 function deriveFactCategory(
@@ -1114,15 +1265,6 @@ function shouldSkipExplicitFactForProfileLikeClause(
   return !PROFILE_LIKE_PROJECT_FACT_PATTERNS.some((pattern) => pattern.test(factContent));
 }
 
-function looksLikeProceduralFeedback(content: string): boolean {
-  return (
-    PROCEDURAL_FEEDBACK_PATTERN.test(content) &&
-    !NEVER_MIND_PATTERN.test(content) &&
-    !ONE_OFF_POLITE_REQUEST_PATTERN.test(content) &&
-    !ROLEPLAY_RESPONSE_REQUEST_PATTERN.test(content)
-  );
-}
-
 function dedupeCandidates(candidates: MemoryCandidate[]): MemoryCandidate[] {
   return candidates.filter((candidate, candidateIndex, all) => {
     return (
@@ -1158,7 +1300,9 @@ function maybeExtractCandidatesFromClause(
     trimmed.length === 0 ||
     GREETING_PATTERN.test(trimmed) ||
     REMEMBER_QUESTION_PATTERN.test(trimmed) ||
-    (analysis?.interrogative === true && disposition === "ordinary")
+    (disposition === "ordinary" &&
+      (analysis?.interrogative === true ||
+        analysis?.behavioralDirective === "one_off"))
   ) {
     return [];
   }
@@ -1178,8 +1322,28 @@ function maybeExtractCandidatesFromClause(
       sourceRole: "user",
       metadata: {
         feedbackKind: "dont",
-        optOutTarget,
         appliesTo: "general_response",
+      },
+    }];
+  }
+
+  if (
+    disposition === "ordinary" &&
+    analysis?.behavioralDirective === "durable"
+  ) {
+    return [{
+      id: nextId(),
+      kindHint: "feedback",
+      explicitness: "explicit",
+      content: trimmed,
+      sourceMessageIndex: index,
+      sourceRole: "user",
+      metadata: {
+        feedbackKind: deriveFeedbackKind(trimmed, analysis),
+        appliesTo: "general_response",
+        ...(ENGLISH_CORRECTION_PREAMBLE_PATTERN.test(trimmed)
+          ? { attributes: { languageDurableSignal: "procedural_feedback" } }
+          : {}),
       },
     }];
   }
@@ -1845,25 +2009,6 @@ function maybeExtractCandidatesFromClause(
     });
   }
 
-  const correctiveFeedback = CORRECTIVE_FEEDBACK_PATTERN.test(trimmed);
-  if (correctiveFeedback || looksLikeProceduralFeedback(trimmed)) {
-    candidates.push({
-      id: nextId(),
-      kindHint: "feedback",
-      explicitness: "explicit",
-      content: trimmed,
-      sourceMessageIndex: index,
-      sourceRole: "user",
-      metadata: {
-        feedbackKind: deriveFeedbackKind(trimmed, analysis),
-        appliesTo: "general_response",
-        ...(correctiveFeedback
-          ? { attributes: { languageDurableSignal: "procedural_feedback" } }
-          : {}),
-      },
-    });
-  }
-
   if (candidates.length === 0 && trimmed.length >= 24 && looksLikeDurableInferredFact(trimmed)) {
     candidates.push({
       id: nextId(),
@@ -1883,7 +2028,7 @@ function maybeExtractCandidatesFromClause(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "17-interrogative-admission",
+    analyzerVersion: "19-reported-directive-scope",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",
@@ -1938,10 +2083,7 @@ export function createEnglishLanguagePack(): LanguagePack {
     },
     acceptsEntityCandidate: acceptsEnglishEntityCandidate,
     deriveDurableTarget(candidate) {
-      return deriveLanguageDurableTarget(
-        candidate,
-        ENGLISH_DURABLE_TARGET_ALIASES,
-      );
+      return deriveEnglishDurableTarget(candidate);
     },
     render: renderEnglish,
     extractCandidates(input: LanguageCandidateExtractionInput): MemoryCandidate[] {
@@ -1953,12 +2095,11 @@ export function createEnglishLanguagePack(): LanguagePack {
         }
 
         const sourceMessageIndex = message.sourceMessageIndex ?? index;
+        const canonicalSourceAnalysis = analyzeEnglishContent(message.content);
         const sourceAnalysis = {
-          ...(message.analysis ?? analyzeEnglishContent(message.content)),
-          interrogative: isEnglishInterrogativeClause(
-            message.content,
-            message.content,
-          ),
+          ...(message.analysis ?? canonicalSourceAnalysis),
+          behavioralDirective: canonicalSourceAnalysis.behavioralDirective,
+          interrogative: canonicalSourceAnalysis.interrogative,
         };
         const clauses = expandExplicitFactCandidateClauses(
           message.content,
@@ -1971,7 +2112,8 @@ export function createEnglishLanguagePack(): LanguagePack {
             : analyzeEnglishContent(clause.content);
           if (
             clause.disposition === "ordinary" &&
-            clauseAnalysis.interrogative === true
+            (clauseAnalysis.interrogative === true ||
+              clauseAnalysis.behavioralDirective === "one_off")
           ) {
             continue;
           }
@@ -2004,12 +2146,7 @@ export function createEnglishLanguagePack(): LanguagePack {
         }
       });
 
-      return dedupeCandidates(candidates).map((candidate) =>
-        attachLanguageDurableTarget(
-          candidate,
-          ENGLISH_DURABLE_TARGET_ALIASES,
-        )
-      );
+      return dedupeCandidates(candidates).map(attachEnglishDurableTarget);
     },
   };
 }

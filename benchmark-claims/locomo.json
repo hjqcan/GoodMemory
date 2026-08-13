@@ -2,7 +2,7 @@
   "benchmark": "LoCoMo",
   "comparison": {
     "asOf": "2026-08-11",
-    "availability": "public-opt-in",
+    "availability": "repo-eval-only",
     "notes": [
       "The strict token-F1 and independent official judge-protocol numbers are reported separately.",
       "This is a single fresh live-provider draw over all 1540 non-adversarial questions with zero execution or judge failures.",
@@ -12,7 +12,7 @@
     "runtimeProfile": "recommended+provider-embedding+provider-reranking@0.7.3",
     "source": "https://github.com/mem0ai/memory-benchmarks"
   },
-  "status": "candidate_public_claim",
+  "status": "paused_boundary",
   "dataset": {
     "source": "https://github.com/snap-research/locomo",
     "license": "CC BY-NC 4.0",
@@ -32,21 +32,6 @@
     "judgeModel": "gpt-5.5",
     "judgeProvider": "openai",
     "sameModelJudge": false
-  },
-  "publicClaim": {
-    "readmeDisclosureFragments": [
-      "gpt-5.6-terra",
-      "gpt-5.5",
-      "CC BY-NC 4.0",
-      "provider reranking"
-    ],
-    "readmeRequiredFragments": [
-      "0.6266",
-      "0.8805",
-      "0.6042",
-      "58/96",
-      "0.0045"
-    ]
   },
   "evidence": {
     "artifacts": [
@@ -281,7 +266,7 @@
     "note": "Full 10 conversations and 1540 non-adversarial questions, executionFailures 0 and judgeFailures 0. Independent gpt-5.5 official-protocol score is 0.8805194805; strict deterministic token-F1 is 0.6266233766. Open-domain is 58/96 = 0.6041666667. The same scorer's historical no-memory non-adversarial baseline is 0.0045. The dataset is CC BY-NC 4.0, so the non-commercial scope is mandatory disclosure."
   },
   "claimBoundary": {
-    "publicClaimAllowed": true,
-    "reason": "Fresh protocol-v2 evidence covers all 1540 questions with zero execution and judge failures, independent judging, complete tracked artifacts, and the required licensing disclosure."
+    "publicClaimAllowed": false,
+    "reason": "Paused at the claim boundary. The tracked-current projection is not an independent execution receipt and cannot prove its own execution. The retained v0.7.3 artifacts remain internal diagnostics until a new source-bound run produces a benchmark-execution-receipt that closes exact commit, tree, package, run, and committed source identities."
   }
 }

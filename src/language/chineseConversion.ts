@@ -3,7 +3,7 @@ import {
   tokenizeUnicodeText,
 } from "./generic";
 
-export const CHINESE_ANALYZER_VERSION = "16-interrogative-admission";
+export const CHINESE_ANALYZER_VERSION = "18-reported-directive-scope";
 
 export function normalizeChineseForEquality(text: string): string {
   return normalizeUnicodeForEquality(text);

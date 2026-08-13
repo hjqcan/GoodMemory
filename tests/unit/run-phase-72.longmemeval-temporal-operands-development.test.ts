@@ -11,7 +11,11 @@ import type {
   LongMemEvalMemoryContext,
   LongMemEvalMemoryContextBuilder,
 } from "../../src/eval/longmemeval";
+import { createLanguageService } from "../../src/language";
 import { estimateTextTokens } from "../../src/tokenEstimator";
+
+const CURRENT_ENGLISH_ANALYZER_VERSION = createLanguageService()
+  .analyzerVersion("en-US");
 
 function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");
@@ -157,7 +161,7 @@ describe("Phase 72 LongMemEval temporal operand retrieval development", () => {
       runId: "analyzer-version-fixture",
       selectionFile: "/selection.json",
     })).rejects.toThrow(
-      "English analyzer 13 is required; found 17-interrogative-admission",
+      `English analyzer 13 is required; found ${CURRENT_ENGLISH_ANALYZER_VERSION}`,
     );
   });
 
@@ -286,7 +290,7 @@ describe("Phase 72 LongMemEval temporal operand retrieval development", () => {
       canonicalDependencies: false,
       canonicalMemoryRunId:
         "run-phase72-current-recall-assembly-development-v2-bun1314-clean",
-      englishAnalyzerVersion: "17-interrogative-admission",
+      englishAnalyzerVersion: CURRENT_ENGLISH_ANALYZER_VERSION,
       legacyControlEnglishAnalyzerVersion: "12",
       sourceState,
     });

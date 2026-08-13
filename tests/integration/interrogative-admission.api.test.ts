@@ -172,12 +172,7 @@ describe("public interrogative admission", () => {
       expect(exported.durable.episodes).toEqual([]);
       expect(exported.durable.archives).toEqual([]);
       expect(exported.durable.evidence).toEqual([]);
-      expect(exported.durable.experiences).toEqual([
-        expect.objectContaining({
-          linkedMemoryIds: [],
-          metrics: { accepted: 0, rejected: 1 },
-        }),
-      ]);
+      expect(exported.durable.experiences).toEqual([]);
       expect(exported.durable.proposals).toEqual([]);
       expect(exported.durable.promotions).toEqual([]);
     });
@@ -205,12 +200,7 @@ describe("public interrogative admission", () => {
       expect(exported.durable.episodes).toEqual([]);
       expect(exported.durable.archives).toEqual([]);
       expect(exported.durable.evidence).toEqual([]);
-      expect(exported.durable.experiences).toEqual([
-        expect.objectContaining({
-          linkedMemoryIds: [],
-          metrics: { accepted: 0, rejected: 1 },
-        }),
-      ]);
+      expect(exported.durable.experiences).toEqual([]);
       expect(exported.durable.proposals).toEqual([]);
       expect(exported.durable.promotions).toEqual([]);
     });

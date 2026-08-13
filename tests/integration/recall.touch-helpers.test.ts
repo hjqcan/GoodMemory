@@ -142,9 +142,6 @@ describe("recall retrieval telemetry", () => {
     const feedback = exported.durable.feedback.find(
       (record) => record.id === "feedback-1",
     );
-    const recallExperiences = exported.durable.experiences.filter(
-      (record) => record.kind === "recall",
-    );
 
     expect(fact?.accessCount).toBe(7);
     expect(fact?.lastAccessedAt).toBe("2026-01-08T00:00:00.000Z");
@@ -158,21 +155,7 @@ describe("recall retrieval telemetry", () => {
     expect(returnedOrders.every((order) => order.join(",") === "fact-1,fact-2")).toBe(
       true,
     );
-    expect(recallExperiences).toHaveLength(20);
-    expect(
-      recallExperiences.every(
-        (record) =>
-          !("touchedFactCount" in record.metrics) &&
-          !("reinforcedFeedbackCount" in record.metrics),
-      ),
-    ).toBe(true);
-    expect(
-      recallExperiences.every(
-        (record) =>
-          !record.summary.includes("touched") &&
-          !record.summary.includes("reinforced"),
-      ),
-    ).toBe(true);
+    expect(exported.durable.experiences).toEqual([]);
   });
 
   it("does not persist query-time fact classification during recall", async () => {
@@ -259,8 +242,8 @@ describe("recall retrieval telemetry", () => {
       scope: { userId: "u-1", workspaceId: "workspace-a" },
     });
     const fact = exported.durable.facts.find((record) => record.id === "fact-1");
-    const recallExperience = exported.durable.experiences.find(
-      (record) => record.kind === "recall",
+    const verifyExperience = exported.durable.experiences.find(
+      (record) => record.kind === "verify",
     );
 
     expect(result.metadata.verificationHints.map((hint) => hint.memoryId)).toContain(
@@ -270,11 +253,8 @@ describe("recall retrieval telemetry", () => {
     expect(fact?.lastAccessedAt).toBe("2026-01-01T00:00:00.000Z");
     expect(fact?.verificationPressureCount).toBe(1);
     expect(fact?.lastVerificationHintAt).toBe("2026-04-02T00:00:00.000Z");
-    expect(recallExperience?.metrics.verificationPressureFactCount).toBe(1);
-    expect("touchedFactCount" in (recallExperience?.metrics ?? {})).toBe(false);
-    expect("reinforcedFeedbackCount" in (recallExperience?.metrics ?? {})).toBe(
-      false,
-    );
+    expect(verifyExperience?.metrics).toEqual({ verificationHintCount: 1 });
+    expect(verifyExperience?.linkedMemoryIds).toEqual(["fact-1"]);
   });
 
   it("caps persisted verification pressure for repeated stale hinted recalls", async () => {
@@ -317,15 +297,16 @@ describe("recall retrieval telemetry", () => {
       scope: { userId: "u-1", workspaceId: "workspace-a" },
     });
     const fact = exported.durable.facts.find((record) => record.id === "fact-1");
-    const recallExperiences = exported.durable.experiences.filter(
-      (record) => record.kind === "recall",
+    const verifyExperiences = exported.durable.experiences.filter(
+      (record) => record.kind === "verify",
     );
 
     expect(fact?.verificationPressureCount).toBe(4);
     expect(fact?.lastVerificationHintAt).toBe("2026-04-02T00:05:00.000Z");
+    expect(verifyExperiences).toHaveLength(6);
     expect(
-      recallExperiences.every(
-        (record) => record.metrics.verificationPressureFactCount === 1,
+      verifyExperiences.every(
+        (record) => record.metrics.verificationHintCount === 1,
       ),
     ).toBe(true);
   });

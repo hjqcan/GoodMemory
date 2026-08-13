@@ -165,8 +165,8 @@ const CASES: Array<{ pack: LanguagePack; sample: string }> = [
 
 const ANALYSIS_REUSE_CASES: Array<{ content: string; pack: LanguagePack }> = [
   { content: "Never publish without review.", pack: createEnglishLanguagePack() },
-  { content: "不要在审核前发布。", pack: createChineseLanguagePack("Hans") },
-  { content: "不要在審核前發佈。", pack: createChineseLanguagePack("Hant") },
+  { content: "以后不要在审核前发布。", pack: createChineseLanguagePack("Hans") },
+  { content: "以後不要在審核前發佈。", pack: createChineseLanguagePack("Hant") },
   { content: "今後、レビュー前に公開しないで。", pack: createJapaneseLanguagePack() },
   { content: "앞으로 검토 전에 게시하지 마세요.", pack: createKoreanLanguagePack() },
   { content: "Ne publie jamais sans revue.", pack: createFrenchLanguagePack() },

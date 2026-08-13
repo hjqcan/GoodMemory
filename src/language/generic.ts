@@ -55,6 +55,11 @@ const QUOTE_PAIRS = [
 const QUOTE_CLOSINGS = new Map<string, string>(QUOTE_PAIRS);
 const QUOTE_CHARACTERS = new Set<string>(QUOTE_PAIRS.flat());
 
+interface QuotedTextScan {
+  masked: string;
+  unterminated: boolean;
+}
+
 export function isExplicitlyQuotedValue(value: string): boolean {
   const trimmed = value.trim();
   return QUOTE_PAIRS.some(([opening, closing]) =>
@@ -70,17 +75,15 @@ function isWordApostrophe(value: string, index: number): boolean {
     /[\p{L}\p{N}]/u.test(value[index + 1] ?? "");
 }
 
-export function maskQuotedText(value: string): string {
+function scanQuotedText(value: string): QuotedTextScan {
   const characters = value.split("");
   let closingQuote: string | undefined;
-  let openingIndex = -1;
   for (let index = 0; index < characters.length; index += 1) {
     const character = characters[index]!;
     if (closingQuote) {
       characters[index] = " ";
       if (character === closingQuote) {
         closingQuote = undefined;
-        openingIndex = -1;
       }
       continue;
     }
@@ -91,13 +94,21 @@ export function maskQuotedText(value: string): string {
     if (closing) {
       characters[index] = " ";
       closingQuote = closing;
-      openingIndex = index;
     }
   }
-  if (closingQuote && openingIndex >= 0) {
-    return value;
-  }
-  return characters.join("");
+  return {
+    masked: characters.join(""),
+    unterminated: closingQuote !== undefined,
+  };
+}
+
+export function hasUnterminatedQuote(value: string): boolean {
+  return scanQuotedText(value).unterminated;
+}
+
+export function maskQuotedText(value: string): string {
+  const scan = scanQuotedText(value);
+  return scan.unterminated ? value : scan.masked;
 }
 
 export function replaceUnquotedText(
@@ -141,11 +152,12 @@ export function collectProtectedRetrievalTokens(
   return new Set(tokenizeUnicodeText(quoted, locale));
 }
 
-export function splitTrailingInterrogativeClause(
+export function splitTrailingClause(
   value: string,
-  isInterrogative: (clause: string) => boolean,
-  hasExplicitInterrogativeBoundary: (clause: string) => boolean =
+  isTrailingClause: (clause: string) => boolean,
+  hasExplicitBoundary: (clause: string) => boolean =
     (clause) => /[?？]\s*$/u.test(maskQuotedText(clause)),
+  isStandalonePreamble: (clause: string) => boolean = () => false,
 ): string[] {
   const masked = maskQuotedText(value);
   for (let index = masked.length - 1; index >= 0; index -= 1) {
@@ -157,10 +169,10 @@ export function splitTrailingInterrogativeClause(
     if (
       assertion &&
       question &&
-      !/[=＝]/u.test(assertion) &&
-      !isInterrogative(assertion) &&
-      hasExplicitInterrogativeBoundary(question) &&
-      isInterrogative(question)
+      !isStandalonePreamble(assertion) &&
+      !isTrailingClause(assertion) &&
+      hasExplicitBoundary(question) &&
+      isTrailingClause(question)
     ) {
       return [assertion, question];
     }
@@ -168,18 +180,40 @@ export function splitTrailingInterrogativeClause(
   return [value.trim()].filter(Boolean);
 }
 
+export interface DirectiveGrammarMatch {
+  clause: string;
+  directive: string;
+  prefix: string;
+  suffix: string;
+}
+
 export function isolateDirectiveGrammar(
   clause: string,
   grammar: RegExp,
+  hasReportedScope: (match: DirectiveGrammarMatch) => boolean = () => false,
 ): string {
   const trimmed = clause.trim();
-  const markerIndex = trimmed.match(grammar)?.index;
-  if (markerIndex === undefined || markerIndex === 0) {
+  if (hasUnterminatedQuote(trimmed)) {
     return trimmed;
   }
-  const prefix = trimmed.slice(0, markerIndex);
-  const hasStructuredPrefix = /[=＝]/u.test(prefix) ||
-    [...prefix].some((character) => QUOTE_CHARACTERS.has(character));
+  const unquoted = maskQuotedText(trimmed);
+  const match = unquoted.match(grammar);
+  const markerIndex = match?.index;
+  if (!match || markerIndex === undefined) {
+    return trimmed;
+  }
+  const prefix = unquoted.slice(0, markerIndex);
+  const directive = unquoted.slice(markerIndex, markerIndex + match[0].length);
+  const suffix = unquoted.slice(markerIndex + match[0].length);
+  if (hasReportedScope({ clause: trimmed, directive, prefix, suffix })) {
+    return "";
+  }
+  if (markerIndex === 0) {
+    return trimmed;
+  }
+  const rawPrefix = trimmed.slice(0, markerIndex);
+  const hasStructuredPrefix = /[=＝]/u.test(rawPrefix) ||
+    [...rawPrefix].some((character) => QUOTE_CHARACTERS.has(character));
   return hasStructuredPrefix ? trimmed : trimmed.slice(markerIndex);
 }
 

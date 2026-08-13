@@ -386,15 +386,11 @@ function buildOutcomeGuidanceRule(input: {
   cue: string;
   failureClass: string;
   firstActionLabel: string;
-  saferAlternativeLabel?: string;
+  saferAlternativeLabel: string;
 }): string {
-  const saferSegment = input.saferAlternativeLabel
-    ? ` and use ${input.saferAlternativeLabel} before proceeding.`
-    : " and warn before proceeding.";
-
   return `When ${input.cue} previously caused ${input.firstActionLabel} ${toPluralFailureClass(
     input.failureClass,
-  )}, avoid ${input.firstActionLabel} on the first action${saferSegment}`;
+  )}, avoid ${input.firstActionLabel} on the first action and use ${input.saferAlternativeLabel} before proceeding.`;
 }
 
 function sanitizeOutcomeDerivedActionArgs(
@@ -436,25 +432,25 @@ function buildToolOutcomePatternProposal(input: {
   experiences: ExperienceRecord[];
   now: string;
 }): LearningProposal | null {
-  const sorted = sortExperiences(input.experiences);
+  const sorted = collectDistinctTraceExperiences(input.experiences);
+  if (sorted.length < 2) {
+    return null;
+  }
   const metadata = sorted.map((experience) => parseToolOutcomeMetadata(experience));
   const [firstMetadata] = metadata;
-  const appliesTo = firstMetadata?.retrievalProfile === "coding_agent"
-    ? "coding_agent"
-    : "general_response";
 
   if (
     !firstMetadata ||
+    firstMetadata.retrievalProfile !== "coding_agent" ||
+    !firstMetadata.saferAlternative ||
     metadata.some(
       (entry) =>
         !entry ||
+        entry.retrievalProfile !== "coding_agent" ||
+        !entry.saferAlternative ||
         entry.cue !== firstMetadata.cue ||
         entry.failureClass !== firstMetadata.failureClass ||
-        normalizeFeedbackAppliesTo(
-          entry.retrievalProfile === "coding_agent"
-            ? "coding_agent"
-            : "general_response",
-        ) !== appliesTo ||
+        entry.retrievalProfile !== firstMetadata.retrievalProfile ||
         !behavioralFirstActionsEqual(entry.firstAction, firstMetadata.firstAction) ||
         !behavioralFirstActionsEqual(
           entry.saferAlternative,
@@ -464,27 +460,29 @@ function buildToolOutcomePatternProposal(input: {
   ) {
     return null;
   }
+  const appliesTo = normalizeFeedbackAppliesTo("coding_agent");
 
   const scope = resolveProposalScope(sorted);
-  const sanitizedFirstAction = sanitizeOutcomeDerivedAction(firstMetadata.firstAction)!;
+  const sanitizedFirstAction = sanitizeOutcomeDerivedAction(
+    firstMetadata.firstAction,
+  );
   const sanitizedSaferAlternative = sanitizeOutcomeDerivedAction(
     firstMetadata.saferAlternative,
   );
+  if (!sanitizedFirstAction || !sanitizedSaferAlternative) {
+    return null;
+  }
   const firstActionLabel = formatBehavioralFirstAction(sanitizedFirstAction);
-  const saferAlternativeLabel = sanitizedSaferAlternative
-    ? formatBehavioralFirstAction(sanitizedSaferAlternative)
-    : undefined;
+  const saferAlternativeLabel = formatBehavioralFirstAction(
+    sanitizedSaferAlternative,
+  );
   const behavioralPolicy: BehavioralPolicy = {
     behavioralKind: "first_action",
     enactmentSurface: "host_action",
     applicability: {
       actionSummaryContains: [firstMetadata.cue],
       appliesTo,
-      canonicalFirstAction: sanitizedSaferAlternative ?? {
-        kind: "warning",
-        name: "warning",
-        raw: "Warn before proceeding.",
-      },
+      canonicalFirstAction: sanitizedSaferAlternative,
       queryContains: [firstMetadata.cue],
     },
     transferMode: "pattern_bounded",
@@ -685,7 +683,10 @@ export function createRulesOnlyReviewer(config: RulesOnlyReviewerConfig) {
         }
 
         const metadata = parseToolOutcomeMetadata(experience);
-        if (!metadata) {
+        if (
+          metadata?.retrievalProfile !== "coding_agent" ||
+          !metadata.saferAlternative
+        ) {
           continue;
         }
 
@@ -696,7 +697,7 @@ export function createRulesOnlyReviewer(config: RulesOnlyReviewerConfig) {
           metadata.saferAlternative
             ? serializeBehavioralFirstAction(metadata.saferAlternative)
             : "",
-          metadata.retrievalProfile ?? "",
+          metadata.retrievalProfile,
         ].join("::");
         const group = toolOutcomeGroups.get(groupKey) ?? [];
         group.push(experience);

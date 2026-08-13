@@ -308,17 +308,25 @@ function assessProceduralPatternLineage(
     parseToolOutcomeMetadata(experience),
   );
   const [firstToolOutcome] = parsedToolOutcomeMetadata;
+  const toolOutcomeTraceIds = new Set(
+    sourceExperiences.map((experience) => experience.traceId),
+  );
   const hasRepeatedToolOutcomeLineage =
     Boolean(readCompiledGuidance(proposal)) &&
     distinctSourceExperienceIds.length >= 2 &&
+    toolOutcomeTraceIds.size >= 2 &&
     missingExperienceIds.length === 0 &&
     sourceExperiences.every((experience) => isToolOutcomeExperience(experience)) &&
-    Boolean(firstToolOutcome) &&
+    firstToolOutcome?.retrievalProfile === "coding_agent" &&
+    Boolean(firstToolOutcome?.saferAlternative) &&
     parsedToolOutcomeMetadata.every(
       (metadata) =>
         Boolean(metadata) &&
+        metadata!.retrievalProfile === "coding_agent" &&
+        Boolean(metadata!.saferAlternative) &&
         metadata!.cue === firstToolOutcome!.cue &&
         metadata!.failureClass === firstToolOutcome!.failureClass &&
+        metadata!.retrievalProfile === firstToolOutcome!.retrievalProfile &&
         behavioralFirstActionsEqual(
           metadata!.firstAction,
           firstToolOutcome!.firstAction,

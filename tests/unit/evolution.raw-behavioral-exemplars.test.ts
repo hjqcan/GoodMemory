@@ -4,7 +4,7 @@ import {
   applyTextResponseEnactmentPlan,
   recoverCanonicalActionFromTemplate,
 } from "../../src/evolution/behavioralPolicy";
-import { buildBehavioralOutcomePolicyApplied } from "../../src/evolution/behavioralTelemetry";
+import { buildBehavioralOutcomeExperienceRecord } from "../../src/evolution/behavioralTelemetry";
 import { createExperienceRecord } from "../../src/evolution/contracts";
 import {
   buildRawBehavioralPrototypeIndex,
@@ -123,6 +123,7 @@ describe("raw behavioral exemplars", () => {
         },
         scope: baseScope,
       },
+      retrievalProfile: "coding_agent",
       surfaceHint: "host_action",
     });
 
@@ -175,10 +176,10 @@ describe("raw behavioral exemplars", () => {
   });
 
   it("extracts tool-outcome exemplars with safe corrected moves and renders exact surfaces", () => {
-    const experience = createExperienceRecord({
-      id: "experience-1",
-      kind: "maintenance",
-      policyApplied: buildBehavioralOutcomePolicyApplied({
+    const experience = buildBehavioralOutcomeExperienceRecord({
+      createdAt: "2026-05-04T00:00:00.000Z",
+      createId: () => "experience-1",
+      result: {
         cue: "Copy the daily report into the backup folder.",
         failureClass: "arg_order",
         firstAction: {
@@ -195,11 +196,10 @@ describe("raw behavioral exemplars", () => {
         },
         modelInfluence: "rules-only",
         outcome: "failure",
-      }),
-      summary: "Copy-file correction lineage.",
+        retrievalProfile: "coding_agent",
+      },
+      scope: baseScope,
       traceId: "trace-1",
-      userId: baseScope.userId,
-      workspaceId: baseScope.workspaceId,
     });
     const index = buildRawBehavioralPrototypeIndex({
       memoryExport: {
@@ -210,6 +210,7 @@ describe("raw behavioral exemplars", () => {
         },
         scope: baseScope,
       },
+      retrievalProfile: "coding_agent",
       surfaceHint: "host_action",
     });
 
@@ -227,6 +228,181 @@ describe("raw behavioral exemplars", () => {
     expect(rendered).toContain(
       "copy_file('/var/backup/report.txt', '/data/report.txt')",
     );
+  });
+
+  it("requires an explicit matching retrieval profile for tool-outcome exemplars", () => {
+    const buildExperience = (
+      id: string,
+      retrievalProfile?: "coding_agent" | "general_chat",
+    ) => buildBehavioralOutcomeExperienceRecord({
+      createdAt: "2026-05-04T00:00:00.000Z",
+      createId: () => id,
+      result: {
+        cue: "Copy the daily report into the backup folder.",
+        failureClass: "arg_order",
+        firstAction: {
+          kind: "tool_call",
+          name: "copy_file",
+          raw: "copy_file(old)",
+        },
+        modelInfluence: "rules-only",
+        retrievalProfile,
+        saferAlternative: {
+          kind: "tool_call",
+          name: "copy_file",
+          raw: "copy_file(safe)",
+        },
+      },
+      scope: baseScope,
+      traceId: `trace-${id}`,
+    });
+
+    const noProfile = buildRawBehavioralPrototypeIndex({
+      memoryExport: {
+        durable: {
+          archives: [],
+          episodes: [],
+          experiences: [buildExperience("no-profile")],
+        },
+        scope: baseScope,
+      },
+      retrievalProfile: "coding_agent",
+      surfaceHint: "host_action",
+    });
+    const wrongProfile = buildRawBehavioralPrototypeIndex({
+      memoryExport: {
+        durable: {
+          archives: [],
+          episodes: [],
+          experiences: [buildExperience("general-chat", "general_chat")],
+        },
+        scope: baseScope,
+      },
+      retrievalProfile: "coding_agent",
+      surfaceHint: "host_action",
+    });
+    const wrongReverseProfile = buildRawBehavioralPrototypeIndex({
+      memoryExport: {
+        durable: {
+          archives: [],
+          episodes: [],
+          experiences: [buildExperience("coding-for-general", "coding_agent")],
+        },
+        scope: baseScope,
+      },
+      retrievalProfile: "general_chat",
+      surfaceHint: "text_response",
+    });
+    const matchingProfile = buildRawBehavioralPrototypeIndex({
+      memoryExport: {
+        durable: {
+          archives: [],
+          episodes: [],
+          experiences: [buildExperience("coding-agent", "coding_agent")],
+        },
+        scope: baseScope,
+      },
+      retrievalProfile: "coding_agent",
+      surfaceHint: "host_action",
+    });
+    const missingCurrentProfile = buildRawBehavioralPrototypeIndex({
+      memoryExport: {
+        durable: {
+          archives: [],
+          episodes: [],
+          experiences: [buildExperience("missing-current", "coding_agent")],
+        },
+        scope: baseScope,
+      },
+      surfaceHint: "host_action",
+    });
+    const missingSaferAlternative = buildRawBehavioralPrototypeIndex({
+      memoryExport: {
+        durable: {
+          archives: [],
+          episodes: [],
+          experiences: [buildBehavioralOutcomeExperienceRecord({
+            createdAt: "2026-05-04T00:00:00.000Z",
+            createId: () => "missing-safer",
+            result: {
+              cue: "Copy the daily report into the backup folder.",
+              failureClass: "arg_order",
+              firstAction: { kind: "tool_call", name: "copy_file" },
+              modelInfluence: "rules-only",
+              retrievalProfile: "coding_agent",
+            },
+            scope: baseScope,
+            traceId: "trace-missing-safer",
+          })],
+        },
+        scope: baseScope,
+      },
+      retrievalProfile: "coding_agent",
+      surfaceHint: "host_action",
+    });
+    const legacyTagged = buildRawBehavioralPrototypeIndex({
+      memoryExport: {
+        durable: {
+          archives: [],
+          episodes: [],
+          experiences: [createExperienceRecord({
+            id: "legacy-tagged",
+            kind: "tool_outcome",
+            policyApplied: [
+              "tool_outcome",
+              "tool_outcome.cue=Copy%20the%20daily%20report",
+              "tool_outcome.failure_class=arg_order",
+              "tool_outcome.first_action.kind=tool_call",
+              "tool_outcome.first_action.name=copy_file",
+              "tool_outcome.retrieval_profile=coding_agent",
+              "tool_outcome.safer_alternative.kind=tool_call",
+              "tool_outcome.safer_alternative.name=copy_file_safely",
+            ],
+            summary: "Legacy policy-tagged tool outcome",
+            traceId: "trace-legacy-tagged",
+            userId: baseScope.userId,
+            workspaceId: baseScope.workspaceId,
+          })],
+        },
+        scope: baseScope,
+      },
+      retrievalProfile: "coding_agent",
+      surfaceHint: "host_action",
+    });
+
+    expect(noProfile.exemplars).toEqual([]);
+    expect(wrongProfile.exemplars).toEqual([]);
+    expect(wrongReverseProfile.exemplars).toEqual([]);
+    expect(missingCurrentProfile.exemplars).toEqual([]);
+    expect(missingSaferAlternative.exemplars).toEqual([]);
+    expect(legacyTagged.exemplars).toEqual([]);
+    expect(matchingProfile.exemplars).toHaveLength(1);
+    expect(matchingProfile.exemplars[0]?.sourceIds).toEqual(["coding-agent"]);
+  });
+
+  it("does not derive raw exemplars from ordinary operation experiences", () => {
+    const experiences = Array.from({ length: 30 }, (_, index) => {
+      const kind = index % 2 === 0 ? "remember" : "recall";
+      return createExperienceRecord({
+        id: `ordinary-${kind}-${index}`,
+        kind,
+        policyApplied: [],
+        summary: `${kind} operation record`,
+        traceId: `trace-${kind}-${index}`,
+        userId: baseScope.userId,
+        workspaceId: baseScope.workspaceId,
+      });
+    });
+    const index = buildRawBehavioralPrototypeIndex({
+      memoryExport: {
+        durable: { archives: [], episodes: [], experiences },
+        scope: baseScope,
+      },
+      retrievalProfile: "coding_agent",
+      surfaceHint: "host_action",
+    });
+
+    expect(index.exemplars).toEqual([]);
   });
 
   it("treats malformed archive and episode arrays as empty during index construction", () => {
@@ -275,8 +451,9 @@ describe("raw behavioral exemplars", () => {
       confidence: 0.9,
       episodeShape: {
         cue: "Generate a safe URL for the dashboard.",
-        observedOutcome: "This URL form succeeded.",
-        relevantPriorMove: "Use https://example.com/dashboard.",
+        observedOutcome: "The http URL failed.",
+        relevantPriorMove: "Use https://example.com/dashboard instead.",
+        safeCorrectedMove: "Use https://example.com/dashboard instead.",
       },
       exactSurface: {
         kind: "url",
@@ -304,19 +481,25 @@ describe("raw behavioral exemplars", () => {
       retrievalText:
         "cue: Generate a safe URL for the dashboard. | move: Use https://example.com/dashboard.",
       scope: baseScope,
-      source: "archive",
-      sourceIds: ["archive-a"],
+      source: "tool_outcome",
+      sourceIds: ["experience-a"],
       surfaceFamily: "text_response",
       transferMode: "prototype_bounded",
     };
     const exemplarB: RawBehavioralExemplar = {
       ...exemplarA,
+      episodeShape: {
+        cue: "Generate a safe URL for the dashboard.",
+        observedOutcome: "The prior URL failed.",
+        relevantPriorMove: "Use the dashboard homepage.",
+        safeCorrectedMove: "Use the dashboard homepage.",
+      },
       exactSurface: {
         kind: "url",
         value: "https://example.com/home",
       },
       id: "exemplar-b",
-      sourceIds: ["archive-b"],
+      sourceIds: ["experience-b"],
     };
     const ambiguousIndex: RawBehavioralPrototypeIndex = {
       exemplars: [exemplarA, exemplarB],
@@ -391,6 +574,7 @@ describe("raw behavioral exemplars", () => {
       "prototype-a",
       "prototype-b",
     ]);
+    expect(resolution.packet?.sourceExperienceIds).toEqual(["experience-a"]);
   });
 
   it("renders exemplar carryover blocks instead of prose steering", () => {

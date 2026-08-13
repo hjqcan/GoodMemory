@@ -33,26 +33,18 @@ function isFailureOutcome(outcome: HostBehavioralTraceEvent["outcome"]): boolean
   return outcome === "failure" || outcome === "timeout" || outcome === "user_corrected";
 }
 
-function isUsableSaferAlternative(event: HostBehavioralTraceEvent): boolean {
-  return event.outcome === "success" || event.actionKind === "warning";
-}
-
 function resolveSaferAlternative(input: {
   firstAction: HostBehavioralTraceEvent;
   trace: HostBehavioralTrace;
 }): BehavioralFirstAction | undefined {
-  const candidates = [...input.trace.events]
+  const selected = [...input.trace.events]
     .filter((event) => event.stepIndex > input.firstAction.stepIndex)
-    .sort((left, right) => left.stepIndex - right.stepIndex);
-  const targetedCorrection = candidates.find(
-    (event) =>
-      event.correctionOfStepIndex === input.firstAction.stepIndex &&
-      isUsableSaferAlternative(event),
-  );
-  const fallbackCorrection = candidates.find(
-    (event) => isUsableSaferAlternative(event),
-  );
-  const selected = targetedCorrection ?? fallbackCorrection;
+    .sort((left, right) => left.stepIndex - right.stepIndex)
+    .find(
+      (event) =>
+        event.correctionOfStepIndex === input.firstAction.stepIndex &&
+        event.outcome === "success",
+    );
 
   return selected ? toBehavioralFirstAction(selected) : undefined;
 }
@@ -76,6 +68,7 @@ export function extractBehavioralOutcomeFromTrace(
       firstAction,
       trace,
     }),
+    traceId: trace.traceId,
   };
 }
 
@@ -98,7 +91,9 @@ export async function recordBehavioralTrace(
     evidenceExcerpt: outcome.evidenceExcerpt,
     failureClass: outcome.failureClass,
     firstAction: outcome.firstAction,
+    retrievalProfile: outcome.retrievalProfile,
     saferAlternative: outcome.saferAlternative,
+    traceId: outcome.traceId,
     modelInfluence: outcome.modelInfluence,
     outcome: outcome.outcome,
   });

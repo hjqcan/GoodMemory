@@ -9,6 +9,7 @@ export type ExperienceKind =
   | "feedback"
   | "verify"
   | "maintenance"
+  | "tool_outcome"
   | "session_end";
 
 export type ExperienceTrigger =
@@ -30,10 +31,10 @@ export interface ExperienceMetrics {
   verificationHintCount?: number;
   latencyMs?: number;
   tokenCount?: number;
-  /** @deprecated since 0.7.3. New recall experiences omit this metric. */
+  /** @deprecated since 0.7.3. Retained for historical recall records only. */
   touchedFactCount?: number;
   verificationPressureFactCount?: number;
-  /** @deprecated since 0.7.3. New recall experiences omit this metric. */
+  /** @deprecated since 0.7.3. Retained for historical recall records only. */
   reinforcedFeedbackCount?: number;
 }
 

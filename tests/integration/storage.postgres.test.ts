@@ -251,6 +251,59 @@ if (POSTGRES_URL) {
       }
     });
 
+    it("completes concurrent same-url migrations without exhausting the shared pool", async () => {
+      const schemas = Array.from(
+        { length: 12 },
+        (_, index) => createSchemaName(`concurrent_migration_${index}`),
+      );
+      const child = Bun.spawn({
+        cmd: [
+          process.execPath,
+          "--no-env-file",
+          "--eval",
+          `
+            import { migratePostgresStorageBackend } from "./src/storage/postgres.ts";
+            const { schemas, url } = JSON.parse(process.env.GOODMEMORY_POSTGRES_MIGRATION_INPUT);
+            await Promise.all(schemas.map((schema) =>
+              migratePostgresStorageBackend({ schema, url }, { log: () => {} })
+            ));
+          `,
+        ],
+        cwd: import.meta.dir.replace("/tests/integration", ""),
+        env: {
+          ...process.env,
+          GOODMEMORY_POSTGRES_MIGRATION_INPUT: JSON.stringify({
+            schemas,
+            url: POSTGRES_URL,
+          }),
+        },
+        stderr: "pipe",
+        stdout: "ignore",
+      });
+
+      try {
+        const exitCode = await Promise.race([
+          child.exited,
+          Bun.sleep(10_000).then(() => null),
+        ]);
+        if (exitCode === null) {
+          child.kill();
+          await child.exited;
+          throw new Error("Concurrent Postgres migrations exhausted the shared pool");
+        }
+        expect(await new Response(child.stderr).text()).toBe("");
+        expect(exitCode).toBe(0);
+      } finally {
+        if (child.exitCode === null) {
+          child.kill();
+          await child.exited;
+        }
+        await Promise.all(schemas.map((schema) =>
+          dropSchema(POSTGRES_URL, schema)
+        ));
+      }
+    }, 30_000);
+
     it("rejects a wrong same-name index without recording the version", async () => {
       const schema = createSchemaName("document_mismatch");
       const sql = new SQL(POSTGRES_URL);

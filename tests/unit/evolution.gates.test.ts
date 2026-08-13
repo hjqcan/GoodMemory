@@ -8,7 +8,6 @@ import {
 import {
   attachCompiledGuidance,
   buildBehavioralOutcomeExperienceRecord,
-  toStoredExperienceRecord,
 } from "../../src/evolution/behavioralTelemetry";
 import { createProposalGateProcessor } from "../../src/evolution/gates";
 import {
@@ -322,7 +321,7 @@ describe("proposal gate processor", () => {
     const { processor, repositories } = createFixture();
 
     await repositories.experiences.add(
-      toStoredExperienceRecord(buildBehavioralOutcomeExperienceRecord({
+      buildBehavioralOutcomeExperienceRecord({
         scope: { userId: "u-1", workspaceId: "workspace-a" },
         traceId: "trace-tool-outcome-1",
         createdAt: "2026-04-14T00:00:00.000Z",
@@ -341,11 +340,12 @@ describe("proposal gate processor", () => {
             raw: "QuickCheck --network",
           },
           modelInfluence: "rules-only",
+          retrievalProfile: "coding_agent",
         },
-      })),
+      }),
     );
     await repositories.experiences.add(
-      toStoredExperienceRecord(buildBehavioralOutcomeExperienceRecord({
+      buildBehavioralOutcomeExperienceRecord({
         scope: { userId: "u-1", workspaceId: "workspace-a" },
         traceId: "trace-tool-outcome-2",
         createdAt: "2026-04-15T00:00:00.000Z",
@@ -364,8 +364,9 @@ describe("proposal gate processor", () => {
             raw: "QuickCheck --network",
           },
           modelInfluence: "rules-only",
+          retrievalProfile: "coding_agent",
         },
-      })),
+      }),
     );
 
     const proposal = attachCompiledGuidance(
@@ -385,7 +386,7 @@ describe("proposal gate processor", () => {
         rule:
           "When detailed analysis previously caused DeepAnalyzer --detailed timeouts, avoid DeepAnalyzer --detailed on the first action and use QuickCheck --network before proceeding.",
         kind: "dont",
-        appliesTo: "general_response",
+        appliesTo: "coding_agent",
         confidence: 0.9,
       },
     );
@@ -401,11 +402,122 @@ describe("proposal gate processor", () => {
     expect((await repositories.proposals.get("proposal-1"))?.status).toBe("accepted");
   });
 
+  it("delays tool-outcome proposals whose records share one source trace", async () => {
+    const { processor, repositories } = createFixture();
+    const sourceExperienceIds = ["same-trace-outcome-1", "same-trace-outcome-2"];
+
+    for (const [index, experienceId] of sourceExperienceIds.entries()) {
+      await repositories.experiences.add(
+        buildBehavioralOutcomeExperienceRecord({
+          scope: { userId: "u-1", workspaceId: "workspace-a" },
+          traceId: "same-host-trace",
+          createdAt: `2026-04-15T00:00:0${index}.000Z`,
+          createId: () => experienceId,
+          result: {
+            cue: "detailed analysis",
+            failureClass: "timeout",
+            firstAction: { kind: "tool_call", name: "DeepAnalyzer" },
+            modelInfluence: "rules-only",
+            retrievalProfile: "coding_agent",
+            saferAlternative: { kind: "tool_call", name: "QuickCheck" },
+          },
+        }),
+      );
+    }
+    const proposal = attachCompiledGuidance(
+      createLearningProposal({
+        id: "same-trace-proposal",
+        userId: "u-1",
+        workspaceId: "workspace-a",
+        proposalType: "procedural_pattern",
+        traceId: "same-trace-proposal-review",
+        summary: "Do not promote a retried trace.",
+        rationale: "One trace is not repeated behavioral evidence.",
+        sourceExperienceIds,
+        modelInfluence: "rules-only",
+      }),
+      {
+        rule: "Use QuickCheck instead of DeepAnalyzer.",
+        kind: "dont",
+        appliesTo: "coding_agent",
+        confidence: 0.9,
+      },
+    );
+
+    const decisions = await processor.process({
+      scope: { userId: "u-1", workspaceId: "workspace-a" },
+      proposals: [proposal],
+    });
+
+    expect(decisions[0]?.decision).toBe("delayed");
+    expect(decisions[0]?.verificationOutcome).toBe("review_required");
+  });
+
+  it("delays tool-outcome proposals without an explicit profile and safer alternative", async () => {
+    for (const [caseName, retrievalProfile, saferAlternative] of [
+      ["missing-profile", undefined, { kind: "tool_call" as const, name: "safe" }],
+      ["missing-safer", "coding_agent" as const, undefined],
+    ] as const) {
+      const { processor, repositories } = createFixture();
+      for (const index of [1, 2]) {
+        await repositories.experiences.add(
+          buildBehavioralOutcomeExperienceRecord({
+            scope: { userId: "u-1", workspaceId: "workspace-a" },
+            traceId: `${caseName}-trace-${index}`,
+            createdAt: `2026-04-15T00:00:0${index}.000Z`,
+            createId: () => `${caseName}-experience-${index}`,
+            result: {
+              cue: caseName,
+              failureClass: "unsafe_first_action",
+              firstAction: { kind: "tool_call", name: "unsafe" },
+              modelInfluence: "rules-only",
+              ...(retrievalProfile ? { retrievalProfile } : {}),
+              ...(saferAlternative ? { saferAlternative } : {}),
+            },
+          }),
+        );
+      }
+      const proposal = attachCompiledGuidance(
+        createLearningProposal({
+          id: `${caseName}-proposal`,
+          userId: "u-1",
+          workspaceId: "workspace-a",
+          proposalType: "procedural_pattern",
+          traceId: `${caseName}-proposal-trace`,
+          summary: "Unsafe tool outcome proposal without complete profile metadata.",
+          rationale: "Incomplete source metadata must fail closed.",
+          sourceExperienceIds: [
+            `${caseName}-experience-1`,
+            `${caseName}-experience-2`,
+          ],
+          linkedEvidenceIds: [],
+          modelInfluence: "rules-only",
+        }),
+        {
+          rule: "Use safe instead of unsafe.",
+          kind: "dont",
+          appliesTo: retrievalProfile === "coding_agent"
+            ? "coding_agent"
+            : "general_response",
+          confidence: 0.9,
+        },
+      );
+
+      const decisions = await processor.process({
+        scope: { userId: "u-1", workspaceId: "workspace-a" },
+        proposals: [proposal],
+      });
+
+      expect(decisions[0]?.decision).toBe("delayed");
+      expect(decisions[0]?.verificationOutcome).toBe("review_required");
+    }
+  });
+
   it("delays outcome-derived procedural proposals when tool outcomes only match by action name", async () => {
     const { processor, repositories } = createFixture();
 
     await repositories.experiences.add(
-      toStoredExperienceRecord(buildBehavioralOutcomeExperienceRecord({
+      buildBehavioralOutcomeExperienceRecord({
         scope: { userId: "u-1", workspaceId: "workspace-a" },
         traceId: "trace-tool-outcome-1",
         createdAt: "2026-04-14T00:00:00.000Z",
@@ -427,10 +539,10 @@ describe("proposal gate processor", () => {
           },
           modelInfluence: "rules-only",
         },
-      })),
+      }),
     );
     await repositories.experiences.add(
-      toStoredExperienceRecord(buildBehavioralOutcomeExperienceRecord({
+      buildBehavioralOutcomeExperienceRecord({
         scope: { userId: "u-1", workspaceId: "workspace-a" },
         traceId: "trace-tool-outcome-2",
         createdAt: "2026-04-15T00:00:00.000Z",
@@ -452,7 +564,7 @@ describe("proposal gate processor", () => {
           },
           modelInfluence: "rules-only",
         },
-      })),
+      }),
     );
 
     const proposal = attachCompiledGuidance(

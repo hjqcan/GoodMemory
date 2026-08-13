@@ -14,6 +14,13 @@ function normalizeSlotKey(value: string): string {
   return value.normalize("NFKC").toLowerCase().replace(/\s+/gu, " ").trim();
 }
 
+function assignmentValue(value: string): string {
+  const trimmed = value.trim();
+  return /^["'`]/u.test(trimmed)
+    ? trimmed
+    : trimmed.replace(/[.!?。！？]$/u, "").trimEnd();
+}
+
 function assignmentIdentity(
   content: string,
   aliases: DurableTargetSlotAliases,
@@ -25,8 +32,19 @@ function assignmentIdentity(
   const key = normalizeSlotKey(match[1]);
   return createDurableTargetIdentity(
     aliases[key] ?? `assignment:${key}`,
-    match[2],
+    assignmentValue(match[2]),
   );
+}
+
+export function createAliasedDurableTargetIdentity(
+  keyText: string,
+  value: string,
+  aliases: DurableTargetSlotAliases,
+): DurableTargetIdentity | undefined {
+  const slot = aliases[normalizeSlotKey(keyText)];
+  return slot
+    ? createDurableTargetIdentity(slot, value)
+    : undefined;
 }
 
 export function deriveLanguageDurableTarget(

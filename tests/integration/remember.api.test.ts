@@ -79,7 +79,7 @@ describe("public remember API", () => {
         },
         {
           role: "user",
-          content: "Please keep answers concise and action-oriented.",
+          content: "Always keep answers concise and action-oriented.",
         },
       ],
     });
@@ -1637,7 +1637,7 @@ describe("public remember API", () => {
         {
           role: "user",
           content:
-            "Please avoid DeepAnalyzer after detailed analysis timeouts; use QuickCheck first.",
+            "Always avoid DeepAnalyzer after detailed analysis timeouts; use QuickCheck first.",
         },
       ],
     });

@@ -22,6 +22,9 @@ import {
   resolveTextResponseEnactmentPlanFromPolicies,
   splitTopLevelCallArguments,
 } from "./behavioralPolicy";
+import type {
+  BehavioralOutcomeRetrievalProfile,
+} from "./behavioralTelemetry";
 import {
   formatBehavioralFirstAction,
   parseToolOutcomeMetadata,
@@ -93,6 +96,7 @@ export interface RawCarryoverPacket {
   hypothesisSketch?: string;
   promptPayload: string;
   retrievalText: string;
+  sourceExperienceIds: string[];
   textResponsePlan?: TextResponseEnactmentPlan;
 }
 
@@ -267,6 +271,7 @@ export interface BuildRawBehavioralPrototypeIndexInput {
     candidateTraces?: readonly RecallCandidateTrace[];
     hits?: readonly RecallHit[];
   };
+  retrievalProfile?: BehavioralOutcomeRetrievalProfile;
   runtimeMessages?: readonly { content: string; role: string }[];
   surfaceHint?: RawBehavioralSurfaceFamily;
   transientMessages?: readonly { content: string; role: string }[];
@@ -1221,13 +1226,24 @@ function deriveEpisodeExemplars(input: {
 
 function deriveToolOutcomeExemplars(input: {
   memoryExport: BuildRawBehavioralPrototypeIndexInput["memoryExport"];
+  retrievalProfile?: BehavioralOutcomeRetrievalProfile;
   surfaceHint?: RawBehavioralSurfaceFamily;
 }): RawBehavioralExemplar[] {
   const exemplars: RawBehavioralExemplar[] = [];
 
   for (const experience of input.memoryExport.durable.experiences) {
     const metadata = parseToolOutcomeMetadata(experience);
-    if (!metadata?.saferAlternative) {
+    if (
+      !input.retrievalProfile ||
+      metadata?.retrievalProfile !== input.retrievalProfile ||
+      !metadata.saferAlternative
+    ) {
+      continue;
+    }
+    const surfaceFamily = metadata.retrievalProfile === "coding_agent"
+      ? "host_action"
+      : "text_response";
+    if (input.surfaceHint && input.surfaceHint !== surfaceFamily) {
       continue;
     }
 
@@ -1251,14 +1267,24 @@ function deriveToolOutcomeExemplars(input: {
           workspaceId: experience.workspaceId,
         },
         source: "tool_outcome",
-        sourceIds: [experience.id, ...experience.sourceTraceIds],
+        sourceIds: [experience.id],
         successfulMove,
-        surfaceFamily: input.surfaceHint ?? "host_action",
+        surfaceFamily,
       }),
     );
   }
 
   return exemplars;
+}
+
+function collectSourceExperienceIds(
+  exemplars: readonly RawBehavioralExemplar[],
+): string[] {
+  return uniqueStrings(
+    exemplars
+      .filter((exemplar) => exemplar.source === "tool_outcome")
+      .flatMap((exemplar) => exemplar.sourceIds),
+  );
 }
 
 function uniqueExemplars(
@@ -2052,6 +2078,7 @@ export function buildRawBehavioralPrototypeIndex(
     }),
     ...deriveToolOutcomeExemplars({
       memoryExport: input.memoryExport,
+      retrievalProfile: input.retrievalProfile,
       surfaceHint: input.surfaceHint,
     }),
     ...deriveArchiveExemplars({
@@ -2151,7 +2178,7 @@ export function resolveRawBehavioralCarryover(
   const [first, second] = ranked;
   if (!first || first.probability < DEFAULT_ABSTAIN_THRESHOLD) {
     const fallbackPacket = buildFallbackRawTextResponsePacket({
-      exemplars: input.index.exemplars,
+      exemplars: ranked.map((entry) => entry.exemplar),
       language,
       languageContext,
       queryIntent,
@@ -3027,13 +3054,31 @@ function buildFallbackRawTextResponsePacket(input: {
   if (!textResponsePlan) {
     return undefined;
   }
+  const serializedPlan = JSON.stringify(textResponsePlan);
+  let adoptedSelections = selections;
+  for (let index = adoptedSelections.length - 1; index >= 0; index -= 1) {
+    const withoutCurrent = adoptedSelections.filter(
+      (_, selectionIndex) => selectionIndex !== index,
+    );
+    const reducedPlan = buildRawTextResponsePlan({
+      language: input.language,
+      languageContext: input.languageContext,
+      queryIntent: input.queryIntent,
+      selections: withoutCurrent,
+    });
+    if (reducedPlan && JSON.stringify(reducedPlan) === serializedPlan) {
+      adoptedSelections = withoutCurrent;
+    }
+  }
+  const adoptedExemplars = adoptedSelections.map((selection) => selection.exemplar);
 
   return {
     promptPayload: input.language.render(
       { key: "behavioral_controls_available" },
       input.languageContext,
     ),
-    retrievalText: input.exemplars.map((exemplar) => exemplar.retrievalText).join("\n"),
+    retrievalText: adoptedExemplars.map((exemplar) => exemplar.retrievalText).join("\n"),
+    sourceExperienceIds: collectSourceExperienceIds(adoptedExemplars),
     textResponsePlan,
   };
 }
@@ -3104,6 +3149,9 @@ function buildRawCarryoverPacket(input: {
       : {}),
     promptPayload,
     retrievalText,
+    sourceExperienceIds: collectSourceExperienceIds(
+      input.selections.map((selection) => selection.exemplar),
+    ),
     ...(textResponsePlan ? { textResponsePlan } : {}),
   };
 }

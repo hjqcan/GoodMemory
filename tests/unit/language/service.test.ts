@@ -128,6 +128,28 @@ describe("language service", () => {
     });
   });
 
+  it("detects Chinese standing directives without claiming Japanese Han-only text", () => {
+    const service = createLanguageService();
+
+    expect(
+      service.resolveFromText({ text: "以后汇报状态时始终使用要点。" }),
+    ).toMatchObject({
+      languagePackId: "zh-Hans",
+      localeSource: "detected",
+    });
+    expect(
+      service.resolveFromText({ text: "以後彙報狀態時始終使用要點。" }),
+    ).toMatchObject({
+      languagePackId: "zh-Hant",
+      localeSource: "detected",
+    });
+    for (const text of ["報告", "終了"]) {
+      expect(
+        service.resolveFromText({ text }).languagePackId,
+      ).not.toBe("zh-Hant");
+    }
+  });
+
   it("resolves Traditional Chinese and Japanese without central heuristics", () => {
     const service = createLanguageService();
 
@@ -379,19 +401,17 @@ describe("language service", () => {
     ]);
   });
 
-  it("extracts concise explicit English procedural directives", () => {
+  it("extracts only explicitly durable English procedural directives", () => {
     const service = createLanguageService();
-    const directives = [
+    const durableDirectives = [
       { content: "Never use npm.", feedbackKind: "dont" },
-      { content: "Do not use npm.", feedbackKind: "dont" },
-      { content: "Please use bun.", feedbackKind: "do" },
       {
         content: "Remember to run smoke verification.",
         feedbackKind: "do",
       },
     ] as const;
 
-    for (const directive of directives) {
+    for (const directive of durableDirectives) {
       const resolved = service.resolveFromText({ text: directive.content });
       let candidateCounter = 0;
       const candidates = service.extractCandidates(
@@ -412,6 +432,18 @@ describe("language service", () => {
           }),
         }),
       ]);
+    }
+
+    for (const content of ["Do not use npm.", "Please use bun."]) {
+      const resolved = service.resolveFromText({ text: content });
+      expect(service.extractCandidates(
+        {
+          locale: resolved.locale,
+          messages: [{ content, role: "user" }],
+          nextId: () => "one-off-directive",
+        },
+        resolved,
+      )).toEqual([]);
     }
 
     const neverMind = service.resolveFromText({ text: "Never mind." });
@@ -486,7 +518,7 @@ describe("language service", () => {
       "zh-Hant",
     ]);
     expect(manifest.packs.find(({ id }) => id === "en")).toMatchObject({
-      analyzerVersion: "17-interrogative-admission",
+      analyzerVersion: "19-reported-directive-scope",
       apiVersion: 1,
       compatibilityGroup: "en",
       defaultLocale: "en-US",
@@ -494,7 +526,7 @@ describe("language service", () => {
     expect(
       manifest.packs.find(({ id }) => id === "zh-Hant"),
     ).toMatchObject({
-      analyzerVersion: "16-interrogative-admission",
+      analyzerVersion: "18-reported-directive-scope",
       apiVersion: 1,
       compatibilityGroup: "zh-Hant",
       defaultLocale: "zh-Hant",

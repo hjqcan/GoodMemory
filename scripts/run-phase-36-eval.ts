@@ -200,7 +200,7 @@ function createLifeCoachMemory(): GoodMemory {
               attributes: { horizon: "quarter" },
               content: ({ match }) => match[1] ?? "",
             }),
-            rememberRules.preference(/please coach me with (.+)/i, {
+            rememberRules.preference(/please (?:always )?coach me with (.+)/i, {
               id: "life-coaching-style",
               category: "coaching_style",
               value: ({ match }) => match[1] ?? "",
@@ -225,7 +225,7 @@ async function runLifeCoachDomainRulesCase(): Promise<Phase36CaseResult> {
         role: "user",
       },
       {
-        content: "Please coach me with concise weekly planning prompts.",
+        content: "Please always coach me with concise weekly planning prompts.",
         role: "user",
       },
     ],

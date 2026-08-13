@@ -364,7 +364,7 @@ describe("public remember profile customization", () => {
             id: "life-coach",
             when: { agentId: "life-coach" },
             rules: [
-              rememberRules.preference(/please coach me with (.+)/i, {
+              rememberRules.preference(/please (?:always )?coach me with (.+)/i, {
                 id: "life-coaching-style",
                 category: "coaching_style",
                 value: ({ match }) => match[1] ?? "",
@@ -382,7 +382,7 @@ describe("public remember profile customization", () => {
       messages: [
         {
           role: "user",
-          content: "Please coach me with concise weekly planning prompts.",
+          content: "Please always coach me with concise weekly planning prompts",
         },
       ],
       extractionStrategy: "rules-only",

@@ -301,6 +301,19 @@ if (POSTGRES_URL) {
       }
     }, 15_000);
 
+    it("rejects storage-unsafe export scope before a Postgres JSONB query", async () => {
+      const memory = createGoodMemory({
+        storage: { provider: "postgres", url: POSTGRES_URL },
+      });
+
+      await expect(memory.exportMemory({
+        scope: { userId: "pg-export\u0000unsafe" },
+      })).rejects.toMatchObject({
+        code: "ERR_GOODMEMORY_STORAGE_UNSAFE_TEXT",
+        path: "input.scope.userId",
+      });
+    }, 15_000);
+
     it("runs remember, recall, feedback, forget, and buildContext against postgres", async () => {
       const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const userId = `pg-e2e-${unique}`;
@@ -328,7 +341,7 @@ if (POSTGRES_URL) {
             },
             {
               role: "user",
-              content: "Please keep answers concise and action-oriented.",
+              content: "Always keep answers concise and action-oriented.",
             },
           ],
         });

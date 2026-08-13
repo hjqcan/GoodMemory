@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "bun:test";
 
-import { buildGoodMemoryCapabilityDescriptor } from "../../src/api/capabilityDescriptor";
+import {
+  BENCHMARK_EVIDENCE_BOUNDARY_NOTE,
+  buildGoodMemoryCapabilityDescriptor,
+} from "../../src/api/capabilityDescriptor";
 
 const STATIC_DESCRIPTOR_URL = new URL(
   "../../.well-known/goodmemory.json",
@@ -84,38 +87,14 @@ describe("GoodMemory capability descriptor", () => {
     ]);
   });
 
-  it("keeps the v0.7.3 LoCoMo claim historical for the v0.7.4 candidate", () => {
+  it("keeps all unreceipted benchmark measurements internal", () => {
     const descriptor = buildGoodMemoryCapabilityDescriptor();
-    const { goodmemoryRelease, version } = readPackageJson();
-    if (goodmemoryRelease.status === "release-candidate" || version !== "0.7.3") {
-      expect(descriptor.benchmarks.currentClaims).toEqual([]);
-    } else {
-      expect(descriptor.benchmarks.currentClaims).toEqual([
-        expect.objectContaining({
-          measuredPackageVersion: version,
-          name: "LoCoMo",
-        }),
-      ]);
-    }
+    expect(descriptor.benchmarks.currentClaims).toEqual([]);
     expect(descriptor.benchmarks.historicalEvidence.url).toBe(
       "https://github.com/hjqcan/GoodMemory/tree/main/benchmark-claims",
     );
-    expect(descriptor.benchmarks.historicalEvidence.note).toContain(
-      "v0.6.0",
-    );
-    expect(descriptor.benchmarks.historicalEvidence.note).toContain(
-      "LoCoMo, BEAM, and MemoryAgentBench",
-    );
-    expect(descriptor.benchmarks.historicalEvidence.note).toContain(
-      "LongMemEval is withdrawn and paused",
-    );
-    expect(descriptor.benchmarks.historicalEvidence.note).not.toContain(
-      "LongMemEval and ImplicitMemBench remain internal evidence",
-    );
-    expect(descriptor.benchmarks.historicalEvidence.note).toContain(
-      goodmemoryRelease.status === "release-candidate" || version !== "0.7.3"
-        ? `No benchmark result has been relabeled as measured on v${version}`
-        : "The current LoCoMo claim is loaded only from",
+    expect(descriptor.benchmarks.historicalEvidence.note).toBe(
+      BENCHMARK_EVIDENCE_BOUNDARY_NOTE,
     );
     expect(descriptor.canonicalSources.note).toContain(
       "never relabels historical results",

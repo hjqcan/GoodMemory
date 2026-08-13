@@ -1,9 +1,15 @@
 import type { FeedbackKind } from "../domain/records";
 import type { BehavioralPolicy } from "./behavioralPolicy";
-import { createExperienceRecord, type ExperienceRecord, type ExperienceModelInfluence, type LearningProposal } from "./contracts";
+import type {
+  ExperienceModelInfluence,
+  ExperienceRecord,
+  LearningProposal,
+} from "./contracts";
+import { createExperienceRecord } from "./contracts";
 
-const TOOL_OUTCOME_POLICY_TOKEN = "tool_outcome";
-const TOOL_OUTCOME_PREFIX = "tool_outcome.";
+const TOOL_OUTCOME_METADATA_SCHEMA = "goodmemory.tool_outcome";
+const TOOL_OUTCOME_METADATA_VERSION = 1;
+const TOOL_OUTCOME_METADATA_PREFIX = "toolOutcome.";
 
 export type BehavioralFirstActionKind = "command" | "tool_call" | "warning";
 export type BehavioralOutcomeRetrievalProfile = "coding_agent" | "general_chat";
@@ -29,10 +35,7 @@ export interface BehavioralOutcomeObservationResult {
 export interface BehavioralOutcomeRecordInput
   extends Omit<BehavioralOutcomeObservationResult, "modelInfluence"> {
   modelInfluence?: ExperienceModelInfluence;
-}
-
-export interface ToolOutcomeExperienceRecord extends Omit<ExperienceRecord, "kind"> {
-  kind: "tool_outcome";
+  traceId?: string;
 }
 
 export interface CompiledGuidance {
@@ -68,18 +71,6 @@ interface BehavioralOutcomeExperienceInput {
     workspaceId?: string;
   };
   traceId: string;
-}
-
-function encodeTagValue(value: string): string {
-  return encodeURIComponent(value);
-}
-
-function decodeTagValue(value: string): string {
-  return decodeURIComponent(value);
-}
-
-function toTag(key: string, value: string): string {
-  return `${TOOL_OUTCOME_PREFIX}${key}=${encodeTagValue(value)}`;
 }
 
 function normalizeAction(action: BehavioralFirstAction): BehavioralFirstAction {
@@ -140,47 +131,38 @@ export function behavioralFirstActionsEqual(
   return serializeBehavioralFirstAction(left) === serializeBehavioralFirstAction(right);
 }
 
-export function buildBehavioralOutcomePolicyApplied(
+function buildBehavioralOutcomeMetadata(
   result: BehavioralOutcomeObservationResult,
-): string[] {
-  const tags = [
-    TOOL_OUTCOME_POLICY_TOKEN,
-    toTag("cue", result.cue),
-    toTag("failure_class", result.failureClass),
-    toTag("first_action.kind", result.firstAction.kind),
-    toTag("first_action.name", result.firstAction.name),
-  ];
-
-  if (result.firstAction.args && result.firstAction.args.length > 0) {
-    tags.push(toTag("first_action.args", JSON.stringify(result.firstAction.args)));
-  }
-  if (result.firstAction.raw) {
-    tags.push(toTag("first_action.raw", result.firstAction.raw));
-  }
-  if (result.retrievalProfile) {
-    tags.push(toTag("retrieval_profile", result.retrievalProfile));
-  }
-  if (result.saferAlternative) {
-    tags.push(toTag("safer_alternative.kind", result.saferAlternative.kind));
-    tags.push(toTag("safer_alternative.name", result.saferAlternative.name));
-    if (result.saferAlternative.args && result.saferAlternative.args.length > 0) {
-      tags.push(
-        toTag("safer_alternative.args", JSON.stringify(result.saferAlternative.args)),
-      );
-    }
-    if (result.saferAlternative.raw) {
-      tags.push(toTag("safer_alternative.raw", result.saferAlternative.raw));
-    }
-  }
-
-  return tags;
+): NonNullable<ExperienceRecord["metadata"]> {
+  return {
+    [`${TOOL_OUTCOME_METADATA_PREFIX}schema`]: TOOL_OUTCOME_METADATA_SCHEMA,
+    [`${TOOL_OUTCOME_METADATA_PREFIX}version`]: TOOL_OUTCOME_METADATA_VERSION,
+    [`${TOOL_OUTCOME_METADATA_PREFIX}cue`]: result.cue,
+    [`${TOOL_OUTCOME_METADATA_PREFIX}failureClass`]: result.failureClass,
+    [`${TOOL_OUTCOME_METADATA_PREFIX}firstAction`]: JSON.stringify(
+      normalizeAction(result.firstAction),
+    ),
+    ...(result.retrievalProfile
+      ? {
+          [`${TOOL_OUTCOME_METADATA_PREFIX}retrievalProfile`]:
+            result.retrievalProfile,
+        }
+      : {}),
+    ...(result.saferAlternative
+      ? {
+          [`${TOOL_OUTCOME_METADATA_PREFIX}saferAlternative`]: JSON.stringify(
+            normalizeAction(result.saferAlternative),
+          ),
+        }
+      : {}),
+  };
 }
 
 export function buildBehavioralOutcomeExperienceRecord(
   input: BehavioralOutcomeExperienceInput & {
     result: BehavioralOutcomeObservationResult;
   },
-): ToolOutcomeExperienceRecord {
+): ExperienceRecord {
   const result = {
     ...input.result,
     firstAction: normalizeAction(input.result.firstAction),
@@ -192,113 +174,100 @@ export function buildBehavioralOutcomeExperienceRecord(
     ? ` Safer first action: ${formatBehavioralFirstAction(result.saferAlternative)}.`
     : "";
 
-  return {
-    ...createExperienceRecord({
-      id: input.createId(),
-      userId: input.scope.userId,
-      tenantId: input.scope.tenantId,
-      workspaceId: input.scope.workspaceId,
-      agentId: input.scope.agentId,
-      sessionId: input.scope.sessionId,
-      kind: "maintenance",
-      traceId: input.traceId,
-      trigger: "api",
-      modelInfluence: result.modelInfluence,
-      summary:
-        `Behavioral tool outcome for cue "${result.cue}": first action ${formatBehavioralFirstAction(result.firstAction)} failed with ${result.failureClass}.` +
-        saferAlternativeLabel,
-      outcome: result.outcome ?? "failure",
-      policyApplied: buildBehavioralOutcomePolicyApplied(result),
-      metrics: {
-        accepted: 0,
-        rejected: 1,
-      },
-      linkedEvidenceIds: input.linkedEvidenceIds ?? [],
-      createdAt: input.createdAt,
-    }),
+  return createExperienceRecord({
+    id: input.createId(),
+    userId: input.scope.userId,
+    tenantId: input.scope.tenantId,
+    workspaceId: input.scope.workspaceId,
+    agentId: input.scope.agentId,
+    sessionId: input.scope.sessionId,
     kind: "tool_outcome",
-  };
+    traceId: input.traceId,
+    trigger: "api",
+    modelInfluence: result.modelInfluence,
+    summary:
+      `Behavioral tool outcome for cue "${result.cue}": first action ${formatBehavioralFirstAction(result.firstAction)} failed with ${result.failureClass}.` +
+      saferAlternativeLabel,
+    outcome: result.outcome ?? "failure",
+    policyApplied: [],
+    metadata: buildBehavioralOutcomeMetadata(result),
+    metrics: {
+      accepted: 0,
+      rejected: 1,
+    },
+    linkedEvidenceIds: input.linkedEvidenceIds ?? [],
+    createdAt: input.createdAt,
+  });
 }
 
 export function isToolOutcomeExperience(
-  experience: ExperienceRecord | ToolOutcomeExperienceRecord,
+  experience: ExperienceRecord,
 ): boolean {
-  return (
-    (experience.kind as string) === "tool_outcome" ||
-    experience.policyApplied.includes(TOOL_OUTCOME_POLICY_TOKEN)
-  );
+  return experience.kind === "tool_outcome";
 }
 
-export function toStoredExperienceRecord(
-  experience: ToolOutcomeExperienceRecord,
-): ExperienceRecord {
-  return experience as unknown as ExperienceRecord;
-}
-
-function parseAction(
-  values: Map<string, string>,
-  prefix: "first_action" | "safer_alternative",
+function parseStoredAction(
+  value: NonNullable<ExperienceRecord["metadata"]>[string] | undefined,
 ): BehavioralFirstAction | undefined {
-  const kind = values.get(`${prefix}.kind`);
-  const name = values.get(`${prefix}.name`);
-
-  if (!kind || !name) {
+  if (typeof value !== "string") {
     return undefined;
   }
 
-  const argsValue = values.get(`${prefix}.args`);
-  const raw = values.get(`${prefix}.raw`);
-  let args: string[] | undefined;
-
-  if (argsValue) {
-    try {
-      const parsed = JSON.parse(argsValue) as unknown;
-      if (Array.isArray(parsed) && parsed.every((item) => typeof item === "string")) {
-        args = parsed;
-      }
-    } catch {
-      args = undefined;
+  try {
+    const parsed = JSON.parse(value) as Record<string, unknown>;
+    const kind = parsed.kind;
+    const name = parsed.name;
+    const args = parsed.args;
+    const raw = parsed.raw;
+    if (
+      (kind !== "command" && kind !== "tool_call" && kind !== "warning") ||
+      typeof name !== "string" || name.trim().length === 0 ||
+      (args !== undefined &&
+        (!Array.isArray(args) || args.some((item) => typeof item !== "string"))) ||
+      (raw !== undefined && typeof raw !== "string")
+    ) {
+      return undefined;
     }
-  }
 
-  return {
-    kind: kind as BehavioralFirstActionKind,
-    name,
-    ...(args ? { args } : {}),
-    ...(raw ? { raw } : {}),
-  };
+    return {
+      kind,
+      name,
+      ...(Array.isArray(args) && args.length > 0 ? { args: [...args] } : {}),
+      ...(typeof raw === "string" && raw.length > 0 ? { raw } : {}),
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 export function parseToolOutcomeMetadata(
-  experience: ExperienceRecord | ToolOutcomeExperienceRecord,
+  experience: ExperienceRecord,
 ): ParsedToolOutcomeMetadata | null {
   if (!isToolOutcomeExperience(experience)) {
     return null;
   }
-
-  const values = new Map<string, string>();
-
-  for (const token of experience.policyApplied) {
-    if (!token.startsWith(TOOL_OUTCOME_PREFIX)) {
-      continue;
-    }
-
-    const [rawKey, rawValue] = token.slice(TOOL_OUTCOME_PREFIX.length).split("=", 2);
-    if (!rawKey || rawValue === undefined) {
-      continue;
-    }
-    values.set(rawKey, decodeTagValue(rawValue));
-  }
-
-  const cue = values.get("cue");
-  const failureClass = values.get("failure_class");
-  const firstAction = parseAction(values, "first_action");
-
-  if (!cue || !failureClass || !firstAction) {
+  const metadata = experience.metadata;
+  if (
+    metadata?.[`${TOOL_OUTCOME_METADATA_PREFIX}schema`] !==
+      TOOL_OUTCOME_METADATA_SCHEMA ||
+    metadata[`${TOOL_OUTCOME_METADATA_PREFIX}version`] !==
+      TOOL_OUTCOME_METADATA_VERSION
+  ) {
     return null;
   }
-
-  const retrievalProfile = values.get("retrieval_profile");
+  const cue = metadata[`${TOOL_OUTCOME_METADATA_PREFIX}cue`];
+  const failureClass = metadata[`${TOOL_OUTCOME_METADATA_PREFIX}failureClass`];
+  const firstAction = parseStoredAction(
+    metadata[`${TOOL_OUTCOME_METADATA_PREFIX}firstAction`],
+  );
+  if (
+    typeof cue !== "string" || cue.trim().length === 0 ||
+    typeof failureClass !== "string" || failureClass.trim().length === 0 ||
+    !firstAction
+  ) {
+    return null;
+  }
+  const retrievalProfile = metadata[`${TOOL_OUTCOME_METADATA_PREFIX}retrievalProfile`];
   const parsedRetrievalProfile =
     retrievalProfile === "coding_agent" || retrievalProfile === "general_chat"
       ? retrievalProfile
@@ -309,7 +278,9 @@ export function parseToolOutcomeMetadata(
     failureClass,
     firstAction,
     retrievalProfile: parsedRetrievalProfile,
-    saferAlternative: parseAction(values, "safer_alternative"),
+    saferAlternative: parseStoredAction(
+      metadata[`${TOOL_OUTCOME_METADATA_PREFIX}saferAlternative`],
+    ),
   };
 }
 

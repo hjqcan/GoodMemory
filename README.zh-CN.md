@@ -39,15 +39,13 @@ hooks 和只读 MCP 检查能力，并让持久写回保持可选。运行 `good
 GoodMemory 把「当前生产声明」「带版本的历史证据」和「内部研究」分开呈现。一个数字只有在
 当前包版本的已提交 declaration 通过 `gate:public-benchmark-claim --strict` 后，才能进入
 当前声明表。该 gate 校验声明结构、相对基线的方向、answer/judge 分离、完整 commit、证据
-投影断言与 README 一致性；它不是对上游 license 或被忽略原始报告的独立复现。历史行使用
-独立 marker 和源文件指纹，复现仍需要取得对应原始 artifact，且不能满足当前版本 gate。
+投影断言与 README 一致性。展示投影还必须引用独立、已提交的 execution receipt，由该
+receipt 绑定精确 commit、tree、package、run 与源文件 bytes；展示投影不能自证执行。
+历史行使用独立 marker，且不能满足当前版本 gate。
 
-GoodMemory `0.7.4` 没有新测量的当前 benchmark 声明。全新的 v0.7.3
-protocol-v2 LoCoMo 结果作为带版本证据保留在下方，不能重标为在 `0.7.4` 上测量。
-Phase 72 的 benchmark gate 和带版本 release gate 继续作为 `v0.6.0` 历史证据
-单独保留。v0.7.3 结果是一次 live-provider draw，因此 0.4-0.7 个百分点的
-run-to-run 波动仅是启发式估计，不能把分数变化归因于 R6 retrieval change。
-它也是 public-opt-in 的 provider profile，不代表零 provider 默认路径。
+GoodMemory `0.7.4` 没有当前或带版本的历史 benchmark 声明。保留的 v0.7.3
+LoCoMo projection 不是独立 execution receipt，不能自证原始运行，因此现已降为内部诊断。
+v0.6.0 的 LoCoMo、BEAM、MemoryAgentBench 测量与 ImplicitMemBench 也都属于内部诊断。
 LongMemEval 已撤下并等待 clean rerun：历史 rules-only 路径使用了 answer annotation，
 后来的 label-free 路径又把原始 `answer_*` session ID 暴露给检索和 reader。
 ImplicitMemBench 的 retry-merged 结果仍属于内部证据，因为它不能替代一次全新的单体
@@ -60,17 +58,15 @@ benchmark 声明。
 
 ### 带版本证据
 
+目前没有保留的 benchmark artifact 满足独立 execution-receipt 契约。
+
 <!-- historical-evidence-table:start -->
-| 基准 | 主指标 | GoodMemory 结果 | 基线 / 参照 | Claim declaration |
-|---|---|---:|---:|---|
-| LoCoMo v0.7.3（完整 10 会话） | 独立官方判官协议；strict 确定性 token-F1 | official **0.8805** · strict **0.6266** · open-domain **0.6042**（58/96） | 历史无记忆 0.0045 | [locomo.json](./benchmark-claims/locomo.json) |
+当前没有 benchmark 结果符合带版本历史证据要求。
 <!-- historical-evidence-table:end -->
 
-带版本的 v0.7.3 LoCoMo 运行覆盖全部 1540 道非对抗题，执行失败和判官失败均为零。
-答案、对话式萃取与 provider reranking 使用 `gpt-5.6-terra`，官方协议轨由独立
-`gpt-5.5` 判官评分。数据集采用 CC BY-NC 4.0，因此仅限非商用评估。这是一次
-live-provider draw，0.4-0.7 个百分点的 run-to-run 波动仅为启发式估计；它不能证明
-相对 v0.6 的小幅变化由 R6 retrieval cues 导致。
+保留的 v0.7.3 LoCoMo artifact 仍可用于审计，但其 tracked-current projection 与
+verified presentation shell 都不是 execution receipt，因此不能授权公开或带版本声明。
+未来只有新运行在执行时产出独立 receipt 才能晋级；不会回填旧 artifact 来维持声明。
 
 在两条轨都存在时会同时报告它们。**严格轨**是确定性或 judge-free 评分——任何 LLM 判官
 都无法夸大的硬下限。第二条轨把*同一批已存答案*（不重新生成）用基准来源或业界标准

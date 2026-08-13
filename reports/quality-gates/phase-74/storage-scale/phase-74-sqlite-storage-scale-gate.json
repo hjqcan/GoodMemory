@@ -46,14 +46,14 @@
   },
   "database": "sqlite",
   "gate": "claim-entity-projection-query",
-  "generatedAt": "2026-07-23T02:31:30.941Z",
+  "generatedAt": "2026-08-13T07:42:57.490Z",
   "latencyMs": {
-    "max": 0.667,
-    "mean": 0.549,
-    "min": 0.497,
-    "p50": 0.533,
-    "p95": 0.643,
-    "p99": 0.667
+    "max": 15,
+    "mean": 5.496,
+    "min": 1.245,
+    "p50": 4.394,
+    "p95": 10.802,
+    "p99": 15
   },
   "measuredQueryCount": 40,
   "parameters": {
@@ -64,29 +64,29 @@
     "thresholdMs": 500,
     "warmupQueryCount": 5
   },
-  "passed": true,
+  "passed": false,
   "phase": "phase-74",
   "runtime": {
     "arch": "arm64",
-    "bunVersion": "1.3.11",
+    "bunVersion": "1.3.14",
     "platform": "darwin"
   },
   "selectedLimit": 12,
   "sourceBinding": {
-    "commitSha": "3324817d1bd30b0f425c9d770ae6f3503dbe1d84",
-    "sourceManifestSha256": "abd2e35c4347f91e7b70816bffe50888814720187d23ab35007a896342e72d0c",
+    "commitSha": "b4126da8709e76070e3abd5c228623e50fca4200",
+    "sourceManifestSha256": "ba4a0bb54b69e18a0f4e96e9f2095daac4b90e6442ca1378050554289eae8c18",
     "sources": [
       {
         "path": "scripts/run-phase-74-storage-scale-gate.ts",
-        "sha256": "0cae15820ef76a3d7af359f36b605810a0c527a6b56d7b572d5dabaf93c6cb70"
+        "sha256": "fd2677f3bee4f6eadf196c7ac340eff904fb2aedb59a78943a5a4c7dae33b2ce"
       },
       {
         "path": "src/recall/projections/claims.ts",
-        "sha256": "9ca210cbcde0a9c00c26099ec69154cf0787dd811da60dd3998a1be24baf9d77"
+        "sha256": "f449b9f28d6d6f5c2408b3d450b6e6dc4fed12aba0c870964c72434a473b7a85"
       },
       {
         "path": "src/recall/projections/contracts.ts",
-        "sha256": "70c7b8a677df8fcbcbe953c37e14220f151ade57cd618ab0e18cca7e92e4547b"
+        "sha256": "d477716651115918849f06d3eece79243fa0d9bfd259f937046939c6edaeea80"
       },
       {
         "path": "src/recall/projections/entityIndex.ts",
@@ -94,7 +94,7 @@
       },
       {
         "path": "src/recall/projections/runtime.ts",
-        "sha256": "7238493521e2b46ba5e9ffd1f2ab5f97de3f01b20a87c87f5c491c808d370a24"
+        "sha256": "8452a5a5ff46d0bf91721dcfe728982cc69ebfc06586832d09b655641b926c15"
       },
       {
         "path": "src/recall/projections/shared.ts",
@@ -113,8 +113,8 @@
         "sha256": "15a7846183bdca0d3264565e411e72b02422bd012804bb14d329ea2dcc1fba57"
       }
     ],
-    "treeSha": "7de7b62b518d5b5bfddeb78b03fc8b18a979d3e6",
-    "worktreeClean": true
+    "treeSha": "f874f9012df9f219ff4ab5075901db8c74dabbe5",
+    "worktreeClean": false
   },
   "syntheticDocumentCount": 100000,
   "thresholdMs": 500,

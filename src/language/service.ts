@@ -1,11 +1,16 @@
 import type {
   LanguageAnalyzerManifest,
   LanguageConfig,
+  LanguageCandidateExtractionInput,
   LanguagePack,
   LanguageService,
   LocaleDetector,
   ResolvedLanguageContext,
 } from "./contracts";
+import type {
+  DurableTargetIdentity,
+  MemoryCandidate,
+} from "../domain/memoryCandidate";
 import { createChineseLanguagePack } from "./chinese";
 import { createEnglishLanguagePack } from "./english";
 import { createFrenchLanguagePack } from "./french";
@@ -37,6 +42,87 @@ const BUILTIN_PACKS = [
 const LANGUAGE_RESOLVER_VERSION = "3";
 const MAX_SEARCH_TERMS = 128;
 const PURE_NUMERIC_TOKEN = /^\p{N}+$/u;
+
+function attachPackDerivedDurableTarget(
+  pack: LanguagePack,
+  candidate: MemoryCandidate,
+): MemoryCandidate {
+  if (candidate.durableTarget) {
+    return candidate;
+  }
+  if (!pack.deriveDurableTarget) {
+    return candidate;
+  }
+  const { durableTarget: _producerTarget, ...candidateWithoutTarget } = candidate;
+  const durableTarget = pack.deriveDurableTarget(candidateWithoutTarget);
+  return durableTarget
+    ? { ...candidateWithoutTarget, durableTarget }
+    : candidateWithoutTarget;
+}
+
+function deriveOptOutTargetIdentity(
+  pack: LanguagePack,
+  input: LanguageCandidateExtractionInput,
+  text: string,
+): DurableTargetIdentity | undefined {
+  let candidateNumber = 0;
+  const identities = pack.extractCandidates({
+    locale: input.locale,
+    messages: [{ content: text, role: "user" }],
+    nextId: () => `durable-target-${candidateNumber += 1}`,
+  }).flatMap((candidate) => {
+    const durableTarget = attachPackDerivedDurableTarget(pack, candidate)
+      .durableTarget;
+    return durableTarget ? [durableTarget] : [];
+  });
+  const unique = new Map(
+    identities.map((identity) => [
+      `${identity.slot.normalize("NFKC")}\u0000${identity.value.normalize("NFKC")}`,
+      identity,
+    ]),
+  );
+  return unique.size === 1 ? [...unique.values()][0] : undefined;
+}
+
+function authorizePackCandidateGovernance(
+  pack: LanguagePack,
+  input: LanguageCandidateExtractionInput,
+  candidate: MemoryCandidate,
+): MemoryCandidate {
+  const { optOutTarget: _legacyOptOutTarget, ...metadata } =
+    candidate.metadata ?? {};
+  const candidateWithoutLegacyTarget: MemoryCandidate = {
+    ...candidate,
+    metadata: candidate.metadata === undefined
+      ? undefined
+      : Object.keys(metadata).length > 0
+        ? metadata
+        : undefined,
+  };
+  const derivedCandidate = attachPackDerivedDurableTarget(
+    pack,
+    candidateWithoutLegacyTarget,
+  );
+  if (candidate.disposition?.kind !== "durable_opt_out") {
+    return derivedCandidate;
+  }
+  const identity = deriveOptOutTargetIdentity(
+    pack,
+    input,
+    candidate.disposition.target.text,
+  ) ?? candidate.disposition.target.identity;
+  return {
+    ...derivedCandidate,
+    disposition: {
+      kind: "durable_opt_out",
+      target: {
+        ...(identity ? { identity } : {}),
+        match: "exact",
+        text: candidate.disposition.target.text,
+      },
+    },
+  };
+}
 
 export function isStrongLegacyProjectionLocaleSignal(
   text: string,
@@ -544,13 +630,9 @@ export function createLanguageService(
     },
     extractCandidates(input, context) {
       const pack = packFor(context);
-      return pack.extractCandidates(input).map((candidate) => {
-        if (candidate.durableTarget || !pack.deriveDurableTarget) {
-          return candidate;
-        }
-        const durableTarget = pack.deriveDurableTarget(candidate);
-        return durableTarget ? { ...candidate, durableTarget } : candidate;
-      });
+      return pack.extractCandidates(input).map((candidate) =>
+        authorizePackCandidateGovernance(pack, input, candidate)
+      );
     },
     render(input, context) {
       return packFor(context).render(input);

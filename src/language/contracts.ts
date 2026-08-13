@@ -72,6 +72,7 @@ export interface LanguageSourceOfTruthDirective {
 export interface LanguageContentAnalysis {
   assistantAcknowledgement: boolean;
   assistantContinuity: boolean;
+  behavioralDirective?: "durable" | "none" | "one_off";
   blockerFact: boolean;
   correctionCue: boolean;
   durableCue: boolean;

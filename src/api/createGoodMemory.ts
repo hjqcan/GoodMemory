@@ -1877,10 +1877,6 @@ class GoodMemoryImpl implements GoodMemory {
         });
         return traced;
       }
-      await this.evolutionRuntime.handleRemember({
-        scope: input.scope,
-        result,
-      });
       await trace.succeeded({
         attributes: {
           accepted: result.accepted,
@@ -2035,6 +2031,7 @@ class GoodMemoryImpl implements GoodMemory {
   }
 
   async exportMemory(input: ExportMemoryInput): Promise<ExportMemoryResult> {
+    assertStorageSafeExternalValue(input, "input");
     return exportMemoryOperation(
       {
         tracer: this.tracer,
@@ -2271,6 +2268,7 @@ export function createInternalGoodMemory(
       handleBehavioralOutcome: (input: {
         result: BehavioralOutcomeObservationResult;
         scope: ForgetInput["scope"];
+        traceId?: string;
       }) => Promise<void>;
       handleAgentCorrection: (input: {
         appliesTo: string;
@@ -2398,6 +2396,7 @@ export function createInternalGoodMemory(
                 retrievalProfile: input.retrievalProfile,
                 saferAlternative: input.saferAlternative,
               },
+              traceId: input.traceId,
             }),
         }
       : {}),

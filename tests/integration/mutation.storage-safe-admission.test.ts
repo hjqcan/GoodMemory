@@ -26,6 +26,21 @@ function createFixture() {
 }
 
 describe("public mutation storage-safe admission", () => {
+  it("rejects a NUL-containing export scope before tracing or store access", async () => {
+    const { documentStore, memory, spans } = createFixture();
+    const queryDocuments = spyOn(documentStore, "query");
+
+    await expect(memory.exportMemory({
+      scope: { userId: "export\u0000unsafe" },
+    })).rejects.toMatchObject({
+      code: "ERR_GOODMEMORY_STORAGE_UNSAFE_TEXT",
+      path: "input.scope.userId",
+    });
+
+    expect(spans).toEqual([]);
+    expect(queryDocuments).not.toHaveBeenCalled();
+  });
+
   it("rejects a NUL-containing forget memoryId before tracing or store access", async () => {
     const { documentStore, memory, spans } = createFixture();
     const getDocument = spyOn(documentStore, "get");

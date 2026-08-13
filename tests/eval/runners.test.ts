@@ -791,6 +791,11 @@ describe("eval runners", () => {
       }),
     );
 
+    await memory.runMaintenance({
+      scope: { userId, workspaceId },
+      jobs: [],
+    });
+
     const result = await runGoodMemoryScenario({
       memory,
       persona,
