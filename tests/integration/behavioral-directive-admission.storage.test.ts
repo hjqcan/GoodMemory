@@ -34,6 +34,17 @@ type MemoryFactory = (
   packs?: readonly LanguagePack[],
 ) => ReturnType<typeof createGoodMemory>;
 
+async function postgresRelationExists(
+  sql: SQL,
+  relationName: string,
+): Promise<boolean> {
+  const rows = await sql.unsafe<Array<{ relation: string | null }>>(
+    "SELECT to_regclass($1)::text AS relation",
+    [relationName],
+  );
+  return rows[0]?.relation !== null && rows[0]?.relation !== undefined;
+}
+
 async function expectStorageAdmission(
   createMemory: MemoryFactory,
   documentStore: ProjectionCapableDocumentStore,
@@ -52,11 +63,14 @@ async function expectStorageAdmission(
 
   expect(durable.accepted).toBe(1);
   expect(
-    (await documentStore.query<RecallIndexDocument>(
-      RECALL_DOCUMENTS_COLLECTION,
-      { sourceCollection: "feedback", ...scope },
-    )).some(({ searchAnalyzerVersion }) =>
-      searchAnalyzerVersion === PREVIOUS_ANALYZER_VERSION
+    (
+      await documentStore.query<RecallIndexDocument>(
+        RECALL_DOCUMENTS_COLLECTION,
+        { sourceCollection: "feedback", ...scope },
+      )
+    ).some(
+      ({ searchAnalyzerVersion }) =>
+        searchAnalyzerVersion === PREVIOUS_ANALYZER_VERSION,
     ),
   ).toBe(true);
 
@@ -88,18 +102,26 @@ async function expectStorageAdmission(
     scope,
   );
   expect(documents.some(({ text }) => text.includes("hello.txt"))).toBe(false);
-  expect(documents.some(({ searchAnalyzerVersion }) =>
-    searchAnalyzerVersion === CURRENT_ANALYZER_VERSION
-  )).toBe(true);
-  expect(documents.some(({ searchAnalyzerVersion }) =>
-    searchAnalyzerVersion === PREVIOUS_ANALYZER_VERSION
-  )).toBe(false);
-  await expect(documentStore.searchText!(RECALL_DOCUMENTS_COLLECTION, {
-    field: "searchText",
-    filter: scope,
-    limit: 10,
-    query: "read hello.txt",
-  })).resolves.toEqual([]);
+  expect(
+    documents.some(
+      ({ searchAnalyzerVersion }) =>
+        searchAnalyzerVersion === CURRENT_ANALYZER_VERSION,
+    ),
+  ).toBe(true);
+  expect(
+    documents.some(
+      ({ searchAnalyzerVersion }) =>
+        searchAnalyzerVersion === PREVIOUS_ANALYZER_VERSION,
+    ),
+  ).toBe(false);
+  await expect(
+    documentStore.searchText!(RECALL_DOCUMENTS_COLLECTION, {
+      field: "searchText",
+      filter: scope,
+      limit: 10,
+      query: "read hello.txt",
+    }),
+  ).resolves.toEqual([]);
 
   const manifests = await documentStore.query<RecallProjectionManifest>(
     PROJECTION_MANIFESTS_COLLECTION,
@@ -143,53 +165,64 @@ describe("behavioral directive admission storage", () => {
   });
 
   const postgresIt = POSTGRES_URL ? it : it.skip;
-  postgresIt("keeps one-off directives out of PostgreSQL and rebuilds stale projections", async () => {
-    const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const scope = {
-      userId: `postgres-behavioral-admission-user-${unique}`,
-      workspaceId: "postgres-behavioral-admission-workspace",
-    };
-    const storage = { url: POSTGRES_URL! };
-    const sql = new SQL(POSTGRES_URL!);
+  postgresIt(
+    "keeps one-off directives out of PostgreSQL and rebuilds stale projections",
+    async () => {
+      const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const scope = {
+        userId: `postgres-behavioral-admission-user-${unique}`,
+        workspaceId: "postgres-behavioral-admission-workspace",
+      };
+      const storage = { url: POSTGRES_URL! };
+      const sql = new SQL(POSTGRES_URL!);
 
-    try {
-      await migratePostgresStorageBackend(storage, { log: () => {} });
-      const documentStore = createPostgresDocumentStore(storage);
-      await expectStorageAdmission(
-        (packs) =>
-          createGoodMemory({
-            ...(packs ? { language: { packs } } : {}),
-            retrieval: { preset: "recommended" },
-            storage: { provider: "postgres", url: POSTGRES_URL! },
-          }),
-        documentStore,
-        scope,
-      );
-    } finally {
-      await sql.unsafe(
-        `
+      try {
+        await migratePostgresStorageBackend(storage, { log: () => {} });
+        const documentStore = createPostgresDocumentStore(storage);
+        await expectStorageAdmission(
+          (packs) =>
+            createGoodMemory({
+              ...(packs ? { language: { packs } } : {}),
+              retrieval: { preset: "recommended" },
+              storage: { provider: "postgres", url: POSTGRES_URL! },
+            }),
+          documentStore,
+          scope,
+        );
+      } finally {
+        try {
+          await sql.unsafe(
+            `
           DELETE FROM "public"."gm_documents"
           WHERE document->>'userId' = $1
             AND document->>'workspaceId' = $2
         `,
-        [scope.userId, scope.workspaceId],
-      );
-      await sql.unsafe(
-        `
-          DELETE FROM "public"."gm_session_state"
-          WHERE scope_key LIKE $1
-        `,
-        [`${scope.userId}::%`],
-      );
-      await sql.unsafe(
-        `
-          DELETE FROM "public"."gm_vectors"
-          WHERE metadata->>'userId' = $1
-            AND metadata->>'workspaceId' = $2
-        `,
-        [scope.userId, scope.workspaceId],
-      );
-      await sql.close();
-    }
-  }, 30_000);
+            [scope.userId, scope.workspaceId],
+          );
+          if (await postgresRelationExists(sql, "public.gm_session_state")) {
+            await sql.unsafe(
+              `
+            DELETE FROM "public"."gm_session_state"
+            WHERE scope_key LIKE $1
+          `,
+              [`${scope.userId}::%`],
+            );
+          }
+          if (await postgresRelationExists(sql, "public.gm_vectors")) {
+            await sql.unsafe(
+              `
+            DELETE FROM "public"."gm_vectors"
+            WHERE metadata->>'userId' = $1
+              AND metadata->>'workspaceId' = $2
+          `,
+              [scope.userId, scope.workspaceId],
+            );
+          }
+        } finally {
+          await sql.close();
+        }
+      }
+    },
+    30_000,
+  );
 });
