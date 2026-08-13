@@ -1,4 +1,5 @@
 import type { MemoryScope } from "./domain/scope";
+import { assertStorageSafeExternalValue } from "./domain/semanticText";
 
 export type AgentEventKind =
   | "file_edit"
@@ -129,6 +130,20 @@ export type HostAgentEvent = AgentEventBaseFields &
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
+}
+
+export function assertStorageSafeAgentEvent(value: unknown, path: string): void {
+  if (!isRecord(value)) {
+    return;
+  }
+  const {
+    correction: _correction,
+    excerpt: _excerpt,
+    raw: _raw,
+    summary: _summary,
+    ...persistedFields
+  } = value;
+  assertStorageSafeExternalValue(persistedFields, path);
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -519,6 +534,7 @@ export function validateAgentInputEvent(
   value: unknown,
   path = "event",
 ): AgentInputEvent {
+  assertStorageSafeAgentEvent(value, path);
   if (!isRecord(value)) {
     throw new Error(`${path} must be an object`);
   }
@@ -534,6 +550,7 @@ export function validateHostAgentEvent(
   value: unknown,
   path = "event",
 ): HostAgentEvent {
+  assertStorageSafeAgentEvent(value, path);
   if (!isRecord(value)) {
     throw new Error(`${path} must be an object`);
   }

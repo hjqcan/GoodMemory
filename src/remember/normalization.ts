@@ -8,6 +8,7 @@ import type {
   ResolvedLanguageContext,
 } from "../language/contracts";
 import type { MemoryCandidate } from "./candidates";
+import { isDurableOptOutCandidate } from "./durableOptOut";
 
 const WRAPPING_PUNCTUATION = /^[`"'([{<\s]+|[`"')\]}>.,!?;:]+$/g;
 
@@ -50,10 +51,7 @@ function resolveExplicitOptOutDisposition(
     },
     languageContext.resolved,
   );
-  const optOutFeedback = extracted.find((sourceCandidate) =>
-    sourceCandidate.kindHint === "feedback" &&
-    sourceCandidate.metadata?.feedbackKind === "dont"
-  );
+  const optOutFeedback = extracted.find(isDurableOptOutCandidate);
   if (!optOutFeedback) {
     return undefined;
   }
@@ -92,10 +90,11 @@ function normalizeExplicitOptOutCandidate(
   if (disposition.canonicalMatch) {
     return {
       candidate: disposition.canonicalMatch.kindHint === "feedback" &&
-          disposition.canonicalMatch.metadata?.feedbackKind === "dont"
+          isDurableOptOutCandidate(disposition.canonicalMatch)
         ? {
           ...candidate,
           content: disposition.canonicalMatch.content,
+          disposition: disposition.canonicalMatch.disposition,
           metadata: {
             ...candidate.metadata,
             ...disposition.canonicalMatch.metadata,
@@ -111,6 +110,7 @@ function normalizeExplicitOptOutCandidate(
       candidate: {
         ...candidate,
         content: disposition.optOutFeedback.content,
+        disposition: disposition.optOutFeedback.disposition,
         metadata: {
           ...candidate.metadata,
           ...disposition.optOutFeedback.metadata,

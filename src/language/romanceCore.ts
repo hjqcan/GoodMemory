@@ -1,4 +1,10 @@
 import type { MemoryCandidate } from "../domain/memoryCandidate";
+import {
+  attachLanguageDurableTarget,
+  createLanguageDurableOptOutDisposition,
+  deriveLanguageDurableTarget,
+} from "./durableTarget";
+import type { DurableTargetSlotAliases } from "./durableTarget";
 import type { FactKind } from "../domain/records";
 import type {
   LanguageContentAnalysis,
@@ -11,9 +17,15 @@ import type {
 } from "./contracts";
 import type { BehavioralRulePatterns } from "./packHelpers";
 import {
+  collectProtectedRetrievalTokens,
   expandExplicitFactCandidateClauses,
+  isExplicitlyQuotedValue,
+  isolateDirectiveGrammar,
+  maskQuotedText,
   normalizeUnicodeForEquality,
+  replaceUnquotedText,
   splitClausesGeneric,
+  splitTrailingInterrogativeClause,
   tokenizeUnicodeText,
 } from "./generic";
 import {
@@ -53,11 +65,10 @@ export interface RomanceCandidatePatterns {
   occurrenceConfirmation: RegExp;
   optOut: RegExp;
   optOutClauseBoundary: RegExp;
-  bareQuestionValue: RegExp;
-  postposedQuestionValue: RegExp;
+  optOutConnectorBoundary: RegExp;
+  optOutGrammar: RegExp;
   goal: RegExp;
   inferredFact: RegExp;
-  literalQuestionValue: RegExp;
   standaloneFact?: RegExp;
   name: RegExp;
   preference: RegExp;
@@ -77,6 +88,8 @@ export interface RomancePackDefinition {
   entityStopwords: ReadonlySet<string>;
   distinctivePatterns: readonly RegExp[];
   incompatiblePatterns: readonly RegExp[];
+  interrogativeAnchors: readonly string[];
+  nominalClauseAssertion: RegExp;
   decompositionBoundary: RegExp;
   analyzeQuery(text: string): LanguageQueryAnalysis;
   analyzeContent(text: string): LanguageContentAnalysis;
@@ -84,6 +97,7 @@ export interface RomancePackDefinition {
   temporalPatterns: readonly RomanceTemporalPattern[];
   wordDate: RomanceWordDate;
   candidatePatterns: RomanceCandidatePatterns;
+  durableTargetAliases: DurableTargetSlotAliases;
   renderCatalog: Readonly<Record<LanguageRenderKey, string>>;
 }
 
@@ -177,8 +191,6 @@ function extractRomanceOptOutTarget(
     .trim();
 }
 
-const ROMANCE_QUESTION_CLAUSE_PATTERN =
-  /^(?:¿\s*)?(?:quel(?:le|les|s)?|qui|où|quand|pourquoi|comment|combien|est-ce|qu['’]est-ce|qué|cuál(?:es)?|quién(?:es)?|dónde|cuándo|por\s+qué|cómo|cuánto)(?=$|[^\p{L}\p{N}])/iu;
 const ROMANCE_FACT_COUNT_PATTERN =
   /^\s*(?:s['’]il\s+(?:te|vous)\s+plaît|por\s+favor)?\s*,?\s*(?:souviens-toi|rappelez-vous|mémorise|recuerda|recuérdalo|memoriza)\s+(?:de\s+|d['’])?(un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|\d+)\s+(?:choses?|cosas?)\b/iu;
 
@@ -218,34 +230,142 @@ function romanceFactCount(content: string): number {
   return counts[token] ?? 1;
 }
 
-function isRomanceExplicitFactQuestion(
+function romanceInterrogativeAnchorSource(
+  definition: RomancePackDefinition,
+): string {
+  return definition.interrogativeAnchors
+    .map((anchor) => anchor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"))
+    .join("|");
+}
+
+function romanceInterrogativeAnchorPattern(
+  definition: RomancePackDefinition,
+): RegExp {
+  return new RegExp(
+    `^(?:¿\\s*)?(?:${romanceInterrogativeAnchorSource(definition)})(?=$|[^\\p{L}\\p{N}])`,
+    "iu",
+  );
+}
+
+function romancePostposedQuestionValuePattern(
+  definition: RomancePackDefinition,
+): RegExp {
+  return new RegExp(
+    `[,，、]\\s*(?:${romanceInterrogativeAnchorSource(definition)})$`,
+    "iu",
+  );
+}
+
+function stripRomanceInterrogativeAnchors(
+  text: string,
+  definition: RomancePackDefinition,
+): string {
+  return replaceUnquotedText(
+    text,
+    new RegExp(
+      `(?<![\\p{L}\\p{N}])(?:${romanceInterrogativeAnchorSource(definition)})(?![\\p{L}\\p{N}])`,
+      "giu",
+    ),
+    " ",
+  );
+}
+
+function romanceRetrievalTokens(
+  text: string,
+  definition: RomancePackDefinition,
+  minimumLength: number,
+): string[] {
+  const protectedTokens = collectProtectedRetrievalTokens(
+    text,
+    definition.defaultLocale,
+  );
+  return tokenizeUnicodeText(
+    stripRomanceInterrogativeAnchors(text, definition),
+    definition.defaultLocale,
+  ).filter((token) =>
+    protectedTokens.has(token) ||
+    (token.length >= minimumLength && !definition.stopwords.has(token))
+  );
+}
+
+function isRomanceInterrogativeClause(
   content: string,
   source: string,
   definition: RomancePackDefinition,
 ): boolean {
+  const unquotedContent = maskQuotedText(content).trim();
+  const unquotedSource = maskQuotedText(source).trim();
+  const anchorPattern = romanceInterrogativeAnchorPattern(definition);
+  if (
+    !/[?？]\s*$/u.test(unquotedSource) &&
+    anchorPattern.test(unquotedContent) &&
+    definition.nominalClauseAssertion.test(unquotedContent) &&
+    !new RegExp(
+      `(?:${romanceInterrogativeAnchorSource(definition)})$`,
+      "iu",
+    ).test(unquotedContent)
+  ) {
+    return false;
+  }
+  const leadingCommaIndex = unquotedContent.search(/[,，]/u);
+  if (
+    !/[?？]\s*$/u.test(unquotedSource) &&
+    leadingCommaIndex >= 0 &&
+    anchorPattern.test(unquotedContent)
+  ) {
+    const mainClause = unquotedContent.slice(leadingCommaIndex + 1).trim();
+    if (!isRomanceInterrogativeClause(mainClause, mainClause, definition)) {
+      return false;
+    }
+  }
+  if (definition.candidatePatterns.occurrenceConfirmation.test(unquotedContent)) {
+    return true;
+  }
   const assignmentIndex = content.search(/[=＝]/u);
   if (assignmentIndex >= 0) {
     const left = content.slice(0, assignmentIndex).trim();
     const right = content.slice(assignmentIndex + 1).trim();
-    if (ROMANCE_QUESTION_CLAUSE_PATTERN.test(left)) {
+    if (anchorPattern.test(maskQuotedText(left).trim())) {
       return true;
     }
-    if (/[?？]\s*$/u.test(source)) {
+    if (isExplicitlyQuotedValue(right)) {
+      return false;
+    }
+    if (/[?？]\s*$/u.test(unquotedSource)) {
       if (definition.candidatePatterns.assignmentConfirmation.test(right)) {
         return true;
       }
-      if (definition.candidatePatterns.postposedQuestionValue.test(right)) {
+      if (romancePostposedQuestionValuePattern(definition).test(right)) {
         return true;
       }
-      return !definition.candidatePatterns.literalQuestionValue.test(right) ||
-        definition.candidatePatterns.bareQuestionValue.test(right);
+      return true;
     }
     return false;
   }
 
-  return /[?？]\s*$/u.test(source) ||
-    definition.candidatePatterns.unpunctuatedQuestion.test(content) ||
-    ROMANCE_QUESTION_CLAUSE_PATTERN.test(content);
+  const hasDeclarativeTerminator = /[.!。！]\s*$/u.test(unquotedSource);
+  const statementBody = hasDeclarativeTerminator
+    ? unquotedContent.replace(/[.!。！]\s*$/u, "").trim()
+    : unquotedContent;
+
+  return /[?？]\s*$/u.test(unquotedSource) ||
+    /^¿/u.test(unquotedSource) ||
+    definition.candidatePatterns.unpunctuatedQuestion.test(statementBody) ||
+    (!hasDeclarativeTerminator && anchorPattern.test(unquotedContent));
+}
+
+function analyzeRomanceContent(
+  content: string,
+  definition: RomancePackDefinition,
+): LanguageContentAnalysis {
+  return {
+    ...definition.analyzeContent(content),
+    interrogative: isRomanceInterrogativeClause(
+      content,
+      content,
+      definition,
+    ),
+  };
 }
 
 function splitRomanceClauses(
@@ -254,11 +374,34 @@ function splitRomanceClauses(
 ): string[] {
   return splitClausesGeneric(text)
     .flatMap((clause) =>
+      definition.candidatePatterns.explicitFactPrefix.test(clause.trim()) ||
+        definition.candidatePatterns.optOut.test(clause.trim())
+        ? [clause]
+        : splitTrailingInterrogativeClause(
+          clause,
+          (candidate) =>
+            isRomanceInterrogativeClause(candidate, candidate, definition),
+          (candidate) =>
+            /[?？]\s*$/u.test(maskQuotedText(candidate)) ||
+            definition.candidatePatterns.unpunctuatedQuestion.test(
+              maskQuotedText(candidate).trim(),
+            ),
+        )
+    )
+    .flatMap((clause) =>
+      clause.split(definition.candidatePatterns.optOutConnectorBoundary)
+    )
+    .map((clause) =>
+      isolateDirectiveGrammar(
+        clause,
+        definition.candidatePatterns.optOutGrammar,
+      )
+    )
+    .flatMap((clause) =>
       definition.candidatePatterns.optOut.test(clause.trim())
         ? [clause]
         : clause.split(definition.candidatePatterns.optOutClauseBoundary)
     )
-    .map((clause) => clause.trim())
     .filter(Boolean);
 }
 
@@ -311,7 +454,7 @@ function extractExplicitFactClauses(
   }
   if (clauses.some(({ content: clause, source }) =>
     !definition.candidatePatterns.optOut.test(clause) &&
-    isRomanceExplicitFactQuestion(clause, source, definition)
+    isRomanceInterrogativeClause(clause, source, definition)
   )) {
     return { clauses: [], status: "invalid" as const };
   }
@@ -515,18 +658,38 @@ function extractRomanceCandidates(
       (content) => splitRomanceClauses(content, definition),
     );
     const sourceAnalysis = message.analysis ??
-      definition.analyzeContent(message.content);
+      analyzeRomanceContent(message.content, definition);
     for (const clause of clauses) {
       const content = clause.content.trim();
       const clauseAnalysis = clauses.length === 1 && clause.content === message.content
         ? sourceAnalysis
-        : definition.analyzeContent(content);
+        : analyzeRomanceContent(content, definition);
+      if (
+        clause.disposition === "ordinary" &&
+        isRomanceInterrogativeClause(content, content, definition)
+      ) {
+        continue;
+      }
       const isFeedback = clause.disposition === "feedback" ||
         (clause.disposition === "ordinary" &&
           definition.candidatePatterns.feedback.test(content));
       if (isFeedback) {
+        const optOutTarget = clause.disposition === "feedback"
+          ? extractRomanceOptOutTarget(
+            content,
+            definition.candidatePatterns.optOut,
+          )
+          : undefined;
         pushCandidate(candidates, {
           content,
+          ...(optOutTarget
+            ? {
+              disposition: createLanguageDurableOptOutDisposition(
+                optOutTarget,
+                definition.durableTargetAliases,
+              ),
+            }
+            : {}),
           explicitness: "explicit",
           id: input.nextId(),
           kindHint: "feedback",
@@ -537,10 +700,7 @@ function extractRomanceCandidates(
               : clauseAnalysis.feedbackKind,
             ...(clause.disposition === "feedback"
               ? {
-                optOutTarget: extractRomanceOptOutTarget(
-                  content,
-                  definition.candidatePatterns.optOut,
-                ),
+                optOutTarget,
               }
               : {}),
           },
@@ -718,7 +878,9 @@ function extractRomanceCandidates(
 
     }
   }
-  return candidates;
+  return candidates.map((candidate) =>
+    attachLanguageDurableTarget(candidate, definition.durableTargetAliases)
+  );
 }
 
 export function createRomanceLanguagePack(
@@ -740,15 +902,11 @@ export function createRomanceLanguagePack(
       const tokens = tokenizeUnicodeText(text, definition.defaultLocale)
         .filter((token) => token.length >= minimumLength);
       return options?.excludeStopwords
-        ? tokens.filter((token) => !definition.stopwords.has(token))
+        ? romanceRetrievalTokens(text, definition, minimumLength)
         : tokens;
     },
     buildSearchTerms(text) {
-      return unique(
-        tokenizeUnicodeText(text, definition.defaultLocale).filter(
-          (token) => token.length >= 2 && !definition.stopwords.has(token),
-        ),
-      );
+      return unique(romanceRetrievalTokens(text, definition, 2));
     },
     splitClauses(text) {
       return splitRomanceClauses(text, definition);
@@ -764,7 +922,9 @@ export function createRomanceLanguagePack(
       );
     },
     analyzeQuery: definition.analyzeQuery,
-    analyzeContent: definition.analyzeContent,
+    analyzeContent(text) {
+      return analyzeRomanceContent(text, definition);
+    },
     parseTemporalExpressions(text) {
       return parseRomanceTemporalExpressions(text, {
         daysAgoPattern: definition.daysAgoPattern,
@@ -785,6 +945,12 @@ export function createRomanceLanguagePack(
     },
     acceptsEntityCandidate(input) {
       return acceptsLatinEntityCandidate(input, definition.entityStopwords);
+    },
+    deriveDurableTarget(candidate) {
+      return deriveLanguageDurableTarget(
+        candidate,
+        definition.durableTargetAliases,
+      );
     },
     extractCandidates(input) {
       return extractRomanceCandidates(input, definition);

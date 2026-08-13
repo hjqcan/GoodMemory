@@ -1,4 +1,7 @@
-import type { MemoryCandidate } from "../domain/memoryCandidate";
+import type {
+  DurableTargetIdentity,
+  MemoryCandidate,
+} from "../domain/memoryCandidate";
 import type { FeedbackKind } from "../domain/records";
 import type { TemporalExpression } from "../domain/temporal";
 
@@ -75,6 +78,7 @@ export interface LanguageContentAnalysis {
   factPolarity: "positive" | "negative" | "unknown";
   feedbackKind: FeedbackKind;
   focusFact: boolean;
+  interrogative?: boolean;
   openLoopFact: boolean;
   personalEvidence: boolean;
   preferenceEvidence: boolean;
@@ -339,6 +343,7 @@ export interface LanguagePack {
   extractEntityMentions(text: string): LanguageEntityMention[];
   matchesEntityAlias(query: string, alias: string): boolean;
   acceptsEntityCandidate(input: LanguageEntityCandidateInput): boolean;
+  deriveDurableTarget?(candidate: MemoryCandidate): DurableTargetIdentity | undefined;
   extractCandidates(input: LanguageCandidateExtractionInput): MemoryCandidate[];
   render(input: LanguageRenderInput): string;
 }
@@ -462,6 +467,10 @@ export interface LanguageService {
     input: LanguageEntityCandidateInput,
     context: ResolvedLanguageContext | string,
   ): boolean;
+  deriveDurableTarget?(
+    candidate: MemoryCandidate,
+    context: ResolvedLanguageContext | string,
+  ): DurableTargetIdentity | undefined;
   extractCandidates(
     input: LanguageCandidateExtractionInput,
     context: ResolvedLanguageContext | string,

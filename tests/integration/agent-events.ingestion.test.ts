@@ -120,6 +120,48 @@ function createFeedbackReceiptBarrierDocumentStore(traceId: string): DocumentSto
 }
 
 describe("agent event ingestion", () => {
+  it("rejects storage-unsafe event identity and structured tool fields before persistence", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+    const scope = {
+      sessionId: "s-storage-safe",
+      userId: "u-storage-safe",
+      workspaceId: "workspace-a",
+    } as const;
+    const base = {
+      surface: "host" as const,
+      kind: "tool_call" as const,
+      runId: "run-1",
+      turnId: "turn-1",
+      sequence: 0,
+      occurredAt: "2026-04-22T00:00:00.000Z",
+      hostKind: "codex" as const,
+      scope,
+      toolName: "QuickCheck",
+    };
+
+    await expect(ingestHostAgentEvent(memory, {
+      ...base,
+      eventId: "event\u0000id",
+    })).rejects.toThrow("Storage-unsafe text at event.eventId");
+    await expect(ingestHostAgentEvent(memory, {
+      ...base,
+      eventId: "event-safe",
+      payload: { note: "visible\u0000metadata" },
+    })).rejects.toThrow("Storage-unsafe text at event.payload.note");
+    const support = readGoodMemoryIntegrationSupport(memory);
+    await expect(support!.ingestHostAgentEvent({
+      event: {
+        ...base,
+        eventId: "event-direct-support",
+        payload: { note: "visible\u0000metadata" },
+      },
+    })).rejects.toThrow("Storage-unsafe text at event.payload.note");
+
+    const exported = await memory.exportMemory({ scope });
+    expect(exported.durable.evidence).toEqual([]);
+    expect(exported.durable.experiences).toEqual([]);
+  });
+
   it("persists selective tool-result evidence and experience and dedupes by event id", async () => {
     const memory = createGoodMemory({
       storage: { provider: "memory" },

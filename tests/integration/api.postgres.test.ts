@@ -189,6 +189,118 @@ if (POSTGRES_URL) {
       }
     }, 15_000);
 
+    it("rejects storage-unsafe external strings before any JSONB write", async () => {
+      const fixtures = [
+        ["subject", { subject: "project\u0000alpha" }],
+        ["attributes", { attributes: { note: "visible\u0000metadata" } }],
+        ["tags", { tags: Array.of("release\u0000private") }],
+        ["unpaired-high-surrogate", { subject: "project\uD800alpha" }],
+        ["unpaired-low-surrogate", { subject: "project\uDC00alpha" }],
+      ] as const;
+
+      for (const [name, metadata] of fixtures) {
+        const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const userId = `pg-storage-unsafe-${name}-${unique}`;
+        const scope = {
+          userId,
+          sessionId: `s-${unique}`,
+          workspaceId: "workspace-a",
+        };
+        const memory = createGoodMemory({
+          storage: { provider: "postgres", url: POSTGRES_URL },
+          testing: {
+            extractor: {
+              async extract() {
+                return {
+                  candidates: [{
+                    id: `unsafe-${name}`,
+                    kindHint: "fact" as const,
+                    explicitness: "explicit" as const,
+                    content: "project code=Tachikoma",
+                    metadata,
+                    sourceMessageIndex: 0,
+                    sourceRole: "user" as const,
+                  }],
+                  ignoredMessageCount: 0,
+                };
+              },
+            },
+          },
+        });
+
+        try {
+          const remembered = await memory.remember({
+            messages: [{ role: "user", content: "safe source" }],
+            scope,
+          });
+          const exported = await memory.exportMemory({ scope });
+
+          expect(remembered).toMatchObject({
+            accepted: 0,
+            rejected: 1,
+            events: [expect.objectContaining({ reason: "storage_unsafe" })],
+          });
+          expect(exported.durable.facts).toEqual([]);
+          expect(exported.durable.evidence).toEqual([]);
+          expect(exported.durable.sourceMessages).toEqual([]);
+        } finally {
+          await cleanupUserData(POSTGRES_URL, userId);
+        }
+      }
+
+      const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const userId = `pg-storage-unsafe-id-${unique}`;
+      const scope = {
+        userId,
+        sessionId: `s-${unique}`,
+        workspaceId: "workspace-a",
+      };
+      const memory = createGoodMemory({
+        storage: { provider: "postgres", url: POSTGRES_URL },
+      });
+      try {
+        await expect(memory.remember({
+          messages: [{
+            id: "message\u0000id",
+            role: "user",
+            content: "Remember that editor=Neovim.",
+          }],
+          scope,
+        })).rejects.toThrow("Storage-unsafe text at input.messages[0].id");
+        expect((await memory.exportMemory({ scope })).durable.sourceMessages).toEqual([]);
+      } finally {
+        await cleanupUserData(POSTGRES_URL, userId);
+      }
+    }, 30_000);
+
+    it("rejects storage-unsafe recall scope before a Postgres experience write", async () => {
+      const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const userId = `pg-storage-unsafe-recall-${unique}`;
+      const memory = createGoodMemory({
+        storage: { provider: "postgres", url: POSTGRES_URL },
+      });
+
+      try {
+        await expect(memory.recall({
+          query: "What is the project status?",
+          scope: {
+            sessionId: `s-${unique}`,
+            userId,
+            workspaceId: "workspace\u0000unsafe",
+          },
+          strategy: "rules-only",
+        })).rejects.toMatchObject({
+          code: "ERR_GOODMEMORY_STORAGE_UNSAFE_TEXT",
+          path: "input.scope.workspaceId",
+        });
+
+        const exported = await memory.exportMemory({ scope: { userId } });
+        expect(exported.durable.experiences).toEqual([]);
+      } finally {
+        await cleanupUserData(POSTGRES_URL, userId);
+      }
+    }, 15_000);
+
     it("runs remember, recall, feedback, forget, and buildContext against postgres", async () => {
       const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const userId = `pg-e2e-${unique}`;

@@ -123,6 +123,7 @@ async function initializeStableSource(input: {
       files: [
         ".well-known/goodmemory.json",
         "benchmark-claims/evidence/locomo-v0.7.3-current.json",
+        "benchmark-claims/evidence/locomo-v0.7.3-verified.json",
         "README.md",
         "README.zh-CN.md",
         "dist",
@@ -146,6 +147,10 @@ async function initializeStableSource(input: {
   await mkdir(join(input.root, "benchmark-claims/evidence"), { recursive: true });
   await writeFile(
     join(input.root, "benchmark-claims/evidence/locomo-v0.7.3-current.json"),
+    `${JSON.stringify({ descriptorClaim: LOCOMO_CLAIM }, null, 2)}\n`,
+  );
+  await writeFile(
+    join(input.root, "benchmark-claims/evidence/locomo-v0.7.3-verified.json"),
     `${JSON.stringify({ descriptorClaim: LOCOMO_CLAIM }, null, 2)}\n`,
   );
   await writeFile(

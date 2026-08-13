@@ -10,6 +10,7 @@ import {
 import {
   createFeedbackMemory,
 } from "../domain/records";
+import type { MemoryCandidate } from "../domain/memoryCandidate";
 import type {
   ArtifactSpillRecord,
   FeedbackMemory,
@@ -18,6 +19,7 @@ import type {
   WorkingMemorySnapshot,
 } from "../domain/records";
 import { createMemorySource } from "../domain/provenance";
+import { assertStorageSafeExternalValue } from "../domain/semanticText";
 import {
   createExperienceRecord,
   EXPERIENCES_COLLECTION,
@@ -28,7 +30,12 @@ import type {
   LanguageService,
   ResolvedLanguageContext,
 } from "../language";
-import { toPolicyMemoryRecord } from "../policy/hooks";
+import {
+  evaluateShouldRemember,
+  redactPolicyCandidate,
+  resolvePolicyConflict,
+  toPolicyMemoryRecord,
+} from "../policy/hooks";
 import type {
   CreateHostAdapterInput,
   HostActionAssessmentResult,
@@ -871,18 +878,7 @@ function parsePlaybookCanonicalMemoryId(
 function createPolicyCandidate(input: {
   appliesTo?: string;
   rule: string;
-}): {
-  content: string;
-  explicitness: "explicit";
-  id: string;
-  kindHint: "feedback";
-  metadata: {
-    appliesTo?: string;
-    feedbackKind: "validated_pattern";
-  };
-  sourceMessageIndex: number;
-  sourceRole: string;
-} {
+}): MemoryCandidate {
   return {
     id: "host-write-candidate",
     kindHint: "feedback",
@@ -1178,11 +1174,15 @@ async function applyPlaybookWrite(input: {
   };
 
   if (input.policy?.redact) {
-    const redacted = await input.policy.redact(candidate, policyContext);
+    const redacted = await redactPolicyCandidate(
+      input.policy,
+      candidate,
+      policyContext,
+    );
 
     if (
       redacted.content !== candidate.content ||
-      redacted.metadata?.appliesTo !== candidate.metadata.appliesTo
+      redacted.metadata?.appliesTo !== candidate.metadata?.appliesTo
     ) {
       policyApplied.push("custom_redact");
     }
@@ -1190,18 +1190,14 @@ async function applyPlaybookWrite(input: {
     candidate = {
       ...candidate,
       content: redacted.content,
-      metadata: {
-        ...candidate.metadata,
-        ...redacted.metadata,
-        feedbackKind: "validated_pattern",
-      },
+      explicitness: redacted.explicitness,
+      metadata: redacted.metadata,
     };
   }
 
-  if (
-    input.policy?.shouldRemember &&
-    !(await input.policy.shouldRemember(candidate, policyContext))
-  ) {
+  assertStorageSafeExternalValue(candidate, "candidate");
+
+  if (!(await evaluateShouldRemember(input.policy, candidate, policyContext))) {
     policyApplied.push("custom_shouldRemember");
 
     throw createWriteError(
@@ -1230,7 +1226,7 @@ async function applyPlaybookWrite(input: {
       ? undefined
       : parsed.why;
   const structuredDelta = buildStructuredDelta({
-    nextAppliesTo: candidate.metadata.appliesTo,
+    nextAppliesTo: candidate.metadata?.appliesTo,
     nextRule: candidate.content,
     nextWhy,
     previous: existing,
@@ -1250,13 +1246,14 @@ async function applyPlaybookWrite(input: {
   }
 
   if (input.policy?.resolveConflict) {
-    const resolution = await input.policy.resolveConflict(
+    const resolution = await resolvePolicyConflict(
+      input.policy,
       toPolicyMemoryRecord(existing, "feedback"),
       candidate,
       policyContext,
     );
 
-    if (resolution.action === "keep_existing") {
+    if (resolution?.action === "keep_existing") {
       policyApplied.push("custom_resolveConflict");
 
       throw createWriteError(
@@ -1320,7 +1317,7 @@ async function applyPlaybookWrite(input: {
 
   const updatedRecord = createFeedbackMemory({
     ...existing,
-    appliesTo: candidate.metadata.appliesTo,
+    appliesTo: candidate.metadata?.appliesTo,
     rule: candidate.content,
     source: createMemorySource(existing.source),
     updatedAt: wroteAt,
@@ -1510,6 +1507,7 @@ export function createHostAdapter(input: CreateHostAdapterInput): HostAdapter {
       };
     },
     async writeArtifact(writeInput: HostWriteArtifactInput) {
+      assertStorageSafeExternalValue(writeInput, "writeInput");
       const diagnostics = createDiagnostics({
         adapterId: input.id,
         artifactType: writeInput.artifactType,

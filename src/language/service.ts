@@ -166,6 +166,9 @@ function snapshotPack(pack: LanguagePack): LanguagePack {
       `${id} defaultLocale`,
     ),
     detect: pack.detect,
+    ...(pack.deriveDurableTarget
+      ? { deriveDurableTarget: pack.deriveDurableTarget }
+      : {}),
     extractCandidates: pack.extractCandidates,
     extractEntityMentions: pack.extractEntityMentions,
     id,
@@ -536,8 +539,18 @@ export function createLanguageService(
     acceptsEntityCandidate(input, context) {
       return packFor(context).acceptsEntityCandidate(input);
     },
+    deriveDurableTarget(candidate, context) {
+      return packFor(context).deriveDurableTarget?.(candidate);
+    },
     extractCandidates(input, context) {
-      return packFor(context).extractCandidates(input);
+      const pack = packFor(context);
+      return pack.extractCandidates(input).map((candidate) => {
+        if (candidate.durableTarget || !pack.deriveDurableTarget) {
+          return candidate;
+        }
+        const durableTarget = pack.deriveDurableTarget(candidate);
+        return durableTarget ? { ...candidate, durableTarget } : candidate;
+      });
     },
     render(input, context) {
       return packFor(context).render(input);

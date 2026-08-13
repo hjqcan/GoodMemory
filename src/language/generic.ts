@@ -42,6 +42,147 @@ export function normalizeUnicodeForEquality(value: string): string {
   );
 }
 
+const QUOTE_PAIRS = [
+  ["\"", "\""],
+  ["'", "'"],
+  ["`", "`"],
+  ["“", "”"],
+  ["‘", "’"],
+  ["«", "»"],
+  ["「", "」"],
+  ["『", "』"],
+] as const;
+const QUOTE_CLOSINGS = new Map<string, string>(QUOTE_PAIRS);
+const QUOTE_CHARACTERS = new Set<string>(QUOTE_PAIRS.flat());
+
+export function isExplicitlyQuotedValue(value: string): boolean {
+  const trimmed = value.trim();
+  return QUOTE_PAIRS.some(([opening, closing]) =>
+    trimmed.length > opening.length + closing.length &&
+    trimmed.startsWith(opening) &&
+    trimmed.endsWith(closing)
+  );
+}
+
+function isWordApostrophe(value: string, index: number): boolean {
+  return value[index] === "'" &&
+    /[\p{L}\p{N}]/u.test(value[index - 1] ?? "") &&
+    /[\p{L}\p{N}]/u.test(value[index + 1] ?? "");
+}
+
+export function maskQuotedText(value: string): string {
+  const characters = value.split("");
+  let closingQuote: string | undefined;
+  let openingIndex = -1;
+  for (let index = 0; index < characters.length; index += 1) {
+    const character = characters[index]!;
+    if (closingQuote) {
+      characters[index] = " ";
+      if (character === closingQuote) {
+        closingQuote = undefined;
+        openingIndex = -1;
+      }
+      continue;
+    }
+    if (isWordApostrophe(value, index)) {
+      continue;
+    }
+    const closing = QUOTE_CLOSINGS.get(character);
+    if (closing) {
+      characters[index] = " ";
+      closingQuote = closing;
+      openingIndex = index;
+    }
+  }
+  if (closingQuote && openingIndex >= 0) {
+    return value;
+  }
+  return characters.join("");
+}
+
+export function replaceUnquotedText(
+  value: string,
+  pattern: RegExp,
+  replacement: string,
+): string {
+  let closingQuote: string | undefined;
+  let output = "";
+  let start = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index]!;
+    if (closingQuote) {
+      if (character === closingQuote) {
+        output += value.slice(start, index + 1);
+        start = index + 1;
+        closingQuote = undefined;
+      }
+      continue;
+    }
+    if (isWordApostrophe(value, index)) {
+      continue;
+    }
+    const closing = QUOTE_CLOSINGS.get(character);
+    if (closing) {
+      output += value.slice(start, index).replace(pattern, replacement);
+      start = index;
+      closingQuote = closing;
+    }
+  }
+  return closingQuote
+    ? value.replace(pattern, replacement)
+    : output + value.slice(start).replace(pattern, replacement);
+}
+
+export function collectProtectedRetrievalTokens(
+  value: string,
+  locale: string,
+): ReadonlySet<string> {
+  const quoted = replaceUnquotedText(value, /[\s\S]/gu, " ");
+  return new Set(tokenizeUnicodeText(quoted, locale));
+}
+
+export function splitTrailingInterrogativeClause(
+  value: string,
+  isInterrogative: (clause: string) => boolean,
+  hasExplicitInterrogativeBoundary: (clause: string) => boolean =
+    (clause) => /[?？]\s*$/u.test(maskQuotedText(clause)),
+): string[] {
+  const masked = maskQuotedText(value);
+  for (let index = masked.length - 1; index >= 0; index -= 1) {
+    if (!/[,，、]/u.test(masked[index]!)) {
+      continue;
+    }
+    const assertion = value.slice(0, index).trim();
+    const question = value.slice(index + 1).trim();
+    if (
+      assertion &&
+      question &&
+      !/[=＝]/u.test(assertion) &&
+      !isInterrogative(assertion) &&
+      hasExplicitInterrogativeBoundary(question) &&
+      isInterrogative(question)
+    ) {
+      return [assertion, question];
+    }
+  }
+  return [value.trim()].filter(Boolean);
+}
+
+export function isolateDirectiveGrammar(
+  clause: string,
+  grammar: RegExp,
+): string {
+  const trimmed = clause.trim();
+  const markerIndex = trimmed.match(grammar)?.index;
+  if (markerIndex === undefined || markerIndex === 0) {
+    return trimmed;
+  }
+  const prefix = trimmed.slice(0, markerIndex);
+  const hasStructuredPrefix = /[=＝]/u.test(prefix) ||
+    [...prefix].some((character) => QUOTE_CHARACTERS.has(character));
+  return hasStructuredPrefix ? trimmed : trimmed.slice(markerIndex);
+}
+
 export function containsHanScript(value: string): boolean {
   return /\p{Script=Han}/u.test(value);
 }
@@ -116,14 +257,48 @@ export function tokenizeUnicodeText(
 }
 
 export function splitClausesGeneric(content: string): string[] {
-  const clauses = content
-    .split(
-      /(?:\r?\n+)|(?<=[。！？；!?;])\s*|(?<=\.)(?<!\b[A-Z]\.)\s+(?=[A-Z])/u,
-    )
+  const clauses = splitTopLevelSentenceClauses(content)
+    .flatMap(splitLatinSentenceClauses)
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
 
   return clauses.length > 0 ? clauses : [content.trim()].filter(Boolean);
+}
+
+function splitTopLevelSentenceClauses(content: string): string[] {
+  const masked = maskQuotedText(content);
+  const clauses: string[] = [];
+  const boundaryPattern = /\r?\n+|[；;]+|[。！？!?]+/gu;
+  let start = 0;
+  for (const match of masked.matchAll(boundaryPattern)) {
+    const lineBoundary = match[0].includes("\n");
+    const end = match.index + (lineBoundary ? 0 : match[0].length);
+    clauses.push(content.slice(start, end));
+    start = match.index + match[0].length;
+  }
+  clauses.push(content.slice(start));
+  return clauses;
+}
+
+function splitLatinSentenceClauses(content: string): string[] {
+  const clauses: string[] = [];
+  const boundaryPattern = /\.\s+(?=[A-Z\p{Script=Hangul}])/gu;
+  const masked = maskQuotedText(content);
+  let start = 0;
+  for (const match of masked.matchAll(boundaryPattern)) {
+    const boundary = match.index + 1;
+    const prefix = content.slice(start, boundary);
+    if (
+      /(?:^|[^\p{L}])(?:\p{L}\.){2,}$/u.test(prefix) ||
+      /(?:^|\s)[A-Z]\.$/u.test(prefix)
+    ) {
+      continue;
+    }
+    clauses.push(content.slice(start, boundary));
+    start = match.index + match[0].length;
+  }
+  clauses.push(content.slice(start));
+  return clauses;
 }
 
 export interface ExplicitFactCandidateClause {

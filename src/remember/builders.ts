@@ -8,6 +8,7 @@ import {
   createUserProfile,
   isActiveMemoryLifecycle,
 } from "../domain/records";
+import { resolveFeedbackKind } from "./durableOptOut";
 import type {
   FactMemory,
   FeedbackMemory,
@@ -593,7 +594,7 @@ export function buildFeedback(
     agentId: scope.agentId,
     sessionId: scope.sessionId,
     rule: candidate.content,
-    kind: candidate.metadata?.feedbackKind ?? "do",
+    kind: resolveFeedbackKind(candidate),
     appliesTo: candidate.metadata?.appliesTo,
     tags: candidate.metadata?.tags,
     attributes: candidate.metadata?.attributes,

@@ -3,6 +3,11 @@ import type {
   MemoryCandidateMetadata,
   ProfileField,
 } from "../domain/memoryCandidate";
+import {
+  attachLanguageDurableTarget,
+  createLanguageDurableOptOutDisposition,
+  deriveLanguageDurableTarget,
+} from "./durableTarget";
 import type {
   LanguageCandidateExtractionInput,
   LanguageContentAnalysis,
@@ -15,9 +20,14 @@ import type {
 } from "../domain/records";
 import { extractReferencePointer } from "../domain/referencePointer";
 import {
+  collectProtectedRetrievalTokens,
   expandExplicitFactCandidateClauses,
+  isExplicitlyQuotedValue,
+  isolateDirectiveGrammar,
+  maskQuotedText,
   normalizeUnicodeForEquality,
   splitClausesGeneric,
+  splitTrailingInterrogativeClause,
   tokenizeUnicodeText,
 } from "./generic";
 import {
@@ -59,6 +69,17 @@ const BEHAVIORAL_RULE_PATTERNS = {
 } as const;
 
 const GREETING_PATTERN = /^(hi|hello|hey|thanks|thank you|ok|okay)[.!]?$/i;
+const ENGLISH_DURABLE_TARGET_ALIASES = {
+  "my name": "profile:name",
+  "my timezone": "profile:timezone",
+  name: "profile:name",
+  preference: "preference",
+  preferences: "preference",
+  "project code": "project_code",
+  "project codename": "project_code",
+  "time zone": "profile:timezone",
+  timezone: "profile:timezone",
+} as const;
 const IRREGULAR_EVENT_PREDICATES: Readonly<Record<string, string>> = {
   ate: "eat",
   eaten: "eat",
@@ -137,6 +158,8 @@ const PET_NAME_PATTERN =
   /\bmy\s+(cat|dog|puppy|kitten|pet)(?:['’]s)?\s+name\s+is\s+([A-Z][A-Za-z'’-]{1,40})(?=\s*(?:[,.;!?]|\band\b|$))/i;
 const PET_BREED_LIKE_PATTERN =
   /\b(?:suit|for)\s+(?:an?\s+)?([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,3})\s+like\s+([A-Z][A-Za-z'’-]{1,40})\b/i;
+const PET_BREED_ASSERTION_PATTERN =
+  /\bmy\s+dog\s+([A-Z][A-Za-z'’-]{1,40})\s+is\s+(?:an?\s+)?([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,3})(?=[,.!?]|$)/i;
 const UNDERGRAD_INSTITUTION_PATTERN =
   /\bi\s+completed\s+my\s+(?:undergrad|undergraduate(?:\s+degree)?|bachelor['’]?s(?:\s+degree)?)\s+in\s+([^,.!?]+?)\s+from\s+([A-Z][A-Za-z0-9&.' -]{1,80}?)(?=\s*(?:[,.;!?]|\bwhich\b|$))/i;
 const FIRST_PERSON_USE_PATTERN =
@@ -175,20 +198,65 @@ const COUNTED_EXPLICIT_FACT_DIRECTIVE_PATTERN =
   /^(?:please\s*,?\s+)?remember\s+(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+things?\b/iu;
 const REMEMBER_QUESTION_PATTERN =
   /^(?:do|did|can|could|would|will)\s+you\s+remember\b.*\?$/iu;
-const EXPLICIT_FACT_QUESTION_CLAUSE_PATTERN =
-  /^(?:(?:what|who|which|where|when|why|how)\b|(?:is|are|am|was|were|do|does|did|can|could|would|will|should)\b)/iu;
-const EXPLICIT_FACT_LITERAL_QUESTION_VALUE_PATTERN =
-  /\b(?:what|who|which|where|when|why|how)\b/iu;
-const EXPLICIT_FACT_BARE_QUESTION_VALUE_PATTERN =
-  /^(?:what|who|which|where|when|why|how)(?:\s+(?:exactly|one|ones))?\s*\?\s*$/iu;
-const EXPLICIT_FACT_POSTPOSED_QUESTION_VALUE_PATTERN =
-  /[,，、]\s*(?:what|who|which|where|when|why|how)(?:\s+(?:exactly|one|ones))?\s*\?\s*$/iu;
-const EXPLICIT_FACT_UNPUNCTUATED_QUESTION_PATTERN =
-  /\b(?:is|are|was|were)\s+(?:what|who|which|where|when|why|how)\s*$/iu;
+const ENGLISH_INTERROGATIVE_ANCHORS = [
+  "what",
+  "who",
+  "whom",
+  "whose",
+  "which",
+  "where",
+  "when",
+  "why",
+  "how",
+] as const;
+const ENGLISH_INTERROGATIVE_HOW_MODIFIERS = [
+  "far",
+  "long",
+  "many",
+  "much",
+  "often",
+  "old",
+] as const;
+const ENGLISH_INTERROGATIVE_ANCHOR_SOURCE =
+  `(?:${ENGLISH_INTERROGATIVE_ANCHORS.join("|")})`;
+const ENGLISH_LEADING_INTERROGATIVE_ANCHOR_PATTERN = new RegExp(
+  `^${ENGLISH_INTERROGATIVE_ANCHOR_SOURCE}\\b`,
+  "iu",
+);
+const ENGLISH_NOMINAL_CLAUSE_ASSERTION_PATTERN = new RegExp(
+  `^(?:(?:${ENGLISH_INTERROGATIVE_ANCHOR_SOURCE})\\s+matters?|(?:${ENGLISH_INTERROGATIVE_ANCHOR_SOURCE})\\s+(?:i|we|you|he|she|it|they)\\s+[^?]+?|(?:what|who)\\s+\\p{L}+(?:s|ed)\\s+[^?]+?)\\s+(?:is|are|was|were|depends?|determines?|remains?|means?)\\s+[^?]+[.!]?$|^how\\s+[^?]+?\\s+(?:remains?|is|was)\\s+(?:unclear|unknown|unresolved|undocumented)[.!]?$`,
+  "iu",
+);
+const EXPLICIT_FACT_QUESTION_CLAUSE_PATTERN = new RegExp(
+  `^(?:${ENGLISH_INTERROGATIVE_ANCHOR_SOURCE}\\b|(?:is|are|am|was|were|do|does|did|can|could|would|will|should)\\s+(?:i|we|you|he|she|it|they|my|our|your|his|her|their|there|the|this|that)\\b)`,
+  "iu",
+);
+const EXPLICIT_FACT_POSTPOSED_QUESTION_VALUE_PATTERN = new RegExp(
+  `[,，、]\\s*${ENGLISH_INTERROGATIVE_ANCHOR_SOURCE}(?:\\s+(?:exactly|one|ones))?\\s*\\?\\s*$`,
+  "iu",
+);
+const EXPLICIT_FACT_UNPUNCTUATED_QUESTION_PATTERN = new RegExp(
+  `\\b(?:is|are|was|were)\\s+${ENGLISH_INTERROGATIVE_ANCHOR_SOURCE}\\s*$`,
+  "iu",
+);
+const ENGLISH_TERMINAL_INTERROGATIVE_PATTERN = new RegExp(
+  `\\b${ENGLISH_INTERROGATIVE_ANCHOR_SOURCE}\\s*$`,
+  "iu",
+);
+const ENGLISH_CLEAR_TRAILING_QUESTION_PATTERN = new RegExp(
+  `^${ENGLISH_INTERROGATIVE_ANCHOR_SOURCE}(?:\\s+exactly)?\\s+(?:am|is|are|was|were|do|does|did|can|could|would|will|should|have|has|had)\\b`,
+  "iu",
+);
+const ENGLISH_CONFIRMATION_QUESTION_PATTERN =
+  /,\s*(?:right|correct|yeah|isn['’]t it)\s*[.!]*$/iu;
 const EXPLICIT_FACT_OPT_OUT_PATTERN =
   /^(?:please\s*,?\s+)?(?:do\s+not|don['’]t|never)\s+(?:remember|save|store|record)\b/iu;
+const EXPLICIT_FACT_OPT_OUT_GRAMMAR_PATTERN =
+  /(?:please\s*,?\s+)?(?:do\s+not|don['’]t|never)\s+(?:remember|save|store|record)\b/iu;
 const EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN =
   /(?:,\s*|^(?:and|but)\s+|\s+(?:and|but)\s+)(?=(?:please\s*,?\s+)?(?:do\s+not|don['’]t|never)\s+(?:remember|save|store|record)\b)/iu;
+const EXPLICIT_FACT_OPT_OUT_CONNECTOR_BOUNDARY_PATTERN =
+  /(?:^(?:and|but)\s+|\s+(?:and|but)\s+)(?=(?:please\s*,?\s+)?(?:do\s+not|don['’]t|never)\s+(?:remember|save|store|record)\b)/iu;
 const EXPLICIT_FACT_ASSIGNMENT_CONFIRMATION_PATTERN =
   /\b(?:correct|right|true|accurate)\s*\?\s*$/iu;
 const EXPLICIT_DECISION_PATTERN =
@@ -302,7 +370,6 @@ const TOKEN_STOPWORDS = new Set([
   "her",
   "him",
   "his",
-  "how",
   "if",
   "i'm",
   "in",
@@ -327,10 +394,29 @@ const TOKEN_STOPWORDS = new Set([
   "us",
   "was",
   "we",
-  "who",
-  "why",
+  ...ENGLISH_INTERROGATIVE_ANCHORS,
   "you",
 ]);
+
+function filterEnglishRetrievalTokens(
+  text: string,
+  minimumLength: number,
+  keepBefore = false,
+): string[] {
+  const protectedTokens = collectProtectedRetrievalTokens(text, "en-US");
+  const unquoted = maskQuotedText(text);
+  const howModifiers = new Set<string>(
+    ENGLISH_INTERROGATIVE_HOW_MODIFIERS.filter((modifier) =>
+      new RegExp(`\\bhow\\s+${modifier}\\b`, "iu").test(unquoted)
+    ),
+  );
+  return tokenizeUnicodeText(text, "en-US").filter((token) =>
+    token.length >= minimumLength &&
+    (protectedTokens.has(token) ||
+      (((!TOKEN_STOPWORDS.has(token) || (keepBefore && token === "before"))) &&
+        !howModifiers.has(token)))
+  );
+}
 const ENGLISH_SUBJECT_TAIL_PATTERN =
   /\b(?:and|but)\s+(?:driving|tracking|keeping|handling|reviewing|planning|shipping|rolling|migrating|preparing|finalizing|waiting|coordinating|owning)\b.*$/i;
 const ENGLISH_SUBJECT_CLAUSE_PATTERN =
@@ -342,11 +428,30 @@ function splitEnglishClauses(text: string): string[] {
   return splitClausesGeneric(text)
     .flatMap((clause) => clause.split(/,\s*\bbut\b\s+/iu))
     .flatMap((clause) =>
+      EXPLICIT_FACT_DIRECTIVE_PATTERN.test(clause.trim()) ||
+        EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
+        ? [clause]
+        : splitTrailingInterrogativeClause(
+          clause,
+          (candidate) => isEnglishInterrogativeClause(candidate, candidate),
+          (candidate) =>
+            /\?\s*$/u.test(maskQuotedText(candidate)) ||
+            ENGLISH_CLEAR_TRAILING_QUESTION_PATTERN.test(
+              maskQuotedText(candidate).trim(),
+            ),
+        )
+    )
+    .flatMap((clause) =>
+      clause.split(EXPLICIT_FACT_OPT_OUT_CONNECTOR_BOUNDARY_PATTERN)
+    )
+    .map((clause) =>
+      isolateDirectiveGrammar(clause, EXPLICIT_FACT_OPT_OUT_GRAMMAR_PATTERN)
+    )
+    .flatMap((clause) =>
       EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
         ? [clause]
         : clause.split(EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN)
     )
-    .map((clause) => clause.trim())
     .filter(Boolean);
 }
 
@@ -380,10 +485,26 @@ function splitEnglishExplicitFactClauses(
     : clauses;
 }
 
-function isEnglishExplicitFactQuestion(
+function isEnglishInterrogativeClause(
   content: string,
   source: string,
 ): boolean {
+  const unquotedContent = maskQuotedText(content).trim();
+  const unquotedSource = maskQuotedText(source).trim();
+  if (ENGLISH_CONFIRMATION_QUESTION_PATTERN.test(unquotedContent)) {
+    return true;
+  }
+  const leadingCommaIndex = unquotedContent.search(/[,，]/u);
+  if (
+    !/\?\s*$/u.test(unquotedSource) &&
+    leadingCommaIndex >= 0 &&
+    ENGLISH_LEADING_INTERROGATIVE_ANCHOR_PATTERN.test(unquotedContent)
+  ) {
+    const mainClause = unquotedContent.slice(leadingCommaIndex + 1).trim();
+    if (!isEnglishInterrogativeClause(mainClause, mainClause)) {
+      return false;
+    }
+  }
   const assignmentIndex = content.search(/[=＝]/u);
   if (assignmentIndex >= 0) {
     const left = content.slice(0, assignmentIndex).trim();
@@ -396,19 +517,39 @@ function isEnglishExplicitFactQuestion(
     if (assignmentConfirmation) {
       return true;
     }
+    if (isExplicitlyQuotedValue(right)) {
+      return false;
+    }
     if (EXPLICIT_FACT_POSTPOSED_QUESTION_VALUE_PATTERN.test(right)) {
       return true;
     }
-    if (/\?\s*$/u.test(source)) {
-      return !EXPLICIT_FACT_LITERAL_QUESTION_VALUE_PATTERN.test(right) ||
-        EXPLICIT_FACT_BARE_QUESTION_VALUE_PATTERN.test(right);
+    if (/\?\s*$/u.test(unquotedSource)) {
+      return true;
     }
     return false;
   }
+  if (
+    !/\?\s*$/u.test(unquotedSource) &&
+    ENGLISH_NOMINAL_CLAUSE_ASSERTION_PATTERN.test(unquotedContent) &&
+    !ENGLISH_TERMINAL_INTERROGATIVE_PATTERN.test(unquotedContent)
+  ) {
+    return false;
+  }
 
-  return /\?\s*$/u.test(source) ||
-    EXPLICIT_FACT_UNPUNCTUATED_QUESTION_PATTERN.test(content) ||
-    EXPLICIT_FACT_QUESTION_CLAUSE_PATTERN.test(content);
+  const startsWithInterrogativeAnchor =
+    ENGLISH_LEADING_INTERROGATIVE_ANCHOR_PATTERN.test(unquotedContent);
+  const hasDeclarativeTerminator = /[.!]\s*$/u.test(unquotedSource);
+
+  return /\?\s*$/u.test(unquotedSource) ||
+    EXPLICIT_FACT_UNPUNCTUATED_QUESTION_PATTERN.test(unquotedContent) ||
+    ENGLISH_TERMINAL_INTERROGATIVE_PATTERN.test(unquotedContent) ||
+    (EXPLICIT_FACT_QUESTION_CLAUSE_PATTERN.test(unquotedContent) &&
+      (!startsWithInterrogativeAnchor ||
+        ENGLISH_CLEAR_TRAILING_QUESTION_PATTERN.test(unquotedContent) ||
+        !hasDeclarativeTerminator) &&
+      !/^(?:do|does|did|is|are|am|was|were|has|have|had|can|could|should|would|will)\s+not\b/iu.test(
+        unquotedContent,
+      ));
 }
 
 function extractExplicitFactClauses(content: string) {
@@ -471,7 +612,7 @@ function extractExplicitFactClauses(content: string) {
   }
   if (clauses.some(({ content: clause, source }) =>
     !EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause) &&
-    isEnglishExplicitFactQuestion(clause, source)
+    isEnglishInterrogativeClause(clause, source)
   )) {
     return { clauses: [], status: "invalid" as const };
   }
@@ -491,9 +632,13 @@ function extractExplicitFactClauses(content: string) {
 
 function analyzeEnglishContent(content: string): LanguageContentAnalysis {
   const analysis = analyzeEnglishContentBase(content);
-  return /^\s*(?:warning|caution)\s*:/iu.test(content)
-    ? { ...analysis, factPolarity: "negative" }
-    : analysis;
+  return {
+    ...analysis,
+    ...( /^\s*(?:warning|caution)\s*:/iu.test(content)
+      ? { factPolarity: "negative" as const }
+      : {}),
+    interrogative: isEnglishInterrogativeClause(content, content),
+  };
 }
 
 function deriveFactCategory(
@@ -825,7 +970,7 @@ function maskEnglishTemporalLiterals(content: string): string {
 function isEnglishCompletedEventAssertion(content: string): boolean {
   return !(
     /[?？]/u.test(content) ||
-    /,\s*(?:right|correct|yeah|isn['’]t it)\s*[.!]*$/iu.test(content) ||
+    ENGLISH_CONFIRMATION_QUESTION_PATTERN.test(content) ||
     /\b(?:what|who|where|when|why|how)\s*[.!]?$/iu.test(content) ||
     /\b(?:did\s+not|didn['’]t|had\s+not|has\s+not|have\s+not|never)\b/iu.test(
       content,
@@ -1012,22 +1157,28 @@ function maybeExtractCandidatesFromClause(
   if (
     trimmed.length === 0 ||
     GREETING_PATTERN.test(trimmed) ||
-    REMEMBER_QUESTION_PATTERN.test(trimmed)
+    REMEMBER_QUESTION_PATTERN.test(trimmed) ||
+    (analysis?.interrogative === true && disposition === "ordinary")
   ) {
     return [];
   }
 
   if (disposition === "feedback") {
+    const optOutTarget = extractEnglishOptOutTarget(trimmed);
     return [{
       id: nextId(),
       kindHint: "feedback",
       explicitness: "explicit",
       content: trimmed,
+      disposition: createLanguageDurableOptOutDisposition(
+        optOutTarget,
+        ENGLISH_DURABLE_TARGET_ALIASES,
+      ),
       sourceMessageIndex: index,
       sourceRole: "user",
       metadata: {
         feedbackKind: "dont",
-        optOutTarget: extractEnglishOptOutTarget(trimmed),
+        optOutTarget,
         appliesTo: "general_response",
       },
     }];
@@ -1322,6 +1473,25 @@ function maybeExtractCandidatesFromClause(
   ) {
     const breed = cleanExtractedValue(petBreedLikeMatch[1]!);
     const name = cleanExtractedValue(petBreedLikeMatch[2]!);
+    candidates.push(
+      createFactCandidate(
+        index,
+        nextId,
+        `My dog ${name} is a ${breed}.`,
+        "personal",
+        {
+          category: "personal",
+          scopeKind: "identity",
+          subject: "dog breed",
+        },
+      ),
+    );
+  }
+
+  const petBreedAssertionMatch = trimmed.match(PET_BREED_ASSERTION_PATTERN);
+  if (petBreedAssertionMatch) {
+    const name = cleanExtractedValue(petBreedAssertionMatch[1]!);
+    const breed = cleanExtractedValue(petBreedAssertionMatch[2]!);
     candidates.push(
       createFactCandidate(
         index,
@@ -1713,7 +1883,7 @@ function maybeExtractCandidatesFromClause(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "15-occurrence-expression",
+    analyzerVersion: "17-interrogative-admission",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",
@@ -1743,16 +1913,12 @@ export function createEnglishLanguagePack(): LanguagePack {
         (token) => token.length >= minTokenLength,
       );
       if (options?.excludeStopwords) {
-        return tokens.filter((token) => !TOKEN_STOPWORDS.has(token));
+        return filterEnglishRetrievalTokens(text, minTokenLength);
       }
       return tokens;
     },
     buildSearchTerms(text: string): string[] {
-      return tokenizeUnicodeText(text, "en-US")
-        .filter((token) =>
-          token.length >= 2 &&
-          (!TOKEN_STOPWORDS.has(token) || token === "before")
-        );
+      return filterEnglishRetrievalTokens(text, 2, true);
     },
     decomposeQuery: decomposeEnglishQuery,
     analyzeBehavioralRule(text) {
@@ -1771,6 +1937,12 @@ export function createEnglishLanguagePack(): LanguagePack {
       );
     },
     acceptsEntityCandidate: acceptsEnglishEntityCandidate,
+    deriveDurableTarget(candidate) {
+      return deriveLanguageDurableTarget(
+        candidate,
+        ENGLISH_DURABLE_TARGET_ALIASES,
+      );
+    },
     render: renderEnglish,
     extractCandidates(input: LanguageCandidateExtractionInput): MemoryCandidate[] {
       const candidates: MemoryCandidate[] = [];
@@ -1781,8 +1953,13 @@ export function createEnglishLanguagePack(): LanguagePack {
         }
 
         const sourceMessageIndex = message.sourceMessageIndex ?? index;
-        const sourceAnalysis = message.analysis ??
-          analyzeEnglishContent(message.content);
+        const sourceAnalysis = {
+          ...(message.analysis ?? analyzeEnglishContent(message.content)),
+          interrogative: isEnglishInterrogativeClause(
+            message.content,
+            message.content,
+          ),
+        };
         const clauses = expandExplicitFactCandidateClauses(
           message.content,
           extractExplicitFactClauses,
@@ -1792,6 +1969,12 @@ export function createEnglishLanguagePack(): LanguagePack {
           const clauseAnalysis = clauses.length === 1 && clause.content === message.content
             ? sourceAnalysis
             : analyzeEnglishContent(clause.content);
+          if (
+            clause.disposition === "ordinary" &&
+            clauseAnalysis.interrogative === true
+          ) {
+            continue;
+          }
           const sourceOfTruthReference = clause.disposition === "feedback"
             ? undefined
             : createSourceOfTruthReferenceCandidate({
@@ -1821,7 +2004,12 @@ export function createEnglishLanguagePack(): LanguagePack {
         }
       });
 
-      return dedupeCandidates(candidates);
+      return dedupeCandidates(candidates).map((candidate) =>
+        attachLanguageDurableTarget(
+          candidate,
+          ENGLISH_DURABLE_TARGET_ALIASES,
+        )
+      );
     },
   };
 }

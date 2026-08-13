@@ -10,6 +10,26 @@ import {
   type RomancePackDefinition,
 } from "./romanceCore";
 
+const FRENCH_INTERROGATIVE_ANCHORS = [
+  "qu'est-ce",
+  "qu’est-ce",
+  "est-ce",
+  "quelles",
+  "quelle",
+  "quels",
+  "quel",
+  "lesquelles",
+  "lesquels",
+  "laquelle",
+  "lequel",
+  "pourquoi",
+  "comment",
+  "combien",
+  "quand",
+  "quoi",
+  "qui",
+  "où",
+] as const;
 const STOPWORDS = new Set([
   "afin",
   "ainsi",
@@ -46,8 +66,8 @@ const STOPWORDS = new Set([
   "par",
   "pas",
   "pour",
+  "qu",
   "que",
-  "qui",
   "se",
   "son",
   "sur",
@@ -56,6 +76,7 @@ const STOPWORDS = new Set([
   "vos",
   "votre",
   "vous",
+  ...FRENCH_INTERROGATIVE_ANCHORS,
 ]);
 
 const ENTITY_STOPWORDS = new Set([
@@ -424,7 +445,7 @@ const FRENCH_MONTHS = [
 ] as const;
 
 const DEFINITION = {
-  analyzerVersion: "7-occurrence-expression",
+  analyzerVersion: "9-interrogative-admission",
   behavioralRulePatterns: {
     firstAction: [
       /(?:d['’]abord|en\s+premier(?:\s+lieu)?)\s+([A-Za-z_][A-Za-z0-9_@.-]*)/iu,
@@ -452,6 +473,14 @@ const DEFINITION = {
   },
   compatibilityGroup: "fr",
   defaultLocale: "fr-FR",
+  durableTargetAliases: {
+    "code de projet": "project_code",
+    "code projet": "project_code",
+    "fuseau horaire": "profile:timezone",
+    nom: "profile:name",
+    préférence: "preference",
+    préférences: "preference",
+  },
   id: "fr",
   locales: ["fr"],
   stopwords: STOPWORDS,
@@ -466,6 +495,9 @@ const DEFINITION = {
     /[¿¡ñ]/iu,
     /\b(?:yo|nosotros|ustedes|cuál|qué|cómo|dónde|recuerda|prefiero|despliegue|bloqueado|fuente de verdad)\b/iu,
   ],
+  interrogativeAnchors: FRENCH_INTERROGATIVE_ANCHORS,
+  nominalClauseAssertion:
+    /^(?!(?:est-ce|qu['’]est-ce)\b)\p{L}+(?:['’-]\p{L}+)*\s+(?:(?:(?:le|la|les|un|une|mon|ma|mes|notre|nos|ce|cet|cette|ces)\s+[\p{L}\p{M}'’-]+\s+[\p{L}\p{M}'’-]+)|(?:[\p{L}\p{M}'’-]+\s+(?:le|la|les|un|une|mon|ma|mes|notre|nos|ce|cet|cette|ces)\s+[\p{L}\p{M}'’-]+)|(?:(?:cela|ça|ceci|il|elle|ils|elles|on|je|tu|nous|vous)\s+[\p{L}\p{M}'’-]+)|(?:se\s+[\p{L}\p{M}'’-]+\s+(?:le|la|les|un|une|ce|cet|cette|ces)\s+[\p{L}\p{M}'’-]+))(?:\s+[^?]+?)?\s+(?:(?:dépend(?:ent)?|reste(?:nt)?|est|sont|était|étaient)\b[^?]*|demeure(?:nt)?\s+(?:inconnu|inconnue|inconnus|inconnues))[.!]?$/iu,
   decompositionBoundary: /\s+(?:et|ainsi que|puis)\s+/iu,
   analyzeQuery: analyzeFrenchQuery,
   analyzeContent: analyzeFrenchContent,
@@ -498,8 +530,6 @@ const DEFINITION = {
     assignmentConfirmation:
       /\b(?:est|semble)\s+(?:correcte?|exacte?|vraie?)\s*$/iu,
     completedEvent: /^(?:j['’]ai|je\s+suis)\s+\p{L}/iu,
-    bareQuestionValue:
-      /^(?:quoi|quel(?:le|les|s)?|qui|où|quand|pourquoi|comment|combien|est-ce|qu['’]est-ce)$/iu,
     explicitFact:
       /^\s*(?:s['’]il\s+(?:te|vous)\s+plaît\s*,?\s*)?(?:souviens-toi|rappelez-vous|mémorise|n['’]oublie\s+pas)(?:\s+(?:de\s+(?:une?|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|\d+)|d['’](?:une?))\s+choses?\s*[:：,]\s*(.+)|\s+que\s+(.+)|\s*[:：,]\s*(.+)|\s+(?!(?:que|(?:de\s+(?:une?|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|\d+)|d['’](?:une?))\s+choses?)\s*[:：,]?\s*$)(.+))$/isu,
     explicitFactPrefix:
@@ -511,19 +541,19 @@ const DEFINITION = {
       /^(?:s['’]il\s+(?:te|vous)\s+plaît\s*,?\s*)?(?:ne\s+(?:mémorise|mémorisez|retiens|retenez|sauvegarde|sauvegardez|enregistre|enregistrez)\s+(?:pas|jamais)|n['’]enregistre\s+pas)\b/iu,
     optOutClauseBoundary:
       /(?:,\s*|^(?:et|mais)\s+|\s+(?:et|mais)\s+)(?=(?:s['’]il\s+(?:te|vous)\s+plaît\s*,?\s*)?(?:ne\s+(?:mémorise|mémorisez|retiens|retenez|sauvegarde|sauvegardez|enregistre|enregistrez)\s+(?:pas|jamais)|n['’]enregistre\s+pas)\b)/iu,
-    postposedQuestionValue:
-      /[,，、]\s*(?:quoi|quel(?:le|les|s)?|qui|où|quand|pourquoi|comment|combien|est-ce|qu['’]est-ce)$/iu,
+    optOutConnectorBoundary:
+      /(?:^(?:et|mais)\s+|\s+(?:et|mais)\s+)(?=(?:s['’]il\s+(?:te|vous)\s+plaît\s*,?\s*)?(?:ne\s+(?:mémorise|mémorisez|retiens|retenez|sauvegarde|sauvegardez|enregistre|enregistrez)\s+(?:pas|jamais)|n['’]enregistre\s+pas)\b)/iu,
+    optOutGrammar:
+      /(?:s['’]il\s+(?:te|vous)\s+plaît\s*,?\s*)?(?:ne\s+(?:mémorise|mémorisez|retiens|retenez|sauvegarde|sauvegardez|enregistre|enregistrez)\s+(?:pas|jamais)|n['’]enregistre\s+pas)\b/iu,
     goal: /\b(?:mon objectif actuel|ma priorité actuelle|mon objectif principal)\s+est\s+([^.!?]+)/iu,
     inferredFact:
       /\b(?:projet|migration|déploiement|publication|blocage|bloqué|validation|prochaine étape|en attente)\b/iu,
-    literalQuestionValue:
-      /(?:quoi|quel(?:le|les|s)?|qui|où|quand|pourquoi|comment|combien|est-ce|qu['’]est-ce)/iu,
     name: /\b(?:je m['’]appelle|mon nom est)\s+([\p{L}\p{M}'’.-]+(?:\s+[\p{L}\p{M}'’.-]+){0,3})/iu,
     preference: /\b(?:je préfère|ma préférence est)\s+([^.!?]+)/iu,
     role: /\b(?:mon rôle actuel est|ma fonction actuelle est|mon poste actuel est)\s+([^.!?]+)/iu,
     timezone: /\bmon\s+fuseau\s+horaire\s+est\s+([A-Za-z0-9_./+-]+)/iu,
     unpunctuatedQuestion:
-      /\b(?:est|sont|était|étaient)\s+(?:quoi|quel(?:le|les|s)?|qui|où|quand|pourquoi|comment|combien)$/iu,
+      /(?:\b(?:est|sont|était|étaient)\s+(?:quoi|quel(?:le|les|s)?|lequel|laquelle|lesquels|lesquelles|qui|où|quand|pourquoi|comment|combien)$|^(?:que|qu['’]est-ce|est-ce|quel(?:le|les|s)?|lequel|laquelle|lesquels|lesquelles|quoi|où|pourquoi|comment|combien)(?=$|[^\p{L}\p{N}]).*\b(?:est|sont|dois|doit|devons|faut)\b)/iu,
   },
   renderCatalog: FRENCH_RENDER_CATALOG,
 } as const satisfies RomancePackDefinition;

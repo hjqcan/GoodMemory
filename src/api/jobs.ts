@@ -1,4 +1,8 @@
 import { createHash } from "node:crypto";
+import {
+  assertStorageSafeExternalValue,
+  isStorageSafeText,
+} from "../domain/semanticText";
 import { assertRememberTemporalContext } from "../domain/temporal";
 import type { GoodMemoryTraceLink } from "../observability/contracts";
 import type { GoodMemoryTracer } from "../observability/tracer";
@@ -91,7 +95,10 @@ function digestRememberScope(input: EnqueueRememberJobInput): string {
 function cloneRememberInput(input: EnqueueRememberJobInput): RememberInput {
   return {
     scope: { ...input.scope },
-    messages: input.messages.map((message) => ({ ...message })),
+    messages: input.messages.map((message) => ({
+      ...message,
+      content: isStorageSafeText(message.content) ? message.content : "",
+    })),
     ...(input.annotations
       ? {
           annotations: input.annotations.map((annotation) => ({
@@ -116,6 +123,13 @@ function cloneRememberInput(input: EnqueueRememberJobInput): RememberInput {
     ...(input.locale ? { locale: input.locale } : {}),
     ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
   };
+}
+
+function assertStorageSafeRememberJobInput(input: EnqueueRememberJobInput): void {
+  assertStorageSafeExternalValue({
+    ...input,
+    messages: input.messages.map(({ content: _content, ...message }) => message),
+  }, "input");
 }
 
 function cloneJob(job: MemoryWriteJob): MemoryWriteJob {
@@ -320,6 +334,7 @@ export function createGoodMemoryJobsFacade(
 
   return {
     async enqueueRemember(input: EnqueueRememberJobInput): Promise<MemoryWriteJob> {
+      assertStorageSafeRememberJobInput(input);
       assertRememberTemporalContext(input);
       const trace = await config.tracer.start({
         name: "writeback.job.enqueue",

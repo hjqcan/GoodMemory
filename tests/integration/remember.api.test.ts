@@ -1101,7 +1101,7 @@ describe("public remember API", () => {
     expect(second.events[0]?.outcome).toBe("superseded");
   });
 
-  it("provides only local best-effort rollback without conditional batch support", async () => {
+  it("does not publish source records before fallback candidate writes commit", async () => {
     const backingStore = createInMemoryDocumentStore();
     const scope = {
       userId: "u-fallback-preference-rollback",
@@ -1175,7 +1175,7 @@ describe("public remember API", () => {
     })).rejects.toThrow("fallback preference replacement failed");
 
     expect(await backingStore.query("preferences", scope)).toEqual([original]);
-    expect(await backingStore.query(SOURCE_MESSAGES_COLLECTION, scope)).toHaveLength(1);
+    expect(await backingStore.query(SOURCE_MESSAGES_COLLECTION, scope)).toEqual([]);
   });
 
   it("retains every active preference sibling as superseded when writing the replacement", async () => {

@@ -77,6 +77,23 @@ one contract and should be tested together:
   and source-of-truth pointer transitions, plus candidate extraction
 - presentation: localized render labels
 
+`analyzeContent()` may set the language-neutral
+`LanguageContentAnalysis.interrogative` signal. Every built-in pack returns a
+stable boolean for each analyzed clause. A custom pack may leave the optional
+field undefined, which means that it does not declare an interrogative
+admission boundary; adding that behavior does not require a new `LanguagePack`
+method or an `apiVersion` change.
+
+For packs that declare the signal, ordinary interrogative clauses are not
+durable input. Clause decomposition must preserve assertion prefixes in mixed
+messages while excluding their interrogative tails. Explicit directives,
+assignments, quoted question literals, and host-confirmed `remember: "always"`
+annotations remain authority-bearing inputs. Use one pack-owned interrogative
+lexicon for both clause detection and scoring/search-term noise removal so a
+question word cannot become the sole lexical recall anchor. Do not encode this
+policy in a recall-wide multilingual word list or by changing the global
+lexical threshold.
+
 Register a custom pack through `GoodMemoryConfig.language.packs`. To replace a
 built-in pack, reuse its id and locale claims; a different id that claims an
 already-owned locale is rejected at startup.
@@ -164,13 +181,13 @@ Application-level scoring remains the final cross-backend ranking authority, so
 storage-specific tokenizers cannot redefine recall semantics.
 
 Changing normalization, tokenization, search-term generation, entity
-canonicalization, detection, or sentence boundaries requires an
-`analyzerVersion` bump.
+canonicalization, interrogative admission, detection, or sentence boundaries
+requires an `analyzerVersion` bump.
 Existing derived projections must then be rebuilt; canonical memory records and
 their raw text remain unchanged. Treat missing or mismatched projection proof
 as stale and rebuild fail-closed.
 
-The 0.7 generation uses recall documents v3, entities/adjacency v2,
+The current 0.7 generation uses recall documents v4, entities/adjacency v2,
 claims/status v2, and scope catalog v2. Migration is per scope and may run on
 first recall or through the `projectionMigration` maintenance job. Until a new
 catalog carries complete, version-matching analyzer/build/source-generation

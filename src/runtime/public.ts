@@ -5,6 +5,7 @@ import type {
   WorkingMemorySnapshot,
 } from "../domain/records";
 import type { MemoryScope } from "../domain/scope";
+import { assertStorageSafeExternalValue } from "../domain/semanticText";
 import type { LanguageService } from "../language";
 import type {
   DocumentStore,
@@ -90,6 +91,7 @@ export function createRuntimeArchiveStore(
 ): RuntimeArchiveStore {
   return {
     async add(archive) {
+      assertStorageSafeExternalValue(archive, "archive");
       await config.documentStore.set(
         SESSION_ARCHIVES_COLLECTION,
         archive.id,

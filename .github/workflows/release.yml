@@ -150,6 +150,7 @@ jobs:
             reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-preregistration.json
             reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-attestation.json
             benchmark-claims/evidence/locomo-v0.7.3-current.json
+            benchmark-claims/evidence/locomo-v0.7.3-verified.json
             reports/release/v0.7/v0.7.3-locomo-claim-evidence/**
             reports/release/v0.7/phase-74-storage-scale-gate.json
             reports/release/v0.7/readiness-report.json
@@ -183,6 +184,7 @@ jobs:
             reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-preregistration.json \
             reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-attestation.json \
             benchmark-claims/evidence/locomo-v0.7.3-current.json \
+            benchmark-claims/evidence/locomo-v0.7.3-verified.json \
             reports/release/v0.7/v0.7.3-locomo-claim-evidence \
             reports/release/v0.7/phase-74-storage-scale-gate.json \
             reports/release/v0.7/readiness-report.json \

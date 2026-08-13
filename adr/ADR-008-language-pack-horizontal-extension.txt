@@ -80,11 +80,12 @@ Decision
    the same pack/analyzer. SQLite FTS and PostgreSQL GIN admit candidates from
    `searchText`; application-level scoring remains the ranking authority.
 
-8. The 0.7 projection generation uses new collections: documents v3, entities
-   v2, claims/status v2, and scope catalog v2. The catalog binds projection
-   version, analyzer manifest/build identity, and canonical source-generation
-   proof. A semantic analyzer or search-schema change requires a version bump
-   and rebuild; one document's metadata is never treated as scope-wide proof.
+8. The current 0.7 projection generation uses new collections: documents v4,
+   entities v2, claims/status v2, and scope catalog v2. The catalog binds
+   projection version, analyzer manifest/build identity, and canonical
+   source-generation proof. A semantic analyzer or search-schema change
+   requires a version bump and rebuild; one document's metadata is never
+   treated as scope-wide proof.
 
 9. Migration is per scope, locked, interruptible, and repeatable. Lazy recall
    or the `projectionMigration` maintenance job builds the new generation from

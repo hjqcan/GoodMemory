@@ -1,7 +1,13 @@
+import { assertStorageSafeAgentEvent } from "../agentEvents";
 import type { AgentInputEvent, HostAgentEvent } from "../agentEvents";
 import { hasPersistableSemanticText } from "../domain/semanticText";
 import type { MemoryCandidate } from "../remember/candidates";
-import type { GoodMemoryPolicyHooks, PolicyContext } from "../policy/hooks";
+import {
+  evaluateShouldRemember,
+  redactPolicyCandidate,
+  type GoodMemoryPolicyHooks,
+  type PolicyContext,
+} from "../policy/hooks";
 import type { DocumentStore } from "../storage/contracts";
 import { createMemorySource } from "../domain/provenance";
 import {
@@ -281,7 +287,11 @@ async function applyAgentEventPolicy(input: {
   let redacted = false;
 
   if (input.policy?.redact) {
-    const nextCandidate = await input.policy.redact(candidate, context);
+    const nextCandidate = await redactPolicyCandidate(
+      input.policy,
+      candidate,
+      context,
+    );
     if (nextCandidate.content !== candidate.content) {
       redacted = true;
     }
@@ -303,10 +313,7 @@ async function applyAgentEventPolicy(input: {
     };
   }
 
-  if (
-    input.policy?.shouldRemember &&
-    !(await input.policy.shouldRemember(candidate, context))
-  ) {
+  if (!(await evaluateShouldRemember(input.policy, candidate, context))) {
     return {
       content: candidate.content,
       language: resolvedLanguage,
@@ -463,6 +470,7 @@ export function createAgentEventIngestor(
 ) {
   return {
     async ingest(event: ExternalAgentEvent): Promise<AgentEventIngestResult> {
+      assertStorageSafeAgentEvent(event, "event");
       const rawText = resolveAgentEventText(event);
       if (!rawText || !hasPersistableSemanticText(rawText)) {
         return {

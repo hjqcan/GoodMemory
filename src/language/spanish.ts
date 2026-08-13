@@ -10,6 +10,38 @@ import {
   type RomancePackDefinition,
 } from "./romanceCore";
 
+const SPANISH_INTERROGATIVE_ANCHORS = [
+  "adónde",
+  "adonde",
+  "cuáles",
+  "cuales",
+  "cuál",
+  "cual",
+  "cuán",
+  "cuan",
+  "quiénes",
+  "quienes",
+  "quién",
+  "quien",
+  "dónde",
+  "donde",
+  "cuándo",
+  "cuando",
+  "por qué",
+  "por que",
+  "cómo",
+  "como",
+  "cuántos",
+  "cuantos",
+  "cuántas",
+  "cuantas",
+  "cuánto",
+  "cuanto",
+  "cuánta",
+  "cuanta",
+  "qué",
+  "que",
+] as const;
 const STOPWORDS = new Set([
   "al",
   "antes",
@@ -50,6 +82,7 @@ const STOPWORDS = new Set([
   "y",
   "ya",
   "yo",
+  ...SPANISH_INTERROGATIVE_ANCHORS,
 ]);
 
 const ENTITY_STOPWORDS = new Set([
@@ -407,7 +440,7 @@ const SPANISH_MONTHS = [
 ] as const;
 
 const DEFINITION = {
-  analyzerVersion: "6-occurrence-expression",
+  analyzerVersion: "8-interrogative-admission",
   behavioralRulePatterns: {
     firstAction: [
       /(?:primero|en\s+primer\s+lugar)\s+([A-Za-z_][A-Za-z0-9_@.-]*)/iu,
@@ -435,6 +468,14 @@ const DEFINITION = {
   },
   compatibilityGroup: "es",
   defaultLocale: "es-ES",
+  durableTargetAliases: {
+    "codigo de proyecto": "project_code",
+    "código de proyecto": "project_code",
+    nombre: "profile:name",
+    preferencia: "preference",
+    preferencias: "preference",
+    "zona horaria": "profile:timezone",
+  },
   id: "es",
   locales: ["es"],
   stopwords: STOPWORDS,
@@ -448,6 +489,9 @@ const DEFINITION = {
     /[àâçèêëîïôœæùûÿ]/iu,
     /\b(?:je|nous|vous|avec|quel(?:le|s|les)?|souviens-toi|français|française|préfère|déploiement|bloqué|bloquée|source de vérité)\b/iu,
   ],
+  interrogativeAnchors: SPANISH_INTERROGATIVE_ANCHORS,
+  nominalClauseAssertion:
+    /^\p{L}+(?:['’-]\p{L}+)*\s+(?:(?:(?:el|la|los|las|un|una|mi|mis|nuestro|nuestra|nuestros|nuestras|este|esta|estos|estas)\s+[\p{L}\p{M}'’-]+\s+[\p{L}\p{M}'’-]+)|(?:[\p{L}\p{M}'’-]+\s+(?:el|la|los|las|un|una|mi|mis|nuestro|nuestra|nuestros|nuestras|este|esta|estos|estas)\s+[\p{L}\p{M}'’-]+)|(?:(?:esto|eso|aquello|él|ella|ellos|ellas|yo|tú|nosotros|ustedes)\s+[\p{L}\p{M}'’-]+))(?:\s+[^?]+?)?\s+(?:(?:depende(?:n)?|queda(?:n)?|es|son|era|eran|está|están)(?=$|[^\p{L}\p{N}])[^?]*|sigue(?:n)?\s+sin\s+estar\s+clar[oa]s?)[.!]?$/iu,
   decompositionBoundary: /\s+(?:y|además de|luego)\s+/iu,
   analyzeQuery: analyzeSpanishQuery,
   analyzeContent: analyzeSpanishContent,
@@ -481,8 +525,6 @@ const DEFINITION = {
       /\b(?:es|parece)\s+(?:correct[oa]|ciert[oa]|exact[oa])\s*$/iu,
     completedEvent:
       /^(?:yo\s+)?(?:he\s+\p{L}+(?:ado|ido)|\p{L}+(?:é|í)|fui|hice|tuve|estuve|puse|vine|dije|traje|vi|di)(?=$|\s|[.,;!?])/iu,
-    bareQuestionValue:
-      /^(?:¿\s*)?(?:qué|cuál(?:es)?|quién(?:es)?|dónde|cuándo|por\s+qué|cómo|cuánto)$/iu,
     explicitFact:
       /^\s*(?:por\s+favor\s*,?\s*)?(?:recuerda|recuérdalo|memoriza)(?:\s+(?:una?|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|\d+)\s+cosas?\s*[:：,]\s*(.+)|\s+que\s+(.+)|\s*[:：,]\s*(.+)|\s+(?!(?:que|(?:una?|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|\d+)\s+cosas?)\s*[:：,]?\s*$)(.+))$/isu,
     explicitFactPrefix:
@@ -495,20 +537,20 @@ const DEFINITION = {
       /^(?:por\s+favor\s*,?\s*)?(?:no\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?)|nunca\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?))\b/iu,
     optOutClauseBoundary:
       /(?:,\s*|^(?:y|pero)\s+|\s+(?:y|pero)\s+)(?=(?:por\s+favor\s*,?\s*)?(?:no\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?)|nunca\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?))\b)/iu,
-    postposedQuestionValue:
-      /[,，、]\s*(?:qué|cuál(?:es)?|quién(?:es)?|dónde|cuándo|por\s+qué|cómo|cuánto)$/iu,
+    optOutConnectorBoundary:
+      /(?:^(?:y|pero)\s+|\s+(?:y|pero)\s+)(?=(?:por\s+favor\s*,?\s*)?(?:no\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?)|nunca\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?))\b)/iu,
+    optOutGrammar:
+      /(?:por\s+favor\s*,?\s*)?(?:no\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?)|nunca\s+(?:recuerdes?|memorices?|guardes?|almacenes?|registres?))\b/iu,
     goal: /\b(?:mi objetivo actual|mi prioridad actual|mi objetivo principal)\s+es\s+([^.!?]+)/iu,
     inferredFact:
       /\b(?:proyecto|migración|despliegue|publicación|bloqueo|bloqueado|validación|próximo paso|pendiente)\b/iu,
-    literalQuestionValue:
-      /(?:qué|cuál(?:es)?|quién(?:es)?|dónde|cuándo|por\s+qué|cómo|cuánto)/iu,
     standaloneFact: /^\s*no\s+hay\s+bloqueos?[.!]?\s*$/iu,
     name: /\b(?:me llamo|mi nombre es)\s+([\p{L}\p{M}'’.-]+(?:\s+[\p{L}\p{M}'’.-]+){0,3})/iu,
     preference: /\b(?:prefiero|mi preferencia es)\s+([^.!?]+)/iu,
     role: /\b(?:mi rol actual es|mi función actual es|mi puesto actual es)\s+([^.!?]+)/iu,
     timezone: /\bmi\s+zona\s+horaria\s+es\s+([A-Za-z0-9_./+-]+)/iu,
     unpunctuatedQuestion:
-      /\b(?:es|son|era|eran)\s+(?:qué|cuál(?:es)?|quién(?:es)?|dónde|cuándo|por\s+qué|cómo|cuánto)$/iu,
+      /(?:\b(?:es|son|era|eran)\s+(?:qué|cuál(?:es)?|quién(?:es)?|dónde|adónde|cuándo|por\s+qué|cómo|cuán|cuánto)$|^(?:qué|cuál(?:es)?|quién(?:es)?|dónde|adónde|cuándo|por\s+qué|cómo|cuán|cuánto)(?=$|[^\p{L}\p{N}]).*\b(?:es|son|debo|debe|debemos|hay)\b)/iu,
   },
   renderCatalog: SPANISH_RENDER_CATALOG,
 } as const satisfies RomancePackDefinition;

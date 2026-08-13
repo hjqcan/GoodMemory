@@ -37,6 +37,43 @@ export type MemoryCandidateExplicitness = "explicit" | "inferred";
 export type MemoryExtractionStrategy = "rules-only" | "llm-assisted" | "auto";
 export type MessageAnnotationRememberMode = "always" | "never" | "auto";
 
+export interface DurableTargetIdentity {
+  slot: string;
+  value: string;
+}
+
+export interface DurableOptOutTargetSelector {
+  identity?: DurableTargetIdentity;
+  match: "exact";
+  text: string;
+}
+
+export interface DurableOptOutDisposition {
+  kind: "durable_opt_out";
+  target: DurableOptOutTargetSelector;
+}
+
+export function createDurableOptOutDisposition(
+  text: string,
+  identity?: DurableTargetIdentity,
+): DurableOptOutDisposition {
+  return {
+    kind: "durable_opt_out",
+    target: {
+      ...(identity ? { identity } : {}),
+      match: "exact",
+      text,
+    },
+  };
+}
+
+export function createDurableTargetIdentity(
+  slot: string,
+  value: string,
+): DurableTargetIdentity {
+  return { slot, value };
+}
+
 export type MemoryClaimPolarity = "positive" | "negative";
 export type MemoryClaimModality =
   | "asserted"
@@ -114,6 +151,8 @@ export interface MemoryCandidate {
   presetId?: string;
   ruleIds?: string[];
   content: string;
+  durableTarget?: DurableTargetIdentity;
+  disposition?: DurableOptOutDisposition;
   sourceMessageIndex: number;
   sourceMessageIndexes?: number[];
   sourceRole: string;

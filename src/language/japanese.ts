@@ -1,4 +1,9 @@
 import type { MemoryCandidate } from "../domain/memoryCandidate";
+import {
+  attachLanguageDurableTarget,
+  createLanguageDurableOptOutDisposition,
+  deriveLanguageDurableTarget,
+} from "./durableTarget";
 import type { FactKind } from "../domain/records";
 import type {
   LanguageContentAnalysis,
@@ -9,9 +14,13 @@ import type {
   LanguageTemporalExpression,
 } from "./contracts";
 import {
+  collectProtectedRetrievalTokens,
   expandExplicitFactCandidateClauses,
+  isExplicitlyQuotedValue,
+  maskQuotedText,
   normalizeUnicodeForEquality,
   splitClausesGeneric,
+  splitTrailingInterrogativeClause,
   tokenizeUnicodeText,
 } from "./generic";
 import {
@@ -32,6 +41,30 @@ import {
   parseCjkTemporalReference,
 } from "./temporal";
 
+const JAPANESE_INTERROGATIVE_ANCHORS = [
+  "何人",
+  "何",
+  "なに",
+  "誰",
+  "だれ",
+  "どれ",
+  "どの",
+  "どちら",
+  "どなた",
+  "どんな",
+  "どこ",
+  "いつ",
+  "なぜ",
+  "どういう",
+  "どうして",
+  "どうやって",
+  "どのように",
+  "どう",
+  "なんで",
+  "なん",
+  "いくつ",
+  "いくら",
+] as const;
 const JAPANESE_STOPWORDS = new Set([
   "これ",
   "それ",
@@ -43,6 +76,7 @@ const JAPANESE_STOPWORDS = new Set([
   "する",
   "した",
   "して",
+  "てい",
   "の",
   "は",
   "が",
@@ -51,7 +85,20 @@ const JAPANESE_STOPWORDS = new Set([
   "で",
   "と",
   "も",
+  ...JAPANESE_INTERROGATIVE_ANCHORS,
 ]);
+const JAPANESE_INTERROGATIVE_ANCHOR_SOURCE =
+  `(?:${JAPANESE_INTERROGATIVE_ANCHORS.join("|")})`;
+const JAPANESE_INTERROGATIVE_ANCHOR_SET = new Set<string>(
+  JAPANESE_INTERROGATIVE_ANCHORS,
+);
+const JAPANESE_DURABLE_TARGET_ALIASES = {
+  タイムゾーン: "profile:timezone",
+  プロジェクトコード: "project_code",
+  プロジェクト代号: "project_code",
+  名前: "profile:name",
+  好み: "preference",
+} as const;
 
 const COMPLETED_FIRST_PERSON_EVENT_PATTERN =
   /^(?:(?:私|僕|俺)(?:は|が))[^。！？]+(?:ました|だった|でした|した|った|いた|いだ|んだ|えた)[。！？]?$/u;
@@ -136,16 +183,22 @@ const JAPANESE_EXPLICIT_FACT_COUNT_PATTERN =
   /^(?:これを\s*)?([一二三四五六七八九十\d]+)つのことを/u;
 const JAPANESE_EXPLICIT_FACT_OPT_OUT_PATTERN =
   /(?:覚えておかないで|覚えないで|記憶しないで|保存しないで|忘れて)(?:ください)?[。.!！]?\s*$/u;
-const JAPANESE_EXPLICIT_FACT_QUESTION_PATTERN =
-  /(?:何|なに|誰|どれ|どの|どこ|いつ|なぜ|どう|いくつ|いくら)(?:$|.*(?:ですか|ますか|でしょうか|なのか|か)$)/u;
-const JAPANESE_EXPLICIT_FACT_LITERAL_QUESTION_VALUE_PATTERN =
-  /(?:何|なに|誰|どれ|どの|どこ|いつ|なぜ|どう|いくつ|いくら)/u;
-const JAPANESE_EXPLICIT_FACT_BARE_QUESTION_VALUE_PATTERN =
-  /^(?:何|なに|誰|どれ|どの|どこ|いつ|なぜ|どう|いくつ|いくら)(?:ですか|なのか|か)?$/u;
-const JAPANESE_EXPLICIT_FACT_POSTPOSED_QUESTION_VALUE_PATTERN =
-  /[、，,]\s*(?:何|なに|誰|どれ|どの|どこ|いつ|なぜ|どう|いくつ|いくら)(?:ですか|なのか|か)?$/u;
+const JAPANESE_EXPLICIT_FACT_QUESTION_PATTERN = new RegExp(
+  `${JAPANESE_INTERROGATIVE_ANCHOR_SOURCE}(?:$|.*(?:ですか|ますか|でしょうか|なのか|か)$)`,
+  "u",
+);
+const JAPANESE_EXPLICIT_FACT_POSTPOSED_QUESTION_VALUE_PATTERN = new RegExp(
+  `[、，,]\\s*${JAPANESE_INTERROGATIVE_ANCHOR_SOURCE}(?:ですか|なのか|か)?$`,
+  "u",
+);
 const JAPANESE_EXPLICIT_FACT_CONFIRMATION_PATTERN =
   /(?:正しい|合っている|合っています|間違いない)(?:ですか|ますか|でしょうか|か)?[?？]?\s*$/u;
+const JAPANESE_CONFIRMATION_QUESTION_PATTERN =
+  /(?:よね|ですよね|でしょう|ではありませんか)[。！]?$/u;
+const JAPANESE_CLEAR_TRAILING_QUESTION_PATTERN = new RegExp(
+  `${JAPANESE_INTERROGATIVE_ANCHOR_SOURCE}.*(?:ですか|ますか|でしょうか|なのか|か)\\s*$|(?:ですか|ますか|でしょうか|なのか|ますでしょうか|か)\\s*$`,
+  "u",
+);
 const JAPANESE_EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN =
   /(?:[、，,]\s*|(?:そして|また|でも|しかし)\s*)(?=[^。！？；;\n]{0,240}(?:覚えておかないで|覚えないで|記憶しないで|保存しないで|忘れて))/u;
 
@@ -292,6 +345,7 @@ function analyzeJapaneseContent(content: string): LanguageContentAnalysis {
     factPolarity,
     feedbackKind,
     focusFact: CONTENT.focusFact.test(content),
+    interrogative: isJapaneseInterrogativeClause(content, content),
     openLoopFact: CONTENT.openLoopFact.test(content),
     personalEvidence: CONTENT.personalEvidence.test(content),
     preferenceEvidence: CONTENT.preferenceEvidence.test(content),
@@ -333,6 +387,20 @@ function extractJapaneseOptOutTarget(content: string): string {
 function splitJapaneseClauses(text: string): string[] {
   return splitClausesGeneric(text)
     .flatMap((clause) =>
+      JAPANESE_EXPLICIT_FACT_DIRECTIVE_PATTERN.test(clause.trim()) ||
+        JAPANESE_EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
+        ? [clause]
+        : splitTrailingInterrogativeClause(
+          clause,
+          (candidate) => isJapaneseInterrogativeClause(candidate, candidate),
+          (candidate) =>
+            /[?？]\s*$/u.test(maskQuotedText(candidate)) ||
+            JAPANESE_CLEAR_TRAILING_QUESTION_PATTERN.test(
+              maskQuotedText(candidate).trim(),
+            ),
+        )
+    )
+    .flatMap((clause) =>
       !JAPANESE_EXPLICIT_FACT_DIRECTIVE_PATTERN.test(clause.trim()) &&
         JAPANESE_EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
         ? [clause]
@@ -342,10 +410,15 @@ function splitJapaneseClauses(text: string): string[] {
     .filter(Boolean);
 }
 
-function isJapaneseExplicitFactQuestion(
+function isJapaneseInterrogativeClause(
   content: string,
   source: string,
 ): boolean {
+  const unquotedContent = maskQuotedText(content).trim();
+  const unquotedSource = maskQuotedText(source).trim();
+  if (JAPANESE_CONFIRMATION_QUESTION_PATTERN.test(unquotedContent)) {
+    return true;
+  }
   const assignmentIndex = content.search(/[=＝]/u);
   if (assignmentIndex >= 0) {
     const left = content.slice(0, assignmentIndex).trim();
@@ -359,18 +432,32 @@ function isJapaneseExplicitFactQuestion(
     if (assignmentConfirmation) {
       return true;
     }
+    if (isExplicitlyQuotedValue(right)) {
+      return false;
+    }
     if (JAPANESE_EXPLICIT_FACT_POSTPOSED_QUESTION_VALUE_PATTERN.test(right)) {
       return true;
     }
-    if (/[?？]\s*$/u.test(source)) {
-      return !JAPANESE_EXPLICIT_FACT_LITERAL_QUESTION_VALUE_PATTERN.test(right) ||
-        JAPANESE_EXPLICIT_FACT_BARE_QUESTION_VALUE_PATTERN.test(right);
+    if (/[?？]\s*$/u.test(unquotedSource)) {
+      return true;
     }
     return false;
   }
 
-  return /[?？]\s*$/u.test(source) ||
-    JAPANESE_EXPLICIT_FACT_QUESTION_PATTERN.test(content);
+  return /[?？]\s*$/u.test(unquotedSource) ||
+    /(?:ですか|ますか|でしょうか|なのか|ますでしょうか|か)\s*$/u.test(
+      unquotedContent,
+    ) ||
+    JAPANESE_EXPLICIT_FACT_QUESTION_PATTERN.test(unquotedContent);
+}
+
+function japaneseRetrievalTokens(text: string): string[] {
+  const protectedTokens = collectProtectedRetrievalTokens(text, "ja-JP");
+  return tokenizeUnicodeText(text, "ja-JP").filter((token) =>
+    protectedTokens.has(token) ||
+    (!JAPANESE_STOPWORDS.has(token) &&
+      !JAPANESE_INTERROGATIVE_ANCHOR_SET.has(token))
+  );
 }
 
 function extractJapaneseExplicitFacts(content: string) {
@@ -411,7 +498,7 @@ function extractJapaneseExplicitFacts(content: string) {
   }
   if (cleanedClauses.some(({ content: clause, sourceClause }) =>
     !JAPANESE_EXPLICIT_FACT_OPT_OUT_PATTERN.test(sourceClause) &&
-    isJapaneseExplicitFactQuestion(clause, sourceClause)
+    isJapaneseInterrogativeClause(clause, sourceClause)
   )) {
     return { clauses: [], status: "invalid" as const };
   }
@@ -452,19 +539,30 @@ function extractJapaneseCandidates(
         ? sourceAnalysis
         : analyzeJapaneseContent(text);
       if (clause.disposition === "feedback") {
+        const optOutTarget = extractJapaneseOptOutTarget(text);
         candidates.push({
           content: text,
+          disposition: createLanguageDurableOptOutDisposition(
+            optOutTarget,
+            JAPANESE_DURABLE_TARGET_ALIASES,
+          ),
           explicitness: "explicit",
           id: input.nextId(),
           kindHint: "feedback",
           metadata: {
             appliesTo: "general_response",
             feedbackKind: "dont",
-            optOutTarget: extractJapaneseOptOutTarget(text),
+            optOutTarget,
           },
           sourceMessageIndex,
           sourceRole: "user",
         });
+        continue;
+      }
+      if (
+        clause.disposition === "ordinary" &&
+        isJapaneseInterrogativeClause(text, text)
+      ) {
         continue;
       }
       if (FUTURE_FIRST_PERSON_PLAN_PATTERN.test(text)) {
@@ -578,6 +676,25 @@ function extractJapaneseCandidates(
         });
       }
 
+      const project = text.match(
+        /(?:私の)?現在のプロジェクトは\s*([^。！？]+?)(?:です|である)?[。！？]?$/u,
+      )?.[1];
+      if (project) {
+        candidates.push({
+          content: project.trim(),
+          explicitness: "explicit",
+          id: input.nextId(),
+          kindHint: "fact",
+          metadata: {
+            category: "project",
+            factKind: "generic_project",
+            scopeKind: "project",
+          },
+          sourceMessageIndex,
+          sourceRole: "user",
+        });
+      }
+
       const preference = text.match(/(?:私は|私の)?\s*([^。！？]+?)(?:が好き|を好む|を希望する|を希望します)/u);
       if (preference?.[1]) {
         const preferenceValue = preference[1].trim();
@@ -604,6 +721,7 @@ function extractJapaneseCandidates(
         !timezone &&
         !name &&
         !role &&
+        !project &&
         !timezone &&
         !preference &&
         !clauseAnalysis.sourceOfTruthDirective &&
@@ -628,6 +746,7 @@ function extractJapaneseCandidates(
         });
       } else if (
         !role &&
+        !project &&
         !preference &&
         !sourceOfTruthReference &&
         text.length >= 6 &&
@@ -672,7 +791,12 @@ function extractJapaneseCandidates(
     }
     seen.add(key);
     return true;
-  });
+  }).map((candidate) =>
+    attachLanguageDurableTarget(
+      candidate,
+      JAPANESE_DURABLE_TARGET_ALIASES,
+    )
+  );
 }
 
 function parseJapaneseTemporalExpressions(
@@ -717,7 +841,7 @@ function extractJapaneseOccurrenceEvent(
 ): { content: string; occurrenceExpression: LanguageTemporalExpression } | undefined {
   if (
     /[?？]/u.test(content) ||
-    /(?:よね|ですよね|でしょう|ではありませんか)[。！]?$/u.test(content) ||
+    JAPANESE_CONFIRMATION_QUESTION_PATTERN.test(content) ||
     /(?:何|誰|どこ|いつ|なぜ|どうして)(?:です|ます)?か?[。！]?$|(?:です|ます)か[。！]?$/u.test(
       content,
     ) ||
@@ -904,7 +1028,7 @@ function renderJapanese(input: LanguageRenderInput): string {
 
 export function createJapaneseLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "9-occurrence-expression",
+    analyzerVersion: "11-interrogative-admission",
     apiVersion: 1,
     compatibilityGroup: "ja",
     defaultLocale: "ja-JP",
@@ -923,13 +1047,11 @@ export function createJapaneseLanguagePack(): LanguagePack {
     tokenizeForScoring(text, _mode, options) {
       const tokens = tokenizeUnicodeText(text, "ja-JP");
       return options?.excludeStopwords
-        ? tokens.filter((token) => !JAPANESE_STOPWORDS.has(token))
+        ? japaneseRetrievalTokens(text)
         : tokens;
     },
     buildSearchTerms(text) {
-      return tokenizeUnicodeText(text, "ja-JP").filter(
-        (token) => !JAPANESE_STOPWORDS.has(token),
-      );
+      return japaneseRetrievalTokens(text);
     },
     decomposeQuery(text) {
       return decomposeQueryByPattern(text, /(?:そして|また|さらに|それから)/u);
@@ -950,6 +1072,12 @@ export function createJapaneseLanguagePack(): LanguagePack {
     },
     acceptsEntityCandidate() {
       return true;
+    },
+    deriveDurableTarget(candidate) {
+      return deriveLanguageDurableTarget(
+        candidate,
+        JAPANESE_DURABLE_TARGET_ALIASES,
+      );
     },
     extractCandidates: extractJapaneseCandidates,
     render: renderJapanese,

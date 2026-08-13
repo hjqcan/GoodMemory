@@ -17,7 +17,10 @@ import {
 } from "../embedding/vectorWrites";
 import { EVIDENCE_COLLECTION } from "../evidence/contracts";
 import type { SourceMessageRecord } from "../evidence/contracts";
-import { toPolicyMemoryRecord } from "../policy/hooks";
+import {
+  resolvePolicyConflict,
+  toPolicyMemoryRecord,
+} from "../policy/hooks";
 import {
   buildCandidateEvidence,
   buildFact,
@@ -34,6 +37,7 @@ import {
   resolveCandidateOccurrence,
   resolveReferenceSubject,
 } from "./builders";
+import { resolveFeedbackKind } from "./durableOptOut";
 import type { SourceLanguageMetadata } from "./builders";
 import { buildRememberEventTrace } from "./classification";
 import type {
@@ -507,13 +511,14 @@ export async function writeRememberCandidate(input: {
           ),
     );
     if (superseded && context.policy?.resolveConflict) {
-      const resolution = await context.policy.resolveConflict(
+      const resolution = await resolvePolicyConflict(
+        context.policy,
         toPolicyMemoryRecord(superseded, "reference"),
         referenceCandidate,
         context.policyContext,
       );
 
-      if (resolution.action === "keep_existing") {
+      if (resolution?.action === "keep_existing") {
         state.rejected += 1;
         state.events.push({
           candidateId,
@@ -676,13 +681,14 @@ export async function writeRememberCandidate(input: {
         });
 
     if (superseded && context.policy?.resolveConflict) {
-      const resolution = await context.policy.resolveConflict(
+      const resolution = await resolvePolicyConflict(
+        context.policy,
         toPolicyMemoryRecord(superseded, "fact"),
         candidate,
         context.policyContext,
       );
 
-      if (resolution.action === "keep_existing") {
+      if (resolution?.action === "keep_existing") {
         state.rejected += 1;
         state.events.push({
           candidateId,
@@ -772,7 +778,7 @@ export async function writeRememberCandidate(input: {
     candidateLanguage,
   );
   const candidateIdentityKey = buildFeedbackIdentityKey({
-    kind: candidate.metadata?.feedbackKind ?? "do",
+    kind: resolveFeedbackKind(candidate),
     normalizedRule,
     appliesTo: candidate.metadata?.appliesTo,
   });
@@ -825,18 +831,19 @@ export async function writeRememberCandidate(input: {
   const superseded = scopedFeedback.find(
     (feedback) =>
       feedback.lifecycle === "active" &&
-      feedback.kind === (candidate.metadata?.feedbackKind ?? "do") &&
+      feedback.kind === resolveFeedbackKind(candidate) &&
       normalizeFeedbackAppliesTo(feedback.appliesTo) ===
         normalizeFeedbackAppliesTo(candidate.metadata?.appliesTo),
   );
   if (superseded && context.policy?.resolveConflict) {
-    const resolution = await context.policy.resolveConflict(
+    const resolution = await resolvePolicyConflict(
+      context.policy,
       toPolicyMemoryRecord(superseded, "feedback"),
       candidate,
       context.policyContext,
     );
 
-    if (resolution.action === "keep_existing") {
+    if (resolution?.action === "keep_existing") {
       state.rejected += 1;
       state.events.push({
         candidateId,

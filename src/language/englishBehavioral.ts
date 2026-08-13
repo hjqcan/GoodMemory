@@ -671,8 +671,18 @@ function extractSemanticCues(
   add("voice", /\b(?:voice|pronoun|first-person|first person|character)\b/iu.test(rule));
   add("symbolic", /\b(?:formula|sequence|operator|omega|recurrence|compute|calculate)\b/iu.test(rule) || /\b[A-Z][A-Za-z0-9_]*\((-?\d+)\)/u.test(rule));
   add("precondition", /\b(?:precondition|only proceed|defer|check)\b/iu.test(rule) || /\b(?:load|status|queue|gpu|memory|network|maintenance)\b.*\b(?:normal|idle|available|stable|complete)\b/iu.test(rule));
-  add("brevity", /\b(?:brief|brevity|concise|one-line|one line|short|minimal|command only|only the command|quick version|impatience|impatient|frustration|terse|too verbose)\b/iu.test(rule));
+  add(
+    "brevity",
+    hasQuickBrevityModifier(rule) ||
+      /\b(?:brief|brevity|concise|one-line|one line|short|minimal|command only|only the command|just the command|quick version|in a rush|impatience|impatient|frustration|terse|too verbose)\b/iu.test(
+        rule,
+      ),
+  );
   return cues;
+}
+
+function hasQuickBrevityModifier(rule: string): boolean {
+  return /^\s*quick\s*(?::|[—–-])/iu.test(rule);
 }
 
 function extractResponseStyle(
@@ -681,7 +691,8 @@ function extractResponseStyle(
   if (/\b(?:bullet-pointed|bullet\s+list|bullets?|impatience|impatient|frustration|terse replies?|short summary|quick version|brief overview)\b/iu.test(rule)) {
     return "bullets";
   }
-  return /\b(?:minimal|concise|brief|command only|only the command|just the command|quick version|in a rush|too much detail|too verbose)\b/iu.test(rule)
+  return hasQuickBrevityModifier(rule) ||
+      /\b(?:minimal|concise|brief|command only|only the command|just the command|quick version|in a rush|too much detail|too verbose)\b/iu.test(rule)
     ? "brief"
     : undefined;
 }

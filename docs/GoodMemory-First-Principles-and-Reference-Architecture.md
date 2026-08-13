@@ -705,10 +705,10 @@ The stable `LanguageService` analyzer manifest covers resolver configuration,
 all active packs, and custom-detector identity. An unversioned custom detector
 cannot participate in a persistent completeness proof.
 
-The 0.7 projection generation is versioned independently of canonical memory:
-documents v3, entities v2, claims/status v2, and scope catalog v2. A per-scope
-migration rebuilds from canonical sources, validates source and derived-record
-coverage, then atomically publishes a complete catalog proof. Recall must not
+The current 0.7 projection generation is versioned independently of canonical
+memory: documents v4, entities v2, claims/status v2, and scope catalog v2. A
+per-scope migration rebuilds from canonical sources, validates source and
+derived-record coverage, then atomically publishes a complete catalog proof. Recall must not
 consume a partial new generation; it uses the canonical fallback until cutover.
 Migration is repeatable and does not rewrite canonical memory. This is a clean
 breaking replacement of the former language adapter, with no compatibility

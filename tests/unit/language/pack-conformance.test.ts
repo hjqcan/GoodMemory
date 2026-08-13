@@ -324,6 +324,23 @@ describe("LanguagePack structured host-action analysis", () => {
         .conciseComputation,
     ).toEqual({ base: 96, kind: "percentage", percentage: 25 });
   });
+
+  it("treats only an explicit quick request modifier as a brevity cue", () => {
+    const pack = createEnglishLanguagePack();
+    expect(pack.analyzeBehavioralRule("Quick: show the command.")).toMatchObject({
+      responseStyle: "brief",
+      semanticCues: expect.arrayContaining(["brevity"]),
+    });
+
+    for (const statement of [
+      "The quick brown fox jumps over the lazy dog.",
+      "Use the quick release valve for this operation.",
+    ]) {
+      const analysis = pack.analyzeBehavioralRule(statement);
+      expect(analysis.responseStyle).toBeUndefined();
+      expect(analysis.semanticCues ?? []).not.toContain("brevity");
+    }
+  });
 });
 
 describe("LanguagePack conformance", () => {

@@ -805,6 +805,7 @@ describe("release metadata and docs", () => {
     expect(pkg.files).toEqual([
       ".well-known/goodmemory.json",
       "benchmark-claims/evidence/locomo-v0.7.3-current.json",
+      "benchmark-claims/evidence/locomo-v0.7.3-verified.json",
       "LICENSE",
       "README.md",
       "README.zh-CN.md",
@@ -1432,19 +1433,12 @@ describe("release metadata and docs", () => {
     expect(historicalEvidence).toContain("official **0.8805**");
     expect(historicalEvidence).toContain("strict **0.6266**");
     expect(historicalEvidence).toContain("open-domain **0.6042** (58/96)");
-    expect(historicalEvidence).toContain(
-      "| BEAM 100K v0.6.0 (400 questions, 1051 rubric items) |",
-    );
-    expect(historicalEvidence).toContain("unified **0.7651**");
-    expect(historicalEvidence).toContain("strict **0.620** (248/400)");
-    expect(historicalEvidence).toContain(
-      "| MemoryAgentBench v0.6.0 (CR, TTL) |",
-    );
-    expect(historicalEvidence).toContain("**CR 0.959, TTL 0.933**");
+    expect(historicalEvidence).not.toContain("BEAM");
+    expect(historicalEvidence).not.toContain("MemoryAgentBench");
     expect(readme).toContain("### Versioned evidence");
     expect(readme).toContain("not current-production claims for `v0.7.4`");
     expect(readme).toContain("provider reranking");
-    expect(readme).toContain("CC BY-NC 4.0 (non-commercial scope)");
+    expect(readme).toContain("CC BY-NC 4.0 and therefore limited");
     expect(readme).not.toContain("| LoCoMo | representative conv-1 live run 0.020");
     expect(readme).toContain("## Choose Your Integration Path");
     expect(readme).toContain("GoodMemory has three primary product entry points");
@@ -1763,17 +1757,10 @@ describe("release metadata and docs", () => {
     expect(historicalEvidence).toContain("official **0.8805**");
     expect(historicalEvidence).toContain("strict **0.6266**");
     expect(historicalEvidence).toContain("open-domain **0.6042**（58/96）");
-    expect(historicalEvidence).toContain(
-      "| BEAM 100K v0.6.0（400 题、1051 条 rubric） |",
-    );
-    expect(historicalEvidence).toContain("unified **0.7651**");
-    expect(historicalEvidence).toContain("strict **0.620**（248/400）");
-    expect(historicalEvidence).toContain(
-      "| MemoryAgentBench v0.6.0 (CR, TTL) |",
-    );
-    expect(historicalEvidence).toContain("**CR 0.959, TTL 0.933**");
+    expect(historicalEvidence).not.toContain("BEAM");
+    expect(historicalEvidence).not.toContain("MemoryAgentBench");
     expect(zhReadme).toContain("provider reranking");
-    expect(zhReadme).toContain("CC BY-NC 4.0（非商用范围）");
+    expect(zhReadme).toContain("CC BY-NC 4.0，因此仅限非商用评估");
     expect(zhReadme).not.toContain("| LoCoMo | 代表性 conv-1 live 运行 0.020");
     expect(zhReadme).toContain("## 选择你的接入路径");
     expect(zhReadme).toContain("GoodMemory 有三类主要产品入口");
@@ -4033,6 +4020,7 @@ describe("release metadata and docs", () => {
       "reports/release/v0.7/v0.7.3-full-claim-protocol2-preregistration.json",
       "reports/release/v0.7/v0.7.3-full-claim-protocol2-attempt-consumed.json",
       "benchmark-claims/evidence/locomo-v0.7.3-current.json",
+      "benchmark-claims/evidence/locomo-v0.7.3-verified.json",
       "reports/release/v0.7/v0.7.3-locomo-claim-evidence",
       "reports/release/v0.7/phase-74-storage-scale-gate.json",
       "reports/release/v0.7/readiness-report.json",

@@ -11,7 +11,11 @@ import {
   type ReferenceMemory,
 } from "../domain/records";
 import { createMemorySource } from "../domain/provenance";
-import { hasPersistableSemanticText } from "../domain/semanticText";
+import {
+  assertStorageSafeExternalValue,
+  findStorageUnsafeTextPath,
+  hasPersistableSemanticText,
+} from "../domain/semanticText";
 import { isSameDurableScope } from "../domain/scope";
 import type { MemoryScope } from "../domain/scope";
 import type { EmbeddingAdapter } from "../embedding/contracts";
@@ -31,7 +35,9 @@ import type {
   ResolvedLanguageContext,
 } from "../language";
 import {
+  evaluateShouldRemember,
   passesDefaultScopeGuard,
+  redactPolicyCandidate,
   type GoodMemoryPolicyHooks,
   type PolicyContext,
 } from "../policy/hooks";
@@ -311,7 +317,7 @@ function buildRevisionCandidate(input: {
 }
 
 function buildRevisedRecords(input: {
-  content: string;
+  candidate: MemoryCandidate;
   evidenceId: string;
   newMemoryId: string;
   record: RevisableRecord;
@@ -335,6 +341,7 @@ function buildRevisedRecords(input: {
 
   if (input.memoryType === "preference") {
     const record = input.record as PreferenceMemory;
+    const metadata = input.candidate.metadata;
     return {
       previous: createPreferenceMemory({
         ...record,
@@ -343,20 +350,32 @@ function buildRevisedRecords(input: {
         updatedAt: input.timestamp,
       }),
       next: createPreferenceMemory({
-        ...record,
-        id: input.newMemoryId,
-        value: input.content,
-        source,
+        agentId: record.agentId,
+        attributes: metadata?.attributes,
+        category: metadata?.preferenceCategory ?? "general_preference",
+        confidence: record.confidence,
         evidenceCount: record.evidenceCount + 1,
+        id: input.newMemoryId,
+        isPinned: record.isPinned,
         lifecycle: "active",
+        sessionId: record.sessionId,
+        source,
         supersededBy: null,
+        tags: metadata?.tags,
+        tenantId: record.tenantId,
         updatedAt: input.timestamp,
+        userId: record.userId,
+        value: metadata?.preferenceValue ?? input.candidate.content,
+        workspaceId: record.workspaceId,
       }),
     };
   }
 
   if (input.memoryType === "reference") {
     const record = input.record as ReferenceMemory;
+    const metadata = input.candidate.metadata;
+    const pointer = metadata?.referencePointer ?? input.candidate.content;
+    const title = metadata?.referenceTitle?.trim();
     return {
       previous: createReferenceMemory({
         ...record,
@@ -365,21 +384,34 @@ function buildRevisedRecords(input: {
         updatedAt: input.timestamp,
       }),
       next: createReferenceMemory({
-        ...record,
-        id: input.newMemoryId,
-        title: input.content.split("/").at(-1) ?? input.content,
-        pointer: input.content,
-        source,
-        lifecycle: "active",
-        supersededBy: null,
+        agentId: record.agentId,
+        attributes: metadata?.attributes,
+        confidence: record.confidence,
         createdAt: input.timestamp,
+        description: record.description,
+        id: input.newMemoryId,
+        lifecycle: "active",
+        pointer,
+        referenceKind: metadata?.referenceKind,
+        sessionId: record.sessionId,
+        source,
+        subject: metadata?.subject ?? "unknown",
+        supersededBy: null,
+        tags: metadata?.tags,
+        tenantId: record.tenantId,
+        title: title && title.length > 0
+          ? title
+          : pointer.split("/").at(-1) ?? pointer,
         updatedAt: input.timestamp,
+        userId: record.userId,
+        workspaceId: record.workspaceId,
       }),
     };
   }
 
   if (input.memoryType === "feedback") {
     const record = input.record as FeedbackMemory;
+    const metadata = input.candidate.metadata;
     return {
       previous: createFeedbackMemory({
         ...record,
@@ -388,20 +420,31 @@ function buildRevisedRecords(input: {
         updatedAt: input.timestamp,
       }),
       next: createFeedbackMemory({
-        ...record,
-        id: input.newMemoryId,
-        rule: input.content,
-        source,
+        agentId: record.agentId,
+        appliesTo: metadata?.appliesTo,
+        attributes: metadata?.attributes,
+        confidence: record.confidence,
         evidence: [...new Set([...(record.evidence ?? []), input.evidenceId])],
-        lifecycle: "active",
+        id: input.newMemoryId,
+        kind: metadata?.feedbackKind ?? "do",
         lastUsedAt: undefined,
+        lifecycle: "active",
+        rule: input.candidate.content,
+        sessionId: record.sessionId,
+        source,
         supersededBy: null,
+        tags: metadata?.tags,
+        tenantId: record.tenantId,
         updatedAt: input.timestamp,
+        userId: record.userId,
+        why: record.why,
+        workspaceId: record.workspaceId,
       }),
     };
   }
 
   const record = input.record as FactMemory;
+  const metadata = input.candidate.metadata;
   return {
     previous: createFactMemory({
       ...record,
@@ -411,20 +454,41 @@ function buildRevisedRecords(input: {
       updatedAt: input.timestamp,
     }),
     next: createFactMemory({
-      ...record,
+      accessCount: 0,
+      agentId: record.agentId,
+      attributes: metadata?.attributes,
+      category: metadata?.category ?? "project",
+      confidence: record.confidence,
+      content: input.candidate.content,
+      createdAt: input.timestamp,
+      demotedAt: record.demotedAt,
+      demotionReason: record.demotionReason,
+      embeddingId: record.embeddingId,
+      expiresAt: record.expiresAt,
+      factKind: metadata?.factKind,
       id: input.newMemoryId,
-      content: input.content,
-      occurrence: input.content === record.content
+      importance: record.importance,
+      isActive: true,
+      lastAccessedAt: undefined,
+      lastVerificationHintAt: record.lastVerificationHintAt,
+      lifecycle: "active",
+      observedAt: record.observedAt,
+      occurrence: input.candidate.content === record.content
         ? record.occurrence
         : undefined,
+      scopeKind: metadata?.scopeKind,
+      sessionId: record.sessionId,
       source,
-      accessCount: 0,
-      lastAccessedAt: undefined,
-      lifecycle: "active",
-      isActive: true,
+      subject: metadata?.subject ?? "unknown",
       supersededBy: null,
-      createdAt: input.timestamp,
+      tags: metadata?.tags,
+      tenantId: record.tenantId,
       updatedAt: input.timestamp,
+      userId: record.userId,
+      validFrom: record.validFrom,
+      validUntil: record.validUntil,
+      verificationPressureCount: record.verificationPressureCount,
+      workspaceId: record.workspaceId,
     }),
   };
 }
@@ -502,7 +566,8 @@ async function resolveEvidenceExcerpt(input: {
     memoryType: input.memoryType,
     record: input.record,
   });
-  const redacted = await input.config.policy.redact(
+  const redacted = await redactPolicyCandidate(
+    input.config.policy,
     evidenceCandidate,
     input.policyContext,
   );
@@ -661,6 +726,11 @@ export async function reviseMemory(input: {
   config: ReviseMemoryServiceConfig;
   input: ReviseMemoryInput;
 }): Promise<ReviseMemoryResult> {
+  const { content: _content, ...revision } = input.input.revision;
+  assertStorageSafeExternalValue({
+    ...input.input,
+    revision,
+  }, "input");
   const policyApplied = ["revision.target.memory_id"];
   const target = await findTarget(input.config.documentStore, input.input);
   if (!target) {
@@ -725,7 +795,11 @@ export async function reviseMemory(input: {
   };
 
   if (input.config.policy?.redact) {
-    candidate = await input.config.policy.redact(candidate, policyContext);
+    candidate = await redactPolicyCandidate(
+      input.config.policy,
+      candidate,
+      policyContext,
+    );
     policyApplied.push("policy.redact");
   }
   if (!hasPersistableSemanticText(candidate.content)) {
@@ -738,9 +812,23 @@ export async function reviseMemory(input: {
       reason: "invalid_after_redaction",
     };
   }
+  if (findStorageUnsafeTextPath(candidate, "candidate")) {
+    return {
+      accepted: false,
+      outcome: "blocked",
+      memoryType: target.memoryType,
+      previousMemoryId: target.record.id,
+      policyApplied,
+      reason: "storage_unsafe",
+    };
+  }
 
   if (input.config.policy?.shouldRemember) {
-    const allowed = await input.config.policy.shouldRemember(candidate, policyContext);
+    const allowed = await evaluateShouldRemember(
+      input.config.policy,
+      candidate,
+      policyContext,
+    );
     if (!allowed) {
       policyApplied.push("policy.shouldRemember.blocked");
       return {
@@ -873,7 +961,7 @@ export async function reviseMemory(input: {
             [currentTarget, ...siblings],
           );
           const revised = buildRevisedRecords({
-            content: candidate.content,
+            candidate,
             evidenceId,
             language: resolvedLanguage,
             memoryType: "preference",
@@ -1002,7 +1090,7 @@ export async function reviseMemory(input: {
   }
 
   const { previous, next } = buildRevisedRecords({
-    content: candidate.content,
+    candidate,
     evidenceId,
     newMemoryId,
     record: target.record,

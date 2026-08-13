@@ -157,7 +157,7 @@ describe("Phase 72 LongMemEval temporal operand retrieval development", () => {
       runId: "analyzer-version-fixture",
       selectionFile: "/selection.json",
     })).rejects.toThrow(
-      "English analyzer 13 is required; found 15-occurrence-expression",
+      "English analyzer 13 is required; found 17-interrogative-admission",
     );
   });
 
@@ -286,7 +286,7 @@ describe("Phase 72 LongMemEval temporal operand retrieval development", () => {
       canonicalDependencies: false,
       canonicalMemoryRunId:
         "run-phase72-current-recall-assembly-development-v2-bun1314-clean",
-      englishAnalyzerVersion: "15-occurrence-expression",
+      englishAnalyzerVersion: "17-interrogative-admission",
       legacyControlEnglishAnalyzerVersion: "12",
       sourceState,
     });

@@ -2,7 +2,7 @@
   "benchmark": "MemoryAgentBench",
   "comparison": {
     "asOf": "2026-07-16",
-    "availability": "historical",
+    "availability": "repo-eval-only",
     "notes": [
       "The claim remains scoped to Conflict Resolution and Test-Time Learning.",
       "Both metrics use deterministic upstream match-mode scoring with no LLM judge.",
@@ -11,7 +11,7 @@
     "runtimeProfile": "recommended-evidence-pack-cr-ttl@0.6.0",
     "source": "https://github.com/HUST-AI-HYZ/MemoryAgentBench"
   },
-  "status": "internal_evidence",
+  "status": "paused_boundary",
   "dataset": {
     "source": "https://github.com/HUST-AI-HYZ/MemoryAgentBench",
     "license": "MIT",
@@ -111,6 +111,6 @@
   },
   "claimBoundary": {
     "publicClaimAllowed": false,
-    "reason": "Versioned v0.6.0 evidence is retained unchanged, but it is not a current-package claim until the benchmark is rerun against the current package under its disclosed semantics."
+    "reason": "Paused at the claim boundary. The v0.6.0 metric artifact records packageVersion but has no execution receipt that binds its source hash to the declared commit. The scores remain internal diagnostics until a source-bound rerun satisfies the verified projection contract."
   }
 }

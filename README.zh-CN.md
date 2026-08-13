@@ -64,9 +64,6 @@ benchmark 声明。
 | 基准 | 主指标 | GoodMemory 结果 | 基线 / 参照 | Claim declaration |
 |---|---|---:|---:|---|
 | LoCoMo v0.7.3（完整 10 会话） | 独立官方判官协议；strict 确定性 token-F1 | official **0.8805** · strict **0.6266** · open-domain **0.6042**（58/96） | 历史无记忆 0.0045 | [locomo.json](./benchmark-claims/locomo.json) |
-| BEAM 100K v0.6.0（400 题、1051 条 rubric） | 独立官方 unified rubric；另行披露 strict binary | unified **0.7651** · strict **0.620**（248/400）· 泛化 recall **0.8276** | 公开 full-400 同协议参照 0.49 | [beam.json](./benchmark-claims/beam.json) |
-| MemoryAgentBench v0.6.0 (CR, TTL) | 上游确定性 match-mode，judge-free | **CR 0.959, TTL 0.933** | 两项无记忆均为 0.000 | [memoryagentbench.json](./benchmark-claims/memoryagentbench.json) |
-| ImplicitMemBench Full-300 | stored-answer cross-version judge rescore | **0.691**（207.35/300），gpt-5.4 judge over gpt-5.5 answers，sourceAnswersUnchanged | upstream-chat 基线 **0.400**（120/300）；reference line 0.66 | [implicitmembench.json](./benchmark-claims/implicitmembench.json) |
 <!-- historical-evidence-table:end -->
 
 带版本的 v0.7.3 LoCoMo 运行覆盖全部 1540 道非对抗题，执行失败和判官失败均为零。
@@ -84,30 +81,11 @@ LongMemEval declaration 现在是 `paused_boundary`，不再属于历史证据�
 审计链而存在；在 opaque-session-id、label-free 的 Full-500 clean rerun 替换它们之前，
 不得引用为 GoodMemory 成绩。见
 [withdrawal declaration](./benchmark-claims/longmemeval.json)。
-历史 v0.6.0 MemoryAgentBench 证据刻意限定范围。答案由 `gpt-5.6-terra` 生成，评分采用
-上游确定性 match-mode，属于 judge-free。Conflict Resolution 得 CR 0.959
-（70/73），Test-Time Learning 得 TTL 0.933（28/30），无记忆 arm 在两项上均为
-`0.000`。Accurate Retrieval（AR）与 Long-Range Understanding（LRU）被排除，
-因为既有对照没有证明 memory lift；不会把可脱离记忆作答的选择题收益混入平均数。
+v0.6.0 的 BEAM、MemoryAgentBench 与 LoCoMo 测量仅保留为内部诊断。它们的 metric
+artifact 没有 execution receipt 将 measured source hash 绑定到声明 commit，因此
+不满足 verified projection 契约，不能列为 versioned historical evidence。
 
-历史 v0.6.0 LoCoMo 证据覆盖全部 1540 道非对抗题，`executionFailures: 0`。答案、对话式
-萃取与 provider reranking 使用 `gpt-5.6-terra`，官方协议轨由独立
-`gpt-5.5` 判官评分。official 为 0.8708，strict 确定性 token-F1 为 0.6299，
-open-domain 为 59/96 = 0.6146，对照历史无记忆 0.0045。这是 public-opt-in 的
-recommended provider-embedding profile，不是无 embedding 默认配置。LoCoMo
-数据集为 CC BY-NC 4.0（非商用范围），eval 时拉取、从不 vendor 进仓库。
-
-历史 v0.6.0 BEAM 证据使用 `gpt-5.6-terra` 回答和独立 `gpt-5.5` 判官。泛化路径关闭
-全部 148 个 legacy narrow gate 与 fitted answer 后处理，evidence recall 为
-0.8276；全部 400 题、1051 条 official rubric 的 unified 得分为 0.7651，对照
-公开同协议 0.49，执行与判官失败均为零。strict binary 仍如实披露为 0.620
-（248/400），上游 paper-protocol 得分仍披露为 0.7510。冻结的
-`event_ordering` 审计发现 7/40 题的官方 evidence 顺序并非时间顺序，另有一题
-requested-item 数量与 rubric 不一致，因此 0.72 strict 和 0.80 unified 继续作为
-stretch diagnostics，而不是被隐藏的失败。数据集为 CC BY-SA 4.0，eval 时拉取、
-从不 vendor。
-
-历史 ImplicitMemBench Full-300 declaration 使用 canonical zero-failure
+ImplicitMemBench Full-300 stored-answer rescore 使用 canonical zero-failure
 `run-phase61-full300-rerun-20260706-codex-current` 的答案，再用 gpt-5.4 对
 同一批 stored answers 重评（`sourceAnswersUnchanged: true`）。判官是
 cross-version，但仍是与 gpt-5.5 回答模型相同的 same GPT family，不是
@@ -117,7 +95,9 @@ upstream-chat 基线 **0.400**（120/300）；baseline 与 GoodMemory 两臂合�
 直接沿用而不是交给判官。旧的同模型诊断分数是 0.708，不作为公开声明。最近
 改动后的 freshest clean answer-regeneration drift check 得分为 0.6895，且
 `executionFailures: 0`；它说明当前 checkout 有漂移，但不替代 stored-answer
-可比协议 artifact。数据集 CC BY 4.0，eval 时拉取、从不 vendor。
+可比协议 artifact。其 measured source 没有在显式 JSON path 上同时提供 package
+version 与 commit，因此该结果暂停为内部诊断，不再列作 versioned historical
+evidence。数据集 CC BY 4.0，eval 时拉取、从不 vendor。
 
 ### 内部诊断（非公开声明）
 

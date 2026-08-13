@@ -72,6 +72,50 @@ export interface GoodMemoryPolicyHooks {
   ): Promise<ConflictResolution> | ConflictResolution;
 }
 
+export async function evaluateShouldRemember(
+  policy: Pick<GoodMemoryPolicyHooks, "shouldRemember"> | undefined,
+  candidate: MemoryCandidate,
+  context: PolicyContext,
+): Promise<boolean> {
+  if (!policy?.shouldRemember) {
+    return true;
+  }
+  return policy.shouldRemember(
+    structuredClone(candidate),
+    structuredClone(context),
+  );
+}
+
+export async function redactPolicyCandidate(
+  policy: Pick<GoodMemoryPolicyHooks, "redact"> | undefined,
+  candidate: MemoryCandidate,
+  context: PolicyContext,
+): Promise<MemoryCandidate> {
+  if (!policy?.redact) {
+    return candidate;
+  }
+  return policy.redact(
+    structuredClone(candidate),
+    structuredClone(context),
+  );
+}
+
+export async function resolvePolicyConflict(
+  policy: Pick<GoodMemoryPolicyHooks, "resolveConflict"> | undefined,
+  existing: PolicyMemoryRecord,
+  incoming: MemoryCandidate,
+  context: PolicyContext,
+): Promise<ConflictResolution | undefined> {
+  if (!policy?.resolveConflict) {
+    return undefined;
+  }
+  return policy.resolveConflict(
+    structuredClone(existing),
+    structuredClone(incoming),
+    structuredClone(context),
+  );
+}
+
 export function toPolicyMemoryRecord(
   record:
     | UserProfile

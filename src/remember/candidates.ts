@@ -3,6 +3,9 @@ import type { MemoryScope } from "../domain/scope";
 import type {
   AppendClaimProjectionInput,
   ClaimProjectionWritePort,
+  DurableOptOutDisposition,
+  DurableOptOutTargetSelector,
+  DurableTargetIdentity,
   MemoryCandidateClaimMetadata,
   MemoryCandidate,
   MemoryCandidateAnnotationTrace,
@@ -19,6 +22,9 @@ import type {
 export type {
   AppendClaimProjectionInput,
   ClaimProjectionWritePort,
+  DurableOptOutDisposition,
+  DurableOptOutTargetSelector,
+  DurableTargetIdentity,
   MemoryCandidateClaimMetadata,
   MemoryCandidate,
   MemoryCandidateAnnotationTrace,

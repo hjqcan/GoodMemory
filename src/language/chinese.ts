@@ -3,6 +3,11 @@ import type {
   MemoryCandidateMetadata,
   ProfileField,
 } from "../domain/memoryCandidate";
+import {
+  attachLanguageDurableTarget,
+  createLanguageDurableOptOutDisposition,
+  deriveLanguageDurableTarget,
+} from "./durableTarget";
 import type {
   LanguageCandidateExtractionInput,
   LanguageContentAnalysis,
@@ -14,7 +19,12 @@ import type {
 } from "../domain/records";
 import {
   expandExplicitFactCandidateClauses,
+  isExplicitlyQuotedValue,
+  isolateDirectiveGrammar,
+  maskQuotedText,
+  replaceUnquotedText,
   splitClausesGeneric,
+  splitTrailingInterrogativeClause,
 } from "./generic";
 import {
   buildChineseSearchTerms,
@@ -23,7 +33,7 @@ import {
   tokenizeChineseForScoring,
 } from "./chineseConversion";
 import {
-  analyzeChineseContent,
+  analyzeChineseContent as analyzeChineseContentBase,
   analyzeChineseQuery,
   type ChineseScript,
   decomposeChineseQuery,
@@ -83,10 +93,82 @@ const CHINESE_STOPWORDS = new Set([
   "以后",
   "以後",
 ]);
+const CHINESE_INTERROGATIVE_FORMS = {
+  anchors: [
+  "为什么",
+  "為什麼",
+  "有没有",
+  "有沒有",
+  "是不是",
+  "哪一个",
+  "哪一個",
+  "什么",
+  "什麼",
+  "哪个",
+  "哪個",
+  "哪些",
+  "哪里",
+  "哪裡",
+  "哪儿",
+  "哪兒",
+  "哪位",
+  "多少",
+  "几个",
+  "幾個",
+  "几项",
+  "幾項",
+  "是否",
+  "怎么",
+  "怎麼",
+  "为何",
+  "為何",
+  "能否",
+  "可否",
+  "何时",
+  "何時",
+  "何处",
+  "何處",
+  "何人",
+  "何以",
+  "如何",
+  "谁",
+  "誰",
+  ],
+  particles: ["吗", "嗎", "呢"],
+} as const;
+const CHINESE_INTERROGATIVE_ANCHOR_SOURCE =
+  `(?:${CHINESE_INTERROGATIVE_FORMS.anchors.join("|")})`;
+const CHINESE_LEADING_INTERROGATIVE_ANCHOR_PATTERN = new RegExp(
+  `^${CHINESE_INTERROGATIVE_ANCHOR_SOURCE}`,
+  "u",
+);
+const CHINESE_INTERROGATIVE_RETRIEVAL_PATTERN = new RegExp(
+  CHINESE_INTERROGATIVE_ANCHOR_SOURCE,
+  "gu",
+);
+const CHINESE_INTERROGATIVE_PARTICLE_RETRIEVAL_PATTERN =
+  /(?:吗|嗎|呢)(?=[?？。.!！]*\s*$)/gu;
 const CHINESE_REFERENCE_SUBJECT_NOISE_PATTERN =
   /^(?:现在|目前|当前|以后|以后都|今后|之后|后续|之后都|暂时|先|继续|仍然|都|统一|默认|请|请以后|以后请)$/u;
 const CHINESE_REFERENCE_SUBJECT_HINT_PATTERN =
   /(项目|流程|迁移|发布|上线|系统|服务|模块|计划|工作|工作流|平台|接口|看板|质量|程序|任务|手册|剧本|审批|验收|签收|交接|可靠性|支付|订单|运行时)/u;
+const CHINESE_DURABLE_TARGET_ALIASES = {
+  偏好: "preference",
+  名字: "profile:name",
+  姓名: "profile:name",
+  我的名字: "profile:name",
+  我的姓名: "profile:name",
+  我的时区: "profile:timezone",
+  我的時區: "profile:timezone",
+  时区: "profile:timezone",
+  時區: "profile:timezone",
+  项目代码: "project_code",
+  项目代号: "project_code",
+  項目代碼: "project_code",
+  項目代號: "project_code",
+  專案代碼: "project_code",
+  專案代號: "project_code",
+} as const;
 
 const DURABLE_INFERENCE_PATTERNS = [
   /(目前|现在|仍然|已经)/u,
@@ -135,26 +217,40 @@ const COUNTED_FACT_LIST_PATTERN =
   /^(?:(?:以下|这|這)\s*)?([一二两兩三四五六七八九十\d]+)件事(?:是)?(?=[：:,，\s]|$)/u;
 const COUNTED_FACT_ASSIGNMENT_PATTERN =
   /^(?!(?:请|請|不要|别|別))[\p{L}\p{N}_.-]{1,40}\s*[=＝]\s*\S(?:.*\S)?$/u;
-const COUNTED_FACT_QUESTION_PATTERN =
-  /(?:什么|什麼|谁|誰|哪个|哪個|哪些|哪里|哪裡|哪儿|哪兒|多少|几个|幾個|几项|幾項|是否|是不是|有没有|有沒有|怎么|怎麼|为何|為何|为什么|為什麼|能否|可否|(?:吗|嗎|呢)$)/u;
-const COUNTED_FACT_LITERAL_QUESTION_VALUE_PATTERN =
-  /(?:什么|什麼|谁|誰|哪个|哪個|哪些|哪里|哪裡|哪儿|哪兒|多少|几个|幾個|几项|幾項|是否|是不是|有没有|有沒有|怎么|怎麼|为何|為何|为什么|為什麼|能否|可否)/u;
-const COUNTED_FACT_BARE_QUESTION_VALUE_PATTERN =
-  /^(?:什么|什麼|谁|誰|哪个|哪個|哪些|哪里|哪裡|哪儿|哪兒|多少|几个|幾個|几项|幾項|是否|是不是|有没有|有沒有|怎么|怎麼|为何|為何|为什么|為什麼|能否|可否)(?:呢|啊|呀)?$/u;
-const COUNTED_FACT_POSTPOSED_QUESTION_VALUE_PATTERN =
-  /[，,、]\s*(?:什么|什麼|谁|誰|哪个|哪個|哪些|哪里|哪裡|哪儿|哪兒|多少|几个|幾個|几项|幾項|是否|是不是|有没有|有沒有|怎么|怎麼|为何|為何|为什么|為什麼|能否|可否)(?:呢|啊|呀)?$/u;
+const COUNTED_FACT_QUESTION_PATTERN = new RegExp(
+  `${CHINESE_INTERROGATIVE_ANCHOR_SOURCE}|(?:${CHINESE_INTERROGATIVE_FORMS.particles.join("|")})$`,
+  "u",
+);
+const COUNTED_FACT_POSTPOSED_QUESTION_VALUE_PATTERN = new RegExp(
+  `[，,、]\\s*${CHINESE_INTERROGATIVE_ANCHOR_SOURCE}(?:呢|啊|呀)?$`,
+  "u",
+);
 const COUNTED_FACT_CONFIRMATION_PATTERN =
   /(?:正确|正確|对|對|没错|沒錯|可用|能用|能上线|能上線)(?:吗|嗎|么|麼)?\s*$/u;
 const COUNTED_FACT_CONFIRMATION_QUESTION_PATTERN =
   /(?:是否|是不是|有没有|有沒有|能否|可否)|(?:吗|嗎|么|麼)\s*$/u;
 const COUNTED_FACT_A_NOT_A_QUESTION_PATTERN =
   /(?:对不对|對不對|正确不正确|正確不正確|能不能(?:用|上线|上線)?|可不可以(?:用|上线|上線)?|可不可(?:用|上线|上線)?)\s*$/u;
+const CHINESE_CLEAR_TRAILING_QUESTION_PATTERN = new RegExp(
+  `(?:${CHINESE_INTERROGATIVE_ANCHOR_SOURCE})(?:呢|啊|呀)?\\s*$|(?:${CHINESE_INTERROGATIVE_FORMS.particles.join("|")})\\s*$`,
+  "u",
+);
+const CHINESE_CONFIRMATION_QUESTION_PATTERN =
+  /[，,]\s*(?:对吧|對吧|是吗|是嗎|对不对|對不對)\s*[。！]?$/u;
+const CHINESE_NOMINAL_CLAUSE_ASSERTION_PATTERN = new RegExp(
+  `^(?:${CHINESE_INTERROGATIVE_ANCHOR_SOURCE})(?:[^?？。！]+(?:取决于|取決於)[^?？。！]+|[^?？。！]+由[^?？。！]+(?:决定|決定)|(?!已(?:经|經)?(?:记录|記錄))[^?？。！]{2,}?(?:已|已经|已經)(?:记录|記錄)(?:在|于|於)[^?？。！]+|[^?？。！]+(?:尚|仍|还|還)?(?:不清楚|不明确|不明確|未知))[。！]?$`,
+  "u",
+);
 const COUNTED_FIRST_PERSON_ASSERTION_PATTERN =
   /^我(?:(?:的[^，。！？；]+(?:是|为|為))|(?:最|更)?(?:喜欢|喜歡|偏好)|(?:叫|是))/u;
 const EXPLICIT_FACT_OPT_OUT_PATTERN =
   /^(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你)?)\s*)?(?:不要|别|別)(?:再)?(?:记住|記住|保存|存储|儲存|记录|記錄)/u;
+const EXPLICIT_FACT_OPT_OUT_GRAMMAR_PATTERN =
+  /(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你)?)\s*)?(?:不要|别|別)(?:再)?(?:记住|記住|保存|存储|儲存|记录|記錄)/u;
 const EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN =
   /(?:[，,]\s*|(?:而且|并且|並且|以及|和|但(?:是)?|不过|不過)\s*)(?=(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你)?)\s*)?(?:不要|别|別)(?:再)?(?:记住|記住|保存|存储|儲存|记录|記錄))/u;
+const EXPLICIT_FACT_OPT_OUT_CONNECTOR_BOUNDARY_PATTERN =
+  /(?:而且|并且|並且|以及|和|但(?:是)?|不过|不過)\s*(?=(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你)?)\s*)?(?:不要|别|別)(?:再)?(?:记住|記住|保存|存储|儲存|记录|記錄))/u;
 const ORGANIZATION_SUFFIX_PATTERN =
   /(公司|集团|大学|学院|学校|医院|实验室|研究院|研究所|工作室|事务所|委员会|基金会|机构|平台|团队|部门|银行|媒体|出版社|中心)$/u;
 const LOCATION_SUFFIX_PATTERN =
@@ -269,11 +365,30 @@ function extractChineseOptOutTarget(content: string): string {
 function splitChineseClauses(text: string): string[] {
   return splitClausesGeneric(text)
     .flatMap((clause) =>
+      EXPLICIT_FACT_DIRECTIVE_PATTERN.test(clause.trim()) ||
+        EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
+        ? [clause]
+        : splitTrailingInterrogativeClause(
+          clause,
+          (candidate) => isChineseInterrogativeClause(candidate, candidate),
+          (candidate) =>
+            /[?？]\s*$/u.test(maskQuotedText(candidate)) ||
+            CHINESE_CLEAR_TRAILING_QUESTION_PATTERN.test(
+              maskQuotedText(candidate).trim(),
+            ),
+        )
+    )
+    .flatMap((clause) =>
+      clause.split(EXPLICIT_FACT_OPT_OUT_CONNECTOR_BOUNDARY_PATTERN)
+    )
+    .map((clause) =>
+      isolateDirectiveGrammar(clause, EXPLICIT_FACT_OPT_OUT_GRAMMAR_PATTERN)
+    )
+    .flatMap((clause) =>
       EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
         ? [clause]
         : clause.split(EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN)
     )
-    .map((clause) => clause.trim())
     .filter(Boolean);
 }
 
@@ -283,10 +398,27 @@ function looksLikeCountedFactAssertion(content: string): boolean {
       COUNTED_FIRST_PERSON_ASSERTION_PATTERN.test(content));
 }
 
-function isChineseExplicitFactQuestion(
+function stripChineseInterrogativeRetrievalNoise(text: string): string {
+  return replaceUnquotedText(
+    replaceUnquotedText(
+      text,
+      CHINESE_INTERROGATIVE_RETRIEVAL_PATTERN,
+      " ",
+    ),
+    CHINESE_INTERROGATIVE_PARTICLE_RETRIEVAL_PATTERN,
+    " ",
+  );
+}
+
+function isChineseInterrogativeClause(
   content: string,
   source: string,
 ): boolean {
+  const unquotedContent = maskQuotedText(content).trim();
+  const unquotedSource = maskQuotedText(source).trim();
+  if (CHINESE_CONFIRMATION_QUESTION_PATTERN.test(unquotedContent)) {
+    return true;
+  }
   const assignmentIndex = content.search(/[=＝]/u);
   if (assignmentIndex >= 0) {
     const left = content.slice(0, assignmentIndex).trim();
@@ -301,18 +433,47 @@ function isChineseExplicitFactQuestion(
     if (assignmentConfirmation) {
       return true;
     }
+    if (isExplicitlyQuotedValue(right)) {
+      return false;
+    }
     if (COUNTED_FACT_POSTPOSED_QUESTION_VALUE_PATTERN.test(right)) {
       return true;
     }
-    if (/[?？]\s*$/u.test(source)) {
-      return !COUNTED_FACT_LITERAL_QUESTION_VALUE_PATTERN.test(right) ||
-        COUNTED_FACT_BARE_QUESTION_VALUE_PATTERN.test(right);
+    if (/[?？]\s*$/u.test(unquotedSource)) {
+      return true;
     }
     return false;
   }
+  if (
+    !/[?？]\s*$/u.test(unquotedSource) &&
+    CHINESE_NOMINAL_CLAUSE_ASSERTION_PATTERN.test(unquotedContent) &&
+    !COUNTED_FACT_QUESTION_PATTERN.test(
+      unquotedContent.replace(CHINESE_LEADING_INTERROGATIVE_ANCHOR_PATTERN, ""),
+    )
+  ) {
+    return false;
+  }
 
-  return /[?？]\s*$/u.test(source) ||
-    COUNTED_FACT_QUESTION_PATTERN.test(content);
+  const hasDeclarativeTerminator = /[。.!！]\s*$/u.test(unquotedSource);
+  const statementBody = hasDeclarativeTerminator
+    ? unquotedContent.replace(/[。.!！]\s*$/u, "").trim()
+    : unquotedContent;
+  if (
+    hasDeclarativeTerminator &&
+    !CHINESE_CLEAR_TRAILING_QUESTION_PATTERN.test(statementBody)
+  ) {
+    return false;
+  }
+
+  return /[?？]\s*$/u.test(unquotedSource) ||
+    COUNTED_FACT_QUESTION_PATTERN.test(unquotedContent);
+}
+
+function analyzeChineseContent(content: string): LanguageContentAnalysis {
+  return {
+    ...analyzeChineseContentBase(content),
+    interrogative: isChineseInterrogativeClause(content, content),
+  };
 }
 
 function extractExplicitFactClauses(content: string) {
@@ -355,7 +516,7 @@ function extractExplicitFactClauses(content: string) {
   }
   if (clauses.some(({ content: clause, source }) =>
     !EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause) &&
-    isChineseExplicitFactQuestion(clause, source)
+    isChineseInterrogativeClause(clause, source)
   )) {
     return { clauses: [], status: "invalid" as const };
   }
@@ -627,7 +788,7 @@ function extractChineseOccurrenceEvent(
 ): { content: string; occurrenceExpression: ReturnType<typeof parseChineseTemporalExpressions>[number] } | undefined {
   if (
     /[?？]/u.test(content) ||
-    /[，,]\s*(?:对吧|對吧|是吗|是嗎|对不对|對不對)\s*[。！]?$/u.test(content) ||
+    CHINESE_CONFIRMATION_QUESTION_PATTERN.test(content) ||
     /(?:什么|什麼|谁|誰|哪里|哪裡|何时|何時|为何|為何|为什么|為什麼|怎么|怎麼)(?:呢|啊|呀)?[。！]?$|(?:吗|嗎|么|麼|呢)[。！]?$/u.test(
       content,
     )
@@ -1252,12 +1413,18 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
     ): string[] {
       const tokens = tokenizeChineseForScoring(text, locale);
       if (options?.excludeStopwords) {
-        return tokens.filter((token) => !CHINESE_STOPWORDS.has(token));
+        return tokenizeChineseForScoring(
+          stripChineseInterrogativeRetrievalNoise(text),
+          locale,
+        ).filter((token) => !CHINESE_STOPWORDS.has(token));
       }
       return tokens;
     },
     buildSearchTerms(text: string): string[] {
-      return buildChineseSearchTerms(text, locale).filter(
+      return buildChineseSearchTerms(
+        stripChineseInterrogativeRetrievalNoise(text),
+        locale,
+      ).filter(
         (token) => !CHINESE_STOPWORDS.has(token),
       );
     },
@@ -1266,7 +1433,9 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
       return analyzeBehavioralRuleWithPatterns(text, BEHAVIORAL_RULE_PATTERNS);
     },
     analyzeQuery: analyzeChineseQuery,
-    analyzeContent: analyzeChineseContent,
+    analyzeContent(content) {
+      return analyzeChineseContent(content);
+    },
     parseTemporalExpressions: parseChineseTemporalExpressions,
     extractEntityMentions: extractChineseEntityMentions,
     matchesEntityAlias(query, alias) {
@@ -1278,6 +1447,12 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
     },
     acceptsEntityCandidate() {
       return true;
+    },
+    deriveDurableTarget(candidate) {
+      return deriveLanguageDurableTarget(
+        candidate,
+        CHINESE_DURABLE_TARGET_ALIASES,
+      );
     },
     render(input) {
       return renderChinese(input, script);
@@ -1303,19 +1478,30 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
             ? sourceAnalysis
             : analyzeChineseContent(clause.content);
           if (clause.disposition === "feedback") {
+            const optOutTarget = extractChineseOptOutTarget(clause.content);
             candidates.push({
               id: input.nextId(),
               kindHint: "feedback",
               explicitness: "explicit",
               content: clause.content.trim(),
+              disposition: createLanguageDurableOptOutDisposition(
+                optOutTarget,
+                CHINESE_DURABLE_TARGET_ALIASES,
+              ),
               sourceMessageIndex,
               sourceRole: "user",
               metadata: {
                 feedbackKind: "dont",
-                optOutTarget: extractChineseOptOutTarget(clause.content),
+                optOutTarget,
                 appliesTo: "general_response",
               },
             });
+            continue;
+          }
+          if (
+            clause.disposition === "ordinary" &&
+            isChineseInterrogativeClause(clause.content, clause.content)
+          ) {
             continue;
           }
           const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
@@ -1348,7 +1534,12 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
         }
       });
 
-      return candidates;
+      return candidates.map((candidate) =>
+        attachLanguageDurableTarget(
+          candidate,
+          CHINESE_DURABLE_TARGET_ALIASES,
+        )
+      );
     },
   };
 }

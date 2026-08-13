@@ -134,7 +134,7 @@ the derived projections.
 
 | Projection | 0.7 collection generation |
 |---|---|
-| recall documents | v3 |
+| recall documents | v4 |
 | entities / adjacency | v2 |
 | claims and claim status | v2 |
 | scope catalog | v2 |

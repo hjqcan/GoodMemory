@@ -19,7 +19,7 @@ describe("Phase 72 LongMemEval operand-head preservation development", () => {
       runId: "analyzer-version-fixture",
       selectionFile: "/selection.json",
     })).rejects.toThrow(
-      "English analyzer 13 is required; found 15-occurrence-expression",
+      "English analyzer 13 is required; found 17-interrogative-admission",
     );
   });
 
@@ -188,7 +188,7 @@ describe("Phase 72 LongMemEval operand-head preservation development", () => {
     });
     expect(report.source).toMatchObject({
       canonicalDependencies: false,
-      englishAnalyzerVersion: "15-occurrence-expression",
+      englishAnalyzerVersion: "17-interrogative-admission",
     });
     expect(writes.has("/out/fixture-run/report.json")).toBe(true);
   });

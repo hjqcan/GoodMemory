@@ -9,7 +9,10 @@ import {
   normalizeFeedbackAppliesTo,
 } from "../domain/records";
 import { createMemorySource } from "../domain/provenance";
-import { hasPersistableSemanticText } from "../domain/semanticText";
+import {
+  assertStorageSafeExternalValue,
+  hasPersistableSemanticText,
+} from "../domain/semanticText";
 import { isIanaTimezone, isRfc3339Instant } from "../domain/temporal";
 import {
   normalizeScope,
@@ -1321,6 +1324,7 @@ class GoodMemoryImpl implements GoodMemory {
   }
 
   async recall(input: RecallInput): Promise<RecallResult> {
+    assertStorageSafeExternalValue(input, "input");
     const trace = await this.tracer.start({
       name: "memory.recall",
       scope: input.scope,
@@ -1953,6 +1957,7 @@ class GoodMemoryImpl implements GoodMemory {
   }
 
   async forget(input: ForgetInput): Promise<ForgetResult> {
+    assertStorageSafeExternalValue(input, "input");
     return this.runScopeMutation(input.scope, () =>
       this.forgetWithinScopeMutation(input)
     );
@@ -2044,6 +2049,7 @@ class GoodMemoryImpl implements GoodMemory {
   }
 
   async deleteAllMemory(input: DeleteAllMemoryInput): Promise<DeleteAllMemoryResult> {
+    assertStorageSafeExternalValue(input, "input");
     if (!this.scopeDeletion) {
       throw new Error(
         "deleteAllMemory requires a projection-capable document store with atomic conditional batches.",
@@ -2089,6 +2095,8 @@ class GoodMemoryImpl implements GoodMemory {
   private async feedbackWithinScopeMutation(
     input: FeedbackInput,
   ): Promise<FeedbackResult> {
+    const { signal: _signal, ...feedbackContext } = input;
+    assertStorageSafeExternalValue(feedbackContext, "input");
     const trace = await this.tracer.start({
       name: "memory.feedback",
       scope: input.scope,
@@ -2126,6 +2134,7 @@ class GoodMemoryImpl implements GoodMemory {
   }
 
   async runMaintenance(input: RunMaintenanceInput): Promise<RunMaintenanceResult> {
+    assertStorageSafeExternalValue(input, "input");
     return this.runScopeMutation(input.scope, () =>
       this.runMaintenanceWithinScopeMutation(input)
     );
@@ -2167,6 +2176,7 @@ class GoodMemoryImpl implements GoodMemory {
     scope: MemoryScope,
     operation: () => Promise<T>,
   ): Promise<T> {
+    assertStorageSafeExternalValue(scope, "scope");
     return this.scopeDeletion
       ? this.scopeDeletion.runMutation(scope, operation)
       : operation();

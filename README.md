@@ -135,9 +135,6 @@ not current-production claims for `v0.7.4`.
 | Benchmark | Primary metric | GoodMemory result | Baseline / reference | Claim declaration |
 |---|---|---:|---:|---|
 | LoCoMo v0.7.3 (full 10 conversations) | independent official judge protocol; strict deterministic token-F1 | official **0.8805** · strict **0.6266** · open-domain **0.6042** (58/96) | historical no-memory 0.0045 | [locomo.json](./benchmark-claims/locomo.json) |
-| BEAM 100K v0.6.0 (400 questions, 1051 rubric items) | independent official unified rubric; strict binary disclosed separately | unified **0.7651** · strict **0.620** (248/400) · generalized recall **0.8276** | public full-400 same-protocol reference 0.49 | [beam.json](./benchmark-claims/beam.json) |
-| MemoryAgentBench v0.6.0 (CR, TTL) | deterministic upstream match-mode scoring, judge-free | **CR 0.959, TTL 0.933** | no-memory 0.000 for both | [memoryagentbench.json](./benchmark-claims/memoryagentbench.json) |
-| ImplicitMemBench Full-300 | stored-answer cross-version judge rescore | **0.691** (207.35/300), gpt-5.4 judge over gpt-5.5 answers, sourceAnswersUnchanged | upstream-chat baseline **0.400** (120/300); reference line 0.66 | [implicitmembench.json](./benchmark-claims/implicitmembench.json) |
 <!-- historical-evidence-table:end -->
 
 The versioned v0.7.3 LoCoMo run covers all 1540 non-adversarial questions with
@@ -161,37 +158,12 @@ Its old numeric artifacts remain only to preserve the audit trail. They must
 not be quoted as GoodMemory results until an opaque-session-id, label-free full
 rerun replaces them; see the
 [withdrawal declaration](./benchmark-claims/longmemeval.json).
-The historical v0.6.0 MemoryAgentBench evidence is deliberately scoped. It uses
-`gpt-5.6-terra` answers and deterministic, judge-free upstream match-mode
-scoring. Conflict Resolution scores CR 0.959 (70/73) and Test-Time Learning
-scores TTL 0.933 (28/30), while the no-memory arm scores `0.000` on both.
-Accurate Retrieval (AR) and Long-Range Understanding (LRU) are excluded because
-prior controls did not establish a memory lift; the claim does not average in
-multiple-choice wins that can be answered without memory.
+The v0.6.0 BEAM, MemoryAgentBench, and LoCoMo measurements remain internal
+diagnostics. Their metric artifacts do not have execution receipts binding the
+measured source hashes to the declared commit, so they are not versioned
+historical evidence under the verified projection contract.
 
-The historical v0.6.0 LoCoMo evidence covers all 1540 non-adversarial questions with
-`executionFailures: 0`. It uses `gpt-5.6-terra` for answers, conversational
-extraction, and provider reranking, then uses an independent `gpt-5.5` judge
-for the official-protocol track. Official accuracy is 0.8708, strict
-deterministic token-F1 is 0.6299, and open-domain is 59/96 = 0.6146 versus the
-historical no-memory 0.0045. This is the public-opt-in recommended
-provider-embedding profile, not the embedding-free default. The LoCoMo dataset
-is CC BY-NC 4.0 (non-commercial scope), fetched at eval time, and never
-vendored.
-
-The historical v0.6.0 BEAM evidence uses `gpt-5.6-terra` answers and an independent
-`gpt-5.5` judge. The generalized path disables all 148 legacy narrow gates and
-legacy fitted answer postprocessing. It reaches 0.8276 evidence recall and
-0.7651 over all 400 questions and 1051 official rubric items, versus the public
-same-protocol reference 0.49, with zero execution and judge failures. The
-strict binary score remains disclosed at 0.620 (248/400), and the upstream
-paper-protocol score remains disclosed at 0.7510. The frozen `event_ordering`
-audit found 7/40 cases with non-chronological official evidence order and one
-requested-item/rubric mismatch, so 0.72 strict and 0.80 unified remain stretch
-diagnostics rather than hidden failures. Dataset CC BY-SA 4.0, fetched at eval
-time, and never vendored.
-
-The historical ImplicitMemBench Full-300 declaration uses the canonical zero-failure
+The ImplicitMemBench Full-300 stored-answer rescore uses the canonical zero-failure
 `run-phase61-full300-rerun-20260706-codex-current` answers, then re-scores the
 same stored answers with gpt-5.4 (`sourceAnswersUnchanged: true`). The judge is
 cross-version but the same GPT family as the gpt-5.5 answer model, not a
@@ -202,8 +174,10 @@ decisions across the baseline and GoodMemory arms; deterministic
 older same-model diagnostic score was 0.708 and is not the recorded result. The
 freshest clean answer-regeneration drift check after recent code changes scored
 0.6895 with `executionFailures: 0`; it shows current checkout drift, not a
-replacement for the stored-answer comparability artifact. Dataset CC BY 4.0,
-fetched at eval time, never vendored.
+replacement for the stored-answer comparability artifact. Its measured sources do
+not independently expose both package version and commit at explicit JSON paths,
+so the result is paused as an internal diagnostic and is not versioned historical
+evidence. Dataset CC BY 4.0, fetched at eval time, never vendored.
 
 ### Internal diagnostics (not public claims)
 

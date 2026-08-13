@@ -194,4 +194,63 @@ describe("remember source-message batching", () => {
     expect(persisted).toHaveLength(1);
     expect(persisted[0]?.content).toBe("Concurrent conflicting content.");
   });
+
+  it("rolls back memory and evidence when source persistence finds a conflict", async () => {
+    const inner = createInMemoryDocumentStore();
+    let injectedConflict = false;
+    const store: ProjectionCapableDocumentStore = {
+      ...inner,
+      async writeBatchIfUnchanged(input) {
+        const firstSource = input.set.find(({ collection }) =>
+          collection === SOURCE_MESSAGES_COLLECTION
+        );
+        if (firstSource && !injectedConflict) {
+          injectedConflict = true;
+          await inner.set(
+            firstSource.collection,
+            firstSource.id,
+            {
+              ...(firstSource.document as SourceMessageRecord),
+              content: "Concurrent conflicting content.",
+            },
+          );
+          return false;
+        }
+        return inner.writeBatchIfUnchanged(input);
+      },
+    };
+    const engine = createRememberEngine({
+      createId: createDeterministicIdGenerator("memory"),
+      documentStore: store,
+      extractor: {
+        async extract() {
+          return {
+            candidates: [{
+              content: "editor=Neovim",
+              explicitness: "explicit",
+              id: "fact-before-source-conflict",
+              kindHint: "fact",
+              sourceMessageIndex: 0,
+              sourceRole: "user",
+            }],
+            ignoredMessageCount: 0,
+          };
+        },
+      },
+      now: () => "2026-07-23T20:00:00.000Z",
+      repositories: createMemoryRepositories({
+        documentStore: store,
+        sessionStore: createInMemorySessionStore(),
+      }),
+    });
+
+    await expect(engine.remember({ messages: [messages[0]!], scope }))
+      .rejects.toThrow("Immutable source-message conflict");
+
+    expect(await store.query("facts", scope)).toEqual([]);
+    expect(await store.query("evidence", scope)).toEqual([]);
+    expect(
+      await store.query<SourceMessageRecord>(SOURCE_MESSAGES_COLLECTION, scope),
+    ).toHaveLength(1);
+  });
 });

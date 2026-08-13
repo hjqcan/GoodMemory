@@ -24,6 +24,8 @@ function canonicalizeMetadata(value: unknown): unknown {
 function buildCandidateMergeKey(candidate: MemoryCandidate): string {
   return JSON.stringify({
     content: candidate.content.trim().toLowerCase(),
+    disposition: canonicalizeMetadata(candidate.disposition ?? null),
+    durableTarget: canonicalizeMetadata(candidate.durableTarget ?? null),
     explicitness: candidate.explicitness,
     kindHint: candidate.kindHint,
     metadata: canonicalizeMetadata(candidate.metadata ?? null),

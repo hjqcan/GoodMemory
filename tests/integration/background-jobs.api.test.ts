@@ -7,6 +7,45 @@ import {
 } from "../../src";
 
 describe("public background memory jobs API", () => {
+  it("rejects storage-unsafe queued payload fields before creating a job", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+
+    await expect(memory.jobs.enqueueRemember({
+      idempotencyKey: "unsafe-message-id",
+      messages: [{
+        content: "Remember that editor=Neovim.",
+        id: "message\u0000id",
+        role: "user",
+      }],
+      scope: { userId: "unsafe-job-user" },
+    })).rejects.toThrow("Storage-unsafe text at input.messages[0].id");
+    await expect(memory.jobs.enqueueRemember({
+      annotations: [{
+        messageIndex: 0,
+        metadataPatch: { attributes: { note: "visible\u0000metadata" } },
+      }],
+      idempotencyKey: "unsafe-annotation",
+      messages: [{ content: "safe source", role: "user" }],
+      scope: { userId: "unsafe-job-user" },
+    })).rejects.toThrow(
+      "Storage-unsafe text at input.annotations[0].metadataPatch.attributes.note",
+    );
+    const queued = await memory.jobs.enqueueRemember({
+      idempotencyKey: "quiet-invalid-content",
+      messages: [{ content: "visible\u0000content", role: "user" }],
+      scope: { userId: "unsafe-job-user" },
+    });
+    expect(queued.status).toBe("queued");
+    expect(await memory.jobs.drain()).toMatchObject({
+      jobs: [expect.objectContaining({ status: "succeeded" })],
+      processed: 1,
+    });
+    expect(
+      (await memory.exportMemory({ scope: { userId: "unsafe-job-user" } }))
+        .durable.facts,
+    ).toEqual([]);
+  });
+
   it("rejects invalid temporal context before a job is queued", async () => {
     const memory = createGoodMemory({ storage: { provider: "memory" } });
     const input = {

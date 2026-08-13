@@ -1,5 +1,6 @@
 import type { GoodMemoryTracer } from "../observability/tracer";
 import type { MemoryScope } from "../domain/scope";
+import { assertStorageSafeExternalValue } from "../domain/semanticText";
 import {
   createRuntimeContextService,
   type RuntimeExtractionHooks,
@@ -103,9 +104,12 @@ export function createGoodMemoryRuntimeFacade(
   const runMutation = <T>(
     scope: MemoryScope,
     operation: () => Promise<T>,
-  ): Promise<T> => config.scopeDeletion
-    ? config.scopeDeletion.runMutation(scope, operation)
-    : operation();
+  ): Promise<T> => {
+    assertStorageSafeExternalValue(scope, "scope");
+    return config.scopeDeletion
+      ? config.scopeDeletion.runMutation(scope, operation)
+      : operation();
+  };
 
   return {
     async startSession(

@@ -134,7 +134,8 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   1,540/1,540 decisions with zero judge failures. The tracked projection reports
   official accuracy `0.8805194805` (1,356/1,540), strict token-F1
   `0.6266233766`, and open-domain `58/96 = 0.6041666667`; the complete 14-source
-  closure is rooted at `benchmark-claims/evidence/locomo-v0.7.3-current.json`
+  closure is rooted at `benchmark-claims/evidence/locomo-v0.7.3-verified.json`,
+  whose execution receipt is `locomo-v0.7.3-current.json`,
   and `reports/release/v0.7/v0.7.3-locomo-claim-evidence/`. A later
   governance-only correction separates the current v0.7.3 README presentation
   from the independently bound historical v0.6 projection. Its preregistration,
@@ -197,8 +198,17 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   is not a 0.7 acceptance condition. Ambiguous Han-only text uses the
   configured default, while unsupported explicit locales use neutral Unicode
   behavior instead of English semantics.
-- Derived search is versioned separately from canonical memory. The 0.7 target
-  generation is documents v3, entities v2, claims/status v2, and scope catalog
+- Built-in write admission is clause-local across `en`, `zh-Hans`, `zh-Hant`,
+  `fr`, `es`, `ja`, and `ko`: ordinary interrogative clauses abstain before any
+  automatic producer, while assertion prefixes in mixed messages and explicit
+  directive/assignment/quoted literals remain eligible. A confirmed
+  `remember: "always"` annotation remains the host authority exception.
+  Interrogative terms are also pack-owned scoring/search noise, so they cannot
+  be the only lexical evidence for recall. This changes analyzer identity and
+  requires the existing projection migration to rebuild derived search text;
+  canonical memory is not rewritten or automatically deleted.
+- Derived search is versioned separately from canonical memory. The current 0.7
+  generation is documents v4, entities v2, claims/status v2, and scope catalog
   v2, with a persistent analyzer/build/source-generation proof. A scope must
   not read a partial new generation; it uses canonical fallback until an
   interruptible, repeatable migration validates and atomically publishes
@@ -1632,16 +1642,17 @@ cutover, and rollback contracts.
 - The current v0.7.4 benchmark surface contains no newly measured claim. The
   v0.7.3 public-opt-in LoCoMo result remains bound to its protocol-v2
   projection as versioned evidence. The prior `v0.6.0` LoCoMo, BEAM, and
-  MemoryAgentBench results retain their strict, protocol, license, and
-  event-ordering disclosures as versioned historical evidence alongside
-  ImplicitMemBench. LongMemEval is a paused boundary pending a clean
+  MemoryAgentBench results are paused because their metric artifacts have no
+  execution receipt binding source hashes to the declared commit. ImplicitMemBench
+  is likewise paused because its measured sources do not independently expose both
+  package version and commit at explicit JSON paths. LongMemEval is a paused boundary pending a clean
   opaque-session-id rerun. The runtime capability descriptor and both README
   current-claim tables are empty for v0.7.4. The strict gate recognizes the
   measured v0.7.3 declaration as historical without changing its source bytes,
   paths, or measured package version, and still enforces evidence assertions,
   README row provenance, current-versus-historical presentation separation,
   and disclosure fragments.
-- ImplicitMemBench Full-300 rerun evidence guard note: `eval:phase-61-full300` rejects ambiguous source/output/run/budget selectors before launching live shards. The 2026-07-06 full-root run `run-phase61-full300-rerun-20260706-codex-current` completed 300 cases with zero failures and measured same-model diagnostic GoodMemory 0.7081666667 versus baseline 0.41. That number remains diagnostic; the later gpt-5.4 stored-answer rescore is versioned historical evidence, not a current-production score.
+- ImplicitMemBench Full-300 rerun evidence guard note: `eval:phase-61-full300` rejects ambiguous source/output/run/budget selectors before launching live shards. The 2026-07-06 full-root run `run-phase61-full300-rerun-20260706-codex-current` completed 300 cases with zero failures and measured same-model diagnostic GoodMemory 0.7081666667 versus baseline 0.41. That number and the later gpt-5.4 stored-answer rescore remain internal diagnostics: the measured sources do not independently expose both package version and commit at explicit JSON paths required by the verified projection contract.
 - ImplicitMemBench postchanges rerun note: `run-phase61-full300-rerun-20260706-postchanges-current` completed the same `/tmp/ImplicitMemBench` full-root 300-case run after recent local changes, but had 2 GoodMemory distilled execution failures (`text_answer_generation timed out after 180000ms`) and therefore should not replace the 0-failure canonical internal rerun above. Its best same-model diagnostic GoodMemory score was 209.05/300 = 0.6968333333, raw was 175.05/300 = 0.5835, distilled blocking was 153/200 = 0.765, and baseline was 131/300 = 0.4366666667. Treat this as drift evidence, not a public-claim artifact.
 - ImplicitMemBench latest rerun note: `run-phase61-full300-rerun-20260706-latest-current` completed the same `/tmp/ImplicitMemBench` full-root 300-case run after the current benchmark-hardening work. It measured best same-model diagnostic GoodMemory score 211.06/300 = 0.7035333333, raw 179.06/300 = 0.5968666667, distilled blocking 155/200 = 0.775, and baseline 130/300 = 0.4333333333. It improved over the failed postchanges rerun but still had 1 GoodMemory distilled execution failure, so it does not replace the 0-failure `codex-current` source-answer run or the stored-answer gpt-5.4 comparability artifact.
 - ImplicitMemBench after-hardening rerun note: `run-phase61-full300-rerun-20260706-after-hardening-current` completed the same `/tmp/ImplicitMemBench` full-root 300-case run while the stored-answer rescore runner was being hardened. It had `executionFailures: 0`, but measured a lower best same-model diagnostic GoodMemory score of 206.85/300 = 0.6895, raw 174.85/300 = 0.5828333333, distilled blocking 151/200 = 0.755, and baseline 130/300 = 0.4333333333. This is the freshest drift check and is cleanly completed, but it is lower than the canonical 0-failure `codex-current` source score by 5.60 passed-equivalent points and does not replace the stored-answer gpt-5.4 comparability artifact.

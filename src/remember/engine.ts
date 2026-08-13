@@ -1,10 +1,17 @@
-import { hasPersistableSemanticText } from "../domain/semanticText";
+import {
+  assertStorageSafeExternalValue,
+  hasPersistableSemanticText,
+} from "../domain/semanticText";
 import { assertRememberTemporalContext, isIanaTimezone } from "../domain/temporal";
 import { buildEpisodeEmbeddingWrite } from "../embedding/vectorWrites";
 import { SOURCE_MESSAGES_COLLECTION } from "../evidence/contracts";
 import type { SourceMessageRecord } from "../evidence/contracts";
 import { createLanguageService } from "../language";
-import type { PolicyContext } from "../policy/hooks";
+import {
+  evaluateShouldRemember,
+  redactPolicyCandidate,
+  type PolicyContext,
+} from "../policy/hooks";
 import { isProjectionCapableDocumentStore } from "../storage/contracts";
 import type { DocumentStore } from "../storage/contracts";
 import { extractDeterministicMemoryWithLanguage } from "./deterministicExtractor";
@@ -32,6 +39,7 @@ import {
 } from "./classification";
 import { buildSourceMessageRecord } from "./builders";
 import type {
+  DurableOptOutTargetSelector,
   MessageAnnotation,
   MemoryCandidate,
   MemoryCandidateMetadata,
@@ -46,6 +54,10 @@ import type {
   RememberWriteState,
 } from "./contracts";
 import {
+  isDurableOptOutCandidate,
+  isTargetedByDurableOptOut,
+} from "./durableOptOut";
+import {
   createRuleMemoryExtractor,
   resolveRememberProfile,
 } from "./profiles";
@@ -59,10 +71,18 @@ import { createRememberWriteCoordinator } from "./writeOwnership";
 
 type EngineRememberResult = RememberResult & { outcome: ExtractionOutcome };
 
+function assertStorageSafeRememberInput(input: MemoryExtractionInput): void {
+  assertStorageSafeExternalValue({
+    ...input,
+    messages: input.messages.map(({ content: _content, ...message }) => message),
+  }, "input");
+}
+
 async function prepareTemporalInput(
   input: MemoryExtractionInput,
   repositories: RememberEngineConfig["repositories"],
 ): Promise<MemoryExtractionInput> {
+  assertStorageSafeRememberInput(input);
   assertRememberTemporalContext(input);
 
   const storedTimezone = (await repositories.profiles.get(input.scope.userId))
@@ -90,11 +110,6 @@ function candidateSourceMessageIndexes(candidate: MemoryCandidate): number[] {
     candidate.sourceMessageIndex,
     ...(candidate.sourceMessageIndexes ?? []),
   ])];
-}
-
-function isDontFeedbackCandidate(candidate: MemoryCandidate): boolean {
-  return candidate.kindHint === "feedback" &&
-    candidate.metadata?.feedbackKind === "dont";
 }
 
 function candidateTouchesSourceIndexes(
@@ -363,71 +378,13 @@ export function createRememberEngine(config: RememberEngineConfig) {
     ),
   });
 
-  const explicitOptOutTargetIdentities = (
+  const explicitDurableOptOutSelectors = (
     extraction: MemoryExtractionResult,
-    sourceAnalyses: RememberSourceLanguageAnalyses,
-    requestLanguage: RememberSourceLanguageAnalysis,
-  ): ReadonlySet<string> => {
-    const targets = new Set<string>();
-    for (const candidate of extraction.candidates) {
-      if (!isDontFeedbackCandidate(candidate)) {
-        continue;
-      }
-      const context = resolveCandidateLanguage(
-        candidate,
-        sourceAnalyses,
-        requestLanguage,
-      );
-      const identity = language.normalizeForEquality(
-        candidate.metadata?.optOutTarget ?? "",
-        context,
-      );
-      if (hasPersistableSemanticText(identity)) {
-        targets.add(`${context.languagePackId}\u0000${identity}`);
-      }
-    }
-    return targets;
-  };
-
-  const omitFactsTargetedByExplicitOptOut = (
-    extraction: MemoryExtractionResult,
-    targets: ReadonlySet<string>,
-    sourceAnalyses: RememberSourceLanguageAnalyses,
-    requestLanguage: RememberSourceLanguageAnalysis,
-  ): MemoryExtractionResult => {
-    if (targets.size === 0) {
-      return extraction;
-    }
-    return {
-      ...extraction,
-      candidates: extraction.candidates.filter((candidate) =>
-        !isFactTargetedByExplicitOptOut(
-          candidate,
-          targets,
-          sourceAnalyses,
-          requestLanguage,
-        )
-      ),
-    };
-  };
-
-  const isFactTargetedByExplicitOptOut = (
-    candidate: MemoryCandidate,
-    targets: ReadonlySet<string>,
-    sourceAnalyses: RememberSourceLanguageAnalyses,
-    requestLanguage: RememberSourceLanguageAnalysis,
-  ): boolean => {
-    if (candidate.kindHint !== "fact" || targets.size === 0) {
-      return false;
-    }
-    const context = resolveCandidateLanguage(
-      candidate,
-      sourceAnalyses,
-      requestLanguage,
-    );
-    const identity = language.normalizeForEquality(candidate.content, context);
-    return targets.has(`${context.languagePackId}\u0000${identity}`);
-  };
+  ): DurableOptOutTargetSelector[] => extraction.candidates.flatMap((candidate) =>
+    isDurableOptOutCandidate(candidate) && candidate.disposition
+      ? [candidate.disposition.target]
+      : []
+  );
 
   const appendTag = (tags: string[], tag: string): void => {
     if (!tags.includes(tag)) {
@@ -581,6 +538,21 @@ export function createRememberEngine(config: RememberEngineConfig) {
       ),
     );
 
+  const getStorageUnsafeOnlyMessageIndexes = (
+    input: MemoryExtractionInput,
+    extraction: MemoryExtractionResult,
+  ): Set<number> =>
+    new Set(input.messages.flatMap((_message, messageIndex) => {
+      const candidates = extraction.candidates.filter((candidate) =>
+        candidateSourceMessageIndexes(candidate).includes(messageIndex)
+      );
+      return candidates.length > 0 && candidates.every(
+          (candidate) => classifyCandidate(candidate).reason === "storage_unsafe",
+        )
+        ? [messageIndex]
+        : [];
+    }));
+
   const maskMessages = (
     input: MemoryExtractionInput,
     blockedIndexes: ReadonlySet<number>,
@@ -602,7 +574,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
     };
   };
 
-  const sanitizeExplicitOptOutMessages = (
+  const sanitizeProducerMessages = (
     input: MemoryExtractionInput,
     sourceAnalyses: RememberSourceLanguageAnalyses,
     explicitOptOutSourceIndexes: ReadonlySet<number>,
@@ -611,39 +583,56 @@ export function createRememberEngine(config: RememberEngineConfig) {
     input: MemoryExtractionInput;
   } => {
     const blockedSourceIndexes = new Set<number>();
-    if (explicitOptOutSourceIndexes.size === 0) {
-      return { blockedSourceIndexes, input };
-    }
-
+    let changed = false;
     let candidateId = 0;
     const messages = input.messages.map((message, messageIndex) => {
-      if (!explicitOptOutSourceIndexes.has(messageIndex)) {
+      const context = sourceAnalyses.get(messageIndex)?.context ??
+        language.resolveFromText({ locale: input.locale, text: message.content });
+      const hasExplicitOptOut = explicitOptOutSourceIndexes.has(messageIndex);
+      let locatedOptOutClause = false;
+      let removedClause = false;
+      const clauses = language.splitClauses(message.content, context);
+      const allowedClauses = clauses
+        .filter((clause) => {
+          if (hasExplicitOptOut) {
+            const candidates = language.extractCandidates(
+              {
+                locale: context.locale,
+                messages: [{
+                  content: clause,
+                  role: message.role,
+                  sourceMessageIndex: messageIndex,
+                }],
+                nextId: () => `producer-sanitizer-${candidateId++}`,
+              },
+              context,
+            );
+            if (candidates.some(isDurableOptOutCandidate)) {
+              locatedOptOutClause = true;
+              removedClause = true;
+              return false;
+            }
+          }
+          const analysis = clauses.length === 1 && clause === message.content
+            ? sourceAnalyses.get(messageIndex)?.analysis
+            : language.analyzeContent(clause, context);
+          if (analysis?.interrogative === true) {
+            removedClause = true;
+            return false;
+          }
+          return true;
+        });
+      if (hasExplicitOptOut && !locatedOptOutClause) {
+        changed = true;
+        blockedSourceIndexes.add(messageIndex);
+        return { ...message, content: "" };
+      }
+      if (!removedClause) {
         return message;
       }
 
-      const context = sourceAnalyses.get(messageIndex)?.context ??
-        language.resolveFromText({ locale: input.locale, text: message.content });
-      let locatedOptOutClause = false;
-      const allowedClauses = language
-        .splitClauses(message.content, context)
-        .filter((clause) => {
-          const candidates = language.extractCandidates(
-            {
-              locale: context.locale,
-              messages: [{
-                content: clause,
-                role: message.role,
-                sourceMessageIndex: messageIndex,
-              }],
-              nextId: () => `producer-sanitizer-${candidateId++}`,
-            },
-            context,
-          );
-          const isOptOutClause = candidates.some(isDontFeedbackCandidate);
-          locatedOptOutClause ||= isOptOutClause;
-          return !isOptOutClause;
-        });
-      const content = locatedOptOutClause ? allowedClauses.join("\n") : "";
+      changed = true;
+      const content = allowedClauses.join("\n");
       if (!hasPersistableSemanticText(content)) {
         blockedSourceIndexes.add(messageIndex);
       }
@@ -652,7 +641,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
 
     return {
       blockedSourceIndexes,
-      input: { ...input, messages },
+      input: changed ? { ...input, messages } : input,
     };
   };
 
@@ -932,14 +921,21 @@ export function createRememberEngine(config: RememberEngineConfig) {
             resolved: sourceLanguage.context,
           },
         );
+        const derivedDurableTarget = language.deriveDurableTarget?.(
+          normalizedCandidate,
+          sourceLanguage.context,
+        );
+        const normalizedCandidateWithTarget = derivedDurableTarget
+          ? { ...normalizedCandidate, durableTarget: derivedDurableTarget }
+          : normalizedCandidate;
         return occurrenceAuthorities
           ? authorizeCandidateOccurrence(
-              normalizedCandidate,
+              normalizedCandidateWithTarget,
               occurrenceAuthorities,
               sourceAnalyses,
               requestLanguage,
             )
-          : normalizedCandidate;
+          : normalizedCandidateWithTarget;
       }),
     };
   };
@@ -1009,20 +1005,20 @@ export function createRememberEngine(config: RememberEngineConfig) {
     );
     const explicitOptOutSourceIndexes = new Set(
       canonicalExtraction.candidates
-        .filter(isDontFeedbackCandidate)
+        .filter(isDurableOptOutCandidate)
         .map(({ sourceMessageIndex }) => sourceMessageIndex),
     );
     const {
-      blockedSourceIndexes: optOutBlockedSourceIndexes,
+      blockedSourceIndexes: sanitizedProducerSourceIndexes,
       input: producerInput,
-    } = sanitizeExplicitOptOutMessages(
+    } = sanitizeProducerMessages(
       roleSafeExtractorInput,
       sourceAnalyses,
       explicitOptOutSourceIndexes,
     );
     const blockedProducerSourceIndexes = new Set([
       ...nonPersistableSourceIndexes,
-      ...optOutBlockedSourceIndexes,
+      ...sanitizedProducerSourceIndexes,
     ]);
     const producerSourceAnalyses = producerInput === input
       ? sourceAnalyses
@@ -1037,10 +1033,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
       ),
       nonPersistableSourceIndexes,
     );
-    const optOutTargetIdentities = explicitOptOutTargetIdentities(
+    const optOutTargetSelectors = explicitDurableOptOutSelectors(
       normalizedCanonicalExtraction,
-      sourceAnalyses,
-      requestLanguage,
     );
     const customExtraction = extractor
       ? normalizeExtractionResult(
@@ -1168,15 +1162,10 @@ export function createRememberEngine(config: RememberEngineConfig) {
       !hasAssistedInput
     ) {
       return {
-        extraction: omitFactsTargetedByExplicitOptOut(
-          baselineExtraction,
-          optOutTargetIdentities,
-          sourceAnalyses,
-          requestLanguage,
-        ),
+        extraction: baselineExtraction,
         explicitOptOutSourceIndexes,
         occurrenceAuthorities: normalizedCanonicalExtraction.candidates,
-        optOutTargetIdentities,
+        optOutTargetSelectors,
         profile,
         requestedExtractionStrategy,
         resolvedExtractionStrategy: "rules-only" as const,
@@ -1219,16 +1208,11 @@ export function createRememberEngine(config: RememberEngineConfig) {
         },
       );
       return {
-        extraction: omitFactsTargetedByExplicitOptOut(
-          baselineExtraction,
-          optOutTargetIdentities,
-          sourceAnalyses,
-          requestLanguage,
-        ),
+        extraction: baselineExtraction,
         extractionWarning: "assisted_extraction_failed" as const,
         explicitOptOutSourceIndexes,
         occurrenceAuthorities: normalizedCanonicalExtraction.candidates,
-        optOutTargetIdentities,
+        optOutTargetSelectors,
         profile,
         requestedExtractionStrategy,
         resolvedExtractionStrategy: "rules-only" as const,
@@ -1238,20 +1222,15 @@ export function createRememberEngine(config: RememberEngineConfig) {
     return {
       extraction: authorizeExtractionOccurrences(
         omitCandidatesFromSourceIndexes(
-          omitFactsTargetedByExplicitOptOut(
-            dedupeExtractionResult(
-              applyAnnotations(
-                input,
-                profile,
-                mergeExtractionResults(baselineExtraction, assistedExtraction),
-                sourceAnalyses,
-                requestLanguage,
-                explicitOptOutSourceIndexes,
-              ),
+          dedupeExtractionResult(
+            applyAnnotations(
+              input,
+              profile,
+              mergeExtractionResults(baselineExtraction, assistedExtraction),
+              sourceAnalyses,
+              requestLanguage,
+              explicitOptOutSourceIndexes,
             ),
-            optOutTargetIdentities,
-            sourceAnalyses,
-            requestLanguage,
           ),
           nonPersistableSourceIndexes,
         ),
@@ -1261,7 +1240,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
       ),
       explicitOptOutSourceIndexes,
       occurrenceAuthorities: normalizedCanonicalExtraction.candidates,
-      optOutTargetIdentities,
+      optOutTargetSelectors,
       profile,
       requestedExtractionStrategy,
       resolvedExtractionStrategy: "llm-assisted" as const,
@@ -1293,7 +1272,7 @@ export function createRememberEngine(config: RememberEngineConfig) {
         extractionWarning,
         explicitOptOutSourceIndexes,
         occurrenceAuthorities,
-        optOutTargetIdentities,
+        optOutTargetSelectors,
         profile,
         requestedExtractionStrategy,
         resolvedExtractionStrategy,
@@ -1316,15 +1295,23 @@ export function createRememberEngine(config: RememberEngineConfig) {
       const writeDocumentBatchWithRollback =
         writeCoordinator.writeDocumentBatchWithRollback;
       const nonPersistableSourceIndexes = getNonPersistableMessageIndexes(input);
+      const storageUnsafeOnlySourceIndexes = getStorageUnsafeOnlyMessageIndexes(
+        input,
+        extraction,
+      );
       const persistenceSafeInput = maskMessages(
         input,
-        nonPersistableSourceIndexes,
+        new Set([
+          ...nonPersistableSourceIndexes,
+          ...storageUnsafeOnlySourceIndexes,
+        ]),
       );
 
       try {
         const blockedSourceIndexes = new Set([
           ...getNeverAnnotatedMessageIndexes(input),
           ...nonPersistableSourceIndexes,
+          ...storageUnsafeOnlySourceIndexes,
         ]);
         const policyBlockedSourceIndexes = new Set<number>();
         const ingestedAt = now();
@@ -1358,7 +1345,8 @@ export function createRememberEngine(config: RememberEngineConfig) {
             sourceRole: message.role,
           };
           const redactedContent = config.policy?.redact
-            ? (await config.policy.redact(
+            ? (await redactPolicyCandidate(
+                config.policy,
                 {
                   ...sourceCandidate,
                   content: message.content,
@@ -1383,17 +1371,31 @@ export function createRememberEngine(config: RememberEngineConfig) {
             record: sourceMessage,
           });
         }
-        const persistedSourceMessages = await persistSourceMessageRecords(
-          config.documentStore,
-          preparedSourceMessages.map(({ record }) => record),
-        );
         for (const { messageIndex, record } of preparedSourceMessages) {
-          sourceMessagesByIndex.set(
-            messageIndex,
-            persistedSourceMessages.get(record.id)!,
-          );
+          sourceMessagesByIndex.set(messageIndex, record);
         }
 
+        const storageUnsafeCandidateIds = new Set<string>();
+        const rejectDurableOptOutTarget = (
+          candidateId: string,
+          candidate: ReturnType<typeof classifyCandidate>,
+        ): boolean => {
+          if (
+            isDurableOptOutCandidate(candidate) ||
+            !isTargetedByDurableOptOut(candidate, optOutTargetSelectors)
+          ) {
+            return false;
+          }
+          state.rejected += 1;
+          state.events.push({
+            candidateId,
+            outcome: "rejected",
+            memoryType: toRememberEventMemoryType(candidate.memoryType),
+            reason: "explicit_opt_out",
+            ...buildRememberEventTrace(candidate),
+          });
+          return true;
+        };
         for (const candidate of extraction.candidates) {
           if (candidateTouchesSourceIndexes(candidate, policyBlockedSourceIndexes)) {
             state.rejected += 1;
@@ -1426,6 +1428,9 @@ export function createRememberEngine(config: RememberEngineConfig) {
             classified.decision === "reject" ||
             (config.shouldWrite && !config.shouldWrite(classified))
           ) {
+            if (classified.reason === "storage_unsafe") {
+              storageUnsafeCandidateIds.add(candidate.id);
+            }
             state.rejected += 1;
             state.events.push({
               candidateId: candidate.id,
@@ -1450,24 +1455,32 @@ export function createRememberEngine(config: RememberEngineConfig) {
             localeSource: candidateLanguage.localeSource,
           };
 
+          if (rejectDurableOptOutTarget(candidate.id, effectiveCandidate)) {
+            continue;
+          }
+
           if (config.policy?.redact) {
             const authorizedOccurrenceExpression =
               effectiveCandidate.metadata?.occurrenceExpression;
-            const redacted = await config.policy.redact(effectiveCandidate, policyContext);
-            const protectedOptOutSource = isDontFeedbackCandidate(candidate);
+            const redacted = await redactPolicyCandidate(
+              config.policy,
+              effectiveCandidate,
+              policyContext,
+            );
             const {
               occurrenceExpression: _policyOccurrenceExpression,
               ...redactedMetadata
             } = redacted.metadata ?? {};
-            const redactedCandidate: MemoryCandidate = {
+            const redactedCandidateWithoutTarget: MemoryCandidate = {
               ...effectiveCandidate,
-              kindHint: protectedOptOutSource
+              durableTarget: undefined,
+              kindHint: isDurableOptOutCandidate(candidate)
                 ? effectiveCandidate.kindHint
                 : redacted.kindHint,
               content: redacted.content,
               extractionSources: effectiveCandidate.extractionSources,
-              metadata: protectedOptOutSource
-                ? effectiveCandidate.metadata
+              metadata: redacted.metadata === undefined
+                ? undefined
                 : {
                     ...redactedMetadata,
                     ...(authorizedOccurrenceExpression
@@ -1476,9 +1489,22 @@ export function createRememberEngine(config: RememberEngineConfig) {
                   },
               explicitness: redacted.explicitness,
             };
+            const durableTarget = isDurableOptOutCandidate(candidate)
+              ? effectiveCandidate.durableTarget
+              : language.deriveDurableTarget?.(
+                  redactedCandidateWithoutTarget,
+                  candidateLanguage,
+                );
+            const redactedCandidate: MemoryCandidate = {
+              ...redactedCandidateWithoutTarget,
+              ...(durableTarget ? { durableTarget } : {}),
+            };
             effectiveCandidate = classifyCandidate(redactedCandidate);
 
             if (effectiveCandidate.decision === "reject") {
+              if (effectiveCandidate.reason === "storage_unsafe") {
+                storageUnsafeCandidateIds.add(candidate.id);
+              }
               state.rejected += 1;
               state.events.push({
                 candidateId: candidate.id,
@@ -1494,31 +1520,15 @@ export function createRememberEngine(config: RememberEngineConfig) {
             }
           }
 
-          if (
-            isFactTargetedByExplicitOptOut(
-              effectiveCandidate,
-              optOutTargetIdentities,
-              sourceAnalyses,
-              requestLanguage,
-            )
-          ) {
-            state.rejected += 1;
-            state.events.push({
-              candidateId: candidate.id,
-              outcome: "rejected",
-              memoryType: toRememberEventMemoryType(
-                effectiveCandidate.memoryType,
-              ),
-              reason: "explicit_opt_out",
-              ...buildRememberEventTrace(effectiveCandidate),
-            });
+          if (rejectDurableOptOutTarget(candidate.id, effectiveCandidate)) {
             continue;
           }
 
-          if (
-            config.policy?.shouldRemember &&
-            !(await config.policy.shouldRemember(effectiveCandidate, policyContext))
-          ) {
+          if (!(await evaluateShouldRemember(
+            config.policy,
+            effectiveCandidate,
+            policyContext,
+          ))) {
             state.rejected += 1;
             state.events.push({
               candidateId: candidate.id,
@@ -1563,6 +1573,26 @@ export function createRememberEngine(config: RememberEngineConfig) {
           if (state.accepted > acceptedBeforeWrite) {
             episodeCandidates.push(effectiveCandidate);
           }
+        }
+
+        const persistedSourceMessages = await persistSourceMessageRecords(
+          config.documentStore,
+          preparedSourceMessages.flatMap(({ messageIndex, record }) => {
+            const candidates = extraction.candidates.filter((candidate) =>
+              candidateSourceMessageIndexes(candidate).includes(messageIndex)
+            );
+            return candidates.length > 0 && candidates.every((candidate) =>
+                storageUnsafeCandidateIds.has(candidate.id)
+              )
+              ? []
+              : [record];
+          }),
+        );
+        for (const [messageIndex, sourceMessage] of sourceMessagesByIndex) {
+          sourceMessagesByIndex.set(
+            messageIndex,
+            persistedSourceMessages.get(sourceMessage.id) ?? sourceMessage,
+          );
         }
 
         const episodes = buildEpisodes(

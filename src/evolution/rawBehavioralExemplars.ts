@@ -363,6 +363,9 @@ function extractLatentCueKeys(value: string | undefined): string[] {
   const analysis = analyzeBehavioralText(value);
   const cues = analysis?.semanticCues ?? [];
   return uniqueStrings([
+    ...(analysis?.conciseComputation
+      ? [`concise_computation:${analysis.conciseComputation.kind}`]
+      : []),
     ...(analysis?.hostAction ? ["operation_surface"] : []),
     ...(analysis?.hostAction?.destination || analysis?.hostAction?.sources
       ? ["path_constraint"]
@@ -514,6 +517,9 @@ function inferEntityTypes(value: string): string[] {
   const analysis = analyzeBehavioralText(value);
   const cues = new Set(analysis?.semanticCues ?? []);
   const entities: string[] = [];
+  if (analysis?.conciseComputation) {
+    entities.push(`computation:${analysis.conciseComputation.kind}`);
+  }
   if (/\b[A-Z][A-Za-z0-9_]*\((-?\d+)\)/u.test(value) || cues.has("symbolic")) {
     entities.push("symbolic");
   }

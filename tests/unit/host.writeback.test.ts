@@ -523,6 +523,78 @@ describe("host adapter writeback", () => {
     expect(updated?.rule).toBe("Use numbered lists in summaries.");
   });
 
+  it("treats policy metadata removal as authoritative during host writeback", async () => {
+    const { documentStore, memory, playbook, scope } = await createWritableHarness();
+    const adapter = createHostAdapter({
+      id: "codex-metadata-redaction",
+      hostKind: "codex",
+      mode: "file-authoritative",
+      memory,
+      documentStore,
+      readableArtifactTypes: ["playbook"],
+      supportedReadableArtifactTypes: ["playbook"],
+      writableArtifactTypes: ["playbook"],
+      now: () => "2026-04-21T00:00:00.000Z",
+      policy: {
+        redact(candidate) {
+          return { ...candidate, metadata: undefined };
+        },
+      },
+    });
+
+    const result = await adapter.writeArtifact({
+      scope,
+      artifactType: "playbook",
+      relativePath: playbook.relativePath,
+      content: playbook.content.replace(
+        "Repeated successful summaries and explicit confirmations.",
+        "The user confirmed this pattern again.",
+      ),
+    });
+    const updated = await documentStore.get<FeedbackMemory>("feedback", "pattern-1");
+
+    expect(result.status).toBe("applied");
+    expect(updated?.kind).toBe("validated_pattern");
+    expect(updated?.appliesTo).toBeUndefined();
+  });
+
+  it("rejects storage-unsafe playbook fields before host writeback", async () => {
+    const { documentStore, memory, playbook, scope } = await createWritableHarness();
+    const adapter = createHostAdapter({
+      id: "codex-storage-safe-writer",
+      hostKind: "codex",
+      mode: "file-authoritative",
+      memory,
+      documentStore,
+      readableArtifactTypes: ["playbook"],
+      supportedReadableArtifactTypes: ["playbook"],
+      writableArtifactTypes: ["playbook"],
+      now: () => "2026-04-21T00:00:00.000Z",
+    });
+
+    await expect(
+      adapter.writeArtifact({
+        scope,
+        artifactType: "playbook",
+        relativePath: playbook.relativePath,
+        content: playbook.content.replace(
+          "Repeated successful summaries and explicit confirmations.",
+          "unsafe\0why",
+        ),
+      }),
+    ).rejects.toThrow("Storage-unsafe text at writeInput.content");
+
+    const unchanged = await documentStore.get<FeedbackMemory>("feedback", "pattern-1");
+    const experiences = await documentStore.query<ExperienceRecord>(
+      EXPERIENCES_COLLECTION,
+      { userId: "u-1" },
+    );
+    expect(unchanged?.why).toBe(
+      "Repeated successful summaries and explicit confirmations.",
+    );
+    expect(experiences).toHaveLength(0);
+  });
+
   it("applies resolveConflict before mutating canonical playbook state", async () => {
     const { documentStore, memory, playbook, scope } = await createWritableHarness();
     const adapter = createHostAdapter({

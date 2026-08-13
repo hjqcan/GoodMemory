@@ -486,7 +486,7 @@ describe("language service", () => {
       "zh-Hant",
     ]);
     expect(manifest.packs.find(({ id }) => id === "en")).toMatchObject({
-      analyzerVersion: "15-occurrence-expression",
+      analyzerVersion: "17-interrogative-admission",
       apiVersion: 1,
       compatibilityGroup: "en",
       defaultLocale: "en-US",
@@ -494,7 +494,7 @@ describe("language service", () => {
     expect(
       manifest.packs.find(({ id }) => id === "zh-Hant"),
     ).toMatchObject({
-      analyzerVersion: "14-occurrence-expression",
+      analyzerVersion: "16-interrogative-admission",
       apiVersion: 1,
       compatibilityGroup: "zh-Hant",
       defaultLocale: "zh-Hant",

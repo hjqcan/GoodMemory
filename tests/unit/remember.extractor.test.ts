@@ -370,6 +370,10 @@ describe("deterministic memory extractor", () => {
         },
         {
           role: "user",
+          content: "My dog Max is a Golden Retriever.",
+        },
+        {
+          role: "user",
           content:
             "I completed my undergrad in CS from UCLA, which has a great reputation in the industry.",
         },
@@ -379,7 +383,6 @@ describe("deterministic memory extractor", () => {
     expect(result.candidates.map((candidate) => candidate.content)).toEqual(
       expect.arrayContaining([
         "My cat's name is Luna.",
-        "My dog Max is a Golden Retriever.",
         "I completed my undergraduate Computer Science degree at UCLA.",
       ]),
     );
@@ -388,12 +391,16 @@ describe("deterministic memory extractor", () => {
         .filter((candidate) =>
           [
             "My cat's name is Luna.",
-            "My dog Max is a Golden Retriever.",
             "I completed my undergraduate Computer Science degree at UCLA.",
           ].includes(candidate.content),
         )
         .every((candidate) => candidate.metadata?.category === "personal"),
     ).toBe(true);
+    expect(
+      result.candidates.some(({ sourceMessageIndex }) =>
+        sourceMessageIndex === 1
+      ),
+    ).toBe(false);
   });
 
   it("extracts role drift and current project from moved-into wording", async () => {
@@ -1775,7 +1782,7 @@ describe("deterministic memory extractor", () => {
     }
   });
 
-  it("keeps question words inside explicit assignment values", async () => {
+  it("keeps unpunctuated question words and quoted question values in assignments", async () => {
     const extractor = createDeterministicMemoryExtractor();
     const fixtures = [
       [
@@ -1785,13 +1792,13 @@ describe("deterministic memory extractor", () => {
       ],
       [
         "fr-FR",
-        "Souviens-toi : titre FAQ=Pourquoi cela échoue ?",
-        ["titre FAQ=Pourquoi cela échoue"],
+        "Souviens-toi : titre FAQ=« Pourquoi cela échoue ? »",
+        ["titre FAQ=« Pourquoi cela échoue ? »"],
       ],
       [
         "es-ES",
-        "Recuerda: título FAQ=¿Por qué falla?",
-        ["título FAQ=¿Por qué falla"],
+        "Recuerda: título FAQ=«¿Por qué falla?»",
+        ["título FAQ=«¿Por qué falla?»"],
       ],
     ] as const;
 
@@ -1880,11 +1887,11 @@ describe("deterministic memory extractor", () => {
     ).toEqual(["기준 문서=docs/current.md", "프로젝트 코드=Tachikoma"]);
   });
 
-  it("keeps question punctuation as an assignment value while rejecting questions", async () => {
+  it("keeps quoted question punctuation as an assignment value while rejecting questions", async () => {
     const extractor = createDeterministicMemoryExtractor();
     const literal = await extractor.extract({
       locale: "en-US",
-      messages: [{ role: "user", content: "Remember that FAQ title=Why does it fail?" }],
+      messages: [{ role: "user", content: "Remember that FAQ title=\"Why does it fail?\"" }],
       scope: { sessionId: "en-question-literal", userId: "en-question-literal" },
     });
     const question = await extractor.extract({
@@ -1894,7 +1901,7 @@ describe("deterministic memory extractor", () => {
     });
 
     expect(literal.candidates.map(({ content, kindHint }) => ({ content, kindHint }))).toEqual([
-      { content: "FAQ title=Why does it fail?", kindHint: "fact" },
+      { content: "FAQ title=\"Why does it fail?\"", kindHint: "fact" },
     ]);
     expect(question.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(false);
   });
@@ -2229,32 +2236,32 @@ describe("deterministic memory extractor", () => {
     const fixtures = [
       [
         "en-US",
-        "Remember that FAQ title=Why does it fail?",
+        "Remember that FAQ title=\"Why does it fail?\"",
         "Remember that is project code=Tachikoma correct?",
       ],
       [
         "zh-CN",
-        "请记住FAQ标题=为什么失败？",
+        "请记住FAQ标题=“为什么失败？”",
         "请记住项目代号=Tachikoma正确吗？",
       ],
       [
         "fr-FR",
-        "Souviens-toi : titre FAQ=Pourquoi cela échoue ?",
+        "Souviens-toi : titre FAQ=« Pourquoi cela échoue ? »",
         "Souviens-toi : code projet=Tachikoma est correct ?",
       ],
       [
         "es-ES",
-        "Recuerda: título FAQ=¿Por qué falla?",
+        "Recuerda: título FAQ=«¿Por qué falla?»",
         "Recuerda: código de proyecto=Tachikoma es correcto?",
       ],
       [
         "ja-JP",
-        "覚えておいて：FAQタイトル=なぜ失敗するのか？",
+        "覚えておいて：FAQタイトル=「なぜ失敗するのか？」",
         "覚えておいて：プロジェクトコード=Tachikomaで正しいですか？",
       ],
       [
         "ko-KR",
-        "기억해 주세요: FAQ 제목=왜 실패하나요?",
+        "기억해 주세요: FAQ 제목=“왜 실패하나요?”",
         "기억해 주세요: 프로젝트 코드=Tachikoma가 맞나요?",
       ],
     ] as const;
@@ -2276,11 +2283,11 @@ describe("deterministic memory extractor", () => {
     }
   });
 
-  it("keeps natural Japanese and Korean question forms as assignment values", async () => {
+  it("keeps quoted natural Japanese and Korean questions as assignment values", async () => {
     const extractor = createDeterministicMemoryExtractor();
     const fixtures = [
-      ["ja-JP", "覚えておいて：FAQタイトル=なぜ失敗する？"],
-      ["ko-KR", "기억해 주세요: FAQ 제목=왜 실패해?"],
+      ["ja-JP", "覚えておいて：FAQタイトル=「なぜ失敗する？」"],
+      ["ko-KR", "기억해 주세요: FAQ 제목=“왜 실패해?”"],
     ] as const;
 
     for (const [locale, source] of fixtures) {
@@ -2302,23 +2309,23 @@ describe("deterministic memory extractor", () => {
     }
   });
 
-  it("keeps natural-order questions as structured assignment values", async () => {
+  it("keeps quoted natural-order questions as structured assignment values", async () => {
     const extractor = createDeterministicMemoryExtractor();
     const fixtures = [
-      ["en-US", "Remember that FAQ title=It fails for what reason?"],
-      ["zh-CN", "请记住FAQ标题=失败原因是什么？"],
-      ["fr-FR", "Souviens-toi : titre FAQ=Cela échoue pourquoi ?"],
-      ["es-ES", "Recuerda: título FAQ=Falla por qué?"],
-      ["ja-JP", "覚えておいて：FAQタイトル=失敗するのはなぜ？"],
-      ["ja-JP", "覚えておいて：FAQタイトル=失敗した理由は何？"],
-      ["ko-KR", "기억해 주세요: FAQ 제목=실패하는 이유가 뭐야?"],
-      ["ko-KR", "기억해 주세요: FAQ 제목=어째서 실패해?"],
-      ["en-US", "Remember that survey prompt=It fails for what reason?"],
-      ["zh-CN", "请记住错误消息=失败原因是什么？"],
-      ["fr-FR", "Souviens-toi : invite enquête=Cela échoue pourquoi ?"],
-      ["es-ES", "Recuerda: pregunta de encuesta=Falla por qué?"],
-      ["ja-JP", "覚えておいて：アンケート質問=失敗するのはなぜ？"],
-      ["ko-KR", "기억해 주세요: 설문 질문=실패하는 이유가 뭐야?"],
+      ["en-US", "Remember that FAQ title=\"It fails for what reason?\""],
+      ["zh-CN", "请记住FAQ标题=“失败原因是什么？”"],
+      ["fr-FR", "Souviens-toi : titre FAQ=« Cela échoue pourquoi ? »"],
+      ["es-ES", "Recuerda: título FAQ=«Falla por qué?»"],
+      ["ja-JP", "覚えておいて：FAQタイトル=「失敗するのはなぜ？」"],
+      ["ja-JP", "覚えておいて：FAQタイトル=「失敗した理由は何？」"],
+      ["ko-KR", "기억해 주세요: FAQ 제목=“실패하는 이유가 뭐야?”"],
+      ["ko-KR", "기억해 주세요: FAQ 제목=“어째서 실패해?”"],
+      ["en-US", "Remember that survey prompt=\"It fails for what reason?\""],
+      ["zh-CN", "请记住错误消息=“失败原因是什么？”"],
+      ["fr-FR", "Souviens-toi : invite enquête=« Cela échoue pourquoi ? »"],
+      ["es-ES", "Recuerda: pregunta de encuesta=«Falla por qué?»"],
+      ["ja-JP", "覚えておいて：アンケート質問=「失敗するのはなぜ？」"],
+      ["ko-KR", "기억해 주세요: 설문 질문=“실패하는 이유가 뭐야?”"],
     ] as const;
 
     for (const [locale, source] of fixtures) {
@@ -2556,6 +2563,76 @@ describe("deterministic memory extractor", () => {
         .filter(({ kindHint }) => kindHint === "fact")
         .map(({ content }) => content),
     ).toEqual(["example=e.g. use Neovim", "shell=zsh"]);
+  });
+
+  it("does not split a dotted abbreviation before an uppercase example", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const result = await extractor.extract({
+      locale: "en-US",
+      messages: [{
+        role: "user",
+        content: "Remember two things: example=e.g. Use Neovim. shell=zsh",
+      }],
+      scope: { sessionId: "english-uppercase-abbreviation", userId: "english-uppercase-abbreviation" },
+    });
+
+    expect(result.candidates.filter(({ kindHint }) => kindHint === "fact").map(({ content }) => content)).toEqual([
+      "example=e.g. Use Neovim",
+      "shell=zsh",
+    ]);
+  });
+
+  it("recognizes opt-out grammar after unenumerated discourse modifiers", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Remember two things: editor=Neovim; also do not remember project code=Tachikoma"],
+      ["en-US", "Remember two things: editor=Neovim; for GDPR Article 5, do not remember project code=Tachikoma"],
+      ["zh-CN", "请记住两件事：编辑器=Neovim；同时不要记住项目代号=Tachikoma"],
+      ["fr-FR", "Souviens-toi de deux choses : éditeur=Neovim; surtout ne mémorise pas code projet=Tachikoma"],
+      ["es-ES", "Recuerda dos cosas: editor=Neovim; también no recuerdes código de proyecto=Tachikoma"],
+    ] as const;
+
+    for (const [locale, content] of fixtures) {
+      const result = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content }],
+        scope: { sessionId: `modifier-opt-out-${locale}`, userId: `modifier-opt-out-${locale}` },
+      });
+
+      expect(result.candidates.filter(({ kindHint }) => kindHint === "fact")).toHaveLength(1);
+      expect(result.candidates.filter(({ metadata }) => metadata?.feedbackKind === "dont")).toHaveLength(1);
+      expect(result.candidates.some(({ kindHint, content: candidateContent }) =>
+        kindHint === "fact" && candidateContent.includes("Tachikoma")
+      )).toBe(false);
+    }
+  });
+
+  it("requires an explicitly quoted assignment value before retaining a terminal question", async () => {
+    const extractor = createDeterministicMemoryExtractor();
+    const fixtures = [
+      ["en-US", "Remember that FAQ title=Tachikoma — why?", "Remember that FAQ title=\"Tachikoma — why?\""],
+      ["zh-CN", "请记住FAQ标题=Tachikoma——为什么？", "请记住FAQ标题=“Tachikoma——为什么？”"],
+      ["fr-FR", "Souviens-toi : titre FAQ=Tachikoma — pourquoi ?", "Souviens-toi : titre FAQ=« Tachikoma — pourquoi ? »"],
+      ["es-ES", "Recuerda: título FAQ=Tachikoma — por qué?", "Recuerda: título FAQ=«Tachikoma — por qué?»"],
+      ["ja-JP", "覚えておいて：FAQタイトル=Tachikoma — なぜ？", "覚えておいて：FAQタイトル=「Tachikoma — なぜ？」"],
+      ["ko-KR", "기억해 주세요: FAQ 제목=Tachikoma — 왜?", "기억해 주세요: FAQ 제목=“Tachikoma — 왜?”"],
+    ] as const;
+
+    for (const [locale, question, quotedLiteral] of fixtures) {
+      const rejected = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: question }],
+        scope: { sessionId: `terminal-question-${locale}`, userId: `terminal-question-${locale}` },
+      });
+      const accepted = await extractor.extract({
+        locale,
+        messages: [{ role: "user", content: quotedLiteral }],
+        scope: { sessionId: `quoted-question-${locale}`, userId: `quoted-question-${locale}` },
+      });
+
+      expect(rejected.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(false);
+      expect(accepted.candidates.some(({ kindHint }) => kindHint === "fact")).toBe(true);
+    }
   });
 
   it("does not treat an assignment after e.g. as the next counted item", async () => {

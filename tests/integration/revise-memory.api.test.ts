@@ -328,6 +328,153 @@ describe("public reviseMemory API", () => {
     expect(active?.occurrence).toEqual(target.occurrence);
   });
 
+  it("treats redacted metadata removal as authoritative for revised facts", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      policy: {
+        redact(candidate) {
+          return {
+            ...candidate,
+            metadata: undefined,
+          };
+        },
+      },
+      storage: { provider: "memory" },
+      testing: { now: () => new Date("2026-08-13T00:00:00.000Z") },
+    });
+    const scope = {
+      userId: "revision-redacted-metadata-removal-user",
+      workspaceId: "workspace-a",
+    } as const;
+    const fact = createFactMemory({
+      id: "fact-redacted-metadata-removal",
+      ...scope,
+      attributes: { credential: "SECRET-ATTRIBUTE" },
+      category: "technical",
+      confidence: 0.8,
+      content: "The incident owner is Mira.",
+      importance: 0.7,
+      source: {
+        extractedAt: "2026-08-12T00:00:00.000Z",
+        method: "explicit",
+      },
+      subject: "incident",
+      tags: ["SECRET-TAG"],
+      createdAt: "2026-08-12T00:00:00.000Z",
+      updatedAt: "2026-08-12T00:00:00.000Z",
+    });
+    await documentStore.set("facts", fact.id, fact);
+
+    const result = await memory.reviseMemory({
+      idempotencyKey: "revision-redacted-metadata-removal",
+      reason: "user_correction",
+      revision: { content: "The incident owner is Jules." },
+      scope,
+      target: { memoryId: fact.id },
+    });
+    const revised = await documentStore.get<FactMemory>(
+      "facts",
+      result.newMemoryId!,
+    );
+
+    expect(result).toMatchObject({ accepted: true, outcome: "superseded" });
+    expect(revised).toMatchObject({
+      confidence: 0.8,
+      content: "The incident owner is Jules.",
+      importance: 0.7,
+      lifecycle: "active",
+      source: {
+        extractedAt: "2026-08-13T00:00:00.000Z",
+        method: "confirmed",
+      },
+      userId: scope.userId,
+      workspaceId: scope.workspaceId,
+    });
+    expect(revised?.attributes).toBeUndefined();
+    expect(revised?.tags).toBeUndefined();
+  });
+
+  it("adopts explicit redacted fact metadata without authorizing occurrence", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      policy: {
+        redact(candidate) {
+          return {
+            ...candidate,
+            metadata: {
+              attributes: { visibility: "public" },
+              category: "personal",
+              factKind: "focus_update",
+              occurrenceExpression: {
+                iso: "2026-08-13T00:00:00.000Z",
+                kind: "absolute",
+                raw: "today",
+              },
+              scopeKind: "identity",
+              subject: "meal",
+              tags: ["sanitized"],
+            },
+          };
+        },
+      },
+      storage: { provider: "memory" },
+    });
+    const scope = { userId: "revision-redacted-metadata-replacement-user" };
+    const fact = createFactMemory({
+      id: "fact-redacted-metadata-replacement",
+      ...scope,
+      attributes: { credential: "SECRET-ATTRIBUTE" },
+      category: "event",
+      content: "I ate soup yesterday.",
+      occurrence: {
+        endExclusive: "2026-08-12T16:00:00.000Z",
+        precision: "day",
+        start: "2026-08-11T16:00:00.000Z",
+        timezone: "Asia/Shanghai",
+      },
+      source: {
+        extractedAt: "2026-08-12T02:00:00.000Z",
+        method: "explicit",
+      },
+      subject: "old-meal",
+      tags: ["SECRET-TAG"],
+      createdAt: "2026-08-12T02:00:00.000Z",
+      updatedAt: "2026-08-12T02:00:00.000Z",
+    });
+    await documentStore.set("facts", fact.id, fact);
+
+    const result = await memory.reviseMemory({
+      idempotencyKey: "revision-redacted-metadata-replacement",
+      reason: "user_correction",
+      revision: { content: "I ate salad today." },
+      scope,
+      target: { memoryId: fact.id },
+    });
+    const revised = await documentStore.get<FactMemory>(
+      "facts",
+      result.newMemoryId!,
+    );
+
+    expect(result).toMatchObject({ accepted: true, outcome: "superseded" });
+    expect(revised).toMatchObject({
+      attributes: { visibility: "public" },
+      category: "personal",
+      factKind: "focus_update",
+      scopeKind: "identity",
+      subject: "meal",
+      tags: ["sanitized"],
+    });
+    expect(revised?.occurrence).toBeUndefined();
+  });
+
   it("revises a targeted preference through governed supersede lineage", async () => {
     const spans: GoodMemoryTraceSpan[] = [];
     const memory = createGoodMemory({

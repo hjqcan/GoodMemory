@@ -266,7 +266,7 @@ describe("Phase 72 temporal operand cross-benchmark protection", () => {
       runId: "analyzer-version-fixture",
       selectionFile: "/selection.json",
     })).rejects.toThrow(
-      "English analyzer 13 is required; found 15-occurrence-expression",
+      "English analyzer 13 is required; found 17-interrogative-admission",
     );
   });
 
@@ -340,7 +340,7 @@ describe("Phase 72 temporal operand cross-benchmark protection", () => {
       ));
     expect(report.source.canonicalDependencies).toBe(false);
     expect(report.source.englishAnalyzerVersion).toBe(
-      "15-occurrence-expression",
+      "17-interrogative-admission",
     );
     expect(report.configuration.memoryIsolation).toBe(
       "fresh_seeded_memory_per_question_per_arm",

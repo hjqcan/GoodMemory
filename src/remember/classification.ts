@@ -1,4 +1,7 @@
-import { hasPersistableSemanticText } from "../domain/semanticText";
+import {
+  findStorageUnsafeTextPath,
+  hasPersistableSemanticText,
+} from "../domain/semanticText";
 import type { MemoryCandidate } from "./candidates";
 import type {
   ClassifiedCandidate,
@@ -142,6 +145,16 @@ export function classifyCandidate(candidate: MemoryCandidate): ClassifiedCandida
       decision: "reject",
       score,
       reason: "invalid_payload",
+    };
+  }
+
+  if (findStorageUnsafeTextPath(candidate, "candidate")) {
+    return {
+      ...candidate,
+      memoryType: "reject",
+      decision: "reject",
+      score,
+      reason: "storage_unsafe",
     };
   }
 

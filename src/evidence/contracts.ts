@@ -3,6 +3,7 @@
 // with src/eval/protocol-reader, which owns benchmark-specific answer shaping.
 import type { MemorySource } from "../domain/provenance";
 import type { MemoryScope } from "../domain/scope";
+import { assertStorageSafeExternalValue } from "../domain/semanticText";
 
 export const EVIDENCE_COLLECTION = "evidence";
 export const SOURCE_MESSAGES_COLLECTION = "source_messages_v1";
@@ -58,6 +59,7 @@ export function createEvidenceRecord(
   input: Pick<EvidenceRecord, "excerpt" | "id" | "kind" | "source" | "userId"> &
     Partial<Omit<EvidenceRecord, "excerpt" | "id" | "kind" | "source" | "userId">>,
 ): EvidenceRecord {
+  assertStorageSafeExternalValue(input, "evidence");
   return {
     id: input.id,
     userId: input.userId,

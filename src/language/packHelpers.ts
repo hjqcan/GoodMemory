@@ -258,6 +258,7 @@ export function emptyContentAnalysis(): LanguageContentAnalysis {
     factPolarity: "unknown",
     feedbackKind: "do",
     focusFact: false,
+    interrogative: false,
     openLoopFact: false,
     personalEvidence: false,
     preferenceEvidence: false,

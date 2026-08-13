@@ -7,6 +7,32 @@ import {
 } from "../../src/storage/memory";
 
 describe("public explicit-fact clause disposition", () => {
+  it("keeps modified opt-out clauses out of durable facts", async () => {
+    const fixtures = [
+      ["en-US", "Remember two things: editor=Neovim; also do not remember project code=Tachikoma"],
+      ["en-US", "Remember two things: editor=Neovim; for GDPR Article 5, do not remember project code=Tachikoma"],
+      ["zh-CN", "请记住两件事：编辑器=Neovim；同时不要记住项目代号=Tachikoma"],
+      ["fr-FR", "Souviens-toi de deux choses : éditeur=Neovim; surtout ne mémorise pas code projet=Tachikoma"],
+      ["es-ES", "Recuerda dos cosas: editor=Neovim; también no recuerdes código de proyecto=Tachikoma"],
+    ] as const;
+
+    for (const [locale, content] of fixtures) {
+      const memory = createGoodMemory({ storage: { provider: "memory" } });
+      const scope = { userId: `modified-opt-out-${locale}`, workspaceId: "explicit-disposition" };
+      const result = await memory.remember({
+        locale,
+        messages: [{ role: "user", content }],
+        scope: { ...scope, sessionId: "teach" },
+      });
+      const exported = await memory.exportMemory({ scope });
+
+      expect(result.accepted).toBe(2);
+      expect(exported.durable.facts).toHaveLength(1);
+      expect(exported.durable.facts.some(({ content: factContent }) => factContent.includes("Tachikoma"))).toBe(false);
+      expect(exported.durable.feedback).toEqual([expect.objectContaining({ kind: "dont" })]);
+    }
+  });
+
   it("does not let assisted candidates without feedback metadata reopen an opt-out clause", async () => {
     const fixtures = [
       [
@@ -912,6 +938,12 @@ describe("public explicit-fact clause disposition", () => {
       ["es-ES", "Recuerda: código de proyecto=Tachikoma?"],
       ["ja-JP", "覚えておいて：プロジェクトコード=Tachikoma？"],
       ["ko-KR", "기억해 주세요: 프로젝트 코드=Tachikoma?"],
+      ["en-US", "Remember that project code=Tachikoma — why?"],
+      ["zh-CN", "请记住项目代号=Tachikoma——为什么？"],
+      ["fr-FR", "Souviens-toi : code projet=Tachikoma — pourquoi ?"],
+      ["es-ES", "Recuerda: código de proyecto=Tachikoma — por qué?"],
+      ["ja-JP", "覚えておいて：プロジェクトコード=Tachikoma — なぜ？"],
+      ["ko-KR", "기억해 주세요: 프로젝트 코드=Tachikoma — 왜?"],
       ["zh-CN", "请记住两件事：编辑器=Neovim；项目代号=Tachikoma是否正确"],
       ["zh-CN", "请记住项目代号=Tachikoma对不对"],
       ["zh-CN", "请记住项目代号=Tachikoma正确不正确"],
@@ -938,20 +970,20 @@ describe("public explicit-fact clause disposition", () => {
     }
   });
 
-  it("persists natural-order literal questions only as assignment values", async () => {
+  it("persists quoted natural-order literal questions only as assignment values", async () => {
     const fixtures = [
-      ["en-US", "Remember that FAQ title=It fails for what reason?", "FAQ title"],
-      ["zh-CN", "请记住FAQ标题=失败原因是什么？", "FAQ标题"],
-      ["fr-FR", "Souviens-toi : titre FAQ=Cela échoue pourquoi ?", "titre FAQ"],
-      ["es-ES", "Recuerda: título FAQ=Falla por qué?", "título FAQ"],
-      ["ja-JP", "覚えておいて：FAQタイトル=失敗するのはなぜ？", "FAQタイトル"],
-      ["ko-KR", "기억해 주세요: FAQ 제목=실패하는 이유가 뭐야?", "FAQ 제목"],
-      ["en-US", "Remember that survey prompt=It fails for what reason?", "survey prompt"],
-      ["zh-CN", "请记住错误消息=失败原因是什么？", "错误消息"],
-      ["fr-FR", "Souviens-toi : invite enquête=Cela échoue pourquoi ?", "invite enquête"],
-      ["es-ES", "Recuerda: pregunta de encuesta=Falla por qué?", "pregunta de encuesta"],
-      ["ja-JP", "覚えておいて：アンケート質問=失敗するのはなぜ？", "アンケート質問"],
-      ["ko-KR", "기억해 주세요: 설문 질문=실패하는 이유가 뭐야?", "설문 질문"],
+      ["en-US", "Remember that FAQ title=\"It fails for what reason?\"", "FAQ title"],
+      ["zh-CN", "请记住FAQ标题=“失败原因是什么？”", "FAQ标题"],
+      ["fr-FR", "Souviens-toi : titre FAQ=« Cela échoue pourquoi ? »", "titre FAQ"],
+      ["es-ES", "Recuerda: título FAQ=«Falla por qué?»", "título FAQ"],
+      ["ja-JP", "覚えておいて：FAQタイトル=「失敗するのはなぜ？」", "FAQタイトル"],
+      ["ko-KR", "기억해 주세요: FAQ 제목=“실패하는 이유가 뭐야?”", "FAQ 제목"],
+      ["en-US", "Remember that survey prompt=\"It fails for what reason?\"", "survey prompt"],
+      ["zh-CN", "请记住错误消息=“失败原因是什么？”", "错误消息"],
+      ["fr-FR", "Souviens-toi : invite enquête=« Cela échoue pourquoi ? »", "invite enquête"],
+      ["es-ES", "Recuerda: pregunta de encuesta=«Falla por qué?»", "pregunta de encuesta"],
+      ["ja-JP", "覚えておいて：アンケート質問=「失敗するのはなぜ？」", "アンケート質問"],
+      ["ko-KR", "기억해 주세요: 설문 질문=“실패하는 이유가 뭐야?”", "설문 질문"],
     ] as const;
 
     for (const [locale, source, expectedField] of fixtures) {

@@ -1,5 +1,6 @@
 import type { MemoryScope } from "../domain/scope";
 import type { AgentEventStructuredValue } from "../agentEvents";
+import { assertStorageSafeExternalValue } from "../domain/semanticText";
 import type {
   HostActionIntent,
   HostCommandAction,
@@ -253,6 +254,8 @@ export function validateHostActionIntent(
   if (!isRecord(value)) {
     throw new Error(`${path} must be an object`);
   }
+
+  assertStorageSafeExternalValue(value, path);
 
   const runId = value.runId === undefined
     ? undefined

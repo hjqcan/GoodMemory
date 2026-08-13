@@ -10,6 +10,50 @@ import { createEvidenceRecord, EVIDENCE_COLLECTION } from "../../src/evidence/co
 import { createHostAdapter } from "../../src/host";
 
 describe("host action assessment integration", () => {
+  it("rejects storage-unsafe command intents before persisting an audit experience", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const sessionStore = createInMemorySessionStore();
+    const scope = {
+      userId: "u-1",
+      workspaceId: "ws-1",
+      sessionId: "s-1",
+    } as const;
+    const memory = createGoodMemory({
+      storage: { provider: "memory" },
+      adapters: {
+        documentStore,
+        sessionStore,
+      },
+    });
+    const adapter = createHostAdapter({
+      id: "codex-storage-safe",
+      hostKind: "codex",
+      memory,
+    });
+
+    await expect(
+      adapter.assessAction({
+        actionId: "action-unsafe",
+        runId: "run-1",
+        turnId: "turn-1",
+        sequence: 0,
+        occurredAt: "2026-04-22T00:00:00.000Z",
+        hostKind: "codex",
+        scope,
+        action: {
+          kind: "command",
+          command: "deploy\u0000 production",
+        },
+      }),
+    ).rejects.toThrow(
+      "Storage-unsafe text at actionIntent.action.command",
+    );
+
+    const exported = await memory.exportMemory({ scope });
+    expect(exported.durable.evidence).toEqual([]);
+    expect(exported.durable.experiences).toEqual([]);
+  });
+
   it("records an auditable maintenance experience for repeated assessments of the same scoped action lineage", async () => {
     const documentStore = createInMemoryDocumentStore();
     const sessionStore = createInMemorySessionStore();

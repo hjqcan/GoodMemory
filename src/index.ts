@@ -274,6 +274,9 @@ export {
 } from "./recall/router";
 export type {
   MessageAnnotation,
+  DurableOptOutDisposition,
+  DurableOptOutTargetSelector,
+  DurableTargetIdentity,
   MemoryCandidate,
   MemoryCandidateAnnotationTrace,
   MemoryCandidateExplicitness,

@@ -164,7 +164,7 @@ describe("French LanguagePack", () => {
 
   it("has stable identity, disambiguated detection, and complete rendering", () => {
     expectPackContract(pack, {
-      analyzerVersion: "7-occurrence-expression",
+      analyzerVersion: "9-interrogative-admission",
       defaultLocale: "fr-FR",
       distinctive: "Je préfère répondre en français.",
       id: "fr",
@@ -362,7 +362,7 @@ describe("Spanish LanguagePack", () => {
 
   it("has stable identity, disambiguated detection, and complete rendering", () => {
     expectPackContract(pack, {
-      analyzerVersion: "6-occurrence-expression",
+      analyzerVersion: "8-interrogative-admission",
       defaultLocale: "es-ES",
       distinctive: "¿Cuál es el bloqueo actual?",
       id: "es",

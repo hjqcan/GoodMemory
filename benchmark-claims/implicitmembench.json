@@ -2,7 +2,7 @@
   "benchmark": "ImplicitMemBench",
   "comparison": {
     "asOf": "2026-07-09",
-    "availability": "historical",
+    "availability": "repo-eval-only",
     "notes": [
       "The score is a stored-answer cross-version rescore; the answer model and judge remain in the same GPT family.",
       "The comparison baseline and scorer contract are pinned in the claim evidence rather than inferred from unrelated memory benchmarks."
@@ -10,7 +10,7 @@
     "runtimeProfile": "full-300-stored-answer@0.5.0",
     "source": "https://github.com/qinchonghanzuibang/ImplicitMemBench"
   },
-  "status": "internal_evidence",
+  "status": "paused_boundary",
   "dataset": {
     "source": "https://github.com/qinchonghanzuibang/ImplicitMemBench/tree/927413bf3f5389bb47c94c2a0ba987e435b101b8/dataset",
     "license": "CC BY 4.0",
@@ -184,6 +184,6 @@
   },
   "claimBoundary": {
     "publicClaimAllowed": false,
-    "reason": "Historical evidence only for its recorded package version and runtime profile; it is not a current-production claim. The recorded historical result uses a stored-answer rescore with gpt-5.4 judging unchanged gpt-5.5 answers and binds its tracked projection to run identity and source-artifact fingerprints. Required disclosures: judge is cross-version but the same GPT family as the answer model, not a cross-family judge; the older 0.708 same-model score is diagnostic only; the freshest clean answer-regeneration drift check is 0.6895; the dataset is CC BY 4.0 and fetched from upstream rather than vendored."
+    "reason": "Paused at the claim boundary. The frozen projection records the declared run identity, but its underlying measured sources do not independently expose both packageVersion and commit at explicit JSON paths. The score remains an internal diagnostic until a source-bound rerun can satisfy the verified projection contract."
   }
 }

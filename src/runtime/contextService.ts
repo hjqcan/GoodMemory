@@ -10,6 +10,7 @@ import type {
   WorkingMemorySnapshot,
 } from "../domain/records";
 import type { MemoryScope } from "../domain/scope";
+import { assertStorageSafeExternalValue } from "../domain/semanticText";
 import { assertTemporalMessageContext } from "../domain/temporal";
 import { scopeToKey } from "../domain/scope";
 import {
@@ -402,6 +403,7 @@ export function createRuntimeContextService(config: RuntimeContextServiceConfig)
     Pick<MemoryScope, "sessionId" | "userId">
   > &
     MemoryScope {
+    assertStorageSafeExternalValue(scope, "scope");
     if (!scope.sessionId) {
       throw new Error("Runtime context requires scope.sessionId");
     }
@@ -500,6 +502,7 @@ export function createRuntimeContextService(config: RuntimeContextServiceConfig)
       scope: MemoryScope,
       message: SessionMessage,
     ): Promise<SessionBuffer> {
+      assertStorageSafeExternalValue(message, "message");
       assertTemporalMessageContext(message);
       const sessionScope = requireSessionScope(scope);
       const timestamp = now();
@@ -624,6 +627,7 @@ export function createRuntimeContextService(config: RuntimeContextServiceConfig)
       scope: MemoryScope,
       input: SessionSummaryInput,
     ): Promise<SessionBuffer> {
+      assertStorageSafeExternalValue(input, "summary");
       const sessionScope = requireSessionScope(scope);
       const state = await ensureActiveState(sessionScope);
       const buffer = createSessionBuffer({
@@ -644,6 +648,7 @@ export function createRuntimeContextService(config: RuntimeContextServiceConfig)
       scope: MemoryScope,
       patch: WorkingMemoryPatch,
     ): Promise<WorkingMemorySnapshot> {
+      assertStorageSafeExternalValue(patch, "patch");
       const sessionScope = requireSessionScope(scope);
       const state = await ensureActiveState(sessionScope);
 
@@ -678,6 +683,7 @@ export function createRuntimeContextService(config: RuntimeContextServiceConfig)
       scope: MemoryScope,
       patch: SessionJournalPatch,
     ): Promise<SessionJournal> {
+      assertStorageSafeExternalValue(patch, "patch");
       const sessionScope = requireSessionScope(scope);
       const state = await ensureActiveState(sessionScope);
       const journal = createSessionJournal({
