@@ -1,0 +1,40 @@
+{
+  "checks": [
+    { "id": "source-identity", "required": true, "status": "pass" },
+    { "id": "runtime-identity", "required": true, "status": "pass" },
+    { "id": "release-source-identity", "required": true, "status": "pass" },
+    { "id": "version", "required": true, "status": "pass" },
+    { "id": "v0.7.3-lifecycle-protection", "required": true, "status": "pass" },
+    { "id": "v0.7.3-protocol-source", "required": true, "status": "pass" },
+    { "id": "v0.7.3-lifecycle-source", "required": true, "status": "pass" },
+    { "id": "v0.7.3-stable-source-test-correction", "required": true, "status": "pass" },
+    { "id": "v0.7.3-cross-host-lifecycle-verifier-correction", "required": true, "status": "pass" },
+    { "id": "typecheck", "required": true, "status": "pass" },
+    { "id": "tests", "required": true, "status": "pass" },
+    { "id": "coverage", "required": true, "status": "pass" },
+    { "id": "build", "required": true, "status": "pass" },
+    { "id": "public-claims", "required": true, "status": "pass" },
+    { "id": "scale", "required": true, "status": "pass" },
+    { "id": "postgres", "required": true, "status": "pass" },
+    { "id": "pack", "required": true, "status": "pass" },
+    { "id": "language-consumers", "required": true, "status": "pass" },
+    { "id": "source-stability", "required": true, "status": "pass" }
+  ],
+  "packageVersion": "0.7.4",
+  "readinessReportSha256": "96811024efcfe8b1202347113ed937f700558656fcd440020d025ce5124e7dc3",
+  "runtime": {
+    "bunVersion": "1.3.14",
+    "nodeVersion": "v20.20.2"
+  },
+  "schemaVersion": "goodmemory.release-readiness-capsule.v1",
+  "sourceIdentity": {
+    "commit": "05d39fcfb8bb6efe6b8065ec3ea8372c15b9c1b8",
+    "tree": "4f902b215c60f5bb6543e9b7c3ce501895b45725"
+  },
+  "summary": {
+    "failed": 0,
+    "passed": 19,
+    "skipped": 0,
+    "total": 19
+  }
+}

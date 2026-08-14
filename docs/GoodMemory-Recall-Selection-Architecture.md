@@ -77,7 +77,7 @@ selector。生产实体通道由 `src/recall/projections/` 与
 历史 profile 只能通过 repo 内脚本或以下命令显式运行：
 
 ```bash
-bun run test:legacy-fitted
+bun --config=bunfig.legacy-fitted.toml test
 ```
 
 它没有公共配置、环境开关或 package export，且不进入 npm tarball。生产测试不得依赖该 profile 的全局 preload。
@@ -135,7 +135,7 @@ bun run typecheck
 涉及历史证据、gate census 或 Phase 63 复现时另跑：
 
 ```bash
-bun run test:legacy-fitted
+bun --config=bunfig.legacy-fitted.toml test
 bun run scripts/list-scenario-gates.ts --pretty
 bun run scripts/run-phase-68-generalization-gate.ts
 ```

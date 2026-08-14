@@ -72,6 +72,8 @@ import {
   V07_RELEASE_REQUIRED_COMMANDS,
 } from "../../scripts/run-v0-7-release-readiness";
 
+const FROZEN_V074_COMMIT = "05d39fcfb8bb6efe6b8065ec3ea8372c15b9c1b8";
+const REPOSITORY_ROOT = join(import.meta.dir, "../..");
 const CLAIM_RECIPE_RAW = readFileSync(
   new URL(
     "../../reports/release/v0.7/" +
@@ -171,6 +173,25 @@ function readFixtureGitObject(repoRoot: string, object: string): string {
   return result.stdout.toString();
 }
 
+async function createFrozenV074Checkout(): Promise<{
+  repoRoot: string;
+  temporaryDirectory: string;
+}> {
+  const temporaryDirectory = await mkdtemp(
+    join(tmpdir(), "goodmemory-v074-checkout-"),
+  );
+  const repoRoot = join(temporaryDirectory, "repo");
+  const clone = Bun.spawnSync(
+    ["git", "clone", "--quiet", "--shared", "--no-checkout", REPOSITORY_ROOT, repoRoot],
+    { cwd: REPOSITORY_ROOT },
+  );
+  if (clone.exitCode !== 0) {
+    throw new Error(clone.stderr.toString());
+  }
+  runFixtureGit(repoRoot, "checkout", "--quiet", "--detach", FROZEN_V074_COMMIT);
+  return { repoRoot, temporaryDirectory };
+}
+
 async function createFixtureCommitWithoutPath(
   repoRoot: string,
   path: string,
@@ -215,11 +236,14 @@ async function createFixtureCommitWithoutPath(
 
 describe("v0.7 release readiness", () => {
   it("accepts release metadata with no current benchmark claims", async () => {
-    await expect(
-      evaluateVersionConsistency(
-        new URL("../..", import.meta.url).pathname,
-      ),
-    ).resolves.toEqual(expect.objectContaining({ status: "pass" }));
+    const fixture = await createFrozenV074Checkout();
+    try {
+      await expect(
+        evaluateVersionConsistency(fixture.repoRoot),
+      ).resolves.toEqual(expect.objectContaining({ status: "pass" }));
+    } finally {
+      await rm(fixture.temporaryDirectory, { force: true, recursive: true });
+    }
   });
 
   it("keeps the LoCoMo claim boundary paused and current claims empty", async () => {
@@ -310,38 +334,43 @@ describe("v0.7 release readiness", () => {
     }
   });
 
-  it("pins package, lockfile, capability, and MCP descriptors to the 0.7.4 release source", () => {
+  it("pins package, lockfile, capability, and MCP descriptors to the frozen 0.7.4 release source", async () => {
+    const fixture = await createFrozenV074Checkout();
     const readJson = (path: string) =>
       JSON.parse(
-        readFileSync(new URL(`../../${path}`, import.meta.url), "utf8"),
+        readFileSync(join(fixture.repoRoot, path), "utf8"),
       ) as {
         goodmemoryRelease?: { status?: string };
         packages?: Record<string, { version?: string }> | Array<{ version?: string }>;
         releaseStatus?: { npmDistTag?: string; status?: string };
         version?: string;
       };
-    const packageJson = readJson("package.json");
-    const packageLock = readJson("package-lock.json");
-    const capability = readJson(".well-known/goodmemory.json");
-    const server = readJson("server.json");
+    try {
+      const packageJson = readJson("package.json");
+      const packageLock = readJson("package-lock.json");
+      const capability = readJson(".well-known/goodmemory.json");
+      const server = readJson("server.json");
 
-    expect(packageJson.version).toBe("0.7.4");
-    expect(
-      ["release-candidate", "stable"].includes(
-        packageJson.goodmemoryRelease?.status ?? "",
-      ),
-    ).toBe(true);
-    expect(packageLock.version).toBe("0.7.4");
-    expect((packageLock.packages as Record<string, { version?: string }>)[""]?.version).toBe(
-      "0.7.4",
-    );
-    expect(capability.version).toBe("0.7.4");
-    expect(capability.releaseStatus).toEqual(expect.objectContaining({
-      npmDistTag: "latest",
-      status: packageJson.goodmemoryRelease?.status,
-    }));
-    expect(server.version).toBe("0.7.4");
-    expect((server.packages as Array<{ version?: string }>)[0]?.version).toBe("0.7.4");
+      expect(packageJson.version).toBe("0.7.4");
+      expect(
+        ["release-candidate", "stable"].includes(
+          packageJson.goodmemoryRelease?.status ?? "",
+        ),
+      ).toBe(true);
+      expect(packageLock.version).toBe("0.7.4");
+      expect((packageLock.packages as Record<string, { version?: string }>)[""]?.version).toBe(
+        "0.7.4",
+      );
+      expect(capability.version).toBe("0.7.4");
+      expect(capability.releaseStatus).toEqual(expect.objectContaining({
+        npmDistTag: "latest",
+        status: packageJson.goodmemoryRelease?.status,
+      }));
+      expect(server.version).toBe("0.7.4");
+      expect((server.packages as Array<{ version?: string }>)[0]?.version).toBe("0.7.4");
+    } finally {
+      await rm(fixture.temporaryDirectory, { force: true, recursive: true });
+    }
   });
 
   it("requires the 0.7 migration guide and a compressed tarball below 4 MiB", () => {
@@ -2603,65 +2632,72 @@ describe("v0.7 release readiness", () => {
   });
 
   it("keeps the immutable v0.7.3 lifecycle closure historical on v0.7.4", async () => {
-    const repoRoot = join(import.meta.dir, "../..");
-    const currentCommit = runFixtureGit(repoRoot, "rev-parse", "HEAD");
-    const checks = await evaluateV073LifecycleProtectionArtifactFile({
-      artifactPath: join(
-        repoRoot,
-        "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
-      ),
-      currentCommit,
-      repoRoot,
-    });
+    const fixture = await createFrozenV074Checkout();
+    try {
+      const currentCommit = runFixtureGit(fixture.repoRoot, "rev-parse", "HEAD");
+      const checks = await evaluateV073LifecycleProtectionArtifactFile({
+        artifactPath: join(
+          fixture.repoRoot,
+          "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+        ),
+        currentCommit,
+        repoRoot: fixture.repoRoot,
+      });
 
-    expect(checks).toHaveLength(5);
-    expect(checks.filter((check) => check.status === "fail")).toEqual([]);
-    expect(checks).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        id: "v0.7.3-protocol-source",
-        status: "pass",
-      }),
-      expect.objectContaining({
-        detail: expect.stringContaining("historical"),
-        id: "v0.7.3-lifecycle-source",
-        status: "pass",
-      }),
-      expect.objectContaining({
-        id: "v0.7.3-stable-source-test-correction",
-        status: "pass",
-      }),
-      expect.objectContaining({
-        id: "v0.7.3-cross-host-lifecycle-verifier-correction",
-        status: "pass",
-      }),
-    ]));
+      expect(checks).toHaveLength(5);
+      expect(checks.filter((check) => check.status === "fail")).toEqual([]);
+      expect(checks).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          id: "v0.7.3-protocol-source",
+          status: "pass",
+        }),
+        expect.objectContaining({
+          detail: expect.stringContaining("historical"),
+          id: "v0.7.3-lifecycle-source",
+          status: "pass",
+        }),
+        expect.objectContaining({
+          id: "v0.7.3-stable-source-test-correction",
+          status: "pass",
+        }),
+        expect.objectContaining({
+          id: "v0.7.3-cross-host-lifecycle-verifier-correction",
+          status: "pass",
+        }),
+      ]));
+    } finally {
+      await rm(fixture.temporaryDirectory, { force: true, recursive: true });
+    }
   }, 30_000);
 
   it("reads retired stable-source evidence from its frozen commit after the current source is deleted", async () => {
-    const repoRoot = join(import.meta.dir, "../..");
+    const checkout = await createFrozenV074Checkout();
     const fixture = await createFixtureCommitWithoutPath(
-      repoRoot,
+      checkout.repoRoot,
       "tests/unit/run-v0-7-3-full-locomo-claim.test.ts",
     );
     try {
       const checks = await evaluateV073LifecycleProtectionArtifactFile({
         artifactPath: join(
-          repoRoot,
+          checkout.repoRoot,
           "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
         ),
         currentCommit: fixture.commit,
-        repoRoot,
+        repoRoot: checkout.repoRoot,
       });
 
       expect(checks).toHaveLength(5);
       expect(checks.filter((check) => check.status === "fail")).toEqual([]);
     } finally {
       await rm(fixture.temporaryDirectory, { force: true, recursive: true });
+      await rm(checkout.temporaryDirectory, { force: true, recursive: true });
     }
   }, 30_000);
 
-  it("binds historical evidence checks to repoRoot instead of ambient GIT_DIR", () => {
-    const repoRoot = join(import.meta.dir, "../..");
+  it("binds historical evidence checks to repoRoot instead of ambient GIT_DIR", async () => {
+    const fixture = await createFrozenV074Checkout();
+    const repoRoot = fixture.repoRoot;
+    await symlink(join(REPOSITORY_ROOT, "node_modules"), join(repoRoot, "node_modules"));
     const currentCommit = runFixtureGit(repoRoot, "rev-parse", "HEAD");
     const artifactPath = join(
       repoRoot,
@@ -2678,15 +2714,23 @@ describe("v0.7 release readiness", () => {
       });
       process.exit(checks.every((check) => check.status === "pass") ? 0 : 1);
     `;
-    const result = Bun.spawnSync(["bun", "--no-env-file", "-e", source], {
-      cwd: repoRoot,
-      env: {
-        ...process.env,
-        GIT_DIR: join(tmpdir(), "goodmemory-decoy-git"),
-      },
-    });
+    try {
+      const result = Bun.spawnSync(["bun", "--no-env-file", "-e", source], {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          GIT_DIR: join(tmpdir(), "goodmemory-decoy-git"),
+        },
+      });
 
-    expect(result.exitCode).toBe(0);
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `${result.stdout.toString()}\n${result.stderr.toString()}`.trim(),
+        );
+      }
+    } finally {
+      await rm(fixture.temporaryDirectory, { force: true, recursive: true });
+    }
   }, 30_000);
 
   it("requires the frozen v0.7.3 measured candidate in later release history", () => {
@@ -2807,7 +2851,7 @@ describe("v0.7 release readiness", () => {
     ).toThrow("--strict cannot be combined with release-check skip flags.");
   });
 
-  it("passes the configured Postgres URL into the strict release workflow", () => {
+  it("passes the configured Postgres URL into the active release prepare workflow", () => {
     const workflow = readFileSync(
       new URL("../../.github/workflows/release.yml", import.meta.url),
       "utf8",
@@ -2815,11 +2859,10 @@ describe("v0.7 release readiness", () => {
 
     expect(workflow).toContain("secrets.GOODMEMORY_TEST_POSTGRES_URL");
     expect(workflow).toContain(
-      "bun run gate:v0.7 --strict --lifecycle-protection-artifact reports/release/v0.7/v0.7.3-lifecycle-protection.json",
+      "bun scripts/release.ts prepare --output-dir \"$RELEASE_OUTPUT_DIR\"",
     );
-    expect(workflow).toContain(
-      "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
-    );
+    expect(workflow).not.toContain("--strict");
+    expect(workflow).not.toContain("reports/release/v0.7/");
     const gitignore = readFileSync(
       new URL("../../.gitignore", import.meta.url),
       "utf8",

@@ -50,135 +50,98 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Run release gate (v0.7 readiness)
+      - name: Prepare exact release artifacts
+        id: prepare
         env:
           GOODMEMORY_ASSISTED_EXTRACTOR_API_KEY: ${{ secrets.GOODMEMORY_ASSISTED_EXTRACTOR_API_KEY }}
           GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL: ${{ secrets.GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL }}
           GOODMEMORY_ASSISTED_EXTRACTOR_MODEL: ${{ secrets.GOODMEMORY_ASSISTED_EXTRACTOR_MODEL }}
           GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER: ${{ secrets.GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER }}
           GOODMEMORY_TEST_POSTGRES_URL: ${{ secrets.GOODMEMORY_TEST_POSTGRES_URL || 'postgres://postgres:postgres@localhost:5432/postgres' }}
-        run: bun run gate:v0.7 --strict --lifecycle-protection-artifact reports/release/v0.7/v0.7.3-lifecycle-protection.json
-
-      - name: Pack release tarball
-        id: pack
         run: |
           set -euo pipefail
-          RELEASE_OUTPUT_DIR="$RUNNER_TEMP/goodmemory-v0-7-release"
-          mkdir -p "$RELEASE_OUTPUT_DIR"
-          VERSION="$(bun -e 'import { readFileSync } from "node:fs"; const pkg = JSON.parse(readFileSync("package.json", "utf8")); console.log(pkg.version);')"
-          if [[ "$VERSION" == *-* ]]; then
-            echo "::error::Stable release workflow only supports stable semver versions, got $VERSION"
+          RELEASE_OUTPUT_DIR="$RUNNER_TEMP/goodmemory-release"
+          PREPARE_JSON="$(bun scripts/release.ts prepare --output-dir "$RELEASE_OUTPUT_DIR")"
+          field() {
+            PREPARE_JSON="$PREPARE_JSON" FIELD_NAME="$1" bun -e '
+              const value = JSON.parse(process.env.PREPARE_JSON)[process.env.FIELD_NAME];
+              if (typeof value !== "string" || value.length === 0) process.exit(1);
+              console.log(value);
+            '
+          }
+          ARTIFACT_PATH="$(field tarballPath)"
+          ARTIFACT_INTEGRITY="$(field integrity)"
+          MANIFEST_PATH="$(field manifestPath)"
+          SUMMARY_PATH="$(field summaryPath)"
+          ARCHIVE_PATH="$(field archivePath)"
+          RELEASE_JSON="$(MANIFEST_PATH="$MANIFEST_PATH" bun -e '
+            const manifest = await Bun.file(process.env.MANIFEST_PATH).json();
+            console.log(JSON.stringify({
+              commit: manifest.source.commit,
+              distTag: manifest.package.distTag,
+              status: manifest.package.status,
+              tree: manifest.source.tree,
+              version: manifest.package.version,
+            }));
+          ')"
+          release_field() {
+            RELEASE_JSON="$RELEASE_JSON" FIELD_NAME="$1" bun -e '
+              const value = JSON.parse(process.env.RELEASE_JSON)[process.env.FIELD_NAME];
+              if (typeof value !== "string" || value.length === 0) process.exit(1);
+              console.log(value);
+            '
+          }
+          SOURCE_COMMIT="$(release_field commit)"
+          SOURCE_TREE="$(release_field tree)"
+          VERSION="$(release_field version)"
+          DIST_TAG="$(release_field distTag)"
+          STATUS="$(release_field status)"
+          if [ "$SOURCE_COMMIT" != "$GITHUB_SHA" ]; then
+            echo "::error::Prepared source $SOURCE_COMMIT does not match workflow source $GITHUB_SHA"
             exit 1
           fi
-          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
-            TAG_VERSION="${GITHUB_REF_NAME#v}"
-            if [[ "$TAG_VERSION" != "$VERSION" ]]; then
-              echo "::error::Tag version $TAG_VERSION does not match package.json version $VERSION"
-              exit 1
-            fi
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "Manual dispatch prepares and uploads artifacts only; publication is disabled."
           fi
-          ARTIFACT_JSON="$(bun scripts/prepare-v0-7-stable-artifact.ts --output-dir "$RELEASE_OUTPUT_DIR")"
-          ARTIFACT_PATH="$(ARTIFACT_JSON="$ARTIFACT_JSON" bun -e 'console.log(JSON.parse(process.env.ARTIFACT_JSON).artifactPath)')"
-          ARTIFACT_INTEGRITY="$(ARTIFACT_JSON="$ARTIFACT_JSON" bun -e 'console.log(JSON.parse(process.env.ARTIFACT_JSON).integrity)')"
-          ARTIFACT_SOURCE_COMMIT="$(ARTIFACT_JSON="$ARTIFACT_JSON" bun -e 'console.log(JSON.parse(process.env.ARTIFACT_JSON).sourceCommit)')"
-          ARTIFACT_SOURCE_TREE="$(ARTIFACT_JSON="$ARTIFACT_JSON" bun -e 'console.log(JSON.parse(process.env.ARTIFACT_JSON).sourceTree)')"
-          if [[ "$ARTIFACT_SOURCE_COMMIT" != "$GITHUB_SHA" ]]; then
-            echo "::error::Artifact source $ARTIFACT_SOURCE_COMMIT does not match workflow source $GITHUB_SHA"
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$STATUS" != "stable" ]; then
+            echo "::error::Tag-triggered publication requires stable source metadata"
             exit 1
           fi
-          ARTIFACT_NAME="$(basename "$ARTIFACT_PATH")"
-          echo "artifact_name=$ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "v$VERSION" ]; then
+            echo "::error::Trigger tag $GITHUB_REF_NAME does not match prepared version $VERSION"
+            exit 1
+          fi
+          echo "artifact_name=$(basename "$ARTIFACT_PATH")" >> "$GITHUB_OUTPUT"
           echo "artifact_path=$ARTIFACT_PATH" >> "$GITHUB_OUTPUT"
           echo "artifact_integrity=$ARTIFACT_INTEGRITY" >> "$GITHUB_OUTPUT"
-          echo "source_commit=$ARTIFACT_SOURCE_COMMIT" >> "$GITHUB_OUTPUT"
-          echo "source_tree=$ARTIFACT_SOURCE_TREE" >> "$GITHUB_OUTPUT"
-          {
-            echo "## Release artifact"
-            echo "- Version: $VERSION"
-            echo "- Name: $ARTIFACT_NAME"
-            echo "- Path: $ARTIFACT_PATH"
-            echo "- Integrity: $ARTIFACT_INTEGRITY"
-            echo "- Source commit: $ARTIFACT_SOURCE_COMMIT"
-            echo "- Source tree: $ARTIFACT_SOURCE_TREE"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "manifest_path=$MANIFEST_PATH" >> "$GITHUB_OUTPUT"
+          echo "summary_path=$SUMMARY_PATH" >> "$GITHUB_OUTPUT"
+          echo "archive_path=$ARCHIVE_PATH" >> "$GITHUB_OUTPUT"
+          echo "source_commit=$SOURCE_COMMIT" >> "$GITHUB_OUTPUT"
+          echo "source_tree=$SOURCE_TREE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "dist_tag=$DIST_TAG" >> "$GITHUB_OUTPUT"
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          cat "$SUMMARY_PATH" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify exact prepublish artifact
-        id: prepublish
-        run: |
-          set -euo pipefail
-          ARTIFACT_PATH="${{ steps.pack.outputs.artifact_path }}"
-          ARTIFACT_INTEGRITY="${{ steps.pack.outputs.artifact_integrity }}"
-          EVIDENCE_PATH="$(dirname "$ARTIFACT_PATH")/prepublish-evidence.json"
-          EVIDENCE_JSON="$(bun scripts/verify-v0-7-release-artifact.ts \
-            --artifact "$ARTIFACT_PATH" \
-            --source-commit "${{ steps.pack.outputs.source_commit }}" \
-            --source-tree "${{ steps.pack.outputs.source_tree }}" \
-            --expected-integrity "$ARTIFACT_INTEGRITY")"
-          printf '%s\n' "$EVIDENCE_JSON" > "$EVIDENCE_PATH"
-          echo "evidence_path=$EVIDENCE_PATH" >> "$GITHUB_OUTPUT"
-          {
-            echo "## Exact prepublish artifact verification"
-            echo "- Source commit: ${{ steps.pack.outputs.source_commit }}"
-            echo "- Source tree: ${{ steps.pack.outputs.source_tree }}"
-            echo "- Evidence: $EVIDENCE_PATH"
-            echo "- Integrity: $ARTIFACT_INTEGRITY"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload tarball artifact
+      - name: Upload prepared release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.pack.outputs.artifact_name }}
+          name: ${{ steps.prepare.outputs.artifact_name }}
           path: |
-            ${{ steps.pack.outputs.artifact_path }}
-            ${{ steps.prepublish.outputs.evidence_path }}
-            reports/release/v0.7/v0.7.3-lifecycle-protection.json
-            reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json
-            reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence/**
-            reports/release/v0.7/v0.7.3-stable-source-test-correction-preregistration.json
-            reports/release/v0.7/v0.7.3-stable-source-test-correction-attestation.json
-            reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-preregistration.json
-            reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-attestation.json
-            reports/release/v0.7/phase-74-storage-scale-gate.json
-            reports/release/v0.7/readiness-report.json
-            reports/release/v0.7/summary.md
-
-      - name: Pack tracked release evidence
-        id: evidence-archive
-        run: |
-          set -euo pipefail
-          VERSION="$(bun -e 'import { readFileSync } from "node:fs"; const pkg = JSON.parse(readFileSync("package.json", "utf8")); console.log(pkg.version);')"
-          PREPUBLISH_EVIDENCE="${{ steps.prepublish.outputs.evidence_path }}"
-          EVIDENCE_ARCHIVE="$(dirname "${{ steps.pack.outputs.artifact_path }}")/goodmemory-${VERSION}-release-evidence.tar.gz"
-          test -s reports/release/v0.7/v0.7.3-stable-source-test-correction-preregistration.json
-          test -s reports/release/v0.7/v0.7.3-stable-source-test-correction-attestation.json
-          test -s reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-preregistration.json
-          test -s reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-attestation.json
-          tar --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner -czf "$EVIDENCE_ARCHIVE" \
-            -C "$(dirname "$PREPUBLISH_EVIDENCE")" "$(basename "$PREPUBLISH_EVIDENCE")" \
-            -C "$GITHUB_WORKSPACE" \
-            reports/release/v0.7/v0.7.3-lifecycle-protection.json \
-            reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json \
-            reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence \
-            reports/release/v0.7/v0.7.3-stable-source-test-correction-preregistration.json \
-            reports/release/v0.7/v0.7.3-stable-source-test-correction-attestation.json \
-            reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-preregistration.json \
-            reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-attestation.json \
-            reports/release/v0.7/phase-74-storage-scale-gate.json \
-            reports/release/v0.7/readiness-report.json \
-            reports/release/v0.7/summary.md
-          test -s "$EVIDENCE_ARCHIVE"
-          tar -tzf "$EVIDENCE_ARCHIVE" > /dev/null
-          echo "archive_path=$EVIDENCE_ARCHIVE" >> "$GITHUB_OUTPUT"
+            ${{ steps.prepare.outputs.artifact_path }}
+            ${{ steps.prepare.outputs.manifest_path }}
+            ${{ steps.prepare.outputs.archive_path }}
 
       - name: Validate npm publishing credentials
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && steps.prepare.outputs.status == 'stable'
         id: npm-auth
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
           if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "::error::NPM_TOKEN is required for stable tag releases"
+            echo "::error::NPM_TOKEN is required for tag releases"
             exit 1
           fi
           if ! NPM_USER="$(npm whoami)"; then
@@ -192,13 +155,14 @@ jobs:
           echo "npm_user=$NPM_USER" >> "$GITHUB_OUTPUT"
 
       - name: Publish package to npm
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && steps.prepare.outputs.status == 'stable'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
-          VERSION="$(bun -e 'import { readFileSync } from "node:fs"; const pkg = JSON.parse(readFileSync("package.json", "utf8")); console.log(pkg.version);')"
-          ARTIFACT_INTEGRITY="${{ steps.pack.outputs.artifact_integrity }}"
+          VERSION="${{ steps.prepare.outputs.version }}"
+          DIST_TAG="${{ steps.prepare.outputs.dist_tag }}"
+          ARTIFACT_INTEGRITY="${{ steps.prepare.outputs.artifact_integrity }}"
           if PUBLISHED_VERSION="$(npm view "goodmemory@${VERSION}" version 2>/dev/null)"; then
             if [ "$PUBLISHED_VERSION" != "$VERSION" ]; then
               echo "::error::npm returned unexpected version $PUBLISHED_VERSION for goodmemory@$VERSION"
@@ -211,16 +175,16 @@ jobs:
             fi
             echo "goodmemory@$VERSION already exists on npm; verifying registry state."
           else
-            npm publish --access public "${{ steps.pack.outputs.artifact_path }}"
+            npm publish --access public "${{ steps.prepare.outputs.artifact_path }}" --tag "$DIST_TAG"
           fi
           PUBLISHED_VERSION=""
           PUBLISHED_INTEGRITY=""
-          LATEST_VERSION=""
+          DIST_TAG_VERSION=""
           for attempt in {1..12}; do
             PUBLISHED_VERSION="$(npm view "goodmemory@${VERSION}" version 2>/dev/null || true)"
             PUBLISHED_INTEGRITY="$(npm view "goodmemory@${VERSION}" dist.integrity 2>/dev/null || true)"
-            LATEST_VERSION="$(npm view goodmemory@latest version 2>/dev/null || true)"
-            if [ "$PUBLISHED_VERSION" = "$VERSION" ] && [ "$LATEST_VERSION" = "$VERSION" ] && [ "$PUBLISHED_INTEGRITY" = "$ARTIFACT_INTEGRITY" ]; then
+            DIST_TAG_VERSION="$(npm view "goodmemory@${DIST_TAG}" version 2>/dev/null || true)"
+            if [ "$PUBLISHED_VERSION" = "$VERSION" ] && [ "$DIST_TAG_VERSION" = "$VERSION" ] && [ "$PUBLISHED_INTEGRITY" = "$ARTIFACT_INTEGRITY" ]; then
               break
             fi
             echo "Waiting for npm registry visibility for goodmemory@$VERSION (attempt $attempt/12)..."
@@ -230,25 +194,26 @@ jobs:
             echo "::error::npm artifact identity verification failed: registry integrity does not match the release tarball"
             exit 1
           fi
-          if [ "$PUBLISHED_VERSION" != "$VERSION" ] || [ "$LATEST_VERSION" != "$VERSION" ]; then
-            echo "::error::npm registry verification failed: expected version and latest tag $VERSION, got version=${PUBLISHED_VERSION:-<empty>} latest=${LATEST_VERSION:-<empty>}"
+          if [ "$PUBLISHED_VERSION" != "$VERSION" ] || [ "$DIST_TAG_VERSION" != "$VERSION" ]; then
+            echo "::error::npm registry verification failed: expected version and $DIST_TAG tag $VERSION, got version=${PUBLISHED_VERSION:-<empty>} dist-tag=${DIST_TAG_VERSION:-<empty>}"
             exit 1
           fi
           {
             echo "## npm publish"
             echo "- Verified: goodmemory@$VERSION"
-            echo "- Verified dist tag: latest -> $LATEST_VERSION"
+            echo "- Verified dist tag: $DIST_TAG -> $DIST_TAG_VERSION"
             echo "- Verified artifact integrity: $PUBLISHED_INTEGRITY"
             echo "- npm user: ${{ steps.npm-auth.outputs.npm_user }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create GitHub release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && steps.prepare.outputs.status == 'stable'
         uses: softprops/action-gh-release@v2
         with:
           fail_on_unmatched_files: true
           files: |
-            ${{ steps.pack.outputs.artifact_path }}
-            ${{ steps.evidence-archive.outputs.archive_path }}
+            ${{ steps.prepare.outputs.artifact_path }}
+            ${{ steps.prepare.outputs.manifest_path }}
+            ${{ steps.prepare.outputs.archive_path }}
           prerelease: false
           make_latest: true

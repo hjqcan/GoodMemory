@@ -664,7 +664,7 @@ Implications:
 - core behavior does not depend on API, eval, CLI, provider/vendor runtime, or concrete storage implementations
 - core behavior depends on narrow internal subsystem ports rather than the wide repository assembly surface
 - provider-backed and host/file-authoritative behavior enter only through explicit adapter boundaries and do not redefine the core truth model
-- `createGoodMemory(config)` is the formal composition root; raw repository and engine assembly are internal-only, while the supported advanced runtime surface is `createRuntimeContextService` plus the stable `createRuntimeArchiveStore` adapter for persisting summary-only session archives without normalized transcripts
+- `createGoodMemory(config)` is the public factory/facade and `api/goodMemoryAssembly.ts` is the only concrete implementation assembly module; raw repository and engine assembly are internal-only, while the supported advanced runtime surface is `createRuntimeContextService` plus the stable `createRuntimeArchiveStore` adapter for persisting summary-only session archives without normalized transcripts
 - `src/provider/` is the provider-backed implementation boundary; provider runtime code does not live in a parallel compatibility tree
 - dependency-matrix tests are part of the merge gate for the post-v1 archive, evidence, proposal, and host-adapter work
 
@@ -713,6 +713,45 @@ consume a partial new generation; it uses the canonical fallback until cutover.
 Migration is repeatable and does not rewrite canonical memory. This is a clean
 breaking replacement of the former language adapter, with no compatibility
 shim or dual-write period; see ADR-008 and the 0.6-to-0.7 migration guide.
+
+### 6.3.3 Explicit orchestration and repository-only proof boundaries
+
+Hot-path modules are split by ownership and side-effect order, not by line
+count alone:
+
+- API assembly owns concrete providers, storage, projections, repositories,
+  engines, maintenance, and evolution; the public factory only exposes the
+  supported facade.
+- Remember owns immutable source-message CAS, one resolved extraction shared by
+  `extract()` and `remember()`, and an explicit ordered write/rollback stage.
+- Recall exchanges narrow request, loaded-content, and retrieved-candidate
+  contracts across content loading, retrieval/fusion, and result assembly;
+  cross-pass orchestration remains visible at the API boundary.
+- The CLI root performs parse/version/error/help routing and explicit dispatch
+  to memory, host, eval, or service command families. It does not use a dynamic
+  command registry or middleware framework.
+
+Proof code is not a fifth production engine. Small repository-only primitives
+for canonical JSON bytes, file closure, content digests, and Git identity live
+under `scripts/proof/`; production
+`src/` cannot import them. Research schemas, lifecycle rules, provider/scorer
+semantics, thresholds, and report layouts remain owned by each protocol. The
+static research registry selects only active protocols and exact historical
+gates. An active protocol runs its historical loader inside an isolated checkout
+at the bound commit/tree, installs the checkout's frozen dependency lock, and
+accepts only a narrow DTO from that execution; verification also runs the exact
+historical gates in that checkout. The current clean execution identity is
+checked before and after the protocol. Frozen artifacts retain their original
+paths, bytes, and source identities.
+
+Release preparation similarly uses an explicit fixed sequence: freeze source,
+run required checks, pack once, verify the same tarball, recheck source, then
+write one authoritative manifest and deterministic evidence archive. Summary
+Markdown is a projection, promotion is a separate explicit action, and external
+publication remains workflow-owned. See ADR-009.
+
+This boundary does not change HTTP bridge behavior, installed-host writeback,
+or benchmark-claim policy and machine-readable claim surfaces.
 
 ### 6.4 Default vs optional capabilities
 

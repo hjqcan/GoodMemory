@@ -23,6 +23,33 @@ async function withTempQueue<T>(callback: (queueFile: string) => Promise<T>): Pr
   }
 }
 
+async function withEnv<T>(
+  overrides: Record<string, string | undefined>,
+  callback: () => Promise<T>,
+): Promise<T> {
+  const previous = new Map<string, string | undefined>();
+  for (const [key, value] of Object.entries(overrides)) {
+    previous.set(key, process.env[key]);
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+
+  try {
+    return await callback();
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
+}
+
 function createEnvelope() {
   return createRuntimeWorkerJobEnvelope({
     boundedJob: {
@@ -40,6 +67,50 @@ function createEnvelope() {
 }
 
 describe("runtime worker CLI", () => {
+  it("uses the installed-home runtime-worker.json queue by default", async () => {
+    const homeRoot = await mkdtemp(join(tmpdir(), "goodmemory-runtime-worker-home-"));
+    const ignoredQueueRoot = await mkdtemp(join(tmpdir(), "goodmemory-runtime-worker-ignored-"));
+    try {
+      const queueFile = join(homeRoot, ".goodmemory", "runtime-worker.json");
+      const queue = createRuntimeWorkerQueue({ queueFile });
+      await queue.enqueue(createEnvelope());
+
+      const result = await withEnv({
+        GOODMEMORY_HOME: homeRoot,
+        GOODMEMORY_RUNTIME_QUEUE_FILE: join(ignoredQueueRoot, "queue.jsonl"),
+      }, () => runCLI(["runtime", "worker", "status", "--json"]));
+
+      expect(result.exitCode).toBe(0);
+      expect(JSON.parse(result.stdout)).toMatchObject({
+        queueFile,
+        counts: { queued: 1 },
+      });
+    } finally {
+      await rm(homeRoot, { force: true, recursive: true });
+      await rm(ignoredQueueRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("preserves invalid integer diagnostics", async () => {
+    await withTempQueue(async (queueFile) => {
+      const result = await runCLI([
+        "runtime",
+        "worker",
+        "drain-once",
+        "--queue-file",
+        queueFile,
+        "--max-jobs",
+        "invalid",
+      ]);
+
+      expect(result).toEqual({
+        exitCode: 1,
+        stderr: "Unsupported --max-jobs: invalid. Expected a non-negative integer.",
+        stdout: "",
+      });
+    });
+  });
+
   it("reports, drains, recovers, starts, and stops a local worker queue", async () => {
     await withTempQueue(async (queueFile) => {
       const queue = createRuntimeWorkerQueue({ queueFile });

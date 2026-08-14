@@ -159,7 +159,7 @@ describe("v0.7 release-source promotion", () => {
     }
   });
 
-  it("promotes the repository release-candidate prose without fixture-only drift", async () => {
+  it("does not treat the current source as input to the frozen v0.7.4 promoter", async () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-v07-real-prose-"));
     try {
       await mkdir(join(root, ".well-known"), { recursive: true });
@@ -197,14 +197,9 @@ describe("v0.7 release-source promotion", () => {
         `${JSON.stringify(descriptor, null, 2)}\n`,
       );
 
-      await expect(promoteV07ReleaseSource({ repoRoot: root })).resolves.toBeUndefined();
-      expect(await readFile(join(root, "README.md"), "utf8")).toContain(
-        "immutable `0.7.4` stable release source",
+      await expect(promoteV07ReleaseSource({ repoRoot: root })).rejects.toThrow(
+        "Release promotion source must be goodmemory@0.7.4",
       );
-      for (const path of ["README.md", "README.zh-CN.md", "llms.txt"]) {
-        const promoted = await readFile(join(root, path), "utf8");
-        expect(promoted).not.toMatch(/release[- ]candidate|unpublished|尚未发布/iu);
-      }
     } finally {
       await rm(root, { force: true, recursive: true });
     }

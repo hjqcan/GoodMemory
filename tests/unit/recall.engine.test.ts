@@ -9,6 +9,29 @@ import {
 import { createMemoryRepositories } from "../../src/storage/repositories";
 
 describe("recall engine", () => {
+  it("captures the clock when the engine is created", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const sessionStore = createInMemorySessionStore();
+    const config = {
+      now: () => 100,
+      repositories: createMemoryRepositories({
+        documentStore,
+        sessionStore,
+      }),
+      runtime: sessionStore,
+    };
+    const engine = createRecallEngine(config);
+    config.now = () => 999;
+
+    const result = await engine.recall({
+      ignoreMemory: true,
+      query: "What changed?",
+      scope: { userId: "u-clock", workspaceId: "workspace-a" },
+    });
+
+    expect(result.metadata.latencyMs).toBe(0);
+  });
+
   it("keeps fact selector overrides instance-scoped", async () => {
     const documentStore = createInMemoryDocumentStore();
     const sessionStore = createInMemorySessionStore();

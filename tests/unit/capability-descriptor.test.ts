@@ -16,12 +16,18 @@ const PACKAGE_JSON_URL = new URL("../../package.json", import.meta.url);
 function readPackageJson(): {
   version: string;
   bin: Record<string, string>;
-  goodmemoryRelease: { status: "release-candidate" | "stable" };
+  goodmemoryRelease: {
+    npmDistTag: "latest" | "next";
+    status: "release-candidate" | "stable";
+  };
 } {
   return JSON.parse(readFileSync(PACKAGE_JSON_URL, "utf8")) as {
     version: string;
     bin: Record<string, string>;
-    goodmemoryRelease: { status: "release-candidate" | "stable" };
+    goodmemoryRelease: {
+      npmDistTag: "latest" | "next";
+      status: "release-candidate" | "stable";
+    };
   };
 }
 
@@ -43,7 +49,7 @@ describe("GoodMemory capability descriptor", () => {
     expect(descriptor.version).toBe(version);
     expect(descriptor.releaseStatus).toEqual({
       installCommandsApplyAfterPublish: true,
-      npmDistTag: "latest",
+      npmDistTag: goodmemoryRelease.npmDistTag,
       status: goodmemoryRelease.status,
       tarball: `goodmemory-${version}.tgz`,
     });

@@ -1212,13 +1212,16 @@ describe("v0.7.3 replacement protection gate runner", () => {
     });
   });
 
-  it("makes the package gate invoke the replacement runner", () => {
+  it("keeps the frozen replacement runner directly replayable", () => {
     const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
       scripts: Record<string, string>;
     };
-    expect(packageJson.scripts["gate:v0.7.3-lifecycle-protection"]).toBe(
-      "bun run scripts/run-v0-7-3-replacement-protection-gate.ts",
-    );
+    expect(
+      packageJson.scripts["gate:v0.7.3-lifecycle-protection"],
+    ).toBeUndefined();
+    expect(
+      Bun.file("scripts/run-v0-7-3-replacement-protection-gate.ts").size,
+    ).toBeGreaterThan(0);
   });
 
   it("accepts only the preregistered provider-free population and transport-free mode", () => {

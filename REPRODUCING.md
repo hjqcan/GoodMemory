@@ -38,11 +38,11 @@ each declaration.
 
 ```bash
 # answers + deterministic scoring (resumable shards)
-bun run eval:phase-62-full500 -- --benchmark-root <root with longmemeval_s.json> \
+bun run scripts/run-phase-62-full500.ts --benchmark-root <root with longmemeval_s.json> \
   --profile goodmemory-rules-only --profile baseline-no-memory \
   --shard-concurrency 4 --run-id <run-id> --resume-existing-shards
 # strict track (judge-free deterministic subset)
-bun run eval:phase-62-deterministic-subset -- --report-path <runDir>/report.json \
+bun run scripts/run-phase-62-deterministic-subset.ts --report-path <runDir>/report.json \
   --claim-profile goodmemory-rules-only
 # comparable track (official evaluate_qa.py protocol over the same answers)
 bun run scripts/rescore-official-protocols.ts --benchmark longmemeval
@@ -51,8 +51,8 @@ bun run scripts/rescore-official-protocols.ts --benchmark longmemeval
 ### MemoryAgentBench (CR, TTL)
 
 ```bash
-bun run prepare:phase-64-mab -- --output-root <root>
-bun run eval:phase-64-smoke -- --benchmark-root <root> --live --resume --run-id <run-id>
+bun run scripts/prepare-phase-64-memory-agent-bench-data.ts --output-root <root>
+bun run scripts/run-phase-64-memory-agent-bench-smoke.ts --benchmark-root <root> --live --resume --run-id <run-id>
 ```
 
 Deterministic scoring, no judge. AR and LRU are excluded by declaration: the
@@ -76,9 +76,9 @@ declaration and the README.
 ### BEAM (100K split)
 
 ```bash
-bun run prepare:phase-63-beam -- --output-root <root> --split 100K
+bun run scripts/prepare-phase-63-beam-data.ts --output-root <root> --split 100K
 bun run scripts/run-beam-union16-live-closure.ts --run-id <run-id>   # or the
-# rules-only closure via eval:phase-63-live-closure (see beam.json for the
+# rules-only closure via scripts/run-phase-63-beam-live-closure.ts (see beam.json for the
 # exact claimed command)
 # comparable track (official unified rubric judge, all 1051 rubric items)
 bun run scripts/rescore-official-protocols.ts --benchmark beam

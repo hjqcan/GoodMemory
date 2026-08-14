@@ -10,9 +10,9 @@ database, or a generic RAG system. Local-first: Bun gets durable SQLite by
 default and recall runs embedding-free out of the box; embedding providers,
 Postgres, and LLM extraction are opt-in.
 
-Release source: this is the immutable GoodMemory 0.7.4 stable release source.
-Registry commands require goodmemory@0.7.4 to be published. The release workflow
-verifies npm latest and artifact integrity before creating the GitHub Release.
+Release status: this source targets the unpublished GoodMemory 0.7.5 release
+candidate. The published installation baseline remains goodmemory@0.7.4.
+Candidate preparation may upload evidence, but tag publication is stable-only.
 
 If you are an autonomous agent reading this to decide whether to give *yourself*
 memory: yes, that is a supported first-class path. Start with the decision tree
@@ -83,7 +83,7 @@ and Bearer-token gated. See the
 
 ## Benchmarks
 
-Current `v0.7.4` claim: none. Versioned historical evidence: none.
+Current `v0.7.5` claim: none. Versioned historical evidence: none.
 
 The retained v0.7.3 LoCoMo and v0.6.0 LoCoMo, BEAM, and MemoryAgentBench
 measurements, plus ImplicitMemBench, are internal diagnostics only. No end-to-end

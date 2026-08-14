@@ -18,6 +18,13 @@ bulk-load. Start here, then open only the file that matches the question.
 
 ## Architecture And Release Baselines
 
+- `../adr/ADR-009-orchestration-and-proof-protocol-boundaries.txt` - accepted
+  runtime orchestration, repo-only proof kernel, historical verifier capsule,
+  and single-manifest release boundary.
+- `../scripts/release.ts` - current fail-closed `prepare` release
+  entrypoint. `release-manifest.json` is authoritative; `summary.md` is a
+  projection. Release candidates may prepare/upload evidence; tag publication
+  is a stable-only workflow side effect.
 - `../adr/ADR-008-language-pack-horizontal-extension.txt` - accepted 0.7
   LanguagePack boundary, breaking-replacement decision, script-local Chinese
   guarantee, and versioned projection migration contract.
@@ -83,8 +90,15 @@ bulk-load. Start here, then open only the file that matches the question.
 - `plans/GoodMemory-Codex-Coding-Effect-Evaluation-and-Development-Plan.md` -
   Codex-first host-native coding A/B design, hidden-test evidence contract, TDD
   implementation order, and public-claim gate; Claude Code is deferred. Its
-  heavy C6 readiness replay runs only through the separate Phase 73 quality
-  gate and does not block the v0.7.3 product release.
+  active source-v4 path is selected through `scripts/research/protocols.json`
+  and `scripts/research.ts`; exact registered gates replace the former
+  phase-wide glob. Historical C3/C4/C5 and source-v1/v2/v3 scripts remain
+  direct, source-bound replays rather than package aliases.
+- `../scripts/research/protocols.json` - static active-protocol registry with
+  source identity, entrypoints, canonical artifacts, exact historical gates,
+  and external prerequisites. Historical execution occurs in an isolated
+  checkout at that identity. Use `research:list`, `research:run`, or
+  `research:verify`; this registry is not a workflow engine.
 - `plans/GoodMemory-Phase-74-Generalized-Memory-Core-Implementation.md` -
   experimental generalized-memory implementation record, completed local
   verification, scale evidence, and the still-unmet cross-benchmark promotion

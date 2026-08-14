@@ -4,9 +4,9 @@
 
 GoodMemory 是面向 AI 产品和 coding agent 的记忆层。
 
-> **发布源码：**这是不可变的 `0.7.4` 稳定发布源码。Registry 命令要求
-> `goodmemory@0.7.4` 已发布；release workflow 会先校验 npm `latest`
-> 与制品完整性，再创建 GitHub Release。
+> **发布状态：**当前源码面向尚未发布的 `0.7.5` release candidate。已发布的
+> 安装基线仍是 `goodmemory@0.7.4`；candidate 只允许 prepare/upload，tag
+> publication 只允许 stable source。
 
 它为 chat app、copilot 和 agent host 提供一条可审计的用户/项目记忆闭环：
 选择性写入事实，检索正确上下文，注入下一轮对话，记录发生过什么，并在记忆错误时删除。
@@ -42,7 +42,7 @@ GoodMemory 把「当前生产声明」「带版本的历史证据」和「内部
 historical 晋级都 fail closed。stored-answer rescorer 与旧 presentation projection
 不能打开该边界，也不能通过自由填写 README 分数或披露片段来自证。
 
-GoodMemory `0.7.4` 没有当前或带版本的历史 benchmark 声明。保留的 v0.7.3
+GoodMemory `0.7.5` 没有当前或带版本的历史 benchmark 声明。保留的 v0.7.3
 LoCoMo projection 不是端到端 runner evidence，因此现已降为内部诊断。
 v0.6.0 的 LoCoMo、BEAM、MemoryAgentBench 测量与 ImplicitMemBench 也都属于内部诊断。
 LongMemEval 已撤下并等待 clean rerun：历史 rules-only 路径使用了 answer annotation，
@@ -52,7 +52,7 @@ Full-300 运行。HaluMem、MemGym 与 MINTEval 继续作为 release evidence，
 benchmark 声明。
 
 <!-- current-claims-table:start -->
-当前没有 benchmark 结果被表述为在 `0.7.4` 上测量。
+当前没有 benchmark 结果被表述为在 `0.7.5` 上测量。
 <!-- current-claims-table:end -->
 
 ### 带版本证据
@@ -218,7 +218,8 @@ GoodMemory 负责 memory loop 和存储边界。
 
 ## 安装
 
-GoodMemory `0.7.4` 发布后有两条常用 registry 安装路径。发布前请使用下方 tarball 验证路径。
+已发布的 registry 基线是 GoodMemory `0.7.4`。要验证尚未发布的 `0.7.5`
+candidate，请使用下方准备好的 tarball。
 
 如果你想给已安装的 coding agent 增加记忆能力，使用全局 CLI：
 
@@ -252,7 +253,7 @@ bun add goodmemory@0.7.4
 发布前 tarball 验证：
 
 ```bash
-npm install ./goodmemory-0.7.4.tgz
+npm install ./goodmemory-0.7.5.tgz
 ```
 
 已安装 CLI 的非版本命令由 Bun 支撑。package bin 对 `goodmemory -V` 和 `goodmemory --version` 是 Node-safe 的；其他命令会委托给 Bun。
@@ -1081,8 +1082,9 @@ bun run typecheck
 bun run test:coverage
 ```
 
-0.7 发布前用 `bun run gate:v0.7 --strict` 统一验证 package、coverage、
-runtime consumer、体积与 benchmark 版本溯源。
+当前 release candidate 用
+`bun run release:prepare -- --output-dir <dir>` 统一验证 package、coverage、
+runtime consumer、体积与 provenance，并生成唯一权威 manifest。
 
 只有当你明确需要覆盖 vendored 或 third-party test trees 时，才使用 `bun run test:all`。
 

@@ -11,30 +11,34 @@ import {
 } from "../../scripts/phase-72-external-contracts";
 
 describe("Phase 72 external benchmark contracts", () => {
-  it("publishes pinned repository commands for every Phase 72 runner", async () => {
+  it("keeps historical runners directly replayable without package aliases", async () => {
     const packageJson = JSON.parse(await readFile(
       new URL("../../package.json", import.meta.url),
       "utf8",
     )) as { scripts?: Record<string, string> };
 
-    expect(packageJson.scripts).toMatchObject({
-      "eval:phase-72-beam-generalization-live":
-        "bun run scripts/run-phase-72-beam-generalization-live.ts",
-      "eval:phase-72-halumem": "bun run scripts/run-phase-72-halumem.ts",
-      "eval:phase-72-longmemeval-operand-head-preservation-development":
-        "bun run scripts/run-phase-72-longmemeval-operand-head-preservation-development.ts",
-      "eval:phase-72-longmemeval-temporal-operands-development":
-        "bun run scripts/run-phase-72-longmemeval-temporal-operands-development.ts",
-      "eval:phase-72-temporal-operands-protection":
-        "bun run scripts/run-phase-72-temporal-operands-protection.ts",
-      "eval:phase-72-memgym": "bun run scripts/run-phase-72-memgym.ts",
-      "eval:phase-72-minteval-smoke":
-        "bun run scripts/run-phase-72-minteval-smoke.ts",
-      "merge:phase-72-implicitmembench-retry":
-        "bun run scripts/merge-phase-72-implicitmembench-retry.ts",
-      "prepare:phase-72-beam-stored-retry":
-        "bun run scripts/prepare-phase-72-beam-stored-retry.ts",
-    });
+    const runners = [
+      "run-phase-72-beam-generalization-live.ts",
+      "run-phase-72-halumem.ts",
+      "run-phase-72-longmemeval-operand-head-preservation-development.ts",
+      "run-phase-72-longmemeval-temporal-operands-development.ts",
+      "run-phase-72-temporal-operands-protection.ts",
+      "run-phase-72-memgym.ts",
+      "run-phase-72-minteval-smoke.ts",
+      "merge-phase-72-implicitmembench-retry.ts",
+      "prepare-phase-72-beam-stored-retry.ts",
+    ];
+
+    expect(
+      Object.keys(packageJson.scripts ?? {}).filter((name) =>
+        name.includes("phase-72")
+      ),
+    ).toEqual([]);
+    for (const runner of runners) {
+      expect(
+        await Bun.file(new URL(`../../scripts/${runner}`, import.meta.url)).exists(),
+      ).toBe(true);
+    }
   });
 
   it("pins the live answer model and each upstream source", () => {

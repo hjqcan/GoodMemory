@@ -7,18 +7,30 @@ import {
 } from "../../scripts/codex-coding-effect/contracts";
 
 describe("Codex coding-effect evidence contracts", () => {
-  it("publishes the deterministic C0 runner command", async () => {
+  it("keeps historical C0/C2 runners direct and off the package script API", async () => {
     const packageJson = JSON.parse(await readFile(
       new URL("../../package.json", import.meta.url),
       "utf8",
     )) as { scripts?: Record<string, string> };
 
-    expect(packageJson.scripts?.["eval:codex-coding-effect:smoke"]).toBe(
-      "bun run scripts/run-codex-coding-effect.ts",
-    );
-    expect(packageJson.scripts?.["project:codex-coding-effect:c2-evidence"]).toBe(
-      "bun run scripts/project-codex-coding-effect-c2-evidence.ts",
-    );
+    expect(
+      Object.keys(packageJson.scripts ?? {}).filter((name) =>
+        name.includes("codex-coding-effect")
+      ),
+    ).toEqual([]);
+    expect(
+      await Bun.file(
+        new URL("../../scripts/run-codex-coding-effect.ts", import.meta.url),
+      ).exists(),
+    ).toBe(true);
+    expect(
+      await Bun.file(
+        new URL(
+          "../../scripts/project-codex-coding-effect-c2-evidence.ts",
+          import.meta.url,
+        ),
+      ).exists(),
+    ).toBe(true);
   });
 
   it("freezes the evidence classes without treating pilots as public proof", () => {

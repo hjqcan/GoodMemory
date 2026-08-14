@@ -4,10 +4,9 @@ Language: English | [简体中文](./README.zh-CN.md)
 
 GoodMemory is a memory layer for AI products and coding agents.
 
-> **Release source:** this is the immutable `0.7.4` stable release source.
-> Registry commands require `goodmemory@0.7.4` to be published. The release
-> workflow verifies npm `latest` and artifact integrity before creating the
-> GitHub Release.
+> **Release status:** this source targets the unpublished `0.7.5` release
+> candidate. The published installation baseline remains `goodmemory@0.7.4`;
+> prepare/upload may run for the candidate, but tag publication is stable-only.
 
 It gives chat apps, copilots, and agent hosts a durable user/project memory loop:
 write selected facts, retrieve the right context, inject it into the next turn,
@@ -58,8 +57,8 @@ paths. GPT-5.6 also powers disclosed non-judge model calls in current evaluation
 profiles; public-claim paths either use deterministic scoring or keep the judge
 independent from the answer model.
 
-**Run and verify.** After publication, install this source line and inspect its
-local memory surface; before publication, use the tarball named above:
+**Run and verify.** Install the published `0.7.4` registry baseline and inspect
+its local memory surface:
 
 ```bash
 npm install -g goodmemory@0.7.4
@@ -107,7 +106,7 @@ unavailable for both current and historical rows. Stored-answer rescores and
 legacy presentation projections cannot open that boundary or supply README
 score and disclosure fragments as self-attestation.
 
-GoodMemory `0.7.4` has no current or versioned historical benchmark claim.
+GoodMemory `0.7.5` has no current or versioned historical benchmark claim.
 The retained v0.7.3 LoCoMo projection is not end-to-end runner evidence, so
 it is an internal diagnostic. The v0.6.0
 LoCoMo, BEAM, and MemoryAgentBench measurements and ImplicitMemBench are also
@@ -120,7 +119,7 @@ monolithic fresh run. HaluMem, MemGym, and MINTEval remain release evidence
 rather than public benchmark claims.
 
 <!-- current-claims-table:start -->
-No benchmark result is currently presented as measured on `0.7.4`.
+No benchmark result is currently presented as measured on `0.7.5`.
 <!-- current-claims-table:end -->
 
 ### Versioned evidence
@@ -312,8 +311,8 @@ policy. GoodMemory owns the memory loop and storage boundary.
 
 ## Install
 
-After GoodMemory `0.7.4` is published, it has two normal registry install paths.
-Before publication, use the tarball verification path below.
+The published registry baseline is GoodMemory `0.7.4`. To rehearse the
+unpublished `0.7.5` candidate, use its prepared tarball below.
 
 Use the global CLI when you want memory enhancement inside installed coding
 agents:
@@ -348,7 +347,7 @@ bun add goodmemory@0.7.4
 Tarball verification for release rehearsal:
 
 ```bash
-npm install ./goodmemory-0.7.4.tgz
+npm install ./goodmemory-0.7.5.tgz
 ```
 
 The installed CLI is Bun-backed for non-version commands. The package bin is
@@ -1340,8 +1339,31 @@ bun run typecheck
 bun run test:coverage
 ```
 
-For the complete 0.7 package, coverage, runtime-consumer, size, and provenance
-gate, run `bun run gate:v0.7 --strict`.
+For complete package, coverage, runtime-consumer, size, and provenance
+preparation, use one explicit output directory:
+
+```bash
+bun run release:prepare -- --output-dir <dir>
+```
+
+The command freezes source identity, runs required checks, packs exactly one
+tarball, validates that same tarball with Node and Bun, and writes the
+authoritative `release-manifest.json` plus a deterministic evidence archive.
+`summary.md` is a human-readable projection. Preparation does not promote or
+publish. This source tree has no generic promotion command; npm publication
+and GitHub Release creation are stable-only workflow side effects.
+
+Repository research protocols are selected from a static registry:
+
+```bash
+bun run research:list
+bun run research:run -- <id> --root <path>
+bun run research:verify -- <id> --root <path>
+```
+
+Historical phase and release verifiers remain replayable by direct script from
+their bound tag or commit; their former package aliases are intentionally not
+part of the current command surface.
 
 Use `bun run test:all` only when you intentionally want the broader sweep
 through vendored or third-party test trees.
@@ -1438,6 +1460,12 @@ Current stable public surface:
 - local SQLite durable fallback on Bun
 - Postgres, embeddings, assisted extraction, and provider-backed evals when
   configured
+
+The internal API, remember, recall, and CLI orchestration is split along the
+responsibility boundaries in ADR-009. This is a behavior-preserving maintenance
+change: public API/CLI output, defaults, persistence order, fallback, trace, and
+serialization contracts remain unchanged. The HTTP bridge, installed-host
+writeback, and benchmark-claim policy are outside this refactor.
 
 Still outside the accepted public claim:
 

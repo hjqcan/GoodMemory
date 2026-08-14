@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "protocols": [
+    {
+      "canonicalArtifacts": [
+        "asset-lock.json",
+        "contract.json",
+        "pilot-exclusion-receipt.json",
+        "prefix-reuse-receipt.json",
+        "selection-receipt.json",
+        "snapshot-manifest.json",
+        "v3-committed-request-entries.json",
+        "v3-frame-repositories.json",
+        "v3-frame.json",
+        "v3-normalized-repositories.json",
+        "v3-pilot-repository-node-ids.json",
+        "v3-repository-decisions.json",
+        "v3-repository-leaf-closures.json"
+      ],
+      "externalPrerequisites": [
+        "GOODMEMORY_TEST_C6_SOURCE_V4_BOUNDED_SNAPSHOT_ROOT"
+      ],
+      "historicalGateEntrypoints": [
+        "./tests/quality-gates/phase-73/codex-coding-effect.c6-source-v4-bounded-snapshot.gate.ts",
+        "./tests/quality-gates/phase-73/codex-coding-effect.c6-source-v4-bounded-review-activation.gate.ts"
+      ],
+      "id": "goodmemory-c6-codex-coding-effect-source-v4-bounded-v1",
+      "inputSourceIdentity": {
+        "commit": "05d39fcfb8bb6efe6b8065ec3ea8372c15b9c1b8",
+        "tree": "4f902b215c60f5bb6543e9b7c3ce501895b45725"
+      },
+      "runEntrypoint": "scripts/research/c6/source-v4-capture.ts#runSourceV4CaptureProtocol",
+      "status": "active",
+      "verifyEntrypoint": "scripts/research/c6/source-v4-capture.ts#verifySourceV4CaptureProtocol"
+    }
+  ]
+}

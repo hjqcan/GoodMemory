@@ -49,15 +49,17 @@ adr/
 ├── ADR-004-maintenance-engine.txt
 ├── ADR-005-scenario-fitted-recall-boundary.txt        # dual-metric recall + scenario-rule admission
 ├── ADR-006-module-layering-and-shared-contracts.txt   # domain/ contract home, provider ↛ eval
-└── ADR-007-python-client-and-docker-distribution.txt   # Python client + Docker distribution
+├── ADR-007-python-client-and-docker-distribution.txt   # Python client + Docker distribution
+├── ADR-008-language-pack-horizontal-extension.txt     # current LanguagePack and projection boundary
+└── ADR-009-orchestration-and-proof-protocol-boundaries.txt # runtime, research proof, and release orchestration
 
 src/
 ├── index.ts                                                   # package root exports
-├── api/                                                       # createGoodMemory surface plus internal runtime/governance wiring
+├── api/                                                       # thin facade, sole concrete assembly, recall orchestration, feedback/internal support
 ├── ai-sdk/                                                    # AI SDK-facing public exports and contracts
 ├── domain/                                                    # taxonomy, scope, provenance, core records
-├── remember/                                                  # write path: extraction, classification, candidate handling
-├── recall/                                                    # retrieval planning, scoring, selection, context assembly
+├── remember/                                                  # source CAS, extraction pipeline, write pipeline, thin engine
+├── recall/                                                    # contracts, loading, retrieval, result assembly, thin engine
 ├── answer/                                                     # answer evidence-pack composition and operation guides
 ├── runtime/                                                   # session-scoped context services and spillover controls
 ├── maintenance/                                               # decay, dream, consolidation, and maintenance runners
@@ -69,7 +71,8 @@ src/
 ├── host/                                                      # host-facing integration surface and exported contracts
 ├── language/                                                  # locale-aware extraction and normalization
 ├── policy/ testing/                                           # policy hooks and shared test helpers
-└── cli.ts                                                     # CLI entrypoint exposed via package exports
+├── cli/                                                       # explicit memory, host, eval, and service command families
+└── cli.ts                                                     # parse/version/error/help router and explicit dispatch
 
 tests/
 ├── unit/ integration/ scenarios/ eval/                        # canonical red/green layers
@@ -90,7 +93,7 @@ reports/eval/
 ├── live/                                                      # live model eval artifacts with in-memory memory backend
 └── live-memory/                                               # provider-backed live-memory eval artifacts
 
-scripts/ and examples/ hold developer utilities, CLI/eval runners, and reference integrations.
+scripts/ and examples/ hold developer utilities, CLI/eval runners, and reference integrations. Current repository-only proof primitives live under `scripts/proof/`; active research protocols are selected by `scripts/research/protocols.json`; current release preparation lives under `scripts/release/`. Production `src/` must not import the proof kernel.
 ```
 
 Use `docs/README.md` first when choosing which document to open. Use
@@ -107,10 +110,15 @@ drafts under `docs/archive/design-inputs/` are not current truth.
 
 - `bun test`: run the canonical repository suite rooted at `tests/` via `bunfig.toml`; this is the default red/green path in local work and CI, excluding explicit quality-gate replays under `tests/quality-gates/`.
 - `bun run test:all`: sweep `tests/` plus vendored `third-party/` trees with the broad-root Bun config when you intentionally want the wider pass.
-- `bun run test:phase-73-gates`: run the runtime-bound C3 source replay plus the expensive Phase 73 C5 readiness materialization, projection, independent-verifier, and mutation replay suite excluded from the canonical red/green loop.
 - `bun run test:watch`: rerun the canonical suite during local development.
 - `bun run test:coverage`: run the canonical suite with coverage gates, then enforce script/source coverage via `scripts/check-coverage.ts`.
 - `bun run typecheck`: run strict TypeScript checks with `tsc --noEmit`.
+- `bun run build`: build the compiled JavaScript and declaration package surface.
+- `bun run research:list`: list active research protocol ids from the static registry.
+- `bun run research:run -- <id> --root <path>`: run one registered active protocol against its explicit external root.
+- `bun run research:verify -- <id> --root <path>`: verify one registered protocol and its exact gate files; it does not expand a phase-wide glob.
+- `bun run gate:projection-storage-scale`: run the current projection/storage scale gate directly.
+- `bun run release:prepare -- --output-dir <dir>`: freeze source, run required checks, pack exactly once, validate that tarball with Node and Bun, and write the authoritative `release-manifest.json` plus its deterministic evidence archive. Release candidates may prepare/upload evidence; tag publication is stable-only.
 - `bun run eval:smoke`: verify eval wiring without live model calls.
 - `bun run eval:fallback`: run the deterministic fixture-based eval path and write reports to `reports/eval/fallback/`.
 - `bun run eval:live`: run the live generator + live judge eval path with the in-memory memory backend and write reports to `reports/eval/live/`.
@@ -118,11 +126,9 @@ drafts under `docs/archive/design-inputs/` are not current truth.
 - `bun run eval:live-auto-memory`: explicit alias of `eval:live-memory` for scripts that want to emphasize auto-storage semantics.
 - `bun run eval:live-provider-memory`: run the explicit provider-backed live eval path with Postgres storage, embeddings, and assisted extraction; write reports to `reports/eval/live-provider-memory/`. This needs the live eval/judge env vars plus `GOODMEMORY_TEST_POSTGRES_URL`, `GOODMEMORY_EMBEDDING_*`, and `GOODMEMORY_ASSISTED_EXTRACTOR_*`.
 - `bun run eval:summary`: summarize existing eval output directories.
-- `bun run eval:phase-24`: run the implicit behavioral adaptation deterministic eval slice and write reports under `reports/eval/fallback/phase-24/`.
-- `bun run gate:phase-24`: validate the accepted Phase 24 quality gate and write the gate artifact under `reports/quality-gates/phase-24/`.
 - `bun run fixtures:generate`: regenerate eval fixtures under `fixtures/`.
 
-There is no separate build step today; contributors work directly against Bun + TypeScript sources.
+Historical phase, C3/C4/C5, source-v1/v2/v3, Wave3, and v0.7 release scripts remain available by direct file path or from their bound tag/commit. They are not current package-script APIs and must not be migrated or rewritten during routine work.
 
 ## Coding Style & Naming Conventions
 
@@ -130,7 +136,7 @@ Use TypeScript with ESM imports, strict typing, and ASCII by default. Follow the
 
 ## Testing Guidelines
 
-TDD is mandatory here: add a failing test first, then implement. Put pure logic in `tests/unit/`, API and storage flows in `tests/integration/`, replay coverage in `tests/scenarios/`, product-level regressions in `tests/eval/`, explicit slow evidence replays in `tests/quality-gates/`, and CLI/package/type-surface checks in `tests/cli/`, `tests/examples/`, `tests/release/`, and `tests/types/`. Live Postgres coverage requires `GOODMEMORY_TEST_POSTGRES_URL`; otherwise those suites are skipped. Generic `eval:live-memory` runs require the live eval/judge env vars plus `GOODMEMORY_EMBEDDING_*` and `GOODMEMORY_ASSISTED_EXTRACTOR_*`, while explicit provider-backed runs such as `eval:live-provider-memory` and phase-specific `*-live-memory` runners also require `GOODMEMORY_TEST_POSTGRES_URL`. Run `bun test` and `bun run typecheck` before opening a PR; run the relevant explicit quality-gate command when changing its verifier or evidence protocol, and use `bun run test:coverage` for release-facing changes.
+TDD is mandatory here: add a failing test first, then implement. Put pure logic in `tests/unit/`, API and storage flows in `tests/integration/`, replay coverage in `tests/scenarios/`, product-level regressions in `tests/eval/`, explicit slow evidence replays in `tests/quality-gates/`, and CLI/package/type-surface checks in `tests/cli/`, `tests/examples/`, `tests/release/`, and `tests/types/`. Live Postgres coverage requires `GOODMEMORY_TEST_POSTGRES_URL`; otherwise those suites are skipped. Generic `eval:live-memory` runs require the live eval/judge env vars plus `GOODMEMORY_EMBEDDING_*` and `GOODMEMORY_ASSISTED_EXTRACTOR_*`, while explicit provider-backed runs such as `eval:live-provider-memory` also require `GOODMEMORY_TEST_POSTGRES_URL`. Run `bun test` and `bun run typecheck` before opening a PR; run the exact registry-selected active research gate when changing its protocol, and use `bun run test:coverage` plus `bun run build` for release-facing changes. Historical verifier replay uses the corresponding direct script and bound source identity, not a package alias.
 
 ## Commit & Pull Request Guidelines
 

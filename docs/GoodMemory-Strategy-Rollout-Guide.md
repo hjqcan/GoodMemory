@@ -40,5 +40,5 @@ Before any non-default promotion, review:
 
 ## Dedicated Gates
 
-- `bun run eval:phase-17`: deterministic fallback gate for retrieval observe-mode artifacts and shadow safety
-- `bun run eval:phase-17-live-memory`: provider-backed gate that runs both `observe` and `assist`, then writes the trusted promotion authorization artifact only when observe is clean/known-safe and the assist run is clean
+- `bun run scripts/run-phase-17-eval.ts`: deterministic fallback gate for retrieval observe-mode artifacts and shadow safety
+- `bun run scripts/run-phase-17-live-memory.ts`: provider-backed gate that runs both `observe` and `assist`, then writes the trusted promotion authorization artifact only when observe is clean/known-safe and the assist run is clean

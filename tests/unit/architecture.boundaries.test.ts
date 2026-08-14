@@ -25,6 +25,11 @@ const RECALL_FACT_SELECTION_MAX_LINES = 350;
 const RECALL_FACT_SELECTION_FILE_LIMIT = 14;
 const RECALL_SELECTOR_TOP_LEVEL_FILE_LIMIT = 35;
 const SOURCE_ORDER_SELECTOR_TOP_LEVEL_FILE_LIMIT = 25;
+const HOT_PATH_MODULE_LINE_LIMITS = {
+  "api/createGoodMemory.ts": 700,
+  "recall/engine.ts": 650,
+  "remember/engine.ts": 250,
+} as const;
 const ALLOWED_RECALL_SELECTION_QUERY_IMPORTS = new Set([
   "selectContradictionEvidencePair",
   "resolveContradictionSelection",
@@ -587,15 +592,39 @@ describe("architecture boundaries", () => {
     expect(source).not.toContain("InternalRecallResult");
   });
 
-  it("keeps createGoodMemory composed from narrow governance ports instead of MemoryRepositories typing", async () => {
-    const source = await readFile(
+  it("keeps createGoodMemory assembly behind one typed composition root", async () => {
+    const facadeSource = await readFile(
       join(SRC_ROOT, "api", "createGoodMemory.ts"),
       "utf8",
     );
+    const assemblySource = await readFile(
+      join(SRC_ROOT, "api", "goodMemoryAssembly.ts"),
+      "utf8",
+    );
 
-    expect(source).not.toMatch(/\bMemoryRepositories\b/);
-    expect(source).toContain("GovernanceRepositoryPort");
-    expect(source).toContain("createEvolutionRuntime");
+    expect(facadeSource).not.toMatch(/\bMemoryRepositories\b/);
+    expect(facadeSource).not.toContain("createMemoryRepositories");
+    expect(facadeSource).not.toContain("createEvolutionRuntime");
+    expect(facadeSource).not.toContain("as unknown as");
+    expect(assemblySource).toContain("GovernanceRepositoryPort");
+    expect(assemblySource).toContain("createMemoryRepositories");
+    expect(assemblySource).toContain("createEvolutionRuntime");
+  });
+
+  it("keeps hot-path entry modules bounded after responsibility extraction", async () => {
+    const oversized: Array<{ file: string; lines: number; limit: number }> = [];
+
+    for (const [relativePath, limit] of Object.entries(
+      HOT_PATH_MODULE_LINE_LIMITS,
+    )) {
+      const source = await readFile(join(SRC_ROOT, relativePath), "utf8");
+      const lines = source.split("\n").length;
+      if (lines > limit) {
+        oversized.push({ file: relativePath, lines, limit });
+      }
+    }
+
+    expect(oversized).toEqual([]);
   });
 
   it("keeps core contracts isolated from api, eval, adapters, and storage implementations", async () => {
@@ -697,7 +726,7 @@ describe("architecture boundaries", () => {
   it("limits storage repository wiring to composition and public compatibility layers", async () => {
     const files = await collectTypeScriptFiles(SRC_ROOT);
     const allowedFiles = new Set([
-      "api/createGoodMemory.ts",
+      "api/goodMemoryAssembly.ts",
       "index.ts",
       "storage/repositories.ts",
     ]);
@@ -884,8 +913,12 @@ describe("architecture boundaries", () => {
     const selectionSource = await readSource(
       join(SRC_ROOT, "recall", "selection.ts"),
     );
-    const engineSource = await readSource(join(SRC_ROOT, "recall", "engine.ts"));
-    const apiSource = await readSource(join(SRC_ROOT, "api", "createGoodMemory.ts"));
+    const engineSource = await readSource(
+      join(SRC_ROOT, "recall", "retrievalPipeline.ts"),
+    );
+    const apiSource = await readSource(
+      join(SRC_ROOT, "api", "goodMemoryAssembly.ts"),
+    );
     const legacyActivationSource = await readFile(
       join(
         import.meta.dir,

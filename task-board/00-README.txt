@@ -6,8 +6,7 @@ Purpose
 
 This folder is the executable development plan. This file is a compact router, not a history dump.
 
-Source documents: `docs/README.md`, `docs/GoodMemory-PRD.md`, `docs/GoodMemory-TDD-and-Evaluation-Strategy.md`, `docs/GoodMemory-OSS-Architecture-v1.md`, `docs/GoodMemory-First-Principles-and-Reference-Architecture.md`, `docs/GoodMemory-Current-Status-and-Evidence.md`, and `adr/ADR-008-language-pack-horizontal-extension.txt`.
-Do not bulk-read all phase files. Open the named phase only.
+Source documents: `docs/README.md`, `docs/GoodMemory-PRD.md`, `docs/GoodMemory-TDD-and-Evaluation-Strategy.md`, `docs/GoodMemory-OSS-Architecture-v1.md`, `docs/GoodMemory-First-Principles-and-Reference-Architecture.md`, `docs/GoodMemory-Current-Status-and-Evidence.md`, `adr/ADR-008-language-pack-horizontal-extension.txt`, and `adr/ADR-009-orchestration-and-proof-protocol-boundaries.txt`. Do not bulk-read all phase files; open the named phase only.
 
 Working Rules
 -------------
@@ -27,6 +26,7 @@ Generic Eval Command Contract
 - `eval:live-auto-memory` is an alias for `eval:live-memory`.
 - `eval:live-provider-memory` is the explicit provider-backed path and requires `GOODMEMORY_TEST_POSTGRES_URL`, embedding env vars, and assisted-extractor env vars.
 - Historical phase-specific provider-backed reports may still live under `reports/eval/live-memory/phase-*`.
+- ADR-009 current boundary: frozen published v0.7.4 commit `05d39fcfb8bb6efe6b8065ec3ea8372c15b9c1b8` / tree `4f902b215c60f5bb6543e9b7c3ce501895b45725` passed 19/19 readiness checks; current source is the unpublished v0.7.5 release candidate, runtime/CLI preserve behavior, active research uses exact `research:list|run|verify` registry entries, executes historical loaders and verify-only gates in their bound commit checkout with its frozen dependencies, and brackets the run with the current clean identity; historical protocols remain direct source-bound replays, `release:prepare` is fail-closed, and tag publication is stable-only. HTTP bridge, installed-host writeback, and benchmark-claim P1 surfaces are outside this lane.
 
 Current Execution Order
 -----------------------

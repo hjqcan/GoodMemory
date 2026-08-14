@@ -73,7 +73,7 @@ describe("run-phase-50 gate", () => {
     });
   });
 
-  it("accepts when commands pass, package scripts are registered, and eval evidence is accepted", async () => {
+  it("blocks current-tree acceptance after historical package aliases leave the command surface", async () => {
     const writes = new Map<string, string>();
     const report = await runPhase50Gate(
       {
@@ -87,14 +87,6 @@ describe("run-phase-50 gate", () => {
         readTextFile: async (path) => {
           if (path === "/tmp/report.json") {
             return `${JSON.stringify(buildAcceptedEvalReport())}\n`;
-          }
-          if (path.endsWith("package.json")) {
-            return JSON.stringify({
-              scripts: {
-                "eval:phase-50": "bun run scripts/run-phase-50-installer-eval.ts",
-                "gate:phase-50": "bun run scripts/run-phase-50-gate.ts",
-              },
-            });
           }
           throw new Error(`unexpected read: ${path}`);
         },
@@ -110,11 +102,14 @@ describe("run-phase-50 gate", () => {
       },
     );
 
-    expect(report.acceptance.decision).toBe("accepted");
+    expect(report.acceptance).toEqual({
+      decision: "blocked",
+      reason: "Phase 50 package scripts are not registered.",
+    });
     expect(report.evidence.cliContractsCovered).toBe(true);
     expect(report.evidence.dryRunDoesNotWrite).toBe(true);
     expect(report.evidence.noDefaultWritebackEscalation).toBe(true);
-    expect(report.evidence.packageScriptsRegistered).toBe(true);
+    expect(report.evidence.packageScriptsRegistered).toBe(false);
     expect(report.commands).toHaveLength(3);
     expect([...writes.keys()][0]).toContain("phase-50-quality-gate.json");
   });

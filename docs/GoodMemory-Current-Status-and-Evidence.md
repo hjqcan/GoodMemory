@@ -4,16 +4,16 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 
 ## Current OSS Surface
 
-- The previous stable source boundary is `goodmemory@0.7.3`; its peeled
-  `v0.7.3` tag resolves to
-  `7430dec4e9f7451d8efeb14fbe9e05d7785c0659`. Mutable registry state is
-  deliberately not encoded in this source document; the release workflow
-  verifies the published version, npm dist-tag, and artifact integrity at
-  publication time.
-- The `0.7.4` source line advances the package, lockfile, descriptors, server
-  metadata, and public install surfaces from the published `0.7.3` baseline.
-  A stable `0.7.4` source is valid only from a clean working tree whose
-  HEAD matches the peeled `v0.7.4` tag.
+- The current source identity is the unpublished `goodmemory@0.7.5` release
+  candidate (`goodmemoryRelease.status=release-candidate`, dist-tag intent
+  `next`). The published installation baseline remains `goodmemory@0.7.4`.
+- The frozen published baseline is `goodmemory@0.7.4`, commit
+  `05d39fcfb8bb6efe6b8065ec3ea8372c15b9c1b8`, tree
+  `4f902b215c60f5bb6543e9b7c3ce501895b45725`. The tracked
+  `scripts/release/capsules/v0.7.4-readiness.json` binds the original readiness
+  report hash and its 19/19 required checks to that exact clean source
+  identity. This is the behavior and artifact baseline for the orchestration
+  refactor; it is not a claim about a later working tree.
 - The `0.7.4` event-time contract keeps occurrence time separate from source
   observation time and fact validity. Built-in English, Simplified and
   Traditional Chinese, French, Spanish, Japanese, and Korean packs recognize
@@ -169,15 +169,15 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   channel.
   The 139-file historical selector closure now lives physically under
   `scripts/eval-profiles/legacy-fitted/`; repo-local historical evals must
-  activate that profile explicitly with `bun run test:legacy-fitted`.
+  activate that profile explicitly with
+  `bun --config=bunfig.legacy-fitted.toml test`.
 - Release packaging is compiled-only: public bins execute `dist/bin` entrypoints,
   and the tarball excludes `src` plus TypeScript bin sources. A release test
   scans compiled JavaScript for known fitted benchmark literals.
 - Core public workflow remains centered on `createGoodMemory`, `remember`, `recall`, `buildContext`, `feedback`, `forget`, `exportMemory`, and `deleteAllMemory`; advanced host/operator facades such as runtime, jobs, reviseMemory, and runMaintenance stay explicit.
 - Package subpaths `goodmemory`, `goodmemory/ai-sdk`, `goodmemory/host`, `goodmemory/http`, and `goodmemory/runtime-kit` resolve through compiled `dist/` artifacts and emitted type declarations.
-- The v0.7.3 stable baseline pins the exact AI SDK 6 dependency versions already
-  present in the measured lock; the v0.7.4 source line retains those
-  exact pins instead of publishing caret ranges that can
+- The published v0.7.4 baseline retains the exact AI SDK 6 dependency versions
+  inherited from the measured v0.7.3 lock instead of publishing caret ranges that can
   resolve to `@ai-sdk/provider-utils` versions carrying `undici@5.29.0`. The
   release gate now performs a fresh production install from the packed tarball,
   rejects any installed Undici 5.x, and requires zero high or critical npm
@@ -188,6 +188,38 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 - Storage resolution is automatic: explicit config wins, configured Postgres can be used when bootstrap succeeds, Bun gets local SQLite, and unsupported Node zero-config local SQLite falls back to in-memory with observable runtime inspection.
 - The official CLI uses the package bin. The global CLI invocation path is `goodmemory ...` after `npm install -g goodmemory`; project-local installs use `npx goodmemory`, `npm exec -- goodmemory`, or `./node_modules/.bin/goodmemory ...`. Non-version command execution remains Bun-backed today.
 - Generic live-memory eval semantics are auto-storage aligned: `eval:live-memory`, `eval:live-auto-memory`, `runLiveMemoryEval()`, `eval:live-provider-memory`, and historical `reports/eval/live-memory/phase-*` paths keep their existing meanings.
+
+## Orchestration And Proof Protocol Boundary
+
+- ADR-009 keeps `createGoodMemory.ts` as the public facade while the concrete
+  assembly, recall orchestration, typed internal support, and feedback writes
+  live in named API modules. Remember separates immutable source-message CAS,
+  extraction, and ordered persistence; recall separates contracts, content
+  loading, retrieval/fusion, and result assembly. The CLI remains an explicit
+  router over memory, host, eval, and service families. These are internal,
+  behavior-preserving boundaries: public exports, defaults, storage and
+  rollback order, fallback, trace, serialization, stdout/stderr, and exit-code
+  contracts do not change.
+- Repository-only integrity primitives live under `scripts/proof/`; production
+  `src/` does not depend on them. Active research is selected by the static
+  `scripts/research/protocols.json` registry and `research:list|run|verify`.
+  The active C6 source-v4 protocol names its gate files exactly and reports a
+  missing external root at command preflight rather than throwing at import
+  time. Historical Phase 16-74, C3/C4/C5, source-v1/v2/v3, and Wave3 scripts
+  and artifacts stay byte- and path-bound to their original source; replay uses
+  those direct scripts and the corresponding tag or commit.
+- Current release preparation uses `bun run release:prepare -- --output-dir
+  <dir>`. One profile derives package identity from `package.json`,
+  packs once, verifies that same tarball, and emits the authoritative
+  `release-manifest.json` plus a deterministic evidence archive; `summary.md`
+  is only a projection. The tracked
+  `scripts/release/capsules/v0.7.4-readiness.json` binds the frozen local
+  readiness-report hash, source/runtime identity, and 19 required outcomes.
+  There is no generic promotion command in the current package-script API.
+  Release-candidate runs may prepare/upload evidence; npm/GitHub tag
+  publication is stable-only and remains workflow-owned.
+- HTTP bridge behavior, installed-host writeback, and benchmark-claim policy
+  and machine-readable claim surfaces are unchanged and outside this work.
 
 ## 0.7 LanguagePack Release Boundary
 
@@ -222,13 +254,11 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   not read a partial new generation; it uses canonical fallback until an
   interruptible, repeatable migration validates and atomically publishes
   complete proof.
-- This section records the accepted architecture and release boundary, not
-  proof that `0.7.4` has been published. It must
-  not be tagged or published until its fresh full
-  suite, typecheck, coverage, storage/migration/scale gates, real PostgreSQL
-  `EXPLAIN` run, Node 20 and Bun packed-consumer smokes, type/release tests, and
-  sub-4-MiB package evidence are recorded for one exact source identity. A
-  skipped environment-gated PostgreSQL run is not a pass.
+- The published v0.7.4 baseline is bound to the exact commit, tree, and 19/19
+  readiness result recorded above. Future release preparation must produce a
+  fresh single manifest for one clean source identity and must fail when the
+  required real-PostgreSQL gate is unavailable; a skipped environment-gated
+  PostgreSQL run is not a pass.
 - All benchmark scores and package checksums elsewhere in this document remain
   bound to their stated 0.6 or historical source identities. They may not be
   relabeled as 0.7 evidence without a new protocol-bound run.
@@ -284,10 +314,16 @@ cutover, and rollback contracts.
   C6 has a deterministic preflight/checkpoint implementation, but its candidate
   manifest is not frozen and there is no finalized candidate dataset,
   packaged-Linux host profile, flat-summary corpus, Linux execution, or C6
-  result. Its heavy candidate-readiness replay is therefore isolated under
-  `tests/quality-gates/phase-73/` and remains available through
-  `bun run test:phase-73-gates`; it is not part of the v0.7.3 canonical product
-  suite, coverage gate, or release authorization.
+  result. Its active source-v4 replay is therefore selected by exact protocol
+  id through `bun run research:verify --
+  goodmemory-c6-codex-coding-effect-source-v4-bounded-v1 --root <path>`; it is
+  not part of the canonical product suite, coverage gate, or release
+  authorization. Its historical gates and loader run in an isolated checkout
+  at the bound commit/tree with dependencies installed from that checkout's
+  frozen lockfile; only their minimal DTO crosses into the current protocol.
+  The current clean execution commit/tree is checked before and after the whole
+  run. Earlier Phase 73 gates remain available only as direct historical script
+  replays from their bound source identity.
   Source-v1, source-v2, the 76,257-byte prior-178 plan, and
   `source-v3-simple` are historical, reproducible, and non-authorizing. The
   source-v3 promotion chain validly granted census-entry authority, but the RF5
@@ -1863,10 +1899,10 @@ This index keeps one-line evidence pointers instead of old narrative.
 - Phase 42: `reports/quality-gates/phase-42/run-20260426100000/phase-42-quality-gate.json`.
 - Phase 43: `reports/eval/fallback/phase-43/run-20260426113000/report.json`, `reports/quality-gates/phase-43/run-20260426120000/phase-43-quality-gate.json`.
 - Phase 43.5: `reports/eval/fallback/phase-43-5/run-20260426133000/report.json`, `reports/quality-gates/phase-43-5/run-20260426140000/phase-43-5-quality-gate.json`.
-- Phase 45: Phase 45 is now closed as the First Reference Product and Adoption Evidence slice; examples/reference-chat-product, `bun run eval:phase-45`, `bun run gate:phase-45`, `reports/eval/adoption/phase-45/run-20260427104530-adoption-eval/report.json`, `reports/quality-gates/phase-45/run-20260427110000/phase-45-quality-gate.json`, `docs/archive/quality-gates/GoodMemory-Phase-45-Quality-Gate.md`.
-- Phase 46: Phase 46 is now closed as the Memory Quality and Maintenance 2.0 slice; `bun run eval:phase-46`, qualityRepair, `reports/eval/fallback/phase-46/run-20260427123000-quality-eval/report.json`, `reports/quality-gates/phase-46/run-20260428110000/phase-46-quality-gate.json`, `docs/archive/quality-gates/GoodMemory-Phase-46-Quality-Gate.md`.
-- Phase 47: Phase 47 is now closed as the Provider-Backed Retrieval Rollout and Quality Promotion slice; `bun run eval:phase-47`, `reports/eval/fallback/phase-47/run-20260428120000-provider-rollout-eval/report.json`, `reports/quality-gates/phase-47/run-20260428123000/phase-47-quality-gate.json`, `docs/archive/quality-gates/GoodMemory-Phase-47-Quality-Gate.md`.
-- Phase 48: Phase 48 is now closed as the Dashboard, Cloud Sync, and Team Workspace Decision slice; `bun run eval:phase-48`, no-go decision, `reports/eval/fallback/phase-48/run-20260428170000-dashboard-cloud-decision/report.json`, `reports/quality-gates/phase-48/run-20260428173000/phase-48-quality-gate.json`, `docs/archive/quality-gates/GoodMemory-Phase-48-Quality-Gate.md`.
+- Phase 45: Phase 45 is now closed as the First Reference Product and Adoption Evidence slice; examples/reference-chat-product, `bun run scripts/run-phase-45-adoption-eval.ts`, `bun run scripts/run-phase-45-gate.ts`, `reports/eval/adoption/phase-45/run-20260427104530-adoption-eval/report.json`, `reports/quality-gates/phase-45/run-20260427110000/phase-45-quality-gate.json`, `docs/archive/quality-gates/GoodMemory-Phase-45-Quality-Gate.md`.
+- Phase 46: Phase 46 is now closed as the Memory Quality and Maintenance 2.0 slice; `bun run scripts/run-phase-46-quality-eval.ts`, qualityRepair, `reports/eval/fallback/phase-46/run-20260427123000-quality-eval/report.json`, `reports/quality-gates/phase-46/run-20260428110000/phase-46-quality-gate.json`, `docs/archive/quality-gates/GoodMemory-Phase-46-Quality-Gate.md`.
+- Phase 47: Phase 47 is now closed as the Provider-Backed Retrieval Rollout and Quality Promotion slice; `bun run scripts/run-phase-47-provider-rollout-eval.ts`, `reports/eval/fallback/phase-47/run-20260428120000-provider-rollout-eval/report.json`, `reports/quality-gates/phase-47/run-20260428123000/phase-47-quality-gate.json`, `docs/archive/quality-gates/GoodMemory-Phase-47-Quality-Gate.md`.
+- Phase 48: Phase 48 is now closed as the Dashboard, Cloud Sync, and Team Workspace Decision slice; `bun run scripts/run-phase-48-decision-report.ts`, no-go decision, `reports/eval/fallback/phase-48/run-20260428170000-dashboard-cloud-decision/report.json`, `reports/quality-gates/phase-48/run-20260428173000/phase-48-quality-gate.json`, `docs/archive/quality-gates/GoodMemory-Phase-48-Quality-Gate.md`.
 - Phase 49: Phase 49 is now closed as the Full ImplicitMemBench GoodMemory Research Eval; baseline-upstream-chat, goodmemory-raw-experience, goodmemory-distilled-feedback, `reports/eval/research/phase-49/baseline/run-phase49-smoke-current/report.json`, `reports/eval/research/phase-49/goodmemory/run-phase49-smoke-current/report.json`, `reports/eval/research/phase-49/comparison/run-phase49-smoke-current/report.json`, `reports/quality-gates/phase-49/run-20260428210000/phase-49-quality-gate.json`, `docs/archive/quality-gates/GoodMemory-Phase-49-Quality-Gate.md`.
 - Phase 50: `reports/eval/fallback/phase-50/run-20260428223000-installer-eval/report.json`, `reports/quality-gates/phase-50/run-20260428224500/phase-50-quality-gate.json`, `docs/archive/quality-gates/GoodMemory-Phase-50-Quality-Gate.md`.
 - Phase 52: `reports/eval/fallback/phase-52/run-phase52-fallback-current/report.json`, `reports/eval/live-memory/phase-52/run-phase52-live-current/report.json`, `reports/quality-gates/phase-52/run-20260502183000/phase-52-quality-gate.json`, `docs/archive/quality-gates/GoodMemory-Phase-52-Quality-Gate.md`.

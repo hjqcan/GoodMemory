@@ -7,9 +7,11 @@ still controls each unapproved MCP call.
 
 ## Requirements
 
-The repository descriptors target `0.7.4`. The verified Kimi Code acceptance
-boundary remains `v0.7.2`; publishing `0.7.4` does not advance that boundary
-until a fresh clean-machine acceptance is recorded.
+The repository descriptors target the unpublished `0.7.5` release candidate;
+their `npx goodmemory@0.7.5` runtime command applies only after publication. The
+published registry baseline remains `goodmemory@0.7.4`. The verified Kimi Code
+acceptance boundary remains `v0.7.2` until a fresh clean-machine acceptance is
+recorded.
 
 - Kimi Code with plugin support.
 - Node.js 20 or newer, with `npx` on `PATH`.

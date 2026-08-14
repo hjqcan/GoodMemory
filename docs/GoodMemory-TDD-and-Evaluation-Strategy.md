@@ -206,6 +206,39 @@ GoodMemory v1 采用 4 层测试体系。
 - 验证产品是否真的带来更强用户理解与连续性
 - 提供回归指标，防止版本升级后能力退化
 
+## 4.5 编排与证明协议的 characterization gates
+
+行为保持型重构先锁定现有外部结果和副作用顺序，再移动职责：
+
+- API characterization 固定 adapter precedence、projection 包装、remember
+  transaction/rollback 顺序，以及 recall 的 selection -> rerank -> fence ->
+  trace -> observation 顺序。
+- Remember 的 source CAS、extraction 和 write tests 分开覆盖，但
+  `extract()` 与 `remember()` 必须共享同一个 resolved extraction contract。
+- Recall 的 content loader、retrieval/fusion 和 result assembly 通过窄类型
+  交换数据；fallback、trace 字段、evidence、verification hint 和 packet
+  serialization 都由回归测试锁定。
+- CLI 以 memory、host、eval、services 四族分别覆盖 help、flags、stdin、
+  JSON/text、dry-run、stdout/stderr、exit code 和服务启动边界。
+
+证明协议与产品测试分离：
+
+- `scripts/proof/` 的 unit tests 只验证 canonical bytes、exact closure、
+  path/symlink escape、content digest 和 Git 环境隔离；它不包含研究领域语义。
+- 活动研究 gate 由 `scripts/research/protocols.json` 精确选择。accepted
+  fixture 需要旧 verifier 先通过，再对最小 DTO 比较 decision、counts、
+  canonical bytes/hash；历史 golden 和 artifact 不能通过重写来“修绿”。
+- Release tests 覆盖 duplicate ids、unknown artifact refs、required
+  fail/skip、source drift、pack-once、same-tarball hash、相对路径、
+  deterministic archive，以及 prepare/upload 与 stable-only publish 的
+  副作用边界。
+
+静态架构门禁限制 facade 回涨：`createGoodMemory.ts <= 700`、
+`recall/engine.ts <= 650`、`remember/engine.ts <= 250`、`cli.ts <= 300`、
+release entry `<= 200`、release runner `<= 800`、活动研究 facade `<= 800`、
+leaf verifier `<= 1200`。冻结的历史 capsule 豁免；这些阈值不能替代行为
+测试。
+
 ---
 
 ## 5. Persona 数据集设计
@@ -641,6 +674,11 @@ fixtures/
 reports/
   eval/
 scripts/
+  proof/
+  research/
+  release/
+  research.ts
+  release.ts
   run-eval.ts
   summarize-eval.ts
 ```

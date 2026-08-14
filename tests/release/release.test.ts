@@ -26,6 +26,8 @@ const ROOT_PACKAGE_PATH = join(import.meta.dir, "../../");
 const CURRENT_PACKAGE = loadPackageMetadataSync(ROOT_PACKAGE_PATH);
 const CURRENT_PACKAGE_VERSION = CURRENT_PACKAGE.version;
 const CURRENT_TARBALL_NAME = buildPackageTarballName(CURRENT_PACKAGE);
+const PUBLISHED_INSTALL_VERSION = "0.7.4";
+const PUBLISHED_TARBALL_NAME = `goodmemory-${PUBLISHED_INSTALL_VERSION}.tgz`;
 
 function extractMarkedSection(markdown: string, marker: string): string {
   const start = `<!-- ${marker}:start -->`;
@@ -776,7 +778,7 @@ describe("release metadata and docs", () => {
     };
 
     expect(pkg.version).toBe(CURRENT_PACKAGE_VERSION);
-    expect(pkg.version).toBe("0.7.4");
+    expect(pkg.version).toBe("0.7.5");
     expect(pkg.private).toBeUndefined();
     expect(pkg.description).toBe(
       "Memory layer for chat, copilot, and agent applications.",
@@ -916,7 +918,6 @@ describe("release metadata and docs", () => {
     expect(pkg.scripts?.["eval:official-rescore"]).toBe(
       "bun run scripts/rescore-official-protocols.ts",
     );
-    expect(pkg.scripts?.["eval:phase-17"]).toBe("bun run scripts/run-phase-17-eval.ts");
     expect(pkg.scripts?.["eval:live"]).toBe("bun run scripts/run-eval.ts --mode=live");
     expect(pkg.scripts?.["eval:live-memory"]).toBe(
       "bun run scripts/run-eval.ts --mode=live-memory",
@@ -927,272 +928,53 @@ describe("release metadata and docs", () => {
     expect(pkg.scripts?.["eval:live-provider-memory"]).toBe(
       "bun run scripts/run-eval.ts --mode=live-provider-memory",
     );
-    expect(pkg.scripts?.["eval:phase-17-live-memory"]).toBe(
-      "bun run scripts/run-phase-17-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-25"]).toBe("bun run scripts/run-phase-25-eval.ts");
-    expect(pkg.scripts?.["eval:phase-25-live-memory"]).toBe(
-      "bun run scripts/run-phase-25-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-27"]).toBe("bun run scripts/run-phase-27-eval.ts");
-    expect(pkg.scripts?.["eval:phase-27-live-memory"]).toBe(
-      "bun run scripts/run-phase-27-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-30"]).toBe("bun run scripts/run-phase-30-eval.ts");
-    expect(pkg.scripts?.["eval:phase-30-live-memory"]).toBe(
-      "bun run scripts/run-phase-30-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-31"]).toBe("bun run scripts/run-phase-31-eval.ts");
-    expect(pkg.scripts?.["eval:phase-31-live-memory"]).toBe(
-      "bun run scripts/run-phase-31-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-32"]).toBe("bun run scripts/run-phase-32-eval.ts");
-    expect(pkg.scripts?.["eval:phase-32-live-memory"]).toBe(
-      "bun run scripts/run-phase-32-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-34"]).toBe("bun run scripts/run-phase-34-eval.ts");
-    expect(pkg.scripts?.["eval:phase-34-live-memory"]).toBe(
-      "bun run scripts/run-phase-34-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-35"]).toBe("bun run scripts/run-phase-35-eval.ts");
-    expect(pkg.scripts?.["eval:phase-35-live-memory"]).toBe(
-      "bun run scripts/run-phase-35-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-41"]).toBe("bun run scripts/run-phase-41-eval.ts");
-    expect(pkg.scripts?.["eval:phase-41-live-memory"]).toBe(
-      "bun run scripts/run-phase-41-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-42"]).toBe("bun run scripts/run-phase-42-eval.ts");
-    expect(pkg.scripts?.["eval:phase-43"]).toBe("bun run scripts/run-phase-43-eval.ts");
-    expect(pkg.scripts?.["eval:phase-43-5"]).toBe(
-      "bun run scripts/run-phase-43-5-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-44"]).toBe(
-      "bun run scripts/run-phase-44-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-45"]).toBe(
-      "bun run scripts/run-phase-45-adoption-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-46"]).toBe(
-      "bun run scripts/run-phase-46-quality-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-47"]).toBe(
-      "bun run scripts/run-phase-47-provider-rollout-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-48"]).toBe(
-      "bun run scripts/run-phase-48-decision-report.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-49-baseline"]).toBe(
-      "bun run scripts/run-phase-49-baseline.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-49-goodmemory"]).toBe(
-      "bun run scripts/run-phase-49-goodmemory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-49"]).toBe(
-      "bun run scripts/run-phase-49.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-50"]).toBe(
-      "bun run scripts/run-phase-50-installer-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-51"]).toBe(
-      "bun run scripts/run-phase-51-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-51-live-memory"]).toBe(
-      "bun run scripts/run-phase-51-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-52"]).toBe(
-      "bun run scripts/run-phase-52-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-52-live-memory"]).toBe(
-      "bun run scripts/run-phase-52-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-53"]).toBe(
-      "bun run scripts/run-phase-53-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-53-live-memory"]).toBe(
-      "bun run scripts/run-phase-53-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-54"]).toBe(
-      "bun run scripts/run-phase-54-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-54-live-memory"]).toBe(
-      "bun run scripts/run-phase-54-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-55"]).toBe(
-      "bun run scripts/run-phase-55-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-55-live-memory"]).toBe(
-      "bun run scripts/run-phase-55-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-56"]).toBe(
-      "bun run scripts/run-phase-56-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-56-live-memory"]).toBe(
-      "bun run scripts/run-phase-56-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-57"]).toBe(
-      "bun run scripts/run-phase-57-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-57-diagnostics"]).toBe(
-      "bun run scripts/summarize-phase-57-raw-diagnostics.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-57-live-memory"]).toBe(
-      "bun run scripts/run-phase-57-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-58"]).toBe(
-      "bun run scripts/run-phase-58-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-58-diagnostics"]).toBe(
-      "bun run scripts/summarize-phase-58-raw-diagnostics.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-58-live-memory"]).toBe(
-      "bun run scripts/run-phase-58-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-59"]).toBe(
-      "bun run scripts/run-phase-59-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-59-diagnostics"]).toBe(
-      "bun run scripts/summarize-phase-59-raw-diagnostics.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-59-live-memory"]).toBe(
-      "bun run scripts/run-phase-59-live-memory.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-60"]).toBe(
-      "bun run scripts/run-phase-60-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-60-overall"]).toBe(
-      "bun run scripts/run-phase-60-overall.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-61-full300"]).toBe(
-      "bun run scripts/run-phase-61-full300.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-62"]).toBe(
-      "bun run scripts/run-phase-62-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-62-recall-diagnostic"]).toBe(
-      "bun run scripts/run-phase-62-recall-diagnostic.ts",
-    );
-    expect(pkg.scripts?.["analyze:phase-63-beam"]).toBe(
-      "bun run scripts/analyze-phase-63-beam-report.ts",
-    );
-    expect(pkg.scripts?.["prepare:phase-63-beam"]).toBe(
-      "bun run scripts/prepare-phase-63-beam-data.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-63"]).toBe(
-      "bun run scripts/run-phase-63-eval.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-63-live-closure"]).toBe(
-      "bun run scripts/run-phase-63-beam-live-closure.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-63-live-slice"]).toBe(
-      "bun run scripts/run-phase-63-beam-live-slice.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-63-recall-diagnostic"]).toBe(
-      "bun run scripts/run-phase-63-beam-recall-diagnostic.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-63-general-levers"]).toBe(
-      "bun run scripts/measure-beam-general-levers.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-40-cross-consumer"]).toBe(
-      "bun run scripts/run-phase-40-cross-consumer-smoke.ts",
-    );
-    expect(pkg.scripts?.["eval:phase-40-product"]).toBe(
-      "bun run scripts/run-phase-40-product-eval.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-18"]).toBe("bun run scripts/run-phase-18-gate.ts");
-    expect(pkg.scripts?.["gate:phase-19-reviewer"]).toBe(
-      "bun run scripts/run-phase-19-reviewer-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-19-maintenance"]).toBe(
-      "bun run scripts/run-phase-19-maintenance-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-20"]).toBe("bun run scripts/run-phase-20-gate.ts");
-    expect(pkg.scripts?.["gate:phase-25"]).toBe("bun run scripts/run-phase-25-gate.ts");
-    expect(pkg.scripts?.["gate:phase-26"]).toBe("bun run scripts/run-phase-26-gate.ts");
-    expect(pkg.scripts?.["gate:phase-27"]).toBe("bun run scripts/run-phase-27-gate.ts");
-    expect(pkg.scripts?.["gate:phase-28"]).toBe("bun run scripts/run-phase-28-gate.ts");
-    expect(pkg.scripts?.["gate:phase-29"]).toBe("bun run scripts/run-phase-29-gate.ts");
-    expect(pkg.scripts?.["gate:phase-30"]).toBe("bun run scripts/run-phase-30-gate.ts");
-    expect(pkg.scripts?.["gate:phase-31"]).toBe("bun run scripts/run-phase-31-gate.ts");
-    expect(pkg.scripts?.["gate:phase-32"]).toBe("bun run scripts/run-phase-32-gate.ts");
-    expect(pkg.scripts?.["gate:phase-33"]).toBe("bun run scripts/run-phase-33-gate.ts");
-    expect(pkg.scripts?.["gate:phase-34"]).toBe("bun run scripts/run-phase-34-gate.ts");
-    expect(pkg.scripts?.["gate:phase-35"]).toBe("bun run scripts/run-phase-35-gate.ts");
-    expect(pkg.scripts?.["gate:phase-38"]).toBe("bun run scripts/run-phase-38-gate.ts");
-    expect(pkg.scripts?.["gate:phase-39"]).toBe("bun run scripts/run-phase-39-gate.ts");
-    expect(pkg.scripts?.["gate:phase-40"]).toBe("bun run scripts/run-phase-40-gate.ts");
-    expect(pkg.scripts?.["gate:v0.7"]).toBe(
-      "bun run scripts/run-v0-7-release-readiness.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-41"]).toBe("bun run scripts/run-phase-41-gate.ts");
-    expect(pkg.scripts?.["gate:phase-42"]).toBe("bun run scripts/run-phase-42-gate.ts");
-    expect(pkg.scripts?.["gate:phase-43"]).toBe("bun run scripts/run-phase-43-gate.ts");
-    expect(pkg.scripts?.["gate:phase-43-5"]).toBe(
-      "bun run scripts/run-phase-43-5-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-44"]).toBe(
-      "bun run scripts/run-phase-44-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-45"]).toBe(
-      "bun run scripts/run-phase-45-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-46"]).toBe(
-      "bun run scripts/run-phase-46-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-47"]).toBe(
-      "bun run scripts/run-phase-47-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-48"]).toBe(
-      "bun run scripts/run-phase-48-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-49"]).toBe(
-      "bun run scripts/run-phase-49-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-50"]).toBe(
-      "bun run scripts/run-phase-50-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-51"]).toBe(
-      "bun run scripts/run-phase-51-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-52"]).toBe(
-      "bun run scripts/run-phase-52-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-53"]).toBe(
-      "bun run scripts/run-phase-53-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-54"]).toBe(
-      "bun run scripts/run-phase-54-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-55"]).toBe(
-      "bun run scripts/run-phase-55-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-56"]).toBe(
-      "bun run scripts/run-phase-56-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-57"]).toBe(
-      "bun run scripts/run-phase-57-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-58"]).toBe(
-      "bun run scripts/run-phase-58-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-59"]).toBe(
-      "bun run scripts/run-phase-59-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-60"]).toBe(
-      "bun run scripts/run-phase-60-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-62"]).toBe(
-      "bun run scripts/run-phase-62-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-63"]).toBe(
-      "bun run scripts/run-phase-63-gate.ts",
-    );
-    expect(pkg.scripts?.["gate:phase-63-beam-closure"]).toBe(
-      "bun run scripts/run-phase-63-beam-closure-gate.ts",
-    );
-    expect(pkg.scripts?.["release:rc-dry-run"]).toBe(
-      "bun run scripts/run-phase-29-rc-dry-run.ts",
-    );
+    expect(pkg.scripts?.["eval:summary"]).toBe(
+      "bun run scripts/summarize-eval.ts",
+    );
+    expect(pkg.scripts?.["eval:storage:cleanup"]).toBe(
+      "bun run scripts/cleanup-eval-postgres.ts",
+    );
+    expect(
+      Object.keys(pkg.scripts ?? {})
+        .filter((name) => name.startsWith("eval:"))
+        .sort(),
+    ).toEqual([
+      "eval:fallback",
+      "eval:live",
+      "eval:live-auto-memory",
+      "eval:live-memory",
+      "eval:live-provider-memory",
+      "eval:official-rescore",
+      "eval:smoke",
+      "eval:storage:cleanup",
+      "eval:summary",
+    ]);
+    expect(pkg.scripts?.["research:list"]).toBe(
+      "bun scripts/research.ts list",
+    );
+    expect(pkg.scripts?.["research:run"]).toBe(
+      "bun scripts/research.ts run",
+    );
+    expect(pkg.scripts?.["research:verify"]).toBe(
+      "bun scripts/research.ts verify",
+    );
+    expect(pkg.scripts?.["gate:projection-storage-scale"]).toBe(
+      "bun scripts/run-projection-storage-scale-gate.ts",
+    );
+    expect(pkg.scripts?.["gate:public-benchmark-claim"]).toBe(
+      "bun run scripts/run-public-benchmark-claim-gate.ts",
+    );
+    expect(pkg.scripts?.["release:prepare"]).toBe(
+      "bun scripts/release.ts prepare",
+    );
+    expect(pkg.scripts?.["release:promote"]).toBeUndefined();
+    const historicalAliases = Object.keys(pkg.scripts ?? {}).filter((name) =>
+      /phase-\d|codex-coding-effect|source-v[123]|wave3|gate:v0(?:-|\.)/iu
+        .test(name)
+    );
+    expect(historicalAliases).toEqual([]);
+    expect(pkg.scripts?.["test:legacy-fitted"]).toBeUndefined();
+    expect(pkg.scripts?.["release:rc-dry-run"]).toBeUndefined();
     expect(pkg.scripts?.prepack).toBe("bun run build");
     expect(pkg.scripts?.["eval:full"]).toBeUndefined();
   });
@@ -1379,18 +1161,25 @@ describe("release metadata and docs", () => {
 
     expect(readme).toContain("createGoodMemory");
     expect(readme).toContain(CURRENT_PACKAGE_VERSION);
+    expect(readme).toContain(
+      "The published registry baseline is GoodMemory `0.7.4`.",
+    );
+    expect(readme).toMatch(
+      /To rehearse the\s+unpublished `0\.7\.5` candidate, use its prepared tarball below\./u,
+    );
+    expect(readme).not.toContain("After GoodMemory `0.7.4` is published");
     expect(readme).toContain("Node-compatible");
     expect(readme).toContain("Bun-backed");
-    expect(readme).toContain(`npm install -g goodmemory@${CURRENT_PACKAGE_VERSION}`);
-    expect(readme).toContain(`npm install goodmemory@${CURRENT_PACKAGE_VERSION}`);
+    expect(readme).toContain(`npm install -g goodmemory@${PUBLISHED_INSTALL_VERSION}`);
+    expect(readme).toContain(`npm install goodmemory@${PUBLISHED_INSTALL_VERSION}`);
     expect(readme).toContain(
       "If you want to type `goodmemory` directly, install the global CLI.",
     );
     expect(readme).toContain(
-      `A project-local \`npm install goodmemory@${CURRENT_PACKAGE_VERSION}\` does not put \`goodmemory\` on your shell \`PATH\`.`,
+      `A project-local \`npm install goodmemory@${PUBLISHED_INSTALL_VERSION}\` does not put \`goodmemory\` on your shell \`PATH\`.`,
     );
     expect(readme).toContain("npx goodmemory -V");
-    expect(readme).toContain(`bun add goodmemory@${CURRENT_PACKAGE_VERSION}`);
+    expect(readme).toContain(`bun add goodmemory@${PUBLISHED_INSTALL_VERSION}`);
     expect(readme).toContain(`npm install ./${CURRENT_TARBALL_NAME}`);
     expect(readme).toContain("examples/basic-chat.ts");
     expect(readme).toContain("examples/coding-agent.ts");
@@ -1436,7 +1225,7 @@ describe("release metadata and docs", () => {
     expect(historicalEvidence).not.toContain("MemoryAgentBench");
     expect(readme).toContain("### Versioned evidence");
     expect(readme).toContain(
-      "GoodMemory `0.7.4` has no current or versioned historical benchmark claim.",
+      "GoodMemory `0.7.5` has no current or versioned historical benchmark claim.",
     );
     expect(readme).toContain(
       "internal diagnostics under the same fail-closed boundary",
@@ -1477,7 +1266,7 @@ describe("release metadata and docs", () => {
     expect(readme).toContain("GoodMemory-Strategy-Rollout-Guide.md");
     expect(readme).toContain("GoodMemory-0.6-to-0.7-Migration-Guide.md");
     expect(readme).toContain("bun run test:coverage");
-    expect(readme).toContain("bun run gate:v0.7 --strict");
+    expect(readme).toContain("bun run release:prepare -- --output-dir <dir>");
     expect(readme).toContain("bun run test:all");
     expect(readme).toContain("eval:fallback");
     expect(readme).toContain("eval:live");
@@ -1568,8 +1357,8 @@ describe("release metadata and docs", () => {
   });
 
   it("v0.7 package metadata, current-source docs, and machine-readable descriptors agree", async () => {
-    expect(CURRENT_PACKAGE_VERSION).toBe("0.7.4");
-    expect(CURRENT_TARBALL_NAME).toBe("goodmemory-0.7.4.tgz");
+    expect(CURRENT_PACKAGE_VERSION).toBe("0.7.5");
+    expect(CURRENT_TARBALL_NAME).toBe("goodmemory-0.7.5.tgz");
 
     const releaseDocPaths = [
       "README.md",
@@ -1634,7 +1423,7 @@ describe("release metadata and docs", () => {
     expect(migrationGuide).toContain("GoodMemory 0.6 to 0.7 Migration Guide");
     expect(migrationGuide).toContain("historical 0.6 evidence");
     expect(llms).toContain(
-      "Current `v0.7.4` claim: none. Versioned historical evidence: none.",
+      "Current `v0.7.5` claim: none. Versioned historical evidence: none.",
     );
     expect(llms).toContain(
       "measurements, plus ImplicitMemBench, are internal diagnostics only",
@@ -1755,14 +1544,19 @@ describe("release metadata and docs", () => {
     expect(zhReadme).toContain("[English](./README.md)");
     expect(zhReadme).toContain(`# GoodMemory`);
     expect(zhReadme).toContain(CURRENT_PACKAGE_VERSION);
-    expect(zhReadme).toContain(`npm install -g goodmemory@${CURRENT_PACKAGE_VERSION}`);
-    expect(zhReadme).toContain(`npm install goodmemory@${CURRENT_PACKAGE_VERSION}`);
+    expect(zhReadme).toContain("已发布的 registry 基线是 GoodMemory `0.7.4`");
+    expect(zhReadme).toMatch(
+      /要验证尚未发布的 `0\.7\.5`\s+candidate，请使用下方准备好的 tarball/u,
+    );
+    expect(zhReadme).not.toContain("GoodMemory `0.7.4` 发布后");
+    expect(zhReadme).toContain(`npm install -g goodmemory@${PUBLISHED_INSTALL_VERSION}`);
+    expect(zhReadme).toContain(`npm install goodmemory@${PUBLISHED_INSTALL_VERSION}`);
     expect(zhReadme).toContain("如果你想直接输入 `goodmemory`，必须安装全局 CLI。");
     expect(zhReadme).toContain(
-      `项目内 \`npm install goodmemory@${CURRENT_PACKAGE_VERSION}\` 不会把 \`goodmemory\` 放进 shell 的 \`PATH\`。`,
+      `项目内 \`npm install goodmemory@${PUBLISHED_INSTALL_VERSION}\` 不会把 \`goodmemory\` 放进 shell 的 \`PATH\`。`,
     );
     expect(zhReadme).toContain("npx goodmemory -V");
-    expect(zhReadme).toContain(`bun add goodmemory@${CURRENT_PACKAGE_VERSION}`);
+    expect(zhReadme).toContain(`bun add goodmemory@${PUBLISHED_INSTALL_VERSION}`);
     expect(zhReadme).toContain(`npm install ./${CURRENT_TARBALL_NAME}`);
     expect(zhReadme).toContain("goodmemory setup");
     expect(zhReadme).toContain("goodmemory status");
@@ -2135,10 +1929,10 @@ describe("release metadata and docs", () => {
     expect(referenceGuide).toContain("toTextStreamResponse");
     expect(referenceGuide).toContain("plain-ai-sdk-server");
     expect(referenceGuide).toContain(
-      `npm install goodmemory@${CURRENT_PACKAGE_VERSION}`,
+      `npm install goodmemory@${PUBLISHED_INSTALL_VERSION}`,
     );
-    expect(referenceGuide).toContain(`bun add goodmemory@${CURRENT_PACKAGE_VERSION}`);
-    expect(referenceGuide).toContain(`npm install ./${CURRENT_TARBALL_NAME}`);
+    expect(referenceGuide).toContain(`bun add goodmemory@${PUBLISHED_INSTALL_VERSION}`);
+    expect(referenceGuide).toContain(`npm install ./${PUBLISHED_TARBALL_NAME}`);
     expect(referenceGuide).toContain("Node");
     expect(referenceGuide).toContain("Bun");
 
@@ -2151,12 +1945,12 @@ describe("release metadata and docs", () => {
     );
     expect(codexGuide).toContain('from "goodmemory"');
     expect(codexGuide).toContain('from "goodmemory/host"');
-    expect(codexGuide).toContain(`npm install -g goodmemory@${CURRENT_PACKAGE_VERSION}`);
+    expect(codexGuide).toContain(`npm install -g goodmemory@${PUBLISHED_INSTALL_VERSION}`);
     expect(codexGuide).toContain("goodmemory setup --host codex");
     expect(codexGuide).toContain(
       "Local package installs do not put `goodmemory` on your shell `PATH`.",
     );
-    expect(codexGuide).toContain(`bun add goodmemory@${CURRENT_PACKAGE_VERSION}`);
+    expect(codexGuide).toContain(`bun add goodmemory@${PUBLISHED_INSTALL_VERSION}`);
     expect(codexGuide).toContain("Bun-backed");
     expect(codexGuide).toContain("codex-action.mjs");
     expect(codexGuide).toContain(".codex/hooks.json");
@@ -2172,13 +1966,13 @@ describe("release metadata and docs", () => {
     expect(claudeGuide).toContain('from "goodmemory"');
     expect(claudeGuide).toContain('from "goodmemory/host"');
     expect(claudeGuide).toContain(
-      `npm install -g goodmemory@${CURRENT_PACKAGE_VERSION}`,
+      `npm install -g goodmemory@${PUBLISHED_INSTALL_VERSION}`,
     );
     expect(claudeGuide).toContain("goodmemory setup --host claude");
     expect(claudeGuide).toContain(
       "Local package installs do not put `goodmemory` on your shell `PATH`.",
     );
-    expect(claudeGuide).toContain(`bun add goodmemory@${CURRENT_PACKAGE_VERSION}`);
+    expect(claudeGuide).toContain(`bun add goodmemory@${PUBLISHED_INSTALL_VERSION}`);
     expect(claudeGuide).toContain("Bun-backed");
   });
 
@@ -2864,7 +2658,7 @@ describe("release metadata and docs", () => {
     expect(checklist).toContain("bun test");
     expect(checklist).toContain("bun run test:coverage");
     expect(checklist).toContain("bun pm pack --dry-run");
-    expect(checklist).toContain(CURRENT_PACKAGE_VERSION);
+    expect(checklist).toContain(PUBLISHED_INSTALL_VERSION);
     expect(checklist).toContain("Node");
     expect(checklist).toContain("Bun");
     expect(checklist).toContain("gate:phase-37");
@@ -2922,19 +2716,17 @@ describe("release metadata and docs", () => {
       "docs/archive/quality-gates/GoodMemory-Phase-20-Quality-Gate.md",
     );
     expect(currentStatus).toContain(
-      "previous stable source boundary is `goodmemory@0.7.3`",
-    );
-    expect(currentStatus).toMatch(
-      /Mutable registry state is\s+deliberately not encoded in this source document/u,
-    );
-    expect(currentStatus).not.toContain("npm `latest` resolves");
-    expect(currentStatus).toMatch(/peeled\s+`v0\.7\.3` tag resolves to/u);
-    expect(currentStatus).toContain(
-      "The `0.7.4` source line advances the package",
+      "frozen published baseline is `goodmemory@0.7.4`",
     );
     expect(currentStatus).toContain(
-      "HEAD matches the peeled `v0.7.4` tag",
+      "05d39fcfb8bb6efe6b8065ec3ea8372c15b9c1b8",
     );
+    expect(currentStatus).toContain(
+      "4f902b215c60f5bb6543e9b7c3ce501895b45725",
+    );
+    expect(currentStatus).toContain("19/19 required checks");
+    expect(currentStatus).toContain("scripts/research/protocols.json");
+    expect(currentStatus).toContain("release-manifest.json");
     expect(currentStatus).toContain(
       "The Kimi Code plugin is published in `v0.7.2`",
     );
@@ -3046,8 +2838,10 @@ describe("release metadata and docs", () => {
       "Phase 45 is now closed as the First Reference Product and Adoption Evidence slice",
     );
     expect(currentStatus).toContain("examples/reference-chat-product");
-    expect(currentStatus).toContain("bun run eval:phase-45");
-    expect(currentStatus).toContain("bun run gate:phase-45");
+    expect(currentStatus).toContain(
+      "bun run scripts/run-phase-45-adoption-eval.ts",
+    );
+    expect(currentStatus).toContain("bun run scripts/run-phase-45-gate.ts");
     expect(currentStatus).toContain(
       "reports/eval/adoption/phase-45/run-20260427104530-adoption-eval/report.json",
     );
@@ -3060,7 +2854,9 @@ describe("release metadata and docs", () => {
     expect(currentStatus).toContain(
       "Phase 46 is now closed as the Memory Quality and Maintenance 2.0 slice",
     );
-    expect(currentStatus).toContain("bun run eval:phase-46");
+    expect(currentStatus).toContain(
+      "bun run scripts/run-phase-46-quality-eval.ts",
+    );
     expect(currentStatus).toContain("qualityRepair");
     expect(currentStatus).toContain(
       "reports/eval/fallback/phase-46/run-20260427123000-quality-eval/report.json",
@@ -3074,7 +2870,9 @@ describe("release metadata and docs", () => {
     expect(currentStatus).toContain(
       "Phase 47 is now closed as the Provider-Backed Retrieval Rollout and Quality Promotion slice",
     );
-    expect(currentStatus).toContain("bun run eval:phase-47");
+    expect(currentStatus).toContain(
+      "bun run scripts/run-phase-47-provider-rollout-eval.ts",
+    );
     expect(currentStatus).toContain("provider_error");
     expect(currentStatus).toContain(
       "reports/eval/fallback/phase-47/run-20260428120000-provider-rollout-eval/report.json",
@@ -3088,7 +2886,9 @@ describe("release metadata and docs", () => {
     expect(currentStatus).toContain(
       "Phase 48 is now closed as the Dashboard, Cloud Sync, and Team Workspace Decision slice",
     );
-    expect(currentStatus).toContain("bun run eval:phase-48");
+    expect(currentStatus).toContain(
+      "bun run scripts/run-phase-48-decision-report.ts",
+    );
     expect(currentStatus).toContain("no-go decision");
     expect(currentStatus).toContain(
       "reports/eval/fallback/phase-48/run-20260428170000-dashboard-cloud-decision/report.json",
@@ -3532,7 +3332,8 @@ describe("release metadata and docs", () => {
     expect(agents).toContain("eval:live-auto-memory");
     expect(agents).toContain("eval:live-provider-memory");
     expect(agents).toContain("GOODMEMORY_TEST_POSTGRES_URL");
-    expect(agents).toContain("phase-specific `*-live-memory` runners");
+    expect(agents).toContain("bun run research:verify -- <id> --root <path>");
+    expect(agents).toContain("not current package-script APIs");
     expect(agents).not.toContain(
       "eval:live-memory`: run the provider-backed live eval path with Postgres storage",
     );
@@ -3884,7 +3685,7 @@ describe("release metadata and docs", () => {
     await expectGitTrackedPath(reportPath);
   });
 
-  it("release workflow uses manual plus stable tag triggers, the unified v0.7 gate, and tarball artifact upload", async () => {
+  it("release workflow prepares one exact artifact set before external side effects", async () => {
     const workflow = await readFile(
       join(import.meta.dir, "../../.github/workflows/release.yml"),
       "utf8",
@@ -3898,108 +3699,54 @@ describe("release metadata and docs", () => {
       "        with:",
       "          fetch-depth: 0",
     ].join("\n"));
-    expect(workflow).toContain("bun run gate:v0.7 --strict");
     expect(
-      workflow.match(
-        /reports\/release\/v0\.7\/v0\.7\.3-lifecycle-schema9-attempt-consumed\.json/gu,
-      )?.length,
-    ).toBe(2);
-    expect(
-      workflow.match(
-        /reports\/release\/v0\.7\/v0\.7\.3-lifecycle-schema9-evidence\/\*\*/gu,
-      )?.length,
-    ).toBe(1);
-    expect(workflow).not.toContain("v0.7.3-full-claim-protocol2");
-    expect(workflow).not.toContain("v0.7.3-locomo-claim-evidence");
-    expect(workflow).not.toContain("locomo-v0.7.3-current.json");
-    expect(workflow).not.toContain("v0.7.3-lifecycle-evidence/**");
-    expect(workflow).not.toContain("bun run gate:phase-40");
+      workflow.match(/bun scripts\/release\.ts prepare/gu),
+    ).toHaveLength(1);
+    expect(workflow).toContain("--output-dir \"$RELEASE_OUTPUT_DIR\"");
+    expect(workflow).not.toContain("--strict");
     expect(workflow).toContain("GOODMEMORY_ASSISTED_EXTRACTOR_API_KEY");
     expect(workflow).toContain("secrets.GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER");
-    expect(workflow).not.toContain("bun run gate:phase-36");
-    expect(workflow).not.toContain("bun run gate:phase-37 --run-id");
-    expect(workflow).not.toContain("bun run gate:phase-39 --run-id");
-    expect(workflow).toContain("TAG_VERSION=\"${GITHUB_REF_NAME#v}\"");
-    expect(workflow).toContain("Stable release workflow only supports stable semver versions");
-    expect(workflow).toContain("[[ \"$VERSION\" == *-* ]]");
-    expect(workflow).toContain("[[ \"$TAG_VERSION\" != \"$VERSION\" ]]");
-    expect(workflow).not.toContain("bun pm pack --destination dist-release");
-    expect(workflow).toContain("scripts/prepare-v0-7-stable-artifact.ts");
-    expect(workflow).toContain("scripts/verify-v0-7-release-artifact.ts");
-    expect(workflow).toContain("prepublish-evidence.json");
-    expect(
-      workflow.match(
-        /reports\/release\/v0\.7\/readiness-report\.json/gu,
-      ),
-    ).toHaveLength(2);
-    expect(
-      workflow.match(/reports\/release\/v0\.7\/summary\.md/gu),
-    ).toHaveLength(2);
-    expect(
-      workflow.match(
-        /reports\/release\/v0\.7\/phase-74-storage-scale-gate\.json/gu,
-      ),
-    ).toHaveLength(2);
-    expect(workflow).toContain('ARTIFACT_SOURCE_COMMIT="$(ARTIFACT_JSON="$ARTIFACT_JSON"');
-    expect(workflow).toContain('ARTIFACT_SOURCE_TREE="$(ARTIFACT_JSON="$ARTIFACT_JSON"');
-    expect(workflow).toContain('[[ "$ARTIFACT_SOURCE_COMMIT" != "$GITHUB_SHA" ]]');
-    expect(workflow).toContain('source-commit "${{ steps.pack.outputs.source_commit }}"');
-    expect(workflow).toContain('source-tree "${{ steps.pack.outputs.source_tree }}"');
-    expect(workflow).toContain("RUNNER_TEMP");
-    expect(workflow).toContain('expected-integrity "$ARTIFACT_INTEGRITY"');
-    expect(workflow).toContain('if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]');
+    expect(workflow).toContain("secrets.GOODMEMORY_TEST_POSTGRES_URL");
+    expect(workflow).not.toContain("reports/release/v0.7/");
+    expect(workflow).not.toContain("bun run gate:v0.7");
+    expect(workflow).not.toContain("prepare-v0-7-stable-artifact.ts");
+    expect(workflow).not.toContain("verify-v0-7-release-artifact.ts");
+    expect(workflow).not.toContain("bun pm pack");
+    expect(workflow).toContain('if [ "$SOURCE_COMMIT" != "$GITHUB_SHA" ]; then');
+    expect(workflow).toContain(
+      'if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$STATUS" != "stable" ]; then',
+    );
+    expect(workflow).toContain(
+      "Manual dispatch prepares and uploads artifacts only; publication is disabled.",
+    );
     expect(workflow).toContain("actions/upload-artifact@v4");
     expect(workflow).toContain("actions/setup-node@v4");
     expect(workflow).toContain("node-version: 20");
     expect(workflow).toContain("registry-url: https://registry.npmjs.org");
     expect(workflow).toContain("NPM_TOKEN");
-    expect(workflow).toContain([
-      'if [ -z "${NODE_AUTH_TOKEN:-}" ]; then',
-      '  echo "::error::NPM_TOKEN is required for stable tag releases"',
-      "  exit 1",
-      "fi",
-    ].join("\n          "));
-    expect(workflow).toContain([
-      'if ! NPM_USER="$(npm whoami)"; then',
-      '  echo "::error::npm authentication failed: npm whoami did not succeed"',
-      "  exit 1",
-      "fi",
-    ].join("\n          "));
-    expect(workflow).not.toMatch(/\bskip(?:ped|ping)?\b/iu);
-    expect(workflow).not.toContain("does not block the tarball-first stable release contract");
     expect(workflow).not.toContain("npm whoami 2>/dev/null || true");
-    expect(workflow).not.toContain("npm user: ${NPM_USER:-unknown}");
-    expect(workflow).toContain("already exists on npm; verifying registry state.");
-    expect(workflow).toContain("npm publish --access public");
-    expect(workflow).toContain('npm view "goodmemory@${VERSION}" version');
+    expect(workflow).toContain(
+      'npm publish --access public "${{ steps.prepare.outputs.artifact_path }}" --tag "$DIST_TAG"',
+    );
     expect(workflow).toContain(
       'npm view "goodmemory@${VERSION}" dist.integrity',
     );
-    expect(workflow).toContain("npm view goodmemory@latest version");
     expect(workflow).toContain(
-      '[ "$PUBLISHED_INTEGRITY" = "$ARTIFACT_INTEGRITY" ]',
+      'npm view "goodmemory@${DIST_TAG}" version',
     );
-    expect(workflow).toContain(
-      "npm artifact identity verification failed",
-    );
-    expect(workflow).toContain("Waiting for npm registry visibility");
+    expect(workflow).toContain("npm artifact identity verification failed");
     expect(workflow).toContain("npm registry verification failed");
     expect(workflow).toContain("softprops/action-gh-release@v2");
-    expect(workflow).toContain("prerelease: false");
-    expect(workflow).toContain("make_latest: true");
 
-    const uploadIndex = workflow.indexOf("- name: Upload tarball artifact");
-    const verifyArtifactIndex = workflow.indexOf(
-      "- name: Verify exact prepublish artifact",
-    );
+    const prepareIndex = workflow.indexOf("- name: Prepare exact release artifacts");
+    const uploadIndex = workflow.indexOf("- name: Upload prepared release artifacts");
     const authIndex = workflow.indexOf(
       "- name: Validate npm publishing credentials",
     );
     const publishIndex = workflow.indexOf("- name: Publish package to npm");
     const githubReleaseIndex = workflow.indexOf("- name: Create GitHub release");
-    expect(uploadIndex).toBeGreaterThan(-1);
-    expect(verifyArtifactIndex).toBeGreaterThan(-1);
-    expect(uploadIndex).toBeGreaterThan(verifyArtifactIndex);
+    expect(prepareIndex).toBeGreaterThan(-1);
+    expect(uploadIndex).toBeGreaterThan(prepareIndex);
     expect(authIndex).toBeGreaterThan(uploadIndex);
     expect(publishIndex).toBeGreaterThan(authIndex);
     expect(githubReleaseIndex).toBeGreaterThan(publishIndex);
@@ -4009,127 +3756,45 @@ describe("release metadata and docs", () => {
       "Create GitHub release",
     ]) {
       expect(workflow).toContain(
-        `- name: ${stepName}\n        if: startsWith(github.ref, 'refs/tags/')`,
+        `- name: ${stepName}\n        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && steps.prepare.outputs.status == 'stable'`,
       );
     }
-    expect(workflow).not.toContain("npm publish --tag rc --access public");
-    expect(workflow).not.toContain("npm view goodmemory@rc version");
   });
 
-  it("archives the complete release evidence before publishing without duplicate GitHub release basenames", async () => {
+  it("uploads only the prepared tarball, manifest, and evidence archive", async () => {
     const workflow = await readFile(
       join(import.meta.dir, "../../.github/workflows/release.yml"),
       "utf8",
     );
-
-    expect(workflow).toContain("- name: Pack tracked release evidence");
-    expect(workflow).toContain("tar --sort=name --mtime='@0'");
-    expect(workflow).toContain("tar -tzf \"$EVIDENCE_ARCHIVE\"");
-    expect(workflow).toContain(
-      "goodmemory-${VERSION}-release-evidence.tar.gz",
-    );
-    const evidencePaths = [
-      "${{ steps.prepublish.outputs.evidence_path }}",
-      "reports/release/v0.7/v0.7.3-lifecycle-protection.json",
-      "reports/release/v0.7/v0.7.3-lifecycle-schema9-attempt-consumed.json",
-      "reports/release/v0.7/v0.7.3-lifecycle-schema9-evidence",
-      "reports/release/v0.7/v0.7.3-stable-source-test-correction-preregistration.json",
-      "reports/release/v0.7/v0.7.3-stable-source-test-correction-attestation.json",
-      "reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-preregistration.json",
-      "reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-attestation.json",
-      "reports/release/v0.7/phase-74-storage-scale-gate.json",
-      "reports/release/v0.7/readiness-report.json",
-      "reports/release/v0.7/summary.md",
-    ];
-
-    const uploadIndex = workflow.indexOf("- name: Upload tarball artifact");
-    const archiveIndex = workflow.indexOf("- name: Pack tracked release evidence");
+    const uploadIndex = workflow.indexOf("- name: Upload prepared release artifacts");
     const authIndex = workflow.indexOf(
       "- name: Validate npm publishing credentials",
     );
-    const publishIndex = workflow.indexOf("- name: Publish package to npm");
-    expect(uploadIndex).toBeGreaterThan(-1);
-    expect(archiveIndex).toBeGreaterThan(-1);
-    expect(authIndex).toBeGreaterThan(archiveIndex);
-    expect(publishIndex).toBeGreaterThan(archiveIndex);
+    const uploadBlock = workflow.slice(uploadIndex, authIndex);
+    const expectedPaths = [
+      "${{ steps.prepare.outputs.artifact_path }}",
+      "${{ steps.prepare.outputs.manifest_path }}",
+      "${{ steps.prepare.outputs.archive_path }}",
+    ];
 
-    const uploadBlock = workflow.slice(uploadIndex, archiveIndex);
-    const archiveBlock = workflow.slice(archiveIndex, authIndex);
-    for (const evidencePath of evidencePaths) {
-      expect(uploadBlock).toContain(evidencePath);
-      expect(archiveBlock).toContain(evidencePath);
+    expect(uploadIndex).toBeGreaterThan(-1);
+    expect(authIndex).toBeGreaterThan(uploadIndex);
+    for (const path of expectedPaths) {
+      expect(uploadBlock).toContain(path);
     }
+    expect(uploadBlock).not.toContain("summary_path");
+    expect(uploadBlock).not.toContain("reports/");
+    expect(workflow).not.toContain("tar --sort=name");
+    expect(workflow).not.toContain("prepublish-evidence.json");
 
     const githubReleaseStart = workflow.indexOf("- name: Create GitHub release");
     const githubReleaseBlock = workflow.slice(githubReleaseStart);
-    expect(githubReleaseBlock).toContain(
-      "${{ steps.evidence-archive.outputs.archive_path }}",
-    );
-    expect(githubReleaseBlock).toContain(
-      "${{ steps.pack.outputs.artifact_path }}",
-    );
+    for (const path of expectedPaths) {
+      expect(githubReleaseBlock).toContain(path);
+    }
     expect(githubReleaseBlock).toContain("fail_on_unmatched_files: true");
-    expect(githubReleaseBlock).not.toContain("prepublish-evidence.json");
-    expect(githubReleaseBlock).not.toContain("reports/release/v0.7/");
-    expect(githubReleaseBlock).not.toContain("benchmark-claims/evidence/");
-  });
-
-  it("ships the stable-source test correction evidence", async () => {
-    const workflow = await readFile(
-      join(import.meta.dir, "../../.github/workflows/release.yml"),
-      "utf8",
-    );
-    const correctionPaths = [
-      "reports/release/v0.7/v0.7.3-stable-source-test-correction-preregistration.json",
-      "reports/release/v0.7/v0.7.3-stable-source-test-correction-attestation.json",
-    ];
-    const uploadIndex = workflow.indexOf("- name: Upload tarball artifact");
-    const archiveIndex = workflow.indexOf("- name: Pack tracked release evidence");
-    const authIndex = workflow.indexOf("- name: Validate npm publishing credentials");
-    const uploadBlock = workflow.slice(uploadIndex, archiveIndex);
-    const archiveBlock = workflow.slice(archiveIndex, authIndex);
-    const tarIndex = archiveBlock.indexOf("tar --sort=name --mtime='@0'");
-
-    expect(uploadIndex).toBeGreaterThan(-1);
-    expect(archiveIndex).toBeGreaterThan(uploadIndex);
-    expect(authIndex).toBeGreaterThan(archiveIndex);
-    expect(tarIndex).toBeGreaterThan(-1);
-    for (const path of correctionPaths) {
-      expect(uploadBlock).toContain(path);
-      expect(archiveBlock).toContain(path);
-      const sizeCheckIndex = archiveBlock.indexOf(`test -s ${path}`);
-      expect(sizeCheckIndex).toBeGreaterThan(-1);
-      expect(sizeCheckIndex).toBeLessThan(tarIndex);
-    }
-  });
-
-  it("ships the cross-host lifecycle verifier correction evidence", async () => {
-    const workflow = await readFile(
-      join(import.meta.dir, "../../.github/workflows/release.yml"),
-      "utf8",
-    );
-    const correctionPaths = [
-      "reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-preregistration.json",
-      "reports/release/v0.7/v0.7.3-cross-host-lifecycle-verifier-correction-attestation.json",
-    ];
-    const uploadIndex = workflow.indexOf("- name: Upload tarball artifact");
-    const archiveIndex = workflow.indexOf("- name: Pack tracked release evidence");
-    const authIndex = workflow.indexOf("- name: Validate npm publishing credentials");
-    const uploadBlock = workflow.slice(uploadIndex, archiveIndex);
-    const archiveBlock = workflow.slice(archiveIndex, authIndex);
-    const tarIndex = archiveBlock.indexOf("tar --sort=name --mtime='@0'");
-
-    expect(uploadIndex).toBeGreaterThan(-1);
-    expect(archiveIndex).toBeGreaterThan(uploadIndex);
-    expect(authIndex).toBeGreaterThan(archiveIndex);
-    expect(tarIndex).toBeGreaterThan(-1);
-    for (const path of correctionPaths) {
-      expect(uploadBlock).toContain(path);
-      expect(archiveBlock).toContain(path);
-      const sizeCheckIndex = archiveBlock.indexOf(`test -s ${path}`);
-      expect(sizeCheckIndex).toBeGreaterThan(-1);
-      expect(sizeCheckIndex).toBeLessThan(tarIndex);
-    }
+    expect(githubReleaseBlock).toContain("prerelease: false");
+    expect(githubReleaseBlock).toContain("make_latest: true");
   });
 
   it("keeps schema-9 lifecycle evidence addable without force", async () => {
@@ -4214,7 +3879,7 @@ describe("release metadata and docs", () => {
     );
   });
 
-  it("release workflow provisions postgres coverage dependencies before the release gate", async () => {
+  it("release workflow provisions postgres before release preparation", async () => {
     const workflow = await readFile(
       join(import.meta.dir, "../../.github/workflows/release.yml"),
       "utf8",
@@ -4228,7 +3893,7 @@ describe("release metadata and docs", () => {
     );
     expect(workflow.indexOf("services:")).toBeLessThan(workflow.indexOf("steps:"));
     expect(workflow.indexOf("GOODMEMORY_TEST_POSTGRES_URL")).toBeLessThan(
-      workflow.indexOf("Run release gate"),
+      workflow.indexOf("Prepare exact release artifacts"),
     );
   });
 
@@ -5540,62 +5205,62 @@ describe("release metadata and docs", () => {
     expect(allBunfig).toContain('root = "."');
   });
 
-  it("keeps expensive Phase 73 evidence replay out of the canonical red-green loop", async () => {
-    const [bunfig, gateBunfig, packageBytes] = await Promise.all([
-      readFile(join(import.meta.dir, "../../bunfig.toml"), "utf8"),
-      readFile(
-        join(import.meta.dir, "../../bunfig.phase-73-gates.toml"),
-        "utf8",
-      ),
-      readFile(join(import.meta.dir, "../../package.json"), "utf8"),
-    ]);
+  it("selects active research gates from the static protocol registry", async () => {
+    const [bunfig, packageBytes, registryBytes, researchSource] =
+      await Promise.all([
+        readFile(join(import.meta.dir, "../../bunfig.toml"), "utf8"),
+        readFile(join(import.meta.dir, "../../package.json"), "utf8"),
+        readFile(
+          join(import.meta.dir, "../../scripts/research/protocols.json"),
+          "utf8",
+        ),
+        readFile(join(import.meta.dir, "../../scripts/research.ts"), "utf8"),
+      ]);
     const packageJson = JSON.parse(packageBytes) as {
       scripts: Record<string, string>;
     };
-    const oldPath = join(
-      import.meta.dir,
-      "../unit/codex-coding-effect.c5-evidence.test.ts",
-    );
-    const gatePath = join(
-      import.meta.dir,
-      "../quality-gates/phase-73/codex-coding-effect.c5-evidence.gate.ts",
-    );
-    const oldReadinessPath = join(
-      import.meta.dir,
-      "../integration/codex-coding-effect.c5-readiness.test.ts",
-    );
-    const gateReadinessPath = join(
-      import.meta.dir,
-      "../quality-gates/phase-73/codex-coding-effect.c5-readiness.gate.ts",
-    );
-    const c3ReplayPath = join(
-      import.meta.dir,
-      "../quality-gates/phase-73/codex-coding-effect.c3-source-reproducibility.gate.ts",
-    );
-    const oldC6ProtocolReadinessPath = join(
-      import.meta.dir,
-      "../integration/codex-coding-effect.c6-protocol-readiness.test.ts",
-    );
-    const c6ProtocolReadinessGatePath = join(
-      import.meta.dir,
-      "../quality-gates/phase-73/codex-coding-effect.c6-protocol-readiness.gate.ts",
+    const registry = JSON.parse(registryBytes) as {
+      protocols: Array<{
+        historicalGateEntrypoints: string[];
+        id: string;
+        status: string;
+      }>;
+    };
+    const active = registry.protocols.filter(
+      (protocol) => protocol.status === "active",
     );
 
     expect(bunfig).toContain(
       'pathIgnorePatterns = ["tests/quality-gates/**"]',
     );
-    expect(gateBunfig).toContain(
-      'root = "tests/quality-gates/phase-73"',
+    expect(packageJson.scripts["test:phase-73-gates"]).toBeUndefined();
+    expect(active.map(({ id }) => id)).toEqual([
+      "goodmemory-c6-codex-coding-effect-source-v4-bounded-v1",
+    ]);
+    expect(active[0]?.historicalGateEntrypoints).toHaveLength(2);
+    expect(
+      active
+        .flatMap(({ historicalGateEntrypoints }) =>
+          historicalGateEntrypoints
+        )
+        .some((path) => path.includes("*")),
+    ).toBe(false);
+    expect(active[0]?.historicalGateEntrypoints).toEqual([
+      "./tests/quality-gates/phase-73/codex-coding-effect.c6-source-v4-bounded-snapshot.gate.ts",
+      "./tests/quality-gates/phase-73/codex-coding-effect.c6-source-v4-bounded-review-activation.gate.ts",
+    ]);
+    expect(researchSource).toContain(
+      "...protocol.historicalGateEntrypoints",
     );
-    expect(packageJson.scripts["test:phase-73-gates"]).toBe(
-      "bun --config=bunfig.phase-73-gates.toml test ./tests/quality-gates/phase-73/*.gate.ts",
-    );
-    expect(await Bun.file(oldPath).exists()).toBe(false);
-    expect(await Bun.file(gatePath).exists()).toBe(true);
-    expect(await Bun.file(oldReadinessPath).exists()).toBe(false);
-    expect(await Bun.file(gateReadinessPath).exists()).toBe(true);
-    expect(await Bun.file(c3ReplayPath).exists()).toBe(true);
-    expect(await Bun.file(oldC6ProtocolReadinessPath).exists()).toBe(false);
-    expect(await Bun.file(c6ProtocolReadinessGatePath).exists()).toBe(true);
+    expect(researchSource).toContain("withGitSourceCheckout(");
+    expect(researchSource).not.toContain("*.gate.ts");
+    expect(
+      await Bun.file(
+        join(
+          import.meta.dir,
+          "../quality-gates/phase-73/codex-coding-effect.c3-source-reproducibility.gate.ts",
+        ),
+      ).exists(),
+    ).toBe(true);
   });
 });

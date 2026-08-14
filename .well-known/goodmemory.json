@@ -1,7 +1,7 @@
 {
   "schemaVersion": "goodmemory.capability/v2",
   "name": "goodmemory",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "kind": "memory-layer",
   "summary": "Durable user/project memory layer for chat apps, copilots, and coding agents.",
   "description": "GoodMemory is the product memory layer between an app or installed agent host and the model runtime: write selected facts, recall the right context, inject it into the next turn, audit what happened, and delete it when it is wrong.",
@@ -21,15 +21,15 @@
     "quickstart": "https://github.com/hjqcan/GoodMemory#quickstart-codex-or-claude-code-memory"
   },
   "install": {
-    "npmGlobal": "npm install -g goodmemory@0.7.4",
-    "npmPackage": "npm install goodmemory@0.7.4",
-    "bun": "bun add goodmemory@0.7.4"
+    "npmGlobal": "npm install -g goodmemory@0.7.5",
+    "npmPackage": "npm install goodmemory@0.7.5",
+    "bun": "bun add goodmemory@0.7.5"
   },
   "releaseStatus": {
     "installCommandsApplyAfterPublish": true,
-    "npmDistTag": "latest",
-    "status": "stable",
-    "tarball": "goodmemory-0.7.4.tgz"
+    "npmDistTag": "next",
+    "status": "release-candidate",
+    "tarball": "goodmemory-0.7.5.tgz"
   },
   "memoryApi": [
     "remember",
@@ -46,7 +46,7 @@
       "when": "You are, or run inside, Claude Code or Codex.",
       "method": "cli",
       "steps": [
-        "npm install -g goodmemory@0.7.4",
+        "npm install -g goodmemory@0.7.5",
         "goodmemory setup",
         "goodmemory status"
       ],

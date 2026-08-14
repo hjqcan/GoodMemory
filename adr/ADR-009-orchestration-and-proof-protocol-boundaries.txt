@@ -1,0 +1,93 @@
+ADR-009: Orchestration and Proof Protocol Boundaries
+====================================================
+
+Status
+------
+Accepted (2026-08-13)
+
+Context
+-------
+The v0.7.4 source closed with a clean, published release boundary, but several
+active implementation files had accumulated unrelated responsibilities:
+
+- the API composition root also executed recall plans and feedback operations;
+- remember and recall engines mixed loading, policy, ranking, persistence, and
+  result assembly inside single factories;
+- the CLI mixed parsing, rendering, host management, memory commands, eval
+  inspection, and local services;
+- active research and release entrypoints kept absorbing historical proof
+  protocols whose exact source paths and bytes were already evidence inputs.
+
+The problem is responsibility and change coupling, not line count alone.
+Moving the same code into a generic framework would hide the ordering that the
+current tests and artifacts are intended to prove.
+
+Decision
+--------
+1. Runtime refactors are behavior preserving. Public package exports, API and
+   CLI contracts, defaults, trace fields, fallback behavior, storage ordering,
+   and serialized results do not change as part of the extraction.
+
+2. API composition, recall orchestration, recall engine stages, remember
+   extraction, remember persistence, feedback operations, and internal support
+   attachment are separate modules. Core stages depend on domain contracts and
+   storage ports, not provider or storage implementations. The API assembly is
+   the concrete implementation boundary for createGoodMemory.
+
+3. The CLI keeps an explicit command dispatch. Memory, host, eval, and service
+   command families own their handlers and rendering. No command registry,
+   middleware stack, dependency-injection container, or plugin system is
+   introduced.
+
+4. Repository-only proof primitives live outside production src/. They cover
+   only canonical bytes, file identities and closures, content digests, and
+   Git source identity.
+   Benchmark schemas, provider behavior, scoring, thresholds, lifecycle rules,
+   and report layouts remain protocol owned.
+
+5. Accepted historical research and v0.7 release verifiers are immutable
+   capsules. Their source, schema, paths, and artifacts remain bound to their
+   original commit or tag and are not migrated to the new proof primitives.
+   An active protocol consumes a historical result only from an isolated Git
+   checkout at the bound commit/tree. That checkout installs dependencies from
+   its frozen lockfile, and the historical loader runs with the checkout as its
+   working directory; `verify` additionally runs the registry's exact
+   historical gates there. A narrow adapter bound to the current clean execution
+   identity projects only the minimal DTO needed by the active protocol. The
+   current commit/tree is checked again after the protocol finishes.
+   The tracked v0.7.4 readiness capsule binds the exact local readiness-report
+   hash, source identity, runtime, and all 19 required outcomes without making
+   the generated readiness report itself a new mutable release input.
+
+6. Future release preparation uses one typed profile and one manifest. It
+   freezes source identity, runs explicit checks, packs exactly one tarball,
+   verifies every consumer against that tarball, checks source stability, and
+   creates a deterministic evidence archive. Promotion and publication remain
+   explicit external actions.
+
+7. Static dependency tests and generous entrypoint size limits prevent the
+   extracted responsibilities from accumulating back into the facade files.
+   The limits are regression guards, not substitutes for behavioral tests.
+
+8. HTTP bridge and installed-host writeback are outside this refactor. Public
+   benchmark claim policy and machine-readable claim surfaces are also outside
+   this decision.
+
+Consequences
+------------
++ Runtime data flow and side-effect order become visible at named boundaries.
++ New research and release protocols reuse small integrity primitives without
+  rewriting accepted historical evidence.
++ Release workflows consume one manifest instead of duplicate path lists.
+- Internal TypeScript import paths change in one clean break; repository
+  callers are updated without compatibility shims.
+- Historical capsules remain large because preserving their exact proof
+  identity is more important than making the current tree cosmetically small.
+
+Related
+-------
+- ADR-002 (public API)
+- ADR-006 (module layering and shared contracts)
+- ADR-008 (LanguagePack and v0.7 release boundary)
+- docs/GoodMemory-First-Principles-and-Reference-Architecture.md
+- docs/GoodMemory-TDD-and-Evaluation-Strategy.md

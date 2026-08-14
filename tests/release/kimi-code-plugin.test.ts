@@ -3,7 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 
 const REPO_ROOT = join(import.meta.dir, "../..");
-const RELEASE_VERSION = "0.7.4";
+const RELEASE_VERSION = "0.7.5";
 const KIMI_TOOLS = [
   "goodmemory_get_context",
   "goodmemory_inspect_memory",
@@ -55,7 +55,7 @@ async function readJson<T>(path: string): Promise<T> {
 }
 
 describe("Kimi Code plugin release contract", () => {
-  it("pins the plugin and MCP runtime to the 0.7.4 release-candidate identity", async () => {
+  it("pins the plugin and MCP runtime to the 0.7.5 release-candidate identity", async () => {
     const [manifest, pkg] = await Promise.all([
       readJson<KimiPluginManifest>("kimi.plugin.json"),
       readJson<PackageManifest>("package.json"),
@@ -142,6 +142,13 @@ describe("Kimi Code plugin release contract", () => {
 
     expect(guide).toContain("Node.js 20");
     expect(guide).toContain("Bun 1.3.14");
+    expect(guide).toContain(
+      "repository descriptors target the unpublished `0.7.5` release candidate",
+    );
+    expect(guide).toContain(
+      "published registry baseline remains `goodmemory@0.7.4`",
+    );
+    expect(guide).not.toContain("repository descriptors target `0.7.4`");
     expect(guide).toContain("npx");
     expect(guide).toContain("third-party");
     expect(guide).toContain("defaults to cancel");

@@ -1420,7 +1420,7 @@ The current-checkout rerun completed under
   - upstream commit `927413bf3f5389bb47c94c2a0ba987e435b101b8`
   - dataset license `CC BY 4.0`; code license `MIT`
 - command shape:
-  - `GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER=openai bun run eval:phase-61-full300 -- --benchmark-root /tmp/ImplicitMemBench --run-id run-phase61-full300-rerun-20260706-codex-current --shards 10 --shard-concurrency 6 --max-concurrency 1 --priming-timeout-ms 180000`
+  - `GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER=openai bun run scripts/run-phase-61-full300.ts --benchmark-root /tmp/ImplicitMemBench --run-id run-phase61-full300-rerun-20260706-codex-current --shards 10 --shard-concurrency 6 --max-concurrency 1 --priming-timeout-ms 180000`
 - official-comparable denominator:
   - `300 / 300` cases
 - baseline full-300 score:
@@ -1462,7 +1462,7 @@ changes:
   - `/tmp/ImplicitMemBench`
   - upstream commit `927413bf3f5389bb47c94c2a0ba987e435b101b8`
 - command shape:
-  - `GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER=openai GOODMEMORY_EVAL_MAX_CONCURRENCY=1 bun run eval:phase-61-full300 -- --benchmark-root /tmp/ImplicitMemBench --run-id run-phase61-full300-rerun-20260706-postchanges-current --shards 10 --shard-concurrency 6 --max-concurrency 1 --priming-timeout-ms 180000`
+  - `GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER=openai GOODMEMORY_EVAL_MAX_CONCURRENCY=1 bun run scripts/run-phase-61-full300.ts --benchmark-root /tmp/ImplicitMemBench --run-id run-phase61-full300-rerun-20260706-postchanges-current --shards 10 --shard-concurrency 6 --max-concurrency 1 --priming-timeout-ms 180000`
 - official-comparable denominator:
   - `300 / 300` cases
 - baseline full-300 score:
@@ -1505,7 +1505,7 @@ hardening work:
   - `/tmp/ImplicitMemBench`
   - upstream commit `927413bf3f5389bb47c94c2a0ba987e435b101b8`
 - command shape:
-  - `GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER=openai GOODMEMORY_EVAL_MAX_CONCURRENCY=1 bun run eval:phase-61-full300 -- --benchmark-root /tmp/ImplicitMemBench --run-id run-phase61-full300-rerun-20260706-latest-current --shards 10 --shard-concurrency 6 --max-concurrency 1 --priming-timeout-ms 180000`
+  - `GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER=openai GOODMEMORY_EVAL_MAX_CONCURRENCY=1 bun run scripts/run-phase-61-full300.ts --benchmark-root /tmp/ImplicitMemBench --run-id run-phase61-full300-rerun-20260706-latest-current --shards 10 --shard-concurrency 6 --max-concurrency 1 --priming-timeout-ms 180000`
 - official-comparable denominator:
   - `300 / 300` cases
 - baseline full-300 score:
@@ -1544,7 +1544,7 @@ stored-answer rescore runner was being hardened:
   - `/tmp/ImplicitMemBench`
   - upstream commit `927413bf3f5389bb47c94c2a0ba987e435b101b8`
 - command shape:
-  - `GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER=openai GOODMEMORY_EVAL_MAX_CONCURRENCY=1 bun run eval:phase-61-full300 -- --benchmark-root /tmp/ImplicitMemBench --run-id run-phase61-full300-rerun-20260706-after-hardening-current --shards 10 --shard-concurrency 6 --max-concurrency 1 --priming-timeout-ms 180000`
+  - `GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER=openai GOODMEMORY_EVAL_MAX_CONCURRENCY=1 bun run scripts/run-phase-61-full300.ts --benchmark-root /tmp/ImplicitMemBench --run-id run-phase61-full300-rerun-20260706-after-hardening-current --shards 10 --shard-concurrency 6 --max-concurrency 1 --priming-timeout-ms 180000`
 - official-comparable denominator:
   - `300 / 300` cases
 - baseline full-300 score:
@@ -1620,11 +1620,11 @@ rows.
 
 ## 2026-07-06 Stored-Answer Independent Rescore
 
-`rescore:phase-61-implicitmembench` is now the pinned no-answer-rerun command
+`bun run scripts/rescore-phase-61-implicitmembench-stored-answers.ts` is now the pinned no-answer-rerun command
 for the independent judge pass. The completed internal rescore artifact used:
 
 - command shape:
-  - `GOODMEMORY_JUDGE_MODEL=gpt-5.4 bun run rescore:phase-61-implicitmembench -- --overall-report reports/eval/live/phase-61-full300/run-phase61-full300-rerun-20260706-codex-current/report.json --run-id implicitmembench-independent-rescore-gpt54-current --max-concurrency 4`
+  - `GOODMEMORY_JUDGE_MODEL=gpt-5.4 bun run scripts/rescore-phase-61-implicitmembench-stored-answers.ts --overall-report reports/eval/live/phase-61-full300/run-phase61-full300-rerun-20260706-codex-current/report.json --run-id implicitmembench-independent-rescore-gpt54-current --max-concurrency 4`
 - source behavior:
   - reads the canonical overall report
   - follows `sourceReports.baselineReportPath`
@@ -1706,7 +1706,7 @@ Important execution notes from this run:
   - per-process concurrency `1`
   - Postgres storage
 - the Phase 61 operator wrapper is:
-  - `bun run eval:phase-61-full300`
+  - `bun run scripts/run-phase-61-full300.ts`
   - 10 benchmark shards
   - shard-level concurrency `6`
   - Postgres storage
