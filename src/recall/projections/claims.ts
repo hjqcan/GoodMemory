@@ -72,9 +72,8 @@ export interface ClaimProjectionIndex {
     sourceMemoryId: string;
     timestamp: string;
   }): Promise<void>;
-  // R4.1's batch form: close stale open values in multi-value
-  // (subjectEntityId, predicateKey) slots that out-of-order ingestion left
-  // behind. Returns the number of claims closed.
+  // R4.1's batch form: close stale open values in legacy or damaged
+  // (subjectEntityId, predicateKey) slots. Returns the number of claims closed.
   sweepSlotSupersession(scope: MemoryScope): Promise<number>;
 }
 
@@ -785,6 +784,7 @@ export function createClaimProjectionIndex(
     scope: MemoryScope,
   ): Promise<
     | {
+        claim: ClaimProjection;
         set: Array<{
           collection: string;
           document: StorageDocument;
@@ -815,6 +815,36 @@ export function createClaimProjectionIndex(
     );
     const newValue = normalizeClaimObjectText(claim);
     const eventTime = claimEventTime(claim);
+    const selectedPeers: Array<{
+      claim: ClaimProjection;
+      status: ClaimProjectionStatus;
+      statusId: string;
+    }> = [];
+    const statusesBySource = new Map<string, ClaimProjectionStatus | null>();
+    for (const peer of slotClaims) {
+      if (
+        peer.sourceMemoryId === claim.sourceMemoryId ||
+        peer.validUntil !== undefined ||
+        peer.polarity !== "positive" ||
+        peer.modality !== "asserted"
+      ) {
+        continue;
+      }
+      const statusId = buildClaimProjectionStatusId(scope, peer.sourceMemoryId);
+      let status = statusesBySource.get(peer.sourceMemoryId);
+      if (status === undefined) {
+        status = await documentStore.get<ClaimProjectionStatus>(
+          CLAIM_PROJECTION_STATUS_COLLECTION,
+          statusId,
+        );
+        statusesBySource.set(peer.sourceMemoryId, status);
+      }
+      if (!status?.claimIds.includes(peer.id)) {
+        continue;
+      }
+      selectedPeers.push({ claim: peer, status, statusId });
+    }
+
     const set: Array<{
       collection: string;
       document: StorageDocument;
@@ -825,27 +855,50 @@ export function createClaimProjectionIndex(
       document: StorageDocument | null;
       id: string;
     }> = [];
+    let resolvedClaim = claim;
+    if (claim.validUntil === undefined) {
+      const nextValue = selectedPeers
+        .filter(({ claim: peer }) =>
+          claimEventTime(peer).localeCompare(eventTime) > 0 &&
+          normalizeClaimObjectText(peer) !== newValue
+        )
+        .sort((left, right) =>
+          claimEventTime(left.claim).localeCompare(claimEventTime(right.claim)) ||
+          left.claim.ingestedAt.localeCompare(right.claim.ingestedAt) ||
+          left.claim.id.localeCompare(right.claim.id)
+        )[0];
+      if (nextValue) {
+        const { id: _claimId, ...claimWithoutId } = claim;
+        const boundedWithoutId: Omit<ClaimProjection, "id"> = {
+          ...claimWithoutId,
+          validUntil: claimEventTime(nextValue.claim),
+        };
+        resolvedClaim = {
+          id: projectionId(boundedWithoutId),
+          ...boundedWithoutId,
+        };
+        unchanged.push(
+          {
+            collection: CLAIM_PROJECTION_STATUS_COLLECTION,
+            document: nextValue.status,
+            id: nextValue.statusId,
+          },
+          {
+            collection: CLAIM_PROJECTIONS_COLLECTION,
+            document: nextValue.claim,
+            id: nextValue.claim.id,
+          },
+        );
+      }
+    }
+
     const closedSources = new Set<string>();
-    for (const older of slotClaims) {
+    for (const { claim: older, status: olderStatus, statusId } of selectedPeers) {
       if (
-        older.sourceMemoryId === claim.sourceMemoryId ||
         closedSources.has(older.sourceMemoryId) ||
-        older.validUntil !== undefined ||
-        older.polarity !== "positive" ||
         claimEventTime(older).localeCompare(eventTime) >= 0 ||
         normalizeClaimObjectText(older) === newValue
       ) {
-        continue;
-      }
-      const statusId = buildClaimProjectionStatusId(
-        scope,
-        older.sourceMemoryId,
-      );
-      const olderStatus = await documentStore.get<ClaimProjectionStatus>(
-        CLAIM_PROJECTION_STATUS_COLLECTION,
-        statusId,
-      );
-      if (!olderStatus || !olderStatus.claimIds.includes(older.id)) {
         continue;
       }
       closedSources.add(older.sourceMemoryId);
@@ -889,17 +942,16 @@ export function createClaimProjectionIndex(
         id: older.id,
       });
     }
-    if (set.length === 0) {
+    if (set.length === 0 && resolvedClaim === claim) {
       return undefined;
     }
-    return { set, unchanged };
+    return { claim: resolvedClaim, set, unchanged };
   }
 
-  // R4.1's batch form (R9.4): sweep stored current claims for slots holding
-  // more than one open value — the state out-of-order ingestion leaves behind,
-  // since append-time supersession only closes claims older than the arriving
-  // one. Each such slot resolves exactly as the write path would have: the
-  // newest event stays open, stale values close at its validity start. The
+  // R4.1's batch form (R9.4): sweep legacy or damaged current slots holding
+  // more than one open value. Normal append converges out-of-order writes
+  // immediately. Each inconsistent slot resolves exactly as the write path
+  // does: the newest event stays open, stale values close at its validity start. The
   // per-slot commit is optimistic-concurrency guarded on the winner claim;
   // contested slots are skipped and repaired on the next run.
   async function sweepSlotSupersession(scope: MemoryScope): Promise<number> {
@@ -1073,13 +1125,14 @@ export function createClaimProjectionIndex(
           ? { contextualDescriptor: input.contextualDescriptor }
           : {}),
       };
-      const claim: ClaimProjection = {
+      const projectedClaim: ClaimProjection = {
         id: projectionId(projectionWithoutId),
         ...projectionWithoutId,
       };
       const supersession = state === "projected"
-        ? await resolveSlotSupersession(claim, normalized)
+        ? await resolveSlotSupersession(projectedClaim, normalized)
         : undefined;
+      const claim = supersession?.claim ?? projectedClaim;
       const replacesSameVersionRevision =
         existingStatus?.sourceUpdatedAt === input.ingestedAt &&
         (structuredPromotion ||

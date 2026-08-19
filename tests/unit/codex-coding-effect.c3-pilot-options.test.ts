@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
 import {
@@ -175,7 +176,7 @@ describe("Codex coding-effect C3 pilot CLI", () => {
   });
 
   it("uses physical paths when checking overlap below symlink ancestors", async () => {
-    const root = await mkdtemp(join(process.cwd(), ".c3-overlap-test-"));
+    const root = await mkdtemp(join(homedir(), ".c3-overlap-test-"));
     const physical = join(root, "physical");
     const alias = join(root, "alias");
     try {
@@ -189,7 +190,7 @@ describe("Codex coding-effect C3 pilot CLI", () => {
         join(physical, "runtime/workspaces"),
       ], {
         ...defaults,
-        cwd: process.cwd(),
+        cwd: root,
       })).toThrow("--runtime-root must not overlap --workspace-root");
     } finally {
       await rm(root, { force: true, recursive: true });

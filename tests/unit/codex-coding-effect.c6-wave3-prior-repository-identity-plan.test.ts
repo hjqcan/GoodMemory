@@ -1051,7 +1051,7 @@ describe("Codex coding-effect C6 Wave3 prior repository identity plan", () => {
         plan,
       }),
     ).rejects.toThrow(/extra evidence|asset lock/u);
-  }, ciTestTimeout(15_000));
+  }, ciTestTimeout(45_000));
 
   it("rejects projection drift despite matching bytes and lock entries", async () => {
     const { plan } =

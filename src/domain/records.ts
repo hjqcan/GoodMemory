@@ -216,6 +216,28 @@ export interface EpisodeMemory {
   archivedAt?: string;
 }
 
+// Freshness measures how recently the source statement was observed. It must
+// not use transaction time because metadata-only writes can change updatedAt.
+export function resolveFactFreshnessTimestamp(
+  fact: Pick<FactMemory, "createdAt" | "observedAt" | "validFrom">,
+): string {
+  return fact.observedAt ?? fact.validFrom ?? fact.createdAt;
+}
+
+// Effective ordering answers which world-state value is newer. Unlike
+// freshness, an explicit validity boundary takes precedence over observation.
+export function resolveFactEffectiveTimestamp(
+  fact: Pick<FactMemory, "createdAt" | "observedAt" | "validFrom">,
+): string {
+  return fact.validFrom ?? fact.observedAt ?? fact.createdAt;
+}
+
+export function resolveEpisodeFreshnessTimestamp(
+  episode: Pick<EpisodeMemory, "createdAt" | "observedAt">,
+): string {
+  return episode.observedAt ?? episode.createdAt;
+}
+
 export type FeedbackKind = "do" | "dont" | "prefer" | "validated_pattern";
 
 export interface FeedbackMemory {

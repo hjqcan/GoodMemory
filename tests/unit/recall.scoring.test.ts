@@ -1,11 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import {
+  createEpisodeMemory,
   createFactMemory,
   createFeedbackMemory,
   createReferenceMemory,
 } from "../../src/domain/records";
 import { createLanguageService } from "../../src/language";
 import {
+  buildEpisodeCandidates,
   buildFactCandidates,
   buildReferenceCandidates,
   freshnessScore,
@@ -165,6 +167,100 @@ describe("recall scoring", () => {
     expect(freshnessScore("2025-12-10T23:59:59.999Z", TIMESTAMP)).toBe(0.05);
     expect(freshnessScore("2025-10-12T00:00:00.000Z", TIMESTAMP)).toBe(0.05);
     expect(freshnessScore("2025-10-11T23:59:59.999Z", TIMESTAMP)).toBe(0);
+  });
+
+  it("scores fact freshness from semantic time instead of metadata update time", () => {
+    const language = createLanguageService();
+    const candidates = buildFactCandidates(
+      [
+        createFactMemory({
+          id: "fact-historical-enriched",
+          userId: "user-1",
+          category: "project",
+          content: "Atlas uses the partner API.",
+          observedAt: "2025-12-01T00:00:00.000Z",
+          source: {
+            method: "explicit",
+            extractedAt: "2026-01-01T00:00:00.000Z",
+          },
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-04-09T00:00:00.000Z",
+        }),
+        createFactMemory({
+          id: "fact-current",
+          userId: "user-1",
+          category: "project",
+          content: "Atlas uses the partner API.",
+          observedAt: "2026-04-01T00:00:00.000Z",
+          source: {
+            method: "explicit",
+            extractedAt: "2026-04-01T00:00:00.000Z",
+          },
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-01T00:00:00.000Z",
+        }),
+      ],
+      "Which partner API does Atlas use?",
+      language,
+      "en",
+      "2026-04-10T00:00:00.000Z",
+    );
+    const historical = candidates.find(
+      ({ fact }) => fact.id === "fact-historical-enriched",
+    );
+    const current = candidates.find(({ fact }) => fact.id === "fact-current");
+
+    expect(historical?.fact.id).toBe("fact-historical-enriched");
+    expect(historical?.freshnessScore).toBe(0);
+    expect(current?.fact.id).toBe("fact-current");
+    expect(current?.freshnessScore).toBe(0.15);
+  });
+
+  it("does not refresh references or episodes through transaction-time writes", () => {
+    const language = createLanguageService();
+    const [reference] = buildReferenceCandidates(
+      [
+        createReferenceMemory({
+          id: "reference-enriched",
+          userId: "user-1",
+          title: "Atlas runbook",
+          pointer: "docs/atlas-runbook.md",
+          source: {
+            method: "explicit",
+            extractedAt: "2026-04-09T00:00:00.000Z",
+          },
+          createdAt: "2025-12-01T00:00:00.000Z",
+          updatedAt: "2026-04-09T00:00:00.000Z",
+        }),
+      ],
+      "Where is the Atlas runbook?",
+      language,
+      "en",
+      "2026-04-10T00:00:00.000Z",
+    );
+    const [episode] = buildEpisodeCandidates(
+      [
+        createEpisodeMemory({
+          id: "episode-consolidated",
+          userId: "user-1",
+          summary: "Atlas rollout review.",
+          topics: ["Atlas", "rollout"],
+          keyDecisions: [],
+          unresolvedItems: [],
+          importance: 0.8,
+          confidence: 0.9,
+          observedAt: "2025-12-01T00:00:00.000Z",
+          createdAt: "2026-04-09T00:00:00.000Z",
+        }),
+      ],
+      "What happened in the Atlas rollout?",
+      language,
+      "en",
+      "2026-04-10T00:00:00.000Z",
+    );
+
+    expect(reference?.freshnessScore).toBe(0);
+    expect(episode?.freshnessScore).toBe(0);
   });
 
   it("prefers higher lexical reference matches when ranking", () => {

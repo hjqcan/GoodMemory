@@ -37,6 +37,7 @@ describe("maintenance consolidation", () => {
         keyDecisions: ["keep router deterministic"],
         importance: 0.8,
         confidence: 0.9,
+        observedAt: "2025-12-01T00:00:00.000Z",
         createdAt: "2026-03-30T00:00:00.000Z",
       }),
     );
@@ -52,6 +53,7 @@ describe("maintenance consolidation", () => {
         keyDecisions: ["add episode summaries"],
         importance: 0.85,
         confidence: 0.92,
+        observedAt: "2025-12-02T00:00:00.000Z",
         createdAt: "2026-03-31T00:00:00.000Z",
       }),
     );
@@ -68,6 +70,7 @@ describe("maintenance consolidation", () => {
     expect(active).toHaveLength(1);
     expect(active[0]?.summary).toContain("Consolidated");
     expect(active[0]?.topics).toContain("recall");
+    expect(active[0]?.observedAt).toBe("2025-12-01T00:00:00.000Z");
     expect(archives).toHaveLength(2);
     expect(archives.map((archive) => archive.sessionId).sort()).toEqual(["s-1", "s-2"]);
     expect(archives[0]?.summary).toContain("Recall");

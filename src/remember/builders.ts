@@ -259,7 +259,12 @@ export function buildFact(
     category: candidate.metadata?.category ?? "project",
     content: candidate.content,
     tags: candidate.metadata?.tags,
-    attributes: candidate.metadata?.attributes,
+    attributes: mergeAttributes(
+      candidate.metadata?.attributes,
+      candidate.metadata?.claim
+        ? { claimKey: candidate.metadata.claim.predicateKey }
+        : undefined,
+    ),
     source: createMemorySource({
       method: candidate.explicitness,
       extractedAt: timestamp,
@@ -458,7 +463,15 @@ export function enrichDuplicateFact(
     language,
   ) as FactMemory["source"];
   const tags = mergeTags(fact.tags, candidate.metadata?.tags);
-  const attributes = mergeAttributes(fact.attributes, candidate.metadata?.attributes);
+  const attributes = mergeAttributes(
+    fact.attributes,
+    mergeAttributes(
+      candidate.metadata?.attributes,
+      candidate.metadata?.claim
+        ? { claimKey: candidate.metadata.claim.predicateKey }
+        : undefined,
+    ),
+  );
   const validFrom = fact.validFrom ?? candidate.metadata?.claim?.validFrom;
   const validUntil = fact.validUntil ?? candidate.metadata?.claim?.validUntil;
 

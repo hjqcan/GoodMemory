@@ -26,7 +26,7 @@ const ROOT_PACKAGE_PATH = join(import.meta.dir, "../../");
 const CURRENT_PACKAGE = loadPackageMetadataSync(ROOT_PACKAGE_PATH);
 const CURRENT_PACKAGE_VERSION = CURRENT_PACKAGE.version;
 const CURRENT_TARBALL_NAME = buildPackageTarballName(CURRENT_PACKAGE);
-const PUBLISHED_INSTALL_VERSION = "0.7.4";
+const PUBLISHED_INSTALL_VERSION = "0.7.5";
 const PUBLISHED_TARBALL_NAME = `goodmemory-${PUBLISHED_INSTALL_VERSION}.tgz`;
 
 function extractMarkedSection(markdown: string, marker: string): string {
@@ -1120,6 +1120,8 @@ describe("release metadata and docs", () => {
     expect(rootModule.resolveGoodMemoryRuntimeInfo).toBeDefined();
     expect(rootModule.createRuntimeArchiveStore).toBeDefined();
     expect(rootModule.createRuntimeContextService).toBeDefined();
+    expect(rootModule.createAISDKEmbeddingAdapter).toBeDefined();
+    expect(rootModule.createLLMMemoryExtractor).toBeDefined();
     expect(rootModule.createChineseLanguagePack).toBeDefined();
     expect(rootModule.createEnglishLanguagePack).toBeDefined();
     expect(rootModule.createJapaneseLanguagePack).toBeDefined();
@@ -1162,12 +1164,11 @@ describe("release metadata and docs", () => {
     expect(readme).toContain("createGoodMemory");
     expect(readme).toContain(CURRENT_PACKAGE_VERSION);
     expect(readme).toContain(
-      "The published registry baseline is GoodMemory `0.7.4`.",
+      "The published registry baseline is GoodMemory `0.7.5`.",
     );
-    expect(readme).toMatch(
-      /To rehearse the\s+unpublished `0\.7\.5` candidate, use its prepared tarball below\./u,
-    );
-    expect(readme).not.toContain("After GoodMemory `0.7.4` is published");
+    expect(readme).toContain("Use the pinned registry");
+    expect(readme).toContain("commands below for reproducible installs.");
+    expect(readme).not.toContain("unpublished `0.7.5` candidate");
     expect(readme).toContain("Node-compatible");
     expect(readme).toContain("Bun-backed");
     expect(readme).toContain(`npm install -g goodmemory@${PUBLISHED_INSTALL_VERSION}`);
@@ -1322,8 +1323,8 @@ describe("release metadata and docs", () => {
     expect(readme).toContain("examples/fastify-chat-server.ts");
     expect(readme).toContain("docs/GoodMemory-15-Minute-App-Integration.md");
     expect(guide).toContain("15-Minute App Integration");
-    expect(guide).toContain("npm install goodmemory@0.7.4");
-    expect(guide).toContain("verified local `goodmemory-0.7.4.tgz`");
+    expect(guide).toContain("npm install goodmemory@0.7.5");
+    expect(guide).not.toContain("verified local `goodmemory-0.7.4.tgz`");
     expect(guide).toContain("createGoodMemory");
     expect(guide).toContain("GoodMemoryConfig.observability.traceSink");
     expect(guide).toContain("memory.runtime.startSession");
@@ -1482,8 +1483,8 @@ describe("release metadata and docs", () => {
     expect(standaloneGuide).toContain("2026-07-28");
     expect(standaloneGuide).toContain("2025-11-25");
     expect(standaloneGuide).toContain("application-level memory scope");
-    expect(standaloneGuide).toContain("npm install -g goodmemory@0.7.4");
-    expect(standaloneGuide).toContain("verified local `goodmemory-0.7.4.tgz`");
+    expect(standaloneGuide).toContain("npm install -g goodmemory@0.7.5");
+    expect(standaloneGuide).not.toContain("verified local `goodmemory-0.7.4.tgz`");
     // Bun is a hard runtime prerequisite: the goodmemory-mcp bin spawns bun.
     expect(standaloneGuide).toContain("Bun");
 
@@ -1544,11 +1545,9 @@ describe("release metadata and docs", () => {
     expect(zhReadme).toContain("[English](./README.md)");
     expect(zhReadme).toContain(`# GoodMemory`);
     expect(zhReadme).toContain(CURRENT_PACKAGE_VERSION);
-    expect(zhReadme).toContain("已发布的 registry 基线是 GoodMemory `0.7.4`");
-    expect(zhReadme).toMatch(
-      /要验证尚未发布的 `0\.7\.5`\s+candidate，请使用下方准备好的 tarball/u,
-    );
-    expect(zhReadme).not.toContain("GoodMemory `0.7.4` 发布后");
+    expect(zhReadme).toContain("已发布的 registry 基线是 GoodMemory `0.7.5`");
+    expect(zhReadme).toContain("下面的锁定版本命令用于可复现安装");
+    expect(zhReadme).not.toContain("尚未发布的 `0.7.5`");
     expect(zhReadme).toContain(`npm install -g goodmemory@${PUBLISHED_INSTALL_VERSION}`);
     expect(zhReadme).toContain(`npm install goodmemory@${PUBLISHED_INSTALL_VERSION}`);
     expect(zhReadme).toContain("如果你想直接输入 `goodmemory`，必须安装全局 CLI。");
@@ -2716,6 +2715,9 @@ describe("release metadata and docs", () => {
       "docs/archive/quality-gates/GoodMemory-Phase-20-Quality-Gate.md",
     );
     expect(currentStatus).toContain(
+      "stable `goodmemory@0.7.5` release source",
+    );
+    expect(currentStatus).toContain(
       "frozen published baseline is `goodmemory@0.7.4`",
     );
     expect(currentStatus).toContain(
@@ -2748,7 +2750,7 @@ describe("release metadata and docs", () => {
     expect(currentStatus).toContain("task-board/00-README.txt");
     expect(currentStatus).toContain("docs/archive/quality-gates/README.md");
     expect(currentStatus).toContain(
-      "The `0.7.4` source line has no current or versioned historical benchmark",
+      "The `0.7.5` source line has no current or versioned historical benchmark",
     );
     expect(currentStatus).toContain(
       "All remain internal diagnostics",

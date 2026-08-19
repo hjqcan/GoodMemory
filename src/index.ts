@@ -372,6 +372,13 @@ export type {
   ModelUsageOperation,
   ModelUsageSink,
 } from "./provider/model-usage";
+// Provider-backed adapters for embedding-based recall and LLM-assisted
+// extraction. Exported so host runtimes (e.g. tachikoma) can opt into the
+// quality tier against any OpenAI-compatible endpoint without reaching into
+// package internals.
+export { createAISDKEmbeddingAdapter } from "./provider/ai-sdk-runtime";
+export type { AISDKModelConfig } from "./provider/ai-sdk-runtime";
+export { createLLMMemoryExtractor } from "./provider/memory-extractor";
 export type {
   RuntimeArchiveStore,
   RuntimeArchiveStoreConfig,

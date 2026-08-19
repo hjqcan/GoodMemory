@@ -1,8 +1,11 @@
 import {
-  createFactMemory,
-  isFactExpired,
   createEpisodeMemory,
+  createFactMemory,
   isActiveMemoryLifecycle,
+  isFactExpired,
+  resolveEpisodeFreshnessTimestamp,
+  resolveFactEffectiveTimestamp,
+  resolveFactFreshnessTimestamp,
 } from "../domain/records";
 import type { EmbeddingAdapter } from "../embedding/contracts";
 import {
@@ -225,7 +228,10 @@ function shouldDemoteStaleActionFact(input: {
     input.fact.confidence <= STALE_ACTION_REPAIR_MAX_CONFIDENCE &&
     input.fact.importance <= STALE_ACTION_REPAIR_MAX_IMPORTANCE &&
     verificationPressure >= STALE_ACTION_REPAIR_MIN_VERIFICATION_PRESSURE &&
-    daysBefore(input.timestamp, input.fact.updatedAt) >=
+    daysBefore(
+      input.timestamp,
+      resolveFactFreshnessTimestamp(input.fact),
+    ) >=
       STALE_ACTION_REPAIR_MIN_AGE_DAYS &&
     isActionDrivingFact(input.fact, input.analyzeContent) &&
     hasActiveQualityReplacementFact(input)
@@ -265,7 +271,9 @@ function hasActiveQualityReplacementFact(input: {
     replacement &&
       replacement.id !== input.fact.id &&
       replacement.lifecycle === "active" &&
-      replacement.updatedAt.localeCompare(input.fact.updatedAt) > 0 &&
+      resolveFactEffectiveTimestamp(replacement).localeCompare(
+        resolveFactEffectiveTimestamp(input.fact),
+      ) > 0 &&
       replacement.confidence > input.fact.confidence &&
       isActionDrivingFact(replacement, input.analyzeContent),
   );
@@ -469,8 +477,15 @@ async function runContradictionRepair(
 
         if (leftPressure !== rightPressure) {
           weaker = leftPressure > rightPressure ? left : right;
-        } else if (left.updatedAt !== right.updatedAt) {
-          weaker = left.updatedAt.localeCompare(right.updatedAt) < 0 ? left : right;
+        } else if (
+          resolveFactEffectiveTimestamp(left) !==
+            resolveFactEffectiveTimestamp(right)
+        ) {
+          weaker = resolveFactEffectiveTimestamp(left).localeCompare(
+              resolveFactEffectiveTimestamp(right),
+            ) < 0
+            ? left
+            : right;
         } else {
           weaker = left.id.localeCompare(right.id) < 0 ? left : right;
         }
@@ -647,6 +662,10 @@ async function runEpisodeConsolidation(
         importance: Math.max(left.importance, right.importance),
         confidence: Math.max(left.confidence, right.confidence),
         locale: left.locale ?? right.locale,
+        observedAt: [
+          resolveEpisodeFreshnessTimestamp(left),
+          resolveEpisodeFreshnessTimestamp(right),
+        ].sort()[0],
         createdAt: timestamp,
       });
 

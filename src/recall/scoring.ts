@@ -8,7 +8,12 @@ import type {
   ReferenceKind,
   ReferenceMemory,
 } from "../domain/records";
-import { resolveMemoryLifecycle } from "../domain/records";
+import {
+  resolveEpisodeFreshnessTimestamp,
+  resolveFactEffectiveTimestamp,
+  resolveFactFreshnessTimestamp,
+  resolveMemoryLifecycle,
+} from "../domain/records";
 import type { MemoryScope } from "../domain/scope";
 import type { MemorySourceMethod } from "../domain/provenance";
 import type { EmbeddingAdapter } from "../embedding/contracts";
@@ -478,7 +483,10 @@ export function buildFactCandidates(
             excludeStopwords: true,
           });
     const intentScore = factIntentPriority(factAnalysis, queryAnalysis);
-    const freshness = freshnessScore(fact.updatedAt, referenceTime);
+    const freshness = freshnessScore(
+      resolveFactFreshnessTimestamp(fact),
+      referenceTime,
+    );
     const explicitness = explicitnessScore(fact.source.method);
     const usageScore = 0;
     const evidenceScore = evidenceSupportScore(
@@ -560,7 +568,7 @@ export function buildReferenceCandidates(
         : language.tokenOverlap(subject, query, queryLocale, {
             excludeStopwords: true,
           });
-    const freshness = freshnessScore(reference.updatedAt, referenceTime);
+    const freshness = freshnessScore(reference.createdAt, referenceTime);
     const explicitness = explicitnessScore(reference.source.method);
     const evidenceScore = evidenceSupportScore(
       evidenceCountsByMemoryId?.get(reference.id) ?? 0,
@@ -602,7 +610,10 @@ export function buildEpisodeCandidates(
       language.tokenOverlap(episode.topics.join(" "), query, queryLocale, {
         excludeStopwords: true,
       });
-    const freshness = freshnessScore(episode.createdAt, referenceTime);
+    const freshness = freshnessScore(
+      resolveEpisodeFreshnessTimestamp(episode),
+      referenceTime,
+    );
     const semanticScore = semanticScores?.get(episode.id) ?? 0;
 
     return {
@@ -827,7 +838,9 @@ export function sortFacts(facts: FactMemory[]): FactMemory[] {
       return left.source.method === "explicit" ? -1 : 1;
     }
 
-    return right.updatedAt.localeCompare(left.updatedAt);
+    return resolveFactEffectiveTimestamp(right).localeCompare(
+      resolveFactEffectiveTimestamp(left),
+    );
   });
 }
 

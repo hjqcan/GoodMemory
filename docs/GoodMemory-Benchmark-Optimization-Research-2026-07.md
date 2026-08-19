@@ -1331,6 +1331,8 @@ judge, prompt, retrieved-context budget, and scoring contract match.
 | LazyMem | Source [`af41099`](https://github.com/allacnobug/LazyMem/tree/af4109960aacb90d6dba994e9103a36a165cc380), paper [arXiv:2607.22690](https://arxiv.org/abs/2607.22690): 0.85 on a LongMemEval 100-question test split and 0.68 on a 314-question LoCoMo subset | It does not score the official full LongMemEval-500 or LoCoMo-1540 protocols. Its 360/40/100 LongMemEval split trains and selects a query-conditioned 4B policy with gold-support supervision; datasets, weights, annotations, checkpoints, and result artifacts are not released. | Broad dense+BM25 RRF union, neighbor-window restoration, then query-time KEEP/compress/deduplicate/chronological assembly over raw history. Test the inference contract before considering any trained controller. |
 | Mnemis | Source [`4552fed`](https://github.com/microsoft/Mnemis/tree/4552fed19bc0cde7b990a6ceb0365cd75b1b3453), paper [arXiv:2602.15313](https://arxiv.org/abs/2602.15313): LoCoMo 0.939 excluding category 5 and LongMemEval-S 0.916 | The checked-in graph, answer, and grader configurations all use GPT-4.1-mini. LoCoMo retrieves up to 30 RAG results plus 60 graph/global results; checked-in result contexts average about 35.4K characters and reach 61.8K. The repository publishes its global selector and outputs, but not a complete reproducible Graphiti construction and evaluation stack. This is not GoodMemory's 32-candidate / 12-record, independently judged protocol. | The transferable part is an independently admitted coarse/global route before fusion, not a new graph database. Reuse existing episode, relation, and cluster records, under the current candidate, record, and token ceilings. |
 | opsem lexical-dense fusion | Source [`68186a4`](https://github.com/Chrislysen/opsem/tree/68186a45882dd85ea66fcc70ee38ba28f6de9a90), paper [arXiv:2606.04194](https://arxiv.org/abs/2606.04194): LoCoMo Hit@1 0.7518 for normalized BM25 + turn-max dense fusion | This is retrieval-only rather than end-to-end memory QA. Its LongMemEval-S challenge result improves Recall@1 from 0.5889 to 0.5944 on 150 cases, but the reported confidence interval crosses zero; the LoCoMo fusion weight is selected leave-one-conversation-out. | A fixed-budget ablation of current rank-only RRF against query-local normalized lexical+dense scores and turn-max aggregation is cheap and plausible. Freeze the weight outside the target evaluation and do not turn retrieval Hit@1 into an answer-score claim. |
+| PropMem / MemEval | Source [`807ae6d`](https://github.com/ProsusAI/MemEval/tree/807ae6d7d8a5b76f6fe964d5a581d96c036e2ac4): LoCoMo F1/judge 0.605/0.823 and LongMemEval F1/judge 0.550/0.716 | LoCoMo uses 1,986 questions, but the LongMemEval headline uses a generated 102-question sample (17 per category), not the official 500. The repository does not track the generated sample ids or matching result artifacts, so source alone cannot replay the exact headline. The runs also use GPT-4.1 answers/extraction, `text-embedding-3-small`, GPT-5.2 for the LoCoMo judge, and GPT-4o for LongMemEval. | Atomic propositions plus raw-chunk fallback and a 0.8 dense / 0.2 BM25 union are already represented by GoodMemory's assisted facts, evidence, and generalized fusion. The narrower new hypothesis is entity-scoped noise control for genuinely multi-person dialogue; it does not explain PropMem's LongMemEval result because its generic user/assistant path has no named target entity. |
+| agentmemory V4 | Source [`3aa3b83`](https://github.com/JordanMcCann/agentmemory/tree/3aa3b8389896f81dd813fdf9176ef3ca122d809e): advertises LongMemEval 481/500 (96.2%) | The checked-in runner hard-codes `LongMemEval/data/longmemeval_oracle.json`, and the result artifact records that same oracle path. That file contains the answer/evidence sessions rather than the noisy LongMemEval-S haystack, so running retrieval inside it is still oracle-filtered retrieval. The implementation also records 46 benchmark iteration cycles, branches on `question_type`, uses per-type context budgets from 1.5K to 7.5K/10K tokens, and contains benchmark-specific answer literals and rules. Its “real retrieval / no oracle” comparison is invalid. | Do not promote any score-driven mechanism. Deterministic ANN construction and session-balanced retrieval are general engineering ideas, but GoodMemory already has deterministic retrieval and bounded multi-lane selection; any new test must start from a fresh, non-oracle population. |
 | swafra | Source [`669e7bd`](https://github.com/kunal12203/swafra/tree/669e7bdbcbcd421deb172a05f8fe52b741c0e915), advertised 94.7% | The number is session-retrieval recall, skips abstention, and is not end-to-end answer QA. | No score-driven change. Its result is useful only as another reminder to keep retrieval, answer conversion, and abstention metrics separate. |
 
 The most important negative finding is that there is no missing universal
@@ -1357,6 +1359,12 @@ The most useful competitor delta is narrower:
 5. opsem makes score normalization and turn-max aggregation the cheapest next
    ranking ablation on a new frozen cohort with real misses. Its weight must be
    preregistered, and its LongMemEval result is a null rather than a win.
+6. PropMem's strongest non-duplicated idea is entity-scope noise control on
+   multi-person dialogue. It needs a fresh LoCoMo-like cohort; it is neither a
+   reason to widen context nor an explanation for its LongMemEval result.
+7. agentmemory's 96.2% headline is rejected at the dataset boundary. An oracle
+   haystack cannot become a real LongMemEval-S run merely because retrieval is
+   executed inside the already filtered sessions.
 
 #### What the newer papers change
 
@@ -2082,13 +2090,22 @@ headroom and must not recycle these 16 cases as fresh evidence.
 #### New generalization boundary: LongMemEval-V2
 
 The official [LongMemEval-V2 source at
-`6f020ac`](https://github.com/xiaowu0162/LongMemEval-V2/tree/6f020ac2fc3275e46c706d3406e02c3ed79b7be2)
+`2cc8c54`](https://github.com/xiaowu0162/LongMemEval-V2/tree/2cc8c540bdb87fe6761629b585e727e1c4704520)
 and [paper](https://arxiv.org/abs/2605.12493) define a materially different
 451-question benchmark: web and enterprise trajectories, five abilities, and
 small/medium histories reaching 500 trajectories and about 115M tokens. The
-dataset revision inspected here is
-`f152293e235517d504809563c833d7190b8c713b`; its seven files total about
-7.12 GB, so source and metadata were pinned but the dataset was not downloaded.
+dataset revision is
+`f152293e235517d504809563c833d7190b8c713b`; its 41 tracked files total
+7,120,369,667 bytes before screenshot extraction. The pinned snapshot now lives
+outside the repository under `/Volumes/data/GoodMemory-research/`. The upstream
+checksum manifest passes for both haystacks, questions, trajectories, data-card,
+schema, license, and all question screenshots. One upstream integrity defect is
+recorded rather than hidden: the manifest expects README SHA-256 `bd089040...`,
+while the README at the same locked revision hashes to `c5de92ea...`. The two
+large trajectory screenshot archives are not covered by that upstream manifest,
+so the official post-extraction validator is the evidence boundary for them.
+Preparation completed at 13 GiB, and the official validators pass for both
+Small and Medium with 451 questions and 1,870 trajectories.
 
 The official fixed leaderboard snapshot reports Small accuracy/latency of
 51.0/0.2 s for RAG+notes, 69.9/177.2 s for Codex, 58.6/26.9 s for
@@ -2101,18 +2118,55 @@ trajectory protocol are reproduced.
 AgentRunbook-R provides one useful architecture clue: it independently queries
 raw state, state-transition events, and procedure/hint notes, caps and merges
 each route, then answers from their union. Its official controller also receives
-question ID, question type, and original task goals, and its fallback branches
-on question type. A GoodMemory adapter must deliberately ignore those fields
-and admit only the visible question text/image plus normal trajectory evidence.
-Otherwise an apparent gain would weaken, not strengthen, the generalization
-claim.
+only question text. The current harness and `tests/test_query_privacy.py` now
+enforce that backends receive question text/image plus a random run-local
+invocation id; question id, question type, gold answer, evaluator, and original
+goal metadata stay private. This supersedes the earlier source audit that found
+type/id metadata at the controller boundary.
 
-The next authorized step is therefore a pinned official-harness adapter and a
-Small baseline before any core tuning. It must report answer accuracy, latency,
-model/query calls, retrieved records, and token budget; keep GoodMemory's
-question-only boundary; and freeze the sample or full split before observing
-outcomes. Downloading the 7.12 GB corpus needs a separate disk preflight. No
-LongMemEval-V2 score or compatibility claim exists yet.
+The August AgentRunbook-C V2 update adds two separable mechanisms. First, an
+OpenAI Agents SDK controller keeps only shell and file-edit tools. On
+LME-V2-Small with GPT-5.4-mini, the controller-only medium point is 72.06% at
+46.31 s versus V1's 70.30% at 70.00 s. With GPT-5.6 Luna, the medium point is
+faster but lower (66.52%/24.72 s versus 68.29%/62.71 s), while xhigh is both
+higher and faster (75.17%/48.94 s versus 73.61%/101.83 s). This is a latency
+architecture result, not a universal accuracy improvement.
+
+Second, a post-query consolidation agent writes a shared learned-retrieval
+strategy for later questions. The combined GPT-5.4-mini table reports
+72.73%/56.68 s at medium and 75.61%/130.54 s at xhigh. The source explicitly
+forbids reader answers, evaluator scores, and aggregate metrics as consolidation
+inputs, classifies prior retrieval evidence as directly supported,
+premise-contradicting, near-match, or insufficient, and requires current
+evidence to verify any reused lead. That contract is relevant to GoodMemory's
+evidence/evolution boundaries. However, it is order-dependent test-time
+adaptation across the benchmark question stream. To avoid benchmark-specific
+strategy accumulation, GoodMemory may test it only as a development-to-frozen
+strategy transfer or with an independently shuffled/preregistered protection
+run; it is not part of the first baseline and creates no default core change.
+
+A minimal official-harness adapter now exists under
+`scripts/research/longmemeval-v2/`. It registers `memory_type=goodmemory`
+without patching the upstream checkout, writes only whitelisted trajectory
+summary/state fields through the public HTTP bridge as exact verified
+`rules-only` facts, uses a fresh run namespace plus an opaque per-question
+workspace partition, stores trajectory ids in fact metadata, and returns only
+screenshots named by recalled facts. The per-question partition fixes an otherwise-invalid
+remote-backend behavior where distinct official haystacks would accumulate in
+one service scope. It never serializes unknown trajectory fields and never
+receives private question metadata. The real HTTP bridge regression now covers
+durable fact persistence, semantic candidate admission, text recall, and
+screenshot return; Python fixtures cover registry and harness injection. The
+server must enable neural embeddings plus an explicit semantic candidate path:
+hybrid scoring alone cannot admit a long state that has been suppressed by the
+lexical floor. The adapter remains a pre-protocol component rather than an
+entry in the current C6-specific research registry.
+
+The next authorized step is a sealed Small baseline before any core tuning. It
+must use separate fresh scopes for web and enterprise and report answer
+accuracy, latency, model/query calls, retrieved records, routing degradation,
+image count, and token budget. No LongMemEval-V2 score or compatibility claim
+exists yet.
 
 ## 8. Primary sources
 
@@ -2129,6 +2183,7 @@ arXiv 2508.19828 · SAGE arXiv 2605.30711 · Supersede arXiv 2606.27472 ·
 MemReranker arXiv 2605.06132 · MemDelta arXiv 2606.29914 · Mastra OM
 (mastra.ai/research/observational-memory) · SetR ACL 2025 · MRAG Findings of
 EMNLP 2025 · Mnemis arXiv 2602.15313 · opsem arXiv 2606.04194 · LongMemEval-V2
-arXiv 2605.12493 · vendor claims individually marked.
+arXiv 2605.12493 · AgentRunbook-C V2 official source/page · ProsusAI/MemEval ·
+JordanMcCann/agentmemory · vendor claims individually marked.
 Claude Code patterns: `third-party/claude-code-main/src/memdir/`,
 `src/services/{extractMemories,autoDream,compact,SessionMemory}/`.

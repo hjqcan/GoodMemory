@@ -4,9 +4,9 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 
 ## Current OSS Surface
 
-- The current source identity is the unpublished `goodmemory@0.7.5` release
-  candidate (`goodmemoryRelease.status=release-candidate`, dist-tag intent
-  `next`). The published installation baseline remains `goodmemory@0.7.4`.
+- The current source identity is the stable `goodmemory@0.7.5` release source
+  (`goodmemoryRelease.status=stable`, dist-tag intent `latest`). The published
+  installation baseline is `goodmemory@0.7.5`.
 - The frozen published baseline is `goodmemory@0.7.4`, commit
   `05d39fcfb8bb6efe6b8065ec3ea8372c15b9c1b8`, tree
   `4f902b215c60f5bb6543e9b7c3ce501895b45725`. The tracked
@@ -176,7 +176,7 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   scans compiled JavaScript for known fitted benchmark literals.
 - Core public workflow remains centered on `createGoodMemory`, `remember`, `recall`, `buildContext`, `feedback`, `forget`, `exportMemory`, and `deleteAllMemory`; advanced host/operator facades such as runtime, jobs, reviseMemory, and runMaintenance stay explicit.
 - Package subpaths `goodmemory`, `goodmemory/ai-sdk`, `goodmemory/host`, `goodmemory/http`, and `goodmemory/runtime-kit` resolve through compiled `dist/` artifacts and emitted type declarations.
-- The published v0.7.4 baseline retains the exact AI SDK 6 dependency versions
+- The published v0.7.5 baseline retains the exact AI SDK 6 dependency versions
   inherited from the measured v0.7.3 lock instead of publishing caret ranges that can
   resolve to `@ai-sdk/provider-utils` versions carrying `undici@5.29.0`. The
   release gate now performs a fresh production install from the packed tarball,
@@ -1642,7 +1642,7 @@ cutover, and rollback contracts.
   `c6-repository-statistics.ts` is only a tested primitive until it
   is wired to the complete attempt loader, frozen report, independent replay,
   and C7 gate.
-- The `0.7.4` source line has no current or versioned historical benchmark
+- The `0.7.5` source line has no current or versioned historical benchmark
   claim. The retained v0.7.3 LoCoMo tracked-current projection is not end-to-end
   runner evidence and cannot authorize promotion. The v0.6.0 LoCoMo, BEAM, and
   MemoryAgentBench artifacts fail the same empty allowlist. All
@@ -1677,7 +1677,7 @@ cutover, and rollback contracts.
 - automatic adapter/event `user_correction` path is proposal-first and records selective evidence plus proposal/promotion receipts instead of writing an intermediate active feedback memory; public `feedback()` remains the explicit durable procedural feedback entrypoint.
 - Provider-backed retrieval is explicit; rules-only remains the default accepted mode, and provider failures surface as `provider_error`.
 - Dashboard, cloud sync, and team workspace remain a Phase 48 no-go decision.
-- The current v0.7.4 benchmark surface contains no current or versioned
+- The current v0.7.5 benchmark surface contains no current or versioned
   historical claim. LoCoMo v0.7.3, the v0.6.0 LoCoMo/BEAM/MemoryAgentBench
   measurements, and ImplicitMemBench are paused internal diagnostics.
   LongMemEval is withdrawn pending a clean opaque-session-id rerun. The runtime

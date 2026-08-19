@@ -1,5 +1,6 @@
 import {
   isFactExpired,
+  resolveFactEffectiveTimestamp,
   type FactMemory,
   type UserProfile,
 } from "../domain/records";
@@ -435,13 +436,7 @@ function normalizedKnownSubject(
 function factTimestamp(
   candidate: ReturnType<typeof buildFactCandidates>[number],
 ): number {
-  const timestamp =
-    candidate.fact.validFrom ??
-    candidate.fact.observedAt ??
-    candidate.fact.updatedAt ??
-    candidate.fact.source.extractedAt ??
-    candidate.fact.createdAt;
-  const parsed = Date.parse(timestamp);
+  const parsed = Date.parse(resolveFactEffectiveTimestamp(candidate.fact));
   return Number.isFinite(parsed) ? parsed : 0;
 }
 

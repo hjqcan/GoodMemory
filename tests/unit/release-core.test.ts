@@ -35,6 +35,7 @@ import {
 } from "../../scripts/release/profile";
 import {
   prepareReleaseArtifact,
+  runReleaseCommand,
   runReleaseProfile,
 } from "../../scripts/release/runner";
 import type {
@@ -185,10 +186,10 @@ describe("release profile and historical parity", () => {
       summary: { failed: 0, passed: 19, skipped: 0, total: 19 },
     });
     expect(profile.package).toEqual({
-      distTag: "next",
+      distTag: "latest",
       installCommandsApplyAfterPublish: true,
       name: "goodmemory",
-      status: "release-candidate",
+      status: "stable",
       tarballName: "goodmemory-0.7.5.tgz",
       version: "0.7.5",
     });
@@ -228,6 +229,18 @@ describe("release profile and historical parity", () => {
     expect(() => projectV07LegacyReadinessParity({
       checks: [...checks.slice(1), { id: "unexpected", required: true, status: "pass" }],
     })).toThrow("required check set drifted");
+  });
+
+  it("uses the current Bun executable for release self-spawns even when PATH is empty", async () => {
+    const result = await runReleaseCommand({
+      args: ["--version"],
+      command: "bun",
+      cwd: new URL("../..", import.meta.url).pathname,
+      environment: { PATH: "" },
+    });
+
+    expect(result.code).toBe(0);
+    expect(result.stdout.trim()).toBe(Bun.version);
   });
 
   it("accepts only the documented fail-closed prepare arguments", () => {
@@ -421,7 +434,7 @@ describe("release runner", () => {
       expect(result.manifest.source).toEqual({
         clean: true,
         commit: COMMIT,
-        tag: null,
+        tag: "v0.7.5",
         tree: TREE,
       });
       expect(result.manifest.checks.map(({ id }) => id)).toEqual([

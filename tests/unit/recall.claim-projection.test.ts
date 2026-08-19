@@ -563,7 +563,7 @@ describe("claim projection runtime", () => {
       .toBeUndefined();
   });
 
-  it("repairs a late-ingested retroactive slot value by valid time", async () => {
+  it("bounds a late-ingested retroactive slot value immediately", async () => {
     const store = createInMemoryDocumentStore();
     const runtime = createRecallProjectionRuntime({ documentStore: store });
     const currentFact = buildFact();
@@ -599,15 +599,12 @@ describe("claim projection runtime", () => {
       sourceMemoryId: retroactiveFact.id,
     });
 
-    const before = await runtime.queryClaimHistory(scope);
-    expect(before.every(({ validUntil }) => validUntil === undefined)).toBe(true);
-
-    expect(await runtime.sweepClaimSlots(scope)).toBeGreaterThanOrEqual(1);
-    const after = await runtime.queryClaimHistory(scope);
-    expect(after.find(({ objectText }) => objectText === "planned")?.validUntil)
+    const history = await runtime.queryClaimHistory(scope);
+    expect(history.find(({ objectText }) => objectText === "planned")?.validUntil)
       .toBe(currentValidFrom);
-    expect(after.find(({ objectText }) => objectText === "completed")?.validUntil)
+    expect(history.find(({ objectText }) => objectText === "completed")?.validUntil)
       .toBeUndefined();
+    expect(await runtime.sweepClaimSlots(scope)).toBe(0);
   });
 
   it("loads current claims for selected memories without scanning the whole scope", async () => {

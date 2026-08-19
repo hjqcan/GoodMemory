@@ -1,6 +1,6 @@
 # GoodMemory Claude Code Setup Guide
 
-This is the canonical global CLI `0.7.4` Claude Code setup path. The registry
+This is the canonical global CLI `0.7.5` Claude Code setup path. The registry
 command requires publication; source verification uses the local tarball path
 below.
 
@@ -9,7 +9,7 @@ below.
 Install the CLI globally when you want to run `goodmemory` directly:
 
 ```bash
-npm install -g goodmemory@0.7.4
+npm install -g goodmemory@0.7.5
 goodmemory -V
 ```
 
@@ -21,7 +21,7 @@ host adapter; then invoke the bin as `npx goodmemory`,
 Tarball verification of the same release artifact before publish:
 
 ```bash
-npm install -g ./goodmemory-0.7.4.tgz
+npm install -g ./goodmemory-0.7.5.tgz
 goodmemory -V
 ```
 
@@ -56,11 +56,11 @@ Use this only when you need repo-local scaffold files from a package dependency
 instead of the managed global installed-host path.
 
 ```bash
-npm install goodmemory@0.7.4
+npm install goodmemory@0.7.5
 npx goodmemory claude bootstrap --user-id <user-id> --workspace-id <workspace-id>
 ```
 
-Bun services can install the same package with `bun add goodmemory@0.7.4`.
+Bun services can install the same package with `bun add goodmemory@0.7.5`.
 
 This creates repo-local scaffolding only:
 

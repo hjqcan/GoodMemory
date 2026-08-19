@@ -39,6 +39,11 @@ type RootCreateSessionArchive = typeof import("../../src").createSessionArchive;
 
 type PublicDurableOptOutTargetSelector =
   import("../../src").DurableOptOutTargetSelector;
+type PublicAISDKModelConfig = import("../../src").AISDKModelConfig;
+type PublicCreateAISDKEmbeddingAdapter =
+  typeof import("../../src").createAISDKEmbeddingAdapter;
+type PublicCreateLLMMemoryExtractor =
+  typeof import("../../src").createLLMMemoryExtractor;
 type PublicGoodMemoryPolicyHooks = import("../../src").GoodMemoryPolicyHooks;
 type PublicPolicyRedactionResult = Awaited<ReturnType<
   NonNullable<PublicGoodMemoryPolicyHooks["redact"]>
@@ -57,6 +62,10 @@ const legacyDurableOptOutTargetSelectorShape = {
 };
 const legacyDurableOptOutTargetSelector: PublicDurableOptOutTargetSelector =
   legacyDurableOptOutTargetSelectorShape;
+const publicAISDKModelConfig = {
+  model: "text-embedding-3-small",
+  provider: "openai",
+} satisfies PublicAISDKModelConfig;
 
 void (0 as unknown as RootMemoryRepositories);
 void (0 as unknown as RootMemoryRepositoriesConfig);
@@ -71,6 +80,9 @@ void (0 as unknown as RootSessionArchive);
 void (0 as unknown as RootCreateLearningProposal);
 void (0 as unknown as RootCreatePromotionRecord);
 void (0 as unknown as RootCreateSessionArchive);
+void (0 as unknown as PublicCreateAISDKEmbeddingAdapter);
+void (0 as unknown as PublicCreateLLMMemoryExtractor);
 void publicDurableOptOutTargetSelector;
 void legacyDurableOptOutTargetSelector;
+void publicAISDKModelConfig;
 void publicPolicyRedactionCandidateId;

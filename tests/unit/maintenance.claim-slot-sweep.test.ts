@@ -13,11 +13,9 @@ import {
 } from "../../src/recall/projections/contracts";
 
 // R9.4: the contradiction maintenance job runs R4.1's structural supersession
-// in batch form over stored claims. The write path only closes older slot
-// values when the newer value arrives later; out-of-order ingestion (bulk
-// imports replaying history newest-first) leaves two open "current" values in
-// the same (subjectEntityId, predicateKey) slot. The sweep closes the stale
-// one at the newer observation. Generic fact.* claims never participate.
+// in batch form over legacy or damaged slots. The normal append path converges
+// ordered and out-of-order writes immediately; the sweep remains a repair path
+// for two selected open values in the same structured slot.
 describe("claim slot sweep (contradiction maintenance job)", () => {
   const scope = { userId: "u-1", workspaceId: "workspace-a" };
   const NOW = "2026-07-01T00:00:00.000Z";
@@ -118,10 +116,60 @@ describe("claim slot sweep (contradiction maintenance job)", () => {
     );
   }
 
-  it("closes stale open slot values that out-of-order ingestion left behind", async () => {
+  async function seedLegacyOpenSlot() {
+    const seeded = await seedOutOfOrder();
+    const selected = await slotClaims(seeded.rawStore);
+    const paris = selected.find((claim) => claim.objectText === "Paris")!;
+    const statuses = await seeded.rawStore.query<ClaimProjectionStatus>(
+      CLAIM_PROJECTION_STATUS_COLLECTION,
+      {},
+    );
+    const status = statuses.find(
+      (candidate) => candidate.sourceMemoryId === paris.sourceMemoryId,
+    )!;
+    const legacyOpenParis: ClaimProjection = {
+      ...paris,
+      id: "legacy-open-paris",
+      validUntil: undefined,
+    };
+    await seeded.rawStore.set(
+      CLAIM_PROJECTIONS_COLLECTION,
+      legacyOpenParis.id,
+      legacyOpenParis,
+    );
+    await seeded.rawStore.set(
+      CLAIM_PROJECTION_STATUS_COLLECTION,
+      status.id,
+      {
+        ...status,
+        claimIds: status.claimIds.map((claimId) =>
+          claimId === paris.id ? legacyOpenParis.id : claimId
+        ),
+      },
+    );
+    return seeded;
+  }
+
+  it("converges newest-first ingestion before maintenance runs", async () => {
     const { memory, rawStore } = await seedOutOfOrder();
 
-    // Precondition: the write path left BOTH values open (newer arrived first).
+    const before = await slotClaims(rawStore);
+    expect(before).toHaveLength(2);
+    expect(before.find((claim) => claim.objectText === "Paris")?.validUntil)
+      .toBe("2026-06-01T10:00:00.000Z");
+    expect(before.find((claim) => claim.objectText === "Lisbon")?.validUntil)
+      .toBeUndefined();
+
+    const report = await memory.runMaintenance({ scope, jobs: ["contradiction"] });
+    const contradiction = report.maintenance?.jobs.find(
+      (job) => job.name === "contradiction",
+    );
+    expect(contradiction?.applied).toBe(0);
+  });
+
+  it("repairs a legacy slot containing two selected open values", async () => {
+    const { memory, rawStore } = await seedLegacyOpenSlot();
+
     const before = await slotClaims(rawStore);
     expect(before).toHaveLength(2);
     expect(before.every((claim) => claim.validUntil === undefined)).toBe(true);
@@ -142,7 +190,7 @@ describe("claim slot sweep (contradiction maintenance job)", () => {
   });
 
   it("is idempotent: a second sweep closes nothing further", async () => {
-    const { memory } = await seedOutOfOrder();
+    const { memory } = await seedLegacyOpenSlot();
     await memory.runMaintenance({ scope, jobs: ["contradiction"] });
     const second = await memory.runMaintenance({
       scope,

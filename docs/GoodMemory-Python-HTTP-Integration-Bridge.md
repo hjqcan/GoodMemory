@@ -35,11 +35,10 @@ public GoodMemory surfaces:
 
 ## Deployment
 
-Installed package usage after `goodmemory@0.7.4` is published. Before
-publication, use the verified local tarball instead.
+Installed package usage with the current stable package:
 
 ```bash
-bun add goodmemory@0.7.4
+bun add goodmemory@0.7.5
 
 GOODMEMORY_HTTP_BRIDGE_TOKEN="replace-with-service-token" \
 GOODMEMORY_STORAGE_PROVIDER=postgres \

@@ -104,24 +104,34 @@ export const runReleaseCommand: ReleaseCommandRunner = async (input) => {
     delete environment.GIT_OBJECT_DIRECTORY;
     delete environment.GIT_WORK_TREE;
   }
-  const child = Bun.spawn({
-    cmd: [input.command, ...input.args],
-    cwd: input.cwd,
-    env: environment,
-    stderr: "pipe",
-    stdout: "pipe",
-  });
-  const [code, stderr, stdout] = await Promise.all([
-    child.exited,
-    new Response(child.stderr).text(),
-    new Response(child.stdout).text(),
-  ]);
-  return {
-    code,
-    durationMs: elapsed(startedAt),
-    stderr,
-    stdout,
-  };
+  const command = input.command === "bun" ? process.execPath : input.command;
+  try {
+    const child = Bun.spawn({
+      cmd: [command, ...input.args],
+      cwd: input.cwd,
+      env: environment,
+      stderr: "pipe",
+      stdout: "pipe",
+    });
+    const [code, stderr, stdout] = await Promise.all([
+      child.exited,
+      new Response(child.stderr).text(),
+      new Response(child.stdout).text(),
+    ]);
+    return {
+      code,
+      durationMs: elapsed(startedAt),
+      stderr,
+      stdout,
+    };
+  } catch (error) {
+    return {
+      code: 127,
+      durationMs: elapsed(startedAt),
+      stderr: error instanceof Error ? error.message : String(error),
+      stdout: "",
+    };
+  }
 };
 function cleanOutput(outcome: ReleaseCommandOutcome): string {
   return (outcome.stderr || outcome.stdout)

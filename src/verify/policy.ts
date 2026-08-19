@@ -3,6 +3,10 @@ import type {
   FactMemory,
   ReferenceMemory,
 } from "../domain/records";
+import {
+  resolveEpisodeFreshnessTimestamp,
+  resolveFactFreshnessTimestamp,
+} from "../domain/records";
 import { createLanguageService } from "../language";
 import type { LanguageQueryAnalysis, LanguageService } from "../language";
 
@@ -36,7 +40,10 @@ export interface FactVerificationAssessment {
 }
 
 function daysBetween(left: string, right: string): number {
-  const ms = Math.abs(new Date(left).getTime() - new Date(right).getTime());
+  const ms = Math.max(
+    0,
+    new Date(left).getTime() - new Date(right).getTime(),
+  );
   return ms / (1000 * 60 * 60 * 24);
 }
 
@@ -77,7 +84,10 @@ function assessFactVerificationNeed(input: {
 }): FactVerificationAssessment {
   const actionDriving = input.actionDriving ??
     resolveVerificationContext(input).actionDriving;
-  const factAgeDays = daysBetween(input.referenceTime, input.fact.updatedAt);
+  const factAgeDays = daysBetween(
+    input.referenceTime,
+    resolveFactFreshnessTimestamp(input.fact),
+  );
   const stale = factAgeDays >= 30;
   const inferred = input.fact.source.method === "inferred";
 
@@ -161,7 +171,7 @@ export function evaluateVerificationHints(
 
   if (context.actionDriving) {
     for (const reference of input.references ?? []) {
-      const referenceAgeDays = daysBetween(input.referenceTime, reference.updatedAt);
+      const referenceAgeDays = daysBetween(input.referenceTime, reference.createdAt);
       if (referenceAgeDays < 30) {
         continue;
       }
@@ -175,7 +185,10 @@ export function evaluateVerificationHints(
     }
 
     for (const episode of input.episodes ?? []) {
-      const episodeAgeDays = daysBetween(input.referenceTime, episode.createdAt);
+      const episodeAgeDays = daysBetween(
+        input.referenceTime,
+        resolveEpisodeFreshnessTimestamp(episode),
+      );
       if (episodeAgeDays < 30) {
         continue;
       }

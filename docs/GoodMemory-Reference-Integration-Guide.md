@@ -1,6 +1,6 @@
 # GoodMemory Reference Integration Guide
 
-This is the canonical packaged `0.7.4` reference path for chatbox/copilot-style
+This is the canonical packaged `0.7.5` reference path for chatbox/copilot-style
 integration. Registry commands require publication; source verification uses
 the local tarball path below.
 
@@ -9,19 +9,19 @@ the local tarball path below.
 Published install:
 
 ```bash
-npm install goodmemory@0.7.4
+npm install goodmemory@0.7.5
 ```
 
 Bun install:
 
 ```bash
-bun add goodmemory@0.7.4
+bun add goodmemory@0.7.5
 ```
 
 Tarball verification of the same release artifact before publish:
 
 ```bash
-npm install ./goodmemory-0.7.4.tgz
+npm install ./goodmemory-0.7.5.tgz
 ```
 
 ## Quick Path
