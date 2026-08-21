@@ -21,6 +21,7 @@ jobs:
       - uses: hashgraph-online/ai-plugin-scanner-action@432eebe0fb9212be97c8d15cb1da9668a91e7914
         with:
           plugin_dir: "."
+          mode: scan
           format: json
           min_score: 80
           fail_on_severity: high

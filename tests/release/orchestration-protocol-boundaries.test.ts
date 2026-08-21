@@ -35,6 +35,7 @@ describe("orchestration and proof protocol boundaries", () => {
       "hashgraph-online/ai-plugin-scanner-action@432eebe0fb9212be97c8d15cb1da9668a91e7914",
     );
     expect(workflow).toContain('plugin_dir: "."');
+    expect(workflow).toContain("mode: scan");
     expect(workflow).toContain("format: json");
     expect(workflow).toContain("min_score: 80");
     expect(workflow).toContain("fail_on_severity: high");
