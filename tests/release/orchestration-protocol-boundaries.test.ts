@@ -23,6 +23,27 @@ function collectBunRunTargets(content: string): string[] {
 }
 
 describe("orchestration and proof protocol boundaries", () => {
+  it("keeps the plugin scanner workflow read-only and source-pinned", async () => {
+    const workflow = await readFile(
+      join(REPOSITORY_ROOT, ".github/workflows/plugin-security-scan.yml"),
+      "utf8",
+    );
+
+    expect(workflow).toContain("permissions:\n  contents: read");
+    expect(workflow).toContain("persist-credentials: false");
+    expect(workflow).toContain(
+      "hashgraph-online/ai-plugin-scanner-action@432eebe0fb9212be97c8d15cb1da9668a91e7914",
+    );
+    expect(workflow).toContain('plugin_dir: "."');
+    expect(workflow).toContain("mode: scan");
+    expect(workflow).toContain("format: json");
+    expect(workflow).toContain("min_score: 80");
+    expect(workflow).toContain("fail_on_severity: high");
+    expect(workflow).not.toContain("online: true");
+    expect(workflow).not.toContain("submission_enabled: true");
+    expect(workflow).not.toContain("secrets.");
+  });
+
   it("fetches the history required by source-bound unit tests", async () => {
     const workflow = await readFile(
       join(REPOSITORY_ROOT, ".github/workflows/ci.yml"),
