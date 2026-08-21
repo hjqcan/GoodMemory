@@ -32,7 +32,7 @@ describe("orchestration and proof protocol boundaries", () => {
     expect(workflow).toContain("permissions:\n  contents: read");
     expect(workflow).toContain("persist-credentials: false");
     expect(workflow).toContain(
-      "hashgraph-online/ai-plugin-scanner-action@55616c962cf86368423f7673b2ecdfdbe613d1af",
+      "hashgraph-online/ai-plugin-scanner-action@432eebe0fb9212be97c8d15cb1da9668a91e7914",
     );
     expect(workflow).toContain('plugin_dir: "."');
     expect(workflow).toContain("format: json");
