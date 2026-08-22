@@ -129,7 +129,9 @@ export function createGoodMemoryMcpServer(
       const context = resolveStandaloneMcpContext(input.standalone, args);
       return {
         ...context,
-        memory: createInstalledHostMemory(context, dependencies),
+        memory: createInstalledHostMemory(context, dependencies, {
+          postRecallMutations: false,
+        }),
       };
     }
     return loadInstalledHostExecutionContext(
@@ -769,7 +771,9 @@ async function loadInstalledHostExecutionContext(
   }
   return {
     ...resolved.context,
-    memory: createInstalledHostMemory(resolved.context, dependencies),
+    memory: createInstalledHostMemory(resolved.context, dependencies, {
+      postRecallMutations: false,
+    }),
   };
 }
 
