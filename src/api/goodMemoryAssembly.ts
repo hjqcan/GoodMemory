@@ -146,10 +146,12 @@ export function createGoodMemoryAssembly(input: {
       : resolvedRuntime;
   const storagePlan = runtimeResolution.storagePlan;
   const explicitStorage = storagePlan.mode === "explicit" ? storagePlan.storage : null;
-  const recallObservationsEnabled = !(
-    internal?.sqliteReadOnly &&
-    explicitStorage?.provider === "sqlite"
-  );
+  const recallObservationsEnabled =
+    internal?.postRecallMutations !== false &&
+    !(
+      internal?.sqliteReadOnly &&
+      explicitStorage?.provider === "sqlite"
+    );
   const sqliteStoreOptions = internal?.sqliteReadOnly
     ? { readOnly: true }
     : undefined;
