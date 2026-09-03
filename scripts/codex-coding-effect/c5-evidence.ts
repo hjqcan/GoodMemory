@@ -1296,13 +1296,40 @@ function expectedEvidencePaths(
               "C5 expected evaluator path",
             )).find((value) => value.arm === arm)
           : undefined;
-        paths.push(evaluation?.disposition === "infrastructure-failure"
-          ? `${pairRoot}/${arm}-evaluation-failure.sanitized.json`
-          : `${pairRoot}/${arm}-evaluation.json`);
+        const run = runs.find((candidate) => candidate.arm === arm);
+        const execution = run === undefined
+          ? undefined
+          : executions.get(`${run.id}/${stage.stageId}`);
+        paths.push(evaluatorEvidencePath({
+          arm,
+          codexStatus: execution?.codexStatus,
+          disposition: evaluation?.disposition,
+          pairRoot,
+        }));
       }
     }
   }
   return [...paths].sort();
+}
+
+// An "infrastructure-failure" evaluation has two evidence shapes: when the
+// evaluator itself could not run, the runner persists a sanitized failure
+// receipt; when the evaluator ran against a stage whose Codex process never
+// completed, it persists an ordinary evaluation whose score carries the
+// infrastructure disposition and the execution failure stage.
+function evaluatorEvidencePath(input: {
+  arm: string;
+  codexStatus: unknown;
+  disposition: unknown;
+  pairRoot: string;
+}): string {
+  if (
+    input.disposition === "infrastructure-failure" &&
+    input.codexStatus === "completed"
+  ) {
+    return `${input.pairRoot}/${input.arm}-evaluation-failure.sanitized.json`;
+  }
+  return `${input.pairRoot}/${input.arm}-evaluation.json`;
 }
 
 function verifyRunIdentity(
@@ -1430,8 +1457,10 @@ function verifyRunnerSourceState(input: {
     !paths.has("tsconfig.json") ||
     !paths.has("scripts/prepare-codex-coding-effect-c5-pilot.ts") ||
     !paths.has("scripts/run-codex-coding-effect-c5-pilot.ts") ||
+    // Code-point order, matching the capture's comparator; a locale-aware
+    // comparison reorders mixed-case names such as rerankPool/reranker.
     normalized.some((file, index) =>
-      index > 0 && normalized[index - 1]!.path.localeCompare(file.path) >= 0
+      index > 0 && !(normalized[index - 1]!.path < file.path)
     ) ||
     aggregateSha256 !== sha256(`${JSON.stringify(normalized)}\n`) ||
     input.identity.runnerSourceAggregateSha256 !== aggregateSha256
@@ -3431,14 +3460,20 @@ function verifyPairEvidence(input: {
     );
   }
   for (const evaluation of pairEvaluations) {
-    const path = evaluation.disposition === "infrastructure-failure"
-      ? `${pairRoot}/${evaluation.arm}-evaluation-failure.sanitized.json`
-      : `${pairRoot}/${evaluation.arm}-evaluation.json`;
+    const execution = input.executions.find((candidate) =>
+      candidate.arm === evaluation.arm
+    );
+    const path = evaluatorEvidencePath({
+      arm: evaluation.arm,
+      codexStatus: execution?.codexStatus,
+      disposition: evaluation.disposition,
+      pairRoot,
+    });
     const bytes = input.reader.bytes(path);
     if (evaluation.evaluationEvidenceSha256 !== sha256(bytes)) {
       throw new Error(`C5 evaluator evidence hash mismatch: ${path}`);
     }
-    if (evaluation.disposition === "infrastructure-failure") {
+    if (path.endsWith("-evaluation-failure.sanitized.json")) {
       verifyEvaluatorFailureEvidence(
         input.reader.json(path),
         evaluation.arm,
@@ -3449,6 +3484,8 @@ function verifyPairEvidence(input: {
         evidence: input.reader.json(path),
         evaluation,
         path,
+        scoredInfrastructureFailure:
+          evaluation.disposition === "infrastructure-failure",
       });
     }
   }
@@ -4653,6 +4690,7 @@ function verifyEvaluatorEvidence(input: {
   evidence: Record<string, unknown>;
   evaluation: ParsedPairEvaluation;
   path: string;
+  scoredInfrastructureFailure?: boolean;
 }): void {
   assertExactKeys(input.evidence, [
     "arm",
@@ -4697,6 +4735,23 @@ function verifyEvaluatorEvidence(input: {
     "resolved",
     "taskFailureReasons",
   ], `${input.path} score`);
+  if (input.scoredInfrastructureFailure === true) {
+    // The evaluator ran, but the arm's Codex process never completed; the
+    // score records the execution failure and never counts as resolved.
+    if (
+      score.disposition !== "infrastructure-failure" ||
+      typeof score.executionFailureStage !== "string" ||
+      score.executionFailureStage.length === 0 ||
+      score.resolved !== false ||
+      input.evaluation.resolved !== false ||
+      stringArray(score.taskFailureReasons, `${input.path} score reasons`)
+        .length !== 0 ||
+      input.evaluation.taskFailureReasons.length !== 0
+    ) {
+      throw new Error(`${input.path} scored infrastructure failure is inconsistent`);
+    }
+    return;
+  }
   if (
     score.disposition !== "finalized" ||
     score.executionFailureStage !== null ||

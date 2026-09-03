@@ -315,7 +315,14 @@ cutover, and rollback contracts.
   comparison on the C4 dataset plus a controlled-mutation Level-2 set;
   real-history source mining is paused as a diagnostic subset, and the pilot's
   six host-canary failures were fixed as a reproduced English project-policy
-  writeback admission defect.
+  writeback admission defect. The comparator run
+  `run-c5-canary-flat-20260903T065126Z` (2026-09-03) is projected, verified,
+  reviewed, and gate-accepted at
+  `reports/quality-gates/phase-73/c5-native-comparator-flat-summary-v1/`: on 34
+  comparable pairs both arms resolve 0.941 with 0 rescues and 0 regressions,
+  so the pre-registered +3.0-point memory-policy rule is not met and the
+  internal track is closed with a documented negative; the Level-2 set is
+  deferred and no public claim is authorized.
   C6 has a deterministic preflight/checkpoint implementation, but its candidate
   manifest is not frozen and there is no finalized candidate dataset,
   packaged-Linux host profile, flat-summary corpus, Linux execution, or C6

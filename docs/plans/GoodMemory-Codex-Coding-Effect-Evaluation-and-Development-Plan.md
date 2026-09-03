@@ -5,7 +5,7 @@ Priority: Codex first
 Claude Code: explicitly deferred until the Codex claim gate closes  
 Scope: evaluation and evidence infrastructure; production changes only when a
 real host canary proves a product defect  
-Last reviewed: 2026-09-02 (convergence addendum in 0.1)
+Last reviewed: 2026-09-03 (comparator result in 0.2)
 
 ## 0. Executive Decision
 
@@ -75,10 +75,40 @@ promotion control (6.2) was never executed. From 2026-09-02:
 
 The comparator arm is implemented in the C5 harness (`--baseline-arm
 flat-summary` with a frozen summary protocol; see the task board's 2026-09-02
-DONE entry) and awaits a one-cluster live canary, the 36-pair run, and the
-projection/verifier extension. The execution record lives in
+DONE entry). The execution record lives in
 `task-board/78-phase-73-codex-installed-host-coding-effect-evaluation.txt`
 under "Convergence (2026-09-02)".
+
+### 0.2 Comparator result (2026-09-03)
+
+The 36-pair flat-summary comparator ran on 2026-09-03
+(`run-c5-canary-flat-20260903T065126Z`, GoodMemory 0.7.5 working tree,
+Codex CLI 0.152.1, summarizer `gpt-5.6-terra`): 34 comparable pairs, 32
+shared-pass, 2 shared-fail, 0 rescues, 0 regressions; both arms resolve 0.941
+overall and 22/22 on positions two and later; the paired episode-cluster
+bootstrap interval for the net rescue rate is [0, 0]. Two pairs are
+incomparable because the summarizer relay failed for the whole retry window.
+The projection, independent verification, independent review, and gate are all
+accepted (`reports/quality-gates/phase-73/c5-native-comparator-flat-summary-v1/`).
+
+The pre-registered rule (positions two and later must beat flat-summary by
++3.0 points with a positive bootstrap lower bound) is therefore not met. A
+pinned-model summary of the arm's own prior stages, injected at the same
+SessionStart/UserPromptSubmit placements and 1024/512 caps, reproduces the
+whole continuity effect the v16 pilot measured against the no-memory baseline.
+The internal track closes with this negative result: on the C4 dataset the
+effect belongs to continuity context, not to GoodMemory's selective memory
+policy over the cheapest alternative. Consequences:
+
+- no README row, no `benchmark-claims/` change, no public claim; the 6.5
+  public gate and its 391-episode floor stay fail-closed;
+- the Level-2 controlled-mutation set is deferred until a comparator shows a
+  positive signal somewhere; building 30 episodes to re-measure a null is not
+  a good use of the budget;
+- the product-facing question moves to where memory can beat a summary: tasks
+  whose relevant context is older than the summary window, contradicts the
+  summary, or spans repositories and sessions, which the C4 three-stage
+  continuity episodes do not exercise.
 
 ## 1. Why This Lane Exists
 

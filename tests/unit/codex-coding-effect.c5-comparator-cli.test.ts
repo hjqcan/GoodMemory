@@ -186,7 +186,7 @@ describe("Codex coding-effect C5 comparator CLI", () => {
         return { ok: false, status: 503, text: async () => "busy" };
       },
     })).rejects.toThrow("C5 flat-summary provider returned HTTP 503");
-    expect(busyCalls).toBe(3);
+    expect(busyCalls).toBe(6);
   });
 });
 

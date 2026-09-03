@@ -105,7 +105,10 @@ bulk-load. Start here, then open only the file that matches the question.
   phase-wide glob. Historical C3/C4/C5 and source-v1/v2/v3 scripts remain
   direct, source-bound replays rather than package aliases. Converged
   2026-09-02 to an internal flat-summary-controlled track; real-history source
-  mining is paused as a diagnostic subset (see the plan's 0.1 addendum).
+  mining is paused as a diagnostic subset (see the plan's 0.1 addendum). The
+  comparator ran on 2026-09-03 and found no difference between GoodMemory and
+  a flat summary of prior stages (0 rescues, 0 regressions on 34 comparable
+  pairs), so the internal track closed with a documented negative (0.2).
 - `../scripts/research/protocols.json` - static active-protocol registry with
   source identity, entrypoints, canonical artifacts, exact historical gates,
   and external prerequisites. Historical execution occurs in an isolated

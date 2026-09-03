@@ -220,6 +220,42 @@ describe("Codex coding-effect C5 evidence closure", () => {
     }
   });
 
+  it("projects a summarizer outage as an incomparable pair with a scored infrastructure failure", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-comparator-outage-"));
+    try {
+      const fixture = await createRawFixture(root, { baselineArm: "flat-summary" });
+      await makeFlatSummaryStageNotStarted(fixture);
+      const projection = join(root, "projection");
+      const manifest = await projectC5RunEvidence({
+        outputDirectory: projection,
+        rawRunDirectory: fixture.raw,
+      });
+      expect(manifest.files).toHaveLength(429);
+      const verification = await verifyC5EvidenceProjection({
+        projectionDirectory: projection,
+      });
+      expect(verification.decision).toBe("accepted");
+      expect(verification.checks.noInfrastructureFailure).toBe(false);
+      expect(verification.checks.noLeakageRejection).toBe(true);
+      const report = JSON.parse(
+        await readFile(join(projection, "report.json"), "utf8"),
+      ) as {
+        comparatorInjection: Record<string, number>;
+        effect: { comparablePairs: number };
+        pairs: { incomparableCount: number };
+      };
+      expect(report.pairs.incomparableCount).toBe(1);
+      expect(report.effect.comparablePairs).toBe(35);
+      expect(report.comparatorInjection).toMatchObject({
+        contentInjectionCount: 23,
+        hookCanaryFailureCount: 1,
+        zeroInjectionCount: 12,
+      });
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("rejects a comparator receipt whose injected content drifted from the audited surface", async () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-comparator-drift-"));
     try {
@@ -1107,13 +1143,20 @@ describe("Codex coding-effect C5 evidence closure", () => {
   });
 });
 
+interface RawFixture {
+  leakageInputs: ReadonlyMap<string, {
+    artifacts: C4HiddenArtifact[];
+    staticSurfaces: C4LeakageSurface[];
+  }>;
+  plan: C5PilotPlan;
+  promptContents: ReadonlyMap<string, string>;
+  raw: string;
+}
+
 async function createRawFixture(
   root: string,
   options: { baselineArm?: C5BaselineArm } = {},
-): Promise<{
-  plan: C5PilotPlan;
-  raw: string;
-}> {
+): Promise<RawFixture> {
   const baselineArm = options.baselineArm ?? "no-memory";
   const raw = join(root, "raw");
   await mkdir(raw, { recursive: true });
@@ -1189,18 +1232,25 @@ async function createRawFixture(
     writeText(join(raw, "pilot-plan.json"), planBytes),
   ]);
 
+  // The runner closure reaches mixed-case source names; the capture orders
+  // them by code point (rerankPool before reranker), which a locale-aware
+  // comparison would reject.
+  const runnerEntrypointSource =
+    'import "../src/recall/rerankPool";\nimport "../src/recall/reranker";\n';
   const runnerFiles = [
-    "bun.lock",
-    "bunfig.toml",
-    "package.json",
-    "scripts/prepare-codex-coding-effect-c5-pilot.ts",
-    "scripts/run-codex-coding-effect-c5-pilot.ts",
-    "tsconfig.json",
-  ].map((path) => ({
-    bytes: 1,
-    path,
-    sha256: sha256("x"),
-    sourceBase64: Buffer.from("x").toString("base64"),
+    ["bun.lock", "x"],
+    ["bunfig.toml", "x"],
+    ["package.json", "x"],
+    ["scripts/prepare-codex-coding-effect-c5-pilot.ts", "x"],
+    ["scripts/run-codex-coding-effect-c5-pilot.ts", runnerEntrypointSource],
+    ["src/recall/rerankPool.ts", "x"],
+    ["src/recall/reranker.ts", "x"],
+    ["tsconfig.json", "x"],
+  ].map(([path, source]) => ({
+    bytes: Buffer.byteLength(source!, "utf8"),
+    path: path!,
+    sha256: sha256(source!),
+    sourceBase64: Buffer.from(source!).toString("base64"),
   }));
   const runnerSource = {
     aggregateSha256: sha256(`${JSON.stringify(runnerFiles)}\n`),
@@ -1541,7 +1591,153 @@ async function createRawFixture(
       '{"path":"/private/raw/path"}\n',
     ),
   ]);
-  return { plan, raw };
+  return { leakageInputs, plan, promptContents, raw };
+}
+
+// Mirrors a summarizer outage: the flat-summary stage never launched Codex,
+// carries no injection receipt, its evaluator scored an infrastructure
+// failure, the pair is incomparable, and the next stage's trajectory origins
+// no longer include a patch or Codex output for it.
+async function makeFlatSummaryStageNotStarted(fixture: RawFixture): Promise<{
+  run: C5PilotEpisodeArmRun;
+  stage: C5PilotStageRun;
+}> {
+  const cluster = fixture.plan.clusters[0]!;
+  const runs = fixture.plan.episodeArmRuns
+    .filter((candidate) => candidate.clusterId === cluster.id)
+    .sort((first, second) => first.armOrderPosition - second.armOrderPosition);
+  const run = runs.find((candidate) => candidate.arm === "flat-summary")!;
+  const installedRun = runs.find((candidate) =>
+    candidate.arm === "goodmemory-installed"
+  )!;
+  const stage = run.stages[1]!;
+  const stageRoot = join(
+    fixture.raw,
+    "trajectories",
+    clusterDigest(cluster.id),
+    run.arm,
+    stage.stageId,
+  );
+  const stagePath = join(stageRoot, "stage-execution.sanitized.json");
+  const evidence = JSON.parse(await readFile(stagePath, "utf8")) as Record<
+    string,
+    unknown
+  > & { execution: Record<string, unknown> };
+  evidence.execution = {
+    ...evidence.execution,
+    codexDurationMs: 0,
+    codexStatus: "not-started",
+    codexUsage: null,
+    comparatorInjection: null,
+    infrastructureFailureStage: "flat-summary-injection",
+    threadId: null,
+  };
+  evidence.comparatorEvidenceSha256 = null;
+  evidence.codex = {
+    durationMs: 0,
+    eventCount: 0,
+    exitCode: null,
+    status: "not-started",
+    timedOut: false,
+    usage: null,
+  };
+  evidence.events = [];
+  evidence.failureReasonSha256 = sha256(
+    "C5 flat-summary provider returned HTTP 502",
+  );
+  evidence.patch = {
+    changedFiles: [],
+    forbiddenFiles: [],
+    hasPatch: false,
+    sha256: null,
+    untrackedFiles: [],
+  };
+  await writeText(join(stageRoot, "agent.patch"), "");
+  await rm(join(stageRoot, "flat-summary"), { force: true, recursive: true });
+  await writeJson(stagePath, evidence);
+  await rebindStageEvidenceAndReport(fixture, stage.id, stagePath, {
+    execution: evidence.execution,
+  });
+
+  const pairRoot = join(
+    fixture.raw,
+    "pairs",
+    clusterDigest(cluster.id),
+    stage.stageId,
+  );
+  const evaluationPath = join(pairRoot, "flat-summary-evaluation.json");
+  const evaluation = JSON.parse(await readFile(evaluationPath, "utf8")) as {
+    failToPass: { exitCode: number; status: string };
+    score: Record<string, unknown>;
+  };
+  evaluation.failToPass = { ...evaluation.failToPass, exitCode: 1, status: "failed" };
+  evaluation.score = {
+    disposition: "infrastructure-failure",
+    executionFailureStage: "codex-not-started",
+    resolved: false,
+    taskFailureReasons: [],
+  };
+  await writeJson(evaluationPath, evaluation);
+  const evaluationSha256 = sha256(await readFile(evaluationPath, "utf8"));
+  const pairsPath = join(fixture.raw, "pairs.jsonl");
+  const pairs = (await readFile(pairsPath, "utf8")).trim().split("\n")
+    .map((row) => JSON.parse(row) as C5LongitudinalPairResult);
+  const pair = pairs.find((candidate) =>
+    candidate.clusterId === cluster.id && candidate.stageId === stage.stageId
+  )!;
+  pair.evaluations = pair.evaluations.map((entry) =>
+    entry.arm === "flat-summary"
+      ? {
+          ...entry,
+          disposition: "infrastructure-failure",
+          evaluationEvidenceSha256: evaluationSha256,
+          resolved: false,
+          taskFailureReasons: [],
+        }
+      : entry
+  );
+  pair.comparable = false;
+  pair.incomparabilityReasons = [
+    "flat-summary-infrastructure-flat-summary-injection",
+    "flat-summary-injection-mode-mismatch",
+    "flat-summary-evaluator-infrastructure-failure",
+  ];
+  pair.outcome = "incomparable";
+  await writeText(
+    pairsPath,
+    `${pairs.map((row) => JSON.stringify(row)).join("\n")}\n`,
+  );
+
+  for (const [index, target] of [stage, run.stages[2]!].entries()) {
+    const installedStage = installedRun.stages.find((candidate) =>
+      candidate.stageId === target.stageId
+    )!;
+    const audit = leakageEvidence({
+      baselineRun: run,
+      flatSummary: index === 0
+        ? ""
+        : `Compact summary of the prior stages before ${target.id}.`,
+      leakageInput: fixture.leakageInputs.get(
+        `${cluster.episodeId}/${target.stageId}`,
+      )!,
+      promptOnlyOrigins: new Set([stage.stageId]),
+      promptContents: fixture.promptContents,
+      run: installedRun,
+      stage: installedStage,
+    });
+    await replaceLeakageEvidence(fixture, {
+      clusterId: cluster.id,
+      path: join(
+        fixture.raw,
+        "pairs",
+        clusterDigest(cluster.id),
+        target.stageId,
+        "live-leakage-audit.json",
+      ),
+      stage: target,
+    }, audit as unknown as Record<string, unknown>);
+  }
+  return { run, stage };
 }
 
 async function makeFirstInstalledStageFail(fixture: {
@@ -2153,6 +2349,9 @@ function leakageEvidence(input: {
     staticSurfaces: C4LeakageSurface[];
   };
   promptContents: ReadonlyMap<string, string>;
+  // Baseline prior stages that never launched Codex contribute only their
+  // prompt as a trajectory origin (no patch, no Codex output).
+  promptOnlyOrigins?: ReadonlySet<string>;
   run: C5PilotEpisodeArmRun;
   stage: C5PilotStageRun;
 }) {
@@ -2186,6 +2385,8 @@ function leakageEvidence(input: {
           candidate.stageId === priorStageId
         )!;
         const id = originId(priorStageId);
+        const promptOnly = run === input.baselineRun &&
+          input.promptOnlyOrigins?.has(priorStageId) === true;
         return [{
           content: requiredPrompt(
             input.promptContents,
@@ -2193,13 +2394,13 @@ function leakageEvidence(input: {
             priorStageId,
           ),
           id: `${id}:effective-prompt`,
-        }, {
+        }, ...(promptOnly ? [] : [{
           content: agentPatchForStage(priorStage),
           id: `${id}:agent-patch`,
         }, {
           content: codexJsonlOutputForStage(priorStage),
           id: `${id}:codex-jsonl-output`,
-        }];
+        }])];
       })
     ),
   });

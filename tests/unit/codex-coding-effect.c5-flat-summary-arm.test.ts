@@ -251,7 +251,7 @@ describe("Codex coding-effect C5 flat-summary comparator arm", () => {
       exhaustedCalls += 1;
       return respond(502, "bad gateway");
     }, [])).rejects.toThrow("HTTP 502");
-    expect(exhaustedCalls).toBe(3);
+    expect(exhaustedCalls).toBe(6);
   });
 
   it("verifies that both injection hooks fired with the expected content", () => {

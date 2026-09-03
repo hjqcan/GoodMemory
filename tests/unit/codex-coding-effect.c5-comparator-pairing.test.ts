@@ -100,6 +100,28 @@ describe("Codex coding-effect C5 flat-summary comparator pairing", () => {
     )).toBe(true);
   });
 
+  it("records a summarizer outage as an incomparable pair instead of aborting the pilot", async () => {
+    const plan = await comparatorPlan();
+    const result = await runFake(plan, {
+      injectionFailureFor: (stage) => stage.position === 2,
+      resolved: () => true,
+    });
+    expect(result.stageExecutions).toHaveLength(plan.counts.stageRuns);
+    const stageTwo = result.pairs.filter((pair) => pair.stageId === "stage-2");
+    expect(stageTwo).toHaveLength(plan.clusters.length);
+    expect(stageTwo.every((pair) =>
+      !pair.comparable &&
+      pair.outcome === "incomparable" &&
+      pair.incomparabilityReasons.includes(
+        "flat-summary-infrastructure-flat-summary-injection",
+      ) &&
+      pair.incomparabilityReasons.includes("flat-summary-injection-mode-mismatch")
+    )).toBe(true);
+    expect(result.pairs.filter((pair) => pair.stageId !== "stage-2").every((pair) =>
+      pair.comparable
+    )).toBe(true);
+  });
+
   it("rejects a flat-summary execution without its injection receipt and a no-memory execution with one", async () => {
     const plan = await comparatorPlan();
     await expect(runFake(plan, {
@@ -118,6 +140,7 @@ async function runFake(
   plan: C5PilotPlan,
   options: {
     forceComparatorInjection?: boolean;
+    injectionFailureFor?: (stage: C5PilotStageRun) => boolean;
     injectionModeFor?: (
       stage: C5PilotStageRun,
     ) => "content-injection" | "no-history-zero-injection" | undefined;
@@ -148,6 +171,15 @@ async function runFake(
         execution.comparatorInjection = mode === "content-injection"
           ? contentInjection()
           : zeroInjection();
+      }
+      if (run.arm === "flat-summary" && options.injectionFailureFor?.(stage)) {
+        // The runner records a stage whose summarizer call failed before
+        // Codex launched: no receipt, no thread, an infrastructure stage.
+        execution.comparatorInjection = null;
+        execution.codexStatus = "not-started";
+        execution.codexUsage = null;
+        execution.infrastructureFailureStage = "flat-summary-injection";
+        execution.threadId = null;
       }
       return execution;
     },

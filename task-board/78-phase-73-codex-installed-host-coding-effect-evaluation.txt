@@ -1927,20 +1927,64 @@ were sorted lexicographically before normalization, so the digest-bearing
 raw paths reordered the normalized permission lines from cluster to cluster;
 `buildC5TaskDeniedPaths` and the C3 permission-profile writer now keep a
 fixed category order (`tests/unit/codex-coding-effect.c5-task-isolation.test.ts`,
-`tests/integration/codex-coding-effect.c3-runtime.test.ts`). The user upgraded Codex to 0.153.0 mid-session over the slow
+`tests/integration/codex-coding-effect.c3-runtime.test.ts`). The third
+resumed pilot (`...T051808Z`) passed the identity check on every cluster and
+ran 6 clusters (38 stages, 19 pairs, 18 shared-pass and 1 shared-fail, no
+infrastructure failure) until a summarizer relay outage on
+`delimiter-boundary-policy/repetition-1` stage 2 exhausted the three provider
+attempts within five seconds; the pairing validator then aborted the whole
+pilot because the flat-summary stage had no injection receipt. That is now a
+recorded incomparable pair (`flat-summary-infrastructure-flat-summary-injection`
+plus `flat-summary-injection-mode-mismatch`) rather than an abort, and the
+summarizer retries six times over about three minutes
+(`tests/unit/codex-coding-effect.c5-comparator-pairing.test.ts`). The user upgraded Codex to 0.153.0 mid-session over the slow
 proxy, which removed the global `codex` link; the runs therefore pin a
 runner-owned copy of the retired 0.152.1 package via `--codex-binary`
 (same `codex.js` shim hash as v16, `134063e1…`).
-[OPEN] Comparator live steps, in order: one-cluster
-`run-codex-coding-effect-c5-canary.ts --baseline-arm flat-summary
---npm-cache-seed ...` on `parse-result-correction/repetition-2` to prove
-native hook placement and receipts on a real Codex; then the 36-pair
-`run-codex-coding-effect-c5-pilot.ts --resume` continuation with the same run
-id (v16 cost was 72 Codex stages, about 7.25M input tokens, and 113 minutes
-of Codex time, plus 24 summary calls here); then project, verify, and gate
-the run with the comparator-aware verifier and record the result either way
-against the pre-registered rule. The Level-2 controlled-mutation dataset
-follows the comparator result.
+[DONE] 2026-09-03 flat-summary comparator run
+`run-c5-canary-flat-20260903T065126Z` (plan SHA-256
+`1fcf14544d502bdc10d142ac8adc2f67d0afda2147f8442111ed07ee9fe58131`): the
+one-cluster canary on `parse-result-correction/repetition-2` was accepted
+(hooks fired on every stage, three shared-pass pairs) and the pilot resumed
+into the remaining eleven clusters with the same run id. All 72 scheduled
+stages and 36 pairs are accounted for; 70 Codex processes completed and the
+two exceptions are summarizer-relay outages on `endpoint-open-loop/repetition-1`
+and `delimiter-boundary-policy/repetition-2` stage 2 (six provider attempts
+each), recorded as incomparable pairs. The installed arm's memory channel
+passed on all 36 stages: writeback committed on the ten policy-declaring
+stage-1 runs, prior memory injected on all 20 required-recall stages, no
+irrelevant injection. The flat-summary arm injected 22 content summaries
+(mean 197 tokens, range 63 to 299, all within the 512 cap) and 12 zero
+injections, with both native hooks firing on every completed stage. Result on
+the 34 comparable pairs: 32 shared-pass, 2 shared-fail (both stage-1 runs of
+`endpoint-open-loop`), 0 rescues, 0 regressions; resolve@1 is 0.941 for both
+arms and 22/22 for both arms on positions two and later; net rescue rate 0
+with a paired episode-cluster bootstrap interval of [0, 0]. Cost: 137 minutes
+of Codex time, 6.30M input tokens (5.18M cached), 143k output tokens, and 24
+summarizer calls. The sanitized projection (428 files, 12 identical host
+identities, no leakage rejection) is independently verified and accepted, the
+independent review accepted all five assertions with six advisory findings
+(empty interrupted-attempt ledger, rate-label ambiguity, required-recall
+denominator not exposed, overlapping taxonomy labels, degenerate interval,
+run-id timestamp versus duration), and the gate accepted (verification
+`aae8d8ff9eb1fbebce97f829d56477521504c5074c55505ad745290b43125fe9`, review
+`51b0758694b452cc0630bdfd2f808adbe677da44e62226c18e73ea979c8480d4`, provenance
+`c276ffbc3eea2da32aa043193dc2911b9cdd46c0b4389f265bae1d9214cc1e30`). Tracked
+copies live in `reports/quality-gates/phase-73/c5-native-comparator-flat-summary-v1/`.
+[REJECTED] The pre-registered memory-policy rule is not met: positions two
+and later must exceed flat-summary by +3.0 points with a positive paired
+bootstrap lower bound, and the observed difference is 0.0 points with a lower
+bound of 0. On the C4 controlled-continuity dataset, a single pinned-model
+summary of the arm's own prior stages, injected at the same hook placements
+and token caps, reproduces the entire continuity effect that v16 measured
+against the amnesiac no-memory baseline (0.933 versus 0.400). The v16 effect
+therefore stands as evidence that continuity context matters on this
+dataset, not as evidence for GoodMemory's selective memory policy over the
+cheapest alternative. The internal track closes with this documented negative
+result; the Level-2 controlled-mutation dataset is not started, because the
+comparator must first show a positive signal somewhere before a larger set is
+worth its cost. The public coding-effect claim, the 391-episode floor, the
+10,557-call schedule, and the C7 gate remain defined and fail-closed.
 
 C3's deterministic hidden fail-to-pass and pass-to-pass tests alone decide task
 correctness. Memory, injection, transcript, and writeback diagnostics can
@@ -1948,8 +1992,11 @@ explain the result but never override it. C3 is internally accepted as
 source-reproducible protocol/host evidence; its tie does not prove uplift. C4
 v8 is superseded and v9 readiness is accepted. None
 authorizes a public coding-effect claim.
-Phase 73 remains active on the converged internal track; the C6-C7 public-claim
-steps stay open and fail-closed.
+Phase 73's converged internal track is complete as of 2026-09-03 with a
+documented negative comparator result (no difference from a flat-summary
+control on the C4 dataset); the C6-C7 public-claim steps stay open and
+fail-closed, and the Level-2 controlled-mutation set is deferred until a
+positive comparator signal exists.
 
 Boundary
 --------

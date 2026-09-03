@@ -431,6 +431,14 @@ function validateComparatorInjection(
     return;
   }
   if (injection === null) {
+    // A stage that failed before the comparator was prepared (for example a
+    // summarizer outage) legitimately has no receipt; the pair records the
+    // infrastructure failure and the injection-mode mismatch instead of the
+    // whole pilot aborting. A completed stage without a receipt is a runner
+    // defect and still fails closed.
+    if (execution.infrastructureFailureStage !== null) {
+      return;
+    }
     throw new Error(
       "C5 flat-summary execution has no comparator injection receipt",
     );

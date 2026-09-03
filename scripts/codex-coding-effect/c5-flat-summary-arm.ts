@@ -42,8 +42,14 @@ export const C5_FLAT_SUMMARY_TRANSPORT_TIMEOUT_MS = 300_000;
 // A relay outage must not silently turn a Codex stage pair incomparable: the
 // same request bytes are retried a bounded number of times on transport
 // errors and transient HTTP statuses, then the stage fails closed.
-export const C5_FLAT_SUMMARY_MAX_ATTEMPTS = 3;
-export const C5_FLAT_SUMMARY_RETRY_DELAYS_MS = [2_000, 8_000] as const;
+export const C5_FLAT_SUMMARY_MAX_ATTEMPTS = 6;
+export const C5_FLAT_SUMMARY_RETRY_DELAYS_MS = [
+  2_000,
+  8_000,
+  20_000,
+  45_000,
+  90_000,
+] as const;
 
 export type C5FlatSummaryHookEvent = typeof C5_FLAT_SUMMARY_HOOK_EVENTS[number];
 
