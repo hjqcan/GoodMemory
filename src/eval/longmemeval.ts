@@ -71,6 +71,9 @@ export interface LongMemEvalRecallRunConfiguration {
   contextMaxTokens: number;
   // R6 second-family arm: cue backfill ran after seeding (record == wire).
   retrievalCues?: boolean;
+  // Phase 75 arm: opt-in length-conditional query-coverage admission
+  // (retrieval.longRecordAdmission) wired into every profile's memory.
+  longRecordAdmission?: boolean;
   evidenceAugmentation?: {
     maxAdditions: number;
     strategy: "retrieved-session-bm25" | "retrieved-session-dense";

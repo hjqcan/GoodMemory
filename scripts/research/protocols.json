@@ -32,6 +32,30 @@
       "runEntrypoint": "scripts/research/c6/source-v4-capture.ts#runSourceV4CaptureProtocol",
       "status": "active",
       "verifyEntrypoint": "scripts/research/c6/source-v4-capture.ts#verifySourceV4CaptureProtocol"
+    },
+    {
+      "canonicalArtifacts": [
+        "run-manifest.json",
+        "paired-cases.jsonl",
+        "source-baseline.json",
+        "source-candidate.json",
+        "model-usage-intents.jsonl",
+        "model-usage.jsonl",
+        "logical-model-call-receipts.jsonl",
+        "report.json"
+      ],
+      "externalPrerequisites": [
+        "GOODMEMORY_LONGMEMEVAL_V1_PAIRED_ROOT"
+      ],
+      "historicalGateEntrypoints": [],
+      "id": "goodmemory-longmemeval-v1-ku-temporal-source-paired-diagnostic-v1",
+      "inputSourceIdentity": {
+        "commit": "aaa6fa41192153ea4c39cb6730e37b6ab2de181f",
+        "tree": "9acf62ff594bacd4c4477fd2eeac87b3675208f8"
+      },
+      "runEntrypoint": "scripts/research/longmemeval-v1/source-paired.ts#runLongMemEvalV1SourcePairedDiagnostic",
+      "status": "active",
+      "verifyEntrypoint": "scripts/research/longmemeval-v1/source-paired.ts#verifyLongMemEvalV1SourcePairedDiagnostic"
     }
   ]
 }

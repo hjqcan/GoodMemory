@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
 
 import { createGoodMemory } from "../../src/api/createGoodMemory";
+import type { FactMemory } from "../../src/domain/records";
 import type { ClassifiedCandidate } from "../../src/remember/contracts";
 import {
   buildConversationalMemoryExtractionPrompt,
@@ -251,6 +252,13 @@ describe("remember claim source provenance", () => {
       (status) => status.sourceMemoryId === paris?.sourceMemoryId,
     );
     expect(parisStatus?.claimIds).toEqual([paris?.id ?? ""]);
+    const facts = await rawStore.query<FactMemory>("facts", {});
+    expect(facts.every(({ lifecycle, isActive }) =>
+      lifecycle === "active" && isActive
+    )).toBe(true);
+    expect(facts.every(({ attributes }) =>
+      attributes?.claimKey === "person.residence"
+    )).toBe(true);
   });
 
   it("never closes claims in the generic deterministic fact namespace", async () => {
@@ -655,6 +663,33 @@ describe("remember claim source provenance", () => {
     expect(evidence.sourceUri).toBe(sourceMessageRecordUri(sourceMessages[0]!));
     expect(evidence.sourceMessageIds).toEqual(["message-1", "message-2"]);
     expect(evidence.excerpt).toBe("Atlas uses the partner API.");
+  });
+
+  it("does not split a surrogate pair when truncating evidence excerpts", () => {
+    const content = `${"x".repeat(276)}🌸tail`;
+    const candidate = buildCandidate();
+    const sourceMessages = buildSourceMessageRecords(
+      scope,
+      candidate,
+      [{ id: "message-emoji", role: "user", content }],
+      NOW,
+    );
+
+    const evidence = buildCandidateEvidence(
+      scope,
+      candidate,
+      "fact-emoji",
+      "evidence-emoji",
+      NOW,
+      "en-US",
+      sourceMessages,
+    );
+
+    expect(evidence.excerpt).toBe(`${"x".repeat(276)}...`);
+    expect(evidence.excerpt.length).toBeLessThanOrEqual(280);
+    expect(Buffer.from(evidence.excerpt, "utf8").toString("utf8")).toBe(
+      evidence.excerpt,
+    );
   });
 
   it("keeps canonical fact content atomic while storing descriptors only in the claim index", async () => {

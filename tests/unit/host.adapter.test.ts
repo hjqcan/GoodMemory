@@ -17,11 +17,13 @@ import { attachGoodMemoryEvalSupport } from "../../src/api/evalSupport";
 import { createHostAdapter } from "../../src/host";
 import type { HostArtifactType } from "../../src/host";
 import { readHostEvalSupport } from "../../src/host/evalSupport";
+import { buildPageArtifacts } from "../../src/governance/pageArtifacts";
 
 function createExportResult(
   extraFiles: ExportMemoryResult["artifacts"]["files"] = [],
 ): ExportMemoryResult {
   return {
+    pages: buildPageArtifacts({ notes: [] }),
     artifacts: {
       rootPath: ".goodmemory/users/u-1/workspaces/ws-1/sessions/s-1",
       files: [

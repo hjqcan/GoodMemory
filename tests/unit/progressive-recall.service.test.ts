@@ -11,6 +11,7 @@ import {
   parseGoodMemoryRecordRef,
 } from "../../src/progressive/recall";
 import { createLanguageService } from "../../src/language";
+import { buildPageArtifacts } from "../../src/governance/pageArtifacts";
 
 const scope: MemoryScope = {
   agentId: "codex",
@@ -23,6 +24,7 @@ const language = createLanguageService();
 
 function createExportedMemory(): ExportMemoryResult {
   return {
+    pages: buildPageArtifacts({ notes: [] }),
     artifacts: {
       files: [],
       rootPath: ".",
@@ -67,7 +69,6 @@ function createExportedMemory(): ExportMemoryResult {
       experiences: [],
       facts: [
         {
-          accessCount: 0,
           category: "project",
           confidence: 1,
           content: "The release quality gate is blocked on package evidence.",
@@ -186,6 +187,7 @@ function createMemory(
         preferences: exported.durable.preferences,
         profile: exported.durable.profile,
         references: exported.durable.references,
+        notes: [],
         workingMemory: exported.runtime?.workingMemory ?? null,
       };
 

@@ -182,7 +182,6 @@ export function selectReferences(
     freshnessScore: entry.freshnessScore,
     explicitnessScore: entry.explicitnessScore,
     evidenceScore: entry.evidenceScore,
-    outcomeScore: entry.outcomeScore,
     fallback: "none",
   }));
   const compatible = ranked.filter(
@@ -225,9 +224,7 @@ export function selectReferences(
         selected.lexicalScore,
         selected.freshnessScore,
         selected.explicitnessScore,
-        0,
         selected.evidenceScore,
-        selected.outcomeScore,
         0,
         signaled[0] ? "none" : "same_slot_unique_candidate",
       );
@@ -278,9 +275,7 @@ export function selectReferences(
     genericSelected.lexicalScore,
     genericSelected.freshnessScore,
     genericSelected.explicitnessScore,
-    0,
     genericSelected.evidenceScore,
-    genericSelected.outcomeScore,
     0,
     signaled[0] ? "none" : "same_slot_unique_candidate",
   );
@@ -393,8 +388,6 @@ export function selectEpisodes(
       0,
       0,
       0,
-      0,
-      0,
       "none",
     );
   }
@@ -482,8 +475,6 @@ export function selectArchives(
       0.7,
       entry.lexicalScore,
       entry.freshnessScore,
-      0,
-      0,
       0,
       0,
       0,

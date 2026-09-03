@@ -59,6 +59,7 @@ import {
 import { evaluateVerificationHints } from "../verify/policy";
 import type { TemporalConstraint } from "./recallPlan";
 
+import { selectNotes } from "./selectors/noteSelection";
 export async function assembleRecallResult(input: {
   config: RecallEngineConfig;
   context: RecallRequestContext;
@@ -98,6 +99,7 @@ export async function assembleRecallResult(input: {
       profile: null,
       preferences: [],
       references: [],
+      notes: [],
       facts: [],
       feedback: [],
       archives: [],
@@ -230,6 +232,7 @@ export async function assembleRecallResult(input: {
     retrieved.generalizedFusion,
     context.queryAnalysis,
     occurrenceFactIds,
+    config.longRecordAdmission ? { longRecordCoverage: true } : undefined,
   );
   let facts = await applyRecallPolicyToRecords(
     selectedFacts.facts,
@@ -322,6 +325,32 @@ export async function assembleRecallResult(input: {
   let references = await applyRecallPolicyToRecords(
     generalizedReferences,
     "reference",
+    policyContext,
+  );
+  const noteLaneLimit =
+    context.generalizedFusionConfig?.contentLaneRecords?.notes ?? 2;
+  const selectedNotes = selectNotes({
+    evidenceCountsByMemoryId: retrieved.evidenceCountsByMemoryId,
+    language: context.language,
+    maxRecords: noteLaneLimit,
+    notes: content.notes,
+    query: recallInput.query,
+    queryLocale: context.languageContext.locale,
+    referenceTime: context.currentReferenceTime,
+    semanticScores: retrieved.semanticScores?.notes,
+  });
+  const generalizedNotes = admitGeneralizedRecords({
+    candidates: retrieved.generalizedFusionCandidates,
+    collection: "notes",
+    getId: (note) => note.id,
+    maxRecords: noteLaneLimit,
+    records: content.notes,
+    selected: selectedNotes.notes,
+    traces: selectedNotes.traces,
+  });
+  const notes = await applyRecallPolicyToRecords(
+    generalizedNotes,
+    "note",
     policyContext,
   );
   let assistantInfluence = retrieved.assistantInfluence;
@@ -568,6 +597,11 @@ export async function assembleRecallResult(input: {
           assistantSuppressionTraceReason,
         ),
         ...reconcileCandidateTraces(
+          selectedNotes.traces,
+          new Set(notes.map(({ id }) => id)),
+          assistantSuppressionTraceReason,
+        ),
+        ...reconcileCandidateTraces(
           selectedArchives.traces,
           new Set(archives.map(({ id }) => id)),
           assistantSuppressionTraceReason,
@@ -591,6 +625,7 @@ export async function assembleRecallResult(input: {
   const selectedMemoryIds = [
     ...selectedFactSourceIds,
     ...references.map(({ id }) => id),
+    ...notes.map(({ id }) => id),
     ...feedback.map(({ id }) => id),
     ...episodes.map(({ id }) => id),
     ...archives.map(({ id }) => id),
@@ -641,6 +676,7 @@ export async function assembleRecallResult(input: {
     profile: filteredProfile,
     preferences,
     references,
+    notes,
     facts,
     feedback,
     archives,
@@ -662,6 +698,7 @@ export async function assembleRecallResult(input: {
     profile: filteredProfile,
     preferences,
     references,
+    notes,
     facts,
     feedback,
     archives,
@@ -701,6 +738,7 @@ export async function assembleRecallResult(input: {
         profile: filteredProfile,
         preferences,
         references,
+        notes,
         facts,
         feedback,
         archives,

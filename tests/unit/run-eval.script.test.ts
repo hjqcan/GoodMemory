@@ -1069,6 +1069,9 @@ describe("run-eval script", () => {
               async forget() {
                 return { forgotten: false };
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -1080,6 +1083,7 @@ describe("run-eval script", () => {
                     profiles: 0,
                     preferences: 0,
                     references: 0,
+                    notes: 0,
                     facts: 0,
                     feedback: 0,
                     episodes: 0,
@@ -1288,6 +1292,9 @@ describe("run-eval script", () => {
               async forget() {
                 return { forgotten: false };
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -1299,6 +1306,7 @@ describe("run-eval script", () => {
                     profiles: 0,
                     preferences: 0,
                     references: 0,
+                    notes: 0,
                     facts: 0,
                     feedback: 0,
                     episodes: 0,

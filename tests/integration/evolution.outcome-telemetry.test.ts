@@ -95,7 +95,7 @@ describe("outcome telemetry promotion chain", () => {
 
     expect(exported.durable.evidence[0]?.source).toMatchObject({
       languagePackId: "ja",
-      languagePackVersion: "14-durable-optout-boundary",
+      languagePackVersion: "15-explicit-compound-facts",
       locale: "ja-JP",
       localeSource: "detected",
     });

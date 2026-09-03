@@ -14,6 +14,7 @@ export type RecallRetrievalSourceCollection =
   | "episodes"
   | "facts"
   | "feedback"
+  | "notes"
   | "preferences"
   | "profiles"
   | "references"

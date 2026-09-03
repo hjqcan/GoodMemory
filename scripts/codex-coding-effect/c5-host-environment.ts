@@ -63,6 +63,9 @@ const toolEvidenceSchema = z.object({
 }).strict();
 
 const hostEnvironmentSchema = z.object({
+  // Absent means the historical no-memory baseline; "flat-summary" marks the
+  // comparator baseline, whose hooks.json and enabled hooks are expected.
+  baselineArm: z.enum(["flat-summary", "no-memory"]).optional(),
   codexFeatures: z.object({
     goodmemoryInstalled: featureEvidenceSchema,
     noMemory: featureEvidenceSchema,
@@ -99,16 +102,25 @@ type C5HostArmConfiguration =
   C5HostEnvironment["configurations"]["arms"]["goodmemoryInstalled"];
 type C5HostConfigurationFile = C5HostArmConfiguration["codexConfig"];
 
-export function parseC5HostEnvironment(value: unknown): C5HostEnvironment {
+export function parseC5HostEnvironment(
+  value: unknown,
+  options: { expectedBaselineHooksSha256?: string } = {},
+): C5HostEnvironment {
   const environment = hostEnvironmentSchema.parse(value);
   const installed = environment.configurations.arms.goodmemoryInstalled;
   const noMemory = environment.configurations.arms.noMemory;
+  const flatSummaryBaseline = environment.baselineArm === "flat-summary";
   if (
     installed.goodmemoryConfig === null ||
     installed.hooksConfig === null ||
     installed.profile === null ||
     noMemory.goodmemoryConfig !== null ||
-    noMemory.hooksConfig !== null ||
+    (flatSummaryBaseline
+      ? noMemory.hooksConfig === null ||
+        (options.expectedBaselineHooksSha256 !== undefined &&
+          noMemory.hooksConfig.sourceSha256 !==
+            options.expectedBaselineHooksSha256)
+      : noMemory.hooksConfig !== null) ||
     noMemory.profile !== null ||
     environment.goodmemory.configSha256 !==
       installed.goodmemoryConfig.sourceSha256 ||
@@ -122,7 +134,7 @@ export function parseC5HostEnvironment(value: unknown): C5HostEnvironment {
     !installedFeatures.hooks.enabled ||
     installedFeatures.hooks.maturity !== "stable" ||
     installedFeatures.memories.enabled ||
-    noMemoryFeatures.hooks.enabled ||
+    noMemoryFeatures.hooks.enabled !== flatSummaryBaseline ||
     noMemoryFeatures.hooks.maturity !== "stable" ||
     noMemoryFeatures.memories.enabled ||
     installedFeatures.outputSha256 !== sha256(installedFeatures.rawOutput) ||
@@ -162,6 +174,9 @@ export function projectC5ComparableHostEnvironment(
   });
 
   return {
+    ...(environment.baselineArm === undefined
+      ? {}
+      : { baselineArm: environment.baselineArm }),
     codexFeatures: environment.codexFeatures,
     configurations: {
       arms: {

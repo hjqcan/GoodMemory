@@ -106,7 +106,7 @@ describe("listScopes", () => {
     expect(result.scopes[0]?.scopeKey).toBe(scopeToKey({ userId: "userA" }));
 
     // Coverage: all 12 durable collections scanned; session/vector disclosed.
-    expect(result.coverage.collectionsScanned).toHaveLength(12);
+    expect(result.coverage.collectionsScanned).toHaveLength(13);
     expect(result.coverage.collectionsScanned).toContain("facts");
     expect(result.coverage.collectionsScanned).toContain("artifact_spills");
     expect(result.coverage.sessionStoreScanned).toBe(false);
@@ -124,7 +124,7 @@ describe("listScopes", () => {
     const result = await listScopes({ documentStore: store, now: FIXED_NOW });
 
     expect(result.scopes).toEqual([]);
-    expect(result.coverage.collectionsScanned).toHaveLength(12);
+    expect(result.coverage.collectionsScanned).toHaveLength(13);
     expect(result.coverage.blindSpots.length).toBeGreaterThanOrEqual(3);
   });
 

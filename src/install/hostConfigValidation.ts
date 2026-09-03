@@ -28,6 +28,9 @@ export interface InstalledHostRuntimeConfig {
   providers?: InstalledHostProviderConfig;
   retrieval?: InstalledHostRetrievalConfig;
   retrievalProfile: "coding_agent" | "general_chat";
+  // Derived, read-only workspace mirror of the export bundle (ADR-010 §8);
+  // absent or disabled → no files are written.
+  fileMirror?: InstalledHostFileMirrorConfig;
   storage: {
     provider: "memory" | "postgres" | "sqlite";
     url: string;
@@ -37,6 +40,12 @@ export interface InstalledHostRuntimeConfig {
 }
 
 export type InstalledHostPromptInjectionMode = "always" | "relevance_gated";
+
+export interface InstalledHostFileMirrorConfig {
+  enabled: boolean;
+  // Defaults to <workspaceRoot>/.goodmemory/memory at runtime.
+  root?: string;
+}
 
 export interface InstalledHostMcpConfig {
   allowWrite: boolean;
@@ -70,6 +79,7 @@ export interface InstalledHostMaintenanceConfig {
 // runtime default.
 export interface InstalledHostRetrievalConfig {
   bm25Ranking?: boolean;
+  longRecordAdmission?: boolean;
   preset?: "recommended";
   semanticCandidates?: {
     maxAdditions?: number;
@@ -297,6 +307,10 @@ export function parseInstalledHostRuntimeConfig(
       status: "invalid",
     };
   }
+  const fileMirror = readInstalledHostFileMirrorConfig(parsed.fileMirror);
+  if (fileMirror.status === "invalid") {
+    return { detail: fileMirror.detail, status: "invalid" };
+  }
 
   let sharedAgents: string[] | undefined;
   if (parsed.sharedAgents !== undefined) {
@@ -379,6 +393,7 @@ export function parseInstalledHostRuntimeConfig(
         : {}),
       ...(retrieval.config ? { retrieval: retrieval.config } : {}),
       retrievalProfile,
+      ...(fileMirror.config ? { fileMirror: fileMirror.config } : {}),
       ...(sessionStartMaxTokens !== undefined ? { sessionStartMaxTokens } : {}),
       ...(sharedAgents !== undefined ? { sharedAgents } : {}),
       ...(maintenance !== undefined ? { maintenance } : {}),
@@ -820,6 +835,35 @@ export function readStorageUrl(storage: Record<string, unknown> | null): string 
   );
 }
 
+function readInstalledHostFileMirrorConfig(
+  value: unknown,
+):
+  | { config?: InstalledHostFileMirrorConfig; status: "ok" }
+  | { detail: string; status: "invalid" } {
+  if (value === undefined) {
+    return { status: "ok" };
+  }
+  if (!isRecord(value)) {
+    return { detail: "fileMirror must be a JSON object", status: "invalid" };
+  }
+  if (typeof value.enabled !== "boolean") {
+    return { detail: "fileMirror.enabled must be a boolean", status: "invalid" };
+  }
+  if (
+    value.root !== undefined &&
+    (typeof value.root !== "string" || value.root.trim().length === 0)
+  ) {
+    return { detail: "fileMirror.root must be a non-empty string", status: "invalid" };
+  }
+  return {
+    config: {
+      enabled: value.enabled,
+      ...(typeof value.root === "string" ? { root: value.root } : {}),
+    },
+    status: "ok",
+  };
+}
+
 function readInstalledHostRetrievalConfig(
   value: unknown,
 ):
@@ -835,6 +879,16 @@ function readInstalledHostRetrievalConfig(
   if (value.bm25Ranking !== undefined && typeof value.bm25Ranking !== "boolean") {
     return {
       detail: "retrieval.bm25Ranking must be a boolean",
+      status: "invalid",
+    };
+  }
+
+  if (
+    value.longRecordAdmission !== undefined &&
+    typeof value.longRecordAdmission !== "boolean"
+  ) {
+    return {
+      detail: "retrieval.longRecordAdmission must be a boolean",
       status: "invalid",
     };
   }
@@ -912,6 +966,9 @@ function readInstalledHostRetrievalConfig(
     config: {
       ...(typeof value.bm25Ranking === "boolean"
         ? { bm25Ranking: value.bm25Ranking }
+        : {}),
+      ...(typeof value.longRecordAdmission === "boolean"
+        ? { longRecordAdmission: value.longRecordAdmission }
         : {}),
       ...(value.preset === "recommended" ? { preset: value.preset } : {}),
       ...(semanticCandidates !== undefined ? { semanticCandidates } : {}),

@@ -333,6 +333,7 @@ export function createGoodMemoryAssembly(input: {
     factSelector: internal?.factSelector,
     autoStrategyBias: runtimeResolution.retrieval.autoStrategyBias,
     bm25Ranking: runtimeResolution.retrieval.bm25Ranking,
+    longRecordAdmission: runtimeResolution.retrieval.longRecordAdmission,
     generalizedFusion: runtimeResolution.retrieval.generalizedFusion,
     rerankGeneralizedFusion:
       runtimeResolution.retrieval.rerankGeneralizedFusion,

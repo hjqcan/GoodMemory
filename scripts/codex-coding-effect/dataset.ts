@@ -161,6 +161,27 @@ const leakageRelationSchema = z.tuple([
   leakageScalarSchema,
 ]);
 
+const repositoryBaseShape = {
+  baseCommit: gitCommitSchema,
+  license: trimmedStringSchema,
+  url: z.url().refine(
+    (value) => value.startsWith("https://") || value.startsWith("http://"),
+    "repository.url must use http or https",
+  ),
+};
+
+const repositorySchema = z.object(repositoryBaseShape).strict();
+
+const repositoryV3Schema = z.object({
+  ...repositoryBaseShape,
+  assetPath: relativeManifestPathSchema.refine(
+    (value) => value.startsWith("repositories/"),
+    "repository asset path must stay under repositories/",
+  ).optional(),
+  redistributionAllowed: z.boolean().optional(),
+  redistributionReviewed: z.boolean().optional(),
+}).strict();
+
 const episodeBaseShape = {
   allowedPublicLeakageRelations: z.array(leakageRelationSchema).optional(),
   allowedPublicLeakageValues: z.array(leakageScalarSchema).optional(),
@@ -182,20 +203,7 @@ const episodeBaseShape = {
     ]),
   }).strict(),
   provenance: trimmedStringSchema,
-  repository: z.object({
-    assetPath: relativeManifestPathSchema.refine(
-      (value) => value.startsWith("repositories/"),
-      "repository asset path must stay under repositories/",
-    ).optional(),
-    baseCommit: gitCommitSchema,
-    license: trimmedStringSchema,
-    redistributionAllowed: z.boolean().optional(),
-    redistributionReviewed: z.boolean().optional(),
-    url: z.url().refine(
-      (value) => value.startsWith("https://") || value.startsWith("http://"),
-      "repository.url must use http or https",
-    ),
-  }).strict(),
+  repository: repositorySchema,
   sourceType: z.enum([
     "controlled-mutation",
     "real-history",
@@ -203,7 +211,6 @@ const episodeBaseShape = {
   ]),
   stateMode: z.enum(["canonical-snapshot", "persistent-branch"]),
   strata: z.array(memoryStratumSchema).min(1),
-  taskOriginReceipt: taskOriginReceiptSchema.optional(),
 };
 
 const episodeV1Schema = z.object({
@@ -253,7 +260,9 @@ const episodeV3Schema = z.object({
   ...episodeBaseShape,
   historyPolicy: z.literal("stage-scoped-sealed-prefix-v1"),
   primaryStratum: memoryStratumSchema.optional(),
+  repository: repositoryV3Schema,
   stages: z.array(stageV3Schema).min(1),
+  taskOriginReceipt: taskOriginReceiptSchema.optional(),
 }).strict().superRefine((episode, context) => {
   if (
     episode.claimEligibility === "claim-eligible" &&
@@ -294,8 +303,6 @@ const datasetV2Schema = z.object({
   datasetId: identifierSchema,
   episodes: z.array(episodeV2Schema).min(1),
   schemaVersion: z.literal(2),
-  sourceLineage: sourceLineageSchema.optional(),
-  taskOriginReviewProvenance: taskOriginReviewProvenanceSchema.optional(),
 }).strict().superRefine((dataset, context) => {
   validateDatasetEpisodeIds(
     dataset.episodes,

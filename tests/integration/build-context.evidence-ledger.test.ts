@@ -79,6 +79,7 @@ function createRecallResult(): RecallResult {
     preferences: [],
     profile: null,
     references: [],
+    notes: [],
     workingMemory: null,
   };
 }

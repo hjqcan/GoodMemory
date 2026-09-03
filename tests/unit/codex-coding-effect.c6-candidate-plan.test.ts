@@ -1909,7 +1909,6 @@ function legacyDataset(
       };
     }),
     schemaVersion: 2,
-    sourceLineage: dataset.sourceLineage,
   };
 }
 

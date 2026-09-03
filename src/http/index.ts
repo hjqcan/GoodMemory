@@ -1,3 +1,4 @@
+import { isNoteBodyWithinLimit, NOTE_MAX_BYTES } from "../domain/records";
 import type {
   BuildContextInput,
   BuildContextResult,
@@ -5,6 +6,9 @@ import type {
   FeedbackResult,
   ForgetResult,
   GoodMemory,
+  ImportMemoryPageInput,
+  ImportMemoryResult,
+  ImportMemorySource,
   MemoryWriteJob,
   RecallInput,
   RecallResult,
@@ -16,6 +20,7 @@ import type {
   ReviseMemoryResult,
 } from "../api/contracts";
 import type { MemoryScope } from "../domain/scope";
+import { StorageUnsafeTextError } from "../domain/semanticText";
 import { isIanaTimezone, isRfc3339Instant } from "../domain/temporal";
 import type { TemporalInterval } from "../domain/temporal";
 import type { RememberConfig } from "../remember/profiles";
@@ -36,7 +41,8 @@ export type GoodMemoryHttpBridgeOperation =
   | "feedback"
   | "forget"
   | "export"
-  | "revise";
+  | "revise"
+  | "import";
 
 export interface GoodMemoryHttpBridgeCaller {
   authorizedOperations: GoodMemoryHttpBridgeOperation[] | "*";
@@ -175,7 +181,8 @@ export interface GoodMemoryHttpBridgeLooseBody {
   ok?: boolean;
   operation?: GoodMemoryHttpBridgeOperation;
   provenance?: Record<string, unknown>;
-  result?: FeedbackResult | ForgetResult | RememberResult | ReviseMemoryResult;
+  result?: FeedbackResult | ForgetResult | RememberResult | ReviseMemoryResult
+    | ImportMemoryResult;
   routing?: GoodMemoryHttpRecallRoutingDiagnostics;
   traceId?: string;
 }
@@ -227,6 +234,7 @@ const SENSITIVE_OPERATIONS = new Set<GoodMemoryHttpBridgeOperation>([
   "export",
   "forget",
   "revise",
+  "import",
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -395,6 +403,7 @@ function isValidAnnotationKindHint(
     value === "profile" ||
     value === "preference" ||
     value === "reference" ||
+    value === "note" ||
     value === "fact" ||
     value === "feedback"
   );
@@ -687,7 +696,7 @@ function validateAnnotations(
     ) {
       return {
         code: "invalid_annotations",
-        message: "Expected annotation.kindHint to be profile, preference, reference, fact, or feedback.",
+        message: "Expected annotation.kindHint to be profile, preference, reference, note, fact, or feedback.",
         ok: false,
       };
     }
@@ -1399,6 +1408,18 @@ async function handleRemember(
   if (!annotations.ok) {
     return errorResult(400, annotations.code, annotations.message);
   }
+  const oversizeNote = (annotations.value ?? []).find(
+    (annotation) =>
+      annotation.kindHint === "note" &&
+      !isNoteBodyWithinLimit(messages.value[annotation.messageIndex]?.content ?? ""),
+  );
+  if (oversizeNote) {
+    return errorResult(
+      400,
+      "note_too_large",
+      `Note bodies are capped at ${NOTE_MAX_BYTES} UTF-8 bytes; split the page into several notes.`,
+    );
+  }
 
   const extractionStrategy = validateExtractionStrategy(body.extractionStrategy);
   if (!extractionStrategy.ok) {
@@ -1632,6 +1653,113 @@ async function handleRevise(
   });
 }
 
+const IMPORT_MAX_PAGES = 200;
+const IMPORT_MAX_PAGE_BYTES = 64 * 1024;
+const SHA256_HEX = /^[0-9a-f]{64}$/i;
+
+function validateImportPages(
+  value: unknown,
+): ValidationResult<ImportMemoryPageInput[]> {
+  if (!Array.isArray(value) || value.length === 0) {
+    return { ok: false, code: "invalid_pages", message: "Expected source.pages to be a non-empty array." };
+  }
+  if (value.length > IMPORT_MAX_PAGES) {
+    return {
+      ok: false,
+      code: "too_many_pages",
+      message: `Expected at most ${IMPORT_MAX_PAGES} pages per import request.`,
+    };
+  }
+  const pages: ImportMemoryPageInput[] = [];
+  for (const [index, page] of value.entries()) {
+    if (!isRecord(page) || !isNonEmptyString(page.path) || typeof page.content !== "string") {
+      return {
+        ok: false,
+        code: "invalid_page",
+        message: `Expected source.pages[${index}] to carry a non-empty path and a string content.`,
+      };
+    }
+    if (Buffer.byteLength(page.content, "utf8") > IMPORT_MAX_PAGE_BYTES) {
+      return {
+        ok: false,
+        code: "page_too_large",
+        message: `source.pages[${index}] exceeds ${IMPORT_MAX_PAGE_BYTES} bytes.`,
+      };
+    }
+    pages.push({ content: page.content, path: page.path });
+  }
+  return { ok: true, value: pages };
+}
+
+async function handleImport(
+  memory: GoodMemory,
+  body: Record<string, unknown>,
+  scope: MemoryScope,
+): Promise<GoodMemoryHttpBridgeResult> {
+  const source = isRecord(body.source) ? body.source : null;
+  if (!source || (source.kind !== "pages" && source.kind !== "durable")) {
+    return errorResult(
+      400,
+      "invalid_source",
+      'Expected source.kind to be "pages" or "durable".',
+    );
+  }
+  if (body.dryRun !== undefined && typeof body.dryRun !== "boolean") {
+    return errorResult(400, "invalid_dry_run", "Expected dryRun to be a boolean.");
+  }
+  if (body.oversize !== undefined && body.oversize !== "reject" && body.oversize !== "split") {
+    return errorResult(400, "invalid_oversize", 'Expected oversize to be "reject" or "split".');
+  }
+  if (body.expectedSha256 !== undefined && !(typeof body.expectedSha256 === "string" && SHA256_HEX.test(body.expectedSha256))) {
+    return errorResult(400, "invalid_expected_sha256", "Expected expectedSha256 to be a 64-character hex digest.");
+  }
+  if (body.locale !== undefined && !isNonEmptyString(body.locale)) {
+    return errorResult(400, "invalid_locale", "Expected locale to be a non-empty string.");
+  }
+
+  let importSource: ImportMemorySource;
+  if (source.kind === "pages") {
+    const pages = validateImportPages(source.pages);
+    if (!pages.ok) {
+      return errorResult(400, pages.code, pages.message);
+    }
+    importSource = { kind: "pages", pages: pages.value };
+  } else {
+    if (!isRecord(source.durable)) {
+      return errorResult(400, "invalid_durable", "Expected source.durable to be an export envelope's durable section.");
+    }
+    importSource = { durable: source.durable as ImportMemorySource extends { durable: infer D } ? D : never, kind: "durable" };
+  }
+
+  try {
+    const imported = await memory.importMemory({
+      ...(body.dryRun === true ? { dryRun: true } : {}),
+      ...(typeof body.expectedSha256 === "string" ? { expectedSha256: body.expectedSha256 } : {}),
+      ...(typeof body.locale === "string" ? { locale: body.locale } : {}),
+      ...(body.oversize === "split" ? { oversize: "split" as const } : {}),
+      scope,
+      source: importSource,
+    });
+    return result(200, {
+      contractVersion: GOODMEMORY_HTTP_MEMORY_BRIDGE_CONTRACT_VERSION,
+      ok: true,
+      operation: "import",
+      result: imported,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("import_hash_mismatch")) {
+      return errorResult(409, "import_hash_mismatch", error.message);
+    }
+    if (error instanceof Error && error.message.startsWith("invalid_durable")) {
+      return errorResult(400, "invalid_durable", error.message);
+    }
+    if (error instanceof StorageUnsafeTextError) {
+      return errorResult(400, "invalid_source", error.message);
+    }
+    throw error;
+  }
+}
+
 function resolveOperation(pathname: string): GoodMemoryHttpBridgeOperation | null {
   if (pathname === "/memory/recall-context") {
     return "recall-context";
@@ -1650,6 +1778,9 @@ function resolveOperation(pathname: string): GoodMemoryHttpBridgeOperation | nul
   }
   if (pathname === "/memory/revise") {
     return "revise";
+  }
+  if (pathname === "/memory/import") {
+    return "import";
   }
 
   return null;
@@ -1677,6 +1808,9 @@ async function handleAuthorizedOperation(input: {
     return handleExport(input.memory, input.body, input.scope);
   }
 
+  if (input.operation === "import") {
+    return handleImport(input.memory, input.body, input.scope);
+  }
   return handleRevise(input.memory, input.body, input.scope);
 }
 

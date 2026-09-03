@@ -12,6 +12,7 @@ import {
   normalizeRuntimeViewerBindHost,
   redactViewerText,
 } from "../../src/runtime-viewer/public";
+import { buildPageArtifacts } from "../../src/governance/pageArtifacts";
 
 const TOKEN = "runtime-viewer-token";
 const SCOPE: MemoryScope = {
@@ -41,6 +42,7 @@ function buildMemory(): Pick<GoodMemory, "exportMemory" | "recall"> {
   return {
     async exportMemory() {
       return {
+        pages: buildPageArtifacts({ notes: [] }),
         artifacts: { files: [], rootPath: "." },
         durable: {
           archives: [],
@@ -49,7 +51,6 @@ function buildMemory(): Pick<GoodMemory, "exportMemory" | "recall"> {
           experiences: [],
           facts: [
             {
-              accessCount: 0,
               category: "project",
               confidence: 1,
               content: "Runtime Viewer delegates to read-only Inspector.",

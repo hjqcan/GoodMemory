@@ -27,6 +27,7 @@ import {
   normalizeUnicodeForEquality,
   replaceUnquotedText,
   splitClausesGeneric,
+  splitExplicitCompoundClauses,
   splitTrailingClause,
   tokenizeUnicodeText,
 } from "./generic";
@@ -505,6 +506,30 @@ function splitRomanceClauses(
     .filter(Boolean);
 }
 
+const ROMANCE_INDEPENDENT_EXPLICIT_FACT_PATTERN =
+  /^(?!(?:dont|donde|et|mais|où|pero|que|qui|quien|y)\b)(?:[^,，、;；.!?。！？]{1,80}\s+(?:est|sont|es|son)\b|[^,，、;；.!?。！？]{1,80}[=＝])\s*\S/iu;
+const ROMANCE_DEPENDENT_EXPLICIT_FACT_PATTERN =
+  /^(?:(?:bien|même)\s+qu['’]|aunque|bien\s+que|comme|lorsque|même\s+si|parce\s+que|porque|puisque|si|tandis\s+que|mientras)\b/iu;
+
+function classifyRomanceExplicitCompoundClause(
+  clause: string,
+  definition: RomancePackDefinition,
+): "dependent" | "fact" | "interrogative" | "one_off" | "unknown" {
+  const trimmed = clause.trim();
+  if (classifyRomanceBehavioralDirective(trimmed, definition) !== "none") {
+    return "one_off";
+  }
+  if (isRomanceInterrogativeClause(trimmed, trimmed, definition)) {
+    return "interrogative";
+  }
+  if (ROMANCE_DEPENDENT_EXPLICIT_FACT_PATTERN.test(trimmed)) {
+    return "dependent";
+  }
+  return ROMANCE_INDEPENDENT_EXPLICIT_FACT_PATTERN.test(trimmed)
+    ? "fact"
+    : "unknown";
+}
+
 function extractExplicitFactClauses(
   content: string,
   definition: RomancePackDefinition,
@@ -524,25 +549,52 @@ function extractExplicitFactClauses(
       : undefined;
   }
 
-  const expectedFactCount = romanceFactCount(content);
+  const declaredFactCount = romanceFactCount(content);
   const payload = match.slice(1).find((value) => value !== undefined) ?? "";
   if (/^[\s:：,]*[?？]/u.test(payload)) {
     return { clauses: [], status: "invalid" as const };
   }
   const clauses = splitRomanceClauses(payload, definition)
-    .map((source) => ({
-      content: source
+    .flatMap((source) =>
+      splitExplicitCompoundClauses(
+        source,
+        (clause) => classifyRomanceExplicitCompoundClause(clause, definition),
+      )
+    )
+    .map((source) => {
+      const cleaned = source
         .trim()
         .replace(/^[\s:：,，;；.!?。！？…]+/u, "")
         .replace(/[\s:：,，;；.!?。！？…]+$/u, "")
-        .trim(),
-      source,
-    }))
+        .trim();
+      return {
+        compoundKind: classifyRomanceExplicitCompoundClause(
+          source,
+          definition,
+        ),
+        content: cleaned,
+        source,
+      };
+    })
     .filter(({ content: clause }) => hasSemanticContent(clause));
-  if (clauses.length < expectedFactCount) {
-    return ROMANCE_FACT_COUNT_PATTERN.test(content)
+  const hasDeclaredFactCount = ROMANCE_FACT_COUNT_PATTERN.test(content);
+  const independentFactClauses = clauses.filter(
+    ({ compoundKind }) => compoundKind === "fact",
+  );
+  const countedFactClauses = clauses.filter(({ compoundKind, content }) =>
+    compoundKind === "fact" || compoundKind === "unknown" ||
+    definition.candidatePatterns.optOut.test(content)
+  );
+  const expectedFactCount = hasDeclaredFactCount
+    ? declaredFactCount
+    : Math.max(1, independentFactClauses.length);
+  if (
+    (hasDeclaredFactCount ? countedFactClauses : clauses).length <
+      expectedFactCount
+  ) {
+    return hasDeclaredFactCount
       ? {
-        clauses: clauses.map(({ content: clause }) => ({
+        clauses: countedFactClauses.map(({ content: clause }) => ({
           content: clause,
           disposition: definition.candidatePatterns.optOut.test(clause)
             ? "feedback" as const
@@ -552,15 +604,40 @@ function extractExplicitFactClauses(
       }
       : { clauses: [], status: "invalid" as const };
   }
-  if (clauses.some(({ content: clause, source }) =>
-    !definition.candidatePatterns.optOut.test(clause) &&
-    isRomanceInterrogativeClause(clause, source, definition)
-  )) {
+  const hasSafeUncountedCompound = !hasDeclaredFactCount &&
+    clauses.length > 1 && independentFactClauses.length > 0;
+  const lastCountedFact = expectedFactCount > 0
+    ? countedFactClauses[expectedFactCount - 1]
+    : undefined;
+  const lastCountedFactIndex = lastCountedFact
+    ? clauses.indexOf(lastCountedFact)
+    : -1;
+  if (
+    (hasDeclaredFactCount && clauses
+      .slice(0, lastCountedFactIndex + 1)
+      .some(({ compoundKind, content }) =>
+        compoundKind !== "fact" && compoundKind !== "unknown" &&
+        !definition.candidatePatterns.optOut.test(content)
+      )) ||
+    (!hasDeclaredFactCount && clauses.some(({ compoundKind, content }) =>
+      compoundKind === "interrogative" &&
+      !definition.candidatePatterns.optOut.test(content)
+    )) ||
+    (!hasDeclaredFactCount && !hasSafeUncountedCompound &&
+      clauses.some(({ content: clause, source }) =>
+      !definition.candidatePatterns.optOut.test(clause) &&
+      isRomanceInterrogativeClause(clause, source, definition)
+    ))
+  ) {
     return { clauses: [], status: "invalid" as const };
   }
 
+  const selectedFactClauses = !hasDeclaredFactCount && independentFactClauses.length > 0
+    ? independentFactClauses
+    : countedFactClauses.slice(0, expectedFactCount);
+
   return {
-    clauses: clauses.slice(0, expectedFactCount).map(({ content: clause }) => ({
+    clauses: selectedFactClauses.map(({ content: clause }) => ({
       content: clause,
       disposition: definition.candidatePatterns.optOut.test(clause)
         ? "feedback" as const

@@ -83,9 +83,7 @@ export function selectFactsLegacy(
     lexicalScore: entry.lexicalScore,
     freshnessScore: entry.freshnessScore,
     explicitnessScore: entry.explicitnessScore,
-    usageScore: entry.usageScore,
     evidenceScore: entry.evidenceScore,
-    outcomeScore: entry.outcomeScore,
     verificationPenaltyScore: entry.verificationPenaltyScore,
     // Feature-gated so union-off traces serialize byte-identically.
     ...(semanticUnion && entry.semanticScore > 0

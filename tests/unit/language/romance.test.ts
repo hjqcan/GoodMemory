@@ -71,6 +71,18 @@ const RENDER_KEYS = Object.keys({
   name: true,
   none: true,
   omitted_records: true,
+  note: true,
+  note_item: true,
+  memory_context_frame: true,
+  files: true,
+  topic_active: true,
+  topic_superseded: true,
+  topic_archived: true,
+  expertise: true,
+  current_projects_and_goals: true,
+  collaboration_preferences: true,
+  stable_procedural_guidance: true,
+  provenance_summary: true,
   omitted_sections: true,
   open_loops: true,
   organization: true,
@@ -164,7 +176,7 @@ describe("French LanguagePack", () => {
 
   it("has stable identity, disambiguated detection, and complete rendering", () => {
     expectPackContract(pack, {
-      analyzerVersion: "12-durable-optout-boundary",
+      analyzerVersion: "13-explicit-compound-facts",
       defaultLocale: "fr-FR",
       distinctive: "Je préfère répondre en français.",
       id: "fr",
@@ -362,7 +374,7 @@ describe("Spanish LanguagePack", () => {
 
   it("has stable identity, disambiguated detection, and complete rendering", () => {
     expectPackContract(pack, {
-      analyzerVersion: "11-durable-optout-boundary",
+      analyzerVersion: "12-explicit-compound-facts",
       defaultLocale: "es-ES",
       distinctive: "¿Cuál es el bloqueo actual?",
       id: "es",

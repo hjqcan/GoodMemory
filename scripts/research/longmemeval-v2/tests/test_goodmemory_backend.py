@@ -92,6 +92,7 @@ class GoodMemoryBackendTest(unittest.TestCase):
         self.backend = goodmemory_backend.GoodMemoryBackend(
             {
                 "agent_id": "longmemeval-v2",
+                "accessibility_chunk_bytes": 24,
                 "base_url": "http://127.0.0.1:8739",
                 "batch_size": 8,
                 "data_root": str(self.data_root),
@@ -112,6 +113,17 @@ class GoodMemoryBackendTest(unittest.TestCase):
 
     def test_backend_registers_with_the_official_memory_registry(self) -> None:
         self.assertIs(memory_registry["goodmemory"], goodmemory_backend.GoodMemoryBackend)
+
+    def test_sync_import_uses_one_long_lived_http_attempt(self) -> None:
+        self.assertEqual(self.client.kwargs["timeout_seconds"], 600.0)
+        self.assertEqual(self.client.kwargs["max_attempts"], 1)
+
+    def test_accessibility_chunks_preserve_utf8_text_with_a_hard_byte_limit(self) -> None:
+        text = "button Reply\nlink Café comments\n"
+        chunks = goodmemory_backend.chunk_utf8_text(text, 12)
+
+        self.assertEqual("".join(chunks), text)
+        self.assertTrue(all(len(chunk.encode("utf-8")) <= 12 for chunk in chunks))
 
     def test_runtime_workspace_partitions_the_remote_scope(self) -> None:
         first = goodmemory_backend.GoodMemoryBackend(
@@ -170,9 +182,10 @@ class GoodMemoryBackendTest(unittest.TestCase):
         self.assertIsInstance(annotations, list)
         self.assertEqual(call["extraction_strategy"], "rules-only")
         self.assertEqual(call["mode"], "sync")
-        self.assertEqual(len(messages), 2)
+        self.assertGreater(len(messages), 2)
         self.assertEqual(len(annotations), len(messages))
         self.assertEqual(call["scope"].session_id, "trajectory-1")
+        self.assertEqual(len({message["id"] for message in messages}), len(messages))
 
         rendered = "\n".join(message["content"] for message in messages)
         self.assertIn("Goal: Reply to a nested comment.", rendered)
@@ -258,6 +271,11 @@ class GoodMemoryBackendTest(unittest.TestCase):
 
         fake_harness.inject_runtime_memory_params = original_inject  # type: ignore[attr-defined]
 
+        def original_harness_main() -> None:
+            captured["harness_argv"] = list(sys.argv)
+
+        fake_harness.main = original_harness_main  # type: ignore[attr-defined]
+
         def original_build(args: SimpleNamespace, data_root: Path) -> dict[str, object]:
             return {"memory_type": str(args.method), "memory_params": {"data_root": str(data_root)}}
 
@@ -272,6 +290,7 @@ class GoodMemoryBackendTest(unittest.TestCase):
                 workspace_dir=self.data_root / "runtime" / "opaque-run",
                 trajectories_path=str(self.data_root / "locked-data" / "trajectories.jsonl"),
             )
+            fake_harness.main()  # type: ignore[attr-defined]
 
         fake_run_eval.build_memory_config = original_build  # type: ignore[attr-defined]
         fake_run_eval.main = fake_main  # type: ignore[attr-defined]
@@ -292,6 +311,8 @@ class GoodMemoryBackendTest(unittest.TestCase):
                 str(upstream_root),
                 "--goodmemory-config",
                 str(config_path),
+                "--evaluator-base-url",
+                "https://judge.example/v1",
                 "--method",
                 "goodmemory",
                 "--domain",
@@ -322,6 +343,18 @@ class GoodMemoryBackendTest(unittest.TestCase):
                 "goodmemory",
                 "--domain",
                 "web",
+            ],
+        )
+        self.assertEqual(
+            captured["harness_argv"],
+            [
+                str(upstream_root.resolve() / "evaluation" / "run_eval.py"),
+                "--method",
+                "goodmemory",
+                "--domain",
+                "web",
+                "--evaluator-base-url",
+                "https://judge.example/v1",
             ],
         )
         self.assertEqual(

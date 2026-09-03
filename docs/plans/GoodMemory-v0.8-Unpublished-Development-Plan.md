@@ -75,6 +75,47 @@ claims or a review workflow.
 - The work remains on `main` as an unpublished development state only after
   v0.7.3 has been published and verified.
 
+## Scope expansion: memory-as-data program (2026-09-01)
+
+The memoryfield audit in
+`docs/GoodMemory-Benchmark-Optimization-Research-2026-07.md` added a second
+v0.8 lane, sequenced after the deprecated-field removals above:
+`task-board/79-phase-75-note-memory-and-interchange.txt` with
+`adr/ADR-010-note-memory-kind-file-mirror-and-interchange.txt`. It adds a
+first-class `note` kind with a projection version bump, so it ships in the same
+minor as the field removals rather than as a separate rebuild.
+
+## Progress
+
+- 2026-09-01: the seven deprecated fields are removed from source types,
+  factories, revision, projection neutral-field sets, ranked candidates, and
+  traces; `whyReturned` reports `evidenceScore=` in place of `outcomeScore=`.
+  Type-surface pins live in `tests/types/deprecated-telemetry-fields.types.ts`.
+  Stored JSON written by earlier releases may still carry the properties; v0.8
+  neither reads nor rewrites them. Not yet tagged.
+- 2026-09-02: WP1 `note` memory kind, WP2 opt-in long-record admission, and
+  WP3 index-plus-topics Markdown artifacts landed (see
+  `task-board/79-phase-75-note-memory-and-interchange.txt`); the recall
+  projection pipeline is `gm-projection-v6`, so existing scopes rebuild once.
+- 2026-09-02: WP4 interchange landed: `memory.importMemory`, the
+  `exportMemory().pages` bundle, CLI `import-memory`, HTTP `POST /memory/import`,
+  Python client `import_memory`. ADR-010 §9 records the fixed specifics.
+- 2026-09-02: WP5 read-only workspace file mirror landed
+  (`governance.fileMirror`, installed-host `--file-mirror`).
+- 2026-09-02: review hardening of WP4/WP5: durable import restores every
+  envelope collection, validates every record against a typed runtime
+  schema, and rolls back on failure;
+  split chunks are checked against the cap; the mirror binds one root to one
+  durable `scope` and recovers a failed swap.
+- 2026-09-02: WP6 `memory_context_frame` landed default-on for prompt
+  fragments with config and per-call opt-outs.
+- 2026-09-02: WP7 `goodmemory --schema` and the Memory Artifact and
+  Interchange Spec landed; the Phase 75 long-record admission gate script and
+  runner flags landed (fresh-install default still pending the gate).
+- 2026-09-02 Phase A-C close gate: full `bun test` green, `bun run typecheck`
+  clean, `bun run build` clean, `bun run test:coverage` 92.40% overall with
+  0 failures; ADR-010 accepted. Not committed, not tagged.
+
 ## Reopening preference identity
 
 Identity work can reopen only under a new protocol version that measures a

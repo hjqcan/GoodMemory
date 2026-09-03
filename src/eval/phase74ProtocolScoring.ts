@@ -113,6 +113,11 @@ export function createPhase74ProtocolCompatibleAnswerAssessor(input: {
   fetch?: FetchLike;
   intents: AttributedModelUsageIntent[];
   model: AISDKModelConfig;
+  onLongMemEvalVerdict?: (input: {
+    caseId: string;
+    correct: boolean;
+    verdict: string;
+  }) => void;
   onUsageEvent?: (event: AttributedModelUsageAttempt) => void;
   onUsageIntent?: (intent: AttributedModelUsageIntent) => void;
 }): Phase74ProtocolCompatibleAnswerAssessor {
@@ -172,7 +177,13 @@ export function createPhase74ProtocolCompatibleAnswerAssessor(input: {
               "Phase 74 prompt-compatible LongMemEval judge returned empty output.",
             );
           }
-          return parseLongMemEvalOfficialJudgeVerdict(verdict);
+          const correct = parseLongMemEvalOfficialJudgeVerdict(verdict);
+          input.onLongMemEvalVerdict?.({
+            caseId: usageCaseId ?? testCase.caseId,
+            correct,
+            verdict,
+          });
+          return correct;
         },
       });
     }, { retryLimit: configuration.retryLimit });

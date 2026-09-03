@@ -18,16 +18,19 @@ or aggregate score.
 ## Mapping
 
 - Each trajectory summary and state is written through the public GoodMemory
-  HTTP bridge as an exact, verified fact with `rules-only` extraction.
-- A state keeps its URL, action, thought, accessibility tree, and screenshot
-  path. Unknown top-level trajectory fields are not serialized.
+  HTTP bridge as exact, verified facts with `rules-only` extraction. State
+  metadata is separate from lossless, byte-bounded accessibility-tree chunks,
+  avoiding oversized embedding inputs without answer-aware deletion.
+- A state keeps its URL, action, thought, complete accessibility tree, and
+  screenshot path. Every chunk retains its trajectory/state/screenshot link;
+  unknown top-level trajectory fields are not serialized.
 - Recall uses the configured GoodMemory retrieval profile and strategy.
 - Only screenshots named by recalled facts are returned as image context.
 - The wrapper forwards the harness's opaque per-question workspace directory;
   the adapter hashes it into the configured workspace namespace so different
-  haystacks never share remote GoodMemory state. Trajectory ids stay in fact
-  metadata instead of session scope so recall can search the whole locked
-  haystack for each question.
+  haystacks never share remote GoodMemory state. Each trajectory also keeps its
+  own session id for topology-aware indexing; query recall uses the broader
+  question workspace scope and can search the whole locked haystack.
 - Operational diagnostics go to stderr without logging question text or bridge
   credentials.
 
@@ -71,6 +74,7 @@ Then invoke the official runner through the registration wrapper:
 python scripts/research/longmemeval-v2/run_goodmemory.py \
   --upstream-root /Volumes/data/GoodMemory-research/sources/LongMemEval-V2 \
   --goodmemory-config /path/to/locked-goodmemory-config.json \
+  --evaluator-base-url <independent-judge-base-url> \
   --data-root /Volumes/data/GoodMemory-research/datasets/longmemeval-v2 \
   --domain web \
   --tier small \
@@ -78,6 +82,24 @@ python scripts/research/longmemeval-v2/run_goodmemory.py \
   --output-dir /Volumes/data/GoodMemory-research/runs/<run-id> \
   <official reader and evaluator arguments>
 ```
+
+The wrapper forwards `--evaluator-base-url` into the official harness because
+the pinned convenience runner exposes evaluator model/key but otherwise omits
+that harness argument. This keeps the independent judge endpoint explicit in
+the saved run configuration.
+
+Keep the example client's `600` second timeout and single attempt for this
+synchronous bulk-import path. A large trajectory batch can legitimately exceed
+two minutes; retrying after a client-side timeout can overlap the write that is
+still running in the bridge.
+
+For large local SQLite imports, keep the temporary database on a fast local
+disk. GoodMemory's writable file-backed SQLite connections use WAL and a short
+busy timeout so concurrent inspection does not abort projection commits. A
+development run reached about 46/100 trajectories before interruption; it did
+not reach the reader or judge, so it is not a score or a completed baseline.
+Restart with a fresh database and workspace rather than reusing that partial
+scope.
 
 Run web and enterprise with separate fresh scopes. Preserve the config, source
 and dataset revisions, GoodMemory commit, bridge environment descriptor, Bun

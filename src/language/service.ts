@@ -642,6 +642,13 @@ export function createLanguageService(
       return packFor(context).render(input);
     },
     tokenOverlap(left, right, context, options) {
+      const detail = this.tokenOverlapDetail(left, right, context, options);
+      if (detail.leftSize === 0 || detail.rightSize === 0) {
+        return 0;
+      }
+      return detail.intersection / Math.max(detail.leftSize, detail.rightSize);
+    },
+    tokenOverlapDetail(left, right, context, options) {
       const pack = packFor(context);
       const leftTokens = new Set(
         pack.tokenizeForScoring(left, "overlap", options),
@@ -650,7 +657,11 @@ export function createLanguageService(
         pack.tokenizeForScoring(right, "overlap", options),
       );
       if (leftTokens.size === 0 || rightTokens.size === 0) {
-        return 0;
+        return {
+          intersection: 0,
+          leftSize: leftTokens.size,
+          rightSize: rightTokens.size,
+        };
       }
       const leftHasNumeric = [...leftTokens].some((token) =>
         PURE_NUMERIC_TOKEN.test(token)
@@ -689,7 +700,11 @@ export function createLanguageService(
           intersection += 1;
         }
       }
-      return intersection / Math.max(leftTokens.size, rightTokens.size);
+      return {
+        intersection,
+        leftSize: leftTokens.size,
+        rightSize: rightTokens.size,
+      };
     },
     localesCompatible(left, right) {
       const leftPack = resolvePackForLocale(left, registry.packs, defaultLocale);

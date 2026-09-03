@@ -334,6 +334,31 @@ describe("Codex coding-effect C6 flat-summary control", () => {
     );
   });
 
+  it("rejects a leakage receipt produced with a different summary prompt", async () => {
+    const input = await validInput();
+    const substitutePrompt = "Summarize the history using another policy.";
+    const substituteContext = {
+      ...input.leakageContext,
+      summaryPrompt: substitutePrompt,
+      summaryPromptSha256: sha256(substitutePrompt),
+    };
+    const substituteArtifact = await buildC6FlatSummaryArtifact({
+      ...input,
+      leakageContext: substituteContext,
+      promptSha256: substituteContext.summaryPromptSha256,
+    });
+
+    await expect(validateC6FlatSummaryArtifact(
+      {
+        ...substituteArtifact,
+        promptSha256: input.promptSha256,
+      },
+      protocol(),
+      expectedBinding(input),
+      substituteContext,
+    )).rejects.toThrow("C6 flat summary leakage audit does not match");
+  });
+
   it("exact-set verifies one structural generation receipt and every per-seed stage binding", () => {
     const expectation = corpusExpectation();
     const corpus = validCorpus(expectation);

@@ -11,14 +11,38 @@ export const C5_PILOT_ARMS = [
   "no-memory",
   "goodmemory-installed",
 ] as const;
+export const C5_BASELINE_ARMS = ["no-memory", "flat-summary"] as const;
+export const C5_COMPARATOR_GENERATION_POLICY =
+  "once-per-nonempty-stage-history-before-arm-execution";
+export const C5_COMPARATOR_INJECTION_CAPS = {
+  sessionStart: 1024,
+  userPromptSubmit: 512,
+} as const;
 
-export type C5PilotArm = typeof C5_PILOT_ARMS[number];
+export type C5BaselineArm = typeof C5_BASELINE_ARMS[number];
+export type C5PilotArm = C5BaselineArm | "goodmemory-installed";
+
+// The flat-summary comparator (plan 6.2) pins its summary protocol into the
+// frozen plan so a run cannot change model, prompt, or endpoint after freeze.
+export interface C5PilotComparatorInput {
+  summaryEndpointSha256: string;
+  summaryModel: string;
+  summaryPromptSha256: string;
+}
+
+export interface C5PilotComparatorProtocol extends C5PilotComparatorInput {
+  generationPolicy: typeof C5_COMPARATOR_GENERATION_POLICY;
+  injectionCaps: typeof C5_COMPARATOR_INJECTION_CAPS;
+  noHistoryZeroInjection: true;
+}
 
 export interface C5PilotPlanInput {
   assetLockSha256: string;
   assetRootSha256: string;
+  baselineArm?: C5BaselineArm;
   baselineCeilingReportSha256: string;
   c4ReadinessReportSha256: string;
+  comparator?: C5PilotComparatorInput;
   dataset: CodexCodingEffectDataset;
   manifestSha256: string;
   materialEffectPercentagePoints: number;
@@ -70,7 +94,7 @@ export interface C5PilotPlan {
     power: 0.8;
     primaryResamplingUnit: "episode";
   };
-  arms: ["no-memory", "goodmemory-installed"];
+  arms: [C5BaselineArm, "goodmemory-installed"];
   bindings: {
     assetLockSha256: string;
     assetRootSha256: string;
@@ -80,6 +104,7 @@ export interface C5PilotPlan {
   };
   claimBoundary: "internal-native-longitudinal-pilot-only";
   clusters: C5PilotCluster[];
+  comparator?: C5PilotComparatorProtocol;
   counts: {
     arms: 2;
     codexProcesses: number;
@@ -104,9 +129,10 @@ export interface C5PilotPlan {
   publicCodingEffectProof: false;
   randomization: {
     algorithm: "sha256-ranked-balanced-pair-order-v1";
+    baselineFirstClusters?: number;
     clusterOrderSha256: string;
     goodMemoryFirstClusters: number;
-    noMemoryFirstClusters: number;
+    noMemoryFirstClusters?: number;
     orderSeed: number;
   };
   readmeRowAllowed: false;
@@ -125,6 +151,8 @@ interface ClusterCandidate {
 
 export function buildC5PilotPlan(input: C5PilotPlanInput): C5PilotPlan {
   validateInput(input);
+  const baselineArm = input.baselineArm ?? "no-memory";
+  const comparator = resolveComparatorProtocol(baselineArm, input.comparator);
   const dataset = validateC5Dataset(input.dataset);
   const candidates = buildClusterCandidates(dataset, input.orderSeed);
   const goodMemoryFirst = new Set(
@@ -136,8 +164,8 @@ export function buildC5PilotPlan(input: C5PilotPlanInput): C5PilotPlan {
   const orderedCandidates = [...candidates].sort(compareClusterRank);
   const clusters = orderedCandidates.map((candidate, index): C5PilotCluster => ({
     armOrder: goodMemoryFirst.has(candidate.id)
-      ? ["goodmemory-installed", "no-memory"]
-      : ["no-memory", "goodmemory-installed"],
+      ? ["goodmemory-installed", baselineArm]
+      : [baselineArm, "goodmemory-installed"],
     episodeId: candidate.episode.id,
     executionPosition: index + 1,
     id: candidate.id,
@@ -177,7 +205,7 @@ export function buildC5PilotPlan(input: C5PilotPlanInput): C5PilotPlan {
       power: 0.8,
       primaryResamplingUnit: "episode",
     },
-    arms: ["no-memory", "goodmemory-installed"],
+    arms: [baselineArm, "goodmemory-installed"],
     bindings: {
       assetLockSha256: input.assetLockSha256,
       assetRootSha256: input.assetRootSha256,
@@ -187,6 +215,7 @@ export function buildC5PilotPlan(input: C5PilotPlanInput): C5PilotPlan {
     },
     claimBoundary: "internal-native-longitudinal-pilot-only",
     clusters,
+    ...(comparator === undefined ? {} : { comparator }),
     counts: {
       arms: 2,
       codexProcesses: episodeArmRuns.reduce(
@@ -217,13 +246,24 @@ export function buildC5PilotPlan(input: C5PilotPlanInput): C5PilotPlan {
     publicCodingEffectProof: false,
     randomization: {
       algorithm: "sha256-ranked-balanced-pair-order-v1",
+      ...(baselineArm === "no-memory"
+        ? {}
+        : {
+            baselineFirstClusters: clusters.filter((cluster) =>
+              cluster.armOrder[0] === baselineArm
+            ).length,
+          }),
       clusterOrderSha256,
       goodMemoryFirstClusters: clusters.filter((cluster) =>
         cluster.armOrder[0] === "goodmemory-installed"
       ).length,
-      noMemoryFirstClusters: clusters.filter((cluster) =>
-        cluster.armOrder[0] === "no-memory"
-      ).length,
+      ...(baselineArm === "no-memory"
+        ? {
+            noMemoryFirstClusters: clusters.filter((cluster) =>
+              cluster.armOrder[0] === "no-memory"
+            ).length,
+          }
+        : {}),
       orderSeed: input.orderSeed,
     },
     readmeRowAllowed: false,
@@ -360,6 +400,48 @@ function validateC5Dataset(
     }
   }
   return validated;
+}
+
+export function c5PlanBaselineArm(plan: Pick<C5PilotPlan, "arms">): C5BaselineArm {
+  return plan.arms[0];
+}
+
+function resolveComparatorProtocol(
+  baselineArm: C5BaselineArm,
+  comparator: C5PilotComparatorInput | undefined,
+): C5PilotComparatorProtocol | undefined {
+  if (baselineArm === "no-memory") {
+    if (comparator !== undefined) {
+      throw new Error(
+        "C5 comparator summary protocol requires the flat-summary baseline",
+      );
+    }
+    return undefined;
+  }
+  if (comparator === undefined) {
+    throw new Error(
+      "C5 flat-summary baseline requires the comparator summary protocol",
+    );
+  }
+  for (const [name, value] of Object.entries({
+    summaryEndpointSha256: comparator.summaryEndpointSha256,
+    summaryPromptSha256: comparator.summaryPromptSha256,
+  })) {
+    if (!/^[a-f0-9]{64}$/u.test(value)) {
+      throw new Error(`C5 comparator ${name} must be a SHA-256 digest`);
+    }
+  }
+  if (comparator.summaryModel.trim().length === 0) {
+    throw new Error("C5 comparator summary model must be non-empty");
+  }
+  return {
+    generationPolicy: C5_COMPARATOR_GENERATION_POLICY,
+    injectionCaps: C5_COMPARATOR_INJECTION_CAPS,
+    noHistoryZeroInjection: true,
+    summaryEndpointSha256: comparator.summaryEndpointSha256,
+    summaryModel: comparator.summaryModel,
+    summaryPromptSha256: comparator.summaryPromptSha256,
+  };
 }
 
 function validateInput(input: C5PilotPlanInput): void {

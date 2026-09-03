@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 
-import type { C5PilotPlan } from "./c5-pilot-plan";
+import { c5PlanBaselineArm } from "./c5-pilot-plan";
+import type {
+  C5BaselineArm,
+  C5PilotArm,
+  C5PilotPlan,
+} from "./c5-pilot-plan";
 import type {
   C5LongitudinalPairResult,
   C5LongitudinalPilotResult,
@@ -33,7 +38,15 @@ export interface C5PilotReport {
     scheduledCount: number;
   };
   claimBoundary: "internal-native-longitudinal-pilot-only";
+  comparatorInjection: {
+    contentInjectionCount: number;
+    hookCanaryFailureCount: number;
+    injectedTokensTotal: number;
+    zeroInjectionCount: number;
+  } | null;
   effect: {
+    baselineArm: C5BaselineArm;
+    baselineResolveRate: number | null;
     comparablePairs: number;
     goodMemoryResolveRate: number | null;
     netRescueRate: number | null;
@@ -124,7 +137,8 @@ export function buildC5PilotReport(input: {
 
   const outcomes = countOutcomes(input.result.pairs);
   const comparablePairs = input.result.pairs.filter((pair) => pair.comparable);
-  const noMemoryResolved = countResolved(comparablePairs, "no-memory");
+  const baselineArm = c5PlanBaselineArm(input.plan);
+  const noMemoryResolved = countResolved(comparablePairs, baselineArm);
   const goodMemoryResolved = countResolved(
     comparablePairs,
     "goodmemory-installed",
@@ -166,7 +180,10 @@ export function buildC5PilotReport(input: {
       scheduledCount: input.plan.counts.stageRuns,
     },
     claimBoundary: "internal-native-longitudinal-pilot-only",
+    comparatorInjection: buildComparatorInjection(input.result, baselineArm),
     effect: {
+      baselineArm,
+      baselineResolveRate: rate(noMemoryResolved, comparablePairs.length),
       comparablePairs: comparablePairs.length,
       goodMemoryResolveRate: rate(goodMemoryResolved, comparablePairs.length),
       netRescueRate: rate(
@@ -296,7 +313,7 @@ function countOutcomes(
 
 function countResolved(
   pairs: readonly C5LongitudinalPairResult[],
-  arm: "goodmemory-installed" | "no-memory",
+  arm: C5PilotArm,
 ): number {
   return pairs.filter((pair) =>
     pair.evaluations.find((evaluation) => evaluation.arm === arm)?.resolved
@@ -353,6 +370,31 @@ function buildResourceUsage(
       (sum, execution) => sum + execution.codexDurationMs,
       0,
     ),
+  };
+}
+
+function buildComparatorInjection(
+  result: C5LongitudinalPilotResult,
+  baselineArm: C5BaselineArm,
+): C5PilotReport["comparatorInjection"] {
+  if (baselineArm !== "flat-summary") return null;
+  const receipts = result.stageExecutions
+    .filter((execution) => execution.arm === "flat-summary")
+    .map((execution) => execution.comparatorInjection ?? null);
+  return {
+    contentInjectionCount: receipts.filter((receipt) =>
+      receipt?.mode === "content-injection"
+    ).length,
+    hookCanaryFailureCount: receipts.filter((receipt) =>
+      receipt === null || !receipt.hookEvaluationPassed
+    ).length,
+    injectedTokensTotal: receipts.reduce(
+      (total, receipt) => total + (receipt?.injectedTokenCount ?? 0),
+      0,
+    ),
+    zeroInjectionCount: receipts.filter((receipt) =>
+      receipt?.mode === "no-history-zero-injection"
+    ).length,
   };
 }
 

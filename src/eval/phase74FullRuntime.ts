@@ -1,8 +1,6 @@
 import { createHash } from "node:crypto";
-import { constants as fsConstants } from "node:fs";
 import {
   access,
-  copyFile,
   mkdir,
   mkdtemp,
   readFile,
@@ -33,6 +31,7 @@ import {
   createProviderRecallPlanAssistant,
 } from "../provider/layer";
 import type { ModelUsageSink } from "../provider/model-usage";
+import { serializeSQLiteDatabase } from "../storage/sqlite";
 import type { GeneralizedFusionChannel } from "../recall/generalizedFusion";
 import { createLexicalCoverageReranker } from "../recall/reranker";
 import type { EvidenceLedgerFormat } from "./evidenceLedgerFormats";
@@ -856,11 +855,7 @@ export function createPhase74FullRetrievalRuntime(input: {
       await mkdir(queryRoot, { recursive: true });
       const queryDirectory = await mkdtemp(join(queryRoot, "query-"));
       const sqlitePath = join(queryDirectory, "memory.sqlite");
-      await copyFile(
-        ingested.sqlitePath,
-        sqlitePath,
-        fsConstants.COPYFILE_FICLONE,
-      );
+      await writeFile(sqlitePath, serializeSQLiteDatabase(ingested.sqlitePath));
       try {
         const sink = createAttributedModelUsageSink({
           branch: phase74ExecutionBranch(stage, arm),

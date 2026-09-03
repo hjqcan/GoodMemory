@@ -1,6 +1,7 @@
 import type {
   EpisodeMemory,
   FactMemory,
+  NoteMemory,
   ReferenceMemory,
 } from "../domain/records";
 import type { EmbeddingAdapter } from "./contracts";
@@ -19,7 +20,7 @@ export interface MemoryEmbeddingWrite {
   id: string;
   content: string;
   metadata: Record<string, unknown>;
-  memoryType: "fact" | "reference" | "episode";
+  memoryType: "fact" | "reference" | "episode" | "note";
 }
 
 export interface PreparedMemoryEmbeddingRecord extends MemoryEmbeddingWrite {
@@ -65,6 +66,17 @@ export function buildReferenceEmbeddingWrite(
       .join("\n"),
     metadata: buildEmbeddingMetadata(reference, "reference"),
     memoryType: "reference",
+  };
+}
+
+// A note embeds whole: title plus verbatim body. The NOTE_MAX_BYTES cap keeps
+// the input inside common provider limits without any truncation here.
+export function buildNoteEmbeddingWrite(note: NoteMemory): MemoryEmbeddingWrite {
+  return {
+    id: note.id,
+    content: `${note.title}\n\n${note.body}`,
+    metadata: buildEmbeddingMetadata(note, "note"),
+    memoryType: "note",
   };
 }
 
@@ -124,6 +136,17 @@ export async function prepareMemoryEmbeddingWrites(
     );
   }
 
+  const noteWrites = writes.filter((write) => write.memoryType === "note");
+  if (noteWrites.length > 0) {
+    const embeddings = await embedding.embed(noteWrites.map((write) => write.content));
+    prepared.push(
+      ...noteWrites.map((write, index) => ({
+        ...write,
+        embedding: embeddings[index]!,
+      })),
+    );
+  }
+
   return prepared;
 }
 
@@ -159,6 +182,18 @@ export async function upsertPreparedMemoryEmbeddings(
   if (episodeRecords.length > 0) {
     await vectorIndex.upsertEpisodeEmbedding(
       episodeRecords.map((record) => ({
+        id: record.id,
+        embedding: record.embedding,
+        metadata: record.metadata,
+        content: record.content,
+      })),
+    );
+  }
+
+  const noteRecords = records.filter((record) => record.memoryType === "note");
+  if (noteRecords.length > 0) {
+    await vectorIndex.upsertNoteEmbedding(
+      noteRecords.map((record) => ({
         id: record.id,
         embedding: record.embedding,
         metadata: record.metadata,

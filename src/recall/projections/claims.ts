@@ -1,16 +1,24 @@
 import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 
-import { isActiveMemoryLifecycle } from "../../domain/records";
+import {
+  isActiveMemoryLifecycle,
+  resolveFactEffectiveTimestamp,
+} from "../../domain/records";
 import type { FactMemory } from "../../domain/records";
 import { normalizeScope } from "../../domain/scope";
 import type { MemoryScope } from "../../domain/scope";
 import type { EvidenceRecord } from "../../evidence/contracts";
+import type { LanguageService } from "../../language";
 import type {
   ProjectionCapableDocumentStore,
   StorageDocument,
 } from "../../storage/contracts";
-import type { LanguageService } from "../../language";
+import {
+  compareClaimEventTime,
+  resolveClaimEndTime,
+  resolveClaimEventTime,
+} from "../claimTemporal";
 import {
   CLAIM_PROJECTIONS_COLLECTION,
   CLAIM_PROJECTION_STATUS_COLLECTION,
@@ -654,10 +662,6 @@ export function createClaimProjectionIndex(
     return language.normalizeForEquality(claim.objectText, context);
   }
 
-  function claimEventTime(claim: ClaimProjection): string {
-    return claim.validFrom ?? claim.observedAt;
-  }
-
   async function reconcileStructuredSupersession(
     scope: MemoryScope,
   ): Promise<void> {
@@ -674,7 +678,7 @@ export function createClaimProjectionIndex(
           claim.modality === "asserted"
         )
         .sort((left, right) =>
-          claimEventTime(left).localeCompare(claimEventTime(right)) ||
+          compareClaimEventTime(left, right) ||
           left.id.localeCompare(right.id)
         );
       const openBySlot = new Map<string, ClaimProjection[]>();
@@ -684,11 +688,11 @@ export function createClaimProjectionIndex(
         const open = openBySlot.get(slot) ?? [];
         const nextOpen: ClaimProjection[] = [];
         const value = normalizeClaimObjectText(claim);
-        const eventTime = claimEventTime(claim);
+        const eventTime = resolveClaimEventTime(claim);
         for (const older of open) {
           if (
             older.sourceMemoryId !== claim.sourceMemoryId &&
-            claimEventTime(older).localeCompare(eventTime) < 0 &&
+            compareClaimEventTime(older, claim) < 0 &&
             normalizeClaimObjectText(older) !== value
           ) {
             const { id: _id, ...projectionWithoutId } = older;
@@ -705,7 +709,7 @@ export function createClaimProjectionIndex(
             nextOpen.push(older);
           }
         }
-        if (!claim.validUntil) {
+        if (!resolveClaimEndTime(claim)) {
           nextOpen.push(claim);
         }
         openBySlot.set(slot, nextOpen);
@@ -814,7 +818,7 @@ export function createClaimProjectionIndex(
       },
     );
     const newValue = normalizeClaimObjectText(claim);
-    const eventTime = claimEventTime(claim);
+    const eventTime = resolveClaimEventTime(claim);
     const selectedPeers: Array<{
       claim: ClaimProjection;
       status: ClaimProjectionStatus;
@@ -824,7 +828,7 @@ export function createClaimProjectionIndex(
     for (const peer of slotClaims) {
       if (
         peer.sourceMemoryId === claim.sourceMemoryId ||
-        peer.validUntil !== undefined ||
+        resolveClaimEndTime(peer) !== undefined ||
         peer.polarity !== "positive" ||
         peer.modality !== "asserted"
       ) {
@@ -856,14 +860,14 @@ export function createClaimProjectionIndex(
       id: string;
     }> = [];
     let resolvedClaim = claim;
-    if (claim.validUntil === undefined) {
+    if (resolveClaimEndTime(claim) === undefined) {
       const nextValue = selectedPeers
         .filter(({ claim: peer }) =>
-          claimEventTime(peer).localeCompare(eventTime) > 0 &&
+          compareClaimEventTime(peer, claim) > 0 &&
           normalizeClaimObjectText(peer) !== newValue
         )
         .sort((left, right) =>
-          claimEventTime(left.claim).localeCompare(claimEventTime(right.claim)) ||
+          compareClaimEventTime(left.claim, right.claim) ||
           left.claim.ingestedAt.localeCompare(right.claim.ingestedAt) ||
           left.claim.id.localeCompare(right.claim.id)
         )[0];
@@ -871,7 +875,7 @@ export function createClaimProjectionIndex(
         const { id: _claimId, ...claimWithoutId } = claim;
         const boundedWithoutId: Omit<ClaimProjection, "id"> = {
           ...claimWithoutId,
-          validUntil: claimEventTime(nextValue.claim),
+          validUntil: resolveClaimEventTime(nextValue.claim),
         };
         resolvedClaim = {
           id: projectionId(boundedWithoutId),
@@ -896,7 +900,7 @@ export function createClaimProjectionIndex(
     for (const { claim: older, status: olderStatus, statusId } of selectedPeers) {
       if (
         closedSources.has(older.sourceMemoryId) ||
-        claimEventTime(older).localeCompare(eventTime) >= 0 ||
+        compareClaimEventTime(older, claim) >= 0 ||
         normalizeClaimObjectText(older) === newValue
       ) {
         continue;
@@ -963,7 +967,7 @@ export function createClaimProjectionIndex(
         claim.predicateKey.startsWith("fact.") ||
         claim.polarity !== "positive" ||
         claim.modality !== "asserted" ||
-        claim.validUntil !== undefined
+        resolveClaimEndTime(claim) !== undefined
       ) {
         continue;
       }
@@ -988,7 +992,7 @@ export function createClaimProjectionIndex(
       }
       const winner = [...slotClaims].sort(
         (left, right) =>
-          claimEventTime(right).localeCompare(claimEventTime(left)) ||
+          compareClaimEventTime(right, left) ||
           right.ingestedAt.localeCompare(left.ingestedAt) ||
           right.id.localeCompare(left.id),
       )[0]!;
@@ -1086,6 +1090,7 @@ export function createClaimProjectionIndex(
           languageContext,
         )
         : undefined;
+      const validUntil = resolveClaimEndTime(input.claim);
       const projectionWithoutId: Omit<ClaimProjection, "id"> = {
         schemaVersion: 2,
         ...normalized,
@@ -1112,7 +1117,7 @@ export function createClaimProjectionIndex(
         polarity: input.claim.polarity ?? "positive",
         modality: input.claim.modality ?? "asserted",
         ...(input.claim.validFrom ? { validFrom: input.claim.validFrom } : {}),
-        ...(input.claim.validUntil ? { validUntil: input.claim.validUntil } : {}),
+        ...(validUntil ? { validUntil } : {}),
         observedAt: input.observedAt,
         ingestedAt: input.ingestedAt,
         evidenceIds: [...new Set(input.evidenceIds)],
@@ -1359,8 +1364,7 @@ export function createClaimProjectionIndex(
       },
       // Prefer event time over transaction time: explicit validity start, then
       // the source-message observation time, then extraction wall clock.
-      observedAt: fact.validFrom ?? fact.observedAt ?? fact.source.extractedAt ??
-        fact.createdAt,
+      observedAt: resolveFactEffectiveTimestamp(fact),
       ingestedAt: fact.updatedAt,
       evidenceIds,
       sourceMessageIds,
@@ -1430,7 +1434,7 @@ export function createClaimProjectionIndex(
         continue;
       }
       const closed = current.map((claim) => {
-        if (claim.validUntil) {
+        if (resolveClaimEndTime(claim)) {
           return { previous: claim, projection: claim };
         }
         const { id: _id, ...projectionWithoutId } = claim;

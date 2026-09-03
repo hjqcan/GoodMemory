@@ -9,6 +9,7 @@ import {
 } from "./cli/host";
 import { runMemoryCommand } from "./cli/memory";
 import { runServicesCommand } from "./cli/services";
+import { renderCliSchema } from "./cli/schema";
 import type {
   CLIRunDependencies,
   CLIResult,
@@ -65,6 +66,14 @@ function parseArgs(argv: string[]): ParsedArgs {
 
 function flagEnabled(flags: ParsedFlags, name: string): boolean {
   return flags[name] === "true";
+}
+
+async function readPackageVersion(): Promise<string> {
+  if (!packageVersionCache) {
+    const metadata = JSON.parse(await readFile(PACKAGE_JSON_URL, "utf8")) as { version: string };
+    packageVersionCache = metadata.version;
+  }
+  return packageVersionCache;
 }
 
 async function versionResult(): Promise<CLIResult> {
@@ -164,6 +173,7 @@ function routeHelp(commands: string[]): CLIResult {
     case "trace": return helpResult(help.TRACE_HELP_TEXT);
     case "stats": return helpResult(help.STATS_HELP_TEXT);
     case "export-memory": return helpResult(help.EXPORT_MEMORY_HELP_TEXT);
+    case "import-memory": return helpResult(help.IMPORT_MEMORY_HELP_TEXT);
     case "eval": case "mcp": case "runtime": case "storage":
       return nestedHelp(primary, commands[1]);
     case "codex": case "claude": return hostToolHelp(primary, commands);
@@ -203,6 +213,9 @@ export async function runCLI(
   try {
     const { commands, flags } = parseArgs(argv);
     if (flagEnabled(flags, "version")) return await versionResult();
+    if (flagEnabled(flags, "schema")) {
+      return { exitCode: 0, stderr: "", stdout: renderCliSchema(await readPackageVersion()) };
+    }
     if (commands.length === 0) return helpResult(help.ROOT_HELP_TEXT);
     if (flagEnabled(flags, "help")) return routeHelp(commands);
 
@@ -211,7 +224,7 @@ export async function runCLI(
     if (bareHelp) return bareHelp;
     switch (primary) {
       case "remember": case "feedback": case "forget": case "inspect":
-      case "trace": case "stats": case "export-memory":
+      case "trace": case "stats": case "export-memory": case "import-memory":
         return await runMemoryCommand(primary, flags);
       case "eval": return await runEvalCommand(commands, flags);
       case "adopt": case "setup": case "status": case "doctor":

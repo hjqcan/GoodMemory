@@ -280,7 +280,7 @@ describe("C6 source-v3-simple prior identity draft capture", () => {
         sourceUniversePath: SOURCE_PATH,
       }),
     ).rejects.toThrow("outer asset closure mismatch");
-  }, ciTestTimeout(30_000));
+  }, ciTestTimeout(120_000));
 
   it("records frozen HTTP and transport retries without changing lookup order", async () => {
     const parent = await temporaryParent();

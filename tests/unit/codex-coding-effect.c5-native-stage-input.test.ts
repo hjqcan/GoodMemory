@@ -244,6 +244,65 @@ describe("Codex coding-effect C5 native stage input", () => {
     }
   });
 
+  it("accepts additional zero-count memory kinds but rejects missing kinds or non-zero extras", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-storage-kinds-"));
+    const storagePath = join(root, "memory.sqlite");
+    const knownKinds = [
+      "archives",
+      "artifactSpills",
+      "episodes",
+      "evidence",
+      "experiences",
+      "facts",
+      "feedback",
+      "journal",
+      "preferences",
+      "profiles",
+      "promotions",
+      "proposals",
+      "references",
+      "workingMemory",
+    ];
+    const initialize = (deleted: Record<string, number>) =>
+      initializeC5EmptyInstalledStorage({
+        env: {},
+        executable: "/installed/bin/goodmemory",
+        run: async () => {
+          await writeFile(storagePath, "initialized", "utf8");
+          return {
+            durationMs: 1,
+            exitCode: 0,
+            stderr: "",
+            stdout: `${JSON.stringify({
+              deleted,
+              includeRuntime: false,
+              scope: { userId: "user-1", workspaceId: "workspace-1" },
+              storage: { location: storagePath, provider: "sqlite" },
+            })}\n`,
+            timedOut: false,
+          };
+        },
+        storagePath,
+        timeoutMs: 30_000,
+        userId: "user-1",
+        workspaceId: "workspace-1",
+        workspaceRoot: root,
+      });
+    const zeros = (keys: readonly string[]) =>
+      Object.fromEntries(keys.map((key) => [key, 0]));
+    try {
+      expect(await initialize({ ...zeros(knownKinds), notes: 0 })).toBe("initialized");
+      await rm(storagePath, { force: true });
+      await expect(initialize({ ...zeros(knownKinds), notes: 2 }))
+        .rejects.toThrow("not empty and bound");
+      await rm(storagePath, { force: true });
+      await expect(initialize(zeros(knownKinds.filter((key) => key !== "journal"))))
+        .rejects.toThrow("not empty and bound");
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("rejects an initialization receipt that deleted preexisting memory", async () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-dirty-storage-"));
     const storagePath = join(root, "memory.sqlite");

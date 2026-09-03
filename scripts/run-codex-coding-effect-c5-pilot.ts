@@ -1,4 +1,5 @@
-import { existsSync, realpathSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import {
   basename,
@@ -16,8 +17,21 @@ import {
   resolveCliPathSegmentFlagValueStrict,
 } from "./cli-options";
 import {
+  C5_SUMMARY_API_KEY_ENVIRONMENT_NAME,
+} from "./codex-coding-effect/c5-flat-summary-arm";
+import {
+  C6_GURKIAI_FLAT_SUMMARY_ENDPOINT,
+} from "./codex-coding-effect/c6-flat-summary-generation-capture";
+import {
   runC5NativeLongitudinalPilot,
 } from "./codex-coding-effect/c5-live-pilot";
+import type {
+  C5ComparatorRuntimeInput,
+} from "./codex-coding-effect/c5-live-pilot";
+import type {
+  C5BaselineArm,
+  C5PilotComparatorInput,
+} from "./codex-coding-effect/c5-pilot-plan";
 import type {
   C5NativeLongitudinalPilotInput,
   C5NativeLongitudinalPilotResult,
@@ -25,6 +39,7 @@ import type {
 
 const VALUE_FLAGS = new Set([
   "--auth-file",
+  "--baseline-arm",
   "--baseline-report",
   "--baseline-raw-stage-evidence",
   "--baseline-stage-evidence",
@@ -42,6 +57,8 @@ const VALUE_FLAGS = new Set([
   "--dataset-root",
   "--material-effect-pp",
   "--npm-binary",
+  "--npm-cache-seed",
+  "--npm-registry",
   "--order-seed",
   "--output-dir",
   "--package-tarball",
@@ -50,9 +67,13 @@ const VALUE_FLAGS = new Set([
   "--runtime-root",
   "--source-root",
   "--stage-timeout-ms",
+  "--summary-endpoint",
+  "--summary-model",
+  "--summary-prompt",
   "--test-timeout-ms",
   "--workspace-root",
 ]);
+const DEFAULT_SUMMARY_ENDPOINT = C6_GURKIAI_FLAT_SUMMARY_ENDPOINT;
 const BOOLEAN_FLAGS = new Set(["--resume"]);
 const DEFAULT_DATASET_ROOT =
   "fixtures/codex-coding-effect/c4-controlled-pilot";
@@ -72,8 +93,88 @@ const FIXED_PLATFORM_TEMP_ROOTS = [
 export interface C5LivePilotOptionDefaults {
   bunExecutable?: string;
   cwd?: string;
+  env?: Record<string, string | undefined>;
   homeDir?: string;
   now?: () => string;
+}
+
+// The flat-summary comparator is selected explicitly. Its summarizer model,
+// prompt bytes, and endpoint are hashed into the frozen plan; the credential
+// comes only from the environment and never from an argument.
+export function resolveC5ComparatorOptions(input: {
+  argv: readonly string[];
+  cwd: string;
+  env: Record<string, string | undefined>;
+}): {
+  baselineArm?: C5BaselineArm;
+  comparator?: C5PilotComparatorInput;
+  comparatorRuntime?: C5ComparatorRuntimeInput;
+} {
+  const baselineArmValue = resolveCliFlagValueStrict(input.argv, "--baseline-arm");
+  const summaryModel = resolveCliFlagValueStrict(input.argv, "--summary-model");
+  const summaryPromptPath = resolveCliFlagValueStrict(input.argv, "--summary-prompt");
+  const summaryEndpointValue = resolveCliFlagValueStrict(
+    input.argv,
+    "--summary-endpoint",
+  );
+  if (
+    baselineArmValue !== undefined &&
+    baselineArmValue !== "no-memory" &&
+    baselineArmValue !== "flat-summary"
+  ) {
+    throw new Error("--baseline-arm must be no-memory or flat-summary");
+  }
+  const baselineArm = baselineArmValue as C5BaselineArm | undefined;
+  const summaryFlagsPresent =
+    summaryModel !== undefined ||
+    summaryPromptPath !== undefined ||
+    summaryEndpointValue !== undefined;
+  if (baselineArm !== "flat-summary") {
+    if (summaryFlagsPresent) {
+      throw new Error("summary flags require --baseline-arm flat-summary");
+    }
+    return baselineArm === undefined ? {} : { baselineArm };
+  }
+  if (summaryModel === undefined) {
+    throw new Error("--summary-model is required for the flat-summary baseline");
+  }
+  if (summaryPromptPath === undefined) {
+    throw new Error("--summary-prompt is required for the flat-summary baseline");
+  }
+  const apiToken = input.env[C5_SUMMARY_API_KEY_ENVIRONMENT_NAME];
+  if (apiToken === undefined || apiToken.trim().length === 0) {
+    throw new Error(
+      `${C5_SUMMARY_API_KEY_ENVIRONMENT_NAME} is required for the flat-summary baseline`,
+    );
+  }
+  const summaryEndpoint = summaryEndpointValue ?? DEFAULT_SUMMARY_ENDPOINT;
+  if (!/^https:\/\//u.test(summaryEndpoint)) {
+    throw new Error("--summary-endpoint must be an https URL");
+  }
+  const summaryPrompt = readFileSync(resolve(input.cwd, summaryPromptPath), "utf8");
+  if (summaryPrompt.trim().length === 0) {
+    throw new Error("--summary-prompt must point to a non-empty prompt file");
+  }
+  const summaryPromptSha256 = sha256(summaryPrompt);
+  return {
+    baselineArm,
+    comparator: {
+      summaryEndpointSha256: sha256(summaryEndpoint),
+      summaryModel,
+      summaryPromptSha256,
+    },
+    comparatorRuntime: {
+      apiToken,
+      summaryEndpoint,
+      summaryModel,
+      summaryPrompt,
+      summaryPromptSha256,
+    },
+  };
+}
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
 }
 
 export function parseC5LivePilotOptions(
@@ -83,6 +184,11 @@ export function parseC5LivePilotOptions(
   assertKnownOptions(argv);
   const cwd = defaults.cwd ?? process.cwd();
   const homeDir = defaults.homeDir ?? homedir();
+  const comparatorOptions = resolveC5ComparatorOptions({
+    argv,
+    cwd,
+    env: defaults.env ?? process.env,
+  });
   const runId = required(
     resolveCliPathSegmentFlagValueStrict(argv, "--run-id"),
     "--run-id",
@@ -94,6 +200,16 @@ export function parseC5LivePilotOptions(
   ));
   if (!packageTarball.endsWith(".tgz")) {
     throw new Error("--package-tarball must point to a .tgz package artifact");
+  }
+  const npmCacheSeedValue = resolveCliFlagValueStrict(argv, "--npm-cache-seed");
+  const npmCacheSeed = npmCacheSeedValue === undefined
+    ? undefined
+    : resolve(cwd, npmCacheSeedValue);
+  // The registry only names where the tarball's dependencies (and a seed
+  // cache's keys) come from; dependency content is integrity-checked by npm.
+  const npmRegistry = resolveCliFlagValueStrict(argv, "--npm-registry");
+  if (npmRegistry !== undefined && !/^https:\/\/[^\s/]+\/?$/u.test(npmRegistry)) {
+    throw new Error("--npm-registry must be an https registry origin");
   }
   const materialEffectPercentagePoints = requiredPositiveInteger(
     argv,
@@ -206,6 +322,9 @@ export function parseC5LivePilotOptions(
   for (const [flag, path] of [
     ...mutableRoots,
     ["--auth-file", authFile],
+    ...(npmCacheSeed === undefined
+      ? []
+      : [["--npm-cache-seed", npmCacheSeed] as const]),
     ["--package-tarball", packageTarball],
     ["--runner-checkout", resolve(cwd)],
   ] as const) {
@@ -217,6 +336,9 @@ export function parseC5LivePilotOptions(
     }
     for (const [protectedFlag, protectedPath] of [
       ["--auth-file", authFile],
+      ...(npmCacheSeed === undefined
+        ? []
+        : [["--npm-cache-seed", npmCacheSeed] as const]),
       ["--package-tarball", packageTarball],
       ["--baseline-report", baselineReportPath],
       ...(baselineRawStageEvidenceRoot
@@ -239,6 +361,7 @@ export function parseC5LivePilotOptions(
 
   return {
     authFile,
+    ...comparatorOptions,
     baselineReportPath,
     ...(baselineRawStageEvidenceRoot ? { baselineRawStageEvidenceRoot } : {}),
     baselineStageEvidenceRoot,
@@ -266,6 +389,8 @@ export function parseC5LivePilotOptions(
       resolveCliFlagValueStrict(argv, "--codex-model"),
       "--codex-model",
     ),
+    ...(npmCacheSeed === undefined ? {} : { npmCacheSeed }),
+    ...(npmRegistry === undefined ? {} : { npmRegistry }),
     npmExecutable: resolveExecutable(
       resolveCliFlagValueStrict(argv, "--npm-binary") ?? "npm",
       cwd,

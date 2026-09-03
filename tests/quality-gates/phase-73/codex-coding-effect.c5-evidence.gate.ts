@@ -25,9 +25,15 @@ import type {
   C5RecordedStageExecution,
 } from "../../../scripts/codex-coding-effect/c5-longitudinal";
 import {
+  buildC5FlatSummaryHistory,
+  buildC5FlatSummaryHookConfig,
+  resolveC5FlatSummaryInjection,
+} from "../../../scripts/codex-coding-effect/c5-flat-summary-arm";
+import {
   serializeC5PilotPlan,
 } from "../../../scripts/codex-coding-effect/c5-pilot-plan";
 import type {
+  C5BaselineArm,
   C5PilotArm,
   C5PilotEpisodeArmRun,
   C5PilotPlan,
@@ -73,6 +79,14 @@ const SHA = "a".repeat(64);
 const GIT_OBJECT = "b".repeat(40);
 const GENERATED_AT = "2026-07-16T00:00:00.000Z";
 const RUN_ID = "c5-evidence-fixture";
+const COMPARATOR = {
+  summaryEndpointSha256: sha256("https://summary.test/v1/chat/completions"),
+  summaryModel: "summary-test",
+  summaryPromptSha256: sha256("summary prompt"),
+};
+const FLAT_SUMMARY_HOOKS_NORMALIZED = buildC5FlatSummaryHookConfig({
+  runnerPath: "/arm-root/flat-summary-hook.mjs",
+}).replaceAll("/arm-root/", "<arm-root>/");
 setDefaultTimeout(300_000);
 const REQUIRED_ALIAS_LABELS = [
   "current-runtime-auth",
@@ -152,6 +166,151 @@ describe("Codex coding-effect C5 evidence closure", () => {
       });
       expect(gate.independentReviewSha256).toMatch(/^[a-f0-9]{64}$/u);
       expect(gate.reviewProvenanceSha256).toMatch(/^[a-f0-9]{64}$/u);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("projects and verifies a flat-summary comparator run without its summary text", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-comparator-evidence-"));
+    try {
+      const fixture = await createRawFixture(root, { baselineArm: "flat-summary" });
+      expect(fixture.plan.arms).toEqual(["flat-summary", "goodmemory-installed"]);
+      const projection = join(root, "projection");
+      const manifest = await projectC5RunEvidence({
+        outputDirectory: projection,
+        rawRunDirectory: fixture.raw,
+      });
+
+      expect(manifest.files).toHaveLength(430);
+      expect(manifest.files.filter((file) =>
+        file.path.endsWith("/flat-summary/injection.sanitized.json")
+      )).toHaveLength(36);
+      expect(manifest.files.some((file) =>
+        file.path.endsWith("summary.txt") || file.path.endsWith("history.txt")
+      )).toBe(false);
+
+      const verification = await verifyC5EvidenceProjection({
+        projectionDirectory: projection,
+      });
+      expect(verification.decision).toBe("accepted");
+      expect(verification.reasons).toEqual([]);
+      expect(verification.counts).toMatchObject({
+        opaqueProcessOnlyTrajectoryOrigins: 72,
+        pairs: 36,
+        projectedFiles: 430,
+        stageExecutions: 72,
+      });
+      const report = JSON.parse(
+        await readFile(join(projection, "report.json"), "utf8"),
+      ) as {
+        comparatorInjection: Record<string, number> | null;
+        effect: { baselineArm: string; baselineResolveRate: number | null };
+      };
+      expect(report.effect.baselineArm).toBe("flat-summary");
+      expect(report.effect.baselineResolveRate).toBe(0);
+      expect(report.comparatorInjection).toMatchObject({
+        contentInjectionCount: 24,
+        hookCanaryFailureCount: 0,
+        zeroInjectionCount: 12,
+      });
+      expect(report.comparatorInjection!.injectedTokensTotal).toBeGreaterThan(0);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects a comparator receipt whose injected content drifted from the audited surface", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-comparator-drift-"));
+    try {
+      const fixture = await createRawFixture(root, { baselineArm: "flat-summary" });
+      const run = fixture.plan.episodeArmRuns.find((candidate) =>
+        candidate.arm === "flat-summary"
+      )!;
+      const stage = run.stages[1]!;
+      const stagePath = join(
+        fixture.raw,
+        "trajectories",
+        clusterDigest(run.clusterId),
+        run.arm,
+        stage.stageId,
+        "stage-execution.sanitized.json",
+      );
+      const evidence = JSON.parse(await readFile(stagePath, "utf8")) as {
+        execution: { comparatorInjection: { injectedContentSha256: string } };
+      };
+      evidence.execution.comparatorInjection.injectedContentSha256 =
+        "c".repeat(64);
+      await writeJson(stagePath, evidence);
+      await rebindStageEvidenceAndReport(fixture, stage.id, stagePath, {
+        execution: evidence.execution,
+      });
+
+      await expect(projectC5RunEvidence({
+        outputDirectory: join(root, "projection"),
+        rawRunDirectory: fixture.raw,
+      })).rejects.toThrow(/budget receipt|live surface/u);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects a flat-summary pair that hides a failed hook canary", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-comparator-hook-"));
+    try {
+      const fixture = await createRawFixture(root, { baselineArm: "flat-summary" });
+      const run = fixture.plan.episodeArmRuns.find((candidate) =>
+        candidate.arm === "flat-summary"
+      )!;
+      const stage = run.stages[2]!;
+      const stagePath = join(
+        fixture.raw,
+        "trajectories",
+        clusterDigest(run.clusterId),
+        run.arm,
+        stage.stageId,
+        "stage-execution.sanitized.json",
+      );
+      const evidence = JSON.parse(await readFile(stagePath, "utf8")) as {
+        execution: { comparatorInjection: { hookEvaluationPassed: boolean } };
+      };
+      evidence.execution.comparatorInjection.hookEvaluationPassed = false;
+      await writeJson(stagePath, evidence);
+      await rebindStageEvidenceAndReport(fixture, stage.id, stagePath, {
+        execution: evidence.execution,
+      });
+
+      await expect(projectC5RunEvidence({
+        outputDirectory: join(root, "projection"),
+        rawRunDirectory: fixture.raw,
+      })).rejects.toThrow(/incomparability was not reproduced/u);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects a flat-summary baseline whose hook configuration is absent", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-comparator-hooks-"));
+    try {
+      const fixture = await createRawFixture(root, { baselineArm: "flat-summary" });
+      const cluster = fixture.plan.clusters[3]!;
+      const preflightPath = join(
+        fixture.raw,
+        "trajectories",
+        clusterDigest(cluster.id),
+        "host-preflight.sanitized.json",
+      );
+      const preflight = JSON.parse(await readFile(preflightPath, "utf8")) as {
+        arms: Array<{ arm: string; noMemoryAbsence: { hookConfigPresent: boolean } | null }>;
+      };
+      preflight.arms.find((arm) => arm.arm === "flat-summary")!
+        .noMemoryAbsence!.hookConfigPresent = false;
+      await writeJson(preflightPath, preflight);
+
+      await expect(projectC5RunEvidence({
+        outputDirectory: join(root, "projection"),
+        rawRunDirectory: fixture.raw,
+      })).rejects.toThrow(/flat-summary arm contains GoodMemory or prior session state/u);
     } finally {
       await rm(root, { force: true, recursive: true });
     }
@@ -948,10 +1107,14 @@ describe("Codex coding-effect C5 evidence closure", () => {
   });
 });
 
-async function createRawFixture(root: string): Promise<{
+async function createRawFixture(
+  root: string,
+  options: { baselineArm?: C5BaselineArm } = {},
+): Promise<{
   plan: C5PilotPlan;
   raw: string;
 }> {
+  const baselineArm = options.baselineArm ?? "no-memory";
   const raw = join(root, "raw");
   await mkdir(raw, { recursive: true });
   const loaded = await loadCodexCodingEffectDataset(
@@ -960,6 +1123,9 @@ async function createRawFixture(root: string): Promise<{
   const readiness = await withAcceptedC4ReadinessFixture((fixture) =>
     loadC5PilotReadiness({
       ...fixture.paths,
+      ...(baselineArm === "flat-summary"
+        ? { baselineArm, comparator: COMPARATOR }
+        : {}),
       datasetRoot: "fixtures/codex-coding-effect/c4-controlled-pilot",
       materialEffectPercentagePoints: 10,
       orderSeed: 73,
@@ -1067,8 +1233,10 @@ async function createRawFixture(root: string): Promise<{
 
   const stageExecutions: C5RecordedStageExecution[] = [];
   const pairs: C5LongitudinalPairResult[] = [];
-  const hostEnvironment = c5HostEnvironment();
+  const comparatorSummaries = new Map<string, string>();
+  const hostEnvironment = c5HostEnvironment(baselineArm);
   const hostIdentity = {
+    ...(baselineArm === "flat-summary" ? { baselineArm } : {}),
     codexExecutableSha256: SHA,
     codexVersion: "codex-test",
     goodMemoryPackageSha256: SHA,
@@ -1105,15 +1273,15 @@ async function createRawFixture(root: string): Promise<{
       armPreflights.push({
         arm: run.arm,
         instructionSha256: SHA,
-        noMemoryAbsence: run.arm === "no-memory"
-          ? {
+        noMemoryAbsence: run.arm === "goodmemory-installed"
+          ? null
+          : {
               goodMemoryFileCount: 0,
-              hookConfigPresent: false,
+              hookConfigPresent: run.arm === "flat-summary",
               mcpConfigPresent: false,
               passed: true,
               preexistingSessionCount: 0,
-            }
-          : null,
+            },
         permissionIsolationSha256: sha256(
           await readFile(permissionPath, "utf8"),
         ),
@@ -1131,9 +1299,20 @@ async function createRawFixture(root: string): Promise<{
         const patch = agentPatchForStage(stage);
         await writeText(join(stageRoot, "agent.patch"), patch);
         let canaryEvidenceSha256: string | null = null;
-        const memoryObservation = run.arm === "no-memory"
+        const memoryObservation = run.arm !== "goodmemory-installed"
           ? null
           : memoryObservationFor(stage.memoryExpectation, writebackRequired);
+        const comparator = run.arm === "flat-summary"
+          ? await writeComparatorStageEvidence({
+              promptContents,
+              run,
+              stageIndex,
+              stageRoot,
+            })
+          : null;
+        if (comparator !== null) {
+          comparatorSummaries.set(stage.id, comparator.summary);
+        }
         if (run.arm === "goodmemory-installed") {
           const transcript = sanitizedTranscript(threadId);
           const transcriptPath = join(
@@ -1172,9 +1351,12 @@ async function createRawFixture(root: string): Promise<{
             inputTokens: 20,
             outputTokens: 5,
           },
+          ...(comparator === null
+            ? {}
+            : { comparatorInjection: comparator.injectionRow }),
           infrastructureFailureStage: null,
           memoryObservation,
-          memoryChannelStatus: run.arm === "no-memory"
+          memoryChannelStatus: run.arm !== "goodmemory-installed"
             ? "not-applicable" as const
             : "passed" as const,
           stageRunId: stage.id,
@@ -1182,6 +1364,9 @@ async function createRawFixture(root: string): Promise<{
         };
         const stageEvidence = {
           canaryEvidenceSha256,
+          ...(comparator === null
+            ? {}
+            : { comparatorEvidenceSha256: comparator.evidenceSha256 }),
           codex: {
             durationMs: 100,
             eventCount: 2,
@@ -1251,6 +1436,7 @@ async function createRawFixture(root: string): Promise<{
     });
 
     const installedRun = runs.find((run) => run.arm === "goodmemory-installed")!;
+    const baselineRun = runs.find((run) => run.arm === baselineArm)!;
     for (const stage of runs[0]!.stages) {
       const pairRoot = join(
         raw,
@@ -1262,6 +1448,14 @@ async function createRawFixture(root: string): Promise<{
         candidate.stageId === stage.stageId
       )!;
       const leakage = leakageEvidence({
+        ...(baselineArm === "flat-summary"
+          ? {
+              baselineRun,
+              flatSummary: comparatorSummaries.get(
+                `${baselineRun.id}/${stage.stageId}`,
+              ) ?? "",
+            }
+          : {}),
         leakageInput: leakageInputs.get(
           `${cluster.episodeId}/${installedStage.stageId}`,
         )!,
@@ -1271,7 +1465,7 @@ async function createRawFixture(root: string): Promise<{
       });
       await writeJson(join(pairRoot, "live-leakage-audit.json"), leakage);
       const evaluations = [] as C5LongitudinalPairResult["evaluations"];
-      for (const arm of ["no-memory", "goodmemory-installed"] as const) {
+      for (const arm of [baselineArm, "goodmemory-installed"] as const) {
         const resolved = arm === "goodmemory-installed";
         const reasons = resolved ? [] : ["hidden-fail-to-pass-failed"];
         const evidence = evaluatorEvidence({ arm, reasons, resolved });
@@ -1570,12 +1764,16 @@ async function rebindStageEvidenceAndReport(
   fixture: { plan: C5PilotPlan; raw: string },
   stageRunId: string,
   stagePath: string,
+  options: { execution?: Record<string, unknown> } = {},
 ): Promise<void> {
   const stagesPath = join(fixture.raw, "stage-executions.jsonl");
   const stages = (await readFile(stagesPath, "utf8")).trim().split("\n")
     .map((row) => JSON.parse(row) as C5RecordedStageExecution);
-  stages.find((candidate) => candidate.stageRunId === stageRunId)!
-    .stageEvidenceSha256 = sha256(await readFile(stagePath, "utf8"));
+  const recorded = stages.find((candidate) =>
+    candidate.stageRunId === stageRunId
+  )!;
+  Object.assign(recorded, options.execution ?? {});
+  recorded.stageEvidenceSha256 = sha256(await readFile(stagePath, "utf8"));
   await writeText(
     stagesPath,
     `${stages.map((row) => JSON.stringify(row)).join("\n")}\n`,
@@ -1948,6 +2146,8 @@ function stageEvents(input: {
 }
 
 function leakageEvidence(input: {
+  baselineRun?: C5PilotEpisodeArmRun;
+  flatSummary?: string;
   leakageInput: {
     artifacts: C4HiddenArtifact[];
     staticSurfaces: C4LeakageSurface[];
@@ -1956,34 +2156,133 @@ function leakageEvidence(input: {
   run: C5PilotEpisodeArmRun;
   stage: C5PilotStageRun;
 }) {
+  const originRuns: Array<{
+    originId: (stageId: string) => string;
+    run: C5PilotEpisodeArmRun;
+  }> = [
+    { originId: (stageId) => stageId, run: input.run },
+    ...(input.baselineRun === undefined
+      ? []
+      : [{
+          originId: (stageId: string) => `${stageId}:flat-summary`,
+          run: input.baselineRun,
+        }]),
+  ];
   return auditC5LiveLeakageSurfaces({
     artifacts: input.leakageInput.artifacts,
-    liveSurfaces: fixtureLiveSurfaces(requiredPrompt(
-      input.promptContents,
-      input.run.episodeId,
-      input.stage.stageId,
-    ), fixtureHookContext(input.stage.memoryExpectation, input.stage.id)),
-    staticSurfaces: input.leakageInput.staticSurfaces,
-    trajectoryOrigins: input.stage.priorStageIds.flatMap((priorStageId) => {
-    const priorStage = input.run.stages.find((candidate) =>
-      candidate.stageId === priorStageId
-    )!;
-    return [{
-      content: requiredPrompt(
+    liveSurfaces: fixtureLiveSurfaces(
+      requiredPrompt(
         input.promptContents,
         input.run.episodeId,
-        priorStageId,
+        input.stage.stageId,
       ),
-      id: `${priorStageId}:effective-prompt`,
-    }, {
-      content: agentPatchForStage(priorStage),
-      id: `${priorStageId}:agent-patch`,
-    }, {
-      content: codexJsonlOutputForStage(priorStage),
-      id: `${priorStageId}:codex-jsonl-output`,
-    }];
-    }),
+      fixtureHookContext(input.stage.memoryExpectation, input.stage.id),
+      input.flatSummary ?? "",
+    ),
+    staticSurfaces: input.leakageInput.staticSurfaces,
+    trajectoryOrigins: input.stage.priorStageIds.flatMap((priorStageId) =>
+      originRuns.flatMap(({ originId, run }) => {
+        const priorStage = run.stages.find((candidate) =>
+          candidate.stageId === priorStageId
+        )!;
+        const id = originId(priorStageId);
+        return [{
+          content: requiredPrompt(
+            input.promptContents,
+            run.episodeId,
+            priorStageId,
+          ),
+          id: `${id}:effective-prompt`,
+        }, {
+          content: agentPatchForStage(priorStage),
+          id: `${id}:agent-patch`,
+        }, {
+          content: codexJsonlOutputForStage(priorStage),
+          id: `${id}:codex-jsonl-output`,
+        }];
+      })
+    ),
   });
+}
+
+// The flat-summary comparator fixture mirrors the runner: one capped summary
+// of the arm's own prior stages on stages with history, zero injection on
+// position 1, a sanitized receipt bound by hash, and raw summary/history text
+// that must never be projected.
+async function writeComparatorStageEvidence(input: {
+  promptContents: ReadonlyMap<string, string>;
+  run: C5PilotEpisodeArmRun;
+  stageIndex: number;
+  stageRoot: string;
+}): Promise<{
+  evidenceSha256: string;
+  injectionRow: NonNullable<C5RecordedStageExecution["comparatorInjection"]>;
+  summary: string;
+}> {
+  const stage = input.run.stages[input.stageIndex]!;
+  const history = buildC5FlatSummaryHistory(
+    input.run.stages.slice(0, input.stageIndex).map((prior, index) => ({
+      finalMessage: `done ${prior.stageId}`,
+      patchDiff: agentPatchForStage(prior),
+      position: index + 1,
+      prompt: requiredPrompt(
+        input.promptContents,
+        input.run.episodeId,
+        prior.stageId,
+      ),
+      stageId: prior.stageId,
+    })),
+  );
+  const injection = resolveC5FlatSummaryInjection({
+    history,
+    summary: history.text.length === 0
+      ? null
+      : `Compact summary of the prior stages before ${stage.id}.`,
+  });
+  const zero = injection.mode === "no-history-zero-injection";
+  const receipt = {
+    generation: zero
+      ? null
+      : {
+          leakageAuditSha256: SHA,
+          model: COMPARATOR.summaryModel,
+          promptSha256: COMPARATOR.summaryPromptSha256,
+          redactedRequestSha256: SHA,
+          requestSha256: SHA,
+          responseSha256: SHA,
+          usage: { cachedInputTokens: 0, inputTokens: 100, outputTokens: 20 },
+        },
+    historySourceSha256: history.sha256,
+    injection: {
+      injectedUtf8Bytes: Buffer.byteLength(injection.injectedText, "utf8"),
+      mode: injection.mode,
+      semanticSurfaceCommitmentSha256: sha256(JSON.stringify([
+        injection.injectedText,
+      ])),
+      sessionStart: injection.sessionStart,
+      userPromptSubmit: injection.userPromptSubmit,
+    },
+    priorStageIds: stage.priorStageIds,
+    schemaVersion: 1,
+  };
+  const evidenceRoot = join(input.stageRoot, "flat-summary");
+  const receiptPath = join(evidenceRoot, "injection.sanitized.json");
+  await writeJson(receiptPath, receipt);
+  await writeText(join(evidenceRoot, "summary.txt"), injection.injectedText);
+  await writeText(join(evidenceRoot, "history.txt"), history.text);
+  return {
+    evidenceSha256: sha256(await readFile(receiptPath, "utf8")),
+    injectionRow: {
+      historySourceSha256: history.sha256,
+      hookEvaluationPassed: true,
+      injectedContentSha256: zero
+        ? null
+        : injection.userPromptSubmit.contentSha256,
+      injectedTokenCount: injection.userPromptSubmit.injectedTokenCount,
+      mode: injection.mode,
+    },
+    summary: injection.injectedText,
+  };
 }
 
 function codexJsonlOutputForStage(stage: C5PilotStageRun): string {
@@ -2005,6 +2304,7 @@ function fixtureHookContext(
 function fixtureLiveSurfaces(
   effectivePrompt: string,
   hookContext = "",
+  flatSummary = "",
 ): C4LeakageSurface[] {
   return [
     {
@@ -2013,7 +2313,7 @@ function fixtureLiveSurfaces(
         : `${effectivePrompt}\n\n${hookContext}`,
       id: "effective-codex-input-after-seeding",
     },
-    { content: "", id: "flat-summary-after-seeding" },
+    { content: flatSummary, id: "flat-summary-after-seeding" },
     {
       content: emptyMemoryExport(),
       hiddenValueContents: [],
@@ -2060,7 +2360,8 @@ function requiredPrompt(
   return prompt;
 }
 
-function c5HostEnvironment() {
+function c5HostEnvironment(baselineArm: C5BaselineArm = "no-memory") {
+  const flat = baselineArm === "flat-summary";
   const installedConfigSha256 = sha256("installed-codex-config");
   const noMemoryConfigSha256 = sha256("no-memory-codex-config");
   const goodmemoryConfigSha256 = sha256("goodmemory-config");
@@ -2084,20 +2385,26 @@ function c5HostEnvironment() {
     },
     noMemory: {
       codexConfig: {
-        normalizedText: "features.hooks=false",
+        normalizedText: `features.hooks=${flat}`,
         sourceSha256: noMemoryConfigSha256,
       },
       environment: c5ControlledHostEnvironment(),
       goodmemoryConfig: null,
-      hooksConfig: null,
+      hooksConfig: flat
+        ? {
+            normalizedText: FLAT_SUMMARY_HOOKS_NORMALIZED,
+            sourceSha256: sha256("flat-summary-hooks-config"),
+          }
+        : null,
       profile: null,
     },
   });
 
   return parseC5HostEnvironment({
+    ...(flat ? { baselineArm: "flat-summary" as const } : {}),
     codexFeatures: {
       goodmemoryInstalled: c5FeatureEvidence(true),
-      noMemory: c5FeatureEvidence(false),
+      noMemory: c5FeatureEvidence(flat),
     },
     configurations,
     goodmemory: {

@@ -111,7 +111,7 @@ function assertProtocol(value: unknown): asserts value is ResearchProtocol {
     !isProtocolStatus(protocol.status) ||
     !isStringArray(protocol.canonicalArtifacts) ||
     !isStringArray(protocol.externalPrerequisites) ||
-    !isStringArray(protocol.historicalGateEntrypoints) ||
+    !isStringArrayAllowEmpty(protocol.historicalGateEntrypoints) ||
     typeof protocol.runEntrypoint !== "string" ||
     typeof protocol.verifyEntrypoint !== "string" ||
     !isGitSourceIdentity(protocol.inputSourceIdentity)
@@ -144,6 +144,13 @@ function isStringArray(value: unknown): value is string[] {
   return (
     Array.isArray(value) &&
     value.length > 0 &&
+    value.every((entry) => typeof entry === "string" && entry.length > 0)
+  );
+}
+
+function isStringArrayAllowEmpty(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
     value.every((entry) => typeof entry === "string" && entry.length > 0)
   );
 }

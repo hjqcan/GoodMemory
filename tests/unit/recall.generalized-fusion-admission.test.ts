@@ -25,12 +25,10 @@ function rankedFact(id: string): RankedFactCandidate {
     intentScore: 0,
     lexicalScore: 0,
     locale: "en",
-    outcomeScore: 0,
     score: 0,
     semanticScore: 0,
     subject: "unknown",
     subjectScore: 0,
-    usageScore: 0,
     verificationPenaltyScore: 0,
   };
 }

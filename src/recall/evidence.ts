@@ -2,6 +2,7 @@ import type {
   EpisodeMemory,
   FactMemory,
   FeedbackMemory,
+  NoteMemory,
   PreferenceMemory,
   ReferenceMemory,
   SessionJournal,
@@ -200,6 +201,7 @@ export function buildHits(input: {
   profile: UserProfile | null;
   preferences: PreferenceMemory[];
   references: ReferenceMemory[];
+  notes?: NoteMemory[];
   facts: FactMemory[];
   feedback: FeedbackMemory[];
   archives: SessionArchive[];
@@ -263,6 +265,15 @@ export function buildHits(input: {
               : "scope_match",
           sourceMethod: fact.source.method,
           evidenceIds: evidenceIdsForMemory(input.evidenceIndex, fact.id),
+        });
+      }
+      for (const note of (input.notes ?? []).slice(0, 2)) {
+        hits.push({
+          id: note.id,
+          type: "note",
+          reason: "scope_match",
+          sourceMethod: note.source.method,
+          evidenceIds: evidenceIdsForMemory(input.evidenceIndex, note.id),
         });
       }
     }

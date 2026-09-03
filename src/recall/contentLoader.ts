@@ -2,6 +2,7 @@ import type {
   EpisodeMemory,
   FactMemory,
   FeedbackMemory,
+  NoteMemory,
   PreferenceMemory,
   ReferenceMemory,
 } from "../domain/records";
@@ -37,6 +38,7 @@ export function createEmptyRecallContent(
     policyApplied,
     preferences: [],
     profile: null,
+    notes: [],
     projected: false,
     references: [],
     workingMemory: null,
@@ -53,6 +55,7 @@ export function usesProjectedContentLoading(
       context.input.strategy !== "rules-only" &&
       config.repositories.facts.get &&
       config.repositories.references.get &&
+      config.repositories.notes.get &&
       config.repositories.episodes.get &&
       config.repositories.archives.get &&
       config.repositories.preferences.get &&
@@ -71,6 +74,7 @@ export async function loadRecallContent(
     profile,
     preferences,
     references,
+    notes,
     facts,
     feedback,
     archives,
@@ -86,6 +90,9 @@ export async function loadRecallContent(
     projected
       ? Promise.resolve<ReferenceMemory[]>([])
       : config.repositories.references.listByScope(input.scope),
+    projected
+      ? Promise.resolve<NoteMemory[]>([])
+      : config.repositories.notes.listByScope(input.scope),
     projected
       ? Promise.resolve<FactMemory[]>([])
       : config.repositories.facts.listByScope(input.scope),
@@ -116,6 +123,11 @@ export async function loadRecallContent(
   );
   const visibleReferences = filterRecordsByDefaultRecallScope(
     references,
+    input.scope,
+    policyApplied,
+  );
+  const visibleNotes = filterRecordsByDefaultRecallScope(
+    notes,
     input.scope,
     policyApplied,
   );
@@ -152,6 +164,7 @@ export async function loadRecallContent(
     facts: visibleFacts,
     feedback: visibleFeedback,
     journal,
+    notes: visibleNotes,
     policyApplied: [...policyApplied],
     preferences: visiblePreferences,
     profile,
@@ -186,6 +199,9 @@ export async function loadProjectedRecallContent(input: {
   const referenceGet = input.config.repositories.references.get!.bind(
     input.config.repositories.references,
   );
+  const noteGet = input.config.repositories.notes.get!.bind(
+    input.config.repositories.notes,
+  );
   const episodeGet = input.config.repositories.episodes.get!.bind(
     input.config.repositories.episodes,
   );
@@ -198,10 +214,11 @@ export async function loadProjectedRecallContent(input: {
   const feedbackGet = input.config.repositories.feedback.get!.bind(
     input.config.repositories.feedback,
   );
-  const [facts, references, episodes, archives, preferences, feedback] =
+  const [facts, references, notes, episodes, archives, preferences, feedback] =
     await Promise.all([
       Promise.all(sourceIds("facts").map((id) => factGet(id))),
       Promise.all(sourceIds("references").map((id) => referenceGet(id))),
+      Promise.all(sourceIds("notes").map((id) => noteGet(id))),
       Promise.all(sourceIds("episodes").map((id) => episodeGet(id))),
       Promise.all(sourceIds("session_archives").map((id) => archiveGet(id))),
       Promise.all(sourceIds("preferences").map((id) => preferenceGet(id))),
@@ -215,6 +232,11 @@ export async function loadProjectedRecallContent(input: {
   );
   const visibleReferences = filterRecordsByDefaultRecallScope(
     references.filter((record): record is ReferenceMemory => record !== null),
+    scope,
+    policyApplied,
+  );
+  const visibleNotes = filterRecordsByDefaultRecallScope(
+    notes.filter((record): record is NoteMemory => record !== null),
     scope,
     policyApplied,
   );
@@ -245,6 +267,7 @@ export async function loadProjectedRecallContent(input: {
     episodes: visibleEpisodes,
     facts: visibleFacts,
     feedback: visibleFeedback,
+    notes: visibleNotes,
     policyApplied: [...policyApplied],
     preferences: visiblePreferences,
     references: visibleReferences,
@@ -258,10 +281,11 @@ export async function loadFullRecallContent(input: {
 }): Promise<LoadedRecallContent> {
   const scope = input.context.input.scope;
   const policyApplied = new Set(input.content.policyApplied);
-  const [facts, references, episodes, archives, preferences, feedback, evidence] =
+  const [facts, references, notes, episodes, archives, preferences, feedback, evidence] =
     await Promise.all([
       input.config.repositories.facts.listByScope(scope),
       input.config.repositories.references.listByScope(scope),
+      input.config.repositories.notes.listByScope(scope),
       input.config.repositories.episodes.listByScope(scope),
       input.config.repositories.archives.listByScope(scope),
       input.config.repositories.preferences.listByScope(scope),
@@ -275,6 +299,11 @@ export async function loadFullRecallContent(input: {
   );
   const visibleReferences = filterRecordsByDefaultRecallScope(
     references,
+    scope,
+    policyApplied,
+  );
+  const visibleNotes = filterRecordsByDefaultRecallScope(
+    notes,
     scope,
     policyApplied,
   );
@@ -314,6 +343,7 @@ export async function loadFullRecallContent(input: {
     policyApplied: [...policyApplied],
     preferences: visiblePreferences,
     projected: false,
+    notes: visibleNotes,
     references: visibleReferences,
   };
 }

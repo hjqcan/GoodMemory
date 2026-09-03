@@ -43,6 +43,50 @@ def positive_int(params: dict[str, object], name: str, default: int) -> int:
     return value
 
 
+def chunk_utf8_text(text: str, max_bytes: int) -> list[str]:
+    require(max_bytes >= 4, "goodmemory accessibility_chunk_bytes must be at least 4")
+    if not text:
+        return []
+
+    chunks: list[str] = []
+    current: list[str] = []
+    current_bytes = 0
+
+    def flush() -> None:
+        nonlocal current, current_bytes
+        if current:
+            chunks.append("".join(current))
+            current = []
+            current_bytes = 0
+
+    for line in text.splitlines(keepends=True):
+        line_bytes = len(line.encode("utf-8"))
+        if line_bytes <= max_bytes:
+            if current and current_bytes + line_bytes > max_bytes:
+                flush()
+            current.append(line)
+            current_bytes += line_bytes
+            continue
+
+        flush()
+        fragment: list[str] = []
+        fragment_bytes = 0
+        for character in line:
+            character_bytes = len(character.encode("utf-8"))
+            if fragment and fragment_bytes + character_bytes > max_bytes:
+                chunks.append("".join(fragment))
+                fragment = []
+                fragment_bytes = 0
+            fragment.append(character)
+            fragment_bytes += character_bytes
+        if fragment:
+            current = fragment
+            current_bytes = fragment_bytes
+
+    flush()
+    return chunks
+
+
 @register_memory
 class GoodMemoryBackend(Memory):
     """LongMemEval-V2 adapter for GoodMemory's public HTTP bridge."""
@@ -53,7 +97,16 @@ class GoodMemoryBackend(Memory):
         super().__init__(memory_params)
         self.data_root = Path(required_string(memory_params, "data_root")).expanduser().resolve()
         require(self.data_root.is_dir(), f"goodmemory data_root does not exist: {self.data_root}")
-        self.batch_size = positive_int(memory_params, "batch_size", 8)
+        self.accessibility_chunk_bytes = positive_int(
+            memory_params,
+            "accessibility_chunk_bytes",
+            6_000,
+        )
+        require(
+            self.accessibility_chunk_bytes >= 4,
+            "goodmemory accessibility_chunk_bytes must be at least 4",
+        )
+        self.batch_size = positive_int(memory_params, "batch_size", 64)
         self.max_screenshots = positive_int(memory_params, "max_screenshots", 8)
         self.max_tokens = positive_int(memory_params, "max_tokens", 200_000)
         self.retrieval_profile = str(memory_params.get("retrieval_profile", "general_chat"))
@@ -80,8 +133,8 @@ class GoodMemoryBackend(Memory):
             scope=self.scope,
             token=token,
             operations=["recall-context", "remember"],
-            timeout_seconds=float(memory_params.get("timeout_seconds", 120.0)),
-            max_attempts=positive_int(memory_params, "max_attempts", 3),
+            timeout_seconds=float(memory_params.get("timeout_seconds", 600.0)),
+            max_attempts=positive_int(memory_params, "max_attempts", 1),
         )
         self._log(
             "initialized",
@@ -108,13 +161,7 @@ class GoodMemoryBackend(Memory):
         ]
         for state_position, state in enumerate(states):
             require(isinstance(state, dict), f"trajectory {trajectory_id} state {state_position} must be an object")
-            messages.append(
-                {
-                    "id": f"{trajectory_id}:state:{state_position}",
-                    "role": "user",
-                    "content": self._state_fact(trajectory_id, state_position, state),
-                }
-            )
+            messages.extend(self._state_messages(trajectory_id, state_position, state))
 
         trajectory_scope = Scope(
             user_id=self.scope.user_id,
@@ -226,12 +273,12 @@ class GoodMemoryBackend(Memory):
             ]
         )
 
-    def _state_fact(
+    def _state_messages(
         self,
         trajectory_id: str,
         state_position: int,
         state: dict[str, Any],
-    ) -> str:
+    ) -> list[dict[str, str]]:
         screenshot_value = state.get("screenshot")
         require(
             isinstance(screenshot_value, str) and bool(screenshot_value.strip()),
@@ -247,20 +294,48 @@ class GoodMemoryBackend(Memory):
             isinstance(accessibility_tree, str),
             f"trajectory {trajectory_id} state {state_position} accessibility_tree must be a string",
         )
-        return "\n".join(
-            [
-                "LongMemEval-V2 trajectory state",
-                f"Trajectory: {trajectory_id}",
-                f"State index: {state.get('state_index', state_position)}",
-                f"Step: {state.get('step', state_position)}",
-                f"URL: {state.get('url', '')}",
-                f"Action: {state.get('action') or ''}",
-                f"Thought: {state.get('thought') or ''}",
-                "Accessibility tree:",
-                accessibility_tree,
-                f"Screenshot: {screenshot_path}",
-            ]
-        )
+        state_index = state.get("state_index", state_position)
+        step = state.get("step", state_position)
+        messages = [
+            {
+                "id": f"{trajectory_id}:state:{state_position}:metadata",
+                "role": "user",
+                "content": "\n".join(
+                    [
+                        "LongMemEval-V2 trajectory state metadata",
+                        f"Trajectory: {trajectory_id}",
+                        f"State index: {state_index}",
+                        f"Step: {step}",
+                        f"URL: {state.get('url', '')}",
+                        f"Action: {state.get('action') or ''}",
+                        f"Thought: {state.get('thought') or ''}",
+                        f"Screenshot: {screenshot_path}",
+                    ]
+                ),
+            }
+        ]
+        for chunk_index, chunk in enumerate(
+            chunk_utf8_text(accessibility_tree, self.accessibility_chunk_bytes)
+        ):
+            messages.append(
+                {
+                    "id": f"{trajectory_id}:state:{state_position}:a11y:{chunk_index}",
+                    "role": "user",
+                    "content": "\n".join(
+                        [
+                            "LongMemEval-V2 accessibility tree chunk",
+                            f"Trajectory: {trajectory_id}",
+                            f"State index: {state_index}",
+                            f"Step: {step}",
+                            f"URL: {state.get('url', '')}",
+                            f"Accessibility chunk: {chunk_index}",
+                            chunk,
+                            f"Screenshot: {screenshot_path}",
+                        ]
+                    ),
+                }
+            )
+        return messages
 
     def _recalled_screenshots(self, items: list[dict[str, Any]]) -> list[Path]:
         screenshots: list[Path] = []

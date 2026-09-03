@@ -16,6 +16,7 @@ def parse_wrapper_args() -> tuple[argparse.Namespace, list[str]]:
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--upstream-root", required=True)
     parser.add_argument("--goodmemory-config", required=True)
+    parser.add_argument("--evaluator-base-url")
     return parser.parse_known_args()
 
 
@@ -47,6 +48,7 @@ def main() -> None:
     from evaluation import run_eval
 
     original_build_memory_config = run_eval.build_memory_config
+    original_harness_main = harness.main
     original_inject_runtime_memory_params = harness.inject_runtime_memory_params
     run_eval.METHODS.add("goodmemory")
 
@@ -84,6 +86,20 @@ def main() -> None:
 
     run_eval.build_memory_config = build_memory_config
     harness.inject_runtime_memory_params = inject_runtime_memory_params
+    if wrapper_args.evaluator_base_url:
+        def harness_main() -> None:
+            previous_argv = sys.argv
+            try:
+                sys.argv = [
+                    *previous_argv,
+                    "--evaluator-base-url",
+                    wrapper_args.evaluator_base_url,
+                ]
+                original_harness_main()
+            finally:
+                sys.argv = previous_argv
+
+        harness.main = harness_main
     sys.argv = [str(upstream_root / "evaluation" / "run_eval.py"), *upstream_args]
     run_eval.main()
 

@@ -34,12 +34,9 @@ const PROJECTION_NEUTRAL_FIELDS: Partial<
   Record<RecallProjectionSourceCollection, ReadonlySet<string>>
 > = {
   facts: new Set([
-    "accessCount",
-    "lastAccessedAt",
     "lastVerificationHintAt",
     "verificationPressureCount",
   ]),
-  feedback: new Set(["lastUsedAt"]),
 };
 
 function hasEquivalentProjectionInput(

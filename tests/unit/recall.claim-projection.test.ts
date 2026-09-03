@@ -607,6 +607,155 @@ describe("claim projection runtime", () => {
     expect(await runtime.sweepClaimSlots(scope)).toBe(0);
   });
 
+  it("treats an invalid validUntil as open during retroactive append", async () => {
+    const store = createInMemoryDocumentStore();
+    const runtime = createRecallProjectionRuntime({ documentStore: store });
+    const currentFact = buildFact();
+    const retroactiveFact = {
+      ...buildFact(),
+      id: "fact-2",
+      content: "Atlas was planned.",
+    };
+    await store.set("facts", currentFact.id, currentFact);
+    await store.set("facts", retroactiveFact.id, retroactiveFact);
+    const retroactiveAt = "2026-07-01T00:00:00.000Z";
+    const currentAt = "2026-07-10T00:00:00.000Z";
+    const completed = claimInput("completed", currentAt);
+    const planned = claimInput("planned", "2026-07-20T00:00:00.000Z");
+
+    await runtime.appendClaim({
+      ...completed,
+      claim: {
+        ...completed.claim,
+        validUntil: "not-a-date",
+      },
+      observedAt: currentAt,
+      sourceMemoryId: currentFact.id,
+    });
+    await runtime.appendClaim({
+      ...planned,
+      observedAt: retroactiveAt,
+      sourceMemoryId: retroactiveFact.id,
+    });
+
+    const history = await runtime.queryClaimHistory(scope);
+    expect(history.find(({ objectText }) => objectText === "completed")?.validUntil)
+      .toBeUndefined();
+    expect(history.find(({ objectText }) => objectText === "planned")?.validUntil)
+      .toBe(currentAt);
+    expect(await runtime.sweepClaimSlots(scope)).toBe(0);
+  });
+
+  it("keeps different values at the same event time open", async () => {
+    const store = createInMemoryDocumentStore();
+    const runtime = createRecallProjectionRuntime({ documentStore: store });
+    const atlasFact = buildFact();
+    const beaconFact = {
+      ...buildFact(),
+      id: "fact-2",
+      content: "Atlas is in review.",
+    };
+    await store.set("facts", atlasFact.id, atlasFact);
+    await store.set("facts", beaconFact.id, beaconFact);
+    const eventTime = "2026-07-10T00:00:00.000Z";
+    const planned = claimInput("planned", eventTime);
+    const inReview = claimInput("in_review", eventTime);
+
+    await runtime.appendClaim({
+      ...planned,
+      observedAt: eventTime,
+      sourceMemoryId: atlasFact.id,
+    });
+    await runtime.appendClaim({
+      ...inReview,
+      observedAt: eventTime,
+      sourceMemoryId: beaconFact.id,
+    });
+
+    const current = await runtime.queryClaims(scope);
+    expect(current.map(({ objectText }) => objectText).sort()).toEqual([
+      "in_review",
+      "planned",
+    ]);
+    expect(current.every(({ validUntil }) => validUntil === undefined)).toBe(true);
+  });
+
+  it("treats equivalent date-only and instant event times as simultaneous", async () => {
+    const store = createInMemoryDocumentStore();
+    const runtime = createRecallProjectionRuntime({ documentStore: store });
+    const plannedFact = buildFact();
+    const completedFact = {
+      ...buildFact(),
+      id: "fact-2",
+      content: "Atlas is completed.",
+    };
+    await store.set("facts", plannedFact.id, plannedFact);
+    await store.set("facts", completedFact.id, completedFact);
+    const eventInstant = "2026-07-10T00:00:00.000Z";
+    const planned = claimInput("planned", eventInstant);
+    const completed = claimInput("completed", eventInstant);
+
+    await runtime.appendClaim({
+      ...planned,
+      claim: {
+        ...planned.claim,
+        validFrom: "2026-07-10",
+      },
+      observedAt: eventInstant,
+      sourceMemoryId: plannedFact.id,
+    });
+    await runtime.appendClaim({
+      ...completed,
+      observedAt: eventInstant,
+      sourceMemoryId: completedFact.id,
+    });
+
+    const current = await runtime.queryClaims(scope);
+    expect(current.map(({ objectText }) => objectText).sort()).toEqual([
+      "completed",
+      "planned",
+    ]);
+    expect(current.every(({ validUntil }) => validUntil === undefined)).toBe(true);
+    expect(await runtime.sweepClaimSlots(scope)).toBe(0);
+  });
+
+  it("falls back from an invalid validFrom when closing an older value", async () => {
+    const store = createInMemoryDocumentStore();
+    const runtime = createRecallProjectionRuntime({ documentStore: store });
+    const plannedFact = buildFact();
+    const completedFact = {
+      ...buildFact(),
+      id: "fact-2",
+      content: "Atlas is completed.",
+    };
+    await store.set("facts", plannedFact.id, plannedFact);
+    await store.set("facts", completedFact.id, completedFact);
+    const plannedAt = "2026-07-01T00:00:00.000Z";
+    const completedAt = "2026-07-10T00:00:00.000Z";
+    const planned = claimInput("planned", plannedAt);
+    const completed = claimInput("completed", completedAt);
+
+    await runtime.appendClaim({
+      ...planned,
+      observedAt: plannedAt,
+      sourceMemoryId: plannedFact.id,
+    });
+    await runtime.appendClaim({
+      ...completed,
+      claim: {
+        ...completed.claim,
+        validFrom: "not-a-date",
+      },
+      observedAt: completedAt,
+      sourceMemoryId: completedFact.id,
+    });
+
+    const history = await runtime.queryClaimHistory(scope);
+    expect(history.find(({ objectText }) => objectText === "planned")?.validUntil)
+      .toBe(completedAt);
+    expect(history.some(({ validUntil }) => validUntil === "not-a-date")).toBe(false);
+  });
+
   it("loads current claims for selected memories without scanning the whole scope", async () => {
     const inner = createInMemoryDocumentStore();
     const projectionGets: Array<{ collection: string; id: string }> = [];
@@ -906,6 +1055,35 @@ describe("claim projection runtime", () => {
     )).toMatchObject({
       retiredRevisionIds: [fallbackClaims[0]!.id],
     });
+  });
+
+  it("stamps fallback claims from the first valid fact effective time", async () => {
+    const store = createInMemoryDocumentStore();
+    const observedAt = "2026-01-01T00:00:00.000Z";
+    const fact = createFactMemory({
+      ...scope,
+      id: "fact-invalid-valid-from",
+      category: "project",
+      content: "Atlas is planned.",
+      subject: "Atlas",
+      source: {
+        method: "explicit",
+        extractedAt: observedAt,
+      },
+      validFrom: "not-a-date",
+      observedAt,
+      createdAt: observedAt,
+      updatedAt: "2026-03-31T00:00:00.000Z",
+    });
+    const runtime = createRecallProjectionRuntime({ documentStore: store });
+    await runtime.documentStore.set("facts", fact.id, fact);
+
+    expect(await runtime.queryClaims(scope)).toEqual([
+      expect.objectContaining({
+        observedAt,
+        sourceMemoryId: fact.id,
+      }),
+    ]);
   });
 
   it("retries same-version fallback promotion when the retired claim changes", async () => {

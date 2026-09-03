@@ -40,6 +40,7 @@ function createRecallResult(overrides: Partial<RecallResult> = {}): RecallResult
     preferences: [],
     profile: null,
     references: [],
+    notes: [],
     workingMemory: null,
     metadata: {
       languagePackId: "en",
@@ -182,6 +183,9 @@ describe("installed host hook runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -316,6 +320,9 @@ describe("installed host hook runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -441,6 +448,9 @@ describe("installed host hook runtime", () => {
               },
               async forget() {
                 throw new Error("not used");
+              },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
               },
               async exportMemory() {
                 throw new Error("not used");
@@ -597,6 +607,9 @@ describe("installed host hook runtime", () => {
               },
               async forget() {
                 throw new Error("not used");
+              },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
               },
               async exportMemory() {
                 throw new Error("not used");
@@ -781,6 +794,9 @@ describe("installed host hook runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -882,6 +898,9 @@ describe("installed host hook runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -982,6 +1001,9 @@ describe("installed host hook runtime", () => {
             },
             async forget() {
               throw new Error("not used");
+            },
+            async importMemory() {
+              throw new Error("importMemory is not implemented by this fake.");
             },
             async exportMemory() {
               throw new Error("not used");
@@ -1188,6 +1210,9 @@ describe("installed host hook runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -1301,6 +1326,9 @@ describe("installed host hook runtime", () => {
               },
               async forget() {
                 throw new Error("not used");
+              },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
               },
               async exportMemory() {
                 throw new Error("not used");
@@ -1493,6 +1521,9 @@ describe("installed host hook runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -1557,6 +1588,9 @@ describe("installed host hook runtime", () => {
           },
           async forget() {
             throw new Error("not used");
+          },
+          async importMemory() {
+            throw new Error("importMemory is not implemented by this fake.");
           },
           async exportMemory() {
             throw new Error("not used");
@@ -1677,6 +1711,9 @@ describe("installed host hook injection right-sizing", () => {
         },
         async forget() {
           throw new Error("not used");
+        },
+        async importMemory() {
+          throw new Error("importMemory is not implemented by this fake.");
         },
         async exportMemory() {
           throw new Error("not used");
@@ -2130,6 +2167,9 @@ describe("installed host opportunistic maintenance", () => {
           },
           async forget() {
             throw new Error("not used");
+          },
+          async importMemory() {
+            throw new Error("importMemory is not implemented by this fake.");
           },
           async exportMemory() {
             throw new Error("not used");

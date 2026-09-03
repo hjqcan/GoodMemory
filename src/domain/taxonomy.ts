@@ -14,6 +14,7 @@ export type MemoryKind =
   | "preference"
   | "fact"
   | "reference"
+  | "note"
   | "episode"
   | "decision"
   | "open_loop"
@@ -29,6 +30,7 @@ export const MEMORY_KIND_TO_PLANE: Record<MemoryKind, MemoryPlane> = {
   preference: "semantic",
   fact: "semantic",
   reference: "semantic",
+  note: "semantic",
   episode: "episodic",
   decision: "episodic",
   open_loop: "episodic",

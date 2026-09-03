@@ -66,8 +66,6 @@ describe("recall scoring", () => {
       category: "project",
       content: "The runtime rollout is blocked by legal signoff.",
       source: SOURCE,
-      accessCount: 4,
-      lastAccessedAt: "2026-01-08T00:00:00.000Z",
       updatedAt: TIMESTAMP,
     });
 
@@ -81,51 +79,9 @@ describe("recall scoring", () => {
       new Map([["fact-1", 3]]),
     );
 
-    expect(candidate?.usageScore).toBe(0);
     expect(candidate?.evidenceScore).toBeGreaterThan(0);
-    expect(candidate?.outcomeScore).toBe(candidate?.evidenceScore);
-  });
-
-  it("ignores historical access telemetry when scoring otherwise equal facts", () => {
-    const language = createLanguageService();
-    const facts = [
-      createFactMemory({
-        id: "fact-never-accessed",
-        userId: "user-1",
-        category: "project",
-        content: "The runtime rollout is blocked by legal signoff.",
-        source: SOURCE,
-        updatedAt: TIMESTAMP,
-      }),
-      createFactMemory({
-        id: "fact-frequently-accessed",
-        userId: "user-1",
-        category: "project",
-        content: "The runtime rollout is blocked by legal signoff.",
-        source: SOURCE,
-        accessCount: 99,
-        lastAccessedAt: TIMESTAMP,
-        updatedAt: TIMESTAMP,
-      }),
-    ];
-
-    const candidates = buildFactCandidates(
-      facts,
-      "What is the blocker right now?",
-      language,
-      "en",
-      TIMESTAMP,
-    );
-    const neverAccessed = candidates.find(
-      (candidate) => candidate.fact.id === "fact-never-accessed",
-    );
-    const frequentlyAccessed = candidates.find(
-      (candidate) => candidate.fact.id === "fact-frequently-accessed",
-    );
-
-    expect(neverAccessed?.usageScore).toBe(0);
-    expect(frequentlyAccessed?.usageScore).toBe(0);
-    expect(frequentlyAccessed?.score).toBe(neverAccessed?.score);
+    expect(candidate !== undefined && "usageScore" in candidate).toBe(false);
+    expect(candidate !== undefined && "outcomeScore" in candidate).toBe(false);
   });
 
   it("applies an advisory verification penalty to stale action-driving facts", () => {
@@ -136,8 +92,6 @@ describe("recall scoring", () => {
       category: "project",
       content: "The runtime rollout is blocked by legal signoff.",
       source: SOURCE,
-      accessCount: 5,
-      lastAccessedAt: "2026-01-08T00:00:00.000Z",
       updatedAt: "2025-10-01T00:00:00.000Z",
     });
 
@@ -149,8 +103,7 @@ describe("recall scoring", () => {
       TIMESTAMP,
     );
 
-    expect(candidate?.usageScore).toBe(0);
-    expect(candidate?.verificationPenaltyScore).toBeGreaterThan(candidate?.usageScore ?? 0);
+    expect(candidate?.verificationPenaltyScore).toBeGreaterThan(0);
   });
 
   it("treats future timestamps as age zero instead of making them stale", () => {
@@ -393,7 +346,6 @@ describe("recall scoring", () => {
         kind: "prefer",
         source: SOURCE,
         updatedAt: "2026-01-05T00:00:00.000Z",
-        lastUsedAt: "2026-01-10T00:00:00.000Z",
       }),
     ]);
 

@@ -53,6 +53,15 @@ const QUOTE_PAIRS = [
   ["『", "』"],
 ] as const;
 const QUOTE_CLOSINGS = new Map<string, string>(QUOTE_PAIRS);
+const BRACKET_CLOSINGS = new Map<string, string>([
+  ["(", ")"],
+  ["[", "]"],
+  ["{", "}"],
+  ["（", "）"],
+  ["［", "］"],
+  ["｛", "｝"],
+]);
+const CLOSING_BRACKETS = new Set<string>(BRACKET_CLOSINGS.values());
 
 interface QuotedTextScan {
   masked: string;
@@ -177,6 +186,75 @@ export function splitTrailingClause(
     }
   }
   return [value.trim()].filter(Boolean);
+}
+
+export function splitExplicitCompoundClauses(
+  value: string,
+  classifyClause: (
+    clause: string,
+  ) => "dependent" | "fact" | "interrogative" | "one_off" | "unknown",
+): string[] {
+  const trimmed = value.trim();
+  if (!trimmed || hasUnterminatedQuote(trimmed)) {
+    return [trimmed].filter(Boolean);
+  }
+
+  const masked = maskQuotedText(trimmed);
+  const bracketStack: string[] = [];
+  const separatorIndexes: number[] = [];
+  for (let index = 0; index < masked.length; index += 1) {
+    const character = masked[index]!;
+    const closing = BRACKET_CLOSINGS.get(character);
+    if (closing) {
+      bracketStack.push(closing);
+      continue;
+    }
+    if (CLOSING_BRACKETS.has(character)) {
+      if (bracketStack.pop() !== character) {
+        return [trimmed];
+      }
+      continue;
+    }
+    if (bracketStack.length === 0 && /[,，、]/u.test(character)) {
+      separatorIndexes.push(index);
+    }
+  }
+  if (bracketStack.length > 0 || separatorIndexes.length === 0) {
+    return [trimmed];
+  }
+
+  const clauses: string[] = [];
+  const separators: string[] = [];
+  let start = 0;
+  for (const index of separatorIndexes) {
+    clauses.push(trimmed.slice(start, index).trim());
+    let nextStart = index + 1;
+    while (nextStart < trimmed.length && /\s/u.test(trimmed[nextStart]!)) {
+      nextStart += 1;
+    }
+    separators.push(trimmed.slice(index, nextStart));
+    start = nextStart;
+  }
+  clauses.push(trimmed.slice(start).trim());
+  const classifications = clauses.map(classifyClause);
+  if (
+    clauses.some((clause) => !clause) ||
+    classifications[0] !== "fact" ||
+    classifications.slice(1).some((kind) => kind === "unknown")
+  ) {
+    return [trimmed];
+  }
+
+  const mergedClauses: string[] = [];
+  for (const [index, clause] of clauses.entries()) {
+    if (classifications[index] === "dependent") {
+      mergedClauses[mergedClauses.length - 1] +=
+        `${separators[index - 1]}${clause}`;
+    } else {
+      mergedClauses.push(clause);
+    }
+  }
+  return mergedClauses;
 }
 
 export interface DirectiveGrammarMatch {

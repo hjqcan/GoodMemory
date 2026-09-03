@@ -2,12 +2,15 @@ import { createHash } from "node:crypto";
 import {
   createFactMemory,
   createFeedbackMemory,
+  createNoteMemory,
+  isNoteBodyWithinLimit,
   createPreferenceMemory,
   createReferenceMemory,
   isActiveMemoryLifecycle,
   type FactMemory,
   type FeedbackMemory,
   type PreferenceMemory,
+  type NoteMemory,
   type ReferenceMemory,
 } from "../domain/records";
 import { createMemorySource } from "../domain/provenance";
@@ -21,6 +24,7 @@ import type { MemoryScope } from "../domain/scope";
 import type { EmbeddingAdapter } from "../embedding/contracts";
 import {
   buildFactEmbeddingWrite,
+  buildNoteEmbeddingWrite,
   buildReferenceEmbeddingWrite,
   prepareMemoryEmbeddingWrites,
   upsertPreparedMemoryEmbeddings,
@@ -58,11 +62,12 @@ import type {
 type RevisableRecord =
   | PreferenceMemory
   | ReferenceMemory
+  | NoteMemory
   | FactMemory
   | FeedbackMemory;
 
 type RevisableTarget = {
-  collection: "preferences" | "references" | "facts" | "feedback";
+  collection: "preferences" | "references" | "notes" | "facts" | "feedback";
   memoryType: RevisableMemoryType;
   record: RevisableRecord;
 };
@@ -199,6 +204,7 @@ async function findTarget(
   const candidates: Array<Omit<RevisableTarget, "record">> = [
     { collection: "preferences", memoryType: "preference" },
     { collection: "references", memoryType: "reference" },
+    { collection: "notes", memoryType: "note" },
     { collection: "facts", memoryType: "fact" },
     { collection: "feedback", memoryType: "feedback" },
   ];
@@ -281,6 +287,21 @@ function buildRevisionCandidate(input: {
         referenceKind: record.referenceKind,
         referencePointer: input.content,
         referenceTitle: input.content.split("/").at(-1) ?? input.content,
+        subject: record.subject,
+        tags: record.tags,
+      },
+    };
+  }
+
+  if (input.memoryType === "note") {
+    const record = input.record as NoteMemory;
+    return {
+      ...base,
+      kindHint: "note",
+      metadata: {
+        attributes: record.attributes,
+        noteFormat: record.format,
+        noteTitle: record.title,
         subject: record.subject,
         tags: record.tags,
       },
@@ -409,6 +430,42 @@ function buildRevisedRecords(input: {
     };
   }
 
+  if (input.memoryType === "note") {
+    const record = input.record as NoteMemory;
+    const metadata = input.candidate.metadata;
+    return {
+      previous: createNoteMemory({
+        ...record,
+        lifecycle: "superseded",
+        supersededBy: input.newMemoryId,
+        updatedAt: input.timestamp,
+      }),
+      next: createNoteMemory({
+        agentId: record.agentId,
+        attributes: metadata?.attributes,
+        body: input.candidate.content,
+        confidence: record.confidence,
+        createdAt: input.timestamp,
+        format: metadata?.noteFormat ?? record.format,
+        id: input.newMemoryId,
+        lifecycle: "active",
+        observedAt: input.candidate.content === record.body
+          ? record.observedAt
+          : input.timestamp,
+        sessionId: record.sessionId,
+        source,
+        subject: metadata?.subject,
+        supersededBy: null,
+        tags: metadata?.tags,
+        tenantId: record.tenantId,
+        title: metadata?.noteTitle?.trim() || record.title,
+        updatedAt: input.timestamp,
+        userId: record.userId,
+        workspaceId: record.workspaceId,
+      }),
+    };
+  }
+
   if (input.memoryType === "feedback") {
     const record = input.record as FeedbackMemory;
     const metadata = input.candidate.metadata;
@@ -427,7 +484,6 @@ function buildRevisedRecords(input: {
         evidence: [...new Set([...(record.evidence ?? []), input.evidenceId])],
         id: input.newMemoryId,
         kind: metadata?.feedbackKind ?? "do",
-        lastUsedAt: undefined,
         lifecycle: "active",
         rule: input.candidate.content,
         sessionId: record.sessionId,
@@ -454,7 +510,6 @@ function buildRevisedRecords(input: {
       updatedAt: input.timestamp,
     }),
     next: createFactMemory({
-      accessCount: 0,
       agentId: record.agentId,
       attributes: metadata?.attributes,
       category: metadata?.category ?? "project",
@@ -469,10 +524,11 @@ function buildRevisedRecords(input: {
       id: input.newMemoryId,
       importance: record.importance,
       isActive: true,
-      lastAccessedAt: undefined,
       lastVerificationHintAt: record.lastVerificationHintAt,
       lifecycle: "active",
-      observedAt: record.observedAt,
+      observedAt: input.candidate.content === record.content
+        ? record.observedAt
+        : input.timestamp,
       occurrence: input.candidate.content === record.content
         ? record.occurrence
         : undefined,
@@ -609,6 +665,21 @@ async function writeRevisionVector(input: {
     await upsertPreparedMemoryEmbeddings(
       await prepareMemoryEmbeddingWrites(
         [buildReferenceEmbeddingWrite(input.next as ReferenceMemory)],
+        input.embedding,
+      ),
+      input.vectorIndex,
+    );
+    return;
+  }
+
+  if (input.memoryType === "note") {
+    await input.vectorIndex.deleteNoteEmbedding(input.previousMemoryId);
+    if (!input.embedding) {
+      return;
+    }
+    await upsertPreparedMemoryEmbeddings(
+      await prepareMemoryEmbeddingWrites(
+        [buildNoteEmbeddingWrite(input.next as NoteMemory)],
         input.embedding,
       ),
       input.vectorIndex,
@@ -774,6 +845,17 @@ export async function reviseMemory(input: {
       previousMemoryId: target.record.id,
       policyApplied,
       reason: "empty_revision",
+    };
+  }
+
+  if (target.memoryType === "note" && !isNoteBodyWithinLimit(content)) {
+    return {
+      accepted: false,
+      outcome: "blocked",
+      memoryType: target.memoryType,
+      previousMemoryId: target.record.id,
+      policyApplied,
+      reason: "note_too_large",
     };
   }
 

@@ -104,6 +104,7 @@
     ],
     "readOnlyToolCount": 8,
     "writeTool": "goodmemory_remember (opt-in via --allow-write)",
+    "noteTool": "goodmemory_write_note (opt-in via --allow-write; verbatim authored pages ≤ 8 KB)",
     "registryName": "io.github.hjqcan/goodmemory",
     "docs": "https://github.com/hjqcan/GoodMemory#standalone-mcp-for-any-client"
   },
@@ -119,6 +120,7 @@
       "feedback": "POST /memory/feedback",
       "export": "POST /memory/export",
       "forget": "POST /memory/forget",
+      "import": "POST /memory/import",
       "revise": "POST /memory/revise"
     },
     "pythonClient": "goodmemory-client (PyPI)",

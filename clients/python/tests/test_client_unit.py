@@ -344,6 +344,40 @@ class RecallRoutingTests(unittest.TestCase):
         self.assertEqual(body["idempotencyKey"], "rev-1")
 
 
+    def test_import_memory_builds_a_pages_source(self) -> None:
+        with mock.patch(
+            "goodmemory_client.client.urlopen",
+            return_value=ok_response({"ok": True, "result": {}, "operation": "import"}),
+        ) as spy:
+            build_client().import_memory(
+                pages=[{"path": "a.md", "content": "# A\n"}],
+                dry_run=True,
+                oversize="split",
+                expected_sha256="0" * 64,
+            )
+        request = spy.call_args[0][0]
+        self.assertTrue(request.full_url.endswith("/memory/import"))
+        body = json.loads(request.data.decode("utf-8"))
+        self.assertEqual(body["source"], {"kind": "pages", "pages": [{"path": "a.md", "content": "# A\n"}]})
+        self.assertIs(body["dryRun"], True)
+        self.assertEqual(body["oversize"], "split")
+        self.assertEqual(body["expectedSha256"], "0" * 64)
+
+    def test_import_memory_requires_exactly_one_source(self) -> None:
+        with self.assertRaises(ValueError):
+            build_client().import_memory()
+        with self.assertRaises(ValueError):
+            build_client().import_memory(pages=[], durable={})
+        with mock.patch(
+            "goodmemory_client.client.urlopen",
+            return_value=ok_response({"ok": True, "result": {}, "operation": "import"}),
+        ) as spy:
+            build_client().import_memory(durable={"facts": []})
+        body = json.loads(spy.call_args[0][0].data.decode("utf-8"))
+        self.assertEqual(body["source"], {"kind": "durable", "durable": {"facts": []}})
+        self.assertNotIn("dryRun", body)
+
+
 class HealthTests(unittest.TestCase):
     def test_health_uses_get_without_auth(self) -> None:
         client = build_client(token="secret")

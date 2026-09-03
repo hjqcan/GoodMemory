@@ -290,8 +290,9 @@ describe("Phase 74 full retrieval runtime", () => {
         const store = createSQLiteDocumentStore(
           join(root, "ingestion", directory, "memory.sqlite"),
         );
-        const facts = await store.query<{ accessCount: number }>("facts");
-        expect(facts.every(({ accessCount }) => accessCount === 0)).toBe(true);
+        const facts = await store.query<Record<string, unknown>>("facts");
+        expect(facts.length).toBeGreaterThan(0);
+        expect(facts.every((fact) => !("accessCount" in fact) && !("lastAccessedAt" in fact))).toBe(true);
       }
     } finally {
       await rm(root, { force: true, recursive: true });

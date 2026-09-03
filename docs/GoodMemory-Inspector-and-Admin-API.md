@@ -64,6 +64,17 @@ ordering. Errors use one shape:
 }
 ```
 
+### Data exposure
+
+An export is the whole durable scope. Beyond the visible records it carries
+evidence excerpts, the `pages/` note bundle with per-file SHA-256 digests, and
+(when requested) runtime summaries. Redaction hides values, not existence: a
+redacted export still reveals which records exist, their ids, timestamps, and
+content hashes, and a vector index or projection rebuilt from it reveals the
+same. Do not distribute exports, the `pages/` bundle, or a workspace file
+mirror (`governance.fileMirror`) for scopes whose contents must not leak, and
+treat an import's `inputSha256` as an integrity check, not as proof of origin.
+
 ## Compatibility Boundary
 
 `goodmemory runtime viewer` is deprecated. It now delegates to the same

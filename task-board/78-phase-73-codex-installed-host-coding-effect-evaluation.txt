@@ -36,6 +36,50 @@ Gate
   public coding-effect proof.
 - The first accepted claim is Codex-only. Claude Code remains deferred.
 
+Convergence (2026-09-02)
+------------------------
+
+The lane's question stays; its proof is re-scoped. Six weeks of C6 real-history
+source mining accepted zero episodes while the evaluation code grew past the
+production `src/` tree in size, and the one control that makes the pilot's
+0.5333 net-rescue signal scientifically meaningful, `flat-summary`, was never
+run. Decisions:
+
+1. The active evidence class is
+   `internal-controlled-continuity-effect-with-flat-summary-control`. The public
+   coding-effect claim, its 391-episode ICC=1 floor, the 10,557-call schedule,
+   and the C7 gate remain defined and fail-closed but are no longer the working
+   target. No README row and no `benchmark-claims/` declaration changes.
+2. The next experiment is `flat-summary` versus `goodmemory-installed`, paired
+   on the accepted C4 dataset (6 episodes x 2 repetitions x 3 stages, 36 pairs)
+   through the C5 harness with a comparator baseline arm. The flat-summary arm
+   receives, at the same SessionStart/UserPromptSubmit placements and the same
+   1024/512 token caps as the installed profile, one pinned-model summary per
+   distinct stage-history prefix; position-1 stages receive zero injection in
+   both arms. Pre-registered rule, taken from the frozen gate policy:
+   positions-two-and-later resolve@1 must exceed flat-summary by +3.0 points
+   with a positive paired episode-cluster bootstrap lower bound. Failing that,
+   the memory-policy claim is unsupported and the lane closes with a documented
+   negative result.
+3. The Level-2 expansion (at least 30 episodes, 90 scored stages, 6 real
+   licensed commit-pinned repositories, 2 ecosystems, 3 seeds) is built from
+   controlled mutations on real open-source repositories in the `unjs/defu`
+   canary pattern. Real-history mining (Multi-SWE, SWE-bench Multilingual/Live,
+   GitHub GraphQL/REST census, reviewer-actor identity, source-v3/v4) is paused
+   as a diagnostic subset; `tests/unit/codex-coding-effect.c6-source-mining-freeze.test.ts`
+   rejects new modules in that family.
+4. The C5 failure taxonomy became a product fix. All six host-canary
+   infrastructure failures were deterministic writeback misses in
+   `field-boundary-policy`: the English project-policy detector admitted a
+   `Project policy:` declaration only when its body used one of a fixed verb
+   list that happened to match the pilot's other prompts. That was a
+   dataset-fitted rule inside production code. It is replaced by a generic
+   substantive-declaration rule (`tests/unit/language/explicit-project-policy.test.ts`,
+   `tests/unit/host-writeback-project-policy.test.ts`); all four policy-declaring
+   C4 stage-1 prompts now write, and the two control episodes still do not.
+5. The internal track's sample size is re-estimated from the Level-2 run's
+   measured within-episode correlation rather than assumed at 1.0.
+
 Progress
 --------
 
@@ -298,9 +342,9 @@ asset bytes and modes through non-following file handles, revalidates the full
 asset closure at terminal preflight, and binds the exact five
 accepted C5 files; structurally inspects a gzip archive's declared
 `goodmemory` name/version/entry closure; freezes environment/runner identity;
-rejects duplicate agent-visible repository-plus-ordered-prompt fingerprints
-without allowing hidden gold/evaluator metadata to manufacture uniqueness,
-rejects aliased repository content, and balances
+rejects duplicate ordered task-content fingerprints without allowing either
+repository identity or hidden gold/evaluator metadata to manufacture
+uniqueness, separately rejects aliased repository content, and balances
 three-seed arm positions per episode. A `real-history` label now counts only
 when a strict asset-locked source record binds the original-request hash,
 repository URL/base commit, HTTPS source locator and immutable revision, and
@@ -958,7 +1002,10 @@ review-receipt structure, not accepted episode evidence.
 history prefix, later history suffixes, future prompts, feedback,
 repository-visible surfaces, the summary prompt, and summary output. The
 hidden/gold/evaluator closure remains episode-wide, and declared forbidden
-file hashes resolve uniquely to evaluator content. Flat summaries bind the
+file hashes resolve uniquely to evaluator content. Declared JSON evaluator
+files also contribute typed scalar leaves and nested value relations, including
+numeric-equivalent matches, rather than relying only on whole-file or whole-line
+fragments. Flat summaries bind the
 episode, stage, exact history, dataset, prompt, the same
 `goodmemory-estimate-text-tokens-v1` estimator used by installed-host
 GoodMemory, a local pricing receipt, and exact output; injection size is
@@ -1796,6 +1843,104 @@ C6-T002 or C6-T003.
 profile/three-seed execution; C7 report integration, independent gate, and
 narrow claim decision. `c6-repository-statistics.ts` is only a tested
 statistical primitive, not a frozen report or C7 gate.
+[DONE] 2026-09-02 convergence recorded above. The English project-policy
+admission fix is a reproduced host defect (Convergence item 4), verified by
+483 language/host/scenario tests and typecheck.
+[DONE] 2026-09-02 flat-summary comparator baseline arm in the C5 harness.
+`--baseline-arm flat-summary` selects it on both the zero-write readiness CLI
+and the live pilot/canary CLIs; `--summary-model`, `--summary-prompt`, and
+`--summary-endpoint` are hashed into the frozen plan (`plan.comparator`), and
+the summarizer credential comes only from `GOODMEMORY_C5_SUMMARY_API_KEY`.
+The arm is a hook-only Codex runtime with no GoodMemory on PATH, native hooks
+enabled, and a SessionStart/UserPromptSubmit hook pair that injects one
+pinned-model summary of the arm's own prior stages under the installed
+profile's 1024/512 caps; position-1 stages inject nothing and make no provider
+call. Summaries are leakage-audited against the stage's hidden/gold closure
+with prior-stage origins attested before they enter the arm, hook receipts are
+verified after Codex exits, and a mode/hook mismatch makes the pair
+incomparable. Pairs, reports (`effect.baselineArm`, `comparatorInjection`),
+host-environment receipts, and the C3 host preflight are baseline-aware. The
+legacy no-memory plan rebuilt with the v16 inputs still hashes to
+`ef7668a289d1eadbc63f020d5dcd2d1973f39722399d8349a4fd3437fbe2e72b`; the
+comparator dry run freezes 6 x 2 x 3 = 36 pairs. Pinned summarizer prompt:
+`fixtures/codex-coding-effect/c5-flat-summary-prompt.md`. Verification: 1260
+Codex coding-effect unit tests, C3/C5 integration, release C4 evidence,
+typecheck, and `git diff --check` pass. No live Codex process has run this arm.
+[DONE] 2026-09-03 comparator-aware sanitized projection and verifier.
+`c5-evidence.ts` accepts a frozen plan whose arms are
+`[flat-summary | no-memory, goodmemory-installed]`, checks the frozen
+comparator protocol (pinned model, prompt and endpoint hashes, 1024/512 caps,
+zero injection on no-history stages), projects only the flat-summary stage's
+`flat-summary/injection.sanitized.json` (summary and history text are never
+projected, mirroring the redacted installed-arm transcripts), binds that
+receipt by hash from the stage evidence (`comparatorEvidenceSha256`) and
+checks it against the ledger row, the protocol, and the C6 injection-budget
+contract, binds the pair's `flat-summary-after-seeding` live surface to the
+receipt's content hash, byte length, and semantic commitment instead of the
+installed host canary, expects the comparator's own prior-stage trajectory
+origins (`<stage>:flat-summary:*`), recomputes every pair's incomparability
+reasons (leakage, per-arm infrastructure, injection mode, hook canary,
+required memory channel, evaluator failure), and recomputes
+`report.comparatorInjection` and `effect.baselineArm`. The gate suite
+`tests/quality-gates/phase-73/codex-coding-effect.c5-evidence.gate.ts` gained
+a flat-summary fixture (430 projected files, 72 opaque origins) and three
+rejection cases; it was red before this change because the report's new
+comparator fields were unknown to the verifier, and passes 22/22 now.
+Runner hardening from the first two live attempts on 2026-09-03:
+`generateC5FlatSummary` retries transient provider failures (transport
+errors, 408/429/5xx) three times with identical request bytes; the installed
+arm's `npm install` bounds each registry fetch and, with the new
+`--npm-cache-seed <dir>` input, copies a runner-owned warm cache into the
+arm's own cache and installs `--offline`, so all 12 clusters resolve the
+tarball's dependencies identically and no registry stall can fail a cluster.
+The seed directory is a protected read-only input and a denied read path for
+both arms. Cause: both attempts (`run-c5-canary-flat-20260903T014550Z`,
+`...T015852Z`) died at `package-install timed out` because the machine's
+proxied network delivered about 10 KB/s from registry.npmjs.org and npm's
+default five-minute fetch timeout let one stalled connection consume the
+whole budget; the summarizer relay (`ai.gurkiai.com`) was also failing
+upstream for about an hour that evening. No Codex process ran in either
+attempt. Package under test: `goodmemory-0.7.5.tgz` packed from the working
+tree (SHA-256 `cd3a97e3672c8e25be0bbae991baa42029c0e3e0f456449fad19c16770863c8e`)
+on Codex CLI 0.152.1 (v16 ran 0.144.6). Frozen comparator plan: seed 20260718,
+10 pp, summarizer `gpt-5.6-terra` on the gurkiai chat-completions endpoint,
+first cluster `parse-result-correction/repetition-2`.
+Further live-attempt fixes on 2026-09-03, each with a unit or integration
+test: the installed-arm empty-storage receipt accepts additional zero-count
+memory kinds (the v0.8 tree reports `notes`); the memory-export parser accepts
+the v0.8 root `pages` projection (the text is already inside the raw export
+surface); the C3 host-preflight schema carries an optional `baselineArm` so
+the flat-summary comparator's enabled native hooks pass the feature-parity
+check that the amnesiac baseline must still fail; the lifecycle canary report
+treats whichever non-installed arm the plan froze as the baseline; and the
+host-configuration normalizer now replaces the other arm's runtime root and
+workspace (`<other-arm-root>`, `<other-workspace>`) and the materialized
+source repository (`<source-repository>`) in each arm's Codex permission
+config, because those denied-read paths carry per-cluster digests and
+per-episode repository names and made the comparable host identity drift on
+the third cluster of the first resumed pilot
+(`run-c5-canary-flat-20260903T035022Z`: canary accepted with 3 shared-pass
+pairs, then 2 more clusters, all 15 stages clean, before the drift check
+stopped it). The second resumed pilot (`...T044313Z`, again 15 clean stages)
+stopped at the same check for a second-order reason: the denied-read paths
+were sorted lexicographically before normalization, so the digest-bearing
+raw paths reordered the normalized permission lines from cluster to cluster;
+`buildC5TaskDeniedPaths` and the C3 permission-profile writer now keep a
+fixed category order (`tests/unit/codex-coding-effect.c5-task-isolation.test.ts`,
+`tests/integration/codex-coding-effect.c3-runtime.test.ts`). The user upgraded Codex to 0.153.0 mid-session over the slow
+proxy, which removed the global `codex` link; the runs therefore pin a
+runner-owned copy of the retired 0.152.1 package via `--codex-binary`
+(same `codex.js` shim hash as v16, `134063e1…`).
+[OPEN] Comparator live steps, in order: one-cluster
+`run-codex-coding-effect-c5-canary.ts --baseline-arm flat-summary
+--npm-cache-seed ...` on `parse-result-correction/repetition-2` to prove
+native hook placement and receipts on a real Codex; then the 36-pair
+`run-codex-coding-effect-c5-pilot.ts --resume` continuation with the same run
+id (v16 cost was 72 Codex stages, about 7.25M input tokens, and 113 minutes
+of Codex time, plus 24 summary calls here); then project, verify, and gate
+the run with the comparator-aware verifier and record the result either way
+against the pre-registered rule. The Level-2 controlled-mutation dataset
+follows the comparator result.
 
 C3's deterministic hidden fail-to-pass and pass-to-pass tests alone decide task
 correctness. Memory, injection, transcript, and writeback diagnostics can
@@ -1803,7 +1948,8 @@ explain the result but never override it. C3 is internally accepted as
 source-reproducible protocol/host evidence; its tie does not prove uplift. C4
 v8 is superseded and v9 readiness is accepted. None
 authorizes a public coding-effect claim.
-Phase 73 remains active while C6-C7 are open.
+Phase 73 remains active on the converged internal track; the C6-C7 public-claim
+steps stay open and fail-closed.
 
 Boundary
 --------

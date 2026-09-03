@@ -29,6 +29,11 @@ const MAX_SENTENCE_DOCUMENTS = 64;
 const MAX_SOURCE_ENTITIES = 128;
 const MIN_SENTENCE_LENGTH = 8;
 const STRUCTURED_ENTITY_FIELDS = new Set(["entities", "subject", "tags"]);
+// Authored pages are indexed whole (memory + field documents). Sentence
+// documents would re-shred the prose the note kind exists to preserve.
+const SENTENCE_SPLIT_EXEMPT_COLLECTIONS = new Set<RecallProjectionSourceCollection>([
+  "notes",
+]);
 
 interface ProjectionTextField {
   name: string;
@@ -137,6 +142,12 @@ function collectTextFields(
     pushField(fields, "title", record.title);
     pushField(fields, "description", record.description);
     pushField(fields, "pointer", record.pointer);
+    pushField(fields, "subject", record.subject);
+    pushField(fields, "tags", record.tags);
+    pushField(fields, "attributes", record.attributes);
+  } else if (collection === "notes") {
+    pushField(fields, "title", record.title);
+    pushField(fields, "body", record.body);
     pushField(fields, "subject", record.subject);
     pushField(fields, "tags", record.tags);
     pushField(fields, "attributes", record.attributes);
@@ -439,7 +450,7 @@ export function buildRecallIndexDocuments(input: {
     );
   });
 
-  const sentences = fields
+  const sentences = (SENTENCE_SPLIT_EXEMPT_COLLECTIONS.has(input.collection) ? [] : fields)
     .flatMap((field) => {
       const source = isRecord(record.source) ? record.source : undefined;
       const locale = source ? optionalString(source, "locale") : undefined;

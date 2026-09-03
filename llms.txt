@@ -48,7 +48,8 @@ Pick the one path that matches how you run. Each is self-contained.
    }
    ```
    The two tools you need are `goodmemory_get_context` (recall) and
-   `goodmemory_remember` (opt-in write via `--allow-write`); the other tools are
+   `goodmemory_remember` (opt-in write via `--allow-write`); `goodmemory_write_note`
+   (same opt-in) stores an authored page verbatim as a `note`; the other tools are
    diagnostic/advanced.
 
 3. **You are a framework agent or a backend** (LangGraph, a custom loop, or a
@@ -71,7 +72,7 @@ and Bearer-token gated. See the
 
 ## Memory API
 
-- remember, recall, buildContext, feedback, forget, exportMemory, deleteAllMemory
+- remember, recall, buildContext, feedback, forget, exportMemory, importMemory, deleteAllMemory
 
 ## Documentation
 
@@ -80,6 +81,7 @@ and Bearer-token gated. See the
 - [Standalone MCP for any client](https://github.com/hjqcan/GoodMemory#standalone-mcp-for-any-client)
 - [Python/FastAPI HTTP bridge](https://github.com/hjqcan/GoodMemory#pythonfastapi-http-bridge)
 - [Inspector and Admin API](https://github.com/hjqcan/GoodMemory/blob/main/docs/GoodMemory-Inspector-and-Admin-API.md)
+- [Memory Artifact and Interchange Spec](https://github.com/hjqcan/GoodMemory/blob/main/docs/GoodMemory-Memory-Artifact-and-Interchange-Spec.md)
 
 ## Benchmarks
 

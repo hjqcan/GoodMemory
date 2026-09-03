@@ -821,6 +821,7 @@ describe("release metadata and docs", () => {
       "docs/GoodMemory-Inspector-and-Admin-API.md",
       "docs/GoodMemory-Kimi-Code-Setup-Guide.md",
       "docs/GoodMemory-LanguagePack-Extension-Guide.md",
+      "docs/GoodMemory-Memory-Artifact-and-Interchange-Spec.md",
       "docs/GoodMemory-MCP-Registry-Publishing.md",
       "docs/GoodMemory-OpenCode-Setup-Guide.md",
       "docs/GoodMemory-PRD.md",
@@ -1060,6 +1061,7 @@ describe("release metadata and docs", () => {
       expect(entries).toContain("package/docs/GoodMemory-15-Minute-App-Integration.md");
       expect(entries).toContain("package/docs/GoodMemory-Inspector-and-Admin-API.md");
       expect(entries).toContain("package/docs/GoodMemory-LanguagePack-Extension-Guide.md");
+      expect(entries).toContain("package/docs/GoodMemory-Memory-Artifact-and-Interchange-Spec.md");
       expect(entries).toContain("package/docs/GoodMemory-0.6-to-0.7-Migration-Guide.md");
       expect(entries).toContain("package/docs/GoodMemory-Reference-Integration-Guide.md");
       expect(entries).toContain("package/docs/GoodMemory-Codex-Handoff-Setup-Guide.md");
@@ -1317,6 +1319,7 @@ describe("release metadata and docs", () => {
     expect(readme).toContain("memory.jobs.enqueueRemember");
     expect(readme).toContain("memory.jobs.drain");
     expect(readme).toContain("memory.reviseMemory");
+    expect(readme).toContain("memory.importMemory");
     expect(readme).toContain("GoodMemoryConfig.observability.traceSink");
     expect(readme).toContain("Runtime archive persistence is off by default");
     expect(readme).toContain("examples/express-chat-server.ts");
@@ -1343,6 +1346,7 @@ describe("release metadata and docs", () => {
     expect(guide).toContain("archive: \"off\"");
     expect(guide).toContain("memory.forget");
     expect(guide).toContain("memory.exportMemory");
+    expect(guide).toContain("memory.importMemory");
     expect(guide).toContain("examples/express-chat-server.ts");
     expect(guide).toContain("examples/fastify-chat-server.ts");
     expect(guide).toContain("goodmemory-http-bridge");
@@ -5238,8 +5242,19 @@ describe("release metadata and docs", () => {
     expect(packageJson.scripts["test:phase-73-gates"]).toBeUndefined();
     expect(active.map(({ id }) => id)).toEqual([
       "goodmemory-c6-codex-coding-effect-source-v4-bounded-v1",
+      "goodmemory-longmemeval-v1-ku-temporal-source-paired-diagnostic-v1",
     ]);
-    expect(active[0]?.historicalGateEntrypoints).toHaveLength(2);
+    const c6 = active.find(
+      ({ id }) =>
+        id === "goodmemory-c6-codex-coding-effect-source-v4-bounded-v1",
+    );
+    const longMemEval = active.find(
+      ({ id }) =>
+        id ===
+          "goodmemory-longmemeval-v1-ku-temporal-source-paired-diagnostic-v1",
+    );
+    expect(c6?.historicalGateEntrypoints).toHaveLength(2);
+    expect(longMemEval?.historicalGateEntrypoints).toEqual([]);
     expect(
       active
         .flatMap(({ historicalGateEntrypoints }) =>
@@ -5247,7 +5262,7 @@ describe("release metadata and docs", () => {
         )
         .some((path) => path.includes("*")),
     ).toBe(false);
-    expect(active[0]?.historicalGateEntrypoints).toEqual([
+    expect(c6?.historicalGateEntrypoints).toEqual([
       "./tests/quality-gates/phase-73/codex-coding-effect.c6-source-v4-bounded-snapshot.gate.ts",
       "./tests/quality-gates/phase-73/codex-coding-effect.c6-source-v4-bounded-review-activation.gate.ts",
     ]);

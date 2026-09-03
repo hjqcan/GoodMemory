@@ -1,5 +1,6 @@
 import { assertStorageSafeExternalValue } from "../domain/semanticText";
 import type { MemoryScope } from "../domain/scope";
+import type { FileMirror } from "../governance/fileMirror";
 import type { FactSelector } from "../recall/generalizedSelection";
 import type { RecallRouterAssistant } from "../recall/assistant";
 import type { RetrievalStrategyRolloutConfig } from "../governance/retrievalInternalRollout";
@@ -27,6 +28,8 @@ export interface InternalGoodMemoryOptions {
   environment?: Record<string, string | undefined>;
   /** Repo-only instance selector override for historical evaluation profiles. */
   factSelector?: FactSelector;
+  /** Repo-only seam to flush the governance file mirror deterministically in tests. */
+  fileMirrorHandle?: (mirror: FileMirror | undefined) => void;
   projectionBulkBackfill?: boolean;
   /** Repo-only hook for sealing derived projection state before immutable replay. */
   projectionPreparationSupport?: boolean;

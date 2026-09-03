@@ -42,6 +42,7 @@ export interface GoodMemoryRetrievalPresetStatus {
 export interface ResolvedGoodMemoryRetrieval {
   autoStrategyBias?: "hybrid";
   bm25Ranking?: boolean;
+  longRecordAdmission?: boolean;
   generalizedFusion?: RecallGeneralizedFusionConfig;
   preset?: GoodMemoryRetrievalPresetStatus;
   rerankGeneralizedFusion?: RecallGeneralizedFusionConfig;
@@ -79,6 +80,7 @@ export function resolveGoodMemoryRetrievalRuntime(input: {
         : {}),
       retrieval: {
         bm25Ranking: input.retrieval?.bm25Ranking,
+        longRecordAdmission: input.retrieval?.longRecordAdmission,
         semanticCandidates: input.retrieval?.semanticCandidates,
       },
     };
@@ -164,6 +166,7 @@ export function resolveGoodMemoryRetrievalRuntime(input: {
     retrieval: {
       autoStrategyBias: "hybrid",
       bm25Ranking: input.retrieval.bm25Ranking,
+      longRecordAdmission: input.retrieval.longRecordAdmission,
       generalizedFusion,
       preset: {
         active: true,

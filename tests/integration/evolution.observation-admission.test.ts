@@ -148,6 +148,7 @@ describe("evolution observation admission", () => {
       preferences: [],
       profile: null,
       references: [],
+      notes: [],
       workingMemory: null,
     };
 

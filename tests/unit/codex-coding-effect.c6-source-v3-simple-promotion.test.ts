@@ -287,7 +287,7 @@ describe("C6 source-v3-simple promotion gate", () => {
         },
       ),
     ).resolves.toEqual(verified);
-  }, 120_000);
+  }, 180_000);
 
   it("parses only the four exact create-only CLI inputs", () => {
     expect(

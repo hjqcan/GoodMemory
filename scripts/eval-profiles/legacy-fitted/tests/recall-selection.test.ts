@@ -189,8 +189,6 @@ describe("recall selection", () => {
         category: "project",
         content: "The runtime rollout is blocked by legal signoff.",
         source: SOURCE,
-        accessCount: 5,
-        lastAccessedAt: TIMESTAMP,
         updatedAt: TIMESTAMP,
       }),
     ];
@@ -211,8 +209,8 @@ describe("recall selection", () => {
     );
 
     expect(result.facts.map((fact) => fact.id)).toEqual(["fact-strong"]);
-    expect(result.traces.find((trace) => trace.memoryId === "fact-strong")?.outcomeScore).toBeGreaterThan(0);
-    expect(result.traces.find((trace) => trace.memoryId === "fact-strong")?.whyReturned).toContain("outcomeScore=");
+    expect(result.traces.find((trace) => trace.memoryId === "fact-strong")?.evidenceScore).toBeGreaterThan(0);
+    expect(result.traces.find((trace) => trace.memoryId === "fact-strong")?.whyReturned).toContain("evidenceScore=");
   });
 
   it("keeps explicit personal evidence recallable when the query has weak lexical overlap", () => {
@@ -11183,8 +11181,6 @@ describe("recall selection", () => {
         source: SOURCE,
         tags: ["source_message", "source_order", "user_answer"],
         attributes: { sourceOrder },
-        accessCount: usageBoost ? 5 : 0,
-        lastAccessedAt: usageBoost ? TIMESTAMP : undefined,
         updatedAt: TIMESTAMP,
       });
     const facts = [

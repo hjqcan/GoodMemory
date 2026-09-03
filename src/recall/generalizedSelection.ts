@@ -25,6 +25,7 @@ import {
   hasAssistantAnswerTag,
   hasFactSelectionSignal,
   hasGenericFactSelectionSignal,
+  hasLongRecordCoverageSignal,
   slotMatchesFact,
 } from "./selectors/selectionContext";
 
@@ -61,6 +62,7 @@ export type FactSelector = (
   generalizedFusion?: GeneralizedFusionSelectionInput,
   queryAnalysis?: LanguageQueryAnalysis,
   occurrenceFactIds?: ReadonlySet<string>,
+  admission?: { longRecordCoverage?: boolean },
 ) => { facts: FactMemory[]; traces: RecallCandidateTrace[] };
 
 export function selectGeneralizedFactsForInternalUse(
@@ -78,6 +80,7 @@ export function selectGeneralizedFactsForInternalUse(
   generalizedFusion?: GeneralizedFusionSelectionInput,
   providedQueryAnalysis?: LanguageQueryAnalysis,
   occurrenceFactIds?: ReadonlySet<string>,
+  admission?: { longRecordCoverage?: boolean },
 ): { facts: FactMemory[]; traces: RecallCandidateTrace[] } {
   const queryAnalysis = providedQueryAnalysis ??
     language.analyzeQuery(query, queryLocale);
@@ -108,10 +111,11 @@ export function selectGeneralizedFactsForInternalUse(
     lexicalScore: entry.lexicalScore,
     freshnessScore: entry.freshnessScore,
     explicitnessScore: entry.explicitnessScore,
-    usageScore: entry.usageScore,
     evidenceScore: entry.evidenceScore,
-    outcomeScore: entry.outcomeScore,
     verificationPenaltyScore: entry.verificationPenaltyScore,
+    ...(entry.queryCoverageScore !== undefined
+      ? { queryCoverageScore: entry.queryCoverageScore }
+      : {}),
     ...(semanticUnion && entry.semanticScore > 0
       ? { semanticScore: entry.semanticScore }
       : {}),
@@ -313,6 +317,26 @@ export function selectGeneralizedFactsForInternalUse(
     );
     for (const candidate of candidates) {
       draft.select(candidate);
+    }
+  }
+
+  // Opt-in long-record admission runs legacy-first: every calibrated route
+  // above has already picked, and coverage-signalled long records only fill
+  // the capacity they left free, so existing selections stay byte-identical.
+  if (
+    admission?.longRecordCoverage &&
+    draft.selected.length < GENERAL_FACT_RECALL_LIMIT
+  ) {
+    const coverageCandidates = diversifyRankedFactCandidatesBySession(
+      selectionPool.filter(
+        (entry) =>
+          !draft.selectedIds.has(entry.fact.id) &&
+          hasLongRecordCoverageSignal(entry),
+      ),
+      GENERAL_FACT_RECALL_LIMIT - draft.selected.length,
+    );
+    for (const candidate of coverageCandidates) {
+      draft.select(candidate, "generic", "long_record_coverage");
     }
   }
 

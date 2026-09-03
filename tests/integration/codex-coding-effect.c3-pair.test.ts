@@ -48,6 +48,7 @@ import type {
   C3InstalledArmRuntime,
   C3NoMemoryArmRuntime,
   C3PermissionIsolationEvidence,
+  C3BaselineArmRuntime,
 } from "../../scripts/codex-coding-effect/c3-runtime";
 import type { CodexRunRequest, CodexRunResult } from "../../scripts/codex-coding-effect/codex-runner";
 import { runBoundaryProcess } from "../../scripts/codex-coding-effect/process";
@@ -1261,7 +1262,7 @@ async function runPair(
   suffix: string,
   options: {
     auditedDeniedReadPaths?: Array<{
-      arm: "goodmemory-installed" | "no-memory";
+      arm: string;
       paths: ReadonlyArray<{ label: string; path: string }>;
       phase: "pre-launch" | "pre-seed" | "preflight";
     }>;
@@ -1796,7 +1797,7 @@ function hostPreflightEvidence(
   tree: string,
   hostConfigurationsSha256: string,
   installedRuntime: C3InstalledArmRuntime,
-  noMemoryRuntime: C3NoMemoryArmRuntime,
+  noMemoryRuntime: C3BaselineArmRuntime,
 ): C3HostPreflightEvidence {
   const tool = (name: string) => ({
     executablePath: `/fake/${name}`,

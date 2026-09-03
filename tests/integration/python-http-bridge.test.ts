@@ -16,7 +16,7 @@ import {
 const AUTH_HEADERS = {
   "x-goodmemory-user-id": "python-user",
   "x-goodmemory-workspace-id": "life-workspace",
-  "x-goodmemory-operations": "recall-context,remember,feedback,export,forget,revise",
+  "x-goodmemory-operations": "recall-context,remember,feedback,export,forget,revise,import",
 };
 
 function scopedBody(extra: Record<string, unknown> = {}): Record<string, unknown> {
@@ -1557,4 +1557,133 @@ describe("Phase 39 Python HTTP memory bridge", () => {
     },
     15_000,
   );
+  it("imports pages and durable snapshots through /memory/import behind explicit authorization", async () => {
+    const memory = createGoodMemory({ storage: { provider: "memory" } });
+    const page = {
+      content: "# Reading MediaWiki\n\nMost MediaWiki sites expose api.php.\n",
+      path: "reading-mediawiki.md",
+    };
+
+    const unauthorized = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody({ source: { kind: "pages", pages: [page] } }),
+      headers: { ...AUTH_HEADERS, "x-goodmemory-operations": "export" },
+      memory,
+      path: "/memory/import",
+    });
+    expect(unauthorized.statusCode).toBe(403);
+
+    const invalid = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody({ source: { kind: "zip" } }),
+      headers: AUTH_HEADERS,
+      memory,
+      path: "/memory/import",
+    });
+    expect(invalid.statusCode).toBe(400);
+    expect(JSON.stringify(invalid.body)).toContain("invalid_source");
+
+    const badPage = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody({ source: { kind: "pages", pages: [{ path: "x.md" }] } }),
+      headers: AUTH_HEADERS,
+      memory,
+      path: "/memory/import",
+    });
+    expect(badPage.statusCode).toBe(400);
+    expect(JSON.stringify(badPage.body)).toContain("invalid_page");
+
+    const badDurable = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody({ source: { durable: {}, kind: "durable" } }),
+      headers: AUTH_HEADERS,
+      memory,
+      path: "/memory/import",
+    });
+    expect(badDurable.statusCode).toBe(400);
+    expect(JSON.stringify(badDurable.body)).toContain("invalid_durable");
+
+    // A structurally broken record inside an otherwise well-formed envelope
+    // (a fact without content, category, source, lifecycle, or timestamps)
+    // must never reach the canonical store.
+    const probeTarget = createGoodMemory({ storage: { provider: "memory" } });
+    const emptyEnvelope = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody(),
+      headers: AUTH_HEADERS,
+      memory: probeTarget,
+      path: "/memory/export",
+    });
+    const brokenFact = {
+      ...(emptyEnvelope.body.exported as { durable: Record<string, unknown> }).durable,
+      facts: [{ agentId: "life-coach", id: "fact-broken", sessionId: "session-1", userId: "python-user", workspaceId: "life-workspace" }],
+    };
+    const brokenImport = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody({ source: { durable: brokenFact, kind: "durable" } }),
+      headers: AUTH_HEADERS,
+      memory: probeTarget,
+      path: "/memory/import",
+    });
+    expect(brokenImport.statusCode).toBe(400);
+    expect(JSON.stringify(brokenImport.body)).toContain("invalid_durable");
+    expect(JSON.stringify(brokenImport.body)).toContain("facts[0].");
+    expect((await probeTarget.exportMemory({ scope: { userId: "python-user", workspaceId: "life-workspace" } })).durable.facts).toEqual([]);
+
+    const dryRun = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody({ dryRun: true, source: { kind: "pages", pages: [page] } }),
+      headers: AUTH_HEADERS,
+      memory,
+      path: "/memory/import",
+    });
+    expect(dryRun.statusCode).toBe(200);
+    expect(dryRun.body).toMatchObject({ ok: true, operation: "import" });
+    const dryResult = dryRun.body.result as { counts: { imported: number }; inputSha256: string; outcome: string };
+    expect(dryResult.outcome).toBe("dry_run");
+    expect(dryResult.counts.imported).toBe(1);
+    expect(dryResult.inputSha256).toMatch(/^[0-9a-f]{64}$/);
+
+    const mismatch = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody({ expectedSha256: "0".repeat(64), source: { kind: "pages", pages: [page] } }),
+      headers: AUTH_HEADERS,
+      memory,
+      path: "/memory/import",
+    });
+    expect(mismatch.statusCode).toBe(409);
+    expect(JSON.stringify(mismatch.body)).toContain("import_hash_mismatch");
+
+    const imported = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody({ expectedSha256: dryResult.inputSha256, source: { kind: "pages", pages: [page] } }),
+      headers: AUTH_HEADERS,
+      memory,
+      path: "/memory/import",
+    });
+    expect(imported.statusCode).toBe(200);
+    expect(imported.body.result).toMatchObject({
+      counts: { imported: 1, rejected: 0 },
+      outcome: "imported",
+    });
+
+    const exported = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody(),
+      headers: AUTH_HEADERS,
+      memory,
+      path: "/memory/export",
+    });
+    const envelope = exported.body.exported as { durable: Record<string, unknown>; pages: { files: Array<{ kind: string }> } };
+    expect(envelope.pages.files.filter((file) => file.kind === "page")).toHaveLength(1);
+
+    const target = createGoodMemory({ storage: { provider: "memory" } });
+    const restored = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody({ source: { durable: envelope.durable, kind: "durable" } }),
+      headers: AUTH_HEADERS,
+      memory: target,
+      path: "/memory/import",
+    });
+    expect(restored.statusCode).toBe(200);
+    expect(restored.body.result).toMatchObject({ counts: { imported: 1 }, outcome: "imported" });
+
+    const recalled = await runGoodMemoryHttpBridgeRequest({
+      body: scopedBody({ query: "How do I search a MediaWiki wiki?" }),
+      headers: AUTH_HEADERS,
+      memory: target,
+      path: "/memory/recall-context",
+    });
+    expect(recalled.statusCode).toBe(200);
+    expect(JSON.stringify(recalled.body)).toContain("api.php");
+  });
 });

@@ -1138,3 +1138,40 @@ it("parses --retrieval-cues", () => {
     ]).retrievalCues,
   ).toBe(true);
 });
+
+// Phase 75 arm: --long-record-admission records in runConfiguration (record ==
+// wire) so paired diagnostics can be told apart from their baseline.
+it("records the long-record-admission arm in the recall run configuration", () => {
+  const options = buildPhase62RecallDiagnosticOptions(
+    "/tmp/goodmemory",
+    {
+      benchmarkRoot: "/tmp/LongMemEval",
+      longRecordAdmission: true,
+      mode: "smoke",
+    },
+  );
+  expect(options.runConfiguration?.longRecordAdmission).toBe(true);
+
+  const off = buildPhase62RecallDiagnosticOptions(
+    "/tmp/goodmemory",
+    {
+      benchmarkRoot: "/tmp/LongMemEval",
+      mode: "smoke",
+    },
+  );
+  expect(off.runConfiguration?.longRecordAdmission).toBeUndefined();
+});
+
+it("parses --long-record-admission", () => {
+  expect(
+    parsePhase62CliOptions([
+      "bun",
+      "run",
+      "scripts/run-phase-62-recall-diagnostic.ts",
+      "--long-record-admission",
+    ]).longRecordAdmission,
+  ).toBe(true);
+  expect(
+    parsePhase62CliOptions(["bun", "run", "scripts/run-phase-62-recall-diagnostic.ts"]).longRecordAdmission,
+  ).toBeFalsy();
+});

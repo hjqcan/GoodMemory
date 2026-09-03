@@ -38,6 +38,10 @@ async function deleteVectorEmbedding(
     await vectorIndex.deleteReferenceEmbedding(id);
     return;
   }
+  if (memoryType === "note") {
+    await vectorIndex.deleteNoteEmbedding(id);
+    return;
+  }
 
   await vectorIndex.deleteEpisodeEmbedding(id);
 }
@@ -99,6 +103,23 @@ async function upsertVectorRecords(input: {
     rollbackActions?.push(async () => {
       for (const record of episodeRecords) {
         await vectorIndex.deleteEpisodeEmbedding(record.id);
+      }
+    });
+  }
+
+  const noteRecords = records.filter((record) => record.memoryType === "note");
+  if (noteRecords.length > 0) {
+    await vectorIndex.upsertNoteEmbedding(
+      noteRecords.map((record) => ({
+        id: record.id,
+        embedding: record.embedding,
+        metadata: record.metadata,
+        content: record.content,
+      })),
+    );
+    rollbackActions?.push(async () => {
+      for (const record of noteRecords) {
+        await vectorIndex.deleteNoteEmbedding(record.id);
       }
     });
   }

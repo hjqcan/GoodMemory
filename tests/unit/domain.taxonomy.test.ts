@@ -9,6 +9,8 @@ describe("memory taxonomy", () => {
   it("maps runtime, semantic, episodic, procedural, and derived kinds to distinct planes", () => {
     expect(getMemoryPlane("session_buffer")).toBe("runtime");
     expect(getMemoryPlane("profile")).toBe("semantic");
+    expect(getMemoryPlane("note")).toBe("semantic");
+    expect(isMemoryKind("note")).toBe(true);
     expect(getMemoryPlane("episode")).toBe("episodic");
     expect(getMemoryPlane("feedback")).toBe("procedural");
     expect(getMemoryPlane("insight")).toBe("derived");

@@ -20,6 +20,7 @@ import {
   SESSION_ARCHIVES_COLLECTION,
 } from "../evolution/contracts";
 import { buildMarkdownArtifacts } from "../governance/markdownArtifacts";
+import { buildPageArtifacts } from "../governance/pageArtifacts";
 import type { LanguageService } from "../language";
 import type { GoodMemoryTracer } from "../observability/tracer";
 import {
@@ -239,6 +240,7 @@ export async function exportMemoryOperation(
       profile,
       preferences,
       references,
+      notes,
       facts,
       feedback,
       episodes,
@@ -255,6 +257,7 @@ export async function exportMemoryOperation(
       deps.governanceRepositories.profiles.get(input.scope.userId),
       deps.governanceRepositories.preferences.listByScope(input.scope),
       deps.governanceRepositories.references.listByScope(input.scope),
+      deps.governanceRepositories.notes.listByScope(input.scope),
       deps.governanceRepositories.facts.listByScope(input.scope),
       deps.governanceRepositories.feedback.listByScope(input.scope),
       deps.governanceRepositories.episodes.listByScope(input.scope),
@@ -286,6 +289,7 @@ export async function exportMemoryOperation(
       profile: isPureUserScope(input.scope) ? profile : null,
       preferences: preferences.filter((record) => recordMatchesScope(record, input.scope)),
       references: references.filter((record) => recordMatchesScope(record, input.scope)),
+      notes: notes.filter((record) => recordMatchesScope(record, input.scope)),
       facts: facts.filter((record) => recordMatchesScope(record, input.scope)),
       feedback: feedback.filter((record) => recordMatchesScope(record, input.scope)),
       episodes: episodes.filter((record) => recordMatchesScope(record, input.scope)),
@@ -355,6 +359,7 @@ export async function exportMemoryOperation(
         durable,
         runtime,
       }),
+      pages: buildPageArtifacts({ notes: durable.notes ?? [] }),
       scope: input.scope,
       exportedAt: new Date().toISOString(),
       ...(trace.traceId ? { traceId: trace.traceId } : {}),
@@ -383,6 +388,7 @@ export async function deleteAllMemoryOperation(
     profiles: 0,
     preferences: 0,
     references: 0,
+    notes: 0,
     facts: 0,
     feedback: 0,
     episodes: 0,
@@ -401,6 +407,7 @@ export async function deleteAllMemoryOperation(
       profile,
       allPreferences,
       allReferences,
+      allNotes,
       allFacts,
       allFeedback,
       allEpisodes,
@@ -416,6 +423,7 @@ export async function deleteAllMemoryOperation(
       deps.governanceRepositories.profiles.get(input.scope.userId),
       deps.governanceRepositories.preferences.listByScope(input.scope),
       deps.governanceRepositories.references.listByScope(input.scope),
+      deps.governanceRepositories.notes.listByScope(input.scope),
       deps.governanceRepositories.facts.listByScope(input.scope),
       deps.governanceRepositories.feedback.listByScope(input.scope),
       deps.governanceRepositories.episodes.listByScope(input.scope),
@@ -447,6 +455,7 @@ export async function deleteAllMemoryOperation(
     const references = allReferences.filter((record) =>
       recordMatchesScope(record, input.scope),
     );
+    const notes = allNotes.filter((record) => recordMatchesScope(record, input.scope));
     const facts = allFacts.filter((record) => recordMatchesScope(record, input.scope));
     const feedback = allFeedback.filter((record) =>
       recordMatchesScope(record, input.scope),
@@ -501,6 +510,11 @@ export async function deleteAllMemoryOperation(
       await deleteVectorForCollection(deps.governanceVectors, "references", reference.id);
       await deps.documentStore.delete("references", reference.id);
       deleted.references += 1;
+    }
+    for (const note of notes) {
+      await deleteVectorForCollection(deps.governanceVectors, "notes", note.id);
+      await deps.documentStore.delete("notes", note.id);
+      deleted.notes += 1;
     }
     for (const fact of facts) {
       await deleteVectorForCollection(deps.governanceVectors, "facts", fact.id);

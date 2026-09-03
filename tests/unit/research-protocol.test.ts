@@ -33,6 +33,11 @@ import {
   verifySourceV4CaptureProtocol,
   verifySourceV4ProofBoundary,
 } from "../../scripts/research/c6/source-v4-capture";
+import {
+  LONGMEMEVAL_V1_SOURCE_PAIRED_BASELINE,
+  LONGMEMEVAL_V1_SOURCE_PAIRED_CANONICAL_ARTIFACTS,
+  LONGMEMEVAL_V1_SOURCE_PAIRED_PROTOCOL_ID,
+} from "../../scripts/research/longmemeval-v1/source-paired";
 import type {
   LegacySourceV4Projection,
 } from "../../scripts/research/c6/legacy-inputs/source-v4";
@@ -57,8 +62,10 @@ describe("research proof boundary", () => {
 
   it("loads a static active registry with exact gate entrypoints", async () => {
     const registry = await loadResearchProtocolRegistry();
-    expect(registry.protocols).toHaveLength(1);
-    const protocol = registry.protocols[0]!;
+    expect(registry.protocols).toHaveLength(2);
+    const protocol = registry.protocols.find(
+      ({ id }) => id === SOURCE_V4_PROTOCOL_ID,
+    )!;
     expect(protocol.id).toBe(SOURCE_V4_PROTOCOL_ID);
     expect(protocol.status).toBe("active");
     expect(protocol.inputSourceIdentity).toEqual({
@@ -74,16 +81,34 @@ describe("research proof boundary", () => {
         (path) => path.endsWith(".gate.ts") && !path.includes("*"),
       ),
     ).toBe(true);
+    const longMemEval = registry.protocols.find(
+      ({ id }) => id === LONGMEMEVAL_V1_SOURCE_PAIRED_PROTOCOL_ID,
+    )!;
+    expect(longMemEval.status).toBe("active");
+    expect(longMemEval.inputSourceIdentity).toEqual(
+      LONGMEMEVAL_V1_SOURCE_PAIRED_BASELINE,
+    );
+    expect(longMemEval.historicalGateEntrypoints).toEqual([]);
+    expect(longMemEval.canonicalArtifacts).toEqual([
+      ...LONGMEMEVAL_V1_SOURCE_PAIRED_CANONICAL_ARTIFACTS,
+    ]);
   });
 
   it("lists protocols without importing or requiring external snapshots", async () => {
     const previous =
       process.env.GOODMEMORY_TEST_C6_SOURCE_V4_BOUNDED_SNAPSHOT_ROOT;
+    const previousLongMemEval =
+      process.env.GOODMEMORY_LONGMEMEVAL_V1_PAIRED_ROOT;
     delete process.env.GOODMEMORY_TEST_C6_SOURCE_V4_BOUNDED_SNAPSHOT_ROOT;
+    delete process.env.GOODMEMORY_LONGMEMEVAL_V1_PAIRED_ROOT;
     try {
       await expect(runResearchCommand(["list"])).resolves.toEqual([
         {
           id: SOURCE_V4_PROTOCOL_ID,
+          status: "active",
+        },
+        {
+          id: LONGMEMEVAL_V1_SOURCE_PAIRED_PROTOCOL_ID,
           status: "active",
         },
       ]);
@@ -96,10 +121,21 @@ describe("research proof boundary", () => {
         protocolId: SOURCE_V4_PROTOCOL_ID,
         status: "preflight-blocked",
       });
+      await expect(
+        runResearchCommand(["run", LONGMEMEVAL_V1_SOURCE_PAIRED_PROTOCOL_ID]),
+      ).resolves.toEqual({
+        missingPrerequisites: ["GOODMEMORY_LONGMEMEVAL_V1_PAIRED_ROOT"],
+        protocolId: LONGMEMEVAL_V1_SOURCE_PAIRED_PROTOCOL_ID,
+        status: "preflight-blocked",
+      });
     } finally {
       if (previous !== undefined) {
         process.env.GOODMEMORY_TEST_C6_SOURCE_V4_BOUNDED_SNAPSHOT_ROOT =
           previous;
+      }
+      if (previousLongMemEval !== undefined) {
+        process.env.GOODMEMORY_LONGMEMEVAL_V1_PAIRED_ROOT =
+          previousLongMemEval;
       }
     }
   });

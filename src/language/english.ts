@@ -29,6 +29,7 @@ import {
   maskQuotedText,
   normalizeUnicodeForEquality,
   splitClausesGeneric,
+  splitExplicitCompoundClauses,
   splitTrailingClause,
   tokenizeUnicodeText,
 } from "./generic";
@@ -329,8 +330,12 @@ const ENGLISH_DURABLE_BEHAVIORAL_SCOPE_PATTERN =
   /^(?:always|never|remember\s+to)\b|\b(?:always|from\s+now\s+on|going\s+forward|next\s+time|every\s+time|in\s+every\s+(?:answer|reply|response)|whenever)\b/iu;
 const ENGLISH_LEADING_DURABLE_BEHAVIORAL_SCOPE_PATTERN =
   /^(?:(?:from\s+now\s+on|going\s+forward|next\s+time|every\s+time|always|never)\b[,;:]?\s*)+/iu;
-const PROJECT_POLICY_ACTION_PATTERN =
-  /\b(?:must|shall|uses?|forbids?|allows?|defaults?|represents?|wraps?|leaves?|keeps?|routes?|rejects?|stores?|retains?|removes?|runs?|writes?|reads?|treats?|maps?|converts?|passes?\s+through)\b/iu;
+// An explicit declaration marker ("project policy:", "repository policy is
+// that ...") makes the rule durable on its own. Admission must not depend on
+// which verb the author chose for the rule body; only questions, placeholders,
+// and statements that no decision exists are rejected.
+const PROJECT_POLICY_UNDECIDED_BODY_PATTERN =
+  /^\W*(?:tbd|tba|tbc|n\/a|none|nothing|unknown|undefined|undecided|unclear|unspecified|pending|open|(?:to\s+)?be\s+(?:determined|decided|defined|confirmed|announced|discussed)|not\s+(?:yet\s+)?(?:defined|decided|determined|finalized|final|set|known|available|established)|(?:requires?|needs?)\s+(?:clarification|discussion|a\s+decision)|under\s+(?:discussion|review)|still\s+(?:open|undecided|pending)|up\s+for\s+(?:discussion|debate)|(?:we|i|they|the\s+team)\s+(?:have|has|had)\s+not\s+(?:yet\s+)?(?:decided|determined|defined|agreed)|(?:we|i|they|the\s+team)\s+(?:haven['’]t|hasn['’]t|hadn['’]t)\s+(?:decided|determined|defined|agreed)|what|which|how|why|when|where|whether)\b/iu;
 const PROJECT_POLICY_DECLARATION_PATTERN =
   /\b(?:the\s+)?(?:project|repository|repo)\s+policy\s*(?:(:|=)\s*([^\n]+)|mandates?\s+that\s+([^\n]+)|is\s+that\s+([^\n]+)|is\s+to\s+([^\n]+))/iu;
 const TECHNICAL_REFERENCE_DIRECTIVE_PATTERN =
@@ -479,6 +484,10 @@ const ENGLISH_SUBJECT_CLAUSE_PATTERN =
   /\b(?:while|because|after|before|when|if)\b.*$/i;
 const ENGLISH_SUBJECT_PREDICATE_BOUNDARY_PATTERN =
   /\s+(?:is|are|was|were|remains?|stays?|needs?|requires?|has|have)\b/gi;
+const ENGLISH_INDEPENDENT_EXPLICIT_FACT_PATTERN =
+  /^(?!(?:and|but|because|that|when|where|which|while|who|whose)\b)(?:[^,，、;；.!?。！？]{1,80}\s+(?:is|are|was|were)|[^,，、;；.!?。！？]{1,80}[=＝])\s*\S/iu;
+const ENGLISH_DEPENDENT_EXPLICIT_FACT_PATTERN =
+  /^(?:although|because|if|unless|when|whereas|while)\b/iu;
 
 function splitEnglishClauses(text: string): string[] {
   return splitClausesGeneric(text)
@@ -633,6 +642,24 @@ function isEnglishInterrogativeClause(
       ));
 }
 
+function classifyEnglishExplicitCompoundClause(
+  clause: string,
+): "dependent" | "fact" | "interrogative" | "one_off" | "unknown" {
+  const trimmed = clause.trim();
+  if (classifyEnglishBehavioralDirective(trimmed) !== "none") {
+    return "one_off";
+  }
+  if (isEnglishInterrogativeClause(trimmed, trimmed)) {
+    return "interrogative";
+  }
+  if (ENGLISH_DEPENDENT_EXPLICIT_FACT_PATTERN.test(trimmed)) {
+    return "dependent";
+  }
+  return ENGLISH_INDEPENDENT_EXPLICIT_FACT_PATTERN.test(trimmed)
+    ? "fact"
+    : "unknown";
+}
+
 function extractExplicitFactClauses(content: string) {
   const trimmed = content.trim();
   if (EXPLICIT_FACT_OPT_OUT_PATTERN.test(trimmed)) {
@@ -662,7 +689,7 @@ function extractExplicitFactClauses(content: string) {
     three: 3,
     two: 2,
   };
-  const expectedFactCount = countToken
+  const declaredFactCount = countToken
     ? Number.isInteger(numericCount) && numericCount >= 0
       ? numericCount
       : wordCounts[countToken] ?? 1
@@ -671,17 +698,37 @@ function extractExplicitFactClauses(content: string) {
     trimmed.slice(directive[0].length),
     countMatch !== null,
   )
+    .flatMap((source) =>
+      splitExplicitCompoundClauses(
+        source,
+        classifyEnglishExplicitCompoundClause,
+      )
+    )
     .map((source) => ({
+      compoundKind: classifyEnglishExplicitCompoundClause(source),
       content: cleanExplicitFactContent(source),
       source,
     }));
   const factClauses = clauses.filter(({ content: clause }) =>
     /[\p{L}\p{N}]/u.test(clause)
   );
-  if (factClauses.length < expectedFactCount) {
+  const independentFactClauses = factClauses.filter(
+    ({ compoundKind }) => compoundKind === "fact",
+  );
+  const countedFactClauses = factClauses.filter(({ compoundKind, content }) =>
+    compoundKind === "fact" || compoundKind === "unknown" ||
+    EXPLICIT_FACT_OPT_OUT_PATTERN.test(content)
+  );
+  const expectedFactCount = countMatch === null
+    ? Math.max(1, independentFactClauses.length)
+    : declaredFactCount;
+  if (
+    (countMatch === null ? factClauses : countedFactClauses).length <
+      expectedFactCount
+  ) {
     return countMatch
       ? {
-        clauses: factClauses.map(({ content: clause }) => ({
+        clauses: countedFactClauses.map(({ content: clause }) => ({
           content: clause,
           disposition: EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause)
             ? "feedback" as const
@@ -691,16 +738,40 @@ function extractExplicitFactClauses(content: string) {
       }
       : { clauses: [], status: "invalid" as const };
   }
-  if (clauses.some(({ content: clause, source }) =>
-    !EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause) &&
-    isEnglishInterrogativeClause(clause, source)
-  )) {
+  const hasSafeUncountedCompound = countMatch === null &&
+    factClauses.length > 1 && independentFactClauses.length > 0;
+  const lastCountedFact = expectedFactCount > 0
+    ? countedFactClauses[expectedFactCount - 1]
+    : undefined;
+  const lastCountedFactIndex = lastCountedFact
+    ? factClauses.indexOf(lastCountedFact)
+    : -1;
+  if (
+    (countMatch !== null && factClauses
+      .slice(0, lastCountedFactIndex + 1)
+      .some(({ compoundKind, content }) =>
+        compoundKind !== "fact" && compoundKind !== "unknown" &&
+        !EXPLICIT_FACT_OPT_OUT_PATTERN.test(content)
+      )) ||
+    (countMatch === null && clauses.some(({ compoundKind, content }) =>
+      compoundKind === "interrogative" &&
+      !EXPLICIT_FACT_OPT_OUT_PATTERN.test(content)
+    )) ||
+    (countMatch === null && !hasSafeUncountedCompound &&
+      clauses.some(({ content: clause, source }) =>
+      !EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause) &&
+      isEnglishInterrogativeClause(clause, source)
+    ))
+  ) {
     return { clauses: [], status: "invalid" as const };
   }
 
+  const selectedFactClauses = countMatch === null && independentFactClauses.length > 0
+    ? independentFactClauses
+    : countedFactClauses.slice(0, expectedFactCount);
+
   return {
-    clauses: factClauses
-      .slice(0, expectedFactCount)
+    clauses: selectedFactClauses
       .map(({ content: clause }) => ({
         content: clause,
         disposition: EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause)
@@ -1018,18 +1089,22 @@ function isExplicitProjectPolicyDecision(content: string): boolean {
   if (!match) {
     return false;
   }
-  const [, separator, assignedBody, mandatedBody, assertedBody, actionBody] = match;
-  if (separator || mandatedBody) {
-    return PROJECT_POLICY_ACTION_PATTERN.test(assignedBody ?? mandatedBody ?? "");
-  }
-  if (assertedBody) {
-    return /^(?:we|the\s+(?:project|repository|repo)|this\s+(?:project|repository|repo))\s+(?:must|shall|uses?|forbids?|allows?|defaults?|represents?|wraps?|leaves?|keeps?|routes?|rejects?|stores?|retains?|removes?|runs?|writes?|reads?|treats?|maps?|converts?)\b/iu.test(
-      assertedBody.trim(),
-    );
-  }
-  return /^(?:use|forbid|allow|default|represent|wrap|leave|keep|route|reject|store|retain|remove|run|write|read|treat|map|convert|pass\s+through)\b/iu.test(
-    actionBody?.trim() ?? "",
+  const [, , assignedBody, mandatedBody, assertedBody, actionBody] = match;
+  return isSubstantiveProjectPolicyBody(
+    assignedBody ?? mandatedBody ?? assertedBody ?? actionBody ?? "",
   );
+}
+
+function isSubstantiveProjectPolicyBody(body: string): boolean {
+  const trimmed = body.trim();
+  if (trimmed.length === 0 || /\?\s*$/u.test(trimmed)) {
+    return false;
+  }
+  if (PROJECT_POLICY_UNDECIDED_BODY_PATTERN.test(trimmed)) {
+    return false;
+  }
+  const words = trimmed.match(/\p{L}[\p{L}\p{N}'’-]*/gu) ?? [];
+  return words.length >= 2;
 }
 
 function createProfileCandidate(
@@ -2027,7 +2102,7 @@ function maybeExtractCandidatesFromClause(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "20-durable-optout-boundary",
+    analyzerVersion: "21-explicit-compound-facts",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",

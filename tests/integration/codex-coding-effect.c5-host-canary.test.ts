@@ -314,7 +314,6 @@ describe("Codex coding-effect C5 installed host canary", () => {
     const documents = extractC5MemorySemanticContents(exportedMemory(
       "Prior memory content.",
       {
-        accessCount: 14,
         attributes: {
           hiddenBoolean: true,
           hiddenNumber: 731,
@@ -330,13 +329,23 @@ describe("Codex coding-effect C5 installed host canary", () => {
     expect(documents).toEqual([
       '{"category":"project","content":"Prior memory content.","tags":["durable-policy"],"attributes":{"hiddenBoolean":true,"hiddenNumber":731,"hiddenString":"semantic-marker"}}',
     ]);
-    expect(documents.join("\n")).not.toContain('"accessCount"');
+    expect(documents.join("\n")).not.toContain('"verificationPressureCount"');
     expect(documents.join("\n")).not.toContain('"confidence"');
     expect(documents.join("\n")).not.toContain('"importance"');
     expect(documents.join("\n")).not.toContain('"verificationPressureCount"');
   });
 
   it("fails closed for unknown durable collections and record fields", () => {
+    const withPages = JSON.parse(exportedMemory("Known memory.")) as
+      Record<string, unknown>;
+    withPages.pages = {
+      files: [],
+      manifest: { files: [], format: "goodmemory.pages/v1", pageCount: 0 },
+      rootPath: "pages",
+    };
+    expect(extractC5MemorySemanticContents(JSON.stringify(withPages)))
+      .toHaveLength(1);
+
     const unknownTopLevel = JSON.parse(exportedMemory("Known memory.")) as
       Record<string, unknown>;
     unknownTopLevel.futureSemanticSurface = "silent leak";
@@ -591,7 +600,6 @@ function exportedMemory(
       evidence: [],
       experiences: [],
       facts: [{
-        accessCount: 0,
         category: "project",
         confidence: 1,
         content,

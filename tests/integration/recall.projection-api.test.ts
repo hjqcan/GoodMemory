@@ -13,12 +13,14 @@ import { join } from "node:path";
 import { createGoodMemory } from "../../src";
 import { createInternalGoodMemory } from "../../src/api/createGoodMemory";
 import { readGoodMemoryEvalSupport } from "../../src/api/evalSupport";
-import { createFactMemory } from "../../src/domain/records";
+import { createFactMemory, type FactMemory } from "../../src/domain/records";
 import { assertPhase74RecallProviderIntegrity } from "../../src/eval/phase74FullRuntime";
 import {
+  CLAIM_PROJECTIONS_COLLECTION,
   PROJECTION_MANIFESTS_COLLECTION,
   PROJECTION_REPAIRS_COLLECTION,
   RECALL_DOCUMENTS_COLLECTION,
+  type ClaimProjection,
   type RecallIndexDocument,
 } from "../../src/recall/projections/contracts";
 import type {
@@ -30,6 +32,21 @@ import {
   createInMemorySessionStore,
 } from "../../src/storage/memory";
 import { createSQLiteDocumentStore } from "../../src/storage/sqlite";
+
+async function existingSQLiteSidecars(path: string): Promise<string[]> {
+  const existing: string[] = [];
+  for (const suffix of ["-journal", "-wal", "-shm"]) {
+    try {
+      await access(`${path}${suffix}`);
+      existing.push(suffix);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
+    }
+  }
+  return existing;
+}
 
 function createOneShotProjectionFailureStore(inner: DocumentStore): DocumentStore {
   let shouldFail = true;
@@ -140,6 +157,7 @@ describe("recall projections through the public API", () => {
       const beforeBytes = await readFile(sqlitePath);
       const beforeStat = await stat(sqlitePath);
       const beforeSha256 = createHash("sha256").update(beforeBytes).digest("hex");
+      const beforeSidecars = await existingSQLiteSidecars(sqlitePath);
       const readOnly = createInternalGoodMemory(
         {
           retrieval: { preset: "recommended" },
@@ -176,11 +194,7 @@ describe("recall projections through the public API", () => {
       );
       expect(afterStat.size).toBe(beforeStat.size);
       expect(afterStat.mtimeMs).toBe(beforeStat.mtimeMs);
-      for (const suffix of ["-journal", "-wal", "-shm"]) {
-        await expect(access(`${sqlitePath}${suffix}`)).rejects.toMatchObject({
-          code: "ENOENT",
-        });
-      }
+      expect(await existingSQLiteSidecars(sqlitePath)).toEqual(beforeSidecars);
     } finally {
       await rm(root, { force: true, recursive: true });
     }
@@ -213,6 +227,7 @@ describe("recall projections through the public API", () => {
       });
       const beforeBytes = await readFile(sqlitePath);
       const beforeStat = await stat(sqlitePath);
+      const beforeSidecars = await existingSQLiteSidecars(sqlitePath);
 
       const readOnly = createInternalGoodMemory(
         {
@@ -237,11 +252,7 @@ describe("recall projections through the public API", () => {
 
       expect(await readFile(sqlitePath)).toEqual(beforeBytes);
       expect((await stat(sqlitePath)).mtimeMs).toBe(beforeStat.mtimeMs);
-      for (const suffix of ["-journal", "-wal", "-shm"]) {
-        await expect(access(`${sqlitePath}${suffix}`)).rejects.toMatchObject({
-          code: "ENOENT",
-        });
-      }
+      expect(await existingSQLiteSidecars(sqlitePath)).toEqual(beforeSidecars);
     } finally {
       await rm(root, { force: true, recursive: true });
     }
@@ -653,5 +664,130 @@ describe("recall projections through the public API", () => {
         }),
       }),
     ]);
+  });
+
+  it("preserves retraction history while recalling the later negative claim", async () => {
+    const candidate = (
+      id: string,
+      content: string,
+      polarity: ClaimProjection["polarity"],
+    ) => ({
+      id,
+      kindHint: "fact" as const,
+      memoryType: "fact" as const,
+      decision: "write" as const,
+      score: 1,
+      explicitness: "explicit" as const,
+      content,
+      sourceMessageIndex: 0,
+      sourceRole: "user",
+      extractorIds: ["test-claim-v1"],
+      metadata: {
+        category: "personal",
+        subject: "Marco",
+        claim: {
+          predicateKey: "person.residence",
+          objectText: "Paris",
+          polarity,
+          modality: "asserted" as const,
+        },
+      },
+    });
+    const positive = candidate(
+      "candidate-positive",
+      "Marco lives in Paris.",
+      "positive",
+    );
+    const negative = candidate(
+      "candidate-negative",
+      "Marco no longer lives in Paris.",
+      "negative",
+    );
+
+    for (const newestFirst of [false, true]) {
+      const documentStore = createInMemoryDocumentStore();
+      const batches = newestFirst
+        ? [[negative], [positive]]
+        : [[positive], [negative]];
+      const memory = createGoodMemory({
+        adapters: {
+          documentStore,
+          sessionStore: createInMemorySessionStore(),
+        },
+        retrieval: { preset: "recommended", recallPlanExecution: true },
+        testing: {
+          extractor: {
+            async extract() {
+              return {
+                candidates: batches.shift() ?? [],
+                ignoredMessageCount: 0,
+              };
+            },
+          },
+          now: () => new Date("2026-07-10T12:00:00.000Z"),
+        },
+      });
+      const scope = { userId: `retraction-user-${newestFirst}` };
+      const writes = newestFirst
+        ? [
+            {
+              content: negative.content,
+              observedAt: "2026-07-08T00:00:00.000Z",
+            },
+            {
+              content: positive.content,
+              observedAt: "2026-07-01T00:00:00.000Z",
+            },
+          ]
+        : [
+            {
+              content: positive.content,
+              observedAt: "2026-07-01T00:00:00.000Z",
+            },
+            {
+              content: negative.content,
+              observedAt: "2026-07-08T00:00:00.000Z",
+            },
+          ];
+      for (const message of writes) {
+        await memory.remember({
+          scope,
+          messages: [{ role: "user", ...message }],
+        });
+      }
+
+      const facts = await documentStore.query<FactMemory>("facts", {});
+      const claims = await documentStore.query<ClaimProjection>(
+        CLAIM_PROJECTIONS_COLLECTION,
+        { predicateKey: "person.residence" },
+      );
+      expect(facts).toHaveLength(2);
+      expect(facts.every(({ lifecycle, isActive }) =>
+        lifecycle === "active" && isActive
+      )).toBe(true);
+      expect(claims.map(({ polarity }) => polarity).sort()).toEqual([
+        "negative",
+        "positive",
+      ]);
+      expect(claims.every(({ validUntil }) => validUntil === undefined)).toBe(true);
+
+      const recalled = await memory.recall({
+        scope,
+        query: "Does Marco currently live in Paris?",
+        referenceTime: "2026-07-10T00:00:00.000Z",
+        strategy: "hybrid",
+        includeEvidence: true,
+      });
+      expect(recalled.facts.map(({ content }) => content)).toEqual([
+        negative.content,
+      ]);
+      expect(recalled.evidenceLedger).toEqual([
+        expect.objectContaining({
+          claim: expect.objectContaining({ polarity: "negative" }),
+          relation: "supports",
+          temporalStatus: "current",
+        }),
+      ]);
+    }
   });
 });

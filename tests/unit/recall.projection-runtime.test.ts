@@ -332,7 +332,7 @@ describe("recall projection runtime", () => {
     );
 
     expect(first).toBe(second);
-    expect(first).toStartWith("gm-projection-v5:");
+    expect(first).toStartWith("gm-projection-v6:");
     expect(alternateDefault).not.toBe(first);
   });
 
@@ -401,7 +401,7 @@ describe("recall projection runtime", () => {
         ...scope,
         analyzerFingerprint: expect.any(String),
         coverage: "partial",
-        projectionVersion: "gm-projection-v5",
+        projectionVersion: "gm-projection-v6",
         searchSchemaVersion: "gm-search-v3",
         firstSeenAt: NOW,
         lastSeenAt: NOW,
@@ -1072,7 +1072,7 @@ describe("recall projection runtime", () => {
     ).toMatchObject({
       analyzerFingerprint: "language-manifest-fingerprint",
       coverage: "complete",
-      projectionVersion: "gm-projection-v5",
+      projectionVersion: "gm-projection-v6",
       schemaVersion: 2,
     });
   });
@@ -2201,7 +2201,7 @@ describe("recall projection runtime", () => {
     expect(manifest?.validatedGeneration).not.toBe(manifest?.sourceGeneration);
   });
 
-  it("keeps persistent proof valid for recall-only fact touch metadata", async () => {
+  it("keeps persistent proof valid for recall-only fact verification-hint metadata", async () => {
     const rawStore = createInMemoryDocumentStore();
     const runtime = createRecallProjectionRuntime({
       documentStore: rawStore,
@@ -2222,8 +2222,8 @@ describe("recall projection runtime", () => {
 
     await runtime.documentStore.set("facts", fact.id, {
       ...fact,
-      accessCount: fact.accessCount + 1,
-      lastAccessedAt: NOW,
+      verificationPressureCount: (fact.verificationPressureCount ?? 0) + 1,
+      lastVerificationHintAt: NOW,
     });
 
     expect(
@@ -2235,52 +2235,12 @@ describe("recall projection runtime", () => {
       skipped: true,
     });
     expect(await rawStore.get("facts", fact.id)).toMatchObject({
-      accessCount: fact.accessCount + 1,
-      lastAccessedAt: NOW,
+      verificationPressureCount: (fact.verificationPressureCount ?? 0) + 1,
+      lastVerificationHintAt: NOW,
     });
   });
 
-  it("keeps persistent proof valid for recall-only feedback usage metadata", async () => {
-    const rawStore = createInMemoryDocumentStore();
-    const runtime = createRecallProjectionRuntime({
-      documentStore: rawStore,
-      now: () => NOW,
-      persistentScopeProof: { buildId: "projection-build-a" },
-    });
-    const feedback = createFeedbackMemory({
-      ...scope,
-      id: "feedback-recall-touch",
-      kind: "do",
-      rule: "Keep the rollout summary concise.",
-      source: { extractedAt: NOW, method: "explicit" },
-    });
-    await runtime.documentStore.set("feedback", feedback.id, feedback);
-    await runtime.ensureScopeIndexed(scope);
-    const manifestId = `scope:${scopeToKey({
-      ...scope,
-      sessionId: undefined,
-    })}`;
-    const sealed = await rawStore.get<RecallProjectionManifest>(
-      PROJECTION_MANIFESTS_COLLECTION,
-      manifestId,
-    );
-
-    await runtime.documentStore.set("feedback", feedback.id, {
-      ...feedback,
-      lastUsedAt: NOW,
-    });
-
-    expect(
-      await rawStore.get(PROJECTION_MANIFESTS_COLLECTION, manifestId),
-    ).toEqual(sealed);
-    expect(await runtime.ensureScopeIndexed(scope)).toMatchObject({
-      complete: true,
-      indexedSources: 0,
-      skipped: true,
-    });
-  });
-
-  it("serializes concurrent recall-only touches in deferred projection mode", async () => {
+  it("serializes concurrent recall-only verification hints in deferred projection mode", async () => {
     const rawStore = createInMemoryDocumentStore();
     const runtime = createRecallProjectionRuntime({
       documentStore: rawStore,
@@ -2304,8 +2264,8 @@ describe("recall projection runtime", () => {
       Array.from({ length: 16 }, (_, index) =>
         runtime.documentStore.set("facts", fact.id, {
           ...fact,
-          accessCount: fact.accessCount + 1,
-          lastAccessedAt: `2026-07-09T12:00:${String(index).padStart(2, "0")}.000Z`,
+          verificationPressureCount: (fact.verificationPressureCount ?? 0) + 1,
+          lastVerificationHintAt: `2026-07-09T12:00:${String(index).padStart(2, "0")}.000Z`,
         })
       ),
     );

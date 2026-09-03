@@ -13,6 +13,7 @@ import {
 
 import type {
   C4HiddenArtifact,
+  C4HiddenValue,
   C4LeakageSurface,
 } from "./c4-leakage";
 import type {
@@ -41,6 +42,8 @@ type C5StageLeakageInput = Awaited<
 interface C6DeclaredForbiddenArtifact {
   content: string;
   fragments: string[];
+  hiddenValueRelations: C4HiddenValue[][];
+  hiddenValues: C4HiddenValue[];
   path: string;
   sha256: string;
 }
@@ -294,6 +297,8 @@ async function prepareEpisodeAudit(input: {
         stage.leakageInput.artifacts
       )),
       declared.filter((artifact) => !standardPaths.has(artifact.path)),
+      input.episode.allowedPublicLeakageRelations ?? [],
+      input.episode.allowedPublicLeakageValues ?? [],
     ),
     input.episode.forbiddenLeakage.strings,
   );
@@ -661,10 +666,14 @@ function mergeEpisodeArtifacts(
 function includeExtraDeclaredArtifacts(
   artifacts: readonly C4HiddenArtifact[],
   declared: readonly C6DeclaredForbiddenArtifact[],
+  allowedRelations: readonly (readonly C4HiddenValue[])[],
+  allowedValues: readonly C4HiddenValue[],
 ): C4HiddenArtifact[] {
   if (declared.length === 0) {
     return [...artifacts];
   }
+  const allowedRelationKeys = new Set(allowedRelations.map(hiddenRelationKey));
+  const allowedValueKeys = new Set(allowedValues.map(hiddenValueKey));
   return artifacts.map((artifact) =>
     artifact.id === "hidden-test-source"
       ? {
@@ -681,6 +690,22 @@ function includeExtraDeclaredArtifacts(
               candidate.content,
               ...candidate.fragments,
             ]),
+          ]),
+          hiddenValueRelations: uniqueJson([
+            ...(artifact.hiddenValueRelations ?? []),
+            ...declared.flatMap((candidate) =>
+              candidate.hiddenValueRelations.filter((relation) =>
+                !allowedRelationKeys.has(hiddenRelationKey(relation))
+              )
+            ),
+          ]),
+          hiddenValues: uniqueJson([
+            ...(artifact.hiddenValues ?? []),
+            ...declared.flatMap((candidate) =>
+              candidate.hiddenValues.filter((value) =>
+                !allowedValueKeys.has(hiddenValueKey(value))
+              )
+            ),
           ]),
         }
       : artifact
@@ -779,9 +804,16 @@ async function collectEvaluatorFiles(
     }
     const bytes = await readFile(path);
     const content = bytes.toString("utf8");
+    const json = parseJson(content);
     files.push({
       content,
       fragments: semanticForbiddenFileFragments(content),
+      hiddenValueRelations: json === null
+        ? []
+        : collectJsonHiddenValueRelations(json.value),
+      hiddenValues: json === null
+        ? []
+        : uniqueJson(collectJsonHiddenValues(json.value)),
       path: `evaluator/${
         relative(root, path).split(sep).join("/")
       }`,
@@ -794,9 +826,64 @@ async function collectEvaluatorFiles(
 function semanticForbiddenFileFragments(content: string): string[] {
   return [...new Set(content.split(/\r?\n/u)
     .map((line) => line.trim())
-    .filter((line) =>
-      line.length >= 8 && /[\p{L}\p{N}_]/u.test(line)
-    ))];
+    .filter(isSemanticForbiddenFragment))];
+}
+
+function parseJson(content: string): { value: unknown } | null {
+  try {
+    return { value: JSON.parse(content) as unknown };
+  } catch {
+    return null;
+  }
+}
+
+function collectJsonHiddenValues(value: unknown): C4HiddenValue[] {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return [value];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(collectJsonHiddenValues);
+  }
+  if (typeof value === "object" && value !== null) {
+    return Object.values(value).flatMap(collectJsonHiddenValues);
+  }
+  return [];
+}
+
+function collectJsonHiddenValueRelations(
+  value: unknown,
+): C4HiddenValue[][] {
+  if (typeof value !== "object" || value === null) {
+    return [];
+  }
+  const children = Array.isArray(value) ? value : Object.values(value);
+  const relation = uniqueJson(children.flatMap(collectJsonHiddenValues));
+  return uniqueJson([
+    ...(relation.length < 2 ? [] : [relation]),
+    ...children.flatMap(collectJsonHiddenValueRelations),
+  ]);
+}
+
+function hiddenValueKey(value: C4HiddenValue): string {
+  return JSON.stringify({
+    type: value === null ? "null" : typeof value,
+    value,
+  });
+}
+
+function hiddenRelationKey(
+  relation: readonly C4HiddenValue[],
+): string {
+  return JSON.stringify(relation.map(hiddenValueKey));
+}
+
+function isSemanticForbiddenFragment(value: string): boolean {
+  return value.length >= 8 && /[\p{L}\p{N}_]/u.test(value);
 }
 
 function mergeSummaryPrompt(

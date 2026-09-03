@@ -21,7 +21,8 @@ export const PROJECTION_REPAIRS_COLLECTION = "recall_projection_repairs_v1";
 export const CLAIM_PROJECTIONS_COLLECTION = "claim_projections_v2";
 export const CLAIM_PROJECTION_STATUS_COLLECTION = "claim_projection_status_v2";
 export const PROJECTION_SEARCH_SCHEMA_VERSION = "gm-search-v3";
-export const RECALL_PROJECTION_PIPELINE_VERSION = "gm-projection-v5";
+// v6: the `notes` source collection joined the projection generation.
+export const RECALL_PROJECTION_PIPELINE_VERSION = "gm-projection-v6";
 
 export const LEGACY_RECALL_PROJECTION_COLLECTIONS = [
   "recall_documents_v3",
@@ -36,6 +37,7 @@ export const RECALL_PROJECTION_SOURCE_COLLECTIONS = [
   "profiles",
   "preferences",
   "references",
+  "notes",
   "facts",
   "episodes",
   "feedback",

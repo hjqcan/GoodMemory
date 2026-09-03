@@ -26,6 +26,7 @@ function createRecallResult(): RecallResult {
     profile: null,
     preferences: [],
     references: [],
+    notes: [],
     facts: [],
     feedback: [],
     archives: [],
@@ -86,6 +87,9 @@ function createGoodMemoryStub(input?: {
       return {
         forgotten: false,
       };
+    },
+    async importMemory() {
+      throw new Error("importMemory is not implemented by this fake.");
     },
     async exportMemory() {
       throw new Error("not implemented");

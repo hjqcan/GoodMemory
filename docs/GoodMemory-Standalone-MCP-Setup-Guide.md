@@ -98,9 +98,12 @@ MCP surface.
 
 ## Opt-in write tool
 
-`--allow-write` (or `GOODMEMORY_MCP_ALLOW_WRITE=1`) registers a ninth tool,
+`--allow-write` (or `GOODMEMORY_MCP_ALLOW_WRITE=1`) registers two write tools:
 `goodmemory_remember`, which lets the connected model persist a memory-worthy
-statement as durable memory.
+statement as durable memory, and `goodmemory_write_note`, which stores an
+authored page (prose or Markdown, up to 8,192 UTF-8 bytes) verbatim as a `note`.
+Notes are never sentence-split, embed whole, recall as their own capped lane,
+and are superseded by title on rewrite.
 
 - The write is **governed**: it goes through the normal remember pipeline —
   classification thresholds, dedupe/supersession, policy hooks, and evidence

@@ -311,6 +311,11 @@ cutover, and rollback contracts.
   corpus-wide leakage core, independent review, baseline, authenticated raw
   and projected stage evidence, and final readiness are accepted. C5 internal
   pilot `run-c5-pilot-v16-20260721T150112Z` is accepted; C6-C7 remain open.
+  Converged 2026-09-02: the active target is an internal flat-summary-controlled
+  comparison on the C4 dataset plus a controlled-mutation Level-2 set;
+  real-history source mining is paused as a diagnostic subset, and the pilot's
+  six host-canary failures were fixed as a reproduced English project-policy
+  writeback admission defect.
   C6 has a deterministic preflight/checkpoint implementation, but its candidate
   manifest is not frozen and there is no finalized candidate dataset,
   packaged-Linux host profile, flat-summary corpus, Linux execution, or C6

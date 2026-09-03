@@ -37,6 +37,27 @@ describe("Codex coding-effect C5 task isolation", () => {
     ]));
   });
 
+  it("orders denied paths by category so cluster digests cannot reorder them", () => {
+    const current = armPlan("/runs/current", "goodmemory-installed");
+    const build = (otherRoot: string) => buildC5TaskDeniedPaths({
+      authFile: "/auth/source.json",
+      datasetRoot: "/frozen/dataset",
+      currentPlan: current,
+      otherPlan: armPlan(otherRoot, "no-memory"),
+      outputDirectory: "/evidence/raw",
+      packageTarball: "/packages/goodmemory.tgz",
+      repositoryRoot: "/frozen/source-repository",
+      runnerSourceRoot: "/runner/source",
+    });
+    const early = build("/runs/aaaa");
+    const late = build("/runs/zzzz");
+    const position = (paths: string[], root: string) =>
+      paths.findIndex((path) => path === armPlan(root, "no-memory").paths.armRoot);
+    expect(position(early, "/runs/aaaa")).toBe(position(late, "/runs/zzzz"));
+    expect(early.map((path) => path.replace("/runs/aaaa", "<other>")))
+      .toEqual(late.map((path) => path.replace("/runs/zzzz", "<other>")));
+  });
+
   it("proves protected files remain denied through writable-workspace symlinks", async () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-task-alias-"));
     try {

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import {
   chmod,
   copyFile,
+  cp,
   lstat,
   mkdir,
   readFile,
@@ -17,10 +18,16 @@ import { z } from "zod";
 import {
   auditNoMemoryRuntime,
   buildInstalledGoodMemorySetupArgs,
+  auditFlatSummaryRuntime,
 } from "./c3-arms";
+import {
+  buildC5FlatSummaryHookConfig,
+  buildC5FlatSummaryHookRunnerSource,
+} from "./c5-flat-summary-arm";
 import type {
   C3ArmPlan,
   NoMemoryRuntimeAudit,
+  C3FlatSummaryArmPlan,
 } from "./c3-arms";
 import {
   auditFrozenPrehistoryLeakage,
@@ -162,6 +169,28 @@ export interface C3NoMemoryArmRuntime {
   plan: C3ArmPlan & { arm: "no-memory" };
 }
 
+export interface C3FlatSummaryArmRuntime {
+  codex: {
+    executable: string;
+    executableSha256: string;
+    version: string;
+  };
+  env: Record<string, string>;
+  hookConfig: {
+    path: string;
+    sha256: string;
+  };
+  hookRunnerSha256: string;
+  instructionSha256: string;
+  isolation: NoMemoryRuntimeAudit;
+  permissionProfile: C3PermissionProfile;
+  plan: C3FlatSummaryArmPlan;
+}
+
+export type C3BaselineArmRuntime =
+  | C3FlatSummaryArmRuntime
+  | C3NoMemoryArmRuntime;
+
 export interface C3SeedResult {
   exportLeakageAudit: FrozenPrehistoryLeakageAudit;
   receipt: FrozenPrehistorySeedReceipt;
@@ -174,7 +203,7 @@ export interface C3EvaluatorSecurityPathCommitment {
 }
 
 export interface C3CredentialRevocationEvidence {
-  arm: "goodmemory-installed" | "no-memory";
+  arm: C3ArmPlan["arm"];
   auth: C3EvaluatorSecurityPathCommitment;
   copiedAuthRemovedBeforeEvaluator: true;
   phase: "after-both-codex-before-evaluator-materialization";
@@ -363,7 +392,7 @@ export function buildC3EvaluatorSecurityContract(input: {
 }
 
 export async function removeC3ArmModelCredential(
-  runtime: C3InstalledArmRuntime | C3NoMemoryArmRuntime,
+  runtime: C3InstalledArmRuntime | C3BaselineArmRuntime,
 ): Promise<C3CredentialRevocationEvidence> {
   const authPath = join(runtime.plan.paths.codexHome, "auth.json");
   await assertRegularFile(
@@ -382,7 +411,7 @@ export async function removeC3ArmModelCredential(
 }
 
 export async function assertC3ArmModelCredentialRemoved(
-  runtime: C3InstalledArmRuntime | C3NoMemoryArmRuntime,
+  runtime: C3InstalledArmRuntime | C3BaselineArmRuntime,
 ): Promise<void> {
   if (await pathExists(join(runtime.plan.paths.codexHome, "auth.json"))) {
     throw new Error(
@@ -542,11 +571,89 @@ export async function prepareC3NoMemoryArm(input: {
   };
 }
 
+export async function prepareC3FlatSummaryArm(input: {
+  authFile: string;
+  bunExecutable: string;
+  codexExecutable: string;
+  permissionDeniedReadPaths?: readonly string[];
+  plan: C3FlatSummaryArmPlan;
+  runProcess?: C3BoundaryRunner;
+}): Promise<C3FlatSummaryArmRuntime> {
+  const [bunExecutable, codexExecutable] = await Promise.all([
+    resolveExecutablePath(input.bunExecutable, "Bun executable"),
+    resolveExecutablePath(input.codexExecutable, "Codex executable"),
+  ]);
+  await initializeRuntime(input.plan);
+  await mkdir(input.plan.paths.injectionRoot, { recursive: true });
+  await installAuthFile(input.authFile, input.plan.paths.codexHome);
+  // Native hooks must be enabled in the Codex config exactly as the installed
+  // GoodMemory profile enables them; the permission profile is layered on top.
+  await writeFile(
+    join(input.plan.paths.codexHome, "config.toml"),
+    "[features]\nhooks = true\n",
+    "utf8",
+  );
+  const permissionProfile = await installC3PermissionProfile(
+    input.plan.paths.codexHome,
+    input.permissionDeniedReadPaths,
+  );
+  const runnerPath = join(input.plan.paths.armRoot, "flat-summary-hook.mjs");
+  const runnerSource = buildC5FlatSummaryHookRunnerSource({
+    injectionRoot: input.plan.paths.injectionRoot,
+  });
+  await writeFile(runnerPath, runnerSource, "utf8");
+  const hookConfigPath = join(input.plan.paths.codexHome, "hooks.json");
+  const hookConfig = buildC5FlatSummaryHookConfig({ runnerPath });
+  await writeFile(hookConfigPath, hookConfig, "utf8");
+  const env = buildIsolatedEnvironment({
+    bunExecutable,
+    plan: input.plan,
+  });
+  await assertGoodMemoryAbsentFromPath(env.PATH);
+  const isolation = await auditFlatSummaryRuntime({
+    codexHome: input.plan.paths.codexHome,
+    expectedHookConfigSha256: sha256(hookConfig),
+    home: input.plan.paths.home,
+  });
+  if (!isolation.passed) {
+    throw new Error(
+      `flat-summary isolation failed: ${isolation.reasons.join("; ")}`,
+    );
+  }
+  const run = input.runProcess ?? runBoundaryProcess;
+  const version = (await runRequired(run, {
+    args: ["--version"],
+    cwd: input.plan.paths.workspace,
+    env,
+    executable: codexExecutable,
+    label: "codex-version-flat-summary",
+  })).stdout.trim();
+
+  return {
+    codex: {
+      executable: codexExecutable,
+      executableSha256: await sha256File(codexExecutable),
+      version,
+    },
+    env,
+    hookConfig: { path: hookConfigPath, sha256: sha256(hookConfig) },
+    hookRunnerSha256: sha256(runnerSource),
+    instructionSha256: await captureInstructionSha256(
+      input.plan.paths.workspace,
+    ),
+    isolation,
+    permissionProfile,
+    plan: input.plan,
+  };
+}
+
 export async function prepareC3InstalledArm(input: {
   authFile: string;
   bunExecutable: string;
   codexExecutable: string;
+  npmCacheSeed?: string;
   npmExecutable: string;
+  npmRegistry?: string;
   packageTarball: string;
   permissionDeniedReadPaths?: readonly string[];
   plan: C3ArmPlan & { arm: "goodmemory-installed" };
@@ -566,6 +673,20 @@ export async function prepareC3InstalledArm(input: {
   if (prefix === undefined) {
     throw new Error("installed C3 arm requires an isolated package prefix");
   }
+  // The arm's npm cache is its own directory either way. A runner-owned seed
+  // cache, when given, is copied in and the install runs offline, so every
+  // cluster resolves the tarball's dependencies identically and no registry
+  // fetch can stall or drift the install; without a seed the cache is cold and
+  // each fetch is bounded so one stalled connection cannot consume the budget.
+  const seeded = input.npmCacheSeed !== undefined;
+  if (input.npmCacheSeed !== undefined) {
+    await assertRealDirectory(input.npmCacheSeed, "npm cache seed");
+    await cp(input.npmCacheSeed, input.plan.paths.cache, {
+      errorOnExist: false,
+      force: true,
+      recursive: true,
+    });
+  }
   const env = buildIsolatedEnvironment({
     bunExecutable,
     packagePrefix: prefix,
@@ -581,13 +702,19 @@ export async function prepareC3InstalledArm(input: {
       "--ignore-scripts",
       "--no-audit",
       "--no-fund",
+      ...(seeded
+        ? ["--offline"]
+        : ["--fetch-retries", "5", "--fetch-timeout", "60000"]),
+      ...(input.npmRegistry === undefined
+        ? []
+        : ["--registry", input.npmRegistry]),
       input.packageTarball,
     ],
     cwd: input.plan.paths.temp,
     env,
     executable: npmExecutable,
     label: "package-install",
-    timeoutMs: 300_000,
+    timeoutMs: 900_000,
   });
   await installAuthFile(input.authFile, input.plan.paths.codexHome);
   const goodmemoryExecutable = join(prefix, "bin", "goodmemory");
@@ -911,7 +1038,7 @@ export async function seedC3InstalledArm(input: {
 }
 
 export async function cleanupC3ArmRuntime(
-  runtime: C3InstalledArmRuntime | C3NoMemoryArmRuntime,
+  runtime: C3InstalledArmRuntime | C3BaselineArmRuntime,
 ): Promise<void> {
   const marker = await readFile(
     join(runtime.plan.paths.armRoot, RUNTIME_MARKER),
@@ -971,9 +1098,12 @@ async function installC3PermissionProfile(
       "isolated Codex config contains legacy sandbox settings that disable permission profiles",
     );
   }
+  // Caller order is preserved: the C5 denied-path builder orders paths by
+  // category so the normalized permission section reads identically across
+  // clusters; a lexicographic sort of the raw digest-bearing paths would not.
   const deniedPaths = [...new Set(
     permissionDeniedReadPaths.map((path) => resolve(path)),
-  )].sort();
+  )];
   const config = [
     `default_permissions = "${C3_PERMISSION_PROFILE_NAME}"`,
     'web_search = "disabled"',
@@ -1151,6 +1281,13 @@ async function countSessionFiles(codexHome: string): Promise<number> {
   };
   await walk(sessionsRoot);
   return count;
+}
+
+async function assertRealDirectory(path: string, label: string): Promise<void> {
+  const stats = await lstat(path);
+  if (stats.isSymbolicLink() || !stats.isDirectory()) {
+    throw new Error(`${label} must be a real directory: ${path}`);
+  }
 }
 
 async function assertRegularFile(path: string, label: string): Promise<void> {

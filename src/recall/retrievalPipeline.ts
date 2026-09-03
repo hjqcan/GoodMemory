@@ -193,6 +193,14 @@ function computeBm25AdditiveScores(
       })),
       { tokenize },
     ),
+    notes: computeBm25Scores(
+      context.input.query,
+      content.notes.map((note) => ({
+        id: note.id,
+        text: `${note.title} ${note.body}`,
+      })),
+      { tokenize },
+    ),
   };
 }
 

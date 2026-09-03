@@ -372,6 +372,10 @@ describe("public governance API", () => {
     expect(durableOnly.artifacts.files.map((file) => file.relativePath)).toEqual([
       "user.md",
       "MEMORY.md",
+      "topics/preferences.md",
+      "topics/feedback.md",
+      "topics/references.md",
+      "topics/facts.md",
       "archive/1970/01/s-1.md",
     ]);
     expect(durableOnly.artifacts.files[1]?.content).toContain(
@@ -383,8 +387,8 @@ describe("public governance API", () => {
     expect(durableOnly.artifacts.files[1]?.content).toContain(
       "Delay rollout revision until verification reruns.",
     );
-    expect(withRuntime.artifacts.files[2]?.content).toContain("Current goal: Finish rollout");
-    expect(withRuntime.artifacts.files[2]?.content).toContain(
+    expect(withRuntime.artifacts.files[6]?.content).toContain("Current goal: Finish rollout");
+    expect(withRuntime.artifacts.files[6]?.content).toContain(
       "Very large runtime-only payload for session one.",
     );
     expect(withRuntime.artifacts.files.map((file) => file.relativePath)).toContain("session.md");

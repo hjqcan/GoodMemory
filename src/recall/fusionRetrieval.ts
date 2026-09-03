@@ -220,6 +220,7 @@ export async function retrieveGeneralizedFusion(input: {
       (document) =>
         document.sourceCollection === "facts" ||
         document.sourceCollection === "references" ||
+        document.sourceCollection === "notes" ||
         document.sourceCollection === "episodes" ||
         document.sourceCollection === "session_archives",
     );
@@ -230,6 +231,7 @@ export async function retrieveGeneralizedFusion(input: {
           (id) =>
             id.startsWith("facts:") ||
             id.startsWith("references:") ||
+            id.startsWith("notes:") ||
             id.startsWith("episodes:") ||
             id.startsWith("session_archives:"),
         ),

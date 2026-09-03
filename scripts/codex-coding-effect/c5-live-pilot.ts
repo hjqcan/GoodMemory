@@ -118,14 +118,31 @@ export interface C5LivePilotAdapter {
   }): Promise<void>;
 }
 
+// Runtime inputs for the flat-summary comparator baseline: the summarizer
+// credential never enters an arm's environment; the runner calls the provider
+// between stages and writes only the accepted summary into the arm.
+export interface C5ComparatorRuntimeInput {
+  apiToken: string;
+  summaryEndpoint: string;
+  summaryModel: string;
+  summaryPrompt: string;
+  summaryPromptSha256: string;
+}
+
 export interface C5NativeLongitudinalPilotInput
   extends C5PilotReadinessInput {
   authFile: string;
   bunExecutable: string;
   codexExecutable: string;
+  comparatorRuntime?: C5ComparatorRuntimeInput;
   generatedAt: string;
   model: string;
+  // Optional pre-populated npm cache copied into each installed arm's own
+  // cache before an offline install, so the run's dependency resolution is
+  // identical across clusters and independent of registry reachability.
+  npmCacheSeed?: string;
   npmExecutable: string;
+  npmRegistry?: string;
   onLog?: (event: C5LivePilotLogEvent) => void;
   outputDirectory: string;
   packageTarball: string;
@@ -470,8 +487,10 @@ function buildC5NativeLongitudinalCanaryReport(input: {
   const installed = input.pilot.stageExecutions.filter((execution) =>
     execution.arm === "goodmemory-installed"
   );
+  // The baseline is whichever non-installed arm the plan froze (no-memory or
+  // the flat-summary comparator); neither may report a memory channel.
   const noMemory = input.pilot.stageExecutions.filter((execution) =>
-    execution.arm === "no-memory"
+    execution.arm !== "goodmemory-installed"
   );
   const reasons = [
     ...(input.pilot.stageExecutions.length === 6
@@ -528,8 +547,11 @@ function buildC5NativeLongitudinalCanaryReport(input: {
 function readinessInput(
   input: C5NativeLongitudinalPilotInput,
 ): C5PilotReadinessInput {
+  assertComparatorInputConsistent(input);
   return {
+    ...(input.baselineArm === undefined ? {} : { baselineArm: input.baselineArm }),
     baselineReportPath: input.baselineReportPath,
+    ...(input.comparator === undefined ? {} : { comparator: input.comparator }),
     baselineRawStageEvidenceRoot: input.baselineRawStageEvidenceRoot,
     baselineStageEvidenceRoot: input.baselineStageEvidenceRoot,
     c4ReadinessCorePath: input.c4ReadinessCorePath,
@@ -544,6 +566,35 @@ function readinessInput(
     materialEffectPercentagePoints: input.materialEffectPercentagePoints,
     orderSeed: input.orderSeed,
   };
+}
+
+// The frozen plan hashes the summarizer protocol; the runtime input carries
+// the matching prompt bytes and credential. They must describe the same
+// protocol or the run cannot claim the plan it prints.
+function assertComparatorInputConsistent(
+  input: C5NativeLongitudinalPilotInput,
+): void {
+  const flatSummary = input.baselineArm === "flat-summary";
+  if (!flatSummary) {
+    if (input.comparator !== undefined || input.comparatorRuntime !== undefined) {
+      throw new Error("C5 comparator inputs require the flat-summary baseline");
+    }
+    return;
+  }
+  if (input.comparator === undefined || input.comparatorRuntime === undefined) {
+    throw new Error(
+      "C5 flat-summary baseline requires both the comparator protocol and runtime",
+    );
+  }
+  if (
+    input.comparator.summaryModel !== input.comparatorRuntime.summaryModel ||
+    input.comparator.summaryPromptSha256 !==
+      input.comparatorRuntime.summaryPromptSha256 ||
+    input.comparator.summaryEndpointSha256 !==
+      sha256(input.comparatorRuntime.summaryEndpoint)
+  ) {
+    throw new Error("C5 comparator runtime does not match its frozen protocol");
+  }
 }
 
 async function validateC5NativePilotPaths(
@@ -574,6 +625,7 @@ async function validateC5NativePilotPaths(
     resolve(input.c4ReviewRequestPath),
     resolve(input.c4ReviewResponsePath),
     resolve(input.datasetRoot),
+    ...(input.npmCacheSeed === undefined ? [] : [resolve(input.npmCacheSeed)]),
     resolve(input.packageTarball),
     RUNNER_SOURCE_ROOT,
   ]);

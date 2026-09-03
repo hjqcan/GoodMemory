@@ -29,6 +29,8 @@ export interface Phase62CliOptions {
   // attributes.retrievalCues on every stored fact through the maintenance
   // job after seeding, before recall (record -> prefetch -> replay).
   retrievalCues?: boolean;
+  // Phase 75 arm (recall-diagnostic only): retrieval.longRecordAdmission.
+  longRecordAdmission?: boolean;
   maxConcurrency?: number;
   mode: LongMemEvalMode;
   offset?: number;
@@ -316,6 +318,7 @@ export function parsePhase62CliOptions(
     questionTypes: parseRepeatedFlag(argv, "--question-type"),
     resume: parseFlagPresence(argv, "--resume"),
     retrievalCues: parseFlagPresence(argv, "--retrieval-cues"),
+    longRecordAdmission: parseFlagPresence(argv, "--long-record-admission"),
     runId: resolveCliPathSegmentFlagValueStrict(argv, "--run-id"),
   };
 }

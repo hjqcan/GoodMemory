@@ -18,6 +18,7 @@ const MEMORY_COLLECTIONS = [
   "episodes",
   "facts",
   "feedback",
+  "notes",
   "preferences",
   "profiles",
   "references",
@@ -264,7 +265,7 @@ function toAdminMemoryItem(memory: StoredMemory): AdminMemoryItem {
       ? "session_archive"
       : collection.replace(/s$/u, ""),
     revisable:
-      ["facts", "feedback", "preferences", "references"].includes(collection) &&
+      ["facts", "feedback", "notes", "preferences", "references"].includes(collection) &&
       readString(document.lifecycle) !== "superseded",
     summary: String(
       sanitizeViewerValue(readMemorySummary(collection, document), scope),
@@ -450,6 +451,7 @@ function selectVisibleDetails(
       "responseStyle",
       "currentFocus",
     ],
+    notes: ["title", "format", "subject", "tags"],
     references: ["title", "pointer", "referenceKind"],
     [SESSION_ARCHIVES_COLLECTION]: ["summary", "keyDecisions", "unresolvedItems"],
   };

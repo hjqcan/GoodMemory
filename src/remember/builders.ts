@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import {
   createFactMemory,
   createFeedbackMemory,
+  createNoteMemory,
   createPreferenceMemory,
   createReferenceMemory,
   createUserProfile,
@@ -12,6 +13,7 @@ import { resolveFeedbackKind } from "./durableOptOut";
 import type {
   FactMemory,
   FeedbackMemory,
+  NoteMemory,
   PreferenceMemory,
   ReferenceMemory,
   SessionMessage,
@@ -164,6 +166,57 @@ export function buildReference(
     subject: candidate.metadata?.subject ?? "unknown",
     tags: candidate.metadata?.tags,
     attributes: candidate.metadata?.attributes,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  });
+}
+
+const NOTE_TITLE_MAX_CHARS = 120;
+
+// A note title is required for dedupe and supersession. When the author did
+// not name the page, the first Markdown heading wins, then the first non-empty
+// line, clipped so a paragraph-shaped opener cannot become the identity key.
+export function deriveNoteTitle(body: string): string {
+  const lines = body
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  const heading = lines.find((line) => /^#{1,6}\s+\S/.test(line));
+  const raw = (heading ? heading.replace(/^#{1,6}\s+/, "") : lines[0] ?? "Untitled note")
+    .trim();
+  return raw.length > NOTE_TITLE_MAX_CHARS
+    ? `${raw.slice(0, NOTE_TITLE_MAX_CHARS - 3).trimEnd()}...`
+    : raw;
+}
+
+export function buildNote(
+  scope: ScopedIdentity,
+  candidate: ClassifiedCandidate,
+  title: string,
+  id: string,
+  timestamp: string,
+  language: SourceLanguageMetadata | string,
+  messages: readonly { observedAt?: string }[],
+): NoteMemory {
+  return createNoteMemory({
+    id,
+    userId: scope.userId,
+    tenantId: scope.tenantId,
+    workspaceId: scope.workspaceId,
+    agentId: scope.agentId,
+    sessionId: scope.sessionId,
+    title,
+    body: candidate.content,
+    format: candidate.metadata?.noteFormat ?? "markdown",
+    source: createMemorySource({
+      method: candidate.explicitness,
+      extractedAt: timestamp,
+      ...sourceLanguageMetadata(language),
+    }),
+    subject: candidate.metadata?.subject,
+    tags: candidate.metadata?.tags,
+    attributes: candidate.metadata?.attributes,
+    observedAt: resolveCandidateObservedAt(candidate, messages),
     createdAt: timestamp,
     updatedAt: timestamp,
   });
@@ -665,7 +718,12 @@ function buildEvidenceExcerpt(
     return excerpt;
   }
 
-  return `${excerpt.slice(0, EVIDENCE_MAX_EXCERPT_CHARS - 3)}...`;
+  let end = EVIDENCE_MAX_EXCERPT_CHARS - 3;
+  const lastCodeUnit = excerpt.charCodeAt(end - 1);
+  if (lastCodeUnit >= 0xd800 && lastCodeUnit <= 0xdbff) {
+    end -= 1;
+  }
+  return `${excerpt.slice(0, end)}...`;
 }
 
 function sha256(value: string): string {

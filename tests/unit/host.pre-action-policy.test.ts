@@ -16,6 +16,7 @@ import {
   isHostActionIntent,
   validateHostActionIntent,
 } from "../../src/host";
+import { buildPageArtifacts } from "../../src/governance/pageArtifacts";
 
 function createExportResult(
   input: Partial<ExportMemoryResult["durable"]> & {
@@ -24,6 +25,7 @@ function createExportResult(
   } = {},
 ): ExportMemoryResult {
   return {
+    pages: buildPageArtifacts({ notes: [] }),
     artifacts: {
       rootPath: ".goodmemory/users/u-1/workspaces/ws-1/sessions/s-1",
       files: [

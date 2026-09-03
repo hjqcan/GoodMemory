@@ -34,6 +34,8 @@ function claim(input: {
   predicateKey: string;
   objectText: string;
   observedAt: string;
+  polarity?: ClaimProjection["polarity"];
+  validFrom?: string;
   validUntil?: string;
 }): ClaimProjection {
   return {
@@ -51,8 +53,9 @@ function claim(input: {
     predicateKey: input.predicateKey,
     objectText: input.objectText,
     text: `${input.predicateKey} ${input.objectText}`,
-    polarity: "positive",
+    polarity: input.polarity ?? "positive",
     modality: "asserted",
+    validFrom: input.validFrom,
     validUntil: input.validUntil,
     observedAt: input.observedAt,
     ingestedAt: input.observedAt,
@@ -117,6 +120,33 @@ describe("evidence ledger", () => {
     });
   });
 
+  it("keeps a future claim uncertain when invalid validFrom falls back to observedAt", () => {
+    const entries = buildEvidenceLedger({
+      aggregation: "current",
+      claims: [
+        claim({
+          id: "claim-project-future",
+          sourceMemoryId: "project-future",
+          predicateKey: "profile.current_project",
+          objectText: "Atlas",
+          observedAt: "2026-08-01T00:00:00.000Z",
+          validFrom: "not-a-date",
+        }),
+      ],
+      evidence: [evidence("project-future")],
+      referenceTime,
+      selectedMemoryIds: ["project-future"],
+    });
+
+    expect(entries).toEqual([
+      expect.objectContaining({
+        relation: "context",
+        sourceMemoryId: "project-future",
+        temporalStatus: "uncertain",
+      }),
+    ]);
+  });
+
   it("does not mark a selected older claim current when its newer group peer was not selected", () => {
     const entries = buildEvidenceLedger({
       aggregation: "current",
@@ -177,6 +207,130 @@ describe("evidence ledger", () => {
       "current",
       "current",
     ]);
+  });
+
+  it("does not invent a winner for conflicting values at the same event time", () => {
+    const claims = [
+      claim({
+        id: "claim-project-atlas",
+        sourceMemoryId: "project-atlas",
+        predicateKey: "profile.current_project",
+        objectText: "Atlas",
+        observedAt: "2026-07-08T00:00:00.000Z",
+      }),
+      claim({
+        id: "claim-project-beacon",
+        sourceMemoryId: "project-beacon",
+        predicateKey: "profile.current_project",
+        objectText: "Beacon",
+        observedAt: "2026-07-08T00:00:00.000Z",
+      }),
+    ];
+
+    for (const orderedClaims of [claims, [...claims].reverse()]) {
+      const entries = buildEvidenceLedger({
+        aggregation: "current",
+        claims: orderedClaims,
+        evidence: [evidence("project-atlas"), evidence("project-beacon")],
+        referenceTime,
+        selectedMemoryIds: ["project-atlas", "project-beacon"],
+      });
+
+      expect(entries.map(({ relation }) => relation).sort()).toEqual([
+        "context",
+        "context",
+      ]);
+      expect(entries.map(({ temporalStatus }) => temporalStatus).sort()).toEqual([
+        "uncertain",
+        "uncertain",
+      ]);
+    }
+  });
+
+  it("keeps a simultaneous assertion and retraction uncertain", () => {
+    const observedAt = "2026-07-08T00:00:00.000Z";
+    const claims = [
+      claim({
+        id: "claim-residence-positive-tie",
+        sourceMemoryId: "residence-positive-tie",
+        predicateKey: "person.residence",
+        objectText: "Paris",
+        observedAt,
+      }),
+      claim({
+        id: "claim-residence-negative-tie",
+        sourceMemoryId: "residence-negative-tie",
+        predicateKey: "person.residence",
+        objectText: "Paris",
+        observedAt,
+        polarity: "negative",
+      }),
+    ];
+
+    const entries = buildEvidenceLedger({
+      aggregation: "current",
+      claims,
+      evidence: [
+        evidence("residence-positive-tie"),
+        evidence("residence-negative-tie"),
+      ],
+      referenceTime,
+      selectedMemoryIds: [
+        "residence-positive-tie",
+        "residence-negative-tie",
+      ],
+    });
+
+    expect(entries.map(({ relation }) => relation)).toEqual([
+      "context",
+      "context",
+    ]);
+    expect(entries.map(({ temporalStatus }) => temporalStatus)).toEqual([
+      "uncertain",
+      "uncertain",
+    ]);
+  });
+
+  it("treats a later retraction as current regardless of ingestion order", () => {
+    const claims = [
+      claim({
+        id: "claim-residence-positive",
+        sourceMemoryId: "residence-positive",
+        predicateKey: "person.residence",
+        objectText: "Paris",
+        observedAt: "2026-07-01T00:00:00.000Z",
+      }),
+      claim({
+        id: "claim-residence-negative",
+        sourceMemoryId: "residence-negative",
+        predicateKey: "person.residence",
+        objectText: "Paris",
+        observedAt: "2026-07-08T00:00:00.000Z",
+        polarity: "negative",
+      }),
+    ];
+
+    for (const orderedClaims of [claims, [...claims].reverse()]) {
+      const ledger = byMemory(buildEvidenceLedger({
+        aggregation: "current",
+        claims: orderedClaims,
+        evidence: [
+          evidence("residence-positive"),
+          evidence("residence-negative"),
+        ],
+        referenceTime,
+        selectedMemoryIds: ["residence-positive", "residence-negative"],
+      }));
+
+      expect(ledger.get("residence-positive")).toMatchObject({
+        relation: "contradicts",
+        temporalStatus: "superseded",
+      });
+      expect(ledger.get("residence-negative")).toMatchObject({
+        relation: "supports",
+        temporalStatus: "current",
+      });
+    }
   });
 
   it("retains evidence without a structured claim as uncertain context", () => {

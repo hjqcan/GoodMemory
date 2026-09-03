@@ -97,6 +97,7 @@ describe("Phase 74 protocol-compatible scoring", () => {
     const events: AttributedModelUsageAttempt[] = [];
     const intents: AttributedModelUsageIntent[] = [];
     const usageOrder: string[] = [];
+    const verdicts: unknown[] = [];
     let requestBody = "";
     const assess = createPhase74ProtocolCompatibleAnswerAssessor({
       benchmark: "longmemeval",
@@ -116,6 +117,7 @@ describe("Phase 74 protocol-compatible scoring", () => {
       },
       intents,
       model: judgeModel,
+      onLongMemEvalVerdict: (verdict) => verdicts.push(verdict),
       onUsageEvent: () => usageOrder.push("terminal"),
       onUsageIntent: () => usageOrder.push("intent"),
     });
@@ -156,6 +158,11 @@ describe("Phase 74 protocol-compatible scoring", () => {
         operation: "judge",
       }),
     ]);
+    expect(verdicts).toEqual([{
+      caseId: "lme/q1",
+      correct: true,
+      verdict: "Yes",
+    }]);
   });
 
   it("attributes judge usage to an opaque case id without changing the official protocol id", async () => {

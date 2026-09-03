@@ -63,6 +63,21 @@ type C5DurableFieldSpecs = {
   };
 };
 const C5_DURABLE_FIELD_SPECS = {
+  notes: {
+    metadata: [
+      "id",
+      ...SCOPE_FIELDS,
+      "confidence",
+      "source",
+      "supersededBy",
+      "lifecycle",
+      "format",
+      "observedAt",
+      "createdAt",
+      "updatedAt",
+    ],
+    semantic: ["title", "body", "subject", "tags", "attributes"],
+  },
   profile: {
     metadata: ["userId", "version", "updatedAt", "createdAt"],
     semantic: ["activeContext", "expertise", "identity"],
@@ -109,8 +124,6 @@ const C5_DURABLE_FIELD_SPECS = {
       "confidence",
       "importance",
       "source",
-      "accessCount",
-      "lastAccessedAt",
       "verificationPressureCount",
       "lastVerificationHintAt",
       "validFrom",
@@ -143,7 +156,6 @@ const C5_DURABLE_FIELD_SPECS = {
       "source",
       "supersededBy",
       "lifecycle",
-      "lastUsedAt",
       "updatedAt",
     ],
     semantic: ["appliesTo", "evidence", "kind", "rule", "why", "tags", "attributes"],
@@ -632,9 +644,12 @@ export function extractC5MemorySemanticContents(raw: string): string[] {
   if (!isRecord(value) || !isRecord(value.durable)) {
     throw new Error("C5 memory export has no durable record");
   }
+  // `pages` (v0.8 interchange) renders the same durable records as files; the
+  // raw export surface already carries that text, so it needs no separate
+  // semantic documents.
   assertKnownFields(
     value,
-    ["artifacts", "durable", "exportedAt", "scope", "traceId"],
+    ["artifacts", "durable", "exportedAt", "pages", "scope", "traceId"],
     "root",
   );
   const durable = value.durable;
@@ -655,7 +670,9 @@ export function extractC5MemorySemanticContents(raw: string): string[] {
     (name) => name !== "profile",
   ) as Exclude<keyof C5Durable, "profile">[];
   for (const name of collectionNames) {
-    const records = durable[name];
+    // Optional durable collections (notes since v0.8) may be absent from
+    // older exports; an absent collection audits as empty.
+    const records = durable[name] ?? [];
     if (!Array.isArray(records)) {
       throw new Error(`C5 memory export durable.${name} is not an array`);
     }
@@ -676,7 +693,7 @@ export function extractC5MemoryRecordIds(raw: string): string[] {
   const ids: string[] = [];
   for (const name of Object.keys(C5_DURABLE_FIELD_SPECS)) {
     if (name === "profile") continue;
-    const records = value.durable[name];
+    const records = value.durable[name] ?? [];
     if (!Array.isArray(records)) {
       throw new Error(`C5 memory export durable.${name} is not an array`);
     }

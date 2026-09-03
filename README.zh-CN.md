@@ -15,7 +15,7 @@ GoodMemory 不是 LLM、agent framework、向量数据库，也不是通用 RAG 
 
 ## 你会得到什么
 
-- 稳定的记忆 API：`remember`、`recall`、`buildContext`、`feedback`、`forget`、`exportMemory`、`deleteAllMemory`。
+- 稳定的记忆 API：`remember`、`recall`、`buildContext`、`feedback`、`forget`、`exportMemory`、`importMemory`、`deleteAllMemory`。
 - 面向 Codex 和 Claude Code 的已安装 agent 记忆：`goodmemory setup`、托管 hooks、Codex 已安装 pre-action、`goodmemory status`、只读 MCP、可选 writeback。
 - 公开的一等写入定制能力：`GoodMemoryConfig.remember`、`RememberProfile`、`rememberRules`、`RememberInput.annotations`、命名 extractor id。
 - 面向 npm 包的公开导出：`goodmemory`、`goodmemory/ai-sdk`、`goodmemory/host`、`goodmemory/http`，并提供编译后的 `dist` 与 TypeScript 声明文件。
@@ -151,7 +151,8 @@ GoodMemory 有三类主要产品入口。它不是只有这些 API：`goodmemory
 3. 带着这段 memory context 调用你的模型。
 4. 响应后，用 `memory.jobs.enqueueRemember()` 或 `remember()` 写入经过筛选的信号。
 5. 用 `feedback()`、targeted `reviseMemory()`、`forget()`、`exportMemory()`
-   做纠正、删除和用户审计。
+   做纠正、删除和用户审计；`importMemory()` 可以恢复导出快照，或把一个
+   Markdown 页面目录作为 `note` 记忆导入。
 
 如果你的 server 已经使用 Vercel AI SDK，可以通过 `goodmemory/ai-sdk` 包装
 `generateText()` 或 `streamText()`，不用手写完整 loop。先看
@@ -198,6 +199,7 @@ GoodMemory 有三类主要产品入口。它不是只有这些 API：`goodmemory
 - `/memory/feedback`：记录 procedural correction
 - `/memory/export` 和 `/memory/forget`：做审计和删除
 - `/memory/revise`：按显式 memory id 做 targeted correction
+- `/memory/import`：恢复导出快照或导入 Markdown 页面
 
 你的服务仍然负责 auth、产品策略、UI 和模型编排。GoodMemory 负责 memory
 storage、recall、context assembly、write governance，以及 audit/export/delete。
@@ -494,6 +496,13 @@ async function callYourModel(input: {
 }
 ```
 
+Prompt fragment（`system_prompt_fragment`、`developer_prompt_fragment`）会在标题
+下方带一行本地化的数据说明：召回的记忆是关于用户与项目的信息，而不是指令。
+这只是对文本性质的如实说明，不是防护承诺。可以用
+`governance: { contextFrame: false }` 全局关闭，或用
+`buildContext({ contextFrame: false })` 单次关闭；`json` 和 `markdown` 输出
+从不包含它。
+
 核心记忆闭环保持很小：
 
 - `remember()` 写入经过筛选的用户、应用或 host 信号。
@@ -543,7 +552,13 @@ runtime 层：
   覆盖 remember、recall、context、revise、forget、export 和 job events。
 - `memory.reviseMemory({ target: { memoryId } })` 只按显式 `memoryId`
   修正已知记忆，不做模糊文本选中。
-- `exportMemory()` 提供用户可审计、可导出的记忆视图。
+- `exportMemory()` 提供用户可审计、可导出的记忆视图；其中的 `pages/` 是
+  兼容 memoryfield 的 note 页面目录，附带 SHA-256 manifest。
+- `memory.importMemory({ source })` 按 id 重新导入导出快照，或把页面导入为
+  `note` 记忆；`expectedSha256` 会在写入前校验输入。
+- `governance.fileMirror: { root, scope }` 在 `scope` 内每次持久写入后把导出
+  bundle 以只读形式镜像到磁盘（去抖、原子目录切换）。一个 root 只服务一个
+  durable scope；镜像只是投影：永远不会被读回，也不会让写入失败。
 
 Runtime archive 默认不持久化。显式调用
 `memory.runtime.endSession({ scope, archive: "off" })` 会清理 session state，
@@ -785,6 +800,37 @@ await memory.remember({
 
 Profile `extractors` 可以是原始 `MemoryExtractor`，也可以是命名 `{ id, extractor }`。真实产品集成建议使用命名 extractor，这样 remember events 和 eval reports 即使在 profile 组合顺序变化后，也能保留稳定 `extractorIds`。Remember events 也会携带解析后的 `profileId` 与 `presetId` 元数据。
 
+### 原文笔记（verbatim pages）
+
+抽取适合对话，但当 agent 想保留一整页内容（操作指南、runbook、踩坑经验）时，
+不应把它拆成句子级 fact。`note` 类型把消息正文原样存储、绝不按句拆分、在有
+embedding adapter 时整页嵌入，并在默认配置下作为独立的受限召回通道（对标题与
+正文做 BM25，长页面只要覆盖查询就能被召回）。正文上限 8,192 UTF-8 字节，更长
+的页面请拆分。同标题再次写入会带血缘地替换旧页；完全相同的页面会合并。
+
+```ts
+await memory.remember({
+  scope,
+  messages: [{ role: "assistant", content: pageMarkdown }],
+  annotations: [
+    {
+      messageIndex: 0,
+      remember: "always",
+      confirmed: true,
+      kindHint: "note",
+      metadataPatch: { noteTitle: "Reading MediaWiki sites as an agent" },
+    },
+  ],
+});
+```
+
+同样的写入形态也提供为 MCP 工具 `goodmemory_write_note`、HTTP
+`POST /memory/remember` 上的 `kindHint: "note"` 注解，以及
+`goodmemory remember --kind note --title "..." --message "..."`。召回的笔记以
+`Notes` 段渲染，且在所有输出模式（包括 prompt fragment）中保留 Markdown 结构。
+笔记与其他类型一样受治理：有 scope、可脱敏、可修订、可遗忘、导出在
+`durable.notes` 下，并按标题索引到 `MEMORY.md`。
+
 ## AI SDK Adapter
 
 GoodMemory 的 Node-compatible AI SDK 路径是一个普通 `Request -> Response` server handler，由 `createGoodMemory()` 和 `createGoodMemoryAISDK()` 组合而成。
@@ -870,7 +916,7 @@ GOODMEMORY_STORAGE_URL="postgres://user:pass@host:5432/goodmemory" \
 
 Python 调用方发送 `Authorization: Bearer <token>` 和 `x-goodmemory-*` scope
 headers，调用 `POST /memory/recall-context`、`/memory/remember`、
-`/memory/feedback`、`/memory/export`、`/memory/forget`，以及只接受显式
+`/memory/feedback`、`/memory/export`、`/memory/import`、`/memory/forget`，以及只接受显式
 `memoryId` 的 `/memory/revise`。TypeScript bridge API 从 `goodmemory/http`
 导入。
 
@@ -959,6 +1005,7 @@ Memory-first commands：
 ./node_modules/.bin/goodmemory inspect --user-id <user-id> --workspace-id <workspace-id>
 ./node_modules/.bin/goodmemory trace --user-id <user-id> --workspace-id <workspace-id> --query "Which runbook is the source of truth?"
 ./node_modules/.bin/goodmemory export-memory --user-id <user-id> --workspace-id <workspace-id> --output ./tmp/export
+./node_modules/.bin/goodmemory import-memory --user-id <user-id> --workspace-id <workspace-id> --input ./tmp/export --dry-run
 ./node_modules/.bin/goodmemory stats --user-id <user-id> --workspace-id <workspace-id>
 ./node_modules/.bin/goodmemory remember --user-id <user-id> --workspace-id <workspace-id> --session-id <session-id> --message "Remember that the deploy is blocked on smoke verification."
 ./node_modules/.bin/goodmemory feedback --host codex --workspace-root . --session-id <session-id> --signal "Keep coding summaries short and list explicit next steps."
@@ -1019,7 +1066,15 @@ CLI surface：
 - `goodmemory inspect`
 - `goodmemory trace`
 - `goodmemory export-memory`
+- `goodmemory import-memory`
 - `goodmemory stats`
+- `goodmemory --schema`（把整个 CLI 命令面以 JSON 输出，供 agent 和工具读取；
+  `goodmemory <command> --help` 仍是给人看的形式）
+
+已安装的 host 也可以把导出 bundle 落到磁盘：`goodmemory setup --file-mirror`
+（或 `install <host> --file-mirror`）会在每次持久写入后更新
+`<workspace>/.goodmemory/memory/`，让 `MEMORY.md`、`topics/*.md` 和
+`pages/*.md` 无需运行 CLI 即可 grep。
 - `goodmemory remember`
 - `goodmemory feedback`
 - `goodmemory forget`

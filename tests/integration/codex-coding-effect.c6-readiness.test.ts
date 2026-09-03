@@ -25,7 +25,7 @@ const C5_EVIDENCE_ROOT = resolve(
 );
 
 describe("Codex coding-effect C6 readiness", () => {
-  it("hashes only agent-visible repository, snapshot, prompt, history, and feedback input", () => {
+  it("hashes task content separately from repository identity and hidden evaluator data", () => {
     const episode = taskHashEpisode();
     const input = {
       episode,
@@ -33,7 +33,6 @@ describe("Codex coding-effect C6 readiness", () => {
         "prompts/stage-1.md": "b".repeat(64),
         "prompts/stage-2.md": "c".repeat(64),
       },
-      repositoryContentSha256: "d".repeat(64),
     };
     const baseline = computeC6AgentVisibleTaskContentSha256(input);
     const evaluatorOnly = structuredClone(episode);
@@ -66,15 +65,16 @@ describe("Codex coding-effect C6 readiness", () => {
     const snapshot = structuredClone(episode);
     snapshot.stages[0]!.snapshot = "9".repeat(40);
 
+    expect(computeC6AgentVisibleTaskContentSha256({
+      ...input,
+      episode: repositoryIdentity,
+    })).toBe(baseline);
+    expect(computeC6AgentVisibleTaskContentSha256({
+      ...input,
+      episode: snapshot,
+    })).toBe(baseline);
+
     for (const mutation of [
-      {
-        ...input,
-        episode: repositoryIdentity,
-      },
-      {
-        ...input,
-        repositoryContentSha256: "0".repeat(64),
-      },
       {
         ...input,
         promptSha256ByPath: {
@@ -90,10 +90,6 @@ describe("Codex coding-effect C6 readiness", () => {
         ...input,
         episode: feedback,
       },
-      {
-        ...input,
-        episode: snapshot,
-      },
     ]) {
       expect(computeC6AgentVisibleTaskContentSha256(mutation))
         .not.toBe(baseline);
@@ -106,12 +102,6 @@ describe("Codex coding-effect C6 readiness", () => {
       },
     })).toThrow(
       "C6 agent-visible task prompt prompts/stage-2.md must bind a lowercase SHA-256",
-    );
-    expect(() => computeC6AgentVisibleTaskContentSha256({
-      ...input,
-      repositoryContentSha256: "D".repeat(64),
-    })).toThrow(
-      "C6 agent-visible task repository content must bind a lowercase SHA-256",
     );
   });
 

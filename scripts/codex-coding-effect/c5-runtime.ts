@@ -9,13 +9,13 @@ import {
 import { join } from "node:path";
 
 import type {
+  C3BaselineArmRuntime,
   C3InstalledArmRuntime,
-  C3NoMemoryArmRuntime,
 } from "./c3-runtime";
 
 export async function restoreC5ArmModelCredential(input: {
   authFile: string;
-  runtime: C3InstalledArmRuntime | C3NoMemoryArmRuntime;
+  runtime: C3InstalledArmRuntime | C3BaselineArmRuntime;
 }): Promise<{ authSha256: string }> {
   const source = await lstat(input.authFile);
   if (!source.isFile() || source.isSymbolicLink()) {

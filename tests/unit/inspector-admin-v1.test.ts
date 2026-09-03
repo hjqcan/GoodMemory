@@ -85,10 +85,14 @@ function buildMemory(): { calls: MemoryCalls; memory: GoodMemory } {
             promotions: 0,
             proposals: 0,
             references: 0,
+            notes: 0,
             workingMemory: 0,
           },
           scope: SCOPE,
         };
+      },
+      async importMemory() {
+        throw new Error("importMemory is not implemented by this fake.");
       },
       async exportMemory() {
         throw new Error("not used");

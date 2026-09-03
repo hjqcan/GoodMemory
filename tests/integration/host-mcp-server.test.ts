@@ -266,8 +266,11 @@ describe("goodmemory mcp server", () => {
         name: "goodmemory_get_context",
       });
       expect(contextResult.structuredContent).toMatchObject({
+        contextFrame: true,
         maxTokens: 96,
-        omittedSections: [],
+        // The 96-token budget now also carries the recalled-data frame, so the
+        // lowest-priority section is trimmed where it previously fit.
+        omittedSections: ["Active Context"],
         output: "developer_prompt_fragment",
         query: "Check the release runbook before editing files.",
         retrievalProfile: "coding_agent",

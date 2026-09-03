@@ -1,0 +1,153 @@
+ADR-010: Note Memory Kind, File Mirror, and Open Interchange
+============================================================
+
+Status
+------
+Accepted (2026-09-02). Phases A, B, and C of Phase 75 shipped on the v0.8
+lane with the full canonical sweep, typecheck, and build green. The only open
+item is operational, not architectural: flipping the fresh-install default of
+`retrieval.longRecordAdmission` waits for the full-root Phase 75 gate.
+
+Context
+-------
+The 2026-09-01 memory-as-data audit (research doc §7, "Memory-as-data audit:
+memoryfields") measured that GoodMemory 0.7.5 cannot hold an agent-authored
+prose page: the library default blocks assistant-role writes even with the
+force annotation, user-role prose is dropped or shredded into copula-shaped
+sentences, a whole page stored under an installed-host profile is unreachable
+under default recall because the lexical score divides by the larger token
+set, prompt fragments flatten newlines, export has no import counterpart, and
+the shipped MEMORY.md dumps every collection against the layering design
+(docs/GoodMemory-记忆数据分层设计.md §6).
+
+The memoryfield format's strengths (prose pages, derived indexes, open
+interchange, low mechanism) are adoptable at the edges. Its omissions
+(supersession, scoping, redaction, write governance) are this product's core,
+so the structured canonical store stays authoritative.
+
+Decision
+--------
+1. `note` is a new durable MemoryKind on the semantic plane (ADR-001 union +
+   plane map). A NoteMemory carries id, scope fields, title, body, format,
+   optional subject/tags/attributes, source, lifecycle, supersededBy,
+   observedAt, createdAt, updatedAt. The body is stored verbatim, capped at
+   8,192 UTF-8 bytes (`NOTE_MAX_BYTES`), rejected with `note_too_large` above
+   the cap at classification, MCP, and HTTP boundaries.
+
+2. A note arrives only through an explicit `kindHint:"note"` annotation with
+   `remember:"always"` (library, MCP `goodmemory_write_note`, HTTP, CLI). The
+   extraction pipeline emits exactly one whole-message candidate for that
+   message and no sentence candidates; no episode is derived from it. The
+   assistant-output policy admits that exact annotation shape regardless of
+   `assistantOutputs.mode`; any other assistant-role candidate keeps today's
+   policy.
+
+3. Notes dedupe and supersede by normalized title within a scope (language
+   port `normalizeForEquality`); a rewrite supersedes with lineage, never
+   overwrites in place. Revision, forget, export, delete-all, admin listing,
+   and host artifacts treat notes like other durable kinds.
+
+4. Notes project to memory and field documents only, never sentence
+   documents; they embed whole when an embedding adapter exists. Adding the
+   `notes` source collection bumps the projection pipeline version once
+   (`gm-projection-v6`); existing scopes rebuild per ADR-008 §8-9. Notes are
+   admitted by their own selector and the generalized lexical channel; they
+   are deliberately excluded from the provider rerank pool and assistant
+   enumerations.
+
+5. Rendering keeps note bodies multiline in markdown and in both prompt
+   fragment outputs (other sections stay flattened). Every new render key is
+   localized in all seven built-in packs; the neutral pack returns the key.
+
+6. Default recall gains an opt-in, length-conditional query-coverage admission
+   signal (`retrieval.longRecordAdmission`): computed only for records with
+   more than 32 overlap tokens, requiring at least two matched query tokens
+   and 60% coverage, applied legacy-first so every existing selection is
+   byte-identical. It becomes a fresh-install default only after the
+   phase-75 protection gate passes; the library default flip is a separate
+   decision.
+
+7. Markdown artifacts follow the layering design: MEMORY.md is index-only
+   (≤200 lines, ≤25 KB, one line per entry with kind, id, time, head, and
+   citation count or pointer), topic files carry detail partitioned by
+   lifecycle, user.md is a compiled persona view. The scope-namespaced root
+   stays artifact identity; `<workspaceRoot>/.goodmemory/memory/` is the
+   mirror location only.
+
+8. The file mirror (`governance.fileMirror`) is a derived, read-only
+   projection regenerated wholesale after successful scope mutations, atomic
+   by directory swap, never read back, off by default, and never a truth
+   source. Failure is logged and never fails the mutation. One root is bound
+   to one durable scope in configuration (`scope`, sessionId ignored):
+   mutations outside it are not mirrored, fields the binding leaves unset
+   admit any value (installed hosts bind `{ userId, workspaceId }` so every
+   agent in a workspace regenerates the same tree), and a failed swap puts
+   the previous tree back and removes the staging directory. Amended
+   2026-09-02 after review: the first cut keyed debounce per scope but wrote
+   every scope to the same root (last writer wins, cross-user leakage).
+
+9. Interchange is a flat pages directory (frontmatter title/uuid/summary/
+   created/updated plus a `goodmemory:` block), `listing.md`, and a SHA-256
+   manifest, alongside the export JSON envelope. `importMemory` is a named
+   facade (ADR-002 amendment) that writes records directly with
+   `source.method:"import"`, is idempotent by content hash, supports dry-run
+   and page splitting, reports an input SHA-256, and honors an expected hash.
+   No in-house zip writer; no MCP import tool. Specifics fixed at WP4:
+   - the pages hash is sha256 over sorted `<path> <sha256(content)>` lines,
+     one per page, newline-terminated, path = file name relative to the pages
+     directory, so `pages/manifest.json#pagesSha256` equals the importer's
+     `inputSha256` and can be reproduced with shell tooling;
+   - a page whose title already has an active note with the same body (after
+     trailing-whitespace trim) is `unchanged` even when its id differs, so a
+     host-written note round-trips export -> import without a supersede;
+   - `exportMemory().pages` renders active notes only, `updated` =
+     `observedAt ?? updatedAt` so a memoryfield page's own timestamp survives
+     a round trip, and the `goodmemory:` block carries record timestamps;
+   - the CLI treats a manifest hash as informational (reported as
+     matches/differs) and requires `--yes` or `--expect-sha256` for writes;
+   - (amended 2026-09-02 after review) the durable form restores every
+     collection of the envelope including experiences, proposals, and
+     promotions, validates every record against a runtime schema of its
+     record type (`src/interchange/durableEnvelope.ts`, zod, each schema
+     typed `z.ZodType<Record>` so a new required field fails compilation
+     until the schema follows; unknown extra fields pass through) and refuses
+     storage-unsafe text before any write (`invalid_durable`, HTTP 400), and
+     an import that throws rolls back every record it wrote and restores
+     every note it superseded. A first cut checked only id/userId on the
+     grounds that the operator confirms the import; review showed a fact
+     without content or lifecycle reaching the canonical store over HTTP, and
+     confirmation attests to origin, not shape, so the schema layer was added;
+   - (amended 2026-09-02 after review) the splitter cuts whitespace-free runs
+     at code point boundaries and keeps citation room out of the chunk
+     budget, and the importer checks every chunk against the cap instead of
+     trusting the splitter, rejecting the page as `note_too_large`.
+   - the HTTP bridge caps a request at 200 pages and 64 KiB per page and maps
+     a hash mismatch to `409 import_hash_mismatch`.
+
+10. Rendered fragments open with a localized `memory_context_frame` line that
+    marks recalled memory as data, not instructions. It is an honest frame,
+    not a guardrail claim, and can be disabled per config or call.
+
+11. The CLI `--schema` flag prints a frozen literal JSON document describing
+    commands and flags. It is a data document, not a command registry; ADR-009
+    §3 stands.
+
+Consequences
+------------
++ Agents can store, recall, browse, and move prose pages without giving up
+  scoping, supersession, provenance, or deletion.
++ Long records become reachable without changing any calibrated short-record
+  selection.
+- One projection rebuild per scope on upgrade.
+- Roughly thirty per-kind enumeration sites gain a `note` branch; the
+  checklist lives in the phase-75 board and the plan.
+- Whole-note embeddings are bounded by the 8 KB cap, not by provider-specific
+  truncation.
+
+Related
+-------
+- ADR-001 (taxonomy), ADR-002 (public API), ADR-008 (projection versioning),
+  ADR-009 (orchestration boundaries)
+- task-board/79-phase-75-note-memory-and-interchange.txt
+- docs/GoodMemory-记忆数据分层设计.md §3.2, §4, §6
+- docs/GoodMemory-Benchmark-Optimization-Research-2026-07.md (2026-09-01 audit)

@@ -13,6 +13,7 @@ export interface C3ArmPaths {
   cache: string;
   codexHome: string;
   home: string;
+  injectionRoot?: string;
   packagePrefix?: string;
   result: string;
   temp: string;
@@ -25,8 +26,13 @@ export interface C3ArmScopes {
   workspaceId: string;
 }
 
+// The baseline arm is either the amnesiac no-memory control or the
+// flat-summary comparator (plan 6.2): a hook-only runtime with no GoodMemory
+// that injects a compact history summary at the same placements.
+export type C3BaselineArm = "flat-summary" | "no-memory";
+
 export interface C3ArmPlan {
-  arm: "goodmemory-installed" | "no-memory";
+  arm: "goodmemory-installed" | C3BaselineArm;
   paths: C3ArmPaths;
   scopes: C3ArmScopes;
 }
@@ -38,6 +44,13 @@ export type C3InstalledArmPlan = C3ArmPlan & {
 export type C3NoMemoryArmPlan = C3ArmPlan & {
   arm: "no-memory";
 };
+
+export type C3FlatSummaryArmPlan = C3ArmPlan & {
+  arm: "flat-summary";
+  paths: C3ArmPaths & { injectionRoot: string };
+};
+
+export type C3BaselineArmPlan = C3NoMemoryArmPlan | C3FlatSummaryArmPlan;
 
 export interface NoMemoryRuntimeAudit {
   codexHomeEntryNames: string[];
@@ -68,6 +81,20 @@ export function buildFrozenPrehistoryArmPlans(input: {
   stageId: string;
   workspaceRoot: string;
 }): readonly [C3NoMemoryArmPlan, C3InstalledArmPlan] {
+  return buildComparatorArmPlans({ ...input, baselineArm: "no-memory" });
+}
+
+export function buildComparatorArmPlans<Baseline extends C3BaselineArm>(input: {
+  baselineArm: Baseline;
+  episodeId: string;
+  repetition: number;
+  resultRoot: string;
+  runId: string;
+  runtimeRoot: string;
+  seed: number;
+  stageId: string;
+  workspaceRoot: string;
+}): readonly [Extract<C3BaselineArmPlan, { arm: Baseline }>, C3InstalledArmPlan] {
   const createPlanDetails = (arm: C3ArmPlan["arm"]): Omit<C3ArmPlan, "arm"> => {
     const identity = [
       input.runId,
@@ -89,6 +116,9 @@ export function buildFrozenPrehistoryArmPlans(input: {
         cache: join(armRoot, "cache"),
         codexHome: join(armRoot, "home", ".codex"),
         home: join(armRoot, "home"),
+        ...(arm === "flat-summary"
+          ? { injectionRoot: join(armRoot, "injection") }
+          : {}),
         ...(arm === "goodmemory-installed"
           ? { packagePrefix: join(armRoot, "prefix") }
           : {}),
@@ -103,11 +133,12 @@ export function buildFrozenPrehistoryArmPlans(input: {
       },
     };
   };
+  const baseline = {
+    arm: input.baselineArm,
+    ...createPlanDetails(input.baselineArm),
+  } as Extract<C3BaselineArmPlan, { arm: Baseline }>;
   const result = [
-    {
-      arm: "no-memory",
-      ...createPlanDetails("no-memory"),
-    } satisfies C3NoMemoryArmPlan,
+    baseline,
     {
       arm: "goodmemory-installed",
       ...createPlanDetails("goodmemory-installed"),
@@ -122,7 +153,7 @@ export function assertPairedArmIsolation(
 ): void {
   if (
     plans.length !== 2 ||
-    plans[0]?.arm !== "no-memory" ||
+    (plans[0]?.arm !== "no-memory" && plans[0]?.arm !== "flat-summary") ||
     plans[1]?.arm !== "goodmemory-installed"
   ) {
     throw new Error(
@@ -148,15 +179,17 @@ export function assertPairedArmIsolation(
 }
 
 export function buildC3CodexArgs(input: {
-  arm: "goodmemory-installed" | "no-memory";
+  arm: C3ArmPlan["arm"];
   model: string;
   prompt: string;
   reasoningEffort: string;
   workspaceRoot: string;
 }): string[] {
-  const treatmentArgs = input.arm === "goodmemory-installed"
-    ? ["--enable", "hooks", "--dangerously-bypass-hook-trust"]
-    : ["--disable", "hooks"];
+  // Both hook-carrying arms (installed GoodMemory and the flat-summary
+  // comparator) enable native hooks; only the amnesiac control disables them.
+  const treatmentArgs = input.arm === "no-memory"
+    ? ["--disable", "hooks"]
+    : ["--enable", "hooks", "--dangerously-bypass-hook-trust"];
   return [
     ...treatmentArgs,
     "--disable",
@@ -259,6 +292,56 @@ export async function auditNoMemoryRuntime(input: {
     name !== "auth.json" && name !== "config.toml"
   );
   if (unexpectedEntries.some((name) => name !== "hooks.json")) {
+    reasons.push("unexpected Codex home state is present");
+  }
+  return {
+    codexHomeEntryNames,
+    goodMemoryFileCount,
+    hookConfigPresent,
+    mcpConfigPresent,
+    passed: reasons.length === 0,
+    preexistingSessionCount,
+    reasons,
+  };
+}
+
+export async function auditFlatSummaryRuntime(input: {
+  codexHome: string;
+  expectedHookConfigSha256: string;
+  home: string;
+}): Promise<NoMemoryRuntimeAudit> {
+  const codexHomeEntryNames = (await readDirectoryNames(input.codexHome)).sort();
+  const sessionsRoot = join(input.codexHome, "sessions");
+  const preexistingSessionCount = (await readDirectoryNames(sessionsRoot)).length;
+  const hookConfigPath = join(input.codexHome, "hooks.json");
+  const hookConfig = await readOptionalText(hookConfigPath);
+  const hookConfigPresent = hookConfig !== null;
+  const configPath = join(input.codexHome, "config.toml");
+  const config = await readOptionalText(configPath);
+  const mcpConfigPresent = config !== null && /\bmcp_servers\b/u.test(config);
+  const goodMemoryFileCount = await countTreeEntries(join(input.home, ".goodmemory"));
+  const reasons: string[] = [];
+  if (!hookConfigPresent) {
+    reasons.push("Codex hooks.json is absent");
+  } else if (
+    createHash("sha256").update(hookConfig).digest("hex") !==
+      input.expectedHookConfigSha256
+  ) {
+    reasons.push("Codex hooks.json is not the flat-summary hook config");
+  }
+  if (mcpConfigPresent) {
+    reasons.push("Codex MCP configuration is present");
+  }
+  if (goodMemoryFileCount > 0) {
+    reasons.push("GoodMemory files are present");
+  }
+  if (preexistingSessionCount > 0) {
+    reasons.push("pre-existing Codex sessions are present");
+  }
+  const unexpectedEntries = codexHomeEntryNames.filter((name) =>
+    name !== "auth.json" && name !== "config.toml" && name !== "hooks.json"
+  );
+  if (unexpectedEntries.length > 0) {
     reasons.push("unexpected Codex home state is present");
   }
   return {

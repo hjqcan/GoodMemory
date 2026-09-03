@@ -452,7 +452,12 @@ export function createRememberWritePipeline(
             state,
           });
 
-          if (state.accepted > acceptedBeforeWrite) {
+          // Notes are authored pages, not conversation; they never seed an
+          // episode (which would duplicate the page as a summary).
+          if (
+            state.accepted > acceptedBeforeWrite &&
+            effectiveCandidate.memoryType !== "note"
+          ) {
             episodeCandidates.push(effectiveCandidate);
           }
         }

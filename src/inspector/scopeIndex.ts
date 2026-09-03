@@ -20,6 +20,7 @@ const TOP_LEVEL_SCOPE_COLLECTIONS = [
   "profiles",
   "preferences",
   "references",
+  "notes",
   "episodes",
   SESSION_ARCHIVES_COLLECTION,
   EVIDENCE_COLLECTION,

@@ -62,6 +62,7 @@ const PUBLIC_RELEASE_DOCS = [
   "docs/GoodMemory-Inspector-and-Admin-API.md",
   "docs/GoodMemory-Kimi-Code-Setup-Guide.md",
   "docs/GoodMemory-LanguagePack-Extension-Guide.md",
+  "docs/GoodMemory-Memory-Artifact-and-Interchange-Spec.md",
   "docs/GoodMemory-MCP-Registry-Publishing.md",
   "docs/GoodMemory-OpenCode-Setup-Guide.md",
   "docs/GoodMemory-PRD.md",

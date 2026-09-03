@@ -120,6 +120,9 @@ function createRememberingMemory(input: {
       async forget() {
         throw new Error("not used");
       },
+      async importMemory() {
+        throw new Error("importMemory is not implemented by this fake.");
+      },
       async exportMemory() {
         throw new Error("not used");
       },
@@ -516,6 +519,9 @@ describe("installed host writeback runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -857,6 +863,9 @@ describe("installed host writeback runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -942,6 +951,9 @@ describe("installed host writeback runtime", () => {
               },
               async forget() {
                 throw new Error("not used");
+              },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
               },
               async exportMemory() {
                 throw new Error("not used");
@@ -1089,6 +1101,9 @@ describe("installed host writeback runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -1198,6 +1213,9 @@ describe("installed host writeback runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -1291,6 +1309,9 @@ describe("installed host writeback runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -1361,6 +1382,9 @@ describe("installed host writeback runtime", () => {
               },
               async forget() {
                 throw new Error("not used");
+              },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
               },
               async exportMemory() {
                 throw new Error("not used");
@@ -1437,6 +1461,9 @@ describe("installed host writeback runtime", () => {
               },
               async forget() {
                 throw new Error("not used");
+              },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
               },
               async exportMemory() {
                 throw new Error("not used");
@@ -1518,6 +1545,9 @@ describe("installed host writeback runtime", () => {
               },
               async forget() {
                 throw new Error("not used");
+              },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
               },
               async exportMemory() {
                 throw new Error("not used");
@@ -1608,6 +1638,9 @@ describe("installed host writeback runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -1677,6 +1710,9 @@ describe("installed host writeback runtime", () => {
               },
               async forget() {
                 throw new Error("not used");
+              },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
               },
               async exportMemory() {
                 throw new Error("not used");
@@ -1758,6 +1794,9 @@ describe("installed host writeback runtime", () => {
               },
               async forget() {
                 throw new Error("not used");
+              },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
               },
               async exportMemory() {
                 throw new Error("not used");
@@ -1843,6 +1882,9 @@ describe("installed host writeback runtime", () => {
               },
               async forget() {
                 throw new Error("not used");
+              },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
               },
               async exportMemory() {
                 throw new Error("not used");
@@ -2008,6 +2050,9 @@ describe("installed host writeback runtime", () => {
             async forget() {
               throw new Error("not used");
             },
+            async importMemory() {
+              throw new Error("importMemory is not implemented by this fake.");
+            },
             async exportMemory() {
               throw new Error("not used");
             },
@@ -2119,6 +2164,9 @@ describe("installed host writeback runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -2222,6 +2270,9 @@ describe("installed host writeback runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -2294,6 +2345,9 @@ describe("installed host writeback runtime", () => {
             },
             async forget() {
               throw new Error("not used");
+            },
+            async importMemory() {
+              throw new Error("importMemory is not implemented by this fake.");
             },
             async exportMemory() {
               throw new Error("not used");
@@ -2418,6 +2472,9 @@ describe("installed host writeback runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -2510,6 +2567,9 @@ describe("installed host writeback runtime", () => {
             },
             async forget() {
               throw new Error("not used");
+            },
+            async importMemory() {
+              throw new Error("importMemory is not implemented by this fake.");
             },
             async exportMemory() {
               throw new Error("not used");
@@ -2606,6 +2666,9 @@ describe("installed host writeback runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -2700,6 +2763,9 @@ describe("installed host writeback runtime", () => {
               async forget() {
                 throw new Error("not used");
               },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
+              },
               async exportMemory() {
                 throw new Error("not used");
               },
@@ -2784,6 +2850,9 @@ describe("installed host writeback runtime", () => {
               },
               async forget() {
                 throw new Error("not used");
+              },
+              async importMemory() {
+                throw new Error("importMemory is not implemented by this fake.");
               },
               async exportMemory() {
                 throw new Error("not used");
@@ -2940,6 +3009,9 @@ describe("installed host writeback transcript hydration", () => {
         },
         async forget() {
           throw new Error("not used");
+        },
+        async importMemory() {
+          throw new Error("importMemory is not implemented by this fake.");
         },
         async exportMemory() {
           throw new Error("not used");

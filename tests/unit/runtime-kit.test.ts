@@ -28,6 +28,7 @@ import {
   encodeGoodMemoryRecordRef,
 } from "../../src/progressive/recall";
 import { createGoodMemoryRuntimeKit } from "../../src/runtime-kit";
+import { buildPageArtifacts } from "../../src/governance/pageArtifacts";
 
 const scope = {
   userId: "runtime-kit-user",
@@ -78,6 +79,7 @@ function createRecallResult(): RecallResult {
     profile: null,
     preferences: [],
     references: [],
+    notes: [],
     facts: [],
     feedback: [],
     archives: [],
@@ -203,8 +205,12 @@ function createMemoryStub(overrides: Partial<GoodMemory> = {}): GoodMemory {
     async forget() {
       return { forgotten: false };
     },
+    async importMemory() {
+      throw new Error("importMemory is not implemented by this fake.");
+    },
     async exportMemory() {
       return {
+        pages: buildPageArtifacts({ notes: [] }),
         artifacts: { rootPath: "", files: [] },
         scope,
         exportedAt: "2026-04-26T00:00:00.000Z",
@@ -230,6 +236,7 @@ function createMemoryStub(overrides: Partial<GoodMemory> = {}): GoodMemory {
           profiles: 0,
           preferences: 0,
           references: 0,
+          notes: 0,
           facts: 0,
           feedback: 0,
           episodes: 0,
@@ -578,8 +585,12 @@ describe("runtime-kit", () => {
 
   it("does not derive behavioral carryover from legacy episodes", async () => {
     const memory = createMemoryStub({
+      async importMemory() {
+        throw new Error("importMemory is not implemented by this fake.");
+      },
       async exportMemory() {
         return {
+          pages: buildPageArtifacts({ notes: [] }),
           artifacts: { files: [], rootPath: "" },
           durable: {
             archives: [],
@@ -646,8 +657,12 @@ describe("runtime-kit", () => {
 
   it("does not reintroduce future behavioral episodes across a historical reference time", async () => {
     const memory = createMemoryStub({
+      async importMemory() {
+        throw new Error("importMemory is not implemented by this fake.");
+      },
       async exportMemory() {
         return {
+          pages: buildPageArtifacts({ notes: [] }),
           artifacts: { files: [], rootPath: "" },
           durable: {
             archives: [],
@@ -766,8 +781,12 @@ describe("runtime-kit", () => {
     };
     const archiveRuntime = createGoodMemoryRuntimeKit({
       memory: createMemoryStub({
+        async importMemory() {
+          throw new Error("importMemory is not implemented by this fake.");
+        },
         async exportMemory() {
           return {
+            pages: buildPageArtifacts({ notes: [] }),
             artifacts: { files: [], rootPath: "" },
             durable: {
               ...baseDurable,
@@ -791,8 +810,12 @@ describe("runtime-kit", () => {
     });
     const experienceRuntime = createGoodMemoryRuntimeKit({
       memory: createMemoryStub({
+        async importMemory() {
+          throw new Error("importMemory is not implemented by this fake.");
+        },
         async exportMemory() {
           return {
+            pages: buildPageArtifacts({ notes: [] }),
             artifacts: { files: [], rootPath: "" },
             durable: {
               ...baseDurable,
@@ -895,8 +918,12 @@ describe("runtime-kit", () => {
     });
     const runtimeKit = createGoodMemoryRuntimeKit({
       memory: createMemoryStub({
+        async importMemory() {
+          throw new Error("importMemory is not implemented by this fake.");
+        },
         async exportMemory() {
           return {
+            pages: buildPageArtifacts({ notes: [] }),
             artifacts: { files: [], rootPath: "" },
             durable: {
               archives: [],
@@ -974,8 +1001,12 @@ describe("runtime-kit", () => {
     });
     const runtimeKit = createGoodMemoryRuntimeKit({
       memory: createMemoryStub({
+        async importMemory() {
+          throw new Error("importMemory is not implemented by this fake.");
+        },
         async exportMemory() {
           return {
+            pages: buildPageArtifacts({ notes: [] }),
             artifacts: { files: [], rootPath: "" },
             durable: {
               archives: [],

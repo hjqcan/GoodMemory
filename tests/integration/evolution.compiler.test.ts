@@ -45,7 +45,6 @@ describe("procedural pattern compiler", () => {
           languagePackId: "en",
           languagePackVersion: "1",
         },
-        lastUsedAt: "2026-04-10T00:00:00.000Z",
         updatedAt: "2026-04-01T00:00:00.000Z",
       }),
     );
@@ -122,8 +121,6 @@ describe("procedural pattern compiler", () => {
       languagePackId: "en",
       languagePackVersion: "1",
     });
-    expect(validatedPattern.lastUsedAt).toBeUndefined();
-    expect(sourceGuidance?.lastUsedAt).toBe("2026-04-10T00:00:00.000Z");
     expect(sourceGuidance?.lifecycle).toBe("superseded");
     expect(sourceGuidance?.supersededBy).toBe(validatedPattern.id);
     expect(

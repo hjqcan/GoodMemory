@@ -270,6 +270,9 @@ async function runFragmentFallbackProbe(): Promise<boolean> {
           async forget() {
             throw new Error("not used");
           },
+          async importMemory() {
+            throw new Error("importMemory is not implemented by this fake.");
+          },
           async exportMemory() {
             throw new Error("not used");
           },
@@ -366,6 +369,7 @@ function createPhase42Recall(input: { omitRecallFacts?: boolean } = {}): RecallR
     preferences: [],
     profile: null,
     references: [],
+    notes: [],
     workingMemory: {
       constraints: ["MCP is an adapter, not the owner."],
       currentGoal: "Keep progressive recall reusable across hosts.",

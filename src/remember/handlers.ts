@@ -2,6 +2,7 @@ import {
   buildFeedbackIdentityKey,
   createFactMemory,
   createFeedbackMemory,
+  createNoteMemory,
   createPreferenceMemory,
   createReferenceMemory,
   isActiveMemoryLifecycle,
@@ -13,6 +14,7 @@ import { isIanaTimezone } from "../domain/temporal";
 import type { TemporalInterval } from "../domain/temporal";
 import {
   buildFactEmbeddingWrite,
+  buildNoteEmbeddingWrite,
   buildReferenceEmbeddingWrite,
 } from "../embedding/vectorWrites";
 import { EVIDENCE_COLLECTION } from "../evidence/contracts";
@@ -25,9 +27,11 @@ import {
   buildCandidateEvidence,
   buildFact,
   buildFeedback,
+  buildNote,
   buildPreference,
   buildProfile,
   buildReference,
+  deriveNoteTitle,
   enrichDuplicateFact,
   enrichDuplicateFeedback,
   enrichDuplicatePreference,
@@ -582,6 +586,131 @@ export async function writeRememberCandidate(input: {
       memoryType: "reference",
       memoryId: reference.id,
       reason: superseded ? "superseded_reference" : "explicit_reference",
+      ...buildRememberEventTrace(candidate),
+      evidenceIds: [evidenceId],
+    });
+    return;
+  }
+
+  if (candidate.memoryType === "note") {
+    // Notes are authored pages: the body is stored verbatim and the title is
+    // the identity key within a scope. A same-title rewrite supersedes with
+    // lineage; an identical page merges; policy may keep the existing page.
+    const body = candidate.content;
+    const title =
+      candidate.metadata?.noteTitle?.trim() || deriveNoteTitle(body);
+    const normalizedTitle = context.language.normalizeForEquality(
+      title,
+      candidateLanguage,
+    );
+    const scopedNotes = await context.repositories.notes.listByScope(
+      context.input.scope,
+    );
+    const existing = scopedNotes.find(
+      (note) =>
+        isActiveMemoryLifecycle(note) &&
+        context.language.normalizeForEquality(
+          note.title,
+          resolveStoredTextLanguage(context, note.title, note.source),
+        ) === normalizedTitle,
+    );
+
+    if (existing && existing.body.trim() === body.trim()) {
+      const evidenceId = context.createId();
+      await persistCandidateEvidence({
+        candidate,
+        context,
+        evidenceId,
+        memoryId: existing.id,
+        timestamp,
+      });
+      pushAcceptedEvent(state, {
+        candidateId,
+        outcome: "merged",
+        memoryType: "note",
+        memoryId: existing.id,
+        reason: "duplicate_note",
+        ...buildRememberEventTrace(candidate),
+        evidenceIds: [evidenceId],
+      });
+      return;
+    }
+
+    if (existing && context.policy?.resolveConflict) {
+      const resolution = await resolvePolicyConflict(
+        context.policy,
+        toPolicyMemoryRecord(existing, "note"),
+        candidate,
+        context.policyContext,
+      );
+
+      if (resolution?.action === "keep_existing") {
+        state.rejected += 1;
+        state.events.push({
+          candidateId,
+          outcome: "rejected",
+          memoryType: "note",
+          memoryId: existing.id,
+          reason: resolution.reason ?? "policy_keep_existing",
+          ...buildRememberEventTrace(candidate),
+        });
+        return;
+      }
+    }
+
+    const note = buildNote(
+      context.input.scope,
+      candidate,
+      title,
+      context.createId(),
+      timestamp,
+      candidateSourceLanguage,
+      context.input.messages,
+    );
+    const supersededNoteVector =
+      existing && context.vectorIndex
+        ? await context.vectorIndex.getNoteEmbedding(existing.id)
+        : null;
+
+    if (existing) {
+      await context.setDocumentWithRollback(
+        "notes",
+        existing.id,
+        createNoteMemory({
+          ...existing,
+          lifecycle: "superseded",
+          supersededBy: note.id,
+          updatedAt: timestamp,
+        }),
+      );
+      state.pendingVectorDeletes.push({
+        id: existing.id,
+        memoryType: "note",
+        restoreRecord: supersededNoteVector
+          ? {
+              ...supersededNoteVector,
+              memoryType: "note",
+            }
+          : null,
+      });
+    }
+
+    await context.setDocumentWithRollback("notes", note.id, note);
+    state.pendingEmbeddingWrites.push(buildNoteEmbeddingWrite(note));
+    const evidenceId = context.createId();
+    await persistCandidateEvidence({
+      candidate,
+      context,
+      evidenceId,
+      memoryId: note.id,
+      timestamp,
+    });
+    pushAcceptedEvent(state, {
+      candidateId,
+      outcome: existing ? "superseded" : "written",
+      memoryType: "note",
+      memoryId: note.id,
+      reason: existing ? "superseded_note" : "explicit_note",
       ...buildRememberEventTrace(candidate),
       evidenceIds: [evidenceId],
     });

@@ -242,6 +242,48 @@ function createDeleteFailingVectorStore(base: VectorStore): VectorStore {
 }
 
 describe("public reviseMemory API", () => {
+  it("anchors changed fact content to the revision observation time", async () => {
+    const documentStore = createInMemoryDocumentStore();
+    const revisedAt = "2026-08-13T00:00:00.000Z";
+    const memory = createGoodMemory({
+      adapters: {
+        documentStore,
+        sessionStore: createInMemorySessionStore(),
+      },
+      storage: { provider: "memory" },
+      testing: { now: () => new Date(revisedAt) },
+    });
+    const scope = { userId: "revision-observation-user" };
+    const original = createFactMemory({
+      id: "fact-old-owner",
+      ...scope,
+      category: "project",
+      content: "The Atlas owner is Mira.",
+      observedAt: "2025-12-01T00:00:00.000Z",
+      source: {
+        extractedAt: "2025-12-01T00:00:00.000Z",
+        method: "explicit",
+      },
+      createdAt: "2025-12-01T00:00:00.000Z",
+      updatedAt: "2025-12-01T00:00:00.000Z",
+    });
+    await documentStore.set("facts", original.id, original);
+
+    const result = await memory.reviseMemory({
+      idempotencyKey: "revision-observation-time",
+      reason: "user_correction",
+      revision: { content: "The Atlas owner is Jules." },
+      scope,
+      target: { memoryId: original.id },
+    });
+    const revised = await documentStore.get<FactMemory>(
+      "facts",
+      result.newMemoryId!,
+    );
+
+    expect(revised?.observedAt).toBe(revisedAt);
+  });
+
   it("clears an event occurrence when revision content changes without trusted temporal context", async () => {
     const memory = createGoodMemory({ storage: { provider: "memory" } });
     const scope = { userId: "revision-event-occurrence-user" };
@@ -326,6 +368,7 @@ describe("public reviseMemory API", () => {
     const active = after.durable.facts.find(({ id }) => id === revised.newMemoryId);
 
     expect(active?.occurrence).toEqual(target.occurrence);
+    expect(active?.observedAt).toBe(target.observedAt);
   });
 
   it("treats redacted metadata removal as authoritative for revised facts", async () => {
@@ -1798,7 +1841,7 @@ describe("public reviseMemory API", () => {
     ).not.toBeNull();
   });
 
-  it("does not copy frozen retrieval-exposure telemetry into revised records", async () => {
+  it("does not copy legacy retrieval-exposure telemetry into revised records", async () => {
     const documentStore = createInMemoryDocumentStore();
     const memory = createGoodMemory({
       storage: { provider: "memory" },
@@ -1818,8 +1861,6 @@ describe("public reviseMemory API", () => {
       category: "project",
       content: "The rollout owner is Nora.",
       source: { method: "explicit", extractedAt: "2026-04-01T00:00:00.000Z" },
-      accessCount: 12,
-      lastAccessedAt: "2026-04-10T00:00:00.000Z",
       createdAt: "2026-04-01T00:00:00.000Z",
       updatedAt: "2026-04-01T00:00:00.000Z",
     });
@@ -1829,11 +1870,19 @@ describe("public reviseMemory API", () => {
       rule: "Use bullet points for rollout summaries.",
       kind: "validated_pattern",
       source: { method: "explicit", extractedAt: "2026-04-01T00:00:00.000Z" },
-      lastUsedAt: "2026-04-11T00:00:00.000Z",
       updatedAt: "2026-04-01T00:00:00.000Z",
     });
-    await documentStore.set("facts", fact.id, fact);
-    await documentStore.set("feedback", feedback.id, feedback);
+    // Stored JSON written by pre-v0.8 releases may still carry the removed
+    // telemetry properties; v0.8 neither reads nor rewrites them.
+    await documentStore.set("facts", fact.id, {
+      ...fact,
+      accessCount: 12,
+      lastAccessedAt: "2026-04-10T00:00:00.000Z",
+    });
+    await documentStore.set("feedback", feedback.id, {
+      ...feedback,
+      lastUsedAt: "2026-04-11T00:00:00.000Z",
+    });
 
     const factRevision = await memory.reviseMemory({
       scope,
@@ -1849,26 +1898,19 @@ describe("public reviseMemory API", () => {
       reason: "user_correction",
       idempotencyKey: "revision-frozen-feedback-telemetry",
     });
-    const oldFact = await documentStore.get<FactMemory>("facts", fact.id);
-    const newFact = await documentStore.get<FactMemory>(
+    const newFact = await documentStore.get<Record<string, unknown>>(
       "facts",
       factRevision.newMemoryId!,
     );
-    const oldFeedback = await documentStore.get<FeedbackMemory>(
-      "feedback",
-      feedback.id,
-    );
-    const newFeedback = await documentStore.get<FeedbackMemory>(
+    const newFeedback = await documentStore.get<Record<string, unknown>>(
       "feedback",
       feedbackRevision.newMemoryId!,
     );
 
-    expect(oldFact?.accessCount).toBe(12);
-    expect(oldFact?.lastAccessedAt).toBe("2026-04-10T00:00:00.000Z");
-    expect(newFact?.accessCount).toBe(0);
-    expect(newFact?.lastAccessedAt).toBeUndefined();
-    expect(oldFeedback?.lastUsedAt).toBe("2026-04-11T00:00:00.000Z");
-    expect(newFeedback?.lastUsedAt).toBeUndefined();
+    expect(newFact).toMatchObject({ content: "The rollout owner is Mina.", lifecycle: "active" });
+    expect("accessCount" in (newFact ?? {})).toBe(false);
+    expect("lastAccessedAt" in (newFact ?? {})).toBe(false);
+    expect("lastUsedAt" in (newFeedback ?? {})).toBe(false);
   });
 
   it("deletes stale fact and reference vectors during revision when embeddings are not configured", async () => {

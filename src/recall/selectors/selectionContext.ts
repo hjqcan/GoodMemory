@@ -97,11 +97,11 @@ export function buildReturnedReason(
   slot: RecallSlot | "generic",
   intentScore: number,
   lexicalScore: number,
-  outcomeScore: number,
+  evidenceScore: number,
   verificationPenaltyScore: number,
   fallback: RecallCandidateTrace["fallback"],
 ): string {
-  return `slot=${slot}, intentScore=${intentScore.toFixed(2)}, lexicalScore=${lexicalScore.toFixed(2)}, outcomeScore=${outcomeScore.toFixed(2)}, verificationPenaltyScore=${verificationPenaltyScore.toFixed(2)}, fallback=${fallback}`;
+  return `slot=${slot}, intentScore=${intentScore.toFixed(2)}, lexicalScore=${lexicalScore.toFixed(2)}, evidenceScore=${evidenceScore.toFixed(2)}, verificationPenaltyScore=${verificationPenaltyScore.toFixed(2)}, fallback=${fallback}`;
 }
 
 export function markSelectedTrace(
@@ -112,9 +112,7 @@ export function markSelectedTrace(
   lexicalScore: number,
   freshness: number,
   explicitness: number,
-  usageScore: number,
   evidenceScore: number,
-  outcomeScore: number,
   verificationPenaltyScore: number,
   fallback: RecallCandidateTrace["fallback"],
 ): void {
@@ -131,7 +129,7 @@ export function markSelectedTrace(
       slot,
       intentScore,
       lexicalScore,
-      outcomeScore,
+      evidenceScore,
       verificationPenaltyScore,
       fallback,
     ),
@@ -140,9 +138,7 @@ export function markSelectedTrace(
     lexicalScore,
     freshnessScore: freshness,
     explicitnessScore: explicitness,
-    usageScore,
     evidenceScore,
-    outcomeScore,
     verificationPenaltyScore,
     fallback,
   };
@@ -181,6 +177,22 @@ export function hasFactSelectionSignal(entry: RankedFactCandidate): boolean {
     entry.intentScore > 0 ||
     entry.lexicalScore >= 0.2 ||
     entry.subjectScore > 0
+  );
+}
+
+// Long-record admission (opt-in): a record above the overlap-token floor is
+// admissible when the query is substantially covered, never on one shared
+// common token. Applied legacy-first, so it only fills capacity the calibrated
+// predicates left free.
+export const LONG_RECORD_COVERAGE_MIN = 0.6;
+export const LONG_RECORD_COVERAGE_MIN_MATCHES = 2;
+
+export function hasLongRecordCoverageSignal(entry: RankedFactCandidate): boolean {
+  return (
+    entry.queryCoverageScore !== undefined &&
+    entry.queryCoverageMatches !== undefined &&
+    entry.queryCoverageMatches >= LONG_RECORD_COVERAGE_MIN_MATCHES &&
+    entry.queryCoverageScore >= LONG_RECORD_COVERAGE_MIN
   );
 }
 

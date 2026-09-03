@@ -37,6 +37,7 @@ import {
   type InstalledHostRuntimeConfig,
   type InstalledHostWritebackConfig,
   type InstalledHostWritebackMode,
+  type InstalledHostFileMirrorConfig,
 } from "./hostConfigValidation";
 import {
   registerInstalledHostMcp,
@@ -62,6 +63,7 @@ export interface InstallHostInput {
   assistedExtractor?: InstalledHostModelProviderConfig;
   contextMode?: InstalledHostContextMode;
   embedding?: InstalledHostEmbeddingProviderConfig;
+  fileMirror?: InstalledHostFileMirrorConfig;
   homeRoot?: string;
   host: InstalledHostKind;
   language?: InstalledHostLanguageConfig;
@@ -148,6 +150,7 @@ interface HostInstallConfigRecord {
   activationMode: InstalledHostActivationMode;
   contextMode: InstalledHostContextMode;
   debug: boolean;
+  fileMirror?: InstalledHostFileMirrorConfig;
   host: InstalledHostKind;
   language?: InstalledHostLanguageConfig;
   maintenance?: InstalledHostMaintenanceConfig;
@@ -251,6 +254,7 @@ export async function installHost(
     contextMode: input.contextMode,
     configPath,
     embedding: input.embedding,
+    fileMirror: input.fileMirror,
     host: input.host,
     installRoot,
     language,
@@ -620,6 +624,7 @@ async function mergeInstallConfig(input: {
   configPath: string;
   contextMode?: InstalledHostContextMode;
   embedding?: InstalledHostEmbeddingProviderConfig;
+  fileMirror?: InstalledHostFileMirrorConfig;
   host: InstalledHostKind;
   installRoot: string;
   language?: InstalledHostLanguageConfig;
@@ -638,6 +643,7 @@ async function mergeInstallConfig(input: {
       activationMode: input.activationMode ?? DEFAULT_INSTALLED_HOST_ACTIVATION_MODE,
       contextMode: input.contextMode ?? DEFAULT_INSTALLED_HOST_CONTEXT_MODE,
       debug: false,
+      ...(input.fileMirror ? { fileMirror: input.fileMirror } : {}),
       host: input.host,
       ...(input.language ? { language: input.language } : {}),
       maintenance: { auto: true },
@@ -730,6 +736,7 @@ async function mergeInstallConfig(input: {
     activationMode: input.activationMode ?? existingActivationMode,
     contextMode: input.contextMode ?? existingContextMode,
     debug,
+    ...(input.fileMirror ? { fileMirror: input.fileMirror } : {}),
     host: input.host,
     ...(input.language ? { language: input.language } : {}),
     maxTokens,

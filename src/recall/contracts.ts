@@ -2,6 +2,7 @@ import type {
   EpisodeMemory,
   FactMemory,
   FeedbackMemory,
+  NoteMemory,
   PreferenceMemory,
   ReferenceMemory,
   SessionJournal,
@@ -79,6 +80,7 @@ export interface RecallHit {
     | "profile"
     | "preference"
     | "reference"
+    | "note"
     | "fact"
     | "feedback"
     | "evidence"
@@ -94,7 +96,7 @@ export interface RecallHit {
 
 export interface RecallCandidateTrace {
   memoryId: string;
-  memoryType: "fact" | "reference" | "archive" | "episode";
+  memoryType: "fact" | "reference" | "note" | "archive" | "episode";
   slot: RecallSlot | "generic";
   returned: boolean;
   whyReturned?: string;
@@ -103,12 +105,12 @@ export interface RecallCandidateTrace {
   lexicalScore: number;
   freshnessScore: number;
   explicitnessScore: number;
-  /** @deprecated since 0.7.3. Always zero; retrieval exposure is not reinforcement. */
-  usageScore?: number;
   evidenceScore?: number;
-  /** @deprecated since 0.7.3. Use evidenceScore. */
-  outcomeScore?: number;
   verificationPenaltyScore?: number;
+  // Query-side coverage for long records (opt-in long-record admission).
+  // Emitted ONLY for records above the overlap-token floor, so traces of
+  // short-record recalls serialize byte-identically.
+  queryCoverageScore?: number;
   // Normalized semantic similarity of this candidate. Emitted ONLY when the
   // semantic-candidates union feature is active for the call, so traces of
   // rules-only / BM25-only / union-off runs serialize byte-identically to the
@@ -121,7 +123,8 @@ export interface RecallCandidateTrace {
     | "cross_session_lexical_bridge"
     | "semantic_union"
     | "generalized_fusion"
-    | "temporal_occurrence";
+    | "temporal_occurrence"
+    | "long_record_coverage";
   evidenceIds?: string[];
 }
 
@@ -129,6 +132,7 @@ export interface RecallResult {
   profile: UserProfile | null;
   preferences: PreferenceMemory[];
   references: ReferenceMemory[];
+  notes: NoteMemory[];
   facts: FactMemory[];
   feedback: FeedbackMemory[];
   archives: SessionArchive[];
@@ -189,6 +193,7 @@ export interface RecallGeneralizedFusionConfig {
   // archive records are token-expensive context.
   contentLaneRecords?: {
     episodes?: number;
+    notes?: number;
     references?: number;
     sessionArchives?: number;
   };
@@ -215,6 +220,10 @@ export interface RecallEngineConfig {
   // non-rules-only strategies. Off by default, so rules-only/hybrid ranking is
   // unchanged unless explicitly enabled.
   bm25Ranking?: boolean;
+  // Opt-in: admit long records (above the overlap-token floor) whose query
+  // coverage clears the floor, filling only capacity the calibrated
+  // predicates left free. Off keeps default selection byte-identical.
+  longRecordAdmission?: boolean;
   generalizedFusion?: RecallGeneralizedFusionConfig;
   rerankGeneralizedFusion?: RecallGeneralizedFusionConfig;
   // Set by retrieval.preset resolution (never a public per-call knob): biases
@@ -265,6 +274,7 @@ export interface LoadedRecallContent {
   readonly facts: FactMemory[];
   readonly feedback: FeedbackMemory[];
   readonly journal: SessionJournal | null;
+  readonly notes: NoteMemory[];
   readonly policyApplied: readonly string[];
   readonly preferences: PreferenceMemory[];
   readonly profile: UserProfile | null;

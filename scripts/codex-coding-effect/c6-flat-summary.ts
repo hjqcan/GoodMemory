@@ -411,6 +411,7 @@ export async function validateC6FlatSummaryArtifact(
       leakageAudit.datasetManifestSha256 ||
     artifact.leakageAuditSha256 !== leakageAudit.auditSha256 ||
     artifact.historySourceSha256 !== leakageAudit.historySourceSha256 ||
+    artifact.promptSha256 !== leakageAudit.summaryPromptSha256 ||
     artifact.stageId !== leakageAudit.stageId
   ) {
     throw new Error("C6 flat summary leakage audit does not match");

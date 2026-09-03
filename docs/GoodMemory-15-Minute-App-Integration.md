@@ -220,6 +220,8 @@ await memory.forget({
 Use `exportMemory()` for user-visible audit and portability. Use
 `memory.forget()` when a specific memory is wrong, obsolete, or user-deleted.
 
+To move that export elsewhere, call `memory.importMemory({ scope, source: { kind: "durable", durable: exported.durable } })` on the target instance: records are restored by id, unchanged ones are skipped, and a scope mismatch is rejected before any write. The same call accepts `source: { kind: "pages", pages }` to ingest Markdown pages as `note` memories.
+
 ## Runtime Archive Boundary
 
 Raw transcripts are not the default memory source. Runtime archive persistence

@@ -302,6 +302,7 @@ describe("run-phase-23 scripts", () => {
                   profiles: 0,
                   preferences: 0,
                   references: 0,
+                  notes: 0,
                   facts: 0,
                   feedback: 0,
                   episodes: 0,
@@ -318,6 +319,9 @@ describe("run-phase-23 scripts", () => {
                   userId: "u-1",
                 },
               };
+            },
+            async importMemory() {
+              throw new Error("importMemory is not implemented by this fake.");
             },
             async exportMemory() {
               throw new Error("unused");

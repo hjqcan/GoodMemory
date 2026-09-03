@@ -439,7 +439,7 @@ describe("goodmemory mcp server standalone direct handlers", () => {
       }),
     );
     expect(Object.keys(withWrite._registeredTools).sort()).toEqual(
-      [...READ_ONLY_TOOLS, "goodmemory_remember"].sort(),
+      [...READ_ONLY_TOOLS, "goodmemory_remember", "goodmemory_write_note"].sort(),
     );
     const writeTool = withWrite._registeredTools.goodmemory_remember;
     expect(writeTool?.description).toContain("durable");

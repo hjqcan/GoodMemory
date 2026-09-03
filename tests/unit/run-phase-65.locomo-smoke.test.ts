@@ -88,6 +88,7 @@ describe("phase-65 LoCoMo smoke adapter", () => {
       answerFromRecalled: false,
       benchmarkRoot: "/tmp/LOCOMO",
       bm25: false,
+      longRecordAdmission: false,
       generalizedFusion: false,
       labelFreeIngest: true,
       caseIds: undefined,
@@ -4174,5 +4175,27 @@ describe("phase-65 LoCoMo resume checkpoint + extraction cache", () => {
         })}\n`,
       ),
     ).toThrow("malformed LoCoMo progress line 2");
+  });
+});
+
+describe("Phase 75 long-record admission arm", () => {
+  it("parses --long-record-admission and keeps it off by default", () => {
+    expect(
+      parseLocomoSmokeCliOptions([
+        "bun",
+        "run",
+        "scripts/run-phase-65-locomo-smoke.ts",
+        "--long-record-admission",
+      ]).longRecordAdmission,
+    ).toBe(true);
+    expect(
+      parseLocomoSmokeCliOptions(["bun", "run", "scripts/run-phase-65-locomo-smoke.ts"]).longRecordAdmission,
+    ).toBe(false);
+  });
+
+  it("builds a memory with the knob on the default tier", () => {
+    const memory = createLocomoSmokeMemory({ longRecordAdmission: true });
+    expect(typeof memory.recall).toBe("function");
+    expect(typeof memory.remember).toBe("function");
   });
 });

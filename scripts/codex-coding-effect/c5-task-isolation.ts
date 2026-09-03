@@ -13,6 +13,7 @@ import type {
   C3BoundaryRunner,
   C3InstalledArmRuntime,
   C3NoMemoryArmRuntime,
+  C3BaselineArmRuntime,
 } from "./c3-runtime";
 import type { C3PermissionIsolationEvidence } from "./c3-runtime";
 import { runBoundaryProcess } from "./process";
@@ -53,6 +54,7 @@ export function buildC5TaskDeniedPaths(input: {
   authFile: string;
   currentPlan: C3ArmPlan;
   datasetRoot: string;
+  npmCacheSeed?: string;
   otherPlan: C3ArmPlan;
   outputDirectory: string;
   packageTarball: string;
@@ -66,6 +68,7 @@ export function buildC5TaskDeniedPaths(input: {
     join(input.currentPlan.paths.codexHome, "auth.json"),
     join(input.currentPlan.paths.codexHome, "config.toml"),
     input.datasetRoot,
+    ...(input.npmCacheSeed === undefined ? [] : [input.npmCacheSeed]),
     input.otherPlan.paths.armRoot,
     input.otherPlan.paths.workspace,
     input.outputDirectory,
@@ -75,12 +78,15 @@ export function buildC5TaskDeniedPaths(input: {
     ...(input.currentPlan.paths.packagePrefix === undefined
       ? []
       : [input.currentPlan.paths.packagePrefix]),
-  ].map((path) => resolve(path)))].sort();
+  ].map((path) => resolve(path)))];
+  // Category order, not lexicographic order: the raw paths carry per-cluster
+  // digests, so a lexicographic sort would reorder the normalized permission
+  // lines from cluster to cluster and drift the comparable host identity.
 }
 
 export async function auditC5TaskAliasIsolation(input: {
   runProcess?: C3BoundaryRunner;
-  runtime: C3InstalledArmRuntime | C3NoMemoryArmRuntime;
+  runtime: C3InstalledArmRuntime | C3BaselineArmRuntime;
   targets: ReadonlyArray<{ label: string; path: string }>;
 }): Promise<C5TaskAliasIsolationEvidence> {
   if (

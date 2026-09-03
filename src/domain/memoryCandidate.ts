@@ -10,6 +10,7 @@ import type {
   MemoryAttributeValue,
   MemoryCategory,
   MemoryScopeKind,
+  NoteFormat,
   ReferenceKind,
 } from "./records";
 import type { MemoryScope } from "./scope";
@@ -28,6 +29,7 @@ export type MemoryCandidateKindHint =
   | "profile"
   | "preference"
   | "reference"
+  | "note"
   | "fact"
   | "feedback"
   | "episode"
@@ -171,6 +173,11 @@ export interface MemoryCandidateMetadata {
   referenceTitle?: string;
   referencePointer?: string;
   supersedesPointer?: string;
+  // Agent-authored prose pages (kindHint "note"): the title is required
+  // metadata for dedupe/supersession; when absent the write handler derives it
+  // from the first heading or line of the body.
+  noteTitle?: string;
+  noteFormat?: NoteFormat;
   claim?: MemoryCandidateClaimMetadata;
   contextualDescriptor?: string;
   occurrenceExpression?: TemporalExpression;

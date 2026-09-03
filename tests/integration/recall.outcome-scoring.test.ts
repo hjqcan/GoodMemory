@@ -87,8 +87,6 @@ describe("recall outcome scoring", () => {
         category: "project",
         content: "The runtime rollout is blocked by legal signoff.",
         source: { method: "explicit", extractedAt: "2026-01-01T00:00:00.000Z" },
-        accessCount: 4,
-        lastAccessedAt: "2026-01-09T00:00:00.000Z",
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-01T00:00:00.000Z",
       }),
@@ -135,9 +133,10 @@ describe("recall outcome scoring", () => {
     expect(result.facts[0]?.id).toBe("fact-strong");
     const trace = result.metadata.candidateTraces.find((entry) => entry.memoryId === "fact-strong");
     expect(trace?.evidenceScore).toBeGreaterThan(0);
-    expect(trace?.usageScore).toBe(0);
-    expect(trace?.outcomeScore).toBe(trace?.evidenceScore);
-    expect(trace?.whyReturned).toContain("outcomeScore=");
+    expect(trace !== undefined && "usageScore" in trace).toBe(false);
+    expect(trace !== undefined && "outcomeScore" in trace).toBe(false);
+    expect(trace?.whyReturned).toContain("evidenceScore=");
+    expect(trace?.whyReturned).not.toContain("outcomeScore=");
   });
 
   it("down-weights stale action-driving facts without pressuring unsurfaced candidates", async () => {
@@ -164,8 +163,6 @@ describe("recall outcome scoring", () => {
         category: "project",
         content: "The runtime rollout is blocked by legal signoff.",
         source: { method: "explicit", extractedAt: "2025-12-01T00:00:00.000Z" },
-        accessCount: 5,
-        lastAccessedAt: "2026-02-14T00:00:00.000Z",
         createdAt: "2025-12-01T00:00:00.000Z",
         updatedAt: "2025-12-01T00:00:00.000Z",
       }),

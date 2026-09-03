@@ -135,6 +135,42 @@ describe("Codex coding-effect C3 host preflight", () => {
     );
   });
 
+  it("accepts baseline hooks only for the declared flat-summary comparator", () => {
+    const evidence = validEvidence();
+    const hookedBaseline = {
+      ...evidence.codex,
+      features: {
+        ...evidence.codex.features,
+        noMemory: {
+          hooks: { enabled: true, maturity: "stable" },
+          memories: { enabled: false, maturity: "experimental" },
+          outputSha256: sha256(
+            "hooks stable true\nmemories experimental false\n",
+          ),
+          rawOutput: "hooks stable true\nmemories experimental false\n",
+        },
+      },
+    };
+    const comparator = {
+      ...evidence,
+      baselineArm: "flat-summary" as const,
+      codex: hookedBaseline,
+    };
+    expect(parseC3HostPreflightEvidence(comparator)).toEqual(comparator);
+    expect(() => parseC3HostPreflightEvidence({
+      ...evidence,
+      codex: hookedBaseline,
+    })).toThrow("invalid C3 host preflight");
+    expect(() => parseC3HostPreflightEvidence({
+      ...evidence,
+      baselineArm: "flat-summary",
+    })).toThrow("invalid C3 host preflight");
+    expect(parseC3HostPreflightEvidence({
+      ...evidence,
+      baselineArm: "no-memory",
+    })).toEqual({ ...evidence, baselineArm: "no-memory" });
+  });
+
   it("rejects hooks or network drift between the frozen arms", () => {
     const evidence = validEvidence();
     expect(() => parseC3HostPreflightEvidence({

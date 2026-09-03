@@ -28,6 +28,62 @@ import type {
 } from "../../scripts/codex-coding-effect/process";
 
 describe("Codex coding-effect C3 installed runtime", () => {
+  it("copies a runner-owned npm cache seed into the arm cache and installs offline", async () => {
+    await withRuntimeFixture(async (fixture) => {
+      const seed = join(fixture.root, "npm-cache-seed");
+      await mkdir(join(seed, "_cacache", "index-v5"), { recursive: true });
+      await writeFile(
+        join(seed, "_cacache", "index-v5", "entry"),
+        "seeded\n",
+        "utf8",
+      );
+      const calls: string[][] = [];
+      const runProcess = createFakeBoundary(fixture, calls);
+      const installed = await prepareC3InstalledArm({
+        authFile: fixture.authFile,
+        bunExecutable: process.execPath,
+        codexExecutable: fixture.codexExecutable,
+        npmCacheSeed: seed,
+        npmExecutable: fixture.npmExecutable,
+        npmRegistry: "https://registry.example.test",
+        packageTarball: fixture.packageTarball,
+        plan: fixture.plans[1],
+        runProcess,
+      });
+
+      expect(await readFile(
+        join(installed.plan.paths.cache, "_cacache", "index-v5", "entry"),
+        "utf8",
+      )).toBe("seeded\n");
+      expect(installed.env.npm_config_cache).toBe(installed.plan.paths.cache);
+      expect(calls).toContainEqual([
+        "install",
+        "--global",
+        "--prefix",
+        fixture.plans[1].paths.packagePrefix!,
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund",
+        "--offline",
+        "--registry",
+        "https://registry.example.test",
+        fixture.packageTarball,
+      ]);
+      expect(calls.some((args) => args.includes("--fetch-timeout"))).toBe(false);
+
+      await expect(prepareC3InstalledArm({
+        authFile: fixture.authFile,
+        bunExecutable: process.execPath,
+        codexExecutable: fixture.codexExecutable,
+        npmCacheSeed: fixture.packageTarball,
+        npmExecutable: fixture.npmExecutable,
+        packageTarball: fixture.packageTarball,
+        plan: fixture.plans[1],
+        runProcess,
+      })).rejects.toThrow(/npm cache seed must be a real directory|already exists/u);
+    });
+  });
+
   it("installs only the tarball, activates recommended global profile, and leaves repo instructions unchanged", async () => {
     await withRuntimeFixture(async (fixture) => {
       const calls: string[][] = [];
@@ -89,6 +145,10 @@ describe("Codex coding-effect C3 installed runtime", () => {
         "--ignore-scripts",
         "--no-audit",
         "--no-fund",
+        "--fetch-retries",
+        "5",
+        "--fetch-timeout",
+        "60000",
         fixture.packageTarball,
       ]);
       expect(calls).toContainEqual([
@@ -134,6 +194,65 @@ describe("Codex coding-effect C3 installed runtime", () => {
       expect(
         hostConfigurations.arms.goodmemoryInstalled.environment.PATH,
       ).not.toContain("/Users/");
+    });
+  });
+
+  it("normalizes the other arm's roots and the source repository in denied-path configuration", async () => {
+    await withRuntimeFixture(async (fixture) => {
+      const calls: string[][] = [];
+      const runProcess = createFakeBoundary(fixture, calls);
+      const repositoryRoot = join(fixture.root, "source", "repositories", "policy-utils");
+      await mkdir(repositoryRoot, { recursive: true });
+      const installed = await prepareC3InstalledArm({
+        authFile: fixture.authFile,
+        bunExecutable: process.execPath,
+        codexExecutable: fixture.codexExecutable,
+        npmExecutable: fixture.npmExecutable,
+        packageTarball: fixture.packageTarball,
+        permissionDeniedReadPaths: [
+          fixture.plans[0].paths.armRoot,
+          fixture.plans[0].paths.workspace,
+          repositoryRoot,
+        ],
+        plan: fixture.plans[1],
+        runProcess,
+      });
+      const noMemory = await prepareC3NoMemoryArm({
+        authFile: fixture.authFile,
+        bunExecutable: process.execPath,
+        codexExecutable: fixture.codexExecutable,
+        permissionDeniedReadPaths: [
+          fixture.plans[1].paths.armRoot,
+          fixture.plans[1].paths.workspace,
+          repositoryRoot,
+        ],
+        plan: fixture.plans[0],
+        runProcess,
+      });
+      const hostConfigurations = await collectC3HostConfigurationEvidence({
+        installedRuntime: installed,
+        noMemoryRuntime: noMemory,
+        repositoryRoot,
+      });
+      for (const arm of [
+        hostConfigurations.arms.goodmemoryInstalled,
+        hostConfigurations.arms.noMemory,
+      ]) {
+        const normalized = arm.codexConfig.normalizedText;
+        expect(normalized).toContain('"<other-arm-root>" = "deny"');
+        expect(normalized).toContain('"<other-workspace>" = "deny"');
+        expect(normalized).toContain('"<source-repository>" = "deny"');
+        expect(normalized).not.toContain(fixture.root);
+        // Caller (category) order survives; a lexicographic sort of the raw
+        // paths would have placed the repository before the workspace.
+        const order = [
+          '"<other-arm-root>" = "deny"',
+          '"<other-workspace>" = "deny"',
+          '"<source-repository>" = "deny"',
+        ].map((line) => normalized.indexOf(line));
+        expect(order[0]).toBeLessThan(order[1]!);
+        expect(order[1]).toBeLessThan(order[2]!);
+      }
     });
   });
 

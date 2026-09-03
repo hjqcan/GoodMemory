@@ -31,6 +31,7 @@ public GoodMemory surfaces:
 - `forget`
 - `exportMemory`
 - `reviseMemory`
+- `importMemory`
 - `memory.jobs.*`
 
 ## Deployment
@@ -83,7 +84,8 @@ The default authorizer is intentionally small:
 - caller tenant/workspace, when present, must be present in request scope with
   the same value
 - request tenant/workspace, when present, must be backed by the caller context
-- `export`, `forget`, and `revise` require explicit operation authorization
+- `export`, `forget`, `revise`, and `import` require explicit operation
+  authorization
 
 This is not a public browser API and should sit behind the product backend or
 an internal service boundary.
@@ -105,8 +107,8 @@ Every endpoint accepts:
 ```
 
 `userId` is required. Tenant, workspace, agent, and session fields are optional
-scope refinements. Export, forget, and revise must be authorized against the
-same product-owned user and tenant/workspace boundary.
+scope refinements. Export, forget, revise, and import must be authorized
+against the same product-owned user and tenant/workspace boundary.
 
 Malformed optional scope fields are rejected. The bridge must not silently drop
 an invalid tenant, workspace, agent, or session field and continue with a
@@ -298,6 +300,39 @@ Request:
 targets and ambiguous correction requests are rejected by the bridge. Revision
 idempotency is handled by the governed revision path and is reported as
 `handledBy: "goodmemory_revision"`; it is not a queued `memory.jobs.*` write.
+
+### `POST /memory/import`
+
+Request (pages form):
+
+```json
+{
+  "scope": { "userId": "user-123", "workspaceId": "workspace-a" },
+  "source": {
+    "kind": "pages",
+    "pages": [
+      { "path": "reading-mediawiki.md", "content": "# Reading MediaWiki\n\nMost MediaWiki sites expose api.php.\n" }
+    ]
+  },
+  "dryRun": false,
+  "oversize": "reject",
+  "expectedSha256": "<sha256 from a previous dry run or pages/manifest.json>"
+}
+```
+
+Request (durable form): `"source": { "kind": "durable", "durable": <the
+durable section of a /memory/export response> }`.
+
+Pages become `note` memories with `source.method: "import"`; a page whose
+title already has an active note is superseded with lineage, an identical page
+is reported `unchanged`, and a page over the 8192-byte note cap is rejected
+unless `oversize` is `"split"`. The durable form restores records by id and
+skips unchanged ones; records whose scope does not match the request are
+rejected as `scope_mismatch` before any write. `dryRun: true` reports the same
+outcomes without writing. The response `result.inputSha256` is the hash an
+importer computes over the input; when `expectedSha256` is present and differs
+the bridge answers `409 import_hash_mismatch` without writing. Limits: at most
+200 pages per request, 64 KiB per page.
 
 ## Consumer Policy Mapping
 

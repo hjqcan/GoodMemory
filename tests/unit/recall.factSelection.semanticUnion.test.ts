@@ -39,9 +39,7 @@ function buildTrace(memoryId: string): RecallCandidateTrace {
     lexicalScore: 0,
     freshnessScore: 0,
     explicitnessScore: 0,
-    usageScore: 0,
     evidenceScore: 0,
-    outcomeScore: 0,
     verificationPenaltyScore: 0,
     fallback: "none",
   };

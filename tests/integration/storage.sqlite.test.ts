@@ -441,7 +441,7 @@ describe("sqlite document conditional batches", () => {
       const [sealed] = await inspectionStore.query<RecallProjectionManifest>(
         PROJECTION_MANIFESTS_COLLECTION,
       );
-      expect(sealed?.projectionBuildId).toStartWith("gm-projection-v5:");
+      expect(sealed?.projectionBuildId).toStartWith("gm-projection-v6:");
       expect(sealed?.validatedGeneration).toBe(sealed?.sourceGeneration);
 
       const reopened = createGoodMemory({
@@ -553,6 +553,44 @@ describe("sqlite document conditional batches", () => {
         blocker?.exec("ROLLBACK");
       } finally {
         blocker?.close();
+      }
+      await rm(path, { force: true });
+    }
+  });
+
+  it("commits while another connection holds a read transaction", async () => {
+    const path = join(
+      tmpdir(),
+      `goodmemory-sqlite-reader-contention-${Date.now()}-${Math.random()}.db`,
+    );
+    let reader: Database | undefined;
+    try {
+      const store = createSQLiteDocumentStore(path);
+      await store.set("facts", "fact-1", {
+        id: "fact-1",
+        content: "before",
+      });
+      reader = new Database(path, { readonly: true, strict: true });
+      reader.exec("BEGIN");
+      expect(
+        reader.query<{ json: string }, []>(
+          "SELECT json FROM documents WHERE collection = 'facts' AND id = 'fact-1'",
+        ).get(),
+      ).not.toBeNull();
+
+      await expect(store.set("facts", "fact-2", {
+        id: "fact-2",
+        content: "after",
+      })).resolves.toBeUndefined();
+      await expect(store.get("facts", "fact-2")).resolves.toEqual({
+        id: "fact-2",
+        content: "after",
+      });
+    } finally {
+      try {
+        reader?.exec("ROLLBACK");
+      } finally {
+        reader?.close();
       }
       await rm(path, { force: true });
     }

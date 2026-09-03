@@ -50,6 +50,7 @@ export interface RememberEvent {
     | "profile"
     | "preference"
     | "reference"
+    | "note"
     | "fact"
     | "feedback"
     | "episode";

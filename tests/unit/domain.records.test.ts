@@ -90,3 +90,32 @@ describe("memory records", () => {
     expect(journal.worklog).toEqual([]);
   });
 });
+
+describe("v0.8 removed retrieval-exposure telemetry", () => {
+  const source = { method: "explicit", extractedAt: "2026-01-01T00:00:00.000Z" } as const;
+
+  it("never materializes access telemetry on facts", () => {
+    const fact = createFactMemory({
+      id: "fact-1",
+      userId: "u-1",
+      category: "project",
+      content: "The rollout owner is Nora.",
+      source,
+    });
+
+    expect("accessCount" in fact).toBe(false);
+    expect("lastAccessedAt" in fact).toBe(false);
+  });
+
+  it("never materializes usage telemetry on feedback", () => {
+    const feedback = createFeedbackMemory({
+      id: "feedback-1",
+      userId: "u-1",
+      rule: "Use bullet points in summaries.",
+      kind: "prefer",
+      source,
+    });
+
+    expect("lastUsedAt" in feedback).toBe(false);
+  });
+});

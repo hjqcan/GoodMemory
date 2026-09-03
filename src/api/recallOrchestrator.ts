@@ -250,6 +250,7 @@ function mergeRecallResults(
   );
   const preferences = unionRecordsById(results, (result) => result.preferences);
   const references = unionRecordsById(results, (result) => result.references);
+  const notes = unionRecordsById(results, (result) => result.notes);
   const feedback = unionRecordsById(results, (result) => result.feedback);
   const episodes = unionRecordsById(results, (result) => result.episodes);
   const archives = unionRecordsById(results, (result) => result.archives);
@@ -268,6 +269,7 @@ function mergeRecallResults(
     profile: primary.profile,
     preferences,
     references,
+    notes,
     facts,
     feedback,
     archives,
@@ -284,6 +286,7 @@ function mergeRecallResults(
     profile: primary.profile,
     preferences,
     references,
+    notes,
     facts,
     feedback,
     archives,

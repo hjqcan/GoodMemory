@@ -4,6 +4,7 @@ import {
   type FactMemory,
   type FeedbackMemory,
   type PreferenceMemory,
+  type NoteMemory,
   type ReferenceMemory,
   type SessionJournal,
   type UserProfile,
@@ -11,6 +12,7 @@ import {
   resolveMemoryLifecycle,
 } from "../domain/records";
 import type { MemoryScope } from "../domain/scope";
+import type { MemoryLifecycleState } from "../domain/provenance";
 import type { EvidenceRecord } from "../evidence/contracts";
 import type {
   ExperienceRecord,
@@ -26,7 +28,7 @@ import type {
 
 export interface MarkdownArtifactFile {
   content: string;
-  kind: "archive" | "memory" | "playbook" | "session" | "user";
+  kind: "archive" | "memory" | "playbook" | "session" | "topic" | "user";
   relativePath: string;
   sessionId?: string;
 }
@@ -44,6 +46,7 @@ interface MarkdownArtifactInput {
     profile: UserProfile | null;
     preferences: PreferenceMemory[];
     references: ReferenceMemory[];
+    notes?: NoteMemory[];
     facts: FactMemory[];
     feedback: FeedbackMemory[];
     episodes: EpisodeMemory[];
@@ -383,6 +386,17 @@ function renderFactLines(facts: FactMemory[]): string[] {
   );
 }
 
+function renderNoteLines(notes: NoteMemory[]): string[] {
+  return [...notes]
+    .sort((left, right) =>
+      left.title.localeCompare(right.title) || left.id.localeCompare(right.id)
+    )
+    .map(
+      (note) =>
+        `- [${note.lifecycle}] ${sanitizeMarkdownInline(note.title)}${renderDomainMetadataSuffix(note)}`,
+    );
+}
+
 function renderReferenceLines(references: ReferenceMemory[]): string[] {
   return sortReferences(references).map(
     (reference) =>
@@ -555,6 +569,218 @@ function buildArchiveArtifactRelativePath(archive: SessionArchive): string {
   return `archive/${year}/${month}/${encodeURIComponent(archive.sessionId)}.md`;
 }
 
+// MEMORY.md is an index, not a dump (layering design §6.1): one line per
+// record with kind, id, date, and a clipped head, bounded in lines and bytes.
+// Detail lives in the topic pages.
+const INDEX_MAX_LINES = 200;
+const INDEX_MAX_BYTES = 25_000;
+const INDEX_HEAD_MAX_CHARS = 120;
+
+function clipInline(value: string, maxChars = INDEX_HEAD_MAX_CHARS): string {
+  const inline = sanitizeMarkdownInline(value);
+  return inline.length > maxChars
+    ? `${inline.slice(0, maxChars - 3).trimEnd()}...`
+    : inline;
+}
+
+function isoDate(...timestamps: Array<string | undefined>): string {
+  for (const timestamp of timestamps) {
+    if (timestamp && Number.isFinite(Date.parse(timestamp))) {
+      return timestamp.slice(0, 10);
+    }
+  }
+  return "unknown";
+}
+
+function renderIndexLine(
+  kind: string,
+  id: string,
+  date: string,
+  head: string,
+  suffix = "",
+): string {
+  return `- [${kind}] ${sanitizeMarkdownInline(id)} ${date} ${clipInline(head)}${suffix}`;
+}
+
+function buildEvidenceCounts(evidence: EvidenceRecord[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const record of evidence) {
+    for (const memoryId of record.linkedMemoryIds) {
+      counts.set(memoryId, (counts.get(memoryId) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
+function evidenceSuffix(counts: Map<string, number>, memoryId: string): string {
+  const count = counts.get(memoryId) ?? 0;
+  return count > 0 ? ` [evidence: ${count}]` : "";
+}
+
+function partitionByLifecycle<T extends { lifecycle?: MemoryLifecycleState }>(
+  records: readonly T[],
+): { active: T[]; archived: T[]; superseded: T[] } {
+  const active: T[] = [];
+  const superseded: T[] = [];
+  const archived: T[] = [];
+  for (const record of records) {
+    const lifecycle = resolveMemoryLifecycle(record);
+    if (lifecycle === "active") {
+      active.push(record);
+    } else if (lifecycle === "superseded") {
+      superseded.push(record);
+    } else {
+      archived.push(record);
+    }
+  }
+  return { active, archived, superseded };
+}
+
+function renderTopicDocument(
+  input: MarkdownArtifactInput,
+  titleKey: LanguageRenderKey,
+  partitions: { active: string[]; archived: string[]; superseded: string[] },
+): string {
+  return renderDocument(renderLabel(input, titleKey), [
+    renderLocalizedSection(input, "topic_active", partitions.active),
+    ...(partitions.superseded.length > 0
+      ? [renderLocalizedSection(input, "topic_superseded", partitions.superseded)]
+      : []),
+    ...(partitions.archived.length > 0
+      ? [renderLocalizedSection(input, "topic_archived", partitions.archived)]
+      : []),
+  ]);
+}
+
+function renderNoteTopicLines(notes: NoteMemory[]): string[] {
+  return [...notes]
+    .sort((left, right) =>
+      left.title.localeCompare(right.title) || left.id.localeCompare(right.id)
+    )
+    .flatMap((note) => [
+      `### ${sanitizeMarkdownInline(note.title)}`,
+      `<!-- id: ${sanitizeMarkdownInline(note.id)}; updated: ${isoDate(note.updatedAt)}${renderDomainMetadataSuffix(note)} -->`,
+      // The body is the page: verbatim, never inlined or escaped.
+      note.body,
+      "",
+    ]);
+}
+
+function episodeMonth(episode: EpisodeMemory): string {
+  const date = new Date(episode.observedAt ?? episode.createdAt);
+  return Number.isNaN(date.getTime())
+    ? "unknown"
+    : `${String(date.getUTCFullYear()).padStart(4, "0")}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function buildTopicArtifacts(input: MarkdownArtifactInput): MarkdownArtifactFile[] {
+  const durable = input.durable;
+  const files: MarkdownArtifactFile[] = [];
+  const topic = (relativePath: string, content: string): MarkdownArtifactFile => ({
+    kind: "topic",
+    relativePath,
+    content,
+  });
+  const preferences = partitionByLifecycle(durable.preferences);
+  files.push(topic("topics/preferences.md", renderTopicDocument(input, "preference", {
+    active: renderPreferenceLines(preferences.active),
+    archived: renderPreferenceLines(preferences.archived),
+    superseded: renderPreferenceLines(preferences.superseded),
+  })));
+  const feedback = partitionByLifecycle(durable.feedback);
+  files.push(topic("topics/feedback.md", renderTopicDocument(input, "feedback", {
+    active: renderFeedbackLines(feedback.active),
+    archived: renderFeedbackLines(feedback.archived),
+    superseded: renderFeedbackLines(feedback.superseded),
+  })));
+  const references = partitionByLifecycle(durable.references);
+  files.push(topic("topics/references.md", renderTopicDocument(input, "reference", {
+    active: renderReferenceLines(references.active),
+    archived: renderReferenceLines(references.archived),
+    superseded: renderReferenceLines(references.superseded),
+  })));
+  const facts = partitionByLifecycle(durable.facts);
+  files.push(topic("topics/facts.md", renderTopicDocument(input, "fact", {
+    active: renderFactLines(facts.active),
+    archived: renderFactLines(facts.archived),
+    superseded: renderFactLines(facts.superseded),
+  })));
+  if (durable.notes && durable.notes.length > 0) {
+    const notes = partitionByLifecycle(durable.notes);
+    files.push(topic("topics/notes.md", renderTopicDocument(input, "note", {
+      active: renderNoteTopicLines(notes.active),
+      archived: renderNoteTopicLines(notes.archived),
+      superseded: renderNoteTopicLines(notes.superseded),
+    })));
+  }
+  const months = new Map<string, EpisodeMemory[]>();
+  for (const episode of sortEpisodes(durable.episodes)) {
+    const month = episodeMonth(episode);
+    months.set(month, [...(months.get(month) ?? []), episode]);
+  }
+  for (const [month, episodes] of [...months.entries()].sort(([left], [right]) =>
+    compareStrings(left, right)
+  )) {
+    files.push(topic(`topics/episodes/${month}.md`, renderDocument(
+      `${renderLabel(input, "episode")}: ${month}`,
+      [
+        renderLocalizedSection(
+          input,
+          "topic_active",
+          renderEpisodeLines(episodes.filter((episode) => episode.archivedAt === undefined)),
+        ),
+        ...(episodes.some((episode) => episode.archivedAt !== undefined)
+          ? [renderLocalizedSection(
+              input,
+              "topic_archived",
+              renderEpisodeLines(episodes.filter((episode) => episode.archivedAt !== undefined)),
+            )]
+          : []),
+      ],
+    )));
+  }
+  return files;
+}
+
+function renderExpertiseLines(
+  input: MarkdownArtifactInput,
+  profile: UserProfile | null,
+): string[] {
+  if (!profile) {
+    return [];
+  }
+  return [
+    profile.expertise.level
+      ? `- ${renderLabel(input, "expertise")}: ${sanitizeMarkdownInline(profile.expertise.level)}`
+      : undefined,
+    ...profile.expertise.primarySkills.map(
+      (skill) => `- ${sanitizeMarkdownInline(skill)}`,
+    ),
+    ...profile.expertise.domains.map(
+      (domain) => `- ${sanitizeMarkdownInline(domain)}`,
+    ),
+  ].filter((line): line is string => Boolean(line));
+}
+
+function renderProvenanceLines(input: MarkdownArtifactInput): string[] {
+  const durable = input.durable;
+  const timestamps = [
+    durable.profile?.updatedAt,
+    ...durable.preferences.map(({ updatedAt }) => updatedAt),
+    ...durable.feedback.map(({ updatedAt }) => updatedAt),
+    ...durable.references.map(({ updatedAt }) => updatedAt),
+    ...durable.facts.map(({ updatedAt }) => updatedAt),
+    ...(durable.notes ?? []).map(({ updatedAt }) => updatedAt),
+  ].filter((value): value is string => Boolean(value) && Number.isFinite(Date.parse(value as string)));
+  const latest = timestamps.length > 0
+    ? new Date(Math.max(...timestamps.map((value) => Date.parse(value)))).toISOString()
+    : undefined;
+  return [
+    latest ? `- lastUpdated: ${latest}` : undefined,
+    `- records: preferences=${durable.preferences.length}, feedback=${durable.feedback.length}, references=${durable.references.length}, facts=${durable.facts.length}, notes=${durable.notes?.length ?? 0}`,
+  ].filter((line): line is string => Boolean(line));
+}
+
 function buildUserArtifact(input: MarkdownArtifactInput): MarkdownArtifactFile {
   return {
     kind: "user",
@@ -567,96 +793,206 @@ function buildUserArtifact(input: MarkdownArtifactInput): MarkdownArtifactFile {
       ),
       renderLocalizedSection(
         input,
-        "active_context",
+        "expertise",
+        renderExpertiseLines(input, input.durable.profile),
+      ),
+      renderLocalizedSection(
+        input,
+        "current_projects_and_goals",
         renderActiveContextLines(input, input.durable.profile),
       ),
       renderLocalizedSection(
         input,
-        "preference",
-        renderPreferenceLines(input.durable.preferences),
+        "collaboration_preferences",
+        renderPreferenceLines(
+          input.durable.preferences.filter((record) => resolveMemoryLifecycle(record) === "active"),
+        ),
       ),
       renderLocalizedSection(
         input,
-        "feedback",
-        renderFeedbackLines(input.durable.feedback),
+        "stable_procedural_guidance",
+        renderFeedbackLines(
+          input.durable.feedback.filter((record) => resolveMemoryLifecycle(record) === "active"),
+        ),
       ),
+      renderLocalizedSection(input, "provenance_summary", renderProvenanceLines(input)),
     ]),
   };
 }
 
-function buildMemoryArtifact(input: MarkdownArtifactInput): MarkdownArtifactFile {
+function buildMemoryArtifact(
+  input: MarkdownArtifactInput,
+  indexedPaths: readonly string[] = [],
+): MarkdownArtifactFile {
+  const durable = input.durable;
+  const evidenceCounts = buildEvidenceCounts(durable.evidence);
+  const sections: Array<{ key: LanguageRenderKey; lines: string[] }> = [
+    { key: "scope", lines: renderScopeLines(input.scope) },
+    { key: "files", lines: indexedPaths.map((path) => `- ${sanitizeMarkdownInline(path)}`) },
+    { key: "profile", lines: renderProfileLines(input, durable.profile) },
+    {
+      key: "preference",
+      lines: sortPreferences(durable.preferences).map((record) =>
+        renderIndexLine(
+          "preference",
+          record.id,
+          isoDate(record.updatedAt),
+          `${record.category}: ${String(record.value)}`,
+          evidenceSuffix(evidenceCounts, record.id),
+        )
+      ),
+    },
+    {
+      key: "feedback",
+      lines: sortFeedback(durable.feedback).map((record) =>
+        renderIndexLine(
+          "feedback",
+          record.id,
+          isoDate(record.updatedAt),
+          `[${record.kind}] ${record.rule}`,
+          evidenceSuffix(evidenceCounts, record.id),
+        )
+      ),
+    },
+    {
+      key: "reference",
+      lines: sortReferences(durable.references).map((record) =>
+        renderIndexLine(
+          "reference",
+          record.id,
+          isoDate(record.updatedAt),
+          `${record.title} (${record.pointer})`,
+          evidenceSuffix(evidenceCounts, record.id),
+        )
+      ),
+    },
+    ...(durable.notes && durable.notes.length > 0
+      ? [{
+          key: "note" as const,
+          lines: [...durable.notes]
+            .sort((left, right) =>
+              left.title.localeCompare(right.title) || left.id.localeCompare(right.id)
+            )
+            .map((record) =>
+              renderIndexLine(
+                "note",
+                record.id,
+                isoDate(record.observedAt, record.updatedAt),
+                `[${record.lifecycle}] ${record.title}`,
+                evidenceSuffix(evidenceCounts, record.id),
+              )
+            ),
+        }]
+      : []),
+    {
+      key: "fact",
+      lines: sortFacts(durable.facts).map((record) =>
+        renderIndexLine(
+          "fact",
+          record.id,
+          isoDate(record.observedAt, record.updatedAt),
+          record.lifecycle === "active" ? record.content : `[${record.lifecycle}] ${record.content}`,
+          evidenceSuffix(evidenceCounts, record.id),
+        )
+      ),
+    },
+    {
+      key: "episode",
+      lines: sortEpisodes(durable.episodes).map((record) =>
+        renderIndexLine(
+          "episode",
+          record.id,
+          isoDate(record.observedAt, record.createdAt),
+          record.summary,
+        )
+      ),
+    },
+    {
+      key: "archive",
+      lines: sortArchives(durable.archives).map((record) =>
+        renderIndexLine("archive", record.id, isoDate(record.archivedAt), record.summary)
+      ),
+    },
+    {
+      key: "evidence",
+      lines: sortEvidence(durable.evidence).map((record) =>
+        renderIndexLine("evidence", record.id, isoDate(record.createdAt), record.excerpt)
+      ),
+    },
+    {
+      key: "experiences",
+      lines: sortExperiences(durable.experiences).map((record) =>
+        renderIndexLine(
+          "experience",
+          record.id,
+          isoDate(record.createdAt),
+          `[${record.kind}] ${record.summary}`,
+        )
+      ),
+    },
+    {
+      key: "learning_proposals",
+      lines: sortProposals(durable.proposals).map((record) =>
+        renderIndexLine(
+          "proposal",
+          record.id,
+          isoDate(record.updatedAt),
+          `[${record.status}] [${record.proposalType}] ${record.summary}`,
+        )
+      ),
+    },
+    {
+      key: "promotions",
+      lines: sortPromotions(durable.promotions).map((record) =>
+        renderIndexLine(
+          "promotion",
+          record.id,
+          isoDate(record.decidedAt),
+          `[${record.decision}] ${record.summary}`,
+        )
+      ),
+    },
+    {
+      key: "working_memory",
+      lines: renderWorkingMemoryLines(input, input.runtime?.workingMemory ?? null),
+    },
+    { key: "journal", lines: renderJournalLines(input, input.runtime?.journal ?? null) },
+    { key: "artifact_spills", lines: renderSpillLines(input.runtime?.spills ?? []) },
+  ];
+
+  const render = (omitted: number): string => {
+    const body = sections.map(({ key, lines }) =>
+      renderLocalizedSection(input, key, lines)
+    );
+    const document = renderDocument(renderLabel(input, "memory_index"), body);
+    return omitted > 0
+      ? `${document}\n\n- ${sanitizeMarkdownInline(renderLabel(input, "omitted_records", { count: omitted }))}`
+      : document;
+  };
+  const withinBudget = (document: string): boolean =>
+    document.split("\n").length <= INDEX_MAX_LINES &&
+    Buffer.byteLength(document, "utf8") <= INDEX_MAX_BYTES;
+
+  let omitted = 0;
+  let content = render(omitted);
+  // Trim record lines from the longest section first until the index fits;
+  // headings and the files section always stay.
+  while (!withinBudget(content)) {
+    const trimmable = sections
+      .filter(({ key, lines }) => key !== "scope" && key !== "files" && lines.length > 0)
+      .sort((left, right) => right.lines.length - left.lines.length)[0];
+    if (!trimmable) {
+      break;
+    }
+    trimmable.lines.pop();
+    omitted += 1;
+    content = render(omitted);
+  }
+
   return {
     kind: "memory",
     relativePath: "MEMORY.md",
-    content: renderDocument(renderLabel(input, "memory_index"), [
-      renderLocalizedSection(input, "scope", renderScopeLines(input.scope)),
-      renderLocalizedSection(
-        input,
-        "profile",
-        renderProfileLines(input, input.durable.profile),
-      ),
-      renderLocalizedSection(
-        input,
-        "preference",
-        renderPreferenceLines(input.durable.preferences),
-      ),
-      renderLocalizedSection(
-        input,
-        "feedback",
-        renderFeedbackLines(input.durable.feedback),
-      ),
-      renderLocalizedSection(
-        input,
-        "reference",
-        renderReferenceLines(input.durable.references),
-      ),
-      renderLocalizedSection(input, "fact", renderFactLines(input.durable.facts)),
-      renderLocalizedSection(
-        input,
-        "episode",
-        renderEpisodeLines(input.durable.episodes),
-      ),
-      renderLocalizedSection(
-        input,
-        "archive",
-        renderArchiveLines(input, input.durable.archives),
-      ),
-      renderLocalizedSection(
-        input,
-        "evidence",
-        renderEvidenceLines(input.durable.evidence),
-      ),
-      renderLocalizedSection(
-        input,
-        "experiences",
-        renderExperienceLines(input.durable.experiences),
-      ),
-      renderLocalizedSection(
-        input,
-        "learning_proposals",
-        renderProposalLines(input.durable.proposals),
-      ),
-      renderLocalizedSection(
-        input,
-        "promotions",
-        renderPromotionLines(input.durable.promotions),
-      ),
-      renderLocalizedSection(
-        input,
-        "working_memory",
-        renderWorkingMemoryLines(input, input.runtime?.workingMemory ?? null),
-      ),
-      renderLocalizedSection(
-        input,
-        "journal",
-        renderJournalLines(input, input.runtime?.journal ?? null),
-      ),
-      renderLocalizedSection(
-        input,
-        "artifact_spills",
-        renderSpillLines(input.runtime?.spills ?? []),
-      ),
-    ]),
+    content,
   };
 }
 
@@ -919,14 +1255,25 @@ function buildArchiveArtifacts(input: MarkdownArtifactInput): MarkdownArtifactFi
 export function buildMarkdownArtifacts(
   input: MarkdownArtifactInput,
 ): MarkdownArtifactBundle {
+  const topics = buildTopicArtifacts(input);
+  const sessions = collectActiveSessionIds(input).map((sessionId) =>
+    buildSessionArtifact(input, sessionId),
+  );
+  const archives = buildArchiveArtifacts(input);
+  const playbooks = buildPlaybookArtifacts(input);
+  const user = buildUserArtifact(input);
   const files: MarkdownArtifactFile[] = [
-    buildUserArtifact(input),
-    buildMemoryArtifact(input),
-    ...collectActiveSessionIds(input).map((sessionId) =>
-      buildSessionArtifact(input, sessionId),
+    user,
+    buildMemoryArtifact(
+      input,
+      [user, ...topics, ...sessions, ...archives, ...playbooks].map(
+        ({ relativePath }) => relativePath,
+      ),
     ),
-    ...buildArchiveArtifacts(input),
-    ...buildPlaybookArtifacts(input),
+    ...topics,
+    ...sessions,
+    ...archives,
+    ...playbooks,
   ];
 
   return {

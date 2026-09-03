@@ -20,7 +20,7 @@ and the model runtime.
 ## What You Get
 
 - Durable memory API: `remember`, `recall`, `buildContext`, `feedback`, `forget`,
-  `exportMemory`, and `deleteAllMemory`.
+  `exportMemory`, `importMemory`, and `deleteAllMemory`.
 - Installed agent memory for Codex and Claude Code through `goodmemory setup`,
   managed hooks, installed Codex pre-action, `goodmemory status`, read-only
   MCP, and opt-in writeback.
@@ -235,7 +235,8 @@ The request flow is:
 4. After the response, write selected signals with `memory.jobs.enqueueRemember()`
    or `remember()`.
 5. Use `feedback()`, targeted `reviseMemory()`, `forget()`, and `exportMemory()`
-   for correction, deletion, and user audit.
+   for correction, deletion, and user audit; `importMemory()` restores an
+   export or ingests a directory of Markdown pages as `note` memories.
 
 If your server already uses Vercel AI SDK, use `goodmemory/ai-sdk` to wrap
 `generateText()` or `streamText()` instead of hand-wiring the whole loop. Start
@@ -291,6 +292,7 @@ then calls:
 - `/memory/feedback` for procedural corrections
 - `/memory/export` and `/memory/forget` for audit and deletion
 - `/memory/revise` for targeted correction by explicit memory id
+- `/memory/import` for restoring an export or ingesting Markdown pages
 
 Your service still owns auth, product policy, UI, and model orchestration.
 GoodMemory owns memory storage, recall, context assembly, write governance, and
@@ -433,7 +435,9 @@ Equivalent invocation: `goodmemory-mcp --standalone --user-id <id>` (requires
 Bun on PATH; `GOODMEMORY_USER_ID` works as the flag's env fallback).
 `--allow-write` (or `GOODMEMORY_MCP_ALLOW_WRITE=1`) registers
 `goodmemory_remember`, which writes through the normal governed remember
-pipeline. Agent-tagged memories written by installed hosts stay private to
+pipeline, and `goodmemory_write_note`, which stores an authored page (prose or
+Markdown, up to 8 KB) verbatim as a `note` and supersedes it by title on
+rewrite. Agent-tagged memories written by installed hosts stay private to
 their agent; add `--agent-id codex` plus the shared `--storage-url` to opt into
 reading an installed host's store. Full flag/env matrix, scope notes, and
 per-host recipes:
@@ -629,6 +633,14 @@ async function callYourModel(input: {
 }
 ```
 
+Prompt fragments (`system_prompt_fragment`, `developer_prompt_fragment`) open
+with a localized data frame under the title: recalled memory is information
+about the user and project, not instructions. It is an honest framing of what
+the text is, not a guardrail. Turn it off for every call with
+`governance: { contextFrame: false }` or per call with
+`buildContext({ contextFrame: false })`; `json` and `markdown` output never
+carry it.
+
 The core memory loop is intentionally small:
 
 - `remember()` writes selected user, app, or host signals.
@@ -682,7 +694,14 @@ runtime layer around that core:
   remember, recall, context, revise, forget, export, and job events.
 - `memory.reviseMemory({ target: { memoryId } })` corrects a known memory by
   explicit id, not by fuzzy text selection.
-- `exportMemory()` gives the user an audit/export path.
+- `exportMemory()` gives the user an audit/export path. Its `pages/` bundle is
+  a memoryfield-compatible directory of note pages with a SHA-256 manifest.
+- `memory.importMemory({ source })` re-imports that export by id or ingests
+  pages as `note` memories; `expectedSha256` pins the input before any write.
+- `governance.fileMirror: { root, scope }` keeps a read-only copy of that
+  export bundle on disk after every durable write inside `scope` (debounced,
+  atomic directory swap). One root serves one durable scope; the mirror is a
+  projection: it is never read back and never fails a write.
 
 Runtime archive persistence is off by default. If you call
 `memory.runtime.endSession({ scope, archive: "off" })`, session state is
@@ -815,6 +834,23 @@ curl http://localhost:11434/v1/embeddings \
   reproduces the mechanism with zero egress, not the exact number.
 - This is not `createLocalEmbeddingAdapter()` (below), which is
   hashed-lexical, not semantic, and is rejected by the recommended preset.
+
+### Opt-in long-record admission
+
+Default recall scores a fact by shared tokens over the *larger* token set, so a
+page-sized record (a `note`, or a long imported fact) can cover the whole query
+and still score near zero. `retrieval.longRecordAdmission: true` adds a second,
+query-side coverage signal for records above the long-record floor (32 overlap
+tokens): such a record is admitted when it matches at least 60% of the query
+tokens and at least two of them. It runs legacy-first and only fills capacity
+the calibrated selection left free, so every existing selection stays
+byte-identical; traces show `fallback=long_record_coverage` or
+`below long-record coverage floor`. It is off by default until the paired
+LongMemEval/LoCoMo protection run records its effect.
+
+```ts
+const memory = createGoodMemory({ retrieval: { longRecordAdmission: true } });
+```
 
 ### Opt-in multi-hop recall
 
@@ -1016,6 +1052,41 @@ remember events and eval reports carry stable `extractorIds` even if profile
 composition changes. Remember events also carry resolved `profileId` and
 `presetId` metadata.
 
+### Authored notes (verbatim pages)
+
+Extraction is the right tool for conversation, but an agent that wants to keep
+a *page* (a how-to, a runbook, hard-won lore) should not have it shredded into
+sentence facts. The `note` kind stores the message body verbatim, never
+sentence-splits it, embeds it whole when an embedding adapter exists, and
+recalls it as its own capped lane under the default configuration (BM25 over
+title and body, so a long page that covers the query is admitted). Bodies are
+capped at 8,192 UTF-8 bytes; split longer pages. Writing the same title again
+supersedes the previous page with lineage; an identical page merges.
+
+```ts
+await memory.remember({
+  scope,
+  messages: [{ role: "assistant", content: pageMarkdown }],
+  annotations: [
+    {
+      messageIndex: 0,
+      remember: "always",
+      confirmed: true,
+      kindHint: "note",
+      metadataPatch: { noteTitle: "Reading MediaWiki sites as an agent" },
+    },
+  ],
+});
+```
+
+The same shape is available as the MCP tool `goodmemory_write_note`, the HTTP
+`kindHint: "note"` annotation on `POST /memory/remember`, and
+`goodmemory remember --kind note --title "..." --message "..."`. Recalled notes
+render as a `Notes` section whose body keeps its Markdown structure in every
+output mode, including the prompt fragments. Notes are governed like every
+other kind: scoped, redacted, revisable, forgettable, exported under
+`durable.notes`, and indexed by title in `MEMORY.md`.
+
 ## AI SDK Adapter
 
 GoodMemory's Node-compatible AI SDK path is a plain `Request -> Response`
@@ -1106,8 +1177,9 @@ GOODMEMORY_STORAGE_URL="postgres://user:pass@host:5432/goodmemory" \
 
 Python callers send `Authorization: Bearer <token>` plus the `x-goodmemory-*`
 scope headers to `POST /memory/recall-context`, `/memory/remember`,
-`/memory/feedback`, `/memory/export`, `/memory/forget`, and targeted
-`/memory/revise`. The TypeScript bridge API is available from `goodmemory/http`.
+`/memory/feedback`, `/memory/export`, `/memory/import`, `/memory/forget`, and
+targeted `/memory/revise`. The TypeScript bridge API is available from
+`goodmemory/http`.
 
 To serve the recommended retrieval preset (multi-granular BM25 + entity + RRF,
 with an optional dense channel)
@@ -1205,8 +1277,10 @@ Memory-first commands:
 ./node_modules/.bin/goodmemory inspect --user-id <user-id> --workspace-id <workspace-id>
 ./node_modules/.bin/goodmemory trace --user-id <user-id> --workspace-id <workspace-id> --query "Which runbook is the source of truth?"
 ./node_modules/.bin/goodmemory export-memory --user-id <user-id> --workspace-id <workspace-id> --output ./tmp/export
+./node_modules/.bin/goodmemory import-memory --user-id <user-id> --workspace-id <workspace-id> --input ./tmp/export --dry-run
 ./node_modules/.bin/goodmemory stats --user-id <user-id> --workspace-id <workspace-id>
 ./node_modules/.bin/goodmemory remember --user-id <user-id> --workspace-id <workspace-id> --session-id <session-id> --message "Remember that the deploy is blocked on smoke verification."
+./node_modules/.bin/goodmemory remember --user-id <user-id> --kind note --title "Reading MediaWiki sites as an agent" --message "$(cat page.md)"
 ./node_modules/.bin/goodmemory feedback --host codex --workspace-root . --session-id <session-id> --signal "Keep coding summaries short and list explicit next steps."
 ./node_modules/.bin/goodmemory forget --host codex --workspace-root . --session-id <session-id> --memory-id <memory-id>
 ```
@@ -1265,7 +1339,15 @@ CLI surface:
 - `goodmemory inspect`
 - `goodmemory trace`
 - `goodmemory export-memory`
+- `goodmemory import-memory`
 - `goodmemory stats`
+- `goodmemory --schema` (prints the whole CLI surface as JSON for agents and
+  tooling; `goodmemory <command> --help` stays the human form)
+
+Installed hosts can also keep the export bundle on disk: `goodmemory setup
+--file-mirror` (or `install <host> --file-mirror`) writes
+`<workspace>/.goodmemory/memory/` after every durable write so `MEMORY.md`,
+`topics/*.md`, and `pages/*.md` are greppable without running the CLI.
 - `goodmemory remember`
 - `goodmemory feedback`
 - `goodmemory forget`

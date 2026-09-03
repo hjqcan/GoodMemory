@@ -1,0 +1,17 @@
+{
+  "memory_type": "goodmemory",
+  "memory_params": {
+    "agent_id": "dynamicmem",
+    "base_url": "http://127.0.0.1:8739",
+    "batch_size": 16,
+    "extraction_strategy": "llm-assisted",
+    "max_attempts": 1,
+    "max_tokens": 32000,
+    "retrieval_profile": "general_chat",
+    "strategy": "hybrid",
+    "timeout_seconds": 600,
+    "token_env": "GOODMEMORY_BRIDGE_TOKEN",
+    "user_id": "dynamicmem",
+    "workspace_id": "sealed-pilot"
+  }
+}

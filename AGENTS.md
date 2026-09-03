@@ -51,7 +51,8 @@ adr/
 ├── ADR-006-module-layering-and-shared-contracts.txt   # domain/ contract home, provider ↛ eval
 ├── ADR-007-python-client-and-docker-distribution.txt   # Python client + Docker distribution
 ├── ADR-008-language-pack-horizontal-extension.txt     # current LanguagePack and projection boundary
-└── ADR-009-orchestration-and-proof-protocol-boundaries.txt # runtime, research proof, and release orchestration
+├── ADR-009-orchestration-and-proof-protocol-boundaries.txt # runtime, research proof, and release orchestration
+└── ADR-010-note-memory-kind-file-mirror-and-interchange.txt # note kind, file mirror, interchange, context frame
 
 src/
 ├── index.ts                                                   # package root exports
@@ -145,9 +146,12 @@ Recent history mixes scoped English subjects and short milestone commits, for ex
 <!-- GOODMEMORY-INSTALL:CODEX START -->
 ## GoodMemory Codex
 
-This repository opts into the installed GoodMemory Codex host-config path.
+This repository uses GoodMemory (installed Codex host path) for durable, governed memory.
 
-Prefer hook-injected GoodMemory context when the installed host runtime provides it.
-Use GoodMemory MCP for deep memory inspection or recall debugging when the installed host runtime exposes it.
-Treat exported artifact files as projections, not canonical truth.
+Memory protocol:
+- Hook-injected "Developer memory notes" blocks are memory retrieved for the current prompt. Read them before planning and prefer them over re-deriving project facts; verify time-sensitive facts against the repo before acting on them.
+- When injected context is missing or insufficient, call goodmemory_get_context with a specific question (any question, not just the current prompt).
+- When you need specific records rather than a rendered summary, call goodmemory_search_index and then goodmemory_get_records. When a memory looks wrong or is unexpectedly missing, call goodmemory_trace_recall to see why it was or was not selected.
+- When you learn a durable fact, decision, preference, or blocker worth keeping and the goodmemory_remember tool is available, persist it with one clear statement per call. Writes are governed and auditable; the result explains any rejection.
+- Treat exported artifact files as projections, not canonical truth, and do not restate injected memory verbatim into files or commit messages.
 <!-- GOODMEMORY-INSTALL:CODEX END -->

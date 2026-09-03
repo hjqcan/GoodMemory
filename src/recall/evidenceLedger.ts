@@ -1,6 +1,11 @@
 import type { FactMemory } from "../domain/records";
 import type { TemporalInterval } from "../domain/temporal";
 import type { EvidenceRecord } from "../evidence/contracts";
+import {
+  claimEndTimestamp,
+  claimEventTimestamp,
+  selectLatestClaimsAtEventTime,
+} from "./claimTemporal";
 import { matchOccurrence } from "./occurrence";
 import type { OccurrenceMatch } from "./occurrence";
 import type { ClaimProjection } from "./projections/contracts";
@@ -33,21 +38,14 @@ function groupKey(claim: ClaimProjection): string {
   return [claim.scopeKey, claim.subjectEntityId, claim.predicateKey].join("\u0000");
 }
 
-function claimTimestamp(claim: ClaimProjection): number {
-  return Date.parse(claim.validFrom ?? claim.observedAt ?? claim.ingestedAt);
-}
-
 function isFuture(claim: ClaimProjection, reference: number): boolean {
-  const timestamp = Date.parse(claim.validFrom ?? claim.observedAt);
+  const timestamp = claimEventTimestamp(claim);
   return Number.isFinite(timestamp) && timestamp > reference;
 }
 
 function isExpired(claim: ClaimProjection, reference: number): boolean {
-  if (!claim.validUntil) {
-    return false;
-  }
-  const timestamp = Date.parse(claim.validUntil);
-  return Number.isFinite(timestamp) && timestamp <= reference;
+  const timestamp = claimEndTimestamp(claim);
+  return timestamp !== undefined && timestamp <= reference;
 }
 
 function resolveTemporalStatus(input: {
@@ -71,17 +69,27 @@ function resolveTemporalStatus(input: {
       .filter((claim) => !isFuture(claim, reference) && !isExpired(claim, reference))
       .sort(
         (left, right) =>
-          claimTimestamp(left) - claimTimestamp(right) ||
+          claimEventTimestamp(left) - claimEventTimestamp(right) ||
           left.id.localeCompare(right.id),
       );
-    const currentIds = input.aggregation === "count"
-      ? new Set(active.map(({ id }) => id))
-      : new Set(active.at(-1) ? [active.at(-1)!.id] : []);
+    const latest = selectLatestClaimsAtEventTime(active);
+    const tiedConflict = input.aggregation !== "count" &&
+      new Set(latest.map(claimValue)).size > 1;
+    const currentIds = new Set(
+      (input.aggregation === "count"
+        ? active
+        : tiedConflict
+          ? []
+          : latest).map(({ id }) => id),
+    );
+    const uncertainIds = new Set(
+      tiedConflict ? latest.map(({ id }) => id) : [],
+    );
 
     for (const claim of claims) {
       statuses.set(
         claim.id,
-        isFuture(claim, reference)
+        isFuture(claim, reference) || uncertainIds.has(claim.id)
           ? "uncertain"
           : currentIds.has(claim.id)
             ? "current"

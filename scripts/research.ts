@@ -13,7 +13,7 @@ import {
   resolve,
 } from "node:path";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
+import { isDeepStrictEqual, promisify } from "node:util";
 
 import {
   resolveCleanGitSourceIdentity,
@@ -35,6 +35,8 @@ import type {
 const execFileAsync = promisify(execFile);
 const SOURCE_V4_PROTOCOL_ID =
   "goodmemory-c6-codex-coding-effect-source-v4-bounded-v1";
+const LONGMEMEVAL_V1_SOURCE_PAIRED_PROTOCOL_ID =
+  "goodmemory-longmemeval-v1-ku-temporal-source-paired-diagnostic-v1";
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 const legacySourceV4Adapter =
   "scripts/research/c6/legacy-inputs/source-v4.ts";
@@ -62,6 +64,13 @@ export async function runResearchCommand(
     return preflight;
   }
   const snapshotRoot = preflight.snapshotRoot;
+  if (protocol.id === LONGMEMEVAL_V1_SOURCE_PAIRED_PROTOCOL_ID) {
+    return executeLongMemEvalV1SourcePairedProtocol(
+      command,
+      protocol,
+      snapshotRoot,
+    );
+  }
   const executionSourceIdentity = await resolveCleanGitSourceIdentity(
     repositoryRoot,
   );
@@ -101,6 +110,41 @@ export async function runResearchCommand(
   await verifyGitSourceStability(repositoryRoot, executionSourceIdentity);
   return {
     executionSourceIdentity,
+    inputSourceIdentity: protocol.inputSourceIdentity,
+    protocolId: protocol.id,
+    result,
+  };
+}
+
+async function executeLongMemEvalV1SourcePairedProtocol(
+  command: "run" | "verify",
+  protocol: ResearchProtocol,
+  root: string,
+): Promise<unknown> {
+  const sourcePaired = await import(
+    "./research/longmemeval-v1/source-paired"
+  );
+  if (
+    protocol.runEntrypoint !==
+      "scripts/research/longmemeval-v1/source-paired.ts#runLongMemEvalV1SourcePairedDiagnostic" ||
+    protocol.verifyEntrypoint !==
+      "scripts/research/longmemeval-v1/source-paired.ts#verifyLongMemEvalV1SourcePairedDiagnostic" ||
+    protocol.historicalGateEntrypoints.length !== 0 ||
+    !isDeepStrictEqual(
+      protocol.inputSourceIdentity,
+      sourcePaired.LONGMEMEVAL_V1_SOURCE_PAIRED_BASELINE,
+    ) ||
+    !isDeepStrictEqual(
+      protocol.canonicalArtifacts,
+      [...sourcePaired.LONGMEMEVAL_V1_SOURCE_PAIRED_CANONICAL_ARTIFACTS],
+    )
+  ) {
+    throw new Error("LongMemEval V1 source-paired registry entrypoint mismatch");
+  }
+  const result = command === "run"
+    ? await sourcePaired.runLongMemEvalV1SourcePairedDiagnostic(root)
+    : await sourcePaired.verifyLongMemEvalV1SourcePairedDiagnostic(root);
+  return {
     inputSourceIdentity: protocol.inputSourceIdentity,
     protocolId: protocol.id,
     result,

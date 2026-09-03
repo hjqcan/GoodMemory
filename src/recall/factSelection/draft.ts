@@ -31,9 +31,7 @@ export function createSelectionDraft<
       entry.lexicalScore,
       entry.freshnessScore,
       entry.explicitnessScore,
-      entry.usageScore,
       entry.evidenceScore,
-      entry.outcomeScore,
       entry.verificationPenaltyScore,
       fallback,
     );
@@ -96,7 +94,9 @@ export function finalizeSuppressionReasons(input: {
   for (const entry of input.compatible) {
     const trace = traceByMemoryId.get(entry.fact.id);
     if (trace && !trace.returned && trace.whySuppressed === "not selected") {
-      trace.whySuppressed = "below generic threshold";
+      trace.whySuppressed = entry.queryCoverageScore !== undefined
+        ? "below long-record coverage floor"
+        : "below generic threshold";
     }
   }
 }

@@ -1,5 +1,10 @@
-import { computeBm25Scores } from "./bm25";
 import type { LanguageEntityCandidateInput } from "../language";
+import { computeBm25Scores } from "./bm25";
+import {
+  claimEndTimestamp,
+  claimEventTimestamp,
+  selectLatestClaimsAtEventTime,
+} from "./claimTemporal";
 import {
   isRecallProjectionSourceCollection,
 } from "./projections/contracts";
@@ -21,6 +26,7 @@ export type GeneralizedFusionChannel =
 export type GeneralizedFusionSourceCollection =
   | "facts"
   | "references"
+  | "notes"
   | "episodes"
   | "session_archives";
 
@@ -534,35 +540,20 @@ function matchedQueryEntityIds(input: GeneralizedFusionInput): Set<string> {
   );
 }
 
-function claimTime(claim: ClaimProjection): number {
-  for (const value of [claim.validFrom, claim.observedAt, claim.ingestedAt]) {
-    if (!value) {
-      continue;
-    }
-    const timestamp = Date.parse(value);
-    if (Number.isFinite(timestamp)) {
-      return timestamp;
-    }
-  }
-  return 0;
-}
-
 function isClaimCurrent(
   claim: ClaimProjection,
   referenceTime: string | undefined,
 ): boolean {
   const reference = referenceTime ? Date.parse(referenceTime) : Number.NaN;
   if (!Number.isFinite(reference)) {
-    return !claim.validUntil;
+    return claimEndTimestamp(claim) === undefined;
   }
-  const startsAt = Date.parse(claim.validFrom ?? claim.observedAt);
+  const startsAt = claimEventTimestamp(claim);
   if (Number.isFinite(startsAt) && startsAt > reference) {
     return false;
   }
-  const validUntil = claim.validUntil
-    ? Date.parse(claim.validUntil)
-    : Number.NaN;
-  return !Number.isFinite(validUntil) || validUntil > reference;
+  const validUntil = claimEndTimestamp(claim);
+  return validUntil === undefined || validUntil > reference;
 }
 
 function selectCurrentClaimsByGroup(
@@ -574,10 +565,7 @@ function selectCurrentClaimsByGroup(
     const current = group.filter((claim) =>
       isClaimCurrent(claim, referenceTime),
     );
-    const latestTime = Math.max(...current.map(claimTime));
-    selected.push(
-      ...current.filter((claim) => claimTime(claim) === latestTime),
-    );
+    selected.push(...selectLatestClaimsAtEventTime(current));
   }
   return selected;
 }
@@ -624,7 +612,8 @@ function selectTemporalClaims(input: {
   for (const group of groups.values()) {
     const ordered = [...group].sort(
       (left, right) =>
-        claimTime(left) - claimTime(right) || left.id.localeCompare(right.id),
+        claimEventTimestamp(left) - claimEventTimestamp(right) ||
+        left.id.localeCompare(right.id),
     );
     const bounded = ordered.filter((claim) => boundaries.every((constraint) => {
       const boundary = Date.parse(constraint.referenceTime);
@@ -632,8 +621,8 @@ function selectTemporalClaims(input: {
         return true;
       }
       return constraint.kind === "before"
-        ? claimTime(claim) < boundary
-        : claimTime(claim) >= boundary;
+        ? claimEventTimestamp(claim) < boundary
+        : claimEventTimestamp(claim) >= boundary;
     }));
     if (changeRequested) {
       const distinctValues = new Set(
@@ -656,10 +645,7 @@ function selectTemporalClaims(input: {
       if (countRequested) {
         selected.push(...bounded);
       } else {
-        const latest = bounded.at(-1);
-        if (latest) {
-          selected.push(latest);
-        }
+        selected.push(...selectLatestClaimsAtEventTime(bounded));
       }
       continue;
     }
@@ -671,10 +657,7 @@ function selectTemporalClaims(input: {
       selected.push(...current);
       continue;
     }
-    const latest = current.at(-1);
-    if (latest) {
-      selected.push(latest);
-    }
+    selected.push(...selectLatestClaimsAtEventTime(current));
   }
   const sourcesWithStructuredClaims = new Set(
     selected

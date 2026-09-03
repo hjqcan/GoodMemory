@@ -199,7 +199,7 @@ function createRevisionRaceStore(): {
 
 describe("claim projection revision visibility", () => {
   it("uses the v5 projection pipeline to migrate revision metadata", () => {
-    expect(RECALL_PROJECTION_PIPELINE_VERSION).toBe("gm-projection-v5");
+    expect(RECALL_PROJECTION_PIPELINE_VERSION).toBe("gm-projection-v6");
   });
 
   it("keeps a promoted fallback physically while retiring it from logical history", async () => {

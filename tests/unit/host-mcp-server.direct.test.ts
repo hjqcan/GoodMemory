@@ -14,6 +14,7 @@ import type {
 import type { GoodMemoryMcpServerDependencies } from "../../src/install/hostMcpServer";
 import { createGoodMemoryMcpServer } from "../../src/install/hostMcpServer";
 import { readInstalledHostWritebackLedger } from "../../src/install/hostWritebackAuditLedger";
+import { buildPageArtifacts } from "../../src/governance/pageArtifacts";
 
 interface RegisteredMcpTool {
   description?: string;
@@ -118,6 +119,7 @@ function createFakeMemory(): GoodMemory {
     memories: [],
   } as unknown as RecallResult;
   const exported: ExportMemoryResult = {
+    pages: buildPageArtifacts({ notes: [] }),
     artifacts: {
       files: [
         {

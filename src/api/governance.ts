@@ -21,5 +21,10 @@ export async function deleteVectorForCollection(
 
   if (collection === "episodes") {
     await vectorPort.deleteEpisodeEmbedding(id);
+    return;
+  }
+
+  if (collection === "notes") {
+    await vectorPort.deleteNoteEmbedding(id);
   }
 }

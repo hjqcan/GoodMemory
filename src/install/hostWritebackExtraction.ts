@@ -172,6 +172,12 @@ function mapExtractorKind(
   if (kindHint === "noise") {
     return "fact";
   }
+  if (kindHint === "note") {
+    // Writeback previews harvest transcript candidates; an authored note
+    // never arrives through this path, so a stray note hint previews as a fact
+    // rather than widening the review-queue contract.
+    return "fact";
+  }
   return kindHint;
 }
 

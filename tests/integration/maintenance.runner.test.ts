@@ -181,6 +181,125 @@ describe("maintenance runner", () => {
     expect(newer?.isActive).toBe(true);
   });
 
+  it("does not let a metadata update reverse contradiction event order", async () => {
+    const { repositories, runner } = createFixture();
+    const scope = { userId: "u-semantic-order", workspaceId: "workspace-a" };
+    const older = createFactMemory({
+      id: "fact-older-metadata-newer",
+      userId: scope.userId,
+      workspaceId: scope.workspaceId,
+      category: "project",
+      content: "Robot workflow is blocked on prod migration.",
+      confidence: 0.9,
+      observedAt: "2026-01-01T00:00:00.000Z",
+      source: { method: "explicit", extractedAt: "2026-01-01T00:00:00.000Z" },
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-03-31T00:00:00.000Z",
+    });
+    const newer = createFactMemory({
+      id: "fact-newer-metadata-older",
+      userId: scope.userId,
+      workspaceId: scope.workspaceId,
+      category: "project",
+      content: "Robot workflow is stable after prod migration.",
+      confidence: 0.9,
+      observedAt: "2026-03-20T00:00:00.000Z",
+      source: { method: "explicit", extractedAt: "2026-03-20T00:00:00.000Z" },
+      createdAt: "2026-03-20T00:00:00.000Z",
+      updatedAt: "2026-03-20T00:00:00.000Z",
+    });
+    await repositories.facts.add(older);
+    await repositories.facts.add(newer);
+
+    const report = await runner.run(scope, ["contradiction"]);
+    const facts = await repositories.facts.listByScope(scope);
+
+    expect(report.jobs).toEqual([{ name: "contradiction", applied: 1 }]);
+    expect(facts.find(({ id }) => id === older.id)?.lifecycle).toBe("inactive");
+    expect(facts.find(({ id }) => id === newer.id)?.lifecycle).toBe("active");
+  });
+
+  it("keeps equal-strength contradictions at the same event time unresolved", async () => {
+    const { repositories, runner } = createFixture();
+    const scope = { userId: "u-equal-time", workspaceId: "workspace-a" };
+    const eventTime = "2026-03-20T00:00:00.000Z";
+    await repositories.facts.add(
+      createFactMemory({
+        id: "fact-a",
+        userId: scope.userId,
+        workspaceId: scope.workspaceId,
+        category: "project",
+        content: "Robot workflow is blocked on prod migration.",
+        confidence: 0.9,
+        observedAt: eventTime,
+        source: { method: "explicit", extractedAt: eventTime },
+        createdAt: eventTime,
+        updatedAt: eventTime,
+      }),
+    );
+    await repositories.facts.add(
+      createFactMemory({
+        id: "fact-b",
+        userId: scope.userId,
+        workspaceId: scope.workspaceId,
+        category: "project",
+        content: "Robot workflow is stable after prod migration.",
+        confidence: 0.9,
+        observedAt: eventTime,
+        source: { method: "explicit", extractedAt: eventTime },
+        createdAt: eventTime,
+        updatedAt: eventTime,
+      }),
+    );
+
+    const report = await runner.run(scope, ["contradiction"]);
+    const facts = await repositories.facts.listByScope(scope);
+
+    expect(report.jobs).toEqual([{ name: "contradiction", applied: 0 }]);
+    expect(facts.map(({ lifecycle }) => lifecycle)).toEqual(["active", "active"]);
+  });
+
+  it("falls back from an invalid validFrom before comparing contradiction time", async () => {
+    const { repositories, runner } = createFixture();
+    const scope = { userId: "u-invalid-valid-from", workspaceId: "workspace-a" };
+    const eventTime = "2026-03-20T00:00:00.000Z";
+    await repositories.facts.add(
+      createFactMemory({
+        id: "fact-a",
+        userId: scope.userId,
+        workspaceId: scope.workspaceId,
+        category: "project",
+        content: "Robot workflow is blocked on prod migration.",
+        confidence: 0.9,
+        validFrom: "not-a-date",
+        observedAt: eventTime,
+        source: { method: "explicit", extractedAt: eventTime },
+        createdAt: eventTime,
+        updatedAt: eventTime,
+      }),
+    );
+    await repositories.facts.add(
+      createFactMemory({
+        id: "fact-b",
+        userId: scope.userId,
+        workspaceId: scope.workspaceId,
+        category: "project",
+        content: "Robot workflow is stable after prod migration.",
+        confidence: 0.9,
+        observedAt: eventTime,
+        source: { method: "explicit", extractedAt: eventTime },
+        createdAt: eventTime,
+        updatedAt: eventTime,
+      }),
+    );
+
+    const report = await runner.run(scope, ["contradiction"]);
+    const facts = await repositories.facts.listByScope(scope);
+
+    expect(report.jobs).toEqual([{ name: "contradiction", applied: 0 }]);
+    expect(facts.map(({ lifecycle }) => lifecycle)).toEqual(["active", "active"]);
+  });
+
   it("can run selected jobs or all jobs through one entry point", async () => {
     const { repositories, runner } = createFixture();
     const scope = { userId: "u-1", workspaceId: "workspace-a" };
@@ -641,7 +760,7 @@ describe("maintenance runner", () => {
     expect(await repositories.vectorIndex?.getFactEmbedding(factTwo.id)).not.toBeNull();
   });
 
-  it("demotes stale inferred action facts while preserving explicit identity continuity", async () => {
+  it("demotes stale inferred action facts after metadata-only enrichment", async () => {
     const { embeddingAdapter, repositories, runner } = createFixture({
       withEmbeddings: true,
     });
@@ -655,6 +774,7 @@ describe("maintenance runner", () => {
       confidence: 0.92,
       importance: 0.8,
       source: { method: "explicit", extractedAt: "2026-03-25T00:00:00.000Z" },
+      observedAt: "2026-03-25T00:00:00.000Z",
       createdAt: "2026-03-25T00:00:00.000Z",
       updatedAt: "2026-03-25T00:00:00.000Z",
     });
@@ -677,8 +797,9 @@ describe("maintenance runner", () => {
       verificationPressureCount: 3,
       lastVerificationHintAt: "2026-03-30T00:00:00.000Z",
       source: { method: "inferred", extractedAt: "2025-12-01T00:00:00.000Z" },
+      observedAt: "2025-12-01T00:00:00.000Z",
       createdAt: "2025-12-01T00:00:00.000Z",
-      updatedAt: "2025-12-01T00:00:00.000Z",
+      updatedAt: "2026-03-31T00:00:00.000Z",
     });
     const identityFact = createFactMemory({
       id: "fact-identity",
@@ -1062,8 +1183,6 @@ describe("maintenance runner", () => {
         }),
         confidence: 0.58,
         importance: 0.35,
-        accessCount: 4,
-        lastAccessedAt: "2026-03-25T00:00:00.000Z",
         verificationPressureCount: 3,
         lastVerificationHintAt: "2026-03-30T00:00:00.000Z",
         source: { method: "inferred", extractedAt: "2025-12-01T00:00:00.000Z" },

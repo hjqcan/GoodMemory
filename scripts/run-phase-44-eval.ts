@@ -12,6 +12,7 @@ import {
 } from "../src/runtime-viewer/public";
 import { resolveCliFlagValue } from "./cli-options";
 import { resolveRepoRootFromScriptUrl } from "./script-paths";
+import { buildPageArtifacts } from "../src/governance/pageArtifacts";
 
 export interface Phase44EvalOptions {
   outputDir?: string;
@@ -332,6 +333,7 @@ function createPhase44Memory() {
         preferences: exported.durable.preferences,
         profile: exported.durable.profile,
         references: exported.durable.references,
+        notes: [],
         workingMemory: exported.runtime?.workingMemory ?? null,
       };
     },
@@ -340,6 +342,7 @@ function createPhase44Memory() {
 
 function createPhase44ExportedMemory(): ExportMemoryResult {
   return {
+    pages: buildPageArtifacts({ notes: [] }),
     artifacts: { files: [], rootPath: "." },
     durable: {
       archives: [
@@ -364,7 +367,6 @@ function createPhase44ExportedMemory(): ExportMemoryResult {
       experiences: [],
       facts: [
         {
-          accessCount: 0,
           category: "project",
           confidence: 1,
           content: "Phase 44 viewer is read-only.",

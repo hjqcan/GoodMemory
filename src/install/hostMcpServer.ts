@@ -33,6 +33,8 @@ import {
   writeInstalledHostProgressiveRecordCache,
 } from "./hostProgressiveRecall";
 import { recordRememberToolWriteback } from "./hostWritebackRuntime";
+import { isNoteBodyWithinLimit, NOTE_MAX_BYTES } from "../domain/records";
+import { buildNoteRememberInput } from "../remember/noteInput";
 import {
   resolveStandaloneMcpContext,
   type StandaloneMcpConfig,
@@ -184,6 +186,7 @@ export function createGoodMemoryMcpServer(
       const routing = projectRecallRouting(recall);
       return buildMcpStructuredResult({
         content: built.content,
+        ...(built.contextFrame ? { contextFrame: true } : {}),
         estimatedTokens: built.estimatedTokens,
         maxTokens: context.maxTokens,
         omittedSections: built.omittedSections,
@@ -546,9 +549,9 @@ export function createGoodMemoryMcpServer(
           content: z.string().min(1).describe("The memory-worthy statement to persist."),
           extractionStrategy: z.enum(["auto", "rules-only", "llm-assisted"]).optional(),
           kindHint: z
-            .enum(["preference", "fact", "feedback", "reference"])
+            .enum(["preference", "fact", "feedback", "reference", "note"])
             .optional()
-            .describe("Optional memory kind for the statement; classification infers one otherwise."),
+            .describe("Optional memory kind for the statement; classification infers one otherwise. Use note to store the whole statement verbatim as an authored page."),
           locale: z.string().optional(),
           observedAt: z.string().optional(),
           role: z
@@ -652,6 +655,95 @@ export function createGoodMemoryMcpServer(
           storage: {
             provider: context.storage?.provider,
           },
+          ...(result.warnings && result.warnings.length > 0
+            ? { warnings: result.warnings }
+            : {}),
+        });
+      },
+    );
+
+    server.registerTool(
+      "goodmemory_write_note",
+      {
+        annotations: {
+          destructiveHint: false,
+          idempotentHint: false,
+          openWorldHint: false,
+          readOnlyHint: false,
+        },
+        description:
+          "Use this to save an authored page (prose or Markdown) as a durable GoodMemory note. The body is stored verbatim, never split into facts, and recalled whole by title and content. Writing the same title again supersedes the previous page with lineage; an identical page merges. Bodies are capped at 8,192 UTF-8 bytes, so split longer pages into several notes.",
+        inputSchema: z.object({
+          ...TOOL_SCOPE_SCHEMA,
+          body: z
+            .string()
+            .min(1)
+            .refine((value) => isNoteBodyWithinLimit(value), {
+              message: `Note body exceeds ${NOTE_MAX_BYTES} UTF-8 bytes; split the page.`,
+            })
+            .describe("Verbatim page body, usually Markdown."),
+          locale: z.string().optional(),
+          observedAt: z.string().optional(),
+          tags: z.array(z.string().min(1)).max(16).optional(),
+          timezone: z.string().optional(),
+          title: z
+            .string()
+            .min(1)
+            .max(200)
+            .describe("Page title; the identity key for supersession within the scope."),
+        }),
+      },
+      async (args) => {
+        const context = await loadContext({
+          cwd: args.cwd,
+          sessionId: args.sessionId,
+        });
+        if ("error" in context) {
+          return buildMcpErrorResult(context.error);
+        }
+
+        const result = await context.memory.remember(
+          buildNoteRememberInput({
+            body: args.body,
+            locale: args.locale,
+            observedAt: args.observedAt,
+            reason: "explicit goodmemory_write_note tool call",
+            scope: context.scope,
+            tags: args.tags,
+            timezone: args.timezone,
+            title: args.title,
+          }),
+        );
+        const noteEvent = result.events.find((event) => event.memoryType === "note");
+        let auditEventId: string | undefined;
+        if (input.standalone === undefined && result.accepted > 0) {
+          try {
+            const recorded = await recordRememberToolWriteback({
+              content: args.body,
+              events: result.events,
+              ...(dependencies.homeRoot ? { homeRoot: dependencies.homeRoot } : {}),
+              host: input.host,
+              mode: context.writeback.mode,
+              scope: context.scope,
+              ...(args.sessionId ? { sessionId: args.sessionId } : {}),
+              source: "assistant",
+            });
+            auditEventId = recorded?.eventId;
+          } catch {
+            // Fail-open: the durable write already succeeded.
+          }
+        }
+        return buildMcpStructuredResult({
+          accepted: result.accepted,
+          ...(auditEventId ? { auditEventId } : {}),
+          events: result.events,
+          memoryType: "note",
+          ...(noteEvent?.memoryId ? { noteId: noteEvent.memoryId } : {}),
+          outcome: noteEvent?.outcome ?? "rejected",
+          ...(noteEvent?.reason ? { reason: noteEvent.reason } : {}),
+          rejected: result.rejected,
+          scope: context.scope,
+          title: args.title,
           ...(result.warnings && result.warnings.length > 0
             ? { warnings: result.warnings }
             : {}),

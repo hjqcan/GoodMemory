@@ -22,6 +22,7 @@ import {
 } from "../src/testing/fakes";
 import { resolveCliFlagValue } from "./cli-options";
 import { resolveRepoRootFromScriptUrl } from "./script-paths";
+import { buildPageArtifacts } from "../src/governance/pageArtifacts";
 
 export interface Phase43EvalOptions {
   outputDir?: string;
@@ -279,6 +280,7 @@ function createPhase43Recall(): RecallResult {
     profile: null,
     preferences: [],
     references: [],
+    notes: [],
     facts: [],
     feedback: [],
     archives: [],
@@ -381,11 +383,15 @@ function createPhase43Memory(input: {
         policyApplied: [],
       };
     },
+    async importMemory() {
+      throw new Error("importMemory is not implemented by this fake.");
+    },
     async forget() {
       return { forgotten: false };
     },
     async exportMemory() {
       return {
+        pages: buildPageArtifacts({ notes: [] }),
         artifacts: { rootPath: "", files: [] },
         scope: PHASE43_SCOPE,
         exportedAt: "2026-04-26T00:00:00.000Z",

@@ -1,5 +1,12 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+
+import {
+  C6_GURKIAI_FLAT_SUMMARY_ENDPOINT,
+} from "./codex-coding-effect/c6-flat-summary-generation-capture";
+import type { C5BaselineArm } from "./codex-coding-effect/c5-pilot-plan";
 
 import {
   loadC5PilotReadiness,
@@ -31,6 +38,7 @@ export function parseC5ReadinessOptions(
     }
     const [, name, value] = match;
     if (![
+      "baseline-arm",
       "baseline-report",
       "baseline-raw-stage-evidence",
       "baseline-stage-evidence",
@@ -45,6 +53,9 @@ export function parseC5ReadinessOptions(
       "dataset-root",
       "material-effect-pp",
       "order-seed",
+      "summary-endpoint",
+      "summary-model",
+      "summary-prompt",
     ].includes(name)) {
       throw new Error(`unknown C5 readiness option --${name}`);
     }
@@ -90,7 +101,9 @@ export function parseC5ReadinessOptions(
 
   const baselineReportPath = values.get("baseline-report") ??
     DEFAULT_BASELINE_REPORT;
+  const comparatorOptions = resolveReadinessComparatorOptions(values);
   return {
+    ...comparatorOptions,
     baselineReportPath,
     baselineRawStageEvidenceRoot: values.get("baseline-raw-stage-evidence") ??
       join(dirname(baselineReportPath), "raw-stages"),
@@ -115,6 +128,63 @@ export function parseC5ReadinessOptions(
     datasetRoot: values.get("dataset-root") ?? DEFAULT_DATASET_ROOT,
     materialEffectPercentagePoints,
     orderSeed,
+  };
+}
+
+// Zero-write readiness mirrors the live CLI's comparator freeze: the plan it
+// prints must hash the same summary protocol the live run will bind.
+function resolveReadinessComparatorOptions(
+  values: ReadonlyMap<string, string>,
+): {
+  baselineArm?: C5BaselineArm;
+  comparator?: {
+    summaryEndpointSha256: string;
+    summaryModel: string;
+    summaryPromptSha256: string;
+  };
+} {
+  const baselineArmValue = values.get("baseline-arm");
+  if (
+    baselineArmValue !== undefined &&
+    baselineArmValue !== "no-memory" &&
+    baselineArmValue !== "flat-summary"
+  ) {
+    throw new Error("--baseline-arm must be no-memory or flat-summary");
+  }
+  const baselineArm = baselineArmValue as C5BaselineArm | undefined;
+  const summaryModel = values.get("summary-model");
+  const summaryPromptPath = values.get("summary-prompt");
+  const summaryEndpoint = values.get("summary-endpoint") ??
+    C6_GURKIAI_FLAT_SUMMARY_ENDPOINT;
+  if (baselineArm !== "flat-summary") {
+    if (
+      summaryModel !== undefined ||
+      summaryPromptPath !== undefined ||
+      values.has("summary-endpoint")
+    ) {
+      throw new Error("summary flags require --baseline-arm flat-summary");
+    }
+    return baselineArm === undefined ? {} : { baselineArm };
+  }
+  if (summaryModel === undefined) {
+    throw new Error("--summary-model is required for the flat-summary baseline");
+  }
+  if (summaryPromptPath === undefined) {
+    throw new Error("--summary-prompt is required for the flat-summary baseline");
+  }
+  const summaryPrompt = readFileSync(summaryPromptPath, "utf8");
+  if (summaryPrompt.trim().length === 0) {
+    throw new Error("--summary-prompt must point to a non-empty prompt file");
+  }
+  const digest = (value: string) =>
+    createHash("sha256").update(value).digest("hex");
+  return {
+    baselineArm,
+    comparator: {
+      summaryEndpointSha256: digest(summaryEndpoint),
+      summaryModel,
+      summaryPromptSha256: digest(summaryPrompt),
+    },
   };
 }
 

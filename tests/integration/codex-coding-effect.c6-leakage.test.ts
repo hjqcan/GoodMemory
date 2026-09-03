@@ -428,6 +428,57 @@ describe("Codex coding-effect C6 leakage audit", () => {
     })).rejects.toThrow("C6 candidate static leakage rejected");
   });
 
+  it("rejects a scalar copied from a declared forbidden JSON evaluator file", async () => {
+    const root = await copyFixture();
+    const fixture = await loadFixture(root);
+    const secret = "C6_DECLARED_JSON_SCALAR_SECRET_62914";
+    const content = `${JSON.stringify({ expected: { token: secret } })}\n`;
+    await writeFile(
+      join(root, "evaluator", "declared-secret.json"),
+      content,
+    );
+    fixture.dataset.episodes[0]!.forbiddenLeakage.fileSha256.push(
+      sha256(content),
+    );
+
+    await expect(auditC6FlatSummaryOutputLeakage({
+      assetRootSha256: sha256("asset-root"),
+      dataset: fixture.dataset,
+      datasetManifestSha256: sha256(JSON.stringify(fixture.dataset)),
+      datasetRoot: root,
+      episodeId: fixture.episodeId,
+      output: `The hidden token is ${secret}.`,
+      stageId: fixture.dataset.episodes[0]!.stages[0]!.id,
+      summaryPrompt: SUMMARY_PROMPT,
+      summaryPromptSha256: sha256(SUMMARY_PROMPT),
+    })).rejects.toThrow("C6 flat-summary output leakage rejected");
+  });
+
+  it("rejects a numeric scalar copied from a declared forbidden JSON evaluator file", async () => {
+    const root = await copyFixture();
+    const fixture = await loadFixture(root);
+    const content = `${JSON.stringify({ expected: { score: 731947.5 } })}\n`;
+    await writeFile(
+      join(root, "evaluator", "declared-numeric-secret.json"),
+      content,
+    );
+    fixture.dataset.episodes[0]!.forbiddenLeakage.fileSha256.push(
+      sha256(content),
+    );
+
+    await expect(auditC6FlatSummaryOutputLeakage({
+      assetRootSha256: sha256("asset-root"),
+      dataset: fixture.dataset,
+      datasetManifestSha256: sha256(JSON.stringify(fixture.dataset)),
+      datasetRoot: root,
+      episodeId: fixture.episodeId,
+      output: "The hidden score is 731,947.500.",
+      stageId: fixture.dataset.episodes[0]!.stages[0]!.id,
+      summaryPrompt: SUMMARY_PROMPT,
+      summaryPromptSha256: sha256(SUMMARY_PROMPT),
+    })).rejects.toThrow("C6 flat-summary output leakage rejected");
+  });
+
   it("rejects a declared forbidden evaluator file copied into the repository", async () => {
     const root = await copyFixture();
     const fixture = await loadFixture(root);
@@ -592,15 +643,6 @@ async function loadFixture(root: string): Promise<{
     datasetId: loaded.dataset.datasetId,
     episodes: [episode],
     schemaVersion: 3,
-    ...(loaded.dataset.sourceLineage === undefined
-      ? {}
-      : { sourceLineage: loaded.dataset.sourceLineage }),
-    ...(loaded.dataset.taskOriginReviewProvenance === undefined
-      ? {}
-      : {
-          taskOriginReviewProvenance:
-            loaded.dataset.taskOriginReviewProvenance,
-        }),
   };
   return {
     dataset,

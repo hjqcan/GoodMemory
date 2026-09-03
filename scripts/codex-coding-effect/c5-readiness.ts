@@ -25,6 +25,10 @@ import {
   finalizeC4DatasetReadiness,
   runC4DatasetCoreReadiness,
 } from "./c4-readiness";
+import type {
+  C5BaselineArm,
+  C5PilotComparatorInput,
+} from "./c5-pilot-plan";
 import {
   buildC5PilotPlan,
   serializeC5PilotPlan,
@@ -114,6 +118,7 @@ export type C5PilotPrerequisiteEvidence = z.infer<
 >;
 
 export interface C5PilotReadinessInput {
+  baselineArm?: C5BaselineArm;
   baselineReportPath: string;
   baselineRawStageEvidenceRoot?: string;
   baselineStageEvidenceRoot?: string;
@@ -125,6 +130,7 @@ export interface C5PilotReadinessInput {
   c4ReviewProvenancePath: string;
   c4ReviewRequestPath: string;
   c4ReviewResponsePath: string;
+  comparator?: C5PilotComparatorInput;
   datasetRoot: string;
   materialEffectPercentagePoints: number;
   orderSeed: number;
@@ -185,7 +191,9 @@ export async function loadC5PilotReadiness(
     schemaVersion: 2,
   });
   return verifyC5PilotPrerequisiteEvidence({
+    ...(input.baselineArm === undefined ? {} : { baselineArm: input.baselineArm }),
     c4ReadinessWorkspaceRoot: input.c4ReadinessWorkspaceRoot,
+    ...(input.comparator === undefined ? {} : { comparator: input.comparator }),
     datasetRoot: input.datasetRoot,
     materialEffectPercentagePoints: input.materialEffectPercentagePoints,
     orderSeed: input.orderSeed,
@@ -194,7 +202,9 @@ export async function loadC5PilotReadiness(
 }
 
 export async function verifyC5PilotPrerequisiteEvidence(input: {
+  baselineArm?: C5BaselineArm;
   c4ReadinessWorkspaceRoot: string;
+  comparator?: C5PilotComparatorInput;
   datasetRoot: string;
   materialEffectPercentagePoints: number;
   orderSeed: number;
@@ -294,8 +304,10 @@ export async function verifyC5PilotPrerequisiteEvidence(input: {
   const plan = buildC5PilotPlan({
     assetLockSha256: storedAssetLock.assetLockSha256,
     assetRootSha256: currentAssetLock.assetRootSha256,
+    ...(input.baselineArm === undefined ? {} : { baselineArm: input.baselineArm }),
     baselineCeilingReportSha256: baseline.reportSha256,
     c4ReadinessReportSha256,
+    ...(input.comparator === undefined ? {} : { comparator: input.comparator }),
     dataset: loaded.dataset,
     manifestSha256: loaded.manifestSha256,
     materialEffectPercentagePoints: input.materialEffectPercentagePoints,

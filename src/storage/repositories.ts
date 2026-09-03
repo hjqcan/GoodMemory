@@ -3,6 +3,7 @@ import type {
   FactMemory,
   FeedbackMemory,
   PreferenceMemory,
+  NoteMemory,
   ReferenceMemory,
   SessionBuffer,
   SessionJournal,
@@ -105,6 +106,12 @@ export interface MemoryRepositories {
     get(id: string): Promise<ReferenceMemory | null>;
     listByUser(userId: string): Promise<ReferenceMemory[]>;
     listByScope(scope: MemoryScope): Promise<ReferenceMemory[]>;
+  };
+  notes: {
+    add(note: NoteMemory): Promise<void>;
+    get(id: string): Promise<NoteMemory | null>;
+    listByUser(userId: string): Promise<NoteMemory[]>;
+    listByScope(scope: MemoryScope): Promise<NoteMemory[]>;
   };
   facts: {
     add(fact: FactMemory): Promise<void>;
@@ -241,6 +248,28 @@ export interface MemoryRepositories {
     >;
     getEpisodeEmbedding(id: string): Promise<VectorRecord | null>;
     deleteEpisodeEmbedding(id: string): Promise<void>;
+    upsertNoteEmbedding(
+      records: Array<{
+        id: string;
+        embedding: number[];
+        metadata: Record<string, unknown>;
+        content: string;
+      }>,
+    ): Promise<void>;
+    searchNoteEmbedding(
+      queryEmbedding: number[],
+      input: VectorSearchInput,
+    ): Promise<
+      Array<{
+        id: string;
+        embedding: number[];
+        metadata: Record<string, unknown>;
+        content: string;
+        score: number;
+      }>
+    >;
+    getNoteEmbedding(id: string): Promise<VectorRecord | null>;
+    deleteNoteEmbedding(id: string): Promise<void>;
   } | null;
 }
 
@@ -392,6 +421,28 @@ export function createMemoryRepositories(
       async listByScope(scope: MemoryScope): Promise<ReferenceMemory[]> {
         return config.documentStore.query<ReferenceMemory>(
           "references",
+          buildScopeFilter(scope),
+        );
+      },
+    },
+    notes: {
+      async add(note: NoteMemory): Promise<void> {
+        await config.documentStore.set("notes", note.id, note);
+      },
+
+      async get(id: string): Promise<NoteMemory | null> {
+        return config.documentStore.get<NoteMemory>("notes", id);
+      },
+
+      async listByUser(userId: string): Promise<NoteMemory[]> {
+        return config.documentStore.query<NoteMemory>("notes", {
+          userId,
+        });
+      },
+
+      async listByScope(scope: MemoryScope): Promise<NoteMemory[]> {
+        return config.documentStore.query<NoteMemory>(
+          "notes",
           buildScopeFilter(scope),
         );
       },
@@ -712,6 +763,16 @@ export function createMemoryRepositories(
           ) => config.vectorStore!.search("episodes", queryEmbedding, input),
           getEpisodeEmbedding: (id: string) => config.vectorStore!.get("episodes", id),
           deleteEpisodeEmbedding: (id: string) => config.vectorStore!.delete("episodes", id),
+          upsertNoteEmbedding: config.vectorStore.upsert.bind(
+            config.vectorStore,
+            "notes",
+          ),
+          searchNoteEmbedding: (
+            queryEmbedding: number[],
+            input: VectorSearchInput,
+          ) => config.vectorStore!.search("notes", queryEmbedding, input),
+          getNoteEmbedding: (id: string) => config.vectorStore!.get("notes", id),
+          deleteNoteEmbedding: (id: string) => config.vectorStore!.delete("notes", id),
         }
       : null,
   };

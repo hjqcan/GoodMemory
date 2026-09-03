@@ -158,6 +158,11 @@ function factMaintenanceStrength(fact: FactMemory): number {
   );
 }
 
+function compareFactEffectiveTime(left: FactMemory, right: FactMemory): number {
+  return Date.parse(resolveFactEffectiveTimestamp(left)) -
+    Date.parse(resolveFactEffectiveTimestamp(right));
+}
+
 const STALE_ACTION_REPAIR_MIN_AGE_DAYS = 90;
 const STALE_ACTION_REPAIR_MIN_VERIFICATION_PRESSURE = 2;
 const STALE_ACTION_REPAIR_MAX_CONFIDENCE = 0.7;
@@ -271,9 +276,7 @@ function hasActiveQualityReplacementFact(input: {
     replacement &&
       replacement.id !== input.fact.id &&
       replacement.lifecycle === "active" &&
-      resolveFactEffectiveTimestamp(replacement).localeCompare(
-        resolveFactEffectiveTimestamp(input.fact),
-      ) > 0 &&
+      compareFactEffectiveTime(replacement, input.fact) > 0 &&
       replacement.confidence > input.fact.confidence &&
       isActionDrivingFact(replacement, input.analyzeContent),
   );
@@ -469,26 +472,26 @@ async function runContradictionRepair(
 
       const leftStrength = factMaintenanceStrength(left);
       const rightStrength = factMaintenanceStrength(right);
-      let weaker = leftStrength < rightStrength ? left : right;
+      let weaker: FactMemory | undefined;
 
-      if (leftStrength === rightStrength) {
+      if (leftStrength !== rightStrength) {
+        weaker = leftStrength < rightStrength ? left : right;
+      } else {
         const leftPressure = left.verificationPressureCount ?? 0;
         const rightPressure = right.verificationPressureCount ?? 0;
+        const effectiveTimeComparison = compareFactEffectiveTime(left, right);
 
         if (leftPressure !== rightPressure) {
           weaker = leftPressure > rightPressure ? left : right;
-        } else if (
-          resolveFactEffectiveTimestamp(left) !==
-            resolveFactEffectiveTimestamp(right)
-        ) {
-          weaker = resolveFactEffectiveTimestamp(left).localeCompare(
-              resolveFactEffectiveTimestamp(right),
-            ) < 0
+        } else if (effectiveTimeComparison !== 0) {
+          weaker = effectiveTimeComparison < 0
             ? left
             : right;
-        } else {
-          weaker = left.id.localeCompare(right.id) < 0 ? left : right;
         }
+      }
+
+      if (!weaker) {
+        continue;
       }
 
       await repositories.facts.add(

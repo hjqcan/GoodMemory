@@ -103,6 +103,8 @@ function claim(input: {
   subjectEntityId?: string;
   objectEntityId?: string;
   observedAt?: string;
+  polarity?: ClaimProjection["polarity"];
+  validFrom?: string;
   validUntil?: string;
   extractorVersion?: string;
 }): ClaimProjection {
@@ -122,8 +124,9 @@ function claim(input: {
     searchAnalyzerVersion: "test-analyzer-v1",
     searchSchemaVersion: "gm-search-v3",
     objectEntityId: input.objectEntityId,
-    polarity: "positive",
+    polarity: input.polarity ?? "positive",
     modality: "asserted",
+    validFrom: input.validFrom,
     validUntil: input.validUntil,
     observedAt: input.observedAt ?? "2026-07-09T00:00:00.000Z",
     ingestedAt: input.observedAt ?? "2026-07-09T00:00:00.000Z",
@@ -620,6 +623,163 @@ describe("generalized recall fusion", () => {
       byId.get("fact-project-new")?.channels.temporal?.evidenceDocumentIds,
     ).toEqual(["claim-project-new"]);
     expect(byId.get("fact-cats")?.channels.temporal).toBeUndefined();
+  });
+
+  it("does not select a future claim whose invalid validFrom falls back to observedAt", () => {
+    const result = fuseGeneralizedRecallCandidates({
+      query: "What is Alice's current project?",
+      documents: [
+        document({
+          id: "doc-project-current",
+          sourceMemoryId: "fact-project-current",
+          text: "Alice's current project is Beacon.",
+        }),
+        document({
+          id: "doc-project-future",
+          sourceMemoryId: "fact-project-future",
+          text: "Alice's future project is Atlas.",
+        }),
+      ],
+      entities: [],
+      claims: [
+        claim({
+          id: "claim-project-current",
+          sourceMemoryId: "fact-project-current",
+          subjectEntityId: "entity-alice",
+          predicateKey: "profile.current_project",
+          objectText: "Beacon",
+          observedAt: "2026-07-01T00:00:00.000Z",
+        }),
+        claim({
+          id: "claim-project-future",
+          sourceMemoryId: "fact-project-future",
+          subjectEntityId: "entity-alice",
+          predicateKey: "profile.current_project",
+          objectText: "Atlas",
+          observedAt: "2026-08-01T00:00:00.000Z",
+          validFrom: "not-a-date",
+        }),
+      ],
+      plan: plan({
+        entities: ["alice"],
+        evidenceNeeds: ["direct", "temporal"],
+        maxHops: 1,
+      }),
+      maxCandidates: 32,
+      referenceTime: "2026-07-10T00:00:00.000Z",
+    });
+    const byId = new Map(
+      result.rankedCandidates.map((candidate) => [
+        candidate.sourceMemoryId,
+        candidate,
+      ]),
+    );
+
+    expect(
+      byId.get("fact-project-current")?.channels.temporal?.evidenceDocumentIds,
+    ).toEqual(["claim-project-current"]);
+    expect(byId.get("fact-project-future")?.channels.temporal).toBeUndefined();
+  });
+
+  it("treats invalid validUntil as open without a reference time", () => {
+    const result = fuseGeneralizedRecallCandidates({
+      query: "What is Alice's current project?",
+      documents: [
+        document({
+          id: "doc-project-old",
+          sourceMemoryId: "fact-project-old",
+          text: "Alice's former project was Beacon.",
+        }),
+        document({
+          id: "doc-project-current",
+          sourceMemoryId: "fact-project-current",
+          text: "Alice's current project is Atlas.",
+        }),
+      ],
+      entities: [],
+      claims: [
+        claim({
+          id: "claim-project-old",
+          sourceMemoryId: "fact-project-old",
+          subjectEntityId: "entity-alice",
+          predicateKey: "profile.current_project",
+          objectText: "Beacon",
+          observedAt: "2026-07-01T00:00:00.000Z",
+          validUntil: "2026-07-05T00:00:00.000Z",
+        }),
+        claim({
+          id: "claim-project-current",
+          sourceMemoryId: "fact-project-current",
+          subjectEntityId: "entity-alice",
+          predicateKey: "profile.current_project",
+          objectText: "Atlas",
+          validUntil: "not-a-date",
+        }),
+      ],
+      plan: plan({
+        entities: ["alice"],
+        evidenceNeeds: ["direct", "temporal"],
+        maxHops: 1,
+      }),
+      maxCandidates: 32,
+    });
+
+    expect(
+      result.rankedCandidates[0]?.channels.temporal?.evidenceDocumentIds,
+    ).toEqual(["claim-project-current"]);
+  });
+
+  it("retains every conflicting value tied at the latest event time", () => {
+    const result = fuseGeneralizedRecallCandidates({
+      query: "What is Alice's current project?",
+      documents: [
+        document({
+          id: "doc-project-atlas",
+          sourceMemoryId: "fact-project-atlas",
+          text: "Alice's current project is Atlas.",
+        }),
+        document({
+          id: "doc-project-beacon",
+          sourceMemoryId: "fact-project-beacon",
+          text: "Alice's current project is Beacon.",
+        }),
+      ],
+      entities: [],
+      claims: [
+        claim({
+          id: "claim-project-atlas",
+          sourceMemoryId: "fact-project-atlas",
+          subjectEntityId: "entity-alice",
+          predicateKey: "profile.current_project",
+          objectText: "Atlas",
+          observedAt: "2026-07-08T00:00:00.000Z",
+        }),
+        claim({
+          id: "claim-project-beacon",
+          sourceMemoryId: "fact-project-beacon",
+          subjectEntityId: "entity-alice",
+          predicateKey: "profile.current_project",
+          objectText: "Beacon",
+          observedAt: "2026-07-08T00:00:00.000Z",
+        }),
+      ],
+      plan: plan({
+        entities: ["alice"],
+        evidenceNeeds: ["direct", "temporal"],
+        maxHops: 1,
+      }),
+      maxCandidates: 32,
+      referenceTime: "2026-07-10T00:00:00.000Z",
+    });
+
+    expect(
+      result.rankedCandidates.map(({ sourceMemoryId }) => sourceMemoryId).sort(),
+    ).toEqual(["fact-project-atlas", "fact-project-beacon"]);
+    expect(
+      result.rankedCandidates.flatMap(
+        ({ channels }) => channels.temporal?.evidenceDocumentIds ?? [],
+      ).sort(),
+    ).toEqual(["claim-project-atlas", "claim-project-beacon"]);
   });
 
   it("does not let a false count plan promote deterministic singleton claims", () => {

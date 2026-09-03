@@ -139,9 +139,11 @@ function buildRecallRunConfiguration(
   profile: LongMemEvalRecallDiagnosticProfile,
   fusionMinRelativeStrength?: number,
   retrievalCues?: boolean,
+  longRecordAdmission?: boolean,
 ): LongMemEvalRecallRunConfiguration {
   return {
     ...(retrievalCues ? { retrievalCues: true } : {}),
+    ...(longRecordAdmission ? { longRecordAdmission: true } : {}),
     contextMaxTokens: LONGMEMEVAL_DEFAULT_CONTEXT_MAX_TOKENS,
     extractionStrategy: "rules-only",
     // The recorded floor equals the wired floor. Earlier reports recorded the
@@ -244,6 +246,7 @@ export function buildPhase62RecallDiagnosticOptions(
       profile,
       options.fusionMinRelativeStrength,
       options.retrievalCues,
+      options.longRecordAdmission,
     ),
     runId,
   };
@@ -314,6 +317,9 @@ export async function runPhase62LongMemEvalRecallDiagnostic(
                 maxFactsPerRun: 1_000_000,
               },
             }
+          : {}),
+        ...(runOptions.runConfiguration?.longRecordAdmission
+          ? { longRecordAdmission: true }
           : {}),
         postgresSchema,
         runNamespace: runOptions.runId,

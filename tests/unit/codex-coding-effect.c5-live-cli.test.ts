@@ -65,6 +65,36 @@ describe("Codex coding-effect C5 live CLI", () => {
     expect(options.baselineRawStageEvidenceRoot).toBe(
       "/repo/goodmemory/reports/quality-gates/phase-73/c4-baseline-ceiling-pilot/raw-stages",
     );
+    expect("npmCacheSeed" in options).toBe(false);
+  });
+
+  it("resolves an optional npm cache seed as a protected read-only input", () => {
+    const options = parseC5LivePilotOptions(
+      [...requiredArgs(), "--npm-cache-seed", "artifacts/npm-cache-seed"],
+      defaults(),
+    );
+    expect(options.npmCacheSeed).toBe("/repo/goodmemory/artifacts/npm-cache-seed");
+    expect("npmRegistry" in options).toBe(false);
+    expect(parseC5LivePilotOptions(
+      [...requiredArgs(), "--npm-registry", "https://registry.npmmirror.com"],
+      defaults(),
+    ).npmRegistry).toBe("https://registry.npmmirror.com");
+    expect(() => parseC5LivePilotOptions(
+      [...requiredArgs(), "--npm-registry", "http://registry.npmmirror.com"],
+      defaults(),
+    )).toThrow(/--npm-registry/u);
+    expect(() => parseC5LivePilotOptions(
+      [...requiredArgs(), "--npm-cache-seed", "/tmp/npm-cache-seed"],
+      defaults(),
+    )).toThrow(/--npm-cache-seed/u);
+    expect(() => parseC5LivePilotOptions(
+      [
+        ...requiredArgs(),
+        "--npm-cache-seed",
+        "/users/eval/.goodmemory-eval/codex-coding-effect/c5-run-001/c5-pilot/runtime/seed",
+      ],
+      defaults(),
+    )).toThrow(/--npm-cache-seed|--runtime-root/u);
   });
 
   it("rejects post-hoc, duplicate, unknown, and overlapping run inputs", () => {

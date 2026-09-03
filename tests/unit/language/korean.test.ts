@@ -71,6 +71,18 @@ const RENDER_KEYS = Object.keys({
   none: true,
   organization: true,
   playbook_title: true,
+  note: true,
+  note_item: true,
+  memory_context_frame: true,
+  files: true,
+  topic_active: true,
+  topic_superseded: true,
+  topic_archived: true,
+  expertise: true,
+  current_projects_and_goals: true,
+  collaboration_preferences: true,
+  stable_procedural_guidance: true,
+  provenance_summary: true,
   open_loops: true,
   omitted_sections: true,
   preference: true,
@@ -123,7 +135,7 @@ describe("Korean LanguagePack", () => {
 
   it("has stable identity and only claims Hangul as distinctive", () => {
     expect(pack).toMatchObject({
-      analyzerVersion: "10-durable-optout-boundary",
+      analyzerVersion: "11-explicit-compound-facts",
       apiVersion: 1,
       compatibilityGroup: "ko",
       defaultLocale: "ko-KR",

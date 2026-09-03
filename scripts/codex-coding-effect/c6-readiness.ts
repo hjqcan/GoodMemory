@@ -60,7 +60,7 @@ import type {
   C6TaskRelationshipEvidence,
 } from "./c6-task-relationship-receipt";
 import {
-  loadCodexCodingEffectDataset,
+  parseCodexCodingEffectDataset,
 } from "./dataset";
 import type {
   CodexCodingEffectDatasetV3,
@@ -589,6 +589,34 @@ export interface C6CandidateReadinessResult {
   };
 }
 
+async function loadC6CandidateDataset(datasetRoot: string): Promise<{
+  dataset: CodexCodingEffectDatasetV3;
+  manifestSha256: string;
+}> {
+  const bytes = await readRegularFile(
+    join(datasetRoot, "manifest.json"),
+    "C6 dataset manifest",
+  );
+  const raw = bytes.toString("utf8");
+  const value: unknown = JSON.parse(raw);
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("schemaVersion" in value) ||
+    value.schemaVersion !== 3
+  ) {
+    throw new Error("C6 candidate requires dataset schema version 3");
+  }
+  const dataset = parseCodexCodingEffectDataset(value);
+  if (dataset.schemaVersion !== 3) {
+    throw new Error("C6 candidate requires dataset schema version 3");
+  }
+  return {
+    dataset,
+    manifestSha256: sha256(raw),
+  };
+}
+
 interface C6CodexArtifactIdentity {
   cliPackageJsonSha256: string;
   launcherSha256: string;
@@ -614,7 +642,7 @@ export async function loadC6CandidateReadiness(
     packageBytes,
     summaryProtocolBytes,
   ] = await Promise.all([
-    loadCodexCodingEffectDataset(datasetRoot),
+    loadC6CandidateDataset(datasetRoot),
     loadC6C5Prerequisite(c5EvidenceRoot),
     readRegularFile(environmentManifestPath, "environment manifest").then(
       (bytes) => bytes.toString("utf8"),
@@ -1654,8 +1682,6 @@ async function validateCandidateAssetBindings(input: {
             filesByPath.get(stage.promptPath)!.sha256,
           ]),
         ),
-        repositoryContentSha256:
-          repositoryContentSha256ByAssetPath[episode.repository.assetPath!],
       }),
     ]),
   );
@@ -1699,18 +1725,7 @@ async function validateCandidateAssetBindings(input: {
 export function computeC6AgentVisibleTaskContentSha256(input: {
   episode: CodexCodingEffectDatasetV3["episodes"][number];
   promptSha256ByPath: Readonly<Record<string, string>>;
-  repositoryContentSha256: string;
 }): string {
-  const assetPath = input.episode.repository.assetPath;
-  if (assetPath === undefined) {
-    throw new Error(
-      `C6 dataset episode ${input.episode.id} requires repository.assetPath`,
-    );
-  }
-  assertLowercaseSha256(
-    input.repositoryContentSha256,
-    "repository content",
-  );
   const stages = input.episode.stages.map((stage) => {
     const promptSha256 = input.promptSha256ByPath[stage.promptPath];
     assertLowercaseSha256(
@@ -1721,18 +1736,9 @@ export function computeC6AgentVisibleTaskContentSha256(input: {
       allowedFeedback: stage.allowedFeedback,
       historySha256: stage.history.sha256,
       promptSha256,
-      snapshot: stage.snapshot,
     };
   });
-  return sha256(JSON.stringify({
-    repository: {
-      assetPath,
-      baseCommit: input.episode.repository.baseCommit,
-      contentSha256: input.repositoryContentSha256,
-      url: input.episode.repository.url,
-    },
-    stages,
-  }));
+  return sha256(JSON.stringify({ stages }));
 }
 
 function assertLowercaseSha256(

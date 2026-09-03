@@ -3,6 +3,7 @@ import type {
   FactKind,
   FactMemory,
   FeedbackMemory,
+  NoteMemory,
   PreferenceMemory,
   ReferenceMemory,
   SessionJournal,
@@ -37,6 +38,7 @@ const CONTEXT_RENDER_KEYS = [
   "current_state",
   "deferred_follow_up",
   "developer_memory_notes",
+  "memory_context_frame",
   "durable_memory",
   "episode",
   "episode_item",
@@ -49,6 +51,8 @@ const CONTEXT_RENDER_KEYS = [
   "immediate_next_steps",
   "journal",
   "key_decisions",
+  "note",
+  "note_item",
   "open_loops",
   "omitted_sections",
   "preference",
@@ -94,6 +98,7 @@ export interface MemoryPacket {
   durableMemorySummary?: string;
   preferenceSummary?: string;
   referenceSummary?: string;
+  noteSummary?: string;
   factSummary?: string;
   feedbackSummary?: string;
   episodeSummary?: string;
@@ -124,6 +129,9 @@ export interface MemoryPacketInput {
   profile: UserProfile | null;
   preferences: PreferenceMemory[];
   references: ReferenceMemory[];
+  // Recalled authored pages. Rendered as a separate section whose body keeps
+  // its Markdown structure in every output mode; never flattened.
+  notes?: NoteMemory[];
   facts: FactMemory[];
   feedback: FeedbackMemory[];
   episodes: EpisodeMemory[];
@@ -382,6 +390,18 @@ function summarizeReferences(references: ReferenceMemory[]): string | undefined 
     .slice(0, 3)
     .map((reference) => `- ${reference.title} (${reference.pointer})`)
     .join("\n");
+}
+
+const NOTE_SUMMARY_LIMIT = 2;
+
+function summarizeNotes(notes: readonly NoteMemory[]): string | undefined {
+  if (notes.length === 0) {
+    return undefined;
+  }
+  return notes
+    .slice(0, NOTE_SUMMARY_LIMIT)
+    .map((note) => `### ${note.title}\n${note.body}`)
+    .join("\n\n");
 }
 
 function summarizeFeedback(feedback: FeedbackMemory[]): string | undefined {
@@ -643,6 +663,7 @@ export function buildMemoryPacket(input: MemoryPacketInput): MemoryPacket {
     }),
     preferenceSummary: summarizePreferences(input.preferences),
     referenceSummary: summarizeReferences(input.references),
+    noteSummary: summarizeNotes(input.notes ?? []),
     factSummary: summarizeFacts(
       input.facts,
       labels,
@@ -749,6 +770,13 @@ function buildRenderableSections(
     createLanguageService(),
     packet.locale,
   ).labels;
+  // Notes stay a separate section even when a reranked durable summary
+  // replaces the per-kind sections: they are excluded from the rerank pool.
+  const noteSection = {
+    key: "noteSummary" as const,
+    title: labels.note,
+    body: packet.noteSummary,
+  };
   const durableMemorySections = packet.durableMemorySummary
     ? [
         {
@@ -756,6 +784,7 @@ function buildRenderableSections(
           title: labels.durable_memory,
           body: packet.durableMemorySummary,
         },
+        noteSection,
       ]
     : [
         {
@@ -778,6 +807,7 @@ function buildRenderableSections(
           title: labels.archive,
           body: packet.archiveSummary,
         },
+        noteSection,
       ];
 
   const renderingProfile = renderingProfileOverride ?? packet.renderingProfile;
@@ -940,8 +970,8 @@ export function renderMemoryPacket(
   output: "json" | "markdown" | "system_prompt_fragment" | "developer_prompt_fragment",
   maxTokens?: number,
   renderingProfileOverride?: RetrievalProfile,
-  options?: { suppressDuplicateEvidence?: boolean },
-): { content: string; estimatedTokens: number; omittedSections: string[] } {
+  options?: { contextFrame?: boolean; suppressDuplicateEvidence?: boolean },
+): { content: string; contextFrame?: true; estimatedTokens: number; omittedSections: string[] } {
   const labels = packet.renderLabels ?? buildRenderLabels(
     createLanguageService(),
     packet.locale,
@@ -972,10 +1002,30 @@ export function renderMemoryPacket(
         buildRenderableSections(packet, renderingProfileOverride),
       )
     : buildRenderableSections(packet, renderingProfileOverride);
+  // Prompt fragments open with a localized data frame (ADR-010 §10): the
+  // frame is rendered only when a section survives trimming, sits under the
+  // fragment title so title-prefix consumers are unaffected, and reserves its
+  // own tokens so a small budget still fits it. json/markdown never carry it.
+  const isFragment =
+    output === "system_prompt_fragment" || output === "developer_prompt_fragment";
+  const frame = isFragment && options?.contextFrame !== false
+    ? labels.memory_context_frame
+    : undefined;
+  const frameTokens = frame ? estimateTextTokens(frame) : 0;
   const { sections: kept, omittedSections } = trimSections(
     sections.map(({ title, body }) => ({ title, body })),
-    effectiveMaxTokens,
+    effectiveMaxTokens === undefined
+      ? undefined
+      : Math.max(0, effectiveMaxTokens - frameTokens),
   );
+  const frameLines = frame && kept.length > 0 ? [frame] : [];
+  // Prompt fragments flatten section bodies onto one line, except authored
+  // notes, whose Markdown structure is the point of the record.
+  const multilineFragmentTitles = new Set([labels.note]);
+  const renderFragmentSection = (section: { title: string; body: string }): string =>
+    multilineFragmentTitles.has(section.title)
+      ? `${section.title}:\n${section.body}`
+      : `${section.title}: ${section.body.replace(/\n/g, " ")}`;
 
   if (output === "json") {
     const keptTitles = new Set(kept.map((section) => section.title));
@@ -1082,11 +1132,13 @@ export function renderMemoryPacket(
   if (output === "system_prompt_fragment") {
     const content = enforceTextBudget([
       labels.user_memory_context,
-      ...kept.map((section) => `${section.title}: ${section.body.replace(/\n/g, " ")}`),
+      ...frameLines,
+      ...kept.map(renderFragmentSection),
     ].join("\n"));
 
     return {
       content,
+      ...(frameLines.length > 0 ? { contextFrame: true as const } : {}),
       estimatedTokens: estimateTextTokens(content),
       omittedSections,
     };
@@ -1094,7 +1146,8 @@ export function renderMemoryPacket(
 
   const content = enforceTextBudget([
     labels.developer_memory_notes,
-    ...kept.map((section) => `${section.title}: ${section.body.replace(/\n/g, " ")}`),
+    ...frameLines,
+    ...kept.map(renderFragmentSection),
     omittedSections.length > 0
       ? labels.omitted_sections.replace("{sections}", omittedSections.join(", "))
       : undefined,
@@ -1104,6 +1157,7 @@ export function renderMemoryPacket(
 
   return {
     content,
+    ...(frameLines.length > 0 ? { contextFrame: true as const } : {}),
     estimatedTokens: estimateTextTokens(content),
     omittedSections,
   };

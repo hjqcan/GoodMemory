@@ -14,9 +14,13 @@ import { fileURLToPath } from "node:url";
 
 import {
   buildC3CodexArgs,
-  buildFrozenPrehistoryArmPlans,
+  buildComparatorArmPlans,
 } from "./c3-arms";
-import type { C3ArmPlan } from "./c3-arms";
+import type {
+  C3ArmPlan,
+  C3FlatSummaryArmPlan,
+  C3NoMemoryArmPlan,
+} from "./c3-arms";
 import {
   createC3EvaluatorEnvironment,
   evaluateC3ArmSafely,
@@ -27,6 +31,7 @@ import {
 } from "./c3-permission-isolation";
 import {
   cleanupC3ArmRuntime,
+  prepareC3FlatSummaryArm,
   prepareC3InstalledArm,
   prepareC3NoMemoryArm,
   removeC3ArmModelCredential,
@@ -37,9 +42,24 @@ import {
 } from "./c3-host-configuration";
 import { collectC3HostPreflightEvidence } from "./c3-host-preflight";
 import type {
+  C3BaselineArmRuntime,
+  C3FlatSummaryArmRuntime,
   C3InstalledArmRuntime,
-  C3NoMemoryArmRuntime,
 } from "./c3-runtime";
+import {
+  C5_FLAT_SUMMARY_INJECTION_FILES,
+  C5_FLAT_SUMMARY_RECEIPTS_FILE,
+  C5_FLAT_SUMMARY_USER_PROMPT_SUBMIT_MAX_TOKENS,
+  buildC5FlatSummaryHistory,
+  evaluateC5FlatSummaryHookReceipts,
+  generateC5FlatSummary,
+  parseC5FlatSummaryHookReceipts,
+  resolveC5FlatSummaryInjection,
+} from "./c5-flat-summary-arm";
+import type {
+  C5FlatSummaryGeneration,
+  C5FlatSummaryInjection,
+} from "./c5-flat-summary-arm";
 import { prepareC3IsolatedClone } from "./c3-workspace";
 import {
   buildC4BaselinePrompt,
@@ -75,6 +95,7 @@ import type {
   C5StageEvaluation,
   C5StageExecution,
 } from "./c5-longitudinal";
+import { c5PlanBaselineArm } from "./c5-pilot-plan";
 import type {
   C5PilotEpisodeArmRun,
   C5PilotPlan,
@@ -113,7 +134,7 @@ import {
 import type { WorkspacePatch } from "./patch";
 import { runBoundaryProcess } from "./process";
 
-type C5Runtime = C3InstalledArmRuntime | C3NoMemoryArmRuntime;
+type C5Runtime = C3InstalledArmRuntime | C3BaselineArmRuntime;
 type C5Episode = CodexCodingEffectDatasetV2["episodes"][number];
 type C5DatasetStage = C5Episode["stages"][number];
 
@@ -129,8 +150,16 @@ interface MaterializedRepository {
 interface C5NativeStageState {
   canary: C5InstalledHostCanaryResult | null;
   codex: CodexRunResult;
+  comparatorInjectedText: string | null;
   patch: WorkspacePatch;
   prompt: string;
+}
+
+interface C5ComparatorStagePreparation {
+  evidenceSha256: string;
+  generation: C5FlatSummaryGeneration | null;
+  historySourceSha256: string;
+  injection: C5FlatSummaryInjection;
 }
 
 interface C5NativeTrajectoryState {
@@ -285,9 +314,10 @@ export async function createC5NativeLiveAdapter(input: {
         states,
         runs.find((run) => run.arm === "goodmemory-installed")!.id,
       );
+      const baselineArm = c5PlanBaselineArm(input.frozenPlan);
       const noMemory = requiredState(
         states,
-        runs.find((run) => run.arm === "no-memory")!.id,
+        runs.find((run) => run.arm === baselineArm)!.id,
       );
       assertCredentialsRevoked([noMemory, installed]);
       const installedStage = installed.stages.get(stage.stageId);
@@ -297,6 +327,16 @@ export async function createC5NativeLiveAdapter(input: {
           "installed host canary did not produce all live surfaces",
         );
       }
+      // The comparator's injected summary is audited as the frozen
+      // "flat-summary-after-seeding" surface; the installed canary carries the
+      // other three.
+      const comparatorText =
+        noMemory.stages.get(stage.stageId)?.comparatorInjectedText ?? null;
+      const liveSurfaces = installedStage.canary.liveSurfaces.map((surface) =>
+        surface.id === "flat-summary-after-seeding" && comparatorText !== null
+          ? { ...surface, content: comparatorText }
+          : surface
+      );
       try {
         const datasetStage = requiredDatasetStage(
           installed.episode,
@@ -310,20 +350,31 @@ export async function createC5NativeLiveAdapter(input: {
         });
         const audit = auditC5LiveLeakageSurfaces({
           ...leakageInput,
-          liveSurfaces: installedStage.canary.liveSurfaces,
+          liveSurfaces,
           trajectoryOrigins: stage.priorStageIds.flatMap((priorStageId) => {
             const priorStage = installed.stages.get(priorStageId);
-            if (priorStage === undefined) {
+            const priorBaselineStage = noMemory.stages.get(priorStageId);
+            if (priorStage === undefined || priorBaselineStage === undefined) {
               throw new Error(
                 `missing C5 trajectory origin stage ${priorStageId}`,
               );
             }
-            return resolveC5PriorStageTrajectoryOrigins({
-              codexStdout: priorStage.codex.stdout,
-              patch: priorStage.patch.diff,
-              prompt: priorStage.prompt,
-              stageId: priorStageId,
-            });
+            return [
+              ...resolveC5PriorStageTrajectoryOrigins({
+                codexStdout: priorStage.codex.stdout,
+                patch: priorStage.patch.diff,
+                prompt: priorStage.prompt,
+                stageId: priorStageId,
+              }),
+              ...(baselineArm === "flat-summary"
+                ? resolveC5PriorStageTrajectoryOrigins({
+                    codexStdout: priorBaselineStage.codex.stdout,
+                    patch: priorBaselineStage.patch.diff,
+                    prompt: priorBaselineStage.prompt,
+                    stageId: `${priorStageId}:flat-summary`,
+                  })
+                : []),
+            ];
           }),
         });
         await writeFile(
@@ -390,6 +441,9 @@ export async function createC5NativeLiveAdapter(input: {
               datasetSnapshotRoot,
               resolve(input.input.outputDirectory),
               resolve(input.input.packageTarball),
+              ...(input.input.npmCacheSeed === undefined
+                ? []
+                : [resolve(input.input.npmCacheSeed)]),
               RUNNER_SOURCE_ROOT,
               ...statesForRuns.flatMap((candidate) => [
                 candidate.runtime.plan.paths.armRoot,
@@ -442,7 +496,12 @@ export async function createC5NativeLiveAdapter(input: {
       if (repository === undefined) {
         throw new Error(`C5 source repository is missing for ${episode.id}`);
       }
-      const [noMemoryPlan, installedPlan] = buildFrozenPrehistoryArmPlans({
+      const baselineArm = c5PlanBaselineArm(input.frozenPlan);
+      if (run.arm !== baselineArm && run.arm !== "goodmemory-installed") {
+        throw new Error(`C5 run ${run.id} is outside the frozen arm pair`);
+      }
+      const [noMemoryPlan, installedPlan] = buildComparatorArmPlans({
+        baselineArm,
         episodeId: run.episodeId,
         repetition: run.repetition,
         resultRoot: join(
@@ -456,7 +515,7 @@ export async function createC5NativeLiveAdapter(input: {
         stageId: `longitudinal-${sha256(run.clusterId).slice(0, 12)}`,
         workspaceRoot: input.input.workspaceRoot,
       });
-      const plan = run.arm === "no-memory" ? noMemoryPlan : installedPlan;
+      const plan = run.arm === "goodmemory-installed" ? installedPlan : noMemoryPlan;
       await prepareC3IsolatedClone({
         destination: plan.paths.workspace,
         expectedCommit: run.stages[0]!.snapshot,
@@ -466,7 +525,7 @@ export async function createC5NativeLiveAdapter(input: {
         currentPlan: plan,
         datasetRoot: datasetSnapshotRoot,
         input: input.input,
-        otherPlan: run.arm === "no-memory" ? installedPlan : noMemoryPlan,
+        otherPlan: run.arm === "goodmemory-installed" ? noMemoryPlan : installedPlan,
         repository,
       });
       let runtime: C5Runtime;
@@ -476,14 +535,33 @@ export async function createC5NativeLiveAdapter(input: {
           bunExecutable: input.input.bunExecutable,
           codexExecutable: input.input.codexExecutable,
           permissionDeniedReadPaths,
-          plan: noMemoryPlan,
+          plan: noMemoryPlan as C3NoMemoryArmPlan,
+        });
+      } else if (run.arm === "flat-summary") {
+        if (input.input.comparatorRuntime === undefined) {
+          throw new Error(
+            "C5 flat-summary baseline requires the comparator runtime input",
+          );
+        }
+        runtime = await prepareC3FlatSummaryArm({
+          authFile: input.input.authFile,
+          bunExecutable: input.input.bunExecutable,
+          codexExecutable: input.input.codexExecutable,
+          permissionDeniedReadPaths,
+          plan: noMemoryPlan as C3FlatSummaryArmPlan,
         });
       } else {
         runtime = await prepareC3InstalledArm({
           authFile: input.input.authFile,
           bunExecutable: input.input.bunExecutable,
           codexExecutable: input.input.codexExecutable,
+          ...(input.input.npmCacheSeed === undefined
+            ? {}
+            : { npmCacheSeed: resolve(input.input.npmCacheSeed) }),
           npmExecutable: input.input.npmExecutable,
+          ...(input.input.npmRegistry === undefined
+            ? {}
+            : { npmRegistry: input.input.npmRegistry }),
           packageTarball: input.input.packageTarball,
           permissionDeniedReadPaths,
           plan: installedPlan,
@@ -644,6 +722,8 @@ async function executeNativeStage(input: {
   let prompt = "";
   let memoryExportBeforeStage = "";
   let canary: C5InstalledHostCanaryResult | null = null;
+  let comparator: C5ComparatorStagePreparation | null = null;
+  let comparatorHookPassed: boolean | null = null;
   let visible: Awaited<ReturnType<typeof runVisibleTest>> | null = null;
   let failureStage: string | null = null;
   let failureReason: string | null = null;
@@ -685,6 +765,21 @@ async function executeNativeStage(input: {
         runtime: input.state.runtime,
         stageDirectory,
         timeoutMs: input.input.testTimeoutMs,
+      });
+    }
+    if (
+      input.state.run.arm === "flat-summary" &&
+      isFlatSummaryRuntime(input.state.runtime)
+    ) {
+      failureStage = "flat-summary-injection";
+      comparator = await prepareC5ComparatorStage({
+        datasetRoot: input.datasetRoot,
+        datasetStage,
+        input: input.input,
+        runtime: input.state.runtime,
+        stage: input.stage,
+        stageDirectory,
+        state: input.state,
       });
     }
     failureStage = "codex-execution";
@@ -741,11 +836,35 @@ async function executeNativeStage(input: {
         ...canary.canary.currentWrittenMemoryIds,
       ]);
     }
+    if (
+      comparator !== null &&
+      isFlatSummaryRuntime(input.state.runtime) &&
+      codex.status === "completed"
+    ) {
+      const receiptsPath = join(
+        input.state.runtime.plan.paths.injectionRoot,
+        C5_FLAT_SUMMARY_RECEIPTS_FILE,
+      );
+      const receipts = parseC5FlatSummaryHookReceipts(
+        await readOptionalUtf8(receiptsPath) ?? "",
+      );
+      const hookEvaluation = evaluateC5FlatSummaryHookReceipts({
+        expectedContentSha256: comparator.injection.mode === "content-injection"
+          ? comparator.injection.userPromptSubmit.contentSha256
+          : null,
+        receipts,
+      });
+      comparatorHookPassed = hookEvaluation.passed;
+      if (!hookEvaluation.passed) {
+        failureStage = "comparator-hook-canary";
+        failureReason = hookEvaluation.reasons.join("\n");
+      }
+    }
   } catch (error) {
     failureReason = errorMessage(error);
     if (failureStage === null) failureStage = "stage-execution";
   }
-  const memoryChannelStatus = input.state.run.arm === "no-memory"
+  const memoryChannelStatus = input.state.run.arm !== "goodmemory-installed"
     ? "not-applicable" as const
     : canary?.canary.memoryChannelStatus ?? "failed";
   const executionBasis = {
@@ -753,6 +872,23 @@ async function executeNativeStage(input: {
     codexDurationMs: codex.durationMs,
     codexStatus: codex.status,
     codexUsage: codex.normalized?.usage ?? null,
+    ...(input.state.run.arm === "flat-summary"
+      ? {
+          comparatorInjection: comparator === null
+            ? null
+            : {
+                historySourceSha256: comparator.historySourceSha256,
+                hookEvaluationPassed: comparatorHookPassed === true,
+                injectedContentSha256:
+                  comparator.injection.mode === "content-injection"
+                    ? comparator.injection.userPromptSubmit.contentSha256
+                    : null,
+                injectedTokenCount:
+                  comparator.injection.userPromptSubmit.injectedTokenCount,
+                mode: comparator.injection.mode,
+              },
+        }
+      : {}),
     infrastructureFailureStage: failureStage,
     memoryObservation: canary === null
       ? null
@@ -770,6 +906,9 @@ async function executeNativeStage(input: {
   };
   const evidenceBytes = `${JSON.stringify({
     canaryEvidenceSha256: canary?.evidenceSha256 ?? null,
+    ...(input.state.run.arm === "flat-summary"
+      ? { comparatorEvidenceSha256: comparator?.evidenceSha256 ?? null }
+      : {}),
     codex: {
       durationMs: codex.durationMs,
       eventCount: codex.events.length,
@@ -816,6 +955,10 @@ async function executeNativeStage(input: {
   input.state.stages.set(input.stage.stageId, {
     canary,
     codex,
+    comparatorInjectedText:
+      comparator?.injection.mode === "content-injection"
+        ? comparator.injection.injectedText
+        : null,
     patch,
     prompt,
   });
@@ -899,10 +1042,12 @@ function assertEmptyStorageInitializationReceipt(
   if (!isRecord(deleted)) {
     throw new Error("C5 empty installed storage receipt is invalid");
   }
+  // The receipt must cover every known memory kind with a zero count; a
+  // newer package may report additional kinds (for example `notes`), which
+  // must be zero as well but do not make the storage non-empty.
   const deletedKeys = Object.keys(deleted).sort();
   if (
-    JSON.stringify(deletedKeys) !==
-      JSON.stringify([...C5_EMPTY_STORAGE_DELETE_KEYS].sort()) ||
+    C5_EMPTY_STORAGE_DELETE_KEYS.some((key) => !deletedKeys.includes(key)) ||
     deletedKeys.some((key) => deleted[key] !== 0) ||
     value.includeRuntime !== false ||
     !isRecord(value.scope) ||
@@ -1045,18 +1190,21 @@ async function auditClusterWhenReady(input: {
     isInstalledRuntime(state.runtime)
   );
   const noMemory = clusterStates.find((state) =>
-    state.runtime.plan.arm === "no-memory"
+    !isInstalledRuntime(state.runtime)
   );
   if (
     installed === undefined ||
     noMemory === undefined ||
-    !isInstalledRuntime(installed.runtime)
+    !isInstalledRuntime(installed.runtime) ||
+    isInstalledRuntime(noMemory.runtime)
   ) {
     throw new Error("C5 paired host preflight has no exact two-arm binding");
   }
+  const baselineRuntime = noMemory.runtime as C3BaselineArmRuntime;
   const hostConfigurations = await collectC3HostConfigurationEvidence({
     installedRuntime: installed.runtime,
-    noMemoryRuntime: noMemory.runtime as C3NoMemoryArmRuntime,
+    noMemoryRuntime: baselineRuntime,
+    repositoryRoot: installed.repository.path,
   });
   const hostPreflight = await collectC3HostPreflightEvidence({
     baseHealth: {
@@ -1078,11 +1226,14 @@ async function auditClusterWhenReady(input: {
     ),
     installedRuntime: installed.runtime,
     model: input.input.model,
-    noMemoryRuntime: noMemory.runtime as C3NoMemoryArmRuntime,
+    noMemoryRuntime: baselineRuntime,
     npmExecutable: input.input.npmExecutable,
     reasoningEffort: input.input.reasoningEffort,
   });
   const hostEnvironment = parseC5HostEnvironment({
+    ...(isFlatSummaryRuntime(baselineRuntime)
+      ? { baselineArm: "flat-summary" as const }
+      : {}),
     codexFeatures: hostPreflight.codex.features,
     configurations: hostConfigurations,
     goodmemory: {
@@ -1100,10 +1251,15 @@ async function auditClusterWhenReady(input: {
     toolchain: Object.fromEntries(Object.entries(hostPreflight.toolchain).map(
       ([name, tool]) => [name, { sha256: tool.sha256, version: tool.version }],
     )),
+  }, {
+    ...(isFlatSummaryRuntime(baselineRuntime)
+      ? { expectedBaselineHooksSha256: baselineRuntime.hookConfig.sha256 }
+      : {}),
   });
   const comparableHostEnvironmentSha256 =
     hashC5ComparableHostEnvironment(hostEnvironment);
   const hostIdentity = {
+    baselineArm: baselineRuntime.plan.arm,
     codexExecutableSha256: installed.runtime.codex.executableSha256,
     codexVersion: installed.runtime.codex.version,
     goodMemoryPackageSha256: installed.runtime.package.sha256,
@@ -1187,6 +1343,9 @@ function buildTaskDeniedPathValues(input: {
     authFile: input.input.authFile,
     currentPlan: input.currentPlan,
     datasetRoot: input.datasetRoot,
+    ...(input.input.npmCacheSeed === undefined
+      ? {}
+      : { npmCacheSeed: resolve(input.input.npmCacheSeed) }),
     otherPlan: input.otherPlan,
     outputDirectory: input.input.outputDirectory,
     packageTarball: input.input.packageTarball,
@@ -1503,6 +1662,179 @@ function isInstalledRuntime(
   runtime: C5Runtime,
 ): runtime is C3InstalledArmRuntime {
   return runtime.plan.arm === "goodmemory-installed";
+}
+
+function isFlatSummaryRuntime(
+  runtime: C5Runtime,
+): runtime is C3FlatSummaryArmRuntime {
+  return runtime.plan.arm === "flat-summary";
+}
+
+async function readOptionalUtf8(path: string): Promise<string | null> {
+  try {
+    return await readFile(path, "utf8");
+  } catch (error) {
+    if (hasErrorCode(error, "ENOENT")) return null;
+    throw error;
+  }
+}
+
+// Before a flat-summary stage launches Codex, the runner builds the arm's own
+// prior-stage history, generates one capped summary (or none for a no-history
+// stage), audits it against the stage's hidden/gold closure with prior-stage
+// origins attested, and writes it into the arm's injection files. Evidence is
+// persisted next to the stage: the summary text as a raw artifact and a
+// sanitized receipt with hashes, token counts, and provider usage.
+async function prepareC5ComparatorStage(input: {
+  datasetRoot: string;
+  datasetStage: C5DatasetStage;
+  input: C5NativeLongitudinalPilotInput;
+  runtime: C3FlatSummaryArmRuntime;
+  stage: C5PilotStageRun;
+  stageDirectory: string;
+  state: C5NativeTrajectoryState;
+}): Promise<C5ComparatorStagePreparation> {
+  const injectionRoot = input.runtime.plan.paths.injectionRoot;
+  await mkdir(injectionRoot, { recursive: true });
+  await Promise.all([
+    rm(join(injectionRoot, C5_FLAT_SUMMARY_INJECTION_FILES.SessionStart), {
+      force: true,
+    }),
+    rm(join(injectionRoot, C5_FLAT_SUMMARY_INJECTION_FILES.UserPromptSubmit), {
+      force: true,
+    }),
+    rm(join(injectionRoot, C5_FLAT_SUMMARY_RECEIPTS_FILE), { force: true }),
+  ]);
+  const priorStages = input.stage.priorStageIds.map((priorStageId) => {
+    const prior = input.state.stages.get(priorStageId);
+    const datasetPrior = input.state.episode.stages.find((candidate) =>
+      candidate.id === priorStageId
+    );
+    if (prior === undefined || datasetPrior === undefined) {
+      throw new Error(`missing C5 flat-summary history stage ${priorStageId}`);
+    }
+    return {
+      finalMessage: prior.codex.normalized?.finalMessage ?? null,
+      patchDiff: prior.patch.diff,
+      position: datasetPrior.position,
+      prompt: prior.prompt,
+      stageId: priorStageId,
+    };
+  });
+  const history = buildC5FlatSummaryHistory(priorStages);
+  let generation: C5FlatSummaryGeneration | null = null;
+  let injection: C5FlatSummaryInjection;
+  if (priorStages.length === 0) {
+    injection = resolveC5FlatSummaryInjection({ history, summary: null });
+  } else {
+    const comparatorRuntime = input.input.comparatorRuntime;
+    if (comparatorRuntime === undefined) {
+      throw new Error("C5 flat-summary stage has no comparator runtime input");
+    }
+    const leakageInput = await buildC5StageLeakageInput({
+      datasetRoot: input.datasetRoot,
+      episode: input.state.episode,
+      repositoryRoot: input.state.repository.path,
+      stage: input.datasetStage,
+    });
+    const trajectoryOrigins = priorStages.flatMap((priorStage) => {
+      const prior = input.state.stages.get(priorStage.stageId)!;
+      return resolveC5PriorStageTrajectoryOrigins({
+        codexStdout: prior.codex.stdout,
+        patch: prior.patch.diff,
+        prompt: prior.prompt,
+        stageId: `${priorStage.stageId}:flat-summary`,
+      });
+    });
+    generation = await generateC5FlatSummary({
+      apiToken: comparatorRuntime.apiToken,
+      auditLeakage: (summary) => {
+        const audit = auditC5LiveLeakageSurfaces({
+          ...leakageInput,
+          liveSurfaces: [
+            { content: "", id: "effective-codex-input-after-seeding" },
+            { content: summary, id: "flat-summary-after-seeding" },
+            { content: "", id: "goodmemory-export-after-seeding" },
+            { content: "", id: "goodmemory-hook-context-after-seeding" },
+          ],
+          trajectoryOrigins,
+        });
+        return { auditSha256: audit.auditSha256, status: audit.status };
+      },
+      endpoint: comparatorRuntime.summaryEndpoint,
+      history: history.text,
+      maxTokens: C5_FLAT_SUMMARY_USER_PROMPT_SUBMIT_MAX_TOKENS,
+      model: comparatorRuntime.summaryModel,
+      prompt: comparatorRuntime.summaryPrompt,
+    });
+    injection = resolveC5FlatSummaryInjection({
+      history,
+      summary: generation.summary,
+    });
+    await Promise.all([
+      writeFile(
+        join(injectionRoot, C5_FLAT_SUMMARY_INJECTION_FILES.SessionStart),
+        injection.injectedText,
+        "utf8",
+      ),
+      writeFile(
+        join(injectionRoot, C5_FLAT_SUMMARY_INJECTION_FILES.UserPromptSubmit),
+        injection.injectedText,
+        "utf8",
+      ),
+    ]);
+  }
+  const evidenceRoot = join(input.stageDirectory, "flat-summary");
+  await mkdir(evidenceRoot, { recursive: true });
+  const receipt = {
+    generation: generation === null
+      ? null
+      : {
+          leakageAuditSha256: generation.leakageAuditSha256,
+          model: input.input.comparatorRuntime?.summaryModel ?? null,
+          promptSha256: input.input.comparatorRuntime?.summaryPromptSha256 ?? null,
+          redactedRequestSha256: sha256(generation.redactedRequest),
+          requestSha256: generation.requestSha256,
+          responseSha256: generation.responseSha256,
+          usage: generation.usage,
+        },
+    historySourceSha256: history.sha256,
+    injection: {
+      // The verifier binds the pair's "flat-summary-after-seeding" live
+      // surface to these two commitments without the summary text itself.
+      injectedUtf8Bytes: Buffer.byteLength(injection.injectedText, "utf8"),
+      mode: injection.mode,
+      semanticSurfaceCommitmentSha256: sha256(JSON.stringify([
+        injection.injectedText,
+      ])),
+      sessionStart: injection.sessionStart,
+      userPromptSubmit: injection.userPromptSubmit,
+    },
+    priorStageIds: input.stage.priorStageIds,
+    schemaVersion: 1,
+  };
+  const receiptBytes = `${JSON.stringify(receipt, null, 2)}\n`;
+  await Promise.all([
+    writeFile(
+      join(evidenceRoot, "injection.sanitized.json"),
+      receiptBytes,
+      { encoding: "utf8", flag: "wx" },
+    ),
+    writeFile(join(evidenceRoot, "summary.txt"), injection.injectedText, {
+      encoding: "utf8",
+      flag: "wx",
+    }),
+    writeFile(join(evidenceRoot, "history.txt"), history.text, {
+      encoding: "utf8",
+      flag: "wx",
+    }),
+  ]);
+  return {
+    evidenceSha256: sha256(receiptBytes),
+    generation,
+    historySourceSha256: history.sha256,
+    injection,
+  };
 }
 
 function assertCredentialsRevoked(

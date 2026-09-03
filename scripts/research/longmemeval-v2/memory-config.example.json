@@ -1,15 +1,16 @@
 {
   "memory_type": "goodmemory",
   "memory_params": {
+    "accessibility_chunk_bytes": 6000,
     "agent_id": "longmemeval-v2",
     "base_url": "http://127.0.0.1:8739",
-    "batch_size": 8,
-    "max_attempts": 3,
+    "batch_size": 64,
+    "max_attempts": 1,
     "max_screenshots": 8,
     "max_tokens": 200000,
     "retrieval_profile": "general_chat",
     "strategy": "hybrid",
-    "timeout_seconds": 120,
+    "timeout_seconds": 600,
     "token_env": "GOODMEMORY_BRIDGE_TOKEN",
     "user_id": "longmemeval-v2",
     "workspace_id": "replace-with-a-fresh-run-scope"

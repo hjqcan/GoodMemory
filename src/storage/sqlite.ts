@@ -126,6 +126,7 @@ const DOCUMENT_FILTER_INDEX_SCHEMA_COMPONENT = "document_filter_indexes";
 const DOCUMENT_TEXT_KEY_SCHEMA_COMPONENT = "document_text_fts_keys";
 const DOCUMENT_SCHEMA_VERSION = 2;
 const DOCUMENT_FILTER_INDEX_SCHEMA_VERSION = 2;
+const SQLITE_BUSY_TIMEOUT_MS = 1_000;
 
 function ensureSQLiteCustomLibraryConfigured(): SQLiteCustomLibraryConfig {
   if (!sqliteCustomLibraryConfig) {
@@ -163,11 +164,25 @@ function createDatabase(
 ): Database {
   ensureSQLiteCustomLibraryConfigured();
   ensureParentDirectory(path, options);
-  return new Database(path, {
+  const database = new Database(path, {
     create: options?.readOnly ? false : true,
     readonly: options?.readOnly ?? false,
     strict: true,
   });
+  database.exec(`PRAGMA busy_timeout = ${SQLITE_BUSY_TIMEOUT_MS}`);
+  if (!options?.readOnly && path !== ":memory:") {
+    database.exec("PRAGMA journal_mode = WAL");
+  }
+  return database;
+}
+
+export function serializeSQLiteDatabase(path: string): Uint8Array {
+  const database = createDatabase(path, { readOnly: true });
+  try {
+    return database.serialize();
+  } finally {
+    database.close();
+  }
 }
 
 function ensureDocumentSchema(database: Database): void {

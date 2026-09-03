@@ -24,8 +24,12 @@ import {
 import type {
   ScopeBoundRecord,
 } from "./memoryAdminOps";
+import { importMemoryOperation } from "./importMemory";
+import { createFileMirror, type FileMirror } from "../governance/fileMirror";
 import { reviseMemory as reviseMemoryThroughService } from "./revision";
 import type {
+  ImportMemoryResult,
+  ImportMemoryInput,
   BuildContextInput,
   BuildContextResult,
   DeleteAllMemoryInput,
@@ -74,6 +78,7 @@ const FORGETTABLE_COLLECTIONS = [
   "profiles",
   "preferences",
   "references",
+  "notes",
   "episodes",
   SESSION_ARCHIVES_COLLECTION,
   EVIDENCE_COLLECTION,
@@ -176,6 +181,7 @@ class GoodMemoryImpl implements GoodMemory {
   readonly jobs: GoodMemoryJobsFacade;
   readonly runtime: GoodMemoryRuntimeFacade;
   readonly assembly: GoodMemoryAssembly;
+  private readonly fileMirror: FileMirror | undefined;
 
   constructor(
     private readonly config: GoodMemoryConfig,
@@ -192,6 +198,14 @@ class GoodMemoryImpl implements GoodMemory {
     });
     this.jobs = this.assembly.jobs;
     this.runtime = this.assembly.runtime;
+    this.fileMirror = config.governance?.fileMirror
+      ? createFileMirror({
+          config: config.governance.fileMirror,
+          exportMemory: (input) => this.exportMemory(input),
+          tracer: this.assembly.tracer,
+        })
+      : undefined;
+    internal?.fileMirrorHandle?.(this.fileMirror);
   }
 
   recall(input: RecallInput): Promise<RecallResult> {
@@ -237,7 +251,10 @@ class GoodMemoryImpl implements GoodMemory {
         output,
         input.maxTokens,
         input.recall.metadata.routingDecision.retrievalProfile,
-        { suppressDuplicateEvidence: input.suppressDuplicateEvidence === true },
+        {
+          contextFrame: input.contextFrame ?? this.config.governance?.contextFrame ?? true,
+          suppressDuplicateEvidence: input.suppressDuplicateEvidence === true,
+        },
       );
       await trace.succeeded({
         attributes: {
@@ -249,6 +266,7 @@ class GoodMemoryImpl implements GoodMemory {
       return {
         output,
         content: rendered.content,
+        ...(rendered.contextFrame ? { contextFrame: true } : {}),
         estimatedTokens: rendered.estimatedTokens,
         omittedSections: rendered.omittedSections,
         ...(trace.traceId ? { traceId: trace.traceId } : {}),
@@ -362,6 +380,57 @@ class GoodMemoryImpl implements GoodMemory {
       }
 
       return traced;
+    } catch (error) {
+      await trace.failed({ error });
+      throw error;
+    }
+  }
+
+  async importMemory(input: ImportMemoryInput): Promise<ImportMemoryResult> {
+    return this.runScopeMutation(input.scope, () =>
+      this.importMemoryWithinScopeMutation(input)
+    );
+  }
+
+  private async importMemoryWithinScopeMutation(
+    input: ImportMemoryInput,
+  ): Promise<ImportMemoryResult> {
+    const trace = await this.assembly.tracer.start({
+      name: "memory.import",
+      scope: input.scope,
+      attributes: {
+        dryRun: input.dryRun === true,
+        sourceKind: input.source.kind,
+      },
+    });
+
+    try {
+      const result = await importMemoryOperation({
+        documentStore: this.assembly.documentStore,
+        embedding: this.assembly.embeddingAdapter,
+        language: this.assembly.language,
+        now: this.assembly.now,
+        policy: this.config.policy,
+        vectorIndex: this.assembly.revisionVectorIndex,
+      }, input);
+      const completion = {
+        attributes: {
+          conflicts: result.counts.conflicts,
+          imported: result.counts.imported,
+          outcome: result.outcome,
+          rejected: result.counts.rejected,
+          unchanged: result.counts.unchanged,
+        },
+      };
+      if (result.outcome === "rejected") {
+        await trace.blocked(completion);
+      } else {
+        await trace.succeeded(completion);
+      }
+      return {
+        ...result,
+        ...(trace.traceId ? { traceId: trace.traceId } : {}),
+      };
     } catch (error) {
       await trace.failed({ error });
       throw error;
@@ -483,7 +552,7 @@ class GoodMemoryImpl implements GoodMemory {
       },
       input,
     );
-    return this.assembly.scopeDeletion.runExclusive(
+    const deleted = await this.assembly.scopeDeletion.runExclusive(
       input.scope,
       operation,
       {
@@ -497,6 +566,8 @@ class GoodMemoryImpl implements GoodMemory {
           : {}),
       },
     );
+    this.fileMirror?.schedule(input.scope);
+    return deleted;
   }
 
   async feedback(input: FeedbackInput): Promise<FeedbackResult> {
@@ -585,14 +656,16 @@ class GoodMemoryImpl implements GoodMemory {
     }
   }
 
-  private runScopeMutation<T>(
+  private async runScopeMutation<T>(
     scope: MemoryScope,
     operation: () => Promise<T>,
   ): Promise<T> {
     assertStorageSafeExternalValue(scope, "scope");
-    return this.assembly.scopeDeletion
+    const result = await (this.assembly.scopeDeletion
       ? this.assembly.scopeDeletion.runMutation(scope, operation)
-      : operation();
+      : operation());
+    this.fileMirror?.schedule(scope);
+    return result;
   }
 }
 

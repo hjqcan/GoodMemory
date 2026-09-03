@@ -12,6 +12,7 @@ import type {
   C3BoundaryRunner,
   C3InstalledArmRuntime,
   C3NoMemoryArmRuntime,
+  C3BaselineArmRuntime,
 } from "./c3-runtime";
 import { withLoopbackNetworkProbe } from "./loopback-network-probe";
 import { runBoundaryProcess } from "./process";
@@ -84,14 +85,14 @@ export async function auditC3PermissionIsolation(input: {
   deniedReadPaths: ReadonlyArray<{ label: string; path: string }>;
   networkProbe?: (
     run: C3BoundaryRunner,
-    runtime: C3InstalledArmRuntime | C3NoMemoryArmRuntime,
+    runtime: C3InstalledArmRuntime | C3BaselineArmRuntime,
   ) => Promise<{
     networkDenied: boolean;
     networkPositiveControl: boolean;
   }>;
   phase: C3PermissionIsolationPhase;
   runProcess?: C3BoundaryRunner;
-  runtime: C3InstalledArmRuntime | C3NoMemoryArmRuntime;
+  runtime: C3InstalledArmRuntime | C3BaselineArmRuntime;
 }): Promise<C3PermissionIsolationEvidence> {
   if (input.deniedReadPaths.length === 0) {
     throw new Error("C3 permission audit requires at least one denied read path");
@@ -243,7 +244,7 @@ function requirePassedPermissionIsolationAudit(
 
 async function runPermissionProbe(
   run: C3BoundaryRunner,
-  runtime: C3InstalledArmRuntime | C3NoMemoryArmRuntime,
+  runtime: C3InstalledArmRuntime | C3BaselineArmRuntime,
   command: readonly string[],
   options: {
     env?: Record<string, string>;
@@ -269,7 +270,7 @@ async function runPermissionProbe(
 
 async function probeNetworkIsolation(
   run: C3BoundaryRunner,
-  runtime: C3InstalledArmRuntime | C3NoMemoryArmRuntime,
+  runtime: C3InstalledArmRuntime | C3BaselineArmRuntime,
 ): Promise<{
   networkDenied: boolean;
   networkPositiveControl: boolean;
@@ -309,7 +310,7 @@ async function probeNetworkIsolation(
 }
 
 async function buildNetworkProbeEnvironment(
-  runtime: C3InstalledArmRuntime | C3NoMemoryArmRuntime,
+  runtime: C3InstalledArmRuntime | C3BaselineArmRuntime,
   bunExecutable: string,
 ): Promise<Record<string, string>> {
   const nodeCandidate = Bun.which("node");

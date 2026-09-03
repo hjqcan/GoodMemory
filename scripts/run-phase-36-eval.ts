@@ -550,8 +550,9 @@ async function runDomainMetadataExportCase(): Promise<Phase36CaseResult> {
     scope,
   });
   const exported = await memory.exportMemory({ scope });
+  // Domain metadata renders in the topic layer; MEMORY.md is an index only.
   const memoryArtifact = exported.artifacts.files.find(
-    (file) => file.relativePath === "MEMORY.md",
+    (file) => file.relativePath === "topics/facts.md",
   );
 
   return assertCase("domain-metadata-export", "metadata_audit", [

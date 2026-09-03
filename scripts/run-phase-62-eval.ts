@@ -339,6 +339,8 @@ export function createLongMemEvalMemoryFactory(
     // Generalized-fusion dynamic-budget floor for fusion-capable profiles;
     // undefined keeps the preset default (no trimming).
     fusionMinRelativeStrength?: number;
+    // Phase 75 arm: retrieval.longRecordAdmission on every profile.
+    longRecordAdmission?: boolean;
     postgresSchema?: string;
     requestTimeoutMs?: number;
     // R6: injected cue adapter for the retrievalCues maintenance job; the
@@ -389,6 +391,7 @@ export function createLongMemEvalMemoryFactory(
             : {}),
         },
         remember: LONGMEMEVAL_REMEMBER_CONFIG,
+        ...(options.longRecordAdmission ? { retrieval: { longRecordAdmission: true } } : {}),
         storage: {
           provider: "memory",
         },
@@ -412,6 +415,7 @@ export function createLongMemEvalMemoryFactory(
                   options.fusionMinRelativeStrength,
               }
             : {}),
+          ...(options.longRecordAdmission ? { longRecordAdmission: true } : {}),
           preset: "recommended",
         },
         storage: {
@@ -463,6 +467,7 @@ export function createLongMemEvalMemoryFactory(
         ...postgresStorage,
       },
       remember: LONGMEMEVAL_REMEMBER_CONFIG,
+      ...(options.longRecordAdmission ? { retrieval: { longRecordAdmission: true } } : {}),
       storage: {
         provider: "postgres",
         url: postgresUrl,

@@ -1531,6 +1531,9 @@ function validateInput(input: C6CandidatePlanInput): void {
 function validateDataset(
   input: C6CandidatePlanInput,
 ): CodexCodingEffectDatasetV3 {
+  if (input.dataset.schemaVersion !== 3) {
+    throw new Error("C6 candidate requires dataset schema version 3");
+  }
   const parsed = parseCodexCodingEffectDataset(input.dataset);
   if (parsed.schemaVersion !== 3) {
     throw new Error("C6 candidate requires dataset schema version 3");

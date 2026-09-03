@@ -18,6 +18,9 @@ bulk-load. Start here, then open only the file that matches the question.
 
 ## Architecture And Release Baselines
 
+- `../adr/ADR-010-note-memory-kind-file-mirror-and-interchange.txt` - accepted
+  v0.8 boundary for the `note` memory kind, long-record admission, index-only
+  Markdown artifacts, the read-only file mirror, and directory interchange.
 - `../adr/ADR-009-orchestration-and-proof-protocol-boundaries.txt` - accepted
   runtime orchestration, repo-only proof kernel, historical verifier capsule,
   and single-manifest release boundary.
@@ -39,6 +42,9 @@ bulk-load. Start here, then open only the file that matches the question.
 - `GoodMemory-15-Minute-App-Integration.md` - shortest app integration path.
 - `GoodMemory-LanguagePack-Extension-Guide.md` - built-in locale behavior,
   custom language-pack contract, analyzer versioning, and projection migration.
+- `GoodMemory-Memory-Artifact-and-Interchange-Spec.md` - normative artifact
+  tree, note page format, export envelope, import contract, file mirror, and
+  HTTP interchange operations (RFC 2119).
 - `GoodMemory-0.6-to-0.7-Migration-Guide.md` - breaking API/configuration,
   projection cutover, validation, and rollback procedure for the 0.7 upgrade.
 - `GoodMemory-Reference-Integration-Guide.md` - reference consumer pattern.
@@ -97,7 +103,9 @@ bulk-load. Start here, then open only the file that matches the question.
   active source-v4 path is selected through `scripts/research/protocols.json`
   and `scripts/research.ts`; exact registered gates replace the former
   phase-wide glob. Historical C3/C4/C5 and source-v1/v2/v3 scripts remain
-  direct, source-bound replays rather than package aliases.
+  direct, source-bound replays rather than package aliases. Converged
+  2026-09-02 to an internal flat-summary-controlled track; real-history source
+  mining is paused as a diagnostic subset (see the plan's 0.1 addendum).
 - `../scripts/research/protocols.json` - static active-protocol registry with
   source identity, entrypoints, canonical artifacts, exact historical gates,
   and external prerequisites. Historical execution occurs in an isolated

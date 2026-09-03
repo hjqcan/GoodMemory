@@ -344,7 +344,8 @@ describe("goodmemory mcp server standalone mode", () => {
       const listedTools = await client.listTools();
       const toolNames = listedTools.tools.map((tool) => tool.name);
       expect(toolNames).toContain("goodmemory_remember");
-      expect(toolNames).toHaveLength(9);
+      expect(toolNames).toContain("goodmemory_write_note");
+      expect(toolNames).toHaveLength(10);
 
       const rememberResult = await client.callTool({
         arguments: {

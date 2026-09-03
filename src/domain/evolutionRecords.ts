@@ -31,11 +31,7 @@ export interface ExperienceMetrics {
   verificationHintCount?: number;
   latencyMs?: number;
   tokenCount?: number;
-  /** @deprecated since 0.7.3. Retained for historical recall records only. */
-  touchedFactCount?: number;
   verificationPressureFactCount?: number;
-  /** @deprecated since 0.7.3. Retained for historical recall records only. */
-  reinforcedFeedbackCount?: number;
 }
 
 export type ExperienceMetadataValue = boolean | number | string;

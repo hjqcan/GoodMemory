@@ -16,6 +16,7 @@ const EXPECTED_TOOLS = [
   "goodmemory_stats",
   "goodmemory_timeline",
   "goodmemory_trace_recall",
+  "goodmemory_write_note",
 ] as const;
 
 interface KimiManifest {

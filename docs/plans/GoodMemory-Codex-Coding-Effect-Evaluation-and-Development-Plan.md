@@ -5,7 +5,7 @@ Priority: Codex first
 Claude Code: explicitly deferred until the Codex claim gate closes  
 Scope: evaluation and evidence infrastructure; production changes only when a
 real host canary proves a product defect  
-Last reviewed: 2026-07-15
+Last reviewed: 2026-09-02 (convergence addendum in 0.1)
 
 ## 0. Executive Decision
 
@@ -47,6 +47,38 @@ The target claim is narrow:
 
 The first accepted claim must say Codex. It must not say Claude Code, coding
 agents in general, developer productivity in general, or model intelligence.
+
+### 0.1 Convergence addendum (2026-09-02)
+
+The hard decisions above stand, but the working target is re-scoped. C6's
+real-history source mining accepted zero episodes in six weeks while the
+evaluation code grew past the production tree, and the `flat-summary`
+promotion control (6.2) was never executed. From 2026-09-02:
+
+- the active evidence class is internal controlled-continuity effect evidence
+  with a flat-summary control; the public claim, the 391-episode ICC=1 floor,
+  the 10,557-call schedule, and the C7 gate remain fail-closed definitions,
+  not the working target;
+- the next run is `flat-summary` versus `goodmemory-installed` on the accepted
+  C4 dataset through the C5 harness (comparator baseline arm), with the
+  pre-registered +3.0-point positions-two-and-later rule from the frozen gate
+  policy and a positive paired episode-cluster lower bound; a miss closes the
+  lane with a documented negative;
+- Level 2 is built from controlled mutations over real licensed repositories
+  (the `unjs/defu` canary pattern); real-history mining is paused as a
+  diagnostic subset and guarded by
+  `tests/unit/codex-coding-effect.c6-source-mining-freeze.test.ts`;
+- the C5 failure taxonomy produced a product fix: the six host-canary failures
+  were deterministic writeback misses caused by a verb-allowlisted English
+  project-policy detector fitted to the pilot prompts, now replaced by a
+  generic substantive-declaration rule.
+
+The comparator arm is implemented in the C5 harness (`--baseline-arm
+flat-summary` with a frozen summary protocol; see the task board's 2026-09-02
+DONE entry) and awaits a one-cluster live canary, the 36-pair run, and the
+projection/verifier extension. The execution record lives in
+`task-board/78-phase-73-codex-installed-host-coding-effect-evaluation.txt`
+under "Convergence (2026-09-02)".
 
 ## 1. Why This Lane Exists
 
@@ -2216,8 +2248,8 @@ Codex call can begin:
   also rejects a
   primary stratum absent from actual positions-two-and-later expectations,
   negative-control mode/category mismatch, duplicate locked
-  repository content roots, duplicate agent-visible repository-plus-ordered-
-  prompt fingerprints, non-frozen prehistory, a `real-history` label without a
+  repository content roots, duplicate ordered task-content fingerprints,
+  non-frozen prehistory, a `real-history` label without a
   strict asset-locked source record and review-receipt structure, unreviewed
   redistribution, missing
   asset-locked repository paths,
@@ -2253,7 +2285,10 @@ Codex call can begin:
   episode level, then applies the complete matrix to every stage's prehistory,
   feedback, prompt, repository-visible files, the flat-summary prompt, and
   summary output. Declared forbidden file hashes must resolve uniquely inside
-  the evaluator closure and are audited as content, not merely as hash names;
+  the evaluator closure and are audited as content, not merely as hash names.
+  JSON evaluator artifacts additionally contribute typed scalar leaves and
+  nested value relations, so leaking one embedded string or a numerically
+  equivalent rendering cannot evade an otherwise whole-line audit;
 - `c6-gate-policy.ts` schema v4 freezes the positions-two-and-later equal-
   episode estimand, keeps the paired episode bootstrap diagnostic-only, and
   adds canonical upstream repository-family clustering, repository-then-
@@ -2316,9 +2351,12 @@ review-receipt structure. The strict source record includes the
 raw original-request hash, matching repository URL/base commit, an HTTPS
 source locator plus immutable revision, and the exact candidate
 `taskContentSha256`; that fingerprint contains only the agent-visible
-repository tree and ordered prompts and excludes gold, hidden tests,
-expected-file labels, and evaluator metadata. The review receipt hash covers
-the full source record. A dataset-level canonical
+ordered prompt, history, and allowed-feedback inputs and excludes
+repository identity, gold, hidden tests, expected-file labels, and evaluator
+metadata. Repository URL/commit/content identity remains separately frozen and
+validated, so it cannot manufacture task uniqueness or disappear from the
+evidence closure. The review receipt hash covers the full source record. A
+dataset-level canonical
 request/input/dispatch/response/provenance envelope then binds every
 real-history receipt and source record and checks author/reviewer separation.
 The current envelope truthfully records

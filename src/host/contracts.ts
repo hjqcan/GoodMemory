@@ -34,7 +34,8 @@ export type HostArtifactType =
   | "user_memory"
   | "session_memory"
   | "archive_recap"
-  | "playbook";
+  | "playbook"
+  | "topic_page";
 
 export type HostAdapterMode = "file-assisted" | "file-authoritative";
 

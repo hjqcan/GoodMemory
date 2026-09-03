@@ -53,6 +53,9 @@ function failingMemory(onRemember: () => void): (config: GoodMemoryConfig) => Go
       async forget() {
         throw new Error("not used");
       },
+      async importMemory() {
+        throw new Error("importMemory is not implemented by this fake.");
+      },
       async exportMemory() {
         throw new Error("not used");
       },

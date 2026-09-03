@@ -1,6 +1,11 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import type { ExportMemoryResult, RecallResult } from "../api/contracts";
+import type {
+  ExportMemoryResult,
+  ImportMemoryInput,
+  ImportMemoryResult,
+  RecallResult,
+} from "../api/contracts";
 import type { MemoryScope } from "../domain/scope";
 import type { RecallCandidateTrace } from "../recall/engine";
 import type { RecallRetrievalTrace } from "../recall/retrievalTrace";
@@ -27,6 +32,8 @@ import {
   shouldIncludeRuntime,
 } from "./shared";
 
+import { buildNoteRememberInput } from "../remember/noteInput";
+import { loadImportSource } from "./importSource";
 const TOP_RECORD_LIMIT = 3;
 const TRACE_SUPPRESSED_LIMIT = 8;
 function countActiveRecords<TRecord extends { lifecycle?: string }>(
@@ -284,6 +291,8 @@ function buildStatsPayload(input: {
       factsActive: countActiveRecords(result.durable.facts),
       feedback: result.durable.feedback.length,
       feedbackActive: countActiveRecords(result.durable.feedback),
+      notes: (result.durable.notes ?? []).length,
+      notesActive: countActiveRecords(result.durable.notes ?? []),
       preferences: result.durable.preferences.length,
       profile: result.durable.profile ? 1 : 0,
       promotions: result.durable.promotions.length,
@@ -320,6 +329,7 @@ function renderStatsPayload(payload: Record<string, unknown>): string {
     `References: ${counts.references} (active=${counts.referencesActive})`,
     `Facts: ${counts.facts} (active=${counts.factsActive})`,
     `Feedback: ${counts.feedback} (active=${counts.feedbackActive})`,
+    `Notes: ${counts.notes} (active=${counts.notesActive})`,
     `Episodes: ${counts.episodes}`,
     `Archives: ${counts.archives}`,
     `Evidence: ${counts.evidence}`,
@@ -343,6 +353,18 @@ function parseRetrievalProfile(flags: ParsedFlags): "coding_agent" | "general_ch
   throw new Error(
     `Unsupported retrieval profile: ${profile}. Expected general_chat|coding_agent.`,
   );
+}
+
+function parseRememberKind(flags: ParsedFlags): "note" | undefined {
+  const kind = flags.kind;
+  if (kind === undefined) {
+    return undefined;
+  }
+  if (kind === "note") {
+    return kind;
+  }
+
+  throw new Error(`Unsupported remember kind: ${String(kind)}. Expected note.`);
 }
 
 function parseRememberRole(flags: ParsedFlags): "assistant" | "user" {
@@ -522,6 +544,12 @@ async function writeExportMemoryOutput(input: {
       input.result.artifacts.rootPath,
       file.relativePath,
     );
+    await mkdir(dirname(destination), { recursive: true });
+    await writeFile(destination, file.content, "utf8");
+  }
+
+  for (const file of input.result.pages.files) {
+    const destination = join(input.outputPath, file.relativePath);
     await mkdir(dirname(destination), { recursive: true });
     await writeFile(destination, file.content, "utf8");
   }
@@ -728,9 +756,121 @@ async function handleExportMemory(
   };
 }
 
+function parseImportOversize(flags: ParsedFlags): ImportMemoryInput["oversize"] {
+  const value = flags.oversize;
+  if (value === undefined || value === "reject") {
+    return undefined;
+  }
+  if (value === "split") {
+    return "split";
+  }
+  throw new Error(`Unsupported --oversize value: ${value}. Use reject or split.`);
+}
+
+function renderImportPayload(payload: {
+  counts: ImportMemoryResult["counts"];
+  dryRun: boolean;
+  fileCount: number;
+  inputPath: string;
+  inputSha256: string;
+  manifestSha256?: string;
+  outcome: ImportMemoryResult["outcome"];
+  pages: ImportMemoryResult["pages"];
+  reason?: string;
+  scope: MemoryScope;
+  sourceKind: ImportMemoryInput["source"]["kind"];
+  storage: { location: string; provider: CLIStorageConfig["provider"] };
+}): string {
+  const rejected = payload.pages.filter((page) => page.outcome === "rejected");
+  return [
+    `${payload.dryRun ? "Dry-run import from" : "Imported memory from"} ${payload.inputPath}`,
+    `- scope: ${formatScope(payload.scope)}`,
+    `- storage: ${payload.storage.provider} (${payload.storage.location})`,
+    `- source: ${payload.sourceKind} (${payload.fileCount} file${payload.fileCount === 1 ? "" : "s"})`,
+    `- input sha256: ${payload.inputSha256}`,
+    ...(payload.manifestSha256
+      ? [
+          `- manifest sha256: ${
+            payload.manifestSha256 === payload.inputSha256 ? "matches" : "differs"
+          } (${payload.manifestSha256})`,
+        ]
+      : []),
+    `- outcome: ${payload.outcome}${payload.reason ? ` (${payload.reason})` : ""}`,
+    `- counts: ${Object.entries(payload.counts)
+      .map(([key, value]) => `${key}=${value}`)
+      .join(" ")}`,
+    ...rejected.map((page) => `- rejected: ${page.path} (${page.reason ?? "unknown"})`),
+  ].join("\n");
+}
+
+async function handleImportMemory(flags: ParsedFlags): Promise<CLICommandOutput> {
+  const { memory, scope, storage } = await resolveWriteExecutionContext(flags);
+  const inputPath = resolve(requireFlag(flags, "input"));
+  const loaded = await loadImportSource(inputPath);
+  const dryRun = flagEnabled(flags, "dry-run");
+  const expectedSha256 = flags["expect-sha256"];
+  const confirmed = dryRun || flagEnabled(flags, "yes") || Boolean(expectedSha256);
+  const oversize = parseImportOversize(flags);
+  const result = await memory.importMemory({
+    dryRun: !confirmed || dryRun,
+    ...(expectedSha256 ? { expectedSha256 } : {}),
+    ...(flags.locale ? { locale: flags.locale } : {}),
+    ...(oversize ? { oversize } : {}),
+    scope,
+    source: loaded.source,
+  });
+  if (!confirmed) {
+    throw new Error(
+      `Refusing to import ${inputPath} without confirmation. Re-run with --yes, ` +
+        `or pin the input with --expect-sha256 ${result.inputSha256}. ` +
+        "Use --dry-run to preview outcomes.",
+    );
+  }
+
+  const payload = {
+    counts: result.counts,
+    dryRun,
+    fileCount: loaded.fileCount,
+    inputPath,
+    inputSha256: result.inputSha256,
+    ...(loaded.manifestSha256 ? { manifestSha256: loaded.manifestSha256 } : {}),
+    outcome: result.outcome,
+    pages: result.pages,
+    ...(result.reason ? { reason: result.reason } : {}),
+    scope,
+    sourceKind: loaded.source.kind,
+    storage: {
+      location: storage.displayValue,
+      provider: storage.provider,
+    },
+  };
+
+  return {
+    json: payload,
+    text: renderImportPayload(payload),
+  };
+}
+
 async function handleRemember(flags: ParsedFlags): Promise<CLICommandOutput> {
   const { memory, scope, storage } = await resolveWriteExecutionContext(flags);
-  const result = await memory.remember({
+  const kind = parseRememberKind(flags);
+  const result = kind === "note"
+    ? await memory.remember(
+        buildNoteRememberInput({
+          body: requireFlag(flags, "message"),
+          locale: flags.locale,
+          observedAt: flags["observed-at"],
+          reason: "goodmemory remember --kind note",
+          role: parseRememberRole(flags),
+          scope,
+          tags: typeof flags.tags === "string"
+            ? flags.tags.split(",")
+            : undefined,
+          timezone: flags.timezone,
+          title: requireFlag(flags, "title"),
+        }),
+      )
+    : await memory.remember({
     extractionStrategy: parseExtractionStrategy(flags),
     locale: flags.locale,
     messages: [
@@ -868,6 +1008,8 @@ export async function runMemoryCommand(
       return renderOutput(await handleStats(flags), flags);
     case "export-memory":
       return renderOutput(await handleExportMemory(flags), flags);
+    case "import-memory":
+      return renderOutput(await handleImportMemory(flags), flags);
     default:
       throw new Error(`Unknown command: ${primary}. Run 'goodmemory --help'.`);
   }

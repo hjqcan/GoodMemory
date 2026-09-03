@@ -518,7 +518,7 @@ describe("language service", () => {
       "zh-Hant",
     ]);
     expect(manifest.packs.find(({ id }) => id === "en")).toMatchObject({
-      analyzerVersion: "20-durable-optout-boundary",
+      analyzerVersion: "21-explicit-compound-facts",
       apiVersion: 1,
       compatibilityGroup: "en",
       defaultLocale: "en-US",
@@ -526,7 +526,7 @@ describe("language service", () => {
     expect(
       manifest.packs.find(({ id }) => id === "zh-Hant"),
     ).toMatchObject({
-      analyzerVersion: "19-durable-optout-boundary",
+      analyzerVersion: "20-explicit-compound-facts",
       apiVersion: 1,
       compatibilityGroup: "zh-Hant",
       defaultLocale: "zh-Hant",
@@ -1299,5 +1299,45 @@ describe("language service", () => {
     expect(service.isAssistantAcknowledgement("好的。", "zh-CN")).toBe(true);
     expect(service.isAssistantContinuitySignal("我会继续跟进这个阻塞。", "zh-CN")).toBe(true);
     expect(service.isUnresolvedSignal("这个问题后续还要继续跟进。", "zh-CN")).toBe(true);
+  });
+});
+
+describe("tokenOverlapDetail", () => {
+  const PAGE = [
+    "Most MediaWiki sites (Wikipedia, Fandom, many corporate wikis) expose api.php.",
+    "Use action=query with prop=extracts and explaintext=1 to get plain text for a page title.",
+    "For full wikitext use prop=revisions with rvprop=content and rvslots=main.",
+    "Search with list=search and srsearch=<terms>; it returns titles plus snippets.",
+    "Always set a descriptive User-Agent header, otherwise Wikimedia rate-limits or blocks you.",
+    "Fandom wikis need the same calls but under /api.php on the wiki subdomain.",
+    "Category membership is list=categorymembers with cmtitle=Category:Name.",
+    "If you only need a rendered summary, the REST endpoint /api/rest_v1/page/summary/<title> is faster.",
+  ].join(" ");
+
+  it("exposes the intersection and both token-set sizes behind the calibrated overlap", () => {
+    const service = createLanguageService();
+    const detail = service.tokenOverlapDetail(PAGE, "MediaWiki api.php srsearch", "en", {
+      excludeStopwords: true,
+    });
+
+    expect(detail.rightSize).toBe(2);
+    expect(detail.intersection).toBe(2);
+    expect(detail.leftSize).toBeGreaterThan(32);
+  });
+
+  it("keeps tokenOverlap byte-identical to intersection over the larger set", () => {
+    const service = createLanguageService();
+    for (const [left, right] of [
+      [PAGE, "MediaWiki api.php srsearch"],
+      ["Marco is learning RL for robot control.", "What is RL used for?"],
+      ["The runtime rollout is blocked by legal signoff.", "What is the blocker right now?"],
+      ["Alice moved to Paris in 2024.", "Where does Alice live?"],
+    ] as const) {
+      const detail = service.tokenOverlapDetail(left, right, "en", { excludeStopwords: true });
+      const expected = detail.leftSize === 0 || detail.rightSize === 0
+        ? 0
+        : detail.intersection / Math.max(detail.leftSize, detail.rightSize);
+      expect(service.tokenOverlap(left, right, "en", { excludeStopwords: true })).toBe(expected);
+    }
   });
 });

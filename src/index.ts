@@ -95,6 +95,8 @@ export type {
   FeedbackKind,
   FeedbackMemory,
   MemoryScopeKind,
+  NoteFormat,
+  NoteMemory,
   PreferenceMemory,
   ReferenceKind,
   ReferenceMemory,
@@ -107,6 +109,7 @@ export {
   createEpisodeMemory,
   createFactMemory,
   createFeedbackMemory,
+  createNoteMemory,
   createPreferenceMemory,
   createReferenceMemory,
   createSessionBuffer,
@@ -114,6 +117,9 @@ export {
   createUserProfile,
   createWorkingMemorySnapshot,
   isFactExpired,
+  isNoteBodyWithinLimit,
+  NOTE_MAX_BYTES,
+  noteBodyByteLength,
 } from "./domain/records";
 export type {
   EvidenceKind,
@@ -355,6 +361,17 @@ export type {
   MarkdownArtifactFile,
 } from "./governance/markdownArtifacts";
 export type {
+  PageArtifactBundle,
+  PageArtifactFile,
+  PageArtifactManifest,
+  PageArtifactManifestEntry,
+} from "./governance/pageArtifacts";
+export type {
+  FileMirror,
+  FileMirrorConfig,
+  FileMirrorFsPort,
+} from "./governance/fileMirror";
+export type {
   GoodMemoryObservabilityConfig,
   GoodMemoryScopeDigest,
   GoodMemoryTraceAttributeValue,
@@ -412,6 +429,8 @@ export type {
   ForgetResult,
   GoodMemory,
   GoodMemoryConfig,
+  GoodMemoryFileMirrorConfig,
+  GoodMemoryGovernanceConfig,
   GoodMemoryEmbeddingProviderConfig,
   GoodMemoryEmbeddingProviderId,
   GoodMemoryExtractionProviderConfig,

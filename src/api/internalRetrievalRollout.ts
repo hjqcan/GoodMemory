@@ -162,6 +162,9 @@ export function wrapInternalRetrievalRolloutMemory(
     async deleteAllMemory(input) {
       return memory.deleteAllMemory(input);
     },
+    async importMemory(input) {
+      return memory.importMemory(input);
+    },
     async exportMemory(input) {
       return memory.exportMemory(input);
     },

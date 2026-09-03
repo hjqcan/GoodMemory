@@ -1,4 +1,6 @@
+import { c5PlanBaselineArm } from "./c5-pilot-plan";
 import type {
+  C5BaselineArm,
   C5PilotArm,
   C5PilotCluster,
   C5PilotEpisodeArmRun,
@@ -6,14 +8,28 @@ import type {
   C5PilotStageRun,
 } from "./c5-pilot-plan";
 import type { NormalizedCodexUsage } from "./codex-events";
+import { EMPTY_FROZEN_PREHISTORY_SHA256 } from "./frozen-prehistory";
 
 export type C5MemoryChannelStatus = "failed" | "not-applicable" | "passed";
+
+// The flat-summary comparator arm reports what it injected at each stage so
+// the pair can be rejected when the injection disagrees with the arm's own
+// history (zero injection on a stage with prior stages, or content on a
+// no-history stage) or when the native hooks did not fire.
+export interface C5ComparatorInjection {
+  historySourceSha256: string;
+  hookEvaluationPassed: boolean;
+  injectedContentSha256: string | null;
+  injectedTokenCount: number;
+  mode: "content-injection" | "no-history-zero-injection";
+}
 
 export interface C5StageExecution {
   arm: C5PilotArm;
   codexDurationMs: number;
   codexStatus: string;
   codexUsage: NormalizedCodexUsage | null;
+  comparatorInjection?: C5ComparatorInjection | null;
   infrastructureFailureStage: string | null;
   memoryObservation: {
     injectedRecordCount: number;
@@ -117,6 +133,7 @@ export async function runC5LongitudinalPilot<Handle>(input: {
   }) => Promise<void>;
 }): Promise<C5LongitudinalPilotResult> {
   assertC5CoordinatorPlan(input.plan);
+  const baselineArm = c5PlanBaselineArm(input.plan);
   const seenThreadIds = new Set<string>();
   const stageExecutions: C5RecordedStageExecution[] = [];
   const pairs: C5LongitudinalPairResult[] = [];
@@ -143,6 +160,7 @@ export async function runC5LongitudinalPilot<Handle>(input: {
             stage,
           });
           validateExecution(execution, item.run, stage, seenThreadIds);
+          validateComparatorInjection(execution, item.run, stage);
           const recorded = {
             ...execution,
             clusterId: cluster.id,
@@ -180,8 +198,9 @@ export async function runC5LongitudinalPilot<Handle>(input: {
           runs,
           stage,
         });
-        validateEvaluations(evaluations);
+        validateEvaluations(evaluations, baselineArm);
         const pair = buildPairResult({
+          baselineArm,
           cluster,
           evaluations,
           executions,
@@ -249,6 +268,7 @@ function selectedClusters(
 }
 
 function buildPairResult(input: {
+  baselineArm: C5BaselineArm;
   cluster: C5PilotCluster;
   evaluations: C5StageEvaluation[];
   executions: C5RecordedStageExecution[];
@@ -264,6 +284,18 @@ function buildPairResult(input: {
       reasons.push(
         `${execution.arm}-infrastructure-${execution.infrastructureFailureStage}`,
       );
+    }
+    if (execution.arm === "flat-summary") {
+      const injection = execution.comparatorInjection ?? null;
+      const expectedMode = input.stage.priorStageIds.length === 0
+        ? "no-history-zero-injection"
+        : "content-injection";
+      if (injection === null || injection.mode !== expectedMode) {
+        reasons.push("flat-summary-injection-mode-mismatch");
+      }
+      if (injection !== null && !injection.hookEvaluationPassed) {
+        reasons.push("flat-summary-hook-canary-failed");
+      }
     }
   }
   const installed = input.executions.find((execution) =>
@@ -291,21 +323,24 @@ function buildPairResult(input: {
     memoryExpectation: input.stage.memoryExpectation,
     outcome: incomparabilityReasons.length > 0
       ? "incomparable"
-      : pairOutcome(input.evaluations),
+      : pairOutcome(input.evaluations, input.baselineArm),
     repetition: input.cluster.repetition,
     stageId: input.stage.stageId,
   };
 }
 
-function pairOutcome(evaluations: readonly C5StageEvaluation[]): C5PairOutcome {
-  const noMemory = evaluations.find((item) => item.arm === "no-memory")!;
+function pairOutcome(
+  evaluations: readonly C5StageEvaluation[],
+  baselineArm: C5BaselineArm,
+): C5PairOutcome {
+  const baseline = evaluations.find((item) => item.arm === baselineArm)!;
   const installed = evaluations.find((item) =>
     item.arm === "goodmemory-installed"
   )!;
-  if (noMemory.resolved && installed.resolved) {
+  if (baseline.resolved && installed.resolved) {
     return "shared-pass";
   }
-  if (!noMemory.resolved && !installed.resolved) {
+  if (!baseline.resolved && !installed.resolved) {
     return "shared-fail";
   }
   return installed.resolved ? "rescue" : "regression";
@@ -345,11 +380,11 @@ function validateExecution(
     throw new Error("C5 stage execution has invalid resource usage");
   }
   if (
-    run.arm === "no-memory" &&
+    run.arm !== "goodmemory-installed" &&
     (execution.memoryChannelStatus !== "not-applicable" ||
       execution.memoryObservation !== null)
   ) {
-    throw new Error("C5 no-memory execution reported a memory channel");
+    throw new Error(`C5 ${run.arm} execution reported a memory channel`);
   }
   if (!validMemoryObservation(execution.memoryObservation)) {
     throw new Error("C5 stage execution has invalid memory observation");
@@ -383,11 +418,48 @@ function validMemoryObservation(
   ].every((value) => Number.isSafeInteger(value) && value >= 0);
 }
 
-function validateEvaluations(evaluations: readonly C5StageEvaluation[]): void {
+function validateComparatorInjection(
+  execution: C5StageExecution,
+  run: C5PilotEpisodeArmRun,
+  stage: C5PilotStageRun,
+): void {
+  const injection = execution.comparatorInjection ?? null;
+  if (run.arm !== "flat-summary") {
+    if (injection !== null) {
+      throw new Error(`C5 ${run.arm} execution reported a comparator injection`);
+    }
+    return;
+  }
+  if (injection === null) {
+    throw new Error(
+      "C5 flat-summary execution has no comparator injection receipt",
+    );
+  }
+  const zero = injection.mode === "no-history-zero-injection";
+  if (
+    !/^[a-f0-9]{64}$/u.test(injection.historySourceSha256) ||
+    (zero !== (injection.historySourceSha256 === EMPTY_FROZEN_PREHISTORY_SHA256)) ||
+    (zero
+      ? injection.injectedContentSha256 !== null || injection.injectedTokenCount !== 0
+      : injection.injectedContentSha256 === null ||
+        !/^[a-f0-9]{64}$/u.test(injection.injectedContentSha256) ||
+        injection.injectedTokenCount <= 0) ||
+    !Number.isSafeInteger(injection.injectedTokenCount)
+  ) {
+    throw new Error(
+      `C5 flat-summary injection receipt for ${stage.id} is malformed`,
+    );
+  }
+}
+
+function validateEvaluations(
+  evaluations: readonly C5StageEvaluation[],
+  baselineArm: C5BaselineArm,
+): void {
   if (
     evaluations.length !== 2 ||
     new Set(evaluations.map((evaluation) => evaluation.arm)).size !== 2 ||
-    !evaluations.some((evaluation) => evaluation.arm === "no-memory") ||
+    !evaluations.some((evaluation) => evaluation.arm === baselineArm) ||
     !evaluations.some((evaluation) => evaluation.arm === "goodmemory-installed")
   ) {
     throw new Error("C5 pair evaluation must return exactly one result per arm");

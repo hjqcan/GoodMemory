@@ -27,6 +27,7 @@ import {
   validateImplicitMemBenchAdapterManifest,
   withImplicitMemBenchTimeout,
 } from "../../src/eval/implicitmembench-research";
+import { buildPageArtifacts } from "../../src/governance/pageArtifacts";
 
 const FIXTURE_ROOT = join(
   import.meta.dir,
@@ -440,6 +441,7 @@ function createDeleteAllMemoryResult(scope: MemoryScope): DeleteAllMemoryResult 
       promotions: 0,
       proposals: 0,
       references: 0,
+      notes: 0,
       workingMemory: 0,
     },
     scope,
@@ -458,8 +460,12 @@ function createTrackingMemory(deletedScopes: MemoryScope[]): GoodMemory {
       deletedScopes.push(input.scope);
       return createDeleteAllMemoryResult(input.scope);
     },
+    importMemory: async () => {
+      throw new Error("importMemory is not implemented by this fake.");
+    },
     exportMemory: async (input): Promise<ExportMemoryResult> =>
       ({
+        pages: buildPageArtifacts({ notes: [] }),
         artifacts: {
           files: [],
           rootPath: "",
@@ -2243,8 +2249,12 @@ describe("implicitmembench research eval", () => {
               omittedSections: [],
               output: "developer_prompt_fragment",
             }),
+            importMemory: async () => {
+              throw new Error("importMemory is not implemented by this fake.");
+            },
             exportMemory: async (): Promise<ExportMemoryResult> =>
               ({
+                pages: buildPageArtifacts({ notes: [] }),
                 artifacts: { files: [], rootPath: "" },
                 durable: {
                   archives: [],

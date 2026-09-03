@@ -2,6 +2,7 @@ import type {
   EpisodeMemory,
   FactMemory,
   FeedbackMemory,
+  NoteMemory,
   PreferenceMemory,
   ReferenceMemory,
   SessionJournal,
@@ -38,6 +39,14 @@ interface ReferenceRepositoryPort {
     add(reference: ReferenceMemory): Promise<void>;
     get?(id: string): Promise<ReferenceMemory | null>;
     listByScope(scope: MemoryScope): Promise<ReferenceMemory[]>;
+  };
+}
+
+interface NoteRepositoryPort {
+  notes: {
+    add(note: NoteMemory): Promise<void>;
+    get?(id: string): Promise<NoteMemory | null>;
+    listByScope(scope: MemoryScope): Promise<NoteMemory[]>;
   };
 }
 
@@ -135,6 +144,7 @@ export interface RecallRepositoryPort extends
   ProfileRepositoryPort,
   PreferenceRepositoryPort,
   ReferenceRepositoryPort,
+  NoteRepositoryPort,
   FactRepositoryPort,
   FeedbackRepositoryPort,
   ArchiveRepositoryPort,
@@ -146,6 +156,7 @@ export interface RememberRepositoryPort extends
   ProfileRepositoryPort,
   PreferenceRepositoryPort,
   ReferenceRepositoryPort,
+  NoteRepositoryPort,
   FactRepositoryPort,
   FeedbackRepositoryPort,
   EpisodeRepositoryPort {}
@@ -161,6 +172,7 @@ export interface EvolutionRepositoryPort extends
 export interface MaintenanceRepositoryPort extends
   FactRepositoryPort,
   ReferenceRepositoryPort,
+  NoteRepositoryPort,
   ArchiveRepositoryPort,
   EpisodeRepositoryPort,
   ExperienceRepositoryPort {}
@@ -170,6 +182,7 @@ export interface GovernanceRepositoryPort extends
   ProfileRepositoryPort,
   PreferenceRepositoryPort,
   ReferenceRepositoryPort,
+  NoteRepositoryPort,
   FactRepositoryPort,
   FeedbackRepositoryPort,
   ArchiveRepositoryPort,
@@ -200,8 +213,24 @@ export interface EpisodeVectorSearchPort {
   ): Promise<VectorSearchRecord[]>;
 }
 
+export interface NoteVectorSearchPort {
+  searchNoteEmbedding(
+    queryEmbedding: number[],
+    input: { topK: number; filter?: Record<string, unknown> },
+  ): Promise<VectorSearchRecord[]>;
+}
+
 interface FactVectorDeletionPort {
   deleteFactEmbedding(id: string): Promise<void>;
+}
+
+interface NoteVectorDeletionPort {
+  deleteNoteEmbedding(id: string): Promise<void>;
+}
+
+interface NoteVectorMutationPort extends NoteVectorDeletionPort {
+  getNoteEmbedding(id: string): Promise<VectorRecord | null>;
+  upsertNoteEmbedding(records: VectorMutationRecord[]): Promise<void>;
 }
 
 interface ReferenceVectorDeletionPort {
@@ -230,21 +259,25 @@ interface EpisodeVectorMutationPort extends EpisodeVectorDeletionPort {
 export interface RecallVectorSearchPort extends
   FactVectorSearchPort,
   ReferenceVectorSearchPort,
+  NoteVectorSearchPort,
   EpisodeVectorSearchPort {}
 
 export interface RememberVectorPort extends
   FactVectorMutationPort,
   ReferenceVectorMutationPort,
+  NoteVectorMutationPort,
   EpisodeVectorMutationPort {}
 
 export interface MaintenanceVectorPort extends
   FactVectorMutationPort,
   ReferenceVectorMutationPort,
+  NoteVectorMutationPort,
   EpisodeVectorMutationPort {}
 
 export interface GovernanceVectorPort extends
   FactVectorDeletionPort,
   ReferenceVectorDeletionPort,
+  NoteVectorDeletionPort,
   EpisodeVectorDeletionPort {}
 
 export interface VectorMutationRecord {

@@ -105,6 +105,9 @@ export interface Phase69LocomoGateReport {
   generalizedFusion?: boolean;
   generalizedFusionConfig: Phase69GeneralizedFusionConfig | null;
   labelFreeIngest: boolean;
+  // Phase 75 arm marker (top-level on the smoke report; never part of the
+  // Phase 69 retrievalConfig key contract).
+  longRecordAdmission?: boolean;
   questionIds: string[];
   retrievalConfig: Record<string, boolean>;
 }
@@ -837,6 +840,7 @@ export function readLocomoPhase69GateReport(
     categories,
     executionFailures,
     generalizedFusion: value.generalizedFusion === true,
+    ...(value.longRecordAdmission === true ? { longRecordAdmission: true } : {}),
     generalizedFusionConfig: readGeneralizedFusionConfig(
       value.generalizedFusionConfig,
       "LoCoMo generalizedFusionConfig",

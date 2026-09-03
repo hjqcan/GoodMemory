@@ -37,6 +37,11 @@ import type {
   C4LeakageSurface,
 } from "./c4-leakage";
 import { loadCodexCodingEffectDataset } from "./dataset";
+import {
+  C5_FLAT_SUMMARY_SESSION_START_MAX_TOKENS,
+  C5_FLAT_SUMMARY_USER_PROMPT_SUBMIT_MAX_TOKENS,
+  buildC5FlatSummaryHookConfig,
+} from "./c5-flat-summary-arm";
 import { buildC5StageLeakageInput } from "./c5-leakage-input";
 import {
   hashC5ComparableHostEnvironment,
@@ -47,15 +52,28 @@ import {
   isC5StageWritebackRequired,
   resolveC5PriorMemoryLineage,
 } from "./c5-memory-protocol";
+import {
+  C6_FLAT_SUMMARY_INJECTION_COMPOSITION_SHA256,
+  C6_INJECTION_TOKEN_COUNTER_ID,
+  C6_INJECTION_TOKEN_COUNTER_SHA256,
+  C6_NO_HISTORY_ZERO_INJECTION_COMPOSITION_SHA256,
+} from "./c6-flat-summary";
+import { EMPTY_FROZEN_PREHISTORY_SHA256 } from "./frozen-prehistory";
 
 import type {
+  C5BaselineArm,
   C5PilotArm,
   C5PilotCluster,
   C5PilotEpisodeArmRun,
   C5PilotPlan,
   C5PilotStageRun,
 } from "./c5-pilot-plan";
-import { serializeC5PilotPlan } from "./c5-pilot-plan";
+import {
+  C5_COMPARATOR_GENERATION_POLICY,
+  C5_COMPARATOR_INJECTION_CAPS,
+  c5PlanBaselineArm,
+  serializeC5PilotPlan,
+} from "./c5-pilot-plan";
 import { verifyC5PilotPrerequisiteEvidence } from "./c5-readiness";
 import {
   assertC5CanonicalIndependentReviewInstructions,
@@ -125,6 +143,16 @@ const GENERATED_PROJECTION_PATHS = new Set([
   "review/request.md",
 ]);
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
+// The flat-summary comparator's hook runner lives directly under the arm root,
+// so its normalized hooks.json is reproducible from the pinned hook config.
+const FLAT_SUMMARY_HOOK_RUNNER_PLACEHOLDER = "/arm-root/flat-summary-hook.mjs";
+const FLAT_SUMMARY_NORMALIZED_HOOK_CONFIG = buildC5FlatSummaryHookConfig({
+  runnerPath: FLAT_SUMMARY_HOOK_RUNNER_PLACEHOLDER,
+}).replaceAll("/arm-root/", "<arm-root>/");
+const COMPARATOR_INJECTION_REASONS = [
+  "flat-summary-hook-canary-failed",
+  "flat-summary-injection-mode-mismatch",
+] as const;
 
 interface ProjectionFile {
   bytes: number;
@@ -736,6 +764,7 @@ function verifyEvidenceGraph(input: {
   });
   const stageMap = verifyStageExecutions(input.plan, stages);
   const pairMap = verifyPairs(input.plan, pairs);
+  const baselineArm = c5PlanBaselineArm(input.plan);
   const hostIdentityHashes = new Set<string>();
   let hostPreflightCount = 0;
   let opaqueProcessOnlyTrajectoryOriginCount = 0;
@@ -748,6 +777,7 @@ function verifyEvidenceGraph(input: {
       `${root}/host-preflight.sanitized.json`,
     );
     const hostBindings = verifyHostPreflight({
+      baselineArm,
       cluster,
       identity,
       preflight,
@@ -778,6 +808,7 @@ function verifyEvidenceGraph(input: {
         });
         const writtenMemoryIds = verifyStageEvidence({
           codexExecutableSha256: hostBindings.codexExecutableSha256,
+          comparator: frozenComparatorInput(input.plan),
           expectedPriorMemoryIds: priorWrittenMemoryIds,
           expectedPromptSha256: requiredMapValue(
             input.frozenDataset.promptSha256,
@@ -801,7 +832,13 @@ function verifyEvidenceGraph(input: {
       const pairKey = `${cluster.id}/${stage.stageId}`;
       const pair = requiredMapValue(pairMap, pairKey, "C5 pair");
       opaqueProcessOnlyTrajectoryOriginCount += verifyPairEvidence({
+        baselineArm,
         cluster,
+        executions: runs.map((run) => requiredMapValue(
+          stageMap,
+          `${run.id}/${stage.stageId}`,
+          "C5 paired stage execution",
+        )),
         frozenDataset: input.frozenDataset,
         pair,
         reader: input.reader,
@@ -873,12 +910,17 @@ function assertFrozenPlan(plan: C5PilotPlan): void {
     plan.sessionPolicy !== "fresh-codex-process-no-resume-per-stage" ||
     plan.datasetSnapshotMode !== "asset-locked-copy" ||
     plan.datasetId !== "codex-c4-controlled-pilot-v2" ||
-    !sameStrings(plan.arms, ["no-memory", "goodmemory-installed"]) ||
+    !Array.isArray(plan.arms) ||
+    plan.arms.length !== 2 ||
+    (plan.arms[0] !== "no-memory" && plan.arms[0] !== "flat-summary") ||
+    plan.arms[1] !== "goodmemory-installed" ||
     !sameStrings(plan.repetitions.map(String), ["1", "2"]) ||
     !sameStrings(plan.excludedHosts, ["claude-code"])
   ) {
     throw new Error("C5 pilot plan changed its frozen claim or execution boundary");
   }
+  const baselineArm = c5PlanBaselineArm(plan);
+  assertFrozenComparatorProtocol(plan, baselineArm);
   if (
     plan.counts.arms !== 2 ||
     plan.counts.codexProcesses !== 72 ||
@@ -902,10 +944,18 @@ function assertFrozenPlan(plan: C5PilotPlan): void {
   for (const digest of Object.values(plan.bindings)) {
     assertSha256(digest, "C5 plan binding");
   }
+  const randomization = plan.randomization as Record<string, unknown>;
+  const baselineFirstKey = baselineArm === "no-memory"
+    ? "noMemoryFirstClusters"
+    : "baselineFirstClusters";
+  const absentFirstKey = baselineArm === "no-memory"
+    ? "baselineFirstClusters"
+    : "noMemoryFirstClusters";
   if (
     plan.randomization.algorithm !== "sha256-ranked-balanced-pair-order-v1" ||
     plan.randomization.goodMemoryFirstClusters !== 6 ||
-    plan.randomization.noMemoryFirstClusters !== 6 ||
+    randomization[baselineFirstKey] !== 6 ||
+    absentFirstKey in randomization ||
     !Number.isSafeInteger(plan.randomization.orderSeed) ||
     plan.randomization.orderSeed <= 0
   ) {
@@ -928,7 +978,7 @@ function assertFrozenPlan(plan: C5PilotPlan): void {
       cluster.executionPosition > 12 ||
       cluster.armOrder.length !== 2 ||
       new Set(cluster.armOrder).size !== 2 ||
-      !cluster.armOrder.includes("no-memory") ||
+      !cluster.armOrder.includes(baselineArm) ||
       !cluster.armOrder.includes("goodmemory-installed")
     ) {
       throw new Error(`invalid C5 cluster identity ${cluster.id}`);
@@ -1031,6 +1081,65 @@ function assertFrozenPlan(plan: C5PilotPlan): void {
   }
 }
 
+// The flat-summary comparator freezes its summary protocol into the plan:
+// pinned model, prompt bytes, endpoint, the installed profile's injection
+// caps, and zero injection on no-history stages. The no-memory baseline must
+// carry no such block, keeping the legacy plan byte-identical.
+function assertFrozenComparatorProtocol(
+  plan: C5PilotPlan,
+  baselineArm: C5BaselineArm,
+): void {
+  const comparator = (plan as unknown as Record<string, unknown>).comparator;
+  if (baselineArm === "no-memory") {
+    if (comparator !== undefined) {
+      throw new Error("C5 no-memory plan must not carry a comparator protocol");
+    }
+    return;
+  }
+  const protocol = asRecord(comparator, "C5 comparator protocol");
+  assertExactKeys(protocol, [
+    "generationPolicy",
+    "injectionCaps",
+    "noHistoryZeroInjection",
+    "summaryEndpointSha256",
+    "summaryModel",
+    "summaryPromptSha256",
+  ], "C5 comparator protocol");
+  assertExactRecord(
+    protocol.injectionCaps,
+    { ...C5_COMPARATOR_INJECTION_CAPS },
+    "C5 comparator injection caps",
+  );
+  if (
+    protocol.generationPolicy !== C5_COMPARATOR_GENERATION_POLICY ||
+    protocol.noHistoryZeroInjection !== true ||
+    C5_COMPARATOR_INJECTION_CAPS.sessionStart !==
+      C5_FLAT_SUMMARY_SESSION_START_MAX_TOKENS ||
+    C5_COMPARATOR_INJECTION_CAPS.userPromptSubmit !==
+      C5_FLAT_SUMMARY_USER_PROMPT_SUBMIT_MAX_TOKENS ||
+    requiredString(protocol.summaryModel, "C5 comparator model").trim()
+      .length === 0
+  ) {
+    throw new Error("C5 comparator protocol is not the frozen flat-summary protocol");
+  }
+  assertSha256(protocol.summaryEndpointSha256, "C5 comparator endpoint binding");
+  assertSha256(protocol.summaryPromptSha256, "C5 comparator prompt binding");
+}
+
+function frozenComparatorInput(plan: C5PilotPlan): {
+  summaryEndpointSha256: string;
+  summaryModel: string;
+  summaryPromptSha256: string;
+} | undefined {
+  return plan.comparator === undefined
+    ? undefined
+    : {
+        summaryEndpointSha256: plan.comparator.summaryEndpointSha256,
+        summaryModel: plan.comparator.summaryModel,
+        summaryPromptSha256: plan.comparator.summaryPromptSha256,
+      };
+}
+
 async function verifyFrozenDatasetPlan(
   plan: C5PilotPlan,
   planBytes: string,
@@ -1044,8 +1153,11 @@ async function verifyFrozenDatasetPlan(
     typeof verifyC5PilotPrerequisiteEvidence
   >>;
   try {
+    const comparator = frozenComparatorInput(plan);
     prerequisite = await verifyC5PilotPrerequisiteEvidence({
+      baselineArm: c5PlanBaselineArm(plan),
       c4ReadinessWorkspaceRoot: join(readinessWorkspace, "core"),
+      ...(comparator === undefined ? {} : { comparator }),
       datasetRoot: C4_DATASET_ROOT,
       materialEffectPercentagePoints:
         plan.analysis.materialEffectPercentagePoints,
@@ -1133,6 +1245,7 @@ function expectedEvidencePaths(
     `${row.clusterId}/${row.stageId}`,
     row,
   ]));
+  const baselineArm = c5PlanBaselineArm(plan);
   for (const cluster of plan.clusters) {
     const root = trajectoryRoot(cluster.id);
     paths.push(`${root}/host-preflight.sanitized.json`);
@@ -1160,13 +1273,23 @@ function expectedEvidencePaths(
             `${root}/${run.arm}/${stage.stageId}/host-canary/codex-rollout.sanitized.jsonl`,
           );
         }
+        // The comparator's sanitized injection receipt (hashes, token counts,
+        // provider usage) is projected; the summary and history text are not.
+        if (
+          run.arm === "flat-summary" &&
+          execution !== undefined &&
+          execution.comparatorInjection !== null &&
+          execution.comparatorInjection !== undefined
+        ) {
+          paths.push(comparatorReceiptPath(root, stage.stageId));
+        }
       }
     }
     for (const stage of runs[0]!.stages) {
       const pairRoot = `pairs/${clusterDigest(cluster.id)}/${stage.stageId}`;
       paths.push(`${pairRoot}/live-leakage-audit.json`);
       const pair = pairs.get(`${cluster.id}/${stage.stageId}`);
-      for (const arm of ["goodmemory-installed", "no-memory"] as const) {
+      for (const arm of ["goodmemory-installed", baselineArm] as const) {
         const evaluation = Array.isArray(pair?.evaluations)
           ? pair.evaluations.map((value) => asRecord(
               value,
@@ -1395,12 +1518,19 @@ function verifyStageExecutions(
   const threadIds = new Set<string>();
   const runsWithPriorWriteback = new Set<string>();
   for (const row of rows) {
+    const stageRunId = requiredString(row.stageRunId, "C5 stageRunId");
+    const scheduled = expected.get(stageRunId);
+    if (scheduled === undefined || result.has(stageRunId)) {
+      throw new Error(`unexpected or duplicate C5 stage row ${stageRunId}`);
+    }
+    const { run, stage } = scheduled;
     assertExactKeys(row, [
       "arm",
       "clusterId",
       "codexDurationMs",
       "codexStatus",
       "codexUsage",
+      ...(run.arm === "flat-summary" ? ["comparatorInjection"] : []),
       "episodeId",
       "infrastructureFailureStage",
       "memoryObservation",
@@ -1411,12 +1541,6 @@ function verifyStageExecutions(
       "stageRunId",
       "threadId",
     ], "C5 stage ledger row");
-    const stageRunId = requiredString(row.stageRunId, "C5 stageRunId");
-    const scheduled = expected.get(stageRunId);
-    if (scheduled === undefined || result.has(stageRunId)) {
-      throw new Error(`unexpected or duplicate C5 stage row ${stageRunId}`);
-    }
-    const { run, stage } = scheduled;
     const infrastructureFailureStage = row.infrastructureFailureStage;
     if (
       row.arm !== run.arm ||
@@ -1447,12 +1571,15 @@ function verifyStageExecutions(
       }
       threadIds.add(threadId);
     }
-    if (run.arm === "no-memory") {
+    if (run.arm !== "goodmemory-installed") {
       if (
         row.memoryChannelStatus !== "not-applicable" ||
         row.memoryObservation !== null
       ) {
-        throw new Error("C5 no-memory arm reported a memory channel");
+        throw new Error(`C5 ${run.arm} arm reported a memory channel`);
+      }
+      if (run.arm === "flat-summary") {
+        verifyComparatorInjectionRow(row, stageRunId);
       }
     } else {
       const writebackRequired = isC5StageWritebackRequired({
@@ -1491,6 +1618,66 @@ function verifyStageExecutions(
   return result;
 }
 
+// The flat-summary ledger row carries the comparator's injection receipt. A
+// missing receipt is only legitimate when the stage failed before the
+// comparator was prepared; the pair then records the mode mismatch.
+function verifyComparatorInjectionRow(
+  row: Record<string, unknown>,
+  stageRunId: string,
+): void {
+  if (row.comparatorInjection === null) {
+    if (row.infrastructureFailureStage === null) {
+      throw new Error(
+        `C5 flat-summary stage ${stageRunId} completed without an injection receipt`,
+      );
+    }
+    return;
+  }
+  const injection = asRecord(
+    row.comparatorInjection,
+    `C5 flat-summary injection receipt ${stageRunId}`,
+  );
+  assertExactKeys(injection, [
+    "historySourceSha256",
+    "hookEvaluationPassed",
+    "injectedContentSha256",
+    "injectedTokenCount",
+    "mode",
+  ], `C5 flat-summary injection receipt ${stageRunId}`);
+  const historySourceSha256 = requiredSha256(
+    injection.historySourceSha256,
+    `${stageRunId} history source hash`,
+  );
+  const zero = injection.mode === "no-history-zero-injection";
+  if (
+    (injection.mode !== "content-injection" && !zero) ||
+    typeof injection.hookEvaluationPassed !== "boolean" ||
+    !isNonNegativeInteger(injection.injectedTokenCount) ||
+    zero !== (historySourceSha256 === EMPTY_FROZEN_PREHISTORY_SHA256) ||
+    (zero
+      ? injection.injectedContentSha256 !== null ||
+        injection.injectedTokenCount !== 0
+      : !SHA256_PATTERN.test(String(injection.injectedContentSha256)) ||
+        injection.injectedTokenCount === 0 ||
+        injection.injectedTokenCount >
+          C5_FLAT_SUMMARY_USER_PROMPT_SUBMIT_MAX_TOKENS)
+  ) {
+    throw new Error(`C5 flat-summary injection receipt ${stageRunId} is malformed`);
+  }
+}
+
+function comparatorInjectionOf(
+  row: Record<string, unknown>,
+): Record<string, unknown> | null {
+  return row.comparatorInjection === null || row.comparatorInjection === undefined
+    ? null
+    : asRecord(row.comparatorInjection, "C5 comparator injection");
+}
+
+function comparatorReceiptPath(root: string, stageId: string): string {
+  return `${root}/flat-summary/${stageId}/flat-summary/injection.sanitized.json`;
+}
+
 function verifyPairs(
   plan: C5PilotPlan,
   rows: Record<string, unknown>[],
@@ -1498,6 +1685,7 @@ function verifyPairs(
   if (rows.length !== 36) {
     throw new Error("C5 pair ledger must contain exactly 36 rows");
   }
+  const baselineArm = c5PlanBaselineArm(plan);
   const expected: Map<string, {
     cluster: C5PilotCluster;
     stage: C5PilotStageRun;
@@ -1542,8 +1730,10 @@ function verifyPairs(
       throw new Error(`C5 pair ${key} comparability is inconsistent`);
     }
     assertSha256(row.leakageAuditSha256, "C5 leakage audit binding");
-    const evaluations = parsePairEvaluations(row.evaluations, key);
-    const expectedOutcome = comparable ? pairOutcome(evaluations) : "incomparable";
+    const evaluations = parsePairEvaluations(row.evaluations, key, baselineArm);
+    const expectedOutcome = comparable
+      ? pairOutcome(evaluations, baselineArm)
+      : "incomparable";
     if (row.outcome !== expectedOutcome) {
       throw new Error(`C5 pair ${key} outcome is inconsistent`);
     }
@@ -1738,6 +1928,7 @@ function verifyInterruptedTail(value: unknown, label: string): boolean {
 }
 
 function verifyHostPreflight(input: {
+  baselineArm: C5BaselineArm;
   cluster: C5PilotCluster;
   identity: Record<string, unknown>;
   preflight: Record<string, unknown>;
@@ -1770,7 +1961,12 @@ function verifyHostPreflight(input: {
     input.preflight.hostIdentity,
     "C5 host identity",
   );
+  // The baseline arm is recorded in the host identity by comparator-aware
+  // runners; the legacy no-memory identity may omit it, the flat-summary
+  // comparator may not.
+  const identityRecordsBaseline = "baselineArm" in hostIdentity;
   assertExactKeys(hostIdentity, [
+    ...(identityRecordsBaseline ? ["baselineArm"] : []),
     "codexExecutableSha256",
     "codexVersion",
     "goodMemoryPackageSha256",
@@ -1780,6 +1976,13 @@ function verifyHostPreflight(input: {
     "model",
     "reasoningEffort",
   ], "C5 host identity");
+  if (
+    (identityRecordsBaseline &&
+      hostIdentity.baselineArm !== input.baselineArm) ||
+    (!identityRecordsBaseline && input.baselineArm !== "no-memory")
+  ) {
+    throw new Error("C5 host identity is not bound to the plan's baseline arm");
+  }
   const codexExecutableSha256 = requiredSha256(
     hostIdentity.codexExecutableSha256,
     "C5 Codex executable hash",
@@ -1788,6 +1991,18 @@ function verifyHostPreflight(input: {
   const hostEnvironment = parseC5HostEnvironment(
     input.preflight.hostEnvironment,
   );
+  if (
+    input.baselineArm === "no-memory"
+      ? hostEnvironment.baselineArm !== undefined &&
+        hostEnvironment.baselineArm !== "no-memory"
+      : hostEnvironment.baselineArm !== "flat-summary" ||
+        hostEnvironment.configurations.arms.noMemory.hooksConfig
+          ?.normalizedText !== FLAT_SUMMARY_NORMALIZED_HOOK_CONFIG
+  ) {
+    throw new Error(
+      "C5 host environment baseline configuration is not the frozen comparator",
+    );
+  }
   const comparableHostEnvironmentSha256 = requiredSha256(
     hostIdentity.comparableHostEnvironmentSha256,
     "C5 comparable host environment binding",
@@ -1837,24 +2052,25 @@ function verifyHostPreflight(input: {
       "permissionIsolationSha256",
       "taskAliasIsolationSha256",
     ], "C5 host preflight arm");
-    if (arm.arm !== "no-memory" && arm.arm !== "goodmemory-installed") {
+    if (arm.arm !== input.baselineArm && arm.arm !== "goodmemory-installed") {
       throw new Error("C5 host preflight has an unknown arm");
     }
-    if (byArm.has(arm.arm)) {
+    const armName = arm.arm as C5PilotArm;
+    if (byArm.has(armName)) {
       throw new Error("C5 host preflight duplicated an arm");
     }
     assertSha256(arm.instructionSha256, "C5 instruction binding");
     const permissionPath =
-      `${input.root}/${arm.arm}/permission-isolation-preflight.sanitized.json`;
-    const aliasPath = `${input.root}/${arm.arm}/task-alias-isolation.json`;
+      `${input.root}/${armName}/permission-isolation-preflight.sanitized.json`;
+    const aliasPath = `${input.root}/${armName}/task-alias-isolation.json`;
     if (
       arm.permissionIsolationSha256 !== sha256(input.reader.bytes(permissionPath)) ||
       arm.taskAliasIsolationSha256 !== sha256(input.reader.bytes(aliasPath))
     ) {
-      throw new Error(`C5 host preflight evidence hash mismatch for ${arm.arm}`);
+      throw new Error(`C5 host preflight evidence hash mismatch for ${armName}`);
     }
-    verifyNoMemoryAbsence(arm.arm, arm.noMemoryAbsence);
-    byArm.set(arm.arm, arm);
+    verifyNoMemoryAbsence(armName, arm.noMemoryAbsence);
+    byArm.set(armName, arm);
   }
   const instructionHashes = new Set(
     [...byArm.values()].map((arm) => arm.instructionSha256),
@@ -1873,6 +2089,9 @@ function verifyHostPreflight(input: {
   };
 }
 
+// Both baselines must be free of GoodMemory files, MCP registration, and
+// prior sessions. The flat-summary comparator alone carries a hooks.json (its
+// own SessionStart/UserPromptSubmit runner), which the preflight audits.
 function verifyNoMemoryAbsence(
   arm: C5PilotArm,
   value: unknown,
@@ -1883,22 +2102,22 @@ function verifyNoMemoryAbsence(
     }
     return;
   }
-  const absence = asRecord(value, "C5 no-memory absence audit");
+  const absence = asRecord(value, `C5 ${arm} absence audit`);
   assertExactKeys(absence, [
     "goodMemoryFileCount",
     "hookConfigPresent",
     "mcpConfigPresent",
     "passed",
     "preexistingSessionCount",
-  ], "C5 no-memory absence audit");
+  ], `C5 ${arm} absence audit`);
   if (
     absence.passed !== true ||
     absence.goodMemoryFileCount !== 0 ||
-    absence.hookConfigPresent !== false ||
+    absence.hookConfigPresent !== (arm === "flat-summary") ||
     absence.mcpConfigPresent !== false ||
     absence.preexistingSessionCount !== 0
   ) {
-    throw new Error("C5 no-memory arm contains GoodMemory or prior session state");
+    throw new Error(`C5 ${arm} arm contains GoodMemory or prior session state`);
   }
 }
 
@@ -2009,6 +2228,7 @@ function verifyTaskAliasIsolation(
 
 function verifyStageEvidence(input: {
   codexExecutableSha256: string;
+  comparator: ReturnType<typeof frozenComparatorInput>;
   expectedPriorMemoryIds: readonly string[];
   expectedPromptSha256: string;
   execution: Record<string, unknown>;
@@ -2028,6 +2248,7 @@ function verifyStageEvidence(input: {
   assertExactKeys(evidence, [
     "canaryEvidenceSha256",
     "codex",
+    ...(input.run.arm === "flat-summary" ? ["comparatorEvidenceSha256"] : []),
     "effectivePromptSha256",
     "events",
     "execution",
@@ -2092,9 +2313,21 @@ function verifyStageEvidence(input: {
   } else {
     verifyVisibleBaseHealth(evidence.visibleBaseHealth, input.stagePath);
   }
-  if (input.run.arm === "no-memory") {
+  if (input.run.arm !== "goodmemory-installed") {
     if (evidence.canaryEvidenceSha256 !== null) {
-      throw new Error("C5 no-memory stage unexpectedly contains host canary evidence");
+      throw new Error(
+        `C5 ${input.run.arm} stage unexpectedly contains host canary evidence`,
+      );
+    }
+    if (input.run.arm === "flat-summary") {
+      verifyComparatorStageEvidence({
+        comparator: input.comparator,
+        evidence,
+        execution: input.execution,
+        reader: input.reader,
+        root: input.root,
+        stage: input.stage,
+      });
     }
     return [];
   }
@@ -2120,6 +2353,129 @@ function verifyStageEvidence(input: {
     stage: input.stage,
     writebackRequired: input.writebackRequired,
   });
+}
+
+// The flat-summary stage binds its sanitized injection receipt by hash. The
+// receipt must agree with the ledger row, the frozen comparator protocol, and
+// the C6 injection-budget contract; the summary text itself is never projected.
+function verifyComparatorStageEvidence(input: {
+  comparator: ReturnType<typeof frozenComparatorInput>;
+  evidence: Record<string, unknown>;
+  execution: Record<string, unknown>;
+  reader: ArtifactReader;
+  root: string;
+  stage: C5PilotStageRun;
+}): void {
+  const injection = comparatorInjectionOf(input.execution);
+  if (injection === null) {
+    if (input.evidence.comparatorEvidenceSha256 !== null) {
+      throw new Error(
+        `C5 flat-summary stage ${input.stage.id} binds a receipt it never produced`,
+      );
+    }
+    return;
+  }
+  if (input.comparator === undefined) {
+    throw new Error("C5 flat-summary stage evidence requires the comparator protocol");
+  }
+  const path = comparatorReceiptPath(input.root, input.stage.stageId);
+  const bytes = input.reader.bytes(path);
+  if (input.evidence.comparatorEvidenceSha256 !== sha256(bytes)) {
+    throw new Error(`C5 comparator receipt hash mismatch: ${input.stage.id}`);
+  }
+  const receipt = input.reader.json(path);
+  assertExactKeys(receipt, [
+    "generation",
+    "historySourceSha256",
+    "injection",
+    "priorStageIds",
+    "schemaVersion",
+  ], path);
+  const zero = injection.mode === "no-history-zero-injection";
+  if (
+    receipt.schemaVersion !== 1 ||
+    receipt.historySourceSha256 !== injection.historySourceSha256 ||
+    !sameStrings(
+      stringArray(receipt.priorStageIds, `${path} prior stage IDs`),
+      input.stage.priorStageIds,
+    )
+  ) {
+    throw new Error(`${path} is not bound to its stage history`);
+  }
+  const record = asRecord(receipt.injection, `${path} injection`);
+  assertExactKeys(record, [
+    "injectedUtf8Bytes",
+    "mode",
+    "semanticSurfaceCommitmentSha256",
+    "sessionStart",
+    "userPromptSubmit",
+  ], `${path} injection`);
+  const expectedContentSha256 = zero
+    ? sha256("")
+    : requiredSha256(injection.injectedContentSha256, `${path} content hash`);
+  if (
+    record.mode !== injection.mode ||
+    !isNonNegativeInteger(record.injectedUtf8Bytes) ||
+    (zero
+      ? record.injectedUtf8Bytes !== 0 ||
+        record.semanticSurfaceCommitmentSha256 !==
+          sha256(JSON.stringify([""]))
+      : record.injectedUtf8Bytes === 0 ||
+        !SHA256_PATTERN.test(String(record.semanticSurfaceCommitmentSha256)))
+  ) {
+    throw new Error(`${path} injection surface commitments are inconsistent`);
+  }
+  for (const [placement, cap] of [
+    ["sessionStart", C5_FLAT_SUMMARY_SESSION_START_MAX_TOKENS],
+    ["userPromptSubmit", C5_FLAT_SUMMARY_USER_PROMPT_SUBMIT_MAX_TOKENS],
+  ] as const) {
+    assertExactRecord(record[placement], {
+      arm: "flat-summary",
+      compositionSha256: zero
+        ? C6_NO_HISTORY_ZERO_INJECTION_COMPOSITION_SHA256
+        : C6_FLAT_SUMMARY_INJECTION_COMPOSITION_SHA256,
+      contentSha256: expectedContentSha256,
+      historySourceSha256: injection.historySourceSha256,
+      injectedTokenCount: injection.injectedTokenCount,
+      injectionMode: injection.mode,
+      maxInjectedTokens: cap,
+      schemaVersion: 2,
+      tokenCounterId: C6_INJECTION_TOKEN_COUNTER_ID,
+      tokenCounterSha256: C6_INJECTION_TOKEN_COUNTER_SHA256,
+    }, `${path} ${placement} budget receipt`);
+  }
+  if (zero) {
+    if (receipt.generation !== null) {
+      throw new Error(`${path} generated a summary for a no-history stage`);
+    }
+    return;
+  }
+  const generation = asRecord(receipt.generation, `${path} generation`);
+  assertExactKeys(generation, [
+    "leakageAuditSha256",
+    "model",
+    "promptSha256",
+    "redactedRequestSha256",
+    "requestSha256",
+    "responseSha256",
+    "usage",
+  ], `${path} generation`);
+  if (
+    generation.model !== input.comparator.summaryModel ||
+    generation.promptSha256 !== input.comparator.summaryPromptSha256 ||
+    generation.usage === null
+  ) {
+    throw new Error(`${path} summary was not generated by the frozen protocol`);
+  }
+  for (const key of [
+    "leakageAuditSha256",
+    "redactedRequestSha256",
+    "requestSha256",
+    "responseSha256",
+  ]) {
+    assertSha256(generation[key], `${path} generation ${key}`);
+  }
+  verifyUsage(generation.usage, `${path} generation`);
 }
 
 function verifyCodexStageSummary(
@@ -3019,7 +3375,9 @@ function verifySanitizedTranscript(input: {
 }
 
 function verifyPairEvidence(input: {
+  baselineArm: C5BaselineArm;
   cluster: C5PilotCluster;
+  executions: readonly Record<string, unknown>[];
   frozenDataset: FrozenC5DatasetVerification;
   pair: Record<string, unknown>;
   reader: ArtifactReader;
@@ -3037,6 +3395,7 @@ function verifyPairEvidence(input: {
   );
   const opaqueProcessOnlyTrajectoryOriginCount = verifyLeakageAudit({
     audit: leakage,
+    baselineArm: input.baselineArm,
     episodeId: input.cluster.episodeId,
     expectedPromptContents: input.frozenDataset.promptContents,
     leakageInput,
@@ -3049,19 +3408,28 @@ function verifyPairEvidence(input: {
     input.pair.incomparabilityReasons,
     `${input.cluster.id}/${input.stage.stageId} incomparability reasons`,
   );
-  if (
-    (leakage.status === "rejected") !==
-      pairReasons.includes("live-leakage-audit-rejected")
-  ) {
-    throw new Error(`C5 pair leakage rejection was not accounted for: ${input.cluster.id}`);
-  }
   if (input.pair.leakageAuditSha256 !== leakage.auditSha256) {
     throw new Error(`C5 pair leakage binding mismatch: ${input.cluster.id}`);
   }
   const pairEvaluations = parsePairEvaluations(
     input.pair.evaluations,
     `${input.cluster.id}/${input.stage.stageId}`,
+    input.baselineArm,
   );
+  // Comparability is recomputed from the pair's own evidence: leakage
+  // rejection, per-arm infrastructure failures, the comparator's injection
+  // receipt, the required memory channel, and evaluator failures.
+  const expectedReasons = expectedIncomparabilityReasons({
+    evaluations: pairEvaluations,
+    executions: input.executions,
+    leakageRejected: leakage.status === "rejected",
+    stage: input.stage,
+  });
+  if (!sameStrings([...pairReasons].sort(), expectedReasons)) {
+    throw new Error(
+      `C5 pair incomparability was not reproduced: ${input.cluster.id}/${input.stage.stageId}`,
+    );
+  }
   for (const evaluation of pairEvaluations) {
     const path = evaluation.disposition === "infrastructure-failure"
       ? `${pairRoot}/${evaluation.arm}-evaluation-failure.sanitized.json`
@@ -3083,18 +3451,61 @@ function verifyPairEvidence(input: {
         path,
       });
     }
-    if (
-      evaluation.disposition === "infrastructure-failure" &&
-      !pairReasons.includes(`${evaluation.arm}-evaluator-infrastructure-failure`)
-    ) {
-      throw new Error(`C5 evaluator failure was not accounted for: ${path}`);
-    }
   }
   return opaqueProcessOnlyTrajectoryOriginCount;
 }
 
+function expectedIncomparabilityReasons(input: {
+  evaluations: readonly ParsedPairEvaluation[];
+  executions: readonly Record<string, unknown>[];
+  leakageRejected: boolean;
+  stage: C5PilotStageRun;
+}): string[] {
+  const reasons: string[] = [];
+  if (input.leakageRejected) {
+    reasons.push("live-leakage-audit-rejected");
+  }
+  for (const execution of input.executions) {
+    const arm = requiredString(execution.arm, "C5 paired execution arm");
+    if (execution.infrastructureFailureStage !== null) {
+      reasons.push(`${arm}-infrastructure-${requiredString(
+        execution.infrastructureFailureStage,
+        "C5 paired infrastructure failure stage",
+      )}`);
+    }
+    if (arm === "flat-summary") {
+      const injection = comparatorInjectionOf(execution);
+      const expectedMode = input.stage.priorStageIds.length === 0
+        ? "no-history-zero-injection"
+        : "content-injection";
+      if (injection === null || injection.mode !== expectedMode) {
+        reasons.push(COMPARATOR_INJECTION_REASONS[1]);
+      }
+      if (injection !== null && injection.hookEvaluationPassed !== true) {
+        reasons.push(COMPARATOR_INJECTION_REASONS[0]);
+      }
+    }
+  }
+  const installed = input.executions.find((execution) =>
+    execution.arm === "goodmemory-installed"
+  );
+  if (
+    input.stage.memoryExpectation === "required" &&
+    installed?.memoryChannelStatus !== "passed"
+  ) {
+    reasons.push("goodmemory-required-memory-channel-failed");
+  }
+  for (const evaluation of input.evaluations) {
+    if (evaluation.disposition === "infrastructure-failure") {
+      reasons.push(`${evaluation.arm}-evaluator-infrastructure-failure`);
+    }
+  }
+  return [...new Set(reasons)].sort();
+}
+
 function verifyLeakageAudit(input: {
   audit: Record<string, unknown>;
+  baselineArm: C5BaselineArm;
   episodeId: string;
   expectedPromptContents: ReadonlyMap<string, string>;
   leakageInput: {
@@ -3137,6 +3548,7 @@ function verifyRejectedLeakageAudit(
 
 function verifyCompleteLeakageAudit(input: {
   audit: Record<string, unknown>;
+  baselineArm: C5BaselineArm;
   episodeId: string;
   expectedPromptContents: ReadonlyMap<string, string>;
   leakageInput: {
@@ -3370,6 +3782,7 @@ function verifyCompleteLeakageAudit(input: {
 
 function verifyLiveSurfaceReceipts(input: {
   audit: Record<string, unknown>;
+  baselineArm: C5BaselineArm;
   episodeId: string;
   expectedPromptContents: ReadonlyMap<string, string>;
   label: string;
@@ -3415,6 +3828,7 @@ function verifyLiveSurfaceReceipts(input: {
     };
   });
   const byId = new Map(receipts.map((receipt) => [receipt.id, receipt]));
+  const comparatorSurface = expectedComparatorSurface(input);
   const hostCanary = input.reader.json(
     `${input.root}/goodmemory-installed/${input.stage.stageId}/host-canary/host-canary.sanitized.json`,
   );
@@ -3428,11 +3842,17 @@ function verifyLiveSurfaceReceipts(input: {
     `${input.label} host-canary live surface hashes`,
   );
   for (const receipt of receipts) {
+    const canarySha256 = requiredSha256(
+      liveSurfaceSha256[receipt.id],
+      `${input.label} host-canary live surface hash`,
+    );
+    // The installed host never carries a flat summary; that surface is bound
+    // to the comparator arm's injection receipt instead of the host canary.
+    const flat = receipt.id === "flat-summary-after-seeding";
     if (
-      requiredSha256(
-        liveSurfaceSha256[receipt.id],
-        `${input.label} host-canary live surface hash`,
-      ) !== receipt.contentSha256
+      (flat && canarySha256 !== sha256("")) ||
+      receipt.contentSha256 !==
+        (flat ? comparatorSurface.contentSha256 : canarySha256)
     ) {
       throw new Error(`${input.label} live surface is not bound to host canary`);
     }
@@ -3461,7 +3881,10 @@ function verifyLiveSurfaceReceipts(input: {
         `${input.label} effective-input semantic commitment`,
       ),
     ],
-    ["flat-summary-after-seeding", sha256(JSON.stringify([""]))],
+    [
+      "flat-summary-after-seeding",
+      comparatorSurface.semanticSurfaceCommitmentSha256,
+    ],
     [
       "goodmemory-export-after-seeding",
       requiredSha256(
@@ -3526,8 +3949,8 @@ function verifyLiveSurfaceReceipts(input: {
     effectiveInput.promptSha256 !== sha256(prompt) ||
     effective.utf8Bytes !== Buffer.byteLength(prompt, "utf8") +
       (hookUtf8Bytes === 0 ? 0 : 2 + hookUtf8Bytes) ||
-    flat.contentSha256 !== sha256("") ||
-    flat.utf8Bytes !== 0 ||
+    flat.contentSha256 !== comparatorSurface.contentSha256 ||
+    flat.utf8Bytes !== comparatorSurface.utf8Bytes ||
     exported.contentSha256 !== sources.memoryExportSha256 ||
     !isNonNegativeInteger(memoryExport.utf8Bytes) ||
     exported.utf8Bytes !== memoryExport.utf8Bytes ||
@@ -3543,6 +3966,56 @@ function verifyLiveSurfaceReceipts(input: {
     throw new Error(`${input.label} empty-hook surfaces drifted from the prompt`);
   }
   return byId;
+}
+
+// The comparator's live surface for a pair is what the flat-summary arm
+// injected at that stage: nothing for the no-memory baseline, for no-history
+// stages, or when the comparator was never prepared; otherwise the receipt's
+// content hash, byte length, and semantic commitment.
+function expectedComparatorSurface(input: {
+  baselineArm: C5BaselineArm;
+  reader: ArtifactReader;
+  root: string;
+  stage: C5PilotStageRun;
+}): {
+  contentSha256: string;
+  semanticSurfaceCommitmentSha256: string;
+  utf8Bytes: number;
+} {
+  const empty = {
+    contentSha256: sha256(""),
+    semanticSurfaceCommitmentSha256: sha256(JSON.stringify([""])),
+    utf8Bytes: 0,
+  };
+  if (input.baselineArm !== "flat-summary") return empty;
+  const evidence = input.reader.json(
+    `${input.root}/flat-summary/${input.stage.stageId}/stage-execution.sanitized.json`,
+  );
+  const injection = comparatorInjectionOf(
+    asRecord(evidence.execution, "C5 flat-summary stage execution"),
+  );
+  if (injection === null || injection.mode !== "content-injection") {
+    return empty;
+  }
+  const path = comparatorReceiptPath(input.root, input.stage.stageId);
+  const record = asRecord(
+    input.reader.json(path).injection,
+    `${path} injection`,
+  );
+  if (!isNonNegativeInteger(record.injectedUtf8Bytes)) {
+    throw new Error(`${path} injected byte length is invalid`);
+  }
+  return {
+    contentSha256: requiredSha256(
+      injection.injectedContentSha256,
+      `${path} injected content hash`,
+    ),
+    semanticSurfaceCommitmentSha256: requiredSha256(
+      record.semanticSurfaceCommitmentSha256,
+      `${path} semantic surface commitment`,
+    ),
+    utf8Bytes: record.injectedUtf8Bytes,
+  };
 }
 
 function verifyStaticMatrixCells(
@@ -3665,6 +4138,7 @@ function verifyInternalAuditHash(
 
 function verifyTrajectoryOrigins(input: {
   audit: Record<string, unknown>;
+  baselineArm: C5BaselineArm;
   episodeId: string;
   expectedPromptContents: ReadonlyMap<string, string>;
   leakageInput: {
@@ -3689,45 +4163,63 @@ function verifyTrajectoryOrigins(input: {
       }
     | { kind: "process-only-codex-jsonl-output" }
   >();
+  // Prior-stage origins come from the installed arm and, for the flat-summary
+  // comparator, from the comparator's own prior stages (its summary is built
+  // from them), keyed with the runner's ":flat-summary" suffix.
+  const originArms: Array<{
+    arm: C5PilotArm;
+    originId: (stageId: string) => string;
+  }> = [
+    { arm: "goodmemory-installed", originId: (stageId) => stageId },
+    ...(input.baselineArm === "flat-summary"
+      ? [{
+          arm: "flat-summary" as const,
+          originId: (stageId: string) => `${stageId}:flat-summary`,
+        }]
+      : []),
+  ];
   for (const priorStageId of input.stage.priorStageIds) {
-    const priorEvidence = input.reader.json(
-      `${input.root}/goodmemory-installed/${priorStageId}/stage-execution.sanitized.json`,
-    );
     const prompt = requiredMapValue(
       input.expectedPromptContents,
       `${input.episodeId}/${priorStageId}`,
       "C5 frozen prior prompt",
     );
-    const promptSha256 = requiredSha256(
-      priorEvidence.effectivePromptSha256,
-      `${input.label} prior effective prompt hash`,
-    );
-    if (promptSha256 !== sha256(prompt)) {
-      throw new Error(`${input.label} prior prompt is not asset-locked`);
-    }
-    expected.set(`${priorStageId}:effective-prompt`, {
-      audit: buildC5OriginMatrixAudit(input.leakageInput, prompt),
-      kind: "content-recomputed",
-      sha256: promptSha256,
-    });
-    const patch = input.reader.bytes(
-      `${input.root}/goodmemory-installed/${priorStageId}/agent.patch`,
-    );
-    if (patch.length > 0) {
-      expected.set(`${priorStageId}:agent-patch`, {
-        audit: buildC5OriginMatrixAudit(input.leakageInput, patch),
+    for (const { arm, originId } of originArms) {
+      const id = originId(priorStageId);
+      const priorEvidence = input.reader.json(
+        `${input.root}/${arm}/${priorStageId}/stage-execution.sanitized.json`,
+      );
+      const promptSha256 = requiredSha256(
+        priorEvidence.effectivePromptSha256,
+        `${input.label} prior effective prompt hash`,
+      );
+      if (promptSha256 !== sha256(prompt)) {
+        throw new Error(`${input.label} prior prompt is not asset-locked`);
+      }
+      expected.set(`${id}:effective-prompt`, {
+        audit: buildC5OriginMatrixAudit(input.leakageInput, prompt),
         kind: "content-recomputed",
-        sha256: sha256(patch),
+        sha256: promptSha256,
       });
-    }
-    const codex = asRecord(
-      priorEvidence.codex,
-      `${input.label} prior Codex summary`,
-    );
-    if (Number(codex.eventCount) > 0) {
-      expected.set(`${priorStageId}:codex-jsonl-output`, {
-        kind: "process-only-codex-jsonl-output",
-      });
+      const patch = input.reader.bytes(
+        `${input.root}/${arm}/${priorStageId}/agent.patch`,
+      );
+      if (patch.length > 0) {
+        expected.set(`${id}:agent-patch`, {
+          audit: buildC5OriginMatrixAudit(input.leakageInput, patch),
+          kind: "content-recomputed",
+          sha256: sha256(patch),
+        });
+      }
+      const codex = asRecord(
+        priorEvidence.codex,
+        `${input.label} prior Codex summary`,
+      );
+      if (Number(codex.eventCount) > 0) {
+        expected.set(`${id}:codex-jsonl-output`, {
+          kind: "process-only-codex-jsonl-output",
+        });
+      }
     }
   }
   const values = asArray(
@@ -4085,7 +4577,11 @@ interface ParsedPairEvaluation {
   taskFailureReasons: string[];
 }
 
-function parsePairEvaluations(value: unknown, label: string): ParsedPairEvaluation[] {
+function parsePairEvaluations(
+  value: unknown,
+  label: string,
+  baselineArm: C5BaselineArm,
+): ParsedPairEvaluation[] {
   const values = asArray(value, `${label} evaluations`);
   if (values.length !== 2) {
     throw new Error(`${label} must contain exactly two evaluations`);
@@ -4102,7 +4598,7 @@ function parsePairEvaluations(value: unknown, label: string): ParsedPairEvaluati
       "taskFailureReasons",
     ], `${label} evaluation`);
     if (
-      (evaluation.arm !== "no-memory" &&
+      (evaluation.arm !== baselineArm &&
         evaluation.arm !== "goodmemory-installed") ||
       (evaluation.disposition !== "finalized" &&
         evaluation.disposition !== "infrastructure-failure") ||
@@ -4110,7 +4606,7 @@ function parsePairEvaluations(value: unknown, label: string): ParsedPairEvaluati
     ) {
       throw new Error(`${label} contains invalid evaluator evidence`);
     }
-    const arm = evaluation.arm;
+    const arm = evaluation.arm as C5PilotArm;
     if (arms.has(arm)) {
       throw new Error(`${label} duplicated an evaluated arm`);
     }
@@ -4293,6 +4789,7 @@ function verifyReport(input: {
     "acceptance",
     "attempts",
     "claimBoundary",
+    "comparatorInjection",
     "effect",
     "evidenceClass",
     "failureTaxonomy",
@@ -4332,6 +4829,7 @@ function verifyReport(input: {
     status: "accepted",
   }, "C5 report acceptance");
 
+  const baselineArm = c5PlanBaselineArm(input.plan);
   const installed = input.stages.filter((stage) =>
     stage.arm === "goodmemory-installed"
   );
@@ -4340,6 +4838,32 @@ function verifyReport(input: {
       ? []
       : [asRecord(stage.codexUsage, "C5 report usage")]
   );
+  const comparatorReceipts = input.stages
+    .filter((stage) => stage.arm === "flat-summary")
+    .map((stage) => comparatorInjectionOf(stage));
+  const expectedComparatorInjection = baselineArm !== "flat-summary"
+    ? null
+    : {
+        contentInjectionCount: comparatorReceipts.filter((receipt) =>
+          receipt?.mode === "content-injection"
+        ).length,
+        hookCanaryFailureCount: comparatorReceipts.filter((receipt) =>
+          receipt === null || receipt.hookEvaluationPassed !== true
+        ).length,
+        injectedTokensTotal: comparatorReceipts.reduce(
+          (total, receipt) => total + Number(receipt?.injectedTokenCount ?? 0),
+          0,
+        ),
+        zeroInjectionCount: comparatorReceipts.filter((receipt) =>
+          receipt?.mode === "no-history-zero-injection"
+        ).length,
+      };
+  if (
+    JSON.stringify(input.report.comparatorInjection) !==
+      JSON.stringify(expectedComparatorInjection)
+  ) {
+    throw new Error("C5 report comparator injection was not reproduced");
+  }
   assertExactRecord(input.report.attempts, {
     accountedCount: input.stages.length,
     codexCompletedCount: input.stages.filter((stage) =>
@@ -4426,17 +4950,30 @@ function verifyReport(input: {
   const failureTaxonomy = independentlyBuildFailureTaxonomy(
     input.pairs,
     input.stages,
+    baselineArm,
   );
   if (JSON.stringify(input.report.failureTaxonomy) !== JSON.stringify(failureTaxonomy)) {
     throw new Error("C5 report failure taxonomy was not reproduced from pair evidence");
   }
   const comparablePairs = input.pairs.filter((pair) => pair.comparable === true);
-  const noMemoryResolved = countResolved(comparablePairs, "no-memory");
-  const installedResolved = countResolved(comparablePairs, "goodmemory-installed");
+  const noMemoryResolved = countResolved(
+    comparablePairs,
+    baselineArm,
+    baselineArm,
+  );
+  const installedResolved = countResolved(
+    comparablePairs,
+    "goodmemory-installed",
+    baselineArm,
+  );
   const netRescueRate = comparablePairs.length === 0
     ? null
     : (outcomes.rescue - outcomes.regression) / comparablePairs.length;
   const expectedEffect = {
+    baselineArm,
+    baselineResolveRate: comparablePairs.length === 0
+      ? null
+      : noMemoryResolved / comparablePairs.length,
     comparablePairs: comparablePairs.length,
     goodMemoryResolveRate: comparablePairs.length === 0
       ? null
@@ -4483,6 +5020,7 @@ function verifyReport(input: {
 function independentlyBuildFailureTaxonomy(
   pairs: readonly Record<string, unknown>[],
   stages: readonly Record<string, unknown>[],
+  baselineArm: C5BaselineArm,
 ): Array<{ count: number; reason: string }> {
   const counts = new Map<string, number>();
   for (const stage of stages) {
@@ -4502,7 +5040,11 @@ function independentlyBuildFailureTaxonomy(
     )) {
       counts.set(value, (counts.get(value) ?? 0) + 1);
     }
-    const evaluations = parsePairEvaluations(pair.evaluations, "C5 taxonomy");
+    const evaluations = parsePairEvaluations(
+      pair.evaluations,
+      "C5 taxonomy",
+      baselineArm,
+    );
     for (const evaluation of evaluations) {
       for (const reason of evaluation.taskFailureReasons) {
         const key = `task:${evaluation.arm}:${reason}`;
@@ -4518,9 +5060,10 @@ function independentlyBuildFailureTaxonomy(
 function countResolved(
   pairs: readonly Record<string, unknown>[],
   arm: C5PilotArm,
+  baselineArm: C5BaselineArm,
 ): number {
   return pairs.filter((pair) =>
-    parsePairEvaluations(pair.evaluations, "C5 resolved count")
+    parsePairEvaluations(pair.evaluations, "C5 resolved count", baselineArm)
       .find((evaluation) => evaluation.arm === arm)?.resolved
   ).length;
 }
@@ -4868,13 +5411,14 @@ function verifyInstalledProfile(value: unknown): void {
 
 function pairOutcome(
   evaluations: readonly ParsedPairEvaluation[],
+  baselineArm: C5BaselineArm,
 ): "regression" | "rescue" | "shared-fail" | "shared-pass" {
-  const noMemory = evaluations.find((item) => item.arm === "no-memory")!;
+  const baseline = evaluations.find((item) => item.arm === baselineArm)!;
   const installed = evaluations.find((item) =>
     item.arm === "goodmemory-installed"
   )!;
-  if (noMemory.resolved && installed.resolved) return "shared-pass";
-  if (!noMemory.resolved && !installed.resolved) return "shared-fail";
+  if (baseline.resolved && installed.resolved) return "shared-pass";
+  if (!baseline.resolved && !installed.resolved) return "shared-fail";
   return installed.resolved ? "rescue" : "regression";
 }
 

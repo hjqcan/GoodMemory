@@ -130,10 +130,6 @@ export interface FactMemory {
   factKind?: FactKind;
   scopeKind?: MemoryScopeKind;
   subject?: string;
-  /** @deprecated since 0.7.3. Preserved for compatibility; retrieval exposure is no longer recorded or ranked. */
-  accessCount: number;
-  /** @deprecated since 0.7.3. Preserved for compatibility; retrieval exposure is no longer recorded or ranked. */
-  lastAccessedAt?: string;
   verificationPressureCount?: number;
   lastVerificationHintAt?: string;
   // Event time: when the fact was observed/stated in its source conversation
@@ -229,7 +225,12 @@ export function resolveFactFreshnessTimestamp(
 export function resolveFactEffectiveTimestamp(
   fact: Pick<FactMemory, "createdAt" | "observedAt" | "validFrom">,
 ): string {
-  return fact.validFrom ?? fact.observedAt ?? fact.createdAt;
+  for (const value of [fact.validFrom, fact.observedAt, fact.createdAt]) {
+    if (value && Number.isFinite(Date.parse(value))) {
+      return value;
+    }
+  }
+  return fact.createdAt;
 }
 
 export function resolveEpisodeFreshnessTimestamp(
@@ -258,8 +259,6 @@ export interface FeedbackMemory {
   source: MemorySource;
   supersededBy?: string | null;
   lifecycle: MemoryLifecycleState;
-  /** @deprecated since 0.7.3. Preserved for compatibility; retrieval exposure is no longer recorded or ranked. */
-  lastUsedAt?: string;
   updatedAt: string;
 }
 
@@ -409,8 +408,6 @@ export function createFactMemory(
     factKind: input.factKind,
     scopeKind: input.scopeKind,
     subject: input.subject,
-    accessCount: input.accessCount ?? 0,
-    lastAccessedAt: input.lastAccessedAt,
     verificationPressureCount: input.verificationPressureCount ?? 0,
     lastVerificationHintAt: input.lastVerificationHintAt,
     observedAt: input.observedAt,
@@ -456,6 +453,77 @@ export function createReferenceMemory(
     attributes: input.attributes,
     supersededBy: input.supersededBy ?? null,
     lifecycle: input.lifecycle ?? "active",
+    createdAt: input.createdAt ?? timestamp,
+    updatedAt: input.updatedAt ?? timestamp,
+  };
+}
+
+export type NoteFormat = "markdown" | "plain";
+
+// Agent-authored prose pages are stored verbatim and never sentence-split, so
+// the body carries a hard byte cap: one page fits one embedding and one context
+// section. The cap is measured in UTF-8 bytes, matching the memoryfield page
+// limit, so multibyte scripts are not silently truncated later.
+export const NOTE_MAX_BYTES = 8192;
+
+const UTF8_ENCODER = new TextEncoder();
+
+export function noteBodyByteLength(body: string): number {
+  return UTF8_ENCODER.encode(body).byteLength;
+}
+
+export function isNoteBodyWithinLimit(body: string): boolean {
+  return noteBodyByteLength(body) <= NOTE_MAX_BYTES;
+}
+
+export interface NoteMemory {
+  id: string;
+  userId: string;
+  tenantId?: string;
+  workspaceId?: string;
+  agentId?: string;
+  sessionId?: string;
+  title: string;
+  body: string;
+  format: NoteFormat;
+  subject?: string;
+  tags?: string[];
+  attributes?: Record<string, MemoryAttributeValue>;
+  confidence: number;
+  source: MemorySource;
+  supersededBy?: string | null;
+  lifecycle: MemoryLifecycleState;
+  // Event time of the authored page (earliest cited source message), distinct
+  // from createdAt/updatedAt transaction time.
+  observedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function createNoteMemory(
+  input: Pick<NoteMemory, "id" | "userId" | "title" | "body" | "source"> &
+    Partial<Omit<NoteMemory, "id" | "userId" | "title" | "body" | "source">>,
+): NoteMemory {
+  const timestamp = input.createdAt ?? input.updatedAt ?? resolveTimestamp(input.source);
+
+  return {
+    id: input.id,
+    userId: input.userId,
+    tenantId: input.tenantId,
+    workspaceId: input.workspaceId,
+    agentId: input.agentId,
+    sessionId: input.sessionId,
+    title: input.title,
+    body: input.body,
+    format: input.format ?? "markdown",
+    subject: input.subject,
+    tags: input.tags,
+    attributes: input.attributes,
+    confidence: input.confidence ?? 1,
+    source: input.source,
+    supersededBy: input.supersededBy ?? null,
+    lifecycle: input.lifecycle ?? "active",
+    observedAt: input.observedAt,
     createdAt: input.createdAt ?? timestamp,
     updatedAt: input.updatedAt ?? timestamp,
   };
@@ -511,7 +579,6 @@ export function createFeedbackMemory(
     source: input.source,
     supersededBy: input.supersededBy ?? null,
     lifecycle: input.lifecycle ?? "active",
-    lastUsedAt: input.lastUsedAt,
     updatedAt: input.updatedAt ?? resolveTimestamp(input.source),
   };
 }

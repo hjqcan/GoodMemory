@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { createGoodMemory } from "../api/createGoodMemory";
 import type {
   GoodMemory,
@@ -28,6 +28,7 @@ import {
   type InstalledHostRetrievalConfig,
   type InstalledHostWritebackConfig,
   type WorkspaceHostOptInConfig,
+  type InstalledHostFileMirrorConfig,
 } from "./hostConfigValidation";
 import type { InstalledHostKind } from "./hostInstall";
 import {
@@ -60,6 +61,7 @@ export interface InstalledHostResolvedContext {
   maxTokens: number;
   promptInjection?: InstalledHostPromptInjectionMode;
   providers?: InstalledHostProviderConfig;
+  fileMirror?: InstalledHostFileMirrorConfig;
   retrieval?: InstalledHostRetrievalConfig;
   retrievalProfile: "coding_agent" | "general_chat";
   scope: MemoryScope;
@@ -179,6 +181,9 @@ export async function resolveInstalledHostContext(
       ...(globalConfig.config.retrieval
         ? { retrieval: globalConfig.config.retrieval }
         : {}),
+      ...(globalConfig.config.fileMirror
+        ? { fileMirror: globalConfig.config.fileMirror }
+        : {}),
       ...(workspaceConfig.sessionStartMaxTokens ??
       globalConfig.config.sessionStartMaxTokens
         ? {
@@ -235,6 +240,25 @@ export function createInstalledHostMemory(
     ...(context.language ? { language: context.language } : {}),
     // 1:1 with GoodMemoryRetrievalConfig; absence keeps rules-only parity.
     ...(context.retrieval ? { retrieval: context.retrieval } : {}),
+    // Derived workspace mirror of the export bundle; off unless enabled.
+    ...(context.fileMirror?.enabled
+      ? {
+          governance: {
+            fileMirror: {
+              root:
+                context.fileMirror.root ??
+                join(context.workspaceRoot, ".goodmemory", "memory"),
+              // Bound to the workspace, not the host agent: every agent
+              // writing into this workspace regenerates the same tree.
+              scope: {
+                userId: context.scope.userId,
+                ...(context.scope.tenantId ? { tenantId: context.scope.tenantId } : {}),
+                ...(context.scope.workspaceId ? { workspaceId: context.scope.workspaceId } : {}),
+              },
+            },
+          },
+        }
+      : {}),
     remember: {
       preset: "coding_agent",
       profiles: [

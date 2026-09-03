@@ -5,6 +5,7 @@ import { delimiter, join } from "node:path";
 import type {
   C3InstalledArmRuntime,
   C3NoMemoryArmRuntime,
+  C3BaselineArmRuntime,
 } from "./c3-runtime";
 
 export interface C3NormalizedConfigurationFile {
@@ -37,12 +38,21 @@ export interface C3HostConfigurationEvidence {
 
 export async function collectC3HostConfigurationEvidence(input: {
   installedRuntime: C3InstalledArmRuntime;
-  noMemoryRuntime: C3NoMemoryArmRuntime;
+  noMemoryRuntime: C3BaselineArmRuntime;
+  repositoryRoot?: string;
 }): Promise<C3HostConfigurationEvidence> {
+  // Each arm's Codex config denies the other arm's roots and the materialized
+  // source repository; those paths carry per-cluster digests and per-episode
+  // repository names, so they are normalized too or the comparable host
+  // identity would drift from cluster to cluster.
   const noMemory = await collectArmConfiguration({
+    otherRuntime: input.installedRuntime,
+    repositoryRoot: input.repositoryRoot,
     runtime: input.noMemoryRuntime,
   });
   const goodmemoryInstalled = await collectArmConfiguration({
+    otherRuntime: input.noMemoryRuntime,
+    repositoryRoot: input.repositoryRoot,
     runtime: input.installedRuntime,
   });
   return buildC3HostConfigurationEvidence({
@@ -72,11 +82,30 @@ export function serializeC3HostConfigurationEvidence(
 }
 
 async function collectArmConfiguration(input: {
-  runtime: C3InstalledArmRuntime | C3NoMemoryArmRuntime;
+  otherRuntime?: C3InstalledArmRuntime | C3BaselineArmRuntime;
+  repositoryRoot?: string;
+  runtime: C3InstalledArmRuntime | C3BaselineArmRuntime;
 }): Promise<C3NormalizedArmHostConfiguration> {
-  const replacements = buildReplacements(input.runtime);
+  const replacements = buildReplacements(input.runtime, [
+    ...(input.otherRuntime === undefined
+      ? []
+      : [
+          [input.otherRuntime.plan.paths.armRoot, "<other-arm-root>"] as const,
+          [input.otherRuntime.plan.paths.workspace, "<other-workspace>"] as const,
+        ]),
+    ...(input.repositoryRoot === undefined
+      ? []
+      : [[input.repositoryRoot, "<source-repository>"] as const]),
+  ]);
   const installed = input.runtime.plan.arm === "goodmemory-installed"
     ? input.runtime as C3InstalledArmRuntime
+    : null;
+  // The flat-summary comparator carries its own hooks.json; the diff against
+  // the installed arm then shows exactly the injection-placement parity.
+  const hooksConfigPath = installed !== null
+    ? join(installed.plan.paths.codexHome, "hooks.json")
+    : input.runtime.plan.arm === "flat-summary"
+    ? join(input.runtime.plan.paths.codexHome, "hooks.json")
     : null;
   return {
     codexConfig: await readConfigurationFile(
@@ -90,12 +119,9 @@ async function collectArmConfiguration(input: {
           join(installed.plan.paths.home, ".goodmemory", "codex.json"),
           replacements,
         ),
-    hooksConfig: installed === null
+    hooksConfig: hooksConfigPath === null
       ? null
-      : await readConfigurationFile(
-          join(installed.plan.paths.codexHome, "hooks.json"),
-          replacements,
-        ),
+      : await readConfigurationFile(hooksConfigPath, replacements),
     profile: installed?.profile ?? null,
   };
 }
@@ -112,9 +138,11 @@ async function readConfigurationFile(
 }
 
 function buildReplacements(
-  runtime: C3InstalledArmRuntime | C3NoMemoryArmRuntime,
+  runtime: C3InstalledArmRuntime | C3BaselineArmRuntime,
+  extra: ReadonlyArray<readonly [string, string]> = [],
 ): Array<readonly [string, string]> {
   const replacements: Array<readonly [string, string]> = [
+    ...extra,
     [runtime.plan.paths.codexHome, "<codex-home>"],
     [runtime.plan.paths.workspace, "<workspace>"],
     [runtime.plan.paths.armRoot, "<arm-root>"],

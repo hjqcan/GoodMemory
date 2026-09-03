@@ -295,6 +295,42 @@ class GoodMemoryClient:
             body["evidence"] = dict(evidence)
         return self._post("/memory/revise", body, scope=scope)
 
+    def import_memory(
+        self,
+        *,
+        pages: Optional[Sequence[Mapping[str, str]]] = None,
+        durable: Optional[Mapping[str, Any]] = None,
+        dry_run: bool = False,
+        oversize: Optional[str] = None,
+        expected_sha256: Optional[str] = None,
+        locale: Optional[str] = None,
+        scope: Optional[Scope] = None,
+    ) -> Dict[str, Any]:
+        """Import memoryfield pages (as notes) or an export envelope's durable
+        section (by id). Pass exactly one of ``pages`` or ``durable``."""
+        if (pages is None) == (durable is None):
+            raise ValueError("import_memory expects exactly one of pages or durable")
+        source: Dict[str, Any]
+        if pages is not None:
+            source = {
+                "kind": "pages",
+                "pages": [
+                    {"path": page["path"], "content": page["content"]} for page in pages
+                ],
+            }
+        else:
+            source = {"kind": "durable", "durable": dict(durable or {})}
+        body: Dict[str, Any] = {"source": source}
+        if dry_run:
+            body["dryRun"] = True
+        if oversize is not None:
+            body["oversize"] = oversize
+        if expected_sha256 is not None:
+            body["expectedSha256"] = expected_sha256
+        if locale is not None:
+            body["locale"] = locale
+        return self._post("/memory/import", body, scope=scope)
+
     # -- transport ----------------------------------------------------------
 
     def _headers(self, scope: Scope) -> Dict[str, str]:

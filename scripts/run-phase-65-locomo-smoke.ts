@@ -179,6 +179,9 @@ export interface LocomoSmokeCliOptions {
   // "hybrid" strategy) instead of the default naive Jaccard rules-only floor.
   // Deterministic and embedding-free, so it needs no model gateway.
   bm25?: boolean;
+  // Phase 75 opt-in: length-conditional query-coverage admission
+  // (retrieval.longRecordAdmission) on top of whichever tier is selected.
+  longRecordAdmission?: boolean;
   // Opt-in Phase 69 generalized projection retrieval (multi-granular BM25 +
   // direct entity adjacency, plus dense only when a real provider is present).
   generalizedFusion?: boolean;
@@ -566,6 +569,8 @@ export interface LocomoSmokeReport {
   // Whether the Okapi BM25 lexical leg (hybrid strategy) ranked retrieval, vs
   // the default naive-Jaccard rules-only floor.
   bm25Ranking: boolean;
+  // Present exactly when --long-record-admission ran.
+  longRecordAdmission?: boolean;
   generalizedFusion?: boolean;
   generalizedFusionConfig?: {
     entityPageRank?: boolean;
@@ -769,6 +774,7 @@ export function parseLocomoSmokeCliOptions(
     answerFromPacket: hasCliFlagStrict(argv, "--answer-from-packet"),
     answerFromRecalled: hasCliFlagStrict(argv, "--answer-from-recalled"),
     bm25: hasCliFlagStrict(argv, "--bm25"),
+    longRecordAdmission: hasCliFlagStrict(argv, "--long-record-admission"),
     generalizedFusion: hasCliFlagStrict(argv, "--generalized-fusion"),
     fusionMinRelativeStrength,
     entityPageRank,
@@ -2849,6 +2855,7 @@ function createNoopAssistedExtractor(): MemoryExtractor {
 export function createLocomoSmokeMemory(
   options: {
     bm25?: boolean;
+    longRecordAdmission?: boolean;
     generalizedFusion?: boolean;
     providerEmbedding?: boolean;
     providerEmbeddingConfig?: GoodMemoryEmbeddingProviderConfig;
@@ -2954,6 +2961,7 @@ export function createLocomoSmokeMemory(
       ? { generalizedFusionEntityPageRank: true }
       : {}),
     ...(options.bm25 ? { bm25Ranking: true } : {}),
+    ...(options.longRecordAdmission ? { longRecordAdmission: true } : {}),
     ...(options.semanticCandidates
       ? {
           semanticCandidates: {
@@ -3363,6 +3371,7 @@ function buildLocomoProgressConfig(input: {
     corefNormalize: input.options.corefNormalize ?? false,
     decompose: input.options.decompose ?? false,
     externalRoot: input.options.benchmarkRoot ?? null,
+    ...(input.options.longRecordAdmission ? { longRecordAdmission: true } : {}),
     generalizedFusionConfig: locomoGeneralizedFusionConfig(
       input.options.generalizedFusion ?? false,
       input.options.fusionMinRelativeStrength,
@@ -3736,6 +3745,7 @@ export async function runLocomoSmoke(
     (() =>
       createLocomoSmokeMemory({
         bm25: options.bm25,
+        longRecordAdmission: options.longRecordAdmission,
         generalizedFusion: options.generalizedFusion,
         fusionMinRelativeStrength: options.fusionMinRelativeStrength,
         entityPageRank: options.entityPageRank,
@@ -4285,6 +4295,7 @@ export async function runLocomoSmoke(
     benchmarkSource,
     bm25Ranking: options.bm25 ?? false,
     generalizedFusion: options.generalizedFusion ?? false,
+    ...(options.longRecordAdmission ? { longRecordAdmission: true } : {}),
     generalizedFusionConfig: locomoGeneralizedFusionConfig(
       options.generalizedFusion ?? false,
       options.fusionMinRelativeStrength,

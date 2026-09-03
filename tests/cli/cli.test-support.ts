@@ -84,8 +84,12 @@ async function runBunScript(input: {
   stdout: string;
 }> {
   const stdin = input.stdin;
+  // Generated scripts run from temp workspaces without a node_modules; Bun's
+  // auto-install would otherwise resolve a bare `goodmemory` import from the
+  // registry (the published package), not from this repo's build, and the
+  // outcome would depend on the global install cache.
   const childProcess = Bun.spawn({
-    cmd: ["bun", input.scriptPath, ...(input.args ?? [])],
+    cmd: ["bun", "--no-install", input.scriptPath, ...(input.args ?? [])],
     cwd: input.cwd,
     env: {
       ...process.env,

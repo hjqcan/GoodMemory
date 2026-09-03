@@ -1,6 +1,6 @@
 # GoodMemory Benchmark Optimization — Research Synthesis and Plan
 
-Date: 2026-07-20, updated through 2026-07-31. Status: research, implementation,
+Date: 2026-07-20, updated through 2026-08-22. Status: research, implementation,
 and explicitly labeled benchmark experiments (see the implementation log).
 Historical claims whose raw artifacts are absent are not treated as
 reproducible current evidence. Sources: full repo exploration
@@ -331,9 +331,12 @@ use them for supersession (§2.2-1).
 1. **Structural write-time supersession:** when a new claim arrives with the
    same `(subjectEntityId, predicateKey)` as an active claim and a later
    `observedAt`, close the old claim's `validUntil` (bi-temporal soft
-   invalidation, Graphiti-style) and mark the old *fact* `superseded` when the
-   claim was its only content. Never delete; history stays queryable for
-   "change/history" aggregations.
+   invalidation, Graphiti-style). Do **not** infer a source-level
+   `FactMemory.lifecycle` change from claim supersession: one canonical fact
+   may carry more than one predicate, and historical claim recall still needs
+   its source fact. Fact lifecycle changes remain owned by explicit canonical
+   operations (revision, forget, TTL, or policy repair). Never delete claim
+   history; it stays queryable for "change/history" aggregations.
 2. **Ambiguity → mutation-time LLM hook** (only when structural match is
    uncertain: same predicate different object-entity vs. genuinely different
    slot): one bounded LLM call at write time on detected conflicts only
@@ -658,11 +661,12 @@ touched (owned by a parallel workstream).
 - **R4.1 — structural bi-temporal supersession.** On appending a structured
   claim, older *current* claims in the same `(subjectEntityId, predicateKey)`
   slot from other sources with earlier `observedAt` and a different value get
-  `validUntil = newer.observedAt` (atomic batch: closed claim + status swap +
-  old-claim delete, optimistic-concurrency safe). Generic `fact.*` predicates,
-  negations, and non-asserted modalities never participate (unknown
-  cardinality — several blockers may be true at once). Tests: residence-change
-  closure + generic-namespace guard.
+  `validUntil = newer.observedAt` (atomic batch: immutable closed revision +
+  status-head swap, optimistic-concurrency safe; physical history remains).
+  Generic `fact.*` predicates, negations, and non-asserted modalities never
+  participate (unknown cardinality — several blockers may be true at once).
+  Claim supersession never changes the canonical source Fact lifecycle.
+  Tests: residence-change closure + generic-namespace guard.
 
 ### Measurement pass (2026-07-20 evening, in progress)
 
@@ -940,17 +944,15 @@ touched (owned by a parallel workstream).
   (pinned). Remaining for full R5: multi-episode topic segmentation at
   write time (its own measured pass).
 
-- **R9.4 (2026-07-25) — claim-slot supersession sweep, batch form.** The
-  write path's R4.1 supersession only closes slot values older than the
-  arriving claim, so out-of-order ingestion leaves two open "current"
-  values in one `(subjectEntityId, predicateKey)` slot (pinned by a
-  failing-first test). The contradiction maintenance job now also sweeps
-  stored current claims: multi-value slots resolve exactly as the write
-  path would have (newest observation stays open; stale values close at
-  its observedAt through the same closure/status-swap machinery),
-  optimistic-concurrency guarded per slot, idempotent, fact.* namespace
-  and non-asserted/negative claims excluded. Wired through the projection
-  runtime; the fact-level polarity pass is unchanged.
+- **R9.4 (2026-07-25; hardened 2026-08-18) — claim-slot supersession sweep,
+  batch form.** Normal R4.1 append now converges both chronological and
+  newest-first ingestion immediately: a late-ingested retroactive value is
+  bounded by the earliest selected later value in its slot in the same CAS
+  write. The contradiction maintenance sweep remains for legacy or damaged
+  stores that already contain multiple selected open values. It uses the same
+  closure/status-head machinery, is optimistic-concurrency guarded per slot
+  and idempotent, and still excludes `fact.*`, negative, and non-asserted
+  claims. The fact-level polarity pass is unchanged.
 
 - **R5 increment 2b (2026-07-25) — opt-in time-gap episode segmentation.**
   `buildEpisodes` splits a remember batch at observation-time gaps ≥
@@ -1376,6 +1378,8 @@ The most useful competitor delta is narrower:
 | [TrustMem](https://arxiv.org/abs/2606.25161) | Memory writes need coverage, preservation, and faithfulness checks. | Reuse the contract for derived observation writes only. Do not put an LLM verifier or RL loop on explicit/raw memory. |
 | [MemoryArena](https://arxiv.org/abs/2602.16313) | Systems near saturation on static recall can still fail interdependent agent tasks. | Protect against optimizing only LoCoMo/LongMemEval. Agentic task success belongs in the promotion gate. |
 | [LongMemEval-v2](https://arxiv.org/abs/2605.12493) | Stronger tests emphasize context gathering and substantially larger histories. | Use it as a generalization/protection family before promoting a benchmark-tuned read path. |
+| [StateMemBench / StateMem](https://arxiv.org/abs/2608.19652) | Current-state tracking is separable from retrieval: the relevant value can be present while a stale value still wins. Supersession is the strongest reported single component; dependency propagation can over-invalidate anti-traps. | Reuse `ClaimProjection`, current-value resolution, and the production `EvidenceLedger` rather than create a parallel state store. Isolate structured-state assembly with fixed candidate ids, then protect on LongMemEval/LoCoMo and anti-traps. Do not add dependency propagation before that protection passes. |
+| [DynamicMem](https://arxiv.org/abs/2606.22877) | Five quarterly checkpoints over 15 months separate retaining stable state from adopting changed state; implicit preferences and exact-entity binding degrade differently. | Add it as an independent, available protection family for profile/preference/fact evolution. Preserve raw app-log lineage, report retention and update separately, and enforce a gold-private adapter boundary before running GoodMemory. |
 | [MemDelta](https://arxiv.org/abs/2606.29914) | Backbone/embedding changes can move memory scores materially. | Freeze answerer, judge, embedding, prompt, temperature, top-k, and token/call budget before attributing a delta to memory. |
 | [Useful memories become faulty](https://arxiv.org/abs/2605.12978) | Rewriting a useful memory can convert it into a future fault. | Prefer additive derived observations with provenance over destructive canonical rewriting. |
 
@@ -1389,10 +1393,13 @@ non-destructive evidence preservation, each with a protection suite.
    current fixed hop bound with a structured evidence-sufficiency/missing-slot
    stop gate. Primary metrics: multi-hop answer accuracy, added turns, provider
    calls, latency, and adversarial abstention.
-2. **Current-value assembly isolation:** hold the candidate ids and order fixed;
-   compare raw-turn assembly with claim/current-value assembly. This isolates
-   answer conversion from retrieval and avoids taking credit for a different
-   candidate pool.
+2. **Current-state assembly isolation:** hold the candidate ids and order fixed;
+   compare raw-turn assembly with the existing claim/current-value/evidence-ledger
+   assembly. Report current, stale, uncertain, and anti-trap outcomes separately.
+   This isolates answer conversion from retrieval and avoids taking credit for
+   a different candidate pool. When StateMemBench code/data become available,
+   add it as a sealed external protection family; do not recreate its traps from
+   the paper or tune on them first.
 3. **Risk/coverage curve:** turn the existing EvidenceLedger signals into a
    scored selective-answer analysis. Report accuracy versus coverage rather
    than selecting a single threshold on the target set.
@@ -1646,17 +1653,195 @@ benchmark rules:
 - an explicit evidence ID mismatch no longer falls back to attaching the wrong
   claim;
 - rules-only selection excludes inactive, expired, and future-valid facts and
-  orders mutable values by `validFrom ?? observedAt ?? updatedAt ?? extractedAt
-  ?? createdAt`;
+  orders mutable values by `validFrom ?? observedAt ?? createdAt`; transaction
+  time and extractor runtime are not world-state tie-breakers;
 - evidence chronology uses valid time before observation time;
-- write-side structured supersession now uses `validFrom ?? observedAt` in
-  append, rebuild/reconcile, and maintenance sweep paths, covering future
-  effective changes and retroactive late ingestion;
+- write-side structured supersession uses `validFrom ?? observedAt` in append,
+  rebuild/reconcile, and maintenance sweep paths; append itself now covers
+  future-effective changes and retroactive late ingestion without waiting for
+  maintenance;
 - knowledge-update questions that explicitly ask for a historical value or
   date no longer receive a forced “latest value” guide;
 - the LoCoMo live answer path now passes the already-computed retrieval-channel
   provenance into EvidencePack, activating its existing corroboration and
   coverage signals.
+
+#### Semantic-time and claim-timeline hardening (2026-08-18)
+
+The correctness pass separated two previously conflated clocks rather than
+adding a new score knob:
+
+- recall freshness and verification age use evidence time: Fact
+  `observedAt ?? validFrom ?? createdAt`, Reference `createdAt`, and Episode
+  `observedAt ?? createdAt`;
+- current-value, contradiction, and replacement ordering use world-state time:
+  Fact `validFrom ?? observedAt ?? createdAt`;
+- `updatedAt` remains transaction/CAS time. Metadata enrichment and retrieval
+  cue backfill can update it without making old evidence fresh. Consolidated
+  episodes retain the earliest contributing event time, and content-changing
+  targeted revisions receive the revision observation time;
+- structured extractor predicates now populate the existing Fact
+  `attributes.claimKey`, so natural current-value selection and ClaimProjection
+  use the same slot identity without adding a second schema;
+- different values at the same latest event time remain open and are all
+  admitted. EvidenceLedger marks the tied claims `uncertain/context` instead
+  of selecting a content-hash ID as truth;
+- retractions retain both canonical Facts and both Claims. A later negative is
+  `current/supports`, the earlier positive is `superseded/contradicts`, and the
+  result is invariant to ingestion order. Equal-time positive/negative claims
+  remain uncertain;
+- projection supersession compares parsed event instants rather than raw date
+  strings, so equivalent forms such as `2026-07-10` and
+  `2026-07-10T00:00:00.000Z` remain simultaneous instead of closing one value;
+- contradiction maintenance no longer uses Fact ID as a truth tie-break. When
+  strength, verification pressure, and effective event time are all equal, it
+  preserves both active Facts for uncertainty resolution instead of arbitrarily
+  demoting one.
+
+This is repository correctness evidence, not a new benchmark claim. Focused
+unit/integration tests cover scoring, verification, maintenance, revision,
+ordered and out-of-order append, legacy sweep repair, equal-time conflict, and
+the public `remember → projection → recall/evidence-ledger` retraction path.
+No accuracy lift is claimed until the frozen external protocol is rerun.
+
+#### Full-211 R3/R4 isolation and source-proof hardening (2026-08-22)
+
+The previously easy-to-reverse semantic-time boundary is now explicit in both
+code and tests. Evidence freshness prefers `observedAt`, while current-world
+ordering prefers the first parseable `validFrom ?? observedAt ?? createdAt`.
+Claim event ordering likewise accepts only parseable `validFrom`,
+`observedAt`, and `ingestedAt` fallbacks; an invalid `validUntil` is not treated
+as a real closed interval. Comparisons use parsed instants rather than lexical
+date strings. Equivalent instants remain tied, and different values or
+positive/negative claims at that same event time stay available for
+`uncertain/context` resolution instead of being decided by transaction time or
+an ID tie-break. Thus the earlier prose/code inversion risk is closed without
+adding a benchmark-specific rule.
+
+The first full target-slice attempt also exposed a common execution defect,
+not an R3/R4 effect. The 512-code-unit evidence excerpt could end on the high
+surrogate of a character such as `🌸`, producing malformed source bytes. The
+Full-500 input contains three such boundaries and the 211-case KU + temporal
+slice contains one. The common-mode derived baseline now retreats one code
+unit when the truncation boundary would split a surrogate pair. This turns a
+crash into a valid execution in both arms; it is deliberately included in both
+arms and is not attributed to R3/R4.
+
+The final provider-free target-slice diagnostic used the frozen 211 cases (78
+knowledge-update, 133 temporal-reasoning), `goodmemory-recommended`,
+`label-free-raw`, a 4,000-token context budget, hermetic IDs/clock, and no
+reader or judge call:
+
+| Slice | Cases | Evidence-session recall | Missed-recall cases | Wrong-recall cases | Execution failures |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| All target cases | 211 | 0.862006 | 51 | 193 | 0 |
+| Knowledge-update | 78 | 0.987179 | 2 | 70 | 0 |
+| Temporal-reasoning | 133 | 0.788596 | 49 | 123 | 0 |
+
+Aggregate:
+`/private/tmp/GoodMemory-R3R4-V1/diagnostics/r3r4-isolated-final2-ku-temporal-20260822-derived-aggregate.json`,
+SHA-256
+`3e38e1e581b77e5e228369e0b4cc0c53ef4fd94f0f60cf8eb0587044a4ea7f4e`.
+The source-identity receipt is
+`/private/tmp/GoodMemory-R3R4-V1/diagnostics/r3r4-isolated-final2-source-identity.txt`,
+SHA-256
+`51ba0673560dfd6f50d3a12e304001d2b50a4a7243c7192f989b26a66df2cae9`.
+This is a four-fixed-shard recall-only aggregate, not four replicates or one
+atomic run. It measures neither answer correctness nor causal uplift. A prior
+non-source-paired aggregate also changed retrieval outcomes beyond the repaired
+surrogate case, so the two one-run aggregates cannot be promoted into a stable
+before/after delta.
+
+The answer-level attribution protocol therefore freezes an explicit Git graph:
+
+- exact v0.7.5 anchor: commit
+  `55949f69f7586427c51ba70762ffd2e90667b6e8`, tree
+  `da58b2373f1e7df0f6cee077bd5aa258f14ec7df`;
+- derived common-mode execution baseline: commit
+  `aaa6fa41192153ea4c39cb6730e37b6ab2de181f`, tree
+  `9acf62ff594bacd4c4477fd2eeac87b3675208f8`; its exact three-file delta is
+  the tracked gold-blind worker plus the surrogate fix and test;
+- isolated R3/R4 candidate: commit
+  `baa4c8a302a547ac0eaef9930316f811b693ce87`, tree
+  `c4c16f181c5c2ec1442bb57d6def1343f0517fb9`; its exact delta is the seven
+  product and seven matching test files for semantic-time/claim behavior;
+- protocol orchestrator: commit
+  `7370570be9c890423cd1df3f15dff002cbd680dc`, tree
+  `ffc144410563c84ea71a48c826ccab0abe43a208`.
+
+The baseline role is intentionally
+`v0.7.5-derived-common-mode-execution-baseline`; no absolute result from it may
+be attributed to exact v0.7.5. Both source trees receive the same byte-identical,
+gold-blind payload: opaque case key, question/date, ordinal session identity,
+and raw role/content only. Answer, question type, raw question/session IDs, and
+gold evidence never enter the worker. Both arms track the same worker bytes,
+use independent clean checkouts and a credential-blind environment, and expose
+only anonymous source context plus recalled ordinal session IDs. The report
+records in-memory storage, rules-only extraction, the configured but unused
+no-provider assisted adapter, no embedding adapter, projection bulk backfill
+with write-through disabled, all concurrency bounds, deterministic IDs/clock,
+and the Bun/platform identity.
+
+The verifier no longer trusts `source-baseline.json` or
+`source-candidate.json`. It requires the current clean orchestrator to match the
+report, verifies Git objects/trees/ancestry/exact patches and identical worker
+bytes, rebuilds the payload, re-runs both pinned source trees, deep-compares the
+complete outputs, and checks source stability again at the end. Artifact hashes
+fail before the expensive replay. Model artifacts are named
+`logical-model-call-receipts.jsonl`: they close the repository's prompt,
+normalized response, verdict, and usage-intent chain, but are not
+provider-authenticated receipts and cannot independently prove that a gateway
+was called.
+
+The final static run's first source pass produced byte-identical baseline and
+candidate artifacts for all 211 cases, both SHA-256
+`6ab45c3155e809321cab8038cdc81c79ceae7dcb428672987123d549161b2725`.
+It therefore reused one static answer and one static judge result per case:
+211 + 211 = 422 logical calls, with zero execution failures. Its stubbed
+answers were deliberately judged incorrect, so the report's 0 accuracy is not
+an accuracy result. Run manifest SHA-256 is
+`4d4b7137b926767fd24cd5fb387085650bb28eb4264d652f9c8ced6c893daa67`;
+report SHA-256 is
+`508c6b2924723e84bd61320ae8fae9993274912f0f802fe9376d41726ba99ed5`.
+The claim boundary remains `seenCasesOnly=true`,
+`publicClaimEligible=false`, and `promotionEligible=false`.
+
+The final offline verifier then re-executed both pinned source trees and passed
+all 211 cases in 2,713,922 ms (about 45 minutes 14 seconds), while the harness
+replaced `fetch` with a function that always throws. It returned the same
+manifest SHA-256
+`4d4b7137b926767fd24cd5fb387085650bb28eb4264d652f9c8ced6c893daa67`
+and report SHA-256
+`508c6b2924723e84bd61320ae8fae9993274912f0f802fe9376d41726ba99ed5`.
+Thus the 211/211 byte-identical product contexts are reproducible source
+evidence, not merely one in-process coincidence.
+The run-root-external receipt is
+`/private/tmp/GoodMemory-R3R4-V1/source-paired-static-smoke-replay-20260822.receipt.txt`,
+SHA-256
+`f89c30fdc603a2c3cefef5753e0df2a1f07c46edf5df137ba63cd41a0f00c031`.
+
+Two fail-closed probes were also exercised against the frozen verifier. An
+APFS-cloned run with one modified logical receipt was rejected by artifact
+identity before replay, and an untracked source sentinel was rejected by the
+clean-worktree gate before replay; the sentinel was then removed and the
+orchestrator worktree returned to clean state. Current repository validation
+also passed 178 focused R3/R4, projection, ledger, maintenance, revision, and
+protocol tests; 88 release/package tests; `bun run typecheck`; `bun run build`;
+and `git diff --check`. The main checkout contains unrelated concurrent
+research changes, so causal source proof remains bound to the clean commit graph
+above rather than to the whole dirty working tree.
+
+No paid answer/judge run follows this result. Under the frozen protocol every
+one of the 211 cases would reuse the same answer and same judge result across
+both arms, so paired wins and losses are structurally zero; 422 real calls
+would add only a shared absolute score and could not attribute anything to
+R3/R4. This is a negative mechanism-surface result, not a failed implementation
+or a benchmark regression: the semantic-time/current-state behavior is covered
+by product-level structured-claim tests, while this hermetic LongMemEval
+rules-only path does not change the reader-visible context. The next useful
+experiment must first prove activation on a gold-blind structured-claim path
+and protect it on an independent state-evolution family; another answer prompt
+or a paid same-context replay is not justified.
 
 #### Rejected first protocol
 
@@ -2150,8 +2335,9 @@ A minimal official-harness adapter now exists under
 without patching the upstream checkout, writes only whitelisted trajectory
 summary/state fields through the public HTTP bridge as exact verified
 `rules-only` facts, uses a fresh run namespace plus an opaque per-question
-workspace partition, stores trajectory ids in fact metadata, and returns only
-screenshots named by recalled facts. The per-question partition fixes an otherwise-invalid
+workspace partition, keeps each trajectory in its own session scope as well as
+fact metadata, and returns only screenshots named by recalled facts. The
+per-question partition fixes an otherwise-invalid
 remote-backend behavior where distinct official haystacks would accumulate in
 one service scope. It never serializes unknown trajectory fields and never
 receives private question metadata. The real HTTP bridge regression now covers
@@ -2162,11 +2348,307 @@ hybrid scoring alone cannot admit a long state that has been suppressed by the
 lexical floor. The adapter remains a pre-protocol component rather than an
 entry in the current C6-specific research registry.
 
-The next authorized step is a sealed Small baseline before any core tuning. It
-must use separate fresh scopes for web and enterprise and report answer
+The data preflight also exposed a provider-boundary failure before spending a
+benchmark run: accessibility trees have 1,478 words at p50, 18,172 at p99, and
+82,598 at the observed maximum. The first Small web haystack alone contains
+1,737 states and about 6.95 million accessibility-tree words. A whole state per
+embedding fact can exceed common provider input limits, so the adapter now
+separates compact state metadata from lossless 6,000-byte tree chunks. This is
+uniform corpus indexing rather than question- or label-conditioned trimming.
+
+A development-only Small/web compatibility run exposed two general runtime
+defects before any reader or judge call. First, a synchronous trajectory batch
+can legitimately exceed the Python client's former `120s × 3 attempts` policy;
+the retry can overlap a write that is still executing in the bridge. The
+adapter therefore uses one attempt with a 600-second timeout. Second, SQLite's
+rollback journal and zero busy timeout let a concurrent reader make projection
+commit fail with `database is locked`, followed by ownership-release failures.
+The file-backed writable store now uses WAL plus a one-second busy timeout.
+The reader-contention regression and the complete SQLite integration file pass
+25/25; a real runtime read of 100,908 projection rows completed while the
+import continued.
+
+The storage change is not a benchmark optimization. A 500-write microbenchmark
+using the same document store took about 252 ms on the internal temporary disk
+and 4,764 ms on `/Volumes/data`, so bulk-run SQLite stayed on `/tmp` while the
+source, dataset, configs, and outputs stayed on the external disk. A fresh WAL
+run crossed the former failure point: trajectory `28e88ef7` committed 1,166
+messages, and the official 100-trajectory haystack reached about 46/100 without
+another lock or timeout. The run was then interrupted before memory build,
+reader, and judge completion. Its temporary SQLite no longer exists, and the
+external data disk is not mounted as of 2026-08-22. This is compatibility and
+failure-recovery evidence only: it creates no accuracy result, latency result,
+or public benchmark claim.
+
+The next authorized step, after the external disk is mounted again, is a fresh
+sealed Small baseline from a new database and workspace before any core tuning.
+It must use separate fresh scopes for web and enterprise and report answer
 accuracy, latency, model/query calls, retrieved records, routing degradation,
 image count, and token budget. No LongMemEval-V2 score or compatibility claim
 exists yet.
+
+#### New state-tracking protection lead: StateMemBench
+
+The August 20 [StateMemBench/StateMem v1 paper](https://arxiv.org/abs/2608.19652)
+isolates a failure that ordinary recall scores mix with retrieval: relevant
+facts are present, but the answer follows a superseded or incomplete state. Its
+234 synthetic multi-session scenarios contain 322 closed-pool probes across
+status, salience, sequence, compound, and anti-trap modes. The authors report
+StateMem at 0.363 on DeepSeek-V4-Flash versus the strongest same-backbone
+baseline at 0.205, and 0.233 on Qwen-3.5-9B versus the strongest memory system
+at 0.149. Their existing-benchmark check uses full LongMemEval-500 and
+LoCoMo-1,985 with retrieval `k=20`, fixed answer backbones, and one fixed
+DeepSeek-v4-pro judge; StateMem reports 0.580/0.656 on LongMemEval and
+0.566/0.592 on LoCoMo for Qwen/DeepSeek respectively. These are paper results,
+not GoodMemory-comparable scores.
+
+The ablation is more actionable than the headline. Extraction alone is weak;
+supersession marking is the largest single DeepSeek step (0.174 to 0.298), and
+removing recomputation guidance costs about six points. Dependency propagation
+over-invalidates long anti-traps by 12.5 points, and removing it slightly raises
+the overall DeepSeek result from 0.363 to 0.373. The authors also explicitly
+call their own-benchmark margins an upper bound because StateMem mirrors the
+policy family used to generate the traps. Every configuration is a single
+temperature-zero run with reasoning disabled, and the benchmark is synthetic.
+
+GoodMemory already has the transferable core boundary: claim projections group
+values by subject and predicate; recall resolves current, superseded, and
+uncertain evidence against a reference time; group peers are loaded even when
+only an older source was initially selected; and `buildContext` can render the
+resulting evidence ledger. The pure current-value aggregator is also reusable,
+but today its direct consumer is the evaluation reader rather than the normal
+product answer path. What is *not* present is StateMem's dependency graph and
+`needs_recheck` propagation. The paper's own anti-trap regression is therefore
+evidence against filling that gap speculatively.
+
+As of 2026-08-22, arXiv v1 and a targeted source search expose no discoverable
+official repository or dataset link, despite the paper saying the benchmark is
+released. No implementation or fixture is copied from prose. The authorized
+next step is a sealed paired protocol after official artifacts appear:
+
+1. freeze one candidate pool and order, then compare raw evidence assembly with
+   the existing structured evidence-ledger assembly;
+2. score gold current state, stale-state selection, uncertainty, and anti-trap
+   false invalidation separately, with identical answerer, judge, and budget;
+3. protect the selected mechanism on full LongMemEval/LoCoMo update slices and
+   an independently authored product cohort before any default changes;
+4. consider dependency/recompute flags only if the fixed-pool attribution shows
+   a remaining sequence-state gap and anti-trap protection stays within the
+   existing one-point regression limit.
+
+#### Available second-family protection: DynamicMem
+
+DynamicMem is a stronger immediate generalization instrument than copying
+StateMem's synthetic traps from prose. The official source is pinned at
+[`622c98d`](https://github.com/wenyaxie023/DynamicMem/tree/622c98d70f13cfb855a80263b5caa3fd790715bf),
+and the [dataset at
+`cc811d0`](https://huggingface.co/datasets/xiewenya/dynamicmem/tree/cc811d0c2273742f6af4cb20ffee4ffacb51935c)
+is an
+80.2 MB MIT-licensed release. It contains ten synthetic users, each with five
+quarterly checkpoints across 15 months, about 2.2M app-log tokens and 1,772
+events per user, 16 applications, and two tasks over the same evolving profile:
+structured State Completion and downstream Personalized Service.
+
+Its central result is a useful decomposition, not a leaderboard target. The
+paper reports that every tested system's State Completion declines from the
+first to fifth checkpoint while downstream service accuracy does not show the
+same decay. No architecture wins both long-range retention and fresh update:
+append-oriented systems more readily expose a change but can lose stable facts,
+while consolidation can retain dominant patterns yet crowd out one-off facts or
+blur old and new values. The paper's error classifier attributes more than 93%
+of sampled failures to delivered evidence rather than answer conversion. That
+attribution is model-judged and should be re-measured, not imported as fact.
+
+The source audit also limits comparability:
+
+- answer and memory-construction calls use `gpt-5-mini`, embeddings use
+  `text-embedding-3-large`, and the judge uses `gpt-5.4`;
+- retrieval `top_k` differs by system to produce approximately 12K–21K token
+  contexts, so the reported systems do not share GoodMemory's record/token
+  budgets;
+- the repository contains benchmark construction, adapters, evaluation code,
+  and plotted paper results, but no matching committed per-case prediction and
+  judge artifacts from which to independently recompute the headline curves;
+- `task_packs.json` necessarily contains gold/reference state. The adapter API
+  receives the benchmark path and the shared runner passes the entire checkpoint
+  object to `prepare_checkpoint_state`; privacy is a contributor convention, not
+  an enforced capability boundary. A custom backend could inspect gold even
+  though the official baselines do not.
+
+GoodMemory's existing profile, preference, fact, claim-validity, evidence, and
+source-message boundaries cover the benchmark's attribute/preference/current
+state vocabulary without another storage layer. The new coverage is implicit
+behavior spread across heterogeneous app logs and the retention-vs-update curve.
+The authorized integration is therefore an external adapter and protocol, not a
+core mechanism change:
+
+1. download the locked dataset outside the repository and record file hashes;
+2. expose only checkpoint-bounded raw app logs, checkpoint time, blank output
+   shape, and gold-free query text to the GoodMemory adapter; reject reference
+   values, scoring points, gold evidence ids, validated state, and future logs;
+3. keep each user in a fresh scope, ingest logs chronologically, and retain raw
+   app-log ids in source/evidence lineage;
+4. first run a provider-free contract slice, then a sealed one-user pilot, then
+   all ten users only if privacy, checkpoint isolation, and cost preflights pass;
+5. report State Completion, Personalized Service, stable-state retention,
+   changed-state update, evidence recall, latency, model calls, and context size
+   separately. A gain may protect a general mechanism but cannot become a
+   LongMemEval/LoCoMo score claim.
+
+The provider-free integration preflight is now implemented under
+`scripts/research/dynamicmem/`. It injects a `goodmemory` backend into the
+locked upstream registry without editing that checkout, sanitizes every
+checkpoint before backend use, rejects resume and truncated-history modes,
+uses a run-specific opaque workspace, writes only newly visible prefix logs,
+and forwards the checkpoint timestamp to recall. Exact raw observations retain
+their app-log ids, while assisted extraction remains responsible for deciding
+whether an observation is a profile, preference, or ordinary fact; the adapter
+does not label every app event as a preference.
+
+The locked local dataset preflight found 10 user directories, 17,715 raw app
+logs, and 50 checkpoints. All 50 checkpoint indices select the declared
+`app_log_id`, every user's five indices are strictly increasing, and all 3,648
+published retrieval-query fields are non-empty. For a
+minimal provenance sample, user 001's `task_packs.json` SHA-256 is
+`6400da608adb2b4eb655be2323a71353a4ded8bf19ce24f6bf37d964c0236405` and
+`app_log_large.json` is
+`271e4bf7605d7798b76d7b9601cf26ac8ac577f3c5059d74afe16bc2ec37d261`.
+The upstream `verify_tce_groundtruth.py` cannot independently reconstruct gold
+state from the published consumer bundle: it expects per-log `golden_evidence`
+from construction-time `app_logs_final.json`, while the release contains raw
+`app_log_large.json`. Pointing it at that raw array therefore produces empty
+built states and five snapshot mismatches for user 001. That is a release
+provenance limitation, not evidence that the five checkpoint boundaries are
+wrong. Until the construction artifact is released, the consumer-side gate is
+limited to file identity, schema, prefix boundaries, chronology, and adapter
+privacy.
+
+A 2026-08-22 one-user/one-checkpoint diagnostic then exercised the real HTTP,
+SQLite, assisted-extraction, embedding, retrieval, and answer boundaries. Two
+obvious adapter defects failed closed before model calls or writes and were
+fixed test-first: DynamicMem's timezone-free timestamps did not satisfy the
+HTTP RFC 3339 contract, and `assisted` was not the public extraction enum
+(`llm-assisted`). The successful retry ingested all 180 prefix logs in 12
+batches, persisted 262 facts, kept SQLite in WAL mode with
+`integrity_check=ok`, and completed all 30 published retrieval queries through
+`hybrid -> hybrid` without recall fallback. Buffered bridge logs recovered at
+shutdown changed the ingestion verdict: all 12 assisted-extraction calls hit
+the 45-second gateway timeout, after which the engine preserved rules-only
+extraction. The run is therefore not a valid assisted-extraction pilot.
+
+That evidence exposed two more protocol bugs. The adapter now fails closed on
+`assisted_extraction_failed` or any requested `llm-assisted` call that resolves
+to another strategy; because exact facts may already be committed, the error
+requires a new database and workspace. It also writes an app-log lineage tag
+that the runner converts to DynamicMem's official `retrieved_app_log_ids`,
+instead of leaving retrieval metrics unavailable. Privacy-safe batch start,
+commit, degradation, and timing logs make the complex ingestion chain
+observable without recording payload content. Eleven local adapter contracts
+pass.
+
+The retrieval-only diagnostic separates a real weakness from the external
+answer bottleneck. Across 30 keys, recall item count was 7–10, median/p95
+latency was about 1.11/2.01 seconds, and rendered context reached the tested
+GoodMemory hard cap at a 5,990-character median and 6,000-character p95/max.
+An offline post-retrieval SQLite lineage join, scored with DynamicMem's macro
+per-key evidence formula, measured precision 0.1165, recall 0.2623, and F1
+0.1390; 15/30 keys had zero gold-evidence intersection. This is not an official
+benchmark result: it covers one checkpoint, uses an offline storage join
+because the already-ingested run predates the lineage-tag fix, reflects the
+rules-only fallback snapshot rather than intended assisted extraction, and does
+not measure answer correctness. It still characterizes current degraded-mode
+retrieval: merely increasing answer-model effort would not repair its delivered
+evidence, especially for habits (macro recall 0.1059 versus 0.3125 for
+preferences and 0.3397 for user attributes). It does not establish the
+assisted arm's retrieval quality. Any retrieval change must therefore be
+derived from a benchmark-agnostic state-query mechanism and protected on
+LongMemEval/LoCoMo, not tuned to these 30 keys.
+
+After the degraded ingestion, the first answer key took 29:05 after one
+connection failure and a successful retry. At that observed rate the 30-key
+checkpoint was not a responsible pilot, so it was stopped after one prediction.
+The artifact explicitly records
+`_checkpoint_complete=false`, 1/30 state keys, and no judge or score. A sealed
+pilot is blocked on a stable endpoint for both assisted extraction and answers,
+or explicit outer timeout/cancellation boundaries, followed by a completely
+fresh database and scope. Consequently there is still no GoodMemory DynamicMem
+score or comparability claim.
+
+A final bounded preflight ruled out the most obvious configuration workaround:
+one raw app log in a fresh scope with `batch_size=1` still exceeded a 90-second
+HTTP client timeout. After terminating the owned bridge, the temporary database
+contained only the in-flight scope-mutation intent and no canonical documents.
+The current endpoint is therefore unsuitable for a sealed assisted-extraction
+run; simply shrinking batches is not enough.
+
+#### Memory-as-data audit: memoryfields (2026-09-01)
+
+Cal Paterson's "Agent memory as a file format" (August 2026) and its draft
+`memoryfield` spec v0.1 argue that agent memory should be a data format, not a
+pipeline: a flat directory of Markdown pages (≤8,192 bytes, optional YAML
+frontmatter `title/uuid/summary/created/updated`), a derived and deletable
+vector index (`nomic-embed-text-v1.5.sqlite3`), and a zip or any file transport
+as the interchange container. Its four decisions are prose over facts, semantic
+jump over graph walking (at most two tool calls), low mechanism that scales with
+the model frontier, and an open interchangeable format. The spec adds discipline
+the article implies: an intro page must not be a catalogue, embedding input is
+the whole file, whole-page `PUT` is last-write-wins with a UUID 409, a vector
+index leaks page existence and hashes, and shared fields should be pinned by
+SHA-256. Its stated limits are the product's own: no supersession, conflict
+model, scoping, redaction, or write-quality control ("insert liberally").
+
+What already agrees with the repository: projections and vectors are
+rebuildable derived data (ADR-008 §8-9), local Ollama embeddings use the same
+model the article recommends, evidence records carry source URIs, reranker
+prompts already treat candidates as untrusted evidence, hook injection costs
+zero tool calls and the progressive search-then-fetch path costs two.
+
+What diverged, measured on the 0.7.5 tree with an 825-character page and one
+short world fact through the public `remember`/`recall` API:
+
+| Configuration | Page outcome | Recall of the page |
+| --- | --- | --- |
+| Library default, assistant role, force annotation | rejected, `assistant_policy_blocked` | none |
+| Library default, user role, no annotation | 4 candidates, all `below_threshold` | none |
+| Library default, user role, force annotation | split into 4 of 9 sentences, imperatives dropped | 3 wrong fragments |
+| Confirmed-only profile, assistant role | stored whole as one fact | none under default recall |
+| Same, `retrieval.preset:"recommended"` | stored whole | found by both relevant queries |
+
+Root causes: the default lexical score is `intersection / max(|query|, |record|)`
+over ≥4-character overlap tokens (`src/language/service.ts`), so a long record
+scores 0.03 against a query it fully covers and fails all three admission
+gates; the deterministic extractor strips imperatives as one-off directives; the
+library default remember profile blocks assistant-role writes even with the
+force annotation; the prompt-fragment renderer flattens newlines; export exists
+but no import path does; and the shipped `MEMORY.md` dumps every collection
+against the repository's own index-only design. These are product boundaries,
+not benchmark effects: no protection suite contains page-shaped records.
+
+Disposition: adopt the data-format discipline at the edges and keep the
+governed canonical store. The executable plan is `task-board/79-phase-75-note-memory-and-interchange.txt`
+with ADR-010: a first-class `note` kind stored verbatim and never
+sentence-split, a length-conditional query-coverage admission signal shipped
+opt-in and measured before any default change, the index-only `MEMORY.md` plus
+topic pages the layering design specified, directory-based import/export with
+SHA-256 manifests, an opt-in read-only file mirror, a localized data-not-instructions
+frame on rendered fragments, and CLI schema introspection. Not adopted:
+"insert liberally" (budget displacement turned neutral additions into
+regressions three times in July), whole-page last-write-wins, and dropping
+scoping or supersession.
+
+#### Phase 75 status (2026-09-02)
+
+The program shipped on the v0.8 lane: `note` kind, opt-in
+`retrieval.longRecordAdmission`, index-plus-topics artifacts, `importMemory`
+with the memoryfield pages bundle, the workspace file mirror, the prompt
+context frame, and `goodmemory --schema` (board
+`task-board/79-phase-75-note-memory-and-interchange.txt`, ADR-010). The
+long-record admission arm is measurable through `--long-record-admission` on
+the phase-62 and phase-65 runners and `scripts/run-phase-75-long-record-admission-gate.ts`;
+the only pair run so far used the repo smoke fixtures and was identical between
+arms (`reports/eval/research/phase-75/smoke-fixture-pair/`). No benchmark
+claim changes; the fresh-install default stays off until the full-root pair
+passes the gate.
 
 ## 8. Primary sources
 
@@ -2184,6 +2666,7 @@ MemReranker arXiv 2605.06132 · MemDelta arXiv 2606.29914 · Mastra OM
 (mastra.ai/research/observational-memory) · SetR ACL 2025 · MRAG Findings of
 EMNLP 2025 · Mnemis arXiv 2602.15313 · opsem arXiv 2606.04194 · LongMemEval-V2
 arXiv 2605.12493 · AgentRunbook-C V2 official source/page · ProsusAI/MemEval ·
-JordanMcCann/agentmemory · vendor claims individually marked.
+JordanMcCann/agentmemory · memoryfields (calpaterson.com/memoryfields.html; spec github.com/calpaterson/memoryfield-spec; LLM Wiki gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) · StateMemBench arXiv 2608.19652 · DynamicMem arXiv
+2606.22877 and official source/dataset · vendor claims individually marked.
 Claude Code patterns: `third-party/claude-code-main/src/memdir/`,
 `src/services/{extractMemories,autoDream,compact,SessionMemory}/`.

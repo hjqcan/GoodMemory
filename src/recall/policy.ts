@@ -44,6 +44,7 @@ export async function applyRecallPolicyToRecords<TRecord extends {
     | "profile"
     | "preference"
     | "reference"
+    | "note"
     | "fact"
     | "feedback"
     | "evidence"

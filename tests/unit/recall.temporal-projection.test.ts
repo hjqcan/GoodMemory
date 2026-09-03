@@ -41,7 +41,7 @@ describe("event occurrence projection", () => {
 
     expect(RECALL_DOCUMENTS_COLLECTION).toBe("recall_documents_v4");
     expect(PROJECTION_SEARCH_SCHEMA_VERSION).toBe("gm-search-v3");
-    expect(RECALL_PROJECTION_PIPELINE_VERSION).toBe("gm-projection-v5");
+    expect(RECALL_PROJECTION_PIPELINE_VERSION).toBe("gm-projection-v6");
     expect(LEGACY_RECALL_PROJECTION_COLLECTIONS).toContain("recall_documents_v3");
     expect(documents.length).toBeGreaterThan(0);
     expect(documents.every((document) =>

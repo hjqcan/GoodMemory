@@ -93,7 +93,10 @@ Treat `.goodmemory/bootstrap/codex-action.mjs` as the canonical enforced path. `
 Codex should read the compiled files under:
 
 - `./.goodmemory/hosts/codex/session-memory/current.md`
-- `./.goodmemory/hosts/codex/MEMORY.md`
+- `./.goodmemory/hosts/codex/MEMORY.md` (a bounded index: one line per record
+  with kind, id, date, and a clipped head; detail lives in `topics/`)
+- `./.goodmemory/hosts/codex/topics/*.md` (per-kind detail pages partitioned
+  by lifecycle; `topics/notes.md` holds authored pages verbatim)
 - `./.goodmemory/hosts/codex/playbooks/*.md`
 
 Treat those files as compiled guidance, not canonical truth.

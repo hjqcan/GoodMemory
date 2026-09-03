@@ -14,6 +14,7 @@ import type {
 import type {
   C3InstalledArmRuntime,
   C3NoMemoryArmRuntime,
+  C3BaselineArmRuntime,
 } from "./c3-runtime";
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/u);
@@ -47,6 +48,9 @@ const featureEvidenceSchema = z.object({
 }).strict();
 
 const hostPreflightEvidenceSchema = z.object({
+  // Absent for the amnesiac no-memory baseline (legacy evidence); the
+  // flat-summary comparator runs with native hooks enabled and says so here.
+  baselineArm: z.enum(["flat-summary", "no-memory"]).optional(),
   codex: z.object({
     executablePath: z.string().min(1),
     executableSha256: sha256Schema,
@@ -96,11 +100,12 @@ const hostPreflightEvidenceSchema = z.object({
 }).strict().superRefine((evidence, context) => {
   const installedFeatures = evidence.codex.features.goodmemoryInstalled;
   const noMemoryFeatures = evidence.codex.features.noMemory;
+  const baselineHooksEnabled = evidence.baselineArm === "flat-summary";
   if (
     !installedFeatures.hooks.enabled ||
     installedFeatures.hooks.maturity !== "stable" ||
     installedFeatures.memories.enabled ||
-    noMemoryFeatures.hooks.enabled ||
+    noMemoryFeatures.hooks.enabled !== baselineHooksEnabled ||
     noMemoryFeatures.hooks.maturity !== "stable" ||
     noMemoryFeatures.memories.enabled ||
     !featureEvidenceMatchesRaw(installedFeatures) ||
@@ -231,7 +236,7 @@ export async function collectC3HostPreflightEvidence(input: {
   hostConfigurationsBytes: string;
   installedRuntime: C3InstalledArmRuntime;
   model: string;
-  noMemoryRuntime: C3NoMemoryArmRuntime;
+  noMemoryRuntime: C3BaselineArmRuntime;
   npmExecutable: string;
   reasoningEffort: string;
   runProcess?: (
@@ -276,7 +281,16 @@ export async function collectC3HostPreflightEvidence(input: {
         runtime: input.noMemoryRuntime,
       },
       {
-        args: ["--disable", "hooks", "--disable", "memories", "features", "list"],
+        // The flat-summary comparator runs with native hooks enabled exactly
+        // like the installed arm; only the amnesiac control disables them.
+        args: [
+          input.noMemoryRuntime.plan.arm === "no-memory" ? "--disable" : "--enable",
+          "hooks",
+          "--disable",
+          "memories",
+          "features",
+          "list",
+        ],
         executable: input.noMemoryRuntime.codex.executable,
         runtime: input.noMemoryRuntime,
       },
@@ -323,6 +337,9 @@ export async function collectC3HostPreflightEvidence(input: {
   }
 
   return parseC3HostPreflightEvidence({
+    ...(input.noMemoryRuntime.plan.arm === "flat-summary"
+      ? { baselineArm: "flat-summary" as const }
+      : {}),
     codex: {
       executablePath: input.installedRuntime.codex.executable,
       executableSha256: input.installedRuntime.codex.executableSha256,
@@ -379,7 +396,11 @@ export function parseC3HostPreflightEvidence(
 ): C3HostPreflightEvidence {
   const result = hostPreflightEvidenceSchema.safeParse(value);
   if (!result.success) {
-    throw new Error("invalid C3 host preflight");
+    const issues = result.error.issues
+      .slice(0, 5)
+      .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+      .join("; ");
+    throw new Error(`invalid C3 host preflight: ${issues}`);
   }
   return result.data;
 }
@@ -433,7 +454,7 @@ function featureEvidenceMatchesRaw(
 }
 
 function projectPaths(
-  runtime: C3InstalledArmRuntime | C3NoMemoryArmRuntime,
+  runtime: C3InstalledArmRuntime | C3BaselineArmRuntime,
 ) {
   return {
     codexHome: runtime.plan.paths.codexHome,

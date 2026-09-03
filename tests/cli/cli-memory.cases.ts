@@ -39,6 +39,7 @@ import {
   writeFile,
 } from "./cli.test-support";
 import type { JudgedEvalCase } from "./cli.test-support";
+import { readdir } from "node:fs/promises";
 
 describe("goodmemory cli root commands", () => {
   it("uses a non-mutating postgres probe for read-only auto storage", async () => {
@@ -430,9 +431,8 @@ describe("goodmemory cli root commands", () => {
       expect(result.stdout).toContain("Hits");
       expect(result.stdout).toContain("Returned Candidate Traces");
       expect(result.stdout).toContain("Suppressed Candidate Traces");
-      expect(blockerFactAfter?.accessCount).toBe(blockerFact?.accessCount);
-      expect(blockerFactAfter?.lastAccessedAt).toBe(blockerFact?.lastAccessedAt);
-      expect(feedbackAfter?.lastUsedAt).toBe(feedback?.lastUsedAt);
+      expect(blockerFactAfter).toEqual(blockerFact);
+      expect(feedbackAfter).toEqual(feedback);
       expect(after.durable.experiences).toHaveLength(before.durable.experiences.length);
       expect(after.durable.proposals).toHaveLength(before.durable.proposals.length);
       expect(after.durable.promotions).toHaveLength(before.durable.promotions.length);
@@ -770,6 +770,41 @@ describe("goodmemory cli root commands", () => {
       expect(result.stdout).toContain(
         join(".goodmemory", "memory.sqlite"),
       );
+    } finally {
+      process.chdir(previousCwd);
+      await workspace.cleanup();
+    }
+  });
+
+  it("remember --kind note stores an authored page verbatim from the assistant role", async () => {
+    const workspace = await createTempWorkspace("goodmemory-cli-remember-note");
+    const previousCwd = process.cwd();
+
+    try {
+      process.chdir(workspace.root);
+
+      const result = await runCLI([
+        "remember",
+        "--user-id",
+        "note-user",
+        "--kind",
+        "note",
+        "--title",
+        "Reading MediaWiki sites as an agent",
+        "--role",
+        "assistant",
+        "--message",
+        "# Reading MediaWiki\n\nMost MediaWiki sites expose api.php.",
+        "--json",
+      ]);
+      const payload = JSON.parse(result.stdout) as {
+        accepted: number;
+        events: Array<{ memoryType: string; outcome: string }>;
+      };
+
+      expect(result.exitCode).toBe(0);
+      expect(payload.accepted).toBe(1);
+      expect(payload.events[0]).toMatchObject({ memoryType: "note", outcome: "written" });
     } finally {
       process.chdir(previousCwd);
       await workspace.cleanup();
@@ -1279,6 +1314,158 @@ describe("goodmemory cli root commands", () => {
       ).rejects.toThrow();
     } finally {
       process.chdir(previousCwd);
+      await workspace.cleanup();
+    }
+  });
+  it("import-memory imports a pages directory only after confirmation and re-imports unchanged", async () => {
+    const workspace = await createTempWorkspace("goodmemory-cli-import-pages");
+
+    try {
+      const sqlitePath = join(workspace.root, "memory.sqlite");
+      const pagesDir = join(workspace.root, "field", "pages");
+      await mkdir(pagesDir, { recursive: true });
+      await writeFile(
+        join(pagesDir, "carbon-fibre-woks.md"),
+        [
+          "---",
+          "title: Carbon Fibre Woks",
+          "updated: '2026-08-22T14:30:00Z'",
+          "tags: [cookware]",
+          "---",
+          "",
+          "Carbon fibre woks conduct heat evenly, but scorch at the centre.",
+          "",
+        ].join("\n"),
+        "utf8",
+      );
+      await writeFile(join(pagesDir, "listing.md"), "# Pages\n\n- [Carbon Fibre Woks](carbon-fibre-woks.md)\n", "utf8");
+      await writeFile(join(pagesDir, "manifest.json"), JSON.stringify({ pagesSha256: "0".repeat(64) }), "utf8");
+      const baseArgs = [
+        "import-memory",
+        "--user-id",
+        "cli-user",
+        "--workspace-id",
+        "workspace-a",
+        "--storage-provider",
+        "sqlite",
+        "--storage-url",
+        sqlitePath,
+        "--input",
+        join(workspace.root, "field"),
+      ];
+
+      const refused = await runCLI(baseArgs);
+      expect(refused.exitCode).toBe(1);
+      expect(refused.stderr).toContain("--yes");
+      expect(refused.stderr).toMatch(/--expect-sha256 [0-9a-f]{64}/);
+      const refusedSha = /--expect-sha256 ([0-9a-f]{64})/.exec(refused.stderr)![1]!;
+
+      const dryRun = await runCLI([...baseArgs, "--dry-run", "--json"]);
+      expect(dryRun.exitCode).toBe(0);
+      const dryPayload = JSON.parse(dryRun.stdout) as {
+        counts: Record<string, number>;
+        dryRun: boolean;
+        inputSha256: string;
+        manifestSha256: string;
+        outcome: string;
+        sourceKind: string;
+      };
+      expect(dryPayload).toMatchObject({
+        counts: { imported: 1, rejected: 0, unchanged: 0 },
+        dryRun: true,
+        inputSha256: refusedSha,
+        manifestSha256: "0".repeat(64),
+        outcome: "dry_run",
+        sourceKind: "pages",
+      });
+      const statsAfterDryRun = await runCLI([
+        "stats", "--user-id", "cli-user", "--workspace-id", "workspace-a",
+        "--storage-provider", "sqlite", "--storage-url", sqlitePath, "--json",
+      ]);
+      expect(statsAfterDryRun.exitCode).toBe(0);
+      expect(statsAfterDryRun.stdout).toContain('"notes": 0');
+
+      const mismatch = await runCLI([...baseArgs, "--expect-sha256", "f".repeat(64)]);
+      expect(mismatch.exitCode).toBe(1);
+      expect(mismatch.stderr).toContain("import_hash_mismatch");
+
+      const imported = await runCLI([...baseArgs, "--expect-sha256", refusedSha]);
+      expect(imported.exitCode).toBe(0);
+      expect(imported.stdout).toContain("Imported memory from");
+      expect(imported.stdout).toContain("imported=1");
+      expect(imported.stdout).toContain("manifest sha256: differs");
+
+      const again = await runCLI([...baseArgs, "--yes", "--json"]);
+      expect(again.exitCode).toBe(0);
+      expect(JSON.parse(again.stdout)).toMatchObject({
+        counts: { imported: 0, superseded: 0, unchanged: 1 },
+        outcome: "imported",
+      });
+
+      const exported = await runCLI([
+        "export-memory", "--user-id", "cli-user", "--workspace-id", "workspace-a",
+        "--storage-provider", "sqlite", "--storage-url", sqlitePath,
+        "--output", join(workspace.root, "export"),
+      ]);
+      expect(exported.exitCode).toBe(0);
+      const exportedPages = (await readdir(join(workspace.root, "export", "pages"))).sort();
+      expect(exportedPages).toEqual([
+        expect.stringMatching(/^carbon-fibre-woks-[0-9a-f]{8}\.md$/),
+        "listing.md",
+        "manifest.json",
+      ]);
+      const roundTrip = await runCLI([...baseArgs.slice(0, -1), join(workspace.root, "export"), "--yes", "--json"]);
+      expect(roundTrip.exitCode).toBe(0);
+      const roundTripPayload = JSON.parse(roundTrip.stdout) as { inputSha256: string; manifestSha256: string };
+      expect(roundTripPayload).toMatchObject({
+        counts: { imported: 0, superseded: 0, unchanged: 1 },
+      });
+      expect(roundTripPayload.manifestSha256).toMatch(/^[0-9a-f]{64}$/);
+      expect(roundTripPayload.inputSha256).toBe(roundTripPayload.manifestSha256);
+    } finally {
+      await workspace.cleanup();
+    }
+  });
+
+  it("import-memory restores a memory-export.json snapshot by id", async () => {
+    const workspace = await createTempWorkspace("goodmemory-cli-import-snapshot");
+
+    try {
+      const sourcePath = join(workspace.root, "source.sqlite");
+      const { scope } = await seedSQLiteMemory(sourcePath);
+      const exportDir = join(workspace.root, "export");
+      const exported = await runCLI([
+        "export-memory", "--user-id", scope.userId, "--workspace-id", scope.workspaceId!,
+        "--storage-provider", "sqlite", "--storage-url", sourcePath, "--output", exportDir,
+      ]);
+      expect(exported.exitCode).toBe(0);
+
+      const targetPath = join(workspace.root, "target.sqlite");
+      const imported = await runCLI([
+        "import-memory", "--user-id", scope.userId, "--workspace-id", scope.workspaceId!,
+        "--storage-provider", "sqlite", "--storage-url", targetPath,
+        "--input", join(exportDir, "memory-export.json"), "--yes", "--json",
+      ]);
+      expect(imported.exitCode).toBe(0);
+      const payload = JSON.parse(imported.stdout) as { counts: { imported: number }; outcome: string; sourceKind: string };
+      expect(payload.sourceKind).toBe("durable");
+      expect(payload.outcome).toBe("imported");
+      expect(payload.counts.imported).toBeGreaterThan(0);
+
+      const inspected = await runCLI([
+        "inspect", "--user-id", scope.userId, "--workspace-id", scope.workspaceId!,
+        "--storage-provider", "sqlite", "--storage-url", targetPath,
+      ]);
+      expect(inspected.exitCode).toBe(0);
+      expect(inspected.stdout).toContain("release quality program");
+
+      const unsupported = await runCLI([
+        "import-memory", "--user-id", scope.userId, "--storage-provider", "sqlite",
+        "--storage-url", targetPath, "--input", join(exportDir, "pages", "manifest.json"), "--yes",
+      ]);
+      expect(unsupported.exitCode).toBe(1);
+      expect(unsupported.stderr).toContain("Unsupported import file");
+    } finally {
       await workspace.cleanup();
     }
   });

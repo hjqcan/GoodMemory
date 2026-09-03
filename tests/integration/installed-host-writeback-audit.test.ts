@@ -846,6 +846,7 @@ describe("installed host writeback audit integration", () => {
         buildContext: (input) => realMemory.buildContext(input),
         deleteAllMemory: (input) => realMemory.deleteAllMemory(input),
         exportMemory: (input) => realMemory.exportMemory(input),
+        importMemory: (input) => realMemory.importMemory(input),
         feedback: (input) => realMemory.feedback(input),
         forget: async (input) => {
           forgetCallCount += 1;

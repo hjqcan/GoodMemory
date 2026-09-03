@@ -132,6 +132,7 @@ export interface GoodMemoryCapabilityDescriptor {
     readonly primaryTools: readonly string[];
     readonly readOnlyToolCount: number;
     readonly writeTool: string;
+    readonly noteTool: string;
     readonly registryName: string;
     readonly docs: string;
   };
@@ -274,6 +275,7 @@ export function buildGoodMemoryCapabilityDescriptor(
       primaryTools: ["goodmemory_get_context", "goodmemory_remember"],
       readOnlyToolCount: 8,
       writeTool: "goodmemory_remember (opt-in via --allow-write)",
+      noteTool: "goodmemory_write_note (opt-in via --allow-write; verbatim authored pages ≤ 8 KB)",
       registryName: "io.github.hjqcan/goodmemory",
       docs: `${REPO}#standalone-mcp-for-any-client`,
     },
@@ -290,6 +292,7 @@ export function buildGoodMemoryCapabilityDescriptor(
         feedback: "POST /memory/feedback",
         export: "POST /memory/export",
         forget: "POST /memory/forget",
+        import: "POST /memory/import",
         revise: "POST /memory/revise",
       },
       pythonClient: "goodmemory-client (PyPI)",

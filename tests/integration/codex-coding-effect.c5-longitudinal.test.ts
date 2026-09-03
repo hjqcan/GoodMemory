@@ -9,6 +9,7 @@ import {
 import type {
   C5StageExecution,
 } from "../../scripts/codex-coding-effect/c5-longitudinal";
+import type { C5PilotArm } from "../../scripts/codex-coding-effect/c5-pilot-plan";
 import { loadCodexCodingEffectDataset } from "../../scripts/codex-coding-effect/dataset";
 
 const SHA = "a".repeat(64);
@@ -292,7 +293,7 @@ describe("Codex coding-effect C5 longitudinal coordinator", () => {
 });
 
 function execution(
-  arm: "goodmemory-installed" | "no-memory",
+  arm: C5PilotArm,
   stageRunId: string,
   threadId: string,
 ): C5StageExecution {

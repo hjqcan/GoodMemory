@@ -268,6 +268,18 @@ export type LanguageRenderKey =
   | "actor"
   | "open_loops"
   | "omitted_sections"
+  | "note"
+  | "note_item"
+  | "memory_context_frame"
+  | "files"
+  | "topic_active"
+  | "topic_superseded"
+  | "topic_archived"
+  | "expertise"
+  | "current_projects_and_goals"
+  | "collaboration_preferences"
+  | "stable_procedural_guidance"
+  | "provenance_summary"
   | "preference"
   | "playbook_title"
   | "procedural_memory"
@@ -486,6 +498,16 @@ export interface LanguageService {
     context: ResolvedLanguageContext | string,
     options?: { excludeStopwords?: boolean },
   ): number;
+  // The overlap primitive behind tokenOverlap: the shared-token count plus
+  // both token-set sizes, so callers can derive query-side coverage for long
+  // records without re-tokenizing. tokenOverlap stays intersection over the
+  // larger set.
+  tokenOverlapDetail(
+    left: string,
+    right: string,
+    context: ResolvedLanguageContext | string,
+    options?: { excludeStopwords?: boolean },
+  ): { intersection: number; leftSize: number; rightSize: number };
   localesCompatible(left: string, right: string): boolean;
   isAnswerCompositionQuery(
     query: string,

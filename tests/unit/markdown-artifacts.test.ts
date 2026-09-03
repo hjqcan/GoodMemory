@@ -383,6 +383,10 @@ describe("markdown artifact projection", () => {
     expect(first.files.map((file) => file.relativePath)).toEqual([
       "user.md",
       "MEMORY.md",
+      "topics/preferences.md",
+      "topics/feedback.md",
+      "topics/references.md",
+      "topics/facts.md",
       "session.md",
       "archive/2026/04/s-1.md",
     ]);
@@ -396,16 +400,16 @@ describe("markdown artifact projection", () => {
     expect(first.files[1]?.content).toContain(
       "Delay the rollout revision until verification reruns.",
     );
-    expect(first.files[2]?.content).toContain(
+    expect(first.files[6]?.content).toContain(
       "Revise the rollout blocker after repeated corrections.",
     );
-    expect(first.files[2]?.content).toContain(
+    expect(first.files[6]?.content).toContain(
       "Delay the rollout revision until verification reruns.",
     );
-    expect(first.files[2]?.content).toContain("Current goal: Finish rollout");
-    expect(first.files[2]?.content).toContain("Large tool payload preview");
-    expect(first.files[3]?.content).toContain("# Archive Recap: s-1");
-    expect(first.files[3]?.content).toContain(
+    expect(first.files[6]?.content).toContain("Current goal: Finish rollout");
+    expect(first.files[6]?.content).toContain("Large tool payload preview");
+    expect(first.files[7]?.content).toContain("# Archive Recap: s-1");
+    expect(first.files[7]?.content).toContain(
       "Session paused after rollout verification planning.",
     );
   });
@@ -430,10 +434,16 @@ describe("markdown artifact projection", () => {
     const memory = artifacts.files.find(({ relativePath }) =>
       relativePath === "MEMORY.md"
     );
+    const factsTopic = artifacts.files.find(({ relativePath }) =>
+      relativePath === "topics/facts.md"
+    );
 
-    expect(memory?.content).toContain(
+    // Detail (occurrence intervals) lives in the topic page; the index stays
+    // one bounded line per record.
+    expect(factsTopic?.content).toContain(
       "[occurrence: 2026-04-01T16:00:00.000Z..2026-04-02T16:00:00.000Z; precision=day; timezone=Asia/Shanghai]",
     );
+    expect(memory?.content).not.toContain("[occurrence:");
   });
 
   it("namespaces session-scoped artifact bundles by session id", () => {
@@ -482,9 +492,14 @@ describe("markdown artifact projection", () => {
         ],
       },
     });
-    const memoryArtifact = artifacts.files.find(
-      (file) => file.relativePath === "MEMORY.md",
-    );
+    // Domain metadata (tags/attributes) renders on the topic pages, which
+    // carry the auditable detail; MEMORY.md indexes records without it.
+    const memoryArtifact = {
+      content: artifacts.files
+        .filter((file) => file.relativePath.startsWith("topics/"))
+        .map(({ content }) => content)
+        .join("\n"),
+    };
 
     expect(memoryArtifact?.content).toContain(
       "- response_style: bullet points {tags: life_coach, style; attributes: cadence=weekly}",
@@ -668,6 +683,10 @@ describe("markdown artifact projection", () => {
     expect(artifacts.files.map((file) => file.relativePath)).toEqual([
       "user.md",
       "MEMORY.md",
+      "topics/preferences.md",
+      "topics/feedback.md",
+      "topics/references.md",
+      "topics/facts.md",
       "archive/2026/04/s-1.md",
     ]);
   });

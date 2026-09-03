@@ -284,8 +284,13 @@ describe.serial("Codex coding-effect C6 candidate protocol readiness", () => {
           const mutated = mutatedResult.plan.episodeBindings.find(
             (episode) => episode.episodeId === "candidate-002",
           )!;
-          expect(mutated.taskContentSha256)
-            .not.toBe(baseline.taskContentSha256);
+          if (mutation === "snapshot") {
+            expect(mutated.taskContentSha256)
+              .toBe(baseline.taskContentSha256);
+          } else {
+            expect(mutated.taskContentSha256)
+              .not.toBe(baseline.taskContentSha256);
+          }
           expect(mutated.episodeInputSha256)
             .not.toBe(baseline.episodeInputSha256);
           expect(mutated.stageBindings[0]!.stageInputSha256)
@@ -2691,7 +2696,6 @@ function promptContentIndexesForEpisode(
 function candidateTaskContentSha256For(
   index: number,
   contentIndex: number | readonly number[],
-  snapshotIndex = index,
 ): string {
   const contentIndexes = typeof contentIndex === "number"
     ? [contentIndex, contentIndex, contentIndex]
@@ -2700,35 +2704,11 @@ function candidateTaskContentSha256For(
     CODEX_CODING_EFFECT_MEMORY_STRATA[
       index % CODEX_CODING_EFFECT_MEMORY_STRATA.length
     ] === "no-history-negative-control";
-  const repositoryFiles = [
-    {
-      bytes: Buffer.byteLength(repositoryReadmeFor(index % 6)),
-      mode: 0o644,
-      path: "README.md",
-      sha256: sha256(repositoryReadmeFor(index % 6)),
-    },
-    {
-      bytes: Buffer.byteLength(repositorySource()),
-      mode: 0o644,
-      path: "src/task.ts",
-      sha256: sha256(repositorySource()),
-    },
-  ];
   return sha256(JSON.stringify({
-    repository: {
-      assetPath: `repositories/repository-${index % 6}`,
-      baseCommit: sha256(`commit-${index % 6}`),
-      contentSha256: sha256(JSON.stringify(repositoryFiles)),
-      url: `https://github.com/c6-fixture/repository-${index % 6}.git`,
-    },
     stages: contentIndexes.map((promptIndex, stageIndex) => ({
       allowedFeedback: [],
       historySha256: noHistory ? sha256("") : sha256(fixtureHistory()),
       promptSha256: sha256(promptFor(promptIndex, stageIndex + 1)),
-      snapshot: taskGitSnapshot(
-        snapshotIndex % 6,
-        stageIndex + 1,
-      ),
     })),
   }));
 }
@@ -2736,31 +2716,7 @@ function candidateTaskContentSha256For(
 function candidateTaskContentSha256ForEpisode(
   episode: CodexCodingEffectDatasetV3["episodes"][number],
 ): string {
-  const repositoryIndex = Number.parseInt(
-    episode.repository.assetPath!.slice("repositories/repository-".length),
-    10,
-  );
-  const repositoryFiles = [
-    {
-      bytes: Buffer.byteLength(repositoryReadmeFor(repositoryIndex)),
-      mode: 0o644,
-      path: "README.md",
-      sha256: sha256(repositoryReadmeFor(repositoryIndex)),
-    },
-    {
-      bytes: Buffer.byteLength(repositorySource()),
-      mode: 0o644,
-      path: "src/task.ts",
-      sha256: sha256(repositorySource()),
-    },
-  ];
   return sha256(JSON.stringify({
-    repository: {
-      assetPath: episode.repository.assetPath,
-      baseCommit: episode.repository.baseCommit,
-      contentSha256: sha256(JSON.stringify(repositoryFiles)),
-      url: episode.repository.url,
-    },
     stages: episode.stages.map((stage) => {
       const promptIndex = Number.parseInt(
         stage.promptPath.match(/task-(\d+)-stage-\d+\.md$/u)![1]!,
@@ -2770,7 +2726,6 @@ function candidateTaskContentSha256ForEpisode(
         allowedFeedback: stage.allowedFeedback,
         historySha256: stage.history.sha256,
         promptSha256: sha256(promptFor(promptIndex, stage.position)),
-        snapshot: stage.snapshot,
       };
     }),
   }));

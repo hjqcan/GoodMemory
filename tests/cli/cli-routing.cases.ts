@@ -301,6 +301,7 @@ describe("goodmemory cli help and routing", () => {
     const trace = await runCLI(["trace", "--help"]);
     const stats = await runCLI(["stats", "--help"]);
     const exportMemory = await runCLI(["export-memory", "--help"]);
+    const importMemory = await runCLI(["import-memory", "--help"]);
     const evalInspect = await runCLI(["eval", "inspect", "--help"]);
     const install = await runCLI(["install", "--help"]);
     const installCodex = await runCLI(["install", "codex", "--help"]);
@@ -356,6 +357,11 @@ describe("goodmemory cli help and routing", () => {
     expect(exportMemory.exitCode).toBe(0);
     expect(exportMemory.stdout).toContain("GoodMemory Export Memory");
     expect(exportMemory.stdout).toContain("--output <path>");
+    expect(importMemory.exitCode).toBe(0);
+    expect(importMemory.stdout).toContain("GoodMemory Import Memory");
+    expect(importMemory.stdout).toContain("--input <path>");
+    expect(importMemory.stdout).toContain("--expect-sha256 <hex>");
+    expect(importMemory.stdout).toContain("--oversize <reject|split>");
     expect(evalInspect.exitCode).toBe(0);
     expect(evalInspect.stdout).toContain("GoodMemory Eval Inspect");
     expect(evalInspect.stdout).toContain("--run-dir <path>");

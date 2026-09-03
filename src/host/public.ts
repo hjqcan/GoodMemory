@@ -99,6 +99,7 @@ const DEFAULT_SUPPORTED_READABLE_ARTIFACT_TYPES = [
   ...DEFAULT_READABLE_ARTIFACT_TYPES,
   "archive_recap",
   "playbook",
+  "topic_page",
 ] as const satisfies readonly HostArtifactType[];
 
 function sanitizeMarkdownInline(value: string): string {
@@ -185,6 +186,10 @@ function resolveHostArtifactType(input: {
 
   if (input.relativePath.startsWith("playbooks/")) {
     return "playbook";
+  }
+
+  if (input.kind === "topic" || input.relativePath.startsWith("topics/")) {
+    return "topic_page";
   }
 
   if (input.relativePath === "MEMORY.md" || input.kind === "memory") {

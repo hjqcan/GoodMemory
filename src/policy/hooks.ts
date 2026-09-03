@@ -2,6 +2,7 @@ import type {
   EpisodeMemory,
   FactMemory,
   FeedbackMemory,
+  NoteMemory,
   PreferenceMemory,
   ReferenceMemory,
   UserProfile,
@@ -41,6 +42,7 @@ export type PolicyMemoryRecord =
   | ({ memoryType: "profile" } & UserProfile)
   | ({ memoryType: "preference" } & PreferenceMemory)
   | ({ memoryType: "reference" } & ReferenceMemory)
+  | ({ memoryType: "note" } & NoteMemory)
   | ({ memoryType: "fact" } & FactMemory)
   | ({ memoryType: "feedback" } & FeedbackMemory)
   | ({ memoryType: "evidence" } & EvidenceRecord)
@@ -131,6 +133,7 @@ export function toPolicyMemoryRecord(
     | UserProfile
     | PreferenceMemory
     | ReferenceMemory
+    | NoteMemory
     | FactMemory
     | FeedbackMemory
     | EvidenceRecord

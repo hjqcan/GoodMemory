@@ -25,6 +25,7 @@ import {
   maskQuotedText,
   replaceUnquotedText,
   splitClausesGeneric,
+  splitExplicitCompoundClauses,
   splitTrailingClause,
 } from "./generic";
 import type { DirectiveGrammarMatch } from "./generic";
@@ -284,17 +285,23 @@ function hasChineseReportedDirectiveScope({
   return CHINESE_REPORTED_DIRECTIVE_PREFIX_PATTERN.test(prefix);
 }
 const CHINESE_BEHAVIORAL_DIRECTIVE_PATTERN =
-  /^(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你|您)?)[，,]?\s*)?(?:不要|别|別|避免|优先|優先|保持|用|使用|改用|读取|讀取|写入|寫入|创建|創建|建立|告诉|告訴|回复|回覆|回答|给|給|运行|運行|执行|執行|调用|調用|打开|打開|关闭|關閉|删除|刪除|移动|移動|复制|複製|汇报|彙報|检查|檢查|查看|确认|確認|验证|驗證|总结|總結|概括|修复|修復|实现|實現|解释|解釋|添加|新增|更新|部署|重构|重構)/u;
+  /^(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你|您)?)[，,]?\s*)?(?:不要|别|別|避免|优先|優先|保持|确保|確保|保证|保證|维持|維持|用|使用|改用|读取|讀取|写入|寫入|创建|創建|建立|告诉|告訴|回复|回覆|回答|给|給|运行|運行|执行|執行|调用|調用|打开|打開|关闭|關閉|删除|刪除|移动|移動|复制|複製|汇报|彙報|检查|檢查|查看|确认|確認|验证|驗證|总结|總結|概括|修复|修復|实现|實現|解释|解釋|添加|新增|更新|部署|重构|重構)/u;
 const CHINESE_DURABLE_BEHAVIORAL_SCOPE_PATTERN =
   /^(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你|您)?)\s*)?(?:以后|以後|今后|今後|始终|始終|总是|總是|每次|每当|每當|永远|永遠|绝不|絕不)/u;
 const CHINESE_CORRECTION_PREAMBLE_PATTERN =
   /^(?:纠正|糾正|更正|修正)(?:一下)?(?=\s|[：:,，。]|$)\s*(?:[：:,，。]\s*)?/u;
 const CHINESE_OBJECT_FRONTED_BEHAVIORAL_DIRECTIVE_PATTERN =
-  /^(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你|您)?)[，,]?\s*)?(?:把|将|將)[^。！？\n]{1,120}?(?:用|使用|读取|讀取|写入|寫入|创建|創建|建立|告诉|告訴|回复|回覆|回答|运行|運行|执行|執行|调用|調用|打开|打開|关闭|關閉|删除|刪除|移动|移動|复制|複製|检查|檢查|查看|确认|確認|验证|驗證)/u;
+  /^(?:(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你|您)?)[，,]?\s*)?(?:把|将|將)[^。！？\n]{1,120}?(?:用|使用|读取|讀取|写入|寫入|创建|創建|建立|告诉|告訴|回复|回覆|回答|运行|運行|执行|執行|调用|調用|打开|打開|关闭|關閉|删除|刪除|移动|移動|复制|複製|设置|設定|设为|設為|检查|檢查|查看|确认|確認|验证|驗證)/u;
 const CHINESE_ACTION_NOMINAL_ASSERTION_PATTERN =
   /^(?:[^，。！？\s]{1,12}(?:说明|說明|率|状态|狀態|情况|情況|方式|方法|方案|结果|結果|报告|報告|记录|記錄|计划|計畫|进度|進度))(?:是|为|為|在|已|会|會|保持|处于|處於)/u;
+const CHINESE_INDEPENDENT_EXPLICIT_FACT_PATTERN =
+  /^(?!(?:其中|而且|并且|並且|以及|但是|不過|不过))(?:[^，,、；;。！？]{1,60}(?:是|为|為)|[^，,、；;。！？]{1,60}[=＝])\s*\S/u;
+const CHINESE_DEPENDENT_EXPLICIT_FACT_PATTERN =
+  /^(?:即使|儘管|尽管|如果|因為|因为|雖然|虽然)/u;
 const CHINESE_STRUCTURAL_BEHAVIORAL_DIRECTIVE_PATTERN =
   /^[\p{Script=Han}]{1,4}(?:为什么|為什麼|如何|怎么|怎麼)/u;
+const CHINESE_BARE_BEHAVIORAL_DIRECTIVE_PATTERN =
+  /^(?:(?:确保|確保)|(?:保证|保證)(?!(?:期|期限|书|書))|(?:维持|維持)(?!(?:时间|時間)))\S/u;
 const CHINESE_CLEAR_BEHAVIORAL_BOUNDARY_PATTERN =
   /^(?:(?:请|請)(?:你|您)?|(?:麻烦|麻煩)(?:你|您)?|不要|别|別|避免|优先|優先|以后|以後|今后|今後|始终|始終|总是|總是|每次|每当|每當|永远|永遠|绝不|絕不|纠正|糾正|更正|修正)/u;
 const ORGANIZATION_SUFFIX_PATTERN =
@@ -582,14 +589,24 @@ function classifyChineseBehavioralDirective(
   const directiveBody = corrected
     .replace(CHINESE_DURABLE_BEHAVIORAL_SCOPE_PATTERN, "")
     .replace(/^[：:,，;；\s]+/u, "");
-  const nominalAction = CHINESE_ACTION_NOMINAL_ASSERTION_PATTERN.test(directiveBody);
-  const isBehavioralDirective =
-    !nominalAction &&
-    (CHINESE_BEHAVIORAL_DIRECTIVE_PATTERN.test(corrected) ||
-      CHINESE_BEHAVIORAL_DIRECTIVE_PATTERN.test(directiveBody) ||
-      CHINESE_OBJECT_FRONTED_BEHAVIORAL_DIRECTIVE_PATTERN.test(corrected) ||
-      CHINESE_OBJECT_FRONTED_BEHAVIORAL_DIRECTIVE_PATTERN.test(directiveBody) ||
-      CHINESE_STRUCTURAL_BEHAVIORAL_DIRECTIVE_PATTERN.test(directiveBody));
+  const nominalAction =
+    CHINESE_ACTION_NOMINAL_ASSERTION_PATTERN.test(directiveBody) ||
+    /^[^，,、；;。！？\s]{1,20}(?:是|为|為|在)\s*\S/u.test(directiveBody);
+  const matchesBehavioralDirective =
+    CHINESE_BEHAVIORAL_DIRECTIVE_PATTERN.test(corrected) ||
+    CHINESE_BEHAVIORAL_DIRECTIVE_PATTERN.test(directiveBody) ||
+    CHINESE_OBJECT_FRONTED_BEHAVIORAL_DIRECTIVE_PATTERN.test(corrected) ||
+    CHINESE_OBJECT_FRONTED_BEHAVIORAL_DIRECTIVE_PATTERN.test(directiveBody) ||
+    CHINESE_STRUCTURAL_BEHAVIORAL_DIRECTIVE_PATTERN.test(directiveBody);
+  const hasClearBehavioralFrame = correctionMatch !== null ||
+    CHINESE_OBJECT_FRONTED_BEHAVIORAL_DIRECTIVE_PATTERN.test(corrected) ||
+    CHINESE_OBJECT_FRONTED_BEHAVIORAL_DIRECTIVE_PATTERN.test(directiveBody) ||
+    CHINESE_STRUCTURAL_BEHAVIORAL_DIRECTIVE_PATTERN.test(directiveBody) ||
+    CHINESE_BARE_BEHAVIORAL_DIRECTIVE_PATTERN.test(directiveBody) ||
+    (CHINESE_CLEAR_BEHAVIORAL_BOUNDARY_PATTERN.test(directiveBody) &&
+      matchesBehavioralDirective);
+  const isBehavioralDirective = matchesBehavioralDirective &&
+    (hasClearBehavioralFrame || !nominalAction);
   if (
     CHINESE_DURABLE_BEHAVIORAL_SCOPE_PATTERN.test(corrected) &&
     isBehavioralDirective
@@ -597,6 +614,24 @@ function classifyChineseBehavioralDirective(
     return "durable";
   }
   return isBehavioralDirective ? "one_off" : "none";
+}
+
+function classifyChineseExplicitCompoundClause(
+  clause: string,
+): "dependent" | "fact" | "interrogative" | "one_off" | "unknown" {
+  const trimmed = clause.trim();
+  if (classifyChineseBehavioralDirective(trimmed) !== "none") {
+    return "one_off";
+  }
+  if (isChineseInterrogativeClause(trimmed, trimmed)) {
+    return "interrogative";
+  }
+  if (CHINESE_DEPENDENT_EXPLICIT_FACT_PATTERN.test(trimmed)) {
+    return "dependent";
+  }
+  return CHINESE_INDEPENDENT_EXPLICIT_FACT_PATTERN.test(trimmed)
+    ? "fact"
+    : "unknown";
 }
 
 function extractExplicitFactClauses(content: string) {
@@ -618,16 +653,39 @@ function extractExplicitFactClauses(content: string) {
   }
 
   const clauses = splitChineseClauses(headers.content)
-    .map((source) => ({
-      content: cleanExplicitFactContent(source),
-      source,
-    }))
+    .flatMap((source) =>
+      splitExplicitCompoundClauses(
+        source,
+        classifyChineseExplicitCompoundClause,
+      )
+    )
+    .map((source) => {
+      const cleaned = cleanExplicitFactContent(source);
+      return {
+        compoundKind: classifyChineseExplicitCompoundClause(source),
+        content: cleaned,
+        source,
+      };
+    })
     .filter(({ content: clause }) => clause.length > 0);
+  const independentFactClauses = clauses.filter(
+    ({ compoundKind }) => compoundKind === "fact",
+  );
+  const countedFactClauses = clauses.filter(({ compoundKind, content }) =>
+    compoundKind === "fact" || compoundKind === "unknown" ||
+    EXPLICIT_FACT_OPT_OUT_PATTERN.test(content)
+  );
+  const expectedFactCount = headers.hasCountedList
+    ? headers.expectedFactCount
+    : Math.max(1, independentFactClauses.length);
 
-  if (clauses.length < headers.expectedFactCount) {
+  if (
+    (headers.hasCountedList ? countedFactClauses : clauses).length <
+      expectedFactCount
+  ) {
     return headers.hasCountedList
       ? {
-        clauses: clauses.map(({ content: clause }) => ({
+        clauses: countedFactClauses.map(({ content: clause }) => ({
           content: clause,
           disposition: EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause)
             ? "feedback" as const
@@ -637,10 +695,31 @@ function extractExplicitFactClauses(content: string) {
       }
       : { clauses: [], status: "invalid" as const };
   }
-  if (clauses.some(({ content: clause, source }) =>
-    !EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause) &&
-    isChineseInterrogativeClause(clause, source)
-  )) {
+  const hasSafeUncountedCompound = !headers.hasCountedList &&
+    clauses.length > 1 && independentFactClauses.length > 0;
+  const lastCountedFact = expectedFactCount > 0
+    ? countedFactClauses[expectedFactCount - 1]
+    : undefined;
+  const lastCountedFactIndex = lastCountedFact
+    ? clauses.indexOf(lastCountedFact)
+    : -1;
+  if (
+    (headers.hasCountedList && clauses
+      .slice(0, lastCountedFactIndex + 1)
+      .some(({ compoundKind, content }) =>
+        compoundKind !== "fact" && compoundKind !== "unknown" &&
+        !EXPLICIT_FACT_OPT_OUT_PATTERN.test(content)
+      )) ||
+    (!headers.hasCountedList && clauses.some(({ compoundKind, content }) =>
+      compoundKind === "interrogative" &&
+      !EXPLICIT_FACT_OPT_OUT_PATTERN.test(content)
+    )) ||
+    (!headers.hasCountedList && !hasSafeUncountedCompound &&
+      clauses.some(({ content: clause, source }) =>
+      !EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause) &&
+      isChineseInterrogativeClause(clause, source)
+    ))
+  ) {
     return { clauses: [], status: "invalid" as const };
   }
 
@@ -654,9 +733,12 @@ function extractExplicitFactClauses(content: string) {
     return { clauses: [], status: "invalid" as const };
   }
 
+  const selectedFactClauses = !headers.hasCountedList && independentFactClauses.length > 0
+    ? independentFactClauses
+    : countedFactClauses.slice(0, expectedFactCount);
+
   return {
-    clauses: clauses
-      .slice(0, headers.expectedFactCount)
+    clauses: selectedFactClauses
       .map(({ content: clause }) => ({
         content: clause,
         disposition: EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause)

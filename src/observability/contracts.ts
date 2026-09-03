@@ -6,6 +6,8 @@ export type GoodMemoryTraceSpanName =
   | "memory.feedback"
   | "memory.forget"
   | "memory.export"
+  | "memory.import"
+  | "governance.file_mirror"
   | "memory.delete_all"
   | "memory.policy.block"
   | "runtime.session.start"

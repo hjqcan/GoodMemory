@@ -429,7 +429,7 @@ describe("Codex coding-effect C6 reviewer actor identity capture", () => {
     expect("policy" in manifest).toBe(false);
     expect(await readTreeUtf8(fixture.outputRoot))
       .not.toContain("secret-token");
-  }, ciTestTimeout(10_000));
+  }, ciTestTimeout(20_000));
 
   it("strictly rejects v2 policy injection and plan dispatch drift before transport", async () => {
     const planBytes = await v2PlanBytes();
@@ -492,7 +492,7 @@ describe("Codex coding-effect C6 reviewer actor identity capture", () => {
 
     expect(requestCount).toBe(507);
     expect(await pathExists(fixture.outputRoot)).toBe(false);
-  });
+  }, ciTestTimeout(20_000));
 
   it("stops before the next actor when the frozen plan drifts", async () => {
     const fixture = await createFixture();

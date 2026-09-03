@@ -60,7 +60,7 @@ export function admitGeneralizedRecords<T>(input: {
       "generic",
       trace.intentScore,
       trace.lexicalScore,
-      trace.outcomeScore ?? 0,
+      trace.evidenceScore ?? 0,
       trace.verificationPenaltyScore ?? 0,
       trace.fallback,
     );

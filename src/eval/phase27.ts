@@ -26,6 +26,7 @@ import {
   createSQLiteSessionStore,
 } from "../storage/sqlite";
 import type { EvalSuiteResult } from "./suite";
+import { buildPageArtifacts } from "../governance/pageArtifacts";
 
 export const PHASE_27_IDENTITY_BACKGROUND_SCENARIO_IDS = [
   "scenario-medium-13-role-slot",
@@ -582,6 +583,7 @@ function buildRepeatedCorrectionMetric(input: {
 
 function createBaseExportResult(): ExportMemoryResult {
   return {
+    pages: buildPageArtifacts({ notes: [] }),
     artifacts: {
       rootPath: ".goodmemory/users/u-1/workspaces/ws-1/sessions/s-1",
       files: [

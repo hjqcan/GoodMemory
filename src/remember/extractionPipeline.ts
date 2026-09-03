@@ -73,6 +73,18 @@ export function createRememberExtractionPipeline(config: RememberEngineConfig) {
   ): MessageAnnotation | undefined =>
     input.annotations?.find((annotation) => annotation.messageIndex === messageIndex);
 
+  const getNoteAnnotatedMessageIndexes = (
+    input: MemoryExtractionInput,
+  ): ReadonlySet<number> =>
+    new Set(
+      (input.annotations ?? [])
+        .filter(
+          (annotation) =>
+            annotation.kindHint === "note" && annotation.remember === "always",
+        )
+        .map((annotation) => annotation.messageIndex),
+    );
+
   const resolveCandidateLanguage = (
     candidate: MemoryCandidate,
     sourceAnalyses: RememberSourceLanguageAnalyses,
@@ -570,6 +582,19 @@ export function createRememberExtractionPipeline(config: RememberEngineConfig) {
         return false;
       }
 
+      // An authored note is the caller's own deliberate write, not harvested
+      // assistant chatter: the exact confirmed note annotation is admitted
+      // under every assistant-output mode (ADR-010 §2). Every other candidate
+      // keeps the profile policy.
+      if (
+        candidate.kindHint === "note" &&
+        annotation.kindHint === "note" &&
+        annotation.remember === "always" &&
+        annotation.confirmed === true
+      ) {
+        return true;
+      }
+
       if (profile.assistantOutputs.mode === "host_tagged_only") {
         return annotation.remember === "always";
       }
@@ -599,6 +624,7 @@ export function createRememberExtractionPipeline(config: RememberEngineConfig) {
     explicitOptOutSourceIndexes: ReadonlySet<number>,
   ): MemoryExtractionResult => {
     const blockedIndexes = getNeverAnnotatedMessageIndexes(input);
+    const noteIndexes = getNoteAnnotatedMessageIndexes(input);
     const candidates = extraction.candidates
       .filter((candidate) =>
         ![
@@ -606,6 +632,10 @@ export function createRememberExtractionPipeline(config: RememberEngineConfig) {
           ...(candidate.sourceMessageIndexes ?? []),
         ].some((messageIndex) => blockedIndexes.has(messageIndex))
       )
+      // A note annotation replaces every extracted candidate from its message
+      // with the single whole-message candidate pushed below; sentence-level
+      // extraction must not survive as re-hinted note fragments (ADR-010 §2).
+      .filter((candidate) => !noteIndexes.has(candidate.sourceMessageIndex))
       .map((candidate) => {
         const annotation = findAnnotation(input, candidate.sourceMessageIndex);
         if (!annotation) {
@@ -674,7 +704,11 @@ export function createRememberExtractionPipeline(config: RememberEngineConfig) {
           candidate.sourceMessageIndex === annotation.messageIndex &&
           candidate.content.trim() === message.content.trim(),
       );
-      const preserveSource = shouldPreserveAnnotatedSourceMessage(annotation);
+      // Notes bypass preserved-source semantics: the body is the verbatim
+      // message and the metadata patch carries the title.
+      const preserveSource =
+        annotation.kindHint !== "note" &&
+        shouldPreserveAnnotatedSourceMessage(annotation);
 
       if (
         hasCandidateForMessage &&

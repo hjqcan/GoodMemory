@@ -1,3 +1,4 @@
+import { isNoteBodyWithinLimit } from "../domain/records";
 import {
   findStorageUnsafeTextPath,
   hasPersistableSemanticText,
@@ -77,6 +78,12 @@ function scoreCandidate(candidate: MemoryCandidate): number {
     return candidate.explicitness === "explicit" ? 0.92 : 0.64;
   }
 
+  if (candidate.kindHint === "note") {
+    // A note only arrives through an explicit authored write; it never comes
+    // from inference, so its admission score is fixed above the threshold.
+    return 0.9;
+  }
+
   return 0.4;
 }
 
@@ -90,7 +97,11 @@ function hasValidCandidatePayload(candidate: MemoryCandidate): boolean {
     );
   }
 
-  if (candidate.kindHint === "fact" || candidate.kindHint === "feedback") {
+  if (
+    candidate.kindHint === "fact" ||
+    candidate.kindHint === "feedback" ||
+    candidate.kindHint === "note"
+  ) {
     return hasContent;
   }
 
@@ -126,6 +137,7 @@ export function classifyCandidate(candidate: MemoryCandidate): ClassifiedCandida
     candidate.kindHint !== "profile" &&
     candidate.kindHint !== "preference" &&
     candidate.kindHint !== "reference" &&
+    candidate.kindHint !== "note" &&
     candidate.kindHint !== "fact" &&
     candidate.kindHint !== "feedback"
   ) {
@@ -135,6 +147,19 @@ export function classifyCandidate(candidate: MemoryCandidate): ClassifiedCandida
       decision: "reject",
       score,
       reason: "unsupported_kind",
+    };
+  }
+
+  // The note body cap is a hard invariant (NOTE_MAX_BYTES): a forced
+  // annotation cannot lift it, and it is reported before any payload check so
+  // callers get the precise reason.
+  if (candidate.kindHint === "note" && !isNoteBodyWithinLimit(candidate.content)) {
+    return {
+      ...candidate,
+      memoryType: "reject",
+      decision: "reject",
+      score,
+      reason: "note_too_large",
     };
   }
 

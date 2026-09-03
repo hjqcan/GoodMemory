@@ -164,6 +164,7 @@ async function materializeDurableSnapshot(
     ["feedback", durable.feedback],
     ["preferences", durable.preferences],
     ["references", durable.references],
+    ["notes", durable.notes ?? []],
     ["session_archives", durable.archives],
     ["profiles", durable.profile ? [durable.profile] : []],
   ];

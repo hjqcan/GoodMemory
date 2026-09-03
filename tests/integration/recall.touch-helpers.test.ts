@@ -44,17 +44,15 @@ describe("recall retrieval telemetry", () => {
 
     expect(result.facts.map((fact) => fact.id)).toContain(oldFact.id);
     expect(persisted).toMatchObject({
-      accessCount: 0,
       confidence: 1,
       importance: 1,
       isActive: true,
       lifecycle: "active",
       updatedAt: "2025-01-01T00:00:00.000Z",
     });
-    expect(persisted?.lastAccessedAt).toBeUndefined();
   });
 
-  it("keeps stored access telemetry frozen across repeated recalls", async () => {
+  it("does not rewrite stored documents across repeated recalls", async () => {
     const documentStore = createInMemoryDocumentStore();
     const sessionStore = createInMemorySessionStore();
     let now = new Date("2026-01-10T00:00:00.000Z");
@@ -74,8 +72,6 @@ describe("recall retrieval telemetry", () => {
         category: "project",
         content: "The runtime rollout has a legal signoff blocker.",
         source: { method: "explicit", extractedAt: "2026-01-09T00:00:00.000Z" },
-        accessCount: 7,
-        lastAccessedAt: "2026-01-08T00:00:00.000Z",
         createdAt: "2026-01-09T00:00:00.000Z",
         updatedAt: "2026-01-09T00:00:00.000Z",
       }),
@@ -90,7 +86,6 @@ describe("recall retrieval telemetry", () => {
         rule: "Use bullet points in summaries.",
         kind: "validated_pattern",
         source: { method: "explicit", extractedAt: "2026-01-09T00:00:00.000Z" },
-        lastUsedAt: "2026-01-08T00:00:00.000Z",
         updatedAt: "2026-01-09T00:00:00.000Z",
       }),
     );
@@ -110,6 +105,11 @@ describe("recall retrieval telemetry", () => {
       }),
     );
 
+    const storedBefore = [
+      await documentStore.get("facts", "fact-1"),
+      await documentStore.get("facts", "fact-2"),
+      await documentStore.get("feedback", "feedback-1"),
+    ];
     const returnedOrders: string[][] = [];
     let omittedFromContextId: string | undefined;
     for (let index = 0; index < 20; index += 1) {
@@ -143,14 +143,16 @@ describe("recall retrieval telemetry", () => {
       (record) => record.id === "feedback-1",
     );
 
-    expect(fact?.accessCount).toBe(7);
-    expect(fact?.lastAccessedAt).toBe("2026-01-08T00:00:00.000Z");
     expect(fact?.confidence).toBe(1);
     expect(fact?.lifecycle).toBe("active");
-    expect(feedback?.lastUsedAt).toBe("2026-01-08T00:00:00.000Z");
+    expect(feedback?.lifecycle).toBe("active");
+    expect(untouchedFact?.lifecycle).toBe("active");
     expect(omittedFromContextId).toBeString();
-    expect(untouchedFact?.accessCount).toBe(0);
-    expect(untouchedFact?.lastAccessedAt).toBeUndefined();
+    expect([
+      await documentStore.get("facts", "fact-1"),
+      await documentStore.get("facts", "fact-2"),
+      await documentStore.get("feedback", "feedback-1"),
+    ]).toEqual(storedBefore);
     expect(returnedOrders[0]).toEqual(["fact-1", "fact-2"]);
     expect(returnedOrders.every((order) => order.join(",") === "fact-1,fact-2")).toBe(
       true,
@@ -192,14 +194,10 @@ describe("recall retrieval telemetry", () => {
     );
 
     expect(recalledFact).toMatchObject({
-      accessCount: 0,
       factKind: "blocker",
       scopeKind: "project",
       subject: "unknown",
     });
-    expect(recalledFact?.lastAccessedAt).toBeUndefined();
-    expect(persistedFact?.accessCount).toBe(0);
-    expect(persistedFact?.lastAccessedAt).toBeUndefined();
     expect(persistedFact?.factKind).toBeUndefined();
     expect(persistedFact?.scopeKind).toBeUndefined();
     expect(persistedFact?.subject).toBeUndefined();
@@ -226,8 +224,6 @@ describe("recall retrieval telemetry", () => {
         category: "project",
         content: "The runtime rollout is blocked by legal signoff.",
         source: { method: "explicit", extractedAt: "2025-12-01T00:00:00.000Z" },
-        accessCount: 3,
-        lastAccessedAt: "2026-01-01T00:00:00.000Z",
         createdAt: "2025-12-01T00:00:00.000Z",
         updatedAt: "2025-12-01T00:00:00.000Z",
       }),
@@ -249,8 +245,6 @@ describe("recall retrieval telemetry", () => {
     expect(result.metadata.verificationHints.map((hint) => hint.memoryId)).toContain(
       "fact-1",
     );
-    expect(fact?.accessCount).toBe(3);
-    expect(fact?.lastAccessedAt).toBe("2026-01-01T00:00:00.000Z");
     expect(fact?.verificationPressureCount).toBe(1);
     expect(fact?.lastVerificationHintAt).toBe("2026-04-02T00:00:00.000Z");
     expect(verifyExperience?.metrics).toEqual({ verificationHintCount: 1 });

@@ -283,6 +283,39 @@ describe("Codex coding-effect dataset", () => {
     })).toThrow("history.path");
   });
 
+  it("keeps C6 asset and provenance fields out of schema v1 and v2", () => {
+    const legacy = validDataset();
+    expect(() => parseCodexCodingEffectDataset({
+      ...legacy,
+      episodes: [{
+        ...legacy.episodes[0],
+        repository: {
+          ...legacy.episodes[0].repository,
+          assetPath: "repositories/episode-001",
+        },
+      }],
+    })).toThrow("assetPath");
+
+    const v2 = validDatasetV2();
+    expect(() => parseCodexCodingEffectDataset({
+      ...v2,
+      episodes: [{
+        ...v2.episodes[0],
+        taskOriginReceipt: {
+          path: "provenance/task-origin/reviews/episode-001.json",
+          sha256: SHA256,
+        },
+      }],
+    })).toThrow("taskOriginReceipt");
+    expect(() => parseCodexCodingEffectDataset({
+      ...v2,
+      sourceLineage: {
+        path: "provenance/dataset-lineage/lineage.json",
+        sha256: SHA256,
+      },
+    })).toThrow("sourceLineage");
+  });
+
   it("requires task-origin evidence for claim-eligible external benchmarks", () => {
     const dataset = validDatasetV3();
     const episode = dataset.episodes[0];

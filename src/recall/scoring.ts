@@ -27,6 +27,13 @@ import type { RecallVectorSearchPort } from "../storage/ports";
 import { factVerificationAdvisoryPenalty } from "../verify/policy";
 import type { RecallRouterStrategy } from "./router";
 
+// Overlap-token count above which a record is "long": its max-denominator
+// lexical score can no longer reflect query coverage, so a second,
+// query-side coverage signal is recorded for the opt-in long-record
+// admission lane. Extracted facts and dialog turns stay well below it, so
+// calibrated short-record behavior is untouched.
+export const LONG_RECORD_OVERLAP_TOKEN_FLOOR = 32;
+
 export interface RankedFactCandidate {
   fact: FactMemory;
   locale: string;
@@ -35,13 +42,14 @@ export interface RankedFactCandidate {
   subject: string;
   semanticScore: number;
   lexicalScore: number;
+  // Present only for long records: matched query tokens over query tokens.
+  queryCoverageScore?: number;
+  queryCoverageMatches?: number;
   subjectScore: number;
   intentScore: number;
   freshnessScore: number;
   explicitnessScore: number;
-  usageScore: number;
   evidenceScore: number;
-  outcomeScore: number;
   verificationPenaltyScore: number;
   categoryBoost: number;
   score: number;
@@ -59,7 +67,6 @@ export interface RankedReferenceCandidate {
   freshnessScore: number;
   explicitnessScore: number;
   evidenceScore: number;
-  outcomeScore: number;
   score: number;
 }
 
@@ -92,6 +99,7 @@ export interface SemanticSearchScores {
   facts: Map<string, number>;
   references: Map<string, number>;
   episodes: Map<string, number>;
+  notes?: Map<string, number>;
   // Present ONLY when the embedding+vectorIndex branch ran with the
   // semantic-candidates union enabled. The BM25 branch must never set this: its
   // scores are lexical, and unioning them would readmit the very lexical floor
@@ -275,7 +283,7 @@ export async function searchSemanticScores(input: {
   const [queryEmbedding] = await input.embedding.embed([input.query]);
   const filter = buildVectorScopeFilter(input.scope);
   const factTopK = Math.max(8, Math.floor(input.factCandidates?.topK ?? 0));
-  const [facts, references, episodes] = await Promise.all([
+  const [facts, references, episodes, notes] = await Promise.all([
     input.vectorIndex.searchFactEmbedding(queryEmbedding, {
       topK: factTopK,
       filter,
@@ -288,12 +296,17 @@ export async function searchSemanticScores(input: {
       topK: 6,
       filter,
     }),
+    input.vectorIndex.searchNoteEmbedding(queryEmbedding, {
+      topK: 4,
+      filter,
+    }),
   ]);
 
   return {
     facts: normalizeSemanticScores(facts),
     references: normalizeSemanticScores(references),
     episodes: normalizeSemanticScores(episodes),
+    notes: normalizeSemanticScores(notes),
     ...(input.factCandidates
       ? {
           semanticFactCandidates: facts
@@ -338,7 +351,7 @@ export function explicitnessScore(method: MemorySourceMethod): number {
   return 0;
 }
 
-function evidenceSupportScore(evidenceCount: number): number {
+export function evidenceSupportScore(evidenceCount: number): number {
   if (evidenceCount <= 0) {
     return 0;
   }
@@ -473,9 +486,22 @@ export function buildFactCandidates(
     const factKind = resolveFactKind(fact, factAnalysis);
     const scopeKind = resolveFactScopeKind(fact, factKind);
     const subject = fact.subject ?? "unknown";
-    const lexicalScore = language.tokenOverlap(fact.content, query, queryLocale, {
+    const overlapDetail = language.tokenOverlapDetail(fact.content, query, queryLocale, {
       excludeStopwords: true,
     });
+    const lexicalScore =
+      overlapDetail.leftSize === 0 || overlapDetail.rightSize === 0
+        ? 0
+        : overlapDetail.intersection /
+          Math.max(overlapDetail.leftSize, overlapDetail.rightSize);
+    const longRecordCoverage =
+      overlapDetail.leftSize > LONG_RECORD_OVERLAP_TOKEN_FLOOR &&
+      overlapDetail.rightSize > 0
+        ? {
+            queryCoverageScore: overlapDetail.intersection / overlapDetail.rightSize,
+            queryCoverageMatches: overlapDetail.intersection,
+          }
+        : {};
     const subjectScore =
       subject === "unknown"
         ? 0
@@ -488,11 +514,9 @@ export function buildFactCandidates(
       referenceTime,
     );
     const explicitness = explicitnessScore(fact.source.method);
-    const usageScore = 0;
     const evidenceScore = evidenceSupportScore(
       evidenceCountsByMemoryId?.get(fact.id) ?? 0,
     );
-    const outcomeScore = evidenceScore;
     const verificationPenaltyScore =
       factVerificationAdvisoryPenalty({
         fact,
@@ -518,13 +542,12 @@ export function buildFactCandidates(
       subject,
       semanticScore,
       lexicalScore,
+      ...longRecordCoverage,
       subjectScore,
       intentScore,
       freshnessScore: freshness,
       explicitnessScore: explicitness,
-      usageScore,
       evidenceScore,
-      outcomeScore,
       verificationPenaltyScore,
       categoryBoost,
       score:
@@ -533,7 +556,7 @@ export function buildFactCandidates(
         intentScore +
         freshness +
         explicitness +
-        outcomeScore +
+        evidenceScore +
         categoryBoost -
         verificationPenaltyScore,
     };
@@ -587,7 +610,6 @@ export function buildReferenceCandidates(
       freshnessScore: freshness,
       explicitnessScore: explicitness,
       evidenceScore,
-      outcomeScore: evidenceScore,
       score: lexicalScore + subjectScore + freshness + explicitness + evidenceScore + 0.8,
     };
   });
