@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { basename, resolve } from "node:path";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { basename, join, resolve } from "node:path";
+import { createGoodMemory } from "../../src/api/createGoodMemory";
 import type {
   BuildContextInput,
   ExportMemoryInput,
@@ -609,6 +612,67 @@ describe("goodmemory mcp server standalone direct handlers", () => {
     expect(
       (result.structuredContent?.memoryIds as string[] | undefined)?.length,
     ).toBe(1);
+  });
+
+  it("keeps context recall storage-read-only when the write tool is enabled", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-mcp-read-only-"));
+    const storageUrl = join(root, "memory.sqlite");
+    const scope = {
+      userId: "standalone-read-only-user",
+      workspaceId: "standalone-read-only-workspace",
+    };
+    const server = inspectServer(
+      createGoodMemoryMcpServer({
+        allowWrite: true,
+        standalone: {
+          storage: { provider: "sqlite", url: storageUrl },
+          ...scope,
+        },
+      }),
+    );
+
+    try {
+      const memory = createGoodMemory({
+        storage: { provider: "sqlite", url: storageUrl },
+      });
+      const written = await memory.remember({
+        annotations: [
+          {
+            confirmed: true,
+            messageIndex: 0,
+            remember: "always",
+          },
+        ],
+        extractionStrategy: "rules-only",
+        messages: [
+          {
+            content: "Remember this project decision: use SQLite in WAL mode.",
+            observedAt: "2020-01-01T00:00:00.000Z",
+            role: "user",
+          },
+        ],
+        scope,
+      });
+      expect(written.accepted).toBeGreaterThan(0);
+
+      const before = await memory.exportMemory({ scope });
+      expect(before.durable.experiences).toHaveLength(0);
+      expect(before.durable.promotions).toHaveLength(0);
+      expect(before.durable.proposals).toHaveLength(0);
+
+      const recalled = await server._registeredTools.goodmemory_get_context!.handler({
+        query: "Which database and journal mode does this project use?",
+      });
+      expect(recalled.isError).toBeUndefined();
+
+      const after = await memory.exportMemory({ scope });
+      expect(after.durable.facts.length).toBeGreaterThan(0);
+      expect(after.durable.experiences).toHaveLength(0);
+      expect(after.durable.promotions).toHaveLength(0);
+      expect(after.durable.proposals).toHaveLength(0);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
   });
 
   it("routes installed-mode writes through the installed context", async () => {

@@ -39,6 +39,8 @@ export interface InternalGoodMemoryOptions {
   runtimeCompactionExtraction?: boolean;
   /** Repo-only immutable SQLite view; also disables post-recall mutations. */
   sqliteReadOnly?: boolean;
+  /** Internal host surface switch for recall diagnostics that must not persist observations. */
+  postRecallMutations?: boolean;
 }
 
 export function attachInternalGoodMemorySupport(input: {

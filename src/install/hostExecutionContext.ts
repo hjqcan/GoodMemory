@@ -1,5 +1,8 @@
 import { join, resolve } from "node:path";
-import { createGoodMemory } from "../api/createGoodMemory";
+import {
+  createGoodMemory,
+  createInternalGoodMemory,
+} from "../api/createGoodMemory";
 import type {
   GoodMemory,
   GoodMemoryConfig,
@@ -21,6 +24,7 @@ import {
   DEFAULT_INSTALLED_HOST_RETRIEVAL_PROFILE,
   type InstalledHostActivationMode,
   type InstalledHostContextMode,
+  type InstalledHostFileMirrorConfig,
   type InstalledHostLanguageConfig,
   type InstalledHostMaintenanceConfig,
   type InstalledHostPromptInjectionMode,
@@ -28,7 +32,6 @@ import {
   type InstalledHostRetrievalConfig,
   type InstalledHostWritebackConfig,
   type WorkspaceHostOptInConfig,
-  type InstalledHostFileMirrorConfig,
 } from "./hostConfigValidation";
 import type { InstalledHostKind } from "./hostInstall";
 import {
@@ -49,6 +52,10 @@ export interface InstalledHostContextInput {
   maxTokens?: number;
   retrievalProfile?: "coding_agent" | "general_chat";
   sessionId?: string;
+}
+
+interface InstalledHostMemoryOptions {
+  postRecallMutations?: boolean;
 }
 
 export interface InstalledHostResolvedContext {
@@ -225,6 +232,7 @@ function createGlobalWorkspaceConfig(workspaceRoot: string): WorkspaceHostOptInC
 export function createInstalledHostMemory(
   context: HostMemoryRuntimeContext,
   dependencies: InstalledHostContextDependencies = {},
+  options: InstalledHostMemoryOptions = {},
 ): GoodMemory {
   const providerAdapters = buildInstalledHostProviderAdapters(context.providers);
   const sharedDocumentStore = buildSharedAgentDocumentStore(context);
@@ -235,7 +243,7 @@ export function createInstalledHostMemory(
           ...(sharedDocumentStore ? { documentStore: sharedDocumentStore } : {}),
         }
       : undefined;
-  return (dependencies.createMemory ?? createGoodMemory)({
+  const config: GoodMemoryConfig = {
     ...(adapters ? { adapters } : {}),
     ...(context.language ? { language: context.language } : {}),
     // 1:1 with GoodMemoryRetrievalConfig; absence keeps rules-only parity.
@@ -277,6 +285,15 @@ export function createInstalledHostMemory(
       ],
     },
     storage: context.storage,
+  };
+  if (dependencies.createMemory) {
+    return dependencies.createMemory(config);
+  }
+  if (options.postRecallMutations === undefined) {
+    return createGoodMemory(config);
+  }
+  return createInternalGoodMemory(config, {
+    postRecallMutations: options.postRecallMutations,
   });
 }
 
