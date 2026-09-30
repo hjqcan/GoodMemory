@@ -8,14 +8,16 @@ still controls each unapproved MCP call.
 ## Requirements
 
 The repository descriptors target the stable `0.8.0` release and run
-`npx goodmemory@0.8.0`. The verified Kimi Code acceptance boundary remains
-`v0.7.2` until a fresh clean-machine acceptance is recorded.
+`npx goodmemory@0.8.0`. The latest
+complete [maintainer-run Kimi Code acceptance](https://github.com/hashgraph-online/awesome-ai-plugins/pull/95#issuecomment-5380739387)
+is for GoodMemory `0.7.5` on Kimi Code `0.38.0` (macOS arm64). A complete
+Kimi run against the public `0.8.0` download has not been recorded.
 
 - Kimi Code with plugin support.
 - Node.js 20 or newer, with `npx` on `PATH`.
 - Bun 1.3.14 or newer on `PATH`.
-- macOS or Linux for the verified v0.7.2 support boundary. Windows remains
-  unverified until a clean-machine smoke is recorded.
+- The complete `0.7.5` Kimi acceptance was on macOS arm64. A second clean
+  support environment and Windows Kimi smoke remain unverified.
 
 Check the additional runtime before installing:
 
@@ -31,15 +33,16 @@ Node.js and Bun.
 
 ## Install
 
+The version-pinned `0.8.0` plugin-only ZIP is published as a
+[GitHub Release asset](https://github.com/hjqcan/GoodMemory/releases/tag/v0.8.0).
 Start Kimi Code in a project and run:
 
 ```text
-/plugins install https://github.com/hjqcan/GoodMemory
+/plugins install https://github.com/hjqcan/GoodMemory/releases/download/v0.8.0/goodmemory-kimi-plugin-0.8.0.zip
 ```
 
-The GitHub source is classified as a third-party plugin. Review the source and
-confirm the trust prompt; third-party installation defaults to cancel. Then
-activate the managed copy with either:
+Review the third-party source and confirm the trust prompt; third-party
+installation defaults to cancel. Then activate the managed copy with either:
 
 ```text
 /reload
@@ -47,24 +50,30 @@ activate the managed copy with either:
 
 or start a clean session with `/new`.
 
-### Version-pinned 0.8 plugin-only ZIP
+### Installation evidence and source alternative
 
-The 0.8 release preparation produces `goodmemory-kimi-plugin-0.8.0.zip` as
-a separate, manifest-hashed release asset. It contains only the plugin
-manifest, license, Skill, and four commands; the MCP runtime remains pinned
-to the same npm version. After publication, the version-specific install
-command will be:
+The release ZIP contains only the plugin manifest, license, Skill, and four
+commands; the MCP runtime remains pinned to the same npm version. The
+published asset, npm tarball, release manifest, and evidence archive passed
+the read-only release verifier. Before publication, a local development ZIP
+passed native Kimi `0.41.0` ZIP-URL installation, trust, managed-copy, reload,
+and MCP connection checks over loopback HTTP. Those checks used a nine-tool
+development package, whereas the published `0.8.0` plugin exposes ten tools.
+The additional online end-to-end run stopped when the configured model
+service returned HTTP 401, as disclosed in the
+[release notes](https://github.com/hjqcan/GoodMemory/releases/tag/v0.8.0).
+Neither local check proves a complete run from
+the public ZIP.
+
+The bare GitHub source is another installation path:
 
 ```text
-/plugins install https://github.com/hjqcan/GoodMemory/releases/download/v0.8.0/goodmemory-kimi-plugin-0.8.0.zip
+/plugins install https://github.com/hjqcan/GoodMemory
 ```
 
-Do not use this URL before the asset exists. The local development archive
-has passed native Kimi 0.41.0 ZIP-URL installation, trust, byte-preserving
-managed-copy, reload, and nine-tool MCP checks over loopback HTTP. This is
-not verification of a public 0.8 download. Bare GitHub source installation
-has separately timed out in the test environment; that failure remains
-recorded rather than being treated as a successful onboarding flow.
+It succeeded for the `0.7.5` macOS acceptance but timed out in the `0.8`
+test environment. Do not infer current bare-source installation success from
+the earlier run.
 
 The plugin allows up to 300 seconds for MCP startup (including `npx`
 dependency installation). This is a timeout budget, not a promise about
@@ -123,8 +132,8 @@ incorrect memory.
 
 ## Upgrade or Remove
 
-Repeat the GitHub installation command to install the latest GoodMemory
-release, then run `/reload` or `/new`. Inspect the selected version with
+Install the ZIP for the version you intend to use, then run `/reload` or
+`/new`. Inspect the selected version with
 `/plugins info goodmemory`.
 
 Remove the plugin with:

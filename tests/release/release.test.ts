@@ -2713,7 +2713,7 @@ describe("release metadata and docs", () => {
     expect(checklist).not.toContain("promotionGate");
   }, 60_000);
 
-  it("current status doc points to the stable evidence entrypoints and archive", async () => {
+  it("current status doc records the published release and evidence boundaries", async () => {
     const currentStatus = await readFile(
       join(
         import.meta.dir,
@@ -2725,21 +2725,13 @@ describe("release metadata and docs", () => {
     expect(currentStatus).toContain(
       "docs/archive/quality-gates/GoodMemory-Phase-20-Quality-Gate.md",
     );
-    expect(currentStatus).toContain(
-      "The current repository targets the stable release",
-    );
-    expect(currentStatus).toContain(
-      "`goodmemory@0.8.0` (`goodmemoryRelease.status=stable`, dist-tag intent `latest`)",
-    );
-    expect(currentStatus).toContain(
-      "Publication is a separate, externally verified step",
-    );
+    expect(currentStatus).toContain("The current stable release is `goodmemory@0.8.0`");
+    expect(currentStatus).toContain("GitHub `v0.8.0`, bound to commit");
+    expect(currentStatus).toContain("passed the read-only release workflow");
+    expect(currentStatus).toContain("end-to-end run stopped at model-service HTTP 401");
     expect(currentStatus).toContain("Phase 73 Level-2 is closed as an internal negative result");
     expect(currentStatus).toContain(
       "plans/GoodMemory-v0.8-Unpublished-Development-Plan.md",
-    );
-    expect(currentStatus).not.toContain(
-      "The current repository is the stable `goodmemory@0.8.0` release source",
     );
     expect(currentStatus).toContain(
       "frozen published baseline is `goodmemory@0.7.4`",
@@ -2753,9 +2745,8 @@ describe("release metadata and docs", () => {
     expect(currentStatus).toContain("19/19 required checks");
     expect(currentStatus).toContain("scripts/research/protocols.json");
     expect(currentStatus).toContain("release-manifest.json");
-    expect(currentStatus).toContain(
-      "The Kimi Code plugin is published in `v0.7.2`",
-    );
+    expect(currentStatus).toContain("The Kimi Code plugin is published in `v0.8.0`");
+    expect(currentStatus).toContain("latest complete maintainer-run Kimi acceptance is");
     expect(currentStatus).toContain(
       "reports/quality-gates/phase-20/run-20260420023503/phase-20-quality-gate.json",
     );

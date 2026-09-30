@@ -4,13 +4,14 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 
 ## Current OSS Surface
 
-- The current repository targets the stable release
-  `goodmemory@0.8.0` (`goodmemoryRelease.status=stable`, dist-tag intent `latest`).
-  Publication is a separate, externally verified step: installation commands
-  apply after npm publication, and the exact local manifest, tarball, evidence
-  archive, and plugin ZIP must match the published assets. The last verified
-  registry baseline before this preparation was 0.7.5. Follow
-  `plans/GoodMemory-v0.8-Unpublished-Development-Plan.md` for the release gates.
+- The current stable release is `goodmemory@0.8.0` on npm `latest` and
+  GitHub `v0.8.0`, bound to commit `416c15b479e189039709468fb319bb50c0fbe50e`.
+  The published manifest, tarball, evidence archive, and Kimi plugin ZIP
+  passed the read-only release workflow's source, asset, and npm-integrity
+  checks. The release notes disclose that the additional native Kimi online
+  end-to-end run stopped at model-service HTTP 401. See
+  `plans/GoodMemory-v0.8-Unpublished-Development-Plan.md` for the frozen
+  preparation gates; publication is now complete.
 - Phase 73 Level-2 is closed as an internal negative result on 2026-09-14 UTC:
   720 scheduled stage rows / 360 pairs are accounted for; the final C5 gate and
   four-input independent review accept the sanitized projection. On the
@@ -170,14 +171,16 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   source line retains the measured artifacts for audit but carries no passing
   benchmark claim. See
   `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
-- The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
-  Kimi Code 0.31.1 installed the bare GitHub URL as
-  `hjqcan/GoodMemory@tag:v0.7.2`; `/reload` connected one stdio MCP server with
-  nine tools. The exact registry command then passed write, new-process recall,
-  trace-to-memory-id, and different-`cwd` isolation. A model-driven Kimi write
-  approval capture, a second independent clean-machine install, and Windows
-  smoke remain unverified; they are adoption/Marketplace gates, not claims of
-  completed support.
+- The Kimi Code plugin is published in `v0.8.0` with a version-pinned ZIP and
+  ten MCP tools. The latest complete maintainer-run Kimi acceptance is
+  GoodMemory `0.7.5` on Kimi Code `0.38.0` (macOS arm64): bare GitHub install,
+  explicit write approval, `/new` recall, matching trace ID, and isolation
+  between differently named project directories passed. For `0.8.0`, a local
+  development ZIP passed native
+  installation and MCP connection checks, but bare GitHub installation timed
+  out and the additional online run stopped at model-service HTTP 401. A
+  complete run from the public ZIP, one successful non-maintainer Kimi user,
+  a second clean support environment, and Windows smoke remain unverified.
 - Main has completed Phases 68 through 72 on the generalization-first line.
   The production selector graph contains only
   generalized selection primitives, and the `recommended` preset now has a
