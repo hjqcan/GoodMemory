@@ -1,6 +1,6 @@
 # GoodMemory 0.7 to 0.8 Migration Guide
 
-This guide targets 0.8.2. Install pins apply after publication; source metadata
+This guide targets 0.8.3. Install pins apply after publication; source metadata
 alone is not publication proof. The Phase 73 internal Level-2 lane is closed
 without a positive coding-effect claim. Follow the published release's exact
 install pins and verify the upgrade on a separate copy first.

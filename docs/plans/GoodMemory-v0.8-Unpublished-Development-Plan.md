@@ -4,7 +4,7 @@ Status: Phase 73 internal lane closed; final exact-artifact release verification
 
 The maintainer's 2026-09-04 direction is to finish v0.8 and Phase 73 together
 on `main`, then publish v0.8. The previous v0.7.3 sequencing constraint has
-been discharged; the release source now targets 0.8.2. The historical initial-release requirements below remain a record of 0.8.0; 0.8.1+ patch preparation uses the portable current-product profile and does not require the private Phase 73 raw capture. Do not present this
+been discharged; the release source now targets 0.8.3. The historical initial-release requirements below remain a record of 0.8.0; 0.8.1+ patch preparation uses the portable current-product profile and does not require the private Phase 73 raw capture. Do not present this
 working tree as a shipped 0.8 release. The Phase 73 Level-2 experiment freezes
 its runner dependency closure, including package.json, bun.lock, and
 tsconfig.json. Its process stopped in the 2026-09-05T01:36:35Z machine reboot;

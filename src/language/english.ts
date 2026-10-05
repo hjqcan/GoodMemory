@@ -357,14 +357,14 @@ const ENGLISH_DURABLE_BEHAVIORAL_SCOPE_PATTERN =
   /^(?:always|never|remember\s+to)\b|\b(?:always|from\s+now\s+on|going\s+forward|next\s+time|every\s+time|in\s+every\s+(?:answer|reply|response)|whenever)\b/iu;
 const ENGLISH_LEADING_DURABLE_BEHAVIORAL_SCOPE_PATTERN =
   /^(?:(?:from\s+now\s+on|going\s+forward|next\s+time|every\s+time|always|never)\b[,;:]?\s*)+/iu;
-// An explicit declaration marker ("project policy:", "repository policy is
+// An explicit declaration marker ("project decision:", "repository policy is
 // that ...") makes the rule durable on its own. Admission must not depend on
 // which verb the author chose for the rule body; only questions, placeholders,
 // and statements that no decision exists are rejected.
-const PROJECT_POLICY_UNDECIDED_BODY_PATTERN =
+const PROJECT_DECLARATION_UNDECIDED_BODY_PATTERN =
   /^\W*(?:tbd|tba|tbc|n\/a|none|nothing|unknown|undefined|undecided|unclear|unspecified|pending|open|(?:to\s+)?be\s+(?:determined|decided|defined|confirmed|announced|discussed)|not\s+(?:yet\s+)?(?:defined|decided|determined|finalized|final|set|known|available|established)|(?:requires?|needs?)\s+(?:clarification|discussion|a\s+decision)|under\s+(?:discussion|review)|still\s+(?:open|undecided|pending)|up\s+for\s+(?:discussion|debate)|(?:we|i|they|the\s+team)\s+(?:have|has|had)\s+not\s+(?:yet\s+)?(?:decided|determined|defined|agreed)|(?:we|i|they|the\s+team)\s+(?:haven['’]t|hasn['’]t|hadn['’]t)\s+(?:decided|determined|defined|agreed)|what|which|how|why|when|where|whether)\b/iu;
-const PROJECT_POLICY_DECLARATION_PATTERN =
-  /\b(?:the\s+)?(?:project|repository|repo)\s+policy\s*(?:(:|=)\s*([^\n]+)|mandates?\s+that\s+([^\n]+)|is\s+that\s+([^\n]+)|is\s+to\s+([^\n]+))/iu;
+const PROJECT_DECLARATION_PATTERN =
+  /(?:^|[.!?]\s+)(?:the\s+)?(?:project|repository|repo)\s+(?:policy|decision)\s*(?:(:|=)\s*([^\n]+)|mandates?\s+that\s+([^\n]+)|is\s+that\s+([^\n]+)|is\s+to\s+([^\n]+))/iu;
 const TECHNICAL_REFERENCE_DIRECTIVE_PATTERN =
   /\b(?:consult|follow|refer(?:ence)?\s+to|reference|see|use)\b/iu;
 const DURABLE_INFERENCE_PATTERNS = [
@@ -1132,26 +1132,34 @@ function looksLikeDurableInferredFact(content: string): boolean {
   return DURABLE_INFERENCE_PATTERNS.some((pattern) => pattern.test(content));
 }
 
-function isExplicitProjectPolicyDecision(content: string): boolean {
-  const match = PROJECT_POLICY_DECLARATION_PATTERN.exec(content);
+function isExplicitProjectDeclaration(content: string): boolean {
+  const match = PROJECT_DECLARATION_PATTERN.exec(content);
   if (!match) {
     return false;
   }
   const [, , assignedBody, mandatedBody, assertedBody, actionBody] = match;
-  return isSubstantiveProjectPolicyBody(
+  return isSubstantiveProjectDeclarationBody(
     assignedBody ?? mandatedBody ?? assertedBody ?? actionBody ?? "",
   );
 }
 
-function isSubstantiveProjectPolicyBody(body: string): boolean {
+function isSubstantiveProjectDeclarationBody(body: string): boolean {
   const trimmed = body.trim();
   if (trimmed.length === 0 || /\?\s*$/u.test(trimmed)) {
     return false;
   }
-  if (PROJECT_POLICY_UNDECIDED_BODY_PATTERN.test(trimmed)) {
+  // "When <condition>, <action>" declares an operational rule. A leading
+  // "when" without an action is still an unresolved question, not a decision.
+  const conditional = /^when\s+([^,]+),\s*(.+)$/iu.exec(trimmed);
+  const substantiveBody = conditional?.[2]?.trim() ?? trimmed;
+  if (
+    PROJECT_DECLARATION_UNDECIDED_BODY_PATTERN.test(substantiveBody) ||
+    /^(?:can|could|should|would|do|does|did|is|are|was|were|will|have|has)\s+(?:i|we|you|they|it|he|she|the|our)\b/iu.test(substantiveBody) ||
+    (conditional && /^(?:can|could|should|would|do|does|did|is|are|was|were|will)\b/iu.test(conditional[1]!))
+  ) {
     return false;
   }
-  const words = trimmed.match(/\p{L}[\p{L}\p{N}'’-]*/gu) ?? [];
+  const words = substantiveBody.match(/\p{L}[\p{L}\p{N}'’-]*/gu) ?? [];
   return words.length >= 2;
 }
 
@@ -2048,7 +2056,7 @@ function maybeExtractCandidatesFromClause(
     );
   }
 
-  if (isExplicitProjectPolicyDecision(trimmed)) {
+  if (isExplicitProjectDeclaration(trimmed)) {
     candidates.push(
       createFactCandidate(index, nextId, trimmed, "project", {
         attributes: { languageDurableSignal: "confirmed_decision" },
@@ -2148,7 +2156,7 @@ function maybeExtractCandidatesFromClause(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "26-document-containers",
+    analyzerVersion: "27-project-decisions",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",

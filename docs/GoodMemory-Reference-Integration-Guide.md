@@ -1,6 +1,6 @@
 # GoodMemory Reference Integration Guide
 
-This is the canonical packaged `0.8.2` reference path for chatbox/copilot-style
+This is the canonical packaged `0.8.3` reference path for chatbox/copilot-style
 integration. Registry commands require publication; source verification uses
 the local tarball path below.
 
@@ -9,19 +9,19 @@ the local tarball path below.
 Published install:
 
 ```bash
-npm install goodmemory@0.8.2
+npm install goodmemory@0.8.3
 ```
 
 Bun install:
 
 ```bash
-bun add goodmemory@0.8.2
+bun add goodmemory@0.8.3
 ```
 
 Tarball verification of the same release artifact before publish:
 
 ```bash
-npm install ./goodmemory-0.8.2.tgz
+npm install ./goodmemory-0.8.3.tgz
 ```
 
 ## Quick Path
@@ -153,7 +153,7 @@ canonical suite; the original
 available. These bounded checks do not promise arbitrary-process fairness,
 unlimited contention tolerance or atomic canonical-and-vector deletion.
 Hosts should inspect memory writeback results independently of successful chat
-responses. This coordination is included in the 0.8.2 release source; registry
+responses. This coordination is included in the 0.8.3 release source; registry
 consumers receive it only after publication.
 
 ### Observation summaries and source validity

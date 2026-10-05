@@ -5,16 +5,21 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 ## Current OSS Surface
 
 - The current repository targets the stable release
-  `goodmemory@0.8.2` (`goodmemoryRelease.status=stable`, dist-tag intent `latest`).
+  `goodmemory@0.8.3` (`goodmemoryRelease.status=stable`, dist-tag intent `latest`).
   Publication is a separate, externally verified step: installation commands
   apply after npm publication, and the exact local manifest, tarball, evidence
   archive, and plugin ZIP must match the published assets. The last verified
-  registry baseline before this preparation was 0.8.1. Follow
+  registry baseline before this preparation was 0.8.2. Follow
   `scripts/release/profile.ts` for the current release gates. From 0.8.1,
   current-product CI, real database/scale checks and exact package validation
   replace the duplicate suite/build scheduling and historical private-capture
   prerequisite. Earlier [release plans](plans/GoodMemory-v0.8-Unpublished-Development-Plan.md)
   remain historical references.
+- Version 0.8.3 recognizes unannotated English `Project decision:` declarations,
+  including `When <condition>, <action>` operational rules. Questions,
+  placeholders, reported text, assistant-source restrictions, and policy gates
+  retain their admission boundaries. Previously retained source-only text is
+  not automatically promoted; send the decision again after upgrading.
 - Phase 73 Level-2 is closed as an internal negative result on 2026-09-14 UTC:
   720 scheduled stage rows / 360 pairs are accounted for; the final C5 gate and
   four-input independent review accept the sanitized projection. On the
@@ -1680,7 +1685,7 @@ cutover, and rollback contracts.
   `c6-repository-statistics.ts` is only a tested primitive until it
   is wired to the complete attempt loader, frozen report, independent replay,
   and C7 gate.
-- The `0.8.2` source line has no current or versioned historical benchmark
+- The `0.8.3` source line has no current or versioned historical benchmark
   claim. The retained v0.7.3 LoCoMo tracked-current projection is not end-to-end
   runner evidence and cannot authorize promotion. The v0.6.0 LoCoMo, BEAM, and
   MemoryAgentBench artifacts fail the same empty allowlist. All
@@ -1715,7 +1720,7 @@ cutover, and rollback contracts.
 - automatic adapter/event `user_correction` path is proposal-first and records selective evidence plus proposal/promotion receipts instead of writing an intermediate active feedback memory; public `feedback()` remains the explicit durable procedural feedback entrypoint.
 - Provider-backed retrieval is explicit; rules-only remains the default accepted mode, and provider failures surface as `provider_error`.
 - Dashboard, cloud sync, and team workspace remain a Phase 48 no-go decision.
-- The current v0.8.2 benchmark surface contains no current or versioned
+- The current v0.8.3 benchmark surface contains no current or versioned
   historical claim. LoCoMo v0.7.3, the v0.6.0 LoCoMo/BEAM/MemoryAgentBench
   measurements, and ImplicitMemBench are paused internal diagnostics.
   LongMemEval is withdrawn pending a clean opaque-session-id rerun. The runtime

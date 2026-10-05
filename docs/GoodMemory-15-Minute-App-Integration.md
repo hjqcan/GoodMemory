@@ -12,13 +12,13 @@ assembly, governed writes, corrections, audit, and deletion.
 Install the current stable package from the registry:
 
 ```bash
-npm install goodmemory@0.8.2
+npm install goodmemory@0.8.3
 ```
 
 Bun services can use the same package:
 
 ```bash
-bun add goodmemory@0.8.2
+bun add goodmemory@0.8.3
 ```
 
 ## The Loop

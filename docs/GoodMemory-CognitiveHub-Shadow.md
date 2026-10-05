@@ -1,6 +1,6 @@
 # Experimental CognitiveHub shadow integration
 
-The 0.8.2 release source includes the opt-in `goodmemory/experimental/shadow`
+The 0.8.3 release source includes the opt-in `goodmemory/experimental/shadow`
 ESM and TypeScript subpath. It is separate from the root API and is never installed
 in `remember`, conflict resolution, profile handling, or deletion. The registry
 release 0.8.1 does not contain this subpath. Registry installation requires 0.8.2

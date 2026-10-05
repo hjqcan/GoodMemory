@@ -2,7 +2,7 @@
 
 > **Historical baseline.** This checklist was authored for the v0.2 → v1 release,
 > so its gate/eval sections point at the accepted **Phase 40** release-candidate
-> gate. The current source line targets **0.8.2**. Current releases use the
+> gate. The current source line targets **0.8.3**. Current releases use the
 > exact-artifact `release:prepare` profile, including current-product CI and
 > `gate:public-benchmark-claim`, rather than the Phase 40 gate. Local preparation
 > owns the package; publication requires maintainer authorization. The read-only
@@ -15,7 +15,7 @@
 
 ## Package Boundary
 
-- `0.8.2` packages `goodmemory`, `goodmemory/ai-sdk`, `goodmemory/host`, `goodmemory/http`, and `goodmemory/runtime-kit` through compiled `dist/` outputs plus declarations
+- `0.8.3` packages `goodmemory`, `goodmemory/ai-sdk`, `goodmemory/host`, `goodmemory/http`, and `goodmemory/runtime-kit` through compiled `dist/` outputs plus declarations
 - registry publication uses the exact locally prepared stable tarball; tag pushes do not publish
 - `bun pm pack` tarball remains a canonical installable release artifact
 - public package surface includes:

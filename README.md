@@ -4,8 +4,8 @@ Language: English | [简体中文](./README.zh-CN.md)
 
 GoodMemory is a memory layer for AI products and coding agents.
 
-> **Release source:** this source targets the `0.8.2` stable release.
-> Registry commands require `goodmemory@0.8.2` to be published. The release
+> **Release source:** this source targets the `0.8.3` stable release.
+> Registry commands require `goodmemory@0.8.3` to be published. The release
 > workflow verifies npm `latest` and the already published GitHub assets
 > against the locally prepared manifest; it does not rebuild or publish.
 
@@ -58,11 +58,11 @@ paths. GPT-5.6 also powers disclosed non-judge model calls in current evaluation
 profiles; public-claim paths either use deterministic scoring or keep the judge
 independent from the answer model.
 
-**Run and verify.** After publication, install `0.8.2` from the registry and inspect
+**Run and verify.** After publication, install `0.8.3` from the registry and inspect
 its local memory surface:
 
 ```bash
-npm install -g goodmemory@0.8.2
+npm install -g goodmemory@0.8.3
 goodmemory setup --host codex
 goodmemory status codex --workspace-root .
 goodmemory inspector serve
@@ -82,7 +82,7 @@ fail-closed evidence track.
 ## Start Here: Codex Or Claude Code
 
 ```bash
-npm install -g goodmemory@0.8.2
+npm install -g goodmemory@0.8.3
 goodmemory setup
 ```
 
@@ -107,7 +107,7 @@ unavailable for both current and historical rows. Stored-answer rescores and
 legacy presentation projections cannot open that boundary or supply README
 score and disclosure fragments as self-attestation.
 
-GoodMemory `0.8.2` has no current or versioned historical benchmark claim.
+GoodMemory `0.8.3` has no current or versioned historical benchmark claim.
 The retained v0.7.3 LoCoMo projection is not end-to-end runner evidence, so
 it is an internal diagnostic. The v0.6.0
 LoCoMo, BEAM, and MemoryAgentBench measurements and ImplicitMemBench are also
@@ -120,7 +120,7 @@ monolithic fresh run. HaluMem, MemGym, and MINTEval remain release evidence
 rather than public benchmark claims.
 
 <!-- current-claims-table:start -->
-No benchmark result is currently presented as measured on `0.8.2`.
+No benchmark result is currently presented as measured on `0.8.3`.
 <!-- current-claims-table:end -->
 
 ### Versioned evidence
@@ -204,7 +204,7 @@ and run it. Machine-readable versions of this tree live in
 also serves the descriptor at `/.well-known/goodmemory.json`).
 
 - **You are, or run inside, Claude Code or Codex** →
-  `npm install -g goodmemory@0.8.2 && goodmemory setup`. Unsure what is already
+  `npm install -g goodmemory@0.8.3 && goodmemory setup`. Unsure what is already
   wired? Run `goodmemory adopt` (add `--json` for a machine-readable plan): it
   inspects `.claude/`, `.codex/`, and existing MCP config, then prints the exact
   next command for your environment.
@@ -314,14 +314,14 @@ policy. GoodMemory owns the memory loop and storage boundary.
 
 ## Install
 
-These commands target GoodMemory `0.8.2` after publication. Use the pinned registry
+These commands target GoodMemory `0.8.3` after publication. Use the pinned registry
 commands below for reproducible installs.
 
 Use the global CLI when you want memory enhancement inside installed coding
 agents:
 
 ```bash
-npm install -g goodmemory@0.8.2
+npm install -g goodmemory@0.8.3
 goodmemory setup
 goodmemory status
 ```
@@ -329,11 +329,11 @@ goodmemory status
 Use the package dependency when you are building an application:
 
 ```bash
-npm install goodmemory@0.8.2
+npm install goodmemory@0.8.3
 ```
 
 If you want to type `goodmemory` directly, install the global CLI.
-A project-local `npm install goodmemory@0.8.2` does not put `goodmemory` on your shell `PATH`.
+A project-local `npm install goodmemory@0.8.3` does not put `goodmemory` on your shell `PATH`.
 Use `npx goodmemory`, `npm exec -- goodmemory`, or `./node_modules/.bin/goodmemory`
 from that project instead.
 
@@ -344,13 +344,13 @@ npx goodmemory -V
 Bun consumers can install it directly:
 
 ```bash
-bun add goodmemory@0.8.2
+bun add goodmemory@0.8.3
 ```
 
 Tarball verification for this release source:
 
 ```bash
-npm install ./goodmemory-0.8.2.tgz
+npm install ./goodmemory-0.8.3.tgz
 ```
 
 The installed CLI is Bun-backed for non-version commands. The package bin is
@@ -362,7 +362,7 @@ delegate to Bun.
 For most users, the first useful path is installed-host memory.
 
 ```bash
-npm install -g goodmemory@0.8.2
+npm install -g goodmemory@0.8.3
 goodmemory setup
 goodmemory status
 ```
@@ -1273,7 +1273,7 @@ Current Claude/Codex examples stay in `file-assisted` mode by default.
 ## CLI Reference
 
 The `goodmemory` command on your shell `PATH` is the global CLI installed with
-`npm install -g goodmemory@0.8.2`. In a local dependency install, invoke the
+`npm install -g goodmemory@0.8.3`. In a local dependency install, invoke the
 package bin as `npx goodmemory`, `npm exec -- goodmemory`, or
 `./node_modules/.bin/goodmemory`. The repo-local `bun run goodmemory` script is
 for development only.

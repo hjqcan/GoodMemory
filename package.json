@@ -1,6 +1,6 @@
 {
   "name": "goodmemory",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "goodmemoryRelease": {
     "installCommandsApplyAfterPublish": true,
     "npmDistTag": "latest",

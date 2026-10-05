@@ -7,8 +7,8 @@ still controls each unapproved MCP call.
 
 ## Requirements
 
-The repository descriptors target the stable `0.8.2` release and run
-`npx goodmemory@0.8.2`. The verified Kimi Code acceptance boundary remains
+The repository descriptors target the stable `0.8.3` release and run
+`npx goodmemory@0.8.3`. The verified Kimi Code acceptance boundary remains
 `v0.7.2` until a fresh clean-machine acceptance is recorded.
 
 - Kimi Code with plugin support.
@@ -49,14 +49,14 @@ or start a clean session with `/new`.
 
 ### Version-pinned 0.8 plugin-only ZIP
 
-The 0.8 release preparation produces `goodmemory-kimi-plugin-0.8.2.zip` as
+The 0.8 release preparation produces `goodmemory-kimi-plugin-0.8.3.zip` as
 a separate, manifest-hashed release asset. It contains only the plugin
 manifest, license, Skill, and four commands; the MCP runtime remains pinned
 to the same npm version. After publication, the version-specific install
 command will be:
 
 ```text
-/plugins install https://github.com/hjqcan/GoodMemory/releases/download/v0.8.2/goodmemory-kimi-plugin-0.8.2.zip
+/plugins install https://github.com/hjqcan/GoodMemory/releases/download/v0.8.3/goodmemory-kimi-plugin-0.8.3.zip
 ```
 
 Do not use this URL before the asset exists. The local development archive

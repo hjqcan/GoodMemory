@@ -10,8 +10,8 @@ database, or a generic RAG system. Local-first: Bun gets durable SQLite by
 default and recall runs embedding-free out of the box; embedding providers,
 Postgres, and LLM extraction are opt-in.
 
-Release source: this source targets the GoodMemory 0.8.2 stable release.
-Registry commands require goodmemory@0.8.2 to be published. The release workflow
+Release source: this source targets the GoodMemory 0.8.3 stable release.
+Registry commands require goodmemory@0.8.3 to be published. The release workflow
 verifies npm latest and the published GitHub assets against the locally prepared
 manifest. It does not rebuild or publish.
 
@@ -26,7 +26,7 @@ Pick the one path that matches how you run. Each is self-contained.
 1. **You are, or run inside, Claude Code or Codex** → install the global CLI and
    let it wire the host:
    ```bash
-   npm install -g goodmemory@0.8.2
+   npm install -g goodmemory@0.8.3
    goodmemory setup        # detects Codex + Claude Code, installs managed wiring
    goodmemory status
    ```
@@ -86,7 +86,7 @@ and Bearer-token gated. See the
 
 ## Benchmarks
 
-Current `v0.8.2` claim: none. Versioned historical evidence: none.
+Current `v0.8.3` claim: none. Versioned historical evidence: none.
 
 The retained v0.7.3 LoCoMo and v0.6.0 LoCoMo, BEAM, and MemoryAgentBench
 measurements, plus ImplicitMemBench, are internal diagnostics only. No end-to-end

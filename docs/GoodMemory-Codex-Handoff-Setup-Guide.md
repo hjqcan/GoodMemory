@@ -1,6 +1,6 @@
 # GoodMemory Codex Handoff Setup Guide
 
-This is the canonical global CLI `0.8.2` Codex setup path. The registry command
+This is the canonical global CLI `0.8.3` Codex setup path. The registry command
 requires publication; source verification uses the local tarball path below.
 
 ## Install
@@ -8,7 +8,7 @@ requires publication; source verification uses the local tarball path below.
 Install the CLI globally when you want to run `goodmemory` directly:
 
 ```bash
-npm install -g goodmemory@0.8.2
+npm install -g goodmemory@0.8.3
 goodmemory -V
 ```
 
@@ -20,7 +20,7 @@ host adapter; then invoke the bin as `npx goodmemory`,
 Tarball verification of the same release artifact before publish:
 
 ```bash
-npm install -g ./goodmemory-0.8.2.tgz
+npm install -g ./goodmemory-0.8.3.tgz
 goodmemory -V
 ```
 
@@ -55,11 +55,11 @@ Use this only when you need repo-local scaffold files from a package dependency
 instead of the managed global installed-host path.
 
 ```bash
-npm install goodmemory@0.8.2
+npm install goodmemory@0.8.3
 npx goodmemory codex bootstrap --user-id <user-id> --workspace-id <workspace-id>
 ```
 
-Bun services can install the same package with `bun add goodmemory@0.8.2`.
+Bun services can install the same package with `bun add goodmemory@0.8.3`.
 
 This creates repo-local scaffolding only:
 

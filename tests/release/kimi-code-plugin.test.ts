@@ -3,7 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 
 const REPO_ROOT = join(import.meta.dir, "../..");
-const RELEASE_VERSION = "0.8.2";
+const RELEASE_VERSION = "0.8.3";
 const KIMI_TOOLS = [
   "goodmemory_get_context",
   "goodmemory_inspect_memory",
@@ -75,7 +75,7 @@ describe("Kimi Code plugin release contract", () => {
     expect(standalone).not.toContain("0.8 candidate");
   });
 
-  it("pins the ten-tool plugin and MCP runtime to the 0.8.2 stable release identity", async () => {
+  it("pins the ten-tool plugin and MCP runtime to the 0.8.3 stable release identity", async () => {
     const [manifest, pkg] = await Promise.all([
       readJson<KimiPluginManifest>("kimi.plugin.json"),
       readJson<PackageManifest>("package.json"),
@@ -178,7 +178,7 @@ describe("Kimi Code plugin release contract", () => {
     expect(guide).toContain("Node.js 20");
     expect(guide).toContain("Bun 1.3.14");
     expect(guide).toContain(
-      "repository descriptors target the stable `0.8.2` release",
+      "repository descriptors target the stable `0.8.3` release",
     );
     expect(guide).not.toContain("release candidate");
     expect(guide).toContain("npx");
