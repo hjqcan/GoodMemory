@@ -22,6 +22,7 @@ describe("explicit project decision declarations", () => {
     "Project decision is that retries use a fresh transaction.",
     "Project policy: When the cache expires, fetch a fresh copy before serving it.",
     "Project decision: If validation fails, reject the import without partial writes.",
+    "Project decision: Unless validation passes, reject the import.",
   ])("admits the full explicit declaration: %s", (content) => {
     expect(decisions(content)).toEqual([
       expect.objectContaining({ content, kindHint: "fact", explicitness: "explicit", sourceRole: "user" }),
@@ -37,6 +38,10 @@ describe("explicit project decision declarations", () => {
     "Project policy: when should retries run",
     "Project decision: When validation fails, what should we do?",
     "Project decision: When validation fails, should we retry",
+    "Project decision: If validation fails, should we retry",
+    "Project decision: Unless validation passes, what should we do",
+    "Project decision: If validation fails, TBD",
+    "Project decision: If validation fails",
     "Project decision: What should we use?",
     "There is no project decision: retries are undecided.",
     "What is the project decision: use retries?",

@@ -1148,11 +1148,12 @@ function isSubstantiveProjectDeclarationBody(body: string): boolean {
   if (trimmed.length === 0 || /\?\s*$/u.test(trimmed)) {
     return false;
   }
-  // "When <condition>, <action>" declares an operational rule. A leading
-  // "when" without an action is still an unresolved question, not a decision.
-  const conditional = /^when\s+([^,]+),\s*(.+)$/iu.exec(trimmed);
+  // A conditional operational rule needs both a condition and a decided
+  // action. A question or placeholder in the action is not a decision.
+  const conditional = /^(?:when|if|unless|whenever)\s+([^,]+),\s*(.+)$/iu.exec(trimmed);
   const substantiveBody = conditional?.[2]?.trim() ?? trimmed;
   if (
+    (/^(?:when|if|unless|whenever)\b/iu.test(trimmed) && !conditional) ||
     PROJECT_DECLARATION_UNDECIDED_BODY_PATTERN.test(substantiveBody) ||
     /^(?:can|could|should|would|do|does|did|is|are|was|were|will|have|has)\s+(?:i|we|you|they|it|he|she|the|our)\b/iu.test(substantiveBody) ||
     (conditional && /^(?:can|could|should|would|do|does|did|is|are|was|were|will)\b/iu.test(conditional[1]!))
