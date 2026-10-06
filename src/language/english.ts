@@ -1143,6 +1143,65 @@ function isExplicitProjectDeclaration(content: string): boolean {
   );
 }
 
+function matchesExplicitFactReplacement(previous: string, replacement: string): boolean {
+  // This bounded grammar names the old value and preserves the complete
+  // declaration/action/context prefix. It cannot infer a target from overlap.
+  const literal = (value: string) => value.normalize("NFC").trim().replace(/\s+/gu, " ");
+  const before = literal(previous);
+  const after = literal(replacement);
+  if (before.length > 2048 || after.length > 2048 ||
+    maskQuotedText(before) !== before || maskQuotedText(after) !== after ||
+    splitClausesGeneric(before).length !== 1 || splitClausesGeneric(after).length !== 1 ||
+    !isExplicitProjectDeclaration(before) || !isExplicitProjectDeclaration(after)) return false;
+  const previousMatch = PROJECT_DECLARATION_PATTERN.exec(before);
+  const replacementMatch = PROJECT_DECLARATION_PATTERN.exec(after);
+  if (!previousMatch || !replacementMatch || previousMatch.index !== 0 || replacementMatch.index !== 0) return false;
+  const body = (match: RegExpExecArray) => match[2] ?? match[3] ?? match[4] ?? match[5] ?? "";
+  const authoredPreviousBody = body(previousMatch).replace(/\.$/u, "").trim();
+  const replacementBody = body(replacementMatch).replace(/\.$/u, "").trim();
+  if (before.slice(0, before.length - body(previousMatch).length) !==
+    after.slice(0, after.length - body(replacementMatch).length)) return false;
+  // Only direct current assertions, optionally with an explicit For-context.
+  // Historical/document preambles and completed-event assertions stay separate.
+  const currentAssertion = (statement: string) => statement
+    .replace(/(^|,\s*)(we|i)\s+now\s+/iu, "$1$2 ");
+  const previousSeparators = [...authoredPreviousBody.matchAll(/\binstead\s+of\b/giu)];
+  if (previousSeparators.length > 1) return false;
+  // A preceding correction retains its full source; only its current asserted
+  // value participates in resolving the next replacement.
+  const previousBody = currentAssertion(previousSeparators.length === 1
+    ? authoredPreviousBody.slice(0, previousSeparators[0]!.index).trim()
+    : authoredPreviousBody);
+  const assertion = previousBody.replace(/^for\s+[^,]+,\s*/iu, "");
+  if (!/^(?:we|i)\s+/iu.test(assertion) ||
+    COMPLETED_FIRST_PERSON_EVENT_PATTERN.test(assertion.replace(/^we\b/iu, "I"))) return false;
+  const separators = [...replacementBody.matchAll(/\binstead\s+of\b/giu)];
+  if (separators.length !== 1) return false;
+  const separator = separators[0]!;
+  const previousValue = replacementBody.slice(separator.index + separator[0].length).trim();
+  if (!previousValue || /[,;\n]/u.test(previousValue) ||
+    !previousBody.endsWith(` ${previousValue}`)) return false;
+  const prefix = previousBody.slice(0, -previousValue.length);
+  const currentStatement = currentAssertion(replacementBody.slice(0, separator.index).trim());
+  const replacementValue = currentStatement.slice(prefix.length).trim();
+  // Positive grammar: replace one atomic nominal label/modifier, retaining its
+  // head (or quantity unit) and determiner. An arbitrary suffix is not a value;
+  // additional clauses, temporal/report frames or prepositional scopes cannot
+  // be consumed as part of this alternative. Richer noun phrases fail closed.
+  const nominalAlternative = /^(?:(the|a|an)\s+)?([\p{L}\p{N}_-]+)(?:\s+([\p{L}\p{N}_-]+))?$/u;
+  const priorAlternative = nominalAlternative.exec(previousValue);
+  const nextAlternative = nominalAlternative.exec(replacementValue);
+  if (!priorAlternative || !nextAlternative || priorAlternative[1] !== nextAlternative[1] ||
+    priorAlternative[3] !== nextAlternative[3]) return false;
+  const actionPrefix = prefix.replace(/^for\s+[^,]+,\s*/iu, "");
+  const action = /^(?:we|i)\s+([\p{L}]+)\s+(?:[\p{L}\p{N}_-]+(?:\s+[\p{L}\p{N}_-]+)?\s+)?(?:with|in|for|through|via|using|to|at|as)\s+$/iu.exec(actionPrefix);
+  if (!action || /^(?:can|could|may|might|must|should|would|will|shall|is|are|was|were|have|has|had|do|does|did)$/iu.test(action[1]!)) return false;
+  if (!matchCurrentAssertion(assertion, /^(?:we|i)\s+.+$/iu, "en")) return false;
+  return prefix.trim().split(/\s+/u).length >= 3 &&
+    currentStatement.startsWith(prefix) && replacementValue.length > 0 &&
+    replacementValue !== previousValue && !/[,;]/u.test(replacementValue);
+}
+
 function isSubstantiveProjectDeclarationBody(body: string): boolean {
   const trimmed = body.trim();
   if (trimmed.length === 0 || /\?\s*$/u.test(trimmed)) {
@@ -2157,7 +2216,7 @@ function maybeExtractCandidatesFromClause(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "27-project-decisions",
+    analyzerVersion: "29-fact-observation-identity",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",
@@ -2214,6 +2273,7 @@ export function createEnglishLanguagePack(): LanguagePack {
     deriveDurableTarget(candidate) {
       return deriveEnglishDurableTarget(candidate);
     },
+    matchesExplicitFactReplacement,
     render: renderEnglish,
     extractCandidates(input: LanguageCandidateExtractionInput): MemoryCandidate[] {
       const candidates: MemoryCandidate[] = [];

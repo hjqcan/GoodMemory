@@ -782,6 +782,11 @@ export function createPostgresDocumentStore(
     },
 
     async writeBatchIfUnchanged(input: ConditionalDocumentWriteBatch) {
+      // Row locks do not fence a matching row that does not exist yet.
+      // Until query-set fencing is implemented, never ignore this constraint.
+      if (input.querySnapshots?.length) {
+        throw new Error("Postgres conditional query snapshots are unsupported.");
+      }
       if (options?.readOnly) {
         throw createReadOnlyMutationError("document");
       }

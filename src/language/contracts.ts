@@ -357,6 +357,8 @@ export interface LanguagePack {
   matchesEntityAlias(query: string, alias: string): boolean;
   acceptsEntityCandidate(input: LanguageEntityCandidateInput): boolean;
   deriveDurableTarget?(candidate: MemoryCandidate): DurableTargetIdentity | undefined;
+  /** Exact, authored replacement grammar; never a lexical similarity test. */
+  matchesExplicitFactReplacement?(previous: string, replacement: string): boolean;
   extractCandidates(input: LanguageCandidateExtractionInput): MemoryCandidate[];
   render(input: LanguageRenderInput): string;
 }
@@ -409,6 +411,11 @@ export interface ResolvedLanguageContext {
 }
 
 export interface LanguageService {
+  matchesExplicitFactReplacement?(
+    previous: string,
+    replacement: string,
+    context: ResolvedLanguageContext | string,
+  ): boolean;
   getAnalyzerManifest(): LanguageAnalyzerManifest;
   resolveFromMessages(input: {
     locale?: string;

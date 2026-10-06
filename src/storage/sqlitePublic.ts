@@ -10,7 +10,7 @@ import type {
   VectorSearchResult,
   VectorStore,
 } from "./contracts";
-import { PROJECTION_BATCH_SEMANTICS } from "./contracts";
+import { PROJECTION_BATCH_SEMANTICS, QUERY_SNAPSHOT_BATCH_SEMANTICS } from "./contracts";
 
 interface SQLiteStoreOptions {
   readOnly?: boolean;
@@ -92,6 +92,7 @@ function createDeferredDocumentStore(
 ): ProjectionCapableDocumentStore {
   return bindDocumentStoreIdentity({
     projectionBatchSemantics: PROJECTION_BATCH_SEMANTICS,
+    querySnapshotBatchSemantics: QUERY_SNAPSHOT_BATCH_SEMANTICS,
     async set(collection, id, document) {
       const store = await resolveStore();
       return store.set(collection, id, document);
@@ -124,6 +125,7 @@ function createDeferredDocumentStore(
 
     async writeBatchIfUnchanged(input) {
       const store = await resolveStore();
+      if (input.querySnapshots?.length && store.querySnapshotBatchSemantics !== QUERY_SNAPSHOT_BATCH_SEMANTICS) return false;
       return store.writeBatchIfUnchanged!(input);
     },
 

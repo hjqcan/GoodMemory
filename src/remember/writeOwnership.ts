@@ -4,6 +4,7 @@ import { normalizeScope } from "../domain/scope";
 import type { MemoryScope } from "../domain/scope";
 import {
   isProjectionCapableDocumentStore,
+  QUERY_SNAPSHOT_BATCH_SEMANTICS,
   type ConditionalDocumentWriteBatch,
   type DocumentStore,
   type ProjectionCapableDocumentStore,
@@ -79,8 +80,8 @@ function preferenceCategoryFenceId(fence: PreferenceCategoryFence): string {
 function prepareBatchRollback(
   documentStore: ProjectionCapableDocumentStore,
   markerId: string,
-  previousFence: PreferenceCategoryFenceRecord | null,
-  fenceRecord: PreferenceCategoryFenceRecord,
+  previousFence: PreferenceCategoryFenceRecord | RememberWriteOwner | null,
+  fenceRecord: PreferenceCategoryFenceRecord | RememberWriteOwner,
   batch: ConditionalDocumentWriteBatch,
 ): RollbackAction {
   const snapshots = new Map<
@@ -241,6 +242,7 @@ export async function writePreferenceCategoryBatch<TResult>(input: {
 }
 
 export interface RememberWriteCoordinator {
+  writeConditionalBatchWithRollback(batch: ConditionalDocumentWriteBatch): Promise<boolean>;
   deleteDocument(collection: string, id: string): Promise<void>;
   releaseOwnership(): Promise<void>;
   rollbackActions: RollbackAction[];
@@ -328,6 +330,29 @@ export function createRememberWriteCoordinator(
 
   return {
     rollbackActions,
+    async writeConditionalBatchWithRollback(batch) {
+      // Corrections must not degrade to sequential best-effort writes.
+      if (!atomicStore || (batch.querySnapshots?.length &&
+        atomicStore.querySnapshotBatchSemantics !== QUERY_SNAPSHOT_BATCH_SEMANTICS)) return false;
+      const markerId = ownerId(batch.expected.collection, batch.expected.id);
+      const previousOwner = await atomicStore.get<RememberWriteOwner>(
+        REMEMBER_WRITE_OWNERS_COLLECTION, markerId,
+      );
+      const owner: RememberWriteOwner = {
+        id: markerId, kind: "document_write_owner", operationId,
+        writeId: crypto.randomUUID(),
+      };
+      const rollback = prepareBatchRollback(atomicStore, markerId, previousOwner, owner, batch);
+      return commitOwnedBatch(markerId, owner, {
+        ...batch,
+        unchanged: [...(batch.unchanged ?? []), {
+          collection: REMEMBER_WRITE_OWNERS_COLLECTION, id: markerId, document: previousOwner,
+        }],
+        set: [...batch.set, {
+          collection: REMEMBER_WRITE_OWNERS_COLLECTION, id: markerId, document: owner,
+        }],
+      }, rollback);
+    },
     async setDocument(collection, id, document) {
       if (!atomicStore) {
         await setDocumentFallback(collection, id, document);

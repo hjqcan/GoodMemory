@@ -518,7 +518,7 @@ describe("language service", () => {
       "zh-Hant",
     ]);
     expect(manifest.packs.find(({ id }) => id === "en")).toMatchObject({
-      analyzerVersion: "27-project-decisions",
+      analyzerVersion: "29-fact-observation-identity",
       apiVersion: 1,
       compatibilityGroup: "en",
       defaultLocale: "en-US",

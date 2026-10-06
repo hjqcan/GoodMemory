@@ -4,6 +4,7 @@ import { sourcePreferenceStatement } from "../language/personalPreferences";
 import { hasPersistableSemanticText } from "../domain/semanticText";
 import { buildEpisodeEmbeddingWrite } from "../embedding/vectorWrites";
 import type { SourceMessageRecord } from "../evidence/contracts";
+import type { LanguageContentAnalysis } from "../language";
 import {
   evaluateShouldRemember,
   redactPolicyCandidate,
@@ -114,6 +115,7 @@ export function createRememberWritePipeline(
       };
       const episodeCandidates: MemoryCandidate[] = [];
       const storedLanguageContexts = new Map<string, typeof resolvedLanguage>();
+      const candidateContentAnalyses = new Map<string, LanguageContentAnalysis>();
       const sourceMessagesByIndex = new Map<number, SourceMessageRecord>();
       const setDocumentWithRollback = writeCoordinator.setDocument;
       const deleteDocumentWithRollback = writeCoordinator.deleteDocument;
@@ -557,6 +559,7 @@ export function createRememberWritePipeline(
               candidateLanguage,
               language,
               storedLanguageContexts,
+              candidateContentAnalyses,
               policyContext,
               repositories: config.repositories,
               vectorIndex,
@@ -564,11 +567,15 @@ export function createRememberWritePipeline(
               now,
               policy: config.policy,
               sourceMessagesByIndex,
+              sourceAnalyses,
+              persistSourceMessageRecord: async (record) =>
+                (await persistSourceMessageRecords(config.documentStore, [record])).get(record.id)!,
               getDocument: (collection, id) => config.documentStore.get(collection, id),
               queryDocuments: (collection, filter) => config.documentStore.query(collection, filter),
               setDocumentWithRollback,
               deleteDocumentWithRollback,
               writeDocumentBatchWithRollback,
+              writeConditionalBatchWithRollback: writeCoordinator.writeConditionalBatchWithRollback,
             },
             state,
           });

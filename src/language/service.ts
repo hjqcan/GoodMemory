@@ -19,7 +19,7 @@ import { createChineseLanguagePack } from "./chinese";
 import { removeUnpairedChineseIdentifierAliases } from "./chineseConversion";
 import { createEnglishLanguagePack } from "./english";
 import { createFrenchLanguagePack } from "./french";
-import { createNeutralLanguagePack } from "./generic";
+import { createNeutralLanguagePack, hasUnterminatedQuote, maskQuotedText } from "./generic";
 import { createJapaneseLanguagePack } from "./japanese";
 import { createKoreanLanguagePack } from "./korean";
 import { createSpanishLanguagePack } from "./spanish";
@@ -47,6 +47,11 @@ const BUILTIN_PACKS = [
 const LANGUAGE_RESOLVER_VERSION = "3";
 const MAX_SEARCH_TERMS = 128;
 const PURE_NUMERIC_TOKEN = /^\p{N}+$/u;
+
+/** Complete source authority requires text outside every quoted span. */
+export function isUnquotedLanguageText(text: string): boolean {
+  return !hasUnterminatedQuote(text) && maskQuotedText(text) === text;
+}
 
 function attachPackDerivedDurableTarget(
   pack: LanguagePack,
@@ -259,6 +264,9 @@ function snapshotPack(pack: LanguagePack): LanguagePack {
     detect: pack.detect,
     ...(pack.deriveDurableTarget
       ? { deriveDurableTarget: pack.deriveDurableTarget }
+      : {}),
+    ...(pack.matchesExplicitFactReplacement
+      ? { matchesExplicitFactReplacement: pack.matchesExplicitFactReplacement }
       : {}),
     extractCandidates: pack.extractCandidates,
     extractEntityMentions: pack.extractEntityMentions,
@@ -562,6 +570,9 @@ export function createLanguageService(
   return {
     getAnalyzerManifest() {
       return analyzerManifest;
+    },
+    matchesExplicitFactReplacement(previous, replacement, context) {
+      return packFor(context).matchesExplicitFactReplacement?.(previous, replacement) ?? false;
     },
     resolveFromMessages(input) {
       return resolveLocale({

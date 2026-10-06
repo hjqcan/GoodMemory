@@ -414,6 +414,7 @@ export function createScopeDeletionAwareDocumentStore(
 
   return {
     projectionBatchSemantics: PROJECTION_BATCH_SEMANTICS,
+    querySnapshotBatchSemantics: documentStore.querySnapshotBatchSemantics,
     scopeMutationFenceIdentity:
       documentStore.scopeMutationFenceIdentity ?? documentStore,
     set: setWithGuards,

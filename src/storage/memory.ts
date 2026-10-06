@@ -29,9 +29,11 @@ import type {
 } from "./contracts";
 import {
   PROJECTION_BATCH_SEMANTICS,
+  QUERY_SNAPSHOT_BATCH_SEMANTICS,
   assertDocumentQueryPageInput,
   assertDocumentTextSearchInput,
   matchesFilter,
+  matchesDocumentQuerySnapshot,
   shallowMergeDocument,
 } from "./contracts";
 import {
@@ -63,6 +65,7 @@ export function createInMemoryDocumentStore(): ProjectionCapableDocumentStore {
 
   return {
     projectionBatchSemantics: PROJECTION_BATCH_SEMANTICS,
+    querySnapshotBatchSemantics: QUERY_SNAPSHOT_BATCH_SEMANTICS,
     async set<TDocument extends StorageDocument>(
       collection: string,
       id: string,
@@ -149,6 +152,11 @@ export function createInMemoryDocumentStore(): ProjectionCapableDocumentStore {
     },
 
     async writeBatchIfUnchanged(input: ConditionalDocumentWriteBatch) {
+      for (const snapshot of input.querySnapshots ?? []) {
+        const current = [...getCollection(snapshot.collection).values()]
+          .filter(document => matchesFilter(document, snapshot.filter));
+        if (!matchesDocumentQuerySnapshot(current, snapshot.documents)) return false;
+      }
       const expectations = [input.expected, ...(input.unchanged ?? [])];
       if (expectations.some((expected) => {
         const current = getCollection(expected.collection).get(expected.id);

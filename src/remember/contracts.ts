@@ -5,7 +5,7 @@ import type {
   PreparedMemoryEmbeddingRecord,
 } from "../embedding/vectorWrites";
 import type { SourceMessageRecord } from "../evidence/contracts";
-import type { LanguageService, ResolvedLanguageContext } from "../language";
+import type { LanguageContentAnalysis, LanguageService, ResolvedLanguageContext } from "../language";
 import type { GoodMemoryPolicyHooks, PolicyContext } from "../policy/hooks";
 import type {
   ConditionalDocumentWriteBatch,
@@ -27,6 +27,7 @@ import type {
 } from "./candidates";
 import type { RememberConfig } from "./profiles";
 import type { PreferenceCategoryFence } from "./writeOwnership";
+import type { RememberSourceLanguageAnalyses } from "./languageAnalysis";
 
 export type ScopedIdentity = {
   userId: string;
@@ -137,10 +138,13 @@ export interface PreparedRememberDocumentBatch<TResult> {
 }
 
 export interface RememberWriteContext {
+  persistSourceMessageRecord(record: SourceMessageRecord): Promise<SourceMessageRecord>;
+  writeConditionalBatchWithRollback(batch: ConditionalDocumentWriteBatch): Promise<boolean>;
   input: MemoryExtractionInput;
   candidateLanguage: ResolvedLanguageContext;
   language: LanguageService;
   storedLanguageContexts: Map<string, ResolvedLanguageContext>;
+  candidateContentAnalyses: Map<string, LanguageContentAnalysis>;
   policyContext: PolicyContext;
   repositories: RememberRepositoryPort;
   vectorIndex: RememberVectorPort | null;
@@ -148,6 +152,7 @@ export interface RememberWriteContext {
   now: () => string;
   policy?: Pick<GoodMemoryPolicyHooks, "redact" | "resolveConflict">;
   sourceMessagesByIndex: ReadonlyMap<number, SourceMessageRecord>;
+  sourceAnalyses: RememberSourceLanguageAnalyses;
   getDocument: DocumentStore["get"];
   queryDocuments: DocumentStore["query"];
   setDocumentWithRollback: <TDocument extends object>(

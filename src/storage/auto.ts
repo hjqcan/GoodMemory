@@ -15,7 +15,7 @@ import type {
   VectorSearchResult,
   VectorStore,
 } from "./contracts";
-import { PROJECTION_BATCH_SEMANTICS } from "./contracts";
+import { PROJECTION_BATCH_SEMANTICS, QUERY_SNAPSHOT_BATCH_SEMANTICS } from "./contracts";
 import {
   canBootstrapPostgresStorageBackend,
   createPostgresDocumentStore,
@@ -68,6 +68,7 @@ function createAutoDocumentStore(
 ): ProjectionCapableDocumentStore {
   return bindDocumentStoreIdentity({
     projectionBatchSemantics: PROJECTION_BATCH_SEMANTICS,
+    querySnapshotBatchSemantics: QUERY_SNAPSHOT_BATCH_SEMANTICS,
     async set<TDocument extends StorageDocument>(
       collection: string,
       id: string,
@@ -117,6 +118,7 @@ function createAutoDocumentStore(
 
     async writeBatchIfUnchanged(input) {
       const backend = await resolveBackend();
+      if (input.querySnapshots?.length && backend.documentStore.querySnapshotBatchSemantics !== QUERY_SNAPSHOT_BATCH_SEMANTICS) return false;
       return backend.documentStore.writeBatchIfUnchanged(input);
     },
 

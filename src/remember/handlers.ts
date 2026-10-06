@@ -1,7 +1,9 @@
 import { filterSupportedObservations } from "../domain/observation";
 import { createHash } from "node:crypto";
 import { checkPreferenceChronology } from "./preferenceChronology";
+import { checkFactCorrectionChronology, factCorrectionIsCurrent } from "./factCorrectionChronology";
 import { candidateSourceMessageIndexes } from "./sourceMessages";
+import { isUnquotedLanguageText } from "../language/service";
 import { preferenceOppositionIds, preferenceSupersessionIds, sourcePreferenceStatement } from "../language/personalPreferences";
 import {
   buildFeedbackIdentityKey,
@@ -11,6 +13,7 @@ import {
   createPreferenceMemory,
   createReferenceMemory,
   isActiveMemoryLifecycle,
+  isFactExpired,
   normalizeFeedbackAppliesTo,
 } from "../domain/records";
 import type { MemorySource } from "../domain/provenance";
@@ -22,7 +25,7 @@ import {
   buildNoteEmbeddingWrite,
   buildReferenceEmbeddingWrite,
 } from "../embedding/vectorWrites";
-import { EVIDENCE_COLLECTION } from "../evidence/contracts";
+import { EVIDENCE_COLLECTION, SOURCE_MESSAGES_COLLECTION } from "../evidence/contracts";
 import type { EvidenceRecord, SourceMessageRecord } from "../evidence/contracts";
 import {
   resolvePolicyConflict,
@@ -815,9 +818,8 @@ export async function writeRememberCandidate(input: {
   }
 
   if (candidate.memoryType === "fact") {
-    const scopedFacts = (
-      await context.repositories.facts.listByScope(context.input.scope)
-    ).filter((fact) => isSameDurableScope(fact, context.input.scope));
+    const queriedFacts = await context.repositories.facts.listByScope(context.input.scope);
+    const scopedFacts = queriedFacts.filter((fact) => isSameDurableScope(fact, context.input.scope));
     const { facts } = await filterSupportedObservations(scopedFacts,
       context.repositories.facts.get?.bind(context.repositories.facts), context.now,
       context.repositories.facts.checkSnapshots?.bind(context.repositories.facts));
@@ -826,10 +828,34 @@ export async function writeRememberCandidate(input: {
       context.input.messages,
       candidateLanguage.locale,
     );
-    const normalizedContent = context.language.normalizeForEquality(
-      candidate.content,
-      candidateLanguage,
-    );
+    // The same language-aware identity is used for duplicate admission,
+    // source replay and the author observations used to order a correction.
+    const factTextKey = (content: string, resolved: typeof candidateLanguage) =>
+      context.language.normalizeForEquality(content, resolved);
+    const normalizedContent = factTextKey(candidate.content, candidateLanguage);
+    const replaySourceIds = new Set(candidateSourceMessageIndexes(candidate).flatMap(index => {
+      const source = context.sourceMessagesByIndex.get(index);
+      return source?.role === "user" && source.content.trim() === candidate.content.trim() ? [source.id] : [];
+    }));
+    const retiredMatches = facts.filter(fact => fact.lifecycle === "superseded" && fact.supersededBy &&
+      sameOccurrence(fact.occurrence, occurrence) &&
+      factTextKey(fact.content,
+        resolveStoredTextLanguage(context, fact.content, fact.source)) === normalizedContent);
+    if (replaySourceIds.size > 0 && retiredMatches.length > 0) {
+      const evidence = (await context.queryDocuments<EvidenceRecord>(EVIDENCE_COLLECTION,
+        { userId: context.input.scope.userId })).filter(item => isSameDurableScope(item, context.input.scope));
+      const replayed = retiredMatches.some(fact =>
+        evidence.some(item => item.kind === "correction_context" &&
+          item.linkedMemoryIds.includes(fact.id) && item.linkedMemoryIds.includes(fact.supersededBy!)) &&
+        evidence.some(item => item.linkedMemoryIds.includes(fact.id) &&
+          item.sourceRecordIds?.some(id => replaySourceIds.has(id))));
+      if (replayed) {
+        state.rejected += 1;
+        state.events.push({ candidateId, outcome: "rejected", memoryType: "fact",
+          reason: "superseded_fact_source_replay", ...buildRememberEventTrace(candidate) });
+        return;
+      }
+    }
     const duplicate = facts.find(
       (fact) => {
         const factLanguage = resolveStoredTextLanguage(
@@ -839,7 +865,7 @@ export async function writeRememberCandidate(input: {
         );
         return (
           fact.lifecycle === "active" &&
-          context.language.normalizeForEquality(fact.content, factLanguage) ===
+          factTextKey(fact.content, factLanguage) ===
             normalizedContent &&
           sameOccurrence(fact.occurrence, occurrence)
         );
@@ -887,7 +913,87 @@ export async function writeRememberCandidate(input: {
       return;
     }
 
-    const superseded = candidate.metadata?.category === "event"
+    const sourceIndexes = candidateSourceMessageIndexes(candidate);
+    let correctionAttempt = false;
+    // A source cue triggers candidate examination, never candidate intent.
+    // Ordinary writes retain the existing request-local analysis budget.
+    const sourceHasCorrectionCue = sourceIndexes.some(index =>
+      context.sourceAnalyses.get(index)?.analysis.correctionCue === true);
+    if (candidate.explicitness === "explicit" && sourceHasCorrectionCue) {
+      // A cue belongs to the candidate statement, not every fact extracted
+      // from its source message. Reuse only identical text and language context.
+      const languageKey = JSON.stringify(candidateLanguage);
+      const analysisKey = JSON.stringify([languageKey, candidate.content]);
+      let analysis = context.candidateContentAnalyses.get(analysisKey);
+      if (!analysis) {
+        const sourceIndex = sourceIndexes.find(index =>
+          context.input.messages[index]?.content === candidate.content &&
+          JSON.stringify(context.sourceAnalyses.get(index)?.context) === languageKey);
+        analysis = sourceIndex === undefined ? undefined : context.sourceAnalyses.get(sourceIndex)?.analysis;
+        analysis ??= context.language.analyzeContent(candidate.content, candidateLanguage);
+        context.candidateContentAnalyses.set(analysisKey, analysis);
+      }
+      correctionAttempt = analysis.correctionCue;
+    }
+    const correctionSource = sourceIndexes.length === 1
+      ? context.sourceMessagesByIndex.get(sourceIndexes[0]!) : undefined;
+    const originalSource = sourceIndexes.length === 1 ? context.input.messages[sourceIndexes[0]!] : undefined;
+    // A producer or metadata patch cannot authorize replacement. Bind the
+    // complete candidate to one unchanged, policy-safe, live author statement.
+    const sourceSupportsCorrection = correctionAttempt && correctionSource?.role === "user" &&
+      originalSource?.role === "user" && originalSource.content.trim() === candidate.content.trim() &&
+      correctionSource.content.trim() === candidate.content.trim() &&
+      context.language.extractCandidates({ locale: candidateLanguage.locale,
+        messages: [{ ...originalSource, sourceMessageIndex: sourceIndexes[0],
+          analysis: context.sourceAnalyses.get(sourceIndexes[0]!)?.analysis }],
+        nextId: () => "correction-source-proof",
+      }, candidateLanguage).some(item => item.kindHint === "fact" &&
+        item.explicitness === "explicit" && item.content.trim() === candidate.content.trim());
+    const correctionTargets = sourceSupportsCorrection && candidate.metadata?.category !== "event"
+      ? facts.filter(fact => fact.lifecycle === "active" && !fact.occurrence &&
+        fact.category !== "event" && !isFactExpired(fact, context.now()) &&
+        (fact.source.method === "explicit" || fact.source.method === "confirmed") &&
+        context.language.localesCompatible(resolveStoredTextLanguage(context, fact.content, fact.source).locale, candidateLanguage.locale) &&
+        context.language.matchesExplicitFactReplacement?.(fact.content, candidate.content, candidateLanguage))
+      : [];
+    if (correctionTargets.length > 1) {
+      state.rejected += 1;
+      state.events.push({ candidateId, outcome: "rejected", memoryType: "fact",
+        reason: "ambiguous_fact_correction", ...buildRememberEventTrace(candidate) });
+      return;
+    }
+    const explicitCorrectionTarget = correctionTargets[0];
+    let chronology: Awaited<ReturnType<typeof checkFactCorrectionChronology>> | undefined;
+    if (explicitCorrectionTarget) {
+      chronology = await checkFactCorrectionChronology({ scope: context.input.scope,
+        target: explicitCorrectionTarget, incoming: correctionSource!,
+        validFrom: candidate.metadata?.claim?.validFrom, validUntil: candidate.metadata?.claim?.validUntil,
+        now: context.now(), get: context.getDocument, query: context.queryDocuments,
+        supportsAuthorSource: (source, evidence) => {
+          const sourceLanguage = resolveStoredTextLanguage(context, source.content, evidence.source);
+          const targetKey = factTextKey(explicitCorrectionTarget.content,
+            resolveStoredTextLanguage(context, explicitCorrectionTarget.content, explicitCorrectionTarget.source));
+          // Complete-source identity plus actual rule extraction proves the
+          // accepted author assertion. Normalizing a quote, report or part of
+          // a larger message alone cannot supply observation authority.
+          if (!isUnquotedLanguageText(source.content) ||
+            factTextKey(source.content, sourceLanguage) !== targetKey) return false;
+          return context.language.extractCandidates({ locale: sourceLanguage.locale,
+            messages: [{ role: source.role, content: source.content,
+              observedAt: source.observedAt, timezone: source.timezone, sourceMessageIndex: 0 }],
+            nextId: () => "fact-observation-proof",
+          }, sourceLanguage).some(item => item.kindHint === "fact" && item.explicitness === "explicit" &&
+            item.sourceRole === "user" && factTextKey(item.content, sourceLanguage) === targetKey);
+        },
+      });
+      if (chronology.reason) {
+        state.rejected += 1;
+        state.events.push({ candidateId, outcome: "rejected", memoryType: "fact",
+          reason: chronology.reason, ...buildRememberEventTrace(candidate) });
+        return;
+      }
+    }
+    const superseded = explicitCorrectionTarget ?? (correctionAttempt || candidate.metadata?.category === "event"
       ? undefined
       : facts.find((fact) => {
       const factLanguage = resolveStoredTextLanguage(
@@ -909,7 +1015,7 @@ export async function writeRememberCandidate(input: {
           candidateLanguage,
         ) >= 0.4
       );
-        });
+        }));
 
     if (superseded && context.policy?.resolveConflict) {
       const resolution = await resolvePolicyConflict(
@@ -947,6 +1053,63 @@ export async function writeRememberCandidate(input: {
       superseded && context.vectorIndex
         ? await context.vectorIndex.getFactEmbedding(superseded.id)
         : null;
+
+    if (explicitCorrectionTarget && chronology && correctionSource) {
+      // Use the canonical immutable-source lifecycle before retirement becomes
+      // visible. A process exit can leave an allowed, unlinked source, but never
+      // a retired fact/evidence chain whose new source was not committed.
+      const persistedCorrectionSource = await context.persistSourceMessageRecord(correctionSource);
+      if (!factCorrectionIsCurrent({ target: explicitCorrectionTarget, incoming: persistedCorrectionSource,
+        validFrom: candidate.metadata?.claim?.validFrom, validUntil: candidate.metadata?.claim?.validUntil,
+        now: context.now() })) {
+        state.rejected += 1;
+        state.events.push({ candidateId, outcome: "rejected", memoryType: "fact",
+          reason: "not_current_fact_correction_source", ...buildRememberEventTrace(candidate) });
+        return;
+      }
+      const evidenceId = context.createId();
+      const evidence = { ...buildCandidateEvidence(context.input.scope, candidate, fact.id,
+        evidenceId, timestamp, languageMetadata(context.candidateLanguage), [persistedCorrectionSource]),
+        kind: "correction_context" as const,
+        linkedMemoryIds: [explicitCorrectionTarget.id, fact.id],
+      };
+      const previous = createFactMemory({ ...explicitCorrectionTarget, lifecycle: "superseded",
+        isActive: false, supersededBy: fact.id, updatedAt: timestamp });
+      const committed = await context.writeConditionalBatchWithRollback({
+        expected: { collection: "facts", id: previous.id, document: explicitCorrectionTarget },
+        querySnapshots: [...chronology.querySnapshots, { collection: "facts", documents: queriedFacts,
+          filter: Object.fromEntries(Object.entries({ userId: context.input.scope.userId,
+            tenantId: context.input.scope.tenantId, workspaceId: context.input.scope.workspaceId,
+            agentId: context.input.scope.agentId }).filter((entry): entry is [string, string] => entry[1] !== undefined)),
+        }],
+        unchanged: [
+          { collection: "facts", id: fact.id, document: null },
+          { collection: EVIDENCE_COLLECTION, id: evidenceId, document: null },
+          ...chronology.unchanged,
+          { collection: SOURCE_MESSAGES_COLLECTION, id: persistedCorrectionSource.id, document: persistedCorrectionSource },
+        ],
+        set: [
+          { collection: "facts", id: previous.id, document: previous },
+          { collection: "facts", id: fact.id, document: fact },
+          { collection: EVIDENCE_COLLECTION, id: evidenceId, document: evidence },
+        ],
+      });
+      if (!committed) {
+        state.rejected += 1;
+        state.events.push({ candidateId, outcome: "rejected", memoryType: "fact",
+          reason: "fact_correction_target_changed_or_batch_unsupported", ...buildRememberEventTrace(candidate) });
+        return;
+      }
+      state.pendingVectorDeletes.push({ id: previous.id, memoryType: "fact",
+        restoreRecord: supersededFactVector ? { ...supersededFactVector, memoryType: "fact" } : null });
+      state.pendingEmbeddingWrites.push(factEmbeddingWrite);
+      queueClaimProjection({ candidate, context, evidenceId, memoryId: fact.id,
+        sourceMessages: [persistedCorrectionSource], state, timestamp });
+      pushAcceptedEvent(state, { candidateId, outcome: "superseded", memoryType: "fact",
+        memoryId: fact.id, reason: "source_bound_fact_correction", evidenceIds: [evidenceId],
+        ...buildRememberEventTrace(candidate) });
+      return;
+    }
 
     if (superseded) {
       await context.setDocumentWithRollback(

@@ -36,10 +36,12 @@ import type {
 } from "./contracts";
 import {
   PROJECTION_BATCH_SEMANTICS,
+  QUERY_SNAPSHOT_BATCH_SEMANTICS,
   assertDocumentQueryPageInput,
   assertDocumentTextSearchInput,
   assertStorageFilter,
   matchesFilter,
+  matchesDocumentQuerySnapshot,
   shallowMergeDocument,
 } from "./contracts";
 import {
@@ -790,10 +792,27 @@ export function createSQLiteDocumentStore(
     }
     return clauses;
   }
-  function writeBatchIfUnchanged(input: ConditionalDocumentWriteBatch): boolean {
-    database.exec("BEGIN IMMEDIATE");
+  function writeBatchIfUnchanged(
+    input: ConditionalDocumentWriteBatch,
+    retryObsoleteRead = true,
+  ): boolean {
+    const checksQuerySnapshots = (input.querySnapshots?.length ?? 0) > 0;
+    // WAL readers do not reserve the writer lock while large snapshots are
+    // validated. SQLite refuses an upgrade if another writer makes this read
+    // snapshot obsolete, so the same checks still guard the eventual writes.
+    database.exec(checksQuerySnapshots ? "BEGIN DEFERRED" : "BEGIN IMMEDIATE");
 
     try {
+      for (const snapshot of input.querySnapshots ?? []) {
+        assertStorageFilter(snapshot.filter);
+        const current = listStatement.all(snapshot.collection)
+          .map(row => parseJson<StorageDocument>(row.json))
+          .filter(document => matchesFilter(document, snapshot.filter));
+        if (!matchesDocumentQuerySnapshot(current, snapshot.documents)) {
+          database.exec("ROLLBACK");
+          return false;
+        }
+      }
       for (const expected of [input.expected, ...(input.unchanged ?? [])]) {
         const current = getStatement.get(expected.collection, expected.id);
         const matches = expected.document === null
@@ -827,18 +846,32 @@ export function createSQLiteDocumentStore(
       database.exec("COMMIT");
       return true;
     } catch (error) {
+      let rolledBack = false;
       try {
         database.exec("ROLLBACK");
+        rolledBack = true;
       } catch {
         // The original mutation failure is more useful than rollback cleanup.
       }
 
+      if (rolledBack && checksQuerySnapshots && error instanceof Error &&
+        "code" in error &&
+        (error.code === "SQLITE_BUSY_SNAPSHOT" || error.code === "SQLITE_BUSY")) {
+        // A different scope can invalidate the WAL read without changing any
+        // guarded rows. Re-read every snapshot and row constraint once; a
+        // changed target/source still refuses the write. Never extend waits.
+        if (error.code === "SQLITE_BUSY_SNAPSHOT" && retryObsoleteRead) {
+          return writeBatchIfUnchanged(input, false);
+        }
+        return false;
+      }
       throw error;
     }
   }
 
   return bindSQLiteDocumentStoreIdentity({
     projectionBatchSemantics: PROJECTION_BATCH_SEMANTICS,
+    querySnapshotBatchSemantics: QUERY_SNAPSHOT_BATCH_SEMANTICS,
     async set<TDocument extends StorageDocument>(
       collection: string,
       id: string,

@@ -167,6 +167,7 @@ export function createProjectionValidationFence(
 
   const fenced: ProjectionCapableDocumentStore = {
     projectionBatchSemantics: PROJECTION_BATCH_SEMANTICS,
+    querySnapshotBatchSemantics: documentStore.querySnapshotBatchSemantics,
     async set(collection, id, document) {
       const manifest = context.getStore();
       if (!manifest || !PROJECTION_OUTPUT_COLLECTIONS.has(collection)) {

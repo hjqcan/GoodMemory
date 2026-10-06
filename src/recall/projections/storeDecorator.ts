@@ -485,6 +485,7 @@ export function createProjectionAwareDocumentStore(input: {
 
   const decorated: ProjectionCapableDocumentStore = {
     projectionBatchSemantics: PROJECTION_BATCH_SEMANTICS,
+    querySnapshotBatchSemantics: documentStore.querySnapshotBatchSemantics,
     async set(collection, id, document) {
       if (collection === EVIDENCE_COLLECTION) {
         if (manifests.enabled) {

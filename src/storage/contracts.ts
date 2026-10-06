@@ -49,7 +49,25 @@ export interface DocumentWriteOperation<
   document: TDocument;
 }
 
+export const QUERY_SNAPSHOT_BATCH_SEMANTICS = "exact-query-snapshot-v1" as const;
+
+export interface ConditionalDocumentQuerySnapshot {
+  collection: string;
+  documents: StorageDocument[];
+  filter?: StorageFilter;
+}
+
+export function matchesDocumentQuerySnapshot(
+  current: StorageDocument[],
+  expected: StorageDocument[],
+): boolean {
+  const serialize = (documents: StorageDocument[]) => documents.map(document => JSON.stringify(document)).sort();
+  return JSON.stringify(serialize(current)) === JSON.stringify(serialize(expected));
+}
+
 export interface ConditionalDocumentWriteBatch {
+  /** Requires QUERY_SNAPSHOT_BATCH_SEMANTICS; checked inside the write transaction. */
+  querySnapshots?: ConditionalDocumentQuerySnapshot[];
   delete?: Array<{
     collection: string;
     id: string;
@@ -68,6 +86,7 @@ export interface ConditionalDocumentWriteBatch {
 }
 
 export interface DocumentStore {
+  querySnapshotBatchSemantics?: typeof QUERY_SNAPSHOT_BATCH_SEMANTICS;
   projectionBatchSemantics?: string;
   set<TDocument extends StorageDocument>(
     collection: string,
