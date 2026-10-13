@@ -233,6 +233,20 @@ export function serializeSQLiteDatabase(path: string): Uint8Array {
 
 const QUERY_FENCE_FIELDS = ["userId", "tenantId", "workspaceId", "agentId"] as const;
 const QUERY_FENCE_SCHEMA_COMPONENT = "query_scope_fences_v1";
+const QUERY_FENCE_SCHEMA_VERSION = 2;
+const QUERY_FENCE_ANOMALY_KEY = '["anomalous-json"]';
+
+function queryFenceAnomalySql(json: string): string {
+  // SQLite path extraction uses the first duplicate key; JSON.parse uses the
+  // last. Decode top-level keys structurally rather than guessing from text.
+  // Unparseable/non-object rows also cannot certify a scalar-filter read set.
+  const safeJson = `CASE WHEN json_valid(${json}) THEN ${json} ELSE '{}' END`;
+  return `(typeof(${json}) <> 'text' OR NOT json_valid(${json}) OR json_type(${safeJson}) <> 'object' OR EXISTS (
+    SELECT 1 FROM json_each(${safeJson})
+    WHERE key IN (${QUERY_FENCE_FIELDS.map(field => `'${field}'`).join(", ")})
+    GROUP BY key HAVING COUNT(*) > 1
+  ))`;
+}
 
 function queryFenceScopeKeySql(mask: number, json: string): string {
   const values = [String(mask)];
@@ -276,11 +290,20 @@ function ensureQueryFenceSchema(database: Database): void {
       INSERT INTO document_query_fences(collection, fence_key, generation)
       SELECT ${collection}, ${queryFenceScopeKeySql(mask, json)}, 1 ${where}
       ON CONFLICT(collection, fence_key) DO UPDATE SET generation = generation + 1;
-    `).join("\n");
+    `).join("\n") + `
+      INSERT INTO document_query_fences(collection, fence_key, generation)
+      SELECT ${collection}, '${QUERY_FENCE_ANOMALY_KEY}', 1 ${where}
+      ${where ? "AND" : "WHERE"} ${queryFenceAnomalySql(json)}
+      ON CONFLICT(collection, fence_key) DO UPDATE SET generation = generation + 1;
+    `;
   database.exec(`
+    DROP TRIGGER IF EXISTS document_query_fences_before_insert;
+    DROP TRIGGER IF EXISTS document_query_fences_after_insert;
+    DROP TRIGGER IF EXISTS document_query_fences_after_update;
+    DROP TRIGGER IF EXISTS document_query_fences_after_delete;
     CREATE TRIGGER IF NOT EXISTS document_query_fences_before_insert
     BEFORE INSERT ON documents BEGIN
-      ${bump("collection", "json", "FROM documents WHERE collection = NEW.collection AND id = NEW.id")}
+      ${bump("documents.collection", "documents.json", "FROM documents WHERE collection = NEW.collection AND id = NEW.id")}
     END;
     CREATE TRIGGER IF NOT EXISTS document_query_fences_after_insert
     AFTER INSERT ON documents BEGIN ${bump("NEW.collection", "NEW.json")} END;
@@ -422,12 +445,13 @@ function ensureDocumentSchema(database: Database): void {
           DOCUMENT_FILTER_INDEX_SCHEMA_VERSION,
         );
     }
-    if (versionStatement.get(QUERY_FENCE_SCHEMA_COMPONENT)?.version !== 1) {
+    if (versionStatement.get(QUERY_FENCE_SCHEMA_COMPONENT)?.version !== QUERY_FENCE_SCHEMA_VERSION) {
       // Trigger installation is atomic with its schema marker. Existing rows
       // start at generation zero; no data scan or rewrite is required.
       ensureQueryFenceSchema(database);
-      database.query(`INSERT INTO document_store_schema(component, version) VALUES (?1, 1)
-        ON CONFLICT(component) DO UPDATE SET version = excluded.version`).run(QUERY_FENCE_SCHEMA_COMPONENT);
+      database.query(`INSERT INTO document_store_schema(component, version) VALUES (?1, ?2)
+        ON CONFLICT(component) DO UPDATE SET version = excluded.version`)
+        .run(QUERY_FENCE_SCHEMA_COMPONENT, QUERY_FENCE_SCHEMA_VERSION);
     }
     database.exec("COMMIT");
   } catch (error) {
@@ -866,11 +890,15 @@ export function createSQLiteDocumentStore(
     const values = JSON.parse(key) as unknown[];
     const parts = values.map((value, index) => index > 0 && index % 2 === 0 && values[index - 1] === "number"
       ? `CAST(?${index + 1} AS REAL)` : `?${index + 1}`);
-    const row = database.query<{ generation: string }, SQLiteBindingValue[]>(`
-      SELECT CAST(generation AS TEXT) AS generation FROM document_query_fences
-      WHERE collection = ?${values.length + 1} AND fence_key = json_array(${parts.join(", ")})
+    const row = database.query<{ generation: string; anomaly: string }, SQLiteBindingValue[]>(`
+      SELECT COALESCE((SELECT CAST(generation AS TEXT) FROM document_query_fences
+        WHERE collection = ?${values.length + 1} AND fence_key = json_array(${parts.join(", ")})), '0') AS generation,
+        COALESCE((SELECT CAST(generation AS TEXT) FROM document_query_fences
+        WHERE collection = ?${values.length + 1} AND fence_key = '${QUERY_FENCE_ANOMALY_KEY}'), '0') AS anomaly
     `).get(...values as SQLiteBindingValue[], collection);
-    return row?.generation ?? "0";
+    // Anomalous rows invalidate the collection conservatively. Ordinary rows
+    // still use only the matching scoped counter, preserving unrelated writers.
+    return `${row?.generation ?? "0"}:${row?.anomaly ?? "0"}`;
   }
 
   function writeBatchIfUnchanged(input: ConditionalDocumentWriteBatch): boolean {
