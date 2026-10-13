@@ -1143,6 +1143,45 @@ function isExplicitProjectDeclaration(content: string): boolean {
   );
 }
 
+function matchesNominalUsesReplacement(previousBody: string, replacementBody: string): boolean {
+  // A bounded authored relation, not a general NP or verb-sense parser. The
+  // definite/possessive subject and literal predicate remain exact;
+  // neither pronoun resolution nor domain-specific vocabulary supplies a target.
+  const alternative = /^(?:(the|a|an)\s+)?([\p{L}\p{N}_-]+)(?:\s+([\p{L}\p{N}_-]+))?$/u;
+  const compatibleAlternatives = (left: string, right: string) => {
+    const before = alternative.exec(left);
+    const after = alternative.exec(right);
+    return Boolean(before && after && before[1] === after[1] && before[3] === after[3]);
+  };
+  const parse = (body: string) => {
+    // Free-form contextual preambles can be historical, reported or
+    // hypothetical. This branch supports only an unqualified subject; caller
+    // durable scope still supplies the independently checked scope boundary.
+    const assertion = body;
+    // Validate the whole prior statement before projecting a preceding
+    // correction's current value. Its retired-value tail cannot hide a
+    // conditional, report, historical frame or other qualification.
+    if (!matchCurrentAssertion(assertion, /^(?:my|our|the|this|that)\s+.+$/iu, "en")) return undefined;
+    const parts = assertion.split(/\binstead\s+of\b/iu);
+    if (parts.length > 2) return undefined;
+    const current = /^(?<subject>(?:my|our|the|this|that)\s+[\p{L}\p{N}_-]+)\s+(?:now\s+)?(?<predicate>uses)\s+(?<value>.+)$/iu.exec(parts[0]!.trim());
+    if (!current?.groups) return undefined;
+    const { subject, predicate, value } = current.groups;
+    if (!value || !alternative.test(value)) return undefined;
+    const retired = parts[1]?.trim();
+    if (retired !== undefined && (
+      !compatibleAlternatives(value, retired) || value === retired
+    )) return undefined;
+    return { subject, predicate, value, retired };
+  };
+  const before = parse(previousBody);
+  const after = parse(replacementBody);
+  return Boolean(before && after && after.retired !== undefined &&
+    before.subject === after.subject &&
+    before.predicate === after.predicate && before.value === after.retired &&
+    before.value !== after.value && compatibleAlternatives(before.value, after.value));
+}
+
 function matchesExplicitFactReplacement(previous: string, replacement: string): boolean {
   // This bounded grammar names the old value and preserves the complete
   // declaration/action/context prefix. It cannot infer a target from overlap.
@@ -1161,6 +1200,7 @@ function matchesExplicitFactReplacement(previous: string, replacement: string): 
   const replacementBody = body(replacementMatch).replace(/\.$/u, "").trim();
   if (before.slice(0, before.length - body(previousMatch).length) !==
     after.slice(0, after.length - body(replacementMatch).length)) return false;
+  if (matchesNominalUsesReplacement(authoredPreviousBody, replacementBody)) return true;
   // Only direct current assertions, optionally with an explicit For-context.
   // Historical/document preambles and completed-event assertions stay separate.
   const currentAssertion = (statement: string) => statement
@@ -2216,7 +2256,7 @@ function maybeExtractCandidatesFromClause(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "29-fact-observation-identity",
+    analyzerVersion: "30-nominal-uses-replacement",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",
