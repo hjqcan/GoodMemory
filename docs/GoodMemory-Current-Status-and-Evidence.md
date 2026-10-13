@@ -179,14 +179,26 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   source line retains the measured artifacts for audit but carries no passing
   benchmark claim. See
   `docs/plans/GoodMemory-v0.7.3-Replacement-Protection-Protocol.md`.
-- The Kimi Code plugin is published in `v0.7.2`. A clean macOS acceptance with
-  Kimi Code 0.31.1 installed the bare GitHub URL as
-  `hjqcan/GoodMemory@tag:v0.7.2`; `/reload` connected one stdio MCP server with
-  nine tools. The exact registry command then passed write, new-process recall,
-  trace-to-memory-id, and different-`cwd` isolation. A model-driven Kimi write
-  approval capture, a second independent clean-machine install, and Windows
-  smoke remain unverified; they are adoption/Marketplace gates, not claims of
-  completed support.
+- The Kimi Code plugin is published in `v0.8.3` with a
+  [version-pinned ZIP](https://github.com/hjqcan/GoodMemory/releases/tag/v0.8.3)
+  and ten MCP tools. The documented published-tag
+  [maintainer acceptance](https://github.com/hashgraph-online/awesome-ai-plugins/pull/95#issuecomment-5380739387)
+  is GoodMemory `0.7.5` on Kimi Code `0.38.0` (macOS arm64): explicit write
+  approval, `/new` recall, a trace for the same memory ID, and isolation between
+  differently named project directories passed with a deterministic loopback
+  provider. This verifies the host protocol, approval flow, persistence, and
+  scoping, not model reasoning quality. During 0.8 preparation, a local
+  nine-tool development ZIP passed native installation and MCP connection
+  checks. A bare-source download timeout was recorded in the
+  [preparation plan](./plans/GoodMemory-v0.8-Unpublished-Development-Plan.md#kimi-readiness-follow-up-2026-09-07-utc);
+  the separate model-service HTTP 401 is disclosed in the
+  [v0.8.0 release notes](https://github.com/hjqcan/GoodMemory/releases/tag/v0.8.0).
+  These are historical test-environment outcomes, not evidence of a current
+  runtime failure. A complete end-to-end run from the public `0.8.3` ZIP remains
+  unverified, as do independent-user adoption, a second clean support
+  environment, and Windows Kimi smoke. See the
+  [Kimi setup guide](./GoodMemory-Kimi-Code-Setup-Guide.md) for installation
+  and evidence boundaries; Marketplace readiness is not established.
 - Main has completed Phases 68 through 72 on the generalization-first line.
   The production selector graph contains only
   generalized selection primitives, and the `recommended` preset now has a

@@ -2766,7 +2766,7 @@ describe("release metadata and docs", () => {
     expect(currentStatus).toContain("scripts/research/protocols.json");
     expect(currentStatus).toContain("release-manifest.json");
     expect(currentStatus).toContain(
-      "The Kimi Code plugin is published in `v0.7.2`",
+      `The Kimi Code plugin is published in \`v${PUBLISHED_INSTALL_VERSION}\``,
     );
     expect(currentStatus).toContain(
       "reports/quality-gates/phase-20/run-20260420023503/phase-20-quality-gate.json",

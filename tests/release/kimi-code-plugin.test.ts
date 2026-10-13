@@ -204,4 +204,41 @@ describe("Kimi Code plugin release contract", () => {
       }),
     );
   });
+
+  it("separates the published ZIP from maintainer acceptance and public-download evidence", async () => {
+    const [guide, currentStatus] = await Promise.all([
+      readText("docs/GoodMemory-Kimi-Code-Setup-Guide.md"),
+      readText("docs/GoodMemory-Current-Status-and-Evidence.md"),
+    ]);
+    const releaseUrl = `https://github.com/hjqcan/GoodMemory/releases/tag/v${RELEASE_VERSION}`;
+    const installCommand = `/plugins install https://github.com/hjqcan/GoodMemory/releases/download/v${RELEASE_VERSION}/goodmemory-kimi-plugin-${RELEASE_VERSION}.zip`;
+    const acceptanceUrl = "https://github.com/hashgraph-online/awesome-ai-plugins/pull/95#issuecomment-5380739387";
+
+    expect(guide.match(/^\/plugins install .+$/mu)?.[0]).toBe(installCommand);
+    expect(guide).not.toContain("After publication, the version-specific install");
+    expect(guide).not.toContain("Do not use this URL before the asset exists");
+    expect(guide).not.toContain("verified v0.7.2 support boundary");
+    expect(guide).toContain("nine-tool development package");
+    expect(guide).toContain("ten tools");
+
+    for (const document of [guide, currentStatus]) {
+      const text = document.replace(/\s+/gu, " ");
+      expect(text).toContain(releaseUrl);
+      expect(text).toContain(acceptanceUrl);
+      expect(text).toContain("GoodMemory `0.7.5` on Kimi Code `0.38.0`");
+      expect(text).toContain("macOS arm64");
+      expect(text).toContain("deterministic loopback provider");
+      expect(text).toContain("explicit write approval");
+      expect(text).toContain("`/new` recall");
+      expect(text).toContain("a trace for the same memory ID");
+      expect(text).toContain("differently named project directories");
+      expect(text).toContain("model reasoning quality");
+      expect(text).toContain(`public \`${RELEASE_VERSION}\` ZIP remains unverified`);
+      expect(text).toContain("historical");
+      expect(text).toContain("HTTP 401");
+      expect(text).toContain("current runtime failure");
+      expect(text).toContain("independent-user adoption");
+      expect(text).toContain("Windows");
+    }
+  });
 });
