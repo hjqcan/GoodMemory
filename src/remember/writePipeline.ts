@@ -1,3 +1,4 @@
+import { isProjectionCapableDocumentStore, QUERY_SNAPSHOT_BATCH_SEMANTICS } from "../storage/contracts";
 import { requiresFinalSourceGrounding, sourceAttributionSnapshot } from "../language/speakerAttribution";
 import { matchesAttributionSnapshot } from "../language/attributionSnapshot";
 import { sourcePreferenceStatement } from "../language/personalPreferences";
@@ -576,6 +577,9 @@ export function createRememberWritePipeline(
               deleteDocumentWithRollback,
               writeDocumentBatchWithRollback,
               writeConditionalBatchWithRollback: writeCoordinator.writeConditionalBatchWithRollback,
+              supportsConditionalDocumentWrites: isProjectionCapableDocumentStore(config.documentStore),
+              supportsQuerySnapshotDocumentWrites: isProjectionCapableDocumentStore(config.documentStore) &&
+                config.documentStore.querySnapshotBatchSemantics === QUERY_SNAPSHOT_BATCH_SEMANTICS,
             },
             state,
           });

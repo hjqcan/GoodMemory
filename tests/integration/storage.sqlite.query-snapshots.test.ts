@@ -73,7 +73,7 @@ describe("SQLite query snapshot writer concurrency", () => {
     },
   );
 
-  it("revalidates an obsolete snapshot once when only another scope changed", async () => {
+  it("accepts a still-valid snapshot when only another scope changed", async () => {
     const directory = await mkdtemp(join(tmpdir(), "goodmemory-snapshot-independent-"));
     const path = join(directory, "memory.sqlite");
     const store = createSQLiteDocumentStore(path);
@@ -106,7 +106,7 @@ describe("SQLite query snapshot writer concurrency", () => {
     }
   });
 
-  it("bounds revalidation while retaining both independent writers", async () => {
+  it("avoids repeated full validation while retaining both independent writers", async () => {
     const directory = await mkdtemp(join(tmpdir(), "goodmemory-snapshot-revalidation-"));
     const path = join(directory, "memory.sqlite");
     const store = createSQLiteDocumentStore(path);
@@ -115,10 +115,14 @@ describe("SQLite query snapshot writer concurrency", () => {
     const writer = new Database(path, { strict: true });
     writer.exec("PRAGMA busy_timeout=0");
     let writes = 0;
+    let validations = 0;
     const observed = {
       toJSON() {
-        writer.query("INSERT INTO documents(collection,id,json) VALUES (?1,?2,?3)")
-          .run("facts", "other-" + ++writes, JSON.stringify({ userId: "independent", content: "other" }));
+        validations++;
+        for (let i = 0; i < 2; i++) {
+          writer.query("INSERT INTO documents(collection,id,json) VALUES (?1,?2,?3)")
+            .run("facts", "other-" + ++writes, JSON.stringify({ userId: "independent", content: "other" }));
+        }
         return target;
       },
     };
@@ -127,12 +131,13 @@ describe("SQLite query snapshot writer concurrency", () => {
         querySnapshots: [{ collection: "facts", filter: { userId: "author" }, documents: [observed] }],
         expected: { collection: "facts", id: "target", document: target },
         set: [{ collection: "facts", id: "target", document: { ...target, content: "replacement" } }],
-      })).toBe(false);
+      })).toBe(true);
+      expect(validations).toBe(1);
       expect(writes).toBe(2);
-      expect(await store.get("facts", "target")).toEqual(target);
+      expect(await store.get("facts", "target")).toEqual({ ...target, content: "replacement" });
       expect(await store.query("facts", { userId: "independent" })).toHaveLength(2);
-      await store.set("facts", "subsequent", { content: "after refusal" });
-      expect(await store.get("facts", "subsequent")).toEqual({ content: "after refusal" });
+      await store.set("facts", "subsequent", { content: "after commit" });
+      expect(await store.get("facts", "subsequent")).toEqual({ content: "after commit" });
     } finally {
       writer.close();
       await rm(directory, { recursive: true, force: true });

@@ -138,6 +138,8 @@ export interface PreparedRememberDocumentBatch<TResult> {
 }
 
 export interface RememberWriteContext {
+  supportsConditionalDocumentWrites: boolean;
+  supportsQuerySnapshotDocumentWrites: boolean;
   persistSourceMessageRecord(record: SourceMessageRecord): Promise<SourceMessageRecord>;
   writeConditionalBatchWithRollback(batch: ConditionalDocumentWriteBatch): Promise<boolean>;
   input: MemoryExtractionInput;

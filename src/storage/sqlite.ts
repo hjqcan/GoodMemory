@@ -231,6 +231,66 @@ export function serializeSQLiteDatabase(path: string): Uint8Array {
   }
 }
 
+const QUERY_FENCE_FIELDS = ["userId", "tenantId", "workspaceId", "agentId"] as const;
+const QUERY_FENCE_SCHEMA_COMPONENT = "query_scope_fences_v1";
+
+function queryFenceScopeKeySql(mask: number, json: string): string {
+  const values = [String(mask)];
+  for (const [index, field] of QUERY_FENCE_FIELDS.entries()) {
+    if (!(mask & (1 << index))) continue;
+    const type = `CASE WHEN json_valid(${json}) THEN json_type(${json}, '$.${field}') END`;
+    const value = `CASE WHEN json_valid(${json}) THEN json_extract(${json}, '$.${field}') END`;
+    values.push(`CASE WHEN ${type} IN ('integer', 'real') THEN 'number' ELSE COALESCE(${type}, 'missing') END`);
+    values.push(`CASE WHEN ${type} IN ('integer', 'real') THEN CAST(${value} AS REAL) ELSE ${value} END`);
+  }
+  return `json_array(${values.join(", ")})`;
+}
+
+function queryFenceScopeKey(filter?: StorageFilter): string {
+  // Unknown predicate fields conservatively use the collection fence. Every
+  // subset of the four durable scope keys has its own O(1) generation lookup.
+  const keys = Object.keys(filter ?? {});
+  const scoped = keys.every(key => QUERY_FENCE_FIELDS.includes(key as typeof QUERY_FENCE_FIELDS[number]));
+  const mask = scoped ? QUERY_FENCE_FIELDS.reduce((mask, field, index) =>
+    Object.hasOwn(filter ?? {}, field) ? mask | (1 << index) : mask, 0) : 0;
+  const values: unknown[] = [mask];
+  for (const [index, field] of QUERY_FENCE_FIELDS.entries()) {
+    if (!(mask & (1 << index))) continue;
+    const value = filter![field];
+    values.push(value === null ? "null" : typeof value === "string" ? "text" :
+      typeof value === "boolean" ? String(value) : "number", value === true ? 1 : value === false ? 0 : value);
+  }
+  // SQLite's JSON encoder preserves REAL as 1.0 whereas JSON.stringify uses 1.
+  // Canonicalize numeric tokens through SQLite json_array() at lookup time.
+  return JSON.stringify(values);
+}
+
+function ensureQueryFenceSchema(database: Database): void {
+  database.exec(`CREATE TABLE IF NOT EXISTS document_query_fences (
+    collection TEXT NOT NULL, fence_key TEXT NOT NULL,
+    generation INTEGER NOT NULL CHECK(typeof(generation) = 'integer' AND generation >= 0),
+    PRIMARY KEY(collection, fence_key)
+  )`);
+  const bump = (collection: string, json: string, where = "") =>
+    Array.from({ length: 16 }, (_, mask) => `
+      INSERT INTO document_query_fences(collection, fence_key, generation)
+      SELECT ${collection}, ${queryFenceScopeKeySql(mask, json)}, 1 ${where}
+      ON CONFLICT(collection, fence_key) DO UPDATE SET generation = generation + 1;
+    `).join("\n");
+  database.exec(`
+    CREATE TRIGGER IF NOT EXISTS document_query_fences_before_insert
+    BEFORE INSERT ON documents BEGIN
+      ${bump("collection", "json", "FROM documents WHERE collection = NEW.collection AND id = NEW.id")}
+    END;
+    CREATE TRIGGER IF NOT EXISTS document_query_fences_after_insert
+    AFTER INSERT ON documents BEGIN ${bump("NEW.collection", "NEW.json")} END;
+    CREATE TRIGGER IF NOT EXISTS document_query_fences_after_update
+    AFTER UPDATE ON documents BEGIN ${bump("OLD.collection", "OLD.json")}${bump("NEW.collection", "NEW.json")} END;
+    CREATE TRIGGER IF NOT EXISTS document_query_fences_after_delete
+    AFTER DELETE ON documents BEGIN ${bump("OLD.collection", "OLD.json")} END;
+  `);
+}
+
 function ensureDocumentSchema(database: Database): void {
   database.exec(`
     CREATE TABLE IF NOT EXISTS documents (
@@ -361,6 +421,13 @@ function ensureDocumentSchema(database: Database): void {
           DOCUMENT_FILTER_INDEX_SCHEMA_COMPONENT,
           DOCUMENT_FILTER_INDEX_SCHEMA_VERSION,
         );
+    }
+    if (versionStatement.get(QUERY_FENCE_SCHEMA_COMPONENT)?.version !== 1) {
+      // Trigger installation is atomic with its schema marker. Existing rows
+      // start at generation zero; no data scan or rewrite is required.
+      ensureQueryFenceSchema(database);
+      database.query(`INSERT INTO document_store_schema(component, version) VALUES (?1, 1)
+        ON CONFLICT(component) DO UPDATE SET version = excluded.version`).run(QUERY_FENCE_SCHEMA_COMPONENT);
     }
     database.exec("COMMIT");
   } catch (error) {
@@ -792,26 +859,58 @@ export function createSQLiteDocumentStore(
     }
     return clauses;
   }
-  function writeBatchIfUnchanged(
-    input: ConditionalDocumentWriteBatch,
-    retryObsoleteRead = true,
-  ): boolean {
-    const checksQuerySnapshots = (input.querySnapshots?.length ?? 0) > 0;
-    // WAL readers do not reserve the writer lock while large snapshots are
-    // validated. SQLite refuses an upgrade if another writer makes this read
-    // snapshot obsolete, so the same checks still guard the eventual writes.
-    database.exec(checksQuerySnapshots ? "BEGIN DEFERRED" : "BEGIN IMMEDIATE");
+  function readQueryGeneration(collection: string, filter?: StorageFilter): string {
+    // The generated keys distinguish missing/null and boolean/number values.
+    // Normalize numeric values to REAL, matching the trigger expression.
+    const key = queryFenceScopeKey(filter);
+    const values = JSON.parse(key) as unknown[];
+    const parts = values.map((value, index) => index > 0 && index % 2 === 0 && values[index - 1] === "number"
+      ? `CAST(?${index + 1} AS REAL)` : `?${index + 1}`);
+    const row = database.query<{ generation: string }, SQLiteBindingValue[]>(`
+      SELECT CAST(generation AS TEXT) AS generation FROM document_query_fences
+      WHERE collection = ?${values.length + 1} AND fence_key = json_array(${parts.join(", ")})
+    `).get(...values as SQLiteBindingValue[], collection);
+    return row?.generation ?? "0";
+  }
 
+  function writeBatchIfUnchanged(input: ConditionalDocumentWriteBatch): boolean {
+    const checksQuerySnapshots = (input.querySnapshots?.length ?? 0) > 0;
+    let transactionOpen = false;
     try {
-      for (const snapshot of input.querySnapshots ?? []) {
-        assertStorageFilter(snapshot.filter);
-        const current = listStatement.all(snapshot.collection)
-          .map(row => parseJson<StorageDocument>(row.json))
-          .filter(document => matchesFilter(document, snapshot.filter));
-        if (!matchesDocumentQuerySnapshot(current, snapshot.documents)) {
-          database.exec("ROLLBACK");
-          return false;
+      if (checksQuerySnapshots) {
+        // Large proof validation takes only a read lock. A relevant generation
+        // certifies that proof across the short gap before writer admission;
+        // unrelated WAL commits cannot invalidate the subsequent write view.
+        database.exec("BEGIN DEFERRED");
+        transactionOpen = true;
+        const generations: Array<{ collection: string; filter?: StorageFilter; generation: string }> = [];
+        for (const snapshot of input.querySnapshots ?? []) {
+          assertStorageFilter(snapshot.filter);
+          const current = listStatement.all(snapshot.collection)
+            .map(row => parseJson<StorageDocument>(row.json))
+            .filter(document => matchesFilter(document, snapshot.filter));
+          if (!matchesDocumentQuerySnapshot(current, snapshot.documents)) {
+            database.exec("ROLLBACK");
+            transactionOpen = false;
+            return false;
+          }
+          generations.push({ collection: snapshot.collection, filter: snapshot.filter,
+            generation: readQueryGeneration(snapshot.collection, snapshot.filter) });
         }
+        database.exec("COMMIT");
+        transactionOpen = false;
+        database.exec("BEGIN IMMEDIATE");
+        transactionOpen = true;
+        for (const snapshot of generations) {
+          if (readQueryGeneration(snapshot.collection, snapshot.filter) !== snapshot.generation) {
+            database.exec("ROLLBACK");
+            transactionOpen = false;
+            return false;
+          }
+        }
+      } else {
+        database.exec("BEGIN IMMEDIATE");
+        transactionOpen = true;
       }
       for (const expected of [input.expected, ...(input.unchanged ?? [])]) {
         const current = getStatement.get(expected.collection, expected.id);
@@ -846,32 +945,18 @@ export function createSQLiteDocumentStore(
       database.exec("COMMIT");
       return true;
     } catch (error) {
-      let rolledBack = false;
-      try {
-        database.exec("ROLLBACK");
-        rolledBack = true;
-      } catch {
-        // The original mutation failure is more useful than rollback cleanup.
+      if (transactionOpen) {
+        try { database.exec("ROLLBACK"); } catch { /* Preserve the mutation error. */ }
       }
-
-      if (rolledBack && checksQuerySnapshots && error instanceof Error &&
-        "code" in error &&
-        (error.code === "SQLITE_BUSY_SNAPSHOT" || error.code === "SQLITE_BUSY")) {
-        // A different scope can invalidate the WAL read without changing any
-        // guarded rows. Re-read every snapshot and row constraint once; a
-        // changed target/source still refuses the write. Never extend waits.
-        if (error.code === "SQLITE_BUSY_SNAPSHOT" && retryObsoleteRead) {
-          return writeBatchIfUnchanged(input, false);
-        }
-        return false;
-      }
+      if (checksQuerySnapshots && error instanceof Error && "code" in error &&
+        (error.code === "SQLITE_BUSY_SNAPSHOT" || error.code === "SQLITE_BUSY")) return false;
       throw error;
     }
   }
 
   return bindSQLiteDocumentStoreIdentity({
     projectionBatchSemantics: PROJECTION_BATCH_SEMANTICS,
-    querySnapshotBatchSemantics: QUERY_SNAPSHOT_BATCH_SEMANTICS,
+    ...(!options?.readOnly ? { querySnapshotBatchSemantics: QUERY_SNAPSHOT_BATCH_SEMANTICS } : {}),
     async set<TDocument extends StorageDocument>(
       collection: string,
       id: string,

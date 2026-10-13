@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import { Database } from "bun:sqlite";
 import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
@@ -52,7 +52,7 @@ for (const mode of ["evidence-phantom", "evidence-update", "evidence-leaves-filt
       if (mode === "absent-point-created") input.unchanged.push({ collection: "sources", id: "absent", document: null });
       if (mode === "delete-only-phantom") input.set = [];
       expect(await store.writeBatchIfUnchanged(input)).toBe(false);
-      expect(reads).toBe(2);
+      expect(reads).toBe(1);
       expect(await store.get("facts", "target")).toEqual(target);
       expect(await store.get("facts", "replacement")).toBeNull();
       expect(await store.get("evidence", "new")).toBeNull();
@@ -73,12 +73,12 @@ test("a query with initially zero matching rows rejects a concurrent phantom", a
   });
 });
 
-test("unrelated writer succeeds during validation and full retried batch commits once", async () => {
+test("unrelated writer succeeds during validation and the batch commits without rescanning", async () => {
   await fixture(async ({ store, put, batch }: any) => {
     let reads = 0;
     const input = batch(() => { if (++reads === 1) put("facts", "other", { userId: "other", text: "independent write" }); });
     expect(await store.writeBatchIfUnchanged(input)).toBe(true);
-    expect(reads).toBe(2);
+    expect(reads).toBe(1);
     expect((await store.get("facts", "target")).lifecycle).toBe("superseded");
     expect(await store.get("facts", "other")).toEqual({ userId: "other", text: "independent write" });
     expect(await store.get("sources", "source")).toBeNull();
@@ -86,15 +86,31 @@ test("unrelated writer succeeds during validation and full retried batch commits
   });
 });
 
-test("a protected mutation in the second attempt is not accepted after an unrelated first conflict", async () => {
+test("a protected mutation after read validation rejects despite an earlier unrelated write", async () => {
   await fixture(async ({ store, put, batch, target }: any) => {
     let reads = 0;
     const input = batch(() => {
       if (++reads === 1) put("facts", "other", { userId: "other", text: "other" });
-      else put("evidence", "late", { userId: "author", text: "late authority" });
     });
-    expect(await store.writeBatchIfUnchanged(input)).toBe(false);
-    expect(reads).toBe(2);
+    // The fence replaces a second full WAL-upgrade validation with an O(1)
+    // writer-phase check. Inject at that real read/write boundary instead.
+    const exec = Database.prototype.exec;
+    let readOpen = false;
+    let interleaved = false;
+    const spy = spyOn(Database.prototype, "exec").mockImplementation(function(this: Database, sql: string) {
+      const result = exec.call(this, sql);
+      if (sql === "BEGIN DEFERRED") readOpen = true;
+      if (sql === "COMMIT" && readOpen && !interleaved) {
+        readOpen = false;
+        interleaved = true;
+        put("evidence", "late", { userId: "author", text: "late authority" });
+      }
+      return result;
+    });
+    try { expect(await store.writeBatchIfUnchanged(input)).toBe(false); }
+    finally { spy.mockRestore(); }
+    expect(reads).toBe(1);
+    expect(interleaved).toBe(true);
     expect(await store.get("facts", "target")).toEqual(target);
     expect(await store.get("evidence", "late")).not.toBeNull();
     expect(await store.get("facts", "replacement")).toBeNull();

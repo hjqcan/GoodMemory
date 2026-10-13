@@ -17,6 +17,8 @@ import {
   normalizeFeedbackAppliesTo,
 } from "../domain/records";
 import type { MemorySource } from "../domain/provenance";
+import type { ConditionalDocumentWriteBatch } from "../storage/contracts";
+import { evidenceSchema, sourceMessageSchema } from "../interchange/durableEnvelope";
 import { isSameDurableScope } from "../domain/scope";
 import { isIanaTimezone } from "../domain/temporal";
 import type { TemporalInterval } from "../domain/temporal";
@@ -253,6 +255,7 @@ function queueClaimProjection(input: {
 }
 
 export async function writeRememberCandidate(input: {
+  factWriteAttempt?: number;
   candidateId: string;
   candidate: ClassifiedCandidate;
   context: RememberWriteContext;
@@ -838,6 +841,7 @@ export async function writeRememberCandidate(input: {
       return source?.role === "user" && source.content.trim() === candidate.content.trim() ? [source.id] : [];
     }));
     const retiredMatches = facts.filter(fact => fact.lifecycle === "superseded" && fact.supersededBy &&
+      (fact.source.method === "explicit" || fact.source.method === "confirmed") &&
       sameOccurrence(fact.occurrence, occurrence) &&
       factTextKey(fact.content,
         resolveStoredTextLanguage(context, fact.content, fact.source)) === normalizedContent);
@@ -854,6 +858,83 @@ export async function writeRememberCandidate(input: {
         state.events.push({ candidateId, outcome: "rejected", memoryType: "fact",
           reason: "superseded_fact_source_replay", ...buildRememberEventTrace(candidate) });
         return;
+      }
+    }
+    const factQuerySnapshot = { collection: "facts", documents: queriedFacts,
+      filter: Object.fromEntries(Object.entries({ userId: context.input.scope.userId,
+        tenantId: context.input.scope.tenantId, workspaceId: context.input.scope.workspaceId,
+        agentId: context.input.scope.agentId }).filter((entry): entry is [string, string] => entry[1] !== undefined)),
+    };
+    const supportsFactAuthor = (target: typeof facts[number], source: SourceMessageRecord, evidence: EvidenceRecord) => {
+      const sourceLanguage = resolveStoredTextLanguage(context, source.content, evidence.source);
+      const targetKey = factTextKey(target.content, resolveStoredTextLanguage(context, target.content, target.source));
+      if (!isUnquotedLanguageText(source.content) || factTextKey(source.content, sourceLanguage) !== targetKey) return false;
+      return context.language.extractCandidates({ locale: sourceLanguage.locale,
+        messages: [{ role: source.role, content: source.content, observedAt: source.observedAt,
+          timezone: source.timezone, sourceMessageIndex: 0 }], nextId: () => "fact-observation-proof",
+      }, sourceLanguage).some(item => item.kindHint === "fact" && item.explicitness === "explicit" &&
+        item.sourceRole === "user" && factTextKey(item.content, sourceLanguage) === targetKey);
+    };
+    // Restoring a retired value is a new author assertion, never an ingestion-
+    // time fallback. Keep the full proof read set until the final atomic write.
+    let backfillProof: Awaited<ReturnType<typeof checkFactCorrectionChronology>> | undefined;
+    const backfillTargets: typeof facts = [];
+    if (retiredMatches.length > 0) {
+      const sourceIndexes = candidateSourceMessageIndexes(candidate);
+      const incoming = sourceIndexes.length === 1 ? context.sourceMessagesByIndex.get(sourceIndexes[0]!) : undefined;
+      const original = sourceIndexes.length === 1 ? context.input.messages[sourceIndexes[0]!] : undefined;
+      const rejectBackfill = (reason: string) => {
+        state.rejected += 1;
+        state.events.push({ candidateId, outcome: "rejected", memoryType: "fact",
+          reason, ...buildRememberEventTrace(candidate) });
+      };
+      if (!incoming || incoming.role !== "user" || original?.role !== "user" ||
+        original.content.trim() !== candidate.content.trim() || incoming.content.trim() !== candidate.content.trim() ||
+        incoming.observedAt === undefined) {
+        rejectBackfill("unordered_fact_backfill_source"); return;
+      }
+      const evidence = await context.queryDocuments<EvidenceRecord>(EVIDENCE_COLLECTION, factQuerySnapshot.filter);
+      backfillProof = { unchanged: [], querySnapshots: [{ collection: EVIDENCE_COLLECTION,
+        filter: factQuerySnapshot.filter, documents: evidence }] };
+      const successors = new Map<string, typeof facts[number]>();
+      for (const retired of retiredMatches) {
+        const seen = new Set<string>();
+        let current = retired;
+        while (current.lifecycle === "superseded" && current.supersededBy && !seen.has(current.id)) {
+          seen.add(current.id);
+          const successor = facts.find(item => item.id === current.supersededBy);
+          const links = evidence.filter(item => isSameDurableScope(item, context.input.scope) &&
+            item.kind === "correction_context" && item.linkedMemoryIds.includes(current.id) &&
+            item.linkedMemoryIds.includes(current.supersededBy!));
+          if (!successor || links.length !== 1) break;
+          const link = links[0]!;
+          if (!evidenceSchema.safeParse(link).success || !link.sourceRecordIds?.length) break;
+          let verified = true;
+          for (const id of link.sourceRecordIds) {
+            const source = await context.getDocument<SourceMessageRecord>(SOURCE_MESSAGES_COLLECTION, id);
+            backfillProof.unchanged.push({ collection: SOURCE_MESSAGES_COLLECTION, id, document: source });
+            if (!source || source.id !== id || source.role !== "user" ||
+              !sourceMessageSchema.safeParse(source).success || !isSameDurableScope(source, context.input.scope) ||
+              createHash("sha256").update(source.content).digest("hex") !== source.contentSha256 ||
+              !supportsFactAuthor(successor, source, link)) verified = false;
+          }
+          if (!verified) break;
+          current = successor;
+        }
+        if (current.lifecycle !== "active" || seen.has(current.id)) {
+          rejectBackfill("unverified_fact_backfill_lineage"); return;
+        }
+        successors.set(current.id, current);
+        backfillTargets.push(current);
+      }
+      for (const target of successors.values()) {
+        const proof = await checkFactCorrectionChronology({ scope: context.input.scope, target, incoming,
+          validFrom: candidate.metadata?.claim?.validFrom, validUntil: candidate.metadata?.claim?.validUntil,
+          now: context.now(), get: context.getDocument, query: context.queryDocuments,
+          supportsAuthorSource: (source, evidence) => supportsFactAuthor(target, source, evidence) });
+        if (proof.reason) { rejectBackfill(proof.reason); return; }
+        backfillProof.unchanged.push(...proof.unchanged);
+        backfillProof.querySnapshots.push(...proof.querySnapshots);
       }
     }
     const duplicate = facts.find(
@@ -880,18 +961,44 @@ export async function writeRememberCandidate(input: {
         storedSourceLanguage(context, duplicate.content, duplicate.source),
       );
       const evidenceId = context.createId();
-      const sourceMessages = await persistCandidateEvidence({
-        candidate,
-        context,
-        evidenceId,
-        memoryId: duplicate.id,
-        timestamp,
-      });
-      await context.setDocumentWithRollback(
-        "facts",
-        duplicate.id,
-        enrichedDuplicate ?? duplicate,
-      );
+      let sourceMessages: SourceMessageRecord[] = [];
+      if (!context.supportsConditionalDocumentWrites && !backfillProof) {
+        // Optional batch capabilities do not change the historical custom-
+        // adapter contract. Such stores retain best-effort ordinary writes.
+        sourceMessages = await persistCandidateEvidence({ candidate, context, evidenceId,
+          memoryId: duplicate.id, timestamp });
+        await context.setDocumentWithRollback("facts", duplicate.id, enrichedDuplicate ?? duplicate);
+      } else {
+        for (const index of candidateSourceMessageIndexes(candidate)) {
+          const source = context.sourceMessagesByIndex.get(index);
+          if (source) sourceMessages.push(await context.persistSourceMessageRecord(source));
+        }
+        const evidence = buildCandidateEvidence(context.input.scope, candidate, duplicate.id, evidenceId,
+          timestamp, languageMetadata(context.candidateLanguage), sourceMessages);
+        if (backfillTargets.some(target => !factCorrectionIsCurrent({ target, incoming: sourceMessages[0]!,
+          validFrom: candidate.metadata?.claim?.validFrom, validUntil: candidate.metadata?.claim?.validUntil,
+          now: context.now() }))) {
+          state.rejected += 1;
+          state.events.push({ candidateId, outcome: "rejected", memoryType: "fact",
+            reason: "not_current_fact_backfill_source", ...buildRememberEventTrace(candidate) });
+          return;
+        }
+        const committed = await context.writeConditionalBatchWithRollback({
+          expected: { collection: "facts", id: duplicate.id, document: duplicate },
+          querySnapshots: backfillProof ? [factQuerySnapshot, ...backfillProof.querySnapshots] : undefined,
+          unchanged: [{ collection: EVIDENCE_COLLECTION, id: evidenceId, document: null },
+            ...(backfillProof?.unchanged ?? []),
+            ...sourceMessages.map(document => ({ collection: SOURCE_MESSAGES_COLLECTION, id: document.id, document }))],
+          set: [{ collection: "facts", id: duplicate.id, document: enrichedDuplicate ?? duplicate },
+            { collection: EVIDENCE_COLLECTION, id: evidenceId, document: evidence }],
+        });
+        if (!committed) {
+          state.rejected += 1;
+          state.events.push({ candidateId, outcome: "rejected", memoryType: "fact",
+            reason: "duplicate_fact_changed_or_batch_unsupported", ...buildRememberEventTrace(candidate) });
+          return;
+        }
+      }
       queueClaimProjection({
         candidate,
         context,
@@ -956,6 +1063,16 @@ export async function writeRememberCandidate(input: {
         context.language.localesCompatible(resolveStoredTextLanguage(context, fact.content, fact.source).locale, candidateLanguage.locale) &&
         context.language.matchesExplicitFactReplacement?.(fact.content, candidate.content, candidateLanguage))
       : [];
+    if (sourceSupportsCorrection && correctionTargets.length === 0 && facts.some(fact =>
+      fact.lifecycle === "superseded" && fact.supersededBy && !fact.occurrence && fact.category !== "event" &&
+      (fact.source.method === "explicit" || fact.source.method === "confirmed") &&
+      context.language.localesCompatible(resolveStoredTextLanguage(context, fact.content, fact.source).locale, candidateLanguage.locale) &&
+      context.language.matchesExplicitFactReplacement?.(fact.content, candidate.content, candidateLanguage))) {
+      state.rejected += 1;
+      state.events.push({ candidateId, outcome: "rejected", memoryType: "fact",
+        reason: "retired_fact_correction_target", ...buildRememberEventTrace(candidate) });
+      return;
+    }
     if (correctionTargets.length > 1) {
       state.rejected += 1;
       state.events.push({ candidateId, outcome: "rejected", memoryType: "fact",
@@ -969,22 +1086,7 @@ export async function writeRememberCandidate(input: {
         target: explicitCorrectionTarget, incoming: correctionSource!,
         validFrom: candidate.metadata?.claim?.validFrom, validUntil: candidate.metadata?.claim?.validUntil,
         now: context.now(), get: context.getDocument, query: context.queryDocuments,
-        supportsAuthorSource: (source, evidence) => {
-          const sourceLanguage = resolveStoredTextLanguage(context, source.content, evidence.source);
-          const targetKey = factTextKey(explicitCorrectionTarget.content,
-            resolveStoredTextLanguage(context, explicitCorrectionTarget.content, explicitCorrectionTarget.source));
-          // Complete-source identity plus actual rule extraction proves the
-          // accepted author assertion. Normalizing a quote, report or part of
-          // a larger message alone cannot supply observation authority.
-          if (!isUnquotedLanguageText(source.content) ||
-            factTextKey(source.content, sourceLanguage) !== targetKey) return false;
-          return context.language.extractCandidates({ locale: sourceLanguage.locale,
-            messages: [{ role: source.role, content: source.content,
-              observedAt: source.observedAt, timezone: source.timezone, sourceMessageIndex: 0 }],
-            nextId: () => "fact-observation-proof",
-          }, sourceLanguage).some(item => item.kindHint === "fact" && item.explicitness === "explicit" &&
-            item.sourceRole === "user" && factTextKey(item.content, sourceLanguage) === targetKey);
-        },
+        supportsAuthorSource: (source, evidence) => supportsFactAuthor(explicitCorrectionTarget, source, evidence),
       });
       if (chronology.reason) {
         state.rejected += 1;
@@ -1108,6 +1210,61 @@ export async function writeRememberCandidate(input: {
       pushAcceptedEvent(state, { candidateId, outcome: "superseded", memoryType: "fact",
         memoryId: fact.id, reason: "source_bound_fact_correction", evidenceIds: [evidenceId],
         ...buildRememberEventTrace(candidate) });
+      return;
+    }
+
+    if (backfillProof || context.supportsQuerySnapshotDocumentWrites) {
+      const sourceMessages: SourceMessageRecord[] = [];
+      for (const index of candidateSourceMessageIndexes(candidate)) {
+        const source = context.sourceMessagesByIndex.get(index);
+        if (source) sourceMessages.push(await context.persistSourceMessageRecord(source));
+      }
+      if (backfillTargets.some(target => !factCorrectionIsCurrent({ target, incoming: sourceMessages[0]!,
+        validFrom: candidate.metadata?.claim?.validFrom, validUntil: candidate.metadata?.claim?.validUntil,
+        now: context.now() }))) {
+        state.rejected += 1;
+        state.events.push({ candidateId, outcome: "rejected", memoryType: "fact",
+          reason: "not_current_fact_backfill_source", ...buildRememberEventTrace(candidate) });
+        return;
+      }
+      const evidenceId = context.createId();
+      const evidence = buildCandidateEvidence(context.input.scope, candidate, fact.id, evidenceId,
+        timestamp, languageMetadata(context.candidateLanguage), sourceMessages);
+      const previous = superseded ? createFactMemory({ ...superseded, lifecycle: "superseded",
+        isActive: false, supersededBy: fact.id, updatedAt: timestamp }) : undefined;
+      const batch: ConditionalDocumentWriteBatch = {
+        expected: { collection: "facts", id: fact.id, document: null },
+        querySnapshots: [factQuerySnapshot, ...(backfillProof?.querySnapshots ?? [])],
+        unchanged: [{ collection: EVIDENCE_COLLECTION, id: evidenceId, document: null },
+          ...(backfillProof?.unchanged ?? []),
+          ...sourceMessages.map(document => ({ collection: SOURCE_MESSAGES_COLLECTION, id: document.id, document })),
+          ...(superseded ? [{ collection: "facts", id: superseded.id, document: superseded }] : [])],
+        set: [{ collection: "facts", id: fact.id, document: fact },
+          { collection: EVIDENCE_COLLECTION, id: evidenceId, document: evidence },
+          ...(previous ? [{ collection: "facts", id: previous.id, document: previous }] : [])],
+      };
+      if (!await context.writeConditionalBatchWithRollback(batch)) {
+        if (!backfillProof && (input.factWriteAttempt ?? 0) < 8) {
+          // A different ordinary fact may have changed the scope snapshot.
+          // Recompute admission from scratch; never reapply a stale prepared
+          // fact. Bounded jitter avoids lockstep retries between processes.
+          const attempt = input.factWriteAttempt ?? 0;
+          await new Promise(resolve => setTimeout(resolve,
+            2 ** attempt * (1 + Math.random())));
+          return writeRememberCandidate({ ...input, factWriteAttempt: attempt + 1 });
+        }
+        state.rejected += 1;
+        state.events.push({ candidateId, outcome: "rejected", memoryType: "fact",
+          reason: backfillProof ? "fact_backfill_proof_changed_or_batch_unsupported" : "fact_snapshot_changed_or_batch_unsupported", ...buildRememberEventTrace(candidate) });
+        return;
+      }
+      if (previous) state.pendingVectorDeletes.push({ id: previous.id, memoryType: "fact",
+        restoreRecord: supersededFactVector ? { ...supersededFactVector, memoryType: "fact" } : null });
+      state.pendingEmbeddingWrites.push(factEmbeddingWrite);
+      queueClaimProjection({ candidate, context, evidenceId, memoryId: fact.id, sourceMessages, state, timestamp });
+      pushAcceptedEvent(state, { candidateId, outcome: previous ? "superseded" : "written", memoryType: "fact",
+        memoryId: fact.id, reason: previous ? "superseded_inferred_fact" : "explicit_fact",
+        evidenceIds: [evidenceId], ...buildRememberEventTrace(candidate) });
       return;
     }
 
