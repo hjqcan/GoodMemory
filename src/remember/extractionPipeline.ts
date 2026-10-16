@@ -827,7 +827,17 @@ export function createRememberExtractionPipeline(config: RememberEngineConfig) {
   ): MemoryExtractionResult => {
     return {
       ...result,
-      candidates: result.candidates.map((candidate) => {
+      candidates: result.candidates.filter((candidate) => {
+        const isSourceIndex = (index: unknown): index is number =>
+          typeof index === "number" && Number.isInteger(index) &&
+          index >= 0 && index < request.messages.length;
+        // Extractors are pluggable runtime boundaries. Do not let array property
+        // coercion accept indexes that numeric policy/evidence maps cannot match.
+        return isSourceIndex(candidate.sourceMessageIndex) &&
+          (candidate.sourceMessageIndexes == null ||
+            (Array.isArray(candidate.sourceMessageIndexes) &&
+              [...candidate.sourceMessageIndexes].every(isSourceIndex)));
+      }).map((candidate) => {
         const sourceMessage = request.messages[candidate.sourceMessageIndex];
         const normalizedSourceMessage =
           sourceInput.messages[candidate.sourceMessageIndex];
@@ -990,17 +1000,17 @@ export function createRememberExtractionPipeline(config: RememberEngineConfig) {
       ? sourceAnalyses
       : analyzeRememberSourceMessages(producerInput, language);
     const customExtraction = extractor
-      ? normalizeExtractionResult(
-        input,
-        producerInput,
-        omitCandidatesFromSourceIndexes(
+      ? omitCandidatesFromSourceIndexes(
+        normalizeExtractionResult(
+          input,
+          producerInput,
           await extractor.extract(producerInput),
-          blockedProducerSourceIndexes,
+          producerSourceAnalyses,
+          requestLanguage,
+          "producer",
+          normalizedCanonicalExtraction.candidates,
         ),
-        producerSourceAnalyses,
-        requestLanguage,
-        "producer",
-        normalizedCanonicalExtraction.candidates,
+        blockedProducerSourceIndexes,
       )
       : undefined;
     const baselineResult = customExtraction
@@ -1025,17 +1035,17 @@ export function createRememberExtractionPipeline(config: RememberEngineConfig) {
       baselineExtraction,
       annotateExtractionResult(
         applyProfileTrace(
-          normalizeExtractionResult(
-            input,
-            producerInput,
-            omitCandidatesFromSourceIndexes(
+          omitCandidatesFromSourceIndexes(
+            normalizeExtractionResult(
+              input,
+              producerInput,
               await profileRuleExtractor.extract(producerInput),
-              blockedProducerSourceIndexes,
+              producerSourceAnalyses,
+              requestLanguage,
+              "producer",
+              normalizedCanonicalExtraction.candidates,
             ),
-            producerSourceAnalyses,
-            requestLanguage,
-            "producer",
-            normalizedCanonicalExtraction.candidates,
+            blockedProducerSourceIndexes,
           ),
           profile,
         ),
@@ -1046,17 +1056,17 @@ export function createRememberExtractionPipeline(config: RememberEngineConfig) {
     for (const profileExtractor of profile.extractors) {
       const profileExtraction = annotateExtractionResult(
         applyProfileTrace(
-          normalizeExtractionResult(
-            input,
-            producerInput,
-            omitCandidatesFromSourceIndexes(
+          omitCandidatesFromSourceIndexes(
+            normalizeExtractionResult(
+              input,
+              producerInput,
               await profileExtractor.extractor.extract(producerInput),
-              blockedProducerSourceIndexes,
+              producerSourceAnalyses,
+              requestLanguage,
+              "producer",
+              normalizedCanonicalExtraction.candidates,
             ),
-            producerSourceAnalyses,
-            requestLanguage,
-            "producer",
-            normalizedCanonicalExtraction.candidates,
+            blockedProducerSourceIndexes,
           ),
           profile,
         ),
