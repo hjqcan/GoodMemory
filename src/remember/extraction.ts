@@ -30,6 +30,13 @@ function buildCandidateMergeKey(candidate: MemoryCandidate): string {
     kindHint: candidate.kindHint,
     metadata: canonicalizeMetadata(candidate.metadata ?? null),
     sourceMessageIndex: candidate.sourceMessageIndex,
+    // Admission and evidence depend on every cited source. Only merge
+    // candidates with the same complete support set; keep the primary above
+    // because it also controls annotations and language interpretation.
+    sourceMessageIndexes: [...new Set([
+      candidate.sourceMessageIndex,
+      ...(candidate.sourceMessageIndexes ?? []),
+    ])].sort((left, right) => left - right),
     sourceRole: candidate.sourceRole,
   });
 }
