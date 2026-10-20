@@ -752,7 +752,7 @@ function trimSections(
   maxTokens?: number,
   options?: { keepLeadingEntries?: boolean },
 ) {
-  if (!maxTokens) {
+  if (maxTokens === undefined) {
     return {
       sections,
       omittedSections: [],
@@ -1079,9 +1079,11 @@ export function renderMemoryPacket(
   const frameTokens = frame ? estimateTextTokens(frame) : 0;
   const { sections: kept, omittedSections } = trimSections(
     sections.map(({ title, body }) => ({ title, body })),
-    effectiveMaxTokens === undefined
-      ? undefined
-      : Math.max(0, effectiveMaxTokens - frameTokens),
+    // Public zero retains its unbounded behavior. An exhausted allowance
+    // after reserving the frame is instead a real zero for section trimming.
+    effectiveMaxTokens
+      ? Math.max(0, effectiveMaxTokens - frameTokens)
+      : undefined,
     { keepLeadingEntries: isFragment },
   );
   const frameLines = frame && kept.length > 0 ? [frame] : [];
@@ -1195,27 +1197,43 @@ export function renderMemoryPacket(
     };
   }
 
-  if (output === "system_prompt_fragment") {
-    const content = enforceTextBudget([
-      labels.user_memory_context,
-      ...frameLines,
-      ...kept.map(renderFragmentSection),
-    ].join("\n"));
-
-    return {
-      content,
-      ...(frameLines.length > 0 ? { contextFrame: true as const } : {}),
-      estimatedTokens: estimateTextTokens(content),
-      omittedSections,
-    };
-  }
-
-  const content = enforceTextBudget([
-    labels.developer_memory_notes,
+  const heading = [
+    output === "system_prompt_fragment"
+      ? labels.user_memory_context
+      : labels.developer_memory_notes,
     ...frameLines,
+  ].join("\n");
+  const fragment = [
+    heading,
     ...kept.map(renderFragmentSection),
-    omittedSections.length > 0
-      ? labels.omitted_sections.replace("{sections}", omittedSections.join(", "))
+  ].join("\n");
+  // A byte ceiling of four bytes per requested token can still exceed the
+  // estimator for Unicode. Prompt fragments must satisfy both ceilings.
+  const enforceFragmentBudget = (value: string): string => {
+    const byteLimited = enforceTextBudget(value);
+    return effectiveMaxTokens
+      ? truncateTextToEstimatedTokens(byteLimited, effectiveMaxTokens)
+      : byteLimited;
+  };
+  const clippedFragment = enforceFragmentBudget(fragment);
+  // Final clipping also accounts for the title, separators, and packet byte
+  // cap. A selected section may therefore have no body in the delivered
+  // prefix. Track its actual position, not a text match that a note could
+  // imitate. Partially delivered bodies retain the existing kept semantics.
+  const deliveredOmissions = [...omittedSections];
+  let sectionOffset = heading.length + 1;
+  for (const section of kept) {
+    const rendered = renderFragmentSection(section);
+    const bodyOffset = sectionOffset + section.title.length + 2;
+    if (!clippedFragment.slice(bodyOffset, sectionOffset + rendered.length).trim()) {
+      deliveredOmissions.push(section.title);
+    }
+    sectionOffset += rendered.length + 1;
+  }
+  const content = enforceFragmentBudget([
+    fragment,
+    output === "developer_prompt_fragment" && deliveredOmissions.length > 0
+      ? labels.omitted_sections.replace("{sections}", deliveredOmissions.join(", "))
       : undefined,
   ]
     .filter(Boolean)
@@ -1223,8 +1241,10 @@ export function renderMemoryPacket(
 
   return {
     content,
-    ...(frameLines.length > 0 ? { contextFrame: true as const } : {}),
+    ...(frameLines.length > 0 && content.startsWith(heading)
+      ? { contextFrame: true as const }
+      : {}),
     estimatedTokens: estimateTextTokens(content),
-    omittedSections,
+    omittedSections: deliveredOmissions,
   };
 }
